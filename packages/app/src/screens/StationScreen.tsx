@@ -74,10 +74,7 @@ import {
 import { ScopedStationIdentity, StationNameEditor } from "../stationIdentity";
 import { AugmentAvailabilityFeeder } from "../telemetry/AugmentAvailabilityFeeder";
 import { PeerTransport } from "../telemetry/PeerTransport";
-import {
-  DEFAULT_SITREP_CARRIED_TOPICS,
-  SitrepTelemetryProvider,
-} from "../telemetry/SitrepTelemetryProvider";
+import { SitrepTelemetryProvider } from "../telemetry/SitrepTelemetryProvider";
 import { StationUplinkLoader } from "../uplinks/StationUplinkLoader";
 import { UplinkIntegrityBanner } from "../uplinks/UplinkIntegrityBanner";
 
@@ -407,10 +404,7 @@ export function StationScreen() {
           <ScopedStationIdentity>
             <StationInfoBroadcaster client={client} seat="mission-control" />
             <PeerClientProvider client={client}>
-              <SitrepTelemetryProvider
-                transport={peerTransport}
-                carriedChannels={DEFAULT_SITREP_CARRIED_TOPICS}
-              >
+              <SitrepTelemetryProvider transport={peerTransport}>
                 <AugmentAvailabilityFeeder />
                 <ConsoleSettingsFromHost service={settingsService} />
                 <ManeuverTriggerProvider service={maneuverTriggerClient}>

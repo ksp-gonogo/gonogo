@@ -43,16 +43,9 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const KEPLER_PERIOD_CHANNELS = [
-  "vessel.orbit",
-  "vessel.identity",
-  "system.bodies",
-];
-
 describe("KeplerPeriod: renders the reference curve off the stream", () => {
   it("draws the Kepler curve once a known reference body streams in", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: KEPLER_PERIOD_CHANNELS,
       pinnedUt: 10,
       suspendFrames: true,
     });

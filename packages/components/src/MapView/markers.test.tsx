@@ -13,17 +13,6 @@ import { MapViewComponent } from "./index";
  * since the canvas itself has nothing a test can inspect.
  */
 
-const CARRIED = [
-  "vessel.orbit",
-  "vessel.flight",
-  "vessel.identity",
-  "system.bodies",
-  "vessel.control",
-  "vessel.target",
-  "vessel.comms",
-  "vessel.propulsion",
-];
-
 const UT = 9876543;
 
 /* A Kerbin descent whose single patch runs on past the surface, so the vacuum walk finds a crossing, with an encounter named on the same sample. */
@@ -93,7 +82,6 @@ const BODIES = {
 
 function mount() {
   const fixture = setupStreamFixture({
-    carriedChannels: CARRIED,
     pinnedUt: UT,
     suspendFrames: true,
   });
@@ -215,7 +203,6 @@ describe("MapView's vessel marker under signal delay", () => {
 
   function mountDelayed(owlt: number) {
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED,
       delaySeconds: owlt,
       suspendFrames: true,
     });

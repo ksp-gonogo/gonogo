@@ -26,11 +26,8 @@ import { AtmosphereProfileComponent } from "./index";
  *    individually
  */
 
-const CARRIED = ["vessel.flight", "vessel.identity", "system.bodies"];
-
 function renderAtmo() {
   const fixture = setupStreamFixture({
-    carriedChannels: CARRIED,
     pinnedUt: 10,
     suspendFrames: true,
   });

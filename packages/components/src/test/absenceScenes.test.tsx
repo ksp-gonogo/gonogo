@@ -67,7 +67,6 @@ describe("absence scenes", () => {
  */
 const PLANT_FIXTURE = {
   _stream: {
-    carriedChannels: ["vessel.flight"],
     pinnedUt: 1000,
     emits: [
       {

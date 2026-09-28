@@ -164,7 +164,6 @@
     }
   },
   "_stream": {
-    "carriedChannels": ["vessel.parts", "parts.power"],
     "emits": [
       {
         "channel": "vessel.parts",

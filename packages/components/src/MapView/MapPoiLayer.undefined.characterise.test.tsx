@@ -48,8 +48,8 @@ function renderLayer() {
 }
 
 /** Layer inside a real stream fixture, so `<domain>.available` can be emitted or deliberately withheld. */
-function renderLayerOnStream(carriedChannels: string[]) {
-  const fixture = setupStreamFixture({ carriedChannels, suspendFrames: true });
+function renderLayerOnStream() {
+  const fixture = setupStreamFixture({ suspendFrames: true });
   const view = render(
     <fixture.Provider>
       <MapPoiLayer bodyId="Kerbin" project={project} width={400} height={200} />
@@ -79,7 +79,7 @@ describe("MapPoiLayer: what undefined telemetry means today", () => {
       usePois: () => [makePoi({ id: "ungated-poi", label: "Ungated POI" })],
     });
 
-    const { fixture } = renderLayerOnStream(["fake-domain.available"]);
+    const { fixture } = renderLayerOnStream();
     await flushFrames();
 
     // Undefined means domain not present; the ungated sibling proves the layer rendered, so this is the gate firing.
@@ -105,7 +105,7 @@ describe("MapPoiLayer: what undefined telemetry means today", () => {
       usePois: () => [makePoi({ id: "gated-poi", label: "Gated POI" })],
     });
 
-    const { fixture } = renderLayerOnStream(["fake-domain.available"]);
+    const { fixture } = renderLayerOnStream();
     await flushFrames();
     expect(screen.queryByRole("button", { name: "Gated POI" })).toBeNull();
 

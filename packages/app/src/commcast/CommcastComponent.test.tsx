@@ -41,14 +41,6 @@ const JEB = {
   vantageId: "vessel:ares",
 };
 
-/** Everything the widget declares, so nothing it reads is left unfed. */
-const TOPICS = [
-  "commandCentre.roster",
-  "commandCentre.separation",
-  "comms.delay",
-  "comms.link",
-];
-
 const unmounts: Array<() => void> = [];
 
 afterEach(() => {
@@ -67,7 +59,7 @@ function renderWidget(log: CommcastLog) {
   const transport = new StubTransport();
   const client = new TelemetryClient(transport);
   const view = render(
-    <TelemetryProvider client={client} carriedChannels={TOPICS}>
+    <TelemetryProvider client={client}>
       <CommcastLogProvider log={log}>
         <CommcastWidget id="w1" config={{}} w={6} h={8} />
       </CommcastLogProvider>
@@ -100,7 +92,7 @@ function renderOnStream(
     { from: "ksc", to: "vessel:ares", oneWaySeconds: 240 },
   ],
 ) {
-  const fixture = setupStreamFixture({ carriedChannels: TOPICS, pinnedUt: 10 });
+  const fixture = setupStreamFixture({ pinnedUt: 10 });
   const view = render(
     <fixture.Provider>
       <CommcastLogProvider log={log}>

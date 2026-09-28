@@ -18,7 +18,6 @@ import { SpaceCenterStatusComponent } from "./index";
  * save, so the grid keeps its last reading and dates it once the channel stops
  * arriving.
  */
-const CARRIED = ["career.status", "career.facilities", "spaceCenter.scene"];
 
 const renderedTrees: Array<() => void> = [];
 
@@ -32,7 +31,6 @@ afterEach(() => {
 
 function mount() {
   const fixture = setupStreamFixture({
-    carriedChannels: CARRIED,
     suspendFrames: true,
   });
   const { container, unmount } = render(

@@ -7,14 +7,6 @@
     "notes": "Past the deadline with no contact: officially lost. Struck through and announced role=\"alert\". Lost means lost CONTACT - the craft is still plotted, because its position is still known by dead reckoning. Derived from kerbin-orbit-no-target.json by adding the silence.<guid>.state channel; geometry is identical so the renders differ only in contact treatment."
   },
   "_stream": {
-    "carriedChannels": [
-      "vessel.orbit",
-      "vessel.identity",
-      "vessel.target",
-      "system.bodies",
-      "fleet.",
-      "silence."
-    ],
     "pinnedUt": 0,
     "emits": [
       {

@@ -17,7 +17,6 @@ import {
 
 function dvFixture(): StreamFixture {
   return setupStreamFixture({
-    carriedChannels: ["vessel.structure", "dv.stages", "dv.summary"],
     pinnedUt: 100,
     suspendFrames: true,
   });
@@ -25,17 +24,6 @@ function dvFixture(): StreamFixture {
 
 function systemFixture(): StreamFixture {
   return setupStreamFixture({
-    carriedChannels: [
-      "vessel.structure",
-      "dv.stages",
-      "dv.summary",
-      "vessel.orbit",
-      "vessel.identity",
-      "vessel.target",
-      "system.bodies",
-      "fleet.",
-      "silence.",
-    ],
     pinnedUt: 100,
     suspendFrames: true,
   });

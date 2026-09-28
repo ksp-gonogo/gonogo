@@ -8,12 +8,6 @@
     "notes": "The captured payload with the three provider fields set to what VesselViewProvider.AnalyticHorizon publishes when no integrating provider is elected: kind=1 (Unbounded), trajectoryKind=1 (Analytic), arc null, arcRefusal=0 (NotAttempted). Every other field, and both other channels, are the capture untouched, so a difference against the Principia twin is the provider and not the scenario."
   },
   "_stream": {
-    "carriedChannels": [
-      "vessel.orbit",
-      "vessel.identity",
-      "system.bodies",
-      "vessel.target"
-    ],
     "pinnedUt": 315659.495086983,
     "emits": [
       {

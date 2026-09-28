@@ -60,34 +60,6 @@ function frame(topic: string, payload: unknown, deliveredAt: number): string {
 }
 
 describe("ReplayTransport", () => {
-  it("declares carriedChannels as the fixture's topic set (from subscribedTopics when given)", () => {
-    const fixture: ReplayFixture = {
-      subscribedTopics: ["vessel.orbit", "vessel.flight"],
-      frames: [frame("vessel.orbit", { sma: 1 }, 0)],
-    };
-    const clock = new FakeClock();
-    const transport = new ReplayTransport(fixture, { clock });
-    expect(transport.carriedChannels).toEqual([
-      "vessel.orbit",
-      "vessel.flight",
-    ]);
-  });
-
-  it("derives carriedChannels from the distinct frame topics when subscribedTopics is omitted", () => {
-    const fixture: ReplayFixture = {
-      frames: [
-        frame("vessel.orbit", { sma: 1 }, 0),
-        frame("vessel.orbit", { sma: 2 }, 1),
-        frame("vessel.flight", { altitudeAsl: 5 }, 2),
-      ],
-    };
-    const clock = new FakeClock();
-    const transport = new ReplayTransport(fixture, { clock });
-    expect(new Set(transport.carriedChannels)).toEqual(
-      new Set(["vessel.orbit", "vessel.flight"]),
-    );
-  });
-
   it("delivers frames in ascending meta.deliveredAt order, anchored to the clock's now() at construction, even when the fixture array is out of order", () => {
     const fixture: ReplayFixture = {
       frames: [

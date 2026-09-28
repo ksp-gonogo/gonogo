@@ -18,7 +18,6 @@ afterEach(() => {
 
 function mountEva() {
   const fixture = setupStreamFixture({
-    carriedChannels: ["vessel.crew", "vessel.identity", "vessel.resources"],
     pinnedUt: 10,
   });
   const { unmount } = render(

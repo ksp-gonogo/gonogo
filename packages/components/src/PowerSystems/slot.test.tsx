@@ -65,7 +65,6 @@ const VESSEL_PARTS_WIRE = {
 // Drives the widget to its full-list layout, where the `sections` body slot renders.
 async function renderFullList() {
   const streamFixture = setupStreamFixture({
-    carriedChannels: ["vessel.parts"],
     pinnedUt: 10,
     suspendFrames: true,
   });

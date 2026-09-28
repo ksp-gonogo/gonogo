@@ -30,7 +30,6 @@ function mount(fixture: ReturnType<typeof setupStreamFixture>) {
 
 function newFixture() {
   return setupStreamFixture({
-    carriedChannels: ["career.status"],
     pinnedUt: 10,
     suspendFrames: true,
   });

@@ -14,7 +14,6 @@ afterEach(() => {
 describe("Navball: stream render golden (delay=0)", () => {
   it("renders the north-level attitude/control state off the stream", async () => {
     const streamFixture = setupStreamFixture({
-      carriedChannels: ["vessel.attitude", "vessel.control"],
       pinnedUt: 10,
       suspendFrames: true,
     });

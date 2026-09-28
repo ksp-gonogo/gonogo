@@ -32,18 +32,10 @@ afterEach(() => {
   clearActionHandlers();
 });
 
-const CARRIED = [
-  "time.warp",
-  "time.setWarpIndex",
-  "time.setPaused",
-  "spaceCenter.scene",
-];
-
 const INSTANCE = "warp-characterise";
 
 function mount(w: number, h: number) {
   const fixture = setupStreamFixture({
-    carriedChannels: CARRIED,
     pinnedUt: 0,
     suspendFrames: true,
   });

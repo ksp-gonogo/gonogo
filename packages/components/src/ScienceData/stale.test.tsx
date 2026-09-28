@@ -14,25 +14,11 @@ import { ScienceDataComponent } from "./index";
  * An omitted locale would read like a vessel that never reported a biome.
  */
 
-const CARRIED = [
-  "vessel.identity",
-  "system.bodies",
-  "vessel.surface",
-  "science.experiments",
-  "science.experimentBreakdown",
-  "science.archive",
-  "career.status",
-  "career.mode",
-  // Without a scene, the game signal from career.mode reads as not in flight and turns off the Aboard tab.
-  "spaceCenter.scene",
-] as const;
-
 describe("ScienceData when its reads are no longer current", () => {
   let stream: StreamFixture;
 
   beforeEach(() => {
     stream = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
       suspendFrames: true,
     });

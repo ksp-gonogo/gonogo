@@ -91,7 +91,6 @@ const NO_FLOW_WIRE = {
 
 function renderWidget(instanceId: string) {
   const fixture = setupStreamFixture({
-    carriedChannels: ["vessel.parts"],
     pinnedUt: 10,
     suspendFrames: true,
   });

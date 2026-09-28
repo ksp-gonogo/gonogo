@@ -305,7 +305,6 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/sitrep-client/src/auto-command.hook.test.tsx": 2,
   "packages/sitrep-client/src/auto-command.test.ts": 1,
   "packages/sitrep-client/src/bridge.test.tsx": 2,
-  "packages/sitrep-client/src/carried-channels-provider.test.tsx": 1,
   "packages/sitrep-client/src/client.test.ts": 2,
   "packages/sitrep-client/src/confirmed-predicted.test.ts": 4,
   "packages/sitrep-client/src/connectivity-history.test.ts": 1,

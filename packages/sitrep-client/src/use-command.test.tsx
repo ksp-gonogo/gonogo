@@ -206,20 +206,10 @@ function setupFixture({ suspendFrames = false } = {}) {
   });
   if (suspendFrames) clock.suspendFrames();
   const store = new TimelineStore(clock);
-  const carriedChannels = [
-    "comms.link",
-    "comms.delay",
-    "system.uplink.pending",
-    "system.uplink.gates",
-  ];
 
   function Provider({ children }: { children: React.ReactNode }) {
     return (
-      <TelemetryProvider
-        client={client}
-        store={store}
-        carriedChannels={carriedChannels}
-      >
+      <TelemetryProvider client={client} store={store}>
         {children}
       </TelemetryProvider>
     );

@@ -55,14 +55,6 @@ const META = {
 /** Mounts SystemViewComponent on Kerbin with one active vessel linked to home over one edge; omit `pending` for the no-traffic case. */
 function mountScene(pending?: unknown[]) {
   const fixture: StreamFixture = setupStreamFixture({
-    carriedChannels: [
-      "vessel.orbit",
-      "vessel.identity",
-      "system.bodies",
-      "system.vessels",
-      "comms.network",
-      "system.uplink.pending",
-    ],
     pinnedUt: 0,
     suspendFrames: true,
   });

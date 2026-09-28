@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { describe, expect, it } from "vitest";
 import { useTagValues } from "./useTagValues";
 
-// A note body's tags read straight off the stream, so no carried-channels gate stands between a tag and its topic.
+// A note body's tags read straight off the stream.
 function withProvider(client: TelemetryClient) {
   return ({ children }: { children: ReactNode }) => (
     <TelemetryProvider client={client}>{children}</TelemetryProvider>
@@ -17,7 +17,6 @@ describe("note tag values", () => {
     const transport = new StubTransport();
     const client = new TelemetryClient(transport);
 
-    // "vessel.control" deliberately absent from carriedChannels: the list is seeded from declarations and a promotion list, not from what arrives.
     const tags = ["vessel.control.throttle"];
     const { result } = renderHook(() => useTagValues(tags), {
       wrapper: withProvider(client),

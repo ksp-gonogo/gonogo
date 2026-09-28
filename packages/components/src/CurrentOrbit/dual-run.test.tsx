@@ -13,11 +13,6 @@ import { CurrentOrbitComponent } from "./index";
  * The complete grid, the reference-body subtitle and the mini diagram all render off one stream emit.
  * Expected values use the same two-body formulas as the solve.
  */
-const CURRENT_ORBIT_CHANNELS = [
-  "vessel.orbit",
-  "vessel.identity",
-  "system.bodies",
-];
 
 // meanAnomalyAtEpoch 0 at the pinned UT puts the vessel at periapsis.
 const PINNED_UT = 10;
@@ -33,7 +28,6 @@ describe("CurrentOrbit: full render off the stream", () => {
     const mode = { name: "default-9x18", w: 9, h: 18 };
 
     const streamFixture = setupStreamFixture({
-      carriedChannels: CURRENT_ORBIT_CHANNELS,
       pinnedUt: PINNED_UT,
       suspendFrames: true,
     });

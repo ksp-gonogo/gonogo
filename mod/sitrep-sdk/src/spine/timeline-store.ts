@@ -146,8 +146,8 @@ export interface TimelineStoreOptions {
    * `resolveRawFieldSubtopic` (and thus `resolveSubscriptionTopics`), instead of
    * being mis-split into a `<domain.channel>.<fieldPath>` parent that no channel
    * publishes. Injected (never hard-coded) so this mod-agnostic store names no
-   * mod token: the app passes `DYNAMIC_CARRIED_TOPIC_PREFIXES`
-   * (`default-carried-topics.ts`) for the Uplink per-(body,type) namespaces.
+   * mod token: the app passes `DYNAMIC_WHOLE_TOPIC_PREFIXES`
+   * (`dynamic-topic-prefixes.ts`).
    */
   dynamicWholeTopicPrefixes?: readonly string[];
   /**

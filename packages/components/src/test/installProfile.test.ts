@@ -8,11 +8,6 @@ import {
 } from "./installProfile";
 
 const SCENE: InstallProfileStreamBlock = {
-  carriedChannels: [
-    "reliability.summary",
-    "reliability.parts",
-    "rp1.available",
-  ],
   pinnedUt: 1000,
   emits: [
     { channel: "reliability.summary", value: { source: "scene" } },
@@ -27,7 +22,6 @@ describe("applying an install profile to a scene", () => {
       getInstallProfile("rp1-testflight"),
       SCENE,
     );
-    expect(block.carriedChannels[0]).toBe("system.uplinks");
     expect(block.emits[0]?.channel).toBe("system.uplinks");
     expect(
       block.emits.filter((e) => e.channel === "system.uplinks"),
@@ -52,13 +46,11 @@ describe("applying an install profile to a scene", () => {
 
   it("takes an absent Uplink's channels off the wire entirely", () => {
     const block = applyInstallProfile(getInstallProfile("stock-career"), SCENE);
-    expect(block.carriedChannels).not.toContain("rp1.available");
     expect(block.emits.some((e) => e.channel === "rp1.available")).toBe(false);
   });
 
   it("leaves the scene it was handed untouched", () => {
     applyInstallProfile(getInstallProfile("stock-career"), SCENE);
-    expect(SCENE.carriedChannels).toContain("rp1.available");
     expect(SCENE.emits).toHaveLength(3);
     expect(SCENE.pinnedUt).toBe(1000);
   });

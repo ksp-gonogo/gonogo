@@ -74,11 +74,7 @@ async function renderVantage(payload: VantageProbePayload): Promise<void> {
 
   activeRoot = createRoot(root);
   activeRoot.render(
-    <TelemetryProvider
-      client={client}
-      store={store}
-      carriedChannels={["commandCentre.roster"]}
-    >
+    <TelemetryProvider client={client} store={store}>
       <ScreenProvider value={payload.screen ?? "main"}>
         {createElement(MissionBanner)}
         {payload.notice

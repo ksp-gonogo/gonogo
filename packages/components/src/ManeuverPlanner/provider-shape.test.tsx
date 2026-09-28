@@ -17,18 +17,6 @@ afterEach(() => {
   clearActionHandlers();
 });
 
-const CARRIED = [
-  "vessel.orbit",
-  "vessel.flight",
-  "vessel.identity",
-  "system.bodies",
-  "vessel.control",
-  "vessel.target",
-  "vessel.comms",
-  "vessel.propulsion",
-  "vessel.maneuver",
-];
-
 const PINNED_UT = 1_000_000;
 
 /** The captured post-burn conic from `kerbin-finite-burn-window`. */
@@ -56,7 +44,6 @@ const POST_BURN_PATCH = {
 
 function mountPlanner(horizon: PropagationHorizonLike, instanceId: string) {
   const fixture = setupStreamFixture({
-    carriedChannels: CARRIED,
     pinnedUt: PINNED_UT,
     suspendFrames: true,
   });

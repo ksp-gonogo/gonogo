@@ -44,12 +44,6 @@ describe("ActionGroupComponent", () => {
   beforeEach(() => {
     clearRegistry();
     fixture = setupStreamFixture({
-      carriedChannels: [
-        "vessel.control",
-        "vessel.structure",
-        "time.warp",
-        "comms.link",
-      ],
       pinnedUt: 10,
       suspendFrames: true,
     });

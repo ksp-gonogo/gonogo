@@ -42,13 +42,6 @@ const LIGHT_TIME = 240;
  */
 const SPOKEN_UT = -1000;
 
-const TOPICS = [
-  "commandCentre.roster",
-  "commandCentre.separation",
-  "comms.delay",
-  "comms.link",
-];
-
 const ROSTER = [
   { id: ARES, displayName: "Ares 4", active: true },
   { id: WOOMERA, displayName: "Woomera Range", active: true },
@@ -122,7 +115,7 @@ function recordingBackend() {
 }
 
 function scene() {
-  const fixture = setupStreamFixture({ carriedChannels: TOPICS, pinnedUt: 10 });
+  const fixture = setupStreamFixture({ pinnedUt: 10 });
   /*
    * The clock's own frame loop is self-rescheduling and would pump the radio
    * whenever the machine felt like it, which is both non-deterministic and a

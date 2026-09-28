@@ -11,7 +11,6 @@ import { FuelStatusComponent } from "./index";
 describe("FuelStatus: genuinely runs off the stream", () => {
   it("reads current stage + vessel-total resources off the real stream pipeline, not legacy", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.structure", "vessel.resources"],
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -55,7 +54,6 @@ describe("FuelStatus: genuinely runs off the stream", () => {
 
   it("reads the ΔV totals + per-stage stack off dv.summary/dv.stages using the NEW StageDeltaVEntry wire shape", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.structure", "dv.stages", "dv.summary"],
       pinnedUt: 10,
       suspendFrames: true,
     });

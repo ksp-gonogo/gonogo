@@ -91,9 +91,7 @@ describe("useGameContext: career.mode streamed GameMode ordinal (mapped + carrie
 
     const { result } = renderHook(() => useGameContext(), {
       wrapper: ({ children }) => (
-        <TelemetryProvider client={client} carriedChannels={["career.mode"]}>
-          {children}
-        </TelemetryProvider>
+        <TelemetryProvider client={client}>{children}</TelemetryProvider>
       ),
     });
 
@@ -143,12 +141,7 @@ describe("useGameContext: kc.scene streamed (mapped + carried)", () => {
 
     const { result } = renderHook(() => useGameContext(), {
       wrapper: ({ children }) => (
-        <TelemetryProvider
-          client={client}
-          carriedChannels={["spaceCenter.scene"]}
-        >
-          {children}
-        </TelemetryProvider>
+        <TelemetryProvider client={client}>{children}</TelemetryProvider>
       ),
     });
 
@@ -188,12 +181,7 @@ describe("useGameContext: kc.padOccupied streamed via spaceCenter.state (mapped 
 
     const { result } = renderHook(() => useGameContext(), {
       wrapper: ({ children }) => (
-        <TelemetryProvider
-          client={client}
-          carriedChannels={["spaceCenter.launchSites"]}
-        >
-          {children}
-        </TelemetryProvider>
+        <TelemetryProvider client={client}>{children}</TelemetryProvider>
       ),
     });
 

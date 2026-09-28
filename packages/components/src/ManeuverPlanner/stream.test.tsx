@@ -85,13 +85,8 @@ function emitManeuverNode(fixture: ReturnType<typeof setupStreamFixture>) {
 }
 
 describe("ManeuverPlanner: maneuver-node id round-trip", () => {
-  it("Delete dispatches vessel.maneuver.remove with the REAL node id when vessel.maneuver.remove is carried", async () => {
+  it("Delete dispatches vessel.maneuver.remove with the REAL node id", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: [
-        ...CARRIED_ORBIT,
-        "vessel.maneuver",
-        "vessel.maneuver.remove",
-      ],
       pinnedUt: 1_000_000,
       suspendFrames: true,
     });
@@ -102,46 +97,6 @@ describe("ManeuverPlanner: maneuver-node id round-trip", () => {
       <fixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "mnv-cmd" }}>
           <ManeuverPlannerComponent id="mnv-cmd" config={{}} />
-        </DashboardItemContext.Provider>
-      </fixture.Provider>,
-    );
-
-    act(() => {
-      emitOrbitReady(fixture);
-      emitManeuverNode(fixture);
-    });
-
-    const deleteBtn = await screen.findByRole("button", {
-      name: "Delete node",
-    });
-    await waitForManeuverStreamFrame(fixture);
-    act(() => {
-      deleteBtn.click();
-    });
-
-    await waitFor(() =>
-      expect(commandHandler).toHaveBeenCalledWith("vessel.maneuver.remove", {
-        nodeId: REAL_NODE_ID,
-      }),
-    );
-  });
-
-  it("Delete still dispatches vessel.maneuver.remove with the REAL id even when the command topic isn't in the carried allowlist", async () => {
-    // useCommand dispatches regardless of the carried list, which here omits the command topic.
-    const fixture = setupStreamFixture({
-      carriedChannels: [...CARRIED_ORBIT, "vessel.maneuver"],
-      pinnedUt: 1_000_000,
-      suspendFrames: true,
-    });
-    const commandHandler = vi.fn(() => ({ ok: true }));
-    fixture.transport.setCommandHandler(commandHandler);
-
-    render(
-      <fixture.Provider>
-        <DashboardItemContext.Provider
-          value={{ instanceId: "mnv-cmd-uncarried" }}
-        >
-          <ManeuverPlannerComponent id="mnv-cmd-uncarried" config={{}} />
         </DashboardItemContext.Provider>
       </fixture.Provider>,
     );
@@ -192,11 +147,6 @@ describe("ManeuverPlanner: maneuver-node id round-trip", () => {
 
   it("Edit (Save) dispatches vessel.maneuver.update with the REAL node id", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: [
-        ...CARRIED_ORBIT,
-        "vessel.maneuver",
-        "vessel.maneuver.update",
-      ],
       pinnedUt: 1_000_000,
       suspendFrames: true,
     });
@@ -253,7 +203,6 @@ describe("ManeuverPlanner: maneuver-node id round-trip", () => {
 describe("ManeuverPlanner: the ΔV budget rides the stream", () => {
   it("shows the wire's own dv.summary total, not the sum of the stage rows", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: [...CARRIED_ORBIT, "dv.stages", "dv.summary"],
       pinnedUt: 1_000_000,
       suspendFrames: true,
     });

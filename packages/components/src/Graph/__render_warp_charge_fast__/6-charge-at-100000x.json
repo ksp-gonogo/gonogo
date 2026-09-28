@@ -5,7 +5,6 @@
     "notes": "SYNTHETIC. The same charge at 100,000x: samples 10,000 UT apart, five orbits of charge and discharge between each pair. No model claims the value and the span is wider than the one-second sampleIntervalUt, so a chord across it is a path nothing observed and each sample stands alone."
   },
   "_stream": {
-    "carriedChannels": ["vessel.resources", "time.warp", "vessel.identity"],
     "pinnedUt": 200000,
     "emits": [
       {

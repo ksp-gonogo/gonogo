@@ -19,7 +19,6 @@ const renderedTrees: Array<() => void> = [];
 
 function newFixture() {
   return setupStreamFixture({
-    carriedChannels: ["science.instruments", "science.experiments"],
     pinnedUt: 10,
     suspendFrames: true,
   });
@@ -201,7 +200,6 @@ describe("ExperimentsComponent", () => {
     vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
     const user = userEvent.setup();
     const fixture = setupStreamFixture({
-      carriedChannels: ["science.instruments", "comms.delay"],
       suspendFrames: true,
     });
     // Sent at the craft from UT 0, its last packet away at 4, landing one 30 s light-time later.

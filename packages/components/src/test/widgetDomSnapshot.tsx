@@ -123,8 +123,6 @@ interface Fixture {
  * format, read the same way by both harnesses.
  */
 interface StreamFixtureBlock {
-  /** Topics this fixture carries, forwarded to `setupStreamFixture`. */
-  carriedChannels: string[];
   /** UT to pin the view clock at. */
   pinnedUt?: number;
   /** Fixed network/display delay in seconds. */
@@ -147,9 +145,7 @@ interface StreamFixtureBlock {
 function resolveStreamBlock(fixture: Fixture): StreamFixtureBlock | undefined {
   const raw = fixture._stream;
   if (!raw || typeof raw !== "object") return undefined;
-  return Array.isArray(raw.emits) && Array.isArray(raw.carriedChannels)
-    ? raw
-    : undefined;
+  return Array.isArray(raw.emits) ? raw : undefined;
 }
 
 interface SnapshotOpts<Cfg> {
@@ -295,7 +291,6 @@ function buildStreamWrap(fixture: Fixture, profileId?: string): StreamWrap {
       : declared;
   if (streamBlock !== undefined) {
     const stream = setupStreamFixture({
-      carriedChannels: streamBlock.carriedChannels,
       pinnedUt: streamBlock.pinnedUt ?? resolvePinnedUt(fixture),
       delaySeconds: streamBlock.delaySeconds,
       suspendFrames: true,
@@ -354,12 +349,7 @@ function buildStreamWrap(fixture: Fixture, profileId?: string): StreamWrap {
       emitFrame: () => {},
     };
   }
-  // `time.warp`/`comms.link` must be carried, not merely emitted, or they never reach the widget.
-  const carriedChannels: string[] = [];
-  if (timeWarpWire !== undefined) carriedChannels.push("time.warp");
-  if (commsLinkWire !== undefined) carriedChannels.push("comms.link");
   const stream = setupStreamFixture({
-    carriedChannels,
     pinnedUt,
     suspendFrames: true,
   });

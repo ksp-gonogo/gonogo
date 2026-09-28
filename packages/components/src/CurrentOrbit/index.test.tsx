@@ -11,11 +11,6 @@ import { CurrentOrbitComponent } from "./index";
 /**
  * CurrentOrbit off the SDK stream alone. The elements solve to a ~85 km / ~78 km apoapsis / periapsis over Kerbin's 600 km radius.
  */
-const CURRENT_ORBIT_CHANNELS = [
-  "vessel.orbit",
-  "vessel.identity",
-  "system.bodies",
-];
 
 const KERBIN_MU = 3.5316e12;
 
@@ -25,7 +20,6 @@ describe("CurrentOrbitComponent", () => {
   beforeEach(() => {
     registerStockBodies();
     stream = setupStreamFixture({
-      carriedChannels: CURRENT_ORBIT_CHANNELS,
       pinnedUt: 0,
       suspendFrames: true,
     });

@@ -52,11 +52,7 @@ function setupTelemetryStream() {
 
   function Provider({ children }: { children: ReactNode }) {
     return (
-      <TelemetryProvider
-        client={client}
-        store={store}
-        carriedChannels={["commandCentre.roster"]}
-      >
+      <TelemetryProvider client={client} store={store}>
         {children}
       </TelemetryProvider>
     );
@@ -292,13 +288,6 @@ function setupDelayedStream() {
       <TelemetryProvider
         client={client}
         viewClockOptions={{ nowWall: wall.now }}
-        carriedChannels={[
-          "commandCentre.roster",
-          "commandCentre.activeVesselDelay",
-          "comms.link",
-          "comms.delay",
-          "spaceCenter.scene",
-        ]}
       >
         {children}
       </TelemetryProvider>
@@ -693,17 +682,7 @@ function renderPilot() {
   const view = render(
     <PeerClientProvider client={peer}>
       <ScreenProvider value="pilot">
-        <TelemetryProvider
-          client={client}
-          store={store}
-          carriedChannels={[
-            "commandCentre.roster",
-            "commandCentre.activeVesselDelay",
-            "comms.link",
-            "comms.delay",
-            "spaceCenter.scene",
-          ]}
-        >
+        <TelemetryProvider client={client} store={store}>
           <MissionBanner />
           <LinkReport />
         </TelemetryProvider>

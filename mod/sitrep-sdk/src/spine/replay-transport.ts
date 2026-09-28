@@ -18,13 +18,7 @@ import type { Clock } from "./clock";
  * `reference-wire-fixture.test.ts`'s own driver loop.
  */
 export interface ReplayFixture {
-  /**
-   * The topics this recording session subscribed to, the transport's own
-   * `carriedChannels` declaration (the carried-channels gate,
-   * `./carried-channels.ts`) is built straight from this list. Optional:
-   * when omitted, `ReplayTransport` derives the same set itself from the
-   * distinct `topic` fields actually present across `frames`.
-   */
+  /** The topics this recording session subscribed to. Optional. */
   subscribedTopics?: readonly string[];
   frames: readonly string[];
 }
@@ -81,12 +75,6 @@ function isDataOrEventFrame(
  *   so a fixture recorded against an arbitrary in-game UT replays correctly
  *   against a test clock that starts at 0, or a production clock that starts
  *   at "now".
- * - **`carriedChannels`** (the carried-channels gate,
- *   `./carried-channels.ts`) is declared statically at construction as
- *   EXACTLY the fixture's topic set: `TelemetryProvider` reads this
- *   straight through `client.declaredChannels`, so a screen mounted with a
- *   `ReplayTransport` streams every topic the recording carries with ZERO
- *   extra promotion wiring.
  *
  * `send()` is a no-op, same rationale as `FixtureTransport`: the fixture is
  * already scoped to exactly the topics the original recording session
@@ -95,7 +83,6 @@ function isDataOrEventFrame(
  */
 export class ReplayTransport implements Transport {
   readonly status: TransportStatus = "connected";
-  readonly carriedChannels: readonly string[];
 
   private readonly clock: Pick<Clock, "now" | "schedule">;
   private readonly loop: boolean;
@@ -125,10 +112,6 @@ export class ReplayTransport implements Transport {
       offsetFromStart: message.meta.deliveredAt - firstDeliveredAt,
       message,
     }));
-
-    this.carriedChannels = fixture.subscribedTopics ?? [
-      ...new Set(parsed.map((message) => message.topic)),
-    ];
 
     this.armFrom(this.clock.now());
   }

@@ -19,18 +19,6 @@ import { LandingStatusComponent } from "./index";
  * LandingStatus running off the stream through a real `StubTransport` pipeline, with no legacy `DataSource` registered, on a real Mun descent: subscription, carried-channel promotion, body resolution and the DOM render end to end.
  * `vessel.orbit` is emitted `{ quality: Quality.Loaded }`, a craft under physics.
  */
-const CARRIED = [
-  "vessel.orbit",
-  "vessel.flight",
-  "vessel.identity",
-  "system.bodies",
-  "vessel.control",
-  "vessel.target",
-  "vessel.propulsion",
-  "vessel.surface",
-  "dv.summary",
-  "comms.delay",
-];
 
 const MUN = { index: 3, name: "Mun", radius: 200_000, mu: 6.5138398e10 };
 
@@ -49,7 +37,6 @@ describe("LandingStatus: full-vector solve genuinely runs off the stream", () =>
     restoreResizeObserver = installSizedResizeObserver({ w: 720, h: 640 });
     registerStockBodies();
     stream = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
       suspendFrames: true,
     });

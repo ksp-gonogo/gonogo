@@ -4,16 +4,6 @@
     "notes": "A Kerbin transfer orbit from an 85 km periapsis, prograde and equatorial, whose patch ends at an SOI transition 15,000 s ahead: vessel.orbit.encounter names the Mun as an ENCOUNTER. The predicted track stops where the patch does, and the encounter ring is drawn at that end."
   },
   "_stream": {
-    "carriedChannels": [
-      "vessel.orbit",
-      "vessel.flight",
-      "vessel.identity",
-      "system.bodies",
-      "vessel.control",
-      "vessel.target",
-      "vessel.comms",
-      "vessel.propulsion"
-    ],
     "emits": [
       {
         "channel": "vessel.orbit",

@@ -6,16 +6,6 @@
   "v.body": "Kerbin",
   "b.number": 0,
   "_stream": {
-    "carriedChannels": [
-      "vessel.orbit",
-      "vessel.flight",
-      "vessel.identity",
-      "system.bodies",
-      "vessel.control",
-      "vessel.target",
-      "vessel.comms",
-      "vessel.propulsion"
-    ],
     "emits": [
       {
         "channel": "vessel.identity",

@@ -25,13 +25,6 @@ import { AstronautComplexComponent } from "./index";
  * one-line empty state that names whether it is waiting or off career; the
  * other absences are per-field NULL_DISPLAY guards.
  */
-const CARRIED = [
-  "spaceCenter.astronautComplex",
-  "spaceCenter.crewRoster",
-  "career.status",
-  "career.crew.hire",
-  "career.crew.fire",
-];
 
 const APPLICANT = {
   name: "Desdin Kerman",
@@ -54,7 +47,6 @@ describe("AstronautComplex, what undefined telemetry renders today", () => {
 
   beforeEach(() => {
     fixture = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
       suspendFrames: true,
     });

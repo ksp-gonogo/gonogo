@@ -533,17 +533,6 @@ export class TelemetryClient {
   }
 
   /**
-   * The topics the underlying `Transport` declares it actually delivers
-   * (see the carried-channels allowlist gate, `./carried-channels.ts`):
-   * `[]` when the transport doesn't declare (`Transport.carriedChannels`
-   * omitted, e.g. `StubTransport`). `TelemetryProvider` reads this to seed its
-   * carried-channels allowlist; nothing else on this class depends on it.
-   */
-  get declaredChannels(): readonly string[] {
-    return this.transport.carriedChannels ?? [];
-  }
-
-  /**
    * Feed this client's raw `stream-data` wire frames into `store`: from
    * this call on, every future `stream-data`
    * message is ALSO delivered to `store.ingest(topic, point)`, in addition

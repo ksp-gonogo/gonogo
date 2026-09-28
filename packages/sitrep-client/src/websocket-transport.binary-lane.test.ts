@@ -210,17 +210,6 @@ describe("WebSocketTransport on the binary lane", () => {
     transport.dispose();
   });
 
-  it("marks the topic carried, the same as a JSON delivery does", () => {
-    const fixture = caseNamed("batch-of-three");
-    const { transport, socket } = mountTransport();
-
-    expect(transport.carriedChannels).not.toContain(fixture.topic);
-    socket.deliver(bytesOf(fixture.frameBase64).buffer);
-    expect(transport.carriedChannels).toContain(fixture.topic);
-
-    transport.dispose();
-  });
-
   /**
    * The two budget seams stay separate, and this is the assertion that keeps
    * them so. Folding the lane into `onStreamFrame` would cost nothing to write

@@ -19,13 +19,6 @@ import { ActionGroupComponent } from "./index";
  * and Stage's number, are facts and stay held.
  */
 
-const CARRIED = [
-  "vessel.control",
-  "vessel.structure",
-  "time.warp",
-  "comms.link",
-];
-
 const CONTROL_ALL_OFF = {
   sas: false,
   sasMode: 0,
@@ -55,7 +48,6 @@ afterEach(() => {
 
 function mount(groupId: string, instanceId = `ag-stale-${groupId}`) {
   const fixture = setupStreamFixture({
-    carriedChannels: CARRIED,
     pinnedUt: 0,
     suspendFrames: true,
   });

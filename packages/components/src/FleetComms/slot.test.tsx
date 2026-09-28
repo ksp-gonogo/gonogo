@@ -38,15 +38,6 @@ describe("FleetComms: actions augment on SystemView, comms drawing on the contri
   beforeEach(() => {
     __resetFleetCommsTogglesForTests();
     fixture = setupStreamFixture({
-      carriedChannels: [
-        "vessel.orbit",
-        "vessel.identity",
-        "system.bodies",
-        "system.vessels",
-        "comms.network",
-        "comms.link",
-        "system.uplink.pending",
-      ],
       suspendFrames: true,
       pinnedUt: 100,
     });

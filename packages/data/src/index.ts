@@ -70,14 +70,13 @@ export type { AutoRecordControllerProps } from "./FlightsManager/AutoRecordContr
 export { AutoRecordController } from "./FlightsManager/AutoRecordController";
 export * from "./FlightsManager/autoRecordStatus";
 export { MissionHistorySource } from "./FlightsManager/MissionHistorySource";
-export * from "./hooks/useDataSchema";
 export * from "./hooks/useDataSeries";
 export * from "./hooks/useFlight";
 export * from "./hooks/useManeuverFeasibility";
 export * from "./hooks/useManeuverNodes";
 export * from "./hooks/usePartsLive";
+export * from "./hooks/useTopicFields";
 export * from "./hooks/useTopology";
-export * from "./hooks/useValueKeys";
 // `buildResourcesByFlightId`: the pure per-flightId resources lookup
 // `usePartsLive` builds internally, also needed by ShipMap's built-in
 // `ship-map.part-meters` contribution (a plain function of the same
@@ -89,11 +88,13 @@ export * from "./replaySession/ReplaySessionController";
 export * from "./replaySession/ReplaySessionProvider";
 export { registerBuiltinDerivedKeys } from "./schema/builtinDerivedKeys";
 export {
-  getCollectionCarriedTopics,
+  getCollectionTopics,
+  getDerivedTopicIds,
   getTopicFieldCatalog,
-  getUndescribedCarriedTopics,
+  getUndescribedTopics,
   humaniseFieldPath,
-  isThresholdSubject,
+  isNumericField,
+  isPrintableField,
   type TopicFieldKey,
 } from "./schema/topicFieldCatalog";
 export { IndexedDbStore } from "./storage/IndexedDbStore";

@@ -29,12 +29,6 @@ describe("SystemView: augment slots (spec §4)", () => {
     clearRegistry();
     clearAugments();
     fixture = setupStreamFixture({
-      carriedChannels: [
-        "vessel.orbit",
-        "vessel.identity",
-        "vessel.target",
-        "system.bodies",
-      ],
       pinnedUt: 100,
       suspendFrames: true,
     });

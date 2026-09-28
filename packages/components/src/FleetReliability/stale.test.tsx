@@ -9,7 +9,6 @@ import { FleetReliabilityUpdates } from "./index";
  * looking clean. The identity is a fact and is kept, so the notice still lands
  * on the right row. Both reliability topics go stale together.
  */
-const CARRIED = ["reliability.summary", "reliability.parts", "vessel.identity"];
 
 const ACTIVE_IDENTITY = {
   vesselId: "v-active",
@@ -29,7 +28,6 @@ const FAILING_PARTS = [
 
 function renderAugment(vesselId: string) {
   const fixture = setupStreamFixture({
-    carriedChannels: CARRIED,
     suspendFrames: true,
   });
   const utils = render(

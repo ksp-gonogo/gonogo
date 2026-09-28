@@ -22,21 +22,6 @@ function heldFundsCaption(): string | null {
   return readout?.querySelector("[data-unit-currency]")?.textContent ?? null;
 }
 
-const CARRIED = [
-  "career.status",
-  "spaceCenter.savedShips",
-  "spaceCenter.crewRoster",
-  "spaceCenter.scene",
-  "spaceCenter.launchSites",
-  "vessel.orbit",
-  "vessel.flight",
-  "vessel.identity",
-  "ksp.revertAvailability",
-  "crash.hasRecent",
-  "crash.lastCrash",
-  "target.available",
-];
-
 const KERBAL_X = {
   name: "Kerbal X",
   partCount: 24,
@@ -59,7 +44,6 @@ describe("LaunchDirector when its telemetry is no longer current", () => {
 
   beforeEach(() => {
     stream = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
       suspendFrames: true,
     });

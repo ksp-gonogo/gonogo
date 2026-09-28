@@ -20,7 +20,6 @@ const ROSTER = [
 /** Mounts the picker (main screen). */
 function mountPicker() {
   const fixture = setupStreamFixture({
-    carriedChannels: ["commandCentre.roster"],
     pinnedUt: 10,
   });
   const view = render(

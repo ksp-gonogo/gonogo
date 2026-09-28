@@ -8,12 +8,6 @@
     "scenario": "earth-mars-reach-band-stopped-arriving"
   },
   "_stream": {
-    "carriedChannels": [
-      "vessel.orbit",
-      "system.bodies",
-      "target.available",
-      "dv.summary"
-    ],
     "pinnedUt": 0,
     "emits": [
       {

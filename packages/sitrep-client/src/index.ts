@@ -24,7 +24,6 @@ export type {
   SituationName,
   TargetKindName,
 } from "@ksp-gonogo/sitrep-sdk";
-// Carried-topic policy now lives in the SDK: an Uplink needs it at runtime.
 export {
   CONTROL_STATE_NAMES,
   classifyRetained,
@@ -32,12 +31,10 @@ export {
   computeConfirmedEdgeUt,
   computeUtNowEstimate,
   currentMode,
-  DEFAULT_SITREP_CARRIED_TOPICS,
-  DYNAMIC_CARRIED_TOPIC_PREFIXES,
+  DYNAMIC_WHOLE_TOPIC_PREFIXES,
   deriveInFlight,
   EventTimeline,
   enumNameOf,
-  isTopicCarried,
   latchForward,
   SAS_MODE_NAMES,
   SITUATION_NAMES,
@@ -109,7 +106,6 @@ export {
   type DispatchActiveCommandResult,
   type DispatchCommandRefusal,
   dispatchActiveCommandTopic,
-  getActiveCarriedChannels,
   getActiveTelemetryClient,
   getContractsActive,
   getOrbitSolve,
@@ -125,7 +121,6 @@ export {
   PRODUCTION_DERIVED_CHANNELS,
   sampleActiveReading,
   sampleActiveTopic,
-  setActiveCarriedChannelsForTests,
   setActiveTelemetryClientForTests,
   setActiveTimelineStoreForTests,
   setActiveViewClockForTests,
@@ -133,8 +128,6 @@ export {
   TelemetryProvider,
   type TelemetryProviderProps,
   useActiveTelemetryClient,
-  useCarriedChannels,
-  useCarriedChannelsOptional,
   useStreamRecorder,
   useTelemetryClient,
   useTelemetryClientOptional,
@@ -152,6 +145,7 @@ export {
   contributeDerivedChannel,
   getContributedChannelConflicts,
   getContributedDerivedChannels,
+  onContributedChannelsChange,
 } from "./contributed-channels";
 export type {
   ControlRange,

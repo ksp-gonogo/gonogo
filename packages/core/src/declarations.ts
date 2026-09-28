@@ -9,7 +9,7 @@ import { isTopicId } from "@ksp-gonogo/sitrep-sdk";
  * form is trusted.
  *
  * `useWidgetStreamStatus` and `alarmMatchesWidget` both resolve a declaration
- * at runtime, and both are permissive by necessity: `isTopicCarried` walks a
+ * at runtime, and both are permissive by necessity: read resolution walks a
  * dotted PATH and cannot tell a real leaf from a plausible one, so
  * `career.status.economy.notAField` resolves exactly as well as
  * `career.status.economy.funds` and then renders `undefined` forever. A widget

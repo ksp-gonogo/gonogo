@@ -418,7 +418,6 @@
   "b.o.trueAnomaly[16]": -179.997388090574,
   "b.tidallyLocked[16]": false,
   "_stream": {
-    "carriedChannels": ["target.available", "vessel.target"],
     "emits": [
       {
         "channel": "target.available",

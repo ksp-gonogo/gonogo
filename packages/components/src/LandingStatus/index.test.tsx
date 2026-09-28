@@ -18,19 +18,6 @@ import {
 import { LandingStatusComponent } from "./index";
 
 /** A mostly-horizontal descent must not report a survivable burn-now touchdown: real physics through the stream pipeline, asserted at the DOM. */
-const CARRIED = [
-  "vessel.orbit",
-  "vessel.flight",
-  "vessel.identity",
-  "system.bodies",
-  "vessel.control",
-  "vessel.target",
-  "vessel.propulsion",
-  "vessel.surface",
-  "vessel.landing",
-  "dv.summary",
-  "comms.delay",
-];
 
 const MUN = { index: 3, name: "Mun", radius: 200_000, mu: 6.5138398e10 };
 const KERBIN = { index: 1, name: "Kerbin", radius: 600_000, mu: 3.5316e12 };
@@ -137,7 +124,6 @@ describe("LandingStatusComponent", () => {
     for (const b of PerfBudget.getAll()) b.reset();
     registerStockBodies();
     stream = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
       suspendFrames: true,
     });

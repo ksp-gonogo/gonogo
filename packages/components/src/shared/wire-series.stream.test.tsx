@@ -35,9 +35,8 @@ function stubSizedResizeObserver() {
   );
 }
 
-function fixtureWithoutDerivedChannels(carried: string[]) {
+function fixtureWithoutDerivedChannels() {
   return setupStreamFixture({
-    carriedChannels: carried,
     pinnedUt: 10,
     suspendFrames: true,
     withoutDerivedChannels: PRODUCTION_DERIVED_CHANNELS.map((c) => c.topic),
@@ -52,7 +51,7 @@ describe("series computed from the wire, with no derived channel in the store", 
   afterEach(() => vi.unstubAllGlobals());
 
   it("KeplerPeriod still marks the current orbit", async () => {
-    const fixture = fixtureWithoutDerivedChannels(["vessel.orbit"]);
+    const fixture = fixtureWithoutDerivedChannels();
     const { container } = render(
       <fixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "kp-wire" }}>
@@ -80,7 +79,7 @@ describe("series computed from the wire, with no derived channel in the store", 
   });
 
   it("OrbitalAscent still draws the horizontal-speed trace", async () => {
-    const fixture = fixtureWithoutDerivedChannels(["vessel.flight"]);
+    const fixture = fixtureWithoutDerivedChannels();
     const { container } = render(
       <fixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "oa-wire" }}>
@@ -111,7 +110,7 @@ describe("series computed from the wire, with no derived channel in the store", 
   });
 
   it("Twr still draws its sparkline", async () => {
-    const fixture = fixtureWithoutDerivedChannels(["vessel.propulsion"]);
+    const fixture = fixtureWithoutDerivedChannels();
     const { container } = render(
       <fixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "twr-wire" }}>
@@ -143,7 +142,7 @@ describe("series computed from the wire, with no derived channel in the store", 
 
 describe("useComputedSeries", () => {
   it("combines each primary sample with the secondary's value at or before it", async () => {
-    const fixture = fixtureWithoutDerivedChannels(["vessel.propulsion"]);
+    const fixture = fixtureWithoutDerivedChannels();
     const wrapper = ({ children }: { children: ReactNode }) => (
       <fixture.Provider>{children}</fixture.Provider>
     );

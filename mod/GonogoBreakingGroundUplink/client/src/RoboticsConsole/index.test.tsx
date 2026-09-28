@@ -29,8 +29,6 @@ afterEach(() => {
   clearActionHandlers();
 });
 
-const CARRIED = ["robotics.servos", "robotics.available", "game.dlc"];
-
 const servo = (
   over: Record<string, unknown> = {},
 ): Record<string, unknown> => ({
@@ -57,7 +55,6 @@ describe("RoboticsConsoleComponent", () => {
   /** The DLC sentence comes off `game.dlc.breakingGround`; `robotics.available: false` means the craft carries no robotic part. */
   it("names the missing DLC off game.dlc, not off robotics.available", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
     });
     renderConsole(fixture);
@@ -72,7 +69,6 @@ describe("RoboticsConsoleComponent", () => {
 
   it("shows the no-parts state when the craft carries no robotic part", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
     });
     renderConsole(fixture);
@@ -87,7 +83,6 @@ describe("RoboticsConsoleComponent", () => {
 
   it("shows the no-parts state when available but the list is empty", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
     });
     renderConsole(fixture);
@@ -103,7 +98,6 @@ describe("RoboticsConsoleComponent", () => {
   it("says it is waiting when neither presence fact has arrived", async () => {
     // Nothing reported yet is waiting, not a craft with no robotic parts.
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
     });
     renderConsole(fixture);
@@ -115,7 +109,6 @@ describe("RoboticsConsoleComponent", () => {
   it("renders current/target and fires setTarget when increasing", async () => {
     const user = userEvent.setup();
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
     });
 
@@ -141,7 +134,6 @@ describe("RoboticsConsoleComponent", () => {
 
   it("labels a piston in metres, not percent", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
     });
     renderConsole(fixture);
@@ -166,7 +158,6 @@ describe("RoboticsConsoleComponent", () => {
 
   it("ignores rotor entries in the same robotics.servos array", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
     });
     renderConsole(fixture);
@@ -186,7 +177,6 @@ describe("RoboticsConsoleComponent", () => {
   it("toggles the motor with the inverse of current state", async () => {
     const user = userEvent.setup();
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
     });
 
@@ -211,7 +201,6 @@ describe("RoboticsConsoleComponent", () => {
   it("selects a joint from the list and targets it", async () => {
     const user = userEvent.setup();
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
     });
 

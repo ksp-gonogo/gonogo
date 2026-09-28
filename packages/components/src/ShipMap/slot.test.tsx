@@ -27,7 +27,6 @@ const renderedTrees: Array<() => void> = [];
 // Drive the widget to its diagram layout, where the overlay slot renders.
 async function renderDiagram() {
   const fixture = setupStreamFixture({
-    carriedChannels: ["vessel.parts"],
     pinnedUt: 10,
     suspendFrames: true,
   });

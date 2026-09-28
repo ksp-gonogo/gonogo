@@ -18,16 +18,6 @@
   "o.timeToAp": 18900,
   "o.timeToPe": 880.5,
   "_stream": {
-    "carriedChannels": [
-      "vessel.orbit",
-      "vessel.flight",
-      "vessel.identity",
-      "system.bodies",
-      "vessel.control",
-      "vessel.target",
-      "vessel.comms",
-      "vessel.propulsion"
-    ],
     "emits": [
       {
         "channel": "vessel.orbit",

@@ -16,8 +16,6 @@ import { SemiMajorAxisComponent } from "./index";
  *   and the null glyph once `system.bodies` is a confirmed tombstone
  */
 
-const SEMI_MAJOR_AXIS_CHANNELS = ["vessel.orbit", "system.bodies"];
-
 function renderSma(fixture: ReturnType<typeof setupStreamFixture>) {
   // Clears both the subtitle and sparkline size thresholds, so anything missing is a data gate.
   return render(
@@ -31,7 +29,6 @@ function renderSma(fixture: ReturnType<typeof setupStreamFixture>) {
 
 function makeFixture() {
   return setupStreamFixture({
-    carriedChannels: SEMI_MAJOR_AXIS_CHANNELS,
     pinnedUt: 10,
     suspendFrames: true,
   });

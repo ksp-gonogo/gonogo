@@ -26,20 +26,6 @@ import { LandingStatusComponent } from "./index";
  *
  * Every one stops gating once a `Reading` is always truthy, so each has a test proving it fires.
  */
-const CARRIED = [
-  "vessel.orbit",
-  "vessel.flight",
-  "vessel.identity",
-  "system.bodies",
-  "vessel.target",
-  "vessel.propulsion",
-  "vessel.surface",
-  "vessel.landing",
-  "dv.summary",
-  "dv.stages",
-  "vessel.structure",
-  "comms.delay",
-];
 
 const MUN = { index: 3, name: "Mun", radius: 200_000, mu: 6.5138398e10 };
 
@@ -58,7 +44,6 @@ describe("LandingStatus: what undefined means today", () => {
     restoreResizeObserver = installSizedResizeObserver({ w: 720, h: 640 });
     registerStockBodies();
     stream = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
       suspendFrames: true,
     });

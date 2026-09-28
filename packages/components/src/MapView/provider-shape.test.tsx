@@ -36,12 +36,6 @@ afterEach(() => {
 async function mountMap(horizon: PropagationHorizonLike) {
   registerStockBodies();
   const fixture = setupStreamFixture({
-    carriedChannels: [
-      "vessel.flight",
-      "vessel.orbit",
-      "vessel.identity",
-      "system.bodies",
-    ],
     pinnedUt: PINNED_UT,
     suspendFrames: true,
   });

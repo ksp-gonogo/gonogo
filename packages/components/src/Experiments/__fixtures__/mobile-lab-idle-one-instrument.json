@@ -30,11 +30,6 @@
     }
   ],
   "_stream": {
-    "carriedChannels": [
-      "science.instruments",
-      "science.experiments",
-      "science.lab"
-    ],
     "emits": [
       {
         "channel": "science.instruments",

@@ -8,16 +8,6 @@
   "o.sma": 680000,
   "o.period": 1984.9,
   "_stream": {
-    "carriedChannels": [
-      "vessel.orbit",
-      "vessel.identity",
-      "system.bodies",
-      "vessel.flight",
-      "vessel.control",
-      "vessel.target",
-      "vessel.comms",
-      "vessel.propulsion"
-    ],
     "emits": [
       {
         "channel": "vessel.orbit",

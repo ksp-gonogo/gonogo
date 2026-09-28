@@ -8,7 +8,6 @@ import { CrewStatusComponent } from "./index";
 describe("CrewStatus, genuinely runs off the stream", () => {
   it("reads v.crewCount/v.crew/v.crewCapacity off the real stream pipeline, not legacy", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.crew"],
       pinnedUt: 10,
       suspendFrames: true,
     });

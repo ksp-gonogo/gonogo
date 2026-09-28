@@ -4,7 +4,6 @@
     "scenario": "overhaul-stopped-arriving"
   },
   "_stream": {
-    "carriedChannels": ["career.status"],
     "pinnedUt": 10,
     "stopsArriving": true,
     "emits": [

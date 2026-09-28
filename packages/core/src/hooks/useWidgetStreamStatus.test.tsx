@@ -25,14 +25,7 @@ function Host({
   transport: StubTransport;
 }) {
   const client = new TelemetryClient(transport);
-  return (
-    <TelemetryProvider
-      client={client}
-      carriedChannels={["vessel.orbit", "vessel.flight"]}
-    >
-      {children}
-    </TelemetryProvider>
-  );
+  return <TelemetryProvider client={client}>{children}</TelemetryProvider>;
 }
 
 /**

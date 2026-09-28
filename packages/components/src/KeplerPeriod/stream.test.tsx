@@ -38,16 +38,9 @@ afterEach(() => {
   clearBodies();
 });
 
-const KEPLER_PERIOD_CHANNELS = [
-  "vessel.orbit",
-  "vessel.identity",
-  "system.bodies",
-];
-
 describe("KeplerPeriod: reads body names off the stream", () => {
   it("resolves the parent and reference body names off the stream and surfaces the no-reference-data notice", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: KEPLER_PERIOD_CHANNELS,
       pinnedUt: 10,
       suspendFrames: true,
     });

@@ -50,11 +50,7 @@ function setup() {
   }
 
   render(
-    <TelemetryProvider
-      client={client}
-      store={store}
-      carriedChannels={["comms.delay"]}
-    >
+    <TelemetryProvider client={client} store={store}>
       <Downlink />
     </TelemetryProvider>,
   );

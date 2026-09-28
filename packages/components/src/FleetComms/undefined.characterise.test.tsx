@@ -23,22 +23,12 @@ import { __resetFleetCommsTogglesForTests } from "./toggles";
 
 const PINNED_UT = 100;
 
-const CARRIED = [
-  "vessel.orbit",
-  "vessel.identity",
-  "system.bodies",
-  "comms.path",
-  "comms.link",
-  "system.uplink.pending",
-];
-
 let fixture: StreamFixture;
 const teardowns: Array<() => void> = [];
 
 beforeEach(() => {
   __resetFleetCommsTogglesForTests();
   fixture = setupStreamFixture({
-    carriedChannels: CARRIED,
     pinnedUt: PINNED_UT,
     suspendFrames: true,
   });

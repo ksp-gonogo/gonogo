@@ -16,13 +16,10 @@ import { CommSignalComponent } from "./index";
 const CONTROL_STATE_FULL = 4;
 const CONTROL_STATE_UNKNOWN = 11;
 
-const CARRIED = ["comms.link", "vessel.comms", "comms.delay"];
-
 const teardowns: Array<() => void> = [];
 
 function renderComm() {
   const fixture = setupStreamFixture({
-    carriedChannels: CARRIED,
     pinnedUt: 10,
     suspendFrames: true,
   });

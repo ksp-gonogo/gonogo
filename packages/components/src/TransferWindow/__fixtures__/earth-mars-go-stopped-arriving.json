@@ -8,7 +8,6 @@
     "scenario": "earth-mars-go-stopped-arriving"
   },
   "_stream": {
-    "carriedChannels": ["vessel.orbit", "system.bodies", "target.available"],
     "pinnedUt": 0,
     "emits": [
       {

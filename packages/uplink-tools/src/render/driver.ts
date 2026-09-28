@@ -1124,14 +1124,13 @@ function assertEveryEmitLanded(scene: Scene, report: UnreadTopics): void {
       `${report.unsubscribedTopics.length} emitted topic(s), so they were ` +
       "dropped:\n  " +
       `${report.unsubscribedTopics.join("\n  ")}\n` +
-      `Derived carried channels (from the registration): ${scene.carriedChannels.join(", ") || "(none)"}\n` +
-      (report.uncarriedTopics.length > 0
-        ? `Not in that set at all: ${report.uncarriedTopics.join(", ")}. ` +
+      `Topics the registration declares: ${scene.declaredTopics.join(", ") || "(none)"}\n` +
+      (report.undeclaredTopics.length > 0
+        ? `Not declared at all: ${report.undeclaredTopics.join(", ")}. ` +
           "Add the topic to the target's `channels` / `optionalChannels` / " +
           "`dataRequirements`, or drop it from the fixture.\n"
-        : "Carried, so the allowlist is right and nothing read it: either the " +
-          "target does not consume the topic, or whatever gates the read never " +
-          "opened.\n"),
+        : "Declared, and nothing read it: either the target does not consume " +
+          "the topic, or whatever gates the read never opened.\n"),
   );
 }
 

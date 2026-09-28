@@ -7,7 +7,6 @@
   "t.isPaused": false,
   "comm.connected": true,
   "_stream": {
-    "carriedChannels": ["vessel.control", "time.warp", "comms.link"],
     "emits": [
       {
         "channel": "vessel.control",

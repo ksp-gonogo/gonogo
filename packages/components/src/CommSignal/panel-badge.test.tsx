@@ -41,7 +41,6 @@ describe("CommSignal panel badge (comm-signal-no-signal-badge contribution)", ()
 
   beforeEach(() => {
     fixture = setupStreamFixture({
-      carriedChannels: ["comms.link", "vessel.comms"],
       pinnedUt: 10,
       suspendFrames: true,
     });

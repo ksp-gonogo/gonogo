@@ -74,7 +74,6 @@ function vesselAtLongitude(lonDeg: number): Record<string, unknown> {
 
 function renderPhaseAngles(bodies: CelestialBody[], pinnedUt = 0) {
   const fixture = setupStreamFixture({
-    carriedChannels: ["vessel.orbit"],
     pinnedUt,
     suspendFrames: true,
   });

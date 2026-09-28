@@ -4,7 +4,6 @@
     "notes": "Vacuum stage, TWR 0.72: below 1, in the red no-go zone. Craft cannot arrest descent. Dial needle in the red sector, value label reads 0.72."
   },
   "_stream": {
-    "carriedChannels": ["vessel.propulsion"],
     "emits": [
       {
         "channel": "vessel.propulsion",

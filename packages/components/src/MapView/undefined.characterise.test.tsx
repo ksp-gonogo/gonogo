@@ -71,7 +71,6 @@ describe("MapView: what undefined telemetry means today", () => {
     size?: { w: number; h: number },
   ) {
     const fixture = setupStreamFixture({
-      carriedChannels: [...MAP_VIEW_CHANNELS],
       pinnedUt: 10,
       suspendFrames: true,
     });

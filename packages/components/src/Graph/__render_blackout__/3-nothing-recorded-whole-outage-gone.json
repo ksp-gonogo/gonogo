@@ -5,7 +5,6 @@
     "notes": "SYNTHETIC. The same outage with no recording behind it at all: the first sample after reacquisition carries the WHOLE ten minutes as Meta.GapSinceUt, so the break spans the entire outage and no recorded span fills it. This is the shape of data that is gone for good rather than merely late."
   },
   "_stream": {
-    "carriedChannels": ["vessel.flight", "vessel.identity", "vessel.comms"],
     "pinnedUt": 1000000,
     "emits": [
       {

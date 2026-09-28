@@ -8,7 +8,6 @@ import { PeerClientService } from "../peer/PeerClientService";
 import { StationInfoBroadcaster } from "../peer/StationInfoBroadcaster";
 import { ScopedStationIdentity, StationNameEditor } from "../stationIdentity";
 import { PeerTransport } from "../telemetry/PeerTransport";
-import { DEFAULT_SITREP_CARRIED_TOPICS } from "../telemetry/SitrepTelemetryProvider";
 import { MainScreen } from "./MainScreen";
 
 const HOST_ID_KEY = "gonogo-station-host-id";
@@ -172,13 +171,7 @@ export function PilotScreen() {
             <Button onClick={() => setDismissed(true)}>Dismiss</Button>
           </PilotScreen__CommsBanner>
         )}
-        <MainScreen
-          screen="pilot"
-          transport={relayedTransport}
-          carriedChannels={
-            relayedTransport ? DEFAULT_SITREP_CARRIED_TOPICS : undefined
-          }
-        />
+        <MainScreen screen="pilot" transport={relayedTransport} />
       </PeerClientProvider>
     </ScopedStationIdentity>
   );

@@ -19,7 +19,7 @@ import { ViewClock } from "./view-clock";
  * channel (`resolveDerivedTopic`): nothing would ever resolve a RAW
  * multi-field topic's dotted subtopic, because nothing ever publishes to the
  * literal wire topic `"time.warp.warpRate"`. A mapped raw-field key would
- * carry (once promoted to the carried-channels allowlist) forever, since
+ * read blank forever, since
  * `sample()`'s raw path looked up a `ClientTimeline` keyed by the exact
  * dotted string, which nothing ever ingests: the read shim's "mapped ->
  * stream" routing would silently be a dead end for every raw-record mapping

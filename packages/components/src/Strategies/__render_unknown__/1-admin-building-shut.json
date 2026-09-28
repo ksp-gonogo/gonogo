@@ -5,7 +5,6 @@
     "notes": "DERIVED from Strategies/__fixtures__/rp1-full-admin-building.json (91 real RP-1 rows) by setting canActivate to null and activateBlockedReason to the career model's own unanswered sentence on every INACTIVE row, which is the shape a shut Administration Building actually publishes: KSP answers eligibility for the whole screen or for none of it. Nothing else is changed, so every title, cost and effect line is the source fixture's. This is the case 3e0a841fa was found on: before it, all 89 of these sat under a heading reading Locked."
   },
   "_stream": {
-    "carriedChannels": ["career.status", "career.facilities"],
     "emits": [
       {
         "channel": "career.status",

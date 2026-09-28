@@ -7,12 +7,6 @@
     "notes": "Demonstrates the vessel-marker/parent-marker overlap fix: at this frame's scale (dominated by Minmus's 47Mm orbit) a 650km-sma low Kerbin orbit projects to only a couple of screen px from the origin, so the vessel marker would land directly on Kerbin's own dot. resolveVesselMarkerPlacement (SystemDiagram.tsx) pushes the marker out to a minimum screen distance along its true bearing from Kerbin and draws a short dashed leader line back to the real (sub-pixel) position, keeping the marker's contact treatment legible without lying about where the craft actually is. No fleet/silence channel is emitted here (plain 'observed' state), isolating the overlap fix from the separate contact-colour treatment the kerbin-orbit-contact-*.json fixtures cover."
   },
   "_stream": {
-    "carriedChannels": [
-      "vessel.orbit",
-      "vessel.identity",
-      "vessel.target",
-      "system.bodies"
-    ],
     "pinnedUt": 0,
     "emits": [
       {

@@ -87,14 +87,6 @@ function readValues(): string {
   return screen.getByTestId("values").textContent ?? "";
 }
 
-/** What the probes plot, and what `vessel.flight`'s reckoner reads. */
-const CARRIED = [
-  "vessel.flight",
-  "vessel.orbit",
-  "system.bodies",
-  "vessel.target",
-];
-
 /**
  * A closed conic around Kerbin, eccentric so the modelled speed genuinely moves
  * across the tail rather than holding flat, with its periapsis 240 km up so no
@@ -153,11 +145,7 @@ function buildStreamFixture(opts: { pinnedUt: number }) {
 
   function Provider({ children }: { children: ReactNode }) {
     return (
-      <TelemetryProvider
-        client={client}
-        store={store}
-        carriedChannels={CARRIED}
-      >
+      <TelemetryProvider client={client} store={store}>
         {children}
       </TelemetryProvider>
     );

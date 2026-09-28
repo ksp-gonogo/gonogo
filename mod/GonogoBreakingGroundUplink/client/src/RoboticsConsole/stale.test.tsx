@@ -48,7 +48,6 @@ const PISTON = {
 
 function mountWithHinge(instanceId: string) {
   const fixture = setupStreamFixture({
-    carriedChannels: ["robotics.servos", "robotics.available", "game.dlc"],
     pinnedUt: 10,
   });
   const rendered = renderWidget("robotics-console", {

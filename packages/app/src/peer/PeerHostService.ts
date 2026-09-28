@@ -2072,9 +2072,8 @@ export class PeerHostService {
    * Sitrep command RPC: the correctness-required companion to
    * `SitrepPeerRelay`'s read-path forwarding. Once a station mounts a real
    * `TelemetryClient` off `PeerTransport`,
-   * `useCommand`'s carried-channels check can route a widget's command
-   * through the stream instead of the legacy PeerJS `execute` fallback, if
-   * this RPC didn't exist, that command would silently no-op on a station.
+   * `useCommand` routes a widget's command through the stream; if this RPC
+   * didn't exist, that command would silently no-op on a station.
    *
    * `getActiveTelemetryClient()` is the HOST's own live client (the same
    * plain-class accessor `dispatchActiveCommand()` uses), this is a

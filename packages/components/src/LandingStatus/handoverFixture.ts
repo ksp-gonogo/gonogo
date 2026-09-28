@@ -21,7 +21,6 @@ export interface HandoverFixture {
     expectedDecline?: { reason: string; input: string };
   };
   _stream: {
-    carriedChannels: string[];
     pinnedUt: number;
     emits: StreamEmit[];
   };
@@ -42,15 +41,13 @@ function parseFixture(file: string, raw: unknown): HandoverFixture {
   if (!isRecord(meta)) return bad("no _meta");
   if (!isRecord(stream)) return bad("no _stream");
   const { scenario, expectedBasis, expectedDecline } = meta;
-  const { carriedChannels, pinnedUt, emits } = stream;
+  const { pinnedUt, emits } = stream;
   if (typeof scenario !== "string")
     return bad("_meta.scenario is not a string");
   if (typeof expectedBasis !== "string") {
     return bad("_meta.expectedBasis is not a string");
   }
-  if (!Array.isArray(carriedChannels) || !Array.isArray(emits)) {
-    return bad("_stream.carriedChannels and .emits must both be arrays");
-  }
+  if (!Array.isArray(emits)) return bad("_stream.emits must be an array");
   if (typeof pinnedUt !== "number") {
     return bad("_stream.pinnedUt is not a number");
   }
@@ -79,7 +76,6 @@ function parseFixture(file: string, raw: unknown): HandoverFixture {
   return {
     _meta: { scenario, expectedBasis, expectedDecline: decline },
     _stream: {
-      carriedChannels: carriedChannels.map(String),
       pinnedUt,
       emits: parsedEmits,
     },

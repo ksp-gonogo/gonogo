@@ -12,15 +12,6 @@
       "reliability-unavailable",
       "testflight-unreadable"
     ],
-    "carriedChannels": [
-      "system.vessels",
-      "system.bodies",
-      "vessel.identity",
-      "reliability.summary",
-      "reliability.parts",
-      "vessel.crew",
-      "vessel.inventory"
-    ],
     "emits": [
       {
         "channel": "system.bodies",

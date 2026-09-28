@@ -12,16 +12,8 @@ import { MapViewComponent } from "./index";
  * keep the last observed figures, each marked held by its own Unit.
  */
 
-const CARRIED = [
-  "vessel.flight",
-  "vessel.orbit",
-  "vessel.identity",
-  "system.bodies",
-];
-
 function mount() {
   const fixture = setupStreamFixture({
-    carriedChannels: CARRIED,
     pinnedUt: 10,
     suspendFrames: true,
   });

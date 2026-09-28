@@ -12,7 +12,6 @@
   "v.crewCapacity": 1,
   "v.isEVA": false,
   "_stream": {
-    "carriedChannels": ["vessel.crew", "vessel.identity"],
     "pinnedUt": 0,
     "emits": [
       {

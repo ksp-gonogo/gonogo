@@ -214,10 +214,8 @@ export interface SystemUnitsTopicPayloadMap {
  * stays put is the second. The flags on each row say which upstream gate held a
  * never-considered channel back.
  *
- * Carried by default, which costs nothing standing: the carried set gates
- * whether a read routes to the stream, and nothing subscribes until something
- * asks. The mod's side is the same, its mapper runs only while the Topic has a
- * subscriber.
+ * Nothing subscribes until something asks, and the mod's mapper runs only while
+ * the Topic has a subscriber.
  */
 export interface SystemChannelsTopicPayloadMap {
   "system.channels": ChannelEmissionReport;
@@ -330,9 +328,7 @@ for (const id of FIRST_PARTY_BARE_PRIMITIVE_TOPICS) {
  */
 export function registerBarePrimitiveTopic(id: string): void {
   barePrimitiveTopicIds.add(id);
-  // The runtime registry is what the field catalogue and the carried-channels
-  // allowlist read, so this call is also what makes an Uplink's Topic pickable
-  // and promotable. See `runtime-topic-registry.ts`.
+  // The runtime registry is what the field catalogue reads, so this call is also what makes an Uplink's Topic pickable. See `runtime-topic-registry.ts`.
   noteRuntimeTopic(id);
 }
 

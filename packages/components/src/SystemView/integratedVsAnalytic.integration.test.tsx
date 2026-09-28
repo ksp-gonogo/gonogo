@@ -24,7 +24,6 @@ const CONTRIBUTIONS_META = {
 
 interface ProbeFixture {
   _stream: {
-    carriedChannels: string[];
     pinnedUt: number;
     emits: {
       channel: string;
@@ -58,7 +57,6 @@ async function mountFixture(
 ): Promise<HTMLElement> {
   const { _stream: stream } = loadFixture(name);
   const fixture = setupStreamFixture({
-    carriedChannels: stream.carriedChannels,
     pinnedUt: stream.pinnedUt,
     suspendFrames: true,
   });

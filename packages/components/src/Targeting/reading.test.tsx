@@ -42,7 +42,6 @@ const TARGET = {
 
 async function mount(instanceId: string, pinnedUt = 10) {
   const fixture = setupStreamFixture({
-    carriedChannels: ["vessel.target"],
     pinnedUt,
     suspendFrames: true,
   });
@@ -210,7 +209,6 @@ describe("Targeting: stale renders the last observation as an observation", () =
 
   it("drops out of the docking HUD rather than drawing alignment from stale data", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.target", "vessel.dock"],
       pinnedUt: 10,
       suspendFrames: true,
     });

@@ -7,7 +7,6 @@
   "v.altitude": 80000,
   "v.orbitalVelocity": 2246,
   "_stream": {
-    "carriedChannels": ["vessel.flight", "vessel.identity", "system.bodies"],
     "emits": [
       {
         "channel": "vessel.flight",

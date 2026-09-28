@@ -1,15 +1,9 @@
-import {
-  CommsDelaySource,
-  DEFAULT_SITREP_CARRIED_TOPICS,
-  type Value,
-  value,
-} from "@ksp-gonogo/sitrep-sdk";
+import { CommsDelaySource, type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import { act, render } from "@ksp-gonogo/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { TelemetryClient } from "./client";
 import {
   dispatchActiveCommandTopic,
-  getActiveCarriedChannels,
   getActiveTelemetryClient,
   sampleActiveReading,
   TelemetryProvider,
@@ -506,16 +500,15 @@ describe("useViewUt: reactive view-UT surface (R6 t.universalTime DROP → view-
   });
 });
 
-describe("dispatchActiveCommandTopic / getActiveTelemetryClient / getActiveCarriedChannels: non-hook command dispatch", () => {
+describe("dispatchActiveCommandTopic / getActiveTelemetryClient: non-hook command dispatch", () => {
   it("reports unrouted when no TelemetryProvider is mounted", () => {
     expect(getActiveTelemetryClient()).toBeUndefined();
-    expect(getActiveCarriedChannels()).toBeUndefined();
     expect(dispatchActiveCommandTopic("vessel.control.stage", null)).toEqual({
       routed: false,
     });
   });
 
-  it("routes a command no carried set names through TelemetryClient.dispatch, and settles without rejecting", async () => {
+  it("routes a command through TelemetryClient.dispatch, and settles without rejecting", async () => {
     const transport = new StubTransport();
     const client = new TelemetryClient(transport);
     let receivedCommand: string | undefined;
@@ -525,13 +518,12 @@ describe("dispatchActiveCommandTopic / getActiveTelemetryClient / getActiveCarri
     });
 
     const { unmount } = render(
-      <TelemetryProvider client={client} carriedChannels={[]}>
+      <TelemetryProvider client={client}>
         <div />
       </TelemetryProvider>,
     );
 
     expect(getActiveTelemetryClient()).toBe(client);
-    expect(getActiveCarriedChannels()?.has("vessel.control.stage")).toBe(false);
 
     const outcome = dispatchActiveCommandTopic("vessel.control.stage", null);
     expect(outcome.routed).toBe(true);
@@ -542,17 +534,7 @@ describe("dispatchActiveCommandTopic / getActiveTelemetryClient / getActiveCarri
     client.dispose();
   });
 
-  /**
-   * The commands a plain class actually sends, dispatched against the carried
-   * set a real screen mounts: `DEFAULT_SITREP_CARRIED_TOPICS`, which is what
-   * both `SitrepTelemetryProvider` and `StationScreen` pass.
-   *
-   * Every one of these used to be refused here while its own unit test passed,
-   * because each of those tests installs its command into the carried set by
-   * hand. The promotion list is a list of CHANNELS; a command id is not a
-   * channel and never arrives on a `stream-data` frame to be learned, so a
-   * promotion list is the wrong instrument to ask "may this command go".
-   */
+  /** The commands a plain class actually sends. */
   it.each([
     // GO/NO-GO's abort vote and its launch stage.
     "vessel.control.setAbort",
@@ -561,7 +543,7 @@ describe("dispatchActiveCommandTopic / getActiveTelemetryClient / getActiveCarri
     "vessel.control.setSas",
     // Both maneuver-trigger services' fire path.
     "vessel.maneuver.add",
-  ])("routes %s against the carried set a real screen mounts", async (command) => {
+  ])("routes %s through a mounted provider", async (command) => {
     const transport = new StubTransport();
     const client = new TelemetryClient(transport);
     let receivedCommand: string | undefined;
@@ -571,10 +553,7 @@ describe("dispatchActiveCommandTopic / getActiveTelemetryClient / getActiveCarri
     });
 
     const { unmount } = render(
-      <TelemetryProvider
-        client={client}
-        carriedChannels={DEFAULT_SITREP_CARRIED_TOPICS}
-      >
+      <TelemetryProvider client={client}>
         <div />
       </TelemetryProvider>,
     );
@@ -588,7 +567,7 @@ describe("dispatchActiveCommandTopic / getActiveTelemetryClient / getActiveCarri
     client.dispose();
   });
 
-  it("clears the active client/carried-channels on unmount", () => {
+  it("clears the active client on unmount", () => {
     const transport = new StubTransport();
     const client = new TelemetryClient(transport);
     const { unmount } = render(
@@ -599,7 +578,6 @@ describe("dispatchActiveCommandTopic / getActiveTelemetryClient / getActiveCarri
     expect(getActiveTelemetryClient()).toBe(client);
     unmount();
     expect(getActiveTelemetryClient()).toBeUndefined();
-    expect(getActiveCarriedChannels()).toBeUndefined();
     client.dispose();
   });
 });
@@ -624,11 +602,7 @@ describe("sampleActiveReading: the non-hook read that carries its own currency",
     client.subscribe("vessel.control", () => {});
 
     const { unmount } = render(
-      <TelemetryProvider
-        client={client}
-        store={store}
-        carriedChannels={["vessel.control"]}
-      >
+      <TelemetryProvider client={client} store={store}>
         <div />
       </TelemetryProvider>,
     );

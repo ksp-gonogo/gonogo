@@ -41,7 +41,6 @@ function SceneProbe() {
 
 function mount() {
   const fixture = setupStreamFixture({
-    carriedChannels: ["spaceCenter.scene"],
     pinnedUt: 10,
   });
   const view = render(

@@ -5,7 +5,6 @@ import {
   ViewClock,
 } from "@ksp-gonogo/sitrep-client";
 import {
-  DEFAULT_SITREP_CARRIED_TOPICS,
   registerBarePrimitiveTopic,
   registerTopicUnits,
 } from "@ksp-gonogo/sitrep-sdk";
@@ -60,7 +59,6 @@ function buildStreamFixture() {
         client={client}
         store={store}
         // The app's own default: every first-party promotion, and no way for it to mention an Uplink nobody in this repo has heard of.
-        carriedChannels={DEFAULT_SITREP_CARRIED_TOPICS}
       >
         {children}
       </TelemetryProvider>

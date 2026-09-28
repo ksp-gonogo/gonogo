@@ -24,12 +24,10 @@ beforeEach(() => {
 });
 
 /** CommSignal off the real stream pipeline via `StubTransport`. */
-const FULL_CARRIED = ["vessel.comms", "comms.delay"];
 
 describe("CommSignal: genuinely runs off the stream", () => {
   it("reads connected/signalStrength off the real stream pipeline, not legacy", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.comms", "comms.link"],
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -64,7 +62,6 @@ describe("CommSignal: genuinely runs off the stream", () => {
   // The panel stays and every figure nulls; the badge itself is asserted in `panel-badge.test.tsx`.
   it("nulls every line once the link stops arriving", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.comms"],
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -115,7 +112,6 @@ describe("CommSignal: genuinely runs off the stream", () => {
       "never a stuck-stale 'connected' readout",
     async () => {
       const fixture = setupStreamFixture({
-        carriedChannels: ["vessel.comms", "comms.link"],
         pinnedUt: 10,
         suspendFrames: true,
       });
@@ -163,7 +159,6 @@ describe("CommSignal: genuinely runs off the stream", () => {
 
   it("holds the last-known value when the wire goes silent (no clear-on-disconnect)", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.comms"],
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -193,7 +188,6 @@ describe("CommSignal: genuinely runs off the stream", () => {
     async () => {
       // No `pinnedUt`: a pinned clock overrides the confirmed edge and makes `delaySeconds` a no-op.
       const fixture = setupStreamFixture({
-        carriedChannels: ["vessel.comms"],
         delaySeconds: 5,
         suspendFrames: true,
       });
@@ -245,7 +239,6 @@ describe("CommSignal: genuinely runs off the stream", () => {
 
   it("streams control state and signal delay off their clean homes", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: FULL_CARRIED,
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -276,7 +269,6 @@ describe("CommSignal: genuinely runs off the stream", () => {
 
   it("names the current command centre instead of assuming KSC", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.comms", "comms.link", "comms.commandCentre"],
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -308,7 +300,6 @@ describe("CommSignal: genuinely runs off the stream", () => {
 
   it("falls back to Signal to KSC when no command-centre identity has arrived", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.comms", "comms.link", "comms.commandCentre"],
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -334,14 +325,6 @@ describe("CommSignal: genuinely runs off the stream", () => {
 
   it("renders the full train-schedule with per-leg distances at a comfortable size", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: [
-        "comms.link",
-        "vessel.comms",
-        "comms.commandCentre",
-        "comms.path",
-        "comms.delay",
-        "vessel.identity",
-      ],
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -408,7 +391,6 @@ describe("CommSignal: genuinely runs off the stream", () => {
   it("stays on the hop-count hint (not the full chain) at the registered default size", async () => {
     // Portrait 6x5 has no headroom for the route below the detail grid.
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.comms", "comms.link", "comms.path"],
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -442,7 +424,6 @@ describe("CommSignal: genuinely runs off the stream", () => {
 
   it("degrades to a hop-count hint beside the centre name when cramped", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.comms", "comms.link", "comms.path"],
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -476,7 +457,6 @@ describe("CommSignal: genuinely runs off the stream", () => {
 
   it("names a direct link with no relay hint", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.comms", "comms.link", "comms.path"],
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -520,7 +500,6 @@ describe("CommSignal: genuinely runs off the stream", () => {
     });
 
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.comms", "comms.path", "vessel.identity"],
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -585,7 +564,6 @@ describe("CommSignal: genuinely runs off the stream", () => {
 
   it("falls back to a generic vessel label before vessel.identity has resolved", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.comms", "comms.path"],
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -613,7 +591,6 @@ describe("CommSignal: genuinely runs off the stream", () => {
 
   it("renders no route section when there is no path home", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.comms", "comms.link", "comms.path"],
       pinnedUt: 10,
       suspendFrames: true,
     });

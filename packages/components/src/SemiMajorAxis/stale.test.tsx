@@ -17,8 +17,6 @@ function heldCaption(container: HTMLElement): string | null {
   return container.querySelector("[data-unit-currency]")?.textContent ?? null;
 }
 
-const CARRIED = ["vessel.orbit", "system.bodies"];
-
 const renderedTrees: Array<() => void> = [];
 
 afterEach(() => {
@@ -50,7 +48,6 @@ function mount(
 
 function newFixture() {
   return setupStreamFixture({
-    carriedChannels: CARRIED,
     pinnedUt: 10,
     suspendFrames: true,
   });

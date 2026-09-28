@@ -14,11 +14,8 @@ import { TechTreeComponent } from "./index";
  * Pins what TechTree renders when its reads are `undefined`: absent nodes draw a placeholder, and an unknown science balance withholds Unlock with a stated reason rather than leaving a spend control live on an absence.
  */
 
-const CARRIED = ["career.status"];
-
 function newFixture() {
   return setupStreamFixture({
-    carriedChannels: CARRIED,
     pinnedUt: 10,
     suspendFrames: true,
   });

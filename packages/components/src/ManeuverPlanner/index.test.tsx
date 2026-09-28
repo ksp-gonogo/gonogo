@@ -39,7 +39,6 @@ const maneuverPlannerDef = getComponent("maneuver-planner");
 // Carries `vessel.orbit` so the trigger editor's key picker offers the fields the trigger tests threshold on.
 const UT_FIXTURE_VALUE = 1_000_000;
 const utFixture = setupStreamFixture({
-  carriedChannels: ["vessel.orbit"],
   pinnedUt: UT_FIXTURE_VALUE,
   // A free-running frame loop never lets a userEvent act() see an empty queue; frames come from emits and flushViewUt.
   suspendFrames: true,
@@ -325,7 +324,6 @@ describe("ManeuverPlannerComponent", () => {
   // Its own fixture: topic values on the shared one are sticky, and a zero budget would block every later dispatch.
   it("refuses the commit for a craft whose budget reports genuinely zero delta-v", async () => {
     const spent = setupStreamFixture({
-      carriedChannels: [],
       pinnedUt: UT_FIXTURE_VALUE,
       suspendFrames: true,
     });

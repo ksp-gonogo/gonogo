@@ -91,7 +91,6 @@ function ThrowsOnRender(): never {
 const STREAM_ONLY_FIXTURE = {
   _meta: { scenario: "harness-guard" },
   _stream: {
-    carriedChannels: ["vessel.control"],
     pinnedUt: 0,
     emits: [{ channel: "vessel.control", value: { sas: true } }],
   },

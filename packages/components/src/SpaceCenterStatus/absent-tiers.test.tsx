@@ -21,11 +21,6 @@ afterEach(() => {
 
 function mount() {
   const fixture = setupStreamFixture({
-    carriedChannels: [
-      "career.status",
-      "career.facilities",
-      "spaceCenter.scene",
-    ],
     pinnedUt: 10,
     suspendFrames: true,
   });

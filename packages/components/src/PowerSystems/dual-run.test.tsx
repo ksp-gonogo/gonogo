@@ -34,7 +34,6 @@ describe("PowerSystems: behavior-preservation golden dual-run (delay=0)", () => 
     });
 
     const streamFixture = setupStreamFixture({
-      carriedChannels: ["parts.power", "vessel.parts"],
       pinnedUt: 10,
       suspendFrames: true,
     });

@@ -9,12 +9,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { KeplerPeriodComponent } from "./index";
 
-const KEPLER_PERIOD_CHANNELS = [
-  "vessel.orbit",
-  "vessel.identity",
-  "system.bodies",
-];
-
 describe("KeplerPeriodComponent", () => {
   let restoreResizeObserver: () => void = () => {};
   let stream: ReturnType<typeof setupStreamFixture>;
@@ -27,7 +21,6 @@ describe("KeplerPeriodComponent", () => {
       height: 300,
     });
     stream = setupStreamFixture({
-      carriedChannels: KEPLER_PERIOD_CHANNELS,
       pinnedUt: 10,
       suspendFrames: true,
     });

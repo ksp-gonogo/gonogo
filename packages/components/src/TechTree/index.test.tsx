@@ -16,7 +16,6 @@ import { parseTechNodes, TechTreeComponent } from "./index";
 /**
  * TechTree off a real stream pipeline. Nodes are emitted in the explicit-`state` shape `parseTechNodes` also accepts, which lets these tests exercise the per-node `parts` rendering the real wire has no field for.
  */
-const CARRIED_CHANNELS = ["career.status"];
 
 const SAMPLE_NODES = [
   {
@@ -98,7 +97,6 @@ describe("TechTreeComponent", () => {
 
   it("shows awaiting placeholder before any telemetry", () => {
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED_CHANNELS,
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -108,7 +106,6 @@ describe("TechTreeComponent", () => {
 
   it("shows all nodes by default (no empty first paint)", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED_CHANNELS,
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -125,7 +122,6 @@ describe("TechTreeComponent", () => {
   it("filters to Researchable on demand", async () => {
     const user = userEvent.setup();
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED_CHANNELS,
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -145,7 +141,6 @@ describe("TechTreeComponent", () => {
   it("expands a node to show description, parents, and parts", async () => {
     const user = userEvent.setup();
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED_CHANNELS,
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -167,7 +162,6 @@ describe("TechTreeComponent", () => {
   it("arms and confirms tech.unlock with the node id", async () => {
     const user = userEvent.setup();
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED_CHANNELS,
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -196,7 +190,6 @@ describe("TechTreeComponent", () => {
   it("renders the tiered graph at wide sizes and opens a detail dialog on click", async () => {
     const user = userEvent.setup();
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED_CHANNELS,
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -225,7 +218,6 @@ describe("TechTreeComponent", () => {
   it("disables Unlock when science is insufficient", async () => {
     const user = userEvent.setup();
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED_CHANNELS,
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -244,7 +236,6 @@ describe("TechTreeComponent", () => {
   it("arms Unlock with no game-scene signal at all, since the backend carries no scene gate", async () => {
     const user = userEvent.setup();
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED_CHANNELS,
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -263,7 +254,6 @@ describe("TechTreeComponent", () => {
   it("exposes the per-node badges slot with no bound augment (empty is fine)", async () => {
     // No augment registered: the slot composes nothing and the list renders one row per node.
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED_CHANNELS,
       pinnedUt: 10,
       suspendFrames: true,
     });

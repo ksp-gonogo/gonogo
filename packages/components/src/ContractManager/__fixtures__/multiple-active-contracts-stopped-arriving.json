@@ -95,7 +95,6 @@
   "t.universalTime": 125340,
   "v.altitude": 25000,
   "_stream": {
-    "carriedChannels": ["career.status", "career.facilities", "vessel.flight"],
     "emits": [
       {
         "channel": "career.status",

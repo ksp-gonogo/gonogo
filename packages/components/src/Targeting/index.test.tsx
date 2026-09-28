@@ -63,7 +63,6 @@ describe("TargetingComponent", () => {
   it("says it is waiting, not that no target is set, until vessel.target is reported", () => {
     // Nothing has arrived, so nothing about the game is claimed.
     fixture = setupStreamFixture({
-      carriedChannels: ["vessel.target"],
       suspendFrames: true,
     });
     const { container } = renderWidget(fixture);
@@ -73,7 +72,6 @@ describe("TargetingComponent", () => {
 
   it("renders compact-mode distance once target name + distance arrive", async () => {
     fixture = setupStreamFixture({
-      carriedChannels: ["vessel.target"],
       suspendFrames: true,
     });
     const { container } = renderWidget(fixture);
@@ -91,7 +89,6 @@ describe("TargetingComponent", () => {
 
   it("auto-switches to the docking HUD when a docking-port target with dock data drops under 100 m", async () => {
     fixture = setupStreamFixture({
-      carriedChannels: ["vessel.target", "vessel.dock"],
       suspendFrames: true,
     });
     renderWidget(fixture);
@@ -120,7 +117,6 @@ describe("TargetingComponent", () => {
   it("does NOT enter the docking HUD for a Vessel target with no vessel.dock (T2)", async () => {
     // A plain Vessel target has no dock channel, so under 100 m it stays in the approach view.
     fixture = setupStreamFixture({
-      carriedChannels: ["vessel.target", "vessel.dock"],
       suspendFrames: true,
     });
     renderWidget(fixture);
@@ -142,7 +138,6 @@ describe("TargetingComponent", () => {
 
   it("never HUD-switches on CelestialBody targets", async () => {
     fixture = setupStreamFixture({
-      carriedChannels: ["vessel.target"],
       suspendFrames: true,
     });
     renderWidget(fixture);
@@ -160,7 +155,6 @@ describe("TargetingComponent", () => {
 
   it("honours autoSwitch=false", async () => {
     fixture = setupStreamFixture({
-      carriedChannels: ["vessel.target"],
       suspendFrames: true,
     });
     const { container } = renderWidget(fixture, { autoSwitch: false });
@@ -180,7 +174,6 @@ describe("TargetingComponent", () => {
 
   it("applies hysteresis; stays in HUD until distance rises past 150 m", async () => {
     fixture = setupStreamFixture({
-      carriedChannels: ["vessel.target", "vessel.dock"],
       suspendFrames: true,
     });
     renderWidget(fixture);
@@ -235,7 +228,6 @@ describe("TargetingComponent", () => {
 
   it("switches to approach mode for Vessel targets between 100 m and 5 km", async () => {
     fixture = setupStreamFixture({
-      carriedChannels: ["vessel.target"],
       suspendFrames: true,
     });
     renderWidget(fixture);
@@ -258,7 +250,6 @@ describe("TargetingComponent", () => {
 
   it("never enters approach mode for CelestialBody targets even at close range", async () => {
     fixture = setupStreamFixture({
-      carriedChannels: ["vessel.target"],
       suspendFrames: true,
     });
     renderWidget(fixture);
@@ -276,7 +267,6 @@ describe("TargetingComponent", () => {
 
   it("steps through tracking → approach → docking-hud as a docking target closes", async () => {
     fixture = setupStreamFixture({
-      carriedChannels: ["vessel.target", "vessel.dock"],
       suspendFrames: true,
     });
     renderWidget(fixture);
@@ -352,7 +342,6 @@ describe("Targeting: augment slots", () => {
     });
 
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.target", "vessel.dock"],
       suspendFrames: true,
     });
     renderWidget(fixture, { cameraFlightId: 7 }, { w: 12, h: 9 });

@@ -8,11 +8,6 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { CurrentOrbitComponent } from "./index";
 
 /** `hasOrbit` must not require apoapsis, which is `null` on a hyperbolic orbit, so the diagram still renders. */
-const CURRENT_ORBIT_CHANNELS = [
-  "vessel.orbit",
-  "vessel.identity",
-  "system.bodies",
-];
 
 const KERBIN_MU = 3.5316e12;
 
@@ -20,7 +15,6 @@ describe("CurrentOrbit: a hyperbolic orbit still counts as hasOrbit", () => {
   it("renders the mini diagram (not suppressed) for a fully hyperbolic orbit", async () => {
     registerStockBodies();
     const stream = setupStreamFixture({
-      carriedChannels: CURRENT_ORBIT_CHANNELS,
       pinnedUt: 0,
       suspendFrames: true,
     });
@@ -82,7 +76,6 @@ describe("CurrentOrbit: a craft under physics keeps every figure", () => {
   ) {
     registerStockBodies();
     const stream = setupStreamFixture({
-      carriedChannels: CURRENT_ORBIT_CHANNELS,
       pinnedUt: viewUt,
       suspendFrames: true,
     });

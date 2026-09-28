@@ -85,7 +85,7 @@ describe("sitrep-sdk author-facing barrel: SPI gap shims", () => {
     it("does not publish useDataSchema at all", () => {
       expect(
         (barrel as Record<string, unknown>).useDataSchema,
-        "useDataSchema is retired; @ksp-gonogo/data still exports it for the app",
+        "useDataSchema is retired; the app reads its field catalogue from @ksp-gonogo/data",
       ).toBeUndefined();
     });
 

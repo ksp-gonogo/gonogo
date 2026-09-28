@@ -13,7 +13,6 @@ afterEach(() => {
 describe("ContractManager: genuinely runs off the stream", () => {
   it("renders active + offered contracts derived from career.status.contracts", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["career.status"],
       pinnedUt: 10,
       suspendFrames: true,
     });

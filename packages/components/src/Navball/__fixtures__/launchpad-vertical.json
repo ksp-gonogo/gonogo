@@ -16,17 +16,6 @@
   "f.throttle": 1,
   "v.isControllable": true,
   "_stream": {
-    "carriedChannels": [
-      "vessel.attitude",
-      "vessel.orbit",
-      "vessel.flight",
-      "vessel.identity",
-      "system.bodies",
-      "vessel.control",
-      "vessel.target",
-      "vessel.comms",
-      "vessel.propulsion"
-    ],
     "emits": [
       {
         "channel": "vessel.attitude",

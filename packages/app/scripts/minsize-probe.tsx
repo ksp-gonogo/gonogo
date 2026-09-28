@@ -271,9 +271,8 @@ export interface MinSizeWidget {
   name: string;
   minSize?: { w: number; h: number };
   defaultSize?: { w: number; h: number };
-  /** Topics the stream fixture must carry, so the widget renders the empty
-   *  state it shows in the app rather than "not carried on this install". */
-  carried: string[];
+  /** Every topic the widget's registration declares. */
+  declaredTopics: string[];
 }
 
 declare global {
@@ -294,7 +293,7 @@ globalThis.__minsizeWidgets = () =>
     name: def.name,
     minSize: def.minSize ? { ...def.minSize } : undefined,
     defaultSize: def.defaultSize ? { ...def.defaultSize } : undefined,
-    carried: [
+    declaredTopics: [
       ...new Set([
         ...(def.channels ?? []),
         ...(def.optionalChannels ?? []),

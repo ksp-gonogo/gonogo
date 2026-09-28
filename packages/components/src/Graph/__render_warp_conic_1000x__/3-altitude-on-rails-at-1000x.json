@@ -5,13 +5,6 @@
     "notes": "SYNTHETIC. Altitude on a Kerbin orbit (sma 700 km, ecc 0.02, period about 1958 s), on rails at 1000x: samples 100 UT apart, a tenth of a real second of game time, which the conic carries."
   },
   "_stream": {
-    "carriedChannels": [
-      "vessel.flight",
-      "vessel.orbit",
-      "system.bodies",
-      "time.warp",
-      "vessel.identity"
-    ],
     "pinnedUt": 4000,
     "emits": [
       {

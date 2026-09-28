@@ -36,12 +36,6 @@ interface MountOptions {
 
 async function mount(opts: MountOptions) {
   const fixture = setupStreamFixture({
-    carriedChannels: [
-      "time.warp",
-      "time.setWarpIndex",
-      "comms.delay",
-      "spaceCenter.scene",
-    ],
     pinnedUt: VIEW_UT,
     suspendFrames: true,
   });

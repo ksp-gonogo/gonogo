@@ -131,9 +131,7 @@ async function renderScene(scene: Scene): Promise<void> {
     root = undefined;
   }
 
-  const topics = Object.keys(scene.emit ?? {});
   const fixture: StreamFixture = setupStreamFixture({
-    carriedChannels: topics,
     pinnedUt: 1_000_000,
   });
 

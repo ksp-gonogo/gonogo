@@ -7,8 +7,6 @@ import { PowerSystemsComponent } from "./index";
 
 /** When `vessel.parts` stops being current, every figure comes off that one read, so it is marked once; the rates are kept, since a blank NET would claim no load. */
 
-const CARRIED = ["vessel.parts", "parts.power"];
-
 const renderedTrees: Array<() => void> = [];
 
 afterEach(() => {
@@ -91,7 +89,6 @@ function goStale(fixture: ReturnType<typeof setupStreamFixture>): void {
 describe("PowerSystems when vessel.parts is no longer current", () => {
   it("keeps every rate and says the read behind them has stopped", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -113,7 +110,6 @@ describe("PowerSystems when vessel.parts is no longer current", () => {
 
   it("marks the per-part efficiency figures on the figures themselves", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
       suspendFrames: true,
     });

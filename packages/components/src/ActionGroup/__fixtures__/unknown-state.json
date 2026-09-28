@@ -9,7 +9,6 @@
   "t.isPaused": false,
   "comm.connected": true,
   "_stream": {
-    "carriedChannels": ["time.warp", "comms.link"],
     "emits": [
       {
         "channel": "time.warp",

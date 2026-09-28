@@ -49,7 +49,6 @@ describe("useTelemetry: canonical TopicId read", () => {
       return <div>sma:{sma === undefined ? NULL_DISPLAY : String(sma)}</div>;
     }
 
-    // No carriedChannels prop: the canonical Topic read does not consult the migration-shim allowlist (it has no legacy fallback to protect).
     render(
       <TelemetryProvider client={client}>
         <Orbit />

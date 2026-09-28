@@ -58,7 +58,6 @@ describe("PowerSystems: genuinely runs off the stream", () => {
   it("uses the SAME total for PROD/NET as the itemized per-part rows sum to, even when parts.power's totalProductionEc disagrees", async () => {
     // A single +5.00 producer row, while `totalProductionEc` disagrees at 42.
     const fixture = setupStreamFixture({
-      carriedChannels: ["parts.power", "vessel.parts"],
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -116,7 +115,6 @@ describe("PowerSystems: genuinely runs off the stream", () => {
 
   it("shows no separate MEASURED reading when parts.power's totalProductionEc agrees with the itemized total", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["parts.power", "vessel.parts"],
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -165,7 +163,6 @@ describe("PowerSystems: genuinely runs off the stream", () => {
   it("populates the Consumers section from a negative-flow part carried on vessel.parts (review finding I3)", async () => {
     // A negative-flow part on the `vessel.parts` stream lands in Consumers.
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.parts"],
       pinnedUt: 10,
       suspendFrames: true,
     });

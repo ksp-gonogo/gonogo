@@ -31,7 +31,6 @@ afterEach(() => {
 describe("RotorTachometer: genuinely runs off the stream", () => {
   it("builds the rotor list from robotics.servos and drives commands with its string partId", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["robotics.servos", "robotics.available"],
       pinnedUt: 10,
     });
 
@@ -92,7 +91,6 @@ describe("RotorTachometer: genuinely runs off the stream", () => {
 
   it("selects among coaxial same-named rotors by their distinct partId", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["robotics.servos", "robotics.available"],
       pinnedUt: 10,
     });
 

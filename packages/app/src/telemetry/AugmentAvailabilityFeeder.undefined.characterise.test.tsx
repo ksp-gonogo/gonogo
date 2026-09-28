@@ -49,7 +49,6 @@ function seedAugments() {
 
 function mount(store: DomainAvailabilityStore | null) {
   const fixture = setupStreamFixture({
-    carriedChannels: [`${DOMAIN}.available`],
     pinnedUt: 10,
   });
   const view = render(

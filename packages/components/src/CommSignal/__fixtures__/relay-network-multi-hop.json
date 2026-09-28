@@ -9,19 +9,6 @@
   "comm.controlStateName": "Full",
   "comm.signalDelay": 6.2,
   "_stream": {
-    "carriedChannels": [
-      "comms.link",
-      "comms.delay",
-      "comms.path",
-      "vessel.orbit",
-      "vessel.flight",
-      "vessel.identity",
-      "system.bodies",
-      "vessel.control",
-      "vessel.target",
-      "vessel.comms",
-      "vessel.propulsion"
-    ],
     "emits": [
       {
         "channel": "comms.link",

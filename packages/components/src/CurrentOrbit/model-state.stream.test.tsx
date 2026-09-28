@@ -12,12 +12,6 @@ import { CurrentOrbitComponent } from "./index";
 /**
  * The state word beside the dashes when the conic will not advance the elements, so a model declining by design never reads as a broken widget.
  */
-const CARRIED = [
-  "vessel.orbit",
-  "vessel.identity",
-  "system.bodies",
-  "system.frame",
-];
 
 const EARTH = {
   index: 1,
@@ -29,7 +23,6 @@ const EARTH = {
 
 function scene(orbit: Record<string, unknown>, quality = Quality.OnRails) {
   const fixture = setupStreamFixture({
-    carriedChannels: CARRIED,
     pinnedUt: 10,
     suspendFrames: true,
   });

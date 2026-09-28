@@ -6,16 +6,6 @@
   "vessel.orbit.sma": 2868750,
   "o.referenceBody": "Kerbin",
   "_stream": {
-    "carriedChannels": [
-      "vessel.orbit",
-      "vessel.identity",
-      "system.bodies",
-      "vessel.flight",
-      "vessel.control",
-      "vessel.target",
-      "vessel.comms",
-      "vessel.propulsion"
-    ],
     "emits": [
       {
         "channel": "vessel.orbit",

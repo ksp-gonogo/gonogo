@@ -44,7 +44,6 @@ function rings(container: HTMLElement): Element[] {
 
 function mount() {
   const fixture = setupStreamFixture({
-    carriedChannels: ["vessel.parts", "vessel.thermal", "vessel.flight"],
     pinnedUt: 0,
     suspendFrames: true,
   });

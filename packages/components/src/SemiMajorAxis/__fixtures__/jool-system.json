@@ -6,16 +6,6 @@
   "vessel.orbit.sma": 26000000,
   "o.referenceBody": "Jool",
   "_stream": {
-    "carriedChannels": [
-      "vessel.orbit",
-      "vessel.identity",
-      "system.bodies",
-      "vessel.flight",
-      "vessel.control",
-      "vessel.target",
-      "vessel.comms",
-      "vessel.propulsion"
-    ],
     "emits": [
       {
         "channel": "vessel.orbit",

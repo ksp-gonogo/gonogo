@@ -18,11 +18,6 @@ afterEach(() => {
 describe("SpaceCenterStatus: genuinely runs off the stream", () => {
   it("renders the funds readout off the stream", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: [
-        "career.status",
-        "career.facilities",
-        "spaceCenter.scene",
-      ],
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -60,7 +55,6 @@ describe("SpaceCenterStatus: genuinely runs off the stream", () => {
 
   it("renders the tiny-bucket funds readout from the same stream key", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["career.status"],
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -95,11 +89,6 @@ describe("SpaceCenterStatus: genuinely runs off the stream", () => {
 
   it("renders facility tiers/upgrade costs derived from career.facilities", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: [
-        "career.status",
-        "career.facilities",
-        "spaceCenter.scene",
-      ],
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -149,11 +138,6 @@ describe("SpaceCenterStatus: genuinely runs off the stream", () => {
 
   it("renders the pad-vessel title from the streamed spaceCenter.launchSites array, not the legacy fallback", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: [
-        "career.status",
-        "spaceCenter.scene",
-        "spaceCenter.launchSites",
-      ],
       pinnedUt: 10,
       suspendFrames: true,
     });

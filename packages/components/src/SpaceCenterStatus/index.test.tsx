@@ -21,19 +21,11 @@ import {
   SpaceCenterStatusComponent,
 } from "./index";
 
-const CARRIED = [
-  "career.status",
-  "career.facilities",
-  "spaceCenter.scene",
-  "spaceCenter.launchSites",
-];
-
 describe("SpaceCenterStatusComponent", () => {
   let stream: ReturnType<typeof setupStreamFixture>;
 
   beforeEach(async () => {
     stream = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
       suspendFrames: true,
     });

@@ -46,7 +46,6 @@ async function replay(
 async function renderUnder(profileId: string) {
   const block = applyInstallProfile(getInstallProfile(profileId), SCENE);
   const fixture = setupStreamFixture({
-    carriedChannels: block.carriedChannels,
     pinnedUt: block.pinnedUt,
     suspendFrames: true,
   });

@@ -101,7 +101,6 @@ interface FixtureEmit {
 
 interface FixtureFile {
   _stream: {
-    carriedChannels: string[];
     pinnedUt?: number;
     emits: FixtureEmit[];
   };
@@ -192,7 +191,6 @@ async function main(): Promise<void> {
         );
 
         const payload: TargetingHudProbePayload = {
-          carriedChannels: fixture._stream.carriedChannels,
           pinnedUt: fixture._stream.pinnedUt,
           emits: fixture._stream.emits,
           config: { autoSwitch: true, hudMode: state.hudMode },

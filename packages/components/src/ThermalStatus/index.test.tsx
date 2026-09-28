@@ -11,7 +11,6 @@ import { ThermalStatusComponent } from "./index";
 /**
  * ThermalStatus off a real stream pipeline. `clearAugments()` runs in `beforeEach`, before anything mounts, so the reset never fires against a live component.
  */
-const CARRIED_CHANNELS = ["vessel.thermal"];
 
 function renderThermal(fixture: StreamFixture, h?: number) {
   return render(
@@ -30,7 +29,6 @@ describe("ThermalStatusComponent", () => {
 
   it("shows the no-data placeholder until telemetry arrives", () => {
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED_CHANNELS,
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -40,7 +38,6 @@ describe("ThermalStatusComponent", () => {
 
   it("renders hottest-part + hottest-engine readouts when telemetry arrives", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED_CHANNELS,
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -69,7 +66,6 @@ describe("ThermalStatusComponent", () => {
 
   it("raises a role=alert banner when any engine is flagged overheating", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED_CHANNELS,
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -89,7 +85,6 @@ describe("ThermalStatusComponent", () => {
 
   it("raises a role=alert banner when the hottest part ratio is critical", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED_CHANNELS,
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -113,7 +108,6 @@ describe("ThermalStatusComponent", () => {
 
   it("treats absolute-zero readings as missing data (no thermometer fitted)", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED_CHANNELS,
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -144,7 +138,6 @@ describe("ThermalStatusComponent", () => {
 
   it("hides the heat-shield row when its temp is at the sentinel", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED_CHANNELS,
       pinnedUt: 10,
       suspendFrames: true,
     });

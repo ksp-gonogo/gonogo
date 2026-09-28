@@ -84,7 +84,6 @@ function vesselAtLongitude(
 
 function renderPhaseAngles(bodies: CelestialBody[]) {
   const fixture = setupStreamFixture({
-    carriedChannels: ["vessel.orbit"],
     pinnedUt: 0,
     suspendFrames: true,
   });
@@ -277,7 +276,6 @@ describe("phase angles under signal delay", () => {
 
   async function phasesAtLightTime(owlt: number) {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.orbit"],
       delaySeconds: owlt,
       suspendFrames: true,
     });

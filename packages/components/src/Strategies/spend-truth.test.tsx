@@ -49,7 +49,6 @@ describe("Strategies: what a card claims activating it costs", () => {
 
   beforeEach(() => {
     stream = setupStreamFixture({
-      carriedChannels: ["career.status"],
       pinnedUt: 10,
       suspendFrames: true,
     });

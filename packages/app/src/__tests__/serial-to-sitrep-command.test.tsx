@@ -130,11 +130,7 @@ describe("serial → action → sitrep command end-to-end", () => {
     };
 
     const { unmount } = render(
-      <TelemetryProvider
-        client={client}
-        store={store}
-        carriedChannels={new Set(["vessel.control"])}
-      >
+      <TelemetryProvider client={client} store={store}>
         <SerialDeviceProvider service={service}>
           <ModalProvider>
             <DashboardItemContext.Provider value={{ instanceId: "ag-1" }}>

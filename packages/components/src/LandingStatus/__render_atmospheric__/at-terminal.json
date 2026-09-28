@@ -5,18 +5,6 @@
     "notes": "SYNTHETIC. Mid Kerbin descent (~8 km, 118 m/s down): drag \u2248 weight, so the vessel is AT TERMINAL, steady descent. Terminal at ground (denser) is lower, so it slows further before touchdown."
   },
   "_stream": {
-    "carriedChannels": [
-      "system.bodies",
-      "vessel.identity",
-      "vessel.orbit",
-      "vessel.flight",
-      "vessel.surface",
-      "vessel.propulsion",
-      "vessel.control",
-      "dv.summary",
-      "comms.delay",
-      "vessel.landing"
-    ],
     "pinnedUt": 10,
     "emits": [
       {

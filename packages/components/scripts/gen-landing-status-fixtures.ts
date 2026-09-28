@@ -91,7 +91,7 @@ const MUN: Array<{
 ];
 
 // ── The Kerbin atmospheric reentry (hand-built; different body + atmosphere) ──
-const CARRIED = [
+const EMITTED = [
   "system.bodies",
   "vessel.identity",
   "vessel.orbit",
@@ -180,7 +180,7 @@ function kerbinReentryFixture(): Record<string, unknown> {
       parachuteState: "stowed",
     },
   };
-  const emits = CARRIED.map((channel) =>
+  const emits = EMITTED.map((channel) =>
     channel === "vessel.orbit"
       ? { channel, value: channels[channel], meta: { quality: 1 } }
       : { channel, value: channels[channel] },
@@ -192,7 +192,7 @@ function kerbinReentryFixture(): Record<string, unknown> {
       notes:
         "SYNTHETIC (model-generated, NOT captured). Kerbin reentry (~28 km, 210 m/s down) in an atmosphere, the atmospheric board: terminal velocity, projected touchdown, aerobraking regime + the ambient (air density / temp) section, suicide-burn demoted.",
     },
-    _stream: { carriedChannels: CARRIED, pinnedUt: 10, emits },
+    _stream: { pinnedUt: 10, emits },
   };
 }
 

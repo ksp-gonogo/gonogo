@@ -36,7 +36,6 @@ describe("the handover render set reaches the models it says it does", () => {
   /** The reading the widget's own subscription produced; mounted, since the stub transport is subscription-gated like production. */
   function readFlight(fixture: HandoverFixture): FlightReading {
     const stream = setupStreamFixture({
-      carriedChannels: fixture._stream.carriedChannels,
       pinnedUt: fixture._stream.pinnedUt,
       suspendFrames: true,
     });

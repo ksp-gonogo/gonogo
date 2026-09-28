@@ -13,8 +13,6 @@ import { TechTreeComponent } from "./index";
  * When `career.status` stops being current, TechTree keeps the node list (nobody can spend down a dead link, so the tree is still the tree) and keeps the science balance on screen marked held, without letting Unlock turn it into a claim about now. The assertions that matter separate held from never-arrived.
  */
 
-const CARRIED = ["career.status"];
-
 const PRICEY_RESEARCHABLE = {
   id: "pricey",
   title: "Pricey Tech",
@@ -45,7 +43,6 @@ describe("TechTree when the career record is no longer current", () => {
   beforeEach(() => {
     clearActionHandlers();
     stream = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
       suspendFrames: true,
     });

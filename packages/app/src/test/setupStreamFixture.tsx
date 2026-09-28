@@ -44,10 +44,6 @@ import type { JSX, ReactNode } from "react";
  *   visual-gate's pinned `Date.now()`. `wall` is exposed (via the
  *   now-exported `createFakeWallClock`) for a test that needs to advance it
  *   explicitly.
- * - **`carriedChannels`** is required, not defaulted, a caller must state
- *   which topics (read AND command) this fixture carries; nothing is
- *   silently promoted (mirrors the production allowlist's own "explicit
- *   dev-first promotion" contract, `TelemetryProvider`'s own doc comment).
  * - **`delaySeconds`**: every dual-run/stream
  *   test up to this point hardcoded `delaySeconds: () => 0`, the ONE
  *   knob the whole streaming pipeline exists for was untested. A caller
@@ -70,8 +66,6 @@ import type { JSX, ReactNode } from "react";
  *   sent, so `act(() => fixture.emit(...))` then assert keeps working.
  */
 export interface StreamFixtureOptions {
-  /** Topics (read AND command) to promote into the carried-channels allowlist. */
-  carriedChannels: Iterable<string>;
   /** UT to pin the view clock at, via `clock.scrubTo`. Omit to leave the clock live (required for `delaySeconds` to have any effect; see this file's doc comment). */
   pinnedUt?: number;
   /** Fixed network/display delay in seconds (`ViewClock`'s delay authority). Defaults to 0, preserving every existing steady-state fixture's behavior untouched. */
@@ -97,7 +91,9 @@ export interface StreamFixture {
   emitFrame: () => void;
 }
 
-export function setupStreamFixture(opts: StreamFixtureOptions): StreamFixture {
+export function setupStreamFixture(
+  opts: StreamFixtureOptions = {},
+): StreamFixture {
   const wall = createFakeWallClock();
   const transport = new StubTransport();
   const client = new TelemetryClient(transport);
@@ -121,15 +117,9 @@ export function setupStreamFixture(opts: StreamFixtureOptions): StreamFixture {
     store.beginFrame();
   };
 
-  const carriedChannels = opts.carriedChannels;
-
   function Provider({ children }: { children: ReactNode }) {
     return (
-      <TelemetryProvider
-        client={client}
-        store={store}
-        carriedChannels={carriedChannels}
-      >
+      <TelemetryProvider client={client} store={store}>
         {children}
       </TelemetryProvider>
     );

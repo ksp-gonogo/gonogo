@@ -12,8 +12,8 @@ export interface FixtureEmit {
 }
 
 export interface FixtureStreamProps {
-  /** Topics the stream carries. */
-  carried: readonly string[];
+  /** Topics held subscribed from the start, so an emit on one no widget reads still lands. */
+  subscribed: readonly string[];
   /** Emitted once the tree has mounted, in order. */
   emits?: readonly FixtureEmit[];
   /** Drop the link after the emits land, so every reading is held. */
@@ -28,15 +28,15 @@ export interface FixtureStreamProps {
  * `setupStreamFixture`, the adapter an Uplink's tests use.
  */
 export function FixtureStream({
-  carried,
+  subscribed,
   emits = [],
   stopsArriving = false,
   pinnedUt = 1_000_000,
   children,
 }: FixtureStreamProps) {
   const [stream] = useState<StreamFixture>(() => {
-    const fixture = setupStreamFixture({ carriedChannels: carried, pinnedUt });
-    for (const topic of carried) fixture.subscribe(topic);
+    const fixture = setupStreamFixture({ pinnedUt });
+    for (const topic of subscribed) fixture.subscribe(topic);
     return fixture;
   });
   useEffect(() => {

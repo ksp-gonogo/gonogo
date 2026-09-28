@@ -149,7 +149,6 @@ describe("TargetPickerComponent: Suggested + categorised list", () => {
 
   beforeEach(() => {
     fixture = setupStreamFixture({
-      carriedChannels: [],
       pinnedUt: 0,
       suspendFrames: true,
     });
@@ -477,7 +476,6 @@ describe("TargetPicker: augment slots", () => {
 
   beforeEach(() => {
     fixture = setupStreamFixture({
-      carriedChannels: [],
       pinnedUt: 0,
       suspendFrames: true,
     });

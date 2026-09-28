@@ -6,17 +6,6 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { OrbitViewComponent } from "./index";
 
 /** The observed trail is drawn apart from the predicted path: joined into one curve they would read as equally certain. */
-const CARRIED = [
-  "vessel.orbit",
-  "vessel.flight",
-  "vessel.identity",
-  "system.bodies",
-  "vessel.control",
-  "vessel.target",
-  "vessel.comms",
-  "vessel.propulsion",
-  "system.frame",
-];
 
 const UT = 1_000;
 
@@ -55,7 +44,6 @@ function trailPoints(container: Element): { x: number; y: number }[] {
 
 function setup() {
   const fixture = setupStreamFixture({
-    carriedChannels: CARRIED,
     pinnedUt: UT,
     suspendFrames: true,
   });

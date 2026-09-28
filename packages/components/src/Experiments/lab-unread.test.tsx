@@ -14,7 +14,6 @@ const renderedTrees: Array<() => void> = [];
 
 function mount() {
   const fixture = setupStreamFixture({
-    carriedChannels: ["science.instruments", "science.lab"],
     pinnedUt: 10,
     suspendFrames: true,
   });

@@ -26,15 +26,10 @@ function setupFixture() {
     delaySeconds: () => 0,
   });
   const store = new TimelineStore(clock);
-  const carriedChannels = ["comms.delay", "system.uplink.pending"];
 
   function Provider({ children }: { children: React.ReactNode }) {
     return (
-      <TelemetryProvider
-        client={client}
-        store={store}
-        carriedChannels={carriedChannels}
-      >
+      <TelemetryProvider client={client} store={store}>
         {children}
       </TelemetryProvider>
     );

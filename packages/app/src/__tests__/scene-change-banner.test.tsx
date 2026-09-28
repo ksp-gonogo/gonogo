@@ -40,11 +40,7 @@ function setupSceneStream() {
 
   function Provider({ children }: { children: ReactNode }) {
     return (
-      <TelemetryProvider
-        client={client}
-        store={store}
-        carriedChannels={["spaceCenter.scene"]}
-      >
+      <TelemetryProvider client={client} store={store}>
         {children}
       </TelemetryProvider>
     );

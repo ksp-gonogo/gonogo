@@ -22,7 +22,6 @@ beforeEach(() => {
 
 function renderWarp() {
   const fixture = setupStreamFixture({
-    carriedChannels: ["time.warp"],
     pinnedUt: 10,
     suspendFrames: true,
   });

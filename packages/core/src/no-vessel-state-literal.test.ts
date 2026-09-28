@@ -9,7 +9,7 @@ import { describe, expect, it } from "vitest";
  * No tracked file names the vessel.state channel in a string literal.
  *
  * The channel does not exist, and a topic is addressed by string: a test
- * topic, a fixture key, a plotted series or a carried-channel list naming it
+ * topic, a fixture key, a plotted series or a subscription list naming it
  * all compile and resolve to nothing. Only a search sees them.
  *
  * A literal is the name inside quotes or backticks, bare or followed by a

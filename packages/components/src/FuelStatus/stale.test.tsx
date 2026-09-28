@@ -25,7 +25,6 @@ const STAGE = {
 
 function renderAt(w: number, h: number) {
   const fixture = setupStreamFixture({
-    carriedChannels: ["vessel.structure", "dv.stages", "dv.summary"],
     pinnedUt: 10,
     suspendFrames: true,
   });

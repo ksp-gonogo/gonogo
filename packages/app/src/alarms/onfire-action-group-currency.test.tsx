@@ -64,12 +64,7 @@ function Holder() {
 
 function Tree({ holding }: { holding: boolean }) {
   return (
-    <SitrepTelemetryProvider
-      enabled
-      host="localhost"
-      port={8090}
-      carriedChannels={["vessel.control", "comms.delay", "alarm.scet.fired"]}
-    >
+    <SitrepTelemetryProvider enabled host="localhost" port={8090}>
       {holding && <Holder />}
     </SitrepTelemetryProvider>
   );

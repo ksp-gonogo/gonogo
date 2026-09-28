@@ -18,14 +18,10 @@ import type {
   WarpState,
 } from "../__generated__/contract";
 import { COMMAND_REFUSED } from "../api/command-rejection";
-import { DYNAMIC_CARRIED_TOPIC_PREFIXES } from "../default-carried-topics";
+import { DYNAMIC_WHOLE_TOPIC_PREFIXES } from "../dynamic-topic-prefixes";
 import { magnitudeOf } from "../magnitude";
 import type { TopicReading } from "../reading";
 import { topicReading } from "../reading";
-import {
-  getRuntimeRegisteredTopicIds,
-  subscribeRuntimeTopicRegistry,
-} from "../runtime-topic-registry";
 import { isValue, value } from "../unit-system/value";
 import type { Value } from "../value";
 import {
@@ -67,33 +63,6 @@ const TelemetryClientContext = createContext<TelemetryClient | undefined>(
 const TimelineStoreContext = createContext<TimelineStore | undefined>(
   undefined,
 );
-const CarriedChannelsContext = createContext<ReadonlySet<string> | undefined>(
-  undefined,
-);
-
-/**
- * Union `additions` into `previous`, returning `previous` UNCHANGED
- * (referentially) when nothing new was added, the monotonic-growth seam
- * behind `TelemetryProvider`'s carried-channels allowlist, so a picker never
- * loses a key it has already offered. Never used to shrink: a caller whose next render passes a SMALLER explicit
- * `carriedChannels` prop (or
- * whose transport's own `declaredChannels` shrinks: not expected in
- * practice, but not relied upon either) does not lose previously-carried
- * topics. This is what makes "promoting a topic" a one-way ratchet for the
- * lifetime of one mounted provider, never a mid-session reversal.
- */
-function unionGrow(
-  previous: ReadonlySet<string>,
-  additions: Iterable<string>,
-): ReadonlySet<string> {
-  let next: Set<string> | undefined;
-  for (const topic of additions) {
-    if (previous.has(topic)) continue;
-    if (!next) next = new Set(previous);
-    next.add(topic);
-  }
-  return next ?? previous;
-}
 
 /**
  * Schedule `cb` to run on the next animation frame, falling back to a
@@ -136,18 +105,6 @@ export interface TelemetryProviderProps {
   store?: TimelineStore;
   /** Only consulted when `store` is omitted, options for the default `ViewClock` this provider builds. */
   viewClockOptions?: ViewClockOptions;
-  /**
-   * Explicit per-topic promotion list (the carried-channels allowlist gate,
-   * `./carried-channels.ts`): the "dev-first per-topic opt-in" half of the
-   * allowlist, alongside `client.declaredChannels` (the transport's own
-   * served-channel declaration). Union of the two is the set of Topics whose
-   * fields the value pickers offer; no read consults it. Monotonic:
-   * a topic named here (or ever declared by the transport) stays carried for
-   * the life of this mounted provider even if a later render omits it; see
-   * `unionGrow`. Omit entirely to carry only whatever the transport itself
-   * declares.
-   */
-  carriedChannels?: Iterable<string>;
 }
 
 /**
@@ -184,7 +141,6 @@ export function TelemetryProvider({
   children,
   store: providedStore,
   viewClockOptions,
-  carriedChannels: carriedChannelsProp,
 }: TelemetryProviderProps) {
   // biome-ignore lint/correctness/useExhaustiveDependencies: viewClockOptions is deliberately read only ONCE, at construction of a store this provider owns, a caller passing a fresh inline options object every render must not tear down and rebuild the store/clock each time. `client` IS a dependency for the auto-built branch below; see that branch's own comment for why; it's listed here (rather than split into two memos) so a `providedStore` caller's `client` swap still re-triggers the (no-op, `providedStore`-returning) factory, keeping this one memo the single source of truth `store` identity is derived from.
   const { store, delayAuthority } = useMemo(() => {
@@ -215,10 +171,8 @@ export function TelemetryProvider({
         ...viewClockOptions,
         delaySeconds: viewClockOptions?.delaySeconds ?? authority.delaySeconds,
       }),
-      // Resolve the injected per-(body,type) dynamic namespaces as WHOLE raw
-      // topics, not `<domain.channel>.<field>` splits: the same list the carried
-      // set below folds in, so subscribe + carry agree on the topic.
-      { dynamicWholeTopicPrefixes: DYNAMIC_CARRIED_TOPIC_PREFIXES },
+      // A topic under a dynamic namespace is one whole raw topic, never a `<domain.channel>.<field>` split.
+      { dynamicWholeTopicPrefixes: DYNAMIC_WHOLE_TOPIC_PREFIXES },
     );
     for (const channel of PRODUCTION_DERIVED_CHANNELS) {
       built.registerDerivedChannel(channel);
@@ -239,59 +193,6 @@ export function TelemetryProvider({
     }
     return { store: built, delayAuthority: authority };
   }, [providedStore, client]);
-
-  // The carried-channels allowlist (see `./carried-channels.ts`): seeded
-  // from `client.declaredChannels` (the transport's own served-topic
-  // declaration) unioned with the explicit `carriedChannels` promotion-list
-  // prop. Persists and only ever GROWS across renders of this same provider
-  // INSTANCE (`unionGrow`), even if a later render's `carriedChannelsProp` shrinks. Only resets on
-  // a genuine `client` identity change (`carriedClientRef` tracks which
-  // client the current set belongs
-  // to): a fresh session, matching the auto-built store's own
-  // client-identity reset above; a client swap starts a new allowlist rather
-  // than carrying stale entries from a transport that's no longer attached.
-  //
-  // The Topics a client package registered at runtime are folded in on the same
-  // footing. A promotion list written in the gonogo repo can never name an
-  // Uplink's Topic, so without this an Uplink's fields would never reach a
-  // picker: the graph series, the note tags, the alarm subjects.
-  const carriedClientRef = useRef<TelemetryClient | null>(null);
-  // Registration happens when an Uplink's bundle loads, which is after this provider mounts, so the fold has to be live rather than read once.
-  const registeredTopics = useSyncExternalStore(
-    subscribeRuntimeTopicRegistry,
-    getRuntimeRegisteredTopicIds,
-    getRuntimeRegisteredTopicIds,
-  );
-  const [carriedChannels, setCarriedChannels] = useState<ReadonlySet<string>>(
-    () => {
-      carriedClientRef.current = client;
-      return unionGrow(new Set(client.declaredChannels), [
-        ...(carriedChannelsProp ?? []),
-        // The dynamic-namespace prefixes (trailing `.`): `isTopicCarried`
-        // matches them by `startsWith`, carrying the per-(body,type) topics the
-        // literal allowlist can't enumerate. Folded in here (not left to the app's
-        // prop) so any TelemetryProvider carries them, matching the store's
-        // `dynamicWholeTopicPrefixes` resolution above.
-        ...DYNAMIC_CARRIED_TOPIC_PREFIXES,
-        ...registeredTopics,
-      ]);
-    },
-  );
-
-  useEffect(() => {
-    const additions = [
-      ...client.declaredChannels,
-      ...(carriedChannelsProp ?? []),
-      ...DYNAMIC_CARRIED_TOPIC_PREFIXES,
-      ...registeredTopics,
-    ];
-    if (carriedClientRef.current !== client) {
-      carriedClientRef.current = client;
-      setCarriedChannels(new Set(additions));
-      return;
-    }
-    setCarriedChannels((previous) => unionGrow(previous, additions));
-  }, [client, carriedChannelsProp, registeredTopics]);
 
   // A store is built with the channels contributed so far, which on a station
   // is none of them: its Uplink bundles cannot load until there is a
@@ -371,20 +272,6 @@ export function TelemetryProvider({
       syncTopicHolds();
     };
   }, [client]);
-  // Registers the carried-channels allowlist as `getActiveCarriedChannels()`'s
-  // source: the plain-class equivalent of `useCarriedChannelsOptional()`.
-  // Re-runs on every allowlist growth (not just client identity change) so a
-  // plain-class caller's routing decision sees the same monotonically-growing
-  // set a hook-based reader would.
-  useEffect(() => {
-    mountedCarriedChannels.push(carriedChannels);
-    activeCarriedChannels = carriedChannels;
-    return () => {
-      removeLast(mountedCarriedChannels, carriedChannels);
-      if (activeCarriedChannels === carriedChannels)
-        activeCarriedChannels = mountedCarriedChannels.at(-1);
-    };
-  }, [carriedChannels]);
   // Keep the auto-built clock's delay value current by subscribing the
   // `DelayAuthority` to `comms.delay`. Skipped when
   // the caller supplied their own `store` (they own its clock's delay wiring),
@@ -458,12 +345,10 @@ export function TelemetryProvider({
   return (
     <TelemetryClientContext.Provider value={client}>
       <TimelineStoreContext.Provider value={store}>
-        <CarriedChannelsContext.Provider value={carriedChannels}>
-          {delayAuthority ? (
-            <OwnCraftDelayGate authority={delayAuthority} />
-          ) : null}
-          {children}
-        </CarriedChannelsContext.Provider>
+        {delayAuthority ? (
+          <OwnCraftDelayGate authority={delayAuthority} />
+        ) : null}
+        {children}
       </TimelineStoreContext.Provider>
     </TelemetryClientContext.Provider>
   );
@@ -655,7 +540,6 @@ let activeViewClock:
  */
 const mountedStores: TimelineStore[] = [];
 const mountedClients: TelemetryClient[] = [];
-const mountedCarriedChannels: ReadonlySet<string>[] = [];
 
 function removeLast<T>(stack: T[], item: T): void {
   const index = stack.lastIndexOf(item);
@@ -965,11 +849,9 @@ function syncTopicHolds(): void {
  * The most recently mounted `TelemetryProvider`'s `TelemetryClient`, tracked
  * outside React for the same non-hook callers `activeViewClock`/
  * `activeTimelineStore` serve: the plain-class equivalent of
- * `useTelemetryClientOptional()`. Paired with `activeCarriedChannels` below,
- * this is what lets a plain class (`GoNoGoHostService`) dispatch a command
- * through the new stream (`dispatchActiveCommand`) with the exact same
- * carried-gated routing decision `useCommand` (`@ksp-gonogo/core`) makes for
- * a hook-based widget.
+ * `useTelemetryClientOptional()`. This is what lets a plain class
+ * (`GoNoGoHostService`) dispatch a command through the stream
+ * (`dispatchActiveCommand`) exactly as `useCommand` does for a widget.
  */
 let activeTelemetryClient: TelemetryClient | undefined;
 
@@ -988,13 +870,6 @@ const activeTelemetryClientListeners = new Set<() => void>();
 function notifyActiveTelemetryClientListeners(): void {
   for (const listener of activeTelemetryClientListeners) listener();
 }
-
-/**
- * The most recently mounted `TelemetryProvider`'s carried-channels allowlist,
- * tracked outside React: the plain-class equivalent of
- * `useCarriedChannelsOptional()`. See `activeTelemetryClient`'s doc comment.
- */
-let activeCarriedChannels: ReadonlySet<string> | undefined;
 
 /**
  * Reads `topic` off whichever `TelemetryProvider` most recently mounted
@@ -1152,7 +1027,7 @@ export function getOrbitSolve(): OrbitalSolve | null {
  * read is a plain `undefined`.
  *
  * Deliberately restricted to keys the routing actually resolves: the alarm and
- * trigger pickers (see `@ksp-gonogo/data`'s `useValueKeys`) only ever offer keys
+ * trigger pickers (see `@ksp-gonogo/data`'s `useNumericFields`) only ever offer keys
  * in that resolvable set, so an unresolvable key here is a stale persisted
  * `dataKey` naming a retired subject. `undefined` is the correct answer, and the
  * surface that stored it is responsible for showing the operator that its
@@ -1238,14 +1113,6 @@ export function useActiveTelemetryClient(): TelemetryClient | undefined {
     subscribeActiveTelemetryClient,
     getActiveTelemetryClient,
   );
-}
-
-/**
- * Non-hook equivalent of `useCarriedChannelsOptional()`. See
- * `activeCarriedChannels`'s doc comment.
- */
-export function getActiveCarriedChannels(): ReadonlySet<string> | undefined {
-  return activeCarriedChannels;
 }
 
 /**
@@ -1397,25 +1264,6 @@ export function setActiveTelemetryClientForTests(
 }
 
 /**
- * Test-only escape hatch: registers `channels` as the carried-channels
- * allowlist a mounted `TelemetryProvider` would, for a test exercising the
- * one thing that still reads it through `getActiveCarriedChannels`: the
- * topic-field CATALOGUE, which decides the vocabulary of fields a picker
- * offers. Pass `undefined` to clear.
- *
- * It is NOT a dispatch precondition and never usefully was. Command dispatch
- * consulted this set until `7e186ab3c`, and because nothing in production
- * ever put a command id in it, four command paths were dead while their own
- * tests passed, each installing its own command here by hand. Do not reach
- * for this to make a command route.
- */
-export function setActiveCarriedChannelsForTests(
-  channels: ReadonlySet<string> | undefined,
-): void {
-  activeCarriedChannels = channels;
-}
-
-/**
  * Non-React equivalent of subscribing to `store.subscribeFrame`: for a
  * plain-class caller that needs to re-run its own on-demand reads
  * (`getVesselOrbit()`/`getVesselTarget()`/`getVesselIdentity()`) whenever the active `TelemetryProvider` ingests a new
@@ -1474,29 +1322,4 @@ export function holdActiveTopicRead(
     topicHoldReleases.get(token)?.();
     topicHoldReleases.delete(token);
   };
-}
-
-/**
- * Reads the carried-channels allowlist supplied by the nearest
- * `TelemetryProvider` (see `./carried-channels.ts`): throws if no
- * provider is in the tree, matching `useTelemetryStore`'s contract. Combine
- * it with `isTopicCarried` rather than reading the raw set directly.
- */
-export function useCarriedChannels(): ReadonlySet<string> {
-  const carriedChannels = useContext(CarriedChannelsContext);
-  if (!carriedChannels) {
-    throw new Error(
-      "useCarriedChannels must be used within a TelemetryProvider",
-    );
-  }
-  return carriedChannels;
-}
-
-/**
- * Non-throwing variant of `useCarriedChannels`: `undefined` when no
- * `TelemetryProvider` is mounted. Same rationale as
- * `useTelemetryClientOptional`/`useTelemetryStoreOptional`.
- */
-export function useCarriedChannelsOptional(): ReadonlySet<string> | undefined {
-  return useContext(CarriedChannelsContext);
 }

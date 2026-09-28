@@ -27,7 +27,6 @@ export interface CommSignalBadgeProbeEmit {
 }
 
 export interface CommSignalBadgeProbePayload {
-  carriedChannels: string[];
   pinnedUt?: number;
   emits: CommSignalBadgeProbeEmit[];
   disconnect?: boolean;
@@ -91,7 +90,6 @@ async function renderCommSignalBadgeProbe(
   root.style.background = "var(--color-surface-app)";
 
   const streamFixture: StreamFixture = setupStreamFixture({
-    carriedChannels: payload.carriedChannels,
     pinnedUt: payload.pinnedUt,
   });
 

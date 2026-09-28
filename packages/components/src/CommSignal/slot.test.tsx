@@ -32,21 +32,9 @@ function unmountAll() {
 }
 
 // The `comm-signal.sections` slot is empty by default and composes a registered augment.
-const CARRIED = [
-  "vessel.orbit",
-  "vessel.flight",
-  "vessel.identity",
-  "system.bodies",
-  "vessel.control",
-  "vessel.target",
-  "vessel.comms",
-  "vessel.propulsion",
-  "comms.delay",
-];
 
 function renderWithSignal() {
   const fixture = setupStreamFixture({
-    carriedChannels: CARRIED,
     pinnedUt: 10,
     suspendFrames: true,
   });

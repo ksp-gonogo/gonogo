@@ -5,17 +5,6 @@
     "notes": "SYNTHETIC. Very high Kerbin reentry (~45 km, 295 m/s down) in near-vacuum-thin air where the mod reports NO terminal velocity yet (drag not measurable). Exercises the honest ESTIMATE fallback (velocity + air density + an above-terminal / drag-building note) instead of a blank 'descent unmodelled'. vessel.landing is intentionally absent."
   },
   "_stream": {
-    "carriedChannels": [
-      "system.bodies",
-      "vessel.identity",
-      "vessel.orbit",
-      "vessel.flight",
-      "vessel.surface",
-      "vessel.propulsion",
-      "vessel.control",
-      "dv.summary",
-      "comms.delay"
-    ],
     "pinnedUt": 10,
     "emits": [
       {

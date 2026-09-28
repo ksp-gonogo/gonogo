@@ -83,12 +83,6 @@
     }
   ],
   "_stream": {
-    "carriedChannels": [
-      "vessel.resources",
-      "vessel.structure",
-      "dv.summary",
-      "dv.stages"
-    ],
     "emits": [
       {
         "channel": "vessel.resources",

@@ -1,7 +1,6 @@
 import { PerfBudget } from "@ksp-gonogo/core";
 import { logger } from "@ksp-gonogo/logger";
 import {
-  DEFAULT_SITREP_CARRIED_TOPICS,
   TelemetryClient,
   TelemetryProvider,
   type Transport,
@@ -36,7 +35,7 @@ import {
  * byte budget would also trip on a legitimately large one-off keyframe payload
  * (a big `system.bodies`/parts snapshot) that isn't a rate problem at all.
  *
- * **Threshold.** Steady state across the ~15 carried channels at their mixed
+ * **Threshold.** Steady state across the ~15 streamed channels at their mixed
  * cadences (vessel.orbit ~1 Hz, most others slower, occasional keyframes) sits
  * comfortably under ~150 frames/sec even under warp catch-up bursts. 750
  * leaves ~5x headroom: tight enough to flag a runaway/duplicated stream,
@@ -102,17 +101,6 @@ const SITREP_BINARY_BYTES_BUDGET = new PerfBudget({
   unit: "bytes",
 });
 
-/**
- * Re-exported for backward compatibility: every existing call site
- * (`StationScreen`, `SitrepPeerRelay`, this file's own default prop, tests)
- * imports it from here. The list itself now lives in
- * `@ksp-gonogo/sitrep-client` (`default-carried-topics.ts`) so
- * `@ksp-gonogo/data`'s `useDataSchema("data")` catalog builder can read the
- * exact same source of truth without `data` depending on `app` (see that
- * file's doc comment for why).
- */
-export { DEFAULT_SITREP_CARRIED_TOPICS };
-
 export interface SitrepTelemetryProviderProps {
   children: ReactNode;
   /**
@@ -132,8 +120,6 @@ export interface SitrepTelemetryProviderProps {
   host?: string;
   /** Overrides the runtime port the same way `host` does. */
   port?: number;
-  /** Carried-channels promotion list (default `DEFAULT_SITREP_CARRIED_TOPICS`). */
-  carriedChannels?: readonly string[];
   /**
    * Inject the transport instead of building a `WebSocketTransport` from
    * host/port: for tests that drive the mount with a scriptable `Transport`
@@ -168,7 +154,6 @@ export function SitrepTelemetryProvider({
   enabled = true,
   host,
   port,
-  carriedChannels = DEFAULT_SITREP_CARRIED_TOPICS,
   transport: injectedTransport,
 }: SitrepTelemetryProviderProps) {
   const liveHostConfig = useSyncExternalStore(
@@ -239,7 +224,7 @@ export function SitrepTelemetryProvider({
   if (!client) return <>{children}</>;
 
   return (
-    <TelemetryProvider client={client} carriedChannels={carriedChannels}>
+    <TelemetryProvider client={client}>
       {/* Inside the provider, so it can read the stream; before the children,
           so the calendar is adopted before anything formats a duration with
           it. Renders nothing. */}

@@ -87,7 +87,6 @@ function InstallReadout() {
 function renderScene(profileId: string) {
   const block = applyInstallProfile(getInstallProfile(profileId), SCENE);
   const fixture = setupStreamFixture({
-    carriedChannels: block.carriedChannels,
     suspendFrames: true,
   });
   const { unmount } = render(
@@ -266,7 +265,6 @@ describe("the reliability election, seen from six installs", () => {
  */
 describe("channel ownership, seen from two installs", () => {
   const GUARDED: InstallProfileStreamBlock = {
-    carriedChannels: ["comms.linkMargin"],
     emits: [{ channel: "comms.linkMargin", value: { db: 12.5 } }],
   };
 
@@ -291,7 +289,6 @@ describe("channel ownership, seen from two installs", () => {
   function renderGuard(profileId: string) {
     const block = applyInstallProfile(getInstallProfile(profileId), GUARDED);
     const fixture = setupStreamFixture({
-      carriedChannels: block.carriedChannels,
       suspendFrames: true,
     });
     render(

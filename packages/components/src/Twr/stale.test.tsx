@@ -6,11 +6,8 @@ import { TwrComponent } from "./index";
 
 const STANDARD_GRAVITY = 9.80665;
 
-const TWR_CHANNELS = ["vessel.propulsion"];
-
 function mount() {
   const fixture = setupStreamFixture({
-    carriedChannels: TWR_CHANNELS,
     pinnedUt: 10,
     suspendFrames: true,
   });

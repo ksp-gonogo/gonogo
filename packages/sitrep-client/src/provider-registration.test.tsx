@@ -2,7 +2,6 @@ import { render } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { TelemetryClient } from "./client";
 import {
-  getActiveCarriedChannels,
   getActiveTelemetryClient,
   getViewUt,
   TelemetryProvider,
@@ -28,11 +27,7 @@ describe("the active provider registration", () => {
   it("falls back to the provider still mounted when the later one unmounts", () => {
     const client = new TelemetryClient(new StubTransport());
     const dashboard = render(
-      <TelemetryProvider
-        client={client}
-        store={pinnedStore(100)}
-        carriedChannels={["vessel.orbit"]}
-      >
+      <TelemetryProvider client={client} store={pinnedStore(100)}>
         <div />
       </TelemetryProvider>,
     );
@@ -47,12 +42,10 @@ describe("the active provider registration", () => {
 
     expect(getActiveTelemetryClient()).toBe(client);
     expect(getViewUt()).toBe(100);
-    expect(getActiveCarriedChannels()?.has("vessel.orbit")).toBe(true);
 
     dashboard.unmount();
     expect(getActiveTelemetryClient()).toBeUndefined();
     expect(getViewUt()).toBeUndefined();
-    expect(getActiveCarriedChannels()).toBeUndefined();
   });
 
   it("keeps the later provider when the earlier one unmounts", () => {

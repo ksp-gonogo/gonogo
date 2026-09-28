@@ -1,5 +1,6 @@
 import type { JSX, ReactNode } from "react";
 import type { Meta } from "../__generated__/contract";
+import { DYNAMIC_WHOLE_TOPIC_PREFIXES } from "../dynamic-topic-prefixes";
 import {
   PRODUCTION_DERIVED_CHANNELS,
   TelemetryClient,
@@ -40,12 +41,9 @@ import { StubTransport } from "./stub-transport";
  *   test that renders a widget and sees the value proves the widget's own
  *   `useStream`/shim ref-count genuinely subscribed. A test that wants to replay a
  *   whole recording should build a `ReplayTransport` directly.
- * - **`carriedChannels`** is required, not defaulted: a caller states which topics
- *   (read AND command) this fixture carries and nothing is silently promoted,
- *   mirroring the production allowlist's explicit-promotion contract. A
- *   `.`-terminated entry is a DYNAMIC whole-topic namespace, so a 3+-segment topic
- *   (`fleet.<guid>.delay`) is sampled whole rather than mis-split into a
- *   `<parent>.<field>` the wire never publishes.
+ * - **Dynamic namespaces** resolve as production's do: a topic under one of
+ *   `DYNAMIC_WHOLE_TOPIC_PREFIXES` (`fleet.<guid>.delay`) is sampled whole rather
+ *   than mis-split into a `<parent>.<field>` the wire never publishes.
  * - **`delaySeconds`**: the one knob the whole streaming pipeline exists for. A
  *   caller passing a nonzero value MUST leave `pinnedUt` unset, because
  *   `ViewClock.viewUt()`'s `scrubTo` target wins outright over the
@@ -57,8 +55,6 @@ import { StubTransport } from "./stub-transport";
  *   anything arrived.
  */
 export interface StreamFixtureOptions {
-  /** Topics (read AND command) to promote into the carried-channels allowlist. */
-  carriedChannels: Iterable<string>;
   /** UT to pin the view clock at, via `clock.scrubTo`. Omit to leave the clock live (required for `delaySeconds` to have any effect; see this file's doc comment). */
   pinnedUt?: number;
   /** Fixed network/display delay in seconds (`ViewClock`'s delay authority). Defaults to 0. */
@@ -93,7 +89,9 @@ export interface StreamFixture {
   ) => void;
 }
 
-export function setupStreamFixture(opts: StreamFixtureOptions): StreamFixture {
+export function setupStreamFixture(
+  opts: StreamFixtureOptions = {},
+): StreamFixture {
   const wall = createFakeWallClock();
   const transport = new StubTransport();
   const client = new TelemetryClient(transport);
@@ -102,9 +100,8 @@ export function setupStreamFixture(opts: StreamFixtureOptions): StreamFixture {
     warpRate: () => 1,
     delaySeconds: () => opts.delaySeconds ?? 0,
   });
-  const carriedChannels = Array.from(opts.carriedChannels);
   const store = new TimelineStore(clock, {
-    dynamicWholeTopicPrefixes: carriedChannels.filter((t) => t.endsWith(".")),
+    dynamicWholeTopicPrefixes: DYNAMIC_WHOLE_TOPIC_PREFIXES,
   });
   // The production list itself rather than a hand-picked four of it. The four
   // were the ones some Uplink's widget happened to need, so a widget reading any
@@ -118,11 +115,7 @@ export function setupStreamFixture(opts: StreamFixtureOptions): StreamFixture {
 
   function Provider({ children }: { children: ReactNode }) {
     return (
-      <TelemetryProvider
-        client={client}
-        store={store}
-        carriedChannels={carriedChannels}
-      >
+      <TelemetryProvider client={client} store={store}>
         {children}
       </TelemetryProvider>
     );

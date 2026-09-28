@@ -4,7 +4,6 @@
     "notes": "Mid-ascent through atmosphere, fuel depleting, TWR 2.55, high-green zone. Upper-third of the dial arc."
   },
   "_stream": {
-    "carriedChannels": ["vessel.propulsion"],
     "emits": [
       {
         "channel": "vessel.propulsion",

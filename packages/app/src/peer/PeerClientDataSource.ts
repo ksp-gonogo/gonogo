@@ -107,8 +107,7 @@ export class PeerClientDataSource implements DataSource {
 
   /**
    * Mirrors the host's enriched schema (label / unit / group) received via
-   * the one-shot `schema` PeerJS message. Station-side config UIs read this
-   * through `useDataSchema`.
+   * the one-shot `schema` PeerJS message.
    */
   setSchema(schema: DataKeyMeta[]): void {
     this.cachedSchema = schema;

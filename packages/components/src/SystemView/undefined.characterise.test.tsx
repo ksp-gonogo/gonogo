@@ -114,14 +114,6 @@ describe("SystemView: what undefined means today", () => {
 
   beforeEach(() => {
     fixture = setupStreamFixture({
-      carriedChannels: [
-        "vessel.orbit",
-        "vessel.identity",
-        "vessel.target",
-        "system.bodies",
-        "fleet.",
-        "silence.",
-      ],
       pinnedUt: 100,
       suspendFrames: true,
     });

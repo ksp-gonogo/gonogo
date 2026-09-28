@@ -28,14 +28,6 @@ import { NavballComponent } from "./index";
 
 const KEYS: DataKey[] = [{ key: "n.heading" }];
 
-const READ_CHANNELS = [
-  "vessel.attitude",
-  "vessel.control",
-  "vessel.comms",
-  "comms.delay",
-  "vessel.identity",
-];
-
 // Large enough to clear the control surface's size gate.
 const CONTROL_SIZE = { w: 9, h: 20 };
 
@@ -90,7 +82,6 @@ describe("NavballComponent", () => {
     size: { w: number; h: number } = { w: 8, h: 11 },
   ) {
     const fixture = setupStreamFixture({
-      carriedChannels: READ_CHANNELS,
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -333,7 +324,6 @@ describe("Navball: navball.badges augment slot (spec §4)", () => {
 
   function renderNavball() {
     const fixture = setupStreamFixture({
-      carriedChannels: READ_CHANNELS,
       pinnedUt: 10,
       suspendFrames: true,
     });

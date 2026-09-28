@@ -4,7 +4,6 @@
     "notes": "Plain stock stack, no planted Uplink Domain present. Exercises the built-in `core` ship-map.part-meters contribution alone (packages/components/src/ShipMap/partMetersContribution.ts): LiquidFuel + Oxidizer bars on the fuel tank, no bars anywhere else."
   },
   "_stream": {
-    "carriedChannels": ["vessel.parts"],
     "emits": [
       {
         "channel": "vessel.parts",

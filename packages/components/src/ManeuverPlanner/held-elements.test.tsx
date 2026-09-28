@@ -11,18 +11,9 @@ import { ManeuverPlannerComponent } from "./index";
  * only through Unit.
  */
 
-const CARRIED = [
-  "vessel.orbit",
-  "vessel.flight",
-  "vessel.identity",
-  "system.bodies",
-  "vessel.target",
-];
-
 describe("ManeuverPlanner planning from held, unmodelled elements", () => {
   it("withholds the plan with no last-known-orbit caption", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 1_000_000,
       suspendFrames: true,
     });

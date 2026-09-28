@@ -422,7 +422,7 @@ describe("fixtures become scenes", () => {
       "src/Reactor/__fixtures__/hot.json": JSON.stringify(body),
     });
 
-  it("derives the carried channels from the registration", () => {
+  it("derives the declared topics from the registration", () => {
     const pkg = resolveUplinkPackage(
       fixture({
         _scene: { widget: "reactor" },
@@ -430,7 +430,7 @@ describe("fixtures become scenes", () => {
       }),
     );
     const [scene] = buildScenes(pkg, INVENTORY);
-    expect(scene.carriedChannels).toEqual(["example.reactor"]);
+    expect(scene.declaredTopics).toEqual(["example.reactor"]);
   });
 
   it("derives the modes from defaultSize and minSize", () => {
@@ -540,8 +540,8 @@ describe("fixtures become scenes", () => {
     // A stand-in size would render the real widget at a shape nobody sees.
     expect(scene.modes.map((m) => m.name)).toEqual(["default"]);
     expect(scene.modes[0]).toMatchObject({ w: 9, h: 4 });
-    expect(scene.carriedChannels).toContain("host.status");
-    expect(scene.carriedChannels).toContain("example.reactor");
+    expect(scene.declaredTopics).toContain("host.status");
+    expect(scene.declaredTopics).toContain("example.reactor");
   });
 
   it("lets a hosted scene name the tile the host is actually run at", () => {

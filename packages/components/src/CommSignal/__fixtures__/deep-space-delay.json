@@ -9,18 +9,6 @@
   "comm.controlStateName": "Partial",
   "comm.signalDelay": 487,
   "_stream": {
-    "carriedChannels": [
-      "comms.link",
-      "comms.delay",
-      "vessel.orbit",
-      "vessel.flight",
-      "vessel.identity",
-      "system.bodies",
-      "vessel.control",
-      "vessel.target",
-      "vessel.comms",
-      "vessel.propulsion"
-    ],
     "emits": [
       {
         "channel": "comms.link",

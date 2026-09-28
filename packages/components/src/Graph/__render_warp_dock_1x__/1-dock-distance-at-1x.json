@@ -5,7 +5,6 @@
     "notes": "SYNTHETIC. Distance to a docking target on a phasing orbit, sampled every UT second at 1x (observationQuantumUt 1, the sampleIntervalUt). Every gap is one second, which the dead reckoning carries, so the trace is one line."
   },
   "_stream": {
-    "carriedChannels": ["vessel.dock", "time.warp", "vessel.identity"],
     "pinnedUt": 600,
     "emits": [
       {

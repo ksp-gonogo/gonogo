@@ -17,13 +17,6 @@ import { ActionGroupComponent } from "./index";
  * reads each group separately) renders unknown, holds its toggle and says why.
  */
 
-const CARRIED = [
-  "vessel.control",
-  "vessel.structure",
-  "time.warp",
-  "comms.link",
-];
-
 const CONTROL_BASE = {
   sas: false,
   sasMode: 0,
@@ -53,7 +46,6 @@ afterEach(() => {
 
 function mount(groupId: string, instanceId = `ag-unreadable-${groupId}`) {
   const fixture = setupStreamFixture({
-    carriedChannels: CARRIED,
     pinnedUt: 0,
     suspendFrames: true,
   });

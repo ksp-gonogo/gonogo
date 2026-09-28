@@ -9,8 +9,6 @@ import {
   useBodyStatePropagators,
 } from "./useBodyStatePropagators";
 
-const BODY_STATES = "system.bodies.statesAt";
-
 const sun: BodyRef = { index: 0, name: "Sun", referenceBody: null };
 const earth: BodyRef = { index: 1, name: "Earth", referenceBody: "Sun" };
 const mars: BodyRef = { index: 2, name: "Mars", referenceBody: "Sun" };
@@ -81,7 +79,7 @@ function renderProbe(
 
 describe("useBodyStatePropagators: the porkchop asks the game where the bodies are", () => {
   it("batches one dispatch per body, whole axis, about the parent they share", async () => {
-    const fixture = setupStreamFixture({ carriedChannels: [BODY_STATES] });
+    const fixture = setupStreamFixture();
     fixture.transport.setCommandHandler((_command, args) =>
       reply(asked(args).uts, 1),
     );
@@ -110,7 +108,7 @@ describe("useBodyStatePropagators: the porkchop asks the game where the bodies a
   });
 
   it("answers with the states the provider gave, keyed by the instants asked", async () => {
-    const fixture = setupStreamFixture({ carriedChannels: [BODY_STATES] });
+    const fixture = setupStreamFixture();
     fixture.transport.setCommandHandler((_command, args) => {
       const { uts, bodyIndex } = asked(args);
       return reply(uts, bodyIndex);
@@ -126,7 +124,7 @@ describe("useBodyStatePropagators: the porkchop asks the game where the bodies a
   });
 
   it("declines entirely when a reply does not cover the instants asked", async () => {
-    const fixture = setupStreamFixture({ carriedChannels: [BODY_STATES] });
+    const fixture = setupStreamFixture();
     fixture.transport.setCommandHandler((_command, args) => {
       const { uts, bodyIndex } = asked(args);
       // One state short: the caller must get nothing and fall back whole.
@@ -142,7 +140,7 @@ describe("useBodyStatePropagators: the porkchop asks the game where the bodies a
   });
 
   it("asks nothing at all when the two bodies do not share a parent", async () => {
-    const fixture = setupStreamFixture({ carriedChannels: [BODY_STATES] });
+    const fixture = setupStreamFixture();
     fixture.transport.setCommandHandler(() => reply(axes.departureUts, 1));
 
     const seen: { current: BodyStatePropagators | null } = { current: null };

@@ -38,12 +38,10 @@ const flatEntry = (
   ...over,
 });
 
-const CARRIED = ["deployed.bases", "game.dlc"] as const;
-
 const renderedTrees: Array<() => void> = [];
 
 function newFixture(): StreamFixture {
-  return setupStreamFixture({ carriedChannels: CARRIED, pinnedUt: 10 });
+  return setupStreamFixture({ pinnedUt: 10 });
 }
 
 function renderDeployed(fixture: StreamFixture) {

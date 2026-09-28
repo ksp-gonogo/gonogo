@@ -9,7 +9,6 @@ import { OrbitalAscentComponent } from "./index";
 describe("OrbitalAscent off the stream", () => {
   it("resolves the streamed parent-body name off the real pipeline", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.flight", "vessel.identity", "system.bodies"],
       pinnedUt: 10,
       suspendFrames: true,
     });

@@ -1,6 +1,10 @@
 import { getSizeBucket } from "@ksp-gonogo/core";
-import type { SeriesRange, SeriesTimeBasis } from "@ksp-gonogo/data";
-import { useDataSchema } from "@ksp-gonogo/data";
+import type {
+  DataKeyMeta,
+  SeriesRange,
+  SeriesTimeBasis,
+} from "@ksp-gonogo/data";
+import { useTopicFieldCatalog } from "@ksp-gonogo/data";
 import type { PlotLayer } from "@ksp-gonogo/sitrep-sdk";
 import type { ChartSeries, ThresholdRule } from "@ksp-gonogo/ui";
 import { LineChart, utXTickFormat } from "@ksp-gonogo/ui";
@@ -93,12 +97,12 @@ export function GraphView({
   const xPinned = config?.xDomain !== undefined;
   const xIsTime = !xPinned && xKey === TIME_AXIS;
 
-  const schema = useDataSchema("data");
+  const catalog = useTopicFieldCatalog();
   const metaMap = useMemo(() => {
-    const map = new Map(schema.map((k) => [k.key, k]));
+    const map = new Map<string, DataKeyMeta>(catalog.map((k) => [k.key, k]));
     for (const c of computedSeries ?? []) map.set(c.meta.key, c.meta);
     return map;
-  }, [schema, computedSeries]);
+  }, [catalog, computedSeries]);
   const xMeta = xIsTime || xPinned ? null : (metaMap.get(xKey) ?? null);
   const axes = resolveAxes(series, metaMap);
 

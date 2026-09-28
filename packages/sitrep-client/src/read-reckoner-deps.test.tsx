@@ -31,22 +31,6 @@ import { ViewClock } from "./view-clock";
 
 const SUBJECT = "8f0d2d3c-0000-4000-8000-000000000001";
 
-const CARRIED = [
-  "vessel.orbit",
-  "vessel.flight",
-  "vessel.identity",
-  "system.bodies",
-  "vessel.control",
-  "vessel.target",
-  "vessel.comms",
-  "vessel.propulsion",
-  "test.contact",
-  "test.temperature",
-  "comms.delay",
-  "comms.path",
-  "commandCentre.roster",
-];
-
 function buildFixture() {
   const wall = createFakeWallClock();
   const transport = new StubTransport();
@@ -61,11 +45,7 @@ function buildFixture() {
 
   function Provider({ children }: { children: ReactNode }) {
     return (
-      <TelemetryProvider
-        client={client}
-        store={store}
-        carriedChannels={CARRIED}
-      >
+      <TelemetryProvider client={client} store={store}>
         {children}
       </TelemetryProvider>
     );

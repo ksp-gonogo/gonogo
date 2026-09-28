@@ -4,25 +4,6 @@
     "notes": "Three pads, none holding anything the space centre will admit to: the stock KSC pad reports itself clear, and the runway and Woomerang report no occupancy at all, which is what the mod does off the stock pad. Craft: one affordable, one funds-blocked, one parts-locked spaceplane that only the runway offers, and a subassembly KSP attributes to no editor at all. Every craft carries `facilityOrdinal`, which is the wire shape the mod sends and the field `launchFacilityArg` resolves the pad match and the dispatched `facility` argument from; the name beside it is the row's label. It was absent here, so every ready count was reached through the NAME fallback instead. Expect no pixel to move for that: `facility` is the same enum's own `ToString()`, so the two agree on any wire KSP can produce, and the ordinal earns its keep only against a KSP that renames a member. The tug is the `None` arm, an ordinal KSP declares and that is not an editor, so no pad offers it. Funds readout visible in the subtitle. The `_stream` block drives both snapshots.test.tsx and the probe render harness."
   },
   "_stream": {
-    "carriedChannels": [
-      "career.status",
-      "career.facilities",
-      "spaceCenter.savedShips",
-      "spaceCenter.crewRoster",
-      "spaceCenter.scene",
-      "spaceCenter.launchSites",
-      "vessel.orbit",
-      "vessel.flight",
-      "vessel.identity",
-      "system.bodies",
-      "vessel.control",
-      "vessel.target",
-      "vessel.comms",
-      "vessel.propulsion",
-      "ksp.revertAvailability",
-      "crash.hasRecent",
-      "crash.lastCrash"
-    ],
     "pinnedUt": 10,
     "emits": [
       {

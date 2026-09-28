@@ -53,7 +53,6 @@ const OVERHAUL = {
  */
 function mount(economy: Record<string, unknown> | null) {
   const fixture = setupStreamFixture({
-    carriedChannels: ["career.status"],
     pinnedUt: 10,
     suspendFrames: true,
   });

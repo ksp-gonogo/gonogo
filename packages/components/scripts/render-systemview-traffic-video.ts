@@ -287,15 +287,6 @@ function pendingEntry(id: string, dispatchedAt: number, oneWaySeconds: number) {
   };
 }
 
-const CARRIED_CHANNELS = [
-  "vessel.orbit",
-  "vessel.identity",
-  "system.bodies",
-  "system.vessels",
-  "comms.network",
-  "system.uplink.pending",
-];
-
 async function evalRenderCapture(
   page: Page,
   payload: Record<string, unknown>,
@@ -426,7 +417,6 @@ async function captureTraffic(probeHtmlOut: string): Promise<void> {
       h: 12,
       pxW: 900,
       pxH: 900,
-      carriedChannels: CARRIED_CHANNELS,
       streamEmits: sceneEmitsForTraffic(),
       warpRate: 1,
     });
@@ -522,7 +512,6 @@ async function captureOrbits(probeHtmlOut: string): Promise<void> {
       h: 12,
       pxW: 900,
       pxH: 900,
-      carriedChannels: CARRIED_CHANNELS,
       streamEmits: sceneEmits(),
       warpRate: 400,
     });

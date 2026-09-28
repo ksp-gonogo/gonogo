@@ -37,7 +37,6 @@ const renderedTrees: Array<() => void> = [];
 // The full instrument-list layout, where both slots render.
 async function renderFullList(): Promise<void> {
   const fixture = setupStreamFixture({
-    carriedChannels: ["science.instruments", "science.experiments"],
     pinnedUt: 10,
     suspendFrames: true,
   });

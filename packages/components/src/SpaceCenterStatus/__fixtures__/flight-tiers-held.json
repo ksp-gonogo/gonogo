@@ -4,13 +4,6 @@
     "scenario": "flight-tiers-held"
   },
   "_stream": {
-    "carriedChannels": [
-      "career.status",
-      "spaceCenter.scene",
-      "spaceCenter.partsAvailable",
-      "spaceCenter.launchSites",
-      "career.facilities"
-    ],
     "pinnedUt": 4000.0,
     "emits": [
       {

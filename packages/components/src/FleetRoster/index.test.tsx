@@ -194,7 +194,6 @@ const renderedTrees: Array<() => void> = [];
 
 function newFixture() {
   return setupStreamFixture({
-    carriedChannels: ["system.vessels", "system.bodies"],
     pinnedUt: 10,
     suspendFrames: true,
   });
@@ -418,12 +417,6 @@ describe("FleetRosterComponent", () => {
   /** A silent craft with no prediction reads "no contact", never "overdue", and going overdue is not being declared lost. */
   async function renderWithContact(silence: Record<string, unknown>) {
     const fixture = setupStreamFixture({
-      carriedChannels: [
-        "system.vessels",
-        "system.bodies",
-        "fleet.",
-        "silence.",
-      ],
       pinnedUt: 2_000,
       suspendFrames: true,
     });
@@ -485,7 +478,6 @@ describe("FleetRosterComponent", () => {
 
   it("shows a per-vessel signal disclosure with the round-trip delay", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["system.vessels", "system.bodies", "fleet."],
       suspendFrames: true,
     });
     renderRoster(fixture);
@@ -548,7 +540,6 @@ describe("FleetRosterComponent", () => {
 
   async function renderBlackout() {
     const fixture = setupStreamFixture({
-      carriedChannels: ["system.vessels", "system.bodies", "fleet."],
       pinnedUt: 2_000,
       suspendFrames: true,
     });
@@ -609,7 +600,6 @@ describe("FleetRosterComponent", () => {
 
   it("reports an unarrived contact as unknown rather than trusting the delay frame", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["system.vessels", "system.bodies", "fleet."],
       pinnedUt: 2_000,
       suspendFrames: true,
     });
@@ -640,7 +630,6 @@ describe("FleetRosterComponent", () => {
 
   it("has no accessible violations with a delay disclosure open", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["system.vessels", "system.bodies", "fleet."],
       suspendFrames: true,
     });
     const container = renderRoster(fixture);
@@ -674,11 +663,6 @@ describe("FleetRosterComponent", () => {
 
   it("reflects the selected command-source vantage in the header", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: [
-        "system.vessels",
-        "system.bodies",
-        "commandCentre.roster",
-      ],
       pinnedUt: 10,
       suspendFrames: true,
     });

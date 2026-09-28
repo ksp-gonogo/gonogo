@@ -36,7 +36,6 @@ function RosterProbe() {
 
 function mount() {
   const fixture = setupStreamFixture({
-    carriedChannels: ["commandCentre.roster"],
     pinnedUt: 10,
   });
   const view = render(

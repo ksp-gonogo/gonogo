@@ -4,24 +4,6 @@
     "notes": "No spaceCenter.launchSites yet: the widget's subject is the pads, so their absence is what shows the awaiting-telemetry placeholder. career.funds intentionally absent. The `_stream` block drives both snapshots.test.tsx and the probe render harness."
   },
   "_stream": {
-    "carriedChannels": [
-      "career.status",
-      "spaceCenter.savedShips",
-      "spaceCenter.crewRoster",
-      "spaceCenter.scene",
-      "spaceCenter.launchSites",
-      "vessel.orbit",
-      "vessel.flight",
-      "vessel.identity",
-      "system.bodies",
-      "vessel.control",
-      "vessel.target",
-      "vessel.comms",
-      "vessel.propulsion",
-      "ksp.revertAvailability",
-      "crash.hasRecent",
-      "crash.lastCrash"
-    ],
     "pinnedUt": 10,
     "emits": [
       {

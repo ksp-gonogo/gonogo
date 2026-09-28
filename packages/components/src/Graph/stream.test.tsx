@@ -27,7 +27,6 @@ describe("Graph: genuinely runs off the stream", () => {
 
   it("plots every streamed sample in the window, in order", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.orbit"],
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -81,7 +80,6 @@ describe("Graph: genuinely runs off the stream", () => {
   // Streamed samples are stamped in UT seconds, so a wall-clock domain would put them far off the canvas.
   it("draws the trace inside the plot box, not off the left edge", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.orbit"],
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -126,7 +124,6 @@ describe("Graph: genuinely runs off the stream", () => {
   // The tick formatter follows `SeriesRange.basis`; read as milliseconds, twenty minutes of UT seconds labels as `0:00 ... 0:01`.
   it("labels the time axis in the basis the samples are stamped in", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.orbit"],
       pinnedUt: 0,
       suspendFrames: true,
     });
@@ -171,7 +168,6 @@ describe("Graph: genuinely runs off the stream", () => {
    */
   it("draws a recorded run exactly as the live trace", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.orbit"],
       pinnedUt: 0,
       suspendFrames: true,
     });
@@ -243,7 +239,6 @@ describe("Graph: genuinely runs off the stream", () => {
 
   it("splits two series with different units onto separate axes", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.flight"],
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -306,7 +301,6 @@ describe("Graph: genuinely runs off the stream", () => {
 
   it("shows the streamed latest value in the readout variant", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.orbit"],
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -344,7 +338,6 @@ describe("Graph: genuinely runs off the stream", () => {
    */
   it("carries a modelled trace across the silence, muted and dashed", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.flight", "vessel.orbit", "system.bodies"],
       pinnedUt: 600,
       suspendFrames: true,
     });
@@ -415,7 +408,6 @@ describe("Graph: genuinely runs off the stream", () => {
   // Inside the atmosphere the reckoner withdraws partway through the gap, and the axis must still run to the view time so the blank stays visible.
   it("leaves the stretch a declining model would not answer for on the axis", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.flight", "vessel.orbit", "system.bodies"],
       pinnedUt: 60,
       suspendFrames: true,
     });
@@ -604,7 +596,6 @@ describe("Graph: the region behind a modelled trace", () => {
   it("shades what the model would not pin down, beside the trace it drew", async () => {
     registerDriftingSma(true);
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.orbit"],
       pinnedUt: 600,
       suspendFrames: true,
     });
@@ -629,7 +620,6 @@ describe("Graph: the region behind a modelled trace", () => {
   it("draws no region at all where the same model offers no band", async () => {
     registerDriftingSma(false);
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.orbit"],
       pinnedUt: 600,
       suspendFrames: true,
     });

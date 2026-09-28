@@ -16,13 +16,6 @@
   ],
   "_stream": {
     "pinnedUt": 5000000,
-    "carriedChannels": [
-      "time.warp",
-      "comms.delay",
-      "spaceCenter.scene",
-      "spaceCenter.launchSites",
-      "career.mode"
-    ],
     "emits": [
       {
         "channel": "time.warp",

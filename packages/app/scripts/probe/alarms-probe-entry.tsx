@@ -60,10 +60,9 @@ const ORBIT = {
  * What the scenes draw from: `vessel.orbit` and `system.bodies` for the orbit
  * solve the apsis presets anchor to, `vessel.control` for the action-group
  * caption, `vessel.maneuver` for the node presets, and the two channels the time
- * context is read out of. No scene opens the threshold key picker, so
- * `vessel.flight`, which it offers altitude from, is not carried.
+ * context is read out of.
  */
-const CARRIED = [
+const SUBSCRIBED = [
   "vessel.orbit",
   "system.bodies",
   "vessel.control",
@@ -144,7 +143,6 @@ async function renderScene(scene: Scene): Promise<void> {
   }
 
   const fixture: StreamFixture = setupStreamFixture({
-    carriedChannels: CARRIED,
     pinnedUt: VIEW_UT,
     delaySeconds: scene.delaySeconds,
   });
@@ -157,7 +155,7 @@ async function renderScene(scene: Scene): Promise<void> {
    * two scenes then differed by something other than the one variable they are
    * supposed to differ by.
    */
-  for (const topic of CARRIED) fixture.subscribe(topic);
+  for (const topic of SUBSCRIBED) fixture.subscribe(topic);
 
   root = createRoot(host);
   root.render(

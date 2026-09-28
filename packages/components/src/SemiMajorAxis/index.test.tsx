@@ -6,14 +6,12 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { SemiMajorAxisComponent } from "./index";
 
 // Both reads run off a real `TelemetryProvider`, with no legacy `MockDataSource`.
-const SEMI_MAJOR_AXIS_CHANNELS = ["vessel.orbit", "system.bodies"];
 
 describe("SemiMajorAxisComponent", () => {
   let stream: ReturnType<typeof setupStreamFixture>;
 
   beforeEach(() => {
     stream = setupStreamFixture({
-      carriedChannels: SEMI_MAJOR_AXIS_CHANNELS,
       pinnedUt: 10,
       suspendFrames: true,
     });

@@ -5,18 +5,6 @@
     "notes": "SYNTHETIC (model-generated, NOT captured). Touched down: situation Landed, motion nulled -> settled landed state, no stale countdown."
   },
   "_stream": {
-    "carriedChannels": [
-      "system.bodies",
-      "vessel.identity",
-      "vessel.orbit",
-      "vessel.flight",
-      "vessel.surface",
-      "vessel.propulsion",
-      "vessel.control",
-      "dv.summary",
-      "comms.delay",
-      "vessel.landing"
-    ],
     "pinnedUt": 10,
     "emits": [
       {

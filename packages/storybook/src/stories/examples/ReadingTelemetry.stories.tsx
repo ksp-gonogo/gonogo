@@ -38,7 +38,7 @@ function Scene({ payload, stopsArriving }: ReadingTelemetryArgs) {
         ];
   return (
     <FixtureStream
-      carried={["vessel.flight"]}
+      subscribed={["vessel.flight"]}
       emits={emits}
       stopsArriving={stopsArriving}
     >

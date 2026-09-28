@@ -7,17 +7,6 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { OrbitViewComponent } from "./index";
 
 /** "packed" claims the orbit exists and the craft is loaded, so only the reason that names the loaded case may say it. */
-const CARRIED = [
-  "vessel.orbit",
-  "vessel.flight",
-  "vessel.identity",
-  "system.bodies",
-  "vessel.control",
-  "vessel.target",
-  "vessel.comms",
-  "vessel.propulsion",
-  "system.frame",
-];
 
 const EARTH = {
   index: 1,
@@ -34,7 +23,6 @@ function scene(
   quality: Quality = Quality.OnRails,
 ) {
   const fixture = setupStreamFixture({
-    carriedChannels: CARRIED,
     pinnedUt: 10,
     suspendFrames: true,
   });

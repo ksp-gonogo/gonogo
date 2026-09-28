@@ -17,7 +17,6 @@ afterEach(() => {
 describe("Strategies: genuinely runs off the stream (M3/M3b career batch)", () => {
   it("renders the funds/reputation/science tallies derived from career.status.economy", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["career.status"],
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -56,7 +55,6 @@ describe("Strategies: genuinely runs off the stream (M3/M3b career batch)", () =
 
   it("renders a strategy card derived from career.status.strategies.all", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["career.status"],
       pinnedUt: 10,
       suspendFrames: true,
     });

@@ -12,8 +12,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { AtmosphereProfileComponent } from "./index";
 
-const CARRIED_CHANNELS = ["vessel.flight", "vessel.identity", "system.bodies"];
-
 /**
  * Names the parent body: `vessel.identity.parentBodyIndex` resolved against a
  * single-entry `system.bodies` table.
@@ -47,7 +45,6 @@ describe("AtmosphereProfileComponent", () => {
 
   function renderAtmo() {
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED_CHANNELS,
       pinnedUt: 10,
       suspendFrames: true,
     });

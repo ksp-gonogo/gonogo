@@ -5,7 +5,7 @@ import "../index";
 /**
  * Every `dataRequirements` and `fields` entry every built-in widget declares
  * must resolve to something real (`classifyRequirement` in
- * `@ksp-gonogo/core` has the four legal forms). `isTopicCarried` resolves a
+ * `@ksp-gonogo/core` has the four legal forms). Read resolution walks a
  * path without checking the leaf, so a misspelt field would otherwise render
  * as a permanent `undefined`. Reads the real registry, not source text.
  *

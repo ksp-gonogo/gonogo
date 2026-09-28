@@ -8,7 +8,6 @@
   "career.reputation": null,
   "career.science": null,
   "_stream": {
-    "carriedChannels": ["career.status", "career.facilities"],
     "emits": [
       {
         "channel": "career.status",

@@ -12,14 +12,6 @@ import { SpaceCenterStatusComponent } from "./index";
  * blocked and a tier builds progressively, so "cannot afford" would be false.
  */
 
-const CARRIED = [
-  "career.status",
-  "career.facilities",
-  "spaceCenter.scene",
-  "spaceCenter.launchSites",
-  "system.uplink.gates",
-];
-
 /** RP-1's own sentence, as `Rp1CareerProjectGate.FacilityDetail` writes it. */
 const RP1_DETAIL =
   "RP-1 builds a facility upgrade as a construction project with its own cost " +
@@ -109,7 +101,6 @@ describe("SpaceCenterStatus: what the upgrade control claims about money", () =>
   /** The control case: without it every assertion below would pass on a widget that stopped judging affordability. */
   it("still calls a short balance short when nothing has blocked the command", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
     });
     const container = mount(fixture, "scs-spend-stock");
@@ -124,7 +115,6 @@ describe("SpaceCenterStatus: what the upgrade control claims about money", () =>
 
   it("calls an affordable balance affordable when nothing has blocked the command", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
     });
     const container = mount(fixture, "scs-spend-stock-ok");
@@ -140,7 +130,6 @@ describe("SpaceCenterStatus: what the upgrade control claims about money", () =>
   /** RP-1 has blocked the command, so the balance decides nothing. */
   it("draws no shortfall over a price the blocked command is not charging", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
     });
     const container = mount(fixture, "scs-spend-blocked-short");
@@ -158,7 +147,6 @@ describe("SpaceCenterStatus: what the upgrade control claims about money", () =>
   /** A dark button with nothing to say reads like a maxed facility or a short balance. */
   it("names the gate's own reason rather than going quietly dark", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
     });
     mount(fixture, "scs-spend-blocked-reason");
@@ -176,7 +164,6 @@ describe("SpaceCenterStatus: what the upgrade control claims about money", () =>
   /** An affordable tier is the one the operator would press, and under RP-1 the press cannot land. */
   it("does not offer an affordable tier as a live purchase the game will refuse", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
     });
     mount(fixture, "scs-spend-blocked-affordable");

@@ -29,14 +29,6 @@ export {
   frameBytes,
   isBinaryFrame,
 } from "./binary-frame";
-// Carried-topic POLICY: which topics the stream carries, and whether a given
-// topic resolves entirely to carried inputs. Published because it decides where
-// an Uplink's data actually routes, which is runtime behaviour rather than a
-// test concern.
-export {
-  isTopicCarried,
-  type SubscriptionTopicResolver,
-} from "./carried-channels";
 export { parseServerMessage } from "./client";
 // The read contract: `useTelemetry` answers with a `Reading`, so the union and its accessors ship on the author surface rather than app-side.
 export * from "./combine-readings";
@@ -118,10 +110,6 @@ export {
   isFatality,
   isOffTheBooks,
 } from "./crew-standing";
-export {
-  DEFAULT_SITREP_CARRIED_TOPICS,
-  DYNAMIC_CARRIED_TOPIC_PREFIXES,
-} from "./default-carried-topics";
 // Whether a Topic's value is entitled to be read as of TRUE NOW, or only as of
 // now minus the light-time to the craft. Published for the same reason
 // reckonability is: an Uplink declaring a ground-side channel of its own needs
@@ -149,6 +137,7 @@ export {
   relativeDensityCurve,
   terminalVelocityCurve,
 } from "./descent";
+export { DYNAMIC_WHOLE_TOPIC_PREFIXES } from "./dynamic-topic-prefixes";
 // Ordinal->name tables and closed name unions for the contract's enums. On the
 // root barrel rather than in the spine because an Uplink needs them as much as
 // the app does: KSP's ResourceFlowMode reaches the Kerbalism Uplink and its
@@ -300,9 +289,8 @@ export {
   reckonableValuesOf,
 } from "./reckonability";
 // Which Topics a client package has registered at runtime, and a subscription
-// to that answer changing. Read by the app's field catalogue and by
-// `TelemetryProvider`'s carried-channels allowlist; an Uplink author registers
-// the way they already do and never calls these.
+// to that answer changing. Read by the app's field catalogue; an Uplink author
+// registers the way they already do and never calls these.
 export {
   getRuntimeRegisteredTopicIds,
   subscribeRuntimeTopicRegistry,

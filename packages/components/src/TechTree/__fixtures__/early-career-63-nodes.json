@@ -4265,11 +4265,6 @@
   "career.science": 4853.60009765625,
   "kc.scene": "Flight",
   "_stream": {
-    "carriedChannels": [
-      "career.status",
-      "career.facilities",
-      "spaceCenter.scene"
-    ],
     "emits": [
       {
         "channel": "spaceCenter.scene",

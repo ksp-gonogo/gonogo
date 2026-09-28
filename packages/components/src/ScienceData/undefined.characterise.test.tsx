@@ -15,22 +15,10 @@ import { ScienceDataComponent } from "./index";
  * An absent archive reads as Sandbox, absent ledgers as nothing aboard, absent scene and mode as no game signal, and an absent surface drops the locale.
  */
 
-const CARRIED = [
-  "vessel.identity",
-  "system.bodies",
-  "vessel.surface",
-  "science.experiments",
-  "science.experimentBreakdown",
-  "science.archive",
-  "career.status",
-  "career.mode",
-] as const;
-
 const trees: Array<() => void> = [];
 
 function renderData(w = 8) {
   const fixture: StreamFixture = setupStreamFixture({
-    carriedChannels: CARRIED,
     pinnedUt: 10,
     suspendFrames: true,
   });

@@ -14,7 +14,6 @@ afterEach(() => {
 describe("Navball: genuinely runs off the stream (M3 batch 1)", () => {
   it("reads attitude + control state off the real stream pipeline, not legacy", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.attitude", "vessel.control"],
       pinnedUt: 10,
       suspendFrames: true,
     });

@@ -11,16 +11,13 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
-import {
-  DEFAULT_SITREP_CARRIED_TOPICS,
-  isCollectionTopic,
-} from "@ksp-gonogo/sitrep-sdk";
+import { isCollectionTopic } from "@ksp-gonogo/sitrep-sdk";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
 import {
-  getCollectionCarriedTopics,
+  getCollectionTopics,
   getTopicFieldCatalog,
-  getUndescribedCarriedTopics,
+  getUndescribedTopics,
 } from "./topicFieldCatalog";
 
 const REPO_ROOT = join(import.meta.dirname, "..", "..", "..", "..");
@@ -175,14 +172,8 @@ function plantedMod(): string {
   return mod;
 }
 
-/**
- * Every collection Topic promoted at once, so a Topic the first-party default
- * leaves out cannot pass by simply not being walked.
- */
-const ALL_COLLECTIONS_CARRIED: ReadonlySet<string> = new Set([
-  ...DEFAULT_SITREP_CARRIED_TOPICS,
-  ...derived.collections,
-]);
+/** Every collection Topic in front of the walk, an Uplink's included, as a loaded client would register them. */
+const ALL_COLLECTIONS: readonly string[] = derived.collections;
 
 describe("collection Topics in the generated contract", () => {
   it("reads the SDK's payload map and every Uplink client's", () => {
@@ -251,9 +242,9 @@ describe("collection Topics in the generated contract", () => {
 });
 
 describe("the catalogue offers no key under a collection Topic", () => {
-  it("offers none for any collection Topic, carried or not", () => {
+  it("offers none for any collection Topic", () => {
     const collections = new Set(derived.collections);
-    const offered = getTopicFieldCatalog(ALL_COLLECTIONS_CARRIED)
+    const offered = getTopicFieldCatalog(ALL_COLLECTIONS)
       .filter((entry) => collections.has(entry.topic))
       .map((entry) => entry.key);
     expect(offered).toEqual([]);
@@ -266,21 +257,19 @@ describe("the catalogue offers no key under a collection Topic", () => {
     expect(isCollectionTopic("alarm.scet.fired")).toBe(false);
   });
 
-  it("says which carried Topics it left out for being collections", () => {
+  it("says which Topics it left out for being collections", () => {
     // An Uplink's collection is registered by its client package, which this package does not load, so only the SDK-owned ones are known here.
-    expect(
-      [...getCollectionCarriedTopics(ALL_COLLECTIONS_CARRIED)].sort(),
-    ).toEqual(derived.sdkOwned);
-    const undescribed = new Set(
-      getUndescribedCarriedTopics(ALL_COLLECTIONS_CARRIED),
+    expect([...getCollectionTopics(ALL_COLLECTIONS)].sort()).toEqual(
+      derived.sdkOwned,
     );
-    for (const topic of getCollectionCarriedTopics(ALL_COLLECTIONS_CARRIED)) {
+    const undescribed = new Set(getUndescribedTopics(ALL_COLLECTIONS));
+    for (const topic of getCollectionTopics(ALL_COLLECTIONS)) {
       expect(undescribed.has(topic)).toBe(false);
     }
   });
 
   it("still offers the fields of a single-record Topic", () => {
-    const fired = getTopicFieldCatalog(ALL_COLLECTIONS_CARRIED)
+    const fired = getTopicFieldCatalog(ALL_COLLECTIONS)
       .filter((entry) => entry.topic === "alarm.scet.fired")
       .map((entry) => entry.key);
     expect(fired).toContain("alarm.scet.fired.firedAtUt");

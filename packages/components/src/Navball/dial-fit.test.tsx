@@ -57,7 +57,6 @@ function renderAt(
   emit: (fixture: StreamFixture) => void,
 ) {
   const fixture = setupStreamFixture({
-    carriedChannels: ["vessel.attitude", "vessel.control", "vessel.orbit"],
     pinnedUt: 10,
     suspendFrames: true,
   });

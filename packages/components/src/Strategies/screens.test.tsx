@@ -162,7 +162,6 @@ const renderedTrees: Array<() => void> = [];
 
 function renderWidget() {
   const stream = setupStreamFixture({
-    carriedChannels: ["career.status"],
     pinnedUt: 10,
     suspendFrames: true,
   });

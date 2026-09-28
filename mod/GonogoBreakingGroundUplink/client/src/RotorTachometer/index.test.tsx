@@ -28,8 +28,6 @@ afterEach(() => {
   clearActionHandlers();
 });
 
-const CARRIED = ["robotics.servos", "robotics.available", "game.dlc"];
-
 const rotor = (
   over: Record<string, unknown> = {},
 ): Record<string, unknown> => ({
@@ -60,7 +58,6 @@ describe("RotorTachometerComponent", () => {
   /** The DLC sentence comes off `game.dlc.breakingGround`; `robotics.available: false` means the craft carries no robotic part. */
   it("names the missing DLC off game.dlc, not off robotics.available", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
     });
     renderRotor(fixture);
@@ -75,7 +72,6 @@ describe("RotorTachometerComponent", () => {
 
   it("shows the no-rotors state when the craft carries no robotic part", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
     });
     renderRotor(fixture);
@@ -90,7 +86,6 @@ describe("RotorTachometerComponent", () => {
 
   it("shows the no-rotors state when available but the list is empty", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
     });
     renderRotor(fixture);
@@ -106,7 +101,6 @@ describe("RotorTachometerComponent", () => {
   it("says it is waiting when neither presence fact has arrived", async () => {
     // Nothing reported yet is waiting, not a craft with no rotors.
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
     });
     renderRotor(fixture);
@@ -117,7 +111,6 @@ describe("RotorTachometerComponent", () => {
 
   it("ignores hinge/piston entries in the same robotics.servos array", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
     });
     renderRotor(fixture);
@@ -135,7 +128,6 @@ describe("RotorTachometerComponent", () => {
   it("renders live RPM and fires setRpmLimit when raising the cap", async () => {
     const user = userEvent.setup();
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
     });
 
@@ -162,7 +154,6 @@ describe("RotorTachometerComponent", () => {
   it("toggles the motor with the inverse of current state", async () => {
     const user = userEvent.setup();
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
     });
 
@@ -185,7 +176,6 @@ describe("RotorTachometerComponent", () => {
   it("selects a rotor from the list and targets it", async () => {
     const user = userEvent.setup();
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
     });
 

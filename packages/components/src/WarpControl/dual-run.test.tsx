@@ -31,7 +31,6 @@ describe("WarpControl: stream render golden (delay=0)", () => {
     const mode = { name: "default-6x5", w: 6, h: 5 };
 
     const streamFixture = setupStreamFixture({
-      carriedChannels: ["time.warp", "spaceCenter.scene"],
       pinnedUt: 10,
       suspendFrames: true,
     });

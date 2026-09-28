@@ -22,8 +22,6 @@ import { SignalLossIndicator } from "./SignalLossIndicator";
  *    guarding `.controlState` access from crashing on either
  */
 
-const CARRIED = ["comms.link", "vessel.comms"];
-
 /**
  * The pinned view time. Every emission below stamps an explicit `validAt` at or
  * before this, so "the newest sample the frame can see" is the one the test
@@ -58,7 +56,6 @@ function Probe() {
 
 function mount() {
   const fixture = setupStreamFixture({
-    carriedChannels: CARRIED,
     pinnedUt: VIEW_UT,
   });
   render(

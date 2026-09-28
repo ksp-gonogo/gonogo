@@ -4,12 +4,6 @@
     "notes": "Stock ISRU chain on a mining base: two ore drills (one running, one stopped with no deploy animation) feeding a Convert-O-Tron 250 running Lf+Ox and a second small converter that is genuinely starved (has an output, moving nothing)."
   },
   "_stream": {
-    "carriedChannels": [
-      "isru.drills",
-      "isru.converters",
-      "vessel.identity",
-      "system.bodies"
-    ],
     "emits": [
       {
         "channel": "system.bodies",

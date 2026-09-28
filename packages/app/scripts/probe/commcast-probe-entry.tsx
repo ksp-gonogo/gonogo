@@ -427,12 +427,6 @@ async function settle(predicate: () => boolean): Promise<boolean> {
  */
 function paneTree(pane: Pane, index: number) {
   const fixture: StreamFixture = setupStreamFixture({
-    carriedChannels: [
-      "commandCentre.roster",
-      "commandCentre.separation",
-      "comms.delay",
-      "comms.link",
-    ],
     /*
      * The clock is deliberately left LIVE, not pinned to `VIEW_UT`. Pinning
      * looks like the way to make an arrival deterministic and does the opposite

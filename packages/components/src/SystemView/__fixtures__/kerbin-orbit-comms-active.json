@@ -7,14 +7,6 @@
     "notes": "Sibling of kerbin-orbit-no-target.json: same bodies/vessel geometry, but also carries comms.link (connected) and comms.path (Tester -> KSC-Relay-1 -> KSC, one relay hop). The default fixture never emits any comms.* topic, so the FleetComms augment's overlay/badge only ever rendered with undefined connectivity in the visual gate, the Commlinks/Traffic action toggles were the only thing actually exercised. This fixture gives the comms-path line colour, the commlink tooltip and the system-view.badges link-status indicator real data to render under the gate. system.uplink.pending is deliberately NOT emitted here: its pulse animation reads useUtNow()'s real-time wall clock, not this fixture's pinnedUt, so a static probe screenshot can't render it deterministically without a dedicated deliveredAt-pinned fixture of its own (out of scope for this pass)."
   },
   "_stream": {
-    "carriedChannels": [
-      "vessel.orbit",
-      "vessel.identity",
-      "vessel.target",
-      "system.bodies",
-      "comms.path",
-      "comms.link"
-    ],
     "pinnedUt": 0,
     "emits": [
       {

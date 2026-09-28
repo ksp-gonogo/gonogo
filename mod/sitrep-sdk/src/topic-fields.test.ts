@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { isCommandId } from "./commands";
-import { DEFAULT_SITREP_CARRIED_TOPICS } from "./default-carried-topics";
 import { isKnownFieldPath } from "./spine/map-topic";
 // Imported for the module-load side effect as much as for the value: this is
 // what registers `spaceCenter.state`'s hand-declared field metadata, and the
 // enumeration below can only see it once that module has run.
 import { spaceCenterStateChannel } from "./spine/space-center-state";
 import { enumerateTopicFields } from "./topic-fields";
+import { TOPIC_IDS } from "./topics";
 
 describe("enumerateTopicFields", () => {
   it("walks a nested singular shape down to its leaves", () => {
@@ -84,29 +84,11 @@ describe("enumerateTopicFields", () => {
     expect(enumerateTopicFields("no.such.topic")).toEqual([]);
   });
 
-  it("enumerates a field for the great majority of carried topics", () => {
-    // A floor on the VOCABULARY, not on a legacy key count: it reads the
-    // number of carried topics the walk can say anything about at all. A walk
-    // that silently stopped resolving would drop this to nothing.
-    const described = DEFAULT_SITREP_CARRIED_TOPICS.filter(
-      (t) => enumerateTopicFields(t).length > 0,
-    );
-    expect(described.length).toBeGreaterThan(
-      DEFAULT_SITREP_CARRIED_TOPICS.length * 0.7,
-    );
-  });
-});
-
-describe("DEFAULT_SITREP_CARRIED_TOPICS", () => {
-  it("promotes channels only, never a command", () => {
-    /* The list decides whether a READ routes to the stream, and nothing reads a
-       command. Three command ids sat on it for a day because
-       `dispatchActiveCommandTopic` consulted this set before routing, which
-       made a promotion list the gate on a control. That gate is gone; an entry
-       added back here would be promoting something no one can subscribe to,
-       and it would dilute the enumeration floor above with ids that can never
-       describe a field. */
-    expect(DEFAULT_SITREP_CARRIED_TOPICS.filter(isCommandId)).toEqual([]);
+  it("enumerates a field for the great majority of contract topics", () => {
+    // A floor on the VOCABULARY: a walk that silently stopped resolving would drop this to nothing.
+    const topics = TOPIC_IDS.filter((t) => !isCommandId(t));
+    const described = topics.filter((t) => enumerateTopicFields(t).length > 0);
+    expect(described.length).toBeGreaterThan(topics.length * 0.7);
   });
 });
 

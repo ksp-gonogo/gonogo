@@ -12,13 +12,6 @@
   "t.isPaused": false,
   "_alarms": [],
   "_stream": {
-    "carriedChannels": [
-      "time.warp",
-      "comms.delay",
-      "spaceCenter.scene",
-      "spaceCenter.launchSites",
-      "career.mode"
-    ],
     "emits": [
       {
         "channel": "time.warp",

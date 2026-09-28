@@ -7,12 +7,6 @@
     "notes": "Stream-block fixture for the migrated SystemView. Emits system.bodies (Kerbol/Kerbin/Mun/Minmus), vessel.identity (parent Kerbin) and a circular vessel.orbit so the diagram renders LIVE with client-derived phase angles + transfer-window highlighting. Geometry is simplified coplanar-circular (inc/lan/argPe 0, epoch 0, pinnedUt 0) so each object's true longitude is exactly its meanAnomalyAtEpoch: vessel at lon 0, Mun parked at its 700km->Mun Hohmann ideal (~110.7deg) so it lights 'go', Minmus at lon 200deg (off-window) so it shows a plain phase label. Exercises both the phase-label and the highlight paths under the visual gate."
   },
   "_stream": {
-    "carriedChannels": [
-      "vessel.orbit",
-      "vessel.identity",
-      "vessel.target",
-      "system.bodies"
-    ],
     "pinnedUt": 0,
     "emits": [
       {

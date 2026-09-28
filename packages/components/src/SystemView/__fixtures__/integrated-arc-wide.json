@@ -8,12 +8,6 @@
     "notes": "RECONSTRUCTED, not captured. The live 250 km orbit is 1.8% of the diagram's auto-fit radius (Minmus's apoapsis sets the extent), so the live pair renders byte-identical and shows nothing. This pair puts the same provider question on kerbin-orbit-inclined's geometry, which is a visible fraction of that extent. The horizon is computed the way IntegratedHorizon.UntilUt computes it (sampleUt + 0.25 * characteristic cycle), and the arc is deliberately absent: no points are invented here, the spine's own documented fallback samples the osculating conic and bounds it at the horizon, which is what SystemView draws for an integrating provider whose arc did not arrive."
   },
   "_stream": {
-    "carriedChannels": [
-      "vessel.orbit",
-      "vessel.identity",
-      "system.bodies",
-      "vessel.target"
-    ],
     "pinnedUt": 0,
     "emits": [
       {

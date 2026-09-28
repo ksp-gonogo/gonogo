@@ -5,7 +5,6 @@
     "notes": "SYNTHETIC. The SAME samples as 1-recorder-overran-hole-drawn, with one field changed: the resuming sample no longer carries Meta.GapSinceUt. Nothing else differs, so the difference between the two renders is the whole value of stating a hole on the wire. This is what every chart in the tree drew before SeriesRange.breaks existed."
   },
   "_stream": {
-    "carriedChannels": ["vessel.flight", "vessel.identity", "vessel.comms"],
     "pinnedUt": 1000000,
     "emits": [
       {

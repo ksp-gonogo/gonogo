@@ -100,21 +100,6 @@
     }
   ],
   "_stream": {
-    "carriedChannels": [
-      "system.bodies",
-      "vessel.orbit",
-      "vessel.identity",
-      "vessel.surface",
-      "career.status",
-      "science.experiments",
-      "science.experimentBreakdown",
-      "science.archive",
-      "vessel.flight",
-      "vessel.control",
-      "vessel.target",
-      "vessel.comms",
-      "vessel.propulsion"
-    ],
     "pinnedUt": 10,
     "emits": [
       {

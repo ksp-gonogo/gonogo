@@ -7,12 +7,6 @@
     "notes": "SYNTHETIC. The burn kerbin-orbit-no-target.json is waiting for, one frame after it: same coplanar system and the same Mun parked at the 110.7-degree Hohmann ideal, with the vessel now on the transfer ellipse (pe 100 km, ap on Mun's 12 Mm orbit, sma 6.35 Mm, ecc 0.8898) sitting at periapsis at UT 0. It is the only fixture that carries vessel.orbit.encounter: every other one sends it null or omits it, so the SOI transition the record exists for had never been drawn. transitionUt 26100 is the half-period (26751 s) less the Mun SOI crossing, and Mun's mean anomaly at epoch (1.93228 rad) puts it at the arrival point at that instant, so the arc the diagram truncates at the encounter ends where Mun's ring actually is instead of pointing at empty sky. transitionType 2 is ENCOUNTER; 3 (ESCAPE) is the other value the mapper lets through and it flips the patch end and the almanac row to the escape wording."
   },
   "_stream": {
-    "carriedChannels": [
-      "vessel.orbit",
-      "vessel.identity",
-      "vessel.target",
-      "system.bodies"
-    ],
     "pinnedUt": 0,
     "emits": [
       {

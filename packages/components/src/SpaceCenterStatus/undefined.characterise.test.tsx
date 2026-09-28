@@ -21,13 +21,6 @@ afterEach(() => {
   clearActionHandlers();
 });
 
-const ALL_READS = [
-  "career.status",
-  "career.facilities",
-  "spaceCenter.scene",
-  "spaceCenter.launchSites",
-];
-
 function mount(
   fixture: ReturnType<typeof setupStreamFixture>,
   instanceId: string,
@@ -52,7 +45,6 @@ function mount(
 describe("SpaceCenterStatus: what undefined telemetry renders today", () => {
   it("draws no facility grid at all when nothing has arrived, and says so", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ALL_READS,
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -89,7 +81,6 @@ describe("SpaceCenterStatus: what undefined telemetry renders today", () => {
   /** Announced through aria-live, so no pad telemetry must not read as "No vehicle on pad". */
   it("says the pad state is unknown, rather than claiming the pad is clear, from no pad telemetry", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ALL_READS,
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -109,7 +100,6 @@ describe("SpaceCenterStatus: what undefined telemetry renders today", () => {
   /** A scene record without a launchSite still says nothing about pad occupancy. */
   it("still says the pad state is unknown when only the scene record arrived", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ALL_READS,
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -130,7 +120,6 @@ describe("SpaceCenterStatus: what undefined telemetry renders today", () => {
   /** Scene availability is the command's to declare, so the widget reads no scene before offering an upgrade. */
   it("offers the upgrade button whatever the scene reads", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ALL_READS,
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -169,7 +158,6 @@ describe("SpaceCenterStatus: what undefined telemetry renders today", () => {
   /** An unknown balance is never a sufficient one. */
   it("treats an absent funds field as unaffordable, and says the balance is unknown", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ALL_READS,
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -227,7 +215,6 @@ describe("SpaceCenterStatus: what undefined telemetry renders today", () => {
 
   it("renders a confirmed career.status tombstone exactly as it renders a never-arrived one", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ALL_READS,
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -251,7 +238,6 @@ describe("SpaceCenterStatus: what undefined telemetry renders today", () => {
   /** In the tiny bucket, nothing arrived must not read as PAD CLEAR. */
   it("reports the pad state as unknown in the tiny bucket when nothing has arrived", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ALL_READS,
       pinnedUt: 10,
       suspendFrames: true,
     });

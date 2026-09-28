@@ -62,7 +62,6 @@ export interface InstallProfileUplink {
 
 /** The wire form of a fixture's stream declaration, matching a fixture's `_stream` block. */
 export interface InstallProfileStreamBlock {
-  carriedChannels: string[];
   pinnedUt?: number;
   delaySeconds?: number;
   emits: Array<{ channel: string; value: unknown; meta?: unknown }>;
@@ -147,18 +146,6 @@ export function applyInstallProfile(
   const absent = new Set(profile.absentChannels ?? []);
   const overridden = new Set(Object.keys(profile.wire));
 
-  const carried = ["system.uplinks"];
-  for (const channel of base.carriedChannels) {
-    if (absent.has(channel)) continue;
-    if (carried.includes(channel)) continue;
-    carried.push(channel);
-  }
-  for (const channel of overridden) {
-    if (absent.has(channel)) continue;
-    if (carried.includes(channel)) continue;
-    carried.push(channel);
-  }
-
   const emits: InstallProfileStreamBlock["emits"] = [
     { channel: "system.uplinks", value: systemUplinksPayload(profile) },
   ];
@@ -172,7 +159,6 @@ export function applyInstallProfile(
   }
 
   return {
-    carriedChannels: carried,
     pinnedUt: base.pinnedUt,
     delaySeconds: base.delaySeconds,
     emits,

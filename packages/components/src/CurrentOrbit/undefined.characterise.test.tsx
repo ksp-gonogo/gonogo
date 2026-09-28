@@ -29,7 +29,6 @@ const KERBIN_RADIUS = 600000;
 
 function renderCurrentOrbit(size: { w: number; h: number }) {
   const fixture = setupStreamFixture({
-    carriedChannels: [...CURRENT_ORBIT_CHANNELS],
     pinnedUt: 0,
     suspendFrames: true,
   });

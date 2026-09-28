@@ -10,12 +10,10 @@ import { CommSignalComponent } from "./index";
  * CommSignal's full readout (strength headline, bars, control label and
  * delay) resolves off the real stream pipeline for a strong direct link.
  */
-const CARRIED = ["vessel.comms", "comms.delay", "comms.link"];
 
 describe("CommSignal: full readout off the stream", () => {
   it("resolves strength, bars, control label, and delay off the stream for a strong direct link", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
       suspendFrames: true,
     });

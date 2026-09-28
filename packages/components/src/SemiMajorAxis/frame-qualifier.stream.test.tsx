@@ -9,21 +9,9 @@ import { SemiMajorAxisComponent } from "./index";
  * axis in it is labelled rather than suppressed; an apsis in the same frame
  * does not exist and shows no number.
  */
-const CARRIED = [
-  "vessel.orbit",
-  "vessel.flight",
-  "vessel.identity",
-  "system.bodies",
-  "vessel.control",
-  "vessel.target",
-  "vessel.comms",
-  "vessel.propulsion",
-  "system.frame",
-];
 
 function setup() {
   const fixture = setupStreamFixture({
-    carriedChannels: CARRIED,
     pinnedUt: 10,
     suspendFrames: true,
   });

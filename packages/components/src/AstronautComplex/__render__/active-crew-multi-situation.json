@@ -4,11 +4,6 @@
     "scenario": "active-crew-multi-situation"
   },
   "_stream": {
-    "carriedChannels": [
-      "spaceCenter.astronautComplex",
-      "spaceCenter.crewRoster",
-      "career.status"
-    ],
     "pinnedUt": 10,
     "emits": [
       {

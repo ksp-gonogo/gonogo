@@ -53,7 +53,6 @@ async function renderScene(scene: Scene): Promise<void> {
   }
 
   const fixture: StreamFixture = setupStreamFixture({
-    carriedChannels: Object.keys(scene.emit),
     pinnedUt: 1_000_000,
   });
 

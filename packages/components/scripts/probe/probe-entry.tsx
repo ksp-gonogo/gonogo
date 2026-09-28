@@ -90,8 +90,6 @@ export interface StreamEmit {
  * `MockDataSource` path the same way every other `_`-prefixed fixture key is.
  */
 export interface StreamFixtureBlock {
-  /** Forwarded to `setupStreamFixture`: topics this fixture carries. */
-  carriedChannels: string[];
   /** Forwarded to `setupStreamFixture`: UT to pin the view clock at. */
   pinnedUt?: number;
   /** Forwarded to `setupStreamFixture`: fixed network/display delay. */
@@ -134,7 +132,7 @@ export interface StreamFixtureBlock {
  * into the wire the requested install would put out.
  *
  * An install profile REPLACES the fixture's own wire rather than sitting beside
- * it, so everything downstream (the carried allowlist, the emit order, the
+ * it, so everything downstream (the emit order, the
  * subscription gating) stays one code path reading one block. Same treatment
  * the DOM-snapshot harness gives it, off the same fixture JSON and the same
  * pure transform.
@@ -191,19 +189,6 @@ function seriesEmits(
   return [...byInstant.values()].sort((a, b) => a.validAt - b.validAt);
 }
 
-/** The Topics a `_series` block plots from, which the scene carries so their fields keep their units. */
-function seriesChannels(
-  series: Record<string, readonly ProbeSeriesSample[]>,
-): string[] {
-  return [
-    ...new Set(
-      Object.keys(series).map(
-        (key) => splitRawFieldSubtopic(key)?.rawTopic ?? key,
-      ),
-    ),
-  ];
-}
-
 function setFieldPath(
   record: Record<string, unknown>,
   path: readonly string[],
@@ -236,7 +221,7 @@ function wrapWithPinnedViewUt(
   children: React.ReactNode,
 ): React.ReactNode {
   if (pinnedUt === undefined) return createElement(Fragment, null, children);
-  const { Provider } = setupStreamFixture({ carriedChannels: [], pinnedUt });
+  const { Provider } = setupStreamFixture({ pinnedUt });
   return createElement(Provider, null, children);
 }
 
@@ -398,13 +383,11 @@ async function mountInto(
     streamBlock?.pinnedUt ?? resolvePinnedUt(payload.fixture) ?? 0;
   const streamFixture: StreamFixture | undefined = streamBlock
     ? setupStreamFixture({
-        carriedChannels: streamBlock.carriedChannels,
         pinnedUt: streamBlock.pinnedUt,
         delaySeconds: streamBlock.delaySeconds,
       })
     : payload.series
       ? setupStreamFixture({
-          carriedChannels: seriesChannels(payload.series),
           pinnedUt: seriesPinnedUt,
         })
       : undefined;

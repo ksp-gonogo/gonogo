@@ -38,7 +38,6 @@ interface StreamEmit {
 }
 interface Fixture {
   _stream?: {
-    carriedChannels: string[];
     pinnedUt?: number;
     emits: StreamEmit[];
   };
@@ -69,7 +68,6 @@ function mount(fixture: Fixture, w = 12, h = 14): StreamFixture {
   const stream = fixture._stream;
   if (!stream) throw new Error("fixture has no _stream block");
   const f = setupStreamFixture({
-    carriedChannels: stream.carriedChannels,
     pinnedUt: stream.pinnedUt ?? 10,
     suspendFrames: true,
   });
@@ -99,17 +97,6 @@ describe.each(NAMES)("ScienceData probe fixture: %s", (name) => {
         TOPIC_IDS.has(emit.channel),
         `${emit.channel} is not a Topic`,
       ).toBe(true);
-    }
-  });
-
-  it("carries every channel it emits", () => {
-    // An emit on an uncarried channel is dropped.
-    const stream = load(name)._stream;
-    const carried = new Set(stream?.carriedChannels ?? []);
-    for (const emit of stream?.emits ?? []) {
-      expect(carried.has(emit.channel), `${emit.channel} not carried`).toBe(
-        true,
-      );
     }
   });
 

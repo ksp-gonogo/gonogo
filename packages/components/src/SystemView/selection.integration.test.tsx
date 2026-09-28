@@ -74,13 +74,6 @@ const META = {
 /** Mounts SystemViewComponent on Kerbin with the active vessel (excluded from the layer) plus a one-hop (v-direct), a relayed two-hop (v-relayed) and an unreachable (v-isolated) vessel. */
 function mountScene() {
   const fixture: StreamFixture = setupStreamFixture({
-    carriedChannels: [
-      "vessel.orbit",
-      "vessel.identity",
-      "system.bodies",
-      "system.vessels",
-      "comms.network",
-    ],
     pinnedUt: 0,
     suspendFrames: true,
   });

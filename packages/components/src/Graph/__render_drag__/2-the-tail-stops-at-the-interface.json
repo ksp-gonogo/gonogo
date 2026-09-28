@@ -5,7 +5,6 @@
     "notes": "SYNTHETIC. One craft on rails on a descending arc around Kerbin: apoapsis 800 km from the centre (200 km altitude), periapsis 630 km (30 km altitude), so it passes through the 70 km entry interface on the way down and stays well clear of the surface throughout. vessel.orbit and vessel.flight samples stop at UT 200 and the link then drops, and the frame is drawn for UT 1000, so 800 seconds of the window had no observation in it. The vessel.flight samples are solved from the same elements, so the measured trace and the conic meet. The elements are Quality.OnRails, a CAUSE valid until superseded, and carry the stock producer's own AnalyticHorizon; vessel.flight's reckoner moves the altitude along that conic above the air and integrates the observed descent rates inside it, and TimelineStore.sampleReckonedTail draws whatever it answers. Nothing here feeds LineChart a prop. ONE field apart from the scene beside it: the same body entry gains atmosphere.depth = 70 km. The conic carries the altitude down to the 70 km interface and the tail stops there. Inside the air the descent-rate model answers for seconds past an observation, and the last one here is 800 seconds old, so nothing is drawn below the interface: a conic has no drag term, so what it would have drawn there is not a degraded answer but a different trajectory."
   },
   "_stream": {
-    "carriedChannels": ["vessel.flight", "vessel.orbit", "system.bodies"],
     "pinnedUt": 1000,
     "stopsArriving": true,
     "emits": [

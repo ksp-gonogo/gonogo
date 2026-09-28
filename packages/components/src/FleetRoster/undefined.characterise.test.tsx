@@ -12,14 +12,6 @@ import { FleetRosterComponent } from "./index";
 
 /** Characterisation, not specification: what FleetRoster renders when its telemetry reads are absent. Every assertion is an observation, not an endorsement. */
 
-const CARRIED = [
-  "system.vessels",
-  "system.bodies",
-  "commandCentre.roster",
-  "fleet.",
-  "silence.",
-];
-
 const unmounts: Array<() => void> = [];
 
 afterEach(() => {
@@ -30,7 +22,6 @@ afterEach(() => {
 
 function newFixture(pinnedUt = 2_000) {
   return setupStreamFixture({
-    carriedChannels: CARRIED,
     pinnedUt,
     suspendFrames: true,
   });

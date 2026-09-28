@@ -6,7 +6,6 @@ import type {
 import { PerfBudget } from "@ksp-gonogo/core";
 import {
   buildFullHistoryStore,
-  getActiveCarriedChannels,
   type ReplayFixture,
   resolveValueTopic,
   type TimelineStore,
@@ -81,11 +80,8 @@ export class MissionHistorySource implements DataSource {
   disconnect(): void {}
 
   schema(): DataKeyMeta[] {
-    // The same vocabulary a live picker offers, off the same carried set: a
-    // recording is read back with the keys it was recorded under, so a
-    // catalogue of its own would be a second thing to keep in step with the
-    // wire. Falls back to the first-party default with no provider mounted.
-    return getTopicFieldCatalog(getActiveCarriedChannels());
+    // The same vocabulary a live picker offers: a recording is read back with the keys it was recorded under.
+    return getTopicFieldCatalog();
   }
 
   subscribe(_key: string, _cb: (value: unknown) => void): () => void {

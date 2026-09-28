@@ -11,21 +11,10 @@ import { ManeuverPlannerComponent } from "./index";
  * is withheld rather than marked: it would be a confident burn for a position
  * the craft has left. The gate does not reach the diagram's own trajectory.
  */
-const CARRIED = [
-  "vessel.orbit",
-  "vessel.flight",
-  "vessel.identity",
-  "system.bodies",
-  "vessel.control",
-  "vessel.target",
-  "vessel.comms",
-  "vessel.propulsion",
-];
 
 describe("ManeuverPlanner when its apsis inputs stop arriving", () => {
   it("withholds the plan and says it is waiting", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 1_000_000,
       suspendFrames: true,
     });

@@ -256,7 +256,7 @@ function channelsFor(f: Frame, oneWaySeconds: number): Record<string, unknown> {
   };
 }
 
-const CARRIED = [
+const EMITTED = [
   "system.bodies",
   "vessel.identity",
   "vessel.orbit",
@@ -274,7 +274,7 @@ function fixtureFromChannels(
   scenario: string,
   notes: string,
 ): Record<string, unknown> {
-  const emits = CARRIED.map((channel) => {
+  const emits = EMITTED.map((channel) => {
     const value = ch[channel];
     // A descending craft is under physics, so its vessel.orbit sample carries quality:1 (Loaded), as the mod stamps it.
     return channel === "vessel.orbit"
@@ -287,7 +287,7 @@ function fixtureFromChannels(
       synthetic: true,
       notes: `SYNTHETIC (model-generated, NOT captured). ${notes}`,
     },
-    _stream: { carriedChannels: CARRIED, pinnedUt: 10, emits },
+    _stream: { pinnedUt: 10, emits },
   };
 }
 

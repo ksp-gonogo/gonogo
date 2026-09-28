@@ -1,17 +1,9 @@
 {
   "_meta": {
     "scenario": "crew-roster-unread",
-    "notes": "SYNTHETIC. spaceCenter.crewRoster is CARRIED and never emitted, so the widget reads undefined by the production route and parseCrew answers null. The section says 'Roster - no reading' and the launch control stands: this exact state used to remove the launch button altogether, so an operator could not fly an unmanned craft because a channel they did not need had not arrived."
+    "notes": "SYNTHETIC. spaceCenter.crewRoster is subscribed and never emitted, so the widget reads undefined by the production route and parseCrew answers null. The section says 'Roster - no reading' and the launch control stands: this exact state used to remove the launch button altogether, so an operator could not fly an unmanned craft because a channel they did not need had not arrived."
   },
   "_stream": {
-    "carriedChannels": [
-      "career.status",
-      "career.facilities",
-      "spaceCenter.savedShips",
-      "spaceCenter.crewRoster",
-      "spaceCenter.scene",
-      "spaceCenter.launchSites"
-    ],
     "pinnedUt": 10,
     "emits": [
       {

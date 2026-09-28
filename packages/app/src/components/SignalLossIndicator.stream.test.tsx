@@ -79,11 +79,7 @@ function setupDelayedStream(delaySeconds: number) {
 
   function Provider({ children }: { children: ReactNode }) {
     return (
-      <TelemetryProvider
-        client={client}
-        store={store}
-        carriedChannels={["vessel.comms", "comms.link"]}
-      >
+      <TelemetryProvider client={client} store={store}>
         {children}
       </TelemetryProvider>
     );

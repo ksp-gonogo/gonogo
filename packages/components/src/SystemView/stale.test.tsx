@@ -67,12 +67,6 @@ function kerbolSystem() {
 
 function mount() {
   const fixture: StreamFixture = setupStreamFixture({
-    carriedChannels: [
-      "vessel.orbit",
-      "vessel.identity",
-      "system.bodies",
-      "system.vessels",
-    ],
     pinnedUt: 0,
     suspendFrames: true,
   });

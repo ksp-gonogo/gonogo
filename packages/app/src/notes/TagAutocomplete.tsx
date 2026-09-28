@@ -1,4 +1,4 @@
-import { useTopicFieldCatalog } from "@ksp-gonogo/data";
+import { usePrintableFields } from "@ksp-gonogo/data";
 import {
   type ChangeEvent,
   forwardRef,
@@ -33,8 +33,8 @@ export interface TagAutocompleteProps {
 
 /**
  * Text input that opens a key-picker popover when the user types `{{`,
- * filtered against the topic-field catalogue's labels and groups (the stream-
- * mapped key catalog: see `useKeyOptions` below). Selection inserts
+ * filtered against the labels and groups of every field a tag can print (see
+ * `useKeyOptions` below). Selection inserts
  * `{{<key>}}` and moves the cursor past the closer.
  *
  * Supports both single-line and multi-line via the `multiline` prop,
@@ -228,29 +228,21 @@ export const TagAutocomplete = forwardRef<
 });
 
 function useKeyOptions(): KeyOption[] {
-  // The stream's own vocabulary, enumerated from the contract: every field of
-  // every carried Topic, keyed by the path a tag resolves through. A note tag
-  // can name anything readable, so unlike the alarm and trigger pickers this
-  // one is NOT restricted to orderable values: a body name or a situation is
-  // exactly the sort of thing a note wants to interpolate.
-  //
-  // A collection is excluded: `{{career.status.contracts.active}}` would interpolate a whole array into a sentence.
-  const catalog = useTopicFieldCatalog();
+  // A tag prints its value into a sentence, so it offers every field that prints as a number, a name or a flag.
+  const fields = usePrintableFields();
   return useMemo<KeyOption[]>(() => {
-    const options: KeyOption[] = catalog
-      .filter((entry) => entry.kind !== "collection")
-      .map((entry) => ({
-        key: entry.key,
-        label: entry.label,
-        group: entry.group ?? "Other",
-        unit: entry.unit,
-      }));
+    const options: KeyOption[] = fields.map((entry) => ({
+      key: entry.key,
+      label: entry.label,
+      group: entry.group ?? "Other",
+      unit: entry.unit,
+    }));
     return options.sort((a, b) => {
       if (a.group !== b.group)
         return (a.group ?? "").localeCompare(b.group ?? "");
       return (a.label ?? "").localeCompare(b.label ?? "");
     });
-  }, [catalog]);
+  }, [fields]);
 }
 
 // ── Styles ──────────────────────────────────────────────────────────────

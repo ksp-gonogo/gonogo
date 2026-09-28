@@ -15,12 +15,6 @@ import { MapViewComponent } from "./index";
 describe("MapView: stream render golden (delay=0)", () => {
   it("renders the compact Lat/Lon/Alt readout off the stream for the launchpad state", async () => {
     const streamFixture = setupStreamFixture({
-      carriedChannels: [
-        "vessel.flight",
-        "vessel.orbit",
-        "vessel.identity",
-        "system.bodies",
-      ],
       pinnedUt: 10,
       suspendFrames: true,
     });

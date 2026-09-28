@@ -13,7 +13,6 @@
   "dock.forwardDot": 0.9999,
   "o.closestTgtApprUT": 0,
   "_stream": {
-    "carriedChannels": ["vessel.target", "vessel.dock"],
     "pinnedUt": 0,
     "emits": [
       {

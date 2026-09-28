@@ -32,21 +32,12 @@ afterEach(() => {
   clearActionHandlers();
 });
 
-/** Every topic this widget reads. */
-const CARRIED = [
-  "vessel.control",
-  "vessel.structure",
-  "time.warp",
-  "comms.link",
-];
-
 function mount(
   groupId: string,
   instanceId = "ag-characterise",
   { probe = false }: { probe?: boolean } = {},
 ) {
   const fixture = setupStreamFixture({
-    carriedChannels: CARRIED,
     pinnedUt: 0,
     suspendFrames: true,
   });

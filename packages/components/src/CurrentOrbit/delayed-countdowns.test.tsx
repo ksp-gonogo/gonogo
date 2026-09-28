@@ -12,7 +12,6 @@ const OWLT = 240;
 describe("CurrentOrbit under signal delay", () => {
   it("counts to each apsis from the received edge, with the conic's figure for the craft's present beside it", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.orbit", "system.bodies"],
       delaySeconds: OWLT,
       suspendFrames: true,
     });

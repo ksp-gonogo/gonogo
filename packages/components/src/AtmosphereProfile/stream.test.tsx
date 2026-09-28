@@ -15,7 +15,6 @@ describe("AtmosphereProfile: genuinely runs off the stream (M3 batch 2)", () => 
   it("reads body/altitude/density/temperatures off the real stream pipeline, not legacy", async () => {
     registerStockBodies();
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.flight", "vessel.identity", "system.bodies"],
       pinnedUt: 10,
       suspendFrames: true,
     });

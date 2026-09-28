@@ -13,7 +13,6 @@ const KERBIN_MU = 3.5316e12;
 
 function renderBodies(opts: { pinnedUt?: number } = { pinnedUt: 0 }) {
   const fixture = setupStreamFixture({
-    carriedChannels: ["system.bodies"],
     pinnedUt: opts.pinnedUt,
     suspendFrames: true,
   });

@@ -12,7 +12,6 @@ const renderedTrees: Array<() => void> = [];
 
 function newFixture() {
   return setupStreamFixture({
-    carriedChannels: ["comms.link", "vessel.comms", "comms.delay"],
     pinnedUt: 10,
     suspendFrames: true,
   });

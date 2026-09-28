@@ -11,7 +11,6 @@ import { stripVolatile } from "../test/widgetDomSnapshot";
 import "./index";
 
 /** DOM snapshots streamed through a real `TelemetryProvider` in the flat `deployed.bases` shape, one entry per deployed experiment. */
-const CARRIED = ["deployed.bases", "game.dlc"];
 
 interface Scenario {
   breakingGround: boolean;
@@ -94,7 +93,7 @@ async function snapshotDeployedScienceScenario(
   mode: { name: string; w: number; h: number },
 ): Promise<string> {
   registerStockBodies();
-  const stream = setupStreamFixture({ carriedChannels: CARRIED, pinnedUt: 10 });
+  const stream = setupStreamFixture({ pinnedUt: 10 });
 
   const { container } = renderWidget("deployed-science", {
     instanceId: "snap",

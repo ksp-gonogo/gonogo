@@ -5,7 +5,6 @@
     "notes": "SYNTHETIC. A craft coasting an eccentric Kerbin orbit (sma 900 km, ecc 0.4) whose vessel.orbit and vessel.flight samples stop at UT 280, when the link drops. The frame is drawn for UT 900, so 620 seconds of the window had no observation in it at all. The vessel.flight samples are solved from the same elements, so the measured trace and the conic meet. The elements are OnRails, a CAUSE valid until superseded, so vessel.flight's reckoner offers kepler-propagation for the orbital speed: TimelineStore.sampleReckonedTail asks it across the silence and useDataSeries hands the chart a reckoned run. Nothing here feeds LineChart a prop; the dashed tail is produced."
   },
   "_stream": {
-    "carriedChannels": ["vessel.flight", "vessel.orbit", "system.bodies"],
     "pinnedUt": 900,
     "stopsArriving": true,
     "emits": [

@@ -53,7 +53,6 @@ function parsed(...wire: ReturnType<typeof contract>[]): ContractEntry[] {
 
 function renderObjectives() {
   const fixture = setupStreamFixture({
-    carriedChannels: ["career.status"],
     pinnedUt: 10,
     suspendFrames: true,
   });

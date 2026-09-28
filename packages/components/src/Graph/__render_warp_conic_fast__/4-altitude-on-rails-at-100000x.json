@@ -5,13 +5,6 @@
     "notes": "SYNTHETIC. The same orbit at 100,000x: samples 10,000 UT apart, a little over five periods each. The conic carries any such gap, so the chart draws the conic's own path rather than a chord between samples several orbits apart."
   },
   "_stream": {
-    "carriedChannels": [
-      "vessel.flight",
-      "vessel.orbit",
-      "system.bodies",
-      "time.warp",
-      "vessel.identity"
-    ],
     "pinnedUt": 200000,
     "emits": [
       {

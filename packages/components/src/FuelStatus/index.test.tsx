@@ -40,16 +40,8 @@ afterEach(() => {
   clearAugments();
 });
 
-const CARRIED = [
-  "vessel.structure",
-  "vessel.resources",
-  "dv.stages",
-  "dv.summary",
-];
-
 function makeFixture() {
   const fixture = setupStreamFixture({
-    carriedChannels: CARRIED,
     pinnedUt: 10,
     suspendFrames: true,
   });

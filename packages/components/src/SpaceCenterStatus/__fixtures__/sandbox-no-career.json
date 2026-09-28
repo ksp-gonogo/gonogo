@@ -5,13 +5,6 @@
   },
   "career.funds": null,
   "_stream": {
-    "carriedChannels": [
-      "career.status",
-      "spaceCenter.scene",
-      "spaceCenter.partsAvailable",
-      "spaceCenter.launchSites",
-      "career.facilities"
-    ],
     "emits": [
       {
         "channel": "spaceCenter.scene",

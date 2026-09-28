@@ -12,8 +12,6 @@ import { ContractManagerComponent } from "./index";
  * and about the deadline staying computed.
  */
 
-const CARRIED = ["career.status", "vessel.flight"];
-
 const renderedTrees: Array<() => void> = [];
 
 afterEach(() => {
@@ -74,7 +72,6 @@ function goStale(fixture: ReturnType<typeof setupStreamFixture>): void {
 describe("ContractManager when career telemetry is no longer current", () => {
   it("keeps the active and offered boards, which the player cannot have changed", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 100,
       suspendFrames: true,
     });
@@ -101,7 +98,6 @@ describe("ContractManager when career telemetry is no longer current", () => {
   it("holds the deadline where the last sample left it instead of inventing progress", async () => {
     // The deadline is `deadlineUt` minus the confirmed view UT, so it holds rather than marching to "expired" on desk time.
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED,
       suspendFrames: true,
     });
     const container = mount(fixture);
@@ -124,7 +120,6 @@ describe("ContractManager when career telemetry is no longer current", () => {
 
   it("marks each held card and kills the controls that act on it", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 100,
       suspendFrames: true,
     });
@@ -152,7 +147,6 @@ describe("ContractManager when career telemetry is no longer current", () => {
   it("still shows the cold-start placeholder when nothing ever arrived", async () => {
     // A link that never delivered gets the placeholder; one that stopped does not.
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 100,
       suspendFrames: true,
     });

@@ -35,8 +35,6 @@ const PART_LIVE = new Map<number, PartLiveWireInput>(
 
 const VESSEL_PARTS_WIRE = topologyToVesselPartsWire(TOPOLOGY, PART_LIVE);
 
-const CARRIED = ["vessel.parts", "vessel.thermal", "vessel.flight"];
-
 const HOTTEST_PART = "liquidEngine2.v2";
 const HOTTEST_PART_ID = "965970713";
 const CAPTION = /no longer current|last contact/i;
@@ -56,7 +54,6 @@ function ringCount(container: HTMLElement): number {
 describe("ShipMap when the thermal reading is not current", () => {
   function mount() {
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 0,
       suspendFrames: true,
     });

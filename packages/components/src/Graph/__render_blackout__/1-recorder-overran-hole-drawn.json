@@ -5,7 +5,6 @@
     "notes": "SYNTHETIC. A Mun descent that loses the link at UT 999100 and reacquires at 999700. The craft recorded while it was dark, but its per-topic ring (1200 entries) overran, so the oldest five minutes of the recording were dropped and the replay resumes mid-hole at 999420. That resuming sample carries Meta.GapSinceUt = 999100, which reaches the chart as SeriesRange.breaks and cuts the trace. Altitude is a single decaying curve throughout, so anything drawn across the hole would read as a descent that was never observed."
   },
   "_stream": {
-    "carriedChannels": ["vessel.flight", "vessel.identity", "vessel.comms"],
     "pinnedUt": 1000000,
     "emits": [
       {

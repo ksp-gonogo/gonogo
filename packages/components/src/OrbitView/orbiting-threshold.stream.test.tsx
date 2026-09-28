@@ -6,17 +6,6 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { OrbitViewComponent } from "./index";
 
 /** ORBITING means the periapsis clears the atmosphere, whose height comes off the stream so a planet-pack body keeps its threshold. */
-const CARRIED = [
-  "vessel.orbit",
-  "vessel.flight",
-  "vessel.identity",
-  "system.bodies",
-  "vessel.control",
-  "vessel.target",
-  "vessel.comms",
-  "vessel.propulsion",
-  "system.frame",
-];
 
 const EARTH = {
   index: 1,
@@ -28,7 +17,6 @@ const EARTH = {
 
 function setup(sma: number, ecc: number, meanAnomalyAtEpoch = 0) {
   const fixture = setupStreamFixture({
-    carriedChannels: CARRIED,
     pinnedUt: 10,
     suspendFrames: true,
   });

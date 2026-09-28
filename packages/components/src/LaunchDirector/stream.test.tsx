@@ -17,13 +17,6 @@ afterEach(() => {
 describe("LaunchDirector: genuinely runs off the stream", () => {
   it("renders the funds readout, saved ships and crew roster all off the stream", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: [
-        "career.status",
-        "spaceCenter.savedShips",
-        "spaceCenter.crewRoster",
-        "spaceCenter.scene",
-        "spaceCenter.launchSites",
-      ],
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -100,14 +93,6 @@ describe("LaunchDirector: genuinely runs off the stream", () => {
 
   it("surfaces a crash chip when the streamed crash is for the active vessel, and leaves Recover to the command", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: [
-        "spaceCenter.savedShips",
-        "spaceCenter.scene",
-        "vessel.flight",
-        "vessel.identity",
-        "crash.hasRecent",
-        "crash.lastCrash",
-      ],
       pinnedUt: 10,
       suspendFrames: true,
     });

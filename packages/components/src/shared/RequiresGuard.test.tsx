@@ -69,10 +69,7 @@ function renderGuard(
   const transport = new StubTransport();
   const client = new TelemetryClient(transport);
   const view = render(
-    <TelemetryProvider
-      client={client}
-      carriedChannels={["system.uplinks", "spaceCenter.scene", "career.mode"]}
-    >
+    <TelemetryProvider client={client}>
       <RequiresGuard requires={props.requires} channels={props.channels}>
         {children}
       </RequiresGuard>

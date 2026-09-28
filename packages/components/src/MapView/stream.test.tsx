@@ -14,12 +14,6 @@ import { MapViewComponent } from "./index";
 describe("MapView: genuinely runs off the stream (M3 mechanical-tail batch)", () => {
   it("reads lat/long/altitude off the real stream pipeline, not legacy", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: [
-        "vessel.flight",
-        "vessel.orbit",
-        "vessel.identity",
-        "system.bodies",
-      ],
       pinnedUt: 10,
       suspendFrames: true,
     });

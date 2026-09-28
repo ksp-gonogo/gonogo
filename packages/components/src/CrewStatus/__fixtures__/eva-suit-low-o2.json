@@ -9,12 +9,6 @@
     ]
   },
   "_stream": {
-    "carriedChannels": [
-      "vessel.crew",
-      "vessel.identity",
-      "kerbalism.crew",
-      "vessel.resources"
-    ],
     "pinnedUt": 0,
     "emits": [
       {

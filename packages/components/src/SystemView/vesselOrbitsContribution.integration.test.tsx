@@ -54,12 +54,6 @@ const META = {
 describe("SystemView: active vessel excluded from its own faint orbit contribution", () => {
   it("draws a faint ring for another vessel but none for the active/framed vessel", async () => {
     const fixture: StreamFixture = setupStreamFixture({
-      carriedChannels: [
-        "vessel.orbit",
-        "vessel.identity",
-        "system.bodies",
-        "system.vessels",
-      ],
       pinnedUt: 100,
       suspendFrames: true,
     });
@@ -159,7 +153,6 @@ describe("SystemView: active vessel excluded from its own faint orbit contributi
   it("does NOT suppress the active vessel's faint contributed entry when vessel.orbit is absent (identity alone doesn't imply a dedicated ring)", async () => {
     // With identity but no `vessel.orbit`, SystemDiagram draws no dedicated ring, so the contributed faint one must stay or the hop endpoint has no marker.
     const fixture: StreamFixture = setupStreamFixture({
-      carriedChannels: ["vessel.identity", "system.bodies", "system.vessels"],
       pinnedUt: 100,
       suspendFrames: true,
     });

@@ -15,7 +15,6 @@ import { SemiMajorAxisComponent } from "./index";
 describe("SemiMajorAxis: genuinely runs off the stream", () => {
   it("reads sma AND the reference-body name off the real stream pipeline, not legacy", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.orbit", "system.bodies"],
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -59,7 +58,6 @@ describe("SemiMajorAxis: genuinely runs off the stream", () => {
 
   it("the plotted sparkline itself streams off the ClientTimeline", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.orbit"],
       pinnedUt: 10,
       suspendFrames: true,
     });

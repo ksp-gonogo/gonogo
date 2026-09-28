@@ -21,13 +21,6 @@ import { AtmosphereProfileComponent } from "./index";
  * Tested at component level, since resolution only fails at the seam.
  */
 
-const CARRIED_CHANNELS = [
-  "vessel.orbit",
-  "vessel.flight",
-  "vessel.identity",
-  "system.bodies",
-];
-
 /** Altitudes in metres, ascending from sea level, as the host samples them. */
 const EARTH_ALTITUDES = [0, 5_000, 10_000, 20_000, 40_000, 80_000];
 /** Pressure in kPa at each of those altitudes: the game's own answer. */
@@ -52,7 +45,6 @@ describe("AtmosphereProfile: the pressure curve is the game's, not a model", () 
 
   function renderAtmo() {
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED_CHANNELS,
       pinnedUt: 10,
       suspendFrames: true,
     });

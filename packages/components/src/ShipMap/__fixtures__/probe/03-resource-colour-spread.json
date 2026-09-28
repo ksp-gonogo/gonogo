@@ -4,7 +4,6 @@
     "notes": "Synthetic colour-spread demo for the resource-colour system (local_docs/design/2026-08-08-resource-colour-system.md, gonogo main repo), with the planted Uplink (scripts/probe/plantedUplink.ts) metering every stored resource the built-in five leave alone. Exercises: (1) several curated Tier-1 resources across both contributors (LiquidFuel amber, Water blue, Oxygen cyan, Food green, ElectricCharge yellow); (2) SolidFuel and 'KerbalKrunchies' (an invented mod resource) both fall through to the Tier-2 hash fallback, proving unknowns still get a distinct legible colour; (3) Oxidizer is drained to a critical level and Food to a low level, to show the status border/badge rendering SEPARATELY from each resource's identity fill (neither meter's fill hue changes because of its status)."
   },
   "_stream": {
-    "carriedChannels": ["vessel.parts", "planted.available"],
     "emits": [
       {
         "channel": "vessel.parts",

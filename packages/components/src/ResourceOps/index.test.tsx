@@ -15,7 +15,6 @@ import { ResourceOpsComponent } from "./index";
  * without any provider's extension namespace, and filter terms arrive on the
  * `resource-ops.filters` slot the widget knows nothing about.
  */
-const CARRIED = ["isru.drills", "isru.converters"];
 
 const DRILLS = [
   {
@@ -78,8 +77,8 @@ afterEach(() => {
   uplinkTermOn = false;
 });
 
-function renderWidget(carriedChannels: readonly string[] = CARRIED) {
-  const fixture = setupStreamFixture({ carriedChannels, suspendFrames: true });
+function renderWidget() {
+  const fixture = setupStreamFixture({ suspendFrames: true });
   const utils = render(
     <fixture.Provider>
       <DashboardItemContext.Provider value={{ instanceId: "resource-ops" }}>
@@ -284,11 +283,7 @@ describe("ResourceOps", () => {
   });
 
   it("answers 'is this on a vessel, on Duna' with an at-a-glance location line when vessel telemetry is mounted", async () => {
-    const { fixture } = renderWidget([
-      ...CARRIED,
-      "vessel.identity",
-      "system.bodies",
-    ]);
+    const { fixture } = renderWidget();
     act(() => {
       fixture.emit("isru.drills", DRILLS);
       fixture.emit("isru.converters", []);

@@ -60,8 +60,7 @@ import type { PeerHostService } from "../peer/PeerHostService";
  * (`@ksp-gonogo/sitrep-client`): the same `TimelineStore` a mounted widget's
  * `useTelemetry` would read. An armed
  * TRIGGER's own `dataKey` is operator-picked but never arbitrary: the widget's
- * `DataKeyPicker` only offers keys `@ksp-gonogo/data`'s `useValueKeys`
- * resolves, the Value-restricted, stream-mapped set, so the threshold read
+ * `DataKeyPicker` only offers `@ksp-gonogo/data`'s `useNumericFields`, so the threshold read
  * (`getValue`) and the maneuver-node fire (`dispatchActiveCommand`) both ride
  * the stream, the same way `LocalManeuverTriggerService` does.
  */

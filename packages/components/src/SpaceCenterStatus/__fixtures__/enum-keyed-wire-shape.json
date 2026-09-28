@@ -5,13 +5,6 @@
     "notes": "SYNTHETIC. The shape the mod ACTUALLY sends today: career.status.facilities keyed by the full SpaceCenterFacility enum name, each entry carrying facilityOrdinal / currentTier / maxTier / upgradeCost and none of the legacy level / max / upgradeFunds / *LevelText fields. Every other fixture here is the legacy short-code shape, so the tier and cost rows parseFacilityLevels builds from the new wire had never been rendered. The Spaceplane Hangar entry arrives under an unrecognised key (\"SPH\") and is identified by its facilityOrdinal alone, which is the case that field exists for: before the ordinal, a facility whose key missed the nine-entry table vanished from the grid with nothing said. Funds sit at 148,300 so Tracking, Administration, the Astronaut Complex and the Runway are affordable while the Launch Pad, R&D and the Hangar are not, and the VAB and Mission Control are at max tier with no cost to show."
   },
   "_stream": {
-    "carriedChannels": [
-      "career.status",
-      "spaceCenter.scene",
-      "spaceCenter.partsAvailable",
-      "spaceCenter.launchSites",
-      "career.facilities"
-    ],
     "pinnedUt": 10,
     "emits": [
       {

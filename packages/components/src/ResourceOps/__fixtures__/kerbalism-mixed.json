@@ -4,7 +4,6 @@
     "notes": "A Kerbalism-style life-support stack sharing the channel with a chemical plant: a CO2 scrubber that consumes and dumps (empty outputs, healthy), a water recycler whose rates are sub-milli (working, not dead), a long Sabatier recipe that exercises wrapping at the default width, and a drill."
   },
   "_stream": {
-    "carriedChannels": ["isru.drills", "isru.converters"],
     "emits": [
       {
         "channel": "isru.drills",

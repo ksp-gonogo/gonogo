@@ -9,16 +9,10 @@ import { EscapeProfileComponent } from "./index";
  * EscapeProfile off the stream: a streamed body with no gravitational parameter surfaces the "No reference data" Notice under that exact name, which only happens if the name actually streamed.
  * The trace is not emitted, so only the title and Notice are asserted.
  */
-const ESCAPE_PROFILE_CHANNELS = [
-  "vessel.flight",
-  "vessel.identity",
-  "system.bodies",
-] as const;
 
 describe("EscapeProfile: reads the parent body off the stream", () => {
   it("surfaces the streamed body name in the no-reference-data notice", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ESCAPE_PROFILE_CHANNELS,
       pinnedUt: 10,
       suspendFrames: true,
     });

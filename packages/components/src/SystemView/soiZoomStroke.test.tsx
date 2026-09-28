@@ -74,7 +74,6 @@ function currentZoom(container: HTMLElement): number {
 describe("SystemView: near-parent orbit stroke stays readable at SOI zoom (board #28)", () => {
   it("keeps orbit stroke a thin, screen-constant line at max zoom instead of ballooning with the viewBox", async () => {
     const fixture: StreamFixture = setupStreamFixture({
-      carriedChannels: ["system.bodies", "vessel.identity", "vessel.orbit"],
       pinnedUt: 100,
       suspendFrames: true,
     });

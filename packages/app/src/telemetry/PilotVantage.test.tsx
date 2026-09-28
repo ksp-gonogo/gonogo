@@ -29,7 +29,6 @@ const ROSTER = [
  */
 function mountPilot() {
   const fixture = setupStreamFixture({
-    carriedChannels: ["vessel.orbit", "commandCentre.roster"],
     pinnedUt: VIEW_UT,
   });
   let selectionChanges = 0;

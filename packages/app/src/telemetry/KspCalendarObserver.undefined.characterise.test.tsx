@@ -79,7 +79,6 @@ function CalendarProbe() {
 
 function mount() {
   const fixture = setupStreamFixture({
-    carriedChannels: ["time.calendar"],
     pinnedUt: 10,
   });
   const view = render(

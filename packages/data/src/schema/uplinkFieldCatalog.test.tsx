@@ -6,10 +6,10 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import {
-  getCollectionCarriedTopics,
+  getCollectionTopics,
   getTopicFieldCatalog,
-  getUndescribedCarriedTopics,
-  isThresholdSubject,
+  getUndescribedTopics,
+  isNumericField,
 } from "./topicFieldCatalog";
 
 /**
@@ -62,31 +62,30 @@ describe("an Uplink's own fields", () => {
     });
   });
 
-  it("can be a threshold subject when they have a magnitude", () => {
+  it("are offered as a number when they have a magnitude", () => {
     const coreTemp = getTopicFieldCatalog().find(
       (entry) => entry.key === "acme.reactor.coreTempK",
     );
-    expect(coreTemp && isThresholdSubject(coreTemp)).toBe(true);
+    expect(coreTemp && isNumericField(coreTemp)).toBe(true);
   });
 
-  it("are still refused as a threshold subject when they have none", () => {
+  it("are not offered as a number when they have none", () => {
     const scrammed = getTopicFieldCatalog().find(
       (entry) => entry.key === "acme.reactor.scrammed",
     );
     expect(scrammed?.kind).toBe("flag");
-    expect(scrammed && isThresholdSubject(scrammed)).toBe(false);
+    expect(scrammed && isNumericField(scrammed)).toBe(false);
   });
 
   it("reach the picker the alarm and graph editors actually read", async () => {
-    // `useValueKeys("data")` is the list `AlarmsModal`'s threshold subject
-    // picker and `GraphView`'s axis picker are both built from, so this is the
-    // read that says an operator can pick the field, rather than that the
-    // catalogue happens to contain it.
+    // `useNumericFields` is the list the alarm, trigger and graph pickers are
+    // built from, so this is the read that says an operator can pick the field,
+    // rather than that the catalogue happens to contain it.
     const { render } = await import("@ksp-gonogo/test-utils");
-    const { useValueKeys } = await import("../hooks/useValueKeys");
+    const { useNumericFields } = await import("../hooks/useTopicFields");
     let keys: readonly { key: string }[] = [];
     function Probe() {
-      keys = useValueKeys("data");
+      keys = useNumericFields();
       return null;
     }
     render(<Probe />);
@@ -110,16 +109,16 @@ describe("an Uplink's collection Topic", () => {
     expect(
       getTopicFieldCatalog().filter((entry) => entry.topic === RODS),
     ).toEqual([]);
-    expect(getCollectionCarriedTopics()).toContain(RODS);
-    expect(getUndescribedCarriedTopics()).not.toContain(RODS);
+    expect(getCollectionTopics()).toContain(RODS);
+    expect(getUndescribedTopics()).not.toContain(RODS);
   });
 
   it("keeps an element field out of the picker the editors read", async () => {
     const { render } = await import("@ksp-gonogo/test-utils");
-    const { useValueKeys } = await import("../hooks/useValueKeys");
+    const { useNumericFields } = await import("../hooks/useTopicFields");
     let keys: readonly { key: string }[] = [];
     function Probe() {
-      keys = useValueKeys("data");
+      keys = useNumericFields();
       return null;
     }
     render(<Probe />);
@@ -130,6 +129,6 @@ describe("an Uplink's collection Topic", () => {
   });
 
   it("leaves the record Topic's own report alone", () => {
-    expect(getCollectionCarriedTopics()).not.toContain(REACTOR);
+    expect(getCollectionTopics()).not.toContain(REACTOR);
   });
 });

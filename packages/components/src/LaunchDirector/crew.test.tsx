@@ -22,13 +22,6 @@ import {
 } from "./index";
 
 /** The crew half of the pad panel: which kerbals are offered, what is said about the rest, and an unreadable roster. */
-const CARRIED = [
-  "career.status",
-  "spaceCenter.savedShips",
-  "spaceCenter.crewRoster",
-  "spaceCenter.scene",
-  "spaceCenter.launchSites",
-];
 
 const PAD = {
   name: "LaunchPad",
@@ -74,7 +67,6 @@ describe("LaunchDirector crew selection", () => {
   beforeEach(async () => {
     cmdFixture = await setupMockDataSource({ keys: [] });
     stream = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
       suspendFrames: true,
     });

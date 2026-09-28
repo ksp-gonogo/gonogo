@@ -50,7 +50,6 @@
     }
   ],
   "_stream": {
-    "carriedChannels": ["career.status", "career.facilities"],
     "emits": [
       {
         "channel": "career.status",

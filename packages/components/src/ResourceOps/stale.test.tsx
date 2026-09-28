@@ -18,8 +18,6 @@ import { ResourceOpsComponent } from "./index";
  * emits `Staleness.HeldStale` on `isru.drills` rather than dropping the transport.
  */
 
-const CARRIED = ["isru.drills", "isru.converters"];
-
 const DRILLS = [
   {
     partId: "101",
@@ -68,7 +66,6 @@ const META = {
 
 function renderWidget() {
   const fixture = setupStreamFixture({
-    carriedChannels: CARRIED,
     suspendFrames: true,
   });
   const utils = render(

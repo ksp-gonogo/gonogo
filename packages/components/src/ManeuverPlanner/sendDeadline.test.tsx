@@ -28,7 +28,6 @@ function burnIn(seconds: number): PlannerInputs {
 
 function mountPlanner(inputs: PlannerInputs) {
   const fixture = setupStreamFixture({
-    carriedChannels: ["vessel.orbit", "system.bodies", "comms.delay"],
     delaySeconds: OWLT,
     suspendFrames: true,
   });

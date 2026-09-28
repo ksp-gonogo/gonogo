@@ -37,7 +37,6 @@ const ROTOR = {
 
 function mountWithRotor(instanceId: string) {
   const fixture = setupStreamFixture({
-    carriedChannels: ["robotics.servos", "robotics.available", "game.dlc"],
     pinnedUt: 10,
   });
   const rendered = renderWidget("rotor-tachometer", {

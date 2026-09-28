@@ -218,7 +218,6 @@ const NoActiveVessel__Body = styled.div`
 export function MainScreen({
   screen = "main",
   transport,
-  carriedChannels,
 }: {
   screen?: Screen;
   /**
@@ -232,8 +231,6 @@ export function MainScreen({
    * session of its own.
    */
   transport?: Transport;
-  /** Carried-channels promotion list, when the caller's transport serves a different set. */
-  carriedChannels?: readonly string[];
 } = {}) {
   useEffect(() => {
     document.title = screen === "pilot" ? "gonogo - Pilot" : "gonogo - Main";
@@ -338,10 +335,7 @@ export function MainScreen({
   }, []);
 
   return (
-    <SitrepTelemetryProvider
-      transport={transport}
-      carriedChannels={carriedChannels}
-    >
+    <SitrepTelemetryProvider transport={transport}>
       <SitrepPeerRelay peerHost={peerHostService} />
       {/*
        * The host's own session is the relay above; this serves every OTHER

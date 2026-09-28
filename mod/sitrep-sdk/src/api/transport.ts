@@ -144,24 +144,6 @@ export interface Transport {
   predictConfirmEta?(): number | undefined;
 
   /**
-   * OPTIONAL: the topics this transport actually delivers `stream-data` for,
-   * the carried-channels allowlist gate's transport-side seed (see
-   * `./carried-channels.ts`).
-   * `TelemetryClient.declaredChannels` reads this straight through;
-   * `TelemetryProvider` unions it with its own explicit `carriedChannels`
-   * promotion-list prop to build the carried-channels allowlist.
-   *
-   * Omitted (`undefined`) means "this transport doesn't declare", e.g.
-   * `StubTransport`, which is test-scriptable and can `emit` on any topic a
-   * test subscribes to regardless of any real serving guarantee; a caller
-   * wanting a stub-driven topic's fields offered to the pickers names it in
-   * `TelemetryProvider`'s `carriedChannels` prop. `ReplayTransport` DOES
-   * declare: its value is exactly the fixture's topic set, since that's the
-   * complete, known-in-advance set of topics it can ever deliver.
-   */
-  readonly carriedChannels?: readonly string[];
-
-  /**
    * OPTIONAL: whether this transport can carry a vantage selection at all.
    * Absent means yes, which is right for every transport that owns its own
    * session with the mod.

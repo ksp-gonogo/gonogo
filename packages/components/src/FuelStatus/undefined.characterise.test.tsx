@@ -11,16 +11,8 @@ import { FuelStatusComponent } from "./index";
  * Pins what FuelStatus renders for `undefined` at each of its reads: an absent capacity drops the resource row, the stage caption and its " / N" suffix are gated separately, the totals box drops only when both halves are absent, and a missing per-stage figure is NaN and draws a placeholder.
  */
 
-const CARRIED = [
-  "vessel.structure",
-  "vessel.resources",
-  "dv.stages",
-  "dv.summary",
-];
-
 function makeFixture() {
   return setupStreamFixture({
-    carriedChannels: CARRIED,
     pinnedUt: 10,
     suspendFrames: true,
   });

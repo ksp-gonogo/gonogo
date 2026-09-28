@@ -17,7 +17,6 @@ describe("WarpControl: genuinely runs off the stream", () => {
   it("reads the recorded time.warp state off the real stream pipeline, not legacy", async () => {
     // With no legacy source registered, a read that fell back would stay NULL_DISPLAY rather than reach "10×".
     const fixture = setupStreamFixture({
-      carriedChannels: ["time.warp"],
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -55,7 +54,6 @@ describe("WarpControl: genuinely runs off the stream", () => {
 
   it("a warp-ladder click dispatches a COMMAND (time.setWarpIndex), never the legacy execute()", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["time.warp"],
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -99,7 +97,6 @@ describe("WarpControl: genuinely runs off the stream", () => {
    */
   it("announces warp intent to its own screen before commanding a warp", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["time.warp"],
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -136,7 +133,6 @@ describe("WarpControl: genuinely runs off the stream", () => {
   /** A station runs no warp watcher, so the widget must work with no announcer provider above it. */
   it("commands a warp with no announcer mounted at all", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["time.warp"],
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -174,7 +170,6 @@ describe("WarpControl: genuinely runs off the stream", () => {
 
   it("pause/unpause dispatch the absolute time.setPaused command", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["time.warp", "vessel.identity"],
       pinnedUt: 10,
       suspendFrames: true,
     });

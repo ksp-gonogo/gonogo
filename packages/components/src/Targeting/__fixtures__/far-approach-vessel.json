@@ -9,7 +9,6 @@
   "tar.relativeVelocityVec": { "x": 0, "y": 0, "z": 312.5 },
   "o.closestTgtApprUT": 2567890,
   "_stream": {
-    "carriedChannels": ["vessel.target"],
     "pinnedUt": 0,
     "emits": [
       {

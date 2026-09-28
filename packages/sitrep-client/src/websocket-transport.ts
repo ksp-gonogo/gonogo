@@ -196,19 +196,6 @@ export const UNDELIVERED_REASON =
  * **Wire decode** reuses `parseServerMessage` (`@ksp-gonogo/sitrep-sdk`): the
  * exact decode path proven against real engine output by
  * `reference-wire-fixture.test.ts`; nothing is re-implemented here.
- *
- * **`carriedChannels`**: the mod server does NOT (yet) advertise a
- * channel list on connect (no hello/handshake frame exists in
- * `mod/Sitrep.Transport`/`GonogoAddon`), so this transport falls back to the
- * documented behaviour in the browser-transport brief: it marks a channel
- * carried the first time a `stream-data` frame for it arrives. NOTE the
- * consequence: this set starts EMPTY and grows only as data flows, and it is
- * read once by `TelemetryClient.declaredChannels` at provider-mount time, so
- * it does NOT retroactively add a topic that arrives later to the
- * carried-channels allowlist. The explicit `carriedChannels` prop on
- * `<TelemetryProvider>` is what reliably puts a topic's fields in the pickers;
- * this dynamic set is best-effort until the server grows a real
- * channel-advertisement handshake.
  */
 export class WebSocketTransport implements Transport {
   /**
@@ -267,7 +254,6 @@ export class WebSocketTransport implements Transport {
    * would go on naming a command centre its data is not from.
    */
   private selectedVantage: string | null = null;
-  private readonly carried = new Set<string>();
 
   constructor(options: WebSocketTransportOptions = {}) {
     this.url =
@@ -288,10 +274,6 @@ export class WebSocketTransport implements Transport {
 
   get status(): TransportStatus {
     return this._status;
-  }
-
-  get carriedChannels(): readonly string[] {
-    return [...this.carried];
   }
 
   /**
@@ -590,7 +572,6 @@ export class WebSocketTransport implements Transport {
     }
 
     if (message.type === "stream-data") {
-      this.carried.add(message.topic);
       this.onStreamFrame?.({
         topic: message.topic,
         byteLength: frame.text.length,
@@ -603,9 +584,7 @@ export class WebSocketTransport implements Transport {
   /**
    * A delivery off the binary lane.
    *
-   * Marks the topic carried exactly as a JSON delivery does (a topic is
-   * carried because data arrived on it, whatever shape the data was), and
-   * reports it on {@link WebSocketTransportOptions.onBinaryFrame} rather than
+   * Reported on {@link WebSocketTransportOptions.onBinaryFrame} rather than
    * `onStreamFrame`.
    *
    * **The separate seam is the point, not a tidiness.** `onStreamFrame` feeds a
@@ -615,7 +594,6 @@ export class WebSocketTransport implements Transport {
    * budgets, two numbers that each still describe one thing.
    */
   private handleBinaryFrame(message: StreamBinaryMessage): void {
-    this.carried.add(message.topic);
     let byteLength = 0;
     for (const segment of message.segments) byteLength += segment.byteLength;
     this.onBinaryFrame?.({

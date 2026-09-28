@@ -34,7 +34,6 @@ function renderControlNavball(instanceId: string, fixture: StreamFixture) {
 describe("Navball control-delay stream (throttle)", () => {
   it("shows the control-delay graph once a one-way delay is present, fed by the throttle stream", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.control", "comms.delay"],
       pinnedUt: 0,
       suspendFrames: true,
     });
@@ -59,7 +58,6 @@ describe("Navball control-delay stream (throttle)", () => {
 
   it("renders nothing at (near) zero one-way delay", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.control", "comms.delay"],
       pinnedUt: 0,
       suspendFrames: true,
     });
@@ -85,7 +83,6 @@ describe("Navball control-delay stream (throttle)", () => {
 describe("Navball fly-by-wire delay warning", () => {
   it("marks both delay countdowns as held once the delay reading stops arriving", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.control", "comms.delay"],
       pinnedUt: 0,
       suspendFrames: true,
     });

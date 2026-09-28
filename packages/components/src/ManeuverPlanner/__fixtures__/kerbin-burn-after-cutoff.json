@@ -117,7 +117,6 @@
   "o.orbitalSpeed": 761.5,
   "v.body": "Kerbin",
   "_stream": {
-    "carriedChannels": ["vessel.maneuver", "vessel.orbit"],
     "pinnedUt": 43362.21875,
     "emits": [
       {

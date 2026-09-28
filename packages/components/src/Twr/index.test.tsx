@@ -10,8 +10,6 @@ import { TwrComponent } from "./index";
 
 const STANDARD_GRAVITY = 9.80665;
 
-const TWR_CHANNELS = ["vessel.propulsion"];
-
 /** Emits a one-tonne `vessel.propulsion` payload whose TWR is exactly `twr`. */
 function emitTwr(fixture: ReturnType<typeof setupStreamFixture>, twr: number) {
   const thrust = twr * STANDARD_GRAVITY;
@@ -36,7 +34,6 @@ function renderTwr(fixture: ReturnType<typeof setupStreamFixture>) {
 describe("TwrComponent off the stream", () => {
   it("shows the empty state before any telemetry arrives", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: TWR_CHANNELS,
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -47,7 +44,6 @@ describe("TwrComponent off the stream", () => {
 
   it("renders TWR rounded to two decimals off the stream", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: TWR_CHANNELS,
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -60,7 +56,6 @@ describe("TwrComponent off the stream", () => {
 
   it("draws no figure for a craft reporting no positive mass, rather than dividing by it", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: TWR_CHANNELS,
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -85,7 +80,6 @@ describe("TwrComponent off the stream", () => {
 
   it("renders the TWR value as the gauge's aria-label so screen readers can read it", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: TWR_CHANNELS,
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -98,7 +92,6 @@ describe("TwrComponent off the stream", () => {
 
   it("draws three coloured zones on the dial (nogo / warning / ok)", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: TWR_CHANNELS,
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -115,7 +108,6 @@ describe("TwrComponent off the stream", () => {
     const restore = installFixedSizeResizeObserver({ width: 300, height: 24 });
     try {
       const fixture = setupStreamFixture({
-        carriedChannels: TWR_CHANNELS,
         pinnedUt: 10,
         suspendFrames: true,
       });

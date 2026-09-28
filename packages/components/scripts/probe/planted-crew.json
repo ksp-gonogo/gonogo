@@ -4,7 +4,6 @@
     "notes": "Three kerbals aboard a four-seat vessel, with the planted Uplink's Domain present so its crew contributions (scripts/probe/plantedUplink.ts) fill the roster: survival meters on every row, a critical row tone and a panel badge for Jebediah. The two crew probes render this one state."
   },
   "_stream": {
-    "carriedChannels": ["vessel.crew", "planted.available"],
     "pinnedUt": 10,
     "emits": [
       {

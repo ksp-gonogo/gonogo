@@ -35,7 +35,7 @@ function renderProbeApi(): Promise<RenderProbeApi> {
 /**
  * An Uplink's fixture scene mounted through `@ksp-gonogo/uplink-tools`'
  * render probe, the harness its docs page is drawn with: the same scene model,
- * the same carried channels, the same feed.
+ * the same declared topics, the same feed.
  *
  * Each scene is a mount of its own, so any number of them stand side by side
  * on a page. A scene's `_scene.before` presses and motion steps are

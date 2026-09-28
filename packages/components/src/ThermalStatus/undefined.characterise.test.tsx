@@ -12,7 +12,6 @@ import { ThermalStatusComponent } from "./index";
 /**
  * Pins what ThermalStatus renders for each source of `undefined`: nothing streamed, a tombstoned channel, a missing field, and a field at the near-zero sentinel the widget itself drops.
  */
-const CARRIED_CHANNELS = ["vessel.thermal"];
 
 function renderThermal(fixture: StreamFixture) {
   return render(
@@ -27,7 +26,6 @@ function renderThermal(fixture: StreamFixture) {
 // Frames are suspended so the emitted record has landed by the time `act` returns, and an asserted absence is a real one.
 function newFixture() {
   return setupStreamFixture({
-    carriedChannels: CARRIED_CHANNELS,
     pinnedUt: 10,
     suspendFrames: true,
   });

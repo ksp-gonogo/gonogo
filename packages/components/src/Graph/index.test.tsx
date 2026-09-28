@@ -22,7 +22,6 @@ describe("GraphComponent", () => {
       height: 300,
     });
     fixture = setupStreamFixture({
-      carriedChannels: ["vessel.flight"],
       pinnedUt: 10,
       suspendFrames: true,
     });

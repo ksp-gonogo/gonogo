@@ -50,7 +50,6 @@ describe("TargetPicker: nothing has arrived on either topic", () => {
 
   beforeEach(() => {
     fixture = setupStreamFixture({
-      carriedChannels: [],
       pinnedUt: 0,
       suspendFrames: true,
     });
@@ -98,7 +97,6 @@ describe("TargetPicker: the target.available absence gate", () => {
 
   beforeEach(() => {
     fixture = setupStreamFixture({
-      carriedChannels: [],
       pinnedUt: 0,
       suspendFrames: true,
     });
@@ -152,7 +150,6 @@ describe("TargetPicker: the vessel.target absence gate", () => {
 
   beforeEach(() => {
     fixture = setupStreamFixture({
-      carriedChannels: [],
       pinnedUt: 0,
       suspendFrames: true,
     });
@@ -203,7 +200,6 @@ describe("TargetPicker: a partial vessel.target record", () => {
 
   beforeEach(() => {
     fixture = setupStreamFixture({
-      carriedChannels: [],
       pinnedUt: 0,
       suspendFrames: true,
     });
@@ -267,7 +263,6 @@ describe("TargetPicker: a partial target.available entry", () => {
 
   beforeEach(() => {
     fixture = setupStreamFixture({
-      carriedChannels: [],
       pinnedUt: 0,
       suspendFrames: true,
     });
@@ -339,7 +334,6 @@ describe("TargetPicker: the dispatch gates on an entry's id fields", () => {
 
   beforeEach(() => {
     fixture = setupStreamFixture({
-      carriedChannels: [],
       pinnedUt: 0,
       suspendFrames: true,
     });

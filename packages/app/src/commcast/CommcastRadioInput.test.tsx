@@ -28,13 +28,6 @@ import type { RadioCaptureOptions } from "./radio/RadioTransmitter";
 const ARES = "vessel:ares";
 const KSC = "ksc";
 
-const TOPICS = [
-  "commandCentre.roster",
-  "commandCentre.separation",
-  "comms.delay",
-  "comms.link",
-];
-
 const ROSTER = [{ id: ARES, displayName: "Ares 4", active: true }];
 const PAIRS = [
   { from: KSC, to: ARES, oneWaySeconds: 3 },
@@ -112,7 +105,7 @@ afterEach(() => {
 });
 
 function scene() {
-  const fixture = setupStreamFixture({ carriedChannels: TOPICS, pinnedUt: 10 });
+  const fixture = setupStreamFixture({ pinnedUt: 10 });
   fixture.store.clock.suspendFrames();
   const log = new CommcastLog({ screenKey: "screen-under-test" });
   log.setVantage(KSC);

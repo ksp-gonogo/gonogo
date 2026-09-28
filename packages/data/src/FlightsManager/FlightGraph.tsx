@@ -3,8 +3,7 @@ import type { ChartSeries, KeyOption } from "@ksp-gonogo/ui";
 import { DataKeyMultiPicker, LineChart } from "@ksp-gonogo/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
-import { useDataSchema } from "../hooks/useDataSchema";
-import { isThresholdSubject } from "../schema/topicFieldCatalog";
+import { useNumericFields } from "../hooks/useTopicFields";
 import type { MissionHistorySource } from "./MissionHistorySource";
 
 /**
@@ -52,7 +51,7 @@ export function FlightGraph({
   firstFrameUt,
   lastFrameUt,
 }: FlightGraphProps) {
-  const schema = useDataSchema("missionHistory");
+  const numericFields = useNumericFields();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [series, setSeries] = useState<ChartSeries[]>([]);
   const [loading, setLoading] = useState(false);
@@ -73,9 +72,7 @@ export function FlightGraph({
     };
   }, [missionId]);
 
-  // Measure the container so the SVG chart picks a width without requiring
-  // the caller to hardcode one: `useDataSchema` already re-renders on
-  // schema change so we'd need to re-measure anyway.
+  // Measure the container so the SVG chart picks a width without requiring the caller to hardcode one.
   const wrapRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(600);
   useEffect(() => {
@@ -91,22 +88,17 @@ export function FlightGraph({
     return () => ro.disconnect();
   }, []);
 
-  // Only numeric keys are chartable. The meta tags strings as `enum`,
-  // complex objects as `raw`, and booleans as `bool`, filter those out so
-  // the picker stays focused.
-  const options: KeyOption[] = useMemo(() => {
-    return (
-      schema
-        // Same magnitude requirement as a live graph axis, and the same shared predicate: a recorded flag or enum cannot be plotted either.
-        .filter(isThresholdSubject)
-        .map((k) => ({
-          key: k.key,
-          label: k.label ?? k.key,
-          unit: k.unit,
-          group: keyGroup(k.key),
-        }))
-    );
-  }, [schema]);
+  // Only a number can be plotted: the same fields a live graph axis offers.
+  const options: KeyOption[] = useMemo(
+    () =>
+      numericFields.map((k) => ({
+        key: k.key,
+        label: k.label ?? k.key,
+        unit: k.unit,
+        group: keyGroup(k.key),
+      })),
+    [numericFields],
+  );
 
   // Re-fetch whenever the selection or the mission changes. Each key is a
   // separate full-history-store range query (memoized per missionId by
@@ -131,7 +123,7 @@ export function FlightGraph({
     )
       .then((ranges) => {
         if (cancelled) return;
-        const meta = new Map(schema.map((s) => [s.key, s]));
+        const meta = new Map(numericFields.map((s) => [s.key, s]));
         // Build a series per key. Non-finite values are dropped rather than
         // letting them wreck the LineChart's autoscale. queryRange returns
         // UT seconds (TimelineStore's native domain): convert to elapsed
@@ -172,7 +164,7 @@ export function FlightGraph({
     return () => {
       cancelled = true;
     };
-  }, [selected, missionId, firstFrameUt, lastFrameUt, schema]);
+  }, [selected, missionId, firstFrameUt, lastFrameUt, numericFields]);
 
   // LineChart wants a non-empty x-domain, in elapsed ms since firstFrameUt
   // (0-based: see the unit note above). Fall back to a 1-minute placeholder

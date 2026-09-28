@@ -4,7 +4,6 @@
     "notes": "Operator-requested colour-spread render for the 'water family' of resources (local_docs/design/2026-08-08-resource-colour-system.md, gonogo main repo): shows Water, WasteWater, Waste, CarbonDioxide, and Oxygen (for contrast) side-by-side so an operator can see how they currently colour before deciding whether WasteWater should get its own hue. RENDER-ONLY: does not change resourceColor.ts. The meters come from the planted Uplink (scripts/probe/plantedUplink.ts), which meters every stored resource the built-in five leave alone. Expected current colouring: Water blue, WasteWater/Waste/CarbonDioxide all the same olive (WasteWater's name contains 'waste', which matches the CURATED co2/waste family before the water family gets a chance), Oxygen cyan."
   },
   "_stream": {
-    "carriedChannels": ["vessel.parts", "planted.available"],
     "emits": [
       {
         "channel": "vessel.parts",

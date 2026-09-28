@@ -63,7 +63,6 @@ function renderControlNavball(
 describe("Navball control surface: command bridges (M3 batch 4, Part B)", () => {
   it("SAS toggle dispatches vessel.control.setSas (bridge 1: toggle -> absolute)", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.control"],
       pinnedUt: 0,
       suspendFrames: true,
     });
@@ -98,45 +97,8 @@ describe("Navball control surface: command bridges (M3 batch 4, Part B)", () => 
     );
   });
 
-  it("SAS toggle still dispatches vessel.control.setSas even when the command topic isn't in the carried allowlist", async () => {
-    const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.control"],
-      pinnedUt: 0,
-      suspendFrames: true,
-    });
-    const commandHandler = vi.fn(() => ({ ok: true }));
-    fixture.transport.setCommandHandler(commandHandler);
-
-    renderControlNavball("nav-cmd-sas-uncarried", fixture.Provider);
-
-    act(() => {
-      fixture.emit("vessel.control", {
-        sas: true,
-        sasMode: 0,
-        rcs: false,
-        gear: false,
-        brakes: false,
-        lights: false,
-        throttle: 0,
-        actionGroups: STOCK_GROUPS_ALL_OFF,
-      });
-    });
-
-    const button = await screen.findByRole("button", { name: "SAS: SAS" });
-    act(() => {
-      button.click();
-    });
-
-    await waitFor(() =>
-      expect(commandHandler).toHaveBeenCalledWith("vessel.control.setSas", {
-        enabled: false,
-      }),
-    );
-  });
-
   it("SAS-mode Prograde button dispatches vessel.control.setSasMode (bridge 3: positional -> named enum)", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.control"],
       pinnedUt: 0,
       suspendFrames: true,
     });
@@ -157,32 +119,8 @@ describe("Navball control surface: command bridges (M3 batch 4, Part B)", () => 
     );
   });
 
-  it("SAS-mode Prograde button still dispatches vessel.control.setSasMode even when the command topic isn't in the carried allowlist", async () => {
-    const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.control"],
-      pinnedUt: 0,
-      suspendFrames: true,
-    });
-    const commandHandler = vi.fn(() => ({ ok: true }));
-    fixture.transport.setCommandHandler(commandHandler);
-
-    renderControlNavball("nav-cmd-mode-uncarried", fixture.Provider);
-
-    const button = await screen.findByRole("button", { name: "PRO" });
-    act(() => {
-      button.click();
-    });
-
-    await waitFor(() =>
-      expect(commandHandler).toHaveBeenCalledWith("vessel.control.setSasMode", {
-        mode: 1,
-      }),
-    );
-  });
-
   it("throttle ZERO button drives vessel.control.setThrottle to 0 via the delayed control-stream (bridge 3: continuous, unconditional)", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.control"],
       pinnedUt: 0,
       suspendFrames: true,
     });
@@ -217,7 +155,6 @@ describe("Navball control surface: command bridges (M3 batch 4, Part B)", () => 
 
   it("throttle ZERO button never falls back to legacy execute(): the axis has no legacy path left", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.control"],
       pinnedUt: 0,
       suspendFrames: true,
     });
@@ -263,7 +200,6 @@ describe("Navball control surface: command bridges (M3 batch 4, Part B)", () => 
 
   it("each trim action dispatches its own named vessel.control.setAxes field", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.control"],
       pinnedUt: 0,
       suspendFrames: true,
     });
@@ -295,7 +231,6 @@ describe("Navball control surface: command bridges (M3 batch 4, Part B)", () => 
 
   it("clamps an out-of-range trim into the -1..1 the fly-by-wire override accepts", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.control"],
       pinnedUt: 0,
       suspendFrames: true,
     });
@@ -340,9 +275,8 @@ describe("Navball commands nothing it was not asked to", () => {
     });
   }
 
-  function mountDisplayOnly(instanceId: string, carried: string[]) {
+  function mountDisplayOnly(instanceId: string) {
     const fixture = setupStreamFixture({
-      carriedChannels: carried,
       pinnedUt: 0,
       suspendFrames: true,
     });
@@ -364,16 +298,13 @@ describe("Navball commands nothing it was not asked to", () => {
   }
 
   it("sends no throttle or axis command when it mounts before any control reading", async () => {
-    const { handler } = mountDisplayOnly("nav-no-intent", ["vessel.control"]);
+    const { handler } = mountDisplayOnly("nav-no-intent");
     await letTheStreamTick();
     expect(streamCalls(handler)).toEqual([]);
   });
 
   it("does not send a delayed throttle readback back at the craft while untouched", async () => {
-    const { fixture, handler } = mountDisplayOnly("nav-no-echo", [
-      "vessel.control",
-      "comms.delay",
-    ]);
+    const { fixture, handler } = mountDisplayOnly("nav-no-echo");
     act(() => {
       fixture.emit("comms.delay", { oneWaySeconds: 2 });
       fixture.emit("vessel.control", { throttle: 0.6 });
@@ -383,7 +314,7 @@ describe("Navball commands nothing it was not asked to", () => {
   });
 
   it("still sends the throttle once the operator commands it", async () => {
-    const { handler } = mountDisplayOnly("nav-touched", ["vessel.control"]);
+    const { handler } = mountDisplayOnly("nav-touched");
     act(() => {
       dispatchAction("nav-touched", "set-throttle", {
         kind: "analog",
@@ -398,7 +329,7 @@ describe("Navball commands nothing it was not asked to", () => {
   });
 
   it("treats a NaN analog throttle as no command, never as a cut", async () => {
-    const { handler } = mountDisplayOnly("nav-nan", ["vessel.control"]);
+    const { handler } = mountDisplayOnly("nav-nan");
     act(() => {
       dispatchAction("nav-nan", "set-throttle", {
         kind: "analog",
@@ -410,7 +341,7 @@ describe("Navball commands nothing it was not asked to", () => {
   });
 
   it("refuses a 10% step while the throttle has neither a reading nor a command", async () => {
-    const { handler } = mountDisplayOnly("nav-step-blind", ["vessel.control"]);
+    const { handler } = mountDisplayOnly("nav-step-blind");
     act(() => {
       dispatchAction("nav-step-blind", "throttle-up", {
         kind: "button",
@@ -422,9 +353,7 @@ describe("Navball commands nothing it was not asked to", () => {
   });
 
   it("steps from the confirmed throttle once one is read", async () => {
-    const { fixture, handler } = mountDisplayOnly("nav-step-read", [
-      "vessel.control",
-    ]);
+    const { fixture, handler } = mountDisplayOnly("nav-step-read");
     act(() => {
       fixture.emit("vessel.control", { throttle: 0.5 });
     });

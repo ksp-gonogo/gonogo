@@ -39,14 +39,6 @@ const FLEET = {
   ],
 };
 
-const CARRIED = [
-  "system.vessels",
-  "system.bodies",
-  "vessel.identity",
-  "reliability.summary",
-  "reliability.parts",
-];
-
 describe("reliability augment composed into FleetRoster", () => {
   it("shows the failing part on the active vessel's row only", async () => {
     registerAugment({
@@ -57,7 +49,6 @@ describe("reliability augment composed into FleetRoster", () => {
     });
 
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED,
       suspendFrames: true,
     });
     render(

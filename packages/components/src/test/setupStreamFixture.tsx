@@ -3,6 +3,7 @@ import {
   PROCESSOR_NOTIFY_BUDGET,
 } from "@ksp-gonogo/core";
 import {
+  DYNAMIC_WHOLE_TOPIC_PREFIXES,
   PRODUCTION_DERIVED_CHANNELS,
   setProcessorEvaluationRecorder,
   setProcessorNotificationRecorder,
@@ -23,8 +24,8 @@ import type { JSX, ReactNode } from "react";
  * `TelemetryClient`/`TimelineStore` pipeline over a `StubTransport`, which
  * delivers only once something has subscribed, exactly like production.
  *
- * - `carriedChannels` is required: a caller states which topics (read and
- *   command) the fixture carries, and nothing is promoted silently
+ * - a topic under one of `DYNAMIC_WHOLE_TOPIC_PREFIXES` is sampled whole, as
+ *   production samples it
  * - `pinnedUt` pins the view clock via `scrubTo`, which wins outright over
  *   the delay computation, so a nonzero `delaySeconds` needs `pinnedUt`
  *   unset and time driven with `fixture.wall.advanceBy(seconds)`
@@ -36,8 +37,6 @@ import type { JSX, ReactNode } from "react";
  *   emit through `fixture.transport.emit` and call `emitFrame()` once
  */
 export interface StreamFixtureOptions {
-  /** Topics (read AND command) to promote into the carried-channels allowlist. */
-  carriedChannels: Iterable<string>;
   /** UT to pin the view clock at, via `clock.scrubTo`. Omit to leave the clock live, which `delaySeconds` needs. */
   pinnedUt?: number;
   /** Fixed network/display delay in seconds. Defaults to 0. */
@@ -65,7 +64,9 @@ export interface StreamFixture {
   emitFrame: () => void;
 }
 
-export function setupStreamFixture(opts: StreamFixtureOptions): StreamFixture {
+export function setupStreamFixture(
+  opts: StreamFixtureOptions = {},
+): StreamFixture {
   // The real budgets, so the PerfBudget gate sees processor churn.
   setProcessorEvaluationRecorder(() => PROCESSOR_EVAL_BUDGET.record());
   setProcessorNotificationRecorder(() => PROCESSOR_NOTIFY_BUDGET.record());
@@ -77,10 +78,8 @@ export function setupStreamFixture(opts: StreamFixtureOptions): StreamFixture {
     warpRate: () => 1,
     delaySeconds: () => opts.delaySeconds ?? 0,
   });
-  // A `.`-terminated carried channel is a dynamic whole-topic namespace, so `fleet.<guid>.delay` is sampled whole rather than split into `<parent>.<field>`.
-  const carriedList = Array.from(opts.carriedChannels);
   const store = new TimelineStore(clock, {
-    dynamicWholeTopicPrefixes: carriedList.filter((t) => t.endsWith(".")),
+    dynamicWholeTopicPrefixes: DYNAMIC_WHOLE_TOPIC_PREFIXES,
   });
   // The production derived-channel list, so a channel added there is available here by construction.
   const omitted = new Set(opts.withoutDerivedChannels ?? []);
@@ -107,15 +106,9 @@ export function setupStreamFixture(opts: StreamFixtureOptions): StreamFixture {
     store.beginFrame();
   };
 
-  const carriedChannels = carriedList;
-
   function Provider({ children }: { children: ReactNode }) {
     return (
-      <TelemetryProvider
-        client={client}
-        store={store}
-        carriedChannels={carriedChannels}
-      >
+      <TelemetryProvider client={client} store={store}>
         {children}
       </TelemetryProvider>
     );

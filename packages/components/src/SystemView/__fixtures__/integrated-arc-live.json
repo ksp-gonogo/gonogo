@@ -8,12 +8,6 @@
     "notes": "vessel.orbit captured live off the Deck's Sitrep stream on 2026-08-23 with Principia 2026.8.12 loaded and the n-body path elected: trajectoryKind=2 (Integrated), horizon.kind=2 (Until) with untilUt, arcRefusal=3 (NotRefused), arc.derivation=2 (OwnNBody), arc.frame.kind=2 (BodyCentredInertial), 76 points over a 655 s span. system.bodies and vessel.identity come off the same capture."
   },
   "_stream": {
-    "carriedChannels": [
-      "vessel.orbit",
-      "vessel.identity",
-      "system.bodies",
-      "vessel.target"
-    ],
     "pinnedUt": 315659.495086983,
     "emits": [
       {

@@ -23,18 +23,10 @@ import { useGameContext } from "./useGameContext";
  * field a caller can ask "do we actually know?" of.
  */
 
-const ALL_CARRIED = [
-  "career.mode",
-  "spaceCenter.scene",
-  "spaceCenter.launchSites",
-];
-
 function mountedWrapper(transport: StubTransport) {
   const client = new TelemetryClient(transport);
   return ({ children }: { children: ReactNode }) => (
-    <TelemetryProvider client={client} carriedChannels={ALL_CARRIED}>
-      {children}
-    </TelemetryProvider>
+    <TelemetryProvider client={client}>{children}</TelemetryProvider>
   );
 }
 

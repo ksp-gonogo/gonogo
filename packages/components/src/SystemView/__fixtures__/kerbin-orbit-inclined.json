@@ -7,12 +7,6 @@
     "notes": "The one SystemView fixture that is NOT coplanar-circular, and the reason it exists is that every other one is: a flat system projects identically however honest the projection is, so a render of one proves nothing about the placement. Three readings in one picture. Mun stays equatorial, the in-picture control whose ring must not move at all. Minmus carries its real 6 degrees, which is stock's own worst case and amounts to about half a percent of squash plus a depth cue on the body itself. The craft is on a 63.4-degree orbit SIZED to the frame (30 Mm against Minmus's 47 Mm) rather than a low one, because a 900 km orbit at system scale is a sub-pixel ring and its foreshortening is unrenderable: at this size the ellipse is unmistakable, and periapsis sits a quarter turn from the node so the apsis line lands on the foreshortened axis.\n\nKerbin's own mean anomaly is 1.0 rather than the 3.14 every other fixture carries, and that matters for exactly one thing: at a half turn the bearing to Kerbol lands on +x, so a parent-direction frame comes out as the identity and a render of it is pixel-identical to the inertial one. A fixture that cannot tell two frames apart is a fixture under which the seam looks dead."
   },
   "_stream": {
-    "carriedChannels": [
-      "vessel.orbit",
-      "vessel.identity",
-      "vessel.target",
-      "system.bodies"
-    ],
     "pinnedUt": 0,
     "emits": [
       {

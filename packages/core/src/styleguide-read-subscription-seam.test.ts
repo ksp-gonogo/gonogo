@@ -20,8 +20,8 @@ import { scanScope } from "./scanScope";
  *
  * So `subscribeTopicRead` is the seam, and the rule is: a file that resolves a
  * read's topics does not also subscribe them. Resolving is still perfectly
- * legitimate on its own: `isTopicCarried` asks which wire topics a read would
- * need in order to grade carriage, and subscribes nothing. It is the PAIR that
+ * legitimate on its own: the field catalogue asks which Topic a read would
+ * land on, and subscribes nothing. It is the PAIR that
  * is the seam's job.
  *
  * ## Known reach

@@ -11,7 +11,6 @@ const warpControlDef = getComponent("warp-control");
 
 async function mountInFlight(paused: boolean) {
   const fixture = setupStreamFixture({
-    carriedChannels: ["time.warp", "spaceCenter.scene"],
     pinnedUt: 10,
     suspendFrames: true,
   });

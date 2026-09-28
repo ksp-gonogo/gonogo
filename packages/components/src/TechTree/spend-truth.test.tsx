@@ -13,8 +13,6 @@ import { TechTreeComponent } from "./index";
  * What the Unlock control may claim about a spend: a price that never arrived is not free, and a command the career model refuses outright (RP-1 researches through its own queue) is not a purchase the balance decides.
  */
 
-const CARRIED = ["career.status", "system.uplink.gates"];
-
 function careerStatus(
   science: number,
   node: Record<string, unknown>,
@@ -43,7 +41,6 @@ describe("TechTree spend truth", () => {
   beforeEach(() => {
     clearActionHandlers();
     stream = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
       suspendFrames: true,
     });

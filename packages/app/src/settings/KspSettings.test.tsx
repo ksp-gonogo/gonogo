@@ -115,7 +115,7 @@ afterEach(() => {
 });
 
 function mount(screenName: "main" | "station" = "main") {
-  const fixture = setupStreamFixture({ carriedChannels: [TOPIC] });
+  const fixture = setupStreamFixture();
   const view = render(
     <ScreenProvider value={screenName}>
       <fixture.Provider>

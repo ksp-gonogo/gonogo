@@ -4,25 +4,6 @@
     "notes": "Kerbal X is standing on the stock KSC pad (padOccupied true on that site alone), so that pad sorts first and its row offers Recover and Revert to VAB. The runway is listed ahead of it on the wire and reports no occupancy at all. Funds readout visible. The `_stream` block drives both snapshots.test.tsx and the probe render harness."
   },
   "_stream": {
-    "carriedChannels": [
-      "career.status",
-      "career.facilities",
-      "spaceCenter.savedShips",
-      "spaceCenter.crewRoster",
-      "spaceCenter.scene",
-      "spaceCenter.launchSites",
-      "vessel.orbit",
-      "vessel.flight",
-      "vessel.identity",
-      "system.bodies",
-      "vessel.control",
-      "vessel.target",
-      "vessel.comms",
-      "vessel.propulsion",
-      "ksp.revertAvailability",
-      "crash.hasRecent",
-      "crash.lastCrash"
-    ],
     "pinnedUt": 10,
     "emits": [
       {

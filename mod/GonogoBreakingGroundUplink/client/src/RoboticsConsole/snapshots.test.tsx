@@ -42,7 +42,6 @@ async function snapshotStream(
   },
 ): Promise<string> {
   const streamFixture = setupStreamFixture({
-    carriedChannels: ["robotics.servos", "robotics.available", "game.dlc"],
     pinnedUt: 10,
   });
 

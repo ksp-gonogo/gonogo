@@ -115,7 +115,6 @@ export function renderOrbitStream(
   instanceId = "orbit-stream",
 ): RenderStreamResult {
   const fixture = setupStreamFixture({
-    carriedChannels: [...ORBIT_SCENARIO_CHANNELS],
     pinnedUt: 0,
     suspendFrames: true,
   });

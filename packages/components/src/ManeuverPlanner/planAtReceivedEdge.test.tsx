@@ -26,7 +26,6 @@ const BURN_IN_60: PlannerInputs = {
 describe("ManeuverPlanner under signal delay", () => {
   it("counts a relative burn from the received edge, never from when the command lands", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.orbit", "system.bodies"],
       delaySeconds: OWLT,
       suspendFrames: true,
     });

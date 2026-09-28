@@ -16,7 +16,6 @@ const UNSAFE_ID = "18834021456123789";
 
 function mount(alarmSet: boolean) {
   const fixture = setupStreamFixture({
-    carriedChannels: ["career.status", "vessel.flight"],
     pinnedUt: 0,
     suspendFrames: true,
   });

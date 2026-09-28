@@ -24,14 +24,6 @@ import { NavballComponent } from "./index";
  *  - the first `vessel.identity` to arrive reads as a vessel change
  */
 
-const CARRIED = [
-  "vessel.attitude",
-  "vessel.control",
-  "vessel.identity",
-  "vessel.comms",
-  "comms.delay",
-];
-
 const ATTITUDE = {
   heading: 90,
   pitch: 45,
@@ -53,7 +45,6 @@ beforeEach(() => {
     .find((b) => b.name.startsWith("useActionInput register"))
     ?.reset();
   fixture = setupStreamFixture({
-    carriedChannels: CARRIED,
     pinnedUt: 0,
     suspendFrames: true,
   });

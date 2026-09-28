@@ -4,7 +4,6 @@
     "notes": "No engine data available (NaN / undefined TWR). Widget should show the EmptyState panel, 'No engine data'."
   },
   "_stream": {
-    "carriedChannels": ["vessel.propulsion"],
     "emits": [],
     "pinnedUt": 0
   }

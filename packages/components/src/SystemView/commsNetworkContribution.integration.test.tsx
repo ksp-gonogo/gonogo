@@ -75,13 +75,6 @@ const META = {
 describe("SystemView: comms.network relay graph as faint connection lines", () => {
   it("draws a resolvable edge and omits an edge with an unresolvable endpoint", async () => {
     const fixture: StreamFixture = setupStreamFixture({
-      carriedChannels: [
-        "vessel.orbit",
-        "vessel.identity",
-        "system.bodies",
-        "system.vessels",
-        "comms.network",
-      ],
       pinnedUt: 0,
       suspendFrames: true,
     });

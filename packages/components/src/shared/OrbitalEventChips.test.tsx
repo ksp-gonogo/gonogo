@@ -15,7 +15,6 @@ const TRANSITION_UT = VIEW_UT + 1200;
 
 function mountAt(transitionUt: number) {
   const fixture = setupStreamFixture({
-    carriedChannels: ["vessel.orbit"],
     pinnedUt: VIEW_UT,
     suspendFrames: true,
   });
@@ -74,7 +73,6 @@ describe("OrbitalEventChips under signal delay", () => {
   it("counts down from the received edge, with the conic's figure for the craft's present beside it", async () => {
     const owlt = 240;
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.orbit"],
       delaySeconds: owlt,
       suspendFrames: true,
     });

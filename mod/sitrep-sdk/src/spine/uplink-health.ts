@@ -12,7 +12,7 @@ import type { DerivedChannelDefinition, DerivedGet } from "./timeline-store";
  * report for every registered Uplink, self-reporting or not.
  *
  * Named distinctly from the raw wire topic (`system.uplinks` stays the raw
- * carried topic: see `default-carried-topics.ts`; this derived channel
+ * wire topic; this derived channel
  * registers as `system.uplinkHealth`) for the same reason
  * `system.bodies` -> `system.state` are two different topic names: a derived
  * channel registered under the SAME name as its own input would recurse

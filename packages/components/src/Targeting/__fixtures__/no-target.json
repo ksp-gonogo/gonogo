@@ -5,7 +5,6 @@
   },
   "tar.type": "",
   "_stream": {
-    "carriedChannels": ["vessel.target"],
     "pinnedUt": 0,
     "emits": [{ "channel": "vessel.target", "value": null }]
   }

@@ -26,7 +26,7 @@
  * ## What it will not decide
  *
  * Plenty of references to a departed Uplink are correct and permanent: the shared
- * topic knowledge in the sdk's `default-carried-topics.ts` and `spine/map-topic.ts`,
+ * topic knowledge in the sdk's `dynamic-topic-prefixes.ts` and `spine/map-topic.ts`,
  * the boundary allowlist's `permanent` entries, the contract's own payload types.
  * Those are shared-by-design and stay, which is what makes a blanket grep the
  * wrong tool.
@@ -72,7 +72,7 @@ const pkg = `@ksp-gonogo/gonogo-${id}-uplink`;
  * unexpected shows up as unclassified instead of being quietly absorbed.
  */
 const STAYS_BY_DESIGN = [
-  "mod/sitrep-sdk/src/default-carried-topics.ts",
+  "mod/sitrep-sdk/src/dynamic-topic-prefixes.ts",
   "mod/sitrep-sdk/src/spine/map-topic.ts",
   "packages/core/src/uplink-boundary.allowlist.ts",
   "mod/Sitrep.Contract/",

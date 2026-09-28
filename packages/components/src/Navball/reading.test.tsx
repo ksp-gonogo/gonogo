@@ -10,14 +10,11 @@ afterEach(() => {
   clearActionHandlers();
 });
 
-const CARRIED = ["vessel.attitude", "vessel.control", "vessel.identity"];
-
 function mount(
   instanceId: string,
   { w = 10, h = 12, controlMode = false } = {},
 ) {
   const fixture = setupStreamFixture({
-    carriedChannels: CARRIED,
     pinnedUt: 10,
     suspendFrames: true,
   });

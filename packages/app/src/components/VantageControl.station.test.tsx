@@ -24,7 +24,6 @@ const ROSTER = [
  */
 function mountStation(screenRole: Screen = "station") {
   const fixture = setupStreamFixture({
-    carriedChannels: ["commandCentre.roster"],
     pinnedUt: 10,
   });
   // The one thing that makes a station's stream a station's stream: frames are
@@ -161,7 +160,6 @@ describe("VantageControl on a station", () => {
  */
 function mountPilot() {
   const fixture = setupStreamFixture({
-    carriedChannels: ["commandCentre.roster"],
     pinnedUt: 10,
   });
   const view = render(

@@ -58,10 +58,7 @@ function readProbe(): string {
  * (`@ksp-gonogo/components/src/test/setupStreamFixture.tsx`): inlined here so
  * `@ksp-gonogo/data`'s tests don't reach across to `@ksp-gonogo/components`.
  */
-function buildStreamFixture(opts: {
-  carriedChannels: Iterable<string>;
-  pinnedUt?: number;
-}) {
+function buildStreamFixture(opts: { pinnedUt?: number }) {
   const wall = createFakeWallClock();
   const transport = new StubTransport();
   const client = new TelemetryClient(transport);
@@ -80,11 +77,7 @@ function buildStreamFixture(opts: {
 
   function Provider({ children }: { children: ReactNode }) {
     return (
-      <TelemetryProvider
-        client={client}
-        store={store}
-        carriedChannels={opts.carriedChannels}
-      >
+      <TelemetryProvider client={client} store={store}>
         {children}
       </TelemetryProvider>
     );
@@ -96,7 +89,6 @@ function buildStreamFixture(opts: {
 describe("useDataSeries: a field path streams from the ClientTimeline", () => {
   it("builds the series from the real TimelineStore", async () => {
     const fixture = buildStreamFixture({
-      carriedChannels: ["vessel.orbit"],
       pinnedUt: 100,
     });
 
@@ -129,7 +121,6 @@ describe("useDataSeries: a field path streams from the ClientTimeline", () => {
 
   it("trims to the window, off real buffered timeline data", async () => {
     const fixture = buildStreamFixture({
-      carriedChannels: ["vessel.orbit"],
       pinnedUt: 1000,
     });
 
@@ -162,7 +153,6 @@ describe("useDataSeries: a field path streams from the ClientTimeline", () => {
    */
   it("carries a gapSinceUt sample through as a break index", async () => {
     const fixture = buildStreamFixture({
-      carriedChannels: ["vessel.orbit"],
       pinnedUt: 100,
     });
 
@@ -201,7 +191,6 @@ describe("useDataSeries: a field path streams from the ClientTimeline", () => {
    */
   it("breaks a moved value across a warped tick its model cannot carry, and joins a flat one", async () => {
     const fixture = buildStreamFixture({
-      carriedChannels: ["vessel.dock", "time.warp"],
       pinnedUt: 30_000,
     });
 
@@ -251,7 +240,6 @@ describe("useDataSeries: a field path streams from the ClientTimeline", () => {
       resources: { ElectricCharge: { current, max: 200, active: true } },
     });
     const fixture = buildStreamFixture({
-      carriedChannels: ["vessel.resources", "time.warp"],
       pinnedUt: 2 * quantum,
     });
     render(
@@ -298,7 +286,6 @@ describe("useDataSeries: bridges", () => {
    */
   it("hands the chart the model's path across each gap it carries", async () => {
     const fixture = buildStreamFixture({
-      carriedChannels: ["vessel.dock", "time.warp"],
       pinnedUt: 2,
     });
 
@@ -347,7 +334,6 @@ describe("useDataSeries: a DERIVED field path streams a REAL series computed fro
    */
   it("sampleDerivedRange replays derive at every instant either input changed", async () => {
     const fixture = buildStreamFixture({
-      carriedChannels: ["dv.stages", "vessel.structure"],
       pinnedUt: 100,
     });
 
@@ -396,7 +382,7 @@ describe("useDataSeries: what decides whether a window fills", () => {
   });
 
   it("plots a topic the provider's carried list does not name", async () => {
-    const fixture = buildStreamFixture({ carriedChannels: [], pinnedUt: 100 });
+    const fixture = buildStreamFixture({ pinnedUt: 100 });
 
     render(
       <fixture.Provider>

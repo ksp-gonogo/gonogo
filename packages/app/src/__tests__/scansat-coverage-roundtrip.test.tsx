@@ -80,12 +80,7 @@ describe("SCANsat coverage round-trip (canonical wire string, real client)", () 
     const serverClients = await connectAndCaptureClient();
 
     const { unmount } = render(
-      <SitrepTelemetryProvider
-        enabled
-        host="localhost"
-        port={8090}
-        carriedChannels={["vessel.control"]}
-      >
+      <SitrepTelemetryProvider enabled host="localhost" port={8090}>
         <ControlProbe />
       </SitrepTelemetryProvider>,
     );
@@ -102,12 +97,7 @@ describe("SCANsat coverage round-trip (canonical wire string, real client)", () 
     const serverClients = await connectAndCaptureClient();
 
     const { unmount } = render(
-      <SitrepTelemetryProvider
-        enabled
-        host="localhost"
-        port={8090}
-        carriedChannels={["scansat.coverage."]}
-      >
+      <SitrepTelemetryProvider enabled host="localhost" port={8090}>
         <CoverageProbe />
       </SitrepTelemetryProvider>,
     );

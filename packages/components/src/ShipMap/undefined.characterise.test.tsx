@@ -49,13 +49,6 @@ const PART_LIVE = new Map<number, PartLiveWireInput>(
 
 const VESSEL_PARTS_WIRE = topologyToVesselPartsWire(TOPOLOGY, PART_LIVE);
 
-const CARRIED = [
-  "vessel.parts",
-  "vessel.control",
-  "vessel.thermal",
-  "vessel.flight",
-];
-
 const PLACEHOLDER_WAITING =
   // The domain-free half of the copy: the whole sentence names the legacy data source, which `uplink-boundary` reads as a mod reference.
   /Waiting for vessel topology/;
@@ -75,7 +68,6 @@ afterEach(() => {
 
 function mount() {
   const fixture = setupStreamFixture({
-    carriedChannels: CARRIED,
     pinnedUt: 0,
     suspendFrames: true,
   });

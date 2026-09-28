@@ -5,25 +5,6 @@
   },
   "tar.availableVessels": [],
   "_stream": {
-    "carriedChannels": [
-      "career.status",
-      "career.facilities",
-      "spaceCenter.savedShips",
-      "spaceCenter.crewRoster",
-      "spaceCenter.scene",
-      "spaceCenter.launchSites",
-      "vessel.orbit",
-      "vessel.flight",
-      "vessel.identity",
-      "system.bodies",
-      "vessel.control",
-      "vessel.target",
-      "vessel.comms",
-      "vessel.propulsion",
-      "ksp.revertAvailability",
-      "crash.hasRecent",
-      "crash.lastCrash"
-    ],
     "pinnedUt": 113270,
     "emits": [
       {

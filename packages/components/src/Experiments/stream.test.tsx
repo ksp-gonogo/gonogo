@@ -23,11 +23,6 @@ afterEach(() => {
 describe("Experiments: genuinely runs off the stream", () => {
   it("renders the idle-but-operational lab from science.lab and an instrument from science.instruments", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: [
-        "science.lab",
-        "science.instruments",
-        "science.experiments",
-      ],
       suspendFrames: true,
       pinnedUt: 10,
     });

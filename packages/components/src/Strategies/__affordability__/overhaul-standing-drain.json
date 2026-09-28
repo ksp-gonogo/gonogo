@@ -75,7 +75,6 @@
   "career.reputation": 420,
   "career.science": 145,
   "_stream": {
-    "carriedChannels": ["career.status", "career.facilities"],
     "emits": [
       {
         "channel": "career.status",

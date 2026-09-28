@@ -12,8 +12,8 @@ import {
   VANTAGE_TRAJECTORY_COMMAND,
 } from "./use-vantage-trajectory";
 
-function mount(carriedChannels: string[] = []) {
-  const stream = setupStreamFixture({ carriedChannels });
+function mount() {
+  const stream = setupStreamFixture();
   const wrapper = ({ children }: { children: ReactNode }) => (
     <stream.Provider>{children}</stream.Provider>
   );
@@ -85,9 +85,7 @@ describe("solve is safe to call from an effect", () => {
   });
 
   it("dispatches once from an effect, not once per render", async () => {
-    const stream = setupStreamFixture({
-      carriedChannels: [VANTAGE_TRAJECTORY_COMMAND],
-    });
+    const stream = setupStreamFixture();
 
     // The effect's own tripwire, rather than waiting for the run to hang. The
     // loop this guards against never lets `act` see an empty queue, so the

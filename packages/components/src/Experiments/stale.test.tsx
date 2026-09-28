@@ -10,8 +10,6 @@ import { ExperimentsComponent } from "./index";
  * list, marks each held row and disables its controls.
  */
 
-const CARRIED = ["science.lab", "science.instruments", "science.experiments"];
-
 const renderedTrees: Array<() => void> = [];
 
 afterEach(() => {
@@ -76,7 +74,6 @@ function goStale(fixture: ReturnType<typeof setupStreamFixture>): void {
 describe("Experiments when the science channels are no longer current", () => {
   it("keeps every instrument and lab row, marks each, and kills Transmit", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -104,7 +101,6 @@ describe("Experiments when the science channels are no longer current", () => {
 
   it("marks the held science total on the figure itself", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
       suspendFrames: true,
     });

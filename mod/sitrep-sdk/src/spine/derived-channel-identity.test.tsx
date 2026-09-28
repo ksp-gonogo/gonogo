@@ -73,9 +73,7 @@ function streamFor(topic: string) {
   if (!inputs) {
     throw new Error(`no wire inputs for derived channel ${topic}`);
   }
-  const stream = setupStreamFixture({
-    carriedChannels: [topic, ...Object.keys(inputs)],
-  });
+  const stream = setupStreamFixture();
   const feed = () => {
     for (const [input, payload] of Object.entries(inputs)) {
       stream.subscribe(input);

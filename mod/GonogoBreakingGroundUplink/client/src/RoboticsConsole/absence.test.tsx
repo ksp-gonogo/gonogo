@@ -20,8 +20,6 @@ import "./index";
  * Proves a withheld servo figure never becomes a zero: no AT TARGET verdict is derived from it, and no stepper or toggle commands from it.
  */
 
-const CARRIED = ["robotics.servos", "robotics.available", "game.dlc"];
-
 const INSTANCE = "rc-absence";
 
 const servo = (
@@ -48,7 +46,6 @@ afterEach(() => {
 
 function mount(entry: Record<string, unknown>, instanceId = INSTANCE) {
   const fixture = setupStreamFixture({
-    carriedChannels: CARRIED,
     pinnedUt: 10,
   });
   const result = renderWidget("robotics-console", {
@@ -123,7 +120,6 @@ describe("RoboticsConsole: a withheld position is withheld on screen", () => {
 
   it("reports an unknown position in the joint list rather than 0°/0°", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
     });
     const result = renderWidget("robotics-console", {
@@ -293,7 +289,6 @@ describe("RoboticsConsole: an unread flag is not a false one", () => {
 
   it("leaves the locked marker off a joint row whose lock was unread", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
     });
     const result = renderWidget("robotics-console", {

@@ -7,14 +7,6 @@
     "notes": "The predicted reacquisition has passed and the craft is still dark: 240 s late, inside its grace window. Amber, announced role=\"status\" because it is a change the operator should notice without being interrupted. Derived from kerbin-orbit-no-target.json by adding the silence.<guid>.state channel; geometry is identical so the renders differ only in contact treatment."
   },
   "_stream": {
-    "carriedChannels": [
-      "vessel.orbit",
-      "vessel.identity",
-      "vessel.target",
-      "system.bodies",
-      "fleet.",
-      "silence."
-    ],
     "pinnedUt": 0,
     "emits": [
       {

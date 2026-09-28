@@ -24,7 +24,6 @@ afterEach(() => {
 describe("Targeting: genuinely runs off the stream", () => {
   it("renders tracking-mode distance/closing-rate derived from vessel.target's Vec3 fields", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.target"],
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -68,7 +67,6 @@ describe("Targeting: genuinely runs off the stream", () => {
 
   it("derives docking-HUD alignment angles + forwardDot from vessel.dock", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.target", "vessel.dock"],
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -123,7 +121,6 @@ describe("Targeting: genuinely runs off the stream", () => {
 
   it("degrades correctly (not stale) when the target is cleared, vessel.target present -> null tombstone", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.target"],
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -179,7 +176,6 @@ describe("Targeting: genuinely runs off the stream", () => {
   it("renders approach-mode TCA from vessel.target.closestApproach and the SDK view-UT", async () => {
     // The pinned view clock is UT 1000.
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.target"],
       pinnedUt: 1000,
       suspendFrames: true,
     });

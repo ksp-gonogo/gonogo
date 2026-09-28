@@ -5,7 +5,6 @@
     "notes": "DERIVED from the same RP-1 fixture, cut down to one row of each kind so Available, Locked and Eligibility unknown are all on screen at once: 1 active, 2 the game said yes to, 2 it refused (their real RP-1 unlock text), and 3 rewritten to the unanswered state. A real career cannot hold this mixture, since the facility answers for the whole roster or none of it; it exists to put the three headings side by side."
   },
   "_stream": {
-    "carriedChannels": ["career.status", "career.facilities"],
     "emits": [
       {
         "channel": "career.status",

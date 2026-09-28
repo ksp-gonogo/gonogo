@@ -12,9 +12,7 @@ import { SimulationIndicator } from "./SimulationIndicator";
  * installs, so a wrong answer there is a wrong answer nearly everywhere.
  */
 function mount() {
-  const fixture = setupStreamFixture({
-    carriedChannels: ["flight.simulation"],
-  });
+  const fixture = setupStreamFixture();
   render(
     <fixture.Provider>
       <SimulationIndicator />

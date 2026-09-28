@@ -38,7 +38,6 @@ function withScatteredHistory(fixture: HandoverFixture): HandoverFixture {
 
 async function mount(fixture: HandoverFixture): Promise<RenderResult> {
   const stream = setupStreamFixture({
-    carriedChannels: fixture._stream.carriedChannels,
     pinnedUt: fixture._stream.pinnedUt,
     suspendFrames: true,
   });
@@ -199,7 +198,6 @@ describe("the carried ASL altitude under signal delay", () => {
   async function mountDelayed(owlt: number): Promise<RenderResult> {
     const fixture = loadHandoverFixture("05-drag-biting-42km.json");
     const stream = setupStreamFixture({
-      carriedChannels: fixture._stream.carriedChannels,
       delaySeconds: owlt,
       suspendFrames: true,
     });

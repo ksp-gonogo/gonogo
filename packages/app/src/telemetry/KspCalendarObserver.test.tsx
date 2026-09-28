@@ -31,7 +31,7 @@ afterEach(() => {
 
 describe("KspCalendarObserver", () => {
   it("leaves the stock fallback alone until the game says otherwise", () => {
-    const fixture = setupStreamFixture({ carriedChannels: ["time.calendar"] });
+    const fixture = setupStreamFixture();
     render(
       <fixture.Provider>
         <KspCalendarObserver />
@@ -45,7 +45,7 @@ describe("KspCalendarObserver", () => {
   });
 
   it("adopts an Earth calendar off the stream, and every readout follows", async () => {
-    const fixture = setupStreamFixture({ carriedChannels: ["time.calendar"] });
+    const fixture = setupStreamFixture();
     const tree = () => (
       <fixture.Provider>
         <KspCalendarObserver />
@@ -84,7 +84,7 @@ describe("KspCalendarObserver", () => {
   });
 
   it("carries the epoch through to a real date", async () => {
-    const fixture = setupStreamFixture({ carriedChannels: ["time.calendar"] });
+    const fixture = setupStreamFixture();
     const tree = () => (
       <fixture.Provider>
         <KspCalendarObserver />
@@ -120,7 +120,7 @@ describe("KspCalendarObserver", () => {
    * that no longer has them, so it is driven through each direction.
    */
   it("follows the anchor through every change, not only the first", async () => {
-    const fixture = setupStreamFixture({ carriedChannels: ["time.calendar"] });
+    const fixture = setupStreamFixture();
     const tree = () => (
       <fixture.Provider>
         <KspCalendarObserver />
@@ -178,7 +178,7 @@ describe("KspCalendarObserver", () => {
         return stored.size;
       },
     });
-    const fixture = setupStreamFixture({ carriedChannels: ["time.calendar"] });
+    const fixture = setupStreamFixture();
     const tree = () => (
       <SettingsProvider service={service}>
         <fixture.Provider>
@@ -213,7 +213,7 @@ describe("KspCalendarObserver", () => {
   it("leaves the calendar unanchored when the game reports no epoch", async () => {
     // Stock, and every planet pack with no real-calendar formatter beside it.
     // Absent is the correct answer, not a gap: KSP's own UI prints Y1 D1 here.
-    const fixture = setupStreamFixture({ carriedChannels: ["time.calendar"] });
+    const fixture = setupStreamFixture();
     render(
       <fixture.Provider>
         <KspCalendarObserver />
@@ -237,7 +237,7 @@ describe("KspCalendarObserver", () => {
   });
 
   it("keeps the stock fallback when the game reports a day nobody can divide by", async () => {
-    const fixture = setupStreamFixture({ carriedChannels: ["time.calendar"] });
+    const fixture = setupStreamFixture();
     render(
       <fixture.Provider>
         <KspCalendarObserver />

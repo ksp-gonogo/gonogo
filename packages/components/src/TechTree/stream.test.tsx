@@ -13,7 +13,6 @@ beforeEach(() => {
 describe("TechTree: genuinely runs off the stream", () => {
   it("renders the science readout derived from career.status.economy.science", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["career.status"],
       pinnedUt: 10,
       suspendFrames: true,
     });

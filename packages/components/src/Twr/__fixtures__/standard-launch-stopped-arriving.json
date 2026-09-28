@@ -98,7 +98,6 @@
     ]
   },
   "_stream": {
-    "carriedChannels": ["vessel.propulsion"],
     "emits": [
       {
         "channel": "vessel.propulsion",

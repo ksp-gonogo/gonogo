@@ -10,16 +10,9 @@ import { CurrentOrbitComponent } from "./index";
  * A readout the view frame invalidates says so instead of showing a number.
  * The null dash already means "absent on this trajectory"; showing the frame case the same way would tell an operator their orbit changed when only their frame did.
  */
-const CARRIED = [
-  "vessel.orbit",
-  "vessel.identity",
-  "system.bodies",
-  "system.frame",
-];
 
 function mount({ probe = false }: { probe?: boolean } = {}) {
   const fixture = setupStreamFixture({
-    carriedChannels: CARRIED,
     pinnedUt: 10,
     suspendFrames: true,
   });

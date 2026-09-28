@@ -12,21 +12,6 @@ import { LandingStatusComponent } from "./index";
  * A DESCRIPTION renders from the best value available and says it is dated; an INSTRUCTION never renders from a reckoned state, since a countdown recomputed from old readings still looks live and names the wrong instant. Each case also proves the board is not the reassuring "No landing in progress" state, which would be a calm board during an untracked descent.
  */
 
-const CARRIED = [
-  "vessel.orbit",
-  "vessel.flight",
-  "vessel.identity",
-  "system.bodies",
-  "vessel.target",
-  "vessel.propulsion",
-  "vessel.surface",
-  "vessel.landing",
-  "dv.summary",
-  "dv.stages",
-  "vessel.structure",
-  "comms.delay",
-];
-
 const MUN = { index: 3, name: "Mun", radius: 200_000, mu: 6.5138398e10 };
 
 describe("LandingStatus when the solve inputs are not current", () => {
@@ -35,7 +20,6 @@ describe("LandingStatus when the solve inputs are not current", () => {
   beforeEach(() => {
     registerStockBodies();
     stream = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
       suspendFrames: true,
     });

@@ -13,7 +13,7 @@ export type { Scene, SceneAct } from "./sceneModel";
  * and the thing a stale one produces is a page that describes less than the
  * Uplink does.
  *
- * Two fields a fixture deliberately does NOT carry: `carriedChannels`, derived
+ * Two fields a fixture deliberately does NOT carry: `declaredTopics`, derived
  * from the target's own registration, and the render's pixel size, derived
  * from `defaultSize`/`minSize`. Both were hand-written before, and both are
  * already declared once by the code being photographed.

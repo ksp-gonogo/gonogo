@@ -1,10 +1,9 @@
 /**
- * A scene staged with one input missing: carried, subscribed, never published.
+ * A scene staged with one input missing: subscribed, never published.
  *
  * Not `stopsArriving`, which holds a real observation as `stale` with an age.
  * This never emits the topic, so the read is `pending`: nothing to hold and
- * no age to caption. The channel stays carried, staging a healthy Uplink that
- * has not published, rather than an unpromoted topic.
+ * no age to caption, staging a healthy Uplink that has not published.
  *
  * A missing required channel is a real operator state: `RequiresGuard` gates
  * on the owning Uplink's health, not on the topic being live, so the widget
@@ -13,7 +12,6 @@
 
 /** The `_stream` block, as much of it as staging an absence needs to see. */
 interface StreamBlock {
-  carriedChannels: string[];
   emits: Array<{ channel: string; value: unknown; meta?: unknown }>;
   [key: string]: unknown;
 }

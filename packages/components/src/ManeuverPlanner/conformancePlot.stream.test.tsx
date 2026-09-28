@@ -12,18 +12,6 @@ afterEach(() => {
   clearActionHandlers();
 });
 
-const CARRIED = [
-  "vessel.orbit",
-  "vessel.flight",
-  "vessel.identity",
-  "system.bodies",
-  "vessel.control",
-  "vessel.target",
-  "vessel.comms",
-  "vessel.propulsion",
-  "vessel.maneuver",
-];
-
 function emitOrbitReady(fixture: ReturnType<typeof setupStreamFixture>) {
   fixture.emit("vessel.orbit", {
     referenceBodyIndex: 1,
@@ -94,7 +82,6 @@ async function mountOnConformance(
   opts: { pinnedUt?: number } = {},
 ) {
   const fixture = setupStreamFixture({
-    carriedChannels: CARRIED,
     pinnedUt: opts.pinnedUt ?? 1_000_000,
     suspendFrames: true,
   });
@@ -128,7 +115,6 @@ function plannedConics(container: HTMLElement): number {
 describe("ManeuverPlanner: the render gate's selector still matches", () => {
   it("renders burn instant rows carrying the attribute the harness gate looks for", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 1_000_000,
       suspendFrames: true,
     });

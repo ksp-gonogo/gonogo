@@ -19,22 +19,6 @@ afterEach(() => {
   clearActionHandlers();
 });
 
-const ALL_READS = [
-  "spaceCenter.savedShips",
-  "spaceCenter.crewRoster",
-  "spaceCenter.scene",
-  "spaceCenter.launchSites",
-  "career.status",
-  "vessel.identity",
-  "vessel.orbit",
-  "vessel.flight",
-  "ksp.revertAvailability",
-  "crash.hasRecent",
-  "crash.lastCrash",
-  "target.available",
-  "system.uplink.gates",
-];
-
 const KERBAL_X = {
   name: "Kerbal X",
   partCount: 24,
@@ -71,7 +55,6 @@ function mount(
 describe("LaunchDirector: what undefined telemetry renders today", () => {
   it("replaces the whole widget with 'Awaiting launch-pad telemetry' when nothing has arrived", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ALL_READS,
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -94,7 +77,6 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
 
   it("keeps the balance and the pads when the saved-craft list has not arrived", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ALL_READS,
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -127,7 +109,6 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
 
   it("renders a confirmed savedShips tombstone exactly as it renders a never-arrived one", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ALL_READS,
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -149,7 +130,6 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
 
   it("crosses the early-return gate on an EMPTY launchSites array, unlike an absent one", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ALL_READS,
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -170,7 +150,6 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
   /** An absent balance refuses a priced craft, and says what it does not know. */
   it("treats absent funds as insufficient funds, and shows that the balance is unknown", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ALL_READS,
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -222,7 +201,6 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
 
   it("says the roster has no reading, and still offers the launch, while the crew roster is absent", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ALL_READS,
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -263,7 +241,6 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
 
   it("chips a crash from crash.hasRecent alone, and never decides Recover's availability itself", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ALL_READS,
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -300,7 +277,6 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
 
   it("labels both reverts plainly and leaves them to the command's gate when revert availability is absent", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ALL_READS,
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -345,7 +321,6 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
 
   it("names the in-flight vessel '(unnamed)' and reports no other vessels in the save", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ALL_READS,
       pinnedUt: 10,
       suspendFrames: true,
     });

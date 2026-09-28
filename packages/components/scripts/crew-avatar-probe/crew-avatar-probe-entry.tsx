@@ -108,8 +108,6 @@ export interface CrewAvatarProbeEmit {
 }
 
 export interface CrewAvatarProbePayload {
-  /** Topics the fixture carries; forwarded to `setupStreamFixture`. */
-  carriedChannels: string[];
   /** UT to pin the view clock at; forwarded to `setupStreamFixture`. */
   pinnedUt?: number;
   /** Replayed in order, one `StubTransport.emit` per entry, post-mount. */
@@ -172,7 +170,6 @@ async function renderCrewAvatarProbe(
   root.style.background = "var(--color-surface-app)";
 
   const streamFixture: StreamFixture = setupStreamFixture({
-    carriedChannels: payload.carriedChannels,
     pinnedUt: payload.pinnedUt,
   });
 

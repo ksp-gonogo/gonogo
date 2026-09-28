@@ -3,14 +3,12 @@
 // one is what registers its hand-declared field metadata. Without that side
 // effect a derived channel's fields enumerate without units.
 import {
-  isTopicCarried,
+  getContributedDerivedChannels,
   PRODUCTION_DERIVED_CHANNELS,
-  TimelineStore,
-  ViewClock,
 } from "@ksp-gonogo/sitrep-client";
 import {
-  DEFAULT_SITREP_CARRIED_TOPICS,
   enumerateTopicFields,
+  getAllKnownTopicIds,
   getRuntimeRegisteredTopicIds,
   isCollectionTopic,
   isCommandId,
@@ -117,64 +115,15 @@ interface BuiltCatalog {
   collections: string[];
 }
 
-/**
- * Whether a derived channel's own inputs are actually promoted to the stream.
- *
- * A derived channel's NAME never appears in the carried list; only the raw
- * Topics it computes from do. So a channel can be registered, enumerate a full
- * field set, and still resolve to nothing forever because one of its inputs was
- * never promoted. Offering its fields would put keys in front of an operator
- * that can never carry a value, which is the failure the retired catalogue's
- * mapped-AND-carried gate existed to prevent. That gate read the migration
- * table, so it retired with it; the failure it caught did not.
- *
- * The store exists only to run that judgement, exactly as the retired
- * catalogue's did: nothing is ever ingested into it.
- */
-function carriedDerivedTopics(
-  carried: ReadonlySet<string>,
-): ReadonlySet<string> {
-  const store = new TimelineStore(
-    new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 }),
-  );
-  for (const channel of PRODUCTION_DERIVED_CHANNELS) {
-    store.registerDerivedChannel(channel);
-  }
-  const out = new Set<string>();
-  for (const channel of PRODUCTION_DERIVED_CHANNELS) {
-    if (isTopicCarried(store, carried, channel.topic)) out.add(channel.topic);
-  }
-  return out;
-}
-
 function buildTopicFieldCatalog(
-  carried: ReadonlySet<string>,
   registered: readonly string[],
+  derived: readonly string[],
 ): BuiltCatalog {
-  const derivedTopics = carriedDerivedTopics(carried);
+  const derivedTopics = new Set(derived);
   const topics = [
-    ...new Set([
-      // A trailing dot is a carried NAMESPACE rather than a Topic (see
-      // `carried-channels.ts`), and the members under it are keyed by
-      // something the contract never names, so there is nothing to enumerate.
-      ...[...carried].filter((topic) => !topic.endsWith(".")),
-      // Every Topic a client package registered at runtime. This is the whole
-      // of an Uplink's vocabulary, and the only way it can reach a picker: the
-      // carried set above is seeded from a list written in this repo, which an
-      // Uplink shipping on its own schedule can never appear on.
-      ...registered,
-      ...PRODUCTION_DERIVED_CHANNELS.map((c) => c.topic),
-    ]),
+    ...new Set([...getAllKnownTopicIds(), ...registered, ...derived]),
   ]
-    // A command is not a Topic. It shares the id namespace, and while the
-    // first-party promotion list holds none, the carried set this walk is
-    // handed is whatever a caller passed plus whatever an Uplink registered, so
-    // an id nobody could ever read can still arrive here. A command has no
-    // payload for a picker to offer and no declaration could give it one, so
-    // reporting one as UNDESCRIBED would be this walk mistaking a control for a
-    // reading. Asked of the generated command map rather than of the id's
-    // shape: `alarm.scet.arm` and `alarm.scet.fired` are the same shape and
-    // only one of them is a command.
+    // A command shares the id namespace but carries no payload, so it has no field to offer and is not an undescribed reading either.
     .filter((topic) => !isCommandId(topic))
     .sort();
 
@@ -204,54 +153,47 @@ function buildTopicFieldCatalog(
 }
 
 /**
- * The catalogue is a pure function of (what is carried, what has registered),
- * and both move: an Uplink registers when its bundle loads, and the carried set
- * grows as the provider folds those registrations in. So it is built on demand
- * and cached against the pair, rather than being a module-load constant.
- *
- * One entry per carried set, keyed weakly so a set the provider has replaced is
- * collectable. The registration snapshot's identity is what invalidates an
- * entry when an Uplink registers without the carried set itself changing.
+ * Every derived channel a store registers: the first-party list and every
+ * uncontested Uplink contribution.
  */
-const DEFAULT_CARRIED: ReadonlySet<string> = new Set(
-  DEFAULT_SITREP_CARRIED_TOPICS,
-);
-const cache = new WeakMap<
-  ReadonlySet<string>,
-  { registered: readonly string[]; built: BuiltCatalog }
->();
+export function getDerivedTopicIds(): string[] {
+  return [
+    ...PRODUCTION_DERIVED_CHANNELS.map((c) => c.topic),
+    ...getContributedDerivedChannels().map((c) => c.topic),
+  ];
+}
+
+/**
+ * The catalogue is a pure function of what has registered, and that moves: an
+ * Uplink registers its Topics and contributes its channels when its bundle
+ * loads. So it is built on demand and cached against the pair.
+ */
+let cache: { key: string; built: BuiltCatalog } | undefined;
 
 function builtFor(
-  carried: ReadonlySet<string> | undefined,
   registered: readonly string[],
+  derived: readonly string[],
 ): BuiltCatalog {
-  const key = carried ?? DEFAULT_CARRIED;
-  const cached = cache.get(key);
-  if (cached !== undefined && cached.registered === registered) {
-    return cached.built;
-  }
-  const built = buildTopicFieldCatalog(key, registered);
-  cache.set(key, { registered, built });
+  const key = `${registered.join(",")}|${derived.join(",")}`;
+  if (cache?.key === key) return cache.built;
+  const built = buildTopicFieldCatalog(registered, derived);
+  cache = { key, built };
   return built;
 }
 
 /**
- * The vocabulary an operator picks from: every field of every carried Topic,
- * every Topic an Uplink has registered, and every client-derived channel, keyed
- * by the path a read actually samples.
+ * The vocabulary an operator picks from: every field of every Topic the
+ * contract declares, every Topic an Uplink has registered, and every derived
+ * channel, keyed by the path a read actually samples.
  *
  * Read from the contract's own generated unit and shape metadata plus the SDK's
  * runtime registry, so a field appears here because it EXISTS rather than
- * because somebody listed it: a first-party field on the next codegen, an
- * Uplink's field the moment its client package loads. That is the whole point:
- * the catalogue this replaced was hand-written, and it drifted, and the list it
- * was rebuilt on could not name a third party's Topic at all.
+ * because somebody listed it. Which of these a picker offers is decided by the
+ * field's kind, never by a list of Topics: see {@link isNumericField} and
+ * {@link isPrintableField}.
  *
- * `carried` is the live allowlist from the mounted `TelemetryProvider`. Omit it
- * and the first-party default stands in, which is the honest answer for a
- * caller with no provider in reach. `registered` is the SDK's registration
- * snapshot, taken as an argument so a React caller can hold it as a dependency
- * rather than re-reading a moving global inside a memo.
+ * `registered` and `derived` are taken as arguments so a React caller can hold
+ * them as dependencies rather than re-reading moving globals inside a memo.
  *
  * The returned array is shared and must not be mutated. Its identity is stable
  * while the answer is, so it can be a `useMemo` dependency.
@@ -262,15 +204,15 @@ function builtFor(
  * grouping that hides it.
  */
 export function getTopicFieldCatalog(
-  carried?: ReadonlySet<string>,
   registered: readonly string[] = getRuntimeRegisteredTopicIds(),
+  derived: readonly string[] = getDerivedTopicIds(),
 ): TopicFieldKey[] {
-  return builtFor(carried, registered).keys;
+  return builtFor(registered, derived).keys;
 }
 
 /**
- * Whether a catalogue entry names something a threshold, a graph axis or any
- * other ordering comparison can be built on: a field with a magnitude.
+ * Whether a catalogue entry is a number: something a threshold, a graph axis or
+ * any other ordering comparison can be built on.
  *
  * Reads the field's KIND, which the contract's unit token decides. A name, a
  * flag, an enum ordinal and a whole collection are all real values an operator
@@ -281,7 +223,7 @@ export function getTopicFieldCatalog(
  * `schema()` rather than from this catalogue. Those are admitted on their unit
  * hint, which is the only thing they carry.
  */
-export function isThresholdSubject(entry: DataKeyMeta): boolean {
+export function isNumericField(entry: DataKeyMeta): boolean {
   const kind = (entry as Partial<TopicFieldKey>).kind;
   if (kind !== undefined) return kind === "quantity";
   return entry.unit !== undefined && !NON_ORDERABLE_UNIT_HINTS.has(entry.unit);
@@ -302,7 +244,20 @@ const NON_ORDERABLE_UNIT_HINTS: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * Carried Topics this catalogue can say nothing about, so the gap is visible
+ * Whether a catalogue entry prints as a word or a number when interpolated
+ * into text: a quantity, a name or a flag.
+ *
+ * An enum arrives as its ordinal, so it would print as a bare integer that
+ * names nothing, and a collection would print as a whole array.
+ */
+export function isPrintableField(entry: TopicFieldKey): boolean {
+  return (
+    entry.kind === "quantity" || entry.kind === "text" || entry.kind === "flag"
+  );
+}
+
+/**
+ * Topics this catalogue can say nothing about, so the gap is visible
  * rather than looking like a Topic with nothing worth offering.
  *
  * A Topic lands here for one of two reasons: nothing has annotated its fields
@@ -312,28 +267,27 @@ const NON_ORDERABLE_UNIT_HINTS: ReadonlySet<string> = new Set([
  * by a test, so a Topic that arrives unannotated is a failure rather than a
  * silent absence from every picker in the app.
  *
- * Never a COMMAND, even though a carried id can be one: see the filter in
- * `buildTopicFieldCatalog`.
+ * Never a COMMAND: see the filter in `buildTopicFieldCatalog`.
  */
-export function getUndescribedCarriedTopics(
-  carried?: ReadonlySet<string>,
+export function getUndescribedTopics(
   registered: readonly string[] = getRuntimeRegisteredTopicIds(),
+  derived: readonly string[] = getDerivedTopicIds(),
 ): readonly string[] {
-  return builtFor(carried, registered).undescribed;
+  return builtFor(registered, derived).undescribed;
 }
 
 /**
- * Carried Topics whose payload is a collection, which the catalogue offers
+ * Topics whose payload is a collection, which the catalogue offers
  * nothing under: the contract describes their elements, and a key can name a
  * field of the Topic but not of one of its rows.
  *
  * Reported rather than dropped for the same reason as
- * {@link getUndescribedCarriedTopics}: a Topic missing from every picker should
- * be missing for a stated reason. The two lists never overlap.
+ * {@link getUndescribedTopics}: a Topic missing from every picker should be
+ * missing for a stated reason. The two lists never overlap.
  */
-export function getCollectionCarriedTopics(
-  carried?: ReadonlySet<string>,
+export function getCollectionTopics(
   registered: readonly string[] = getRuntimeRegisteredTopicIds(),
+  derived: readonly string[] = getDerivedTopicIds(),
 ): readonly string[] {
-  return builtFor(carried, registered).collections;
+  return builtFor(registered, derived).collections;
 }

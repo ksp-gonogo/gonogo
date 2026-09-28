@@ -14,7 +14,6 @@
   "therm.heatShieldTemp": 1553.15,
   "therm.heatShieldFlux": 3250.4,
   "_stream": {
-    "carriedChannels": ["vessel.thermal"],
     "emits": [
       {
         "channel": "vessel.thermal",

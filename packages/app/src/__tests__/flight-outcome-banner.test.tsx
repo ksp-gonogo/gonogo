@@ -31,12 +31,6 @@ import {
 // clock at UT 10 makes any emitted event visible; a manual `store.beginFrame()`
 // advances the pinned frame synchronously, so the fixture works under the fake
 // timers the auto-dismiss assertions need.
-const OUTCOME_CHANNELS = [
-  "recovery.hasRecent",
-  "recovery.lastSummary",
-  "crash.hasRecent",
-  "crash.lastCrash",
-];
 
 function setupOutcomeStream() {
   const wall = createFakeWallClock();
@@ -53,11 +47,7 @@ function setupOutcomeStream() {
   function Provider({ children }: { children: ReactNode }) {
     return (
       <ModalProvider>
-        <TelemetryProvider
-          client={client}
-          store={store}
-          carriedChannels={OUTCOME_CHANNELS}
-        >
+        <TelemetryProvider client={client} store={store}>
           {children}
         </TelemetryProvider>
       </ModalProvider>

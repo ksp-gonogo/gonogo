@@ -81,7 +81,7 @@ export interface ReadTopicSubscriber {
   noteSubscriberLabel?(topic: string, label: string): () => void;
 }
 
-/** The resolving half. `TimelineStore` satisfies it; see `carried-channels.ts` for the same shape and the same reason. */
+/** The resolving half. `TimelineStore` satisfies it; structural so this module does not name the class for one method. */
 export type ReadTopicResolver = Pick<
   TimelineStore,
   "resolveSubscriptionTopics" | "reckonerDepTopics"

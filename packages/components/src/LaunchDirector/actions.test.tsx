@@ -22,22 +22,6 @@ import { LaunchDirectorComponent } from "./index";
  * `index.test.tsx`: arm on the first press, dispatch on the second, and do
  * nothing where the control is dark or not drawn.
  */
-const CARRIED = [
-  "career.status",
-  "spaceCenter.savedShips",
-  "spaceCenter.crewRoster",
-  "spaceCenter.scene",
-  "spaceCenter.launchSites",
-  "vessel.orbit",
-  "vessel.flight",
-  "vessel.identity",
-  "system.bodies",
-  "ksp.revertAvailability",
-  "crash.hasRecent",
-  "crash.lastCrash",
-  "target.available",
-  "system.uplink.gates",
-];
 
 const ID = "ld";
 
@@ -48,7 +32,6 @@ describe("LaunchDirector actions", () => {
   beforeEach(async () => {
     cmdFixture = await setupMockDataSource({ keys: [] });
     stream = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
       suspendFrames: true,
     });

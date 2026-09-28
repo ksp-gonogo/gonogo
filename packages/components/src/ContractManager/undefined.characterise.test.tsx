@@ -16,11 +16,8 @@ import { ContractManagerComponent } from "./index";
  * absent form until an altitude arrives. Observations, not endorsements.
  */
 
-const CARRIED = ["career.status", "vessel.flight"];
-
 function newFixture() {
   return setupStreamFixture({
-    carriedChannels: CARRIED,
     pinnedUt: 0,
     suspendFrames: true,
   });

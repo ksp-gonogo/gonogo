@@ -9,24 +9,11 @@ import { LandingStatusComponent } from "./index";
  * The atmospheric-board stream render, with `bodyName` named from `vessel.identity.parentBodyIndex` against `system.bodies`.
  * `kerbin-reentry-atmospheric` descends through an atmosphere with no mod terminal velocity, so the vacuum burn numbers are suppressed and the estimate board (velocity, air density, drag-building note) shows instead of a silent "descent unmodelled".
  */
-const CARRIED = [
-  "vessel.orbit",
-  "vessel.flight",
-  "vessel.identity",
-  "system.bodies",
-  "vessel.control",
-  "vessel.target",
-  "vessel.propulsion",
-  "vessel.surface",
-  "dv.summary",
-  "comms.delay",
-];
 
 describe("LandingStatus: atmospheric stream render golden (delay=0)", () => {
   it("suppresses the vacuum burn numbers on the Kerbin reentry off the stream pipeline", async () => {
     registerStockBodies();
     const stream = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
       suspendFrames: true,
     });

@@ -17,7 +17,6 @@
   },
   "o.closestTgtApprUT": 5125,
   "_stream": {
-    "carriedChannels": ["vessel.target"],
     "pinnedUt": 0,
     "emits": [
       {

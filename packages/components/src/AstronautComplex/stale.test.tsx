@@ -21,14 +21,6 @@ function heldFundsMark(): string | null {
   return readout?.querySelector("[data-unit-currency]")?.textContent ?? null;
 }
 
-const CARRIED = [
-  "spaceCenter.astronautComplex",
-  "spaceCenter.crewRoster",
-  "career.status",
-  "career.crew.hire",
-  "career.crew.fire",
-];
-
 const APPLICANT = {
   name: "Desdin Kerman",
   trait: "Scientist",
@@ -53,7 +45,6 @@ describe("AstronautComplex when its telemetry is no longer current", () => {
 
   beforeEach(() => {
     stream = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
       suspendFrames: true,
     });

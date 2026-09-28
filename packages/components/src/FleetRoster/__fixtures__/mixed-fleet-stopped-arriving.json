@@ -5,7 +5,6 @@
     "notes": "Then the link drops: the transport disconnects after the scene is staged, so every reading this widget draws is held rather than current."
   },
   "_stream": {
-    "carriedChannels": ["system.vessels", "system.bodies"],
     "pinnedUt": 0,
     "emits": [
       {

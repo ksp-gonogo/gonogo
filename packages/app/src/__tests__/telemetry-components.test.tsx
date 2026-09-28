@@ -69,19 +69,6 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-// Each widget's declared channels.
-const CURRENT_ORBIT_CHANNELS = [
-  "vessel.orbit",
-  "vessel.identity",
-  "system.bodies",
-];
-const MAP_VIEW_CHANNELS = [
-  "vessel.flight",
-  "vessel.orbit",
-  "vessel.identity",
-  "system.bodies",
-];
-
 // ---------------------------------------------------------------------------
 // Helper: mount a real TelemetryProvider (TelemetryClient + TimelineStore
 // over a StubTransport) for widgets that read via the canonical `useTelemetry`
@@ -91,7 +78,7 @@ const MAP_VIEW_CHANNELS = [
 // here in miniature rather than imported, since `@ksp-gonogo/components`'s test
 // helpers aren't part of its published surface.
 // ---------------------------------------------------------------------------
-function setupTelemetryStream(carriedChannels: Iterable<string>) {
+function setupTelemetryStream() {
   const wall = createFakeWallClock();
   const transport = new StubTransport();
   const client = new TelemetryClient(transport);
@@ -104,11 +91,7 @@ function setupTelemetryStream(carriedChannels: Iterable<string>) {
 
   function Provider({ children }: { children: ReactNode }) {
     return (
-      <TelemetryProvider
-        client={client}
-        store={store}
-        carriedChannels={carriedChannels}
-      >
+      <TelemetryProvider client={client} store={store}>
         {children}
       </TelemetryProvider>
     );
@@ -139,7 +122,7 @@ describe("CurrentOrbitComponent", () => {
 
   it("shows apoapsis value when data arrives", async () => {
     // CurrentOrbit solves apoapsis from `vessel.orbit` on rails, measured from the reference body's radius in `system.bodies`: sma*(1+ecc) - radius. sma 850k, ecc 0, Kerbin radius 600k -> 250_000 -> formatDistance '250.0 km'.
-    const stream = setupTelemetryStream(CURRENT_ORBIT_CHANNELS);
+    const stream = setupTelemetryStream();
     renderWidget(
       <stream.Provider>
         <CurrentOrbitComponent id="t" />
@@ -192,7 +175,7 @@ describe("CurrentOrbitComponent", () => {
 
   it("shows reference body when provided", async () => {
     // The subtitle names `vessel.orbit.referenceBodyIndex` through `system.bodies`, so those two are what it is fed.
-    const stream = setupTelemetryStream(CURRENT_ORBIT_CHANNELS);
+    const stream = setupTelemetryStream();
     renderWidget(
       <stream.Provider>
         <CurrentOrbitComponent id="t" />
@@ -229,7 +212,7 @@ describe("TargetingComponent", () => {
     // `tar.name` maps to `vessel.target.name`, a raw-field subtopic of the
     // same carried record, so it rides the stream too, no legacy "data"
     // WS emission needed for this case.
-    const stream = setupTelemetryStream(["vessel.target"]);
+    const stream = setupTelemetryStream();
     const { container } = render(
       <stream.Provider>
         <TargetingComponent config={{}} id="tar" />
@@ -258,7 +241,7 @@ describe("TargetingComponent", () => {
     // widget reads `vessel.target` natively), feed the name via the stream
     // with no `relativePosition`, so `tarDistance` stays undefined and the
     // distance readout falls back to the dash.
-    const stream = setupTelemetryStream(["vessel.target"]);
+    const stream = setupTelemetryStream();
     render(
       <stream.Provider>
         <TargetingComponent config={{}} id="tar" />
@@ -300,7 +283,7 @@ describe("OrbitViewComponent", () => {
     // propagation seam what shape this trajectory is before drawing one, and a
     // sample with no stated shape gets no conic. This is what the stock
     // analytic producer sends (`AnalyticHorizon()` in `VesselViewProvider.cs`).
-    const stream = setupTelemetryStream(["vessel.orbit", "system.bodies"]);
+    const stream = setupTelemetryStream();
     renderWidget(
       <stream.Provider>
         <OrbitViewComponent id="t" />
@@ -350,7 +333,7 @@ describe("MapViewComponent", () => {
   });
 
   it("shows body name in header once the parent body arrives", async () => {
-    const stream = setupTelemetryStream(MAP_VIEW_CHANNELS);
+    const stream = setupTelemetryStream();
     renderWidget(
       <stream.Provider>
         <MapViewComponent id="t" />
@@ -361,7 +344,7 @@ describe("MapViewComponent", () => {
   });
 
   it('shows "No position data" when body is known but lat/lon not yet received', async () => {
-    const stream = setupTelemetryStream(MAP_VIEW_CHANNELS);
+    const stream = setupTelemetryStream();
     renderWidget(
       <stream.Provider>
         <MapViewComponent id="t" />
@@ -373,7 +356,7 @@ describe("MapViewComponent", () => {
   });
 
   it('hides "No position data" overlay once position arrives', async () => {
-    const stream = setupTelemetryStream(MAP_VIEW_CHANNELS);
+    const stream = setupTelemetryStream();
     renderWidget(
       <stream.Provider>
         <MapViewComponent id="t" />

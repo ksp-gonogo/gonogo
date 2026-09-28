@@ -1,5 +1,5 @@
 import type { ServerMessage } from "@ksp-gonogo/sitrep-sdk";
-import { DYNAMIC_CARRIED_TOPIC_PREFIXES } from "@ksp-gonogo/sitrep-sdk";
+import { DYNAMIC_WHOLE_TOPIC_PREFIXES } from "@ksp-gonogo/sitrep-sdk";
 import { TelemetryClient } from "./client";
 import type { Clock } from "./clock";
 import { PRODUCTION_DERIVED_CHANNELS } from "./context";
@@ -139,7 +139,7 @@ export function buildFullHistoryStore(fixture: ReplayFixture): TimelineStore {
       maxPoints: Number.POSITIVE_INFINITY,
     },
     // Match the live store: resolve the injected dynamic namespaces as whole topics so a full-history replay subscribes/samples the same wire strings.
-    dynamicWholeTopicPrefixes: DYNAMIC_CARRIED_TOPIC_PREFIXES,
+    dynamicWholeTopicPrefixes: DYNAMIC_WHOLE_TOPIC_PREFIXES,
   });
   for (const channel of PRODUCTION_DERIVED_CHANNELS) {
     store.registerDerivedChannel(channel);

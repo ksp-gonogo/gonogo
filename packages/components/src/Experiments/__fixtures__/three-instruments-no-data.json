@@ -37,7 +37,6 @@
   ],
   "sci.dataAmount": 0,
   "_stream": {
-    "carriedChannels": ["science.instruments", "science.experiments"],
     "emits": [
       {
         "channel": "science.instruments",

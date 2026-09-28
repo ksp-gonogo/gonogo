@@ -11,7 +11,6 @@ const UNTABLED_BODY = "Gargantua";
 describe("OrbitalAscent: stream render golden (delay=0)", () => {
   it("renders the ascent state off the stream with the parent body streamed", async () => {
     const streamFixture = setupStreamFixture({
-      carriedChannels: ["vessel.flight", "vessel.identity", "system.bodies"],
       pinnedUt: 10,
       suspendFrames: true,
     });

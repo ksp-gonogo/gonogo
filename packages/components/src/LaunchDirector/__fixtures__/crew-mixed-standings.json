@@ -4,14 +4,6 @@
     "notes": "SYNTHETIC. One pad, one affordable craft, and a roster carrying every state the crew chips can be in: two kerbals free to fly, three unavailable for the three reasons the contract words itself (Assigned reads 'On mission', Training reads 'In training', Resting reads 'Standing down'), a retiree whose reason is the standing's own name, and one kerbal nothing could read. That last row is standing Unknown, which the contract gives an EMPTY unavailableReason on purpose because 'Unknown' beside a dead control reads as a diagnosis: it is the row that must not render as a kerbal on a mission. Pair with the `craft-picked-*` mode, the crew grid only exists once a craft is selected."
   },
   "_stream": {
-    "carriedChannels": [
-      "career.status",
-      "career.facilities",
-      "spaceCenter.savedShips",
-      "spaceCenter.crewRoster",
-      "spaceCenter.scene",
-      "spaceCenter.launchSites"
-    ],
     "pinnedUt": 10,
     "emits": [
       {

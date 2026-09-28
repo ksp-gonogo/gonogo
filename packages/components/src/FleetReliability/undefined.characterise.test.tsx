@@ -15,7 +15,6 @@ import { FleetReliabilityUpdates } from "./index";
  * a row must not draw on one. Every test renders on the row the augment belongs
  * to.
  */
-const CARRIED = ["reliability.summary", "reliability.parts", "vessel.identity"];
 
 const ACTIVE_IDENTITY = {
   vesselId: "v-active",
@@ -35,7 +34,6 @@ const FAILING_PARTS = [
 
 function renderAugment(vesselId: string, { probe }: { probe?: TopicId } = {}) {
   const fixture = setupStreamFixture({
-    carriedChannels: CARRIED,
     suspendFrames: true,
   });
   const utils = render(

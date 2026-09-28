@@ -99,7 +99,6 @@ afterEach(() => {
 
 function setup() {
   const fixture = setupStreamFixture({
-    carriedChannels: ["system.bodies", "vessel.orbit", "target.available"],
     pinnedUt: 0,
     suspendFrames: true,
   });

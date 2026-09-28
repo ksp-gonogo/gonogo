@@ -14,7 +14,6 @@ import "./index";
 describe("DeployedScience: stream render golden (delay=0)", () => {
   it("renders the full deployed-cluster state off the stream pipeline", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["deployed.bases", "game.dlc"],
       pinnedUt: 10,
     });
 

@@ -14,13 +14,6 @@ import { SpaceCenterStatusComponent } from "./index";
  * with them.
  */
 
-const CARRIED = [
-  "career.status",
-  "career.facilities",
-  "spaceCenter.scene",
-  "spaceCenter.launchSites",
-];
-
 const renderedTrees: Array<() => void> = [];
 
 afterEach(() => {
@@ -87,7 +80,6 @@ describe("SpaceCenterStatus when career telemetry is no longer current", () => {
   it("shows the balance and an armed upgrade while the career record is current", async () => {
     // The control: without it every assertion below would pass on a widget that never offers an upgrade.
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -106,7 +98,6 @@ describe("SpaceCenterStatus when career telemetry is no longer current", () => {
 
   it("keeps the held balance on screen, marked by Unit, and disarms the upgrade", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -140,7 +131,6 @@ describe("SpaceCenterStatus when career telemetry is no longer current", () => {
 
   it("draws no affordability verdict off a held balance", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -165,7 +155,6 @@ describe("SpaceCenterStatus when career telemetry is no longer current", () => {
 
   it("disarms every upgrade without writing a held caption beside them", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -194,7 +183,6 @@ describe("SpaceCenterStatus when career telemetry is no longer current", () => {
 
   it("keeps the facility tiers, which cannot have changed while the link was down", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -224,7 +212,6 @@ describe("SpaceCenterStatus when career telemetry is no longer current", () => {
   it("marks nothing held before anything has ever arrived", async () => {
     // A cold start is not a withholding.
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -238,7 +225,6 @@ describe("SpaceCenterStatus when career telemetry is no longer current", () => {
 
   it("marks the tiny bucket's held balance rather than blanking it", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -260,7 +246,6 @@ describe("SpaceCenterStatus when career telemetry is no longer current", () => {
 
   it("leaves a cold tiny bucket unmarked, so a held balance is distinguishable there too", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
       suspendFrames: true,
     });

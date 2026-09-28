@@ -11,19 +11,6 @@ import { ManeuverPlannerComponent } from "./index";
  * the rows are altitudes; without a body radius they would print plausible
  * radii.
  */
-const CARRIED = [
-  "vessel.orbit",
-  "vessel.flight",
-  "vessel.identity",
-  "system.bodies",
-  "vessel.control",
-  "vessel.target",
-  "vessel.comms",
-  "vessel.propulsion",
-  "vessel.maneuver",
-  "dv.stages",
-  "system.frame",
-];
 
 const UT = 1_000_000;
 
@@ -35,7 +22,6 @@ afterEach(() => {
 
 function setup() {
   const fixture = setupStreamFixture({
-    carriedChannels: CARRIED,
     pinnedUt: UT,
     suspendFrames: true,
   });

@@ -7,7 +7,7 @@ import { topologyToVesselPartsWire } from "../test/topologyToVesselPartsWire";
 import fuellinePostStage2 from "./__fixtures__/fuelline-tester-poststage2.json";
 import { ShipMapComponent } from "./index";
 import { INVOKE_PART_ACTION_COMMAND } from "./PartActionMenu";
-import { PART_ACTIONS_TOPIC_PREFIX, partActionsTopic } from "./usePartActions";
+import { partActionsTopic } from "./usePartActions";
 
 /**
  * PAW part actions end to end: real provider, client, store, widget, dynamic
@@ -49,11 +49,6 @@ function partActionsWire(
 async function renderDiagram() {
   const fixture = setupStreamFixture({
     // Carried as a `.`-terminated prefix: per-part keys cannot be enumerated up front.
-    carriedChannels: [
-      "vessel.parts",
-      PART_ACTIONS_TOPIC_PREFIX,
-      INVOKE_PART_ACTION_COMMAND,
-    ],
     pinnedUt: 10,
     suspendFrames: true,
   });

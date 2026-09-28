@@ -4,7 +4,6 @@
     "scenario": "unlimited-cap"
   },
   "_stream": {
-    "carriedChannels": ["spaceCenter.astronautComplex", "career.status"],
     "pinnedUt": 10,
     "emits": [
       {

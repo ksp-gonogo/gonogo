@@ -8,11 +8,7 @@ import {
   useTelemetry,
   useTimeContexts,
 } from "@ksp-gonogo/core";
-import {
-  isThresholdSubject,
-  useManeuverNodes,
-  useTopicFieldCatalog,
-} from "@ksp-gonogo/data";
+import { useManeuverNodes, useNumericFields } from "@ksp-gonogo/data";
 import { useObservedVantage } from "@ksp-gonogo/sitrep-client";
 import {
   KSP_ACTION_GROUP_NAMES,
@@ -141,23 +137,10 @@ export function AlarmsModal({
   // Which clock the instants in this modal are on. Undefined qualifiers on a
   // LAN session, where there is only one clock to be on.
   const timeContexts = useTimeContexts();
-  /* Value-restricted keys: a threshold compares against a scalar Value (per the
-     Uplink Domain/Topic/Value/Stream/Asset vocab), so this hides enums,
-     booleans, opaque structs, untyped raws, AND any legacy key with no stream
-     home.
-
-     The catalogue rather than `useValueKeys`, which is the same list with the
-     same filter and hands back the narrower `DataKeyMeta`. A SCET threshold is
-     armed on a Topic and a path into its payload, and these entries carry both;
-     `useValueKeys` would leave this side splitting a flat key back apart, which
-     is a guess (`vessel.orbit.truth` has three segments and `vessel.flight` has
-     two). No second table: the address comes from the same contract metadata
-     the key itself was enumerated from. */
-  const catalog = useTopicFieldCatalog();
-  const numericKeys = useMemo(
-    () => catalog.filter(isThresholdSubject),
-    [catalog],
-  );
+  /* A threshold compares a number, so only numeric fields are offered. The
+     entries carry the Topic and the path into its payload a SCET threshold is
+     armed on, from the same contract metadata the key was enumerated from. */
+  const numericKeys = useNumericFields();
   // Mirror snapshot in a ref so the add handler reads the freshest value
   // when the user clicks (rules of hooks forbid calling useSnapshot inside
   // a handler). Without this, two quick adds anchor to the same UT.

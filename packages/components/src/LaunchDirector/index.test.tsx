@@ -27,19 +27,6 @@ import {
  * `stream.transport.sentCommands`. Every in-flight scenario reports a `null`
  * `launchUt`, so the mission clock renders NULL_DISPLAY throughout.
  */
-const CARRIED = [
-  "career.status",
-  "spaceCenter.savedShips",
-  "spaceCenter.crewRoster",
-  "spaceCenter.scene",
-  "spaceCenter.launchSites",
-  "vessel.flight",
-  "vessel.identity",
-  "ksp.revertAvailability",
-  "crash.hasRecent",
-  "crash.lastCrash",
-  "target.available",
-];
 
 function emitFunds(
   stream: ReturnType<typeof setupStreamFixture>,
@@ -122,7 +109,6 @@ describe("LaunchDirectorComponent", () => {
   beforeEach(async () => {
     cmdFixture = await setupMockDataSource({ keys: [] });
     stream = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -606,7 +592,6 @@ describe("LaunchDirectorComponent", () => {
     teardownMockDataSource(cmdFixture);
     cmdFixture = await setupMockDataSource({ keys: [] });
     stream = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 113270,
       suspendFrames: true,
     });
@@ -835,7 +820,6 @@ describe("LaunchDirectorComponent augment slots", () => {
     clearAugments();
     cmdFixture = await setupMockDataSource({ keys: [] });
     stream = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
       suspendFrames: true,
     });

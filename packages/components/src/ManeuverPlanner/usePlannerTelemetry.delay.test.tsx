@@ -11,7 +11,6 @@ const OWLT = 240;
 describe("usePlannerTelemetry under signal delay", () => {
   it("shows and plans its figures at the received edge", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.orbit"],
       delaySeconds: OWLT,
       suspendFrames: true,
     });

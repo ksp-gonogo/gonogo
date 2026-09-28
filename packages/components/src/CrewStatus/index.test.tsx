@@ -26,7 +26,6 @@ const renderedTrees: Array<() => void> = [];
 
 function newFixture() {
   return setupStreamFixture({
-    carriedChannels: ["vessel.crew", "vessel.identity"],
     pinnedUt: 10,
     suspendFrames: true,
   });
@@ -35,7 +34,6 @@ function newFixture() {
 /** The same fixture with `vessel.resources` carried, for the suit meters. */
 function newEvaFixture() {
   return setupStreamFixture({
-    carriedChannels: ["vessel.crew", "vessel.identity", "vessel.resources"],
     pinnedUt: 10,
     suspendFrames: true,
   });
@@ -504,7 +502,6 @@ describe("CrewStatusComponent, decoupled from the survival backend", () => {
   it("never subscribes to a kerbalism.* topic, even when one is carried", async () => {
     const fixture = setupStreamFixture({
       // Carry a kerbalism.* topic alongside vessel.crew: if the widget ever read one, this is where it would show up as a subscription.
-      carriedChannels: ["vessel.crew", "kerbalism.crew"],
       pinnedUt: 10,
       suspendFrames: true,
     });

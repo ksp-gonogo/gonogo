@@ -30,7 +30,6 @@ const OBSERVED_AT = PINNED_UT - 10;
 
 function mountAtDockingRange() {
   const fixture = setupStreamFixture({
-    carriedChannels: ["vessel.target", "vessel.dock"],
     pinnedUt: PINNED_UT,
     suspendFrames: true,
   });
@@ -172,7 +171,6 @@ describe("Targeting: the dock channel alone stops being current", () => {
 describe("Targeting under signal delay", () => {
   function mountDelayed(owlt: number) {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.target", "vessel.dock"],
       delaySeconds: owlt,
       suspendFrames: true,
     });
@@ -235,7 +233,6 @@ describe("Targeting's time to closest approach under signal delay", () => {
   it("counts down from the received edge, with the target model's figure for the craft's present beside it", async () => {
     const owlt = 20;
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.target"],
       delaySeconds: owlt,
       suspendFrames: true,
     });

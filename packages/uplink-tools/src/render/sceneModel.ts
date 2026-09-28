@@ -153,7 +153,7 @@ export interface Scene {
   config: Record<string, unknown>;
   slotProps: Record<string, unknown>;
   dataSources: Record<string, Record<string, unknown>>;
-  carriedChannels: string[];
+  declaredTopics: string[];
   modes: InventoryMode[];
   steps?: SceneStep[];
   motion: { fps: number; pingPong: boolean };
@@ -285,7 +285,12 @@ function oneScene(
     config: scene.config ?? {},
     slotProps: scene.slotProps ?? {},
     dataSources,
-    carriedChannels: carriedFor(where, target, inventory, scene.hostWidget),
+    declaredTopics: declaredTopicsFor(
+      where,
+      target,
+      inventory,
+      scene.hostWidget,
+    ),
     modes: modesFor(where, scene, target, inventory),
     steps: scene.steps,
     motion: {
@@ -416,21 +421,21 @@ function beforeFor(where: string, scene: RawScene): SceneAct[] {
 }
 
 /**
- * The allowlist the stream fixture promotes, from the target's registration.
+ * Every topic the target's registration declares, which is what an emit is
+ * checked against when nothing read it.
  *
  * Every domain any registered augment or contribution gates on is added too,
  * whatever the target is: `<AugmentSlot>`'s `requires` gate reads a store fed
- * from `<domain>.available`, and an unpromoted presence topic means the gate
- * answers `false` and the augment never appears, however much the fixture emits.
+ * from `<domain>.available`.
  */
-function carriedFor(
+function declaredTopicsFor(
   where: string,
   target: SceneTarget,
   inventory: UplinkInventory,
   host?: string,
 ): string[] {
-  const carried = new Set<string>();
-  // A hosted augment scene pictures its host, so the host's own topics are carried too.
+  const declared = new Set<string>();
+  // A hosted augment scene pictures its host, so the host's own topics count too.
   if (host) {
     const def = hostWidget(where, host, inventory);
     for (const topic of [
@@ -438,16 +443,16 @@ function carriedFor(
       ...def.optionalChannels,
       ...def.dataRequirements,
     ]) {
-      carried.add(topic);
+      declared.add(topic);
     }
   }
   const addAvailability = () => {
     for (const augment of inventory.augments) {
-      if (augment.requires) carried.add(`${augment.requires}.available`);
+      if (augment.requires) declared.add(`${augment.requires}.available`);
     }
     for (const contribution of inventory.contributions) {
       if (contribution.requires) {
-        carried.add(`${contribution.requires}.available`);
+        declared.add(`${contribution.requires}.available`);
       }
     }
   };
@@ -462,35 +467,32 @@ function carriedFor(
         ...def.optionalChannels,
         ...def.dataRequirements,
       ]) {
-        carried.add(topic);
+        declared.add(topic);
       }
       return;
     }
     if (target.kind === "augment") {
       const def = inventory.augments.find((a) => a.id === target.id);
       if (!def) throw unknownTarget(where, target, inventory);
-      for (const topic of def.channels) carried.add(topic);
+      for (const topic of def.channels) declared.add(topic);
       return;
     }
     const def = inventory.contributions.find((c) => c.id === target.id);
     if (!def) throw unknownTarget(where, target, inventory);
     for (const dep of def.deps) {
-      // A Processor dep names no topic of its own, so its OWN topic deps are
-      // what the scene has to carry. Skipping them left a contribution that
-      // derives everything through a Processor with an empty allowlist, and
-      // the transport dropped every emit the fixture made.
+      // A Processor dep names no topic of its own, so its OWN topic deps are what the contribution reads.
       if (dep.startsWith("processor:")) {
         const id = dep.slice("processor:".length);
         for (const topic of inventory.processorTopicDeps[id] ?? []) {
-          carried.add(topic);
+          declared.add(topic);
         }
       } else {
-        carried.add(dep);
+        declared.add(dep);
       }
     }
   };
   addTargetTopics();
-  return [...carried].sort();
+  return [...declared].sort();
 }
 
 /**
@@ -645,7 +647,7 @@ export function payloadFor(
     ...(scene.delaySeconds === undefined
       ? {}
       : { delaySeconds: scene.delaySeconds }),
-    carriedChannels: scene.carriedChannels,
+    declaredTopics: scene.declaredTopics,
     emits: scene.emits,
     stopsArriving: scene.stopsArriving,
     config: scene.config,

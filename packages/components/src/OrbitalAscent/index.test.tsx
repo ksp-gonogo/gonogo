@@ -45,7 +45,6 @@ describe("OrbitalAscentComponent", () => {
 
   function renderAscent() {
     const fixture = setupStreamFixture({
-      carriedChannels: [...ORBITAL_ASCENT_CHANNELS],
       pinnedUt: 10,
       suspendFrames: true,
     });

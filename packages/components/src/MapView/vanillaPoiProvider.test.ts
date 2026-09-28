@@ -29,7 +29,6 @@ describe("vanillaPoiProvider: KSC/launch-site/contract-target POIs", () => {
 
   it("returns undefined before spaceCenter.pois has arrived, [] once loaded with no matching body", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["spaceCenter.pois", "system.bodies"],
       suspendFrames: true,
     });
     const provider = getProvider();
@@ -53,7 +52,6 @@ describe("vanillaPoiProvider: KSC/launch-site/contract-target POIs", () => {
 
   it("filters POIs to the current body and carries contractTarget meta (funds/agent/deadline)", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["spaceCenter.pois", "system.bodies"],
       suspendFrames: true,
     });
     const provider = getProvider();
@@ -145,11 +143,6 @@ describe("vanillaPoiProvider: KSC/launch-site/contract-target POIs", () => {
   it("a POI's set-target action dispatches vessel.target.set with its own bodyIndex/lat/lon", async () => {
     // The dispatch is asserted against the command client's recorded envelope.
     const fixture = setupStreamFixture({
-      carriedChannels: [
-        "spaceCenter.pois",
-        "system.bodies",
-        "vessel.target.set",
-      ],
       suspendFrames: true,
     });
     const provider = getProvider();

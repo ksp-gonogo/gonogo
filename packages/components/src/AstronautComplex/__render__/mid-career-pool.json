@@ -4,7 +4,6 @@
     "scenario": "mid-career-pool"
   },
   "_stream": {
-    "carriedChannels": ["spaceCenter.astronautComplex", "career.status"],
     "pinnedUt": 10,
     "emits": [
       {

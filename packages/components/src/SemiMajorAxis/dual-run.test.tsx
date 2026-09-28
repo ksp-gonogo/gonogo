@@ -11,7 +11,6 @@ import { SemiMajorAxisComponent } from "./index";
 describe("SemiMajorAxis: renders off the stream alone", () => {
   it("renders sma and the reference-body subtitle purely off the stream", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.orbit", "system.bodies"],
       pinnedUt: 10,
       suspendFrames: true,
     });

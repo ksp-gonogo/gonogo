@@ -4,25 +4,6 @@
     "notes": "Every craft costs more than the balance, so the open pad reads '0/N ready' and every craft row is blocked. The funds readout stays visible beside the spend control. The `_stream` block drives both snapshots.test.tsx and the probe render harness."
   },
   "_stream": {
-    "carriedChannels": [
-      "career.status",
-      "career.facilities",
-      "spaceCenter.savedShips",
-      "spaceCenter.crewRoster",
-      "spaceCenter.scene",
-      "spaceCenter.launchSites",
-      "vessel.orbit",
-      "vessel.flight",
-      "vessel.identity",
-      "system.bodies",
-      "vessel.control",
-      "vessel.target",
-      "vessel.comms",
-      "vessel.propulsion",
-      "ksp.revertAvailability",
-      "crash.hasRecent",
-      "crash.lastCrash"
-    ],
     "pinnedUt": 10,
     "emits": [
       {

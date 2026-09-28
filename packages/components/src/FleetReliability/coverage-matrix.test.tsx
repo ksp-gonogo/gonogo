@@ -10,7 +10,6 @@ import { FleetReliabilityUpdates } from "./index";
  * `mod/Sitrep.Host.Tests/ReliabilityStateWireTests.cs` asserts distinctness on
  * the bytes the real producers emit.
  */
-const CARRIED = ["reliability.summary", "reliability.parts", "vessel.identity"];
 
 const ACTIVE_IDENTITY = {
   vesselId: "v-active",
@@ -93,7 +92,6 @@ const CASES: Case[] = [
 
 async function renderCase(testCase: Case): Promise<string> {
   const fixture = setupStreamFixture({
-    carriedChannels: CARRIED,
     suspendFrames: true,
   });
   const { container, unmount } = render(
@@ -200,7 +198,6 @@ describe("what the reliability augment says in each coverage state", () => {
   /** The staleness caption outranks the count, even over a critical failure. */
   it("withholds a critical count rather than dating it", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED,
       suspendFrames: true,
     });
     render(

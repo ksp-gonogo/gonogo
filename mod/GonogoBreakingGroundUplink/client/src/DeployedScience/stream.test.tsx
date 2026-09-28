@@ -18,7 +18,6 @@ afterEach(() => {
 describe("DeployedScience: genuinely runs off the stream (M3 science-domain finale)", () => {
   it("renders a deployed cluster grouped by vessel from deployed.bases's flat shape", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["deployed.bases", "game.dlc"],
       pinnedUt: 10,
     });
 

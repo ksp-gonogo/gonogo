@@ -29,9 +29,7 @@ function renderWithTransport(channels: readonly string[]) {
   const client = new TelemetryClient(transport);
   const view = renderHook(() => useUplinkHealthFor(channels), {
     wrapper: ({ children }) => (
-      <TelemetryProvider client={client} carriedChannels={["system.uplinks"]}>
-        {children}
-      </TelemetryProvider>
+      <TelemetryProvider client={client}>{children}</TelemetryProvider>
     ),
   });
   return { transport, ...view };

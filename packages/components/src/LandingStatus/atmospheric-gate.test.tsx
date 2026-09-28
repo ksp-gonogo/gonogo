@@ -16,16 +16,6 @@ import {
 import { LandingStatusComponent } from "./index";
 
 /** An atmospheric descent's site readouts appear exactly when its terrain plots do, and its held figures are marked. */
-const CARRIED = [
-  "system.bodies",
-  "vessel.identity",
-  "vessel.orbit",
-  "vessel.flight",
-  "vessel.surface",
-  "vessel.propulsion",
-  "vessel.landing",
-  "comms.delay",
-];
 
 const PATCH_SIZE = 5;
 
@@ -37,7 +27,6 @@ describe("LandingStatus atmospheric site gate", () => {
     for (const b of PerfBudget.getAll()) b.reset();
     registerStockBodies();
     stream = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
       suspendFrames: true,
     });

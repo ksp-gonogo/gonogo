@@ -5,18 +5,6 @@
     "notes": "SYNTHETIC (model-generated, NOT captured). Mid descent (~2.8 km AGL, 42 m/s down) under STAGED delay: the commit clock is live and the burn is coming up; full metric grid, terrain + cross-section, commit point. Then the link drops: the transport disconnects after the scene is staged, so every reading this widget draws is held rather than current."
   },
   "_stream": {
-    "carriedChannels": [
-      "system.bodies",
-      "vessel.identity",
-      "vessel.orbit",
-      "vessel.flight",
-      "vessel.surface",
-      "vessel.propulsion",
-      "vessel.control",
-      "dv.summary",
-      "comms.delay",
-      "vessel.landing"
-    ],
     "pinnedUt": 10,
     "emits": [
       {

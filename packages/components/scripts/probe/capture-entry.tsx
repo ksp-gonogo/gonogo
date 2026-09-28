@@ -61,8 +61,6 @@ export interface CapturePayload {
   pxW: number;
   pxH: number;
   config?: Record<string, unknown>;
-  /** Topics to promote into the live TelemetryProvider's carried-channels allowlist. */
-  carriedChannels: string[];
   /** Replayed once, in order, right after the live provider mounts. */
   streamEmits: CaptureStreamEmit[];
   /**
@@ -147,11 +145,7 @@ async function renderCapture(payload: CapturePayload): Promise<void> {
   const tree = createElement(
     ThemeProvider,
     { theme: defaultDarkTheme },
-    <TelemetryProvider
-      client={client}
-      store={timelineStore}
-      carriedChannels={payload.carriedChannels}
-    >
+    <TelemetryProvider client={client} store={timelineStore}>
       {createElement(
         WidgetMetaContext.Provider,
         { value: meta },

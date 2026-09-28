@@ -1,6 +1,6 @@
 import type { ConfigComponentProps } from "@ksp-gonogo/core";
 import { safeRandomUuid } from "@ksp-gonogo/core";
-import { isThresholdSubject, useDataSchema } from "@ksp-gonogo/data";
+import { useNumericFields } from "@ksp-gonogo/data";
 import {
   ConfigForm,
   DataKeyPicker,
@@ -58,9 +58,8 @@ export function GraphConfigComponent({
     config?.variant ?? "auto",
   );
 
-  const schema = useDataSchema("data");
-  // A graph axis orders its values, so it admits the same keys a threshold does.
-  const numericKeys = schema.filter(isThresholdSubject);
+  // A graph axis orders its values, so it admits the same numeric fields a threshold does.
+  const numericKeys = useNumericFields();
   const xKeyOptions = [
     { key: TIME_AXIS, label: "Time", group: "Axis" },
     ...numericKeys,

@@ -18,8 +18,6 @@ import "./index";
 
 /** Proves a withheld rotor figure reaches the operator as an absence and never reaches the rotor as a commanded value. */
 
-const CARRIED = ["robotics.servos", "robotics.available", "game.dlc"];
-
 const INSTANCE = "rt-absence";
 
 const rotor = (
@@ -50,7 +48,6 @@ afterEach(() => {
 
 function mount(entry: Record<string, unknown>) {
   const fixture = setupStreamFixture({
-    carriedChannels: CARRIED,
     pinnedUt: 10,
   });
   const result = renderWidget("rotor-tachometer", {
@@ -103,7 +100,6 @@ describe("RotorTachometer: a withheld figure is not a zero", () => {
 
   it("reports an unknown figure in the rotor list rather than 0/0 RPM", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
     });
     const result = renderWidget("rotor-tachometer", {
@@ -313,7 +309,6 @@ describe("RotorTachometer: an unread flag is not a false one", () => {
 
   it("leaves the off marker off a rotor row whose motor was unread", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
     });
     const result = renderWidget("rotor-tachometer", {

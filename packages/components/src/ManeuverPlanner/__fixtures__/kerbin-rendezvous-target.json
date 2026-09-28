@@ -4,17 +4,6 @@
     "notes": "A 200 km circular Kerbin parking orbit with a station selected as the in-game target, 320 km up and six degrees out of plane. No other ManeuverPlanner fixture carries `vessel.target` at all, so `target.orbit.inc`, `.lan`, `.sma` and `.argPe` were read by the planner and fed by nothing: every target preset rendered its 'No target selected in-game.' arm, which is the arm those presets exist to avoid. Paired with the `rendezvous-10x18` render mode, which opens on `hohmann-rendezvous-target` so the description line under the picker has a target to describe. Six degrees is over the half-degree threshold at which the plan prepends a plane match, so the line says so."
   },
   "_stream": {
-    "carriedChannels": [
-      "system.bodies",
-      "vessel.orbit",
-      "vessel.identity",
-      "vessel.target",
-      "vessel.maneuver",
-      "vessel.flight",
-      "vessel.control",
-      "vessel.comms",
-      "vessel.propulsion"
-    ],
     "pinnedUt": 250000,
     "emits": [
       {

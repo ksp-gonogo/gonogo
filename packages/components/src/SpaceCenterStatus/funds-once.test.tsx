@@ -16,13 +16,6 @@ import { SpaceCenterStatusComponent } from "./index";
  * balance is drawn exactly once however many sections contribute.
  */
 
-const CARRIED = [
-  "career.status",
-  "career.facilities",
-  "spaceCenter.scene",
-  "spaceCenter.launchSites",
-];
-
 /** A stand-in for any Uplink section that spends: it exists and it is findable. */
 const SPENDING_SECTION_TEXT = "a section with a spend control";
 
@@ -106,7 +99,6 @@ describe("SpaceCenterStatus draws the balance wherever a contributed section can
   for (const [w, h] of SIZES) {
     it(`shows the balance alongside the sections slot at ${w}x${h}`, async () => {
       const fixture = setupStreamFixture({
-        carriedChannels: CARRIED,
         pinnedUt: 10,
         suspendFrames: true,
       });
@@ -128,7 +120,6 @@ describe("SpaceCenterStatus draws the balance wherever a contributed section can
       component: () => <div>a second contributed section</div>,
     });
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
       suspendFrames: true,
     });

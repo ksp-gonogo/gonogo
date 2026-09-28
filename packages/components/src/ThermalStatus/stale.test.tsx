@@ -22,7 +22,6 @@ const RE_ENTRY = {
 
 function mount(instanceId: string) {
   const fixture = setupStreamFixture({
-    carriedChannels: ["vessel.thermal"],
     pinnedUt: 10,
   });
   const rendered = render(

@@ -10,9 +10,6 @@ import { ResourceOpsComponent } from "./index";
 
 /** Pins what each telemetry read renders when its value has not arrived, arrived empty, or arrived partial. */
 
-const CARRIED = ["isru.drills", "isru.converters"];
-const CARRIED_WITH_LOCATION = [...CARRIED, "vessel.identity", "system.bodies"];
-
 const DRILLS = [
   {
     partId: "101",
@@ -39,8 +36,8 @@ const META = {
   contributionSlots: [],
 } as const;
 
-function renderWidget(carriedChannels: readonly string[] = CARRIED) {
-  const fixture = setupStreamFixture({ carriedChannels, suspendFrames: true });
+function renderWidget() {
+  const fixture = setupStreamFixture({ suspendFrames: true });
   const utils = render(
     <fixture.Provider>
       <DashboardItemContext.Provider value={{ instanceId: "resource-ops" }}>
@@ -208,7 +205,7 @@ describe("ResourceOps: what undefined means today", () => {
   });
 
   it("drops the location line while vessel.identity has not arrived", async () => {
-    const { fixture } = renderWidget(CARRIED_WITH_LOCATION);
+    const { fixture } = renderWidget();
     act(() => {
       fixture.emit("isru.drills", DRILLS);
       fixture.emit("isru.converters", []);
@@ -219,7 +216,7 @@ describe("ResourceOps: what undefined means today", () => {
   });
 
   it("names the vessel with no body when system.bodies has not arrived yet", async () => {
-    const { fixture } = renderWidget(CARRIED_WITH_LOCATION);
+    const { fixture } = renderWidget();
     act(() => {
       fixture.emit("isru.drills", DRILLS);
       fixture.emit("isru.converters", []);
@@ -241,7 +238,7 @@ describe("ResourceOps: what undefined means today", () => {
   });
 
   it("treats a null parentBodyIndex exactly as a missing one", async () => {
-    const { fixture } = renderWidget(CARRIED_WITH_LOCATION);
+    const { fixture } = renderWidget();
     act(() => {
       fixture.emit("isru.drills", DRILLS);
       fixture.emit("isru.converters", []);
@@ -264,7 +261,7 @@ describe("ResourceOps: what undefined means today", () => {
   });
 
   it("drops the whole location line when the identity record arrived without a name", async () => {
-    const { fixture } = renderWidget(CARRIED_WITH_LOCATION);
+    const { fixture } = renderWidget();
     act(() => {
       fixture.emit("isru.drills", DRILLS);
       fixture.emit("isru.converters", []);

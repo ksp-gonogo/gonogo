@@ -115,7 +115,7 @@ describe("a staleness render of a scene driven by presses", () => {
       elements: saved
         ? [connected ? figure(3) : held(3)]
         : ["<p> Nothing saved"],
-      uncarriedTopics: [],
+      undeclaredTopics: [],
       unsubscribedTopics: [],
     });
     return {
@@ -162,7 +162,7 @@ describe("a staleness render of a scene driven by presses", () => {
     config: {},
     slotProps: {},
     dataSources: {},
-    carriedChannels: [],
+    declaredTopics: [],
     modes: [],
     steps,
     stopsArriving,
@@ -173,13 +173,13 @@ describe("a staleness render of a scene driven by presses", () => {
     target: { kind: "widget", id: "composer" },
     fixture: "composer-delayed",
     pinnedUt: 0,
-    carriedChannels: [],
     emits: [],
     stopsArriving,
     withhold: withheld ? { kind: "augment", id: "guest" } : undefined,
     config: {},
     slotProps: {},
     dataSources: {},
+    declaredTopics: [],
     w: 1,
     h: 1,
     pxW: 1,

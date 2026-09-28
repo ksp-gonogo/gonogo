@@ -10,17 +10,6 @@ import { LandingStatusComponent } from "./index";
 
 const KERBIN = { index: 1, name: "Kerbin", radius: 600_000, mu: 3.5316e12 };
 
-const CARRIED = [
-  "vessel.orbit",
-  "vessel.flight",
-  "vessel.identity",
-  "system.bodies",
-  "vessel.surface",
-  "vessel.propulsion",
-  "dv.summary",
-  "comms.delay",
-];
-
 /** Every `Situation` member and whether it grounds the vessel, so a member added to the C# enum without an answer here is a missing row. */
 const CASES: ReadonlyArray<{ situation: Situation; grounded: boolean }> = [
   { situation: Situation.Landed, grounded: true },
@@ -63,7 +52,6 @@ describe("LandingStatus on the launchpad", () => {
   beforeEach(() => {
     registerStockBodies();
     stream = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
       suspendFrames: true,
     });

@@ -10,7 +10,6 @@ import { ThermalStatusComponent } from "./index";
 describe("ThermalStatus: genuinely runs off the stream (M3 batch 1)", () => {
   it("reads the hottest-part headline ratio and name off the real stream pipeline, not legacy", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.thermal"],
       pinnedUt: 10,
       suspendFrames: true,
     });

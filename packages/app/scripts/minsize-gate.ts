@@ -22,11 +22,6 @@
  * gate under-reports rather than over-reports, which is the right bias for a
  * shrink-only ratchet.
  *
- * The widget's own declared topics are carried by the stream fixture even though
- * nothing is emitted on them, so it renders the "no data yet" state it shows in
- * the app rather than the "not carried on this install" state, which is a
- * different and usually shorter string.
- *
  * ## It proves it can still see
  *
  * `minsize-probe.tsx` registers a widget that is broken in all seven ways the
@@ -138,11 +133,11 @@ function payloadFor(widget: MinSizeWidget, w: number, h: number): ScenePayload {
     target: { kind: "widget", id: widget.id },
     fixture: `${widget.id}@min`,
     pinnedUt: PINNED_UT,
-    carriedChannels: widget.carried,
     emits: [],
     config: {},
     slotProps: {},
     dataSources: {},
+    declaredTopics: widget.declaredTopics,
     w,
     h,
     ...gridToPixels(w, h),

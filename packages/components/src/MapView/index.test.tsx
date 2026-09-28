@@ -163,7 +163,6 @@ describe("MapViewComponent", () => {
     onConfigChange?: (config: Record<string, unknown>) => void,
   ) {
     const fixture = setupStreamFixture({
-      carriedChannels: [...MAP_VIEW_CHANNELS],
       pinnedUt: 10,
       suspendFrames: true,
     });

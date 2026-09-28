@@ -33,15 +33,10 @@ import {
   DEFAULT_WARP_SAFETY_MARGIN_SECONDS,
 } from "./types";
 
-// AlarmsModal reads useValueKeys("data") for the threshold-trigger key
-// picker. These describe blocks don't exercise that path (the onFire editor
-// lives on the time-trigger form too, and the presets block only reads
-// telemetry VALUES, not the schema), so registering a mock "data"
-// `DataSource` here is harmless, but note it does NOT prove the real
-// threshold-picker path works. That's covered separately, with no "data"
-// `DataSource` registered at all, in the "threshold trigger key picker"
-// describe block at the bottom of this file (the legacy "data" source is
-// deleted, so the real app never has one registered either).
+// The threshold-trigger key picker reads the field catalogue, which no
+// `DataSource` feeds, so registering a mock "data" `DataSource` here is
+// harmless. The picker itself is covered in the "threshold trigger key picker"
+// describe block at the bottom of this file.
 /**
  * `DataKeyPicker`'s search input and the native `<select>` for the onFire
  * action-group both carry the implicit/explicit ARIA `combobox` role, and
@@ -84,7 +79,6 @@ function makeSnapshot(alarms: Alarm[] = []): AlarmSnapshot {
  */
 function renderWithControlStream(ui: React.ReactElement, parts?: unknown) {
   const fixture = setupStreamFixture({
-    carriedChannels: ["vessel.control", "vessel.parts"],
     suspendFrames: true,
   });
   const { transport } = fixture;
@@ -252,16 +246,6 @@ function makeWireNode(id: string, ut: number): ManeuverNode {
   } as Record<string, unknown>) as unknown as ManeuverNode;
 }
 
-// What the presets read: the orbit solve over `vessel.orbit` and
-// `system.bodies` for time to apsis, and `vessel.maneuver` for the node list.
-// `vessel.flight` is what the threshold key picker offers altitude from.
-const PRESET_CARRIED = [
-  "vessel.orbit",
-  "system.bodies",
-  "vessel.maneuver",
-  "vessel.flight",
-];
-
 // Mount AlarmsModal inside a real TelemetryProvider so both `useManeuverNodes`
 // and the apoapsis/periapsis presets (the orbit solve's `timeToAp`/`timeToPe`)
 // resolve off the stream. `pinnedUt` fixes the view clock so an emitted orbit
@@ -283,11 +267,7 @@ function renderWithStream(
   if (pinnedUt !== undefined) clock.scrubTo(pinnedUt);
 
   render(
-    <TelemetryProvider
-      client={client}
-      store={store}
-      carriedChannels={PRESET_CARRIED}
-    >
+    <TelemetryProvider client={client} store={store}>
       {modal}
     </TelemetryProvider>,
   );
@@ -1116,7 +1096,6 @@ describe("AlarmsModal alarms other screens armed", () => {
 
   function renderAtVantage(snapshot: AlarmSnapshot, onDelete = vi.fn()) {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.control"],
       suspendFrames: true,
     });
     const result = render(

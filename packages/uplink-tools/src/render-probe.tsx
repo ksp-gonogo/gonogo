@@ -5,7 +5,7 @@ import type {
 import {
   CONTRACT_MAJOR,
   CONTRACT_MINOR,
-  DYNAMIC_CARRIED_TOPIC_PREFIXES,
+  DYNAMIC_WHOLE_TOPIC_PREFIXES,
   EXTENSION_API_VERSION,
   getComponent,
   getDataSource,
@@ -200,8 +200,8 @@ export interface ScenePayload {
    * or the other, never both.</p>
    */
   delaySeconds?: number;
-  /** Derived from the target's registration, never written in a fixture. */
-  carriedChannels: string[];
+  /** Every topic the target's registration declares, never written in a fixture. */
+  declaredTopics: string[];
   emits: SceneEmit[];
   /**
    * Stage the scene as NOT CURRENT: once every emit has landed and the setup
@@ -274,11 +274,11 @@ export interface ScenePayload {
   steps?: SceneStep[];
 }
 
-/** The emitted topics still unread, and which of those the carried set never
- *  named. What {@link SceneReport} carries, on its own, for a re-feed. */
+/** The emitted topics still unread, and which of those the target never
+ *  declared. What {@link SceneReport} carries, on its own, for a re-feed. */
 export interface UnreadTopics {
   unsubscribedTopics: string[];
-  uncarriedTopics: string[];
+  undeclaredTopics: string[];
 }
 
 /** What the driver reads back after a mount, to decide whether to keep the PNG. */
@@ -294,8 +294,8 @@ export interface SceneReport {
    * own text, with React ids folded. See {@link describeElements}.
    */
   elements: string[];
-  /** Emitted topics the derived carried set never named. Informational. */
-  uncarriedTopics: string[];
+  /** Emitted topics the target's registration never declared. Informational. */
+  undeclaredTopics: string[];
   /** Emitted topics nothing in the mounted tree subscribed to. A failure. */
   unsubscribedTopics: string[];
 }
@@ -392,7 +392,7 @@ export interface UplinkInventory {
    *
    * A contribution may depend on a Processor rather than on topics, and then
    * the topics it ultimately needs are named nowhere in its own registration.
-   * A scene fed from that registration alone therefore carried none of them,
+   * A scene fed from that registration alone therefore declared none of them,
    * the subscription-gated transport dropped every emit, and the render was of
    * no data: the ONE case where a legitimate scene could not be expressed at
    * all. Every processor is listed, not just this client's, because a
@@ -720,8 +720,8 @@ interface Mounted {
    * feed. See {@link refeedScene}.
    */
   pending: SceneEmit[];
-  /** The mount's derived carried set, for {@link refeedScene}. */
-  carried: string[];
+  /** The topics the target's registration declares, for {@link refeedScene}. */
+  declared: string[];
   /** Puts back what {@link withhold} took out for this mount. */
   restoreWithheld: () => void;
   /** The scene's current pinned instant, moved only by an `advanceUt` step. */
@@ -740,9 +740,9 @@ function mountedFor(
     root: null,
     fixture: null,
     sources: [],
-    unread: { uncarriedTopics: [], unsubscribedTopics: [] },
+    unread: { undeclaredTopics: [], unsubscribedTopics: [] },
     pending: [],
-    carried: [],
+    declared: [],
     restoreWithheld: () => {},
     ut: scene.pinnedUt,
   };
@@ -940,20 +940,15 @@ async function renderScene(
   el.style.width = `${scene.pxW}px`;
   el.style.height = `${scene.pxH}px`;
 
-  // The dynamic prefixes are folded in the way `TelemetryProvider` folds them in
-  // the app, rather than being left to the fixture. They name whole-topic
-  // NAMESPACES whose members are keyed at runtime (a per-body survey layer, a
-  // per-vessel `fleet.<guid>.delay`), so no registration can list one member and
-  // a fixture listing them by hand would be the hand-written carried set this
-  // design removed. Everything else in the set comes from the registration.
-  const carried = [
-    ...new Set([...scene.carriedChannels, ...DYNAMIC_CARRIED_TOPIC_PREFIXES]),
+  // The dynamic namespaces count as declared: their members are keyed at runtime, so no registration can list one.
+  const declared = [
+    ...new Set([...scene.declaredTopics, ...DYNAMIC_WHOLE_TOPIC_PREFIXES]),
   ];
-  mounted.carried = carried;
+  mounted.declared = declared;
   const fixture = setupStreamFixture(
     scene.delaySeconds === undefined
-      ? { carriedChannels: carried, pinnedUt: scene.pinnedUt }
-      : { carriedChannels: carried, delaySeconds: scene.delaySeconds },
+      ? { pinnedUt: scene.pinnedUt }
+      : { delaySeconds: scene.delaySeconds },
   );
   mounted.fixture = fixture;
 
@@ -1006,13 +1001,13 @@ async function renderScene(
   await frame();
 
   const unsubscribed = await feedInRounds(mounted);
-  const uncarried = unsubscribed.filter((t) => !isCarried(t, carried));
+  const undeclared = unsubscribed.filter((t) => !isDeclared(t, declared));
 
   await activeSetup.afterMount?.({ scene, starve: scene.starve });
   await frame();
 
   mounted.unread = {
-    uncarriedTopics: uncarried,
+    undeclaredTopics: undeclared,
     unsubscribedTopics: unsubscribed,
   };
   if (scene.holdDrop) return readScene(mounted);
@@ -1120,7 +1115,9 @@ async function refeedScene(): Promise<UnreadTopics> {
   const unsubscribed = await feedPending(mounted);
   return {
     unsubscribedTopics: unsubscribed,
-    uncarriedTopics: unsubscribed.filter((t) => !isCarried(t, mounted.carried)),
+    undeclaredTopics: unsubscribed.filter(
+      (t) => !isDeclared(t, mounted.declared),
+    ),
   };
 }
 
@@ -1354,10 +1351,10 @@ function slotForTarget(target: SceneTarget): string {
   return found.contributes;
 }
 
-/** Exact match, or a dotted child of a carried parent, which is how the
+/** Exact match, or a dotted child of a declared parent, which is how the
  *  timeline store samples a `<parent>.<field>` pair. */
-function isCarried(topic: string, carried: readonly string[]): boolean {
-  for (const entry of carried) {
+function isDeclared(topic: string, declared: readonly string[]): boolean {
+  for (const entry of declared) {
     if (entry === topic) return true;
     if (entry.endsWith(".") && topic.startsWith(entry)) return true;
     if (topic.startsWith(`${entry}.`)) return true;

@@ -6,7 +6,6 @@
   "v.body": "Kerbin",
   "o.referenceBody": "Kerbin",
   "_stream": {
-    "carriedChannels": ["vessel.orbit", "vessel.identity", "system.bodies"],
     "emits": [
       {
         "channel": "vessel.orbit",

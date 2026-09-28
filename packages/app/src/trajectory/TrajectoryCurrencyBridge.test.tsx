@@ -46,11 +46,7 @@ function setupOrbitStream() {
 
   function Provider({ children }: { children: ReactNode }) {
     return (
-      <TelemetryProvider
-        client={client}
-        store={store}
-        carriedChannels={["vessel.orbit"]}
-      >
+      <TelemetryProvider client={client} store={store}>
         {children}
       </TelemetryProvider>
     );
@@ -189,11 +185,7 @@ describe("TrajectoryCurrencyBridge under signal delay", () => {
     });
     const store = new TimelineStore(clock);
     render(
-      <TelemetryProvider
-        client={client}
-        store={store}
-        carriedChannels={["vessel.orbit"]}
-      >
+      <TelemetryProvider client={client} store={store}>
         <PanelStatusStoreProvider>
           <TrajectoryCurrencyBridge declaredTopics={["vessel.orbit"]} />
           <SummaryProbe />

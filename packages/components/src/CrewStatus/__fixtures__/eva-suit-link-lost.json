@@ -5,13 +5,6 @@
     "inheritsFrom": "eva-suit-low-o2.json, whose _meta records the Kerbalism sourcing for every value here"
   },
   "_stream": {
-    "carriedChannels": [
-      "vessel.crew",
-      "vessel.identity",
-      "vessel.orbit",
-      "kerbalism.crew",
-      "vessel.resources"
-    ],
     "pinnedUt": 0,
     "emits": [
       {

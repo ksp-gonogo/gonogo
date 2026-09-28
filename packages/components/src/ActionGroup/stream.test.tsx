@@ -39,7 +39,6 @@ afterEach(() => {
 describe("ActionGroup (SAS): the toggle -> absolute command dispatch", () => {
   it("clicking the SAS toggle dispatches vessel.control.setSas with the inverted state", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.control"],
       pinnedUt: 0,
       suspendFrames: true,
     });
@@ -90,7 +89,6 @@ describe("ActionGroup (SAS): the toggle -> absolute command dispatch", () => {
 describe("ActionGroup (Abort): toggle -> absolute command dispatch", () => {
   it("shows the live Abort state and dispatches vessel.control.setAbort", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.control"],
       pinnedUt: 0,
       suspendFrames: true,
     });
@@ -143,7 +141,6 @@ describe("ActionGroup (Abort): toggle -> absolute command dispatch", () => {
 describe("ActionGroup (Precision Control): read-only, no toggle command", () => {
   it("shows the live Precision Control state off the stream (no toggle key, read-only)", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.control"],
       pinnedUt: 0,
       suspendFrames: true,
     });

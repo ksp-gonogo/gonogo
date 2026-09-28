@@ -31,7 +31,6 @@ afterEach(() => {
 describe("RoboticsConsole: genuinely runs off the stream", () => {
   it("builds the hinge/piston list from robotics.servos and drives commands with its string partId", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["robotics.servos", "robotics.available"],
       pinnedUt: 10,
     });
 
@@ -87,7 +86,6 @@ describe("RoboticsConsole: genuinely runs off the stream", () => {
 
   it("selects among symmetric same-named hinges by their distinct partId", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["robotics.servos", "robotics.available"],
       pinnedUt: 10,
     });
 

@@ -9,7 +9,6 @@ const KERBIN_MU = 3.5316e12;
 
 function renderBodies() {
   const fixture = setupStreamFixture({
-    carriedChannels: ["system.bodies"],
     pinnedUt: 0,
     suspendFrames: true,
   });

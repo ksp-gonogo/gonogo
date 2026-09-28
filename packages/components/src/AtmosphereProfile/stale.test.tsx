@@ -22,13 +22,6 @@ import { AtmosphereProfileComponent } from "./index";
  * pressure line stays on the held altitude and wears the held mark.
  */
 
-const CARRIED = [
-  "vessel.orbit",
-  "vessel.flight",
-  "vessel.identity",
-  "system.bodies",
-];
-
 const PRESSURE_LINE = /pascals @ 6 km/;
 
 function heldMark(container: HTMLElement): Element | null {
@@ -49,7 +42,6 @@ describe("AtmosphereProfile when the flight reading is not current", () => {
     clearBodies();
     registerStockBodies();
     fixture = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
       suspendFrames: true,
     });

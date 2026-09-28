@@ -20,7 +20,6 @@ describe("LaunchDirector: stream render golden (delay=0)", () => {
     const mode = { name: "default-7x10", w: 7, h: 10 };
 
     const streamFixture = setupStreamFixture({
-      carriedChannels: STREAM.carriedChannels,
       pinnedUt: STREAM.pinnedUt,
       suspendFrames: true,
     });

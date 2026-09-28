@@ -29,13 +29,6 @@ afterEach(() => {
 
 async function mountLinked() {
   const fixture = setupStreamFixture({
-    carriedChannels: [
-      "system.vessels",
-      "system.bodies",
-      "commandCentre.roster",
-      "fleet.",
-      "silence.",
-    ],
     pinnedUt: 2_000,
     suspendFrames: true,
   });

@@ -20,8 +20,6 @@ import "./index";
  * Zero is a real reading: a freshly planted experiment reports 0%.
  */
 
-const CARRIED = ["deployed.bases", "game.dlc"];
-
 const flatEntry = (
   over: Record<string, unknown> = {},
 ): Record<string, unknown> => ({
@@ -54,7 +52,6 @@ afterEach(() => {
 
 function mount(entries: Array<Record<string, unknown>>) {
   const fixture = setupStreamFixture({
-    carriedChannels: CARRIED,
     pinnedUt: 10,
   });
   const result = renderWidget("deployed-science", {
@@ -204,7 +201,6 @@ describe("DeployedScience: an unstated power state is not unpowered", () => {
 describe("DeployedScience: an unread roster is not an empty one", () => {
   it("says it is waiting rather than claiming nothing is planted", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
     });
     const result = renderWidget("deployed-science", {

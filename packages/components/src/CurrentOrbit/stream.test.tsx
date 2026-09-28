@@ -14,7 +14,6 @@ import { CurrentOrbitComponent } from "./index";
 describe("CurrentOrbit: genuinely runs off the stream", () => {
   it("reads sma/eccentricity/inclination/argPe/period off the real stream pipeline, not legacy", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.orbit", "vessel.identity", "system.bodies"],
       pinnedUt: 10,
       suspendFrames: true,
     });

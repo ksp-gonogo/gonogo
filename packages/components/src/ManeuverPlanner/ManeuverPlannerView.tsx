@@ -1,5 +1,5 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
-import { useManeuverNodes, useValueKeys } from "@ksp-gonogo/data";
+import { useManeuverNodes, useNumericFields } from "@ksp-gonogo/data";
 import {
   Panel,
   Section,
@@ -71,8 +71,8 @@ export function ManeuverPlannerComponent({
   const triggerService = usePlannerTriggerService();
   const armedTriggers = useTriggerSnapshot(triggerService).triggers;
   const [triggerEditorOpen, setTriggerEditorOpen] = useState(false);
-  // Value keys only, since a trigger's dataKey is read off the stream.
-  const numericKeys = useValueKeys("data");
+  // A trigger compares a number, so only numeric fields are offered.
+  const numericKeys = useNumericFields();
 
   function handleArmTrigger(input: {
     dataKey: string;

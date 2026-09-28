@@ -140,12 +140,6 @@ function mount(options: {
   ut?: number;
 }) {
   const fixture: StreamFixture = setupStreamFixture({
-    carriedChannels: [
-      "vessel.orbit",
-      "vessel.identity",
-      "system.bodies",
-      "system.vessels",
-    ],
     pinnedUt: options.ut ?? 0,
     suspendFrames: true,
   });

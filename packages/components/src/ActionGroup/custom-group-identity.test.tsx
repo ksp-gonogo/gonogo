@@ -43,12 +43,6 @@ describe("custom action group identity", () => {
   beforeEach(() => {
     // No `clearRegistry()`: this file reads the widget's real config component out of it.
     fixture = setupStreamFixture({
-      carriedChannels: [
-        "vessel.control",
-        "vessel.structure",
-        "time.warp",
-        "comms.link",
-      ],
       pinnedUt: 10,
       suspendFrames: true,
     });

@@ -9,14 +9,6 @@ import { FleetReliabilityUpdates } from "./index";
  * reliability.* pair and renders only on the active vessel's row. The absence
  * states are `coverage-matrix.test.tsx`'s subject.
  */
-const CARRIED = [
-  "reliability.summary",
-  "reliability.parts",
-  "vessel.identity",
-  "vessel.crew",
-  "vessel.inventory",
-  "vessel.repair",
-];
 
 const ACTIVE_IDENTITY = {
   vesselId: "v-active",
@@ -80,7 +72,6 @@ const SCENE = [
 
 function renderAugment(vesselId: string, compact = false) {
   const fixture = setupStreamFixture({
-    carriedChannels: CARRIED,
     suspendFrames: true,
   });
   const utils = render(

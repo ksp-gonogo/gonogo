@@ -17,17 +17,6 @@ import { ManeuverPlannerComponent } from "./index";
  *  4. "no stream node id yet"          -> refuses the command and says so
  */
 
-const CARRIED = [
-  "vessel.orbit",
-  "vessel.flight",
-  "vessel.identity",
-  "system.bodies",
-  "vessel.target",
-  "vessel.propulsion",
-  "vessel.maneuver",
-  "dv.stages",
-];
-
 const PINNED_UT = 1_000_000;
 
 // Unmounted before the fixture goes, whose disposal would otherwise update a mounted tree outside act().
@@ -46,7 +35,6 @@ afterEach(() => {
 
 function setup(config: Record<string, unknown> = {}) {
   const fixture = setupStreamFixture({
-    carriedChannels: CARRIED,
     pinnedUt: PINNED_UT,
     suspendFrames: true,
   });

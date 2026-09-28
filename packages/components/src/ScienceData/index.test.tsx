@@ -19,22 +19,10 @@ import {
   parseExperiments,
 } from "./parsers";
 
-const CARRIED = [
-  "vessel.identity",
-  "system.bodies",
-  "vessel.surface",
-  "science.experiments",
-  "science.experimentBreakdown",
-  "science.archive",
-  "career.status",
-  "career.mode",
-] as const;
-
 const renderedTrees: Array<() => void> = [];
 
 function newFixture(): StreamFixture {
   return setupStreamFixture({
-    carriedChannels: CARRIED,
     pinnedUt: 10,
     suspendFrames: true,
   });

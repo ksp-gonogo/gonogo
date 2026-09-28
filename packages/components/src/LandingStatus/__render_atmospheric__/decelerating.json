@@ -5,18 +5,6 @@
     "notes": "SYNTHETIC. Low Kerbin descent (~3 km, 195 m/s down) hitting dense air: current speed well ABOVE terminal, so drag > weight and the vessel is DECELERATING toward terminal. A fast, aerobraking final. Drag is 3.628x weight, (200 / 105)^2, which is the showcase's biggest chevron over the vessel mark; Mach 0.602 leaves the projected trace solid."
   },
   "_stream": {
-    "carriedChannels": [
-      "system.bodies",
-      "vessel.identity",
-      "vessel.orbit",
-      "vessel.flight",
-      "vessel.surface",
-      "vessel.propulsion",
-      "vessel.control",
-      "dv.summary",
-      "comms.delay",
-      "vessel.landing"
-    ],
     "pinnedUt": 10,
     "emits": [
       {

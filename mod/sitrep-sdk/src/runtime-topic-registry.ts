@@ -16,10 +16,8 @@
  * derived channel on the wire, so a units declaration is not evidence that
  * anything sends the Topic.
  *
- * Two consumers, both deciding what the pickers offer: the field catalogue
- * every picker offers from (a Topic nobody listed enumerated no fields, so no
- * Uplink value could be graphed or alarmed on), and `TelemetryProvider`'s
- * carried-channels allowlist.
+ * Read by the field catalogue every value picker offers from, so an Uplink's
+ * Topic reaches the pickers the moment its client package loads.
  *
  * Snapshot-shaped and subscribable because registration happens when the
  * Uplink's bundle loads, which is after the app has rendered. A consumer that

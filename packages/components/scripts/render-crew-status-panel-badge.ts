@@ -106,7 +106,6 @@ interface FixtureEmit {
 
 interface FixtureFile {
   _stream: {
-    carriedChannels: string[];
     pinnedUt?: number;
     emits: FixtureEmit[];
   };
@@ -183,7 +182,6 @@ async function main(): Promise<void> {
     // top comment) specifically so both header badges stay inline instead
     // of collapsing behind the dots+chevron summary.
     const payload: CrewBadgeProbePayload = {
-      carriedChannels: fixture._stream.carriedChannels,
       pinnedUt: fixture._stream.pinnedUt,
       emits: fixture._stream.emits,
       w: 6,

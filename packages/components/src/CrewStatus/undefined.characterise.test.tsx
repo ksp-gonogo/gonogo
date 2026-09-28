@@ -9,8 +9,6 @@ import { CrewStatusComponent } from "./index";
  * `renderBody` checks `crewCount === undefined` separately because `known` can be true before the headcount lands.
  */
 
-const CARRIED = ["vessel.crew", "vessel.identity", "vessel.resources"];
-
 // `vessel.identity.vesselType === 7` is `VesselType.EVA`, the kerbal on EVA.
 const VESSEL_TYPE_EVA = 7;
 
@@ -18,7 +16,6 @@ const renderedTrees: Array<() => void> = [];
 
 function newFixture() {
   return setupStreamFixture({
-    carriedChannels: CARRIED,
     pinnedUt: 10,
     suspendFrames: true,
   });

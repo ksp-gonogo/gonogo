@@ -71,15 +71,6 @@ async function textFor(
   economy: Record<string, unknown>,
 ): Promise<string> {
   const fixture = setupStreamFixture({
-    carriedChannels: [
-      "career.status",
-      "spaceCenter.scene",
-      "spaceCenter.launchSites",
-      "spaceCenter.partsAvailable",
-      "spaceCenter.savedShips",
-      "spaceCenter.crewRoster",
-      "spaceCenter.astronautComplex",
-    ],
     pinnedUt: 10,
     suspendFrames: true,
   });

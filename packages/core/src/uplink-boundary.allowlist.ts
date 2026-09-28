@@ -185,16 +185,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "packages/core/src/uplink-permanent-code.test.ts",
       /*
-       * -- CATALOGUE ABSENCE INVENTORY: the pinned list of carried
-       * Topics the topic-field catalogue can describe nothing about names each
-       * Uplink Topic that has none, so a Topic arriving unannotated is a test
-       * failure rather than a silent absence from every picker in the app.
-       * Permanent, not debt: it is a ratchet inventory of TOPIC NAMES and holds
-       * no code coupling, and the whole point of pinning it is that the names
-       * are written down rather than derived.
-       */
-      "packages/data/src/schema/topicFieldCatalog.test.ts",
-      /*
        * -- Uplink ISOLATION ratchet inventory: the inward guard's
        * debt list is keyed by file path, so it necessarily names every Uplink
        * directory. Ratchet-inventory file, the case this bucket documents.
@@ -237,13 +227,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * prose/history only, the types themselves no longer live here.
        */
       "mod/Sitrep.Contract/ContractVersion.cs",
-      /*
-       * default-carried-topics.ts: the raw-topic promotion allowlist, which
-       * is a literal-string set and so must name every Uplink's topics,
-       * it already names scansat.*, kos.*, recovery.* and comms.* the same
-       * way. String literals only; nothing kerbcast-specific is imported.
-       */
-      "mod/sitrep-sdk/src/default-carried-topics.ts",
 
       /*
        * UplinkContractOwnershipTests.cs: the mod-side relocation-ownership
@@ -311,16 +294,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * dynamic namespace can never be enumerated into the SDK's generated map.
        */
       "mod/sitrep-sdk/src/spine/map-topic.ts",
-      /*
-       * -- CATALOGUE ABSENCE INVENTORY: the pinned list of carried
-       * Topics the topic-field catalogue can describe nothing about names each
-       * Uplink Topic that has none, so a Topic arriving unannotated is a test
-       * failure rather than a silent absence from every picker in the app.
-       * Permanent, not debt: it is a ratchet inventory of TOPIC NAMES and holds
-       * no code coupling, and the whole point of pinning it is that the names
-       * are written down rather than derived.
-       */
-      "packages/data/src/schema/topicFieldCatalog.test.ts",
       /*
        * -- Uplink ISOLATION ratchet inventory: the inward guard's
        * debt list is keyed by file path, so it necessarily names every Uplink
@@ -391,7 +364,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * scansat-specific is imported or re-exported.
        */
       "mod/sitrep-sdk/src/api/slots.ts",
-      "mod/sitrep-sdk/src/default-carried-topics.ts",
+      "mod/sitrep-sdk/src/dynamic-topic-prefixes.ts",
 
       // -- TEST-only --
 
@@ -495,16 +468,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * citations already here.
        */
       "mod/sitrep-sdk/src/__generated__/contract.ts",
-      /*
-       * -- CATALOGUE ABSENCE INVENTORY: the pinned list of carried
-       * Topics the topic-field catalogue can describe nothing about names each
-       * Uplink Topic that has none, so a Topic arriving unannotated is a test
-       * failure rather than a silent absence from every picker in the app.
-       * Permanent, not debt: it is a ratchet inventory of TOPIC NAMES and holds
-       * no code coupling, and the whole point of pinning it is that the names
-       * are written down rather than derived.
-       */
-      "packages/data/src/schema/topicFieldCatalog.test.ts",
       // -- new test (Plan 3): a kOS-terminal-SHAPED keyframe diff-stream fixture
       // (the shared-vantage multi-client catch-up test). A text-only mention of
       // "kos" in a fixture comment/shape name, no code coupling to the kOS Uplink.
@@ -600,7 +563,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * wiring and never anything kOS-shaped. Ratcheted off.
        */
       "mod/Sitrep.Contract/Comms.cs",
-      "mod/sitrep-sdk/src/default-carried-topics.ts",
 
       /*
        * -- TEST-only --
@@ -656,10 +618,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * to the sdk with it and its `kos.compute.*` fixture keys became
        * `compute.*`, since what they assert is per-feeder namespacing rather than
        * any one Uplink. Ratcheted off.
-       * useDataSchema.test.tsx tests the doc-comment-only file of the same name
-       * below, same subject.
        */
-      "packages/data/src/hooks/useDataSchema.test.tsx",
 
       /*
        * `registry.ts` was here for `clearRegistry`'s doc, which explained itself
@@ -1900,11 +1859,9 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
   ],
   kerbcast: [
     "mod/Sitrep.Core.Tests/UplinkContractOwnershipTests.cs",
-    "mod/sitrep-sdk/src/default-carried-topics.ts",
     "packages/app/src/alarms/AlarmHostService.test.ts",
     "packages/app/src/screens/StationScreen.tsx",
     "packages/core/src/uplink-isolation.allowlist.ts",
-    "packages/data/src/schema/topicFieldCatalog.test.ts",
   ],
   kos: [
     "packages/components/scripts/render-systemview-traffic-video.ts",
@@ -1914,7 +1871,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "mod/Sitrep.Host.IntegrationTests/KosProcessorsWireTests.cs",
     "mod/sitrep-sdk/src/api/api-shape.gate.test.ts",
     "mod/sitrep-sdk/src/command-delay.test.ts",
-    "mod/sitrep-sdk/src/default-carried-topics.ts",
     "mod/sitrep-sdk/src/topics.test.ts",
     "packages/app/src/__tests__/kos-execute-tunnel.test.ts",
     "packages/app/src/__tests__/sitrep-command-label-topic-tunnel.test.ts",
@@ -1922,8 +1878,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/app/src/settings/SettingsModal.test.tsx",
     "packages/app/src/telemetry/PeerTransport.test.ts",
     "packages/core/src/hooks/useUplinkHealthFor.test.tsx",
-    "packages/data/src/hooks/useDataSchema.test.tsx",
-    "packages/data/src/schema/topicFieldCatalog.test.ts",
     "packages/sitrep-client/src/uplink-health.test.ts",
     "packages/sitrep-client/src/use-route-commands.test.tsx",
   ],
@@ -1931,12 +1885,11 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
   scansat: [
     "mod/GonogoDevTools/GonogoDevStampScan.cs",
     "mod/Sitrep.Core.Tests/UplinkContractOwnershipTests.cs",
-    "mod/sitrep-sdk/src/default-carried-topics.ts",
+    "mod/sitrep-sdk/src/dynamic-topic-prefixes.ts",
     "mod/sitrep-sdk/src/spine/map-topic.ts",
     "packages/app/src/__tests__/scansat-coverage-roundtrip.test.tsx",
     "packages/app/src/uplinks/loader.test.ts",
     "packages/core/src/uplink-isolation.allowlist.ts",
-    "packages/data/src/schema/topicFieldCatalog.test.ts",
     "packages/sitrep-client/src/map-topic.test.ts",
     "packages/sitrep-client/src/use-late-telemetry-subscribe.test.tsx",
   ],

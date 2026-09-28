@@ -15,11 +15,6 @@ describe("Experiments: stream render golden (delay=0)", () => {
     const mode = { name: "default-6x7", w: 6, h: 7 };
 
     const streamFixture = setupStreamFixture({
-      carriedChannels: [
-        "science.lab",
-        "science.instruments",
-        "science.experiments",
-      ],
       suspendFrames: true,
       pinnedUt: 10,
     });

@@ -85,7 +85,6 @@ function mount(
   statesNoShape = false,
 ) {
   const fixture: StreamFixture = setupStreamFixture({
-    carriedChannels: ["vessel.orbit", "vessel.identity", "system.bodies"],
     pinnedUt,
     suspendFrames: true,
   });

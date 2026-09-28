@@ -1,17 +1,23 @@
 import {
   TelemetryClient,
   TelemetryProvider,
-  useCarriedChannels,
   useStream,
 } from "@ksp-gonogo/sitrep-client";
 import {
+  getRuntimeRegisteredTopicIds,
   isValue,
   registerBarePrimitiveTopic,
   registerTopicUnits,
+  subscribeRuntimeTopicRegistry,
 } from "@ksp-gonogo/sitrep-sdk";
 import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
-import { type ReactNode, useEffect, useState } from "react";
+import {
+  type ReactNode,
+  useEffect,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { describe, expect, it } from "vitest";
 
 /**
@@ -29,18 +35,16 @@ import { describe, expect, it } from "vitest";
  *
  * ## Why the unit half needs its own test
  *
- * `carried-channels-uplink.test.tsx` already proves the PROMOTION half: a Topic
- * registered after mount reaches the carried-channels allowlist. Promotion is
- * not the whole read. `TelemetryClient` calls `wrapTopicPayload` at MESSAGE
- * INGEST (`sitrep-sdk/src/client.ts`), which reads the unit registry live, so
- * whether a quantity is a `Value` or a bare number is settled once, when the
- * sample lands, and nothing re-decodes it afterwards. That is a different
- * failure from an uncarried Topic and no existing test covered it.
+ * Registration is not the whole read. `TelemetryClient` calls
+ * `wrapTopicPayload` at MESSAGE INGEST (`sitrep-sdk/src/client.ts`), which
+ * reads the unit registry live, so whether a quantity is a `Value` or a bare
+ * number is settled once, when the sample lands, and nothing re-decodes it
+ * afterwards.
  *
  * ## What the early-sample case actually does, measured
  *
  * The early sample is STORED, with its quantities bare. `useStream`'s subscribe
- * is not gated on the carried allowlist, so the frame reaches the store whether
+ * is not gated on registration, so the frame reaches the store whether
  * or not anything has registered the Topic; what it misses is the unit lookup
  * `wrapTopicPayload` does at ingest. Registering afterwards does not re-decode
  * it, and the value stays bare until the next sample for that Topic arrives. So
@@ -76,14 +80,19 @@ const UNIT = "m";
 
 function Probe({ topic = TOPIC }: { topic?: string }) {
   const reading = useStream<{ depth: unknown }>(topic);
-  const carried = useCarriedChannels().has(topic);
+  const registered = useSyncExternalStore(
+    subscribeRuntimeTopicRegistry,
+    getRuntimeRegisteredTopicIds,
+  ).includes(topic);
   const depth =
     reading.state === "observed" || reading.state === "stale"
       ? reading.value.depth
       : undefined;
   return (
     <div>
-      <span data-testid="carried">{carried ? "carried" : "not-carried"}</span>
+      <span data-testid="registered">
+        {registered ? "registered" : "unregistered"}
+      </span>
       <span data-testid="decoded">
         {depth === undefined
           ? "blank"
@@ -131,19 +140,19 @@ async function settleFrames(): Promise<void> {
 }
 
 describe("a station's Uplink registers its wire Topic after the store is built", () => {
-  it("carries the Topic and decodes its quantity, registered after the provider mounted", async () => {
+  it("registers the Topic and decodes its quantity, registered after the provider mounted", async () => {
     const transport = new StubTransport();
     const client = new TelemetryClient(transport);
     const view = render(
-      <TelemetryProvider client={client} carriedChannels={["vessel.orbit"]}>
+      <TelemetryProvider client={client}>
         <LateLoader>
           <Probe />
         </LateLoader>
       </TelemetryProvider>,
     );
 
-    await waitFor(() => expect(screen.getByTestId("carried")).toBeTruthy());
-    expect(screen.getByTestId("carried").textContent).toBe("carried");
+    await waitFor(() => expect(screen.getByTestId("registered")).toBeTruthy());
+    expect(screen.getByTestId("registered").textContent).toBe("registered");
 
     emit(transport, TOPIC, 42);
 
@@ -164,7 +173,7 @@ describe("a station's Uplink registers its wire Topic after the store is built",
      * alongside `StationUplinkLoader` instead of behind it.
      */
     const view = render(
-      <TelemetryProvider client={client} carriedChannels={["vessel.orbit"]}>
+      <TelemetryProvider client={client}>
         <Probe topic={EARLY_TOPIC} />
       </TelemetryProvider>,
     );
@@ -187,7 +196,7 @@ describe("a station's Uplink registers its wire Topic after the store is built",
       registerTopicUnits(EARLY_TOPIC, { depth: UNIT });
     });
     await waitFor(() =>
-      expect(screen.getByTestId("carried").textContent).toBe("carried"),
+      expect(screen.getByTestId("registered").textContent).toBe("registered"),
     );
 
     // It does not reach back. Nothing re-walks a payload the store already

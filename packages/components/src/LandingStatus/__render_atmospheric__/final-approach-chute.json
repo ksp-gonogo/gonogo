@@ -5,18 +5,6 @@
     "notes": "SYNTHETIC. Kerbin final approach (~1.5 km, chute deployed, ~9 m/s) WITH a settled terrain sample: exercises the terrain plots RE-APPEARING on an atmospheric board (Q1: low-altitude / stable-prediction gate) alongside the atmospheric-aware descent read."
   },
   "_stream": {
-    "carriedChannels": [
-      "system.bodies",
-      "vessel.identity",
-      "vessel.orbit",
-      "vessel.flight",
-      "vessel.surface",
-      "vessel.propulsion",
-      "vessel.control",
-      "dv.summary",
-      "comms.delay",
-      "vessel.landing"
-    ],
     "pinnedUt": 10,
     "emits": [
       {

@@ -113,14 +113,6 @@ describe("SystemViewComponent", () => {
 
   beforeEach(() => {
     fixture = setupStreamFixture({
-      carriedChannels: [
-        "vessel.orbit",
-        "vessel.identity",
-        "vessel.target",
-        "system.bodies",
-        "fleet.",
-        "silence.",
-      ],
       pinnedUt: 100,
       suspendFrames: true,
     });

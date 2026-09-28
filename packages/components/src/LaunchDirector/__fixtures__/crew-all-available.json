@@ -4,14 +4,6 @@
     "notes": "SYNTHETIC. The same pad and craft as crew-mixed-standings, with a roster where every kerbal is free to fly. The scene that has to be distinguishable from an unreadable roster: the tally reads the roster's size and says nothing else, because a term that is zero is not printed."
   },
   "_stream": {
-    "carriedChannels": [
-      "career.status",
-      "career.facilities",
-      "spaceCenter.savedShips",
-      "spaceCenter.crewRoster",
-      "spaceCenter.scene",
-      "spaceCenter.launchSites"
-    ],
     "pinnedUt": 10,
     "emits": [
       {

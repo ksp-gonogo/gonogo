@@ -88,14 +88,6 @@ const VESSEL_DOT = 'circle[fill="var(--color-accent-fg)"]';
 
 async function mount(horizon: PropagationHorizonLike) {
   const fixture = setupStreamFixture({
-    carriedChannels: [
-      "vessel.orbit",
-      "vessel.identity",
-      "vessel.target",
-      "system.bodies",
-      "fleet.",
-      "silence.",
-    ],
     pinnedUt: PINNED_UT,
     suspendFrames: true,
   });

@@ -76,12 +76,7 @@ describe("SitrepTelemetryProvider: live WebSocketTransport over MSW", () => {
     );
 
     render(
-      <SitrepTelemetryProvider
-        enabled
-        host="localhost"
-        port={8090}
-        carriedChannels={["vessel.control"]}
-      >
+      <SitrepTelemetryProvider enabled host="localhost" port={8090}>
         <Throttle />
       </SitrepTelemetryProvider>,
     );

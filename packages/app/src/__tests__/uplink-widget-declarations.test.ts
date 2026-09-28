@@ -63,7 +63,7 @@ import {
  * matching mentions inside comments and missing every multi-line and
  * dynamically-built declaration. The registry is what the dashboard reads.
  *
- * An unresolvable entry is silent at runtime: `isTopicCarried` walks a field
+ * An unresolvable entry is silent at runtime: read resolution walks a field
  * path without checking that the leaf names a real field, so a typo renders as
  * a permanent `undefined` and costs the panel its stream-status badge and its
  * alarm matching. Nothing else can tell that from a value that has not arrived.

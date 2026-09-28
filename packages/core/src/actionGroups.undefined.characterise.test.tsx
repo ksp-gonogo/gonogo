@@ -40,9 +40,7 @@ type LooseControl =
 function mountedWrapper(transport: StubTransport) {
   const client = new TelemetryClient(transport);
   return ({ children }: { children: ReactNode }) => (
-    <TelemetryProvider client={client} carriedChannels={["vessel.control"]}>
-      {children}
-    </TelemetryProvider>
+    <TelemetryProvider client={client}>{children}</TelemetryProvider>
   );
 }
 

@@ -10,12 +10,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { EscapeProfileComponent } from "./index";
 
-const ESCAPE_PROFILE_CHANNELS = [
-  "vessel.flight",
-  "vessel.identity",
-  "system.bodies",
-];
-
 /** Names the parent body via `vessel.identity.parentBodyIndex` against a single-entry `system.bodies` roster; the default facts are Kerbin's radius with no gravitational parameter. */
 function emitBody(
   fixture: ReturnType<typeof setupStreamFixture>,
@@ -58,7 +52,6 @@ describe("EscapeProfileComponent", () => {
 
   function renderEscape() {
     const fixture = setupStreamFixture({
-      carriedChannels: ESCAPE_PROFILE_CHANNELS,
       pinnedUt: 10,
       suspendFrames: true,
     });

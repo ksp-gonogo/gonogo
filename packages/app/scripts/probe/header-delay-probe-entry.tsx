@@ -37,15 +37,6 @@ interface Scene {
   pxH: number;
 }
 
-const CARRIED = [
-  "commandCentre.roster",
-  "commandCentre.activeVesselDelay",
-  "comms.link",
-  "comms.delay",
-  "spaceCenter.scene",
-  "vessel.orbit",
-];
-
 let root: Root | undefined;
 let client: TelemetryClient | undefined;
 
@@ -80,7 +71,7 @@ async function renderScene(scene: Scene): Promise<void> {
   if (scene.select) client.setVantage(scene.select);
   const banner = (
     <ScreenProvider value={scene.screen}>
-      <TelemetryProvider client={client} carriedChannels={CARRIED}>
+      <TelemetryProvider client={client}>
         <MissionBanner />
       </TelemetryProvider>
     </ScreenProvider>

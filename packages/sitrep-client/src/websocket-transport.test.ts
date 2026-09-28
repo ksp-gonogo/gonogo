@@ -215,8 +215,7 @@ describe("WebSocketTransport", () => {
       // Wrapped: the wire carries a bare number and `parseServerMessage` gives it its declared unit back, which is what a consumer receives.
       payload: { sma: value("m", 700000) },
     });
-    // carriedChannels + perf-budget seam are both driven off arriving frames.
-    expect(transport.carriedChannels).toContain("vessel.orbit");
+    // The perf-budget seam is driven off arriving frames.
     expect(streamFrames).toEqual(["vessel.orbit"]);
     transport.dispose();
   });
@@ -258,7 +257,6 @@ describe("WebSocketTransport", () => {
       topic: "vessel.flight",
       payload: { altitudeAsl: value("m", 249999) },
     });
-    expect(transport.carriedChannels).toContain("vessel.flight");
     expect(streamFrames).toEqual(["vessel.flight"]);
     transport.dispose();
   });

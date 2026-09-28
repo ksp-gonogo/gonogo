@@ -51,7 +51,6 @@ interface Row {
 interface Fixture {
   _meta?: Record<string, unknown>;
   _stream: {
-    carriedChannels: string[];
     emits: { channel: string; value: Record<string, unknown> }[];
   };
 }
@@ -89,7 +88,6 @@ function withRoster(
   return {
     _meta: meta,
     _stream: {
-      carriedChannels: source._stream.carriedChannels,
       emits: [{ channel: "career.status", value: career }],
     },
   };

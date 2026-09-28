@@ -35,11 +35,7 @@ describe("SitrepTelemetryProvider: enabled-prop stream mount", () => {
     const transport = new StubTransport();
 
     render(
-      <SitrepTelemetryProvider
-        enabled
-        transport={transport}
-        carriedChannels={["vessel.control"]}
-      >
+      <SitrepTelemetryProvider enabled transport={transport}>
         <Throttle />
       </SitrepTelemetryProvider>,
     );

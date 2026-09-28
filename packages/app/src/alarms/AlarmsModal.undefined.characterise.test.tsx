@@ -41,17 +41,6 @@ const ORBIT_MU = 3.5316e12;
 const ORBIT_SMA = 700_000;
 const ORBIT_EPOCH = 10;
 
-/**
- * `vessel.parts` and `vessel.control` for the action-group caption, plus
- * `vessel.orbit` and `system.bodies` for the orbit solve the presets read.
- */
-const CARRIED = [
-  "vessel.parts",
-  "vessel.control",
-  "vessel.orbit",
-  "system.bodies",
-];
-
 function makeSnapshot(ut: number | null): AlarmSnapshot {
   return {
     alarms: [],
@@ -65,7 +54,6 @@ function makeSnapshot(ut: number | null): AlarmSnapshot {
 
 function mount(modal: ReactElement) {
   const fixture = setupStreamFixture({
-    carriedChannels: CARRIED,
     pinnedUt: ORBIT_EPOCH,
   });
   render(<fixture.Provider>{modal}</fixture.Provider>);
@@ -167,8 +155,7 @@ function ag1Option(): HTMLElement | null {
 }
 
 beforeEach(() => {
-  // `useValueKeys("data")` reads the legacy registry. Cleared and re-stubbed
-  // per test so nothing leaks between them; the real app has no such source.
+  // Cleared and re-stubbed per test so nothing leaks between them; the real app has no such source.
   clearRegistry();
   registerDataSource(new MockDataSource({ id: "data", name: "Stub" }));
 });

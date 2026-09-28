@@ -56,7 +56,6 @@ function currentZoom(container: HTMLElement): number {
 /** Renders the widget and waits for the populated diagram, since the empty state has no element for the wheel listener to bind to. */
 async function renderDiagram() {
   const fixture: StreamFixture = setupStreamFixture({
-    carriedChannels: ["system.bodies", "vessel.identity", "vessel.orbit"],
     pinnedUt: 100,
     suspendFrames: true,
   });

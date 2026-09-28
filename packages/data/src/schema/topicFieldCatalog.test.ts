@@ -1,17 +1,13 @@
-import {
-  COMMAND_IDS,
-  DEFAULT_SITREP_CARRIED_TOPICS,
-  splitRawFieldSubtopic,
-} from "@ksp-gonogo/sitrep-sdk";
+import { COMMAND_IDS, splitRawFieldSubtopic } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import {
   getTopicFieldCatalog,
-  getUndescribedCarriedTopics,
+  getUndescribedTopics,
   humaniseFieldPath,
 } from "./topicFieldCatalog";
 
 describe("getTopicFieldCatalog()", () => {
-  it("offers a key for every field of a carried Topic", () => {
+  it("offers a key for every field of a contract Topic", () => {
     const keys = new Set(getTopicFieldCatalog().map((k) => k.key));
     expect(keys.has("career.status.economy.funds")).toBe(true);
     expect(keys.has("vessel.orbit.sma")).toBe(true);
@@ -112,18 +108,14 @@ describe("getTopicFieldCatalog()", () => {
   });
 });
 
-describe("getUndescribedCarriedTopics()", () => {
-  it("names exactly the carried Topics nothing has annotated", () => {
+describe("getUndescribedTopics()", () => {
+  it("names exactly the Topics nothing has annotated", () => {
     // Pinned rather than counted. A Topic that arrives with no unit metadata
     // would otherwise be absent from every picker in the app with nothing to
     // show it had been dropped, which is the failure this whole rebuild exists
     // to remove. Adding an entry here is a decision; it should never be a
     // silent one.
-    //
-    // The Uplink Topics are here because their client packages register their
-    // units at module load and this package does not import them. They are
-    // described once an app that loads the Uplink builds the catalogue.
-    expect([...getUndescribedCarriedTopics()].sort()).toEqual(
+    expect([...getUndescribedTopics()].sort()).toEqual(
       [
         // Both dv.* channels key their fields by RESOURCE NAME, so there is no fixed field set for a declaration to enumerate.
         "dv.currentStageResource",
@@ -131,14 +123,8 @@ describe("getUndescribedCarriedTopics()", () => {
         // Bare primitive channels: the Topic IS the value, so it has no fields.
         "crash.hasRecent",
         "recovery.hasRecent",
-        "kos.processors",
-        // Uplink Topics. Their client packages register units at module load and
-        // this package does not import them, so they are described once an app
-        // that loads the Uplink builds the catalogue.
-        "kerbcast.available",
-        "kerbcast.cameras",
-        "scansat.available",
-        "scansat.scanningVessels",
+        // A string carrying a JSON document: the Topic IS the value, so it has no fields.
+        "system.units",
         // Nothing annotates this one's fields. Its three segments are no
         // longer the reason: the split resolves a Topic of any depth now, and
         // its sibling `system.uplink.pending` is described.
@@ -157,26 +143,18 @@ describe("getUndescribedCarriedTopics()", () => {
   });
 
   it("says nothing about a command, which is a control and not a reading", () => {
-    /* The carried set is a promotion list of CHANNELS and the first-party one
-       holds no command ids, so this plants them: an app passing its own
-       `carriedChannels` prop, or an Uplink registering an id that is also a
-       command, can still put one in front of this walk. A command has no
-       payload to enumerate and no declaration could give it one, so calling it
-       undescribed would report a permanent gap that is not a gap. */
+    /* An Uplink can register an id that is also a command, which puts it in
+       front of this walk. A command has no payload to enumerate and no
+       declaration could give it one, so calling it undescribed would report a
+       permanent gap that is not a gap. */
     const planted = ["alarm.scet.arm", "time.setWarpIndex"];
-    const carried = new Set([
-      ...DEFAULT_SITREP_CARRIED_TOPICS,
-      "alarm.scet",
-      ...planted,
-    ]);
-    const undescribed = new Set(getUndescribedCarriedTopics(carried));
+    const undescribed = new Set(getUndescribedTopics(planted));
     const catalogued = new Set(
-      getTopicFieldCatalog(carried).map((k) => k.topic),
+      getTopicFieldCatalog(planted).map((k) => k.topic),
     );
-    const commands = COMMAND_IDS.filter((id) => carried.has(id));
     // The plant has to still BE a command, or this asserts over nothing.
-    expect(commands).toEqual(expect.arrayContaining(planted));
-    for (const id of commands) {
+    expect(COMMAND_IDS).toEqual(expect.arrayContaining(planted));
+    for (const id of planted) {
       expect(undescribed.has(id)).toBe(false);
       expect(catalogued.has(id)).toBe(false);
     }
@@ -184,7 +162,7 @@ describe("getUndescribedCarriedTopics()", () => {
 
   it("does not overlap the catalogue it excludes from", () => {
     const described = new Set(getTopicFieldCatalog().map((k) => k.topic));
-    for (const topic of getUndescribedCarriedTopics()) {
+    for (const topic of getUndescribedTopics()) {
       expect(described.has(topic)).toBe(false);
     }
   });
@@ -228,36 +206,9 @@ describe("every catalogue key is readable", () => {
   });
 });
 
-describe("a derived channel is offered only when its inputs are carried", () => {
-  it("offers spaceCenter.state, whose input is promoted", () => {
+describe("a derived channel is offered like any other Topic", () => {
+  it("offers spaceCenter.state", () => {
     const topics = new Set(getTopicFieldCatalog().map((entry) => entry.topic));
     expect(topics.has("spaceCenter.state")).toBe(true);
-  });
-
-  it("would exclude it if they were not", async () => {
-    // The gate itself, exercised rather than assumed. A derived channel's NAME
-    // never appears in the carried list, only the raw Topics it computes from,
-    // so a channel can be registered and enumerate a full field set while
-    // resolving to nothing forever. Offering those fields would put keys in
-    // front of an operator that can never carry a value.
-    //
-    // This is what the retired mapped-AND-carried gate caught. That gate read
-    // the migration table so it retired with it; two real instances had shipped
-    // before it existed.
-    const {
-      isTopicCarried,
-      PRODUCTION_DERIVED_CHANNELS,
-      TimelineStore,
-      ViewClock,
-    } = await import("@ksp-gonogo/sitrep-client");
-    const store = new TimelineStore(
-      new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 }),
-    );
-    for (const channel of PRODUCTION_DERIVED_CHANNELS) {
-      store.registerDerivedChannel(channel);
-    }
-    expect(isTopicCarried(store, new Set<string>(), "spaceCenter.state")).toBe(
-      false,
-    );
   });
 });

@@ -39,7 +39,6 @@ CORE_UPLINK_CLIENT.registerContribution({
 
 function mount(componentId: string) {
   const fixture = setupStreamFixture({
-    carriedChannels: ["comms.link"],
     pinnedUt: 10,
     suspendFrames: true,
   });

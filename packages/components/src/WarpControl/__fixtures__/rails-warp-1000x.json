@@ -11,12 +11,6 @@
   "t.warpMode": "High",
   "t.isPaused": false,
   "_stream": {
-    "carriedChannels": [
-      "time.warp",
-      "spaceCenter.scene",
-      "spaceCenter.launchSites",
-      "career.mode"
-    ],
     "emits": [
       {
         "channel": "time.warp",

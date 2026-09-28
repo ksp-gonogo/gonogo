@@ -51,22 +51,6 @@
     }
   ],
   "_stream": {
-    "carriedChannels": [
-      "system.bodies",
-      "career.mode",
-      "spaceCenter.scene",
-      "vessel.orbit",
-      "vessel.identity",
-      "vessel.surface",
-      "career.status",
-      "science.experiments",
-      "science.experimentBreakdown",
-      "vessel.flight",
-      "vessel.control",
-      "vessel.target",
-      "vessel.comms",
-      "vessel.propulsion"
-    ],
     "pinnedUt": 10,
     "emits": [
       {

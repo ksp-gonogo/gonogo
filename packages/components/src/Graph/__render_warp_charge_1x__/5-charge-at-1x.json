@@ -5,7 +5,6 @@
     "notes": "SYNTHETIC. Electric charge on a craft in the same orbit, charging through the lit part of each orbit and draining through the shade, at 1x. No model claims electric charge, and every gap is the one-second sampleIntervalUt, so the trace is one line, as every chart has always drawn it."
   },
   "_stream": {
-    "carriedChannels": ["vessel.resources", "time.warp", "vessel.identity"],
     "pinnedUt": 600,
     "emits": [
       {

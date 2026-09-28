@@ -49,11 +49,7 @@ function toTransportStatus(status: ConnStatus): TransportStatus {
  * re-timestamping) is what keeps a station's `ViewClock` fit to the
  * identical `(validAt, deliveredAt)` observations the host's own clock saw.
  *
- * `carriedChannels` is deliberately NOT implemented, the station doesn't
- * need to learn the carried set from the host at all, it imports the exact
- * same `DEFAULT_SITREP_CARRIED_TOPICS` constant the main screen does and
- * passes it as `<SitrepTelemetryProvider carriedChannels={...}>`'s explicit
- * prop. `predictConfirmEta` is also omitted: loss-inference for a station's
+ * `predictConfirmEta` is omitted: loss-inference for a station's
  * command dispatch would need the PeerJS round trip's own timing model
  * layered on top of the mod's courier model, not built for v1. What the
  * station gets instead is the host's own verdict, over `onLost`: the host

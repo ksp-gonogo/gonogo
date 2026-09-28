@@ -47,14 +47,6 @@ function unmountAll() {
 }
 
 /** Integration over a real stream: the applicant pool, funds, and the real `career.crew.hire` dispatch, with no hooks mocked. */
-const CARRIED = [
-  "spaceCenter.astronautComplex",
-  "spaceCenter.crewRoster",
-  "career.status",
-  "career.crew.hire",
-  "career.crew.fire",
-  "system.uplink.gates",
-];
 
 /** The mod's standing verdict on `career.crew.hire`, as `system.uplink.gates` carries it. */
 function emitHireGate(
@@ -234,7 +226,6 @@ describe("AstronautComplexComponent", () => {
 
   beforeEach(() => {
     fixture = setupStreamFixture({
-      carriedChannels: CARRIED,
       pinnedUt: 10,
       suspendFrames: true,
     });

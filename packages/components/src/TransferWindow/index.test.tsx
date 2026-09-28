@@ -75,12 +75,6 @@ const VENUS = {
 
 function setup(targetBodyIndex?: number, opts?: { budgetDvVac?: number }) {
   const fixture = setupStreamFixture({
-    carriedChannels: [
-      "system.bodies",
-      "vessel.orbit",
-      "target.available",
-      "dv.summary",
-    ],
     pinnedUt: 0,
     suspendFrames: true,
   });

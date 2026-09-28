@@ -10,11 +10,11 @@ export interface StreamRecorderOptions {
    * registered) so the
    * resulting fixture can replay any widget's history, not just whatever the
    * dashboard happened to have mounted while recording. This trades away the
-   * carried-channels subscription system's whole efficiency point (the mod
+   * subscription system's whole efficiency point (the mod
    * only produces what's watched) for completeness: costs more mod-side
    * produce load and a bigger recording. Default `false`: subscription-scoped,
    * the cheap default: the recording only ever holds the topics the
-   * dashboard already carried, nothing extra.
+   * dashboard already subscribed, nothing extra.
    */
   recordAllTopics?: boolean;
 }
