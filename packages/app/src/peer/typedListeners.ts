@@ -5,7 +5,7 @@ import { ListenerSet } from "@ksp-gonogo/data";
  * + `on<Name>` method + emit site" boilerplate that both `PeerHostService`
  * and `PeerClientService` were hand-rolling ~20 times each.
  *
- * `TMap` maps an event key to the *argument tuple* fired for that event,
+ * `EventMap` maps an event key to the *argument tuple* fired for that event,
  * mirroring the existing `ListenerSet<[...]>` generics. It is NOT a
  * message-type → payload map: the services derive listener args inside their
  * dispatcher handlers (e.g. `gonogoVote` fires `(conn.peer, msg.status)`),
@@ -16,17 +16,19 @@ import { ListenerSet } from "@ksp-gonogo/data";
  * pass-through to `ListenerSet.fire`, so iteration order and dedup semantics
  * are `ListenerSet`'s own and this class adds none of its own.
  */
-export class TypedListeners<TMap extends Record<string, readonly unknown[]>> {
+export class TypedListeners<
+  EventMap extends Record<string, readonly unknown[]>,
+> {
   // The per-key sets store heterogeneous tuple types; we keep them as
   // `ListenerSet<readonly unknown[]>` internally and re-narrow at the typed
   // `on` / `emit` boundary so callers stay fully type-checked.
   private readonly sets = new Map<
-    keyof TMap,
+    keyof EventMap,
     ListenerSet<readonly unknown[]>
   >();
 
-  private setFor<K extends keyof TMap>(
-    type: K,
+  private setFor<EventName extends keyof EventMap>(
+    type: EventName,
   ): ListenerSet<readonly unknown[]> {
     let set = this.sets.get(type);
     if (!set) {
@@ -36,19 +38,22 @@ export class TypedListeners<TMap extends Record<string, readonly unknown[]>> {
     return set;
   }
 
-  on<K extends keyof TMap>(
-    type: K,
-    cb: (...args: TMap[K]) => void,
+  on<EventName extends keyof EventMap>(
+    type: EventName,
+    cb: (...args: EventMap[EventName]) => void,
   ): () => void {
     return this.setFor(type).add(cb as (...args: readonly unknown[]) => void);
   }
 
-  emit<K extends keyof TMap>(type: K, ...args: TMap[K]): void {
+  emit<EventName extends keyof EventMap>(
+    type: EventName,
+    ...args: EventMap[EventName]
+  ): void {
     this.sets.get(type)?.fire(...args);
   }
 
   /** Number of listeners registered for a single event key. */
-  size<K extends keyof TMap>(type: K): number {
+  size<EventName extends keyof EventMap>(type: EventName): number {
     return this.sets.get(type)?.size ?? 0;
   }
 }

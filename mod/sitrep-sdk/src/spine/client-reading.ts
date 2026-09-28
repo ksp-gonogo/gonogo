@@ -124,33 +124,33 @@ function rootCoverage(model: {
  * was: an undeclared topic has nothing to explain, because nothing promised it a
  * model.
  */
-export function readingFrom<T>(
-  point: TimelinePoint<T> | undefined,
+export function readingFrom<Payload>(
+  point: TimelinePoint<Payload> | undefined,
   status: StreamStatusValue,
   at: ReadingInstants,
-  reckoner?: ReckonerFor<T>,
+  reckoner?: ReckonerFor<Payload>,
   unowned?: boolean,
   declined?: undefined,
   owner?: string,
-): TopicReading<T>;
-export function readingFrom<T>(
-  point: TimelinePoint<T> | undefined,
+): TopicReading<Payload>;
+export function readingFrom<Payload>(
+  point: TimelinePoint<Payload> | undefined,
   status: StreamStatusValue,
   at: ReadingInstants,
-  reckoner: ReckonerFor<T> | undefined,
+  reckoner: ReckonerFor<Payload> | undefined,
   unowned: boolean,
   declined: ReckoningDecline,
   owner?: string,
-): ReckonableReading<T, keyof T>;
-export function readingFrom<T>(
-  point: TimelinePoint<T> | undefined,
+): ReckonableReading<Payload, keyof Payload>;
+export function readingFrom<Payload>(
+  point: TimelinePoint<Payload> | undefined,
   status: StreamStatusValue,
   at: ReadingInstants,
-  reckoner?: ReckonerFor<T>,
+  reckoner?: ReckonerFor<Payload>,
   unowned = false,
   declined?: ReckoningDecline,
   owner = "core",
-): TopicReading<T> | ReckonableReading<T, keyof T> {
+): TopicReading<Payload> | ReckonableReading<Payload, keyof Payload> {
   if (!point || status === "resyncing") {
     return topicReading(
       unowned

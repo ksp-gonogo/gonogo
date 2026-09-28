@@ -35,8 +35,9 @@ import type { Value } from "./value";
  * pattern, and the asymmetry is the point: narrowing one side and not the
  * other leaves them different types, so it still will not compile.
  */
-export function unitGuard<const S extends string>(symbol: S) {
-  return (candidate: Value): candidate is Value<S> => candidate.unit === symbol;
+export function unitGuard<const Unit extends string>(symbol: Unit) {
+  return (candidate: Value): candidate is Value<Unit> =>
+    candidate.unit === symbol;
 }
 
 /**
@@ -51,13 +52,13 @@ export function unitGuard<const S extends string>(symbol: S) {
  *
  * ## Why a predicate rather than a cast or a rebuild
  *
- * Code holding a `Value<V>` and a runtime `U` had two ways across before this,
+ * Code holding a `Value<SourceUnit>` and a runtime `Unit` had two ways across before this,
  * and both are worse:
  *
- * - **Assert.** `Value<V>` to `Value<U>` for two unrelated parameters has to go
+ * - **Assert.** `Value<SourceUnit>` to `Value<Unit>` for two unrelated parameters has to go
  *   through `unknown`, which the compiler cannot check and which SURVIVES
  *   someone later deleting the runtime check above it. `.in(unit)` is not the
- *   escape either: `in<T extends CombinableWith<U>>` refuses an unrelated
+ *   escape either: `in<Target extends CombinableWith<Unit>>` refuses an unrelated
  *   parameter outright, because nothing knows the two share a dimension
  * - **Rebuild.** Mint fresh values off the magnitudes the check just proved.
  *   Sound, and it costs an unwrap and an allocation per component, which is how
@@ -75,10 +76,10 @@ export function unitGuard<const S extends string>(symbol: S) {
  * not its siblings leaves them different types, so a caller that wants the
  * whole thing narrowed asks about each part.
  */
-export function isUnit<U extends string>(
+export function isUnit<Unit extends string>(
   candidate: Value,
-  unit: U,
-): candidate is Value<U> {
+  unit: Unit,
+): candidate is Value<Unit> {
   return candidate.unit === unit;
 }
 

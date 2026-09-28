@@ -18,12 +18,14 @@ export interface ElementSize {
  * @param initial seed size used until the first non-zero measurement.
  * @returns `{ ref, size }`: attach `ref` to the element to measure.
  */
-export function useElementSize<T extends HTMLElement = HTMLDivElement>(
+export function useElementSize<
+  MeasuredElement extends HTMLElement = HTMLDivElement,
+>(
   initial: ElementSize,
-): { ref: RefObject<T>; size: ElementSize } {
-  const ref = useRef<T>(null);
+): { ref: RefObject<MeasuredElement>; size: ElementSize } {
+  const ref = useRef<MeasuredElement>(null);
   const [size, setSize] = useState<ElementSize>(initial);
-  const [observed, setObserved] = useState<T | null>(null);
+  const [observed, setObserved] = useState<MeasuredElement | null>(null);
 
   // After every render, so an element that mounts late or is replaced is picked up; only a different element re-renders.
   useEffect(() => {

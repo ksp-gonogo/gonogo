@@ -146,7 +146,9 @@ export function PlantedBorrowedAccessorName() {
   const flight = useTelemetry("vessel.flight");
   const altitude = flight.altitudeAsl;
 
-  function observedAt<T>(reading: { value?: T }): T | undefined {
+  function observedAt<Payload>(reading: {
+    value?: Payload;
+  }): Payload | undefined {
     return reading.value;
   }
 

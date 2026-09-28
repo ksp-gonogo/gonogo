@@ -17,19 +17,19 @@ import { NULL_DISPLAY } from "./NullValue";
 
 const AT = value("ut", 12_000);
 
-function bandOf<U extends string>(unit: U, lo: number, hi: number) {
+function bandOf<Unit extends string>(unit: Unit, lo: number, hi: number) {
   return {
     value: value(unit, (lo + hi) / 2),
     lo: value(unit, lo),
     hi: value(unit, hi),
     kind: "sigma1",
-  } as UncertaintyBand<U>;
+  } as UncertaintyBand<Unit>;
 }
 
-function banded<U extends string>(
-  quantity: Value<U>,
+function banded<Unit extends string>(
+  quantity: Value<Unit>,
   band?: UncertaintyBand,
-): Reading<Value<U>> {
+): Reading<Value<Unit>> {
   return {
     state: "observed",
     value: quantity,
@@ -48,7 +48,9 @@ function banded<U extends string>(
   };
 }
 
-function held<U extends string>(quantity: Value<U>): Reading<Value<U>> {
+function held<Unit extends string>(
+  quantity: Value<Unit>,
+): Reading<Value<Unit>> {
   return {
     state: "stale",
     reckoning: { status: "none" },

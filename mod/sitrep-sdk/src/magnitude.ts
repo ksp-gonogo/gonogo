@@ -17,7 +17,7 @@
  * metres label. If the number is going on screen, this is not the function you
  * want.
  *
- * The narrow `{ magnitude: number }` parameter rather than `Value<U>` is
+ * The narrow `{ magnitude: number }` parameter rather than `Value<Unit>` is
  * deliberate: it accepts a plain number too, which is what the app's own
  * derived models still carry, so a caller does not have to know which side of
  * the migration a given field is on. It is REQUIRED rather than optional for a

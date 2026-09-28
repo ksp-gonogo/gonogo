@@ -37,12 +37,12 @@ function tankOf(
  * business, so it is minted here at the last moment: `ratio` for a fraction,
  * the tank's own unit for an amount.
  */
-function readingOfCase<U extends string>(
+function readingOfCase<Unit extends string>(
   c: MeterCase,
-  drawn: Value<U>,
+  drawn: Value<Unit>,
   band: UncertaintyBand | undefined,
-): Reading<Value<U>> {
-  const reckoning: Reading<Value<U>>["reckoning"] =
+): Reading<Value<Unit>> {
+  const reckoning: Reading<Value<Unit>>["reckoning"] =
     band === undefined
       ? { status: "none" }
       : {

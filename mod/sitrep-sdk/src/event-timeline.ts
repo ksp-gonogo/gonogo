@@ -20,13 +20,16 @@
  * epoch and drops superseded occurrences so a pre-rewind event can never be
  * re-revealed after the rewind.
  */
-export interface EventOccurrence<K extends string = string, P = unknown> {
+export interface EventOccurrence<
+  Kind extends string = string,
+  Payload = unknown,
+> {
   /** Universal Time the occurrence happened at: the reveal-gate key. */
   ut: number;
   /** Discriminant naming what happened, e.g. `"part-failed"`, `"storm-arrived"`. */
-  kind: K;
+  kind: Kind;
   /** Occurrence detail. */
-  payload: P;
+  payload: Payload;
   /** Client-side timeline-reset generation (mirrors `TimelinePoint.epoch`). */
   epoch: number;
 }
@@ -79,8 +82,8 @@ const DEFAULT_RETENTION_SECONDS = 300;
  * stale straggler and is discarded; a higher-epoch occurrence is a rewind that
  * drops every buffered occurrence atomically before adopting the new epoch.
  */
-export class EventTimeline<K extends string = string, P = unknown> {
-  private occurrences: EventOccurrence<K, P>[] = [];
+export class EventTimeline<Kind extends string = string, Payload = unknown> {
+  private occurrences: EventOccurrence<Kind, Payload>[] = [];
   private currentEpoch = 0;
   private readonly retentionSeconds: number;
 
@@ -98,7 +101,7 @@ export class EventTimeline<K extends string = string, P = unknown> {
   }
 
   /** Insert a delivered occurrence, sorted by `ut` (ties keep arrival order). */
-  append(occurrence: EventOccurrence<K, P>): void {
+  append(occurrence: EventOccurrence<Kind, Payload>): void {
     if (occurrence.epoch < this.currentEpoch) {
       // Stale-epoch straggler (queued behind a rewind): never let a pre-rewind occurrence re-enter a post-rewind timeline.
       return;
@@ -124,7 +127,7 @@ export class EventTimeline<K extends string = string, P = unknown> {
    * (e.g. the alarm `event` trigger) reads; the server enforces the same gate
    * authoritatively upstream.
    */
-  revealed(options: EventRevealOptions): EventOccurrence<K, P>[] {
+  revealed(options: EventRevealOptions): EventOccurrence<Kind, Payload>[] {
     const { now } = options;
     const delaySeconds = options.delaySeconds ?? 0;
     const connectivityAt = options.connectivityAt;
@@ -141,22 +144,22 @@ export class EventTimeline<K extends string = string, P = unknown> {
    * about legibility want `revealed`; this is the raw view for producers and
    * tests.
    */
-  all(): EventOccurrence<K, P>[] {
+  all(): EventOccurrence<Kind, Payload>[] {
     return [...this.occurrences];
   }
 
   /** All occurrences with `ut` in `[fromUt, toUt]`, inclusive, ascending. */
-  range(fromUt: number, toUt: number): EventOccurrence<K, P>[] {
+  range(fromUt: number, toUt: number): EventOccurrence<Kind, Payload>[] {
     return this.occurrences.filter((o) => o.ut >= fromUt && o.ut <= toUt);
   }
 
   /** All occurrences strictly after `ut`, ascending. */
-  since(ut: number): EventOccurrence<K, P>[] {
+  since(ut: number): EventOccurrence<Kind, Payload>[] {
     return this.occurrences.filter((o) => o.ut > ut);
   }
 
   /** The most recently occurring buffered occurrence. */
-  latest(): EventOccurrence<K, P> | undefined {
+  latest(): EventOccurrence<Kind, Payload> | undefined {
     return this.occurrences[this.occurrences.length - 1];
   }
 
@@ -187,7 +190,7 @@ export class EventTimeline<K extends string = string, P = unknown> {
     this.evictBelow(latest.ut - this.retentionSeconds);
   }
 
-  private insertionIndex(occurrence: EventOccurrence<K, P>): number {
+  private insertionIndex(occurrence: EventOccurrence<Kind, Payload>): number {
     // Linear scan from the end: append-mostly workload (occurrences usually
     // arrive newest-last), so O(1) amortized despite O(n) worst case. Ties on
     // `ut` keep arrival order (new one after the existing) so a reliable-ordered

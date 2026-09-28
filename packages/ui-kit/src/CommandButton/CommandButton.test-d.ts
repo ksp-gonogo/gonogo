@@ -11,11 +11,13 @@ import type {
   CommandReplyLike,
 } from "./CommandButton";
 
-type Equal<A, B> =
-  (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2
+type Equal<Left, Right> =
+  (<Probe>() => Probe extends Left ? 1 : 2) extends <
+    Probe,
+  >() => Probe extends Right ? 1 : 2
     ? true
     : false;
-type Expect<T extends true> = T;
+type Expect<Condition extends true> = Condition;
 
 interface Envelope {
   success: boolean;
@@ -31,7 +33,8 @@ type _ConfirmedSeesTheReply = Expect<
 >;
 
 /** And it is INFERRED off `send`, so no call site names the type. */
-type ReplyOf<H> = H extends CommandButtonHandle<infer R> ? R : never;
+type ReplyOf<Handle> =
+  Handle extends CommandButtonHandle<infer Reply> ? Reply : never;
 type _ReplyComesOffTheHandle = Expect<
   Equal<ReplyOf<CommandButtonHandle<Envelope>>, Envelope>
 >;
@@ -66,7 +69,7 @@ async function _theWrongCastIsAnError() {
   return receipt;
 }
 
-// `args` is `NoInfer`, so a wrong args object cannot widen `TArgs` to its own shape.
+// `args` is `NoInfer`, so a wrong args object cannot widen `Args` to its own shape.
 
 /** A command's declared arguments, as the generated map resolves them. */
 interface BurnArgs {

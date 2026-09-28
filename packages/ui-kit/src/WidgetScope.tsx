@@ -20,13 +20,13 @@ const WidgetScopeContext = createContext<{
  * against, so an augment can never be handed a different widget's scope through
  * a provider it happens to sit under.
  */
-export function WidgetScopeProvider<C extends string>({
+export function WidgetScopeProvider<Widget extends string>({
   widget,
   scope,
   children,
 }: {
-  widget: C;
-  scope: WidgetScope<C>;
+  widget: Widget;
+  scope: WidgetScope<Widget>;
   children?: ReactNode;
 }) {
   const value = useMemo(() => ({ widget, scope }), [widget, scope]);
@@ -43,10 +43,10 @@ export function WidgetScopeProvider<C extends string>({
  * outside one (a test, a probe): an augment must handle that, exactly as it
  * already handles a scope key the host has not resolved yet.
  */
-export function useWidgetScope<C extends string>(
-  componentId: C,
-): WidgetScope<C> | undefined {
+export function useWidgetScope<Widget extends string>(
+  componentId: Widget,
+): WidgetScope<Widget> | undefined {
   const published = useContext(WidgetScopeContext);
   if (!published || published.widget !== componentId) return undefined;
-  return published.scope as WidgetScope<C>;
+  return published.scope as WidgetScope<Widget>;
 }

@@ -18,14 +18,14 @@ import type { VersionRange } from "./version";
 
 export type CapabilityId = string;
 
-export interface CapabilityDescriptor<T = unknown> {
+export interface CapabilityDescriptor<Capability = unknown> {
   id: CapabilityId;
   /** One active provider (exclusive) vs many active providers (shared). */
   exclusive: boolean;
   /** A capability the spine cannot run without: unsatisfiable (no provider, no vanilla) halts resolve(). */
   spineCritical?: boolean;
   /** Always-present, lowest-priority fallback factory. */
-  vanilla?: (ctx: ProviderContext) => T;
+  vanilla?: (ctx: ProviderContext) => Capability;
 }
 
 export interface ProviderVersions {
@@ -34,7 +34,7 @@ export interface ProviderVersions {
   targetModVersionRange?: VersionRange;
 }
 
-export interface ProviderRegistration<T = unknown> {
+export interface ProviderRegistration<Capability = unknown> {
   capability: CapabilityId;
   id: string;
   /** Task 4: exclusive-conflict tie-breaking. */
@@ -58,12 +58,12 @@ export interface ProviderRegistration<T = unknown> {
    * that registered at all is normally claiming it can do the job.</p>
    */
   canServe?: () => boolean;
-  factory: (ctx: ProviderContext) => T;
+  factory: (ctx: ProviderContext) => Capability;
 }
 
 export interface ProviderContext {
   /** Resolve another (already-active) capability's single active instance. */
-  query<T>(capability: CapabilityId): T;
+  query<Capability>(capability: CapabilityId): Capability;
   /**
    * The capability's VANILLA instance, whether or not the vanilla won the
    * election, and including the election this factory is being run for.
@@ -83,6 +83,6 @@ export interface ProviderContext {
    * the fallback path. Throws when the capability declares no vanilla, and when a
    * vanilla factory asks for its own vanilla, which cannot terminate.
    */
-  vanilla<T>(capability: CapabilityId): T;
+  vanilla<Capability>(capability: CapabilityId): Capability;
   kernelVersion: string;
 }

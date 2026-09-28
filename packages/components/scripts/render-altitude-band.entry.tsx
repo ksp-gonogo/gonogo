@@ -78,7 +78,7 @@ interface FlightSample {
 /** The one-way light-time every sample is delivered across. */
 const LIGHT_TIME_SECONDS = VISIBLE_GAP_SECONDS;
 
-function point<T>(validAt: number, payload: T) {
+function point<Payload>(validAt: number, payload: Payload) {
   return {
     validAt,
     payload,

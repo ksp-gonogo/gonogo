@@ -13,7 +13,7 @@ import type { Value as ModelValue, Vector3 } from "./unit-system";
  * file existing at all is a remnant of that: the contract imports from here,
  * and pointing it at the model is the whole of the flip.
  */
-export type Value<U extends SitrepUnit = SitrepUnit> = ModelValue<U>;
+export type Value<Unit extends SitrepUnit = SitrepUnit> = ModelValue<Unit>;
 
 /**
  * A three-component vector whose components all share one unit.
@@ -30,4 +30,4 @@ export type Value<U extends SitrepUnit = SitrepUnit> = ModelValue<U>;
  * actually cross the wire. The difference is that a widget can now reach a
  * leaf and get something `<Unit>` will render.
  */
-export type Vec3Of<U extends SitrepUnit = SitrepUnit> = Vector3<U>;
+export type Vec3Of<Unit extends SitrepUnit = SitrepUnit> = Vector3<Unit>;

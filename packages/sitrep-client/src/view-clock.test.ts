@@ -241,7 +241,9 @@ describe("ViewClock", () => {
    * drive it instead.
    */
   describe("frame loop", () => {
-    function withStubbedRaf<T>(body: (runFrame: () => void) => T): T {
+    function withStubbedRaf<Result>(
+      body: (runFrame: () => void) => Result,
+    ): Result {
       const realRaf = globalThis.requestAnimationFrame;
       const realCaf = globalThis.cancelAnimationFrame;
       let pending: FrameRequestCallback | null = null;

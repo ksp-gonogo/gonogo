@@ -148,9 +148,9 @@ function resolveStreamBlock(fixture: Fixture): StreamFixtureBlock | undefined {
   return Array.isArray(raw.emits) ? raw : undefined;
 }
 
-interface SnapshotOpts<Cfg> {
+interface SnapshotOpts<Config> {
   /** Widget component to mount. */
-  Widget: React.ComponentType<ComponentProps<Cfg>>;
+  Widget: React.ComponentType<ComponentProps<Config>>;
   /** Fixture object: every non-`_`-prefixed key is emitted to the data source. */
   fixture: Fixture;
   /** Grid mode (drives `w`/`h` props and optional per-mode config overlay). */
@@ -158,7 +158,7 @@ interface SnapshotOpts<Cfg> {
   /** Override the instanceId used by `DashboardItemContext` (rarely needed). */
   instanceId?: string;
   /** Override the default config baseline (config overlay merges on top). */
-  defaultConfig?: Cfg;
+  defaultConfig?: Config;
   /** Forwarded to `setupMockDataSource`. Default `false`. */
   connectSource?: boolean;
   /**
@@ -410,12 +410,12 @@ async function flushProviderFrame(
  * Read from the registry each time because `setupMockDataSource` leaves the
  * component registry standing.
  */
-function baselineConfig<Cfg>(opts: SnapshotOpts<Cfg>): Cfg {
+function baselineConfig<Config>(opts: SnapshotOpts<Config>): Config {
   if (opts.defaultConfig !== undefined) return opts.defaultConfig;
   const registered = getComponents().find((def) =>
     Object.is(def.component, opts.Widget),
   )?.defaultConfig;
-  return (registered as Cfg | undefined) ?? ({} as Cfg);
+  return (registered as Config | undefined) ?? ({} as Config);
 }
 
 /** Grid-unit to pixel conversion, the same arithmetic `scripts/widgetRenderHarness.ts` sizes the playwright iframe with. */
@@ -466,8 +466,8 @@ export async function flushResizeObservers(): Promise<void> {
  * CSS-paint visuals live in the playwright PNGs.
  */
 export async function snapshotWidgetMode<
-  Cfg extends object = Record<string, unknown>,
->(opts: SnapshotOpts<Cfg>): Promise<string> {
+  Config extends object = Record<string, unknown>,
+>(opts: SnapshotOpts<Config>): Promise<string> {
   // As the probe does, so body-aware widgets resolve `Kerbin`, `Mun`, etc.
   registerStockBodies();
   const fixtureKeys = Object.keys(opts.fixture).filter(
@@ -485,9 +485,9 @@ export async function snapshotWidgetMode<
   const disarm = armStallWatchdog(`snapshot ${opts.mode.name}`);
 
   try {
-    const config: Cfg = {
+    const config: Config = {
       ...baselineConfig(opts),
-      ...((opts.mode.config ?? {}) as Cfg),
+      ...((opts.mode.config ?? {}) as Config),
     };
     const instanceId = opts.instanceId ?? "snap";
     const {
@@ -565,8 +565,8 @@ export interface RenderedWidget {
  * returning the live `container` and a `teardown()` the caller must run.
  */
 export async function renderWidgetMode<
-  Cfg extends object = Record<string, unknown>,
->(opts: SnapshotOpts<Cfg>): Promise<RenderedWidget> {
+  Config extends object = Record<string, unknown>,
+>(opts: SnapshotOpts<Config>): Promise<RenderedWidget> {
   registerStockBodies();
   const fixtureKeys = Object.keys(opts.fixture).filter(
     (k) => !k.startsWith("_"),
@@ -583,9 +583,9 @@ export async function renderWidgetMode<
   const disarm = armStallWatchdog(`render ${opts.mode.name}`);
 
   try {
-    const config: Cfg = {
+    const config: Config = {
       ...baselineConfig(opts),
-      ...((opts.mode.config ?? {}) as Cfg),
+      ...((opts.mode.config ?? {}) as Config),
     };
     const instanceId = opts.instanceId ?? "snap";
     const {

@@ -503,8 +503,8 @@ export class ProcessorRuntime {
     };
   }
 
-  value<R>(id: string): R | undefined {
-    return this.entries.get(id)?.value as R | undefined;
+  value<Result>(id: string): Result | undefined {
+    return this.entries.get(id)?.value as Result | undefined;
   }
 
   subscribe(id: string, cb: () => void): () => void {

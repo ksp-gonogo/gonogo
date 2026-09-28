@@ -49,33 +49,33 @@
 
 /** What a build produces: the value to publish, plus the physical pipeline's
  *  teardown/flush handles. `dispose` runs when the last lease releases. */
-export interface BuiltDelayedStream<R> {
-  result: R;
+export interface BuiltDelayedStream<Result> {
+  result: Result;
   dispose?(): void;
   flush?(): void;
 }
 
 /** Build context handed to the caller's build function. */
-export interface DelayedStreamBuildContext<C> {
+export interface DelayedStreamBuildContext<Contribution> {
   /** The first still-live lease's contribution, or `undefined` if every
    *  contributing lease has released. Call this PER USE (never hoist it),
    *  re-pointing away from an unmounted builder is the whole point. */
-  contribution(): C | undefined;
+  contribution(): Contribution | undefined;
 }
 
-export type DelayedStreamBuild<R, C> = (
-  ctx: DelayedStreamBuildContext<C>,
-) => Promise<BuiltDelayedStream<R>> | BuiltDelayedStream<R>;
+export type DelayedStreamBuild<Result, Contribution> = (
+  ctx: DelayedStreamBuildContext<Contribution>,
+) => Promise<BuiltDelayedStream<Result>> | BuiltDelayedStream<Result>;
 
 /** One consumer's handle on a shared entry. */
-export interface DelayedStreamLease<R, C> {
+export interface DelayedStreamLease<Result, Contribution> {
   /** The currently published result, or `undefined` while the build is in
    *  flight. */
-  get(): R | undefined;
+  get(): Result | undefined;
   /** Notified whenever the published result changes. */
   subscribe(cb: () => void): () => void;
   /** Update THIS lease's contribution (call on every render, cheap). */
-  setContribution(c: C): void;
+  setContribution(c: Contribution): void;
   /** Flush the shared pipeline (timeline reset). Affects every consumer,
    *  correct, since they share one buffer. */
   flush(): void;
@@ -83,13 +83,13 @@ export interface DelayedStreamLease<R, C> {
   release(): void;
 }
 
-interface Entry<R, C> {
-  built?: BuiltDelayedStream<R>;
-  result?: R;
+interface Entry<Result, Contribution> {
+  built?: BuiltDelayedStream<Result>;
+  result?: Result;
   settled: boolean;
   /** Live leases, in acquisition order: the Map's iteration order is what
    *  makes `contribution()` deterministic ("first still-live lease"). */
-  contributions: Map<object, C | undefined>;
+  contributions: Map<object, Contribution | undefined>;
   listeners: Set<() => void>;
 }
 
@@ -105,15 +105,18 @@ interface Entry<R, C> {
  * global: the media hook uses one shared instance; tests of the cache use
  * their own.
  */
-export class SharedDelayedStreams<R, C, K = object> {
-  private entries = new Map<K, Entry<R, C>>();
+export class SharedDelayedStreams<Result, Contribution, Key = object> {
+  private entries = new Map<Key, Entry<Result, Contribution>>();
 
   /**
    * Attach to the shared pipeline for `key`, building it if this is the
    * first consumer. `build` runs AT MOST once per entry, a second acquire
    * on a live key never builds.
    */
-  acquire(key: K, build: DelayedStreamBuild<R, C>): DelayedStreamLease<R, C> {
+  acquire(
+    key: Key,
+    build: DelayedStreamBuild<Result, Contribution>,
+  ): DelayedStreamLease<Result, Contribution> {
     const token = {};
     let entry = this.entries.get(key);
     const isFirst = entry === undefined;
@@ -129,7 +132,7 @@ export class SharedDelayedStreams<R, C, K = object> {
     e.contributions.set(token, undefined);
 
     if (isFirst) {
-      const ctx: DelayedStreamBuildContext<C> = {
+      const ctx: DelayedStreamBuildContext<Contribution> = {
         contribution: () => {
           for (const c of e.contributions.values()) {
             if (c !== undefined) return c;
@@ -137,7 +140,7 @@ export class SharedDelayedStreams<R, C, K = object> {
           return undefined;
         },
       };
-      const settle = (built: BuiltDelayedStream<R>) => {
+      const settle = (built: BuiltDelayedStream<Result>) => {
         // The last lease may have released while the build was in flight, dispose rather than publish a pipeline nobody is watching.
         if (this.entries.get(key) !== e) {
           built.dispose?.();
@@ -158,7 +161,9 @@ export class SharedDelayedStreams<R, C, K = object> {
       // main-thread backends), so a consumer sees the result in the same tick
       // it acquired: no spurious extra "connecting" frame. Only a genuinely
       // async build (the worker backend) settles on a later microtask.
-      let produced: Promise<BuiltDelayedStream<R>> | BuiltDelayedStream<R>;
+      let produced:
+        | Promise<BuiltDelayedStream<Result>>
+        | BuiltDelayedStream<Result>;
       try {
         produced = build(ctx);
       } catch {
@@ -206,7 +211,7 @@ export class SharedDelayedStreams<R, C, K = object> {
   }
 
   /** Whether `key` currently has a live shared entry. */
-  has(key: K): boolean {
+  has(key: Key): boolean {
     return this.entries.has(key);
   }
 }

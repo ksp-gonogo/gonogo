@@ -2,23 +2,23 @@ import { useCallback, useId } from "react";
 import styled from "styled-components";
 import { focusRing } from "./focusRing";
 
-export interface StepperProps<T> {
+export interface StepperProps<Option> {
   /**
    * The values this control may hold, in the order it steps through them.
    * Ascending is the convention, because the increment control is drawn on the
    * right and reads as "more".
    */
-  options: readonly T[];
+  options: readonly Option[];
   /** The value now held. One not present in `options` reads as off the set:
    * both step controls stay live and stepping lands on the nearest end. */
-  value: T;
-  onChange: (value: T) => void;
+  value: Option;
+  onChange: (value: Option) => void;
   /** Names the quantity for a screen reader, and both step controls take their
    * own names from it. */
   label: string;
   /** How a value reads. Defaults to `String`, which is right for a plain
    * integer and wrong for anything carrying a unit. */
-  format?: (value: T) => string;
+  format?: (value: Option) => string;
   disabled?: boolean;
   /** Sits under the value, for the sentence that explains what the setting
    * costs. */
@@ -37,7 +37,7 @@ export interface StepperProps<T> {
  * Up and right step forward, down and left step back, Home and End go to the
  * ends.
  */
-export function Stepper<T>({
+export function Stepper<Option>({
   options,
   value,
   onChange,
@@ -46,7 +46,7 @@ export function Stepper<T>({
   disabled = false,
   children,
   "data-testid": testId,
-}: StepperProps<T>) {
+}: StepperProps<Option>) {
   const describedBy = useId();
   const index = options.indexOf(value);
   const atStart = index <= 0;

@@ -62,7 +62,7 @@ function str(v: unknown): string {
 
 /** A producer that omitted a list sent nothing, not an empty list, and the
  * two read the same to everything downstream. */
-function list<T>(v: readonly T[] | undefined): readonly T[] {
+function list<Item>(v: readonly Item[] | undefined): readonly Item[] {
   return Array.isArray(v) ? v : [];
 }
 

@@ -27,9 +27,9 @@ import { useTelemetryClientOptional } from "./context";
  * `handler` may change identity every render without re-subscribing, the
  * latest one is always called (held in a ref), so callers need not memoize it.
  */
-export function useStreamEvent<T>(
+export function useStreamEvent<Payload>(
   topic: string,
-  handler: (payload: T) => void,
+  handler: (payload: Payload) => void,
 ): void {
   // Degrade to a no-op when no `TelemetryProvider` is mounted (disconnected),
   // same `*Optional` contract as `useStream`/`useTelemetry`.
@@ -46,7 +46,7 @@ export function useStreamEvent<T>(
     let replayingSticky = true;
     const unsubscribe = client.subscribe(topic, (payload) => {
       if (replayingSticky) return;
-      handlerRef.current(payload as T);
+      handlerRef.current(payload as Payload);
     });
     replayingSticky = false;
     return unsubscribe;

@@ -14,7 +14,7 @@ export interface Vec3 {
 }
 
 /** Unwraps a unit-carrying vector's components; an `as Vec3` cast would pass Values as numbers. */
-export function bare<U extends string>(v: Vec3Of<U>): Vec3 {
+export function bare<Unit extends string>(v: Vec3Of<Unit>): Vec3 {
   return { x: v.x.magnitude, y: v.y.magnitude, z: v.z.magnitude };
 }
 

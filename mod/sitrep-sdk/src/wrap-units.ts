@@ -60,7 +60,7 @@ import {
  * a registry of its own.
  */
 /**
- * A payload type restated as the mod SENDS it: every `Value<U>` back down to
+ * A payload type restated as the mod SENDS it: every `Value<Unit>` back down to
  * the plain number that actually crosses the wire, recursively, structure
  * otherwise untouched.
  *
@@ -70,23 +70,31 @@ import {
  * every existing import site is unchanged.
  *
  * `Value` is matched by its `magnitude`/`unit` pair rather than by name, so a
- * `Vec3Of<U>`'s three leaves collapse the same way its parent does.
+ * `Vec3Of<Unit>`'s three leaves collapse the same way its parent does.
  */
-export type WireOf<T> = T extends {
+export type WireOf<Shape> = Shape extends {
   readonly magnitude: number;
   readonly unit: string;
 }
   ? number
-  : T extends readonly (infer E)[]
-    ? WireOf<E>[]
-    : T extends (...args: never[]) => unknown
-      ? T
-      : T extends object
-        ? { [K in keyof T]: WireOf<T[K]> }
-        : T;
+  : Shape extends readonly (infer Element)[]
+    ? WireOf<Element>[]
+    : Shape extends (...args: never[]) => unknown
+      ? Shape
+      : Shape extends object
+        ? { [Key in keyof Shape]: WireOf<Shape[Key]> }
+        : Shape;
 
-export function wrapTopicPayload<P>(topic: TopicId, payload: WireOf<P>): P {
-  return wrap(topic, unitsForTopic(topic), shapesForTopic(topic), payload) as P;
+export function wrapTopicPayload<Payload>(
+  topic: TopicId,
+  payload: WireOf<Payload>,
+): Payload {
+  return wrap(
+    topic,
+    unitsForTopic(topic),
+    shapesForTopic(topic),
+    payload,
+  ) as Payload;
 }
 
 /**
@@ -94,21 +102,24 @@ export function wrapTopicPayload<P>(topic: TopicId, payload: WireOf<P>): P {
  * Topic. Nested shapes (`ThermalHottestPart`) are reachable this way and no
  * Topic names them.
  */
-export function wrapTypePayload<P>(typeName: string, payload: WireOf<P>): P {
+export function wrapTypePayload<Payload>(
+  typeName: string,
+  payload: WireOf<Payload>,
+): Payload {
   return wrap(
     typeName,
     unitsForType(typeName),
     shapesForType(typeName),
     payload,
-  ) as P;
+  ) as Payload;
 }
 
-function wrap<T>(
+function wrap<Payload>(
   owner: string,
   units: Readonly<Record<string, string>>,
   shapes: ShapesByField,
-  payload: T,
-): T {
+  payload: Payload,
+): Payload {
   if (payload === null || typeof payload !== "object") {
     return payload;
   }
@@ -296,7 +307,7 @@ function wrapScalarOrList(current: unknown, unit: string): unknown {
  * corrupt the state of whatever dispatched. So every container that contains a
  * quantity is rebuilt, and one that contains none is passed through untouched.
  */
-export function dehydrateArgs<T>(args: T): WireOf<T>;
+export function dehydrateArgs<Args>(args: Args): WireOf<Args>;
 /* The implementation walks an untyped tree, so it cannot state the conditional
    type the overload above promises. Declared as two signatures rather than
    asserted at the `return`, because an assertion out of `unknown` is what the
@@ -329,7 +340,7 @@ function dehydrate(args: unknown): unknown {
   return wire ?? args;
 }
 
-export function hydratePayload<T>(payload: T): T {
+export function hydratePayload<Payload>(payload: Payload): Payload {
   if (payload === null || typeof payload !== "object") {
     return payload;
   }

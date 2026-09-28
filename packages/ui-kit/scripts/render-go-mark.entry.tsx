@@ -17,7 +17,7 @@ import { type GoMarkSheet, SHEETS } from "./goMarkScenarios";
 
 const AT = value("ut", 42_000);
 
-function live<U extends string>(v: Value<U>): Reading<Value<U>> {
+function live<Unit extends string>(v: Value<Unit>): Reading<Value<Unit>> {
   return {
     state: "observed",
     value: v,
@@ -26,7 +26,7 @@ function live<U extends string>(v: Value<U>): Reading<Value<U>> {
   };
 }
 
-function held<U extends string>(v: Value<U>): Reading<Value<U>> {
+function held<Unit extends string>(v: Value<Unit>): Reading<Value<Unit>> {
   return {
     state: "stale",
     value: v,

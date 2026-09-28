@@ -5,19 +5,19 @@ import type { Value } from "@ksp-gonogo/sitrep-sdk";
  * halves share one unit, and the primitive divides them itself under a type
  * that refuses to cross dimensions.
  */
-export interface FillQuantity<U extends string = string> {
+export interface FillQuantity<Unit extends string = string> {
   /** How much there is now. */
-  amount: Value<U>;
+  amount: Value<Unit>;
   /** The full tank: what `amount` is read as a fraction of. */
-  capacity: Value<U>;
+  capacity: Value<Unit>;
 }
 
 /**
  * The pair, as the 0..1 a track is drawn from. `dividedBy` makes the quotient
  * dimensionless. A capacity of zero is no tank at all, so it yields `null`.
  */
-export function fillFraction<U extends string>(
-  pair: FillQuantity<U> | null,
+export function fillFraction<Unit extends string>(
+  pair: FillQuantity<Unit> | null,
 ): number | null {
   if (pair === null) return null;
   if (!pair.capacity.isPositive()) return null;

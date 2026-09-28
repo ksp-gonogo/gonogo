@@ -16,10 +16,10 @@ interface GroundPoint {
  * full-width horizontal line. The poles: a craft passing over one inverts its
  * longitude, and the pair either side would be stroked along the map edge.
  */
-export function splitOnDrawnLongitudeWrap<T extends GroundPoint>(
-  samples: readonly T[],
+export function splitOnDrawnLongitudeWrap<Point extends GroundPoint>(
+  samples: readonly Point[],
   longitudeOffsetDeg: number,
-): T[][] {
+): Point[][] {
   const seamSegments = splitOnLongitudeWrap(samples, 180, (sample) =>
     drawnLongitude(sample.lon, longitudeOffsetDeg),
   );
@@ -41,11 +41,11 @@ function drawnLongitude(lon: number, offsetDeg: number): number {
  * The result is a break, not a join: on this projection the pole is the whole
  * edge, and a join would run along it.
  */
-function splitOnPoleCrossing<T extends GroundPoint>(
-  samples: readonly T[],
-): T[][] {
+function splitOnPoleCrossing<Point extends GroundPoint>(
+  samples: readonly Point[],
+): Point[][] {
   if (samples.length === 0) return [];
-  const segments: T[][] = [[samples[0]]];
+  const segments: Point[][] = [[samples[0]]];
   for (let i = 1; i < samples.length; i++) {
     if (crossesAPole(samples[i - 1], samples[i])) segments.push([samples[i]]);
     else segments[segments.length - 1].push(samples[i]);

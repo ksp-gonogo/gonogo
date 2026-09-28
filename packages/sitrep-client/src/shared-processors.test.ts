@@ -29,8 +29,8 @@ import { ViewClock } from "./view-clock";
  * derived rather than about how current it is, and the currency has its own
  * tests, so this reaches the value on whichever arm carries one.
  */
-function derived<R>(id: string): R | undefined {
-  const reading = runtime.value<Reading<R>>(id);
+function derived<Result>(id: string): Result | undefined {
+  const reading = runtime.value<Reading<Result>>(id);
   if (reading === undefined) return undefined;
   return "value" in reading ? reading.value : undefined;
 }
@@ -64,7 +64,10 @@ function makeStore(): { store: TimelineStore; wall: FakeWallClock } {
   };
 }
 
-function point<T>(validAt: number, payload: T): TimelinePoint<T> {
+function point<Payload>(
+  validAt: number,
+  payload: Payload,
+): TimelinePoint<Payload> {
   return {
     validAt,
     payload,

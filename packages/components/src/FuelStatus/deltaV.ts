@@ -7,10 +7,10 @@ import type { DeltaVMode } from "./config";
 export const NO_STAGES: DeltaVStage[] = [];
 
 /** A budget figure as a reading dated as the budget it is part of; the budget's model is dropped because it speaks about the whole budget. */
-export function budgetFigure<U extends string>(
+export function budgetFigure<Unit extends string>(
   budget: Reading<DeltaVBudget>,
-  figure: Value<U>,
-): Reading<Value<U>> {
+  figure: Value<Unit>,
+): Reading<Value<Unit>> {
   return {
     state: budget.state,
     value: figure,

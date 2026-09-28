@@ -13,50 +13,50 @@ import { formatKspDate } from "./formatKspDate";
 type GeneratedUnit = keyof typeof GENERATED_UNIT_KINDS;
 
 /**
- * What the declaration says `S` measures, or `never` for a symbol nothing
+ * What the declaration says `Unit` measures, or `never` for a symbol nothing
  * declares.
  *
  * Every type in this module reads `UnitDeclarations` and nothing else, which is
  * what makes a unit an Uplink merges into it indistinguishable here from a
  * first-party one.
  */
-type KindOfSymbol<S extends string> = S extends DeclaredUnit
-  ? UnitDeclarations[S] extends { kind: infer K }
-    ? K
+type KindOfSymbol<Unit extends string> = Unit extends DeclaredUnit
+  ? UnitDeclarations[Unit] extends { kind: infer Kind }
+    ? Kind
     : never
   : never;
 
-/** Every declared symbol that measures `K`. */
-type SymbolsOfKind<K> = {
-  [S in DeclaredUnit]: KindOfSymbol<S> extends K ? S : never;
+/** Every declared symbol that measures `Kind`. */
+type SymbolsOfKind<Kind> = {
+  [Unit in DeclaredUnit]: KindOfSymbol<Unit> extends Kind ? Unit : never;
 }[DeclaredUnit];
 
-/** The ladder `S` is declared on, or `never` for a unit that climbs none. */
-type LadderOfSymbol<S extends string> = S extends DeclaredUnit
-  ? UnitDeclarations[S] extends { ladder: infer L extends string }
-    ? L
+/** The ladder `Unit` is declared on, or `never` for a unit that climbs none. */
+type LadderOfSymbol<Unit extends string> = Unit extends DeclaredUnit
+  ? UnitDeclarations[Unit] extends { ladder: infer Ladder extends string }
+    ? Ladder
     : never
   : never;
 
 /**
- * Every symbol of kind `K` that exists only as a conversion TARGET (`°C`),
+ * Every symbol of kind `Kind` that exists only as a conversion TARGET (`°C`),
  * which the declarations do not name and {@link kindOfConversion} still
  * resolves. A pair whose source is itself undeclared is skipped, or `°C→K`
  * would make every kind accept `K`.
  */
-type ConversionTargetsOfKind<K> = {
-  [P in keyof typeof CONVERSIONS]: P extends `${infer From}→${infer To}`
-    ? [KindOfSymbol<From>] extends [never]
+type ConversionTargetsOfKind<Kind> = {
+  [Conversion in keyof typeof CONVERSIONS]: Conversion extends `${infer Source}→${infer Target}`
+    ? [KindOfSymbol<Source>] extends [never]
       ? never
-      : [KindOfSymbol<From>] extends [K]
-        ? To
+      : [KindOfSymbol<Source>] extends [Kind]
+        ? Target
         : never
     : never;
 }[keyof typeof CONVERSIONS];
 
 /**
- * Every unit that measures the same thing as `U`, which is exactly the set a
- * value in `U` may be re-expressed in.
+ * Every unit that measures the same thing as `Unit`, which is exactly the set a
+ * value in `Unit` may be re-expressed in.
  *
  * This is what makes `format="km/h"` check on a speed and fail on a length. A
  * unit an Uplink declares in `UnitDeclarations` widens the accepted set.
@@ -64,32 +64,32 @@ type ConversionTargetsOfKind<K> = {
  * A literal symbol nothing declares accepts no format at all, since there is no
  * kind to check the request against. Only a wide `string` accepts any string.
  */
-export type FormatsFor<U extends string> = string extends U
+export type FormatsFor<Unit extends string> = string extends Unit
   ? string
-  : FormatsForKind<KindOfSymbol<U>>;
+  : FormatsForKind<KindOfSymbol<Unit>>;
 
 /**
  * {@link FormatsFor}, asked of the KIND rather than of one of its units, for a
  * pin addressed to a whole group that has no single unit to check against.
  */
-export type FormatsForKind<K> = SymbolsOfKind<K>;
+export type FormatsForKind<Kind> = SymbolsOfKind<Kind>;
 
 /**
- * Every unit a value in `U` may be SHOWN as, which is every unit of its kind
+ * Every unit a value in `Unit` may be SHOWN as, which is every unit of its kind
  * plus the presentation-only ones the conversion table reaches.
  *
  * Wider than {@link FormatsFor} by exactly the symbols that are not on the
  * wire: `format` pins a rung, `as` re-expresses, so `°C` belongs only to `as`.
  * Both refuse a cross-kind request: `as="kg"` on a length is an error.
  */
-export type PresentableAs<U extends string> = string extends U
+export type PresentableAs<Unit extends string> = string extends Unit
   ? string
-  : PresentableAsKind<KindOfSymbol<U>>;
+  : PresentableAsKind<KindOfSymbol<Unit>>;
 
 /** {@link PresentableAs}, asked of the KIND. See {@link FormatsForKind}. */
-export type PresentableAsKind<K> =
-  | SymbolsOfKind<K>
-  | ConversionTargetsOfKind<K>;
+export type PresentableAsKind<Kind> =
+  | SymbolsOfKind<Kind>
+  | ConversionTargetsOfKind<Kind>;
 
 /**
  * How many of the kind's BASE unit one of `symbol` is worth.
@@ -288,7 +288,7 @@ const laddersByName: Record<string, readonly Rung[]> = { ...LADDERS };
  * and `Mm` are one group and `s` and `min` are two.
  */
 export type LadderName = {
-  [S in DeclaredUnit]: LadderOfSymbol<S>;
+  [Unit in DeclaredUnit]: LadderOfSymbol<Unit>;
 }[DeclaredUnit];
 
 /**
@@ -303,24 +303,26 @@ export type LadderName = {
 export type UnitGroupKey =
   | LadderName
   | {
-      [S in DeclaredUnit]: [LadderOfSymbol<S>] extends [never] ? S : never;
+      [Unit in DeclaredUnit]: [LadderOfSymbol<Unit>] extends [never]
+        ? Unit
+        : never;
     }[DeclaredUnit];
 
 /**
- * What the group named by `G` measures, so a pin addressed to it can be checked.
+ * What the group named by `Group` measures, so a pin addressed to it can be checked.
  *
  * A ladder key measures whatever its units do; a unit key resolves through the
  * declarations the same way a lone `<Unit>` does.
  */
-export type KindOfGroup<G extends UnitGroupKey> = G extends LadderName
+export type KindOfGroup<Group extends UnitGroupKey> = Group extends LadderName
   ? {
-      [S in DeclaredUnit]: [LadderOfSymbol<S>] extends [G]
-        ? [LadderOfSymbol<S>] extends [never]
+      [Unit in DeclaredUnit]: [LadderOfSymbol<Unit>] extends [Group]
+        ? [LadderOfSymbol<Unit>] extends [never]
           ? never
-          : KindOfSymbol<S>
+          : KindOfSymbol<Unit>
         : never;
     }[DeclaredUnit]
-  : KindOfSymbol<G>;
+  : KindOfSymbol<Group>;
 
 /**
  * Kinds that render in scientific notation when nothing says otherwise: their

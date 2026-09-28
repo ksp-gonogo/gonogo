@@ -540,7 +540,7 @@ let activeViewClock:
 const mountedStores: TimelineStore[] = [];
 const mountedClients: TelemetryClient[] = [];
 
-function removeLast<T>(stack: T[], item: T): void {
+function removeLast<Item>(stack: Item[], item: Item): void {
   const index = stack.lastIndexOf(item);
   if (index >= 0) stack.splice(index, 1);
 }
@@ -896,14 +896,14 @@ function notifyActiveTelemetryClientListeners(): void {
  * or whether anything is still feeding the topic. Anything ACTING on the
  * answer rather than drawing it wants {@link sampleActiveReading} instead.
  */
-export function sampleActiveTopic<T>(topic: string): T | undefined {
+export function sampleActiveTopic<Payload>(topic: string): Payload | undefined {
   noteUndeclaredRead("sampleActiveTopic", topic);
   if (!activeTimelineStore) return undefined;
-  const point = activeTimelineStore.sample<T>(
+  const point = activeTimelineStore.sample<Payload>(
     topic,
     activeTimelineStore.currentFrame(),
   );
-  return point ? (point.payload as T | undefined) : undefined;
+  return point ? (point.payload as Payload | undefined) : undefined;
 }
 
 /**
@@ -936,9 +936,11 @@ const NO_PROVIDER_READING = topicReading<never>({
  * Answers `pending` when no provider has ever mounted, matching what
  * `useTelemetry` returns outside a provider.
  */
-export function sampleActiveReading<T>(topic: string): TopicReading<T> {
-  if (!activeTimelineStore) return NO_PROVIDER_READING as TopicReading<T>;
-  return activeTimelineStore.sampleReading<T>(
+export function sampleActiveReading<Payload>(
+  topic: string,
+): TopicReading<Payload> {
+  if (!activeTimelineStore) return NO_PROVIDER_READING as TopicReading<Payload>;
+  return activeTimelineStore.sampleReading<Payload>(
     topic,
     activeTimelineStore.currentFrame(),
   );

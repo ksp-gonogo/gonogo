@@ -67,10 +67,10 @@ function asValue(unit: SitrepUnit, magnitude: number | undefined) {
 }
 
 const row = <
-  T extends SettingType = "boolean",
+  SettingKind extends SettingType = "boolean",
   Topic extends TopicId = TopicId,
 >(
-  def: SettingDefinitionOf<T, Topic>,
+  def: SettingDefinitionOf<SettingKind, Topic>,
 ): SettingDefinition => def as SettingDefinition;
 
 const ROWS: readonly SettingDefinition[] = [

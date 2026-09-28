@@ -18,12 +18,12 @@ import { VisuallyHidden } from "./VisuallyHidden";
  */
 export const INTERVAL_DASH = "–";
 
-export interface BandProps<U extends string = string>
-  extends Pick<UnitProps<U>, "decimals" | "format" | "as"> {
+export interface BandProps<UnitSymbol extends string = string>
+  extends Pick<UnitProps<UnitSymbol>, "decimals" | "format" | "as"> {
   /** The low end of the interval. */
-  min?: Value<U> | null;
+  min?: Value<UnitSymbol> | null;
   /** The high end. */
-  max?: Value<U> | null;
+  max?: Value<UnitSymbol> | null;
   /**
    * The modulus of a circular quantity, in the value's own unit: 360 for an
    * angle in degrees. Supplying it is what lets the band say a quantity went all
@@ -52,13 +52,13 @@ export interface BandProps<U extends string = string>
  * spanning half the turn or more renders as precessing rather than as an
  * interval like `0° - 359°`.</p>
  */
-export function Band<U extends string = string>({
+export function Band<UnitSymbol extends string = string>({
   min,
   max,
   wrapsAt,
   className,
   ...pins
-}: BandProps<U>) {
+}: BandProps<UnitSymbol>) {
   const low = magnitudeOf(min);
   const high = magnitudeOf(max);
 
@@ -90,13 +90,13 @@ export function Band<U extends string = string>({
  * <p>Both ends report to the group in every branch, so the group's answer
  * cannot depend on the branch chosen from it.</p>
  */
-function BandEnds<U extends string = string>({
+function BandEnds<UnitSymbol extends string = string>({
   min,
   max,
   className,
 }: {
-  min: Value<U>;
-  max: Value<U>;
+  min: Value<UnitSymbol>;
+  max: Value<UnitSymbol>;
   className?: string;
 }) {
   // Reported bare: pins here would take each end out of the group.

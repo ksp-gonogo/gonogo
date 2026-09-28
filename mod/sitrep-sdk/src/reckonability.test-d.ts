@@ -13,7 +13,7 @@
 // the most-read documentation in that file). Redefining one as an alias of the
 // other loses that prose; a type-level equality is the cheapest thing that fails
 // when the two sets drift. And the field unions have to be real keys of the real
-// payloads, because `ReckonableReading<T, K>` constrains `K extends keyof T`: a
+// payloads, because `ReckonableReading<Payload, ReckonableKey>` constrains `ReckonableKey extends keyof Payload`: a
 // stale generated field name must be a compile error at the wiring point rather
 // than a `Pick` that silently yields `{}`.
 
@@ -22,11 +22,13 @@ import type { ReckoningBasis } from "./reading";
 import type { ReckonableFields, ReckonableTopic } from "./reckonability";
 import type { TopicId, TopicPayload } from "./topics";
 
-type Equal<A, B> =
-  (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2
+type Equal<Left, Right> =
+  (<Probe>() => Probe extends Left ? 1 : 2) extends <
+    Probe,
+  >() => Probe extends Right ? 1 : 2
     ? true
     : false;
-type Expect<T extends true> = T;
+type Expect<Condition extends true> = Condition;
 
 // The hand-written union and the generated catalogue name the same models.
 type _BasisSetsAgree = Expect<Equal<ReckoningBasis, GeneratedReckoningBasis>>;
@@ -69,9 +71,9 @@ type _UnmarkedIsNever = Expect<Equal<ReckonableFields<"system.bodies">, never>>;
 
 // Each declared field is a real key of its real payload. This is the assertion
 // that turns a codegen typo into a compile error rather than an empty `Pick`.
-type KeysHold<T extends ReckonableTopic> = Equal<
-  Extract<ReckonableFields<T>, keyof TopicPayload<T>>,
-  ReckonableFields<T>
+type KeysHold<Topic extends ReckonableTopic> = Equal<
+  Extract<ReckonableFields<Topic>, keyof TopicPayload<Topic>>,
+  ReckonableFields<Topic>
 >;
 type _TargetKeys = Expect<KeysHold<"vessel.target">>;
 type _DockKeys = Expect<KeysHold<"vessel.dock">>;

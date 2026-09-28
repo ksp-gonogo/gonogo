@@ -117,19 +117,19 @@ class FakeTimelineStore {
   private onPad = false;
   private frameListeners = new Set<() => void>();
 
-  sample<T>(topic: string): TimelinePoint<T> | undefined {
+  sample<Payload>(topic: string): TimelinePoint<Payload> | undefined {
     if (topic !== "vessel.identity") return undefined;
     return {
       validAt: 0,
       epoch: 0,
-      meta: {} as TimelinePoint<T>["meta"],
+      meta: {} as TimelinePoint<Payload>["meta"],
       payload: {
         situation: this.onPad ? Situation.PreLaunch : Situation.Flying,
         launchUt:
           this.onPad || this.met === null
             ? null
             : { magnitude: VIEW_UT - this.met },
-      } as T,
+      } as Payload,
     };
   }
   /*
@@ -139,8 +139,8 @@ class FakeTimelineStore {
    * arrived on it. Hand-writing the union here would let the fake answer a
    * currency question this store has no way to know.
    */
-  sampleReading<T>(topic: string): TopicReading<T> {
-    return readingFrom<T>(this.sample<T>(topic), "live", {
+  sampleReading<Payload>(topic: string): TopicReading<Payload> {
+    return readingFrom<Payload>(this.sample<Payload>(topic), "live", {
       reckonUt: 0,
       receivedUt: 0,
     });
@@ -194,17 +194,17 @@ async function drainDispatch(): Promise<void> {
  * what it sent instead. `PeerMessage` is a discriminated union, so narrowing on
  * `type` is what gives the assertions below the fields they read.
  */
-function lastBroadcast<T extends PeerMessage["type"]>(
+function lastBroadcast<MessageType extends PeerMessage["type"]>(
   host: FakeHost,
-  type: T,
-): Extract<PeerMessage, { type: T }> {
+  type: MessageType,
+): Extract<PeerMessage, { type: MessageType }> {
   const msg = host.broadcasts.at(-1);
   if (!msg || msg.type !== type) {
     throw new Error(
       `expected a ${type} broadcast, got: ${msg?.type ?? "none"}`,
     );
   }
-  return msg as Extract<PeerMessage, { type: T }>;
+  return msg as Extract<PeerMessage, { type: MessageType }>;
 }
 
 describe("GoNoGoHostService", () => {

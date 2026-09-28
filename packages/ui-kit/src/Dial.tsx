@@ -10,7 +10,7 @@
  * SVG face is `aria-hidden`.
  *
  * The whole axis is one kind: `value`, `min`, `max`, every zone bound and every
- * tick are `Value<U>` of the same unit, and the centre readout writes that unit
+ * tick are `Value<Unit>` of the same unit, and the centre readout writes that unit
  * itself.
  */
 
@@ -27,27 +27,27 @@ import { NULL_DISPLAY } from "./NullValue";
 import { resolveCurrency, type UnitValue } from "./readingCurrency";
 import { type FormatsFor, speakQuantity, writeQuantity } from "./units";
 
-export interface DialZone<U extends string = string> {
+export interface DialZone<Unit extends string = string> {
   /** Lower bound of the coloured arc segment. */
-  from: Value<U>;
+  from: Value<Unit>;
   /** Upper bound of the coloured arc segment. */
-  to: Value<U>;
+  to: Value<Unit>;
   /** Arc colour. */
   color: string;
 }
 
-export interface DialTick<U extends string = string> {
+export interface DialTick<Unit extends string = string> {
   /** Value at which to draw the tick. */
-  value: Value<U>;
+  value: Value<Unit>;
   /** Optional short label (e.g. "N", "E"). */
   label?: string;
 }
 
-export interface DialProps<U extends string = string> {
+export interface DialProps<Unit extends string = string> {
   /** Current value: the needle position, or the whole reading it arrived in. */
-  value: UnitValue<U>;
-  min: Value<U>;
-  max: Value<U>;
+  value: UnitValue<Unit>;
+  min: Value<Unit>;
+  max: Value<Unit>;
   width?: number;
   height?: number;
   /** Degrees clockwise from up where `min` sits. Default 0 (top). */
@@ -56,13 +56,13 @@ export interface DialProps<U extends string = string> {
   sweep?: number;
   /** Treat the value as wrapping (compass): value is taken modulo the range. */
   wrap?: boolean;
-  zones?: ReadonlyArray<DialZone<U>>;
-  ticks?: ReadonlyArray<DialTick<U>>;
+  zones?: ReadonlyArray<DialZone<Unit>>;
+  ticks?: ReadonlyArray<DialTick<Unit>>;
   /**
    * Pin the rung the centre readout is written at, for the cases where
    * convention beats magnitude. Absent, the value's own kind decides.
    */
-  format?: FormatsFor<U>;
+  format?: FormatsFor<Unit>;
   /** Centre label override. Defaults to the value, written with its unit. */
   valueLabel?: string;
   needleColor?: string;
@@ -99,7 +99,7 @@ function arcPath(
   return `M ${p0.x.toFixed(2)} ${p0.y.toFixed(2)} A ${r} ${r} 0 ${largeArc} ${sweepFlag} ${p1.x.toFixed(2)} ${p1.y.toFixed(2)}`;
 }
 
-export function Dial<U extends string = string>({
+export function Dial<Unit extends string = string>({
   value,
   min,
   max,
@@ -115,7 +115,7 @@ export function Dial<U extends string = string>({
   needleColor = "var(--color-text-primary)",
   trackColor = "var(--color-border-subtle)",
   ariaLabel,
-}: Readonly<DialProps<U>>) {
+}: Readonly<DialProps<Unit>>) {
   const { shown, held, caption, band } = resolveCurrency(value);
 
   // The axis, unwrapped once into the face's angular geometry; every figure a reader sees goes back out through the unit layer.
@@ -155,8 +155,8 @@ export function Dial<U extends string = string>({
    * converts before it compares), then onto the face. Zone order and emptiness
    * are decided on quantities, since angles would flip under a negative sweep.
    */
-  const onAxis = (q: Value<U>): Value<U> => q.max(min).min(max);
-  const onFace = (q: Value<U>): number => angleOf(q.magnitude);
+  const onAxis = (q: Value<Unit>): Value<Unit> => q.max(min).min(max);
+  const onFace = (q: Value<Unit>): number => angleOf(q.magnitude);
 
   // Compared as fractions of the sweep, from the angles the marks are drawn at.
   const onSweep = (angle: number): number =>

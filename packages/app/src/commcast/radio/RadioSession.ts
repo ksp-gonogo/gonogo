@@ -677,10 +677,14 @@ export class RadioSession {
  * always in order, so this is one comparison per chunk rather than a search.
  * An equal `seq` (a repeated frame) goes after the one already there.
  */
-function insertBySeq<T>(list: T[], item: T, seqOf: (item: T) => number): void {
+function insertBySeq<Entry>(
+  list: Entry[],
+  item: Entry,
+  seqOf: (item: Entry) => number,
+): void {
   const seq = seqOf(item);
   let at = list.length;
-  while (at > 0 && seqOf(list[at - 1] as T) > seq) at -= 1;
+  while (at > 0 && seqOf(list[at - 1] as Entry) > seq) at -= 1;
   list.splice(at, 0, item);
 }
 

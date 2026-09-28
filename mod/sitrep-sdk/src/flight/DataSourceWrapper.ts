@@ -20,15 +20,15 @@ import type {
  * source) can rename themselves without shadowing a getter.
  */
 export abstract class DataSourceWrapper<
-  TConfig extends Record<string, unknown> = Record<string, unknown>,
-> implements DataSource<TConfig>
+  Config extends Record<string, unknown> = Record<string, unknown>,
+> implements DataSource<Config>
 {
   readonly id: string;
   readonly name: string;
-  protected readonly real: DataSource<TConfig>;
+  protected readonly real: DataSource<Config>;
 
   constructor(
-    real: DataSource<TConfig>,
+    real: DataSource<Config>,
     opts: { id?: string; name?: string } = {},
   ) {
     this.real = real;
@@ -64,7 +64,7 @@ export abstract class DataSourceWrapper<
     this.real.configure(config);
   }
 
-  getConfig(): TConfig {
+  getConfig(): Config {
     return this.real.getConfig();
   }
 

@@ -34,13 +34,13 @@ function makeHandle(
   };
 }
 
-type Deferred<T = CommandReplyLike> = ReturnType<typeof deferred<T>>;
+type Deferred<Reply = CommandReplyLike> = ReturnType<typeof deferred<Reply>>;
 
 /** A dispatch the test settles by hand, which is what a delay window IS. */
-function deferred<T = CommandReplyLike>() {
-  let resolve!: (v: T) => void;
+function deferred<Reply = CommandReplyLike>() {
+  let resolve!: (v: Reply) => void;
   let reject!: (e: unknown) => void;
-  const promise = new Promise<T>((res, rej) => {
+  const promise = new Promise<Reply>((res, rej) => {
     resolve = res;
     reject = rej;
   });

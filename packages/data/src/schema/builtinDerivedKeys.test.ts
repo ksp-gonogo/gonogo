@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { Sample } from "../types";
 import { registerBuiltinDerivedKeys } from "./builtinDerivedKeys";
 
-function sample<V>(v: V, t = 1000): Sample<V> {
+function sample<Payload>(v: Payload, t = 1000): Sample<Payload> {
   return { t, v };
 }
 

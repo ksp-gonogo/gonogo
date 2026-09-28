@@ -41,7 +41,7 @@ export function useModalChrome(footer: ReactNode, dirty: boolean): void {
   }, [setDirty, dirty]);
 }
 
-export interface ModalSaveBarOptions<TValue> {
+export interface ModalSaveBarOptions<Draft> {
   /** Fired when the user confirms the save. Typically the config's handleSave. */
   onSave: () => void;
   /**
@@ -49,13 +49,13 @@ export interface ModalSaveBarOptions<TValue> {
    * config object. Compared against both the value at open time (the baseline)
    * and the persisted `saved` config to derive the dirty flag.
    */
-  value: TValue;
+  value: Draft;
   /**
    * The currently-persisted config (the `config` prop). Used so an async data
    * shift that reconverges the draft to a saved value reads as clean, even if
    * it briefly diverged from the open-time baseline.
    */
-  saved: TValue;
+  saved: Draft;
   /** Save button label. Defaults to "Save". */
   saveLabel?: ReactNode;
   /** Optional extra buttons rendered to the left of Save (e.g. Cancel). */
@@ -80,13 +80,13 @@ export interface ModalSaveBarOptions<TValue> {
  *
  * Renders nothing where it is called, and is a no-op outside a modal.
  */
-export function useModalSaveBar<TValue>(
-  options: Readonly<ModalSaveBarOptions<TValue>>,
+export function useModalSaveBar<Draft>(
+  options: Readonly<ModalSaveBarOptions<Draft>>,
 ): void {
   const { onSave, value, saved, saveLabel = "Save", extra, disabled } = options;
 
   // Wrapped in an object, so a falsy first value still counts as captured.
-  const baselineRef = useRef<{ v: TValue } | null>(null);
+  const baselineRef = useRef<{ v: Draft } | null>(null);
   if (baselineRef.current === null) baselineRef.current = { v: value };
 
   const dirty =

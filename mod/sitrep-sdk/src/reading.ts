@@ -72,13 +72,13 @@ export type ReckoningBasis =
  * was made at (`Reading`'s `asOfUt` carries that). Both are needed: an operator
  * reads a modelled figure against how far it has been carried.
  */
-export interface TopicReckoningAvailable<T> {
+export interface TopicReckoningAvailable<Payload> {
   /**
    * The discriminant, spelled the same way {@link Reckoning}'s is so a caller
    * asks one question of a topic and of a field.
    */
   readonly status: "available";
-  value: T;
+  value: Payload;
   atUt: Value<"ut">;
   /**
    * Whether `atUt` is past the edge the observation was received at by a gap an
@@ -147,8 +147,8 @@ export interface TopicReckoningAvailable<T> {
  * which input failed it, where an undeclared topic's `"none"` explains nothing
  * because nothing promised it a model.
  */
-export type TopicReckoning<T> =
-  | TopicReckoningAvailable<T>
+export type TopicReckoning<Payload> =
+  | TopicReckoningAvailable<Payload>
   | { readonly status: "none" }
   | { readonly status: "declined"; readonly declined: ReckoningDecline };
 
@@ -161,8 +161,8 @@ export type TopicReckoning<T> =
  * `"none"` here is what makes that promise a compile-time fact rather than a
  * convention.
  */
-export type DeclaredTopicReckoning<T> = Exclude<
-  TopicReckoning<T>,
+export type DeclaredTopicReckoning<Payload> = Exclude<
+  TopicReckoning<Payload>,
   { readonly status: "none" }
 >;
 
@@ -225,13 +225,13 @@ export type BandKind = "bound" | "sigma1";
  * call site. A producer must keep it equal to the value it reckoned for that
  * path; `bandIsWellFormed` is the check, and the store's own suite asserts it.
  */
-export interface UncertaintyBand<U extends string = string> {
+export interface UncertaintyBand<Unit extends string = string> {
   /** The model's point estimate: the same number `reckon` produced here. */
-  readonly value: Value<U>;
+  readonly value: Value<Unit>;
   /** The low end. Never above `value`. */
-  readonly lo: Value<U>;
+  readonly lo: Value<Unit>;
   /** The high end. Never below `value`. */
-  readonly hi: Value<U>;
+  readonly hi: Value<Unit>;
   readonly kind: BandKind;
 }
 
@@ -262,17 +262,17 @@ export type ReckonedBands = {
  * find out would defeat the pull. A model that does not cover the payload root
  * cannot answer for a whole-topic read, so that read stays `stale`.
  *
- * `R` is what the pull ANSWERS WITH, and it defaults to the whole payload
+ * `Projection` is what the pull ANSWERS WITH, and it defaults to the whole payload
  * because that is what a whole-topic model produces. A model declared per VALUE
- * answers with the projection of the fields it moves instead, so `R` is
- * `Pick<T, K>` there. Two parameters rather than one because the coverage claim
- * is still about paths on `T` whichever shape the answer takes.
+ * answers with the projection of the fields it moves instead, so `Projection` is
+ * `Pick<Payload, ReckonableKey>` there. Two parameters rather than one because the coverage claim
+ * is still about paths on `Payload` whichever shape the answer takes.
  */
-export interface TopicModel<T, R = T> {
+export interface TopicModel<Payload, Projection = Payload> {
   /** Paths this model moves. Empty claims nothing and is never offered. */
   readonly modelled: readonly ModelledField[];
   /** Run the model for `viewUt`. Pure: same inputs, same answer. */
-  reckon(viewUt: number): R;
+  reckon(viewUt: number): Projection;
   /**
    * How well the model knows its answer for `viewUt`, per path. Optional, and
    * `undefined` is the honest answer for a model that cannot bound its own
@@ -364,11 +364,11 @@ export interface ReckoningDecline {
  * tell those apart from the outside, and they are the two things an operator
  * most wants said.
  *
- * `R` is the projection the model produces, which for a declared value is
- * `Pick<T, K>` rather than the whole payload. See {@link ReckonableReading}.
+ * `Projection` is the projection the model produces, which for a declared value is
+ * `Pick<Payload, ReckonableKey>` rather than the whole payload. See {@link ReckonableReading}.
  */
-export type ReckonerAnswer<T, R = T> =
-  | TopicModel<T, R>
+export type ReckonerAnswer<Payload, Projection = Payload> =
+  | TopicModel<Payload, Projection>
   | { readonly declined: ReckoningDecline };
 
 /**
@@ -575,8 +575,11 @@ export type ReckonerAnswer<T, R = T> =
  * admit the possibility of two of them disagreeing, which is exactly what the
  * single-view-time invariant and `FrameToken` exist to prevent.
  */
-export type TopicReading<P> = TopicCurrency<P, TopicReckoning<P>> &
-  TopicFields<P>;
+export type TopicReading<Payload> = TopicCurrency<
+  Payload,
+  TopicReckoning<Payload>
+> &
+  TopicFields<Payload>;
 
 /**
  * The currency half of a topic reading: the observation, when it was made, and
@@ -590,8 +593,8 @@ export type TopicReading<P> = TopicCurrency<P, TopicReckoning<P>> &
  * forward, so admitting `"available"` there would be admitting a modelled
  * value with nothing behind it.
  *
- * `Rk` is which reckoning arms the value-bearing states may carry, and it
- * defaults to `unknown` deliberately: `TopicCurrency<P>` unparameterised is the
+ * `ReckoningShape` is which reckoning arms the value-bearing states may carry, and it
+ * defaults to `unknown` deliberately: `TopicCurrency<Payload>` unparameterised is the
  * WIDEST topic reading, so it is what a consumer that reads only the
  * observation should ask for, and every reading in the system satisfies it
  * without the caller having to know which kind it was handed.
@@ -601,7 +604,7 @@ export type TopicReading<P> = TopicCurrency<P, TopicReckoning<P>> &
  * "a declared value always says something about the model" a fact the compiler
  * holds rather than a convention.
  */
-export type TopicCurrency<P, Rk = unknown> =
+export type TopicCurrency<Payload, ReckoningShape = unknown> =
   | { state: "pending"; reckoning: { readonly status: "none" } }
   | { state: "unowned"; reckoning: { readonly status: "none" } }
   | {
@@ -612,18 +615,18 @@ export type TopicCurrency<P, Rk = unknown> =
   | {
       state: "observed";
       /** The observation itself. Never a modelled value; see `reckoning`. */
-      value: P;
+      value: Payload;
       atUt: Value<"ut">;
-      reckoning: Rk;
+      reckoning: ReckoningShape;
     }
   | {
       state: "stale";
       /** The last REAL observation. Never a modelled value. */
-      value: P;
+      value: Payload;
       /** The UT that observation was made at. */
       asOfUt: Value<"ut">;
       grade: StaleGrade;
-      reckoning: Rk;
+      reckoning: ReckoningShape;
     };
 
 /**
@@ -668,21 +671,21 @@ export type TopicCurrency<P, Rk = unknown> =
  * reserved name to excuse. `styleguide-reserved-reading-keys.test.ts` keeps the
  * two spellings of the key list in step meanwhile.
  *
- * An array payload is indexed rather than mapped: mapping `keyof P` over one
+ * An array payload is indexed rather than mapped: mapping `keyof Payload` over one
  * would claim a `Reading` at `length`, `map` and every other array member.
  */
-export type TopicFields<P> = P extends Quantityish
+export type TopicFields<Payload> = Payload extends Quantityish
   ? unknown
-  : P extends readonly (infer Element)[]
+  : Payload extends readonly (infer Element)[]
     ? { readonly [index: number]: FieldReading<Element> }
-    : P extends (...args: never[]) => unknown
+    : Payload extends (...args: never[]) => unknown
       ? unknown
-      : P extends object
+      : Payload extends object
         ? {
-            readonly [K in Exclude<
-              keyof P,
+            readonly [Key in Exclude<
+              keyof Payload,
               ReservedReadingKey
-            >]-?: FieldReading<NonNullable<P[K]>>;
+            >]-?: FieldReading<NonNullable<Payload[Key]>>;
           }
         : unknown;
 
@@ -703,7 +706,7 @@ export type TopicFields<P> = P extends Quantityish
  * - **A quantity is a LEAF.** `Value` is an object with `magnitude`, `unit` and
  *   a dozen methods, and recursing into one would claim a `Reading` at `abs`
  *   and `max`. That exact nonsense compiled for a week when `Unit` and `Meter`
- *   were typed over `TopicReading<Value<U>>`, so it is named rather than left
+ *   were typed over `TopicReading<Value<Unit>>`, so it is named rather than left
  *   to the `object` branch to get right by luck
  * - **A function is a leaf**, for the same reason one step further out
  * - **An array is INDEXED, never mapped.** Mapping `keyof` over one would claim
@@ -719,7 +722,7 @@ export type TopicFields<P> = P extends Quantityish
  * slice's codegen leg names its own excused ones, which is why no list of them
  * belongs here.
  */
-export type FieldReading<V> = Reading<V> & TopicFields<V>;
+export type FieldReading<Payload> = Reading<Payload> & TopicFields<Payload>;
 
 /**
  * The structural shape of a quantity, which recursion stops at.
@@ -760,11 +763,11 @@ export type ReservedReadingKey =
  * defend, and inventing one is a claim about how well a number is known made by
  * something that does not know. See {@link ReckonedBands}.
  */
-export type Reckoning<V> =
+export type Reckoning<Payload> =
   | {
       readonly status: "available";
       /** What the model says the value is at {@link atUt}. */
-      readonly modelled: V;
+      readonly modelled: Payload;
       /** The instant `modelled` is for: the frame's SCET. */
       readonly atUt: Value<"ut">;
       /** See {@link TopicReckoningAvailable.beyondReceived}. */
@@ -788,21 +791,21 @@ export type Reckoning<V> =
  * `value` is present on `observed` and `stale` and absent on the other three,
  * so reaching it still costs a written branch.
  */
-export interface Reading<V> {
+export interface Reading<Payload> {
   readonly state: ReadingState;
   /** The last REAL observation. Never a modelled value; see `reckoning`. */
-  readonly value?: V;
+  readonly value?: Payload;
   /** When the observation was made, on `absent` and `observed`. */
   readonly atUt?: Value<"ut">;
   /** When the observation was made, on `stale`. */
   readonly asOfUt?: Value<"ut">;
   readonly grade?: StaleGrade;
-  readonly reckoning: Reckoning<V>;
+  readonly reckoning: Reckoning<Payload>;
 }
 
 /**
- * One RECKONABLE topic's value AND its currency, where `T` is the payload and
- * `K` the fields the contract declares a model can carry forward.
+ * One RECKONABLE topic's value AND its currency, where `Payload` is the payload and
+ * `ReckonableKey` the fields the contract declares a model can carry forward.
  *
  * It is {@link Reading}'s arms with two differences and only two: `reckoned` is
  * the PROJECTION rather than the payload, and the value-bearing `"none"` arms
@@ -817,7 +820,7 @@ export interface Reading<V> {
  * propagates the first and copies the second would otherwise hand a caller a
  * whole payload labelled "modelled". {@link Reckoning.modelled} says which paths
  * moved, and it says so at runtime, in a field nothing forces a caller to read.
- * `Reckoning<Pick<T, K>>` says the same thing to the COMPILER: reading a field
+ * `Reckoning<Pick<Payload, ReckonableKey>>` says the same thing to the COMPILER: reading a field
  * no model moves off `reckoned` does not typecheck, so the mistake cannot be
  * made rather than merely being documented.
  *
@@ -854,10 +857,10 @@ export interface Reading<V> {
  * runtime "is this topic reckonable" flag) is pass one, and it is what this
  * type replaces.
  *
- * ## Deliberately NOT assignable to `Reading<T>`
+ * ## Deliberately NOT assignable to `Reading<Payload>`
  *
- * `Reckoning<Pick<T, K>>` is not a `Reckoning<T>`, so handing one of these to
- * something typed `Reading<T>` fails to compile. That is the point: the callee
+ * `Reckoning<Pick<Payload, ReckonableKey>>` is not a `Reckoning<Payload>`, so handing one of these to
+ * something typed `Reading<Payload>` fails to compile. That is the point: the callee
  * would be entitled to read the whole payload off the model. The observed
  * payload overlaid by the modelled fields is
  * `{ ...reading.value, ...reading.reckoning.value }`, written at the call site
@@ -867,7 +870,7 @@ export interface Reading<V> {
  * ## The two mistakes this prevents, both made in one afternoon
  *
  * Written down because the rule above was in front of both of them and read
- * past twice. `K` is what a model MOVES. It is not what the model returns, and
+ * past twice. `ReckonableKey` is what a model MOVES. It is not what the model returns, and
  * it is not the payload it happens to have in hand.
  *
  * 1. **Returning the whole payload from `reckon`.** Tempting, because a
@@ -886,11 +889,14 @@ export interface Reading<V> {
  * this tree were doing exactly that, having been written years earlier against
  * a topic no model touched, and the projection caught all of them at once.
  */
-export type ReckonableReading<T, K extends keyof T> = TopicCurrency<
-  T,
-  DeclaredTopicReckoning<Pick<T, K>>
+export type ReckonableReading<
+  Payload,
+  ReckonableKey extends keyof Payload,
+> = TopicCurrency<
+  Payload,
+  DeclaredTopicReckoning<Pick<Payload, ReckonableKey>>
 > &
-  TopicFields<T>;
+  TopicFields<Payload>;
 
 /**
  * Which kind of missed-update a stale reading is. A FIELD rather than more arms:
@@ -983,20 +989,20 @@ export type ReadingReckoning = Reckoning<unknown>["status"];
  * opted out of.
  */
 // The ReckonableReading overload comes FIRST, and the order is load-bearing.
-// `Reading<Pick<T, K>>` accepts a `ReckonableReading<T, K>` by inference (the
-// observation is a `T`, and a `T` is assignable to its own projection), so the
+// `Reading<Pick<Payload, ReckonableKey>>` accepts a `ReckonableReading<Payload, ReckonableKey>` by inference (the
+// observation is a `Payload`, and a `Payload` is assignable to its own projection), so the
 // wider declaration first would silently narrow the answer to the projection.
 // The reverse cannot happen: a plain `Reading` has no `declined` on its
 // value-bearing `"none"` arms, which this type requires.
-export function withoutReckoning<T, K extends keyof T>(
-  reading: ReckonableReading<T, K>,
-): UnmodelledReading<T>;
-export function withoutReckoning<T>(
-  reading: TopicReading<T>,
-): UnmodelledReading<T>;
-export function withoutReckoning<T>(
-  reading: TopicReading<T> | ReckonableReading<T, keyof T>,
-): UnmodelledReading<T> {
+export function withoutReckoning<Payload, ReckonableKey extends keyof Payload>(
+  reading: ReckonableReading<Payload, ReckonableKey>,
+): UnmodelledReading<Payload>;
+export function withoutReckoning<Payload>(
+  reading: TopicReading<Payload>,
+): UnmodelledReading<Payload>;
+export function withoutReckoning<Payload>(
+  reading: TopicReading<Payload> | ReckonableReading<Payload, keyof Payload>,
+): UnmodelledReading<Payload> {
   /*
    * The SAME object where there was nothing to drop, because a widget calling
    * this on an unmodelled reading must not pay a new identity for it: the store
@@ -1006,7 +1012,7 @@ export function withoutReckoning<T>(
    * carrying it, so the compiler still holds the wider member type.
    */
   if (reading.reckoning.status === "none")
-    return reading as UnmodelledReading<T>;
+    return reading as UnmodelledReading<Payload>;
   if (reading.state === "pending" || reading.state === "unowned") {
     return topicReading({
       state: reading.state,
@@ -1050,11 +1056,11 @@ export function withoutReckoning<T>(
  * things produce one: a topic declared unmodellable, and any reading a widget
  * has run {@link withoutReckoning} over.
  */
-export type UnmodelledReading<T> = TopicCurrency<
-  T,
+export type UnmodelledReading<Payload> = TopicCurrency<
+  Payload,
   { readonly status: "none" }
 > &
-  TopicFields<T>;
+  TopicFields<Payload>;
 
 /**
  * The value of an OBSERVED reading, and `undefined` on every other arm.
@@ -1086,12 +1092,14 @@ export type UnmodelledReading<T> = TopicCurrency<
  */
 /*
  * The ReckonableReading overload comes FIRST, for the same load-bearing reason
- * `withoutReckoning`'s does: `Reading<Pick<T, K>>` accepts a
- * `ReckonableReading<T, K>` by inference, so declaring the wider one first would
+ * `withoutReckoning`'s does: `Reading<Pick<Payload, ReckonableKey>>` accepts a
+ * `ReckonableReading<Payload, ReckonableKey>` by inference, so declaring the wider one first would
  * type the OBSERVATION as the projection the model moves, and a caller reading
  * any other field of the payload it actually holds would fail to compile.
  */
-export function observedValue<T>(reading: TopicCurrency<T>): T | undefined {
+export function observedValue<Payload>(
+  reading: TopicCurrency<Payload>,
+): Payload | undefined {
   return reading.state === "observed" ? reading.value : undefined;
 }
 
@@ -1109,10 +1117,10 @@ export function observedValue<T>(reading: TopicCurrency<T>): T | undefined {
  * propellant level, a temperature) is not still true once the link has gone
  * quiet, and belongs to {@link observedValue} or to a dated read instead.
  */
-export function stillTrue<T, A>(
-  reading: TopicCurrency<T>,
-  whenConfirmedNothing: A,
-): T | A | undefined {
+export function stillTrue<Payload, Fallback>(
+  reading: TopicCurrency<Payload>,
+  whenConfirmedNothing: Fallback,
+): Payload | Fallback | undefined {
   if (reading.state === "observed") return reading.value;
   if (reading.state === "stale") return reading.value;
   if (reading.state === "absent") return whenConfirmedNothing;
@@ -1124,7 +1132,7 @@ export function stillTrue<T, A>(
  * narrowing to write when a primitive draws a single field and has to know
  * whether that field is current.
  *
- * `<Unit>` takes a `Reading<Value<U>>`, and a widget holds a
+ * `<Unit>` takes a `Reading<Value<Unit>>`, and a widget holds a
  * `Reading<VesselOrbit>`. Without this, reaching the first from the second
  * means a switch over the arms at every call site, and a switch written 373
  * times is one that gets written wrongly somewhere: the arm most likely to be
@@ -1149,18 +1157,22 @@ export function stillTrue<T, A>(
  * projection over as its own `Value`, which is a written choice and shows up in
  * review.
  */
-export function readingOf<T, K extends keyof T, R>(
-  reading: ReckonableReading<T, K>,
-  select: (payload: T) => R,
-): UnmodelledReading<R>;
-export function readingOf<T, R>(
-  reading: TopicReading<T>,
-  select: (payload: T) => R,
-): UnmodelledReading<R>;
-export function readingOf<T, R>(
-  reading: TopicReading<T> | ReckonableReading<T, keyof T>,
-  select: (payload: T) => R,
-): UnmodelledReading<R> {
+export function readingOf<
+  Payload,
+  ReckonableKey extends keyof Payload,
+  Selected,
+>(
+  reading: ReckonableReading<Payload, ReckonableKey>,
+  select: (payload: Payload) => Selected,
+): UnmodelledReading<Selected>;
+export function readingOf<Payload, Selected>(
+  reading: TopicReading<Payload>,
+  select: (payload: Payload) => Selected,
+): UnmodelledReading<Selected>;
+export function readingOf<Payload, Selected>(
+  reading: TopicReading<Payload> | ReckonableReading<Payload, keyof Payload>,
+  select: (payload: Payload) => Selected,
+): UnmodelledReading<Selected> {
   if (reading.state === "observed") {
     return topicReading({
       state: "observed",
@@ -1205,24 +1217,28 @@ export function readingOf<T, R>(
  * modelled arm itself rather than handing one selector to both.
  */
 // The ReckonableReading overload comes FIRST, for the same reason `withoutReckoning`'s does.
-export function deriveReading<T, K extends keyof T, R>(
-  source: ReckonableReading<T, K>,
-  observed: (value: T) => R | undefined,
-  reckoned: (modelled: T, atUt: Value<"ut">) => R | undefined,
-): Reading<R>;
-export function deriveReading<T, R>(
-  source: TopicCurrency<T, TopicReckoning<T>>,
-  observed: (value: T) => R | undefined,
-  reckoned: (modelled: T, atUt: Value<"ut">) => R | undefined,
-): Reading<R>;
-export function deriveReading<T, R>(
+export function deriveReading<
+  Payload,
+  ReckonableKey extends keyof Payload,
+  Derived,
+>(
+  source: ReckonableReading<Payload, ReckonableKey>,
+  observed: (value: Payload) => Derived | undefined,
+  reckoned: (modelled: Payload, atUt: Value<"ut">) => Derived | undefined,
+): Reading<Derived>;
+export function deriveReading<Payload, Derived>(
+  source: TopicCurrency<Payload, TopicReckoning<Payload>>,
+  observed: (value: Payload) => Derived | undefined,
+  reckoned: (modelled: Payload, atUt: Value<"ut">) => Derived | undefined,
+): Reading<Derived>;
+export function deriveReading<Payload, Derived>(
   source: TopicCurrency<
-    T,
-    TopicReckoning<T> | DeclaredTopicReckoning<Partial<T>>
+    Payload,
+    TopicReckoning<Payload> | DeclaredTopicReckoning<Partial<Payload>>
   >,
-  observed: (value: T) => R | undefined,
-  reckoned: (modelled: T, atUt: Value<"ut">) => R | undefined,
-): Reading<R> {
+  observed: (value: Payload) => Derived | undefined,
+  reckoned: (modelled: Payload, atUt: Value<"ut">) => Derived | undefined,
+): Reading<Derived> {
   if (source.state === "pending" || source.state === "unowned") {
     return { state: source.state, reckoning: { status: "none" } };
   }
@@ -1251,11 +1267,11 @@ export function deriveReading<T, R>(
   };
 }
 
-function derivedReckoning<T, R>(
-  value: T,
-  reckoning: TopicReckoning<T> | DeclaredTopicReckoning<Partial<T>>,
-  reckoned: (modelled: T, atUt: Value<"ut">) => R | undefined,
-): Reckoning<R> {
+function derivedReckoning<Payload, Derived>(
+  value: Payload,
+  reckoning: TopicReckoning<Payload> | DeclaredTopicReckoning<Partial<Payload>>,
+  reckoned: (modelled: Payload, atUt: Value<"ut">) => Derived | undefined,
+): Reckoning<Derived> {
   if (reckoning.status === "declined") {
     return { status: "declined", declined: reckoning.declined };
   }
@@ -1276,19 +1292,19 @@ function derivedReckoning<T, R>(
  * `pick` runs on the observation and on the modelled value alike, which is
  * sound only because both are the same type.
  */
-export function pickReading<V, R>(
-  reading: Reading<V>,
-  pick: (value: V) => R | undefined,
-): Reading<R> {
+export function pickReading<Payload, Picked>(
+  reading: Reading<Payload>,
+  pick: (value: Payload) => Picked | undefined,
+): Reading<Picked> {
   const value = reading.value === undefined ? undefined : pick(reading.value);
   const reckoning = pickedReckoning(reading.reckoning, pick);
   return { ...reading, value, reckoning };
 }
 
-function pickedReckoning<V, R>(
-  reckoning: Reckoning<V>,
-  pick: (value: V) => R | undefined,
-): Reckoning<R> {
+function pickedReckoning<Payload, Picked>(
+  reckoning: Reckoning<Payload>,
+  pick: (value: Payload) => Picked | undefined,
+): Reckoning<Picked> {
   if (reckoning.status !== "available") return reckoning;
   const modelled = pick(reckoning.modelled);
   if (modelled === undefined) return { status: "none" };
@@ -1424,15 +1440,15 @@ function projectField(
  * the currency's, so `{ ...reading }` is what it has always been. Reach a field
  * off the reading itself.
  */
-export function topicReading<P>(
-  currency: TopicCurrency<P, { readonly status: "none" }>,
-): UnmodelledReading<P>;
-export function topicReading<P>(
-  currency: TopicCurrency<P, TopicReckoning<P>>,
-): TopicReading<P>;
-export function topicReading<P>(
-  currency: TopicCurrency<P, { readonly status: string }>,
-): TopicReading<P> {
+export function topicReading<Payload>(
+  currency: TopicCurrency<Payload, { readonly status: "none" }>,
+): UnmodelledReading<Payload>;
+export function topicReading<Payload>(
+  currency: TopicCurrency<Payload, TopicReckoning<Payload>>,
+): TopicReading<Payload>;
+export function topicReading<Payload>(
+  currency: TopicCurrency<Payload, { readonly status: string }>,
+): TopicReading<Payload> {
   const cache = new Map<string, Reading<unknown>>();
   return new Proxy(currency, {
     get(target, prop, receiver) {
@@ -1444,7 +1460,7 @@ export function topicReading<P>(
         cache,
       );
     },
-  }) as TopicReading<P>;
+  }) as TopicReading<Payload>;
 }
 
 /**
@@ -1557,10 +1573,10 @@ export function bandFor(
  * what `"verticalSpeed"` is in, so the mismatch arm here is the only thing that
  * ever knew, and it stays the check rather than a backstop for one.
  */
-export function bandIn<U extends string, V extends string = string>(
-  band: UncertaintyBand<V> | undefined,
-  unit: U,
-): UncertaintyBand<U> | undefined {
+export function bandIn<Unit extends string, SourceUnit extends string = string>(
+  band: UncertaintyBand<SourceUnit> | undefined,
+  unit: Unit,
+): UncertaintyBand<Unit> | undefined {
   if (!band || !bandIsWellFormed(band)) return undefined;
   /*
    * NARROWED, not rebuilt and not cast. `isUnit` is a type predicate over the
@@ -1571,8 +1587,8 @@ export function bandIn<U extends string, V extends string = string>(
    * is handed and says nothing about its siblings. That reads as redundant
    * against `bandIsWellFormed`, which has already established all three share
    * a unit, and it is not: what it establishes is that they agree with EACH
-   * OTHER, and the runtime knows nothing of `U`. Asking about each is what
-   * lets the three be returned as an `UncertaintyBand<U>` with no assertion
+   * OTHER, and the runtime knows nothing of `Unit`. Asking about each is what
+   * lets the three be returned as an `UncertaintyBand<Unit>` with no assertion
    * anywhere.
    */
   if (
@@ -1599,8 +1615,8 @@ export function bandIn<U extends string, V extends string = string>(
  * making a strong claim, not an ill-formed one, and a quantised or
  * integer-valued quantity is the honest case for it.
  */
-export function bandIsWellFormed<U extends string>(
-  band: UncertaintyBand<U>,
+export function bandIsWellFormed<Unit extends string>(
+  band: UncertaintyBand<Unit>,
 ): boolean {
   const { value: v, lo, hi } = band;
   if (lo.unit !== v.unit || hi.unit !== v.unit) return false;
@@ -1623,13 +1639,13 @@ export function bandIsWellFormed<U extends string>(
  * limit has not crossed it, and treating equality as unresolved would make
  * every band that happens to close on a round number unresolvable.
  *
- * Both arguments share `U`, so the two units are the same string and compare
+ * Both arguments share `Unit`, so the two units are the same string and compare
  * directly. That is why there is no conversion here and no cast: a mismatch is
  * not representable in the signature.
  */
-export function bandSide<U extends string>(
-  band: UncertaintyBand<U>,
-  threshold: Value<U>,
+export function bandSide<Unit extends string>(
+  band: UncertaintyBand<Unit>,
+  threshold: Value<Unit>,
 ): "below" | "above" | "straddles" {
   if (band.hi.lessThanOrEqual(threshold)) return "below";
   if (band.lo.greaterThanOrEqual(threshold)) return "above";
@@ -1662,8 +1678,8 @@ export function bandSide<U extends string>(
  * than on this: `pending` may become true on the next frame and `unowned` never
  * will. This answers "should the gate be open", not "what should I say".
  *
- * Takes the discriminant rather than `Reading<T>`, because it reads nothing
- * else and because the callers that need it most cannot supply a `Reading<T>`:
+ * Takes the discriminant rather than `Reading<Payload>`, because it reads nothing
+ * else and because the callers that need it most cannot supply a `Reading<Payload>`:
  * a presence gate reads `` `${domain}.available` `` through a runtime `as
  * TopicId` cast, so its reading is the union over EVERY topic and unifies with
  * no single `T`.
@@ -1706,8 +1722,8 @@ export function hasAnswered(reading: {
  * how far a modelled figure has been carried is the same number whether or not
  * the model that carried it was declared in the contract.
  */
-export function observedAt<T>(
-  reading: TopicCurrency<T>,
+export function observedAt<Payload>(
+  reading: TopicCurrency<Payload>,
 ): Value<"ut"> | undefined {
   switch (reading.state) {
     case "pending":
@@ -1745,11 +1761,11 @@ export function observedAt<T>(
  * `Reading`'s doc says about `"available"` being the statement of trust rests
  * on this argument existing.
  */
-export type ReckonerFor<T> = (
-  point: TimelinePoint<T>,
+export type ReckonerFor<Payload> = (
+  point: TimelinePoint<Payload>,
   grade: StaleGrade | undefined,
   reckonUt: number,
-) => TopicModel<T> | undefined;
+) => TopicModel<Payload> | undefined;
 
 /**
  * What one declared dependency resolves to when the STORE resolves it for a
@@ -1767,23 +1783,23 @@ export type ReckonerFor<T> = (
  * not on rails), and a payload-only resolution would hide it behind an
  * `undefined` the reckoner could not tell from an absent channel.
  */
-type ResolvedReckonerDep<D extends Dep> =
-  D extends ProcessorHandle<infer R>
-    ? R
-    : D extends ReadingDep<infer T>
-      ? Reading<TopicPayload<T>>
+type ResolvedReckonerDep<Dependency extends Dep> =
+  Dependency extends ProcessorHandle<infer Result>
+    ? Result
+    : Dependency extends ReadingDep<infer Topic>
+      ? Reading<TopicPayload<Topic>>
       : /*
          * A subject dep resolves to the same `TimelinePoint | undefined` a plain
          * Topic id does, so a model destructures both the same way and nothing
          * inside it has to know which kind it was handed. The payload comes from
          * the dep's own parameter rather than from `TopicPayload`: the topic is
          * computed per subject, so it has no member in the generated map to look
-         * up, exactly as a dynamic `useStream<T>` read states its own type.
+         * up, exactly as a dynamic `useStream<Payload>` read states its own type.
          */
-        D extends SubjectDep<infer P>
-        ? TimelinePoint<P> | undefined
-        : D extends TopicId
-          ? TimelinePoint<TopicPayload<D>> | undefined
+        Dependency extends SubjectDep<infer Payload>
+        ? TimelinePoint<Payload> | undefined
+        : Dependency extends TopicId
+          ? TimelinePoint<TopicPayload<Dependency>> | undefined
           : never;
 
 /**
@@ -1890,7 +1906,7 @@ export type WindowableDep<Deps extends readonly Dep[]> = Extract<
  * parameter used to allow one level up.
  */
 export type DepWindows<Deps extends readonly Dep[]> = {
-  readonly [K in WindowableDep<Deps>]?: DepWindow;
+  readonly [Dependency in WindowableDep<Deps>]?: DepWindow;
 };
 
 /**
@@ -1907,15 +1923,15 @@ export type ResolvedReckonerDeps<
   Deps extends readonly Dep[],
   Windowed extends TopicId = never,
 > = {
-  [K in keyof Deps]: Deps[K] extends Dep
-    ? Deps[K] extends Windowed
-      ? readonly TimelinePoint<TopicPayload<Extract<Deps[K], TopicId>>>[]
-      : ResolvedReckonerDep<Deps[K]>
+  [Index in keyof Deps]: Deps[Index] extends Dep
+    ? Deps[Index] extends Windowed
+      ? readonly TimelinePoint<TopicPayload<Extract<Deps[Index], TopicId>>>[]
+      : ResolvedReckonerDep<Deps[Index]>
     : never;
 };
 
 /** What a reckoner is told about the frame it is running for, beyond its inputs. */
-export interface ReckonerFrame<T = unknown> {
+export interface ReckonerFrame<Payload = unknown> {
   /** `undefined` when the reading is LIVE; see {@link ReckonerFor}. */
   readonly grade: StaleGrade | undefined;
   /** The instant the model is being asked to reach: the frame's SCET. */
@@ -1942,7 +1958,7 @@ export interface ReckonerFrame<T = unknown> {
    * blackout are not the same regime, and a model handed both would draw a
    * trend through an outage it has no readings for.
    */
-  readonly history: readonly TimelinePoint<T>[];
+  readonly history: readonly TimelinePoint<Payload>[];
 }
 
 /**
@@ -2097,8 +2113,8 @@ export interface ReckonerExemptions {
  * not evidence.
  */
 export interface ReckonerDefinition<
-  T,
-  R = T,
+  Payload,
+  Projection = Payload,
   Deps extends readonly Dep[] = readonly Dep[],
   Windows extends DepWindows<Deps> = Record<never, never>,
 > {
@@ -2126,10 +2142,10 @@ export interface ReckonerDefinition<
    * it is asked whether a model exists and what it covers.
    */
   reckon(
-    point: TimelinePoint<T>,
+    point: TimelinePoint<Payload>,
     resolved: ResolvedReckonerDeps<Deps, Extract<keyof Windows, TopicId>>,
-    frame: ReckonerFrame<T>,
-  ): ReckonerAnswer<T, R>;
+    frame: ReckonerFrame<Payload>,
+  ): ReckonerAnswer<Payload, Projection>;
 }
 
 /**

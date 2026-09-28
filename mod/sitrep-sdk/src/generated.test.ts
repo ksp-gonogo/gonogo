@@ -10,7 +10,7 @@ const src = readFileSync(
 
 describe("generated contract.ts", () => {
   it("is an ES module (export, no `module` wrapper)", () => {
-    expect(src).toMatch(/export interface StreamData<T>/);
+    expect(src).toMatch(/export interface StreamData<Payload>/);
     expect(src).not.toMatch(/^\s*module /m);
     // no I-prefix on ANY generated interface (AutoI(false) convention)
     expect(src).not.toMatch(/\binterface I[A-Z]/);
@@ -33,9 +33,9 @@ describe("generated contract.ts", () => {
     expect(src).toMatch(/type:\s*"unsubscribe"/);
   });
   it("emits all generics", () => {
-    expect(src).toMatch(/export interface CommandRequest<TArgs>/);
-    expect(src).toMatch(/export interface CommandResponse<TResult>/);
-    expect(src).toMatch(/export interface StreamData<T>/);
+    expect(src).toMatch(/export interface CommandRequest<Args>/);
+    expect(src).toMatch(/export interface CommandResponse<Result>/);
+    expect(src).toMatch(/export interface StreamData<Payload>/);
   });
   it("emits optional properties", () => {
     expect(src).toMatch(/requestId\?:/);
@@ -53,7 +53,7 @@ describe("generated contract.ts", () => {
     expect(src).not.toMatch(/Fail\s*\(/);
     // generic result renamed to avoid a TS2428 arity clash with its base
     expect(src).toMatch(
-      /export interface CommandResultOf<T> extends CommandResult\b/,
+      /export interface CommandResultOf<Payload> extends CommandResult\b/,
     );
   });
   it("emits the wire enums", () => {
@@ -73,8 +73,8 @@ describe("generated contract.ts", () => {
 // every annotation, so the assertion covers all of them rather than a handful
 // someone remembered to write down.
 //
-// Three shapes carry a unit: a scalar becomes `Value<U>`, a sequence of
-// same-unit readings takes it inside the array, and a Vec3 becomes `Vec3Of<U>`
+// Three shapes carry a unit: a scalar becomes `Value<Unit>`, a sequence of
+// same-unit readings takes it inside the array, and a Vec3 becomes `Vec3Of<Unit>`
 // with the unit on its x/y/z leaves. The one exemption is the non-quantity
 // tokens, pinned separately below: a vessel name has no magnitude to carry.
 

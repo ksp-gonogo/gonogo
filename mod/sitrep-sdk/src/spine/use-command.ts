@@ -117,13 +117,13 @@ interface PendingUplinkQueueLike {
 }
 
 /**
- * The dispatch handle. `TArgs`/`TReply` come from the generated command map when
+ * The dispatch handle. `Args`/`Reply` come from the generated command map when
  * the hook was given a known `CommandId`.
  *
- * `TReply` falls back to {@link AnyCommandReply}, the result envelope, rather
+ * `Reply` falls back to {@link AnyCommandReply}, the result envelope, rather
  * than to `unknown`: see that type for why. It is what a handle addressed by a
  * computed string, or reached through a prop declared bare, still knows about
- * its own answer. `TArgs` has no such floor and stays `unknown`, because there
+ * its own answer. `Args` has no such floor and stays `unknown`, because there
  * is nothing every command's arguments have in common.
  *
  * `send` is declared method-style rather than as a property holding a function,
@@ -132,7 +132,7 @@ interface PendingUplinkQueueLike {
  * `strictFunctionTypes` checks the parameter contravariantly and every typed
  * handle stops being a handle.
  */
-export interface UseCommandResult<TArgs = unknown, TReply = AnyCommandReply> {
+export interface UseCommandResult<Args = unknown, Reply = AnyCommandReply> {
   /**
    * `opts.label` is an opaque, operator-facing description of the command
    * (e.g. line-mode's composed line text) threaded straight through to
@@ -143,10 +143,7 @@ export interface UseCommandResult<TArgs = unknown, TReply = AnyCommandReply> {
    * for a terminal-scoped command), threaded through the same way, no role
    * in dispatch, correlation, or loss inference.
    */
-  send(
-    args?: TArgs,
-    opts?: { label?: string; topic?: string },
-  ): Promise<TReply>;
+  send(args?: Args, opts?: { label?: string; topic?: string }): Promise<Reply>;
   status: CommandStatus;
   /**
    * Every dispatch this hook has made that hasn't yet resolved cleanly,
@@ -395,9 +392,9 @@ function resolveTracked(
  * already a different type on `@ksp-gonogo/ui-kit`'s delay rail, which an Uplink
  * imports from in the same file.
  */
-export type UseCommandResultFor<C extends CommandId> = UseCommandResult<
-  CommandArgs<C>,
-  CommandReply<C>
+export type UseCommandResultFor<Command extends CommandId> = UseCommandResult<
+  CommandArgs<Command>,
+  CommandReply<Command>
 >;
 
 /**
@@ -420,14 +417,14 @@ export type UseCommandResultFor<C extends CommandId> = UseCommandResult<
  * always returned. See the `useCommand` re-export in `../api` for the author's
  * account of that split.
  */
-export function useCommand<C extends CommandId>(
-  command: C,
+export function useCommand<Command extends CommandId>(
+  command: Command,
   options?: UseCommandOptions,
-): UseCommandResult<CommandArgs<C>, CommandReply<C>>;
-export function useCommand<TArgs = unknown, TReply = AnyCommandReply>(
+): UseCommandResult<CommandArgs<Command>, CommandReply<Command>>;
+export function useCommand<Args = unknown, Reply = AnyCommandReply>(
   command: string,
   options?: UseCommandOptions,
-): UseCommandResult<TArgs, TReply>;
+): UseCommandResult<Args, Reply>;
 export function useCommand(
   command: string,
   options?: UseCommandOptions,

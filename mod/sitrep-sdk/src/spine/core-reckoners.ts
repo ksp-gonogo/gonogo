@@ -117,8 +117,8 @@ function elapsedOrDecline(
  * a `Vec3` field can arrive `null` outright, and `finite` below is what turns
  * either into a decline rather than into arithmetic on nothing.
  */
-function components<U extends string>(
-  v: Vector3<U> | null | undefined,
+function components<Unit extends string>(
+  v: Vector3<Unit> | null | undefined,
 ): [number, number, number] {
   return [
     magnitudeOr(v?.x, Number.NaN),
@@ -770,7 +770,7 @@ function registerOrbitReckoner(): void {
           const anomalies = trySolveAnomalies(elements, at);
           /*
            * The two moved fields and NOTHING else. `ReckonableReading`'s
-           * `Pick<T, K>` is what makes that the shape: returning the whole
+           * `Pick<Payload, ReckonableKey>` is what makes that the shape: returning the whole
            * payload would hand a caller "a whole payload labelled modelled",
            * which is the mistake that projection exists to make impossible.
            * A consumer wanting a whole orbit overlays them on the observation

@@ -262,7 +262,7 @@ export function aPlainReadingOwesNoReason(r: TopicReading<number>) {
 /*
  * Neither union is assignable to the other, and the failing direction is the
  * load-bearing one: handing a reckonable reading to something typed
- * `TopicReading<T>` would entitle the callee to read the whole payload off the
+ * `TopicReading<Payload>` would entitle the callee to read the whole payload off the
  * model. This is the inverse of `wideningIsFine` above, and it has to stay an
  * error for the projection to mean anything.
  */
@@ -281,8 +281,8 @@ export const aReadingIsNotReckonable: ReckonableReading<
  * `observedValue` answers with the OBSERVATION on either union, and on the
  * reckonable one that means the whole payload rather than the projection.
  *
- * This is the assertion the overload ORDER exists for. `TopicReading<Pick<T, K>>`
- * accepts a `ReckonableReading<T, K>` by inference, so with the wider overload
+ * This is the assertion the overload ORDER exists for. `TopicReading<Pick<Payload, ReckonableKey>>`
+ * accepts a `ReckonableReading<Payload, ReckonableKey>` by inference, so with the wider overload
  * declared first the observation would come back typed as the fields the model
  * moves, and `situation` (which no model moves, and which the observation
  * plainly carries) would stop compiling. Reading it here is what would fail.

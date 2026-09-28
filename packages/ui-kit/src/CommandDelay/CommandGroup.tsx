@@ -3,10 +3,10 @@ import styled, { css } from "styled-components";
 import { focusRing } from "../focusRing";
 import { VisuallyHidden } from "../VisuallyHidden";
 
-interface CommandGroupOwnProps<V extends Record<string, unknown>> {
-  value: V;
+interface CommandGroupOwnProps<GroupValue extends Record<string, unknown>> {
+  value: GroupValue;
   /** Fired exactly once, with the group's current `value`, on an explicit commit; never on a child input's own change. */
-  onCommit: (v: V) => void;
+  onCommit: (v: GroupValue) => void;
   /** `no-path`: marks the commit control unavailable and switches it to an error tone. It stays focusable and says why; `onCommit` never fires while gated. */
   gated?: boolean;
   /** The group's own inputs (wheels/sliders/etc.): this component owns none of their rendering. */
@@ -48,8 +48,8 @@ type CommandGroupCommitNaming =
   | { commitLabel?: string; commitAriaLabel?: string }
   | { commitLabel: ReactNode; commitAriaLabel: string };
 
-export type CommandGroupProps<V extends Record<string, unknown>> =
-  CommandGroupOwnProps<V> & CommandGroupCommitNaming;
+export type CommandGroupProps<GroupValue extends Record<string, unknown>> =
+  CommandGroupOwnProps<GroupValue> & CommandGroupCommitNaming;
 
 /**
  * Grouped-confirm (select-then-commit) primitive: child inputs write into the
@@ -58,7 +58,7 @@ export type CommandGroupProps<V extends Record<string, unknown>> =
  * the group, not one per input. It has no data hooks and no dispatch of its
  * own.
  */
-export function CommandGroup<V extends Record<string, unknown>>({
+export function CommandGroup<GroupValue extends Record<string, unknown>>({
   value,
   onCommit,
   gated = false,
@@ -68,7 +68,7 @@ export function CommandGroup<V extends Record<string, unknown>>({
   gatedReason = "No path: command dispatch is disabled",
   orientation = "column",
   wrap = true,
-}: CommandGroupProps<V>) {
+}: CommandGroupProps<GroupValue>) {
   // The types refuse a nameless glyph commit; this catches a spread props bag the checker could not see.
   const named =
     typeof commitLabel === "string" || typeof commitLabel === "number";

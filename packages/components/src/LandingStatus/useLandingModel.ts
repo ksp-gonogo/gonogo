@@ -92,7 +92,7 @@ export function useLandingModel(): LandingModel {
    *
    * Losing contact mid-descent is the expected case, so the board is never blanked.
    */
-  const describe = <T>(r: TopicReading<T>): T | undefined =>
+  const describe = <Payload>(r: TopicReading<Payload>): Payload | undefined =>
     r.reckoning.status === "available"
       ? r.reckoning.value
       : r.state === "observed" || r.state === "stale"
@@ -100,9 +100,9 @@ export function useLandingModel(): LandingModel {
         : undefined;
 
   /** The same policy for a contract-reckonable topic, overlaying the fields the model moves onto the observation; `reckoned.value` alone lacks every number the board descends on. */
-  const describeReckonable = <T, K extends keyof T>(
-    r: ReckonableReading<T, K>,
-  ): T | undefined => {
+  const describeReckonable = <Payload, ReckonableKey extends keyof Payload>(
+    r: ReckonableReading<Payload, ReckonableKey>,
+  ): Payload | undefined => {
     // `reckoning.status` narrows the reckoning, not the arm carrying it.
     if (r.state !== "observed" && r.state !== "stale") return undefined;
     return r.reckoning.status === "available"

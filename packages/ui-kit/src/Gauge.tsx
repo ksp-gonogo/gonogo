@@ -12,29 +12,29 @@ import { NULL_DISPLAY } from "./NullValue";
 import { resolveCurrency, type UnitValue } from "./readingCurrency";
 import { type FormatsFor, speakQuantity, writeQuantity } from "./units";
 
-export interface GaugeZone<U extends string = string> {
+export interface GaugeZone<Unit extends string = string> {
   /** Lower bound of the zone (inclusive). */
-  from: Value<U>;
+  from: Value<Unit>;
   /** Upper bound of the zone (exclusive at the top end, except for the last zone). */
-  to: Value<U>;
+  to: Value<Unit>;
   /** CSS colour for this zone. */
   color: string;
 }
 
-export interface GaugeProps<U extends string = string> {
+export interface GaugeProps<Unit extends string = string> {
   /** The figure the needle points at, or the whole reading it arrived in. */
-  value: UnitValue<U>;
-  min: Value<U>;
-  max: Value<U>;
+  value: UnitValue<Unit>;
+  min: Value<Unit>;
+  max: Value<Unit>;
   width: number;
   height: number;
   /** Optional zones drawn as coloured arc segments. Order doesn't matter. */
-  zones?: ReadonlyArray<GaugeZone<U>>;
+  zones?: ReadonlyArray<GaugeZone<Unit>>;
   /**
    * Pin the rung the centre readout is written at, for the cases where
    * convention beats magnitude. Absent, the value's own kind decides.
    */
-  format?: FormatsFor<U>;
+  format?: FormatsFor<Unit>;
   /** Centre numeric label. Defaults to the value, written with its unit. */
   valueLabel?: string;
   /** Needle colour. Defaults to `var(--color-text-primary)`. */
@@ -95,7 +95,7 @@ function arcSegmentPath(
  * shows no needle. The axis itself is the caller's chosen scale and carries no
  * currency.
  */
-export function Gauge<U extends string = string>({
+export function Gauge<Unit extends string = string>({
   value,
   min,
   max,
@@ -107,7 +107,7 @@ export function Gauge<U extends string = string>({
   needleColor = "var(--color-text-primary)",
   trackColor = "var(--color-border-subtle)",
   ariaLabel,
-}: Readonly<GaugeProps<U>>) {
+}: Readonly<GaugeProps<Unit>>) {
   const { shown, held, caption, band } = resolveCurrency(value);
 
   // The axis, unwrapped once into SVG coordinates; every figure a reader sees goes back out through the unit layer.
@@ -116,7 +116,7 @@ export function Gauge<U extends string = string>({
   const hi = max.magnitude;
   const safeValue = Number.isFinite(v) ? v : lo;
   // Clamped in the algebra, so a bound on another rung of the same kind converts before it compares.
-  const onAxis = (q: Value<U>): number => q.max(min).min(max).magnitude;
+  const onAxis = (q: Value<Unit>): number => q.max(min).min(max).magnitude;
   // No number, no needle; a present but non-finite number still falls back to the foot of the scale.
   const hasFigure = shown != null;
 

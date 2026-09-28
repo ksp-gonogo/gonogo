@@ -85,10 +85,10 @@ function registerStubWidget(id: string, name: string) {
  * The saved dashboard layout, as the items this case reads off it.
  *
  * `JSON.parse` answers `any`, so a field name that no longer exists would read
- * `undefined` rather than failing. `T` names what the case goes on to assert
+ * `undefined` rather than failing. `Item` names what the case goes on to assert
  * on, and the parse is checked to be a layout before it is handed over.
  */
-function savedLayout<T>(key: string): { items: T[] } {
+function savedLayout<Item>(key: string): { items: Item[] } {
   const parsed: unknown = JSON.parse(localStorage.getItem(key) ?? "{}");
   const items: unknown =
     typeof parsed === "object" && parsed !== null
@@ -97,7 +97,7 @@ function savedLayout<T>(key: string): { items: T[] } {
   if (!Array.isArray(items)) {
     throw new Error("no dashboard layout was saved");
   }
-  return { items: items as T[] };
+  return { items: items as Item[] };
 }
 
 describe("Dashboard: mobile / touch path", () => {

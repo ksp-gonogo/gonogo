@@ -62,12 +62,14 @@ import {
   toFrame,
 } from "@ksp-gonogo/sitrep-sdk/frames";
 
-type Equal<A, B> =
-  (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2
+type Equal<Left, Right> =
+  (<Probe>() => Probe extends Left ? 1 : 2) extends <
+    Probe,
+  >() => Probe extends Right ? 1 : 2
     ? true
     : false;
-type Expect<T extends true> = T;
-type Not<T extends boolean> = T extends true ? false : true;
+type Expect<Condition extends true> = Condition;
+type Not<Condition extends boolean> = Condition extends true ? false : true;
 
 /**
  * The two are genuinely different types, which is the whole reason one barrel

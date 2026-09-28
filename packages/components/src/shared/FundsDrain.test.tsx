@@ -44,7 +44,7 @@ describe("netFundsPerDay", () => {
 });
 
 describe("netFundsPerDayReading", () => {
-  const observed = <V,>(v: V): Reading<V> => ({
+  const observed = <Payload,>(v: Payload): Reading<Payload> => ({
     state: "observed",
     value: v,
     atUt: value("ut", 1000),

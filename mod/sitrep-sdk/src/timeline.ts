@@ -29,9 +29,9 @@ import type { Meta } from "./__generated__/contract";
  * whoever constructs the point: `ClientTimeline.append` trusts it, it does
  * not re-derive it from `meta`).
  */
-export interface TimelinePoint<T = unknown> {
+export interface TimelinePoint<Payload = unknown> {
   validAt: number;
-  payload: T | null;
+  payload: Payload | null;
   meta: Meta;
   epoch: number;
 }
@@ -49,11 +49,11 @@ export interface TimelinePoint<T = unknown> {
  * derived-on-derived inputs transparently (it's just another `sample()`
  * call), so a derived channel can list another derived channel as an input.
  */
-export type DerivedGet = <T = unknown>(
+export type DerivedGet = <Payload = unknown>(
   topic: string,
-) => TimelinePoint<T> | undefined;
+) => TimelinePoint<Payload> | undefined;
 
-export interface DerivedChannelDefinition<T> {
+export interface DerivedChannelDefinition<Payload> {
   /** The topic this channel registers as, e.g. `"system.state"`. */
   topic: string;
   /**
@@ -77,7 +77,7 @@ export interface DerivedChannelDefinition<T> {
    *   channel's own subject genuinely gone): never a fabricated
    *   zero-valued record.
    */
-  derive: (get: DerivedGet, viewUt: number) => T | null | undefined;
+  derive: (get: DerivedGet, viewUt: number) => Payload | null | undefined;
   /**
    * Expose `"<topic>.<field>"` subtopics that read a single field off the
    * one memoized record: e.g. `system.state.bodyCount`.

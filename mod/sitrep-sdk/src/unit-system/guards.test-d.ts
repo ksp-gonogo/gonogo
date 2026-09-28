@@ -51,27 +51,27 @@ export function differentResources() {
 // returns a predicate, so the symbol has to be written down at the call site;
 // here it is whatever the caller passed.
 
-export function narrowsToTheParameter<U extends string>(
+export function narrowsToTheParameter<Unit extends string>(
   v: Value<UnknownUnit>,
-  unit: U,
-): Value<U> | undefined {
+  unit: Unit,
+): Value<Unit> | undefined {
   return isUnit(v, unit) ? v : undefined;
 }
 
-export function refusesTheUnnarrowed<U extends string>(
+export function refusesTheUnnarrowed<Unit extends string>(
   v: Value<UnknownUnit>,
-  _unit: U,
-): Value<U> | undefined {
-  // @ts-expect-error an unknown unit is not a `U` until the guard says so
+  _unit: Unit,
+): Value<Unit> | undefined {
+  // @ts-expect-error an unknown unit is not a `Unit` until the guard says so
   return v;
 }
 
 // Each value needs its own proof, as with `unitGuard`: narrowing one and returning another is still refused.
-export function oneProofIsNotTwo<U extends string>(
+export function oneProofIsNotTwo<Unit extends string>(
   v: Value<UnknownUnit>,
   w: Value<UnknownUnit>,
-  unit: U,
-): Value<U> | undefined {
+  unit: Unit,
+): Value<Unit> | undefined {
   if (isUnit(v, unit)) {
     // @ts-expect-error w was never asked about
     return w;

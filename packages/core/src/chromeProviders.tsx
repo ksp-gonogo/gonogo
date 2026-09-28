@@ -7,23 +7,23 @@ import type { ComponentType, ReactNode } from "react";
  * (2026-07-18) for why this exists and the Rules of Hooks constraint it relies
  * on.
  */
-export interface ChromeProviderDefinition<T = unknown> {
+export interface ChromeProviderDefinition<Provided = unknown> {
   /** Stable id. */
   id: string;
   /** Called during the NORMAL render tree, i.e. wherever the value this
    *  provider re-supplies is already ambiently available (e.g. inside
    *  MainScreen's <CpuRegistryProvider> subtree). Must be an actual hook
    *  call site: see useChromeWrap's safety note below. */
-  useValue(): T;
+  useValue(): Provided;
   /** Re-wraps `children` with the captured value, for rendering somewhere
    *  the ambient context from useValue()'s call site won't reach. */
-  Provider: ComponentType<{ value: T; children: ReactNode }>;
+  Provider: ComponentType<{ value: Provided; children: ReactNode }>;
 }
 
 const providers = new Map<string, ChromeProviderDefinition>();
 
-export function registerChromeProvider<T>(
-  def: ChromeProviderDefinition<T>,
+export function registerChromeProvider<Provided>(
+  def: ChromeProviderDefinition<Provided>,
 ): void {
   providers.set(def.id, def as ChromeProviderDefinition);
 }

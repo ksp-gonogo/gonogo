@@ -408,7 +408,7 @@ export class CommcastLog {
 }
 
 /** Drop-oldest at the cap, and COUNT it, so the log can say it forgot. */
-function capped<T>(items: T[], onDrop: (n: number) => void): T[] {
+function capped<Entry>(items: Entry[], onDrop: (n: number) => void): Entry[] {
   if (items.length <= MAX_MESSAGES) return items;
   onDrop(items.length - MAX_MESSAGES);
   return items.slice(-MAX_MESSAGES);

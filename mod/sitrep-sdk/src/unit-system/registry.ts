@@ -29,7 +29,7 @@ export interface UnitPresentation {
   readonly word?: string;
 }
 
-type DeclarationOf<S extends DeclaredUnit> = UnitDeclarations[S];
+type DeclarationOf<Unit extends DeclaredUnit> = UnitDeclarations[Unit];
 
 /**
  * The runtime half of a declared unit, typed from its declaration.
@@ -43,19 +43,19 @@ type DeclarationOf<S extends DeclaredUnit> = UnitDeclarations[S];
  * rung is a display threshold rather than a unit. A registration naming a
  * ladder may supply them, and every unit on that ladder then climbs them.
  */
-export type UnitRegistration<S extends DeclaredUnit = DeclaredUnit> = {
-  readonly symbol: S;
-  readonly kind: DeclarationOf<S>["kind"];
-  readonly dimension: DeclarationOf<S> extends {
-    dim: infer D extends Dim.Dimension;
+export type UnitRegistration<Unit extends DeclaredUnit = DeclaredUnit> = {
+  readonly symbol: Unit;
+  readonly kind: DeclarationOf<Unit>["kind"];
+  readonly dimension: DeclarationOf<Unit> extends {
+    dim: infer Dimension extends Dim.Dimension;
   }
-    ? D
+    ? Dimension
     : never;
-  readonly ratio: DeclarationOf<S>["ratio"];
+  readonly ratio: DeclarationOf<Unit>["ratio"];
   /** Logarithmic, so never prefix-scaled. */
   readonly log?: true;
-} & (DeclarationOf<S> extends { ladder: infer L extends string }
-  ? { readonly ladder: L; readonly rungs?: readonly UnitRung[] }
+} & (DeclarationOf<Unit> extends { ladder: infer Ladder extends string }
+  ? { readonly ladder: Ladder; readonly rungs?: readonly UnitRung[] }
   : { readonly ladder?: never; readonly rungs?: never }) &
   UnitPresentation;
 
@@ -304,8 +304,8 @@ export function onUnitRegistered(listener: UnitListener): () => void {
  * Our own ladder sidesteps the `g` case anyway (mass starts at `kg`), which is
  * why this is a policy for Uplinks rather than a live first-party concern.
  */
-export function registerUnit<S extends DeclaredUnit>(
-  registration: UnitRegistration<S>,
+export function registerUnit<Unit extends DeclaredUnit>(
+  registration: UnitRegistration<Unit>,
 ): void {
   const unit: RegisteredUnit = registration;
   const { symbol, kind, ratio, log, ladder, rungs, dimension: dim } = unit;

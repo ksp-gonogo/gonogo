@@ -10,10 +10,10 @@ import type { TimelinePoint } from "./timeline";
 import { TimelineStore } from "./timeline-store";
 import { ViewClock } from "./view-clock";
 
-function point<T = number>(
+function point<Payload = number>(
   validAt: number,
-  payload: T | null,
-): TimelinePoint<T> {
+  payload: Payload | null,
+): TimelinePoint<Payload> {
   return {
     validAt,
     payload,

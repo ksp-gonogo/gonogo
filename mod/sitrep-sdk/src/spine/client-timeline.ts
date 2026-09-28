@@ -72,8 +72,8 @@ const DEFAULT_MAX_POINTS = 1500;
  *   read forever after the epoch bump (the "stale ghost" defect the server
  *   side already fixed).
  */
-export class ClientTimeline<T = unknown> {
-  private points: TimelinePoint<T>[] = [];
+export class ClientTimeline<Payload = unknown> {
+  private points: TimelinePoint<Payload>[] = [];
   private currentEpoch = 0;
   private readonly retentionSeconds: number | undefined;
   private readonly maxPoints: number;
@@ -112,7 +112,7 @@ export class ClientTimeline<T = unknown> {
   }
 
   /** Insert a delivered sample, sorted by `validAt` (tie-break: `meta.seq`). */
-  append(point: TimelinePoint<T>): void {
+  append(point: TimelinePoint<Payload>): void {
     if (point.epoch < this.currentEpoch) {
       // Stale-epoch straggler (queued behind a rewind broadcast); never let pre-rewind data re-enter a post-rewind timeline.
       return;
@@ -134,7 +134,7 @@ export class ClientTimeline<T = unknown> {
   }
 
   /** Latest point with `validAt <= ut` (current epoch only, the buffer never holds stale-epoch points). */
-  at(ut: number): TimelinePoint<T> | undefined {
+  at(ut: number): TimelinePoint<Payload> | undefined {
     // points are sorted ascending by validAt; scan back from the end since reads cluster near the live edge.
     for (let i = this.points.length - 1; i >= 0; i--) {
       const point = this.points[i];
@@ -150,7 +150,9 @@ export class ClientTimeline<T = unknown> {
    * towards). A hold-last read (`at`) is what T2 consumers use; interpolation
    * lands in a later task: this is the seam it will use.
    */
-  straddle(ut: number): [TimelinePoint<T>, TimelinePoint<T>] | undefined {
+  straddle(
+    ut: number,
+  ): [TimelinePoint<Payload>, TimelinePoint<Payload>] | undefined {
     for (let i = 0; i < this.points.length - 1; i++) {
       const before = this.points[i];
       const after = this.points[i + 1];
@@ -160,12 +162,12 @@ export class ClientTimeline<T = unknown> {
   }
 
   /** All points with `validAt` in `[fromUt, toUt]`, inclusive. */
-  range(fromUt: number, toUt: number): TimelinePoint<T>[] {
+  range(fromUt: number, toUt: number): TimelinePoint<Payload>[] {
     return this.points.filter((p) => p.validAt >= fromUt && p.validAt <= toUt);
   }
 
   /** The most recently ingested point: the confirmed edge for this topic. */
-  latest(): TimelinePoint<T> | undefined {
+  latest(): TimelinePoint<Payload> | undefined {
     return this.points[this.points.length - 1];
   }
 
@@ -212,7 +214,7 @@ export class ClientTimeline<T = unknown> {
     this.revision++;
   }
 
-  private insertionIndex(point: TimelinePoint<T>): number {
+  private insertionIndex(point: TimelinePoint<Payload>): number {
     // Linear scan from the end: append-mostly workload (new samples are
     // usually the newest), so this is O(1) amortized in the common case
     // despite being O(n) worst case for genuinely out-of-order delivery.

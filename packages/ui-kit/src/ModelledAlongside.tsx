@@ -33,10 +33,10 @@ export function ModelledAlongside({ children }: { children: ReactNode }) {
  * A reading's observation through `<Unit>`, and where its model reaches past
  * the received edge, the model's figure beside it with the modelled mark.
  */
-export function ReckonedUnit<U extends string>({
+export function ReckonedUnit<UnitSymbol extends string>({
   value,
 }: {
-  value: Reading<Value<U>>;
+  value: Reading<Value<UnitSymbol>>;
 }) {
   const { reckoning } = value;
   const modelled =

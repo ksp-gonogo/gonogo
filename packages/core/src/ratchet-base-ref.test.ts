@@ -148,7 +148,7 @@ describe("the shrink-only ratchets can reach a base revision", () => {
    * from a green suite.
    */
   describe("refuses a base it cannot use", () => {
-    function withBaseRef<T>(value: string, fn: () => T): T {
+    function withBaseRef<Result>(value: string, fn: () => Result): Result {
       const previous = process.env.RATCHET_BASE_REF;
       process.env.RATCHET_BASE_REF = value;
       try {

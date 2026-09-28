@@ -54,7 +54,7 @@ Wraps a `Transport` and provides:
 `TelemetryProvider` supplies a `TelemetryClient` to the tree via context;
 `useTelemetryClient()` reads it.
 
-- **`useStream<T>(topic: string): TopicReading<T>`**: reactively reads a
+- **`useStream<Payload>(topic: string): TopicReading<Payload>`**: reactively reads a
   topic, raw or derived, as a reading (`useSyncExternalStore` over the
   client's ref-counted subscription). `pending` until the first sample
   arrives, `observed` while samples keep arriving, and `stale`, carrying the

@@ -362,11 +362,11 @@ describe("TimelineStore.sampleStatus (M2 T4: staleness/absence surface)", () => 
  * real store, for system.state and dv.currentStageResource alike.
  */
 describe("a derived channel's default status: worst of its declared inputs, through a real store", () => {
-  function recordPoint<T>(
+  function recordPoint<Payload>(
     validAt: number,
-    payload: T | null,
+    payload: Payload | null,
     staleness: Staleness = Staleness.Fresh,
-  ): TimelinePoint<T> {
+  ): TimelinePoint<Payload> {
     return {
       validAt,
       payload,

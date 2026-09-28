@@ -21,11 +21,11 @@ import { Tape } from "./Tape";
 
 const AT = value("ut", 12_000);
 
-function bandOf<U extends string>(
-  unit: U,
+function bandOf<Unit extends string>(
+  unit: Unit,
   lo: number,
   hi: number,
-): UncertaintyBand<U> {
+): UncertaintyBand<Unit> {
   return {
     value: value(unit, (lo + hi) / 2),
     lo: value(unit, lo),
@@ -34,11 +34,11 @@ function bandOf<U extends string>(
   };
 }
 
-function reading<U extends string>(
+function reading<Unit extends string>(
   state: "observed" | "stale",
-  quantity: Value<U>,
-  band: UncertaintyBand<U>,
-): Reading<Value<U>> {
+  quantity: Value<Unit>,
+  band: UncertaintyBand<Unit>,
+): Reading<Value<Unit>> {
   const reckoning = {
     status: "available",
     atUt: value("ut", 0),

@@ -29,13 +29,18 @@ function handles(): Map<string, unknown> {
  * Register a singleton handle for an Uplink, keyed by its id. Last write wins: a
  * second call for the same id replaces the first.
  */
-export function registerUplinkHandle<T>(uplinkId: string, handle: T): void {
+export function registerUplinkHandle<Handle>(
+  uplinkId: string,
+  handle: Handle,
+): void {
   handles().set(uplinkId, handle);
 }
 
 /** Look up a previously registered handle by Uplink id. `undefined` if none. */
-export function getUplinkHandle<T = unknown>(uplinkId: string): T | undefined {
-  return handles().get(uplinkId) as T | undefined;
+export function getUplinkHandle<Handle = unknown>(
+  uplinkId: string,
+): Handle | undefined {
+  return handles().get(uplinkId) as Handle | undefined;
 }
 
 /** Remove a previously registered handle. No-op if none was registered. */

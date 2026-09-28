@@ -37,7 +37,9 @@ const AT = value("ut", 1_000);
  * to do. A literal is also what a fixture SHOULD mint: it is the whole of what
  * the primitive reads.
  */
-function observed<U extends string>(v: Value<U>): Reading<Value<U>> {
+function observed<UnitSymbol extends string>(
+  v: Value<UnitSymbol>,
+): Reading<Value<UnitSymbol>> {
   return {
     state: "observed",
     reckoning: { status: "none" },
@@ -46,7 +48,9 @@ function observed<U extends string>(v: Value<U>): Reading<Value<U>> {
   };
 }
 
-function held<U extends string>(v: Value<U>): Reading<Value<U>> {
+function held<UnitSymbol extends string>(
+  v: Value<UnitSymbol>,
+): Reading<Value<UnitSymbol>> {
   return {
     state: "stale",
     reckoning: { status: "none" },
@@ -130,7 +134,10 @@ const FLEET: readonly Omit<Craft, "stale">[] = [
   },
 ];
 
-function v<U extends string>(unit: U, magnitude: number): Value<U> {
+function v<UnitSymbol extends string>(
+  unit: UnitSymbol,
+  magnitude: number,
+): Value<UnitSymbol> {
   return value(unit, magnitude);
 }
 
@@ -192,8 +199,8 @@ function InFlowControlDot() {
   );
 }
 
-function cell<U extends string>(
-  quantity: Value<U>,
+function cell<UnitSymbol extends string>(
+  quantity: Value<UnitSymbol>,
   isStale: boolean,
   control: boolean,
 ) {

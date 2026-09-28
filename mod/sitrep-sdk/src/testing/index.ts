@@ -136,8 +136,8 @@ export { harnessTheme } from "./theme";
  * This is the one step from there to the declared shape, so a test asserting on
  * an arg field stops compiling when the contract renames it.
  */
-export function commandArgs<C extends CommandId>(
+export function commandArgs<Command extends CommandId>(
   args: unknown,
-): CommandArgs<C> {
-  return args as CommandArgs<C>;
+): CommandArgs<Command> {
+  return args as CommandArgs<Command>;
 }

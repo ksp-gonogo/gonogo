@@ -44,17 +44,19 @@ export function useSettingsService(): SettingsService {
  * `SettingsModal` renders those with a dedicated source-bound row so this hook
  * stays a simple, single-purpose localStorage reader.
  */
-export function useSetting<T>(
+export function useSetting<SettingValue>(
   key: string,
-  defaultValue: T,
-): [T, (v: T) => void] {
+  defaultValue: SettingValue,
+): [SettingValue, (v: SettingValue) => void] {
   const svc = useSettingsService();
-  const [value, setValueState] = useState<T>(() => svc.get(key, defaultValue));
+  const [value, setValueState] = useState<SettingValue>(() =>
+    svc.get(key, defaultValue),
+  );
 
-  useEffect(() => svc.subscribe<T>(key, setValueState), [svc, key]);
+  useEffect(() => svc.subscribe<SettingValue>(key, setValueState), [svc, key]);
 
   const setValue = useCallback(
-    (next: T) => {
+    (next: SettingValue) => {
       svc.set(key, next);
     },
     [svc, key],

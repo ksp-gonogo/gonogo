@@ -14,10 +14,10 @@ export interface BandSpec {
   kind: BandKind;
 }
 
-function reckoningOf<U extends string>(
-  drawn: Value<U>,
+function reckoningOf<Unit extends string>(
+  drawn: Value<Unit>,
   band: BandSpec | undefined,
-): Reading<Value<U>>["reckoning"] {
+): Reading<Value<Unit>>["reckoning"] {
   if (!band) return { status: "none" };
   return {
     status: "available",
@@ -35,11 +35,11 @@ function reckoningOf<U extends string>(
 }
 
 /** A current observation, with the band a model puts around it where given. */
-export function live<U extends string>(
-  unit: U,
+export function live<Unit extends string>(
+  unit: Unit,
   magnitude: number,
   band?: BandSpec,
-): Reading<Value<U>> {
+): Reading<Value<Unit>> {
   const drawn = value(unit, magnitude);
   return {
     state: "observed",
@@ -50,11 +50,11 @@ export function live<U extends string>(
 }
 
 /** The last observation, held after its figures stopped arriving. */
-export function held<U extends string>(
-  unit: U,
+export function held<Unit extends string>(
+  unit: Unit,
   magnitude: number,
   band?: BandSpec,
-): Reading<Value<U>> {
+): Reading<Value<Unit>> {
   const drawn = value(unit, magnitude);
   return {
     state: "stale",
@@ -66,11 +66,11 @@ export function held<U extends string>(
 }
 
 /** Nothing has arrived yet. */
-export function pending<U extends string>(): Reading<Value<U>> {
+export function pending<Unit extends string>(): Reading<Value<Unit>> {
   return { state: "pending", reckoning: { status: "none" } };
 }
 
 /** The source confirmed there is no value. */
-export function absent<U extends string>(): Reading<Value<U>> {
+export function absent<Unit extends string>(): Reading<Value<Unit>> {
   return { state: "absent", atUt: AT, reckoning: { status: "none" } };
 }

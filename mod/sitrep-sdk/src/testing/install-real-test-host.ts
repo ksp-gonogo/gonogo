@@ -101,7 +101,7 @@ export interface UiKitHostPieces {
  * clears.
  */
 export function installRealTestHost(uiKit: UiKitHostPieces): () => void {
-  const host: { [K in keyof GonogoHost]: GonogoHost[K] } = {
+  const host: { [Key in keyof GonogoHost]: GonogoHost[Key] } = {
     registerAugment: uiKit.registerAugment as GonogoHost["registerAugment"],
     getAugmentsForSlot:
       uiKit.getAugmentsForSlot as GonogoHost["getAugmentsForSlot"],

@@ -64,26 +64,21 @@ export interface CommandReplyLike {
  * The command handle this control dispatches on: the delay-rail handle plus a
  * way to send. Declared structurally; `useCommand`'s return value satisfies it.
  */
-export interface CommandButtonHandle<
-  TResult = CommandReplyLike,
-  TArgs = unknown,
-> extends CommandDelayHandle {
+export interface CommandButtonHandle<Result = CommandReplyLike, Args = unknown>
+  extends CommandDelayHandle {
   /**
    * Dispatch. The promise resolves when the command is confirmed and rejects
    * when it is refused, lost, or the machinery failed, so the control clears its
    * own pending state with no per-command telemetry predicate.
    *
-   * `TResult` carries the reply's real type to
+   * `Result` carries the reply's real type to
    * {@link CommandButtonProps.onConfirmed}; a handle from `useCommand("...")`
    * supplies it from the generated command map.
    *
    * A method rather than a function-valued property, so `strictFunctionTypes`
    * does not check typed args contravariantly and reject every typed handle.
    */
-  send(
-    args?: TArgs,
-    opts?: { label?: string; topic?: string },
-  ): Promise<TResult>;
+  send(args?: Args, opts?: { label?: string; topic?: string }): Promise<Result>;
   /**
    * The standing gate verdict, when the mod publishes one for this command.
    * Absent means nothing is known in advance.
@@ -123,15 +118,15 @@ export type CommandButtonTone = "neutral" | "go" | "nogo" | "warn";
 export type CommandButtonSize = "sm" | "md";
 
 export interface UseCommandButtonOptions<
-  TResult = CommandReplyLike,
-  TArgs = unknown,
+  Result = CommandReplyLike,
+  Args = unknown,
 > {
-  handle: CommandButtonHandle<TResult, TArgs>;
+  handle: CommandButtonHandle<Result, Args>;
   /** See {@link CommandButtonProps.args}, including why this is `NoInfer`. */
-  args?: NoInfer<TArgs>;
+  args?: NoInfer<Args>;
   commandLabel?: string;
   /** Receives the dispatch's resolved result. See {@link CommandButtonProps.onConfirmed}. */
-  onConfirmed?: (result: TResult) => void;
+  onConfirmed?: (result: Result) => void;
 }
 
 export interface CommandButtonState {
@@ -192,12 +187,12 @@ export interface CommandButtonState {
  * `useState`, no arm timeout and no reconciliation. `CommandButton` is this
  * hook plus the default rendering.
  */
-export function useCommandButton<TResult = CommandReplyLike, TArgs = unknown>({
+export function useCommandButton<Result = CommandReplyLike, Args = unknown>({
   handle,
   args,
   commandLabel,
   onConfirmed,
-}: UseCommandButtonOptions<TResult, TArgs>): CommandButtonState {
+}: UseCommandButtonOptions<Result, Args>): CommandButtonState {
   const [phase, setPhase] = useState<CommandButtonPhase>("idle");
   const [refusal, setRefusal] = useState<CommandRefusalLike | null>(null);
   const [found, setFound] = useState<CommandFoundLike | null>(null);
@@ -289,7 +284,7 @@ export function useCommandButton<TResult = CommandReplyLike, TArgs = unknown>({
       setPhase(next);
     };
     handle.send(args, commandLabel ? { label: commandLabel } : undefined).then(
-      (result: TResult) => {
+      (result: Result) => {
         settle("idle", null);
         onConfirmed?.(result);
       },
@@ -391,19 +386,19 @@ type NativeButtonProps = Omit<
   "onClick" | "type" | "children" | "aria-pressed" | "aria-busy"
 >;
 
-export interface CommandButtonProps<TResult = CommandReplyLike, TArgs = unknown>
+export interface CommandButtonProps<Result = CommandReplyLike, Args = unknown>
   extends NativeButtonProps {
   /**
    * The command this control dispatches. Its reply type is what
    * {@link CommandButtonProps.onConfirmed} receives, inferred.
    */
-  handle: CommandButtonHandle<TResult, TArgs>;
+  handle: CommandButtonHandle<Result, Args>;
   /**
    * Args for the dispatch, passed straight to `handle.send` and checked
    * against what that command takes. `NoInfer`, so a wrong args object cannot
-   * widen `TArgs` to its own shape.
+   * widen `Args` to its own shape.
    */
-  args?: NoInfer<TArgs>;
+  args?: NoInfer<Args>;
   /**
    * The dispatch's operator-facing description, which a refusal is named
    * after ("Hire Valentina Kerman refused: ...").
@@ -470,7 +465,7 @@ export interface CommandButtonProps<TResult = CommandReplyLike, TArgs = unknown>
    * request id answers a repeat with the receipt it stored the first time. The
    * value is the reply envelope; the command's own value is on `payload`.
    */
-  onConfirmed?: (result: TResult) => void;
+  onConfirmed?: (result: Result) => void;
 }
 
 /**
@@ -486,7 +481,7 @@ export interface CommandButtonProps<TResult = CommandReplyLike, TArgs = unknown>
  * The caller calls `usePanelDelay(handle)` itself: a per-row control calling it
  * would enter one command into the rail once per row.
  */
-export function CommandButton<TResult = CommandReplyLike, TArgs = unknown>({
+export function CommandButton<Result = CommandReplyLike, Args = unknown>({
   handle,
   args,
   commandLabel,
@@ -508,7 +503,7 @@ export function CommandButton<TResult = CommandReplyLike, TArgs = unknown>({
   title,
   "aria-label": ariaLabel,
   ...rest
-}: Readonly<CommandButtonProps<TResult, TArgs>>) {
+}: Readonly<CommandButtonProps<Result, Args>>) {
   const {
     phase,
     isPending,

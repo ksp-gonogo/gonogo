@@ -18,8 +18,10 @@ import { affineVectorUnitFor, declaredUnitFor, lookupUnit } from "./registry";
  * Adding a torque to an energy is meaningless but harmless, and essentially
  * never written. The ambiguity it was meant to prevent is structural.
  */
-type Equal<A, B> =
-  (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2
+type Equal<Left, Right> =
+  (<Probe>() => Probe extends Left ? 1 : 2) extends <
+    Probe,
+  >() => Probe extends Right ? 1 : 2
     ? true
     : false;
 
@@ -27,7 +29,7 @@ type Equal<A, B> =
  * The dimension a declared unit states, normalised, or `never` for a symbol
  * nothing declares and for a non-quantity token, which states none.
  */
-type DimensionOf<U> = U extends DeclaredUnit ? DimOf<U> : never;
+type DimensionOf<Unit> = Unit extends DeclaredUnit ? DimOf<Unit> : never;
 
 declare const UnknownUnitBrand: unique symbol;
 
@@ -56,7 +58,7 @@ declare const UnknownUnitBrand: unique symbol;
 export type UnknownUnit = string & { readonly [UnknownUnitBrand]: true };
 
 /**
- * Every declared unit sharing `U`'s dimension, first-party or merged into
+ * Every declared unit sharing `Unit`'s dimension, first-party or merged into
  * `UnitDeclarations` by an Uplink.
  *
  * This is what makes `Value<"W">.plus(Value<"J/s">)` compile and
@@ -64,11 +66,14 @@ export type UnknownUnit = string & { readonly [UnknownUnitBrand]: true };
  * collapses to `never`, and `plus` then accepts only an exact match, which is
  * the safe reading when we know nothing about a symbol.
  */
-export type SameDimensionAs<U> = [DimensionOf<U>] extends [never]
+export type SameDimensionAs<Unit> = [DimensionOf<Unit>] extends [never]
   ? never
   : {
-      [K in DeclaredUnit]: Equal<DimensionOf<K>, DimensionOf<U>> extends true
-        ? K
+      [Candidate in DeclaredUnit]: Equal<
+        DimensionOf<Candidate>,
+        DimensionOf<Unit>
+      > extends true
+        ? Candidate
         : never;
     }[DeclaredUnit];
 
@@ -80,7 +85,7 @@ export type SameDimensionAs<U> = [DimensionOf<U>] extends [never]
  * set and collapses to `never` for a unit outside the catalog. `never` is
  * correct as an intermediate answer but useless as a parameter type: nothing
  * would ever satisfy it, and `Value<string>.plus` would take no argument at
- * all. `CombinableWith` is that set with the `never` case replaced by `U`
+ * all. `CombinableWith` is that set with the `never` case replaced by `Unit`
  * itself, so an out-of-catalog unit still combines with an exact match.
  *
  * Named for combination rather than addition, because `plus` is not its only
@@ -118,84 +123,88 @@ export type SameDimensionAs<U> = [DimensionOf<U>] extends [never]
  * so a unit added as point-like is point-like everywhere at once.</p>
  */
 export type PointUnit = {
-  [K in KnownUnit]: (typeof UNIT_DEFINITIONS)[K] extends {
+  [Candidate in KnownUnit]: (typeof UNIT_DEFINITIONS)[Candidate] extends {
     affineVector: string;
   }
-    ? K
+    ? Candidate
     : never;
 }[KnownUnit];
 
-/** The kind a difference of two `U`s produces, for a point-like `U`. */
-type VectorKindOf<U> = U extends KnownUnit
-  ? (typeof UNIT_DEFINITIONS)[U] extends { affineVector: infer V }
-    ? V
+/** The kind a difference of two `Unit`s produces, for a point-like `Unit`. */
+type VectorKindOf<Unit> = Unit extends KnownUnit
+  ? (typeof UNIT_DEFINITIONS)[Unit] extends { affineVector: infer VectorKind }
+    ? VectorKind
     : never
   : never;
 
 /**
- * The units a point-like `U` may be offset BY: same dimension, and of the
+ * The units a point-like `Unit` may be offset BY: same dimension, and of the
  * companion vector kind. For `ut` that is every duration (`s`, `min`, `h`, `d`) and
  * never another `ut`.
  */
-type VectorFor<U> = {
-  [K in SameDimensionAs<U>]: UnitDeclarations[K &
-    DeclaredUnit]["kind"] extends VectorKindOf<U>
-    ? K
+type VectorFor<Unit> = {
+  [Candidate in SameDimensionAs<Unit>]: UnitDeclarations[Candidate &
+    DeclaredUnit]["kind"] extends VectorKindOf<Unit>
+    ? Candidate
     : never;
-}[SameDimensionAs<U>];
+}[SameDimensionAs<Unit>];
 
 /**
- * What may be ADDED to a `U`, and what a `minus` of the same shape returns.
+ * What may be ADDED to a `Unit`, and what a `minus` of the same shape returns.
  *
  * A point takes only its vectors: `ut + s` is a ut, `ut + ut` is meaningless. A
  * vector takes anything of its dimension EXCEPT a point, so `s + ut` is refused from
  * the other side too. A unit in neither camp is unrestricted, as before.
  */
-type Addend<U extends string> = [PointUnit] extends [never]
-  ? CombinableWith<U>
-  : U extends PointUnit
-    ? VectorFor<U>
-    : Exclude<CombinableWith<U>, PointUnit>;
+type Addend<Unit extends string> = [PointUnit] extends [never]
+  ? CombinableWith<Unit>
+  : Unit extends PointUnit
+    ? VectorFor<Unit>
+    : Exclude<CombinableWith<Unit>, PointUnit>;
 
 /**
  * The point a point may be subtracted FROM, yielding a vector. `never` for anything
  * that is not point-like, which makes the point-minus-point overload unselectable
  * there rather than merely unused.
  */
-type PointCounterpart<U extends string> = U extends PointUnit ? U : never;
+type PointCounterpart<Unit extends string> = Unit extends PointUnit
+  ? Unit
+  : never;
 
 /** The unit a point-minus-point lands in: the companion vector, base rung. */
-type VectorResult<U extends string> = U extends PointUnit
-  ? Extract<VectorFor<U>, KnownUnit> extends never
+type VectorResult<Unit extends string> = Unit extends PointUnit
+  ? Extract<VectorFor<Unit>, KnownUnit> extends never
     ? string
-    : BaseVectorFor<U>
+    : BaseVectorFor<Unit>
   : never;
 
 /**
  * The base rung of a point's vector family, so `ut.minus(ut)` is `Value<"s">` rather
  * than a union of every duration spelling. Ratio 1 is the base by construction.
  */
-type BaseVectorFor<U> = {
-  [K in VectorFor<U> &
-    KnownUnit]: (typeof UNIT_DEFINITIONS)[K]["ratio"] extends 1 ? K : never;
-}[VectorFor<U> & KnownUnit];
+type BaseVectorFor<Unit> = {
+  [Candidate in VectorFor<Unit> &
+    KnownUnit]: (typeof UNIT_DEFINITIONS)[Candidate]["ratio"] extends 1
+    ? Candidate
+    : never;
+}[VectorFor<Unit> & KnownUnit];
 
 /**
- * What `U` may be ORDERED against. A point compares to points and a vector to
+ * What `Unit` may be ORDERED against. A point compares to points and a vector to
  * vectors: "is this instant before that duration" has no answer, and
  * `value("ut", 100).greaterThan(value("s", 76))` was quietly true.
  */
-type Comparand<U extends string> = [PointUnit] extends [never]
-  ? CombinableWith<U>
-  : U extends PointUnit
-    ? PointCounterpart<U>
-    : Exclude<CombinableWith<U>, PointUnit>;
+type Comparand<Unit extends string> = [PointUnit] extends [never]
+  ? CombinableWith<Unit>
+  : Unit extends PointUnit
+    ? PointCounterpart<Unit>
+    : Exclude<CombinableWith<Unit>, PointUnit>;
 
 /**
  * A scalar multiplier, or `never` for a point. Scaling an instant is meaningless:
  * twice-the-epoch is not a time.
  */
-type ScalarFor<U extends string> = U extends PointUnit ? never : number;
+type ScalarFor<Unit extends string> = Unit extends PointUnit ? never : number;
 
 /**
  * A bare operand, which is ALWAYS IN BASE UNITS. One rule, no inference.
@@ -222,7 +231,7 @@ type ScalarFor<U extends string> = U extends PointUnit ? never : number;
  * cannot take a quantity without changing the dimension, so a bare operand
  * there could never have meant "3 of the base unit".
  */
-type BareOperand<U extends string> = U extends PointUnit ? never : number;
+type BareOperand<Unit extends string> = Unit extends PointUnit ? never : number;
 
 /**
  * The coincidental layer: units that share a dimension while measuring
@@ -234,23 +243,25 @@ type BareOperand<U extends string> = U extends PointUnit ? never : number;
  * it.
  */
 
-/** The kind `U`'s kind merely coincides with, per its declaration. */
-type CoincidentKindOf<U> = U extends KnownUnit
-  ? (typeof UNIT_DEFINITIONS)[U] extends { coincidentWith: infer C }
-    ? C
+/** The kind `Unit`'s kind merely coincides with, per its declaration. */
+type CoincidentKindOf<Unit> = Unit extends KnownUnit
+  ? (typeof UNIT_DEFINITIONS)[Unit] extends {
+      coincidentWith: infer CoincidentKind;
+    }
+    ? CoincidentKind
     : never
   : never;
 
 /**
- * The units `U` shares a dimension with but must not be combined with: those
- * whose kind is the one `U` declares itself merely coincident with.
+ * The units `Unit` shares a dimension with but must not be combined with: those
+ * whose kind is the one `Unit` declares itself merely coincident with.
  */
-type CoincidentWith<U> = {
-  [K in SameDimensionAs<U>]: UnitDeclarations[K &
-    DeclaredUnit]["kind"] extends CoincidentKindOf<U>
-    ? K
+type CoincidentWith<Unit> = {
+  [Candidate in SameDimensionAs<Unit>]: UnitDeclarations[Candidate &
+    DeclaredUnit]["kind"] extends CoincidentKindOf<Unit>
+    ? Candidate
     : never;
-}[SameDimensionAs<U>];
+}[SameDimensionAs<Unit>];
 
 /**
  * The coincidental exclusion lands HERE rather than on `Addend` and `Comparand`
@@ -262,11 +273,11 @@ type CoincidentWith<U> = {
  * type, which is exactly the wanted scope: `force.times(distance)` is a `J` and
  * `energy.dividedBy(torque)` is the angle swept, both real.
  */
-type CombinableWith<U extends string> = [U] extends [UnknownUnit]
+type CombinableWith<Unit extends string> = [Unit] extends [UnknownUnit]
   ? never
-  : [SameDimensionAs<U>] extends [never]
-    ? U
-    : Exclude<SameDimensionAs<U>, CoincidentWith<U>>;
+  : [SameDimensionAs<Unit>] extends [never]
+    ? Unit
+    : Exclude<SameDimensionAs<Unit>, CoincidentWith<Unit>>;
 
 /**
  * A quantity that carries its own unit.
@@ -289,9 +300,9 @@ type CombinableWith<U extends string> = [U] extends [UnknownUnit]
  *   `timeToLaunch + timeToRendezvous` across a `Value<"s">` and a `Value<"h">`
  *   would otherwise give `120 + 2 = 122` and look fine.
  */
-export interface Value<U extends string = string> {
+export interface Value<Unit extends string = string> {
   readonly magnitude: number;
-  readonly unit: U;
+  readonly unit: Unit;
 
   /**
    * Present so a value still works where a number is genuinely wanted:
@@ -300,7 +311,7 @@ export interface Value<U extends string = string> {
    * `valueOf` says.
    */
   valueOf(): number;
-  toJSON(): { magnitude: number; unit: U };
+  toJSON(): { magnitude: number; unit: Unit };
   toString(): string;
 
   /**
@@ -345,26 +356,28 @@ export interface Value<U extends string = string> {
    *
    * A bare number is accepted and is IN BASE UNITS. See {@link BareOperand}.
    */
-  plus(other: Value<Addend<U>> | BareOperand<U>): Value<U>;
+  plus(other: Value<Addend<Unit>> | BareOperand<Unit>): Value<Unit>;
   /**
    * Two shapes, and the order matters: the point-minus-point arm is first so a
    * `ut.minus(ut)` resolves there and lands in the companion vector.
    *
-   * `PointCounterpart<U>` is `never` for anything not point-like, which makes the
+   * `PointCounterpart<Unit>` is `never` for anything not point-like, which makes the
    * first arm unselectable rather than merely unused, so every other unit in the
    * catalogue keeps exactly the one signature it had.
    */
-  minus(other: Value<PointCounterpart<U>>): Value<VectorResult<U>>;
-  minus(other: Value<Addend<U>> | BareOperand<U>): Value<U>;
+  minus(other: Value<PointCounterpart<Unit>>): Value<VectorResult<Unit>>;
+  minus(other: Value<Addend<Unit>> | BareOperand<Unit>): Value<Unit>;
   /*
    * The SAME-unit arm, LAST so it catches only what the two above cannot.
-   * `Addend<U>` is deferred while `U` is still a type parameter, so two
+   * `Addend<Unit>` is deferred while `Unit` is still a type parameter, so two
    * operands of one generic unit do not compile against either arm even though
    * they are plainly the same kind. A concrete unit still resolves above this:
    * a point lands in the point arm and keeps its vector result, which is why
-   * the return is conditional rather than a flat `Value<U>`.
+   * the return is conditional rather than a flat `Value<Unit>`.
    */
-  minus(other: Value<U>): Value<U extends PointUnit ? VectorResult<U> : U>;
+  minus(
+    other: Value<Unit>,
+  ): Value<Unit extends PointUnit ? VectorResult<Unit> : Unit>;
 
   /**
    * Total. Any dimension over any dimension; `rep/f` is coherent.
@@ -386,23 +399,29 @@ export interface Value<U extends string = string> {
    * A dimension the catalogue cannot name comes back as `Value<string>`. See
    * `algebra.ts` for why that gap is where it is.
    */
-  times(other: ScalarFor<U>): Value<U>;
-  times<W extends string>(other: Value<W>): Value<Product<U, W>>;
-  times(other: Value | ScalarFor<U>): Value;
+  times(other: ScalarFor<Unit>): Value<Unit>;
+  times<OtherUnit extends string>(
+    other: Value<OtherUnit>,
+  ): Value<Product<Unit, OtherUnit>>;
+  times(other: Value | ScalarFor<Unit>): Value;
 
-  dividedBy(other: ScalarFor<U>): Value<U>;
-  dividedBy<W extends string>(other: Value<W>): Value<Quotient<U, W>>;
-  dividedBy(other: Value | ScalarFor<U>): Value;
+  dividedBy(other: ScalarFor<Unit>): Value<Unit>;
+  dividedBy<OtherUnit extends string>(
+    other: Value<OtherUnit>,
+  ): Value<Quotient<Unit, OtherUnit>>;
+  dividedBy(other: Value | ScalarFor<Unit>): Value;
 
   /** `dividedBy`, spelled for the reading `distance.per(time)`. */
-  per(other: ScalarFor<U>): Value<U>;
-  per<W extends string>(other: Value<W>): Value<Quotient<U, W>>;
-  per(other: Value | ScalarFor<U>): Value;
+  per(other: ScalarFor<Unit>): Value<Unit>;
+  per<OtherUnit extends string>(
+    other: Value<OtherUnit>,
+  ): Value<Quotient<Unit, OtherUnit>>;
+  per(other: Value | ScalarFor<Unit>): Value;
 
   /** Scales the magnitude, leaving the unit alone. */
-  scaled(factor: number): Value<U>;
+  scaled(factor: number): Value<Unit>;
   /** Re-expressed in another unit of the same dimension. */
-  in<T extends CombinableWith<U>>(unit: T): Value<T>;
+  in<Target extends CombinableWith<Unit>>(unit: Target): Value<Target>;
 
   /**
    * Equality across units, and a bare number is IN BASE UNITS like every other
@@ -428,13 +447,13 @@ export interface Value<U extends string = string> {
    * as written and `altitude.lessThan(1000)` is a thousand METRES whatever rung
    * `altitude` happens to be on. See {@link BareOperand}.
    *
-   * `Value<U>` sits in the union beside `Value<Comparand<U>>` so that a GENERIC
-   * `U` can be compared against itself. It admits nothing new for a concrete
-   * unit, because `U` is already a member of `Comparand<U>` for every one of
+   * `Value<Unit>` sits in the union beside `Value<Comparand<Unit>>` so that a GENERIC
+   * `Unit` can be compared against itself. It admits nothing new for a concrete
+   * unit, because `Unit` is already a member of `Comparand<Unit>` for every one of
    * them: `Comparand<"ut">` is `"ut"`, and `Comparand<"m">` contains `"m"`.
-   * What it unblocks is `<U extends string>(a: Value<U>, b: Value<U>)`, where
-   * the conditional cannot resolve and `Value<U>` is therefore not assignable
-   * to `Value<Comparand<U>>` even though the two units are the same string by
+   * What it unblocks is `<Unit extends string>(a: Value<Unit>, b: Value<Unit>)`, where
+   * the conditional cannot resolve and `Value<Unit>` is therefore not assignable
+   * to `Value<Comparand<Unit>>` even though the two units are the same string by
    * construction. Code holding a band and a threshold in one unbound unit had
    * to unwrap both to compare them, which is the shape `bandSide` and
    * `bandIsWellFormed` carried until this was added.
@@ -443,20 +462,24 @@ export interface Value<U extends string = string> {
    * cross-dimension and point-versus-vector refusals are `Comparand`'s and are
    * untouched, each pinned as a `@ts-expect-error` in `value.test-d.ts`.
    */
-  lessThan(other: Value<Comparand<U>> | Value<U> | BareOperand<U>): boolean;
-  lessThanOrEqual(
-    other: Value<Comparand<U>> | Value<U> | BareOperand<U>,
+  lessThan(
+    other: Value<Comparand<Unit>> | Value<Unit> | BareOperand<Unit>,
   ): boolean;
-  greaterThan(other: Value<Comparand<U>> | Value<U> | BareOperand<U>): boolean;
+  lessThanOrEqual(
+    other: Value<Comparand<Unit>> | Value<Unit> | BareOperand<Unit>,
+  ): boolean;
+  greaterThan(
+    other: Value<Comparand<Unit>> | Value<Unit> | BareOperand<Unit>,
+  ): boolean;
   greaterThanOrEqual(
-    other: Value<Comparand<U>> | Value<U> | BareOperand<U>,
+    other: Value<Comparand<Unit>> | Value<Unit> | BareOperand<Unit>,
   ): boolean;
 
   /**
    * Negative, zero or positive. For `Array.prototype.sort`, which wants that
    * shape; for a yes-or-no question use the predicates above.
    */
-  compare(other: Value<CombinableWith<U>> | BareOperand<U>): number;
+  compare(other: Value<CombinableWith<Unit>> | BareOperand<Unit>): number;
 
   /**
    * Sign, which needs no operand.
@@ -491,7 +514,7 @@ export interface Value<U extends string = string> {
   isFinite(): boolean;
 
   /** Magnitude without its sign, unit unchanged. */
-  abs(): Value<U>;
+  abs(): Value<Unit>;
 
   /**
    * The smaller or larger of the two, keeping ITS unit.
@@ -502,26 +525,30 @@ export interface Value<U extends string = string> {
    * duration. These convert first.
    *
    * A bare number is accepted and is IN BASE UNITS, like every other bare
-   * operand. The bare arm returns `Value<U>` rather than the union, because a
+   * operand. The bare arm returns `Value<Unit>` rather than the union, because a
    * bare number has no unit of its own to survive: `elapsed.max(0)` is the clamp
    * that `Math.max(0, elapsed.magnitude)` was written as five times, and it
    * keeps its type on the way out instead of shedding it. See {@link BareOperand}.
    */
   /*
    * The SAME-unit arm, first so it wins the overload resolution it is about.
-   * `CombinableWith<U>` is deferred while `U` is still a type parameter, so a
-   * component generic over its own unit cannot show `Value<U>` satisfies it,
+   * `CombinableWith<Unit>` is deferred while `Unit` is still a type parameter, so a
+   * component generic over its own unit cannot show `Value<Unit>` satisfies it,
    * and `q.max(min)` fails to compile for two operands that are plainly one
    * kind. A value is always combinable with its own unit, so this arm asserts
    * nothing the wider one would not have allowed, and it returns the narrow
-   * `Value<U>` rather than the union because both operands are already it.
+   * `Value<Unit>` rather than the union because both operands are already it.
    */
-  min(other: Value<U>): Value<U>;
-  min(other: BareOperand<U>): Value<U>;
-  min(other: Value<CombinableWith<U>>): Value<U> | Value<CombinableWith<U>>;
-  max(other: Value<U>): Value<U>;
-  max(other: BareOperand<U>): Value<U>;
-  max(other: Value<CombinableWith<U>>): Value<U> | Value<CombinableWith<U>>;
+  min(other: Value<Unit>): Value<Unit>;
+  min(other: BareOperand<Unit>): Value<Unit>;
+  min(
+    other: Value<CombinableWith<Unit>>,
+  ): Value<Unit> | Value<CombinableWith<Unit>>;
+  max(other: Value<Unit>): Value<Unit>;
+  max(other: BareOperand<Unit>): Value<Unit>;
+  max(
+    other: Value<CombinableWith<Unit>>,
+  ): Value<Unit> | Value<CombinableWith<Unit>>;
 }
 
 // Through the REGISTRY, not the static table: a unit an Uplink registered has
@@ -804,12 +831,15 @@ const prototype = {
  * to combine with anything: `value("Klevin", 300).plus(value("K", 1))` throws
  * "Cannot add Klevin and K". Wrong, but loudly, rather than quietly wrong.
  */
-export function value<U extends string>(unit: U, magnitude: number): Value<U> {
-  const instance: { magnitude: number; unit: U } = Object.assign(
+export function value<Unit extends string>(
+  unit: Unit,
+  magnitude: number,
+): Value<Unit> {
+  const instance: { magnitude: number; unit: Unit } = Object.assign(
     Object.create(prototype),
     { magnitude, unit },
   );
-  return instance as Value<U>;
+  return instance as Value<Unit>;
 }
 
 /** True for something this module produced, or something `hydrate` restored. */
@@ -835,14 +865,14 @@ export function isValue(candidate: unknown): candidate is Value {
  * Idempotent, and a pass-through for anything that is not a value, so it is
  * safe to map over a decoded payload without knowing which fields are wrapped.
  */
-export function hydrate<T>(candidate: T): T {
+export function hydrate<Candidate>(candidate: Candidate): Candidate {
   if (!isValue(candidate)) {
     return candidate;
   }
   if (Object.getPrototypeOf(candidate) === prototype) {
     return candidate;
   }
-  return value(candidate.unit, candidate.magnitude) as T;
+  return value(candidate.unit, candidate.magnitude) as Candidate;
 }
 
 /**
@@ -855,10 +885,10 @@ export function hydrate<T>(candidate: T): T {
  * `v.magnitude()`, and it is the honest shape rather than a limitation: the
  * alternative is hydrating every vector on every sample to attach one method.
  */
-export interface Vector3<U extends string = string> {
-  readonly x: Value<U>;
-  readonly y: Value<U>;
-  readonly z: Value<U>;
+export interface Vector3<Unit extends string = string> {
+  readonly x: Value<Unit>;
+  readonly y: Value<Unit>;
+  readonly z: Value<Unit>;
 }
 
 /**
@@ -870,11 +900,13 @@ export interface Vector3<U extends string = string> {
  * renders like any other.
  *
  * Reading the components' `.magnitude` here is safe in a way it is not in
- * general: a `Vector3<U>` has all three leaves in the same unit BY TYPE, so
+ * general: a `Vector3<Unit>` has all three leaves in the same unit BY TYPE, so
  * there is nothing to mix. That is the whole reason this can be one line
  * rather than two conversions.
  */
-export function vectorMagnitude<U extends string>(v: Vector3<U>): Value<U> {
+export function vectorMagnitude<Unit extends string>(
+  v: Vector3<Unit>,
+): Value<Unit> {
   return value(
     v.x.unit,
     Math.hypot(v.x.magnitude, v.y.magnitude, v.z.magnitude),

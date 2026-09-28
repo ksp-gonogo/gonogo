@@ -44,9 +44,9 @@ export interface AugmentSegmentRegistry {
 }
 
 /** The props a component-led augment SEGMENT passes to its augments, resolved from {@link AugmentSegmentRegistry}. */
-export type AugmentSegmentProps<Seg extends string> =
-  Seg extends keyof AugmentSegmentRegistry
-    ? AugmentSegmentRegistry[Seg]
+export type AugmentSegmentProps<Segment extends string> =
+  Segment extends keyof AugmentSegmentRegistry
+    ? AugmentSegmentRegistry[Segment]
     : never;
 
 /*
@@ -67,7 +67,7 @@ export type {
 
 /*
  * The erased form the registry stores, so one map holds every slot's augments.
- * `SlotProps<string>` would resolve to `never` for an undeclared slot; `S` is
+ * `SlotProps<string>` would resolve to `never` for an undeclared slot; `Slot` is
  * checked at the `registerAugment` call site instead.
  */
 export type AnyAugment = Omit<AugmentDefinition<string>, "component"> & {
@@ -143,13 +143,13 @@ export function onAugmentsChange(cb: () => void): () => void {
  * compose, ordered by `priority`. `component` is typed against the
  * target slot's props via the {@link SlotRegistry} declaration-merging seam.
  */
-export function registerAugment<S extends string>(
-  def: AugmentDefinition<S>,
+export function registerAugment<Slot extends string>(
+  def: AugmentDefinition<Slot>,
 ): void {
   reportIfSlotRetired(def);
   const state = registry();
   state.augments.set(def.id, {
-    // Erased through `unknown`: a merged `SlotProps<S>` is not bivariantly comparable to the erased form.
+    // Erased through `unknown`: a merged `SlotProps<Slot>` is not bivariantly comparable to the erased form.
     def: def as unknown as AnyAugment,
     order: state.counter++,
   });

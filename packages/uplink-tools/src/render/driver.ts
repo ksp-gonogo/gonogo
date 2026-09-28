@@ -204,11 +204,15 @@ declare global {
  * Load the Uplink into a probe page, read what it registers, and hand the open
  * tab to `body`. Every scene is built and coverage asserted before `body` runs.
  */
-async function withProbe<T>(
+async function withProbe<Result>(
   pkg: UplinkPackage,
   opts: ProbeOptions,
-  body: (tab: Page, read: UplinkScenes, pageErrors: string[]) => Promise<T>,
-): Promise<T> {
+  body: (
+    tab: Page,
+    read: UplinkScenes,
+    pageErrors: string[],
+  ) => Promise<Result>,
+): Promise<Result> {
   const browser = await (await engine(opts.engine)).launch();
   const pageErrors: string[] = [];
   let page: ProbePage | undefined;

@@ -31,7 +31,7 @@ export interface ProgressBarPercentProps extends ProgressBarCommonProps {
 }
 
 /** The bar driven by an amount and a capacity. See {@link ProgressBarProps}. */
-export interface ProgressBarQuantityProps<U extends string = string>
+export interface ProgressBarQuantityProps<Unit extends string = string>
   extends ProgressBarCommonProps {
   /**
    * The amount and the capacity it fills. The bar derives the fill and the
@@ -41,7 +41,7 @@ export interface ProgressBarQuantityProps<U extends string = string>
    * `role="progressbar"`, since an empty track is indistinguishable from 0%. A
    * call site needs no absence gate of its own.
    */
-  quantity: FillQuantity<U> | null;
+  quantity: FillQuantity<Unit> | null;
   value?: never;
 }
 
@@ -50,22 +50,22 @@ export interface ProgressBarQuantityProps<U extends string = string>
  * `quantity` pair the bar divides itself, or a `value` percentage already
  * divided. Passing both is a type error.
  */
-export type ProgressBarProps<U extends string = string> =
+export type ProgressBarProps<Unit extends string = string> =
   | ProgressBarPercentProps
-  | ProgressBarQuantityProps<U>;
+  | ProgressBarQuantityProps<Unit>;
 
 /**
  * Thin track and fill progress indicator, a native `role="progressbar"`.
  * Handed a `quantity` pair it also speaks both halves ("120 of 400 build
  * points"), not only the percentage.
  */
-export function ProgressBar<U extends string = string>({
+export function ProgressBar<Unit extends string = string>({
   value,
   quantity,
   ariaLabel,
   fillColor,
   ...rest
-}: Readonly<ProgressBarProps<U>>) {
+}: Readonly<ProgressBarProps<Unit>>) {
   const fraction = quantity === undefined ? null : fillFraction(quantity);
 
   // Absence, not a zero bar.
@@ -94,7 +94,7 @@ export function ProgressBar<U extends string = string>({
  * the half that does not move, so 500 kg of a 1 t tank reads "500 kilograms of
  * 1,000 kilograms".
  */
-function bothHalves<U extends string>(pair: FillQuantity<U>): string {
+function bothHalves<Unit extends string>(pair: FillQuantity<Unit>): string {
   const said = { format: pair.capacity.unit };
   return `${speakQuantity(pair.amount, said)} of ${speakQuantity(
     pair.capacity,

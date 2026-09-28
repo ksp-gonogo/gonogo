@@ -94,7 +94,10 @@ const SYSTEM = {
   ],
 };
 
-function point<T>(validAt: number, payload: T): TimelinePoint<T> {
+function point<Payload>(
+  validAt: number,
+  payload: Payload,
+): TimelinePoint<Payload> {
   return {
     validAt,
     payload,

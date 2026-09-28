@@ -91,7 +91,7 @@ const satisfiesModRangeCases: Array<[string | null, VersionRange | null]> = [
   ["1.2", { min: "1.2.0", max: "1.3.0" }], // short-form modVersion
 ];
 
-function toUndefined<T>(value: T | null): T | undefined {
+function toUndefined<Defined>(value: Defined | null): Defined | undefined {
   return value === null ? undefined : value;
 }
 

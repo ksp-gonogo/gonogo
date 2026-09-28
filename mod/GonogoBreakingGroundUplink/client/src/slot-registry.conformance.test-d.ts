@@ -6,8 +6,8 @@
 import type { SlotProps as SdkSlotProps } from "@ksp-gonogo/sitrep-sdk";
 import type { DeployedExperimentContext } from "./DeployedScience";
 
-type Assignable<A, B> = A extends B ? true : false;
-type Expect<T extends true> = T;
+type Assignable<Left, Right> = Left extends Right ? true : false;
+type Expect<Condition extends true> = Condition;
 
 type _DeployedSections = Expect<
   Assignable<

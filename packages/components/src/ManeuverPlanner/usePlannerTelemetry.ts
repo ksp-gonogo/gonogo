@@ -24,10 +24,10 @@ import { buildCurrentOrbit, computeMu } from "./planning";
  * moves only its named fields, so they are overlaid on the observation:
  * `reckoned.value` alone would be a target with no name and no orbit.
  */
-function dateableReckonable<T, K extends keyof T>(
-  reading: ReckonableReading<T, K>,
+function dateableReckonable<Payload, ReckonableKey extends keyof Payload>(
+  reading: ReckonableReading<Payload, ReckonableKey>,
 ): {
-  value: T | undefined;
+  value: Payload | undefined;
   needsDating: boolean;
 } {
   // The state is asked first: `reckoning.status` narrows the reckoning, not the arm carrying it.

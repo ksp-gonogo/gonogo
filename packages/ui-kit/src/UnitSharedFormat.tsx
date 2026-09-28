@@ -51,21 +51,21 @@ interface Report {
 }
 
 /** What a scope pins for one group, typed by the unit it is addressed to: `of="m" as="kg"` is a compile error. */
-export interface UnitPins<U extends string = string> {
+export interface UnitPins<Unit extends string = string> {
   /** The rung every member of the group is written at. */
-  format?: FormatsFor<U>;
+  format?: FormatsFor<Unit>;
   /** The unit every member of the group is shown in. */
-  as?: PresentableAs<U>;
+  as?: PresentableAs<Unit>;
   /** The digit count every member of the group is written at. */
   decimals?: number;
 }
 
 /** {@link UnitPins} addressed to a whole group, checked against what that group measures. */
-export interface UnitGroupPins<G extends UnitGroupKey> {
+export interface UnitGroupPins<Group extends UnitGroupKey> {
   /** The rung every member of the group is written at. */
-  format?: FormatsForKind<KindOfGroup<G>>;
+  format?: FormatsForKind<KindOfGroup<Group>>;
   /** The unit every member of the group is shown in. */
-  as?: PresentableAsKind<KindOfGroup<G>>;
+  as?: PresentableAsKind<KindOfGroup<Group>>;
   /** The digit count every member of the group is written at. */
   decimals?: number;
 }
@@ -74,7 +74,7 @@ export interface UnitGroupPins<G extends UnitGroupKey> {
  * What each named group of a mixed scope is pinned to. Every entry is optional and a key that is not a group is a compile error. An Uplink's units reach this type by merging into `UnitDeclarations`.
  */
 export type UnitPinsByGroup = {
-  [G in UnitGroupKey]?: UnitGroupPins<G>;
+  [Group in UnitGroupKey]?: UnitGroupPins<Group>;
 };
 
 const NO_PINS: UnitPins = {};
@@ -335,11 +335,11 @@ interface UnitSharedFormatBaseProps {
  *
  * Without `of` the pins are unaddressed: they reach every group and nothing checks them.
  */
-export interface UnitSharedFormatProps<U extends string = string>
+export interface UnitSharedFormatProps<Unit extends string = string>
   extends UnitSharedFormatBaseProps,
-    UnitPins<U> {
+    UnitPins<Unit> {
   /** The unit the pins below are addressed to. */
-  of?: U;
+  of?: Unit;
 }
 
 /**
@@ -383,8 +383,8 @@ interface UnitSharedFormatAnyProps extends UnitSharedFormatBaseProps, UnitPins {
  *
  * The first pass draws each member at its own ladder; reports land in layout effects and the settled format re-renders before paint. It settles in one extra pass because a member's report depends only on its own props, never on the format it was given back.
  */
-export function UnitSharedFormat<U extends string = string>(
-  props: UnitSharedFormatProps<U> | UnitSharedFormatMixedProps,
+export function UnitSharedFormat<Unit extends string = string>(
+  props: UnitSharedFormatProps<Unit> | UnitSharedFormatMixedProps,
 ): ReactElement;
 export function UnitSharedFormat({
   children,
@@ -418,8 +418,8 @@ export function UnitSharedFormat({
  *
  * `<Unit>` calls this itself. It is published for readouts `<Unit>` cannot draw (SVG axis text, an `aria-valuetext`) that must be written at the same format as the `<Unit>`s beside them. A quantity whose caller already decided its presentation (`format`, `as`, a non-auto `scale`) neither reports nor hears back.
  */
-export function useSharedFormat<U extends string = string>(
-  value: Value<U> | null | undefined,
+export function useSharedFormat<Unit extends string = string>(
+  value: Value<Unit> | null | undefined,
   opts: FormatQuantityOptions = {},
 ): SharedFormat | undefined {
   const scope = useContext(ScopeContext);
@@ -466,8 +466,8 @@ export function useSharedFormat<U extends string = string>(
  *
  * Read-only, unlike {@link useSharedFormat}: a caller that decides what to draw from this must keep reporting as before, or membership becomes a function of the verdict.
  */
-export function useReadsAsOneFigure<U extends string = string>(
-  value: Value<U> | null | undefined,
+export function useReadsAsOneFigure<Unit extends string = string>(
+  value: Value<Unit> | null | undefined,
   opts: FormatQuantityOptions = {},
 ): boolean {
   const scope = useContext(ScopeContext);

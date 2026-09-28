@@ -49,20 +49,20 @@ import type {
  * are NOT here: they are real, published bytes re-exported directly from the sdk.
  */
 export interface GonogoHost {
-  registerAugment<S extends string>(def: AugmentDefinition<S>): void;
+  registerAugment<Slot extends string>(def: AugmentDefinition<Slot>): void;
 
   /**
    * Reads a Topic off the mounted TimelineStore and answers with its `Reading`
    * (`@ksp-gonogo/core`'s `useTelemetry`).
    */
-  useTelemetry<T extends TopicId>(
-    topic: T,
-  ): T extends ReckonableTopic
+  useTelemetry<Topic extends TopicId>(
+    topic: Topic,
+  ): Topic extends ReckonableTopic
     ? ReckonableReading<
-        TopicPayload<T>,
-        ReckonableFields<T> & keyof TopicPayload<T>
+        TopicPayload<Topic>,
+        ReckonableFields<Topic> & keyof TopicPayload<Topic>
       >
-    : TopicReading<TopicPayload<T>>;
+    : TopicReading<TopicPayload<Topic>>;
   /**
    * The frame's VIEW instant: the moment the screen is showing, which is not
    * necessarily now.
@@ -90,14 +90,14 @@ export interface GonogoHost {
    * an app-side implementation has one function to write however many shapes a
    * caller sees.
    */
-  useCommand<C extends CommandId>(
-    command: C,
+  useCommand<Command extends CommandId>(
+    command: Command,
     options?: UseCommandOptions,
-  ): UseCommandResult<CommandArgs<C>, CommandReply<C>>;
-  useCommand<TArgs = unknown, TReply = unknown>(
+  ): UseCommandResult<CommandArgs<Command>, CommandReply<Command>>;
+  useCommand<Args = unknown, Reply = unknown>(
     command: string,
     options?: UseCommandOptions,
-  ): UseCommandResult<TArgs, TReply>;
+  ): UseCommandResult<Args, Reply>;
   /**
    * Call one of `uplinkId`'s own methods, wherever this screen is. On the main
    * screen the call reaches the registered handle directly; on a station it is
@@ -125,7 +125,7 @@ export interface GonogoHost {
    * `useRouteCommands` for the full contract.
    */
   useRouteCommands(topic: string): UseRouteCommandsResult;
-  useStream<T>(topic: string): TopicReading<T>;
+  useStream<Payload>(topic: string): TopicReading<Payload>;
   /**
    * Reactively read a Processor's current, frame-memoised value (mirrors
    * `@ksp-gonogo/sitrep-client`'s `useProcessor`, the augment-side consumption
@@ -136,15 +136,15 @@ export interface GonogoHost {
    * `useTelemetryStoreOptional`'s opaque return). Degrades to `undefined` with
    * no provider mounted.
    *
-   * A processor whose own deps include a reading answers a `Reading<R>`, one
-   * depending only on raw topic ids answers the bare `R`. The handle's own
+   * A processor whose own deps include a reading answers a `Reading<Result>`, one
+   * depending only on raw topic ids answers the bare `Result`. The handle's own
    * brand decides which, so a consumer cannot be handed the wrong shape.
    */
-  useProcessor<R, Carried extends boolean>(handle: {
+  useProcessor<Result, Carried extends boolean>(handle: {
     readonly id: string;
-    readonly __resultType?: R;
+    readonly __resultType?: Result;
     readonly __carriesCurrency?: Carried;
-  }): (Carried extends true ? Reading<R> : R) | undefined;
+  }): (Carried extends true ? Reading<Result> : Result) | undefined;
   useViewClock(): unknown;
   /**
    * Returns the function an Uplink calls to ask the app to CREATE an alarm.
@@ -161,8 +161,8 @@ export interface GonogoHost {
   useAlarmRequest(
     owner: UplinkClientHandle,
   ): (request: UplinkAlarmRequest) => void;
-  useActionInput<TActions extends readonly ActionDefinition[]>(
-    handlers: ActionHandlers<TActions>,
+  useActionInput<Actions extends readonly ActionDefinition[]>(
+    handlers: ActionHandlers<Actions>,
   ): void;
   useDataSources(): unknown;
 
@@ -173,15 +173,15 @@ export interface GonogoHost {
    * never delayed craft telemetry: see `useLatestValue`'s own doc in
    * `@ksp-gonogo/sitrep-client` for the raw-vs-derived distinction.
    */
-  useLatestValue<T = unknown>(topic: string): T | undefined;
+  useLatestValue<Payload = unknown>(topic: string): Payload | undefined;
   /**
    * Fires `handler` once per discrete event delivered on a `ReliableOrdered`
    * channel topic (e.g. a crash alarm): the consumption side of an event
    * lane, as opposed to `useStream`'s sticky-latest-value read.
    */
-  useStreamEvent<T = unknown>(
+  useStreamEvent<Payload = unknown>(
     topic: string,
-    handler: (payload: T) => void,
+    handler: (payload: Payload) => void,
   ): void;
   /**
    * Returns a stable, imperative subscribe function for topics that are only

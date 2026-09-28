@@ -92,11 +92,11 @@ export const unitMatchers = {
  * }
  * ```
  */
-export interface UnitMatchers<R = unknown> {
+export interface UnitMatchers<Result = unknown> {
   toShowQuantity(
     quantity: { magnitude: number; unit: string } | null | undefined,
     opts?: FormatQuantityOptions,
-  ): R;
+  ): Result;
 }
 
 export { expectNoA11yViolations } from "./expectNoA11yViolations";

@@ -31,7 +31,7 @@ const SETTINGS_WRITE_BUDGET = new PerfBudget({
   unit: "writes",
 });
 
-type Listener<T = unknown> = (value: T) => void;
+type Listener<SettingValue = unknown> = (value: SettingValue) => void;
 
 export class SettingsService {
   private values = new Map<string, unknown>();
@@ -53,22 +53,22 @@ export class SettingsService {
     }
   }
 
-  get<T>(key: string, fallback: T): T {
+  get<SettingValue>(key: string, fallback: SettingValue): SettingValue {
     if (!this.values.has(key)) return fallback;
-    return this.values.get(key) as T;
+    return this.values.get(key) as SettingValue;
   }
 
-  set<T>(key: string, value: T): void {
+  set<SettingValue>(key: string, value: SettingValue): void {
     // Cheap dedupe: structural compare via JSON since settings are always JSON-serialisable by contract.
     const prev = this.values.get(key);
     if (JSON.stringify(prev) === JSON.stringify(value)) return;
     this.values.set(key, value);
     this.scheduleSave();
     const bucket = this.listeners.get(key);
-    if (bucket) for (const l of bucket) (l as Listener<T>)(value);
+    if (bucket) for (const l of bucket) (l as Listener<SettingValue>)(value);
   }
 
-  subscribe<T>(key: string, cb: Listener<T>): () => void {
+  subscribe<SettingValue>(key: string, cb: Listener<SettingValue>): () => void {
     let bucket = this.listeners.get(key);
     if (!bucket) {
       bucket = new Set();

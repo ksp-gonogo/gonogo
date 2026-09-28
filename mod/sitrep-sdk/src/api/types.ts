@@ -65,37 +65,37 @@ export interface ActionDefinition {
 }
 
 /** Typed handler map for {@link useActionInput}, keyed by each action's `id`. */
-export type ActionHandlers<TActions extends readonly ActionDefinition[]> = {
-  [K in TActions[number]["id"]]: (payload: ActionInputPayload) => unknown;
+export type ActionHandlers<Actions extends readonly ActionDefinition[]> = {
+  [ActionId in Actions[number]["id"]]: (payload: ActionInputPayload) => unknown;
 };
 
 // --- Component registration -------------------------------------------------
 
 /** Props passed to every registered dashboard component. */
-export interface ComponentProps<TConfig = Record<string, unknown>> {
-  config?: TConfig;
+export interface ComponentProps<Config = Record<string, unknown>> {
+  config?: Config;
   id: string;
   w?: number;
   h?: number;
-  onConfigChange?: (config: TConfig) => void;
+  onConfigChange?: (config: Config) => void;
 }
 
 /** Props passed to a component's config UI (rendered inside a modal). */
-export interface ConfigComponentProps<TConfig = Record<string, unknown>> {
-  config: TConfig;
-  onSave: (config: TConfig) => void;
+export interface ConfigComponentProps<Config = Record<string, unknown>> {
+  config: Config;
+  onSave: (config: Config) => void;
 }
 
 /** Registration descriptor for a dashboard component. */
-export interface ComponentDefinition<TConfig = Record<string, unknown>> {
+export interface ComponentDefinition<Config = Record<string, unknown>> {
   id: string;
   name: string;
   description: string;
   /** Free-form tags; UI may style known values (e.g. 'telemetry', 'control'). */
   tags: string[];
-  component: ComponentType<ComponentProps<TConfig>>;
+  component: ComponentType<ComponentProps<Config>>;
   /** Config UI rendered inside a modal; shown via the gear icon. */
-  configComponent?: ComponentType<ConfigComponentProps<TConfig>>;
+  configComponent?: ComponentType<ConfigComponentProps<Config>>;
   openConfigOnAdd?: boolean;
   defaultSize?: { w: number; h: number };
   minSize?: { w: number; h: number };
@@ -125,7 +125,7 @@ export interface ComponentDefinition<TConfig = Record<string, unknown>> {
    */
   fields?: readonly WidgetFieldPath[];
   behaviors?: ComponentBehavior[];
-  defaultConfig?: Partial<TConfig>;
+  defaultConfig?: Partial<Config>;
   /** Actions this component exposes to the serial input platform. */
   actions?: readonly ActionDefinition[];
   pushable?: boolean;
@@ -201,7 +201,7 @@ export type SlotId = keyof SlotRegistry;
  * nothing about what was declared. `never` for an id that IS named and that
  * nothing declares, so a typo describes no shape at all.
  */
-type ErasedOrNever<S extends string> = string extends S
+type ErasedOrNever<Slot extends string> = string extends Slot
   ? Record<string, unknown>
   : never;
 
@@ -210,8 +210,8 @@ type ErasedOrNever<S extends string> = string extends S
  * merged. A loose bag here would type an augment of a MISSPELLED slot id, and
  * the props it reads off that bag, exactly as it types a correct one.
  */
-export type SlotProps<S extends string> = S extends keyof SlotRegistry
-  ? SlotRegistry[S]
+export type SlotProps<Slot extends string> = Slot extends keyof SlotRegistry
+  ? SlotRegistry[Slot]
   : never;
 
 /**
@@ -233,12 +233,13 @@ export interface WidgetScopeRegistry {}
 
 /**
  * The scope a given widget publishes, and `never` for a NAMED widget that
- * publishes none. A `C` erased to `string` gets the open record, for the reason
+ * publishes none. A `Widget` erased to `string` gets the open record, for the reason
  * {@link ErasedOrNever} gives.
  */
-export type WidgetScope<C extends string> = C extends keyof WidgetScopeRegistry
-  ? WidgetScopeRegistry[C]
-  : ErasedOrNever<C>;
+export type WidgetScope<Widget extends string> =
+  Widget extends keyof WidgetScopeRegistry
+    ? WidgetScopeRegistry[Widget]
+    : ErasedOrNever<Widget>;
 
 // --- Contributions (pure-data slot composition) ------------------------------
 
@@ -258,9 +259,9 @@ export interface ContributionRegistry {}
 
 /**
  * The entry type a `ContributionRegistry` slot's contributions render,
- * mirroring `packages/core/src/contributions.ts`'s own `ContributionEntry<S>`
+ * mirroring `packages/core/src/contributions.ts`'s own `ContributionEntry<Slot>`
  * (same name, same extraction: `ContributionRegistry[S] extends { entry:
- * infer E } ? E : ...`), same leaf constraint as `SlotProps<S>` above. An
+ * infer Entry } ? Entry : ...`), same leaf constraint as `SlotProps<Slot>` above. An
  * Uplink contribution built against `ContributionEntry<"ship-map.part-
  * meters">` gets the real, host-declared entry shape once
  * `./contribution-slots.ts` mirrors that slot; a slot not yet declared here
@@ -437,7 +438,7 @@ export interface ComponentSlotRegistry {
 export type ComponentSlotSegment = keyof ComponentSlotRegistry;
 
 /** The trailing segment of a completed slot id: `"resource-ops.filters"` -> `"filters"`. */
-type SegmentOf<S extends string> = S extends `${string}.${infer Rest}`
+type SegmentOf<Slot extends string> = Slot extends `${string}.${infer Rest}`
   ? Rest extends `${string}.${string}`
     ? SegmentOf<Rest>
     : Rest
@@ -458,16 +459,16 @@ type SegmentOf<S extends string> = S extends `${string}.${infer Rest}`
  * were both correct-looking and landed on different interfaces, so neither
  * could see the other's slots and nothing said so.
  */
-export type ContributionEntry<S extends string> =
-  S extends keyof ContributionRegistry
-    ? ContributionRegistry[S] extends { entry: infer E }
-      ? E
+export type ContributionEntry<Slot extends string> =
+  Slot extends keyof ContributionRegistry
+    ? ContributionRegistry[Slot] extends { entry: infer Entry }
+      ? Entry
       : never
-    : [SegmentOf<S>] extends [ComponentSlotSegment]
-      ? [SegmentOf<S>] extends [never]
-        ? ErasedOrNever<S>
-        : ComponentSlotRegistry[SegmentOf<S>]
-      : ErasedOrNever<S>;
+    : [SegmentOf<Slot>] extends [ComponentSlotSegment]
+      ? [SegmentOf<Slot>] extends [never]
+        ? ErasedOrNever<Slot>
+        : ComponentSlotRegistry[SegmentOf<Slot>]
+      : ErasedOrNever<Slot>;
 
 /**
  * The identity an aggregated entry is stamped with, for keys and for blame.
@@ -483,7 +484,7 @@ export interface UplinkClientIdentity {
 }
 
 /** One rendered entry, tagged with provenance for keys and blame. */
-export type Contributed<E> = E & {
+export type Contributed<Entry> = Entry & {
   readonly contributionId: string;
   readonly owner?: UplinkClientIdentity;
 };
@@ -507,11 +508,11 @@ export type ContributionDep =
  * itself, a reading dep under the topic it names, a Processor under its
  * owner-stamped id.
  */
-type DepKey<E> = E extends string
-  ? E
-  : E extends { readonly reading: infer T extends string }
-    ? T
-    : E extends { readonly id: infer I extends string }
+type DepKey<Dependency> = Dependency extends string
+  ? Dependency
+  : Dependency extends { readonly reading: infer Topic extends string }
+    ? Topic
+    : Dependency extends { readonly id: infer ProcessorId extends string }
       ? // A processor whose id is still the unnarrowed `string` contributes NO
         // key. It would otherwise contribute a string index signature, which
         // reopens every key on the record and puts back exactly the hole this
@@ -519,9 +520,9 @@ type DepKey<E> = E extends string
         // topic readable again for that whole contribution. A handle from
         // `defineProcessor`/`registerProcessor` always carries its stamped id;
         // one from `defineProcessorContract` only does when the caller names it.
-        string extends I
+        string extends ProcessorId
         ? never
-        : I
+        : ProcessorId
       : never;
 
 /**
@@ -549,21 +550,24 @@ type DepKey<E> = E extends string
  * as the bare result here would hand a contribution a reading while telling it
  * otherwise, which is the defect the brand exists to prevent.</para>
  */
-type DepValue<E> = E extends string
-  ? TopicPayload<E & TopicId> | null | undefined
-  : E extends { readonly reading: infer T }
-    ? T extends TopicId
-      ? TopicPayload<T> | null | undefined
+type DepValue<Dependency> = Dependency extends string
+  ? TopicPayload<Dependency & TopicId> | null | undefined
+  : Dependency extends { readonly reading: infer Topic }
+    ? Topic extends TopicId
+      ? TopicPayload<Topic> | null | undefined
       : never
-    : E extends { readonly id: string; readonly __resultType?: infer R }
-      ? E extends { readonly __carriesCurrency?: true }
-        ? Reading<R> | undefined
-        : R | undefined
+    : Dependency extends {
+          readonly id: string;
+          readonly __resultType?: infer Result;
+        }
+      ? Dependency extends { readonly __carriesCurrency?: true }
+        ? Reading<Result> | undefined
+        : Result | undefined
       : never;
 
 /** Every dep a contribution declared, keyed and typed the way it arrives. */
-export type DepTopics<D extends readonly ContributionDep[]> = {
-  readonly [E in D[number] as DepKey<E>]: DepValue<E>;
+export type DepTopics<Deps extends readonly ContributionDep[]> = {
+  readonly [Dependency in Deps[number] as DepKey<Dependency>]: DepValue<Dependency>;
 };
 
 /**
@@ -572,25 +576,25 @@ export type DepTopics<D extends readonly ContributionDep[]> = {
  * the registry, and this is the type it registers.
  *
  * Both halves of `compute` are typed precisely: what it returns against the
- * declaration-merged `ContributionEntry<S>` a slot owner declares in
+ * declaration-merged `ContributionEntry<Slot>` a slot owner declares in
  * `./contribution-slots.ts`, and what it receives against its own `deps`, which
  * are the only Topics the aggregation feeds it.
  */
 export interface ContributionDefinition<
-  S extends string = string,
-  D extends readonly ContributionDep[] = readonly ContributionDep[],
+  Slot extends string = string,
+  Deps extends readonly ContributionDep[] = readonly ContributionDep[],
 > {
   /** Stable id, unique globally. Auto-namespaced when registered via the handle. */
   id: string;
   /** The slot this contribution feeds. */
-  contributes: S;
+  contributes: Slot;
   /**
    * What this contribution reads. It is what feeds `compute` at runtime, and
    * since it is inferred as a literal tuple it is also what TYPES it: declare a
    * topic here and it is readable and precise, leave one out and it is not
    * readable at all.
    */
-  deps?: D;
+  deps?: Deps;
   /**
    * Pure, and referentially stable when its inputs are unchanged.
    *
@@ -600,8 +604,8 @@ export interface ContributionDefinition<
    * empty count or a nominal state for either is not.</p>
    */
   compute: (
-    topics: DepTopics<D>,
-  ) => readonly ContributionEntry<S>[] | null | undefined;
+    topics: DepTopics<Deps>,
+  ) => readonly ContributionEntry<Slot>[] | null | undefined;
   /** Domain presence gate, identical semantics to `AugmentDefinition.requires`. */
   requires?: string;
   /**
@@ -667,10 +671,10 @@ export interface NamespacedAugmentSettings {
 }
 
 /** Registration descriptor for an augment bound into another widget's slot. */
-export interface AugmentDefinition<S extends string = string> {
+export interface AugmentDefinition<Slot extends string = string> {
   id: string;
-  augments: S;
-  component: ComponentType<SlotProps<S>>;
+  augments: Slot;
+  component: ComponentType<SlotProps<Slot>>;
   channels?: readonly TopicId[];
   requires?: string;
   priority?: number;
@@ -942,7 +946,7 @@ export interface ConfigField {
  * `status: DataSourceStatus` connection field.
  */
 export interface DataSource<
-  TConfig extends Record<string, unknown> = Record<string, unknown>,
+  Config extends Record<string, unknown> = Record<string, unknown>,
 > {
   id: string;
   name: string;
@@ -954,7 +958,7 @@ export interface DataSource<
   onStatusChange(cb: (status: DataSourceStatus) => void): () => void;
   configSchema(): ConfigField[];
   configure(config: Record<string, unknown>): void;
-  getConfig(): TConfig;
+  getConfig(): Config;
   setupInstructions?(): string | null;
   affectedBySignalLoss?: boolean;
 }
@@ -1181,8 +1185,8 @@ export interface UseCommandOptions {
 
 /**
  * Mirrors the spine's `UseCommandResult`: same leaf constraint as every other
- * type in this file. `TArgs`/`TReply` come from the generated command map when
- * the hook was given a known `CommandId`, and `TReply` falls back to
+ * type in this file. `Args`/`Reply` come from the generated command map when
+ * the hook was given a known `CommandId`, and `Reply` falls back to
  * {@link AnyCommandReply} rather than to `unknown`, for the reason that type
  * gives.
  *
@@ -1191,11 +1195,8 @@ export interface UseCommandOptions {
  * parameter contravariantly and a typed handle stops being assignable to the
  * bare `UseCommandResult` that `<CommandDelay handle>` takes.
  */
-export interface UseCommandResult<TArgs = unknown, TReply = AnyCommandReply> {
-  send(
-    args?: TArgs,
-    opts?: { label?: string; topic?: string },
-  ): Promise<TReply>;
+export interface UseCommandResult<Args = unknown, Reply = AnyCommandReply> {
+  send(args?: Args, opts?: { label?: string; topic?: string }): Promise<Reply>;
   status: CommandStatus;
   inFlight: InFlightCommand[];
   /** What this command IS on the rail's three axes, as its owning assembly
@@ -1253,9 +1254,9 @@ export interface UseCommandResult<TArgs = unknown, TReply = AnyCommandReply> {
  * See the spine's copy for why it is named off `UseCommandResult` rather than
  * `CommandHandle`.
  */
-export type UseCommandResultFor<C extends CommandId> = UseCommandResult<
-  CommandArgs<C>,
-  CommandReply<C>
+export type UseCommandResultFor<Command extends CommandId> = UseCommandResult<
+  CommandArgs<Command>,
+  CommandReply<Command>
 >;
 
 /**
@@ -1339,13 +1340,16 @@ export type StreamStatusValue =
  * `TopicId` argument infers the payload type from `TopicPayloadMap` (the
  * same canonical typing `useTelemetry(topic)` gives a static topic); a
  * plain `string` argument (a runtime-templated topic, e.g. a per-body coverage
- * mask) falls back to an explicit `T` type argument at the call site. Each
+ * mask) falls back to an explicit `Payload` type argument at the call site. Each
  * overload returns an unsubscribe function, safe to call more than once.
  */
 export interface LateTelemetrySubscribe {
-  <K extends TopicId>(
-    topic: K,
-    onValue: (value: TopicPayload<K>) => void,
+  <Topic extends TopicId>(
+    topic: Topic,
+    onValue: (value: TopicPayload<Topic>) => void,
   ): () => void;
-  <T = unknown>(topic: string, onValue: (value: T) => void): () => void;
+  <Payload = unknown>(
+    topic: string,
+    onValue: (value: Payload) => void,
+  ): () => void;
 }

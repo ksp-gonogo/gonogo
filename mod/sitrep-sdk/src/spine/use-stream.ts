@@ -48,7 +48,7 @@ import { subscribeTopicRead } from "./subscribe-read";
  * `SitrepTelemetryProvider`'s client is built), so a stream widget renders an
  * empty state instead of throwing.
  */
-export function useStream<T>(topic: string): TopicReading<T> {
+export function useStream<Payload>(topic: string): TopicReading<Payload> {
   const client = useTelemetryClientOptional();
   const store = useTelemetryStoreOptional();
 
@@ -65,9 +65,9 @@ export function useStream<T>(topic: string): TopicReading<T> {
     [client, store, topic],
   );
 
-  const getSnapshot = useCallback((): TopicReading<T> => {
-    if (!store) return NO_PROVIDER as TopicReading<T>;
-    return store.sampleReading<T>(topic, store.currentFrame());
+  const getSnapshot = useCallback((): TopicReading<Payload> => {
+    if (!store) return NO_PROVIDER as TopicReading<Payload>;
+    return store.sampleReading<Payload>(topic, store.currentFrame());
   }, [store, topic]);
 
   return useSyncExternalStore(subscribe, getSnapshot);
@@ -115,7 +115,7 @@ const NO_PROVIDER = topicReading<never>({
  * Degrades to `undefined` with no `TelemetryProvider` mounted, or before
  * anything has arrived for `topic`.
  */
-export function useLatestValue<T>(topic: string): T | undefined {
+export function useLatestValue<Payload>(topic: string): Payload | undefined {
   const client = useTelemetryClientOptional();
 
   const subscribe = useCallback(
@@ -126,9 +126,9 @@ export function useLatestValue<T>(topic: string): T | undefined {
     [client, topic],
   );
 
-  const getSnapshot = useCallback((): T | undefined => {
+  const getSnapshot = useCallback((): Payload | undefined => {
     if (!client) return undefined;
-    return client.getValue(topic) as T | undefined;
+    return client.getValue(topic) as Payload | undefined;
   }, [client, topic]);
 
   return useSyncExternalStore(subscribe, getSnapshot);

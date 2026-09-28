@@ -53,7 +53,7 @@ function parsePart(raw: unknown): TechPart | null {
   };
 }
 
-function notNull<T>(x: T | null): x is T {
+function notNull<Item>(x: Item | null): x is Item {
   return x !== null;
 }
 

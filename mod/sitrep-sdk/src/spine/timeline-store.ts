@@ -245,7 +245,7 @@ function derivedMeta(viewUt: number, epoch: number): Meta {
  * nothing arrived at. Substituting plausible ones is exactly how a projection
  * becomes indistinguishable from a reading.
  */
-export interface ReckonedSample<T> {
+export interface ReckonedSample<Payload> {
   /** The UT the model answered FOR. */
   atUt: number;
   /**
@@ -253,7 +253,7 @@ export interface ReckonedSample<T> {
    * still on it. A payload that arrived wrapped stays wrapped all the way to
    * the boundary that plots it, which is the only place a magnitude is taken.
    */
-  value: T;
+  value: Payload;
   basis: ReckoningBasis;
   /**
    * How well the model knew this instant, present only where the model offered
@@ -275,8 +275,8 @@ export interface ReckonedSample<T> {
    * are here or none is; a half-band is a producer bug and reads downstream as
    * no band at all.
    */
-  bandLo?: ReckonedBound<T>;
-  bandHi?: ReckonedBound<T>;
+  bandLo?: ReckonedBound<Payload>;
+  bandHi?: ReckonedBound<Payload>;
   bandKind?: BandKind;
 }
 
@@ -290,7 +290,8 @@ export interface ReckonedSample<T> {
  * the honest answer there: nothing in the payload says what the number measures,
  * so nothing here can promise the end agrees with it.
  */
-export type ReckonedBound<T> = T extends Value<infer U> ? Value<U> : Value;
+export type ReckonedBound<Payload> =
+  Payload extends Value<infer Unit> ? Value<Unit> : Value;
 
 /**
  * What a topic's own model says happened across the part of a gap between two
@@ -433,9 +434,9 @@ function bandDescribes(
  * changed, so a quiet minute and a minute of blackout are the same shape in the
  * buffer and opposite facts about the world. Only a claim can tell them apart.
  */
-function contiguousTail<T>(
-  points: readonly TimelinePoint<T>[],
-): TimelinePoint<T>[] {
+function contiguousTail<Payload>(
+  points: readonly TimelinePoint<Payload>[],
+): TimelinePoint<Payload>[] {
   for (let i = points.length - 1; i >= 0; i--) {
     const point = points[i];
     if (point.payload === null) return points.slice(i + 1);
@@ -452,8 +453,8 @@ function contiguousTail<T>(
  * the far side of a blackout" send an operator to different places, and only
  * the store is in a position to tell them apart.
  */
-interface ResolvedWindow<T> {
-  readonly points: TimelinePoint<T>[];
+interface ResolvedWindow<Payload> {
+  readonly points: TimelinePoint<Payload>[];
   readonly truncatedAtBreak: boolean;
 }
 
@@ -466,15 +467,15 @@ interface ResolvedWindow<T> {
  * spread in time would need an expected interval, and the change-gated stream
  * does not have one.
  */
-function thinTo<T>(
-  points: TimelinePoint<T>[],
+function thinTo<Payload>(
+  points: TimelinePoint<Payload>[],
   max: number,
-): TimelinePoint<T>[] {
+): TimelinePoint<Payload>[] {
   if (max <= 0) return [];
   if (points.length <= max) return points;
   if (max === 1) return [points[points.length - 1]];
   const last = points.length - 1;
-  const out: TimelinePoint<T>[] = [];
+  const out: TimelinePoint<Payload>[] = [];
   for (let i = 0; i < max; i++) {
     out.push(points[Math.round((i * last) / (max - 1))]);
   }
@@ -623,9 +624,13 @@ function lerpFieldValue(
  * (arrays, non-number/non-object primitives, mismatched key sets) also
  * returns `undefined`, signalling "fall back to hold-last" to the caller.
  */
-export function lerpPayload<T>(before: T, after: T, t: number): T | undefined {
+export function lerpPayload<Payload>(
+  before: Payload,
+  after: Payload,
+  t: number,
+): Payload | undefined {
   if (typeof before === "number" && typeof after === "number") {
-    return (before + (after - before) * t) as T;
+    return (before + (after - before) * t) as Payload;
   }
 
   if (
@@ -648,7 +653,7 @@ export function lerpPayload<T>(before: T, after: T, t: number): T | undefined {
       if (!lerped) return undefined;
       result[key] = lerped.value;
     }
-    return result as T;
+    return result as Payload;
   }
 
   return undefined;
@@ -663,10 +668,10 @@ export function lerpPayload<T>(before: T, after: T, t: number): T | undefined {
  * blend toward/away from `null`), or `lerpPayload` can't
  * honestly produce a value.
  */
-function interpolatedRead<T>(
-  timeline: ClientTimeline<T>,
+function interpolatedRead<Payload>(
+  timeline: ClientTimeline<Payload>,
   viewUt: number,
-): TimelinePoint<T> | undefined {
+): TimelinePoint<Payload> | undefined {
   const straddle = timeline.straddle(viewUt);
   if (!straddle) return timeline.at(viewUt);
 
@@ -940,7 +945,7 @@ export class TimelineStore {
    * rewind goes cold right away instead of continuing to serve dead-epoch
    * points until it happens to receive its own next sample.
    */
-  ingest<T>(topic: string, point: TimelinePoint<T>): void {
+  ingest<Payload>(topic: string, point: TimelinePoint<Payload>): void {
     const priorEpoch = this.clock.getEpoch();
     if (point.epoch < priorEpoch) {
       // Stale-epoch straggler by the store's authoritative epoch, refused, not merely masked at read time.
@@ -956,7 +961,7 @@ export class TimelineStore {
       this.heartbeats.reset();
     }
 
-    this.timelineFor<T>(topic).append(point);
+    this.timelineFor<Payload>(topic).append(point);
     if (topic === UPLINK_ROSTER_TOPIC) {
       this.declaredRoles = readDeclaredDelayRoles(point.payload);
     }
@@ -980,8 +985,8 @@ export class TimelineStore {
   }
 
   /** The per-topic `ClientTimeline`, created on first access. */
-  getTimeline<T>(topic: string): ClientTimeline<T> {
-    return this.timelineFor<T>(topic);
+  getTimeline<Payload>(topic: string): ClientTimeline<Payload> {
+    return this.timelineFor<Payload>(topic);
   }
 
   /**
@@ -996,7 +1001,9 @@ export class TimelineStore {
    * Registering the same `topic` twice replaces the previous definition,
    * useful for hot-reload/test setup, not a guarded no-op.
    */
-  registerDerivedChannel<T>(def: DerivedChannelDefinition<T>): void {
+  registerDerivedChannel<Payload>(
+    def: DerivedChannelDefinition<Payload>,
+  ): void {
     this.derivedChannels.set(
       def.topic,
       def as DerivedChannelDefinition<unknown>,
@@ -1329,17 +1336,17 @@ export class TimelineStore {
    * rewind) reads as empty rather than serving dead-epoch history into a
    * live series.
    */
-  sampleRange<T>(
+  sampleRange<Payload>(
     topic: string,
     fromUt: number,
     toUt: number,
-  ): TimelinePoint<T>[] | undefined {
+  ): TimelinePoint<Payload>[] | undefined {
     if (this.resolveDerivedTopic(topic)) return undefined;
 
     const epoch = this.clock.getEpoch();
     const rawField = this.resolveRawFieldSubtopic(topic);
     if (!rawField) {
-      const timeline = this.timelineFor<T>(topic);
+      const timeline = this.timelineFor<Payload>(topic);
       if (timeline.epoch < epoch) return [];
       return timeline.range(fromUt, toUt);
     }
@@ -1349,7 +1356,7 @@ export class TimelineStore {
     );
     if (parentTimeline.epoch < epoch) return [];
 
-    const out: TimelinePoint<T>[] = [];
+    const out: TimelinePoint<Payload>[] = [];
     for (const point of parentTimeline.range(fromUt, toUt)) {
       if (point.payload === null) continue; // tombstone, nothing to extract
       let cursor: unknown = point.payload;
@@ -1368,7 +1375,7 @@ export class TimelineStore {
       if (!resolved) continue; // unknown field on this point, nothing to serve
       out.push({
         validAt: point.validAt,
-        payload: cursor as T,
+        payload: cursor as Payload,
         meta: point.meta,
         epoch: point.epoch,
       });
@@ -1407,11 +1414,11 @@ export class TimelineStore {
    * to gate on `isDerivedTopic` first, same as `sampleRange`'s own callers
    * gate the other way.
    */
-  sampleDerivedRange<T>(
+  sampleDerivedRange<Payload>(
     topic: string,
     fromUt: number,
     toUt: number,
-  ): TimelinePoint<T>[] | undefined {
+  ): TimelinePoint<Payload>[] | undefined {
     const resolved = this.resolveDerivedTopic(topic);
     if (!resolved) return undefined;
     const { def, field } = resolved;
@@ -1432,12 +1439,12 @@ export class TimelineStore {
     }
 
     const sortedUts = [...changeUts].sort((a, b) => a - b);
-    const out: TimelinePoint<T>[] = [];
+    const out: TimelinePoint<Payload>[] = [];
 
     for (const ut of sortedUts) {
-      const get: DerivedGet = <I>(
+      const get: DerivedGet = <InputPayload>(
         inputTopic: string,
-      ): TimelinePoint<I> | undefined => {
+      ): TimelinePoint<InputPayload> | undefined => {
         const points = inputRanges.get(inputTopic);
         if (!points || points.length === 0) return undefined;
         let last: TimelinePoint<unknown> | undefined;
@@ -1445,7 +1452,7 @@ export class TimelineStore {
           if (point.validAt <= ut) last = point;
           else break;
         }
-        return last as TimelinePoint<I> | undefined;
+        return last as TimelinePoint<InputPayload> | undefined;
       };
 
       const value = def.derive(get, ut);
@@ -1462,7 +1469,7 @@ export class TimelineStore {
 
       out.push({
         validAt: ut,
-        payload: payload as T,
+        payload: payload as Payload,
         meta: derivedMeta(ut, epoch),
         epoch,
       });
@@ -1528,24 +1535,24 @@ export class TimelineStore {
    * Returns an empty array for a topic with no model, or nothing yet observed,
    * which are the same answer to the caller: there is no tail to draw.
    */
-  sampleReckonedTail<T>(
+  sampleReckonedTail<Payload>(
     topic: string,
     fromUt: number,
     toUt: number,
-  ): ReckonedSample<T>[] {
+  ): ReckonedSample<Payload>[] {
     const epoch = this.clock.getEpoch();
     return this.memoize(
       this.currentToken,
       `\0reckontail\0${topic}\0${fromUt}\0epoch\0${epoch}`,
-      () => this.computeReckonedTail<T>(topic, fromUt, toUt),
+      () => this.computeReckonedTail<Payload>(topic, fromUt, toUt),
     );
   }
 
-  private computeReckonedTail<T>(
+  private computeReckonedTail<Payload>(
     topic: string,
     fromUt: number,
     toUt: number,
-  ): ReckonedSample<T>[] {
+  ): ReckonedSample<Payload>[] {
     const walk = this.rawReckonedWalk(topic, fromUt, toUt);
     // Nothing observed, or the newest observation IS the view time: either way there is no interval for a model to have carried anything across.
     if (!walk || walk.lastObservedUt >= toUt) return [];
@@ -1554,7 +1561,7 @@ export class TimelineStore {
       .filter((ut) => ut >= fromUt && ut <= toUt)
       .sort((a, b) => a - b);
     const step = reckonedTailStep(inWindow, walk.lastObservedUt, toUt);
-    const out: ReckonedSample<T>[] = [];
+    const out: ReckonedSample<Payload>[] = [];
     for (let ut = walk.lastObservedUt + step; ; ut += step) {
       /*
        * The last stride lands on `toUt` exactly rather than short of it: the
@@ -1568,9 +1575,9 @@ export class TimelineStore {
       if (!answer) break; // the model's own horizon
       const drawable = plottableQuantity(answer.value);
       if (drawable === undefined) break;
-      const sample: ReckonedSample<T> = {
+      const sample: ReckonedSample<Payload> = {
         atUt: at,
-        value: drawable as T,
+        value: drawable as Payload,
         basis: answer.basis,
       };
       /*
@@ -1586,16 +1593,16 @@ export class TimelineStore {
        *
        * The cast is the one `value` above already takes, and for the same
        * reason: this method is generic over a payload it reaches by runtime
-       * path, so `T` is not resolved here, and the two checks on the condition
-       * above are what establish the agreement `ReckonedBound<T>` states.
+       * path, so `Payload` is not resolved here, and the two checks on the condition
+       * above are what establish the agreement `ReckonedBound<Payload>` states.
        */
       if (
         answer.band &&
         bandIsWellFormed(answer.band) &&
         bandDescribes(drawable, answer.band)
       ) {
-        sample.bandLo = answer.band.lo as ReckonedBound<T>;
-        sample.bandHi = answer.band.hi as ReckonedBound<T>;
+        sample.bandLo = answer.band.lo as ReckonedBound<Payload>;
+        sample.bandHi = answer.band.hi as ReckonedBound<Payload>;
         sample.bandKind = answer.band.kind;
       }
       out.push(sample);
@@ -1846,11 +1853,11 @@ export class TimelineStore {
    *   than a replayed pre-bump ghost: including to a derived channel's
    *   `get()` reading this same topic through this same token.
    */
-  sample<T>(
+  sample<Payload>(
     topic: string,
     token: FrameToken = this.currentToken,
-  ): TimelinePoint<T> | undefined {
-    return this.sampleInLane<T>(topic, token, undefined);
+  ): TimelinePoint<Payload> | undefined {
+    return this.sampleInLane<Payload>(topic, token, undefined);
   }
 
   /**
@@ -1862,11 +1869,11 @@ export class TimelineStore {
    * more current than its most delayed input and never blends two instants a
    * light-time apart into one value. See {@link sampleDerived}.
    */
-  private sampleInLane<T>(
+  private sampleInLane<Payload>(
     topic: string,
     token: FrameToken,
     laneOverride: DelayLane | undefined,
-  ): TimelinePoint<T> | undefined {
+  ): TimelinePoint<Payload> | undefined {
     const effectiveToken =
       token.generation === this.generation ? token : this.currentToken;
     const lane = laneOverride ?? this.laneForTopic(topic);
@@ -1894,7 +1901,7 @@ export class TimelineStore {
       return this.memoize(
         effectiveToken,
         `${topic}\0epoch\0${epoch}\0lane\0${lane}`,
-        () => this.sampleDerived<T>(resolved, effectiveToken, epoch),
+        () => this.sampleDerived<Payload>(resolved, effectiveToken, epoch),
       );
     }
 
@@ -1916,7 +1923,7 @@ export class TimelineStore {
       effectiveToken,
       `${topic}\0epoch\0${epoch}\0lane\0${lane}`,
       () => {
-        const timeline = this.timelineFor<T>(topic);
+        const timeline = this.timelineFor<Payload>(topic);
         if (timeline.epoch < epoch) return undefined;
         return timeline.at(viewUt);
       },
@@ -1945,7 +1952,11 @@ export class TimelineStore {
       effectiveToken,
       `\0rawfield\0${topic}\0epoch\0${epoch}\0lane\0${lane}`,
       () =>
-        this.sampleRawFieldSubtopic<T>(rawField, effectiveToken, laneOverride),
+        this.sampleRawFieldSubtopic<Payload>(
+          rawField,
+          effectiveToken,
+          laneOverride,
+        ),
     );
   }
 
@@ -2013,17 +2024,17 @@ export class TimelineStore {
    * through to the ordinary derived read (`sample`) rather than
    * interpolating the OUTPUT record after the fact.
    */
-  sampleInterpolated<T>(
+  sampleInterpolated<Payload>(
     topic: string,
     token: FrameToken = this.currentToken,
     laneOverride?: DelayLane,
-  ): TimelinePoint<T> | undefined {
+  ): TimelinePoint<Payload> | undefined {
     const effectiveToken =
       token.generation === this.generation ? token : this.currentToken;
     const lane = laneOverride ?? this.laneForTopic(topic);
 
     if (this.resolveDerivedTopic(topic)) {
-      return this.sampleInLane<T>(topic, effectiveToken, laneOverride);
+      return this.sampleInLane<Payload>(topic, effectiveToken, laneOverride);
     }
 
     // Same epoch-fold as `sample()`'s raw path above. A mid-token epoch bump
@@ -2034,7 +2045,7 @@ export class TimelineStore {
       effectiveToken,
       `\0interp\0${topic}\0epoch\0${epoch}\0lane\0${lane}`,
       () => {
-        const timeline = this.timelineFor<T>(topic);
+        const timeline = this.timelineFor<Payload>(topic);
         if (timeline.epoch < epoch) return undefined;
         return interpolatedRead(timeline, this.viewUtFor(effectiveToken, lane));
       },
@@ -2057,10 +2068,10 @@ export class TimelineStore {
    * dead-reckoner given `{x, y, z}` alone cannot see the velocity it needs.
    * Only the result is narrowed.
    */
-  private fieldScopedReckoner<T>(
+  private fieldScopedReckoner<Payload>(
     topic: string,
     token: FrameToken,
-  ): ReckonerFor<T> | undefined {
+  ): ReckonerFor<Payload> | undefined {
     const parsed = this.resolveRawFieldSubtopic(topic);
     if (!parsed) return undefined;
     const parentReckoner = this.registeredReckonerFn<unknown>(
@@ -2083,7 +2094,8 @@ export class TimelineStore {
       return {
         // From this read's point of view the whole (narrowed) value is modelled, so the root is what it claims.
         modelled: [{ path: "", basis: covering.basis }],
-        reckon: (at) => walkFieldPath(model.reckon(at), parsed.fieldPath) as T,
+        reckon: (at) =>
+          walkFieldPath(model.reckon(at), parsed.fieldPath) as Payload,
         /*
          * The band is looked up at the EXACT field path, never inherited from
          * a shorter one the way `covering` inherits a basis. A basis is a
@@ -2232,14 +2244,14 @@ export class TimelineStore {
    * an un-windowed dep resolving to `undefined`, and gets the same decline: the
    * input the contract named did not arrive.
    */
-  private registeredReckoning<T>(
+  private registeredReckoning<Payload>(
     topic: string,
     token: FrameToken,
-    point: TimelinePoint<T> | undefined,
+    point: TimelinePoint<Payload> | undefined,
     grade: StaleGrade | undefined,
     reckonUt: number,
   ):
-    | { readonly owner: string; readonly model: TopicModel<T, unknown> }
+    | { readonly owner: string; readonly model: TopicModel<Payload, unknown> }
     | { readonly declined: ReckoningDecline }
     | undefined {
     const elected = getReckoner(topic);
@@ -2470,7 +2482,7 @@ export class TimelineStore {
    * CALLER had marked would reopen the cycle the mark exists to close, and every
    * test would still pass right up to the frame two models named each other.
    */
-  private whileEnforcing<T>(topic: string, walk: () => T): T {
+  private whileEnforcing<Result>(topic: string, walk: () => Result): Result {
     const marked = !this.enforcingInputRules.has(topic);
     if (marked) this.enforcingInputRules.add(topic);
     try {
@@ -2536,12 +2548,12 @@ export class TimelineStore {
    * band is worse than none. See {@link ReckonerInputRule} for why widths are
    * deliberately not compared.
    */
-  private bandFlooredByInputs<T, R>(
+  private bandFlooredByInputs<Payload, Projection>(
     topic: string,
-    model: TopicModel<T, R>,
+    model: TopicModel<Payload, Projection>,
     deps: readonly Dep[],
     token: FrameToken,
-  ): TopicModel<T, R> {
+  ): TopicModel<Payload, Projection> {
     const inner = model.bandAt;
     if (!inner) return model;
     return {
@@ -2658,19 +2670,19 @@ export class TimelineStore {
    * the model at every instant it draws, and a range read per instant would put
    * the whole buffer through a filter dozens of times for one unchanging answer.
    */
-  private windowedHistory<T>(
+  private windowedHistory<Payload>(
     topic: string,
     token: FrameToken,
-    anchor: TimelinePoint<T> | undefined,
+    anchor: TimelinePoint<Payload> | undefined,
     window: ReckonerWindow | DepWindow | undefined,
-  ): ResolvedWindow<T> {
+  ): ResolvedWindow<Payload> {
     if (!anchor || anchor.payload === null) {
       return { points: [], truncatedAtBreak: false };
     }
     if (!window) return { points: [anchor], truncatedAtBreak: false };
     const key = `reckon-window:${topic}:${anchor.validAt}:${window.spanUt}:${window.maxSamples}`;
     return this.memoize(token, key, () => {
-      const raw = this.sampleRange<T>(
+      const raw = this.sampleRange<Payload>(
         topic,
         anchor.validAt - window.spanUt,
         anchor.validAt,
@@ -2694,13 +2706,13 @@ export class TimelineStore {
    * `sampleReading` calls {@link registeredReckoning} directly, because the
    * reason and the owner are exactly what a reading carries.
    */
-  private registeredReckonerFn<T>(
+  private registeredReckonerFn<Payload>(
     topic: string,
     token: FrameToken,
-  ): ReckonerFor<T> | undefined {
+  ): ReckonerFor<Payload> | undefined {
     if (!getReckoner(topic)) return undefined;
     return (point, grade, reckonUt) => {
-      const answer = this.registeredReckoning<T>(
+      const answer = this.registeredReckoning<Payload>(
         topic,
         token,
         point,
@@ -2708,7 +2720,7 @@ export class TimelineStore {
         reckonUt,
       );
       return answer && "model" in answer
-        ? (answer.model as TopicModel<T>)
+        ? (answer.model as TopicModel<Payload>)
         : undefined;
     };
   }
@@ -2792,7 +2804,7 @@ export class TimelineStore {
   }
 
   /**
-   * The topic's value AND its currency as one `TopicReading<T>`, at a frame token's
+   * The topic's value AND its currency as one `TopicReading<Payload>`, at a frame token's
    * frozen `viewUt`: `sample()` and `sampleStatus()` folded into the union a
    * widget cannot read incuriously. See `Reading`'s own doc for the mechanism.
    *
@@ -2815,10 +2827,10 @@ export class TimelineStore {
    *
    * `reading-identity.test.ts` is the guard.
    */
-  sampleReading<T>(
+  sampleReading<Payload>(
     topic: string,
     token: FrameToken = this.currentToken,
-  ): TopicReading<T> {
+  ): TopicReading<Payload> {
     const effectiveToken =
       token.generation === this.generation ? token : this.currentToken;
     // Epoch-folded like every sibling read: a reading memoized before a mid-frame epoch bump (quickload rewind) must not survive it.
@@ -2827,7 +2839,7 @@ export class TimelineStore {
       effectiveToken,
       `\0reading\0${topic}\0epoch\0${epoch}`,
       () => {
-        const point = this.sample<T>(topic, effectiveToken);
+        const point = this.sample<Payload>(topic, effectiveToken);
         const status = this.sampleStatus(topic, effectiveToken);
         const receivedUt = this.viewUtFor(
           effectiveToken,
@@ -2848,7 +2860,7 @@ export class TimelineStore {
           // through a resync and throw the answer away.
           status === "resyncing" || status === "absent"
             ? undefined
-            : this.registeredReckoning<T>(
+            : this.registeredReckoning<Payload>(
                 topic,
                 effectiveToken,
                 point,
@@ -2857,11 +2869,11 @@ export class TimelineStore {
               );
         const reckonedModel =
           registered && "model" in registered ? registered.model : undefined;
-        const reckoner: ReckonerFor<T> | undefined = reckonedModel
-          ? () => reckonedModel as TopicModel<T>
+        const reckoner: ReckonerFor<Payload> | undefined = reckonedModel
+          ? () => reckonedModel as TopicModel<Payload>
           : registered
             ? undefined
-            : this.fieldScopedReckoner<T>(topic, effectiveToken);
+            : this.fieldScopedReckoner<Payload>(topic, effectiveToken);
         const owner =
           registered && "owner" in registered
             ? registered.owner
@@ -2914,7 +2926,7 @@ export class TimelineStore {
             (previous.reckonUt === reckonUt &&
               previous.receivedUt === receivedUt))
         ) {
-          return previous.reading as TopicReading<T>;
+          return previous.reading as TopicReading<Payload>;
         }
         const reading = declined
           ? readingFrom(
@@ -2947,7 +2959,7 @@ export class TimelineStore {
           previous.reading.reckoning.status !== "available" &&
           reading.reckoning.status !== "available"
         ) {
-          return previous.reading as TopicReading<T>;
+          return previous.reading as TopicReading<Payload>;
         }
         this.readings.set(topic, {
           point,
@@ -2959,7 +2971,7 @@ export class TimelineStore {
           declineKey,
           reading: reading as TopicReading<unknown>,
         });
-        return reading as TopicReading<T>;
+        return reading as TopicReading<Payload>;
       },
     );
   }
@@ -3202,11 +3214,11 @@ export class TimelineStore {
    * narrowed to one field, so its staleness/quality/provenance genuinely ARE
    * the whole record's.
    */
-  private sampleRawFieldSubtopic<T>(
+  private sampleRawFieldSubtopic<Payload>(
     parsed: { rawTopic: string; fieldPath: string[] },
     token: FrameToken,
     laneOverride: DelayLane | undefined,
-  ): TimelinePoint<T> | undefined {
+  ): TimelinePoint<Payload> | undefined {
     const parentPoint = this.sampleInLane<Record<string, unknown>>(
       parsed.rawTopic,
       token,
@@ -3214,7 +3226,7 @@ export class TimelineStore {
     );
     if (!parentPoint) return undefined; // not whole yet
     if (parentPoint.payload === null) {
-      return this.rawFieldPoint<T>(parentPoint, parsed.fieldPath, null);
+      return this.rawFieldPoint<Payload>(parentPoint, parsed.fieldPath, null);
     }
 
     let cursor: unknown = parentPoint.payload;
@@ -3229,14 +3241,14 @@ export class TimelineStore {
       cursor = (cursor as Record<string, unknown>)[segment];
     }
 
-    return this.rawFieldPoint<T>(parentPoint, parsed.fieldPath, cursor);
+    return this.rawFieldPoint<Payload>(parentPoint, parsed.fieldPath, cursor);
   }
 
-  private rawFieldPoint<T>(
+  private rawFieldPoint<Payload>(
     parentPoint: TimelinePoint<unknown>,
     fieldPath: string[],
     payload: unknown,
-  ): TimelinePoint<T> {
+  ): TimelinePoint<Payload> {
     let fields = this.rawFieldPoints.get(parentPoint);
     if (!fields) {
       fields = new Map();
@@ -3245,11 +3257,11 @@ export class TimelineStore {
     const key = fieldPath.join("\0");
     const existing = fields.get(key);
     if (existing && existing.payload === payload) {
-      return existing as TimelinePoint<T>;
+      return existing as TimelinePoint<Payload>;
     }
-    const point: TimelinePoint<T> = {
+    const point: TimelinePoint<Payload> = {
       validAt: parentPoint.validAt,
-      payload: payload as T,
+      payload: payload as Payload,
       meta: parentPoint.meta,
       epoch: parentPoint.epoch,
     };
@@ -3271,11 +3283,11 @@ export class TimelineStore {
    * are guaranteed to agree, even though `derive` itself may cause further
    * ingests via side effects it has no business having.
    */
-  private sampleDerived<T>(
+  private sampleDerived<Payload>(
     resolved: { def: DerivedChannelDefinition<unknown>; field?: string },
     token: FrameToken,
     epoch: number,
-  ): TimelinePoint<T> | undefined {
+  ): TimelinePoint<Payload> | undefined {
     const { def, field } = resolved;
 
     // Keyed distinctly from `def.topic` itself (a `\0`-prefixed key can
@@ -3310,9 +3322,9 @@ export class TimelineStore {
         // channel that consults a subset of its declared `inputs` comes out
         // right without special-casing.
         let oldest = Number.POSITIVE_INFINITY;
-        const note = <V>(
-          point: TimelinePoint<V> | undefined,
-        ): TimelinePoint<V> | undefined => {
+        const note = <Noted>(
+          point: TimelinePoint<Noted> | undefined,
+        ): TimelinePoint<Noted> | undefined => {
           if (point) oldest = Math.min(oldest, point.validAt);
           return point;
         };
@@ -3343,14 +3355,14 @@ export class TimelineStore {
 
     if (value === null) {
       // Confirmed absence, a required input tombstoned or the channel itself returning null: a real point carrying `payload: null`, per the tombstone model.
-      return this.carryPoint(def, field, null as T, observedAt, epoch);
+      return this.carryPoint(def, field, null as Payload, observedAt, epoch);
     }
 
     if (field && !(field in (value as object))) return undefined; // unknown field name, nothing to serve
 
     const payload = field
-      ? (Reflect.get(value as object, field) as T)
-      : (value as T);
+      ? (Reflect.get(value as object, field) as Payload)
+      : (value as Payload);
 
     return this.carryPoint(def, field, payload, observedAt, epoch);
   }
@@ -3368,16 +3380,16 @@ export class TimelineStore {
   }
 
   /** The point last served for this field when it describes the same thing, else a new one. */
-  private carryPoint<T>(
+  private carryPoint<Payload>(
     def: DerivedChannelDefinition<unknown>,
     field: string | undefined,
-    payload: T,
+    payload: Payload,
     observedAt: number,
     epoch: number,
-  ): TimelinePoint<T> {
+  ): TimelinePoint<Payload> {
     const points = this.carryFor(def).points;
     const key = field ?? "";
-    const previous = points.get(key) as TimelinePoint<T> | undefined;
+    const previous = points.get(key) as TimelinePoint<Payload> | undefined;
     if (
       previous !== undefined &&
       previous.payload === payload &&
@@ -3386,7 +3398,7 @@ export class TimelineStore {
     ) {
       return previous;
     }
-    const point: TimelinePoint<T> = {
+    const point: TimelinePoint<Payload> = {
       validAt: observedAt,
       payload,
       meta: derivedMeta(observedAt, epoch),
@@ -3404,14 +3416,18 @@ export class TimelineStore {
    * deliberately generic so derived channels can reuse the same
    * per-frame cache instead of building their own.
    */
-  private memoize<T>(token: FrameToken, key: string, compute: () => T): T {
+  private memoize<Memoized>(
+    token: FrameToken,
+    key: string,
+    compute: () => Memoized,
+  ): Memoized {
     let cache = this.frameCache.get(token);
     if (!cache) {
       cache = new Map();
       this.frameCache.set(token, cache);
     }
     if (cache.has(key)) {
-      return cache.get(key) as T;
+      return cache.get(key) as Memoized;
     }
     const value = compute();
     cache.set(key, value);
@@ -3457,12 +3473,12 @@ export class TimelineStore {
     return () => this.frameListeners.delete(cb);
   }
 
-  private timelineFor<T>(topic: string): ClientTimeline<T> {
+  private timelineFor<Payload>(topic: string): ClientTimeline<Payload> {
     let timeline = this.timelines.get(topic);
     if (!timeline) {
-      timeline = new ClientTimeline<T>(this.options.timelineOptions);
+      timeline = new ClientTimeline<Payload>(this.options.timelineOptions);
       this.timelines.set(topic, timeline as ClientTimeline<unknown>);
     }
-    return timeline as ClientTimeline<T>;
+    return timeline as ClientTimeline<Payload>;
   }
 }

@@ -55,8 +55,8 @@ import type { SettingsTabDefinition as CoreSettingsTabDefinition } from "./setti
 import type * as Core from "./types";
 import type { UplinkClientHandle as CoreUplinkClientHandle } from "./uplinkClients";
 
-type Assignable<A, B> = A extends B ? true : false;
-type Expect<T extends true> = T;
+type Assignable<Left, Right> = Left extends Right ? true : false;
+type Expect<Condition extends true> = Condition;
 
 /**
  * A DIFFERENT KIND of check from `Assignable`, and it exists because that one is
@@ -76,8 +76,8 @@ type Expect<T extends true> = T;
  * either one while failing the other (a property present on both sides with
  * incompatible TYPES passes this and fails `Assignable`).
  */
-type SameKeys<A, B> = [keyof A] extends [keyof B]
-  ? [keyof B] extends [keyof A]
+type SameKeys<Left, Right> = [keyof Left] extends [keyof Right]
+  ? [keyof Right] extends [keyof Left]
     ? true
     : false
   : false;

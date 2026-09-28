@@ -805,10 +805,10 @@ export class PeerClientService {
    * `listFlights()` after a station boot races the handshake and surfaces
    * an uncaught "not connected" rejection in the console.
    */
-  async sendFlightRpc<T = unknown>(
+  async sendFlightRpc<Reply = unknown>(
     op: FlightRpcOp,
     timeoutMs = 15_000,
-  ): Promise<T> {
+  ): Promise<Reply> {
     if (!this.conn) {
       try {
         await this.whenConnected(5_000);
@@ -830,7 +830,7 @@ export class PeerClientService {
       requestId,
       op,
     } satisfies PeerMessage);
-    return pending as Promise<T>;
+    return pending as Promise<Reply>;
   }
 
   /**

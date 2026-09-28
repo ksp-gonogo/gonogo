@@ -317,10 +317,10 @@ export const clearAugments = (): void => {
  * all of them render, ordered by `priority`, none of them aware of the others.
  *
  * `component` is typed against the slot's own props through the declaration-
- * merging seam, so `S` is checked here, at the only place it can be.
+ * merging seam, so `Slot` is checked here, at the only place it can be.
  */
-export const registerAugment = <S extends string>(
-  def: AugmentDefinition<S>,
+export const registerAugment = <Slot extends string>(
+  def: AugmentDefinition<Slot>,
 ): void => getHost().registerAugment(def);
 
 // Registries that are NOT shims: they live in this package. None of them named
@@ -427,9 +427,9 @@ export const registerSettingsTab = (def: SettingsTabDefinition): void =>
  * a tolerance.
  */
 export function registerSetting<
-  T extends SettingType = "boolean",
+  SettingKind extends SettingType = "boolean",
   Topic extends TopicId = TopicId,
->(def: SettingDefinitionOf<T, Topic>): void;
+>(def: SettingDefinitionOf<SettingKind, Topic>): void;
 /**
  * Register an ALREADY-TYPED definition, for a client that built its rows as a
  * list and registers them in a loop.
@@ -478,7 +478,7 @@ export {
  * `vessel.partActions.<flightId>`) is read with {@link useStream} instead.
  *
  * The declared return MUST stay a `Reading`, because that is what the host's
- * implementation this forwards to returns. Declaring `TopicPayload<T> |
+ * implementation this forwards to returns. Declaring `TopicPayload<Topic> |
  * undefined` here instead is a lie `tsc` cannot see in either direction: every
  * Uplink client typechecks clean, a sweep of the clients reports zero errors,
  * and the break arrives at runtime as "experiments is not iterable" deep inside
@@ -495,14 +495,14 @@ export {
  * projection back to the whole payload would hand an author a `situation` off a
  * modelled value.
  */
-export function useTelemetry<T extends TopicId>(
-  topic: T,
-): T extends ReckonableTopic
+export function useTelemetry<Topic extends TopicId>(
+  topic: Topic,
+): Topic extends ReckonableTopic
   ? ReckonableReading<
-      TopicPayload<T>,
-      ReckonableFields<T> & keyof TopicPayload<T>
+      TopicPayload<Topic>,
+      ReckonableFields<Topic> & keyof TopicPayload<Topic>
     >
-  : TopicReading<TopicPayload<T>> {
+  : TopicReading<TopicPayload<Topic>> {
   return getHost().useTelemetry(topic);
 }
 
@@ -544,10 +544,10 @@ export function useViewUt(): Value<"ut"> | undefined {
  * The full command vocabulary is `COMMAND_IDS`, generated from the mod's own
  * `[SitrepCommand]` declarations.
  */
-export function useCommand<C extends CommandId>(
-  command: C,
+export function useCommand<Command extends CommandId>(
+  command: Command,
   options?: UseCommandOptions,
-): UseCommandResult<CommandArgs<C>, CommandReply<C>>;
+): UseCommandResult<CommandArgs<Command>, CommandReply<Command>>;
 /**
  * Escape-hatch overload, for a command id this SDK's map does not carry: an
  * Uplink's own before its client package has augmented `CommandArgsMap`, or a
@@ -562,10 +562,10 @@ export function useCommand<C extends CommandId>(
  * `CommandArgsMap`/`CommandReplyMap` from the client package and call
  * `registerUplinkCommand`, and the first overload covers them like any other.
  */
-export function useCommand<TArgs = unknown, TReply = AnyCommandReply>(
+export function useCommand<Args = unknown, Reply = AnyCommandReply>(
   command: string,
   options?: UseCommandOptions,
-): UseCommandResult<TArgs, TReply>;
+): UseCommandResult<Args, Reply>;
 export function useCommand(
   command: string,
   options?: UseCommandOptions,
@@ -765,34 +765,34 @@ export function useRouteCommands(topic: string): UseRouteCommandsResult {
  * union at all. {@link WidgetChannelId} is the closed union of the two
  * first-party halves, and is the type to annotate a first-party read with.
  *
- * Unlike {@link useTelemetry}, `T` is whatever the caller supplies with nothing
+ * Unlike {@link useTelemetry}, `Payload` is whatever the caller supplies with nothing
  * checking it was right. Reach for it when the topic has no {@link TopicId}
  * entry (a derived channel, or your own Uplink's), and for a wire Topic prefer
  * `useTelemetry`, whose payload type comes from the contract.
  */
-export function useStream<T>(topic: string): TopicReading<T> {
-  return getHost().useStream<T>(topic);
+export function useStream<Payload>(topic: string): TopicReading<Payload> {
+  return getHost().useStream<Payload>(topic);
 }
 
 /**
  * Reactively read a Processor's current, frame-memoised value. Pass the handle
- * `defineUplinkClient(...).registerProcessor` returned: `R` is inferred from
+ * `defineUplinkClient(...).registerProcessor` returned: `Result` is inferred from
  * its brand, so `useProcessor(SHIP_SYSTEMS)` is typed as the processor's own
  * result. One evaluation per Sitrep frame is shared across every widget reading
  * the same handle (and any contribution that lists it in `deps`). Returns
  * `undefined` with no provider mounted, or before the first frame lands.
  *
- * A processor whose own deps include a reading answers a `Reading<R>`, because
+ * A processor whose own deps include a reading answers a `Reading<Result>`, because
  * its inputs carried currency and so its answer is datable. One depending only
- * on raw topic ids answers the bare `R`: there is nothing to date it by, and
+ * on raw topic ids answers the bare `Result`: there is nothing to date it by, and
  * inventing an instant would be a claim nothing supports. The handle's own
  * brand decides which, so the two cannot be confused at a call site.
  */
-export function useProcessor<R, Carried extends boolean>(handle: {
+export function useProcessor<Result, Carried extends boolean>(handle: {
   readonly id: string;
-  readonly __resultType?: R;
+  readonly __resultType?: Result;
   readonly __carriesCurrency?: Carried;
-}): (Carried extends true ? Reading<R> : R) | undefined {
+}): (Carried extends true ? Reading<Result> : Result) | undefined {
   return getHost().useProcessor(handle);
 }
 
@@ -830,8 +830,8 @@ export function useViewClock(): unknown {
  * handler's return value is fed back to the device's render style, which is how
  * a display on the hardware follows the widget.
  */
-export function useActionInput<TActions extends readonly ActionDefinition[]>(
-  handlers: ActionHandlers<TActions>,
+export function useActionInput<Actions extends readonly ActionDefinition[]>(
+  handlers: ActionHandlers<Actions>,
 ): void {
   getHost().useActionInput(handlers);
 }
@@ -859,8 +859,10 @@ export function useDataSources(): unknown {
  * telemetry. See `GonogoHost.useLatestValue`'s doc for the raw-vs-derived
  * distinction.
  */
-export function useLatestValue<T = unknown>(topic: string): T | undefined {
-  return getHost().useLatestValue<T>(topic);
+export function useLatestValue<Payload = unknown>(
+  topic: string,
+): Payload | undefined {
+  return getHost().useLatestValue<Payload>(topic);
 }
 
 /**
@@ -868,9 +870,9 @@ export function useLatestValue<T = unknown>(topic: string): T | undefined {
  * channel topic: the event-consumption counterpart to `useStream`'s
  * sticky-latest-value read.
  */
-export function useStreamEvent<T = unknown>(
+export function useStreamEvent<Payload = unknown>(
   topic: string,
-  handler: (payload: T) => void,
+  handler: (payload: Payload) => void,
 ): void {
   getHost().useStreamEvent(topic, handler);
 }
@@ -996,9 +998,9 @@ export { logger } from "./logger";
  * this resolves to. A widget should take it from there: same registry, and it
  * renders with no host installed, which an Uplink's own test wants.
  */
-export function AugmentSlot<S extends string>(props: {
-  name: S;
-  props: SlotProps<S>;
+export function AugmentSlot<Slot extends string>(props: {
+  name: Slot;
+  props: SlotProps<Slot>;
 }): ReactElement {
   /* The host's slot takes the erased form, because it renders slots for every
      widget and cannot know which one it holds. */

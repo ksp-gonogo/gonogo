@@ -91,11 +91,11 @@ async function loadGenerator(): Promise<Generator> {
  * restating their exports would be a second copy of a signature that goes
  * stale, so the check is on the names rather than on a declaration.
  */
-function namedExports<T>(
+function namedExports<Exports>(
   loaded: unknown,
   url: string,
   required: readonly string[],
-): T {
+): Exports {
   if (typeof loaded !== "object" || loaded === null) {
     throw new Error(`${url} did not load as a module`);
   }
@@ -104,7 +104,7 @@ function namedExports<T>(
       throw new Error(`${url} exports no ${name}()`);
     }
   }
-  return loaded as T;
+  return loaded as Exports;
 }
 
 /** Keys of one generated map interface, straight out of the emitted TypeScript. */

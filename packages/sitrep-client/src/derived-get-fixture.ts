@@ -15,8 +15,8 @@ export function derivedGetOf(
   points: Record<string, TimelinePoint<unknown> | undefined>,
   onRead?: (topic: string) => void,
 ): DerivedGet {
-  return (<T>(topic: string) => {
+  return (<Payload>(topic: string) => {
     onRead?.(topic);
-    return points[topic] as TimelinePoint<T> | undefined;
+    return points[topic] as TimelinePoint<Payload> | undefined;
   }) as DerivedGet;
 }

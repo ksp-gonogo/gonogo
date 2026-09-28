@@ -18,9 +18,9 @@ import { useEffect, useRef } from "react";
  * was never open. `handler` may change identity every render without
  * re-subscribing (held in a ref).
  */
-export function useOptionalStreamEvent<T>(
+export function useOptionalStreamEvent<Payload>(
   topic: string,
-  handler: (payload: T) => void,
+  handler: (payload: Payload) => void,
 ): void {
   const client = useTelemetryClientOptional();
   const handlerRef = useRef(handler);
@@ -31,7 +31,7 @@ export function useOptionalStreamEvent<T>(
     let replayingSticky = true;
     const unsubscribe = client.subscribe(topic, (payload) => {
       if (replayingSticky) return;
-      handlerRef.current(payload as T);
+      handlerRef.current(payload as Payload);
     });
     replayingSticky = false;
     return unsubscribe;

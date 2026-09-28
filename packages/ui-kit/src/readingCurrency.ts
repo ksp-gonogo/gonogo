@@ -17,11 +17,13 @@ import { formatQuantity } from "./units";
  * One type across every primitive that draws a figure, so a call site holding
  * a reading can fill a readout, a bar and an instrument with the same thing.
  */
-export type UnitValue<U extends string = string> = Value<U> | Reading<Value<U>>;
+export type UnitValue<Unit extends string = string> =
+  | Value<Unit>
+  | Reading<Value<Unit>>;
 
 /** What {@link resolveCurrency} answers: the number to draw, and its currency. */
-export interface Resolved<U extends string> {
-  shown: Value<U> | null | undefined;
+export interface Resolved<Unit extends string> {
+  shown: Value<Unit> | null | undefined;
   /** Whether the number on screen is a reading of now. Drives the mark. */
   held: boolean;
   /**
@@ -93,9 +95,9 @@ export const MODELLED_TO_SCET = "modelled to SCET";
  * to, where that is past the received edge: the figure a widget draws beside
  * the observation with `ModelledAlongside`. `undefined` everywhere else.
  */
-export function modelledBeyondReceived<V>(
-  reading: Reading<V> | null | undefined,
-): V | undefined {
+export function modelledBeyondReceived<Payload>(
+  reading: Reading<Payload> | null | undefined,
+): Payload | undefined {
   if (reading == null || reading.state !== "observed") return undefined;
   if (reading.value === undefined) return undefined;
   if (reading.reckoning.status !== "available") return undefined;
@@ -104,9 +106,9 @@ export function modelledBeyondReceived<V>(
 }
 
 /** The mark and its words for a held reading's observation. */
-function heldCurrency<U extends string>(
-  input: Reading<Value<U>>,
-): Omit<Resolved<U>, "band"> {
+function heldCurrency<Unit extends string>(
+  input: Reading<Value<Unit>>,
+): Omit<Resolved<Unit>, "band"> {
   /*
    * The mark follows the number, not the state: a held reading with no value
    * gets no dot. Whatever is marked gets words, including the ordinary
@@ -134,10 +136,10 @@ function heldCurrency<U extends string>(
  * The mark comes off the state rather than the caption, so a stale number can
  * never go unmarked.
  */
-export function resolveCurrency<U extends string>(
-  input: UnitValue<U> | null | undefined,
+export function resolveCurrency<Unit extends string>(
+  input: UnitValue<Unit> | null | undefined,
   options: CurrencyOptions = {},
-): Resolved<U> {
+): Resolved<Unit> {
   // `in` throws on a primitive, and some callers hand over a raw magnitude.
   if (typeof input !== "object" || input === null || !("state" in input)) {
     return { shown: input, held: false, caption: null, band: null };

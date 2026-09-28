@@ -51,8 +51,8 @@ const ACTION_REGISTER_BUDGET = new PerfBudget({
   unit: "registrations",
 });
 
-export function useActionInput<TActions extends readonly ActionDefinition[]>(
-  handlers: ActionHandlers<TActions>,
+export function useActionInput<Actions extends readonly ActionDefinition[]>(
+  handlers: ActionHandlers<Actions>,
 ): void {
   const instanceId = useDashboardItemId();
 

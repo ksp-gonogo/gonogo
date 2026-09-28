@@ -21,17 +21,19 @@ import type {
 import { type UnknownUnit, type Value, value } from "./value";
 
 /**
- * Invariant type equality. `A extends B` is not enough: `"m/s"` extends
+ * Invariant type equality. `Left extends Right` is not enough: `"m/s"` extends
  * `string`, so an assertion written with `extends` would pass for every
  * degraded result and prove nothing.
  *
  * On mismatch the type is a tuple carrying both sides, so the compiler error
  * names what it actually got rather than just "not assignable to OK".
  */
-type Expect<A, B> =
-  (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2
+type Expect<Left, Right> =
+  (<Probe>() => Probe extends Left ? 1 : 2) extends <
+    Probe,
+  >() => Probe extends Right ? 1 : 2
     ? "OK"
-    : ["MISMATCH", A, B];
+    : ["MISMATCH", Left, Right];
 
 /* ── Exponent arithmetic ──────────────────────────────────────────────────── */
 
@@ -97,7 +99,7 @@ export const _dimensionless: Expect<Quotient<"m", "m">, "1"> = "OK";
  * because that is what `declaredUnitFor` returns at runtime. Same for `W` over
  * `J/s`. `alias-flags.test.ts` asserts the runtime half of this agreement.
  */
-type Not<T> = T extends "OK" ? ["UNEXPECTEDLY EQUAL"] : "OK";
+type Not<Condition> = Condition extends "OK" ? ["UNEXPECTEDLY EQUAL"] : "OK";
 
 export const _aliasTorque: Not<Expect<Product<"N", "m">, "N·m">> = "OK";
 export const _aliasPower: Not<Expect<Quotient<"J", "s">, "J/s">> = "OK";
@@ -222,7 +224,7 @@ export const _unionArg: Expect<typeof widened, Value<string>> = "OK";
  * no error anywhere, and all of them make this line fail. Sample-based tests
  * would not.
  */
-type RoundTrips<U extends string> = Expect<SymbolFor<DimOf<U>>, U>;
+type RoundTrips<Unit extends string> = Expect<SymbolFor<DimOf<Unit>>, Unit>;
 
 export const _rtM: RoundTrips<"m"> = "OK";
 export const _rtS: RoundTrips<"s"> = "OK";

@@ -216,7 +216,7 @@ export interface GeneratedCommandReplyMap {
 /**
  * The same mapping as a RUNTIME value: command id -> the NAME of the type
  * its dispatch resolves with, spelled exactly as the interface above spells
- * it, `CommandResultOf<T>` envelope included.
+ * it, `CommandResultOf<Payload>` envelope included.
  *
  * An interface is erased before a client runs, and a command reply arrives
  * carrying a requestId and nothing else, so the command that was dispatched

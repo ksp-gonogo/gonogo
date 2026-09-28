@@ -280,16 +280,16 @@ export function baseStringLists(
  * carried something else. One bad value disqualifies the whole export: a
  * partially-read ratchet list grades against a population nobody wrote.
  */
-export function baseMapOf<V>(
+export function baseMapOf<Entry>(
   lists: BaseExports | undefined,
   name: string,
-  isValue: (value: unknown) => value is V,
-): Record<string, V> | undefined {
+  isValue: (value: unknown) => value is Entry,
+): Record<string, Entry> | undefined {
   const value = exported(lists, name);
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     return undefined;
   }
-  const out: Record<string, V> = {};
+  const out: Record<string, Entry> = {};
   for (const [key, entry] of Object.entries(value)) {
     if (!isValue(entry)) return undefined;
     out[key] = entry;
@@ -302,14 +302,14 @@ export function baseMapOf<V>(
  * goes on to read. `undefined` when any of them is missing or is not a number,
  * for the same reason `baseMapOf` refuses a partial map.
  */
-export function baseNumberFields<F extends string>(
+export function baseNumberFields<Field extends string>(
   lists: BaseExports | undefined,
   name: string,
-  fields: readonly F[],
-): Record<F, number> | undefined {
+  fields: readonly Field[],
+): Record<Field, number> | undefined {
   const counts = baseCounts(lists, name);
   if (!counts) return undefined;
-  const out = {} as Record<F, number>;
+  const out = {} as Record<Field, number>;
   for (const field of fields) {
     const value = counts[field];
     if (typeof value !== "number") return undefined;

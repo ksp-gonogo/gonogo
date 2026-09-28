@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using Reinforced.Typings;
 using Reinforced.Typings.Ast;
 using Reinforced.Typings.Ast.TypeNames;
@@ -48,6 +49,25 @@ public class RtDocVisitor : TypeScriptExportVisitor
     /// </summary>
     private readonly Dictionary<string, HashSet<string>> _exportedMembers =
         new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
+
+    /// <summary>
+    /// Exported generic interface -> C# type parameter -> the word the SDK
+    /// writes in its place. C# spells a type parameter <c>T</c> or
+    /// <c>TArgs</c> by convention; an author hovering the TypeScript should read
+    /// what the parameter is, not a letter the docs then have to explain.
+    /// </summary>
+    private static readonly Dictionary<string, Dictionary<string, string>> TypeParameterWords =
+        new Dictionary<string, Dictionary<string, string>>(StringComparer.Ordinal)
+        {
+            ["StreamData"] = new Dictionary<string, string> { ["T"] = "Payload" },
+            ["CommandRequest"] = new Dictionary<string, string> { ["TArgs"] = "Args" },
+            ["CommandResponse"] = new Dictionary<string, string> { ["TResult"] = "Result" },
+            ["CommandResultOf"] = new Dictionary<string, string> { ["T"] = "Payload" },
+        };
+
+    private static readonly Regex Word = new Regex(@"\b\w+\b", RegexOptions.CultureInvariant);
+
+    private Dictionary<string, string>? _typeParameters;
 
     private bool _collected;
     private int _blocks;
@@ -110,6 +130,34 @@ public class RtDocVisitor : TypeScriptExportVisitor
         foreach (var tag in node.TagToDescription) DocTag(tag.Item1, tag.Item2);
         AppendTabs();
         WriteLine("*/");
+    }
+
+    public override void Visit(RtInterface node)
+    {
+        if (node == null) return;
+        TypeParameterWords.TryGetValue(node.Name?.TypeName ?? string.Empty, out _typeParameters);
+        base.Visit(node);
+        _typeParameters = null;
+    }
+
+    /// <summary>
+    /// Writes a type parameter of the interface being written under its word.
+    /// A retyped field arrives as one composed name (<c>T | null</c>), so the
+    /// swap is per word rather than per node.
+    /// </summary>
+    public override void Visit(RtSimpleTypeName node)
+    {
+        if (_typeParameters == null || node == null || node.HasPrefix || node.TypeName == null)
+        {
+            base.Visit(node);
+            return;
+        }
+        var parameters = _typeParameters;
+        Write(Word.Replace(node.TypeName, m => parameters.TryGetValue(m.Value, out var word) ? word : m.Value));
+        if (node.GenericArguments.Length == 0) return;
+        Write("<");
+        SequentialVisit(node.GenericArguments, ", ");
+        Write(">");
     }
 
     private void Collect(ExportedFile file)

@@ -46,11 +46,13 @@ declare module "@ksp-gonogo/sitrep-sdk" {
   }
 }
 
-type Equal<A, B> =
-  (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2
+type Equal<Left, Right> =
+  (<Probe>() => Probe extends Left ? 1 : 2) extends <
+    Probe,
+  >() => Probe extends Right ? 1 : 2
     ? true
     : false;
-type Expect<T extends true> = T;
+type Expect<Condition extends true> = Condition;
 
 // Registration is typed from the declaration.
 registerUnit({
@@ -268,23 +270,30 @@ export const _sumWrongDimension = fuel.plus(altitude);
  * are exactly the ones the kit carries rungs for.
  */
 type Generated = typeof GENERATED_UNIT_KINDS;
-type LadderOf<T> = T extends { ladder: infer L } ? L : never;
+type LadderOf<Declaration> = Declaration extends { ladder: infer Ladder }
+  ? Ladder
+  : never;
 type Disagreements = {
-  [S in keyof Generated]: S extends keyof UnitDeclarations
-    ? Equal<Generated[S]["kind"], UnitDeclarations[S]["kind"]> extends true
+  [UnitSymbol in keyof Generated]: UnitSymbol extends keyof UnitDeclarations
+    ? Equal<
+        Generated[UnitSymbol]["kind"],
+        UnitDeclarations[UnitSymbol]["kind"]
+      > extends true
       ? Equal<
-          LadderOf<Generated[S]>,
-          LadderOf<UnitDeclarations[S]>
+          LadderOf<Generated[UnitSymbol]>,
+          LadderOf<UnitDeclarations[UnitSymbol]>
         > extends true
         ? never
-        : S
-      : S
-    : S;
+        : UnitSymbol
+      : UnitSymbol
+    : UnitSymbol;
 }[keyof Generated];
 export type _runtimeTableAgrees = Expect<Equal<Disagreements, never>>;
 export type _firstPartyLaddersHaveRungs = Expect<
   Equal<
-    { [S in keyof Generated]: LadderOf<Generated[S]> }[keyof Generated],
+    {
+      [UnitSymbol in keyof Generated]: LadderOf<Generated[UnitSymbol]>;
+    }[keyof Generated],
     keyof typeof LADDERS
   >
 >;

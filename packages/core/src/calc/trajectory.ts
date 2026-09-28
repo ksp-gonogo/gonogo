@@ -134,13 +134,13 @@ export function predictGroundTrack(
  * sample's own, which is only the drawn one when the projection applies no
  * offset; MapView's does, per body.
  */
-export function splitOnLongitudeWrap<T extends { lon: number }>(
-  samples: readonly T[],
+export function splitOnLongitudeWrap<Point extends { lon: number }>(
+  samples: readonly Point[],
   wrapThresholdDeg = 180,
-  lonOf: (sample: T) => number = (sample) => sample.lon,
-): T[][] {
+  lonOf: (sample: Point) => number = (sample) => sample.lon,
+): Point[][] {
   if (samples.length === 0) return [];
-  const segments: T[][] = [[samples[0]]];
+  const segments: Point[][] = [[samples[0]]];
   for (let i = 1; i < samples.length; i++) {
     const prev = samples[i - 1];
     const curr = samples[i];

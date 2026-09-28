@@ -120,11 +120,11 @@ export interface SettingDefinitionBase {
  * `id` doubles as the localStorage key. This is the default backing; `backing`
  * may be omitted, and so may `type`, which means `"boolean"`.
  */
-export interface ClientPrefSettingOf<T extends SettingType>
+export interface ClientPrefSettingOf<SettingKind extends SettingType>
   extends SettingDefinitionBase {
   backing?: "client-pref";
-  type?: T;
-  defaultValue: SettingValueByType[T];
+  type?: SettingKind;
+  defaultValue: SettingValueByType[SettingKind];
 }
 
 /**
@@ -137,14 +137,14 @@ export interface ClientPrefSettingOf<T extends SettingType>
  * `write` is what makes the row a control. Omit it (and declare `readOnly`) for
  * a value the source can report but not accept.
  */
-export interface SourceBackedSettingOf<T extends SettingType>
+export interface SourceBackedSettingOf<SettingKind extends SettingType>
   extends SettingDefinitionBase {
   backing: "source-backed";
-  type?: T;
+  type?: SettingKind;
   /** The registered `DataSource` id whose binding this setting reads/writes. */
   sourceId: string;
-  read: (source: unknown) => SettingValueByType[T];
-  write?: (source: unknown, value: SettingValueByType[T]) => void;
+  read: (source: unknown) => SettingValueByType[SettingKind];
+  write?: (source: unknown, value: SettingValueByType[SettingKind]) => void;
   subscribe: (source: unknown, cb: () => void) => () => void;
 }
 
@@ -162,11 +162,11 @@ export interface SourceBackedSettingOf<T extends SettingType>
  * asks {@link isReadOnlySetting} rather than the flag.
  */
 export interface StreamBackedSettingOf<
-  T extends SettingType,
+  SettingKind extends SettingType,
   Topic extends TopicId = TopicId,
 > extends SettingDefinitionBase {
   backing: "stream-backed";
-  type?: T;
+  type?: SettingKind;
   /** The Topic id whose payload carries this row's value. */
   topic: Topic;
   /**
@@ -179,7 +179,7 @@ export interface StreamBackedSettingOf<
    */
   select: (
     payload: TopicPayloadMap[Topic],
-  ) => SettingValueByType[T] | null | undefined;
+  ) => SettingValueByType[SettingKind] | null | undefined;
   readOnly?: true;
 }
 
@@ -191,17 +191,19 @@ export interface StreamBackedSettingOf<
  * registry in this package, and the precision lives on the authoring type
  * above where the topic is known.
  */
-export interface StoredStreamBackedSettingOf<T extends SettingType>
+export interface StoredStreamBackedSettingOf<SettingKind extends SettingType>
   extends SettingDefinitionBase {
   backing: "stream-backed";
-  type?: T;
+  type?: SettingKind;
   topic: string;
-  select: (payload: unknown) => SettingValueByType[T] | null | undefined;
+  select: (
+    payload: unknown,
+  ) => SettingValueByType[SettingKind] | null | undefined;
   readOnly?: true;
 }
 
 /**
- * One row, at one {@link SettingType}. This is the REGISTRATION type: T is
+ * One row, at one {@link SettingType}. This is the REGISTRATION type: `SettingKind` is
  * inferred from `type` at the call site, which is what makes `defaultValue`,
  * `read`, `write` and `select` agree with each other.
  *
@@ -209,12 +211,12 @@ export interface StoredStreamBackedSettingOf<T extends SettingType>
  * all three types, because the renderer has to cope with whatever was declared.
  */
 export type SettingDefinitionOf<
-  T extends SettingType,
+  SettingKind extends SettingType,
   Topic extends TopicId = TopicId,
 > =
-  | ClientPrefSettingOf<T>
-  | SourceBackedSettingOf<T>
-  | StreamBackedSettingOf<T, Topic>;
+  | ClientPrefSettingOf<SettingKind>
+  | SourceBackedSettingOf<SettingKind>
+  | StreamBackedSettingOf<SettingKind, Topic>;
 
 export type ClientPrefSetting =
   | ClientPrefSettingOf<"boolean">
@@ -257,14 +259,14 @@ export function settingTypeOf(def: SettingDefinition): SettingType {
 const registry = new Map<string, SettingDefinition>();
 
 /**
- * The authoring overload: T is pinned by `type` (absent means `"boolean"`),
+ * The authoring overload: `SettingKind` is pinned by `type` (absent means `"boolean"`),
  * which is what makes `defaultValue`, `read`, `write` and `select` agree with
  * each other and with the row's declared type.
  */
 export function registerSetting<
-  T extends SettingType = "boolean",
+  SettingKind extends SettingType = "boolean",
   Topic extends TopicId = TopicId,
->(def: SettingDefinitionOf<T, Topic>): void;
+>(def: SettingDefinitionOf<SettingKind, Topic>): void;
 /**
  * The forwarding overload: a host relaying an already-typed definition it did
  * not author (`GonogoHost.registerSetting`) has no `type` literal left to infer

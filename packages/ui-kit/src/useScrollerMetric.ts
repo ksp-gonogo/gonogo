@@ -5,13 +5,13 @@ import { useEffect, useRef, useState } from "react";
  * scroll and on any size or child-list change to the scroller. Drivable in
  * jsdom by dispatching a `scroll` event.
  */
-export function useScrollerMetric<T>(
+export function useScrollerMetric<Metric>(
   el: HTMLElement | null,
-  compute: (el: HTMLElement) => T,
-  isEqual: (a: T, b: T) => boolean,
-  initial: T,
-): T {
-  const [value, setValue] = useState<T>(initial);
+  compute: (el: HTMLElement) => Metric,
+  isEqual: (a: Metric, b: Metric) => boolean,
+  initial: Metric,
+): Metric {
+  const [value, setValue] = useState<Metric>(initial);
   // Latest closures without re-subscribing: the effect keys off `el` alone.
   const computeRef = useRef(compute);
   computeRef.current = compute;

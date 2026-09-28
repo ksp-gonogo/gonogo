@@ -78,17 +78,19 @@ export function useContributionsBySlotId(slot: string): readonly unknown[] {
  * harness supply both; a test rendering a widget bare must mount them too, or
  * a widget that reads its OWN data through a slot draws empty.</p>
  */
-export function useContributions<S extends ContributionSlotId>(
-  slot: S,
-): readonly Contributed<ContributionEntry<S>>[];
+export function useContributions<Slot extends ContributionSlotId>(
+  slot: Slot,
+): readonly Contributed<ContributionEntry<Slot>>[];
 // A reusable component writes only the segment ("filters"), completed from `useWidgetMeta()` and typed via `ComponentSlotRegistry`.
-export function useContributions<Seg extends ComponentSlotSegment>(
-  segment: Seg,
-): readonly ComponentSlotRegistry[Seg][];
+export function useContributions<Segment extends ComponentSlotSegment>(
+  segment: Segment,
+): readonly ComponentSlotRegistry[Segment][];
 // An array of full slot ids.
-export function useContributions<const T extends readonly ContributionSlotId[]>(
-  slots: T,
-): { [K in T[number]]: readonly Contributed<ContributionEntry<K>>[] };
+export function useContributions<
+  const Slots extends readonly ContributionSlotId[],
+>(
+  slots: Slots,
+): { [Slot in Slots[number]]: readonly Contributed<ContributionEntry<Slot>>[] };
 export function useContributions(
   slotOrSlots: string | readonly string[],
 ): unknown {

@@ -27,7 +27,7 @@ import {
  * function, instead of surfacing as a property access on null several lines
  * further down.
  */
-function bound<T>(answer: T | null, what: string): T {
+function bound<Answer>(answer: Answer | null, what: string): Answer {
   if (answer === null) {
     throw new Error(`${what} answered null for a closed orbit`);
   }

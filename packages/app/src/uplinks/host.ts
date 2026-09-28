@@ -65,7 +65,7 @@ export function buildGonogoHost(): GonogoHost {
   // the app's real singleton functions, so the casts at the boundary are honest
   // (same runtime, mirrored type surface), not a papered-over shape mismatch.
   type Loose = {
-    [K in keyof GonogoHost]: GonogoHost[K];
+    [Key in keyof GonogoHost]: GonogoHost[Key];
   };
   const host: Loose = {
     registerAugment: (def) =>

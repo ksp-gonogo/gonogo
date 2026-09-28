@@ -58,7 +58,7 @@ describe("generated reckonability.ts", () => {
   });
 
   it("keeps that value ONCE in the fields view, which is the projection", () => {
-    // Two models are still one field of `Pick<T, K>`. A duplicate here resolves
+    // Two models are still one field of `Pick<Payload, ReckonableKey>`. A duplicate here resolves
     // to the same key union and reads as a codegen fault to anyone who sees it.
     expect(src).toMatch(/"vessel\.flight": \["altitudeAsl", "orbitalSpeed"\]/);
   });

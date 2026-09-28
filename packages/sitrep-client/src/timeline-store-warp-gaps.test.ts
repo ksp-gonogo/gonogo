@@ -15,7 +15,11 @@ import { ViewClock } from "./view-clock";
 
 const PLANET_MU = 3.5316e12;
 
-function point<T>(validAt: number, payload: T, quality = Quality.OnRails) {
+function point<Payload>(
+  validAt: number,
+  payload: Payload,
+  quality = Quality.OnRails,
+) {
   return {
     validAt,
     payload,
@@ -26,7 +30,7 @@ function point<T>(validAt: number, payload: T, quality = Quality.OnRails) {
       quality,
     }),
     epoch: 0,
-  } as TimelinePoint<T>;
+  } as TimelinePoint<Payload>;
 }
 
 /**

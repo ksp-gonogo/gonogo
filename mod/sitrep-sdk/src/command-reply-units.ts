@@ -17,7 +17,7 @@ import { unitsForType } from "./units";
 import { type WireOf, wrapTypePayload } from "./wrap-units";
 
 /**
- * `CommandResultOf<T>` is the envelope, and its quantities are T's, one level
+ * `CommandResultOf<Payload>` is the envelope, and its quantities are `Payload`'s, one level
  * down on `payload`. The envelope itself declares none: it is transport, and
  * `generated.test.ts` exempts it for that reason.
  */
@@ -37,7 +37,10 @@ const COMMAND_REPLY_TYPES: Record<string, string> =
  * a type with no declared units all pass straight through: the walk is
  * skipped rather than guessed at.
  */
-export function wrapCommandReply<R>(command: string, result: WireOf<R>): R;
+export function wrapCommandReply<Reply>(
+  command: string,
+  result: WireOf<Reply>,
+): Reply;
 /* Same two-signature shape, and the same reason, as `dehydrateArgs`: the walk
    below is untyped and the overload states the conversion without an assertion
    out of `unknown`. */

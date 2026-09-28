@@ -113,7 +113,7 @@ function CurrentOrbitComponent({
   const eccentricity = orbit?.ecc;
   // Derived readouts null unless the reading is current, even under a model; the radii stay because the diagram gates its own geometry.
   const orbitCurrent = orbitReading.state === "observed";
-  const current = <T,>(v: T | null | undefined): T | undefined =>
+  const current = <Field,>(v: Field | null | undefined): Field | undefined =>
     orbitCurrent ? (v ?? undefined) : undefined;
   // The body name is a label, so it holds off the last observation.
   const refBody = useBodyName(observedOrbit?.referenceBodyIndex);

@@ -5,12 +5,12 @@ import type { Contributed } from "@ksp-gonogo/core";
  * `useContributions` returns entries in priority order, so first is the
  * highest-priority contributor.
  */
-export function groupByPart<E extends { partId: string }>(
-  entries: readonly Contributed<E>[],
-  dedupeKey: (entry: E) => string,
-): Map<string, E[]> {
+export function groupByPart<Entry extends { partId: string }>(
+  entries: readonly Contributed<Entry>[],
+  dedupeKey: (entry: Entry) => string,
+): Map<string, Entry[]> {
   const seen = new Set<string>();
-  const out = new Map<string, E[]>();
+  const out = new Map<string, Entry[]>();
   for (const entry of entries) {
     const key = dedupeKey(entry);
     if (seen.has(key)) continue;

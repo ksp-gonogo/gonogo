@@ -11,7 +11,9 @@ import { DivergingBar } from "./DivergingBar";
 
 const AT = value("ut", 12_000);
 
-function observed<U extends string>(quantity: Value<U>): Reading<Value<U>> {
+function observed<Unit extends string>(
+  quantity: Value<Unit>,
+): Reading<Value<Unit>> {
   return {
     state: "observed",
     value: quantity,
@@ -20,7 +22,9 @@ function observed<U extends string>(quantity: Value<U>): Reading<Value<U>> {
   };
 }
 
-function held<U extends string>(quantity: Value<U>): Reading<Value<U>> {
+function held<Unit extends string>(
+  quantity: Value<Unit>,
+): Reading<Value<Unit>> {
   return {
     state: "stale",
     reckoning: { status: "none" },

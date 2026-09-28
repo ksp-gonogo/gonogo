@@ -21,7 +21,7 @@ import { VisuallyHidden } from "./VisuallyHidden";
  * years out, and no range wide enough to reach it leaves useful precision. Use
  * {@link RateControl} for instants.
  */
-export type SlidableRange<U extends string> = U extends PointUnit
+export type SlidableRange<Unit extends string> = Unit extends PointUnit
   ? never
   : { min: number; max: number; step?: number };
 
@@ -37,17 +37,17 @@ export interface RateControl {
   stepsPerSecond?: number;
 }
 
-export interface UnitInputProps<U extends string = string> {
+export interface UnitInputProps<Unit extends string = string> {
   /**
    * The quantity being edited, or the whole `Reading` it arrived in. It
    * carries its own unit, exactly as `Unit`'s does; a held reading marks the
    * field's name and says so in it.
    */
-  value: UnitValue<NoInfer<U>> | null | undefined;
+  value: UnitValue<NoInfer<Unit>> | null | undefined;
   /** The unit an emitted value carries, needed because there may be no value yet. */
-  unit: U;
+  unit: Unit;
   /** Always a `Value`, never a number. */
-  onChange: (next: Value<U>) => void;
+  onChange: (next: Value<Unit>) => void;
   /** The control's visible name. Required: an `aria-label` alone leaves sighted operators guessing. */
   label: string;
   /**
@@ -55,9 +55,9 @@ export interface UnitInputProps<U extends string = string> {
    * one field per rung combining into a single value: `["h", "min", "s"]` gives
    * hours, minutes and seconds that add up. Omit it for one field in `unit`.
    */
-  rungs?: readonly FormatsFor<U>[];
+  rungs?: readonly FormatsFor<Unit>[];
   /** Supplying bounds adds a slider beside the field. See {@link SlidableRange}. */
-  range?: SlidableRange<U>;
+  range?: SlidableRange<Unit>;
   /** Supplying a notch size adds a rate wheel beside the field. See {@link RateControl}. */
   rate?: RateControl;
   disabled?: boolean;
@@ -97,11 +97,11 @@ function splitAcross(total: number, sizes: readonly number[]): number[] {
  * <UnitInput label="Tangent" unit="m/s" value={dv} onChange={setDv} />
  * ```
  *
- * The inverse of `Unit`, built from the same `Value<U>`, `FormatsFor<U>` and
+ * The inverse of `Unit`, built from the same `Value<Unit>`, `FormatsFor<Unit>` and
  * registry conversions. It emits a `Value`, never a number, so the unit stays
  * attached from the keystroke to the wire boundary.
  */
-export function UnitInput<U extends string>({
+export function UnitInput<Unit extends string>({
   value: input,
   unit,
   onChange,
@@ -110,9 +110,9 @@ export function UnitInput<U extends string>({
   range,
   rate,
   disabled,
-}: Readonly<UnitInputProps<U>>) {
+}: Readonly<UnitInputProps<Unit>>) {
   const id = useId();
-  const { shown: current, held, caption } = resolveCurrency<U>(input);
+  const { shown: current, held, caption } = resolveCurrency<Unit>(input);
   const name = held ? (
     <HeldHost title={caption ?? undefined}>
       {label}

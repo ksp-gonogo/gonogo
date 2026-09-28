@@ -21,13 +21,13 @@ import { formatQuantity } from "./units";
 
 const AT = value("ut", 12_000);
 
-function bandOf<U extends string>(
-  unit: U,
+function bandOf<Unit extends string>(
+  unit: Unit,
   lo: number,
   v: number,
   hi: number,
   kind: "bound" | "sigma1" = "sigma1",
-): UncertaintyBand<U> {
+): UncertaintyBand<Unit> {
   return {
     value: value(unit, v),
     lo: value(unit, lo),
@@ -37,10 +37,10 @@ function bandOf<U extends string>(
 }
 
 /** An observed quantity, with whatever band its own model offers. */
-function banded<U extends string>(
-  quantity: Value<U>,
+function banded<Unit extends string>(
+  quantity: Value<Unit>,
   band?: UncertaintyBand,
-): Reading<Value<U>> {
+): Reading<Value<Unit>> {
   return {
     state: "observed",
     value: quantity,

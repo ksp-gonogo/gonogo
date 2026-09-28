@@ -12,10 +12,10 @@ export interface BaseLayerAugmentLike {
 }
 
 /** Reorders a priority-sorted `map-view.base` augment list into draw order, clustered by Uplink (`requires`). */
-export function groupBaseLayersByUplink<T extends BaseLayerAugmentLike>(
-  augments: readonly T[],
-): T[] {
-  const groups = new Map<string, T[]>();
+export function groupBaseLayersByUplink<Augment extends BaseLayerAugmentLike>(
+  augments: readonly Augment[],
+): Augment[] {
+  const groups = new Map<string, Augment[]>();
   for (const augment of augments) {
     const key = augment.requires ?? augment.id;
     const bucket = groups.get(key);

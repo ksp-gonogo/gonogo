@@ -50,10 +50,10 @@ export interface DataKeyMeta extends DataKey {
   group?: string;
 }
 
-export interface Sample<V = unknown> {
+export interface Sample<Payload = unknown> {
   /** Unix ms. */
   t: number;
-  v: V;
+  v: Payload;
 }
 
 /**
@@ -181,9 +181,9 @@ export interface SeriesBridge {
  * return shape for `queryRange` + `getLatest` because the graph widget
  * consumes parallel arrays and it's cheaper to stream over PeerJS later.
  */
-export interface SeriesRange<V = unknown> {
+export interface SeriesRange<Payload = unknown> {
   t: number[];
-  v: V[];
+  v: Payload[];
 
   /**
    * The clock `t` is stamped against. Absent means `"wall-ms"`: that is what

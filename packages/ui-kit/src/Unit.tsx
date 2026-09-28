@@ -86,19 +86,22 @@ const THIN_SPACE = "\u2009";
  *
  * `±` is used only where the two half-widths agree to the precision shown and the band's value is the figure being drawn, since `±` reads as an offset from the number beside it. Otherwise the range form prints the model's own two ends.
  */
-function toInterval<U extends string>(
-  shown: Value<U>,
-  band: UncertaintyBand<U> | undefined,
+function toInterval<UnitSymbol extends string>(
+  shown: Value<UnitSymbol>,
+  band: UncertaintyBand<UnitSymbol> | undefined,
   opts: FormatQuantityOptions,
   rung: string,
 ): Interval | null {
   if (band === undefined) return null;
-  const write = <W extends string>(quantity: Value<W>): string =>
+  const write = <OtherUnit extends string>(
+    quantity: Value<OtherUnit>,
+  ): string =>
     formatQuantity(quantity.magnitude, quantity.unit, {
       ...opts,
       format: rung,
     }).value;
-  const width = (from: Value<U>, to: Value<U>): string => write(to.minus(from));
+  const width = (from: Value<UnitSymbol>, to: Value<UnitSymbol>): string =>
+    write(to.minus(from));
   // Ends that print as the same text draw as one approximate figure, by the same test `<Band>` uses; if that figure is the one on screen the interval adds nothing.
   const oneFigure = readsAsOneFigure([band.lo, band.hi], {
     ...opts,
@@ -152,14 +155,14 @@ function hover(
   return said === null ? caption : `${caption}, ${said}`;
 }
 
-export interface UnitProps<U extends string = string>
+export interface UnitProps<UnitSymbol extends string = string>
   extends Omit<FormatQuantityOptions, "format" | "as"> {
   /**
    * The quantity to show; it carries its own unit. Absent or null renders the null token, so a read can be handed straight over without a gate; zero renders as zero.
    *
    * A whole {@link Reading} also draws whether the number is current.
    */
-  value?: UnitValue<U> | null;
+  value?: UnitValue<UnitSymbol> | null;
   /**
    * Pin the unit rather than letting the ladder choose, for the cases where
    * convention beats magnitude: km/h on a launch broadcast, km/s in a
@@ -167,7 +170,7 @@ export interface UnitProps<U extends string = string>
    *
    * Validated against the value's kind: it checks on a speed and is a type error on a length.
    */
-  format?: FormatsFor<U>;
+  format?: FormatsFor<UnitSymbol>;
   /**
    * Show the value in a different unit of the same kind: `as="°C"` on a kelvin
    * field, `as="g"` on an m/s² one. The contract says what the field IS, this
@@ -175,7 +178,7 @@ export interface UnitProps<U extends string = string>
    *
    * Validated against the value's kind, as `format` is. A cross-kind request at runtime renders the value in its own unit.
    */
-  as?: PresentableAs<U>;
+  as?: PresentableAs<UnitSymbol>;
   /**
    * Draw the number without its symbol, for a member of a group that prints the
    * symbol once at the end: `1234/2000 rpm` rather than `1234 rpm/2000 rpm`.
@@ -239,7 +242,7 @@ function UnitSymbol({
  *
  * An absent or null value renders `NULL_DISPLAY`, never blank space, and a magnitude of zero keeps its zero.
  *
- * Handed a `Reading<Value<U>>`, it also draws whether the number is current, in three treatments:
+ * Handed a `Reading<Value<UnitSymbol>>`, it also draws whether the number is current, in three treatments:
  * - current (`observed`): drawn as a bare `Value` is, with no mark
  * - no number (`pending`, `unowned`, `absent`): the null token
  * - held (`stale`, any grade): the last observation in full, marked by a dot at superscript height in the warning hue, with the grade and the `asOfUt` instant on hover and in the spoken caption
@@ -250,14 +253,14 @@ function UnitSymbol({
  *
  * The symbol is sized and dimmed relative to the text around it (floored at 10px, dimmed no further than 0.72 opacity) so it needs no size or tone prop and keeps the value's tone. Plane angles attach to the number and keep full size. Every symbol is replaced in the accessibility tree by its spoken word.
  */
-export function Unit<U extends string = string>({
+export function Unit<UnitSymbol extends string = string>({
   value,
   children,
   className,
   // Kept out of `opts`, which goes to the formatter: this is about drawing, not the number.
   hideUnitInGroup,
   ...opts
-}: UnitProps<U>) {
+}: UnitProps<UnitSymbol>) {
   const { shown, held, caption, band } = resolveCurrency(value);
   /*
    * Reports to an enclosing `<UnitSharedFormat>` and returns the format the group settled on; inert with no scope above it.

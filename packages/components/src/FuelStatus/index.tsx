@@ -56,7 +56,7 @@ function FuelStatusComponent({
     // A build whose ΔV sim publishes nothing has not answered and never will, so the row stays away.
     budget.budget.state !== "unowned";
   const stageCount = budget?.stageCount ?? undefined;
-  const dated = <U extends string>(figure: Value<U>) =>
+  const dated = <UnitSymbol extends string>(figure: Value<UnitSymbol>) =>
     budgetReading === undefined ? figure : budgetFigure(budgetReading, figure);
   const totalDv = magnitudeOf(pickTotal(budget, mode)) ?? undefined;
   // `null` when the sim reported no figure, so it still goes through `Unit` rather than the bare-string branch.

@@ -20,14 +20,14 @@
  */
 
 /** One UT-stamped media frame (or still) entering the buffer. */
-export interface StampedFrame<T = unknown> {
+export interface StampedFrame<Frame = unknown> {
   /** Capture UT: the same timeline telemetry samples are stamped on. */
   ut: number;
   /** Frame payload. Absent for a bare still reference (see `stillRef`). */
-  data?: T;
+  data?: Frame;
   /** A still-image reference, used when no per-frame payload is held (long
    *  delays degrading to stills). */
-  stillRef?: T;
+  stillRef?: Frame;
   /** Keyframe frames are never dropped by the over-cap eviction while a
    *  non-keyframe candidate exists. */
   keyframe: boolean;
@@ -54,12 +54,12 @@ export interface DelayClockLike {
   onFrame(cb: (viewUt: number) => void): () => void;
 }
 
-export interface DelayedPlayoutBufferOptions<T = unknown> {
+export interface DelayedPlayoutBufferOptions<Frame = unknown> {
   /** THE delay clock: the same object instance telemetry reads. */
   view: DelayClockLike;
   /** Called synchronously, in UT order, once per frame that becomes
    *  eligible for display (`confirmedEdgeUt() >= frame.ut`). */
-  onRelease(frame: StampedFrame<T>): void;
+  onRelease(frame: StampedFrame<Frame>): void;
   /** Called once per `flush()`: the feed UI's resync marker. */
   onResync?(): void;
   /** Called for every queued frame discarded WITHOUT being released, an
@@ -67,9 +67,9 @@ export interface DelayedPlayoutBufferOptions<T = unknown> {
    *  queued at `dispose()`. Never called for a frame that reached
    *  `onRelease` (that frame's lifecycle is the caller's from that point).
    *  Optional, generic, not video-specific, but the caller MUST wire it
-   *  when `T` holds an external resource (e.g. a WebCodecs `VideoFrame`)
+   *  when `Frame` holds an external resource (e.g. a WebCodecs `VideoFrame`)
    *  that needs `.close()`ing, or every discard path leaks it. */
-  onDrop?(frame: StampedFrame<T>): void;
+  onDrop?(frame: StampedFrame<Frame>): void;
   /** Over this, evict queued frames until back under cap. Buffered
    *  size is the sum of each queued frame's `bytes` (default 1 per frame
    *  when unset). Eviction UNIT depends on `gopSafeEviction`; see that
@@ -110,14 +110,14 @@ export interface DelayedPlayoutBufferOptions<T = unknown> {
  * show data before the equivalent telemetry sample would confirm at the
  * same UT: the "common-mode" property.
  */
-export class DelayedPlayoutBuffer<T = unknown> {
-  private queue: StampedFrame<T>[] = [];
-  private lastReleased: StampedFrame<T> | undefined;
+export class DelayedPlayoutBuffer<Frame = unknown> {
+  private queue: StampedFrame<Frame>[] = [];
+  private lastReleased: StampedFrame<Frame> | undefined;
   private bufferedBytes = 0;
   private readonly unsubscribeFrame: () => void;
   private disposed = false;
 
-  constructor(private readonly opts: DelayedPlayoutBufferOptions<T>) {
+  constructor(private readonly opts: DelayedPlayoutBufferOptions<Frame>) {
     this.unsubscribeFrame = opts.view.onFrame(() => this.pump());
   }
 
@@ -125,7 +125,7 @@ export class DelayedPlayoutBuffer<T = unknown> {
    *  arrive ~monotonically; a slight reorder is tolerated) and immediately
    *  checked for release: covers the delay=0 passthrough case (scenario
    *  6), where the newly pushed frame is already at-or-before the edge. */
-  push(frame: StampedFrame<T>): void {
+  push(frame: StampedFrame<Frame>): void {
     if (this.disposed) return;
     const insertAt = this.queue.findIndex((f) => f.ut > frame.ut);
     if (insertAt === -1) this.queue.push(frame);
@@ -172,13 +172,13 @@ export class DelayedPlayoutBuffer<T = unknown> {
   /** The most recently released frame: the still held on screen between
    *  releases. `undefined` before the first release (or right after a
    *  flush, until the next release). */
-  current(): StampedFrame<T> | undefined {
+  current(): StampedFrame<Frame> | undefined {
     return this.lastReleased;
   }
 
   /** Read-only snapshot of the queued (not-yet-released) frames, in UT
    *  order: debug/introspection and test assertions on cap eviction. */
-  peekQueue(): ReadonlyArray<StampedFrame<T>> {
+  peekQueue(): ReadonlyArray<StampedFrame<Frame>> {
     return this.queue;
   }
 

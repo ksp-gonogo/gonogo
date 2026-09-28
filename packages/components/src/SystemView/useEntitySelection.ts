@@ -6,8 +6,8 @@ import type { SystemEntity } from "./systemEntities";
  * Keyed by the activated entity's own id, which the layer reports and
  * `decorate` matches.
  */
-export function useEntitySelection<E extends SystemEntity>(
-  entities: readonly E[],
+export function useEntitySelection<Entity extends SystemEntity>(
+  entities: readonly Entity[],
 ) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const activate = useCallback((id: string) => {

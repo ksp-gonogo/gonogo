@@ -82,12 +82,13 @@ import { useTelemetry } from "./useTelemetry";
  * to the whole payload here would let a widget read a field off `reckoned` that
  * no declared model moves, in the one call shape most built-in widgets use.
  */
-export type WidgetTopicValue<T extends TopicId> = T extends ReckonableTopic
-  ? ReckonableReading<
-      TopicPayload<T>,
-      ReckonableFields<T> & keyof TopicPayload<T>
-    >
-  : TopicReading<TopicPayload<T>>;
+export type WidgetTopicValue<Topic extends TopicId> =
+  Topic extends ReckonableTopic
+    ? ReckonableReading<
+        TopicPayload<Topic>,
+        ReckonableFields<Topic> & keyof TopicPayload<Topic>
+      >
+    : TopicReading<TopicPayload<Topic>>;
 
 /**
  * A telemetry read hook bound to one widget's declared channels. The single call
@@ -106,11 +107,16 @@ export type WidgetTopicValue<T extends TopicId> = T extends ReckonableTopic
  * read stays on the other hook.
  */
 export type BoundTelemetryHook<
-  Required extends readonly WidgetChannelId[],
-  Optional extends readonly WidgetChannelId[],
-> = <T extends Extract<Required[number] | Optional[number], TopicId>>(
-  topic: T,
-) => WidgetTopicValue<T>;
+  RequiredChannels extends readonly WidgetChannelId[],
+  OptionalChannels extends readonly WidgetChannelId[],
+> = <
+  Topic extends Extract<
+    RequiredChannels[number] | OptionalChannels[number],
+    TopicId
+  >,
+>(
+  topic: Topic,
+) => WidgetTopicValue<Topic>;
 
 /**
  * The value returned by {@link defineTopicManifest}: the three declared arrays
@@ -118,19 +124,19 @@ export type BoundTelemetryHook<
  * `fields`) plus the widget-bound {@link BoundTelemetryHook}.
  */
 export interface TopicManifest<
-  Required extends readonly WidgetChannelId[],
-  Optional extends readonly WidgetChannelId[],
+  RequiredChannels extends readonly WidgetChannelId[],
+  OptionalChannels extends readonly WidgetChannelId[],
   Fields extends readonly WidgetFieldPath[],
 > {
-  readonly channels: Required;
-  readonly optionalChannels: Optional;
+  readonly channels: RequiredChannels;
+  readonly optionalChannels: OptionalChannels;
   /**
    * What the widget draws, spread straight into `registerComponent`'s `fields`.
    * An empty array when the manifest declared none, which `registerComponent`
    * treats the same as absent: the widget draws everything it mounts on.
    */
   readonly fields: Fields;
-  readonly useTelemetry: BoundTelemetryHook<Required, Optional>;
+  readonly useTelemetry: BoundTelemetryHook<RequiredChannels, OptionalChannels>;
 }
 
 /**
@@ -158,20 +164,24 @@ export interface TopicManifest<
  *   registerComponent({ id: "power-systems", channels, optionalChannels, component: PowerSystems /* ... *\/ });
  */
 export function defineTopicManifest<
-  const Required extends readonly WidgetChannelId[],
-  const Optional extends readonly WidgetChannelId[] = readonly [],
+  const RequiredChannels extends readonly WidgetChannelId[],
+  const OptionalChannels extends readonly WidgetChannelId[] = readonly [],
   const Fields extends readonly WidgetFieldPath[] = readonly [],
 >(manifest: {
-  channels: Required;
-  optionalChannels?: Optional;
+  channels: RequiredChannels;
+  optionalChannels?: OptionalChannels;
   fields?: Fields;
-}): TopicManifest<Required, Optional, Fields> {
+}): TopicManifest<RequiredChannels, OptionalChannels, Fields> {
   const channels = manifest.channels;
-  const optionalChannels = (manifest.optionalChannels ?? []) as Optional;
+  const optionalChannels = (manifest.optionalChannels ??
+    []) as OptionalChannels;
   const fields = (manifest.fields ?? []) as Fields;
 
   const boundHook = ((topic: TopicId) =>
-    useTelemetry(topic)) as unknown as BoundTelemetryHook<Required, Optional>;
+    useTelemetry(topic)) as unknown as BoundTelemetryHook<
+    RequiredChannels,
+    OptionalChannels
+  >;
 
   return { channels, optionalChannels, fields, useTelemetry: boundHook };
 }

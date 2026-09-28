@@ -91,15 +91,15 @@ export class StubNetwork implements Network {
     StubNetwork.set(this.reachability, vantage, node, ok);
   }
 
-  private static set<V>(
-    map: Map<string, Map<string, V>>,
+  private static set<Entry>(
+    map: Map<string, Map<string, Entry>>,
     vantage: string,
     node: string,
-    value: V,
+    value: Entry,
   ): void {
     let byNode = map.get(vantage);
     if (!byNode) {
-      byNode = new Map<string, V>();
+      byNode = new Map<string, Entry>();
       map.set(vantage, byNode);
     }
     byNode.set(node, value);

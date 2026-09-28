@@ -69,16 +69,16 @@ export function onContributionsChange(cb: () => void): () => void {
  * the exact same def is re-registering (a benign idempotent re-import).
  */
 export function registerContribution<
-  S extends string,
-  const D extends readonly ContributionDep[] = readonly [],
->(def: ContributionDefinition<S, D>): void {
+  Slot extends string,
+  const Deps extends readonly ContributionDep[] = readonly [],
+>(def: ContributionDefinition<Slot, Deps>): void {
   const s = state();
   const existing = s.entries.get(def.id);
   if (existing !== undefined) {
-    // Widened through `unknown` because `compute` puts `D` in a PARAMETER
-    // position (`DepTopics<D>`), so a precisely typed definition and the erased
+    // Widened through `unknown` because `compute` puts `Deps` in a PARAMETER
+    // position (`DepTopics<Deps>`), so a precisely typed definition and the erased
     // `AnyContribution` are not mutually assignable. The registry genuinely
-    // stores defs for many slots at once, so erasing `S` and `D` on the way in
+    // stores defs for many slots at once, so erasing `Slot` and `Deps` on the way in
     // is the honest thing; every read hands the entries back to the
     // aggregation, which re-narrows per slot.
     if (existing.def === (def as unknown as AnyContribution)) return;

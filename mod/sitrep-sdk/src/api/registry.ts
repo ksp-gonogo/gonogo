@@ -38,7 +38,7 @@ import type { ComponentDefinition, DataSource, ThemeDefinition } from "./types";
 const REGISTRY_KEY = "__GONOGO_COMPONENT_REGISTRY__" as const;
 
 // `ComponentType` is contravariant in props, so neither `unknown` nor `never`
-// would work here. `TConfig` is checked at the call site (`registerComponent` /
+// would work here. `Config` is checked at the call site (`registerComponent` /
 // `registerDataSource`); the internal Map just needs to hold anything.
 export type AnyDef = ComponentDefinition;
 export type AnySource = DataSource;
@@ -96,8 +96,8 @@ function isSameRegistration(
 // mod's widgets as `foo-status`, `foo-map`, ...) to stay clear of the built-ins and
 // each other. The hard error enforces uniqueness; the prefix convention is how
 // you avoid tripping it.
-export function registerComponent<TConfig = Record<string, unknown>>(
-  def: ComponentDefinition<TConfig>,
+export function registerComponent<Config = Record<string, unknown>>(
+  def: ComponentDefinition<Config>,
 ): void {
   const { components } = registry();
   const existing = components.get(def.id);
@@ -113,8 +113,8 @@ export function registerComponent<TConfig = Record<string, unknown>>(
 }
 
 export function registerDataSource<
-  TConfig extends Record<string, unknown> = Record<string, unknown>,
->(source: DataSource<TConfig>): void {
+  Config extends Record<string, unknown> = Record<string, unknown>,
+>(source: DataSource<Config>): void {
   registry().dataSources.set(source.id, source as AnySource);
 }
 

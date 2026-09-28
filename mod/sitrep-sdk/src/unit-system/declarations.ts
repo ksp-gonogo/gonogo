@@ -32,12 +32,12 @@ export interface UnitDeclaration {
  * with.
  */
 type FirstPartyQuantities = {
-  readonly [S in KnownUnit]: {
-    readonly kind: (typeof UNIT_DEFINITIONS)[S]["kind"];
-    readonly dim: (typeof UNIT_DEFINITIONS)[S]["dim"];
-    readonly ratio: (typeof UNIT_DEFINITIONS)[S]["ratio"];
-  } & ((typeof UNIT_DEFINITIONS)[S] extends { ladder: infer L }
-    ? { readonly ladder: L }
+  readonly [Unit in KnownUnit]: {
+    readonly kind: (typeof UNIT_DEFINITIONS)[Unit]["kind"];
+    readonly dim: (typeof UNIT_DEFINITIONS)[Unit]["dim"];
+    readonly ratio: (typeof UNIT_DEFINITIONS)[Unit]["ratio"];
+  } & ((typeof UNIT_DEFINITIONS)[Unit] extends { ladder: infer Ladder }
+    ? { readonly ladder: Ladder }
     : unknown);
 };
 
@@ -46,8 +46,8 @@ type FirstPartyQuantities = {
  * quantity. Each one's kind is the token itself.
  */
 type FirstPartyNonQuantities = {
-  readonly [S in Exclude<KnownSitrepUnit, KnownUnit>]: {
-    readonly kind: S;
+  readonly [Unit in Exclude<KnownSitrepUnit, KnownUnit>]: {
+    readonly kind: Unit;
     readonly ratio: 1;
   };
 };

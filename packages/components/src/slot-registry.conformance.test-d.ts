@@ -27,8 +27,8 @@ import type { ShipMapOverlayContext } from "./ShipMap";
 import type { SystemOverlayContext } from "./SystemView";
 import type { TargetingHudContext } from "./Targeting";
 
-type Assignable<A, B> = A extends B ? true : false;
-type Expect<T extends true> = T;
+type Assignable<Left, Right> = Left extends Right ? true : false;
+type Expect<Condition extends true> = Condition;
 
 // Trivial `Record<string, never>` slots, so this only confirms the mirror resolved the merge rather than the loose fallback.
 type _SpaceCenterSections = Expect<

@@ -5,10 +5,10 @@ import type { UnitValue } from "@ksp-gonogo/ui-kit";
 export type HeldSince = Pick<Reading<unknown>, "asOfUt" | "grade"> | null;
 
 /** A figure derived from a held source, handed to `Unit` as held so the kit marks it. */
-export function heldFigure<U extends string>(
-  figure: Value<U>,
+export function heldFigure<Unit extends string>(
+  figure: Value<Unit>,
   heldSince: HeldSince,
-): UnitValue<U> {
+): UnitValue<Unit> {
   if (heldSince === null) return figure;
   return {
     state: "stale",

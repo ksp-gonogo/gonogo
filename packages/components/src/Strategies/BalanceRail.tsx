@@ -9,12 +9,12 @@ import {
  * One career balance on the header rail: the figure, or the null token beside
  * the currency's symbol, so three absent balances still say which is which.
  */
-export function Balance<U extends string>({
+export function Balance<UnitSymbol extends string>({
   balance,
   unit,
 }: {
-  balance: UnitValue<U>;
-  unit: U;
+  balance: UnitValue<UnitSymbol>;
+  unit: UnitSymbol;
 }) {
   if (resolveCurrency(balance).shown == null) {
     return (

@@ -567,7 +567,11 @@ export function scanTokenUses(
     if (index) return index;
     const jsx = new Map<string, Caller[]>();
     const calls = new Map<string, Call[]>();
-    const add = <T>(m: Map<string, T[]>, k: string | null, v: T) => {
+    const add = <Entry>(
+      m: Map<string, Entry[]>,
+      k: string | null,
+      v: Entry,
+    ) => {
       if (k) m.set(k, [...(m.get(k) ?? []), v]);
     };
     for (const file of allFiles) {

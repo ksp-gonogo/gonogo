@@ -18,11 +18,11 @@ import type { TopicReading } from "./client-reading";
 
 /**
  * Opaque, branded handle returned by defineProcessor. Never constructed by
- * hand: carries the result type R through inference for downstream consumers.
+ * hand: carries the `Result` type through inference for downstream consumers.
  */
 export interface ProcessorHandle<
-  R,
-  Id extends string = string,
+  Result,
+  ProcessorId extends string = string,
   Carried extends boolean = boolean,
 > {
   /**
@@ -32,12 +32,12 @@ export interface ProcessorHandle<
    * that deps on this handle can be handed its result under this exact key:
    * `topics[HANDLE.id]` is only typeable when `HANDLE.id` is more specific than
    * `string`. The client id is not known statically, so what survives is
-   * `` `${string}:${Id}` ``, which is enough to key the record and still narrow
+   * `` `${string}:${ProcessorId}` ``, which is enough to key the record and still narrow
    * enough that a Topic id cannot be read through it.</p>
    */
-  readonly id: Id;
-  /** Type-only brand: never present at runtime, carries R through inference. */
-  readonly __resultType?: R;
+  readonly id: ProcessorId;
+  /** Type-only brand: never present at runtime, carries `Result` through inference. */
+  readonly __resultType?: Result;
   /**
    * Type-only brand: whether this processor ANSWERS with currency.
    *
@@ -99,8 +99,8 @@ export type CarriesCurrency<Deps extends readonly Dep[]> = [
  * provenance instead, the way a projection channel's payload does with
  * `observed` / `projected` / `lower` / `upper` / `elapsed`.
  */
-export interface ReadingDep<T extends TopicId = TopicId> {
-  readonly reading: T;
+export interface ReadingDep<Topic extends TopicId = TopicId> {
+  readonly reading: Topic;
 }
 
 /**
@@ -118,7 +118,7 @@ export interface ReadingDep<T extends TopicId = TopicId> {
  *
  * ## The payload type is stated, not looked up
  *
- * `P` is the payload the resolved topic carries, and the author gives it, the
+ * `Payload` is the payload the resolved topic carries, and the author gives it, the
  * same way `useStream<WireOf<VesselOrbitPayload>>(`fleet.${guid}.orbit`)`
  * already does at every other dynamic read in the tree. A dynamic topic has no
  * member in `TopicPayloadMap` to infer from: the ids are computed at runtime,
@@ -133,7 +133,7 @@ export interface ReadingDep<T extends TopicId = TopicId> {
  * so is the same answer as an absent channel rather than a new one.
  */
 export interface SubjectDep<
-  P = unknown,
+  Payload = unknown,
   Fixed extends readonly unknown[] = readonly unknown[],
 > {
   /** The topic to read, given the subject id: `` (id) => `fleet.${id}.orbit` ``. */
@@ -153,7 +153,7 @@ export interface SubjectDep<
    */
   subject(point: TimelinePoint<unknown>, resolved: Fixed): string | undefined;
   /** Phantom: the payload the resolved topic carries. Never read at runtime. */
-  readonly __payloadType?: P;
+  readonly __payloadType?: Payload;
 }
 
 /**
@@ -185,20 +185,22 @@ export function isSubjectDep(dep: Dep): dep is SubjectDep<unknown> {
  * resolves to its payload (or undefined when that Topic has produced no frame
  * yet).
  */
-type ResolvedDep<D extends Dep> =
-  D extends ProcessorHandle<infer R, string, true>
-    ? Reading<R>
-    : D extends ProcessorHandle<infer R>
-      ? R
-      : D extends ReadingDep<infer T>
-        ? TopicReading<TopicPayload<T>>
-        : D extends TopicId
-          ? TopicPayload<D> | undefined
+type ResolvedDep<Dependency extends Dep> =
+  Dependency extends ProcessorHandle<infer Result, string, true>
+    ? Reading<Result>
+    : Dependency extends ProcessorHandle<infer Result>
+      ? Result
+      : Dependency extends ReadingDep<infer Topic>
+        ? TopicReading<TopicPayload<Topic>>
+        : Dependency extends TopicId
+          ? TopicPayload<Dependency> | undefined
           : never;
 
 /** Positionally-mapped tuple of resolved dependency values, in deps order. */
 export type ResolvedDeps<Deps extends readonly Dep[]> = {
-  [K in keyof Deps]: Deps[K] extends Dep ? ResolvedDep<Deps[K]> : never;
+  [Index in keyof Deps]: Deps[Index] extends Dep
+    ? ResolvedDep<Deps[Index]>
+    : never;
 };
 
 /**
@@ -222,12 +224,12 @@ export interface ProcessorFrame {
 
 export interface ProcessorDefinition<
   Deps extends readonly Dep[] = readonly Dep[],
-  R = unknown,
+  Result = unknown,
 > {
   id: string;
   owner: string;
   deps: Deps;
-  compute: (values: ResolvedDeps<Deps>, frame: ProcessorFrame) => R;
+  compute: (values: ResolvedDeps<Deps>, frame: ProcessorFrame) => Result;
 }
 
 export type AnyProcessorDefinition = ProcessorDefinition<
@@ -246,18 +248,18 @@ const processors = new Map<string, AnyProcessorDefinition>();
  */
 export function defineProcessor<
   const Deps extends readonly Dep[],
-  R,
-  const Id extends string,
+  Result,
+  const ProcessorId extends string,
 >(def: {
-  id: Id;
+  id: ProcessorId;
   owner: string;
   deps: Deps;
-  compute: (values: ResolvedDeps<Deps>, frame: ProcessorFrame) => R;
-}): ProcessorHandle<R, `${string}:${Id}`, CarriesCurrency<Deps>> {
+  compute: (values: ResolvedDeps<Deps>, frame: ProcessorFrame) => Result;
+}): ProcessorHandle<Result, `${string}:${ProcessorId}`, CarriesCurrency<Deps>> {
   /* Typed rather than inferred: a template expression widens to `string`, and
      the stamped id is what a contribution keys this processor's result by, so
      the shape has to survive as far as the handle. */
-  const stampedId: `${string}:${Id}` = `${def.owner}:${def.id}`;
+  const stampedId: `${string}:${ProcessorId}` = `${def.owner}:${def.id}`;
   const existing = processors.get(stampedId);
   const stamped: AnyProcessorDefinition = {
     id: stampedId,
@@ -287,7 +289,7 @@ export function defineProcessor<
  *
  * ## The problem it solves, and the one it does not
  *
- * An Uplink consumes a Processor by handle, because `useProcessor` reads `R`
+ * An Uplink consumes a Processor by handle, because `useProcessor` reads `Result`
  * off the handle's phantom brand. Handing it a bare `{ id }` gets `unknown`,
  * and `getProcessor(id)` is no better: an `AnyProcessorDefinition`'s result is
  * `unknown` by construction, so there is no route from an id back to a type.
@@ -331,13 +333,14 @@ export function defineProcessor<
  *
  * That the registered `compute` returns what the contract promises. The two
  * sides are in different packages and the brand is type-only, so the guarantee
- * comes from the implementing Uplink importing `R` from here and annotating its
+ * comes from the implementing Uplink importing `Result` from here and annotating its
  * `compute` with it. Declaring the type twice, once each side, is the failure
  * this exists to prevent, so do not.
  */
-export function defineProcessorContract<R, const Id extends string = string>(
-  id: Id,
-): ProcessorHandle<R, Id> {
+export function defineProcessorContract<
+  Result,
+  const ProcessorId extends string = string,
+>(id: ProcessorId): ProcessorHandle<Result, ProcessorId> {
   // A contract names an id `registerProcessor` will STAMP, so it has to be
   // written owner-first. Checked here because the alternative is a handle that
   // silently answers `undefined` forever, which is indistinguishable from the

@@ -2,7 +2,9 @@ import type { TopicReading } from "@ksp-gonogo/sitrep-client";
 import { asQuantityish, magnitudeOf } from "../shared/magnitude";
 
 /** The last real observation behind a reading, never a modelled value. */
-export function lastObserved<T>(reading: TopicReading<T>): T | undefined {
+export function lastObserved<Payload>(
+  reading: TopicReading<Payload>,
+): Payload | undefined {
   switch (reading.state) {
     case "observed":
     case "stale":

@@ -34,7 +34,7 @@ const DEFAULTS = {
  * transform. Pan is in screen pixels, not a world offset; `zoomAbout` keeps the
  * screen point under the cursor pinned.
  */
-export function useZoomPan<E extends HTMLElement = HTMLDivElement>(
+export function useZoomPan<ZoomedElement extends HTMLElement = HTMLDivElement>(
   options: UseZoomPanOptions = {},
 ) {
   const minScale = options.minScale ?? DEFAULTS.minScale;
@@ -48,7 +48,7 @@ export function useZoomPan<E extends HTMLElement = HTMLDivElement>(
     panY: 0,
   });
 
-  const ref = useRef<E | null>(null);
+  const ref = useRef<ZoomedElement | null>(null);
   const activePointers = useRef<Map<number, PointerPos>>(new Map());
   const lastPanPos = useRef<PointerPos | null>(null);
   const lastPinchDist = useRef<number | null>(null);
@@ -86,7 +86,7 @@ export function useZoomPan<E extends HTMLElement = HTMLDivElement>(
     ),
   );
 
-  const onPointerDown = useCallback((e: React.PointerEvent<E>) => {
+  const onPointerDown = useCallback((e: React.PointerEvent<ZoomedElement>) => {
     activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     panMoved.current = false;
     if (activePointers.current.size === 2) {
@@ -102,7 +102,7 @@ export function useZoomPan<E extends HTMLElement = HTMLDivElement>(
   }, []);
 
   const onPointerMove = useCallback(
-    (e: React.PointerEvent<E>) => {
+    (e: React.PointerEvent<ZoomedElement>) => {
       const tracked = activePointers.current.get(e.pointerId);
       if (!tracked) return;
       activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -141,7 +141,7 @@ export function useZoomPan<E extends HTMLElement = HTMLDivElement>(
     [zoomAbout, panThreshold],
   );
 
-  const onPointerUp = useCallback((e: React.PointerEvent<E>) => {
+  const onPointerUp = useCallback((e: React.PointerEvent<ZoomedElement>) => {
     activePointers.current.delete(e.pointerId);
     if (activePointers.current.size === 1) {
       const [remaining] = [...activePointers.current.values()];

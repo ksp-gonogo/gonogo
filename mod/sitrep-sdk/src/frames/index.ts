@@ -145,6 +145,8 @@ export type { Vector3 };
  * nothing: both would return the same tuple type, so neither spelling can stop
  * the two being handed to `toFrame` in the wrong order.
  */
-export function frameVector<U extends "m" | "m/s">(v: Vec3Of<U>): Vector3 {
+export function frameVector<Unit extends "m" | "m/s">(
+  v: Vec3Of<Unit>,
+): Vector3 {
   return [v.x.magnitude, v.y.magnitude, v.z.magnitude];
 }

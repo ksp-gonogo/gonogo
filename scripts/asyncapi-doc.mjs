@@ -549,11 +549,11 @@ function unitAt(schema) {
  * 397 assertions at the time of writing, 0 violations.
  */
 /*
- * A leaf is one unit-carrying slot: a scalar `Value<U>` field, or one axis of a
- * `Vec3Of<U>`. The floor exists because "zero examined" and "everything agreed"
+ * A leaf is one unit-carrying slot: a scalar `Value<Unit>` field, or one axis of a
+ * `Vec3Of<Unit>`. The floor exists because "zero examined" and "everything agreed"
  * are the same green without it: when the TYPE route stops carrying units there
  * is nothing left to iterate, so the loop below finds no disagreements and
- * passes. Measured against a plant that made `Value<U>` parse as a plain number,
+ * passes. Measured against a plant that made `Value<Unit>` parse as a plain number,
  * which collapsed 397 leaves to 30 and stayed fully green with the document
  * byte-identical.
  *

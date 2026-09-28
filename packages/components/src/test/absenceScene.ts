@@ -26,10 +26,10 @@ interface StreamFixture {
  * fixture does not emit, since a silent no-op would stage a scene identical
  * to its healthy twin.
  */
-export function withoutChannel<T extends StreamFixture>(
-  fixture: T,
+export function withoutChannel<Fixture extends StreamFixture>(
+  fixture: Fixture,
   channel: string,
-): T {
+): Fixture {
   const stream = fixture._stream;
   if (!stream || !Array.isArray(stream.emits)) {
     throw new Error(

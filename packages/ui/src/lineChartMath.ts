@@ -179,11 +179,11 @@ export function buildSegmentedPath(
     return [{ d: builder(ts, vs, scaleX, scaleY, breaks) }];
   }
   // Runs may name indices a trimmed window no longer has, so they are clamped.
-  function paint<R extends { from: number; to: number }, T>(
-    runs: readonly R[],
-    pick: (run: R) => T,
-  ): (T | undefined)[] {
-    const at: (T | undefined)[] = new Array(ts.length);
+  function paint<Run extends { from: number; to: number }, Picked>(
+    runs: readonly Run[],
+    pick: (run: Run) => Picked,
+  ): (Picked | undefined)[] {
+    const at: (Picked | undefined)[] = new Array(ts.length);
     for (const run of runs) {
       const last = Math.min(ts.length - 1, run.to);
       for (let i = Math.max(0, run.from); i <= last; i++) at[i] = pick(run);

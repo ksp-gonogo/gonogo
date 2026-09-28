@@ -28,11 +28,13 @@ import type {
   UseCommandResultFor,
 } from "./spine/use-command";
 
-type Equal<A, B> =
-  (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2
+type Equal<Left, Right> =
+  (<Probe>() => Probe extends Left ? 1 : 2) extends <
+    Probe,
+  >() => Probe extends Right ? 1 : 2
     ? true
     : false;
-type AssertTrue<T extends true> = T;
+type AssertTrue<Condition extends true> = Condition;
 
 // One args shape serving several commands still resolves per command.
 export type _SetSasArgs = AssertTrue<

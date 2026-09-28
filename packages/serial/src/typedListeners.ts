@@ -23,13 +23,13 @@
  */
 type AnyListener = (...args: unknown[]) => void;
 
-export class TypedListeners<TMap extends Record<string, unknown[]>> {
-  private listeners = new Map<keyof TMap, Set<AnyListener>>();
+export class TypedListeners<EventMap extends Record<string, unknown[]>> {
+  private listeners = new Map<keyof EventMap, Set<AnyListener>>();
 
   /** Subscribe to an event. Returns an unsubscribe function. */
-  on<K extends keyof TMap>(
-    type: K,
-    cb: (...args: TMap[K]) => void,
+  on<EventName extends keyof EventMap>(
+    type: EventName,
+    cb: (...args: EventMap[EventName]) => void,
   ): () => void {
     let set = this.listeners.get(type);
     if (!set) {
@@ -44,11 +44,14 @@ export class TypedListeners<TMap extends Record<string, unknown[]>> {
   }
 
   /** Fire an event, invoking every current listener in insertion order. */
-  emit<K extends keyof TMap>(type: K, ...args: TMap[K]): void {
+  emit<EventName extends keyof EventMap>(
+    type: EventName,
+    ...args: EventMap[EventName]
+  ): void {
     const set = this.listeners.get(type);
     if (!set) return;
     set.forEach((cb) => {
-      (cb as unknown as (...a: TMap[K]) => void)(...args);
+      (cb as unknown as (...a: EventMap[EventName]) => void)(...args);
     });
   }
 }

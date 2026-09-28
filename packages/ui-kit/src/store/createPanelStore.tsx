@@ -10,24 +10,26 @@ import { createContext, type ReactNode, useContext, useRef } from "react";
  * treats as a no-op. `Context` is returned raw for a caller that owns the
  * store's lifetime itself (a test injecting a pre-seeded store).
  */
-export interface PanelStore<S> {
-  Context: React.Context<S | null>;
+export interface PanelStore<Store> {
+  Context: React.Context<Store | null>;
   Provider: (props: { children?: ReactNode }) => ReactNode;
-  useStore: () => S | null;
+  useStore: () => Store | null;
 }
 
-export function createPanelStore<S>(create: () => S): PanelStore<S> {
-  const Context = createContext<S | null>(null);
+export function createPanelStore<Store>(
+  create: () => Store,
+): PanelStore<Store> {
+  const Context = createContext<Store | null>(null);
 
   function Provider({ children }: { children?: ReactNode }) {
-    const storeRef = useRef<S | null>(null);
+    const storeRef = useRef<Store | null>(null);
     if (storeRef.current === null) storeRef.current = create();
     return (
       <Context.Provider value={storeRef.current}>{children}</Context.Provider>
     );
   }
 
-  function useStore(): S | null {
+  function useStore(): Store | null {
     return useContext(Context);
   }
 

@@ -15,7 +15,7 @@ import { value } from "./unit-system/value";
 
 const at = (ut: number) => value("ut", ut);
 
-function observed<V>(v: V, ut: number): Reading<V> {
+function observed<Payload>(v: Payload, ut: number): Reading<Payload> {
   return {
     state: "observed",
     value: v,
@@ -24,7 +24,11 @@ function observed<V>(v: V, ut: number): Reading<V> {
   };
 }
 
-function stale<V>(v: V, ut: number, grade: StaleGrade): Reading<V> {
+function stale<Payload>(
+  v: Payload,
+  ut: number,
+  grade: StaleGrade,
+): Reading<Payload> {
   return {
     state: "stale",
     value: v,

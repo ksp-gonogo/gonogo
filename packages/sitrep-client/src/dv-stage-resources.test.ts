@@ -27,8 +27,8 @@ interface VesselStructureWirePayload {
   currentStage?: number | null;
 }
 
-// `TimelinePoint.payload` is already `T | null`, so a tombstone needs no cast: it needs its T naming at the call site, which `point<X>(null)` does.
-function point<T>(payload: T | null): TimelinePoint<T> {
+// `TimelinePoint.payload` is already `Payload | null`, so a tombstone needs no cast: it needs `Payload` named at the call site, which `point<X>(null)` does.
+function point<Payload>(payload: Payload | null): TimelinePoint<Payload> {
   return {
     validAt: 0,
     payload,

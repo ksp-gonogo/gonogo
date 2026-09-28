@@ -199,16 +199,16 @@ export class MissionStore {
     });
   }
 
-  private async runTx<T = void>(
+  private async runTx<Result = void>(
     stores: string | string[],
     mode: IDBTransactionMode,
     fn: (tx: IDBTransaction, reject: (reason?: unknown) => void) => void,
-  ): Promise<T> {
+  ): Promise<Result> {
     const db = await this.open();
-    return new Promise<T>((resolve, reject) => {
+    return new Promise<Result>((resolve, reject) => {
       const tx = db.transaction(stores, mode);
       fn(tx, reject);
-      tx.oncomplete = () => resolve(undefined as T);
+      tx.oncomplete = () => resolve(undefined as Result);
       tx.onerror = () => reject(tx.error);
       tx.onabort = () => reject(tx.error);
     });

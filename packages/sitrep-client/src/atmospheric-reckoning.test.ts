@@ -198,11 +198,11 @@ function partialFlightPoint(
   };
 }
 
-function point<T>(
+function point<Payload>(
   validAt: number,
-  payload: T,
+  payload: Payload,
   lightTimeSeconds = LIGHT_TIME_SECONDS,
-): TimelinePoint<T> {
+): TimelinePoint<Payload> {
   return {
     validAt,
     payload,

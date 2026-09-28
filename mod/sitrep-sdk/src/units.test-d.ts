@@ -17,11 +17,13 @@
 
 import type { KnownSitrepUnit, SitrepUnit } from "./units";
 
-type Equal<A, B> =
-  (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2
+type Equal<Left, Right> =
+  (<Probe>() => Probe extends Left ? 1 : 2) extends <
+    Probe,
+  >() => Probe extends Right ? 1 : 2
     ? true
     : false;
-type Expect<T extends true> = T;
+type Expect<Condition extends true> = Condition;
 
 // ── The known arm stays closed ──────────────────────────────────────────────────────
 export const _acceptsCatalogToken: KnownSitrepUnit = "m/s";
@@ -41,7 +43,7 @@ export const _acceptsElectricCharge: SitrepUnit = "EC/s";
 // Open, but not `string`: the known tokens survive as literals, which is what keeps
 // autocomplete useful and makes `(string & {})` the right shape rather than a plain
 // widening to `string`.
-type Not<T extends boolean> = T extends true ? false : true;
+type Not<Condition extends boolean> = Condition extends true ? false : true;
 export type _KnownIsNotString = Expect<Not<Equal<KnownSitrepUnit, string>>>;
 export const _stillNarrowsLiterals: SitrepUnit = "K";
 

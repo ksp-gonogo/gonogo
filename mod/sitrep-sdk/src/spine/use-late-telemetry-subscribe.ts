@@ -13,15 +13,18 @@ export type Unsubscribe = () => void;
  *   the same canonical typing `useTelemetry(topic)` gives a static topic.
  * - a plain `string` argument (for a runtime-templated topic like
  *   `scansat.mask.${body}.${scanType}`, which has no fixed member in the
- *   `TopicId` union) falls back to an explicit `T` type argument at the
+ *   `TopicId` union) falls back to an explicit `Payload` type argument at the
  *   call site.
  */
 export interface LateTelemetrySubscribe {
-  <K extends TopicId>(
-    topic: K,
-    onValue: (value: TopicPayload<K>) => void,
+  <Topic extends TopicId>(
+    topic: Topic,
+    onValue: (value: TopicPayload<Topic>) => void,
   ): Unsubscribe;
-  <T = unknown>(topic: string, onValue: (value: T) => void): Unsubscribe;
+  <Payload = unknown>(
+    topic: string,
+    onValue: (value: Payload) => void,
+  ): Unsubscribe;
 }
 
 /**

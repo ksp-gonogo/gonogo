@@ -122,35 +122,35 @@ export const _sortable: number = hours.compare(seconds);
 export const _orderedAcross = metres.lessThan(seconds);
 
 // ── Ordering a GENERIC unit against itself ─────────────────────────────────
-// `Comparand<U>` is a conditional, so for an unbound `U` it never resolves and
-// `Value<U>` is not assignable to `Value<Comparand<U>>` even though the two
+// `Comparand<Unit>` is a conditional, so for an unbound `Unit` it never resolves and
+// `Value<Unit>` is not assignable to `Value<Comparand<Unit>>` even though the two
 // units are the same string by construction. That made every same-unit
 // comparison under a type parameter unwrap both sides to numbers.
 //
-// These four are the pin. Without `Value<U>` in the comparators' union each is
+// These four are the pin. Without `Value<Unit>` in the comparators' union each is
 // a TS2345, and `bandSide` and `bandIsWellFormed` go back to spending seven
 // `.magnitude` unwraps between them.
-export function _orderGenericLt<U extends string>(
-  a: Value<U>,
-  b: Value<U>,
+export function _orderGenericLt<Unit extends string>(
+  a: Value<Unit>,
+  b: Value<Unit>,
 ): boolean {
   return a.lessThan(b);
 }
-export function _orderGenericLte<U extends string>(
-  a: Value<U>,
-  b: Value<U>,
+export function _orderGenericLte<Unit extends string>(
+  a: Value<Unit>,
+  b: Value<Unit>,
 ): boolean {
   return a.lessThanOrEqual(b);
 }
-export function _orderGenericGt<U extends string>(
-  a: Value<U>,
-  b: Value<U>,
+export function _orderGenericGt<Unit extends string>(
+  a: Value<Unit>,
+  b: Value<Unit>,
 ): boolean {
   return a.greaterThan(b);
 }
-export function _orderGenericGte<U extends string>(
-  a: Value<U>,
-  b: Value<U>,
+export function _orderGenericGte<Unit extends string>(
+  a: Value<Unit>,
+  b: Value<Unit>,
 ): boolean {
   return a.greaterThanOrEqual(b);
 }
@@ -158,10 +158,10 @@ export function _orderGenericGte<U extends string>(
 // Widened for the SAME unit only. Two unrelated parameters stay refused, which
 // is what stops the union above being read as "a generic comparison is free":
 // nothing knows these share a dimension.
-export function _orderTwoGenerics<U extends string, W extends string>(
-  a: Value<U>,
-  b: Value<W>,
-): boolean {
+export function _orderTwoGenerics<
+  Unit extends string,
+  OtherUnit extends string,
+>(a: Value<Unit>, b: Value<OtherUnit>): boolean {
   // @ts-expect-error: two unrelated unit parameters are not comparable
   return a.lessThan(b);
 }
@@ -181,10 +181,12 @@ export const _acrossDimensions = metres.max(seconds);
 // need no narrowing, but the CONTENT is not, so nothing that combines two
 // values is allowed through, not even a second `Value<UnknownUnit>`.
 
-type Expect<A, B> =
-  (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2
+type Expect<Left, Right> =
+  (<Probe>() => Probe extends Left ? 1 : 2) extends <
+    Probe,
+  >() => Probe extends Right ? 1 : 2
     ? "OK"
-    : ["MISMATCH", A, B];
+    : ["MISMATCH", Left, Right];
 
 declare const unknownA: Value<UnknownUnit>;
 declare const unknownB: Value<UnknownUnit>;
@@ -263,7 +265,7 @@ export const _isFiniteRejectsOperand = metres.isFinite(1);
 // ── min/max take a bare operand, and NARROW when they do ────────────────────
 // The `Value` arm returns the union (either operand can win, each keeping its own
 // unit); the bare arm cannot, because a bare number has no unit to win with, so it
-// resolves to `Value<U>` and the overload order is what expresses that.
+// resolves to `Value<Unit>` and the overload order is what expresses that.
 
 const clamped = seconds.max(0);
 export const _maxBareNarrowsToReceiverUnit: Expect<

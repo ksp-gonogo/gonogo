@@ -8,7 +8,7 @@
 // of an import of the const.
 //
 // Two views, because two layers ask different questions. The TYPE layer wants
-// the field names, so `ReckonableReading<T, K>` can project the payload down to
+// the field names, so `ReckonableReading<Payload, ReckonableKey>` can project the payload down to
 // the fields a model moves; codegen emits the names rather than the `Pick<>`
 // because `K extends keyof T` is then a compile-time cross-check that a
 // generated field name still exists on the generated payload. The RUNTIME layer
@@ -41,9 +41,10 @@ export type ReckonableTopic = keyof typeof GENERATED_RECKONABLE_FIELDS;
  * type: `useTelemetry` asks it of every `TopicId` and only reaches
  * `ReckonableReading` for the ones that answer.
  */
-export type ReckonableFields<T extends TopicId> = T extends ReckonableTopic
-  ? (typeof GENERATED_RECKONABLE_FIELDS)[T][number]
-  : never;
+export type ReckonableFields<Topic extends TopicId> =
+  Topic extends ReckonableTopic
+    ? (typeof GENERATED_RECKONABLE_FIELDS)[Topic][number]
+    : never;
 
 /** Whether the contract declares any value on `topic` reckonable. */
 export function isReckonableTopic(topic: string): topic is ReckonableTopic {

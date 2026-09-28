@@ -138,8 +138,8 @@ function makeFakeSocketCtor() {
   return {
     ctor: FakeSocket as unknown as ConstructorParameters<
       typeof WebSocketTransport
-    >[0] extends { WebSocketImpl?: infer C }
-      ? NonNullable<C>
+    >[0] extends { WebSocketImpl?: infer Constructor }
+      ? NonNullable<Constructor>
       : never,
     instances,
   };

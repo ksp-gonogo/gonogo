@@ -52,7 +52,7 @@ public static class RtConfig
         // duplicate with `any` in place of the type parameter. Registering the open
         // generic type definition via the Type-based ExportAsInterfaces overload
         // instead configures the SAME blueprint the attribute scan produced, so the
-        // emitted interface keeps its `<T>` / `<TArgs>` / `<TResult>` generic parameter.
+        // emitted interface keeps its generic parameter, which RtDocVisitor writes as a word.
         builder.ExportAsInterfaces(
             new[] { typeof(StreamData<>) },
             c => c.AutoI(false).WithPublicProperties().OverrideName("StreamData"));
@@ -733,8 +733,8 @@ public static class RtConfig
                 if (nullable)
                 {
                     // Composes with every branch above: a nullable sequence
-                    // becomes Value<U>[] | null, a nullable Vec3 becomes
-                    // Vec3Of<U> | null.
+                    // becomes Value<Unit>[] | null, a nullable Vec3 becomes
+                    // Vec3Of<Unit> | null.
                     nulled++;
                     tsType += " | null";
                 }
@@ -777,7 +777,7 @@ public static class RtConfig
             // The unit sits on the WHOLE vector, because one canonical
             // Vec3 shape is reused at sites carrying three different
             // units (its own X/Y/Z are annotated NotApplicable for
-            // exactly that reason). Vec3Of<U> carries the per-use-site
+            // exactly that reason). Vec3Of<Unit> carries the per-use-site
             // unit down to the leaves, which is the same propagation
             // EmitUnitMap does below, expressed as a type.
             return "Vec3Of<\"" + unit.Unit + "\">";
@@ -2002,7 +2002,7 @@ public static class RtConfig
                 {
                     throw new InvalidOperationException(
                         "[SitrepCommand(\"" + attr.CommandId + "\")] on " + type.Name +
-                        " sets both Payload and Result. Payload wraps in CommandResultOf<T>; " +
+                        " sets both Payload and Result. Payload wraps in CommandResultOf<Payload>; " +
                         "Result names the resolved type outright. A command answers one shape.");
                 }
 
@@ -2148,7 +2148,7 @@ public static class RtConfig
         sb.Append("/**\n");
         sb.Append(" * The same mapping as a RUNTIME value: command id -> the NAME of the type\n");
         sb.Append(" * its dispatch resolves with, spelled exactly as the interface above spells\n");
-        sb.Append(" * it, `CommandResultOf<T>` envelope included.\n");
+        sb.Append(" * it, `CommandResultOf<Payload>` envelope included.\n");
         sb.Append(" *\n");
         sb.Append(" * An interface is erased before a client runs, and a command reply arrives\n");
         sb.Append(" * carrying a requestId and nothing else, so the command that was dispatched\n");

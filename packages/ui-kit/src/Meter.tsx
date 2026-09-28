@@ -74,7 +74,7 @@ interface MeterCommonProps
  * Everything a meter needs: how much there is, and optionally what that is a
  * fraction of.
  */
-export interface MeterProps<U extends string = string>
+export interface MeterProps<UnitSymbol extends string = string>
   extends MeterCommonProps {
   /**
    * How much there is. With a `capacity` beside it the bar draws the quotient;
@@ -85,7 +85,7 @@ export interface MeterProps<U extends string = string>
    * empty, and the row drops `role="meter"`, since an unreported reading is not
    * a 0% bar. A call site needs no absence gate of its own.
    */
-  value: UnitValue<U> | null;
+  value: UnitValue<UnitSymbol> | null;
   /**
    * The full tank: what `value` is read as a fraction of, in the same unit, so
    * a length over a volume does not typecheck.
@@ -94,13 +94,13 @@ export interface MeterProps<U extends string = string>
    * a band of its own. Omitted, `value` is already the fraction; `null` is a
    * capacity that could not be read, and draws the absent form.
    */
-  capacity?: UnitValue<U> | null;
+  capacity?: UnitValue<UnitSymbol> | null;
   /**
    * Pin the rung both halves are shown at, for the cases where convention
    * beats magnitude. Rarely needed: otherwise the two halves settle one rung
    * between them, so a tank is never written in two units.
    */
-  format?: FormatsFor<U>;
+  format?: FormatsFor<UnitSymbol>;
 }
 
 /**
@@ -131,7 +131,7 @@ export interface MeterProps<U extends string = string>
  * There is no combined interval: whether the two errors are independent is
  * unknown here. A caller wanting one should publish a banded `ratio` reading.
  */
-export function Meter<U extends string = string>({
+export function Meter<UnitSymbol extends string = string>({
   label,
   value,
   capacity,
@@ -142,7 +142,7 @@ export function Meter<U extends string = string>({
   valueLabelNode,
   layout = "stacked",
   ...rest
-}: MeterProps<U>) {
+}: MeterProps<UnitSymbol>) {
   const shown = unwrap(value);
   const held = unwrap(capacity);
   const fraction = fillFraction(
@@ -230,8 +230,8 @@ export function Meter<U extends string = string>({
 }
 
 /** What a held reading's mark means in words, or null where the figure is current. */
-function heldCaption<U extends string>(
-  input: UnitValue<U> | null | undefined,
+function heldCaption<UnitSymbol extends string>(
+  input: UnitValue<UnitSymbol> | null | undefined,
 ): string | null {
   const { held, caption } = resolveCurrency(input ?? null);
   return held ? caption : null;
@@ -266,9 +266,9 @@ function HeldLabel({
 }
 
 /** One half of a meter, split into the figure and the reading it came in. */
-interface Half<U extends string> {
-  figure: Value<U> | null;
-  reading: Reading<Value<U>> | null;
+interface Half<UnitSymbol extends string> {
+  figure: Value<UnitSymbol> | null;
+  reading: Reading<Value<UnitSymbol>> | null;
 }
 
 /**
@@ -276,9 +276,9 @@ interface Half<U extends string> {
  * discriminator is guarded on the runtime shape, since `in` throws on a
  * primitive and untyped JavaScript can pass one.
  */
-function unwrap<U extends string>(
-  input: UnitValue<U> | null | undefined,
-): Half<U> {
+function unwrap<UnitSymbol extends string>(
+  input: UnitValue<UnitSymbol> | null | undefined,
+): Half<UnitSymbol> {
   if (typeof input !== "object" || input === null || !("state" in input)) {
     return { figure: input ?? null, reading: null };
   }
@@ -290,9 +290,9 @@ function unwrap<U extends string>(
  * halves the same kind, so the quotient is dimensionless. A capacity of zero is
  * no tank at all, so it yields `null`.
  */
-function fillFraction<U extends string>(
-  figure: Value<U> | null,
-  capacity: Value<U> | null | undefined,
+function fillFraction<UnitSymbol extends string>(
+  figure: Value<UnitSymbol> | null,
+  capacity: Value<UnitSymbol> | null | undefined,
 ): number | null {
   if (figure === null || capacity === null) return null;
   if (capacity !== undefined && !capacity.isPositive()) return null;
@@ -320,10 +320,10 @@ interface MeterBounds {
  * `over` is what the two ends are divided by; `null` says the figure is already
  * a fraction. A divisor of zero places nothing.
  */
-function boundsOn<U extends string>(
-  reading: Reading<Value<U>> | null,
-  figure: Value<U> | null,
-  over: Value<U> | null,
+function boundsOn<UnitSymbol extends string>(
+  reading: Reading<Value<UnitSymbol>> | null,
+  figure: Value<UnitSymbol> | null,
+  over: Value<UnitSymbol> | null,
 ): MeterBounds | null {
   if (reading === null || reading.reckoning.status !== "available") return null;
   if (figure === null) return null;
@@ -535,7 +535,7 @@ function MeterFrame({
  * `<UnitSharedFormat>`; the spoken string cannot report by rendering, so this
  * component reports on its behalf and writes it at the settled rung.
  */
-function MeterPairBar<U extends string = string>({
+function MeterPairBar<UnitSymbol extends string = string>({
   value,
   capacity,
   shown,
@@ -545,11 +545,11 @@ function MeterPairBar<U extends string = string>({
   valueLabelNode,
   ...bar
 }: Omit<MeterBarProps, "display" | "spoken" | "bounds"> &
-  Pick<MeterProps<U>, "valueLabel" | "valueLabelNode"> & {
-    value: UnitValue<U> | null;
-    capacity: UnitValue<U> | null;
-    shown: Half<U>;
-    held: Half<U>;
+  Pick<MeterProps<UnitSymbol>, "valueLabel" | "valueLabelNode"> & {
+    value: UnitValue<UnitSymbol> | null;
+    capacity: UnitValue<UnitSymbol> | null;
+    shown: Half<UnitSymbol>;
+    held: Half<UnitSymbol>;
     /** Where the fill ends, as the 0..1 the bounds are compared against. */
     at: number;
   }) {

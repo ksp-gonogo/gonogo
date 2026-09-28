@@ -5,6 +5,8 @@ import type { StaleGrade, TopicReading } from "@ksp-gonogo/sitrep-client";
  * grade, not a boolean: a stopped producer is something to check, a blackout
  * something to wait out.
  */
-export function heldGrade<T>(reading: TopicReading<T>): StaleGrade | undefined {
+export function heldGrade<Payload>(
+  reading: TopicReading<Payload>,
+): StaleGrade | undefined {
   return reading.state === "stale" ? reading.grade : undefined;
 }

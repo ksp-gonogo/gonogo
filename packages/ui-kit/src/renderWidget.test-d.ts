@@ -6,11 +6,13 @@
 import type { RenderResult } from "@ksp-gonogo/sitrep-sdk/testing";
 import type { renderWidget } from "./testing";
 
-type Equal<A, B> =
-  (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2
+type Equal<Left, Right> =
+  (<Probe>() => Probe extends Left ? 1 : 2) extends <
+    Probe,
+  >() => Probe extends Right ? 1 : 2
     ? true
     : false;
-type Expect<T extends true> = T;
+type Expect<Condition extends true> = Condition;
 
 type _NameableFromTheSdk = Expect<
   Equal<ReturnType<typeof renderWidget>, RenderResult>

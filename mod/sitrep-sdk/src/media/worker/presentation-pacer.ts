@@ -59,20 +59,20 @@
  */
 
 /** One frame handed to the pacer: its capture UT (for spacing) and payload. */
-export interface PacedFrame<T> {
+export interface PacedFrame<Frame> {
   ut: number;
-  data: T;
+  data: Frame;
 }
 
-export interface PresentationPacerOptions<T> {
+export interface PresentationPacerOptions<Frame> {
   /** Called, in order, for each frame the pacer determines is due at the
    *  `nowWall` passed to `tick()`. The caller does the actual sink write. */
-  onPresent(frame: PacedFrame<T>): void;
+  onPresent(frame: PacedFrame<Frame>): void;
   /** Called for a frame dropped by backlog control (never reaches
    *  `onPresent`): the caller MUST wire this to release/close the frame's
-   *  resources if `T` holds one (e.g. a WebCodecs `VideoFrame`), the same
+   *  resources if `Frame` holds one (e.g. a WebCodecs `VideoFrame`), the same
    *  memory-safety contract `DelayedPlayoutBuffer.onDrop` has. */
-  onSkip?(frame: PacedFrame<T>): void;
+  onSkip?(frame: PacedFrame<Frame>): void;
   /** Wall-clock seconds of backlog (how far past the oldest queued frame's
    *  due time `tick()`'s `nowWall` has drifted) beyond which the pacer
    *  snaps straight to the newest queued frame instead of draining the
@@ -107,8 +107,8 @@ const DEFAULT_RATE_BASELINE_SECONDS = 0.2;
  *  time warp produces. */
 const DEFAULT_MAX_RATE_DEPARTURE = 0.2;
 
-export class PresentationPacer<T> {
-  private queue: PacedFrame<T>[] = [];
+export class PresentationPacer<Frame> {
+  private queue: PacedFrame<Frame>[] = [];
   /** The (ut, wall) pair the NEXT queued frame's due time is computed
    *  relative to: either the last frame this pacer actually presented, or
    *  `null` before the first one ever (in which case the next frame is due
@@ -126,7 +126,7 @@ export class PresentationPacer<T> {
   private arrivalAnchor: { ut: number; wall: number } | null = null;
   private arrivalLatest: { ut: number; wall: number } | null = null;
 
-  constructor(private readonly opts: PresentationPacerOptions<T>) {}
+  constructor(private readonly opts: PresentationPacerOptions<Frame>) {}
 
   /**
    * Queue one already-confirmed frame. Does not present it, that only happens
@@ -136,7 +136,7 @@ export class PresentationPacer<T> {
    * clock `tick()` reads. Supplying it turns on the measured playout rate (see
    * the class doc); omitting it leaves spacing at 1:1.
    */
-  submit(frame: PacedFrame<T>, arrivedWall?: number): void {
+  submit(frame: PacedFrame<Frame>, arrivedWall?: number): void {
     this.queue.push(frame);
     if (arrivedWall === undefined) return;
     const arrival = { ut: frame.ut, wall: arrivedWall };
@@ -174,7 +174,7 @@ export class PresentationPacer<T> {
   }
 
   private dueWallFor(
-    frame: PacedFrame<T>,
+    frame: PacedFrame<Frame>,
     nowWall: number,
     rate: number,
   ): number {

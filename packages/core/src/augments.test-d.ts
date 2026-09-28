@@ -14,11 +14,13 @@
 import type { ComponentType } from "react";
 import { registerAugment, type SlotProps } from "./augments";
 
-type Equal<A, B> =
-  (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2
+type Equal<Left, Right> =
+  (<Probe>() => Probe extends Left ? 1 : 2) extends <
+    Probe,
+  >() => Probe extends Right ? 1 : 2
     ? true
     : false;
-type Expect<T extends true> = T;
+type Expect<Condition extends true> = Condition;
 
 // ── The in-tree declaration-merge an owning package performs ────────────────────
 // (Real packages augment "@ksp-gonogo/core"; augmenting the source module is equivalent for an in-tree proof and keeps this file self-contained.)

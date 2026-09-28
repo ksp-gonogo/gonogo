@@ -5,7 +5,7 @@ import type { UnknownUnit } from "./value";
 /**
  * Multiplication and division, at the type level.
  *
- * `plus` has been type-safe since the model shipped: `CombinableWith<U>` refuses
+ * `plus` has been type-safe since the model shipped: `CombinableWith<Unit>` refuses
  * to add metres to seconds. `times` and `per` were not, because they can produce a
  * unit neither operand names, and until this module the interface said
  * `times(other: Value | number): Value` and gave up. Dimensional correctness
@@ -128,16 +128,17 @@ type Negate = {
   "9": -9;
 };
 
-type Tup<N extends number, A extends unknown[] = []> = A["length"] extends N
-  ? A
-  : Tup<N, [unknown, ...A]>;
+type Tup<
+  Length extends number,
+  Built extends unknown[] = [],
+> = Built["length"] extends Length ? Built : Tup<Length, [unknown, ...Built]>;
 
-type At<N> = N extends Slot ? Bias[N] : never;
+type At<Biased> = Biased extends Slot ? Bias[Biased] : never;
 
 /**
  * `(a+9) + (b+9) - 9 = a+b+9`.
  *
- * The template-literal index (`` `${A}` ``) is what turns a numeric literal
+ * The template-literal index (`` `${Left}` ``) is what turns a numeric literal
  * into something that can key `Unbias`, and it is also the guard: a
  * non-literal `number` produces the key `"number"`, which is not in `Unbias`,
  * so `Add<number, 1>` is `never` rather than a guess. Underflow is caught by
@@ -145,21 +146,21 @@ type At<N> = N extends Slot ? Bias[N] : never;
  * `At`.
  */
 export type Add<
-  A extends number,
-  B extends number,
-> = `${A}` extends keyof Unbias
-  ? `${B}` extends keyof Unbias
-    ? [...Tup<Unbias[`${A}`]>, ...Tup<Unbias[`${B}`]>] extends [
+  Left extends number,
+  Right extends number,
+> = `${Left}` extends keyof Unbias
+  ? `${Right}` extends keyof Unbias
+    ? [...Tup<Unbias[`${Left}`]>, ...Tup<Unbias[`${Right}`]>] extends [
         ...Tup<9>,
-        ...infer R,
+        ...infer Remainder,
       ]
-      ? At<R["length"]>
+      ? At<Remainder["length"]>
       : never
     : never
   : never;
 
-export type Neg<A extends number> = `${A}` extends keyof Negate
-  ? Negate[`${A}`]
+export type Neg<Exponent extends number> = `${Exponent}` extends keyof Negate
+  ? Negate[`${Exponent}`]
   : never;
 
 /* ────────────────────────────────────────────────────────────────────────────
@@ -174,8 +175,10 @@ export type Neg<A extends number> = `${A}` extends keyof Negate
  * documented feature. That is a bet, but not a NEW bet: the SDK has made it
  * since `CombinableWith` (née `Addend`) shipped.
  */
-type Equal<A, B> =
-  (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2
+type Equal<Left, Right> =
+  (<Probe>() => Probe extends Left ? 1 : 2) extends <
+    Probe,
+  >() => Probe extends Right ? 1 : 2
     ? true
     : false;
 
@@ -195,22 +198,29 @@ type Equal<A, B> =
  * - dropping zeroes, because `m.per(m)` must equal the dimensionless `{}` and
  *   not `{m:0}`. This mirrors the runtime's `normalise`.
  */
-type Norm<D> = {
-  readonly [K in keyof D as D[K] extends 0 ? never : K]-?: D[K];
+type Norm<Dimension> = {
+  readonly [Base in keyof Dimension as Dimension[Base] extends 0
+    ? never
+    : Base]-?: Dimension[Base];
 };
 
-type ExpOf<D, K extends string> = K extends keyof D
-  ? D[K] extends number
-    ? D[K]
+type ExpOf<Dimension, Base extends string> = Base extends keyof Dimension
+  ? Dimension[Base] extends number
+    ? Dimension[Base]
     : 0
   : 0;
 
-type Combine<A, B> = Norm<{
-  readonly [K in (keyof A | keyof B) & string]: Add<ExpOf<A, K>, ExpOf<B, K>>;
+type Combine<Left, Right> = Norm<{
+  readonly [Base in (keyof Left | keyof Right) & string]: Add<
+    ExpOf<Left, Base>,
+    ExpOf<Right, Base>
+  >;
 }>;
 
-type NegD<B> = {
-  readonly [K in keyof B]: B[K] extends number ? Neg<B[K]> : never;
+type NegD<Dimension> = {
+  readonly [Base in keyof Dimension]: Dimension[Base] extends number
+    ? Neg<Dimension[Base]>
+    : never;
 };
 
 /**
@@ -221,23 +231,23 @@ type NegD<B> = {
  * and produces garbage instead of propagating the unknown. One unknown operand
  * has to make the whole result unknown.
  */
-export type Mul<A, B> = [A] extends [never]
+export type Mul<Left, Right> = [Left] extends [never]
   ? never
-  : [B] extends [never]
+  : [Right] extends [never]
     ? never
-    : Combine<A, B>;
+    : Combine<Left, Right>;
 
-export type Div<A, B> = [A] extends [never]
+export type Div<Left, Right> = [Left] extends [never]
   ? never
-  : [B] extends [never]
+  : [Right] extends [never]
     ? never
-    : Combine<A, NegD<B>>;
+    : Combine<Left, NegD<Right>>;
 
 /* ────────────────────────────────────────────────────────────────────────────
  * Symbols in, dimensions out
  * ─────────────────────────────────────────────────────────────────────────── */
 type StaticUnit = keyof typeof UNIT_DEFINITIONS;
-type Def<U extends StaticUnit> = (typeof UNIT_DEFINITIONS)[U];
+type Def<Unit extends StaticUnit> = (typeof UNIT_DEFINITIONS)[Unit];
 
 /**
  * A unit declared through {@link UnitDeclarations} that the static table does
@@ -284,7 +294,9 @@ type ExtUnit = Exclude<DeclaredUnit, StaticUnit>;
 // biome-ignore lint/suspicious/noEmptyInterface: augmentable by design, see above
 export interface ResourceNamespaces {}
 
-type Res<R extends string> = R extends keyof ResourceNamespaces ? R : never;
+type Res<Resource extends string> = Resource extends keyof ResourceNamespaces
+  ? Resource
+  : never;
 
 /**
  * The per-resource token grammar: `<Resource>:u`, `:u/s`, `:kg/u`, `:f/u`.
@@ -307,22 +319,30 @@ type Res<R extends string> = R extends keyof ResourceNamespaces ? R : never;
  *
  * The base symbol for currency is `funds`, not `f`: `f` is the display glyph.
  */
-type ResourceDim<T> = T extends `${infer R}:u`
-  ? [Res<R>] extends [never]
+type ResourceDim<Token> = Token extends `${infer Resource}:u`
+  ? [Res<Resource>] extends [never]
     ? never
-    : { readonly [K in `res${R}`]: 1 }
-  : T extends `${infer R}:u/s`
-    ? [Res<R>] extends [never]
+    : { readonly [Base in `res${Resource}`]: 1 }
+  : Token extends `${infer Resource}:u/s`
+    ? [Res<Resource>] extends [never]
       ? never
-      : { readonly [K in `res${R}` | "s"]: K extends "s" ? -1 : 1 }
-    : T extends `${infer R}:kg/u`
-      ? [Res<R>] extends [never]
+      : { readonly [Base in `res${Resource}` | "s"]: Base extends "s" ? -1 : 1 }
+    : Token extends `${infer Resource}:kg/u`
+      ? [Res<Resource>] extends [never]
         ? never
-        : { readonly [K in `res${R}` | "kg"]: K extends "kg" ? 1 : -1 }
-      : T extends `${infer R}:f/u`
-        ? [Res<R>] extends [never]
+        : {
+            readonly [Base in `res${Resource}` | "kg"]: Base extends "kg"
+              ? 1
+              : -1;
+          }
+      : Token extends `${infer Resource}:f/u`
+        ? [Res<Resource>] extends [never]
           ? never
-          : { readonly [K in `res${R}` | "funds"]: K extends "funds" ? 1 : -1 }
+          : {
+              readonly [Base in
+                | `res${Resource}`
+                | "funds"]: Base extends "funds" ? 1 : -1;
+            }
         : never;
 
 /**
@@ -346,15 +366,19 @@ type ResourceDim<T> = T extends `${infer R}:u`
  * `string`), and that outcome would still catch such a regression even if
  * this branch is currently redundant with it.
  */
-export type DimOf<U> = [U] extends [UnknownUnit]
+export type DimOf<Unit> = [Unit] extends [UnknownUnit]
   ? never
-  : U extends StaticUnit
-    ? Norm<Def<U>["dim"]>
-    : U extends ExtUnit
-      ? Norm<UnitDeclarations[U] extends { dim: infer D } ? D : never>
-      : [ResourceDim<U>] extends [never]
+  : Unit extends StaticUnit
+    ? Norm<Def<Unit>["dim"]>
+    : Unit extends ExtUnit
+      ? Norm<
+          UnitDeclarations[Unit] extends { dim: infer Dimension }
+            ? Dimension
+            : never
+        >
+      : [ResourceDim<Unit>] extends [never]
         ? never
-        : Norm<ResourceDim<U>>;
+        : Norm<ResourceDim<Unit>>;
 
 /* ────────────────────────────────────────────────────────────────────────────
  * Dimensions in, a symbol out
@@ -363,29 +387,35 @@ export type DimOf<U> = [U] extends [UnknownUnit]
 /**
  * Ratio-1 and not an alias: the same rule `declaredUnitFor` applies at runtime.
  *
- * `Def<K>["ratio"] extends 1` works because `as const` gives a literal type to
+ * `Def<Candidate>["ratio"] extends 1` works because `as const` gives a literal type to
  * a literal ratio, while a COMPUTED one (`1/3.6`, `Math.PI/180`, `1/21_600`)
  * widens to `number`, which does not extend `1`. So the filter picks out
  * exactly the base units without anyone maintaining a list.
  */
 type CanonicalUnit = {
-  [K in StaticUnit]: Def<K>["ratio"] extends 1
-    ? Def<K> extends { alias: true }
+  [Candidate in StaticUnit]: Def<Candidate>["ratio"] extends 1
+    ? Def<Candidate> extends { alias: true }
       ? never
-      : K
+      : Candidate
     : never;
 }[StaticUnit];
 
-type StaticSymbolFor<D> = {
-  [K in CanonicalUnit]: Equal<DimOf<K>, D> extends true ? K : never;
+type StaticSymbolFor<Dimension> = {
+  [Candidate in CanonicalUnit]: Equal<DimOf<Candidate>, Dimension> extends true
+    ? Candidate
+    : never;
 }[CanonicalUnit];
 
-type ExtSymbolFor<D> = {
-  [K in ExtUnit]: Equal<DimOf<K>, D> extends true ? K : never;
+type ExtSymbolFor<Dimension> = {
+  [Candidate in ExtUnit]: Equal<DimOf<Candidate>, Dimension> extends true
+    ? Candidate
+    : never;
 }[ExtUnit];
 
-type ResName<D> =
-  Extract<keyof D, `res${string}`> extends `res${infer R}` ? R : never;
+type ResName<Dimension> =
+  Extract<keyof Dimension, `res${string}`> extends `res${infer Resource}`
+    ? Resource
+    : never;
 
 /**
  * A computed dimension back to a resource token.
@@ -395,16 +425,18 @@ type ResName<D> =
  * and the result degrades to `string`. That is what stops
  * `Food:u × Oxygen:kg/u` inventing a token for something incoherent.
  */
-type ResSymbolFor<D, R extends string = ResName<D>> = [R] extends [never]
+type ResSymbolFor<Dimension, Resource extends string = ResName<Dimension>> = [
+  Resource,
+] extends [never]
   ? never
-  : Equal<DimOf<`${R}:u`>, D> extends true
-    ? `${R}:u`
-    : Equal<DimOf<`${R}:u/s`>, D> extends true
-      ? `${R}:u/s`
-      : Equal<DimOf<`${R}:kg/u`>, D> extends true
-        ? `${R}:kg/u`
-        : Equal<DimOf<`${R}:f/u`>, D> extends true
-          ? `${R}:f/u`
+  : Equal<DimOf<`${Resource}:u`>, Dimension> extends true
+    ? `${Resource}:u`
+    : Equal<DimOf<`${Resource}:u/s`>, Dimension> extends true
+      ? `${Resource}:u/s`
+      : Equal<DimOf<`${Resource}:kg/u`>, Dimension> extends true
+        ? `${Resource}:kg/u`
+        : Equal<DimOf<`${Resource}:f/u`>, Dimension> extends true
+          ? `${Resource}:f/u`
           : never;
 
 /**
@@ -413,22 +445,22 @@ type ResSymbolFor<D, R extends string = ResName<D>> = [R] extends [never]
  * Never `never` and never a guess: "we do not know" has exactly one spelling,
  * and it is the one that behaves like today.
  */
-export type SymbolFor<D> = [D] extends [never]
+export type SymbolFor<Dimension> = [Dimension] extends [never]
   ? string
-  : [StaticSymbolFor<D>] extends [never]
-    ? [ExtSymbolFor<D>] extends [never]
-      ? [ResSymbolFor<D>] extends [never]
+  : [StaticSymbolFor<Dimension>] extends [never]
+    ? [ExtSymbolFor<Dimension>] extends [never]
+      ? [ResSymbolFor<Dimension>] extends [never]
         ? string
-        : ResSymbolFor<D>
-      : ExtSymbolFor<D>
-    : StaticSymbolFor<D>;
+        : ResSymbolFor<Dimension>
+      : ExtSymbolFor<Dimension>
+    : StaticSymbolFor<Dimension>;
 
 /** The unit of `a × b`, or `string` when nothing declares that dimension. */
-export type Product<U extends string, W extends string> = SymbolFor<
-  Mul<DimOf<U>, DimOf<W>>
+export type Product<Left extends string, Right extends string> = SymbolFor<
+  Mul<DimOf<Left>, DimOf<Right>>
 >;
 
 /** The unit of `a ÷ b`, or `string` when nothing declares that dimension. */
-export type Quotient<U extends string, W extends string> = SymbolFor<
-  Div<DimOf<U>, DimOf<W>>
+export type Quotient<Left extends string, Right extends string> = SymbolFor<
+  Div<DimOf<Left>, DimOf<Right>>
 >;

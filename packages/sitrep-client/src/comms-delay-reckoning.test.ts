@@ -161,7 +161,10 @@ function scene(
     observedAt = 0,
     lightTimeSeconds = LIGHT_TIME_SECONDS,
   } = options;
-  const point = <T>(validAt: number, payload: T): TimelinePoint<T> => ({
+  const point = <Payload>(
+    validAt: number,
+    payload: Payload,
+  ): TimelinePoint<Payload> => ({
     validAt,
     payload,
     meta: makeMeta({

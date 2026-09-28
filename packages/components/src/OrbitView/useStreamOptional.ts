@@ -6,7 +6,7 @@ import {
 import { useCallback, useSyncExternalStore } from "react";
 
 /** `useStream` that returns `undefined` when no `TelemetryProvider` is mounted, so a provider-less render degrades to the empty state. */
-export function useStreamOptional<T>(topic: string): T | undefined {
+export function useStreamOptional<Payload>(topic: string): Payload | undefined {
   const client = useTelemetryClientOptional();
   const store = useTelemetryStoreOptional();
   const subscribe = useCallback(
@@ -21,10 +21,10 @@ export function useStreamOptional<T>(topic: string): T | undefined {
     },
     [client, store, topic],
   );
-  const getSnapshot = useCallback((): T | undefined => {
+  const getSnapshot = useCallback((): Payload | undefined => {
     if (!store) return undefined;
-    const point = store.sample<T>(topic, store.currentFrame());
-    return point ? (point.payload as T | undefined) : undefined;
+    const point = store.sample<Payload>(topic, store.currentFrame());
+    return point ? (point.payload as Payload | undefined) : undefined;
   }, [store, topic]);
   return useSyncExternalStore(subscribe, getSnapshot);
 }

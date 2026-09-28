@@ -6,9 +6,9 @@
  * The live data lives in the store, never in a React context value, so a
  * change re-renders only the snapshot's subscribers.
  */
-export interface Store<T extends { id: string }> {
+export interface Store<Item extends { id: string }> {
   /** Add or replace an entry (keyed on `entry.id`). Returns its deregister function. */
-  register(entry: T): () => void;
+  register(entry: Item): () => void;
   /**
    * Change an already-registered entry's non-id fields in place. A no-op when
    * the id is unknown, and a no-op (no notify, snapshot identity preserved)
@@ -16,20 +16,20 @@ export interface Store<T extends { id: string }> {
    * did not actually move does not hand `useSyncExternalStore` a fresh
    * snapshot.
    */
-  update(id: string, next: Omit<T, "id">): void;
+  update(id: string, next: Omit<Item, "id">): void;
   /** Subscribe to any change to the entry set. Returns unsubscribe. */
   subscribe(onChange: () => void): () => void;
   /** The entries, insertion-ordered, referentially stable while unchanged. */
-  getSnapshot(): readonly T[];
+  getSnapshot(): readonly Item[];
 }
 
 // Shared frozen empty snapshot so an empty store returns one stable identity (a fresh `[]` per call would loop `useSyncExternalStore`).
 const EMPTY: readonly never[] = Object.freeze([]);
 
 /** Shallow-equal over `next`'s own keys against the current entry (id aside). */
-function unchanged<T extends { id: string }>(
-  current: T,
-  next: Omit<T, "id">,
+function unchanged<Item extends { id: string }>(
+  current: Item,
+  next: Omit<Item, "id">,
 ): boolean {
   for (const key in next) {
     if (
@@ -42,12 +42,12 @@ function unchanged<T extends { id: string }>(
   return true;
 }
 
-export function createStore<T extends { id: string }>(): Store<T> {
+export function createStore<Item extends { id: string }>(): Store<Item> {
   // Insertion order keeps a derived view's top-rank tie-break deterministic.
-  const entries = new Map<string, T>();
+  const entries = new Map<string, Item>();
   const listeners = new Set<() => void>();
 
-  let cached: readonly T[] = EMPTY;
+  let cached: readonly Item[] = EMPTY;
   let dirty = true;
 
   function emit() {
@@ -73,7 +73,7 @@ export function createStore<T extends { id: string }>(): Store<T> {
     update(id, next) {
       const current = entries.get(id);
       if (!current || unchanged(current, next)) return;
-      entries.set(id, { id, ...next } as T);
+      entries.set(id, { id, ...next } as Item);
       emit();
     },
     subscribe(onChange) {

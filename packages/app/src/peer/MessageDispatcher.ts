@@ -2,7 +2,7 @@ import type { PeerMessage } from "./protocol";
 
 /**
  * Generic per-message-type handler table. Both `PeerHostService` (with
- * `Ctx = DataConnection`) and `PeerClientService` (`Ctx = void`) build
+ * `Context = DataConnection`) and `PeerClientService` (`Context = void`) build
  * one of these instead of hand-rolling a 16+ branch switch.
  *
  * Iteration is synchronous: `dispatch(msg, ctx)` looks up the handler
@@ -11,25 +11,25 @@ import type { PeerMessage } from "./protocol";
  * messages are processed (e.g. `peer-client-service.test.ts:123`) keep
  * working without change.
  */
-export type MessageHandler<T extends PeerMessage["type"], Ctx> = (
-  msg: Extract<PeerMessage, { type: T }>,
-  ctx: Ctx,
+export type MessageHandler<MessageType extends PeerMessage["type"], Context> = (
+  msg: Extract<PeerMessage, { type: MessageType }>,
+  ctx: Context,
 ) => void;
 
-export type DispatchTable<Ctx> = {
-  [K in PeerMessage["type"]]?: MessageHandler<K, Ctx>;
+export type DispatchTable<Context> = {
+  [Key in PeerMessage["type"]]?: MessageHandler<Key, Context>;
 };
 
-export class MessageDispatcher<Ctx> {
-  private readonly table: DispatchTable<Ctx>;
+export class MessageDispatcher<Context> {
+  private readonly table: DispatchTable<Context>;
 
-  constructor(table: DispatchTable<Ctx>) {
+  constructor(table: DispatchTable<Context>) {
     this.table = table;
   }
 
-  dispatch(msg: PeerMessage, ctx: Ctx): void {
+  dispatch(msg: PeerMessage, ctx: Context): void {
     const handler = this.table[msg.type] as
-      | MessageHandler<typeof msg.type, Ctx>
+      | MessageHandler<typeof msg.type, Context>
       | undefined;
     if (handler) handler(msg as never, ctx);
   }

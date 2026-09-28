@@ -10,8 +10,8 @@ import {
 import type { ReactNode } from "react";
 
 /** A quantity or a bare number, parameterised by unit so a length handed to `Mps` is a compile error. */
-export type Quantityish<U extends string> =
-  | Quantity<U>
+export type Quantityish<UnitSymbol extends string> =
+  | Quantity<UnitSymbol>
   | number
   | null
   | undefined;

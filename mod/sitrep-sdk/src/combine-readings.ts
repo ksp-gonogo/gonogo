@@ -156,10 +156,10 @@ export interface CarriedCurrency {
  * propagating an interval through arbitrary arithmetic would claim otherwise
  * over errors nothing here knows to be independent.
  */
-export function datedFrom<R>(
+export function datedFrom<Derived>(
   carriers: readonly CarriedCurrency[],
-  value: R,
-): Reading<R> {
+  value: Derived,
+): Reading<Derived> {
   let instant: Value<"ut"> | undefined;
   let grade: StaleGrade | undefined;
   let stale = false;
@@ -184,7 +184,9 @@ export function datedFrom<R>(
 
 /** The value types of a tuple of readings, in the same order. */
 export type ReadingValues<Inputs extends readonly Reading<unknown>[]> = {
-  [K in keyof Inputs]: Inputs[K] extends Reading<infer V> ? V : never;
+  [Index in keyof Inputs]: Inputs[Index] extends Reading<infer Payload>
+    ? Payload
+    : never;
 };
 
 /** The two states on which a reading carries a value. */

@@ -43,8 +43,8 @@ const contributed = new Map<
  * store already built is not retrofitted, because a channel appearing
  * mid-session would change what a topic means underneath a mounted widget.
  */
-export function contributeDerivedChannel<T>(
-  def: DerivedChannelDefinition<T>,
+export function contributeDerivedChannel<Payload>(
+  def: DerivedChannelDefinition<Payload>,
   owner: string,
 ): void {
   const byOwner =

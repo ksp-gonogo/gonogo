@@ -5,15 +5,15 @@
  * registers a pending entry with a timeout, and resolves/rejects when the
  * matching response arrives or the connection drops.
  *
- * The tracker is generic over the resolved value `T` so each kind of
+ * The tracker is generic over the resolved value `Resolved` so each kind of
  * request keeps its own typed map (different responses carry different
  * payload shapes: e.g. `{t, v}` vs an opaque relay result).
  */
-export class RequestTracker<T> {
+export class RequestTracker<Resolved> {
   private readonly pending = new Map<
     string,
     {
-      resolve: (value: T) => void;
+      resolve: (value: Resolved) => void;
       reject: (err: Error) => void;
       timer: ReturnType<typeof setTimeout>;
     }
@@ -29,8 +29,8 @@ export class RequestTracker<T> {
     requestId: string,
     timeoutMs: number,
     timeoutMessage: string,
-  ): Promise<T> {
-    return new Promise<T>((resolve, reject) => {
+  ): Promise<Resolved> {
+    return new Promise<Resolved>((resolve, reject) => {
       const timer = setTimeout(() => {
         if (this.pending.delete(requestId)) {
           reject(new Error(timeoutMessage));
@@ -41,7 +41,7 @@ export class RequestTracker<T> {
   }
 
   /** Resolve the pending entry for `requestId`, if any. */
-  resolve(requestId: string, value: T): void {
+  resolve(requestId: string, value: Resolved): void {
     const entry = this.pending.get(requestId);
     if (!entry) return;
     clearTimeout(entry.timer);

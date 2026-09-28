@@ -2,20 +2,20 @@ import type { Value } from "@ksp-gonogo/sitrep-sdk";
 import styled, { css } from "styled-components";
 import { resolveCurrency, type UnitValue } from "./readingCurrency";
 
-export interface DivergingBarProps<U extends string = string> {
+export interface DivergingBarProps<Unit extends string = string> {
   /**
    * The signed quantity, or the whole reading it arrived in. Its sign picks the
    * direction: `>= 0` grows the fill rightward from the centre zero line in the
    * "go" green, `< 0` grows it leftward in the "nogo" red.
    */
-  value: UnitValue<U>;
+  value: UnitValue<Unit>;
   /**
    * The largest `|value|` among the set this bar is compared against (e.g.
    * every term in a rate ledger), in the same unit. The fill reaches the
    * track's half-width when `|value| === maxAbs`; a non-positive scale renders
    * an empty track.
    */
-  maxAbs: Value<U>;
+  maxAbs: Value<Unit>;
   className?: string;
 }
 
@@ -31,11 +31,11 @@ export interface DivergingBarProps<U extends string = string> {
  * against the nearest `inline-size` container, such as `Panel`), where the
  * number alone is the reading that matters.
  */
-export function DivergingBar<U extends string = string>({
+export function DivergingBar<Unit extends string = string>({
   value,
   maxAbs,
   className,
-}: DivergingBarProps<U>) {
+}: DivergingBarProps<Unit>) {
   const { shown, held } = resolveCurrency(value);
   // `dividedBy` checks the two are the same kind, so the quotient is dimensionless before it becomes a CSS width.
   const pct =

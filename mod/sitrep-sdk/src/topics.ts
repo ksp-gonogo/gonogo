@@ -256,8 +256,8 @@ export interface TopicPayloadMap extends SdkOwnedTopicPayloadMap {}
 /** Every Topic the mod declares, as a string-literal union. */
 export type TopicId = keyof TopicPayloadMap;
 
-/** The payload interface carried by `stream-data` messages on Topic `T`. */
-export type TopicPayload<T extends TopicId> = TopicPayloadMap[T];
+/** The payload interface carried by `stream-data` messages on Topic `Topic`. */
+export type TopicPayload<Topic extends TopicId> = TopicPayloadMap[Topic];
 
 /**
  * Runtime list of the SDK's OWN `TopicId`s, the generated ids plus the engine-owned
@@ -463,12 +463,14 @@ export type WidgetFieldPath = WidgetChannelId | `${WidgetChannelId}.${string}`;
 // the augmentable map would make them fail in any program that loads an Uplink client. Each
 // augmented Topic proves its own resolution in its owning client package's `topics.ts`.
 
-type Equal<A, B> =
-  (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2
+type Equal<Left, Right> =
+  (<Probe>() => Probe extends Left ? 1 : 2) extends <
+    Probe,
+  >() => Probe extends Right ? 1 : 2
     ? true
     : false;
-type AssertTrue<T extends true> = T;
-type AssertNever<T extends never> = T;
+type AssertTrue<Condition extends true> = Condition;
+type AssertNever<Leftover extends never> = Leftover;
 
 // `TOPIC_IDS` must list exactly the SDK-owned keys (generated + engine tail), no missing, no extra.
 type SdkOwnedTopicId = keyof SdkOwnedTopicPayloadMap;
@@ -479,8 +481,8 @@ export type _AssertNoExtraTopics = AssertNever<_ExtraInRuntime>;
 
 // `GENERATED_COLLECTION_TOPIC_IDS` must list exactly the SDK-owned Topics whose payload type is an array, so the runtime list and the `[]` in the payload map cannot disagree.
 type SdkOwnedCollectionTopicId = {
-  [K in SdkOwnedTopicId]: SdkOwnedTopicPayloadMap[K] extends readonly unknown[]
-    ? K
+  [Topic in SdkOwnedTopicId]: SdkOwnedTopicPayloadMap[Topic] extends readonly unknown[]
+    ? Topic
     : never;
 }[SdkOwnedTopicId];
 type _CollectionMissingFromRuntime = Exclude<
@@ -496,16 +498,22 @@ export type _AssertNoMissingCollectionTopics =
 export type _AssertNoExtraCollectionTopics =
   AssertNever<_CollectionExtraInRuntime>;
 
-// No SDK-owned Topic resolves to `unknown`. `IsUnknown<T>` is true ONLY for exactly
-// `unknown` (excluding `any`, for which `unknown extends T` is also true); mapping it over
+// No SDK-owned Topic resolves to `unknown`. `IsUnknown<Candidate>` is true ONLY for exactly
+// `unknown` (excluding `any`, for which `unknown extends Candidate` is also true); mapping it over
 // every SDK-owned Topic and collapsing to a union yields `false` iff every payload is a
 // real type: a single `unknown` payload would widen the union to `boolean` and fail the
 // assert.
-type IsAny<T> = 0 extends 1 & T ? true : false;
-type IsUnknown<T> =
-  IsAny<T> extends true ? false : unknown extends T ? true : false;
+type IsAny<Candidate> = 0 extends 1 & Candidate ? true : false;
+type IsUnknown<Candidate> =
+  IsAny<Candidate> extends true
+    ? false
+    : unknown extends Candidate
+      ? true
+      : false;
 type _AnyTopicResolvesToUnknown = {
-  [K in keyof SdkOwnedTopicPayloadMap]: IsUnknown<SdkOwnedTopicPayloadMap[K]>;
+  [Topic in keyof SdkOwnedTopicPayloadMap]: IsUnknown<
+    SdkOwnedTopicPayloadMap[Topic]
+  >;
 }[keyof SdkOwnedTopicPayloadMap];
 export type _AssertNoTopicResolvesToUnknown = AssertTrue<
   Equal<_AnyTopicResolvesToUnknown, false>

@@ -7,8 +7,8 @@ import { type RefObject, useEffect } from "react";
  * the element-relative pointer; `null` leaves it unbound, and it must be
  * memoised.
  */
-export function useWheelZoom<E extends HTMLElement>(
-  ref: RefObject<E | null>,
+export function useWheelZoom<ZoomedElement extends HTMLElement>(
+  ref: RefObject<ZoomedElement | null>,
   onZoom: ((deltaY: number, x: number, y: number) => void) | null,
 ): void {
   useEffect(() => {

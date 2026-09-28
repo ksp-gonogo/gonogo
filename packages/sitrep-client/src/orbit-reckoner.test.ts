@@ -39,7 +39,7 @@ function orbitPayload() {
   };
 }
 
-function point<T>(validAt: number, payload: T, quality: Quality) {
+function point<Payload>(validAt: number, payload: Payload, quality: Quality) {
   return {
     validAt,
     payload,
@@ -50,7 +50,7 @@ function point<T>(validAt: number, payload: T, quality: Quality) {
       quality,
     }),
     epoch: 0,
-  } as TimelinePoint<T>;
+  } as TimelinePoint<Payload>;
 }
 
 /** The one-way light-time the orbit sample is delivered across. */

@@ -10,13 +10,15 @@ import type { ObjectiveSourceContext } from "./index";
 // Read through `SlotProps`, since the sdk's `api/slots.ts` adds an ambient merge and no named exports.
 type MirroredContext = SlotProps<"objectives.source">;
 
-type Equal<A, B> =
-  (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2
+type Equal<Left, Right> =
+  (<Probe>() => Probe extends Left ? 1 : 2) extends <
+    Probe,
+  >() => Probe extends Right ? 1 : 2
     ? true
     : false;
-type Expect<T extends true> = T;
+type Expect<Condition extends true> = Condition;
 // Non-distributive, so a union yields a verdict rather than `boolean`.
-type Assignable<A, B> = [A] extends [B] ? true : false;
+type Assignable<Left, Right> = [Left] extends [Right] ? true : false;
 
 // The slot's props are the objective-source contract, not the loose fallback.
 type _SlotIsTyped = Expect<Assignable<MirroredContext, { Section: unknown }>>;

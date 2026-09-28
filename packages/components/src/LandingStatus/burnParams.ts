@@ -1,7 +1,11 @@
 import type { Value as Quantity } from "@ksp-gonogo/sitrep-sdk";
 import { magnitudeOf } from "@ksp-gonogo/ui-kit";
 
-type Quantityish<U extends string> = Quantity<U> | number | null | undefined;
+type Quantityish<Unit extends string> =
+  | Quantity<Unit>
+  | number
+  | null
+  | undefined;
 
 /** The four stage fields the rocket-equation solve needs, structural so tests can pass a literal; `NaN` for a field the wire did not carry. */
 interface StageLike {

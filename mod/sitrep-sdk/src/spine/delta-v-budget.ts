@@ -187,10 +187,10 @@ export function normaliseStage(raw: unknown): DeltaVStage | null {
 }
 
 /** A wire total to a `Value<"m/s">`, or `null` when there is no usable figure. */
-function totalOf<U extends "m/s" | "s" | "count">(
+function totalOf<Unit extends "m/s" | "s" | "count">(
   raw: unknown,
-  unit: U,
-): Value<U> | null {
+  unit: Unit,
+): Value<Unit> | null {
   const magnitude = magnitudeOrNaN(raw);
   return Number.isFinite(magnitude) ? value(unit, magnitude) : null;
 }

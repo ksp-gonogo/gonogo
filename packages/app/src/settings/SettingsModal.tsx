@@ -408,8 +408,11 @@ function UplinkRow({ entry }: { entry: UplinkHealthEntry }) {
 }
 
 /** Buckets in first-registration order, so a category's rows keep their order. */
-function bucketBy<T>(items: T[], key: (item: T) => string): Map<string, T[]> {
-  const out = new Map<string, T[]>();
+function bucketBy<Item>(
+  items: Item[],
+  key: (item: Item) => string,
+): Map<string, Item[]> {
+  const out = new Map<string, Item[]>();
   for (const item of items) {
     const k = key(item);
     const bucket = out.get(k);

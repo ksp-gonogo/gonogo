@@ -72,7 +72,7 @@ export const CORE_RECKONER_OWNER = "core";
  *
  * Taking `TopicId` and resolving `TopicPayload<Topic>` fixes both at once,
  * through the map `useTelemetry` and `Dep` already resolve through. `Deps` and
- * `R` were already inferable and are simply left to infer: a definition that
+ * `Projection` were already inferable and are simply left to infer: a definition that
  * annotates neither is the shorter one AND the one that cannot drift.
  *
  * An Uplink-owned Topic reaches the union the same way it reaches
@@ -82,13 +82,13 @@ export const CORE_RECKONER_OWNER = "core";
  */
 export function registerReckoner<
   const Topic extends TopicId,
-  R = TopicPayload<Topic>,
+  Projection = TopicPayload<Topic>,
   const Deps extends readonly Dep[] = readonly Dep[],
   const Windows extends DepWindows<Deps> = Record<never, never>,
 >(
   topic: Topic,
   owner: string,
-  reckoner: ReckonerDefinition<TopicPayload<Topic>, R, Deps, Windows>,
+  reckoner: ReckonerDefinition<TopicPayload<Topic>, Projection, Deps, Windows>,
 ): void {
   const requireReason = (
     rule: string,

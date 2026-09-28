@@ -1,7 +1,7 @@
 // Typed command registry: the write-side twin of `./topics.ts`.
 //
 // Exports a `CommandId` string-literal union of every command the mod declares, plus
-// `CommandArgs<C>` and `CommandReply<C>` mapped types resolving each command to the
+// `CommandArgs<Command>` and `CommandReply<Command>` mapped types resolving each command to the
 // arguments it takes and the value its dispatch resolves with. `useCommand` is keyed
 // on this union, so a command's args and its reply are both known at the call site
 // instead of being `unknown` in each direction.
@@ -61,7 +61,7 @@ export interface CommandArgsMap extends SdkOwnedCommandArgsMap {}
  * game says no, and the client turns that into a rejection carrying the
  * `CommandErrorCode`, so a resolved value is always a command that ran. Most commands
  * resolve a bare `CommandResult`; the few that have something to say resolve
- * `CommandResultOf<T>` with the value on `payload`.
+ * `CommandResultOf<Payload>` with the value on `payload`.
  */
 export interface CommandReplyMap extends SdkOwnedCommandReplyMap {}
 
@@ -103,19 +103,18 @@ interface SdkOwnedCommandReplyMap extends GeneratedCommandReplyMap {}
 export type CommandId = keyof CommandArgsMap;
 
 /**
- * The arguments command `C` takes. An empty interface (`NoCommandArgs`, or an
+ * The arguments `Command` takes. An empty interface (`NoCommandArgs`, or an
  * Uplink's own marker) means the command takes none, and `useCommand(...).send()`
  * accepts no argument for it.
  */
-export type CommandArgs<C extends CommandId> = CommandArgsMap[C];
+export type CommandArgs<Command extends CommandId> = CommandArgsMap[Command];
 
 /**
- * What dispatching command `C` resolves with. See {@link CommandReplyMap} for why a
+ * What dispatching `Command` resolves with. See {@link CommandReplyMap} for why a
  * refusal is not one of these.
  */
-export type CommandReply<C extends CommandId> = C extends keyof CommandReplyMap
-  ? CommandReplyMap[C]
-  : unknown;
+export type CommandReply<Command extends CommandId> =
+  Command extends keyof CommandReplyMap ? CommandReplyMap[Command] : unknown;
 
 /**
  * Runtime list of the SDK's OWN `CommandId`s. Kept in lock-step with
@@ -212,7 +211,7 @@ export function isCommandId(value: string): value is CommandId {
 // same point: an Uplink augmentation is present in the union and absent from the
 // array BY DESIGN.
 
-type AssertNever<T extends never> = T;
+type AssertNever<Leftover extends never> = Leftover;
 
 type SdkOwnedCommandId = keyof SdkOwnedCommandArgsMap;
 type _MissingFromRuntime = Exclude<

@@ -33,11 +33,11 @@ export function comboboxOptionMatches(
 }
 
 /** Filters `options` against `query` using `matches`, by default a case-insensitive substring match on the label or key. */
-export function filterComboboxOptions<T extends ComboboxOption>(
-  options: readonly T[],
+export function filterComboboxOptions<Option extends ComboboxOption>(
+  options: readonly Option[],
   query: string,
-  matches: (option: T, query: string) => boolean = comboboxOptionMatches,
-): T[] {
+  matches: (option: Option, query: string) => boolean = comboboxOptionMatches,
+): Option[] {
   return options.filter((o) => matches(o, query));
 }
 
@@ -47,11 +47,11 @@ export function filterComboboxOptions<T extends ComboboxOption>(
  * Ungrouped callers (every option has no `group`) collapse to a single
  * `otherLabel` bucket, which renders as one flat list.
  */
-export function groupComboboxOptions<T extends ComboboxOption>(
-  options: readonly T[],
+export function groupComboboxOptions<Option extends ComboboxOption>(
+  options: readonly Option[],
   otherLabel = "Other",
-): Array<[string, T[]]> {
-  const groups = new Map<string, T[]>();
+): Array<[string, Option[]]> {
+  const groups = new Map<string, Option[]>();
   for (const o of options) {
     const g = o.group ?? otherLabel;
     let bucket = groups.get(g);
@@ -65,9 +65,9 @@ export function groupComboboxOptions<T extends ComboboxOption>(
 }
 
 /** Flattens grouped options back into render/navigation order, the order ArrowUp/ArrowDown walk and Enter indexes into. */
-export function flattenComboboxGroups<T extends ComboboxOption>(
-  groups: ReadonlyArray<[string, T[]]>,
-): T[] {
+export function flattenComboboxGroups<Option extends ComboboxOption>(
+  groups: ReadonlyArray<[string, Option[]]>,
+): Option[] {
   return groups.flatMap(([, items]) => items);
 }
 
@@ -85,11 +85,11 @@ export function moveComboboxActiveIndex(
   return Math.max(0, Math.min(current + delta, length - 1));
 }
 
-export interface ComboboxListboxProps<T extends ComboboxOption> {
+export interface ComboboxListboxProps<Option extends ComboboxOption> {
   /** DOM id for the listbox element: pair with the owning input's `aria-controls`. */
   id: string;
-  groups: ReadonlyArray<[string, T[]]>;
-  flatOptions: readonly T[];
+  groups: ReadonlyArray<[string, Option[]]>;
+  flatOptions: readonly Option[];
   /** Index into `flatOptions` of the currently highlighted item, or `-1` for none. */
   activeIndex: number;
   /** The currently committed value (distinct from `activeIndex`'s in-progress highlight), if any. */
@@ -98,7 +98,7 @@ export interface ComboboxListboxProps<T extends ComboboxOption> {
   onHoverIndex: (index: number) => void;
   onSelectKey: (key: string) => void;
   /** Custom item body (e.g. label + trailing unit). Defaults to `option.label ?? option.key`. */
-  renderItem?: (option: T) => ReactNode;
+  renderItem?: (option: Option) => ReactNode;
   emptyLabel?: string;
   /**
    * Accessible name for the listbox itself. Required in practice for any
@@ -120,7 +120,7 @@ export interface ComboboxListboxProps<T extends ComboboxOption> {
  * `activeIndex`, `onHoverIndex` and `onSelectKey` are fully controlled by the
  * caller.
  */
-export function ComboboxListbox<T extends ComboboxOption>({
+export function ComboboxListbox<Option extends ComboboxOption>({
   id,
   groups,
   flatOptions,
@@ -133,7 +133,7 @@ export function ComboboxListbox<T extends ComboboxOption>({
   emptyLabel = "No matches",
   ariaLabel,
   placement = "below",
-}: Readonly<ComboboxListboxProps<T>>) {
+}: Readonly<ComboboxListboxProps<Option>>) {
   return (
     <Dropdown
       role="listbox"

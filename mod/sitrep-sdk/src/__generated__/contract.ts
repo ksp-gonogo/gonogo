@@ -1388,9 +1388,9 @@ export interface CommandResult
 * opaque id, O-6 fixed). CommandResult.Payload is default (null for reference
 * types) when `CommandResult.success` is false.
 */
-export interface CommandResultOf<T> extends CommandResult
+export interface CommandResultOf<Payload> extends CommandResult
 {
-	payload?: T | null;
+	payload?: Payload | null;
 }
 /**
 * Degree of vessel control the link currently affords, the `controlSource`
@@ -2273,11 +2273,11 @@ export interface ReputationLossEvent
 	*/
 	ut: Value<"ut">;
 }
-export interface StreamData<T>
+export interface StreamData<Payload>
 {
 	type: "stream-data";
 	topic: string;
-	payload: T;
+	payload: Payload;
 	meta: Meta;
 }
 export interface EventMsg
@@ -2287,7 +2287,7 @@ export interface EventMsg
 	name: string;
 	meta: Meta;
 }
-export interface CommandRequest<TArgs>
+export interface CommandRequest<Args>
 {
 	type: "command-request";
 	requestId: string;
@@ -2316,7 +2316,7 @@ export interface CommandRequest<TArgs>
 	* as the session vantage.
 	*/
 	vantage?: string;
-	args: TArgs;
+	args: Args;
 	/**
 	* When the client dispatched, in UT seconds (KSP universal time), the same
 	* base as `Meta.validAt`. The declaration reaches a client through the units
@@ -2333,11 +2333,11 @@ export interface CommandRequest<TArgs>
 	*/
 	sentAt: number;
 }
-export interface CommandResponse<TResult>
+export interface CommandResponse<Result>
 {
 	type: "command-response";
 	requestId: string;
-	result: TResult;
+	result: Result;
 	meta: Meta;
 }
 /**

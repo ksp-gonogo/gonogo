@@ -110,9 +110,9 @@ export interface UplinkClientHandle {
   registerRevealedEventSource(def: RevealedEventSourceDefinition): void;
 
   registerContribution<
-    S extends string,
-    const D extends readonly ContributionDep[] = readonly [],
-  >(def: Omit<ContributionDefinition<S, D>, "owner">): void;
+    Slot extends string,
+    const Deps extends readonly ContributionDep[] = readonly [],
+  >(def: Omit<ContributionDefinition<Slot, Deps>, "owner">): void;
   /**
    * Register a Processor auto-namespaced to this client (mirrors
    * registerContribution's owner-stamping). `defineProcessor` takes a plain
@@ -121,13 +121,17 @@ export interface UplinkClientHandle {
    */
   registerProcessor<
     const Deps extends readonly Dep[],
-    R,
-    const Id extends string,
+    Result,
+    const ProcessorId extends string,
   >(def: {
-    id: Id;
+    id: ProcessorId;
     deps: Deps;
-    compute: (values: ResolvedDeps<Deps>, frame: ProcessorFrame) => R;
-  }): ProcessorHandle<R, `${string}:${Id}`, CarriesCurrency<Deps>>;
+    compute: (values: ResolvedDeps<Deps>, frame: ProcessorFrame) => Result;
+  }): ProcessorHandle<
+    Result,
+    `${string}:${ProcessorId}`,
+    CarriesCurrency<Deps>
+  >;
   /**
    * Register this client's forward model for a Topic (same bridge shape as
    * registerProcessor: the owner is passed to the registry as a plain id).
@@ -146,12 +150,17 @@ export interface UplinkClientHandle {
    */
   registerReckoner<
     const Topic extends TopicId,
-    R = TopicPayload<Topic>,
+    Projection = TopicPayload<Topic>,
     const Deps extends readonly Dep[] = readonly Dep[],
     const Windows extends DepWindows<Deps> = Record<never, never>,
   >(
     topic: Topic,
-    reckoner: ReckonerDefinition<TopicPayload<Topic>, R, Deps, Windows>,
+    reckoner: ReckonerDefinition<
+      TopicPayload<Topic>,
+      Projection,
+      Deps,
+      Windows
+    >,
   ): void;
   /**
    * Contribute a derived channel owned by this client.
@@ -168,7 +177,7 @@ export interface UplinkClientHandle {
    * already derives, and per (topic, owner), so two Uplinks claiming one Topic
    * yields neither.
    */
-  registerDerivedChannel<T>(def: DerivedChannelDefinition<T>): void;
+  registerDerivedChannel<Payload>(def: DerivedChannelDefinition<Payload>): void;
 }
 
 /**
@@ -219,9 +228,9 @@ export function defineUplinkClient(cfg: {
       registerRevealedEventSource({ ...def, id: `${cfg.id}:${def.id}` });
     },
     registerContribution<
-      S extends string,
-      const D extends readonly ContributionDep[] = readonly [],
-    >(def: Omit<ContributionDefinition<S, D>, "owner">): void {
+      Slot extends string,
+      const Deps extends readonly ContributionDep[] = readonly [],
+    >(def: Omit<ContributionDefinition<Slot, Deps>, "owner">): void {
       registerContribution({
         ...def,
         id: `${cfg.id}:${def.id}`,
@@ -230,27 +239,38 @@ export function defineUplinkClient(cfg: {
     },
     registerProcessor<
       const Deps extends readonly Dep[],
-      R,
-      const Id extends string,
+      Result,
+      const ProcessorId extends string,
     >(def: {
-      id: Id;
+      id: ProcessorId;
       deps: Deps;
-      compute: (values: ResolvedDeps<Deps>, frame: ProcessorFrame) => R;
-    }): ProcessorHandle<R, `${string}:${Id}`, CarriesCurrency<Deps>> {
+      compute: (values: ResolvedDeps<Deps>, frame: ProcessorFrame) => Result;
+    }): ProcessorHandle<
+      Result,
+      `${string}:${ProcessorId}`,
+      CarriesCurrency<Deps>
+    > {
       return defineProcessor({ ...def, owner: cfg.id });
     },
     registerReckoner<
       const Topic extends TopicId,
-      R = TopicPayload<Topic>,
+      Projection = TopicPayload<Topic>,
       const Deps extends readonly Dep[] = readonly Dep[],
       const Windows extends DepWindows<Deps> = Record<never, never>,
     >(
       topic: Topic,
-      reckoner: ReckonerDefinition<TopicPayload<Topic>, R, Deps, Windows>,
+      reckoner: ReckonerDefinition<
+        TopicPayload<Topic>,
+        Projection,
+        Deps,
+        Windows
+      >,
     ): void {
       registerReckoner(topic, cfg.id, reckoner);
     },
-    registerDerivedChannel<T>(def: DerivedChannelDefinition<T>): void {
+    registerDerivedChannel<Payload>(
+      def: DerivedChannelDefinition<Payload>,
+    ): void {
       contributeDerivedChannel(def, cfg.id);
     },
   });

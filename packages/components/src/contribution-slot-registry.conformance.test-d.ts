@@ -16,8 +16,8 @@ import type { Instrument } from "./Experiments/instrument";
 import type { ShipMapPartMetaEntry, ShipMapPartMeterEntry } from "./ShipMap";
 import type { SystemEntity } from "./SystemView";
 
-type Assignable<A, B> = A extends B ? true : false;
-type Expect<T extends true> = T;
+type Assignable<Left, Right> = Left extends Right ? true : false;
+type Expect<Condition extends true> = Condition;
 
 // Every key the sdk mirrors must exist, with an assignable shape, on core's real registry.
 type _SdkKeysAssignableToCore = Expect<

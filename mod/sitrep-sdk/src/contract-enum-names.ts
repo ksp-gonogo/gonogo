@@ -97,12 +97,12 @@ export const ENUM_NAME_TABLES: ReadonlyArray<{
  * that did not arrive, which is correct at the drawing site: in both cases
  * there is no name to write.
  */
-export function enumNameOf<N extends string>(
+export function enumNameOf<EnumName extends string>(
   names: readonly string[],
   ordinal: number | null | undefined,
-): N | undefined {
+): EnumName | undefined {
   if (ordinal == null) return undefined;
-  return (names[ordinal] as N | undefined) ?? undefined;
+  return (names[ordinal] as EnumName | undefined) ?? undefined;
 }
 
 /**

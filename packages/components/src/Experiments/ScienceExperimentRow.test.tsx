@@ -19,9 +19,9 @@ const OK: CommandReplyLike = { success: true };
 const TRANSMIT_TAGS = railTagsForCommand("science.experiment.transmit");
 
 /** A structural command handle, the shape `useCommand` returns. */
-function handle<R extends CommandReplyLike = CommandReplyLike>(
-  send: CommandButtonHandle<R>["send"],
-): CommandButtonHandle<R> {
+function handle<Reply extends CommandReplyLike = CommandReplyLike>(
+  send: CommandButtonHandle<Reply>["send"],
+): CommandButtonHandle<Reply> {
   return { send, inFlight: [], tags: TRANSMIT_TAGS, effectiveDelaySeconds: 0 };
 }
 

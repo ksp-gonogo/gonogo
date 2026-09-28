@@ -16,7 +16,7 @@ import { Meter, MeterRowGroup, MeterStack } from "./Meter";
  */
 const AT = value("ut", 12_000);
 
-function held<U extends string>(figure: Value<U>): Reading<Value<U>> {
+function held<Unit extends string>(figure: Value<Unit>): Reading<Value<Unit>> {
   return {
     state: "stale",
     value: figure,

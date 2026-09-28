@@ -57,9 +57,9 @@ type FakeFrame = ReturnType<typeof fakeFrame>;
  *  `ReadableStreamDefaultReader` reading a live track that never ends on
  *  its own. Each `read()` call is gated on an internal "release" queue so
  *  the test controls exactly when the pump loop advances. */
-function queuedSource<T extends FrameLike>(
-  frames: T[],
-): FrameSource<T> & {
+function queuedSource<Frame extends FrameLike>(
+  frames: Frame[],
+): FrameSource<Frame> & {
   cancelled: boolean;
   readCount: number;
 } {
@@ -72,13 +72,13 @@ function queuedSource<T extends FrameLike>(
      * `Promise<never>` on its own and widens the inferred union to `unknown`,
      * which then satisfies no reader shape at all.
      */
-    async read(): Promise<ReadableStreamReadResult<T>> {
+    async read(): Promise<ReadableStreamReadResult<Frame>> {
       if (cancelled) return { done: true, value: undefined };
       if (state.readCount >= frames.length) {
         // Simulate a track that's still open: never resolves further.
-        return new Promise<ReadableStreamReadResult<T>>(() => {});
+        return new Promise<ReadableStreamReadResult<Frame>>(() => {});
       }
-      const value = frames[state.readCount] as T;
+      const value = frames[state.readCount] as Frame;
       state.readCount += 1;
       return { done: false, value };
     },
@@ -97,24 +97,27 @@ function queuedSource<T extends FrameLike>(
  * compiler believing it is still null at the settling call, because an
  * assignment inside the executor is not something control flow follows.
  */
-function deferred<T>(): { promise: Promise<T>; resolve: (value: T) => void } {
-  let resolve!: (value: T) => void;
-  const promise = new Promise<T>((r) => {
+function deferred<Resolved>(): {
+  promise: Promise<Resolved>;
+  resolve: (value: Resolved) => void;
+} {
+  let resolve!: (value: Resolved) => void;
+  const promise = new Promise<Resolved>((r) => {
     resolve = r;
   });
   return { promise, resolve };
 }
 
 /** A sink that records every write in order. */
-function recordingSink<T extends FrameLike>(): FrameSink<T> & {
-  written: T[];
+function recordingSink<Frame extends FrameLike>(): FrameSink<Frame> & {
+  written: Frame[];
   closed: boolean;
 } {
-  const written: T[] = [];
+  const written: Frame[] = [];
   return {
     written,
     closed: false,
-    write(frame: T) {
+    write(frame: Frame) {
       written.push(frame);
       return Promise.resolve();
     },

@@ -21,12 +21,12 @@ import type { ComponentProps } from "react";
 import { absent, held, live, pending } from "./readings";
 
 /** One named arg set for a primitive whose required props need a real value. */
-export interface Preset<P> {
+export interface Preset<Props> {
   name: string;
-  args: P;
+  args: Props;
 }
 
-type Presets<P> = Preset<P>[];
+type Presets<Props> = Preset<Props>[];
 
 /** A handle whose send never settles: the button at rest, dispatching nothing. */
 const IDLE_HANDLE: CommandButtonHandle = {

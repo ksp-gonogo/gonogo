@@ -8,17 +8,17 @@
  * doesn't wrap an upstream `real` source and so doesn't extend the wrapper
  * base: can use it too.
  */
-export class ListenerSet<TArgs extends readonly unknown[] = []> {
-  private readonly listeners = new Set<(...args: TArgs) => void>();
+export class ListenerSet<Args extends readonly unknown[] = []> {
+  private readonly listeners = new Set<(...args: Args) => void>();
 
-  add(cb: (...args: TArgs) => void): () => void {
+  add(cb: (...args: Args) => void): () => void {
     this.listeners.add(cb);
     return () => {
       this.listeners.delete(cb);
     };
   }
 
-  fire(...args: TArgs): void {
+  fire(...args: Args): void {
     this.listeners.forEach((cb) => {
       cb(...args);
     });
@@ -39,10 +39,10 @@ export class ListenerSet<TArgs extends readonly unknown[] = []> {
  * PeerClientDataSource. The bucket Set is created lazily and removed when its
  * last subscriber leaves so an empty Map entry never lingers.
  */
-export class KeyedListenerSet<TArgs extends readonly unknown[] = []> {
-  private readonly buckets = new Map<string, Set<(...args: TArgs) => void>>();
+export class KeyedListenerSet<Args extends readonly unknown[] = []> {
+  private readonly buckets = new Map<string, Set<(...args: Args) => void>>();
 
-  add(key: string, cb: (...args: TArgs) => void): () => void {
+  add(key: string, cb: (...args: Args) => void): () => void {
     let bucket = this.buckets.get(key);
     if (!bucket) {
       bucket = new Set();
@@ -57,7 +57,7 @@ export class KeyedListenerSet<TArgs extends readonly unknown[] = []> {
     };
   }
 
-  fire(key: string, ...args: TArgs): void {
+  fire(key: string, ...args: Args): void {
     this.buckets.get(key)?.forEach((cb) => {
       cb(...args);
     });

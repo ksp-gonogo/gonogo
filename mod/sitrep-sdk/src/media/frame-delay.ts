@@ -60,27 +60,27 @@ export interface FrameLike {
  *  `ReadableStreamDefaultReader<VideoFrame>` (from
  *  `MediaStreamTrackProcessor.readable.getReader()`); tests pass a fake
  *  implementing just this shape. */
-export type FrameSource<T extends FrameLike> = Pick<
-  ReadableStreamDefaultReader<T>,
+export type FrameSource<Frame extends FrameLike> = Pick<
+  ReadableStreamDefaultReader<Frame>,
   "read" | "cancel"
 >;
 
 /** The push side: satisfied directly by a real
  *  `WritableStreamDefaultWriter<VideoFrame>` (from
  *  `MediaStreamTrackGenerator.writable.getWriter()`); tests pass a fake. */
-export type FrameSink<T extends FrameLike> = Pick<
-  WritableStreamDefaultWriter<T>,
+export type FrameSink<Frame extends FrameLike> = Pick<
+  WritableStreamDefaultWriter<Frame>,
   "write" | "close"
 >;
 
-export interface FrameDelayPipelineOptions<T extends FrameLike> {
+export interface FrameDelayPipelineOptions<Frame extends FrameLike> {
   /** THE delay clock: the same instance telemetry reads. */
   view: DelayClockLike;
   /** Capture-UT to stamp EACH incoming frame with, called once per frame
    *  read off `source`, never once per stream. */
   captureUt(): number;
-  source: FrameSource<T>;
-  sink: FrameSink<T>;
+  source: FrameSource<Frame>;
+  sink: FrameSink<Frame>;
   /** Frame-count cap: see module docstring. Defaults to 300. Encoded
    *  backends should size this as a real byte cap (paired with `frameBytes`
    *  below) rather than a frame count: see `attachEncodedFrameDelay`'s doc. */
@@ -93,12 +93,12 @@ export interface FrameDelayPipelineOptions<T extends FrameLike> {
    *  correct for decoded `VideoFrame`s (no GOP dependency, see
    *  `DelayedPlayoutBuffer.gopSafeEviction`'s doc). Encoded backends should
    *  supply `(f) => f.type === "key"`. */
-  isKeyframe?(frame: T): boolean;
+  isKeyframe?(frame: Frame): boolean;
   /** Byte-size estimate for cap accounting, forwarded to
    *  `DelayedPlayoutBuffer`'s `bytes` field. Defaults to `() => 1` (a
    *  frame-count cap). Encoded backends should supply the real payload
    *  size, e.g. `(f) => f.data.byteLength`. */
-  frameBytes?(frame: T): number;
+  frameBytes?(frame: Frame): number;
   /** Forwarded to `DelayedPlayoutBuffer`: see its own doc. MUST be `true`
    *  for encoded video (GOP-dependent); leave unset (the default) for
    *  decoded video. */
@@ -153,12 +153,12 @@ const DEFAULT_MAX_BUFFERED_FRAMES = 300; // ~10s @ 30fps; see module docstring
  * (over-cap eviction / `flush()` / leftovers at `dispose()`), or
  * closed-immediately if it arrives after `dispose()` already fired.
  */
-export function runFrameDelayPipeline<T extends FrameLike>(
-  opts: FrameDelayPipelineOptions<T>,
+export function runFrameDelayPipeline<Frame extends FrameLike>(
+  opts: FrameDelayPipelineOptions<Frame>,
 ): FrameDelayPipeline {
   let disposed = false;
 
-  const writeAndClose = (data: T) => {
+  const writeAndClose = (data: Frame) => {
     opts.sink
       .write(data)
       .catch((err) => opts.onError?.(err))
@@ -171,14 +171,14 @@ export function runFrameDelayPipeline<T extends FrameLike>(
   // preserves the exact pre-pacer behaviour every existing test here
   // exercises: write-and-close synchronously, on release.
   const pacer = opts.pacing
-    ? new PresentationPacer<T>({
+    ? new PresentationPacer<Frame>({
         maxBacklogSeconds: opts.pacing.maxBacklogSeconds,
         onPresent: (f) => writeAndClose(f.data),
         onSkip: (f) => f.data.close?.(),
       })
     : null;
 
-  const buffer = new DelayedPlayoutBuffer<T>({
+  const buffer = new DelayedPlayoutBuffer<Frame>({
     view: opts.view,
     maxBufferedBytes: opts.maxBufferedFrames ?? DEFAULT_MAX_BUFFERED_FRAMES,
     gopSafeEviction: opts.gopSafeEviction,
@@ -198,7 +198,7 @@ export function runFrameDelayPipeline<T extends FrameLike>(
 
   async function pump(): Promise<void> {
     while (!disposed) {
-      let result: ReadableStreamReadResult<T>;
+      let result: ReadableStreamReadResult<Frame>;
       try {
         result = await opts.source.read();
       } catch (err) {

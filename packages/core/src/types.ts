@@ -69,15 +69,15 @@ export interface ActionGroup {
 }
 
 /**
- * Base interface for all data sources. TConfig types the config object so that
+ * Base interface for all data sources. `Config` types the config object so that
  * concrete sources can return a typed config from getConfig() and accept a typed
- * config in configure(). The registry erases TConfig to the default so the config
+ * config in configure(). The registry erases `Config` to the default so the config
  * panel can work generically against any source.
  *
- * Follows the same generic pattern as ComponentDefinition<TConfig>.
+ * Follows the same generic pattern as `ComponentDefinition<Config>`.
  */
 export interface DataSource<
-  TConfig extends Record<string, unknown> = Record<string, unknown>,
+  Config extends Record<string, unknown> = Record<string, unknown>,
 > {
   id: string;
   name: string;
@@ -88,9 +88,9 @@ export interface DataSource<
   subscribe(key: string, cb: (value: unknown) => void): () => void;
   onStatusChange(cb: (status: DataSourceStatus) => void): () => void;
   configSchema(): ConfigField[];
-  /** Always accepts Record<string,unknown> so the generic config form can call it without knowing TConfig. */
+  /** Always accepts Record<string,unknown> so the generic config form can call it without knowing Config. */
   configure(config: Record<string, unknown>): void;
-  getConfig(): TConfig;
+  getConfig(): Config;
   setupInstructions?(): string | null;
   /**
    * When true, samples from this source are gated by the vessel's CommNet
@@ -134,14 +134,14 @@ export interface ActionDefinition {
  * ActionDefinitions, the keys of the map are inferred from each definition's
  * `id`, so mismatched handler names fail typecheck at the call site.
  */
-export type ActionHandlers<TActions extends readonly ActionDefinition[]> = {
-  [K in TActions[number]["id"]]: (payload: ActionInputPayload) => unknown;
+export type ActionHandlers<Actions extends readonly ActionDefinition[]> = {
+  [Key in Actions[number]["id"]]: (payload: ActionInputPayload) => unknown;
 };
 
 /**
  * Props passed to every registered dashboard component.
  *
- * Components that need a specific config shape should supply TConfig:
+ * Components that need a specific config shape should supply `Config`:
  *
  *   function MyWidget({ config }: ComponentProps<{ value: number }>) { ... }
  *
@@ -152,12 +152,12 @@ export type ActionHandlers<TActions extends readonly ActionDefinition[]> = {
  * - `w` / `h`       : current grid-unit size (column/row spans); use to adapt layout
  * - `onConfigChange`: call to persist inline config edits (e.g. label rename)
  */
-export interface ComponentProps<TConfig = Record<string, unknown>> {
-  config?: TConfig;
+export interface ComponentProps<Config = Record<string, unknown>> {
+  config?: Config;
   id: string;
   w?: number;
   h?: number;
-  onConfigChange?: (config: TConfig) => void;
+  onConfigChange?: (config: Config) => void;
 }
 
 /**
@@ -165,15 +165,15 @@ export interface ComponentProps<TConfig = Record<string, unknown>> {
  *
  * `onSave` should be called with the full new config to persist and close.
  */
-export interface ConfigComponentProps<TConfig = Record<string, unknown>> {
-  config: TConfig;
-  onSave: (config: TConfig) => void;
+export interface ConfigComponentProps<Config = Record<string, unknown>> {
+  config: Config;
+  onSave: (config: Config) => void;
 }
 
 /**
  * Registration descriptor for a dashboard component.
  *
- * TConfig ties the component function's expected props to the defaultConfig
+ * `Config` ties the component function's expected props to the defaultConfig
  * shape, so TypeScript catches mismatches at registration time:
  *
  *   registerComponent<ActionGroupConfig>({
@@ -182,17 +182,17 @@ export interface ConfigComponentProps<TConfig = Record<string, unknown>> {
  *   });
  *
  * The registry stores ComponentDefinition<any> so the orchestrator can render
- * any registered component without knowing its concrete TConfig.
+ * any registered component without knowing its concrete `Config`.
  */
-export interface ComponentDefinition<TConfig = Record<string, unknown>> {
+export interface ComponentDefinition<Config = Record<string, unknown>> {
   id: string;
   name: string;
   description: string;
   /** Free-form tags; UI may style known values (e.g. 'telemetry', 'control', 'navigation'). */
   tags: string[];
-  component: ComponentType<ComponentProps<TConfig>>;
+  component: ComponentType<ComponentProps<Config>>;
   /** Config UI rendered inside a modal; shown via gear icon in the Dashboard. */
-  configComponent?: ComponentType<ConfigComponentProps<TConfig>>;
+  configComponent?: ComponentType<ConfigComponentProps<Config>>;
   /** If true, config modal opens immediately when the component is added from the overlay. */
   openConfigOnAdd?: boolean;
   /** Default grid size when placed from the overlay. Falls back to { w: 3, h: 3 }. */
@@ -269,7 +269,7 @@ export interface ComponentDefinition<TConfig = Record<string, unknown>> {
    */
   fields?: readonly WidgetFieldPath[];
   behaviors?: ComponentBehavior[];
-  defaultConfig?: Partial<TConfig>;
+  defaultConfig?: Partial<Config>;
   /**
    * Actions this component exposes to the serial input platform. Each entry
    * becomes a selectable target in the input-mapping UI and is resolved at

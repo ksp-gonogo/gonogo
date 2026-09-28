@@ -25,27 +25,27 @@ import { NULL_DISPLAY } from "./NullValue";
 import { resolveCurrency, type UnitValue } from "./readingCurrency";
 import { type FormatsFor, quantityScale, speakQuantity } from "./units";
 
-export interface TapeZone<U extends string = string> {
+export interface TapeZone<Unit extends string = string> {
   /** Lower bound of the band. */
-  from: Value<U>;
+  from: Value<Unit>;
   /** Upper bound of the band. */
-  to: Value<U>;
+  to: Value<Unit>;
   /** Fill colour. Defaults to a faint warning tint. */
   color?: string;
   /** Short label drawn beside the band (also the text equivalent). */
   label?: string;
 }
 
-export interface TapeMarker<U extends string = string> {
+export interface TapeMarker<Unit extends string = string> {
   /** Value at which to draw the marker. */
-  value: Value<U>;
+  value: Value<Unit>;
   /** Marker colour. Defaults to the accent foreground. */
   color?: string;
   /** Short label drawn beside the marker (also the text equivalent). */
   label?: string;
 }
 
-export interface TapeProps<U extends string = string> {
+export interface TapeProps<Unit extends string = string> {
   /**
    * Which side of the track the scale labels sit on. Default "left" (track
    * against the right edge). "right" mirrors it, for a tape down a widget's left
@@ -53,11 +53,11 @@ export interface TapeProps<U extends string = string> {
    */
   labelSide?: "left" | "right";
   /** Current value: the pointer position, or the whole reading it arrived in. */
-  value: UnitValue<U>;
+  value: UnitValue<Unit>;
   /** Bottom of the scale. */
-  min: Value<U>;
+  min: Value<Unit>;
   /** Top of the scale. */
-  max: Value<U>;
+  max: Value<Unit>;
   width?: number;
   height?: number;
   /**
@@ -67,17 +67,17 @@ export interface TapeProps<U extends string = string> {
    */
   fillHeight?: boolean;
   /** Interior tick spacing. Omit for no interior ticks. */
-  tickStep?: Value<U>;
-  zones?: ReadonlyArray<TapeZone<U>>;
-  markers?: ReadonlyArray<TapeMarker<U>>;
+  tickStep?: Value<Unit>;
+  zones?: ReadonlyArray<TapeZone<Unit>>;
+  markers?: ReadonlyArray<TapeMarker<Unit>>;
   /** Draw a distinct ground line at this value (e.g. 0). */
-  groundLine?: Value<U>;
+  groundLine?: Value<Unit>;
   /**
    * Pin the rung the whole scale is written at. Absent, the rung is taken from
    * `max` and held for every tick, the pointer flag and the unit header, so one
    * strip never mixes "500 m" and "1.0 km".
    */
-  format?: FormatsFor<U>;
+  format?: FormatsFor<Unit>;
   /** Accessible label (e.g. "Altitude above terrain"). Required for a11y. */
   ariaLabel?: string;
 }
@@ -88,7 +88,7 @@ const PAD_BOTTOM = 12;
 const TRACK_X = 52;
 const TRACK_W = 10;
 
-export function Tape<U extends string = string>({
+export function Tape<Unit extends string = string>({
   labelSide = "left",
   value,
   min,
@@ -102,7 +102,7 @@ export function Tape<U extends string = string>({
   groundLine,
   format,
   ariaLabel,
-}: Readonly<TapeProps<U>>) {
+}: Readonly<TapeProps<Unit>>) {
   // The wrapper's height is parent-driven, so measuring it has no feedback loop with the SVG sized from it.
   const wrapRef = useRef<HTMLDivElement>(null);
   const [measured, setMeasured] = useState(height);
@@ -157,7 +157,7 @@ export function Tape<U extends string = string>({
   };
 
   // Zone ends are ordered in the value algebra (`min`/`max` convert first) before this unwraps them.
-  const onRail = (q: Value<U>): number => yOf(q.magnitude);
+  const onRail = (q: Value<Unit>): number => yOf(q.magnitude);
 
   const trackTop = PAD_TOP;
   const trackBottom = PAD_TOP + usable;

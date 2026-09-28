@@ -31,10 +31,10 @@ import { useWidgetMeta } from "./WidgetMetaContext";
  *    typed via {@link AugmentSegmentProps}. Outside a widget context it renders
  *    nothing
  */
-export function AugmentSlot<S extends string>(
+export function AugmentSlot<Slot extends string>(
   args:
-    | { name: S; props: SlotProps<S>; segment?: never }
-    | { segment: S; props: AugmentSegmentProps<S>; name?: never },
+    | { name: Slot; props: SlotProps<Slot>; segment?: never }
+    | { segment: Slot; props: AugmentSegmentProps<Slot>; name?: never },
 ): ReactElement {
   // Read unconditionally for a stable hook order; only the `segment` form uses it.
   const meta = useWidgetMeta();

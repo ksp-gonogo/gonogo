@@ -31,16 +31,14 @@ export interface AlarmRequestedBy {
  * Creates an alarm directly, bypassing the modal, for an affordance whose
  * trigger is fully determined by where the operator clicked.
  */
-export interface AlarmCreateRequest<TTrigger> {
+export interface AlarmCreateRequest<Trigger> {
   name?: string;
-  trigger: TTrigger;
+  trigger: Trigger;
   /** One `(uplinkId, key)` pair is one alarm: a repeated request retargets the existing row. */
   requestedBy?: AlarmRequestedBy;
 }
 
-export type AlarmCreator<TTrigger> = (
-  req: AlarmCreateRequest<TTrigger>,
-) => void;
+export type AlarmCreator<Trigger> = (req: AlarmCreateRequest<Trigger>) => void;
 
 const CreatorContext = createContext<AlarmCreator<unknown> | null>(null);
 
@@ -109,6 +107,6 @@ export function useAlarmsLauncher(): AlarmsLauncher | null {
   return useContext(Context);
 }
 
-export function useAlarmCreator<TTrigger>(): AlarmCreator<TTrigger> | null {
-  return useContext(CreatorContext) as AlarmCreator<TTrigger> | null;
+export function useAlarmCreator<Trigger>(): AlarmCreator<Trigger> | null {
+  return useContext(CreatorContext) as AlarmCreator<Trigger> | null;
 }

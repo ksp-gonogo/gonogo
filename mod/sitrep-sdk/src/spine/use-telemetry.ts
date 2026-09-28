@@ -97,16 +97,16 @@ const NO_PROVIDER = topicReading<never>({
  * passed for as long as the widget rendered absence as zero. Unwrap the
  * discriminant, even where the compiler does not force you to.
  */
-export function useTelemetry<T extends TopicId>(
-  topic: T,
-): T extends ReckonableTopic
+export function useTelemetry<Topic extends TopicId>(
+  topic: Topic,
+): Topic extends ReckonableTopic
   ? ReckonableReading<
-      TopicPayload<T>,
-      ReckonableFields<T> & keyof TopicPayload<T>
+      TopicPayload<Topic>,
+      ReckonableFields<Topic> & keyof TopicPayload<Topic>
     >
-  : T extends NeverReckonable
-    ? UnmodelledReading<TopicPayload<T>>
-    : TopicReading<TopicPayload<T>>;
+  : Topic extends NeverReckonable
+    ? UnmodelledReading<TopicPayload<Topic>>
+    : TopicReading<TopicPayload<Topic>>;
 
 export function useTelemetry(topic: TopicId): unknown {
   const client = useTelemetryClientOptional();

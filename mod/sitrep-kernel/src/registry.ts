@@ -124,7 +124,9 @@ export class Kernel {
    */
   lastNotices: readonly ResolutionNotice[] = [];
 
-  registerCapability<T>(descriptor: CapabilityDescriptor<T>): void {
+  registerCapability<Capability>(
+    descriptor: CapabilityDescriptor<Capability>,
+  ): void {
     this.capabilities.set(descriptor.id, descriptor as CapabilityDescriptor);
     if (!this.providers.has(descriptor.id)) {
       this.providers.set(descriptor.id, []);
@@ -134,7 +136,9 @@ export class Kernel {
     }
   }
 
-  registerProvider<T>(registration: ProviderRegistration<T>): void {
+  registerProvider<Capability>(
+    registration: ProviderRegistration<Capability>,
+  ): void {
     const providers = this.providers.get(registration.capability);
     if (providers === undefined) {
       throw new Error(
@@ -154,9 +158,10 @@ export class Kernel {
     this.lastNotices = [];
     const ctx: ProviderContext = {
       kernelVersion: opts.kernelVersion,
-      query: <T>(capability: CapabilityId) => this.query<T>(capability),
-      vanilla: <T>(capability: CapabilityId) =>
-        this.vanillaInstance(capability, ctx) as T,
+      query: <Capability>(capability: CapabilityId) =>
+        this.query<Capability>(capability),
+      vanilla: <Capability>(capability: CapabilityId) =>
+        this.vanillaInstance(capability, ctx) as Capability,
     };
 
     // Phase 1: selection, decide the winning provider(s) per capability.
@@ -372,14 +377,14 @@ export class Kernel {
     return this.activeInstances.get(capability) ?? [];
   }
 
-  query<T>(capability: CapabilityId): T {
+  query<Capability>(capability: CapabilityId): Capability {
     const instances = this.active(capability);
     if (instances.length !== 1) {
       throw new Error(
         `Capability "${capability}" does not resolve to exactly one active provider (found ${instances.length}).`,
       );
     }
-    return instances[0] as T;
+    return instances[0] as Capability;
   }
 
   /**

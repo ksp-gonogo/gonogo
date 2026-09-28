@@ -1,10 +1,10 @@
 import { logger } from "../../api/logger";
 
-export interface LocalStorageStoreOptions<T> {
+export interface LocalStorageStoreOptions<Stored> {
   /** localStorage key */
   key: string;
   /** default value used when key is missing or corrupt */
-  defaults: T;
+  defaults: Stored;
   /** Optional: if provided, this Storage shim is used instead of
    *  `globalThis.localStorage`. Useful for tests. */
   storage?: Storage;
@@ -23,20 +23,20 @@ export interface LocalStorageStoreOptions<T> {
  *
  * Reads return a fresh value each time (no in-memory cache).
  *
- * For object T, `get()` returns `{ ...defaults, ...parsed }` so adding new
- * fields to T defaults to `defaults[newField]` rather than `undefined`.
+ * For an object `Stored`, `get()` returns `{ ...defaults, ...parsed }` so adding new
+ * fields to `Stored` defaults to `defaults[newField]` rather than `undefined`.
  * Non-object stored values (string, number, boolean, array, null) are
  * returned as-is, TypeScript can't enforce that at runtime, so the caller's
  * type parameter is trusted.
  */
-export class LocalStorageStore<T> {
+export class LocalStorageStore<Stored> {
   private readonly key: string;
-  private readonly defaults: T;
+  private readonly defaults: Stored;
   private readonly storage: Storage | undefined;
   private readonly onCorruption: (raw: string, error: unknown) => void;
-  private readonly listeners = new Set<(value: T) => void>();
+  private readonly listeners = new Set<(value: Stored) => void>();
 
-  constructor(opts: LocalStorageStoreOptions<T>) {
+  constructor(opts: LocalStorageStoreOptions<Stored>) {
     this.key = opts.key;
     this.defaults = opts.defaults;
     this.storage = opts.storage ?? globalThis.localStorage;
@@ -56,7 +56,7 @@ export class LocalStorageStore<T> {
     }
   }
 
-  get(): T {
+  get(): Stored {
     let raw: string | null = null;
     try {
       raw = this.storage?.getItem(this.key) ?? null;
@@ -84,12 +84,12 @@ export class LocalStorageStore<T> {
       return {
         ...(this.defaults as object),
         ...(parsed as object),
-      } as T;
+      } as Stored;
     }
-    return parsed as T;
+    return parsed as Stored;
   }
 
-  set(value: T): void {
+  set(value: Stored): void {
     try {
       this.storage?.setItem(this.key, JSON.stringify(value));
     } catch {
@@ -100,18 +100,18 @@ export class LocalStorageStore<T> {
     });
   }
 
-  patch(partial: Partial<T>): void {
+  patch(partial: Partial<Stored>): void {
     const current = this.get();
     if (
       current !== null &&
       typeof current === "object" &&
       !Array.isArray(current)
     ) {
-      const next = { ...(current as object), ...(partial as object) } as T;
+      const next = { ...(current as object), ...(partial as object) } as Stored;
       this.set(next);
       return;
     }
-    this.set(partial as T);
+    this.set(partial as Stored);
   }
 
   clear(): void {
@@ -126,20 +126,20 @@ export class LocalStorageStore<T> {
     });
   }
 
-  subscribe(cb: (value: T) => void): () => void {
+  subscribe(cb: (value: Stored) => void): () => void {
     this.listeners.add(cb);
     return () => {
       this.listeners.delete(cb);
     };
   }
 
-  private cloneDefaults(): T {
+  private cloneDefaults(): Stored {
     if (
       this.defaults !== null &&
       typeof this.defaults === "object" &&
       !Array.isArray(this.defaults)
     ) {
-      return { ...(this.defaults as object) } as T;
+      return { ...(this.defaults as object) } as Stored;
     }
     return this.defaults;
   }

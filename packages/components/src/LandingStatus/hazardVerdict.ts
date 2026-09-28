@@ -74,9 +74,9 @@ export interface HazardResult {
   axes: HazardAxis[];
 }
 
-function bandOf<U extends string>(
-  reading: Value<U>,
-  [safeMax, marginalMax]: readonly [Value<U>, Value<U>],
+function bandOf<Unit extends string>(
+  reading: Value<Unit>,
+  [safeMax, marginalMax]: readonly [Value<Unit>, Value<Unit>],
 ): Hazard {
   if (reading.lessThanOrEqual(safeMax)) return "SAFE";
   if (reading.lessThanOrEqual(marginalMax)) return "MARGINAL";
@@ -84,9 +84,9 @@ function bandOf<U extends string>(
 }
 
 /** The interval a rate's threshold ladder sees once the sign is off: the magnitude of an interval straddling zero starts at 0, not at its nearer end. */
-function absExtent<U extends string>(
-  band: UncertaintyBand<U>,
-): readonly [Value<U>, Value<U>] {
+function absExtent<Unit extends string>(
+  band: UncertaintyBand<Unit>,
+): readonly [Value<Unit>, Value<Unit>] {
   const { lo, hi } = band;
   if (!lo.isNegative()) return [lo, hi];
   // Both ends are at or below zero, so taking the magnitude of each also swaps which one is nearer zero.
@@ -96,20 +96,20 @@ function absExtent<U extends string>(
 }
 
 /** One axis's band, and the worst it could still be: the point estimate decides whenever the interval resolves, and `UNRESOLVED` where it spans a threshold. */
-function bandedVerdict<U extends string>(
-  reading: Value<U>,
-  thresholds: readonly [Value<U>, Value<U>],
-  band: UncertaintyBand<U> | null | undefined,
+function bandedVerdict<Unit extends string>(
+  reading: Value<Unit>,
+  thresholds: readonly [Value<Unit>, Value<Unit>],
+  band: UncertaintyBand<Unit> | null | undefined,
   absolute: boolean,
 ): {
   band: Hazard;
   worstPossible: Hazard;
-  extent?: readonly [Value<U>, Value<U>];
+  extent?: readonly [Value<Unit>, Value<Unit>];
 } {
   const plain = bandOf(reading, thresholds);
   if (!band) return { band: plain, worstPossible: plain };
   const [lo, hi] = absolute ? absExtent(band) : ([band.lo, band.hi] as const);
-  const asBand: UncertaintyBand<U> = {
+  const asBand: UncertaintyBand<Unit> = {
     value: absolute ? reading.abs() : reading,
     lo,
     hi,
@@ -137,8 +137,8 @@ function roughnessBand(badge: RoughnessBadge): Hazard {
 }
 
 /** The interval appended to an unresolved axis's detail, so the line carries the numbers that stopped it. */
-function extentNote<U extends string>(
-  extent: readonly [Value<U>, Value<U>] | undefined,
+function extentNote<Unit extends string>(
+  extent: readonly [Value<Unit>, Value<Unit>] | undefined,
   decimals: number,
 ): string {
   if (!extent) return "";

@@ -27,11 +27,13 @@ import type {
 } from "./__generated__/contract";
 import type { TopicId, TopicPayload } from "./topics";
 
-type Equal<A, B> =
-  (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2
+type Equal<Left, Right> =
+  (<Probe>() => Probe extends Left ? 1 : 2) extends <
+    Probe,
+  >() => Probe extends Right ? 1 : 2
     ? true
     : false;
-type Expect<T extends true> = T;
+type Expect<Condition extends true> = Condition;
 
 // ── vessel.* / comms.* known Topics resolve to their precise interface ──────────────
 export type _ResolvesOrbit = Expect<
@@ -96,11 +98,15 @@ export type _ResolvesSystemVessels = Expect<
 
 // ── No Topic resolves to `unknown` (the whole point of P0.5) ────────────────────────
 // Same construction as topics.ts's `_AssertNoTopicResolvesToUnknown`, asserted here too so a regression is caught even if the compile-time assert in topics.ts is refactored.
-type IsAny<T> = 0 extends 1 & T ? true : false;
-type IsUnknown<T> =
-  IsAny<T> extends true ? false : unknown extends T ? true : false;
+type IsAny<Candidate> = 0 extends 1 & Candidate ? true : false;
+type IsUnknown<Candidate> =
+  IsAny<Candidate> extends true
+    ? false
+    : unknown extends Candidate
+      ? true
+      : false;
 export type _NoTopicIsUnknown = Expect<
-  Equal<{ [K in TopicId]: IsUnknown<TopicPayload<K>> }[TopicId], false>
+  Equal<{ [Topic in TopicId]: IsUnknown<TopicPayload<Topic>> }[TopicId], false>
 >;
 
 // ── An unknown Topic string is a compile error ──────────────────────────────────────

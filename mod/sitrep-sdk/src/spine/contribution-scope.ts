@@ -26,11 +26,11 @@ let current: ContributionScope | null = null;
 const reported = new Set<string>();
 
 /** Run `compute` as contribution `id`, whose declared topic deps are `declaredTopics`. */
-export function runContributionCompute<T>(
+export function runContributionCompute<Result>(
   id: string,
   declaredTopics: ReadonlySet<string>,
-  compute: () => T,
-): T {
+  compute: () => Result,
+): Result {
   const outer = current;
   current = { id, declaredTopics };
   try {
@@ -45,7 +45,9 @@ export function runContributionCompute<T>(
  * from inside a contribution's `compute` reads for itself, not for the
  * contribution that asked.
  */
-export function runOutsideContributionScope<T>(evaluate: () => T): T {
+export function runOutsideContributionScope<Result>(
+  evaluate: () => Result,
+): Result {
   const outer = current;
   current = null;
   try {

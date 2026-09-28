@@ -20,8 +20,8 @@ import { ViewClock } from "./view-clock";
  * the derivation SAW, which is a different question from how current the
  * derivation is, so the value is taken off whichever arm carries one.
  */
-function derived<R>(id: string): R | undefined {
-  const reading = runtime.value<Reading<R>>(id);
+function derived<Result>(id: string): Result | undefined {
+  const reading = runtime.value<Reading<Result>>(id);
   if (reading === undefined) return undefined;
   return "value" in reading ? reading.value : undefined;
 }
@@ -614,7 +614,10 @@ describe("the notify guard's answer set", () => {
   });
 });
 
-function pointOf<T>(validAt: number, payload: T): TimelinePoint<T> {
+function pointOf<Payload>(
+  validAt: number,
+  payload: Payload,
+): TimelinePoint<Payload> {
   return {
     validAt,
     payload,

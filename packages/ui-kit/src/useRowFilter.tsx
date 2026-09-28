@@ -26,8 +26,8 @@ export interface RowFilter {
  * one, contributes a `BadgeEntry`, which cannot be substring-matched.
  */
 export type TermSegment = {
-  [K in ComponentSlotSegment]: ComponentSlotRegistry[K] extends string
-    ? K
+  [Segment in ComponentSlotSegment]: ComponentSlotRegistry[Segment] extends string
+    ? Segment
     : never;
 }[ComponentSlotSegment];
 

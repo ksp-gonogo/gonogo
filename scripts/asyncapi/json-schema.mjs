@@ -184,8 +184,8 @@ export class SchemaBuilder {
    * Registers a schema this builder cannot derive, and hands back a `$ref` to
    * it.
    *
-   * The envelopes are the whole of the need. `StreamData<T>`,
-   * `CommandRequest<TArgs>` and `CommandResponse<TResult>` are generic over the
+   * The envelopes are the whole of the need. `StreamData<Payload>`,
+   * `CommandRequest<Args>` and `CommandResponse<Result>` are generic over the
    * slot each channel fills, so the walk has no single shape to emit for them:
    * the caller binds the generic slot to a described placeholder and the
    * per-channel message narrows it. A name already emitted from the contract is
