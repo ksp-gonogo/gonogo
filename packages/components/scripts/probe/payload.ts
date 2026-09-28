@@ -69,10 +69,8 @@ export interface ProbePayload {
   /**
    * Mount the widget as the dashboard does rather than as the committed
    * baselines were drawn: the badges contributed into its `<id>.badges` slot
-   * reach its panel header beside the scene's own `_badges`, and Domain
-   * presence is fed for every registered augment AND contribution by the app's
-   * own feeder. Off, only `_badges` reaches the header and presence is fed for
-   * augment Domains alone.
+   * reach its panel header beside the scene's own `_badges`. Off, only
+   * `_badges` reaches the header.
    */
   asDashboard?: boolean;
 }

@@ -11,18 +11,4 @@
  * **A line may only be removed, never added.** Adding one means writing a new
  * gate that does not gate.
  */
-export const READING_GATE_DEBT: readonly string[] = [
-  /*
-   * Same site, thirty-three lines lower: the probe harness learned install
-   * profiles above it, and later gave up three lines again when one Uplink
-   * client's self-registration import left with the widget fixtures that were
-   * its only reason to be there. Two lower again since it learned to mount a
-   * scene's contributed header badges, and two higher when its last two Uplink
-   * client imports gave way to a planted Uplink. Twenty-one lower again once
-   * the fixture block learned to stage a scene that has stopped arriving.
-   * Renumbered, not fixed: the fix is `state !== "pending"`
-   * (`AugmentAvailabilityFeeder` already made it), and making it here changes
-   * which augments the probe renders, which moves the visual baselines.
-   */
-  "packages/components/scripts/probe/probe-entry.tsx:263",
-];
+export const READING_GATE_DEBT: readonly string[] = [];

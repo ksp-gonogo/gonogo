@@ -1369,8 +1369,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
   kerbalism: {
     domainDebt: [],
     permanent: [
-      // prose: the render harness names Kerbalism's augment as its example of a requires-gated one.
-      "packages/components/scripts/probe/probe-entry.tsx",
       // data: an inline FAKE Uplink client id, `defineUplinkClient({ id: "kerbalism" })`, standing in for a real one to exercise the contribution registry. Imports nothing.
       "packages/components/scripts/provenance-card-probe/provenance-card-probe-entry.tsx",
       // data: a render output folder named for the resource palette its renders show.

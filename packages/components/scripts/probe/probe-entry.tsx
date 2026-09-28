@@ -21,30 +21,26 @@ import "./probe-install-host";
 import {
   ContributionsProvider,
   DashboardItemContext,
-  getAugments,
   getComponent,
   getDataSource,
   registerDataSource,
   registerStockBodies,
   unregisterDataSource,
-  useTelemetry,
   useWidgetBadges,
   WidgetMetaContext,
   WidgetStreamStatusBridge,
 } from "@ksp-gonogo/core";
 import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
-import type { Meta, TopicId } from "@ksp-gonogo/sitrep-sdk";
+import type { Meta } from "@ksp-gonogo/sitrep-sdk";
 import { MockDataSource } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
   type BadgeEntry,
   DomainAvailabilityProvider,
-  type DomainAvailabilityStore,
   defaultDarkTheme,
   PanelBadgesProvider,
   PanelStatusStoreProvider,
-  useDomainAvailabilityStore,
 } from "@ksp-gonogo/ui-kit";
-import { createElement, Fragment, useEffect, useState } from "react";
+import { createElement, Fragment } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { ThemeProvider } from "styled-components";
 // Side-effect import: every widget self-registers on module load.
@@ -207,63 +203,6 @@ function withContributedBadges(
   return (
     <ContributedBadges scene={sceneBadges(payload)}>{tree}</ContributedBadges>
   );
-}
-
-/**
- * Probe-local mirror of the app's `AugmentAvailabilityFeeder`
- * (`packages/app/src/telemetry/AugmentAvailabilityFeeder.tsx`): feeds
- * ui-kit's domain-availability store from telemetry, the same store
- * `<AugmentSlot>`'s `requires` presence gate reads. Without this, a
- * `requires`-gated augment (e.g. Kerbalism's `science-data.aboard-row`)
- * never renders in a probe screenshot no matter what its `_stream` fixture
- * emits, since `useDomainAvailable` answers `false` with no store fed.
- * Reimplemented here rather than imported from `@ksp-gonogo/app`: this
- * package does not depend on the app, and the logic is small and
- * self-contained. Watches every Domain any REGISTERED augment declares
- * (computed once per probe render; the probe's registry is static for the
- * life of one `renderProbe()` call, unlike the app's long-lived session),
- * not just the ones a mounted slot happens to show, matching the app's own
- * "global truth" comment.
- */
-function ProbeAugmentAvailabilityFeeder(): React.ReactElement | null {
-  const store = useDomainAvailabilityStore();
-  const [domains] = useState(() => {
-    const set = new Set<string>();
-    for (const augment of getAugments()) {
-      if (augment.requires) set.add(augment.requires);
-    }
-    return Array.from(set);
-  });
-  if (!store) return null;
-  return createElement(
-    Fragment,
-    null,
-    domains.map((domain) =>
-      createElement(ProbeDomainAvailabilityWatch, {
-        key: domain,
-        domain,
-        store,
-      }),
-    ),
-  );
-}
-
-/** Subscribes to one Domain's `<domain>.available` Topic and mirrors its
- *  presence into the store, same semantics as the app's own watcher: live
- *  while any value has arrived, not by its payload. */
-function ProbeDomainAvailabilityWatch({
-  domain,
-  store,
-}: {
-  domain: string;
-  store: DomainAvailabilityStore;
-}): null {
-  const value = useTelemetry(`${domain}.available` as TopicId);
-  useEffect(() => {
-    store.setAvailable(domain, value !== undefined);
-    return () => store.setAvailable(domain, false);
-  }, [domain, value, store]);
-  return null;
 }
 
 /** One widget mounted by {@link mountProbe}, torn down on its own. */
@@ -631,12 +570,7 @@ async function mountInto(
             createElement(
               DomainAvailabilityProvider,
               null,
-              createElement(
-                payload.asDashboard
-                  ? AugmentAvailabilityFeeder
-                  : ProbeAugmentAvailabilityFeeder,
-                null,
-              ),
+              createElement(AugmentAvailabilityFeeder, null),
               wrapped(),
             ),
           )

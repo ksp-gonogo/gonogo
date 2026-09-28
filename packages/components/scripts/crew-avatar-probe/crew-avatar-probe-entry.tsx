@@ -35,12 +35,16 @@ import {
   registerStockBodies,
   WidgetMetaContext,
 } from "@ksp-gonogo/core";
-import { defaultDarkTheme } from "@ksp-gonogo/ui-kit";
+import {
+  DomainAvailabilityProvider,
+  defaultDarkTheme,
+} from "@ksp-gonogo/ui-kit";
 import { createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { ThemeProvider } from "styled-components";
 // Side-effect import: every built-in widget (CrewStatus included) self-registers on module load, same contract as the shared probe.
 import "../../src";
+import { AugmentAvailabilityFeeder } from "../../../app/src/telemetry/AugmentAvailabilityFeeder";
 import type { CrewAvatarContext } from "../../src/CrewStatus";
 // Side-effect import: the planted Uplink's per-row crew contributions, gated
 // on the fixture emitting its Domain. Its panel badge registers too and is
@@ -194,23 +198,28 @@ async function renderCrewAvatarProbe(
       ThemeProvider,
       { theme: defaultDarkTheme },
       createElement(
-        streamFixture.Provider,
+        DomainAvailabilityProvider,
         null,
         createElement(
-          WidgetMetaContext.Provider,
-          { value: meta },
+          streamFixture.Provider,
+          null,
+          createElement(AugmentAvailabilityFeeder, null),
           createElement(
-            ContributionsProvider,
-            null,
+            WidgetMetaContext.Provider,
+            { value: meta },
             createElement(
-              DashboardItemContext.Provider,
-              { value: { instanceId: "probe" } },
-              createElement(WidgetComponent, {
-                config: def.defaultConfig ?? {},
-                id: "probe",
-                w: payload.w,
-                h: payload.h,
-              }),
+              ContributionsProvider,
+              null,
+              createElement(
+                DashboardItemContext.Provider,
+                { value: { instanceId: "probe" } },
+                createElement(WidgetComponent, {
+                  config: def.defaultConfig ?? {},
+                  id: "probe",
+                  w: payload.w,
+                  h: payload.h,
+                }),
+              ),
             ),
           ),
         ),

@@ -100,34 +100,38 @@ interface ReadingGate {
   pattern: string;
 }
 
-function findGates(root: string): ReadingGate[] {
+function gatesIn(file: string, source: string): ReadingGate[] {
   const found: ReadingGate[] = [];
-  for (const file of candidateFiles(root)) {
-    const lines = readFileSync(join(root, file), "utf8").split("\n");
-    const assigned = new Map<string, number>();
-    lines.forEach((line, i) => {
-      const m = ASSIGNED.exec(line);
-      if (m) assigned.set(m[1], i + 1);
-    });
-    if (assigned.size === 0) continue;
-    lines.forEach((line, i) => {
-      // Comments are where this class gets DISCUSSED, so scanning them produces a violation for every note explaining the violation.
-      const code = line.split("//")[0];
-      for (const [name, declaredAt] of assigned) {
-        if (i + 1 === declaredAt) continue;
-        for (const { label, of } of PATTERNS) {
-          if (of(name).test(code)) {
-            found.push({
-              at: `${file}:${i + 1}`,
-              variable: name,
-              pattern: label,
-            });
-          }
+  const lines = source.split("\n");
+  const assigned = new Map<string, number>();
+  lines.forEach((line, i) => {
+    const m = ASSIGNED.exec(line);
+    if (m) assigned.set(m[1], i + 1);
+  });
+  if (assigned.size === 0) return found;
+  lines.forEach((line, i) => {
+    // Comments are where this class gets DISCUSSED, so scanning them produces a violation for every note explaining the violation.
+    const code = line.split("//")[0];
+    for (const [name, declaredAt] of assigned) {
+      if (i + 1 === declaredAt) continue;
+      for (const { label, of } of PATTERNS) {
+        if (of(name).test(code)) {
+          found.push({
+            at: `${file}:${i + 1}`,
+            variable: name,
+            pattern: label,
+          });
         }
       }
-    });
-  }
+    }
+  });
   return found;
+}
+
+function findGates(root: string): ReadingGate[] {
+  return candidateFiles(root).flatMap((file) =>
+    gatesIn(file, readFileSync(join(root, file), "utf8")),
+  );
 }
 
 const root = repoRoot();
@@ -154,10 +158,23 @@ describe("styleguide: a Reading is never a gate", () => {
     expect(stale).toEqual([]);
   });
 
-  it("still finds something, so a broken scan cannot read as a clean codebase", () => {
+  it("still sees every pattern it claims to, so a broken scan cannot read as a clean codebase", () => {
     // The guard on the guard. If the assignment regex stops matching (a
     // formatter splitting the declaration across lines would do it) this file
     // would report zero violations forever and look like success.
-    expect(gates.length + READING_GATE_DEBT.length).toBeGreaterThan(0);
+    const planted = [
+      'const reading = useTelemetry("vessel.orbit");',
+      "if (reading === undefined) return;",
+      "if (reading !== undefined) return;",
+      "if (reading == null) return;",
+      "if (reading != null) return;",
+      "if (reading) return;",
+      "if (!reading) return;",
+      "const fallback = reading ?? [];",
+    ].join("\n");
+    const seen = new Set(gatesIn("planted.tsx", planted).map((g) => g.pattern));
+    expect(PATTERNS.map((p) => p.label).filter((l) => !seen.has(l))).toEqual(
+      [],
+    );
   });
 });

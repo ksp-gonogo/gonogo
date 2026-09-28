@@ -34,12 +34,17 @@ import {
   useWidgetBadges,
   WidgetMetaContext,
 } from "@ksp-gonogo/core";
-import { defaultDarkTheme, PanelBadgesProvider } from "@ksp-gonogo/ui-kit";
+import {
+  DomainAvailabilityProvider,
+  defaultDarkTheme,
+  PanelBadgesProvider,
+} from "@ksp-gonogo/ui-kit";
 import { createElement, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { ThemeProvider } from "styled-components";
 // Side-effect import: every built-in widget (CrewStatus included) self-registers on module load, same contract as the shared probe.
 import "../../src";
+import { AugmentAvailabilityFeeder } from "../../../app/src/telemetry/AugmentAvailabilityFeeder";
 // Side-effect import: the planted Uplink's crew contributions, the panel badge among them, gated on the fixture emitting its Domain.
 import "../probe/plantedUplink";
 import {
@@ -159,26 +164,31 @@ async function renderCrewBadgeProbe(
       ThemeProvider,
       { theme: defaultDarkTheme },
       createElement(
-        streamFixture.Provider,
+        DomainAvailabilityProvider,
         null,
         createElement(
-          WidgetMetaContext.Provider,
-          { value: meta },
+          streamFixture.Provider,
+          null,
+          createElement(AugmentAvailabilityFeeder, null),
           createElement(
-            ContributionsProvider,
-            null,
+            WidgetMetaContext.Provider,
+            { value: meta },
             createElement(
-              WidgetBadges,
+              ContributionsProvider,
               null,
               createElement(
-                DashboardItemContext.Provider,
-                { value: { instanceId: "probe" } },
-                createElement(WidgetComponent, {
-                  config: def.defaultConfig ?? {},
-                  id: "probe",
-                  w: payload.w,
-                  h: payload.h,
-                }),
+                WidgetBadges,
+                null,
+                createElement(
+                  DashboardItemContext.Provider,
+                  { value: { instanceId: "probe" } },
+                  createElement(WidgetComponent, {
+                    config: def.defaultConfig ?? {},
+                    id: "probe",
+                    w: payload.w,
+                    h: payload.h,
+                  }),
+                ),
               ),
             ),
           ),
