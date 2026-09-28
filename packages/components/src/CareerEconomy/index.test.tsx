@@ -227,10 +227,6 @@ describe("CareerEconomy", () => {
     expect(
       screen.queryByText(/no career economy has arrived/i),
     ).not.toBeInTheDocument();
-    // The marks are the statement; no caption repeats them.
-    expect(
-      screen.queryByText(/no longer current: these are the last rates/i),
-    ).not.toBeInTheDocument();
 
     await act(async () => {});
   });

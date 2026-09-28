@@ -31,7 +31,7 @@ function nextMode(
 
 /**
  * The tracking / approach / docking-hud state machine. The specialised views
- * assert something about NOW, so anything not current falls back to tracking,
+ * assert something about NOW, so anything held falls back to tracking,
  * which can state its age.
  */
 export function useTargetingMode(params: {

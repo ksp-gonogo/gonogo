@@ -4,7 +4,7 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { FleetReliabilityUpdates } from "./index";
 
 /**
- * When the reliability read is no longer current, the augment stops asserting
+ * When the reliability read is held, the augment stops asserting
  * conditions and says why, on the row: a held list could keep a failed craft
  * looking clean. The identity is a fact and is kept, so the notice still lands
  * on the right row. Both reliability topics go stale together.
@@ -61,7 +61,7 @@ function dropTheLink(fixture: ReturnType<typeof setupStreamFixture>): void {
   });
 }
 
-describe("FleetReliability when the reliability read is not current", () => {
+describe("FleetReliability when the reliability read is held", () => {
   it("flags the failing part while the read is current", async () => {
     // The control: without it the assertions below would pass on an augment that never renders a failure.
     const { fixture } = renderAugment("v-active");
@@ -70,11 +70,11 @@ describe("FleetReliability when the reliability read is not current", () => {
     expect(await screen.findByText("LV-909 Terrier")).toBeInTheDocument();
     expect(screen.getByText("1 at risk")).toBeInTheDocument();
     expect(
-      screen.queryByRole("status", { name: "Reliability not current" }),
+      screen.queryByRole("status", { name: "Reliability held" }),
     ).not.toBeInTheDocument();
   });
 
-  it("withholds the markers and SAYS the reliability read is not current", async () => {
+  it("withholds the markers and SAYS the reliability read is held", async () => {
     const { fixture } = renderAugment("v-active");
     emitFailure(fixture);
     expect(await screen.findByText("LV-909 Terrier")).toBeInTheDocument();
@@ -83,7 +83,7 @@ describe("FleetReliability when the reliability read is not current", () => {
 
     await waitFor(() =>
       expect(
-        screen.getByRole("status", { name: "Reliability not current" }),
+        screen.getByRole("status", { name: "Reliability held" }),
       ).toBeInTheDocument(),
     );
     // Withheld, not merely reworded: no part name, no severity word, no count.
@@ -104,7 +104,7 @@ describe("FleetReliability when the reliability read is not current", () => {
     dropTheLink(fixture);
 
     await waitFor(() => expect(container).not.toBeEmptyDOMElement());
-    expect(screen.getByText("not current")).toBeInTheDocument();
+    expect(screen.getByText("held")).toBeInTheDocument();
   });
 
   it("keeps the notice on the ACTIVE row only, because identity is held rather than withheld", async () => {
@@ -113,9 +113,7 @@ describe("FleetReliability when the reliability read is not current", () => {
     emitFailure(active.fixture);
     expect(await screen.findByText("LV-909 Terrier")).toBeInTheDocument();
     dropTheLink(active.fixture);
-    await waitFor(() =>
-      expect(screen.getByText("not current")).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByText("held")).toBeInTheDocument());
     active.unmount();
 
     const other = renderAugment("v-other");
@@ -123,7 +121,7 @@ describe("FleetReliability when the reliability read is not current", () => {
     dropTheLink(other.fixture);
 
     await waitFor(() => expect(other.container).toBeEmptyDOMElement());
-    expect(screen.queryByText("not current")).not.toBeInTheDocument();
+    expect(screen.queryByText("held")).not.toBeInTheDocument();
   });
 
   it("does not call a cold start a dropped link", async () => {
@@ -134,7 +132,7 @@ describe("FleetReliability when the reliability read is not current", () => {
     });
 
     await waitFor(() => expect(container).toBeEmptyDOMElement());
-    expect(screen.queryByText("not current")).not.toBeInTheDocument();
+    expect(screen.queryByText("held")).not.toBeInTheDocument();
   });
 
   it("still renders blank for the none backend after the link drops", async () => {
@@ -150,6 +148,6 @@ describe("FleetReliability when the reliability read is not current", () => {
     dropTheLink(fixture);
 
     await waitFor(() => expect(container).toBeEmptyDOMElement());
-    expect(screen.queryByText("not current")).not.toBeInTheDocument();
+    expect(screen.queryByText("held")).not.toBeInTheDocument();
   });
 });

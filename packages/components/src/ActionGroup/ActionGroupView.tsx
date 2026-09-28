@@ -44,7 +44,7 @@ export interface ActionGroupViewProps
   group: ActionGroup | undefined;
   value: unknown;
   /** The state was withheld because it went stale, not because it never came. */
-  valueNotCurrent: boolean;
+  valueHeld: boolean;
   /** A current payload named this group and could not say whether it is engaged. */
   stateUnreadable: boolean;
 }
@@ -56,7 +56,7 @@ export function ActionGroupView({
   h,
   group,
   value,
-  valueNotCurrent,
+  valueHeld,
   stateUnreadable,
 }: ActionGroupViewProps) {
   const currentLabel = config?.label ?? group?.name ?? "";
@@ -119,7 +119,7 @@ export function ActionGroupView({
   };
 
   const unavailableReason = unavailableReasonOf({
-    valueNotCurrent,
+    valueHeld,
     stateUnreadable,
     isPaused,
     commConnected,
@@ -132,8 +132,7 @@ export function ActionGroupView({
   const cols = w ?? 6;
   const showOfficialName = cols >= 5;
   // Disabled whenever `buildToggleArgs` would refuse the press; an `assumed` group stays live.
-  const canToggle =
-    Boolean(group.toggle) && !valueNotCurrent && !stateUnreadable;
+  const canToggle = Boolean(group.toggle) && !valueHeld && !stateUnreadable;
   // At tiny size the bell crowds the pill; it stays reachable from the alarms menu.
   const showBell = getSizeBucket(w, h) !== "tiny" && Boolean(openAlarms);
 

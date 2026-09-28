@@ -54,12 +54,12 @@ function SpaceCenterStatusComponent({
       ? careerReading.value.economy
       : undefined;
   const careerFunds = magnitudeOf(careerEconomy?.funds);
-  const fundsNotCurrent = careerReading.state === "stale";
+  const fundsHeld = careerReading.state === "stale";
   // The standing per-day cost against a subsidy, from whichever money model won the `economy` capability; stock reports none.
   const netFunds = netFundsPerDay(careerEconomy);
   // "Held" only when a balance actually arrived and is being refused.
   const heldFunds =
-    fundsNotCurrent &&
+    fundsHeld &&
     magnitudeOf(stillTrue(careerReading, undefined)?.economy?.funds) !== null;
   // The balance on screen, marked by Unit while held; affordability reads only the current `careerFunds`.
   const fundsReading = readingOf(

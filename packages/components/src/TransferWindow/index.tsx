@@ -113,7 +113,7 @@ function TransferWindowComponent({
   /**
    * The vehicle's Δv budget: a description, so a held one is still drawn, never
    * withheld. An old budget can only OVER-state reach (it falls by burning), so
-   * `budgetNotCurrent` hollows the verdict pips: a held GO must not read as GO.
+   * `budgetHeld` hollows the verdict pips: a held GO must not read as GO.
    */
   const budgetReading = useProcessor(DELTA_V_BUDGET);
   const budget =
@@ -121,8 +121,8 @@ function TransferWindowComponent({
       ? budgetReading.value
       : undefined;
   const budgetDeltaV = magnitudeOf(budget?.totalVac);
-  const budgetNotCurrent = budget?.budget.state === "stale";
-  const budgetHeldSince: HeldSince = budgetNotCurrent
+  const budgetHeld = budget?.budget.state === "stale";
+  const budgetHeldSince: HeldSince = budgetHeld
     ? { asOfUt: budget?.budget.asOfUt }
     : null;
   const budgetConfirmedAbsent = budget?.budget.confirmedAbsent ?? false;
@@ -307,7 +307,7 @@ function TransferWindowComponent({
               originName={origin.name ?? "here"}
               budgetDeltaV={budgetDeltaV}
               reserveDeltaV={reserveDeltaV}
-              budgetNotCurrent={budgetNotCurrent}
+              budgetHeld={budgetHeld}
               selectedIndex={dest.index}
               onSelect={setDestIndex}
               budgetHeldSince={budgetHeldSince}

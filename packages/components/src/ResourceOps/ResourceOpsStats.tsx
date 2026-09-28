@@ -14,7 +14,7 @@ export function ResourceOpsStats({
   total,
   activeCount,
   netEc,
-  netEcNotCurrent,
+  netEcHeld,
   location,
 }: Readonly<{
   total: number;
@@ -22,7 +22,7 @@ export function ResourceOpsStats({
   activeCount: number | undefined;
   netEc: { moves: boolean; net: number | null };
   /** Whether `netEc.net` is a held figure rather than the vessel's current draw. */
-  netEcNotCurrent: boolean;
+  netEcHeld: boolean;
   location: string | undefined;
 }>) {
   return (
@@ -50,7 +50,7 @@ export function ResourceOpsStats({
       {netEc.moves && (
         <Inline>
           <ReadoutCaption>net EC</ReadoutCaption>
-          {netEcNotCurrent || netEc.net === null ? (
+          {netEcHeld || netEc.net === null ? (
             <Text tone="muted">{NULL_DISPLAY}</Text>
           ) : (
             <Unit

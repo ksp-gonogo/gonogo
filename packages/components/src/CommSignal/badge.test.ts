@@ -6,7 +6,7 @@ describe("commSignalNoSignalBadge", () => {
     expect(commSignalNoSignalBadge(false)).toEqual([]);
   });
 
-  it("shows a warn-toned 'No signal' badge once the link is not current", () => {
+  it("shows a warn-toned 'No signal' badge once the link is held", () => {
     expect(commSignalNoSignalBadge(true)).toEqual([
       { id: "comm-signal-no-signal", label: "No signal", tone: "warn" },
     ]);

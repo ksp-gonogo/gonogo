@@ -90,7 +90,7 @@ function ratioOf(q: { magnitude: number } | undefined): Value<"ratio"> {
  * one. `viewUt.minus(observedAt(reading))` is recomputed against the current
  * frame on every render, so it is exactly current when it is drawn, and its
  * whole job is to say that something ELSE is old. Forced to carry its reading
- * it would draw itself not-current, which is the one figure on the panel that
+ * it would draw itself held, which is the one figure on the panel that
  * certainly is not.
  *
  * Each exemption is planted beside the real fault one hop away, because an

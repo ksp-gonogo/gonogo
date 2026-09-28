@@ -37,12 +37,12 @@ export function WithheldOr({
 export function ResourceCells({
   flow,
   direction,
-  ratesNotCurrent,
+  ratesHeld,
 }: Readonly<{
   flow: IsruResourceFlow;
   direction: "in" | "out" | "extract";
   /** Stale rather than never arrived: the cell reads as held back, not "unknown". */
-  ratesNotCurrent: boolean;
+  ratesHeld: boolean;
 }>) {
   return (
     <>
@@ -51,7 +51,7 @@ export function ResourceCells({
       </Truncate>
       <Text size="sm" tone="default" style={RIGHT_ALIGN}>
         <WithheldOr
-          withheld={ratesNotCurrent}
+          withheld={ratesHeld}
           figure={
             flow.rate === null || flow.rate === undefined ? null : (
               <Unit value={flow.rate} decimals={rateDecimals(flow.rate, 3)} />

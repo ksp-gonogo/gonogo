@@ -44,7 +44,7 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
   );
   const twr = twrReading.value;
   // A stale TWR is held, never blanked: the empty state means the craft has no engine.
-  const twrNotCurrent = twrReading.state === "stale";
+  const twrHeld = twrReading.state === "stale";
   const series = useComputedSeries(
     "vessel.propulsion.currentThrust",
     "vessel.propulsion.totalMass",
@@ -105,7 +105,7 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
               style={{
                 ...TINY_VALUE_STYLE,
                 color: toneColor,
-                ...(twrNotCurrent ? { opacity: 0.55 } : {}),
+                ...(twrHeld ? { opacity: 0.55 } : {}),
               }}
             >
               {writeQuantity(twr, { decimals: 1 })}

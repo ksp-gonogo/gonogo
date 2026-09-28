@@ -86,7 +86,7 @@ function goStale(fixture: StreamFixture): void {
   });
 }
 
-describe("Strategies when the career balances are no longer current", () => {
+describe("Strategies when the career balances are held", () => {
   it("shows the balances and arms Activate while the record is current", async () => {
     // The control: the assertions below would also pass on a widget that never shows a balance or enables a button.
     const fixture = newFixture();
@@ -133,7 +133,6 @@ describe("Strategies when the career balances are no longer current", () => {
     expect(rail?.textContent).toContain("289,848");
     expect(rail?.textContent).toContain("420");
     expect(rail?.textContent).toContain("145");
-    expect(visibleText()).not.toContain("not current");
   });
 
   it("refuses Activate with the staleness reason rather than calling the operator short of funds", async () => {
@@ -190,7 +189,6 @@ describe("Strategies when the career balances are no longer current", () => {
         document.querySelector("[data-balance-row] [data-held]"),
       ).not.toBeNull(),
     );
-    expect(visibleText()).not.toContain("not current");
     // "funds unknown" is the never-arrived wording.
     expect(visibleText()).not.toContain("funds unknown");
   });

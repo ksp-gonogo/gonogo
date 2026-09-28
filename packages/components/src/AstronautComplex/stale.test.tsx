@@ -40,7 +40,7 @@ const CREW = [
   },
 ];
 
-describe("AstronautComplex when its telemetry is no longer current", () => {
+describe("AstronautComplex when its telemetry is held", () => {
   let stream: ReturnType<typeof setupStreamFixture>;
 
   beforeEach(() => {
@@ -106,8 +106,6 @@ describe("AstronautComplex when its telemetry is no longer current", () => {
 
     await waitFor(() => expect(heldFundsMark()).toMatch(/as of /));
     expect(visibleText(container)).toContain("500,000");
-    // Time is shown only through Unit, never as a caption the widget writes.
-    expect(visibleText(container)).not.toContain("not current");
     // The game arbitrates the purchase, so a held balance never refuses a hire.
     expect(
       screen.getByRole("button", { name: /^Hire Desdin Kerman/ }),

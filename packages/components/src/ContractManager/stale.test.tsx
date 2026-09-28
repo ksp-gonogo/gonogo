@@ -69,7 +69,7 @@ function goStale(fixture: ReturnType<typeof setupStreamFixture>): void {
   });
 }
 
-describe("ContractManager when career telemetry is no longer current", () => {
+describe("ContractManager when career telemetry is held", () => {
   it("keeps the active and offered boards, which the player cannot have changed", async () => {
     const fixture = setupStreamFixture({
       pinnedUt: 100,

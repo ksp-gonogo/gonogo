@@ -44,7 +44,7 @@ export interface ScreenSectionsProps {
   funds: Quantityish | undefined;
   reputation: Quantityish | undefined;
   science: Quantityish | undefined;
-  balancesNotCurrent: boolean;
+  balancesHeld: boolean;
   factorById: Record<string, number>;
   setFactorById: Dispatch<SetStateAction<Record<string, number>>>;
   activateCmd: CommandButtonHandle;
@@ -66,7 +66,7 @@ export function ScreenSections({
   funds,
   reputation,
   science,
-  balancesNotCurrent,
+  balancesHeld,
   factorById,
   setFactorById,
   activateCmd,
@@ -88,7 +88,7 @@ export function ScreenSections({
       funds={magnitudeOf(funds)}
       reputation={magnitudeOf(reputation)}
       science={magnitudeOf(science)}
-      balancesNotCurrent={balancesNotCurrent}
+      balancesHeld={balancesHeld}
       factor={factorById[s.id] ?? s.factorSliderDefault}
       onFactorChange={(v) => setFactorById((prev) => ({ ...prev, [s.id]: v }))}
       activateCmd={activateCmd}

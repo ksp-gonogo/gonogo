@@ -37,7 +37,7 @@ function careerStatus(science: number): Record<string, unknown> {
   };
 }
 
-describe("TechTree when the career record is no longer current", () => {
+describe("TechTree when the career record is held", () => {
   let stream: StreamFixture;
 
   beforeEach(() => {
@@ -65,7 +65,7 @@ describe("TechTree when the career record is no longer current", () => {
     });
   }
 
-  function goNotCurrent(): void {
+  function goHeld(): void {
     act(() => {
       stream.store.setTransportConnected(false);
       stream.store.beginFrame();
@@ -95,7 +95,7 @@ describe("TechTree when the career record is no longer current", () => {
       expect(screen.getByText("Pricey Tech")).toBeInTheDocument(),
     );
 
-    goNotCurrent();
+    goHeld();
 
     // Not the awaiting placeholder and not an empty tree: both would misstate a catalogue we hold.
     await waitFor(() =>
@@ -118,7 +118,7 @@ describe("TechTree when the career record is no longer current", () => {
     await user.click(screen.getByText("Pricey Tech"));
     expect(screen.getByRole("button", { name: "Unlock" })).toBeEnabled();
 
-    goNotCurrent();
+    goHeld();
 
     const unlock = await waitFor(() => {
       const btn = screen.getByRole("button", { name: "Unlock" });
@@ -141,7 +141,7 @@ describe("TechTree when the career record is no longer current", () => {
       expect(screen.getByRole("status").textContent).toContain("5000"),
     );
 
-    goNotCurrent();
+    goHeld();
 
     await waitFor(() =>
       expect(
@@ -150,7 +150,6 @@ describe("TechTree when the career record is no longer current", () => {
     );
     const status = screen.getByRole("status").textContent ?? "";
     expect(status).toContain("5,000");
-    expect(status).not.toContain("not current");
     expect(status).not.toContain("science unknown");
   });
 
@@ -163,7 +162,7 @@ describe("TechTree when the career record is no longer current", () => {
       ).toBe("yes"),
     );
 
-    goNotCurrent();
+    goHeld();
 
     await waitFor(() =>
       expect(
@@ -181,13 +180,12 @@ describe("TechTree when the career record is no longer current", () => {
     await waitFor(() => expect(visibleText(container)).toContain("5000"));
     expect(container.querySelector("[data-held]")).toBeNull();
 
-    goNotCurrent();
+    goHeld();
 
     await waitFor(() =>
       expect(container.querySelector("[data-held]")).not.toBeNull(),
     );
     expect(visibleText(container)).toContain("5,000");
-    expect(visibleText(container)).not.toContain("NOT CURRENT");
   });
 
   it("says nothing about currency before anything has ever arrived", async () => {

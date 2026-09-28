@@ -62,7 +62,7 @@ export function FleetReliabilityUpdates({ vesselId, compact }: UpdatesProps) {
       : undefined) ?? [];
   const costOf = repairCostResolver(crew, stores);
   // Either channel being old replaces the whole row with a notice.
-  const notCurrent =
+  const held =
     partsReading.state === "stale" || summaryReading.state === "stale";
 
   // reliability.* is active-vessel-only.
@@ -80,13 +80,9 @@ export function FleetReliabilityUpdates({ vesselId, compact }: UpdatesProps) {
   if (coverage !== "modeled") return null;
 
   // Something IS modelling this craft and the held frame is old: the one case worth a word.
-  if (notCurrent) {
+  if (held) {
     return (
-      <AbsenceLine
-        severity="offline"
-        state="not current"
-        label="Reliability not current"
-      />
+      <AbsenceLine severity="offline" state="held" label="Reliability held" />
     );
   }
 

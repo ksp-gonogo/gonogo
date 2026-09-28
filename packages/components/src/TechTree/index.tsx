@@ -31,7 +31,7 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
   const nodesRaw = stillTrue(career, undefined)?.tech?.nodes;
   const careerScience =
     career.state === "observed" ? career.value.economy?.science : undefined;
-  const careerNotCurrent = career.state === "stale";
+  const careerHeld = career.state === "stale";
   // The balance as drawn: a held one stays on screen and Unit marks it.
   const scienceShown = readingOf(
     career,
@@ -54,7 +54,7 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
       h={h}
       allNodes={allNodes}
       sciAvailable={sciAvailable}
-      careerNotCurrent={careerNotCurrent}
+      careerHeld={careerHeld}
       scienceShown={scienceShown}
       chargesScience={chargesScience}
       unlockCmd={unlockCmd}

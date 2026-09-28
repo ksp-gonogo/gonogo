@@ -139,7 +139,7 @@ describe("Targeting: the dock channel alone stops being current", () => {
     );
     // The reason is named, so withheld reads differently from broken, and time is left to Unit.
     expect(screen.getByText("Docking alignment withheld")).toBeTruthy();
-    expect(visibleText()).not.toMatch(/last seen|\bago\b|no longer current/i);
+    expect(visibleText()).not.toMatch(/last seen|\bago\b/i);
     // The alignment row goes with the HUD rather than lingering as placeholders.
     expect(visibleText()).not.toContain("α/β/γ");
 
@@ -149,7 +149,7 @@ describe("Targeting: the dock channel alone stops being current", () => {
     expect(visibleText()).toMatch(/−0\.4 m\/s/);
   });
 
-  it("blames nothing when the pairing is genuinely gone rather than not current", async () => {
+  it("blames nothing when the pairing is genuinely gone rather than held", async () => {
     // A tombstone means the pairing is genuinely gone, with nothing to caption; staleness is about the link.
     const { fixture, emitTarget } = mountAtDockingRange();
     await waitFor(() =>

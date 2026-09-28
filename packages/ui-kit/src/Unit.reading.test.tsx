@@ -143,7 +143,7 @@ describe("Unit: a reading with no number", () => {
   });
 });
 
-describe("Unit: a reading that is not current", () => {
+describe("Unit: a reading that is held", () => {
   it("draws the last observation in full, and marks it", () => {
     // Still the best number available, so it is drawn and not withheld.
     const { container } = render(<Unit value={stale(12_400, "held-stale")} />);

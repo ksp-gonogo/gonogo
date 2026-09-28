@@ -30,7 +30,7 @@ function mount() {
   return fixture;
 }
 
-describe("Twr when vessel.propulsion is no longer current", () => {
+describe("Twr when vessel.propulsion is held", () => {
   it("says nothing about currency while the channel is live", async () => {
     mount();
     const gauge = await screen.findByRole("meter", { name: /^TWR \d/ });

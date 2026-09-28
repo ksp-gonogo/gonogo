@@ -17,11 +17,11 @@ import {
 
 function converterTone(
   starved: boolean,
-  notCurrent: boolean,
+  held: boolean,
   running: boolean | null | undefined,
 ): ReadoutTone {
   if (starved) return "warning";
-  if (!notCurrent && running) return "go";
+  if (!held && running) return "go";
   return "default";
 }
 
@@ -36,12 +36,12 @@ function NoFlows() {
 export function ConverterCard({
   converter,
   highlighted,
-  notCurrent: converterNotCurrent,
+  held: converterHeld,
 }: Readonly<{
   converter: IsruConverterEntry;
   highlighted: boolean;
   /** The recipe still holds; the rates, run state and starved diagnostic do not. */
-  notCurrent: boolean;
+  held: boolean;
 }>) {
   /*
    * A running converter whose every output arrived as zero is starved. A process
@@ -49,7 +49,7 @@ export function ConverterCard({
    * not a stall.
    */
   const starved =
-    !converterNotCurrent &&
+    !converterHeld &&
     converter.running === true &&
     converter.outputs.length > 0 &&
     converter.outputs.every((flow) => flow.rate?.isZero() === true);
@@ -61,14 +61,14 @@ export function ConverterCard({
   return (
     <Card
       aria-current={highlighted ? "true" : undefined}
-      tone={converterTone(starved, converterNotCurrent, converter.running)}
+      tone={converterTone(starved, converterHeld, converter.running)}
       identityColor={
         primaryResource ? resourceColor(primaryResource) : undefined
       }
       title={converter.partTitle ?? converter.partId ?? "Converter"}
       titleRight={
         <Inline wrap>
-          {converterNotCurrent ? (
+          {converterHeld ? (
             <Badge severity="info">run state held</Badge>
           ) : (
             <RunStateBadge running={converter.running} />
@@ -86,7 +86,7 @@ export function ConverterCard({
               key={`in-${flow.resource ?? index}`}
               flow={flow}
               direction="in"
-              ratesNotCurrent={converterNotCurrent}
+              ratesHeld={converterHeld}
             />
           ))}
           {converter.outputs.length === 0 && <NoFlows />}
@@ -95,7 +95,7 @@ export function ConverterCard({
               key={`out-${flow.resource ?? index}`}
               flow={flow}
               direction="out"
-              ratesNotCurrent={converterNotCurrent}
+              ratesHeld={converterHeld}
             />
           ))}
         </Grid>

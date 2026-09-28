@@ -18,7 +18,7 @@ export interface AboardTabProps {
   situation: string | undefined;
   situationLocale: string;
   /** The locale was withheld because `vessel.surface` stopped being current, not because it never carried a biome. */
-  localeNotCurrent: boolean;
+  localeHeld: boolean;
   breakdown: ExperimentBreakdownEntry[] | null;
   experiments: ParsedExperiment[] | null;
   sciCount: number | undefined;
@@ -87,10 +87,10 @@ const EXPERIMENT_COLUMNS: ReadonlyArray<DataTableColumn<ParsedExperiment>> = [
   },
 ];
 
-function localeSuffixOf(locale: string, notCurrent: boolean): string {
+function localeSuffixOf(locale: string, held: boolean): string {
   if (locale) return ` · ${locale}`;
   // A withheld locale names itself so it does not read like a vessel that never reported a biome.
-  if (notCurrent) return " · locale no longer current";
+  if (held) return " · locale held";
   return "";
 }
 
@@ -144,7 +144,7 @@ export function AboardTab({
   body,
   situation,
   situationLocale,
-  localeNotCurrent,
+  localeHeld,
   breakdown,
   experiments,
   sciCount,
@@ -160,7 +160,7 @@ export function AboardTab({
   const shownExperiments = (experiments ?? []).filter((e) =>
     filter.matches(e.title),
   );
-  const localeSuffix = localeSuffixOf(situationLocale, localeNotCurrent);
+  const localeSuffix = localeSuffixOf(situationLocale, localeHeld);
   const hasBreakdown = breakdown !== null && breakdown.length > 0;
   const hasExperiments = experiments !== null && experiments.length > 0;
 

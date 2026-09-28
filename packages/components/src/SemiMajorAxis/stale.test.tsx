@@ -67,7 +67,7 @@ function goStale(fixture: ReturnType<typeof setupStreamFixture>): void {
   });
 }
 
-describe("SemiMajorAxis when vessel.orbit is no longer current", () => {
+describe("SemiMajorAxis when vessel.orbit is held", () => {
   it("draws the value with no caveat while the orbit reading is current", async () => {
     // The control: without it every assertion below would pass on a widget that captioned every render.
     const fixture = newFixture();

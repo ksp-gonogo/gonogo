@@ -126,7 +126,7 @@ describe("FuelStatusComponent", () => {
     expect(screen.queryByRole("meter", { name: /^Power/ })).toBeNull();
   });
 
-  it("holds each resource meter marked not-current once the link stops, rather than dropping the row", async () => {
+  it("holds each resource meter marked held once the link stops, rather than dropping the row", async () => {
     const fixture = makeFixture();
     renderFuel(fixture);
 
@@ -155,7 +155,7 @@ describe("FuelStatusComponent", () => {
     await act(async () => {});
   });
 
-  it("holds the stage ΔV meters marked not-current with the budget they are rows of", async () => {
+  it("holds the stage ΔV meters marked held with the budget they are rows of", async () => {
     const fixture = makeFixture();
     renderFuel(fixture);
 

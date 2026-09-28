@@ -13,7 +13,7 @@ import { TargetingComponent } from "./index";
  * What `undefined` means at every read site downstream of the readings: for
  * `vessel.dock`, "not a docking scenario" (never-arrived and tombstone alike),
  * and inside an observed `vessel.target`, "the producer said nothing about this
- * field". A dock record no longer current is `stale.test.tsx`'s subject.
+ * field". A held dock record is `stale.test.tsx`'s subject.
  */
 
 const renderedTrees: Array<() => void> = [];

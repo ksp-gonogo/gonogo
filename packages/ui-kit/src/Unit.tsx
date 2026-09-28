@@ -242,7 +242,7 @@ function UnitSymbol({
  * Handed a `Reading<Value<U>>`, it also draws whether the number is current, in three treatments:
  * - current (`observed`): drawn as a bare `Value` is, with no mark
  * - no number (`pending`, `unowned`, `absent`): the null token
- * - not current (`stale`, any grade): the last observation in full, marked by a dot at superscript height in the warning hue, with the grade and the `asOfUt` instant on hover and in the spoken caption
+ * - held (`stale`, any grade): the last observation in full, marked by a dot at superscript height in the warning hue, with the grade and the `asOfUt` instant on hover and in the spoken caption
  *
  * The mark is out of flow, so a column never reflows when a channel goes quiet, and it is not a live region: a widget that wants the change announced wraps its readout in `role="status"`. It never draws a reckoned figure; a widget that wants the model hands `reckoning.modelled` over as the `Value` it is.
  *

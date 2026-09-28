@@ -137,7 +137,7 @@ const isMarkedHeld = (figure: Element): boolean =>
   figure.querySelector("[data-held]") !== null &&
   figure.querySelector("[data-unit-currency]") !== null;
 
-describe("TransferWindow when the parking orbit is no longer current", () => {
+describe("TransferWindow when the parking orbit is held", () => {
   it("marks nothing held while the telemetry is current", async () => {
     // The control: without it the assertions below would pass on a widget that marks unconditionally or never plans.
     const { fixture, view } = setup();
@@ -168,7 +168,6 @@ describe("TransferWindow when the parking orbit is no longer current", () => {
     expect(screen.getByText("Current phase")).toBeInTheDocument();
     expect(screen.getByText("IDEAL")).toBeInTheDocument();
     expect(screen.getByText(/^Windows to$/)).toBeInTheDocument();
-    expect(visibleText(view.container)).not.toMatch(/no longer current/i);
   });
 
   it("does not fall back to either empty state, so held reads as neither cold nor orbitless", async () => {

@@ -281,7 +281,7 @@ describe("readingOf", () => {
 
   /**
    * The arm the whole exercise is for. A primitive drawing one field has to
-   * know the field is not current, and a selector that lost the grade would
+   * know the field is held, and a selector that lost the grade would
    * hand it a number with nothing said about it.
    */
   it("carries the staleness across, grade and all", () => {

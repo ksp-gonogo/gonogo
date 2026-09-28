@@ -42,7 +42,7 @@ export function StrategyDescription({ of: s }: Readonly<{ of: Strategy }>) {
 function activateTitle(
   s: Strategy,
   commitsUnanswered: boolean,
-  balancesNotCurrent: boolean,
+  balancesHeld: boolean,
   cantAfford: boolean,
 ): string {
   const unanswered = s.canActivate === null && commitsUnanswered;
@@ -54,7 +54,7 @@ function activateTitle(
       return "Nobody screened this answer, so it cannot be committed from here.";
     }
   }
-  if (balancesNotCurrent) {
+  if (balancesHeld) {
     return "Affordability cannot be checked against a held balance";
   }
   if (cantAfford) {
@@ -72,7 +72,7 @@ export function AvailableRow({
   funds,
   reputation,
   science,
-  balancesNotCurrent,
+  balancesHeld,
   factor,
   onFactorChange,
   activateCmd,
@@ -91,7 +91,7 @@ export function AvailableRow({
   reputation: number | null;
   science: number | null;
   /** Withheld because the balances went stale, rather than never having arrived. */
-  balancesNotCurrent: boolean;
+  balancesHeld: boolean;
   factor: number;
   onFactorChange: (v: number) => void;
   /** The shared activate handle; each row's `CommandButton` holds its own arm and in-flight state. */
@@ -158,12 +158,7 @@ export function AvailableRow({
               (s.canActivate === null && commitsUnanswered)
             ) || cantAfford
           }
-          title={activateTitle(
-            s,
-            commitsUnanswered,
-            balancesNotCurrent,
-            cantAfford,
-          )}
+          title={activateTitle(s, commitsUnanswered, balancesHeld, cantAfford)}
         />
       }
     >

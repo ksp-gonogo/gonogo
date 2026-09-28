@@ -113,7 +113,7 @@ function goStale(fixture: StreamFixture): void {
   });
 }
 
-describe("SystemView when vessel.orbit is no longer current", () => {
+describe("SystemView when vessel.orbit is held", () => {
   it("marks the almanac figures taken off the craft's own orbit", async () => {
     const { fixture, view } = mount();
     await waitFor(() => {
@@ -148,7 +148,7 @@ describe("SystemView when vessel.orbit is no longer current", () => {
     const held = view.container.querySelector("[data-vessel-position]");
     expect(held?.getAttribute("data-vessel-position")).toBe("held");
     expect(held?.querySelector("title")?.textContent).toBe(
-      "Vessel position, no longer current",
+      "Vessel position, held",
     );
     // Shape, not shade: the marker has no text to fall back on (WCAG 1.4.1), so held draws the hollow dashed ring of a computed position.
     const ring = held?.querySelector("[data-vessel-marker]");

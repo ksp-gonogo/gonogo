@@ -34,7 +34,7 @@ function chartName(container: HTMLElement): string {
   );
 }
 
-describe("AtmosphereProfile when the flight reading is not current", () => {
+describe("AtmosphereProfile when the flight reading is held", () => {
   let restoreResizeObserver: () => void = () => {};
   let fixture: ReturnType<typeof setupStreamFixture>;
 

@@ -24,7 +24,7 @@ export interface DivergingBarProps<U extends string = string> {
  * as much as its size (a ledger term that produces or consumes). Decorative
  * and `aria-hidden`: pair it with the number, which carries the reading.
  *
- * A figure that is no longer current fades the bar and nothing more; the
+ * A figure that is held fades the bar and nothing more; the
  * number beside it states the currency.
  *
  * Hides itself below `DIVERGING_BAR_MIN_CONTAINER` (a `@container` query

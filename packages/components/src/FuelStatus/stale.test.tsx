@@ -62,7 +62,7 @@ function totalMark(label: string): Element | null {
   return caption.parentElement?.querySelector("[data-held-mark]") ?? null;
 }
 
-describe("FuelStatus when the ΔV budget is no longer current", () => {
+describe("FuelStatus when the ΔV budget is held", () => {
   it("draws the totals unmarked while the budget is current", async () => {
     renderAt(8, 14);
     await waitFor(() => expect(visibleText()).toContain("3900"));

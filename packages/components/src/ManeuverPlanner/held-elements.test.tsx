@@ -54,8 +54,6 @@ describe("ManeuverPlanner planning from held, unmodelled elements", () => {
     await waitFor(() =>
       expect(visibleText(container)).not.toContain("Preview"),
     );
-    expect(visibleText(container)).not.toMatch(
-      /no longer current|last known orbit/i,
-    );
+    expect(visibleText(container)).not.toMatch(/last known orbit/i);
   });
 });

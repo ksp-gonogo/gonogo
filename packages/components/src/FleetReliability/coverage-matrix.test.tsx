@@ -226,7 +226,7 @@ describe("what the reliability augment says in each coverage state", () => {
     });
 
     expect(screen.queryByText(/at risk/)).not.toBeInTheDocument();
-    expect(screen.getByText("not current")).toBeInTheDocument();
+    expect(screen.getByText("held")).toBeInTheDocument();
     await act(async () => {});
   });
 });

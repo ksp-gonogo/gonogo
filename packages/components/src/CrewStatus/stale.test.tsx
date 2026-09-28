@@ -92,8 +92,6 @@ describe("CrewStatus: EVA suit resources that have stopped arriving", () => {
     await waitFor(() =>
       expect(screen.getByRole("meter", { name: "O2" })).toBeInTheDocument(),
     );
-    expect(
-      screen.queryByText(/Suit resources no longer current/),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Suit resources/i)).not.toBeInTheDocument();
   });
 });

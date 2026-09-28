@@ -20,7 +20,7 @@ export const targetingTopics = defineTopicManifest({
  * `vessel.target` is a Reading, so a dropped link can never render "No target
  * set". `vessel.dock` splits per FIELD: the pairing is a fact, while the
  * geometry (reticle, alignment, closing rate) is read as "fly this, now" and
- * stops being drawn once it is not current. Its `absent` and `pending` both
+ * stops being drawn once it is held. Its `absent` and `pending` both
  * mean no HUD.
  */
 export function useTargetingReading() {
@@ -69,7 +69,7 @@ export function useTargetingReading() {
   const tarRelPos = target?.relativePosition && bare(target.relativePosition);
   const tarRelVelVec =
     target?.relativeVelocity && bare(target.relativeVelocity);
-  // Undefined when there is no docking scenario OR the geometry is not current; `alignmentWithheld` tells those apart.
+  // Undefined when there is no docking scenario OR the geometry is held; `alignmentWithheld` tells those apart.
   const dockRelPos = dock?.relativePosition && bare(dock.relativePosition);
   const dockRelVelVec = dock?.relativeVelocity && bare(dock.relativeVelocity);
   const dockDistanceStream = dock?.distance?.magnitude;
@@ -113,7 +113,7 @@ export function useTargetingReading() {
   const dockingAvailable = dockRelPos !== undefined;
 
   /*
-   * The pairing is still selected but its geometry is no longer current, so the
+   * The pairing is still selected but its geometry is held, so the
    * reticle is WITHHELD, which looks identical to a target that stopped being a
    * port. The reckoning arm is excluded: a modelled reticle is drawn under its
    * own caption, and never with neither.

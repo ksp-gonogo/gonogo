@@ -72,7 +72,7 @@ function goStale(fixture: ReturnType<typeof setupStreamFixture>): void {
   });
 }
 
-describe("Objectives when career telemetry is no longer current", () => {
+describe("Objectives when career telemetry is held", () => {
   it("keeps the list, its per-objective states, and does not fall back to the empty state", async () => {
     const fixture = newFixture();
     mount(fixture);

@@ -40,7 +40,7 @@ export const Tank: Story = {
   },
 };
 
-/** The last figure after the link dropped: the fill is marked not-current. */
+/** The last figure after the link dropped: the fill is marked held. */
 export const Held: Story = {
   args: { value: held("ratio", 0.62), tone: "warn" },
 };

@@ -85,7 +85,7 @@ describe("CommSignal: genuinely runs off the stream", () => {
 
     // The panel stays: no collapse to a single sentence.
     await waitFor(() =>
-      expect(screen.queryByText("Link state no longer current")).toBeNull(),
+      expect(screen.getByLabelText("No signal")).toBeTruthy(),
     );
     expect(screen.queryByText("No signal data")).toBeNull();
     expect(screen.getByText("Control")).toBeTruthy();
@@ -98,10 +98,7 @@ describe("CommSignal: genuinely runs off the stream", () => {
     // The bars withhold their count, and their aria-label matches the visible badge.
     expect(screen.getByLabelText("No signal")).toBeTruthy();
     expect(screen.queryByLabelText(/Signal \d of 4/)).toBeNull();
-    expect(screen.queryByLabelText(/not current/i)).toBeNull();
 
-    expect(visibleText()).not.toMatch(/not current/i);
-    expect(visibleText()).not.toMatch(/no longer current/i);
     expect(visibleText()).not.toMatch(/stale/i);
 
     await act(async () => {});

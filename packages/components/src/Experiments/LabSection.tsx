@@ -50,7 +50,7 @@ export function LabSection({
                   {labGrade !== undefined && (
                     <Badge
                       severity={severityFromStreamStatus(labGrade)}
-                      title={`${lab.partName}: lab state is no longer current`}
+                      title={`${lab.partName}: lab state is held`}
                     >
                       {formatStreamStatus(labGrade)}
                     </Badge>

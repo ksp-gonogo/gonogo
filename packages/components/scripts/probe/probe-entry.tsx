@@ -97,13 +97,13 @@ export interface StreamFixtureBlock {
   /** Replayed in order, one `StubTransport.emit` per entry, post-mount. */
   emits: StreamEmit[];
   /**
-   * Stage the scene as NOT CURRENT: once every emit has landed and the tree has
+   * Stage the scene as HELD: once every emit has landed and the tree has
    * settled, drop the transport and mint a frame, so the shot is of a widget
    * whose figures have stopped arriving.
    *
    * Without it the harness can only picture a live scene, and the visible
    * product of the reckoning work is precisely what a widget draws when a
-   * figure is NOT current: the mark on the figure, the held value where a null
+   * figure is held: the mark on the figure, the held value where a null
    * token used to be, the caption naming the state. A field reading and a
    * minted `Value` of the same magnitude draw identical pixels, so a stale
    * scene rendered live is byte-identical to its live twin and shows nothing
@@ -112,7 +112,7 @@ export interface StreamFixtureBlock {
    * The DROP is the lever rather than a clock advance because it is the one the
    * widgets' own stale tests use (`store.setTransportConnected(false)`), so a
    * render and the test asserting on it are staging the same thing. The other
-   * two routes to a not-current reading are already reachable from a fixture
+   * two routes to a held reading are already reachable from a fixture
    * and need nothing here: a server-stamped `meta.staleness` goes on the emit
    * itself, and a confirmed absence is a `null` payload.
    */
@@ -670,7 +670,7 @@ async function mountInto(
   // The drop goes LAST, after the clicks, because that is the order an operator
   // meets it: a panel is opened, a control is armed, and then the link goes. Run
   // before them instead and a click-driven mode would be reaching for controls a
-  // not-current widget has already disabled, so the two features could not be
+  // held widget has already disabled, so the two features could not be
   // used in one scene. `beginFrame` mints the frame that publishes the new
   // status rather than waiting on the provider's own rAF loop, so the shot does
   // not depend on which of the two lands first.

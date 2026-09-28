@@ -87,7 +87,6 @@ describe("RoboticsConsole: a servo list that has stopped arriving", () => {
     );
     expect(visibleText(container)).toContain("22°");
     expect(visibleText(container)).not.toContain("Position unknown");
-    expect(visibleText(container)).not.toContain("no longer current");
     expect(visibleText(container)).toContain("Arm Hinge");
     expect(visibleText(container)).toContain("Bay Piston");
     expect(visibleText(container)).toContain("60°");

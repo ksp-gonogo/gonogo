@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "eva-suit-link-lost",
-    "notes": "The same EVA as eva-suit-low-o2, after the suit resources stop arriving. The wire is identical and the link then drops, so both suit meters are HELD and marked rather than coming off the screen. Rendering the two side by side is what shows the mark at all. Before this the readout returned early and replaced both meters with the sentence 'Suit resources no longer current', discarding the two figures that decide whether a kerbal outside the craft has time to get back in.",
+    "notes": "The same EVA as eva-suit-low-o2, after the suit resources stop arriving. The wire is identical and the link then drops, so both suit meters are HELD and marked rather than coming off the screen. Rendering the two side by side is what shows the mark at all. Before this the readout returned early and replaced both meters with a sentence, discarding the two figures that decide whether a kerbal outside the craft has time to get back in.",
     "inheritsFrom": "eva-suit-low-o2.json, whose _meta records the Kerbalism sourcing for every value here"
   },
   "_stream": {

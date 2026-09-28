@@ -87,7 +87,7 @@ async function settle() {
   });
 }
 
-describe("ActionGroup when the group's state is not current", () => {
+describe("ActionGroup when the group's state is held", () => {
   it("shows the state while it is current", async () => {
     // Control: without it a widget that never shows a state would pass.
     const { fixture } = mount("SAS");
@@ -116,7 +116,7 @@ describe("ActionGroup when the group's state is not current", () => {
     expect(toggle().textContent).toBe(NULL_DISPLAY);
     expect(toggle().getAttribute("title")).toBe("Cannot invert a held state");
     // Time is only ever shown through Unit, so the widget writes no currency wording of its own.
-    expect(visibleText(container)).not.toMatch(/not current|last contact/i);
+    expect(visibleText(container)).not.toMatch(/last contact/i);
     expect(screen.queryByRole("status")).toBeNull();
   });
 

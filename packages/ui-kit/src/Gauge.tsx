@@ -90,7 +90,7 @@ function arcSegmentPath(
  *
  * `value`, `min`, `max` and every zone bound share one unit, so a zone in
  * kilometres on a metre axis is a compile error, and the centre readout is
- * written from that unit. Handed a whole `Reading`, a not-current figure marks
+ * written from that unit. Handed a whole `Reading`, a held figure marks
  * the readout, a model's interval puts two bounds on the arc, and no number
  * shows no needle. The axis itself is the caller's chosen scale and carries no
  * currency.

@@ -40,7 +40,7 @@ A fixture's `_stream` block is the wire its scene is fed from:
 |---|---|
 | `emits` | replayed once the scene has subscribed, in the order written, or in the order sent under `delaySeconds`. An entry's `validAt` is the instant it was sent; with none it was sent at `pinnedUt` |
 | `pinnedUt` | the operator's view time, which the scene is drawn at when it has no `delaySeconds`. Defaults to `1000000` |
-| `stopsArriving` | drop the link once every emit has landed, so the picture is of figures that are no longer current |
+| `stopsArriving` | drop the link once every emit has landed, so the picture is of figures that are held |
 | `delaySeconds` | a one-way light time between the craft and the screen, in seconds |
 
 **`delaySeconds`** stages what an operator sees across a light time. Each

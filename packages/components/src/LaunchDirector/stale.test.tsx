@@ -39,7 +39,7 @@ const JEB = {
   unavailableReason: "",
 };
 
-describe("LaunchDirector when its telemetry is no longer current", () => {
+describe("LaunchDirector when its telemetry is held", () => {
   let stream: ReturnType<typeof setupStreamFixture>;
 
   beforeEach(() => {
@@ -152,7 +152,7 @@ describe("LaunchDirector when its telemetry is no longer current", () => {
   });
 
   it("keeps the held balance on screen, marked by its Unit, and says affordability is not judged against it", async () => {
-    const { container } = renderWidget();
+    renderWidget();
     emitPreLaunch();
     await waitFor(() =>
       expect(screen.getByTitle("Available funds")).toBeTruthy(),
@@ -162,12 +162,10 @@ describe("LaunchDirector when its telemetry is no longer current", () => {
 
     await waitFor(() => expect(heldFundsCaption()).toMatch(/OFFLINE, as of /));
     expect(screen.queryByTitle("Available funds")).toBeNull();
-    // Time is shown only through Unit, never as a caption the widget writes.
-    expect(visibleText(container)).not.toContain("not current");
   });
 
   it("does not present a withheld balance as an empty wallet the operator has never seen", async () => {
-    // The not-current wording is its own sentence, distinct from a cold start's "funds unknown".
+    // The held wording is its own sentence, distinct from a cold start's "funds unknown".
     const { container } = renderWidget();
     emitPreLaunch();
     await waitFor(() =>

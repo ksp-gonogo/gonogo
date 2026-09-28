@@ -69,7 +69,7 @@ function goStale(fixture: ReturnType<typeof mount>): void {
   });
 }
 
-describe("WarpControl when time.warp is no longer current", () => {
+describe("WarpControl when time.warp is held", () => {
   it("holds the rate and the mode caption rather than blanking them", async () => {
     const fixture = mount(6, 5);
     emitWarp(fixture);

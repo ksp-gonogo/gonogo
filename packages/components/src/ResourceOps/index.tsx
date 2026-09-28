@@ -66,8 +66,8 @@ function ResourceOpsComponent(
   // Each channel carries its own currency: a stale drill channel says nothing about the converters.
   const drillsReading = topics.useTelemetry("isru.drills");
   const convertersReading = topics.useTelemetry("isru.converters");
-  const drillsNotCurrent = drillsReading.state === "stale";
-  const convertersNotCurrent = convertersReading.state === "stale";
+  const drillsHeld = drillsReading.state === "stale";
+  const convertersHeld = convertersReading.state === "stale";
 
   const allDrills = useMemo(
     () => stillTrue(drillsReading, EMPTY_LIST) ?? EMPTY_LIST,
@@ -105,12 +105,12 @@ function ResourceOpsComponent(
 
   // Withheld the moment either side of the sum stops being current.
   const activeCount = useMemo(() => {
-    if (drillsNotCurrent || convertersNotCurrent) return undefined;
+    if (drillsHeld || convertersHeld) return undefined;
     return (
       allDrills.filter((d) => d.running === true).length +
       allConverters.filter((c) => c.running === true).length
     );
-  }, [allDrills, allConverters, drillsNotCurrent, convertersNotCurrent]);
+  }, [allDrills, allConverters, drillsHeld, convertersHeld]);
   const netEc = useMemo(
     () => netElectricChargeDraw(allConverters),
     [allConverters],
@@ -141,7 +141,7 @@ function ResourceOpsComponent(
         <DrillCard
           drill={drill}
           highlighted={index === current}
-          notCurrent={drillsNotCurrent}
+          held={drillsHeld}
         />
       ),
     }));
@@ -154,18 +154,12 @@ function ResourceOpsComponent(
         <ConverterCard
           converter={converter}
           highlighted={allDrills.length + index === current}
-          notCurrent={convertersNotCurrent}
+          held={convertersHeld}
         />
       ),
     }));
     return [...drillRows, ...converterRows];
-  }, [
-    allDrills,
-    allConverters,
-    current,
-    drillsNotCurrent,
-    convertersNotCurrent,
-  ]);
+  }, [allDrills, allConverters, current, drillsHeld, convertersHeld]);
 
   if (!anything) {
     return (
@@ -195,7 +189,7 @@ function ResourceOpsComponent(
             total={total}
             activeCount={activeCount}
             netEc={netEc}
-            netEcNotCurrent={convertersNotCurrent}
+            netEcHeld={convertersHeld}
             location={location}
           />
         </Section>,

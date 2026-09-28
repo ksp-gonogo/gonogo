@@ -43,7 +43,7 @@ describe("DivergingBar, handed a Reading", () => {
     expect(asReading.container.innerHTML).toBe(asValue.container.innerHTML);
   });
 
-  it("flags a bar drawn from a figure that is no longer current", () => {
+  it("flags a bar drawn from a figure that is held", () => {
     const { container } = render(
       <DivergingBar value={held(value("units/s", 4))} maxAbs={SCALE} />,
     );

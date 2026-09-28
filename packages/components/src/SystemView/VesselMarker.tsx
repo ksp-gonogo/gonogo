@@ -135,9 +135,7 @@ export function VesselMarker({
       data-vessel-position={held ? "held" : "current"}
     >
       {/* A <g> takes no non-interactive role, so SVG's own title names it rather than aria-label. */}
-      <title>
-        {held ? "Vessel position, no longer current" : "Vessel position"}
-      </title>
+      <title>{held ? "Vessel position, held" : "Vessel position"}</title>
       <DepthRing
         cx={marker.x}
         cy={marker.y}

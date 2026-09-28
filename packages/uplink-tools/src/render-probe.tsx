@@ -204,12 +204,12 @@ export interface ScenePayload {
   declaredTopics: string[];
   emits: SceneEmit[];
   /**
-   * Stage the scene as NOT CURRENT: once every emit has landed and the setup
+   * Stage the scene as HELD: once every emit has landed and the setup
    * has run, drop the transport and mint a frame, so the shot is of a widget
    * whose figures have stopped arriving.
    *
    * <p>Without it this harness can only picture a live scene, and what a widget
-   * draws when a figure is not current is exactly the thing worth seeing: the
+   * draws when a figure is held is exactly the thing worth seeing: the
    * mark on the figure, the held value where a null token used to be, the
    * caption naming which half is dated. A field reading and a minted `Value` of
    * the same magnitude draw identical pixels, so a stale scene rendered live is

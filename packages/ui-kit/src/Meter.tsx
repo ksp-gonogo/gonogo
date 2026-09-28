@@ -117,7 +117,7 @@ export interface MeterProps<U extends string = string>
  *
  * One tick per band bound, on the track, at the bound's place along it: two
  * marks, never a shaded interval, since a `sigma1` band does not claim
- * containment. The bar keeps showing the observation, marked not-current when
+ * containment. The bar keeps showing the observation, marked held when
  * stale; the marks sit where the model says the value is now. A band in a unit
  * other than the half it belongs to draws nothing.
  *
@@ -126,7 +126,7 @@ export interface MeterProps<U extends string = string>
  * - the value's band marks the track where the value is
  * - the capacity's band marks the track's end, placed as a fraction of the
  *   capacity drawn against, so a capacity that might be smaller marks inside
- * - a capacity that is not current dashes the track rather than dimming the fill
+ * - a capacity that is held dashes the track rather than dimming the fill
  *
  * There is no combined interval: whether the two errors are independent is
  * unknown here. A caller wanting one should publish a banded `ratio` reading.

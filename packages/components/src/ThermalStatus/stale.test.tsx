@@ -45,7 +45,6 @@ describe("ThermalStatus: a thermal record that has stopped arriving", () => {
     await waitFor(() =>
       expect(visibleText(container)).toContain("Heat Shield"),
     );
-    expect(visibleText(container)).not.toContain("no longer current");
   });
 
   it("holds every temperature and withholds only the judgement", async () => {
@@ -68,8 +67,6 @@ describe("ThermalStatus: a thermal record that has stopped arriving", () => {
 
     expect(visibleText(container)).toContain("Heat Shield (2.5m)");
     expect(visibleText(container)).toContain("1177 °C");
-
-    expect(visibleText(container)).not.toContain("no longer current");
   });
 
   it("does not keep claiming a band a stale ratio cannot support", async () => {
@@ -86,7 +83,6 @@ describe("ThermalStatus: a thermal record that has stopped arriving", () => {
     await waitFor(() =>
       expect(visibleText(container).toLowerCase()).not.toContain("nominal"),
     );
-    expect(visibleText(container)).not.toContain("no longer current");
   });
 
   it("keeps the hottest part's meter, its fill dimmed and its temperature marked", async () => {

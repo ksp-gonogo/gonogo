@@ -31,7 +31,7 @@ function ThermalStatusComponent({
     thermalReading.state === "observed" || thermalReading.state === "stale"
       ? thermalReading.value
       : undefined;
-  const thermalNotCurrent = thermalReading.state === "stale";
+  const thermalHeld = thermalReading.state === "stale";
   const rawHottestName = thermal?.hottestPart?.name;
   const rawHottestTempK = thermal?.hottestPart?.skinTemp;
   const rawHottestMaxK = thermal?.hottestPart?.skinMaxTemp;
@@ -86,11 +86,11 @@ function ThermalStatusComponent({
   const shieldTempK = shieldSentinel ? undefined : rawShieldTempK;
   const shieldFluxKw = shieldSentinel ? undefined : rawShieldFluxKw;
 
-  const hottestBand: Band = thermalNotCurrent
+  const hottestBand: Band = thermalHeld
     ? "unknown"
     : bandFromRatio(hottestRatio?.magnitude);
   const engineBand = resolveEngineBand(
-    thermalNotCurrent,
+    thermalHeld,
     engineOverheat,
     engineRatio?.magnitude,
   );
@@ -157,11 +157,11 @@ function ThermalStatusComponent({
 }
 
 function resolveEngineBand(
-  notCurrent: boolean,
+  held: boolean,
   overheating: boolean | null | undefined,
   ratio: number | undefined,
 ): Band {
-  if (notCurrent) return "unknown";
+  if (held) return "unknown";
   if (overheating) return "critical";
   return bandFromRatio(ratio);
 }

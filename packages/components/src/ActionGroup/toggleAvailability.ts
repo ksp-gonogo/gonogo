@@ -23,19 +23,19 @@ export const UNAVAILABLE_TITLES: Record<UnavailableReason, string> = {
 
 /** In precedence order; "Not reported" is last because it alone does not stop the press. */
 export function unavailableReasonOf({
-  valueNotCurrent,
+  valueHeld,
   stateUnreadable,
   isPaused,
   commConnected,
   provenance,
 }: {
-  valueNotCurrent: boolean;
+  valueHeld: boolean;
   stateUnreadable: boolean;
   isPaused: boolean | undefined;
   commConnected: boolean | undefined;
   provenance: ActionGroup["provenance"];
 }): UnavailableReason | null {
-  if (valueNotCurrent) return HELD_STATE;
+  if (valueHeld) return HELD_STATE;
   if (stateUnreadable) return "State unreadable";
   if (isPaused === true) return "Paused";
   if (commConnected === false) return "No signal";

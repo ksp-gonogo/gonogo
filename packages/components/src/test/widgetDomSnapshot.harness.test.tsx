@@ -10,7 +10,7 @@ import { renderWidgetMode, snapshotWidgetMode } from "./widgetDomSnapshot";
  * one thing and nothing without it, so "the harness fed me" and "the
  * assertion passed" are the same statement. Covered: a fixture's `_stream`
  * block, a `ResizeObserver` that reports a size, the registered
- * `defaultConfig`, and a scene staged as not current.
+ * `defaultConfig`, and a scene staged as held.
  */
 
 const MODE = { name: "probe", w: 8, h: 8 };
@@ -25,7 +25,7 @@ function StreamProbe() {
 }
 
 /**
- * Renders how current the reading is, and the value with it: a not-current
+ * Renders how current the reading is, and the value with it: a held
  * scene must arrive as `stale` and still carry the figure.
  */
 function CurrencyProbe() {
@@ -135,7 +135,7 @@ describe("widget DOM harness feeds the widget", () => {
     expect(html).toContain("state=observed sas=true");
   });
 
-  it("stages a scene as no longer current, holding its figures", async () => {
+  it("stages a scene as held, holding its figures", async () => {
     const html = await snapshotWidgetMode({
       Widget: CurrencyProbe,
       fixture: STOPPED_ARRIVING_FIXTURE,
@@ -144,7 +144,7 @@ describe("widget DOM harness feeds the widget", () => {
     expect(html).toContain("state=stale sas=true");
   });
 
-  it("stages a not-current scene on the live-render path too", async () => {
+  it("stages a held scene on the live-render path too", async () => {
     const { container, teardown } = await renderWidgetMode({
       Widget: CurrencyProbe,
       fixture: STOPPED_ARRIVING_FIXTURE,

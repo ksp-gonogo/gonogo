@@ -39,7 +39,7 @@ export interface StrategiesViewProps {
   funds: Value<"funds"> | null | undefined;
   reputation: Value<"rep"> | null | undefined;
   science: Value<"science"> | null | undefined;
-  balancesNotCurrent: boolean;
+  balancesHeld: boolean;
   /** The balances the rail draws, held ones included so Unit can mark them. */
   shownBalances: {
     funds: UnitValue<"funds">;
@@ -68,25 +68,25 @@ function inferCap(softBlocked: readonly Strategy[]): number | null {
 }
 
 function tinyFundsTitle(
-  balancesNotCurrent: boolean,
+  balancesHeld: boolean,
   funds: Value<"funds"> | null | undefined,
 ): string | undefined {
   // A held balance is drawn by Unit, which carries its own hover.
-  if (balancesNotCurrent) return undefined;
+  if (balancesHeld) return undefined;
   if (funds != null) return speakQuantity(funds, { decimals: 0 });
   return "No funds balance has arrived";
 }
 
 function TinyFunds({
-  balancesNotCurrent,
+  balancesHeld,
   funds,
   shown,
 }: {
-  balancesNotCurrent: boolean;
+  balancesHeld: boolean;
   funds: Value<"funds"> | null | undefined;
   shown: UnitValue<"funds">;
 }) {
-  if (balancesNotCurrent) return <Unit value={shown} decimals={0} />;
+  if (balancesHeld) return <Unit value={shown} decimals={0} />;
   if (funds != null) {
     return (
       <>
@@ -108,7 +108,7 @@ export function StrategiesView({
   funds,
   reputation,
   science,
-  balancesNotCurrent,
+  balancesHeld,
   shownBalances,
   netFunds,
   factorById,
@@ -151,7 +151,7 @@ export function StrategiesView({
     funds,
     reputation,
     science,
-    balancesNotCurrent,
+    balancesHeld,
     factorById,
     setFactorById,
     activateCmd,
@@ -170,11 +170,11 @@ export function StrategiesView({
             {/* Funds first, so an ellipsis cuts the active count, never the balance. */}
             <TinyFundsRow
               data-balance-row=""
-              title={tinyFundsTitle(balancesNotCurrent, funds)}
+              title={tinyFundsTitle(balancesHeld, funds)}
             >
               <TinyFundsFigure>
                 <TinyFunds
-                  balancesNotCurrent={balancesNotCurrent}
+                  balancesHeld={balancesHeld}
                   funds={funds}
                   shown={shownBalances.funds}
                 />

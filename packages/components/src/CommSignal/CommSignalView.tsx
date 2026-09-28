@@ -35,7 +35,7 @@ import {
   signalCaption,
 } from "./signalVerdict";
 
-/** The figure beside the bars. Nulled when the link is not current, including the control label, which is read off the held `vessel.comms`. */
+/** The figure beside the bars. Nulled when the link is held, including the control label, which is read off the held `vessel.comms`. */
 function signalHeadline({
   noSignal,
   connected,
@@ -71,7 +71,7 @@ export function CommSignalComponent({
     commsReading.state === "observed"
       ? commsReading.value.signalStrength
       : undefined;
-  const linkNotCurrent =
+  const linkHeld =
     linkReading.state === "stale" || commsReading.state === "stale";
   /*
    * The control state is held through a stale reading because a pill that
@@ -132,7 +132,7 @@ export function CommSignalComponent({
   }, [hopRateEntries]);
 
   // When the link state stops arriving, every line nulls and one badge carries the reason.
-  const noSignal = linkNotCurrent;
+  const noSignal = linkHeld;
   const nothingHasArrived =
     connected === undefined &&
     strength === undefined &&

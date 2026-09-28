@@ -86,7 +86,7 @@ function goStale(fixture: ReturnType<typeof setupStreamFixture>): void {
   });
 }
 
-describe("PowerSystems when vessel.parts is no longer current", () => {
+describe("PowerSystems when vessel.parts is held", () => {
   it("keeps every rate and says the read behind them has stopped", async () => {
     const fixture = setupStreamFixture({
       pinnedUt: 10,

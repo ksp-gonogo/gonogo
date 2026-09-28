@@ -7,7 +7,7 @@ export interface UnlockContext {
   chargesScience: boolean;
   unlockBlocked: boolean;
   sciAvailable: number | null;
-  careerNotCurrent: boolean;
+  careerHeld: boolean;
 }
 
 export interface UnlockHandlers {
@@ -21,12 +21,12 @@ export interface UnlockHandlers {
 function priceTooltip(
   n: TechNode,
   sciAvailable: number | null,
-  careerNotCurrent: boolean,
+  careerHeld: boolean,
 ): string {
   if (n.scienceCost === null) return "No price reported for this node";
   const need = () => writeQuantity(value("science", n.scienceCost as number));
   if (sciAvailable === null) {
-    if (careerNotCurrent) {
+    if (careerHeld) {
       return `Need ${need()} (affordability cannot be checked against a held balance)`;
     }
     return `Need ${need()} (no science balance has arrived)`;
@@ -57,7 +57,7 @@ export function unlockHandlersFor(
       canAfford,
       moneyDecides,
       canUnlock,
-      affordTooltip: priceTooltip(n, ctx.sciAvailable, ctx.careerNotCurrent),
+      affordTooltip: priceTooltip(n, ctx.sciAvailable, ctx.careerHeld),
     };
   }
   return { isResearchable, canAfford, moneyDecides, canUnlock };

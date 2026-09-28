@@ -50,7 +50,7 @@ export function signalBarCount({
   pct: number | null;
   controlState: number | undefined;
 }): number | null {
-  // Withheld: `controlState` is read off the held `vessel.comms`, so the bars would otherwise paint a confident "Full" above a caption saying the verdict is not current.
+  // Withheld: `controlState` is read off the held `vessel.comms`, so the bars would otherwise paint a confident "Full" above a caption saying the verdict is held.
   if (noSignal) return 0;
   if (connected === false) return 0;
   if (pct !== null) return Math.max(1, Math.ceil(pct * 4));
@@ -77,7 +77,7 @@ export function hopHint({
   return ` (${relayCount} relay${relayCount === 1 ? "" : "s"})`;
 }
 
-/** "Signal to <centre>" asserts a signal, so it nulls whenever the link verdict is absent or not current. */
+/** "Signal to <centre>" asserts a signal, so it nulls whenever the link verdict is absent or held. */
 export function signalCaption({
   noSignal,
   connected,

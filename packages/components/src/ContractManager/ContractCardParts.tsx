@@ -14,7 +14,7 @@ import {
   REWARDS_STYLE,
 } from "./styles";
 
-/** A card's title-row trailer: the deadline, and the held mark while the board is not current. */
+/** A card's title-row trailer: the deadline, and the held mark while the board is held. */
 export function ContractDeadline({
   deadlineUt,
   universalTime,
@@ -34,7 +34,7 @@ export function ContractDeadline({
         <Badge
           severity={severityFromStreamStatus(boardHeld)}
           size="sm"
-          title="Contract board is no longer current"
+          title="Contract board is held"
         >
           {formatStreamStatus(boardHeld)}
         </Badge>

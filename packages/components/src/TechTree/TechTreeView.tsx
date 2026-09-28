@@ -36,7 +36,7 @@ export interface TechTreeViewProps {
   h?: number;
   allNodes: TechNode[] | null;
   sciAvailable: number | null;
-  careerNotCurrent: boolean;
+  careerHeld: boolean;
   /** The science balance as drawn, held included so Unit can mark it. */
   scienceShown: UnitValue<"science">;
   chargesScience: boolean;
@@ -47,12 +47,12 @@ export interface TechTreeViewProps {
 /** The subtitle's science balance; it stays on screen when missing, since that is when the Unlocks refuse. */
 function ScienceBalance({
   sciAvailable,
-  careerNotCurrent,
+  careerHeld,
   scienceShown,
   chargesScience,
 }: {
   sciAvailable: number | null;
-  careerNotCurrent: boolean;
+  careerHeld: boolean;
   scienceShown: UnitValue<"science">;
   chargesScience: boolean;
 }) {
@@ -65,7 +65,7 @@ function ScienceBalance({
     );
   }
   if (!chargesScience) return null;
-  if (careerNotCurrent) {
+  if (careerHeld) {
     return (
       <SciReadout title="Available science">
         · <Unit value={scienceShown} decimals={0} />
@@ -84,7 +84,7 @@ export function TechTreeView({
   h,
   allNodes,
   sciAvailable,
-  careerNotCurrent,
+  careerHeld,
   scienceShown,
   chargesScience,
   unlockCmd,
@@ -154,7 +154,7 @@ export function TechTreeView({
                 <Unit>science</Unit>
               </TinySci>
             )}
-            {sciAvailable === null && careerNotCurrent && (
+            {sciAvailable === null && careerHeld && (
               <TinySci>
                 <Unit value={scienceShown} decimals={0} />
               </TinySci>
@@ -170,7 +170,7 @@ export function TechTreeView({
     chargesScience,
     unlockBlocked,
     sciAvailable,
-    careerNotCurrent,
+    careerHeld,
   };
 
   const subtitle = showSubtitle ? (
@@ -179,7 +179,7 @@ export function TechTreeView({
       researchable{" "}
       <ScienceBalance
         sciAvailable={sciAvailable}
-        careerNotCurrent={careerNotCurrent}
+        careerHeld={careerHeld}
         scienceShown={scienceShown}
         chargesScience={chargesScience}
       />

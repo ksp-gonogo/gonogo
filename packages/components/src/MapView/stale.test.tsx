@@ -7,7 +7,7 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { MapViewComponent } from "./index";
 
 /**
- * What MapView does when its position is no longer current. A dot on a map is
+ * What MapView does when its position is held. A dot on a map is
  * a claim about where the craft is now, so the marker is withheld; the readouts
  * keep the last observed figures, each marked held by its own Unit.
  */
@@ -60,7 +60,7 @@ function dropLink(fixture: ReturnType<typeof mount>["fixture"]) {
   });
 }
 
-describe("MapView when the position is not current", () => {
+describe("MapView when the position is held", () => {
   it("draws the position unmarked while it is current", async () => {
     // The control: without it every assertion below would pass on a widget that never renders a position.
     const { fixture, container } = mount();
@@ -111,7 +111,6 @@ describe("MapView when the position is not current", () => {
     await waitFor(() =>
       expect(container.querySelector("[data-held]")).not.toBeNull(),
     );
-    expect(visibleText(container)).not.toContain("not current");
     expect(visibleText(container)).not.toContain("No position data");
   });
 

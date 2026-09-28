@@ -37,7 +37,7 @@ const VESSEL_PARTS_WIRE = topologyToVesselPartsWire(TOPOLOGY, PART_LIVE);
 
 const HOTTEST_PART = "liquidEngine2.v2";
 const HOTTEST_PART_ID = "965970713";
-const CAPTION = /no longer current|last contact/i;
+const CAPTION = /last contact/i;
 
 function heldMarks(): NodeListOf<Element> {
   return document.querySelectorAll("[data-held-mark]");
@@ -51,7 +51,7 @@ function ringCount(container: HTMLElement): number {
   return container.querySelectorAll('[data-role="highlight-ring"]').length;
 }
 
-describe("ShipMap when the thermal reading is not current", () => {
+describe("ShipMap when the thermal reading is held", () => {
   function mount() {
     const fixture = setupStreamFixture({
       pinnedUt: 0,

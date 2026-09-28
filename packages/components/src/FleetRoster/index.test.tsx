@@ -586,7 +586,7 @@ describe("FleetRosterComponent", () => {
     );
   });
 
-  it("marks a light-time held over from before a blackout as last known, not current", async () => {
+  it("marks a light-time held over from before a blackout as last known rather than live", async () => {
     const { trigger } = await renderBlackout();
 
     // The last measured light-time is still worth showing, but must not read as a live measurement of a link that is down.

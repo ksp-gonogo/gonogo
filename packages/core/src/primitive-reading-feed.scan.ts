@@ -159,7 +159,7 @@ const CURRENCY_MEMBERS = ["state", "reckoning"] as const;
  * An age is `viewUt.minus(observedAt(reading))`: recomputed against the current
  * frame on every render, so it is exactly current at the instant it is drawn,
  * and its entire job is to say that something ELSE is old. Hand it the reading
- * it measured and `Unit` marks it not-current, which is self-refuting: the one
+ * it measured and `Unit` marks it held, which is self-refuting: the one
  * figure on the panel that is certainly current, drawn as stale, beside the
  * value it exists to caveat. A gate that forces that is a gate that produces
  * the defect it was written to prevent.
@@ -464,7 +464,7 @@ function derivedFromReading(
      * A currency accessor's result is about the reading, not about the quantity
      * it carries, so the reading it was handed contributes no provenance. See
      * `CURRENCY_ACCESSORS`: the age readouts this unblocks would otherwise be
-     * forced to draw themselves as not-current.
+     * forced to draw themselves as held.
      */
     if (isCurrencyAccessor(checker, node.expression)) return false;
     /*

@@ -76,7 +76,7 @@ function goStale(fixture: ReturnType<typeof setupStreamFixture>): void {
   });
 }
 
-describe("SpaceCenterStatus when career telemetry is no longer current", () => {
+describe("SpaceCenterStatus when career telemetry is held", () => {
   it("shows the balance and an armed upgrade while the career record is current", async () => {
     // The control: without it every assertion below would pass on a widget that never offers an upgrade.
     const fixture = setupStreamFixture({
@@ -101,7 +101,7 @@ describe("SpaceCenterStatus when career telemetry is no longer current", () => {
       pinnedUt: 10,
       suspendFrames: true,
     });
-    const container = mount(fixture, "scs-stale-funds", 6, 7);
+    mount(fixture, "scs-stale-funds", 6, 7);
     emitCareer(fixture);
     await waitFor(() =>
       expect(screen.getByTitle("Available funds")).toBeTruthy(),
@@ -126,7 +126,6 @@ describe("SpaceCenterStatus when career telemetry is no longer current", () => {
       (screen.getByRole("button", { name: "Upgrade" }) as HTMLButtonElement)
         .disabled,
     ).toBe(true);
-    expect(visibleText(container)).not.toContain("funds no longer current");
   });
 
   it("draws no affordability verdict off a held balance", async () => {
@@ -158,7 +157,7 @@ describe("SpaceCenterStatus when career telemetry is no longer current", () => {
       pinnedUt: 10,
       suspendFrames: true,
     });
-    const container = mount(fixture, "scs-stale-hold-line", 6, 7);
+    mount(fixture, "scs-stale-hold-line", 6, 7);
     emitCareer(fixture);
     await waitFor(() =>
       expect(screen.getByTitle("Available funds")).toBeTruthy(),
@@ -176,7 +175,6 @@ describe("SpaceCenterStatus when career telemetry is no longer current", () => {
     expect(
       screen.getByTitle("Available funds").querySelector("[data-held]"),
     ).not.toBeNull();
-    expect(visibleText(container)).not.toMatch(/not current|no longer current/);
     // MAX is a claim about the facility, not about the link.
     expect(screen.queryByText("MAX")).toBeNull();
   });
@@ -220,7 +218,6 @@ describe("SpaceCenterStatus when career telemetry is no longer current", () => {
     await waitFor(() => expect(screen.getByText("SPACE CENTER")).toBeTruthy());
     expect(container.querySelector("[data-held]")).toBeNull();
     expect(visibleText(container)).toContain("funds unknown");
-    expect(screen.queryByTitle("Funds balance no longer current")).toBeNull();
   });
 
   it("marks the tiny bucket's held balance rather than blanking it", async () => {
@@ -241,7 +238,6 @@ describe("SpaceCenterStatus when career telemetry is no longer current", () => {
       expect(container.querySelector("[data-held]")).not.toBeNull(),
     );
     expect(visibleText(container)).not.toContain(NULL_DISPLAY);
-    expect(screen.queryByTitle("Funds balance no longer current")).toBeNull();
   });
 
   it("leaves a cold tiny bucket unmarked, so a held balance is distinguishable there too", async () => {

@@ -177,7 +177,7 @@ export const SHEETS: MeterSheet[] = [
   },
   {
     id: "currency",
-    title: "A band on a reading that is no longer current",
+    title: "A band on a reading that is held",
     blurb:
       "A stale bar is the last real observation and is marked as one. The marks " +
       "are the model's interval at SCET, so the gap between the bar's end and " +
@@ -244,7 +244,7 @@ export const SHEETS: MeterSheet[] = [
     title: "A dense stack at tile width, stale mixed with current",
     blurb:
       "Eight rows at the width a real tile gives them, half of them no longer " +
-      "current. The question is whether the room reserved for the not-current " +
+      "current. The question is whether the room reserved for the held " +
       "mark reads as cramped when every row pays it, which one meter on a " +
       "specimen sheet cannot show.",
     width: 260,

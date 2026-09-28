@@ -34,7 +34,7 @@ export function ReachList({
   originName,
   budgetDeltaV,
   reserveDeltaV,
-  budgetNotCurrent,
+  budgetHeld,
   selectedIndex,
   onSelect,
   budgetHeldSince,
@@ -45,7 +45,7 @@ export function ReachList({
   originName: string;
   budgetDeltaV: number | null;
   reserveDeltaV: number;
-  budgetNotCurrent: boolean;
+  budgetHeld: boolean;
   /** Body index of the destination the windows list is currently scoped to. */
   selectedIndex: number;
   onSelect: (bodyIndex: number) => void;
@@ -131,9 +131,7 @@ export function ReachList({
                         // A stale budget can only over-state reach, so dated verdicts do not wear the live GO colour.
                         <Badge
                           severity={
-                            budgetNotCurrent
-                              ? undefined
-                              : VERDICT_SEVERITY[verdict]
+                            budgetHeld ? undefined : VERDICT_SEVERITY[verdict]
                           }
                         >
                           {VERDICT_LABEL[verdict]}

@@ -36,7 +36,7 @@ describe("MissionDate, handed a Reading", () => {
     expect(asReading.container.innerHTML).toBe(asValue.container.innerHTML);
   });
 
-  it("still draws the date itself when it is no longer current", () => {
+  it("still draws the date itself when it is held", () => {
     const bare = render(<MissionDate value={AT} />).container.textContent;
     const { container } = render(<MissionDate value={held(AT)} />);
     // A stale instant stays true, so only the mark and its spoken caption are added.

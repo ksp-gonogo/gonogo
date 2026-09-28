@@ -130,7 +130,7 @@ interface StreamFixtureBlock {
   /** Replayed in order, one `StubTransport.emit` per entry, post-mount. */
   emits: Array<{ channel: string; value: unknown; meta?: Partial<Meta> }>;
   /**
-   * Stage the scene as not current: drop the transport once every emit has
+   * Stage the scene as held: drop the transport once every emit has
    * landed, so the widget is captured holding figures that stopped arriving.
    */
   stopsArriving?: boolean;
@@ -537,7 +537,7 @@ export async function snapshotWidgetMode<
     beginPhase("flush-resize-observers");
     await flushResizeObservers();
 
-    // Last, so a not-current scene differs from its live twin by the drop alone.
+    // Last, so a held scene differs from its live twin by the drop alone.
     beginPhase("stops-arriving");
     dropTransport();
     await flushProviderFrame(providerMounted, emitFrame);

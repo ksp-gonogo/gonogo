@@ -100,7 +100,7 @@ function statsHeader(): HTMLElement {
   return screen.getByRole("group", { name: "Resource ops summary" });
 }
 
-describe("ResourceOps when an isru channel is not current", () => {
+describe("ResourceOps when an isru channel is held", () => {
   it("draws every figure while both channels are current", async () => {
     // The control: without it every withheld assertion would pass on a widget that never draws a rate.
     const { fixture } = renderWidget();
@@ -110,7 +110,6 @@ describe("ResourceOps when an isru channel is not current", () => {
     expect(screen.getAllByText("running").length).toBeGreaterThan(0);
     expect(screen.getByText("no output")).toBeInTheDocument();
     expect(screen.queryAllByText("run state held")).toHaveLength(0);
-    expect(visibleText()).not.toMatch(/no longer current/i);
     expect(within(statsHeader()).getByText("3")).toBeInTheDocument();
     expect(visibleText(statsHeader())).toContain("30");
     expect(visibleText()).toContain("0.0037");
@@ -126,7 +125,6 @@ describe("ResourceOps when an isru channel is not current", () => {
     await waitFor(() =>
       expect(screen.getAllByText("run state held")).toHaveLength(4),
     );
-    expect(visibleText()).not.toMatch(/no longer current/i);
     // The rigs survive: which units are bolted on only changes on an event.
     expect(screen.getByText("Drill-O-Matic")).toBeInTheDocument();
     expect(screen.getByText("Drill-O-Matic Junior")).toBeInTheDocument();
@@ -205,7 +203,6 @@ describe("ResourceOps when an isru channel is not current", () => {
     await waitFor(() =>
       expect(screen.getAllByText("run state held")).toHaveLength(2),
     );
-    expect(visibleText()).not.toMatch(/no longer current/i);
     expect(screen.getAllByText("running")).toHaveLength(2);
     expect(screen.getByText("no output")).toBeInTheDocument();
     expect(visibleText()).toContain("0.45");
@@ -217,6 +214,5 @@ describe("ResourceOps when an isru channel is not current", () => {
     renderWidget();
 
     expect(await screen.findByText("No ISRU data")).toBeInTheDocument();
-    expect(visibleText()).not.toMatch(/no longer current/i);
   });
 });

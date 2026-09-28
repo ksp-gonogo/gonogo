@@ -71,7 +71,7 @@ function goStale(fixture: ReturnType<typeof setupStreamFixture>): void {
   });
 }
 
-describe("Experiments when the science channels are no longer current", () => {
+describe("Experiments when the science channels are held", () => {
   it("keeps every instrument and lab row, marks each, and kills Transmit", async () => {
     const fixture = setupStreamFixture({
       pinnedUt: 10,

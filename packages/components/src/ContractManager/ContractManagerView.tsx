@@ -154,7 +154,7 @@ export function ContractManagerComponent({
                     title={
                       boardHeld === undefined
                         ? "Cancel this contract: forfeits all progress"
-                        : "Contract board is no longer current: cancelling would forfeit a contract whose state cannot be read"
+                        : "Contract board is held: cancelling would forfeit a contract whose state cannot be read"
                     }
                   />
                 </div>
@@ -190,7 +190,7 @@ export function ContractManagerComponent({
                     title={
                       boardHeld === undefined
                         ? undefined
-                        : "Contract board is no longer current: this offer may already be gone"
+                        : "Contract board is held: this offer may already be gone"
                     }
                   />
                   <CommandButton
@@ -206,7 +206,7 @@ export function ContractManagerComponent({
                     title={
                       boardHeld === undefined
                         ? undefined
-                        : "Contract board is no longer current: this offer may already be gone"
+                        : "Contract board is held: this offer may already be gone"
                     }
                   />
                 </div>

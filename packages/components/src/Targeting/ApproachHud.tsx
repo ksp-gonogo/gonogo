@@ -18,7 +18,7 @@ interface ApproachHudProps {
   relVel: number | undefined;
   /** Time to closest approach, with the target model's figure beside it where one reaches past the received edge. */
   timeToClosestApproach: Reading<Value<"s">>;
-  /** A pairing is selected but its geometry is not current, so the alignment is not drawn. */
+  /** A pairing is selected but its geometry is held, so the alignment is not drawn. */
   alignmentWithheld?: boolean;
   cols: number;
   rows: number;

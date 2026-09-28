@@ -67,7 +67,7 @@ export const SHEETS: InstrumentSheet[] = [
   },
   {
     id: "held",
-    title: "Held: the figure stands, and says it is no longer current",
+    title: "Held: the figure stands, and says so",
     blurb:
       "The last real reading is still drawn, because it is still the best " +
       "knowledge available. What changes is that each instrument says so: the " +

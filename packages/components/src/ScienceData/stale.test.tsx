@@ -14,7 +14,7 @@ import { ScienceDataComponent } from "./index";
  * An omitted locale would read like a vessel that never reported a biome.
  */
 
-describe("ScienceData when its reads are no longer current", () => {
+describe("ScienceData when its reads are held", () => {
   let stream: StreamFixture;
 
   beforeEach(() => {
@@ -77,7 +77,7 @@ describe("ScienceData when its reads are no longer current", () => {
     });
   }
 
-  function goNotCurrent(): void {
+  function goHeld(): void {
     act(() => {
       stream.store.setTransportConnected(false);
       stream.store.beginFrame();
@@ -103,12 +103,10 @@ describe("ScienceData when its reads are no longer current", () => {
       expect(visibleText(container)).toContain("Northwest Crater"),
     );
 
-    goNotCurrent();
+    goHeld();
 
     await waitFor(() =>
-      expect(visibleText(container)).toContain(
-        "Mun · Landed · locale no longer current",
-      ),
+      expect(visibleText(container)).toContain("Mun · Landed · locale held"),
     );
     // The biome is gone, not merely captioned.
     expect(visibleText(container)).not.toContain("Landed · Northwest Crater");
@@ -121,10 +119,10 @@ describe("ScienceData when its reads are no longer current", () => {
       expect(screen.getByText("Crew Report")).toBeInTheDocument(),
     );
 
-    goNotCurrent();
+    goHeld();
 
     await waitFor(() =>
-      expect(visibleText(container)).toContain("locale no longer current"),
+      expect(visibleText(container)).toContain("locale held"),
     );
     expect(screen.getByText("Crew Report")).toBeInTheDocument();
     expect(visibleText(container)).not.toContain("No science data aboard");
@@ -138,7 +136,7 @@ describe("ScienceData when its reads are no longer current", () => {
       expect(screen.getByText("Crew Report")).toBeInTheDocument(),
     );
 
-    goNotCurrent();
+    goHeld();
     await userEvent.click(screen.getByRole("tab", { name: "Archive" }));
 
     await waitFor(() =>
@@ -153,6 +151,5 @@ describe("ScienceData when its reads are no longer current", () => {
     await waitFor(() =>
       expect(visibleText(container)).toContain("Awaiting situation telemetry"),
     );
-    expect(visibleText(container)).not.toContain("no longer current");
   });
 });
