@@ -151,7 +151,11 @@ export const ADMISSIBLE_PROPERTIES = [
 export const RECORDED_ATTRIBUTES =
   "^(style|title|role|type|disabled|hidden|open|checked|d|points|cx|cy|r|x|y|x1|y1|x2|y2|rx|ry|transform|viewBox|fill|stroke|stroke-width|stroke-dasharray|offset|stop-color)$|^(aria|data)-";
 
-/** Committed beside the assets it describes. */
+/**
+ * Committed beside the assets it describes.
+ *
+ * @category Shape records
+ */
 export const SHAPE_RECORD_FILE = "render-shape.json";
 
 /** One reading of the mounted widget. A still folds one, a film folds one per
@@ -162,7 +166,11 @@ export interface ShapeCapture {
   visibleText: string;
 }
 
-/** What one asset's render reduces to. */
+/**
+ * What one asset's render reduces to.
+ *
+ * @category Shape records
+ */
 export interface AssetShape {
   /** sha256 of the shape text, first 16 hex. */
   hash: string;
@@ -173,6 +181,12 @@ export interface AssetShape {
   text: string;
 }
 
+/**
+ * The committed shape of every rendered asset, which the page check compares a
+ * fresh render against.
+ *
+ * @category Shape records
+ */
 export interface ShapeRecord {
   /** Bumped when the admissible set changes, so an old record is not compared
    *  against a new walk and reported as staleness that is really a schema
@@ -184,6 +198,11 @@ export interface ShapeRecord {
   assets: Record<string, AssetShape>;
 }
 
+/**
+ * The version of the `ShapeRecord` format this package writes.
+ *
+ * @category Shape records
+ */
 export const SHAPE_RECORD_VERSION = 1;
 
 /**
@@ -367,6 +386,11 @@ export function foldShape(captures: readonly ShapeCapture[]): AssetShape {
   };
 }
 
+/**
+ * The shape record in `assetDir`, or `undefined` when there is none.
+ *
+ * @category Shape records
+ */
 export function readShapeRecord(assetDir: string): ShapeRecord | undefined {
   const file = join(assetDir, SHAPE_RECORD_FILE);
   if (!existsSync(file)) return undefined;
@@ -398,6 +422,12 @@ export async function writeShapeRecord(
   );
 }
 
+/**
+ * What `compareShapes` found: the assets that changed, and the ones with no
+ * recorded shape.
+ *
+ * @category Shape records
+ */
 export interface ShapeVerdict {
   /** Assets whose render no longer matches what was committed. */
   stale: { file: string; was: AssetShape; now: AssetShape }[];
@@ -408,14 +438,10 @@ export interface ShapeVerdict {
 }
 
 /**
- * Compare today's render against the committed record.
+ * Compares today's render against the committed shape record. An asset with no
+ * recorded shape is listed as `unrecorded`, never as `stale`.
  *
- * An asset with no record is `unrecorded`, never `stale`. The difference matters:
- * the mechanism lands across ten Uplinks that were never recorded, and calling
- * all of them stale on day one would be a wall of red with one command behind it
- * and no way to tell a NEW break from the seeding backlog. The unrecorded count
- * is held by a shrink-only ratchet instead, and heals as each Uplink is next
- * regenerated.
+ * @category Shape records
  */
 export function compareShapes(
   record: ShapeRecord | undefined,
@@ -460,7 +486,12 @@ export function compareShapes(
   return { stale, unrecorded };
 }
 
-/** Why one asset is stale, in the terms a person can act on. */
+/**
+ * Why one asset's render no longer matches its recorded shape, in terms a
+ * person can act on.
+ *
+ * @category Shape records
+ */
 export function describeStale(entry: {
   file: string;
   was: AssetShape;

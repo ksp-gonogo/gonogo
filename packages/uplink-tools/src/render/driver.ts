@@ -52,6 +52,8 @@ import {
  * That covers what the page can READ off a clock. WHEN a callback runs is the
  * other half, and it belongs to a motion scene rather than to the page: see
  * `./sceneClock`.
+ *
+ * @category Rendering scenes
  */
 
 export type Engine = "chromium" | "firefox" | "webkit";
@@ -141,6 +143,11 @@ async function pinTheClock(page: Page): Promise<void> {
   }, FIXED_EPOCH_MS);
 }
 
+/**
+ * Options for `renderUplink`.
+ *
+ * @category Rendering scenes
+ */
 export interface RenderOptions {
   engine: Engine;
   outDir: string;
@@ -165,6 +172,11 @@ export interface RenderOptions {
   dumpShapes?: boolean;
 }
 
+/**
+ * One image or animation `renderUplink` wrote.
+ *
+ * @category Rendering scenes
+ */
 export interface RenderedAsset {
   scene: Scene;
   mode: string;
@@ -175,6 +187,12 @@ export interface RenderedAsset {
   shape: AssetShape;
 }
 
+/**
+ * What `renderUplink` returns: what the Uplink registered, its scenes, and every
+ * asset written.
+ *
+ * @category Rendering scenes
+ */
 export interface RenderResult extends UplinkScenes {
   assets: RenderedAsset[];
 }
@@ -290,6 +308,12 @@ export async function readUplinkScenes(
   return withProbe(pkg, opts, async (_tab, read) => read);
 }
 
+/**
+ * Renders every scene of an Uplink in a real browser and writes a PNG for each
+ * still scene and a GIF for each animated one.
+ *
+ * @category Rendering scenes
+ */
 export async function renderUplink(
   pkg: UplinkPackage,
   opts: RenderOptions,

@@ -82,7 +82,11 @@ const FIT_BOX = "--fit-box";
  */
 const FIT_MASK = "--fit-mask";
 
-/** One thing an operator cannot read at this size. */
+/**
+ * One thing an operator cannot read at this size.
+ *
+ * @category Rendering scenes
+ */
 export interface MinFitFinding {
   kind:
     | "title-clipped"
@@ -846,6 +850,8 @@ function maskFindings(tile: HTMLElement): MinFitFinding[] {
  * `tile` is the mount box, sized to the widget's declared `minSize`. Nothing
  * here mutates the page, so a caller may audit and then go on to screenshot the
  * same render.
+ *
+ * @category Probe setup
  */
 export function auditMinFit(tile: HTMLElement): MinFitFinding[] {
   const findings: MinFitFinding[] = [];

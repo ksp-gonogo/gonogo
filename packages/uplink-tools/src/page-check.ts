@@ -45,6 +45,8 @@ import { assertEveryWidgetCovered, buildScenes } from "./render/scenes";
  * whose only remedy costs a browser and a rasteriser is one people fix by
  * editing it by hand or by committing 170 re-rendered pictures, and both have
  * happened here.
+ *
+ * @category Page check
  */
 
 export interface PageCheckOptions {
@@ -54,6 +56,12 @@ export interface PageCheckOptions {
   uplink?: string;
 }
 
+/**
+ * What `checkUplinkPage` found: one line per generated file that no longer
+ * matches.
+ *
+ * @category Page check
+ */
 export interface PageCheckResult {
   differences: string[];
 }
@@ -147,6 +155,12 @@ function committedIntegrity(manifestPath: string): string {
   return "";
 }
 
+/**
+ * Regenerates the Uplink's page and manifest and compares them with the
+ * committed files, without writing anything.
+ *
+ * @category Page check
+ */
 export function checkUplinkPage(
   options: PageCheckOptions = {},
 ): PageCheckResult {
@@ -184,6 +198,8 @@ export function checkUplinkPage(
  * So the prose has a writer of its own, on the same registry read the check
  * uses. It needs no browser, produces the same bytes on any operating system,
  * and cannot touch an asset because it never renders one.
+ *
+ * @category Page check
  */
 export function writeUplinkPage(options: PageCheckOptions = {}): {
   written: string[];
@@ -248,6 +264,8 @@ function compare(
  *
  * Await it before {@link expectUplinkPageCurrent} in an Uplink whose fixtures
  * name `_scene.hostWidget`. It is a no-op for one that declares no hosts.
+ *
+ * @category Page check
  */
 export async function loadHostWidgets(
   options: PageCheckOptions = {},
@@ -273,6 +291,8 @@ export async function loadHostWidgets(
  * to write anything, only to re-derive it. The difference from a snapshot is
  * that the derivation is cheap and exact, so there is nothing to review in the
  * result beyond the diff itself.
+ *
+ * @category Page check
  */
 export const PAGE_UPDATE_ENV = "GONOGO_UPLINK_PAGE_UPDATE";
 
@@ -295,7 +315,11 @@ function updateRequested(): boolean {
   return true;
 }
 
-/** {@link checkUplinkPage}, throwing the differences. For a test body. */
+/**
+ * {@link checkUplinkPage}, throwing the differences. For a test body.
+ *
+ * @category Page check
+ */
 export function expectUplinkPageCurrent(options: PageCheckOptions = {}): void {
   const { differences } = checkUplinkPage(options);
   if (differences.length === 0) return;

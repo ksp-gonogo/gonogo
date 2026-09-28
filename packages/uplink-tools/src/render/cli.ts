@@ -716,6 +716,11 @@ export function wholePageRestyle(
   );
 }
 
+/**
+ * Runs the `gonogo-uplink` command line with `argv` and returns the exit code.
+ *
+ * @category Rendering scenes
+ */
 export async function run(argv: readonly string[]): Promise<number> {
   try {
     await main(argv);

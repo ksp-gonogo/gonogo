@@ -2,32 +2,15 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { type ChannelDisposition, readChannelDispositions } from "./channels";
 
+/*
+ * The wire surface is read from the Uplink's generated contract slice, the only source derived from the C# declaration rather than restated beside it.
+ * `units.json` is read directly; the topic-to-payload map and the array flag are parsed out of `topic-map.ts`, and a channel missing from that parse throws.
+ */
+
 /**
- * The wire surface an Uplink ADDS, read out of its own generated contract slice.
+ * One field of a payload, as the Uplink's page lists it.
  *
- * ## Why this source and no other
- *
- * The page's widget sections describe what the CLIENT reads. That is a different
- * question from what the Uplink PUBLISHES, and the second is the one a reader
- * evaluating an Uplink asks first: it is the durable half, the half another mod
- * can consume, and the half that survives every redesign of the widgets.
- *
- * It is declared in C#, and `mod/codegen.sh` already reflects over the
- * `[SitrepTopic]` / `[SitrepUnit]` attributes of the Uplink's contract assembly
- * and writes `src/__generated__/`. So the generated slice is the only source here
- * that is derived from the declaration rather than restated beside it, which is
- * the whole point: a hand-written channel table in a README is a second copy of
- * the contract, and this project has watched a second copy of a fact go stale
- * every time it has kept one.
- *
- * `units.json` carries the field/unit maps as plain JSON and is read directly.
- * The topic -> payload-type mapping and the array flag live only in
- * `topic-map.ts`, which is TypeScript this tool cannot import, so those two facts
- * are parsed out of it. A parse is a fragile instrument and is treated as one: a
- * channel present in `units.json` and absent from the parse THROWS rather than
- * rendering a row with a blank payload. The generated format changing is a thing
- * that should stop the build, not something a reader should have to notice from a
- * gap in a table.
+ * @category Uplink page
  */
 export interface WireField {
   name: string;
@@ -37,6 +20,11 @@ export interface WireField {
   shape?: string;
 }
 
+/**
+ * One channel the Uplink sends, as its page lists it.
+ *
+ * @category Uplink page
+ */
 export interface WireChannel {
   id: string;
   /** The payload interface name, or undefined for one the slice does not type. */
@@ -48,6 +36,11 @@ export interface WireChannel {
   disposition: ChannelDisposition;
 }
 
+/**
+ * One payload type and its fields, as the Uplink's page lists it.
+ *
+ * @category Uplink page
+ */
 export interface WirePayload {
   name: string;
   fields: WireField[];
@@ -62,6 +55,12 @@ export interface WireCommand {
   result: string;
 }
 
+/**
+ * Everything the Uplink puts on the wire, read from its generated contract
+ * files.
+ *
+ * @category Uplink page
+ */
 export interface WireSurface {
   /** False when the Uplink has no contract slice, so nothing was generated. */
   present: boolean;
@@ -187,6 +186,12 @@ function fields(
   }));
 }
 
+/**
+ * Reads the Uplink's wire surface from the generated contract files under
+ * `pkgDir`.
+ *
+ * @category Uplink page
+ */
 export function readWireSurface(pkgDir: string): WireSurface {
   const dir = join(pkgDir, "src", "__generated__");
   const unitsPath = join(dir, "units.json");
@@ -333,25 +338,11 @@ function fieldList(list: WireField[]): string {
 }
 
 /**
- * `## Wire`: two tables and no sentences.
+ * The page's `## Wire` section: a table of channels with their payload,
+ * delivery and delay, then a table of every payload shape with its fields and
+ * each field's unit. Empty when the Uplink has no contract slice.
  *
- * Channels with their payload, delivery and delay, then every payload shape with
- * its fields and each field's declared unit. A reader comparing Uplinks is
- * scanning for a topic name and a unit, and a paragraph between them is in the
- * way: this section carried four explanatory paragraphs and they said the same
- * things the tables' own headers do.
- *
- * The second table folds together shapes that reach the wire two different ways:
- * a nested payload another field holds, and a namespace inside another channel's
- * extensions bag. The distinction is not in the generated slice, and a `Kind`
- * column that could only ever say "one of two" is not a fact. Every one of them
- * is a shape this Uplink puts on the wire, which is what the table claims.
- * Command args used to be folded in here as a third, which is how a one-topic
- * Uplink read as ten payloads on that topic; they have their own section now.
- *
- * Nothing at all when the Uplink has no contract slice: a client-only Uplink
- * extending widgets that already exist adds no wire values, and a heading saying
- * so is the kind of line this page does not carry.
+ * @category Uplink page
  */
 export function wireSection(surface: WireSurface): string[] {
   if (!surface.present) return [];

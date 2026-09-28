@@ -222,7 +222,11 @@ export function oneCopyPerPage(dir: string): Record<string, string> {
   return alias;
 }
 
-/** The generated browser entry. Awaited imports, never static ones. */
+/**
+ * The generated browser entry. Awaited imports, never static ones.
+ *
+ * @category Rendering scenes
+ */
 export function generateEntry(
   pkg: UplinkPackage,
   extraModules: readonly string[] = [],
@@ -259,6 +263,12 @@ export interface ProbePage {
   dispose(): Promise<void>;
 }
 
+/**
+ * Bundles the Uplink's client, its render setup and the render probe into one
+ * page on disk, ready for a browser to open.
+ *
+ * @category Rendering scenes
+ */
 export async function buildProbePage(
   pkg: UplinkPackage,
   extraModules: readonly string[] = [],

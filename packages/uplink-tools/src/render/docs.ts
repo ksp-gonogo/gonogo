@@ -92,6 +92,8 @@ export function linkedAssets(scenes: readonly Scene[]): PageAsset[] {
  *
  * Both `docs` and `gonogo-uplink bundle` call one writer, so an author who
  * runs either command gets the same file.
+ *
+ * @category Uplink page
  */
 export type UplinkManifestJson = UplinkManifest;
 
@@ -132,6 +134,11 @@ function bundleIntegrity(
   };
 }
 
+/**
+ * What `buildReadme` and `buildManifest` build the page from.
+ *
+ * @category Uplink page
+ */
 export interface DocsInputs {
   pkg: UplinkPackage;
   inventory: UplinkInventory;
@@ -159,12 +166,11 @@ function declaredMod(pkgDir: string): DeclaredMod | undefined {
 }
 
 /**
- * The manifest, through the sdk's writer, with the compat numbers read out of
- * the bundle rather than out of whichever packages this tool resolved.
+ * The Uplink's manifest, written by the sdk's manifest writer, with the compat
+ * numbers read from the bundle itself. `gonogo-uplink bundle` builds the same
+ * manifest from the same files.
  *
- * Everything else, `uplink.json` and the client's `package.json` included, the
- * writer reads for itself, so `gonogo-uplink bundle` reaches the same answers
- * from the same files.
+ * @category Uplink page
  */
 export function buildManifest(inputs: DocsInputs): {
   manifest: UplinkManifestJson;
@@ -494,6 +500,12 @@ function inputRuleExemptions(inputs: DocsInputs): string[] {
   ];
 }
 
+/**
+ * The Uplink's generated page as markdown. Throws when the client declares no
+ * `description`, which opens the page.
+ *
+ * @category Uplink page
+ */
 export function buildReadme(
   inputs: DocsInputs,
   manifest: UplinkManifestJson,

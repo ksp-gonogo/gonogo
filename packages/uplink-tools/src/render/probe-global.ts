@@ -10,6 +10,8 @@
  * Naming it once is also the point: a second spelling of the handshake is free
  * to drift green, since a driver that installs one name and waits for another
  * simply times out somewhere far from the typo.
+ *
+ * @category Rendering scenes
  */
 export const RENDER_PROBE_GLOBAL = "__gonogoRenderProbe";
 

@@ -28,6 +28,8 @@ import { join, resolve } from "node:path";
  * that only understood initialisers would have found zero channels for it and
  * said nothing. Both forms are handled, and the cross-check is what would have
  * caught it either way.
+ *
+ * @category Uplink page
  */
 export interface ChannelDisposition {
   /** `lossy-latest`, `reliable-ordered`: the C# enum member, kebab-cased. */
@@ -104,6 +106,12 @@ function enumMember(raw: string | undefined): string | undefined {
   return kebab(member);
 }
 
+/**
+ * How each channel an Uplink's C# declares is sent, read from the C# sources
+ * under `pkgDir`, keyed by channel id.
+ *
+ * @category Uplink page
+ */
 export function readChannelDispositions(
   pkgDir: string,
 ): Map<string, ChannelDisposition> {

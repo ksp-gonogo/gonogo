@@ -135,6 +135,12 @@ interface RawStream {
   stopsArriving?: boolean;
 }
 
+/**
+ * One scene of an Uplink: what to mount, the fixture to feed it, and the steps
+ * to run.
+ *
+ * @category Rendering scenes
+ */
 export interface Scene {
   file: string;
   name: string;
@@ -173,6 +179,8 @@ const DEFAULT_FPS = 12;
 /**
  * The scene one fixture describes, or a failure naming the file when its
  * `_scene` block is missing or names no target the inventory holds.
+ *
+ * @category Scenes
  */
 export function sceneFromFixture(
   where: string,
@@ -634,7 +642,11 @@ function modesFor(
   return chosen;
 }
 
-/** The payload the page mounts for one scene at one mode. */
+/**
+ * The payload the page mounts for one scene at one mode.
+ *
+ * @category Scenes
+ */
 export function payloadFor(
   scene: Scene,
   mode: { name: string; w: number; h: number; pxW: number; pxH: number },

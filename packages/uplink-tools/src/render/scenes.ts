@@ -5,20 +5,13 @@ import { type Scene, sceneFromFixture } from "./sceneModel";
 export type { Scene, SceneAct } from "./sceneModel";
 
 /**
- * Fixtures, and the scene each one describes.
+ * One scene per fixture file found under the client package's
+ * `src/**\/__fixtures__/`. A fixture does not carry the Topics its
+ * target reads or the size to render at: both come from the target's own
+ * registration.
  *
- * The convention four Uplinks already use is kept:
- * `client/src/<Widget>/__fixtures__/<name>.json`, found by walking rather than
- * listed anywhere. A registry file is a list somebody has to remember to update,
- * and the thing a stale one produces is a page that describes less than the
- * Uplink does.
- *
- * Two fields a fixture deliberately does NOT carry: `declaredTopics`, derived
- * from the target's own registration, and the render's pixel size, derived
- * from `defaultSize`/`minSize`. Both were hand-written before, and both are
- * already declared once by the code being photographed.
+ * @category Rendering scenes
  */
-
 export function buildScenes(
   pkg: UplinkPackage,
   inventory: UplinkInventory,
@@ -50,6 +43,8 @@ export function buildScenes(
  * silently omitted, and it does not print a frame that misrepresents it.
  *
  * Returns the augment and contribution ids with no scene, for the page to name.
+ *
+ * @category Rendering scenes
  */
 export function assertEveryWidgetCovered(
   scenes: Scene[],

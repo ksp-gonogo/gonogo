@@ -119,16 +119,30 @@ export { auditMinFit };
 
 // The wire between the two halves
 
-/** What a scene mounts. Exactly one of the three registration kinds. */
+/**
+ * What a scene mounts. Exactly one of the three registration kinds.
+ *
+ * @category Scenes
+ */
 export type SceneTargetKind = "widget" | "augment" | "contribution";
 
+/**
+ * What a scene mounts: a widget, an augment or a contribution, by its registered
+ * id.
+ *
+ * @category Scenes
+ */
 export interface SceneTarget {
   kind: SceneTargetKind;
   /** Registered widget id, augment id, or contribution id. */
   id: string;
 }
 
-/** One emission a fixture makes onto the stream. */
+/**
+ * One emission a fixture makes onto the stream.
+ *
+ * @category Scenes
+ */
 export interface SceneEmit {
   topic: string;
   payload: unknown;
@@ -137,7 +151,11 @@ export interface SceneEmit {
   validAt?: number;
 }
 
-/** One frame-producing step in a motion scene. */
+/**
+ * One frame-producing step in a motion scene.
+ *
+ * @category Scenes
+ */
 export interface SceneStep {
   /** Emit onto the stream at the current clock. */
   emit?: SceneEmit;
@@ -177,6 +195,12 @@ export interface SceneStep {
   frames?: number;
 }
 
+/**
+ * One scene as the render probe receives it: the target, the fixture's emissions
+ * and steps, and the clock to run it on.
+ *
+ * @category Scenes
+ */
 export interface ScenePayload {
   target: SceneTarget;
   /** Fixture name, for error messages. */
@@ -276,13 +300,20 @@ export interface ScenePayload {
 }
 
 /** The emitted topics still unread, and which of those the target never
- *  declared. What {@link SceneReport} carries, on its own, for a re-feed. */
+ *  declared. What {@link SceneReport} carries, on its own, for a re-feed.
+ *
+ * @category Scenes
+ */
 export interface UnreadTopics {
   unsubscribedTopics: string[];
   undeclaredTopics: string[];
 }
 
-/** What the driver reads back after a mount, to decide whether to keep the PNG. */
+/**
+ * What the driver reads back after a mount, to decide whether to keep the PNG.
+ *
+ * @category Scenes
+ */
 export interface SceneReport {
   /** What a sighted reader sees, screen-reader-only words removed. */
   visibleText: string;
@@ -303,7 +334,11 @@ export interface SceneReport {
 
 // The inventory: one read of the registries, shared by the renderer and the docs
 
-/** A size the harness renders a widget at, in grid units and pixels. */
+/**
+ * A size the harness renders a widget at, in grid units and pixels.
+ *
+ * @category Inventory
+ */
 export interface InventoryMode {
   name: string;
   w: number;
@@ -312,6 +347,11 @@ export interface InventoryMode {
   pxH: number;
 }
 
+/**
+ * One widget the Uplink registered, as the render probe reads it.
+ *
+ * @category Inventory
+ */
 export interface InventoryWidget {
   id: string;
   name: string;
@@ -330,6 +370,11 @@ export interface InventoryWidget {
   modes: InventoryMode[];
 }
 
+/**
+ * One augment the Uplink registered, as the render probe reads it.
+ *
+ * @category Inventory
+ */
 export interface InventoryAugment {
   id: string;
   augments: string;
@@ -340,6 +385,11 @@ export interface InventoryAugment {
   settings: AugmentSettingField[];
 }
 
+/**
+ * One contribution the Uplink registered, as the render probe reads it.
+ *
+ * @category Inventory
+ */
 export interface InventoryContribution {
   id: string;
   contributes: string;
@@ -349,21 +399,22 @@ export interface InventoryContribution {
   settings: AugmentSettingField[];
 }
 
-/** One model of this Uplink's that opted out of an input rule, and the reason given. */
+/**
+ * One model of this Uplink's that opted out of an input rule, and the reason given.
+ *
+ * @category Inventory
+ */
 export interface InventoryReckonerExemption {
   topic: string;
   rule: string;
   reason: string;
 }
 
+// Read in the page from the bundle itself, so the manifest states what the bundle was built against rather than what this tool resolved.
 /**
- * The compat numbers the Uplink's bundle was actually built against.
+ * The compat numbers the Uplink's bundle was built against.
  *
- * Read HERE rather than by the Node driver, and that is the point: these come out
- * of the very bundle whose registrations were just enumerated, so a manifest
- * claiming them is claiming something true about the code it describes. Read
- * Node-side they would come from whichever copy of the packages the tool itself
- * resolved, which is a different question with the same answer most of the time.
+ * @category Inventory
  */
 export interface UplinkCompat {
   apiVersion: string;
@@ -384,6 +435,11 @@ export interface InventoryErrorCode {
   meaning: string;
 }
 
+/**
+ * Everything one Uplink registered, as `readInventory` returns it.
+ *
+ * @category Inventory
+ */
 export interface UplinkInventory {
   id: string;
   name: string;
@@ -482,6 +538,8 @@ function depTopic(dep: unknown): string {
  * and what size to draw them at; the docs generator reads the same object to
  * write the page. Two reads would be two chances for the page to describe a
  * different Uplink from the one that was photographed.
+ *
+ * @category Inventory
  */
 export function readInventory(uplinkId?: string): UplinkInventory {
   const clients = getUplinkClients();
@@ -610,6 +668,8 @@ export function readInventory(uplinkId?: string): UplinkInventory {
  * scene twice and fails when the fed and starved renders match, so a setup hook
  * that feeds regardless would defeat the one check that catches a picture of
  * nothing.
+ *
+ * @category Probe setup
  */
 export interface RenderSetup {
   /** Run before each mount. Register data sources, seed fakes. */
@@ -649,7 +709,11 @@ export interface RenderSetup {
 
 let activeSetup: RenderSetup = {};
 
-/** Register the Uplink's own browser-side glue. Call once, at module scope. */
+/**
+ * Register the Uplink's own browser-side glue. Call once, at module scope.
+ *
+ * @category Probe setup
+ */
 export function defineRenderSetup(setup: RenderSetup): RenderSetup {
   activeSetup = setup;
   return setup;
@@ -1509,6 +1573,8 @@ async function stepScene(step: SceneStep, deltaUt: number): Promise<void> {
 /**
  * One scene mounted into an element of its own, standing beside any number of
  * others on the page.
+ *
+ * @category Probe setup
  */
 export interface SceneMount {
   /** Resolves with the scene's report once it is fed and settled; rejects with the mount's failure. */
@@ -1558,6 +1624,11 @@ function mountScene(el: HTMLElement, scene: ScenePayload): SceneMount {
 
 // Installation
 
+/**
+ * What `installRenderProbe` puts on the page for the Node driver to call.
+ *
+ * @category Probe setup
+ */
 export interface RenderProbeApi {
   readInventory: (uplinkId?: string) => UplinkInventory;
   renderScene: (scene: ScenePayload) => Promise<SceneReport>;
@@ -1593,6 +1664,8 @@ export interface RenderProbeApi {
  * ES imports are hoisted above every statement, which is why the generated entry
  * imports the client DYNAMICALLY and awaits this first. Ordering by import
  * position works until an import sorter moves a line.
+ *
+ * @category Probe setup
  */
 export async function installRenderProbe(): Promise<RenderProbeApi> {
   installRealTestHost({

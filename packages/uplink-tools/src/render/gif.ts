@@ -16,6 +16,8 @@ import { decodePng } from "./png";
  * WALL-CLOCK timing, so it cannot use the pinned clock and would not be
  * reproducible. `--frames` keeps the numbered PNGs, and stitching those to mp4
  * for a review relay stays a convenience outside this tool.
+ *
+ * @category Rendering scenes
  */
 export function encodeGif(
   frames: readonly Buffer[],

@@ -21,6 +21,11 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const require = createRequire(import.meta.url);
 const HERE = dirname(fileURLToPath(import.meta.url));
 
+/**
+ * An Uplink client package as `resolveUplinkPackage` reads it.
+ *
+ * @category Rendering scenes
+ */
 export interface UplinkPackage {
   /** The directory the tool was invoked in. Holds `package.json`. */
   dir: string;
@@ -243,6 +248,13 @@ export function resolveRenderModule(
   return entry;
 }
 
+/**
+ * Reads the Uplink client package in `dir`: its name, version, entry, render
+ * setup and fixtures. Throws with a message saying what to fix when the package
+ * is not one.
+ *
+ * @category Rendering scenes
+ */
 export function resolveUplinkPackage(
   dir: string,
   opts: { entry?: string } = {},
@@ -291,6 +303,8 @@ export function resolveUplinkPackage(
  * drawn against, outside that block, and a probe that injected only the tokens
  * laid every widget out with its paddings added to widths the app resolves them
  * inside of.
+ *
+ * @category Rendering scenes
  */
 export function themeTokensCss(): string {
   const candidates = [
@@ -327,9 +341,18 @@ export function themeTokensCss(): string {
   );
 }
 
-/** Which font a run is using, so nobody discovers it from a diff. */
+/**
+ * Which font a run is using, so nobody discovers it from a diff.
+ *
+ * @category Rendering scenes
+ */
 export type FontMode = "locked" | "fallback";
 
+/**
+ * The font a render uses, as CSS to inject into the page.
+ *
+ * @category Rendering scenes
+ */
 export interface FontFace {
   mode: FontMode;
   css: string;
@@ -352,6 +375,8 @@ export const JETBRAINS_MONO_WEIGHTS = [400, 600, 700] as const;
  * someone find out from a diff: with the face absent a render uses whatever the
  * machine has, which is acceptable for a docs screenshot and disqualifying for a
  * pixel comparison.
+ *
+ * @category Rendering scenes
  */
 export function jetbrainsMonoFace(): FontFace {
   let sheets: { weight: number; css: string }[];
@@ -397,7 +422,11 @@ export function jetbrainsMonoFace(): FontFace {
   return { mode: "locked", css: faces.join("\n") };
 }
 
-/** A path as it should appear in a message: relative to the package, POSIX. */
+/**
+ * A path as it should appear in a message: relative to the package, POSIX.
+ *
+ * @category Rendering scenes
+ */
 export function display(dir: string, file: string): string {
   return relative(dir, file).split("\\").join("/");
 }
