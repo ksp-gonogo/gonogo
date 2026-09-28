@@ -13,12 +13,12 @@ import { recordRadioFrame } from "./wire";
  * class is exercisable without a secure context, a device or WebCodecs, and so
  * the browser half stays the one piece with no logic in it.
  *
- * **Loss of path stops DELIVERY, never transmission.** With no route to the
- * chosen recipient the composer bar turns and flags `NO PATH`, and the operator
- * keeps talking: the separation is frozen as `null` and every chunk still goes
- * on the wire, where a listener who does have a path to this vantage can hear
- * it. Refusing the press would make this widget decide, from one end, something
- * only the other end can answer.
+ * **Loss of path stops DELIVERY, never transmission.** With no route to any
+ * member of the group the composer bar turns and flags `NO PATH`, and the
+ * operator keeps talking: the separation is frozen as `null` and every chunk
+ * still goes on the wire, where a member who does have a path to this vantage
+ * can hear it. Refusing the press would make this widget decide, from one end,
+ * something only the other end can answer.
  */
 
 /** A live capture, running. */
@@ -59,9 +59,15 @@ export interface RadioCaptureOptions {
   deviceId?: string | null;
 }
 
-/** What the operator is transmitting, and to whom, decided once at key-down. */
+/** What the operator is transmitting, and to which group, decided at key-down. */
 export interface RadioKeyDown {
-  to: readonly RecipientId[];
+  groupId: string;
+  /**
+   * The group's members as this vantage can see them NOW, read once per chunk
+   * rather than frozen, so a member whose addition reaches this vantage while
+   * it is talking is addressed from the next chunk onward.
+   */
+  recipients(): readonly RecipientId[];
   from: RecipientId;
   authorStationKey: string;
   authorName: string;
@@ -227,6 +233,7 @@ export class RadioTransmitter {
   private state: RadioTransmitState = IDLE;
   private capture: RadioCapture | null = null;
   private current: RadioTransmission | null = null;
+  private recipients: () => readonly RecipientId[] = () => [];
   private seq = 0;
   /** This transmission's per-chunk loudness, newest last, capped at `historyLimit`. */
   private amplitudes: number[] = [];
@@ -276,7 +283,7 @@ export class RadioTransmitter {
 
     const transmission: RadioTransmission = {
       id: safeRandomUuid(),
-      to: envelope.to,
+      groupId: envelope.groupId,
       from: envelope.from,
       authorStationKey: envelope.authorStationKey,
       authorName: envelope.authorName,
@@ -303,6 +310,7 @@ export class RadioTransmitter {
     }
     this.capture = capture;
     this.current = transmission;
+    this.recipients = envelope.recipients;
     this.seq = 0;
     this.set({
       live: true,
@@ -349,6 +357,7 @@ export class RadioTransmitter {
       transmissionId: transmission.id,
       authorStationKey: transmission.authorStationKey,
       transmission,
+      to: this.recipients(),
       /*
        * The transmitter's own present, per chunk. NOT the frozen `startedUt`
        * plus an offset: a warp or a revert moves the clock, and a stream timed

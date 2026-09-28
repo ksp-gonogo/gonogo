@@ -10,7 +10,7 @@ import type {
 } from "./types";
 import { EMPTY_COMMCAST_LOG } from "./types";
 
-const STORAGE_PREFIX = "gonogo.commcast.v2.";
+const STORAGE_PREFIX = "gonogo.commcast.v3.";
 
 /**
  * How many messages one vantage keeps in each direction. Its own log, so the
@@ -194,6 +194,7 @@ export class CommcastLog {
   ): CommsMessage {
     const msg: CommsMessage = {
       id: safeRandomUuid(),
+      groupId: input.groupId,
       to: [...input.to],
       from: author.vantageId,
       authorStationKey: author.stationKey,
@@ -205,6 +206,8 @@ export class CommcastLog {
       separationSeconds: input.separationSeconds,
       kind: input.kind,
       ...(input.body === undefined ? {} : { body: input.body }),
+      ...(input.members === undefined ? {} : { members: [...input.members] }),
+      ...(input.added === undefined ? {} : { added: [...input.added] }),
       ...(input.authorVesselId === undefined
         ? {}
         : { authorVesselId: input.authorVesselId }),
@@ -297,6 +300,10 @@ export class CommcastLog {
    * was closed for the crossing releases late in wall-clock and still
    * acknowledges at the true arrival, so the author's round trip reads the
    * geometry rather than the recipient's browsing habits.
+   *
+   * A screen at the author's own vantage does not answer. It crossed nothing,
+   * and an instant answer from a colleague at the same centre would confirm a
+   * message that is still on its way to everyone it had to travel to.
    */
   release(id: string, ack: Omit<CommsAck, "messageId">): void {
     const msg = this.pending.find((m) => m.id === id);
@@ -305,7 +312,7 @@ export class CommcastLog {
     this.inbox = capped([...this.inbox, msg], (n) => {
       this.droppedCount += n;
     });
-    this.acknowledge({ ...ack, messageId: id });
+    if (ack.from !== msg.from) this.acknowledge({ ...ack, messageId: id });
     this.persistAndEmit();
   }
 
@@ -419,6 +426,7 @@ function isCommsMessage(value: unknown): value is CommsMessage {
   const m = value as Partial<CommsMessage>;
   return (
     typeof m.id === "string" &&
+    typeof m.groupId === "string" &&
     Array.isArray(m.to) &&
     typeof m.from === "string" &&
     typeof m.authorStationKey === "string" &&

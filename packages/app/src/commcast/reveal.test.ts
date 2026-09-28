@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   ackRevealUt,
   firstAckUtFor,
+  groupSeparation,
   isSettled,
   legOf,
   revealedAcks,
@@ -35,6 +36,7 @@ function msg(over: Partial<CommsMessage> = {}): CommsMessage {
     attempts: 1,
     separationSeconds: 240,
     kind: "text",
+    groupId: "g1",
     body: "go for staging",
     ...over,
   };
@@ -160,20 +162,52 @@ describe("roundTripFor", () => {
     expect(roundTripFor(msg({ separationSeconds: 0 }))?.replyUt).toBe(1000);
   });
 
-  it("states no schedule for several recipients, because one separation cannot describe them", () => {
-    /* Every send in the tree names exactly one target, and `to` is a list only
-       so that groups can arrive without a wire change. The arithmetic here did
-       not get that headroom: two recipients at different distances share one
-       separation, so a schedule would put them at the same instant and read as
-       a measurement rather than as the guess it is.
+  it("times a group's wait by its farthest member, which the author froze into the envelope", () => {
+    // Woomera is twelve seconds out and Ares four minutes: the reply that could come back last is Ares's.
+    expect(
+      roundTripFor(msg({ to: [KSC, ARES, WOOMERA], separationSeconds: 240 })),
+    ).toEqual({ reachUt: 1240, replyUt: 1480, overdueUt: 1483 });
+  });
+});
 
-       A group has to go as one message per target. This asserts the refusal so
-       that whoever adds groups meets a null here rather than a plausible,
-       wrong arrival time. The single-recipient case above is the control: it
-       must keep its geometry, or this is passing because the function stopped
-       working rather than because it declined. */
-    expect(roundTripFor(msg({ to: [ARES, WOOMERA] }))).toBeNull();
-    expect(roundTripFor(msg({ to: [ARES] }))).not.toBeNull();
+describe("groupSeparation", () => {
+  const pairs = new Map([
+    [
+      KSC,
+      new Map([
+        [ARES, 240],
+        [WOOMERA, 12],
+      ]),
+    ],
+  ]);
+
+  it("reads a group as its farthest member there is a path to", () => {
+    expect(groupSeparation(KSC, [KSC, ARES, WOOMERA], null, pairs)).toEqual({
+      kind: "light-time",
+      seconds: 240,
+    });
+  });
+
+  it("does not count the author's own vantage as a member to reach", () => {
+    expect(groupSeparation(KSC, [KSC, WOOMERA], null, pairs)).toEqual({
+      kind: "light-time",
+      seconds: 12,
+    });
+  });
+
+  it("passes over a member out of reach while another is reachable", () => {
+    const cut = new Map([[KSC, new Map([[WOOMERA, 12]])]]);
+    // Ares has no pair and the fallback says no path: it misses what is said, and Woomera still hears it.
+    expect(groupSeparation(KSC, [KSC, ARES, WOOMERA], null, cut)).toEqual({
+      kind: "light-time",
+      seconds: 12,
+    });
+  });
+
+  it("is no path only when no member can be reached at all", () => {
+    expect(groupSeparation(KSC, [KSC, ARES], null, new Map())).toEqual({
+      kind: "no-path",
+    });
   });
 });
 

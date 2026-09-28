@@ -10,7 +10,6 @@ import { PerfBudget } from "@ksp-gonogo/core";
 import { ViewClock } from "@ksp-gonogo/sitrep-sdk/spine";
 import { afterEach, describe, expect, it } from "vitest";
 import type { SeparationMatrix, Vantage } from "../reveal";
-import { threadKeyOf } from "../threads";
 import type { RadioDecoderLike, RadioReceiver } from "./RadioSession";
 import { RadioSession } from "./RadioSession";
 import { RadioTransmitter } from "./RadioTransmitter";
@@ -94,7 +93,7 @@ function transmission(
 ): RadioTransmission {
   return {
     id: "t1",
-    to: [KSC],
+    groupId: "ares",
     from: ARES,
     authorStationKey: "pilot-1",
     authorName: "Jeb",
@@ -110,12 +109,14 @@ function chunk(
   seq: number,
   ut: number,
   bytes = 64,
+  to: readonly string[] = [KSC, t.from],
 ): RadioFrame {
   return {
     kind: "chunk",
     transmissionId: t.id,
     authorStationKey: t.authorStationKey,
     transmission: t,
+    to,
     seq,
     ut,
     bytes: new Uint8Array(bytes).fill(seq % 256),
@@ -264,7 +265,8 @@ describe("radio playout, in the order it was spoken", () => {
       },
     });
     await transmitter.keyDown({
-      to: [KSC],
+      groupId: "ares",
+      recipients: () => [ARES, KSC],
       from: ARES,
       authorStationKey: "pilot-1",
       authorName: "Jeb",
@@ -426,7 +428,7 @@ describe("radio playout, what the operator is told", () => {
 });
 
 describe("radio monitoring, a per-conversation mute", () => {
-  const ARES_THREAD = threadKeyOf([ARES]);
+  const ARES_THREAD = "ares";
 
   it("places a transmission in the conversation its author's TEXT lands in", () => {
     // The light has to name a thread the inbox holds, or the operator cannot
@@ -458,6 +460,7 @@ describe("radio monitoring, a per-conversation mute", () => {
     const { clock, sink, session } = scene();
     const woomera = transmission({
       id: "t2",
+      groupId: "woomera",
       from: "ground:woomera",
       authorName: "Woomera Range",
       separationSeconds: 3,
@@ -556,6 +559,7 @@ describe("radio monitoring, a per-conversation mute", () => {
     const ares = transmission();
     const woomera = transmission({
       id: "t2",
+      groupId: "woomera",
       from: "ground:woomera",
       authorName: "Woomera Range",
     });
@@ -663,7 +667,7 @@ describe("radio playout, joined partway through a keying", () => {
       pairs,
     });
     const t = transmission({ separationSeconds: 3 });
-    session.receive(chunk(t, 40, 1000));
+    session.receive(chunk(t, 40, 1000, 64, [ARES, KSC, woomera]));
 
     clock.set(1008.99);
     session.pump(100);
@@ -671,5 +675,67 @@ describe("radio playout, joined partway through a keying", () => {
     clock.set(1009);
     session.pump(100);
     expect(sink.decoded).toHaveLength(1);
+  });
+});
+
+describe("radio, heard only by the group it is spoken to", () => {
+  it("never hears, counts or lights a transmission not addressed here, whatever path there is", () => {
+    // Woomera has a path to the craft and is not in the group: a non-member hears nothing, and is told nothing.
+    const woomera = "ground:woomera";
+    const pairs: SeparationMatrix = new Map([[ARES, new Map([[woomera, 9]])]]);
+    const { clock, sink, session } = scene({
+      me: { seat: "mission-control", vantageId: woomera },
+      pairs,
+    });
+    const t = transmission();
+    for (let seq = 0; seq < 5; seq++) {
+      session.receive(chunk(t, seq, 1000 + seq * CHUNK));
+    }
+    session.receive({
+      kind: "end",
+      transmissionId: t.id,
+      authorStationKey: t.authorStationKey,
+      ut: 1001,
+    });
+    clock.set(9999);
+    session.pump(100);
+    session.pump(101);
+
+    expect(sink.decoded).toHaveLength(0);
+    expect(sink.streams).toBe(0);
+    expect(session.snapshot()).toEqual({
+      live: [],
+      backlogSeconds: 0,
+      droppedChunks: 0,
+    });
+  });
+
+  it("hears a member added mid-keying from the first chunk addressed to it, one light-time after it was spoken", () => {
+    // The transmitter saw the addition after seq 2, and addressed Woomera from seq 3 on.
+    const woomera = "ground:woomera";
+    const pairs: SeparationMatrix = new Map([[ARES, new Map([[woomera, 9]])]]);
+    const { clock, sink, session } = scene({
+      me: { seat: "mission-control", vantageId: woomera },
+      pairs,
+    });
+    const t = transmission();
+    for (let seq = 0; seq < 6; seq++) {
+      const to = seq < 3 ? [ARES, KSC] : [ARES, KSC, woomera];
+      session.receive(chunk(t, seq, 1000 + seq * CHUNK, 64, to));
+    }
+
+    clock.set(1000 + 3 * CHUNK + 9 - 0.001);
+    session.pump(100);
+    expect(sink.decoded).toHaveLength(0);
+
+    clock.set(1000 + 6 * CHUNK + 9);
+    for (let i = 0; i < 6; i++) session.pump(100 + i * CHUNK);
+    expect(sink.decoded.map((d) => d.bytes[0])).toEqual([3, 4, 5]);
+    expect(session.snapshot().live).toEqual([
+      expect.objectContaining({
+        threadKey: "ares",
+        with: [KSC, ARES],
+      }),
+    ]);
   });
 });

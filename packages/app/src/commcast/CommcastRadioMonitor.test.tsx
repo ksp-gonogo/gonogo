@@ -165,9 +165,10 @@ function scene() {
           kind: "chunk",
           transmissionId: id,
           authorStationKey,
+          to: [KSC, from],
           transmission: {
             id,
-            to: [KSC],
+            groupId: `g-${from}`,
             from,
             authorStationKey,
             authorName: from === ARES ? "Jeb" : "Woomera Range",
@@ -271,14 +272,14 @@ describe("Commcast radio, monitored rather than tuned by the open view", () => {
   it("mutes ONE conversation, not the radio", async () => {
     const s = scene();
     s.mount();
-    await userEvent.click(screen.getByRole("button", { name: /New message/ }));
-    await userEvent.click(screen.getByRole("button", { name: /Ares 4/ }));
-    await userEvent.click(screen.getByRole("button", { name: "Open" }));
+    s.begin("t0", ARES, "zero");
+    await userEvent.click(screen.getByRole("button", { name: "Ares 4" }));
     await userEvent.click(screen.getByRole("button", { name: "Mute Ares 4" }));
+    s.finish("t0");
 
     say(s, "t1", ARES, "ares");
     say(s, "t2", WOOMERA, "woomera");
-    expect(s.played).toEqual(["woomera"]);
+    expect(s.played).toEqual(["zero", "woomera"]);
   });
 
   it("remembers the mute across a reload", async () => {

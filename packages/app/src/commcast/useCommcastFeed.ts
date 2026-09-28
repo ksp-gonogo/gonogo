@@ -2,6 +2,7 @@ import { DelayedPlayoutBuffer } from "@ksp-gonogo/sitrep-sdk/media";
 import { useUtNow, useViewClockOptional } from "@ksp-gonogo/sitrep-sdk/spine";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { CommcastLog } from "./CommcastLog";
+import { groupsAt } from "./groups";
 import {
   isSettled,
   revealUtFor,
@@ -14,6 +15,7 @@ import type {
   CommcastLogSnapshot,
   CommsMessage,
   OutboundMessage,
+  RecipientId,
 } from "./types";
 import { EMPTY_COMMCAST_LOG } from "./types";
 
@@ -45,9 +47,11 @@ export interface CommcastFeed {
   log: readonly CommcastEntry[];
   /** This screen's own words, still on their round trip, in send order. */
   outbound: readonly OutboundMessage[];
+  /** Every group known here now, with its members: see `groupsAt`. */
+  groups: ReadonlyMap<string, readonly RecipientId[]>;
 }
 
-const EMPTY_FEED: CommcastFeed = { log: [], outbound: [] };
+const EMPTY_FEED: CommcastFeed = { log: [], outbound: [], groups: new Map() };
 
 /**
  * Runs the arrival rule for one vantage.
@@ -262,6 +266,10 @@ export function useCommcastFeed(
           sentPhaseFor(o, me, utNow ?? Number.NEGATIVE_INFINITY, pairs),
         ),
     );
-    return { log: entries, outbound };
+    return {
+      log: entries,
+      outbound,
+      groups: groupsAt(snapshot, me, utNow, pairs),
+    };
   }, [log, snapshot, landed, me, pairs, utNow]);
 }

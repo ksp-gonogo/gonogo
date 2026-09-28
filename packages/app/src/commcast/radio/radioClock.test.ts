@@ -119,7 +119,7 @@ describe("radio across a relayed clock", () => {
   function transmission(): RadioTransmission {
     return {
       id: "t1",
-      to: ["vessel:near"],
+      groupId: "g1",
       from: "ksc",
       authorStationKey: "station-1",
       authorName: "Station",
@@ -174,6 +174,7 @@ describe("radio across a relayed clock", () => {
           transmissionId: t.id,
           authorStationKey: t.authorStationKey,
           transmission: t,
+          to: ["ksc", "vessel:near"],
           seq: i,
           ut: ut(),
           bytes: new Uint8Array(8).fill(i),

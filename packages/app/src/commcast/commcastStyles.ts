@@ -157,10 +157,13 @@ export const Author = styled.span<{ $pilot: boolean }>`
     $pilot ? "var(--color-status-go-fg)" : "var(--color-status-info-fg)"};
 `;
 
-export const Commcast__Body = styled.p`
+// A membership change reads as something that happened to the thread rather than as words somebody said.
+export const Commcast__Body = styled.p<{ $change?: boolean }>`
   margin: 0;
   font-size: var(--font-size-value);
-  color: var(--color-text-primary);
+  color: ${({ $change }) =>
+    $change ? "var(--color-text-muted)" : "var(--color-text-primary)"};
+  font-style: ${({ $change }) => ($change ? "italic" : "normal")};
   overflow-wrap: anywhere;
 `;
 

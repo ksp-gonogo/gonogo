@@ -11,7 +11,6 @@ import { render, screen } from "@ksp-gonogo/test-utils";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { threadKeyOf } from "../threads";
 import type { RecipientId } from "../types";
 import { RadioIndicator } from "./RadioIndicator";
 import type { RadioLight } from "./RadioSession";
@@ -27,7 +26,7 @@ function light(over: Partial<RadioLight> = {}): RadioLight {
   const from = over.from ?? "vessel:ares";
   return {
     transmissionId: "t1",
-    threadKey: threadKeyOf([from]),
+    threadKey: `g-${from}`,
     with: [from],
     from,
     authorName: "Jeb",
@@ -166,7 +165,9 @@ describe("the transmission light", () => {
       />,
     );
     await user.click(screen.getByRole("button", { name: "Woomera Range" }));
-    expect(onOpen).toHaveBeenCalledWith(["ground:woomera"]);
+    expect(onOpen).toHaveBeenCalledWith(
+      expect.objectContaining({ threadKey: "g-ground:woomera" }),
+    );
   });
 
   it("has no accessibility violations", async () => {

@@ -501,19 +501,54 @@ export async function waitForReception(
     .toBe(true);
 }
 
-/** Open the conversation with `name`, the way an operator reaches one. */
+/**
+ * Open the group with `names`, the way an operator reaches one: choosing the
+ * same people again reopens the group they are already in.
+ */
 export async function openConversation(
   page: Page,
-  name: string,
+  names: string | readonly string[],
 ): Promise<void> {
   await page.getByRole("button", { name: "New message" }).click();
-  /*
-   * A list ROW, never a control that happens to carry the same words: every
-   * row is a toggle and so carries `aria-pressed`, which the station-name
-   * editor in the panel header does not.
-   */
-  await page.locator("button[aria-pressed]").filter({ hasText: name }).click();
+  for (const name of typeof names === "string" ? [names] : names) {
+    /*
+     * A list ROW, never a control that happens to carry the same words: every
+     * row is a toggle and so carries `aria-pressed`, which the station-name
+     * editor in the panel header does not.
+     */
+    await page
+      .locator("button[aria-pressed]")
+      .filter({ hasText: name })
+      .click();
+  }
   await page.getByRole("button", { name: "Open" }).click();
+}
+
+/**
+ * Add `names` to the group whose thread is open, and return the wall instant
+ * the change was committed, read on the page.
+ */
+export async function addToGroup(
+  page: Page,
+  names: readonly string[],
+): Promise<number> {
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  for (const name of names) {
+    await page
+      .locator("button[aria-pressed]")
+      .filter({ hasText: name })
+      .click();
+  }
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  const at = await page.evaluate(() => Date.now());
+  await expect(page.getByLabel("Message")).toBeVisible();
+  return at;
+}
+
+/** Type a message into the open thread and send it. */
+export async function sendMessage(page: Page, text: string): Promise<void> {
+  await page.getByLabel("Message").fill(text);
+  await page.getByLabel("Message").press("Enter");
 }
 
 /**

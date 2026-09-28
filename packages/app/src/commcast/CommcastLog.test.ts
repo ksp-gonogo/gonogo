@@ -67,6 +67,7 @@ describe("CommcastLog, one vantage's own record", () => {
   it("transmits what it is given, and keeps its own copy", () => {
     const msg = log.send(AUTHOR, {
       kind: "text",
+      groupId: "g1",
       body: "go for the burn",
       to: [ARES],
       sentUt: 1000,
@@ -86,6 +87,7 @@ describe("CommcastLog, one vantage's own record", () => {
      */
     log.send(AUTHOR, {
       kind: "text",
+      groupId: "g1",
       body: "do you copy",
       to: [ARES],
       sentUt: 1000,
@@ -139,10 +141,43 @@ describe("CommcastLog, one vantage's own record", () => {
     ]);
   });
 
+  it("does not answer a message spoken at its own vantage", () => {
+    // A colleague at the same centre crossed nothing, and an instant answer would confirm words still on their way to the members who are far away.
+    log.receiveTransmission(fromWire({ from: KSC, to: [KSC, ARES] }));
+    log.release("m1", {
+      from: KSC,
+      stationKey: "screen-a",
+      seat: "mission-control",
+      atUt: 1000,
+    });
+    expect(log.snapshot().inbox).toHaveLength(1);
+    expect(wire.acked).toEqual([]);
+  });
+
+  it("carries a membership change whole: the group, its members, and who came in", () => {
+    const msg = log.send(AUTHOR, {
+      kind: "members",
+      groupId: "g7",
+      to: [ARES, KSC],
+      members: [ARES, KSC],
+      added: [ARES],
+      sentUt: 1000,
+      separationSeconds: 240,
+    });
+    expect(wire.sent).toEqual([msg]);
+    expect(msg).toMatchObject({
+      groupId: "g7",
+      kind: "members",
+      members: [ARES, KSC],
+      added: [ARES],
+    });
+  });
+
   describe("the idempotent resend", () => {
     it("keeps the message id, so the recipient can dedupe on it", () => {
       const msg = log.send(AUTHOR, {
         kind: "text",
+        groupId: "g1",
         body: "do you copy",
         to: [ARES],
         sentUt: 1000,
@@ -156,6 +191,7 @@ describe("CommcastLog, one vantage's own record", () => {
     it("restamps the journey without moving when the thing was first said", () => {
       const msg = log.send(AUTHOR, {
         kind: "text",
+        groupId: "g1",
         body: "do you copy",
         to: [ARES],
         sentUt: 1000,
@@ -183,6 +219,7 @@ describe("CommcastLog, one vantage's own record", () => {
     it("does not confirm a message twice when both copies are answered", () => {
       const msg = log.send(AUTHOR, {
         kind: "text",
+        groupId: "g1",
         body: "do you copy",
         to: [ARES],
         sentUt: 1000,
@@ -234,6 +271,7 @@ function fromWire(over: Partial<CommsMessage> = {}): CommsMessage {
     attempts: 1,
     separationSeconds: 240,
     kind: "text",
+    groupId: "g1",
     body: "copy that",
     ...over,
   };

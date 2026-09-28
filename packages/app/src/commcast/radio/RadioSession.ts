@@ -10,7 +10,7 @@ import {
   transitSecondsOf,
   type Vantage,
 } from "../reveal";
-import { inboundCounterparties, threadKeyOf } from "../threads";
+import { inboundCounterparties } from "../threads";
 import type { RecipientId } from "../types";
 import type { RadioFrame, RadioTransmission } from "./wire";
 import { recordRadioFrame } from "./wire";
@@ -34,6 +34,13 @@ import { recordRadioFrame } from "./wire";
  * UT minted at their own present, and releasing that against the confirmed edge
  * would hold every word for `spokenUt + 2S`, a round trip for a one-way
  * crossing.
+ *
+ * **Only a member hears it.** A chunk not addressed to this vantage is dropped
+ * on arrival, before it is placed, counted or drawn: the relay repeats every
+ * frame to every screen because PeerJS is a star, and this is where a screen
+ * outside the group stops it. Nothing is held for a vantage that might be added
+ * later either; a new member is addressed by the transmitter from the chunk
+ * after the change reached it, and hears from there.
  *
  * **A cut is silence and nothing else.** No path from the transmitter's vantage
  * to this one means the chunks are dropped and NOTHING is drawn, announced or
@@ -68,8 +75,9 @@ export interface RadioDecoderLike {
 /**
  * This screen's one listening output, and the reason mixing happens HERE.
  *
- * Every transmission this vantage has a path to opens its own decode stream on
- * the receiver, and the receiver SUMS them into a single output. Each stream
+ * Every transmission addressed here that this vantage has a path to opens its
+ * own decode stream on the receiver, and the receiver SUMS them into a single
+ * output. Each stream
  * has already waited out its own crossing before a sample of it reaches the
  * sum, which is the property that matters: the sum must sit DOWNSTREAM of
  * per-source delay. What no arrangement can do is mix once and fan the result
@@ -110,12 +118,12 @@ export interface RadioReceiver {
 export interface RadioLight {
   transmissionId: string;
   /**
-   * The conversation this belongs to at this vantage, keyed exactly as the
-   * inbox keys its rows, so the light names a thread the operator can open and
-   * the mute they set on that row reaches this voice.
+   * The group this is spoken to, which is how the inbox keys its rows, so the
+   * light names a thread the operator can open and the mute they set on that
+   * row reaches this voice.
    */
   threadKey: string;
-  /** The other ends of that conversation, sorted, this vantage excluded. */
+  /** The other members it was addressed to, sorted, this vantage excluded. */
   with: readonly RecipientId[];
   from: RecipientId;
   authorName: string;
@@ -183,10 +191,9 @@ interface HeldChunk {
 /** A transmission this screen is placing chunks against. */
 interface HeardTransmission {
   transmission: RadioTransmission;
-  /** Which conversation it belongs to here. Resolved once, at the first chunk
-   *  heard, from the same vantage the separation was resolved against. */
+  /** The group it is spoken to, which is the thread it belongs to here. */
   threadKey: string;
-  /** The other ends of that conversation, sorted, as the inbox names them. */
+  /** The other members the first chunk heard here was addressed to, sorted. */
   with: readonly RecipientId[];
   /**
    * At least one chunk of this keying has reached the speaker, so the words
@@ -422,9 +429,15 @@ export class RadioSession {
          * cut and is silent, or no vantage yet, so no arrival instant to give
          * it) is dropped without a reading, and the next one is tried afresh.
          */
+        if (
+          this.me.vantageId === undefined ||
+          !frame.to.includes(this.me.vantageId)
+        ) {
+          return;
+        }
         const held =
           this.heard.get(frame.transmissionId) ??
-          this.begin(frame.transmission);
+          this.begin(frame.transmission, frame.to);
         if (!held) return;
         held.inflight += 1;
         this.crossing += 1;
@@ -509,6 +522,7 @@ export class RadioSession {
    */
   private begin(
     transmission: RadioTransmission,
+    to: readonly RecipientId[],
   ): HeardTransmission | undefined {
     if (this.me.vantageId === undefined) return undefined;
     const seconds = transitSecondsOf(
@@ -520,15 +534,10 @@ export class RadioSession {
       ),
     );
     if (seconds === null) return undefined;
-    const counterparties = inboundCounterparties(
-      transmission.from,
-      transmission.to,
-      this.me.vantageId,
-    );
     const held: HeardTransmission = {
       transmission,
-      threadKey: threadKeyOf(counterparties),
-      with: [...counterparties].sort(),
+      threadKey: transmission.groupId,
+      with: inboundCounterparties(transmission.from, to, this.me.vantageId),
       presented: false,
       transitSeconds: seconds,
       pacer: new PresentationPacer<HeldChunk>({

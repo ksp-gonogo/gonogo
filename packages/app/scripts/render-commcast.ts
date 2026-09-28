@@ -65,6 +65,9 @@ interface Held {
   separationSeconds: number | null;
   acks?: { from: string; stationKey: string; at: number }[];
   neverLeft?: boolean;
+  group?: string;
+  members?: string[];
+  added?: string[];
 }
 
 interface Pane {
@@ -83,6 +86,8 @@ interface Pane {
   pick?: string[];
   /** Press Open, landing in the conversation itself. */
   open?: boolean;
+  /** From the open thread, press Add and choose these. */
+  add?: string[];
   /** Latch the push-to-talk key and speak a fixed clip through it. */
   key?: boolean;
 }
@@ -173,6 +178,51 @@ const toRecovery = (body: string, sentAt: number): Held => ({
   sentAt,
   separationSeconds: 0.4,
 });
+
+/** One group: Kennedy, the craft and the range. */
+const GROUP = "kennedy-ares-woomera";
+
+/** Kennedy opening the group and speaking in it, each answered by the craft. */
+const GROUP_SENT: Held[] = [
+  {
+    from: KSC,
+    to: [KSC, ARES, WOOMERA],
+    authorName: "Kennedy Flight",
+    authorSeat: "mission-control",
+    body: "",
+    sentAt: -3000,
+    separationSeconds: LIGHT_TIME,
+    acks: acked(-3000),
+    group: GROUP,
+    members: [KSC, ARES, WOOMERA],
+    added: [ARES, WOOMERA],
+  },
+  {
+    from: KSC,
+    to: [KSC, ARES, WOOMERA],
+    authorName: "Kennedy Flight",
+    authorSeat: "mission-control",
+    body: "Ares, Woomera, Kennedy. Handover at the next pass.",
+    sentAt: -2400,
+    separationSeconds: LIGHT_TIME,
+    acks: acked(-2400),
+    group: GROUP,
+  },
+];
+
+/** The range answering in the same group. */
+const GROUP_RECEIVED: Held[] = [
+  {
+    from: WOOMERA,
+    to: [KSC, ARES, WOOMERA],
+    authorName: "Woomera Range",
+    authorSeat: "mission-control",
+    body: "Kennedy, Woomera. Ready for the handover.",
+    sentAt: -1800,
+    separationSeconds: 12,
+    group: GROUP,
+  },
+];
 
 const SCENES: Scene[] = [
   {
@@ -746,13 +796,9 @@ const SCENES: Scene[] = [
   },
   {
     /*
-     * Choosing who a message is for, and the one thing the picker refuses.
-     * The rows TOGGLE, because the envelope has always carried a list of
-     * recipients and a picker that could never hold a second name would have
-     * to be rebuilt to grow one. Group DELIVERY is not built: the author
-     * freezes ONE separation and the acknowledgement window is measured off
-     * it, so the second name is refused here, where the operator can see why,
-     * rather than sent and silently mis-timed.
+     * Choosing who a group is with. The rows toggle and any number may be
+     * chosen: a message and a transmission go to the whole group, and each
+     * member hears them one light-time from here.
      */
     name: "compose-recipients",
     panes: [
@@ -767,7 +813,80 @@ const SCENES: Scene[] = [
     separation: PAIRS,
     roster: ROSTER,
     oneWaySeconds: LIGHT_TIME,
-    settleOn: "Group delivery is not carried yet",
+    settleOn: "2 chosen",
+    pxW: 460,
+    pxH: 460,
+  },
+  {
+    /*
+     * A GROUP's thread: opened by Kennedy with the craft and the range, grown
+     * by the craft adding the recovery ship, and every word said in it by any
+     * member in one place. The title is the group's members as they stand at
+     * this vantage, and anyone in it may add somebody.
+     */
+    name: "group-thread",
+    panes: [
+      {
+        seat: "mission-control",
+        vantage: KSC,
+        name: "Kennedy Flight",
+        sent: GROUP_SENT,
+        received: [
+          ...GROUP_RECEIVED,
+          {
+            from: ARES,
+            to: [KSC, ARES, WOOMERA, RECOVERY],
+            authorName: "Jeb",
+            authorSeat: "pilot",
+            body: "",
+            sentAt: -1200,
+            separationSeconds: LIGHT_TIME,
+            group: GROUP,
+            members: [KSC, ARES, WOOMERA, RECOVERY],
+            added: [RECOVERY],
+          },
+          {
+            from: ARES,
+            to: [KSC, ARES, WOOMERA, RECOVERY],
+            authorName: "Jeb",
+            authorSeat: "pilot",
+            body: "Recovery is on the loop for splashdown.",
+            sentAt: -1100,
+            separationSeconds: LIGHT_TIME,
+            group: GROUP,
+          },
+        ],
+        openThread: "Ares 4, Recovery 1, Woomera Range",
+      },
+    ],
+    separation: PAIRS,
+    roster: ROSTER,
+    oneWaySeconds: LIGHT_TIME,
+    settleOn: "Recovery is on the loop",
+    pxW: 520,
+    pxH: 620,
+  },
+  {
+    /*
+     * Adding to a group from inside it: only the roster entries not already
+     * members are offered, and nothing else about the group can be edited.
+     */
+    name: "group-add",
+    panes: [
+      {
+        seat: "mission-control",
+        vantage: KSC,
+        name: "Kennedy Flight",
+        sent: GROUP_SENT,
+        received: GROUP_RECEIVED,
+        openThread: "Ares 4, Woomera Range",
+        add: ["Recovery 1"],
+      },
+    ],
+    separation: PAIRS,
+    roster: ROSTER,
+    oneWaySeconds: LIGHT_TIME,
+    settleOn: "Add to group",
     pxW: 460,
     pxH: 460,
   },

@@ -1,5 +1,9 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
-import { registerComponent, useTelemetry } from "@ksp-gonogo/core";
+import {
+  registerComponent,
+  safeRandomUuid,
+  useTelemetry,
+} from "@ksp-gonogo/core";
 import type { CommsLink } from "@ksp-gonogo/sitrep-sdk";
 import { observedValue } from "@ksp-gonogo/sitrep-sdk";
 import { useLatestValue, useUtNow } from "@ksp-gonogo/sitrep-sdk/spine";
@@ -18,21 +22,24 @@ import {
 import { CommcastInboxView } from "./CommcastInboxView";
 import { CommcastThreadView } from "./CommcastThreadView";
 import { Commcast__Frame, Commcast__Identity } from "./commcastStyles";
+import { groupWith } from "./groups";
 import { RadioIndicator } from "./radio/RadioIndicator";
 import { useRadio } from "./radio/useRadio";
-import { type Separation, separationBetween } from "./reveal";
+import { groupSeparation, type Separation } from "./reveal";
 import { threadFor, threadsOf } from "./threads";
 import type { RecipientId } from "./types";
 import { useCommcastFeed } from "./useCommcastFeed";
 import { useDroppedCount } from "./useDroppedCount";
 
-/** Which of the widget's three screens the operator is on: each correspondence is separate, and only its own two ends hold it. */
+/** Which of the widget's screens the operator is on: each group is its own thread, and only its members hold it. */
 type CommcastView =
   | { kind: "inbox" }
-  /** Choosing who to start a conversation with. */
+  /** Choosing who to open a group with. */
   | { kind: "compose" }
-  /** Inside one conversation, with the ends it is with. */
-  | { kind: "thread"; with: readonly RecipientId[] };
+  /** Inside one group's thread; `with` names its other members where the group itself has not reached here. */
+  | { kind: "thread"; groupId: string; with: readonly RecipientId[] }
+  /** Choosing who to add to a group this vantage is in. */
+  | { kind: "add"; groupId: string; with: readonly RecipientId[] };
 
 function CommcastComponent(_props: Readonly<ComponentProps>) {
   const log = useCommcastLog();
@@ -42,10 +49,15 @@ function CommcastComponent(_props: Readonly<ComponentProps>) {
   const pairs = useSeparationMatrix();
   const local = useLocalParticipant();
   const recipients = useRecipients(me);
+  // Every roster entry, this vantage's own included, so a change that adds this vantage names it rather than printing its address.
+  const roster = useRecipients({ seat: me.seat });
   const [view, setView] = useState<CommcastView>({ kind: "inbox" });
   const feed = useCommcastFeed(log, me, pairs);
   const dropped = useDroppedCount(log);
-  const threads = threadsOf(feed, me);
+  // A vantage id is an address; it reaches the screen only when the roster has not named that vantage.
+  const nameFor = (id: RecipientId) =>
+    roster.find((r) => r.id === id)?.name ?? id;
+  const threads = threadsOf(feed, me, nameFor);
   /*
    * The craft-to-ground path, standing in for a pair the separation matrix
    * has not reached. Observed only: this number is frozen into a message
@@ -62,35 +74,78 @@ function CommcastComponent(_props: Readonly<ComponentProps>) {
    */
   const noSignal = useLatestValue<CommsLink>("comms.link")?.connected === false;
 
-  // A vantage id is an address; it reaches the screen only when the roster has not named that vantage.
-  const nameFor = (id: RecipientId) =>
-    recipients.find((r) => r.id === id)?.name ?? id;
-  // The one end a message goes to: group delivery is not carried, though the envelope, thread key and reveal all take a list.
-  const target = view.kind === "thread" ? (view.with[0] ?? null) : null;
-  const separation = separationBetween(
-    me.vantageId,
-    target ?? undefined,
-    pathHome,
-    pairs,
-  );
+  const inGroup = view.kind === "thread" || view.kind === "add" ? view : null;
+  const groupId = inGroup?.groupId ?? null;
+  const members: readonly RecipientId[] = inGroup
+    ? (feed.groups.get(inGroup.groupId) ?? withMe(me.vantageId, inGroup.with))
+    : [];
+  const separation = groupSeparation(me.vantageId, members, pathHome, pairs);
   const separationSeconds = secondsOf(separation);
-  // On the widget, not in a thread, so it hears every conversation; target and separation are only for transmitting.
+  // On the widget, not in a thread, so it hears every group; the group and separation are only for transmitting.
   const radio = useRadio({
     log,
     me,
     pairs,
     local,
-    target,
+    groupId,
+    members,
     separationSeconds,
   });
+  const openThread = (id: string, fallback: readonly RecipientId[]) =>
+    setView({ kind: "thread", groupId: id, with: fallback });
   // In every view's bar, because the transmission may be on a conversation that is not on screen.
   const indicator = (
     <RadioIndicator
       live={radio.reception.live}
       nameFor={nameFor}
-      onOpen={(ids) => setView({ kind: "thread", with: ids })}
+      onOpen={(light) => openThread(light.threadKey, light.with)}
     />
   );
+
+  /*
+   * Opening a group and adding to one are the same change, sent like any
+   * message so it reaches each member one light-time from here. It is the only
+   * edit a group takes.
+   */
+  const changeMembers = (
+    id: string,
+    everyone: readonly RecipientId[],
+    added: readonly RecipientId[],
+  ) => {
+    if (!log || me.vantageId === undefined || utNow === undefined) return;
+    log.send(
+      {
+        stationKey: local.stationKey,
+        name: local.name,
+        seat: local.seat,
+        vantageId: me.vantageId,
+      },
+      {
+        kind: "members",
+        groupId: id,
+        to: everyone,
+        members: everyone,
+        added,
+        sentUt: utNow,
+        separationSeconds: secondsOf(
+          groupSeparation(me.vantageId, everyone, pathHome, pairs),
+        ),
+      },
+    );
+  };
+  // Choosing the same people again reopens their group rather than starting a second thread with them.
+  const openGroup = (picked: readonly RecipientId[]) => {
+    const everyone = withMe(me.vantageId, picked);
+    const held = groupWith(feed.groups, everyone);
+    if (held !== undefined) {
+      openThread(held, picked);
+      return;
+    }
+    const id = safeRandomUuid();
+    changeMembers(id, everyone, picked);
+    openThread(id, picked);
+  };
+  const canChange = me.vantageId !== undefined && utNow !== undefined;
 
   if (!log) {
     return (
@@ -119,7 +174,7 @@ function CommcastComponent(_props: Readonly<ComponentProps>) {
   const body = (
     // `fill`, because the log is the tile.
     <Section fill>
-      {/* Three views in one frame with the same geometry, so switching view never resizes the tile. */}
+      {/* Every view in one frame with the same geometry, so switching view never resizes the tile. */}
       <Commcast__Frame>
         {view.kind === "inbox" && (
           <CommcastInboxView
@@ -129,21 +184,49 @@ function CommcastComponent(_props: Readonly<ComponentProps>) {
             canCompose={recipients.length > 0}
             radio={radio}
             indicator={indicator}
-            onOpen={(ids) => setView({ kind: "thread", with: ids })}
+            onOpen={(thread) => openThread(thread.key, thread.with)}
             onCompose={() => setView({ kind: "compose" })}
           />
         )}
         {view.kind === "compose" && (
           <CommcastComposeView
+            title="New message"
+            commitLabel="Open"
             recipients={recipients}
+            ready={canChange}
             indicator={indicator}
             onBack={() => setView({ kind: "inbox" })}
-            onOpen={(ids) => setView({ kind: "thread", with: ids })}
+            onCommit={openGroup}
+          />
+        )}
+        {view.kind === "add" && (
+          <CommcastComposeView
+            title="Add to group"
+            backLabel="Thread"
+            commitLabel="Add"
+            recipients={recipients.filter((r) => !members.includes(r.id))}
+            ready={canChange}
+            indicator={indicator}
+            onBack={() => openThread(view.groupId, view.with)}
+            onCommit={(picked) => {
+              changeMembers(
+                view.groupId,
+                [...members, ...picked].sort(),
+                picked,
+              );
+              openThread(view.groupId, [...view.with, ...picked]);
+            }}
           />
         )}
         {view.kind === "thread" && (
           <CommcastThreadView
-            thread={threadFor(threads, view.with)}
+            thread={threadFor(
+              threads,
+              view.groupId,
+              view.with,
+              feed.groups,
+              me,
+            )}
             me={me}
             utNow={utNow}
             pairs={pairs}
@@ -155,7 +238,17 @@ function CommcastComponent(_props: Readonly<ComponentProps>) {
             indicator={indicator}
             separation={separation}
             separationSeconds={separationSeconds}
-            target={target}
+            members={members}
+            onAdd={
+              recipients.some((r) => !members.includes(r.id))
+                ? () =>
+                    setView({
+                      kind: "add",
+                      groupId: view.groupId,
+                      with: view.with,
+                    })
+                : undefined
+            }
             onBack={() => setView({ kind: "inbox" })}
           />
         )}
@@ -164,6 +257,14 @@ function CommcastComponent(_props: Readonly<ComponentProps>) {
   );
 
   return <Panel panelTitle="Commcast" panelAside={identity} sections={body} />;
+}
+
+/** A group's whole membership from the others in it, this vantage included once it knows where it is. */
+function withMe(
+  me: RecipientId | undefined,
+  others: readonly RecipientId[],
+): readonly RecipientId[] {
+  return [...new Set(me === undefined ? others : [me, ...others])].sort();
 }
 
 function secondsOf(separation: Separation): number | null {
@@ -185,7 +286,7 @@ registerComponent({
   id: "commcast",
   name: "Commcast",
   description:
-    "Addressed messages between the command centres and craft on this mission. An inbox of conversations, each one crossing the light-time to the vantage it names and acknowledged back, so your own words appear only once that acknowledgement returns and the wait you feel is the wait that is really there.",
+    "Messages and push-to-talk radio between the command centres and craft on this mission, always addressed to a group. An inbox of group threads, each message crossing the light-time to every member and acknowledged back, so your own words appear only once that acknowledgement returns and the wait you feel is the wait that is really there. Anyone in a group can add somebody to it; they hear from the moment word of it reaches them.",
   tags: ["mission-control", "comms"],
   defaultSize: { w: 6, h: 8 },
   minSize: { w: 4, h: 5 },

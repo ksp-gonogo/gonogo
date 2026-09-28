@@ -11,8 +11,12 @@ import type { Seat } from "@ksp-gonogo/sitrep-sdk/spine";
  * consistency bug to be fixed by a server.
  */
 
-/** Message modes. Only text exists; recorded audio and video are the next two. */
-export type CommsMessageKind = "text" | "audio" | "video";
+/**
+ * Message modes. `members` is a change to a group's membership, carried and
+ * delayed exactly like a message so it reaches each vantage after that
+ * vantage's own light-time. Recorded audio and video are not built.
+ */
+export type CommsMessageKind = "text" | "members" | "audio" | "video";
 
 /**
  * Who a message is for, or who it came from: a VANTAGE key, the same
@@ -37,10 +41,12 @@ export interface CommsMessage {
    * copy confirms the second. Minted once by the author and never re-minted.
    */
   id: string;
+  /** The group it is addressed to, which is the one thread it belongs to. */
+  groupId: string;
   /**
-   * Who it is for. A LIST, and every list in this pass holds exactly one
-   * entry: groups are an additive change to the UI and the reveal, and would
-   * be a wire change and a migration if this were a single field.
+   * The group's members as the author could see them at send, the author's
+   * own vantage included so a colleague at the same centre holds the same
+   * thread. A vantage not named here is not a recipient and never holds it.
    */
   to: readonly RecipientId[];
   /** The vantage it was spoken from, which is one half of its separation. */
@@ -67,20 +73,24 @@ export interface CommsMessage {
   /** How many times it has been transmitted. 1 until the operator resends. */
   attempts: number;
   /**
-   * The author-to-recipient separation frozen at the latest transmission, or
-   * `null` for NO PATH (never a measured zero).
+   * The longest one-way separation from the author to a member it had a path
+   * to, frozen at the latest transmission, or `null` when it had a path to no
+   * member at all (never a measured zero).
    *
-   * Addressing is what makes this exact. Under a broadcast no sender could know
-   * its distance to every receiver, so the envelope carried the sender's path
-   * home and each reader resolved its own; with one named recipient there is
-   * one separation, the ledger already holds it, and both ends read the same
-   * number off it. The RECEIVER still resolves its own from the published
-   * matrix where it can, and falls back to this.
+   * The longest because it bounds the acknowledgement window: the farthest
+   * member is the last one who could answer. Each RECEIVER resolves its own
+   * separation from the published matrix and falls back to this, which is
+   * only reached when the matrix is absent and every member then shares the
+   * one path-home figure anyway.
    */
   separationSeconds: number | null;
   kind: CommsMessageKind;
   /** Text body. Present for `kind: "text"`. */
   body?: string;
+  /** The group's whole membership after this change. Present for `kind: "members"`. */
+  members?: readonly RecipientId[];
+  /** Who this change brought in. Present for `kind: "members"`; on the change that opened the group it is everyone but the author. */
+  added?: readonly RecipientId[];
   /**
    * The craft the author was aboard at send, as `"vessel:<guid>"`. Absent from
    * a mission-control author, and absent aboard until the page knows its own
@@ -166,7 +176,10 @@ export const EMPTY_COMMCAST_LOG: CommcastLogSnapshot = {
 export interface CommsSendInput {
   kind: CommsMessageKind;
   body?: string;
+  groupId: string;
   to: readonly RecipientId[];
+  members?: readonly RecipientId[];
+  added?: readonly RecipientId[];
   sentUt: number;
   separationSeconds: number | null;
   authorVesselId?: string;

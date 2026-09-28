@@ -20,33 +20,42 @@ import {
 import type { CommsRecipient, RecipientId } from "./types";
 
 /**
- * Choosing who a new conversation is with. The rows toggle, because the
- * envelope carries a list; group delivery is not carried, so a second name is
- * refused here, where the operator can see why, rather than sent mis-timed.
+ * Choosing who is in a group: who to open one with, or who to add to one this
+ * vantage is already in. The rows toggle, and any number may be chosen.
  */
 export function CommcastComposeView({
+  title,
+  backLabel,
+  commitLabel,
   recipients,
+  ready,
   indicator,
   onBack,
-  onOpen,
+  onCommit,
 }: {
+  title: string;
+  /** Where the way back leads, when that is not the inbox. */
+  backLabel?: string;
+  /** The commit's own verb, since this opens or grows a group rather than transmitting words. */
+  commitLabel: string;
   recipients: readonly CommsRecipient[];
+  /** This screen knows where it stands and what time it is, without which no change can be sent. */
+  ready: boolean;
   indicator: ReactNode;
   onBack: () => void;
-  onOpen: (ids: readonly RecipientId[]) => void;
+  onCommit: (ids: readonly RecipientId[]) => void;
 }) {
   const [picked, setPicked] = useState<readonly RecipientId[]>([]);
   const toggle = (id: RecipientId) =>
     setPicked((prev) =>
       prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id],
     );
-  const group = picked.length > 1;
   return (
     <>
       <Commcast__Bar>
-        <CommcastBackButton onClick={onBack} />
+        <CommcastBackButton onClick={onBack} label={backLabel} />
         <Text size="sm" tone="default">
-          New message
+          {title}
         </Text>
         <Commcast__BarGap />
         {indicator}
@@ -54,16 +63,14 @@ export function CommcastComposeView({
       <Console
         tone={COMMCAST_TONE}
         composer={
-          /* The bar's commit slot with its own verb, and the word rather than the send glyph: this opens a thread rather than transmitting. */
+          /* The bar's commit slot with its own verb, and the word rather than the send glyph. */
           <ComposerBar
-            blocked={group}
-            {...(group ? { flag: "ONE AT A TIME" } : {})}
-            onSend={() => onOpen(picked)}
-            sendDisabled={picked.length !== 1}
-            sendLabel="Open"
+            onSend={() => onCommit(picked)}
+            sendDisabled={picked.length === 0 || !ready}
+            sendLabel={commitLabel}
             sendVariant="text"
           >
-            <Text size="xs" tone={group ? "nogo" : "faint"}>
+            <Text size="xs" tone="faint">
               {pickStatus(picked.length)}
             </Text>
           </ComposerBar>
@@ -99,7 +106,7 @@ export function CommcastComposeView({
 }
 
 function pickStatus(pickedCount: number): string {
-  if (pickedCount > 1) return "Group delivery is not carried yet";
+  if (pickedCount > 1) return `${pickedCount} chosen`;
   if (pickedCount === 1) return "Ready";
   return "Choose a recipient";
 }

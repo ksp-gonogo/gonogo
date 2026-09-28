@@ -1,4 +1,5 @@
 import type { InFlightListItem } from "@ksp-gonogo/ui-kit";
+import { messageText } from "./groups";
 import {
   legOf,
   roundTripFor,
@@ -7,7 +8,7 @@ import {
   sentPhaseFor,
   type Vantage,
 } from "./reveal";
-import type { OutboundMessage } from "./types";
+import type { OutboundMessage, RecipientId } from "./types";
 
 /**
  * This screen's own words, still out, in the shape the console's queue draws:
@@ -23,6 +24,7 @@ export function outboundItems(
   me: Vantage,
   utNow: number | undefined,
   pairs: SeparationMatrix | undefined,
+  nameFor: (id: RecipientId) => string = (id) => id,
 ): InFlightListItem[] {
   return outbound.map((out) => {
     const phase =
@@ -30,7 +32,7 @@ export function outboundItems(
     return {
       id: out.msg.id,
       // The words themselves, as the terminal labels a dispatched line with what was typed.
-      label: out.msg.body ?? out.msg.kind,
+      label: messageText(out.msg, nameFor),
       etaSeconds: etaFor(out, phase, utNow),
       phase: phase === "confirmed" ? "due" : phase,
       ...(utNow === undefined ? {} : { progress: progressFor(out, utNow) }),

@@ -21,7 +21,8 @@ const ARES = "vessel:ares";
 const KSC = "ksc";
 
 const JEB = {
-  to: [KSC],
+  groupId: "ares",
+  recipients: () => [ARES, KSC],
   from: ARES,
   authorStationKey: "pilot-1",
   authorName: "Jeb",
@@ -104,7 +105,8 @@ describe("radio transmit, one keying", () => {
     for (const c of chunks) {
       expect(c.transmission.id).toBe(c.transmissionId);
       expect(c.transmission.from).toBe(ARES);
-      expect(c.transmission.to).toEqual([KSC]);
+      expect(c.transmission.groupId).toBe("ares");
+      expect(c.to).toEqual([ARES, KSC]);
       expect(c.transmission.separationSeconds).toBe(240);
       expect(c.transmission.startedUt).toBe(1000);
     }

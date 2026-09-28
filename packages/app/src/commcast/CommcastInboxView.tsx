@@ -21,6 +21,7 @@ import {
   Commcast__Scroll,
   ThreadMarker,
 } from "./commcastStyles";
+import { namesOf } from "./groups";
 import { RadioInput } from "./radio/RadioInput";
 import type { RadioControl } from "./radio/useRadio";
 import type { CommcastThread } from "./threads";
@@ -49,7 +50,7 @@ export function CommcastInboxView({
   radio: RadioControl;
   /** The transmission light, drawn in every view's bar. */
   indicator: ReactNode;
-  onOpen: (ids: readonly RecipientId[]) => void;
+  onOpen: (thread: CommcastThread) => void;
   onCompose: () => void;
 }) {
   const [inputOpen, setInputOpen] = useState(false);
@@ -109,11 +110,11 @@ export function CommcastInboxView({
               <SelectableRow
                 key={thread.key}
                 selected={false}
-                onClick={() => onOpen(thread.with)}
+                onClick={() => onOpen(thread)}
               >
                 <Commcast__RowHead>
                   <Commcast__RowName>
-                    {thread.with.map(nameFor).join(", ")}
+                    {namesOf(thread.with, nameFor)}
                   </Commcast__RowName>
                   {/* The one state an inbox row needs: something is still crossing in there. */}
                   {thread.outbound.length > 0 && (

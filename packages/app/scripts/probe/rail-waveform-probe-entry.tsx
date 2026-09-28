@@ -178,7 +178,8 @@ async function amplitudesOf(
     startCapture: mic.start,
   });
   await transmitter.keyDown({
-    to: ["vessel:ares-4"],
+    groupId: "rail-waveform",
+    recipients: () => ["ground:Kerbal Space Center", "vessel:ares-4"],
     from: "ground:Kerbal Space Center",
     authorStationKey: safeRandomUuid(),
     authorName: "CAPCOM",

@@ -27,10 +27,10 @@
  *   - a pilot 3 s away at `vessel:near`, on `/pilot`
  *   - a pilot 9 s away at `vessel:far`, on `/pilot`
  *
- * Radio is a BROADCAST in this model: `RadioSession.begin` registers any
- * transmission it has a path to, and never asks whether this vantage was
- * addressed. So mission control keying once is heard by both craft, six
- * seconds apart, off the same bytes.
+ * A transmission goes to a GROUP and only its members hear it. Mission control
+ * opens one with both craft, so keying once is heard by both, six seconds
+ * apart, off the same bytes. `commcast-radio-groups.spec.ts` is where a craft
+ * outside the group is shown hearing nothing.
  *
  * ## The light, and the leak it must not have
  *
@@ -86,6 +86,7 @@ import { expect, test } from "@playwright/test";
 import { PORTS } from "../../playwright.config";
 import {
   closeAll,
+  FAR,
   FAR_SECONDS,
   HOLD_MS,
   keyDown,
@@ -339,10 +340,8 @@ test.describe("commcast radio: two screens hearing each other @chromium-only", (
       // Three screens up, three lamps dark. Held, so the film has a rest state.
       await control.page.waitForTimeout(HOLD_MS);
 
-      // Addressed to the near craft. The far craft is not a recipient and hears
-      // it anyway, because radio is a broadcast: a session registers any
-      // transmission it has a path to and never asks whether it was addressed.
-      await openConversation(control.page, NAMES[NEAR]);
+      // One group with both craft in it, so one keying reaches both.
+      await openConversation(control.page, [NAMES[NEAR], NAMES[FAR]]);
       await expect(voiceRibbon(control.page)).toHaveCount(0);
       await control.page.waitForTimeout(HOLD_MS);
 

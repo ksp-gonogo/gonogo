@@ -41,11 +41,11 @@ export interface RadioTransmission {
   /** Minted at key-down. Groups every chunk of one keying. */
   id: string;
   /**
-   * Who it is for. A LIST holding exactly one entry in this pass, the same
-   * shape and for the same reason `CommsMessage.to` is one: groups are then an
-   * additive change to the reveal rather than a wire change.
+   * The group it is spoken to, which is the thread it belongs to. Who in that
+   * group each chunk is for is on the chunk, because the group can grow while
+   * somebody is talking.
    */
-  to: readonly RecipientId[];
+  groupId: string;
   /** The vantage it is spoken from, which is one half of its separation. */
   from: RecipientId;
   /** Stable device identity of the transmitter, as `station-info.stationKey`. */
@@ -61,8 +61,8 @@ export interface RadioTransmission {
    */
   startedUt: number;
   /**
-   * The transmitter-to-recipient separation, frozen ONCE at key-down, or `null`
-   * for NO PATH.
+   * The longest separation from the transmitter to a member it has a path to,
+   * frozen ONCE at key-down, or `null` for NO PATH to any of them.
    *
    * Frozen per TRANSMISSION rather than per chunk, and that is load-bearing
    * rather than an optimisation. A separation re-read every 20 ms would move
@@ -104,6 +104,16 @@ export type RadioFrame =
       kind: "chunk";
       /** The keying this chunk belongs to, whole. See {@link RadioTransmission}. */
       transmission: RadioTransmission;
+      /**
+       * Who this chunk is for: the group's members as the transmitter could
+       * see them when it was spoken, its own vantage included. A vantage not
+       * named here never hears it.
+       *
+       * Per chunk rather than per keying, so a member added mid-transmission
+       * is addressed from the first chunk spoken after the change reached the
+       * transmitter, and hears the stream from there, one light-time later.
+       */
+      to: readonly RecipientId[];
       /** 0-based within the transmission, monotonic. */
       seq: number;
       /** The transmitter's own present when this chunk was captured. */

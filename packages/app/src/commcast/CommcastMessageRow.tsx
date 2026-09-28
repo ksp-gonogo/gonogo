@@ -7,6 +7,7 @@ import {
   Commcast__Message,
   Commcast__Meta,
 } from "./commcastStyles";
+import { messageText } from "./groups";
 import {
   firstAckUtFor,
   revealedAcks,
@@ -16,7 +17,7 @@ import {
   separationFor,
   type Vantage,
 } from "./reveal";
-import type { OutboundMessage } from "./types";
+import type { OutboundMessage, RecipientId } from "./types";
 import type { CommcastEntry } from "./useCommcastFeed";
 
 /** One message in this vantage's log: something heard, or something settled. */
@@ -26,6 +27,7 @@ export function CommcastMessageRow({
   utNow,
   pairs,
   log,
+  nameFor,
   separationSeconds,
 }: {
   entry: CommcastEntry;
@@ -33,6 +35,7 @@ export function CommcastMessageRow({
   utNow: number | undefined;
   pairs: SeparationMatrix | undefined;
   log: CommcastLog;
+  nameFor: (id: RecipientId) => string;
   separationSeconds: number | null;
 }) {
   const { msg, out } = entry;
@@ -46,7 +49,9 @@ export function CommcastMessageRow({
           <HeardVerdict msg={msg} me={me} pairs={pairs} />
         )}
       </Commcast__Meta>
-      <Commcast__Body>{msg.body}</Commcast__Body>
+      <Commcast__Body $change={msg.kind === "members"}>
+        {messageText(msg, nameFor)}
+      </Commcast__Body>
       {out && (
         <UnconfirmedActions
           out={out}

@@ -1,12 +1,18 @@
 import { ArrowLeftIcon } from "@ksp-gonogo/ui-kit";
 import { Commcast__Back } from "./commcastStyles";
 
-/** Out of a conversation and back to the list of them. */
-export function CommcastBackButton({ onClick }: { onClick: () => void }) {
+/** Back out of a view, named for where it leads: the inbox, unless a thread is what it returns to. */
+export function CommcastBackButton({
+  onClick,
+  label = "Inbox",
+}: {
+  onClick: () => void;
+  label?: string;
+}) {
   return (
     <Commcast__Back type="button" onClick={onClick}>
       <ArrowLeftIcon size={14} />
-      Inbox
+      {label}
     </Commcast__Back>
   );
 }

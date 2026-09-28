@@ -114,7 +114,8 @@ function crossing(
     /** Key, say the whole clip on the 20 ms grid, unkey. */
     async say(index: number) {
       await transmitter.keyDown({
-        to: [KSC],
+        groupId: "g1",
+        recipients: () => [ARES, KSC],
         from: ARES,
         authorStationKey: "pilot-1",
         authorName: "Jeb",
@@ -444,7 +445,8 @@ function twoTalkers(near: RadioClip, far: RadioClip) {
       mic,
       key: () =>
         transmitter.keyDown({
-          to: [KSC],
+          groupId: `g-${from}`,
+          recipients: () => [from, KSC],
           from,
           authorStationKey: `station-${from}`,
           authorName: name,

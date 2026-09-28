@@ -11,7 +11,8 @@ export function CommcastComposer({
   me,
   local,
   utNow,
-  target,
+  groupId,
+  members,
   noPath,
   separationSeconds,
 }: {
@@ -19,8 +20,11 @@ export function CommcastComposer({
   me: Vantage;
   local: ReturnType<typeof useLocalParticipant>;
   utNow: number | undefined;
-  target: RecipientId | null;
-  /** No path to the chosen recipient; resolved once by the thread view, so the composer and the delay reading cannot disagree. */
+  /** The thread's group, which the message is addressed to. */
+  groupId: string;
+  /** The group's members as this vantage can see them now, its own included. */
+  members: readonly RecipientId[];
+  /** No path to any member; resolved once by the thread view, so the composer and the delay reading cannot disagree. */
   noPath: boolean;
   separationSeconds: number | null;
 }) {
@@ -28,10 +32,9 @@ export function CommcastComposer({
   const ready =
     draft.trim().length > 0 &&
     utNow !== undefined &&
-    target !== null &&
     me.vantageId !== undefined;
   const submit = () => {
-    if (!ready || utNow === undefined || target === null) return;
+    if (!ready || utNow === undefined) return;
     if (me.vantageId === undefined) return;
     log.send(
       {
@@ -43,8 +46,8 @@ export function CommcastComposer({
       {
         kind: "text",
         body: draft.trim(),
-        // A list, so groups are an additive change to the reveal and the UI rather than a wire change.
-        to: [target],
+        groupId,
+        to: members,
         // The sender's own present, not the confirmed edge, which is already a light-time behind.
         sentUt: utNow,
         // Frozen here and never re-read: a changing separation must not un-deliver something already promised.

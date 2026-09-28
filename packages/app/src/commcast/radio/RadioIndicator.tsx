@@ -6,6 +6,7 @@ import {
   VisuallyHidden,
 } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
+import { namesOf } from "../groups";
 import type { RecipientId } from "../types";
 import type { RadioLight } from "./RadioSession";
 
@@ -43,12 +44,12 @@ export function RadioIndicator({
    * so without this the one loop an operator most wants to tune out is the one
    * they cannot reach. It opens the existing thread view and adds no surface.
    */
-  onOpen: (ids: readonly RecipientId[]) => void;
+  onOpen: (light: RadioLight) => void;
 }) {
   /*
    * How many of them the operator is actually hearing AT ONCE.
    *
-   * The listener sums every transmission it has a path to, so two unmuted
+   * The listener sums every transmission addressed to it, so two unmuted
    * lamps mean two voices in the same ear at the same moment, and the second
    * one is why the first has suddenly become hard to follow. Two lamps side by
    * side do not say that on their own: they read equally well as "two loops
@@ -93,8 +94,8 @@ export function RadioIndicator({
           ) : (
             <BroadcastIcon size={12} aria-hidden="true" />
           )}
-          <TextButton type="button" onClick={() => onOpen(one.with)}>
-            {one.with.map(nameFor).join(", ")}
+          <TextButton type="button" onClick={() => onOpen(one)}>
+            {namesOf(one.with, nameFor)}
           </TextButton>
           {/* The verb the name needs to mean anything read aloud. On screen the
               pulsing dot says it, which is why it is not drawn twice. */}

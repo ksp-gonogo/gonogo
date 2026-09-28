@@ -209,6 +209,7 @@ describe("Commcast, addressed across the mesh", () => {
     const { ground, aboard, range } = scene();
     ground.log.send(FLIGHT, {
       kind: "text",
+      groupId: "g1",
       body: "Ares, Kennedy. Go for the burn.",
       to: [ARES],
       sentUt: 1000,
@@ -225,6 +226,7 @@ describe("Commcast, addressed across the mesh", () => {
     const { ground, aboard } = scene();
     aboard.log.send(JEB, {
       kind: "text",
+      groupId: "g1",
       body: "Woomera, Ares. Reading you.",
       to: [WOOMERA],
       sentUt: 1000,
@@ -240,6 +242,7 @@ describe("Commcast, addressed across the mesh", () => {
     const { ground, aboard } = scene();
     const msg = ground.log.send(FLIGHT, {
       kind: "text",
+      groupId: "g1",
       body: "Ares, Kennedy. Go for the burn.",
       to: [ARES],
       sentUt: 1000,
@@ -263,6 +266,7 @@ describe("Commcast, addressed across the mesh", () => {
     const { ground, aboard, range } = scene();
     ground.log.send(FLIGHT, {
       kind: "text",
+      groupId: "g1",
       body: "for the crew",
       to: [ARES],
       sentUt: 1000,
@@ -270,6 +274,7 @@ describe("Commcast, addressed across the mesh", () => {
     });
     ground.log.send(FLIGHT, {
       kind: "text",
+      groupId: "g1",
       body: "for the range",
       to: [WOOMERA],
       sentUt: 1010,
@@ -283,10 +288,58 @@ describe("Commcast, addressed across the mesh", () => {
     ]);
   });
 
+  it("delivers a group's words only to its members, and to a new member from the change that added it", () => {
+    const { ground, aboard, range } = scene();
+    const opened = ground.log.send(FLIGHT, {
+      kind: "members",
+      groupId: "crew",
+      to: [ARES, KSC],
+      members: [ARES, KSC],
+      added: [ARES],
+      sentUt: 1000,
+      separationSeconds: LIGHT_TIME,
+    });
+    ground.log.send(FLIGHT, {
+      kind: "text",
+      groupId: "crew",
+      body: "before the range was in",
+      to: opened.to,
+      sentUt: 1001,
+      separationSeconds: LIGHT_TIME,
+    });
+    // Woomera is not a member: it saw both frames go past and holds nothing of either.
+    expect(range.log.snapshot().pending).toEqual([]);
+
+    const grown = ground.log.send(FLIGHT, {
+      kind: "members",
+      groupId: "crew",
+      to: [ARES, WOOMERA, KSC],
+      members: [ARES, WOOMERA, KSC],
+      added: [WOOMERA],
+      sentUt: 1100,
+      separationSeconds: LIGHT_TIME,
+    });
+    ground.log.send(FLIGHT, {
+      kind: "text",
+      groupId: "crew",
+      body: "after",
+      to: grown.to,
+      sentUt: 1101,
+      separationSeconds: LIGHT_TIME,
+    });
+    expect(range.log.snapshot().pending.map((m) => m.kind)).toEqual([
+      "members",
+      "text",
+    ]);
+    expect(range.log.snapshot().pending[1]?.body).toBe("after");
+    expect(aboard.log.snapshot().pending).toHaveLength(4);
+  });
+
   it("delivers ONE message when a resend and its original both arrive", () => {
     const { ground, aboard } = scene();
     const msg = ground.log.send(FLIGHT, {
       kind: "text",
+      groupId: "g1",
       body: "do you copy",
       to: [ARES],
       sentUt: 1000,
@@ -300,6 +353,7 @@ describe("Commcast, addressed across the mesh", () => {
     const { ground, aboard, range } = scene();
     const msg = ground.log.send(FLIGHT, {
       kind: "text",
+      groupId: "g1",
       body: "do you copy",
       to: [ARES],
       sentUt: 1000,
@@ -320,6 +374,7 @@ describe("Commcast, addressed across the mesh", () => {
     const { ground, aboard } = scene();
     ground.log.send(FLIGHT, {
       kind: "text",
+      groupId: "g1",
       body: "Ares, do you read",
       to: [ARES],
       sentUt: 1000,
@@ -337,6 +392,7 @@ describe("Commcast, addressed across the mesh", () => {
     const { ground } = scene();
     ground.log.send(FLIGHT, {
       kind: "text",
+      groupId: "g1",
       body: "to the crew",
       to: [KSC],
       sentUt: 1000,
@@ -350,6 +406,7 @@ describe("Commcast, addressed across the mesh", () => {
     const { ground, aboard } = scene();
     const msg = ground.log.send(FLIGHT, {
       kind: "text",
+      groupId: "g1",
       body: "do you copy",
       to: [ARES],
       sentUt: 1000,
@@ -396,6 +453,7 @@ describe("Commcast, a station beside its host", () => {
     meshes.push(host.mesh, station.mesh, aboard.mesh);
     aboard.log.send(JEB, {
       kind: "text",
+      groupId: "g1",
       body: "Kennedy, Ares. Burn complete.",
       to: [KSC],
       sentUt: 1000,
@@ -459,7 +517,7 @@ describe("Commcast radio, live across the mesh", () => {
 
   const TRANSMISSION = {
     id: "t1",
-    to: [KSC],
+    groupId: "g1",
     from: ARES,
     authorStationKey: "pilot-1",
     authorName: "Jeb",
@@ -473,6 +531,7 @@ describe("Commcast radio, live across the mesh", () => {
     transmissionId: "t1",
     authorStationKey: "pilot-1",
     transmission: TRANSMISSION,
+    to: [ARES, KSC],
     seq,
     ut: 1000 + seq * 0.02,
     bytes: new Uint8Array(bytes),

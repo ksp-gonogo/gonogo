@@ -1,4 +1,4 @@
-import { Console, EmptyState } from "@ksp-gonogo/ui-kit";
+import { Button, Console, EmptyState, PlusIcon } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import { CommcastBackButton } from "./CommcastBackButton";
 import { CommcastComposer } from "./CommcastComposer";
@@ -15,6 +15,7 @@ import {
   Commcast__Scroll,
   ThreadMarker,
 } from "./commcastStyles";
+import { namesOf } from "./groups";
 import { outboundItems } from "./outboundItems";
 import { RadioMute } from "./radio/RadioMute";
 import { RadioPtt } from "./radio/RadioPtt";
@@ -23,7 +24,7 @@ import type { Separation, SeparationMatrix, Vantage } from "./reveal";
 import type { CommcastThread } from "./threads";
 import type { RecipientId } from "./types";
 
-/** One conversation. The way back is in the body rather than the panel aside, which collapses at narrow widths. */
+/** One group's thread. The way back is in the body rather than the panel aside, which collapses at narrow widths. */
 export function CommcastThreadView({
   thread,
   me,
@@ -37,7 +38,8 @@ export function CommcastThreadView({
   indicator,
   separation,
   separationSeconds,
-  target,
+  members,
+  onAdd,
   onBack,
 }: {
   thread: CommcastThread;
@@ -48,16 +50,19 @@ export function CommcastThreadView({
   noSignal: boolean;
   nameFor: (id: RecipientId) => string;
   local: ReturnType<typeof useLocalParticipant>;
-  /** The widget's one radio, which hears every conversation whichever view is open. */
+  /** The widget's one radio, which hears every group this vantage is in whichever view is open. */
   radio: RadioControl;
   indicator: ReactNode;
   separation: Separation;
   separationSeconds: number | null;
-  target: RecipientId | null;
+  /** Everyone the group's words go to, as this vantage can see them now, its own included. */
+  members: readonly RecipientId[];
+  /** Choose somebody to add; absent when there is nobody left on the roster to add. */
+  onAdd: (() => void) | undefined;
   onBack: () => void;
 }) {
   const noPath = separation.kind === "no-path";
-  const threadName = thread.with.map(nameFor).join(", ");
+  const threadName = namesOf(thread.with, nameFor);
   return (
     <>
       {/*
@@ -68,6 +73,12 @@ export function CommcastThreadView({
       <Commcast__Bar>
         <CommcastBackButton onClick={onBack} />
         <Commcast__BarTitle>{threadName}</Commcast__BarTitle>
+        {onAdd && (
+          <Button type="button" onClick={onAdd}>
+            <PlusIcon size={14} aria-hidden="true" />
+            Add
+          </Button>
+        )}
         <Commcast__BarGap />
         {indicator}
         <Commcast__BarRadio>
@@ -94,7 +105,7 @@ export function CommcastThreadView({
       <Console
         tone={COMMCAST_TONE}
         oneWaySeconds={separationSeconds}
-        inFlight={outboundItems(thread.outbound, me, utNow, pairs)}
+        inFlight={outboundItems(thread.outbound, me, utNow, pairs, nameFor)}
         inFlightFrozenAtDispatch
         composer={
           <CommcastComposer
@@ -102,7 +113,8 @@ export function CommcastThreadView({
             me={me}
             local={local}
             utNow={utNow}
-            target={target}
+            groupId={thread.key}
+            members={members}
             noPath={noPath}
             separationSeconds={separationSeconds}
           />
@@ -121,6 +133,7 @@ export function CommcastThreadView({
                 utNow={utNow}
                 pairs={pairs}
                 log={log}
+                nameFor={nameFor}
                 separationSeconds={separationSeconds}
               />
             ))}

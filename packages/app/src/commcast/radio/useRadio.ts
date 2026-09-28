@@ -23,7 +23,7 @@ import { RadioClock } from "./radioClock";
  * tear down every held chunk and going into another conversation would build a
  * fresh one, which makes what an operator can HEAR a consequence of where they
  * happened to be looking. Mission control tunes by an explicit per-loop
- * monitor, so this is mounted once, hears every conversation, and is told only
+ * monitor, so this is mounted once, hears every group it is in, and is told only
  * which ones the operator has deliberately muted.
  *
  * Both halves are built ONCE per clock and torn down with it, the same rule
@@ -96,10 +96,16 @@ export interface UseRadioOptions {
     name: string;
     seat: Vantage["seat"];
   };
-  /** The one end this thread is with, or `null` outside a thread. */
-  target: RecipientId | null;
+  /** The group of the open thread, which a keying is spoken to, or `null` outside a thread. */
+  groupId: string | null;
   /**
-   * The separation to `target` as the widget already resolved it for its own
+   * That group's members as this vantage can see them now, its own included.
+   * Read per chunk, so a member added while the key is down is addressed from
+   * the next chunk on.
+   */
+  members: readonly RecipientId[];
+  /**
+   * The separation to the group as the widget already resolved it for its own
    * delay reading, `null` for NO PATH.
    *
    * Taken from the widget rather than resolved again here, so the badge, the
@@ -127,7 +133,8 @@ export function useRadio({
   me,
   pairs,
   local,
-  target,
+  groupId,
+  members,
   separationSeconds,
 }: UseRadioOptions): RadioControl {
   const backend = useRadioBackend();
@@ -181,6 +188,10 @@ export function useRadio({
    */
   const inputDeviceRef = useRef(inputDeviceId);
   inputDeviceRef.current = inputDeviceId;
+
+  /* A ref for the same reason: the transmitter reads it per chunk, and a member added mid-keying must not rebuild the keying. */
+  const membersRef = useRef(members);
+  membersRef.current = members;
 
   useEffect(() => {
     if (!log || !clock || !present || !support.supported) {
@@ -280,9 +291,10 @@ export function useRadio({
       transmitter.keyUp();
       return;
     }
-    if (target === null || me.vantageId === undefined) return;
+    if (groupId === null || me.vantageId === undefined) return;
     void transmitter.keyDown({
-      to: [target],
+      groupId,
+      recipients: () => membersRef.current,
       from: me.vantageId,
       authorStationKey: local.stationKey,
       authorName: local.name,
@@ -295,7 +307,7 @@ export function useRadio({
        */
       separationSeconds,
     });
-  }, [transmitter, target, me.vantageId, local, separationSeconds]);
+  }, [transmitter, groupId, me.vantageId, local, separationSeconds]);
 
   const unavailable = useMemo(() => {
     if (!support.supported) {
@@ -304,10 +316,10 @@ export function useRadio({
         : "No audio codec";
     }
     if (!clock) return "No clock yet";
-    if (target === null) return "No recipient";
+    if (groupId === null) return "No recipient";
     if (me.vantageId === undefined) return "No vantage yet";
     return null;
-  }, [support, clock, target, me.vantageId]);
+  }, [support, clock, groupId, me.vantageId]);
 
   return {
     transmitting: transmit.live,

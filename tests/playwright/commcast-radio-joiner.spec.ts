@@ -4,6 +4,7 @@ import {
   CHUNK_MS,
   clipSeconds,
   closeAll,
+  FAR,
   FAR_SECONDS,
   keyDown,
   keyUp,
@@ -24,9 +25,10 @@ import { getHostPeerId } from "./helpers";
  * A screen that joins while somebody is already talking hears them from the
  * point it joined, one light-time later at its own vantage.
  *
- * Mission control keys to the near craft and keeps talking. The far craft, nine
- * seconds out, is not on the mesh when the key goes down: it opens partway
- * through. It never saw the first chunk go past, and it must still place and
+ * Mission control keys to a group with both craft in it and keeps talking. The
+ * far craft, nine seconds out, is not on the mesh when the key goes down: it
+ * opens partway through, never having received the change that opened the
+ * group, and hears the chunks addressed to it anyway. It never saw the first chunk go past, and it must still place and
  * decode every chunk spoken after it joined, hearing the first of them nine
  * seconds after it was spoken and nothing of what was said before.
  */
@@ -72,7 +74,7 @@ test.describe("commcast radio: a screen joining mid-transmission @chromium-only"
     const screens: Screen[] = [control, near];
 
     try {
-      await openConversation(control.page, NAMES[NEAR]);
+      await openConversation(control.page, [NAMES[NEAR], NAMES[FAR]]);
       const keyedAt = await keyDown(control.page);
       await speak(control.page, CHUNKS);
 

@@ -15,7 +15,7 @@ import { radioFrameFromWire } from "./wire";
 
 const TRANSMISSION = {
   id: "t-1",
-  to: ["ksc"],
+  groupId: "g1",
   from: "vessel:near",
   authorStationKey: "station-a",
   authorName: "Pilot",
@@ -30,6 +30,7 @@ function chunkFrame(bytes: Uint8Array | ArrayBuffer): RadioFrame {
     transmissionId: "t-1",
     authorStationKey: "station-a",
     transmission: TRANSMISSION,
+    to: ["ksc", "vessel:near"],
     seq: 0,
     ut: 1_000,
     bytes: bytes as Uint8Array,

@@ -207,25 +207,56 @@ export interface RoundTrip {
 }
 
 /**
- * `msg`'s round trip to its recipient, or `null` when it never left or names
- * more than one.
+ * `msg`'s round trip to its group, or `null` when it never left.
  *
- * Every figure below derives from ONE separation, so this describes ONE
- * recipient. `to` is a list, and today every list holds a single entry; a
- * message carrying two would get one arrival time for two distances, which is
- * a statement about a journey that did not happen rather than an approximation
- * of one. A group has to go as one message per target, each with its own
- * separation, never as one message naming several.
+ * Measured off the LONGEST separation to a member, which the author froze
+ * into the envelope: the words reach the farthest member last and that
+ * member's answer is the last that could come back, so the wait for an
+ * acknowledgement is not over until that one is due.
  */
 export function roundTripFor(msg: CommsMessage): RoundTrip | null {
   const s = msg.separationSeconds;
   if (s === null || !Number.isFinite(s) || s < 0) return null;
-  if (msg.to.length !== 1) return null;
   return {
     reachUt: msg.lastSentUt + s,
     replyUt: msg.lastSentUt + 2 * s,
     overdueUt: msg.lastSentUt + 2 * s + LOSS_MARGIN,
   };
+}
+
+/**
+ * How far `me` is from a group, read as the member farthest away that there is
+ * a path to.
+ *
+ * The farthest because that is the separation a message to the group spends
+ * crossing before everyone has it. `no-path` only when there is a path to no
+ * member at all: a member out of reach misses what is said, which its own end
+ * resolves, and the rest still hear it. The author's own vantage is not a
+ * member it has to reach.
+ */
+export function groupSeparation(
+  me: RecipientId | undefined,
+  members: readonly RecipientId[],
+  fallbackSeconds: number | null | undefined,
+  pairs?: SeparationMatrix,
+): Separation {
+  let farthest: Separation | undefined;
+  for (const member of members) {
+    if (me !== undefined && member === me) continue;
+    const sep = separationBetween(me, member, fallbackSeconds, pairs);
+    if (sep.kind === "no-path") continue;
+    if (farthest === undefined || secondsOf(sep) > secondsOf(farthest)) {
+      farthest = sep;
+    }
+  }
+  if (farthest !== undefined) return farthest;
+  return members.some((m) => m !== me)
+    ? { kind: "no-path" }
+    : { kind: "co-located", seconds: 0 };
+}
+
+function secondsOf(sep: Separation): number {
+  return transitSecondsOf(sep) ?? 0;
 }
 
 /**

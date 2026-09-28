@@ -133,6 +133,7 @@ function sent(over: Partial<CommsMessage> = {}): CommsMessage {
     attempts: 1,
     separationSeconds: 240,
     kind: "text",
+    groupId: "g1",
     body: "Ares, Kennedy, do you copy",
     ...over,
   };
@@ -168,6 +169,7 @@ describe("Commcast, rendered", () => {
       inbox: [
         sent({
           id: "heard",
+          groupId: "woomera",
           from: "ground:woomera",
           to: ["ksc"],
           authorName: "Woomera Range",
@@ -454,14 +456,7 @@ describe("Commcast, rendered", () => {
     expect(screen.getByRole("button", { name: "Send" })).toBeInTheDocument();
   });
 
-  it("takes a list of recipients, and refuses the group case rather than faking it", async () => {
-    /*
-     * The envelope has always carried a list and the picker toggles, so
-     * growing groups is additive. What is NOT built is group DELIVERY: the
-     * author's separation is one frozen figure and the acknowledgement window
-     * is measured off it, so a second name is refused where the operator can
-     * see why.
-     */
+  it("opens a group with everyone chosen, and sends the opening as a change every member will receive", async () => {
     const log = makeLog();
     log.setVantage("ksc");
     renderOnStream(log, [
@@ -470,14 +465,55 @@ describe("Commcast, rendered", () => {
     ]);
     await userEvent.click(screen.getByRole("button", { name: /New message/ }));
     await userEvent.click(screen.getByRole("button", { name: /Ares 4/ }));
-    expect(screen.getByRole("button", { name: "Open" })).toBeEnabled();
     await userEvent.click(
       screen.getByRole("button", { name: /Woomera Range/ }),
     );
-    expect(screen.getByRole("button", { name: "Open" })).toBeDisabled();
-    expect(
-      screen.getByText("Group delivery is not carried yet"),
-    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Open" }));
+
+    const [opening] = log.snapshot().outbox;
+    expect(opening?.msg).toMatchObject({
+      kind: "members",
+      to: ["ground:woomera", "ksc", "vessel:ares"],
+      members: ["ground:woomera", "ksc", "vessel:ares"],
+      added: ["vessel:ares", "ground:woomera"],
+    });
+    // The thread is the group's, named for its other members, with the box to type into.
+    expect(screen.getByText("Ares 4, Woomera Range")).toBeInTheDocument();
+    expect(screen.getByLabelText("Message")).toBeInTheDocument();
+    await act(async () => {});
+  });
+
+  it("lets anyone in a group add somebody to it, and nothing else", async () => {
+    const log = makeLog();
+    log.setVantage("ksc");
+    renderOnStream(log, [
+      { id: "vessel:ares", displayName: "Ares 4", active: true },
+      { id: "ground:woomera", displayName: "Woomera Range", active: true },
+    ]);
+    await userEvent.click(screen.getByRole("button", { name: /New message/ }));
+    await userEvent.click(screen.getByRole("button", { name: /Ares 4/ }));
+    await userEvent.click(screen.getByRole("button", { name: "Open" }));
+    const groupId = log.snapshot().outbox[0]?.msg.groupId;
+
+    await userEvent.click(screen.getByRole("button", { name: "Add" }));
+    // Only the roster entries not already in the group are offered.
+    expect(screen.queryByRole("button", { name: /Ares 4/ })).toBeNull();
+    await userEvent.click(
+      screen.getByRole("button", { name: /Woomera Range/ }),
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Add" }));
+
+    const added = log.snapshot().outbox[1]?.msg;
+    expect(added).toMatchObject({
+      kind: "members",
+      groupId,
+      to: ["ground:woomera", "ksc", "vessel:ares"],
+      members: ["ground:woomera", "ksc", "vessel:ares"],
+      added: ["ground:woomera"],
+    });
+    expect(screen.getByText("Ares 4, Woomera Range")).toBeInTheDocument();
+    // Everyone on the roster is in now, so there is nobody left to add.
+    expect(screen.queryByRole("button", { name: "Add" })).toBeNull();
     await act(async () => {});
   });
 

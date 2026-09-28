@@ -75,6 +75,11 @@ export interface Held {
   acks?: { from: string; stationKey: string; at: number }[];
   /** Set on an outbound message that was never transmitted. */
   neverLeft?: boolean;
+  /** The group it is addressed to. Defaults to one group per set of ends, so a two-way exchange is one thread. */
+  group?: string;
+  /** A membership change rather than words: the group's members after it, and who it brought in. */
+  members?: string[];
+  added?: string[];
 }
 
 /** One vantage's view: its own screen, and its own log. */
@@ -109,6 +114,8 @@ export interface Pane {
   pick?: string[];
   /** Press Open on what `pick` chose, landing in the conversation itself. */
   open?: boolean;
+  /** From the open thread, press Add and choose these, stopping short of committing. */
+  add?: string[];
   /**
    * Latch the push-to-talk key, then speak a fixed clip through it.
    *
@@ -247,9 +254,11 @@ let lastLogCounts: Record<string, number>[] = [];
 let nextId = 0;
 function toMessage(held: Held): CommsMessage {
   nextId += 1;
+  const ends = [...new Set([held.from, ...held.to])].sort();
   return {
     id: `probe-${nextId}`,
-    to: held.to,
+    groupId: held.group ?? JSON.stringify(ends),
+    to: ends,
     from: held.from,
     authorStationKey: `author-${held.from}`,
     authorName: held.authorName,
@@ -258,8 +267,13 @@ function toMessage(held: Held): CommsMessage {
     lastSentUt: VIEW_UT + (held.lastSentAt ?? held.sentAt),
     attempts: held.attempts ?? 1,
     separationSeconds: held.separationSeconds,
-    kind: "text",
-    body: held.body,
+    ...(held.members === undefined
+      ? { kind: "text" as const, body: held.body }
+      : {
+          kind: "members" as const,
+          members: held.members,
+          added: held.added ?? [],
+        }),
   };
 }
 
@@ -348,6 +362,12 @@ async function driveOpen(el: Element, pane: Pane): Promise<boolean> {
   }
   if (pane.openThread !== undefined) {
     if (!(await clickWhenReady(el, pane.openThread, ROW))) return false;
+  }
+  if (pane.add !== undefined) {
+    if (!(await clickWhenReady(el, "Add"))) return false;
+    for (const name of pane.add) {
+      if (!(await clickWhenReady(el, name, ROW))) return false;
+    }
   }
   return true;
 }
