@@ -171,7 +171,6 @@ export class BufferedDataSource extends DataSourceWrapper {
 
   private readonly buffers = new Map<string, SampleRow[]>();
   private readonly keySubscribers = new KeyedListenerSet<[unknown]>();
-  private readonly sampleSubscribers = new KeyedListenerSet<[Sample]>();
   private readonly statusSubscribers = new ListenerSet<[DataSourceStatus]>();
   private readonly flightSubscribers = new ListenerSet<[FlightRecord | null]>();
   // Fires on every list-shape mutation (add via detection, delete, clear,
@@ -461,16 +460,6 @@ export class BufferedDataSource extends DataSourceWrapper {
     };
   }
 
-  /**
-   * Timestamped variant of `subscribe`. Fires on every sample with both the
-   * store-side timestamp and value, so a caller appending points to a series
-   * shares the store's clock rather than reading its own (matters in tests
-   * where the store uses an injected `now()`).
-   */
-  subscribeSamples(key: string, cb: (sample: Sample) => void): () => void {
-    return this.sampleSubscribers.add(key, cb);
-  }
-
   // ── External-source ingestion ────────────────────────────────────────────
   //
   // The wrapped source drives FlightDetector + signal-loss gating and is the
@@ -495,7 +484,7 @@ export class BufferedDataSource extends DataSourceWrapper {
 
   /**
    * Append a sample from another feeder. Same fanout chain as samples from
-   * the wrapped source (store, in-memory buffer, live + sample subscribers,
+   * the wrapped source (store, in-memory buffer, live subscribers,
    * derived keys), minus the FlightDetector tick (driven by `v.missionTime`
    * exclusively) and the signal-loss gate (a feeder running aboard the vessel
    * isn't comm-affected).
@@ -516,7 +505,6 @@ export class BufferedDataSource extends DataSourceWrapper {
 
     this.lastEmittedValue.set(key, value);
     this.keySubscribers.fire(key, value);
-    if (current) this.sampleSubscribers.fire(key, { t, v: value });
 
     // Derived keys can opt in by listing an external key as one of their inputs: same machinery as derivations driven by the wrapped source.
     this.runDerivedKeys(key, current?.id ?? null);
@@ -820,14 +808,9 @@ export class BufferedDataSource extends DataSourceWrapper {
       debugFlight("drop-pre-flight", { key });
     }
 
-    // Fan out to live subscribers regardless of whether we have a flight; useDataValue callers get live values during warmup.
+    // Fan out to live subscribers regardless of whether we have a flight, so they get live values during warmup.
     this.lastEmittedValue.set(key, value);
     this.keySubscribers.fire(key, value);
-
-    // Fan out timestamped samples only once a flight is established: pre-flight samples are noise to a series.
-    if (current) {
-      this.sampleSubscribers.fire(key, { t, v: value });
-    }
 
     // Run derived keys that depend on this raw key.
     this.runDerivedKeys(key, current?.id ?? null);
@@ -943,10 +926,6 @@ export class BufferedDataSource extends DataSourceWrapper {
 
       this.lastEmittedValue.set(def.id, result);
       this.keySubscribers.fire(def.id, result);
-
-      if (flightId) {
-        this.sampleSubscribers.fire(def.id, { t: derivedT, v: result });
-      }
     }
   }
 

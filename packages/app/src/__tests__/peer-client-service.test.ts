@@ -190,6 +190,7 @@ describe("PeerClientService", () => {
       type: "hello",
       version: "1.2.3",
       buildTime: "2026-04-25T00:00:00.000Z",
+      sessionToken: "session-A",
     });
 
     expect(svc.getHostVersion()).toEqual({
@@ -236,14 +237,6 @@ describe("PeerClientService", () => {
       version: "1.0.0",
       buildTime: "2026-05-08T00:00:00.000Z",
       sessionToken: "session-B",
-    });
-    expect(restarts).toEqual([1]);
-
-    // Tokenless hello (legacy host): must NOT fire restart, even though the token "changed" to undefined.
-    inner.handleMessage({
-      type: "hello",
-      version: "1.0.0",
-      buildTime: "2026-05-08T00:00:00.000Z",
     });
     expect(restarts).toEqual([1]);
   });

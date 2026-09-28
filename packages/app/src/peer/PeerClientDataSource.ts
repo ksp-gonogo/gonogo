@@ -22,11 +22,6 @@ interface FlightFixtureLike {
   chapters?: FlightChapterRecord[];
 }
 
-interface Sample {
-  t: number;
-  v: unknown;
-}
-
 interface SeriesRange {
   t: number[];
   v: unknown[];
@@ -48,7 +43,6 @@ const PEER_CLIENT_SAMPLE_BUDGET = new PerfBudget({
 
 export class PeerClientDataSource implements DataSource {
   private subscribers = new KeyedListenerSet<[unknown]>();
-  private sampleSubscribers = new KeyedListenerSet<[Sample]>();
   private statusListeners = new ListenerSet<[DataSourceStatus]>();
   private seenKeys = new Set<string>();
   private cachedSchema: DataKeyMeta[] = [];
@@ -75,7 +69,7 @@ export class PeerClientDataSource implements DataSource {
         this.client.sendDataSubscribe?.(this.id, keys);
       }
     });
-    client.onData((sourceId, key, value, t) => {
+    client.onData((sourceId, key, value) => {
       if (sourceId !== this.id) return;
       if (!this.seenKeys.has(key)) {
         this.seenKeys.add(key);
@@ -88,7 +82,6 @@ export class PeerClientDataSource implements DataSource {
       this.lastValues.set(key, value);
       PEER_CLIENT_SAMPLE_BUDGET.record();
       this.subscribers.fire(key, value);
-      this.sampleSubscribers.fire(key, { t, v: value });
     });
     client.onSourceStatus((sourceId, status) => {
       if (sourceId !== this.id) return;
@@ -169,8 +162,10 @@ export class PeerClientDataSource implements DataSource {
     return this.statusListeners.add(cb);
   }
 
-  async execute(action: string) {
-    this.client.sendExecute(this.id, action);
+  async execute(action: string): Promise<void> {
+    throw new Error(
+      `PeerClientDataSource.execute: a station executes nothing on the host's data sources (got "${action}").`,
+    );
   }
 
   /**
@@ -184,21 +179,8 @@ export class PeerClientDataSource implements DataSource {
     return this.client.sendUplinkRelay(this.id, method, args);
   }
 
-  /**
-   * Timestamped variant of subscribe, so live samples carry the host's clock
-   * alongside the value.
-   */
-  subscribeSamples(key: string, cb: (sample: Sample) => void) {
-    const removeLocal = this.sampleSubscribers.add(key, cb);
-    this.refKey(key);
-    return () => {
-      removeLocal();
-      this.unrefKey(key);
-    };
-  }
-
   // ── Selective subscription bookkeeping ───────────────────────────────────
-  // Refcount per key across both subscribe() and subscribeSamples().
+  // Refcount per key across subscribe() and subscribeCollection().
   // Transitions:
   //   0 → 1  : tell the host we want this key
   //   1 → 0  : tell the host we're done

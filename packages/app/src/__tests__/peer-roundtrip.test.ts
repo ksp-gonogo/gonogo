@@ -16,7 +16,6 @@
  *
  * Designed to fail if:
  *   - BufferedDataSource gates samples on a cold-start `comm.connected: false`
- *   - PBDS stops forwarding subscribeSamples
  *   - PCDS mis-routes messages based on sourceId
  *   - A value arrives at the subscriber with a different type than was emitted
  */
@@ -67,13 +66,11 @@ function makeFakeHost() {
  */
 function makeFakeClient() {
   const dataListeners = new Set<
-    (sourceId: string, key: string, value: unknown, t: number) => void
+    (sourceId: string, key: string, value: unknown) => void
   >();
   const statusListeners = new Set<(sourceId: string, status: string) => void>();
   return {
-    onData(
-      cb: (sourceId: string, key: string, value: unknown, t: number) => void,
-    ) {
+    onData(cb: (sourceId: string, key: string, value: unknown) => void) {
       dataListeners.add(cb);
       return () => dataListeners.delete(cb);
     },
@@ -83,7 +80,6 @@ function makeFakeClient() {
     },
     onConnectionStatus: vi.fn().mockReturnValue(() => {}),
     onSchema: vi.fn().mockReturnValue(() => {}),
-    sendExecute: vi.fn(),
     sendQueryRange: vi.fn(),
     connect: vi.fn(),
     disconnect: vi.fn(),
@@ -92,7 +88,7 @@ function makeFakeClient() {
       switch (msg.type) {
         case "data":
           dataListeners.forEach((cb) => {
-            cb(msg.sourceId, msg.key, msg.value, msg.t ?? Date.now());
+            cb(msg.sourceId, msg.key, msg.value);
           });
           break;
         case "status":
@@ -219,21 +215,8 @@ describe("peer roundtrip: telemetry → buffered → PBDS → relay → PCDS", (
       sourceId: "some-other-source",
       key: "v.altitude",
       value: 42,
-      t: Date.now(),
     });
 
     expect(received).toEqual([]);
-  });
-
-  it("propagates timestamped samples via subscribeSamples", () => {
-    const received: Array<{ t: number; v: unknown }> = [];
-    ctx.stationSide.subscribeSamples("v.altitude", (s) => received.push(s));
-
-    primeFlight(ctx.telemetry);
-    ctx.telemetry.emit("v.altitude", 777);
-
-    expect(received).toHaveLength(1);
-    expect(received[0].v).toBe(777);
-    expect(typeof received[0].t).toBe("number");
   });
 });

@@ -89,7 +89,7 @@ export interface PeerClientOptions {
  * `hostUnavailable`, `relayIceServers`, ...) aren't wire messages.
  */
 type ClientEventMap = {
-  data: [sourceId: string, key: string, value: unknown, t: number];
+  data: [sourceId: string, key: string, value: unknown];
   sourceStatus: [sourceId: string, status: string];
   connStatus: [status: ConnStatus];
   schema: [sources: PeerSchemaSource[]];
@@ -392,15 +392,6 @@ export class PeerClientService {
   private emitConnStatus(status: ConnStatus) {
     this.connStatus = status;
     this.events.emit("connStatus", status);
-  }
-
-  sendExecute(sourceId: string, action: string) {
-    logger.info(`[PeerClient] execute: source=${sourceId} action=${action}`);
-    this.conn?.send({
-      type: "execute",
-      sourceId,
-      action,
-    } satisfies PeerMessage);
   }
 
   sendStationInfo(
@@ -906,9 +897,7 @@ export class PeerClientService {
     return this.events.on("flightListChange", cb);
   }
 
-  onData(
-    cb: (sourceId: string, key: string, value: unknown, t: number) => void,
-  ) {
+  onData(cb: (sourceId: string, key: string, value: unknown) => void) {
     return this.events.on("data", cb);
   }
 
@@ -1043,20 +1032,14 @@ export class PeerClientService {
     hello: (msg) => {
       this.hostVersion = { version: msg.version, buildTime: msg.buildTime };
       const prevToken = this.hostSessionToken;
-      this.hostSessionToken = msg.sessionToken ?? null;
+      this.hostSessionToken = msg.sessionToken;
       logger.info(
-        `[PeerClient] host hello: v${msg.version} (build ${msg.buildTime})${msg.sessionToken ? ` session=${msg.sessionToken.slice(0, 8)}` : ""}`,
+        `[PeerClient] host hello: v${msg.version} (build ${msg.buildTime}) session=${msg.sessionToken.slice(0, 8)}`,
       );
       // Fire restart BEFORE hello so subscribers can clear state (and any
       // refs the hello handler reads) before the hello-driven resend
-      // path runs. Tokenless hosts (pre-versioned bundle) skip the
-      // restart event: legacy "always resend the current vote on hello"
-      // stays the safe default for them.
-      if (
-        msg.sessionToken &&
-        prevToken !== null &&
-        prevToken !== msg.sessionToken
-      ) {
+      // path runs.
+      if (prevToken !== null && prevToken !== msg.sessionToken) {
         logger.info("[PeerClient] host session changed: restart detected");
         this.events.emit("hostRestart");
       }
@@ -1068,8 +1051,7 @@ export class PeerClientService {
         key: msg.key,
         dataListenerCount: this.events.size("data"),
       });
-      const t = msg.t ?? Date.now();
-      this.events.emit("data", msg.sourceId, msg.key, msg.value, t);
+      this.events.emit("data", msg.sourceId, msg.key, msg.value);
     },
     "query-range-response": (msg) => {
       if (msg.error) {

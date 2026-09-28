@@ -46,29 +46,22 @@ export interface PeerSchemaSource {
 export type PeerMessage =
   // Sent by the host as the first message on every new connection so the
   // station can compare versions and surface a banner on mismatch. Always
-  // emitted before `schema`; absence on the wire means the host is on a
-  // pre-versioned bundle and the station should treat the host version as
-  // unknown. `sessionToken` is fresh per host page-load so stations can
-  // distinguish "transient broker hiccup, same host process" from "host
-  // restarted": used to clear stale GO/NO-GO votes that would otherwise
-  // re-broadcast from station memory on reconnect. Optional for
-  // back-compat.
+  // emitted before `schema`. `sessionToken` is fresh per host page-load so
+  // stations can distinguish "transient broker hiccup, same host process"
+  // from "host restarted": used to clear stale GO/NO-GO votes that would
+  // otherwise re-broadcast from station memory on reconnect.
   | {
       type: "hello";
       version: string;
       buildTime: string;
-      sessionToken?: string;
+      sessionToken: string;
     }
   | {
       type: "schema";
       sources: PeerSchemaSource[];
     }
   | { type: "status"; sourceId: string; status: DataSourceStatus }
-  // `t` is the host's sample timestamp, optional so partial deploys stay wire-compatible: the client falls back to Date.now() when absent.
-  | { type: "data"; sourceId: string; key: string; value: unknown; t?: number }
-  // Station → host: fire-and-forget action dispatch. No `requestId` and no
-  // reply variant, so nothing on either side correlates a result back.
-  | { type: "execute"; sourceId: string; action: string }
+  | { type: "data"; sourceId: string; key: string; value: unknown }
   | {
       type: "query-range-request";
       requestId: string;
@@ -94,9 +87,7 @@ export type PeerMessage =
   // the host fetched from /ice-config). Stations need this for their
   // station→relay peer connection: without it the station's Peer
   // gathers only host-LAN candidates and the relay's container-bridge
-  // candidates are unreachable from the LAN. Older station builds that
-  // don't read this field still work, just only when the router supports
-  // NAT-hairpin to the relay container.
+  // candidates are unreachable from the LAN.
   | {
       type: "relay-peer-id";
       peerId: string | null;

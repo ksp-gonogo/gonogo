@@ -3,19 +3,10 @@ import { DataSourceWrapper } from "@ksp-gonogo/data";
 import { debugPeer } from "@ksp-gonogo/logger";
 import type { PeerHostService } from "./PeerHostService";
 
-interface Sample {
-  t: number;
-  v: unknown;
-}
-
 interface SeriesRange {
   t: number[];
   v: unknown[];
 }
-
-type SampleAware = {
-  subscribeSamples: (key: string, cb: (sample: Sample) => void) => () => void;
-};
 
 type QueryRangeAware = {
   queryRange: (
@@ -36,14 +27,6 @@ type CollectionAware = {
 type LatestValueAware = {
   getLatestValue: (key: string) => unknown;
 };
-
-function hasSubscribeSamples(
-  source: DataSource,
-): source is DataSource & SampleAware {
-  return (
-    typeof (source as Partial<SampleAware>).subscribeSamples === "function"
-  );
-}
 
 function hasQueryRange(
   source: DataSource,
@@ -77,7 +60,6 @@ export class PeerBroadcastingDataSource extends DataSourceWrapper {
     debugPeer("PBDS wrap", {
       id: real.id,
       schemaKeyCount: schemaKeys.length,
-      sampleAware: hasSubscribeSamples(real),
     });
     // Tell the host where to find this source's latest cached values for
     // peer-data-subscribe back-fill. The real source has the cache; the
@@ -95,20 +77,6 @@ export class PeerBroadcastingDataSource extends DataSourceWrapper {
     // and the station would see zero telemetry. The wrapper is registered in
     // the registry for the lifetime of the app, so lifetime-of-wrapper is the
     // correct scope for broadcasting.
-    // Use the plain `subscribe` path for the broadcast loop, even when
-    // the wrapped source supports `subscribeSamples`. BufferedDataSource
-    // gates `sampleSubscribers.fire` on flight detection: pre-flight
-    // samples never reach `subscribeSamples` consumers, which means
-    // low-change-rate keys that emit before the FlightDetector
-    // establishes a current flight (v.body, v.situationString, sci.*,
-    // career.*, s.sensor.*) are silently dropped from the broadcast
-    // wire. A station mounting a widget after launch sees them as
-    // permanently undefined.
-    //
-    // `subscribe` fires from `keySubscribers`, which `handleSample`
-    // calls unconditionally. Cost is host-side timestamp loss, receivers
-    // fall back to Date.now(), a few ms of skew on station-side live
-    // charts. Acceptable trade for not silently losing values.
     //
     // Safe to do this before `buffered.connect()` thanks to the
     // schema-aware guard in BufferedDataSource.subscribe (see comment
@@ -120,13 +88,7 @@ export class PeerBroadcastingDataSource extends DataSourceWrapper {
           this.seenKeys.add(key);
           debugPeer("PBDS first value", { id: this.id, key });
         }
-        host.broadcast({
-          type: "data",
-          sourceId: this.id,
-          key,
-          value,
-          t: Date.now(),
-        });
+        host.broadcast({ type: "data", sourceId: this.id, key, value });
       });
     }
 
@@ -138,15 +100,6 @@ export class PeerBroadcastingDataSource extends DataSourceWrapper {
   // The BufferedDataSource extensions. When the wrapped source doesn't
   // implement them (e.g. a raw source wrapped for broadcasting), fall back to
   // the base `subscribe` contract and return empty history.
-  subscribeSamples(key: string, cb: (sample: Sample) => void) {
-    if (hasSubscribeSamples(this.real)) {
-      return this.real.subscribeSamples(key, cb);
-    }
-    return this.real.subscribe(key, (value) => {
-      cb({ t: Date.now(), v: value });
-    });
-  }
-
   async queryRange(
     key: string,
     from: number,

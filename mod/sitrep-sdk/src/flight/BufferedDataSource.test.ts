@@ -529,22 +529,6 @@ describe("BufferedDataSource: derived keys", () => {
     expect(spy).toHaveBeenCalledWith(1000);
   });
 
-  it("emits derived value to subscribeSamples() subscribers", () => {
-    registerDerivedKey({
-      id: "test.double",
-      inputs: ["v.altitude"],
-      meta: { label: "Doubled altitude", group: "Test" },
-      fn: ([alt]) => num(alt.v) * 2,
-    });
-
-    const spy = vi.fn();
-    buffered.subscribeSamples("test.double", spy);
-
-    clock = 2000;
-    source.emit("v.altitude", 500);
-    expect(spy).toHaveBeenCalledWith({ t: 2000, v: 1000 });
-  });
-
   it("does not emit derived value until all inputs have been seen", () => {
     registerDerivedKey({
       id: "test.sum",
@@ -954,14 +938,6 @@ describe("BufferedDataSource: external-source ingestion (appendExternalSample)",
     buffered.appendExternalSample("compute.demo.value", 200);
     const range = await buffered.queryRange("compute.demo.value", 0, 10_000);
     expect(range).toEqual({ t: [2000, 3000], v: [100, 200] });
-  });
-
-  it("fires timestamped sample subscribers", () => {
-    const samples: { t: number; v: unknown }[] = [];
-    buffered.subscribeSamples("compute.demo.value", (s) => samples.push(s));
-    clock = 2500;
-    buffered.appendExternalSample("compute.demo.value", 7);
-    expect(samples).toEqual([{ t: 2500, v: 7 }]);
   });
 
   it("replays the last-known external value to late subscribers", () => {

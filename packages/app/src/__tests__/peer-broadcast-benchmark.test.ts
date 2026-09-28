@@ -62,19 +62,11 @@ vi.mock("peerjs", () => ({ default: FakePeer }));
  * BufferedDataSource does on each WebSocket frame.
  */
 function makeSyntheticSource(keyCount: number): DataSource & {
-  subscribeSamples: (
-    key: string,
-    cb: (s: { t: number; v: unknown }) => void,
-  ) => () => void;
-  tick: (now: number) => void;
+  tick: () => void;
 } {
   const keys: DataKey[] = Array.from({ length: keyCount }, (_, i) => ({
     key: `synth.${i}`,
   }));
-  const sampleSubs = new Map<
-    string,
-    Set<(s: { t: number; v: unknown }) => void>
-  >();
   const valueSubs = new Map<string, Set<(v: unknown) => void>>();
   const statusListeners = new Set<(status: DataSourceStatus) => void>();
   let counter = 0;
@@ -103,23 +95,10 @@ function makeSyntheticSource(keyCount: number): DataSource & {
     configSchema: () => [],
     configure: () => {},
     getConfig: () => ({}),
-    subscribeSamples: (key, cb) => {
-      let bucket = sampleSubs.get(key);
-      if (!bucket) {
-        bucket = new Set();
-        sampleSubs.set(key, bucket);
-      }
-      bucket.add(cb);
-      return () => sampleSubs.get(key)?.delete(cb);
-    },
-    tick(now: number) {
+    tick() {
       counter += 1;
       // 4 Hz worth of samples: fan out to every subscribed key.
       for (const key of keys) {
-        const sample = { t: now, v: counter };
-        sampleSubs.get(key.key)?.forEach((cb) => {
-          cb(sample);
-        });
         valueSubs.get(key.key)?.forEach((cb) => {
           cb(counter);
         });
@@ -169,7 +148,7 @@ describe("peer broadcast benchmark", () => {
     // Pump 1 second of 4 Hz ticks.
     const tStart = 1_000_000;
     for (let i = 0; i < 4; i++) {
-      source.tick(tStart + i * 250);
+      source.tick();
     }
 
     const bytesIn1Sec = bytesBudget.rate(tStart + 999);
@@ -243,7 +222,7 @@ describe("peer broadcast benchmark", () => {
     countBudget.reset();
 
     const tStart = 1_000_000;
-    for (let i = 0; i < 4; i++) source.tick(tStart + i * 250);
+    for (let i = 0; i < 4; i++) source.tick();
 
     const bytesIn1Sec = bytesBudget.rate(tStart + 999);
     const countIn1Sec = countBudget.rate(tStart + 999);

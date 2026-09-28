@@ -6,7 +6,7 @@ import type { FlightRpcOp } from "../peer/protocol";
 import { asClientService } from "../test/peerFakes";
 
 interface FakeClient {
-  emitData: (sourceId: string, key: string, value: unknown, t: number) => void;
+  emitData: (sourceId: string, key: string, value: unknown) => void;
   emitStatus: (sourceId: string, status: string) => void;
   emitFlightChange: (flight: FlightRecord | null) => void;
   setCurrentFlight: (flight: FlightRecord | null) => void;
@@ -25,9 +25,8 @@ function makeFakeClient(
   queryImpl?: () => Promise<{ t: number[]; v: unknown[] }>,
   flightRpcImpl?: (op: FlightRpcOp) => Promise<unknown>,
 ): FakeClient {
-  let dataCb:
-    | ((sourceId: string, key: string, value: unknown, t: number) => void)
-    | null = null;
+  let dataCb: ((sourceId: string, key: string, value: unknown) => void) | null =
+    null;
   let statusCb: ((sourceId: string, status: string) => void) | null = null;
   const flightChangeListeners = new Set<
     (flight: FlightRecord | null) => void
@@ -51,7 +50,6 @@ function makeFakeClient(
         return true;
       };
     },
-    sendExecute: vi.fn(),
     sendQueryRange: vi.fn(async (sourceId, key, tStart, tEnd, flightId) => {
       fake.lastQuery = { sourceId, key, tStart, tEnd, flightId };
       return queryImpl
@@ -77,7 +75,7 @@ function makeFakeClient(
   };
   return {
     service: asClientService(fake),
-    emitData: (sourceId, key, value, t) => dataCb?.(sourceId, key, value, t),
+    emitData: (sourceId, key, value) => dataCb?.(sourceId, key, value),
     emitStatus: (sourceId, status) => statusCb?.(sourceId, status),
     emitFlightChange: (flight) => {
       currentFlight = flight;
@@ -102,7 +100,7 @@ describe("PeerClientDataSource", () => {
     const received: unknown[] = [];
     source.subscribe("v.altitude", (v) => received.push(v));
 
-    fake.emitData("data", "v.altitude", 1234, 5000);
+    fake.emitData("data", "v.altitude", 1234);
     expect(received).toEqual([1234]);
   });
 
@@ -112,34 +110,16 @@ describe("PeerClientDataSource", () => {
     const received: unknown[] = [];
     source.subscribe("v.altitude", (v) => received.push(v));
 
-    fake.emitData("telemetry", "v.altitude", 99, 5000);
+    fake.emitData("telemetry", "v.altitude", 99);
     expect(received).toEqual([]);
   });
 
-  it("subscribeSamples fires with host timestamp from the broadcast", () => {
+  it("rejects execute: a station executes nothing on the host's data sources", async () => {
     const fake = makeFakeClient();
     const source = new PeerClientDataSource("data", "Data", fake.service);
-    const samples: Array<{ t: number; v: unknown }> = [];
-    source.subscribeSamples("v.altitude", (s) => samples.push(s));
-
-    fake.emitData("data", "v.altitude", 100, 5000);
-    fake.emitData("data", "v.altitude", 200, 5500);
-    expect(samples).toEqual([
-      { t: 5000, v: 100 },
-      { t: 5500, v: 200 },
-    ]);
-  });
-
-  it("subscribeSamples unsubscribe stops further deliveries", () => {
-    const fake = makeFakeClient();
-    const source = new PeerClientDataSource("data", "Data", fake.service);
-    const samples: Array<{ t: number; v: unknown }> = [];
-    const unsub = source.subscribeSamples("v.altitude", (s) => samples.push(s));
-
-    fake.emitData("data", "v.altitude", 1, 1000);
-    unsub();
-    fake.emitData("data", "v.altitude", 2, 2000);
-    expect(samples).toEqual([{ t: 1000, v: 1 }]);
+    await expect(source.execute("toggleSAS")).rejects.toThrow(
+      /executes nothing/,
+    );
   });
 
   it("queryRange delegates to client.sendQueryRange and passes all args through", async () => {
@@ -202,10 +182,10 @@ describe("PeerClientDataSource", () => {
     // Nothing seen yet: readers that snapshot synchronously (a widget resolving a telemetry arg at dispatch time) get undefined.
     expect(source.getLatestValue("v.altitude")).toBeUndefined();
 
-    fake.emitData("data", "v.altitude", 1000, 5000);
+    fake.emitData("data", "v.altitude", 1000);
     expect(source.getLatestValue("v.altitude")).toBe(1000);
 
-    fake.emitData("data", "v.altitude", 2500, 5500);
+    fake.emitData("data", "v.altitude", 2500);
     expect(source.getLatestValue("v.altitude")).toBe(2500);
 
     // Unrelated key isn't polluted.
@@ -216,7 +196,7 @@ describe("PeerClientDataSource", () => {
     const fake = makeFakeClient();
     const source = new PeerClientDataSource("data", "Data", fake.service);
 
-    fake.emitData("other-source", "v.altitude", 999, 5000);
+    fake.emitData("other-source", "v.altitude", 999);
     expect(source.getLatestValue("v.altitude")).toBeUndefined();
   });
 

@@ -1066,13 +1066,7 @@ export class PeerHostService {
       return;
     }
     const unsub = source.subscribe(key, (value) => {
-      this.broadcast({
-        type: "data",
-        sourceId,
-        key,
-        value,
-        t: Date.now(),
-      });
+      this.broadcast({ type: "data", sourceId, key, value });
     });
     perSource.set(key, { refCount: 1, unsub });
   }
@@ -1357,13 +1351,7 @@ export class PeerHostService {
     for (const key of keys) {
       const value = getLatest.call(source, key);
       if (value === undefined) continue;
-      conn.send({
-        type: "data",
-        sourceId,
-        key,
-        value,
-        t: Date.now(),
-      } satisfies PeerMessage);
+      conn.send({ type: "data", sourceId, key, value } satisfies PeerMessage);
     }
   }
 
@@ -1556,14 +1544,6 @@ export class PeerHostService {
   }
 
   private readonly dispatcher = new MessageDispatcher<DataConnection>({
-    execute: (msg) => {
-      logger.info(
-        `[PeerHost] execute: source=${msg.sourceId} action=${msg.action}`,
-      );
-      import("@ksp-gonogo/core").then(({ getDataSource }) => {
-        getDataSource(msg.sourceId)?.execute(msg.action);
-      });
-    },
     "query-range-request": (msg, conn) => {
       void this.handleQueryRangeRequest(msg, conn);
     },

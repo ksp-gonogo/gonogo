@@ -73,7 +73,6 @@ function makeFakeClient() {
     (sourceId: string, key: string, value: unknown) => void
   >();
   const statusListeners = new Set<(sourceId: string, status: string) => void>();
-  const executes: Array<{ sourceId: string; action: string }> = [];
 
   return {
     onData(cb: (sourceId: string, key: string, value: unknown) => void) {
@@ -86,9 +85,6 @@ function makeFakeClient() {
     },
     onConnectionStatus: vi.fn().mockReturnValue(() => {}),
     onSchema: vi.fn().mockReturnValue(() => {}),
-    sendExecute: vi.fn((sourceId: string, action: string) =>
-      executes.push({ sourceId, action }),
-    ),
     connect: vi.fn(),
     disconnect: vi.fn(),
     _emitData(sourceId: string, key: string, value: unknown) {
@@ -101,7 +97,6 @@ function makeFakeClient() {
         cb(sourceId, status);
       });
     },
-    executes,
   };
 }
 
@@ -236,21 +231,13 @@ describe("PeerBroadcastingDataSource", () => {
     expect(real.execute).toHaveBeenCalledWith("toggle");
   });
 
-  it("forwards queryRange + subscribeSamples to the real source when present", async () => {
+  it("forwards queryRange to the real source when present", async () => {
     const real = makeRealSource("buf", ["v.altitude"]) as ReturnType<
       typeof makeRealSource
     > & {
       queryRange: ReturnType<typeof vi.fn>;
-      subscribeSamples: ReturnType<typeof vi.fn>;
     };
     real.queryRange = vi.fn().mockResolvedValue({ t: [1, 2], v: [10, 20] });
-    const sampleSubs = new Set<(s: { t: number; v: unknown }) => void>();
-    real.subscribeSamples = vi.fn(
-      (_key: string, cb: (s: { t: number; v: unknown }) => void) => {
-        sampleSubs.add(cb);
-        return () => sampleSubs.delete(cb);
-      },
-    );
     const host = makeFakeHost();
     const wrapper = new PeerBroadcastingDataSource(real, host as never);
 
@@ -273,28 +260,15 @@ describe("PeerBroadcastingDataSource", () => {
       100,
       "flight-42",
     );
-
-    const received: Array<{ t: number; v: unknown }> = [];
-    wrapper.subscribeSamples("v.altitude", (s) => received.push(s));
-    sampleSubs.forEach((cb) => {
-      cb({ t: 42, v: 99 });
-    });
-    expect(received).toEqual([{ t: 42, v: 99 }]);
   });
 
-  it("returns empty range + falls back to subscribe when the real source lacks the extensions", async () => {
+  it("returns an empty range when the real source lacks queryRange", async () => {
     const real = makeRealSource("raw", ["v.altitude"]);
     const host = makeFakeHost();
     const wrapper = new PeerBroadcastingDataSource(real, host as never);
 
     const range = await wrapper.queryRange("v.altitude", 0, 100);
     expect(range).toEqual({ t: [], v: [] });
-
-    const received: Array<{ t: number; v: unknown }> = [];
-    wrapper.subscribeSamples("v.altitude", (s) => received.push(s));
-    real._emit("v.altitude", 500);
-    expect(received).toHaveLength(1);
-    expect(received[0].v).toBe(500);
   });
 });
 
@@ -362,10 +336,10 @@ describe("PeerClientDataSource", () => {
     expect(statuses).toEqual(["connected"]);
   });
 
-  it("forwards execute to client.sendExecute with the correct sourceId", async () => {
-    await source.execute("toggleSAS");
-
-    expect(client.sendExecute).toHaveBeenCalledWith("tel", "toggleSAS");
+  it("rejects execute rather than sending anything to the host", async () => {
+    await expect(source.execute("toggleSAS")).rejects.toThrow(
+      /executes nothing/,
+    );
   });
 
   it("unsubscribing stops delivery", () => {
