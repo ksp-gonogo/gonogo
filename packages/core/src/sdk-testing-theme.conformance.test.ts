@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { harnessTheme } from "@ksp-gonogo/sitrep-sdk/testing";
-import { defaultDarkTheme } from "@ksp-gonogo/ui-kit";
+import { defaultDarkTheme, type UiKitTheme } from "@ksp-gonogo/ui-kit";
 import { describe, expect, it } from "vitest";
 
 /**
@@ -30,6 +30,17 @@ import { describe, expect, it } from "vitest";
 
 type Leaf = readonly [path: string, value: unknown];
 
+/**
+ * Every top-level group of the theme's type, checked exhaustive by the
+ * compiler, so a walk that went blind to a group, or to the whole theme, fails
+ * against a list the type keeps current rather than against a leaf count.
+ */
+const THEME_GROUPS = {
+  colors: true,
+  typography: true,
+  borders: true,
+} as const satisfies Record<keyof UiKitTheme, true>;
+
 function leaves(node: unknown, path: string[] = []): Leaf[] {
   if (node === null || typeof node !== "object") {
     return [[path.join("."), node]];
@@ -57,11 +68,10 @@ describe("sdk/testing harnessTheme conforms to the real theme", () => {
    * That failure mode is why this branch exists.
    */
   it("actually walked the real theme", () => {
-    const found = leaves(defaultDarkTheme);
-    expect(found.length).toBeGreaterThan(20);
-    // Groups, not just leaf count: a theme collapsed to one branch would still
-    // clear a count threshold. Three of them: colour, type, borders.
-    expect(Object.keys(defaultDarkTheme).length).toBeGreaterThanOrEqual(3);
+    const reached = new Set(
+      leaves(defaultDarkTheme).map(([path]) => path.split(".")[0]),
+    );
+    expect([...reached].sort()).toEqual(Object.keys(THEME_GROUPS).sort());
   });
 
   it("carries every leaf of defaultDarkTheme, byte for byte", () => {
