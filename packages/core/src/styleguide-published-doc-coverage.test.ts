@@ -44,7 +44,7 @@ describe("design-system: published exports are documented", () => {
     const found = gradePlant().map((f) => `${f.name}:${f.missing}`);
     expect(
       found,
-      "BLIND: the planted undocumented and uncategorised exports must both fail, and the documented one must not",
+      "BLIND: the planted undocumented and uncategorised exports must both fail, and the documented and third-party ones must not",
     ).toEqual(["undocumented:doc", "uncategorised:category"]);
   });
 

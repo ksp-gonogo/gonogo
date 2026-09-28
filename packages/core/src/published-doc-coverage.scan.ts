@@ -17,7 +17,9 @@ import { publishedPackageDirs } from "./type-parameter-names.scan";
  * package, which grades it there. A symbol declared in a private package and
  * re-exported (theme tokens through ui-kit, widgets through uplink-tools) is
  * graded under the published entry that ships it, since that is where an
- * author reads it.
+ * author reads it. A symbol declared by a third-party package and passed
+ * through (Testing Library through the sdk's `/testing`) is not graded: its
+ * documentation is that package's own.
  */
 
 const REPO_ROOT = join(import.meta.dirname, "..", "..", "..");
@@ -165,7 +167,9 @@ export function faultsOfEntry(
     const files = (symbol.declarations ?? []).map(
       (d) => d.getSourceFile().fileName,
     );
-    if (files.length > 0 && files.every(declaredElsewhere)) continue;
+    const notOurs = (file: string) =>
+      declaredElsewhere(file) || file.includes("/node_modules/");
+    if (files.length > 0 && files.every(notOurs)) continue;
     count += 1;
     const doc = ts
       .displayPartsToString(symbol.getDocumentationComment(checker))
@@ -221,10 +225,18 @@ export function scanPublishedDocCoverage(root = REPO_ROOT): DocCoverageScan {
   return { entries, faults, graded: total };
 }
 
-/** A planted module, graded by the same function: `undocumented` and `uncategorised` must fail, `documented` must not. */
+/**
+ * A planted module, graded by the same function: `undocumented` and
+ * `uncategorised` must fail, and `documented` and the third-party `passedOn`
+ * must not.
+ */
 export function gradePlant(): DocFault[] {
   const file = join(dirname(REPO_ROOT), "__doc_coverage_plant__.ts");
+  const libDir = join(dirname(REPO_ROOT), "node_modules", "__plant_lib__");
+  const lib = join(libDir, "index.d.ts");
+  const libText = "export declare const passedOn: number;";
   const text = [
+    'export { passedOn } from "./node_modules/__plant_lib__/index";',
     "export function undocumented(): void {}",
     "/** Has a comment and no category. */",
     "export const uncategorised = 1;",
@@ -237,12 +249,20 @@ export function gradePlant(): DocFault[] {
   ].join("\n");
   const host = ts.createCompilerHost({});
   const getSourceFile = host.getSourceFile.bind(host);
-  host.getSourceFile = (name, version) =>
-    name === file
-      ? ts.createSourceFile(name, text, version)
-      : getSourceFile(name, version);
-  host.fileExists = (name) => name === file || ts.sys.fileExists(name);
-  host.readFile = (name) => (name === file ? text : ts.sys.readFile(name));
+  const planted = new Map([
+    [file, text],
+    [lib, libText],
+  ]);
+  host.getSourceFile = (name, version) => {
+    const source = planted.get(name);
+    return source === undefined
+      ? getSourceFile(name, version)
+      : ts.createSourceFile(name, source, version);
+  };
+  host.fileExists = (name) => planted.has(name) || ts.sys.fileExists(name);
+  host.readFile = (name) => planted.get(name) ?? ts.sys.readFile(name);
+  host.directoryExists = (name) =>
+    libDir.startsWith(name) || (ts.sys.directoryExists?.(name) ?? false);
   const program = ts.createProgram([file], { noEmit: true }, host);
   return faultsOfEntry(program, file, new Set(), () => false).faults;
 }
