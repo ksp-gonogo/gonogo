@@ -11,6 +11,7 @@ import type { RadioReception } from "./RadioSession";
 import { RadioSession } from "./RadioSession";
 import type { RadioTransmitState } from "./RadioTransmitter";
 import { RadioTransmitter } from "./RadioTransmitter";
+import { RadioClock } from "./radioClock";
 
 /**
  * The radio, mounted on the WIDGET: a latching key at this end and everything
@@ -153,12 +154,24 @@ export function useRadio({
   );
 
   /*
-   * Read through a ref by the transmitter's own `utNow`, rather than closed
-   * over, so the clock the chunks are stamped from is the live one without the
-   * transmitter having to be rebuilt every frame.
+   * One smoothed present for both halves, so what this screen stamps its own
+   * chunks with and what it releases everyone else's against are the same
+   * reading. Rebuilt with the clock, the rule the session already follows.
    */
-  const clockRef = useRef(clock);
-  clockRef.current = clock;
+  const present = useMemo(
+    () =>
+      clock
+        ? new RadioClock({ source: () => clock.utNowEstimate() })
+        : undefined,
+    [clock],
+  );
+  /*
+   * Read through a ref by the transmitter's own `utNow`, rather than closed
+   * over, so the present the chunks are stamped from is the live one without
+   * the transmitter having to be rebuilt every time the clock is.
+   */
+  const presentRef = useRef(present);
+  presentRef.current = present;
 
   /*
    * Likewise a ref rather than a dependency: rebuilding the transmitter on a
@@ -170,7 +183,7 @@ export function useRadio({
   inputDeviceRef.current = inputDeviceId;
 
   useEffect(() => {
-    if (!log || !clock || !support.supported) {
+    if (!log || !clock || !present || !support.supported) {
       setSession(null);
       setReception(NO_RECEPTION);
       return;
@@ -183,7 +196,7 @@ export function useRadio({
        * `useCommcastFeed` hands its own buffer.
        */
       view: {
-        confirmedEdgeUt: () => clock.utNowEstimate(),
+        confirmedEdgeUt: () => present.now() ?? clock.utNowEstimate(),
         onFrame: (cb) => clock.onFrame(cb),
       },
       /*
@@ -205,7 +218,7 @@ export function useRadio({
       setSession(null);
       setReception(NO_RECEPTION);
     };
-  }, [log, clock, support.supported, backend]);
+  }, [log, clock, present, support.supported, backend]);
 
   useEffect(() => session?.setVantage(me), [session, me]);
   useEffect(() => session?.setPairs(pairs), [session, pairs]);
@@ -245,7 +258,7 @@ export function useRadio({
     }
     const built = new RadioTransmitter({
       send: (frame) => log.sendRadio(frame),
-      utNow: () => clockRef.current?.utNowEstimate(),
+      utNow: () => presentRef.current?.now(),
       startCapture: (onChunk) =>
         backend.startCapture(onChunk, {
           deviceId: inputDeviceRef.current,
