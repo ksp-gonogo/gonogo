@@ -27,7 +27,8 @@ const SDK = /^mod\/sitrep-sdk\//;
 const UI_KIT = /^packages\/ui-kit\//;
 const THEME = /^packages\/theme\//;
 /** The shrink-only debt lists `ratchetBaseRef.ts` names, which a scan importing it can read. */
-const RATCHET_LISTS = /^packages\/core\/src\/[^/]+\.(allowlist|debt)\.ts$/;
+const RATCHET_LISTS =
+  /^packages\/core\/src\/[^/]+\.(allowlist|debt)\.(ts|json)$/;
 
 /** Scan test file (relative to packages/core) to the repo paths it can see. */
 export const SCAN_DOMAINS = {
