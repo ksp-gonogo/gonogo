@@ -7,14 +7,6 @@
     "notes": "Derived from multi-vessel-orbits.json with only the two orbits edited, so a render of the two fixtures side by side differs in exactly those two vessels. Comsat Relay-1 (circular, equatorial, every element reported as a real 0) still draws its ring, which is the contrast: a reported zero is a zero, an unreported element is not."
   },
   "_stream": {
-    "carriedChannels": [
-      "vessel.orbit",
-      "vessel.identity",
-      "vessel.target",
-      "system.bodies",
-      "system.vessels",
-      "comms.network"
-    ],
     "pinnedUt": 0,
     "emits": [
       {
