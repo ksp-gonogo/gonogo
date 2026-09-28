@@ -5,9 +5,8 @@ import { Panel } from "./Panel";
 /**
  * The standard header rides inside the body scroller, in the sticky unit that
  * is its first in-flow child, so title and aside stay in view while the body
- * scrolls. A toolbar header uses the same mechanism; only a `floatingHeader`
- * overlays outside the scroller. Asserts relationships and `position`, not
- * pixels.
+ * scrolls. A toolbar header uses the same mechanism. Asserts relationships
+ * and `position`, not pixels.
  */
 describe("Panel sticky header (standard)", () => {
   it("puts the heading INSIDE the scrolling body as the first in-flow child", () => {
@@ -81,19 +80,12 @@ describe("Panel sticky header, one mechanism for the toolbar case", () => {
     ).toBe(true);
   });
 
-  it("floatingHeader keeps its overlay row outside the scroller, no ghost", () => {
-    render(
-      <Panel panelTitle="ORBIT" floatingHeader>
-        <p>globe</p>
-      </Panel>,
-    );
-    const header = document.querySelector("[data-panel-header]") as HTMLElement;
-    expect(getComputedStyle(header).position).toBe("absolute");
-    expect(document.querySelector("[data-panel-ghost]")).toBeNull();
+  it("gives an untitled panel the same sticky unit, so a badge arriving restructures nothing", () => {
+    render(<Panel sections={<p>feed</p>} />);
     const scroller = document.querySelector("[data-panel-body]") as HTMLElement;
-    expect(scroller.contains(header)).toBe(false);
-    // Nothing scrolls, so there is no sticky unit and the rail keeps the container's band.
-    expect(document.querySelector("[data-panel-sticky-top]")).toBeNull();
+    const unit = scroller.querySelector("[data-panel-sticky-top]");
+    expect(unit).not.toBeNull();
+    expect(unit?.querySelector("[data-panel-header]")).not.toBeNull();
   });
 });
 

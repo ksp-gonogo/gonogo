@@ -339,7 +339,6 @@ export function GraphView({
   );
 }
 
-// A frame, not `floatingHeader`: LineChart draws its legend top-left inside the plot, where a floating title would land.
 const CHART_FRAME: CSSProperties = { flex: 1, minHeight: 0 };
 
 const CHART_AREA: CSSProperties = {

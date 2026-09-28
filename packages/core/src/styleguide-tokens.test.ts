@@ -260,11 +260,11 @@ const BASELINES: Record<Family, Record<string, number>> = {
     // content). Not app-global chrome, so no named z rung.
     "packages/ui-kit/src/Disclosure.tsx": 1,
     // Local sibling ordering inside the panel's own stacking context: the
-    // scroll glow over the scrolling body, the overlay header over the content
+    // scroll glow over the scrolling body, the sticky header over the content
     // beneath it, and the popped aside-expand box over that header. None is
     // app-global chrome, so a named rung would lift a widget-internal overlay
     // above the dashboard's.
-    "packages/ui-kit/src/Panel.tsx": 4,
+    "packages/ui-kit/src/Panel.tsx": 3,
     // The signal-delay rail's detail float, local sibling ordering inside the
     // panel's own stacking context: it must sit above the sticky header
     // (Panel.tsx's z-index 2) and the scrolling body it overlays. Not

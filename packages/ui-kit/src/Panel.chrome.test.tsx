@@ -53,60 +53,54 @@ describe("Panel toolbar", () => {
   });
 });
 
-describe("Panel floatingHeader", () => {
-  it("floats the header and lets content run beneath it", () => {
-    render(
-      <Panel panelTitle="ORBIT" floatingHeader>
-        <p>globe</p>
-      </Panel>,
-    );
-    const header = document.querySelector("[data-panel-header]") as HTMLElement;
-    expect(getComputedStyle(header).position).toBe("absolute");
-  });
-
-  it("reserves a row by default, so the overlay is opt-in", () => {
-    render(<Panel panelTitle="ORBIT">body</Panel>);
+describe("Panel header row", () => {
+  it("keeps the header in flow, above the content", () => {
+    render(<Panel panelTitle="ORBIT" sections={<p>globe</p>} />);
     const header = document.querySelector("[data-panel-header]") as HTMLElement;
     expect(getComputedStyle(header).position).not.toBe("absolute");
-  });
-
-  it("keeps the floating row clear of the pointer but not its title box", () => {
-    // The invisible full-width row gives up pointer events so drags reach the map; the boxes take them back.
-    render(
-      <Panel panelTitle="ORBIT" floatingHeader>
-        <p>globe</p>
-      </Panel>,
-    );
-    const header = document.querySelector("[data-panel-header]") as HTMLElement;
-    const titles = screen.getByText("ORBIT").parentElement as HTMLElement;
-    expect(getComputedStyle(header).pointerEvents).toBe("none");
-    expect(getComputedStyle(titles).pointerEvents).toBe("auto");
-  });
-
-  it("backs the title box so it stays legible over the content", () => {
-    render(
-      <Panel panelTitle="ORBIT" floatingHeader>
-        <p>globe</p>
-      </Panel>,
-    );
-    const titles = screen.getByText("ORBIT").parentElement as HTMLElement;
-    expect(getComputedStyle(titles).background).toContain(
-      "var(--color-surface-panel)",
-    );
-  });
-
-  it("keeps the header first in the DOM, so overlay is a paint change only", () => {
-    // Reading and tab order must not depend on whether the header floats.
-    render(
-      <Panel panelTitle="ORBIT" floatingHeader>
-        <p>globe</p>
-      </Panel>,
-    );
-    const header = document.querySelector("[data-panel-header]") as HTMLElement;
-    const body = screen.getByText("globe").parentElement as HTMLElement;
     expect(
-      header.compareDocumentPosition(body) & Node.DOCUMENT_POSITION_FOLLOWING,
+      header.compareDocumentPosition(screen.getByText("globe")) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+  });
+
+  it("stands a header row up on an untitled panel with nothing contributed", () => {
+    render(<Panel sections={<p>feed</p>} />);
+    expect(document.querySelector("[data-panel-header]")).not.toBeNull();
+  });
+
+  it("holds a badge-height strut beside the title, hidden from assistive tech", () => {
+    render(<Panel panelTitle="ORBIT" sections={<p>globe</p>} />);
+    const titles = screen.getByText("ORBIT").parentElement as HTMLElement;
+    const strut = titles.querySelector('[aria-hidden="true"]') as HTMLElement;
+    expect(strut).not.toBeNull();
+    expect(getComputedStyle(strut).visibility).toBe("hidden");
+    expect(getComputedStyle(strut).width).toBe("0px");
+    expect(strut.firstElementChild).not.toBeNull();
+    // Generated content, so the strut adds nothing to the panel's text.
+    expect(strut.textContent).toBe("");
+  });
+
+  it("keeps the same header element when a badge arrives", () => {
+    const { rerender } = render(
+      <Panel panelTitle="ORBIT" sections={<p>globe</p>} />,
+    );
+    const before = document.querySelector("[data-panel-header]");
+    rerender(
+      <Panel
+        panelTitle="ORBIT"
+        panelBadges={[{ id: "b", label: "SIGNAL", tone: "warn" }]}
+        sections={<p>globe</p>}
+      />,
+    );
+    expect(document.querySelector("[data-panel-header]")).toBe(before);
+    expect(screen.getByText("SIGNAL")).toBeInTheDocument();
+  });
+
+  it("gives the title column a zero basis, so a long title never wraps the aside", () => {
+    render(<Panel panelTitle="ORBIT" sections={<p>globe</p>} />);
+    const titles = screen.getByText("ORBIT").parentElement as HTMLElement;
+    expect(getComputedStyle(titles).flexBasis).toMatch(/^0(px|%)?$/);
   });
 });
 

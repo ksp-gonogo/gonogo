@@ -17,12 +17,8 @@ import { styleguideScanRoots } from "./styleguideScanRoots";
  * So the population this counts is `<Panel>` elements that render CHILDREN. A
  * converted panel is self-closing, which is what makes the rule cheap to state
  * and impossible to half-satisfy: you cannot pass `sections` and keep a body and
- * have the scan call it done.
- *
- * ONE exception, and it already had its own prop before this gate existed:
- * `floatingHeader`, the widget that is wholly a drawing. Its content IS the
- * panel rather than a section of it, the header floats over the content and the
- * body bleeds to the chrome. A map or a globe keeps its children.
+ * have the scan call it done. There is no exception: a widget that is wholly a
+ * drawing passes one `<Section fill>` holding it.
  */
 
 /** JSX only. A `.ts` file cannot contain a `<Panel>` element. */
@@ -31,8 +27,8 @@ const SOURCE_RE = /\.tsx$/;
 /**
  * Tests are outside the population, and deliberately so.
  *
- * The children path is not going away: `floatingHeader` uses it, and so does
- * every hand-composed `Panel.Container` / `Panel.Body` arrangement. Panel's own
+ * The children path is not going away: every hand-composed `Panel.Container` /
+ * `Panel.Body` arrangement uses it. Panel's own
  * suite has to be able to render it, and a gate that forbade that would be
  * asking the kit to stop testing its own API. What the gate is about is WIDGETS,
  * and a widget does not live in a test file.
@@ -186,7 +182,7 @@ export function panelTagsIn(source: string): {
 /** The `<Panel>`s in one file's source that still carry a body. */
 export function panelBodiesIn(source: string): PanelBodyUse[] {
   return panelTagsIn(stripComments(source))
-    .filter((tag) => !tag.selfClosing && !/\bfloatingHeader\b/.test(tag.attrs))
+    .filter((tag) => !tag.selfClosing)
     .map(({ line, attrs }) => ({ line, attrs: attrs.trim() }));
 }
 

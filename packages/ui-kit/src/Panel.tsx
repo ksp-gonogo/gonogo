@@ -103,7 +103,7 @@ export const PanelContainer = styled.div<{ $railTravels?: boolean }>`
   flex-direction: column;
   gap: 0;
   overflow: hidden;
-  /* A headerless panel's sections sit straight in here, so this box owns the leftover height. */
+  /* A hand-composed panel can put sections straight in here, so this box owns the leftover height. */
   ${SECTION_FILL_RULE}
 `;
 
@@ -168,9 +168,8 @@ export const PanelTitle = forwardRef<HTMLHeadingElement, PanelTitleProps>(
 /** Stable, so a title with no compact forms does not hand the fit hook a fresh array each render. */
 const EMPTY_COMPACT: readonly string[] = [];
 
-const PanelHeader__Row = styled.div<{ $overlay?: boolean }>`
-  /* The row owns the header's top inset, except when floating: there it goes on the boxes so their opaque backing reaches above the glyphs. */
-  padding-top: ${({ $overlay }) => ($overlay ? "0" : "var(--inset-panel-header-top)")};
+const PanelHeader__Row = styled.div`
+  padding-top: var(--inset-panel-header-top);
   display: flex;
   /* Centred, which levels the collapsed dots and chevron on the single-line title. */
   align-items: center;
@@ -181,40 +180,40 @@ const PanelHeader__Row = styled.div<{ $overlay?: boolean }>`
   flex-wrap: wrap;
   /* Never shrink, or a short tile's body would overprint the title. */
   flex-shrink: 0;
-  /* Overlay: the header floats over the content, anchored to PanelGlow__Root, and passes pointer events through to it. */
-  ${({ $overlay }) =>
-    $overlay
-      ? `position: absolute;
-         top: 0;
-         left: 0;
-         right: 0;
-         pointer-events: none;
-         /* Widget-internal stacking, so it stays off the app-global z ladder. */
-         z-index: 1;`
-      : ""}
+`;
+
+const PanelHeader__Titles = styled.div`
+  min-width: 0;
+  /* A zero basis, so a long title shrinks beside the aside instead of wrapping it onto a second line; useFittedTitle measures the room this leaves. */
+  flex-grow: 1;
+  flex-shrink: 1;
+  flex-basis: 0;
+  display: flex;
+  align-items: center;
+  & > h3 {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
 `;
 
 /**
- * Backing for the two header boxes (not the row) when the header floats, so the
- * drawing shows through the gap between them. Each box takes back the pointer
- * events the full-width row gives up to keep drags reaching the content.
+ * An invisible, zero-width badge beside the title, so the row is always as
+ * tall as a badge and one arriving in the aside fills height that was already
+ * there. Its line is a generated space, so the panel's text content stays the
+ * widget's own.
  */
-const OVERLAY_BOX = `
-  background: var(--color-surface-panel);
-  pointer-events: auto;
+const PanelHeader__Strut = styled.span`
+  display: flex;
+  flex: 0 0 0;
+  width: 0;
+  overflow: hidden;
+  visibility: hidden;
+  & > *::before {
+    content: "\\00a0";
+  }
 `;
 
-/** A floating header's top inset lives on the boxes, so the opaque backing reaches above the glyphs. */
-const OVERLAY_TITLE_ROW_INSET = `padding-top: var(--inset-panel-header-top);`;
-
-const PanelHeader__Titles = styled.div<{ $overlay?: boolean }>`
-  min-width: 0;
-  /* Grows as well as shrinks: useFittedTitle measures the room available, not the room taken. */
-  flex: 1 1 auto;
-  ${({ $overlay }) => ($overlay ? OVERLAY_BOX + OVERLAY_TITLE_ROW_INSET : "")}
-`;
-
-const PanelHeader__Aside = styled.div<{ $overlay?: boolean }>`
+const PanelHeader__Aside = styled.div`
   display: flex;
   align-items: center;
   gap: var(--gap-panel-aside);
@@ -223,7 +222,6 @@ const PanelHeader__Aside = styled.div<{ $overlay?: boolean }>`
   flex-shrink: 0;
   /* Mirrors PanelTitle's inset so the badges line up with the title. */
   padding: var(--inset-panel-header);
-  ${({ $overlay }) => ($overlay ? OVERLAY_BOX + OVERLAY_TITLE_ROW_INSET : "")}
 `;
 
 /**
@@ -341,7 +339,6 @@ export function PanelHeader({
   compactTitle,
   aside,
   toolbar,
-  overlay,
   ...rest
 }: Omit<ComponentPropsWithoutRef<"div">, "title"> & {
   title?: ReactNode;
@@ -352,11 +349,6 @@ export function PanelHeader({
    * A row of controls on its own line below the title. See `Panel.Toolbar`.
    */
   toolbar?: ReactNode;
-  /**
-   * Float the header over the content instead of reserving a row above it.
-   * Pair with a `Panel.Body bleed`, which is what `Panel floatingHeader` does.
-   */
-  overlay?: boolean;
 }) {
   const breakdown = useStatusBreakdown();
 
@@ -379,21 +371,19 @@ export function PanelHeader({
 
   return (
     /* `data-panel-header` is a stable targeting hook. */
-    <PanelHeader__Row
-      ref={rowRef}
-      data-panel-header=""
-      $overlay={overlay}
-      {...rest}
-    >
-      <PanelHeader__Titles $overlay={overlay}>
+    <PanelHeader__Row ref={rowRef} data-panel-header="" {...rest}>
+      <PanelHeader__Titles>
         {title !== undefined && (
           <PanelTitle ref={titleRef} compact={compactTitle}>
             {title}
           </PanelTitle>
         )}
+        <PanelHeader__Strut aria-hidden="true">
+          <Badge>{null}</Badge>
+        </PanelHeader__Strut>
       </PanelHeader__Titles>
       {aside !== undefined && (
-        <PanelHeader__Aside $overlay={overlay}>
+        <PanelHeader__Aside>
           {/* A native `<details>` carries an implicit `role="group"`, so an aside's own `getByRole("group")` query must scope to its subtree. */}
           <PanelAsideExpand
             data-panel-aside-expand=""
@@ -430,9 +420,7 @@ export function PanelHeader({
           </PanelAsideExpand>
         </PanelHeader__Aside>
       )}
-      {toolbar !== undefined && (
-        <PanelToolbar $overlay={overlay}>{toolbar}</PanelToolbar>
-      )}
+      {toolbar !== undefined && <PanelToolbar>{toolbar}</PanelToolbar>}
     </PanelHeader__Row>
   );
 }
@@ -446,21 +434,19 @@ export function PanelHeader({
  * a map's layer pickers or a graph's series toggles. It wraps rather than
  * scrolls, so a narrow tile gets a taller toolbar.
  */
-export const PanelToolbar = styled.div<{ $overlay?: boolean }>`
+export const PanelToolbar = styled.div`
   ${fitBox("panel-toolbar")}
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: var(--gap-control-row);
-  /* Mirrors the header's horizontal inset; the header already paid the top one. */
-  padding: var(--inset-panel-header);
+  padding: var(--inset-panel-toolbar);
   min-width: 0;
   /* Never shrink, or a short tile squeezes the controls away. */
   flex-shrink: 0;
   /* A full basis, so the toolbar always takes its own line in the wrapping header row. */
   flex-basis: 100%;
   width: 100%;
-  ${({ $overlay }) => ($overlay ? OVERLAY_BOX : "")}
 `;
 
 /**
@@ -468,7 +454,7 @@ export const PanelToolbar = styled.div<{ $overlay?: boolean }>`
  * names so a panel nested inside a compact `Card` does not inherit the card's
  * density.
  */
-const PanelBody__Box = styled.div<{ $fitToSize?: boolean; $bleed?: boolean }>`
+const PanelBody__Box = styled.div<{ $fitToSize?: boolean }>`
   --gap-related: var(--gap-related-comfortable);
   --gap-section: var(--gap-section-comfortable);
   --bleed-inline: var(--gutter-panel);
@@ -492,11 +478,6 @@ const PanelBody__Box = styled.div<{ $fitToSize?: boolean; $bleed?: boolean }>`
   }
   /* Fit-to-size never scrolls, and centres only once measurement says the content fits: Firefox clips safe center while reporting support for it. */
   ${({ $fitToSize }) => ($fitToSize ? "flex: 1; overflow: hidden;" : "")}
-  /* Bleed reaches the chrome on every side and never scrolls. Only floatingHeader sets it; a mixed widget puts its drawing in a FramedDisplay instead. */
-  ${({ $bleed }) =>
-    $bleed
-      ? "flex: 1; overflow: hidden; padding: 0; gap: 0; --bleed-inline: 0px;"
-      : ""}
   ${SECTION_FILL_RULE}
 `;
 
@@ -507,11 +488,9 @@ const PanelBody__Box = styled.div<{ $fitToSize?: boolean; $bleed?: boolean }>`
 export function PanelBody({
   children,
   fitToSize,
-  bleed,
   ...rest
 }: ComponentPropsWithoutRef<"div"> & {
   fitToSize?: boolean;
-  bleed?: boolean;
 }) {
   const ctx = useContext(PanelCtx);
   const register = ctx?.registerScroller;
@@ -531,7 +510,6 @@ export function PanelBody({
       tabIndex={tabIndex}
       data-panel-body=""
       $fitToSize={fitToSize}
-      $bleed={bleed}
       {...rest}
     >
       {children}
@@ -876,16 +854,6 @@ function sidebarTracks(side: "start" | "end", size: string): string {
     : `minmax(0, 1fr) minmax(0, ${size})`;
 }
 
-/* Positioning context for a floating header that must cover the body track only. */
-const PanelFloatHost = styled.div`
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-width: 0;
-  min-height: 0;
-`;
-
 const PanelSplit__Box = styled.div<{
   $axis: PanelSidebarAxis;
   $side: "start" | "end";
@@ -1122,8 +1090,8 @@ export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
    * landscape one. A single node is fine, and a conditional `null` entry does
    * not render.
    *
-   * A widget that is wholly a drawing (a map, a globe) keeps children and uses
-   * `floatingHeader` instead. Not to be confused with the boolean
+   * A widget that is wholly a drawing (a map, a globe) passes one
+   * `<Section fill>` holding it. Not to be confused with the boolean
    * `panelSections`, which is about the augment slot. A bare boolean is
    * rejected so `sections={false}` cannot render an empty panel.
    */
@@ -1180,16 +1148,6 @@ export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
    * `FilterRegion` around that list instead.
    */
   panelFilter?: RowFilter;
-  /**
-   * The header floats over the content rather than reserving a row above it,
-   * and the body bleeds to the panel chrome and stops scrolling.
-   *
-   * For a widget that is wholly a drawing (an orbit view, a globe). The title
-   * and aside keep a panel-coloured backing so they stay legible. A widget with
-   * a diagram and readouts wants `FramedDisplay` inside the ordinary body
-   * instead. Independent of `fitToSize`, which keeps an ordinary header.
-   */
-  floatingHeader?: boolean;
   /**
    * Content is sized to fit and never scrolls. Forwarded to `Panel.Body`
    * rather than handled here, so manual composition stays reproducible.
@@ -1360,8 +1318,7 @@ export const PanelFooter = styled.div`
 
 /**
  * The delay rail and the header, as one sticky unit at the top of the body
- * scroller, so the rail always sits on the header. Only for the in-flow
- * header: a floating or headless panel keeps the rail in the container's band.
+ * scroller, so the rail always sits on the header.
  */
 const PanelStickyTop = styled.div`
   position: sticky;
@@ -1433,7 +1390,6 @@ function PanelRoot({
   panelFilter,
   panelFooter,
   panelTrend,
-  floatingHeader,
   fitToSize,
   panelSidebar,
   sidebarSide,
@@ -1444,11 +1400,6 @@ function PanelRoot({
   children,
   ...rest
 }: PanelProps) {
-  /*
-   * A status change never gives a headerless panel a header: that would
-   * restructure the widget on a data transition. Badges alone do, so they are
-   * resolved first.
-   */
   const contextBadges = usePanelBadgesContext();
   // Asked as a boolean first, because an aside that exists at all is a padded box.
   const hasActionAugments = useWidgetSegmentBound("actions");
@@ -1483,13 +1434,6 @@ function PanelRoot({
         <PanelFilterSlot>{filterControlOf(panelFilter)}</PanelFilterSlot>
       </>
     );
-  const hasHeader =
-    panelTitle !== undefined ||
-    panelAside !== undefined ||
-    toolbar !== undefined ||
-    badgePills !== null ||
-    hasActionAugments;
-
   /*
    * The header status merges alarms, `report` badges and the stream status
    * into one summary through the per-item status store. The stream half is the
@@ -1499,9 +1443,7 @@ function PanelRoot({
   const status = panelStatus ?? null;
   // A healthy stream contributes nothing, so it never draws a green pill.
   const streamStatus: StreamStatusValue | null =
-    hasHeader && status !== null && status !== "none" && status !== "live"
-      ? status
-      : null;
+    status !== null && status !== "none" && status !== "live" ? status : null;
   useStatusContribution(
     streamStatus
       ? {
@@ -1519,14 +1461,13 @@ function PanelRoot({
   // With no status store in the tree, fall back to the stream badge.
   const streamLabel =
     streamStatus === null ? null : formatStreamStatus(streamStatus);
-  const statusBadge =
-    !hasHeader || summaryDuplicatesABadgePill ? null : summary !== null ? (
-      <PanelSummaryBadge summary={summary} />
-    ) : streamStatus === null || streamLabel === null ? null : (
-      <Badge severity={severityFromStreamStatus(streamStatus)} size="sm">
-        {streamLabel}
-      </Badge>
-    );
+  const statusBadge = summaryDuplicatesABadgePill ? null : summary !== null ? (
+    <PanelSummaryBadge summary={summary} />
+  ) : streamStatus === null || streamLabel === null ? null : (
+    <Badge severity={severityFromStreamStatus(streamStatus)} size="sm">
+      {streamLabel}
+    </Badge>
+  );
   /* Prefixed with a plain title, so a change is heard as belonging to a widget. */
   const statusLabel = summary?.label ?? streamLabel;
   const statusAnnouncement =
@@ -1621,87 +1562,35 @@ function PanelRoot({
     </>
   );
 
-  if (!hasHeader) {
-    return (
-      <PanelContainer {...rest}>
-        <PanelDelayRail />
-        {content}
-        {panelSections && !hasSections && <WidgetSections />}
-        {panelTrend !== undefined && <PanelTrend render={panelTrend} />}
-        {panelFooter !== undefined && <PanelFooter>{panelFooter}</PanelFooter>}
-      </PanelContainer>
-    );
-  }
-
-  /**
-   * Whether the delay rail travels with the header inside the body scroller:
-   * every headed panel but the floating one. The container, the split, the glow
-   * and the sticky unit all read it and must agree.
-   */
-  const railTravels = !floatingHeader;
-
-  // A floating header paints over a non-scrolling bleed body; every other header is one sticky header inside the scroller.
-  const header = floatingHeader ? (
-    <PanelHeader
-      title={panelTitle}
-      compactTitle={compactTitle}
-      aside={aside}
-      toolbar={toolbar}
-      overlay
-    />
-  ) : (
-    <PanelStickyHeader
-      title={panelTitle}
-      compactTitle={compactTitle}
-      aside={aside}
-      toolbar={toolbar}
-    />
-  );
-
   const body = (
-    <PanelBody fitToSize={fitToSize} bleed={floatingHeader}>
-      {!floatingHeader && (
-        <PanelStickyTop data-panel-sticky-top="">
-          <PanelDelayRail />
-          {header}
-        </PanelStickyTop>
-      )}
+    <PanelBody fitToSize={fitToSize}>
+      <PanelStickyTop data-panel-sticky-top="">
+        <PanelDelayRail />
+        <PanelStickyHeader
+          title={panelTitle}
+          compactTitle={compactTitle}
+          aside={aside}
+          toolbar={toolbar}
+        />
+      </PanelStickyTop>
       {fitToSize ? <PanelFitBody>{content}</PanelFitBody> : content}
       {panelSections && !hasSections && <WidgetSections />}
     </PanelBody>
   );
 
-  // With a sidebar, a floating header is re-hosted against the body track alone so it does not cover the sidebar.
-  const floatingBody =
-    floatingHeader && panelSidebar !== undefined ? (
-      <PanelFloatHost>
-        {header}
-        {body}
-      </PanelFloatHost>
-    ) : (
-      body
-    );
-
-  const bodyRegion =
-    panelSidebar === undefined ? (
-      body
-    ) : (
-      // `railBand` hands the sidebar track the band the rail holds open inside the body scroller.
-      <PanelSplit side={sidebarSide} size={sidebarSize} railBand={railTravels}>
-        {floatingBody}
-        {/* After the body in the DOM; `sidebarSide` moves it visually only. */}
-        <PanelSidebar>{panelSidebar}</PanelSidebar>
-      </PanelSplit>
-    );
-
   return (
     <PanelProviders>
-      <PanelContainer $railTravels={railTravels} {...rest}>
-        {/* A floating header has no sticky unit, so its rail draws in the container's band. */}
-        {floatingHeader && <PanelDelayRail />}
-        <PanelGlow railBandAbove={railTravels}>
-          {floatingHeader && panelSidebar === undefined && header}
-          {bodyRegion}
+      <PanelContainer $railTravels {...rest}>
+        <PanelGlow railBandAbove>
+          {panelSidebar === undefined ? (
+            body
+          ) : (
+            <PanelSplit side={sidebarSide} size={sidebarSize} railBand>
+              {body}
+              {/* After the body in the DOM; `sidebarSide` moves it visually only. */}
+              <PanelSidebar>{panelSidebar}</PanelSidebar>
+            </PanelSplit>
+          )}
         </PanelGlow>
         {panelTrend !== undefined && <PanelTrend render={panelTrend} />}
         {panelFooter !== undefined && <PanelFooter>{panelFooter}</PanelFooter>}

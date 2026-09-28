@@ -33,12 +33,11 @@ import {
  * THE RULE, in one sentence: a widget gives its `Panel` a body by passing
  * `sections`, and a converted panel is therefore self-closing.
  *
- * The single exception is `floatingHeader`, the widget that is WHOLLY a drawing
- * (a map, a globe, an orbit view). Its content is the panel rather than a
- * section of it, and it already had its own prop before this gate existed.
+ * There is no exception. A widget that is WHOLLY a drawing (a map, a globe, an
+ * orbit view) passes one `<Section fill>` holding it.
  *
  * Tests are outside the population. The children path is not going away, since
- * `floatingHeader` and every hand-composed `Panel.Container` arrangement use it,
+ * every hand-composed `Panel.Container` arrangement uses it,
  * and a gate that stopped the kit testing its own API would be asking for the
  * wrong thing.
  *
@@ -89,15 +88,15 @@ describe("panel bodies", () => {
    * that is NOT a body, and a gate that flagged any of them would be muted
    * within a day.
    */
-  it("sees a body, and does not see a converted, floating or commented panel", () => {
+  it("sees a body, a drawing kept as children, and not a converted or commented panel", () => {
     const body = `<Panel panelTitle="X">\n  <Rows />\n</Panel>`;
     expect(panelBodiesIn(body)).toHaveLength(1);
 
     const converted = `<Panel panelTitle="X" sections={[<Section key="a" />]} />`;
     expect(panelBodiesIn(converted)).toHaveLength(0);
 
-    const floating = `<Panel panelTitle="X" floatingHeader>\n  <Globe />\n</Panel>`;
-    expect(panelBodiesIn(floating)).toHaveLength(0);
+    const drawing = `<Panel panelTitle="X">\n  <Globe />\n</Panel>`;
+    expect(panelBodiesIn(drawing)).toHaveLength(1);
 
     // A `>` inside an attribute value is ordinary in this widget set: an element
     // in a slot, an arrow function in a handler. Ending the tag at the first one
@@ -167,8 +166,8 @@ describe("panel bodies", () => {
         "",
         "One section is fine and costs nothing: `sections={<Section>...</Section>}`.",
         "",
-        "The exception is a widget that is WHOLLY a drawing (a map, a globe).",
-        "That one passes `floatingHeader` and keeps its children.",
+        "A widget that is WHOLLY a drawing (a map, a globe) is no exception:",
+        "it passes `sections={<Section fill>...</Section>}`.",
         "",
         "Do NOT add an entry to panel-body.allowlist.ts. The debt list is",
         "shrink-only and a new entry means new code just wrote a body.",

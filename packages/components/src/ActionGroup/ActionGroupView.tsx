@@ -95,6 +95,7 @@ export function ActionGroupView({
   if (!group) {
     return (
       <Panel
+        panelTitle="ACTION GROUP"
         sections={
           <Section full>
             <Placeholder>No action group configured</Placeholder>

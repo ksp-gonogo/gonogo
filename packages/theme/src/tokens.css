@@ -573,9 +573,11 @@ textarea {
   --inset-panel-bottom: var(--space-12);
   --inset-panel-body: var(--inset-panel-top) var(--gutter-panel)
     var(--inset-panel-bottom);
-  --inset-panel-header: 0 var(--gutter-panel) var(--space-8);
-  /* Above the header row, and above a floating header's title and aside. */
+  /* No bottom inset: the body's own gap is the only space between the header and the content. */
+  --inset-panel-header: 0 var(--gutter-panel);
+  /* Above a hand-composed header row; inside a Panel the rail band is that inset. */
   --inset-panel-header-top: var(--space-6);
+  --inset-panel-toolbar: var(--space-6) var(--gutter-panel) 0;
   --inset-panel-footer: var(--space-6) var(--gutter-panel) var(--space-8);
   /* A panel header's title and its aside. */
   --gap-panel-header: var(--space-8);

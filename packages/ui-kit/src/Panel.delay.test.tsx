@@ -65,8 +65,7 @@ describe("the rail travels with the header", () => {
     ).toBeTruthy();
   });
 
-  it("keeps the band on a HEADLESS panel, where there is no header to travel with", () => {
-    // A headless panel still gets the rail, as the container's first child in its top band.
+  it("travels with the header on an UNTITLED panel too", () => {
     render(
       <DelayRailProvider>
         <Panel>
@@ -74,12 +73,11 @@ describe("the rail travels with the header", () => {
         </Panel>
       </DelayRailProvider>,
     );
-    expect(document.querySelector("[data-panel-sticky-top]")).toBeNull();
-    const frame = document.querySelector(
-      "[data-panel-rail-frame]",
+    const unit = document.querySelector(
+      "[data-panel-sticky-top]",
     ) as HTMLElement;
-    expect(frame).not.toBeNull();
-    expect(frame.parentElement?.firstElementChild).toBe(frame);
+    expect(unit).not.toBeNull();
+    expect(unit.querySelector("[data-panel-rail-frame]")).not.toBeNull();
   });
 
   it("does not let body content read through the rail", () => {

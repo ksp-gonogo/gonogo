@@ -41,9 +41,9 @@ function handleHasContent(handle: CommandHandle): boolean {
  *
  * **The band is RESERVED, not taken.** Every panel stands the same strip up at
  * its top edge whether or not it has a command to show, so a command going up
- * costs the widget nothing. In a headed panel the rail is the first row of
- * `PanelStickyTop`; headless or under a `floatingHeader` it is the container's
- * first child, pulled up into the inset `PanelContainer` reserves.
+ * costs the widget nothing. In a `Panel` the rail is the first row of
+ * `PanelStickyTop`; in a hand-composed panel it is the container's first
+ * child, pulled up into the inset `PanelContainer` reserves.
  *
  * Collapsed, the rail sits in normal flow inside the band and moves nothing.
  * It is a disclosure: a native `<button>` laid over the strip controls the

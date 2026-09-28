@@ -130,11 +130,16 @@ describe("a11y smoke (jest-axe)", () => {
     await expectNoA11yViolations(container);
   });
 
-  it("Panel (floatingHeader) has no axe violations", async () => {
+  it("Panel (untitled, one filling drawing) has no axe violations", async () => {
     const { container } = render(
-      <Panel panelTitle="Orbit" floatingHeader>
-        <p>globe</p>
-      </Panel>,
+      <Panel
+        panelBadges={[{ id: "b", label: "SIGNAL", tone: "warn" }]}
+        sections={
+          <Section fill>
+            <p>globe</p>
+          </Section>
+        }
+      />,
     );
     await expectNoA11yViolations(container);
   });

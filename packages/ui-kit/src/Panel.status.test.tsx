@@ -79,8 +79,8 @@ describe("Panel stream status", () => {
     expect(aside?.contains(region)).toBe(false);
   });
 
-  it("gives a headless panel no status region", () => {
+  it("gives an untitled panel a status region too", () => {
     render(<Panel>body</Panel>);
-    expect(announcer()).toBeNull();
+    expect(announcer()).not.toBeNull();
   });
 });
