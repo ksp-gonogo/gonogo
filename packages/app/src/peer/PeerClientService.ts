@@ -1036,9 +1036,7 @@ export class PeerClientService {
       logger.info(
         `[PeerClient] host hello: v${msg.version} (build ${msg.buildTime}) session=${msg.sessionToken.slice(0, 8)}`,
       );
-      // Fire restart BEFORE hello so subscribers can clear state (and any
-      // refs the hello handler reads) before the hello-driven resend
-      // path runs.
+      // Fire restart BEFORE hello so subscribers can clear state (and any refs the hello handler reads) before the hello-driven resend path runs.
       if (prevToken !== null && prevToken !== msg.sessionToken) {
         logger.info("[PeerClient] host session changed: restart detected");
         this.events.emit("hostRestart");
