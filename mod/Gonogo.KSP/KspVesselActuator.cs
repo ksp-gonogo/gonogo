@@ -374,6 +374,9 @@ namespace Gonogo.KSP
         /// Disarming clears the flag, detaches the callback, and neutralizes the
         /// stored axes AND trims so control is fully handed back to the player/SAS
         /// with no residual override: a later re-arm starts from a clean stick.
+        /// The override belongs to the craft it was armed on: once
+        /// <see cref="ActiveVesselScope.Current"/> reports another, it disarms
+        /// (<see cref="DisarmIfArmedOnAnotherCraft"/>).
         ///
         /// <para><b>Arming is gated on the craft accepting control input at all</b>
         /// (<see cref="ControlInputAuthority"/>), because an armed override on a
@@ -403,23 +406,42 @@ namespace Gonogo.KSP
             }
             else
             {
-                _fbw.Enabled = false;
-                DetachFlyByWire();
-                _fbw.Pitch = _fbw.Yaw = _fbw.Roll = 0f;
-                _fbw.X = _fbw.Y = _fbw.Z = 0f;
-                _fbw.PitchTrim = _fbw.YawTrim = _fbw.RollTrim = 0f;
+                DisarmFlyByWire();
             }
             return CommandResult.Ok();
+        }
+
+        private void DisarmFlyByWire()
+        {
+            _fbw.Enabled = false;
+            DetachFlyByWire();
+            _fbw.Pitch = _fbw.Yaw = _fbw.Roll = 0f;
+            _fbw.X = _fbw.Y = _fbw.Z = 0f;
+            _fbw.PitchTrim = _fbw.YawTrim = _fbw.RollTrim = 0f;
+        }
+
+        /// <summary>
+        /// Disarms an override armed on a craft other than
+        /// <paramref name="reported"/>, so a vessel switch never leaves the craft
+        /// switched away from flying held axes, and never carries an arm onto the
+        /// craft switched to.
+        /// </summary>
+        private void DisarmIfArmedOnAnotherCraft(Vessel? reported)
+        {
+            if (!_fbw.Enabled || ReferenceEquals(_attachedVessel, reported))
+            {
+                return;
+            }
+            DisarmFlyByWire();
         }
 
         /// <summary>
         /// Partially updates the held override: only the non-null fields of
         /// <paramref name="axes"/> overwrite their stored value (single-axis
         /// commands never clobber the others). Values arrive already clamped to
-        /// −1..1 by <see cref="VesselCommandProvider.HandleSetControlAxes"/>. If
-        /// the active vessel changed since the callback was attached, re-attach
-        /// it lazily here so a mid-flight vessel switch keeps the override live
-        /// on whichever vessel the next axis command targets.
+        /// −1..1 by <see cref="VesselCommandProvider.HandleSetControlAxes"/>. An
+        /// override armed on another craft is disarmed first, so these axes are
+        /// held for the next arm rather than flown.
         ///
         /// <para>Refuses on a craft KSP will not pass control input to
         /// (<see cref="ControlInputAuthority"/>). The override does still RUN
@@ -440,10 +462,7 @@ namespace Gonogo.KSP
                 return CommandResult.Fail(refusal.Value.Code, refusal.Value.Detail);
             }
 
-            if (_fbw.Enabled && !ReferenceEquals(_attachedVessel, vessel))
-            {
-                AttachFlyByWire(vessel);
-            }
+            DisarmIfArmedOnAnotherCraft(vessel);
 
             if (axes.Pitch.HasValue)
             {
@@ -494,6 +513,7 @@ namespace Gonogo.KSP
         /// </summary>
         private void ApplyFlyByWireOverride(FlightCtrlState st)
         {
+            DisarmIfArmedOnAnotherCraft(ActiveVesselScope.Current);
             if (!_fbw.Enabled)
             {
                 return;

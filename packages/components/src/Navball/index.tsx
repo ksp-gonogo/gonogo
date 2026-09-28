@@ -10,6 +10,7 @@ import {
   collapseControlStateLevel,
   enumNameOf,
   SAS_MODE_NAMES,
+  stillTrue,
 } from "@ksp-gonogo/sitrep-sdk";
 import { Badge, Countdown, Panel, Section } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
@@ -38,6 +39,7 @@ const topics = defineTopicManifest({
     "vessel.comms",
     "comms.delay",
   ],
+  optionalChannels: ["vessel.identity"],
   fields: [
     "vessel.attitude.heading",
     "vessel.attitude.pitch",
@@ -52,6 +54,7 @@ const topics = defineTopicManifest({
     "vessel.control.throttle",
     "vessel.comms.controlState",
     "comms.delay.oneWaySeconds",
+    "vessel.identity.vesselId",
   ],
 });
 
@@ -113,7 +116,8 @@ function NavballComponent({
     failedSasModes,
     dismissSasFailure,
   } = useSasControls(control);
-  const { fbwArmed, armFbw, disarmFbw } = useFlyByWire();
+  const identity = stillTrue(topics.useTelemetry("vessel.identity"), undefined);
+  const { fbwState, armFbw, disarmFbw } = useFlyByWire(identity?.vesselId);
 
   // Trim has no readback to anchor a control stream, so it sends `setAxes` one field at a time, never clobbering a live axis.
   const trimCmd = useCommand("vessel.control.setAxes");
@@ -133,7 +137,7 @@ function NavballComponent({
   );
   const delayHigh =
     delaySeconds !== null && delaySeconds > FBW_DELAY_WARN_SECONDS;
-  const showFbwDelayWarning = fbwArmed && delayHigh;
+  const showFbwDelayWarning = fbwState !== "off" && delayHigh;
 
   useNavballInputs({
     toggleControlMode: () =>
@@ -225,7 +229,7 @@ function NavballComponent({
               onSetThrottleCmd={setThrottleCmd}
               throttleStream={throttleStream}
               axisStreams={axisStreams}
-              fbwArmed={fbwArmed}
+              fbwState={fbwState}
               onArmFbw={armFbw}
               onDisarmFbw={disarmFbw}
               onSetSasMode={setSasMode}
@@ -296,6 +300,7 @@ registerComponent<NavballConfig>({
   component: NavballComponent,
   configComponent: NavballConfigForm,
   channels: topics.channels,
+  optionalChannels: topics.optionalChannels,
   fields: topics.fields,
   defaultConfig: { useCoMFrame: false, controlMode: false },
   actions: navballActions,

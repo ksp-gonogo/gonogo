@@ -18,6 +18,7 @@ import {
   SAS_MODES,
   type SasMode,
 } from "./sasModes";
+import type { FbwState } from "./useFlyByWire";
 
 interface ControlSurfaceProps {
   disabled: boolean;
@@ -28,7 +29,7 @@ interface ControlSurfaceProps {
   throttleStream: ControlStream;
   /** The fly-by-wire attitude and translation streams, drawn on the same delay graph as the throttle. */
   axisStreams: ControlStream[];
-  fbwArmed: boolean;
+  fbwState: FbwState;
   onArmFbw: () => void;
   onDisarmFbw: () => void;
   onSetSasMode: (mode: SasMode) => void;
@@ -41,6 +42,26 @@ interface ControlSurfaceProps {
   oneWayDelay: ComponentProps<typeof Countdown>["value"];
 }
 
+/** A press disarms whenever the craft may be holding the stick, so the one safe action is always a click away. */
+const FBW_VIEW: Record<
+  FbwState,
+  { label: string; hint: string; press: "arm" | "disarm" }
+> = {
+  off: { label: "Arm FBW", hint: "Stick inputs off", press: "arm" },
+  arming: { label: "Arming FBW", hint: "Stick inputs off", press: "disarm" },
+  armed: { label: "FBW ARMED", hint: "Stick inputs live", press: "disarm" },
+  disarming: {
+    label: "Disarming FBW",
+    hint: "Stick inputs live",
+    press: "disarm",
+  },
+  unconfirmed: {
+    label: "FBW unconfirmed",
+    hint: "Stick inputs may be live",
+    press: "disarm",
+  },
+};
+
 export function ControlSurface({
   disabled,
   sasMode,
@@ -48,7 +69,7 @@ export function ControlSurface({
   onSetThrottleCmd,
   throttleStream,
   axisStreams,
-  fbwArmed,
+  fbwState,
   onArmFbw,
   onDisarmFbw,
   onSetSasMode,
@@ -159,15 +180,15 @@ export function ControlSurface({
         <div style={FBW_ROW}>
           <ToggleButton
             type="button"
-            active={fbwArmed}
-            onClick={fbwArmed ? onDisarmFbw : onArmFbw}
+            active={fbwState === "armed"}
+            onClick={
+              FBW_VIEW[fbwState].press === "arm" ? onArmFbw : onDisarmFbw
+            }
             disabled={disabled}
           >
-            {fbwArmed ? "FBW ARMED" : "Arm FBW"}
+            {FBW_VIEW[fbwState].label}
           </ToggleButton>
-          <span style={FBW_HINT}>
-            {fbwArmed ? "Stick inputs live" : "Stick inputs off"}
-          </span>
+          <span style={FBW_HINT}>{FBW_VIEW[fbwState].hint}</span>
         </div>
         {showFbwDelayWarning && delaySeconds !== null && (
           <StatusIndicator tone="warn">

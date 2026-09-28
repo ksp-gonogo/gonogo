@@ -1,33 +1,76 @@
 import { useCommand } from "@ksp-gonogo/sitrep-client";
+import { classifyCommandRejection } from "@ksp-gonogo/sitrep-sdk";
 import { useEffect, useRef, useState } from "react";
 
-// FBW has no readback, so its state mirrors the latest arm command; it disarms on unmount.
-export function useFlyByWire(): {
-  fbwArmed: boolean;
+/**
+ * Fly-by-wire as the craft last answered it, or the command still travelling.
+ * `unconfirmed` is an arm or disarm that got no answer: the craft may be
+ * holding the stick or may not.
+ */
+export type FbwState = "off" | "arming" | "armed" | "disarming" | "unconfirmed";
+
+type Settled = "off" | "armed" | "unconfirmed";
+
+/**
+ * FBW has no readback, so its state is the outcome of the latest arm or disarm
+ * command. The mod drops the override when the reported craft changes, so a new
+ * `vesselId` reads as off. It disarms on unmount.
+ */
+export function useFlyByWire(vesselId: string | undefined): {
+  fbwState: FbwState;
   armFbw: () => void;
   disarmFbw: () => void;
 } {
   const fbwCmd = useCommand("vessel.control.setFlyByWire");
-  const [fbwArmed, setFbwArmed] = useState(false);
-  const fbwArmedRef = useRef(false);
+  const [fbwState, setFbwState] = useState<FbwState>("off");
+  const settled = useRef<Settled>("off");
+  const latest = useRef(0);
+  const stateRef = useRef<FbwState>("off");
   useEffect(() => {
-    fbwArmedRef.current = fbwArmed;
-  }, [fbwArmed]);
+    stateRef.current = fbwState;
+  }, [fbwState]);
+
+  const vesselRef = useRef(vesselId);
+  useEffect(() => {
+    const previous = vesselRef.current;
+    vesselRef.current = vesselId;
+    if (previous === undefined || previous === vesselId) return;
+    settled.current = "off";
+    setFbwState("off");
+  }, [vesselId]);
+
   useEffect(() => {
     return () => {
-      if (fbwArmedRef.current) {
-        void fbwCmd.send({ enabled: false }, { label: "Disarm FBW" });
-      }
+      if (stateRef.current === "off") return;
+      void fbwCmd.send({ enabled: false }, { label: "Disarm FBW" });
     };
   }, [fbwCmd.send]);
 
-  const armFbw = () => {
-    void fbwCmd.send({ enabled: true }, { label: "Arm FBW" });
-    setFbwArmed(true);
+  const dispatch = (enabled: boolean) => {
+    const seq = ++latest.current;
+    setFbwState(enabled ? "arming" : "disarming");
+    fbwCmd
+      .send({ enabled }, { label: enabled ? "Arm FBW" : "Disarm FBW" })
+      .then(
+        () => {
+          if (seq !== latest.current) return;
+          settled.current = enabled ? "armed" : "off";
+          setFbwState(settled.current);
+        },
+        (err: unknown) => {
+          if (seq !== latest.current) return;
+          // A refusal or a failed send left the craft as it was; only a loss leaves it unknown.
+          if (classifyCommandRejection(err).kind === "lost") {
+            settled.current = "unconfirmed";
+          }
+          setFbwState(settled.current);
+        },
+      );
   };
-  const disarmFbw = () => {
-    void fbwCmd.send({ enabled: false }, { label: "Disarm FBW" });
-    setFbwArmed(false);
+
+  return {
+    fbwState,
+    armFbw: () => dispatch(true),
+    disarmFbw: () => dispatch(false),
   };
-  return { fbwArmed, armFbw, disarmFbw };
 }
