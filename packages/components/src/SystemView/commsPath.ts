@@ -123,9 +123,9 @@ export function deriveCommsPath(
 
 /** Indexed by `commsControlQuality`, not the traversal `quality`; `"none"` is reachable here because a vessel with no control can still be linked to home. */
 export const COMMS_PATH_COLOUR: Readonly<Record<CommsPathQuality, string>> = {
-  full: "var(--color-status-go-mark)",
-  partial: "var(--color-status-warning-bg)",
-  none: "var(--color-status-nogo-bg)",
+  full: "var(--color-go-mark)",
+  partial: "var(--color-warn-mark)",
+  none: "var(--color-nogo-mark)",
 };
 
 /** Maps the selected vessel's roster comms label to a colour tier; an unrecognised or missing label degrades to `"none"` rather than assuming control. */

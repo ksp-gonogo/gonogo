@@ -222,7 +222,7 @@ const DropdownItem = styled.div<{ $active: boolean; $selected: boolean }>`
     $active
       ? "var(--color-border-subtle)"
       : $selected
-        ? "var(--color-status-go-mark)"
+        ? "var(--color-go-mark)"
         : "transparent"};
   /* Focus stays on the input, so the highlighted option carries the focus colour as an inset bar. */
   box-shadow: ${({ $active }) =>

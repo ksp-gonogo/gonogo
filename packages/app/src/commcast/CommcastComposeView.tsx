@@ -54,9 +54,7 @@ export function CommcastComposeView({
     <>
       <Commcast__Bar>
         <CommcastBackButton onClick={onBack} label={backLabel} />
-        <Text size="sm" tone="default">
-          {title}
-        </Text>
+        <Text size="sm">{title}</Text>
         <Commcast__BarGap />
         {indicator}
       </Commcast__Bar>
@@ -70,7 +68,7 @@ export function CommcastComposeView({
             sendLabel={commitLabel}
             sendVariant="text"
           >
-            <Text size="xs" tone="faint">
+            <Text size="xs" level="faint">
               {pickStatus(picked.length)}
             </Text>
           </ComposerBar>
@@ -91,7 +89,7 @@ export function CommcastComposeView({
                   <Commcast__RowName>{r.name}</Commcast__RowName>
                   {/* Still addressable; saying so before it is sent stops an unacknowledged message reading as a fault. */}
                   {!r.staffed && (
-                    <Text size="xs" tone="faint">
+                    <Text size="xs" level="faint">
                       unstaffed
                     </Text>
                   )}

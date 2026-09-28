@@ -35,9 +35,7 @@ export function HostDisconnectBanner({ client }: Props) {
   return (
     <BannerPill
       accent={
-        reconnecting
-          ? "var(--color-status-warning-bg)"
-          : "var(--color-status-nogo-bg)"
+        reconnecting ? "var(--color-warn-mark)" : "var(--color-nogo-mark)"
       }
       pulse={reconnecting}
       role={reconnecting ? "status" : "alert"}

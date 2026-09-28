@@ -11,7 +11,7 @@ describe("Badge", () => {
   it("applies a different class for different severities", () => {
     const { rerender } = render(<Badge>N</Badge>);
     const decorativeClass = screen.getByText("N").className;
-    rerender(<Badge severity="warning">N</Badge>);
+    rerender(<Badge tone="warn">N</Badge>);
     expect(screen.getByText("N").className).not.toBe(decorativeClass);
   });
 
@@ -24,7 +24,7 @@ describe("Badge", () => {
 
   // jsdom computes no layout, so this asserts the declaration that stops a flex parent stretching the pill.
   it("sizes itself rather than stretching to a flex row", () => {
-    render(<Badge severity="nominal">TRAINING</Badge>);
+    render(<Badge tone="go">TRAINING</Badge>);
     expect(getComputedStyle(screen.getByText("TRAINING")).alignSelf).toBe(
       "center",
     );

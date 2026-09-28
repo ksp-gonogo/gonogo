@@ -117,13 +117,13 @@ describe("Panel header aside expand box", () => {
   it("makes the per-severity dots the collapsed summary, worst-first with count inside", () => {
     render(
       <PanelStatusStoreProvider>
-        <Badge report={{ id: "a" }} severity="caution">
+        <Badge report={{ id: "a" }} tone="caution">
           A
         </Badge>
-        <Badge report={{ id: "b" }} severity="caution">
+        <Badge report={{ id: "b" }} tone="caution">
           B
         </Badge>
-        <Badge report={{ id: "c" }} severity="critical">
+        <Badge report={{ id: "c" }} tone="nogo">
           C
         </Badge>
         <PanelHeader title="MULTI" aside={<span>WIDE</span>} />
@@ -132,8 +132,8 @@ describe("Panel header aside expand box", () => {
     const summary = expandBox().querySelector("summary") as HTMLElement;
     const dots = summary.querySelectorAll("[data-panel-status-dot]");
     expect(dots).toHaveLength(2);
-    // Critical leads (worst-first); two cautions stay one caution dot, count 2.
-    expect(dots[0]).toHaveAttribute("data-severity", "critical");
+    // Nogo leads (worst-first); two cautions stay one caution dot, count 2.
+    expect(dots[0]).toHaveAttribute("data-severity", "nogo");
     expect(dots[1]).toHaveAttribute("data-severity", "caution");
     expect(dots[1]).toHaveTextContent("2");
   });
@@ -155,7 +155,7 @@ describe("Panel header aside expand box", () => {
       "summary [data-panel-status-dot]",
     );
     expect(dots).toHaveLength(1);
-    expect(dots[0]).toHaveAttribute("data-severity", "warning");
+    expect(dots[0]).toHaveAttribute("data-severity", "warn");
   });
 
   it("renders no dots when the panel has no active status, but keeps the chevron affordance", () => {

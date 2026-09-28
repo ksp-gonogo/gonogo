@@ -45,9 +45,9 @@ export function FrameCaveat({
 export type OrbitAccent = "ap" | "pe" | "alert";
 
 const ACCENT_COLOR: Record<OrbitAccent, string> = {
-  ap: "var(--color-status-warning-bg)",
+  ap: "var(--color-warn-mark)",
   pe: "var(--color-tag-blue-fg)",
-  alert: "var(--color-status-nogo-bg)",
+  alert: "var(--color-nogo-mark)",
 };
 
 /** The smaller tiers of the value ladder, or undefined at the base size. */

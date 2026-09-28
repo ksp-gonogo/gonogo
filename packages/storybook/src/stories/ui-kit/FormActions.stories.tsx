@@ -52,7 +52,7 @@ export const SaveAndCancel: Story = {
           />
         </Field>
         <FormActions>
-          <Text tone="muted" size="sm">
+          <Text level="muted" size="sm">
             {dirty ? "Unsaved changes" : "Saved"}
           </Text>
           <Button

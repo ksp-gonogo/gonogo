@@ -160,7 +160,7 @@ export function LibrationDiagram({
         <polyline
           points={pathPoints}
           fill="none"
-          stroke="var(--color-status-info-fg)"
+          stroke="var(--color-info-mark)"
           strokeWidth={1.2}
           opacity={0.8}
           data-libration-path="arc"
@@ -196,7 +196,7 @@ export function LibrationDiagram({
               stroke={
                 highlighted
                   ? "var(--color-accent-fg)"
-                  : "var(--color-status-info-fg)"
+                  : "var(--color-info-mark)"
               }
               strokeWidth={1.4}
               data-libration-point={point.name}

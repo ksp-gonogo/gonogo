@@ -21,7 +21,7 @@ plantSlot("orbit-view.overlay", ({ periapsis, argPe, center, scale }) => {
         r={unit * 6}
         style={{
           fill: "none",
-          stroke: "var(--color-status-info-fg)",
+          stroke: "var(--color-info-mark)",
           strokeWidth: unit * 0.8,
           strokeDasharray: `${unit * 2} ${unit * 1.5}`,
         }}
@@ -30,7 +30,7 @@ plantSlot("orbit-view.overlay", ({ periapsis, argPe, center, scale }) => {
       <g transform={`translate(${peX} ${peY + unit * 14}) scale(${unit / 2})`}>
         <text
           textAnchor="middle"
-          style={{ fill: "var(--color-status-info-fg)", fontSize: 10 }}
+          style={{ fill: "var(--color-info-text)", fontSize: 10 }}
         >
           orbit-view.overlay Pe radius {(periapsis / 1000).toFixed(0)} km
         </text>

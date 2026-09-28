@@ -126,7 +126,7 @@ const LIST_STYLE = {
 const ARMED_ROW_STYLE = {
   padding: "var(--inset-surface)",
   background: "var(--color-surface-panel)",
-  border: "1px solid var(--color-status-warning-bg)",
+  border: "1px solid var(--color-warn-mark)",
   borderRadius: "var(--radius-regular)",
 } as const;
 
@@ -139,7 +139,7 @@ const MAIN_STYLE = {
 
 const PRIMARY_STYLE = {
   fontSize: "var(--font-size-value)",
-  color: "var(--color-status-warning-bg)",
+  color: "var(--color-warn-text)",
   fontWeight: 600,
   letterSpacing: "0.02em",
 } as const;

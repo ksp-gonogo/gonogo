@@ -1,10 +1,15 @@
 /** Readouts through `Unit` at this widget's own precision: on a descent the last kilometre is read to the metre. */
-import { type Value as Quantity, value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  type Value as Quantity,
+  type Tone,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   magnitudeOf,
   NULL_DISPLAY,
   ReadoutCaption,
   Text,
+  type TextLevel,
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
@@ -63,15 +68,19 @@ export function GridCellPair({
   label,
   children,
   tone,
+  level,
 }: {
   label: string;
   children: ReactNode;
-  tone?: "accent" | "default" | "muted";
+  tone?: Tone;
+  level?: TextLevel;
 }) {
   return (
     <>
       <ReadoutCaption>{label}</ReadoutCaption>
-      <Text tone={tone ?? "default"}>{children}</Text>
+      <Text tone={tone} level={level}>
+        {children}
+      </Text>
     </>
   );
 }

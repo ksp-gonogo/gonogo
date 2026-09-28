@@ -149,7 +149,7 @@ export const ImagingChip = styled.span<{ $variant: "on" | "off" | "warn" }>`
   border: 1px solid
     ${({ $variant }) =>
       $variant === "on"
-        ? "var(--color-status-go-mark)"
+        ? "var(--color-go-mark)"
         : $variant === "warn"
           ? "var(--color-tag-yellow-border)"
           : "var(--color-border-subtle)"};
@@ -161,7 +161,7 @@ export const ImagingChip = styled.span<{ $variant: "on" | "off" | "warn" }>`
         : "rgba(40, 40, 40, 0.3)"};
   color: ${({ $variant }) =>
     $variant === "on"
-      ? "var(--color-status-go-fg)"
+      ? "var(--color-go-text)"
       : $variant === "warn"
         ? "var(--color-tag-yellow-fg)"
         : "var(--color-text-muted)"};

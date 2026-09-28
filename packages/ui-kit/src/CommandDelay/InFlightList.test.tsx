@@ -347,9 +347,7 @@ describe("InFlightList overdue row", () => {
       />,
     );
     const row = screen.getByText("Stage").parentElement as HTMLElement;
-    expect(emittedRuleFor(row)).toContain(
-      "var(--color-status-warning-fg-muted)",
-    );
+    expect(emittedRuleFor(row)).toContain("var(--color-warn-text)");
   });
 });
 

@@ -429,14 +429,14 @@ const Status = styled.div`
   align-items: center;
   gap: var(--gap-related);
   font-size: var(--font-size-compact);
-  color: var(--color-status-info-fg);
+  color: var(--color-info-text);
 `;
 
 const PulseDot = styled.span`
   width: 8px;
   height: 8px;
   border-radius: var(--radius-circle);
-  background: var(--color-status-info-fg);
+  background: var(--color-info-mark);
   box-shadow: 0 0 6px rgba(124, 204, 255, 0.7);
   flex-shrink: 0;
 
@@ -460,15 +460,15 @@ const PulseDot = styled.span`
 `;
 
 const ErrorBox = styled.div`
-  background: var(--color-status-nogo-fg);
+  background: var(--color-nogo-text);
   border-radius: var(--radius-regular);
   padding: var(--inset-wizard-box);
   font-size: var(--font-size-compact);
-  color: var(--color-status-nogo-bg);
+  color: var(--color-nogo-text);
 `;
 
 const ConflictBox = styled.div`
-  background: var(--color-status-warning-bg);
+  background: var(--color-warn-mark);
   border-radius: var(--radius-regular);
   padding: var(--inset-wizard-box);
   font-size: var(--font-size-compact);

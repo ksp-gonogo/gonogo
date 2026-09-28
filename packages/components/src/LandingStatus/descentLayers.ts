@@ -1,5 +1,5 @@
 import { CORE_UPLINK_CLIENT } from "@ksp-gonogo/core";
-import type { PlotLayer, PlotTone } from "@ksp-gonogo/sitrep-sdk";
+import type { PlotLayer, Tone } from "@ksp-gonogo/sitrep-sdk";
 import {
   projectDescent,
   relativeDensityCurve,
@@ -41,7 +41,7 @@ export function classifyUrgency(
 }
 
 /** Urgency in the framework's severity words, the only thing a layer may name; the palette belongs to the drawing host. */
-const URGENCY_TONE: Record<EnvelopeUrgency, PlotTone> = {
+const URGENCY_TONE: Record<EnvelopeUrgency, Tone> = {
   safe: "go",
   caution: "warn",
   urgent: "nogo",
@@ -70,7 +70,7 @@ const HAZE_BASE_OPACITY = 0.12;
 const HAZE_BAND_FLOOR_DENSITY = 0.03;
 const HAZE_BAND_BLUR = 3;
 /** For an unknown body or one with no `atmosphereColor`; a single muted hue, so it reads as texture rather than a legend. */
-const HAZE_DEFAULT_TINT = "var(--color-status-info-fg)";
+const HAZE_DEFAULT_TINT = "var(--color-info-mark)";
 
 /** Points sampled along the terminal curve. */
 const CURVE_STEPS = 28;

@@ -103,10 +103,10 @@ const DivergingBar__Fill = styled.div<{
     $positive
       ? css`
           left: 50%;
-          background: var(--color-status-go-mark);
+          background: var(--color-go-mark);
         `
       : css`
           right: 50%;
-          background: var(--color-status-nogo-bg);
+          background: var(--color-nogo-mark);
         `}
 `;

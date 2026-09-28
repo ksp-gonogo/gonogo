@@ -107,7 +107,7 @@ function kerbinOrbitWithEncounter() {
 /** The vessel dot; `SystemDiagram` paints it with the accent token alone. */
 const VESSEL_DOT = 'circle[fill="var(--color-accent-fg)"]';
 /** The target body's dot, the only thing `vessel.target` changes in the SVG. */
-const TARGET_DOT = 'circle[fill="var(--color-status-nogo-bg)"]';
+const TARGET_DOT = 'circle[fill="var(--color-nogo-mark)"]';
 
 describe("SystemView: what undefined means today", () => {
   let fixture: StreamFixture;

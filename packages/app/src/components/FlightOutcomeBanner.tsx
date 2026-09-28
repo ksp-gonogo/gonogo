@@ -487,7 +487,7 @@ function CrashDetail({ summary }: { summary: CrashReport }) {
               <DetailRowValue
                 style={{
                   color: kerbalsKilled.includes(name)
-                    ? "var(--color-status-nogo-fg)"
+                    ? "var(--color-nogo-text)"
                     : "var(--color-text-muted)",
                 }}
               >
@@ -545,20 +545,20 @@ const bannerBase = `
 
 const RecoveryBanner = styled.button`
   ${bannerBase}
-  border: 1px solid var(--color-status-go-fg);
+  border: 1px solid var(--color-go-text);
 
   &:focus-visible {
-    outline: 2px solid var(--color-status-go-fg);
+    outline: 2px solid var(--color-go-text);
     outline-offset: 2px;
   }
 `;
 
 const CrashBanner = styled.button`
   ${bannerBase}
-  border: 1px solid var(--color-status-nogo-fg);
+  border: 1px solid var(--color-nogo-text);
 
   &:focus-visible {
-    outline: 2px solid var(--color-status-nogo-fg);
+    outline: 2px solid var(--color-nogo-text);
     outline-offset: 2px;
   }
 `;
@@ -567,9 +567,7 @@ const BannerLabel = styled.span<{ $variant: "recovered" | "crashed" }>`
   font-size: var(--font-size-caption);
   letter-spacing: 0.12em;
   color: ${({ $variant }) =>
-    $variant === "crashed"
-      ? "var(--color-status-nogo-fg)"
-      : "var(--color-status-go-fg)"};
+    $variant === "crashed" ? "var(--color-nogo-text)" : "var(--color-go-text)"};
   font-weight: 700;
 `;
 
@@ -675,7 +673,7 @@ const TotalLabel = styled.span`
 
 const TotalGained = styled.span`
   font-size: var(--font-size-figure);
-  color: var(--color-status-go-fg);
+  color: var(--color-go-text);
   font-variant-numeric: tabular-nums;
   text-align: right;
 `;

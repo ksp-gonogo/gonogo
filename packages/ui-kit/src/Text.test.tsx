@@ -3,14 +3,14 @@ import { describe, expect, it } from "vitest";
 import { Text } from "./Text";
 
 describe("Value", () => {
-  it("maps status tones to their fg tokens", () => {
+  it("maps each tone to its text role token", () => {
     render(
       <Text tone="go" data-testid="v">
         GO
       </Text>,
     );
     expect(screen.getByTestId("v")).toHaveStyle({
-      color: "var(--color-status-go-fg)",
+      color: "var(--color-go-text)",
     });
   });
 
@@ -20,9 +20,8 @@ describe("Value", () => {
         x
       </Text>,
     );
-    // The plain warning foreground is near-black text for the amber badge, so warning prose takes the muted amber.
     expect(screen.getByTestId("v")).toHaveStyle({
-      color: "var(--color-status-warning-fg-muted)",
+      color: "var(--color-warn-text)",
     });
     rerender(
       <Text tone="nogo" data-testid="v">
@@ -30,7 +29,7 @@ describe("Value", () => {
       </Text>,
     );
     expect(screen.getByTestId("v")).toHaveStyle({
-      color: "var(--color-status-nogo-fg)",
+      color: "var(--color-nogo-text)",
     });
     rerender(
       <Text tone="info" data-testid="v">
@@ -38,7 +37,7 @@ describe("Value", () => {
       </Text>,
     );
     expect(screen.getByTestId("v")).toHaveStyle({
-      color: "var(--color-status-info-fg)",
+      color: "var(--color-info-text)",
     });
   });
 
@@ -53,21 +52,32 @@ describe("Value", () => {
     expect(screen.getByTestId("v")).not.toHaveStyle({ fontWeight: "600" });
   });
 
-  it("draws in the primary text colour unless a caller chooses a tone", () => {
+  it("draws in the neutral text colour unless a caller chooses a tone", () => {
     render(<Text data-testid="plain">Kerbin</Text>);
     expect(screen.getByTestId("plain")).toHaveStyle({
-      color: "var(--color-text-primary)",
+      color: "var(--color-neutral-text)",
     });
   });
 
-  it("draws in the accent only when asked", () => {
+  it("recedes neutral text to the level asked for", () => {
     render(
-      <Text tone="accent" data-testid="accent">
-        Go
+      <Text level="faint" data-testid="faint">
+        echo
       </Text>,
     );
-    expect(screen.getByTestId("accent")).toHaveStyle({
-      color: "var(--color-accent-fg)",
+    expect(screen.getByTestId("faint")).toHaveStyle({
+      color: "var(--color-text-faint)",
+    });
+  });
+
+  it("keeps a tone's colour over a level, so a state is never dimmed away", () => {
+    render(
+      <Text tone="nogo" level="faint" data-testid="alarm">
+        ABORT
+      </Text>,
+    );
+    expect(screen.getByTestId("alarm")).toHaveStyle({
+      color: "var(--color-nogo-text)",
     });
   });
 });

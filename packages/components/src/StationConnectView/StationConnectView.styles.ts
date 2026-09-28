@@ -69,7 +69,7 @@ export const HostInput = styled.input`
   font-size: 20px;
   letter-spacing: 0.15em;
   text-transform: uppercase;
-  color: var(--color-status-info-fg);
+  color: var(--color-info-text);
 
   &::placeholder {
     color: var(--color-text-faint);
@@ -78,7 +78,7 @@ export const HostInput = styled.input`
 
   &:focus {
     outline: none;
-    border-color: var(--color-status-info-fg);
+    border-color: var(--color-info-mark);
   }
 
   &:focus-visible {
@@ -92,18 +92,18 @@ export const HostInput = styled.input`
 `;
 
 export const ConnectButton = styled.button`
-  background: var(--color-status-info-bg);
-  border: 1px solid var(--color-status-info-fg);
+  background: var(--color-info-muted);
+  border: 1px solid var(--color-info-mark);
   border-radius: 4px;
   padding: 8px 20px;
-  color: var(--color-status-info-fg);
+  color: var(--color-info-text);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
 
   &:hover:not(:disabled) {
-    background: var(--color-status-info-bg);
-    border-color: var(--color-status-info-fg);
+    background: var(--color-info-muted);
+    border-color: var(--color-info-mark);
     filter: brightness(1.15);
   }
 
@@ -125,13 +125,13 @@ export const ConnectButton = styled.button`
 
 export const ErrorMsg = styled.p`
   margin-top: 12px !important;
-  color: var(--color-status-nogo-fg) !important;
+  color: var(--color-nogo-text) !important;
   font-size: 12px !important;
 `;
 
 export const ReconnectMsg = styled.p`
   margin-top: 12px !important;
-  color: var(--color-status-info-fg) !important;
+  color: var(--color-info-text) !important;
   font-size: 12px !important;
 `;
 

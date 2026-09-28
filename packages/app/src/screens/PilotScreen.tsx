@@ -193,7 +193,7 @@ const PilotScreen__CommsBanner = styled.div`
   gap: var(--gap-related);
   padding: var(--inset-surface);
   background: var(--color-surface-raised);
-  border: 1px solid var(--color-status-warning-bg);
+  border: 1px solid var(--color-warn-mark);
   border-top: none;
   border-radius: 0 0 var(--radius-regular) var(--radius-regular);
 `;

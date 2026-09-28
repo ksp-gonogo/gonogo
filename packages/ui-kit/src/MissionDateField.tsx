@@ -199,13 +199,13 @@ export function MissionDateField({
       </Cluster>
       {/* Words as well as the token, since the dash carries the absence only to an eye. */}
       {parts === null && (
-        <Text id={absentId} tone="muted" size="sm">
+        <Text id={absentId} level="muted" size="sm">
           {`${NULL_DISPLAY} no ${label.toLowerCase()} to show. Type one to state it.`}
         </Text>
       )}
       {coarse.length === 0 ? null : (
         <Cluster gap="related-packed" wrap justify="start">
-          <Text tone="faint" size="sm">
+          <Text level="faint" size="sm">
             NUDGE
           </Text>
           {/* Disabled over an absent instant: a step is relative, and there is nothing to step from. */}

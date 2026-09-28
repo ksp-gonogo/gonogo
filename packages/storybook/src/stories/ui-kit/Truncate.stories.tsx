@@ -36,7 +36,7 @@ export const BesideBadge: Story = {
   render: () => (
     <Cluster>
       <Truncate>Mun Orbital Science Platform Mk II</Truncate>
-      <Badge severity="nominal">Orbiting</Badge>
+      <Badge tone="go">Orbiting</Badge>
     </Cluster>
   ),
 };
@@ -71,7 +71,7 @@ export const CardTitleLine: Story = {
             Rescue Jebediah Kerman from low orbit around Minmus
           </Text>
         </Truncate>
-        <Badge severity="info">180 000 funds</Badge>
+        <Badge tone="info">180 000 funds</Badge>
       </Cluster>
     </Card>
   ),
@@ -85,7 +85,7 @@ export const MixedLengths: Story = {
         (name) => (
           <Cluster key={name}>
             <Truncate>{name}</Truncate>
-            <Text tone="muted">Kerbin SOI</Text>
+            <Text level="muted">Kerbin SOI</Text>
           </Cluster>
         ),
       )}

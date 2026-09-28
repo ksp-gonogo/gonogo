@@ -438,12 +438,12 @@ const Char = styled.button<{ $highlighted: boolean; $active: boolean }>`
   border: none;
   background: ${({ $highlighted, $active }) =>
     $active
-      ? "var(--color-status-info-bg)"
+      ? "var(--color-info-muted)"
       : $highlighted
         ? "var(--color-border-subtle)"
         : "transparent"};
   color: ${({ $highlighted }) =>
-    $highlighted ? "var(--color-status-info-fg)" : "var(--color-text-primary)"};
+    $highlighted ? "var(--color-info-mark)" : "var(--color-text-primary)"};
   font-family: inherit;
   font-size: inherit;
   cursor: pointer;
@@ -473,7 +473,7 @@ const InputRow = styled.div<{ $active: boolean }>`
   border-radius: var(--radius-regular);
   border: 1px solid
     ${({ $active }) =>
-      $active ? "var(--color-status-info-fg)" : "var(--color-border-subtle)"};
+      $active ? "var(--color-info-mark)" : "var(--color-border-subtle)"};
   background: var(--color-surface-panel);
 `;
 
@@ -503,7 +503,7 @@ const SliceVal = styled.span`
 
 const LivePreview = styled.div`
   font-size: var(--font-size-compact);
-  color: var(--color-status-info-fg);
+  color: var(--color-info-text);
 `;
 
 const RangeRow = styled.div`
@@ -516,7 +516,7 @@ const RangeRow = styled.div`
 const Capturing = styled.div`
   flex: 1;
   font-size: var(--font-size-compact);
-  color: var(--color-status-warning-bg);
+  color: var(--color-warn-text);
 `;
 
 const ManualRange = styled.div`

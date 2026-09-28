@@ -1,4 +1,5 @@
 import { logger } from "@ksp-gonogo/logger";
+import type { AlertTone } from "@ksp-gonogo/sitrep-sdk";
 import {
   projectEntityPosition,
   projectOrbitRing,
@@ -7,7 +8,6 @@ import {
   type SystemEntity,
   type SystemEntityEmphasis,
   type SystemEntityMeta,
-  type SystemEntitySeverity,
   type SystemEntityStyle,
 } from "./systemEntities";
 
@@ -15,16 +15,16 @@ function effectiveLayer(entity: SystemEntity): number {
   return entity.zHint ?? SYSTEM_ENTITY_DEFAULT_LAYER[entity.shape.kind];
 }
 
-const SEVERITY_COLOUR: Readonly<Record<SystemEntitySeverity, string>> = {
-  info: "var(--color-status-info-fg)",
+const TONE_COLOUR: Readonly<Record<AlertTone, string>> = {
+  info: "var(--color-info-mark)",
   // Yellow: the muted warning gold reads as an ordinary faint line, and green is reserved for selection.
-  warning: "var(--color-tag-yellow-fg)",
-  critical: "var(--color-status-nogo-fg)",
+  warn: "var(--color-tag-yellow-fg)",
+  nogo: "var(--color-nogo-text)",
 };
 
 const EMPHASIS_COLOUR: Readonly<Record<SystemEntityEmphasis, string>> = {
   faint: "var(--color-text-faint)",
-  normal: "var(--color-status-info-fg)",
+  normal: "var(--color-info-mark)",
   bright: "var(--color-accent-fg)",
 };
 
@@ -36,7 +36,7 @@ const EMPHASIS_OPACITY: Readonly<Record<SystemEntityEmphasis, number>> = {
 
 function resolveColour(style: SystemEntityStyle): string {
   if (style.colour != null) return style.colour;
-  if (style.severity != null) return SEVERITY_COLOUR[style.severity];
+  if (style.tone != null) return TONE_COLOUR[style.tone];
   return EMPHASIS_COLOUR[style.emphasis ?? "normal"];
 }
 

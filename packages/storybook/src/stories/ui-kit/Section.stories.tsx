@@ -20,7 +20,7 @@ function Column({ children }: { children: ReactNode }) {
 function Figure({ label, children }: { label: string; children: ReactNode }) {
   return (
     <Cluster>
-      <Text tone="muted">{label}</Text>
+      <Text level="muted">{label}</Text>
       {children}
     </Cluster>
   );
@@ -76,15 +76,15 @@ export const Several: Story = {
       </Section>
       <Section title="Crew">
         <Figure label="Jebediah Kerman">
-          <Badge severity="nominal">Pilot</Badge>
+          <Badge tone="go">Pilot</Badge>
         </Figure>
         <Figure label="Bill Kerman">
-          <Badge severity="nominal">Engineer</Badge>
+          <Badge tone="go">Engineer</Badge>
         </Figure>
       </Section>
       <Section title="Comms">
         <Figure label="Link">
-          <Badge severity="caution">Weak</Badge>
+          <Badge tone="caution">Weak</Badge>
         </Figure>
       </Section>
     </Stack>

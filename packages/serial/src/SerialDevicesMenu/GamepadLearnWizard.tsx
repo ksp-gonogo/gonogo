@@ -294,14 +294,14 @@ const ListenStatus = styled.div`
   align-items: center;
   gap: var(--gap-related);
   font-size: var(--font-size-compact);
-  color: var(--color-status-info-fg);
+  color: var(--color-info-text);
 `;
 
 const ListenDot = styled.span`
   width: 8px;
   height: 8px;
   border-radius: var(--radius-circle);
-  background: var(--color-status-info-fg);
+  background: var(--color-info-mark);
   box-shadow: 0 0 6px rgba(124, 204, 255, 0.7);
   flex-shrink: 0;
 

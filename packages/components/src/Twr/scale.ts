@@ -23,12 +23,12 @@ export const ZONES: GaugeZone<"1">[] = [
   {
     from: value("1", 0),
     to: value("1", 1),
-    color: "var(--color-status-nogo-bg)",
+    color: "var(--color-nogo-mark)",
   },
   {
     from: value("1", 1),
     to: value("1", 1.5),
-    color: "var(--color-status-warning-bg)",
+    color: "var(--color-warn-mark)",
   },
   { from: value("1", 1.5), to: value("1", 3), color: "var(--color-accent-fg)" },
 ];
@@ -37,8 +37,8 @@ type Tone = "ok" | "warn" | "lost";
 
 const TONE_COLOR: Record<Tone, string> = {
   ok: "var(--color-accent-fg)",
-  warn: "var(--color-status-warning-bg)",
-  lost: "var(--color-status-nogo-bg)",
+  warn: "var(--color-warn-mark)",
+  lost: "var(--color-nogo-mark)",
 };
 
 function toneFor(twr: Value<"1">): Tone {

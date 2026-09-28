@@ -32,14 +32,7 @@
  * that renders a missing reading as a zero.
  */
 
-/**
- * How alarming a layer is. Deliberately the same five words `BadgeEntry` and
- * `MeterEntry` already carry, so an Uplink learns one severity vocabulary for
- * the whole framework rather than one per surface.
- *
- * @category Plots
- */
-export type PlotTone = "neutral" | "go" | "warn" | "nogo" | "info";
+import type { Tone } from "./tone";
 
 /**
  * How loudly a layer is drawn within its tone.
@@ -63,7 +56,8 @@ interface PlotLayerBase {
   id: string;
   /** Which Y axis this layer is measured against. Defaults to `"primary"`. */
   axis?: "primary" | "secondary";
-  tone?: PlotTone;
+  /** What state the layer shows: the one {@link Tone} scale every surface speaks. */
+  tone?: Tone;
   emphasis?: PlotEmphasis;
   /**
    * One clause for the plot's accessible name, which the host assembles by

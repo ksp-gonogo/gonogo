@@ -20,7 +20,7 @@ export const COMPACT_PILL_STYLE = {
 
 export const CRITICAL_NOTE_STYLE = {
   fontSize: "var(--font-size-compact)",
-  color: "var(--color-status-nogo-fg)",
+  color: "var(--color-nogo-text)",
   letterSpacing: "0.04em",
 } as const;
 

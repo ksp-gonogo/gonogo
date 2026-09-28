@@ -1,7 +1,6 @@
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import { type Tone, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   NULL_DISPLAY,
-  type ReadoutTone,
   StatusPill,
   Text,
   Unit,
@@ -12,15 +11,12 @@ import type { LandingModel } from "./useLandingModel";
 
 type Model = Readonly<{ model: LandingModel }>;
 
-function bannerTone(
-  noLandingVector: boolean,
-  hazard: Hazard | null,
-): ReadoutTone {
-  if (noLandingVector || hazard === "DIVERT") return "alert";
-  if (hazard === "MARGINAL") return "warning";
+function bannerTone(noLandingVector: boolean, hazard: Hazard | null): Tone {
+  if (noLandingVector || hazard === "DIVERT") return "nogo";
+  if (hazard === "MARGINAL") return "warn";
   if (hazard === "SAFE") return "go";
   // UNRESOLVED: green would state a verdict and amber a site finding, when the finding is about the model.
-  return "default";
+  return "neutral";
 }
 
 /** The site verdict; with NO LANDING VECTOR it reads ABORT, never DIVERT or a green SAFE. */
@@ -63,7 +59,7 @@ export function TerrainReadout({ model }: Model) {
   const relief = reliefRange(landing?.terrainPatch);
   const source = sourceLabel(landing?.sampleSource);
   return (
-    <Text tone="muted" size="xs">
+    <Text level="muted" size="xs">
       {landing?.predictedBiome ? `${landing.predictedBiome} · ` : ""}
       {landing?.predictedSlopeAngle != null ? (
         <>

@@ -26,7 +26,7 @@ export const CurrentSummaryTop = styled.div`
 export const CurrentSummaryName = styled.span`
   font-size: var(--font-size-value);
   font-weight: 600;
-  color: var(--color-status-go-fg);
+  color: var(--color-go-text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -160,7 +160,7 @@ export const RowTag = styled.span`
   font-size: var(--font-size-compact);
   font-weight: 700;
   letter-spacing: 0.12em;
-  color: var(--color-status-go-fg);
+  color: var(--color-go-text);
 `;
 
 export const SpaceObjectToggle = styled.button`
@@ -175,8 +175,8 @@ export const SpaceObjectToggle = styled.button`
   letter-spacing: 0.04em;
   font-family: inherit;
   &[aria-pressed="true"] {
-    color: var(--color-status-info-fg);
-    border-color: var(--color-status-info-fg);
+    color: var(--color-info-text);
+    border-color: var(--color-info-mark);
   }
   &:hover {
     filter: brightness(1.15);

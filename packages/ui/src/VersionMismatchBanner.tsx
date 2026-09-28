@@ -45,8 +45,8 @@ export function VersionMismatchBanner({
 }
 
 const KIND_COLOR: Record<VersionMismatchKind, string> = {
-  major: "var(--color-status-nogo-bg)",
-  minor: "var(--color-status-warning-bg)",
+  major: "var(--color-nogo-mark)",
+  minor: "var(--color-warn-mark)",
   unknown: "var(--color-text-muted)",
 };
 

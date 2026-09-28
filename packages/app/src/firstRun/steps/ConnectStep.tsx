@@ -13,7 +13,7 @@ import { SitrepConnection } from "../../settings/SitrepConnection";
 export function ConnectStep() {
   return (
     <Stack gap="related-dense">
-      <Text tone="muted" size="sm">
+      <Text level="muted" size="sm">
         Connect to the mod running in KSP. The next step reads back what it
         reports.
       </Text>

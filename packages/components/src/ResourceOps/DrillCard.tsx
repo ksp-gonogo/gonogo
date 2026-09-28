@@ -29,20 +29,20 @@ export function DrillCard({
   return (
     <Card
       aria-current={highlighted ? "true" : undefined}
-      tone={!drillHeld && drill.running ? "go" : "default"}
+      tone={!drillHeld && drill.running ? "go" : "neutral"}
       identityColor={drill.resource ? resourceColor(drill.resource) : undefined}
       title={drill.partTitle ?? drill.partId ?? "Drill"}
       titleRight={
         <Inline wrap>
           {/* Absent on a harvester with no deploy animation, which is not "retracted". */}
           {drill.deployed !== null && drill.deployed !== undefined && (
-            <Badge severity={drill.deployed ? "nominal" : "info"}>
+            <Badge tone={drill.deployed ? "go" : "info"}>
               {drill.deployed ? "deployed" : "retracted"}
             </Badge>
           )}
           {/* A harvester stops itself when its tank fills or the ore runs out, so run state is never held over. */}
           {drillHeld ? (
-            <Badge severity="info">run state held</Badge>
+            <Badge tone="info">run state held</Badge>
           ) : (
             <RunStateBadge running={drill.running} />
           )}

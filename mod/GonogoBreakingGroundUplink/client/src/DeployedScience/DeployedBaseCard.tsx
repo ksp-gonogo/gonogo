@@ -50,18 +50,18 @@ export function DeployedBaseCard({
     >
       <Stack>
         <Cluster style={{ gap: "var(--gap-related)" }}>
-          <Text tone="default" size="sm" style={{ fontWeight: 600 }}>
+          <Text size="sm" style={{ fontWeight: 600 }}>
             {base.body || "Surface base"}
           </Text>
           <StatusIndicator tone={POWER_TONE[state]} live>
             {POWER_LABEL[state]}
           </StatusIndicator>
         </Cluster>
-        <Text tone="muted" style={XS2_STYLE}>
+        <Text level="muted" style={XS2_STYLE}>
           {/* Breaking Ground power units, not electric charge. */}
           {powerBalance(base) ?? "Power unknown"}
           {base.experiments.length > 0 && (
-            <Text tone="faint" style={XS2_STYLE}>
+            <Text level="faint" style={XS2_STYLE}>
               {" "}
               · {base.experiments.length} exp
             </Text>
@@ -87,7 +87,7 @@ export function DeployedBaseCard({
                       decimals={0}
                     />
                     {exp.collecting === true && (
-                      <Text tone="accent" style={XS2_STYLE} aria-hidden="true">
+                      <Text tone="go" style={XS2_STYLE} aria-hidden="true">
                         {" "}
                         ●
                       </Text>

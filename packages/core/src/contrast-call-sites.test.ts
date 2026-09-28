@@ -43,7 +43,7 @@ const SCANNED: Readonly<Record<string, ScanOptions>> = {
  * change. Each entry is `package/file site: token property on ground`.
  */
 const AWAITING_RULING: Readonly<Record<string, string>> = {
-  "components/Graph/GraphView.tsx <LineChart series>: status-go-mark fill on surface-panel":
+  "components/Graph/GraphView.tsx <LineChart series>: go-mark fill on surface-panel":
     "the circular-orbit reference curve is green as a mark, and LineChart also draws a series colour as its label's text, 4.07:1 where text needs 4.5:1",
 };
 
@@ -52,13 +52,13 @@ const AWAITING_RULING: Readonly<Record<string, string>> = {
  * the real ground and that the scan cannot see.
  */
 const NOT_DRAWN_TOGETHER: Readonly<Record<string, string>> = {
-  "components/TechTree/styles.ts StateBadge: text-faint color on status-go-bg":
+  "components/TechTree/styles.ts StateBadge: text-faint color on go-status":
     "the badge is faint only for its muted tone, which paints no fill; the scan does not pair two helpers keyed on the same $tone",
 };
 
 /** Token literals the scan cannot follow to what paints them, each with why. */
 const UNTRACED: Readonly<Record<string, string>> = {
-  "components/LandingStatus/descentLayers.ts status-info-fg":
+  "components/LandingStatus/descentLayers.ts info-mark":
     "the haze tint travels in a plot layer the widget contributes through a registry, not a component it renders",
 };
 
@@ -136,12 +136,12 @@ describe("the call-site scan sees a misuse in a widget", () => {
         [
           'import { Meter } from "@ksp-gonogo/ui-kit";',
           "export const Fuel = () => (",
-          '  <Meter label="LF" value={1} capacity={2} fillColor="var(--color-status-go-bg)" />',
+          '  <Meter label="LF" value={1} capacity={2} fillColor="var(--color-go-status)" />',
           ");",
         ].join("\n"),
       ),
     ).toEqual([
-      "Planted.tsx <Meter fillColor>: status-go-bg background on surface-raised",
+      "Planted.tsx <Meter fillColor>: go-status background on surface-raised",
     ]);
   });
 
@@ -152,13 +152,13 @@ describe("the call-site scan sees a misuse in a widget", () => {
         [
           'import type { CSSProperties } from "react";',
           "const LABEL: CSSProperties = {",
-          '  color: "var(--color-status-warning-fg)",',
+          '  color: "var(--color-warn-on-status)",',
           "};",
           "export const Label = () => <span style={LABEL}>NET</span>;",
         ].join("\n"),
       ),
     ).toEqual([
-      "Planted.tsx <span> style: status-warning-fg color on surface-panel",
+      "Planted.tsx <span> style: warn-on-status color on surface-panel",
     ]);
   });
 
@@ -168,8 +168,8 @@ describe("the call-site scan sees a misuse in a widget", () => {
         "tone",
         [
           "const TONE = {",
-          '  go: "var(--color-status-go-bg)",',
-          '  nogo: "var(--color-status-nogo-fg)",',
+          '  go: "var(--color-go-status)",',
+          '  nogo: "var(--color-nogo-text)",',
           "} as const;",
           "function Dot({ colour }: { colour: string }) {",
           "  return <svg><circle r={4} fill={colour} /></svg>;",
@@ -179,6 +179,6 @@ describe("the call-site scan sees a misuse in a widget", () => {
           ");",
         ].join("\n"),
       ),
-    ).toEqual(["Planted.tsx <circle>: status-go-bg fill on surface-panel"]);
+    ).toEqual(["Planted.tsx <circle>: go-status fill on surface-panel"]);
   });
 });

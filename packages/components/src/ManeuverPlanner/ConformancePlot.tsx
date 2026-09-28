@@ -55,7 +55,7 @@ const REGIME: Record<
     chip: "Missed",
     // Nothing was delivered, so this is the same gap as intended-change; the chip says the window closed.
     gap: "the gap is still the intended change",
-    colour: "var(--color-status-warning-fg-muted)",
+    colour: "var(--color-caution-mark)",
   },
   deviance: {
     chip: "Flown",

@@ -47,7 +47,7 @@ export function AltitudeRail({
           {
             from: value("m", 0),
             to: value("m", ignition),
-            color: "var(--color-status-nogo-fg)",
+            color: "var(--color-nogo-text)",
             label: "burn",
           },
         ]
@@ -88,7 +88,7 @@ export function AltitudeRail({
       {/* Panel.Body supplies the outer inset. */}
       {!centreOfMass && (
         <div style={{ alignSelf: "stretch" }}>
-          <Text tone={near ? "accent" : "muted"} size="xs">
+          <Text tone={near ? "go" : undefined} level="muted" size="xs">
             {suicideBurnCountdown == null
               ? "no burn"
               : suicideBurnCountdown <= 0

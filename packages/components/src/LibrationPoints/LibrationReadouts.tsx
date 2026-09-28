@@ -2,14 +2,15 @@ import type {
   LibrationAnswer,
   LibrationOffset,
 } from "@ksp-gonogo/sitrep-client";
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import { type Tone, value } from "@ksp-gonogo/sitrep-sdk";
 import { Row, RowName, Text, Unit } from "@ksp-gonogo/ui-kit";
 
-const KEEPING_TONE = {
+/** Not stationkeeping carries no state, so it recedes through the `muted` level the rows pass alongside. */
+const KEEPING_TONE: Record<LibrationOffset["keeping"], Tone> = {
   "on-station": "go",
   drifting: "warn",
-  elsewhere: "muted",
-} as const;
+  elsewhere: "neutral",
+};
 
 const KEEPING_WORDS = {
   "on-station": "holding station",
@@ -49,7 +50,7 @@ function CraftOffsetRows({
     return (
       <Row>
         <RowName>Craft</RowName>
-        <Text tone="muted">not placeable in this frame</Text>
+        <Text level="muted">not placeable in this frame</Text>
       </Row>
     );
   }
@@ -57,13 +58,13 @@ function CraftOffsetRows({
     <>
       <Row>
         <RowName>Nearest</RowName>
-        <Text tone={KEEPING_TONE[offset.keeping]}>
+        <Text tone={KEEPING_TONE[offset.keeping]} level="muted">
           {offset.nearest} · {KEEPING_WORDS[offset.keeping]}
         </Text>
       </Row>
       <Row>
         <RowName>Off station</RowName>
-        <Text tone={KEEPING_TONE[offset.keeping]}>
+        <Text tone={KEEPING_TONE[offset.keeping]} level="muted">
           <Unit value={value("m", offset.distanceMetres)} />
         </Text>
       </Row>

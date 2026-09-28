@@ -188,7 +188,7 @@ export function DockingHud(props: DockingHudProps) {
               <Truncate
                 style={{
                   fontSize: "var(--font-size-value)",
-                  color: "var(--color-status-go-fg)",
+                  color: "var(--color-go-text)",
                   letterSpacing: "0.04em",
                 }}
               >
@@ -196,7 +196,7 @@ export function DockingHud(props: DockingHudProps) {
               </Truncate>
               <Text
                 size="lg"
-                tone="accent"
+                tone="go"
                 style={{ fontWeight: 700, whiteSpace: "nowrap" }}
               >
                 {distance === undefined ? (
@@ -216,7 +216,7 @@ export function DockingHud(props: DockingHudProps) {
             >
               <ReadoutCaption
                 style={{
-                  color: "var(--color-status-go-fg)",
+                  color: "var(--color-go-text)",
                   letterSpacing: "0.12em",
                   whiteSpace: "nowrap",
                 }}
@@ -229,7 +229,7 @@ export function DockingHud(props: DockingHudProps) {
                   whiteSpace: "nowrap",
                   color: closing
                     ? "var(--color-accent-fg)"
-                    : "var(--color-status-warning-bg)",
+                    : "var(--color-warn-mark)",
                 }}
               >
                 {relVel === undefined || !Number.isFinite(relVel) ? (
@@ -243,7 +243,7 @@ export function DockingHud(props: DockingHudProps) {
                 <>
                   <ReadoutCaption
                     style={{
-                      color: "var(--color-status-go-fg)",
+                      color: "var(--color-go-text)",
                       letterSpacing: "0.12em",
                       whiteSpace: "nowrap",
                     }}
@@ -254,7 +254,7 @@ export function DockingHud(props: DockingHudProps) {
                     style={{
                       fontSize: 11,
                       whiteSpace: "nowrap",
-                      color: "var(--color-status-go-fg)",
+                      color: "var(--color-go-text)",
                     }}
                   >
                     {x === undefined ? (
@@ -272,7 +272,7 @@ export function DockingHud(props: DockingHudProps) {
 
                   <ReadoutCaption
                     style={{
-                      color: "var(--color-status-go-fg)",
+                      color: "var(--color-go-text)",
                       letterSpacing: "0.12em",
                       whiteSpace: "nowrap",
                     }}
@@ -283,7 +283,7 @@ export function DockingHud(props: DockingHudProps) {
                     style={{
                       fontSize: 11,
                       whiteSpace: "nowrap",
-                      color: "var(--color-status-go-fg)",
+                      color: "var(--color-go-text)",
                     }}
                   >
                     {ax === undefined ? (

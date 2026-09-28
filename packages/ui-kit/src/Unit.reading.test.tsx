@@ -3,9 +3,9 @@ import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { NULL_DISPLAY } from "./NullValue";
-import { severityDotColor } from "./status/severityDotColor";
 // From the source, not the published subpath, which resolves to the last build.
 import { visibleText } from "./testing";
+import { TONE_MARK } from "./tone";
 import { Unit } from "./Unit";
 import { UnitSharedFormat } from "./UnitSharedFormat";
 
@@ -163,7 +163,7 @@ describe("Unit: a reading that is held", () => {
     // One fact, one colour: the mark and the badge above it are the same `warning` severity.
     render(<Unit value={stale(12_400, "held")} />);
     const css = emittedCss();
-    expect(css).toContain(severityDotColor("warning"));
+    expect(css).toContain(TONE_MARK.warn);
   });
 
   it("paints the dot from a token and never from a literal hue", () => {

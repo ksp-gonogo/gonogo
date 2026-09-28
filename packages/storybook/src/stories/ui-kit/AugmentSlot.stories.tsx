@@ -15,7 +15,7 @@ registerAugment({
   augments: SLOT,
   priority: 1,
   component: () => (
-    <Badge severity="info" size="sm">
+    <Badge tone="info" size="sm">
       EVA
     </Badge>
   ),
@@ -26,7 +26,7 @@ registerAugment({
   augments: SLOT,
   priority: 0,
   component: () => (
-    <Badge severity="nominal" size="sm">
+    <Badge tone="go" size="sm">
       VETERAN
     </Badge>
   ),

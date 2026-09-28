@@ -1,6 +1,6 @@
 import { plantSlot } from "./stub";
 
-const OUTLINE = "1px dashed var(--color-status-info-fg)";
+const OUTLINE = "1px dashed var(--color-info-mark)";
 
 plantSlot("crew-status.row-badges", ({ crewName }) => (
   <span
@@ -9,7 +9,7 @@ plantSlot("crew-status.row-badges", ({ crewName }) => (
       border: OUTLINE,
       borderRadius: 4,
       padding: "0 6px",
-      color: "var(--color-status-info-fg)",
+      color: "var(--color-info-text)",
       fontSize: 11,
       whiteSpace: "nowrap",
     }}
@@ -31,7 +31,7 @@ plantSlot("crew-status.avatar", ({ crewName }) => (
       flexDirection: "column",
       alignItems: "center",
       justifyContent: "center",
-      color: "var(--color-status-info-fg)",
+      color: "var(--color-info-text)",
       fontSize: 10,
     }}
   >

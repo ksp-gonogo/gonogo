@@ -218,7 +218,7 @@ export function AvailableRow({
       )}
       {noListedCost && (
         // Three zeros say nothing about a currency this record has no field for, such as RP-1's Confidence. A plain note, so a list of them is not announced.
-        <Notice tone="default" role="note">
+        <Notice tone="neutral" role="note">
           No funds, science or rep cost on this record
         </Notice>
       )}

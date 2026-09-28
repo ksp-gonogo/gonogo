@@ -24,7 +24,7 @@ describe("Meter", () => {
     render(<Meter label="Dose" value={fill(0.5)} tone="warn" />);
     const meter = screen.getByRole("meter", { name: "Dose" });
     const fill_ = meter.firstElementChild as HTMLElement;
-    expect(fill_).toHaveStyle({ background: "var(--color-status-warning-bg)" });
+    expect(fill_).toHaveStyle({ background: "var(--color-warn-mark)" });
   });
 
   it("fillColor wins over tone for the fill colour", () => {
@@ -45,7 +45,7 @@ describe("Meter", () => {
     render(<Meter label="Plain" value={fill(0.5)} />);
     const meter = screen.getByRole("meter", { name: "Plain" });
     const fill_ = meter.firstElementChild as HTMLElement;
-    expect(fill_).toHaveStyle({ background: "var(--color-text-muted)" });
+    expect(fill_).toHaveStyle({ background: "var(--color-neutral-mark)" });
   });
 
   it("renders an unread reading as absence, not as a zeroed bar", () => {

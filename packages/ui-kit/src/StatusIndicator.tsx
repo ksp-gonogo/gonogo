@@ -1,11 +1,11 @@
+import type { Tone } from "@ksp-gonogo/sitrep-sdk";
 import type { HTMLAttributes, ReactNode } from "react";
 import styled, { css, keyframes } from "styled-components";
-
-export type StatusTone = "neutral" | "info" | "go" | "warn" | "nogo";
+import { TONE_MARK, toneEdge } from "./tone";
 
 export interface StatusIndicatorProps
   extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
-  tone: StatusTone;
+  tone: Tone;
   children: ReactNode;
   /**
    * When true, the indicator becomes a screen-reader live region.
@@ -56,25 +56,7 @@ export function StatusIndicator({
   );
 }
 
-const TONE_BORDER = {
-  neutral: css`
-    border-color: var(--color-border-subtle);
-  `,
-  info: css`
-    border-color: var(--color-status-info-fg);
-  `,
-  go: css`
-    border-color: var(--color-accent-fg);
-  `,
-  warn: css`
-    border-color: var(--color-status-warning-bg);
-  `,
-  nogo: css`
-    border-color: var(--color-status-nogo-bg);
-  `,
-} as const;
-
-const StatusIndicator__Row = styled.div<{ "data-tone": StatusTone }>`
+const StatusIndicator__Row = styled.div<{ "data-tone": Tone }>`
   display: flex;
   align-items: center;
   gap: var(--gap-glyph-box);
@@ -87,26 +69,8 @@ const StatusIndicator__Row = styled.div<{ "data-tone": StatusTone }>`
   border: 1px solid;
   border-radius: var(--radius-regular);
 
-  ${({ "data-tone": tone }) => TONE_BORDER[tone]}
+  border-color: ${({ "data-tone": tone }) => toneEdge(tone)};
 `;
-
-const TONE_DOT = {
-  neutral: css`
-    background: var(--color-text-dim);
-  `,
-  info: css`
-    background: var(--color-status-info-fg);
-  `,
-  go: css`
-    background: var(--color-accent-fg);
-  `,
-  warn: css`
-    background: var(--color-status-warning-bg);
-  `,
-  nogo: css`
-    background: var(--color-status-nogo-bg);
-  `,
-} as const;
 
 const statusPulse = keyframes`
   0%, 100% { opacity: 1; }
@@ -114,7 +78,7 @@ const statusPulse = keyframes`
 `;
 
 const StatusIndicator__Dot = styled.span<{
-  "data-tone": StatusTone;
+  "data-tone": Tone;
   $pulse?: "slow" | "fast";
 }>`
   width: 8px;
@@ -122,7 +86,7 @@ const StatusIndicator__Dot = styled.span<{
   border-radius: var(--radius-circle);
   flex-shrink: 0;
 
-  ${({ "data-tone": tone }) => TONE_DOT[tone]}
+  background: ${({ "data-tone": tone }) => TONE_MARK[tone]};
 
   /* A looping pulse needs its own reduced-motion guard; the 1s/2s periods encode connection state. */
   ${({ $pulse }) =>

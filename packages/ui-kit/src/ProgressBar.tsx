@@ -13,7 +13,7 @@ interface ProgressBarCommonProps
   /**
    * CSS colour for the fill, overriding the default `--color-accent-fg`. For a
    * bar whose progress is itself a threat (a CME closing in), pass a status
-   * token such as `var(--color-status-nogo-bg)`, since the default green reads
+   * token such as `var(--color-nogo-mark)`, since the default green reads
    * as reassuring.
    */
   fillColor?: string;

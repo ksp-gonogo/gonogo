@@ -138,7 +138,7 @@ describe("OrbitDiagram projected overlay", () => {
       );
     expect(findApText()).toBeTruthy();
     const apMarker = container.querySelector(
-      'circle[fill="var(--color-status-warning-bg)"]',
+      'circle[fill="var(--color-warn-mark)"]',
     );
     expect(apMarker).toBeTruthy();
     if (!apMarker) return;

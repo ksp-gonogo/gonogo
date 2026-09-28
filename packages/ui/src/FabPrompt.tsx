@@ -67,7 +67,7 @@ const Wrap = styled.div<{ $bottom: number | undefined }>`
   display: inline-flex;
   align-items: stretch;
   background: var(--color-surface-raised);
-  border: 1px solid var(--color-status-info-fg);
+  border: 1px solid var(--color-info-mark);
   /* --radius-pill holds at both the 40px height and the coarse-pointer 48px. */
   border-radius: var(--radius-pill);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
@@ -100,7 +100,7 @@ const Accept = styled.button`
   appearance: none;
   border: 0;
   background: transparent;
-  color: var(--color-status-info-fg);
+  color: var(--color-info-text);
   font-family: inherit;
   font-size: var(--font-size-compact);
   font-weight: 600;
@@ -115,7 +115,7 @@ const Accept = styled.button`
   }
 
   &:focus-visible {
-    outline: 2px solid var(--color-status-info-fg);
+    outline: 2px solid var(--color-info-mark);
     outline-offset: -2px;
   }
 `;
@@ -141,7 +141,7 @@ const Dismiss = styled.button`
   }
 
   &:focus-visible {
-    outline: 2px solid var(--color-status-info-fg);
+    outline: 2px solid var(--color-info-mark);
     outline-offset: -2px;
   }
 `;

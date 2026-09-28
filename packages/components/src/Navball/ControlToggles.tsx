@@ -92,10 +92,10 @@ function armLabel(
 
 const BANNER: CSSProperties = {
   fontSize: "var(--font-size-compact)",
-  color: "var(--color-status-warning-bg)",
+  color: "var(--color-warn-text)",
   padding: "var(--inset-surface)",
   background: "var(--color-surface-panel)",
-  border: "1px solid var(--color-status-warning-bg)",
+  border: "1px solid var(--color-warn-mark)",
   borderRadius: "var(--radius-regular)",
 };
 

@@ -147,7 +147,7 @@ export function CommSignalComponent({
                 fontSize: "var(--font-size-caption)",
                 color:
                   connected === false
-                    ? "var(--color-status-nogo-fg)"
+                    ? "var(--color-nogo-text)"
                     : "var(--color-text-dim)",
                 letterSpacing: "0.04em",
               }}

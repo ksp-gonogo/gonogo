@@ -32,7 +32,7 @@ export const InARow: Story = {
     <Row>
       <RowName>Kerbal X</RowName>
       <Unit value={live("m", 84_320)} />
-      <Badge severity="nominal">Orbit</Badge>
+      <Badge tone="go">Orbit</Badge>
     </Row>
   ),
 };
@@ -44,7 +44,7 @@ export const Truncates: Story = {
       <RowName>Mun Orbital Science Platform Mk II (Jebediah's Folly)</RowName>
       <Inline>
         <Unit value={live("m", 14_200)} />
-        <Badge severity="caution">Low EC</Badge>
+        <Badge tone="caution">Low EC</Badge>
       </Inline>
     </Row>
   ),
@@ -75,10 +75,10 @@ export const WrappingRow: Story = {
     <Row wrap>
       <RowName>Bartbrey Kerman</RowName>
       <Inline>
-        <Badge severity="nominal">Aboard</Badge>
+        <Badge tone="go">Aboard</Badge>
         <Badge>Engineer</Badge>
         <Badge>Lv 2</Badge>
-        <Badge severity="info">Trained</Badge>
+        <Badge tone="info">Trained</Badge>
       </Inline>
     </Row>
   ),

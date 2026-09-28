@@ -70,7 +70,7 @@ function CrewCombobox({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
       <FieldLabel htmlFor="crew-query">Assign crew</FieldLabel>
-      <Text tone="muted" size="sm">
+      <Text level="muted" size="sm">
         {`Assigned: ${pickedName ?? "nobody"}`}
       </Text>
       <div style={{ position: "relative" }}>
@@ -120,7 +120,7 @@ function CrewCombobox({
               ? (opt) => (
                   <>
                     <Text>{opt.label}</Text>
-                    <Text tone="muted" size="sm">
+                    <Text level="muted" size="sm">
                       {opt.role}
                     </Text>
                   </>

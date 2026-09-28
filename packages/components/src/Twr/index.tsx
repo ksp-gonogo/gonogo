@@ -122,7 +122,7 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
       sections={[
         showSubtitle && (
           <Section key="caption" full>
-            <Text tone="muted" size="xs">
+            <Text level="muted" size="xs">
               Current stage · last {writeQuantity(value("s", SPARK_WINDOW_SEC))}
             </Text>
           </Section>

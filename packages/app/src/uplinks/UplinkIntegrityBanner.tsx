@@ -47,7 +47,7 @@ function FailedUplink({
     <Stack gap="caption">
       <Cluster justify="start" gap="related-dense" wrap>
         <Text weight="semibold">{outcome.name}</Text>
-        <Text tone="muted" size="sm">
+        <Text level="muted" size="sm">
           {outcome.id}
           {outcome.version ? `@${outcome.version}` : ""}
         </Text>
@@ -87,14 +87,14 @@ export function UplinkIntegrityBanner() {
   const measured = failed.filter((o) => !canOverrideSkew(o));
 
   return (
-    <Notice as="section" tone="alert" aria-label="Uplink integrity">
+    <Notice as="section" tone="nogo" aria-label="Uplink integrity">
       <Stack gap="related-comfortable">
         {/* The headline grades on what is actually here. A banner that shouts
             "integrity failure" over nothing but channel skew spends the loud
             channel on the ordinary case, which is the same mistake as firing it
             for a compat gate. */}
         <Cluster justify="start" gap="related-dense" wrap>
-          <Badge severity={measured.length > 0 ? "critical" : "warning"}>
+          <Badge tone={measured.length > 0 ? "nogo" : "warn"}>
             {measured.length > 0 ? "Integrity failure" : "Hash disagreement"}
           </Badge>
           <Text tone={measured.length > 0 ? "nogo" : "warn"} weight="semibold">
@@ -105,7 +105,7 @@ export function UplinkIntegrityBanner() {
         </Cluster>
         {measured.length > 0 && (
           <Stack gap="related-comfortable">
-            <Text tone="muted" size="sm">
+            <Text level="muted" size="sm">
               {measured.length === 1
                 ? "Nothing from it is running."
                 : "Nothing from them is running."}{" "}
@@ -121,14 +121,14 @@ export function UplinkIntegrityBanner() {
         {declared.length > 0 && (
           <Stack gap="related-comfortable">
             <Cluster justify="start" gap="related-dense" wrap>
-              <Badge severity="warning">Version skew</Badge>
+              <Badge tone="warn">Version skew</Badge>
               <Text tone="warn" weight="semibold">
                 {declared.length === 1
                   ? "1 Uplink client refused before fetch"
                   : `${declared.length} Uplink clients refused before fetch`}
               </Text>
             </Cluster>
-            <Text tone="muted" size="sm">
+            <Text level="muted" size="sm">
               No bytes were fetched. The installed mod and the Hub index name
               different builds, which is what a dev-channel app and a
               release-channel mod look like from here.

@@ -21,7 +21,7 @@ export const AbsenceLine = styled.span`
 `;
 
 export const FundsReadout = styled.span`
-  color: var(--color-status-go-fg);
+  color: var(--color-go-text);
   font-variant-numeric: tabular-nums;
   margin-left: var(--gap-lead-figure);
 `;
@@ -35,7 +35,7 @@ export const TinyFunds = styled.div`
   font-size: clamp(12px, 13cqw, 22px);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  color: var(--color-status-go-fg);
+  color: var(--color-go-text);
   line-height: var(--line-height-flush);
   max-width: 100%;
   white-space: nowrap;
@@ -127,7 +127,7 @@ export const UpgradeCost = styled.span<{ $afford: boolean }>`
   font-size: var(--font-size-compact);
   /* The nogo bg token, not fg: fg is meant for the red fill and reads as ordinary copy on the dark cell. */
   color: ${(p) =>
-    p.$afford ? "var(--color-accent-fg)" : "var(--color-status-nogo-bg)"};
+    p.$afford ? "var(--color-accent-fg)" : "var(--color-nogo-mark)"};
   font-weight: ${(p) => (p.$afford ? "inherit" : "600")};
   font-variant-numeric: tabular-nums;
 `;
@@ -216,8 +216,8 @@ export const UpgradeButtonStyled = styled(FitLabelButton)`
 `;
 
 export const ConfirmUpgradeButton = styled(UpgradeButtonStyled)`
-  background: var(--color-status-go-bg);
-  color: var(--color-status-go-fg);
+  background: var(--color-go-status);
+  color: var(--color-go-on-status);
   border-color: transparent;
   /* The animation lives inside the same reduced-motion guard as its keyframes. */
   @media (prefers-reduced-motion: no-preference) {

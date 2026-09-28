@@ -2,7 +2,7 @@
  * Design tokens (font + colour custom properties, including the
  * coarse-pointer font-size overrides) come from `@ksp-gonogo/theme`, the
  * single source of truth. Do NOT re-declare `--color-*` (or any other)
- * tokens in this file: two copies is exactly how `--color-status-nogo-on-bg`
+ * tokens in this file: two copies is exactly how `--color-nogo-on-status`
  * went missing here while only the theme package got it, silently breaking
  * both the app and the render harness (see the ratchet test in
  * `tokenSingleSource.test.ts`, beside this file, and `widgetRenderHarness.ts`, which

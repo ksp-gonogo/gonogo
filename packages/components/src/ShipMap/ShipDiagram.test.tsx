@@ -278,7 +278,7 @@ describe("ShipDiagram", () => {
       <ShipDiagram parts={warm} width={200} height={200} />,
     );
     const tint = container.querySelector('rect[data-role="heat-tint"]');
-    expect(tint?.getAttribute("fill")).toBe("var(--color-status-warning-bg)");
+    expect(tint?.getAttribute("fill")).toBe("var(--color-warn-mark)");
   });
 
   it("paints a red heat tint above 80% of max", () => {
@@ -289,7 +289,7 @@ describe("ShipDiagram", () => {
       <ShipDiagram parts={hot} width={200} height={200} />,
     );
     const tint = container.querySelector('rect[data-role="heat-tint"]');
-    expect(tint?.getAttribute("fill")).toBe("var(--color-status-nogo-bg)");
+    expect(tint?.getAttribute("fill")).toBe("var(--color-nogo-mark)");
   });
 
   it("paints an engine-firing flame when partState reports active", () => {

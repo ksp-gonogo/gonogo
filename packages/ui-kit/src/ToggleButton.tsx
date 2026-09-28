@@ -1,9 +1,13 @@
+import type { Tone } from "@ksp-gonogo/sitrep-sdk";
 import type { ButtonHTMLAttributes } from "react";
 import { forwardRef } from "react";
 import styled, { css } from "styled-components";
 import { focusRing } from "./focusRing";
 
-export type ToggleButtonTone = "neutral" | "go" | "nogo" | "warn";
+export type ToggleButtonTone = Extract<
+  Tone,
+  "neutral" | "go" | "nogo" | "warn"
+>;
 export type ToggleButtonSize = "sm" | "md";
 
 export interface ToggleButtonProps
@@ -62,24 +66,24 @@ export const ToggleButton = forwardRef<HTMLButtonElement, ToggleButtonProps>(
 
 const TONE_ACTIVE = {
   neutral: css`
-    background: var(--color-status-go-bg);
-    border-color: var(--color-status-go-bg);
-    color: var(--color-status-go-fg);
+    background: var(--color-go-status);
+    border-color: var(--color-go-status);
+    color: var(--color-go-on-status);
   `,
   go: css`
-    background: var(--color-status-go-bg);
-    border-color: var(--color-status-go-bg);
-    color: var(--color-status-go-fg);
+    background: var(--color-go-status);
+    border-color: var(--color-go-status);
+    color: var(--color-go-on-status);
   `,
   nogo: css`
-    background: var(--color-status-nogo-bg);
-    border-color: var(--color-status-nogo-bg);
-    color: var(--color-status-nogo-on-bg);
+    background: var(--color-nogo-status);
+    border-color: var(--color-nogo-status);
+    color: var(--color-nogo-on-status);
   `,
   warn: css`
-    background: var(--color-status-warning-bg);
-    border-color: var(--color-status-warning-bg);
-    color: var(--color-status-warning-fg);
+    background: var(--color-warn-status);
+    border-color: var(--color-warn-status);
+    color: var(--color-warn-on-status);
   `,
 } as const;
 
@@ -135,11 +139,11 @@ const ToggleButton__Body = styled.button<{
   }
 
   &[data-failed="true"] {
-    border-color: var(--color-status-warning-bg);
-    color: var(--color-status-warning-fg-muted);
+    border-color: var(--color-warn-mark);
+    color: var(--color-warn-text);
     background: color-mix(
       in srgb,
-      var(--color-status-warning-bg) 18%,
+      var(--color-warn-mark) 18%,
       var(--color-surface-raised)
     );
   }

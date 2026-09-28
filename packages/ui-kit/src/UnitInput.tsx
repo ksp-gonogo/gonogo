@@ -143,7 +143,7 @@ export function UnitInput<Unit extends string>({
       />
       {/* A notch on an instant is an interval, so the notch unit is stated rather than inferred. */}
       <Text
-        tone="faint"
+        level="faint"
         size="sm"
       >{`${rate.step} ${movesBy(unit)} / notch`}</Text>
     </Stack>

@@ -47,7 +47,7 @@ const AWAITING_RULING: Readonly<Record<string, string>> = {};
  * the real ground and that the scan cannot see.
  */
 const NOT_DRAWN_TOGETHER: Readonly<Record<string, string>> = {
-  "Switch.tsx SwitchThumb: text-faint background on status-go-mark":
+  "Switch.tsx SwitchThumb: text-faint background on go-mark":
     "the thumb is faint only while unchecked, when the track is raised; the scan does not pair two components' $checked",
   "Tabs.tsx Tabs__Button: text-inverse color on surface-sunken":
     "the active label is drawn over Tabs__Blob, a sibling painted in accent-bg; a sibling's paint is not a ground the scan can see",
@@ -103,12 +103,12 @@ describe("the call-site scan sees a misuse", () => {
       [
         'import styled from "styled-components";',
         "export const Count = styled.span`",
-        "  color: var(--color-status-warning-fg);",
+        "  color: var(--color-warn-on-status);",
         "`;",
       ].join("\n"),
     );
     expect(found.map((f) => f.key)).toEqual([
-      "Planted.tsx Count: status-warning-fg color on surface-panel",
+      "Planted.tsx Count: warn-on-status color on surface-panel",
     ]);
   });
 
@@ -118,7 +118,7 @@ describe("the call-site scan sees a misuse", () => {
       [
         'import styled from "styled-components";',
         "function dotColor(tone: string) {",
-        '  return tone === "go" ? "var(--color-status-go-bg)" : "var(--color-accent-fg)";',
+        '  return tone === "go" ? "var(--color-go-status)" : "var(--color-accent-fg)";',
         "}",
         "const Dot = styled.span<{ $color: string }>`",
         `  background: \${({ $color }) => $color};`,
@@ -127,7 +127,31 @@ describe("the call-site scan sees a misuse", () => {
       ].join("\n"),
     );
     expect(found.map((f) => f.key)).toEqual([
-      "Planted.tsx Dot: status-go-bg background on surface-panel",
+      "Planted.tsx Dot: go-status background on surface-panel",
+    ]);
+  });
+
+  it("in a text and ground read from two maps with one key, pairing only that key", () => {
+    const found = plant(
+      "keyed",
+      [
+        'import styled from "styled-components";',
+        "const TEXT = {",
+        '  go: "var(--color-go-text)",',
+        '  warn: "var(--color-warn-on-status)",',
+        "};",
+        "const GROUND = {",
+        '  go: "var(--color-go-muted)",',
+        '  warn: "var(--color-warn-muted)",',
+        "};",
+        "export const Pill = styled.span<{ $tone: keyof typeof TEXT }>`",
+        `  color: \${({ $tone }) => TEXT[$tone]};`,
+        `  background: \${({ $tone }) => GROUND[$tone]};`,
+        "`;",
+      ].join("\n"),
+    );
+    expect(found.map((f) => f.key)).toEqual([
+      "Planted.tsx Pill: warn-on-status color on warn-muted",
     ]);
   });
 
@@ -137,13 +161,13 @@ describe("the call-site scan sees a misuse", () => {
       [
         "export const Zone = ({ color }: { color?: string }) => (",
         "  <svg>",
-        '    <rect fill={color ?? "var(--color-status-warning-fg)"} />',
+        '    <rect fill={color ?? "var(--color-warn-on-status)"} />',
         "  </svg>",
         ");",
       ].join("\n"),
     );
     expect(found.map((f) => f.key)).toEqual([
-      "Planted.tsx <rect>: status-warning-fg fill on surface-panel",
+      "Planted.tsx <rect>: warn-on-status fill on surface-panel",
     ]);
   });
 });

@@ -78,7 +78,7 @@ export const HeaderAndFooter: Story = {
     ),
     footer: (
       <div style={{ padding: "var(--inset-menu-group-label)" }}>
-        <Text tone="muted" size="xs">
+        <Text level="muted" size="xs">
           Commands arrive in {writeQuantity(value("s", 1.6))}
         </Text>
       </div>
@@ -111,7 +111,7 @@ function TriggeredMenu() {
           Actions
         </Button>
       </div>
-      <Text tone="muted" size="xs">
+      <Text level="muted" size="xs">
         {last ? `Fired: ${last}` : "Nothing fired yet"}
       </Text>
       {open && (

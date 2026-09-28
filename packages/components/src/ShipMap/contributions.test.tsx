@@ -122,8 +122,8 @@ describe("ShipMap: self-contribution unify (spec §13.4)", () => {
     expect(resourceColor("LiquidFuel")).not.toBe(resourceColor("Oxidizer"));
     // No shared tone variable ever fills a healthy meter.
     expect(fills).not.toContain("var(--color-accent-fg)");
-    expect(fills).not.toContain("var(--color-status-go-bg)");
-    expect(fills).not.toContain("var(--color-status-info-bg)");
+    expect(fills).not.toContain("var(--color-go-status)");
+    expect(fills).not.toContain("var(--color-info-muted)");
   });
 
   it("composes the contributed percentage into the part's accessible name", async () => {
@@ -160,9 +160,7 @@ describe("ShipMap: self-contribution unify (spec §13.4)", () => {
     ).toBe(true);
     // 5 / 180 is below critical, shown as a separate stroke on the track, never a fill swap.
     expect(
-      rects.some(
-        (r) => r.getAttribute("stroke") === "var(--color-status-nogo-bg)",
-      ),
+      rects.some((r) => r.getAttribute("stroke") === "var(--color-nogo-mark)"),
     ).toBe(true);
   });
 });

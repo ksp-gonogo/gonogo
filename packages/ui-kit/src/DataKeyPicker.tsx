@@ -227,10 +227,10 @@ const Container = styled.div`
 
 const PickerInput = styled.input<{ $hasValue: boolean; $retired?: boolean }>`
   background: var(--color-surface-raised);
-  border: 1px solid ${({ $retired }) => ($retired ? "var(--color-status-nogo-fg)" : "var(--color-border-strong)")};
+  border: 1px solid ${({ $retired }) => ($retired ? "var(--color-nogo-text)" : "var(--color-border-strong)")};
   border-radius: var(--radius-regular);
   color: ${({ $hasValue, $retired }) => {
-    if ($retired) return "var(--color-status-nogo-fg)";
+    if ($retired) return "var(--color-nogo-text)";
     return $hasValue ? "var(--color-text-primary)" : "var(--color-text-muted)";
   }};
   font-size: var(--font-size-value);
@@ -274,7 +274,7 @@ const ClearButton = styled.button`
  * still read which key went missing.
  */
 const RetiredNote = styled.div`
-  color: var(--color-status-nogo-fg);
+  color: var(--color-nogo-text);
   font-size: var(--font-size-compact);
   margin-top: var(--gap-caption);
 `;

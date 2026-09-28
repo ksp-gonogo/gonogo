@@ -80,7 +80,7 @@ export function TrajectoryWithheldNote({
     <Stack role="status" title={compact ? detail : undefined}>
       <Text size="xs">{heading}</Text>
       {!compact && (
-        <Text tone="muted" size="xs">
+        <Text level="muted" size="xs">
           {detail}
         </Text>
       )}

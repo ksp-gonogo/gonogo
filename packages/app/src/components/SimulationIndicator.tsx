@@ -42,8 +42,8 @@ export function SimulationIndicator() {
 
   return (
     <Cluster justify="start" align="center" role="status" aria-live="polite">
-      <Badge severity="caution">SIMULATION</Badge>
-      {!payload.delayApplied && <Badge severity="info">DELAY CUT</Badge>}
+      <Badge tone="caution">SIMULATION</Badge>
+      {!payload.delayApplied && <Badge tone="info">DELAY CUT</Badge>}
     </Cluster>
   );
 }

@@ -4,8 +4,8 @@
  */
 import type { HTMLAttributes, ReactNode } from "react";
 import styled from "styled-components";
-import { severityDotColor } from "./status/severityDotColor";
 import { useTooltip } from "./Tooltip";
+import { TONE_MARK } from "./tone";
 import { VisuallyHidden } from "./VisuallyHidden";
 
 /**
@@ -24,7 +24,7 @@ export const HeldMark = styled.span`
   height: max(0.3em, 4px);
   margin-left: 0.14em;
   border-radius: var(--radius-circle);
-  background: ${severityDotColor("warning")};
+  background: ${TONE_MARK.warn};
 `;
 
 /**

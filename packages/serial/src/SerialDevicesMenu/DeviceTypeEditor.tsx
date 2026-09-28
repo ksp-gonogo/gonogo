@@ -420,7 +420,7 @@ const DiscoveredId = styled.span`
 `;
 
 const DiscoveredRange = styled.span`
-  color: var(--color-status-info-fg);
+  color: var(--color-info-text);
   font-size: var(--font-size-compact);
 `;
 
@@ -458,6 +458,6 @@ const RemoveBtn = styled.button`
   font-size: var(--font-size-base);
   padding: var(--inset-icon-button);
   &:hover {
-    color: var(--color-status-nogo-fg);
+    color: var(--color-nogo-text);
   }
 `;

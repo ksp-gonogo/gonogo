@@ -421,7 +421,7 @@ function StreamPaths({
           data-deviation="true"
           d={polyline(deviationPts)}
           fill="none"
-          stroke="var(--color-status-warning-bg)"
+          stroke="var(--color-warn-mark)"
           strokeWidth="1"
           strokeLinecap="round"
         />
@@ -728,7 +728,7 @@ export function ControlDelayStream({
             {/* Ribbons have no commanded path to deviate from. */}
             {streams.length > 0 && (
               <span data-role="legend-deviation">
-                <i style={{ background: "var(--color-status-warning-bg)" }} />
+                <i style={{ background: "var(--color-warn-mark)" }} />
                 off-command
               </span>
             )}

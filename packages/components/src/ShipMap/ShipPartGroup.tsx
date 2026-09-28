@@ -117,8 +117,8 @@ export function ShipPartGroup({
           fill="none"
           stroke={
             p.ecFlowSign === "producer"
-              ? "var(--color-status-go-fg)"
-              : "var(--color-status-warning-bg)"
+              ? "var(--color-go-text)"
+              : "var(--color-warn-mark)"
           }
           strokeWidth={stroke(1)}
           opacity={0.5}

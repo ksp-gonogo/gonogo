@@ -74,7 +74,7 @@ const PARTS: FilterRow[] = [
     "fuel-cell",
     "Fuel Cell Array",
     "Converter ElectricCharge",
-    <Text tone="muted" size="sm">
+    <Text level="muted" size="sm">
       Idle
     </Text>,
   ),

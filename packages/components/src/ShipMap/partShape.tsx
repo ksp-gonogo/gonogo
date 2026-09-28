@@ -227,25 +227,25 @@ export function renderPartShape(
 export function colorFor(type: PartType): string {
   switch (type) {
     case "engine":
-      return "var(--color-status-warning-bg)";
+      return "var(--color-warn-mark)";
     case "booster":
-      return "var(--color-status-warning-bg)";
+      return "var(--color-warn-mark)";
     case "tank":
       return "var(--color-text-muted)";
     case "decoupler":
-      return "var(--color-status-warning-bg)";
+      return "var(--color-warn-mark)";
     case "nose-cone":
       return "var(--color-text-primary)";
     case "fin":
-      return "var(--color-status-info-fg)";
+      return "var(--color-info-mark)";
     case "rcs":
       return "var(--color-text-primary)";
     case "capsule":
       return "var(--color-text-primary)";
     case "solar":
-      return "var(--color-status-info-fg)";
+      return "var(--color-info-mark)";
     case "parachute":
-      return "var(--color-status-nogo-bg)";
+      return "var(--color-nogo-mark)";
     case "wheel":
       return "var(--color-text-muted)";
     default:
@@ -268,12 +268,12 @@ export function heatTintFor(
   if (t < 0.5) return null;
   if (t < 0.8) {
     return {
-      color: "var(--color-status-warning-bg)",
+      color: "var(--color-warn-mark)",
       opacity: ((t - 0.5) / 0.3) * 0.5,
     };
   }
   return {
-    color: "var(--color-status-nogo-bg)",
+    color: "var(--color-nogo-mark)",
     opacity: 0.55 + ((t - 0.8) / 0.2) * 0.3,
   };
 }

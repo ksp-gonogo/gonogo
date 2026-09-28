@@ -1,6 +1,6 @@
 import styled from "styled-components";
+import { TONE_LABEL, TONE_MARK, TONE_ON_STATUS, TONE_STATUS } from "../tone";
 import type { Severity } from "./severity";
-import { severityDotColor } from "./severityDotColor";
 
 export interface PanelStatusDotProps {
   severity: Severity;
@@ -29,11 +29,20 @@ export function PanelStatusDot({ severity, count = 1 }: PanelStatusDotProps) {
       data-panel-status-dot=""
       data-severity={severity}
       role="img"
-      aria-label={withCount ? `${count} ${severity}` : severity}
-      $color={severityDotColor(severity)}
+      aria-label={
+        withCount ? `${count} ${TONE_LABEL[severity]}` : TONE_LABEL[severity]
+      }
+      $mark={TONE_MARK[severity]}
       $digits={withCount ? String(count).length : 1}
     >
-      {withCount && <PanelStatusDot__Count>{count}</PanelStatusDot__Count>}
+      {withCount && (
+        <PanelStatusDot__Count
+          $fill={TONE_STATUS[severity]}
+          $ink={TONE_ON_STATUS[severity]}
+        >
+          {count}
+        </PanelStatusDot__Count>
+      )}
     </PanelStatusDot__Root>
   );
 }
@@ -42,7 +51,7 @@ export function PanelStatusDot({ severity, count = 1 }: PanelStatusDotProps) {
 const DOT_DIAMETER = "8px";
 
 const PanelStatusDot__Root = styled.span<{
-  $color: string;
+  $mark: string;
   $digits: number;
 }>`
   position: relative;
@@ -59,23 +68,25 @@ const PanelStatusDot__Root = styled.span<{
     $digits > 1 ? `calc(${$digits}ch + 4px)` : DOT_DIAMETER};
   border-radius: ${({ $digits }) =>
     $digits > 1 ? "var(--radius-pill)" : "var(--radius-circle)"};
-  background: ${({ $color }) => $color};
+  background: ${({ $mark }) => $mark};
   /* A rim in a lighter tint of the dot's own fill plus a glow bloom, so the dot reads as a lit indicator. */
   box-shadow:
-    0 0 0 1px color-mix(in srgb, ${({ $color }) => $color} 78%, white),
-    0 0 4px 1px ${({ $color }) => $color};
+    0 0 0 1px color-mix(in srgb, ${({ $mark }) => $mark} 78%, white),
+    0 0 4px 1px ${({ $mark }) => $mark};
 `;
 
-const PanelStatusDot__Count = styled.span`
+/* A lone dot is a mark; one carrying its count is a status fill under its own text, so the count paints that fill over the whole dot. */
+const PanelStatusDot__Count = styled.span<{ $fill: string; $ink: string }>`
   /* Out of flow, centred over the fixed parent box with no say over its size. */
   position: absolute;
   inset: 0;
+  border-radius: inherit;
+  background: ${({ $fill }) => $fill};
   display: flex;
   align-items: center;
   justify-content: center;
   pointer-events: none;
-  /* The count reads in the panel surface colour, so it stays legible on every severity fill. */
-  color: var(--color-surface-panel);
+  color: ${({ $ink }) => $ink};
   /* Below the --font-size-2xs floor, which would not fit the 8px dot. */
   font-size: inherit;
   font-variant-numeric: tabular-nums;

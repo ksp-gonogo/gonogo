@@ -1,6 +1,7 @@
+import type { Tone } from "@ksp-gonogo/sitrep-sdk";
 import type { HTMLAttributes, ReactNode } from "react";
 import styled, { css } from "styled-components";
-import { STAT_TONE_COLOR, type StatTone } from "./statTone";
+import { TONE_TEXT } from "./tone";
 
 export interface DataLineProps extends HTMLAttributes<HTMLDivElement> {
   /**
@@ -18,7 +19,7 @@ export interface DataLineProps extends HTMLAttributes<HTMLDivElement> {
   /** The reading. A quantity belongs in a `<Unit>`; nothing else formats one. */
   children?: ReactNode;
   /** How alarming the reading is. Defaults to `neutral`. */
-  tone?: StatTone;
+  tone?: Tone;
   /**
    * Give the label a fixed column so the readings on consecutive lines line up
    * down their left edge; a long reading wraps inside its own column. Off by
@@ -84,7 +85,7 @@ const DataLine__Label = styled.span`
   color: var(--color-text-muted);
 `;
 
-const DataLine__Value = styled.span<{ $tone: StatTone }>`
+const DataLine__Value = styled.span<{ $tone: Tone }>`
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
@@ -92,5 +93,5 @@ const DataLine__Value = styled.span<{ $tone: StatTone }>`
   font-size: var(--font-size-value);
   font-variant-numeric: tabular-nums;
   min-width: 0;
-  ${({ $tone }) => STAT_TONE_COLOR[$tone]}
+  color: ${({ $tone }) => TONE_TEXT[$tone]};
 `;

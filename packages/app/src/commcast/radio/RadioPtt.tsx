@@ -165,7 +165,7 @@ export function RadioPtt({
             : ""}
       </VisuallyHidden>
       {blocked !== null && (
-        <Text id={reasonId} size="xs" tone="faint">
+        <Text id={reasonId} size="xs" level="faint">
           {blocked}
         </Text>
       )}

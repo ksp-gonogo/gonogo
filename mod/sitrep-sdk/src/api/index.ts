@@ -87,10 +87,7 @@ export type {
   UplinkAlarmVantage,
 } from "./alarm-request";
 export { useAlarmRequest } from "./alarm-request";
-export type {
-  CrewRowToneEntry,
-  SystemEntitySeverity,
-} from "./contribution-slots";
+export type { CrewRowToneEntry } from "./contribution-slots";
 export type { GonogoHost } from "./host";
 export { GONOGO_HOST_KEY, hasHost } from "./host";
 export type { LogContext, Logger, TaggedLogger } from "./logger-contract";
@@ -109,7 +106,6 @@ export type {
   PlotReliefLayer,
   PlotRuleLayer,
   PlotSeriesLayer,
-  PlotTone,
 } from "./plot-layers";
 // The `plots` contribution slot's own types: the frame a plot pins and the
 // entry it contributes. Its own module for the reason `./plot-layers` is one.
@@ -120,6 +116,7 @@ export type {
   PlotSubjectRegistry,
 } from "./plots";
 export type { CrewAvatarContext, CrewBadgeContext } from "./slots";
+export { type AlertTone, TONES, type Tone } from "./tone";
 // The message-pipe contract. Defined entirely in terms of this package's own
 // wire messages, so it belongs here rather than in `sitrep-client`, and living
 // here is what lets the transport double ship from `/testing`.

@@ -1,10 +1,10 @@
 import { AugmentSlot } from "@ksp-gonogo/core";
+import type { Tone } from "@ksp-gonogo/sitrep-sdk";
 import {
   Card,
   EmptyState,
   FramedDisplay,
   Inline,
-  type ReadoutTone,
   Stack,
   Truncate,
   WidgetMeters,
@@ -47,7 +47,7 @@ export function renderRoster({
   avatarSizePx: number;
   /** Reserve the leading avatar cell: an augment that can render is bound to `crew-status.avatar`. */
   avatarBound: boolean;
-  rowToneByName: ReadonlyMap<string, ReadoutTone>;
+  rowToneByName: ReadonlyMap<string, Tone>;
   /** Skip this row's Card entirely: the EVA header already named this
    *  kerbal and nothing else is bound to their row. */
   omitCardFor?: string;

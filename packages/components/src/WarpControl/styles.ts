@@ -25,9 +25,7 @@ export function rateStyle(tone: RateTone) {
     gap: "var(--gap-related)",
     minWidth: 0,
     color:
-      tone === "physics"
-        ? "var(--color-status-warning-bg)"
-        : "var(--color-status-go-fg)",
+      tone === "physics" ? "var(--color-warn-mark)" : "var(--color-go-text)",
   } as const;
 }
 
@@ -90,11 +88,11 @@ export const ALARM_NAME_STYLE = {
 /* Styled rather than inline for its :focus-visible ring. */
 export const WarpButton = styled.button<{ $active: boolean }>`
   background: ${({ $active }) =>
-    $active ? "var(--color-status-go-bg)" : "var(--color-surface-raised)"};
-  color: var(--color-status-go-fg);
+    $active ? "var(--color-go-status)" : "var(--color-surface-raised)"};
+  color: var(--color-go-on-status);
   border: 1px solid
     ${({ $active }) =>
-      $active ? "var(--color-status-go-bg)" : "var(--color-border-subtle)"};
+      $active ? "var(--color-go-status)" : "var(--color-border-subtle)"};
   border-radius: var(--radius-regular);
   padding: var(--inset-warp-button);
   font-size: var(--font-size-compact);

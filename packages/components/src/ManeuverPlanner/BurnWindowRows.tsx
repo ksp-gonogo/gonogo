@@ -114,7 +114,7 @@ function InstantRow({ row, nowUt }: { row: BurnInstantRow; nowUt: number }) {
         </Stack>
       </Cluster>
       <Stack style={{ alignItems: "flex-end", flex: "0 0 auto" }}>
-        <Text tone="default" size="sm" style={{ whiteSpace: "nowrap" }}>
+        <Text size="sm" style={{ whiteSpace: "nowrap" }}>
           {row.atUt == null ? NULL_DISPLAY : relativeToNow(row.atUt, nowUt)}
         </Text>
         {row.atUt != null && (

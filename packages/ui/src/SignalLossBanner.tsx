@@ -40,8 +40,8 @@ function formatElapsed(ms: number): string {
 }
 
 const SEVERITY_COLOR: Record<Exclude<SignalState, "connected">, string> = {
-  lost: "var(--color-status-nogo-bg)",
-  partial: "var(--color-status-warning-bg)",
+  lost: "var(--color-nogo-mark)",
+  partial: "var(--color-warn-mark)",
 };
 
 const Label = styled.span`

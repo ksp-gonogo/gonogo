@@ -1,7 +1,7 @@
-// Type-level proof that `Badge` has no `tone` prop and speaks only `Severity`, run by the package `typecheck`.
+// Type-level proof that `Badge` has no `severity` prop and speaks only `Tone`, run by the package `typecheck`.
 
+import type { Tone } from "@ksp-gonogo/sitrep-sdk";
 import type { BadgeProps } from "./Badge";
-import type { Severity } from "./status/severity";
 
 type Equal<Left, Right> =
   (<Probe>() => Probe extends Left ? 1 : 2) extends <
@@ -11,12 +11,10 @@ type Equal<Left, Right> =
     : false;
 type Expect<Condition extends true> = Condition;
 
-/** No `tone` key at all. */
-type _NoToneProp = Expect<
-  Equal<"tone" extends keyof BadgeProps ? true : false, false>
+/** No `severity` key at all. */
+type _NoSeverityProp = Expect<
+  Equal<"severity" extends keyof BadgeProps ? true : false, false>
 >;
 
-/** `severity` is exactly `Severity`, so an alias cannot return by widening the union either. */
-type _SeverityIsCanonical = Expect<
-  Equal<NonNullable<BadgeProps["severity"]>, Severity>
->;
+/** `tone` is exactly `Tone`, so a second vocabulary cannot return by widening the union either. */
+type _ToneIsCanonical = Expect<Equal<NonNullable<BadgeProps["tone"]>, Tone>>;

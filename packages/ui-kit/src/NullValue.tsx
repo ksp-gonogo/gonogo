@@ -19,5 +19,5 @@ export const NULL_DISPLAY = "—";
  * reads as intentionally empty rather than as ordinary body text.
  */
 export function NullValue(): ReactNode {
-  return <Text tone="muted">{NULL_DISPLAY}</Text>;
+  return <Text level="muted">{NULL_DISPLAY}</Text>;
 }

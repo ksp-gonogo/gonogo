@@ -6,10 +6,10 @@ import {
   FieldLabel,
   NULL_DISPLAY,
   Panel,
-  type ReadoutTone,
   Section,
   Select,
   StatusPill,
+  type Tone,
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
@@ -134,7 +134,7 @@ function InputTesterComponent({
       <Section key="status" full>
         <StatusRow>
           <StatusLabel>Status</StatusLabel>
-          <StatusPill $tone={STATUS_TONE[status] ?? "default"}>
+          <StatusPill $tone={STATUS_TONE[status] ?? "neutral"}>
             {status}
           </StatusPill>
           <Spacer />
@@ -261,9 +261,9 @@ export { InputTesterComponent };
  * private ternary and become the same three tones every other status surface
  * in the dashboard uses.
  */
-const STATUS_TONE: Record<string, ReadoutTone> = {
+const STATUS_TONE: Record<string, Tone> = {
   connected: "go",
-  error: "alert",
+  error: "nogo",
 };
 
 // ── Styles ───────────────────────────────────────────────────────────────────
@@ -342,7 +342,7 @@ const AnalogFill = styled.div<{ $live: boolean }>`
   top: 1px;
   bottom: 1px;
   background: ${({ $live }) =>
-    $live ? "var(--color-status-info-fg)" : "transparent"};
+    $live ? "var(--color-info-mark)" : "transparent"};
   opacity: 0.4;
   border-radius: 2px;
 `;
@@ -355,7 +355,7 @@ const AnalogThumb = styled.div<{ $live: boolean }>`
   border-radius: var(--radius-circle);
   transform: translate(-50%, -50%);
   background: ${({ $live }) =>
-    $live ? "var(--color-status-info-fg)" : "var(--color-text-faint)"};
+    $live ? "var(--color-info-mark)" : "var(--color-text-faint)"};
   box-shadow: ${({ $live }) =>
     $live ? "0 0 6px rgba(124, 204, 255, 0.6)" : "none"};
 `;
@@ -365,7 +365,7 @@ const AnalogValue = styled.span<{ $live: boolean }>`
   font-variant-numeric: tabular-nums;
   text-align: right;
   color: ${({ $live }) =>
-    $live ? "var(--color-status-info-fg)" : "var(--color-text-faint)"};
+    $live ? "var(--color-info-mark)" : "var(--color-text-faint)"};
 `;
 
 const ButtonGrid = styled.div`
@@ -386,11 +386,11 @@ const ButtonPill = styled.div<{ $pressed: boolean }>`
   border-radius: var(--radius-regular);
   border: 1px solid
     ${({ $pressed }) =>
-      $pressed ? "var(--color-status-info-fg)" : "var(--color-border-subtle)"};
+      $pressed ? "var(--color-info-mark)" : "var(--color-border-subtle)"};
   background: ${({ $pressed }) =>
-    $pressed ? "var(--color-status-info-bg)" : "var(--color-surface-panel)"};
+    $pressed ? "var(--color-info-muted)" : "var(--color-surface-panel)"};
   color: ${({ $pressed }) =>
-    $pressed ? "var(--color-status-info-fg)" : "var(--color-text-primary)"};
+    $pressed ? "var(--color-info-mark)" : "var(--color-text-primary)"};
   font-size: var(--font-size-compact);
   /* 60ms stays literal: it is deliberately faster than the 80ms binding-row
      highlight in InputMappingTab, and --duration-instant is that 80ms. The
@@ -404,7 +404,7 @@ const ButtonDot = styled.span<{ $pressed: boolean }>`
   border-radius: var(--radius-circle);
   flex-shrink: 0;
   background: ${({ $pressed }) =>
-    $pressed ? "var(--color-status-info-fg)" : "var(--color-border-strong)"};
+    $pressed ? "var(--color-info-mark)" : "var(--color-border-strong)"};
   box-shadow: ${({ $pressed }) =>
     $pressed ? "0 0 6px rgba(124, 204, 255, 0.7)" : "none"};
 `;

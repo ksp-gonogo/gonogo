@@ -81,7 +81,7 @@ function buildReferenceCurve(
     label: `Circular orbit (${body.name})`,
     xs,
     ys,
-    color: "var(--color-status-go-mark)",
+    color: "var(--color-go-mark)",
   };
 }
 

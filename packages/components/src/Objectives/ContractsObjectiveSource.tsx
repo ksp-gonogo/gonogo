@@ -118,9 +118,7 @@ export function ContractsObjectiveSource({ Section }: ObjectiveSourceContext) {
         type="button"
         style={{
           ...ALARM_BELL,
-          color: isSet
-            ? "var(--color-status-go-fg)"
-            : "var(--color-text-muted)",
+          color: isSet ? "var(--color-go-text)" : "var(--color-text-muted)",
         }}
         aria-pressed={isSet}
         title={

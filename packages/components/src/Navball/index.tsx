@@ -245,7 +245,7 @@ function NavballComponent({
       /* The aside carries alerts only; control state lives in the body. */
       panelAside={
         showFbwDelayWarning && delaySeconds !== null ? (
-          <Badge severity="warning" size="sm">
+          <Badge tone="warn" size="sm">
             FBW · <Countdown value={oneWayDelay} precise /> DELAY
           </Badge>
         ) : undefined

@@ -61,7 +61,7 @@ export function railFlow(tags: RailTags): "outbound" | "inbound" {
 export function railToneToken(tags: RailTags): string {
   return tags.direction === "command"
     ? "--color-accent-fg"
-    : "--color-status-info-fg";
+    : "--color-info-mark";
 }
 
 /** Every value of each axis, in the order the table above reads. */

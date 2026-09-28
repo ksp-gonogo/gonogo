@@ -58,7 +58,7 @@ describe("plot layers", () => {
       { kind: "marker", id: "bad", at: { x: 10, y: 10 }, tone: "nogo" },
     ]);
     expect(drawn(container, "bad")?.getAttribute("fill")).toBe(
-      "var(--color-status-nogo-bg)",
+      "var(--color-nogo-mark)",
     );
   });
 

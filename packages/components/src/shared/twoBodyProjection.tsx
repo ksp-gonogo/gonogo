@@ -16,7 +16,7 @@ export function projectionDiffersFromTrajectory(
 /** The one sentence every widget puts beside two-body figures when the provider integrates. */
 export function TwoBodyProjectionNote() {
   return (
-    <Text tone="muted" size="xs" role="status">
+    <Text level="muted" size="xs" role="status">
       Two-body projection. The flown trajectory accounts for other bodies, so
       the craft will drift from these figures.
     </Text>

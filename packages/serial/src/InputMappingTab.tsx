@@ -323,7 +323,7 @@ const BindingCard = styled(Card).attrs({ standalone: true })<{
   $listening: boolean;
 }>`
   border-color: ${({ $listening }) =>
-    $listening ? "var(--color-status-info-fg)" : "var(--color-border-subtle)"};
+    $listening ? "var(--color-info-mark)" : "var(--color-border-subtle)"};
   transition: border-color var(--duration-instant) var(--ease-linear);
 `;
 
@@ -333,7 +333,7 @@ const ListenStatus = styled.div`
   gap: var(--gap-related);
   margin-top: var(--gap-under-field);
   font-size: var(--font-size-compact);
-  color: var(--color-status-info-fg);
+  color: var(--color-info-text);
 `;
 
 const BoundReadout = styled.div`
@@ -354,7 +354,7 @@ const ListenDot = styled.span`
   width: 8px;
   height: 8px;
   border-radius: var(--radius-circle);
-  background: var(--color-status-info-fg);
+  background: var(--color-info-mark);
   box-shadow: 0 0 6px rgba(124, 204, 255, 0.7);
 
   @media (prefers-reduced-motion: no-preference) {

@@ -23,21 +23,21 @@ const DOT_RADIUS: Record<BodyTone, number> = {
 };
 
 function dotFill(tone: BodyTone, body: CelestialBody): string {
-  if (tone === "target") return "var(--color-status-nogo-bg)";
+  if (tone === "target") return "var(--color-nogo-mark)";
   if (tone === "highlighted") return "var(--color-accent-fg)";
   const stockColor = body.name ? getBody(body.name)?.color : undefined;
-  return stockColor ?? "var(--color-status-info-fg)";
+  return stockColor ?? "var(--color-info-mark)";
 }
 
 function labelFill(tone: BodyTone): string {
-  if (tone === "target") return "var(--color-status-nogo-bg)";
+  if (tone === "target") return "var(--color-nogo-mark)";
   if (tone === "highlighted") return "var(--color-accent-fg)";
   return "var(--color-text-primary)";
 }
 
 function phaseFill(status: "go" | "soon" | undefined): string {
-  if (status === "go") return "var(--color-status-go-fg)";
-  if (status === "soon") return "var(--color-status-warning-bg)";
+  if (status === "go") return "var(--color-go-text)";
+  if (status === "soon") return "var(--color-warn-mark)";
   return "var(--color-text-faint)";
 }
 

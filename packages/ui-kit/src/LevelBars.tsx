@@ -1,13 +1,6 @@
+import type { Tone } from "@ksp-gonogo/sitrep-sdk";
 import styled from "styled-components";
-import type { StatTone } from "./statTone";
-
-const BAR_FILL: Record<StatTone, string> = {
-  neutral: "var(--color-text-muted)",
-  go: "var(--color-accent-fg)",
-  warn: "var(--color-status-warning-bg)",
-  nogo: "var(--color-status-nogo-bg)",
-  info: "var(--color-status-info-fg)",
-};
+import { TONE_MARK } from "./tone";
 
 /**
  * Props for {@link LevelBars}.
@@ -19,7 +12,7 @@ export interface LevelBarsProps {
   lit: number | null;
   /** How many bars the glyph has. */
   of: number;
-  tone?: StatTone;
+  tone?: Tone;
   /** What the glyph measures, spoken before the count: "Signal" reads "Signal 3 of 4". */
   label?: string;
 }
@@ -48,7 +41,7 @@ export function LevelBars({
         <LevelBars__Bar
           // biome-ignore lint/suspicious/noArrayIndexKey: a bar is its position
           key={index}
-          $fill={lit !== null && index < lit ? BAR_FILL[tone] : null}
+          $fill={lit !== null && index < lit ? TONE_MARK[tone] : null}
           $height={(index + 1) / of}
         />
       ))}

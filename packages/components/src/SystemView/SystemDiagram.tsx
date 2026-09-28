@@ -383,7 +383,7 @@ export function SystemDiagram({
 function parentColor(parent: CelestialBody): string {
   return (
     (parent.name ? getBody(parent.name)?.color : undefined) ??
-    "var(--color-status-warning-bg)"
+    "var(--color-warn-mark)"
   );
 }
 
@@ -415,7 +415,7 @@ const TOOLTIP: CSSProperties = {
 const TOOLTIP_TITLE: CSSProperties = {
   fontWeight: 600,
   marginBottom: "var(--gap-under-title)",
-  color: "var(--color-status-go-fg)",
+  color: "var(--color-go-text)",
 };
 
 const TOOLTIP_ROW: CSSProperties = {

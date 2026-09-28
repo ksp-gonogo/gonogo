@@ -23,13 +23,13 @@ export function displayState(
 }
 
 export function dsBorder(ds: DisplayState): string {
-  if (ds === "owned") return "var(--color-status-go-fg)";
+  if (ds === "owned") return "var(--color-go-text)";
   if (ds === "researchable") return "var(--color-accent-fg)";
   return "var(--color-text-faint)";
 }
 
 export function graphCardBg(ds: DisplayState): string {
-  if (ds === "owned") return "var(--color-status-go-bg)";
+  if (ds === "owned") return "var(--color-go-status)";
   if (ds === "researchable") return "var(--color-surface-raised)";
   return "var(--color-surface-panel)";
 }

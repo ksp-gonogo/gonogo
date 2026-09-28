@@ -153,7 +153,7 @@ const GroupHeader = styled.div`
 `;
 
 const KeyOptionRow = styled.div<{ $checked: boolean }>`
-  background: ${({ $checked }) => ($checked ? "var(--color-status-go-muted)" : "transparent")};
+  background: ${({ $checked }) => ($checked ? "var(--color-go-muted)" : "transparent")};
 
   &:hover {
     background: var(--color-surface-raised);
@@ -183,9 +183,9 @@ const CheckIndicator = styled.span<{ $checked: boolean }>`
   justify-content: center;
   width: 14px;
   height: 14px;
-  border: 1px solid ${({ $checked }) => ($checked ? "var(--color-status-go-bg)" : "var(--color-text-faint)")};
-  background: ${({ $checked }) => ($checked ? "var(--color-status-go-bg)" : "var(--color-surface-raised)")};
-  color: var(--color-status-go-fg);
+  border: 1px solid ${({ $checked }) => ($checked ? "var(--color-go-status)" : "var(--color-text-faint)")};
+  background: ${({ $checked }) => ($checked ? "var(--color-go-status)" : "var(--color-surface-raised)")};
+  color: var(--color-go-on-status);
   font-size: var(--font-size-compact);
   line-height: var(--line-height-flush);
   border-radius: var(--radius-regular);

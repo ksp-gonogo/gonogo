@@ -57,7 +57,7 @@ export function AttitudeDialSvg({
               y={cy - r * 2}
               width={r * 4}
               height={r * 2}
-              fill="var(--color-status-info-fg)"
+              fill="var(--color-info-mark)"
               opacity={0.18}
             />
             <rect
@@ -65,7 +65,7 @@ export function AttitudeDialSvg({
               y={cy}
               width={r * 4}
               height={r * 2}
-              fill="var(--color-status-warning-bg)"
+              fill="var(--color-warn-mark)"
               opacity={0.18}
             />
             <line

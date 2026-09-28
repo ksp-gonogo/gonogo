@@ -2,6 +2,7 @@ import {
   type BandKind,
   bandIn,
   type Reading,
+  type Tone,
   type Value,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
@@ -17,8 +18,7 @@ import { magnitudeOr } from "./magnitude";
 import { NullValue } from "./NullValue";
 import { resolveCurrency, type UnitValue } from "./readingCurrency";
 import { placedOnScale, standsApart } from "./standsApart";
-import type { StatTone } from "./statTone";
-import { severityDotColor } from "./status/severityDotColor";
+import { TONE_MARK } from "./tone";
 import { Unit } from "./Unit";
 import { UnitSharedFormat, useSharedFormat } from "./UnitSharedFormat";
 import {
@@ -49,7 +49,7 @@ interface MeterCommonProps
    *
    * @defaultValue `"neutral"`
    */
-  tone?: StatTone;
+  tone?: Tone;
   /**
    * Arbitrary CSS colour for the fill (e.g. `resourceColor(name)`), for meters
    * whose fill carries an identity rather than a status. Wins over `tone` for
@@ -420,7 +420,7 @@ interface MeterBarProps
   layout: MeterLayout;
   /** The fill, as the whole percent `aria-valuenow` and the track both take. */
   pct: number;
-  tone: StatTone;
+  tone: Tone;
   fillColor?: string;
   /** Whether the AXIS has stopped being current. See `Meter__Track`. */
   trackHeld: boolean;
@@ -790,25 +790,6 @@ const Meter__Stack = styled.div`
   }
 `;
 
-const TONE_FILL = {
-  neutral: css`
-    background: var(--color-text-muted);
-  `,
-  go: css`
-    background: var(--color-status-go-mark);
-  `,
-  warn: css`
-    background: var(--color-status-warning-bg);
-  `,
-  nogo: css`
-    background: var(--color-status-nogo-bg);
-  `,
-  info: css`
-    /* The info -fg token, because info's -bg is a near-black panel background that vanishes as a fill. */
-    background: var(--color-status-info-fg);
-  `,
-} as const;
-
 /**
  * The one track height a meter has. A mark sits one pixel inside each edge, in
  * a layer over the track, since the track's `overflow: hidden` rounds the fill.
@@ -884,9 +865,7 @@ const Meter__Track = styled.div<{ $held: boolean }>`
   background: var(--color-surface-raised);
   border: 1px
     ${({ $held }) =>
-      $held
-        ? `dashed ${severityDotColor("warning")}`
-        : "solid var(--color-border-subtle)"};
+      $held ? `dashed ${TONE_MARK.warn}` : "solid var(--color-border-subtle)"};
   overflow: hidden;
   /* Positioned for the fill only: this overflow rounds the fill's ends and would clip the bound marks. */
   position: relative;
@@ -939,7 +918,7 @@ const Meter__Bound = styled.div`
 `;
 
 const Meter__Fill = styled.div<{
-  $tone: StatTone;
+  $tone: Tone;
   $fillColor?: string;
   $held: boolean;
 }>`
@@ -949,12 +928,7 @@ const Meter__Fill = styled.div<{
   /* A held reading dims the fill, not the hue and not the whole meter, so the label and figure stay readable. */
   ${({ $held }) => ($held ? "opacity: 0.55;" : "")}
   /* $fillColor is an arbitrary CSS colour and wins outright over the tone fill. */
-  ${({ $tone, $fillColor }) =>
-    $fillColor
-      ? css`
-          background: ${$fillColor};
-        `
-      : TONE_FILL[$tone]}
+  background: ${({ $tone, $fillColor }) => $fillColor ?? TONE_MARK[$tone]};
 
   @media (prefers-reduced-motion: reduce) {
     transition: none;

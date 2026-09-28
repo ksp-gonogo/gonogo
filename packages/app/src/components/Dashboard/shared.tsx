@@ -193,7 +193,7 @@ const RemoveBtn = styled.button<{ $confirming: boolean }>`
   margin-left: var(--gap-glyph-tray);
 
   &:hover {
-    color: var(--color-status-nogo-fg);
+    color: var(--color-nogo-text);
   }
 `;
 
@@ -201,14 +201,14 @@ const PushBtn = styled.button<{ $pushed: boolean }>`
   pointer-events: all;
   background: none;
   border: none;
-  color: ${({ $pushed }) => ($pushed ? "var(--color-status-info-fg)" : "var(--color-text-faint)")};
+  color: ${({ $pushed }) => ($pushed ? "var(--color-info-mark)" : "var(--color-text-faint)")};
   cursor: pointer;
   line-height: var(--line-height-flush);
   padding: var(--inset-control-compact);
   margin-left: var(--gap-glyph-tray);
 
   &:hover {
-    color: var(--color-status-info-fg);
+    color: var(--color-info-text);
   }
 `;
 
@@ -220,9 +220,9 @@ const WidgetErrorPanel = styled.div`
   justify-content: center;
   gap: var(--gap-related);
   padding: var(--inset-tile-message);
-  background: var(--color-status-alert-muted);
-  border: 1px solid var(--color-status-alert-muted);
-  color: var(--color-status-nogo-fg);
+  background: var(--color-nogo-muted);
+  border: 1px solid var(--color-nogo-muted);
+  color: var(--color-nogo-text);
   font-size: var(--font-size-compact);
   text-align: center;
 `;
@@ -230,13 +230,13 @@ const WidgetErrorPanel = styled.div`
 const WidgetErrorTitle = styled.div`
   font-size: var(--font-size-value);
   font-weight: bold;
-  color: var(--color-status-nogo-fg);
+  color: var(--color-nogo-text);
 `;
 
 const WidgetErrorMessage = styled.div`
   word-break: break-word;
   max-width: 90%;
-  color: var(--color-status-nogo-fg);
+  color: var(--color-nogo-text);
 `;
 
 const WidgetErrorHint = styled.div`
@@ -246,12 +246,12 @@ const WidgetErrorHint = styled.div`
 const WidgetErrorRetry = styled.button`
   margin-top: var(--gap-actions);
   padding: var(--inset-control);
-  background: var(--color-status-alert-muted);
-  border: 1px solid var(--color-status-alert-muted);
-  color: var(--color-status-nogo-fg);
+  background: var(--color-nogo-muted);
+  border: 1px solid var(--color-nogo-muted);
+  color: var(--color-nogo-text);
   font-size: var(--font-size-compact);
   cursor: pointer;
   &:hover {
-    background: var(--color-status-alert-muted);
+    background: var(--color-nogo-muted);
   }
 `;

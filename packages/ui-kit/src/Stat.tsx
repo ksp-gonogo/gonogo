@@ -1,6 +1,7 @@
+import type { Tone } from "@ksp-gonogo/sitrep-sdk";
 import type { HTMLAttributes, ReactNode } from "react";
 import styled from "styled-components";
-import { STAT_TONE_COLOR, type StatTone } from "./statTone";
+import { TONE_TEXT } from "./tone";
 
 export interface StatProps
   extends Omit<HTMLAttributes<HTMLDListElement>, "title"> {
@@ -11,7 +12,7 @@ export interface StatProps
   /** One line under the figure, qualifying it: a rate, a horizon, a count. */
   detail?: ReactNode;
   /** How alarming the figure is. Defaults to `neutral`. */
-  tone?: StatTone;
+  tone?: Tone;
 }
 
 /**
@@ -72,7 +73,7 @@ const Stat__Label = styled.dt`
   color: var(--color-text-muted);
 `;
 
-const Stat__Figure = styled.dd<{ $tone: StatTone }>`
+const Stat__Figure = styled.dd<{ $tone: Tone }>`
   margin: 0;
   min-width: 0;
   /* Bottom-aligned, so figures line up across the strip even where one label wraps. */
@@ -85,7 +86,7 @@ const Stat__Figure = styled.dd<{ $tone: StatTone }>`
   font-weight: 700;
   line-height: var(--line-height-tight);
   font-variant-numeric: tabular-nums;
-  ${({ $tone }) => STAT_TONE_COLOR[$tone]}
+  color: ${({ $tone }) => TONE_TEXT[$tone]};
 `;
 
 const Stat__Detail = styled.dd`

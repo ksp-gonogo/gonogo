@@ -317,9 +317,9 @@ function InFlightRailStrip({
           // A failed command's glow goes amber (overdue) or red (lost), so a failure is never invisible here.
           const colour =
             item.phase === "lost"
-              ? "var(--color-status-nogo-bg)"
+              ? "var(--color-nogo-mark)"
               : item.phase === "overdue"
-                ? "var(--color-status-warning-bg)"
+                ? "var(--color-warn-mark)"
                 : "var(--color-accent-fg)";
           const progress = Math.max(
             0,
@@ -465,8 +465,8 @@ const QUEUE_COLOUR: Record<InFlightListItem["phase"], string> = {
   "in-transit": "var(--color-accent-fg)",
   "awaiting-reply": "var(--color-accent-fg)",
   due: "var(--color-accent-fg)",
-  overdue: "var(--color-status-warning-bg)",
-  lost: "var(--color-status-nogo-bg)",
+  overdue: "var(--color-warn-mark)",
+  lost: "var(--color-nogo-mark)",
 };
 
 function InFlightQueue({
@@ -744,10 +744,10 @@ const PHASE_ROW_STYLES: Record<
     color: var(--color-text-muted);
   `,
   overdue: css`
-    color: var(--color-status-warning-fg-muted);
+    color: var(--color-warn-text);
   `,
   lost: css`
-    color: var(--color-status-nogo-fg);
+    color: var(--color-nogo-text);
   `,
 };
 

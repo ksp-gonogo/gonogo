@@ -126,7 +126,7 @@ export function GonogoSettings({ owner = CORE_OWNER }: { owner?: string }) {
   return (
     <Body>
       {undeclared && (
-        <Notice tone="warning" aria-label="Settings not declared">
+        <Notice tone="warn" aria-label="Settings not declared">
           These settings could not be read this session ({undeclared.reason}).
           They are at their defaults, and what the settings file holds for them
           is kept.
@@ -201,7 +201,7 @@ function PersistenceLine({ model }: { model: SettingsModel }) {
   const text = persistenceText(state, path, reason ?? null);
   if (text === null) return null;
   return (
-    <Notice tone="warning" aria-label="Settings file">
+    <Notice tone="warn" aria-label="Settings file">
       {text}
     </Notice>
   );

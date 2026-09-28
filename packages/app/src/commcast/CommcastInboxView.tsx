@@ -59,7 +59,7 @@ export function CommcastInboxView({
     <>
       <Commcast__Bar>
         {threads.length > 0 && (
-          <Text size="xs" tone="muted">
+          <Text size="xs" level="muted">
             {threads.length} conversation{threads.length === 1 ? "" : "s"}
           </Text>
         )}

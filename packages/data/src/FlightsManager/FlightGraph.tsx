@@ -25,12 +25,12 @@ import type { MissionHistorySource } from "./MissionHistorySource";
 
 const PALETTE = [
   "var(--color-accent-fg)",
-  "var(--color-status-info-fg)",
-  "var(--color-status-warning-bg)",
+  "var(--color-info-mark)",
+  "var(--color-warn-mark)",
   "var(--color-tag-purple-fg)",
-  "var(--color-status-nogo-bg)",
-  "var(--color-status-info-fg)",
-  "var(--color-status-warning-bg)",
+  "var(--color-nogo-mark)",
+  "var(--color-info-mark)",
+  "var(--color-warn-mark)",
   "var(--color-accent-fg)",
 ];
 
@@ -316,9 +316,9 @@ const LoadingBadge = styled.div`
 
 const ErrorLine = styled.div`
   font-size: var(--font-size-compact);
-  color: var(--color-status-nogo-fg);
+  color: var(--color-nogo-text);
   background: var(--color-tag-dark-brown-bg);
-  border: 1px solid var(--color-status-alert-muted);
+  border: 1px solid var(--color-nogo-muted);
   padding: var(--inset-surface);
   border-radius: var(--radius-regular);
 `;

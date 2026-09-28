@@ -10,8 +10,8 @@ import {
 } from "./styles";
 
 const TREND_COLOUR: Record<NetTone, string> = {
-  warn: "var(--color-status-warning-bg)",
-  go: "var(--color-status-go-fg)",
+  warn: "var(--color-warn-mark)",
+  go: "var(--color-go-text)",
   neutral: "var(--color-text-primary)",
 };
 

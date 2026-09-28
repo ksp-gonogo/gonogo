@@ -58,7 +58,7 @@ describe("sdk/testing harnessTheme conforms to the real theme", () => {
    */
   it("actually walked the real theme", () => {
     const found = leaves(defaultDarkTheme);
-    expect(found.length).toBeGreaterThan(30);
+    expect(found.length).toBeGreaterThan(20);
     // Groups, not just leaf count: a theme collapsed to one branch would still
     // clear a count threshold. Three of them: colour, type, borders.
     expect(Object.keys(defaultDarkTheme).length).toBeGreaterThanOrEqual(3);

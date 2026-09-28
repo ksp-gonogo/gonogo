@@ -191,7 +191,7 @@ describe("design-system: a status badge never precedes its subject", () => {
   it("can see a violation, so the empty result above means something", () => {
     const planted = [
       '        <Cluster gap="related-packed" wrap>',
-      '          <Badge severity="info">ACTIVE</Badge>',
+      '          <Badge tone="info">ACTIVE</Badge>',
       '          <Text weight="semibold">{label(program)}</Text>',
       "        </Cluster>",
     ];
@@ -207,7 +207,7 @@ describe("design-system: a status badge never precedes its subject", () => {
     const sanctioned = [
       "        <SubjectHeading",
       "          status={",
-      '            <Badge severity="info">ACTIVE</Badge>',
+      '            <Badge tone="info">ACTIVE</Badge>',
       "          }",
       "        >",
       '          <Text weight="semibold">{label(program)}</Text>',

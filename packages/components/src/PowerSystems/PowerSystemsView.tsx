@@ -43,7 +43,7 @@ const SPARKLINE_WINDOW_SEC = 120;
 const COMPACT_NET_TONE = {
   go: "go",
   warn: "warn",
-  neutral: "default",
+  neutral: "neutral",
 } as const;
 
 const NET_ANNOUNCEMENT: Record<NetTone, string> = {

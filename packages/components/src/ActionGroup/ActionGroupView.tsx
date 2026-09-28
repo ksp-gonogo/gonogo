@@ -220,7 +220,7 @@ export function ActionGroupView({
                 {showOfficialName &&
                   config?.label &&
                   config.label !== group.name && (
-                    <Text tone="faint" size="xs">
+                    <Text level="faint" size="xs">
                       {group.name}
                     </Text>
                   )}

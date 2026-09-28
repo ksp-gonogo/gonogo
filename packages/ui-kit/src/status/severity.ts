@@ -1,31 +1,24 @@
-import type { BadgeEntry, StreamStatusValue } from "@ksp-gonogo/sitrep-sdk";
+import type { StreamStatusValue, Tone } from "@ksp-gonogo/sitrep-sdk";
 
 /**
- * The one canonical severity vocabulary. `StreamStatusValue` and the published
- * `BadgeEntry.tone` fold onto it via the `severityFrom*` helpers below, so the
- * whole app can aggregate state with a single max-merge.
+ * The tones that take part in a panel's summary: every {@link Tone} but
+ * `neutral`, which carries no state and so has no rank.
  */
-export type Severity =
-  | "nominal"
-  | "info"
-  | "caution"
-  | "warning"
-  | "critical"
-  | "offline";
+export type Severity = Exclude<Tone, "neutral">;
 
 /**
  * Total order for the max-merge, best to worst.
  *
- * `info` sits above `nominal`, so an info contributor lights an otherwise
- * quiet panel. `offline` sits at the top: a critical alarm cannot be trusted
- * once the data feeding it is gone.
+ * `info` sits above `go`, so an info contributor lights an otherwise quiet
+ * panel. `offline` sits at the top: a nogo alarm cannot be trusted once the
+ * data feeding it is gone.
  */
 const RANK: Record<Severity, number> = {
-  nominal: 0,
+  go: 0,
   info: 1,
   caution: 2,
-  warning: 3,
-  critical: 4,
+  warn: 3,
+  nogo: 4,
   offline: 5,
 };
 
@@ -33,9 +26,9 @@ export function severityRank(s: Severity): number {
   return RANK[s];
 }
 
-/** The worst (highest-rank) severity among a set. Empty is the floor, `nominal`. */
+/** The worst (highest-rank) severity among a set. Empty is the floor, `go`. */
 export function worstSeverity(severities: readonly Severity[]): Severity {
-  let worst: Severity = "nominal";
+  let worst: Severity = "go";
   for (const s of severities) {
     if (RANK[s] > RANK[worst]) worst = s;
   }
@@ -52,39 +45,16 @@ export function worstSeverity(severities: readonly Severity[]): Severity {
 export function severityFromStreamStatus(status: StreamStatusValue): Severity {
   switch (status) {
     case "live":
-      return "nominal";
+      return "go";
     case "resyncing":
       return "caution";
     case "recorded":
       return "info";
     case "held":
     case "last-before-blackout":
-      return "warning";
+      return "warn";
     case "disconnected":
     case "absent":
       return "offline";
-  }
-}
-
-/**
- * A contributed `BadgeEntry`'s `tone` -> `Severity`.
- *
- * `neutral` folds to the floor so it can take part in a merge. A caller
- * rendering the entry should map `neutral` to no severity instead, which draws
- * the decorative grey chip a kind-tag wants.
- */
-export function severityFromBadgeEntryTone(
-  tone: NonNullable<BadgeEntry["tone"]>,
-): Severity {
-  switch (tone) {
-    case "neutral":
-    case "go":
-      return "nominal";
-    case "info":
-      return "info";
-    case "warn":
-      return "warning";
-    case "nogo":
-      return "critical";
   }
 }

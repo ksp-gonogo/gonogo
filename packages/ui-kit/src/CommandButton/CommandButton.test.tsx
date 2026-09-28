@@ -1125,7 +1125,7 @@ describe("CommandButton warning text", () => {
     const button = screen.getByRole("button");
     for (const selector of ['[data-failed="true"]', ":hover:not(:disabled)"]) {
       const rule = emittedStateRuleFor(button, selector);
-      expect(rule, selector).toContain("var(--color-status-warning-fg-muted)");
+      expect(rule, selector).toContain("var(--color-warn-text)");
     }
   });
 });

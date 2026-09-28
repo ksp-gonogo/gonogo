@@ -97,7 +97,7 @@ function Canary() {
         />
         <div style={{ overflow: "hidden", width: 80 }}>
           <StatusPill
-            $tone="warning"
+            $tone="warn"
             style={{ ...BARE_PILL, justifyContent: "flex-start" }}
           >
             <span style={{ width: 40 }}>FITS</span>
@@ -113,7 +113,7 @@ function Canary() {
         A label pushed clean off the left edge of its tile
       </span>
       <StatusPill
-        $tone="warning"
+        $tone="warn"
         style={{ ...BARE_PILL, marginLeft: -40, justifyContent: "flex-end" }}
       >
         <span style={{ width: 40 }}>FITS</span>

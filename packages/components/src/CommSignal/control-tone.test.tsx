@@ -13,14 +13,14 @@ import { CommSignalComponent } from "./index";
 // Bar fills and text colours per tone, copied from the widget's own tables so a test failure names the tone that was painted rather than a hex string.
 const BAR_FILL = {
   ok: "var(--color-accent-fg)",
-  warn: "var(--color-status-warning-bg)",
-  lost: "var(--color-status-nogo-bg)",
+  warn: "var(--color-warn-mark)",
+  lost: "var(--color-nogo-mark)",
   neutral: "var(--color-text-muted)",
 } as const;
 const TEXT_COLOR = {
   ok: "var(--color-accent-fg)",
-  warn: "var(--color-status-warning-fg-muted)",
-  lost: "var(--color-status-nogo-fg)",
+  warn: "var(--color-warn-text)",
+  lost: "var(--color-nogo-text)",
   neutral: "var(--color-text-primary)",
 } as const;
 const UNLIT_FILL = "var(--color-border-subtle)";

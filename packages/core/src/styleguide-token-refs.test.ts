@@ -296,3 +296,51 @@ describe("design-system: every token reference resolves", () => {
     ).toBeGreaterThan(50);
   });
 });
+
+/** A mention of a palette rung, in a declaration or a reference alike. */
+const PALETTE_RE = /--palette-[a-z0-9-]+/g;
+
+function paletteMentions(text: string): string[] {
+  return [...text.matchAll(PALETTE_RE)].map((m) => m[0]);
+}
+
+/**
+ * A palette rung is a raw hue with no job, so only `tokens.css` may name one,
+ * to define the role tokens everything else reads. A widget or primitive that
+ * reached a rung directly would pick a colour by how it looks rather than by
+ * what it is for, which is the mistake the role tokens exist to prevent.
+ */
+describe("design-system: a palette rung is named only where role tokens are defined", () => {
+  it("has no --palette-* outside tokens.css", { timeout: 120_000 }, () => {
+    const outside: string[] = [];
+    for (const file of styleguideScanRoots(REPO).flatMap(sourceFiles)) {
+      const rel = file.slice(REPO.length + 1);
+      if (TOKEN_SOURCES.includes(rel)) continue;
+      if (rel.endsWith("styleguide-token-refs.test.ts")) continue;
+      stripped(file)
+        .split("\n")
+        .forEach((text, i) => {
+          for (const name of paletteMentions(text)) {
+            outside.push(`${rel}:${i + 1}  ${name}`);
+          }
+        });
+    }
+    expect(outside).toEqual([]);
+  });
+
+  it("sees a rung wherever it is written", () => {
+    expect(paletteMentions("color: var(--palette-amber-400);")).toEqual([
+      "--palette-amber-400",
+    ]);
+    expect(
+      paletteMentions('style={{ background: "var(--palette-green-500)" }}'),
+    ).toEqual(["--palette-green-500"]);
+    const sheet = stripComments(
+      readFileSync(join(REPO, TOKEN_SOURCES[0]), "utf8"),
+    );
+    expect(
+      paletteMentions(sheet).length,
+      "tokens.css defines the role tokens from palette rungs; finding none means the matcher has gone blind",
+    ).toBeGreaterThan(10);
+  });
+});

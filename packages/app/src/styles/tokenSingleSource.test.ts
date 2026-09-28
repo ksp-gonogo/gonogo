@@ -11,7 +11,7 @@ import { describe, expect, it } from "vitest";
  * themselves.
  *
  * This is not a style nitpick: a re-declared copy already caused a real
- * bug. A fix added `--color-status-nogo-on-bg` to the theme package only;
+ * bug. A fix added `--color-nogo-on-status` to the theme package only;
  * `global.css` (which the app AND the render harness both actually load)
  * kept its own stale copy of the `:root` block without the new token, so
  * the app silently fell back to inherited text colour on the NOGO badge,

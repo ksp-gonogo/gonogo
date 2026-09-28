@@ -364,7 +364,7 @@ const AXIS_WARNING: CSSProperties = {
   bottom: "4px",
   right: "8px",
   fontSize: "var(--font-size-compact)",
-  color: "var(--color-status-warning-bg)",
+  color: "var(--color-warn-text)",
   background: "rgba(0, 0, 0, 0.7)",
   padding: "var(--inset-chip)",
   borderRadius: "var(--radius-regular)",

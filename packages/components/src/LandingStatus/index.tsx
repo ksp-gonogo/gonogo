@@ -152,7 +152,7 @@ function LandingStatusComponent({
           >
             {commitLayerEl}
             {clocks.roundTripSeconds != null && clocks.roundTripSeconds > 0 && (
-              <Text tone="muted">
+              <Text level="muted">
                 RT <Countdown value={clocks.roundTripSeconds} precise />
               </Text>
             )}
@@ -172,7 +172,7 @@ function LandingStatusComponent({
         </Section>,
         bodyName !== undefined ? (
           <Section key="context" full>
-            <Text tone="muted" size="xs">
+            <Text level="muted" size="xs">
               {`${bodyName}${atmospheric ? " · atmospheric" : " · vacuum"}`}
             </Text>
           </Section>

@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { TONES } from "@ksp-gonogo/sitrep-sdk";
 import {
   CONTRAST_FLOOR,
   contrastRatio,
@@ -11,6 +12,8 @@ import {
   NAMED_PAIR_EXCEPTIONS,
   namedPairings,
   parseColorTokens,
+  TONE_NAMES,
+  TONE_ROLES,
 } from "@ksp-gonogo/theme";
 import { describe, expect, it } from "vitest";
 
@@ -31,6 +34,24 @@ const table = contrastTable(names);
 
 const fmt = (r: number) => `${r.toFixed(2)}:1`;
 
+function failingPairings(sheet: ReadonlyMap<string, string>): string[] {
+  const failures: string[] = [];
+  for (const p of contrastTable([...sheet.keys()])) {
+    const fg = sheet.get(p.token);
+    for (const ground of p.on) {
+      const bg = sheet.get(ground);
+      if (!fg || !bg) continue;
+      const ratio = contrastRatio(fg, bg);
+      if (ratio < CONTRAST_FLOOR[p.kind]) {
+        failures.push(
+          `${p.token} (${fg}) on ${ground} (${bg}) is ${fmt(ratio)}, ${p.kind} needs ${CONTRAST_FLOOR[p.kind]}:1`,
+        );
+      }
+    }
+  }
+  return failures;
+}
+
 describe("theme contrast table", () => {
   it("reads the colour tokens from the theme's sheet", () => {
     expect(tokens.get("surface-panel")).toMatch(/^#/);
@@ -38,21 +59,39 @@ describe("theme contrast table", () => {
   });
 
   it("clears the WCAG floor for every declared pairing", () => {
-    const failures: string[] = [];
-    for (const p of table) {
-      const fg = tokens.get(p.token);
-      for (const ground of p.on) {
-        const bg = tokens.get(ground);
-        if (!fg || !bg) continue;
-        const ratio = contrastRatio(fg, bg);
-        if (ratio < CONTRAST_FLOOR[p.kind]) {
-          failures.push(
-            `${p.token} (${fg}) on ${ground} (${bg}) is ${fmt(ratio)}, ${p.kind} needs ${CONTRAST_FLOOR[p.kind]}:1`,
-          );
-        }
-      }
-    }
-    expect(failures).toEqual([]);
+    expect(failingPairings(tokens)).toEqual([]);
+  });
+
+  it("fails a tone role that misses its floor", () => {
+    const planted = new Map(tokens);
+    planted.set("warn-text", "#3a2a0a");
+    planted.set("go-mark", "#1a2a1a");
+    const failures = failingPairings(planted);
+    expect(
+      failures.some((f) =>
+        f.startsWith("warn-text (#3a2a0a) on surface-panel"),
+      ),
+    ).toBe(true);
+    expect(
+      failures.some((f) => f.startsWith("go-mark (#1a2a1a) on surface-panel")),
+    ).toBe(true);
+  });
+
+  it("names the same tones as the sdk's scale", () => {
+    expect([...TONE_NAMES]).toEqual([...TONES]);
+  });
+
+  it("declares every role for every tone, each resolving to a colour", () => {
+    const missing = TONE_NAMES.flatMap((tone) =>
+      TONE_ROLES.map((role) => `${tone}-${role}`),
+    ).filter((name) => !tokens.has(name));
+    expect(missing).toEqual([]);
+  });
+
+  it("resolves a role token through its palette alias", () => {
+    expect(tokens.get("warn-mark")).toBe("#ff8c00");
+    expect(tokens.get("go-on-status")).toBe("#cfe");
+    expect(tokens.get("neutral-text")).toBe(tokens.get("text-primary"));
   });
 
   it("names only tokens the sheet declares", () => {

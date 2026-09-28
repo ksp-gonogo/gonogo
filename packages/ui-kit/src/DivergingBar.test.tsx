@@ -39,7 +39,7 @@ describe("DivergingBar", () => {
     const fill = screen.getByTestId("diverging-bar")
       .lastElementChild as HTMLElement;
     expect(fill).toHaveStyle({ left: "50%" });
-    expect(fill).toHaveStyle({ background: "var(--color-status-go-mark)" });
+    expect(fill).toHaveStyle({ background: "var(--color-go-mark)" });
   });
 
   it("fills leftward in the nogo tone for a negative value", () => {
@@ -47,7 +47,7 @@ describe("DivergingBar", () => {
     const fill = screen.getByTestId("diverging-bar")
       .lastElementChild as HTMLElement;
     expect(fill).toHaveStyle({ right: "50%" });
-    expect(fill).toHaveStyle({ background: "var(--color-status-nogo-bg)" });
+    expect(fill).toHaveStyle({ background: "var(--color-nogo-mark)" });
   });
 
   it("is empty when there is no scale to measure against", () => {

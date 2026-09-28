@@ -50,15 +50,15 @@ export const Button = styled.button`
 
 /** Confirm / save: green accent */
 export const PrimaryButton = styled(Button)`
-  background: var(--color-status-go-bg);
-  border-color: var(--color-status-go-bg);
+  background: var(--color-go-status);
+  border-color: var(--color-go-status);
   color: var(--color-accent-fg);
   align-self: flex-end;
 
   @media (hover: hover) {
     &:hover {
-      background: var(--color-status-go-bg);
-      border-color: var(--color-status-go-bg);
+      background: var(--color-go-status);
+      border-color: var(--color-go-status);
       color: var(--color-accent-fg);
     }
   }

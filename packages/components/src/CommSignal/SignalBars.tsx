@@ -57,12 +57,11 @@ export function SignalHeadline({
 }) {
   return (
     <Text
-      tone="default"
       size="lg"
       style={{
         letterSpacing: "0.04em",
         fontWeight: lost ? 700 : 400,
-        color: lost ? "var(--color-status-nogo-fg)" : undefined,
+        color: lost ? "var(--color-nogo-text)" : undefined,
       }}
     >
       {headline}

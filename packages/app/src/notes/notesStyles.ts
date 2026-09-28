@@ -71,7 +71,7 @@ export const DoneBtn = styled.button`
   justify-content: center;
   @media (hover: hover) {
     &:hover {
-      color: var(--color-status-go-fg);
+      color: var(--color-go-text);
     }
   }
 `;
@@ -87,7 +87,7 @@ export const DeleteBtn = styled.button`
   justify-content: center;
   @media (hover: hover) {
     &:hover {
-      color: var(--color-status-nogo-fg);
+      color: var(--color-nogo-text);
     }
   }
 `;

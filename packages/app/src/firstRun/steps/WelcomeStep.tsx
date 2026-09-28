@@ -12,11 +12,11 @@ import { Stack, Text } from "@ksp-gonogo/ui-kit";
 export function WelcomeStep() {
   return (
     <Stack gap="related-dense">
-      <Text tone="muted" size="sm">
+      <Text level="muted" size="sm">
         An Uplink adds the widgets and telemetry for one mod. The mod installed
         in KSP reports it, and its client half runs here in the browser.
       </Text>
-      <Text tone="muted" size="sm">
+      <Text level="muted" size="sm">
         This checks the connection to your mod, then reports which of the
         Uplinks it has installed have a client loaded.
       </Text>

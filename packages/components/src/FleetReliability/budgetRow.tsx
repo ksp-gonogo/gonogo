@@ -117,7 +117,7 @@ export function budgetRow(budget: ReliabilityBudget): Row {
   if (budget.kind === "hard-limit") {
     if (over) {
       return {
-        severity: "critical",
+        severity: "nogo",
         word: "wear",
         clause: (
           <>
@@ -127,7 +127,7 @@ export function budgetRow(budget: ReliabilityBudget): Row {
       };
     }
     return {
-      severity: "warning",
+      severity: "warn",
       word: "wear",
       clause: (
         <>
@@ -139,7 +139,7 @@ export function budgetRow(budget: ReliabilityBudget): Row {
   if (budget.kind === "risk-ramp") {
     if (over) {
       return {
-        severity: "warning",
+        severity: "warn",
         word: "wear",
         clause: (
           <>
@@ -149,7 +149,7 @@ export function budgetRow(budget: ReliabilityBudget): Row {
       };
     }
     return {
-      severity: "warning",
+      severity: "warn",
       word: "wear",
       clause: (
         <>

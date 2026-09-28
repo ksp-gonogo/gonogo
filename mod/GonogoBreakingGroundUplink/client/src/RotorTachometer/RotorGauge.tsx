@@ -48,7 +48,7 @@ export function RotorGauge({
                   {
                     from: quantity("rpm", 0),
                     to: quantity("rpm", cap),
-                    color: "var(--color-status-go-bg)",
+                    color: "var(--color-go-status)",
                   },
                   {
                     from: quantity("rpm", cap),

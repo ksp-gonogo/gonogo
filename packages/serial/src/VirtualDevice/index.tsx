@@ -72,7 +72,7 @@ function VirtualDeviceComponent({
       panelTitle={device.name}
       sections={[
         <Section key="type" full>
-          <Text tone="faint" size="xs">
+          <Text level="faint" size="xs">
             {type.name}
           </Text>
         </Section>,
@@ -198,14 +198,14 @@ const MomentaryButton = styled.button`
   @media (hover: hover) {
     &:hover {
       background: var(--color-border-subtle);
-      border-color: var(--color-status-info-fg);
+      border-color: var(--color-info-mark);
     }
   }
 
   &:active {
-    background: var(--color-status-info-bg);
-    border-color: var(--color-status-info-fg);
-    color: var(--color-status-info-fg);
+    background: var(--color-info-muted);
+    border-color: var(--color-info-mark);
+    color: var(--color-info-text);
   }
 
   @media (pointer: coarse) {
@@ -217,7 +217,7 @@ const Frame = styled.pre`
   background: var(--color-surface-app);
   border: 1px solid var(--color-surface-raised);
   border-radius: var(--radius-regular);
-  color: var(--color-status-info-fg);
+  color: var(--color-info-text);
   /* Both literal: this pre renders the device's 21x8 ASCII frame buffer, so
      11px is the cell width that keeps 21 columns on one line (--font-size-xs
      is 12px under @media (pointer: coarse) and reflows it) and 1.15 is the

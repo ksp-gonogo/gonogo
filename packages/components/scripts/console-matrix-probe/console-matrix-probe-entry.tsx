@@ -61,7 +61,7 @@ function composerFor(kind: ComposerKind, flag?: string) {
       sendVariant="icon"
       {...(flag !== undefined ? { blocked: true, flag } : {})}
     >
-      <Text size="xs" tone="faint">
+      <Text size="xs" level="faint">
         Type a message
       </Text>
     </ComposerBar>

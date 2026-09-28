@@ -165,14 +165,8 @@ describe("ControlDelayStream", () => {
     // Only the deviation segment gets the warning treatment.
     expect(deviation).toHaveAttribute("data-deviation", "true");
     expect(confirmed).not.toHaveAttribute("data-deviation");
-    expect(deviation).toHaveAttribute(
-      "stroke",
-      "var(--color-status-warning-bg)",
-    );
-    expect(confirmed).not.toHaveAttribute(
-      "stroke",
-      "var(--color-status-warning-bg)",
-    );
+    expect(deviation).toHaveAttribute("stroke", "var(--color-warn-mark)");
+    expect(confirmed).not.toHaveAttribute("stroke", "var(--color-warn-mark)");
   });
 
   it("begins the confirmed-echo line exactly at the 2T divider (shared boundary, not a stray data age)", () => {

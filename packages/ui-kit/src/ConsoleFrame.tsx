@@ -115,7 +115,7 @@ const ConsoleFrame__Box = styled.div<{ $tone: ConsoleTone }>`
   ${({ $tone }) =>
     $tone === "info"
       ? css`
-          --console-tone-fg: var(--color-status-info-fg);
+          --console-tone-fg: var(--color-info-text);
         `
       : css`
           --console-tone-fg: var(--color-accent-fg);

@@ -130,24 +130,24 @@ describe("Card", () => {
 
   it("shows a status accent on the left AND an identity tab on top at once", () => {
     render(
-      <Card tone="alert" identityColor="#654321" data-testid="card">
+      <Card tone="nogo" identityColor="#654321" data-testid="card">
         Contents
       </Card>,
     );
     const css = injectedCss();
-    expect(css).toContain("border-left:2px solid var(--color-status-nogo-bg);");
+    expect(css).toContain("border-left:2px solid var(--color-nogo-mark);");
     expect(css).toContain("::before{");
     expect(css).toContain("background:#654321;");
   });
 
   it("draws the tone accent rule on the leading edge", () => {
     render(
-      <Card tone="alert" data-testid="card">
+      <Card tone="nogo" data-testid="card">
         Contents
       </Card>,
     );
     expect(injectedCss()).toContain(
-      "border-left:2px solid var(--color-status-nogo-bg);",
+      "border-left:2px solid var(--color-nogo-mark);",
     );
   });
 });

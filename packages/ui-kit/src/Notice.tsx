@@ -1,16 +1,16 @@
+import type { Tone } from "@ksp-gonogo/sitrep-sdk";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import { Block__Root, type BlockProps, renderBlockAnatomy } from "./Block";
-import { TONE_COLOR } from "./Card";
 import { LiveRegion } from "./LiveRegion";
-import type { ReadoutTone } from "./Readout";
+import { toneEdge } from "./tone";
 
 export interface NoticeProps extends BlockProps {
   /**
    * What kind of statement this is, drawn as the banner's whole border so the
    * tone reaches the eye from the edge of the block.
    */
-  tone?: ReadoutTone;
+  tone?: Tone;
   /**
    * Interrupt rather than announce: `role="alert"` and `aria-live="assertive"`.
    *
@@ -21,12 +21,12 @@ export interface NoticeProps extends BlockProps {
   children?: ReactNode;
 }
 
-const Notice__Root = styled(Block__Root)<{ $tone: ReadoutTone }>`
+const Notice__Root = styled(Block__Root)<{ $tone: Tone }>`
   --gap-related: var(--gap-related-comfortable);
   --bleed-inline: 0px;
 
   background: var(--color-surface-sunken);
-  border: 1px solid ${({ $tone }) => TONE_COLOR[$tone]};
+  border: 1px solid ${({ $tone }) => toneEdge($tone)};
   border-radius: var(--radius-regular);
   /* A banner is its own strip of the screen, so it takes the roomier inset. */
   padding: var(--inset-surface-standalone);
@@ -45,7 +45,7 @@ const Notice__Root = styled(Block__Root)<{ $tone: ReadoutTone }>`
  * A caller's `role` replaces the kit's and brings no `aria-live` with it.
  */
 export function Notice({
-  tone = "warning",
+  tone = "warn",
   assertive = false,
   role,
   children,

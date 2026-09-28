@@ -11,10 +11,10 @@ plantSlot("astronaut-complex.crew-badge", ({ kerbalName }) => (
   <span
     data-slot-stub="astronaut-complex.crew-badge"
     style={{
-      border: "1px dashed var(--color-status-info-fg)",
+      border: "1px dashed var(--color-info-mark)",
       borderRadius: 4,
       padding: "0 6px",
-      color: "var(--color-status-info-fg)",
+      color: "var(--color-info-text)",
       fontSize: 11,
       whiteSpace: "nowrap",
     }}

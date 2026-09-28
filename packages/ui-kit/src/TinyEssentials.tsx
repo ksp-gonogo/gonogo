@@ -3,12 +3,13 @@ import type {
   ComponentProps,
   TinyEssential,
   TinyMode,
+  Tone,
 } from "@ksp-gonogo/sitrep-sdk";
 import styled from "styled-components";
 import { LevelBars } from "./LevelBars";
 import { Panel } from "./Panel";
 import { Section } from "./Section";
-import { STAT_TONE_COLOR, type StatTone } from "./statTone";
+import { TONE_TEXT } from "./tone";
 import { Unit } from "./Unit";
 import { VisuallyHidden } from "./VisuallyHidden";
 import { TINY_BELOW } from "./widgetSize";
@@ -162,7 +163,7 @@ const TinyEssentials__Hero = styled.dl`
   min-width: 0;
 `;
 
-const TinyEssentials__HeroFigure = styled.dd<{ $tone: StatTone }>`
+const TinyEssentials__HeroFigure = styled.dd<{ $tone: Tone }>`
   display: inline-flex;
   align-items: baseline;
   gap: var(--gap-figure-parts);
@@ -177,7 +178,7 @@ const TinyEssentials__HeroFigure = styled.dd<{ $tone: StatTone }>`
   line-height: var(--line-height-tight);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
-  ${({ $tone }) => STAT_TONE_COLOR[$tone]}
+  color: ${({ $tone }) => TONE_TEXT[$tone]};
 `;
 
 const TinyEssentials__Label = styled.dt`
@@ -207,7 +208,7 @@ const TinyEssentials__Row = styled.div`
   max-width: 100%;
 `;
 
-const TinyEssentials__RowFigure = styled.dd<{ $tone: StatTone }>`
+const TinyEssentials__RowFigure = styled.dd<{ $tone: Tone }>`
   display: inline-flex;
   align-items: baseline;
   gap: var(--gap-figure-parts);
@@ -216,5 +217,5 @@ const TinyEssentials__RowFigure = styled.dd<{ $tone: StatTone }>`
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
-  ${({ $tone }) => STAT_TONE_COLOR[$tone]}
+  color: ${({ $tone }) => TONE_TEXT[$tone]};
 `;

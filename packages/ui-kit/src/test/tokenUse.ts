@@ -288,9 +288,12 @@ export interface ScanOptions {
 const HANDED = "\u0000";
 
 /**
- * The object literal a token was read from by name, carried on the token so a
- * text colour and a background read from the same entry of a tone map are
- * paired with each other rather than with every entry.
+ * The entry of an object literal a token was read from, carried on the token
+ * so a text colour and a background read from the same entry of a tone map
+ * are paired with each other rather than with every entry. A token read by
+ * name carries the entry's position; one read through a computed key carries
+ * the key itself, so two maps read with one key (`TEXT[$tone]` on
+ * `MUTED[$tone]`) pair entry for entry.
  */
 const ENTRY = "\u0001";
 
@@ -828,6 +831,12 @@ export function scanTokenUses(
           const named = p.name.getText(sf).replace(/^["']|["']$/g, "");
           if (head !== "*" && named !== head) continue;
           const value = ts.isPropertyAssignment(p) ? p.initializer : p.name;
+          if (head === "*" && r.want === "tokens") {
+            for (const t of memoTokens(value, sf, component, rest, depth + 1)) {
+              r.tokens.add(withEntry(t, `key:${named}`));
+            }
+            continue;
+          }
           if (head === "*" || r.want === "objects") {
             visit(value, rest);
             continue;

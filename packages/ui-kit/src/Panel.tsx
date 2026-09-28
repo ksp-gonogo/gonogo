@@ -27,15 +27,13 @@ import { type BadgeEntry, usePanelBadgesContext } from "./PanelBadges";
 import { SECTION_FILL_ATTR, SECTION_FULL_ATTR, Section } from "./Section";
 import { PanelStatusDot } from "./status/PanelStatusDot";
 import type { StatusSummary } from "./status/PanelStatusStore";
-import {
-  severityFromBadgeEntryTone,
-  severityFromStreamStatus,
-} from "./status/severity";
+import { severityFromStreamStatus } from "./status/severity";
 import { formatStreamStatus } from "./status/streamStatusWord";
 import { useStatusBreakdown } from "./status/useStatusBreakdown";
 import { useStatusContribution } from "./status/useStatusContribution";
 import { useStatusSummary } from "./status/useStatusSummary";
 import { titleText } from "./titleText";
+import { TONE_LABEL } from "./tone";
 import { useElementSize } from "./useElementSize";
 import { useFittedTitle } from "./useFittedTitle";
 import { PanelAsideSizeProvider, useHeaderAsideFit } from "./usePanelAsideSize";
@@ -399,7 +397,7 @@ export function PanelHeader({
                 breakdown.length === 0
                   ? "Panel status and controls"
                   : `${breakdown
-                      .map((e) => `${e.count} ${e.severity}`)
+                      .map((e) => `${e.count} ${TONE_LABEL[e.severity]}`)
                       .join(", ")}. Panel status and controls`
               }
             >
@@ -1263,7 +1261,7 @@ function PanelSummaryBadge({ summary }: { summary: StatusSummary }) {
   }, [summary.severity]);
   return (
     <PanelSummaryBadge__Pulse $pulse={pulseCount}>
-      <Badge severity={summary.severity} size="sm">
+      <Badge tone={summary.severity} size="sm">
         {summary.label}
       </Badge>
     </PanelSummaryBadge__Pulse>
@@ -1408,18 +1406,17 @@ function PanelRoot({
     badges.length === 0
       ? null
       : badges.map((b) => {
-          /* An absent or `neutral` tone is a decorative chip with no severity, so it never paints itself nominal. */
-          const severity =
-            b.tone === undefined || b.tone === "neutral"
-              ? undefined
-              : severityFromBadgeEntryTone(b.tone);
           return (
             <Badge
               key={b.id}
-              severity={severity}
+              tone={b.tone}
               title={b.title}
               /* A decorative chip stays out of the collapsed header's dot summary. */
-              report={severity === undefined ? undefined : { id: b.id }}
+              report={
+                b.tone === undefined || b.tone === "neutral"
+                  ? undefined
+                  : { id: b.id }
+              }
             >
               {b.label}
             </Badge>
@@ -1464,7 +1461,7 @@ function PanelRoot({
   const statusBadge = summaryDuplicatesABadgePill ? null : summary !== null ? (
     <PanelSummaryBadge summary={summary} />
   ) : streamStatus === null || streamLabel === null ? null : (
-    <Badge severity={severityFromStreamStatus(streamStatus)} size="sm">
+    <Badge tone={severityFromStreamStatus(streamStatus)} size="sm">
       {streamLabel}
     </Badge>
   );

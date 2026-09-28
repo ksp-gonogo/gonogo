@@ -44,7 +44,7 @@ export function TrajectoryFrameCaption({
   if (frame == null) return null;
   const label = trajectoryFrameLabel(frame, facts);
   return (
-    <Text tone="muted" size="xs">
+    <Text level="muted" size="xs">
       {label}
     </Text>
   );

@@ -47,9 +47,9 @@ const Wrap = styled.div`
   gap: var(--gap-section);
   padding: var(--inset-alert-band);
   background: rgba(120, 30, 30, 0.92);
-  border: 1px solid var(--color-status-nogo-bg);
+  border: 1px solid var(--color-nogo-mark);
   border-radius: var(--radius-pill);
-  color: var(--color-status-nogo-fg);
+  color: var(--color-nogo-text);
   font-size: var(--font-size-compact);
   letter-spacing: 0.08em;
   white-space: nowrap;
@@ -82,7 +82,7 @@ const Pulse = styled.span`
   width: 8px;
   height: 8px;
   border-radius: var(--radius-circle);
-  background: var(--color-status-nogo-bg);
+  background: var(--color-nogo-mark);
   flex-shrink: 0;
   /* Known fault: this animation sits outside the reduced-motion guard that holds its keyframes. */
   animation: pulse 1.4s ease-in-out infinite;
@@ -124,7 +124,7 @@ const EntryName = styled.span`
 `;
 
 const EntryStatus = styled.span`
-  color: var(--color-status-nogo-fg);
+  color: var(--color-nogo-text);
   text-transform: uppercase;
   font-size: var(--font-size-caption);
 `;

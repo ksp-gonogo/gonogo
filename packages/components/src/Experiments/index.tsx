@@ -207,7 +207,7 @@ function ExperimentsComponent({
       sections={[
         showSubtitle && (
           <Section key="totals" full>
-            <Text tone="muted" size="xs" role="status" aria-live="polite">
+            <Text level="muted" size="xs" role="status" aria-live="polite">
               {totals.hasData}/{totals.total} with data · {totals.deployed}{" "}
               deployed
               {totals.inoperable > 0

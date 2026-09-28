@@ -101,7 +101,7 @@ describe("Tape zones", () => {
     const fills = Array.from(container.querySelectorAll("rect")).map((r) =>
       r.getAttribute("fill"),
     );
-    expect(fills).toContain("var(--color-status-warning-bg)");
-    expect(fills).not.toContain("var(--color-status-warning-fg)");
+    expect(fills).toContain("var(--color-warn-mark)");
+    expect(fills).not.toContain("var(--color-warn-on-status)");
   });
 });

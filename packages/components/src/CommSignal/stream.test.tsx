@@ -555,7 +555,7 @@ describe("CommSignal: genuinely runs off the stream", () => {
     // The flag lands on the slower leg; `Unit` joins with a non-breaking space, hence `\s`.
     expect(bottleneckValue?.textContent ?? "").toMatch(/12\.0\skbit\/s/);
     expect(bottleneckValue).toHaveStyle({
-      color: "var(--color-status-warning-fg-muted)",
+      color: "var(--color-warn-text)",
     });
   });
 

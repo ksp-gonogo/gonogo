@@ -303,7 +303,7 @@ export function paintModelledMarker(
 ): void {
   ctx.beginPath();
   ctx.arc(x, y, 5, 0, Math.PI * 2);
-  ctx.strokeStyle = canvasColor(canvas, "--color-status-warning-bg", "#d9a13b");
+  ctx.strokeStyle = canvasColor(canvas, "--color-warn-mark", "#d9a13b");
   ctx.lineWidth = 1.5;
   ctx.setLineDash([2, 2]);
   ctx.stroke();

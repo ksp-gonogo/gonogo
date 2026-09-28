@@ -2,10 +2,10 @@
  * Which colour tokens may be drawn on which grounds, and the WCAG arithmetic
  * that proves it.
  *
- * Token names here drop the `--color-` prefix: `status-warning-fg` is
- * `var(--color-status-warning-fg)`. Values are not repeated; they are read
- * from `tokens.css` by whoever checks the table, so the table states where a
- * token may go and the sheet states what it is.
+ * Token names here drop the `--color-` prefix: `warn-text` is
+ * `var(--color-warn-text)`. Values are not repeated; they are read from
+ * `tokens.css` by whoever checks the table, so the table states where a token
+ * may go and the sheet states what it is.
  *
  * The pairings are the palette's promises: text at 4.5:1, a mark that carries
  * meaning (a dot, a fill, a focus ring) at 3:1. The sets beside them say what a
@@ -39,6 +39,36 @@ const SURFACES = [
 const DARKEST = ["surface-app", "surface-panel", "surface-sunken"] as const;
 
 /**
+ * The five jobs a tone's colour does, each its own token: `<tone>-text` is the
+ * tone's words on a surface or on its own muted ground, `<tone>-mark` a dot,
+ * fill, edge or stroke standing alone, `<tone>-status` a fill that carries
+ * its own text in `<tone>-on-status`, and `<tone>-muted` a quiet ground.
+ */
+export const TONE_ROLES = [
+  "text",
+  "mark",
+  "status",
+  "on-status",
+  "muted",
+] as const;
+
+export type ToneRole = (typeof TONE_ROLES)[number];
+
+/**
+ * The tones the sheet declares role tokens for: the same list as the sdk's
+ * `TONES`, which ui-kit's contrast test holds it to.
+ */
+export const TONE_NAMES = [
+  "neutral",
+  "info",
+  "go",
+  "caution",
+  "warn",
+  "nogo",
+  "offline",
+] as const;
+
+/**
  * Tokens a box may paint as its background and draw content on. A status fill
  * (`STATUS_FILLS`) is a ground only where the same rule also names the text it
  * carries; a status fill with no text of its own is a mark, and is checked as
@@ -46,14 +76,8 @@ const DARKEST = ["surface-app", "surface-panel", "surface-sunken"] as const;
  */
 export const GROUNDS: readonly string[] = [
   ...SURFACES,
-  "status-go-bg",
-  "status-nogo-bg",
-  "status-warning-bg",
-  "status-info-bg",
+  ...TONE_NAMES.flatMap((t) => [`${t}-status`, `${t}-muted`]),
   "accent-bg",
-  "status-alert-muted",
-  "status-warning-bg-muted",
-  "status-go-muted",
   "tag-blue-bg",
   "tag-purple-bg",
   "tag-yellow-bg",
@@ -61,17 +85,14 @@ export const GROUNDS: readonly string[] = [
 ];
 
 export const STATUS_FILLS: readonly string[] = [
-  "status-go-bg",
-  "status-nogo-bg",
-  "status-warning-bg",
-  "status-info-bg",
+  ...TONE_NAMES.map((t) => `${t}-status`),
   "accent-bg",
 ];
 
 export const DECORATIVE: readonly string[] = [
   "border-subtle",
   "border-strong",
-  "status-warning-border-muted",
+  "warn-muted-edge",
   "tag-blue-border",
   "tag-purple-border",
   "tag-yellow-border",
@@ -92,26 +113,35 @@ export const EXEMPT: Readonly<Record<string, string>> = {
 };
 
 /**
- * The pairings the token names promise: every `text-*` on every `surface-*`,
- * and `X-fg`, `X-on-bg` and `X-fg-muted` as text on `X-bg` and `X-bg-muted`.
- * `NAMED_PAIR_EXCEPTIONS` removes the ones the palette does not keep.
+ * The pairings the token names promise: every `text-*` on every `surface-*`;
+ * for each tone its text on the surfaces and its own muted ground, its
+ * on-status text on its status fill, and its mark on the surfaces; and
+ * `X-fg` as text on `X-bg`. `NAMED_PAIR_EXCEPTIONS` removes the ones the
+ * palette does not keep.
  */
 export function namedPairings(tokens: readonly string[]): Pairing[] {
   const has = new Set(tokens);
+  const surfaces = SURFACES.filter((s) => has.has(s));
   const pairs: Pairing[] = [];
   for (const t of tokens) {
     if (t.startsWith("text-")) {
-      pairs.push({
-        token: t,
+      pairs.push({ token: t, kind: "text", on: surfaces });
+    }
+    const m = /^(.*)-fg$/.exec(t);
+    if (m && has.has(`${m[1]}-bg`)) {
+      pairs.push({ token: t, kind: "text", on: [`${m[1]}-bg`] });
+    }
+  }
+  for (const tone of TONE_NAMES) {
+    pairs.push(
+      {
+        token: `${tone}-text`,
         kind: "text",
-        on: SURFACES.filter((s) => has.has(s)),
-      });
-    }
-    const m = /^(.*)-(fg|on-bg|fg-muted)$/.exec(t);
-    if (m) {
-      const ground = `${m[1]}-${m[2] === "fg-muted" ? "bg-muted" : "bg"}`;
-      if (has.has(ground)) pairs.push({ token: t, kind: "text", on: [ground] });
-    }
+        on: [...surfaces, `${tone}-muted`],
+      },
+      { token: `${tone}-on-status`, kind: "text", on: [`${tone}-status`] },
+      { token: `${tone}-mark`, kind: "non-text", on: surfaces },
+    );
   }
   return pairs;
 }
@@ -147,12 +177,6 @@ export const NAMED_PAIR_EXCEPTIONS: readonly {
     reason: "the dark text for bright fills; see its accent-bg pairing",
   },
   {
-    token: "status-nogo-fg",
-    on: "status-nogo-bg",
-    reason:
-      "nogo-fg is nogo text on a dark ground; status-nogo-on-bg is the text on the red fill",
-  },
-  {
     token: "accent-fg",
     on: "accent-bg",
     reason: "the same green; text-inverse is the text on the accent fill",
@@ -168,33 +192,19 @@ export const EXPLICIT_PAIRINGS: readonly Pairing[] = [
     token: "text-primary",
     kind: "text",
     on: [
-      "status-go-bg",
-      "status-alert-muted",
-      "status-warning-bg-muted",
-      "status-go-muted",
+      "go-status",
+      "go-muted",
+      "nogo-muted",
+      "caution-muted",
+      "warn-muted",
       "tag-dark-brown-bg",
     ],
   },
-  { token: "text-muted", kind: "text", on: ["status-go-muted"] },
-  { token: "text-dim", kind: "text", on: ["status-go-muted"] },
+  { token: "text-muted", kind: "text", on: ["go-muted"] },
+  { token: "text-dim", kind: "text", on: ["go-muted"] },
   { token: "text-inverse", kind: "text", on: ["accent-bg"] },
-  { token: "accent-fg", kind: "text", on: [...SURFACES, "status-go-muted"] },
+  { token: "accent-fg", kind: "text", on: [...SURFACES, "go-muted"] },
   { token: "accent-bg", kind: "non-text", on: SURFACES },
-  { token: "status-go-fg", kind: "text", on: SURFACES },
-  {
-    token: "status-nogo-fg",
-    kind: "text",
-    on: [...SURFACES, "status-alert-muted"],
-  },
-  { token: "status-info-fg", kind: "text", on: SURFACES },
-  {
-    token: "status-go-mark",
-    kind: "non-text",
-    on: ["surface-panel", "surface-raised"],
-  },
-  { token: "status-warning-fg-muted", kind: "text", on: SURFACES },
-  { token: "status-warning-bg", kind: "text", on: SURFACES },
-  { token: "status-nogo-bg", kind: "text", on: SURFACES },
   {
     token: "tag-yellow-fg",
     kind: "text",
@@ -226,13 +236,32 @@ export function contrastTable(tokens: readonly string[]): Pairing[] {
   return [...named, ...EXPLICIT_PAIRINGS];
 }
 
-/** Every `--color-*` token declared with a hex value, keyed without the prefix. */
+const DECLARED = /--((?:color|palette)-[a-z0-9-]+):\s*([^;]+);/g;
+const HEX = /^#[0-9a-fA-F]{3,8}$/;
+const ALIAS = /^var\(--((?:color|palette)-[a-z0-9-]+)\)$/;
+
+/**
+ * Every `--color-*` token the sheet declares, keyed without the prefix, with
+ * the hex value it resolves to. A token defined as `var(--palette-*)` or
+ * `var(--color-*)` resolves through the chain; one whose value is neither a
+ * hex nor such an alias is left out.
+ */
 export function parseColorTokens(css: string): Map<string, string> {
+  const raw = new Map<string, string>();
+  for (const m of css.matchAll(DECLARED)) raw.set(m[1], m[2].trim());
+  const resolve = (name: string, seen: Set<string>): string | undefined => {
+    const value = raw.get(name);
+    if (value === undefined || seen.has(name)) return undefined;
+    if (HEX.test(value)) return value;
+    const alias = ALIAS.exec(value);
+    if (!alias) return undefined;
+    return resolve(alias[1], new Set([...seen, name]));
+  };
   const tokens = new Map<string, string>();
-  for (const m of css.matchAll(
-    /--color-([a-z0-9-]+):\s*(#[0-9a-fA-F]{3,8})\b/g,
-  )) {
-    tokens.set(m[1], m[2]);
+  for (const name of raw.keys()) {
+    if (!name.startsWith("color-")) continue;
+    const hex = resolve(name, new Set());
+    if (hex) tokens.set(name.slice("color-".length), hex);
   }
   return tokens;
 }

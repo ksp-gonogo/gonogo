@@ -13,8 +13,8 @@ export const NO_METERS: readonly ShipMapPartMeterEntry[] = [];
  * legible.
  */
 export const METER_STATUS_COLOR: Record<"low" | "critical", string> = {
-  low: "var(--color-status-warning-bg)",
-  critical: "var(--color-status-nogo-bg)",
+  low: "var(--color-warn-mark)",
+  critical: "var(--color-nogo-mark)",
 };
 
 /**

@@ -166,7 +166,7 @@ PLANTED_UPLINK.registerContribution({
   compute: (topics) => {
     const entries = aboard(topics["vessel.crew"])
       .filter(([, rules]) => rules.some(([, f]) => f >= CRITICAL))
-      .map(([crewName]) => ({ crewName, severity: "critical" as const }));
+      .map(([crewName]) => ({ crewName, tone: "nogo" as const }));
     return entries.length > 0 ? entries : null;
   },
 });

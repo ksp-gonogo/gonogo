@@ -1,6 +1,8 @@
 // Types-only but not removable: it pulls the `DefaultTheme` augmentation into the declaration build, which is built from this entry graph.
 import "./styledComponentsTheme";
 
+/** The one tone scale, from the sdk, so a kit consumer types its props without a second import. */
+export type { AlertTone, Tone } from "@ksp-gonogo/sitrep-sdk";
 /*
  * The theme is re-exported from the private `@ksp-gonogo/theme`, which the build
  * inlines into `dist`, so this is its only public surface. A host mounts the
@@ -477,7 +479,6 @@ export {
   BigReadout,
   Readout,
   ReadoutCaption,
-  type ReadoutTone,
   StatusPill,
 } from "./Readout";
 export { Row, RowName, type RowProps } from "./Row";
@@ -503,7 +504,6 @@ export {
 export {
   StatusIndicator,
   type StatusIndicatorProps,
-  type StatusTone,
 } from "./StatusIndicator";
 // Numeric input over a small closed set, beside `UnitInput` (a free quantity) and `JogWheel` (tuned by feel).
 export { Stepper, type StepperProps } from "./Stepper";
@@ -524,7 +524,6 @@ export {
   writtenAs,
   writtenQuantity,
 } from "./standsApart";
-export type { StatTone } from "./statTone";
 export {
   type PanelStatusStore,
   PanelStatusStoreProvider,
@@ -535,11 +534,9 @@ export {
 } from "./status/PanelStatusStore";
 export {
   type Severity,
-  severityFromBadgeEntryTone,
   severityFromStreamStatus,
   worstSeverity,
 } from "./status/severity";
-export { severityDotColor } from "./status/severityDotColor";
 export { formatStreamStatus, heldWord } from "./status/streamStatusWord";
 export { useStatusBreakdown } from "./status/useStatusBreakdown";
 export { useStatusContribution } from "./status/useStatusContribution";
@@ -559,9 +556,9 @@ export {
 } from "./Tape";
 export {
   Text,
+  type TextLevel,
   type TextProps,
   type TextSize,
-  type TextTone,
   type TextWeight,
 } from "./Text";
 export { TextField, type TextFieldProps } from "./TextField";
@@ -585,6 +582,15 @@ export {
   useTooltip,
 } from "./Tooltip";
 export { Truncate } from "./Truncate";
+export {
+  TONE_LABEL,
+  TONE_MARK,
+  TONE_MUTED,
+  TONE_ON_STATUS,
+  TONE_STATUS,
+  TONE_TEXT,
+  toneEdge,
+} from "./tone";
 // `UnitValue` is the widened prop: a quantity, or a whole `Reading` of one.
 export { Unit, type UnitProps, type UnitValue } from "./Unit";
 export {

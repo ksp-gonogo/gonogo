@@ -182,7 +182,7 @@ const HelpLink = styled.button`
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-circle);
-  color: var(--color-status-info-fg);
+  color: var(--color-info-text);
   width: 18px;
   height: 18px;
   padding: 0;
@@ -278,14 +278,14 @@ const Body = styled.div`
   }
   code {
     background: var(--color-surface-sunken);
-    color: var(--color-status-go-fg);
+    color: var(--color-go-text);
     padding: var(--inset-chip);
     border-radius: var(--radius-regular);
     font-size: var(--font-size-prose);
   }
   pre {
     background: var(--color-surface-sunken);
-    color: var(--color-status-go-fg);
+    color: var(--color-go-text);
     /* A filled box holding content, which is what --inset-surface names: the
        sunken fill and the sm radius below are Card's own recipe, and the inset
        was the only term that differed. It tightens by 2px each way, which sets

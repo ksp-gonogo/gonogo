@@ -6,11 +6,11 @@ import {
   getLatestFleetVesselSilence,
   overdueSeconds,
 } from "@ksp-gonogo/sitrep-client";
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import { type AlertTone, value } from "@ksp-gonogo/sitrep-sdk";
 import { writeQuantity } from "@ksp-gonogo/ui-kit";
 
 /*
- * The `system-view.vessel-status` self-contribution: the plotted vessel's silence reckoning as semantic severity, emphasis and label, never colours.
+ * The `system-view.vessel-status` self-contribution: the plotted vessel's silence reckoning as a tone, emphasis and label, never colours.
  *
  * `silence.<guid>.state` is dynamic while `deps` are static, so this depends on `vessel.identity` and reads the reckoning through the `getLatestFleetVesselSilence` bridge. It is a Processor because it moves with the view clock and that bridge, neither a declared dep; it is evaluated every frame and notifies only on change.
  *
@@ -20,21 +20,18 @@ import { writeQuantity } from "@ksp-gonogo/ui-kit";
 export interface SystemViewVesselStatusEntry {
   /** The vessel this entry decorates: `vessel.identity`'s `vesselId`. */
   target: string;
-  severity: "info" | "warning" | "critical";
+  tone: AlertTone;
   /** Every entry from this contribution is a model's opinion, never a direct observation. */
   emphasis: "observed" | "reckoned";
   label: string;
   tooltip?: string;
 }
 
-const PHASE_SEVERITY: Record<
-  Exclude<ContactPhase, "nominal">,
-  SystemViewVesselStatusEntry["severity"]
-> = {
+const PHASE_TONE: Record<Exclude<ContactPhase, "nominal">, AlertTone> = {
   waiting: "info",
   expected: "info",
-  overdue: "warning",
-  lost: "critical",
+  overdue: "warn",
+  lost: "nogo",
 };
 
 /** Pure core: the entries contributed for a vessel id and its silence reckoning, exported for direct testing. */
@@ -46,7 +43,7 @@ export function computeVesselStatus(
   const phase = contactPhase(silence, nowUt);
   if (!phase || phase === "nominal") return [];
 
-  const severity = PHASE_SEVERITY[phase];
+  const tone = PHASE_TONE[phase];
   const tooltip = silence?.deadlineBasis
     ? `Silence basis: ${silence.deadlineBasis}`
     : undefined;
@@ -55,7 +52,7 @@ export function computeVesselStatus(
     return [
       {
         target: vesselId,
-        severity,
+        tone,
         emphasis: "reckoned",
         label: "Officially lost",
         tooltip,
@@ -67,7 +64,7 @@ export function computeVesselStatus(
     return [
       {
         target: vesselId,
-        severity,
+        tone,
         emphasis: "reckoned",
         label: `Overdue by ${late == null ? "?" : writeQuantity(value("s", late))}`,
         tooltip,
@@ -80,7 +77,7 @@ export function computeVesselStatus(
     return [
       {
         target: vesselId,
-        severity,
+        tone,
         emphasis: "reckoned",
         label: `Reacquire expected in ~${writeQuantity(value("s", due))}`,
         tooltip,
@@ -91,7 +88,7 @@ export function computeVesselStatus(
   return [
     {
       target: vesselId,
-      severity,
+      tone,
       emphasis: "reckoned",
       label: "No contact",
       tooltip,

@@ -74,8 +74,8 @@ export function transferStatus(deltaDeg: number): TransferStatus {
  * Fold `TransferStatus` onto the canonical `Severity` scale so SystemView and
  * the Transfer Window widget can contribute their window state to a panel
  * summary and read the same colours as every other status surface. Per the spec
- * mapping table (Scale B): `go` is nominal, the approaching `soon` window is a
- * caution, and an `off` window is critical.
+ * mapping table (Scale B): `go` is go, the approaching `soon` window is a
+ * caution, and an `off` window is nogo.
  *
  * `Severity` lives in `@ksp-gonogo/ui-kit` (which core already depends on),
  * because a shared severity type in core would be a circular import for the
@@ -84,11 +84,11 @@ export function transferStatus(deltaDeg: number): TransferStatus {
 export function transferSeverity(status: TransferStatus): Severity {
   switch (status) {
     case "go":
-      return "nominal";
+      return "go";
     case "soon":
       return "caution";
     case "off":
-      return "critical";
+      return "nogo";
   }
 }
 

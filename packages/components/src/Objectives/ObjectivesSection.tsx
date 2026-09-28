@@ -46,9 +46,9 @@ export function ObjectivesSection({ items, renderAlarm }: ObjectiveSection) {
 
 const STATE_COLOR: Record<ObjectiveState, string> = {
   pending: "var(--color-text-muted)",
-  active: "var(--color-status-go-fg)",
-  reached: "var(--color-status-go-fg)",
-  failed: "var(--color-status-nogo-fg)",
+  active: "var(--color-go-text)",
+  reached: "var(--color-go-text)",
+  failed: "var(--color-nogo-text)",
 };
 
 const LIST: CSSProperties = {

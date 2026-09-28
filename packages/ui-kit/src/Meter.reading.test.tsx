@@ -579,7 +579,7 @@ describe("Meter, given a capacity that is itself a reading", () => {
     );
     const track = container.querySelector("[data-track-held]") as HTMLElement;
     const rule = emittedRuleFor(track);
-    expect(rule).toContain("dashed var(--color-status-warning-bg)");
+    expect(rule).toContain("dashed var(--color-warn-mark)");
     expect(rule).not.toContain("--color-border-subtle");
   });
 });

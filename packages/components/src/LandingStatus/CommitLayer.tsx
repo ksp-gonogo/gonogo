@@ -7,13 +7,12 @@
  * An instrument, not a command surface: gear and brakes are fired from the operator's own action-group widgets.
  */
 
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import { type Tone, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Countdown,
   NULL_DISPLAY,
   Readout,
   ReadoutCaption,
-  type ReadoutTone,
   Section,
   Unit,
 } from "@ksp-gonogo/ui-kit";
@@ -27,11 +26,11 @@ export const REGIME_LABEL: Record<LandingRegime, string> = {
   "no-path": "NO LINK",
 };
 
-export const REGIME_TONE: Record<LandingRegime, ReadoutTone> = {
+export const REGIME_TONE: Record<LandingRegime, Tone> = {
   live: "go",
-  staged: "warning",
-  autonomous: "alert",
-  "no-path": "default",
+  staged: "warn",
+  autonomous: "nogo",
+  "no-path": "neutral",
 };
 
 export interface CommitLayerProps {
@@ -59,7 +58,7 @@ export interface CommitLayerProps {
 interface Hero {
   value: ReactNode;
   caption: string;
-  tone: ReadoutTone;
+  tone: Tone;
   urgent: boolean;
 }
 
@@ -77,43 +76,43 @@ function resolveHero({
   const hero = (
     value: ReactNode,
     caption: string,
-    tone: ReadoutTone,
+    tone: Tone,
     urgent = false,
   ): Hero => ({ value, caption, tone, urgent });
 
   if (landed) return hero("LANDED", "TOUCHDOWN CONFIRMED", "go");
   // Committed to a hard impact whatever it does now.
-  if (noLandingVector) return hero("NO LANDING VECTOR", "", "alert");
+  if (noLandingVector) return hero("NO LANDING VECTOR", "", "nogo");
   // Both heroes assume something about the link (a closed loop, a known delay) that nothing has told us.
   if (regime === "no-path") {
-    return hero(NULL_DISPLAY, "BURN TIMING NEEDS A LINK", "default");
+    return hero(NULL_DISPLAY, "BURN TIMING NEEDS A LINK", "neutral");
   }
   // The number an operator acts on is withheld while the board describes; after `no-path`, since "needs a link" is the more specific answer.
   if (!mayInstruct) {
-    return hero(NULL_DISPLAY, "BURN TIMING NEEDS CURRENT TELEMETRY", "default");
+    return hero(NULL_DISPLAY, "BURN TIMING NEEDS CURRENT TELEMETRY", "neutral");
   }
   if (centreOfMass) {
-    return hero(NULL_DISPLAY, live ? "SUICIDE BURN" : "BURN GO IN", "default");
+    return hero(NULL_DISPLAY, live ? "SUICIDE BURN" : "BURN GO IN", "neutral");
   }
   if (live) {
-    if (countdown == null) return hero(NULL_DISPLAY, "SUICIDE BURN", "default");
-    if (countdown <= 0) return hero("IGNITE", "SUICIDE BURN", "alert", true);
+    if (countdown == null) return hero(NULL_DISPLAY, "SUICIDE BURN", "neutral");
+    if (countdown <= 0) return hero("IGNITE", "SUICIDE BURN", "nogo", true);
     const urgent = countdown <= 5;
     return hero(
       <Countdown value={countdown} clock precise />,
       "SUICIDE BURN",
-      urgent ? "alert" : "warning",
+      urgent ? "nogo" : "warn",
       urgent,
     );
   }
   // Past the last instant a human GO can still reach the vessel (T_ignition - N), the burn plan is locked.
-  if (committed) return hero("BURN LOCKED", "", "alert");
+  if (committed) return hero("BURN LOCKED", "", "nogo");
   if (commitInSeconds == null)
-    return hero(NULL_DISPLAY, "BURN GO IN", "default");
+    return hero(NULL_DISPLAY, "BURN GO IN", "neutral");
   return hero(
     <Countdown value={commitInSeconds} clock precise />,
     "BURN GO IN",
-    "warning",
+    "warn",
   );
 }
 
@@ -141,7 +140,7 @@ export function CommitLayer(props: Readonly<CommitLayerProps>) {
 
       {/* Under NO LANDING VECTOR the unavoidable touchdown speed is the one number that matters. */}
       {noLandingVector && impactSpeed != null && (
-        <Readout $tone="alert">
+        <Readout $tone="nogo">
           <Unit value={value("m/s", impactSpeed)} format="m/s" decimals={0} />
           <ReadoutCaption>UNAVOIDABLE IMPACT</ReadoutCaption>
         </Readout>

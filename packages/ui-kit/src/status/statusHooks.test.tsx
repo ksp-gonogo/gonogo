@@ -45,14 +45,14 @@ describe("useStatusBreakdown", () => {
         <>
           <Reporter c={{ id: "a", severity: "caution", label: "A" }} />
           <Reporter c={{ id: "b", severity: "caution", label: "B" }} />
-          <Reporter c={{ id: "c", severity: "critical", label: "C" }} />
+          <Reporter c={{ id: "c", severity: "nogo", label: "C" }} />
           <BreakdownProbe />
         </>,
       ),
     );
-    // Two cautions stay one caution:2 row; critical leads (worst-first).
+    // Two cautions stay one caution:2 row; nogo leads (worst-first).
     expect(screen.getByTestId("breakdown")).toHaveTextContent(
-      "critical:1,caution:2",
+      "nogo:1,caution:2",
     );
   });
 
@@ -60,30 +60,30 @@ describe("useStatusBreakdown", () => {
     const { rerender } = render(
       withStore(
         <>
-          <Reporter c={{ id: "a", severity: "warning", label: "A" }} />
+          <Reporter c={{ id: "a", severity: "warn", label: "A" }} />
           <Reporter c={{ id: "b", severity: "caution", label: "B" }} />
           <BreakdownProbe />
         </>,
       ),
     );
     expect(screen.getByTestId("breakdown")).toHaveTextContent(
-      "warning:1,caution:1",
+      "warn:1,caution:1",
     );
     rerender(
       withStore(
         <>
-          <Reporter c={{ id: "a", severity: "warning", label: "A" }} />
+          <Reporter c={{ id: "a", severity: "warn", label: "A" }} />
           <BreakdownProbe />
         </>,
       ),
     );
-    expect(screen.getByTestId("breakdown")).toHaveTextContent("warning:1");
+    expect(screen.getByTestId("breakdown")).toHaveTextContent("warn:1");
   });
 
   it("is empty with no store in the tree", () => {
     render(
       <>
-        <Reporter c={{ id: "a", severity: "critical", label: "X" }} />
+        <Reporter c={{ id: "a", severity: "nogo", label: "X" }} />
         <BreakdownProbe />
       </>,
     );
@@ -97,12 +97,12 @@ describe("useStatusContribution + useStatusSummary", () => {
       withStore(
         <>
           <Reporter c={{ id: "a", severity: "caution", label: "SYNCING" }} />
-          <Reporter c={{ id: "b", severity: "critical", label: "ABORT" }} />
+          <Reporter c={{ id: "b", severity: "nogo", label: "ABORT" }} />
           <SummaryProbe />
         </>,
       ),
     );
-    expect(screen.getByTestId("summary")).toHaveTextContent("critical:ABORT");
+    expect(screen.getByTestId("summary")).toHaveTextContent("nogo:ABORT");
   });
 
   it("drops to the next-worst when the worst contributor unmounts", () => {
@@ -110,12 +110,12 @@ describe("useStatusContribution + useStatusSummary", () => {
       withStore(
         <>
           <Reporter c={{ id: "a", severity: "caution", label: "SYNCING" }} />
-          <Reporter c={{ id: "b", severity: "critical", label: "ABORT" }} />
+          <Reporter c={{ id: "b", severity: "nogo", label: "ABORT" }} />
           <SummaryProbe />
         </>,
       ),
     );
-    expect(screen.getByTestId("summary")).toHaveTextContent("critical:ABORT");
+    expect(screen.getByTestId("summary")).toHaveTextContent("nogo:ABORT");
 
     rerender(
       withStore(
@@ -165,7 +165,7 @@ describe("useStatusContribution + useStatusSummary", () => {
   it("is a no-op with no store in the tree: summary is null, no throw", () => {
     render(
       <>
-        <Reporter c={{ id: "a", severity: "critical", label: "ABORT" }} />
+        <Reporter c={{ id: "a", severity: "nogo", label: "ABORT" }} />
         <SummaryProbe />
       </>,
     );

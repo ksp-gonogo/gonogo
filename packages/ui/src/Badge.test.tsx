@@ -12,7 +12,7 @@ describe("Badge", () => {
   it("applies a different class for different severities", () => {
     const { rerender } = render(<Badge>N</Badge>);
     const decorativeClass = screen.getByText("N").className;
-    rerender(<Badge severity="warning">N</Badge>);
+    rerender(<Badge tone="warn">N</Badge>);
     expect(screen.getByText("N").className).not.toBe(decorativeClass);
   });
 
@@ -37,12 +37,12 @@ describe("Badge", () => {
     const { container } = render(
       <>
         <Badge>decorative</Badge>
-        <Badge severity="nominal">nominal</Badge>
-        <Badge severity="info">info</Badge>
-        <Badge severity="caution">caution</Badge>
-        <Badge severity="warning">warning</Badge>
-        <Badge severity="critical">critical</Badge>
-        <Badge severity="offline">offline</Badge>
+        <Badge tone="go">nominal</Badge>
+        <Badge tone="info">info</Badge>
+        <Badge tone="caution">caution</Badge>
+        <Badge tone="warn">warning</Badge>
+        <Badge tone="nogo">critical</Badge>
+        <Badge tone="offline">offline</Badge>
         <Badge size="sm">small</Badge>
       </>,
     );

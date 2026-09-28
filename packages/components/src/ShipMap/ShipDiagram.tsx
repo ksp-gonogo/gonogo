@@ -199,7 +199,7 @@ const RESET_BUTTON: CSSProperties = {
   fontSize: "var(--font-size-compact)",
   padding: "var(--inset-control)",
   background: "var(--color-surface-raised)",
-  color: "var(--color-status-go-fg)",
+  color: "var(--color-go-text)",
   border: "1px solid var(--color-border-strong)",
   borderRadius: "var(--radius-regular)",
   textDecoration: "none",

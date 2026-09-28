@@ -44,7 +44,7 @@ export const PickOne: Story = {
             onClick={() => setPicked(servo.id)}
           >
             <span>{servo.name}</span>
-            <Text size="xs" tone={picked === servo.id ? undefined : "muted"}>
+            <Text size="xs" level={picked === servo.id ? undefined : "muted"}>
               <Unit value={value("°", servo.angle)} />
             </Text>
           </SelectableRow>

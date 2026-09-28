@@ -542,20 +542,20 @@ type BigButtonVariant = "go" | "nogo" | "abort";
 // Flat look-up tables keep the styled-template readable and quiet
 // SonarQube's nested-ternary warning (S3358). One entry per variant.
 const BIG_BUTTON_BORDER: Record<BigButtonVariant, string> = {
-  go: "var(--color-status-go-bg)",
-  abort: "var(--color-status-nogo-bg)",
-  nogo: "var(--color-status-nogo-bg)",
+  go: "var(--color-go-status)",
+  abort: "var(--color-nogo-mark)",
+  nogo: "var(--color-nogo-mark)",
 };
 const BIG_BUTTON_BG: Record<BigButtonVariant, string> = {
-  go: "radial-gradient(circle at 50% 35%, var(--color-accent-fg) 0%, var(--color-status-go-bg) 90%)",
+  go: "radial-gradient(circle at 50% 35%, var(--color-accent-fg) 0%, var(--color-go-status) 90%)",
   abort:
-    "radial-gradient(circle at 50% 35%, var(--color-status-nogo-bg) 0%, var(--color-status-alert-muted) 90%)",
-  nogo: "radial-gradient(circle at 50% 35%, var(--color-status-alert-muted) 0%, var(--color-status-alert-muted) 90%)",
+    "radial-gradient(circle at 50% 35%, var(--color-nogo-mark) 0%, var(--color-nogo-muted) 90%)",
+  nogo: "radial-gradient(circle at 50% 35%, var(--color-nogo-muted) 0%, var(--color-nogo-muted) 90%)",
 };
 const BIG_BUTTON_COLOR: Record<BigButtonVariant, string> = {
-  go: "var(--color-status-go-fg)",
-  abort: "var(--color-status-nogo-fg)",
-  nogo: "var(--color-status-nogo-fg)",
+  go: "var(--color-go-text)",
+  abort: "var(--color-nogo-text)",
+  nogo: "var(--color-nogo-text)",
 };
 
 const BigButton = styled.button<{ $variant: BigButtonVariant }>`
@@ -606,9 +606,9 @@ const CountdownOverlay = styled.span`
   left: 8px;
   padding: var(--inset-surface);
   background: rgba(0, 0, 0, 0.6);
-  border: 1px solid var(--color-status-warning-bg);
+  border: 1px solid var(--color-warn-mark);
   border-radius: var(--radius-regular);
-  color: var(--color-status-warning-bg);
+  color: var(--color-warn-text);
   font-size: var(--font-size-figure);
   letter-spacing: 0.15em;
 `;
@@ -652,9 +652,9 @@ const WarnChip = styled.span`
   font-size: var(--font-size-caption);
   letter-spacing: 0.15em;
   padding: var(--inset-chip);
-  border: 1px solid var(--color-status-warning-border-muted);
+  border: 1px solid var(--color-warn-muted-edge);
   background: rgba(120, 100, 40, 0.25);
-  color: var(--color-status-warning-fg-muted);
+  color: var(--color-warn-text);
   border-radius: var(--radius-regular);
   text-transform: uppercase;
 `;
@@ -663,16 +663,16 @@ const CountdownBanner = styled.div`
   text-align: center;
   font-size: clamp(24px, 6vw, 56px);
   font-weight: 700;
-  color: var(--color-status-warning-bg);
+  color: var(--color-warn-text);
   letter-spacing: 0.1em;
 `;
 
 const AbortBanner = styled.div`
   text-align: center;
   padding: var(--inset-surface);
-  border: 1px solid var(--color-status-nogo-bg);
+  border: 1px solid var(--color-nogo-mark);
   background: rgba(200, 40, 40, 0.2);
-  color: var(--color-status-nogo-fg);
+  color: var(--color-nogo-text);
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -701,12 +701,12 @@ const Cell = styled.div<{ $state: CellState }>`
 function cellBorder(state: CellState): string {
   switch (state) {
     case "go":
-      return "var(--color-status-go-bg)";
+      return "var(--color-go-status)";
     case "no-go":
     case "abort":
-      return "var(--color-status-nogo-bg)";
+      return "var(--color-nogo-mark)";
     case "neutral":
-      return "var(--color-status-info-fg)";
+      return "var(--color-info-mark)";
     default:
       return "var(--color-border-strong)";
   }
@@ -730,12 +730,12 @@ function cellBg(state: CellState): string {
 function cellColor(state: CellState): string {
   switch (state) {
     case "go":
-      return "var(--color-status-go-fg)";
+      return "var(--color-go-text)";
     case "no-go":
     case "abort":
-      return "var(--color-status-nogo-fg)";
+      return "var(--color-nogo-text)";
     case "neutral":
-      return "var(--color-status-info-fg)";
+      return "var(--color-info-mark)";
     default:
       return "var(--color-text-muted)";
   }
@@ -756,8 +756,8 @@ const CellStatus = styled.span`
 `;
 
 const VERSION_CHIP_COLOR: Record<"minor" | "major" | "unknown", string> = {
-  minor: "var(--color-status-warning-bg)",
-  major: "var(--color-status-nogo-bg)",
+  minor: "var(--color-warn-mark)",
+  major: "var(--color-nogo-mark)",
   unknown: "var(--color-text-muted)",
 };
 

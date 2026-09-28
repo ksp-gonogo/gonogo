@@ -10,10 +10,10 @@ plantSlot("launch-director.pad", ({ displayName, occupantName }) => (
     data-slot-stub="launch-director.pad"
     style={{
       display: "inline-block",
-      border: "1px dashed var(--color-status-info-fg)",
+      border: "1px dashed var(--color-info-mark)",
       borderRadius: 4,
       padding: "0 6px",
-      color: "var(--color-status-info-fg)",
+      color: "var(--color-info-text)",
     }}
   >
     launch-director.pad: {occupantName ?? displayName}

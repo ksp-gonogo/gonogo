@@ -1,26 +1,29 @@
+import type { Tone } from "@ksp-gonogo/sitrep-sdk";
 import type { HTMLAttributes, ReactNode } from "react";
 import styled, { css } from "styled-components";
+import { TONE_TEXT } from "./tone";
 
 /**
- * `faint` is the quietest tier, one step below `muted`: a secondary readout
- * that should recede rather than compete, like the numeric echo beside an
- * analog stick.
+ * How far plain text recedes: `muted` for secondary text, `faint` the quietest
+ * tier below it, for a readout that should recede rather than compete, like
+ * the numeric echo beside an analog stick.
+ *
+ * @category Text
  */
-export type TextTone =
-  | "accent"
-  | "default"
-  | "muted"
-  | "faint"
-  | "go"
-  | "warn"
-  | "nogo"
-  | "info";
+export type TextLevel = "muted" | "faint";
 export type TextSize = "xs" | "sm" | "base" | "lg";
 export type TextWeight = "regular" | "semibold";
 
 export interface TextProps extends HTMLAttributes<HTMLSpanElement> {
-  /** Foreground colour. Defaults to the primary text colour; `accent` is a deliberate choice. */
-  tone?: TextTone;
+  /** The state the text shows. Defaults to `neutral`, the primary text colour. */
+  tone?: Tone;
+  /**
+   * Recedes neutral text to a quieter tier. A text with a state keeps its
+   * tone's colour, since a state is never dimmed away, so
+   * `tone={alarm ? "nogo" : undefined} level="faint"` reads faint until the
+   * alarm.
+   */
+  level?: TextLevel;
   /** Adds `margin-left: 2px` so the value sits apart from a preceding label. */
   spaced?: boolean;
   /**
@@ -34,33 +37,10 @@ export interface TextProps extends HTMLAttributes<HTMLSpanElement> {
   children?: ReactNode;
 }
 
-const TONE_STYLES = {
-  accent: css`
-    color: var(--color-accent-fg);
-  `,
-  default: css`
-    color: var(--color-text-primary);
-  `,
-  muted: css`
-    color: var(--color-text-muted);
-  `,
-  faint: css`
-    color: var(--color-text-faint);
-  `,
-  go: css`
-    color: var(--color-status-go-fg);
-  `,
-  // The plain warning foreground is near-black text for the amber badge, so prose on a panel takes the muted amber.
-  warn: css`
-    color: var(--color-status-warning-fg-muted);
-  `,
-  nogo: css`
-    color: var(--color-status-nogo-fg);
-  `,
-  info: css`
-    color: var(--color-status-info-fg);
-  `,
-} as const;
+const LEVEL_COLOR: Record<TextLevel, string> = {
+  muted: "var(--color-text-muted)",
+  faint: "var(--color-text-faint)",
+};
 
 const WEIGHT_STYLES = {
   regular: css`
@@ -97,7 +77,8 @@ const SIZE_STYLES = {
  *     <Text tone="go"><Unit value={altitude} /></Text>
  */
 export function Text({
-  tone = "default",
+  tone = "neutral",
+  level,
   spaced = false,
   size,
   weight,
@@ -106,7 +87,11 @@ export function Text({
 }: TextProps) {
   return (
     <Text__Root
-      $tone={tone}
+      $color={
+        tone === "neutral" && level !== undefined
+          ? LEVEL_COLOR[level]
+          : TONE_TEXT[tone]
+      }
       $spaced={spaced}
       $size={size}
       $weight={weight}
@@ -118,13 +103,13 @@ export function Text({
 }
 
 const Text__Root = styled.span<{
-  $tone: TextTone;
+  $color: string;
   $spaced: boolean;
   $size?: TextSize;
   $weight?: TextWeight;
 }>`
   font-variant-numeric: tabular-nums;
-  ${({ $tone }) => TONE_STYLES[$tone]}
+  color: ${({ $color }) => $color};
   ${({ $size }) => $size && SIZE_STYLES[$size]}
   ${({ $weight }) => $weight && WEIGHT_STYLES[$weight]}
   ${({ $spaced }) => $spaced && `margin-left: var(--gap-lead-figure);`}

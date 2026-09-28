@@ -139,13 +139,13 @@ export const UI_KIT_PRESETS = {
           {
             id: "alt",
             label: "Altitude",
-            color: "var(--color-status-go-fg)",
+            color: "var(--color-go-text)",
             points: [0, 1, 2, 3, 4, 5, 6].map((x) => ({ x, y: x * x })),
           },
           {
             id: "vs",
             label: "Vertical speed",
-            color: "var(--color-status-info-fg)",
+            color: "var(--color-info-text)",
             points: [0, 1, 2, 3, 4, 5, 6].map((x) => ({ x, y: 12 - x })),
           },
         ],

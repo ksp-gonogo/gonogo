@@ -49,7 +49,7 @@ export function Reticle({
         position: "absolute",
         width: 22,
         height: 22,
-        border: `2px solid ${aligned ? "var(--color-accent-fg)" : "var(--color-status-warning-bg)"}`,
+        border: `2px solid ${aligned ? "var(--color-accent-fg)" : "var(--color-warn-mark)"}`,
         borderRadius: "var(--radius-circle)",
         transform: "translate(-50%, -50%)",
         // An instant telemetry chase for left/top; only the border colour eases.

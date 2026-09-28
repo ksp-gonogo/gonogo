@@ -29,7 +29,7 @@ plantSlot("targeting.overlay", ({ reticleOffset, reticleTravelPx, ax, ay }) => (
         transform: "translate(-50%, -50%)",
         width: 40,
         height: 40,
-        border: "1px dashed var(--color-status-info-fg)",
+        border: "1px dashed var(--color-info-mark)",
         borderRadius: "50%",
       }}
     />

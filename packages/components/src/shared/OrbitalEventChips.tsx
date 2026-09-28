@@ -76,14 +76,14 @@ const CHIP_TONE: Record<
   { border: string; background: string; color: string }
 > = {
   go: {
-    border: "var(--color-status-go-bg)",
-    background: "var(--color-status-go-bg)",
-    color: "var(--color-status-go-fg)",
+    border: "var(--color-go-status)",
+    background: "var(--color-go-status)",
+    color: "var(--color-go-on-status)",
   },
   warn: {
-    border: "var(--color-status-warning-bg)",
-    background: "var(--color-status-warning-bg)",
-    color: "var(--color-status-warning-fg)",
+    border: "var(--color-warn-mark)",
+    background: "var(--color-warn-status)",
+    color: "var(--color-warn-on-status)",
   },
   neutral: {
     border: "var(--color-border-subtle)",

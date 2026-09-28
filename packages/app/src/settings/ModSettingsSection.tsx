@@ -96,7 +96,7 @@ export function ModSettingsSection({
 
   if (model.failure) {
     return (
-      <Notice tone="warning" aria-label={`${name} settings`}>
+      <Notice tone="warn" aria-label={`${name} settings`}>
         {name}'s settings could not be read this session ({model.failure}).
       </Notice>
     );

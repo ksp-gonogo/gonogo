@@ -46,22 +46,22 @@ export const VesselList: Story = {
       <Row>
         <RowName>Kerbal X</RowName>
         <Unit value={live("m", 84_320)} />
-        <Badge severity="nominal">Orbit</Badge>
+        <Badge tone="go">Orbit</Badge>
       </Row>
       <Row>
         <RowName>Mun Lander II</RowName>
         <Unit value={live("m", 1_430)} />
-        <Badge severity="warning">Descent</Badge>
+        <Badge tone="warn">Descent</Badge>
       </Row>
       <Row>
         <RowName>Minmus Probe</RowName>
         <Unit value={held("m", 46_100)} />
-        <Badge severity="offline">No signal</Badge>
+        <Badge tone="offline">No signal</Badge>
       </Row>
       <Row>
         <RowName>Duna Relay</RowName>
         <Unit value={pending<"m">()} />
-        <Badge severity="info">Launching</Badge>
+        <Badge tone="info">Launching</Badge>
       </Row>
     </List>
   ),
@@ -105,7 +105,7 @@ export const Wrap: Story = {
       <Row wrap>
         <RowName>Jebediah Kerman</RowName>
         <Inline>
-          <Badge severity="nominal">Aboard</Badge>
+          <Badge tone="go">Aboard</Badge>
           <Badge>Pilot</Badge>
           <GhostButton type="button" onClick={() => {}}>
             EVA
@@ -115,7 +115,7 @@ export const Wrap: Story = {
       <Row wrap>
         <RowName>Valentina Kerman</RowName>
         <Inline>
-          <Badge severity="caution">EVA</Badge>
+          <Badge tone="caution">EVA</Badge>
           <Badge>Pilot</Badge>
           <GhostButton type="button" onClick={() => {}}>
             Board
@@ -134,7 +134,7 @@ export const NoWrap: Story = {
       <Row>
         <RowName>Jebediah Kerman</RowName>
         <Inline>
-          <Badge severity="nominal">Aboard</Badge>
+          <Badge tone="go">Aboard</Badge>
           <Badge>Pilot</Badge>
           <GhostButton type="button" onClick={() => {}}>
             EVA
@@ -181,11 +181,11 @@ export const Disabled: Story = {
     <div>
       <Row as="button" interactive onClick={() => {}}>
         <RowName>Mun</RowName>
-        <Text tone="muted">In range</Text>
+        <Text level="muted">In range</Text>
       </Row>
       <Row as="button" interactive disabled onClick={() => {}}>
         <RowName>Eeloo</RowName>
-        <Text tone="muted">No tracking</Text>
+        <Text level="muted">No tracking</Text>
       </Row>
     </div>
   ),

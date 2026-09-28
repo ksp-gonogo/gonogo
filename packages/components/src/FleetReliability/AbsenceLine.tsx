@@ -22,7 +22,7 @@ export function AbsenceLine({
       role="status"
       aria-label={label}
     >
-      <Badge severity={severity}>reliability</Badge>
+      <Badge tone={severity}>reliability</Badge>
       <span>{state}</span>
     </Cluster>
   );

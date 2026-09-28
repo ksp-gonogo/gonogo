@@ -104,14 +104,12 @@ function VantageReadout() {
     <VantageReadout__Root role="status" aria-live="polite">
       <VisuallyHidden>Command centre vantage: </VisuallyHidden>
       {observed === undefined ? (
-        <Text tone="muted" size="xs">
+        <Text level="muted" size="xs">
           Unknown
         </Text>
       ) : (
         <>
-          <Text tone="default" size="xs">
-            {entry?.displayName ?? observed}
-          </Text>
+          <Text size="xs">{entry?.displayName ?? observed}</Text>
           {observed === homeId && <HomeBadge />}
         </>
       )}

@@ -115,7 +115,7 @@ const ComposerBar__Row = styled.div<{ $blocked: boolean }>`
   border: 1px solid
     ${({ $blocked }) =>
       $blocked
-        ? "var(--color-status-nogo-fg)"
+        ? "var(--color-nogo-text)"
         : "var(--console-tone-fg, var(--color-accent-fg))"};
   border-radius: var(--radius-regular);
 `;
@@ -176,9 +176,9 @@ const ComposerBar__Flag = styled.div<{ $blocked: boolean }>`
   ${({ $blocked }) =>
     $blocked
       ? css`
-          color: var(--color-status-nogo-on-bg);
-          background: var(--color-status-nogo-bg);
-          border: 1px solid var(--color-status-nogo-on-bg);
+          color: var(--color-nogo-on-status);
+          background: var(--color-nogo-status);
+          border: 1px solid var(--color-nogo-on-status);
         `
       : css`
           color: var(--color-text-muted);

@@ -20,7 +20,7 @@ function Column({ children }: { children: ReactNode }) {
 /** What a screen reader hears, shown under each example as story chrome since the component itself draws nothing. */
 function Heard({ children }: { children: ReactNode }) {
   return (
-    <Text size="xs" tone="faint" aria-hidden="true">
+    <Text size="xs" level="faint" aria-hidden="true">
       Screen reader hears: {children}
     </Text>
   );
@@ -74,7 +74,7 @@ export const StateWordBesideColour: Story = {
     return (
       <Stack gap="related">
         <Cluster justify="start">
-          <Text tone="muted">Electric charge</Text>
+          <Text level="muted">Electric charge</Text>
           <Text tone={charging ? "go" : "nogo"} weight="semibold">
             {charging ? "+4.2" : "-1.8"} EC/s
           </Text>
@@ -103,7 +103,7 @@ export const ExpandedAbbreviation: Story = {
     <Stack gap="related">
       <Cluster justify="start">
         <Text>Jebediah Kerman</Text>
-        <Badge severity="caution">
+        <Badge tone="caution">
           <span aria-hidden="true">EVA</span>
           <VisuallyHidden>On extravehicular activity</VisuallyHidden>
         </Badge>

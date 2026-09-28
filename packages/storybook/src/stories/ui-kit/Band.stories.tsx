@@ -28,15 +28,15 @@ type Story = StoryObj<typeof meta>;
 export const OrbitalElements: Story = {
   render: () => (
     <Grid cols="max-content 1fr" align="baseline" rowGap="rows" gap="related">
-      <Text tone="muted">Apoapsis</Text>
+      <Text level="muted">Apoapsis</Text>
       <Band min={value("m", 84_200)} max={value("m", 86_900)} />
-      <Text tone="muted">Periapsis</Text>
+      <Text level="muted">Periapsis</Text>
       <Band min={value("m", 71_400)} max={value("m", 72_100)} />
-      <Text tone="muted">Inclination</Text>
+      <Text level="muted">Inclination</Text>
       <Band min={value("°", 5.8)} max={value("°", 6.4)} wrapsAt={360} />
-      <Text tone="muted">Arg. of periapsis</Text>
+      <Text level="muted">Arg. of periapsis</Text>
       <Band min={value("°", 12)} max={value("°", 250)} wrapsAt={360} />
-      <Text tone="muted">Orbital speed</Text>
+      <Text level="muted">Orbital speed</Text>
       <Band min={value("m/s", 2_238)} max={value("m/s", 2_271)} />
     </Grid>
   ),

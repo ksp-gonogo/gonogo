@@ -61,8 +61,8 @@ describe("StatusIndicator", () => {
 
 describe("StatusIndicator tone colours", () => {
   it.each([
-    ["info", "var(--color-status-info-fg)"],
-    ["go", "var(--color-accent-fg)"],
+    ["info", "var(--color-info-mark)"],
+    ["go", "var(--color-go-mark)"],
   ] as const)("draws the %s dot and border in a colour that shows on the raised box", (tone, colour) => {
     render(<StatusIndicator tone={tone}>Label</StatusIndicator>);
     const row = screen.getByText("Label").parentElement as HTMLElement;

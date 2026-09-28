@@ -33,15 +33,11 @@ export function TierBlock({
             spec.kind === "pair" ? (
               <Row key={spec.id}>
                 <TierBlock__Label>{spec.label}</TierBlock__Label>
-                <TierBlock__Value size="xs" tone="default">
-                  {spec.value}
-                </TierBlock__Value>
+                <TierBlock__Value size="xs">{spec.value}</TierBlock__Value>
               </Row>
             ) : (
               <Row key={spec.id}>
-                <TierBlock__Value size="xs" tone="default">
-                  {spec.text}
-                </TierBlock__Value>
+                <TierBlock__Value size="xs">{spec.text}</TierBlock__Value>
               </Row>
             ),
           )}

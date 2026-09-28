@@ -117,7 +117,7 @@ const TOOLTIP: CSSProperties = {
 
 const TOOLTIP_TITLE: CSSProperties = {
   fontWeight: 600,
-  color: "var(--color-status-go-fg)",
+  color: "var(--color-go-text)",
   marginBottom: "var(--gap-under-title)",
   wordBreak: "break-word",
 };

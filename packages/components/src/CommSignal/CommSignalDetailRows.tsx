@@ -15,11 +15,10 @@ export function CommSignalDetailRows({
 }) {
   return (
     <>
-      <Text tone="muted" size="xs" style={CAPTION_LABEL_STYLE}>
+      <Text level="muted" size="xs" style={CAPTION_LABEL_STYLE}>
         Control
       </Text>
       <Text
-        tone="default"
         size="sm"
         style={{
           color: noSignal ? undefined : TONE_TEXT_COLOR[control.tone],
@@ -27,10 +26,10 @@ export function CommSignalDetailRows({
       >
         {noSignal ? NULL_DISPLAY : control.label}
       </Text>
-      <Text tone="muted" size="xs" style={CAPTION_LABEL_STYLE}>
+      <Text level="muted" size="xs" style={CAPTION_LABEL_STYLE}>
         Delay
       </Text>
-      <Text tone="default" size="sm">
+      <Text size="sm">
         {delay == null ? NULL_DISPLAY : <Countdown value={delay} precise />}
       </Text>
     </>

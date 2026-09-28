@@ -42,11 +42,7 @@ function MapBaseStub({ bodyId, onLayer }: SlotProps<"map-view.base">) {
     return () => onLayer(BASE_ID, null, 0);
   }, [bodyId, onLayer]);
   return (
-    <span
-      ref={colourRef}
-      hidden
-      style={{ color: "var(--color-status-info-fg)" }}
-    />
+    <span ref={colourRef} hidden style={{ color: "var(--color-info-mark)" }} />
   );
 }
 
@@ -63,7 +59,7 @@ function MapOverlayStub({
   const origin = project(0, 0);
   const pxPerDegree = Math.abs(project(0, 10).x - origin.x) / 10;
   const half = 20 * pxPerDegree;
-  const colour = "var(--color-status-info-fg)";
+  const colour = "var(--color-info-mark)";
   return (
     <svg
       data-slot-stub="map-view.overlay"

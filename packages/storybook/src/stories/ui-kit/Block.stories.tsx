@@ -36,7 +36,7 @@ type Story = StoryObj<typeof meta>;
 function Figure({ label, children }: { label: string; children: ReactNode }) {
   return (
     <Cluster>
-      <Text tone="muted">{label}</Text>
+      <Text level="muted">{label}</Text>
       {children}
     </Cluster>
   );
@@ -48,13 +48,13 @@ export const VesselRecord: Story = {
     title: "Kerbal X",
     titleRight: (
       <>
-        <Badge severity="nominal">In orbit</Badge>
-        <Badge severity="caution">Low EC</Badge>
+        <Badge tone="go">In orbit</Badge>
+        <Badge tone="caution">Low EC</Badge>
       </>
     ),
     footer: (
       <>
-        <Text tone="muted">Kerbin · 3 crew</Text>
+        <Text level="muted">Kerbin · 3 crew</Text>
         <Cluster justify="end">
           <GhostButton type="button" onClick={() => {}}>
             Focus
@@ -85,9 +85,9 @@ export const VesselRecord: Story = {
 export const TitleLead: Story = {
   args: {
     title: "Jebediah Kerman",
-    titleLeft: <Text tone="accent">1</Text>,
-    titleRight: <Badge severity="info">Pilot · Lv 3</Badge>,
-    children: <Text tone="muted">Assigned to Kerbal X, command seat</Text>,
+    titleLeft: <Text tone="go">1</Text>,
+    titleRight: <Badge tone="info">Pilot · Lv 3</Badge>,
+    children: <Text level="muted">Assigned to Kerbal X, command seat</Text>,
   },
 };
 
@@ -95,12 +95,12 @@ export const TitleLead: Story = {
 export const SideAsides: Story = {
   args: {
     title: "Mun Relay 1",
-    left: <Badge severity="nominal">Link</Badge>,
+    left: <Badge tone="go">Link</Badge>,
     right: <Unit value={live("m", 2_870_000)} />,
     children: (
       <Stack gap="rows">
         <Text>Keostationary relay over the Mun</Text>
-        <Text tone="muted">Signal strength 82 %</Text>
+        <Text level="muted">Signal strength 82 %</Text>
       </Stack>
     ),
   },
@@ -121,10 +121,10 @@ export const SideAsidesNarrow: Story = {
 /** Content across the top and bottom, which is already stacked and never moves. */
 export const TopAndBottom: Story = {
   args: {
-    top: <Text tone="faint">Contract · Explore the Mun</Text>,
+    top: <Text level="faint">Contract · Explore the Mun</Text>,
     title: "Plant a flag on the Mun",
-    children: <Text tone="muted">Advance 42 000 funds, reward 180 000</Text>,
-    bottom: <Badge severity="warning">Expires in 3 days</Badge>,
+    children: <Text level="muted">Advance 42 000 funds, reward 180 000</Text>,
+    bottom: <Badge tone="warn">Expires in 3 days</Badge>,
   },
 };
 
@@ -132,17 +132,14 @@ export const TopAndBottom: Story = {
 export const Several: Story = {
   render: () => (
     <Stack gap="section">
-      <Block
-        title="Kerbal X"
-        titleRight={<Badge severity="nominal">Orbiting</Badge>}
-      >
+      <Block title="Kerbal X" titleRight={<Badge tone="go">Orbiting</Badge>}>
         <Figure label="Altitude">
           <Unit value={live("m", 84_320)} />
         </Figure>
       </Block>
       <Block
         title="Mun Lander II"
-        titleRight={<Badge severity="warning">Descent</Badge>}
+        titleRight={<Badge tone="warn">Descent</Badge>}
       >
         <Figure label="Altitude">
           <Unit value={live("m", 1_430)} />
@@ -150,7 +147,7 @@ export const Several: Story = {
       </Block>
       <Block
         title="Minmus Probe"
-        titleRight={<Badge severity="offline">No signal</Badge>}
+        titleRight={<Badge tone="offline">No signal</Badge>}
       >
         <Figure label="Altitude">
           <Unit value={held("m", 46_100)} />

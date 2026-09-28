@@ -83,7 +83,7 @@ function describe(alarm: Alarm): string {
 
 const Wrap = styled.div`
   background: rgba(90, 15, 15, 0.95);
-  border: 1px solid var(--color-status-nogo-bg);
+  border: 1px solid var(--color-nogo-mark);
   border-radius: var(--radius-pill);
   color: var(--color-text-primary);
   font-size: var(--font-size-compact);
@@ -118,7 +118,7 @@ const Label = styled.span`
   font-size: var(--font-size-caption);
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--color-status-nogo-fg);
+  color: var(--color-nogo-text);
   font-weight: 700;
 `;
 
@@ -139,8 +139,8 @@ const FiredHint = styled.span`
 
 const AckButton = styled.button`
   background: none;
-  border: 1px solid var(--color-status-nogo-bg);
-  color: var(--color-status-nogo-fg);
+  border: 1px solid var(--color-nogo-mark);
+  color: var(--color-nogo-text);
   font-size: var(--font-size-compact);
   padding: var(--inset-control);
   border-radius: var(--radius-regular);
@@ -149,7 +149,7 @@ const AckButton = styled.button`
   text-transform: uppercase;
   @media (hover: hover) {
     &:hover {
-      background: var(--color-status-alert-muted);
+      background: var(--color-nogo-muted);
     }
   }
   &:focus-visible {

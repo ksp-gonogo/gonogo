@@ -53,7 +53,7 @@ const MAX_EXPERIENCE_LEVEL = 5;
 function unavailableSeverity(
   standing: number | null | undefined,
 ): Severity | undefined {
-  return isFatality(standing) ? "critical" : undefined;
+  return isFatality(standing) ? "nogo" : undefined;
 }
 
 /** Why the kerbal cannot fly, until when (in the client's calendar) and aboard what. */
@@ -204,7 +204,7 @@ export function KerbalBadges({ kerbal }: { kerbal: KerbalStatFields }) {
     <>
       {kerbal.veteran && (
         <Badge
-          severity="nominal"
+          tone="go"
           size="sm"
           aria-label="veteran"
           title="Veteran: has flown a notable mission"
@@ -214,7 +214,7 @@ export function KerbalBadges({ kerbal }: { kerbal: KerbalStatFields }) {
       )}
       {kerbal.isBadass && (
         <Badge
-          severity="warning"
+          tone="warn"
           size="sm"
           aria-label="badass"
           title="Badass: KSP's brave trait; rarely panics"
@@ -234,7 +234,7 @@ export function KerbalBadges({ kerbal }: { kerbal: KerbalStatFields }) {
       {/* One badge for every way a kerbal cannot fly; a new axis needs no badge of its own. */}
       {!kerbal.available && (
         <Badge
-          severity={unavailableSeverity(kerbal.standing)}
+          tone={unavailableSeverity(kerbal.standing)}
           size="sm"
           title={unavailableTitle(kerbal)}
         >

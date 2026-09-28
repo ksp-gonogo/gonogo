@@ -1,20 +1,7 @@
+import type { Tone } from "@ksp-gonogo/sitrep-sdk";
 import styled, { css } from "styled-components";
 import { fitBox } from "./fitBox";
-
-export type ReadoutTone = "default" | "go" | "warning" | "alert";
-
-const toneColor = (tone: ReadoutTone | undefined) => {
-  switch (tone) {
-    case "alert":
-      return "var(--color-status-nogo-fg)";
-    case "warning":
-      return "var(--color-status-warning-bg)";
-    case "go":
-      return "var(--color-status-go-fg)";
-    default:
-      return "var(--color-text-primary)";
-  }
-};
+import { TONE_MUTED, TONE_TEXT, toneEdge } from "./tone";
 
 /**
  * Big centred readout: typical "tiny mode" hero element. Fills the remaining
@@ -23,7 +10,7 @@ const toneColor = (tone: ReadoutTone | undefined) => {
  *
  * Pair with `<ReadoutCaption>` underneath for an optional sub-label.
  */
-export const BigReadout = styled.div<{ $tone?: ReadoutTone }>`
+export const BigReadout = styled.div<{ $tone?: Tone }>`
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -36,7 +23,7 @@ export const BigReadout = styled.div<{ $tone?: ReadoutTone }>`
   font-weight: 700;
   letter-spacing: 0.04em;
   line-height: 1.05;
-  color: ${({ $tone }) => toneColor($tone)};
+  color: ${({ $tone }) => TONE_TEXT[$tone ?? "neutral"]};
   min-width: 0;
 `;
 
@@ -44,7 +31,7 @@ export const BigReadout = styled.div<{ $tone?: ReadoutTone }>`
  * Smaller-scale variant for "small" responsive modes: same hero treatment
  * but at a compact size. Doesn't fill, sits alongside other content.
  */
-export const Readout = styled.div<{ $tone?: ReadoutTone }>`
+export const Readout = styled.div<{ $tone?: Tone }>`
   display: inline-flex;
   align-items: baseline;
   gap: var(--gap-value-tag);
@@ -52,7 +39,7 @@ export const Readout = styled.div<{ $tone?: ReadoutTone }>`
   font-size: 22px;
   font-weight: 700;
   letter-spacing: 0.04em;
-  color: ${({ $tone }) => toneColor($tone)};
+  color: ${({ $tone }) => TONE_TEXT[$tone ?? "neutral"]};
 `;
 
 /** Muted secondary line for both readout sizes (e.g. units, mode tag). */
@@ -68,7 +55,7 @@ export const ReadoutCaption = styled.span`
  * Status pill: single-token badge ("NOMINAL", "GO", "ABORT"), for tiny-mode
  * widgets that boil their state down to one indicator.
  */
-export const StatusPill = styled.div<{ $tone: ReadoutTone }>`
+export const StatusPill = styled.div<{ $tone: Tone }>`
   ${fitBox("status-pill")}
   display: inline-flex;
   align-items: center;
@@ -80,34 +67,11 @@ export const StatusPill = styled.div<{ $tone: ReadoutTone }>`
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: ${({ $tone }) => toneColor($tone)};
-  background: ${({ $tone }) => {
-    switch ($tone) {
-      case "alert":
-        return "var(--color-status-alert-muted)";
-      case "warning":
-        return "var(--color-tag-dark-brown-bg)";
-      case "go":
-        return "var(--color-surface-raised)";
-      default:
-        return "var(--color-surface-raised)";
-    }
-  }};
-  border: 1px solid
-    ${({ $tone }) => {
-      switch ($tone) {
-        case "alert":
-          return "var(--color-status-nogo-bg)";
-        case "warning":
-          return "var(--color-status-warning-bg)";
-        case "go":
-          return "var(--color-status-go-mark)";
-        default:
-          return "var(--color-border-subtle)";
-      }
-    }};
+  color: ${({ $tone }) => TONE_TEXT[$tone]};
+  background: ${({ $tone }) => TONE_MUTED[$tone]};
+  border: 1px solid ${({ $tone }) => toneEdge($tone)};
   ${({ $tone }) =>
-    $tone === "alert" &&
+    $tone === "nogo" &&
     css`
       @media (prefers-reduced-motion: no-preference) {
         animation: pill-pulse 1.4s var(--ease-emphasis) infinite;

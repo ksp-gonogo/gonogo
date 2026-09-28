@@ -13,7 +13,7 @@ function nodeOpacity(display: DisplayState, unaffordable?: boolean): number {
 }
 
 function badgeToneColor(tone: "go" | "accent" | "muted"): string {
-  if (tone === "go") return "var(--color-status-go-fg)";
+  if (tone === "go") return "var(--color-go-text)";
   if (tone === "accent") return "var(--color-accent-fg)";
   return "var(--color-text-faint)";
 }
@@ -40,10 +40,9 @@ export const FilterBtn = styled.button<{ $active: boolean }>`
   border-radius: var(--radius-pill);
   border: 1px solid
     ${(p) => (p.$active ? "var(--color-accent-fg)" : "var(--color-border-subtle)")};
-  background: ${(p) =>
-    p.$active ? "var(--color-status-go-bg)" : "transparent"};
+  background: ${(p) => (p.$active ? "var(--color-go-status)" : "transparent")};
   color: ${(p) =>
-    p.$active ? "var(--color-status-go-fg)" : "var(--color-text-muted)"};
+    p.$active ? "var(--color-go-text)" : "var(--color-text-muted)"};
   cursor: pointer;
   font-family: inherit;
 
@@ -166,7 +165,7 @@ export const NodeMeta = styled.span`
 export const Cost = styled.span<{ $insufficient?: boolean }>`
   font-size: var(--font-size-compact);
   color: ${(p) =>
-    p.$insufficient ? "var(--color-status-nogo-fg)" : "var(--color-accent-fg)"};
+    p.$insufficient ? "var(--color-nogo-text)" : "var(--color-accent-fg)"};
   font-variant-numeric: tabular-nums;
 `;
 
@@ -178,7 +177,7 @@ export const StateBadge = styled.span<{ $tone: "go" | "accent" | "muted" }>`
   border-radius: var(--radius-regular);
   color: ${(p) => badgeToneColor(p.$tone)};
   background: ${(p) =>
-    p.$tone === "go" ? "var(--color-status-go-bg)" : "transparent"};
+    p.$tone === "go" ? "var(--color-go-status)" : "transparent"};
 `;
 
 // Description, requires list, parts list and unlock control are different kinds of block, so the seam is --gap-section.
@@ -289,7 +288,7 @@ export const PartCost = styled.span`
 
 export const PartPurchased = styled.span`
   font-size: var(--font-size-compact);
-  color: var(--color-status-go-fg);
+  color: var(--color-go-text);
 `;
 
 export const UnlockRow = styled.div`
@@ -347,7 +346,7 @@ export const Swatch = styled.span<{ $kind: DisplayState }>`
   border: 2px solid ${(p) => dsBorder(p.$kind)};
   background: ${(p) =>
     p.$kind === "owned"
-      ? "var(--color-status-go-mark)"
+      ? "var(--color-go-mark)"
       : "var(--color-surface-sunken)"};
 `;
 
@@ -437,7 +436,7 @@ export const GraphCost = styled.span<{ $ds: DisplayState }>`
 export const GraphOwned = styled.span`
   /* Off the type scale: the same CARD_H budget as GraphCardTitle. */
   font-size: 10px;
-  color: var(--color-status-go-fg);
+  color: var(--color-go-text);
   letter-spacing: 0.04em;
 `;
 

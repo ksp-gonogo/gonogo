@@ -1,4 +1,4 @@
-import type { ReadoutTone } from "@ksp-gonogo/ui-kit";
+import type { Tone } from "@ksp-gonogo/sitrep-sdk";
 
 // Readings below 50 K are KSP's placeholder for an unfitted part, not a real temperature; the whole channel is Kelvin.
 const THERMAL_SENTINEL_K = 50;
@@ -29,8 +29,8 @@ export const BAND_COLOR: Record<Band, string> = {
   unknown: "var(--color-text-faint)",
   nominal: "var(--color-accent-fg)",
   warm: "var(--color-tag-yellow-fg)",
-  hot: "var(--color-status-warning-bg)",
-  critical: "var(--color-status-nogo-bg)",
+  hot: "var(--color-warn-mark)",
+  critical: "var(--color-nogo-mark)",
 };
 
 export const BAND_LABEL: Record<Band, string> = {
@@ -41,14 +41,14 @@ export const BAND_LABEL: Record<Band, string> = {
   critical: "critical",
 };
 
-export const BAND_TONE: Record<Band, ReadoutTone> = {
+export const BAND_TONE: Record<Band, Tone> = {
   // Neutral, not `go`: a green pill would be the very claim this band exists to stop the widget making.
-  unknown: "default",
+  unknown: "neutral",
   nominal: "go",
-  // The alert taxonomy stays go/warning/alert while the bar colour gradient is finer.
-  warm: "warning",
-  hot: "warning",
-  critical: "alert",
+  // The pill's tone stays go/warn/nogo while the bar colour gradient is finer.
+  warm: "warn",
+  hot: "warn",
+  critical: "nogo",
 };
 
 /** Ranks bands for the summary pill; `unknown` ranks lowest so any real measurement wins. */

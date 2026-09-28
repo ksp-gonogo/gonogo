@@ -1,7 +1,8 @@
-import { commandRefusalSubject } from "@ksp-gonogo/sitrep-sdk";
+import { commandRefusalSubject, type Tone } from "@ksp-gonogo/sitrep-sdk";
 import styled, { css } from "styled-components";
 import { focusRing } from "../focusRing";
 import { LiveRegion } from "../LiveRegion";
+import { TONE_MARK, TONE_TEXT } from "../tone";
 import {
   commandFailedSentence,
   type RailFailed,
@@ -130,7 +131,7 @@ function boxesOf(props: CommandListProps): CommandListBox[] {
 export function CommandList(props: Readonly<CommandListProps>) {
   const { kind, onDismiss, live = true } = props;
   const ariaLabel = props.ariaLabel ?? DEFAULT_LABEL[kind];
-  const tone: OutcomeTone = kind === "found" ? "notice" : "warning";
+  const tone: OutcomeTone = kind === "found" ? "info" : "warn";
   if (!live && props.entries.length === 0) return null;
   const boxes = boxesOf(props).map((box) => (
     <CommandList__Box
@@ -196,32 +197,18 @@ const CommandList__Region = styled(LiveRegion)`
   }
 `;
 
-/** `warning` for an outcome that did NOT happen (a refusal, a loss), `notice` for one that did after all (a found). */
-type OutcomeTone = "warning" | "notice";
-
-const toneBg = (tone: OutcomeTone) =>
-  tone === "notice"
-    ? "var(--color-status-info-bg)"
-    : "var(--color-status-warning-bg)";
-const toneFg = (tone: OutcomeTone) =>
-  tone === "notice"
-    ? "var(--color-status-info-fg)"
-    : "var(--color-status-warning-fg-muted)";
-/** The box's edge: a tone colour that shows against the panel it sits on. */
-const toneEdge = (tone: OutcomeTone) =>
-  tone === "notice"
-    ? "var(--color-status-info-fg)"
-    : "var(--color-status-warning-bg)";
+/** `warn` for an outcome that did NOT happen (a refusal, a loss), `info` for one that did after all (a found). */
+type OutcomeTone = Extract<Tone, "warn" | "info">;
 
 const CommandList__Box = styled.div<{ $tone: OutcomeTone }>`
   display: flex;
   align-items: flex-start;
   gap: var(--gap-glyph-box);
   padding: var(--inset-surface);
-  border: 1px solid ${({ $tone }) => toneEdge($tone)};
+  border: 1px solid ${({ $tone }) => TONE_MARK[$tone]};
   border-radius: var(--radius-regular);
   background: ${({ $tone }) =>
-    `color-mix(in srgb, ${toneBg($tone)} 18%, var(--color-surface-raised))`};
+    `color-mix(in srgb, ${TONE_MARK[$tone]} 18%, var(--color-surface-raised))`};
   color: var(--color-text-primary);
   text-align: left;
 `;
@@ -236,11 +223,11 @@ const CommandList__Glyph = styled.span<{ $tone: OutcomeTone }>`
   align-self: stretch;
   font-size: var(--font-size-xs);
   font-weight: 700;
-  color: ${({ $tone }) => toneFg($tone)};
-  border: 1px solid ${({ $tone }) => toneEdge($tone)};
+  color: ${({ $tone }) => TONE_TEXT[$tone]};
+  border: 1px solid ${({ $tone }) => TONE_MARK[$tone]};
   border-radius: var(--radius-regular);
   background: ${({ $tone }) =>
-    `color-mix(in srgb, ${toneBg($tone)} 14%, var(--color-surface-raised))`};
+    `color-mix(in srgb, ${TONE_MARK[$tone]} 14%, var(--color-surface-raised))`};
 `;
 
 /** A stream command's name in words, since it has no queue tile to echo. */
@@ -249,7 +236,7 @@ const CommandList__Label = styled.span<{ $tone: OutcomeTone }>`
   align-self: center;
   font-size: var(--font-size-compact);
   font-weight: 700;
-  color: ${({ $tone }) => toneFg($tone)};
+  color: ${({ $tone }) => TONE_TEXT[$tone]};
 `;
 
 const CommandList__Text = styled.span`

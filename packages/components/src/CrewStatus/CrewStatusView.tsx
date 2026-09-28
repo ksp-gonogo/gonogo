@@ -1,10 +1,9 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import { AugmentSlot, useContributions } from "@ksp-gonogo/core";
-import { stillTrue, VesselType } from "@ksp-gonogo/sitrep-sdk";
+import { stillTrue, type Tone, VesselType } from "@ksp-gonogo/sitrep-sdk";
 import {
   Panel,
   ReadoutCaption,
-  type ReadoutTone,
   Section,
   useElementSize,
   useSlotBound,
@@ -17,7 +16,7 @@ import {
 } from "./CrewRoster";
 import type { CrewStatusConfig } from "./config";
 import { toCrewNames } from "./crewNames";
-import { ROW_TONE_BY_SEVERITY } from "./slots";
+import { ROW_CARD_TONE } from "./slots";
 import { EvaSuitReadout, suitTank } from "./suitResources";
 import { crewStatusTopics } from "./topics";
 
@@ -51,10 +50,10 @@ export function CrewStatusComponent(
 
   const rowToneContributions = useContributions("crew-status.row-tone");
   const rowToneByName = useMemo(() => {
-    const map = new Map<string, ReadoutTone>();
+    const map = new Map<string, Tone>();
     for (const entry of rowToneContributions) {
       if (!map.has(entry.crewName)) {
-        map.set(entry.crewName, ROW_TONE_BY_SEVERITY[entry.severity]);
+        map.set(entry.crewName, ROW_CARD_TONE[entry.tone]);
       }
     }
     return map;

@@ -122,7 +122,7 @@ export const InRow: Story = {
             </option>
           ))}
         </Select>
-        <Text tone="muted" size="sm">
+        <Text level="muted" size="sm">
           {`${rate}x time`}
         </Text>
       </FieldRow>

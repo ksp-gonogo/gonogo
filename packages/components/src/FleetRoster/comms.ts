@@ -5,17 +5,17 @@ export type Tone = "go" | "info" | "warn" | "nogo" | "neutral";
 
 /** A tone drawn as text or a chip's edge on the panel. `info` reads the `-fg` token: the info `-bg` token is near-black. */
 export const TONE_TEXT: Record<Tone, string> = {
-  go: "var(--color-status-go-fg)",
-  info: "var(--color-status-info-fg)",
-  warn: "var(--color-status-warning-bg)",
-  nogo: "var(--color-status-nogo-bg)",
+  go: "var(--color-go-text)",
+  info: "var(--color-info-mark)",
+  warn: "var(--color-warn-mark)",
+  nogo: "var(--color-nogo-mark)",
   neutral: "var(--color-text-muted)",
 };
 
 /** A tone drawn as a lone mark, where green takes its mark token rather than its text one. */
 export const TONE_MARK: Record<Tone, string> = {
   ...TONE_TEXT,
-  go: "var(--color-status-go-mark)",
+  go: "var(--color-go-mark)",
 };
 
 /** Comms tier to tone, the only per-row signal the roster has a real read for. */

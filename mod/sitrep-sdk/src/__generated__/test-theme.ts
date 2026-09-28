@@ -40,24 +40,6 @@ export const GENERATED_TEST_THEME = {
       fg: "var(--color-accent-fg)",
       bg: "var(--color-accent-bg)",
     },
-    status: {
-      go: {
-        fg: "var(--color-status-go-fg)",
-        bg: "var(--color-status-go-bg)",
-      },
-      nogo: {
-        fg: "var(--color-status-nogo-fg)",
-        bg: "var(--color-status-nogo-bg)",
-      },
-      warning: {
-        fg: "var(--color-status-warning-fg)",
-        bg: "var(--color-status-warning-bg)",
-      },
-      info: {
-        fg: "var(--color-status-info-fg)",
-        bg: "var(--color-status-info-bg)",
-      },
-    },
     focus: "var(--color-focus)",
   },
   typography: {

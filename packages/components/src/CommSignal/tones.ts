@@ -3,16 +3,16 @@ export type Tone = "ok" | "warn" | "lost" | "neutral";
 
 export const TONE_COLOR: Record<Tone, string> = {
   ok: "var(--color-accent-fg)",
-  warn: "var(--color-status-warning-bg)",
-  lost: "var(--color-status-nogo-bg)",
+  warn: "var(--color-warn-mark)",
+  lost: "var(--color-nogo-mark)",
   neutral: "var(--color-text-muted)",
 };
 
 // Warning text uses the muted token: the bare warning `-fg` is near-black, meant for the chip.
 export const TONE_TEXT_COLOR: Record<Tone, string> = {
   ok: "var(--color-accent-fg)",
-  warn: "var(--color-status-warning-fg-muted)",
-  lost: "var(--color-status-nogo-fg)",
+  warn: "var(--color-warn-text)",
+  lost: "var(--color-nogo-text)",
   neutral: "var(--color-text-primary)",
 };
 

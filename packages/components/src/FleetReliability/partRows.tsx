@@ -1,14 +1,10 @@
 import {
   type ReliabilityBudget,
   type ReliabilityPartEntry,
+  type Tone,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
-import {
-  magnitudeOf,
-  type ReadoutTone,
-  type Severity,
-  Unit,
-} from "@ksp-gonogo/ui-kit";
+import { magnitudeOf, type Severity, Unit } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import { budgetRow, consumedOf } from "./budgetRow";
 import {
@@ -23,13 +19,13 @@ const ratio = (magnitude: number) => value("ratio", magnitude);
 export type Row = { severity: Severity; word: string; clause: ReactNode };
 
 /** A card's leading-edge tone: coarser than the badge, since the edge is scanned for "anything bad" and the badge carries the precise word. */
-export const CARD_TONE: Record<Severity, ReadoutTone> = {
-  critical: "alert",
-  warning: "warning",
-  caution: "warning",
-  offline: "default",
-  nominal: "default",
-  info: "default",
+export const CARD_TONE: Record<Severity, Tone> = {
+  nogo: "nogo",
+  warn: "warn",
+  caution: "warn",
+  offline: "neutral",
+  go: "neutral",
+  info: "neutral",
 };
 
 /**
@@ -117,7 +113,7 @@ function nominalRow(part: ReliabilityPartEntry): Row {
   if (survival !== null && horizon !== null) {
     // The horizon is IN the sentence: exp(-rate*t) is uninterpretable without t.
     return {
-      severity: survival >= SURVIVAL_WARNING ? "caution" : "warning",
+      severity: survival >= SURVIVAL_WARNING ? "caution" : "warn",
       word: "survival",
       clause: (
         <>
@@ -136,10 +132,10 @@ export function rowFor(part: ReliabilityPartEntry): Row {
   const detail = part.conditionDetail ?? undefined;
 
   if (part.condition === "failed-critical") {
-    return { severity: "critical", word: "critical failure", clause: detail };
+    return { severity: "nogo", word: "critical failure", clause: detail };
   }
   if (part.condition === "failed") {
-    return { severity: "critical", word: "failed", clause: detail };
+    return { severity: "nogo", word: "failed", clause: detail };
   }
   if (part.condition === "service-due") return serviceDueRow(part, detail);
   if (part.condition === "nominal") return nominalRow(part);

@@ -24,13 +24,10 @@ describe("Panel header summary (store-backed)", () => {
     render(
       inStore(
         <Panel panelTitle="FUEL">
-          <Badge severity="caution" report={{ id: "ox", label: "OX LOW" }}>
+          <Badge tone="caution" report={{ id: "ox", label: "OX LOW" }}>
             OX
           </Badge>
-          <Badge
-            severity="critical"
-            report={{ id: "lf", label: "LF CRITICAL" }}
-          >
+          <Badge tone="nogo" report={{ id: "lf", label: "LF CRITICAL" }}>
             LF
           </Badge>
         </Panel>,
@@ -43,14 +40,11 @@ describe("Panel header summary (store-backed)", () => {
     function Harness({ critical }: { critical: boolean }) {
       return inStore(
         <Panel panelTitle="FUEL">
-          <Badge severity="caution" report={{ id: "ox", label: "OX LOW" }}>
+          <Badge tone="caution" report={{ id: "ox", label: "OX LOW" }}>
             OX
           </Badge>
           {critical && (
-            <Badge
-              severity="critical"
-              report={{ id: "lf", label: "LF CRITICAL" }}
-            >
+            <Badge tone="nogo" report={{ id: "lf", label: "LF CRITICAL" }}>
               LF
             </Badge>
           )}
@@ -72,10 +66,7 @@ describe("Panel header summary (store-backed)", () => {
     render(
       inStore(
         <Panel panelTitle="DESCENT" panelStatus="held">
-          <Badge
-            severity="critical"
-            report={{ id: "alarm", label: "NO BURN VECTOR" }}
-          >
+          <Badge tone="nogo" report={{ id: "alarm", label: "NO BURN VECTOR" }}>
             !
           </Badge>
         </Panel>,
@@ -94,7 +85,7 @@ describe("Panel header summary (store-backed)", () => {
     function Harness({ severity }: { severity: "caution" | "offline" }) {
       return inStore(
         <Panel panelTitle="LINK">
-          <Badge severity={severity} report={{ id: "link", label: severity }}>
+          <Badge tone={severity} report={{ id: "link", label: severity }}>
             L
           </Badge>
         </Panel>,
@@ -111,7 +102,7 @@ describe("Panel header summary (store-backed)", () => {
     function Harness({ severity }: { severity: "caution" | "offline" }) {
       return inStore(
         <Panel panelTitle="LINK">
-          <Badge severity={severity} report={{ id: "link", label: severity }}>
+          <Badge tone={severity} report={{ id: "link", label: severity }}>
             L
           </Badge>
         </Panel>,
@@ -129,7 +120,7 @@ describe("Panel header summary (store-backed)", () => {
         <Panel panelTitle="DESCENT">
           {firing && (
             <Badge
-              severity="critical"
+              tone="nogo"
               report={{ id: "alarm", label: "NO BURN VECTOR" }}
             >
               !
@@ -150,10 +141,7 @@ describe("Panel header summary (store-backed)", () => {
     const { container } = render(
       inStore(
         <Panel panelTitle="DESCENT">
-          <Badge
-            severity="critical"
-            report={{ id: "a", label: "NO BURN VECTOR" }}
-          >
+          <Badge tone="nogo" report={{ id: "a", label: "NO BURN VECTOR" }}>
             !
           </Badge>
           body

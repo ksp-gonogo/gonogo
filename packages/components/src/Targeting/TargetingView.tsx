@@ -69,7 +69,7 @@ export function TrackingView({
     <TargetPanel>
       <Stack style={{ flex: 1, justifyContent: "center", minHeight: 0 }}>
         {showTargetName && (
-          <Text tone="default" size="sm" style={{ letterSpacing: "0.05em" }}>
+          <Text size="sm" style={{ letterSpacing: "0.05em" }}>
             {name}
           </Text>
         )}
@@ -77,7 +77,8 @@ export function TrackingView({
           <DisplayDash />
         ) : (
           <Text
-            tone={outOfContact ? "muted" : "accent"}
+            tone={outOfContact ? undefined : "go"}
+            level="muted"
             style={DISPLAY_VALUE_STYLE}
           >
             <Unit value={rangeR} />
@@ -92,7 +93,7 @@ export function TrackingView({
         {showSubReadout && (
           <Text
             size="xs"
-            tone="muted"
+            level="muted"
             style={{
               marginTop: "var(--gap-sub-readout)",
               letterSpacing: "0.04em",

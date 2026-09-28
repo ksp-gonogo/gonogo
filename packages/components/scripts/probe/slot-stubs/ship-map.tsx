@@ -22,7 +22,7 @@ plantSlot("ship-map.overlay", ({ parts, width, height, bounds, baseScale }) => {
         height={boxH}
         style={{
           fill: "none",
-          stroke: "var(--color-status-info-fg)",
+          stroke: "var(--color-info-mark)",
           strokeDasharray: "4 3",
         }}
       />
@@ -30,12 +30,12 @@ plantSlot("ship-map.overlay", ({ parts, width, height, bounds, baseScale }) => {
         cx={width / 2 + (root.lat - bounds.cx) * baseScale}
         cy={height / 2 - (root.axial - bounds.cy) * baseScale}
         r={5}
-        style={{ fill: "var(--color-status-info-fg)" }}
+        style={{ fill: "var(--color-info-mark)" }}
       />
       <text
         x={4}
         y={height - 6}
-        style={{ fill: "var(--color-status-info-fg)", fontSize: 11 }}
+        style={{ fill: "var(--color-info-text)", fontSize: 11 }}
       >
         ship-map.overlay {root.title}
       </text>

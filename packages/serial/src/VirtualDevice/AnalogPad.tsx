@@ -118,16 +118,16 @@ const Thumb = styled.div<{ $active: boolean }>`
   width: 14px;
   height: 14px;
   border-radius: var(--radius-circle);
-  background: ${({ $active }) => ($active ? "var(--color-accent-fg)" : "var(--color-status-info-fg)")};
+  background: ${({ $active }) => ($active ? "var(--color-accent-fg)" : "var(--color-info-mark)")};
   box-shadow: 0 0 6px
     ${({ $active }) =>
       $active ? "rgba(0,255,136,0.5)" : "rgba(124,204,255,0.4)"};
   pointer-events: none;
 `;
 
-// The tone and the type size are the kit's; only the right alignment, which keeps the numeric echo pinned to the stick's edge, is local.
+// The level and the type size are the kit's; only the right alignment, which keeps the numeric echo pinned to the stick's edge, is local.
 const PadValue = styled(Text).attrs({
-  tone: "faint" as const,
+  level: "faint" as const,
   size: "xs" as const,
 })`
   text-align: right;

@@ -252,7 +252,7 @@ export function Tape<Unit extends string = string>({
                 y={yHi}
                 width={TRACK_W}
                 height={h}
-                fill={z.color ?? "var(--color-status-warning-bg)"}
+                fill={z.color ?? "var(--color-warn-mark)"}
                 opacity={0.55}
               />
               {z.label && (

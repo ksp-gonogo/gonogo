@@ -483,15 +483,15 @@ const TONE_BG: Record<Tone, string> = {
 };
 const TONE_BORDER: Record<Tone, string> = {
   idle: "var(--color-border-subtle)",
-  set: "var(--color-status-go-bg)",
-  arm: "var(--color-status-warning-bg)",
-  fire: "var(--color-status-nogo-bg)",
+  set: "var(--color-go-status)",
+  arm: "var(--color-warn-mark)",
+  fire: "var(--color-nogo-mark)",
 };
 const TONE_COUNT: Record<Tone, string> = {
   idle: "var(--color-text-muted)",
-  set: "var(--color-status-go-fg)",
-  arm: "var(--color-status-warning-bg)",
-  fire: "var(--color-status-nogo-fg)",
+  set: "var(--color-go-text)",
+  arm: "var(--color-warn-mark)",
+  fire: "var(--color-nogo-text)",
 };
 
 const Wrap = styled.div<{ $tone: Tone }>`
@@ -575,8 +575,8 @@ const Quiet = styled.span`
 
 const AckButton = styled.button`
   background: none;
-  border: 1px solid var(--color-status-nogo-bg);
-  color: var(--color-status-nogo-fg);
+  border: 1px solid var(--color-nogo-mark);
+  color: var(--color-nogo-text);
   font-size: var(--font-size-compact);
   padding: var(--inset-control);
   border-radius: var(--radius-regular);
@@ -585,7 +585,7 @@ const AckButton = styled.button`
   text-transform: uppercase;
   @media (hover: hover) {
     &:hover {
-      background: var(--color-status-alert-muted);
+      background: var(--color-nogo-muted);
     }
   }
 `;
@@ -598,14 +598,14 @@ const WarpArrow = styled.span`
 
 const WarpToTarget = styled.span`
   font-weight: 700;
-  color: var(--color-status-go-fg);
+  color: var(--color-go-text);
   font-variant-numeric: tabular-nums;
 `;
 
 const WarpToButton = styled.button`
-  background: var(--color-status-go-bg);
-  border: 1px solid var(--color-status-go-bg);
-  color: var(--color-status-go-fg);
+  background: var(--color-go-status);
+  border: 1px solid var(--color-go-status);
+  color: var(--color-go-on-status);
   font-size: var(--font-size-compact);
   padding: var(--inset-control);
   border-radius: var(--radius-regular);
@@ -628,8 +628,8 @@ const WarpToButton = styled.button`
 `;
 
 const StopWarpButton = styled.button`
-  background: var(--color-status-warning-bg);
-  border: 1px solid var(--color-status-warning-bg);
+  background: var(--color-warn-mark);
+  border: 1px solid var(--color-warn-mark);
   color: var(--color-text-primary);
   font-size: var(--font-size-compact);
   padding: var(--inset-control);

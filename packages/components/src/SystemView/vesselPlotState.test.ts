@@ -8,25 +8,25 @@ describe("vesselPlotStateFromStatus", () => {
 
   it("is observed for a directly-measured (non-reckoned) status", () => {
     expect(
-      vesselPlotStateFromStatus({ severity: "critical", emphasis: "observed" }),
+      vesselPlotStateFromStatus({ tone: "nogo", emphasis: "observed" }),
     ).toBe("observed");
   });
 
-  it("maps info severity to predicted", () => {
+  it("maps an info tone to predicted", () => {
     expect(
-      vesselPlotStateFromStatus({ severity: "info", emphasis: "reckoned" }),
+      vesselPlotStateFromStatus({ tone: "info", emphasis: "reckoned" }),
     ).toBe("predicted");
   });
 
-  it("maps warning severity to overdue", () => {
+  it("maps a warn tone to overdue", () => {
     expect(
-      vesselPlotStateFromStatus({ severity: "warning", emphasis: "reckoned" }),
+      vesselPlotStateFromStatus({ tone: "warn", emphasis: "reckoned" }),
     ).toBe("overdue");
   });
 
-  it("maps critical severity to lost", () => {
+  it("maps a nogo tone to lost", () => {
     expect(
-      vesselPlotStateFromStatus({ severity: "critical", emphasis: "reckoned" }),
+      vesselPlotStateFromStatus({ tone: "nogo", emphasis: "reckoned" }),
     ).toBe("lost");
   });
 });

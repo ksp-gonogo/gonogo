@@ -2,7 +2,7 @@ import { Disclosure } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 
 function occupancyColor(occupied: boolean | null): string {
-  if (occupied === true) return "var(--color-status-go-fg)";
+  if (occupied === true) return "var(--color-go-text)";
   if (occupied === null) return "var(--color-text-muted)";
   return "var(--color-text-faint)";
 }
@@ -172,7 +172,7 @@ export const CostTag = styled.span`
 
 export const BlockedTag = styled.span`
   font-size: var(--font-size-compact);
-  color: var(--color-status-nogo-fg);
+  color: var(--color-nogo-text);
   font-variant-numeric: tabular-nums;
 `;
 
@@ -212,9 +212,9 @@ export const CrewChip = styled.button<{
   gap: ${(p) => (p.$compact ? "var(--gap-value-tag)" : "var(--gap-line)")};
   padding: var(--inset-surface);
   background: ${(p) =>
-    p.$selected ? "var(--color-status-go-bg)" : "var(--color-surface-panel)"};
+    p.$selected ? "var(--color-go-status)" : "var(--color-surface-panel)"};
   color: ${(p) =>
-    p.$selected ? "var(--color-status-go-fg)" : "var(--color-text-primary)"};
+    p.$selected ? "var(--color-go-text)" : "var(--color-text-primary)"};
   border: 1px solid
     ${(p) => (p.$selected ? "transparent" : "var(--color-border-subtle)")};
   border-radius: var(--radius-regular);
@@ -291,8 +291,8 @@ export const StatValue = styled.dd`
 `;
 
 export const CrashChip = styled.div`
-  background: var(--color-status-alert-muted);
-  color: var(--color-status-nogo-fg);
+  background: var(--color-nogo-muted);
+  color: var(--color-nogo-text);
   font-size: var(--font-size-compact);
   padding: var(--inset-chip);
   border-radius: var(--radius-regular);
@@ -300,7 +300,7 @@ export const CrashChip = styled.div`
 `;
 
 export const FundsReadout = styled.span`
-  color: var(--color-status-go-fg);
+  color: var(--color-go-text);
   font-variant-numeric: tabular-nums;
   margin-left: var(--gap-lead-figure);
   /* Keeps the middot with the amount when the subtitle wraps. */
@@ -337,11 +337,9 @@ export const ArmButton = styled.button<{
 }>`
   ${armButtonBase}
   background: ${(p) =>
-    p.$kind === "launch" ? "var(--color-status-go-bg)" : "transparent"};
+    p.$kind === "launch" ? "var(--color-go-status)" : "transparent"};
   color: ${(p) =>
-    p.$kind === "launch"
-      ? "var(--color-status-go-fg)"
-      : "var(--color-text-muted)"};
+    p.$kind === "launch" ? "var(--color-go-text)" : "var(--color-text-muted)"};
   border-color: ${(p) =>
     p.$kind === "launch" ? "transparent" : "var(--color-border-subtle)"};
 
@@ -354,7 +352,7 @@ export const ArmButton = styled.button<{
     background: transparent;
     color: var(--color-text-muted);
     border-style: dashed;
-    border-color: var(--color-status-warning-bg);
+    border-color: var(--color-warn-mark);
     cursor: help;
   }
 `;
@@ -362,27 +360,27 @@ export const ArmButton = styled.button<{
 export const TrackingStationButton = styled.button`
   ${armButtonBase}
   background: transparent;
-  color: var(--color-status-info-fg);
+  color: var(--color-info-text);
   border-color: var(--color-border-subtle);
 
   &:hover {
     filter: brightness(1.1);
-    border-color: var(--color-status-info-fg);
+    border-color: var(--color-info-mark);
   }
 
   &[aria-disabled="true"] {
     color: var(--color-text-muted);
     border-style: dashed;
-    border-color: var(--color-status-warning-bg);
+    border-color: var(--color-warn-mark);
     cursor: help;
   }
 `;
 
 export const TrackingStationConfirm = styled.button`
   ${armButtonBase}
-  background: var(--color-status-warning-bg-muted);
-  color: var(--color-status-warning-fg-muted);
-  border-color: var(--color-status-warning-border-muted);
+  background: var(--color-warn-muted);
+  color: var(--color-warn-text);
+  border-color: var(--color-warn-muted-edge);
 
   &:hover {
     filter: brightness(1.1);
@@ -475,8 +473,8 @@ export const SpaceObjectToggle = styled.button`
   letter-spacing: 0.04em;
   font-family: inherit;
   &[aria-pressed="true"] {
-    color: var(--color-status-info-fg);
-    border-color: var(--color-status-info-fg);
+    color: var(--color-info-text);
+    border-color: var(--color-info-mark);
   }
   &:hover {
     filter: brightness(1.15);
@@ -492,13 +490,11 @@ export const ConfirmButton = styled.button<{
 }>`
   ${armButtonBase}
   background: ${(p) =>
-    p.$kind === "launch"
-      ? "var(--color-status-go-bg)"
-      : "var(--color-status-nogo-bg)"};
+    p.$kind === "launch" ? "var(--color-go-status)" : "var(--color-nogo-mark)"};
   color: ${(p) =>
     p.$kind === "launch"
-      ? "var(--color-status-go-fg)"
-      : "var(--color-status-nogo-on-bg)"};
+      ? "var(--color-go-text)"
+      : "var(--color-nogo-on-status)"};
   border-color: transparent;
   /* The animation lives inside the same reduced-motion guard as its keyframes. */
   @media (prefers-reduced-motion: no-preference) {

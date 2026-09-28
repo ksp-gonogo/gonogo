@@ -75,7 +75,7 @@ export function PerfBudgetsComponent({
         panelTitle="PERF"
         sections={
           <Section>
-            <BigReadout $tone={overCount > 0 ? "alert" : "go"}>
+            <BigReadout $tone={overCount > 0 ? "nogo" : "go"}>
               {overCount > 0 ? `${overCount} OVER` : `${snapshots.length} OK`}
               <ReadoutCaption>
                 of {snapshots.length} budget{snapshots.length === 1 ? "" : "s"}

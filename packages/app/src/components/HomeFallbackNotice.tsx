@@ -74,7 +74,7 @@ export function HomeFallbackNotice() {
   if (shown === null) return null;
 
   return (
-    <BannerPill accent="var(--color-status-info-fg)">
+    <BannerPill accent="var(--color-info-mark)">
       Unable to identify home station. Using {shown.name}.
     </BannerPill>
   );

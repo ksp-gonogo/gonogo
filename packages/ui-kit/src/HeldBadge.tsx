@@ -30,7 +30,7 @@ export function HeldBadge({ grade, subject, size }: HeldBadgeProps) {
   const word = heldWord(grade);
   return (
     <Badge
-      severity={severityFromStreamStatus(grade)}
+      tone={severityFromStreamStatus(grade)}
       size={size}
       title={subject === undefined ? undefined : `${subject}: ${word}`}
     >

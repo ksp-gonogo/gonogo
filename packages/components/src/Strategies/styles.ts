@@ -19,11 +19,11 @@ export const StrategyCard = styled(Block).attrs({
   padding: var(--inset-surface);
   border: 1px solid
     ${({ $active }) =>
-      $active ? "var(--color-status-go-mark)" : "var(--color-border-subtle)"};
+      $active ? "var(--color-go-mark)" : "var(--color-border-subtle)"};
   border-radius: var(--radius-regular);
   /* Deliberately very dark: the dim body text has almost no contrast headroom, so the border carries the green. */
   background: ${({ $active }) =>
-    $active ? "var(--color-status-go-muted)" : "transparent"};
+    $active ? "var(--color-go-muted)" : "transparent"};
 `;
 
 export const CardDept = styled.span`
@@ -119,13 +119,9 @@ export const CostChip = styled.span<{ $insufficient?: boolean }>`
   padding: var(--inset-chip);
   border-radius: var(--radius-pill);
   background: ${({ $insufficient }) =>
-    $insufficient
-      ? "var(--color-status-alert-muted)"
-      : "var(--color-surface-raised)"};
+    $insufficient ? "var(--color-nogo-muted)" : "var(--color-surface-raised)"};
   color: ${({ $insufficient }) =>
-    $insufficient
-      ? "var(--color-status-nogo-fg)"
-      : "var(--color-text-primary)"};
+    $insufficient ? "var(--color-nogo-text)" : "var(--color-text-primary)"};
   font-variant-numeric: tabular-nums;
 `;
 
@@ -219,9 +215,7 @@ export const BalanceRow = styled.div`
 
 export const Tally = styled.span<{ $overCap?: boolean }>`
   color: ${(p) =>
-    p.$overCap
-      ? "var(--color-status-warning-bg)"
-      : "var(--color-text-primary)"};
+    p.$overCap ? "var(--color-warn-mark)" : "var(--color-text-primary)"};
   font-variant-numeric: tabular-nums;
   font-weight: ${(p) => (p.$overCap ? 700 : 400)};
 `;

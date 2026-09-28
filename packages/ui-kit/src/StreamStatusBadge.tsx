@@ -26,7 +26,7 @@ export function StreamStatusBadge({ status }: StreamStatusBadgeProps) {
   return (
     <LiveRegion>
       {label !== null && (
-        <Badge severity={severityFromStreamStatus(status)} size="sm">
+        <Badge tone={severityFromStreamStatus(status)} size="sm">
           {label}
         </Badge>
       )}

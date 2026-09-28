@@ -68,9 +68,9 @@ function withAlarms(snapshot: AlarmSnapshot, children: ReactNode) {
 }
 
 describe("severityFromAlarmState", () => {
-  it("firing -> critical, arming -> warning, pending/fired -> no contribution", () => {
-    expect(severityFromAlarmState("firing")).toBe("critical");
-    expect(severityFromAlarmState("arming")).toBe("warning");
+  it("firing -> nogo, arming -> warn, pending/fired -> no contribution", () => {
+    expect(severityFromAlarmState("firing")).toBe("nogo");
+    expect(severityFromAlarmState("arming")).toBe("warn");
     expect(severityFromAlarmState("pending")).toBeNull();
     expect(severityFromAlarmState("fired")).toBeNull();
   });
@@ -205,10 +205,10 @@ describe("AlarmStatusBridge", () => {
         </>,
       ),
     );
-    expect(screen.getByTestId("summary")).toHaveTextContent("critical:IMPACT");
+    expect(screen.getByTestId("summary")).toHaveTextContent("nogo:IMPACT");
   });
 
-  it("maps an arming alarm to warning", () => {
+  it("maps an arming alarm to warn", () => {
     render(
       withAlarms(
         snapshotOf([
@@ -220,9 +220,7 @@ describe("AlarmStatusBridge", () => {
         </>,
       ),
     );
-    expect(screen.getByTestId("summary")).toHaveTextContent(
-      "warning:BURN SOON",
-    );
+    expect(screen.getByTestId("summary")).toHaveTextContent("warn:BURN SOON");
   });
 
   it("contributes nothing for a pending alarm", () => {

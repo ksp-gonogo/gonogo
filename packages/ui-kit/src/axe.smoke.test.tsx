@@ -58,12 +58,12 @@ describe("a11y smoke (jest-axe)", () => {
     const { container } = render(
       <>
         <Badge>decorative</Badge>
-        <Badge severity="nominal">nominal</Badge>
-        <Badge severity="info">info</Badge>
-        <Badge severity="caution">caution</Badge>
-        <Badge severity="warning">warning</Badge>
-        <Badge severity="critical">critical</Badge>
-        <Badge severity="offline">offline</Badge>
+        <Badge tone="go">nominal</Badge>
+        <Badge tone="info">info</Badge>
+        <Badge tone="caution">caution</Badge>
+        <Badge tone="warn">warning</Badge>
+        <Badge tone="nogo">critical</Badge>
+        <Badge tone="offline">offline</Badge>
       </>,
     );
     await expectNoA11yViolations(container);
@@ -205,7 +205,7 @@ describe("a11y smoke (jest-axe)", () => {
           {
             from: value("°", 60),
             to: value("°", 120),
-            color: "var(--color-status-warning-fg)",
+            color: "var(--color-warn-on-status)",
           },
         ]}
         ariaLabel="Slope fall direction"

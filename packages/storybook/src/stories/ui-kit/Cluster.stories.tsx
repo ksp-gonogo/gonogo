@@ -59,7 +59,7 @@ export const Justify: Story = {
     <Stack gap="section">
       {(["between", "start", "center", "end"] as const).map((justify) => (
         <Stack key={justify} gap="caption">
-          <Text size="xs" tone="faint">
+          <Text size="xs" level="faint">
             justify={justify}
           </Text>
           <Outline>
@@ -87,7 +87,7 @@ export const SpreadBetween: Story = {
     children: (
       <>
         <Text weight="semibold">Kerbal X</Text>
-        <Badge severity="nominal">In orbit</Badge>
+        <Badge tone="go">In orbit</Badge>
       </>
     ),
   },
@@ -106,7 +106,7 @@ export const TruncatingName: Story = {
     children: (
       <>
         <Truncate>Mun Orbital Science Platform Mk II</Truncate>
-        <Badge severity="caution">Low EC</Badge>
+        <Badge tone="caution">Low EC</Badge>
       </>
     ),
   },
@@ -122,7 +122,7 @@ export const Baseline: Story = {
         <Text size="lg" weight="semibold">
           <Unit value={value("m", 84_320)} />
         </Text>
-        <Text size="xs" tone="muted">
+        <Text size="xs" level="muted">
           altitude above Kerbin
         </Text>
       </>
@@ -136,7 +136,7 @@ export const AlignStart: Story = {
     align: "start",
     children: (
       <>
-        <Text tone="muted">Notes</Text>
+        <Text level="muted">Notes</Text>
         <Text style={{ maxWidth: 220 }}>
           Circularise at apoapsis, then hold prograde until the Mun transfer
           window opens in 14 minutes.
@@ -192,13 +192,13 @@ export const Gaps: Story = {
       {(["related-packed", "related-dense", "related", "section"] as const).map(
         (gap) => (
           <Stack key={gap} gap="caption">
-            <Text size="xs" tone="faint">
+            <Text size="xs" level="faint">
               gap={gap}
             </Text>
             <Cluster gap={gap} justify="start">
-              <Badge severity="nominal">GO</Badge>
-              <Badge severity="caution">HOLD</Badge>
-              <Badge severity="critical">NO-GO</Badge>
+              <Badge tone="go">GO</Badge>
+              <Badge tone="caution">HOLD</Badge>
+              <Badge tone="nogo">NO-GO</Badge>
             </Cluster>
           </Stack>
         ),

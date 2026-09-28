@@ -10,6 +10,7 @@ import {
 } from "@ksp-gonogo/core";
 import { useManeuverNodes, useNumericFields } from "@ksp-gonogo/data";
 import { useObservedVantage } from "@ksp-gonogo/sitrep-client";
+import type { Tone } from "@ksp-gonogo/sitrep-sdk";
 import {
   KSP_ACTION_GROUP_NAMES,
   KspActionGroup,
@@ -28,7 +29,6 @@ import {
 import {
   Card,
   MissionDate,
-  type ReadoutTone,
   SectionTitle,
   Stack,
   Unit,
@@ -611,7 +611,7 @@ export function AlarmsModal({
                         </Badge>
                         {a.trigger.kind === "threshold" &&
                           isAtSubjectVantage(a.trigger) && (
-                            <Badge severity="info" size="sm">
+                            <Badge tone="info" size="sm">
                               SCET
                             </Badge>
                           )}
@@ -640,11 +640,11 @@ export function AlarmsModal({
                   }
                   titleRight={
                     renaming ? undefined : a.actionsWithheld ? (
-                      <Badge severity="warning" size="sm">
+                      <Badge tone="warn" size="sm">
                         ACTIONS NOT RUN
                       </Badge>
                     ) : a.onFire && a.onFire.length > 0 ? (
-                      <Badge severity="info" size="sm">
+                      <Badge tone="info" size="sm">
                         {actionsBadge(
                           a.onFire.length,
                           actionsRunAboard(a.trigger) &&
@@ -744,7 +744,7 @@ export function AlarmsModal({
                         and an alarm that was never accepted. */}
                   {snapshot.scetArmRefusals?.[a.id] !== undefined && (
                     <RowMeta role="status">
-                      <Badge severity="warning" size="sm">
+                      <Badge tone="warn" size="sm">
                         NOT ARMED
                       </Badge>{" "}
                       {snapshot.scetArmRefusals[a.id]}
@@ -756,7 +756,7 @@ export function AlarmsModal({
                         vessel do nothing. */}
                   {snapshot.onFireRefusals?.[a.id] !== undefined && (
                     <RowMeta role="status">
-                      <Badge severity="warning" size="sm">
+                      <Badge tone="warn" size="sm">
                         ACTION NOT SENT
                       </Badge>{" "}
                       {snapshot.onFireRefusals[a.id]}
@@ -764,7 +764,7 @@ export function AlarmsModal({
                   )}
                   {snapshot.scetUnreachable?.includes(a.id) && (
                     <RowMeta role="status">
-                      <Badge severity="warning" size="sm">
+                      <Badge tone="warn" size="sm">
                         UNREACHABLE
                       </Badge>{" "}
                       The craft this alarm reads no longer exists.
@@ -844,7 +844,7 @@ function ForeignAlarmRow({
       title={label}
       titleRight={
         alarm.state === "armed" ? undefined : (
-          <Badge severity="warning" size="sm">
+          <Badge tone="warn" size="sm">
             {alarm.state === "fired" ? "FIRED" : "UNREACHABLE"}
           </Badge>
         )
@@ -1417,15 +1417,15 @@ const KindRow = styled.div`
 `;
 
 const KindButton = styled.button<{ $active: boolean }>`
-  background: ${(p) => (p.$active ? "var(--color-status-go-bg)" : "transparent")};
-  color: ${(p) => (p.$active ? "var(--color-status-go-fg)" : "var(--color-text-muted)")};
+  background: ${(p) => (p.$active ? "var(--color-go-status)" : "transparent")};
+  color: ${(p) => (p.$active ? "var(--color-go-text)" : "var(--color-text-muted)")};
   border: none;
   padding: var(--inset-control);
   border-radius: var(--radius-regular);
   font-size: var(--font-size-compact);
   cursor: pointer;
   &:hover {
-    color: var(--color-status-go-fg);
+    color: var(--color-go-text);
   }
   &:focus-visible {
     outline: 2px solid var(--color-accent-fg);
@@ -1452,7 +1452,7 @@ const OpSelect = styled.select`
   font-size: var(--font-size-value);
   padding: var(--inset-control);
   background: var(--color-surface-panel);
-  color: var(--color-status-go-fg);
+  color: var(--color-go-text);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-regular);
 `;
@@ -1482,7 +1482,7 @@ const PresetSummary = styled.button`
   color: var(--color-text-muted);
   cursor: pointer;
   &:hover {
-    color: var(--color-status-go-fg);
+    color: var(--color-go-text);
   }
   &:focus-visible {
     outline: 2px solid var(--color-accent-fg);
@@ -1513,7 +1513,7 @@ const PresetButton = styled.button`
   border-radius: var(--radius-regular);
   cursor: pointer;
   &:hover {
-    border-color: var(--color-status-go-bg);
+    border-color: var(--color-go-status);
   }
   &:focus-visible {
     outline: 2px solid var(--color-accent-fg);
@@ -1523,7 +1523,7 @@ const PresetButton = styled.button`
 
 const PresetButtonLabel = styled.span`
   font-size: var(--font-size-compact);
-  color: var(--color-status-go-fg);
+  color: var(--color-go-text);
 `;
 
 const PresetButtonHint = styled.span`
@@ -1532,7 +1532,7 @@ const PresetButtonHint = styled.span`
 `;
 
 const AddedNote = styled.div`
-  color: var(--color-status-go-fg);
+  color: var(--color-go-text);
   font-size: var(--font-size-compact);
 `;
 
@@ -1552,18 +1552,18 @@ const List = styled.ul`
 `;
 
 /** Alarm states, mapped onto the kit's tone vocabulary. */
-const ALARM_TONE: Record<Alarm["state"], ReadoutTone> = {
-  firing: "alert",
-  arming: "warning",
-  pending: "default",
-  fired: "default",
+const ALARM_TONE: Record<Alarm["state"], Tone> = {
+  firing: "nogo",
+  arming: "warn",
+  pending: "neutral",
+  fired: "neutral",
 };
 
 const RowMeta = styled.div`
   font-size: var(--font-size-compact);
   color: var(--color-text-muted);
   code {
-    color: var(--color-status-go-fg);
+    color: var(--color-go-text);
   }
 `;
 
@@ -1573,12 +1573,12 @@ const StateTag = styled.span<{ $state: Alarm["state"] }>`
   letter-spacing: 0.08em;
   color: ${(p) =>
     p.$state === "firing"
-      ? "var(--color-status-nogo-bg)"
+      ? "var(--color-nogo-mark)"
       : p.$state === "arming"
-        ? "var(--color-status-warning-bg)"
+        ? "var(--color-warn-mark)"
         : p.$state === "fired"
           ? "var(--color-text-dim)"
-          : "var(--color-status-go-fg)"};
+          : "var(--color-go-text)"};
 `;
 
 const RowActions = styled.div`
@@ -1588,18 +1588,18 @@ const RowActions = styled.div`
 `;
 
 const DangerButton = styled.button`
-  background: var(--color-status-alert-muted);
-  color: var(--color-status-nogo-bg);
-  border: 1px solid var(--color-status-alert-muted);
+  background: var(--color-nogo-muted);
+  color: var(--color-nogo-text);
+  border: 1px solid var(--color-nogo-muted);
   padding: var(--inset-control);
   border-radius: var(--radius-regular);
   font-size: var(--font-size-compact);
   cursor: pointer;
   &:hover {
-    background: var(--color-status-alert-muted);
+    background: var(--color-nogo-muted);
   }
   &:focus-visible {
-    outline: 2px solid var(--color-status-nogo-bg);
+    outline: 2px solid var(--color-nogo-mark);
     outline-offset: 2px;
   }
 `;
@@ -1621,7 +1621,7 @@ const FireChip = styled.span`
   font-size: var(--font-size-compact);
   color: var(--color-text-muted);
   code {
-    color: var(--color-status-go-fg);
+    color: var(--color-go-text);
   }
 `;
 
@@ -1639,12 +1639,12 @@ const FireRemoveButton = styled.button`
   padding: var(--inset-glyph-tight);
   cursor: pointer;
   &:hover {
-    color: var(--color-status-nogo-bg);
+    color: var(--color-nogo-text);
   }
   &:focus-visible {
     /* 1px, not the 2px house value, and off the spacing ladder either way:
        this is WCAG indicator geometry, not an inconsistency to normalise. */
-    outline: 2px solid var(--color-status-nogo-bg);
+    outline: 2px solid var(--color-nogo-mark);
     outline-offset: 1px;
   }
 `;
@@ -1660,7 +1660,7 @@ const PickerSelect = styled.select`
   font-size: var(--font-size-value);
   padding: var(--inset-control);
   background: var(--color-surface-panel);
-  color: var(--color-status-go-fg);
+  color: var(--color-go-text);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-regular);
 `;

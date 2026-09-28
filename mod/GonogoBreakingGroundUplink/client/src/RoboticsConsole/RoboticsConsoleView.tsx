@@ -89,7 +89,7 @@ export function RoboticsConsoleView({
         <Section key="readout" full>
           <Cluster justify="start" align="baseline" wrap>
             {selected.current === null ? (
-              <Text size="lg" weight="semibold" tone="muted" role="status">
+              <Text size="lg" weight="semibold" level="muted" role="status">
                 Position unknown
               </Text>
             ) : (
@@ -97,23 +97,20 @@ export function RoboticsConsoleView({
                 <Unit value={readings.current} decimals={decimals} />
               </Text>
             )}
-            <Text tone="muted" aria-hidden="true">
+            <Text level="muted" aria-hidden="true">
               →
             </Text>
             {selected.target === null ? (
-              <Text tone="muted" size="lg" role="status">
+              <Text level="muted" size="lg" role="status">
                 Target unknown
               </Text>
             ) : (
-              <Text tone="muted" size="lg">
+              <Text level="muted" size="lg">
                 <Unit value={readings.target} decimals={decimals} />
               </Text>
             )}
             {showToggles && selected.atTarget !== null && (
-              <Badge
-                severity={selected.atTarget ? "nominal" : undefined}
-                role="status"
-              >
+              <Badge tone={selected.atTarget ? "go" : undefined} role="status">
                 {selected.atTarget ? "AT TARGET" : "MOVING"}
               </Badge>
             )}
@@ -140,7 +137,7 @@ export function RoboticsConsoleView({
               >
                 −
               </ActionButton>
-              <Text size="sm" tone="default">
+              <Text size="sm">
                 {selected.target === null ? (
                   "unknown"
                 ) : (

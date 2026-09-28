@@ -73,10 +73,10 @@ const SVG_STYLE_BLOCK = `<style><![CDATA[
   --color-surface-raised: #1a1a1a;
   --color-border-strong: #333;
   --color-accent-fg: #00ff88;
-  --color-status-go-fg: #cfe;
-  --color-status-warning-bg: #ff8c00;
-  --color-status-nogo-bg: #ff4d4d;
-  --color-status-info-fg: #7cf;
+  --color-go-text: #cfe;
+  --color-warn-mark: #ff8c00;
+  --color-nogo-mark: #ff4d4d;
+  --color-info-mark: #7cf;
   --color-tag-yellow-fg: #ffeb3b;
   --color-tag-yellow-border: #6a5a2a;
   --color-tag-blue-bg: #0a0a1a;

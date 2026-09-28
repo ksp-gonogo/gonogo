@@ -51,7 +51,7 @@ function buildEscapeCurve(
     label: narrow ? "Escape velocity" : `Escape velocity (${body.name})`,
     xs,
     ys,
-    color: "var(--color-status-warning-bg)",
+    color: "var(--color-warn-mark)",
   };
 }
 

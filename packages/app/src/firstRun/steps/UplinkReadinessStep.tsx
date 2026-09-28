@@ -56,7 +56,7 @@ export function UplinkReadinessStep() {
           Waiting for the mod to report its Uplinks
         </StatusIndicator>
       ) : (
-        <Text tone="muted" size="sm" role="status" aria-live="polite">
+        <Text level="muted" size="sm" role="status" aria-live="polite">
           {summarise(entries)}
         </Text>
       )}
@@ -99,7 +99,7 @@ function ContractMismatchDetail({
   if (!declaredContract || !coreContract) return null;
 
   return (
-    <Text tone="muted" size="sm">
+    <Text level="muted" size="sm">
       Built for contract {declaredContract.major}.{declaredContract.minor}; this
       mod speaks {coreContract.major}.{coreContract.minor}. The mod refused it,
       so none of its channels or commands are running.
@@ -124,7 +124,7 @@ function UplinkReadinessRow({
       <ConnectionRow>
         <Name>{entry.name}</Name>
         {entry.version && (
-          <Text tone="faint" size="xs">
+          <Text level="faint" size="xs">
             v{entry.version}
           </Text>
         )}
@@ -135,7 +135,7 @@ function UplinkReadinessRow({
         <ContractMismatchDetail entry={entry} />
       )}
       {reason && (
-        <Text tone="muted" size="sm">
+        <Text level="muted" size="sm">
           {reason}
         </Text>
       )}
@@ -151,7 +151,7 @@ function ReadinessReading({
 }: Readonly<{ state: UplinkReadinessEntry["state"] }>) {
   switch (state) {
     case "loaded":
-      return <Badge severity="nominal">Client loaded</Badge>;
+      return <Badge tone="go">Client loaded</Badge>;
     case "loading":
       return (
         <StatusIndicator tone="neutral" pulse="fast">

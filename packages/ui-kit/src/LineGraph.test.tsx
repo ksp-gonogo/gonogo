@@ -161,7 +161,7 @@ describe("LineGraph marker threshold style", () => {
             id: "safe",
             label: "Safe",
             value: 1.75,
-            color: "var(--color-status-warning-fg-muted)",
+            color: "var(--color-warn-text)",
           },
         ]}
         thresholdStyle="marker"
@@ -171,7 +171,7 @@ describe("LineGraph marker threshold style", () => {
     const marker = container.querySelector<HTMLElement>(
       '[data-threshold-marker="safe"]',
     );
-    expect(marker?.style.color).toBe("var(--color-status-warning-fg-muted)");
+    expect(marker?.style.color).toBe("var(--color-warn-text)");
   });
 
   it("skips a threshold outside a pinned domain rather than pinning it to an edge", () => {

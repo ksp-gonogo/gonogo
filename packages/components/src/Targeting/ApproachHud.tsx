@@ -47,11 +47,11 @@ function ReadoutRow({
       </ReadoutCaption>
       <Text
         size="lg"
-        tone={tone === "ok" ? "accent" : "default"}
+        tone={tone === "ok" ? "go" : undefined}
         style={{
           fontWeight: 600,
           whiteSpace: "nowrap",
-          color: tone === "warn" ? "var(--color-status-warning-bg)" : undefined,
+          color: tone === "warn" ? "var(--color-warn-mark)" : undefined,
         }}
       >
         {children}
@@ -104,20 +104,20 @@ export function ApproachHud({
         fitToSize
         sections={
           <Section full gap="related-dense">
-            <Text tone="default" size="sm" style={{ letterSpacing: "0.05em" }}>
+            <Text size="sm" style={{ letterSpacing: "0.05em" }}>
               {name}
             </Text>
             {distance === undefined ? (
               <DisplayDash />
             ) : (
-              <Text tone="accent" style={DISPLAY_VALUE_STYLE}>
+              <Text tone="go" style={DISPLAY_VALUE_STYLE}>
                 <Unit value={value("m", distance)} />
               </Text>
             )}
             {closingMagnitude !== null && (
               <Text
                 size="xs"
-                tone="muted"
+                level="muted"
                 style={{
                   marginTop: "var(--gap-sub-readout)",
                   letterSpacing: "0.04em",
@@ -139,7 +139,7 @@ export function ApproachHud({
       panelTitle="APPROACH"
       sections={[
         <Section key="target" full>
-          <Text tone="default" size="sm" style={{ letterSpacing: "0.05em" }}>
+          <Text size="sm" style={{ letterSpacing: "0.05em" }}>
             {name}
           </Text>
         </Section>,

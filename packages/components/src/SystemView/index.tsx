@@ -578,7 +578,6 @@ export type {
   SystemEntityMeta,
   SystemEntityOrbitPosition,
   SystemEntityPosition,
-  SystemEntitySeverity,
   SystemEntityShape,
   SystemEntityStyle,
 } from "./systemEntities";

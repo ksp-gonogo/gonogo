@@ -46,7 +46,7 @@ export function CommsPathRoute({
   const bottleneckId = commsBottleneckHopId(hops, rateByHopId);
   return (
     <Stack style={{ minWidth: 0 }}>
-      <Text tone="muted" size="xs" style={CAPTION_LABEL_STYLE}>
+      <Text level="muted" size="xs" style={CAPTION_LABEL_STYLE}>
         Route
       </Text>
       <div>
@@ -95,7 +95,6 @@ function CommsPathStop({
     >
       <RailSlot stop />
       <Text
-        tone="default"
         size="sm"
         weight={emphasize ? "semibold" : "regular"}
         title={node.title}
@@ -141,19 +140,19 @@ function CommsPathLeg({
       {hasDetail && (
         <Cluster align="baseline" style={{ color: "var(--color-text-dim)" }}>
           {hop.distanceMeters !== undefined && (
-            <Text tone="muted" size="xs">
+            <Text level="muted" size="xs">
               <Unit value={hop.distanceMeters} />
             </Text>
           )}
           {legTime !== undefined && (
             // `Countdown` renders a breaking space, unlike `Unit`, so it needs its own nowrap.
-            <Text tone="muted" size="xs" style={{ whiteSpace: "nowrap" }}>
+            <Text level="muted" size="xs" style={{ whiteSpace: "nowrap" }}>
               <Countdown value={legTime} precise />
             </Text>
           )}
           {rate !== undefined && (
             <Text
-              tone="muted"
+              level="muted"
               size="xs"
               weight={isBottleneck ? "semibold" : "regular"}
               title={
@@ -164,9 +163,7 @@ function CommsPathLeg({
               style={{
                 whiteSpace: "nowrap",
                 // `Text`'s warn tone is the near-black chip foreground, so standalone warning text uses the muted token.
-                color: isBottleneck
-                  ? "var(--color-status-warning-fg-muted)"
-                  : undefined,
+                color: isBottleneck ? "var(--color-warn-text)" : undefined,
               }}
             >
               <Unit value={value("bit/s", rate)} />

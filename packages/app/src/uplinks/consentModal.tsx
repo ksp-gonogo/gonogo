@@ -54,7 +54,7 @@ const Dialog = styled.div`
     font-size: 0.85rem;
   }
   .UplinkConsent__limit {
-    color: var(--color-status-warning-fg);
+    color: var(--color-warn-on-status);
     font-size: 0.82rem;
   }
   .UplinkConsent__actions {

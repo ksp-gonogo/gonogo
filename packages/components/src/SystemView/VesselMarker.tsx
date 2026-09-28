@@ -1,3 +1,4 @@
+import type { AlertTone } from "@ksp-gonogo/sitrep-sdk";
 import type { PlacedPoint } from "./diagramGeometry";
 import { DepthRing } from "./diagramMarks";
 
@@ -14,18 +15,18 @@ import { DepthRing } from "./diagramMarks";
  */
 export type VesselPlotState = "observed" | "predicted" | "overdue" | "lost";
 
-/** Maps a contributor's semantic severity onto this diagram's plot state; the host alone decides what a severity looks like, and `emphasis: "observed"` maps to the plain marker. */
+/** Maps a contributor's tone onto this diagram's plot state; the host alone decides what a tone looks like, and `emphasis: "observed"` maps to the plain marker. */
 export function vesselPlotStateFromStatus(
   status: {
-    severity: "info" | "warning" | "critical";
+    tone: AlertTone;
     emphasis: "observed" | "reckoned";
   } | null,
 ): VesselPlotState {
   if (!status || status.emphasis === "observed") return "observed";
-  switch (status.severity) {
-    case "critical":
+  switch (status.tone) {
+    case "nogo":
       return "lost";
-    case "warning":
+    case "warn":
       return "overdue";
     default:
       return "predicted";
@@ -39,8 +40,8 @@ export function vesselPlotStateFromStatus(
 export const MARKER_STATE_COLOURS: Record<VesselPlotState, string> = {
   observed: "var(--color-accent-fg)",
   predicted: "var(--color-text-muted)",
-  overdue: "var(--color-status-warning-fg-muted)",
-  lost: "var(--color-status-nogo-bg)",
+  overdue: "var(--color-warn-text)",
+  lost: "var(--color-nogo-mark)",
 };
 
 function markerStyle(state: VesselPlotState) {

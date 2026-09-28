@@ -663,9 +663,9 @@ const RowActions = styled.div`
 `;
 
 const GraphButton = styled.button<{ $open: boolean }>`
-  background: ${({ $open }) => ($open ? "var(--color-status-go-bg)" : "none")};
-  border: 1px solid ${({ $open }) => ($open ? "var(--color-status-go-bg)" : "var(--color-border-strong)")};
-  color: ${({ $open }) => ($open ? "var(--color-status-go-fg)" : "var(--color-text-muted)")};
+  background: ${({ $open }) => ($open ? "var(--color-go-status)" : "none")};
+  border: 1px solid ${({ $open }) => ($open ? "var(--color-go-status)" : "var(--color-border-strong)")};
+  color: ${({ $open }) => ($open ? "var(--color-go-text)" : "var(--color-text-muted)")};
   cursor: pointer;
   font-size: var(--font-size-compact);
   padding: var(--inset-control);
@@ -674,8 +674,8 @@ const GraphButton = styled.button<{ $open: boolean }>`
 
   @media (hover: hover) {
     &:hover {
-      border-color: var(--color-status-go-bg);
-      color: var(--color-status-go-fg);
+      border-color: var(--color-go-status);
+      color: var(--color-go-on-status);
     }
   }
 `;
@@ -735,9 +735,9 @@ const RecordingBadge = styled.span`
   display: inline-flex;
   align-items: center;
   gap: var(--gap-related);
-  background: var(--color-status-nogo-bg);
-  border: 1px solid var(--color-status-nogo-bg);
-  color: var(--color-status-nogo-on-bg);
+  background: var(--color-nogo-status);
+  border: 1px solid var(--color-nogo-mark);
+  color: var(--color-nogo-on-status);
   font-size: var(--font-size-compact);
   padding: var(--inset-chip);
   border-radius: var(--radius-regular);
@@ -763,7 +763,7 @@ const Th = styled.th`
 `;
 
 const Tr = styled.tr<{ $current: boolean }>`
-  background: ${({ $current }) => ($current ? "var(--color-status-go-bg)" : "transparent")};
+  background: ${({ $current }) => ($current ? "var(--color-go-status)" : "transparent")};
   &:hover { background: var(--color-surface-raised); }
 `;
 
@@ -792,18 +792,12 @@ const OutcomeBadge = styled.span<{ $tone: "go" | "nogo" }>`
   letter-spacing: 0.05em;
   cursor: help;
   background: ${(p) =>
-    p.$tone === "go"
-      ? "var(--color-status-go-bg)"
-      : "var(--color-status-nogo-bg)"};
+    p.$tone === "go" ? "var(--color-go-status)" : "var(--color-nogo-mark)"};
   border: 1px solid
     ${(p) =>
-      p.$tone === "go"
-        ? "var(--color-status-go-bg)"
-        : "var(--color-status-nogo-bg)"};
+      p.$tone === "go" ? "var(--color-go-status)" : "var(--color-nogo-mark)"};
   color: ${(p) =>
-    p.$tone === "go"
-      ? "var(--color-status-go-fg)"
-      : "var(--color-status-nogo-fg)"};
+    p.$tone === "go" ? "var(--color-go-text)" : "var(--color-nogo-text)"};
 `;
 
 const DeleteButton = styled.button`
@@ -813,7 +807,7 @@ const DeleteButton = styled.button`
   cursor: pointer;
   font-size: var(--font-size-lg);
   padding: var(--inset-glyph);
-  &:hover { color: var(--color-status-nogo-bg); }
+  &:hover { color: var(--color-nogo-text); }
 `;
 
 const ConfirmRow = styled.div`
@@ -824,13 +818,13 @@ const ConfirmRow = styled.div`
 
 const DangerButton = styled.button`
   background: var(--color-tag-dark-brown-bg);
-  border: 1px solid var(--color-status-alert-muted);
+  border: 1px solid var(--color-nogo-muted);
   color: var(--color-tag-red-fg);
   cursor: pointer;
   font-size: var(--font-size-compact);
   padding: var(--inset-control);
   border-radius: var(--radius-regular);
-  &:hover { background: var(--color-status-alert-muted); }
+  &:hover { background: var(--color-nogo-muted); }
 `;
 
 const CancelButton = styled.button`
@@ -925,7 +919,7 @@ const AutoDeleteLabel = styled.label`
 `;
 
 const AutoDeleteHint = styled.span`
-  color: var(--color-status-alert-muted);
+  color: var(--color-nogo-muted);
 `;
 
 const ClearAllButton = styled.button`
@@ -936,5 +930,5 @@ const ClearAllButton = styled.button`
   font-size: var(--font-size-compact);
   padding: var(--inset-control);
   border-radius: var(--radius-regular);
-  &:hover { color: var(--color-tag-red-fg); border-color: var(--color-status-alert-muted); }
+  &:hover { color: var(--color-tag-red-fg); border-color: var(--color-nogo-muted); }
 `;

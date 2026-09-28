@@ -40,19 +40,16 @@
 // the resource's IDENTITY colour, derived by the renderer from `resource` via
 // ui-kit's `resourceColor`, never chosen by a contributor. `status` is the
 // SEPARATE, level-driven signal (a border tint or badge), and a single `tone`
-// would conflate it with the fill hue. `ShipMapMeterTone` IS exported, for
-// `ShipMapPartMetaEntry`: that is a different kind of row (process
-// running/broken, habitat pressure, ...) whose `tone` genuinely is a status
-// colour rather than an identity.
+// would conflate it with the fill hue. `ShipMapPartMetaEntry` does carry a
+// `tone`: that is a different kind of row (process running/broken, habitat
+// pressure, ...) whose tone genuinely is a state rather than an identity.
 // ---------------------------------------------------------------------------
 
 import type { Reading } from "../reading";
 import type { ReadFrameChoice } from "../spine/reference-frame";
 import type { Value } from "../unit-system/value";
+import type { AlertTone, Tone } from "./tone";
 import type { MeterEntry, StatEntry } from "./types";
-
-/** Mirrors ui-kit's `MeterTone` (`packages/ui-kit/src/Meter.tsx`). */
-export type ShipMapMeterTone = "neutral" | "go" | "warn" | "nogo" | "info";
 
 /** Mirrors `ShipMapPartMeterEntry` (`ShipMap/shipTopology.ts`). */
 export interface ShipMapPartMeterEntry {
@@ -86,7 +83,7 @@ export interface ShipMapPartMeterEntry {
 export interface ShipMapPartMetaEntry {
   partId: string;
   label: string;
-  tone: ShipMapMeterTone;
+  tone: Tone;
   kind: "ratio" | "text";
   value?: number;
   text?: string;
@@ -118,18 +115,11 @@ export interface CommSignalHopRateEntry {
 
 export type SystemEntityEmphasis = "faint" | "normal" | "bright";
 
-/**
- * Mirrors `SystemEntitySeverity`.
- *
- * @category Extensions
- */
-export type SystemEntitySeverity = "info" | "warning" | "critical";
-
 /** Mirrors `SystemEntityStyle`. A contribution names `emphasis` and
- *  `severity`; `colour` is the host's own decoration channel. */
+ *  `tone`; `colour` is the host's own decoration channel. */
 export interface SystemEntityStyle {
   emphasis?: SystemEntityEmphasis;
-  severity?: SystemEntitySeverity;
+  tone?: AlertTone;
   colour?: string;
 }
 
@@ -201,7 +191,7 @@ export interface SystemEntity {
 export interface SystemViewVesselStatusEntry {
   /** The vessel this entry decorates: `vessel.identity`'s `vesselId`. */
   target: string;
-  severity: "info" | "warning" | "critical";
+  tone: AlertTone;
   /** Every entry from this contribution is a model's opinion, never a direct observation. */
   emphasis: "observed" | "reckoned";
   label: string;
@@ -230,7 +220,7 @@ export interface SystemViewProjection {
  * One entry of a `crew-status.row-tone` contribution: how alarming one kerbal's
  * situation is.
  *
- * A contributor names the severity and nothing else; the widget owns the
+ * A contributor names the tone and nothing else; the widget owns the
  * palette. Omit a kerbal entirely for nothing to report, rather than
  * contributing an `info` entry.
  *
@@ -240,7 +230,7 @@ export interface CrewRowToneEntry {
   /** The crew member this entry is about; matched to a roster row by name. */
   crewName: string;
   /** How alarming the situation is. The widget decides what that looks like. */
-  severity: SystemEntitySeverity;
+  tone: AlertTone;
 }
 
 // The plot SUBJECTS `packages/components` draws, declared so a contributor
@@ -326,8 +316,8 @@ export interface MissionLogEventEntry {
   detail?: string;
   /** Short chip text, e.g. "FAILURE"; upper-cased by the host, "LOG" when absent. */
   kindLabel?: string;
-  /** The same three words every other contribution in the app uses. */
-  severity?: "info" | "warning" | "critical";
+  /** How alarming the entry is. */
+  tone?: AlertTone;
   /**
    * A figure the row moved: what a leader cost, what a contract paid in
    * reputation.
@@ -472,7 +462,7 @@ declare module "./types" {
       entry: SystemViewProjection;
     };
     /**
-     * Tints a whole crew row by severity; the widget picks the colour. The
+     * Tints a whole crew row by tone; the widget picks the colour. The
      * first entry for a name wins.
      */
     "crew-status.row-tone": {

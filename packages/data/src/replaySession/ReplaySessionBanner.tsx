@@ -197,5 +197,5 @@ const ExitButton = styled.button`
   font-size: var(--font-size-compact);
   padding: var(--inset-control);
   border-radius: var(--radius-regular);
-  &:hover { color: var(--color-tag-red-fg); border-color: var(--color-status-alert-muted); }
+  &:hover { color: var(--color-tag-red-fg); border-color: var(--color-nogo-muted); }
 `;

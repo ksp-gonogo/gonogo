@@ -473,7 +473,7 @@ describe("PanelDelayRail", () => {
       store.register(refusedHandle("one", 1));
       inPanel(<PanelDelayRail />, store);
       const rule = emittedRuleFor(screen.getByText("1 command failed"));
-      expect(rule).toContain("var(--color-status-warning-fg-muted)");
+      expect(rule).toContain("var(--color-warn-text)");
     });
 
     it("keeps the reason out of the collapsed strip and shows it once expanded", async () => {

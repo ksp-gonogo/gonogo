@@ -29,13 +29,13 @@ function summary(): HTMLElement {
 function StatusHeader() {
   return (
     <PanelStatusStoreProvider>
-      <Badge report={{ id: "a" }} severity="caution">
+      <Badge report={{ id: "a" }} tone="caution">
         A
       </Badge>
-      <Badge report={{ id: "b" }} severity="caution">
+      <Badge report={{ id: "b" }} tone="caution">
         B
       </Badge>
-      <Badge report={{ id: "c" }} severity="critical">
+      <Badge report={{ id: "c" }} tone="nogo">
         C
       </Badge>
       <PanelHeader title="MULTI" aside={<button type="button">Ctl</button>} />

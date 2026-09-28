@@ -404,17 +404,17 @@ const ProfileActions = styled.div`
 `;
 
 const DangerButton = styled(Button)`
-  background: var(--color-status-alert-muted);
-  border-color: var(--color-status-nogo-bg);
-  color: var(--color-status-nogo-fg);
+  background: var(--color-nogo-muted);
+  border-color: var(--color-nogo-mark);
+  color: var(--color-nogo-text);
 `;
 
 const Warning = styled.div`
-  background: var(--color-status-alert-muted);
-  border: 1px solid var(--color-status-alert-muted);
+  background: var(--color-nogo-muted);
+  border: 1px solid var(--color-nogo-muted);
   border-radius: var(--radius-regular);
   padding: var(--inset-surface);
-  color: var(--color-status-nogo-fg);
+  color: var(--color-nogo-text);
   font-size: var(--font-size-compact);
 `;
 

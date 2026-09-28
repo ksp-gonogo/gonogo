@@ -336,7 +336,7 @@ function TransferWindowComponent({
                         </Muted>
                       </NowValue>
                       {/* Only the verdict is announced: the phase moves every frame. */}
-                      <Badge severity={STATUS_SEVERITY[solution.status]} live>
+                      <Badge tone={STATUS_SEVERITY[solution.status]} live>
                         {STATUS_LABEL[solution.status]}
                       </Badge>
                     </NowFacts>

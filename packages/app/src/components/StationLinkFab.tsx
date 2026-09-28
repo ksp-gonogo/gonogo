@@ -278,7 +278,7 @@ const UrlRow = styled.div`
 `;
 
 const UrlValue = styled.a`
-  color: var(--color-status-info-fg);
+  color: var(--color-info-text);
   font-size: var(--font-size-value);
   word-break: break-all;
   text-decoration: underline;
@@ -296,7 +296,7 @@ const Label = styled.span`
 `;
 
 const Code = styled.code`
-  color: var(--color-status-info-fg);
+  color: var(--color-info-text);
   /* Display tier: the type scale stops at --font-size-lg on purpose,
      everything above 16px in this codebase is a clamp, a JS fit, or locked
      to a box width. */

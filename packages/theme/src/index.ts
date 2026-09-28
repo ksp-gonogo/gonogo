@@ -13,6 +13,9 @@ export {
   parseColorTokens,
   relativeLuminance,
   STATUS_FILLS,
+  TONE_NAMES,
+  TONE_ROLES,
+  type ToneRole,
 } from "./contrast";
 export {
   DefaultThemeProvider,

@@ -365,7 +365,7 @@ const WidthToggleBtn = styled.button`
   justify-content: center;
 
   &[aria-pressed="true"] {
-    color: var(--color-status-info-fg);
+    color: var(--color-info-text);
   }
 
   &:hover {

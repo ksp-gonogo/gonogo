@@ -40,7 +40,7 @@ export const VesselList: Story = {
         titleRight={<Badge>{vessel.body}</Badge>}
       >
         <Cluster>
-          <Text tone="muted">Altitude</Text>
+          <Text level="muted">Altitude</Text>
           <Unit value={vessel.altitude} />
         </Cluster>
       </Card>
@@ -55,19 +55,19 @@ export const Rows: Story = {
     children: (
       <>
         <Cluster>
-          <Text tone="muted">Liquid fuel</Text>
+          <Text level="muted">Liquid fuel</Text>
           <Unit value={live("units", 1_260)} />
         </Cluster>
         <Cluster>
-          <Text tone="muted">Oxidizer</Text>
+          <Text level="muted">Oxidizer</Text>
           <Unit value={live("units", 1_540)} />
         </Cluster>
         <Cluster>
-          <Text tone="muted">Monopropellant</Text>
+          <Text level="muted">Monopropellant</Text>
           <Unit value={held("units", 42)} />
         </Cluster>
         <Cluster>
-          <Text tone="muted">Electric charge</Text>
+          <Text level="muted">Electric charge</Text>
           <Unit value={live("units", 180)} />
         </Cluster>
       </>
@@ -81,13 +81,13 @@ export const Gaps: Story = {
     <Cluster align="start" justify="start" gap="section">
       {(["caption", "rows", "related", "section"] as const).map((gap) => (
         <Stack key={gap} gap="caption">
-          <Text size="xs" tone="faint">
+          <Text size="xs" level="faint">
             {gap}
           </Text>
           <Stack gap={gap}>
-            <Badge severity="nominal">Stage 3</Badge>
-            <Badge severity="nominal">Stage 2</Badge>
-            <Badge severity="caution">Stage 1</Badge>
+            <Badge tone="go">Stage 3</Badge>
+            <Badge tone="go">Stage 2</Badge>
+            <Badge tone="caution">Stage 1</Badge>
           </Stack>
         </Stack>
       ))}

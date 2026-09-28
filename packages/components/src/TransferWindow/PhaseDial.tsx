@@ -4,7 +4,7 @@ import { PhaseDialSvg } from "./styles";
 
 function phaseColor(status: TransferSolution["status"]): string {
   if (status === "go") return "var(--color-accent-fg)";
-  if (status === "soon") return "var(--color-status-warning-bg)";
+  if (status === "soon") return "var(--color-warn-mark)";
   return "var(--color-text-dim)";
 }
 

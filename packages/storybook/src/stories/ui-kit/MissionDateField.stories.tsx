@@ -99,7 +99,7 @@ export const NoSteps: Story = {
 export const Window: Story = {
   render: () => (
     <ConfigForm>
-      <Text tone="muted" size="sm">
+      <Text level="muted" size="sm">
         Transfer window, Kerbin to Duna
       </Text>
       <Controlled label="Window opens" initial={IGNITION_UT} steps={[]} />

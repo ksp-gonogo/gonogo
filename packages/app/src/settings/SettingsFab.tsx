@@ -75,7 +75,7 @@ const StatusDot = styled.span`
   width: 10px;
   height: 10px;
   border-radius: var(--radius-circle);
-  background: var(--color-status-warning-bg);
+  background: var(--color-warn-mark);
   border: 2px solid var(--color-surface-raised);
   pointer-events: none;
 `;

@@ -86,7 +86,7 @@ export function UplinkSkewOverride({ outcome, reload = defaultReload }: Props) {
 
   return (
     <Stack gap="caption">
-      <Text tone="muted" size="sm">
+      <Text level="muted" size="sm">
         Accepting loads the client the index offers. The bundle is still fetched
         and still refused unless it hashes to {integrity.observed}. The decision
         covers this id, this version and this pair of hashes only.

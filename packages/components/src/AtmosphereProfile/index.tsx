@@ -93,7 +93,7 @@ function AtmosphereProfileComponent({
         value: currentPressure,
         axis: "primary",
         label,
-        color: "var(--color-status-warning-bg)",
+        color: "var(--color-warn-mark)",
         dashed: false,
         /* The altitude is the craft's own, so a held record marks the label. */
         reading: readingOf(flightReading, (f) => f.altitudeAsl),

@@ -16,9 +16,9 @@ function SummaryProbe() {
 
 describe("Badge severity vocabulary", () => {
   it("paints different severities with different classes", () => {
-    const { rerender } = render(<Badge severity="caution">C</Badge>);
+    const { rerender } = render(<Badge tone="caution">C</Badge>);
     const cautionClass = screen.getByText("C").className;
-    rerender(<Badge severity="critical">C</Badge>);
+    rerender(<Badge tone="nogo">C</Badge>);
     expect(screen.getByText("C").className).not.toBe(cautionClass);
   });
 
@@ -26,7 +26,7 @@ describe("Badge severity vocabulary", () => {
     // A neutral kind-chip stays grey, never nominal green.
     const { rerender } = render(<Badge>KOS</Badge>);
     const decorativeClass = screen.getByText("KOS").className;
-    rerender(<Badge severity="nominal">KOS</Badge>);
+    rerender(<Badge tone="go">KOS</Badge>);
     expect(screen.getByText("KOS").className).not.toBe(decorativeClass);
   });
 });
@@ -34,7 +34,7 @@ describe("Badge severity vocabulary", () => {
 describe("Badge live-region behaviour", () => {
   it("announces when live", () => {
     render(
-      <Badge severity="critical" live>
+      <Badge tone="nogo" live>
         ABORT
       </Badge>,
     );
@@ -42,7 +42,7 @@ describe("Badge live-region behaviour", () => {
   });
 
   it("is not a live region by default (decorative badges stay silent)", () => {
-    render(<Badge severity="info">NOTE</Badge>);
+    render(<Badge tone="info">NOTE</Badge>);
     expect(screen.queryByRole("status")).toBeNull();
   });
 });
@@ -51,34 +51,34 @@ describe("Badge report auto-registration", () => {
   it("registers into the nearest store and can win the panel summary", () => {
     render(
       <PanelStatusStoreProvider>
-        <Badge severity="caution" report={{ id: "a" }}>
+        <Badge tone="caution" report={{ id: "a" }}>
           SYNCING
         </Badge>
-        <Badge severity="critical" report={{ id: "b" }}>
+        <Badge tone="nogo" report={{ id: "b" }}>
           ABORT
         </Badge>
         <SummaryProbe />
       </PanelStatusStoreProvider>,
     );
-    expect(screen.getByTestId("summary")).toHaveTextContent("critical:ABORT");
+    expect(screen.getByTestId("summary")).toHaveTextContent("nogo:ABORT");
   });
 
   it("uses an explicit report label over the badge text", () => {
     render(
       <PanelStatusStoreProvider>
-        <Badge severity="warning" report={{ id: "a", label: "LOW FUEL" }}>
+        <Badge tone="warn" report={{ id: "a", label: "LOW FUEL" }}>
           LF
         </Badge>
         <SummaryProbe />
       </PanelStatusStoreProvider>,
     );
-    expect(screen.getByTestId("summary")).toHaveTextContent("warning:LOW FUEL");
+    expect(screen.getByTestId("summary")).toHaveTextContent("warn:LOW FUEL");
   });
 
   it("does NOT move the summary for a badge without report", () => {
     render(
       <PanelStatusStoreProvider>
-        <Badge severity="critical">DECOR</Badge>
+        <Badge tone="nogo">DECOR</Badge>
         <SummaryProbe />
       </PanelStatusStoreProvider>,
     );
@@ -91,7 +91,7 @@ describe("Badge report auto-registration", () => {
       return (
         <PanelStatusStoreProvider>
           {show && (
-            <Badge severity="critical" report={{ id: "a" }}>
+            <Badge tone="nogo" report={{ id: "a" }}>
               ABORT
             </Badge>
           )}
@@ -100,14 +100,14 @@ describe("Badge report auto-registration", () => {
       );
     }
     const { rerender } = render(<Harness show />);
-    expect(screen.getByTestId("summary")).toHaveTextContent("critical:ABORT");
+    expect(screen.getByTestId("summary")).toHaveTextContent("nogo:ABORT");
     rerender(<Harness show={false} />);
     expect(screen.getByTestId("summary")).toHaveTextContent("none");
   });
 
   it("is a no-op outside a store (a bare badge still renders)", () => {
     render(
-      <Badge severity="critical" report={{ id: "a" }}>
+      <Badge tone="nogo" report={{ id: "a" }}>
         ABORT
       </Badge>,
     );
@@ -119,8 +119,8 @@ describe("Badge accessibility", () => {
   it("has no axe violations decorative or live", async () => {
     const { container } = render(
       <div>
-        <Badge severity="info">NOTE</Badge>
-        <Badge severity="critical" live>
+        <Badge tone="info">NOTE</Badge>
+        <Badge tone="nogo" live>
           ABORT
         </Badge>
       </div>,

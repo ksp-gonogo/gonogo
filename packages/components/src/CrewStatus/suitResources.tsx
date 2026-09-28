@@ -1,7 +1,11 @@
 import type { TopicReading } from "@ksp-gonogo/sitrep-client";
-import type { Reading, Value, VesselResources } from "@ksp-gonogo/sitrep-sdk";
+import type {
+  Reading,
+  Tone,
+  Value,
+  VesselResources,
+} from "@ksp-gonogo/sitrep-sdk";
 import { Meter } from "@ksp-gonogo/ui";
-import type { StatTone } from "@ksp-gonogo/ui-kit";
 import { Cluster } from "@ksp-gonogo/ui-kit";
 
 // An EVA kerbal is a real vessel, so its suit resources arrive on `vessel.resources`; the install's life-support profile decides which ones.
@@ -26,7 +30,7 @@ export interface SuitTank {
 }
 
 /** Tone for what is left in a suit tank: full is calm, empty alarms. `undefined` when either half has no figure. */
-function suitResourceTone(pair: SuitTank): StatTone | undefined {
+function suitResourceTone(pair: SuitTank): Tone | undefined {
   const amount = pair.amount.value;
   const capacity = pair.capacity.value;
   if (!amount || !capacity?.isPositive()) return undefined;

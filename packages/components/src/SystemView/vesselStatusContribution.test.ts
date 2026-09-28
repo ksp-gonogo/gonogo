@@ -26,7 +26,7 @@ describe("computeVesselStatus", () => {
     const [entry] = computeVesselStatus("v1", silent(), 1_500);
     expect(entry).toMatchObject({
       target: "v1",
-      severity: "info",
+      tone: "info",
       emphasis: "reckoned",
     });
     expect(entry.label).toBe("Reacquire expected in ~8min 20s");
@@ -51,7 +51,7 @@ describe("computeVesselStatus", () => {
       }),
       999_999,
     );
-    expect(entry).toMatchObject({ target: "v1", severity: "info" });
+    expect(entry).toMatchObject({ target: "v1", tone: "info" });
     expect(entry.label).toMatch(/no contact/i);
   });
 
@@ -59,7 +59,7 @@ describe("computeVesselStatus", () => {
     const [entry] = computeVesselStatus("v1", silent(), 2_500);
     expect(entry).toMatchObject({
       target: "v1",
-      severity: "warning",
+      tone: "warn",
       emphasis: "reckoned",
     });
     expect(entry.label).toBe("Overdue by 8min 20s");
@@ -69,7 +69,7 @@ describe("computeVesselStatus", () => {
     const [entry] = computeVesselStatus("v1", silent({ state: "Lost" }), 2_500);
     expect(entry).toMatchObject({
       target: "v1",
-      severity: "critical",
+      tone: "nogo",
       emphasis: "reckoned",
       label: "Officially lost",
     });

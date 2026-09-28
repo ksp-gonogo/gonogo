@@ -16,14 +16,14 @@ plantSlot("system-view.overlay", ({ parentName, width, height, center }) => (
       r={28}
       style={{
         fill: "none",
-        stroke: "var(--color-status-info-fg)",
+        stroke: "var(--color-info-mark)",
         strokeDasharray: "4 3",
       }}
     />
     <text
       x={center.x - width / 2 + 6}
       y={center.y - height / 2 + 14}
-      style={{ fill: "var(--color-status-info-fg)", fontSize: 11 }}
+      style={{ fill: "var(--color-info-text)", fontSize: 11 }}
     >
       system-view.overlay {parentName}
     </text>

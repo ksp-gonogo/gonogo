@@ -5,8 +5,8 @@ import type { Alarm, AlarmState } from "./types";
 
 /**
  * `AlarmState` -> `Severity`, or `null` for a state that should not light a
- * panel. A `firing` alarm is the top non-offline severity (`critical`), an
- * `arming` one (warp stepping down toward a time alarm) is a `warning`, and
+ * panel. A `firing` alarm is the top non-offline severity (`nogo`), an
+ * `arming` one (warp stepping down toward a time alarm) is a `warn`, and
  * `pending`/`fired` contribute nothing: pending has not happened yet, and a
  * faded `fired` alarm is on its way out. This is the only graded axis alarms
  * expose today; a per-alarm severity field would fold in here if one is added.
@@ -14,9 +14,9 @@ import type { Alarm, AlarmState } from "./types";
 export function severityFromAlarmState(state: AlarmState): Severity | null {
   switch (state) {
     case "firing":
-      return "critical";
+      return "nogo";
     case "arming":
-      return "warning";
+      return "warn";
     case "pending":
     case "fired":
       return null;

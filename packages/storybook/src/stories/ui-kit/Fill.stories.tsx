@@ -84,7 +84,7 @@ export const GrowSlot: Story = {
         <AscentTrace />
         <GraphNotice placement="overlay">Kerbal X · ascent</GraphNotice>
       </Fill>
-      <Notice tone="warning">
+      <Notice tone="warn">
         Max Q in 8 s: throttle to 70 % to stay under the structural limit
       </Notice>
     </Stack>
@@ -111,6 +111,6 @@ export const TwoGrowSlots: Story = {
 export const CentredContent: Story = {
   args: {
     style: { alignItems: "center", justifyContent: "center" },
-    children: <Text tone="muted">No active vessel on Kerbin</Text>,
+    children: <Text level="muted">No active vessel on Kerbin</Text>,
   },
 };

@@ -101,7 +101,7 @@ export const Popover: Story = {
   render: () => (
     <Row as="div">
       <Row.Name>Signal strength</Row.Name>
-      <Badge severity="caution">Weak</Badge>
+      <Badge tone="caution">Weak</Badge>
       <Disclosure
         variant="popover"
         label={<InfoIcon size={14} />}

@@ -95,15 +95,13 @@ describe("CommandList", () => {
   it("draws a warning kind's command identity in the colour made for text on a dark ground", () => {
     render(<CommandList kind="lost" entries={[loss]} />);
     const [glyph] = screen.getAllByText("SAS");
-    expect(emittedRuleFor(glyph)).toContain(
-      "var(--color-status-warning-fg-muted)",
-    );
+    expect(emittedRuleFor(glyph)).toContain("var(--color-warn-text)");
   });
 
   it("draws a found in the notice colour, since it reports something that happened", () => {
     render(<CommandList kind="found" entries={[found]} />);
     const [glyph] = screen.getAllByText("SAS");
-    expect(emittedRuleFor(glyph)).toContain("var(--color-status-info-fg)");
+    expect(emittedRuleFor(glyph)).toContain("var(--color-info-text)");
   });
 
   it("spells a continuous command's name out rather than drawing a glyph tile", () => {

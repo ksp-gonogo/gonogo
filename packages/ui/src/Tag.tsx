@@ -8,9 +8,9 @@ export interface TagColours {
 
 const TAG_COLOURS: Record<string, TagColours> = {
   telemetry: {
-    bg: "var(--color-status-go-bg)",
+    bg: "var(--color-go-status)",
     fg: "var(--color-accent-fg)",
-    border: "var(--color-status-go-bg)",
+    border: "var(--color-go-status)",
   },
   control: {
     bg: "var(--color-tag-dark-brown-bg)",

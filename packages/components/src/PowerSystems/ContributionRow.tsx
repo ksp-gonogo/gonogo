@@ -20,7 +20,7 @@ function flowSign(flow: number): FlowSign {
   return "neg";
 }
 
-const FLOW_TONE = { pos: "go", neg: "warn", zero: "faint" } as const;
+const FLOW_TONE = { pos: "go", neg: "warn", zero: "neutral" } as const;
 
 /** One part's flow of the focused resource, with its efficiency against nominal where both are known. */
 export function ContributionRow({
@@ -54,6 +54,7 @@ export function ContributionRow({
       )}
       <Text
         tone={FLOW_TONE[sign]}
+        level={sign === "zero" ? "faint" : undefined}
         title={flowKnown ? undefined : "No flow reading for this part"}
       >
         {flowKnown

@@ -123,7 +123,7 @@ export const ThreadMarker = styled.div<{ $blocked?: boolean }>`
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: ${({ $blocked }) =>
-    $blocked ? "var(--color-status-nogo-fg)" : "var(--color-text-faint)"};
+    $blocked ? "var(--color-nogo-text)" : "var(--color-text-faint)"};
 
   &::before,
   &::after {
@@ -131,9 +131,7 @@ export const ThreadMarker = styled.div<{ $blocked?: boolean }>`
     flex: 1 1 auto;
     border-top: 1px solid
       ${({ $blocked }) =>
-        $blocked
-          ? "var(--color-status-nogo-fg)"
-          : "var(--color-border-subtle)"};
+        $blocked ? "var(--color-nogo-text)" : "var(--color-border-subtle)"};
   }
 `;
 
@@ -154,7 +152,7 @@ export const Author = styled.span<{ $pilot: boolean }>`
   font-size: var(--font-size-compact);
   font-weight: 600;
   color: ${({ $pilot }) =>
-    $pilot ? "var(--color-status-go-fg)" : "var(--color-status-info-fg)"};
+    $pilot ? "var(--color-go-text)" : "var(--color-info-mark)"};
 `;
 
 // A membership change reads as something that happened to the thread rather than as words somebody said.

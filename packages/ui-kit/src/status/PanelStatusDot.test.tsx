@@ -7,9 +7,9 @@ import { PanelStatusDot } from "./PanelStatusDot";
 // Asserts the relationships and the accessible name; pixels and colour tokens are the visual gate's job.
 describe("PanelStatusDot", () => {
   it("renders a severity dot with an accessible name and no number for a single contributor", () => {
-    render(<PanelStatusDot severity="warning" count={1} />);
+    render(<PanelStatusDot severity="warn" count={1} />);
     const dot = screen.getByRole("img", { name: "warning" });
-    expect(dot).toHaveAttribute("data-severity", "warning");
+    expect(dot).toHaveAttribute("data-severity", "warn");
     // A single contributor is just the coloured dot: no number inside.
     expect(dot).toHaveTextContent("");
   });
@@ -21,14 +21,14 @@ describe("PanelStatusDot", () => {
   });
 
   it("defaults the count to 1 (no number)", () => {
-    render(<PanelStatusDot severity="critical" />);
+    render(<PanelStatusDot severity="nogo" />);
     const dot = screen.getByRole("img", { name: "critical" });
     expect(dot).toHaveTextContent("");
-    expect(dot).toHaveAttribute("data-severity", "critical");
+    expect(dot).toHaveAttribute("data-severity", "nogo");
   });
 
   it("grows into a pill sized to its digits when the count takes two", () => {
-    render(<PanelStatusDot severity="warning" count={12} />);
+    render(<PanelStatusDot severity="warn" count={12} />);
     const rule = emittedRuleFor(
       screen.getByRole("img", { name: "12 warning" }),
     );
@@ -37,7 +37,7 @@ describe("PanelStatusDot", () => {
   });
 
   it("stays the round dot for a single digit", () => {
-    render(<PanelStatusDot severity="warning" count={9} />);
+    render(<PanelStatusDot severity="warn" count={9} />);
     const rule = emittedRuleFor(screen.getByRole("img", { name: "9 warning" }));
     expect(rule).toContain("width:8px");
     expect(rule).toContain("border-radius:var(--radius-circle)");
@@ -46,8 +46,8 @@ describe("PanelStatusDot", () => {
   it("has no axe violations with and without a count", async () => {
     const { container } = render(
       <>
-        <PanelStatusDot severity="warning" />
-        <PanelStatusDot severity="critical" count={12} />
+        <PanelStatusDot severity="warn" />
+        <PanelStatusDot severity="nogo" count={12} />
       </>,
     );
     await expectNoA11yViolations(container);

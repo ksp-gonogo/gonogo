@@ -24,8 +24,8 @@ export function WithheldOr({
   withheld,
   figure,
 }: Readonly<{ withheld: boolean; figure: ReactNode | null }>) {
-  if (withheld) return <Text tone="muted">{NULL_DISPLAY}</Text>;
-  if (figure === null) return <Text tone="faint">unknown</Text>;
+  if (withheld) return <Text level="muted">{NULL_DISPLAY}</Text>;
+  if (figure === null) return <Text level="faint">unknown</Text>;
   return figure;
 }
 
@@ -49,7 +49,7 @@ export function ResourceCells({
       <Truncate style={RESOURCE_NAME_STYLE} title={flow.resource ?? undefined}>
         {flow.resource ?? "?"}
       </Truncate>
-      <Text size="sm" tone="default" style={RIGHT_ALIGN}>
+      <Text size="sm" style={RIGHT_ALIGN}>
         <WithheldOr
           withheld={ratesHeld}
           figure={
@@ -72,10 +72,10 @@ export function RunStateBadge({
   running,
 }: Readonly<{ running?: boolean | null }>) {
   if (running === null || running === undefined) {
-    return <Badge severity="warning">run state unread</Badge>;
+    return <Badge tone="warn">run state unread</Badge>;
   }
   return (
-    <Badge severity={running ? "nominal" : "info"}>
+    <Badge tone={running ? "go" : "info"}>
       {running ? "running" : "stopped"}
     </Badge>
   );

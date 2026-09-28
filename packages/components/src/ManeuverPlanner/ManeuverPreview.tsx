@@ -209,7 +209,7 @@ const Note = styled.div`
 
 const ErrorLine = styled.div`
   font-size: var(--font-size-compact);
-  color: var(--color-status-nogo-fg);
+  color: var(--color-nogo-text);
   background: var(--color-tag-dark-brown-bg);
   border: 1px solid var(--color-border-strong);
   padding: var(--inset-surface);

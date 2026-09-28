@@ -57,7 +57,7 @@ export function DivertSection({ model }: Model) {
 export function ComDatumNote({ model }: Model) {
   if (!model.usingComDatum) return null;
   return (
-    <Text tone="muted" size="xs">
+    <Text level="muted" size="xs">
       root-part altitude (lowest-point datum unavailable)
     </Text>
   );

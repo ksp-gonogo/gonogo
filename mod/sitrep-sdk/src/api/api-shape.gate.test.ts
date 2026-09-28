@@ -137,6 +137,7 @@ const EXPECTED_BARREL_VALUE_EXPORTS = [
   "frameCaveat",
   "lengthsAreLengths",
   "SEND_PLAN_COMMAND",
+  "TONES",
   "sendRefusalFromError",
   "useCommand",
   "useSendPlan",

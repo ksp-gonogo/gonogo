@@ -71,9 +71,7 @@ const StatusDot = styled.span<{ $tone: "partial" | "error" }>`
   height: 10px;
   border-radius: var(--radius-circle);
   background: ${({ $tone }) =>
-    $tone === "error"
-      ? "var(--color-status-nogo-bg)"
-      : "var(--color-status-warning-bg)"};
+    $tone === "error" ? "var(--color-nogo-mark)" : "var(--color-warn-mark)"};
   border: 2px solid var(--color-surface-raised);
   pointer-events: none;
 `;

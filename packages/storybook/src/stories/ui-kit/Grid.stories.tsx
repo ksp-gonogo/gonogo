@@ -38,13 +38,13 @@ export const FixedColumns: Story = {
     cols: "1fr 90px 40px 70px",
     children: CREW.flatMap((kerbal) => [
       <Truncate key={`${kerbal.name}-name`}>{kerbal.name}</Truncate>,
-      <Text key={`${kerbal.name}-role`} tone="muted">
+      <Text key={`${kerbal.name}-role`} level="muted">
         {kerbal.role}
       </Text>,
       <Text key={`${kerbal.name}-level`}>Lv {kerbal.level}</Text>,
       <Badge
         key={`${kerbal.name}-state`}
-        severity={kerbal.state === "EVA" ? "caution" : "nominal"}
+        tone={kerbal.state === "EVA" ? "caution" : "go"}
       >
         {kerbal.state}
       </Badge>,
@@ -61,15 +61,15 @@ export const LabelValue: Story = {
     rowGap: "rows",
     children: (
       <>
-        <Text tone="muted">Altitude</Text>
+        <Text level="muted">Altitude</Text>
         <Text size="lg" weight="semibold">
           <Unit value={live("m", 84_320)} />
         </Text>
-        <Text tone="muted">Apoapsis</Text>
+        <Text level="muted">Apoapsis</Text>
         <Unit value={live("m", 86_900)} />
-        <Text tone="muted">Periapsis</Text>
+        <Text level="muted">Periapsis</Text>
         <Unit value={held("m", 71_400)} />
-        <Text tone="muted">Time to Ap</Text>
+        <Text level="muted">Time to Ap</Text>
         <Unit value={pending<"s">()} />
       </>
     ),
@@ -77,15 +77,15 @@ export const LabelValue: Story = {
 };
 
 const VESSELS = [
-  { name: "Kerbal X", body: "Kerbin", altitude: 84_320, severity: "nominal" },
-  { name: "Mun Lander II", body: "Mun", altitude: 1_430, severity: "warning" },
-  { name: "Minmus Probe", body: "Minmus", altitude: 46_100, severity: "info" },
-  { name: "Duna Relay", body: "Duna", altitude: 320_000, severity: "offline" },
+  { name: "Kerbal X", body: "Kerbin", altitude: 84_320, tone: "go" },
+  { name: "Mun Lander II", body: "Mun", altitude: 1_430, tone: "warn" },
+  { name: "Minmus Probe", body: "Minmus", altitude: 46_100, tone: "info" },
+  { name: "Duna Relay", body: "Duna", altitude: 320_000, tone: "offline" },
   {
     name: "KSS Harmony",
     body: "Kerbin",
     altitude: 250_000,
-    severity: "nominal",
+    tone: "go",
   },
 ] as const;
 
@@ -98,7 +98,7 @@ export const AutoFillCards: Story = {
       <Card
         key={vessel.name}
         title={vessel.name}
-        titleRight={<Badge severity={vessel.severity}>{vessel.body}</Badge>}
+        titleRight={<Badge tone={vessel.tone}>{vessel.body}</Badge>}
       >
         <Unit value={value("m", vessel.altitude)} />
       </Card>
@@ -127,9 +127,9 @@ export const AlignStart: Story = {
     rowGap: "rows",
     children: (
       <>
-        <Text tone="muted">Objective</Text>
+        <Text level="muted">Objective</Text>
         <Text>Land on the Mun and return Jebediah Kerman to Kerbin</Text>
-        <Text tone="muted">Reward</Text>
+        <Text level="muted">Reward</Text>
         <Unit value={value("funds", 180_000)} />
       </>
     ),

@@ -89,15 +89,15 @@ const CREW = (
     <ul style={{ margin: 0, padding: 0, listStyle: "none" }}>
       <Row>
         <Row.Name>Jebediah Kerman</Row.Name>
-        <Badge severity="nominal">Pilot</Badge>
+        <Badge tone="go">Pilot</Badge>
       </Row>
       <Row>
         <Row.Name>Bill Kerman</Row.Name>
-        <Badge severity="nominal">Engineer</Badge>
+        <Badge tone="go">Engineer</Badge>
       </Row>
       <Row>
         <Row.Name>Bob Kerman</Row.Name>
-        <Badge severity="caution">Stressed</Badge>
+        <Badge tone="caution">Stressed</Badge>
       </Row>
     </ul>
   </Section>

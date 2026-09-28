@@ -60,9 +60,9 @@ const SelectableRow__Root = styled.button<{
     ${({ $selected }) =>
       $selected ? "transparent" : "var(--color-border-subtle)"};
   background: ${({ $selected }) =>
-    $selected ? "var(--color-status-go-bg)" : "transparent"};
+    $selected ? "var(--color-go-status)" : "transparent"};
   color: ${({ $selected }) =>
-    $selected ? "var(--color-status-go-fg)" : "inherit"};
+    $selected ? "var(--color-go-on-status)" : "inherit"};
   cursor: pointer;
 
   ${focusRing}

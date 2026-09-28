@@ -121,14 +121,14 @@ export function FleetReliabilityUpdates({ vesselId, compact }: UpdatesProps) {
   const severity = worstSeverity(rows.map((entry) => entry.row.severity));
   const atRisk = rows.some(
     (entry) =>
-      entry.row.severity === "critical" || entry.part.condition === "unknown",
+      entry.row.severity === "nogo" || entry.part.condition === "unknown",
   );
 
   // A wrapping Cluster: an `Inline` does not shrink, and at roster width the badges would crush into circles.
   return (
     <Stack role="group" aria-label="Reliability updates">
       <Cluster justify="start">
-        <Badge severity={severity}>
+        <Badge tone={severity}>
           {`${rows.length} ${atRisk ? "at risk" : "to watch"}`}
         </Badge>
       </Cluster>
@@ -143,7 +143,7 @@ export function FleetReliabilityUpdates({ vesselId, compact }: UpdatesProps) {
                 {part.title ?? "Unknown part"}
               </span>
             }
-            titleRight={<Badge severity={row.severity}>{row.word}</Badge>}
+            titleRight={<Badge tone={row.severity}>{row.word}</Badge>}
           >
             {row.clause !== undefined && <span>{row.clause}</span>}
             {actionable(part.condition) && part.partId && (

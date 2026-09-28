@@ -71,8 +71,8 @@ const ActionButton__Root = styled.button<{ $tone: ActionButtonTone }>`
   ${({ $tone }) =>
     $tone === "go" &&
     css`
-      background: var(--color-status-go-bg);
-      color: var(--color-status-go-fg);
+      background: var(--color-go-status);
+      color: var(--color-go-on-status);
       border-color: transparent;
 
       @media (prefers-reduced-motion: no-preference) {

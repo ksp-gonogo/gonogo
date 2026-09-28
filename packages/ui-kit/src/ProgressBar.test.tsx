@@ -50,11 +50,11 @@ describe("ProgressBar", () => {
       <ProgressBar
         value={90}
         ariaLabel="Transit"
-        fillColor="var(--color-status-nogo-bg)"
+        fillColor="var(--color-nogo-mark)"
       />,
     );
     const fill = screen.getByRole("progressbar").firstElementChild;
-    expect(fill).toHaveStyle({ background: "var(--color-status-nogo-bg)" });
+    expect(fill).toHaveStyle({ background: "var(--color-nogo-mark)" });
   });
 });
 

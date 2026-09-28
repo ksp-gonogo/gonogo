@@ -76,25 +76,26 @@ export function UplinkIdentityBlock({
   return (
     <Stack gap="caption">
       {identity.name.source === "bundle" && (
-        <Text tone="muted" size="sm">
+        <Text level="muted" size="sm">
           Calls itself “{identity.name.value}”
         </Text>
       )}
       <DisputedClaim label="name" field={identity.name} />
       {identity.author && (
-        <Text tone="muted" size="sm">
+        <Text level="muted" size="sm">
           by {identity.author.value}
         </Text>
       )}
       <DisputedClaim label="author" field={identity.author} />
       {identity.repo && (
-        <Text tone="muted" size="sm">
+        <Text level="muted" size="sm">
           {identity.repo.value}
         </Text>
       )}
       <DisputedClaim label="repo" field={identity.repo} />
       <Text
-        tone={selfDeclared ? "warn" : "muted"}
+        tone={selfDeclared ? "warn" : undefined}
+        level="muted"
         size="sm"
         role={live ? "status" : undefined}
         aria-live={live ? "polite" : undefined}

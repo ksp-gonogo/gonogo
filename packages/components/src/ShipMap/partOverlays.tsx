@@ -85,11 +85,7 @@ function renderEngineFlame(box: ScreenBox, zoom: number): React.ReactNode {
   const inner = `${x + inset * 1.4},${top + flameH * 0.18} ${x + w - inset * 1.4},${top + flameH * 0.18} ${x + w * 0.5},${top + flameH * 0.85}`;
   return (
     <g key="engine-flame" data-role="engine-flame" pointerEvents="none">
-      <polygon
-        points={outer}
-        fill="var(--color-status-warning-bg)"
-        opacity={0.85}
-      />
+      <polygon points={outer} fill="var(--color-warn-mark)" opacity={0.85} />
       <polygon
         points={inner}
         fill="var(--color-tag-yellow-fg)"
@@ -118,7 +114,7 @@ function renderParachuteCanopy(box: ScreenBox, state: string): React.ReactNode {
     >
       <path
         d={`M ${left},${baseY} Q ${cx},${apexY - canopyH * 0.3} ${right},${baseY} Z`}
-        fill="var(--color-status-nogo-bg)"
+        fill="var(--color-nogo-mark)"
         opacity={canopy.opacity}
       />
     </g>
@@ -166,7 +162,7 @@ function renderLandingGearStand(box: ScreenBox, zoom: number): React.ReactNode {
       y1={y + h}
       x2={x + w * 0.7}
       y2={y + h + standH}
-      stroke="var(--color-status-go-fg)"
+      stroke="var(--color-go-text)"
       strokeWidth={2 / zoom}
       strokeLinecap="round"
       pointerEvents="none"
@@ -187,7 +183,7 @@ function renderCargoBayOpenMark(box: ScreenBox, zoom: number): React.ReactNode {
       width={w - inset * 2}
       height={h - inset * 2}
       fill="none"
-      stroke="var(--color-status-go-fg)"
+      stroke="var(--color-go-text)"
       strokeWidth={1.5 / zoom}
       strokeDasharray={`${4 / zoom} ${3 / zoom}`}
       opacity={0.8}

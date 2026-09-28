@@ -144,8 +144,8 @@ export function VesselOrbitPath({
 // Live patch solid green; upcoming patches dashed, info-blue for an escape and warm for an encounter.
 function patchStroke(patch: ProjectedPatch): string {
   if (patch.isCurrent) return "var(--color-accent-fg)";
-  if (patch.startEncounter === "escape") return "var(--color-status-info-fg)";
-  return "var(--color-status-warning-bg)";
+  if (patch.startEncounter === "escape") return "var(--color-info-mark)";
+  return "var(--color-warn-mark)";
 }
 
 export function PredictedPatchArc({
@@ -190,9 +190,7 @@ export function EncounterMarker({
   zoom: number;
 }>) {
   const color =
-    kind === "escape"
-      ? "var(--color-status-info-fg)"
-      : "var(--color-status-warning-bg)";
+    kind === "escape" ? "var(--color-info-mark)" : "var(--color-warn-mark)";
   const r = 4 / zoom;
   const label = kind === "escape" ? `escape ${body}` : `↳ ${body}`;
   return (

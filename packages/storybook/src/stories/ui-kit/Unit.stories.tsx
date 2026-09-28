@@ -202,7 +202,7 @@ export const InheritsSize: Story = {
       <span
         style={{
           fontSize: "var(--font-size-figure)",
-          color: "var(--color-status-go-fg)",
+          color: "var(--color-go-text)",
         }}
       >
         <Unit value={live("m/s", 2_274)} />

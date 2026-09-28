@@ -375,7 +375,7 @@ const PanelDelayRail__Detail = styled.div`
  * fit the band. Not a live region; the rail's own announcer reads each outcome.
  */
 const PanelDelayRail__FailureSummary = styled.span`
-  color: var(--color-status-warning-fg-muted);
+  color: var(--color-warn-text);
 `;
 
 /** The end-aligned run both collapsed-strip counts sit in. */
@@ -396,7 +396,7 @@ const PanelDelayRail__Summaries = styled.span`
 
 /** The collapsed strip's found count, in the notice colour because it says the opposite of the failure count. */
 const PanelDelayRail__FoundSummary = styled.span`
-  color: var(--color-status-info-fg);
+  color: var(--color-info-text);
 `;
 
 /**

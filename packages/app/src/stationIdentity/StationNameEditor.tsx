@@ -50,13 +50,13 @@ const NameSpan = styled.button<{ $compact: boolean }>`
   border-radius: var(--radius-regular);
   padding: var(--inset-control-compact);
   font-size: ${({ $compact }) => ($compact ? "11px" : "14px")};
-  color: var(--color-status-info-fg);
+  color: var(--color-info-text);
   cursor: text;
   letter-spacing: 0.05em;
 
   &:hover {
     border-color: var(--color-border-strong);
-    color: var(--color-status-go-fg);
+    color: var(--color-go-text);
   }
 `;
 
@@ -65,13 +65,13 @@ const NameInput = styled.input<{ $compact: boolean }>`
   border: 1px solid var(--color-text-faint);
   border-radius: var(--radius-regular);
   padding: var(--inset-control-compact);
-  color: var(--color-status-info-fg);
+  color: var(--color-info-text);
   font-size: ${({ $compact }) => ($compact ? "11px" : "14px")};
   letter-spacing: 0.05em;
   outline: none;
 
   &:focus {
-    border-color: var(--color-status-info-fg);
+    border-color: var(--color-info-mark);
   }
 `;
 

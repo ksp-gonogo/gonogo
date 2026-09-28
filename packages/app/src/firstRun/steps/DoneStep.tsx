@@ -8,7 +8,7 @@ import { Stack, Text } from "@ksp-gonogo/ui-kit";
 export function DoneStep() {
   return (
     <Stack gap="related-dense">
-      <Text tone="muted" size="sm">
+      <Text level="muted" size="sm">
         Settings carries the same readings from now on: the mod connection under
         Connection, and each Uplink's health and whether its client loaded on
         its own page under Uplinks.

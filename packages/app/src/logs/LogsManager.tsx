@@ -529,9 +529,9 @@ const ModeRow = styled.div`
 `;
 
 const ModeButton = styled.button<{ $active: boolean }>`
-  background: ${({ $active }) => ($active ? "var(--color-status-go-bg)" : "var(--color-surface-raised)")};
-  border: 1px solid ${({ $active }) => ($active ? "var(--color-status-go-bg)" : "var(--color-border-subtle)")};
-  color: ${({ $active }) => ($active ? "var(--color-status-go-fg)" : "var(--color-text-primary)")};
+  background: ${({ $active }) => ($active ? "var(--color-go-status)" : "var(--color-surface-raised)")};
+  border: 1px solid ${({ $active }) => ($active ? "var(--color-go-status)" : "var(--color-border-subtle)")};
+  color: ${({ $active }) => ($active ? "var(--color-go-text)" : "var(--color-text-primary)")};
   font-size: var(--font-size-compact);
   padding: var(--inset-control);
   border-radius: var(--radius-regular);
@@ -596,8 +596,8 @@ const ReportForm = styled.form`
 `;
 
 const SentNotice = styled.div`
-  background: var(--color-status-go-bg);
-  color: var(--color-status-go-fg);
+  background: var(--color-go-status);
+  color: var(--color-go-on-status);
   padding: var(--inset-surface);
   border-radius: var(--radius-regular);
   font-size: var(--font-size-compact);
@@ -632,6 +632,6 @@ const ScreenshotMeta = styled.div`
 `;
 
 const Warn = styled.span`
-  color: var(--color-status-warning-bg);
+  color: var(--color-warn-text);
   font-size: var(--font-size-compact);
 `;

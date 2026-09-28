@@ -16,9 +16,9 @@ function operationalBadge(isOperational: boolean | null): {
   severity: Severity;
   label: string;
 } {
-  if (isOperational === null) return { severity: "warning", label: "UNREAD" };
-  if (isOperational) return { severity: "nominal", label: "OPERATIONAL" };
-  return { severity: "critical", label: "OFFLINE" };
+  if (isOperational === null) return { severity: "warn", label: "UNREAD" };
+  if (isOperational) return { severity: "go", label: "OPERATIONAL" };
+  return { severity: "nogo", label: "OFFLINE" };
 }
 
 /** Mobile Processing Lab status. Renders nothing while loading or when the vessel carries no lab. */
@@ -42,9 +42,7 @@ export function LabSection({
               <Cluster>
                 <RowName>{lab.partName}</RowName>
                 <Inline>
-                  <Badge severity={operational.severity}>
-                    {operational.label}
-                  </Badge>
+                  <Badge tone={operational.severity}>{operational.label}</Badge>
                   {lab.processingData === true && <Badge>PROCESSING</Badge>}
                   {labGrade !== undefined && (
                     <HeldBadge grade={labGrade} subject={lab.partName} />
@@ -53,13 +51,13 @@ export function LabSection({
               </Cluster>
               <Inline>
                 {lab.scientistCount !== null && (
-                  <Text tone="muted" size="xs">
+                  <Text level="muted" size="xs">
                     {lab.scientistCount} scientist
                     {lab.scientistCount === 1 ? "" : "s"}
                   </Text>
                 )}
                 {lab.dataStored !== null && lab.dataStorage !== null && (
-                  <Text tone="muted" size="xs">
+                  <Text level="muted" size="xs">
                     {lab.dataStored.toFixed(0)}/{lab.dataStorage.toFixed(0)}{" "}
                     data
                   </Text>

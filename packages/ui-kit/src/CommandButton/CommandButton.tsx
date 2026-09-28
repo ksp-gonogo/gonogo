@@ -1,4 +1,4 @@
-import { classifyCommandRejection } from "@ksp-gonogo/sitrep-sdk";
+import { classifyCommandRejection, type Tone } from "@ksp-gonogo/sitrep-sdk";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import styled, { css, keyframes } from "styled-components";
@@ -16,6 +16,7 @@ import {
 } from "../CommandDelay/commandRefusalSentence";
 import { focusRing } from "../focusRing";
 import { LiveRegion } from "../LiveRegion";
+import { TONE_ON_STATUS, TONE_STATUS } from "../tone";
 import { InFlightFace } from "./InFlightFace";
 
 /** How long an armed control stays armed before it quietly disarms. The ONE definition. */
@@ -114,7 +115,10 @@ export type CommandButtonPhase =
   | "found"
   | "blocked";
 
-export type CommandButtonTone = "neutral" | "go" | "nogo" | "warn";
+export type CommandButtonTone = Extract<
+  Tone,
+  "neutral" | "go" | "nogo" | "warn"
+>;
 export type CommandButtonSize = "sm" | "md";
 
 export interface UseCommandButtonOptions<
@@ -633,28 +637,12 @@ const armedPulse = keyframes`
   50% { opacity: 0.65; }
 `;
 
-const TONE_FILLED = {
-  neutral: css`
-    background: var(--color-surface-raised);
-    border-color: var(--color-border-subtle);
-    color: var(--color-text-primary);
-  `,
-  go: css`
-    background: var(--color-status-go-bg);
-    border-color: var(--color-status-go-bg);
-    color: var(--color-status-go-fg);
-  `,
-  nogo: css`
-    background: var(--color-status-nogo-bg);
-    border-color: var(--color-status-nogo-bg);
-    color: var(--color-status-nogo-on-bg);
-  `,
-  warn: css`
-    background: var(--color-status-warning-bg);
-    border-color: var(--color-status-warning-bg);
-    color: var(--color-status-warning-fg);
-  `,
-} as const;
+/* A neutral command has no state, so its fill keeps the subtle edge rather than an edge in its own fill colour. */
+const toneFilled = (tone: CommandButtonTone) => css`
+  background: ${TONE_STATUS[tone]};
+  border-color: ${tone === "neutral" ? "var(--color-border-subtle)" : TONE_STATUS[tone]};
+  color: ${TONE_ON_STATUS[tone]};
+`;
 
 const SIZE_STYLES = {
   sm: css`
@@ -704,7 +692,7 @@ const CommandButton__Body = styled.button<{
   ${({ $size }) => SIZE_STYLES[$size]}
 
   /* Filled only when active, armed or refused; at rest it stays the quiet outline. */
-  ${({ $filled, $tone }) => ($filled ? TONE_FILLED[$tone] : "")}
+  ${({ $filled, $tone }) => ($filled ? toneFilled($tone) : "")}
 
   ${({ $armed }) =>
     $armed &&
@@ -733,14 +721,14 @@ const CommandButton__Body = styled.button<{
     $blocked &&
     css`
       border-style: dashed;
-      border-color: var(--color-status-warning-bg);
+      border-color: var(--color-warn-mark);
       color: var(--color-text-muted);
       cursor: help;
 
       @media (hover: hover) {
         &:hover:not(:disabled) {
-          border-color: var(--color-status-warning-bg);
-          color: var(--color-status-warning-fg-muted);
+          border-color: var(--color-warn-mark);
+          color: var(--color-warn-text);
         }
       }
     `}
@@ -770,11 +758,11 @@ const CommandButton__Body = styled.button<{
   }
 
   &[data-failed="true"] {
-    border-color: var(--color-status-warning-bg);
-    color: var(--color-status-warning-fg-muted);
+    border-color: var(--color-warn-mark);
+    color: var(--color-warn-text);
     background: color-mix(
       in srgb,
-      var(--color-status-warning-bg) 18%,
+      var(--color-warn-mark) 18%,
       var(--color-surface-raised)
     );
   }

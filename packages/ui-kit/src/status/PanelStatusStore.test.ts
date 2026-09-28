@@ -9,10 +9,10 @@ describe("PanelStatusStore", () => {
 
   it("summarises a single contribution as itself", () => {
     const store = createPanelStatusStore();
-    store.register({ id: "a", severity: "warning", label: "HELD" });
+    store.register({ id: "a", severity: "warn", label: "HELD" });
     expect(store.getSummary()).toEqual({
       id: "a",
-      severity: "warning",
+      severity: "warn",
       label: "HELD",
     });
   });
@@ -22,12 +22,12 @@ describe("PanelStatusStore", () => {
     store.register({ id: "stream", severity: "caution", label: "SYNCING" });
     store.register({
       id: "alarm",
-      severity: "critical",
+      severity: "nogo",
       label: "NO BURN VECTOR",
     });
     expect(store.getSummary()).toEqual({
       id: "alarm",
-      severity: "critical",
+      severity: "nogo",
       label: "NO BURN VECTOR",
     });
   });
@@ -35,11 +35,11 @@ describe("PanelStatusStore", () => {
   it("second-topic-stale: a worse second contributor wins over a live-ish first", () => {
     // One topic reads fine, a second goes stale, and the panel must reflect the worst.
     const store = createPanelStatusStore();
-    store.register({ id: "topic-1", severity: "nominal", label: "" });
-    store.register({ id: "topic-2", severity: "warning", label: "HELD" });
+    store.register({ id: "topic-1", severity: "go", label: "" });
+    store.register({ id: "topic-2", severity: "warn", label: "HELD" });
     expect(store.getSummary()).toEqual({
       id: "topic-2",
-      severity: "warning",
+      severity: "warn",
       label: "HELD",
     });
   });
@@ -59,11 +59,11 @@ describe("PanelStatusStore", () => {
     const store = createPanelStatusStore();
     const drop = store.register({
       id: "alarm",
-      severity: "critical",
+      severity: "nogo",
       label: "ALARM",
     });
     store.register({ id: "stream", severity: "caution", label: "SYNCING" });
-    expect(store.getSummary()?.severity).toBe("critical");
+    expect(store.getSummary()?.severity).toBe("nogo");
     drop();
     expect(store.getSummary()).toEqual({
       id: "stream",
@@ -81,12 +81,12 @@ describe("PanelStatusStore", () => {
 
   it("breaks a top-rank tie deterministically by registration order", () => {
     const store = createPanelStatusStore();
-    store.register({ id: "first", severity: "warning", label: "FIRST" });
-    store.register({ id: "second", severity: "warning", label: "SECOND" });
+    store.register({ id: "first", severity: "warn", label: "FIRST" });
+    store.register({ id: "second", severity: "warn", label: "SECOND" });
     // Earliest-registered contribution at the top rank wins, so the winning label does not flicker between two equal-severity contributors.
     expect(store.getSummary()).toEqual({
       id: "first",
-      severity: "warning",
+      severity: "warn",
       label: "FIRST",
     });
   });
@@ -94,23 +94,23 @@ describe("PanelStatusStore", () => {
   it("getSummary() is referentially stable while the result is unchanged", () => {
     // An identical snapshot must be the same object, or useSyncExternalStore loops.
     const store = createPanelStatusStore();
-    store.register({ id: "a", severity: "warning", label: "HELD" });
+    store.register({ id: "a", severity: "warn", label: "HELD" });
     const first = store.getSummary();
     const second = store.getSummary();
     expect(second).toBe(first);
     // A no-op update to the same values keeps identity too.
-    store.update("a", { severity: "warning", label: "HELD" });
+    store.update("a", { severity: "warn", label: "HELD" });
     expect(store.getSummary()).toBe(first);
   });
 
   it("returns a fresh object only when the merged result actually changes", () => {
     const store = createPanelStatusStore();
-    store.register({ id: "a", severity: "warning", label: "HELD" });
+    store.register({ id: "a", severity: "warn", label: "HELD" });
     const first = store.getSummary();
-    store.update("a", { severity: "critical", label: "GONE" });
+    store.update("a", { severity: "nogo", label: "GONE" });
     const next = store.getSummary();
     expect(next).not.toBe(first);
-    expect(next).toEqual({ id: "a", severity: "critical", label: "GONE" });
+    expect(next).toEqual({ id: "a", severity: "nogo", label: "GONE" });
   });
 
   it("notifies subscribers on register / update / deregister", () => {
@@ -118,20 +118,20 @@ describe("PanelStatusStore", () => {
     const onChange = vi.fn();
     const unsub = store.subscribe(onChange);
     const drop = store.register({ id: "a", severity: "info", label: "NOTE" });
-    store.update("a", { severity: "warning", label: "HELD" });
+    store.update("a", { severity: "warn", label: "HELD" });
     drop();
     expect(onChange).toHaveBeenCalledTimes(3);
     unsub();
-    store.register({ id: "b", severity: "critical", label: "X" });
+    store.register({ id: "b", severity: "nogo", label: "X" });
     expect(onChange).toHaveBeenCalledTimes(3);
   });
 
   it("a floor (nominal) contribution registers but never wins over anything above the floor", () => {
     const store = createPanelStatusStore();
-    store.register({ id: "subsystem", severity: "nominal", label: "OK" });
+    store.register({ id: "subsystem", severity: "go", label: "OK" });
     expect(store.getSummary()).toEqual({
       id: "subsystem",
-      severity: "nominal",
+      severity: "go",
       label: "OK",
     });
     store.register({ id: "note", severity: "info", label: "NOTE" });
@@ -151,8 +151,8 @@ describe("PanelStatusStore.getBreakdown", () => {
 
   it("counts a single contributor as one entry", () => {
     const store = createPanelStatusStore();
-    store.register({ id: "a", severity: "warning", label: "A" });
-    expect(store.getBreakdown()).toEqual([{ severity: "warning", count: 1 }]);
+    store.register({ id: "a", severity: "warn", label: "A" });
+    expect(store.getBreakdown()).toEqual([{ severity: "warn", count: 1 }]);
   });
 
   it("counts N contributors at one severity as ONE entry (never folded into a worse tier)", () => {
@@ -166,10 +166,10 @@ describe("PanelStatusStore.getBreakdown", () => {
   it("orders entries worst-first", () => {
     const store = createPanelStatusStore();
     store.register({ id: "a", severity: "caution", label: "A" });
-    store.register({ id: "b", severity: "critical", label: "B" });
+    store.register({ id: "b", severity: "nogo", label: "B" });
     store.register({ id: "c", severity: "info", label: "C" });
     expect(store.getBreakdown()).toEqual([
-      { severity: "critical", count: 1 },
+      { severity: "nogo", count: 1 },
       { severity: "caution", count: 1 },
       { severity: "info", count: 1 },
     ]);
@@ -179,52 +179,52 @@ describe("PanelStatusStore.getBreakdown", () => {
     const store = createPanelStatusStore();
     store.register({ id: "a", severity: "caution", label: "A" });
     store.register({ id: "b", severity: "caution", label: "B" });
-    store.register({ id: "c", severity: "warning", label: "C" });
+    store.register({ id: "c", severity: "warn", label: "C" });
     store.register({ id: "d", severity: "offline", label: "D" });
     expect(store.getBreakdown()).toEqual([
       { severity: "offline", count: 1 },
-      { severity: "warning", count: 1 },
+      { severity: "warn", count: 1 },
       { severity: "caution", count: 2 },
     ]);
   });
 
   it("drops a severity's entry once its last contributor deregisters", () => {
     const store = createPanelStatusStore();
-    store.register({ id: "a", severity: "warning", label: "A" });
+    store.register({ id: "a", severity: "warn", label: "A" });
     const dropB = store.register({ id: "b", severity: "caution", label: "B" });
     expect(store.getBreakdown()).toEqual([
-      { severity: "warning", count: 1 },
+      { severity: "warn", count: 1 },
       { severity: "caution", count: 1 },
     ]);
     dropB();
-    expect(store.getBreakdown()).toEqual([{ severity: "warning", count: 1 }]);
+    expect(store.getBreakdown()).toEqual([{ severity: "warn", count: 1 }]);
   });
 
   it("is referentially stable while the contribution set is unchanged", () => {
     const store = createPanelStatusStore();
-    store.register({ id: "a", severity: "warning", label: "A" });
+    store.register({ id: "a", severity: "warn", label: "A" });
     const first = store.getBreakdown();
     expect(store.getBreakdown()).toBe(first);
   });
 
   it("preserves identity when a label-only change leaves the breakdown unchanged", () => {
     const store = createPanelStatusStore();
-    store.register({ id: "a", severity: "warning", label: "A" });
+    store.register({ id: "a", severity: "warn", label: "A" });
     const first = store.getBreakdown();
-    store.update("a", { severity: "warning", label: "RENAMED" });
+    store.update("a", { severity: "warn", label: "RENAMED" });
     // Same severities + counts, so the breakdown object is unchanged.
     expect(store.getBreakdown()).toBe(first);
   });
 
   it("returns a fresh breakdown when a count or severity actually changes", () => {
     const store = createPanelStatusStore();
-    store.register({ id: "a", severity: "warning", label: "A" });
+    store.register({ id: "a", severity: "warn", label: "A" });
     const first = store.getBreakdown();
     store.register({ id: "b", severity: "caution", label: "B" });
     const next = store.getBreakdown();
     expect(next).not.toBe(first);
     expect(next).toEqual([
-      { severity: "warning", count: 1 },
+      { severity: "warn", count: 1 },
       { severity: "caution", count: 1 },
     ]);
   });

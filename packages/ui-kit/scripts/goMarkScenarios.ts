@@ -1,7 +1,7 @@
 /**
- * The five sites Saga #551 moves off `--color-status-go-bg` (a background
- * meant to sit under text) onto the new go-mark token: what each site's mark
- * looks like, one sheet per site.
+ * The five sites where go stands alone as a mark, drawn in `--color-go-mark`
+ * rather than the go status fill meant to sit under text: what each site's
+ * mark looks like, one sheet per site.
  *
  * Separate from the entry that renders them so the before/after pair differs
  * only in the component source, never in the scene: run once against the

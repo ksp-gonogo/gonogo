@@ -34,10 +34,10 @@ export function SlotStub({
     <div
       data-slot-stub={slot}
       style={{
-        border: "1px dashed var(--color-status-info-fg)",
+        border: "1px dashed var(--color-info-mark)",
         borderRadius: 4,
         padding: "4px 8px",
-        color: "var(--color-status-info-fg)",
+        color: "var(--color-info-text)",
         fontSize: 11,
       }}
     >

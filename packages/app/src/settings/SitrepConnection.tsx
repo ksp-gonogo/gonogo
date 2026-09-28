@@ -152,8 +152,8 @@ const pulse = keyframes`
 const statusColor: Record<DataSourceStatus, string> = {
   connected: "var(--color-accent-fg)",
   disconnected: "var(--color-text-faint)",
-  reconnecting: "var(--color-status-warning-bg)",
-  error: "var(--color-status-nogo-bg)",
+  reconnecting: "var(--color-warn-mark)",
+  error: "var(--color-nogo-mark)",
 };
 
 const Indicator = styled.span<{ $status: DataSourceStatus }>`

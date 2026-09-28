@@ -69,7 +69,7 @@ export function OrbitViewPanel({
         panelSidebar={
           <LandscapeChrome>
             {bodyName !== undefined && (
-              <Text tone="muted" size="xs">
+              <Text level="muted" size="xs">
                 {bodyName}
               </Text>
             )}
@@ -107,7 +107,7 @@ export function OrbitViewPanel({
       panelTitle={panelTitle}
       panelAside={
         showBodyNameInAside ? (
-          <Text tone="muted" size="xs">
+          <Text level="muted" size="xs">
             {bodyName}
           </Text>
         ) : undefined
@@ -116,7 +116,7 @@ export function OrbitViewPanel({
         (showBodyNameInBody || showDiagram) && (
           <Section key="caption" full>
             {showBodyNameInBody && (
-              <Text tone="muted" size="xs">
+              <Text level="muted" size="xs">
                 {bodyName}
               </Text>
             )}

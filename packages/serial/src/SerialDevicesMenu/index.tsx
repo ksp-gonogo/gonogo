@@ -451,9 +451,9 @@ const BannerLabel = styled.strong`
 
 const WebSerialUnavailableBanner = styled.div`
   background: var(--color-border-subtle);
-  border: 1px solid var(--color-status-warning-bg);
+  border: 1px solid var(--color-warn-mark);
   border-radius: var(--radius-regular);
-  color: var(--color-status-warning-bg);
+  color: var(--color-warn-text);
   font-size: var(--font-size-compact);
   line-height: var(--line-height-body);
   padding: var(--inset-alert-band);
@@ -489,7 +489,7 @@ const PendingPicker = styled.div`
   flex-direction: column;
   gap: var(--gap-related);
   padding: var(--inset-placeholder);
-  background: var(--color-status-warning-bg);
+  background: var(--color-warn-mark);
   border-radius: var(--radius-regular);
   color: var(--color-text-primary);
 `;
@@ -513,6 +513,6 @@ const Status = styled.span<{ $status: string }>`
     $status === "connected"
       ? "var(--color-accent-fg)"
       : $status === "error"
-        ? "var(--color-status-nogo-fg)"
+        ? "var(--color-nogo-text)"
         : "var(--color-text-faint)"};
 `;

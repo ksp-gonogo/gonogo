@@ -279,13 +279,13 @@ describe("keplerTransferSolver.solve (composite)", () => {
 });
 
 describe("transferSeverity (spec mapping table, Scale B)", () => {
-  it("go -> nominal", () => {
-    expect(transferSeverity("go")).toBe("nominal");
+  it("go -> go", () => {
+    expect(transferSeverity("go")).toBe("go");
   });
   it("soon -> caution", () => {
     expect(transferSeverity("soon")).toBe("caution");
   });
-  it("off -> critical", () => {
-    expect(transferSeverity("off")).toBe("critical");
+  it("off -> nogo", () => {
+    expect(transferSeverity("off")).toBe("nogo");
   });
 });

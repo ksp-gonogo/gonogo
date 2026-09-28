@@ -55,7 +55,7 @@ export function CommcastMessageRow({
 /** When something arrived HERE: every stamp in the log is an instant at this vantage, so they compare down a column. */
 function HeardVerdict({ msg }: { msg: CommcastEntry["msg"] }) {
   return (
-    <Text size="xs" tone="faint">
+    <Text size="xs" level="faint">
       <MissionDate value={heardUtOf(msg)} />
     </Text>
   );
@@ -81,13 +81,13 @@ function SentVerdict({
     return (
       <>
         {ackUt !== undefined && (
-          <Text size="xs" tone="faint">
+          <Text size="xs" level="faint">
             <MissionDate value={ackUt} />
           </Text>
         )}
         {/* Two stations at one centre both answer a message addressed to it. */}
         {heard > 1 && (
-          <Text size="xs" tone="faint">
+          <Text size="xs" level="faint">
             heard by {heard}
           </Text>
         )}
@@ -96,11 +96,11 @@ function SentVerdict({
   }
   return (
     <>
-      <Text size="xs" tone="faint">
+      <Text size="xs" level="faint">
         {out.neverLeft ? "never left, no path" : "unconfirmed"}
       </Text>
       {out.msg.attempts > 1 && (
-        <Text size="xs" tone="faint">
+        <Text size="xs" level="faint">
           attempt {out.msg.attempts}
         </Text>
       )}

@@ -65,8 +65,8 @@ const SwitchTrack = styled.div<{ $checked: boolean; $disabled?: boolean }>`
   height: 14px;
   /* --radius-pill keeps the stadium shape through a height change. */
   border-radius: var(--radius-pill);
-  background: ${({ $checked, $disabled }) => ($disabled ? "var(--color-surface-raised)" : $checked ? "var(--color-status-go-mark)" : "var(--color-surface-raised)")};
-  border: 1px solid ${({ $checked, $disabled }) => ($disabled ? "var(--color-border-strong)" : $checked ? "var(--color-status-go-mark)" : "var(--color-border-strong)")};
+  background: ${({ $checked, $disabled }) => ($disabled ? "var(--color-surface-raised)" : $checked ? "var(--color-go-mark)" : "var(--color-surface-raised)")};
+  border: 1px solid ${({ $checked, $disabled }) => ($disabled ? "var(--color-border-strong)" : $checked ? "var(--color-go-mark)" : "var(--color-border-strong)")};
   position: relative;
   flex-shrink: 0;
   transition: background var(--duration-base), border-color var(--duration-base);

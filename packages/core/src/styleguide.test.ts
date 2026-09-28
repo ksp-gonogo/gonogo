@@ -79,7 +79,7 @@ const SCAN_ROOTS = styleguideScanRoots(
 //
 // 1: `packages/components/src/SystemView/SystemDiagram.tsx`'s `#1a1a1a`, and it
 // is PROSE rather than a colour: a doc comment quoting what
-// `--color-status-warning-fg` resolves to. The scan reads a source file rather
+// `--color-warn-on-status` resolves to. The scan reads a source file rather
 // than a stylesheet, so a hex it explains counts the same as one it uses.
 // Dropping this to 0 means either rewording that sentence or teaching the scan
 // about comments, and the second is the one worth doing.

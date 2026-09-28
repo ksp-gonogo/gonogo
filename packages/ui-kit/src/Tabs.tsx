@@ -402,7 +402,7 @@ const Tabs__Dot = styled.span`
   margin-left: var(--gap-trailing-mark);
   vertical-align: middle;
   border-radius: var(--radius-circle);
-  background: var(--color-status-warning-bg);
+  background: var(--color-warn-mark);
 `;
 
 const Tabs__Button = styled.button<{

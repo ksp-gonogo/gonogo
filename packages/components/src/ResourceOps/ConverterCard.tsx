@@ -1,10 +1,9 @@
-import type { IsruConverterEntry } from "@ksp-gonogo/sitrep-sdk";
+import type { IsruConverterEntry, Tone } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
   Card,
   Grid,
   Inline,
-  type ReadoutTone,
   resourceColor,
   Stack,
   Text,
@@ -19,15 +18,15 @@ function converterTone(
   starved: boolean,
   held: boolean,
   running: boolean | null | undefined,
-): ReadoutTone {
-  if (starved) return "warning";
+): Tone {
+  if (starved) return "warn";
   if (!held && running) return "go";
-  return "default";
+  return "neutral";
 }
 
 function NoFlows() {
   return (
-    <Text tone="faint" size="sm">
+    <Text level="faint" size="sm">
       none
     </Text>
   );
@@ -69,11 +68,11 @@ export function ConverterCard({
       titleRight={
         <Inline wrap>
           {converterHeld ? (
-            <Badge severity="info">run state held</Badge>
+            <Badge tone="info">run state held</Badge>
           ) : (
             <RunStateBadge running={converter.running} />
           )}
-          {starved && <Badge severity="warning">no output</Badge>}
+          {starved && <Badge tone="warn">no output</Badge>}
         </Inline>
       }
     >

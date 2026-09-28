@@ -1,4 +1,4 @@
-import type { StatusTone } from "@ksp-gonogo/ui-kit";
+import type { Tone } from "@ksp-gonogo/sitrep-sdk";
 import type { DeployedBase } from "./parseBases";
 
 type PowerState = "powered" | "unpowered" | "unknown";
@@ -14,7 +14,7 @@ export const POWER_LABEL: Record<PowerState, string> = {
   unknown: "Power unknown",
 };
 
-export const POWER_TONE: Record<PowerState, StatusTone> = {
+export const POWER_TONE: Record<PowerState, Tone> = {
   powered: "go",
   unpowered: "nogo",
   // Neutral, not `nogo`: a red pill is a verdict, and there is none here.

@@ -105,14 +105,14 @@ export function statusNeedsAttention(
 
 const healthColor: Record<UplinkHealthStateName, string> = {
   healthy: "var(--color-accent-fg)",
-  degraded: "var(--color-status-warning-bg)",
-  unavailable: "var(--color-status-nogo-bg)",
+  degraded: "var(--color-warn-mark)",
+  unavailable: "var(--color-nogo-mark)",
 };
 
 const loaderColor: Record<UplinkLoadStatus, string> = {
-  loading: "var(--color-status-warning-bg)",
+  loading: "var(--color-warn-mark)",
   loaded: "var(--color-accent-fg)",
-  quarantined: "var(--color-status-nogo-bg)",
+  quarantined: "var(--color-nogo-mark)",
 };
 
 export const StatusList = styled.ul`

@@ -4,7 +4,7 @@ export interface LineGraphSeries {
   id: string;
   /** Accessible name for this line, used in the chart's summary; not rendered on screen. */
   label: string;
-  /** CSS colour for the stroke, e.g. `var(--color-status-nogo-bg)`. */
+  /** CSS colour for the stroke, e.g. `var(--color-nogo-mark)`. */
   color: string;
   /** Ascending by `x`. Fewer than two points renders no line for this series. */
   points: ReadonlyArray<{ x: number; y: number }>;
@@ -226,7 +226,7 @@ export function LineGraph({
               x2={VIEW_W}
               y1={toY(t.value)}
               y2={toY(t.value)}
-              stroke={t.color ?? "var(--color-status-warning-fg-muted)"}
+              stroke={t.color ?? "var(--color-warn-text)"}
               strokeWidth={0.6}
               strokeDasharray="2 1.5"
               vectorEffect="non-scaling-stroke"
@@ -271,7 +271,7 @@ export function LineGraph({
               data-threshold-marker={t.id}
               style={{
                 top: `${topPct}%`,
-                color: t.color ?? "var(--color-status-warning-fg-muted)",
+                color: t.color ?? "var(--color-warn-text)",
               }}
             >
               <LineGraph__ThresholdTick />

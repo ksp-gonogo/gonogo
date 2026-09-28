@@ -15,10 +15,10 @@ function Affordable({
   affordable,
 }: Readonly<Pick<LandingModel, "noLandingVector" | "affordable">>) {
   // A green "yes" would contradict the ABORT above, since fuel is not the wall.
-  if (noLandingVector) return <Text tone="muted">n/a · no path</Text>;
-  if (affordable == null) return <Text tone="muted">{NULL_DISPLAY}</Text>;
+  if (noLandingVector) return <Text level="muted">n/a · no path</Text>;
+  if (affordable == null) return <Text level="muted">{NULL_DISPLAY}</Text>;
   return (
-    <Badge severity={affordable ? "nominal" : "critical"} size="sm">
+    <Badge tone={affordable ? "go" : "nogo"} size="sm">
       {affordable ? "yes" : "insufficient dV"}
     </Badge>
   );

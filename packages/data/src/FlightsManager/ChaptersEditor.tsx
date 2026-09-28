@@ -331,9 +331,9 @@ const EditButton = styled.button`
 `;
 
 const SaveButton = styled.button`
-  background: var(--color-status-go-bg);
-  border: 1px solid var(--color-status-go-bg);
-  color: var(--color-status-go-fg);
+  background: var(--color-go-status);
+  border: 1px solid var(--color-go-status);
+  color: var(--color-go-on-status);
   cursor: pointer;
   font-size: var(--font-size-compact);
   padding: var(--inset-control);
@@ -358,7 +358,7 @@ const RemoveButton = styled.button`
   cursor: pointer;
   font-size: var(--font-size-base);
   padding: var(--inset-glyph);
-  &:hover { color: var(--color-status-nogo-bg); }
+  &:hover { color: var(--color-nogo-text); }
 `;
 
 const AddRow = styled.div`

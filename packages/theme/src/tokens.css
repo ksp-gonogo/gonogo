@@ -205,62 +205,85 @@ textarea {
   --color-accent-fg: #00ff88;
   --color-accent-bg: #00ff88;
 
-  --color-status-go-fg: #cfe;
-  --color-status-go-bg: #2e5a2e;
   /*
-   * The go tone standing alone, as a fill or an edge with no text of its own:
-   * a selected-option fill, a positive-direction bar, a meter's go segment, a
-   * status pill's only edge, a checked switch track. `go-bg` is a background
-   * MEANT to sit under text (Saga #545's own doc comment says so), and used
-   * as the only mark on the panel or a raised surface it reaches just
-   * 2.2-2.4:1, under the 3:1 a mark needs. This clears 4.07:1 on the panel
-   * and 3.64:1 on raised.
-   *
-   * Also holds 3.56:1 against --color-accent-fg (#00ff88): the checked
-   * Switch's thumb is drawn in accent-fg directly on top of this token, so a
-   * brighter pick that read as more "go" against the panel dropped that pair
-   * under 3:1 the moment it got close to the accent's own luminance. The
-   * value here is the calm middle: distinct from both the muted `go-bg` and
-   * the neon accent, which stays reserved for focus and interaction. Ruled
-   * 2026-09-26, Saga #551.
+   * The tone hues. A palette rung is named nowhere but this file: everything
+   * else reaches a hue through the role token below that says what it is for.
    */
-  --color-status-go-mark: #3c8050;
-  --color-status-nogo-fg: #ffdede;
-  --color-status-nogo-bg: #ff4d4d;
-  /* Text sitting ON --color-status-nogo-bg, not beside it. The -fg token is
-     a light pink for nogo-toned text on a DARK panel (60+ call sites), so
-     reusing it on the red badge gives 2.61:1, under the 4.5:1 AA floor for
-     normal text. Dark text on the same red is 5.32:1, which is how the warn
-     tone already works (#1a1a1a on #ff8c00, 7.46:1). This token exists so
-     the two jobs stop sharing one value. */
-  --color-status-nogo-on-bg: #1a1a1a;
-  --color-status-warning-fg: #1a1a1a;
-  --color-status-warning-bg: #ff8c00;
-  --color-status-info-fg: #7cf;
-  --color-status-info-bg: #0d0d0d;
+  --palette-green-100: #cfe;
+  --palette-green-500: #3c8050;
+  --palette-green-700: #2e5a2e;
+  --palette-green-900: #0d180d;
+  --palette-red-100: #ffdede;
+  --palette-red-400: #ff4d4d;
+  --palette-red-900: #4a0e0e;
+  --palette-amber-200: #ffd68a;
+  --palette-amber-400: #ff8c00;
+  --palette-amber-600: #8a6a28;
+  --palette-amber-900: #3a2a0a;
+  --palette-blue-300: #7cf;
+  --palette-ink: #1a1a1a;
 
   /*
-   * Muted variants for status surfaces: used when the alert/warning
-   * state needs a *darker* fill (e.g. error-button background, banner
-   * inset). Distinct from the primary status colours, which are full-
-   * brightness. `alert-muted` covers nogo-tone darks; `warning-bg-muted`
-   * covers warning-tone darks (warm browns / olives).
+   * One tone scale, five roles per tone, so a colour is chosen by the job it
+   * does rather than by which token happened to look right:
+   *
+   *   -text       the tone's words on a surface or on its own muted ground
+   *   -mark       a dot, fill, edge or stroke standing alone, with no text of
+   *               its own: held to 3:1 on the surfaces
+   *   -status     a fill that carries its own text, which is -on-status
+   *   -on-status  the text on that fill
+   *   -muted      a quiet ground under ordinary text
+   *
+   * Text takes the pale tint of a hue and marks the saturated one, since a
+   * saturated hue that clears 3:1 as a mark is too loud to read as prose, and
+   * the pale tint is too faint to carry meaning as a lone dot. go's mark is a
+   * mid green, distinct from both its muted fill and the accent, which means
+   * focus and interaction and never state.
    */
-  --color-status-alert-muted: #4a0e0e;
-  --color-status-warning-bg-muted: #3a2a0a;
-  /*
-   * The go-tone dark, a tint under an active card. Kept this dark so the
-   * card's --color-text-dim body text stays above 4.5:1 on it; the card's
-   * green is carried by its border.
-   */
-  --color-status-go-muted: #0d180d;
-  /*
-   * Warning text + border for warning chips on a *dark* surface, the
-   * `-fg` and `-bg` pair above is for bright orange chips (dark text on
-   * orange); these are the inverse case (light cream text on dark amber).
-   */
-  --color-status-warning-fg-muted: #ffd68a;
-  --color-status-warning-border-muted: #8a6a28;
+  --color-neutral-text: var(--color-text-primary);
+  --color-neutral-mark: var(--color-text-dim);
+  --color-neutral-status: var(--color-surface-raised);
+  --color-neutral-on-status: var(--color-text-primary);
+  --color-neutral-muted: var(--color-surface-raised);
+
+  --color-info-text: var(--palette-blue-300);
+  --color-info-mark: var(--palette-blue-300);
+  --color-info-status: var(--palette-blue-300);
+  --color-info-on-status: var(--palette-ink);
+  --color-info-muted: var(--color-surface-panel);
+
+  --color-go-text: var(--palette-green-100);
+  --color-go-mark: var(--palette-green-500);
+  --color-go-status: var(--palette-green-700);
+  --color-go-on-status: var(--palette-green-100);
+  /* Kept this dark so --color-text-dim body text stays above 4.5:1 on it; a go card's green is carried by its edge. */
+  --color-go-muted: var(--palette-green-900);
+
+  --color-caution-text: var(--palette-amber-200);
+  --color-caution-mark: var(--palette-amber-200);
+  --color-caution-status: var(--palette-amber-200);
+  --color-caution-on-status: var(--palette-ink);
+  --color-caution-muted: var(--palette-amber-900);
+
+  --color-warn-text: var(--palette-amber-200);
+  --color-warn-mark: var(--palette-amber-400);
+  --color-warn-status: var(--palette-amber-400);
+  --color-warn-on-status: var(--palette-ink);
+  --color-warn-muted: var(--palette-amber-900);
+  /* The edge of a warn box drawn on its muted ground: decorative, the box's text carries the tone. */
+  --color-warn-muted-edge: var(--palette-amber-600);
+
+  --color-nogo-text: var(--palette-red-100);
+  --color-nogo-mark: var(--palette-red-400);
+  --color-nogo-status: var(--palette-red-400);
+  --color-nogo-on-status: var(--palette-ink);
+  --color-nogo-muted: var(--palette-red-900);
+
+  --color-offline-text: var(--color-text-dim);
+  --color-offline-mark: var(--color-text-dim);
+  --color-offline-status: var(--color-surface-raised);
+  --color-offline-on-status: var(--color-text-dim);
+  --color-offline-muted: var(--color-surface-sunken);
 
   /*
    * Tag palette: used for *labeled state* with a paired fg / bg /

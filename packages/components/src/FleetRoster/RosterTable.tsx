@@ -70,7 +70,6 @@ function RosterRow({
           </Truncate>
         )}
         <Text
-          tone="default"
           size="sm"
           style={{
             textAlign: "right",

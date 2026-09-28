@@ -30,7 +30,7 @@ const COLUMNS: ReadonlyArray<DataTableColumn<ArchiveSubject>> = [
   {
     key: "biome",
     header: "Biome",
-    render: (r) => r.biome || <Text tone="muted">{NULL_DISPLAY}</Text>,
+    render: (r) => r.biome || <Text level="muted">{NULL_DISPLAY}</Text>,
   },
   {
     key: "science",
@@ -48,7 +48,7 @@ const COLUMNS: ReadonlyArray<DataTableColumn<ArchiveSubject>> = [
       r.remainingPotential > 0 ? (
         <Unit value={value("science", r.remainingPotential)} />
       ) : (
-        <Text tone="muted">complete</Text>
+        <Text level="muted">complete</Text>
       ),
   },
 ];

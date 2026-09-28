@@ -1,5 +1,5 @@
 import { PerfBudget } from "@ksp-gonogo/core";
-import type { ReadoutTone } from "@ksp-gonogo/ui-kit";
+import type { Tone as KitTone } from "@ksp-gonogo/sitrep-sdk";
 
 export interface BudgetSnapshot {
   name: string;
@@ -42,14 +42,14 @@ export function toneOf(s: BudgetSnapshot): Tone {
 }
 
 /** This widget's budget tones, mapped onto the kit's tone vocabulary. */
-export const KIT_TONE: Record<Tone, ReadoutTone> = {
+export const KIT_TONE: Record<Tone, KitTone> = {
   under: "go",
-  near: "warning",
-  over: "alert",
+  near: "warn",
+  over: "nogo",
 };
 
 export const TONE_COLOR: Record<Tone, string> = {
   under: "var(--color-accent-fg)",
-  near: "var(--color-status-warning-bg)",
-  over: "var(--color-status-nogo-bg)",
+  near: "var(--color-warn-mark)",
+  over: "var(--color-nogo-mark)",
 };

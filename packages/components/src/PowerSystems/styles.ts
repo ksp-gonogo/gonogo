@@ -31,7 +31,7 @@ export const TOTALS_CELL: CSSProperties = {
 };
 
 export const MEASURED_CELL: CSSProperties = {
-  border: "1px dashed var(--color-status-warning-bg)",
+  border: "1px dashed var(--color-warn-mark)",
 };
 
 // On the NET cell's tinted background text-faint fails 4.5:1, so its label takes the tone's foreground (NET_LABEL_COLOUR).
@@ -163,12 +163,12 @@ export const COMPACT_NET: CSSProperties = {
 /** The NET cell's tint and edge per tone. */
 export const NET_CELL_BY_TONE: Record<NetTone, CSSProperties> = {
   go: {
-    background: "var(--color-status-go-bg)",
-    border: "1px solid var(--color-status-go-bg)",
+    background: "var(--color-go-status)",
+    border: "1px solid var(--color-go-status)",
   },
   warn: {
-    background: "var(--color-status-warning-bg-muted)",
-    border: "1px solid var(--color-status-warning-bg)",
+    background: "var(--color-warn-muted)",
+    border: "1px solid var(--color-warn-mark)",
   },
   neutral: {
     background: "var(--color-surface-panel)",
@@ -178,7 +178,7 @@ export const NET_CELL_BY_TONE: Record<NetTone, CSSProperties> = {
 
 /** The NET label's colour, which must hold 4.5:1 on its own cell's tint. */
 export const NET_LABEL_COLOUR: Record<NetTone, string> = {
-  go: "var(--color-status-go-fg)",
-  warn: "var(--color-status-warning-fg-muted)",
+  go: "var(--color-go-text)",
+  warn: "var(--color-warn-text)",
   neutral: "var(--color-text-faint)",
 };

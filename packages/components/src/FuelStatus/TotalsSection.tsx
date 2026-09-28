@@ -28,7 +28,6 @@ function TotalFigure({
         {label}
       </ReadoutCaption>
       <Text
-        tone="default"
         size="sm"
         style={{
           display: "inline-flex",
@@ -36,7 +35,7 @@ function TotalFigure({
           gap: "var(--gap-related)",
           flexWrap: "wrap",
           fontWeight: 700,
-          color: "var(--color-status-nogo-fg)",
+          color: "var(--color-nogo-text)",
         }}
       >
         {children}

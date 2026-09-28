@@ -50,6 +50,6 @@ describe("ToggleButton data-failed tint", () => {
       screen.getByRole("button", { name: "RCS" }),
       '[data-failed="true"]',
     );
-    expect(rule).toContain("var(--color-status-warning-fg-muted)");
+    expect(rule).toContain("var(--color-warn-text)");
   });
 });

@@ -46,7 +46,7 @@ export function BurnConformanceRow({
         style={{ alignItems: "flex-end", flex: "0 0 auto" }}
         title="Delivered delta-v against what the plan asked for. Independent of who planned the burn."
       >
-        <Text tone="default" size="sm" style={{ whiteSpace: "nowrap" }}>
+        <Text size="sm" style={{ whiteSpace: "nowrap" }}>
           {conformance.deliveredDv == null || conformance.plannedDv == null ? (
             NULL_DISPLAY
           ) : (

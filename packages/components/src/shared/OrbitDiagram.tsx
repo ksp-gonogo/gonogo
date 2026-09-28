@@ -114,7 +114,7 @@ const variantConfig = {
     dotR: 0.028,
     vesselDotScale: 1.5,
     showLabels: true,
-    defaultBodyColor: "var(--color-status-info-fg)",
+    defaultBodyColor: "var(--color-info-mark)",
     defaultBodyDiscRatio: 0.04,
   },
   mini: {
@@ -559,7 +559,7 @@ export function OrbitDiagram({
                     cx={-apoapsis}
                     cy={0}
                     r={dotR}
-                    fill="var(--color-status-warning-bg)"
+                    fill="var(--color-warn-mark)"
                     aria-label={`Apoapsis altitude ${formatAltitude(apoapsis, bodyRadius)}`}
                     onMouseEnter={() => setHoveredMarker("ap")}
                     onMouseLeave={() => setHoveredMarker(null)}
@@ -612,7 +612,7 @@ export function OrbitDiagram({
                 <ApsisLabel
                   x={apoLabelPos.x}
                   y={apoLabelPos.y}
-                  fill="var(--color-status-warning-bg)"
+                  fill="var(--color-warn-mark)"
                   fontSizePx={labelPxSize}
                   vbPerPx={vbPerPx}
                   text={
@@ -953,7 +953,7 @@ function ManeuverHandles({
         value={prograde}
         onChange={onPrograde}
         scale={effectiveScale}
-        color="var(--color-status-info-fg)"
+        color="var(--color-info-text)"
         label="P"
         dotR={dotR}
         strokeW={strokeW}

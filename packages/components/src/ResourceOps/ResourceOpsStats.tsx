@@ -35,13 +35,13 @@ export function ResourceOpsStats({
       style={{ gap: "var(--gap-section)" }}
     >
       <Inline>
-        <Text size="sm" tone="default" weight="semibold">
+        <Text size="sm" weight="semibold">
           {total}
         </Text>
         <ReadoutCaption>{total === 1 ? "process" : "processes"}</ReadoutCaption>
       </Inline>
       <Inline>
-        <Text size="sm" tone="default" weight="semibold">
+        <Text size="sm" weight="semibold">
           {activeCount ?? NULL_DISPLAY}
         </Text>
         <ReadoutCaption>active</ReadoutCaption>
@@ -51,7 +51,7 @@ export function ResourceOpsStats({
         <Inline>
           <ReadoutCaption>net EC</ReadoutCaption>
           {netEcHeld || netEc.net === null ? (
-            <Text tone="muted">{NULL_DISPLAY}</Text>
+            <Text level="muted">{NULL_DISPLAY}</Text>
           ) : (
             <Unit
               value={value("units/s", netEc.net)}
@@ -63,9 +63,7 @@ export function ResourceOpsStats({
       {location && (
         <Inline>
           <ReadoutCaption>at</ReadoutCaption>
-          <Text size="sm" tone="default">
-            {location}
-          </Text>
+          <Text size="sm">{location}</Text>
         </Inline>
       )}
     </Cluster>

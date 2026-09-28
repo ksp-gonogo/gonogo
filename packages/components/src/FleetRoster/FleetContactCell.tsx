@@ -29,7 +29,7 @@ export function FleetContactCell({
 
   if (phase === "lost") {
     return (
-      <Badge severity="critical" role="alert" aria-live="assertive">
+      <Badge tone="nogo" role="alert" aria-live="assertive">
         <span style={{ textDecoration: "line-through" }}>{vesselName}</span>{" "}
         lost
       </Badge>
@@ -39,7 +39,7 @@ export function FleetContactCell({
   if (phase === "overdue") {
     const late = overdueSeconds(silence, nowUt.magnitude);
     return (
-      <Badge severity="warning" live>
+      <Badge tone="warn" live>
         {/* Game-time seconds (both terms are UT), so "s" rather than "irl:s". */}
         overdue by <Unit value={late == null ? null : value("s", late)} />
       </Badge>
@@ -53,12 +53,12 @@ export function FleetContactCell({
         ? 0
         : value("ut", silence.predictedReacquisitionUt).minus(nowUt).magnitude;
     return (
-      <Badge severity="info">
+      <Badge tone="info">
         reacquire in ~<Unit value={value("s", Math.max(0, due))} />
       </Badge>
     );
   }
 
   // waiting: silent, with no prediction to count down to.
-  return <Badge severity="offline">no contact</Badge>;
+  return <Badge tone="offline">no contact</Badge>;
 }

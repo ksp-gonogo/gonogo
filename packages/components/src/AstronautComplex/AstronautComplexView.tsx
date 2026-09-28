@@ -236,7 +236,7 @@ export function AstronautComplexComponent(
               {activeCrew !== null ? activeCrew : NULL_DISPLAY}
               {capText !== null ? ` / ${capText}` : ""}
               {rosterFull && (
-                <Badge severity="critical" size="sm">
+                <Badge tone="nogo" size="sm">
                   FULL
                 </Badge>
               )}

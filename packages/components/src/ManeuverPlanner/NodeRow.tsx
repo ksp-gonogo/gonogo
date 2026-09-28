@@ -125,12 +125,10 @@ const NodeLi = styled.li<{ $completed: boolean }>`
   gap: var(--gap-related);
   padding: var(--inset-surface);
   background: ${({ $completed }) =>
-    $completed ? "var(--color-status-go-muted)" : "var(--color-surface-panel)"};
+    $completed ? "var(--color-go-muted)" : "var(--color-surface-panel)"};
   border: 1px solid
     ${({ $completed }) =>
-      $completed
-        ? "var(--color-status-go-mark)"
-        : "var(--color-border-subtle)"};
+      $completed ? "var(--color-go-mark)" : "var(--color-border-subtle)"};
   border-radius: var(--radius-regular);
 `;
 
@@ -147,7 +145,7 @@ const NodePrimary = styled.div<{ $completed: boolean }>`
   gap: var(--gap-related);
   font-size: var(--font-size-value);
   color: ${({ $completed }) =>
-    $completed ? "var(--color-status-go-fg)" : "var(--color-text-primary)"};
+    $completed ? "var(--color-go-text)" : "var(--color-text-primary)"};
   font-weight: ${({ $completed }) => ($completed ? 600 : 400)};
 `;
 

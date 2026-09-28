@@ -193,7 +193,7 @@ function InFlowControlDot() {
         height: "max(0.3em, 4px)",
         marginLeft: "0.14em",
         borderRadius: "var(--radius-circle)",
-        background: "var(--color-status-warning-bg)",
+        background: "var(--color-warn-mark)",
         verticalAlign: "super",
       }}
     />

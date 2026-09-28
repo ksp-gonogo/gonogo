@@ -159,9 +159,9 @@ const CommandGroup__CommitButton = styled.button<{
     $gated &&
     css`
       cursor: not-allowed;
-      border-color: var(--color-status-nogo-bg);
-      background: var(--color-status-nogo-bg);
-      color: var(--color-status-nogo-on-bg);
+      border-color: var(--color-nogo-status);
+      background: var(--color-nogo-status);
+      color: var(--color-nogo-on-status);
       opacity: 0.7;
     `}
 `;

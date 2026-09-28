@@ -79,7 +79,7 @@ const StyledFab = styled.button<{ $visible: boolean }>`
   border-radius: var(--radius-circle);
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-strong);
-  color: var(--color-status-info-fg);
+  color: var(--color-info-text);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -99,7 +99,7 @@ const StyledFab = styled.button<{ $visible: boolean }>`
   @media (hover: hover) {
     &:hover {
       background: var(--color-border-subtle);
-      border-color: var(--color-status-info-fg);
+      border-color: var(--color-info-mark);
       transform: scale(1.05);
     }
   }

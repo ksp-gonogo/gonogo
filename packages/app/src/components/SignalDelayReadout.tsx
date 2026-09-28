@@ -238,7 +238,7 @@ function SignalDelayValue({ state }: { state: SignalDelayState }) {
         <>
           <VisuallyHidden>Signal delay </VisuallyHidden>
           <Unit value={value("s", state.seconds)} />{" "}
-          <Text tone="muted" size="xs">
+          <Text level="muted" size="xs">
             {VIA_HOME_LABEL}
           </Text>
         </>
@@ -262,7 +262,7 @@ function NoDelay({ spoken }: { spoken: string }) {
   return (
     <>
       <VisuallyHidden>{spoken}</VisuallyHidden>
-      <Text tone="muted" size="xs" aria-hidden="true">
+      <Text level="muted" size="xs" aria-hidden="true">
         {NULL_DISPLAY}
       </Text>
     </>

@@ -137,7 +137,7 @@ describe("TrajectoryCurrencyBridge: the horizon, against the instant on screen",
     expect(summary()).toBe("NONE");
 
     stream.emitOrbit(PAST);
-    expect(summary()).toBe("warning:BEYOND INTEGRATION");
+    expect(summary()).toBe("warn:BEYOND INTEGRATION");
 
     stream.emitOrbit(AHEAD);
     expect(summary()).toBe("info:EXACT AT SAMPLE");
@@ -152,7 +152,7 @@ describe("TrajectoryCurrencyBridge: the horizon, against the instant on screen",
   /**
    * A producer that dropped the field is a distinct fact from one whose bound
    * has been outrun, and it must not read as health. `caution` rather than
-   * `warning` because nothing has said the elements are wrong, only that
+   * `warn` because nothing has said the elements are wrong, only that
    * nothing has vouched for them.
    */
   it("separates an unstated horizon from an outrun one", () => {
@@ -164,7 +164,7 @@ describe("TrajectoryCurrencyBridge: the horizon, against the instant on screen",
   /**
    * The matching rule, driven through the real bridge rather than the predicate
    * alone: a widget that draws nothing from the trajectory stays silent through
-   * the same emit that badges an orbit widget `warning` above.
+   * the same emit that badges an orbit widget `warn` above.
    */
   it("stays silent on a widget that draws nothing from the trajectory", () => {
     const stream = mount(["vessel.comms"]);

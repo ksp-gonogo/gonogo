@@ -1,3 +1,4 @@
+import type { AlertTone } from "@ksp-gonogo/sitrep-sdk";
 import { orbitPointAt, orbitRingPoints } from "./orbitGeometry";
 import { INERTIAL_PLACEMENT, type Placement } from "./projection";
 
@@ -8,15 +9,12 @@ import { INERTIAL_PLACEMENT, type Placement } from "./projection";
 
 export type SystemEntityEmphasis = "faint" | "normal" | "bright";
 
-/** Semantic weight a contributor can name: the host maps it to a hue. */
-export type SystemEntitySeverity = "info" | "warning" | "critical";
-
 export interface SystemEntityStyle {
   /** Defaults to "normal" when omitted. */
   emphasis?: SystemEntityEmphasis;
   /** What the entity means, which the host turns into a hue; a contributor never names a colour, so the theme reaches every entity. */
-  severity?: SystemEntitySeverity;
-  /** A resolved CSS colour overriding both of the above, for the host's own `decorate` hook; a contribution names `severity` instead. */
+  tone?: AlertTone;
+  /** A resolved CSS colour overriding both of the above, for the host's own `decorate` hook; a contribution names `tone` instead. */
   colour?: string;
 }
 

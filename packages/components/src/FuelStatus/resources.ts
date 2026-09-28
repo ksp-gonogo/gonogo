@@ -25,13 +25,13 @@ export const RESOURCES: readonly ResourceDef[] = [
   {
     name: "Oxidizer",
     label: "Oxidizer",
-    color: "var(--color-status-info-fg)",
+    color: "var(--color-info-text)",
     scope: "current",
   },
   {
     name: "MonoPropellant",
     label: "RCS",
-    color: "var(--color-status-warning-bg)",
+    color: "var(--color-warn-mark)",
     scope: "vessel",
   },
   {
@@ -43,7 +43,7 @@ export const RESOURCES: readonly ResourceDef[] = [
   {
     name: "ElectricCharge",
     label: "Power",
-    color: "var(--color-status-warning-bg)",
+    color: "var(--color-warn-mark)",
     scope: "vessel",
   },
 ] as const;

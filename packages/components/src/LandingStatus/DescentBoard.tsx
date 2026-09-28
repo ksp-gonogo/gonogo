@@ -51,7 +51,7 @@ export function DescentBoard({ model }: Readonly<{ model: LandingModel }>) {
             <GridCellPair label="Regime">{landing.descentRegime}</GridCellPair>
           )}
         </Grid>
-        <Text tone="muted" size="xs">
+        <Text level="muted" size="xs">
           est · current config
           {landing?.parachuteState === "armed" ? " · excludes chute" : ""}
         </Text>
@@ -73,7 +73,7 @@ export function DescentBoard({ model }: Readonly<{ model: LandingModel }>) {
           </GridCellPair>
           <GridCellPair label="Air density">{airDensity(model)}</GridCellPair>
         </Grid>
-        <Text tone="muted" size="xs">
+        <Text level="muted" size="xs">
           {flight?.atmDensity?.lessThan(NEGLIGIBLE_DENSITY)
             ? "negligible drag · near free-fall, terminal velocity resolves as air thickens"
             : "above terminal · drag building, terminal velocity resolves as descent continues"}
@@ -85,7 +85,7 @@ export function DescentBoard({ model }: Readonly<{ model: LandingModel }>) {
   if (board === "atmospheric-unmodelled") {
     return (
       <Section>
-        <Text tone="muted" size="xs">
+        <Text level="muted" size="xs">
           descent in atmosphere · no terrain model (no body data)
         </Text>
       </Section>
@@ -95,7 +95,7 @@ export function DescentBoard({ model }: Readonly<{ model: LandingModel }>) {
   if (board === "no-solution") {
     return (
       <Section>
-        <Text tone="muted">no solution · no body data</Text>
+        <Text level="muted">no solution · no body data</Text>
       </Section>
     );
   }

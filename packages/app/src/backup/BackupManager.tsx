@@ -189,6 +189,6 @@ const ConfirmText = styled.span`
 `;
 
 const Warn = styled.span`
-  color: var(--color-status-warning-bg);
+  color: var(--color-warn-text);
   font-size: var(--font-size-compact);
 `;

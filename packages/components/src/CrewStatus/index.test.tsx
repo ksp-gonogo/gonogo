@@ -715,7 +715,7 @@ describe("CrewStatusComponent, row tone contribution", () => {
       .map((s) => s.textContent)
       .join("\n");
     expect(styleText).not.toContain(
-      "border-left:2px solid var(--color-status-nogo-bg);",
+      "border-left:2px solid var(--color-nogo-mark);",
     );
   });
 
@@ -723,9 +723,7 @@ describe("CrewStatusComponent, row tone contribution", () => {
     registerContribution({
       id: "test-crew-row-tone",
       contributes: "crew-status.row-tone",
-      compute: () => [
-        { crewName: "Bill Kerman", severity: "critical" as const },
-      ],
+      compute: () => [{ crewName: "Bill Kerman", tone: "nogo" as const }],
     });
 
     const fixture = newFixture();
@@ -745,7 +743,7 @@ describe("CrewStatusComponent, row tone contribution", () => {
       .map((s) => s.textContent)
       .join("\n");
     expect(styleText).toContain(
-      "border-left:2px solid var(--color-status-nogo-bg);",
+      "border-left:2px solid var(--color-nogo-mark);",
     );
   });
 });

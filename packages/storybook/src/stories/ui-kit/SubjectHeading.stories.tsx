@@ -20,7 +20,7 @@ const meta = {
   ],
   args: {
     children: <strong>Mun Orbital Survey</strong>,
-    status: <Badge severity="nominal">Active</Badge>,
+    status: <Badge tone="go">Active</Badge>,
   },
 } satisfies Meta<typeof SubjectHeading>;
 
@@ -32,13 +32,13 @@ export const ContractList: Story = {
   render: () => (
     <Section title="Contracts">
       <Stack gap="related">
-        <SubjectHeading status={<Badge severity="nominal">Active</Badge>}>
+        <SubjectHeading status={<Badge tone="go">Active</Badge>}>
           <strong>Mun Orbital Survey</strong>
         </SubjectHeading>
-        <SubjectHeading status={<Badge severity="caution">Deadline 3d</Badge>}>
+        <SubjectHeading status={<Badge tone="caution">Deadline 3d</Badge>}>
           <strong>Rescue Jebediah Kerman from Kerbin orbit</strong>
         </SubjectHeading>
-        <SubjectHeading status={<Badge severity="critical">Failed</Badge>}>
+        <SubjectHeading status={<Badge tone="nogo">Failed</Badge>}>
           <strong>Test RT-10 Hammer at Minmus</strong>
         </SubjectHeading>
         <SubjectHeading>
@@ -63,8 +63,8 @@ export const SeveralStates: Story = {
     children: <strong>Kerbal X</strong>,
     status: (
       <>
-        <Badge severity="info">Sub-orbital</Badge>
-        <Badge severity="caution">Low EC</Badge>
+        <Badge tone="info">Sub-orbital</Badge>
+        <Badge tone="caution">Low EC</Badge>
       </>
     ),
   },
@@ -83,6 +83,6 @@ export const LongSubjectWraps: Story = {
     children: (
       <strong>Place a science outpost on the Mun's northern pole</strong>
     ),
-    status: <Badge severity="caution">Offered</Badge>,
+    status: <Badge tone="caution">Offered</Badge>,
   },
 };

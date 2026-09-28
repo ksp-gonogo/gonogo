@@ -10,7 +10,7 @@ export const FRAME_CAPTION: CSSProperties = {
 
 /**
  * Renders the contributed `system-view.vessel-status` entry; SystemView only decides which severities are announced.
- * `critical` is assertive, `warning` polite, and `info` (often a countdown) is announced by neither, since a live region would read a ticking clock aloud forever.
+ * `nogo` is assertive, `warn` polite, and `info` (often a countdown) is announced by neither, since a live region would read a ticking clock aloud forever.
  */
 export function ContactCaption({
   status,
@@ -21,7 +21,7 @@ export function ContactCaption({
 }>) {
   if (!status) return null;
 
-  if (status.severity === "critical") {
+  if (status.tone === "nogo") {
     return (
       <div style={FRAME_CAPTION} role="alert" aria-live="assertive">
         <span style={{ textDecoration: "line-through" }}>{vesselName}</span>{" "}
@@ -30,7 +30,7 @@ export function ContactCaption({
     );
   }
 
-  if (status.severity === "warning") {
+  if (status.tone === "warn") {
     return (
       <div style={FRAME_CAPTION} role="status" aria-live="polite">
         {vesselName} {status.label.toLowerCase()}

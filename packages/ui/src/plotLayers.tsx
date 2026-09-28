@@ -1,4 +1,5 @@
-import type { PlotEmphasis, PlotLayer, PlotTone } from "@ksp-gonogo/sitrep-sdk";
+import type { PlotEmphasis, PlotLayer } from "@ksp-gonogo/sitrep-sdk";
+import { TONE_MARK, TONE_TEXT } from "@ksp-gonogo/ui-kit";
 import type { ReactElement } from "react";
 
 /**
@@ -7,14 +8,6 @@ import type { ReactElement } from "react";
  * path. Paint order is by kind (field, region, series, marker), with `z` ordering only within a kind,
  * so one contributor's wash cannot bury another's curve.
  */
-
-const TONE_COLOR: Record<PlotTone, string> = {
-  neutral: "var(--color-text-muted)",
-  go: "var(--color-accent-fg)",
-  warn: "var(--color-status-warning-bg)",
-  nogo: "var(--color-status-nogo-bg)",
-  info: "var(--color-status-info-fg)",
-};
 
 const EMPHASIS_OPACITY: Record<PlotEmphasis, number> = {
   faint: 0.45,
@@ -37,8 +30,14 @@ const EDGE_STRIP_PX = 13;
 const DEFAULT_REGION_OPACITY = 0.1;
 const DEFAULT_FIELD_OPACITY = 0.5;
 
+/** A layer's lines, fills and dots. */
 function toneColor(layer: PlotLayer): string {
-  return TONE_COLOR[layer.tone ?? "neutral"];
+  return TONE_MARK[layer.tone ?? "neutral"];
+}
+
+/** The words a layer draws: its tone's text colour, which clears 4.5:1 where a mark need only clear 3:1. */
+function toneText(layer: PlotLayer): string {
+  return TONE_TEXT[layer.tone ?? "neutral"];
 }
 
 function toneOpacity(layer: PlotLayer): number {
@@ -558,7 +557,7 @@ function RuleLayer({
           x={horizontal ? frame.plotX1 - 4 : at + 3}
           y={horizontal ? at - 3 : frame.plotY0 + 10}
           textAnchor={horizontal ? "end" : "start"}
-          fill={color}
+          fill={toneText(layer)}
           fontSize={CAPTION_LABEL_SIZE}
         >
           {layer.label}
@@ -613,7 +612,7 @@ function AnnotationLayer({
           textAnchor={spot.anchor}
           fontSize={CAPTION_LABEL_SIZE}
           letterSpacing="0.05em"
-          fill={color}
+          fill={toneText(layer)}
           fillOpacity={toneOpacity(layer)}
         >
           {layer.label}
@@ -696,7 +695,7 @@ function MarkerLayer({
           x={x + r + 3}
           y={y + 3}
           fontSize={CAPTION_LABEL_SIZE}
-          fill={color}
+          fill={toneText(layer)}
           fillOpacity={toneOpacity(layer)}
         >
           {layer.label}
@@ -719,7 +718,6 @@ function CaptionLayer({
   /** Edge strips already taken by rotated text, which a corner readout must step inboard of. */
   edges: { left: boolean; right: boolean };
 }) {
-  const color = toneColor(layer);
   const lines = layer.caption ? 2 : 1;
   if (layer.anchor === "left-edge" || layer.anchor === "right-edge") {
     const x =
@@ -736,7 +734,7 @@ function CaptionLayer({
         transform={`rotate(-90 ${x} ${y})`}
         fontSize={CAPTION_LABEL_SIZE}
         letterSpacing="0.14em"
-        fill={color}
+        fill={toneText(layer)}
         fillOpacity={toneOpacity(layer)}
       >
         {layer.text}
@@ -776,7 +774,7 @@ function CaptionLayer({
         y={layer.caption && top ? baseY + CAPTION_LINE : baseY}
         fontSize={CAPTION_SIZE}
         fontWeight={700}
-        fill={color}
+        fill={toneText(layer)}
         fillOpacity={toneOpacity(layer)}
       >
         {layer.text}

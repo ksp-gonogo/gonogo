@@ -46,12 +46,6 @@ export interface ThemeColors {
     fg: string;
     bg: string;
   };
-  status: {
-    go: { fg: string; bg: string };
-    nogo: { fg: string; bg: string };
-    warning: { fg: string; bg: string };
-    info: { fg: string; bg: string };
-  };
   focus: string;
 }
 

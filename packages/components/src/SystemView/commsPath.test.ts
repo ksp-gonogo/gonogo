@@ -140,7 +140,7 @@ describe("deriveCommsPath", () => {
 
 describe("COMMS_PATH_COLOUR", () => {
   it("maps full to the go tone and both degraded tiers to distinct non-go tones", () => {
-    expect(COMMS_PATH_COLOUR.full).toBe("var(--color-status-go-mark)");
+    expect(COMMS_PATH_COLOUR.full).toBe("var(--color-go-mark)");
     expect(COMMS_PATH_COLOUR.partial).not.toBe(COMMS_PATH_COLOUR.full);
     expect(COMMS_PATH_COLOUR.none).not.toBe(COMMS_PATH_COLOUR.full);
   });
@@ -150,19 +150,19 @@ describe("commsControlQuality", () => {
   // The path colour comes from the selected vessel's own roster commsLabel, not the traversal `quality`: a vessel can route to home over active edges while its own control is Partial or None.
   it("maps a FULL-control roster label ('connected') to the go tone", () => {
     expect(COMMS_PATH_COLOUR[commsControlQuality("connected")]).toBe(
-      "var(--color-status-go-mark)",
+      "var(--color-go-mark)",
     );
   });
 
   it("maps a PARTIAL-control roster label ('relay') to a degraded, non-go tone", () => {
     const colour = COMMS_PATH_COLOUR[commsControlQuality("relay")];
-    expect(colour).not.toBe("var(--color-status-go-mark)");
-    expect(colour).toBe("var(--color-status-warning-bg)");
+    expect(colour).not.toBe("var(--color-go-mark)");
+    expect(colour).toBe("var(--color-warn-mark)");
   });
 
   it("maps a NONE-control roster label ('none') to a degraded, non-go tone", () => {
     expect(COMMS_PATH_COLOUR[commsControlQuality("none")]).not.toBe(
-      "var(--color-status-go-mark)",
+      "var(--color-go-mark)",
     );
   });
 

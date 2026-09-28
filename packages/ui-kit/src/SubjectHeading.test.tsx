@@ -7,7 +7,7 @@ describe("SubjectHeading", () => {
   // Order is asserted in the DOM, because node order is what a screen reader walks.
   it("reads the subject before its status", () => {
     render(
-      <SubjectHeading status={<Badge severity="info">ACTIVE</Badge>}>
+      <SubjectHeading status={<Badge tone="info">ACTIVE</Badge>}>
         <span>Early Orbital Program</span>
       </SubjectHeading>,
     );
@@ -31,7 +31,7 @@ describe("SubjectHeading", () => {
   it("would read the other way round if the order were reversed", () => {
     render(
       <div>
-        <Badge severity="info">ACTIVE</Badge>
+        <Badge tone="info">ACTIVE</Badge>
         <span>Early Orbital Program</span>
       </div>,
     );

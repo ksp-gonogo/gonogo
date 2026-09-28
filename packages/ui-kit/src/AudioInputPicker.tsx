@@ -1,8 +1,9 @@
+import type { Tone } from "@ksp-gonogo/sitrep-sdk";
 import { useId } from "react";
 import { Button } from "./Button";
 import { Field, FieldHint, FieldLabel, Select } from "./Form";
 import { Stack } from "./Stack";
-import { StatusIndicator, type StatusTone } from "./StatusIndicator";
+import { StatusIndicator } from "./StatusIndicator";
 import {
   type AudioInputControls,
   type AudioInputState,
@@ -87,7 +88,7 @@ function canRequest(status: AudioInputControls["status"]): boolean {
   return status === "unasked" || status === "requesting" || status === "failed";
 }
 
-const TONES: Record<AudioInputControls["status"], StatusTone> = {
+const TONES: Record<AudioInputControls["status"], Tone> = {
   "insecure-origin": "warn",
   "no-media-devices": "nogo",
   unasked: "neutral",
@@ -98,7 +99,7 @@ const TONES: Record<AudioInputControls["status"], StatusTone> = {
   ready: "go",
 };
 
-function stateTone(status: AudioInputControls["status"]): StatusTone {
+function stateTone(status: AudioInputControls["status"]): Tone {
   return TONES[status];
 }
 

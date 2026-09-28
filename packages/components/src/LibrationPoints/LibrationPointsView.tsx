@@ -234,7 +234,7 @@ export function LibrationPointsComponent({
         <Section key="view" fill>
           {!drawn ? (
             <div style={REFUSAL} role="status" aria-live="polite">
-              <Text tone="muted" size="sm">
+              <Text level="muted" size="sm">
                 {refusalCopy(answer)}
               </Text>
             </div>

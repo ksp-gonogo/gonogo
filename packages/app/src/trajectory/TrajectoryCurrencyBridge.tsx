@@ -80,7 +80,7 @@ export function trajectoryCurrencyContribution(
       return { severity: "caution", label: "NO HORIZON STATED" };
     }
     return {
-      severity: "warning",
+      severity: "warn",
       label:
         refusal.trajectoryKind === TrajectoryKindLike.Integrated
           ? "BEYOND INTEGRATION"

@@ -11,7 +11,7 @@ describe("Readout family", () => {
   it("Readout applies a different class per tone", () => {
     const { rerender } = render(<Readout $tone="go">GO</Readout>);
     const goClass = screen.getByText("GO").className;
-    rerender(<Readout $tone="alert">GO</Readout>);
+    rerender(<Readout $tone="nogo">GO</Readout>);
     expect(screen.getByText("GO").className).not.toBe(goClass);
   });
 
@@ -21,7 +21,7 @@ describe("Readout family", () => {
   });
 
   it("StatusPill renders its token text", () => {
-    render(<StatusPill $tone="alert">ABORT</StatusPill>);
+    render(<StatusPill $tone="nogo">ABORT</StatusPill>);
     expect(screen.getByText("ABORT")).toBeInTheDocument();
   });
 });

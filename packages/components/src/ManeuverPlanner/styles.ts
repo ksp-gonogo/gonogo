@@ -7,9 +7,9 @@ export const FeasibilityChip = styled.span<{ $ok: boolean }>`
   padding: var(--inset-chip);
   border-radius: var(--radius-pill);
   /* The failing state meets 3:1 non-text contrast on the dark ground. */
-  background: ${({ $ok }) => ($ok ? "var(--color-status-go-bg)" : "var(--color-status-alert-muted)")};
-  border: 1px solid ${({ $ok }) => ($ok ? "var(--color-status-go-bg)" : "var(--color-status-nogo-bg)")};
-  color: ${({ $ok }) => ($ok ? "var(--color-status-go-fg)" : "var(--color-status-nogo-fg)")};
+  background: ${({ $ok }) => ($ok ? "var(--color-go-status)" : "var(--color-nogo-muted)")};
+  border: 1px solid ${({ $ok }) => ($ok ? "var(--color-go-status)" : "var(--color-nogo-mark)")};
+  color: ${({ $ok }) => ($ok ? "var(--color-go-text)" : "var(--color-nogo-text)")};
   letter-spacing: 0.08em;
   text-transform: uppercase;
 `;
@@ -25,10 +25,10 @@ export const FeasibilityBanner = styled.div`
   gap: var(--gap-related);
   /* Roomier than --inset-surface: the shortfall text is the widest thing in the widget. */
   padding: var(--inset-feasibility-banner);
-  background: var(--color-status-alert-muted);
-  border: 1px solid var(--color-status-nogo-bg);
+  background: var(--color-nogo-muted);
+  border: 1px solid var(--color-nogo-mark);
   border-radius: var(--radius-regular);
-  color: var(--color-status-nogo-fg);
+  color: var(--color-nogo-text);
 `;
 
 export const FeasibilityBannerTitle = styled.span`
@@ -40,7 +40,7 @@ export const FeasibilityBannerTitle = styled.span`
 
 export const FeasibilityBannerBody = styled.span`
   font-size: var(--font-size-compact);
-  color: var(--color-status-nogo-fg);
+  color: var(--color-nogo-text);
 `;
 
 export const PreviewGrid = styled.dl`
@@ -59,7 +59,7 @@ export const Label = styled.dt`
 `;
 
 export const accentColor = {
-  ap: "var(--color-status-warning-bg)",
+  ap: "var(--color-warn-mark)",
   pe: "var(--color-tag-blue-fg)",
 };
 

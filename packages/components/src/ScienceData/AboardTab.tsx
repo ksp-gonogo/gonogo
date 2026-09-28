@@ -42,7 +42,7 @@ const BREAKDOWN_COLUMNS: ReadonlyArray<
   {
     key: "biome",
     header: "Biome",
-    render: (b) => b.biome || <Text tone="muted">{NULL_DISPLAY}</Text>,
+    render: (b) => b.biome || <Text level="muted">{NULL_DISPLAY}</Text>,
   },
   {
     key: "data",
@@ -60,7 +60,7 @@ const BREAKDOWN_COLUMNS: ReadonlyArray<
       b.remainingPotential > 0 ? (
         <Unit value={value("science", b.remainingPotential)} />
       ) : (
-        <Text tone="muted">complete</Text>
+        <Text level="muted">complete</Text>
       ),
   },
 ];
@@ -82,7 +82,7 @@ const EXPERIMENT_COLUMNS: ReadonlyArray<DataTableColumn<ParsedExperiment>> = [
     width: "9ch",
     render: (e) =>
       e.dataAmount === null ? (
-        <Text tone="muted">{NULL_DISPLAY}</Text>
+        <Text level="muted">{NULL_DISPLAY}</Text>
       ) : (
         <Unit value={value("Mit", e.dataAmount)} />
       ),
@@ -179,7 +179,7 @@ export function AboardTab({
   return (
     <Stack fill>
       <Text
-        tone="muted"
+        level="muted"
         size="sm"
         role="status"
         aria-live="polite"
@@ -190,7 +190,7 @@ export function AboardTab({
           : "Awaiting situation telemetry"}
       </Text>
       {!compact && typeof sciCount === "number" && (
-        <Text size="xs" tone="muted">
+        <Text size="xs" level="muted">
           {sciCount} record{sciCount === 1 ? "" : "s"}
           {typeof sciDataAmount === "number" && (
             <>

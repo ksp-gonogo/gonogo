@@ -196,7 +196,7 @@ describe("ConsoleFrame", () => {
     const info = render(<ConsoleFrame tone="info">b</ConsoleFrame>);
     expect(
       toneOf(info.container.querySelector("[data-console-frame]")),
-    ).toContain("--color-status-info-fg");
+    ).toContain("--color-info-text");
   });
 
   it("keeps its own border subtle, whatever the tone", () => {

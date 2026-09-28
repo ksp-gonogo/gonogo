@@ -14,7 +14,7 @@ export function TrajectoryWithheld({
   return (
     <NoData role="status">
       <Text size="xs">{heading}</Text>
-      <Text tone="muted" size="xs">
+      <Text level="muted" size="xs">
         {detail}
       </Text>
     </NoData>

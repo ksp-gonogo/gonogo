@@ -12,7 +12,7 @@ export const LIST: CSSProperties = {
 
 export const FOOTER: CSSProperties = {
   fontSize: "var(--font-size-compact)",
-  color: "var(--color-status-nogo-bg)",
+  color: "var(--color-nogo-text)",
 };
 
 export const DOT_SUMMARY: CSSProperties = {

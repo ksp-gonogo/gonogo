@@ -38,8 +38,8 @@ export const BesideTruncatingName: Story = {
     <Cluster>
       <Truncate>Mun Orbital Science Platform Mk II</Truncate>
       <Inline>
-        <Badge severity="nominal">Orbiting</Badge>
-        <Badge severity="caution">Low EC</Badge>
+        <Badge tone="go">Orbiting</Badge>
+        <Badge tone="caution">Low EC</Badge>
         <Badge>3 crew</Badge>
       </Inline>
     </Cluster>
@@ -53,7 +53,7 @@ export const Inset: Story = {
       <Text weight="semibold">Kerbal X</Text>
       <span>
         <Inline>
-          <Badge severity="warning">Burn in 2 min</Badge>
+          <Badge tone="warn">Burn in 2 min</Badge>
         </Inline>
         <Inline inset>
           <GhostButton type="button" onClick={() => {}}>
@@ -100,13 +100,13 @@ export const Gaps: Story = {
       {(["related-packed", "related-dense", "related", "section"] as const).map(
         (gap) => (
           <Stack key={gap} gap="caption">
-            <Text size="xs" tone="faint">
+            <Text size="xs" level="faint">
               gap={gap}
             </Text>
             <Inline gap={gap}>
-              <Badge severity="nominal">GO</Badge>
-              <Badge severity="caution">HOLD</Badge>
-              <Badge severity="critical">NO-GO</Badge>
+              <Badge tone="go">GO</Badge>
+              <Badge tone="caution">HOLD</Badge>
+              <Badge tone="nogo">NO-GO</Badge>
             </Inline>
           </Stack>
         ),

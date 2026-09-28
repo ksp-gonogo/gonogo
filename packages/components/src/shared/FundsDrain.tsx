@@ -123,9 +123,7 @@ export function FundsDrain({
 function rootStyle(drain: boolean) {
   return {
     fontVariantNumeric: "tabular-nums",
-    color: drain
-      ? "var(--color-status-warning-fg-muted)"
-      : "var(--color-status-go-fg)",
+    color: drain ? "var(--color-warn-text)" : "var(--color-go-text)",
   } as const;
 }
 

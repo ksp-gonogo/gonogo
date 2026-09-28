@@ -7,7 +7,7 @@
  * the bound is a line, with the same hue, shape and wording.
  */
 import type { ReactNode } from "react";
-import { severityDotColor } from "./status/severityDotColor";
+import { TONE_MARK } from "./tone";
 
 /**
  * The held mark, as an instrument can draw it.
@@ -22,7 +22,7 @@ export function InstrumentHeldMark({ size }: { size: number }) {
       // Raised, so it reads as a mark on the figure rather than another figure.
       dy={-size * 0.55}
       fontSize={size}
-      fill={severityDotColor("warning")}
+      fill={TONE_MARK.warn}
       data-held-mark=""
     >
       {"●"}

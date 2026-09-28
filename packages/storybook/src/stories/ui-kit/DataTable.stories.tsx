@@ -144,8 +144,8 @@ export const RowDetail: Story = {
     rowDetail: (v: Vessel) =>
       v.situation === "Landed" ? (
         <span>
-          <Badge severity="caution">Low fuel</Badge> Jebediah Kerman awaiting
-          ascent window
+          <Badge tone="caution">Low fuel</Badge> Jebediah Kerman awaiting ascent
+          window
         </span>
       ) : null,
   },

@@ -11,10 +11,10 @@ export const VERDICT_LABEL: Record<ReachVerdict, string> = {
 
 // `one-way` is a WARNING, not a failure: a flyby or an impactor is a real mission. `marginal` is the coplanar model declining to commit.
 export const VERDICT_SEVERITY: Record<ReachVerdict, Severity | undefined> = {
-  go: "nominal",
-  "one-way": "warning",
-  marginal: "warning",
-  no: "critical",
+  go: "go",
+  "one-way": "warn",
+  marginal: "warn",
+  no: "nogo",
 };
 
 export const STATUS_LABEL: Record<string, string> = {
@@ -25,8 +25,8 @@ export const STATUS_LABEL: Record<string, string> = {
 
 // Being far from a window is "not yet", not an alarm, so FAR carries no severity.
 export const STATUS_SEVERITY: Record<string, Severity | undefined> = {
-  go: "nominal",
-  soon: "warning",
+  go: "go",
+  soon: "warn",
   off: undefined,
 };
 

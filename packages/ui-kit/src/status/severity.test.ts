@@ -1,23 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
   type Severity,
-  severityFromBadgeEntryTone,
   severityFromStreamStatus,
   severityRank,
   worstSeverity,
 } from "./severity";
 
-const ORDER: Severity[] = [
-  "nominal",
-  "info",
-  "caution",
-  "warning",
-  "critical",
-  "offline",
-];
+const ORDER: Severity[] = ["go", "info", "caution", "warn", "nogo", "offline"];
 
 describe("Severity total order", () => {
-  it("ranks best-to-worst nominal < info < caution < warning < critical < offline", () => {
+  it("ranks best-to-worst go < info < caution < warn < nogo < offline", () => {
     for (let i = 1; i < ORDER.length; i++) {
       expect(severityRank(ORDER[i])).toBeGreaterThan(
         severityRank(ORDER[i - 1]),
@@ -25,18 +17,18 @@ describe("Severity total order", () => {
     }
   });
 
-  it("puts info ABOVE nominal (operator-locked: an info notice lights a quiet panel)", () => {
-    expect(severityRank("info")).toBeGreaterThan(severityRank("nominal"));
+  it("puts info ABOVE go, so an info notice lights a quiet panel", () => {
+    expect(severityRank("info")).toBeGreaterThan(severityRank("go"));
   });
 
-  it("puts offline at the very top, above critical", () => {
-    expect(severityRank("offline")).toBeGreaterThan(severityRank("critical"));
+  it("puts offline at the very top, above nogo", () => {
+    expect(severityRank("offline")).toBeGreaterThan(severityRank("nogo"));
   });
 });
 
 describe("worstSeverity max-merge", () => {
-  it("is vacuously the floor (nominal) for an empty set", () => {
-    expect(worstSeverity([])).toBe("nominal");
+  it("is vacuously the floor (go) for an empty set", () => {
+    expect(worstSeverity([])).toBe("go");
   });
 
   it("returns the single element for a singleton", () => {
@@ -53,52 +45,34 @@ describe("worstSeverity max-merge", () => {
     }
   });
 
-  it("lets offline win over critical (data gone cannot be trusted below it)", () => {
-    expect(worstSeverity(["critical", "offline"])).toBe("offline");
-    expect(worstSeverity(["offline", "critical", "warning"])).toBe("offline");
+  it("lets offline win over nogo (data gone cannot be trusted below it)", () => {
+    expect(worstSeverity(["nogo", "offline"])).toBe("offline");
+    expect(worstSeverity(["offline", "nogo", "warn"])).toBe("offline");
   });
 
-  it("lets info win over a wholly-nominal set", () => {
-    expect(worstSeverity(["nominal", "info", "nominal"])).toBe("info");
+  it("lets info win over a wholly-go set", () => {
+    expect(worstSeverity(["go", "info", "go"])).toBe("info");
   });
 });
 
 // One assertion per mapping row, so the mapping and the code cannot drift.
 describe("severityFromStreamStatus (mapping table)", () => {
-  it("live -> nominal", () => {
-    expect(severityFromStreamStatus("live")).toBe("nominal");
+  it("live -> go", () => {
+    expect(severityFromStreamStatus("live")).toBe("go");
   });
   it("resyncing -> caution", () => {
     expect(severityFromStreamStatus("resyncing")).toBe("caution");
   });
-  it("held -> warning", () => {
-    expect(severityFromStreamStatus("held")).toBe("warning");
+  it("held -> warn", () => {
+    expect(severityFromStreamStatus("held")).toBe("warn");
   });
-  it("last-before-blackout -> warning", () => {
-    expect(severityFromStreamStatus("last-before-blackout")).toBe("warning");
+  it("last-before-blackout -> warn", () => {
+    expect(severityFromStreamStatus("last-before-blackout")).toBe("warn");
   });
   it("disconnected -> offline", () => {
     expect(severityFromStreamStatus("disconnected")).toBe("offline");
   });
   it("absent -> offline", () => {
     expect(severityFromStreamStatus("absent")).toBe("offline");
-  });
-});
-
-describe("severityFromBadgeEntryTone (mapping table)", () => {
-  it("go -> nominal", () => {
-    expect(severityFromBadgeEntryTone("go")).toBe("nominal");
-  });
-  it("info -> info", () => {
-    expect(severityFromBadgeEntryTone("info")).toBe("info");
-  });
-  it("warn -> warning", () => {
-    expect(severityFromBadgeEntryTone("warn")).toBe("warning");
-  });
-  it("nogo -> critical", () => {
-    expect(severityFromBadgeEntryTone("nogo")).toBe("critical");
-  });
-  it("neutral -> nominal (decorative folds to the floor)", () => {
-    expect(severityFromBadgeEntryTone("neutral")).toBe("nominal");
   });
 });

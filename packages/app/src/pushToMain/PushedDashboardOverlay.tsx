@@ -293,7 +293,7 @@ const StationChip = styled.span`
   font-size: var(--font-size-caption);
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--color-status-info-fg);
+  color: var(--color-info-text);
 `;
 
 /* --inset-control-compact, not --inset-control: a glyph in a tile header, the

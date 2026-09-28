@@ -42,7 +42,7 @@ const SVG_STYLE_BLOCK = `<style><![CDATA[
   --color-text-muted: #888;
   --color-surface-raised: #1a1a1a;
   --color-accent-fg: #00ff88;
-  --color-status-info-fg: #7cf;
-  --color-status-warning-bg: #ff8c00;
+  --color-info-mark: #7cf;
+  --color-warn-mark: #ff8c00;
 }
 ]]></style>`;

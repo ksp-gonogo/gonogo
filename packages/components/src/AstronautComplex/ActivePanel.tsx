@@ -85,10 +85,7 @@ export function ActivePanel({
                           }}
                         />
                         {fireable && m.name === highlightedName && (
-                          <Badge
-                            severity={armed ? "critical" : undefined}
-                            size="sm"
-                          >
+                          <Badge tone={armed ? "nogo" : undefined} size="sm">
                             {armed ? "ARMED" : "SELECTED"}
                           </Badge>
                         )}

@@ -33,6 +33,7 @@ import type {
   WidgetFieldPath,
 } from "../topics";
 import type { Value } from "../value";
+import type { Tone } from "./tone";
 
 /**
  * A dashboard component's declared data dependency, e.g. `"vessel.altitude"`.
@@ -402,8 +403,8 @@ export interface BadgeEntry {
   id: string;
   /** The badge's text. */
   label: string;
-  /** How the badge reads. The host maps it onto its severity scale. */
-  tone?: "neutral" | "go" | "nogo" | "warn" | "info";
+  /** How the badge reads. `neutral`, or no tone, is a decorative chip that takes no part in the panel's summary. */
+  tone?: Tone;
 }
 
 /**
@@ -419,8 +420,8 @@ export interface MeterEntry {
   label: string;
   /** The fill, as a `ratio` quantity or the whole {@link Reading} of one. */
   value: Value<"ratio"> | Reading<Value<"ratio">>;
-  /** Semantic colour of the fill. */
-  tone?: "neutral" | "go" | "warn" | "nogo" | "info";
+  /** What state the fill shows. */
+  tone?: Tone;
   /** Text on the right of the header; a percentage when absent. */
   valueLabel?: string;
   /**
@@ -472,11 +473,8 @@ export interface StatEntry {
   text?: string;
   /** One line under the figure, qualifying it: a rate, a horizon, a count it is drawn from. */
   detail?: string;
-  /**
-   * How alarming the figure is: the same five words `BadgeEntry` and
-   * `MeterEntry` carry.
-   */
-  tone?: "neutral" | "go" | "warn" | "nogo" | "info";
+  /** What state the figure shows. */
+  tone?: Tone;
 }
 
 /**

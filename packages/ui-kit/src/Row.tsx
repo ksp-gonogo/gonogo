@@ -127,11 +127,11 @@ const Row__Root = styled.li<{
   ${({ $interactive, $selected }) =>
     $interactive && $selected
       ? `
-  background: var(--color-status-go-bg);
-  color: var(--color-status-go-fg);
+  background: var(--color-go-status);
+  color: var(--color-go-on-status);
 
   &:hover {
-    background: var(--color-status-go-bg);
+    background: var(--color-go-status);
   }
 `
       : ""}

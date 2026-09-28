@@ -67,9 +67,7 @@ export function StageStackSection({
                 capacity={maxStageDv}
                 layout="row"
                 fillColor={
-                  active
-                    ? "var(--color-status-warning-bg)"
-                    : "var(--color-text-faint)"
+                  active ? "var(--color-warn-mark)" : "var(--color-text-faint)"
                 }
                 valueLabel={
                   dv === null ? undefined : speakQuantity(value("m/s", figure))
@@ -84,7 +82,7 @@ export function StageStackSection({
                   justifySelf: "end",
                   whiteSpace: "nowrap",
                   color: active
-                    ? "var(--color-status-nogo-fg)"
+                    ? "var(--color-nogo-text)"
                     : "var(--color-text-faint)",
                 }}
               >

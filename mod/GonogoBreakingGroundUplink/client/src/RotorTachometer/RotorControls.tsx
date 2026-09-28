@@ -69,7 +69,7 @@ export function RotorControls({
           >
             −
           </ActionButton>
-          <Text size="sm" tone="default">
+          <Text size="sm">
             {selected.rpmLimit === null
               ? "RPM cap unknown"
               : Math.round(selected.rpmLimit)}
@@ -110,7 +110,7 @@ export function RotorControls({
           >
             −
           </ActionButton>
-          <Text size="sm" tone="default">
+          <Text size="sm">
             {/* A worded absence, since a bare placeholder between two steppers reads as a render failure. */}
             {selected.torqueLimit === null ? (
               "Torque unknown"

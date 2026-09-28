@@ -49,10 +49,10 @@ export function ScienceExperimentRow({
     <Row wrap>
       <RowName title={instrument.partTitle}>{instrument.partTitle}</RowName>
       <Inline wrap>
-        {instrument.hasData && <Badge severity="nominal">DATA</Badge>}
+        {instrument.hasData && <Badge tone="go">DATA</Badge>}
         {instrument.deployed && <Badge>DEPLOYED</Badge>}
         {!instrument.rerunnable && <Badge>ONE-SHOT</Badge>}
-        {instrument.inoperable && <Badge severity="critical">INOPERABLE</Badge>}
+        {instrument.inoperable && <Badge tone="nogo">INOPERABLE</Badge>}
         {heldGrade !== undefined && (
           <HeldBadge grade={heldGrade} subject={instrument.partTitle} />
         )}
