@@ -19,7 +19,7 @@ import {
 } from "@ksp-gonogo/test-utils";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { KspSettings } from "./KspSettings";
+import { GonogoSettings } from "./GonogoSettings";
 
 const TOPIC = "settings.gonogo";
 
@@ -82,16 +82,9 @@ function model(
     reason?: string | null;
   } = { state: SettingsPersistenceState.Saved },
   undeclared: { uplinkId: string; reason: string }[] = [],
-  modSettings: {
-    owner: string;
-    name: string;
-    label: string;
-    value: string;
-  }[] = [],
 ) {
   return {
     rows,
-    modSettings,
     persistence: {
       state: persistence.state,
       path: "GameData/Gonogo/PluginData/gonogo.cfg",
@@ -113,12 +106,12 @@ afterEach(() => {
   unmounts.length = 0;
 });
 
-function mount(screenName: "main" | "station" = "main") {
+function mount(screenName: "main" | "station" = "main", owner?: string) {
   const fixture = setupStreamFixture();
   const view = render(
     <ScreenProvider value={screenName}>
       <fixture.Provider>
-        <KspSettings />
+        <GonogoSettings owner={owner} />
       </fixture.Provider>
     </ScreenProvider>,
   );
@@ -134,22 +127,32 @@ async function publish(
   act(() => fixture.emit(TOPIC, payload));
 }
 
-describe("KspSettings", () => {
-  it("draws every declared setting under its owner, from the payload alone", async () => {
+describe("GonogoSettings", () => {
+  it("draws the mod's own rows from the payload alone, and no Uplink's", async () => {
     registerDataSource(sitrep("connected"));
     const { fixture } = mount();
     await publish(fixture, model());
 
     expect(
-      await screen.findByRole("heading", { name: "Gonogo" }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Rp1" })).toBeInTheDocument();
-    expect(
-      screen.getByRole("checkbox", { name: "Apply light-time delay" }),
+      await screen.findByRole("checkbox", { name: "Apply light-time delay" }),
     ).toBeChecked();
-    expect(screen.getByRole("textbox", { name: "Slip warning" })).toHaveValue(
-      "30",
-    );
+    expect(
+      screen.getByRole("textbox", { name: "Light speed scale" }),
+    ).toHaveValue("1");
+    expect(screen.queryByRole("textbox", { name: "Slip warning" })).toBeNull();
+  });
+
+  it("draws only one Uplink's rows when given its id", async () => {
+    registerDataSource(sitrep("connected"));
+    const { fixture } = mount("main", "Rp1");
+    await publish(fixture, model());
+
+    expect(
+      await screen.findByRole("textbox", { name: "Slip warning" }),
+    ).toHaveValue("30");
+    expect(
+      screen.queryByRole("checkbox", { name: "Apply light-time delay" }),
+    ).toBeNull();
   });
 
   it("holds an edit until SAVE and sends one press with only what changed", async () => {
@@ -166,9 +169,10 @@ describe("KspSettings", () => {
     fireEvent.click(
       screen.getByRole("checkbox", { name: "Apply light-time delay" }),
     );
-    fireEvent.change(screen.getByRole("textbox", { name: "Slip warning" }), {
-      target: { value: "45" },
-    });
+    fireEvent.change(
+      screen.getByRole("textbox", { name: "Light speed scale" }),
+      { target: { value: "0.5" } },
+    );
     expect(fixture.transport.sentCommands).toHaveLength(0);
 
     fireEvent.click(screen.getByRole("button", { name: "Save 2 changes" }));
@@ -179,7 +183,7 @@ describe("KspSettings", () => {
     expect(sent?.args).toEqual({
       changes: [
         { path: "SIGNAL_DELAY/enabled", value: "False" },
-        { path: "Uplinks/Rp1/upgradeSlipWarningDays", value: "45" },
+        { path: "SIGNAL_DELAY/lightSpeedScale", value: "0.5" },
       ],
     });
     await act(async () => {});
@@ -194,24 +198,22 @@ describe("KspSettings", () => {
     const { fixture } = mount();
     await publish(fixture, model());
     fireEvent.change(
-      await screen.findByRole("textbox", { name: "Slip warning" }),
-      { target: { value: "45" } },
+      await screen.findByRole("textbox", { name: "Light speed scale" }),
+      { target: { value: "0.5" } },
     );
     expect(screen.getByRole("button", { name: "Save" })).toBeEnabled();
 
     const saved = ROWS.map((r) =>
-      r.path === "Uplinks/Rp1/upgradeSlipWarningDays"
-        ? { ...r, value: "45" }
-        : r,
+      r.path === "SIGNAL_DELAY/lightSpeedScale" ? { ...r, value: "0.5" } : r,
     );
     act(() => fixture.emit(TOPIC, model(saved)));
 
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "Save" })).toBeDisabled(),
     );
-    expect(screen.getByRole("textbox", { name: "Slip warning" })).toHaveValue(
-      "45",
-    );
+    expect(
+      screen.getByRole("textbox", { name: "Light speed scale" }),
+    ).toHaveValue("0.5");
   });
 
   it("will not offer SAVE for a value its setting cannot hold", async () => {
@@ -237,13 +239,12 @@ describe("KspSettings", () => {
     fixture.transport.setCommandHandler(() => ({
       success: false,
       errorCode: "noVessel",
-      detail:
-        "Uplinks/Rp1/upgradeSlipWarningDays holds a Number value, not 4 5",
+      detail: "SIGNAL_DELAY/lightSpeedScale holds a Number value, not 0 5",
     }));
     await publish(fixture, model());
     fireEvent.change(
-      await screen.findByRole("textbox", { name: "Slip warning" }),
-      { target: { value: "45" } },
+      await screen.findByRole("textbox", { name: "Light speed scale" }),
+      { target: { value: "0.5" } },
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
@@ -324,9 +325,9 @@ describe("KspSettings", () => {
     ).toBeInTheDocument();
   });
 
-  it("names an Uplink whose settings could not be declared", async () => {
+  it("says on an Uplink's page that its settings could not be declared", async () => {
     registerDataSource(sitrep("connected"));
-    const { fixture } = mount();
+    const { fixture } = mount("main", "Broken");
     await publish(
       fixture,
       model(ROWS, undefined, [
@@ -336,72 +337,8 @@ describe("KspSettings", () => {
 
     expect(
       await screen.findByText(
-        /Broken's settings could not be read this session/,
+        /could not be read this session \(settings declaration threw: typo\)/,
       ),
-    ).toBeInTheDocument();
-  });
-
-  /**
-   * What the host mod itself is set to, as its Uplink reads it: shown
-   * collapsed, under that Uplink, with no control, because nothing here can
-   * change it.
-   */
-  it("shows a mod's own settings collapsed and read-only under its Uplink", async () => {
-    registerDataSource(sitrep("connected"));
-    const { fixture, view } = mount();
-    await publish(
-      fixture,
-      model(
-        ROWS,
-        undefined,
-        [],
-        [
-          {
-            owner: "Rp1",
-            name: "difficulty",
-            label: "Career difficulty",
-            value: "Hard",
-          },
-        ],
-      ),
-    );
-
-    const summary = await screen.findByText("What Rp1's mod is set to");
-    const disclosure = summary.closest("details");
-    expect(disclosure).not.toBeNull();
-    expect(disclosure).not.toHaveAttribute("open");
-    expect(
-      disclosure?.querySelector("input, button, [role='switch']"),
-    ).toBeNull();
-    expect(view.container.textContent).toContain("Career difficulty");
-    expect(view.container.textContent).toContain("Hard");
-  });
-
-  it("gives an Uplink that only shows its mod's settings a group of its own", async () => {
-    registerDataSource(sitrep("connected"));
-    const { fixture } = mount();
-    await publish(
-      fixture,
-      model(
-        ROWS,
-        undefined,
-        [],
-        [
-          {
-            owner: "example",
-            name: "detail",
-            label: "Detail level",
-            value: "High",
-          },
-        ],
-      ),
-    );
-
-    expect(
-      await screen.findByRole("heading", { name: "example" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText("What example's mod is set to"),
     ).toBeInTheDocument();
   });
 
@@ -409,7 +346,7 @@ describe("KspSettings", () => {
     registerDataSource(sitrep("connected"));
     const { fixture, view } = mount();
     await publish(fixture, model());
-    await screen.findByRole("heading", { name: "Gonogo" });
+    await screen.findByRole("checkbox", { name: "Apply light-time delay" });
 
     await expectNoA11yViolations(view.container);
   });

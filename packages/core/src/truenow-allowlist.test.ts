@@ -218,9 +218,12 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   // the settings file holds it: configuration of the system the operator sits
   // at, not a reading about a craft, so there is no vantage from which it is
   // not yet known. The setting that configures the delay model is among them,
-  // and one late by the delay it sets could not be used). 6 explicit
-  // declarations.
-  "mod/Sitrep.Host/ChannelEngine.cs": 6,
+  // and one late by the delay it sets could not be used) + settings.<uplink>
+  // (a host mod's own settings as its Uplink reads them, one channel per
+  // Uplink through one declaration: configuration of the simulation on the KSP
+  // machine, not a reading about a craft, and settings as a whole Domain is
+  // TrueNow). 7 explicit declarations.
+  "mod/Sitrep.Host/ChannelEngine.cs": 7,
 };
 
 function findRepoRoot(start: string): string {

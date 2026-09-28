@@ -87,18 +87,8 @@ const RECOVERED = 2;
  * What the mod publishes with RP-1 running: its own three rows, and two in
  * RP-1's block, one of them the mod's own choice about delaying a simulation.
  */
-function kspSettings(
-  state: number,
-  reason: string | null = null,
-  modSettings: {
-    owner: string;
-    name: string;
-    label: string;
-    value: string;
-  }[] = [],
-) {
+function kspSettings(state: number, reason: string | null = null) {
   return {
-    modSettings,
     rows: [
       {
         path: "SIGNAL_DELAY/enabled",
@@ -156,6 +146,109 @@ function kspSettings(
   };
 }
 
+/** The Uplinks the mod reports running, as `system.uplinks` carries them. */
+const UPLINKS = {
+  uplinks: [
+    {
+      id: "survival",
+      name: "Survival",
+      version: "1.0.0",
+      available: true,
+      reason: null,
+      modSettings: true,
+      health: { state: 0, detail: null },
+    },
+    {
+      id: "rp1",
+      name: "RP-1",
+      version: "1.0.0",
+      available: true,
+      reason: null,
+      modSettings: false,
+      health: { state: 0, detail: null },
+    },
+    {
+      id: "streamer",
+      name: "Streamer",
+      version: "1.0.0",
+      available: true,
+      reason: null,
+      modSettings: true,
+      health: { state: 0, detail: null },
+    },
+  ],
+};
+
+/** One mod setting as `settings.<uplink>` carries it. */
+function modSetting(fields: Record<string, unknown> & { id: string }) {
+  return {
+    label: fields.id,
+    description: "",
+    kind: BOOL,
+    unit: null,
+    group: "",
+    setIn: "",
+    writable: false,
+    value: null,
+    unavailable: null,
+    ...fields,
+  };
+}
+
+/** Survival's reliability switch, the per-save half of it before a save is loaded. */
+const SURVIVAL_SETTINGS = {
+  uplink: "survival",
+  failure: null,
+  settings: [
+    modSetting({
+      id: "reliability",
+      label: "Part reliability",
+      group: "Reliability",
+      setIn: "Survival profile",
+      value: "True",
+    }),
+    modSetting({
+      id: "mtbfFailures",
+      label: "Failures from wear",
+      group: "Reliability",
+      setIn: "Difficulty settings, Survival",
+      unavailable: "no save loaded",
+    }),
+    modSetting({
+      id: "criticalChance",
+      label: "Critical failure chance",
+      kind: NUMBER,
+      unit: "ratio",
+      group: "Reliability",
+      setIn: "Difficulty settings, Survival",
+      value: "0.25",
+    }),
+  ],
+};
+
+/** Streamer's render throttle, which its Uplink offers to write. */
+const STREAMER_SETTINGS = {
+  uplink: "streamer",
+  failure: null,
+  settings: [
+    modSetting({
+      id: "throttleMainRender",
+      label: "Throttle KSP main render",
+      description:
+        "The main flight cameras stop rendering to leave GPU headroom for streams.",
+      writable: true,
+      value: "True",
+    }),
+  ],
+};
+
+const UPLINK_EMIT = {
+  "system.uplinks": UPLINKS,
+  [KSP_TOPIC]: kspSettings(SAVED),
+  "settings.survival": SURVIVAL_SETTINGS,
+  "settings.streamer": STREAMER_SETTINGS,
+};
+
 interface Scene {
   name: string;
   emit?: Record<string, unknown>;
@@ -178,6 +271,8 @@ interface Scene {
   connected?: boolean;
   /** Open every collapsed section before the shot, to show what it holds. */
   openDisclosures?: boolean;
+  /** A tab to press once the modal is drawn, by its name: an Uplink's page under the Uplinks tab. */
+  clickTab?: string;
 }
 
 const SCENES: Scene[] = [
@@ -224,9 +319,9 @@ const SCENES: Scene[] = [
     pxH: 460,
   },
   {
-    // The KSP tab, connected: every row drawn from the wire, grouped by who declared it, and SAVE waiting for a change.
+    // The Gonogo tab, connected: the mod's own rows drawn from the wire, and SAVE waiting for a change.
     name: "ksp-connected",
-    tab: "ksp",
+    tab: "gonogo",
     connected: true,
     emit: { [KSP_TOPIC]: kspSettings(SAVED) },
     pxW: 900,
@@ -235,7 +330,7 @@ const SCENES: Scene[] = [
   {
     // The last save could not write the file: in force for this session only, and the standing line says so and why.
     name: "ksp-memory-only",
-    tab: "ksp",
+    tab: "gonogo",
     connected: true,
     emit: {
       [KSP_TOPIC]: kspSettings(MEMORY_ONLY, "Access to the path is denied"),
@@ -246,7 +341,7 @@ const SCENES: Scene[] = [
   {
     // The file was damaged at start-up and its backup was read.
     name: "ksp-recovered",
-    tab: "ksp",
+    tab: "gonogo",
     connected: true,
     emit: { [KSP_TOPIC]: kspSettings(RECOVERED) },
     pxW: 900,
@@ -255,7 +350,7 @@ const SCENES: Scene[] = [
   {
     // KSP is not connected: the last values stay readable, and nothing can be changed, which the footer says.
     name: "ksp-disconnected",
-    tab: "ksp",
+    tab: "gonogo",
     connected: false,
     emit: { [KSP_TOPIC]: kspSettings(SAVED) },
     pxW: 900,
@@ -264,44 +359,48 @@ const SCENES: Scene[] = [
   {
     // A station reads the settings and has no SAVE.
     name: "ksp-station",
-    tab: "ksp",
+    tab: "gonogo",
     screen: "station",
     emit: { [KSP_TOPIC]: kspSettings(SAVED) },
     pxW: 900,
     pxH: 620,
   },
   {
-    // RP-1's mod settings as its Uplink reads them, opened to show what the collapsed section holds: read-only, beside the settings gonogo owns.
-    name: "ksp-mod-settings",
-    tab: "ksp",
-    connected: true,
-    openDisclosures: true,
-    emit: {
-      [KSP_TOPIC]: kspSettings(SAVED, null, [
-        {
-          owner: "rp1",
-          name: "difficulty",
-          label: "Career difficulty",
-          value: "Hard",
-        },
-        {
-          owner: "rp1",
-          name: "startingFunds",
-          label: "Starting funds",
-          value: "40000",
-        },
-      ]),
-    },
-    pxW: 900,
-    pxH: 760,
-  },
-  {
     // Connected, and the mod has not reported its settings yet.
     name: "ksp-waiting",
-    tab: "ksp",
+    tab: "gonogo",
     connected: true,
     pxW: 900,
     pxH: 300,
+  },
+  {
+    // The Uplinks tab on its first page: Survival's own settings as its Uplink reads them, one of them unknown until a save is loaded.
+    name: "uplinks-survival",
+    tab: "uplinks",
+    connected: true,
+    emit: UPLINK_EMIT,
+    pxW: 900,
+    pxH: 620,
+  },
+  {
+    // RP-1's page: its rows in Gonogo's own settings file, with their SAVE.
+    name: "uplinks-rp1",
+    tab: "uplinks",
+    clickTab: "RP-1",
+    connected: true,
+    emit: UPLINK_EMIT,
+    pxW: 900,
+    pxH: 620,
+  },
+  {
+    // Streamer's page: the render throttle its Uplink offers to write, then the preference its client keeps on this screen.
+    name: "uplinks-streamer",
+    tab: "uplinks",
+    clickTab: "Streamer",
+    connected: true,
+    emit: UPLINK_EMIT,
+    pxW: 900,
+    pxH: 620,
   },
 ];
 
@@ -407,6 +506,7 @@ async function main(): Promise<void> {
       screen,
       connected,
       openDisclosures,
+      clickTab,
     } of SCENES) {
       await page.evaluate(
         (s) =>
@@ -417,6 +517,19 @@ async function main(): Promise<void> {
           ).__renderSettings(s),
         { emit, prefs, pxW, pxH, tab, screen, connected },
       );
+      if (clickTab !== undefined) {
+        await page.getByRole("tab", { name: clickTab, exact: true }).click();
+        await page.waitForTimeout(150);
+        await page.evaluate(
+          (s) =>
+            (
+              window as unknown as {
+                __emitSettings: (e: unknown) => Promise<void>;
+              }
+            ).__emitSettings(s),
+          emit,
+        );
+      }
       if (openDisclosures) {
         await page.$$eval("details", (all) => {
           for (const details of all)

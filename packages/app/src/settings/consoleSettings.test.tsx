@@ -42,7 +42,6 @@ function consoleRow(name: string, value: boolean) {
 function model(rows: ReturnType<typeof consoleRow>[]) {
   return {
     rows,
-    modSettings: [],
     persistence: {
       state: SettingsPersistenceState.Saved,
       path: "GameData/Gonogo/PluginData/gonogo.cfg",

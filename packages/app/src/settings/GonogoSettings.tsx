@@ -6,7 +6,6 @@ import {
 } from "@ksp-gonogo/core";
 import { META_VANTAGE, useCommand } from "@ksp-gonogo/sitrep-client";
 import {
-  type ModSettingState,
   SettingKind,
   type SettingsModel,
   SettingsPersistenceState,
@@ -17,8 +16,6 @@ import {
   Cluster,
   Notice,
   PrimaryButton,
-  ReadOnlyField,
-  SectionTitle,
   Stack,
   usePanelDelay,
 } from "@ksp-gonogo/ui-kit";
@@ -29,22 +26,21 @@ import {
   RowDesc,
   RowLabel,
   RowText,
-  SectionStack,
   SettingInput,
   SettingLine,
 } from "./settingsLayout";
 
 /** The owner the mod writes for its own rows, as against an Uplink's id. */
-const CORE_OWNER = "gonogo";
+export const CORE_OWNER = "gonogo";
 
 type Draft = Record<string, string>;
 
 /**
- * The settings the mod and its Uplinks declared, as `settings.gonogo` reports
- * them, changed by one SAVE press through `settings.save`.
+ * One owner's rows of `settings.gonogo`, the mod's own or one Uplink's, changed
+ * by one SAVE press through `settings.save`.
  *
  * The rows are drawn from the payload's own descriptions, so a setting an
- * Uplink adds appears here with no code of its own. An edit is held until
+ * Uplink adds appears with no code of its own. An edit is held until
  * SAVE and sent as one press, which the mod applies all or nothing; what it
  * then publishes is the only authority for what was saved, because a save can
  * time out and still land.
@@ -52,7 +48,7 @@ type Draft = Record<string, string>;
  * Changes are refused, rather than queued, while KSP is not connected, and a
  * station only reads: both follow from the settings living in KSP's own file.
  */
-export function KspSettings() {
+export function GonogoSettings({ owner = CORE_OWNER }: { owner?: string }) {
   const screen = useScreen();
   const stationOnly = screen === "station";
   const hostDown = useTelemetryHostDown();
@@ -94,18 +90,20 @@ export function KspSettings() {
 
   if (model === undefined) {
     return (
-      <SectionStack>
-        <Empty role="status">
-          {stationOnly
-            ? "Waiting for the main screen to share KSP's settings."
-            : hostDown
-              ? `${NO_TELEMETRY_HOST_MESSAGE}. These settings live in KSP's own settings file, so they can be read and changed only while KSP is connected.`
-              : "Waiting for KSP to report its settings."}
-        </Empty>
-      </SectionStack>
+      <Empty role="status">
+        {stationOnly
+          ? "Waiting for the main screen to share KSP's settings."
+          : hostDown
+            ? `${NO_TELEMETRY_HOST_MESSAGE}. These settings live in KSP's own settings file, so they can be read and changed only while KSP is connected.`
+            : "Waiting for KSP to report its settings."}
+      </Empty>
     );
   }
 
+  const rows = model.rows.filter((row) => row.owner === owner);
+  const undeclared = model.undeclared.find(
+    (failure) => failure.uplinkId === owner,
+  );
   const invalid = Object.entries(draft).filter(([path, text]) => {
     const row = model.rows.find((r) => r.path === path);
     return row !== undefined && !isOfKind(row.kind, text);
@@ -129,51 +127,29 @@ export function KspSettings() {
   }
 
   return (
-    <SectionStack>
-      {byOwner(model.rows, model.modSettings ?? []).map(
-        ([owner, rows, shown]) => (
-          <Stack as="section" gap="related-comfortable" key={owner}>
-            <SectionTitle as="h3" $rule>
-              {owner === CORE_OWNER ? "Gonogo" : owner}
-            </SectionTitle>
-            {rows.map((row) => (
-              <KspSettingRow
-                key={row.path}
-                row={row}
-                text={draft[row.path] ?? row.value}
-                disabled={!canEdit}
-                onChange={(text) =>
-                  setDraft((current) =>
-                    text === row.value
-                      ? withoutPath(current, row.path)
-                      : { ...current, [row.path]: text },
-                  )
-                }
-              />
-            ))}
-            {shown.length > 0 && (
-              <ModSettings
-                owner={owner === CORE_OWNER ? "Gonogo" : owner}
-                shown={shown}
-              />
-            )}
-          </Stack>
-        ),
+    <Body>
+      {undeclared && (
+        <Notice tone="warning" aria-label="Settings not declared">
+          These settings could not be read this session ({undeclared.reason}).
+          They are at their defaults, and what the settings file holds for them
+          is kept.
+        </Notice>
       )}
-      {model.undeclared.length > 0 && (
-        <Stack as="section" gap="related-comfortable">
-          <SectionTitle as="h3" $rule>
-            Not available
-          </SectionTitle>
-          {model.undeclared.map((failure) => (
-            <RowDesc key={failure.uplinkId}>
-              {failure.uplinkId}'s settings could not be read this session (
-              {failure.reason}). They are at their defaults, and what the
-              settings file holds for them is kept.
-            </RowDesc>
-          ))}
-        </Stack>
-      )}
+      {rows.map((row) => (
+        <GonogoSettingRow
+          key={row.path}
+          row={row}
+          text={draft[row.path] ?? row.value}
+          disabled={!canEdit}
+          onChange={(text) =>
+            setDraft((current) =>
+              text === row.value
+                ? withoutPath(current, row.path)
+                : { ...current, [row.path]: text },
+            )
+          }
+        />
+      ))}
       <Footer>
         <FooterLine role="status" aria-live="polite">
           {stationOnly
@@ -214,7 +190,7 @@ export function KspSettings() {
         )}
         <PersistenceLine model={model} />
       </Footer>
-    </SectionStack>
+    </Body>
   );
 }
 
@@ -259,7 +235,7 @@ function unnamedState(state: never): string {
   return `The settings file is in a state this screen cannot name (${String(state)}).`;
 }
 
-function KspSettingRow({
+function GonogoSettingRow({
   row,
   text,
   disabled,
@@ -333,61 +309,6 @@ function kindName(kind: SettingKind): string {
   }
 }
 
-/**
- * Every owner in the order it first appears, with its settings and the mod
- * settings it shows. An Uplink that only shows its mod's settings still gets
- * a group.
- */
-function byOwner(
-  rows: readonly SettingsRowState[],
-  modSettings: readonly ModSettingState[],
-): [string, SettingsRowState[], ModSettingState[]][] {
-  const groups = new Map<string, [SettingsRowState[], ModSettingState[]]>();
-  const groupOf = (owner: string) => {
-    let group = groups.get(owner);
-    if (!group) {
-      group = [[], []];
-      groups.set(owner, group);
-    }
-    return group;
-  };
-  for (const row of rows) groupOf(row.owner)[0].push(row);
-  for (const shown of modSettings) groupOf(shown.owner)[1].push(shown);
-  return [...groups.entries()].map(([owner, [own, shown]]) => [
-    owner,
-    own,
-    shown,
-  ]);
-}
-
-/**
- * What the host mod itself is set to, as its Uplink reads it. Read-only and
- * collapsed by default: it explains what gonogo is working with, and nothing
- * here can change it, so it offers no control.
- */
-function ModSettings({
-  owner,
-  shown,
-}: {
-  owner: string;
-  shown: readonly ModSettingState[];
-}) {
-  return (
-    <ModSettingsDisclosure>
-      <summary>What {owner}'s mod is set to</summary>
-      <Stack gap="related-dense">
-        {shown.map((setting) => (
-          <ReadOnlyField
-            key={setting.name}
-            label={setting.label || setting.name}
-            value={setting.value}
-          />
-        ))}
-      </Stack>
-    </ModSettingsDisclosure>
-  );
-}
-
 function withoutPath(draft: Draft, path: string): Draft {
   const { [path]: _dropped, ...rest } = draft;
   return rest;
@@ -404,19 +325,10 @@ function refusalOf(rejected: unknown): string {
   return "KSP did not confirm the save. What is shown above is what it holds.";
 }
 
-const ModSettingsDisclosure = styled.details`
-  color: var(--color-text-dim);
-  font-size: var(--font-size-compact);
-
-  > summary {
-    cursor: pointer;
-    margin-bottom: var(--gap-related);
-  }
-
-  > summary:focus-visible {
-    outline: 2px solid var(--color-focus);
-    outline-offset: 2px;
-  }
+const Body = styled(Stack).attrs({
+  gap: "related-comfortable" as const,
+})`
+  flex: 1 0 auto;
 `;
 
 const Footer = styled(Stack).attrs({

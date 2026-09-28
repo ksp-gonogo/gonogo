@@ -22,6 +22,12 @@ export interface SettingsTabDefinition {
   component: ComponentType;
   /** Which screens this tab appears on. Omit for both. */
   screens?: readonly Screen[];
+  /**
+   * The Uplink this tab belongs to, by its id. The tab is then drawn as a
+   * section of that Uplink's page under the Uplinks tab, titled `label`,
+   * rather than as a tab of its own.
+   */
+  uplink?: string;
 }
 
 const tabs = new Map<string, SettingsTabDefinition>();

@@ -1012,6 +1012,8 @@ export type Seat = "mission-control" | "pilot";
  * Mirrors `packages/core/src/settingsTabs.ts`'s `SettingsTabDefinition`:
  * same leaf constraint. An Uplink co-locates a whole Settings-modal tab's
  * registration with the code that owns it.
+ *
+ * @category Extensions
  */
 export interface SettingsTabDefinition {
   /** Stable id: React key and tab id. */
@@ -1022,6 +1024,12 @@ export interface SettingsTabDefinition {
   component: ComponentType;
   /** Which screens this tab appears on. Omit for both. */
   screens?: readonly Screen[];
+  /**
+   * The Uplink this tab belongs to, by its id. The tab is then drawn as a
+   * section of that Uplink's page under the Uplinks tab, titled `label`,
+   * rather than as a tab of its own.
+   */
+  uplink?: string;
 }
 
 // --- Declarative settings ---------------------------------------------------

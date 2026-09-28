@@ -149,6 +149,7 @@ const EXPECTED_BARREL_VALUE_EXPORTS = [
   "useHostIceServers",
   "useLateTelemetrySubscribe",
   "useLatestValue",
+  "useModSettings",
   "useProcessor",
   "useReplaySessionActive",
   "useRouteCommands",

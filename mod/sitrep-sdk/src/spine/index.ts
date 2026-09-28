@@ -78,6 +78,7 @@ export * from "./lagrange";
 export * from "./lifecycle";
 export * from "./map-command";
 export * from "./map-topic";
+export * from "./mod-settings";
 export * from "./never-reckonable";
 export * from "./orbit-patches";
 export * from "./orbit-trajectory";

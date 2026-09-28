@@ -250,3 +250,13 @@ const DEPENDENT_ROWS: readonly SettingDefinition[] = [
 ];
 
 for (const def of [...DEPENDENT_ROWS, ...ROWS]) registerSetting(def);
+
+/** A screen preference an Uplink's client keeps, which the Uplinks tab draws on that Uplink's page. */
+registerSetting({
+  id: "planted.streamer.embeddedFacecams",
+  type: "boolean",
+  label: "Show crew facecams inside the flight camera",
+  category: "Streamer",
+  uplink: "streamer",
+  defaultValue: true,
+});

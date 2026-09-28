@@ -770,11 +770,21 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     validAt: "ut",
     vantage: "id",
   },
-  "ModSettingState": {
+  "ModSettingRow": {
+    description: "text",
+    group: "text",
+    id: "id",
+    kind: "enum",
     label: "text",
-    name: "id",
-    owner: "id",
+    setIn: "text",
+    unavailable: "text",
+    unit: "id",
     value: "text",
+    writable: "flag",
+  },
+  "ModSettingsModel": {
+    failure: "text",
+    uplink: "id",
   },
   "OrbitEncounter": {
     bodyIndex: "id",
@@ -1519,6 +1529,11 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     warpRate: "1",
     warpRateIndex: "id",
     warpRates: "1",
+  },
+  "WriteModSettingArgs": {
+    id: "id",
+    uplink: "id",
+    value: "text",
   },
 };
 
@@ -2295,6 +2310,10 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "ManeuverNode": {
     patches: "OrbitPatch[]",
   },
+  "ModSettingsModel": {
+    meta: "PayloadMeta",
+    settings: "ModSettingRow[]",
+  },
   "PartActions": {
     actions: "PartActionEntry[]",
     meta: "PayloadMeta",
@@ -2349,7 +2368,6 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "SettingsModel": {
     meta: "PayloadMeta",
-    modSettings: "ModSettingState[]",
     persistence: "SettingsPersistence",
     rows: "SettingsRowState[]",
     undeclared: "SettingsDeclarationFailure[]",
@@ -2573,7 +2591,6 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "settings.gonogo": {
     meta: "PayloadMeta",
-    modSettings: "ModSettingState[]",
     persistence: "SettingsPersistence",
     rows: "SettingsRowState[]",
     undeclared: "SettingsDeclarationFailure[]",

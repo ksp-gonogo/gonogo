@@ -41,6 +41,8 @@ interface RawUplinkHealth {
 /** One `system.uplinks` wire entry, before decode. */
 interface RawUplinkEntry {
   id: string;
+  /** The manifest's display name. Absent when the Uplink set none. */
+  name?: string | null;
   version: string;
   available: boolean;
   reason: string | null;
@@ -58,6 +60,8 @@ interface RawUplinkEntry {
    */
   contractMajor?: number | null;
   contractMinor?: number | null;
+  /** Whether `settings.<id>` carries this Uplink's host mod settings. */
+  modSettings?: boolean;
 }
 
 /** The raw `system.uplinks` wire payload (`ChannelEngine.BuildSystemUplinksPayload`'s shape). */
@@ -110,6 +114,8 @@ export interface ContractVersionReading {
 /** Decoded, widget-facing form of one Uplink's health self-report. */
 export interface UplinkHealthEntry {
   id: string;
+  /** The name the Uplink gives itself, or `null` when it gave none; `id` is then the name to show. */
+  name: string | null;
   version: string;
   available: boolean;
   reason: string | null;
@@ -131,6 +137,12 @@ export interface UplinkHealthEntry {
    * Empty array (never absent) for a pre-Phase-1 mod build.
    */
   ownedPrefixes: string[];
+  /**
+   * Whether this Uplink reports its host mod's own settings on
+   * `settings.<id>`, read with `useModSettings`. `false` for a mod build
+   * predating the field.
+   */
+  modSettings: boolean;
   health: {
     state: UplinkHealthStateName;
     /** Uplink-authored "what ready means for me" text, opaque, display-only. */
@@ -189,11 +201,13 @@ export function deriveSystemUplinkHealth(
     ),
     uplinks: point.payload.uplinks.map((entry) => ({
       id: entry.id,
+      name: entry.name ?? null,
       version: entry.version,
       available: entry.available,
       reason: entry.reason ?? null,
       contract: readContractVersion(entry.contractMajor, entry.contractMinor),
       ownedPrefixes: entry.ownedPrefixes ?? [],
+      modSettings: entry.modSettings === true,
       health: {
         state: HEALTH_STATE_NAMES[entry.health.state] ?? "unavailable",
         detail: entry.health.detail ?? null,

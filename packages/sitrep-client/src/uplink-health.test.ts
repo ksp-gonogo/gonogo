@@ -64,11 +64,13 @@ describe("deriveSystemUplinkHealth: mod-side Uplink health self-report", () => {
       uplinks: [
         {
           id: "kos",
+          name: null,
           version: "1.0.0",
           available: true,
           reason: null,
           contract: null,
           ownedPrefixes: [],
+          modSettings: false,
           health: {
             state: "degraded",
             detail: "no active CPU selected",
@@ -96,11 +98,13 @@ describe("deriveSystemUplinkHealth: mod-side Uplink health self-report", () => {
       uplinks: [
         {
           id: "broken",
+          name: null,
           version: "1.0.0",
           available: false,
           reason: "registration threw: boom",
           contract: null,
           ownedPrefixes: [],
+          modSettings: false,
           health: {
             state: "unavailable",
             detail: "registration threw: boom",
@@ -128,11 +132,13 @@ describe("deriveSystemUplinkHealth: mod-side Uplink health self-report", () => {
       uplinks: [
         {
           id: "system",
+          name: null,
           version: "1.0.0",
           available: true,
           reason: null,
           contract: null,
           ownedPrefixes: [],
+          modSettings: false,
           health: { state: "healthy", detail: null, facts: [] },
         },
       ],
@@ -157,11 +163,13 @@ describe("deriveSystemUplinkHealth: mod-side Uplink health self-report", () => {
       uplinks: [
         {
           id: "kos",
+          name: null,
           version: "1.0.0",
           available: true,
           reason: null,
           contract: null,
           ownedPrefixes: ["kos.terminal.", "kos.processors"],
+          modSettings: false,
           health: { state: "healthy", detail: null, facts: [] },
         },
       ],

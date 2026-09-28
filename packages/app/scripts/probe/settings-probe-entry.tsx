@@ -97,6 +97,7 @@ function sitrepSource(status: DataSourceStatus): DataSource {
 }
 
 let root: Root | undefined;
+let fixture: StreamFixture | undefined;
 
 function memoryStorage(): Storage {
   const m = new Map<string, string>();
@@ -130,9 +131,10 @@ async function renderScene(scene: Scene): Promise<void> {
     root = undefined;
   }
 
-  const fixture: StreamFixture = setupStreamFixture({
+  const mounted = setupStreamFixture({
     pinnedUt: 1_000_000,
   });
+  fixture = mounted;
 
   registerDataSource(
     sitrepSource(scene.connected ? "connected" : "disconnected"),
@@ -151,9 +153,9 @@ async function renderScene(scene: Scene): Promise<void> {
           <SerialDeviceProvider
             service={new SerialDeviceService({ screenKey: "render-probe" })}
           >
-            <fixture.Provider>
+            <mounted.Provider>
               <SettingsModal initialTabId={scene.tab ?? "general"} />
-            </fixture.Provider>
+            </mounted.Provider>
           </SerialDeviceProvider>
         </SettingsProvider>
       </ScreenProvider>
@@ -166,14 +168,30 @@ async function renderScene(scene: Scene): Promise<void> {
   await new Promise((r) =>
     requestAnimationFrame(() => requestAnimationFrame(r)),
   );
-  for (const [topic, payload] of Object.entries(scene.emit ?? {})) {
-    fixture.emit(topic, payload as never);
+  await emitSettings(scene.emit);
+}
+
+/**
+ * Publish every topic, twice, because a topic can be subscribed only once an
+ * earlier one has drawn what reads it: an Uplink's page mounts off the roster,
+ * and only then reads that Uplink's own settings topic.
+ */
+async function emitSettings(emit: Record<string, unknown> | undefined) {
+  for (let pass = 0; pass < 2; pass++) {
+    for (const [topic, payload] of Object.entries(emit ?? {})) {
+      fixture?.emit(topic, payload as never);
+    }
+    await new Promise((r) =>
+      requestAnimationFrame(() => requestAnimationFrame(r)),
+    );
   }
-  await new Promise((r) =>
-    requestAnimationFrame(() => requestAnimationFrame(r)),
-  );
 }
 
 (
   window as unknown as { __renderSettings: (s: Scene) => Promise<void> }
 ).__renderSettings = renderScene;
+(
+  window as unknown as {
+    __emitSettings: (e: Record<string, unknown> | undefined) => Promise<void>;
+  }
+).__emitSettings = emitSettings;

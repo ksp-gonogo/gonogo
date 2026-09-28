@@ -95,6 +95,7 @@ import type {
   UpgradeFacilityArgs,
   VantagePlanReply,
   VantagePlanRequest,
+  WriteModSettingArgs,
 } from "./contract.js";
 
 export interface GeneratedCommandArgsMap {
@@ -127,6 +128,7 @@ export interface GeneratedCommandArgsMap {
   "robotics.servo.setTarget": ServoSetTargetArgs;
   "science.experiment.deploy": ExperimentActionArgs;
   "science.experiment.transmit": ExperimentActionArgs;
+  "settings.mod.write": WriteModSettingArgs;
   "settings.save": SaveSettingsArgs;
   "system.bodies.statesAt": BodyStatesRequest;
   "system.frame.set": SetControlFrameArgs;
@@ -185,6 +187,7 @@ export interface GeneratedCommandReplyMap {
   "robotics.servo.setTarget": CommandResult;
   "science.experiment.deploy": CommandResult;
   "science.experiment.transmit": CommandResultOf<ScienceTransmission>;
+  "settings.mod.write": CommandResult;
   "settings.save": CommandResult;
   "system.bodies.statesAt": BodyStatesReply;
   "system.frame.set": CommandResult;
@@ -253,6 +256,7 @@ export const GENERATED_COMMAND_REPLY_TYPES = {
   "robotics.servo.setTarget": "CommandResult",
   "science.experiment.deploy": "CommandResult",
   "science.experiment.transmit": "CommandResultOf<ScienceTransmission>",
+  "settings.mod.write": "CommandResult",
   "settings.save": "CommandResult",
   "system.bodies.statesAt": "BodyStatesReply",
   "system.frame.set": "CommandResult",
@@ -349,6 +353,7 @@ export const GENERATED_COMMAND_RAIL = {
   "robotics.servo.setTarget": { replies: true, delayed: true },
   "science.experiment.deploy": { replies: true, delayed: true },
   "science.experiment.transmit": { replies: true, delayed: true },
+  "settings.mod.write": { replies: true, delayed: false },
   "settings.save": { replies: true, delayed: false },
   "system.bodies.statesAt": { replies: true, delayed: false },
   "system.frame.set": { replies: true, delayed: false },
@@ -407,6 +412,7 @@ export const GENERATED_COMMAND_IDS = [
   "robotics.servo.setTarget",
   "science.experiment.deploy",
   "science.experiment.transmit",
+  "settings.mod.write",
   "settings.save",
   "system.bodies.statesAt",
   "system.frame.set",

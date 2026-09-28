@@ -154,9 +154,12 @@ public static class RtConfig
                 typeof(SettingsRowState),
                 typeof(SettingsPersistence),
                 typeof(SettingsDeclarationFailure),
-                typeof(ModSettingState),
                 typeof(SaveSettingsArgs),
                 typeof(SettingsChange),
+                // settings.<uplink>, a host mod's own settings, and the command that writes one
+                typeof(ModSettingsModel),
+                typeof(ModSettingRow),
+                typeof(WriteModSettingArgs),
                 // comms.* channels
                 typeof(CommsConnectivity),
                 typeof(CommsSignal),

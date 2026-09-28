@@ -661,6 +661,9 @@ namespace Sitrep.Host
         /// <summary>One SAVE press; see <see cref="SaveSettingsArgs"/>.</summary>
         internal const string SaveSettingsCommand = "settings.save";
 
+        /// <summary>Change one of a host mod's own settings; see <see cref="WriteModSettingArgs"/>.</summary>
+        internal const string WriteModSettingCommand = "settings.mod.write";
+
         /// <summary>
         /// Ask where a craft goes, FROM THIS COMMAND CENTRE'S POINT OF VIEW.
         ///
@@ -1450,6 +1453,13 @@ namespace Sitrep.Host
                 ? CommandResult.Fail(CommandErrorCode.ModeUnavailable, "the mod has no settings store")
                 : _settingsPublisher.Save(BindCommandArgs(args, typeof(SaveSettingsArgs)) as SaveSettingsArgs);
             _commandArgTypes[SaveSettingsCommand] = typeof(SaveSettingsArgs);
+            _commandDeclarations[WriteModSettingCommand] = new CommandDeclaration
+            {
+                Command = WriteModSettingCommand,
+            };
+            _vantageCommandHandlers[WriteModSettingCommand] =
+                (args, _) => WriteModSetting(BindCommandArgs(args, typeof(WriteModSettingArgs)) as WriteModSettingArgs);
+            _commandArgTypes[WriteModSettingCommand] = typeof(WriteModSettingArgs);
 
             // Built-in system.uplink.pending declaration + source: see
             // UplinkPendingTopic's doc comment. Declared (and its source
@@ -1934,6 +1944,8 @@ namespace Sitrep.Host
                     ["health"] = BuildUplinkHealthPayload(uplink, availability),
                     ["ownedPrefixes"] = ComputeOwnedPrefixes(id),
                     ["errorCodes"] = ErrorCodesPayload(id),
+                    // Whether settings.<id> carries this uplink's host mod settings.
+                    ["modSettings"] = _modSettings.ContainsKey(id),
                 });
             }
 
@@ -2206,6 +2218,7 @@ namespace Sitrep.Host
             }
 
             DeclareUplinkSettings(uplink);
+            DeclareModSettings(uplink);
             RegisterUplink(uplink);
             _settingsPublisher?.Rebuild();
         }
@@ -2264,6 +2277,7 @@ namespace Sitrep.Host
                 if (IsUplinkAvailable(uplink.Manifest.Id))
                 {
                     DeclareUplinkSettings(uplink);
+                    DeclareModSettings(uplink);
                 }
             }
 
@@ -2341,11 +2355,7 @@ namespace Sitrep.Host
             UplinkSettingsScope scope;
             try
             {
-                scope = new UplinkSettingsScope(
-                    Settings,
-                    id,
-                    uplink.Manifest.Version,
-                    (name, label, value) => _settingsPublisher?.ShowModSetting(id, name, label, value));
+                scope = new UplinkSettingsScope(Settings, id, uplink.Manifest.Version);
             }
             catch (Exception ex)
             {
@@ -2362,6 +2372,110 @@ namespace Sitrep.Host
             {
                 scope.Abandon();
                 RecordSettingsFailure(id, "settings declaration threw: " + SafeExceptionMessage(ex));
+            }
+        }
+
+        private readonly Dictionary<string, ModSettingsPublisher> _modSettings =
+            new Dictionary<string, ModSettingsPublisher>(StringComparer.Ordinal);
+
+        /// <summary>
+        /// One uplink's <see cref="IModSettingsSource"/>: its list is taken once,
+        /// here, and its settings ride their own TrueNow channel,
+        /// <c>settings.&lt;id&gt;</c>, owned by the uplink so they go quiet with
+        /// it. A list that throws or breaks a rule costs the mod settings alone:
+        /// the channel still carries the reason.
+        ///
+        /// <para>Refused outright, with no channel, for an uplink whose id would
+        /// name <see cref="SettingsTopic"/> or a channel already declared.</para>
+        /// </summary>
+        private void DeclareModSettings(ISitrepUplink uplink)
+        {
+            if (uplink is not IModSettingsSource source)
+            {
+                return;
+            }
+
+            var id = uplink.Manifest.Id;
+            var topic = ModSettingsPublisher.TopicFor(id);
+            if (topic == SettingsTopic || _channelDeclarations.ContainsKey(topic))
+            {
+                LogModSettings(id, topic + " is already a channel, so its mod settings are not shown");
+                return;
+            }
+
+            var publisher = new ModSettingsPublisher(id, source);
+            if (publisher.Failure != null)
+            {
+                LogModSettings(id, publisher.Failure);
+            }
+
+            _modSettings[id] = publisher;
+            _channelDeclarations[topic] = new ChannelDeclaration
+            {
+                Topic = topic,
+                Delivery = Delivery.LossyLatest,
+                Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                // A mod setting configures the simulation on the KSP machine,
+                // not a craft, so no vantage is waiting on it to arrive.
+                Delay = DelayRole.TrueNow,
+            };
+            _channelOwner[topic] = id;
+            _channelSources[topic] = _ => publisher.Snapshot;
+        }
+
+        /// <summary>
+        /// Read every running uplink's mod settings that are due. Call from the
+        /// main thread in a game scene, as often as every frame: each publisher
+        /// throttles itself. <paramref name="saveKey"/> changes whenever a save is
+        /// loaded or the scene changes, which is when a save's settings are read
+        /// again. Never throws.
+        /// </summary>
+        public void SampleModSettings(string saveKey)
+        {
+            var now = _nowRealSec();
+            foreach (var pair in _modSettings)
+            {
+                if (!IsUplinkAvailable(pair.Key))
+                {
+                    continue;
+                }
+
+                try
+                {
+                    pair.Value.Sample(now, saveKey);
+                }
+                catch (Exception ex)
+                {
+                    LogModSettings(pair.Key, "reading its mod settings failed: " + SafeExceptionMessage(ex));
+                }
+            }
+        }
+
+        private CommandResult WriteModSetting(WriteModSettingArgs? args)
+        {
+            if (args == null)
+            {
+                return CommandResult.Fail(CommandErrorCode.Range, "no mod setting was named");
+            }
+
+            var uplinkId = args.Uplink ?? string.Empty;
+            if (!_modSettings.TryGetValue(uplinkId, out var publisher) || !IsUplinkAvailable(uplinkId))
+            {
+                return CommandResult.Fail(CommandErrorCode.NotFound, "no running uplink " + uplinkId + " shows mod settings");
+            }
+
+            return publisher.Write(args.Id ?? string.Empty, args.Value ?? string.Empty);
+        }
+
+        private void LogModSettings(string id, string reason)
+        {
+            try
+            {
+                _diagnosticLog?.Invoke("uplink " + id + ": " + reason);
+            }
+            catch (Exception)
+            {
+                // Never take down registration over a failed log message.
             }
         }
 

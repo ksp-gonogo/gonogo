@@ -16,10 +16,7 @@ import type {
   UplinkHealthStateName,
 } from "@ksp-gonogo/sitrep-client";
 import { useStream } from "@ksp-gonogo/sitrep-client";
-import {
-  value as quantity,
-  SettingsPersistenceState,
-} from "@ksp-gonogo/sitrep-sdk";
+import { SettingsPersistenceState } from "@ksp-gonogo/sitrep-sdk";
 import {
   GhostButton,
   Placeholder,
@@ -27,14 +24,7 @@ import {
   type TabDescriptor,
   Tabs,
 } from "@ksp-gonogo/ui";
-import {
-  Badge,
-  NULL_DISPLAY,
-  ReadOnlyField,
-  type ReadOnlyFieldValue,
-  SectionTitle,
-  Stack,
-} from "@ksp-gonogo/ui-kit";
+import { Badge, NULL_DISPLAY, SectionTitle, Stack } from "@ksp-gonogo/ui-kit";
 import { Fragment, useState, useSyncExternalStore } from "react";
 import styled from "styled-components";
 import { analyticsConsentService } from "../analytics/AnalyticsConsentService";
@@ -49,31 +39,20 @@ import {
 import { UplinkIdentityBlock } from "../uplinks/UplinkIdentityBlock";
 import { UplinkIntegrityDetail } from "../uplinks/UplinkIntegrityDetail";
 import { UplinkSkewOverride } from "../uplinks/UplinkSkewOverride";
-import { KspSettings } from "./KspSettings";
-import type {
-  SettingDefinition,
-  SettingValue,
-  StreamBackedSetting,
-} from "./registry";
-import {
-  getSettingDefinition,
-  getSettingsForScreen,
-  isReadOnlySetting,
-  settingTypeOf,
-} from "./registry";
-import { useSetting } from "./SettingsContext";
+import { GonogoSettings } from "./GonogoSettings";
+import type { SettingDefinition } from "./registry";
+import { getSettingsForScreen } from "./registry";
+import { bucketBy, CategoryRows } from "./SettingRows";
 import { ConnectionRow, Name, SitrepConnection } from "./SitrepConnection";
 import {
   Empty,
-  GroupTitle,
   RowDesc,
   RowLabel,
   RowText,
   SectionStack,
-  SettingInput,
   SettingLine,
-  SettingReadOnlyLine,
 } from "./settingsLayout";
+import { UplinksSettings, useUplinkPages } from "./UplinksSettings";
 
 export interface SettingsModalProps {
   /** Force the initially-active tab (e.g. "data-sources" for the first-run
@@ -82,15 +61,18 @@ export interface SettingsModalProps {
 }
 
 /**
- * Tabbed settings surface. Beyond the auto-rendered registered settings
- * (the "General" tab), this is also the home for connection and device
- * management: Data Sources, Devices (serial), and Diagnostics. Each tab can
- * raise an attention dot; the
- * Settings FAB aggregates those dots into its own badge (see SettingsFab).
+ * Tabbed settings surface: this screen's registered settings under General,
+ * Gonogo's own settings in KSP's settings file, connection and device
+ * management, one page per Uplink under Uplinks, then backup and diagnostics.
+ * Each tab can raise an attention dot; the Settings FAB aggregates those dots
+ * into its own badge (see SettingsFab).
  */
 export function SettingsModal({ initialTabId }: SettingsModalProps = {}) {
   const screen = useScreen();
-  const settings = getSettingsForScreen(screen);
+  const settings = getSettingsForScreen(screen).filter(
+    (def) => def.uplink === undefined,
+  );
+  const uplinkPages = useUplinkPages(screen);
   // The analytics-consent toggle is host-owned, so it only appears where the
   // screen owns its own boot. Stations follow the host's consent over PeerJS
   // and have no local control.
@@ -122,14 +104,14 @@ export function SettingsModal({ initialTabId }: SettingsModalProps = {}) {
       uplinkIssue);
   const serialStatus = useSerialAggregateStatus();
   const serialIssue = serialStatus === "partial" || serialStatus === "error";
-  // The KSP tab's dot: the settings file does not hold what is in force, or
+  // The Gonogo tab's dot: the settings file does not hold what is in force, or
   // could not be read. A first run with no file yet is not a problem.
-  const kspSettings = useTelemetry("settings.gonogo");
-  const kspIssue =
-    kspSettings.state === "observed" || kspSettings.state === "stale"
-      ? kspSettings.value.persistence.state !==
+  const gonogoSettings = useTelemetry("settings.gonogo");
+  const gonogoIssue =
+    gonogoSettings.state === "observed" || gonogoSettings.state === "stale"
+      ? gonogoSettings.value.persistence.state !==
           SettingsPersistenceState.Saved &&
-        kspSettings.value.persistence.state !==
+        gonogoSettings.value.persistence.state !==
           SettingsPersistenceState.Defaults
       : false;
 
@@ -146,10 +128,14 @@ export function SettingsModal({ initialTabId }: SettingsModalProps = {}) {
     });
   }
   tabs.push({
-    id: "ksp",
-    label: "KSP",
-    content: <KspSettings />,
-    indicator: kspIssue,
+    id: "gonogo",
+    label: "Gonogo",
+    content: (
+      <SectionStack>
+        <GonogoSettings />
+      </SectionStack>
+    ),
+    indicator: gonogoIssue,
   });
   if (showDataSources) {
     tabs.push({
@@ -166,10 +152,19 @@ export function SettingsModal({ initialTabId }: SettingsModalProps = {}) {
     indicator: serialIssue,
   });
   for (const tab of getSettingsTabsForScreen(screen)) {
+    if (tab.uplink !== undefined) continue;
     tabs.push({
       id: tab.id,
       label: tab.label,
       content: <tab.component />,
+    });
+  }
+  if (uplinkPages.length > 0) {
+    tabs.push({
+      id: "uplinks",
+      label: "Uplinks",
+      content: <UplinksSettings pages={uplinkPages} />,
+      indicator: uplinkPages.some((page) => page.undeclared),
     });
   }
   tabs.push({
@@ -200,7 +195,12 @@ export function SettingsModal({ initialTabId }: SettingsModalProps = {}) {
 
   return (
     <Wrap>
-      <Tabs tabs={tabs} activeId={activeId} onChange={setActiveId} />
+      <Tabs
+        tabs={tabs}
+        activeId={activeId}
+        onChange={setActiveId}
+        aria-label="Settings"
+      />
     </Wrap>
   );
 }
@@ -397,21 +397,6 @@ function UplinkRow({ entry }: { entry: UplinkHealthEntry }) {
   );
 }
 
-/** Buckets in first-registration order, so a category's rows keep their order. */
-function bucketBy<Item>(
-  items: Item[],
-  key: (item: Item) => string,
-): Map<string, Item[]> {
-  const out = new Map<string, Item[]>();
-  for (const item of items) {
-    const k = key(item);
-    const bucket = out.get(k);
-    if (bucket) bucket.push(item);
-    else out.set(k, [item]);
-  }
-  return out;
-}
-
 /** The auto-rendered registered settings + the privacy consent toggle. */
 function GeneralSettings({
   settings,
@@ -474,207 +459,6 @@ function AnalyticsConsentRow() {
         aria-label="Send technical analytics"
       />
     </SettingLine>
-  );
-}
-
-/**
- * A category's rows: the ungrouped ones first, directly under the category
- * heading, then each named `group` under a sub-heading of its own.
- *
- * Ungrouped-first is what keeps a category that never declared a group looking
- * exactly as it did. It also matches how a mod's settings actually read: the
- * two or three rows everybody wants sit at the top, and the long tail files
- * itself away under a name.
- */
-function CategoryRows({ items }: { items: SettingDefinition[] }) {
-  const ungrouped = items.filter((s) => s.group === undefined);
-  const grouped = bucketBy(
-    items.filter((s) => s.group !== undefined),
-    // Narrowed by the filter above; the predicate does not carry that to TS.
-    (s) => s.group as string,
-  );
-
-  return (
-    <>
-      {ungrouped.map((def) => (
-        <SettingRow key={def.id} def={def} />
-      ))}
-      {[...grouped.entries()].map(([group, rows]) => (
-        <Stack gap="related-dense" key={group}>
-          <GroupTitle>{group}</GroupTitle>
-          {rows.map((def) => (
-            <SettingRow key={def.id} def={def} />
-          ))}
-        </Stack>
-      ))}
-    </>
-  );
-}
-
-/**
- * What a read-only row hands to `ReadOnlyField`, which does not take a bare
- * number.
- *
- * A registered row may declare `type: "number"` and answer with a plain number,
- * and a plain number has lost the one thing that says how to write it. The row
- * still has to render, so the number is wrapped in a value whose unit is the
- * EMPTY one, which is the model's way of saying nobody declared a unit: `Unit`
- * writes it bare and claims nothing, exactly as the formatter this replaced
- * did. What changes is where the claim is made. A row that means metres says
- * `value("m", x)` in its own `select` and gets metres drawn and announced; this
- * is the fallback for the rows that have not, not a unit invented for them.
- */
-function readOnlyValueOf(v: SettingValue | undefined): ReadOnlyFieldValue {
-  return typeof v === "number" ? quantity("", v) : v;
-}
-
-function SettingRow({ def }: { def: SettingDefinition }) {
-  // Split by backing at the component boundary so each row calls exactly one hook path.
-  if (def.backing === "stream-backed") {
-    return <StreamBackedRow def={def} />;
-  }
-  return <ClientPrefRow def={def} />;
-}
-
-/**
- * A stream-backed setting's row: the value arrives on a Topic and there is
- * nothing to write, so this is always a `ReadOnlyField`.
- *
- * A silent Topic and a Topic that carries no such field both land on the null
- * placeholder, which is the honest reading of both: the mod has not said.
- */
-function StreamBackedRow({ def }: { def: StreamBackedSetting }) {
-  const reading = useStream<unknown>(def.topic);
-  // A setting the mod reported holds until it reports another.
-  const payload =
-    reading.state === "observed" || reading.state === "stale"
-      ? reading.value
-      : reading.state === "absent"
-        ? null
-        : undefined;
-  return (
-    <SettingReadOnlyLine $indented={def.dependsOn !== undefined}>
-      <ReadOnlyField
-        label={def.label}
-        description={def.description}
-        value={
-          payload === undefined
-            ? undefined
-            : readOnlyValueOf(def.select(payload) ?? undefined)
-        }
-      />
-    </SettingReadOnlyLine>
-  );
-}
-
-function ClientPrefRow({
-  def,
-}: {
-  def: Extract<SettingDefinition, { backing?: "client-pref" }>;
-}) {
-  const [value, setValue] = useSetting<SettingValue>(def.id, def.defaultValue);
-  // `dependsOn` is a rendering-only hint (see its doc comment in
-  // registry.ts): read the parent's CURRENT value the same way this row
-  // reads its own, so the row visually goes inert the instant the parent
-  // toggles off: no registry-level enforcement, just an honest reflection
-  // of what the consuming hook (e.g. `useMissionHistorySettings`) actually
-  // does with these two values.
-  const parent = def.dependsOn
-    ? getSettingDefinition(def.dependsOn)
-    : undefined;
-  // A dependsOn parent is a client-pref boolean by construction (its value
-  // lives in localStorage, which is what this row reads); a setting with no
-  // localStorage default has no value to fall back to, so assume "on".
-  const [parentValue] = useSetting<boolean>(
-    def.dependsOn ?? "__no_parent__",
-    parent !== undefined && parent.backing === undefined
-      ? parent.defaultValue === true
-      : true,
-  );
-  const inert = def.dependsOn !== undefined && !parentValue;
-
-  if (isReadOnlySetting(def)) {
-    return (
-      <SettingReadOnlyLine $indented={def.dependsOn !== undefined}>
-        <ReadOnlyField
-          label={def.label}
-          description={def.description}
-          value={readOnlyValueOf(value)}
-        />
-      </SettingReadOnlyLine>
-    );
-  }
-  return (
-    <SettingLine $indented={def.dependsOn !== undefined}>
-      <RowText>
-        <RowLabel>{def.label}</RowLabel>
-        {def.description && <RowDesc>{def.description}</RowDesc>}
-      </RowText>
-      <SettingControl
-        def={def}
-        value={value}
-        disabled={inert}
-        onChange={setValue}
-      />
-    </SettingLine>
-  );
-}
-
-/**
- * The control half of a WRITABLE row, chosen by the row's declared type. A
- * read-only row never reaches here: it renders a `ReadOnlyField` instead, which
- * is the whole point of the flag.
- */
-function SettingControl({
-  def,
-  value,
-  disabled,
-  onChange,
-}: {
-  def: SettingDefinition;
-  value: SettingValue | undefined;
-  disabled: boolean;
-  onChange: (next: SettingValue) => void;
-}) {
-  const type = settingTypeOf(def);
-  if (type === "boolean") {
-    return (
-      <Switch
-        checked={value === true}
-        onChange={onChange}
-        disabled={disabled}
-        aria-label={def.label}
-      />
-    );
-  }
-  if (type === "number") {
-    return (
-      <SettingInput
-        type="number"
-        value={typeof value === "number" ? String(value) : ""}
-        onChange={(e) => {
-          const typed = e.target.value;
-          // A mid-edit box is empty ("" is also what a number input reports for
-          // anything unparseable), and `Number("")` is 0, so the emptiness has
-          // to be caught before the parse or a cleared field silently persists
-          // a zero. "-" and "1e" parse to NaN and are caught after it.
-          if (typed.trim() === "") return;
-          const next = Number(typed);
-          if (Number.isFinite(next)) onChange(next);
-        }}
-        disabled={disabled}
-        aria-label={def.label}
-      />
-    );
-  }
-  return (
-    <SettingInput
-      type="text"
-      value={typeof value === "string" ? value : ""}
-      onChange={(e) => onChange(e.target.value)}
-      disabled={disabled}
-      aria-label={def.label}
-    />
   );
 }
 

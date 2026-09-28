@@ -4,7 +4,7 @@ info:
   version: 19.0.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 79 telemetry
-    channels a client subscribes to, and 55 commands it dispatches, with the payload
+    channels a client subscribes to, and 56 commands it dispatches, with the payload
     schema and the contract's own prose for each.
 
     **Generated.** Emitted by `scripts/asyncapi-doc.mjs` from the committed
@@ -186,7 +186,7 @@ info:
     - name: science
       description: 6 telemetry channels, 2 commands
     - name: settings
-      description: 1 telemetry channel, 1 command
+      description: 1 telemetry channel, 2 commands
     - name: spaceCenter
       description: 7 telemetry channels, 0 commands
     - name: system
@@ -2173,6 +2173,31 @@ channels:
         $ref: "#/components/messages/streamData.settings.gonogo"
       event:
         $ref: "#/components/messages/event"
+  settings.mod.write:
+    address: settings.mod.write
+    description: |-
+      Takes `WriteModSettingArgs`.
+
+      **Not delayed.** This command takes effect immediately, because it is ground-side bookkeeping rather than a signal to a craft.
+
+      Arguments to `settings.mod.write`: change one of a host mod's own settings
+      through its Uplink, at once.
+
+      **Safe to send again.** It sets the value named, so repeating one that
+      already landed changes nothing.
+
+      Refused, with nothing changed, when the Uplink lists no such setting, when
+      the setting is not writable, when the value is not one its kind can hold, or
+      when the Uplink refuses it. What the mod holds after any of those is on
+      `settings.<uplink>`.
+    servers:
+      - $ref: "#/servers/mod"
+    x-sitrep-delayed: false
+    messages:
+      commandRequest:
+        $ref: "#/components/messages/commandRequest.settings.mod.write"
+      commandResponse:
+        $ref: "#/components/messages/commandResponse.settings.mod.write"
   settings.save:
     address: settings.save
     description: |-
@@ -4142,6 +4167,20 @@ operations:
         $ref: "#/channels/science.experiment.transmit"
       messages:
         - $ref: "#/channels/science.experiment.transmit/messages/commandResponse"
+  dispatch:settings.mod.write:
+    action: send
+    channel:
+      $ref: "#/channels/settings.mod.write"
+    title: Dispatch settings.mod.write
+    tags:
+      - name: settings
+    messages:
+      - $ref: "#/channels/settings.mod.write/messages/commandRequest"
+    reply:
+      channel:
+        $ref: "#/channels/settings.mod.write"
+      messages:
+        - $ref: "#/channels/settings.mod.write/messages/commandResponse"
   dispatch:settings.save:
     action: send
     channel:
@@ -5837,6 +5876,21 @@ components:
                 const: science.experiment.transmit
               args:
                 $ref: "#/components/schemas/ExperimentActionArgs"
+    commandRequest.settings.mod.write:
+      name: command-request
+      title: Dispatch settings.mod.write
+      contentType: application/json
+      correlationId:
+        $ref: "#/components/correlationIds/requestId"
+      payload:
+        description: The `command-request` envelope for `settings.mod.write`, with its typed `args`.
+        allOf:
+          - $ref: "#/components/schemas/CommandRequest"
+          - properties:
+              command:
+                const: settings.mod.write
+              args:
+                $ref: "#/components/schemas/WriteModSettingArgs"
     commandRequest.settings.save:
       name: command-request
       title: Dispatch settings.save
@@ -6618,6 +6672,19 @@ components:
                         anyOf:
                           - $ref: "#/components/schemas/ScienceTransmission"
                           - type: "null"
+    commandResponse.settings.mod.write:
+      name: command-response
+      title: Reply to settings.mod.write
+      contentType: application/json
+      correlationId:
+        $ref: "#/components/correlationIds/requestId"
+      payload:
+        description: The `command-response` envelope for `settings.mod.write`, with its typed `result`.
+        allOf:
+          - $ref: "#/components/schemas/CommandResponse"
+          - properties:
+              result:
+                $ref: "#/components/schemas/CommandResult"
     commandResponse.settings.save:
       name: command-response
       title: Reply to settings.save
@@ -14278,33 +14345,6 @@ components:
             chart interpolates a straight line through an outage it has no readings for,
             which is the one thing an operator must not be shown: the line looks like
             data.
-    ModSettingState:
-      type: object
-      description: |-
-        One of a host mod's own settings, as the Uplink that works with the mod
-        reads it.
-      required:
-        - owner
-        - name
-        - label
-        - value
-      properties:
-        owner:
-          type: string
-          x-sitrep-unit: id
-          description: The Uplink that reported it.
-        name:
-          type: string
-          x-sitrep-unit: id
-          description: The setting's name as the mod knows it.
-        label:
-          type: string
-          x-sitrep-unit: text
-          description: What an operator reads beside the value. May be empty.
-        value:
-          type: string
-          x-sitrep-unit: text
-          description: The mod's value as the Uplink read it, written for an operator.
     NoCommandArgs:
       type: object
       description: |-
@@ -17093,7 +17133,6 @@ components:
         - rows
         - persistence
         - undeclared
-        - modSettings
         - meta
       properties:
         rows:
@@ -17115,14 +17154,6 @@ components:
             Uplinks that are running but whose settings could not be declared this
             session. Their settings are at their defaults and are not listed in
             `SettingsModel.rows`; what the file holds for them is kept as it is.
-        modSettings:
-          type: array
-          items:
-            $ref: "#/components/schemas/ModSettingState"
-          description: |-
-            Host mods' own settings as their Uplinks read them, for an operator to see
-            what gonogo is working with. Read-only: the mod is the authority, and
-            nothing gonogo does changes them.
         meta:
           $ref: "#/components/schemas/PayloadMeta"
     SettingsPersistence:
@@ -20473,3 +20504,33 @@ components:
             observed.
         meta:
           $ref: "#/components/schemas/PayloadMeta"
+    WriteModSettingArgs:
+      type: object
+      description: |-
+        Arguments to `settings.mod.write`: change one of a host mod's own settings
+        through its Uplink, at once.
+
+        **Safe to send again.** It sets the value named, so repeating one that
+        already landed changes nothing.
+
+        Refused, with nothing changed, when the Uplink lists no such setting, when
+        the setting is not writable, when the value is not one its kind can hold, or
+        when the Uplink refuses it. What the mod holds after any of those is on
+        `settings.<uplink>`.
+      required:
+        - uplink
+        - id
+        - value
+      properties:
+        uplink:
+          type: string
+          x-sitrep-unit: id
+          description: The Uplink the setting is read through.
+        id:
+          type: string
+          x-sitrep-unit: id
+          description: The setting, as `ModSettingRow.id` names it.
+        value:
+          type: string
+          x-sitrep-unit: text
+          description: The new value, spelled as `ModSettingRow.value` is.

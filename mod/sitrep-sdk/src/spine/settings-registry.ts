@@ -65,6 +65,11 @@ export interface SettingValueByType {
 /** Any value a registered row can carry. */
 export type SettingValue = SettingValueByType[SettingType];
 
+/**
+ * What every registered settings row carries, whatever its backing and type.
+ *
+ * @category Extensions
+ */
 export interface SettingDefinitionBase {
   id: string;
   label: string;
@@ -85,6 +90,12 @@ export interface SettingDefinitionBase {
   group?: string;
   /** Which screens this setting is relevant on. Omit for both. */
   screens?: readonly Screen[];
+  /**
+   * The Uplink this row belongs to, by its id. The row is then drawn on that
+   * Uplink's page under the Uplinks tab, below the settings its mod reports,
+   * rather than under its `category` in General.
+   */
+  uplink?: string;
   /**
    * The operator cannot change this row: it renders as a labelled VALUE, never
    * as a control. Not a disabled control, which some screen readers skip and

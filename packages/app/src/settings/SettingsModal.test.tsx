@@ -1069,3 +1069,172 @@ describe("SettingsModal Data Sources tab: loaded-client identity", () => {
     expect(screen.queryByText(/Vouched by|Self-declared/)).toBeNull();
   });
 });
+
+describe("SettingsModal: the Uplinks tab", () => {
+  const SURVIVAL_ENTRY = {
+    id: "survival",
+    name: "Survival",
+    version: "1.0.0",
+    available: true,
+    reason: null,
+    modSettings: true,
+    health: { state: 0, detail: null },
+  };
+
+  const GONOGO_SETTINGS = {
+    rows: [
+      {
+        path: "SIGNAL_DELAY/enabled",
+        owner: "gonogo",
+        kind: 1,
+        label: "Apply light-time delay",
+        description: "",
+        value: "True",
+        default: "True",
+      },
+      {
+        path: "Uplinks/survival/warnOnWear",
+        owner: "survival",
+        kind: 1,
+        label: "Warn on wear",
+        description: "",
+        value: "False",
+        default: "False",
+      },
+    ],
+    persistence: {
+      state: 0,
+      path: "GameData/Gonogo/PluginData/gonogo.cfg",
+      savedAtUt: null,
+      reason: null,
+    },
+    undeclared: [],
+  };
+
+  it("has no Uplinks tab while no Uplink has anything to show", () => {
+    renderModal("main");
+    expect(screen.queryByRole("tab", { name: "Uplinks" })).toBeNull();
+  });
+
+  it("draws a row registered for an Uplink on its page, not under General", async () => {
+    registerSetting({
+      id: "streamer.embeddedFacecams",
+      type: "boolean",
+      label: "Embedded facecams",
+      category: "Streamer",
+      uplink: "streamer",
+      defaultValue: true,
+    });
+    renderModal("main");
+    expect(
+      screen.queryByRole("checkbox", { name: "Embedded facecams" }),
+    ).toBeNull();
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("tab", { name: "Uplinks" }));
+
+    expect(
+      screen.getByRole("tab", { name: "streamer", selected: true }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "This screen" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("checkbox", { name: "Embedded facecams" }),
+    ).toBeInTheDocument();
+  });
+
+  it("draws a tab registered for an Uplink as a section of its page, not a tab of its own", async () => {
+    registerSettingsTab({
+      id: "streamer-panel",
+      label: "Streams",
+      uplink: "streamer",
+      component: () => <div>streamer-panel-content</div>,
+    });
+    renderModal("main");
+    expect(screen.queryByRole("tab", { name: "Streams" })).toBeNull();
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("tab", { name: "Uplinks" }));
+
+    expect(
+      screen.getByRole("heading", { name: "Streams" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("streamer-panel-content")).toBeInTheDocument();
+  });
+
+  it("leads an Uplink's page with its Gonogo rows, then its mod's own settings, under its own name", async () => {
+    const stream = setupTelemetryStream();
+    registerDataSource(makeSitrepStub(vi.fn(), "connected"));
+    renderModalWithStream(stream);
+    act(() => {
+      stream.emit({ uplinks: [SURVIVAL_ENTRY] });
+      stream.emitTopic("settings.gonogo", GONOGO_SETTINGS);
+    });
+
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("tab", { name: "Uplinks" }));
+    expect(
+      screen.getByRole("tab", { name: "Survival", selected: true }),
+    ).toBeInTheDocument();
+
+    const headings = screen
+      .getAllByRole("heading", { level: 3 })
+      .map((h) => h.textContent);
+    expect(headings).toEqual(["Gonogo", "Survival"]);
+    expect(
+      screen.getByRole("checkbox", { name: "Warn on wear" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("checkbox", { name: "Apply light-time delay" }),
+    ).toBeNull();
+
+    act(() =>
+      stream.emitTopic("settings.survival", {
+        uplink: "survival",
+        failure: null,
+        settings: [
+          {
+            id: "mtbfFailures",
+            label: "Failures from wear",
+            description: "",
+            kind: 1,
+            unit: null,
+            group: "",
+            setIn: "Difficulty settings, Survival",
+            writable: false,
+            value: "True",
+            unavailable: null,
+          },
+        ],
+      }),
+    );
+
+    expect(await screen.findByText("Failures from wear")).toBeInTheDocument();
+    expect(
+      screen.getByText("Set in Difficulty settings, Survival"),
+    ).toBeInTheDocument();
+    await act(async () => {});
+  });
+
+  it("marks an Uplink whose Gonogo settings could not be declared", async () => {
+    const stream = setupTelemetryStream();
+    registerDataSource(makeSitrepStub(vi.fn(), "connected"));
+    renderModalWithStream(stream);
+    act(() => {
+      stream.emit({ uplinks: [{ ...SURVIVAL_ENTRY, modSettings: false }] });
+      stream.emitTopic("settings.gonogo", {
+        ...GONOGO_SETTINGS,
+        rows: GONOGO_SETTINGS.rows.slice(0, 1),
+        undeclared: [{ uplinkId: "survival", reason: "declaration threw" }],
+      });
+    });
+
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("tab", { name: "Uplinks" }));
+
+    expect(
+      screen.getByText(/could not be read this session \(declaration threw\)/),
+    ).toBeInTheDocument();
+  });
+});

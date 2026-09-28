@@ -531,6 +531,16 @@ namespace Sitrep.Contract
         /// <see cref="GateVerdict"/> takes a <see cref="RefusalCode"/>. Declared in
         /// the ledger's <c>SeamBreaks</c>.</para>
         ///
+        /// <para><b>Also in 19: a host mod's own settings get their own
+        /// interface.</b> <c>SettingsModel.ModSettings</c> and <c>ModSettingState</c>
+        /// are removed, with <c>IUplinkSettings.ShowModSetting</c> that filled them.
+        /// An Uplink lists and reads its mod's settings through
+        /// <see cref="IModSettingsSource"/> and, where it can change one,
+        /// <see cref="IModSettingsWriter"/>; each such Uplink's settings ride
+        /// <c>settings.&lt;uplink&gt;</c> (<see cref="ModSettingsModel"/>), and
+        /// <c>settings.mod.write</c> (<see cref="WriteModSettingArgs"/>) writes
+        /// one.</para>
+        ///
         /// <para>Sanctioned on the same standing grounds as every Major above.</para>
         /// </remarks>
         public const int Major = 19;
@@ -1926,9 +1936,9 @@ namespace Sitrep.Contract
         /// Additive, nothing removed or retyped, so an Uplink built against 18.4 is
         /// unaffected.</para>
         ///
-        /// <para><b>Major-18 line, Bumped 5 -&gt; 6:</b> <see cref="SettingsModel.ModSettings"/>, a host
+        /// <para><b>Major-18 line, Bumped 5 -&gt; 6:</b> <c>SettingsModel.ModSettings</c>, a host
         /// mod's own settings as its Uplink reads them, shown read-only
-        /// (<see cref="ModSettingState"/>). Additive, nothing removed or retyped, so an
+        /// (<c>ModSettingState</c>). Additive, nothing removed or retyped, so an
         /// Uplink built against 18.5 is unaffected.</para>
         ///
         /// <para><b>Major-18 line, Bumped 6 -&gt; 7:</b> <see cref="SettingsRowState.Description"/>, so a

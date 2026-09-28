@@ -492,7 +492,24 @@ namespace Gonogo.KSP
             // paused game is exactly when an operator has time to read which
             // controls are live.
             _engine?.SampleCommandGates();
+
+            // An Uplink reads its host mod's settings off live game state, so
+            // only in a game scene, where the save they belong to exists.
+            if (_engine != null && HighLogic.LoadedSceneIsGame)
+            {
+                _engine.SampleModSettings(SaveKey());
+            }
         }
+
+        /// <summary>
+        /// Changes whenever a save is loaded or the scene changes, which is when
+        /// a save's own mod settings are read again.
+        /// </summary>
+        private static string SaveKey() =>
+            HighLogic.LoadedScene + "/"
+            + (HighLogic.CurrentGame == null
+                ? 0
+                : System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(HighLogic.CurrentGame));
 
         private void FixedUpdate()
         {

@@ -3055,6 +3055,86 @@ export interface PayloadMeta
 	quality: Quality;
 }
 /**
+* The `settings.<uplink>` channel payload: one Uplink's host mod's own
+* settings, as the Uplink read them.
+*
+* **One topic per Uplink**, declared only for an Uplink that implements
+* IModSettingsSource; its entry on `system.uplinks` says so with
+* `modSettings`.
+*
+* **TrueNow.** A mod setting configures the simulation on the KSP machine, not
+* a craft, so there is no vantage from which it is not yet known.
+*
+* **The authority for "did it change".** A write can time out and still land,
+* so a client reads the outcome here, never from the command's reply.
+*/
+export interface ModSettingsModel
+{
+	/** The Uplink these settings are read through. */
+	uplink: string;
+	/** Every listed setting, in the order the Uplink listed them. */
+	settings: ModSettingRow[];
+	/**
+	* Why the settings could not be listed this session, or null.
+	* `ModSettingsModel.settings` is then empty.
+	*/
+	failure?: string | null;
+	/** The game install's own configuration, about no vessel. */
+	meta: PayloadMeta;
+}
+/** One mod setting, described well enough to draw, with the value in force. */
+export interface ModSettingRow
+{
+	/** The setting's id within its Uplink; what a write names. */
+	id: string;
+	/** What an operator reads beside the value. */
+	label: string;
+	/** Why the setting matters, read under the label. May be empty. */
+	description: string;
+	/** What the value may be. */
+	kind: SettingKind;
+	/**
+	* The unit token a number is in, or null for a count or a setting that is not
+	* a number.
+	*/
+	unit?: string | null;
+	/** A named block inside the Uplink's section. Empty for none. */
+	group: string;
+	/** Where in the game an operator changes it. Empty when nowhere. */
+	setIn: string;
+	/** Whether `settings.mod.write` may change it. */
+	writable: boolean;
+	/**
+	* The value in force, spelled as `SettingsRowState.value` is: `True` or
+	* `False`, a number with a full stop in `ModSettingRow.unit`, or the text.
+	* Null when it cannot be read, and `ModSettingRow.unavailable` then says why.
+	*/
+	value?: string | null;
+	/** Why the value cannot be read right now, or null when it was. */
+	unavailable?: string | null;
+}
+/**
+* Arguments to `settings.mod.write`: change one of a host mod's own settings
+* through its Uplink, at once.
+*
+* **Safe to send again.** It sets the value named, so repeating one that
+* already landed changes nothing.
+*
+* Refused, with nothing changed, when the Uplink lists no such setting, when
+* the setting is not writable, when the value is not one its kind can hold, or
+* when the Uplink refuses it. What the mod holds after any of those is on
+* `settings.<uplink>`.
+*/
+export interface WriteModSettingArgs
+{
+	/** The Uplink the setting is read through. */
+	uplink: string;
+	/** The setting, as `ModSettingRow.id` names it. */
+	id: string;
+	/** The new value, spelled as `ModSettingRow.value` is. */
+	value: string;
+}
+/**
 * The empty args shape, for the core commands that operate on the current
 * flight or the active vessel and so take nothing: `vessel.control.stage`,
 * `vessel.target.clear`, `ksp.recover`, `ksp.revertToLaunch` and
@@ -4898,28 +4978,7 @@ export interface SettingsModel
 	* `SettingsModel.rows`; what the file holds for them is kept as it is.
 	*/
 	undeclared: SettingsDeclarationFailure[];
-	/**
-	* Host mods' own settings as their Uplinks read them, for an operator to see
-	* what gonogo is working with. Read-only: the mod is the authority, and
-	* nothing gonogo does changes them.
-	*/
-	modSettings: ModSettingState[];
 	meta: PayloadMeta;
-}
-/**
-* One of a host mod's own settings, as the Uplink that works with the mod
-* reads it.
-*/
-export interface ModSettingState
-{
-	/** The Uplink that reported it. */
-	owner: string;
-	/** The setting's name as the mod knows it. */
-	name: string;
-	/** What an operator reads beside the value. May be empty. */
-	label: string;
-	/** The mod's value as the Uplink read it, written for an operator. */
-	value: string;
 }
 /**
 * One declared setting, described well enough for a client to draw its

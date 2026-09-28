@@ -23089,7 +23089,7 @@
     },
     {
       "Major": 19,
-      "Note": "One error vocabulary with string ids. CommandErrorCode stops being an integer enum and becomes the closed set of root refusal codes, which a producer can refine and an Uplink can extend under its own id; errorCode on CommandResult and GateVerdict is the root's id and is omitted on success, with a refinement's id beside it as reason. None and Unknown are gone and Timeout is now the mainThreadTimeout fault, since nothing was decided. ErrorMsg.code is a declared FaultCode with camelCase values, and RepairOutcome.Refusal gives way to the repair.* refinements on reason. Also C# seam breaks, declared in SeamBreaks.",
+      "Note": "One error vocabulary with string ids. CommandErrorCode stops being an integer enum and becomes the closed set of root refusal codes, which a producer can refine and an Uplink can extend under its own id; errorCode on CommandResult and GateVerdict is the root's id and is omitted on success, with a refinement's id beside it as reason. None and Unknown are gone and Timeout is now the mainThreadTimeout fault, since nothing was decided. ErrorMsg.code is a declared FaultCode with camelCase values, and RepairOutcome.Refusal gives way to the repair.* refinements on reason. Also C# seam breaks, declared in SeamBreaks. And a host mod's own settings leave Gonogo's settings model: SettingsModel.ModSettings and ModSettingState, added on the 18 line after its floor was frozen, are removed, replaced by one settings.<uplink> topic per Uplink that lists them (ModSettingsModel) and the settings.mod.write command.",
       "Breaks": [
         "enum-removed:Sitrep.Contract.CommandErrorCode",
         "member-removed:Sitrep.Contract.CommandResult.ErrorCode:Sitrep.Contract.CommandErrorCode",
@@ -23121,6 +23121,13 @@
             "Fail(CommandErrorCode, string) -> Fail(RefusalCode, string)"
           ],
           "Reason": "The same retype as CommandResult, so a gate names the same codes an actuator does."
+        },
+        {
+          "Seam": "Sitrep.Contract.IUplinkSettings",
+          "Members": [
+            "ShowModSetting(string, string, string) -> removed"
+          ],
+          "Reason": "A host mod's own settings are listed and read through IModSettingsSource, typed and on their own topic, rather than pushed as label and text onto Gonogo's settings file model. No Uplink called it."
         }
       ],
       "Shape": {
@@ -23893,11 +23900,23 @@
             "ValidAt:System.Double",
             "Vantage:System.String"
           ],
-          "Sitrep.Contract.ModSettingState": [
+          "Sitrep.Contract.ModSettingRow": [
+            "Description:System.String",
+            "Group:System.String",
+            "Id:System.String",
+            "Kind:Sitrep.Contract.SettingKind",
             "Label:System.String",
-            "Name:System.String",
-            "Owner:System.String",
-            "Value:System.String"
+            "SetIn:System.String",
+            "Unavailable:System.String",
+            "Unit:System.String",
+            "Value:System.String",
+            "Writable:System.Boolean"
+          ],
+          "Sitrep.Contract.ModSettingsModel": [
+            "Failure:System.String",
+            "Meta:Sitrep.Contract.PayloadMeta",
+            "Settings:System.Collections.Generic.List\u00601[Sitrep.Contract.ModSettingRow]",
+            "Uplink:System.String"
           ],
           "Sitrep.Contract.NoCommandArgs": [],
           "Sitrep.Contract.OrbitEncounter": [
@@ -24299,7 +24318,6 @@
           ],
           "Sitrep.Contract.SettingsModel": [
             "Meta:Sitrep.Contract.PayloadMeta",
-            "ModSettings:System.Collections.Generic.List\u00601[Sitrep.Contract.ModSettingState]",
             "Persistence:Sitrep.Contract.SettingsPersistence",
             "Rows:System.Collections.Generic.List\u00601[Sitrep.Contract.SettingsRowState]",
             "Undeclared:System.Collections.Generic.List\u00601[Sitrep.Contract.SettingsDeclarationFailure]"
@@ -24721,6 +24739,11 @@
             "WarpRate:System.Double",
             "WarpRateIndex:System.Int32",
             "WarpRates:System.Double[]"
+          ],
+          "Sitrep.Contract.WriteModSettingArgs": [
+            "Id:System.String",
+            "Uplink:System.String",
+            "Value:System.String"
           ]
         },
         "Enums": {

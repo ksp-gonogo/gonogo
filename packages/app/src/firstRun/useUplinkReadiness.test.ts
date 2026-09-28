@@ -20,11 +20,13 @@ function roster(
     coreContract,
     uplinks: entries.map((e) => ({
       id: e.id,
+      name: e.name ?? null,
       version: e.version ?? "1.0.0",
       available: e.available ?? true,
       reason: e.reason ?? null,
       contract: e.contract ?? null,
       ownedPrefixes: e.ownedPrefixes ?? [],
+      modSettings: e.modSettings ?? false,
       health: e.health ?? { state: "healthy", detail: null, facts: [] },
     })),
   };

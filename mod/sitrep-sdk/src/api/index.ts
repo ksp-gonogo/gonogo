@@ -21,6 +21,7 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
+import type { ModSettingsModel } from "../__generated__/contract";
 import type {
   AnyCommandReply,
   CommandArgs,
@@ -785,6 +786,21 @@ export function useRouteCommands(topic: string): UseRouteCommandsResult {
  */
 export function useStream<Payload>(topic: string): TopicReading<Payload> {
   return getHost().useStream<Payload>(topic);
+}
+
+/**
+ * One Uplink's host mod settings, as the Uplink read them off the mod: the
+ * typed read over `settings.<uplinkId>`, which is declared per Uplink at
+ * runtime and so has no `TopicId`. Change a writable one with the
+ * `settings.mod.write` command, and read whether it landed here rather than
+ * from the reply.
+ *
+ * @category Reading telemetry
+ */
+export function useModSettings(
+  uplinkId: string,
+): TopicReading<ModSettingsModel> {
+  return getHost().useStream<ModSettingsModel>(`settings.${uplinkId}`);
 }
 
 /**

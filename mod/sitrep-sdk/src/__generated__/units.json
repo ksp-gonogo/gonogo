@@ -736,11 +736,21 @@
       "validAt": "ut",
       "vantage": "id"
     },
-    "ModSettingState": {
+    "ModSettingRow": {
+      "description": "text",
+      "group": "text",
+      "id": "id",
+      "kind": "enum",
       "label": "text",
-      "name": "id",
-      "owner": "id",
-      "value": "text"
+      "setIn": "text",
+      "unavailable": "text",
+      "unit": "id",
+      "value": "text",
+      "writable": "flag"
+    },
+    "ModSettingsModel": {
+      "failure": "text",
+      "uplink": "id"
     },
     "OrbitEncounter": {
       "bodyIndex": "id",
@@ -1485,6 +1495,11 @@
       "warpRate": "1",
       "warpRateIndex": "id",
       "warpRates": "1"
+    },
+    "WriteModSettingArgs": {
+      "id": "id",
+      "uplink": "id",
+      "value": "text"
     }
   },
   "topics": {
@@ -2231,6 +2246,10 @@
     "ManeuverNode": {
       "patches": "OrbitPatch[]"
     },
+    "ModSettingsModel": {
+      "meta": "PayloadMeta",
+      "settings": "ModSettingRow[]"
+    },
     "PartActions": {
       "actions": "PartActionEntry[]",
       "meta": "PayloadMeta"
@@ -2285,7 +2304,6 @@
     },
     "SettingsModel": {
       "meta": "PayloadMeta",
-      "modSettings": "ModSettingState[]",
       "persistence": "SettingsPersistence",
       "rows": "SettingsRowState[]",
       "undeclared": "SettingsDeclarationFailure[]"
@@ -2507,7 +2525,6 @@
     },
     "settings.gonogo": {
       "meta": "PayloadMeta",
-      "modSettings": "ModSettingState[]",
       "persistence": "SettingsPersistence",
       "rows": "SettingsRowState[]",
       "undeclared": "SettingsDeclarationFailure[]"

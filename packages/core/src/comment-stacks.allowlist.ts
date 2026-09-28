@@ -179,7 +179,7 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/app/src/screens/StationScreen.tsx": 3,
   "packages/app/src/screens/isStationRoute.ts": 1,
   "packages/app/src/settings/SettingsModal.test.tsx": 1,
-  "packages/app/src/settings/SettingsModal.tsx": 4,
+  "packages/app/src/settings/SettingsModal.tsx": 1,
   "packages/app/src/settings/registry.ts": 1,
   "packages/app/src/telemetry/AugmentAvailabilityFeeder.undefined.characterise.test.tsx": 2,
   "packages/app/src/telemetry/KspCalendarObserver.tsx": 1,
