@@ -36,10 +36,8 @@ export class LocalManeuverTriggerService implements ManeuverTriggerService {
   private fired = new Set<string>();
   private vesselUnsub: (() => void) | null = null;
   private readonly nowMs: () => number;
-  private readonly sourceId: string;
 
-  constructor(opts: { sourceId?: string; nowMs?: () => number } = {}) {
-    this.sourceId = opts.sourceId ?? "data";
+  constructor(opts: { nowMs?: () => number } = {}) {
     this.nowMs = opts.nowMs ?? (() => Date.now());
     // The frame subscription starts on the first arm: with no triggers there is nothing to evaluate.
   }
@@ -116,7 +114,7 @@ export class LocalManeuverTriggerService implements ManeuverTriggerService {
         continue;
       }
       if (this.fired.has(t.id) || t.refusals) continue;
-      const value = getValue(this.sourceId, t.dataKey);
+      const value = getValue(t.dataKey);
       if (value === undefined) continue;
       if (!compareThreshold(value, t.op, t.value)) continue;
       this.fired.add(t.id);

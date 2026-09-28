@@ -20,22 +20,19 @@ import { scanScope } from "./scanScope";
  *
  * So `subscribeTopicRead` is the seam, and the rule is: a file that resolves a
  * read's topics does not also subscribe them. Resolving is still perfectly
- * legitimate on its own, and two things do it for reasons that have nothing to
- * do with subscribing: `isTopicCarried` asks which wire topics a read would
- * need in order to grade carriage, and `warnGatedRead` names them in a
- * diagnostic. Neither subscribes anything. It is the PAIR that is the seam's
- * job.
+ * legitimate on its own: `isTopicCarried` asks which wire topics a read would
+ * need in order to grade carriage, and subscribes nothing. It is the PAIR that
+ * is the seam's job.
  *
  * ## Known reach
  *
  * The instrument is PROXIMITY, not dataflow: a subscribe within a few lines of
- * a resolve. File-level co-occurrence was tried first and was too blunt to
- * keep, because `useTelemetry` resolves for its diagnostic two hundred lines
- * away from where it subscribes the LEGACY `DataSource` it falls back to, and
- * nothing textual tells that subscribe from a wire one. What proximity cannot
- * see is a read path that resolves in one place and subscribes far from it; a
- * read path written like that has gone out of its way, and the caller floor
- * below is the second instrument over the same claim.
+ * a resolve. File-level co-occurrence is too blunt, because a file can resolve
+ * for a diagnostic far from where it subscribes something that is not a wire
+ * topic, and nothing textual tells that subscribe from a wire one. What
+ * proximity cannot see is a read path that resolves in one place and
+ * subscribes far from it; a read path written like that has gone out of its
+ * way, and the caller floor below is the second instrument over the same claim.
  */
 
 const SCAN_ROOTS = ["packages", "mod"];
@@ -44,10 +41,10 @@ const SCAN_ROOTS = ["packages", "mod"];
 const SEAM = "mod/sitrep-sdk/src/spine/subscribe-read.ts";
 
 /**
- * How few callers means the seam has been abandoned rather than adopted. Nine
- * call it today: `useStream`, `useTelemetry`, `useDataStreamStatus`,
- * `useDataSeries`, `useOptionalVesselIdentity`, `OrbitView`, `NotesComponent`,
- * the contributions runtime and the processor evaluator. A rewrite that quietly
+ * How few callers means the seam has been abandoned rather than adopted. Eight
+ * call it today: `useStream`, `useTelemetry`, `useDataSeries`,
+ * `useOptionalVesselIdentity`, `OrbitView`, `NotesComponent`, the
+ * contributions runtime and the processor evaluator. A rewrite that quietly
  * went back to resolving per call site would leave the negative half below
  * passing over a tree where nothing holds a reckoner's inputs up.
  */
@@ -177,12 +174,12 @@ describe("one seam decides what a read subscribes", () => {
           "subscribeTopicRead(client, store, topic);",
       ),
     ).toBe(false);
-    // A legacy `DataSource` subscribe far from the diagnostic that resolves.
+    // A `DataSource` subscribe far from a diagnostic that resolves.
     expect(
       subscribesResolvedTopics(
-        "source.subscribe(legacyKey, cb);\n" +
+        "source.subscribe(key, cb);\n" +
           `${"x;\n".repeat(WINDOW_LINES + 1)}` +
-          "warnGatedRead(hook, id, key, topic, store.resolveSubscriptionTopics(topic));",
+          "report(key, store.resolveSubscriptionTopics(topic));",
       ),
     ).toBe(false);
     // The old shape quoted in a comment is history, not a violation.

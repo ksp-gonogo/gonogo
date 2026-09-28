@@ -1,31 +1,17 @@
 /**
- * Default dev-first per-topic promotion list, feeding the carried-channels
- * gate in `carried-channels.ts`. These are the RAW wire
- * topics the mod's `VesselViewProvider`/`SystemViewProvider`/`TimeViewProvider`
- * are known to serve. The gate resolves each derived topic down to its raw wire
- * inputs and counts it carried only when EVERY input is carried, so promotion
- * is done at raw-topic granularity here.
+ * Default per-topic list feeding the carried-channels gate in
+ * `carried-channels.ts`. These are the RAW wire topics whose fields the value
+ * pickers offer. The gate resolves each derived topic down to its raw wire
+ * inputs and counts it carried only when EVERY input is carried, so the list
+ * is written at raw-topic granularity.
  *
- * The one-arg Topic read does not consult it. What it decides is which keys
- * the value pickers offer, and whether a plotted series or a status read
- * routes to the stream deliberately rather than by rescue.
+ * No read consults it: a read subscribes whatever it names, listed or not.
+ * What it decides is the field catalogue, and through that which keys an
+ * operator can pick for an alarm, a graph series or a note tag.
  *
- * This is deliberately an explicit opt-in list rather than a hard-coded
- * transport declaration: the mod server does not yet advertise a channel list
- * on connect, so until it does, this dev list is how a topic is reliably
- * promoted to the stream. The stream transport additionally marks channels
- * carried as their frames first arrive (best-effort fallback), but that grows
- * too late to flip this gate for the current session, so it is informational
- * only for now.
- *
- * Lives in `@ksp-gonogo/sitrep-client`, not `@ksp-gonogo/app`, so both the app
- * (`SitrepTelemetryProvider`'s default `carriedChannels` prop, re-exported
- * from there for backward compatibility) and `@ksp-gonogo/data` (the legacy
- * `"data"` key-catalog builder in `hooks/useDataSchema.ts`, which needs the
- * same mapped-AND-carried gate `isTopicCarried` implements) can read it
- * without `data` taking a dependency on `app`, `app` already depends on
- * `data`, so the reverse would be circular. One list, read from the lowest
- * layer both consumers already share.
+ * Lives in this SDK so both the app (`SitrepTelemetryProvider`'s default
+ * `carriedChannels` prop) and `@ksp-gonogo/data` (the field catalogue behind
+ * `useDataSchema`) read one list without `data` depending on `app`.
  *
  * It decides NOTHING about station screens. A station receives a topic because
  * a widget mounted on it subscribed, which reaches the mod through
@@ -42,13 +28,7 @@
  * codegen into this SDK; they are harmless duplicates of what registration now
  * promotes, and adding a new one here is never how an Uplink gets carried.
  *
- * CHANNELS only. A command id is not a channel and listing one buys nothing:
- * this list decides whether a READ routes to the stream, and nothing reads a
- * command. Three were listed for a day because `dispatchActiveCommandTopic`
- * consulted this set before routing, so every command a plain class sent was
- * refused unless someone had remembered to add it here. That gate is gone
- * rather than fed: see its doc comment for why a promotion list was the wrong
- * instrument for that question.
+ * CHANNELS only. A command id is not a channel and has no value to pick.
  */
 export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   "vessel.orbit",
@@ -60,11 +40,6 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   "vessel.attitude",
   "vessel.thermal",
   "vessel.structure",
-  // The structural part-tree channel, read canonically by `useTopology` and by
-  // `usePartsLive`'s thermal join (`@ksp-gonogo/data`). Both bypass this gate
-  // the same way vessel.orbit's OrbitView read does, so the entry is not
-  // load-bearing for them; it is here for the "every mod-served raw topic is
-  // catalogued" convention the rest of this list follows.
   "vessel.parts",
   "vessel.crew",
   "vessel.resources",
@@ -74,85 +49,21 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   "vessel.surface",
   "system.bodies",
   "system.vessels",
-  // system.uplinks: the mod-side Uplink health self-report (ChannelEngine's
-  // built-in system.uplinks channel: see uplink-health.ts's derived
-  // systemUplinkHealthChannel). Must be carried or Settings' per-Uplink
-  // health rows silently fall back to nothing (there is no legacy
-  // legacy equivalent).
   "system.uplinks",
   "time.warp",
-  // time.calendar: how long a day and a year are in the game being watched.
-  // Not telemetry, a DEFINITION, and everything that prints a duration or a
-  // date reads it: a planet pack or the stock KERBIN_TIME setting moves both,
-  // and without this topic the app quietly holds Kerbin's 6-hour day and is
-  // four times wrong about every "3 days to depletion" on screen.
   "time.calendar",
-  // Comms signal-delay channel (CommsCoreUplink, Delayed): the headline
-  // delay readout behind CommSignal's comm.signalDelay. It rides the
-  // light-time like the telemetry it describes, so what a widget draws is the
-  // delay as observed rather than as it is this instant.
   "comms.delay",
-  // Comms connectivity MetaTopic (CommsCoreUplink, Delayed + freeze-EXEMPT),
-  // the client-facing link up/down behind the comm.connected mapped key
-  // (SignalLossIndicator / CameraFeed / CommSignal / ActionGroup). MUST be
-  // carried or the disconnect edge never reaches the client and "NO SIGNAL"
-  // never fires: see comms-delay-model-consistency spec.
   "comms.link",
-  // comms.degrade (CommsCoreUplink, Delayed): the elected backend's own 0..1
-  // grading of the link, with the rule that produced it named alongside. The
-  // one number a consumer choosing a quality (a video feed's bitrate, a voice
-  // channel's noise) can key on without knowing which comms mod is installed,
-  // which `comms.signal` cannot be: that field means a different
-  // quantity depending on which backend the comms capability elected, and the
-  // grading here names its own rule.
   "comms.degrade",
-  // comms.commandCentre (CommsCoreUplink, TrueNow): which centre (KSC or a
-  // crewed control-source vessel) the
-  // active vessel's own comms link currently terminates at. CommSignal reads
-  // it to label its readout with the real centre instead of assuming KSC;
-  // must be carried or that read silently stays undefined.
   "comms.commandCentre",
-  // System View / Fleet-Comms augment: active-vessel comms-path highlight +
-  // command-traffic (pending-uplink) overlay, read via `useLatestValue`
-  // (dispatch-time bookkeeping, TrueNow). Connectivity styling reads the
-  // `comms.link` MetaTopic listed above, so `comms.connectivity` is
-  // deliberately absent from this list: no client reads it, and the TrueNow
-  // `comms.*` observation channels stay un-publicised. `comms.path` itself is
-  // Delayed and NEVER_RECKONABLE: the route drawn is the route the arriving
-  // signal took, and a chain of hops has no forward model to advance it with.
   "comms.path",
-  // CommNet relay graph: the `system-view-vessel-orbits` contribution reads
-  // it to draw the relay network as faint connection-line entities. That
-  // contribution subscribes directly, since `ContributionsProvider`'s
-  // `SlotAggregator` bypasses this gate entirely, so listing it here is not
-  // load-bearing for that path. It is listed for the same "every mod-served
-  // raw topic is catalogued" convention the rest of this list follows.
   "comms.network",
   "system.uplink.pending",
-  // system.uplink.gates: every gated command's standing verdict, read by
-  // `useCommand` so a control can be drawn dark before the operator presses it.
-  // MUST be carried or every gated control renders as though nothing were
-  // gated, which is the state the whole gate mechanism was built to leave.
   "system.uplink.gates",
-  // system.channels: every declared channel's emission counters, the reading
-  // that tells a Topic the engine never considered from one it considered and
-  // declined. Listed because a gate entry costs nothing on its own: nothing
-  // subscribes until something asks.
   "system.channels",
-  // U3 kOS slice: native push channel for the KosProcessors widget. Static
-  // raw topic, so `isTopicCarried` promotes it by simple set membership. The
-  // dynamic `kos.compute.<id>.<field>` namespace is intentionally NOT here,
-  // it is served by `BufferedDataSource` (the kOS DataSource fanout), which
-  // bypasses this stream carried-channels gate entirely, so it needs no
-  // prefix entry here (unlike the scansat dynamic namespaces below).
   "kos.processors",
-  // career.mode feeds useGameContext's career-mode display map. science.sensors is the whole-topic sensor-by-type roster.
   "career.mode",
   "science.sensors",
-  // The remaining trivial raw-field-walk and whole-topic reads. Naming a topic
-  // as some widget-facing key's home without promoting it here leaves every one
-  // of those reads uncarried, which is what career.status did to its facility
-  // levels, contracts, strategies and tech-node fields until it was added.
   "game.dlc",
   "robotics.available",
   "ksp.revertAvailability",
@@ -161,97 +72,34 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   "science.instruments",
   "dv.stages",
   "dv.summary",
-  // Mod-served topics that back a widget-facing key: they must be promoted here
-  // or `isTopicCarried` refuses the read and it falls back to the legacy source
-  // instead of the stream. Three of them (parts.power, robotics.servos,
-  // science.lab) have no legacy equivalent at all, so the stream is their only
-  // source of data.
   "parts.power",
   "robotics.servos",
   "science.experiments",
   "science.experimentBreakdown",
   "science.lab",
-  // science.archive: the career-wide R&D archive (ScienceData's Archive tab), a new capability with no legacy read, so the stream is its only source.
   "science.archive",
   "deployed.bases",
-  // The homes of AstronautComplex's, LaunchDirector's and SpaceCenterStatus's kc.crewRoster/kc.savedShips/kc.partsAvailable reads, under the same promotion rule as every mod-served topic above.
   "spaceCenter.crewRoster",
   "spaceCenter.savedShips",
   "spaceCenter.partsAvailable",
-  // LaunchDirector's kc.launchSites picker roster, and the input spaceCenter.state derives kc.padOccupied/kc.padVesselTitle from.
   "spaceCenter.launchSites",
-  // The map points-of-interest feed (KSC, launch sites, and active and offered
-  // contract targets) MapView's vanilla POI provider reads. No legacy
-  // equivalent, so the stream is its only source of data.
   "spaceCenter.pois",
-  // AstronautComplex's applicant pool, roster cap and active-crew count.
-  // No legacy equivalent, so the stream is its only source of data.
   "spaceCenter.astronautComplex",
-  // Crash event stream (CrashUplink, ReliableOrdered): the crashed-vessel
-  // record and its companion "a notable crash happened recently" flag. Raw
-  // wire topics; the gate promotes at raw-topic granularity. Delivered on the
-  // reliable lane, so every crash
-  // arrives (none coalesced); consumers that must act once per crash use
-  // `useStreamEvent` rather than a sticky value read.
   "crash.lastCrash",
   "crash.hasRecent",
-  // Recovery event stream (RecoveryUplink, ReliableOrdered): the
-  // recovery-side counterpart of the crash pair immediately above, the
-  // recovered-vessel summary record and its companion "a notable recovery
-  // happened recently" flag. Same raw-topic promotion rule.
   "recovery.lastSummary",
   "recovery.hasRecent",
-  // scansat.available/scansat.scanningVessels: the two STATIC SCANsat
-  // topics GonogoScansatUplink always publishes (see ScansatUplink.cs's
-  // AvailableTopic/ScanningVesselsTopic consts): same "must be promoted or
-  // stays on the legacy read" rule as the science.* siblings above. The
-  // dynamic scansat.coverage/mask/height/biome/anomalies.<body>.<type>
-  // namespace is mapped in map-topic.ts's SCANSAT_DYNAMIC and per-(body,type),
-  // so it can't be an exact entry here, it is carried by
-  // `DYNAMIC_CARRIED_TOPIC_PREFIXES` (below), which `TelemetryProvider` folds
-  // into the carried set and `isTopicCarried` matches by prefix. Before that
-  // landed, those coverage/mask/height/biome/anomaly reads silently
-  // fell back to the removed legacy source even though mapTopic resolved them,
-  // the "coverage never surfaces" client half.
   "scansat.available",
   "scansat.scanningVessels",
-  // kerbcast.available/kerbcast.cameras: the two STATIC topics
-  // GonogoKerbcastUplink publishes (see KerbcastUplink.cs's AvailableTopic/
-  // CamerasTopic consts): kerbcast's CONTROL plane (camera inventory,
-  // capabilities, docking-port association). Same promotion rule as the
-  // scansat siblings above.
-  //
-  // kerbcast's VIDEO is deliberately absent and always will be: the H.264
-  // stream runs sidecar -> browser over WebRTC and is not a Topic at all.
-  // Only the control plane rides the wire.
-  //
-  // Promotion here is an allowlist, not a subscription, nothing flows until
-  // a widget actually reads these. Listing them now means the control plane
-  // is reachable the moment a consumer lands, rather than silently resolving
-  // to the legacy path.
   "kerbcast.available",
   "kerbcast.cameras",
-  // Flight-lifecycle domain (FlightUplink, P4c-b flight-lifecycle spec):
-  // flight.current (LossyLatest Value) plus flight.started/ended/
-  // vesselChanged (ReliableOrdered events): retires the client-side
-  // FlightDetector heuristic. Raw wire topics, same promotion rule as
-  // crash.*/recovery.* above. AutoRecordController/useFlight read these
-  // natively (useOptionalStreamEvent/useStream), which the gate does not touch.
   "flight.current",
   "flight.started",
   "flight.ended",
   "flight.vesselChanged",
-  // flight.simulation: whether the flight everything above describes is a
-  // REHEARSAL. TrueNow, absent under a game with no such concept, and carried
-  // here rather than left to a widget's own promotion because a board that
-  // silently omits it reports a simulation as a mission.
   "flight.simulation",
-  // The SCET alarm arm (ScetAlarmUplink, both TrueNow): the roster of armed alarms and the notice that one fired and stopped the warp.
   "alarm.scet",
   "alarm.scet.fired",
-  // settings.gonogo: every setting the mod and its Uplinks declared and
-  // whether KSP's settings file holds it. TrueNow, and the settings panel
-  // reads it whenever it opens.
   "settings.gonogo",
 ];
 
@@ -273,13 +121,11 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
  *     mis-splitting it into a `<domain.channel>.<fieldPath>` that is never
  *     published.
  *   • the carried-channels gate (`isTopicCarried`) treats a trailing-`.` entry
- *     as a `startsWith` prefix, so the dynamic key routes to the stream instead
- *     of the removed legacy source. `TelemetryProvider` folds these into the
+ *     as a `startsWith` prefix. `TelemetryProvider` folds these into the
  *     carried set it builds.
  *
  * A real wire topic never ends in `.`, so a prefix sentinel never collides with
- * the exact-membership checks these lists also serve. kos.compute.* is NOT here:
- * it rides `BufferedDataSource`, not this stream path.
+ * the exact-membership checks these lists also serve.
  */
 export const DYNAMIC_CARRIED_TOPIC_PREFIXES: readonly string[] = [
   "scansat.coverage.",

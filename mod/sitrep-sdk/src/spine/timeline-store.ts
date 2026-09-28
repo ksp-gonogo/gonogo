@@ -1380,10 +1380,8 @@ export class TimelineStore {
    * Windowed series for a DERIVED topic: the counterpart to `sampleRange`
    * (which structurally can't serve one: a derived value is computed fresh
    * per frame, nothing is ever stored). Backs `@ksp-gonogo/data`'s
-   * `useDataSeries` shim so a Graph-style widget plotting a registered
-   * derived-channel key gets a REAL series off the
-   * stream instead of permanently falling back to the legacy
-   * `BufferedDataSource`: see that hook's own doc comment for the "why".
+   * `useDataSeries` so a Graph-style widget plotting a registered
+   * derived-channel key gets a real series off the stream.
    *
    * Replays `def.derive` at every UT any of its raw `inputs` actually
    * changed at within `[fromUt, toUt]` (a change-gated raw timeline only

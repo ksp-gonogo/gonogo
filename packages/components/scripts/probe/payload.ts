@@ -29,16 +29,13 @@ export interface ProbePayload {
    */
   profile?: string;
   /**
-   * Optional per-key time-series to seed the BufferedDataSource's
-   * MemoryStore *before* the widget mounts. Widgets that call
-   * `useDataSeries` (sparklines, live trace dots) backfill from
-   * `queryRange` on mount: seeding the store lets those render with
-   * real history instead of always-empty arrays.
+   * Optional per-key history, emitted onto the stream before the fixture's
+   * own `_stream` block so a `useDataSeries` window (a sparkline, a trace) has
+   * something in it. A key is a Topic or a field path within one.
    *
-   * Sample timestamps are unix-ms relative to `now`. The probe stamps
-   * its synthetic flight at `t=0`; sample timestamps should be within
-   * the widget's window (Twr=60s, KeplerPeriod=60s, etc.). Use
-   * positive numbers: the probe queries `[now - windowMs, now]`.
+   * Sample timestamps are milliseconds relative to the pinned view time, so
+   * `t = 0` is the instant the widget reads and history is negative. Keep
+   * them inside the widget's window (Twr 60s, KeplerPeriod 60s, and so on).
    */
   series?: Record<string, readonly ProbeSeriesSample[]>;
   /**
@@ -104,7 +101,7 @@ export interface ProbeSize {
 /**
  * What `renderProbe` is handed to mount one scene at one size.
  *
- * A fixture's `_series` block, keyed by data-source key with an array of
+ * A fixture's `_series` block, keyed by Topic or field path with an array of
  * `{t, v}` samples each, is lifted into the payload so `useDataSeries`-backed
  * sparklines and trace dots render with seeded history.
  */

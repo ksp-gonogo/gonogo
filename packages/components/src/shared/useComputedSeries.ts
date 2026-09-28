@@ -14,8 +14,8 @@ export function useComputedSeries(
   windowSec: number,
   compute: (primary: number, secondary: number) => number | null,
 ): SeriesRange<number> {
-  const a = useDataSeries("data", primary, windowSec);
-  const b = useDataSeries("data", secondary, windowSec);
+  const a = useDataSeries(primary, windowSec);
+  const b = useDataSeries(secondary, windowSec);
 
   return useMemo(() => {
     const held = toNumericSeries(b);

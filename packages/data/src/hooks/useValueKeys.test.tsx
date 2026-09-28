@@ -102,7 +102,7 @@ describe("useValueKeys", () => {
 
     expect(captured.length).toBeGreaterThan(0);
     for (const entry of captured) {
-      expect(resolveValueTopic("data", entry.key)).not.toBeUndefined();
+      expect(resolveValueTopic(entry.key)).not.toBeUndefined();
     }
   });
 });

@@ -57,7 +57,7 @@ describe("SemiMajorAxis: genuinely runs off the stream", () => {
     );
   });
 
-  it("the plotted sparkline itself streams off the ClientTimeline, RED before the useDataSeries shim, GREEN after", async () => {
+  it("the plotted sparkline itself streams off the ClientTimeline", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.orbit"],
       pinnedUt: 10,

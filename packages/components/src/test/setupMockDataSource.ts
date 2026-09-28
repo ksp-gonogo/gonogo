@@ -36,12 +36,6 @@ export interface MockDataSourceFixture {
   source: MockDataSource;
   /** The registered buffered wrapper, which components read through. */
   buffered: BufferedDataSource;
-  /**
-   * Number of `queryRange` backfills still in flight, so a test can
-   * `await waitFor(() => expect(fixture.pendingQueries()).toBe(0))` and flush
-   * the `useDataSeries` notify inside act. 0 for widgets that never query.
-   */
-  pendingQueries: () => number;
 }
 
 /**
@@ -79,16 +73,6 @@ export async function setupMockDataSource(
     store: new MemoryStore(),
   });
 
-  // Counts in-flight backfills without touching the production BufferedDataSource.
-  let pending = 0;
-  const realQueryRange = buffered.queryRange.bind(buffered);
-  buffered.queryRange = (...args: Parameters<typeof realQueryRange>) => {
-    pending++;
-    return realQueryRange(...args).finally(() => {
-      pending--;
-    });
-  };
-
   registerDataSource(buffered);
   if (opts.connect ?? true) {
     await buffered.connect();
@@ -96,7 +80,7 @@ export async function setupMockDataSource(
   if (opts.connectSource) {
     await source.connect();
   }
-  return { source, buffered, pendingQueries: () => pending };
+  return { source, buffered };
 }
 
 /**

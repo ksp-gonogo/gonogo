@@ -31,7 +31,7 @@ import {
   WidgetStreamStatusBridge,
 } from "@ksp-gonogo/core";
 import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
-import type { Meta } from "@ksp-gonogo/sitrep-sdk";
+import { type Meta, splitRawFieldSubtopic } from "@ksp-gonogo/sitrep-sdk";
 import { MockDataSource } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
   type BadgeEntry,
@@ -59,7 +59,7 @@ import {
   setupStreamFixture,
 } from "../../src/test/setupStreamFixture";
 import { mountGridCell } from "./gridCell";
-import type { ProbePayload } from "./payload";
+import type { ProbePayload, ProbeSeriesSample } from "./payload";
 /*
  * The planted Uplink's contributions into built-in widgets. Each requires the
  * planted Domain, so only a fixture emitting `planted.available` renders any.
@@ -150,6 +150,72 @@ function resolveStreamBlock(
     getInstallProfile(profileId),
     raw,
   ) as StreamFixtureBlock;
+}
+
+/**
+ * A `_series` block as stream samples: one emit per Topic per instant, the
+ * fields of one Topic that share an instant merged into one payload, in time
+ * order. A sample's `t` is milliseconds relative to the pinned view time, so
+ * `t = 0` lands at the instant the widget reads.
+ */
+function seriesEmits(
+  series: Record<string, readonly ProbeSeriesSample[]>,
+  pinnedUt: number,
+): StreamEmit[] {
+  const byInstant = new Map<string, StreamEmit & { validAt: number }>();
+  for (const [key, samples] of Object.entries(series)) {
+    const split = splitRawFieldSubtopic(key);
+    const channel = split?.rawTopic ?? key;
+    for (const sample of samples) {
+      const validAt = pinnedUt + sample.t / 1000;
+      const id = `${channel}@${validAt}`;
+      const known = byInstant.get(id);
+      const entry = known ?? {
+        channel,
+        value: split ? {} : undefined,
+        meta: { validAt },
+        validAt,
+      };
+      if (!known) byInstant.set(id, entry);
+      if (!split) {
+        entry.value = sample.v;
+        continue;
+      }
+      setFieldPath(
+        entry.value as Record<string, unknown>,
+        split.fieldPath,
+        sample.v,
+      );
+    }
+  }
+  return [...byInstant.values()].sort((a, b) => a.validAt - b.validAt);
+}
+
+/** The Topics a `_series` block plots from, which the scene carries so their fields keep their units. */
+function seriesChannels(
+  series: Record<string, readonly ProbeSeriesSample[]>,
+): string[] {
+  return [
+    ...new Set(
+      Object.keys(series).map(
+        (key) => splitRawFieldSubtopic(key)?.rawTopic ?? key,
+      ),
+    ),
+  ];
+}
+
+function setFieldPath(
+  record: Record<string, unknown>,
+  path: readonly string[],
+  value: unknown,
+): void {
+  let node = record;
+  for (const segment of path.slice(0, -1)) {
+    const next = node[segment];
+    if (next === null || typeof next !== "object") node[segment] = {};
+    node = node[segment] as Record<string, unknown>;
+  }
+  node[path[path.length - 1]] = value;
 }
 
 /**
@@ -327,85 +393,36 @@ async function mountInto(
   // comment and `StreamFixtureBlock`. Resolved once up-front so both the
   // provider-wrap choice below and the post-mount emit loop share it.
   const streamBlock = resolveStreamBlock(payload.fixture, payload.profile);
+  // A `_series` block plots off the stream, so it needs one even where the fixture declares none.
+  const seriesPinnedUt =
+    streamBlock?.pinnedUt ?? resolvePinnedUt(payload.fixture) ?? 0;
   const streamFixture: StreamFixture | undefined = streamBlock
     ? setupStreamFixture({
         carriedChannels: streamBlock.carriedChannels,
         pinnedUt: streamBlock.pinnedUt,
         delaySeconds: streamBlock.delaySeconds,
       })
-    : undefined;
+    : payload.series
+      ? setupStreamFixture({
+          carriedChannels: seriesChannels(payload.series),
+          pinnedUt: seriesPinnedUt,
+        })
+      : undefined;
   state.stream = streamFixture;
 
   const fixtureKeys = Object.keys(payload.fixture).filter(
     (k) => !k.startsWith("_"),
   );
-  const seriesKeys = payload.series ? Object.keys(payload.series) : [];
-  // When series is provided we also need `v.name` + `v.missionTime` in
-  // the source schema so the flight detector can mint a current flight
-  // (without one, `queryRange` falls back to empty and the seeded
-  // samples are invisible to `useDataSeries`).
-  const detectorKeys = payload.series ? ["v.name", "v.missionTime"] : [];
-  const allKeys = Array.from(
-    new Set([...fixtureKeys, ...seriesKeys, ...detectorKeys]),
-  );
   const source = new MockDataSource({
     id: "data",
-    keys: allKeys.map((k) => ({ key: k })),
+    keys: fixtureKeys.map((k) => ({ key: k })),
   });
-  const store = new MemoryStore();
-  const buffered = new BufferedDataSource({ source, store });
+  const buffered = new BufferedDataSource({ source, store: new MemoryStore() });
   state.buffered = buffered;
   if (!state.beside || !getDataSource(buffered.id)) {
     registerDataSource(buffered);
   }
   await buffered.connect();
-
-  // Seed the MemoryStore with backfill samples for any keys widgets
-  // will call `useDataSeries(key, windowSec)` against. Has to happen
-  // *before* widget mount because useDataSeries calls queryRange in
-  // its setup effect: by the time the widget commits, samples need
-  // to already be in the store. Detector flight has to exist first
-  // (otherwise queryRange returns empty), which we trigger by
-  // emitting vessel-name + mission-time through the buffered
-  // wrapper.
-  if (payload.series) {
-    // Seed the flight identity from the fixture's OWN v.name / v.missionTime
-    // when present. If we seeded with a fixed placeholder name while the
-    // fixture carried a different v.name, the post-mount emit of the real
-    // identity would trip FlightDetector's name-change path and mint a
-    // SECOND flight: orphaning these seeded samples under the first flight
-    // id. useDataSeries' queryRange then resolves to whichever flight is
-    // current when its effect runs, which is effect-timing-dependent and so
-    // varies by engine (Chromium found the data; Firefox/WebKit rendered an
-    // empty graph). Matching the identity keeps it a single flight, so the
-    // seeded samples and the mounted widget's query always agree.
-    const seedName =
-      typeof payload.fixture["v.name"] === "string"
-        ? (payload.fixture["v.name"] as string)
-        : "ProbeFlight";
-    const seedMissionTime =
-      typeof payload.fixture["v.missionTime"] === "number"
-        ? (payload.fixture["v.missionTime"] as number)
-        : 0;
-    source.emit("v.name", seedName);
-    source.emit("v.missionTime", seedMissionTime);
-    // Microtask lets the buffered handleSample → detector observe path land before we read the current flight.
-    await Promise.resolve();
-    await Promise.resolve();
-    const flight = buffered.getCurrentFlight();
-    if (flight) {
-      // Fixture sample timestamps are RELATIVE (negative = N ms ago,
-      // 0 = now). useDataSeries queries `[now - windowMs, now]` using
-      // Date.now(): anchor the seeded samples to wall-clock so the
-      // backfill range catches them.
-      const wallNow = Date.now();
-      for (const [key, samples] of Object.entries(payload.series)) {
-        for (const s of samples) {
-          await store.appendSample(flight.id, key, wallNow + s.t, s.v);
-        }
-      }
-    }
-  }
 
   // Force-load BOTH locked-font weights before mounting so the very first
   // layout uses JetBrains Mono metrics for regular AND bold text. Awaiting
@@ -583,6 +600,14 @@ async function mountInto(
 
   for (const key of fixtureKeys) {
     source.emit(key, payload.fixture[key]);
+  }
+  if (streamFixture && payload.series) {
+    const history = seriesEmits(payload.series, seriesPinnedUt);
+    for (const channel of new Set(history.map((e) => e.channel))) {
+      await waitForSubscription(streamFixture.transport, channel);
+    }
+    for (const e of history) streamFixture.emit(e.channel, e.value, e.meta);
+    await rafTick();
   }
   if (streamFixture && streamBlock) {
     // `StubTransport.emit` is subscription-gated (silently DROPS a sample for

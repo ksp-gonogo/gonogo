@@ -275,7 +275,7 @@ export { draftAsPlan, PlanDraftStore } from "../plan-drafts";
 //
 // Only the author-and-test half is here. The ORCHESTRATION reads
 // (`getResolvedComponents`, `getReplacementConflicts`, `getComponents`,
-// `getThemes`, `getTheme`, `onDataSourcesChange`) are on the `/registry` subpath
+// `getThemes`, `getTheme`) are on the `/registry` subpath
 // instead, for the same reason `/spine` keeps `TimelineStore` off this barrel:
 // nothing about writing an Uplink needs the dashboard's widget-resolution rules,
 // and publishing them here would freeze app orchestration as third-party API.

@@ -6,7 +6,7 @@ import { ViewClock } from "./view-clock";
 
 /**
  * `TimelineStore.sampleRange`: the range
- * read behind the sparkline/`GraphView` series shim (`useDataSeries`) in
+ * read behind the sparkline/`GraphView` series (`useDataSeries`) in
  * `@ksp-gonogo/data`,
  * mirroring `sample()`'s raw-topic / raw-field-subtopic resolution
  * (`timeline-store-raw-fields.test.ts`) but returning every buffered point

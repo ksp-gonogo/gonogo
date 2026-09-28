@@ -38,7 +38,6 @@ export {
   getComponents,
   getReplacementConflicts,
   getResolvedComponents,
-  onDataSourcesChange,
   type ReplacementConflict,
 } from "@ksp-gonogo/sitrep-sdk/registry";
 

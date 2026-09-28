@@ -260,7 +260,7 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
         continue;
       }
       if (this.fired.has(t.id) || t.refusals) continue;
-      const value = getValue("data", t.dataKey);
+      const value = getValue(t.dataKey);
       if (value === undefined) continue;
       if (!compareThreshold(value, t.op, t.value)) continue;
       this.fired.add(t.id);

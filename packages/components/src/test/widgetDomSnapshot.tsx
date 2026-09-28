@@ -8,7 +8,7 @@ import {
 } from "@ksp-gonogo/core";
 import type { Meta } from "@ksp-gonogo/sitrep-sdk";
 import type { MockDataSource } from "@ksp-gonogo/sitrep-sdk/testing";
-import { act, render, waitFor } from "@ksp-gonogo/test-utils";
+import { act, render } from "@ksp-gonogo/test-utils";
 import { installFixedSizeResizeObserver } from "@ksp-gonogo/ui-kit/testing";
 import type React from "react";
 import { Fragment } from "react";
@@ -259,10 +259,7 @@ function beginPhase(name: string): void {
   currentPhase = name;
 }
 
-function armStallWatchdog(
-  label: string,
-  pendingQueries: () => number,
-): () => void {
+function armStallWatchdog(label: string): () => void {
   currentPhase = "start";
   exhaustedTopics = [];
   framesWaited = 0;
@@ -270,7 +267,7 @@ function armStallWatchdog(
     setTimeout(() => {
       process.stderr.write(
         `[widget-harness] ${label} still in phase "${currentPhase}" after ${afterMs}ms, ` +
-          `pendingQueries=${pendingQueries()}, framesWaited=${framesWaited}, ` +
+          `framesWaited=${framesWaited}, ` +
           `neverSubscribed=[${exhaustedTopics.join(" ")}]\n`,
       );
     }, afterMs),
@@ -495,10 +492,7 @@ export async function snapshotWidgetMode<
   const restoreResizeObserver = installSizedResizeObserver(
     modePixels(opts.mode),
   );
-  const disarm = armStallWatchdog(
-    `snapshot ${opts.mode.name}`,
-    fixture.pendingQueries,
-  );
+  const disarm = armStallWatchdog(`snapshot ${opts.mode.name}`);
 
   try {
     const config: Cfg = {
@@ -550,11 +544,6 @@ export async function snapshotWidgetMode<
     beginPhase("provider-frame");
     await flushProviderFrame(providerMounted, emitFrame);
 
-    // Drain the async `useDataSeries` backfill; waitFor wraps act, and this is a no-op for widgets that never query a range.
-    beginPhase("backfill-wait");
-    await waitFor(() => {
-      if (fixture.pendingQueries() !== 0) throw new Error("backfill pending");
-    });
     beginPhase("flush-resize-observers");
     await flushResizeObservers();
 
@@ -601,10 +590,7 @@ export async function renderWidgetMode<
   const restoreResizeObserver = installSizedResizeObserver(
     modePixels(opts.mode),
   );
-  const disarm = armStallWatchdog(
-    `render ${opts.mode.name}`,
-    fixture.pendingQueries,
-  );
+  const disarm = armStallWatchdog(`render ${opts.mode.name}`);
 
   try {
     const config: Cfg = {
@@ -654,11 +640,6 @@ export async function renderWidgetMode<
     beginPhase("provider-frame");
     await flushProviderFrame(providerMounted, emitFrame);
 
-    // Drain the async useDataSeries backfill so assertions run against a settled tree.
-    beginPhase("backfill-wait");
-    await waitFor(() => {
-      if (fixture.pendingQueries() !== 0) throw new Error("backfill pending");
-    });
     beginPhase("flush-resize-observers");
     await flushResizeObservers();
     beginPhase("stops-arriving");

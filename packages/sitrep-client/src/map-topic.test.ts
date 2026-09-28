@@ -45,7 +45,7 @@ describe("isKnownFieldPath", () => {
   });
 });
 
-describe("mapTopic(sourceId, key): the surviving dynamic-namespace routing", () => {
+describe("mapTopic(key): the surviving dynamic-namespace routing", () => {
   // Every entry left is an IDENTITY map over a namespace materialised per
   // subject at runtime, so no generated list can enumerate it and a pattern is
   // the only thing that can vouch for a key. The flat vocabulary this table used
@@ -54,53 +54,43 @@ describe("mapTopic(sourceId, key): the surviving dynamic-namespace routing", () 
 
   describe("scansat: the per-body namespaces ScansatUplink.Sample publishes", () => {
     it("identity-maps coverage, mask, height, biome and anomalies", () => {
-      expect(mapTopic("data", "scansat.coverage.Kerbin.1")).toBe(
+      expect(mapTopic("scansat.coverage.Kerbin.1")).toBe(
         "scansat.coverage.Kerbin.1",
       );
-      expect(mapTopic("data", "scansat.mask.Kerbin.256")).toBe(
+      expect(mapTopic("scansat.mask.Kerbin.256")).toBe(
         "scansat.mask.Kerbin.256",
       );
-      expect(mapTopic("data", "scansat.height.Kerbin")).toBe(
-        "scansat.height.Kerbin",
-      );
-      expect(mapTopic("data", "scansat.biome.Kerbin")).toBe(
-        "scansat.biome.Kerbin",
-      );
-      expect(mapTopic("data", "scansat.anomalies.Kerbin")).toBe(
+      expect(mapTopic("scansat.height.Kerbin")).toBe("scansat.height.Kerbin");
+      expect(mapTopic("scansat.biome.Kerbin")).toBe("scansat.biome.Kerbin");
+      expect(mapTopic("scansat.anomalies.Kerbin")).toBe(
         "scansat.anomalies.Kerbin",
       );
     });
 
     it("refuses a shape the namespace never publishes", () => {
       // coverage/mask are per (body, type-BIT), so a bare body is not one.
-      expect(mapTopic("data", "scansat.coverage.Kerbin")).toBeUndefined();
+      expect(mapTopic("scansat.coverage.Kerbin")).toBeUndefined();
     });
   });
 
   describe("vessel.partActions: the per-part PAW namespace", () => {
     it("identity-maps a numeric flight id", () => {
-      expect(mapTopic("data", "vessel.partActions.12345")).toBe(
+      expect(mapTopic("vessel.partActions.12345")).toBe(
         "vessel.partActions.12345",
       );
     });
 
     it("refuses a non-numeric segment, which flightID never is", () => {
-      expect(mapTopic("data", "vessel.partActions.notAnId")).toBeUndefined();
+      expect(mapTopic("vessel.partActions.notAnId")).toBeUndefined();
     });
-  });
-
-  it("returns undefined for sources not wired to the stream", () => {
-    expect(mapTopic("kerbcast", "kerbcast.cameras")).toBeUndefined();
-    expect(mapTopic("kos", "kos.compute.foo.bar")).toBeUndefined();
-    expect(mapTopic("unknown-source", "anything")).toBeUndefined();
   });
 
   it("returns undefined for a key from the retired flat vocabulary", () => {
     // These resolved once. Nothing translates them now, and a read of one gets
     // the same answer as a read of any other name nothing publishes.
-    expect(mapTopic("data", "v.altitude")).toBeUndefined();
-    expect(mapTopic("data", "o.ApA")).toBeUndefined();
-    expect(mapTopic("data", "r.resource[ElectricCharge]")).toBeUndefined();
-    expect(mapTopic("data", "not.a.real.key")).toBeUndefined();
+    expect(mapTopic("v.altitude")).toBeUndefined();
+    expect(mapTopic("o.ApA")).toBeUndefined();
+    expect(mapTopic("r.resource[ElectricCharge]")).toBeUndefined();
+    expect(mapTopic("not.a.real.key")).toBeUndefined();
   });
 });

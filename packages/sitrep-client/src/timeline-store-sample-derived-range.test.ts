@@ -7,7 +7,7 @@ import { ViewClock } from "./view-clock";
 /**
  * `TimelineStore.sampleDerivedRange`: the derived-topic counterpart to
  * `sampleRange` (`timeline-store-sample-range.test.ts`), behind
- * `@ksp-gonogo/data`'s `useDataSeries` shim. These tests isolate the REPLAY
+ * `@ksp-gonogo/data`'s `useDataSeries`. These tests isolate the REPLAY
  * mechanism itself against small synthetic channels.
  */
 

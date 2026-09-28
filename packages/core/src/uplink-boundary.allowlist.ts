@@ -218,7 +218,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/Sitrep.Host/ChannelEngine.cs",
       "mod/sitrep-sdk/src/spine/context.tsx",
       "mod/sitrep-sdk/src/spine/delay-authority.ts",
-      "packages/sitrep-client/src/map-topic.test.ts",
       /*
        * view-clock.ts/view-clock-formula.ts: cross-browser kerbcast
        * video-delay design extracted ViewClock's
@@ -602,7 +601,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "mod/Sitrep.Contract/Comms.cs",
       "mod/sitrep-sdk/src/default-carried-topics.ts",
-      "packages/sitrep-client/src/map-topic.test.ts",
 
       /*
        * -- TEST-only --
@@ -1916,7 +1914,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/app/src/screens/StationScreen.tsx",
     "packages/core/src/uplink-isolation.allowlist.ts",
     "packages/data/src/schema/topicFieldCatalog.test.ts",
-    "packages/sitrep-client/src/map-topic.test.ts",
   ],
   kos: [
     "packages/components/scripts/render-systemview-traffic-video.ts",
@@ -1936,7 +1933,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/core/src/hooks/useUplinkHealthFor.test.tsx",
     "packages/data/src/hooks/useDataSchema.test.tsx",
     "packages/data/src/schema/topicFieldCatalog.test.ts",
-    "packages/sitrep-client/src/map-topic.test.ts",
     "packages/sitrep-client/src/uplink-health.test.ts",
     "packages/sitrep-client/src/use-route-commands.test.tsx",
   ],

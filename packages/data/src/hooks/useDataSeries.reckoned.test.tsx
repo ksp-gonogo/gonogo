@@ -1,4 +1,3 @@
-import { clearRegistry } from "@ksp-gonogo/core";
 import {
   TelemetryClient,
   TelemetryProvider,
@@ -12,7 +11,7 @@ import {
 } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import type { ReactNode } from "react";
-import { beforeEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { useDataSeries } from "./useDataSeries";
 
 /**
@@ -29,7 +28,7 @@ import { useDataSeries } from "./useDataSeries";
  */
 
 function Probe({ dataKey, windowSec }: { dataKey: string; windowSec: number }) {
-  const range = useDataSeries("data", dataKey, windowSec);
+  const range = useDataSeries(dataKey, windowSec);
   return (
     <div data-testid="range">
       n:{range.t.length}|reckoned:
@@ -47,7 +46,7 @@ function WindowEndProbe({
   dataKey: string;
   windowSec: number;
 }) {
-  const range = useDataSeries("data", dataKey, windowSec);
+  const range = useDataSeries(dataKey, windowSec);
   return (
     <div data-testid="window-end">
       n:{range.t.length}|windowEnd:{range.windowEndAt ?? "none"}
@@ -74,7 +73,7 @@ function ValueProbe({
   dataKey: string;
   windowSec: number;
 }) {
-  const range = useDataSeries("data", dataKey, windowSec);
+  const range = useDataSeries(dataKey, windowSec);
   const last = range.v[range.v.length - 1];
   return (
     <div data-testid="values">
@@ -195,8 +194,6 @@ function buildStreamFixture(opts: { pinnedUt: number }) {
 
   return { transport, client, store, Provider, emitOrbiting };
 }
-
-beforeEach(() => clearRegistry());
 
 describe("useDataSeries: the stretch nobody measured", () => {
   it("names a run of modelled points past the last observation", async () => {

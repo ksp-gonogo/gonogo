@@ -1,11 +1,8 @@
 /**
- * The carried-channels allowlist gate: the single place that decides "is
- * `topic` actually carried right now". A read against a topic the mounted
- * transport never delivers must answer ABSENT, not a blank that looks like a
- * live zero, and a widget declaring such a topic must be able to say so.
- * `TelemetryProvider` (building the allowlist), `useTelemetry`, `useDataSeries`
- * and the field catalog all come through this file rather than each
- * duplicating the derived-topic resolution logic.
+ * The carried-channels allowlist gate: whether `topic` is on the set the
+ * value pickers offer. No read consults it; a read subscribes whatever it
+ * names. It decides which Topics' fields the field catalogue lists, and so
+ * which keys an operator can pick for an alarm, a graph series or a note tag.
  *
  * A topic is carried iff EVERY raw wire topic it transitively depends on is
  * carried:

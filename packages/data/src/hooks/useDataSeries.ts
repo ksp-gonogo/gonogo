@@ -1,26 +1,12 @@
-import {
-  type DataSource,
-  getDataSource,
-  useDataSourceSubscription,
-} from "@ksp-gonogo/core";
 import type { GapModel } from "@ksp-gonogo/sitrep-client";
 import {
-  classifyDeadRead,
-  DEAD_READ_SETTLE_MS,
-  isTopicCarried,
   subscribeTopicRead,
-  useCarriedChannelsOptional,
   useTelemetryClientOptional,
   useTelemetryStoreOptional,
-  warnDeadRead,
-  warnGatedRead,
 } from "@ksp-gonogo/sitrep-client";
-import type {
-  BufferedDataSource,
-  StreamStatusValue,
-} from "@ksp-gonogo/sitrep-sdk";
+import type { StreamStatusValue } from "@ksp-gonogo/sitrep-sdk";
 import { Staleness } from "@ksp-gonogo/sitrep-sdk";
-import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
+import { useCallback, useRef, useSyncExternalStore } from "react";
 import type {
   SeriesBridge,
   SeriesRange,
@@ -29,8 +15,8 @@ import type {
 } from "../types";
 
 /**
- * Shared by both branches, and deliberately carries no `basis`: an empty
- * series has no `t` to be stamped in either clock, and the chart's own
+ * Deliberately carries no `basis`: an empty series has no `t` to be stamped
+ * in either clock, and the chart's own
  * no-samples fallback domain is a wall-clock window. Declaring UT here would
  * mislabel that fallback in the one case where there is nothing plotted to
  * check the ladder against.
@@ -191,186 +177,27 @@ function plotValue(payload: unknown): unknown {
 }
 
 /**
- * Windowed time-series of a single key from the buffered data layer.
+ * Windowed time-series of one Topic or field path, read off the stream's
+ * `TimelineStore`. Empty when no `TelemetryProvider` is mounted.
  *
- * On mount (or when `key`/`windowSec` changes): backfills from
- * `queryRange` so the graph renders with history immediately.
+ * A raw Topic or field path reads its window through `sampleRange`. A DERIVED
+ * Topic stores no history of its own, so `sampleDerivedRange` replays the
+ * channel's `derive()` at every UT its raw inputs changed within the window.
  *
- * Live: appends every timestamped sample, trimming samples older than
- * `now - windowSec * 1000`.
- *
- * Returns a fresh `SeriesRange` object per update so React's snapshot
- * comparison triggers a re-render, the internal arrays are mutated in
- * place for cheap appends, then a shallow `{ t, v }` wrapper is built at
- * snapshot time.
- *
- * **The stream shim.** The plotted/sparkline series `GraphView`-based widgets
- * read (`GraphSeries`, `SemiMajorAxis`, `Twr`, `PowerSystems`, `KeplerPeriod`,
- * `OrbitalAscent`, `EscapeProfile`) come off the stream when the key's topic is
- * on the carried-channels allowlist (`isTopicCarried`), and off a registered
- * `DataSource` under `sourceId` otherwise.
- *
- * A DERIVED topic
- * (`system.state.*`) has a live per-frame VALUE (`sample()`) but no stored
- * HISTORY: nothing ever buffers a range of computed values, only the raw
- * inputs it's computed from. `TimelineStore.sampleRange` returns `undefined`
- * for exactly this case (as opposed to `[]`, "genuinely nothing landed
- * yet"). Rather than falling back to legacy for every derived topic
- * (the pre-M4 behavior: dead weight once the legacy `BufferedDataSource`
- * is deleted), this hook calls `TimelineStore.sampleDerivedRange` instead:
- * it replays the derived channel's own `derive()` function at every UT its
- * raw inputs changed within the window, off `sampleRange` reads of those
- * raw inputs: a REAL series built off real buffered stream history, no
- * legacy DataSource involved. See `sampleDerivedRange`'s own doc comment
- * for the replay mechanics.
- *
- * A MAPPED + CARRIED raw topic, or a raw record field-subtopic, reads its
- * window straight off
- * `TimelineStore.sampleRange`, mapping each `TimelinePoint`'s
- * `validAt`/`payload` into this hook's existing `{ t, v }` shape, the exact
- * same shape a consumer already gets from the legacy path, so no
- * `GraphSeries`/widget code needs to change. `t` here is UT (game universal
- * time, seconds) rather than the legacy path's wall-clock `Date.now()`
- * milliseconds: an internal-only distinction; every current consumer only
- * ever reads `v` for a sparkline, or treats `t` as an opaque monotonic
- * x-axis for its own `windowSec`-scoped chart, never compares it against
- * wall time directly.
- *
- * The window's upper bound is `store.currentFrame().viewUt`, the SAME
- * frozen view-time every other read in the frame uses (`useStream`'s
- * `getSnapshot`, `useTelemetry`'s). `viewUt() ===
- * confirmedEdgeUt()` while live (`ViewClock`'s
- * own doc), so this naturally reads only CONFIRMED data, consistent with the
- * SDK's delay handling: a value at a `validAt` beyond the confirmed edge
- * hasn't been "shown" yet by any other read either, so it doesn't
- * retroactively appear in the plotted history.
- *
- * Both the legacy subscription and the streamed subscription are always
- * wired up, for a stable hook order; only one of the two snapshots is
- * actually returned.
+ * `t` is UT seconds. The window closes at `currentFrame().viewUt`, the same
+ * frozen view time every other read in the frame uses, which is the confirmed
+ * edge while live, so a sample past it does not appear in the history early.
  */
-export function useDataSeries(
-  sourceId: "data",
-  key: string,
-  windowSec: number,
-): SeriesRange {
-  // Mutable internal storage. Kept outside React state so live appends
-  // don't allocate new arrays per sample.
-  const dataRef = useRef<{ t: number[]; v: unknown[] }>({ t: [], v: [] });
-
+export function useDataSeries(key: string, windowSec: number): SeriesRange {
   /*
-   * Stream-branch memoization (see `getStreamSnapshot` below): the last
-   * `SeriesRange` built from `sampleRange`, so an unchanged read reuses the
-   * same object identity instead of handing `useSyncExternalStore` a fresh
-   * one every call.
+   * The last `SeriesRange` built, so an unchanged read reuses the same object
+   * identity instead of handing `useSyncExternalStore` a fresh one every call.
    */
   const lastSnapshotRef = useRef<SeriesRange>(EMPTY);
 
-  const setup = useCallback(
-    (
-      rawSource: DataSource,
-      notify: () => void,
-      snapshotRef: { current: SeriesRange },
-    ) => {
-      const source = rawSource as BufferedDataSource;
-      const windowMs = windowSec * 1000;
-      dataRef.current = { t: [], v: [] };
-      snapshotRef.current = EMPTY;
-
-      let cancelled = false;
-
-      // Backfill from the store. Errors (e.g. peer closed mid-query, host
-      // has no queryRange) are swallowed, the hook stays in its empty state
-      // until a live sample arrives, rather than crashing the graph.
-      const now = Date.now();
-      void source
-        .queryRange(key, now - windowMs, now)
-        .then((range) => {
-          if (cancelled) return;
-          // The query's window closed at `now`, so a sample that arrived while
-          // it was in flight is newer than its upper bound and cannot be in the
-          // answer. Splice the history in FRONT of whatever is already buffered
-          // rather than replacing it: replacing made the series depend on which
-          // of the two landed second, so a slow store silently erased live
-          // samples and an empty answer emptied the whole plot.
-          const live = dataRef.current;
-          const oldestLive = live.t.length > 0 ? (live.t[0] as number) : null;
-          const head =
-            oldestLive === null
-              ? range.t.length
-              : range.t.findIndex((t) => t >= oldestLive);
-          const kept = head === -1 ? range.t.length : head;
-          dataRef.current = {
-            t: [...range.t.slice(0, kept), ...live.t],
-            v: [...range.v.slice(0, kept), ...live.v],
-          };
-          snapshotRef.current = {
-            t: dataRef.current.t,
-            v: dataRef.current.v,
-            basis: "wall-ms",
-          };
-          notify();
-        })
-        .catch(() => {
-          // Intentionally silent: treat as "no backfill available".
-        });
-
-      const unsubSamples = source.subscribeSamples(key, ({ t, v }) => {
-        const buf = dataRef.current;
-        buf.t.push(t);
-        buf.v.push(v);
-        const cutoff = t - windowMs;
-        let i = 0;
-        while (i < buf.t.length && buf.t[i] < cutoff) i++;
-        if (i > 0) {
-          buf.t.splice(0, i);
-          buf.v.splice(0, i);
-        }
-        // Fresh wrapper per update: useSyncExternalStore's identity check sees the new reference and triggers a render.
-        snapshotRef.current = { t: buf.t, v: buf.v, basis: "wall-ms" };
-        notify();
-      });
-
-      const unsubStatus = source.onStatusChange((status) => {
-        if (status !== "connected") {
-          dataRef.current = { t: [], v: [] };
-          snapshotRef.current = EMPTY;
-          notify();
-        }
-      });
-
-      return () => {
-        cancelled = true;
-        unsubSamples();
-        unsubStatus();
-      };
-    },
-    [key, windowSec],
-  );
-
-  const legacySeries = useDataSourceSubscription<SeriesRange>(
-    sourceId,
-    setup,
-    EMPTY,
-  );
-
-  // The shim: subscribed whenever a `TelemetryProvider` is mounted, with the
-  // carried-channels gate (`isTopicCarried`) deciding which of the two SERIES
-  // is returned.
-  //
-  // The gate picks between two live reads; it is not permission to reach the
-  // stream: the subscription is unconditional, and the legacy series gets
-  // first refusal.
   const client = useTelemetryClientOptional();
   const store = useTelemetryStoreOptional();
-  const carriedChannels = useCarriedChannelsOptional();
-  // The key is the topic: a field path or a dynamic-namespace key, which `isTopicCarried` resolves as it stands.
   const topic = key;
-  const carried =
-    store !== undefined &&
-    carriedChannels !== undefined &&
-    isTopicCarried(store, carriedChannels, topic);
-  const routable = client !== undefined && store !== undefined && carried;
 
   const subscribeStream = useCallback(
     (onStoreChange: () => void) => {
@@ -552,8 +379,7 @@ export function useDataSeries(
     // endless re-render). Comparing by VALUE rather than the underlying
     // points' object identity is what actually detects "truly nothing
     // changed" here, cheap at sparkline/window sizes, and reuses the last
-    // built `SeriesRange`, the same referential-stability contract the
-    // legacy path gets for free from its mutate-in-place buffer.
+    // built `SeriesRange`.
     // `breaks` joins the equality check for the same reason `t` and `v` are in
     // it: a window can slide so that a hole's opening sample changes index
     // while every t and v stays put, and returning the memoised range there
@@ -610,77 +436,5 @@ export function useDataSeries(
     return lastSnapshotRef.current;
   }, [store, topic, windowSec]);
 
-  const streamedSeries = useSyncExternalStore(
-    subscribeStream,
-    getStreamSnapshot,
-  );
-
-  // Gated off, so the legacy series gets first refusal: that ordering IS the
-  // gate. An empty legacy series does not end the matter on its own: on a
-  // `sourceId` not backed by a registered source, the streamed series is
-  // rescued instead.
-  //
-  // Reported only when there is no registered source at all, which is the
-  // unambiguous case. A registered source that has simply not filled its window
-  // yet is rescued too, and is not worth a line that fires once per read for
-  // the whole session.
-  const hasLegacySource = getDataSource(sourceId) !== undefined;
-  const gatedRescue =
-    !routable &&
-    client !== undefined &&
-    store !== undefined &&
-    legacySeries.t.length === 0 &&
-    streamedSeries.t.length > 0;
-  useEffect(() => {
-    if (gatedRescue && !hasLegacySource && store) {
-      warnGatedRead(
-        "useDataSeries",
-        sourceId,
-        key,
-        topic,
-        store.resolveSubscriptionTopics(topic),
-      );
-    }
-  }, [gatedRescue, hasLegacySource, sourceId, key, topic, store]);
-
-  // The report above demands a streamed window with points in it, so the one
-  // read it can never speak about is the read that resolves to NOTHING: no
-  // channel to plot and no source to ask, an empty chart for the life of the
-  // screen. That case is reported here. See `dead-read-warning.ts` for why the
-  // verdict is deferred and then re-derived from the registries rather than
-  // taken from the render that scheduled it.
-  //
-  // A ref rather than state: it only ever latches from false to true, and it
-  // must not itself cause a render. Both series already re-render this hook
-  // through `useSyncExternalStore` the moment either fills, so the effect below
-  // sees the change and cancels.
-  //
-  // The candidate gate deliberately resolves no topic of its own. This hook's
-  // `topic` is the key itself and so is never `undefined`, which cannot
-  // answer "does this key name a channel at all", and resolving it a second way
-  // here would be a second spelling of the rule the classifier already owns.
-  // `!routable` is conservative instead: a routable read reached a carried
-  // channel and is nobody's defect, and everything else is handed to the
-  // classifier, which returns `undefined` for the healthy shapes.
-  //
-  // The final argument is the key VOCABULARY: a plotted window is keyed by a
-  // whole Topic as readily as by a field path within one, and the classifier
-  // has to resolve both or it accuses the reads that work.
-  const everObserved = useRef(false);
-  if (legacySeries.t.length > 0 || streamedSeries.t.length > 0) {
-    everObserved.current = true;
-  }
-  const streamMounted = client !== undefined && store !== undefined;
-  const deadCandidate = !everObserved.current && !routable;
-  useEffect(() => {
-    if (!deadCandidate) return;
-    const timer = setTimeout(() => {
-      if (everObserved.current) return;
-      const cause = classifyDeadRead(sourceId, key, streamMounted);
-      if (cause) warnDeadRead("useDataSeries", sourceId, key, cause);
-    }, DEAD_READ_SETTLE_MS);
-    return () => clearTimeout(timer);
-  }, [deadCandidate, sourceId, key, streamMounted]);
-
-  return routable || gatedRescue ? streamedSeries : legacySeries;
+  return useSyncExternalStore(subscribeStream, getStreamSnapshot);
 }

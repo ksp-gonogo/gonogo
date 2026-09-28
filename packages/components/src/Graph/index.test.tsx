@@ -1,54 +1,59 @@
-import { clearRegistry, registerDataSource } from "@ksp-gonogo/core";
-import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
-import { MockDataSource } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
 import { installFixedSizeResizeObserver } from "@ksp-gonogo/ui-kit/testing";
+import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  type StreamFixture,
+  setupStreamFixture,
+} from "../test/setupStreamFixture";
 import { GraphComponent } from "./index";
 
-/** The buffered `"data"` source half of `useDataSeries`, driving flat keys that carry no unit. The streamed path and anything unit-dependent is in `stream.test.tsx`. */
-describe('GraphComponent (legacy "data" source, retires with the shim)', () => {
-  let restoreResizeObserver: () => void = () => {};
-  let source: MockDataSource;
-  let buffered: BufferedDataSource;
+const ALTITUDE = "vessel.flight.altitudeAsl";
+const VERTICAL_SPEED = "vessel.flight.verticalSpeed";
 
-  beforeEach(async () => {
-    clearRegistry();
+/** Chart variants, axes and sizing; `stream.test.tsx` covers what the stream itself hands the chart. */
+describe("GraphComponent", () => {
+  let restoreResizeObserver: () => void = () => {};
+  let fixture: StreamFixture;
+
+  beforeEach(() => {
     restoreResizeObserver = installFixedSizeResizeObserver({
       width: 400,
       height: 300,
     });
-    source = new MockDataSource({
-      keys: [
-        { key: "v.name" },
-        { key: "v.missionTime" },
-        { key: "v.altitude" },
-        { key: "v.verticalSpeed" },
-      ],
+    fixture = setupStreamFixture({
+      carriedChannels: ["vessel.flight"],
+      pinnedUt: 10,
+      suspendFrames: true,
     });
-    buffered = new BufferedDataSource({ source, store: new MemoryStore() });
-    registerDataSource(buffered);
-    await buffered.connect();
   });
 
   afterEach(() => {
-    buffered.disconnect();
     restoreResizeObserver();
     vi.unstubAllGlobals();
   });
 
+  function renderOnStream(ui: ReactElement) {
+    return render(<fixture.Provider>{ui}</fixture.Provider>);
+  }
+
+  function flight(
+    validAt: number,
+    fields: { altitudeAsl?: number; verticalSpeed?: number },
+  ) {
+    fixture.emit("vessel.flight", fields, { validAt });
+  }
+
   it("renders a <path> with data when a series receives numeric values", async () => {
     const config = {
-      series: [{ id: "s1", key: "v.altitude", axis: "auto" as const }],
+      series: [{ id: "s1", key: ALTITUDE, axis: "auto" as const }],
       windowSec: 300,
     };
 
-    render(<GraphComponent config={config} id="graph-test" />);
+    renderOnStream(<GraphComponent config={config} id="graph-test" />);
 
     act(() => {
-      source.emit("v.name", "Kerbal X");
-      source.emit("v.missionTime", 0);
-      source.emit("v.altitude", 12_345);
+      flight(10, { altitudeAsl: 12_345 });
     });
 
     await waitFor(() => {
@@ -66,7 +71,7 @@ describe('GraphComponent (legacy "data" source, retires with the shim)', () => {
       windowSec: 300,
     };
 
-    const { getByText } = render(
+    const { getByText } = renderOnStream(
       <GraphComponent config={config} id="graph-test" />,
     );
     expect(
@@ -77,21 +82,18 @@ describe('GraphComponent (legacy "data" source, retires with the shim)', () => {
   it("plots series with no axis field inside the chart bounds (defaults to auto)", async () => {
     const config = {
       series: [
-        { id: "alt", key: "v.altitude" },
-        { id: "vs", key: "v.verticalSpeed" },
+        { id: "alt", key: ALTITUDE },
+        { id: "vs", key: VERTICAL_SPEED },
       ],
       windowSec: 300,
     };
 
-    const { container } = render(
+    const { container } = renderOnStream(
       <GraphComponent config={config} id="graph-test" />,
     );
 
     act(() => {
-      source.emit("v.name", "Kerbal X");
-      source.emit("v.missionTime", 0);
-      source.emit("v.altitude", 12_345);
-      source.emit("v.verticalSpeed", 42);
+      flight(10, { altitudeAsl: 12_345, verticalSpeed: 42 });
     });
 
     await waitFor(() => {
@@ -117,23 +119,18 @@ describe('GraphComponent (legacy "data" source, retires with the shim)', () => {
 
   it("renders a path when X axis is a data key instead of time", async () => {
     const config = {
-      series: [{ id: "vs", key: "v.verticalSpeed", axis: "auto" as const }],
+      series: [{ id: "vs", key: VERTICAL_SPEED, axis: "auto" as const }],
       windowSec: 300,
-      xKey: "v.altitude",
+      xKey: ALTITUDE,
     };
 
-    render(<GraphComponent config={config} id="graph-test" />);
+    renderOnStream(<GraphComponent config={config} id="graph-test" />);
 
     act(() => {
-      source.emit("v.name", "Kerbal X");
-      source.emit("v.missionTime", 0);
-      source.emit("v.altitude", 100);
-      source.emit("v.verticalSpeed", 5);
+      flight(5, { altitudeAsl: 100, verticalSpeed: 5 });
     });
     act(() => {
-      source.emit("v.missionTime", 1);
-      source.emit("v.altitude", 200);
-      source.emit("v.verticalSpeed", 8);
+      flight(10, { altitudeAsl: 200, verticalSpeed: 8 });
     });
 
     await waitFor(() => {
@@ -146,19 +143,17 @@ describe('GraphComponent (legacy "data" source, retires with the shim)', () => {
 
   it("honours pinned primary Y domain in tick labels", async () => {
     const config = {
-      series: [{ id: "alt", key: "v.altitude", axis: "primary" as const }],
+      series: [{ id: "alt", key: ALTITUDE, axis: "primary" as const }],
       windowSec: 300,
       yDomainPrimary: [0, 1000] as [number, number],
     };
 
-    const { container } = render(
+    const { container } = renderOnStream(
       <GraphComponent config={config} id="graph-test" />,
     );
 
     act(() => {
-      source.emit("v.name", "Kerbal X");
-      source.emit("v.missionTime", 0);
-      source.emit("v.altitude", 500_000);
+      flight(10, { altitudeAsl: 500_000 });
     });
 
     await waitFor(() => {
@@ -180,18 +175,16 @@ describe('GraphComponent (legacy "data" source, retires with the shim)', () => {
   it("renders the readout variant with the latest value when explicitly selected and a single series is configured", async () => {
     const config = {
       variant: "readout" as const,
-      series: [{ id: "alt", key: "v.altitude", axis: "auto" as const }],
+      series: [{ id: "alt", key: ALTITUDE, axis: "auto" as const }],
       windowSec: 300,
     };
 
-    const { container } = render(
+    const { container } = renderOnStream(
       <GraphComponent config={config} id="graph-test" w={10} h={8} />,
     );
 
     act(() => {
-      source.emit("v.name", "Kerbal X");
-      source.emit("v.missionTime", 0);
-      source.emit("v.altitude", 12_345);
+      flight(10, { altitudeAsl: 12_345 });
     });
 
     await waitFor(() => {
@@ -203,18 +196,16 @@ describe('GraphComponent (legacy "data" source, retires with the shim)', () => {
 
   it("auto variant downgrades to readout when widget is tiny and one series is configured", async () => {
     const config = {
-      series: [{ id: "alt", key: "v.altitude", axis: "auto" as const }],
+      series: [{ id: "alt", key: ALTITUDE, axis: "auto" as const }],
       windowSec: 300,
     };
 
-    const { container } = render(
+    const { container } = renderOnStream(
       <GraphComponent config={config} id="graph-test" w={3} h={3} />,
     );
 
     act(() => {
-      source.emit("v.name", "Kerbal X");
-      source.emit("v.missionTime", 0);
-      source.emit("v.altitude", 250);
+      flight(10, { altitudeAsl: 250 });
     });
 
     await waitFor(() => {
@@ -226,18 +217,16 @@ describe('GraphComponent (legacy "data" source, retires with the shim)', () => {
 
   it("auto variant also downgrades to readout at the small size bucket", async () => {
     const config = {
-      series: [{ id: "alt", key: "v.altitude", axis: "auto" as const }],
+      series: [{ id: "alt", key: ALTITUDE, axis: "auto" as const }],
       windowSec: 300,
     };
 
-    const { container } = render(
+    const { container } = renderOnStream(
       <GraphComponent config={config} id="graph-test" w={6} h={6} />,
     );
 
     act(() => {
-      source.emit("v.name", "Kerbal X");
-      source.emit("v.missionTime", 0);
-      source.emit("v.altitude", 250);
+      flight(10, { altitudeAsl: 250 });
     });
 
     await waitFor(() => {
@@ -249,18 +238,16 @@ describe('GraphComponent (legacy "data" source, retires with the shim)', () => {
 
   it("auto variant stays as chart at the normal size bucket", async () => {
     const config = {
-      series: [{ id: "alt", key: "v.altitude", axis: "auto" as const }],
+      series: [{ id: "alt", key: ALTITUDE, axis: "auto" as const }],
       windowSec: 300,
     };
 
-    const { container } = render(
+    const { container } = renderOnStream(
       <GraphComponent config={config} id="graph-test" w={10} h={8} />,
     );
 
     act(() => {
-      source.emit("v.name", "Kerbal X");
-      source.emit("v.missionTime", 0);
-      source.emit("v.altitude", 1234);
+      flight(10, { altitudeAsl: 1234 });
     });
 
     await waitFor(() => {
@@ -281,21 +268,18 @@ describe('GraphComponent (legacy "data" source, retires with the shim)', () => {
     const config = {
       variant: "readout" as const,
       series: [
-        { id: "alt", key: "v.altitude", axis: "auto" as const },
-        { id: "vs", key: "v.verticalSpeed", axis: "auto" as const },
+        { id: "alt", key: ALTITUDE, axis: "auto" as const },
+        { id: "vs", key: VERTICAL_SPEED, axis: "auto" as const },
       ],
       windowSec: 300,
     };
 
-    const { container } = render(
+    const { container } = renderOnStream(
       <GraphComponent config={config} id="graph-test" w={3} h={3} />,
     );
 
     act(() => {
-      source.emit("v.name", "Kerbal X");
-      source.emit("v.missionTime", 0);
-      source.emit("v.altitude", 12_345);
-      source.emit("v.verticalSpeed", 42);
+      flight(10, { altitudeAsl: 12_345, verticalSpeed: 42 });
     });
 
     await waitFor(() => {

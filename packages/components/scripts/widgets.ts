@@ -1111,13 +1111,7 @@ const WIDGETS: WidgetRenderConfig[] = [
       };
       return [
         // ── WARMUP (slot 1 is sacrificial) ───────────────────────────────
-        // The very first render in a harness batch is a cold path: the
-        // async `useDataSeries` queryRange backfill consistently fails to
-        // land before the screenshot, so whatever sits in slot 1 plots an
-        // empty frame (axes + legend, no trace). This is a shared
-        // probe-entry artifact (out of edit scope), NOT a Graph bug, every
-        // type below renders its data correctly. This throwaway dual-axis
-        // warmup absorbs the empty slot so no real type is sacrificed.
+        // The first render in a harness batch is a throwaway, so a cold-start artifact in it costs no real scene.
         { name: "warmup-ignore-10x8", w: 10, h: 8, config: dualLine },
         // ── line ────────────────────────────────────────────────────────
         // Single-series line (explicit chart so it doesn't downgrade).
@@ -1403,7 +1397,7 @@ const WIDGETS: WidgetRenderConfig[] = [
     //
     // The X TICK LABELS in these renders are wrong and are not the scene's
     // doing: `LineChart`'s default time formatter reads its domain as unix
-    // milliseconds, and the streamed half of `useDataSeries` hands back UT
+    // milliseconds, and `useDataSeries` hands back UT
     // seconds, so a twenty-minute descent is labelled "0:01". The domain
     // itself is fixed (`computeTimeDomain`); the labels need the basis
     // DECLARED rather than guessed, which is a `useDataSeries` change and not

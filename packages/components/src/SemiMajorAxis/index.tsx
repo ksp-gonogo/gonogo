@@ -47,7 +47,7 @@ function SemiMajorAxisComponent({
   const referenceBody = useBodyName(
     stillTrue(orbitReading, undefined)?.referenceBodyIndex,
   );
-  const series = useDataSeries("data", "vessel.orbit.sma", SPARK_WINDOW_SEC);
+  const series = useDataSeries("vessel.orbit.sma", SPARK_WINDOW_SEC);
   const sparkValues = series.v as number[];
   const cols = w ?? 4;
   const rows = h ?? 4;

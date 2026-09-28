@@ -84,12 +84,12 @@ function memoryStorage(): Storage {
   } as Storage;
 }
 
-// Rendered trees, tracked so afterEach can unmount them BEFORE clearRegistry()
-// notifies the DataSource-registry subscribers: every useTelemetry call
-// keeps its legacy useDataSourceSubscription wired unconditionally, so
-// clearRegistry() firing on a still-mounted SettingsModal tree is a state
-// update outside act() (CLAUDE.md -> Testing Philosophy). RTL auto-cleanup
-// runs after this file's afterEach, too late to unmount first.
+/**
+ * Rendered trees, tracked so afterEach can unmount them BEFORE it clears the
+ * stores they read through useSyncExternalStore: a clear that notifies a
+ * still-mounted tree is a state update outside act() (CLAUDE.md -> Testing
+ * Philosophy), and RTL auto-cleanup runs after this file's afterEach.
+ */
 const renderedTrees: Array<() => void> = [];
 
 function renderModal(screen_: "main" | "station" = "main") {
@@ -226,11 +226,7 @@ afterEach(() => {
   renderedTrees.length = 0;
   clearRegistry();
   clearUplinkHandles();
-  /*
-   * Same reason as clearRegistry above: the loaded-client list reads this
-   * store through useSyncExternalStore, so clearing it before the unmount loop
-   * notifies a mounted tree outside act().
-   */
+  // The loaded-client list reads this store, so it is cleared after the unmount loop.
   __resetUplinkOutcomes();
   __clearSettingsTabsForTests();
 });

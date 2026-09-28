@@ -26,6 +26,5 @@ export {
   getResolvedComponents,
   getTheme,
   getThemes,
-  onDataSourcesChange,
   type ReplacementConflict,
 } from "../api/registry";

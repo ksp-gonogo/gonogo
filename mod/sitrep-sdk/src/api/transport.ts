@@ -154,7 +154,7 @@ export interface Transport {
    * Omitted (`undefined`) means "this transport doesn't declare", e.g.
    * `StubTransport`, which is test-scriptable and can `emit` on any topic a
    * test subscribes to regardless of any real serving guarantee; a caller
-   * wanting a stub-driven topic carried must promote it explicitly via
+   * wanting a stub-driven topic's fields offered to the pickers names it in
    * `TelemetryProvider`'s `carriedChannels` prop. `ReplayTransport` DOES
    * declare: its value is exactly the fixture's topic set, since that's the
    * complete, known-in-advance set of topics it can ever deliver.

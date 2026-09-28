@@ -99,7 +99,7 @@ describe("an Uplink's own fields", () => {
   it("resolve to a Topic a read can sample", async () => {
     // The read half, which the picker half is worthless without.
     const { resolveValueTopic } = await import("@ksp-gonogo/sitrep-client");
-    expect(resolveValueTopic("data", "acme.reactor.coreTempK")).toBe(
+    expect(resolveValueTopic("acme.reactor.coreTempK")).toBe(
       "acme.reactor.coreTempK",
     );
   });

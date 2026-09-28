@@ -222,7 +222,7 @@ describe("every catalogue key is readable", () => {
     // leaf, which the path judgement could not match while the read could.
     const { resolveValueTopic } = await import("@ksp-gonogo/sitrep-client");
     const unresolvable = getTopicFieldCatalog().filter(
-      (entry) => resolveValueTopic("data", entry.key) === undefined,
+      (entry) => resolveValueTopic(entry.key) === undefined,
     );
     expect(unresolvable.map((entry) => entry.key)).toEqual([]);
   });

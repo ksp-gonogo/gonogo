@@ -19,7 +19,7 @@ interface Props {
 
 /** Invisible per-series fetcher, so `useDataSeries` is never called conditionally inside a map. */
 export function GraphSeries({ dataKey, windowSec, onData }: Readonly<Props>) {
-  const raw = useDataSeries("data", dataKey, windowSec);
+  const raw = useDataSeries(dataKey, windowSec);
 
   useEffect(() => {
     onData(dataKey, toNumericSeries(raw));

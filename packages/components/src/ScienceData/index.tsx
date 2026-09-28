@@ -2,11 +2,14 @@ import type { ComponentProps } from "@ksp-gonogo/core";
 import {
   defineTopicManifest,
   registerComponent,
-  useDataStreamStatus,
   useGameContext,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { useStream } from "@ksp-gonogo/sitrep-client";
+import {
+  useStream,
+  useStreamStatus,
+  useTelemetryStoreOptional,
+} from "@ksp-gonogo/sitrep-client";
 import {
   enumNameOf,
   SITUATION_NAMES,
@@ -91,8 +94,8 @@ function ScienceDataComponent({
     undefined,
   );
   const archiveRaw = stillTrue(useTelemetry("science.archive"), undefined);
-  const breakdownStreamStatus = useDataStreamStatus(
-    "data",
+  const breakdownStreamStatus = useStreamStatus(
+    useTelemetryStoreOptional(),
     "science.experimentBreakdown",
   );
 

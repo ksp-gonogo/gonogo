@@ -824,7 +824,7 @@ export class BufferedDataSource extends DataSourceWrapper {
     this.lastEmittedValue.set(key, value);
     this.keySubscribers.fire(key, value);
 
-    // Fan out timestamped samples (only when a flight is established, useDataSeries consumers don't want pre-flight noise).
+    // Fan out timestamped samples only once a flight is established: pre-flight samples are noise to a series.
     if (current) {
       this.sampleSubscribers.fire(key, { t, v: value });
     }

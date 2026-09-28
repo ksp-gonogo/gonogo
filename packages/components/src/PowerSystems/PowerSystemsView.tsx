@@ -112,7 +112,7 @@ export function PowerSystemsComponent({
     Math.abs(measuredTotalProduced - totalProduced) > 0.01;
 
   const seriesKey = `vessel.resources.resources.${resource}.current`;
-  const series = useDataSeries("data", seriesKey, SPARKLINE_WINDOW_SEC);
+  const series = useDataSeries(seriesKey, SPARKLINE_WINDOW_SEC);
   const sparkValues = useMemo(
     () =>
       series.v.filter(

@@ -1,4 +1,3 @@
-import type { DataKey } from "@ksp-gonogo/core";
 import {
   clearBodies,
   DashboardItemContext,
@@ -7,16 +6,8 @@ import {
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { installFixedSizeResizeObserver } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  type MockDataSourceFixture,
-  setupMockDataSource,
-  teardownMockDataSource,
-} from "../test/setupMockDataSource";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { KeplerPeriodComponent } from "./index";
-
-// GraphView's series read `useDataSeries("data", ...)`, so a "data" source must exist for it to mount.
-const GRAPH_KEYS: DataKey[] = [{ key: "o.sma" }, { key: "o.period" }];
 
 const KEPLER_PERIOD_CHANNELS = [
   "vessel.orbit",
@@ -26,17 +17,15 @@ const KEPLER_PERIOD_CHANNELS = [
 
 describe("KeplerPeriodComponent", () => {
   let restoreResizeObserver: () => void = () => {};
-  let fixture: MockDataSourceFixture;
   let stream: ReturnType<typeof setupStreamFixture>;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     clearBodies();
     registerStockBodies();
     restoreResizeObserver = installFixedSizeResizeObserver({
       width: 400,
       height: 300,
     });
-    fixture = await setupMockDataSource({ keys: GRAPH_KEYS });
     stream = setupStreamFixture({
       carriedChannels: KEPLER_PERIOD_CHANNELS,
       pinnedUt: 10,
@@ -45,7 +34,6 @@ describe("KeplerPeriodComponent", () => {
   });
 
   afterEach(() => {
-    teardownMockDataSource(fixture);
     clearBodies();
     restoreResizeObserver();
     vi.unstubAllGlobals();

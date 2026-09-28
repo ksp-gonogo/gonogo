@@ -1,4 +1,3 @@
-import { clearRegistry } from "@ksp-gonogo/core";
 import {
   TelemetryClient,
   TelemetryProvider,
@@ -16,7 +15,7 @@ import {
 } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import type { ReactNode } from "react";
-import { beforeEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { useDataSeries } from "./useDataSeries";
 
 /**
@@ -35,7 +34,7 @@ registerBarePrimitiveTopic(REACTOR);
 registerTopicUnits(REACTOR, { coreTempK: "K" });
 
 function Probe() {
-  const range = useDataSeries("data", "acme.reactor.coreTempK", 300);
+  const range = useDataSeries("acme.reactor.coreTempK", 300);
   return (
     <div data-testid="range">
       t:{range.t.join(",")}|v:{range.v.join(",")}
@@ -70,8 +69,6 @@ function buildStreamFixture() {
 
   return { transport, Provider };
 }
-
-beforeEach(() => clearRegistry());
 
 describe("plotting an Uplink's own field", () => {
   it("subscribes to the Uplink's Topic and builds a series from it", async () => {

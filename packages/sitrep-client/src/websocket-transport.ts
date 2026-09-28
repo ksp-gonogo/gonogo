@@ -204,11 +204,11 @@ export const UNDELIVERED_REASON =
  * carried the first time a `stream-data` frame for it arrives. NOTE the
  * consequence: this set starts EMPTY and grows only as data flows, and it is
  * read once by `TelemetryClient.declaredChannels` at provider-mount time, so
- * it does NOT retroactively flip the carried-channels gate for a topic that
- * arrives later. The reliable way to promote a topic to the stream today is
- * the explicit `carriedChannels` prop on `<TelemetryProvider>` (the dev-first
- * per-topic opt-in); this dynamic set is best-effort/observational until the
- * server grows a real channel-advertisement handshake.
+ * it does NOT retroactively add a topic that arrives later to the
+ * carried-channels allowlist. The explicit `carriedChannels` prop on
+ * `<TelemetryProvider>` is what reliably puts a topic's fields in the pickers;
+ * this dynamic set is best-effort until the server grows a real
+ * channel-advertisement handshake.
  */
 export class WebSocketTransport implements Transport {
   /**

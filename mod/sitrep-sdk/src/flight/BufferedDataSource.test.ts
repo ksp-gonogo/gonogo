@@ -956,7 +956,7 @@ describe("BufferedDataSource: external-source ingestion (appendExternalSample)",
     expect(range).toEqual({ t: [2000, 3000], v: [100, 200] });
   });
 
-  it("fires timestamped sample subscribers (useDataSeries path)", () => {
+  it("fires timestamped sample subscribers", () => {
     const samples: { t: number; v: unknown }[] = [];
     buffered.subscribeSamples("compute.demo.value", (s) => samples.push(s));
     clock = 2500;

@@ -74,9 +74,8 @@ const CarriedChannelsContext = createContext<ReadonlySet<string> | undefined>(
 /**
  * Union `additions` into `previous`, returning `previous` UNCHANGED
  * (referentially) when nothing new was added, the monotonic-growth seam
- * behind `TelemetryProvider`'s carried-channels allowlist: adding a topic
- * can only move it from legacy->stream, never blank a widget. Never used
- * to shrink: a caller whose next render passes a SMALLER explicit
+ * behind `TelemetryProvider`'s carried-channels allowlist, so a picker never
+ * loses a key it has already offered. Never used to shrink: a caller whose next render passes a SMALLER explicit
  * `carriedChannels` prop (or
  * whose transport's own `declaredChannels` shrinks: not expected in
  * practice, but not relied upon either) does not lose previously-carried
@@ -141,9 +140,8 @@ export interface TelemetryProviderProps {
    * Explicit per-topic promotion list (the carried-channels allowlist gate,
    * `./carried-channels.ts`): the "dev-first per-topic opt-in" half of the
    * allowlist, alongside `client.declaredChannels` (the transport's own
-   * served-channel declaration). Union of the two is what `isTopicCarried`
-   * consults before a read resolves against the stream, so a topic nothing
-   * delivers reads as absent rather than as a fabricated blank. Monotonic:
+   * served-channel declaration). Union of the two is the set of Topics whose
+   * fields the value pickers offer; no read consults it. Monotonic:
    * a topic named here (or ever declared by the transport) stays carried for
    * the life of this mounted provider even if a later render omits it; see
    * `unionGrow`. Omit entirely to carry only whatever the transport itself
@@ -246,9 +244,7 @@ export function TelemetryProvider({
   // from `client.declaredChannels` (the transport's own served-topic
   // declaration) unioned with the explicit `carriedChannels` promotion-list
   // prop. Persists and only ever GROWS across renders of this same provider
-  // INSTANCE (`unionGrow`, the one-way ratchet: "monotonic... adding a
-  // topic can only move it from legacy->stream, never blank a widget"),
-  // even if a later render's `carriedChannelsProp` shrinks. Only resets on
+  // INSTANCE (`unionGrow`), even if a later render's `carriedChannelsProp` shrinks. Only resets on
   // a genuine `client` identity change (`carriedClientRef` tracks which
   // client the current set belongs
   // to): a fresh session, matching the auto-built store's own
@@ -257,13 +253,8 @@ export function TelemetryProvider({
   //
   // The Topics a client package registered at runtime are folded in on the same
   // footing. A promotion list written in the gonogo repo can never name an
-  // Uplink's Topic, so without this an Uplink's data is reachable only through
-  // the canonical Topic read (which skips this gate) and is invisible to
-  // everything routed through it: the graph series, the note tags, the alarm
-  // subjects. The gate exists to keep a MAPPED key on its working legacy
-  // fallback rather than blanking it, and an Uplink Topic has no legacy
-  // fallback to protect, so withholding promotion buys nothing and costs the
-  // whole surface.
+  // Uplink's Topic, so without this an Uplink's fields would never reach a
+  // picker: the graph series, the note tags, the alarm subjects.
   const carriedClientRef = useRef<TelemetryClient | null>(null);
   // Registration happens when an Uplink's bundle loads, which is after this provider mounts, so the fold has to be live rather than read once.
   const registeredTopics = useSyncExternalStore(
@@ -1167,11 +1158,8 @@ export function getOrbitSolve(): OrbitalSolve | null {
  * surface that stored it is responsible for showing the operator that its
  * subject no longer resolves rather than drawing a reading it never got.
  */
-export function getValue(
-  dataSourceId: string,
-  key: string,
-): number | undefined {
-  const topic = resolveValueTopic(dataSourceId, key);
+export function getValue(key: string): number | undefined {
+  const topic = resolveValueTopic(key);
   if (topic === undefined) return undefined;
   return pickedKeyMagnitude(sampleActiveTopic<unknown>(topic));
 }
@@ -1491,10 +1479,8 @@ export function holdActiveTopicRead(
 /**
  * Reads the carried-channels allowlist supplied by the nearest
  * `TelemetryProvider` (see `./carried-channels.ts`): throws if no
- * provider is in the tree, matching `useTelemetryStore`'s contract. Ordinary
- * SDK-native call sites needing to know "is this topic actually live right
- * now" should combine this with `isTopicCarried` rather than reading the raw
- * set directly.
+ * provider is in the tree, matching `useTelemetryStore`'s contract. Combine
+ * it with `isTopicCarried` rather than reading the raw set directly.
  */
 export function useCarriedChannels(): ReadonlySet<string> {
   const carriedChannels = useContext(CarriedChannelsContext);
@@ -1509,9 +1495,7 @@ export function useCarriedChannels(): ReadonlySet<string> {
 /**
  * Non-throwing variant of `useCarriedChannels`: `undefined` when no
  * `TelemetryProvider` is mounted. Same rationale as
- * `useTelemetryClientOptional`/`useTelemetryStoreOptional`: a caller that
- * renders without a provider still has to ask whether a topic is carried,
- * and must get "no" rather than an exception.
+ * `useTelemetryClientOptional`/`useTelemetryStoreOptional`.
  */
 export function useCarriedChannelsOptional(): ReadonlySet<string> | undefined {
   return useContext(CarriedChannelsContext);

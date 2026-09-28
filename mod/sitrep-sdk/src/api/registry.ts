@@ -47,13 +47,6 @@ interface Registry {
   components: Map<string, AnyDef>;
   dataSources: Map<string, AnySource>;
   themes: Map<string, ThemeDefinition>;
-  /**
-   * Bumped whenever the data-source map mutates (register / replace / clear).
-   * `useDataSourceSubscription` watches this so a swap of the source under an
-   * existing id (e.g. live → replay) re-triggers the hook's subscribe path
-   * against the new source instance instead of staying bound to the old one.
-   */
-  dataSourceListeners: Set<() => void>;
 }
 
 function registry(): Registry {
@@ -62,21 +55,8 @@ function registry(): Registry {
     components: new Map(),
     dataSources: new Map(),
     themes: new Map(),
-    dataSourceListeners: new Set(),
   };
   return slot[REGISTRY_KEY];
-}
-
-function notifyDataSourceChange(): void {
-  for (const cb of registry().dataSourceListeners) cb();
-}
-
-export function onDataSourcesChange(cb: () => void): () => void {
-  const { dataSourceListeners } = registry();
-  dataSourceListeners.add(cb);
-  return () => {
-    dataSourceListeners.delete(cb);
-  };
 }
 
 // Generic so that the component/defaultConfig pairing is checked at the call
@@ -136,17 +116,11 @@ export function registerDataSource<
   TConfig extends Record<string, unknown> = Record<string, unknown>,
 >(source: DataSource<TConfig>): void {
   registry().dataSources.set(source.id, source as AnySource);
-  notifyDataSourceChange();
 }
 
-/**
- * Remove the source registered under `id`. No-op if nothing is registered.
- * Notifies subscribers so any `useDataSourceSubscription` consumers re-evaluate
- * against the empty registry slot (returning their initial snapshot until
- * something else takes the slot).
- */
+/** Remove the source registered under `id`. No-op if nothing is registered. */
 export function unregisterDataSource(id: string): void {
-  if (registry().dataSources.delete(id)) notifyDataSourceChange();
+  registry().dataSources.delete(id);
 }
 
 export function registerTheme(def: ThemeDefinition): void {
@@ -287,5 +261,4 @@ export function clearRegistry(): void {
   state.components.clear();
   state.dataSources.clear();
   state.themes.clear();
-  notifyDataSourceChange();
 }

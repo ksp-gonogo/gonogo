@@ -179,15 +179,6 @@ export {
   useScienceCredit,
   useStickyVesselGuids,
 } from "./currency-events";
-// The silence the gate's own diagnostic cannot see: a legacy-shaped read that reaches neither a stream channel nor a registered source.
-export {
-  classifyDeadRead,
-  DEAD_READ_SETTLE_MS,
-  type DeadReadCause,
-  deadReadMessage,
-  resetDeadReadWarnings,
-  warnDeadRead,
-} from "./dead-read-warning";
 export {
   CENTRE_DELAY_TOPIC,
   COMMS_DELAY_TOPIC,
@@ -238,13 +229,6 @@ export {
   useFleetVesselResources,
 } from "./fleet-resources";
 export { buildFullHistoryStore, InstantClock } from "./full-history-replay";
-// The carried-channels gate's own diagnostic: the shims that consult the gate report through it when the gate would have hidden a value the stream had.
-export {
-  type GatedReadHook,
-  gatedReadMessage,
-  resetGatedReadWarnings,
-  warnGatedRead,
-} from "./gated-read-warning";
 export type { HeartbeatTrackerOptions } from "./heartbeat-tracker";
 export {
   DEFAULT_KEYFRAME_INTERVAL_UT,

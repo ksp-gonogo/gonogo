@@ -61,7 +61,7 @@ describe("getValue over a field of a published parent Topic", () => {
     const publish = streamHarness();
     publish("vessel.flight", { altitudeAsl: 5000, verticalSpeed: -12.5 });
 
-    expect(getValue("data", "vessel.flight.verticalSpeed")).toBe(-12.5);
+    expect(getValue("vessel.flight.verticalSpeed")).toBe(-12.5);
   });
 
   /**
@@ -74,7 +74,7 @@ describe("getValue over a field of a published parent Topic", () => {
     const publish = streamHarness();
     publish("career.status", { economy: { funds: 12345, science: 40 } });
 
-    expect(getValue("data", "career.status.economy.funds")).toBe(12345);
+    expect(getValue("career.status.economy.funds")).toBe(12345);
   });
 
   /**
@@ -87,13 +87,13 @@ describe("getValue over a field of a published parent Topic", () => {
     const publish = streamHarness();
     publish("alarm.scet", { condition: { threshold: 7 } });
 
-    expect(getValue("data", "alarm.scet.condition.threshold")).toBe(7);
+    expect(getValue("alarm.scet.condition.threshold")).toBe(7);
   });
 
   it("answers undefined for a field that carries no number at all", () => {
     const publish = streamHarness();
     publish("vessel.identity", { name: "Kerbal I" });
 
-    expect(getValue("data", "vessel.identity.name")).toBeUndefined();
+    expect(getValue("vessel.identity.name")).toBeUndefined();
   });
 });

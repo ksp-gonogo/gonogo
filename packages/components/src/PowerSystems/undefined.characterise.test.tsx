@@ -9,11 +9,6 @@ import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import {
-  type MockDataSourceFixture,
-  setupMockDataSource,
-  teardownMockDataSource,
-} from "../test/setupMockDataSource";
-import {
   type StreamFixture,
   setupStreamFixture,
 } from "../test/setupStreamFixture";
@@ -34,21 +29,10 @@ function render(ui: ReactElement) {
   return result;
 }
 
-const auxSources: MockDataSourceFixture[] = [];
-
-// `useDataSeries("data", ...)` backs the sparkline, so the aux source has to exist.
-async function legacyAux(): Promise<void> {
-  auxSources.push(
-    await setupMockDataSource({ id: "data", keys: [], connectSource: true }),
-  );
-}
-
 afterEach(() => {
   for (const unmount of renderedTrees) unmount();
   renderedTrees.length = 0;
   clearActionHandlers();
-  for (const aux of auxSources) teardownMockDataSource(aux);
-  auxSources.length = 0;
 });
 
 interface ResourceRow {
@@ -97,7 +81,6 @@ function newFixture() {
 
 describe("PowerSystems: what undefined means today", () => {
   it("renders the waiting hint and NO board when no topology has arrived", async () => {
-    await legacyAux();
     const fixture = newFixture();
     renderPower(fixture, "ps-nothing");
     // Settles the sparkline's backfill query, which would otherwise land in teardown.
@@ -115,7 +98,6 @@ describe("PowerSystems: what undefined means today", () => {
 
   it("falls back to the same waiting hint when the topology is tombstoned", async () => {
     // The real payload goes first so the tombstone is proven to have landed.
-    await legacyAux();
     const fixture = newFixture();
     renderPower(fixture, "ps-tombstone");
 
@@ -148,7 +130,6 @@ describe("PowerSystems: what undefined means today", () => {
 
   it("renders the no-flow empty state when every part's flow field is absent", async () => {
     // An absent flow does not count as a resource with flow, so a full battery with no flow readings reads as "no active flow".
-    await legacyAux();
     const fixture = newFixture();
     renderPower(fixture, "ps-noflow");
 
@@ -172,7 +153,6 @@ describe("PowerSystems: what undefined means today", () => {
 
   it("shows no MEASURED cell at all while parts.power has never arrived", async () => {
     // An absent measurement renders exactly as an agreeing one: the itemised total and nothing else.
-    await legacyAux();
     const fixture = newFixture();
     renderPower(fixture, "ps-nopower");
 
@@ -192,7 +172,6 @@ describe("PowerSystems: what undefined means today", () => {
 
   it("shows no MEASURED cell when parts.power arrives WITHOUT totalProductionEc", async () => {
     // A live payload missing the one field read renders identically to the never-arrived case.
-    await legacyAux();
     const fixture = newFixture();
     renderPower(fixture, "ps-partial-power");
 
@@ -217,7 +196,6 @@ describe("PowerSystems: what undefined means today", () => {
 
   // An unmeasured idle row is distinguishable from a panel measured at zero: no number, no percentage.
   it("dashes an absent per-part flow in the Idle section rather than rendering it as 0.00", async () => {
-    await legacyAux();
     const fixture = newFixture();
     renderPower(fixture, "ps-idle");
 

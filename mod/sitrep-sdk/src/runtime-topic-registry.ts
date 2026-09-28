@@ -16,11 +16,10 @@
  * derived channel on the wire, so a units declaration is not evidence that
  * anything sends the Topic.
  *
- * Two consumers, and they are the two surfaces an Uplink was structurally shut
- * out of: the field catalogue every picker offers from (a Topic nobody listed
- * enumerated no fields, so no Uplink value could be graphed or alarmed on), and
- * `TelemetryProvider`'s carried-channels allowlist (a Topic nobody listed was
- * not promoted to the stream, so even a picked field plotted nothing).
+ * Two consumers, both deciding what the pickers offer: the field catalogue
+ * every picker offers from (a Topic nobody listed enumerated no fields, so no
+ * Uplink value could be graphed or alarmed on), and `TelemetryProvider`'s
+ * carried-channels allowlist.
  *
  * Snapshot-shaped and subscribable because registration happens when the
  * Uplink's bundle loads, which is after the app has rendered. A consumer that

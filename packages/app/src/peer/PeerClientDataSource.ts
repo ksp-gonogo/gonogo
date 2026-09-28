@@ -186,8 +186,8 @@ export class PeerClientDataSource implements DataSource {
   }
 
   /**
-   * Timestamped variant of subscribe. Used by `useDataSeries` on station
-   * screens so live samples carry the host's clock alongside the value.
+   * Timestamped variant of subscribe, so live samples carry the host's clock
+   * alongside the value.
    */
   subscribeSamples(key: string, cb: (sample: Sample) => void) {
     const removeLocal = this.sampleSubscribers.add(key, cb);

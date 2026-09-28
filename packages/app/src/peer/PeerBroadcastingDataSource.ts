@@ -135,10 +135,9 @@ export class PeerBroadcastingDataSource extends DataSourceWrapper {
     });
   }
 
-  // The BufferedDataSource extensions `useDataSeries` expects. When the wrapped
-  // source doesn't implement them (e.g. a raw source wrapped for
-  // broadcasting), fall back to the base `subscribe` contract and return empty
-  // history so the hook keeps working.
+  // The BufferedDataSource extensions. When the wrapped source doesn't
+  // implement them (e.g. a raw source wrapped for broadcasting), fall back to
+  // the base `subscribe` contract and return empty history.
   subscribeSamples(key: string, cb: (sample: Sample) => void) {
     if (hasSubscribeSamples(this.real)) {
       return this.real.subscribeSamples(key, cb);

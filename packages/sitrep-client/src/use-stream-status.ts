@@ -9,18 +9,23 @@ import type { TimelineStore } from "./timeline-store";
  * Status rides its own channel, never the value channel (the
  * `useKosScriptStatus` pattern this repo already uses elsewhere): pair the
  * two hooks for `{ value, status }`-shaped widget consumption.
+ *
+ * With no store there is no stream at all, which is the link-wide
+ * `"disconnected"` rather than a fact about this topic.
  */
 export function useStreamStatus(
-  store: TimelineStore,
+  store: TimelineStore | undefined,
   topic: string,
 ): StreamStatusValue {
   const subscribe = useCallback(
-    (onStoreChange: () => void) => store.subscribeFrame(onStoreChange),
+    (onStoreChange: () => void) =>
+      store ? store.subscribeFrame(onStoreChange) : () => {},
     [store],
   );
 
   const getSnapshot = useCallback(
-    () => store.sampleStatus(topic, store.currentFrame()),
+    () =>
+      store ? store.sampleStatus(topic, store.currentFrame()) : "disconnected",
     [store, topic],
   );
 

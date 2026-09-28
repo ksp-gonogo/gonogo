@@ -123,7 +123,7 @@ export class MissionHistorySource implements DataSource {
     // The same resolution a live read uses, so a recording is queried under the
     // keys a picker offers. A key naming nothing resolves to nothing, and the
     // empty range below is the honest answer to a subject that no longer exists.
-    const topic = resolveValueTopic("data", key);
+    const topic = resolveValueTopic(key);
     if (!topic) return { t: [], v: [] };
 
     const store = await this.getFullHistoryStore(missionId);

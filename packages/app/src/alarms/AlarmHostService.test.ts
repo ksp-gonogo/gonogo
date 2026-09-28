@@ -180,7 +180,7 @@ function fakeTelemetry(): FakeTelemetry {
         publish("time.warp", warp);
         return;
       }
-      const topic = resolveValueTopic("data", key);
+      const topic = resolveValueTopic(key);
       if (topic === undefined) {
         throw new Error(`fakeTelemetry: no stream home for "${key}"`);
       }

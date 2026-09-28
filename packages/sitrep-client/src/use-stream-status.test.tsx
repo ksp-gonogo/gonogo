@@ -35,3 +35,15 @@ describe("useStreamStatus", () => {
     expect(screen.getByText("status:live")).toBeTruthy();
   });
 });
+
+function OptionalStatus({ store }: { store: TimelineStore | undefined }) {
+  const status = useStreamStatus(store, "vessel.target");
+  return <div>status:{status}</div>;
+}
+
+describe("useStreamStatus with no store", () => {
+  it("reads disconnected, the link-wide fact, rather than throwing", () => {
+    render(<OptionalStatus store={undefined} />);
+    expect(screen.getByText("status:disconnected")).toBeTruthy();
+  });
+});

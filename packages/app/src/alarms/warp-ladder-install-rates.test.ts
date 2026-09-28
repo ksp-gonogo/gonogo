@@ -112,7 +112,7 @@ function fakeStream(): { calls: string[]; set(key: string, v: unknown): void } {
         publish("time.warp", warp);
         return;
       }
-      const topic = resolveValueTopic("data", key);
+      const topic = resolveValueTopic(key);
       if (topic === undefined) throw new Error(`no stream home for "${key}"`);
       publish(topic, v);
     },

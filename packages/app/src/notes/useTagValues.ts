@@ -6,9 +6,6 @@ import {
 } from "@ksp-gonogo/sitrep-client";
 import { useEffect, useState } from "react";
 
-// The source id a `{{...}}` tag resolves through; no DataSource is registered under it, but the topic router still keys on it.
-const TAG_SOURCE_ID = "data";
-
 /**
  * Reads the latest value of every tag, one Topic per note-body placeholder
  * (`{{v.altitude}}`-style), and re-renders whenever any of them change.
@@ -41,7 +38,7 @@ export function useTagValues(tags: readonly string[]): Map<string, unknown> {
     };
 
     for (const tag of tags) {
-      const topic = resolveValueTopic(TAG_SOURCE_ID, tag);
+      const topic = resolveValueTopic(tag);
       if (!client || !store || topic === undefined) continue;
       const releaseInputs = subscribeTopicRead(client, store, topic);
       const unsubscribeFrame = store.subscribeFrame(() => {

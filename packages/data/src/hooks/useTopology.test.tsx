@@ -17,7 +17,7 @@ import { useTopology } from "./useTopology";
  * Same pinned-clock fixture pattern as `setupStreamFixture`
  * (`@ksp-gonogo/components/src/test/setupStreamFixture.tsx`): inlined here
  * so `@ksp-gonogo/data`'s tests don't reach across to `@ksp-gonogo/components`
- * (see `useDataSeries.shim.test.tsx`'s identical `buildStreamFixture`).
+ * (see `useDataSeries.test.tsx`'s identical `buildStreamFixture`).
  */
 function buildStreamFixture(opts: { pinnedUt?: number } = {}) {
   const wall = createFakeWallClock();

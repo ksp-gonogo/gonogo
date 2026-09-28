@@ -33,7 +33,7 @@ const SCANSAT_DYNAMIC =
 const PART_ACTIONS_DYNAMIC = /^vessel\.partActions\.\d+$/;
 
 /**
- * The stream Topic a `(dataSourceId, key)` pair reads from.
+ * The stream Topic a dynamic-namespace key reads from.
  *
  * Every surviving entry is an IDENTITY map over a DYNAMIC namespace: a family of
  * Topics materialised per subject at runtime, so no `[SitrepTopic]` type names
@@ -45,13 +45,8 @@ const PART_ACTIONS_DYNAMIC = /^vessel\.partActions\.\d+$/;
  * it. A flat key was a NAME FOR something the wire calls otherwise, and there is
  * nothing left to translate. A dynamic key needs no translation and cannot be
  * enumerated, so a pattern is the only thing that can vouch for it.
- *
  */
-export function mapTopic(
-  dataSourceId: string,
-  key: string,
-): string | undefined {
-  if (dataSourceId !== "data") return undefined;
+export function mapTopic(key: string): string | undefined {
   if (SCANSAT_DYNAMIC.test(key)) return key;
   if (PART_ACTIONS_DYNAMIC.test(key)) return key;
   return undefined;
@@ -168,11 +163,8 @@ export function isKnownFieldPath(path: string): boolean {
  * One function so that the readers of a picked key (the threshold evaluators
  * and the note-tag resolver) agree on what a key means.
  */
-export function resolveValueTopic(
-  dataSourceId: string,
-  key: string,
-): string | undefined {
-  const mapped = mapTopic(dataSourceId, key);
+export function resolveValueTopic(key: string): string | undefined {
+  const mapped = mapTopic(key);
   if (mapped !== undefined) return mapped;
   return isKnownFieldPath(key) ? key : undefined;
 }
