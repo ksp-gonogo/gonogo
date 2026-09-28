@@ -668,11 +668,8 @@ export type TopicCurrency<P, Rk = unknown> =
  * reserved name to excuse. `styleguide-reserved-reading-keys.test.ts` keeps the
  * two spellings of the key list in step meanwhile.
  *
- * An array payload is left alone entirely: mapping `keyof P` over one would
- * claim a `Reading` at `length`, `map` and every other array member. That is
- * also why the codegen refusal exempts an array topic: five channels carry a
- * reserved name on their ELEMENT (`alarm.scet` is core's) and none of them
- * shadows anything.
+ * An array payload is indexed rather than mapped: mapping `keyof P` over one
+ * would claim a `Reading` at `length`, `map` and every other array member.
  */
 export type TopicFields<P> = P extends Quantityish
   ? unknown
@@ -716,14 +713,11 @@ export type TopicFields<P> = P extends Quantityish
  * ## The one thing it cannot reach, and it is not new
  *
  * An element field spelled like a currency member stays excluded, so on an
- * array channel carrying one (`alarm.scet` is core's; a handful of Uplink
- * slices have their own) that one field is unreachable THROUGH the accessor.
- * It was unreachable before too, because the whole array was `unknown`; this
- * narrows the gap rather than opening it. What does change is
- * `RtConfig.CheckReservedFieldNames`'s stated reason for exempting an array
- * topic: the premise was that arrays are not mapped at all, and now they are
- * indexed. Each slice's own codegen leg reports its own, which is why no list
- * of them belongs here.
+ * array channel carrying one (`alarm.scet` is core's) that one field is
+ * unreachable THROUGH the accessor. `RtConfig.CheckReservedFieldNames` refuses
+ * a new one on an element exactly as it does on a top-level payload, and each
+ * slice's codegen leg names its own excused ones, which is why no list of them
+ * belongs here.
  */
 export type FieldReading<V> = Reading<V> & TopicFields<V>;
 

@@ -1196,9 +1196,10 @@ public static class RtConfig
     /// </summary>
     internal static readonly string[] ReservedFieldNameDebt =
     {
-        // Empty: the pair this check was written for (comms.controlState.state and
-        // comms.signalStrength.value) was renamed to comms.control.level and
-        // comms.signal.strength at contract Major 17.
+        // The element's arm state is unreachable as a field reading. No new name
+        // is ruled: its third value, Unreachable, is about the craft rather than
+        // arming, so the field belongs with the alarm roster work.
+        "alarm.scet.state",
     };
 
     /// <summary>
@@ -1214,13 +1215,11 @@ public static class RtConfig
     /// collision has a name, a file and a line, at the moment someone writes it.
     /// </para>
     ///
-    /// <para><b>An array topic is exempt, and that is not laxity.</b>
-    /// <c>TopicFields</c> returns <c>unknown</c> for an array payload rather than
-    /// mapping over it (mapping would claim a <c>Reading</c> at <c>length</c> and
-    /// <c>map</c>), so an element field named <c>state</c> shadows nothing.
-    /// <c>alarm.scet</c>, <c>rp1.pads</c>, <c>rp1.programs</c>,
-    /// <c>realantennas.antennaChains</c> and <c>kerbalism.crew</c> each carry one
-    /// today and none of them is a defect.</para>
+    /// <para><b>An array topic's element fields are checked the same way.</b>
+    /// <c>TopicFields</c> indexes an array payload, so each element is a
+    /// <c>FieldReading</c> whose own fields exclude the reserved names, and an
+    /// element field named <c>state</c> is as unreachable as a top-level one.
+    /// </para>
     ///
     /// <para>Scoped to ONE assembly, like everything else reflective here, so
     /// each slice's codegen leg checks its own topics. That is also why the
@@ -1248,11 +1247,6 @@ public static class RtConfig
             }
 
             declaredTopics.Add(attr.TopicId);
-            if (attr.IsArray)
-            {
-                continue;
-            }
-
             foreach (var prop in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
             {
                 var field = UnitDescriptor.CamelCase(prop.Name);
@@ -1274,7 +1268,7 @@ public static class RtConfig
                 string.Join(", ", ReservedReadingKeys) +
                 " lands on the currency's own member and the intersection collapses to `never`. " +
                 "The field cannot be reached as a field reading at all. Rename the property in the " +
-                "contract; an array topic's element fields are exempt and need no rename.");
+                "contract; an array topic's element fields are held to the same rule.");
         }
 
         var stale = excused

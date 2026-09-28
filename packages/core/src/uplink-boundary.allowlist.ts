@@ -920,12 +920,11 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
 
       /*
        * -- contract/serializer/ratchet layer: PROVENANCE, no coupling --
-       * The four files the relocation itself added a mention to, each the same
-       * category the earlier relocations put ContractVersion.cs/RtConfig.cs in:
-       * a record of what moved and when, on a comment line, with no reference
-       * to a relocated type left behind.
+       * The files the relocation itself added a mention to, each the same
+       * category the earlier relocations put ContractVersion.cs in: a record of
+       * what moved and when, on a comment line, with no reference to a
+       * relocated type left behind.
        *   • ContractVersion.cs: the Major-bump history entry for the move.
-       *   • RtConfig.cs: the note standing where the three typeof() entries were.
        *   • JsonWriter.cs: says where the three deleted serializer cases went
        *     and why core no longer needs them, which is the one thing a reader
        *     hitting the gap will want to know.
@@ -933,7 +932,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        *     to NAME the token it registers, so it names this one too.
        */
       "mod/Sitrep.Contract/ContractVersion.cs",
-      "mod/Sitrep.Contract/RtConfig.cs",
       "mod/Sitrep.Contract/Serialization/JsonWriter.cs",
       "mod/Sitrep.Core.Tests/UplinkContractOwnershipTests.cs",
 
