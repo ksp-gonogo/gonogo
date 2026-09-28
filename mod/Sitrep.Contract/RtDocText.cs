@@ -56,6 +56,16 @@ public static class RtDocText
     public const string InternalElement = "internal";
 
     /// <summary>
+    /// The element a declaration names its reference page with, written beside
+    /// its <c>summary</c> as <c>&lt;category&gt;Vessel&lt;/category&gt;</c> and
+    /// emitted as the TSDoc <c>@category</c> tag.
+    /// </summary>
+    public const string CategoryElement = "category";
+
+    /// <summary>How many <c>category</c> elements have been carried this run.</summary>
+    public static int CategoriesCarried { get; private set; }
+
+    /// <summary>
     /// How many <c>internal</c> blocks have been dropped this run.
     ///
     /// <para>Printed by <see cref="RtDocVisitor"/> for the reason every other
@@ -81,9 +91,11 @@ public static class RtDocText
     /// name can be pointed at depends on what the file being written exports,
     /// which this translation cannot know.
     /// </param>
-    public static List<string> ToDocLines(string summaryXml, Func<string, string> renderCref)
+    /// <param name="category">The declaration's <c>category</c>, or null when it names none.</param>
+    public static List<string> ToDocLines(
+        string summaryXml, Func<string, string> renderCref, out string? category)
     {
-        var paragraphs = Parse(summaryXml, renderCref, out var stripped);
+        var paragraphs = Parse(summaryXml, renderCref, out var stripped, out category);
         if (stripped > 0 && paragraphs.Count == 0)
         {
             throw new InvalidOperationException(
@@ -107,9 +119,12 @@ public static class RtDocText
     }
 
     private static List<Paragraph> Parse(
-        string summaryXml, Func<string, string> renderCref, out int stripped)
+        string summaryXml, Func<string, string> renderCref, out int stripped, out string? category)
     {
         stripped = 0;
+        category = null;
+        var categoryText = new StringBuilder();
+        var inCategory = false;
         var paragraphs = new List<Paragraph>();
         var sb = new StringBuilder();
         var closers = new Stack<string>();
@@ -158,6 +173,24 @@ public static class RtDocText
                     continue;
                 }
 
+                if (inCategory)
+                {
+                    if (reader.NodeType == XmlNodeType.EndElement
+                        && reader.Name.ToLowerInvariant() == CategoryElement)
+                    {
+                        inCategory = false;
+                        continue;
+                    }
+                    if (reader.NodeType == XmlNodeType.Element)
+                    {
+                        throw new InvalidOperationException(
+                            "codegen (docs): a <" + CategoryElement + "> holds markup; it is a page "
+                            + "name and takes plain text. The summary began: " + Excerpt(summaryXml));
+                    }
+                    categoryText.Append(reader.Value);
+                    continue;
+                }
+
                 switch (reader.NodeType)
                 {
                     case XmlNodeType.Text:
@@ -180,6 +213,20 @@ public static class RtDocText
                             Flush();
                             strippedHere++;
                             if (!empty) skipDepth = 1;
+                            afterTag = false;
+                            break;
+                        }
+
+                        if (name == CategoryElement)
+                        {
+                            if (category != null || categoryText.Length > 0)
+                            {
+                                throw new InvalidOperationException(
+                                    "codegen (docs): a declaration names two <" + CategoryElement
+                                    + ">s; it belongs on one reference page. The summary began: "
+                                    + Excerpt(summaryXml));
+                            }
+                            inCategory = !empty;
                             afterTag = false;
                             break;
                         }
@@ -282,6 +329,12 @@ public static class RtDocText
         Flush();
         stripped = strippedHere;
         InternalBlocksStripped += strippedHere;
+        var named = Collapse(categoryText.ToString());
+        if (named.Length > 0)
+        {
+            category = named;
+            CategoriesCarried++;
+        }
         return paragraphs;
     }
 
@@ -356,14 +409,12 @@ public static class RtDocText
 
     /// <summary>
     /// Folds each member's <c>remarks</c> into its <c>summary</c> as a trailing
-    /// paragraph, in a sibling copy of the doc file, and registers that copy so
-    /// RT reads it.
+    /// paragraph, and moves its <c>category</c> inside the summary, in a sibling
+    /// copy of the doc file, and registers that copy so RT reads it.
     ///
-    /// <para>RT parses <c>remarks</c> and then never emits it: only
-    /// <c>Summary.Text</c> reaches a generated declaration. Forty-two blocks in
-    /// this tree put their reasoning there, several of them the whole meaning of
-    /// an enum value, so they would be the one part of the prose still dropped on
-    /// the floor.</para>
+    /// <para>RT parses <c>remarks</c> and then never emits it, and does not read
+    /// <c>category</c> at all: only <c>Summary.Text</c> reaches a generated
+    /// declaration.</para>
     ///
     /// <para>Registered through <c>AdditionalDocumentationPathes</c> rather than
     /// written over the compiler's own output: additional files are cached after
@@ -373,7 +424,7 @@ public static class RtDocText
     /// before the documentation is loaded, which is the only window in which
     /// adding a path still has an effect.</para>
     /// </summary>
-    public static void MergeRemarksIntoSummaries(ConfigurationBuilder builder)
+    public static void MergeIntoSummaries(ConfigurationBuilder builder)
     {
         var source = builder.Context.DocumentationFilePath;
         if (string.IsNullOrEmpty(source) || !File.Exists(source)) return;
@@ -386,17 +437,26 @@ public static class RtDocText
         foreach (var member in doc.Descendants("member"))
         {
             var remarks = member.Element("remarks");
-            if (remarks == null) continue;
+            var category = member.Element(CategoryElement);
+            if (remarks == null && category == null) continue;
             var summary = member.Element("summary");
             if (summary == null)
             {
                 summary = new XElement("summary");
                 member.AddFirst(summary);
             }
-            var carried = new XElement("para");
-            foreach (var node in remarks.Nodes()) carried.Add(node);
-            summary.Add(carried);
-            remarks.Remove();
+            if (remarks != null)
+            {
+                var carried = new XElement("para");
+                foreach (var node in remarks.Nodes()) carried.Add(node);
+                summary.Add(carried);
+                remarks.Remove();
+            }
+            if (category != null)
+            {
+                category.Remove();
+                summary.Add(category);
+            }
             members.Add(member);
         }
         if (members.Count == 0) return;

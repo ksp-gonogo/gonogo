@@ -96,17 +96,18 @@ public class RtDocVisitor : TypeScriptExportVisitor
         Console.WriteLine(
             $"codegen (docs) -> {_blocks} declarations documented, "
             + $"{_pointers} crefs carried as pointers, {_demoted} as prose, "
-            + $"{RtDocText.InternalBlocksStripped} <{RtDocText.InternalElement}> blocks withheld");
+            + $"{RtDocText.InternalBlocksStripped} <{RtDocText.InternalElement}> blocks withheld, "
+            + $"{RtDocText.CategoriesCarried} <{RtDocText.CategoryElement}>s carried");
     }
 
     public override void Visit(RtJsdocNode node)
     {
         if (node == null) return;
-        var lines = RtDocText.ToDocLines(node.Description ?? string.Empty, RenderCref);
-        if (lines.Count == 0 && node.TagToDescription.Count == 0) return;
+        var lines = RtDocText.ToDocLines(node.Description ?? string.Empty, RenderCref, out var category);
+        if (lines.Count == 0 && node.TagToDescription.Count == 0 && category == null) return;
         _blocks++;
 
-        if (lines.Count == 1 && node.TagToDescription.Count == 0)
+        if (lines.Count == 1 && node.TagToDescription.Count == 0 && category == null)
         {
             AppendTabs();
             Write("/** ");
@@ -122,12 +123,17 @@ public class RtDocVisitor : TypeScriptExportVisitor
             AppendTabs();
             WriteLine(line.Length == 0 ? "*" : "* " + line);
         }
-        if (lines.Count > 0 && node.TagToDescription.Count > 0)
+        if (lines.Count > 0 && (node.TagToDescription.Count > 0 || category != null))
         {
             AppendTabs();
             WriteLine("*");
         }
         foreach (var tag in node.TagToDescription) DocTag(tag.Item1, tag.Item2);
+        if (category != null)
+        {
+            AppendTabs();
+            WriteLine("* @category " + category);
+        }
         AppendTabs();
         WriteLine("*/");
     }

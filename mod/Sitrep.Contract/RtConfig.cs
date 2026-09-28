@@ -28,7 +28,7 @@ public static class RtConfig
         // Must precede any registration below: the fluent configuration runs
         // before the documentation is loaded, and that ordering is the whole
         // reason this can be done from here at all.
-        RtDocText.MergeRemarksIntoSummaries(builder);
+        RtDocText.MergeIntoSummaries(builder);
 
         // --- Envelope (non-generic) ---
         // Register directly via ExportAsInterface<T>(), which shares the same

@@ -34,10 +34,10 @@ import ts from "typescript";
  * One declaration's TSDoc, as the markdown the generator will carry into a
  * `description`.
  *
- * The emitted contract carries prose and nothing else: no `@tag`, no
- * `{@link}` (checked, both are zero across all eleven generated contracts), so
- * there is no tag-stripping to do and a `comment` that is not a plain string
- * means the generator's assumption about the emitter has changed.
+ * Only the prose is carried. The one tag the emitter writes, `@category`, names
+ * the reference page a type is listed on and stays out of the schema. The
+ * emitter writes no `{@link}`, so a `comment` that is not a plain string means
+ * its output has changed.
  */
 function docOf(node) {
   const blocks = node.jsDoc ?? [];
