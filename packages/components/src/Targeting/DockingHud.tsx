@@ -12,8 +12,11 @@ import {
   Text,
   Truncate,
   Unit,
+  useElementSize,
 } from "@ksp-gonogo/ui-kit";
+import { useState } from "react";
 import { Crosshair, HorizTick, Reticle, VertTick } from "./DockingReticle";
+import { reticleTravelPx } from "./reticleGeometry";
 import type { TargetingHudContext } from "./slots";
 
 interface DockingHudProps {
@@ -76,6 +79,20 @@ export function DockingHud(props: DockingHudProps) {
   const dx = axClamped / MAX_DEG;
   const dy = -ayClamped / MAX_DEG;
 
+  const { ref: layerRef, size: layer } = useElementSize<HTMLDivElement>({
+    w: 1,
+    h: 1,
+  });
+  const [pictureAspect, reportPictureAspect] = useState<number | null>(null);
+  const travel = reticleTravelPx(
+    { width: layer.w, height: layer.h },
+    showCamera ? pictureAspect : null,
+  );
+  // The reticle stays in the frame even where the picture's own field runs past it.
+  const along = (offset: number, half: number) =>
+    `calc(50% + ${Math.max(-half, Math.min(half, offset * travel))}px)`;
+  const tick = (units: number) => `calc(50% + ${units * travel}px)`;
+
   // 0.9998 is within about 1° of dead-on, matching the derived-angle threshold.
   const aligned =
     forwardDot !== undefined
@@ -91,7 +108,8 @@ export function DockingHud(props: DockingHudProps) {
   const hudContext: TargetingHudContext = {
     maxDeg: MAX_DEG,
     reticleOffset: { x: dx, y: dy },
-    reticleTravelPct: 40,
+    reticleTravelPx: travel,
+    reportPictureAspect,
     aligned,
     ax,
     ay,
@@ -120,6 +138,7 @@ export function DockingHud(props: DockingHudProps) {
                 <AugmentSlot name="targeting.camera" props={hudContext} />
               )}
               <div
+                ref={layerRef}
                 style={{
                   position: "relative",
                   flex: 1,
@@ -132,18 +151,16 @@ export function DockingHud(props: DockingHudProps) {
                 <Crosshair />
                 <Reticle
                   aligned={aligned}
-                  left={`${50 + dx * 40}%`}
-                  top={`${50 + dy * 40}%`}
+                  left={along(dx, layer.w / 2)}
+                  top={along(dy, layer.h / 2)}
                 />
-                {/* Axis ticks give the pilot a sense of scale. */}
-                <HorizTick left="10%" />
-                <HorizTick left="30%" />
-                <HorizTick left="70%" />
-                <HorizTick left="90%" />
-                <VertTick top="10%" />
-                <VertTick top="30%" />
-                <VertTick top="70%" />
-                <VertTick top="90%" />
+                {/* Axis ticks at half and full travel give the pilot the scale, the same on both axes. */}
+                {[-1, -0.5, 0.5, 1].map((units) => (
+                  <HorizTick key={`h${units}`} left={tick(units)} />
+                ))}
+                {[-1, -0.5, 0.5, 1].map((units) => (
+                  <VertTick key={`v${units}`} top={tick(units)} />
+                ))}
                 <AugmentSlot name="targeting.overlay" props={hudContext} />
               </div>
             </FramedDisplay>

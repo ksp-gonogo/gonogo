@@ -1,7 +1,4 @@
-export interface Size {
-  width: number;
-  height: number;
-}
+import { coverBox, type Size } from "../../src/Targeting/reticleGeometry";
 
 export interface AspectCase {
   name: string;
@@ -68,20 +65,18 @@ export const CASES: AspectCase[] = [
 
 /**
  * How many cells a box shows of a picture painted into it with
- * `object-fit: cover`: the picture scales until it covers the box on both
- * axes, so the longer axis is cropped.
+ * `object-fit: cover`, by the same `coverBox` the docking reticle scales
+ * itself to, so a pass here says that model matches what the engine draws.
  */
 export function coverCells(
   box: Size,
   spec: AspectCase,
 ): { columns: number; rows: number } {
   const { columns, rows, cell } = spec.picture;
-  const scale = Math.max(
-    box.width / (columns * cell),
-    box.height / (rows * cell),
-  );
+  const painted = coverBox(box, columns / rows);
+  const drawnCell = (painted.width / (columns * cell)) * cell;
   return {
-    columns: box.width / (cell * scale),
-    rows: box.height / (cell * scale),
+    columns: box.width / drawnCell,
+    rows: box.height / drawnCell,
   };
 }

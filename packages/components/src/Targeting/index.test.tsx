@@ -327,9 +327,9 @@ describe("Targeting: augment slots", () => {
     registerAugment<"targeting.overlay">({
       id: "test-overlay",
       augments: "targeting.overlay",
-      component: ({ maxDeg, reticleTravelPct }) => (
+      component: ({ maxDeg, reticleTravelPx }) => (
         <div data-testid="ovl">
-          maxDeg={maxDeg}/travel={reticleTravelPct}
+          maxDeg={maxDeg}/travel={reticleTravelPx}
         </div>
       ),
     });
@@ -367,7 +367,10 @@ describe("Targeting: augment slots", () => {
         screen.getByRole("region", { name: /Docking HUD for Test Station/ }),
       ).toBeInTheDocument(),
     );
-    expect(screen.getByTestId("ovl").textContent).toBe("maxDeg=8/travel=40");
+    // jsdom lays nothing out, so the travel is only checked to arrive as pixels; its scale is tested with the geometry.
+    expect(screen.getByTestId("ovl").textContent).toMatch(
+      /^maxDeg=8\/travel=\d+(\.\d+)?$/,
+    );
     expect(screen.getByTestId("cam").textContent).toBe("cam=7");
   });
 });

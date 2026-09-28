@@ -12,8 +12,10 @@ export interface TargetingHudContext {
   maxDeg: number;
   /** Reticle-centre offset from HUD centre, each component in -1..1; `y` is flipped so positive is downward. */
   reticleOffset: { x: number; y: number };
-  /** Percent of the half-box the reticle travels per unit of `reticleOffset`: a marker at `50 + offset·reticleTravelPct` % sits in the same space. */
-  reticleTravelPct: number;
+  /** Pixels the reticle travels per unit of `reticleOffset`, the same on both axes: a marker at `calc(50% + offset·reticleTravelPx px)` on each axis sits in the same space. */
+  reticleTravelPx: number;
+  /** The camera slot reports the aspect (width over height) of the picture it paints with `object-fit: cover`, or `null` when it paints none, so the reticle's scale follows the visible field. */
+  reportPictureAspect: (aspect: number | null) => void;
   /** True while the two ports are within docking-alignment tolerance. */
   aligned: boolean;
   /** Raw docking alignment angles in degrees; undefined outside a docking scenario. */

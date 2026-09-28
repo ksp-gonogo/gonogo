@@ -33,7 +33,8 @@ declare module "@ksp-gonogo/sitrep-sdk" {
 const TARGETING_CAMERA: SlotProps<"targeting.camera"> = {
   maxDeg: 15,
   reticleOffset: { x: 0, y: 0 },
-  reticleTravelPct: 40,
+  reticleTravelPx: 40,
+  reportPictureAspect: () => {},
   aligned: false,
   ax: undefined,
   ay: undefined,

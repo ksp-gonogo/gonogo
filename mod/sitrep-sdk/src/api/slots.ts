@@ -73,11 +73,20 @@ export interface TargetingHudContext {
    */
   reticleOffset: { x: number; y: number };
   /**
-   * Percent of the half-box the reticle travels per unit of `reticleOffset`,
-   * an overlay places a marker at `50 + offset·reticleTravelPct` % to sit
-   * in the same space.
+   * Pixels the reticle travels per unit of `reticleOffset`, the same on both
+   * axes and measured from the centre of the HUD's frame. An overlay places a
+   * marker at `calc(50% + offset.x·reticleTravelPx px)` across and
+   * `calc(50% + offset.y·reticleTravelPx px)` down to sit in the same space,
+   * so a degree is as far across as it is down.
    */
-  reticleTravelPct: number;
+  reticleTravelPx: number;
+  /**
+   * For the `targeting.camera` slot: report the aspect (width over height) of
+   * the picture the augment paints with `object-fit: cover`, or `null` once it
+   * paints none. The reticle's degree scale then follows the camera's visible
+   * field rather than the frame. An overlay has no picture and never calls it.
+   */
+  reportPictureAspect: (aspect: number | null) => void;
   /** True while the two ports are within docking-alignment tolerance. */
   aligned: boolean;
   /** Raw docking alignment angles in degrees; undefined outside a docking scenario. */
