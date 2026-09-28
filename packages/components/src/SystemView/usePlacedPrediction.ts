@@ -1,10 +1,10 @@
-import type { OrbitPatch } from "@ksp-gonogo/core";
 import { useMemo } from "react";
 import { orbitPointAt } from "./orbitGeometry";
 import {
   type PatchPoint,
   type PredictedTrajectory,
   predictTrajectory,
+  type TrajectoryPatch,
 } from "./predictedTrajectory";
 import type { Placement } from "./projection";
 import type { CelestialBody } from "./useCelestialBodies";
@@ -18,7 +18,7 @@ export function usePlacedPrediction({
   placement,
 }: {
   predicted:
-    | { orbitPatches: readonly OrbitPatch[]; ut: number }
+    | { orbitPatches: readonly TrajectoryPatch[]; ut: number }
     | null
     | undefined;
   children: readonly CelestialBody[];

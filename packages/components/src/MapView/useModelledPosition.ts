@@ -1,5 +1,4 @@
 import { predictGroundTrack, useTelemetry } from "@ksp-gonogo/core";
-import { mapOrbitPatch } from "@ksp-gonogo/sitrep-client";
 import { deriveReading, type Value } from "@ksp-gonogo/sitrep-sdk";
 import { useMemo } from "react";
 import type { bodyNamed } from "../shared/streamBody";
@@ -47,7 +46,7 @@ export function useModelledPosition({
       orbitReading,
       () => undefined,
       (orbit, atUt) => {
-        const patches = (orbit.patches ?? []).map(mapOrbitPatch);
+        const patches = orbit.patches ?? [];
         const ahead = atUt.magnitude - from;
         if (ahead <= 0) return undefined;
         const samples = predictGroundTrack(

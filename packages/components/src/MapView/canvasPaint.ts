@@ -1,5 +1,5 @@
-import type { TrackSample } from "@ksp-gonogo/core";
 import { latLonToMap } from "@ksp-gonogo/core";
+import type { TrackSample } from "@ksp-gonogo/sitrep-client";
 import type { EncounterKind } from "../shared/encounterKind";
 import { type Camera, cameraTransform, WORLD_H, WORLD_W } from "./camera";
 import {

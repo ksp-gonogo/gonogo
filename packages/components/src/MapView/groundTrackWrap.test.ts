@@ -1,8 +1,9 @@
+import { predictGroundTrack, splitOnLongitudeWrap } from "@ksp-gonogo/core";
 import {
   type OrbitPatch,
-  predictGroundTrack,
-  splitOnLongitudeWrap,
-} from "@ksp-gonogo/core";
+  TransitionType,
+  wrapTypePayload,
+} from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import munPolarOrbit from "./__fixtures__/mun-polar-orbit.json";
 import { splitOnDrawnLongitudeWrap } from "./groundTrackWrap";
@@ -56,7 +57,7 @@ describe("splitOnDrawnLongitudeWrap", () => {
 // The real `mun-polar-orbit` fixture: its south crossing jumps 179.97 degrees, which a `> 180` seam split misses.
 const MUN = { radius: 200000, rotationPeriod: 138984.376574476 } as const;
 
-/** The wire fields of the fixture's `vessel.orbit` patch, enough to build an `OrbitPatch` field by field. */
+/** The wire fields of the fixture's `vessel.orbit` patch, enough to decode an `OrbitPatch`. */
 interface WirePatch {
   sma: number;
   ecc: number;
@@ -88,27 +89,15 @@ function munPolarSamples(
   const wire = FIXTURE._stream.emits.find((e) => e.channel === "vessel.orbit")
     ?.value.patches;
   if (!wire) throw new Error("mun-polar-orbit carries no orbit patches");
-  const patches: OrbitPatch[] = wire.map((p) => ({
-    startUT: p.startUt,
-    endUT: p.endUt,
-    patchStartTransition: "INITIAL",
-    patchEndTransition: "FINAL",
-    PeA: p.peA,
-    ApA: p.apA,
-    epoch: p.epoch,
-    period: p.period,
-    sma: p.sma,
-    eccentricity: p.ecc,
-    // The one field a caller may vary.
-    inclination: inclinationDeg ?? p.inc,
-    lan: p.lan,
-    argumentOfPeriapsis: p.argPe,
-    maae: p.meanAnomalyAtEpoch,
-    referenceBody: p.referenceBody,
-    semiLatusRectum: p.semiLatusRectum,
-    semiMinorAxis: p.semiMinorAxis,
-    closestEncounterBody: null,
-  }));
+  const patches = wire.map((p) =>
+    wrapTypePayload<OrbitPatch>("OrbitPatch", {
+      ...p,
+      patchStartTransition: TransitionType.Initial,
+      patchEndTransition: TransitionType.Final,
+      // The one field a caller may vary.
+      inc: inclinationDeg ?? p.inc,
+    }),
+  );
   const ref = {
     ut: FIXTURE["t.universalTime"],
     lat: FIXTURE["v.lat"],
@@ -121,7 +110,7 @@ function munPolarSamples(
     MUN.radius,
     MUN.rotationPeriod,
     ref,
-    1.5 * patches[0].period,
+    1.5 * wire[0].period,
     10,
   );
 }

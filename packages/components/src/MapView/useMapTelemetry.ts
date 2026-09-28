@@ -1,13 +1,17 @@
 import { useTelemetry } from "@ksp-gonogo/core";
 import {
-  mapOrbitPatch,
   type OrbitTrajectory,
   predictImpactPoint,
   useOrbitTrajectory,
   useStream,
   useViewUt,
 } from "@ksp-gonogo/sitrep-client";
-import type { Reading, Value, VesselManeuver } from "@ksp-gonogo/sitrep-sdk";
+import type {
+  OrbitPatch,
+  Reading,
+  Value,
+  VesselManeuver,
+} from "@ksp-gonogo/sitrep-sdk";
 import { useMemo } from "react";
 import { type EncounterKind, encounterKindOf } from "../shared/encounterKind";
 import { magnitudeOf } from "../shared/magnitude";
@@ -38,7 +42,7 @@ export interface MapTelemetry {
   mach: number | undefined;
   speed: number | undefined;
   vSpeed: number | undefined;
-  orbitPatches: ReturnType<typeof mapOrbitPatch>[] | undefined;
+  orbitPatches: readonly OrbitPatch[] | undefined;
   encounterKind: EncounterKind | null;
   trajectory: OrbitTrajectory | null;
   trajectoryWithheld: Extract<OrbitTrajectory, { shape: "withheld" }> | null;
@@ -117,7 +121,7 @@ export function useMapTelemetry(
     () =>
       orbitSampleObserved === undefined
         ? undefined
-        : (orbitSampleObserved.patches ?? []).map(mapOrbitPatch),
+        : (orbitSampleObserved.patches ?? []),
     [orbitSampleObserved],
   );
   // The encounter and impact point are markers, so they need a current reading.

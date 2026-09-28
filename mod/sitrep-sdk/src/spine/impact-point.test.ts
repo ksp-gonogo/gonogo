@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { Quality } from "../__generated__/contract";
+import { type OrbitPatch, Quality } from "../__generated__/contract";
 import { type WireOf, wrapTypePayload } from "../wrap-units";
 import {
   findImpactPoint,
@@ -11,7 +11,6 @@ import {
   rotateInertialToPerifocal,
   TrajectoryKindLike as Shape,
 } from "./kepler";
-import { mapOrbitPatch, type OrbitPatchWirePayload } from "./orbit-patches";
 import { TrajectoryFrameKindLike as Frame } from "./orbit-trajectory";
 import type {
   SystemBodiesPayload,
@@ -47,7 +46,7 @@ type WireOrbit = WireOf<VesselOrbitPayload> & {
   arc?: unknown;
   arcRefusal?: number;
 };
-type WirePatch = WireOf<OrbitPatchWirePayload>;
+type WirePatch = WireOf<OrbitPatch>;
 
 const ORBIT: WireOrbit = {
   referenceBodyIndex: 3,
@@ -244,7 +243,7 @@ describe("predictImpactPoint: a conic answer", () => {
     const timeToImpact = (-10 + Math.sqrt(100 + 2 * g * 100)) / g;
     const horizonSec = timeToImpact * 1.5;
     const walked = findImpactPoint(
-      [mapOrbitPatch(input().orbit.patches?.[0] as OrbitPatchWirePayload)],
+      [input().orbit.patches?.[0] as OrbitPatch],
       "Kerbin",
       RADIUS,
       ROTATION,

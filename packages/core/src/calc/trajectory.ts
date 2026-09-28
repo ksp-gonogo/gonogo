@@ -1,21 +1,16 @@
 /**
- * Forward trajectory prediction on top of orbit-patch data.
- *
- * The Keplerian elements in each `OrbitPatch` let us analytically propagate
- * the vessel's state forward in time within a single SOI. We don't attempt
- * N-body integration; under an n-body physics mod a consumer needs a
- * guard in the consumer.
- *
- * KSP stock bodies all spin about the global +z inertial axis, so inertial
- * and body-fixed *latitudes* agree: only *longitude* needs a body-rotation
- * correction. We calibrate that correction against the vessel's current
- * `v.lat` / `v.long` / `t.universalTime` (the `PredictionRef`) so the drawn
- * prediction line connects to the ship icon exactly.
+ * Forward ground-track prediction over the wire's orbit-patch chain, within a
+ * single SOI. No N-body integration; under an n-body physics mod the consumer
+ * guards on the trajectory's shape.
  */
-import { solveEccentricAnomaly } from "@ksp-gonogo/sitrep-client";
+import {
+  groundTrackSamples,
+  type PatchSpan,
+  type PredictionRef,
+  solveEccentricAnomaly,
+  type TrackSample,
+} from "@ksp-gonogo/sitrep-client";
 import { PerfBudget } from "../perf/PerfBudget";
-import type { OrbitPatch } from "../schemas/orbit";
-import { degToRad, radToDeg } from "../utils/math";
 
 /**
  * Solve Kepler's equation `E - e·sin E = M` for the eccentric anomaly E.
@@ -58,121 +53,6 @@ export function eccentricToTrueAnomaly(E: number, e: number): number {
   return 2 * Math.atan2(y, x);
 }
 
-export interface InertialState {
-  /** Body-centred inertial XYZ in metres. +z is the body's rotation axis. */
-  x: number;
-  y: number;
-  z: number;
-  /** Distance from body centre (||(x,y,z)||) in metres. */
-  radius: number;
-}
-
-/**
- * Compute the vessel's inertial state at an arbitrary UT within `patch`.
- * The UT must lie inside `[patch.startUT, patch.endUT]`; no clamping is done,
- * the caller is expected to have picked the right patch.
- */
-export function patchStateAt(patch: OrbitPatch, ut: number): InertialState {
-  const dt = ut - patch.epoch;
-  const n = (2 * Math.PI) / patch.period;
-  const M = patch.maae + n * dt;
-  const E = solveKepler(M, patch.eccentricity);
-  const nu = eccentricToTrueAnomaly(E, patch.eccentricity);
-
-  const r = patch.sma * (1 - patch.eccentricity * Math.cos(E));
-
-  // Perifocal frame: periapsis along +x, angular momentum along +z.
-  const xPf = r * Math.cos(nu);
-  const yPf = r * Math.sin(nu);
-
-  // Rotate perifocal → inertial via (argPe, inclination, LAN).
-  // Standard 3-1-3 Euler rotation for Keplerian orbits.
-  const w = degToRad(patch.argumentOfPeriapsis);
-  const i = degToRad(patch.inclination);
-  const O = degToRad(patch.lan);
-  const cosW = Math.cos(w);
-  const sinW = Math.sin(w);
-  const cosI = Math.cos(i);
-  const sinI = Math.sin(i);
-  const cosO = Math.cos(O);
-  const sinO = Math.sin(O);
-
-  // Columns of the perifocal-to-inertial rotation matrix. We only need the
-  // first two columns because z_pf is always zero.
-  const p0 = cosO * cosW - sinO * sinW * cosI;
-  const p1 = sinO * cosW + cosO * sinW * cosI;
-  const p2 = sinW * sinI;
-  const q0 = -cosO * sinW - sinO * cosW * cosI;
-  const q1 = -sinO * sinW + cosO * cosW * cosI;
-  const q2 = cosW * sinI;
-
-  const x = p0 * xPf + q0 * yPf;
-  const y = p1 * xPf + q1 * yPf;
-  const z = p2 * xPf + q2 * yPf;
-
-  return { x, y, z, radius: r };
-}
-
-export interface GeoState {
-  /** Latitude in degrees (KSP bodies have no axial tilt → inertial = body-fixed). */
-  lat: number;
-  /** Altitude above body surface in metres (can be negative transiently if below terrain). */
-  alt: number;
-  /** Inertial longitude in degrees. Use `applyBodyRotation` to get body-fixed. */
-  lonInertial: number;
-}
-
-/** Extract lat / inertial-lon / altitude from an inertial state + body radius. */
-export function geoFromInertial(
-  state: InertialState,
-  bodyRadius: number,
-): GeoState {
-  const lat = radToDeg(Math.asin(state.z / state.radius));
-  const lonInertial = radToDeg(Math.atan2(state.y, state.x));
-  return { lat, lonInertial, alt: state.radius - bodyRadius };
-}
-
-export interface PredictionRef {
-  /** Current universal time in seconds: `t.universalTime`. */
-  ut: number;
-  /** Vessel latitude at `ut` in degrees: `v.lat`. */
-  lat: number;
-  /** Vessel (body-fixed) longitude at `ut` in degrees, `v.long`. */
-  lon: number;
-}
-
-/**
- * Build a body-fixed-longitude converter calibrated against the vessel's
- * current ground position. KSP doesn't expose the absolute body rotation
- * angle we'd need to go from inertial longitude to body-fixed longitude in
- * a closed form, so we derive the offset from the observed `v.long`.
- *
- * `omega` is the body's rotation rate in degrees per second (360 /
- * rotationPeriod). Eastward rotation = positive omega.
- */
-export function buildBodyRotation(
-  referencePatch: OrbitPatch,
-  ref: PredictionRef,
-  rotationPeriod: number,
-): (inertialLon: number, ut: number) => number {
-  const refState = patchStateAt(referencePatch, ref.ut);
-  const refInertialLon = radToDeg(Math.atan2(refState.y, refState.x));
-  // rotationOffset such that: lon_body = lon_inertial - rotationOffset - omega·(t - ref.ut) At t = ref.ut, lon_body = ref.lon, so rotationOffset = refInertialLon - ref.lon.
-  const rotationOffsetAtRef = refInertialLon - ref.lon;
-  const omega = 360 / rotationPeriod;
-  return (inertialLon: number, ut: number): number =>
-    wrap180(inertialLon - rotationOffsetAtRef - omega * (ut - ref.ut));
-}
-
-export interface TrackSample {
-  ut: number;
-  lat: number;
-  lon: number;
-  alt: number;
-  /** Index into the `patches` array the sample was drawn from. */
-  patchIndex: number;
-}
-
 /** Upper bound on sample count per `predictGroundTrack` call. */
 export const MAX_TRACK_SAMPLES = 500;
 
@@ -197,95 +77,49 @@ const PREDICT_GROUND_TRACK_BUDGET = new PerfBudget({
 const MIN_RENDER_ALT_M = -100;
 
 /**
- * Sample a predicted ground track across one or more patches sharing the
- * same reference body. Stops at the first patch boundary where the
- * reference body changes (SOI transition), multi-SOI rendering is a
- * separate feature.
+ * Sample a predicted ground track across the patches around `bodyId`, up to the
+ * first SOI transition, stopping where the track dips below the surface.
  *
- * @param patches All orbit patches (as returned by `o.orbitPatches`).
- * @param bodyId  The body to render prediction for. Patches for other bodies are skipped.
+ * @param patches The chain, as `vessel.orbit.patches` or a node's `patches` carries it.
+ * @param bodyId  The body to render prediction for.
  * @param bodyRadius Body mean radius in metres (for altitude calculation).
  * @param rotationPeriod Body sidereal rotation period in seconds.
  * @param ref Current vessel state (ut / lat / lon), calibrates body rotation.
  * @param horizonSec Maximum prediction horizon from `ref.ut`.
  * @param stepSec Sample interval in seconds.
+ * @param calibrationPatches Patches that calibrate body rotation against `ref`: a future chain that does not contain `ref.ut` (a node's post-burn patches) passes the current orbit's chain.
  */
-/** A patch is propagable with our elliptical solver. Hyperbolic and parabolic trajectories aren't. */
-function isPatchElliptical(patch: OrbitPatch): boolean {
-  return (
-    patch.eccentricity < 1 && Number.isFinite(patch.period) && patch.period > 0
-  );
-}
-
 export function predictGroundTrack(
-  patches: readonly OrbitPatch[],
+  patches: readonly PatchSpan[],
   bodyId: string,
   bodyRadius: number,
   rotationPeriod: number,
   ref: PredictionRef,
   horizonSec: number,
   stepSec: number,
-  /**
-   * Patches used to calibrate body rotation against `ref`. Defaults to
-   * `patches`. Override when rendering a future trajectory (e.g. a maneuver
-   * node's post-burn patches) that doesn't contain `ref.ut`, pass the
-   * current `o.orbitPatches` so the calibration comes from the patch the
-   * vessel is actually in right now.
-   */
-  calibrationPatches: readonly OrbitPatch[] = patches,
+  calibrationPatches: readonly PatchSpan[] = patches,
 ): TrackSample[] {
   PREDICT_GROUND_TRACK_BUDGET.record();
   if (patches.length === 0 || stepSec <= 0 || horizonSec <= 0) return [];
 
-  // We calibrate body rotation off whichever calibration patch contains
-  // `ref.ut`, falling back to the first elliptical patch for the named body.
-  // Calibration has to use a patch orbiting the named body; otherwise the
-  // inertial longitude is in a different frame.
-  const calCandidates = calibrationPatches.filter(
-    (p) => p.referenceBody === bodyId && isPatchElliptical(p),
-  );
-  const refPatch =
-    calCandidates.find((p) => ref.ut >= p.startUT && ref.ut <= p.endUT) ??
-    calCandidates[0];
-  if (!refPatch) return [];
-
-  const toBodyLon = buildBodyRotation(refPatch, ref, rotationPeriod);
-
-  // Enforce an upper bound on sample count by floor-ing the step to
-  // horizon / MAX. Keeps long-period orbits (solar, interplanetary) cheap
-  // without starving short orbits.
+  // Flooring the step at horizon / MAX keeps long-period orbits cheap without starving short ones.
   const effectiveStep = Math.max(stepSec, horizonSec / MAX_TRACK_SAMPLES);
 
   const samples: TrackSample[] = [];
-  const endUT = ref.ut + horizonSec;
-
-  for (let patchIndex = 0; patchIndex < patches.length; patchIndex++) {
-    const patch = patches[patchIndex];
-    if (patch.referenceBody !== bodyId) break; // SOI change, stop.
-    if (!isPatchElliptical(patch)) break; // Hyperbolic/parabolic, not supported in v1.
-    if (patch.endUT < ref.ut) continue; // Already finished.
-    if (patch.startUT > endUT) break; // Past horizon.
-
-    const from = Math.max(patch.startUT, ref.ut);
-    const to = Math.min(patch.endUT, endUT);
-    let terminated = false;
-    for (let ut = from; ut <= to; ut += effectiveStep) {
-      const state = patchStateAt(patch, ut);
-      const geo = geoFromInertial(state, bodyRadius);
-      if (geo.alt < MIN_RENDER_ALT_M) {
-        // Vessel has dipped below the surface; treat as impact and stop
-        // sampling further patches too. The previous sample is the last
-        // visible point; the impact marker is rendered separately at
-        // `land.predictedLat/Lon` when available.
-        terminated = true;
-        break;
-      }
-      const lon = toBodyLon(geo.lonInertial, ut);
-      samples.push({ ut, lat: geo.lat, lon, alt: geo.alt, patchIndex });
-    }
-    if (terminated) break;
+  for (const sample of groundTrackSamples(
+    patches,
+    bodyId,
+    bodyRadius,
+    rotationPeriod,
+    ref,
+    horizonSec,
+    effectiveStep,
+    calibrationPatches,
+  )) {
+    // Below the surface is an impact; its marker is drawn separately.
+    if (sample.alt < MIN_RENDER_ALT_M) break;
+    samples.push(sample);
   }
-
   return samples;
 }
 

@@ -1,5 +1,5 @@
-import type { TrackSample } from "@ksp-gonogo/core";
 import { getAugmentsForSlot } from "@ksp-gonogo/core";
+import type { TrackSample } from "@ksp-gonogo/sitrep-client";
 import type { Value } from "@ksp-gonogo/sitrep-sdk";
 import { type RefObject, useEffect, useRef, useState } from "react";
 import type { EncounterKind } from "../shared/encounterKind";

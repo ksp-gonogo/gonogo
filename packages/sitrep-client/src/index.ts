@@ -310,11 +310,20 @@ export {
 export type { NeverReckonable } from "./never-reckonable";
 export { isNeverReckonable, NEVER_RECKONABLE } from "./never-reckonable";
 export type {
-  LegacyOrbitPatch,
-  OrbitPatchWirePayload,
-  TransitionName,
+  GeoState,
+  InertialState,
+  PatchConic,
+  PatchSpan,
+  TrackSample,
 } from "./orbit-patches";
-export { mapOrbitPatch } from "./orbit-patches";
+export {
+  geoFromInertial,
+  groundTrackSamples,
+  isPatchElliptical,
+  patchArc,
+  patchHolds,
+  patchStateAt,
+} from "./orbit-patches";
 export {
   // The uncomparable-result gate lives beside the evaluator (see its own doc
   // for why it is not wired core-side like the other two processor budgets);

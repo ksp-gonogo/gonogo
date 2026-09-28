@@ -1,11 +1,8 @@
-import {
-  type LegacyOrbitPatch,
-  mapOrbitPatch,
-  useStream,
-} from "@ksp-gonogo/sitrep-client";
+import { useStream } from "@ksp-gonogo/sitrep-client";
 import type {
   ManeuverFrame,
   ManeuverNode,
+  OrbitPatch,
   VesselManeuver,
 } from "@ksp-gonogo/sitrep-sdk";
 import { magnitudeOr } from "@ksp-gonogo/ui-kit";
@@ -52,7 +49,7 @@ export interface ParsedManeuverNode {
   ignitionUt: number | null;
   cutoffUt: number | null;
   /** The orbit this burn puts the craft on, as a patch chain. */
-  orbitPatches: LegacyOrbitPatch[];
+  orbitPatches: readonly OrbitPatch[];
 }
 
 const EMPTY: readonly ParsedManeuverNode[] = [];
@@ -79,7 +76,7 @@ function parse(node: ManeuverNode): ParsedManeuverNode {
     // `?? []` because a stored recording can predate the field, and a replay
     // reads this through the same path the live stream does. Absence and empty
     // are the same thing to every reader here.
-    orbitPatches: (node.patches ?? []).map(mapOrbitPatch),
+    orbitPatches: node.patches ?? [],
   };
 }
 

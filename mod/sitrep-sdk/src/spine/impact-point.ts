@@ -18,19 +18,22 @@
  * where a craft with no air would land.
  */
 
-import { type PayloadMeta, Quality } from "../__generated__/contract";
+import {
+  type OrbitPatch,
+  type PayloadMeta,
+  Quality,
+} from "../__generated__/contract";
 import { magnitudeOr, type Quantityish } from "../magnitude";
 import {
   canPropagate,
   rotatePerifocalToInertial,
-  solveEccentricAnomaly,
   type Vector3,
 } from "./kepler";
 import { buildElements } from "./kepler-reckoning";
 import {
-  type LegacyOrbitPatch,
-  mapOrbitPatch,
-  type OrbitPatchWirePayload,
+  groundTrackSamples,
+  type PatchSpan,
+  type PredictionRef,
 } from "./orbit-patches";
 import {
   type OrbitTrajectoryInput,
@@ -41,16 +44,6 @@ import {
 } from "./orbit-trajectory";
 import { type BodyRadiusTable, bodyRadiusOf } from "./orbital-solve";
 
-function eccentricToTrueAnomaly(E: number, e: number): number {
-  const y = Math.sqrt(1 + e) * Math.sin(E / 2);
-  const x = Math.sqrt(1 - e) * Math.cos(E / 2);
-  return 2 * Math.atan2(y, x);
-}
-
-function degToRad(deg: number): number {
-  return (deg * Math.PI) / 180;
-}
-
 function radToDeg(rad: number): number {
   return (rad * 180) / Math.PI;
 }
@@ -60,78 +53,6 @@ function wrap180(deg: number): number {
   let x = ((((deg + 180) % 360) + 360) % 360) - 180;
   if (x <= -180) x = 180;
   return x;
-}
-
-interface InertialState {
-  x: number;
-  y: number;
-  z: number;
-  radius: number;
-}
-
-/**
- * Vessel's inertial state at an arbitrary UT within `patch`, the same math as
- * `@ksp-gonogo/core`'s `predictGroundTrack` uses for the rendered ground track.
- * That walk lives where this package cannot import it, so the patch walk and
- * the perifocal rotation are carried here too. The Kepler SOLVE is not: there
- * is one solver, `kepler.ts`'s `solveEccentricAnomaly`, and
- * `kepler-conformance.test.ts` fails if a second appears anywhere in the repo.
- */
-function patchStateAt(patch: LegacyOrbitPatch, ut: number): InertialState {
-  const dt = ut - patch.epoch;
-  const n = (2 * Math.PI) / patch.period;
-  const M = patch.maae + n * dt;
-  const E = solveEccentricAnomaly(M, patch.eccentricity);
-  const nu = eccentricToTrueAnomaly(E, patch.eccentricity);
-  const r = patch.sma * (1 - patch.eccentricity * Math.cos(E));
-
-  const xPf = r * Math.cos(nu);
-  const yPf = r * Math.sin(nu);
-
-  const w = degToRad(patch.argumentOfPeriapsis);
-  const i = degToRad(patch.inclination);
-  const O = degToRad(patch.lan);
-  const cosW = Math.cos(w);
-  const sinW = Math.sin(w);
-  const cosI = Math.cos(i);
-  const sinI = Math.sin(i);
-  const cosO = Math.cos(O);
-  const sinO = Math.sin(O);
-
-  const p0 = cosO * cosW - sinO * sinW * cosI;
-  const p1 = sinO * cosW + cosO * sinW * cosI;
-  const p2 = sinW * sinI;
-  const q0 = -cosO * sinW - sinO * cosW * cosI;
-  const q1 = -sinO * sinW + cosO * cosW * cosI;
-  const q2 = cosW * sinI;
-
-  return {
-    x: p0 * xPf + q0 * yPf,
-    y: p1 * xPf + q1 * yPf,
-    z: p2 * xPf + q2 * yPf,
-    radius: r,
-  };
-}
-
-interface GeoState {
-  lat: number;
-  alt: number;
-  lonInertial: number;
-}
-
-function geoFromInertial(state: InertialState, bodyRadius: number): GeoState {
-  const lat = radToDeg(Math.asin(state.z / state.radius));
-  const lonInertial = radToDeg(Math.atan2(state.y, state.x));
-  return { lat, lonInertial, alt: state.radius - bodyRadius };
-}
-
-export interface PredictionRef {
-  /** Current universal time, seconds. */
-  ut: number;
-  /** Vessel latitude at `ut`, degrees. */
-  lat: number;
-  /** Vessel body-fixed longitude at `ut`, degrees. */
-  lon: number;
 }
 
 /**
@@ -148,13 +69,6 @@ function calibratedLongitude(
   const omega = 360 / rotationPeriod;
   return (inertialLon: number, ut: number): number =>
     wrap180(inertialLon - rotationOffsetAtRef - omega * (ut - ref.ut));
-}
-
-/** A patch is propagable with the elliptical solver above, hyperbolic/parabolic trajectories aren't. */
-function isPatchElliptical(patch: LegacyOrbitPatch): boolean {
-  return (
-    patch.eccentricity < 1 && Number.isFinite(patch.period) && patch.period > 0
-  );
 }
 
 /** Altitude below which a point counts as at or below the surface, the same threshold `predictGroundTrack` uses. */
@@ -174,7 +88,7 @@ export interface ImpactPoint {
  * internal sample cap.
  */
 export function findImpactPoint(
-  patches: readonly LegacyOrbitPatch[],
+  patches: readonly PatchSpan[],
   bodyId: string,
   bodyRadius: number,
   rotationPeriod: number,
@@ -182,41 +96,18 @@ export function findImpactPoint(
   horizonSec: number,
   stepSec: number,
 ): ImpactPoint | null {
-  if (patches.length === 0 || stepSec <= 0 || horizonSec <= 0) return null;
-
-  const calCandidates = patches.filter(
-    (p) => p.referenceBody === bodyId && isPatchElliptical(p),
-  );
-  const refPatch =
-    calCandidates.find((p) => ref.ut >= p.startUT && ref.ut <= p.endUT) ??
-    calCandidates[0];
-  if (!refPatch) return null;
-
-  const refState = patchStateAt(refPatch, ref.ut);
-  const toBodyLon = calibratedLongitude(
-    radToDeg(Math.atan2(refState.y, refState.x)),
-    ref,
-    rotationPeriod,
-  );
-  const endUT = ref.ut + horizonSec;
-
   let last: ImpactPoint | null = null;
-  for (const patch of patches) {
-    if (patch.referenceBody !== bodyId) break; // SOI change, stop.
-    if (!isPatchElliptical(patch)) break;
-    if (patch.endUT < ref.ut) continue; // Already finished.
-    if (patch.startUT > endUT) break; // Past horizon.
-
-    const from = Math.max(patch.startUT, ref.ut);
-    const to = Math.min(patch.endUT, endUT);
-    for (let ut = from; ut <= to; ut += stepSec) {
-      const state = patchStateAt(patch, ut);
-      const geo = geoFromInertial(state, bodyRadius);
-      if (geo.alt < MIN_IMPACT_ALT_M) {
-        return last;
-      }
-      last = { lat: geo.lat, lon: toBodyLon(geo.lonInertial, ut) };
-    }
+  for (const sample of groundTrackSamples(
+    patches,
+    bodyId,
+    bodyRadius,
+    rotationPeriod,
+    ref,
+    horizonSec,
+    stepSec,
+  )) {
+    if (sample.alt < MIN_IMPACT_ALT_M) return last;
+    last = { lat: sample.lat, lon: sample.lon };
   }
   return null;
 }
@@ -279,7 +170,7 @@ export interface ImpactPointInput {
    */
   orbit: OrbitTrajectoryInput["orbit"] & {
     referenceBodyIndex?: number;
-    patches?: readonly OrbitPatchWirePayload[] | null;
+    patches?: readonly OrbitPatch[] | null;
     meta?: PayloadMeta | null;
   };
   /** The `vessel.flight` sample at the same instant. */
@@ -360,7 +251,7 @@ export function predictImpactPoint(
     IMPACT_WALK_MAX_HORIZON_SEC,
   );
 
-  const patches = (orbit.patches ?? []).map(mapOrbitPatch);
+  const patches = orbit.patches ?? [];
   /*
    * The stream's own figure first. The stock table behind it is keyed by NAME
    * and only carries stock bodies, so it answers for a stock game whose stream
@@ -403,7 +294,7 @@ export function predictImpactPoint(
  * no horizon at all.
  */
 function conicImpact(
-  patches: readonly LegacyOrbitPatch[],
+  patches: readonly PatchSpan[],
   horizon: ImpactPointInput["orbit"]["horizon"],
   bodyRadius: number,
   rotationPeriod: number,

@@ -1,4 +1,4 @@
-import type { ComponentProps, OrbitPatch } from "@ksp-gonogo/core";
+import type { ComponentProps } from "@ksp-gonogo/core";
 import {
   AugmentSlot,
   defineTopicManifest,
@@ -15,6 +15,7 @@ import {
   useProcessor,
   useViewUt,
 } from "@ksp-gonogo/sitrep-client";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { Panel, useElementSize } from "@ksp-gonogo/ui";
 import { FramedDisplay, NULL_DISPLAY, Section } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
@@ -30,6 +31,7 @@ import { encounterDirectionOf } from "./encounter";
 import { frameCaption, resolveFrame } from "./frame";
 import { conicPatches } from "./orbitPatches";
 import { overlayGeometry } from "./overlayGeometry";
+import type { TrajectoryPatch } from "./predictedTrajectory";
 import { inertialFrameFor, resolveProjection } from "./projection";
 import { createUtBucketThrottle } from "./utBucketThrottle";
 // The host's own `system-view.projection` entries, so the picker and resolver run on a bare install.
@@ -205,26 +207,25 @@ function SystemViewComponent({
     performance.now(),
   );
   // Built only on the CONIC answer: an integrating provider must not be handed a conic prediction, so on an arc answer the diagram draws the sampled path instead.
-  const orbitPatches = useMemo<OrbitPatch[]>(() => {
+  const orbitPatches = useMemo<TrajectoryPatch[]>(() => {
     if (!orbit || vesselBody == null || utBucket == null) return [];
     if (vesselTrajectory?.shape !== "conic") return [];
     return conicPatches({
-      // Plain numbers: every element is sampled into plot coordinates.
+      // An undefined node or apsis (near-equatorial, near-circular) is measured from zero, as the propagator does everywhere.
       elements: {
-        inclination: orbit.inc.magnitude,
-        eccentricity: orbit.ecc.magnitude,
-        epoch: orbit.epoch.magnitude,
-        argumentOfPeriapsis: orbit.argPe?.magnitude ?? 0,
-        sma: orbit.sma.magnitude,
-        lan: orbit.lan?.magnitude ?? 0,
-        maae: orbit.meanAnomalyAtEpoch.magnitude,
+        inc: orbit.inc,
+        ecc: orbit.ecc,
+        epoch: orbit.epoch,
+        argPe: orbit.argPe ?? value("°", 0),
+        sma: orbit.sma,
+        lan: orbit.lan ?? value("°", 0),
+        meanAnomalyAtEpoch: orbit.meanAnomalyAtEpoch,
       },
       referenceBody: vesselBody,
       startUt: utBucket,
       period: derived?.period,
       encounterDirection,
       encounterTimeUt,
-      encounterBody,
     });
   }, [
     orbit,
@@ -234,7 +235,6 @@ function SystemViewComponent({
     vesselTrajectory,
     encounterDirection,
     encounterTimeUt,
-    encounterBody,
   ]);
   const predicted = useMemo(
     () =>

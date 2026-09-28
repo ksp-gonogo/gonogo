@@ -1,26 +1,13 @@
-import type { OrbitPatch } from "@ksp-gonogo/core";
+import type { OrbitPatch } from "@ksp-gonogo/sitrep-sdk";
+import { TransitionType, value } from "@ksp-gonogo/sitrep-sdk";
 import type { EncounterDirection } from "./encounter";
+import type { TrajectoryPatch } from "./predictedTrajectory";
 
-/** The orbit's elements as plain numbers, the shape a patch is sampled from. */
+/** The orbit's elements, the part of a patch it is sampled from. */
 export type ConicElements = Pick<
   OrbitPatch,
-  | "inclination"
-  | "eccentricity"
-  | "epoch"
-  | "argumentOfPeriapsis"
-  | "sma"
-  | "lan"
-  | "maae"
+  "inc" | "ecc" | "epoch" | "argPe" | "sma" | "lan" | "meanAnomalyAtEpoch"
 >;
-
-function endTransition(
-  direction: EncounterDirection | null,
-  endsAtTransition: boolean,
-): OrbitPatch["patchEndTransition"] {
-  if (!endsAtTransition) return "FINAL";
-  if (direction === "escape") return "ESCAPE";
-  return "ENCOUNTER";
-}
 
 /**
  * The one conic the vessel's orbit honestly predicts from `startUt`: up to the
@@ -35,7 +22,6 @@ export function conicPatches({
   period,
   encounterDirection,
   encounterTimeUt,
-  encounterBody,
 }: {
   elements: ConicElements;
   referenceBody: string;
@@ -43,28 +29,21 @@ export function conicPatches({
   period: number | null | undefined;
   encounterDirection: EncounterDirection | null;
   encounterTimeUt: number | null;
-  encounterBody: string | null;
-}): OrbitPatch[] {
+}): TrajectoryPatch[] {
   if (period == null || period <= 0) return [];
-  if (!(elements.eccentricity < 1)) return [];
+  if (!elements.ecc.lessThan(1)) return [];
   const endsAtTransition =
     encounterDirection !== null &&
     encounterTimeUt != null &&
     encounterTimeUt > startUt;
   return [
     {
-      startUT: startUt,
-      endUT: endsAtTransition ? encounterTimeUt : startUt + period,
-      patchStartTransition: "INITIAL",
-      patchEndTransition: endTransition(encounterDirection, endsAtTransition),
-      PeA: 0,
-      ApA: 0,
       ...elements,
-      period,
+      period: value("s", period),
+      startUt: value("ut", startUt),
+      endUt: value("ut", endsAtTransition ? encounterTimeUt : startUt + period),
+      patchStartTransition: TransitionType.Initial,
       referenceBody,
-      semiLatusRectum: 0,
-      semiMinorAxis: 0,
-      closestEncounterBody: encounterBody,
     },
   ];
 }

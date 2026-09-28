@@ -1,12 +1,15 @@
 import {
-  geoFromInertial,
   getBody,
-  type OrbitPatch,
-  patchStateAt,
   predictGroundTrack,
   registerStockBodies,
   wrap180,
 } from "@ksp-gonogo/core";
+import { geoFromInertial, patchStateAt } from "@ksp-gonogo/sitrep-client";
+import {
+  type OrbitPatch,
+  TransitionType,
+  wrapTypePayload,
+} from "@ksp-gonogo/sitrep-sdk";
 import { beforeAll, describe, expect, it } from "vitest";
 
 /**
@@ -134,28 +137,13 @@ const round = (x: number): number => Number(x.toPrecision(6));
 const periodOf = (sma: number, mu: number): number =>
   2 * Math.PI * Math.sqrt(sma ** 3 / mu);
 
-/** The legacy shape `patchStateAt` consumes, off the wire shape a fixture carries. */
-function toLegacy(p: WirePatch): OrbitPatch {
-  return {
-    startUT: p.startUt,
-    endUT: p.endUt,
-    patchStartTransition: "INITIAL",
-    patchEndTransition: "FINAL",
-    PeA: p.peA,
-    ApA: p.apA,
-    inclination: p.inc,
-    eccentricity: p.ecc,
-    epoch: p.epoch,
-    period: p.period,
-    argumentOfPeriapsis: p.argPe,
-    sma: p.sma,
-    lan: p.lan,
-    maae: p.meanAnomalyAtEpoch,
-    referenceBody: p.referenceBody,
-    semiLatusRectum: p.semiLatusRectum,
-    semiMinorAxis: p.semiMinorAxis,
-    closestEncounterBody: null,
-  };
+/** A fixture's patch as the stream decodes it, units attached. */
+function decoded(p: WirePatch): OrbitPatch {
+  return wrapTypePayload<OrbitPatch>("OrbitPatch", {
+    ...p,
+    patchStartTransition: TransitionType.Initial,
+    patchEndTransition: TransitionType.Final,
+  });
 }
 
 /** The top-level elements as a patch, for the fixture that carries no chain. */
@@ -273,7 +261,7 @@ describe("MapView fixtures describe scenes that can exist", () => {
 
       it("puts the vessel where the marker says it is when its own elements are propagated", () => {
         const b = bodyOf(s.bodyName);
-        const patch = toLegacy(s.patches[0] ?? orbitAsPatch(s, b.radius, b.gm));
+        const patch = decoded(s.patches[0] ?? orbitAsPatch(s, b.radius, b.gm));
         const g = geoFromInertial(patchStateAt(patch, s.ut), b.radius);
         // A tenth of a degree is finer than the map draws and survives the fixtures' rounded decimals.
         expect(g.lat).toBeCloseTo(s.flight.latitude, 1);
@@ -290,14 +278,13 @@ describe("MapView fixtures describe scenes that can exist", () => {
       if (s.patches.length > 0) {
         it("draws a predicted track that starts at the vessel marker", () => {
           const b = bodyOf(s.bodyName);
-          const patches = s.patches.map(toLegacy);
           const samples = predictGroundTrack(
-            patches,
+            s.patches.map(decoded),
             s.bodyName,
             b.radius,
             b.rotationPeriod ?? 0,
             { ut: s.ut, lat: s.flight.latitude, lon: s.flight.longitude },
-            Math.min(1.5 * patches[0].period, 21600),
+            Math.min(1.5 * s.patches[0].period, 21600),
             10,
           );
           expect(samples.length).toBeGreaterThan(0);
@@ -319,7 +306,7 @@ describe("MapView fixtures describe scenes that can exist", () => {
     expect(inc).toBeLessThan(100);
     const b = bodyOf("Mun");
     const samples = predictGroundTrack(
-      mun.patches.map(toLegacy),
+      mun.patches.map(decoded),
       "Mun",
       b.radius,
       b.rotationPeriod ?? 0,

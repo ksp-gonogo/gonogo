@@ -1,7 +1,6 @@
-import type { TrackSample } from "@ksp-gonogo/core";
 import { predictGroundTrack } from "@ksp-gonogo/core";
-import { mapOrbitPatch, type OrbitTrajectory } from "@ksp-gonogo/sitrep-client";
-import type { VesselManeuver } from "@ksp-gonogo/sitrep-sdk";
+import type { OrbitTrajectory, TrackSample } from "@ksp-gonogo/sitrep-client";
+import type { OrbitPatch, VesselManeuver } from "@ksp-gonogo/sitrep-sdk";
 import { kspCalendar } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
 import type { bodyNamed } from "../shared/streamBody";
@@ -11,7 +10,7 @@ import { quantiseUt } from "./predictionThrottle";
 interface GroundTrackInputs {
   enabled: boolean;
   trajectory: OrbitTrajectory | null;
-  orbitPatches: ReturnType<typeof mapOrbitPatch>[] | undefined;
+  orbitPatches: readonly OrbitPatch[] | undefined;
   maneuverNodes: VesselManeuver["nodes"] | undefined;
   targetBodyId: string | undefined;
   body: ReturnType<typeof bodyNamed>;
@@ -61,7 +60,10 @@ export function useGroundTrackPrediction({
     );
     if (!firstForBody) return [];
     // 1.5 periods shows the closed loop, capped at one calendar day (about one rotation, which a planet pack changes).
-    const horizon = Math.min(1.5 * firstForBody.period, kspCalendar().day);
+    const horizon = Math.min(
+      1.5 * firstForBody.period.magnitude,
+      kspCalendar().day,
+    );
     const samples = predictGroundTrack(
       orbitPatches,
       targetBodyId,
@@ -95,12 +97,12 @@ export function useGroundTrackPrediction({
     const rotPeriod = body.rotationPeriod;
     const longitudeOffset = body.longitudeOffset ?? 0;
     return maneuverNodes.map((node) => {
-      const patches = (node.patches ?? []).map(mapOrbitPatch);
+      const patches = node.patches ?? [];
       const firstPatch = patches.find((p) => p.referenceBody === targetBodyId);
       if (!firstPatch) return [];
       // Horizon extends from ref.ut up through the maneuver and 1.5 × its first post-burn period: enough to see the new orbit close up.
       const horizon = Math.min(
-        node.ut.magnitude - universalTime + 1.5 * firstPatch.period,
+        node.ut.magnitude - universalTime + 1.5 * firstPatch.period.magnitude,
         kspCalendar().day,
       );
       if (horizon <= 0) return [];

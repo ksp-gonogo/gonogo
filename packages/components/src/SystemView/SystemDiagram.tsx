@@ -1,4 +1,3 @@
-import type { OrbitPatch } from "@ksp-gonogo/core";
 import { getBody } from "@ksp-gonogo/core";
 import type { OrbitTrajectory } from "@ksp-gonogo/sitrep-client";
 import { TextButton } from "@ksp-gonogo/ui-kit";
@@ -29,6 +28,7 @@ import {
   VesselOrbitPath,
 } from "./diagramMarks";
 import { EmptyDiagram } from "./EmptyDiagram";
+import type { TrajectoryPatch } from "./predictedTrajectory";
 import {
   INERTIAL_PLACEMENT,
   type Placement,
@@ -67,8 +67,8 @@ export interface SystemDiagramProps {
   transferStatuses?: ReadonlyMap<number, "go" | "soon">;
   /** Fires when the hovered body changes, with `null` when the cursor leaves all dots. */
   onFocusBodyChange?: (body: CelestialBody | null) => void;
-  /** Multi-SOI predicted trajectory from `o.orbitPatches`; `ut` locates the live patch. */
-  predicted?: { orbitPatches: readonly OrbitPatch[]; ut: number } | null;
+  /** Multi-SOI predicted trajectory; `ut` locates the live patch. */
+  predicted?: { orbitPatches: readonly TrajectoryPatch[]; ut: number } | null;
   /** The frame the whole picture is drawn in. `null` means the catalogue refused the requested frame, so the diagram draws parent-centred inertial and the caller names that frame. */
   projection?: ResolvedProjection | null;
   width: number;

@@ -234,6 +234,12 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // because a Kepler solve is trigonometry on a number and not an operation the
   // algebra has a term for.
   "packages/components/src/LibrationPoints/LibrationPointsView.tsx": 1,
+  /*
+   * 5: the burn's first post-burn patch drawn as the planned conic, whose
+   * `ProjectedOrbit` is the diagram's plain-number drawing space, beside the
+   * current conic `usePlannerTelemetry` unwraps into the same shape.
+   */
+  "packages/components/src/ManeuverPlanner/ConformanceSection.tsx": 5,
   "packages/components/src/ManeuverPlanner/LocalManeuverTriggerService.ts": 10,
   // 4: each UnitInput's Value unwrapped into the edit patch, whose fields are the plain numbers the node-edit command carries on the wire.
   "packages/components/src/ManeuverPlanner/NodeEditor.tsx": 4,
@@ -241,13 +247,14 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   "packages/components/src/ManeuverPlanner/PresetInput.tsx": 8,
   "packages/components/src/ManeuverPlanner/usePlannerTelemetry.ts": 4,
   "packages/components/src/MapView/index.tsx": 6,
-  // 5: two `{ ut, lat, lon }` literals each unwrap a latitude
+  // 7: two `{ ut, lat, lon }` literals each unwrap a latitude
   // and a longitude side by side. One of them is a maneuver node's own
   // UT. It reads the modern vessel.maneuver shape, where the instant is a
   // Value; the horizon it feeds is plain-number geometry against a plain-number
   // view instant, so the unwrap belongs at that boundary rather than one term
-  // deeper.
-  "packages/components/src/MapView/useGroundTrackPrediction.ts": 5,
+  // deeper. The other two are the first patch's period, current and post-burn,
+  // scaled into that same plain-number horizon beside the calendar day.
+  "packages/components/src/MapView/useGroundTrackPrediction.ts": 7,
   "packages/components/src/MapView/useMapPainting.ts": 2,
   "packages/components/src/MapView/useMapTelemetry.ts": 5,
   // 4: `predictGroundTrack` is plain-number geometry, so the reckoning's instant, the throttle bucket and the `{ ut, lat, lon }` reference unwrap at that boundary.
@@ -270,7 +277,7 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
    */
   "packages/components/src/shared/dockAngles.ts": 3,
   "packages/components/src/Strategies/StrategiesView.tsx": 1,
-  "packages/components/src/SystemView/index.tsx": 15,
+  "packages/components/src/SystemView/index.tsx": 8,
   // 6: the LAN and argPe coalesce, each `?.magnitude ?? 0` or `?.magnitude`
   // behind a `Number.isFinite` guard, is expressed through `magnitudeOr` and
   // `magnitudeOf` instead and so does not count here. What is left is the five
@@ -371,7 +378,13 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // single frame with a single unit and has no dimension for the algebra to
   // check.
   "mod/sitrep-sdk/src/spine/orbit-trajectory.ts": 1,
-  "mod/sitrep-sdk/src/spine/orbit-patches.ts": 14,
+  /*
+   * 10: each patch's elements and window, read as numbers once and only here.
+   * The Kepler step and the perifocal rotation are trigonometry the algebra has
+   * no term for, and every patch walk (the ground track, the impact point, the
+   * SystemView arc) goes through this file rather than unwrapping on its own.
+   */
+  "mod/sitrep-sdk/src/spine/orbit-patches.ts": 10,
   "packages/sitrep-client/src/use-control-stream.tsx": 2,
   "packages/ui-kit/src/Countdown.tsx": 1,
   /*

@@ -1,10 +1,20 @@
 /**
- * Multi-SOI predicted-trajectory sampling for the SystemView diagram, on MapView's Keplerian propagator (`patchStateAt`).
+ * Multi-SOI predicted-trajectory sampling for the SystemView diagram, on the patch-chain propagator MapView walks too (`patchArc`).
  *
  * Everything here is parent-centred inertial METRES with `z` kept; the diagram places it into the frame in force. A patch around the frame body draws at the origin, one around a child draws offset to that child, and the first sample of a non-initial patch is the SOI crossing.
  */
-import { type OrbitPatch, patchStateAt } from "@ksp-gonogo/core";
-import type { TransitionName } from "@ksp-gonogo/sitrep-client";
+import {
+  isPatchElliptical,
+  type PatchSpan,
+  patchArc,
+  patchHolds,
+} from "@ksp-gonogo/sitrep-client";
+import {
+  type OrbitPatch,
+  TransitionType,
+  type Value,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 
 /** A point on a predicted arc in parent-centred inertial metres (origin: the frame body), never plot units. */
 export interface PatchPoint {
@@ -18,31 +28,33 @@ export type EncounterKind = "encounter" | "escape";
 /**
  * Which way a patch transition crosses an SOI boundary, or `null` when it does not.
  *
- * Exhaustive by design: the `never` binding stops compiling when `TransitionType` grows a member, so a new transition cannot silently draw no marker. A name that is not a transition yields `null` rather than a guess.
+ * Exhaustive by design: the `never` binding stops compiling when `TransitionType` grows a member, so a new transition cannot silently draw no marker. An ordinal that is not a member yields `null` rather than a guess.
  */
-export function soiEventKind(transition: string): EncounterKind | null {
-  // Widened here so the default arm narrows this binding, checking exhaustiveness rather than asserting it.
-  const named = transition as TransitionName;
-  switch (named) {
-    case "ENCOUNTER":
+export function soiEventKind(transition: TransitionType): EncounterKind | null {
+  switch (transition) {
+    case TransitionType.Encounter:
       return "encounter";
-    case "ESCAPE":
+    case TransitionType.Escape:
       return "escape";
-    case "INITIAL":
-    case "FINAL":
+    case TransitionType.Initial:
+    case TransitionType.Final:
     // A burn, not a crossing: same SOI on both sides of it.
-    case "MANEUVER":
+    case TransitionType.Maneuver:
     // An impact ends the trajectory rather than moving it to another body.
-    case "COLLISION":
-    case "UNKNOWN":
+    case TransitionType.Collision:
+    case TransitionType.Unknown:
       return null;
     default: {
-      const unruled: never = named;
+      const unruled: never = transition;
       void unruled;
       return null;
     }
   }
 }
+
+/** A patch as the diagram samples it: its conic, its window, its body and how it begins. */
+export type TrajectoryPatch = PatchSpan &
+  Pick<OrbitPatch, "patchStartTransition">;
 
 export interface ProjectedPatch {
   /** Index into the source `orbitPatches` array. */
@@ -69,7 +81,7 @@ export interface EncounterMarker {
   /** Body whose SOI is entered (encounter) or left (escape). */
   body: string;
   /** Universal time of the crossing. */
-  ut: number;
+  ut: Value<"ut">;
   patchIndex: number;
 }
 
@@ -78,29 +90,8 @@ export interface PredictedTrajectory {
   encounters: EncounterMarker[];
 }
 
-/** A patch is propagable with the elliptical solver. Hyperbolic / parabolic aren't. */
-function isElliptical(patch: OrbitPatch): boolean {
-  return (
-    patch.eccentricity < 1 && Number.isFinite(patch.period) && patch.period > 0
-  );
-}
-
-/** A patch's parent-centred state at `ut` in metres plus its reference body's offset, composed before placement so a frame's translation applies once. */
-function patchPointAt(
-  patch: OrbitPatch,
-  ut: number,
-  offset: PatchPoint,
-): PatchPoint {
-  const state = patchStateAt(patch, ut);
-  return {
-    x: offset.x + state.x,
-    y: offset.y + state.y,
-    z: offset.z + state.z,
-  };
-}
-
 export interface PredictTrajectoryArgs {
-  patches: readonly OrbitPatch[];
+  patches: readonly TrajectoryPatch[];
   /** Body the diagram is framed around. */
   parentName: string;
   /** Current universal time: identifies the live patch. */
@@ -148,15 +139,14 @@ export function predictTrajectory({
   }
   const steps = Math.max(2, Math.min(MAX_SAMPLES, Math.floor(samplesPerPatch)));
 
-  // The live patch is the first elliptical one orbiting the frame parent whose [startUT, endUT] window contains `ut`.
+  // The live patch is the first elliptical one orbiting the frame parent whose window contains `ut`.
   let currentIndex = -1;
   for (let i = 0; i < patches.length; i++) {
     const p = patches[i];
     if (
       sameBody(p.referenceBody, parentName) &&
-      isElliptical(p) &&
-      ut >= p.startUT &&
-      ut <= p.endUT
+      isPatchElliptical(p) &&
+      patchHolds(p, ut)
     ) {
       currentIndex = i;
       break;
@@ -165,22 +155,19 @@ export function predictTrajectory({
 
   for (let i = 0; i < patches.length; i++) {
     const patch = patches[i];
-    if (!isElliptical(patch)) continue;
+    if (!isPatchElliptical(patch)) continue;
 
     const offset = frameOffset(patch.referenceBody, parentName, childOffsets);
     if (offset === null) continue;
 
     // The live patch draws from `ut` forward; the live-orbit ellipse already shows the full loop.
-    const from =
-      i === currentIndex ? Math.max(patch.startUT, ut) : patch.startUT;
-    const to = patch.endUT;
-    if (!(to > from)) continue;
-
-    const points: PatchPoint[] = [];
-    for (let s = 0; s <= steps; s++) {
-      const t = from + ((to - from) * s) / steps;
-      points.push(patchPointAt(patch, t, offset));
-    }
+    const arc = patchArc(patch, steps, i === currentIndex ? ut : undefined);
+    if (arc.length === 0) continue;
+    const points: PatchPoint[] = arc.map(({ state }) => ({
+      x: offset.x + state.x,
+      y: offset.y + state.y,
+      z: offset.z + state.z,
+    }));
 
     const startEncounter = soiEventKind(patch.patchStartTransition);
 
@@ -199,7 +186,7 @@ export function predictTrajectory({
         z: points[0].z,
         kind: startEncounter,
         body: patch.referenceBody,
-        ut: patch.startUT,
+        ut: patch.startUt,
         patchIndex: i,
       });
     }
@@ -212,36 +199,13 @@ export function predictTrajectory({
 export function nextEncounter(
   trajectory: PredictedTrajectory,
   ut: number,
-): { kind: EncounterKind; body: string; ut: number } | null {
+): { kind: EncounterKind; body: string; ut: Value<"ut"> } | null {
+  const now = value("ut", ut);
   let best: EncounterMarker | null = null;
   for (const e of trajectory.encounters) {
-    if (e.ut < ut) continue;
-    if (best === null || e.ut < best.ut) best = e;
+    if (e.ut.lessThan(now)) continue;
+    if (best === null || e.ut.lessThan(best.ut)) best = e;
   }
   if (best === null) return null;
   return { kind: best.kind, body: best.body, ut: best.ut };
-}
-
-export interface PatchEncounter {
-  kind: EncounterKind;
-  /** Body whose SOI is entered (encounter) or left (escape). */
-  body: string;
-  /** Universal time of the crossing. */
-  ut: number;
-}
-
-/** Every SOI crossing from `ut` onward in chronological order, independent of the rendered frame, for the almanac encounter text. */
-export function scanEncounters(
-  patches: readonly OrbitPatch[],
-  ut: number,
-): PatchEncounter[] {
-  const out: PatchEncounter[] = [];
-  for (const patch of patches) {
-    const kind = soiEventKind(patch.patchStartTransition);
-    if (kind === null) continue;
-    if (patch.startUT < ut) continue;
-    out.push({ kind, body: patch.referenceBody, ut: patch.startUT });
-  }
-  out.sort((a, b) => a.ut - b.ut);
-  return out;
 }

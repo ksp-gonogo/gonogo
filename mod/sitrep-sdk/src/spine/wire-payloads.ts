@@ -1,8 +1,7 @@
-import type { PayloadMeta } from "../__generated__/contract";
+import type { OrbitPatch, PayloadMeta } from "../__generated__/contract";
 import type { Quantityish } from "../magnitude";
 import type { Value } from "../value";
 import type { PropagationHorizonLike } from "./kepler";
-import type { OrbitPatchWirePayload } from "./orbit-patches";
 
 /**
  * Hand-written mirrors of channel payloads the generated contract does not yet
@@ -86,7 +85,7 @@ export interface VesselOrbitPayload {
    * subsequent SOI-transition patches. Optional, and read as `[]` when
    * absent, for the same reason as `encounter`.
    */
-  patches?: OrbitPatchWirePayload[];
+  patches?: OrbitPatch[];
   /**
    * How far these elements answer for, as the producer states it
    * (`PropagationHorizon`, required on the wire).

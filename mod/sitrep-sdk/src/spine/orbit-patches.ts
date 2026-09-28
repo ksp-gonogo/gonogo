@@ -1,146 +1,237 @@
 /**
- * The vessel's future-orbit patch chain (`vessel.orbit.patches` / each
- * `vessel.maneuver.nodes[].patches`, `mod/Sitrep.Contract/OrbitPatch.cs`):
- * reshaped into the legacy `OrbitPatch` shape MapView/
- * `packages/core/src/calc/trajectory.ts` already consume (`o.orbitPatches`,
- * `ManeuverNode.orbitPatches`). The impact walk over the same chain is
- * `impact-point.ts`'s.
+ * The patch chain the wire carries (`vessel.orbit.patches`, and each
+ * `vessel.maneuver.nodes[].patches`), propagated through the one Kepler solve
+ * and laid over a turning body's surface. The ground track and the impact
+ * point are both this walk; they differ only in where they stop.
  */
+import type { OrbitPatch } from "../__generated__/contract";
+import { solveEccentricAnomaly } from "./kepler";
 
-/**
- * Wire shape of one `OrbitPatch` entry (mirrors `mod/Sitrep.Contract/
- * OrbitPatch.cs`). Hand-mirrored, same convention as `VesselOrbitPayload`
- * in `wire-payloads.ts`: not (yet) generated into this package.
- */
-import { TransitionType } from "../__generated__/contract";
-import { namesOf } from "../enum-names";
-import type { Value } from "../value";
+/** The elements of a patch a propagation reads. */
+export type PatchConic = Pick<
+  OrbitPatch,
+  | "sma"
+  | "ecc"
+  | "inc"
+  | "lan"
+  | "argPe"
+  | "meanAnomalyAtEpoch"
+  | "epoch"
+  | "period"
+>;
 
-export interface OrbitPatchWirePayload {
-  sma: Value<"m">;
-  ecc: Value<"1">;
-  inc: Value<"°">;
-  lan: Value<"°">;
-  argPe: Value<"°">;
-  meanAnomalyAtEpoch: Value<"rad">;
-  epoch: Value<"ut">;
-  period: Value<"s">;
-  startUt: Value<"ut">;
-  endUt: Value<"ut">;
-  /** Raw `Sitrep.Contract.TransitionType` ordinal: see `transitionName`. */
-  patchStartTransition: number;
-  patchEndTransition: number;
-  peA: Value<"m">;
-  apA: Value<"m">;
-  semiLatusRectum: Value<"m">;
-  semiMinorAxis: Value<"m">;
-  referenceBody: string;
-  closestEncounterBody?: string | null;
-  /**
-   * Parent body's GM, so a patch propagates from what it carries with no
-   * `system.bodies` join. Absent only on a recording captured before the field
-   * existed; see `OrbitPatch.cs`.
-   */
-  mu?: Value<"m³/s²"> | null;
-  /** Body identity, where `referenceBody` is the display name. Absent on a pre-existing recording. */
-  referenceBodyIndex?: number | null;
-  /** `closestEncounterBody`'s index. Absent when there is no encounter, and on a pre-existing recording. */
-  closestEncounterBodyIndex?: number | null;
+/** A patch's conic with the window it holds for and the body it is around. */
+export type PatchSpan = PatchConic &
+  Pick<OrbitPatch, "startUt" | "endUt" | "referenceBody">;
+
+export interface InertialState {
+  /** Body-centred inertial XYZ in metres. +z is the body's rotation axis. */
+  x: number;
+  y: number;
+  z: number;
+  /** Distance from the body centre, metres. */
+  radius: number;
+}
+
+export interface GeoState {
+  /** Latitude, degrees. KSP bodies have no axial tilt, so inertial and body-fixed agree. */
+  lat: number;
+  /** Altitude above the mean radius, metres; negative below it. */
+  alt: number;
+  /** Inertial longitude, degrees. */
+  lonInertial: number;
+}
+
+export interface PredictionRef {
+  /** Current universal time, seconds. */
+  ut: number;
+  /** Vessel latitude at `ut`, degrees. */
+  lat: number;
+  /** Vessel body-fixed longitude at `ut`, degrees. */
+  lon: number;
+}
+
+export interface TrackSample {
+  ut: number;
+  lat: number;
+  lon: number;
+  alt: number;
+  /** Index into the walked chain of the patch the sample was drawn from. */
+  patchIndex: number;
+}
+
+function degToRad(deg: number): number {
+  return (deg * Math.PI) / 180;
+}
+
+function radToDeg(rad: number): number {
+  return (rad * 180) / Math.PI;
+}
+
+/** Wrap a degree value to (-180, 180], preferring +180 for continuity. */
+function wrap180(deg: number): number {
+  let x = ((((deg + 180) % 360) + 360) % 360) - 180;
+  if (x <= -180) x = 180;
+  return x;
+}
+
+/** Eccentric to true anomaly by the half-angle form, well behaved in every quadrant. Radians. */
+function eccentricToTrueAnomaly(E: number, e: number): number {
+  const y = Math.sqrt(1 + e) * Math.sin(E / 2);
+  const x = Math.sqrt(1 - e) * Math.cos(E / 2);
+  return 2 * Math.atan2(y, x);
+}
+
+/** The window a patch holds for, as UT seconds. */
+function windowOf(patch: PatchSpan): { start: number; end: number } {
+  return { start: patch.startUt.magnitude, end: patch.endUt.magnitude };
 }
 
 /**
- * The legacy `o.orbitPatches`/`ManeuverNode.orbitPatches` shape
- * (`@ksp-gonogo/core`'s `OrbitPatch`, `packages/core/src/schemas/
- * orbit.ts`): re-declared HERE, structurally identical but not
- * imported, because `sitrep-client` cannot depend on `@ksp-gonogo/core`
- * (the dependency points the other way: core depends on sitrep-client; see
- * `core`'s `package.json`). TypeScript's structural typing makes the two
- * interchangeable at every call site that matters (`@ksp-gonogo/core`'s
- * `predictGroundTrack` accepts this shape with no cast needed).
+ * The craft's inertial state at `ut` on `patch`. The UT should lie inside the
+ * patch's window; nothing is clamped, so picking the patch is the caller's.
+ * Mean motion comes from the patch's own period.
  */
-export interface LegacyOrbitPatch {
-  startUT: number;
-  endUT: number;
-  patchStartTransition: TransitionName;
-  patchEndTransition: TransitionName;
-  PeA: number;
-  ApA: number;
-  inclination: number;
-  eccentricity: number;
-  epoch: number;
-  period: number;
-  argumentOfPeriapsis: number;
-  sma: number;
-  lan: number;
-  maae: number;
-  referenceBody: string;
-  semiLatusRectum: number;
-  semiMinorAxis: number;
-  closestEncounterBody: string | null;
-}
+export function patchStateAt(patch: PatchConic, ut: number): InertialState {
+  const dt = ut - patch.epoch.magnitude;
+  const n = (2 * Math.PI) / patch.period.magnitude;
+  const M = patch.meanAnomalyAtEpoch.magnitude + n * dt;
+  const e = patch.ecc.magnitude;
+  const E = solveEccentricAnomaly(M, e);
+  const nu = eccentricToTrueAnomaly(E, e);
+  const r = patch.sma.magnitude * (1 - e * Math.cos(E));
 
-/**
- * `Sitrep.Contract.TransitionType` ordinal → the uppercase name legacy
- * the legacy formatter used (`packages/core/src/
- * schemas/orbit.ts`'s `OrbitPatch.patchStartTransition` doc comment).
- * Declaration order matches `mod/Sitrep.Contract/VesselEnums.cs`'s
- * `TransitionType` (Initial/Final/Encounter/Escape/Maneuver/Collision/
- * Unknown): same ordinal-table pattern as `contract-enum-names.ts`'s
- * `SITUATION_NAMES`/`SAS_MODE_NAMES`. KSP's OWN enum spells the impact case
- * "IMPACT"; `Gonogo.KSP.KspHost.BuildOrbitPatchChain` already translates
- * that to "COLLISION" before it reaches the wire, so this table only ever
- * needs the `TransitionType` spelling.
- */
-export const TRANSITION_TYPE_NAMES: readonly string[] = namesOf(
-  TransitionType,
-).map((name) => name.toUpperCase());
+  // Perifocal frame: periapsis along +x, angular momentum along +z.
+  const xPf = r * Math.cos(nu);
+  const yPf = r * Math.sin(nu);
 
-/**
- * The closed set of names {@link TRANSITION_TYPE_NAMES} can produce, derived
- * from the generated enum rather than written out.
- *
- * Derived so that a member appended in C# widens this union on the next
- * codegen, which turns any exhaustive `switch` over a transition into a compile
- * error until somebody rules on the new member. A hand-written union would do
- * the opposite: it would stay closed around the old members and let the new one
- * fall through whichever default arm happened to be there.
- */
-export type TransitionName = Uppercase<keyof typeof TransitionType>;
+  // Perifocal to inertial by the 3-1-3 rotation (argPe, inclination, LAN); z_pf is always zero, so two columns suffice.
+  const w = degToRad(patch.argPe.magnitude);
+  const i = degToRad(patch.inc.magnitude);
+  const O = degToRad(patch.lan.magnitude);
+  const cosW = Math.cos(w);
+  const sinW = Math.sin(w);
+  const cosI = Math.cos(i);
+  const sinI = Math.sin(i);
+  const cosO = Math.cos(O);
+  const sinO = Math.sin(O);
 
-function transitionName(ordinal: number): TransitionName {
-  return (TRANSITION_TYPE_NAMES[ordinal] ?? "UNKNOWN") as TransitionName;
-}
+  const p0 = cosO * cosW - sinO * sinW * cosI;
+  const p1 = sinO * cosW + cosO * sinW * cosI;
+  const p2 = sinW * sinI;
+  const q0 = -cosO * sinW - sinO * cosW * cosI;
+  const q1 = -sinO * sinW + cosO * cosW * cosI;
+  const q2 = cosW * sinI;
 
-/**
- * Reshapes one wire `OrbitPatch` into the legacy shape the ground-track
- * prediction and the map overlay already consume unchanged: a pure field
- * rename/passthrough, no lookup needed: `referenceBody`/`closestEncounterBody`
- * are already body NAME strings on the wire (see `OrbitPatch.cs`'s doc comment
- * for why), unlike most of this codebase's index-based body references.
- *
- * `mu` and the body indexes are deliberately NOT carried through. This is the
- * legacy shape and those fields never existed in it; a consumer
- * that wants them reads the wire payload, which is where they live.
- */
-export function mapOrbitPatch(wire: OrbitPatchWirePayload): LegacyOrbitPatch {
   return {
-    startUT: wire.startUt.magnitude,
-    endUT: wire.endUt.magnitude,
-    patchStartTransition: transitionName(wire.patchStartTransition),
-    patchEndTransition: transitionName(wire.patchEndTransition),
-    PeA: wire.peA.magnitude,
-    ApA: wire.apA.magnitude,
-    inclination: wire.inc.magnitude,
-    eccentricity: wire.ecc.magnitude,
-    epoch: wire.epoch.magnitude,
-    period: wire.period.magnitude,
-    argumentOfPeriapsis: wire.argPe.magnitude,
-    sma: wire.sma.magnitude,
-    lan: wire.lan.magnitude,
-    maae: wire.meanAnomalyAtEpoch.magnitude,
-    referenceBody: wire.referenceBody,
-    semiLatusRectum: wire.semiLatusRectum.magnitude,
-    semiMinorAxis: wire.semiMinorAxis.magnitude,
-    closestEncounterBody: wire.closestEncounterBody ?? null,
+    x: p0 * xPf + q0 * yPf,
+    y: p1 * xPf + q1 * yPf,
+    z: p2 * xPf + q2 * yPf,
+    radius: r,
   };
+}
+
+/** Latitude, inertial longitude and altitude of an inertial state over a body of `bodyRadius`. */
+export function geoFromInertial(
+  state: InertialState,
+  bodyRadius: number,
+): GeoState {
+  const lat = radToDeg(Math.asin(state.z / state.radius));
+  const lonInertial = radToDeg(Math.atan2(state.y, state.x));
+  return { lat, lonInertial, alt: state.radius - bodyRadius };
+}
+
+/** Whether the elliptical solve can propagate a patch. Hyperbolic and parabolic patches it cannot. */
+export function isPatchElliptical(patch: PatchConic): boolean {
+  return (
+    patch.ecc.lessThan(1) &&
+    patch.period.isFinite() &&
+    patch.period.isPositive()
+  );
+}
+
+/** Whether `ut` falls inside the patch's window, ends included. */
+export function patchHolds(patch: PatchSpan, ut: number): boolean {
+  const { start, end } = windowOf(patch);
+  return ut >= start && ut <= end;
+}
+
+/**
+ * `samples + 1` evenly spaced states across the patch's window, beginning no
+ * earlier than `notBeforeUt`. Empty when nothing of the window is left.
+ */
+export function patchArc(
+  patch: PatchSpan,
+  samples: number,
+  notBeforeUt?: number,
+): { ut: number; state: InertialState }[] {
+  const { start, end } = windowOf(patch);
+  const from = notBeforeUt === undefined ? start : Math.max(start, notBeforeUt);
+  if (!(end > from)) return [];
+  const arc: { ut: number; state: InertialState }[] = [];
+  for (let s = 0; s <= samples; s++) {
+    const ut = from + ((end - from) * s) / samples;
+    arc.push({ ut, state: patchStateAt(patch, ut) });
+  }
+  return arc;
+}
+
+/**
+ * Ground points along the chain from `ref.ut`, every `stepSec`, out to
+ * `horizonSec` ahead. The walk stays on `bodyId`: it ends at the first patch
+ * around another body or on an orbit the elliptical solve cannot propagate.
+ * Every sample is yielded, below the surface included, so where a walk stops
+ * short of its horizon is the consumer's to say.
+ *
+ * Body-fixed longitude is calibrated against the observed ground position: the
+ * inertial longitude the craft has at `ref.ut` IS `ref.lon`, and the surface
+ * turns under it at the sidereal rate from there. The calibrating patch is the
+ * one of `calibrationPatches` around `bodyId` that holds `ref.ut`, or the first
+ * around it; a future chain that does not contain `ref.ut` (a node's post-burn
+ * patches) passes the current chain here.
+ */
+export function* groundTrackSamples(
+  patches: readonly PatchSpan[],
+  bodyId: string,
+  bodyRadius: number,
+  rotationPeriod: number,
+  ref: PredictionRef,
+  horizonSec: number,
+  stepSec: number,
+  calibrationPatches: readonly PatchSpan[] = patches,
+): Generator<TrackSample> {
+  if (patches.length === 0 || stepSec <= 0 || horizonSec <= 0) return;
+
+  // Calibration needs a patch around the named body, or the inertial longitude is in another frame.
+  const calCandidates = calibrationPatches.filter(
+    (p) => p.referenceBody === bodyId && isPatchElliptical(p),
+  );
+  const refPatch =
+    calCandidates.find((p) => patchHolds(p, ref.ut)) ?? calCandidates[0];
+  if (!refPatch) return;
+
+  const refState = patchStateAt(refPatch, ref.ut);
+  const rotationOffsetAtRef =
+    radToDeg(Math.atan2(refState.y, refState.x)) - ref.lon;
+  const omega = 360 / rotationPeriod;
+  const endUT = ref.ut + horizonSec;
+
+  for (let patchIndex = 0; patchIndex < patches.length; patchIndex++) {
+    const patch = patches[patchIndex];
+    if (patch.referenceBody !== bodyId) return;
+    if (!isPatchElliptical(patch)) return;
+    const { start, end } = windowOf(patch);
+    if (end < ref.ut) continue;
+    if (start > endUT) return;
+
+    const from = Math.max(start, ref.ut);
+    const to = Math.min(end, endUT);
+    for (let ut = from; ut <= to; ut += stepSec) {
+      const geo = geoFromInertial(patchStateAt(patch, ut), bodyRadius);
+      const lon = wrap180(
+        geo.lonInertial - rotationOffsetAtRef - omega * (ut - ref.ut),
+      );
+      yield { ut, lat: geo.lat, lon, alt: geo.alt, patchIndex };
+    }
+  }
 }

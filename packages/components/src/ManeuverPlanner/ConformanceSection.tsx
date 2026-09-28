@@ -74,11 +74,11 @@ export function ConformanceSection({
                 planned={
                   first
                     ? {
-                        sma: first.sma,
-                        ecc: first.eccentricity,
-                        apoapsis: first.ApA,
-                        periapsis: first.PeA,
-                        argPe: first.argumentOfPeriapsis,
+                        sma: first.sma.magnitude,
+                        ecc: first.ecc.magnitude,
+                        apoapsis: first.apA.magnitude,
+                        periapsis: first.peA.magnitude,
+                        argPe: first.argPe.magnitude,
                       }
                     : null
                 }

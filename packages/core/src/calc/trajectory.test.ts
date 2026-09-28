@@ -1,11 +1,13 @@
-import { describe, expect, it } from "vitest";
-import type { OrbitPatch } from "../schemas/orbit";
 import {
-  buildBodyRotation,
+  type OrbitPatch,
+  TransitionType,
+  type WireOf,
+  wrapTypePayload,
+} from "@ksp-gonogo/sitrep-sdk";
+import { describe, expect, it } from "vitest";
+import {
   eccentricToTrueAnomaly,
-  geoFromInertial,
   MAX_TRACK_SAMPLES,
-  patchStateAt,
   predictGroundTrack,
   solveKepler,
   splitOnLongitudeWrap,
@@ -14,28 +16,30 @@ import {
 
 // ── Fixtures ─────────────────────────────────────────────────────────────────
 
-function circularEquatorial(overrides: Partial<OrbitPatch> = {}): OrbitPatch {
-  return {
-    startUT: 0,
-    endUT: 1_000_000,
-    patchStartTransition: "INITIAL",
-    patchEndTransition: "FINAL",
-    PeA: 1_000_000,
-    ApA: 1_000_000,
-    inclination: 0,
-    eccentricity: 0,
+function circularEquatorial(
+  overrides: Partial<WireOf<OrbitPatch>> = {},
+): OrbitPatch {
+  return wrapTypePayload<OrbitPatch>("OrbitPatch", {
+    startUt: 0,
+    endUt: 1_000_000,
+    patchStartTransition: TransitionType.Initial,
+    patchEndTransition: TransitionType.Final,
+    peA: 1_000_000,
+    apA: 1_000_000,
+    inc: 0,
+    ecc: 0,
     epoch: 0,
     period: 100,
-    argumentOfPeriapsis: 0,
+    argPe: 0,
     sma: 1_000_000,
     lan: 0,
-    maae: 0,
+    meanAnomalyAtEpoch: 0,
     referenceBody: "Kerbin",
     semiLatusRectum: 1_000_000,
     semiMinorAxis: 1_000_000,
     closestEncounterBody: null,
     ...overrides,
-  };
+  });
 }
 
 // ── solveKepler ──────────────────────────────────────────────────────────────
@@ -99,75 +103,6 @@ describe("eccentricToTrueAnomaly", () => {
   });
 });
 
-// ── patchStateAt ─────────────────────────────────────────────────────────────
-
-describe("patchStateAt", () => {
-  it("places the vessel at periapsis (+x) at epoch for a canonical orbit", () => {
-    const patch = circularEquatorial({
-      sma: 1_000_000,
-      eccentricity: 0,
-      maae: 0,
-    });
-    const state = patchStateAt(patch, 0);
-    expect(state.x).toBeCloseTo(1_000_000, 5);
-    expect(state.y).toBeCloseTo(0, 5);
-    expect(state.z).toBeCloseTo(0, 5);
-  });
-
-  it("traces a quarter-orbit in a quarter-period for a circular equatorial orbit", () => {
-    const patch = circularEquatorial({ sma: 1_000_000, period: 100 });
-    const q = patchStateAt(patch, 25);
-    expect(q.x).toBeCloseTo(0, 2);
-    expect(q.y).toBeCloseTo(1_000_000, 2);
-  });
-
-  it("keeps z = 0 for zero-inclination orbits regardless of time", () => {
-    const patch = circularEquatorial({ inclination: 0 });
-    for (const ut of [1, 10, 50, 99]) {
-      expect(patchStateAt(patch, ut).z).toBeCloseTo(0, 2);
-    }
-  });
-
-  it("lifts the vessel out of the equator for an inclined orbit", () => {
-    const patch = circularEquatorial({ inclination: 45 });
-    // At quarter orbit, the vessel should have a non-trivial z component.
-    const q = patchStateAt(patch, 25);
-    expect(Math.abs(q.z)).toBeGreaterThan(100_000);
-  });
-
-  it("radius equals sma*(1 - e·cosE) for an elliptical orbit", () => {
-    const patch = circularEquatorial({
-      sma: 1_000_000,
-      eccentricity: 0.2,
-      period: 100,
-    });
-    const state = patchStateAt(patch, 0);
-    // At epoch (M=0, so E=0), r = sma*(1 - e) = 800,000.
-    expect(state.radius).toBeCloseTo(800_000, 2);
-  });
-});
-
-// ── geoFromInertial ──────────────────────────────────────────────────────────
-
-describe("geoFromInertial", () => {
-  it("places (r, 0, 0) at (lat=0, lon=0)", () => {
-    const geo = geoFromInertial({ x: 1_000, y: 0, z: 0, radius: 1_000 }, 500);
-    expect(geo.lat).toBeCloseTo(0, 10);
-    expect(geo.lonInertial).toBeCloseTo(0, 10);
-    expect(geo.alt).toBeCloseTo(500, 10);
-  });
-
-  it("places (0, r, 0) at lon=90", () => {
-    const geo = geoFromInertial({ x: 0, y: 1_000, z: 0, radius: 1_000 }, 0);
-    expect(geo.lonInertial).toBeCloseTo(90, 10);
-  });
-
-  it("places (0, 0, r) at lat=90 (north pole)", () => {
-    const geo = geoFromInertial({ x: 0, y: 0, z: 1_000, radius: 1_000 }, 0);
-    expect(geo.lat).toBeCloseTo(90, 10);
-  });
-});
-
 // ── wrap180 ──────────────────────────────────────────────────────────────────
 
 describe("wrap180", () => {
@@ -187,27 +122,6 @@ describe("wrap180", () => {
   it("wraps values below -180", () => {
     expect(wrap180(-190)).toBeCloseTo(170, 10);
     expect(wrap180(-540)).toBeCloseTo(180, 10);
-  });
-});
-
-// ── buildBodyRotation ────────────────────────────────────────────────────────
-
-describe("buildBodyRotation", () => {
-  it("zero offset when body lon equals inertial lon at ref", () => {
-    const patch = circularEquatorial({ maae: 0 });
-    // At epoch, the vessel is at inertial lon=0. If ref.lon=0, offset is 0.
-    const ref = { ut: 0, lat: 0, lon: 0 };
-    const fn = buildBodyRotation(patch, ref, 100);
-    expect(fn(0, 0)).toBeCloseTo(0, 5);
-    expect(fn(45, 0)).toBeCloseTo(45, 5);
-  });
-
-  it("applies body rotation forward in time", () => {
-    const patch = circularEquatorial({ maae: 0 });
-    const ref = { ut: 0, lat: 0, lon: 0 };
-    const fn = buildBodyRotation(patch, ref, 100); // 3.6 deg/s
-    // After 10 s the body has rotated 36° eastward, so a feature at inertial lon=0 is now at body lon=-36.
-    expect(fn(0, 10)).toBeCloseTo(-36, 5);
   });
 });
 
@@ -262,14 +176,14 @@ describe("predictGroundTrack", () => {
 
   it("stops at an SOI transition (next patch has a different body)", () => {
     const kerbin = circularEquatorial({
-      endUT: 50,
-      patchEndTransition: "ESCAPE",
+      endUt: 50,
+      patchEndTransition: TransitionType.Escape,
     });
     const mun = circularEquatorial({
       referenceBody: "Mun",
-      startUT: 50,
-      endUT: 200,
-      patchStartTransition: "ENCOUNTER",
+      startUt: 50,
+      endUt: 200,
+      patchStartTransition: TransitionType.Encounter,
     });
     const out = predictGroundTrack(
       [kerbin, mun],
@@ -280,13 +194,13 @@ describe("predictGroundTrack", () => {
       200,
       10,
     );
-    // Should only include Kerbin samples, capped at endUT=50.
+    // Should only include Kerbin samples, capped at endUt=50.
     expect(out.every((s) => s.ut <= 50)).toBe(true);
     expect(out.every((s) => s.patchIndex === 0)).toBe(true);
   });
 
   it("respects the horizon when patches extend beyond it", () => {
-    const patch = circularEquatorial({ endUT: 10_000 });
+    const patch = circularEquatorial({ endUt: 10_000 });
     const out = predictGroundTrack(
       [patch],
       "Kerbin",
@@ -301,7 +215,7 @@ describe("predictGroundTrack", () => {
 
   it("skips hyperbolic patches silently (not supported in v1)", () => {
     const hyperbolic = circularEquatorial({
-      eccentricity: 1.5,
+      ecc: 1.5,
       period: Number.POSITIVE_INFINITY,
     });
     const out = predictGroundTrack(
@@ -319,12 +233,12 @@ describe("predictGroundTrack", () => {
   it("truncates on sub-surface dip (suborbital re-entry)", () => {
     // Body r = 200 km. Orbit sma=300 km, e=0.8 → Ap=540 km (alt 340 km, above
     // surface), Pe=60 km (alt -140 km, underground). Start at apoapsis via
-    // maae=π and we descend toward periapsis.
+    // meanAnomalyAtEpoch=π and we descend toward periapsis.
     const suborbital = circularEquatorial({
       sma: 300_000,
-      eccentricity: 0.8,
+      ecc: 0.8,
       period: 1000,
-      maae: Math.PI,
+      meanAnomalyAtEpoch: Math.PI,
     });
     const out = predictGroundTrack(
       [suborbital],
@@ -344,10 +258,10 @@ describe("predictGroundTrack", () => {
 
   it("uses external calibrationPatches when sampling a future-only patch set", () => {
     // Simulates a maneuver preview: current orbit at ref.ut=0 is fine; the maneuver patch doesn't start until UT=100 so it can't calibrate itself.
-    const currentPatch = circularEquatorial({ endUT: 200 });
+    const currentPatch = circularEquatorial({ endUt: 200 });
     const maneuverPatch = circularEquatorial({
-      startUT: 100,
-      endUT: 400,
+      startUt: 100,
+      endUt: 400,
       sma: 1_500_000,
       period: 200,
     });
@@ -367,7 +281,7 @@ describe("predictGroundTrack", () => {
 
   it("caps sample count at MAX_TRACK_SAMPLES for very long horizons", () => {
     // Solar-year horizon with 1 s step would be 31.5M samples if uncapped.
-    const patch = circularEquatorial({ endUT: 1e10, period: 1_000_000 });
+    const patch = circularEquatorial({ endUt: 1e10, period: 1_000_000 });
     const out = predictGroundTrack(
       [patch],
       "Kerbin",

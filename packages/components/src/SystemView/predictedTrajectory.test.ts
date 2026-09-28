@@ -1,4 +1,9 @@
-import type { OrbitPatch } from "@ksp-gonogo/core";
+import {
+  type OrbitPatch,
+  TransitionType,
+  type WireOf,
+  wrapTypePayload,
+} from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import {
   nextEncounter,
@@ -6,28 +11,28 @@ import {
   predictTrajectory,
 } from "./predictedTrajectory";
 
-function patch(overrides: Partial<OrbitPatch> = {}): OrbitPatch {
-  return {
-    startUT: 0,
-    endUT: 100,
-    patchStartTransition: "INITIAL",
-    patchEndTransition: "FINAL",
-    PeA: 1_000_000,
-    ApA: 1_000_000,
-    inclination: 0,
-    eccentricity: 0,
+function patch(overrides: Partial<WireOf<OrbitPatch>> = {}): OrbitPatch {
+  return wrapTypePayload<OrbitPatch>("OrbitPatch", {
+    startUt: 0,
+    endUt: 100,
+    patchStartTransition: TransitionType.Initial,
+    patchEndTransition: TransitionType.Final,
+    peA: 1_000_000,
+    apA: 1_000_000,
+    inc: 0,
+    ecc: 0,
     epoch: 0,
     period: 100,
-    argumentOfPeriapsis: 0,
+    argPe: 0,
     sma: 1_000_000,
     lan: 0,
-    maae: 0,
+    meanAnomalyAtEpoch: 0,
     referenceBody: "Kerbin",
     semiLatusRectum: 1_000_000,
     semiMinorAxis: 1_000_000,
     closestEncounterBody: null,
     ...overrides,
-  };
+  });
 }
 
 const NO_CHILDREN: ReadonlyMap<string, PatchPoint> = new Map();
@@ -46,7 +51,7 @@ describe("predictTrajectory", () => {
 
   it("samples a circular equatorial patch onto a centred ring in metres", () => {
     const { patches } = predictTrajectory({
-      patches: [patch({ startUT: 0, endUT: 100 })],
+      patches: [patch({ startUt: 0, endUt: 100 })],
       parentName: "Kerbin",
       ut: 0,
       childOffsets: NO_CHILDREN,
@@ -63,7 +68,7 @@ describe("predictTrajectory", () => {
 
   it("keeps the out-of-plane component of an inclined patch", () => {
     const { patches } = predictTrajectory({
-      patches: [patch({ inclination: 30, startUT: 0, endUT: 100 })],
+      patches: [patch({ inc: 30, startUt: 0, endUt: 100 })],
       parentName: "Kerbin",
       ut: 0,
       childOffsets: NO_CHILDREN,
@@ -77,14 +82,14 @@ describe("predictTrajectory", () => {
 
   it("marks the live patch (containing ut) as current and starts it at ut", () => {
     const { patches } = predictTrajectory({
-      patches: [patch({ startUT: 0, endUT: 100 })],
+      patches: [patch({ startUt: 0, endUt: 100 })],
       parentName: "Kerbin",
       ut: 25,
       childOffsets: NO_CHILDREN,
     });
     expect(patches).toHaveLength(1);
     expect(patches[0].isCurrent).toBe(true);
-    // The first sample is the vessel's position at ut=25 (quarter orbit), not at startUT: 90 degrees, the +y axis.
+    // The first sample is the vessel's position at ut=25 (quarter orbit), not at startUt: 90 degrees, the +y axis.
     const first = patches[0].points[0];
     expect(first.x).toBeCloseTo(0, 1);
     expect(first.y).toBeCloseTo(1e6, 1);
@@ -94,16 +99,20 @@ describe("predictTrajectory", () => {
     const munOffset = { x: 120e5, y: 0, z: 0 };
     const childOffsets = new Map<string, PatchPoint>([["Mun", munOffset]]);
     const patches = [
-      patch({ startUT: 0, endUT: 50, patchEndTransition: "ENCOUNTER" }),
       patch({
-        startUT: 50,
-        endUT: 100,
-        patchStartTransition: "ENCOUNTER",
+        startUt: 0,
+        endUt: 50,
+        patchEndTransition: TransitionType.Encounter,
+      }),
+      patch({
+        startUt: 50,
+        endUt: 100,
+        patchStartTransition: TransitionType.Encounter,
         referenceBody: "Mun",
         sma: 200_000,
-        eccentricity: 0,
+        ecc: 0,
         period: 60,
-        maae: 0,
+        meanAnomalyAtEpoch: 0,
       }),
     ];
     const { patches: projected, encounters } = predictTrajectory({
@@ -126,13 +135,17 @@ describe("predictTrajectory", () => {
     expect(encounters).toHaveLength(1);
     expect(encounters[0].kind).toBe("encounter");
     expect(encounters[0].body).toBe("Mun");
-    expect(encounters[0].ut).toBe(50);
+    expect(encounters[0].ut.magnitude).toBe(50);
     expect(encounters[0].x).toBeCloseTo(munPatch?.points[0].x ?? NaN, 6);
   });
 
   it("records an escape transition", () => {
     const patches = [
-      patch({ startUT: 50, endUT: 100, patchStartTransition: "ESCAPE" }),
+      patch({
+        startUt: 50,
+        endUt: 100,
+        patchStartTransition: TransitionType.Escape,
+      }),
     ];
     const { encounters } = predictTrajectory({
       patches,
@@ -161,7 +174,7 @@ describe("predictTrajectory", () => {
 
   it("skips hyperbolic patches the elliptical solver can't propagate", () => {
     const patches = [
-      patch({ eccentricity: 1.4, period: Number.NaN }),
+      patch({ ecc: 1.4, period: Number.NaN }),
       patch({ referenceBody: "Kerbin" }),
     ];
     const { patches: projected } = predictTrajectory({
@@ -201,11 +214,11 @@ describe("nextEncounter", () => {
       ["Mun", { x: 100e5, y: 0, z: 0 }],
     ]);
     const patches = [
-      patch({ startUT: 0, endUT: 50 }),
+      patch({ startUt: 0, endUt: 50 }),
       patch({
-        startUT: 50,
-        endUT: 100,
-        patchStartTransition: "ENCOUNTER",
+        startUt: 50,
+        endUt: 100,
+        patchStartTransition: TransitionType.Encounter,
         referenceBody: "Mun",
         sma: 200_000,
         period: 60,
@@ -221,6 +234,6 @@ describe("nextEncounter", () => {
     expect(next).not.toBeNull();
     expect(next?.body).toBe("Mun");
     expect(next?.kind).toBe("encounter");
-    expect(next?.ut).toBe(50);
+    expect(next?.ut.magnitude).toBe(50);
   });
 });

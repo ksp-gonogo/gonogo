@@ -30,12 +30,11 @@ describe("SOI event kinds", () => {
 
   for (const { transition, kind } of CASES) {
     it(`reads ${transition} as ${kind ?? "not an SOI crossing"}`, () => {
-      expect(soiEventKind(transition.toUpperCase())).toBe(kind);
+      expect(soiEventKind(TransitionType[transition])).toBe(kind);
     });
   }
 
-  it("says nothing for a name that is not a transition at all", () => {
-    expect(soiEventKind("SOI_CHANGE")).toBeNull();
-    expect(soiEventKind("")).toBeNull();
+  it("says nothing for an ordinal that is not a transition at all", () => {
+    expect(soiEventKind(99 as TransitionType)).toBeNull();
   });
 });
