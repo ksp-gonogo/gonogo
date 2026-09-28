@@ -218,6 +218,15 @@ jobs:
       # throws if it does not catch it.
       - run: pnpm --filter @ksp-gonogo/components font-gate
 
+      # Checkered-flag aspect gate: a checkerboard of square cells painted into
+      # a FramedDisplay with object-fit cover, at landscape, portrait and square
+      # tiles. A cell must render as wide as it is tall and the visible count
+      # must be the one cover predicts, which separates distortion, cropping
+      # and a reshaped field of view. Ratios, not a baseline, so it needs no
+      # per-engine images; a planted stretched picture must read as distorted
+      # or the gate fails as blind.
+      - run: pnpm --filter @ksp-gonogo/components aspect-gate
+
       # `asyncapi.yaml`, the core contract's wire surface, regenerated and
       # diffed against the committed file. Beside the README because it is the
       # answer to "what does this thing publish and what can I send it", and it
