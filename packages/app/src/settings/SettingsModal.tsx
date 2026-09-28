@@ -1,7 +1,5 @@
 import {
-  getDataSource,
   getSettingsTabsForScreen,
-  getUplinkHandle,
   NO_TELEMETRY_HOST_MESSAGE,
   useDataSources,
   useScreen,
@@ -19,7 +17,6 @@ import type {
 } from "@ksp-gonogo/sitrep-client";
 import { useStream } from "@ksp-gonogo/sitrep-client";
 import {
-  isValue,
   value as quantity,
   SettingsPersistenceState,
 } from "@ksp-gonogo/sitrep-sdk";
@@ -38,13 +35,7 @@ import {
   SectionTitle,
   Stack,
 } from "@ksp-gonogo/ui-kit";
-import {
-  Fragment,
-  useCallback,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from "react";
+import { Fragment, useState, useSyncExternalStore } from "react";
 import styled from "styled-components";
 import { analyticsConsentService } from "../analytics/AnalyticsConsentService";
 import { BackupManager } from "../backup/BackupManager";
@@ -62,7 +53,6 @@ import { KspSettings } from "./KspSettings";
 import type {
   SettingDefinition,
   SettingValue,
-  SourceBackedSetting,
   StreamBackedSetting,
 } from "./registry";
 import {
@@ -539,16 +529,9 @@ function readOnlyValueOf(v: SettingValue | undefined): ReadOnlyFieldValue {
 }
 
 function SettingRow({ def }: { def: SettingDefinition }) {
-  // Split by BACKING at the component boundary (not a conditional hook): a
-  // source-backed row reads/writes a DataSource via useSyncExternalStore, a
-  // stream-backed one reads a Topic via useStream, a client-pref row
-  // reads/writes localStorage via useSetting. Each row calls exactly one hook
-  // path, so rules-of-hooks stays honest.
+  // Split by backing at the component boundary so each row calls exactly one hook path.
   if (def.backing === "stream-backed") {
     return <StreamBackedRow def={def} />;
-  }
-  if (def.backing === "source-backed") {
-    return <SourceBackedRow def={def} />;
   }
   return <ClientPrefRow def={def} />;
 }
@@ -581,57 +564,6 @@ function StreamBackedRow({ def }: { def: StreamBackedSetting }) {
         }
       />
     </SettingReadOnlyLine>
-  );
-}
-
-/**
- * A source-backed setting's row. Its value lives on the Uplink's `DataSource`
- * (looked up by `sourceId`), read/written through the client-supplied binding
- * closures: NEVER through `SettingsService`/localStorage. When the source
- * isn't registered the row renders inert (disabled) rather than crashing,
- * the same graceful-absence posture an absent-source-gated surface has.
- */
-function SourceBackedRow({ def }: { def: SourceBackedSetting }) {
-  // An Uplink's source is looked up first in the uplink-handle registry,
-  // where Uplink singletons register (via `registerUplinkHandle`): then the
-  // DataSource registry as a fallback for sources registered that way.
-  const source: unknown =
-    getUplinkHandle(def.sourceId) ?? getDataSource(def.sourceId);
-  const getSnapshot = useStableSettingSnapshot(() =>
-    source ? def.read(source) : undefined,
-  );
-  const value = useSyncExternalStore(
-    (cb) => (source ? def.subscribe(source, cb) : () => {}),
-    getSnapshot,
-  );
-
-  if (isReadOnlySetting(def)) {
-    return (
-      <SettingReadOnlyLine>
-        <ReadOnlyField
-          label={def.label}
-          description={def.description}
-          value={readOnlyValueOf(value)}
-        />
-      </SettingReadOnlyLine>
-    );
-  }
-  return (
-    <SettingLine>
-      <RowText>
-        <RowLabel>{def.label}</RowLabel>
-        {def.description && <RowDesc>{def.description}</RowDesc>}
-      </RowText>
-      <SettingControl
-        def={def}
-        value={value}
-        disabled={source === undefined}
-        onChange={(next) => {
-          // `write` is present because `isReadOnlySetting` returned false.
-          if (source) def.write?.(source, next as never);
-        }}
-      />
-    </SettingLine>
   );
 }
 
@@ -744,47 +676,6 @@ function SettingControl({
       aria-label={def.label}
     />
   );
-}
-
-/**
- * `useSyncExternalStore` tears the tree down with an infinite loop if
- * `getSnapshot` hands back a new object each call, and a `number` row's binding
- * is free to build its `Value` fresh on every read: `read: (s) => value("m",
- * s.tolerance)` is the natural way to write one. Nothing in the API would tell
- * the author the loop was theirs, so the previous snapshot is kept and reused
- * whenever the new one means the same thing.
- */
-function useStableSettingSnapshot(
-  read: () => SettingValue | undefined,
-): () => SettingValue | undefined {
-  const readRef = useRef(read);
-  readRef.current = read;
-  const last = useRef<{ snapshot: SettingValue | undefined } | undefined>(
-    undefined,
-  );
-  return useCallback(() => {
-    const next = readRef.current();
-    const prev = last.current;
-    if (prev !== undefined && sameSettingValue(prev.snapshot, next)) {
-      return prev.snapshot;
-    }
-    last.current = { snapshot: next };
-    return next;
-  }, []);
-}
-
-function sameSettingValue(
-  a: SettingValue | undefined,
-  b: SettingValue | undefined,
-): boolean {
-  if (Object.is(a, b)) return true;
-  if (isValue(a) && isValue(b)) {
-    // Same rung as well as same quantity: `equals` converts, so 1 km equals
-    // 1000 m, and reusing the old object across that would pin the row's
-    // display to a unit the source has stopped using.
-    return a.unit === b.unit && a.equals(b);
-  }
-  return false;
 }
 
 const Wrap = styled.div`

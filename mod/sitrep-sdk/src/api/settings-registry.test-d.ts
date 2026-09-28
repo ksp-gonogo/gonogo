@@ -3,7 +3,7 @@
 // import comes from the package root, the way a third party installs it:
 // nothing here reaches into `spine/`, which is unpublished.
 //
-// The rows below are the four shapes a mod's settings actually take, and the
+// The rows below are the shapes a mod's settings actually take, and the
 // `@ts-expect-error` blocks are the point of the file. A registry that accepted
 // `type: "number"` beside `defaultValue: true` would render a `Switch` over a
 // tolerance and say nothing, which is the failure mode the typed union exists
@@ -37,28 +37,6 @@ registerSetting({
   label: "Explicit boolean",
   category: "Test",
   defaultValue: false,
-});
-
-// --- A source-backed boolean's `write` still takes a boolean ----------------
-//
-// The row's declared type reaches the binding closures, so a client that owns a
-// `setThrottle(v: boolean)` can pass `v` straight through, which is what every
-// existing caller does.
-
-declare function setThrottle(on: boolean): void;
-
-registerSetting({
-  id: "legacy.sourced",
-  backing: "source-backed",
-  type: "boolean",
-  sourceId: "some-uplink",
-  read: () => true,
-  write: (_s, v) => {
-    setThrottle(v);
-  },
-  subscribe: () => () => {},
-  label: "Throttle",
-  category: "Test",
 });
 
 // --- A quantity, read off the wire, grouped, and never writable -------------
@@ -124,16 +102,13 @@ registerSetting({
   group: "Drawing",
 });
 
-// --- A source-backed row the source reports but will not accept -------------
+// --- A preference shown but never offered as a control ---------------------
 
 registerSetting({
   id: "example.buildId",
-  backing: "source-backed",
   type: "text",
   readOnly: true,
-  sourceId: "some-uplink",
-  read: () => "0.1.0",
-  subscribe: () => () => {},
+  defaultValue: "0.1.0",
   label: "Build",
   category: "Example",
   group: "Diagnostics",
@@ -164,18 +139,17 @@ registerSetting({
   defaultValue: 3,
 });
 
+// A mod-side value an operator can change is a row the mod declares on
+// `settings.gonogo`, so there is no client binding to a DataSource to declare.
 registerSetting({
-  id: "wrong.sourcedWrite",
+  id: "wrong.sourceBacked",
+  // @ts-expect-error source-backed is not a backing
   backing: "source-backed",
-  type: "number",
+  type: "boolean",
   sourceId: "some-uplink",
-  read: () => 1,
-  // @ts-expect-error the row is a number row, so its writer takes a number
-  write: (_s, v: boolean) => {
-    setThrottle(v);
-  },
+  read: () => true,
   subscribe: () => () => {},
-  label: "Steps",
+  label: "Throttle",
   category: "Test",
 });
 
@@ -198,8 +172,8 @@ registerSetting({
 
 // What a client with dozens of rows writes. Mixed types collapse to the union
 // the moment they share an array, and the generic form cannot take that back
-// (a source-backed row's `write` is contravariant in the row's own type), so
-// the forwarding overload is what makes the loop compile.
+// (a stream-backed row's `select` is contravariant in its payload), so the
+// forwarding overload is what makes the loop compile.
 /* The erased row's `select` takes the payload unqualified, because a list has
    no topic literal left for the precise overload to read. Narrowing here is
    what the forwarding overload costs an author who wants one. */

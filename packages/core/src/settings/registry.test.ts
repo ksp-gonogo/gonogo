@@ -28,7 +28,7 @@ declare module "@ksp-gonogo/sitrep-sdk" {
   }
 }
 
-describe("settings registry: three backings", () => {
+describe("settings registry: two backings", () => {
   it("stores a client-pref setting (backing omitted defaults to client-pref)", () => {
     registerSetting({
       id: "feat.flag",
@@ -39,39 +39,8 @@ describe("settings registry: three backings", () => {
     });
     const def = getSettingDefinition("feat.flag");
     expect(def?.backing).toBeUndefined();
-    // Narrows to ClientPrefSetting, which is the only backing carrying a
-    // `defaultValue`. Not `!== "source-backed"`: stream-backed is a third
-    // backing and has no default either, so excluding one arm is not enough.
+    // Narrows to ClientPrefSetting, the only backing carrying a `defaultValue`.
     expect(def && def.backing === undefined && def.defaultValue).toBe(true);
-  });
-
-  it("stores a source-backed setting with its binding closures", () => {
-    let stored = false;
-    registerSetting({
-      id: "feat.sourced",
-      backing: "source-backed",
-      type: "boolean",
-      sourceId: "some-source",
-      read: () => stored,
-      write: (_s, v) => {
-        stored = v;
-      },
-      subscribe: () => () => {},
-      label: "Sourced",
-      category: "Test",
-    });
-    const def = getSettingDefinition("feat.sourced");
-    expect(def?.backing).toBe("source-backed");
-    // `type` as well as `backing`: reading the registry back hands you the
-    // union over every SettingType, and `write`'s value parameter across that
-    // union is `never`, so the boolean it was registered with will not go in.
-    if (def?.backing === "source-backed" && def.type === "boolean") {
-      expect(def.sourceId).toBe("some-source");
-      // A writable row HAS a write half: `write` is optional now, because a read-only source-backed row omits it, so the presence is the assertion.
-      expect(def.write).toBeDefined();
-      def.write?.(null, true);
-      expect(def.read(null)).toBe(true);
-    }
   });
 
   it("filters by screen, treating an omitted `screens` as both", () => {
@@ -178,12 +147,9 @@ describe("isReadOnlySetting: one rule for two ways of having no writer", () => {
   it("says so when the row declares it", () => {
     registerSetting({
       id: "ro.declared",
-      backing: "source-backed",
       type: "text",
       readOnly: true,
-      sourceId: "src",
-      read: () => "1.4.2",
-      subscribe: () => () => {},
+      defaultValue: "1.4.2",
       label: "Build",
       category: "Test",
     });
@@ -205,21 +171,6 @@ describe("isReadOnlySetting: one rule for two ways of having no writer", () => {
     // The flag is absent and the answer is still yes. A renderer that checked
     // only the flag would offer a Switch over a telemetry topic.
     expect(def?.readOnly).toBeUndefined();
-    expect(def && isReadOnlySetting(def)).toBe(true);
-  });
-
-  it("says so for a source-backed row whose binding has no write half", () => {
-    registerSetting({
-      id: "ro.noWriter",
-      backing: "source-backed",
-      type: "text",
-      sourceId: "src",
-      read: () => "1.4.2",
-      subscribe: () => () => {},
-      label: "Build",
-      category: "Test",
-    });
-    const def = getSettingDefinition("ro.noWriter");
     expect(def && isReadOnlySetting(def)).toBe(true);
   });
 

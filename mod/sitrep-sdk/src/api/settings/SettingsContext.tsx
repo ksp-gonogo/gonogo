@@ -37,12 +37,8 @@ export function useSettingsService(): SettingsService {
 /**
  * Reactive accessor for a single client-pref setting. Returns a
  * `[value, setValue]` tuple; mutations persist through the underlying
- * `SettingsService` and broadcast to other subscribers.
- *
- * This is the CLIENT-PREF path only, source-backed settings never route
- * through here (their value lives on a `DataSource`, not `SettingsService`);
- * `SettingsModal` renders those with a dedicated source-bound row so this hook
- * stays a simple, single-purpose localStorage reader.
+ * `SettingsService` and broadcast to other subscribers. Client-pref rows
+ * only: a stream-backed row's value is on a Topic, not in `SettingsService`.
  */
 export function useSetting<SettingValue>(
   key: string,

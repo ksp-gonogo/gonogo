@@ -191,8 +191,6 @@ export type {
   SlotId,
   SlotProps,
   SlotRegistry,
-  SourceBackedSetting,
-  SourceBackedSettingOf,
   StatEntry,
   StreamBackedSetting,
   StreamBackedSettingOf,
@@ -417,14 +415,13 @@ export const registerSettingsTab = (def: SettingsTabDefinition): void =>
 /**
  * Declare a setting the app renders in its Settings surface, the PREFERRED
  * path over a custom tab (`registerSettingsTab`). A client-pref setting
- * persists to localStorage; a source-backed one binds to the Uplink's own
- * `DataSource`; a stream-backed one shows a value the mod publishes on a
- * Topic and cannot be written at all. Rows may be `boolean`, `text` or
+ * persists to localStorage; a stream-backed one shows a value the mod
+ * publishes on a Topic and cannot be written at all. Rows may be `boolean`, `text` or
  * `number`, `readOnly`, and filed into a named `group` inside their category.
  * See `SettingDefinition`.
  *
- * Generic so the row's `type` decides what `defaultValue`/`read`/`write`/
- * `select` are allowed to be: declare `type: "number"` and a `defaultValue` of
+ * Generic so the row's `type` decides what `defaultValue` and `select` are
+ * allowed to be: declare `type: "number"` and a `defaultValue` of
  * `true` is a compile error at the call site rather than a `Switch` rendering
  * a tolerance.
  */
@@ -434,14 +431,10 @@ export function registerSetting<
 >(def: SettingDefinitionOf<SettingKind, Topic>): void;
 /**
  * Register an ALREADY-TYPED definition, for a client that built its rows as a
- * list and registers them in a loop.
- *
- * The spine's own `registerSetting` has carried this overload since the
- * registry grew past one type; the author-facing facade did not, so a client
- * with enough rows to want a list could declare them and then not register
- * them. Mixed rows collapse to `SettingDefinition` the moment they share an
- * array, and `write`'s parameter is contravariant, so the generic form rejects
- * exactly the shape a list has.
+ * list and registers them in a loop. Mixed rows collapse to
+ * `SettingDefinition` the moment they share an array, and `select`'s
+ * parameter is contravariant, so the generic form rejects exactly the shape a
+ * list has.
  */
 export function registerSetting(def: SettingDefinition): void;
 export function registerSetting(
@@ -456,8 +449,8 @@ export function registerSetting(
 /**
  * Whether a registered row is one the operator can change. The renderer's own
  * rule, exported so an Uplink asking the same question of its own definitions
- * gets the same answer: a `stream-backed` row and a `source-backed` row with
- * no `write` are read-only whether or not they said so.
+ * gets the same answer: a `stream-backed` row is read-only whether or not it
+ * said so.
  */
 export { isReadOnlySetting, settingTypeOf } from "../spine/settings-registry";
 export type { VantageTrajectory } from "../spine/use-vantage-trajectory";

@@ -20,8 +20,6 @@ export {
   type SettingType,
   type SettingValue,
   type SettingValueByType,
-  type SourceBackedSetting,
-  type SourceBackedSettingOf,
   type StreamBackedSetting,
   type StreamBackedSettingOf,
   settingTypeOf,

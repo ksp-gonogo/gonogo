@@ -286,8 +286,8 @@ export interface GonogoHost {
   /**
    * Register (or replace) a declarative setting the app renders in its Settings
    * surface: the PREFERRED path over a custom tab. A client-pref setting
-   * persists to localStorage; a source-backed one reads/writes the Uplink's
-   * own `DataSource` (see `SettingDefinition`).
+   * persists to localStorage; a stream-backed one shows a value read off a
+   * Topic (see `SettingDefinition`).
    */
   registerSetting(def: SettingDefinition): void;
 

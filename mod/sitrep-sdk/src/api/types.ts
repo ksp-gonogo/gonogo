@@ -1046,8 +1046,6 @@ export type {
   SettingType,
   SettingValue,
   SettingValueByType,
-  SourceBackedSetting,
-  SourceBackedSettingOf,
   StreamBackedSetting,
   StreamBackedSettingOf,
 } from "../spine/settings-registry";

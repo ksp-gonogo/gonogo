@@ -20,10 +20,6 @@ import type { Screen } from "./screen";
  * means `client-pref`):
  *   - `client-pref`: a pure gonogo-side preference persisted to localStorage
  *     via `SettingsService`/`useSetting`. No mod round-trip.
- *   - `source-backed`: read/write route THROUGH an Uplink's `DataSource` to
- *     the mod (e.g. a live config that persists mod-side). The binding closures
- *     are co-located in the client that knows the source's shape; the registry
- *     stores them type-erased (the client owns correctness). No localStorage.
  *   - `stream-backed`: the value arrives on a telemetry Topic and there is no
  *     writer at all. This is what a setting looks like when it is PROVENANCE
  *     rather than preference: a plugin's own configuration, read off the wire,
@@ -128,35 +124,11 @@ export interface ClientPrefSettingOf<SettingKind extends SettingType>
 }
 
 /**
- * A source-backed setting: its value lives on an Uplink's `DataSource`, not in
- * localStorage. `read`/`subscribe` are the client-supplied binding onto that
- * source (looked up by `sourceId`); the registry stores them type-erased
- * (`source: unknown`), and the consuming row casts to the concrete source type
- * it owns.
- *
- * `write` is what makes the row a control. Omit it (and declare `readOnly`) for
- * a value the source can report but not accept.
- */
-export interface SourceBackedSettingOf<SettingKind extends SettingType>
-  extends SettingDefinitionBase {
-  backing: "source-backed";
-  type?: SettingKind;
-  /** The registered `DataSource` id whose binding this setting reads/writes. */
-  sourceId: string;
-  read: (source: unknown) => SettingValueByType[SettingKind];
-  write?: (source: unknown, value: SettingValueByType[SettingKind]) => void;
-  subscribe: (source: unknown, cb: () => void) => () => void;
-}
-
-/**
  * A stream-backed setting: the value arrives on a telemetry Topic and the row
  * only ever shows it.
  *
- * This is the shape a mod's own configuration takes. It is not a preference
- * the console owns, and there is no `DataSource` in the middle to bind to: the
- * Uplink already publishes the values on a channel, and inventing a source
- * whose only job is to mirror one topic would be a second copy of the same
- * numbers with nothing saying which is authoritative.
+ * This is the shape a mod's own configuration takes: not a preference the
+ * console owns, but values the Uplink already publishes on a channel.
  *
  * Read-only by construction, so `readOnly` is redundant here and the renderer
  * asks {@link isReadOnlySetting} rather than the flag.
@@ -204,8 +176,8 @@ export interface StoredStreamBackedSettingOf<SettingKind extends SettingType>
 
 /**
  * One row, at one {@link SettingType}. This is the REGISTRATION type: `SettingKind` is
- * inferred from `type` at the call site, which is what makes `defaultValue`,
- * `read`, `write` and `select` agree with each other.
+ * inferred from `type` at the call site, which is what makes `defaultValue`
+ * and `select` agree with each other.
  *
  * Reading the registry back hands you {@link SettingDefinition}, the union over
  * all three types, because the renderer has to cope with whatever was declared.
@@ -215,7 +187,6 @@ export type SettingDefinitionOf<
   Topic extends TopicId = TopicId,
 > =
   | ClientPrefSettingOf<SettingKind>
-  | SourceBackedSettingOf<SettingKind>
   | StreamBackedSettingOf<SettingKind, Topic>;
 
 export type ClientPrefSetting =
@@ -223,32 +194,23 @@ export type ClientPrefSetting =
   | ClientPrefSettingOf<"text">
   | ClientPrefSettingOf<"number">;
 
-export type SourceBackedSetting =
-  | SourceBackedSettingOf<"boolean">
-  | SourceBackedSettingOf<"text">
-  | SourceBackedSettingOf<"number">;
-
 export type StreamBackedSetting =
   | StoredStreamBackedSettingOf<"boolean">
   | StoredStreamBackedSettingOf<"text">
   | StoredStreamBackedSettingOf<"number">;
 
 /** Any registered row, whatever its backing and whatever its type. */
-export type SettingDefinition =
-  | ClientPrefSetting
-  | SourceBackedSetting
-  | StreamBackedSetting;
+export type SettingDefinition = ClientPrefSetting | StreamBackedSetting;
 
 /**
  * Whether the operator can change this row. ONE rule, in one place, because
  * there are two ways for a row to be uncontrollable (declared `readOnly`, or a
- * backing with no writer) and a renderer that checks only the flag would offer
+ * stream backing, which has no writer) and a renderer that checks only the flag would offer
  * a `Switch` on a stream.
  */
 export function isReadOnlySetting(def: SettingDefinition): boolean {
   if (def.backing === "stream-backed") return true;
-  if (def.readOnly === true) return true;
-  return def.backing === "source-backed" && def.write === undefined;
+  return def.readOnly === true;
 }
 
 /** The declared type of a row, with the boolean default applied. */
@@ -260,8 +222,8 @@ const registry = new Map<string, SettingDefinition>();
 
 /**
  * The authoring overload: `SettingKind` is pinned by `type` (absent means `"boolean"`),
- * which is what makes `defaultValue`, `read`, `write` and `select` agree with
- * each other and with the row's declared type.
+ * which is what makes `defaultValue` and `select` agree with each other and
+ * with the row's declared type.
  */
 export function registerSetting<
   SettingKind extends SettingType = "boolean",

@@ -736,8 +736,6 @@
     ".:SlotId",
     ".:SlotRegistry",
     ".:SolarPanelEntry",
-    ".:SourceBackedSetting",
-    ".:SourceBackedSettingOf",
     ".:SpaceCenterPartsAvailable",
     ".:SpaceCenterPoiEntry",
     ".:SpaceCenterScene",

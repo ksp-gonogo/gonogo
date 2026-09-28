@@ -9,7 +9,6 @@ import {
   clearUplinkHandles,
   registerDataSource,
   registerSettingsTab,
-  registerUplinkHandle,
   ScreenProvider,
 } from "@ksp-gonogo/core";
 import {
@@ -228,17 +227,6 @@ afterEach(() => {
   __resetUplinkOutcomes();
   __clearSettingsTabsForTests();
 });
-
-/**
- * The registered source this row binds to.
- *
- * A source-backed row's binding closures are handed the source the registry
- * holds under `sourceId`, which it stores erased: the id does not determine
- * the type, so the client that wrote the binding is the one that knows.
- */
-function throttleSource(source: unknown): ThrottleSource {
-  return source as ThrottleSource;
-}
 
 describe("SettingsModal Data Sources tab: single Gonogo/Sitrep connection", () => {
   it("shows the Sitrep Stream connection row when registered", async () => {
@@ -653,129 +641,6 @@ describe("SettingsModal registered-tab gating", () => {
   });
 });
 
-/**
- * A source-backed setting reads/writes through a registered `DataSource`'s own
- * getter/setter/subscribe rather than localStorage: the migration path for a
- * live mod-round-trip config (e.g. an Uplink's render throttle). This fake
- * exposes the throttle-shaped trio the setting's binding closures dial.
- */
-function makeThrottleSourceStub(initial = false): DataSource & {
-  getValue: () => boolean;
-  emit: (v: boolean) => void;
-  setSpy: ReturnType<typeof vi.fn>;
-} {
-  let value = initial;
-  const listeners = new Set<() => void>();
-  const setSpy = vi.fn((v: boolean) => {
-    value = v;
-    for (const cb of listeners) cb();
-  });
-  return {
-    id: "throttle-src",
-    name: "Throttle Source",
-    status: "connected" as DataSourceStatus,
-    connect: async () => {},
-    disconnect: () => {},
-    schema: () => [],
-    subscribe: () => () => {},
-    configSchema: () => [],
-    getConfig: () => ({}),
-    configure: () => {},
-    onStatusChange: () => () => {},
-    getValue: () => value,
-    setSpy,
-    emit: (v: boolean) => {
-      value = v;
-      for (const cb of listeners) cb();
-    },
-    // the binding trio the SourceBackedSetting dials:
-    getThrottle: () => value,
-    setThrottle: setSpy,
-    onThrottleChange: (cb: () => void) => {
-      listeners.add(cb);
-      return () => listeners.delete(cb);
-    },
-  } as DataSource & {
-    getValue: () => boolean;
-    emit: (v: boolean) => void;
-    setSpy: ReturnType<typeof vi.fn>;
-  };
-}
-
-interface ThrottleSource {
-  getThrottle(): boolean;
-  setThrottle(v: boolean): void;
-  onThrottleChange(cb: () => void): () => void;
-}
-
-function registerThrottleSetting() {
-  registerSetting({
-    id: "throttle.enabled",
-    backing: "source-backed",
-    type: "boolean",
-    sourceId: "throttle-src",
-    read: (s) => throttleSource(s).getThrottle(),
-    write: (s, v) => throttleSource(s).setThrottle(v),
-    subscribe: (s, cb) => throttleSource(s).onThrottleChange(cb),
-    category: "Test",
-    label: "Throttle main render",
-    description: "A source-backed setting bound to a DataSource.",
-    screens: ["main"],
-  });
-}
-
-describe("SettingsModal: source-backed setting row", () => {
-  it("reflects the DataSource's current value in the Switch", () => {
-    registerDataSource(makeThrottleSourceStub(true));
-    registerThrottleSetting();
-    renderModal("main");
-    expect(
-      screen.getByRole("checkbox", { name: /throttle main render/i }),
-    ).toBeChecked();
-  });
-
-  it("writes back through the source's setter when toggled", () => {
-    const src = makeThrottleSourceStub(false);
-    registerDataSource(src);
-    registerThrottleSetting();
-    renderModal("main");
-    const box = screen.getByRole("checkbox", { name: /throttle main render/i });
-    expect(box).not.toBeChecked();
-    fireEvent.click(box);
-    expect(src.setSpy).toHaveBeenCalledWith(true);
-    expect(box).toBeChecked();
-  });
-
-  it("reflects an external source change without a localStorage write", () => {
-    const src = makeThrottleSourceStub(false);
-    registerDataSource(src);
-    registerThrottleSetting();
-    renderModal("main");
-    const box = screen.getByRole("checkbox", { name: /throttle main render/i });
-    expect(box).not.toBeChecked();
-    act(() => src.emit(true));
-    expect(box).toBeChecked();
-  });
-
-  it("renders the row inert (disabled) when its source is not registered", () => {
-    registerThrottleSetting(); // no source in either registry
-    renderModal("main");
-    expect(
-      screen.getByRole("checkbox", { name: /throttle main render/i }),
-    ).toBeDisabled();
-  });
-
-  it("resolves the source via the uplink-handle registry (an Uplink singleton's path)", () => {
-    // An Uplink can register its source with registerUplinkHandle rather than registerDataSource: the row must resolve there too.
-    registerUplinkHandle("throttle-src", makeThrottleSourceStub(true));
-    registerThrottleSetting();
-    renderModal("main");
-    expect(
-      screen.getByRole("checkbox", { name: /throttle main render/i }),
-    ).toBeChecked();
-  });
-});
-
 describe("SettingsModal: dependsOn (nested/inert sub-toggle)", () => {
   const PARENT_ID = "test.parentToggle";
   const CHILD_ID = "test.childToggle";
@@ -1107,17 +972,13 @@ describe("SettingsModal: typed writable rows", () => {
   });
 });
 
-describe("SettingsModal: a source-backed row that cannot be written", () => {
+describe("SettingsModal: a row that cannot be written", () => {
   it("renders its value instead of a disabled switch", () => {
-    registerUplinkHandle("throttle-src", makeThrottleSourceStub(true));
     registerSetting({
-      id: "throttle.build",
-      backing: "source-backed",
+      id: "build.version",
       type: "text",
       readOnly: true,
-      sourceId: "throttle-src",
-      read: () => "1.4.2",
-      subscribe: () => () => {},
+      defaultValue: "1.4.2",
       category: "Test",
       label: "Build",
       screens: ["main"],
