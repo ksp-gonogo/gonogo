@@ -10,6 +10,7 @@ import type {
   Gauge,
   LineGraph,
   MissionDate,
+  ModelledAlongside,
   ReadOnlyField,
   ReckonedUnit,
   Stepper,
@@ -148,6 +149,12 @@ export const UI_KIT_PRESETS = {
     },
     { name: "Held", args: { value: held("m", 71_420) } },
   ] satisfies Presets<ComponentProps<typeof ReckonedUnit>>,
+  ModelledAlongside: [
+    {
+      name: "Apart",
+      args: { observed: 20, modelled: 17, write: (figure) => String(figure) },
+    },
+  ] satisfies Presets<ComponentProps<typeof ModelledAlongside>>,
   LineGraph: [
     {
       name: "Two series",

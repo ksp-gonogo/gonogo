@@ -148,6 +148,23 @@ describe("Countdown under signal delay", () => {
     ).toBeTruthy();
   });
 
+  it("draws the observation alone, unmarked, where the model reads the same", () => {
+    const { container } = render(
+      <Countdown value={carriedToScet(value("s", 90), value("s", 90.4))} />,
+    );
+    expect(container.textContent).toBe("1min 30s");
+    expect(container.querySelector("[data-modelled-alongside]")).toBeNull();
+    expect(container.querySelector("[data-held-mark]")).toBeNull();
+  });
+
+  it("reads the same only at the precision drawn, so a precise clock draws the model", () => {
+    const reading = carriedToScet(value("s", 0.9), value("s", 0.4));
+    const whole = render(<Countdown value={reading} />).container;
+    const precise = render(<Countdown value={reading} precise />).container;
+    expect(whole.querySelector("[data-modelled-alongside]")).toBeNull();
+    expect(precise.querySelector("[data-modelled-alongside]")).not.toBeNull();
+  });
+
   it("draws nothing alongside a model that stays at the received edge", () => {
     const { container } = render(
       <Countdown value={reckoned(value("s", 90), value("s", 42))} />,

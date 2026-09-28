@@ -17,7 +17,6 @@
 import { bandIn, type Value } from "@ksp-gonogo/sitrep-sdk";
 import styled from "styled-components";
 import {
-  boundsStandApart,
   heldNameMarker,
   InstrumentBound,
   InstrumentHeldMark,
@@ -25,6 +24,7 @@ import {
 } from "./instrumentCurrency";
 import { NULL_DISPLAY } from "./NullValue";
 import { resolveCurrency, type UnitValue } from "./readingCurrency";
+import { placedOnScale, standsApart } from "./standsApart";
 import { type FormatsFor, speakQuantity, writeQuantity } from "./units";
 
 export interface DialZone<Unit extends string = string> {
@@ -163,13 +163,13 @@ export function Dial<Unit extends string = string>({
     sweep !== 0 ? (angle - startAngle) / sweep : 0;
   const drawnInterval =
     interval !== null &&
-    boundsStandApart(
+    standsApart(
       onSweep(angleOf(display)),
       [
         onSweep(onFace(onAxis(interval.lo))),
         onSweep(onFace(onAxis(interval.hi))),
       ],
-      wrap,
+      placedOnScale({ wraps: wrap }),
     )
       ? interval
       : null;

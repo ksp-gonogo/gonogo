@@ -14,7 +14,6 @@ import { bandIn, type Value } from "@ksp-gonogo/sitrep-sdk";
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import {
-  boundsStandApart,
   heldNameMarker,
   InstrumentBound,
   InstrumentHeldMark,
@@ -23,6 +22,7 @@ import {
 } from "./instrumentCurrency";
 import { NULL_DISPLAY } from "./NullValue";
 import { resolveCurrency, type UnitValue } from "./readingCurrency";
+import { placedOnScale, standsApart } from "./standsApart";
 import { type FormatsFor, quantityScale, speakQuantity } from "./units";
 
 export interface TapeZone<Unit extends string = string> {
@@ -184,10 +184,11 @@ export function Tape<Unit extends string = string>({
     usable > 0 ? (PAD_TOP + usable - y) / usable : 0;
   const drawnInterval =
     interval !== null &&
-    boundsStandApart(onScale(pointerY), [
-      onScale(onRail(interval.lo)),
-      onScale(onRail(interval.hi)),
-    ])
+    standsApart(
+      onScale(pointerY),
+      [onScale(onRail(interval.lo)), onScale(onRail(interval.hi))],
+      placedOnScale(),
+    )
       ? interval
       : null;
 

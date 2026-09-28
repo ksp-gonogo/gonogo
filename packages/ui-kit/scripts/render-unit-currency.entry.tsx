@@ -23,6 +23,7 @@ import { createRoot } from "react-dom/client";
 import { Countdown } from "../src/Countdown";
 import { DataTable, type DataTableColumn } from "../src/DataTable";
 import { MissionDate } from "../src/MissionDate";
+import { ReckonedUnit } from "../src/ModelledAlongside";
 import { BigReadout, Readout, ReadoutCaption } from "../src/Readout";
 import { Unit } from "../src/Unit";
 
@@ -586,6 +587,98 @@ function Countdowns() {
   );
 }
 
+/** A current reading the model carried to SCET, observed at `seen` and modelled at `modelled`. */
+function carriedToScet<U extends string>(
+  seen: Value<U>,
+  modelled: Value<U>,
+): Reading<Value<U>> {
+  return {
+    state: "observed",
+    value: seen,
+    atUt: AT,
+    reckoning: {
+      status: "available",
+      atUt: value("ut", 1_240),
+      beyondReceived: true,
+      modelled,
+      basis: "linear-dead-reckoning",
+    },
+  };
+}
+
+/**
+ * A modelled figure beside its observation, once where the two read apart and
+ * once where they read the same at the precision drawn, for a clock and for a
+ * quantity at two different precisions.
+ */
+function ModelledFigures() {
+  const rows: ReadonlyArray<readonly [string, React.ReactNode]> = [
+    [
+      "Clock, apart",
+      <Countdown
+        key="a"
+        value={carriedToScet(value("s", 90), value("s", 42))}
+        clock
+      />,
+    ],
+    [
+      "Clock, reads the same",
+      <Countdown
+        key="b"
+        value={carriedToScet(value("s", 90), value("s", 90.4))}
+        clock
+      />,
+    ],
+    [
+      "Angle, apart",
+      <ReckonedUnit
+        key="c"
+        value={carriedToScet(value("°", 40), value("°", 52))}
+      />,
+    ],
+    [
+      "Angle, reads the same",
+      <ReckonedUnit
+        key="d"
+        value={carriedToScet(value("°", 40), value("°", 40.004))}
+      />,
+    ],
+    [
+      "Distance, apart in the last place",
+      <ReckonedUnit
+        key="e"
+        value={carriedToScet(value("m", 250_000), value("m", 250_120))}
+      />,
+    ],
+    [
+      "Distance, reads the same",
+      <ReckonedUnit
+        key="f"
+        value={carriedToScet(value("m", 250_000), value("m", 250_004))}
+      />,
+    ],
+  ];
+  return (
+    <div style={{ display: "grid", gap: 12 }}>
+      {rows.map(([label, node]) => (
+        <div key={label} style={{ display: "grid", gap: 4 }}>
+          <div
+            style={{
+              color: "var(--color-text-faint)",
+              font: "700 10px/1.6 ui-monospace, Menlo, monospace",
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+            }}
+          >
+            {label}
+          </div>
+          <BigReadout>{node}</BigReadout>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 const SHEETS = [
   { id: "table-current", width: 560, node: <FleetTable map={NONE_STALE} /> },
   { id: "table-some-held", width: 560, node: <FleetTable map={SOME_STALE} /> },
@@ -594,6 +687,7 @@ const SHEETS = [
   { id: "sizes", width: 340, node: <Sizes /> },
   { id: "dates", width: 420, node: <Dates /> },
   { id: "countdowns", width: 460, node: <Countdowns /> },
+  { id: "modelled-figures", width: 460, node: <ModelledFigures /> },
 ] as const;
 
 function Sheet({ id }: { id: string }) {

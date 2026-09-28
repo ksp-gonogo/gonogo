@@ -1,7 +1,6 @@
 import { bandIn, type Value } from "@ksp-gonogo/sitrep-sdk";
 import { useMemo } from "react";
 import {
-  boundsStandApart,
   heldNameMarker,
   InstrumentBound,
   InstrumentHeldMark,
@@ -10,6 +9,7 @@ import {
 } from "./instrumentCurrency";
 import { NULL_DISPLAY } from "./NullValue";
 import { resolveCurrency, type UnitValue } from "./readingCurrency";
+import { placedOnScale, standsApart } from "./standsApart";
 import { type FormatsFor, speakQuantity, writeQuantity } from "./units";
 
 export interface GaugeZone<Unit extends string = string> {
@@ -131,10 +131,11 @@ export function Gauge<Unit extends string = string>({
   const onScale = (at: number): number => (hi > lo ? (at - lo) / (hi - lo) : 0);
   const bounds =
     offered !== null &&
-    boundsStandApart(onScale(safeValue), [
-      onScale(onAxis(offered.lo)),
-      onScale(onAxis(offered.hi)),
-    ])
+    standsApart(
+      onScale(safeValue),
+      [onScale(onAxis(offered.lo)), onScale(onAxis(offered.hi))],
+      placedOnScale(),
+    )
       ? offered
       : null;
 

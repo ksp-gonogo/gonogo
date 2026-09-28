@@ -61,12 +61,17 @@ export function Countdown({
         sign: clock,
       },
     );
-  const alongside = modelledAlongside(carried);
-  if (alongside !== null) {
+  const reading = carried != null && "state" in carried ? carried : undefined;
+  const modelled = modelledBeyondReceived(reading);
+  if (reading?.value !== undefined && modelled !== undefined) {
     return (
       <>
-        {format(alongside.observed)}
-        <ModelledAlongside>{format(alongside.modelled)}</ModelledAlongside>
+        {format(reading.value)}
+        <ModelledAlongside
+          observed={reading.value}
+          modelled={modelled}
+          write={format}
+        />
       </>
     );
   }
@@ -86,14 +91,4 @@ export function Countdown({
       )}
     </HeldHost>
   );
-}
-
-/** The observation and the model's figure, for a current reading whose model reaches past the received edge. */
-function modelledAlongside(
-  carried: Value<"s"> | Reading<Value<"s">> | null | undefined,
-): { observed: Value<"s">; modelled: Value<"s"> } | null {
-  if (carried == null || !("state" in carried)) return null;
-  const modelled = modelledBeyondReceived(carried);
-  if (modelled === undefined || carried.value === undefined) return null;
-  return { observed: carried.value, modelled };
 }

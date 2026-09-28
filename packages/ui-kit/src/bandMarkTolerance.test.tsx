@@ -8,8 +8,8 @@ import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it } from "vitest";
 import { Dial } from "./Dial";
 import { Gauge } from "./Gauge";
-import { BAND_MARK_TOLERANCE } from "./instrumentCurrency";
 import { Meter } from "./Meter";
+import { SCALE_TOLERANCE } from "./standsApart";
 import { Tape } from "./Tape";
 
 /**
@@ -121,7 +121,7 @@ describe.each(cases)("$name's band marks", ({ draw }) => {
 
 describe("the tolerance", () => {
   it("is one percent of the scale", () => {
-    expect(BAND_MARK_TOLERANCE).toBe(0.01);
+    expect(SCALE_TOLERANCE).toBe(0.01);
   });
 
   it("drops the spoken bands with the hidden marks, so the two readers agree", () => {

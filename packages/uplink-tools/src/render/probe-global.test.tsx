@@ -44,9 +44,10 @@ describe("announcesHeld, on what the kit draws", () => {
 
   it("hears a modelled figure through the caption ModelledAlongside draws beside it", () => {
     const { container } = render(
-      <ModelledAlongside>
-        <Unit value={value("rpm", 250)} />
-      </ModelledAlongside>,
+      <ModelledAlongside
+        observed={value("rpm", 240)}
+        modelled={value("rpm", 250)}
+      />,
     );
     expect(announcesHeld(marked(container))).toBe(true);
   });

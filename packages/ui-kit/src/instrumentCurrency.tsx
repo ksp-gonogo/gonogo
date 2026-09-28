@@ -31,33 +31,6 @@ export function InstrumentHeldMark({ size }: { size: number }) {
 }
 
 /**
- * How far a model's bound has to sit from the observation, as a fraction of
- * the instrument's whole scale, before the bounds are drawn at all.
- *
- * One percent, the finest step a percentage readout writes.
- */
-export const BAND_MARK_TOLERANCE = 0.01;
-
-/**
- * Whether a model's bounds stand visibly apart from the observation, every
- * position a fraction of the scale, clamped to it first. `wraps` measures the
- * short way round a scale whose ends meet.
- */
-export function boundsStandApart(
-  observed: number,
-  bounds: readonly number[],
-  wraps = false,
-): boolean {
-  const onScale = (at: number): number =>
-    wraps ? at - Math.floor(at) : Math.min(1, Math.max(0, at));
-  const from = onScale(observed);
-  return bounds.some((bound) => {
-    const apart = Math.abs(onScale(bound) - from);
-    return (wraps ? Math.min(apart, 1 - apart) : apart) > BAND_MARK_TOLERANCE;
-  });
-}
-
-/**
  * One end of the model's interval, drawn across the instrument's own track.
  *
  * Two marks, never a shaded interval, as on `<Meter>`. The caller owns the

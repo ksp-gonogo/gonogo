@@ -13,10 +13,10 @@ import {
 import styled, { css } from "styled-components";
 import { bandClaim } from "./bandClaim";
 import { HeldHost, HeldMark } from "./HeldMark";
-import { boundsStandApart } from "./instrumentCurrency";
 import { magnitudeOr } from "./magnitude";
 import { NullValue } from "./NullValue";
 import { resolveCurrency, type UnitValue } from "./readingCurrency";
+import { placedOnScale, standsApart } from "./standsApart";
 import type { StatTone } from "./statTone";
 import { severityDotColor } from "./status/severityDotColor";
 import { Unit } from "./Unit";
@@ -369,7 +369,9 @@ function boundsOn<UnitSymbol extends string>(
  */
 function apartFrom(at: number, bounds: MeterBounds | null): MeterBounds | null {
   if (bounds === null) return null;
-  return boundsStandApart(at, [bounds.lo, bounds.hi]) ? bounds : null;
+  return standsApart(at, [bounds.lo, bounds.hi], placedOnScale())
+    ? bounds
+    : null;
 }
 
 /**

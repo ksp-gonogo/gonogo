@@ -12,6 +12,7 @@ import { bandClaim } from "./bandClaim";
 import { HeldMark } from "./HeldMark";
 import { MicroscopeIcon, StarIcon } from "./Icons";
 import { resolveCurrency, type UnitValue } from "./readingCurrency";
+import { standsApart, writtenAs } from "./standsApart";
 import { severityDotColor } from "./status/severityDotColor";
 import { useInSharedFormat, useSharedFormat } from "./UnitSharedFormat";
 import {
@@ -102,12 +103,12 @@ function toInterval<UnitSymbol extends string>(
     }).value;
   const width = (from: Value<UnitSymbol>, to: Value<UnitSymbol>): string =>
     write(to.minus(from));
-  // Ends that print as the same text draw as one approximate figure, by the same test `<Band>` uses; if that figure is the one on screen the interval adds nothing.
+  // Ends that print as the same text draw as one approximate figure, by the same test `<Band>` uses; an interval that stands nowhere apart from the figure on screen adds nothing.
   const oneFigure = readsAsOneFigure([band.lo, band.hi], {
     ...opts,
     format: rung,
   });
-  if (oneFigure && write(band.lo) === write(shown)) return null;
+  if (!standsApart(shown, [band.lo, band.hi], writtenAs(write))) return null;
   const below = width(band.lo, band.value);
   const above = width(band.value, band.hi);
   const anchored = write(band.value) === write(shown);

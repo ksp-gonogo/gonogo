@@ -417,7 +417,12 @@ export {
   useModalChrome,
   useModalSaveBar,
 } from "./ModalSaveBar";
-export { ModelledAlongside, ReckonedUnit } from "./ModelledAlongside";
+export {
+  ModelledAlongside,
+  type ModelledFigureAlongsideProps,
+  type ModelledQuantityAlongsideProps,
+  ReckonedUnit,
+} from "./ModelledAlongside";
 export {
   asQuantityish,
   magnitudeOf,
@@ -498,6 +503,13 @@ export {
 } from "./SubjectHeading";
 export { Switch, type SwitchProps } from "./Switch";
 export type { GapToken, InsetToken } from "./scales";
+export {
+  type DrawnPrecision,
+  placedOnScale,
+  standsApart,
+  writtenAs,
+  writtenQuantity,
+} from "./standsApart";
 export type { StatTone } from "./statTone";
 export {
   type PanelStatusStore,
