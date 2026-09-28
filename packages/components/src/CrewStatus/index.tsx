@@ -26,7 +26,7 @@ registerComponent<CrewStatusConfig>({
     "crew-status.avatar",
     "crew-status.summary",
   ],
-  contributionSlots: ["crew-status.row-tone"],
+  contributionSlots: ["crew-status.row-tone", "crew-status.meters"],
   channels: crewStatusTopics.channels,
   fields: crewStatusTopics.fields,
   optionalChannels: crewStatusTopics.optionalChannels,

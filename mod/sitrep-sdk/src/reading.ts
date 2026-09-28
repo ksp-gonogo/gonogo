@@ -132,20 +132,16 @@ export interface TopicReckoningAvailable<Payload> {
 }
 
 /**
- * What a whole-topic read can say about a model: it ran, nothing offered one,
- * or one was declared and refused to answer for this frame.
+ * What a forward model says about a whole Topic this frame: it produced a
+ * value, none was offered, or one was declared and could not produce a value.
  *
- * Per PATH rather than per value, because a topic genuinely has many fields and
- * one model rarely moves all of them: `modelled` names the paths it moved and
- * `bands` says how far it would defend each. That is the ONE difference from
- * {@link Reckoning}, which answers for a single value and therefore needs
- * neither map. The discriminant is the same word on both, so a caller asks
- * `status` of a topic exactly as they ask it of a field.
+ * When a model produces a value, `modelled` lists the payload fields it moved
+ * and `bands` how far it would defend each. `"declined"` happens only on a
+ * Topic whose contract declares a model, and names the input that stopped it.
  *
- * `"declined"` is only reachable on a topic whose contract DECLARES a value
- * reckonable: see {@link ReckoningDecline} for why a refusal there has to say
- * which input failed it, where an undeclared topic's `"none"` explains nothing
- * because nothing promised it a model.
+ * @typeParam Payload - The Topic's payload type.
+ *
+ * @category Reading telemetry
  */
 export type TopicReckoning<Payload> =
   | TopicReckoningAvailable<Payload>
@@ -372,208 +368,48 @@ export type ReckonerAnswer<Payload, Projection = Payload> =
   | { readonly declined: ReckoningDecline };
 
 /**
- * One topic's value AND its currency, as a single thing the compiler will not
- * let a widget read incuriously.
+ * A Topic's payload together with how current it is. {@link useTelemetry}
+ * returns one.
  *
- * A widget that renders stale data as though it were live is this project's
- * most consequential failure mode. The weaker version of this fix already
- * exists and did not work: `StreamStatusValue` rides its own channel beside the
- * value, ui-kit renders it (`StreamStatusBadge`), and the dashboard even
- * derives a per-widget summary from `dataRequirements` and badges the panel
- * header with it. It was adopted by
- * zero of the thirty-nine widgets that read telemetry, because a badge beside a
- * body is chrome, and nothing forces the body to consult it.
+ * ## States
  *
- * So there is no arm you can read a value off without first writing the
- * discriminant, and every distinction that changes what you DRAW is an arm
- * rather than a field. Reaching a value means branching, and the branch is
- * where the caveat gets rendered. Same spirit as `Value<"s">` making
- * unit-blindness unrepresentable.
+ * `state` says what the reading holds, and the payload can only be reached
+ * after checking it:
  *
- * ## Delay is not staleness
+ * | `state` | Meaning | Carries |
+ * | --- | --- | --- |
+ * | `"pending"` | Nothing has arrived yet: a Topic just subscribed, or a resync after a rewind | nothing |
+ * | `"unowned"` | Nothing will ever publish this Topic: no installed Uplink declares it | nothing |
+ * | `"absent"` | The game confirmed there is no value, such as no target set | `atUt` |
+ * | `"observed"` | The newest value that could have reached us | `value`, `atUt` |
+ * | `"stale"` | Held: updates stopped arriving, so this is the last value received | `value`, `asOfUt`, `grade` |
  *
- * Under a light-time delay every value is old. If that counted as stale the
- * discriminant would read `stale` everywhere and carry no information at all.
- * A value 4 s old under a 4 s light-time is as current as physics permits, and
- * that is `observed`. Stale means we have MISSED updates we should have had,
- * which is what `HeartbeatTracker` infers from keyframe cadence and never from
- * `validAt` age (see its own doc). Reckoning is therefore only needed for
- * genuine loss of contact, not for the delay case.
+ * A held value is shown as held, never as current. {@link StaleGrade} says why
+ * updates stopped. There is no zero standing in for a missing value: the
+ * first three states carry no payload at all.
  *
- * ## The arms
+ * ## Signal delay
  *
- * - `pending`: nothing at-or-before the frame's view time yet, a cold topic or
- *   a resync after a rewind. Names the never-arrived case that `undefined`
- *   currently conflates with went-stale
- * - `unowned`: nothing will EVER publish this topic. No installed Uplink
- *   declares it and it falls under no dynamic namespace, so waiting is futile.
- *   See "Why `unowned` is not `pending`" below for the whole point of it
- * - `absent`: a confirmed tombstone, the subject says there is no value.
- *   Carries `atUt` because "confirmed nothing, as of when" is the honest
- *   statement: a tombstone can itself go old, and nothing before this could say
- *   so. It is what lets a widget report "no target set, confirmed 3 s ago"
- *   instead of asserting it for the rest of the mission
- * - `observed`: the newest sample that could have reached us
- * - `stale`: we have missed updates. `value` is the last REAL observation,
- *   always reachable, and `asOfUt` says when it was made
+ * Under a light-time delay every value is old. A value 4 s old under a 4 s
+ * delay is as current as it can be, and is `"observed"`, not held.
  *
- * ## The second discriminant: `reckoning`
+ * ## Modelled values
  *
- * Whether a forward model is on offer is a SEPARATE axis, carried on its own
- * required field rather than folded into `state`:
+ * Separately from `state`, `reckoning` says whether a forward model can say
+ * what the value is now (see {@link TopicReckoning}). It is usually
+ * `{ status: "none" }`. When it is `"available"`, `reckoning.value` is the
+ * model's value for this frame, and a band, where the model gives one, says how
+ * far it would defend it. A missing band does not mean the value is well known.
  *
- * - `reckoning: { status: "none" }`: no model is on offer this frame. The honest majority
- * - `reckoning: "available"`: a model is on offer, and `reckoned` carries what
- *   it says the quantity is at the frame's SCET
+ * ## Fields
  *
- * Every arm carries the field, `pending`, `unowned` and `absent` included, where
- * it is permanently `"none"`: nothing has been observed (or the subject has said
- * there is nothing), so there is nothing to carry forward. Carrying it on every
- * arm is what makes the axes independent, because a caller can ask
- * `reading.reckoning.status === "available"` without first narrowing `state`.
+ * Every payload field is also a {@link Reading} of its own, as a plain
+ * property (`flight.altitudeAsl`) in every state, so a single field can be
+ * passed on alone.
  *
- * ## Why `unowned` is not `pending`
+ * @typeParam Payload - The Topic's payload type, such as `VesselFlight`.
  *
- * A widget subscribing to a topic nothing will ever publish sat on
- * `{state: "pending"}` for the rest of the session, which reads identically to
- * "the mod has not sent this yet". An author whose widget rendered blank had
- * nothing to go on: no log line, no banner, no health row, and the two cases
- * want opposite next moves. Waiting is right for one and futile for the other.
- *
- * The distinction is decided by the mod, not inferred client-side.
- * `ProcessSubscribe` answers a subscribe for a declared channel (or one under a
- * registered dynamic namespace) with an `EventMsg { name: "subscribed" }`, and
- * answers a subscribe for anything else with a bare return: no error, no ack,
- * nothing. So "we sent a subscribe and no ack came back inside a bounded
- * window" is the authority's own answer rather than a reconstruction of it, and
- * it gets a fail-softed Uplink right for free, where a rule built on the
- * roster's owned-prefix lists would have called four engine built-ins unowned.
- *
- * ## `unowned` is a POSITIVE finding, and silence is not one
- *
- * The rule that keeps this arm honest: reach it only on evidence that the
- * subscribe was answered with nothing, never on the mere absence of data.
- * "Cannot decide" is a third answer and it spells `pending`.
- *
- * Undecided, and therefore `pending`:
- *
- * - the bounded window has not elapsed yet
- * - the transport is not connected, so no subscribe has been answered either way
- * - the read is happening on a STATION. A station's subscribe reaches the mod
- *   only when the host's own refcount makes a 0 -> 1 transition, so a topic the
- *   host already holds is never re-acked and a station would see silence for a
- *   perfectly well owned topic. A station therefore does not decide this arm
- * - the mod predates the ack, so no topic would ever be acked
- *
- * A false `unowned` tells an author their correct code is broken, which is
- * worse than the silence this arm removes. Every widening of what may reach
- * this arm has to be argued against that sentence.
- *
- * ## It carries nothing, and that is deliberate
- *
- * There is no value (there never was one and there never will be), and no
- * instant (nothing was observed, so `observedAt` answers `undefined` exactly as
- * it does for `pending`). The topic id a diagnostic wants is the argument the
- * caller already passed to `useTelemetry`, so putting it on the arm would
- * duplicate a fact the call site holds and admit the possibility of the two
- * disagreeing.
- *
- * ## Why `reckoning` is a discriminant and `grade` is a plain field
- *
- * One rule, applied twice: compiler pressure is worth paying where it forces a
- * DIFFERENT branch, and worth trading away where it would force several
- * identical ones.
- *
- * `grade` does not change what you draw, it labels the same render, so four
- * arms would be four copy-pasted bodies drifting apart across thirty-nine
- * widgets. Plain field.
- *
- * A reckoning DOES change what you draw: a propagated position is a different
- * marker in a different place from a last-known position. An OPTIONAL `reckoned`
- * field was the first shape tried here and it was wrong, because an optional
- * field is one a destructuring consumer ignores by default and ignoring it
- * compiles: `reading.reckoning` typechecks everywhere and answers `undefined`, so
- * a reckoning that EXISTS could be silently dropped while the widget still
- * looked right. That is precisely the failure this type is built to prevent, and
- * it is still not the shape here.
- *
- * `reckoned` is a REQUIRED field of a union member selected by a REQUIRED
- * discriminant. `reading.reckoning` does not compile until `reading.reckoning ===
- * "available"` has been written, because on the other member the property does
- * not exist at all. That is the same compiler pressure the old `reckonable` arm
- * applied, and it is what "forces a branch" means here: reaching a reckoning
- * costs a written test, exactly as reaching a value costs one.
- *
- * ## Why it is a SECOND discriminant rather than an arm of the first
- *
- * `reckonable` used to be an arm of `state`, which made reckonability a SUBTYPE
- * OF STALE and left live-and-reckonable unrepresentable. It is not: the two are
- * orthogonal. A model is a medium for expressing prediction, and a quantity
- * whose cause is known (a conic, a rate) is forward-modellable whether or not
- * the last packet arrived on time. The only real connection is behavioural: a
- * widget is most likely to REACH for a modelled figure once its live one has
- * gone stale.
- *
- * Riding the staleness discriminant would make two readings of one fact
- * disagree in one frame: a value forward-solved from `vessel.orbit`'s elements
- * would read `reckonable` while `vessel.orbit` itself read `stale`, because the
- * only way to say "a model exists" would also say "we have missed updates".
- * Splitting the axis lets both say what is true of them.
- *
- * A widget may still legitimately decline to propagate (a scalar readout may
- * only want a number and a staleness caption). That has to be a WRITTEN choice:
- * see `withoutReckoning`.
- *
- * ## Trust is two questions, and only one of them is a boolean
- *
- * WHETHER a model still stands is boolean, and it is answered structurally.
- * The reading is rebuilt every frame, so once the provider's horizon is
- * exceeded it stops offering a model and the topic reads `reckoning: { status: "none" }`
- * from that frame on, keeping whatever `state` it honestly has. There is no
- * horizon field for a caller to compare against, because there is nothing for
- * one to do: `reckoning: "available"` IS the statement that a model stands
- * right now, and it cannot be held past the moment it stopped being true.
- *
- * **That much is unchanged, and the rule it implies still holds. Do not make
- * `reckoned` able to answer "unavailable".** `reckoning: { status: "none" }` already says
- * it, at the only moment it can be said honestly. A failure return would mean
- * a caller could hold a capability that has since gone bad and discover it at
- * call time, which puts an error path in thirty-nine widgets to represent
- * something the discriminant already carries. If a model needs to withdraw, it
- * withdraws by not being offered on the next frame.
- *
- * HOW WELL it knows the number is a QUANTITY, and the discriminant cannot
- * carry it. This file used to argue that it did not need to: a model that no
- * longer held simply withdrew, so a reckoning that was offered was one to be
- * trusted, full stop. That argument settles the withdrawal question and
- * quietly answers a different one it was never entitled to. A conic thirty
- * seconds past the last contact and the same conic six minutes past it are
- * both standing, both `"available"`, and are not the same claim; an operator
- * reading a single number off either cannot tell which one they have. The
- * boolean was doing the work of a scalar because there was no scalar.
- *
- * {@link Reckoning.bands} is that scalar, per path, in the value's own unit
- * (see {@link UncertaintyBand}). It is OPTIONAL and stays optional: most
- * models cannot bound their own error honestly, and a made-up interval is a
- * confident-looking lie about precision, which is worse than the silence it
- * replaced. So the two axes read together as: `"available"` says a model
- * stands, and a band, where there is one, says how far it would defend itself.
- * Neither substitutes for the other, and an absent band is never evidence that
- * a value is well known.
- *
- * ## The three-channel rule, and why this is its exception
- *
- * `stream-status.ts` and `use-certainty.ts` both state the repo rule: value,
- * staleness/absence, and certainty are three independent channels a widget
- * composes, never nested inside one another. This nests value inside
- * staleness, on the evidence above.
- *
- * The exception is for the value/staleness pair ONLY. `Certainty` stays on its
- * own channel and must not be folded in: it is a property of the FRAME's
- * `viewUt`, not of any one topic, so every topic read in one frame shares it.
- * Nesting it here would duplicate one fact across every read in a frame and
- * admit the possibility of two of them disagreeing, which is exactly what the
- * single-view-time invariant and `FrameToken` exist to prevent.
+ * @category Reading telemetry
  */
 export type TopicReading<Payload> = TopicCurrency<
   Payload,
@@ -582,27 +418,17 @@ export type TopicReading<Payload> = TopicCurrency<
   TopicFields<Payload>;
 
 /**
- * The currency half of a topic reading: the observation, when it was made, and
- * what the model said, with no per-field properties.
+ * The part of a Topic reading that says how current it is: `state`, the value
+ * where there is one, and when it was observed, without the per-field
+ * readings.
  *
- * Written as the arms rather than as one object with everything optional,
- * because reaching a value still has to cost a WRITTEN BRANCH. `pending`,
- * `unowned` and `absent` carry no value at all, and a model is impossible on
- * each of the three: nothing has arrived, nothing ever will, or the mod has
- * confirmed the thing is gone. A tombstone has no observation to carry
- * forward, so admitting `"available"` there would be admitting a modelled
- * value with nothing behind it.
+ * Ask for this type when only the observation matters: every Topic reading
+ * satisfies it.
  *
- * `ReckoningShape` is which reckoning arms the value-bearing states may carry, and it
- * defaults to `unknown` deliberately: `TopicCurrency<Payload>` unparameterised is the
- * WIDEST topic reading, so it is what a consumer that reads only the
- * observation should ask for, and every reading in the system satisfies it
- * without the caller having to know which kind it was handed.
- * {@link TopicReading} fills it with {@link TopicReckoning}, and a topic whose
- * contract DECLARES a value reckonable narrows it to
- * {@link DeclaredTopicReckoning}, which is how {@link ReckonableReading} keeps
- * "a declared value always says something about the model" a fact the compiler
- * holds rather than a convention.
+ * @typeParam Payload - The Topic's payload type.
+ * @typeParam ReckoningShape - What `reckoning` may hold on the states that carry a value.
+ *
+ * @category Reading telemetry
  */
 export type TopicCurrency<Payload, ReckoningShape = unknown> =
   | { state: "pending"; reckoning: { readonly status: "none" } }
@@ -630,49 +456,17 @@ export type TopicCurrency<Payload, ReckoningShape = unknown> =
     };
 
 /**
- * The per-field half: one {@link Reading} per payload field, reachable as a
- * PLAIN PROPERTY (`flight.altitudeAsl.reckoning.band`).
+ * The per-field part of a Topic reading: a {@link FieldReading} for each
+ * payload field, as a plain property (`flight.altitudeAsl.reckoning.band`).
  *
- * ## Built from the topic's own model, never from a second read
+ * Each field reading has the same state and model as the Topic reading it
+ * comes from. A field named like one of the reading's own properties
+ * (see {@link ReservedReadingKey}) has no field reading; read it off the
+ * payload. An array payload is read by index.
  *
- * The obvious implementation is to have `flight.altitudeAsl` go and sample the
- * subtopic of that name, and it is wrong in a way nothing would notice: a
- * second read resolves whatever channel happens to answer to that name, and a
- * channel whose reckoner claims the root carries no `bandAt`, so the
- * delegating version hands back a modelled altitude with the band silently
- * gone. The field reading is therefore projected out of the reading that
- * already exists: its basis from the {@link ModelledField} covering the path,
- * its value from the modelled payload, its band from
- * {@link TopicReckoningAvailable.bands} at that same path.
+ * @typeParam Payload - The Topic's payload type.
  *
- * ## Reserved names lose
- *
- * A payload field spelled like a currency member is EXCLUDED rather than
- * merged: intersecting `"observed" | "stale" | ...` with a `Reading` collapses
- * to `never` and would poison the whole type. Such a field is reached off the
- * payload as it always was, and a call site that reaches for the field reading
- * gets a compile error rather than a `never`.
- *
- * ## The exclusion is a workaround, and codegen now owns the rule
- *
- * Dropping a field from this surface with no diagnostic is the worst half of
- * the bargain: an author gets no field reading and no reason for its absence.
- * `RtConfig.CheckReservedFieldNames` refuses the collision at codegen instead,
- * so the failure lands on whoever spells the field that way, with the topic,
- * the field and a stack.
- *
- * This exclusion stays only while a reserved-name debt list is non-empty. Two
- * contract fields collide today, both declared by Uplink slices and both on
- * those slices' own lists; core cleared its two at contract Major 17, renaming
- * them to `comms.signal.strength` and `comms.control.level`, and
- * `RtConfig.ReservedFieldNameDebt` is now empty. Each remaining one is a
- * wire-visible rename away from gone, which is a Major apiece. When the lists
- * empty, delete the `Exclude` and this paragraph: nothing will be reaching a
- * reserved name to excuse. `styleguide-reserved-reading-keys.test.ts` keeps the
- * two spellings of the key list in step meanwhile.
- *
- * An array payload is indexed rather than mapped: mapping `keyof Payload` over one
- * would claim a `Reading` at `length`, `map` and every other array member.
+ * @category Reading telemetry
  */
 export type TopicFields<Payload> = Payload extends Quantityish
   ? unknown
@@ -682,6 +476,7 @@ export type TopicFields<Payload> = Payload extends Quantityish
       ? unknown
       : Payload extends object
         ? {
+            // Reserved names are excluded until RtConfig's reserved-name debt lists are empty; then drop the Exclude.
             readonly [Key in Exclude<
               keyof Payload,
               ReservedReadingKey
@@ -690,37 +485,14 @@ export type TopicFields<Payload> = Payload extends Quantityish
         : unknown;
 
 /**
- * A field's own reading, and the way to the fields underneath it.
+ * One field's reading, with the readings of the fields inside it:
+ * `crew[kerbal].rules[index].value` reaches as deep as the payload goes.
  *
- * The whole of the collection-indexed accessor #38 asked for, and it is one
- * line because the runtime was already there: `projectField` has always taken a
- * DOTTED path and `walkField` has always split it, so `bands["..."]` was
- * already keyed the way a model writes it. What was missing was reach. The
- * proxy stopped after one segment and the type described one level, so
- * `crew[kerbal].rules[index].value` had nowhere to go and the only thing that
- * reached it was `bandFor(reckoned, "<path>")`, the runtime string lookup this
- * replaces.
+ * A quantity or a function is read whole; an array is read by index.
  *
- * ## Where it stops, and why each stop is deliberate
+ * @typeParam Payload - The field's type.
  *
- * - **A quantity is a LEAF.** `Value` is an object with `magnitude`, `unit` and
- *   a dozen methods, and recursing into one would claim a `Reading` at `abs`
- *   and `max`. That exact nonsense compiled for a week when `Unit` and `Meter`
- *   were typed over `TopicReading<Value<Unit>>`, so it is named rather than left
- *   to the `object` branch to get right by luck
- * - **A function is a leaf**, for the same reason one step further out
- * - **An array is INDEXED, never mapped.** Mapping `keyof` over one would claim
- *   a reading at `length` and `map`. An index signature reaches the elements
- *   and nothing else, which is what a collection-keyed model addresses
- *
- * ## The one thing it cannot reach, and it is not new
- *
- * An element field spelled like a currency member stays excluded, so on an
- * array channel carrying one (`alarm.scet` is core's) that one field is
- * unreachable THROUGH the accessor. `RtConfig.CheckReservedFieldNames` refuses
- * a new one on an element exactly as it does on a top-level payload, and each
- * slice's codegen leg names its own excused ones, which is why no list of them
- * belongs here.
+ * @category Reading telemetry
  */
 export type FieldReading<Payload> = Reading<Payload> & TopicFields<Payload>;
 
@@ -733,7 +505,12 @@ export type FieldReading<Payload> = Reading<Payload> & TopicFields<Payload>;
  */
 type Quantityish = { readonly magnitude: number; readonly unit: string };
 
-/** A currency member's name: what {@link TopicFields} may not shadow. */
+/**
+ * The names of a reading's own properties. A payload field with one of these
+ * names has no field reading; read it off the payload instead.
+ *
+ * @category Reading telemetry
+ */
 export type ReservedReadingKey =
   | "state"
   | "value"
@@ -743,25 +520,16 @@ export type ReservedReadingKey =
   | "reckoning";
 
 /**
- * What a model says about ONE value: it ran, nothing offered one, or one was
- * declared and refused for this frame.
+ * What a forward model says about one value this frame: it produced a value,
+ * none was offered, or one was declared and could not produce a value.
  *
- * ## Why a union rather than flat optional fields
+ * `modelled` exists only when `status` is `"available"`, and `declined` only
+ * when it is `"declined"`. `band` is optional even then: most models cannot
+ * bound their own error.
  *
- * On a flat shape `modelled` has to stay optional even when the model IS
- * available, because the type cannot say the two go together. Every consumer
- * then writes a fallback for a case that can never fire, and a fallback is
- * exactly where a fabricated number gets in. On this union `modelled` is
- * REQUIRED the moment `status === "available"` has been checked, and reading
- * `declined` without checking is a type error rather than a silent
- * `undefined`.
+ * @typeParam Payload - The type of the value modelled.
  *
- * ## `band` stays optional inside the available arm
- *
- * That is correct rather than an oversight. A model can be available and
- * honestly bound nothing: most models cannot produce an interval they would
- * defend, and inventing one is a claim about how well a number is known made by
- * something that does not know. See {@link ReckonedBands}.
+ * @category Reading telemetry
  */
 export type Reckoning<Payload> =
   | {
@@ -780,114 +548,49 @@ export type Reckoning<Payload> =
   | { readonly status: "declined"; readonly declined: ReckoningDecline };
 
 /**
- * Currency over ONE value: what was observed, how current it is, and what a
- * model makes of it now.
+ * One value together with how current it is: what a payload field of a
+ * {@link TopicReading} is.
  *
- * This is what a payload field answers with (see {@link TopicFields}), and what
- * a primitive drawing one number consumes. The whole-topic companion is
- * {@link TopicReading}, which differs only in that its model is keyed by path
- * because a topic has many fields.
+ * `state` has the same meanings as on a {@link TopicReading}. `value` is set
+ * only when `state` is `"observed"` or `"stale"` (held).
  *
- * `value` is present on `observed` and `stale` and absent on the other three,
- * so reaching it still costs a written branch.
+ * @typeParam Payload - The type of the value: a `Value` for a quantity, such as
+ * `Value<"m">`, or a field's own type for anything else.
+ *
+ * @category Reading telemetry
  */
 export interface Reading<Payload> {
+  /** What the reading holds. See {@link TopicReading} for each state. */
   readonly state: ReadingState;
-  /** The last REAL observation. Never a modelled value; see `reckoning`. */
+  /** The last value observed, when `state` is `"observed"` or `"stale"`. Never a modelled value. */
   readonly value?: Payload;
-  /** When the observation was made, on `absent` and `observed`. */
+  /** When the value was observed, or confirmed absent. */
   readonly atUt?: Value<"ut">;
-  /** When the observation was made, on `stale`. */
+  /** When a held value was observed. */
   readonly asOfUt?: Value<"ut">;
+  /** Why a held value stopped updating. */
   readonly grade?: StaleGrade;
+  /** What a forward model says the value is now. */
   readonly reckoning: Reckoning<Payload>;
 }
 
 /**
- * One RECKONABLE topic's value AND its currency, where `Payload` is the payload and
- * `ReckonableKey` the fields the contract declares a model can carry forward.
+ * The reading of a Topic whose contract declares a forward model, such as
+ * `vessel.flight` or `vessel.orbit`.
  *
- * It is {@link Reading}'s arms with two differences and only two: `reckoned` is
- * the PROJECTION rather than the payload, and the value-bearing `"none"` arms
- * carry a required {@link ReckoningDecline}. Everything `Reading`'s doc says
- * about the states, about the two axes being orthogonal, and about reaching a
- * value costing a written branch is true here unchanged, and is not restated.
+ * It differs from {@link TopicReading} in two ways. `reckoning.value` holds
+ * only the fields the model moves (`ReckonableKey`), so reading any other
+ * field from the model does not compile. And when the reading carries a value, `reckoning` is
+ * never `"none"`: either the model produced a value, or `declined` says what
+ * stopped it.
  *
- * ## `reckoned` is the projection, because a payload is not one reckoning class
+ * To combine the two, write `{ ...reading.value, ...reading.reckoning.value }`
+ * where the model's value is wanted.
  *
- * Reckonability is declared PER VALUE. `vessel.flight` carries an altitude a
- * conic advances beside a `situation` the game switches, and a model that
- * propagates the first and copies the second would otherwise hand a caller a
- * whole payload labelled "modelled". {@link Reckoning.modelled} says which paths
- * moved, and it says so at runtime, in a field nothing forces a caller to read.
- * `Reckoning<Pick<Payload, ReckonableKey>>` says the same thing to the COMPILER: reading a field
- * no model moves off `reckoned` does not typecheck, so the mistake cannot be
- * made rather than merely being documented.
+ * @typeParam Payload - The Topic's payload type.
+ * @typeParam ReckonableKey - The payload fields the model moves.
  *
- * ## Why a value-bearing arm always says something about the model
- *
- * A declared value always has a model on offer: core ships the vanilla, an
- * Uplink may elect a better one, and the declaration is a promise that the wire
- * carries that model's inputs. So on the arms that carry a value there is no
- * such thing as nothing-to-say. Either `reckoned` is there, or `declined` is
- * there naming what stopped it. That pairing is what "unconditional" buys: not
- * that `reckoned` appears on every arm regardless (it cannot, because a model
- * genuinely does withdraw at an SOI transition, at the atmosphere interface and
- * past its stated horizon), but that a caller who has narrowed to a value can
- * never fall through to a branch where the type declines to comment.
- *
- * The discriminant therefore survives on this type, which is the part worth
- * stating because it looks at first like a regression. What actually goes away
- * is the discriminant on every UNMARKED topic, where it was carrying no
- * information at all.
- *
- * ## A decline is a value-level absence inside a type-level presence
- *
- * The declaration is a statement about the CONTRACT: these inputs are published,
- * so this value can be carried forward. It is static, and it is a property of
- * the wire rather than of any one frame. Whether a model can answer for THIS
- * frame is a different question, answered by the data: the input may not have
- * arrived, the view time may be past where the conic holds, the model may not
- * apply to a vessel on rails at all.
- *
- * So the type says the capability exists and the value says whether it fired,
- * and neither can stand in for the other. Folding the decline into the type (an
- * optional `reckoned`) would lose the reason and re-admit the silent drop that
- * {@link Reading} exists to prevent; folding the capability into the value (a
- * runtime "is this topic reckonable" flag) is pass one, and it is what this
- * type replaces.
- *
- * ## Deliberately NOT assignable to `Reading<Payload>`
- *
- * `Reckoning<Pick<Payload, ReckonableKey>>` is not a `Reckoning<Payload>`, so handing one of these to
- * something typed `Reading<Payload>` fails to compile. That is the point: the callee
- * would be entitled to read the whole payload off the model. The observed
- * payload overlaid by the modelled fields is
- * `{ ...reading.value, ...reading.reckoning.value }`, written at the call site
- * rather than hidden in a helper, because that spread IS the judgement and it
- * should be visible in review.
- *
- * ## The two mistakes this prevents, both made in one afternoon
- *
- * Written down because the rule above was in front of both of them and read
- * past twice. `ReckonableKey` is what a model MOVES. It is not what the model returns, and
- * it is not the payload it happens to have in hand.
- *
- * 1. **Returning the whole payload from `reckon`.** Tempting, because a
- *    consumer wanting a whole orbit then gets one without doing anything. It
- *    hands that consumer a payload labelled "modelled" whose every constant
- *    field is a copy of an observation, which is the thing the `Pick` exists to
- *    make impossible. Return the moved fields and nothing else
- * 2. **Marking the fields you merely carry.** The mirror of the first: if the
- *    model returns the whole payload, the marks have to cover it, and then
- *    `reckoned` claims a conic moves a semi-major axis. A field that does not
- *    move is not reckonable, however convenient it would be to read it off
- *    `reckoned`
- *
- * The tell for both is a consumer that picks `reckoned.value` OR `value`
- * instead of overlaying. When `vessel.orbit` gained a model, eight widgets in
- * this tree were doing exactly that, having been written years earlier against
- * a topic no model touched, and the projection caught all of them at once.
+ * @category Reading telemetry
  */
 export type ReckonableReading<
   Payload,
@@ -899,31 +602,20 @@ export type ReckonableReading<
   TopicFields<Payload>;
 
 /**
- * Which kind of missed-update a stale reading is. A FIELD rather than more arms:
- * see `Reading`'s own doc for the rule.
+ * Why a held value (`state: "stale"`) stopped updating.
  *
- * - `held-stale`: this ONE channel's keyframes stopped arriving on cadence, or
- *   the server stamped the point on catch-up
- * - `disconnected`: the whole transport is down, a link-wide fact rather than a
- *   per-topic inference. The operator's next move differs: check the relay,
- *   versus this craft is behind the Mun
- * - `last-before-blackout`: server-stamped, the newest sample that got out
- *   before a blackout the Courier already knew about
- * - `recorded`: server-stamped, taken by the subject while out of contact and
- *   replayed on reacquisition. The odd one out: the value is not uncertain at
- *   all, it is exact for its own `asOfUt`, and what makes it a stale grade is
- *   only that the instant is behind the live edge. Reckon FROM it freely; never
- *   draw it as the state of the craft now
+ * - `held-stale`: this Topic's updates stopped arriving on schedule
+ * - `disconnected`: the connection to the game is down, which affects every
+ *   Topic at once
+ * - `last-before-blackout`: the last value sent before a known loss of signal
+ * - `recorded`: recorded by the craft while out of contact and sent on
+ *   reacquisition. Exact for its own `asOfUt`, but still not the state of the
+ *   craft now
  *
- * Expect `reckoning: "available"` to correlate with `last-before-blackout`
- * without the type enforcing it. A model that integrates from the loss of
- * contact needs to know WHEN contact was lost, and that is the only grade that
- * knows, being stamped with the blackout's start. `held-stale` knows only that a
- * heartbeat was missed. A provider with an independent clock on the loss of
- * contact may legitimately reckon from any grade, and a model whose basis is a
- * CAUSE rather than an integration (a conic, a rate) reckons from a live reading
- * just as honestly. That is why the reckoning axis is by whether a model EXISTS
- * rather than by grade, and why it is not part of `state` at all.
+ * The grade changes the label, not the drawing: a held value is drawn as held
+ * whatever its grade.
+ *
+ * @category Reading telemetry
  */
 export type StaleGrade =
   | "held-stale"
@@ -932,68 +624,33 @@ export type StaleGrade =
   | "recorded";
 
 /**
- * The staleness discriminant alone, for the handful of types that carry a
- * reading's ARM beside a value they joined from several topics rather than
- * nesting the `Reading` itself (`BudgetProvenance`, `LevelsProvenance`).
+ * The values `state` can take on a reading: `"pending"`, `"unowned"`,
+ * `"absent"`, `"observed"` and `"stale"` (held).
  *
- * Derived rather than written out, because both of those spelled the arms as a
- * literal union and both silently went stale the moment another was added: the
- * compiler caught them here, at the assignment, rather than where the mirror was
- * declared. A derived alias makes the next arm propagate on its own.
- *
- * It carries NOTHING about reckoning, and a provenance type wanting that says so
- * with its own {@link ReadingReckoning} field rather than by widening this one.
- * The two axes are independent in `Reading` and stay independent in a mirror of
- * it.
- *
- * This is NOT a licence to replace a `Reading` with its state. A provenance
- * field is for a value that is not one Topic's anything; a widget reading one
- * topic takes the whole `Reading`, so that reaching the value means branching.
+ * @category Reading telemetry
  */
 export type ReadingState = TopicCurrency<unknown>["state"];
 
-/** The reckoning discriminant alone, the companion to {@link ReadingState}. */
+/**
+ * The values `reckoning.status` can take on a reading: `"available"`,
+ * `"none"` and `"declined"`.
+ *
+ * @category Reading telemetry
+ */
 export type ReadingReckoning = Reckoning<unknown>["status"];
 
 /**
- * Drop the model: the written, greppable way for a widget to decline to
- * propagate.
+ * Returns the reading with its forward model removed: `reckoning` becomes
+ * `{ status: "none" }` and `state` is unchanged, so a held value stays held.
  *
- * It leaves `state` alone, which is the whole point of the axes being separate.
- * A live reading that declines its model is still `observed`, and a stale one is
- * still `stale` at the same grade. Only `reckoning` moves, to `"none"`, and the
- * return type says so: an {@link UnmodelledReading} has no `reckoned` for a
- * caller to reach for afterwards.
+ * Use it for a readout that shows the last observed number, marked as held
+ * when it is, and never a modelled one. Never use it for anything that draws a
+ * position or an attitude: a marker placed at a last-known value claims to
+ * know where the craft is now.
  *
- * Note it does not avoid the model's COST: `reckoned` is computed when the
- * reading is built, so by the time a widget declines it the model has already
- * run. This is about what gets DRAWN, not about saving work; a topic whose model
- * is too expensive to run per frame belongs in `NEVER_RECKONABLE`'s
- * too-expensive group instead.
- *
- * Legitimate for a scalar readout that wants the last observed number with a
- * staleness caption and no modelled figure. It exists as a named helper so the
- * decision shows up in review and "which widgets decline to reckon" is a
- * search. Without one, thirty-nine widgets would ignore the discriminant with an
- * inline fallthrough and the optional field would be back by convention.
- *
- * **Never use this on anything that draws a POSITION or an ATTITUDE.** A marker
- * or a reticle placed from a last-known value asserts something about now that
- * it cannot know, and that is the sharpest form of the failure this type
- * exists to prevent. Such a widget should either propagate or stop drawing.
- *
- * It takes a {@link ReckonableReading} too, and strips the {@link
- * ReckoningDecline} along with the model. A widget that has declined to
- * propagate has no use for the reason the model it is not drawing did not fire,
- * and leaving the field on would let one back into a branch it has already
- * opted out of.
+ * @category Reading telemetry
  */
-// The ReckonableReading overload comes FIRST, and the order is load-bearing.
-// `Reading<Pick<Payload, ReckonableKey>>` accepts a `ReckonableReading<Payload, ReckonableKey>` by inference (the
-// observation is a `Payload`, and a `Payload` is assignable to its own projection), so the
-// wider declaration first would silently narrow the answer to the projection.
-// The reverse cannot happen: a plain `Reading` has no `declined` on its
-// value-bearing `"none"` arms, which this type requires.
+// The ReckonableReading overload must come first: the wider one would accept it and narrow the return to the projection.
 export function withoutReckoning<Payload, ReckonableKey extends keyof Payload>(
   reading: ReckonableReading<Payload, ReckonableKey>,
 ): UnmodelledReading<Payload>;
@@ -1044,17 +701,14 @@ export function withoutReckoning<Payload>(
 }
 
 /**
- * A `Reading` with no model on offer: every member whose `reckoning` is
- * `"none"`, so `reckoned` is not merely absent at runtime but absent from the
- * type.
+ * A Topic reading with no model on offer: `reckoning` is always
+ * `{ status: "none" }`, so there is no modelled value to reach for.
  *
- * `stale` is still there and still has to be handled: that is where the
- * judgement lives, and this narrowing does not reduce it. What it removes is a
- * branch a caller could write for a case that cannot occur.
+ * {@link withoutReckoning} returns one. Held values still have to be handled.
  *
- * Declared here rather than beside `NEVER_RECKONABLE` because two different
- * things produce one: a topic declared unmodellable, and any reading a widget
- * has run {@link withoutReckoning} over.
+ * @typeParam Payload - The Topic's payload type.
+ *
+ * @category Reading telemetry
  */
 export type UnmodelledReading<Payload> = TopicCurrency<
   Payload,
@@ -1063,39 +717,21 @@ export type UnmodelledReading<Payload> = TopicCurrency<
   TopicFields<Payload>;
 
 /**
- * The value of an OBSERVED reading, and `undefined` on every other arm.
+ * Returns the value of an `"observed"` reading, and `undefined` in every other
+ * state, held included.
  *
- * The narrowing to write when a value only means anything if it is CURRENT: a
- * verdict, a band, a status pill, whether a control may be pressed. `pending`,
- * `unowned` and `absent` have no value to give, and `stale` deliberately gives
- * nothing either, because the question asked was what is true now and a
- * last-known figure answers a different one. A widget that wants the last-known
- * figure branches on the `stale` arm itself and captions it with the age from
- * {@link observedAt}, which is what that arm carries `asOfUt` for.
+ * Use it where a value only means something while it is current: a verdict, a
+ * status, whether a control can be pressed. To show a held value, check for
+ * `state === "stale"` and date it with {@link observedAt}. It never uses a
+ * forward model.
  *
- * It is exported rather than left to each caller because it was written out by
- * hand, identically, in thirty-nine copies across eight Uplinks and the
- * built-in widget library. The reason it was copied instead of imported is that
- * the SDK never offered it: an Uplink may import this package and `ui-kit` and
- * nothing else of the app's, so a helper every consumer needs and the SDK
- * withholds gets duplicated once per consumer.
+ * @example
+ * ```ts
+ * const flight = observedValue(useTelemetry("vessel.flight"));
+ * const descending = flight !== undefined && flight.verticalSpeed.lessThan(0);
+ * ```
  *
- * **Not the right read on a reckonable topic, where the model is the point.** A
- * topic the contract declares reckonable answers with a
- * {@link ReckonableReading}, and its `reckoned` is the whole reason the
- * declaration exists: taking the observation there draws the last real sample
- * while a model able to say where the craft IS goes unread. Such a widget
- * branches on `reckoning` and reads `reckoned.value`. This function answers for
- * the OBSERVATION on either union and never consults a model, so on a
- * reckonable topic it is a deliberate choice to ignore one rather than a way of
- * reaching it.
- */
-/*
- * The ReckonableReading overload comes FIRST, for the same load-bearing reason
- * `withoutReckoning`'s does: `Reading<Pick<Payload, ReckonableKey>>` accepts a
- * `ReckonableReading<Payload, ReckonableKey>` by inference, so declaring the wider one first would
- * type the OBSERVATION as the projection the model moves, and a caller reading
- * any other field of the payload it actually holds would fail to compile.
+ * @category Reading telemetry
  */
 export function observedValue<Payload>(
   reading: TopicCurrency<Payload>,
@@ -1104,18 +740,19 @@ export function observedValue<Payload>(
 }
 
 /**
- * The value of a FACT: something that stays true until an event changes it, and
- * no event can reach us down a link that is not delivering. So a `stale` reading
- * still stands for now and is returned as observed, where
- * {@link observedValue} would withhold it.
+ * Returns the value of a fact: something that stays true until an event
+ * changes it, such as a craft's name or a part's presence. A held value is
+ * returned as well as an observed one, since no event could have changed it
+ * unseen.
  *
- * `whenConfirmedNothing` is what an `absent` tombstone means for the caller,
- * which is a different answer from `pending` (and `unowned`), both of which
- * return `undefined` and must not collapse into it.
+ * Returns `whenConfirmedNothing` for an `"absent"` reading, and `undefined`
+ * while `"pending"` or `"unowned"`.
  *
- * Only for a fact. A measurement that drifts on its own (a position, a
- * propellant level, a temperature) is not still true once the link has gone
- * quiet, and belongs to {@link observedValue} or to a dated read instead.
+ * Only for facts. A measurement that drifts on its own, such as a position or
+ * a fuel level, is not still true once updates stop; use
+ * {@link observedValue}.
+ *
+ * @category Reading telemetry
  */
 export function stillTrue<Payload, Fallback>(
   reading: TopicCurrency<Payload>,
@@ -1682,7 +1319,7 @@ export function bandSide<Unit extends string>(
  * else and because the callers that need it most cannot supply a `Reading<Payload>`:
  * a presence gate reads `` `${domain}.available` `` through a runtime `as
  * TopicId` cast, so its reading is the union over EVERY topic and unifies with
- * no single `T`.
+ * no single `Payload`.
  */
 export function hasAnswered(reading: {
   readonly state: ReadingState;
@@ -1699,28 +1336,17 @@ export function hasAnswered(reading: {
 }
 
 /**
- * The instant a reading's OBSERVATION was made, or `undefined` when there has not
- * been one.
+ * Returns when the reading's value was observed, or confirmed absent, and
+ * `undefined` while `"pending"` or `"unowned"`.
  *
- * This replaces `readingAge`, which did the subtraction itself and returned a bare
- * `number`. An age is now `viewUt.minus(observedAt(reading))`, which is a
- * `Value<"s">` natively and renders through `<Unit>` like any other duration: the
- * affine rules made the subtraction say what it means, so a function to do it by hand
- * was one more thing to keep honest.
+ * For a held value it is when that value was observed. A reading with a
+ * forward model returns its last real observation, never the model's instant.
  *
- * `pending` and `unowned` have no instant: there is no observation to be old, and for
- * `unowned` there never will be. Every other arm has one whether or not a model is on
- * offer, and where one is, the age of the last real contact is the number an operator
- * wants beside the modelled figure.
+ * An age is `viewUt.minus(observedAt(reading))`, a `Value<"s">`. Clamp it at
+ * zero: samples can arrive out of order, so one can sit slightly ahead of the
+ * view time.
  *
- * Callers still clamp at zero. Samples arrive out of order (`ClientTimeline`
- * insert-sorts for it), so one can sit marginally ahead of the frame's view time, and
- * "-0.4 s old" is never a thing to render.
- *
- * Takes either union, because the question is about the OBSERVATION and the body
- * switches on `state` alone. A declared value's reading answers it identically:
- * how far a modelled figure has been carried is the same number whether or not
- * the model that carried it was declared in the contract.
+ * @category Reading telemetry
  */
 export function observedAt<Payload>(
   reading: TopicCurrency<Payload>,

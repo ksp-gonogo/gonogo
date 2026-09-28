@@ -187,8 +187,12 @@ export interface ThemeDefinition {
 // --- Augments (slot composition) --------------------------------------------
 
 /**
- * Declaration-merging seam for slot props. An augmenting package merges a slot
- * id → props type.
+ * Every augment slot, keyed by slot id, mapped to the props the slot passes its
+ * augments. An augment is a React component an Uplink binds to a slot with
+ * `registerAugment`; the widget renders it in place.
+ *
+ * A widget that owns a slot declares it here by declaration merging, so an
+ * augment of a misspelled slot does not typecheck.
  */
 // biome-ignore lint/suspicious/noEmptyInterface: declaration-merging seam
 export interface SlotRegistry {}
@@ -206,9 +210,10 @@ type ErasedOrNever<Slot extends string> = string extends Slot
   : never;
 
 /**
- * The props a slot passes its augments, and `never` for a slot no package has
- * merged. A loose bag here would type an augment of a MISSPELLED slot id, and
- * the props it reads off that bag, exactly as it types a correct one.
+ * The props a slot passes to each of its augments. `never` for a slot id no
+ * widget declares, so an augment of a misspelled slot does not typecheck.
+ *
+ * @category Extensions
  */
 export type SlotProps<Slot extends string> = Slot extends keyof SlotRegistry
   ? SlotRegistry[Slot]
@@ -244,15 +249,12 @@ export type WidgetScope<Widget extends string> =
 // --- Contributions (pure-data slot composition) ------------------------------
 
 /**
- * Declaration-merging seam for the contribution model, mirroring
- * `SlotRegistry` above: an augmenting package (in
- * practice today, `mod/sitrep-sdk/src/api/contribution-slots.ts`) merges a
- * contribution slot id into this interface. Empty until the first
- * first-party contribution slot lands (Application phase, a separate
- * follow-up plan); this base declaration is what lets that satellite file's
- * `declare module "./types"` block be recognised as an AUGMENTATION of an
- * existing export rather than a fresh ambient module declaration (which TS
- * rejects for a relative specifier).
+ * Every contribution slot, keyed by slot id, mapped to the entry its
+ * contributions produce. A contribution is data an Uplink computes from Topics
+ * with `registerContribution`; the widget owns how it is drawn.
+ *
+ * A contribution reads the Topics it names in its own `deps`, and any Topic
+ * may be named there.
  */
 // biome-ignore lint/suspicious/noEmptyInterface: declaration-merging seam
 export interface ContributionRegistry {}
@@ -269,91 +271,35 @@ export interface ContributionRegistry {}
  */
 export type ContributionSlotId = keyof ContributionRegistry;
 
-/**
- * Segment-keyed registry for HOST-INVARIANT component slot types, the sibling
- * of `ContributionRegistry`'s full-id map.
- *
- * A reusable component cannot write the full slot literal
- * `${componentId}.${segment}`, because it does not know which widget it is
- * mounted in: it writes only the SEGMENT and the primitives complete the key
- * from the widget's own meta at runtime. This maps a SEGMENT to the entry type
- * its contributions carry.
- *
- * The framework owns the universal `filters` segment here, once, so no
- * component/widget/contributor writes it. A component inventing a novel
- * host-invariant segment declares its one line co-located with its own
- * module-load self-registrations.
- */
-/**
- * One badge on a widget's panel header.
- *
- * Declared here rather than in `@ksp-gonogo/ui-kit` beside the `Badge` that draws
- * it, because it is the ENTRY TYPE of the framework-universal `badges` segment
- * below: contribution data, which an Uplink writes and the contract has to name.
- * The component stays in ui-kit and re-exports this.
- *
- * `tone` is inlined rather than naming a ui-kit type because the leaf cannot
- * reach one. It is DATA, not a prop: ui-kit's `Badge` now speaks only
- * `Severity`, and a renderer folds an entry's tone onto that scale with
- * `severityFromBadgeEntryTone`.
- */
+/** One badge on a widget's panel header: the entry of the `badges` segment. */
 export interface BadgeEntry {
+  /** Stable id, unique within the contributing Uplink. */
   id: string;
+  /** The badge's text. */
   label: string;
+  /** How the badge reads. The host maps it onto its severity scale. */
   tone?: "neutral" | "go" | "nogo" | "warn" | "info";
 }
 
 /**
- * One meter in a widget's meter stack: a labelled 0..1 bar.
- *
- * Declared here rather than beside the `Meter` that draws it, for the same
- * reason `BadgeEntry` is: it is the ENTRY TYPE of the framework-universal
- * `meters` segment, which is contribution DATA an Uplink writes and the
- * contract therefore has to name. `MeterProps` minus the styling.
- *
- * The tree already wrote this slot twice, once as data and once as React:
- * `ship-map.part-meters` is a typed widget-owned slot of exactly this shape,
- * and a per-crew-row survival augment was a `Stack` of `Meter` and nothing
- * else, i.e. zero pixels its host did not already own. This segment is what
- * lets the second kind stop being React.
+ * One labelled bar in a widget's meter list: the entry of the `meters`
+ * segment. The widget draws it with ui-kit's `Meter`.
  */
 export interface MeterEntry {
   /** Stable id, unique within the contributing Uplink. */
   id: string;
   /** Short label above the bar; also the meter's accessible name. */
   label: string;
-  /**
-   * The fill, as a `ratio` quantity or the whole {@link Reading} of one.
-   *
-   * A `Reading` is how a contributed meter says more than where the bar is.
-   * The host's `Meter` draws the figure the same either way; what the reading
-   * adds is whether it is a reading of NOW, and the band, which it draws as one
-   * mark per bound on the bar's own track. That band is looked up by the
-   * primitive and never by the contributor, which is what keeps one visual
-   * language across every Uplink that contributes one: a contributor hands over
-   * the reading it already holds and decides nothing about how doubt is drawn.
-   *
-   * A quantity rather than a bare 0..1 number, and a per-value {@link Reading}
-   * rather than a whole-topic one, because both are what the primitive takes:
-   * an entry that could be handed over only after a conversion would be a
-   * second place deciding what a fraction is.
-   *
-   * The band it can place is the one in `ratio`, since that is what this figure
-   * is. A model that bands the underlying quantity instead (an accumulator in
-   * its own unit) has to say so as a fraction of the same axis the bar is drawn
-   * on, or the meter has nothing to place and draws no marks.
-   */
+  /** The fill, as a `ratio` quantity or the whole {@link Reading} of one. */
   value: Value<"ratio"> | Reading<Value<"ratio">>;
-  /** Semantic colour of the fill. Inlined for the reason `BadgeEntry.tone` is. */
+  /** Semantic colour of the fill. */
   tone?: "neutral" | "go" | "warn" | "nogo" | "info";
   /** Text on the right of the header; a percentage when absent. */
   valueLabel?: string;
   /**
-   * Which ROW of the host widget this meter belongs beside, when the host
+   * Which row of the host widget this meter belongs beside, when the host
    * renders a list: a kerbal's name, a part id. Absent for a whole-widget
-   * meter. This is what lets a once-per-widget segment address a row, the one
-   * thing an augment segment cannot do, and it is why a per-row stack of bars
-   * is a contribution rather than an augment.
+   * meter.
    */
   row?: string;
 }
@@ -362,9 +308,8 @@ export interface MeterEntry {
  * One cell of a widget's core-stat strip: the label, the figure, and at most one
  * line qualifying it.
  *
- * Declared here rather than beside the `Stat` that draws it, for the reason
- * `MeterEntry` is: it is contribution DATA an Uplink writes, so the contract has
- * to name it. Unlike `MeterEntry` it is the entry of a WIDGET-LED slot rather
+ * Contribution data an Uplink writes, so the contract names it. Unlike
+ * `MeterEntry` it is the entry of a WIDGET-LED slot rather
  * than a universal segment, because a strip of headline figures is not something
  * every widget has: the sixty that have none aggregate nothing, the same reason
  * `plots` is not a segment either.
@@ -399,37 +344,31 @@ export interface StatEntry {
   /** One line under the figure, qualifying it: a rate, a horizon, a count it is drawn from. */
   detail?: string;
   /**
-   * How alarming the figure is. Inlined, and the same five words `BadgeEntry`
-   * and `MeterEntry` carry, for the reason `BadgeEntry.tone` gives.
+   * How alarming the figure is: the same five words `BadgeEntry` and
+   * `MeterEntry` carry.
    */
   tone?: "neutral" | "go" | "warn" | "nogo" | "info";
 }
 
+/**
+ * The contribution segments a reusable component draws, keyed by segment and
+ * mapped to the entry type its contributions produce. The full slot id is
+ * `${componentId}.${segment}`, for the widget the component is mounted in.
+ *
+ * Only `badges` is on every widget. `filters` and `meters` exist on a widget
+ * only where it renders the component that draws them.
+ */
 export interface ComponentSlotRegistry {
   /**
-   * The framework-universal filter segment: a contribution is a pre-filled
-   * SEARCH TERM (a plain string) rendered as a toggle. Host-invariant, the same
-   * string means the same thing in any widget.
+   * A pre-filled search term, drawn as a toggle by a widget that shows a
+   * `FilterList`.
    */
   filters: string;
-  /**
-   * The framework-universal badge segment, the
-   * original auto-slot. Declared here for the same reason `filters` is: the
-   * aggregation completes `${componentId}.badges` for EVERY widget, so the
-   * segment is host-invariant and its entry shape belongs to the framework.
-   *
-   * It was missing while `UplinkClientHandle.registerContribution` took a loose
-   * `compute: (topics: any) => readonly any[]` probe, so every badge contribution
-   * an Uplink wrote was unchecked and resolved to the undeclared-slot fallback
-   * (`Record<string, unknown>`). Collapsing that mirror to the real handle is what
-   * surfaced it, in three Uplink badge files at once.
-   */
+  /** One badge on the widget's panel header. Every widget carries it. */
   badges: BadgeEntry;
   /**
-   * The framework-universal meter segment: a contribution is one labelled 0..1
-   * bar, optionally addressed at a row of the host's list. Host-invariant for
-   * the same reason `badges` is, a meter means the same thing in any widget,
-   * and rendered by ui-kit's own `WidgetMeters`.
+   * One labelled bar, drawn by a widget that renders `WidgetMeters`, optionally
+   * beside one row of its list.
    */
   meters: MeterEntry;
 }
@@ -445,19 +384,11 @@ type SegmentOf<Slot extends string> = Slot extends `${string}.${infer Rest}`
   : never;
 
 /**
- * The entry type a contribution slot renders. Resolution order:
- *  1. a full slot id declared in {@link ContributionRegistry} (host-specific,
- *     the override hatch and every widget-led slot) wins outright
- *  2. else the slot's trailing SEGMENT in {@link ComponentSlotRegistry} (the
- *     host-invariant component-slot case, e.g. `*.filters` -> `string`)
- *  3. else a loose record, the out-of-repo / undeclared fallback.
+ * The entry a contribution to a slot returns from `compute`: the entry the
+ * widget declares for that slot, or for a slot every widget carries, such as
+ * `badges`, that slot's entry.
  *
- * All three branches live HERE rather than in `@ksp-gonogo/ui-kit`, which used
- * to carry its own copy of this resolution. Two copies of a declaration-merge
- * seam is the one divergence shape that cannot fail loudly: an Uplink merging
- * into this package's `ContributionRegistry` and a widget merging into ui-kit's
- * were both correct-looking and landed on different interfaces, so neither
- * could see the other's slots and nothing said so.
+ * @category Extensions
  */
 export type ContributionEntry<Slot extends string> =
   Slot extends keyof ContributionRegistry
@@ -565,60 +496,105 @@ type DepValue<Dependency> = Dependency extends string
         : Result | undefined
       : never;
 
-/** Every dep a contribution declared, keyed and typed the way it arrives. */
+/**
+ * The argument a contribution's `compute` receives: each Topic named in its
+ * `deps`, keyed by the Topic's id and typed by its payload. A Topic not named
+ * in `deps` cannot be read.
+ *
+ * A Topic's value is `undefined` until its first sample arrives, and `null`
+ * while the mod reports that it has nothing to describe. When samples stop, it
+ * keeps its last value.
+ *
+ * @category Extensions
+ */
 export type DepTopics<Deps extends readonly ContributionDep[]> = {
   readonly [Dependency in Deps[number] as DepKey<Dependency>]: DepValue<Dependency>;
 };
 
 /**
- * Registration descriptor for a contribution: the data a client feeds into
- * another widget's slot. Not a mirror of anything: `spine/contributions.ts` is
- * the registry, and this is the type it registers.
+ * What an Uplink client handle's `registerContribution` takes: a function
+ * that turns Topics into entries for another widget's slot. The widget draws
+ * the entries itself.
  *
- * Both halves of `compute` are typed precisely: what it returns against the
- * declaration-merged `ContributionEntry<Slot>` a slot owner declares in
- * `./contribution-slots.ts`, and what it receives against its own `deps`, which
- * are the only Topics the aggregation feeds it.
+ * `Slot` is inferred from `contributes` and `Deps` from `deps`, so `compute` is
+ * checked against both.
+ *
+ * @remarks
+ * - `compute` receives one object holding every Topic named in `deps` by any
+ *   contribution to the slot, all read at the same instant: the instant the
+ *   dashboard is showing, so under signal delay they lag as every widget does.
+ *   The same object is passed to every contribution to the slot.
+ * - A Topic's value is `undefined` until its first sample arrives, and `null`
+ *   while the mod reports that it has nothing to describe. When samples stop
+ *   or the link drops, it keeps its last value, and nothing in the object says
+ *   that it is being held.
+ * - The Topics are read at most once per animation frame. A value stays the
+ *   same object until a new sample of it is shown, and a Topic the mod sends
+ *   directly gives a new object for every sample, even one identical to the
+ *   last. When several samples arrive within one frame, `compute` sees only
+ *   the latest.
+ * - `compute` runs when the widget mounts, and again whenever a value in the
+ *   object changes, including a Topic that only another contribution to the
+ *   slot named, whenever the slot's contributions change, and whenever a
+ *   `requires` Domain comes or goes. Nothing is memoised: it can run again
+ *   with the same values, and it runs separately for each widget on the
+ *   dashboard that carries the slot.
+ * - `compute` runs synchronously, in a React effect after the render that read
+ *   the new values, and the widget draws the entries on its next render. A
+ *   promise returned in place of the entries is reported as an error.
+ * - A `compute` that throws is logged and skipped for that run. The slot's
+ *   other contributions still draw.
+ * - The widget redraws only when the slot's entries change. Each entry is
+ *   compared field by field with the one before it, so returning equal entries
+ *   causes no redraw, while a field holding a new object, such as a fresh
+ *   `value(...)`, counts as a change.
+ * - Only the highest `priority` band registered to the slot runs. A
+ *   contribution whose `requires` Domain is not present draws nothing, but
+ *   still holds its band, so lower bands stay hidden.
+ *
+ * @category Extensions
  */
 export interface ContributionDefinition<
   Slot extends string = string,
   Deps extends readonly ContributionDep[] = readonly ContributionDep[],
 > {
-  /** Stable id, unique globally. Auto-namespaced when registered via the handle. */
+  /** Stable id, unique within the Uplink. The handle prefixes it with the Uplink's own id. */
   id: string;
-  /** The slot this contribution feeds. */
+  /** The slot to fill, such as `"crew-status.meters"`. */
   contributes: Slot;
   /**
-   * What this contribution reads. It is what feeds `compute` at runtime, and
-   * since it is inferred as a literal tuple it is also what TYPES it: declare a
-   * topic here and it is readable and precise, leave one out and it is not
-   * readable at all.
+   * The Topics this contribution reads. Naming a Topic here is what subscribes
+   * to it, and `compute` receives each one, typed by its payload; a Topic left
+   * out cannot be read.
    */
   deps?: Deps;
   /**
-   * Pure, and referentially stable when its inputs are unchanged.
+   * Returns this contribution's entries for the slot, or `null` for none. It
+   * must return them directly, not through a promise, and it runs again
+   * whenever a Topic the slot reads changes.
    *
-   * <p>Each declared Topic arrives as its payload, `null` when the mod has
-   * confirmed there is nothing to describe, or `undefined` while it has not
-   * arrived. Returning no entries for either is honest; drawing a zero, an
-   * empty count or a nominal state for either is not.</p>
+   * A Topic that is `null` or `undefined` has no value to draw, so return no
+   * entries for it rather than a zero, an empty count or a nominal state.
    */
   compute: (
     topics: DepTopics<Deps>,
   ) => readonly ContributionEntry<Slot>[] | null | undefined;
-  /** Domain presence gate, identical semantics to `AugmentDefinition.requires`. */
+  /**
+   * A Domain id. `compute` runs only while that Domain is present; while it is
+   * not, the contribution draws nothing.
+   */
   requires?: string;
   /**
-   * Which BAND this contribution belongs to. Default 1.
+   * Which band this contribution belongs to. Only the highest band present in
+   * a slot renders, and every contribution in it renders, in registration
+   * order. A widget filling its own slot sits at 0, so a contribution at the
+   * default replaces the widget's own entries rather than appearing beside
+   * them.
    *
-   * <p>Only the highest band present in a slot renders, and all of it renders:
-   * an equal priority is not a tie to break, so two mutually-unaware mods at
-   * the default both draw and neither can silence the other. A host widget
-   * filling its own slot with the answer it can read itself sits at 0, which is
-   * what lets an ordinary contributor displace the stock list rather than
-   * appear beside it as a second copy. Within a band, registration order.</p>
+   * @defaultValue `1`
    */
   priority?: number;
+  /** Per-instance settings this contribution adds to the host widget's settings panel, stored under its `id`. */
   settings?: readonly AugmentSettingField[];
   /** Stamped by `defineUplinkClient(...).registerContribution`, never set by hand. */
   owner?: UplinkClientHandle;
@@ -670,24 +646,67 @@ export interface NamespacedAugmentSettings {
   fields: readonly AugmentSettingField[];
 }
 
-/** Registration descriptor for an augment bound into another widget's slot. */
+/**
+ * What `registerAugment` takes: a component the widget renders inside one of
+ * its slots.
+ *
+ * `Slot` is inferred from `augments`, so `component` is checked against the props
+ * that slot passes.
+ *
+ * @remarks
+ * - The widget renders the component as an ordinary child wherever it places
+ *   the slot: once for a slot on the whole widget, once per row for a slot on
+ *   each row.
+ * - The component receives the slot's props and nothing else. A slot with no
+ *   props passes none, and no telemetry is passed in: the component reads the
+ *   Topics it needs with `useTelemetry`, exactly as a widget does.
+ * - It renders every time the widget renders that part of itself, whether or
+ *   not its props changed, because the widget does not memoise it. The props
+ *   object is new on every render, and the values in it are the widget's own.
+ * - Its state lasts as long as the widget keeps the slot mounted and the
+ *   augment stays registered and present. Registering a different component
+ *   under the same `id` replaces it, and the new one starts with fresh state.
+ * - While its `requires` Domain is not present it is not mounted at all, so
+ *   its state is lost, and it mounts afresh when the Domain returns. A Domain
+ *   is present from the first value its `<domain>.available` Topic delivers,
+ *   and stays present while that value is held.
+ * - If it throws while rendering, the whole widget shows its error message
+ *   with a retry, as it does for an error of its own.
+ *
+ * @category Extensions
+ */
 export interface AugmentDefinition<Slot extends string = string> {
+  /** Stable id, unique across every Uplink. Registering the same id again replaces the earlier augment. */
   id: string;
+  /** The slot to render in, such as `"crew-status.avatar"`. */
   augments: Slot;
-  component: ComponentType<SlotProps<Slot>>;
-  channels?: readonly TopicId[];
-  requires?: string;
-  priority?: number;
-  settings?: readonly AugmentSettingField[];
-  /** Declares that, while this augment is registered, the host's own
-   *  default/replaceable surface for its slot is suppressed outright; see
-   *  the real `AugmentDefinition` (packages/core/src/augments.ts) for the
-   *  full rationale. */
-  suppressesVanillaBase?: boolean;
   /**
-   * The Uplink client that registered this augment, stamped via
-   * `defineUplinkClient`'s returned handle. Provenance only; never hand-set.
+   * The component the widget renders in the slot. It receives the slot's
+   * props, {@link SlotProps}, and reads any Topic it needs itself.
    */
+  component: ComponentType<SlotProps<Slot>>;
+  /** The Topics the component reads, listed on the Uplink's generated page. */
+  channels?: readonly TopicId[];
+  /**
+   * A Domain id. The augment renders only while the host reports that Domain
+   * present, so it stays hidden while its mod is not running.
+   */
+  requires?: string;
+  /**
+   * Order among the augments in one slot, lowest first; ties render in
+   * registration order.
+   *
+   * @defaultValue `0`
+   */
+  priority?: number;
+  /** Per-instance settings this augment adds to the host widget's settings panel, stored under its `id`. */
+  settings?: readonly AugmentSettingField[];
+  /**
+   * While this augment is registered, the widget draws none of its own
+   * content for the slot, so the augment replaces it rather than adding to it.
+   */
+  suppressesVanillaBase?: boolean;
+  /** The handle `defineUplinkClient` returned, naming the Uplink that registered this augment. */
   owner?: UplinkClientHandle;
 }
 

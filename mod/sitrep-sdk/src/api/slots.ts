@@ -182,7 +182,7 @@ export interface ShipMapOverlayContext {
 
 // --- CrewStatus (packages/components/src/CrewStatus) -------------------
 
-/** Mirrors `CrewBadgeContext` (CrewStatus/index.tsx). */
+/** Props passed to every `crew-status.row-badges` augment, once per crew row. */
 export interface CrewBadgeContext {
   /** The crew member this badge row belongs to, its identity for the augment. */
   crewName: string;
@@ -190,7 +190,7 @@ export interface CrewBadgeContext {
   crewIndex: number;
 }
 
-/** Mirrors `CrewAvatarContext` (CrewStatus/index.tsx). */
+/** Props passed to every `crew-status.avatar` augment, once per crew row. */
 export interface CrewAvatarContext {
   /** The crew member this avatar belongs to, its identity for the augment. */
   crewName: string;
@@ -624,8 +624,21 @@ declare module "./types" {
 
     "ship-map.overlay": ShipMapOverlayContext;
 
+    /**
+     * Inline badges at the end of each crew row, keyed by `crewName`. Distinct
+     * from the widget's `crew-status.badges` header segment.
+     */
     "crew-status.row-badges": CrewBadgeContext;
+    /**
+     * A leading avatar cell on each crew row. The cell is reserved only while
+     * an augment is bound, and stays blank for a kerbal the augment has nothing
+     * for.
+     */
     "crew-status.avatar": CrewAvatarContext;
+    /**
+     * One whole-widget section above the roster, for crew-wide status. Passes no
+     * props.
+     */
     "crew-status.summary": Record<string, never>;
 
     "astronaut-complex.crew": AstronautComplexCrewContext;

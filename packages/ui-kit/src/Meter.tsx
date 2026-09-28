@@ -29,16 +29,15 @@ import {
 import { VisuallyHidden } from "./VisuallyHidden";
 
 /**
- * How a meter's three parts are arranged.
+ * Where a meter's label and figure sit relative to its bar.
  *
  * - `stacked`: the label and the figure on a line, the bar beneath them. The
  *   default, for a meter that is a readout in its own right
- * - `row`: label, bar and figure on one line, for a dense list of meters read
- *   down a column. Where the line runs out of room the figure, then the bar,
- *   wraps rather than being clipped. Inside a `MeterStack` every row shares the
- *   stack's columns, so each bar starts and ends at the same x
+ * - `row`: label, bar and figure on one line, for a list of meters read down a
+ *   column. Where the line runs out of room the figure, then the bar, wraps
+ *   rather than being clipped. Inside a `MeterStack` every row lines up
  *
- * The bar is the same in both; only where the words sit changes.
+ * @category Meter
  */
 export type MeterLayout = "stacked" | "row";
 
@@ -46,7 +45,11 @@ interface MeterCommonProps
   extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
   /** Short label shown above the bar and used as the meter's accessible name. */
   label: string;
-  /** Semantic colour of the fill. Ignored when `fillColor` is set. */
+  /**
+   * Semantic colour of the fill. Ignored when `fillColor` is set.
+   *
+   * @defaultValue `"neutral"`
+   */
   tone?: StatTone;
   /**
    * Arbitrary CSS colour for the fill (e.g. `resourceColor(name)`), for meters
@@ -66,70 +69,84 @@ interface MeterCommonProps
    * accessibility tree.
    */
   valueLabelNode?: ReactNode;
-  /** Where the label and figure sit relative to the bar. See {@link MeterLayout}. */
+  /**
+   * Where the label and figure sit relative to the bar. See {@link MeterLayout}.
+   *
+   * @defaultValue `"stacked"`
+   */
   layout?: MeterLayout;
 }
 
 /**
- * Everything a meter needs: how much there is, and optionally what that is a
- * fraction of.
+ * The props of {@link Meter}.
+ *
+ * @category Meter
  */
 export interface MeterProps<UnitSymbol extends string = string>
   extends MeterCommonProps {
   /**
-   * How much there is. With a `capacity` beside it the bar draws the quotient;
-   * WITHOUT one, this is already the fraction and must be a `ratio`.
+   * How much there is. Without a `capacity` it must already be a fraction, in
+   * `ratio`. A {@link Reading} is accepted.
    *
-   * A reading carrying no number (`pending`, `unowned`, `absent`), or `null`,
-   * renders the absent form: the header shows `NULL_DISPLAY`, the track is
-   * empty, and the row drops `role="meter"`, since an unreported reading is not
-   * a 0% bar. A call site needs no absence gate of its own.
+   * `null`, or a reading with no value, draws a dash and an empty track, so
+   * there is no need to check for a missing value first.
    */
   value: UnitValue<UnitSymbol> | null;
   /**
-   * The full tank: what `value` is read as a fraction of, in the same unit, so
-   * a length over a volume does not typecheck.
-   *
-   * A `Reading` is accepted, since a measured capacity goes stale and may carry
-   * a band of its own. Omitted, `value` is already the fraction; `null` is a
-   * capacity that could not be read, and draws the absent form.
+   * The whole that `value` is a fraction of, in the same unit. A
+   * {@link Reading} is accepted. `null` is a capacity that could not be read,
+   * and draws a dash.
    */
   capacity?: UnitValue<UnitSymbol> | null;
   /**
-   * Pin the rung both halves are shown at, for the cases where convention
-   * beats magnitude. Rarely needed: otherwise the two halves settle one rung
-   * between them, so a tank is never written in two units.
+   * Fixes the unit `value` and `capacity` are written in. Rarely needed: by
+   * default the two share one unit, chosen by magnitude.
    */
   format?: FormatsFor<UnitSymbol>;
 }
 
 /**
- * A labelled horizontal fill bar: the shared visual language for any 0..1
- * quantity (dose, shielding, hunger, resource level, reliability). Pool several
- * into a uniform stack (see `MeterStack`) so a widget's readouts line up.
+ * A labelled bar showing how full something is: a dose, a resource level, a
+ * reliability. The value is always written beside the bar, so colour never
+ * carries meaning alone.
  *
- * Semantics: the track is `role="meter"` with `aria-valuenow/min/max` and
- * `aria-valuetext` (the human `valueLabel`), named by `label`. Colour never
- * carries meaning alone: the header always shows the value in text. An absent
- * reading renders the absent form instead, see `value`'s own doc.
+ * Pass `value` alone when it is already a fraction, in `ratio`, or `value` and
+ * `capacity` in the same unit for an amount out of a whole.
  *
- * ## Handed a whole `Reading`, it also draws how well the number is known
+ * ## Missing and held values
  *
- * One tick per band bound, on the track, at the bound's place along it: two
- * marks, never a shaded interval, since a `sigma1` band does not claim
- * containment. The bar keeps showing the observation, marked held when
- * stale; the marks sit where the model says the value is now. A band in a unit
- * other than the half it belongs to draws nothing.
+ * With no number to show, the meter draws a dash and an empty track, never a
+ * 0% bar. Given a {@link Reading}, a held value is marked as held, and a held
+ * capacity draws the track dashed.
  *
- * ## The capacity's doubt is drawn at the end, and never merged with the value's
+ * ## Bands
  *
- * - the value's band marks the track where the value is
- * - the capacity's band marks the track's end, placed as a fraction of the
- *   capacity drawn against, so a capacity that might be smaller marks inside
- * - a capacity that is held dashes the track rather than dimming the fill
+ * Where a reading carries an uncertainty band, the meter draws a tick at each
+ * end of it on the track: two marks, never a shaded interval. The bar still
+ * shows the observed value, and the ticks sit where the forward model puts the
+ * value now. A band on the capacity is ticked near the track's end, as a
+ * fraction of the capacity drawn. A band in a different unit from the value or
+ * capacity it belongs to draws nothing.
  *
- * There is no combined interval: whether the two errors are independent is
- * unknown here. A caller wanting one should publish a banded `ratio` reading.
+ * @example A fraction on its own, which must be a `ratio`
+ * ```tsx
+ * <Meter label="Shielding" value={value("ratio", 0.72)} tone="go" />
+ * ```
+ *
+ * @example An amount out of a capacity in the same unit
+ * ```tsx
+ * <Meter label="Ore" value={value("kg", 120)} capacity={value("kg", 400)} />
+ * ```
+ *
+ * @example Row meters in a stack, sharing columns so every bar lines up
+ * ```tsx
+ * <MeterStack>
+ *   <Meter label="LF" layout="row" value={liquidFuel} capacity={liquidFuelMax} />
+ *   <Meter label="Ox" layout="row" value={oxidizer} capacity={oxidizerMax} />
+ * </MeterStack>
+ * ```
+ *
+ * @category Meter
  */
 export function Meter<UnitSymbol extends string = string>({
   label,
@@ -611,16 +628,11 @@ function MeterPairBar<UnitSymbol extends string = string>({
 const ROW_BAR_FLOOR_PX = 48;
 
 /**
- * Uniform vertical stack of meters with consistent spacing.
+ * A vertical list of meters. Row meters in it share columns, so every label,
+ * bar and figure lines up. Where the figures do not fit beside the bars, every
+ * figure moves under its bar.
  *
- * Also the list that lines row meters up. Every row meter that is a child of
- * the stack (or of a `MeterRowGroup` in it) lays its label, bar and figure on
- * the stack's own columns, so the widest label sets where every bar starts and
- * the widest figure where every bar ends. Anything else spans the full width,
- * which leaves a stack of stacked meters drawn as a plain column.
- *
- * Whether the figures fit beside the bars is decided once for the whole list:
- * where they cannot, every figure moves under its bar, at the trailing edge.
+ * @category Meter
  */
 export function MeterStack({
   children,
@@ -659,12 +671,10 @@ export function MeterStack({
 }
 
 /**
- * A row meter that shares its slot in a `MeterStack` with other lines, such as
- * a caption under the bar.
+ * Keeps a row meter on its `MeterStack`'s columns while it shares a slot with
+ * other lines, such as a caption under the bar.
  *
- * The stack can only line up the row meters it can see; one wrapped in a box of
- * the caller's own falls off the stack's columns. This box passes the columns
- * through to its row meters, and gives every child the whole width.
+ * @category Meter
  */
 export const MeterRowGroup = styled.div.attrs({
   "data-meter-row-group": "",

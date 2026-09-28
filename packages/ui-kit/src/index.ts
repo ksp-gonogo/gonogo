@@ -218,6 +218,7 @@ export * from "./contributions";
 export {
   type ContributionSlotEntry,
   ContributionsPanelStore,
+  FRAMEWORK_CONTRIBUTION_SEGMENTS,
   useContributions,
   useContributionsBySlotId,
 } from "./contributionsRead";

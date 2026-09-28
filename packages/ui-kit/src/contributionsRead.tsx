@@ -42,6 +42,11 @@ type _EverySegmentListed =
 const _everySegmentListed: _EverySegmentListed = true;
 void _everySegmentListed;
 
+/** The contribution segments the dashboard draws for every widget: its header badges. */
+export const FRAMEWORK_CONTRIBUTION_SEGMENTS = [
+  "badges",
+] as const satisfies readonly ComponentSlotSegment[];
+
 const EMPTY_SLOT_ENTRIES: readonly ContributionSlotEntry[] = Object.freeze([]);
 
 export const ContributionsPanelStore = createPanelStore<

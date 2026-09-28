@@ -1,3 +1,4 @@
+import type { MeterEntry } from "@ksp-gonogo/sitrep-sdk";
 import type { ReadoutTone } from "@ksp-gonogo/ui-kit";
 
 // `crew-status.row-badges`: per-row inline badges keyed by `crewName`, with `crewIndex` disambiguating shared names. Not `.badges`, which is the framework's own contribution slot.
@@ -32,7 +33,15 @@ declare module "@ksp-gonogo/core" {
   }
 }
 
-// Per-row survival meters are the framework's `crew-status.meters` contribution segment, addressed to a kerbal by `row`.
+// `crew-status.meters`: per-kerbal meters under each roster row, addressed by `row` = the kerbal's name, drawn by `WidgetMeters`.
+
+declare module "@ksp-gonogo/core" {
+  interface ContributionRegistry {
+    "crew-status.meters": {
+      entry: MeterEntry;
+    };
+  }
+}
 
 /*
  * `crew-status.row-tone`: data rather than JSX, because the tinted `Card` wraps the whole row and no augment can reach it.

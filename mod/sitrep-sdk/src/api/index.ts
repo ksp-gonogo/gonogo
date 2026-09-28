@@ -43,15 +43,9 @@ import type { ReckonableFields, ReckonableTopic } from "../reckonability";
 import type { TopicId, TopicPayload } from "../topics";
 import type { Value } from "../value";
 import { getHost } from "./host";
-// Side-effect only: carries the `SlotRegistry` declaration-merge for every
-// first-party slot into any program that imports this barrel. See ./slots.ts's
-// own header for why the merge lives here rather than beside the widgets. No
-// named export added to the barrel by this import.
+// Carries the `SlotRegistry` declaration-merge for every first-party slot into any program that imports this barrel.
 import "./slots";
-// Side-effect only: carries the `ContributionRegistry` declaration-merge
-// scaffold (Phase 1 of the contributions primitive; see ./contribution-
-// slots.ts's own header). Same reasoning as the `./slots` import above, one
-// merge target per declaration-merge seam.
+// Carries the first-party `ContributionRegistry` declaration-merge, the same way.
 import "./contribution-slots";
 // Side-effect only: carries the `ContributionRegistry` declaration-merge for
 // the `plots` slot. Same reasoning as the two imports above, one merge target
@@ -92,6 +86,10 @@ export type {
   UplinkAlarmVantage,
 } from "./alarm-request";
 export { useAlarmRequest } from "./alarm-request";
+export type {
+  CrewRowToneEntry,
+  SystemEntitySeverity,
+} from "./contribution-slots";
 export type { GonogoHost } from "./host";
 export { GONOGO_HOST_KEY, hasHost } from "./host";
 export type { LogContext, Logger, TaggedLogger } from "./logger-contract";
@@ -120,6 +118,7 @@ export type {
   PlotSubject,
   PlotSubjectRegistry,
 } from "./plots";
+export type { CrewAvatarContext, CrewBadgeContext } from "./slots";
 // The message-pipe contract. Defined entirely in terms of this package's own
 // wire messages, so it belongs here rather than in `sitrep-client`, and living
 // here is what lets the transport double ship from `/testing`.
@@ -312,12 +311,14 @@ export const clearAugments = (): void => {
   getHost().clearAugments();
 };
 /**
- * Bind a component into another widget's named slot. Call at module load,
- * exactly like `registerComponent`. Several augments may target one slot and
- * all of them render, ordered by `priority`, none of them aware of the others.
+ * Renders a component inside another widget's slot. Call it once, when the
+ * module loads. Several augments may fill one slot, and all of them render,
+ * ordered by `priority`.
  *
- * `component` is typed against the slot's own props through the declaration-
- * merging seam, so `Slot` is checked here, at the only place it can be.
+ * `component` is checked against the props the slot passes, so an augment of a
+ * misspelled slot does not typecheck.
+ *
+ * @category Extensions
  */
 export const registerAugment = <Slot extends string>(
   def: AugmentDefinition<Slot>,
@@ -396,10 +397,11 @@ export {
 } from "./uplink-handles";
 
 /**
- * Declare an Uplink client's identity.
- * One call per client bundle; stamp the returned handle as `owner` on every
- * `registerComponent`/`registerAugment` call the client makes, or call the
- * returned handle's own `registerContribution` for the contributions path.
+ * Declares an Uplink client and returns its handle. Call it once per client.
+ *
+ * Pass the handle as `owner` to every `registerComponent` and
+ * {@link registerAugment} call the client makes, and register contributions
+ * through the handle's own `registerContribution`.
  */
 export const defineUplinkClient = (cfg: {
   id: string;
@@ -473,27 +475,44 @@ export {
 // --- Hook shims (stateful → injected host) ----------------------------------
 
 /**
- * Keyed by TopicId, answers with a `Reading` of the Topic's payload. A Topic
- * with no `TopicId` member (a per-subject dynamic namespace such as
- * `vessel.partActions.<flightId>`) is read with {@link useStream} instead.
+ * Subscribes to a Topic and returns its latest {@link TopicReading}: the
+ * payload together with how current it is.
  *
- * The declared return MUST stay a `Reading`, because that is what the host's
- * implementation this forwards to returns. Declaring `TopicPayload<Topic> |
- * undefined` here instead is a lie `tsc` cannot see in either direction: every
- * Uplink client typechecks clean, a sweep of the clients reports zero errors,
- * and the break arrives at runtime as "experiments is not iterable" deep inside
- * a parser typed `(raw: unknown)`.
+ * The payload is only there when `state` is `"observed"`, or `"stale"` for a
+ * held value, so check `state` before reading it. Every payload field is also a
+ * {@link Reading} of its own, so a single field can be passed on without
+ * checking the whole reading first.
  *
- * An Uplink drawing a radiation dose has to confront currency for the same reasons a
- * built-in widget does, so the honest signature is the one that makes it.
+ * For a Topic whose contract declares a forward model, such as
+ * `vessel.flight`, it returns a {@link ReckonableReading}.
  *
- * A topic the CONTRACT declares reckonable answers with `ReckonableReading`
- * instead, whose `reckoned` is only the fields a declared model moves. Both
- * declarations of this hook carry that arm, and they have to: an Uplink reading
- * `vessel.flight` through this facade and a built-in widget reading it through
- * the spine are reading the same store, and a facade that flattened the
- * projection back to the whole payload would hand an author a `situation` off a
- * modelled value.
+ * A Topic with no `TopicId`, a per-subject namespace such as
+ * `vessel.partActions.<flightId>`, is read with `useStream` instead.
+ *
+ * Where a payload is expected, pass the checked `value`, never the reading
+ * itself: a payload type whose fields are all optional accepts a whole reading
+ * without a type error, and then finds none of its fields.
+ *
+ * @param topic - The Topic to read, such as `"vessel.flight"`.
+ *
+ * @example A field passed on whole
+ * ```tsx
+ * function VerticalSpeed() {
+ *   const flight = useTelemetry("vessel.flight");
+ *   return <Unit value={flight.verticalSpeed} />;
+ * }
+ * ```
+ *
+ * @example Checking the state, for something only a current value may decide
+ * ```tsx
+ * function DescentFlag() {
+ *   const flight = useTelemetry("vessel.flight");
+ *   if (flight.state !== "observed") return null;
+ *   return flight.value.verticalSpeed.lessThan(0) ? <Text>Descending</Text> : null;
+ * }
+ * ```
+ *
+ * @category Reading telemetry
  */
 export function useTelemetry<Topic extends TopicId>(
   topic: Topic,
@@ -503,6 +522,7 @@ export function useTelemetry<Topic extends TopicId>(
       ReckonableFields<Topic> & keyof TopicPayload<Topic>
     >
   : TopicReading<TopicPayload<Topic>> {
+  // The declared return must stay what the host returns: a narrower one typechecks every client and breaks at runtime.
   return getHost().useTelemetry(topic);
 }
 

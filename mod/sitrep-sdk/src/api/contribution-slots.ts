@@ -49,7 +49,7 @@
 import type { Reading } from "../reading";
 import type { ReadFrameChoice } from "../spine/reference-frame";
 import type { Value } from "../unit-system/value";
-import type { StatEntry } from "./types";
+import type { MeterEntry, StatEntry } from "./types";
 
 /** Mirrors ui-kit's `MeterTone` (`packages/ui-kit/src/Meter.tsx`). */
 export type ShipMapMeterTone = "neutral" | "go" | "warn" | "nogo" | "info";
@@ -222,18 +222,18 @@ export interface SystemViewProjection {
   frameBodyIndex: number;
 }
 
-// `crew-status.row-tone` (packages/components/src/CrewStatus): how alarming
-// one kerbal's situation is. A contributor names the SEVERITY and nothing
-// else; CrewStatus owns the palette and decides what its roster-row `Card`
-// looks like, so this Uplink-facing type deliberately cannot say "alert" or
-// name a colour. Same three words as `SystemEntitySeverity` above, on purpose:
-// one severity vocabulary across every slot an Uplink can fill.
-
-/** Mirrors `CrewRowToneEntry` (CrewStatus/index.tsx). Omit a kerbal entirely
- *  for "nothing to report" rather than contributing an `info` entry. */
+/**
+ * One entry of a `crew-status.row-tone` contribution: how alarming one kerbal's
+ * situation is.
+ *
+ * A contributor names the severity and nothing else; the widget owns the
+ * palette. Omit a kerbal entirely for nothing to report, rather than
+ * contributing an `info` entry.
+ */
 export interface CrewRowToneEntry {
   /** The crew member this entry is about; matched to a roster row by name. */
   crewName: string;
+  /** How alarming the situation is. The widget decides what that looks like. */
   severity: SystemEntitySeverity;
 }
 
@@ -457,8 +457,19 @@ declare module "./types" {
     "system-view.projection": {
       entry: SystemViewProjection;
     };
+    /**
+     * Tints a whole crew row by severity; the widget picks the colour. The
+     * first entry for a name wins.
+     */
     "crew-status.row-tone": {
       entry: CrewRowToneEntry;
+    };
+    /**
+     * Meters under each crew row, such as life-support levels. Set `row` to the
+     * kerbal's name; an entry with no `row` is not drawn.
+     */
+    "crew-status.meters": {
+      entry: MeterEntry;
     };
     "comm-signal.hop-rates": {
       entry: CommSignalHopRateEntry;

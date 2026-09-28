@@ -3,33 +3,39 @@ using System;
 namespace Sitrep.Contract
 {
     /// <summary>
-    /// Marks a concrete <c>ISitrepUplink</c> type for assembly-scan discovery.
-    /// <c>UplinkDiscovery</c> scans
-    /// every loaded assembly that references <c>Sitrep.Contract</c> for
-    /// types carrying this attribute and implementing
-    /// <c>ISitrepUplink</c>, instantiates each via its PARAMETERLESS
-    /// constructor (a discoverable Uplink must have one, a bundled Uplink
-    /// that needs a real dependency, e.g. <c>VesselUplink</c>'s vessel
-    /// actuator, resolves it itself inside that constructor rather than
-    /// taking it as a discovery-time argument), and registers it.
+    /// Marks an <see cref="ISitrepUplink"/> implementation for discovery.
     ///
-    /// <see cref="ContractMajor"/>/<see cref="ContractMinor"/> default to
-    /// <see cref="ContractVersion.Major"/>/<see cref="ContractVersion.Minor"/>,
-    /// C# bakes a default PARAMETER value into the CALLER's metadata at
-    /// COMPILE time (it is not a virtual/runtime lookup), so an Uplink
-    /// attribute written as plain <c>[SitrepUplink("vessel")]</c> and never
-    /// recompiled after a later contract Major bump keeps reporting the OLD
-    /// version it actually shipped against: exactly the "what version was I
-    /// built against" signal the discovery handshake needs. An Uplink is
-    /// free to override these explicitly if it has a reason to declare
-    /// support for something other than "whatever I was compiled against".
+    /// <para>Gonogo scans every loaded assembly that references
+    /// <c>Sitrep.Contract</c> for classes carrying this attribute and
+    /// implementing <see cref="ISitrepUplink"/>, and creates each through its
+    /// public parameterless constructor. A dependency the Uplink needs is
+    /// resolved inside that constructor, never passed in.</para>
+    ///
+    /// <para>The two version arguments default to the
+    /// <see cref="ContractVersion"/> constants of the contract you compiled
+    /// against, and the compiler inlines them into your assembly, so they record
+    /// which contract your build assumed. Leave them alone. An Uplink whose
+    /// contract major differs from the running mod's is refused:
+    /// <see cref="ISitrepUplink.Register"/> is never called, and the Uplink is
+    /// marked unavailable with both versions in the reason. A minor difference in
+    /// either direction loads, because minor versions only add.</para>
     /// </summary>
     [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
     public sealed class SitrepUplinkAttribute : Attribute
     {
+        /// <summary>The Uplink's registry-unique id. Must equal <see cref="UplinkManifest.Id"/>.</summary>
         public string Id { get; }
+
+        /// <summary>The contract major this Uplink was built against.</summary>
         public int ContractMajor { get; }
+
+        /// <summary>The contract minor this Uplink was built against.</summary>
         public int ContractMinor { get; }
+
+        /// <summary>Declare an Uplink by id, stamped with the contract version it compiles against.</summary>
+        /// <param name="id">The Uplink's id, the same string as its manifest's.</param>
+        /// <param name="contractMajor">Leave defaulted: the compiled-against contract major.</param>
+        /// <param name="contractMinor">Leave defaulted: the compiled-against contract minor.</param>
 
         public SitrepUplinkAttribute(
             string id,

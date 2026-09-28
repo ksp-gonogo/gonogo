@@ -31,15 +31,11 @@ export type {
  */
 export interface AugmentSegmentRegistry {
   /**
-   * Body sections appended below everything the host widget renders. The
-   * augment reads its own Topics and needs nothing from the host.
+   * A section below everything the widget draws. It passes no props: the
+   * augment reads its own Topics.
    */
   sections: Record<string, never>;
-  /**
-   * Header controls, rendered in the panel header's aside alongside the
-   * widget's badges and status. Same position the universal `badges`
-   * contribution lands in.
-   */
+  /** Controls in the widget's panel header, beside its badges. */
   actions: Record<string, never>;
 }
 
@@ -56,7 +52,7 @@ export type AugmentSegmentProps<Segment extends string> =
  */
 /**
  * Registration descriptor for an augment: a component bound into another
- * widget's slot. `S` is inferred from `augments`, so `component` is typed
+ * widget's slot. `Slot` is inferred from `augments`, so `component` is typed
  * against that slot's {@link SlotProps}.
  */
 export type {

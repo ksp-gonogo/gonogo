@@ -621,101 +621,91 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
-    /// Where an Uplink's CLIENT bundle lives, so a third-party Uplink is
-    /// self-describing: the app learns the client URL from the running mod, no
-    /// central index (design §3.2, D5). A manifest declares this only when it
-    /// HAS a client half; a mod-only Uplink leaves
-    /// <see cref="UplinkManifest.ClientSource"/> null.
+    /// Where an Uplink's client bundle lives, so the app learns it from the
+    /// running mod rather than from a central index. Declared only by an Uplink
+    /// with a client half.
     ///
-    /// <para>The integrity hash for this bundle is NOT repeated here, it stays
-    /// on <see cref="UplinkManifest.ExpectedClientHash"/> (H_mod), carried
-    /// alongside on the same manifest/roster, because the loader's three-way
-    /// agreement reads it there.</para>
+    /// <para>The bundle's integrity hash is on
+    /// <see cref="UplinkManifest.ExpectedClientHash"/>, not here.</para>
     /// </summary>
     public sealed class UplinkClientSource
     {
         /// <summary>
-        /// The distributable client bundle URL: REQUIRED for a production
-        /// Uplink (this is what the app fetches the client half from when the
-        /// Uplink ships). Never null on a declared client source.
+        /// The released bundle's URL, which the app fetches the client half from.
+        /// Required on a declared client source.
         /// </summary>
         public string Url { get; set; } = "";
 
         /// <summary>
-        /// Optional local/dev override: a localhost dev-server URL or a local
-        /// build directory a third-party dev points at while iterating, so they
-        /// get a dev loop without publishing to <see cref="Url"/> each change.
-        /// <c>null</c> for a released Uplink (which serves from <see cref="Url"/>).
+        /// A dev-server URL or local build directory to load from while iterating,
+        /// so a change needs no publish to <see cref="Url"/>. <c>null</c> for a
+        /// released Uplink.
         /// </summary>
         public string? DevPath { get; set; }
     }
 
     /// <summary>
-    /// The manifest an <see cref="ISitrepUplink"/> exposes: one
-    /// registry-unique <see cref="Id"/>, one shared semver <see cref="Version"/>,
-    /// and every channel/command it owns. See the design doc §1.1: this is
-    /// generated from the C# side in the full contract; here it's simply the
-    /// authored source of truth the engine reads at <see cref="ISitrepUplink.Register"/>
-    /// time.
+    /// What an <see cref="ISitrepUplink"/> declares: its id, its version, who
+    /// wrote it, and every channel and command it owns.
+    ///
+    /// <para><see cref="Channels"/> and <see cref="Commands"/> are validated at
+    /// startup: a channel published or a command handled with no matching
+    /// declaration is refused.</para>
     /// </summary>
     public sealed class UplinkManifest
     {
+        /// <summary>The registry-unique id. Must equal the <see cref="SitrepUplinkAttribute.Id"/> on the class.</summary>
         public string Id { get; set; } = "";
+
+        /// <summary>The Uplink's semver version, shared by its mod and client halves.</summary>
         public string Version { get; set; } = "";
         /// <summary>
-        /// Human-facing provenance, emitted on <c>system.uplinks</c> so the
-        /// consent dialog can say WHO wrote the thing it is asking to run.
+        /// The Uplink's human-facing name. With <see cref="Author"/> and
+        /// <see cref="Repo"/> it is emitted on <c>system.uplinks</c>, so the consent
+        /// dialog can say who wrote the bundle it is asking to run.
         ///
-        /// <para>The consent moment is the only place this matters and the only
-        /// reason it is on the wire. An operator being asked to execute a bundle
-        /// fetched from a URL they did not choose should be told the author, and
-        /// until these existed the dialog said <c>by unknown</c> for every
-        /// Uplink, because it had nothing else to say.</para>
-        ///
-        /// <para>Deliberately three fields and not a metadata block: an id is
-        /// not a name, a name is not an author, and a repo is where a suspicious
-        /// operator goes to look. Anything else belongs in the Uplink's own
-        /// documentation rather than on every roster tick.</para>
-        ///
-        /// <para>Empty rather than null for a mod that predates them, so a
-        /// consumer never has to distinguish "old mod" from "author declined to
-        /// say": both render as absent.</para>
+        /// <para>Three fields and not a metadata block: an id is not a name, a
+        /// name is not an author, and a repo is where a suspicious operator goes to
+        /// look. Empty when not declared, which renders as absent.</para>
         /// </summary>
         public string Name { get; set; } = "";
-        /// <inheritdoc cref="Name"/>
+        /// <summary>Who wrote the Uplink, shown beside <see cref="Name"/>. Empty when not declared.</summary>
         public string Author { get; set; } = "";
-        /// <inheritdoc cref="Name"/>
+
+        /// <summary>Where the Uplink's source lives, shown beside <see cref="Name"/>. Empty when not declared.</summary>
         public string Repo { get; set; } = "";
         /// <summary>
-        /// H_mod: the sha256 of the client bundle this DLL was released with, as
-        /// <c>sha256-&lt;hex&gt;</c> (design §3.1). Baked at release build by the two-pass
-        /// client-hash generator (see the Uplink build script); <c>null</c> for a mod-only
-        /// Uplink with no client half, or an unbuilt/dev DLL. Emitted on
-        /// <c>system.uplinks.expectedClientHash</c> so the app can enforce the three-way
-        /// agreement (index == mod == bytes) before importing the client.
+        /// The sha256 of the client bundle this DLL was released with, as
+        /// <c>sha256-&lt;hex&gt;</c>, baked at release build. <c>null</c> for a
+        /// mod-only Uplink or a development build. The app refuses to import a
+        /// client whose bytes do not match it.
         /// </summary>
         public string? ExpectedClientHash { get; set; }
         /// <summary>
-        /// Where this Uplink's client bundle lives (D5), its distributable URL
-        /// plus an optional local/dev path. <c>null</c> for a mod-only Uplink
-        /// with no client half. Emitted on <c>system.uplinks.clientSource</c>.
+        /// Where this Uplink's client bundle lives. <c>null</c> for a mod-only
+        /// Uplink with no client half. Emitted on <c>system.uplinks.clientSource</c>.
         /// </summary>
         public UplinkClientSource? ClientSource { get; set; }
+
+        /// <summary>Every channel this Uplink publishes.</summary>
         public IReadOnlyList<ChannelDeclaration> Channels { get; set; } = Array.Empty<ChannelDeclaration>();
+
+        /// <summary>Every command this Uplink handles.</summary>
         public IReadOnlyList<CommandDeclaration> Commands { get; set; } = Array.Empty<CommandDeclaration>();
     }
 
     /// <summary>
-    /// Fail-soft status for one registered uplink; see the design doc
-    /// §1.4 handshake shape. An uplink that throws (or explicitly calls
-    /// <see cref="IUplinkHost.SetAvailability"/>) during
-    /// <see cref="ISitrepUplink.Register"/> is marked unavailable rather
-    /// than crashing the whole engine; every OTHER already/later-registered
-    /// uplink is unaffected.
+    /// Whether one registered Uplink is usable. An Uplink that throws during
+    /// <see cref="ISitrepUplink.Register"/>, or reports itself unavailable through
+    /// <see cref="IUplinkHost.SetAvailability"/>, is marked unavailable and every
+    /// other Uplink is unaffected.
     /// </summary>
     public readonly struct Availability
     {
+        /// <summary>Whether the Uplink is usable.</summary>
         public bool IsAvailable { get; }
+
+        /// <summary>Why it is not, in the operator's terms; null when available.</summary>
         public string? Reason { get; }
 
         private Availability(bool isAvailable, string? reason)
@@ -724,8 +714,11 @@ namespace Sitrep.Contract
             Reason = reason;
         }
 
+        /// <summary>The usable state.</summary>
         public static readonly Availability Available = new Availability(true, null);
 
+        /// <summary>The unusable state, with its reason.</summary>
+        /// <param name="reason">Why, in the operator's terms, e.g. the mod it integrates is not installed.</param>
         public static Availability Unavailable(string reason) => new Availability(false, reason);
     }
 
@@ -1318,130 +1311,97 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
-    /// One self-contained uplink: the C# half of the design doc's
-    /// two-half contract (§1.1). Ships in GameData; registers PURE pieces
-    /// (channel sources, command handlers, capability providers) against an
-    /// <see cref="IUplinkHost"/> and never touches transport/threading
-    /// itself. <c>system.bodies</c>'s retrofit
-    /// (<c>Gonogo.KSP.SystemUplink</c>) is the reference implementation,
-    /// see the design doc §6.1.
+    /// The interface every Uplink implements: the C# half of an Uplink, which
+    /// declares its channels and commands and registers the pieces that serve
+    /// them against an <see cref="IUplinkHost"/>. It never touches transport or
+    /// threading itself.
     ///
-    /// <para><b>Lives in <c>Sitrep.Contract</c>, not <c>Sitrep.Host</c>
-    /// (moved here in the Uplink-foundation review's fix round):</b> this
-    /// interface, <see cref="UplinkManifest"/>, <see cref="IUplinkHost"/>,
-    /// and everything else <see cref="Register"/>'s signature transitively
-    /// needs (<see cref="ChannelDeclaration"/>, <see cref="CommandDeclaration"/>,
-    /// <see cref="Delivery"/>, <see cref="Availability"/>,
-    /// <see cref="ISnapshotSampler"/>, <see cref="IChannelPublisher"/>,
-    /// <see cref="Sitrep.Contract.KspSnapshot"/>, <see cref="Kernel"/>, and
-    /// <see cref="EmissionPolicy"/>) are the COMPLETE set a third-party
-    /// Uplink needs to implement this interface and compile against
-    /// <c>Sitrep.Contract</c> ALONE: no reference to <c>Sitrep.Host</c>
-    /// (the engine: <c>ChannelEngine</c>, discovery, transport) is ever
-    /// required. That's the whole point of the split: <c>Sitrep.Contract</c>
-    /// is the planned MIT/BSD carve-out, and an Uplink author's compile-time
-    /// surface must not leak engine internals. <c>Sitrep.Host</c> keeps
-    /// everything ELSE: the engine that CONSUMES this interface
-    /// (<c>ChannelEngine.RegisterUplink</c>/<c>RegisterDiscoveredUplink</c>)
-    /// and the assembly-scan discovery that finds implementations of it
-    /// (<c>UplinkDiscovery</c>) both still live there; only the SHAPE an
-    /// Uplink author programs against moved.</para>
+    /// <para>Mark the class with <see cref="SitrepUplinkAttribute"/> so Gonogo
+    /// finds it. <see cref="Manifest"/> is read first, then
+    /// <see cref="Register"/> runs once, and <see cref="Health"/> is polled from
+    /// then on. An exception from <see cref="Register"/> disables that Uplink
+    /// alone.</para>
+    ///
+    /// <para><c>Sitrep.Contract</c> alone is enough to implement it: nothing in
+    /// <see cref="Register"/>'s signature, directly or transitively, lives in
+    /// another assembly.</para>
     /// </summary>
     public interface ISitrepUplink
     {
         /// <summary>
         /// Everything this Uplink declares: its id, its channels, its commands.
         ///
-        /// <para>Read BEFORE <see cref="Register"/> and treated as fixed from then
-        /// on, so it must not depend on game state. A channel published or a command
-        /// handled that this manifest does not declare is refused at registration,
-        /// which is what keeps a client's picture of an Uplink and the Uplink's own
-        /// behaviour from diverging.</para>
+        /// <para>Read before <see cref="Register"/> and constant for the Uplink's
+        /// lifetime, so it must not depend on game state. A channel published or a
+        /// command handled that it does not declare is refused at registration.</para>
         /// </summary>
         UplinkManifest Manifest { get; }
 
         /// <summary>
-        /// Called once, on the main thread, by <c>ChannelEngine.RegisterUplink</c>.
-        /// Throwing here (or calling <see cref="IUplinkHost.SetAvailability"/>
-        /// with an unavailable status) fail-softs THIS uplink only, every
-        /// other registered uplink is unaffected.
+        /// Register this Uplink's channel sources, command handlers and providers.
+        /// Called once, on the main thread, at load.
+        ///
+        /// <para>Throwing here, or calling <see cref="IUplinkHost.SetAvailability"/>
+        /// with an unavailable status, disables this Uplink only; every other Uplink
+        /// is unaffected.</para>
         /// </summary>
+        /// <param name="host">What the Uplink registers against.</param>
         void Register(IUplinkHost host);
 
         /// <summary>
-        /// This uplink's current health: a MANDATORY self-report.
-        /// Every uplink MUST report health: it is a required member of the base
-        /// contract (NOT a default), so an uplink that does not consciously report
-        /// does not compile, only the uplink itself knows what "ready" means for
-        /// it (kOS needs a CPU on the vessel, comms needs a backend elected, a
-        /// plain channel uplink just means "registered without error"). The FLOOR
-        /// is one line, <c>public UplinkHealth Health() =&gt; UplinkHealth.Healthy;</c>
-        /// via <see cref="UplinkHealth.Healthy"/>: so the mandate is cheap;
-        /// RICHNESS (a denser <see cref="UplinkHealth.Detail"/> string) stays the
-        /// author's choice.
+        /// Returns this Uplink's current health. Only the Uplink knows what ready
+        /// means for it, such as a CPU on the vessel or a comms backend elected. An
+        /// Uplink with nothing to report returns <see cref="UplinkHealth.Healthy"/>.
         ///
-        /// <para>Called on the tick/Courier thread while building
-        /// <c>system.uplinks</c> (polled on EVERY sample) so it must be cheap
-        /// (a simple state check, no blocking I/O) and fail-soft. The engine wraps
-        /// the call in a try/catch regardless: a throw here is reported as
+        /// <para>Polled on every sample, off the main thread, so it must be cheap,
+        /// must not block, and must not touch the game. A throw is reported as
         /// <see cref="UplinkHealthState.Degraded"/> with the exception message as
-        /// <see cref="UplinkHealth.Detail"/>, and does NOT disable the uplink's
-        /// other channels/commands: this is a read, not a registration step.</para>
+        /// <see cref="UplinkHealth.Detail"/>, and does not disable the Uplink's
+        /// channels or commands.</para>
         /// </summary>
         UplinkHealth Health();
     }
 
     /// <summary>
-    /// OPTIONAL companion to <see cref="ISitrepUplink"/> that lets an uplink
-    /// declare its capability descriptors in a discovery pass that runs BEFORE
-    /// any uplink's <see cref="ISitrepUplink.Register"/>: the two-pass fix for
-    /// the capability-vs-provider registration-order hazard.
+    /// Optional second interface for an Uplink that owns a capability. Every
+    /// implementation's <see cref="DeclareCapabilities"/> runs before any
+    /// Uplink's <see cref="ISitrepUplink.Register"/>, so a capability exists
+    /// before another Uplink tries to provide for it.
     ///
-    /// <para><b>The problem this closes:</b> <see cref="Kernel.RegisterProvider"/>
-    /// throws if the capability it targets has not been registered yet, and
-    /// assembly-scan discovery (<c>AppDomain.GetAssemblies()</c> /
-    /// <c>GetTypes()</c>) fixes NO order between uplinks. So an uplink that
-    /// registers a <c>"comms"</c> PROVIDER (e.g. RealAntennas) could run before
-    /// the uplink that owns the <c>"comms"</c> CAPABILITY, the provider
-    /// registration would throw, be swallowed, and the provider would silently
-    /// never take part in the election even though it loaded.</para>
-    ///
-    /// <para><b>The contract:</b> an uplink that owns a capability declares it
-    /// here (via <see cref="Kernel.RegisterCapability"/>) instead of in
-    /// <see cref="ISitrepUplink.Register"/>. The host runs
-    /// <see cref="DeclareCapabilities"/> for EVERY discovered uplink first, so
-    /// by the time any <see cref="ISitrepUplink.Register"/> runs its
-    /// <see cref="Kernel.RegisterProvider"/> call, the target capability is
-    /// guaranteed present regardless of discovery order. PROVIDERS still
-    /// register in <see cref="ISitrepUplink.Register"/> as before: only
-    /// capability DECLARATIONS move to this earlier pass. Implementing this
-    /// interface is optional: an uplink that registers no capability of its own
-    /// (every provider-only or channel-only uplink) does not need it.</para>
-    ///
-    /// <para>Not shape-gated: this is an SPI interface on the Uplink-facing
-    /// surface, not a <c>[SitrepContract]</c> wire type, so adding it is an
-    /// additive Minor change that does not bump <see cref="ContractVersion"/>.</para>
+    /// <para>Discovery fixes no order between Uplinks, and
+    /// <see cref="Kernel.RegisterProvider"/> throws for a capability not yet
+    /// registered, so a provider (a RealAntennas comms backend, say) could
+    /// otherwise load before the capability it serves. So capability
+    /// declarations go here, through
+    /// <see cref="Kernel.RegisterCapability"/>, and providers still register in
+    /// <see cref="ISitrepUplink.Register"/>. An Uplink that owns no capability
+    /// does not implement this.</para>
     /// </summary>
     public interface IUplinkCapabilityDeclarer
     {
         /// <summary>
-        /// Register this uplink's capability descriptor(s) on
-        /// <paramref name="kernel"/>. Runs once, on the main thread, in the
-        /// pre-<see cref="ISitrepUplink.Register"/> discovery pass. Throwing here
-        /// fail-softs THIS uplink only (its <see cref="ISitrepUplink.Register"/>
-        /// is then skipped); every other uplink is unaffected.
+        /// Register this Uplink's capability descriptors on
+        /// <paramref name="kernel"/>. Runs once, on the main thread, before any
+        /// <see cref="ISitrepUplink.Register"/>. Throwing here disables this Uplink
+        /// only, and its <see cref="ISitrepUplink.Register"/> is then skipped.
         /// </summary>
+        /// <param name="kernel">The capability and provider registry.</param>
         void DeclareCapabilities(Kernel kernel);
     }
 
     /// <summary>
     /// Coarse self-reported health for one <see cref="ISitrepUplink"/>, as
-    /// answered by <see cref="ISitrepUplink.Health"/>.
+    /// returned by <see cref="ISitrepUplink.Health"/>.
     /// </summary>
     public enum UplinkHealthState
     {
+        /// <summary>Working as it should.</summary>
         Healthy,
+
+        /// <summary>Registered and working, but something it needs is missing or wrong.</summary>
         Degraded,
+
+        /// <summary>Not usable at all: none of its channels will carry anything.</summary>
         Unavailable,
     }
 
@@ -1450,16 +1410,12 @@ namespace Sitrep.Contract
     /// build, which hash, whatever an operator would have to quote when reporting
     /// this uplink's state to somebody else.
     ///
-    /// <para>Both halves are plain display text and the engine parses neither. A
-    /// client renders the list as rows without knowing what any uplink is, which is
-    /// the whole point: an uplink that wants to publish its dependency's identity
-    /// does not need a topic of its own, and a client does not need to learn a
-    /// vendor-specific payload shape to show it.</para>
+    /// <para>Both halves are display text; nothing parses them.</para>
     ///
-    /// <para>Facts are for what would go in a bug report, not for anything a
-    /// reading is taken from. A number that changes as the mission runs is
-    /// telemetry and belongs on a channel, where it gets a unit, a delay role and a
-    /// history; putting it here would make it a string nobody can plot.</para>
+    /// <para>Facts are for what would go in a bug report: a count or a version,
+    /// not a sentence. A number that changes as the mission runs is telemetry and
+    /// belongs on a channel, where it gets a unit, a delay role and a
+    /// history.</para>
     /// </summary>
     public readonly struct UplinkHealthFact
     {
@@ -1470,6 +1426,9 @@ namespace Sitrep.Contract
         /// knows the fact applies but has not established it.</summary>
         public string? Value { get; }
 
+        /// <summary>One labelled fact.</summary>
+        /// <param name="label">What the value is, in the operator's terms.</param>
+        /// <param name="value">The value as it should read, or null when not yet established.</param>
         public UplinkHealthFact(string label, string? value)
         {
             Label = label;
@@ -1479,22 +1438,21 @@ namespace Sitrep.Contract
 
     /// <summary>
     /// One <see cref="ISitrepUplink.Health"/> result: a coarse
-    /// <see cref="State"/> plus an OPTIONAL uplink-authored <see cref="Detail"/>
-    /// string explaining what "ready" means for THIS uplink (e.g. "no active
-    /// CPU selected" for kOS, "no comms backend elected" for comms). The
-    /// engine never fabricates or parses <see cref="Detail"/>, it is opaque,
-    /// display-only text the uplink itself writes.
+    /// <see cref="State"/> plus an optional <see cref="Detail"/> sentence saying
+    /// what "ready" means for this Uplink (e.g. "no active CPU selected"). The
+    /// engine never writes or parses <see cref="Detail"/>; it is display-only
+    /// text the Uplink itself writes.
     ///
-    /// <para><see cref="Facts"/> carries the same author's-own text in a form a
-    /// client can lay out: the identity of whatever this uplink depends on, one
-    /// labelled row at a time. <see cref="State"/> is the glanceable answer and
-    /// <see cref="Detail"/> the sentence beneath it; the facts are what somebody
-    /// diagnosing the state would need to quote, and they are deliberately not the
-    /// same length as either.</para>
+    /// <para><see cref="Facts"/> are labelled rows beneath it: what somebody
+    /// diagnosing the state would need to quote, such as the version of the mod
+    /// the Uplink depends on.</para>
     /// </summary>
     public readonly struct UplinkHealth
     {
+        /// <summary>The overall state.</summary>
         public UplinkHealthState State { get; }
+
+        /// <summary>The sentence an operator reads under <see cref="State"/>, or null for nothing to add.</summary>
         public string? Detail { get; }
 
         /// <summary>
@@ -1504,11 +1462,18 @@ namespace Sitrep.Contract
         /// </summary>
         public IReadOnlyList<UplinkHealthFact> Facts { get; }
 
+        /// <summary>A result with no facts.</summary>
+        /// <param name="state">The coarse state.</param>
+        /// <param name="detail">The sentence under the state, or null.</param>
         public UplinkHealth(UplinkHealthState state, string? detail = null)
             : this(state, detail, null)
         {
         }
 
+        /// <summary>A result with labelled facts.</summary>
+        /// <param name="state">The coarse state.</param>
+        /// <param name="detail">The sentence under the state, or null.</param>
+        /// <param name="facts">The facts in reading order; null reads as none.</param>
         public UplinkHealth(
             UplinkHealthState state,
             string? detail,
@@ -1522,10 +1487,8 @@ namespace Sitrep.Contract
         private static readonly UplinkHealthFact[] NoFacts = new UplinkHealthFact[0];
 
         /// <summary>
-        /// The trivial "all good, nothing to say" result, a shared instance so
-        /// the mandatory floor for a plain uplink is one line:
-        /// <c>public UplinkHealth Health() =&gt; UplinkHealth.Healthy;</c>. State
-        /// <see cref="UplinkHealthState.Healthy"/>, no <see cref="Detail"/>.
+        /// Healthy, with nothing to add: what an Uplink with nothing to report
+        /// returns from <see cref="ISitrepUplink.Health"/>.
         /// </summary>
         public static readonly UplinkHealth Healthy = new UplinkHealth(UplinkHealthState.Healthy);
 
@@ -1537,12 +1500,9 @@ namespace Sitrep.Contract
         /// reads under the state, and a degraded report is the one shape where
         /// omitting it leaves them nothing to act on.
         ///
-        /// <para>A factory rather than a field, exactly as
-        /// <see cref="Availability.Unavailable"/> is one beside
-        /// <see cref="Availability.Available"/>: the healthy case has nothing
-        /// to say and can be a shared value, and these two cannot honestly
-        /// exist without a reason.</para>
         /// </summary>
+        /// <param name="detail">Why, in the operator's terms. Required.</param>
+        /// <param name="facts">Labelled facts, or null for none.</param>
         public static UplinkHealth Degraded(
             string detail,
             IReadOnlyList<UplinkHealthFact>? facts = null) =>
@@ -1552,17 +1512,14 @@ namespace Sitrep.Contract
         /// Not usable at all: the mod this uplink integrates is absent, or a
         /// capability it depends on never resolved, so none of its channels
         /// will carry anything. <paramref name="detail"/> says which, in the
-        /// operator's terms. A factory for the same reason
-        /// <see cref="Degraded"/> is one.
+        /// operator's terms.
         /// </summary>
+        /// <param name="detail">Which, in the operator's terms. Required.</param>
+        /// <param name="facts">Labelled facts, or null for none.</param>
         public static UplinkHealth Unavailable(
             string detail,
             IReadOnlyList<UplinkHealthFact>? facts = null) =>
             new UplinkHealth(UplinkHealthState.Unavailable, detail, facts);
     }
 
-    // Health is MANDATORY, not opt-in: `Health()` is a member of the base
-    // `ISitrepUplink` (see that interface's doc), so every uplink reports it or
-    // does not compile. There is deliberately no optional reporter interface to
-    // implement instead.
 }
