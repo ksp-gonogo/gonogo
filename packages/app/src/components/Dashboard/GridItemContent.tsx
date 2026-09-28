@@ -16,6 +16,7 @@ import {
   DelayRailProvider,
   PanelBadgesProvider,
   PanelStatusStoreProvider,
+  WidgetBody,
   widgetDrawnFields,
 } from "@ksp-gonogo/ui-kit";
 import { memo, type ReactNode, useCallback, useMemo } from "react";
@@ -108,7 +109,6 @@ export const GridItemContent = memo(function GridItemContent({
   );
 
   if (!def) return null;
-  const Comp = def.component;
   const hasConfig = Boolean(def.configComponent);
   const hasActions = Boolean(def.actions?.length);
 
@@ -176,7 +176,8 @@ export const GridItemContent = memo(function GridItemContent({
                         requires={def.requires}
                         channels={def.channels}
                       >
-                        <Comp
+                        <WidgetBody
+                          def={def}
                           id={item.i}
                           config={item.config}
                           w={w}

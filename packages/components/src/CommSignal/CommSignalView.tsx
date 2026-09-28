@@ -1,20 +1,11 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
-import {
-  getWidgetShape,
-  useContributions,
-  useTelemetry,
-} from "@ksp-gonogo/core";
-import {
-  CONTROL_STATE_NAMES,
-  type ControlStateName,
-  collapseControlStateLevel,
-  enumNameOf,
-  value,
-} from "@ksp-gonogo/sitrep-sdk";
+import { useContributions, useTelemetry } from "@ksp-gonogo/core";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Cluster,
   EmptyState,
   Grid,
+  getWidgetShape,
   NULL_DISPLAY,
   Panel,
   Section,
@@ -29,11 +20,10 @@ import type { CommSignalConfig } from "./config";
 import { SignalBars, SignalHeadline } from "./SignalBars";
 import {
   connectionAnnouncement,
-  describeControl,
   hopHint,
-  signalBarCount,
   signalCaption,
 } from "./signalVerdict";
+import { useSignalVerdict } from "./useSignalVerdict";
 
 /** The figure beside the bars. Nulled when the link is held, including the control label, which is read off the held `vessel.comms`. */
 function signalHeadline({
@@ -57,39 +47,9 @@ export function CommSignalComponent({
   w,
   h,
 }: Readonly<ComponentProps<CommSignalConfig>>) {
-  // A held "connected: true" from before a gap is the most misleading thing this widget could draw: silence is evidence about a link.
-  const linkReading = useTelemetry("comms.link");
-  const commsReading = useTelemetry("vessel.comms");
-  /*
-   * Every reading below is a verdict about now, so each is taken from the
-   * observation alone. `comms.delay` is reckonable but is read observed-only
-   * too, because it is drawn in the same styling as the verdicts.
-   */
-  const connected =
-    linkReading.state === "observed" ? linkReading.value.connected : undefined;
-  const strength =
-    commsReading.state === "observed"
-      ? commsReading.value.signalStrength
-      : undefined;
-  const linkHeld =
-    linkReading.state === "stale" || commsReading.state === "stale";
-  /*
-   * The control state is held through a stale reading because a pill that
-   * blanked between frames would read as a control loss; `noSignal` withholds
-   * it on screen.
-   */
-  const commsHeld =
-    commsReading.state === "observed" || commsReading.state === "stale"
-      ? commsReading.value
-      : undefined;
-  const controlState =
-    commsHeld === undefined
-      ? undefined
-      : collapseControlStateLevel(commsHeld.controlState);
-  const controlStateName = enumNameOf<ControlStateName>(
-    CONTROL_STATE_NAMES,
-    commsHeld?.controlState,
-  );
+  const { connected, noSignal, nothingHasArrived, pct, bars, control } =
+    useSignalVerdict();
+  // Reckonable, but read observed-only because it is drawn in the verdicts' styling.
   const delayReading = useTelemetry("comms.delay");
   const delay =
     delayReading.state === "observed"
@@ -131,13 +91,6 @@ export function CommSignalComponent({
     return map;
   }, [hopRateEntries]);
 
-  // When the link state stops arriving, every line nulls and one badge carries the reason.
-  const noSignal = linkHeld;
-  const nothingHasArrived =
-    connected === undefined &&
-    strength === undefined &&
-    controlState === undefined;
-
   /*
    * The empty state is for never-arrived only. A panel that has something
    * must not hide it when its verdicts go stale: it renders with null lines
@@ -155,13 +108,6 @@ export function CommSignalComponent({
       />
     );
   }
-
-  const raw = strength?.magnitude;
-  const strengthValid =
-    typeof raw === "number" && Number.isFinite(raw) && raw > 0;
-  const pct = strengthValid ? Math.max(0, Math.min(1, raw)) : null;
-  const bars = signalBarCount({ noSignal, connected, pct, controlState });
-  const control = describeControl(controlStateName, controlState);
 
   const cols = w ?? 6;
   const rows = h ?? 5;

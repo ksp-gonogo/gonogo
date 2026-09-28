@@ -5,7 +5,7 @@ import {
   getComponent,
 } from "@ksp-gonogo/core";
 import { CloseIcon } from "@ksp-gonogo/ui";
-import { Box } from "@ksp-gonogo/ui-kit";
+import { Box, WidgetBody } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import { usePushedWidgets, usePushHost } from "./PushHostContext";
@@ -182,7 +182,8 @@ function PushedItem({
             >
               <SeatGuard def={def}>
                 <RequiresGuard requires={def.requires} channels={def.channels}>
-                  <def.component
+                  <WidgetBody
+                    def={def}
                     id={placement.widget.widgetInstanceId}
                     config={placement.widget.config}
                     w={placement.w}

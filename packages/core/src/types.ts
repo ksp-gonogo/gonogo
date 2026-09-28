@@ -2,6 +2,7 @@
 
 import type {
   Seat,
+  TinyMode,
   WidgetChannelId,
   WidgetFieldPath,
 } from "@ksp-gonogo/sitrep-sdk";
@@ -204,6 +205,8 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
    * floor) when omitted, but most widgets should set this.
    */
   minSize?: { w: number; h: number };
+  /** What the widget draws at the tiny size. Absent, it draws its own body at every size. */
+  tiny?: TinyMode<Config>;
   /**
    * Width hint for the mobile / touch dashboard layout, which is a flex-wrap
    * column rather than a grid. `'half'` items take ~50% of the row and pair

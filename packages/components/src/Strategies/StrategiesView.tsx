@@ -1,7 +1,8 @@
-import { formatCompactNumber, getSizeBucket } from "@ksp-gonogo/core";
+import { formatCompactNumber } from "@ksp-gonogo/core";
 import type { Value } from "@ksp-gonogo/sitrep-sdk";
 import {
   type CommandButtonHandle,
+  getSizeBucket,
   Panel,
   Section,
   speakQuantity,

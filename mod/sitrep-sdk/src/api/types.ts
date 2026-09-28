@@ -127,6 +127,63 @@ export interface ConfigComponentProps<Config = Record<string, unknown>> {
 }
 
 /**
+ * One value a widget cannot do without, as its tiny mode draws it.
+ *
+ * @category Registering
+ */
+export interface TinyEssential {
+  /** A few letters naming the figure, drawn with it: `ΔV`, `ALT`, `CREW`. */
+  label: string;
+  /**
+   * The figure, drawn through `<Unit>`. A whole Reading also draws whether it
+   * is current; null or undefined draws the null token.
+   */
+  value: Value | Reading<Value> | null | undefined;
+  /** Decimal places, where the unit's own default says more than the figure means. */
+  decimals?: number;
+  /** How alarming the figure is. Defaults to `neutral`. */
+  tone?: TinyEssentialTone;
+  /**
+   * A stepped level glyph drawn beside the figure, `lit` of `of` bars filled:
+   * a signal strength. Null `lit` draws the glyph with nothing to judge by.
+   */
+  level?: { lit: number | null; of: number };
+}
+
+/**
+ * The severity words a tiny essential is coloured by, as a kit readout's are.
+ *
+ * @category Registering
+ */
+export type TinyEssentialTone = "neutral" | "go" | "warn" | "nogo" | "info";
+
+/**
+ * What a widget shows at the tiny size: a short heading over its essential
+ * values, drawn by the kit in one standard form instead of the widget's body.
+ *
+ * The widget's own component is not mounted while it is tiny, so a widget that
+ * handles actions cannot declare one: its handlers would stop at that size.
+ *
+ * @category Registering
+ */
+export interface TinyMode<Config = Record<string, unknown>> {
+  /** The heading at the tiny size, short enough for a two-column tile. */
+  title: string;
+  /**
+   * The smallest tile the widget's own body fits: a tile narrower or shorter
+   * than this shows the tiny form. Absent, the tiny form is shown in the kit's
+   * `tiny` size bucket. With it, `minSize` may go as low as the tiny form fits,
+   * since no tile between the two ever shows the body.
+   */
+  bodyMinSize?: { w: number; h: number };
+  /**
+   * A hook returning the essential values, most important first: the first is
+   * drawn largest. Called in place of the widget's component, with its props.
+   */
+  useEssentials: (props: ComponentProps<Config>) => readonly TinyEssential[];
+}
+
+/**
  * Registration descriptor for a dashboard component.
  *
  * @category Registering
@@ -143,6 +200,8 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
   openConfigOnAdd?: boolean;
   defaultSize?: { w: number; h: number };
   minSize?: { w: number; h: number };
+  /** What the widget draws at the tiny size. Absent, it draws its own body at every size. */
+  tiny?: TinyMode<Config>;
   mobileWidth?: "full" | "half";
   mobileHeight?: number;
   dataRequirements?: DataRequirement[];

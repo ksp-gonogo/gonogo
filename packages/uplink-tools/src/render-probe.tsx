@@ -47,6 +47,7 @@ import {
   setQuantityLocale,
   UI_KIT_VERSION,
   useDomainAvailabilityStore,
+  WidgetBody,
 } from "@ksp-gonogo/ui-kit";
 import { WidgetHost, WidgetHostFor } from "@ksp-gonogo/ui-kit/testing";
 import {
@@ -1265,10 +1266,10 @@ function mountWidget(id: string, scene: ScenePayload): ReactNode {
           .join(", ")}`,
     );
   }
-  const Widget = def.component;
   return (
     <WidgetHost widgetId={def.id} instanceId="probe">
-      <Widget
+      <WidgetBody
+        def={def}
         id="probe"
         config={{ ...(def.defaultConfig ?? {}), ...scene.config }}
         w={scene.w}

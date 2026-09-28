@@ -1,8 +1,8 @@
-import { getSizeBucket } from "@ksp-gonogo/core";
 import {
   AutoEmptyState,
   type CommandButtonHandle,
   EmptyState,
+  getSizeBucket,
   Panel,
   Section,
   Unit,

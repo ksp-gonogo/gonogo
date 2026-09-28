@@ -1,8 +1,14 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
-import { getWidgetShape, useTelemetry } from "@ksp-gonogo/core";
+import { useTelemetry } from "@ksp-gonogo/core";
 import { META_VANTAGE, useCommand, useViewUt } from "@ksp-gonogo/sitrep-client";
 import { stillTrue } from "@ksp-gonogo/sitrep-sdk";
-import { Block, CommandButton, Panel, Section } from "@ksp-gonogo/ui-kit";
+import {
+  Block,
+  CommandButton,
+  getWidgetShape,
+  Panel,
+  Section,
+} from "@ksp-gonogo/ui-kit";
 import { useAlarmCreator, useAlarmManager } from "../shared/AlarmsLauncher";
 import { heldGrade } from "../shared/heldGrade";
 import { ContractDeadline, ContractRewards } from "./ContractCardParts";

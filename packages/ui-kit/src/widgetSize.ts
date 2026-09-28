@@ -7,25 +7,35 @@
  * - `small` : essential numbers, minimal chrome
  * - `normal`: full widget UI
  *
- * Boundaries chosen so the existing `defaultSize`s land in `normal`, and the
- * minSize floors set per widget land in `tiny` or `small` once those modes
- * exist. Widgets without a tiny/small mode just render their normal UI at any
- * bucket: there's no requirement to handle every level.
+ * Boundaries chosen so the existing `defaultSize`s land in `normal`. A widget
+ * that declares a tiny mode is drawn by the kit in `tiny`; every other bucket,
+ * and every bucket of a widget without one, is the widget's own to lay out.
+ *
+ * @category Layout
  */
 export type SizeBucket = "tiny" | "small" | "normal";
 
-const TINY_W = 5;
-const TINY_H = 4;
+/**
+ * A tile narrower or shorter than this is `tiny`.
+ *
+ * @category Layout
+ */
+export const TINY_BELOW = { w: 5, h: 4 } as const;
 const SMALL_W = 8;
 const SMALL_H = 7;
 
+/**
+ * The {@link SizeBucket} a `w` by `h` tile falls in.
+ *
+ * @category Layout
+ */
 export function getSizeBucket(
   w: number | undefined,
   h: number | undefined,
 ): SizeBucket {
   // Missing dims (e.g. before the grid has measured), assume normal so the first paint isn't a flash of compact UI.
   if (w === undefined || h === undefined) return "normal";
-  if (w < TINY_W || h < TINY_H) return "tiny";
+  if (w < TINY_BELOW.w || h < TINY_BELOW.h) return "tiny";
   if (w < SMALL_W || h < SMALL_H) return "small";
   return "normal";
 }
@@ -43,9 +53,16 @@ export function getSizeBucket(
  *                 width the size bucket alone can't see.
  * - `square`   : neither axis dominates; the default near-1:1 layout. Also the
  *                 neutral fallback before the grid has measured (see below).
+ *
+ * @category Layout
  */
 export type WidgetShape = "portrait" | "landscape" | "square";
 
+/**
+ * A tile's {@link WidgetShape} and the aspect ratio it was read from.
+ *
+ * @category Layout
+ */
 export interface WidgetShapeInfo {
   shape: WidgetShape;
   /**
@@ -81,6 +98,11 @@ export interface WidgetShapeInfo {
 const LANDSCAPE_ASPECT = 1.6;
 const PORTRAIT_ASPECT = 1 / LANDSCAPE_ASPECT; // ≈ 0.625
 
+/**
+ * The {@link WidgetShape} of a `w` by `h` tile.
+ *
+ * @category Layout
+ */
 export function getWidgetShape(
   w: number | undefined,
   h: number | undefined,

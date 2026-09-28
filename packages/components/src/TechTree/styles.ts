@@ -510,29 +510,3 @@ export const ParentsInline = styled.span`
   font-size: var(--font-size-compact);
   letter-spacing: 0.04em;
 `;
-
-export const TinyCount = styled.div`
-  /* Off the type scale: a display-tier readout, above --font-size-lg. */
-  font-size: 24px;
-  font-weight: 600;
-  color: var(--color-accent-fg);
-  font-variant-numeric: tabular-nums;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  line-height: var(--line-height-flush);
-`;
-
-export const TinyLabel = styled.span`
-  /* Off the type scale: below --font-size-2xs, the smallest rung. */
-  font-size: 8px;
-  letter-spacing: 0.1em;
-  color: var(--color-text-faint);
-  margin-top: var(--gap-caption);
-`;
-
-export const TinySci = styled.span`
-  font-size: var(--font-size-compact);
-  color: var(--color-text-muted);
-  font-variant-numeric: tabular-nums;
-`;

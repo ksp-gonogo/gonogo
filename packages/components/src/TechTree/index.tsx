@@ -5,8 +5,14 @@ import {
   useGameContext,
 } from "@ksp-gonogo/core";
 import { META_VANTAGE, useCommand } from "@ksp-gonogo/sitrep-client";
-import { readingOf, stillTrue } from "@ksp-gonogo/sitrep-sdk";
+import {
+  readingOf,
+  stillTrue,
+  type TinyEssential,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import { magnitudeOf } from "../shared/magnitude";
+import { computeResearchable } from "./graph-layout";
 import { TechTreeView } from "./TechTreeView";
 import { parseTechNodes } from "./wire";
 
@@ -52,6 +58,7 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
       h={h}
       allNodes={allNodes}
       sciAvailable={sciAvailable}
+      science={careerScience}
       careerHeld={careerHeld}
       scienceShown={scienceShown}
       chargesScience={chargesScience}
@@ -61,6 +68,30 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
   );
 }
 
+/** How many nodes the balance can buy now, and the balance. */
+function useTechTreeEssentials(): readonly TinyEssential[] {
+  const career = topics.useTelemetry("career.status");
+  return [
+    {
+      label: "Researchable",
+      value: readingOf(career, (c) =>
+        value(
+          "count",
+          computeResearchable(
+            parseTechNodes(c.tech?.nodes) ?? [],
+            c.economy?.science,
+          ).size,
+        ),
+      ),
+    },
+    {
+      label: "Science",
+      value: readingOf(career, (c) => c.economy?.science ?? undefined),
+      decimals: 0,
+    },
+  ];
+}
+
 registerComponent<TechTreeConfig>({
   id: "tech-tree",
   name: "Tech Tree",
@@ -68,8 +99,10 @@ registerComponent<TechTreeConfig>({
     "Browse and unlock career-mode tech nodes. At wide sizes it renders the in-game-style tiered dependency graph (columns by longest-path depth, connectors from each parent to its children, colour-coded owned / researchable / locked); at narrow sizes it falls back to a filterable, searchable list with the full part manifest per node.",
   tags: ["career", "tech"],
   defaultSize: { w: 6, h: 9 },
-  minSize: { w: 2, h: 2 },
+  // Three columns and rows hold the two essentials the tiny form draws.
+  minSize: { w: 3, h: 3 },
   component: TechTreeComponent,
+  tiny: { title: "TECH", useEssentials: useTechTreeEssentials },
   channels: topics.channels,
   fields: topics.fields,
   defaultConfig: {},

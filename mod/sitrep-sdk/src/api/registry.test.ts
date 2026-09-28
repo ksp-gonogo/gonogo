@@ -126,6 +126,28 @@ describe("registerComponent / getComponent / getComponents", () => {
   });
 });
 
+describe("registerComponent with a tiny mode", () => {
+  const tiny = { title: "T", useEssentials: () => [] };
+
+  it("refuses a widget that also handles actions, whose handlers would stop while it is tiny", () => {
+    const withActions: ComponentDefinition = {
+      ...mockComponent,
+      tiny,
+      actions: [{ id: "go", label: "Go", accepts: ["button"] }],
+    };
+    expect(() => registerComponent(withActions)).toThrow(
+      /actions and a tiny mode/,
+    );
+    expect(getComponent("test-component")).toBeUndefined();
+  });
+
+  it("accepts one whose action list is empty", () => {
+    expect(() =>
+      registerComponent({ ...mockComponent, tiny, actions: [] }),
+    ).not.toThrow();
+  });
+});
+
 describe("registerDataSource / getDataSources", () => {
   it("returns all registered data sources", () => {
     registerDataSource(mockDataSource);

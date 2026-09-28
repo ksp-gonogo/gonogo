@@ -39,6 +39,7 @@ import {
   defaultDarkTheme,
   PanelBadgesProvider,
   PanelStatusStoreProvider,
+  WidgetBody,
 } from "@ksp-gonogo/ui-kit";
 import { createElement, Fragment } from "react";
 import { createRoot, type Root } from "react-dom/client";
@@ -439,13 +440,6 @@ async function mountInto(
       `Probe: "${payload.widgetId}" at ${payload.w}x${payload.h} is below its minSize ${min.w}x${min.h}, a size the dashboard never gives it`,
     );
   }
-  const WidgetComponent = def.component as React.ComponentType<{
-    config: Record<string, unknown>;
-    id: string;
-    w?: number;
-    h?: number;
-  }>;
-
   root.style.width = `${payload.pxW}px`;
   root.style.height = `${payload.pxH}px`;
   root.style.overflow = "hidden";
@@ -513,7 +507,8 @@ async function mountInto(
               {createElement(
                 DashboardItemContext.Provider,
                 { value: { instanceId } },
-                createElement(WidgetComponent, {
+                createElement(WidgetBody, {
+                  def,
                   config: payload.config ?? def.defaultConfig ?? {},
                   id: instanceId,
                   w: payload.w,

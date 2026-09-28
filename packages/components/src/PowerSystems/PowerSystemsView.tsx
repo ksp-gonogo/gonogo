@@ -1,8 +1,9 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
-import { getWidgetShape, useActionInput, useTelemetry } from "@ksp-gonogo/core";
+import { useActionInput, useTelemetry } from "@ksp-gonogo/core";
 import { useDataSeries } from "@ksp-gonogo/data";
 import { VisuallyHidden } from "@ksp-gonogo/ui";
 import {
+  getWidgetShape,
   Panel,
   Section,
   Select,

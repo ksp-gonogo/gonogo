@@ -1,8 +1,9 @@
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import { act, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+import { renderWidget } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
-import { CrewStatusComponent } from "./index";
+import "./index";
 
 /**
  * Characterisation, not specification: what CrewStatus renders when its reads are absent.
@@ -25,11 +26,11 @@ function renderCrew(
   fixture: ReturnType<typeof newFixture>,
   size?: { w: number; h: number },
 ) {
-  const { unmount, container } = render(
-    <fixture.Provider>
-      <CrewStatusComponent config={{}} id="crew" w={size?.w} h={size?.h} />
-    </fixture.Provider>,
-  );
+  const { unmount, container } = renderWidget("crew-status", {
+    w: size?.w,
+    h: size?.h,
+    wrapper: fixture.Provider,
+  });
   renderedTrees.push(unmount);
   return container;
 }
@@ -52,16 +53,13 @@ describe("CrewStatus, what undefined telemetry renders today", () => {
     expect(screen.queryAllByRole("listitem")).toHaveLength(0);
   });
 
-  it("renders 'No crew data' at tiny size when nothing has arrived", () => {
-    // The tiny-size branch of the same gate has its own cold-state wording.
+  it("draws both essentials as the null token at tiny size when nothing has arrived", () => {
     renderCrew(newFixture(), { w: 3, h: 3 });
 
-    expect(screen.getByText("No crew data")).toBeInTheDocument();
+    expect(screen.getAllByText(NULL_DISPLAY)).toHaveLength(2);
     expect(
       screen.queryByText(/Waiting for telemetry/i),
     ).not.toBeInTheDocument();
-    // The hero "n of m aboard" readout is absent, not zeroed.
-    expect(screen.queryByText(/aboard/i)).not.toBeInTheDocument();
   });
 
   it("REVERTS to the waiting placeholder when a confirmed tombstone lands on vessel.crew", async () => {
@@ -123,8 +121,7 @@ describe("CrewStatus, what undefined telemetry renders today", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("renders the headcount with NO capacity caption when only the count arrives, at tiny size", async () => {
-    // An undefined capacity drops the whole caption rather than showing a placeholder denominator.
+  it("draws the headcount and a null capacity when only the count arrives, at tiny size", async () => {
     const fixture = newFixture();
     renderCrew(fixture, { w: 3, h: 3 });
     act(() => {
@@ -132,22 +129,18 @@ describe("CrewStatus, what undefined telemetry renders today", () => {
     });
 
     await waitFor(() => expect(screen.getByText("3")).toBeInTheDocument());
-    expect(screen.queryByText(/aboard/i)).not.toBeInTheDocument();
-    expect(screen.queryByText("No crew data")).not.toBeInTheDocument();
+    expect(screen.getAllByText(NULL_DISPLAY)).toHaveLength(1);
   });
 
-  it("renders an em dash for an undefined headcount when capacity alone arrives, at tiny size", async () => {
-    // The one undefined read that renders as punctuation, invisible to a textual empty-state detector, hence pinned.
+  it("draws a null headcount beside the capacity when capacity alone arrives, at tiny size", async () => {
     const fixture = newFixture();
     renderCrew(fixture, { w: 3, h: 3 });
     act(() => {
       fixture.emit("vessel.crew", { capacity: 4 });
     });
 
-    await waitFor(() =>
-      expect(screen.getByText(NULL_DISPLAY)).toBeInTheDocument(),
-    );
-    expect(screen.getByText(/aboard/i)).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText("4")).toBeInTheDocument());
+    expect(screen.getAllByText(NULL_DISPLAY)).toHaveLength(1);
   });
 
   it("omits the EVA suit meters when vessel.resources never arrives on an EVA kerbal", async () => {

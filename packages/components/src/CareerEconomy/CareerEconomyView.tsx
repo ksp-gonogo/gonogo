@@ -1,7 +1,7 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
-import { getSizeBucket, useTelemetry } from "@ksp-gonogo/core";
+import { useTelemetry } from "@ksp-gonogo/core";
 import { combineReadings, stillTrue } from "@ksp-gonogo/sitrep-sdk";
-import { Panel, Section, Unit } from "@ksp-gonogo/ui-kit";
+import { getSizeBucket, Panel, Section, Unit } from "@ksp-gonogo/ui-kit";
 import { netFundsPerDay, netFundsPerDayReading } from "../shared/FundsDrain";
 import { magnitudeOf } from "../shared/magnitude";
 import {

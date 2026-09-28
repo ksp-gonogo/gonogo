@@ -6,14 +6,10 @@ import {
 } from "@ksp-gonogo/core";
 import { stillTrue, VesselType } from "@ksp-gonogo/sitrep-sdk";
 import {
-  BigReadout,
-  EmptyState,
-  NULL_DISPLAY,
   Panel,
   ReadoutCaption,
   type ReadoutTone,
   Section,
-  Unit,
   useElementSize,
 } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
@@ -28,16 +24,9 @@ import { ROW_TONE_BY_SEVERITY } from "./slots";
 import { EvaSuitReadout, suitTank } from "./suitResources";
 import { crewStatusTopics } from "./topics";
 
-/** Caps the tiny-mode hero readout so the number and its caption both fit a 3x3 panel. Fluid on purpose, so it sits off the type scale. */
-const TINY_READOUT_STYLE = {
-  fontSize: "clamp(20px, 4vw, 30px)",
-  minHeight: 0,
-} as const;
-
-export function CrewStatusComponent({
-  w,
-  h,
-}: Readonly<ComponentProps<CrewStatusConfig>>) {
+export function CrewStatusComponent(
+  _props: Readonly<ComponentProps<CrewStatusConfig>>,
+) {
   // A held roster is still the crew: nobody leaves the capsule because the link dropped.
   const crewReading = crewStatusTopics.useTelemetry("vessel.crew");
   const crew = stillTrue(crewReading, undefined);
@@ -80,38 +69,6 @@ export function CrewStatusComponent({
   const names = toCrewNames(crewRaw);
   const known =
     crewCount !== undefined || crewCapacity !== undefined || names.length > 0;
-
-  const cols = w ?? 6;
-  const rows = h ?? 8;
-  const showRoster = rows >= 5 && cols >= 4;
-
-  if (!showRoster) {
-    return (
-      <Panel
-        panelTitle="CREW"
-        sections={
-          <Section>
-            {known ? (
-              <BigReadout $tone="go" style={TINY_READOUT_STYLE}>
-                {crewCount !== undefined ? (
-                  <Unit value={crewReading.count} />
-                ) : (
-                  NULL_DISPLAY
-                )}
-                {crewCapacity !== undefined && (
-                  <ReadoutCaption>
-                    of <Unit value={crewReading.capacity} /> aboard
-                  </ReadoutCaption>
-                )}
-              </BigReadout>
-            ) : (
-              <EmptyState>No crew data</EmptyState>
-            )}
-          </Section>
-        }
-      />
-    );
-  }
 
   // The headcount lives in the header badge; this line carries only the EVA marker.
   const crewSummary = known && isEVA === true ? "EVA" : "";

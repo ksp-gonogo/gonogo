@@ -3,7 +3,6 @@ import {
   AugmentSlot,
   actionGroupIdOf,
   buildToggleArgs,
-  getSizeBucket,
   TOGGLE_INVALID,
   toggleCommandFor,
   useActionInput,
@@ -20,6 +19,7 @@ import {
 import {
   Badge,
   Cluster,
+  getSizeBucket,
   IconButton,
   Inline,
   Section,

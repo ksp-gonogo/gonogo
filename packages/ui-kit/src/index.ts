@@ -361,6 +361,7 @@ export {
   STOCK_KERBIN_CALENDAR,
   setKspCalendar,
 } from "./kspTime";
+export { LevelBars, type LevelBarsProps } from "./LevelBars";
 export {
   LineGraph,
   type LineGraphProps,
@@ -549,6 +550,13 @@ export {
   type TextWeight,
 } from "./Text";
 export { TextField, type TextFieldProps } from "./TextField";
+export {
+  showsTiny,
+  smallestBodyTile,
+  TinyEssentials,
+  type TinyEssentialsProps,
+  WidgetBody,
+} from "./TinyEssentials";
 // A row of alternatives is a ToggleButton; a single labelled setting is a Switch.
 export {
   ToggleButton,
@@ -642,3 +650,4 @@ export {
   widgetDeclaredTopics,
   widgetDrawnFields,
 } from "./widgetDeclaredTopics";
+export * from "./widgetSize";

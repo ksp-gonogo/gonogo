@@ -30,6 +30,7 @@ import "./descentLayers";
 import "./crossSectionPlot";
 import "./touchdownReticlePlot";
 import "./slots";
+import { useLandingEssentials } from "./useLandingEssentials";
 
 export type { FlightReading } from "./CarriedAltitude";
 
@@ -259,8 +260,13 @@ registerComponent<LandingStatusConfig>({
     "Composed descent instrument for landing under signal delay: a full-height altitude rail, two altimetry plots (top-down touchdown reticle + side-on terrain cross-section with the velocity vector), and delay-native commit/uncommandable clocks with the suicide-burn cue. An instrument, not a command surface (fly gear/brakes from action-group widgets; TWR is its own widget, place it alongside this one).",
   tags: ["telemetry", "landing"],
   defaultSize: { w: 8, h: 12 },
-  minSize: { w: 4, h: 6 },
+  minSize: { w: 3, h: 3 },
   component: LandingStatusComponent,
+  tiny: {
+    title: "LANDING",
+    bodyMinSize: { w: 4, h: 6 },
+    useEssentials: useLandingEssentials,
+  },
   dataRequirements: [
     "vessel.orbit",
     "vessel.identity",

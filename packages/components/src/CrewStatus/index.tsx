@@ -1,4 +1,5 @@
 import { registerComponent } from "@ksp-gonogo/core";
+import type { TinyEssential } from "@ksp-gonogo/sitrep-sdk";
 import { CrewStatusComponent } from "./CrewStatusView";
 import type { CrewStatusConfig } from "./config";
 import { crewStatusTopics } from "./topics";
@@ -12,6 +13,15 @@ export type {
   CrewRowToneEntry,
 } from "./slots";
 
+/** Who is aboard against room for them. */
+function useCrewEssentials(): readonly TinyEssential[] {
+  const crew = crewStatusTopics.useTelemetry("vessel.crew");
+  return [
+    { label: "Aboard", value: crew.count },
+    { label: "Capacity", value: crew.capacity },
+  ];
+}
+
 registerComponent<CrewStatusConfig>({
   id: "crew-status",
   name: "Crew Status",
@@ -21,6 +31,12 @@ registerComponent<CrewStatusConfig>({
   defaultSize: { w: 6, h: 8 },
   minSize: { w: 3, h: 3 },
   component: CrewStatusComponent,
+  tiny: {
+    title: "CREW",
+    // The roster needs four columns and five rows.
+    bodyMinSize: { w: 4, h: 5 },
+    useEssentials: useCrewEssentials,
+  },
   augmentSlots: [
     "crew-status.row-badges",
     "crew-status.avatar",

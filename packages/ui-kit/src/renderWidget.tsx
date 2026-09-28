@@ -14,6 +14,7 @@ import { DelayRailProvider } from "./CommandDelay/DelayRailContext";
 import { ContributionsProvider } from "./contributionsRuntime";
 import { PanelBadgesProvider } from "./PanelBadges";
 import { PanelStatusStoreProvider } from "./status/PanelStatusStore";
+import { WidgetBody } from "./TinyEssentials";
 import { useWidgetBadges } from "./useWidgetBadges";
 import { WidgetMetaContext } from "./WidgetMetaContext";
 
@@ -177,10 +178,10 @@ export function renderWidget(
     onConfigChange = NOOP,
     wrapper,
   } = options;
-  const Widget = def.component;
   return render(
     <WidgetHost widgetId={widgetId} instanceId={instanceId}>
-      <Widget
+      <WidgetBody
+        def={def}
         id={instanceId}
         config={config}
         w={w}

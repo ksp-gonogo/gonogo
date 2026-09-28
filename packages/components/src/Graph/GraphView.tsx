@@ -1,4 +1,3 @@
-import { getSizeBucket } from "@ksp-gonogo/core";
 import type {
   DataKeyMeta,
   SeriesRange,
@@ -8,7 +7,12 @@ import { useTopicFieldCatalog } from "@ksp-gonogo/data";
 import type { PlotLayer } from "@ksp-gonogo/sitrep-sdk";
 import type { ChartSeries, ThresholdRule } from "@ksp-gonogo/ui";
 import { LineChart, utXTickFormat } from "@ksp-gonogo/ui";
-import { FramedDisplay, Panel, Section } from "@ksp-gonogo/ui-kit";
+import {
+  FramedDisplay,
+  getSizeBucket,
+  Panel,
+  Section,
+} from "@ksp-gonogo/ui-kit";
 import {
   type CSSProperties,
   type ReactNode,

@@ -14,7 +14,9 @@
  * ## What it renders, and why unfed
  *
  * Every registered widget, mounted at `gridToPixels(minSize)` through the
- * published render probe, with no data fed. That is deliberate and it is a
+ * published render probe, with no data fed. A widget with a tiny mode is also
+ * mounted at the smallest tile that shows its own body, since at minSize the
+ * kit draws its tiny form instead. That is deliberate and it is a
  * FLOOR rather than a compromise: an unfed widget shows its empty state, which
  * is the least content it will ever carry. A title that ellipsises, or content
  * clipped with nothing to scroll, when the widget is showing the least it can,
@@ -191,6 +193,16 @@ function describe(
       ? [`      ... and ${findings.length - cap} more`]
       : [];
   return [head, ...lines, ...more].join("\n");
+}
+
+async function shoot(
+  tab: Page,
+  dir: string | undefined,
+  file: string,
+): Promise<void> {
+  if (!dir) return;
+  const root = await tab.$("#root");
+  await root?.screenshot({ path: join(dir, file), animations: "disabled" });
 }
 
 function rewriteDebt(found: Map<string, string>): void {
@@ -390,7 +402,50 @@ async function main(): Promise<void> {
       );
     }
 
-    const planted = new Set([canaryId, fitsId, maskedId, scrollsId]);
+    // The tiny plant: each size must have mounted what the dashboard would draw there.
+    const tinyId = await tab.evaluate(
+      () =>
+        (globalThis as unknown as { __minsizeTinyId: string }).__minsizeTinyId,
+    );
+    const tinyPlant = all.find((w) => w.id === tinyId);
+    if (!tinyPlant?.minSize || !tinyPlant.bodyTile) {
+      throw new Error(
+        "minsize-gate: BLIND. The planted tiny-mode widget did not register " +
+          "with a body tile, so nothing proves the gate audits the tiny form at " +
+          "minSize and the body above it. Fix minsize-probe.tsx rather than " +
+          "skipping this.",
+      );
+    }
+    const tinyAtMin = await mountAndAudit(
+      tab,
+      tinyPlant,
+      tinyPlant.minSize.w,
+      tinyPlant.minSize.h,
+    );
+    const tinyAtBody = await mountAndAudit(
+      tab,
+      tinyPlant,
+      tinyPlant.bodyTile.w,
+      tinyPlant.bodyTile.h,
+    );
+    const namesTitle = (findings: MinFitFinding[], title: string) =>
+      findings.some(
+        (f) => f.kind === "title-clipped" && f.text.includes(title),
+      );
+    if (
+      !namesTitle(tinyAtMin, "TINY CANARY") ||
+      !namesTitle(tinyAtBody, "BODY CANARY")
+    ) {
+      throw new Error(
+        `minsize-gate: BLIND. The planted tiny-mode widget should clip its ` +
+          `tiny title at minSize and its body title at its smallest body tile; ` +
+          `the audit reported "${tinyAtMin.map((f) => f.text).join(" | ") || "(nothing)"}" ` +
+          `and "${tinyAtBody.map((f) => f.text).join(" | ") || "(nothing)"}". ` +
+          `A size that mounted the wrong form reports on something no operator sees.`,
+      );
+    }
+
+    const planted = new Set([canaryId, fitsId, maskedId, scrollsId, tinyId]);
     const subjects = all
       .filter((w) => !planted.has(w.id))
       .filter((w) => (args.widget ? w.id === args.widget : true))
@@ -412,12 +467,15 @@ async function main(): Promise<void> {
     for (const widget of declared) {
       const min = widget.minSize as { w: number; h: number };
       const findings = await mountAndAudit(tab, widget, min.w, min.h);
-      if (args.shots) {
-        const root = await tab.$("#root");
-        await root?.screenshot({
-          path: join(args.shots, `${widget.id}--min.png`),
-          animations: "disabled",
-        });
+      await shoot(tab, args.shots, `${widget.id}--min.png`);
+      // A tiny mode draws the kit's form at minSize, so the body's own promise is kept at the smallest tile that shows it.
+      if (widget.bodyTile) {
+        const { w, h } = widget.bodyTile;
+        const atBody = await mountAndAudit(tab, widget, w, h);
+        await shoot(tab, args.shots, `${widget.id}--body.png`);
+        findings.push(
+          ...atBody.map((f) => ({ ...f, text: `[body ${w}x${h}] ${f.text}` })),
+        );
       }
       if (findings.length === 0) continue;
       found.set(widget.id, kindsOf(findings));

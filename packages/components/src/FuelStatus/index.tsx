@@ -1,13 +1,10 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
-import {
-  getWidgetShape,
-  registerComponent,
-  useTelemetry,
-} from "@ksp-gonogo/core";
+import { registerComponent, useTelemetry } from "@ksp-gonogo/core";
 import { DELTA_V_BUDGET, useProcessor } from "@ksp-gonogo/sitrep-client";
 import { stillTrue, type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   BigReadout,
+  getWidgetShape,
   NULL_DISPLAY,
   Panel,
   ReadoutCaption,

@@ -57,6 +57,8 @@ const WIDGETS: WidgetRenderConfig[] = [
     modes: [
       { name: "full-w12", w: 12, h: 16 },
       { name: "compact-4x6", w: 4, h: 6 },
+      // The kit's tiny form, where a stale reading shows as held.
+      { name: "tiny-3x3", w: 3, h: 3 },
       // The wide-short extreme at this widget's minSize height, where the shared 18x5 falls below it.
       { name: "landscape-18x6", w: 18, h: 6 },
     ],
@@ -1013,7 +1015,7 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "TechTree/__fixtures__",
     outPath: "renders/tech-tree-widget",
     modes: [
-      // minSize 2×2: tightest; tally / degraded.
+      // The kit's tiny form: researchable count over the science balance.
       { name: "tiny-3x4", w: 3, h: 4 },
       // defaultSize 6×9: the common operator view.
       { name: "default-6x9", w: 6, h: 9 },
@@ -1672,7 +1674,9 @@ const WIDGETS: WidgetRenderConfig[] = [
       mayScroll: ["landscape-18x9", "mobile-9x9", "min-7x9"],
     },
     modes: [
-      // minSize 7×9: node editor at its tightest.
+      // minSize: the kit's tiny form, the next burn against the budget.
+      { name: "tiny-3x4", w: 3, h: 4 },
+      // The body's own floor: node editor at its tightest.
       { name: "min-7x9", w: 7, h: 9 },
       // defaultSize 10×18: the common operator view.
       { name: "default-10x18", w: 10, h: 18 },

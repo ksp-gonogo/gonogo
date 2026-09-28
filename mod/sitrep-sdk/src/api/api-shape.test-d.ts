@@ -49,6 +49,9 @@ import type {
   TaggedLogger,
   TelemetryClient,
   ThemeDefinition,
+  TinyEssential,
+  TinyEssentialTone,
+  TinyMode,
   UplinkClientHandle,
   UseCommandResult,
   UseRouteCommandsResult,
@@ -90,6 +93,9 @@ declare const _slotId: SlotId;
 declare const _slotProps: SlotProps<"slot">;
 declare const _slotRegistry: SlotRegistry;
 declare const _themeDef: ThemeDefinition;
+declare const _tinyMode: TinyMode<{ label: string }>;
+declare const _tinyEssential: TinyEssential;
+declare const _tinyTone: TinyEssentialTone;
 declare const _perfOpts: PerfBudgetOptions;
 declare const _perfHandle: PerfBudgetHandle;
 declare const _useCommandResult: UseCommandResult;
@@ -147,6 +153,9 @@ export type _ApiShapeProbe = [
   typeof _slotProps,
   typeof _slotRegistry,
   typeof _themeDef,
+  typeof _tinyMode,
+  typeof _tinyEssential,
+  typeof _tinyTone,
   typeof _perfOpts,
   typeof _perfHandle,
   typeof _useCommandResult,

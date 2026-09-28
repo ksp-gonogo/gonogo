@@ -1,5 +1,6 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import { renderWidget } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { CrewStatusComponent } from "./index";
@@ -48,17 +49,16 @@ describe("CrewStatus, genuinely runs off the stream", () => {
 
   it("marks the held headcount and capacity once the crew stops arriving", async () => {
     const fixture = setupStreamFixture({ pinnedUt: 10, suspendFrames: true });
-    const { container } = render(
-      <fixture.Provider>
-        <DashboardItemContext.Provider value={{ instanceId: "crew-held" }}>
-          <CrewStatusComponent id="crew-held" w={3} h={3} />
-        </DashboardItemContext.Provider>
-      </fixture.Provider>,
-    );
+    const { container } = renderWidget("crew-status", {
+      instanceId: "crew-held",
+      w: 3,
+      h: 3,
+      wrapper: fixture.Provider,
+    });
     act(() => {
       fixture.emit("vessel.crew", { count: 3, capacity: 4, crew: [] });
     });
-    await waitFor(() => expect(screen.getByText(/aboard/)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("4")).toBeInTheDocument());
     expect(container.querySelectorAll("[data-held]")).toHaveLength(0);
 
     act(() => {

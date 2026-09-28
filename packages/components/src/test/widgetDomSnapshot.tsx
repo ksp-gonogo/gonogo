@@ -9,6 +9,7 @@ import {
 import type { Meta } from "@ksp-gonogo/sitrep-sdk";
 import type { MockDataSource } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render } from "@ksp-gonogo/test-utils";
+import { WidgetBody } from "@ksp-gonogo/ui-kit";
 import { installFixedSizeResizeObserver } from "@ksp-gonogo/ui-kit/testing";
 import type React from "react";
 import { Fragment } from "react";
@@ -195,6 +196,18 @@ export function WidgetContributions({
       <ContributionsProvider>{children}</ContributionsProvider>
     </WidgetMetaContext.Provider>
   );
+}
+
+/** The widget as the dashboard mounts it, so a tiny mode draws at a tiny size; an unregistered component mounts as given. */
+function SnapshotBody<Config>({
+  Widget,
+  ...props
+}: {
+  Widget: React.ComponentType<ComponentProps<Config>>;
+} & ComponentProps<Config>) {
+  const def = getComponents().find((d) => d.component === Widget);
+  if (!def) return <Widget {...props} />;
+  return <WidgetBody def={def} {...(props as ComponentProps)} />;
 }
 
 /** Built once per snapshot render; see {@link buildStreamWrap}. */
@@ -504,7 +517,8 @@ export async function snapshotWidgetMode<
       <Wrap>
         <DashboardItemContext.Provider value={{ instanceId }}>
           <WidgetContributions Widget={opts.Widget}>
-            <opts.Widget
+            <SnapshotBody
+              Widget={opts.Widget}
               config={config}
               id={instanceId}
               w={opts.mode.w}
@@ -602,7 +616,8 @@ export async function renderWidgetMode<
       <Wrap>
         <DashboardItemContext.Provider value={{ instanceId }}>
           <WidgetContributions Widget={opts.Widget}>
-            <opts.Widget
+            <SnapshotBody
+              Widget={opts.Widget}
               config={config}
               id={instanceId}
               w={opts.mode.w}

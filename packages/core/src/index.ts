@@ -84,4 +84,3 @@ export * from "./utils/format";
 export * from "./utils/math";
 export * from "./version/compare";
 export * from "./version/runtime";
-export * from "./widgetSize";

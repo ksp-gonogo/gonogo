@@ -19,6 +19,7 @@ import {
   Select,
   Stack,
   StatusPill,
+  smallestBodyTile,
   Textarea,
 } from "@ksp-gonogo/ui-kit";
 import { defineRenderSetup } from "@ksp-gonogo/uplink-tools/render-probe";
@@ -266,11 +267,41 @@ registerComponent({
 });
 
 /** One widget, as the Node half needs it. */
+/**
+ * A widget with a tiny mode whose tiny form and body are each broken where
+ * they are drawn, each naming itself in its title. The gate refuses to report
+ * unless the audit at `minSize` finds the tiny form's title and the audit at
+ * the body's smallest tile finds the body's, which is the proof that each size
+ * mounted what the dashboard would show there.
+ */
+const TINY_ID = "minsize-gate-tiny";
+
+registerComponent({
+  id: TINY_ID,
+  name: "Min-size gate tiny mode",
+  description:
+    "Registered only inside the min-size gate's probe page: proves the audit sees the tiny form at minSize and the body above it.",
+  tags: ["diagnostics"],
+  component: () => (
+    <Panel panelTitle="BODY CANARY TITLE THAT NO SIX COLUMN TILE COULD EVER HOLD" />
+  ),
+  dataRequirements: [],
+  defaultSize: { w: 8, h: 8 },
+  minSize: { w: 2, h: 2 },
+  tiny: {
+    title: "TINY CANARY TITLE",
+    bodyMinSize: { w: 6, h: 6 },
+    useEssentials: () => [],
+  },
+});
+
 export interface MinSizeWidget {
   id: string;
   name: string;
   minSize?: { w: number; h: number };
   defaultSize?: { w: number; h: number };
+  /** For a widget with a tiny mode, the smallest tile that shows its own body. */
+  bodyTile?: { w: number; h: number };
   /** Every topic the widget's registration declares. */
   declaredTopics: string[];
 }
@@ -281,18 +312,21 @@ declare global {
   var __minsizeFitsId: string;
   var __minsizeMaskedId: string;
   var __minsizeScrollsId: string;
+  var __minsizeTinyId: string;
 }
 
 globalThis.__minsizeCanaryId = CANARY_ID;
 globalThis.__minsizeFitsId = FITS_ID;
 globalThis.__minsizeMaskedId = MASKED_ID;
 globalThis.__minsizeScrollsId = SCROLLS_ID;
+globalThis.__minsizeTinyId = TINY_ID;
 globalThis.__minsizeWidgets = () =>
   getComponents().map((def) => ({
     id: def.id,
     name: def.name,
     minSize: def.minSize ? { ...def.minSize } : undefined,
     defaultSize: def.defaultSize ? { ...def.defaultSize } : undefined,
+    bodyTile: def.tiny ? smallestBodyTile(def.tiny, def.minSize) : undefined,
     declaredTopics: [
       ...new Set([
         ...(def.channels ?? []),

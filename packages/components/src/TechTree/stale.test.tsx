@@ -1,6 +1,6 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
-import { visibleText } from "@ksp-gonogo/ui-kit/testing";
+import { renderWidget, visibleText } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
@@ -175,9 +175,14 @@ describe("TechTree when the career record is held", () => {
 
   it("keeps tiny mode's balance line, marked held rather than replaced", async () => {
     // A held balance must not reuse tiny mode's no-balance path, or a dropped link looks like a save with no science.
-    const { container } = renderTree(4, 3);
+    const { container } = renderWidget("tech-tree", {
+      instanceId: "tt-stale",
+      w: 4,
+      h: 3,
+      wrapper: stream.Provider,
+    });
     emitAffordableCareer();
-    await waitFor(() => expect(visibleText(container)).toContain("5000"));
+    await waitFor(() => expect(visibleText(container)).toContain("5,000"));
     expect(container.querySelector("[data-held]")).toBeNull();
 
     goHeld();

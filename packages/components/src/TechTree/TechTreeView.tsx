@@ -1,4 +1,4 @@
-import { getSizeBucket } from "@ksp-gonogo/core";
+import type { Value } from "@ksp-gonogo/sitrep-sdk";
 import type { CommandButtonHandle, UnitValue } from "@ksp-gonogo/ui-kit";
 import { Panel, Section, Unit } from "@ksp-gonogo/ui-kit";
 import { useMemo, useState } from "react";
@@ -23,9 +23,6 @@ import {
   SearchInput,
   Swatch,
   TechMeta,
-  TinyCount,
-  TinyLabel,
-  TinySci,
 } from "./styles";
 import { TechGraph } from "./TechGraph";
 import { unlockHandlersFor } from "./unlock";
@@ -36,6 +33,8 @@ export interface TechTreeViewProps {
   h?: number;
   allNodes: TechNode[] | null;
   sciAvailable: number | null;
+  /** The current balance the researchable count is judged against. */
+  science: Value<"science"> | null | undefined;
   careerHeld: boolean;
   /** The science balance as drawn, held included so Unit can mark it. */
   scienceShown: UnitValue<"science">;
@@ -84,6 +83,7 @@ export function TechTreeView({
   h,
   allNodes,
   sciAvailable,
+  science,
   careerHeld,
   scienceShown,
   chargesScience,
@@ -97,13 +97,12 @@ export function TechTreeView({
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const bucket = getSizeBucket(w, h);
   const rows = h ?? 8;
   const showSubtitle = rows >= 4;
 
   const researchable = useMemo(
-    () => computeResearchable(allNodes ?? [], sciAvailable),
-    [allNodes, sciAvailable],
+    () => computeResearchable(allNodes ?? [], science),
+    [allNodes, science],
   );
   const tiers = useMemo(() => computeTiers(allNodes ?? []), [allNodes]);
 
@@ -136,34 +135,6 @@ export function TechTreeView({
 
   const counts = { unlocked: 0, researchable: researchable.size };
   for (const n of allNodes) if (n.state === "Available") counts.unlocked++;
-
-  if (bucket === "tiny") {
-    return (
-      <Panel
-        panelTitle="TECH"
-        fitToSize
-        sections={
-          <Section full>
-            <TinyCount>
-              {counts.researchable}
-              <TinyLabel>RESEARCHABLE</TinyLabel>
-            </TinyCount>
-            {sciAvailable !== null && (
-              <TinySci>
-                {Math.round(sciAvailable)}
-                <Unit>science</Unit>
-              </TinySci>
-            )}
-            {sciAvailable === null && careerHeld && (
-              <TinySci>
-                <Unit value={scienceShown} decimals={0} />
-              </TinySci>
-            )}
-          </Section>
-        }
-      />
-    );
-  }
 
   const unlockContext = {
     researchable,

@@ -113,6 +113,12 @@ export function registerComponent<Config = Record<string, unknown>>(
         `"${def.name}" cannot re-use it. Component ids must be unique across all registered packages.`,
     );
   }
+  if (def.tiny !== undefined && (def.actions?.length ?? 0) > 0) {
+    throw new Error(
+      `Component "${def.id}" declares both actions and a tiny mode. Its component ` +
+        `is not mounted while it is tiny, so its action handlers would stop at that size.`,
+    );
+  }
   if (hasHost()) getHost().logger.info(`REGISTERED ${def.name}`);
   components.set(def.id, def as AnyDef);
 }

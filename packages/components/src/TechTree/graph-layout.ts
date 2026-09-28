@@ -1,3 +1,4 @@
+import type { Value } from "@ksp-gonogo/sitrep-sdk";
 import type { TechNode } from "./wire";
 import { sortCost } from "./wire";
 
@@ -44,7 +45,7 @@ export function graphCardOpacity(ds: DisplayState, dimmed: boolean): number {
  */
 export function computeResearchable(
   nodes: TechNode[],
-  science: number | null,
+  science: Value<"science"> | null | undefined,
 ): Set<string> {
   const byId = new Map(nodes.map((n) => [n.id, n]));
   const out = new Set<string>();
@@ -59,7 +60,11 @@ export function computeResearchable(
       (p) => byId.get(p)?.state === "Available",
     );
     if (!parentsUnlocked) continue;
-    if (science !== null && n.scienceCost !== null && n.scienceCost > science)
+    if (
+      science != null &&
+      n.scienceCost !== null &&
+      science.compare(n.scienceCost) < 0
+    )
       continue;
     out.add(n.id);
   }
