@@ -22,6 +22,7 @@ export * from "./LibrationPoints";
 export * from "./ManeuverPlanner";
 export * from "./ManeuverPlanner/planning";
 export * from "./ManeuverPlanner/presets";
+export * from "./ManeuverPlanner/triggerDispatch";
 export * from "./ManeuverPlanner/triggerService";
 export * from "./ManeuverPlanner/triggerTypes";
 export * from "./MapView";

@@ -1,7 +1,6 @@
 import { safeRandomUuid } from "@ksp-gonogo/core";
 import {
   bodyRadiusOf,
-  dispatchActiveCommandTopic,
   getOrbitSolve,
   getSystemBodies,
   getValue,
@@ -12,7 +11,9 @@ import {
   onActiveTimelineFrame,
   solveOrbit,
 } from "@ksp-gonogo/sitrep-client";
-import { buildCurrentOrbit, computePlan, isSequence } from "./planning";
+import type { CommandRefusalEntry } from "@ksp-gonogo/ui-kit";
+import { buildCurrentOrbit, computePlan } from "./planning";
+import { dispatchTriggerPlan } from "./triggerDispatch";
 import type {
   ArmTriggerInput,
   ManeuverTriggerService,
@@ -114,7 +115,7 @@ export class LocalManeuverTriggerService implements ManeuverTriggerService {
         mutated = true;
         continue;
       }
-      if (this.fired.has(t.id)) continue;
+      if (this.fired.has(t.id) || t.refusals) continue;
       const value = getValue(this.sourceId, t.dataKey);
       if (value === undefined) continue;
       if (!compareThreshold(value, t.op, t.value)) continue;
@@ -132,17 +133,18 @@ export class LocalManeuverTriggerService implements ManeuverTriggerService {
     const planInputs = { ...trigger.inputs, ...live };
     const plan = computePlan(planInputs);
     if (!plan) return;
-    const burns = isSequence(plan) ? plan.burns : [plan];
-    for (const b of burns) {
-      // The burn's own numbers as arguments, so full precision reaches the command.
-      const outcome = dispatchActiveCommandTopic("vessel.maneuver.add", {
-        ut: b.ut,
-        prograde: b.prograde,
-        normal: b.normal,
-        radialOut: b.radial,
-      });
-      if (outcome.routed) void outcome.settled;
-    }
+    dispatchTriggerPlan(trigger.id, plan, (refusals) =>
+      this.recordRefusals(trigger, refusals),
+    );
+  }
+
+  /** Lists a fired trigger again, carrying what its command refused, so the refusal stays in front of the operator. */
+  private recordRefusals(
+    trigger: ArmedTrigger,
+    refusals: readonly CommandRefusalEntry[],
+  ): void {
+    this.triggers.push({ ...trigger, refusals });
+    this.emit();
   }
 
   private readLiveOrbit() {

@@ -4,9 +4,9 @@ import {
   buildCurrentOrbit,
   compareThreshold,
   computePlan,
+  dispatchTriggerPlan,
   EMPTY_TRIGGER_SNAPSHOT,
   type FrozenPlanInputs,
-  isSequence,
   type ManeuverTriggerService,
   type ThresholdOp,
   type TriggerSnapshot,
@@ -15,7 +15,6 @@ import { safeRandomUuid } from "@ksp-gonogo/core";
 import { LocalStorageStore } from "@ksp-gonogo/data";
 import {
   bodyRadiusOf,
-  dispatchActiveCommandTopic,
   getOrbitSolve,
   getSystemBodies,
   getValue,
@@ -26,7 +25,11 @@ import {
   onActiveTimelineFrame,
   solveOrbit,
 } from "@ksp-gonogo/sitrep-client";
-import { magnitudeOf, type Quantityish } from "@ksp-gonogo/ui-kit";
+import {
+  type CommandRefusalEntry,
+  magnitudeOf,
+  type Quantityish,
+} from "@ksp-gonogo/ui-kit";
 import type { PeerHostService } from "../peer/PeerHostService";
 
 /**
@@ -42,7 +45,9 @@ import type { PeerHostService } from "../peer/PeerHostService";
  *     first holds. The stream frame is the only clock here: there is no
  *     independent timer, so a trigger is only ever as live as the stream.
  *   - On fire: recompute the plan from the trigger's frozen inputs against
- *     the *current* orbit, then dispatch each burn via the stream.
+ *     the *current* orbit, then dispatch each burn via the stream. A fired
+ *     trigger leaves the list, and comes back carrying its refusals when the
+ *     command refused any burn.
  *   - Auto-clear triggers whose observed vessel identity no longer matches
  *     the one it was armed against, a circularize armed for vessel A
  *     shouldn't fire on vessel B.
@@ -254,7 +259,7 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
         mutated = true;
         continue;
       }
-      if (this.fired.has(t.id)) continue;
+      if (this.fired.has(t.id) || t.refusals) continue;
       const value = getValue("data", t.dataKey);
       if (value === undefined) continue;
       if (!compareThreshold(value, t.op, t.value)) continue;
@@ -275,19 +280,19 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
     const planInputs = { ...trigger.inputs, ...live };
     const plan = computePlan(planInputs);
     if (!plan) return;
-    const burns = isSequence(plan) ? plan.burns : [plan];
-    for (const b of burns) {
-      // Named directly, with the burn's own numbers as arguments, so the full
-      // precision reaches the command rather than being rounded into a key
-      // string for something downstream to parse back out.
-      const outcome = dispatchActiveCommandTopic("vessel.maneuver.add", {
-        ut: b.ut,
-        prograde: b.prograde,
-        normal: b.normal,
-        radialOut: b.radial,
-      });
-      if (outcome.routed) void outcome.settled;
-    }
+    dispatchTriggerPlan(trigger.id, plan, (refusals) =>
+      this.recordRefusals(trigger, refusals),
+    );
+  }
+
+  /** Lists a fired trigger again, carrying what its command refused, so every screen shows the refusal until it is dismissed. */
+  private recordRefusals(
+    trigger: ArmedTrigger,
+    refusals: readonly CommandRefusalEntry[],
+  ): void {
+    this.triggers.push({ ...trigger, refusals });
+    this.persist();
+    this.emit();
   }
 
   private readLiveOrbit() {
@@ -399,6 +404,9 @@ function migrateTrigger(raw: unknown): ArmedTrigger | null {
     vesselName: typeof r.vesselName === "string" ? r.vesselName : null,
     createdAt: typeof r.createdAt === "number" ? r.createdAt : Date.now(),
     createdBy: typeof r.createdBy === "string" ? r.createdBy : "main",
+    refusals: Array.isArray(r.refusals)
+      ? (r.refusals as CommandRefusalEntry[])
+      : undefined,
   };
 }
 

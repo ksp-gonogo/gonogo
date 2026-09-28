@@ -94,15 +94,18 @@ export function ManeuverPlannerComponent({
     return (
       <>
         <BurnWindowsSection nodes={nodes} currentUT={currentUT} />
-        {armedTriggers.length > 0 && (
-          <PaddedSection>
-            <SectionTitle as="h4">Armed triggers</SectionTitle>
-            <ArmedTriggersList
-              triggers={armedTriggers}
-              onCancel={(id) => triggerService.cancel(id)}
-            />
-          </PaddedSection>
-        )}
+        {/* Mounted while empty, so a trigger listed later, a refused one included, is announced. */}
+        <div role="status" aria-live="polite" aria-atomic="false">
+          {armedTriggers.length > 0 && (
+            <PaddedSection>
+              <SectionTitle as="h4">Armed triggers</SectionTitle>
+              <ArmedTriggersList
+                triggers={armedTriggers}
+                onCancel={(id) => triggerService.cancel(id)}
+              />
+            </PaddedSection>
+          )}
+        </div>
         <NewManeuverSection api={inputsApi} telemetry={telemetry} />
         {planReady ? (
           <ManeuverPreview

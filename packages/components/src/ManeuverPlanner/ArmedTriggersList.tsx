@@ -1,5 +1,6 @@
+import { railTagsForCommand } from "@ksp-gonogo/sitrep-sdk";
 import { ArrowRightIcon, CloseIcon } from "@ksp-gonogo/ui";
-import { Button, Row, Stack } from "@ksp-gonogo/ui-kit";
+import { Button, CommandList, Row, Stack } from "@ksp-gonogo/ui-kit";
 import { PRESETS } from "./presets";
 import type { ArmedTrigger } from "./triggerTypes";
 
@@ -20,7 +21,7 @@ export function ArmedTriggersList({
           PRESETS.find((p) => p.id === t.inputs.preset)?.label ??
           t.inputs.preset;
         return (
-          <Row key={t.id} role="status" style={ARMED_ROW_STYLE}>
+          <Row key={t.id} style={ARMED_ROW_STYLE}>
             <div style={MAIN_STYLE}>
               <div style={PRIMARY_STYLE}>
                 {t.dataKey} {t.op} {t.value}
@@ -28,11 +29,23 @@ export function ArmedTriggersList({
               <div style={META_STYLE}>
                 <ArrowRightIcon size={11} /> {presetLabel}
               </div>
+              {t.refusals && (
+                <CommandList
+                  kind="refused"
+                  live={false}
+                  entries={t.refusals.map((r) => ({
+                    ...r,
+                    tags: railTagsForCommand(r.command ?? ""),
+                  }))}
+                />
+              )}
             </div>
             <Button
               type="button"
               onClick={() => onCancel(t.id)}
-              aria-label="Cancel armed trigger"
+              aria-label={
+                t.refusals ? "Dismiss refused trigger" : "Cancel armed trigger"
+              }
             >
               <CloseIcon size={12} />
             </Button>

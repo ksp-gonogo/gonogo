@@ -8,6 +8,7 @@ import {
   ViewClock,
 } from "@ksp-gonogo/sitrep-client";
 import {
+  CommandErrorCode,
   PropagationHorizonKind,
   TrajectoryKind,
   value,
@@ -69,9 +70,10 @@ function buildOrbitStoreFixture(pinnedUt: number) {
   client.subscribe("system.bodies", () => {});
 
   const calls: Array<{ command: string; args: unknown }> = [];
+  let answer: unknown = null;
   transport.setCommandHandler((command, args) => {
     calls.push({ command, args });
-    return null;
+    return answer;
   });
 
   setActiveTimelineStoreForTests(store);
@@ -80,6 +82,10 @@ function buildOrbitStoreFixture(pinnedUt: number) {
   return {
     store,
     calls,
+    /** What the mod answers every command with from here on. */
+    answerWith(result: unknown): void {
+      answer = result;
+    },
     emitOrbit(payload: unknown): void {
       transport.emit("vessel.orbit", payload);
       store.beginFrame();
@@ -302,7 +308,7 @@ describe("ManeuverTriggerHostService", () => {
     expect(ut).toBeCloseTo(pinnedUt - 240 + 1_000, 0);
   });
 
-  it("sends nothing for a node that would land after its own time", async () => {
+  it("sends nothing for a node that would land after its own time, and lists the trigger with its refusal", async () => {
     const svc = makeService();
     const pinnedUt = 1_000_000;
     const storeFixture = seedKerbinOrbit(pinnedUt);
@@ -323,10 +329,68 @@ describe("ManeuverTriggerHostService", () => {
       },
     });
     await vi.advanceTimersByTimeAsync(0);
-    expect(svc.snapshot().triggers).toHaveLength(0);
+    const [trigger] = svc.snapshot().triggers;
+    expect(trigger.refusals).toHaveLength(1);
+    expect(trigger.refusals?.[0].errorCode).toBe(CommandErrorCode.Range);
+    expect(trigger.refusals?.[0].detail).toMatch(
+      /at or after the time it acts at/,
+    );
     expect(storeFixture.calls.map((c) => c.command)).not.toContain(
       "vessel.maneuver.add",
     );
+  });
+
+  it("lists a fired trigger with the mod's own refusal, on every screen and across a reload", async () => {
+    const svc = makeService();
+    const storeFixture = seedKerbinOrbit();
+    storeFixture.answerWith({
+      success: false,
+      errorCode: CommandErrorCode.NoVessel,
+      detail: "no active vessel",
+    });
+    const broadcasts: unknown[] = [];
+    svc.subscribe((snap) => broadcasts.push(snap));
+    svc.arm({
+      dataKey: "vessel.orbit.sma",
+      op: ">=",
+      value: 700_000,
+      inputs: { ...FROZEN, preset: "custom-ut", prograde: 10 },
+    });
+    await vi.advanceTimersByTimeAsync(0);
+    const [trigger] = svc.snapshot().triggers;
+    expect(trigger.refusals?.[0].errorCode).toBe(CommandErrorCode.NoVessel);
+    expect(trigger.refusals?.[0].detail).toBe("no active vessel");
+    expect(broadcasts.at(-1)).toEqual(svc.snapshot());
+
+    const sent = storeFixture.calls.length;
+    svc.dispose();
+    const reloaded = makeService();
+    expect(reloaded.snapshot().triggers[0].refusals?.[0].errorCode).toBe(
+      CommandErrorCode.NoVessel,
+    );
+    // Still true, and still not sent again: a refused trigger has fired.
+    storeFixture.emitOrbit(kerbinOrbitPayload(1_000_000));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(storeFixture.calls).toHaveLength(sent);
+
+    reloaded.cancel(trigger.id);
+    expect(reloaded.snapshot().triggers).toEqual([]);
+  });
+
+  it("clears a trigger whose node was taken, and lists no refusal for it", async () => {
+    const svc = makeService();
+    const storeFixture = seedKerbinOrbit();
+    svc.arm({
+      dataKey: "vessel.orbit.sma",
+      op: ">=",
+      value: 700_000,
+      inputs: { ...FROZEN, preset: "custom-ut", prograde: 10 },
+    });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(storeFixture.calls.map((c) => c.command)).toContain(
+      "vessel.maneuver.add",
+    );
+    expect(svc.snapshot().triggers).toEqual([]);
   });
 
   it("plans a transfer around a body the stock table has never heard of", async () => {

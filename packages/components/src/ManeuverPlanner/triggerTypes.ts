@@ -1,3 +1,4 @@
+import type { CommandRefusalEntry } from "@ksp-gonogo/ui-kit";
 import type { PresetId } from "./presets";
 
 /** An armed trigger's comparison, the same set the alarms module's `ThresholdOp` offers. */
@@ -53,4 +54,10 @@ export interface ArmedTrigger {
   createdAt: number;
   /** "main" or peer id of the screen that armed it. */
   createdBy: string;
+  /**
+   * The burns the command refused when this trigger fired. Present only on a
+   * fired trigger whose command said no; such a trigger never fires again and
+   * stays listed until the operator dismisses it.
+   */
+  refusals?: readonly CommandRefusalEntry[];
 }

@@ -6,7 +6,7 @@ import {
   TimelineStore,
   ViewClock,
 } from "@ksp-gonogo/sitrep-client";
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import { CommandErrorCode, value } from "@ksp-gonogo/sitrep-sdk";
 import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ANALYTIC_UNBOUNDED_HORIZON } from "../test/orbitHorizon";
@@ -34,10 +34,11 @@ function fixture() {
 
   const commands: string[] = [];
   const calls: Array<{ command: string; args: unknown }> = [];
+  let answer: unknown = null;
   transport.setCommandHandler((command, args) => {
     commands.push(command);
     calls.push({ command, args });
-    return null;
+    return answer;
   });
 
   setActiveViewClockForTests({ viewUt: () => PINNED_UT });
@@ -75,7 +76,14 @@ function fixture() {
     parentBodyIndex: 1,
   });
 
-  return { commands, calls };
+  return {
+    commands,
+    calls,
+    /** What the mod answers every command with from here on. */
+    answerWith(result: unknown) {
+      answer = result;
+    },
+  };
 }
 
 /**
@@ -178,7 +186,7 @@ describe("LocalManeuverTriggerService", () => {
     }
   });
 
-  it("sends nothing for a node that would land after its own time", () => {
+  it("sends nothing for a node that would land after its own time, and lists the trigger with its refusal", async () => {
     const { calls } = fixture();
     setActiveViewClockForTests({
       viewUt: () => PINNED_UT - 240,
@@ -198,8 +206,92 @@ describe("LocalManeuverTriggerService", () => {
           burnInSeconds: 60,
         },
       });
-      expect(svc.snapshot().triggers).toHaveLength(0);
+      await vi.waitFor(() =>
+        expect(svc.snapshot().triggers[0]?.refusals).toBeDefined(),
+      );
+      const [refusal] = svc.snapshot().triggers[0].refusals ?? [];
+      expect(refusal.errorCode).toBe(CommandErrorCode.Range);
+      expect(refusal.command).toBe("vessel.maneuver.add");
+      expect(refusal.detail).toMatch(/at or after the time it acts at/);
       expect(calls.map((c) => c.command)).not.toContain("vessel.maneuver.add");
+    } finally {
+      svc.dispose();
+    }
+  });
+
+  it("lists a fired trigger with the mod's own refusal", async () => {
+    const { answerWith } = fixture();
+    answerWith({
+      success: false,
+      errorCode: CommandErrorCode.NoVessel,
+      detail: "no active vessel",
+    });
+    const svc = new LocalManeuverTriggerService();
+    try {
+      svc.arm({
+        dataKey: "vessel.orbit.sma",
+        op: ">=",
+        value: 6_000_000,
+        inputs: FROZEN,
+      });
+      await vi.waitFor(() =>
+        expect(svc.snapshot().triggers[0]?.refusals).toBeDefined(),
+      );
+      const refusals = svc.snapshot().triggers[0].refusals ?? [];
+      expect(refusals.length).toBeGreaterThan(0);
+      expect(
+        refusals.every((r) => r.errorCode === CommandErrorCode.NoVessel),
+      ).toBe(true);
+      expect(refusals[0].detail).toBe("no active vessel");
+    } finally {
+      svc.dispose();
+    }
+  });
+
+  it("clears a trigger whose nodes were taken, and lists no refusal for it", async () => {
+    const { commands } = fixture();
+    const svc = new LocalManeuverTriggerService();
+    try {
+      svc.arm({
+        dataKey: "vessel.orbit.sma",
+        op: ">=",
+        value: 6_000_000,
+        inputs: FROZEN,
+      });
+      await vi.waitFor(() => expect(commands).toContain("vessel.maneuver.add"));
+      // The answers settle on microtasks; give every one of them its turn before looking.
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(svc.snapshot().triggers).toEqual([]);
+    } finally {
+      svc.dispose();
+    }
+  });
+
+  it("never fires a refused trigger again, and dismissing it removes it", async () => {
+    const { commands, answerWith } = fixture();
+    answerWith({ success: false, errorCode: CommandErrorCode.NoVessel });
+    const svc = new LocalManeuverTriggerService();
+    try {
+      svc.arm({
+        dataKey: "vessel.orbit.sma",
+        op: ">=",
+        value: 6_000_000,
+        inputs: { ...FROZEN, preset: "custom-ut", prograde: 10 },
+      });
+      await vi.waitFor(() =>
+        expect(svc.snapshot().triggers[0]?.refusals).toBeDefined(),
+      );
+      const sent = commands.length;
+      svc.arm({
+        dataKey: "vessel.orbit.sma",
+        op: ">=",
+        value: 99_000_000,
+        inputs: FROZEN,
+      });
+      expect(commands).toHaveLength(sent);
+      const refused = svc.snapshot().triggers.find((t) => t.refusals);
+      svc.cancel(refused?.id ?? "");
+      expect(svc.snapshot().triggers.some((t) => t.refusals)).toBe(false);
     } finally {
       svc.dispose();
     }
