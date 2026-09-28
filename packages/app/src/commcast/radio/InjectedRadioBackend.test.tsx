@@ -1,4 +1,5 @@
 import { act, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
+import { useEffect } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import type { RadioBackend } from "./backend";
 import { useRadioBackend, WEB_AUDIO_RADIO_BACKEND } from "./backend";
@@ -43,6 +44,13 @@ function Probe({ expected }: { expected: RadioBackend }) {
   return <div>{useRadioBackend() === expected ? "match" : "other"}</div>;
 }
 
+function MountCounter({ mounts }: { mounts: { count: number } }) {
+  useEffect(() => {
+    mounts.count += 1;
+  }, [mounts]);
+  return null;
+}
+
 afterEach(() => {
   delete (globalThis as Record<string, unknown>)[BACKEND_KEY];
 });
@@ -71,6 +79,21 @@ describe("InjectedRadioBackend", () => {
     install(injected);
 
     expect(screen.getByText("match")).toBeTruthy();
+  });
+
+  it("swaps without remounting the tree under it, so a screen keeps its peer link", () => {
+    const mounts = { count: 0 };
+    render(
+      <InjectedRadioBackend>
+        <MountCounter mounts={mounts} />
+      </InjectedRadioBackend>,
+    );
+    expect(mounts.count).toBe(1);
+
+    install(stubBackend());
+    install(undefined);
+
+    expect(mounts.count).toBe(1);
   });
 
   it("refuses a half-installed handle rather than disabling the microphone", () => {

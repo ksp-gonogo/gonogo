@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { useSyncExternalStore } from "react";
 import type { RadioBackend } from "./backend";
-import { RadioBackendProvider } from "./backend";
+import { RadioBackendProvider, WEB_AUDIO_RADIO_BACKEND } from "./backend";
 
 /**
  * The provider `backend.ts` was missing: a radio backend the PAGE installs.
@@ -77,11 +77,18 @@ function subscribe(onChange: () => void): () => void {
   return () => globalThis.removeEventListener(CHANGED_EVENT, onChange);
 }
 
-/** Runs the radio under this tree on the page's backend, where it installed one. */
+/**
+ * Runs the radio under this tree on the page's backend, where it installed one.
+ *
+ * The provider is always rendered, so an install changes only the value and
+ * rebuilds only the radio chain; a changed element type would remount every
+ * screen under it and drop its peer link.
+ */
 export function InjectedRadioBackend({ children }: { children: ReactNode }) {
   const backend = useSyncExternalStore(subscribe, injectedBackend);
-  if (backend === null) return <>{children}</>;
   return (
-    <RadioBackendProvider value={backend}>{children}</RadioBackendProvider>
+    <RadioBackendProvider value={backend ?? WEB_AUDIO_RADIO_BACKEND}>
+      {children}
+    </RadioBackendProvider>
   );
 }
