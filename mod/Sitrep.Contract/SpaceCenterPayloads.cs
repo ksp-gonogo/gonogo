@@ -29,6 +29,7 @@ namespace Sitrep.Contract;
 /// Held at the home command: each vantage receives a change after its own delay
 /// to home, at once on the ground network.</para>
 /// </summary>
+/// <category>Space center</category>
 [SitrepContract]
 [SitrepTopic("spaceCenter.launchSites", isArray: true)]
 #if SITREP_CODEGEN
@@ -90,6 +91,7 @@ public class LaunchSiteEntry
 /// rides the envelope), classified <c>DelayRole.TrueNow</c>: a ground-side
 /// game-state fact, same class as <see cref="SystemBodies"/>.</para>
 /// </summary>
+/// <category>Space center</category>
 [SitrepContract]
 [SitrepTopic("spaceCenter.scene")]
 #if SITREP_CODEGEN
@@ -134,6 +136,7 @@ public class SpaceCenterScene
 /// <c>JsonWriter</c> walks that live tree, these POCOs never serialize.
 /// Held at the home command, like <see cref="LaunchSiteEntry"/>.</para>
 /// </summary>
+/// <category>Crew</category>
 [SitrepContract]
 [SitrepTopic("spaceCenter.crewRoster", isArray: true)]
 #if SITREP_CODEGEN
@@ -340,6 +343,7 @@ public class CrewRosterEntry
 /// landed yet. A TS-shape-only typing/codegen marker (the provider hand-builds
 /// the dict, these POCOs never serialize). Held at the home command.</para>
 /// </summary>
+/// <category>Space center</category>
 [SitrepContract]
 [SitrepTopic("spaceCenter.savedShips", isArray: true)]
 #if SITREP_CODEGEN
@@ -401,6 +405,7 @@ public class SavedShipEntry
 /// <c>null</c> when no sample has landed yet. A TS-shape-only typing/codegen
 /// marker that never serializes. Held at the home command.</para>
 /// </summary>
+/// <category>Space center</category>
 [SitrepContract]
 [SitrepTopic("spaceCenter.partsAvailable")]
 #if SITREP_CODEGEN
@@ -432,6 +437,7 @@ public class SpaceCenterPartsAvailable
 /// dict and <c>JsonWriter</c> walks that live tree, this POCO never serializes.
 /// Held at the home command, like <see cref="CrewRosterEntry"/>.</para>
 /// </summary>
+/// <category>Crew</category>
 [SitrepContract]
 [SitrepTopic("spaceCenter.astronautComplex")]
 #if SITREP_CODEGEN
@@ -472,6 +478,7 @@ public class AstronautComplexInfo
 /// provider hand-builds the dict, this POCO never serializes). Held at the home
 /// command, like <see cref="LaunchSiteEntry"/>.</para>
 /// </summary>
+/// <category>Space center</category>
 [SitrepContract]
 [SitrepTopic("spaceCenter.pois", isArray: true)]
 #if SITREP_CODEGEN

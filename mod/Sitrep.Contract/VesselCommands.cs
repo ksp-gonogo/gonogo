@@ -12,6 +12,7 @@ namespace Sitrep.Contract;
 /// <c>toggleActionGroup</c> footgun. Every M1 actuation
 /// command is set-semantics only, so it does not exist here at all.
 /// </summary>
+/// <category>Command arguments</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -28,6 +29,10 @@ public class SetEnabledArgs
     public bool Enabled { get; set; }
 }
 
+/// <summary>
+/// <c>vessel.control.setSasMode</c>'s arguments: the SAS mode to hold.
+/// </summary>
+/// <category>Command arguments</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -35,10 +40,15 @@ public class SetEnabledArgs
 [SitrepCommand("vessel.control.setSasMode")]
 public class SetSasModeArgs
 {
+    /// <summary>The SAS mode to hold.</summary>
     [SitrepUnit(Units.Enumeration)]
     public SasMode Mode { get; set; }
 }
 
+/// <summary>
+/// <c>vessel.control.setThrottle</c>'s arguments: the main throttle setting.
+/// </summary>
+/// <category>Command arguments</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -46,7 +56,7 @@ public class SetSasModeArgs
 [SitrepCommand("vessel.control.setThrottle")]
 public class SetThrottleArgs
 {
-    /// <summary>0..1: validated (not silently clamped) at admission; out of range yields <see cref="CommandResult.ErrorCode"/> <see cref="CommandErrorCode.Range"/> (A-10's inconsistency fixed at the send gate).</summary>
+    /// <summary>The throttle from 0 to 1. A value outside that range is refused with <see cref="CommandErrorCode.Range"/> rather than clamped.</summary>
     [SitrepUnit(Units.Ratio)]
     public double Value { get; set; }
 }
@@ -65,6 +75,7 @@ public class SetThrottleArgs
 /// folded into this one: kept separate so a client never has to string-match
 /// a group name to flip the landing gear.
 /// </summary>
+/// <category>Command arguments</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -89,6 +100,7 @@ public class SetActionGroupArgs
 /// preserve this exact component assignment rather than "helpfully"
 /// reordering it.
 /// </summary>
+/// <category>Command arguments</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -117,6 +129,7 @@ public class AddManeuverNodeArgs
 /// (O-4's second half: the legacy <c>updateManeuverNode</c> shifted every
 /// later sibling's index by one).
 /// </summary>
+/// <category>Command arguments</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -140,6 +153,10 @@ public class UpdateManeuverNodeArgs
     public double RadialOut { get; set; }
 }
 
+/// <summary>
+/// <c>vessel.maneuver.remove</c>'s arguments: the manoeuvre node to delete.
+/// </summary>
+/// <category>Command arguments</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -147,6 +164,7 @@ public class UpdateManeuverNodeArgs
 [SitrepCommand("vessel.maneuver.remove")]
 public class RemoveManeuverNodeArgs
 {
+    /// <summary>The node to delete: a <see cref="ManeuverNode.Id"/> from <c>vessel.maneuver</c>.</summary>
     [SitrepUnit(Units.Id)]
     public string NodeId { get; set; } = "";
 }
@@ -162,6 +180,7 @@ public class RemoveManeuverNodeArgs
 /// index are separate fields in separate namespaces, so they can never be
 /// confused for one another.
 /// </summary>
+/// <category>Command arguments</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -204,6 +223,7 @@ public class SetTargetArgs
 /// <c>time.setWarpIndex</c>'s args: sim-meta, never delayed (light-time
 /// fiction doesn't apply to a ground-side simulation control).
 /// </summary>
+/// <category>Command arguments</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -215,6 +235,10 @@ public class SetWarpIndexArgs
     public int Index { get; set; }
 }
 
+/// <summary>
+/// <c>time.setPaused</c>'s arguments: whether the game is paused.
+/// </summary>
+/// <category>Command arguments</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -222,6 +246,7 @@ public class SetWarpIndexArgs
 [SitrepCommand("time.setPaused", Delay = DelayRole.TrueNow)]
 public class SetPausedArgs
 {
+    /// <summary>True to pause the game, false to resume it.</summary>
     [SitrepUnit(Units.Flag)]
     public bool Paused { get; set; }
 }

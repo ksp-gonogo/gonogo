@@ -274,6 +274,7 @@ public static class CommsDegradeModels
 /// <c>comms.link</c>, which is the connectivity authority and is exempt from
 /// that freeze precisely so it can report it.</para>
 /// </summary>
+/// <category>Comms</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

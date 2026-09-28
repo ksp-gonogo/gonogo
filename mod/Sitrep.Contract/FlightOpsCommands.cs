@@ -17,6 +17,7 @@ namespace Sitrep.Contract;
 /// <c>ksp.recover</c> take no args (they operate on the current flight /
 /// active vessel), so they have no arg type here.</para>
 /// </summary>
+/// <category>Command arguments</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -38,6 +39,7 @@ public class RevertToEditorArgs
 /// id fails admission with <see cref="CommandErrorCode.NotFound"/> before the
 /// game is ever touched.
 /// </summary>
+/// <category>Command arguments</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -65,6 +67,7 @@ public class SwitchVesselArgs
 /// <c>;</c>-encoded crew list back into an array before dispatching and the
 /// host assigns each name into a free craft seat.</para>
 /// </summary>
+/// <category>Command arguments</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

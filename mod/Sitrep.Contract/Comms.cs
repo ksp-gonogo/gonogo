@@ -32,6 +32,7 @@ namespace Sitrep.Contract;
 /// stock <c>CommNet.VesselControlState</c>'s partial/full distinction
 /// without leaking a KSP enum onto the wire.
 /// </summary>
+/// <category>Comms</category>
 #if SITREP_CODEGEN
 [TsEnum]
 #endif
@@ -56,6 +57,7 @@ public enum CommsControlSource
 /// elected backend. Ground-side truth about
 /// whether the active vessel has a control link home right now.
 /// </summary>
+/// <category>Comms</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -91,6 +93,7 @@ public class CommsConnectivity
 /// SignalLossIndicator keys its "Lost" verdict on.
 /// </internal>
 /// </summary>
+/// <category>Comms</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -104,6 +107,7 @@ public class CommsSignal
 }
 
 /// <summary>Control-state kind for <see cref="CommsControl"/>.</summary>
+/// <category>Comms</category>
 #if SITREP_CODEGEN
 [TsEnum]
 #endif
@@ -126,6 +130,7 @@ public enum CommsControlStateKind
 /// <see cref="Reason"/> is a nullable annotation (absent = no annotation),
 /// never an empty-string sentinel.
 /// </summary>
+/// <category>Comms</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -141,6 +146,7 @@ public class CommsControl
 }
 
 /// <summary>Kind of a node participating in a <see cref="CommsHop"/>.</summary>
+/// <category>Comms</category>
 #if SITREP_CODEGEN
 [TsEnum]
 #endif
@@ -176,6 +182,7 @@ public enum CommsHopKind
 /// cannot serve: it is one value for the whole hop, so it says a ground
 /// station is involved but never which end.</para>
 /// </summary>
+/// <category>Comms</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -227,6 +234,7 @@ public class CommsHop
 /// quantity. What you are shown is the topology AS OBSERVED; nothing may
 /// extrapolate it forward.</para>
 /// </summary>
+/// <category>Comms</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -248,6 +256,7 @@ public class CommsPath
 /// label, and <see cref="Kind"/> carries home-ness, so nothing has to read
 /// meaning out of the id.
 /// </summary>
+/// <category>Comms</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -263,6 +272,7 @@ public class CommsNetworkNode
 }
 
 /// <summary>One edge in the <see cref="CommsNetwork"/> relay graph.</summary>
+/// <category>Comms</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -283,6 +293,7 @@ public class CommsNetworkEdge
 /// detail"). Under bare CommNet this may be a single home-edge; under
 /// RealAntennas it enumerates the relay graph.
 /// </summary>
+/// <category>Comms</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -296,6 +307,7 @@ public class CommsNetwork
 }
 
 /// <summary>Where a <see cref="CommsDelay"/> value came from.</summary>
+/// <category>Comms</category>
 #if SITREP_CODEGEN
 [TsEnum]
 #endif
@@ -381,6 +393,7 @@ public enum CommsDelaySource
 /// so the value it hands <c>ViewClock</c> is never itself gated by a view time.
 /// </internal></para>
 /// </summary>
+/// <category>Comms</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -465,6 +478,7 @@ public class CommsDelay
 /// stays Delayed AND freeze-gated: it freezes at last-known through the
 /// outage.</para>
 /// </summary>
+/// <category>Comms</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -491,6 +505,7 @@ public class CommsLink
 /// existing comms.link/comms.connectivity "No signal" case already covers
 /// that for a reader.
 /// </summary>
+/// <category>Comms</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

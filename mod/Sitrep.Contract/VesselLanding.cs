@@ -26,6 +26,7 @@ namespace Sitrep.Contract;
 /// unavailable this tick (e.g. no PQS, no touchdown solution, not in
 /// atmosphere). Never ship a 0.0 that was not verified.</para>
 /// </summary>
+/// <category>Vessel</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

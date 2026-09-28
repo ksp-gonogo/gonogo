@@ -20,6 +20,7 @@ namespace Sitrep.Contract;
 /// type to name (it is on <c>WirePayloadCoverageTests</c>'s producer-flatten
 /// allowlist for exactly that reason).</para>
 /// </summary>
+/// <category>Flights</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -76,6 +77,7 @@ public class RecoveryReport
 /// <summary>
 /// One science subject recovered: an entry of <see cref="RecoveryReport.ScienceBreakdown"/>.
 /// </summary>
+/// <category>Flights</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -99,6 +101,7 @@ public class RecoveryScienceEntry
 /// One recovered-part group: an entry of <see cref="RecoveryReport.PartBreakdown"/>.
 /// Identically-named parts are grouped, hence <see cref="Count"/>.
 /// </summary>
+/// <category>Flights</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -129,6 +132,7 @@ public class RecoveryPartEntry
 /// <summary>
 /// One recovered-resource group: an entry of <see cref="RecoveryReport.ResourceBreakdown"/>.
 /// </summary>
+/// <category>Flights</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -151,6 +155,7 @@ public class RecoveryResourceEntry
 /// <summary>
 /// One crew member aboard at recovery: an entry of <see cref="RecoveryReport.CrewBreakdown"/>.
 /// </summary>
+/// <category>Flights</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

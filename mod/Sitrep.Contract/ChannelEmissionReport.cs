@@ -52,6 +52,7 @@ namespace Sitrep.Contract;
 /// <see cref="Born"/> false on a tick-mapped channel means the mapper returned
 /// null on every tick and the birth gate held it back.</para>
 /// </summary>
+/// <category>System diagnostics</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -164,6 +165,7 @@ public class ChannelEmissionEntry
 /// hand-declared entry in its own <c>topics.ts</c>, the same treatment
 /// <c>system.uplink.gates</c> and <c>system.units</c> get.</para>
 /// </summary>
+/// <category>System diagnostics</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

@@ -15,6 +15,7 @@ namespace Sitrep.Contract;
 /// <see cref="DynamicPressureKPa"/>). <c>missionTime</c> deliberately does
 /// NOT appear here: see <see cref="VesselIdentity.LaunchUt"/>'s doc comment.
 /// </summary>
+/// <category>Vessel</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

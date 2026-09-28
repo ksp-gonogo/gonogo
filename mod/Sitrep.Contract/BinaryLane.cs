@@ -139,6 +139,7 @@ namespace Sitrep.Contract
     /// segments cannot tell "nobody transmitted" from "the frame arrived
     /// broken".</para>
     /// </summary>
+    /// <category>Stream messages</category>
     [SitrepContract]
 #if SITREP_CODEGEN
     [TsInterface]

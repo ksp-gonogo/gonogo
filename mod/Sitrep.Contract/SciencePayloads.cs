@@ -58,6 +58,7 @@ public static class ScienceValueModels
 /// <c>null</c> (not a sentinel) whenever the raw value is absent or
 /// non-finite.</para>
 /// </summary>
+/// <category>Science</category>
 [SitrepContract]
 [SitrepTopic("science.experiments", isArray: true)]
 #if SITREP_CODEGEN
@@ -163,6 +164,7 @@ public class ExperimentEntry
 /// <see cref="ExperimentEntry"/> for the "no wire change, all fields nullable"
 /// rationale.
 /// </summary>
+/// <category>Science</category>
 [SitrepContract]
 [SitrepTopic("science.instruments", isArray: true)]
 #if SITREP_CODEGEN
@@ -225,6 +227,7 @@ public class InstrumentEntry
 /// <see cref="ExperimentEntry"/> for the "no wire change, all fields nullable"
 /// rationale.
 /// </summary>
+/// <category>Science</category>
 [SitrepContract]
 [SitrepTopic("science.lab", isArray: true)]
 #if SITREP_CODEGEN
@@ -303,6 +306,7 @@ public class LabEntry
 /// see <see cref="ExperimentEntry"/> for the "no wire change, all fields
 /// nullable" rationale.
 /// </summary>
+/// <category>Science</category>
 [SitrepContract]
 [SitrepTopic("deployed.bases", isArray: true)]
 #if SITREP_CODEGEN
@@ -431,6 +435,7 @@ public class DeployedEntry
 /// wire and a closed union on the client like every other enum in this contract,
 /// and it needs no mirror test: nobody else owns its numbering.</para>
 /// </summary>
+/// <category>Science</category>
 #if SITREP_CODEGEN
 [TsEnum]
 #endif
@@ -475,6 +480,7 @@ public enum DeployedPowerState
 /// <see cref="ExperimentEntry"/> for the "no wire change, all fields nullable"
 /// rationale.</para>
 /// </summary>
+/// <category>Science</category>
 [SitrepContract]
 [SitrepTopic("science.sensors", isArray: true)]
 #if SITREP_CODEGEN
@@ -530,6 +536,7 @@ public class SensorEntry
 /// <see cref="ExperimentEntry"/> for the "no wire change, all fields nullable"
 /// rationale.</para>
 /// </summary>
+/// <category>Science</category>
 [SitrepContract]
 [SitrepTopic("science.experimentBreakdown", isArray: true)]
 #if SITREP_CODEGEN
@@ -608,6 +615,7 @@ public class ExperimentBreakdownEntry
 /// <see cref="ExperimentEntry"/> for the "no wire change, all fields
 /// nullable" rationale.</para>
 /// </summary>
+/// <category>Science</category>
 [SitrepContract]
 [SitrepTopic("science.archive", isArray: true)]
 #if SITREP_CODEGEN

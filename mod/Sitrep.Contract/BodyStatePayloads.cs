@@ -45,6 +45,7 @@ namespace Sitrep.Contract
     /// still stand in for an integrated path, and a conic search is not claiming
     /// to be that path.</para>
     /// </summary>
+    /// <category>Command arguments</category>
     [SitrepContract]
 #if SITREP_CODEGEN
     [TsInterface]
@@ -108,6 +109,7 @@ namespace Sitrep.Contract
     /// no instants are different facts, and a search that read them the same would
     /// draw an empty plot for an install problem.</para>
     /// </summary>
+    /// <category>Orbits and trajectories</category>
     [SitrepContract]
 #if SITREP_CODEGEN
     [TsInterface]
@@ -148,6 +150,7 @@ namespace Sitrep.Contract
     /// <see cref="TrajectoryPoint"/>: these arrive in bulk and the wire cost of a
     /// nested object per point is paid on every cell of every grid.</para>
     /// </summary>
+    /// <category>Orbits and trajectories</category>
     [SitrepContract]
 #if SITREP_CODEGEN
     [TsInterface]

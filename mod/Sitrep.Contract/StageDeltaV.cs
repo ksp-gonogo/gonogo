@@ -39,6 +39,7 @@ namespace Sitrep.Contract;
 /// provenance.</para>
 /// </internal>
 /// </summary>
+/// <category>Vessel</category>
 [SitrepContract]
 [SitrepTopic("dv.stages", isArray: true)]
 #if SITREP_CODEGEN
@@ -134,6 +135,7 @@ public class StageDeltaVEntry
 /// <see cref="StageDeltaVEntry"/>: hand-built by the provider, never
 /// serialized itself, no per-payload <c>Meta</c> (it rides the envelope).</para>
 /// </summary>
+/// <category>Vessel</category>
 [SitrepContract]
 [SitrepTopic("dv.summary")]
 #if SITREP_CODEGEN

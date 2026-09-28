@@ -65,6 +65,7 @@ namespace Sitrep.Contract
     /// nobody has to maintain a second list. Appending <see cref="Training"/>
     /// would have filed it after <see cref="Dead"/>.</para>
     /// </summary>
+    /// <category>Crew</category>
 #if SITREP_CODEGEN
     [TsEnum]
 #endif

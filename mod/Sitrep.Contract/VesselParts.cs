@@ -31,6 +31,7 @@ namespace Sitrep.Contract;
 /// itself: the wire is written by <c>JsonWriter</c> walking the provider's
 /// dictionary: so adding it changes no bytes.</para>
 /// </summary>
+/// <category>Parts</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -63,6 +64,7 @@ public class VesselParts
 /// reason. flightID's stability across a docking/undocking round-trip is a
 /// KSP-side caveat carried forward from the design's open questions.</para>
 /// </summary>
+/// <category>Parts</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -198,6 +200,7 @@ public class VesselPart
 /// <c>Brakes</c>/<c>Gear</c>/<c>Light</c>/<c>Abort</c>/<c>Stage</c>/
 /// <c>Custom01</c>...) the action's Flags bitmask decodes to (<c>None</c> excluded).
 /// </summary>
+/// <category>Parts</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -247,6 +250,7 @@ public class ActionBinding
 /// approximation. <see cref="NominalFlow"/> is omitted (left <c>null</c>)
 /// whenever it would equal <see cref="Flow"/>, per the SDK contract.</para>
 /// </summary>
+/// <category>Parts</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -276,6 +280,7 @@ public class PartResourceFlow
 /// the standardised deploy/activation word, whose vocabulary is on that
 /// property.
 /// </summary>
+/// <category>Parts</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -329,6 +334,7 @@ public class PartModuleState
 /// consumer placing the box on a ship rotates both by that part's <c>orgRot</c>
 /// before adding <see cref="VesselPart.Position"/>, which is <c>vessel-local</c>.</para>
 /// </summary>
+/// <category>Parts</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

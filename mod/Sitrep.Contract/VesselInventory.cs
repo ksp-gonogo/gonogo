@@ -27,6 +27,7 @@ namespace Sitrep.Contract;
 /// repair mechanic consumes stock cargo, so a stock-career player has
 /// inventories worth showing whether or not a modelling mod is installed.</para>
 /// </summary>
+/// <category>Vessel</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -41,6 +42,7 @@ public class VesselInventory
 }
 
 /// <summary>One part's <c>ModuleInventoryPart</c>: a cargo hold aboard.</summary>
+/// <category>Vessel</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -85,6 +87,7 @@ public class InventoryStore
 }
 
 /// <summary>One kind of thing stored in an <see cref="InventoryStore"/>, with how many of it.</summary>
+/// <category>Vessel</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

@@ -16,6 +16,7 @@ namespace Sitrep.Contract;
 /// record, not a growth of it (R-8's "bulk topology is its own ASSET-class
 /// design" lesson).
 /// </summary>
+/// <category>Vessel</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

@@ -22,6 +22,7 @@ namespace Sitrep.Contract;
 /// and still land, so a client reads the outcome of a save here, never from
 /// the command's reply.</para>
 /// </summary>
+/// <category>Mod settings</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -46,6 +47,7 @@ public class SettingsModel
 }
 
 /// <summary>One declared setting, described well enough for a client to draw its control.</summary>
+/// <category>Mod settings</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -91,6 +93,7 @@ public class SettingsRowState
 }
 
 /// <summary>Where the settings in force stand against the settings file.</summary>
+/// <category>Mod settings</category>
 #if SITREP_CODEGEN
 [TsEnum]
 #endif
@@ -126,6 +129,7 @@ public enum SettingsPersistenceState
 }
 
 /// <summary>Whether the settings file holds what is in force.</summary>
+/// <category>Mod settings</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -149,6 +153,7 @@ public class SettingsPersistence
 }
 
 /// <summary>An Uplink whose settings could not be declared this session.</summary>
+/// <category>Mod settings</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -177,6 +182,7 @@ public class SettingsDeclarationFailure
 /// <c>settings.gonogo</c>'s <see cref="SettingsModel.Persistence"/> says the
 /// file was not written.</para>
 /// </summary>
+/// <category>Command arguments</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -188,6 +194,7 @@ public class SaveSettingsArgs
 }
 
 /// <summary>One row's new value in a <see cref="SaveSettingsArgs"/>.</summary>
+/// <category>Mod settings</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

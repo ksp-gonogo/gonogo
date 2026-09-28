@@ -23,6 +23,7 @@ namespace Sitrep.Contract
     /// permission. It exists so a control can be drawn dark BEFORE the operator
     /// presses it, which is the whole point of asking the game in advance.</para>
     /// </summary>
+    /// <category>System diagnostics</category>
     [SitrepContract]
 #if SITREP_CODEGEN
     [TsInterface]
@@ -90,6 +91,7 @@ namespace Sitrep.Contract
     /// command has nothing to say about itself, which is different from knowing
     /// it is fine. Nothing here is a permission; see <see cref="CommandGate"/>.</para>
     /// </summary>
+    /// <category>System diagnostics</category>
     [SitrepContract]
 #if SITREP_CODEGEN
     [TsInterface]

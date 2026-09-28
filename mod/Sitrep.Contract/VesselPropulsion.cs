@@ -18,6 +18,7 @@ namespace Sitrep.Contract;
 /// burn-time estimate (retiring <c>dv.currentTWR</c>/<c>dv.*</c> until a
 /// stage sim exists, G-14).
 /// </summary>
+/// <category>Vessel</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

@@ -23,6 +23,7 @@ namespace Sitrep.Contract;
 /// yields nulls rather than throwing.
 /// </internal>
 /// </summary>
+/// <category>Crew</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -118,6 +119,7 @@ public class EvaKerbal
 /// <para>An empty list is a real answer: nobody is outside. The channel is
 /// absent only before anything has been captured.</para>
 /// </summary>
+/// <category>Crew</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

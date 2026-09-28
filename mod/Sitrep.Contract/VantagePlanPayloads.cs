@@ -13,6 +13,7 @@ namespace Sitrep.Contract
     /// else's and be shown what they can see. It is resolved where the command
     /// enters instead.</para>
     /// </summary>
+    /// <category>Command arguments</category>
     [SitrepContract]
 #if SITREP_CODEGEN
     [TsInterface]
@@ -44,6 +45,7 @@ namespace Sitrep.Contract
     /// instant its seed was true is a path with no claim about when, and a divergence
     /// measured against it later would be measured against nothing in particular.</para>
     /// </summary>
+    /// <category>Orbits and trajectories</category>
     [SitrepContract]
 #if SITREP_CODEGEN
     [TsInterface]

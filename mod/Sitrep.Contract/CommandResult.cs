@@ -365,18 +365,15 @@ public static class CommandErrorCode
 }
 
 /// <summary>
-/// The ONE result shape every command returns. <see cref="Success"/>
-/// false pairs with a typed <see cref="ErrorCode"/> (never a free-text message a
-/// client has to string-match). Results are always delivered (never a
-/// fire-and-forget void), and failure is structured data, not a thrown
-/// exception.
+/// What every command returns. A refused command has <see cref="Success"/>
+/// false and a typed <see cref="ErrorCode"/> saying why, so a client never
+/// matches on message text.
 ///
-/// <para>This non-generic base is the "no payload" case (every plain
-/// actuation command). Commands that return a real
-/// value use <see cref="CommandResult{T}"/>, whose <c>Payload</c> carries it
-/// (<c>vessel.control.stage</c>'s new stage index, <c>vessel.maneuver.add</c>'s
-/// created node id).</para>
+/// <para>This is the result of a command that returns no value. A command that
+/// does returns <see cref="CommandResult{T}"/>, which adds a
+/// <c>Payload</c>.</para>
 /// </summary>
+/// <category>Stream messages</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 // AutoExportMethods=false: the static Ok/Fail factories are C#-side ergonomics,
@@ -385,6 +382,7 @@ public static class CommandErrorCode
 #endif
 public class CommandResult
 {
+    /// <summary>Whether the command ran. False means the game refused it.</summary>
     [SitrepUnit(Units.Flag)]
     public bool Success { get; set; } = true;
 
@@ -459,6 +457,7 @@ public class CommandResult
     [SitrepOmittedWhenNull]
     public string? Detail { get; set; }
 
+    /// <summary>A command that ran.</summary>
     public static CommandResult Ok() => new CommandResult { Success = true };
 
     /// <summary>A refusal with nothing more to say than its code.</summary>
@@ -482,14 +481,12 @@ public class CommandResult
 }
 
 /// <summary>
-/// R7 Fix 1: the payload-carrying result, <see cref="CommandResult"/> plus a
-/// typed <see cref="Payload"/>. <c>vessel.control.stage</c> returns
-/// <c>CommandResult&lt;int&gt;</c> (the new current stage index, rather than a
-/// void fire-and-forget); <c>vessel.maneuver.add</c>
-/// returns <c>CommandResult&lt;string&gt;</c> (the created node's opaque id,
-/// O-6 fixed). <see cref="Payload"/> is default (null for reference types) when
-/// <see cref="CommandResult.Success"/> is false.
+/// A <see cref="CommandResult"/> that also returns a value in <c>payload</c>:
+/// <c>vessel.control.stage</c> returns the new current stage index, and
+/// <c>vessel.maneuver.add</c> returns the created node's id. <c>payload</c> is
+/// absent when <see cref="CommandResult.Success"/> is false.
 /// </summary>
+/// <category>Stream messages</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 // AutoExportMethods=false: the static Ok/Fail factories are C#-side ergonomics,
@@ -498,8 +495,10 @@ public class CommandResult
 #endif
 public class CommandResult<T> : CommandResult
 {
+    /// <summary>The value the command returns; absent on a refusal.</summary>
     public T? Payload { get; set; }
 
+    /// <summary>A command that ran and returned <paramref name="payload"/>.</summary>
     public static CommandResult<T> Ok(T payload) =>
         new CommandResult<T> { Success = true, Payload = payload };
 

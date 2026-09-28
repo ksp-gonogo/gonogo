@@ -49,6 +49,7 @@ namespace Sitrep.Contract;
 /// everything stock has. Anything one provider knows and another does not goes in
 /// <see cref="Extensions"/>.
 /// </summary>
+/// <category>Parts</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -122,6 +123,7 @@ public class IsruDrillEntry
 /// multiplier is), not the raw recipe ratio, so an operator reads what is
 /// actually moving rather than what the config asked for.
 /// </summary>
+/// <category>Parts</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -139,6 +141,7 @@ public class IsruResourceFlow
 /// One chemical converter on the active vessel. Field set matches stock's
 /// surface: whether it is running, and the recipe it is running, at live rates.
 /// </summary>
+/// <category>Parts</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

@@ -2681,7 +2681,7 @@ channels:
 
       **Not delayed.** This command takes effect immediately, because it is ground-side bookkeeping rather than a signal to a craft.
 
-      The contract carries no doc comment for `time.setPaused`'s args type. Add a `<summary>` to the C# and it will appear here.
+      `time.setPaused`'s arguments: whether the game is paused.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delayed: false
@@ -3037,7 +3037,7 @@ channels:
 
       **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
 
-      The contract carries no doc comment for `vessel.control.setSasMode`'s args type. Add a `<summary>` to the C# and it will appear here.
+      `vessel.control.setSasMode`'s arguments: the SAS mode to hold.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delayed: true
@@ -3053,7 +3053,7 @@ channels:
 
       **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
 
-      The contract carries no doc comment for `vessel.control.setThrottle`'s args type. Add a `<summary>` to the C# and it will appear here.
+      `vessel.control.setThrottle`'s arguments: the main throttle setting.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delayed: true
@@ -3090,7 +3090,8 @@ channels:
     description: |-
       Carries a `VesselCrew`.
 
-      The contract carries no doc comment for `vessel.crew`'s payload type. Add a `<summary>` to the C# and it will appear here.
+      The `vessel.crew` payload: who is aboard the active vessel and how many
+      seats it has.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
@@ -3365,7 +3366,7 @@ channels:
 
       **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
 
-      The contract carries no doc comment for `vessel.maneuver.remove`'s args type. Add a `<summary>` to the C# and it will appear here.
+      `vessel.maneuver.remove`'s arguments: the manoeuvre node to delete.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delayed: true
@@ -6658,17 +6659,16 @@ components:
           - properties:
               result:
                 description: |-
-                  R7 Fix 1: the payload-carrying result, `CommandResult` plus a typed
-                  CommandResult.Payload. `vessel.control.stage` returns `CommandResult<int>`
-                  (the new current stage index, rather than a void fire-and-forget);
-                  `vessel.maneuver.add` returns `CommandResult<string>` (the created node's
-                  opaque id, O-6 fixed). CommandResult.Payload is default (null for reference
-                  types) when `CommandResult.success` is false.
+                  A `CommandResult` that also returns a value in `payload`:
+                  `vessel.control.stage` returns the new current stage index, and
+                  `vessel.maneuver.add` returns the created node's id. `payload` is absent
+                  when `CommandResult.success` is false.
                 allOf:
                   - $ref: "#/components/schemas/CommandResult"
                   - type: object
                     properties:
                       payload:
+                        description: The value the command returns; absent on a refusal.
                         anyOf:
                           - $ref: "#/components/schemas/ScienceTransmission"
                           - type: "null"
@@ -6906,12 +6906,10 @@ components:
           - properties:
               result:
                 description: |-
-                  R7 Fix 1: the payload-carrying result, `CommandResult` plus a typed
-                  CommandResult.Payload. `vessel.control.stage` returns `CommandResult<int>`
-                  (the new current stage index, rather than a void fire-and-forget);
-                  `vessel.maneuver.add` returns `CommandResult<string>` (the created node's
-                  opaque id, O-6 fixed). CommandResult.Payload is default (null for reference
-                  types) when `CommandResult.success` is false.
+                  A `CommandResult` that also returns a value in `payload`:
+                  `vessel.control.stage` returns the new current stage index, and
+                  `vessel.maneuver.add` returns the created node's id. `payload` is absent
+                  when `CommandResult.success` is false.
                 allOf:
                   - $ref: "#/components/schemas/CommandResult"
                   - type: object
@@ -6920,6 +6918,7 @@ components:
                         type:
                           - number
                           - "null"
+                        description: The value the command returns; absent on a refusal.
     commandResponse.vessel.invokePartAction:
       name: command-response
       title: Reply to vessel.invokePartAction
@@ -6946,12 +6945,10 @@ components:
           - properties:
               result:
                 description: |-
-                  R7 Fix 1: the payload-carrying result, `CommandResult` plus a typed
-                  CommandResult.Payload. `vessel.control.stage` returns `CommandResult<int>`
-                  (the new current stage index, rather than a void fire-and-forget);
-                  `vessel.maneuver.add` returns `CommandResult<string>` (the created node's
-                  opaque id, O-6 fixed). CommandResult.Payload is default (null for reference
-                  types) when `CommandResult.success` is false.
+                  A `CommandResult` that also returns a value in `payload`:
+                  `vessel.control.stage` returns the new current stage index, and
+                  `vessel.maneuver.add` returns the created node's id. `payload` is absent
+                  when `CommandResult.success` is false.
                 allOf:
                   - $ref: "#/components/schemas/CommandResult"
                   - type: object
@@ -6960,6 +6957,7 @@ components:
                         type:
                           - string
                           - "null"
+                        description: The value the command returns; absent on a refusal.
     commandResponse.vessel.maneuver.plan.send:
       name: command-response
       title: Reply to vessel.maneuver.plan.send
@@ -7012,17 +7010,16 @@ components:
           - properties:
               result:
                 description: |-
-                  R7 Fix 1: the payload-carrying result, `CommandResult` plus a typed
-                  CommandResult.Payload. `vessel.control.stage` returns `CommandResult<int>`
-                  (the new current stage index, rather than a void fire-and-forget);
-                  `vessel.maneuver.add` returns `CommandResult<string>` (the created node's
-                  opaque id, O-6 fixed). CommandResult.Payload is default (null for reference
-                  types) when `CommandResult.success` is false.
+                  A `CommandResult` that also returns a value in `payload`:
+                  `vessel.control.stage` returns the new current stage index, and
+                  `vessel.maneuver.add` returns the created node's id. `payload` is absent
+                  when `CommandResult.success` is false.
                 allOf:
                   - $ref: "#/components/schemas/CommandResult"
                   - type: object
                     properties:
                       payload:
+                        description: The value the command returns; absent on a refusal.
                         anyOf:
                           - $ref: "#/components/schemas/RepairOutcome"
                           - type: "null"
@@ -10210,9 +10207,11 @@ components:
         requestId:
           type: string
           x-sitrep-unit: id
+          description: An id the client chooses; the reply carries it back.
         command:
           type: string
           x-sitrep-unit: id
+          description: The command id, such as `vessel.control.setThrottle`.
         label:
           type: string
           x-sitrep-unit: text
@@ -10295,6 +10294,9 @@ components:
         requestId:
           type: string
           x-sitrep-unit: id
+          description: |-
+            The id from the request this replies to. It is the only link back to the
+            request, and a delayed command's reply can arrive minutes later.
         result:
           description: The command's own reply. Each command's `command-response` message narrows this to that command's reply schema.
         meta:
@@ -10317,22 +10319,19 @@ components:
     CommandResult:
       type: object
       description: |-
-        The ONE result shape every command returns. `CommandResult.success` false
-        pairs with a typed `CommandResult.errorCode` (never a free-text message a
-        client has to string-match). Results are always delivered (never a
-        fire-and-forget void), and failure is structured data, not a thrown
-        exception.
+        What every command returns. A refused command has `CommandResult.success`
+        false and a typed `CommandResult.errorCode` saying why, so a client never
+        matches on message text.
 
-        This non-generic base is the "no payload" case (every plain actuation
-        command). Commands that return a real value use `CommandResult`, whose
-        `Payload` carries it (`vessel.control.stage`'s new stage index,
-        `vessel.maneuver.add`'s created node id).
+        This is the result of a command that returns no value. A command that does
+        returns `CommandResult`, which adds a `Payload`.
       required:
         - success
       properties:
         success:
           type: boolean
           x-sitrep-unit: flag
+          description: Whether the command ran. False means the game refused it.
         errorCode:
           description: |-
             Why it was refused, null on success. On the wire this is the ROOT's id, so
@@ -12096,24 +12095,21 @@ components:
     ErrorMsg:
       type: object
       description: |-
-        A fault, never a refusal, and the difference decides how a client handles it.
+        A request the mod could not carry out: a frame it could not read, an unknown
+        command, a command whose provider has stopped working, a result or payload
+        that could not be written, a subscription to a Topic nothing declares, or a
+        `set-vantage` naming a command centre that is not active. Nothing about the
+        game was decided, so there is no game reason to report.
 
-        An `error` frame means something could not be CARRIED: a frame the mod could
-        not read, an unknown command, a command whose provider has fail-softed, a
-        result or payload the codec could not serialise, a subscription to a topic
-        nothing declares, or a `set-vantage` naming a command centre that is not
-        active. Nothing about the game was decided, so there is no game reason to
-        report.
+        A command the game refused is not an error: it ran and said no, and that
+        arrives as a `command-response` whose result has `success: false` and an
+        `errorCode` from `CommandErrorCode`. That vocabulary never appears here.
 
-        A command the game REFUSED ran and said no. That arrives as a
-        `command-response` with `success: false` and an `errorCode`, correlated on
-        `requestId` like any other answer, and it is not an error frame.
-
-        `code` is a `FaultCode`, enumerated in full under `components.schemas`
-        with the sentence an operator reads for each. Its client-origin members are
-        minted by a client's own transport into the same field, never by the mod.
-        `CommandErrorCode` is the other half of the vocabulary: it names REFUSALS and
-        never appears here.
+        `ErrorMsg.requestId` is set when the error is about a command, and
+        `ErrorMsg.topic` when it is about a subscription. `ErrorMsg.code` is a
+        `FaultCode`, whose full list gives the sentence an operator reads for each.
+        A client's own transport adds its own members to the same field, and the mod
+        never sends those.
       required:
         - type
         - code
@@ -12123,16 +12119,19 @@ components:
           type: string
           const: error
           x-sitrep-unit: id
+          description: The frame type, always `"error"`.
         requestId:
           type:
             - string
             - "null"
           x-sitrep-unit: id
+          description: The id of the command request this error is about, or null.
         topic:
           type:
             - string
             - "null"
           x-sitrep-unit: id
+          description: The Topic this error is about, or null.
         code:
           description: |-
             Which fault: always a fault, never a refusal, since a command the game
@@ -12303,25 +12302,20 @@ components:
     EventMsg:
       type: object
       description: |-
-        Something that happened to a SUBSCRIPTION, on the topic it happened to.
+        Something that happened to a subscription, sent on the Topic it happened to.
 
-        Two names are emitted, and each names one topic this connection is subscribed
-        to:
+        An event carries no payload of its own: `EventMsg.name` is the whole of what
+        happened, and `EventMsg.meta` describes the delivery as it does on any other
+        frame. The mod sends two names:
 
-        - `subscribed` acknowledges a `subscribe`, once per subscribe, on the
-          reliable lane. It is the frame to wait for rather than the first
-          `stream-data`: a channel with nothing to say yet sends the ack and then
-          nothing. A `subscribe` naming a topic no declared channel and no registered
-          dynamic namespace owns is answered with NOTHING, not an error, so a missing
-          ack is how a client learns a topic is unowned
-        - `timeline-reset` says the game quickloaded and UT rewound. It is sent to
-          every session for every topic it holds, and the delayed view built from
-          frames before it is abandoned rather than reconciled
-
-        An event carries no payload of its own: `name` is the whole of what happened,
-        and `meta` describes the delivery as it does on any other frame. Events on a
-        DYNAMIC topic are emitted the same way and are absent here for the reason the
-        document description gives.
+        - `subscribed` confirms a `subscribe`, once per subscribe. Wait for it
+          rather than for the first `stream-data`: a channel with nothing to say yet
+          sends the confirmation and then nothing. A `subscribe` naming a Topic
+          nothing owns gets no reply at all, not an error, so a missing confirmation
+          is how a client learns the Topic is unowned
+        - `timeline-reset` says the game quickloaded and time went backwards. It is
+          sent for every Topic the connection holds, and anything built from frames
+          before it should be discarded
       required:
         - type
         - topic
@@ -12332,14 +12326,19 @@ components:
           type: string
           const: event
           x-sitrep-unit: id
+          description: The frame type, always `"event"`.
         topic:
           type: string
           x-sitrep-unit: id
+          description: The subscribed Topic the event happened to.
         name:
           type: string
           x-sitrep-unit: text
+          description: "What happened: `subscribed` or `timeline-reset`."
         meta:
-          $ref: "#/components/schemas/Meta"
+          description: The delivery metadata, as on any other frame.
+          allOf:
+            - $ref: "#/components/schemas/Meta"
     ExperimentActionArgs:
       type: object
       description: |-
@@ -14245,6 +14244,10 @@ components:
             malformed node.
     Meta:
       type: object
+      description: |-
+        The envelope every stream sample, event and command reply carries: where it
+        was observed from, when it was true in the game, when it was delivered, and
+        how current it is.
       required:
         - source
         - validAt
@@ -14259,6 +14262,7 @@ components:
         source:
           type: string
           x-sitrep-unit: id
+          description: The node the sample was read from.
         validAt:
           type: number
           x-sitrep-unit: ut
@@ -14278,6 +14282,7 @@ components:
         seq:
           type: number
           x-sitrep-unit: id
+          description: A number that rises by one with every frame the mod sends.
         deliveredAt:
           type: number
           x-sitrep-unit: ut
@@ -14307,9 +14312,12 @@ components:
         active:
           type: boolean
           x-sitrep-unit: flag
+          description: Always true on a frame the mod sends.
         staleness:
-          $ref: "#/components/schemas/Staleness"
-          x-sitrep-unit: enum
+          description: How current the sample is.
+          allOf:
+            - $ref: "#/components/schemas/Staleness"
+              x-sitrep-unit: enum
         timelineEpoch:
           type: number
           x-sitrep-unit: id
@@ -14840,9 +14848,14 @@ components:
         source:
           type: string
           x-sitrep-unit: id
+          description: |-
+            `"vessel:<guid>"` when the payload describes one craft, or `"game"` when it
+            describes the session.
         quality:
-          $ref: "#/components/schemas/Quality"
-          x-sitrep-unit: enum
+          description: Whether the craft is on rails or loaded under physics.
+          allOf:
+            - $ref: "#/components/schemas/Quality"
+              x-sitrep-unit: enum
     PhysicsMode:
       type: integer
       description: |-
@@ -14990,12 +15003,17 @@ components:
           description: Authoritative until `PropagationHorizon.untilUt`.
     Quality:
       type: integer
+      description: |-
+        Whether a payload's subject is simulated under physics (`Quality.Loaded`) or
+        moving on rails (`Quality.OnRails`).
       x-sitrep-enum-kind: ordinal
       oneOf:
         - const: 0
           title: OnRails
+          description: "Moving on rails: KSP is not simulating it, and its orbit is a fixed conic."
         - const: 1
           title: Loaded
+          description: Loaded and simulated under physics.
     RecoveryCrewEntry:
       type: object
       description: |-
@@ -15467,12 +15485,14 @@ components:
           additionalProperties: true
     RemoveManeuverNodeArgs:
       type: object
+      description: "`vessel.maneuver.remove`'s arguments: the manoeuvre node to delete."
       required:
         - nodeId
       properties:
         nodeId:
           type: string
           x-sitrep-unit: id
+          description: "The node to delete: a `ManeuverNode.id` from `vessel.maneuver`."
     RepairCostItem:
       type: object
       description: |-
@@ -16925,20 +16945,25 @@ components:
           x-sitrep-unit: flag
     SetPausedArgs:
       type: object
+      description: "`time.setPaused`'s arguments: whether the game is paused."
       required:
         - paused
       properties:
         paused:
           type: boolean
           x-sitrep-unit: flag
+          description: True to pause the game, false to resume it.
     SetSasModeArgs:
       type: object
+      description: "`vessel.control.setSasMode`'s arguments: the SAS mode to hold."
       required:
         - mode
       properties:
         mode:
-          $ref: "#/components/schemas/SasMode"
-          x-sitrep-unit: enum
+          description: The SAS mode to hold.
+          allOf:
+            - $ref: "#/components/schemas/SasMode"
+              x-sitrep-unit: enum
     SetSimulationDelayPolicyArgs:
       type: object
       description: |-
@@ -17013,6 +17038,7 @@ components:
           description: Required when `SetTargetArgs.kind` is `TargetKind.Position`.
     SetThrottleArgs:
       type: object
+      description: "`vessel.control.setThrottle`'s arguments: the main throttle setting."
       required:
         - value
       properties:
@@ -17020,9 +17046,8 @@ components:
           type: number
           x-sitrep-unit: ratio
           description: |-
-            0..1: validated (not silently clamped) at admission; out of range yields
-            `CommandResult.errorCode` `CommandErrorCode.Range` (A-10's inconsistency
-            fixed at the send gate).
+            The throttle from 0 to 1. A value outside that range is refused with
+            `CommandErrorCode.Range` rather than clamped.
     SetVantage:
       type: object
       description: |-
@@ -17046,6 +17071,7 @@ components:
           type: string
           const: set-vantage
           x-sitrep-unit: id
+          description: The frame type, always `"set-vantage"`.
         centreId:
           type: string
           x-sitrep-unit: id
@@ -17675,10 +17701,19 @@ components:
       oneOf:
         - const: 0
           title: Fresh
+          description: |-
+            Delivered on its own schedule. An old `validAt` on a Topic that sends only
+            on change is still fresh.
         - const: 1
           title: HeldStale
+          description: |-
+            Sent to a subscriber that joined while contact was lost, and taken after
+            contact was lost.
         - const: 2
           title: LastBeforeBlackout
+          description: |-
+            Sent to a subscriber that joined while contact was lost: the last sample
+            that got out before contact was lost.
         - const: 3
           title: Recorded
           description: |-
@@ -17708,6 +17743,7 @@ components:
         topic:
           type: string
           x-sitrep-unit: id
+          description: The Topic id this sample belongs to.
         payload:
           description: The topic's own value. Each channel's `stream-data` message narrows this to that channel's payload schema.
         meta:
@@ -17735,6 +17771,7 @@ components:
           meta: *a5
     Subscribe:
       type: object
+      description: Asks the server to start sending a Topic to this connection.
       required:
         - type
         - topic
@@ -17743,9 +17780,11 @@ components:
           type: string
           const: subscribe
           x-sitrep-unit: id
+          description: The frame type, always `"subscribe"`.
         topic:
           type: string
           x-sitrep-unit: id
+          description: The Topic id to start receiving.
     SwitchVesselArgs:
       type: object
       description: |-
@@ -18514,6 +18553,7 @@ components:
           x-sitrep-unit: id
     Unsubscribe:
       type: object
+      description: Asks the server to stop sending a Topic to this connection.
       required:
         - type
         - topic
@@ -18522,9 +18562,11 @@ components:
           type: string
           const: unsubscribe
           x-sitrep-unit: id
+          description: The frame type, always `"unsubscribe"`.
         topic:
           type: string
           x-sitrep-unit: id
+          description: The Topic id to stop receiving.
     UpdateManeuverNodeArgs:
       type: object
       description: |-
@@ -18853,6 +18895,9 @@ components:
           $ref: "#/components/schemas/PayloadMeta"
     VesselCrew:
       type: object
+      description: |-
+        The `vessel.crew` payload: who is aboard the active vessel and how many
+        seats it has.
       required:
         - count
         - capacity
@@ -18862,15 +18907,20 @@ components:
         count:
           type: number
           x-sitrep-unit: count
+          description: How many crew are aboard.
         capacity:
           type: number
           x-sitrep-unit: count
+          description: How many crew seats the vessel has.
         crew:
           type: array
           items:
             $ref: "#/components/schemas/CrewMember"
+          description: Each crew member aboard.
         meta:
-          $ref: "#/components/schemas/PayloadMeta"
+          description: Which vessel this describes.
+          allOf:
+            - $ref: "#/components/schemas/PayloadMeta"
     VesselFlight:
       type: object
       description: |-

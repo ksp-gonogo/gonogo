@@ -14,6 +14,7 @@ namespace Sitrep.Contract;
 /// <c>setTarget</c> aimed at one comes back
 /// <see cref="CommandResult.ErrorCode"/> <see cref="CommandErrorCode.ModeUnavailable"/>.
 /// </summary>
+/// <category>Command arguments</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -38,6 +39,7 @@ public class ServoSetTargetArgs
 /// contract (see <see cref="SetEnabledArgs"/>'s doc comment). Keyed by
 /// <see cref="PartId"/> (the read side's <c>flightID.ToString()</c>).
 /// </summary>
+/// <category>Command arguments</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -64,6 +66,7 @@ public class ServoSetEnabledArgs
 /// out of range yields <see cref="CommandResult.ErrorCode"/>
 /// <see cref="CommandErrorCode.Range"/>.
 /// </summary>
+/// <category>Command arguments</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -89,6 +92,7 @@ public class RotorSetValueArgs
 /// now), so it carries no state field, only the <see cref="PartId"/> to act
 /// on.
 /// </summary>
+/// <category>Command arguments</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

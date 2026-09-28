@@ -21,6 +21,7 @@ namespace Sitrep.Contract;
 /// no comms path carries <c>null</c>, never a sentinel <c>0</c> that would read
 /// as a zero-delay direct link.</para>
 /// </summary>
+/// <category>Solar system and fleet</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -54,6 +55,7 @@ public class FleetVesselLink
 /// edge has to escape the reveal-gate freeze or "NO SIGNAL" could never
 /// fire, the same reasoning as <c>comms.link</c>.</para>
 /// </summary>
+/// <category>Solar system and fleet</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -90,6 +92,7 @@ public class FleetVesselContact
 /// arming stay off the wire until that consumer exists. Nothing here is a
 /// control input.</para>
 /// </summary>
+/// <category>Solar system and fleet</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -176,6 +179,7 @@ public class FleetVesselSilence
 /// not be: a tank level from a craft we cannot currently hear is last-known,
 /// and freezing it at last-known is the correct depiction.</para>
 /// </summary>
+/// <category>Solar system and fleet</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -190,6 +194,7 @@ public class FleetVesselResources
 /// roster: the same fields <see cref="FleetVesselSilence"/> carries, plus the
 /// vessel id that the per-vessel topic gets from its own topic string.
 /// </summary>
+/// <category>Solar system and fleet</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -267,6 +272,7 @@ public class FleetSilenceEntry
 /// for one vessel on that vessel's own clock; this is the fleet-wide index.
 /// A consumer that needs the former must not substitute the latter.</para>
 /// </summary>
+/// <category>Solar system and fleet</category>
 [SitrepContract]
 [SitrepTopic("fleet.silence")]
 #if SITREP_CODEGEN

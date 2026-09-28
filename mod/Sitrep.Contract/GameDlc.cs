@@ -30,6 +30,7 @@ namespace Sitrep.Contract;
 /// <c>DelayRole.TrueNow</c>: DLC presence is known independent of any
 /// vessel's comms link.</para>
 /// </summary>
+/// <category>Game</category>
 [SitrepContract]
 [SitrepTopic("game.dlc")]
 #if SITREP_CODEGEN

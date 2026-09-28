@@ -37,6 +37,7 @@ namespace Sitrep.Contract;
 /// (it rides the envelope), classified <c>DelayRole.TrueNow</c>: a
 /// ground-side game-state fact, not comms-derived vessel telemetry.</para>
 /// </summary>
+/// <category>Flights</category>
 [SitrepContract]
 [SitrepTopic("ksp.revertAvailability")]
 #if SITREP_CODEGEN

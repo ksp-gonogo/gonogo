@@ -8,6 +8,7 @@ namespace Sitrep.Contract;
 /// Raw readings for whichever part is hottest by internal-temperature ratio;
 /// see <see cref="VesselThermal.HottestPart"/>.
 /// </summary>
+/// <category>Vessel</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -50,6 +51,7 @@ public class ThermalHottestPart
 /// <c>BuildThermal</c> returns no group in that case), a DIFFERENT,
 /// coarser absence than an individual null ratio.</para>
 /// </summary>
+/// <category>Vessel</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

@@ -52,6 +52,7 @@ public static class CurrencyEventTopics
 /// crewed vessel after its path home. These events let a consumer build a separate,
 /// honestly-delayed running total; they never replace the gating one.</para>
 /// </summary>
+/// <category>Career</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -118,6 +119,7 @@ public class ScienceCreditEvent
 /// vessel a destruction detector armed in the same frame, otherwise the active vessel.
 /// An unattributable death raises no event rather than being blamed on a guess.</para>
 /// </summary>
+/// <category>Career</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

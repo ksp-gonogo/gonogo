@@ -28,6 +28,7 @@ namespace Sitrep.Contract;
 /// own slice, never this one: it belongs to core.</para>
 /// </internal>
 /// </summary>
+/// <category>Command arguments</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

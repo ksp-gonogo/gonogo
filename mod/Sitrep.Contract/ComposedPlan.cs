@@ -18,6 +18,7 @@ namespace Sitrep.Contract
     /// half-delta-v instant a node reports is derived from a solved burn, so it
     /// cannot be the thing that specifies one.</para>
     /// </summary>
+    /// <category>Orbits and trajectories</category>
     [SitrepContract]
 #if SITREP_CODEGEN
     [TsInterface]
@@ -96,6 +97,7 @@ namespace Sitrep.Contract
     /// is ahead of everything the operator could see, so the craft would fly
     /// something nobody at the command centre ever looked at.</para>
     /// </summary>
+    /// <category>Command arguments</category>
     [SitrepContract]
 #if SITREP_CODEGEN
     [TsInterface]

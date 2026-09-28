@@ -225,6 +225,7 @@ namespace Sitrep.Contract
     /// have been granted it without anyone deciding, and the setting would be
     /// decoration.</para>
     /// </summary>
+    /// <category>Orbits and trajectories</category>
     public enum PropagationCertification
     {
         /// <summary>Nobody chose. Callers refuse rather than pick on their behalf.</summary>

@@ -15,6 +15,7 @@ namespace Sitrep.Contract;
 /// value this contract doesn't yet recognize, rather than the mapper
 /// throwing on a future KSP version adding a situation.
 /// </summary>
+/// <category>Vessel</category>
 #if SITREP_CODEGEN
 [TsEnum]
 #endif
@@ -40,6 +41,7 @@ public enum Situation
 /// mirrors KSP's own <c>Unknown</c> member and is the fallback for a value
 /// this contract doesn't recognize yet.
 /// </summary>
+/// <category>Vessel</category>
 #if SITREP_CODEGEN
 [TsEnum]
 #endif
@@ -68,6 +70,7 @@ public enum VesselType
 /// <c>orbit.patchEndTransition.ToString()</c> value <c>KspHost</c> captures.
 /// <see cref="Unknown"/> is the graceful fallback.
 /// </summary>
+/// <category>Vessel</category>
 #if SITREP_CODEGEN
 [TsEnum]
 #endif
@@ -89,6 +92,7 @@ public enum TransitionType
 /// different enough to be wrong, and the distinction previously lived only in
 /// <c>ManeuverNode</c>'s prose.
 /// </summary>
+/// <category>Orbits and trajectories</category>
 #if SITREP_CODEGEN
 [TsEnum]
 #endif

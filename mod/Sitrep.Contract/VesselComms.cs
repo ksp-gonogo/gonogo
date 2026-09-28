@@ -12,6 +12,7 @@ namespace Sitrep.Contract;
 /// <see cref="Unknown"/> is the graceful fallback for an unrecognized raw
 /// value.
 /// </summary>
+/// <category>Comms</category>
 #if SITREP_CODEGEN
 [TsEnum]
 #endif
@@ -47,6 +48,7 @@ public enum ControlState
 /// <c>comm.signalDelay</c> does NOT get a field here; that successor is
 /// <c>comms.delay</c>, a different provider entirely.</para>
 /// </summary>
+/// <category>Comms</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

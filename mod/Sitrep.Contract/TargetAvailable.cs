@@ -17,6 +17,7 @@ namespace Sitrep.Contract;
 /// <see cref="SetTargetArgs"/> takes, so a widget hands an entry straight back
 /// into <c>vessel.target.set</c> with no lookup.
 /// </summary>
+/// <category>Orbits and trajectories</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -75,6 +76,7 @@ public class TargetListEntry
 /// per-entry <see cref="TargetListEntry.Distance"/> rides that periodic re-key,
 /// deliberately NOT the change-gate.
 /// </summary>
+/// <category>Orbits and trajectories</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

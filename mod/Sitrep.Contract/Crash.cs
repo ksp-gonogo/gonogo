@@ -22,6 +22,7 @@ namespace Sitrep.Contract;
 /// type to name (it is on <c>WirePayloadCoverageTests</c>'s producer-flatten
 /// allowlist for exactly that reason).</para>
 /// </summary>
+/// <category>Flights</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -96,6 +97,7 @@ public class CrashReport
 /// One part lost in a crash: an entry of <see cref="CrashReport.PartsLost"/>.
 /// See <c>crash-payloads.ts</c> for the wire shape.
 /// </summary>
+/// <category>Flights</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -124,6 +126,7 @@ public class CrashPartLost
 /// <see cref="CrashReport.FlightStats"/>. See <c>crash-payloads.ts</c> for
 /// the wire shape.
 /// </summary>
+/// <category>Flights</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

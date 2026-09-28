@@ -10,6 +10,7 @@ namespace Sitrep.Contract;
 /// class doc comment for the three-way absence semantics this type
 /// participates in.
 /// </summary>
+/// <category>Vessel</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -65,6 +66,7 @@ public class ResourceAmount
 /// <c>flow</c> on now would reproduce R-6 (a "truth" number that isn't the
 /// game's truth).</para>
 /// </summary>
+/// <category>Vessel</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

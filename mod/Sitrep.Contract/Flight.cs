@@ -23,6 +23,7 @@ namespace Sitrep.Contract;
 /// <c>RecoveryUplink</c> already hook, independently: zero coupling, zero
 /// risk to the existing detail streams.</para>
 /// </summary>
+/// <category>Flights</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsEnum]
@@ -48,6 +49,7 @@ public enum FlightEndReason
 /// <c>FlightLifecycleSampler</c> doc reference in
 /// <c>Sitrep.Host.Flight</c> for the exact phase source.
 /// </summary>
+/// <category>Flights</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -78,6 +80,7 @@ public class FlightCurrent
 /// <c>FlightLifecycleSampler</c>'s doc comment for the exact started-vs-
 /// vesselChanged distinction).
 /// </summary>
+/// <category>Flights</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -108,6 +111,7 @@ public class FlightStarted
 /// (<c>RevertBeforeRevealErasesAReliableOrderedDelayedEventForever</c>,
 /// commit <c>82132a08</c>) for free: no new reveal-gate work needed.
 /// </summary>
+/// <category>Flights</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -140,6 +144,7 @@ public class FlightEnded
 /// reselect): decoupled from <see cref="FlightStarted"/>/<see cref="FlightEnded"/>:
 /// switching focus away from a still-flying vessel does not end its flight.
 /// </summary>
+/// <category>Flights</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

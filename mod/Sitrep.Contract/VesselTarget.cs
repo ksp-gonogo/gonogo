@@ -25,6 +25,7 @@ namespace Sitrep.Contract;
 /// backed by any live KSP target object, so it never appears as
 /// <c>vessel.target</c>'s own reported <see cref="VesselTarget.Kind"/>.</para>
 /// </summary>
+/// <category>Orbits and trajectories</category>
 #if SITREP_CODEGEN
 [TsEnum]
 #endif
@@ -62,6 +63,7 @@ public enum TargetKind
 /// frame the provider can reach both objects in, or no encounter inside the
 /// window it was asked about.</para>
 /// </summary>
+/// <category>Orbits and trajectories</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -101,6 +103,7 @@ public class ClosestApproach
 /// means nothing is targeted, the common case, R1(b), never a sentinel
 /// zero-distance/zero-vector record.</para>
 /// </summary>
+/// <category>Orbits and trajectories</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

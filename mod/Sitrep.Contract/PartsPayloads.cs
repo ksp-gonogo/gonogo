@@ -12,6 +12,7 @@ namespace Sitrep.Contract;
 /// which yields <c>null</c> (not a sentinel) on absence. See
 /// <see cref="PartsPower"/> for the "no wire change" rationale.
 /// </summary>
+/// <category>Parts</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -41,6 +42,7 @@ public class SolarPanelEntry
 /// One battery in the <c>parts.power</c> payload's <c>batteries</c> array.
 /// Typing-only mirror of <c>Sitrep.Host.PartsViewProvider.BuildBatteryEntry</c>.
 /// </summary>
+/// <category>Parts</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -64,6 +66,7 @@ public class BatteryEntry
 /// One fuel cell in the <c>parts.power</c> payload's <c>fuelCells</c> array.
 /// Typing-only mirror of <c>Sitrep.Host.PartsViewProvider.BuildFuelCellEntry</c>.
 /// </summary>
+/// <category>Parts</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -88,6 +91,7 @@ public class FuelCellEntry
 /// array. Typing-only mirror of
 /// <c>Sitrep.Host.PartsViewProvider.BuildAlternatorEntry</c>.
 /// </summary>
+/// <category>Parts</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -123,6 +127,7 @@ public class AlternatorEntry
 /// the emitted object, but the contract stays permissive; the total is
 /// <c>null</c> whenever <c>SnapshotDict.GetDouble</c> reads no finite value).</para>
 /// </summary>
+/// <category>Parts</category>
 [SitrepContract]
 [SitrepTopic("parts.power")]
 #if SITREP_CODEGEN
@@ -169,6 +174,7 @@ public class PartsPower
 /// <see cref="PartsPower"/> for the "no wire change, all fields nullable"
 /// rationale.</para>
 /// </summary>
+/// <category>Parts</category>
 [SitrepContract]
 [SitrepTopic("robotics.servos", isArray: true)]
 #if SITREP_CODEGEN
@@ -282,6 +288,7 @@ public class ServoEntry
 /// <c>Sitrep.Host.BreakingGroundViewProvider.BuildRoboticsAvailable</c>: see
 /// <see cref="PartsPower"/> for the "no wire change" rationale.</para>
 /// </summary>
+/// <category>Parts</category>
 [SitrepContract]
 [SitrepTopic("robotics.available")]
 #if SITREP_CODEGEN

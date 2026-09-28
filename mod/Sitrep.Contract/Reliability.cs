@@ -74,6 +74,7 @@ public static class ReliabilityCoverage
 /// come to disagree. The client derives what it needs from
 /// <c>reliability.parts</c>.</para>
 /// </summary>
+/// <category>Parts</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -111,6 +112,7 @@ public class ReliabilitySummary
 /// <para>A budget is BACKWARD-looking: how much of a rated allowance has been
 /// used. It is not a forecast; that is <see cref="ReliabilityPartEntry.Survival"/>.</para>
 /// </summary>
+/// <category>Parts</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -177,6 +179,7 @@ public class ReliabilityBudget
 /// condition, the provider's own word for it, an optional forward survival
 /// probability with its horizon, and any number of consumed budgets.
 /// </summary>
+/// <category>Parts</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -289,6 +292,7 @@ public class ReliabilityPartEntry
 /// as <see cref="InventoryItem"/>'s name/quantity pair so a console can join the
 /// two directly rather than guessing which inventory line a cost refers to.
 /// </summary>
+/// <category>Parts</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -346,6 +350,7 @@ public interface IReliabilityBackend : ISitrepProvider
 }
 
 /// <summary><c>vessel.repair</c>'s args: which part, and which crew member does it.</summary>
+/// <category>Command arguments</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -368,6 +373,7 @@ public class RepairPartArgs
 /// <para>Carries where the kit came from because that changes what the operator
 /// has left, and under delay they will not get to ask again cheaply.</para>
 /// </summary>
+/// <category>Parts</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

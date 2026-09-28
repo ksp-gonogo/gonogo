@@ -18,6 +18,7 @@ namespace Sitrep.Contract
     /// control frame resolves to nothing, which is the behaviour that side
     /// already documents.</para>
     /// </summary>
+    /// <category>Vessel</category>
     [SitrepContract]
     public enum ControlFrameKind
     {
@@ -71,6 +72,7 @@ namespace Sitrep.Contract
     /// <see cref="PrimaryBody"/> so a reader wanting the pair can take the heads
     /// and a reader computing the frame can take the sets.</para>
     /// </summary>
+    /// <category>Vessel</category>
     [SitrepContract]
     [SitrepTopic("system.frame")]
 #if SITREP_CODEGEN
@@ -132,6 +134,7 @@ namespace Sitrep.Contract
     /// cannot reach, and a set that disagreed with the producer's would name a
     /// frame nothing can select.</para>
     /// </summary>
+    /// <category>Command arguments</category>
     [SitrepContract]
 #if SITREP_CODEGEN
     [TsInterface]

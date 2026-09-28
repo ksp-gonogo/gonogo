@@ -12,6 +12,7 @@ namespace Sitrep.Contract;
 /// is the graceful fallback for a raw value this contract doesn't recognize
 /// yet, same convention as <see cref="VesselType"/>/<see cref="TransitionType"/>.
 /// </summary>
+/// <category>Vessel</category>
 #if SITREP_CODEGEN
 [TsEnum]
 #endif
@@ -48,6 +49,7 @@ public enum SasMode
 /// add a second SAS. Folding them into this list would trade a typed field
 /// for a string match and gain nothing.</para>
 /// </summary>
+/// <category>Vessel</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -111,6 +113,7 @@ public class ActionGroupState
 /// NEW wart (lying about upstream game truth); the range is documented,
 /// reader beware.</para>
 /// </summary>
+/// <category>Vessel</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

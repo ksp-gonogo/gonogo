@@ -13,6 +13,7 @@ namespace Sitrep.Contract;
 /// (viewUt - launchUt) rather than a tick-rate field that would force this
 /// whole record to re-emit every tick.
 /// </summary>
+/// <category>Vessel</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

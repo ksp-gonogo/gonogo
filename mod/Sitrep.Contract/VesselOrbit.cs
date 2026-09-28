@@ -29,6 +29,7 @@ namespace Sitrep.Contract;
 /// observation itself, at the call site.
 /// </internal>
 /// </summary>
+/// <category>Orbits and trajectories</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -191,6 +192,7 @@ public class VesselOrbit
 /// answer a different question with the same units and no type could catch
 /// it.</para>
 /// </summary>
+/// <category>Orbits and trajectories</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -244,6 +246,7 @@ public class PropagationHorizon
 /// its own arm rather than an infinite <see cref="PropagationHorizon.UntilUt"/>
 /// so that "forever" never has to be recognised as an extreme number.</para>
 /// </summary>
+/// <category>Orbits and trajectories</category>
 #if SITREP_CODEGEN
 [TsEnum]
 #endif
@@ -270,6 +273,7 @@ public enum PropagationHorizonKind
 /// Had <see cref="Analytic"/> been zero, a provider that failed to populate it
 /// would have every client treating an integrated trajectory as an ellipse.</para>
 /// </summary>
+/// <category>Orbits and trajectories</category>
 #if SITREP_CODEGEN
 [TsEnum]
 #endif
@@ -295,6 +299,7 @@ public enum TrajectoryKind
 }
 
 /// <summary>One upcoming SOI patch transition: see <see cref="VesselOrbit.Encounter"/>.</summary>
+/// <category>Orbits and trajectories</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

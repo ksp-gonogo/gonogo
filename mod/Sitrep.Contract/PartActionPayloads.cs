@@ -32,6 +32,7 @@ namespace Sitrep.Contract;
 /// state changes. Filtering on it would also make <see cref="Active"/> a field
 /// that is true by construction, which says nothing.</para>
 /// </summary>
+/// <category>Parts</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -104,6 +105,7 @@ public class PartActionEntry
 /// likewise untagged. The client subscribes to the computed sub-topic
 /// directly.</para>
 /// </summary>
+/// <category>Parts</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

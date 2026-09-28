@@ -48,6 +48,7 @@ namespace Sitrep.Contract;
 /// which is exact and needs no second field to keep in step. Publishing both
 /// would create a pair that can disagree.</para>
 /// </summary>
+/// <category>Game</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

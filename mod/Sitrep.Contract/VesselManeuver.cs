@@ -31,6 +31,7 @@ namespace Sitrep.Contract;
 /// consumer computing thrust times duration over mass gets nonsense instead of
 /// an impulse. Absence says "not modelled", which is the true statement.</para>
 /// </summary>
+/// <category>Orbits and trajectories</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -192,6 +193,7 @@ public class ManeuverNode
     /// "is this burn in the frame I am looking at" a question nobody could answer
     /// without a translation table.</para>
     /// </summary>
+    /// <category>Orbits and trajectories</category>
 #if SITREP_CODEGEN
     [TsEnum]
 #endif
@@ -300,6 +302,7 @@ public class ManeuverNode
 /// a form only a patched-conic planner can produce; see
 /// <see cref="ManeuverNode.Patches"/>.</para>
 /// </summary>
+/// <category>Orbits and trajectories</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

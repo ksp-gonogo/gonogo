@@ -23,6 +23,8 @@ import { CommandErrorCode, FaultCode } from './error-codes';
 * frame is dropped with a named reason and never substituted by an empty
 * payload, because a listener that is handed zero segments cannot tell "nobody
 * transmitted" from "the frame arrived broken".
+*
+* @category Stream messages
 */
 export interface StreamBinary
 {
@@ -68,6 +70,8 @@ export interface StreamBinary
 * horizon IS: an ephemeris horizon bounds how long osculating elements still
 * stand in for an integrated path, and a conic search is not claiming to be
 * that path.
+*
+* @category Command arguments
 */
 export interface BodyStatesRequest
 {
@@ -104,6 +108,8 @@ export interface BodyStatesRequest
 * empty list: a body the provider could not place and a caller that asked
 * about no instants are different facts, and a search that read them the same
 * would draw an empty plot for an install problem.
+*
+* @category Orbits and trajectories
 */
 export interface BodyStatesReply
 {
@@ -131,6 +137,8 @@ export interface BodyStatesReply
 * Flat keys rather than nested vectors, matching `TrajectoryPoint`: these
 * arrive in bulk and the wire cost of a nested object per point is paid on
 * every cell of every grid.
+*
+* @category Orbits and trajectories
 */
 export interface BodyState
 {
@@ -153,6 +161,8 @@ export interface BodyState
 * committed at (its up-front funds/science/reputation cost scales with it); it
 * is best-effort: a strategy with no factor slider ignores it and activates at
 * its fixed factor.
+*
+* @category Command arguments
 */
 export interface ActivateStrategyArgs
 {
@@ -163,6 +173,8 @@ export interface ActivateStrategyArgs
 /**
 * `career.strategy.deactivate`'s args: the strategy's stable
 * `StrategyConfig.Name` id (see `ActivateStrategyArgs.strategyId`).
+*
+* @category Command arguments
 */
 export interface DeactivateStrategyArgs
 {
@@ -172,6 +184,8 @@ export interface DeactivateStrategyArgs
 * `career.tech.unlock`'s args: the tech node's `techID` (the same id the READ
 * side emits for each tech node, `career.status`'s `tech.nodes[].id`).
 * Unlocking deducts the node's science cost.
+*
+* @category Command arguments
 */
 export interface UnlockTechArgs
 {
@@ -184,6 +198,8 @@ export interface UnlockTechArgs
 * valid depends on the contract's current state (accept/decline require an
 * offered contract, cancel an active one); an out-of-state request comes back
 * `CommandErrorCode.ModeUnavailable`.
+*
+* @category Command arguments
 */
 export interface ContractActionArgs
 {
@@ -196,6 +212,8 @@ export interface ContractActionArgs
 * the `career.facilities` channel. The buildings do NOT ride `career.status`.
 * Upgrading raises the facility one tier and deducts its upgrade cost from
 * funds.
+*
+* @category Command arguments
 */
 export interface UpgradeFacilityArgs
 {
@@ -210,6 +228,8 @@ export interface UpgradeFacilityArgs
 * else hired, KSP refreshed it) comes back `CommandErrorCode.NotFound`; an
 * unaffordable hire `CommandErrorCode.Range`; a full roster (Astronaut Complex
 * cap) or a non-career save `CommandErrorCode.ModeUnavailable`.
+*
+* @category Command arguments
 */
 export interface HireApplicantArgs
 {
@@ -225,6 +245,8 @@ export interface HireApplicantArgs
 * roster comes back `CommandErrorCode.NotFound`, one that resolves but isn't
 * Available (Assigned/Dead/Missing) comes back
 * `CommandErrorCode.ModeUnavailable`.
+*
+* @category Command arguments
 */
 export interface FireCrewArgs
 {
@@ -244,6 +266,8 @@ export interface FireCrewArgs
 * `Sitrep.Host.CareerViewProvider.ParseGameMode` folds them (and any future
 * KSP addition) into `GameMode.Unknown` rather than the mapper throwing.
 * `SCIENCE_SANDBOX` maps to `GameMode.Science`.
+*
+* @category Career
 */
 export enum GameMode {
 	Sandbox = 0,
@@ -264,6 +288,8 @@ export enum GameMode {
 * integer ordinal, matching every other enum in this codec; see
 * `Sitrep.Contract.Serialization.JsonWriter`). It is a codegen marker, not
 * serialized itself.
+*
+* @category Career
 */
 export interface CareerMode
 {
@@ -287,6 +313,8 @@ export interface CareerMode
 * (`CareerStrategies.activeCount`, `CareerTech.unlockedCount`) are the only
 * non-nullable numbers, because an empty list counts as zero rather than as
 * unknown.
+*
+* @category Career
 */
 export interface CareerStatus
 {
@@ -325,6 +353,8 @@ export interface CareerStatus
 * scene is still true. The tier standing on it can move, and does when the
 * player buys an upgrade, so both travel together and are dated together
 * rather than one being trusted further than the other.
+*
+* @category Career
 */
 export interface CareerFacilities
 {
@@ -339,6 +369,8 @@ export interface CareerFacilities
 /**
 * Economy sub-group of `CareerStatus`: funds/reputation/science, each null
 * when absent.
+*
+* @category Career
 */
 export interface CareerEconomy
 {
@@ -413,6 +445,8 @@ export interface CareerEconomy
 * Ongoing cost by source, per day, from the elected economy model. Every
 * member is absent when that model does not have the concept, never zero: an
 * unmodelled source and a source costing nothing are different facts.
+*
+* @category Career
 */
 export interface CareerUpkeep
 {
@@ -438,6 +472,8 @@ export interface CareerUpkeep
 * One facility entry in `CareerFacilities.facilities`. All three fields share
 * one live-facility gate on the KSP side, so they are null together when the
 * facility isn't queryable in the current scene.
+*
+* @category Career
 */
 export interface CareerFacility
 {
@@ -463,6 +499,8 @@ export interface CareerFacility
 /**
 * Contracts sub-group of `CareerStatus`. All three lists are always present
 * (empty, never null).
+*
+* @category Career
 */
 export interface CareerContracts
 {
@@ -479,7 +517,11 @@ export interface CareerContracts
 	*/
 	completedRecent: CareerContract[];
 }
-/** One contract in `CareerContracts.active` / `CareerContracts.offered`. */
+/**
+* One contract in `CareerContracts.active` / `CareerContracts.offered`.
+*
+* @category Career
+*/
 export interface CareerContract
 {
 	id?: string | null;
@@ -497,7 +539,11 @@ export interface CareerContract
 	dateExpire?: Value<"ut"> | null;
 	parameters: CareerContractParameter[];
 }
-/** One parameter (objective) of a `CareerContract`. */
+/**
+* One parameter (objective) of a `CareerContract`.
+*
+* @category Career
+*/
 export interface CareerContractParameter
 {
 	title?: string | null;
@@ -537,6 +583,8 @@ export interface CareerContractParameter
 * Strategies sub-group of `CareerStatus`. `CareerStrategies.activeCount` is
 * NON-nullable, the provider defaults it to `Active.Count` when the raw value
 * is absent.
+*
+* @category Career
 */
 export interface CareerStrategies
 {
@@ -556,7 +604,11 @@ export interface CareerStrategies
 	*/
 	activationPatched?: boolean | null;
 }
-/** One strategy in `CareerStrategies.active` / `CareerStrategies.all`. */
+/**
+* One strategy in `CareerStrategies.active` / `CareerStrategies.all`.
+*
+* @category Career
+*/
 export interface CareerStrategy
 {
 	id?: string | null;
@@ -614,6 +666,8 @@ export interface CareerStrategy
 * Tech sub-group of `CareerStatus`. `CareerTech.unlockedCount` is
 * NON-nullable, the provider defaults it to `UnlockedIds.Count` when the raw
 * value is absent.
+*
+* @category Career
 */
 export interface CareerTech
 {
@@ -621,7 +675,11 @@ export interface CareerTech
 	unlockedIds: string[];
 	nodes: CareerTechNode[];
 }
-/** One node in `CareerTech.nodes`. */
+/**
+* One node in `CareerTech.nodes`.
+*
+* @category Career
+*/
 export interface CareerTechNode
 {
 	id?: string | null;
@@ -684,6 +742,8 @@ export interface CareerTechNode
 * false means nothing ever pushed a value at a publish-driven channel, and
 * `ChannelEmissionEntry.born` false on a tick-mapped channel means the mapper
 * returned null on every tick and the birth gate held it back.
+*
+* @category System diagnostics
 */
 export interface ChannelEmissionEntry
 {
@@ -774,6 +834,8 @@ export interface ChannelEmissionEntry
 * sources it directly because it reports on every OTHER channel. The SDK picks
 * it up as a hand-declared entry in its own `topics.ts`, the same treatment
 * `system.uplink.gates` and `system.units` get.
+*
+* @category System diagnostics
 */
 export interface ChannelEmissionReport
 {
@@ -789,6 +851,8 @@ export interface ChannelEmissionReport
 * The channel is a BARE ARRAY of these entries (tagged `isArray: true`, like
 * `SpaceCenterPoiEntry`), one per active centre keyed by
 * `CommandCentreEntry.id`.
+*
+* @category Comms
 */
 export interface CommandCentreEntry
 {
@@ -879,6 +943,8 @@ export interface CommandCentreEntry
 * ground station against another ground station, a crewed craft against a
 * ground station, or two crewed craft: a crewed control-source vessel IS a
 * centre, so no separate vocabulary is needed for it.
+*
+* @category Comms
 */
 export interface CentreSeparationEntry
 {
@@ -910,6 +976,8 @@ export interface CentreSeparationEntry
 * the one their own light has brought them. It is the separation as OBSERVED,
 * never as it is at this instant, and a pair whose geometry has changed since
 * says so one light-time later.
+*
+* @category Comms
 */
 export interface CommandCentreSeparation
 {
@@ -919,6 +987,8 @@ export interface CommandCentreSeparation
 /**
 * One command centre's own one-way delay to the active craft, in the
 * `commandCentre.activeVesselDelay` channel.
+*
+* @category Comms
 */
 export interface CentreDelayEntry
 {
@@ -945,6 +1015,8 @@ export interface CentreDelayEntry
 * DELAYED, on the same reasoning as `comms.delay`: each centre learns the
 * figures one of its own light-times after they held, so a centre's own entry
 * is the delay it was under when the frame left.
+*
+* @category Comms
 */
 export interface CommandCentreActiveVesselDelay
 {
@@ -967,6 +1039,8 @@ export interface CommandCentreActiveVesselDelay
 * one sampling interval old and a client must not treat it as permission. It
 * exists so a control can be drawn dark BEFORE the operator presses it, which
 * is the whole point of asking the game in advance.
+*
+* @category System diagnostics
 */
 export interface CommandGate
 {
@@ -1021,25 +1095,26 @@ export interface CommandGate
 * present-and-passing, so a client that finds no entry knows the command has
 * nothing to say about itself, which is different from knowing it is fine.
 * Nothing here is a permission; see `CommandGate`.
+*
+* @category System diagnostics
 */
 export interface CommandGateReport
 {
 	gates: CommandGate[];
 }
 /**
-* The ONE result shape every command returns. `CommandResult.success` false
-* pairs with a typed `CommandResult.errorCode` (never a free-text message a
-* client has to string-match). Results are always delivered (never a
-* fire-and-forget void), and failure is structured data, not a thrown
-* exception.
+* What every command returns. A refused command has `CommandResult.success`
+* false and a typed `CommandResult.errorCode` saying why, so a client never
+* matches on message text.
 *
-* This non-generic base is the "no payload" case (every plain actuation
-* command). Commands that return a real value use `CommandResult`, whose
-* `Payload` carries it (`vessel.control.stage`'s new stage index,
-* `vessel.maneuver.add`'s created node id).
+* This is the result of a command that returns no value. A command that does
+* returns `CommandResult`, which adds a `Payload`.
+*
+* @category Stream messages
 */
 export interface CommandResult
 {
+	/** Whether the command ran. False means the game refused it. */
 	success: boolean;
 	/**
 	* Why it was refused, null on success. On the wire this is the ROOT's id, so
@@ -1095,21 +1170,24 @@ export interface CommandResult
 	detail?: string;
 }
 /**
-* R7 Fix 1: the payload-carrying result, `CommandResult` plus a typed
-* CommandResult.Payload. `vessel.control.stage` returns `CommandResult<int>`
-* (the new current stage index, rather than a void fire-and-forget);
-* `vessel.maneuver.add` returns `CommandResult<string>` (the created node's
-* opaque id, O-6 fixed). CommandResult.Payload is default (null for reference
-* types) when `CommandResult.success` is false.
+* A `CommandResult` that also returns a value in `payload`:
+* `vessel.control.stage` returns the new current stage index, and
+* `vessel.maneuver.add` returns the created node's id. `payload` is absent
+* when `CommandResult.success` is false.
+*
+* @category Stream messages
 */
 export interface CommandResultOf<Payload> extends CommandResult
 {
+	/** The value the command returns; absent on a refusal. */
 	payload?: Payload | null;
 }
 /**
 * Degree of vessel control the link currently affords, the `controlSource`
 * axis of `CommsConnectivity`. Mirrors stock `CommNet.VesselControlState`'s
 * partial/full distinction without leaking a KSP enum onto the wire.
+*
+* @category Comms
 */
 export enum CommsControlSource {
 	/** A measurement: the craft has no control source. */
@@ -1128,6 +1206,8 @@ export enum CommsControlSource {
 * The `comms.connectivity` payload: always-present, sourced from the elected
 * backend. Ground-side truth about whether the active vessel has a control
 * link home right now.
+*
+* @category Comms
 */
 export interface CommsConnectivity
 {
@@ -1146,13 +1226,19 @@ export interface CommsConnectivity
 * reader that needs to know this is not a grading has
 * `CommsDelaySource.NoCommsModel` on `comms.delay`, which is the one
 * discriminator for the whole family rather than a second one per field.
+*
+* @category Comms
 */
 export interface CommsSignal
 {
 	strength: Value<"ratio">;
 	meta: PayloadMeta;
 }
-/** Control-state kind for `CommsControl`. */
+/**
+* Control-state kind for `CommsControl`.
+*
+* @category Comms
+*/
 export enum CommsControlStateKind {
 	/** A measurement: the craft cannot be commanded. */
 	None = 0,
@@ -1168,6 +1254,8 @@ export enum CommsControlStateKind {
 * The `comms.control` payload: always-present, elected backend.
 * `CommsControl.reason` is a nullable annotation (absent = no annotation),
 * never an empty-string sentinel.
+*
+* @category Comms
 */
 export interface CommsControl
 {
@@ -1175,7 +1263,11 @@ export interface CommsControl
 	reason?: string | null;
 	meta: PayloadMeta;
 }
-/** Kind of a node participating in a `CommsHop`. */
+/**
+* Kind of a node participating in a `CommsHop`.
+*
+* @category Comms
+*/
 export enum CommsHopKind {
 	Home = 0,
 	Relay = 1,
@@ -1204,6 +1296,8 @@ export enum CommsHopKind {
 * so it survives without parsing a name. `CommsHop.kind` cannot serve: it is
 * one value for the whole hop, so it says a ground station is involved but
 * never which end.
+*
+* @category Comms
 */
 export interface CommsHop
 {
@@ -1237,6 +1331,8 @@ export interface CommsHop
 * every basis a reckoner could declare (Kepler propagation, dead reckoning,
 * rate integration) moves a continuous quantity. What you are shown is the
 * topology AS OBSERVED; nothing may extrapolate it forward.
+*
+* @category Comms
 */
 export interface CommsPath
 {
@@ -1252,6 +1348,8 @@ export interface CommsPath
 * `CommsNetworkNode.displayName` carries the label, and
 * `CommsNetworkNode.kind` carries home-ness, so nothing has to read meaning
 * out of the id.
+*
+* @category Comms
 */
 export interface CommsNetworkNode
 {
@@ -1259,7 +1357,11 @@ export interface CommsNetworkNode
 	displayName: string;
 	kind: CommsHopKind;
 }
-/** One edge in the `CommsNetwork` relay graph. */
+/**
+* One edge in the `CommsNetwork` relay graph.
+*
+* @category Comms
+*/
 export interface CommsNetworkEdge
 {
 	a: string;
@@ -1270,6 +1372,8 @@ export interface CommsNetworkEdge
 * The `comms.network` payload: always-emitted, but its richness tracks the
 * elected backend (a "backend-dependent detail"). Under bare CommNet this may
 * be a single home-edge; under RealAntennas it enumerates the relay graph.
+*
+* @category Comms
 */
 export interface CommsNetwork
 {
@@ -1277,7 +1381,11 @@ export interface CommsNetwork
 	edges: CommsNetworkEdge[];
 	meta: PayloadMeta;
 }
-/** Where a `CommsDelay` value came from. */
+/**
+* Where a `CommsDelay` value came from.
+*
+* @category Comms
+*/
 export enum CommsDelaySource {
 	None = 0,
 	SignalDelay = 1,
@@ -1339,6 +1447,8 @@ export enum CommsDelaySource {
 * delay as it WAS when the light left, and a craft whose delay has grown says
 * so one light-time after it grew. Read it as an observation rather than as
 * the current state of the link.
+*
+* @category Comms
 */
 export interface CommsDelay
 {
@@ -1394,6 +1504,8 @@ export interface CommsDelay
 * the client's "NO SIGNAL" flips at the correct delayed instant. The
 * `VesselComms` observation struct (signalStrength/controlState) stays Delayed
 * AND freeze-gated: it freezes at last-known through the outage.
+*
+* @category Comms
 */
 export interface CommsLink
 {
@@ -1412,6 +1524,8 @@ export interface CommsLink
 * or the terminal node matches neither a ground station nor a crewed control
 * source), the existing comms.link/comms.connectivity "No signal" case already
 * covers that for a reader.
+*
+* @category Comms
 */
 export interface CommsCommandCentre
 {
@@ -1460,6 +1574,8 @@ export interface CommsCommandCentre
 * disconnect edge itself reaches a client on `comms.link`, which is the
 * connectivity authority and is exempt from that freeze precisely so it can
 * report it.
+*
+* @category Comms
 */
 export interface CommsDegrade
 {
@@ -1488,6 +1604,8 @@ export interface CommsDegrade
 * measures and `CommsOcclusionBody.occludingRadiusMeters` is what the backend
 * treats it as. Carrying both keeps the difference visible (and the multiplier
 * derivable) without asking any consumer to apply one.
+*
+* @category Comms
 */
 export interface CommsOcclusionBody
 {
@@ -1515,6 +1633,8 @@ export interface CommsOcclusionBody
 * multipliers change only if the player edits the difficulty settings. The
 * producer republishes an unchanged instance, which the emitter's change-gate
 * suppresses, so the channel costs a keyframe and nothing else.
+*
+* @category Comms
 */
 export interface CommsOcclusion
 {
@@ -1545,6 +1665,8 @@ export interface CommsOcclusion
 * **Anchored to ignition.** A burn starts when it starts. The half-delta-v
 * instant a node reports is derived from a solved burn, so it cannot be the
 * thing that specifies one.
+*
+* @category Orbits and trajectories
 */
 export interface ComposedBurn
 {
@@ -1599,6 +1721,8 @@ export interface ComposedBurn
 * arrival would be solved against the craft's true state, which is ahead of
 * everything the operator could see, so the craft would fly something nobody
 * at the command centre ever looked at.
+*
+* @category Command arguments
 */
 export interface SendManeuverPlanArgs
 {
@@ -1654,6 +1778,8 @@ export interface SendManeuverPlanArgs
 * `ControlFrame.primaryBodies` always leads with `ControlFrame.primaryBody` so
 * a reader wanting the pair can take the heads and a reader computing the
 * frame can take the sets.
+*
+* @category Vessel
 */
 export interface ControlFrame
 {
@@ -1693,6 +1819,8 @@ export interface ControlFrame
 * producer walking its own body tree, so a caller stating them would be
 * stating a conclusion it cannot reach, and a set that disagreed with the
 * producer's would name a frame nothing can select.
+*
+* @category Command arguments
 */
 export interface SetControlFrameArgs
 {
@@ -1723,6 +1851,8 @@ export interface SetControlFrameArgs
 * only ever sees the dictionary: this POCO exists solely so the TS SDK has a
 * concrete payload type to name (it is on `WirePayloadCoverageTests`'s
 * producer-flatten allowlist for exactly that reason).
+*
+* @category Flights
 */
 export interface CrashReport
 {
@@ -1766,6 +1896,8 @@ export interface CrashReport
 /**
 * One part lost in a crash: an entry of `CrashReport.partsLost`. See
 * `crash-payloads.ts` for the wire shape.
+*
+* @category Flights
 */
 export interface CrashPartLost
 {
@@ -1781,6 +1913,8 @@ export interface CrashPartLost
 /**
 * Per-flight statistics accumulated across the whole flight up to the crash,
 * `CrashReport.flightStats`. See `crash-payloads.ts` for the wire shape.
+*
+* @category Flights
 */
 export interface CrashFlightStats
 {
@@ -1823,6 +1957,8 @@ export interface CrashFlightStats
 * derives that from the enum so nobody has to maintain a second list.
 * Appending `CrewStanding.Training` would have filed it after
 * `CrewStanding.Dead`.
+*
+* @category Crew
 */
 export enum CrewStanding {
 	/**
@@ -1889,6 +2025,8 @@ export enum CrewStanding {
 * the always-show-the-funds-balance rule), reaching a ground centre at once
 * and a crewed vessel after its path home. These events let a consumer build a
 * separate, honestly-delayed running total; they never replace the gating one.
+*
+* @category Career
 */
 export interface ScienceCreditEvent
 {
@@ -1954,6 +2092,8 @@ export interface ScienceCreditEvent
 * vessel a destruction detector armed in the same frame, otherwise the active
 * vessel. An unattributable death raises no event rather than being blamed on
 * a guess.
+*
+* @category Career
 */
 export interface ReputationLossEvent
 {
@@ -1987,24 +2127,66 @@ export interface ReputationLossEvent
 	*/
 	ut: Value<"ut">;
 }
+/**
+* One Topic sample as the server sends it: the Topic id, its payload, and the
+* envelope `StreamData.meta` saying when the payload was true and when it
+* arrived.
+*
+* @category Stream messages
+*/
 export interface StreamData<Payload>
 {
+	/** The frame type, always `"stream-data"`. */
 	type: "stream-data";
+	/** The Topic id this sample belongs to. */
 	topic: string;
+	/** The sample itself, in the Topic's own payload type. */
 	payload: Payload;
+	/** When the sample was true, when it arrived, and where it was observed from. */
 	meta: Meta;
 }
+/**
+* Something that happened to a subscription, sent on the Topic it happened to.
+*
+* An event carries no payload of its own: `EventMsg.name` is the whole of what
+* happened, and `EventMsg.meta` describes the delivery as it does on any other
+* frame. The mod sends two names:
+*
+* - `subscribed` confirms a `subscribe`, once per subscribe. Wait for it
+*   rather than for the first `stream-data`: a channel with nothing to say yet
+*   sends the confirmation and then nothing. A `subscribe` naming a Topic
+*   nothing owns gets no reply at all, not an error, so a missing confirmation
+*   is how a client learns the Topic is unowned
+* - `timeline-reset` says the game quickloaded and time went backwards. It is
+*   sent for every Topic the connection holds, and anything built from frames
+*   before it should be discarded
+*
+* @category Stream messages
+*/
 export interface EventMsg
 {
+	/** The frame type, always `"event"`. */
 	type: "event";
+	/** The subscribed Topic the event happened to. */
 	topic: string;
+	/** What happened: `subscribed` or `timeline-reset`. */
 	name: string;
+	/** The delivery metadata, as on any other frame. */
 	meta: Meta;
 }
+/**
+* A command the client sends: the command id, its arguments, and a request id
+* that the reply carries back.
+*
+* @category Stream messages
+*/
 export interface CommandRequest<Args>
 {
+	/** The frame type, always `"command-request"`. */
 	type: "command-request";
+	/** An id the client chooses; the reply carries it back. */
 	requestId: string;
+	/** The command id, such as `vessel.control.setThrottle`. */
 	command: string;
 	/**
 	* Caller-supplied, generic display label for this dispatch, carried verbatim
@@ -2030,6 +2212,7 @@ export interface CommandRequest<Args>
 	* as the session vantage.
 	*/
 	vantage?: string;
+	/** The command's arguments, in the command's own argument type. */
 	args: Args;
 	/**
 	* When the client dispatched, in UT seconds (KSP universal time), the same
@@ -2047,11 +2230,24 @@ export interface CommandRequest<Args>
 	*/
 	sentAt: number;
 }
+/**
+* The server's reply to a `CommandRequest`, matched to it by
+* `CommandResponse.requestId`.
+*
+* @category Stream messages
+*/
 export interface CommandResponse<Result>
 {
+	/** The frame type, always `"command-response"`. */
 	type: "command-response";
+	/**
+	* The id from the request this replies to. It is the only link back to the
+	* request, and a delayed command's reply can arrive minutes later.
+	*/
 	requestId: string;
+	/** What the command returned, in the command's own reply type. */
 	result: Result;
+	/** The delivery metadata, as on any other frame. */
 	meta: Meta;
 }
 /**
@@ -2076,9 +2272,12 @@ export interface CommandResponse<Result>
 * live delay resolving to zero), because there is no flight to wait out.
 * Absent also for a refusal, which sends an `ErrorMsg` instead. A client must
 * therefore treat "no acceptance yet" as ordinary rather than as an error.
+*
+* @category Stream messages
 */
 export interface CommandAccepted
 {
+	/** The frame type, always `"command-accepted"`. */
 	type: "command-accepted";
 	/** The client's own id, echoed from its `command-request`. */
 	requestId: string;
@@ -2090,10 +2289,32 @@ export interface CommandAccepted
 	*/
 	oneWaySeconds: number;
 }
+/**
+* A request the mod could not carry out: a frame it could not read, an unknown
+* command, a command whose provider has stopped working, a result or payload
+* that could not be written, a subscription to a Topic nothing declares, or a
+* `set-vantage` naming a command centre that is not active. Nothing about the
+* game was decided, so there is no game reason to report.
+*
+* A command the game refused is not an error: it ran and said no, and that
+* arrives as a `command-response` whose result has `success: false` and an
+* `errorCode` from `CommandErrorCode`. That vocabulary never appears here.
+*
+* `ErrorMsg.requestId` is set when the error is about a command, and
+* `ErrorMsg.topic` when it is about a subscription. `ErrorMsg.code` is a
+* `FaultCode`, whose full list gives the sentence an operator reads for each.
+* A client's own transport adds its own members to the same field, and the mod
+* never sends those.
+*
+* @category Stream messages
+*/
 export interface ErrorMsg
 {
+	/** The frame type, always `"error"`. */
 	type: "error";
+	/** The id of the command request this error is about, or null. */
 	requestId?: string;
+	/** The Topic this error is about, or null. */
 	topic?: string;
 	/**
 	* Which fault: always a fault, never a refusal, since a command the game
@@ -2106,14 +2327,28 @@ export interface ErrorMsg
 	*/
 	message: string;
 }
+/**
+* Asks the server to start sending a Topic to this connection.
+*
+* @category Stream messages
+*/
 export interface Subscribe
 {
+	/** The frame type, always `"subscribe"`. */
 	type: "subscribe";
+	/** The Topic id to start receiving. */
 	topic: string;
 }
+/**
+* Asks the server to stop sending a Topic to this connection.
+*
+* @category Stream messages
+*/
 export interface Unsubscribe
 {
+	/** The frame type, always `"unsubscribe"`. */
 	type: "unsubscribe";
+	/** The Topic id to stop receiving. */
 	topic: string;
 }
 /**
@@ -2129,9 +2364,12 @@ export interface Unsubscribe
 * order, and while no command centre is active at all (the main menu) at none,
 * stamping its frames with an empty `vantage`. Every frame's `meta.vantage`
 * says which of these is in force.
+*
+* @category Stream messages
 */
 export interface SetVantage
 {
+	/** The frame type, always `"set-vantage"`. */
 	type: "set-vantage";
 	/** The command centre Id to adopt as this connection's vantage. */
 	centreId: string;
@@ -2147,6 +2385,8 @@ export interface SetVantage
 * Every field is `null` when the value could not be read. Absence is never a
 * zero: a kerbal whose propellant could not be read is not a kerbal with an
 * empty tank.
+*
+* @category Crew
 */
 export interface EvaKerbal
 {
@@ -2219,6 +2459,8 @@ export interface EvaKerbal
 *
 * An empty list is a real answer: nobody is outside. The channel is absent
 * only before anything has been captured.
+*
+* @category Crew
 */
 export interface EvaCrew
 {
@@ -2245,6 +2487,8 @@ export interface EvaCrew
 * R7 typed-absence: `FleetVesselLink.oneWaySeconds` is nullable, a vessel with
 * no comms path carries `null`, never a sentinel `0` that would read as a
 * zero-delay direct link.
+*
+* @category Solar system and fleet
 */
 export interface FleetVesselLink
 {
@@ -2272,6 +2516,8 @@ export interface FleetVesselLink
 * (`ChannelEngine.ContactMetaSuffix`): the disconnect edge has to escape the
 * reveal-gate freeze or "NO SIGNAL" could never fire, the same reasoning as
 * `comms.link`.
+*
+* @category Solar system and fleet
 */
 export interface FleetVesselContact
 {
@@ -2301,6 +2547,8 @@ export interface FleetVesselContact
 * Deliberately narrow for this pass: `declaredLostUt` and the monotonic
 * `lostSeq` a future currency consumer needs for idempotent arming stay off
 * the wire until that consumer exists. Nothing here is a control input.
+*
+* @category Solar system and fleet
 */
 export interface FleetVesselSilence
 {
@@ -2371,6 +2619,8 @@ export interface FleetVesselSilence
 * siblings it is NOT freeze-exempt, and should not be: a tank level from a
 * craft we cannot currently hear is last-known, and freezing it at last-known
 * is the correct depiction.
+*
+* @category Solar system and fleet
 */
 export interface FleetVesselResources
 {
@@ -2380,6 +2630,8 @@ export interface FleetVesselResources
 * One vessel's reckoning inside the fleet-wide `FleetSilence` roster: the same
 * fields `FleetVesselSilence` carries, plus the vessel id that the per-vessel
 * topic gets from its own topic string.
+*
+* @category Solar system and fleet
 */
 export interface FleetSilenceEntry
 {
@@ -2446,6 +2698,8 @@ export interface FleetSilenceEntry
 * `FleetVesselContact`. The per-vessel topic stays authoritative for one
 * vessel on that vessel's own clock; this is the fleet-wide index. A consumer
 * that needs the former must not substitute the latter.
+*
+* @category Solar system and fleet
 */
 export interface FleetSilence
 {
@@ -2467,6 +2721,8 @@ export interface FleetSilence
 * `onVesselRecoveryProcessingComplete` GameEvents `CrashUplink`/
 * `RecoveryUplink` already hook, independently: zero coupling, zero risk to
 * the existing detail streams.
+*
+* @category Flights
 */
 export enum FlightEndReason {
 	Recovered = 0,
@@ -2484,6 +2740,8 @@ export enum FlightEndReason {
 * craft is in the world. `FlightCurrent.phase` reuses `Situation` rather than
 * inventing a parallel enum; see `FlightLifecycleSampler` doc reference in
 * `Sitrep.Host.Flight` for the exact phase source.
+*
+* @category Flights
 */
 export interface FlightCurrent
 {
@@ -2506,6 +2764,8 @@ export interface FlightCurrent
 * (first-ever observation of a vessel id, or a switch onto a vessel this
 * session has never tracked before; see `FlightLifecycleSampler`'s doc comment
 * for the exact started-vs- vesselChanged distinction).
+*
+* @category Flights
 */
 export interface FlightStarted
 {
@@ -2527,6 +2787,8 @@ export interface FlightStarted
 * revert-before-reveal erasure invariant
 * (`RevertBeforeRevealErasesAReliableOrderedDelayedEventForever`, commit
 * `82132a08`) for free: no new reveal-gate work needed.
+*
+* @category Flights
 */
 export interface FlightEnded
 {
@@ -2548,6 +2810,8 @@ export interface FlightEnded
 * (docking/undocking/EVA/tracking-station reselect): decoupled from
 * `FlightStarted`/`FlightEnded`: switching focus away from a still-flying
 * vessel does not end its flight.
+*
+* @category Flights
 */
 export interface FlightVesselChanged
 {
@@ -2572,6 +2836,8 @@ export interface FlightVesselChanged
 * `ksp.revertToLaunch`, `ksp.toTrackingStation` and `ksp.recover` take no args
 * (they operate on the current flight / active vessel), so they have no arg
 * type here.
+*
+* @category Command arguments
 */
 export interface RevertToEditorArgs
 {
@@ -2588,6 +2854,8 @@ export interface RevertToEditorArgs
 * array index a client would have to track itself: the same index-vs-stable-id
 * hazard the target commands already fixed (T-1). An empty id fails admission
 * with `CommandErrorCode.NotFound` before the game is ever touched.
+*
+* @category Command arguments
 */
 export interface SwitchVesselArgs
 {
@@ -2608,6 +2876,8 @@ export interface SwitchVesselArgs
 * surface is JSON, so the client unwinds its `;`-encoded crew list back into
 * an array before dispatching and the host assigns each name into a free craft
 * seat.
+*
+* @category Command arguments
 */
 export interface LaunchArgs
 {
@@ -2631,6 +2901,8 @@ export interface LaunchArgs
 * resume from their last-set values, or 0 on first arm), `false` detaches it
 * and neutralizes the stored axes/trims so control is fully handed back to the
 * player/SAS with no residual override.
+*
+* @category Command arguments
 */
 export interface SetFlyByWireArgs
 {
@@ -2651,6 +2923,8 @@ export interface SetFlyByWireArgs
 * stays durable while armed instead of being stomped by SAS. Out-of-range
 * values are clamped to −1..1 at the admission gate (a hardware stick reading
 * slightly past full is a routine quirk, not an error).
+*
+* @category Command arguments
 */
 export interface SetControlAxesArgs
 {
@@ -2685,6 +2959,8 @@ export interface SetControlAxesArgs
 * payload body. This is a ground-side fact, so its Topic is
 * `DelayRole.TrueNow`: DLC presence is known independent of any vessel's comms
 * link.
+*
+* @category Game
 */
 export interface GameDlc
 {
@@ -2707,6 +2983,8 @@ export interface GameDlc
 * richer mod does", it is the literal intersection, and the intersection
 * happens to be everything stock has. Anything one provider knows and another
 * does not goes in `IsruDrillEntry.extensions`.
+*
+* @category Parts
 */
 export interface IsruDrillEntry
 {
@@ -2762,6 +3040,8 @@ export interface IsruDrillEntry
 * live (already scaled by whatever the part's current efficiency or capacity
 * multiplier is), not the raw recipe ratio, so an operator reads what is
 * actually moving rather than what the config asked for.
+*
+* @category Parts
 */
 export interface IsruResourceFlow
 {
@@ -2771,6 +3051,8 @@ export interface IsruResourceFlow
 /**
 * One chemical converter on the active vessel. Field set matches stock's
 * surface: whether it is running, and the recipe it is running, at live rates.
+*
+* @category Parts
 */
 export interface IsruConverterEntry
 {
@@ -2801,6 +3083,8 @@ export interface IsruConverterEntry
 * KSP's `ProtoCrewMember.RosterStatus`: a kerbal's standing in the roster.
 * Behind `spaceCenter.crewRoster[].situationOrdinal`, beside the name in
 * `CrewRosterEntry.situation`.
+*
+* @category Crew
 */
 export enum KspRosterStatus {
 	Available = 0,
@@ -2812,6 +3096,8 @@ export enum KspRosterStatus {
 * KSP's `Contracts.ParameterState`: whether one objective of a contract is
 * done. Behind `career.status.contracts[].parameters[].stateOrdinal`, beside
 * the name in `CareerContractParameter.state`.
+*
+* @category Career
 */
 export enum KspParameterState {
 	Incomplete = 0,
@@ -2826,6 +3112,8 @@ export enum KspParameterState {
 * and the client cannot resolve it with the array-walking `namesOf`. The
 * lower-case spelling is KSP's; `.ToString()` on that member yields `"none"`
 * and the wire carries exactly that.
+*
+* @category Parts
 */
 export enum KspPartCategory {
 	Propulsion = 0,
@@ -2857,6 +3145,8 @@ export enum KspPartCategory {
 * is `0` and `KspActionGroup.REPLACEWITHDEFAULT` is `-1`. Neither is a group a
 * part action is usefully bound to, and both are recorded here because the
 * mirror test compares the whole member set, not the useful subset of it.
+*
+* @category Vessel
 */
 export enum KspActionGroup {
 	None = 0,
@@ -2883,6 +3173,8 @@ export enum KspActionGroup {
 * KSP's `EditorFacility`: which editor a craft was built in. Behind
 * `spaceCenter.savedShips[].facilityOrdinal`, beside the name in
 * `SavedShipEntry.facility`.
+*
+* @category Space center
 */
 export enum KspEditorFacility {
 	None = 0,
@@ -2899,6 +3191,8 @@ export enum KspEditorFacility {
 * the shape of every consumer's key walk. The ordinal rides inside each entry
 * instead, so a client can branch on it without trusting the key it arrived
 * under.
+*
+* @category Space center
 */
 export enum KspSpaceCenterFacility {
 	Administration = 0,
@@ -2920,6 +3214,8 @@ export enum KspSpaceCenterFacility {
 * contract rather than in that Uplink's own slice: the enum is stock KSP's,
 * not Kerbalism's, and a second Uplink reading the same stock enum should get
 * this declaration rather than a second copy of it.
+*
+* @category Parts
 */
 export enum KspResourceFlowMode {
 	NO_FLOW = 0,
@@ -2932,8 +3228,16 @@ export enum KspResourceFlowMode {
 	STAGE_STACK_FLOW_BALANCE = 7,
 	NULL = 8
 }
+/**
+* Whether a payload's subject is simulated under physics (`Quality.Loaded`) or
+* moving on rails (`Quality.OnRails`).
+*
+* @category Stream messages
+*/
 export enum Quality {
+	/** Moving on rails: KSP is not simulating it, and its orbit is a fixed conic. */
 	OnRails = 0,
+	/** Loaded and simulated under physics. */
 	Loaded = 1
 }
 /**
@@ -2948,10 +3252,24 @@ export enum Quality {
 * loss of signal and dumped on acquisition, so it arrives long after the
 * instant it describes, and its `Meta.deliveredAt` is the real arrival, not
 * `validAt + light-time`.
+*
+* @category Stream messages
 */
 export enum Staleness {
+	/**
+	* Delivered on its own schedule. An old `validAt` on a Topic that sends only
+	* on change is still fresh.
+	*/
 	Fresh = 0,
+	/**
+	* Sent to a subscriber that joined while contact was lost, and taken after
+	* contact was lost.
+	*/
 	HeldStale = 1,
+	/**
+	* Sent to a subscriber that joined while contact was lost: the last sample
+	* that got out before contact was lost.
+	*/
 	LastBeforeBlackout = 2,
 	/**
 	* Recovered from the subject's own recorder: taken while it was out of
@@ -2960,8 +3278,16 @@ export enum Staleness {
 	*/
 	Recorded = 3
 }
+/**
+* The envelope every stream sample, event and command reply carries: where it
+* was observed from, when it was true in the game, when it was delivered, and
+* how current it is.
+*
+* @category Stream messages
+*/
 export interface Meta
 {
+	/** The node the sample was read from. */
 	source: string;
 	/**
 	* When the payload was TRUE in the game, in UT seconds (KSP universal time),
@@ -2978,6 +3304,7 @@ export interface Meta
 	* path for a quantity no readout shows.
 	*/
 	validAt: number;
+	/** A number that rises by one with every frame the mod sends. */
 	seq: number;
 	/**
 	* When the server handed the message to the transport, in the same UT seconds
@@ -3001,7 +3328,9 @@ export interface Meta
 	* onto the envelope.
 	*/
 	quality: Quality;
+	/** Always true on a frame the mod sends. */
 	active: boolean;
+	/** How current the sample is. */
 	staleness: Staleness;
 	/**
 	* Generation counter for the current timeline: 0 at boot, incremented once for
@@ -3048,10 +3377,17 @@ export interface Meta
 * forms: `"vessel:<guid>"` when the payload describes one craft, or `"game"`
 * when it describes the session. `PayloadMeta.quality` says whether that craft
 * is on rails or fully loaded. Those two are the whole of this type.
+*
+* @category Stream messages
 */
 export interface PayloadMeta
 {
+	/**
+	* `"vessel:<guid>"` when the payload describes one craft, or `"game"` when it
+	* describes the session.
+	*/
 	source: string;
+	/** Whether the craft is on rails or loaded under physics. */
 	quality: Quality;
 }
 /**
@@ -3067,6 +3403,8 @@ export interface PayloadMeta
 *
 * **The authority for "did it change".** A write can time out and still land,
 * so a client reads the outcome here, never from the command's reply.
+*
+* @category Mod settings
 */
 export interface ModSettingsModel
 {
@@ -3082,7 +3420,11 @@ export interface ModSettingsModel
 	/** The game install's own configuration, about no vessel. */
 	meta: PayloadMeta;
 }
-/** One mod setting, described well enough to draw, with the value in force. */
+/**
+* One mod setting, described well enough to draw, with the value in force.
+*
+* @category Mod settings
+*/
 export interface ModSettingRow
 {
 	/** The setting's id within its Uplink; what a write names. */
@@ -3124,6 +3466,8 @@ export interface ModSettingRow
 * the setting is not writable, when the value is not one its kind can hold, or
 * when the Uplink refuses it. What the mod holds after any of those is on
 * `settings.<uplink>`.
+*
+* @category Command arguments
 */
 export interface WriteModSettingArgs
 {
@@ -3143,6 +3487,8 @@ export interface WriteModSettingArgs
 * **Send no `args` at all for these five.** The SDK's `send()` takes no second
 * argument for a command typed this way, and anything you do put on the wire
 * is read and discarded. Every other command requires its args.
+*
+* @category Command arguments
 */
 export interface NoCommandArgs
 {
@@ -3179,6 +3525,8 @@ export interface NoCommandArgs
 * `Gonogo.KSP.KspHost.BuildOrbitPatchChain`'s doc comment for how a NaN is
 * substituted with 0 at capture time, preserving that pre-existing (imperfect
 * but non-breaking) behaviour.
+*
+* @category Orbits and trajectories
 */
 export interface OrbitPatch
 {
@@ -3284,6 +3632,8 @@ export interface OrbitPatch
 * family, for a reason that comes from KSP rather than from convenience. The
 * operator's read-back is the `vessel.partActions.<flightId>` channel
 * re-reporting the new button set one light-time later.
+*
+* @category Command arguments
 */
 export interface InvokePartActionArgs
 {
@@ -3331,6 +3681,8 @@ export interface InvokePartActionArgs
 * that dropped `!active` entries would make the list jump around as craft
 * state changes. Filtering on it would also make `PartActionEntry.active` a
 * field that is true by construction, which says nothing.
+*
+* @category Parts
 */
 export interface PartActionEntry
 {
@@ -3400,6 +3752,8 @@ export interface PartActionEntry
 * fixed name to tag, same posture as the mod's other dynamic per-subject
 * namespaces, whose element types are likewise untagged. The client subscribes
 * to the computed sub-topic directly.
+*
+* @category Parts
 */
 export interface PartActions
 {
@@ -3425,6 +3779,8 @@ export interface PartActions
 * every field nullable because each is read through `SnapshotDict.Get*`, which
 * yields `null` (not a sentinel) on absence. See `PartsPower` for the "no wire
 * change" rationale.
+*
+* @category Parts
 */
 export interface SolarPanelEntry
 {
@@ -3438,6 +3794,8 @@ export interface SolarPanelEntry
 /**
 * One battery in the `parts.power` payload's `batteries` array. Typing-only
 * mirror of `Sitrep.Host.PartsViewProvider.BuildBatteryEntry`.
+*
+* @category Parts
 */
 export interface BatteryEntry
 {
@@ -3449,6 +3807,8 @@ export interface BatteryEntry
 /**
 * One fuel cell in the `parts.power` payload's `fuelCells` array. Typing-only
 * mirror of `Sitrep.Host.PartsViewProvider.BuildFuelCellEntry`.
+*
+* @category Parts
 */
 export interface FuelCellEntry
 {
@@ -3460,6 +3820,8 @@ export interface FuelCellEntry
 /**
 * One engine alternator in the `parts.power` payload's `alternators` array.
 * Typing-only mirror of `Sitrep.Host.PartsViewProvider.BuildAlternatorEntry`.
+*
+* @category Parts
 */
 export interface AlternatorEntry
 {
@@ -3484,6 +3846,8 @@ export interface AlternatorEntry
 * provider (the arrays are always present in the emitted object, but the
 * contract stays permissive; the total is `null` whenever
 * `SnapshotDict.GetDouble` reads no finite value).
+*
+* @category Parts
 */
 export interface PartsPower
 {
@@ -3516,6 +3880,8 @@ export interface PartsPower
 * **Typing-only mirror** of
 * `Sitrep.Host.BreakingGroundViewProvider.BuildServoEntry`: see `PartsPower`
 * for the "no wire change, all fields nullable" rationale.
+*
+* @category Parts
 */
 export interface ServoEntry
 {
@@ -3583,6 +3949,8 @@ export interface ServoEntry
 * **Typing-only mirror** of
 * `Sitrep.Host.BreakingGroundViewProvider.BuildRoboticsAvailable`: see
 * `PartsPower` for the "no wire change" rationale.
+*
+* @category Parts
 */
 export interface RoboticsAvailability
 {
@@ -3602,6 +3970,8 @@ export interface RoboticsAvailability
 * TS SDK has a concrete payload type to name (it is on
 * `WirePayloadCoverageTests`'s producer-flatten allowlist for exactly that
 * reason).
+*
+* @category Flights
 */
 export interface RecoveryReport
 {
@@ -3637,6 +4007,8 @@ export interface RecoveryReport
 /**
 * One science subject recovered: an entry of
 * `RecoveryReport.scienceBreakdown`.
+*
+* @category Flights
 */
 export interface RecoveryScienceEntry
 {
@@ -3648,6 +4020,8 @@ export interface RecoveryScienceEntry
 /**
 * One recovered-part group: an entry of `RecoveryReport.partBreakdown`.
 * Identically-named parts are grouped, hence `RecoveryPartEntry.count`.
+*
+* @category Flights
 */
 export interface RecoveryPartEntry
 {
@@ -3663,6 +4037,8 @@ export interface RecoveryPartEntry
 /**
 * One recovered-resource group: an entry of
 * `RecoveryReport.resourceBreakdown`.
+*
+* @category Flights
 */
 export interface RecoveryResourceEntry
 {
@@ -3674,6 +4050,8 @@ export interface RecoveryResourceEntry
 /**
 * One crew member aboard at recovery: an entry of
 * `RecoveryReport.crewBreakdown`.
+*
+* @category Flights
 */
 export interface RecoveryCrewEntry
 {
@@ -3693,6 +4071,8 @@ export interface RecoveryCrewEntry
 * list published from the same capture at the same UT is a second authority
 * for a derivable quantity, and a second authority is how two adjacent numbers
 * come to disagree. The client derives what it needs from `reliability.parts`.
+*
+* @category Parts
 */
 export interface ReliabilitySummary
 {
@@ -3723,6 +4103,8 @@ export interface ReliabilitySummary
 *
 * A budget is BACKWARD-looking: how much of a rated allowance has been used.
 * It is not a forecast; that is `ReliabilityPartEntry.survival`.
+*
+* @category Parts
 */
 export interface ReliabilityBudget
 {
@@ -3779,6 +4161,8 @@ export interface ReliabilityBudget
 * Per-part reliability, in the terms a reliability model actually has: a
 * condition, the provider's own word for it, an optional forward survival
 * probability with its horizon, and any number of consumed budgets.
+*
+* @category Parts
 */
 export interface ReliabilityPartEntry
 {
@@ -3887,6 +4271,8 @@ export interface ReliabilityPartEntry
 * One kind of thing a repair consumes, and how many of it. Deliberately shaped
 * as `InventoryItem`'s name/quantity pair so a console can join the two
 * directly rather than guessing which inventory line a cost refers to.
+*
+* @category Parts
 */
 export interface RepairCostItem
 {
@@ -3902,7 +4288,11 @@ export interface RepairCostItem
 	*/
 	quantity: Value<"count">;
 }
-/** `vessel.repair`'s args: which part, and which crew member does it. */
+/**
+* `vessel.repair`'s args: which part, and which crew member does it.
+*
+* @category Command arguments
+*/
 export interface RepairPartArgs
 {
 	/**
@@ -3921,6 +4311,8 @@ export interface RepairPartArgs
 *
 * Carries where the kit came from because that changes what the operator has
 * left, and under delay they will not get to ask again cheaply.
+*
+* @category Parts
 */
 export interface RepairOutcome
 {
@@ -3967,6 +4359,8 @@ export interface RepairOutcome
 * on its own Topic with no per-payload `Meta` (it rides the envelope),
 * classified `DelayRole.TrueNow`: a ground-side game-state fact, not
 * comms-derived vessel telemetry.
+*
+* @category Flights
 */
 export interface RevertAvailability
 {
@@ -3989,6 +4383,8 @@ export interface RevertAvailability
 * entry, so a widget round-trips the exact id it already displays. A rotor has
 * no target (it spins continuously); a `setTarget` aimed at one comes back
 * `CommandResult.errorCode` `CommandErrorCode.ModeUnavailable`.
+*
+* @category Command arguments
 */
 export interface ServoSetTargetArgs
 {
@@ -4007,6 +4403,8 @@ export interface ServoSetTargetArgs
 * toggle, matching every other actuation command in this contract (see
 * `SetEnabledArgs`'s doc comment). Keyed by `ServoSetEnabledArgs.partId` (the
 * read side's `flightID.ToString()`).
+*
+* @category Command arguments
 */
 export interface ServoSetEnabledArgs
 {
@@ -4023,6 +4421,8 @@ export interface ServoSetEnabledArgs
 * value to apply, keyed by `RotorSetValueArgs.partId`. The bounded ones
 * (torque 0–100, brake 0–200) are range-validated at the send gate; out of
 * range yields `CommandResult.errorCode` `CommandErrorCode.Range`.
+*
+* @category Command arguments
 */
 export interface RotorSetValueArgs
 {
@@ -4042,6 +4442,8 @@ export interface RotorSetValueArgs
 * the one robotics command that is genuinely a toggle (the widget's intent is
 * "spin the other way" relative to whatever the rotor is doing now), so it
 * carries no state field, only the `RotorReverseArgs.partId` to act on.
+*
+* @category Command arguments
 */
 export interface RotorReverseArgs
 {
@@ -4058,6 +4460,8 @@ export interface RotorReverseArgs
 * kind names its own matcher: a threshold walks a dotted path to a number, and
 * a contract parameter, which lives in a list no path can index, finds its
 * contract and objective by identity.
+*
+* @category Alarms
 */
 export enum ScetAlarmConditionKind {
 	/** An instant on the craft's own clock, as a universal time. */
@@ -4091,6 +4495,8 @@ export enum ScetAlarmConditionKind {
 * The same six the client's own alarm list offers, so an alarm armed on the
 * command vantage and the same alarm armed on the craft's clock mean the same
 * thing and can be checked against each other at zero delay.
+*
+* @category Alarms
 */
 export enum ScetAlarmThresholdOp {
 	/** Reading is greater than the threshold. */
@@ -4122,6 +4528,8 @@ export enum ScetAlarmThresholdOp {
 *
 * A latch, not a level: `ScetAlarmState.Fired` is reached once and stays, so a
 * condition that keeps holding cannot stop the warp again on the next tick.
+*
+* @category Alarms
 */
 export enum ScetAlarmState {
 	/** Watching. The condition has not been met. */
@@ -4158,6 +4566,8 @@ export enum ScetAlarmState {
 * `ScetAlarmConditionKind.ContractParameter` it is
 * `ScetAlarmCondition.contractId`, `ScetAlarmCondition.parameterTitle`,
 * `ScetAlarmCondition.targetState` and `ScetAlarmCondition.sustainSeconds`.
+*
+* @category Alarms
 */
 export interface ScetAlarmCondition
 {
@@ -4252,6 +4662,8 @@ export interface ScetAlarmCondition
 * two custom groups may share a name, so a name is not an identity: a custom
 * group is addressed by its index in `ScetAlarmAction.group`, and cannot be
 * read as the stage command however it is labelled.
+*
+* @category Alarms
 */
 export enum ScetAlarmActionKind {
 	/** Toggle the custom action group whose index is `ScetAlarmAction.group`. */
@@ -4285,6 +4697,8 @@ export enum ScetAlarmActionKind {
 * Every kind but `ScetAlarmActionKind.Stage` TOGGLES, against the state the
 * craft reports at the moment of the fire, which is what pressing the group's
 * key does.
+*
+* @category Alarms
 */
 export interface ScetAlarmAction
 {
@@ -4304,6 +4718,8 @@ export interface ScetAlarmAction
 * ground-side bookkeeping, a list of things somebody asked for rather than a
 * reading of any craft, which is why the channel does not ride the reveal
 * clock.
+*
+* @category Alarms
 */
 export interface ScetAlarm
 {
@@ -4410,6 +4826,8 @@ export interface ScetAlarm
 * operator cannot tell which of two armed alarms stopped them. The other
 * fields say where it was learned and whether its actions were withheld for
 * want of the right craft, and neither is a reading of the craft.
+*
+* @category Alarms
 */
 export interface ScetAlarmFired
 {
@@ -4450,6 +4868,8 @@ export interface ScetAlarmFired
 * event less than one light-time away could never be armed in time, and a
 * delayed command is dropped outright during a blackout, which is exactly when
 * a SCET alarm earns its keep.
+*
+* @category Command arguments
 */
 export interface ScetAlarmArmArgs
 {
@@ -4485,6 +4905,8 @@ export interface ScetAlarmArmArgs
 *
 * Never delayed, for the reason its opposite is not: the inverse of an instant
 * act must not be slower than the act.
+*
+* @category Command arguments
 */
 export interface ScetAlarmDisarmArgs
 {
@@ -4500,6 +4922,8 @@ export interface ScetAlarmDisarmArgs
 * client never supplies a live array index. An empty
 * `ExperimentActionArgs.partId` resolves to nothing and yields
 * `CommandResult.errorCode` `CommandErrorCode.NotFound`.
+*
+* @category Command arguments
 */
 export interface ExperimentActionArgs
 {
@@ -4516,6 +4940,8 @@ export interface ExperimentActionArgs
 * drains results continuously cannot. A client then has nothing to draw the
 * transmission from, which is the truth: an absent transmission is never a
 * zero-length one.
+*
+* @category Science
 */
 export interface ScienceTransmission
 {
@@ -4553,6 +4979,8 @@ export interface ScienceTransmission
 * adding it changes no bytes. Every field is nullable because each is read
 * through `SnapshotDict.Get*`, which yields `null` (not a sentinel) whenever
 * the raw value is absent or non-finite.
+*
+* @category Science
 */
 export interface ExperimentEntry
 {
@@ -4619,6 +5047,8 @@ export interface ExperimentEntry
 * ARRAY (`InstrumentEntry[]`) or `null`. Typing-only mirror of
 * `Sitrep.Host.ScienceViewProvider.BuildInstrumentEntry`: see
 * `ExperimentEntry` for the "no wire change, all fields nullable" rationale.
+*
+* @category Science
 */
 export interface InstrumentEntry
 {
@@ -4655,6 +5085,8 @@ export interface InstrumentEntry
 * `null`. Typing-only mirror of
 * `Sitrep.Host.ScienceViewProvider.BuildLabEntry`: see `ExperimentEntry` for
 * the "no wire change, all fields nullable" rationale.
+*
+* @category Science
 */
 export interface LabEntry
 {
@@ -4702,6 +5134,8 @@ export interface LabEntry
 * Typing-only mirror of
 * `Sitrep.Host.BreakingGroundViewProvider.BuildDeployedEntry`; see
 * `ExperimentEntry` for the "no wire change, all fields nullable" rationale.
+*
+* @category Science
 */
 export interface DeployedEntry
 {
@@ -4785,6 +5219,8 @@ export interface DeployedEntry
 * sentence it writes. Being ours, it is an ordinal on the wire and a closed
 * union on the client like every other enum in this contract, and it needs no
 * mirror test: nobody else owns its numbering.
+*
+* @category Science
 */
 export enum DeployedPowerState {
 	/** Powered and working: the cluster reports `IsPowered`. */
@@ -4818,6 +5254,8 @@ export enum DeployedPowerState {
 * Typing-only mirror of `Sitrep.Host.ScienceViewProvider.BuildSensorEntry`:
 * see `ExperimentEntry` for the "no wire change, all fields nullable"
 * rationale.
+*
+* @category Science
 */
 export interface SensorEntry
 {
@@ -4867,6 +5305,8 @@ export interface SensorEntry
 * **Typing-only mirror** of
 * `Sitrep.Host.ScienceViewProvider.BuildExperimentBreakdownEntry`: see
 * `ExperimentEntry` for the "no wire change, all fields nullable" rationale.
+*
+* @category Science
 */
 export interface ExperimentBreakdownEntry
 {
@@ -4925,6 +5365,8 @@ export interface ExperimentBreakdownEntry
 * **Typing-only mirror** of
 * `Sitrep.Host.ScienceViewProvider.BuildArchiveEntry`: see `ExperimentEntry`
 * for the "no wire change, all fields nullable" rationale.
+*
+* @category Science
 */
 export interface ArchiveEntry
 {
@@ -4962,6 +5404,8 @@ export interface ArchiveEntry
 * **The authority for "did it save".** A save command can time out and still
 * land, so a client reads the outcome of a save here, never from the command's
 * reply.
+*
+* @category Mod settings
 */
 export interface SettingsModel
 {
@@ -4983,6 +5427,8 @@ export interface SettingsModel
 /**
 * One declared setting, described well enough for a client to draw its
 * control.
+*
+* @category Mod settings
 */
 export interface SettingsRowState
 {
@@ -5014,7 +5460,11 @@ export interface SettingsRowState
 	*/
 	default: string;
 }
-/** Where the settings in force stand against the settings file. */
+/**
+* Where the settings in force stand against the settings file.
+*
+* @category Mod settings
+*/
 export enum SettingsPersistenceState {
 	/**
 	* The file holds these values: it was read at start-up, or the last save wrote
@@ -5045,7 +5495,11 @@ export enum SettingsPersistenceState {
 	*/
 	Unreadable = 4
 }
-/** Whether the settings file holds what is in force. */
+/**
+* Whether the settings file holds what is in force.
+*
+* @category Mod settings
+*/
 export interface SettingsPersistence
 {
 	state: SettingsPersistenceState;
@@ -5062,7 +5516,11 @@ export interface SettingsPersistence
 	*/
 	reason?: string | null;
 }
-/** An Uplink whose settings could not be declared this session. */
+/**
+* An Uplink whose settings could not be declared this session.
+*
+* @category Mod settings
+*/
 export interface SettingsDeclarationFailure
 {
 	uplinkId: string;
@@ -5081,12 +5539,18 @@ export interface SettingsDeclarationFailure
 * not one its row can hold. A save that changes the values but cannot write
 * the file is NOT refused: the values are in force, and `settings.gonogo`'s
 * `SettingsModel.persistence` says the file was not written.
+*
+* @category Command arguments
 */
 export interface SaveSettingsArgs
 {
 	changes: SettingsChange[];
 }
-/** One row's new value in a `SaveSettingsArgs`. */
+/**
+* One row's new value in a `SaveSettingsArgs`.
+*
+* @category Mod settings
+*/
 export interface SettingsChange
 {
 	/** The row, as `SettingsRowState.path` names it. */
@@ -5105,6 +5569,8 @@ export interface SettingsChange
 *
 * **Absence is data.** A stock install publishes nothing here, because it has
 * nothing to say; see `FlightSimulation.simulated`.
+*
+* @category Flights
 */
 export interface FlightSimulation
 {
@@ -5141,6 +5607,8 @@ export interface FlightSimulation
 /**
 * Arguments to `comms.setSimulationDelayPolicy`: apply signal delay during a
 * simulation, or cut it.
+*
+* @category Command arguments
 */
 export interface SetSimulationDelayPolicyArgs
 {
@@ -5166,6 +5634,8 @@ export interface SetSimulationDelayPolicyArgs
 * hand-builds the dict and `JsonWriter` walks that live tree, these POCOs
 * never serialize). Held at the home command: each vantage receives a change
 * after its own delay to home, at once on the ground network.
+*
+* @category Space center
 */
 export interface LaunchSiteEntry
 {
@@ -5238,6 +5708,8 @@ export interface LaunchSiteEntry
 * landed yet. No per-payload `Meta` (it rides the envelope), classified
 * `DelayRole.TrueNow`: a ground-side game-state fact, same class as
 * `SystemBodies`.
+*
+* @category Space center
 */
 export interface SpaceCenterScene
 {
@@ -5281,6 +5753,8 @@ export interface SpaceCenterScene
 * TS-shape-only typing/codegen marker: the provider hand-builds the dict and
 * `JsonWriter` walks that live tree, these POCOs never serialize. Held at the
 * home command, like `LaunchSiteEntry`.
+*
+* @category Crew
 */
 export interface CrewRosterEntry
 {
@@ -5463,6 +5937,8 @@ export interface CrewRosterEntry
 * `null` (not an empty array) when no sample has landed yet. A TS-shape-only
 * typing/codegen marker (the provider hand-builds the dict, these POCOs never
 * serialize). Held at the home command.
+*
+* @category Space center
 */
 export interface SavedShipEntry
 {
@@ -5514,6 +5990,8 @@ export interface SavedShipEntry
 * widget reads `spaceCenter.partsAvailable.count`. The whole payload is `null`
 * when no sample has landed yet. A TS-shape-only typing/codegen marker that
 * never serializes. Held at the home command.
+*
+* @category Space center
 */
 export interface SpaceCenterPartsAvailable
 {
@@ -5538,6 +6016,8 @@ export interface SpaceCenterPartsAvailable
 * A TS-shape-only typing/codegen marker: the provider hand-builds the dict and
 * `JsonWriter` walks that live tree, this POCO never serializes. Held at the
 * home command, like `CrewRosterEntry`.
+*
+* @category Crew
 */
 export interface AstronautComplexInfo
 {
@@ -5586,6 +6066,8 @@ export interface AstronautComplexInfo
 * provider's "no data yet" vs. "zero POIs" distinction. A TS-shape-only
 * typing/codegen marker (the provider hand-builds the dict, this POCO never
 * serializes). Held at the home command, like `LaunchSiteEntry`.
+*
+* @category Space center
 */
 export interface SpaceCenterPoiEntry
 {
@@ -5631,6 +6113,8 @@ export interface SpaceCenterPoiEntry
 *
 * Carries no `meta` of its own: provenance rides the envelope
 * (`StreamData.Meta`), never the payload body.
+*
+* @category Vessel
 */
 export interface StageDeltaVEntry
 {
@@ -5691,6 +6175,8 @@ export interface StageDeltaVEntry
 * **Typing-only mirror** of `StageDeltaVViewProvider.BuildSummary`, same
 * convention as `StageDeltaVEntry`: hand-built by the provider, never
 * serialized itself, no per-payload `Meta` (it rides the envelope).
+*
+* @category Vessel
 */
 export interface StageDeltaVSummary
 {
@@ -5725,6 +6211,8 @@ export interface StageDeltaVSummary
 * Deliberately carries NO `Meta` field: unlike the `vessel.*` family, this
 * `system`-domain snapshot has no per-payload provenance: its `Meta` rides the
 * envelope (`StreamData.Meta`), never the payload body.
+*
+* @category Solar system and fleet
 */
 export interface SystemBodies
 {
@@ -5738,6 +6226,8 @@ export interface SystemBodies
 * missing data, and no `eccentricAnomaly` field at all, because an orbit-patch
 * formatter that carries one tends to fill it with the body's ECCENTRICITY
 * instead.
+*
+* @category Solar system and fleet
 */
 export interface BodyEntry
 {
@@ -5882,6 +6372,8 @@ export interface BodyEntry
 * has one (null otherwise; never an all-null placeholder, matching the
 * payload's null-not-sentinel discipline). Mirrors the exact nested dict
 * `SystemViewProvider.BuildAtmosphere` emits.
+*
+* @category Solar system and fleet
 */
 export interface AtmosphereEntry
 {
@@ -5964,6 +6456,8 @@ export interface AtmosphereEntry
 * `OrbitEntry.argPe` in DEGREES; `OrbitEntry.meanAnomalyAtEpoch` in RADIANS;
 * `OrbitEntry.epoch` in UT seconds. No `eccentricAnomaly` field (see
 * `BodyEntry`).
+*
+* @category Solar system and fleet
 */
 export interface OrbitEntry
 {
@@ -5997,6 +6491,8 @@ export interface OrbitEntry
 * loaded (main menu), distinct from an empty roster (`{ "vessels": [] }`) when
 * the game genuinely reports zero vessels. Same `system`-domain convention as
 * `SystemBodies`: no per-payload `Meta` (it rides the envelope).
+*
+* @category Solar system and fleet
 */
 export interface SystemVessels
 {
@@ -6010,6 +6506,8 @@ export interface SystemVessels
 * `VesselRosterEntry`'s own doc comment). The three tiers happen to mirror
 * stock `Vessel.ControlLevel`'s none/partial/full shape, which is coincidence,
 * not a shared contract.
+*
+* @category Solar system and fleet
 */
 export enum RosterCommsControlSource {
 	/** A measurement: the vessel has no control source. */
@@ -6028,6 +6526,8 @@ export enum RosterCommsControlSource {
 * the provider emits. A roster entry with no resolvable stable id is dropped
 * by the provider, never emitted with a fabricated one, so
 * `VesselRosterEntry.vesselId` is always present.
+*
+* @category Solar system and fleet
 */
 export interface VesselRosterEntry
 {
@@ -6110,6 +6610,8 @@ export interface VesselRosterEntry
 * `TargetListEntry.partId` flightID) is the SAME id `SetTargetArgs` takes, so
 * a widget hands an entry straight back into `vessel.target.set` with no
 * lookup.
+*
+* @category Orbits and trajectories
 */
 export interface TargetListEntry
 {
@@ -6157,6 +6659,8 @@ export interface TargetListEntry
 * target changes) plus a slow heartbeat re-key, per-entry
 * `TargetListEntry.distance` rides that periodic re-key, deliberately NOT the
 * change-gate.
+*
+* @category Orbits and trajectories
 */
 export interface TargetAvailable
 {
@@ -6199,6 +6703,8 @@ export interface TargetAvailable
 * divides `TimeCalendar.yearSeconds` by `TimeCalendar.daySeconds`, which is
 * exact and needs no second field to keep in step. Publishing both would
 * create a pair that can disagree.
+*
+* @category Game
 */
 export interface TimeCalendar
 {
@@ -6279,6 +6785,8 @@ export interface TimeCalendar
 * `TrajectoryArc.toUt` is the last instant vouched for. A client draws a
 * visible mark there: a prediction that stops short and a trajectory that ends
 * look identical on a diagram and mean opposite things.
+*
+* @category Orbits and trajectories
 */
 export interface TrajectoryArc
 {
@@ -6314,7 +6822,11 @@ export interface TrajectoryArc
 	*/
 	forceModel?: TrajectoryForceModel | null;
 }
-/** One sampled point: where, and when. */
+/**
+* One sampled point: where, and when.
+*
+* @category Orbits and trajectories
+*/
 export interface TrajectoryPoint
 {
 	/**
@@ -6334,6 +6846,8 @@ export interface TrajectoryPoint
 * Deliberately not the producing mod's own frame vocabulary. A frame is a
 * property every provider's answer has, and putting one vendor's enum on the
 * standard payload would make every other provider translate into it.
+*
+* @category Orbits and trajectories
 */
 export interface TrajectoryFrameRef
 {
@@ -6361,6 +6875,8 @@ export interface TrajectoryFrameRef
 * `PropagationHorizonKind.Unspecified`: the wrong direction to default in is
 * the one where an unnamed frame silently reads as the frame the reader
 * happened to expect.
+*
+* @category Orbits and trajectories
 */
 export enum TrajectoryFrameKind {
 	/** No producer stated one. The points cannot be drawn. */
@@ -6404,6 +6920,8 @@ export enum TrajectoryFrameKind {
 * The mark travels ON the curve rather than beside the widget, for the same
 * reason a horizon does: a substituted answer that only says so in a panel
 * elsewhere is a substituted answer nobody reads as one.
+*
+* @category Orbits and trajectories
 */
 export enum TrajectoryDerivation {
 	/** No producer stated one. */
@@ -6427,6 +6945,8 @@ export enum TrajectoryDerivation {
 /**
 * What an integration was actually against, so a reader can tell how far to
 * trust the curve without being told to trust it.
+*
+* @category Orbits and trajectories
 */
 export interface TrajectoryForceModel
 {
@@ -6504,6 +7024,8 @@ export interface TrajectoryForceModel
 * had never run. So an unattempted arc now says exactly that, and
 * `TrajectoryRefusal.NotRefused` is the separate thing a producer says when it
 * did attempt one and got a curve.
+*
+* @category Orbits and trajectories
 */
 export enum TrajectoryRefusal {
 	/**
@@ -6544,6 +7066,8 @@ export enum TrajectoryRefusal {
 /**
 * What an evaluator concluded. Three-valued, and the third value is
 * load-bearing.
+*
+* @category System diagnostics
 */
 export enum GateOutcome {
 	/** Nothing blocks this. */
@@ -6573,6 +7097,8 @@ export enum GateOutcome {
 * Carrying both numbers lets the CLIENT compose "1.4 t over the 18 t Launch
 * Pad limit" through its own unit rendering, rather than the mod baking an
 * English sentence in one unit system.
+*
+* @category System diagnostics
 */
 export interface LimitBreach
 {
@@ -6619,7 +7145,11 @@ export interface LimitBreach
 	*/
 	unit: string;
 }
-/** A verdict plus its evidence. */
+/**
+* A verdict plus its evidence.
+*
+* @category System diagnostics
+*/
 export interface GateVerdict
 {
 	outcome: GateOutcome;
@@ -6669,6 +7199,8 @@ export interface GateVerdict
 * vessel-side effect. `Sitrep.Host.Tests.UplinkPendingShapeTests` (a G1 shape
 * ratchet with NO additive carve-out, unlike `ContractShapeGateTests`)
 * enforces the field set stays exactly this seven.
+*
+* @category Comms
 */
 export interface PendingUplink
 {
@@ -6747,6 +7279,8 @@ export interface PendingUplink
 /**
 * Wire wrapper for `system.uplink.pending`: the whole queue, resampled every
 * emission.
+*
+* @category Comms
 */
 export interface PendingUplinkQueue
 {
@@ -6757,6 +7291,8 @@ export interface PendingUplinkQueue
 *
 * The set is deliberately small and closed. A setting that needs more than
 * these is a `SettingKind.Text` row that the Uplink checks when it reads it.
+*
+* @category Mod settings
 */
 export enum SettingKind {
 	/**
@@ -6779,6 +7315,8 @@ export enum SettingKind {
 * There is deliberately no vantage field. The answer depends on who is asking,
 * and a client that could name its own vantage could name somebody else's and
 * be shown what they can see. It is resolved where the command enters instead.
+*
+* @category Command arguments
 */
 export interface VantagePlanRequest
 {
@@ -6800,6 +7338,8 @@ export interface VantagePlanRequest
 * instant its seed was true is a path with no claim about when, and a
 * divergence measured against it later would be measured against nothing in
 * particular.
+*
+* @category Orbits and trajectories
 */
 export interface VantagePlanReply
 {
@@ -6823,6 +7363,8 @@ export interface VantagePlanReply
 * units). Every vector-valued field in Sitrep.Contract uses this type; units
 * are documented on the FIELD that holds a `Vec3`, never implied by the shape
 * itself.
+*
+* @category Units and values
 */
 export interface Vec3
 {
@@ -6848,6 +7390,8 @@ export interface Vec3
 * position instead, the two diverge whenever the root part sits away from the
 * vessel's centre of mass). Not derivable from orbital elements (attitude
 * depends on vessel orientation, not trajectory), hence streamed raw.
+*
+* @category Vessel
 */
 export interface VesselAttitude
 {
@@ -6872,21 +7416,33 @@ export interface VesselAttitude
 * intervening state is a race by construction, the `toggleActionGroup`
 * footgun. Every M1 actuation command is set-semantics only, so it does not
 * exist here at all.
+*
+* @category Command arguments
 */
 export interface SetEnabledArgs
 {
 	enabled: boolean;
 }
+/**
+* `vessel.control.setSasMode`'s arguments: the SAS mode to hold.
+*
+* @category Command arguments
+*/
 export interface SetSasModeArgs
 {
+	/** The SAS mode to hold. */
 	mode: SasMode;
 }
+/**
+* `vessel.control.setThrottle`'s arguments: the main throttle setting.
+*
+* @category Command arguments
+*/
 export interface SetThrottleArgs
 {
 	/**
-	* 0..1: validated (not silently clamped) at admission; out of range yields
-	* `CommandResult.errorCode` `CommandErrorCode.Range` (A-10's inconsistency
-	* fixed at the send gate).
+	* The throttle from 0 to 1. A value outside that range is refused with
+	* `CommandErrorCode.Range` rather than clamped.
 	*/
 	value: number;
 }
@@ -6894,6 +7450,8 @@ export interface SetThrottleArgs
 * `vessel.control.stage`'s result is `CommandResult<int>`, a real value comes
 * back (the new current stage index in `Payload`), unlike the legacy `f.stage`
 * void fire-and-forget. See `CommandResult`.
+*
+* @category Command arguments
 */
 export interface SetActionGroupArgs
 {
@@ -6911,6 +7469,8 @@ export interface SetActionGroupArgs
 * `ManeuverNode.DeltaV` is `x=radialOut, y=normal, z=prograde`) for why the
 * actuator seam must preserve this exact component assignment rather than
 * "helpfully" reordering it.
+*
+* @category Command arguments
 */
 export interface AddManeuverNodeArgs
 {
@@ -6923,6 +7483,8 @@ export interface AddManeuverNodeArgs
 * Result of `vessel.maneuver.add` is `CommandResult<string>`, O-6 fixed: the
 * created node's opaque id is actually returned in `Payload`. See
 * `CommandResult`.
+*
+* @category Command arguments
 */
 export interface UpdateManeuverNodeArgs
 {
@@ -6932,8 +7494,14 @@ export interface UpdateManeuverNodeArgs
 	normal: number;
 	radialOut: number;
 }
+/**
+* `vessel.maneuver.remove`'s arguments: the manoeuvre node to delete.
+*
+* @category Command arguments
+*/
 export interface RemoveManeuverNodeArgs
 {
+	/** The node to delete: a `ManeuverNode.id` from `vessel.maneuver`. */
 	nodeId: string;
 }
 /**
@@ -6946,6 +7514,8 @@ export interface RemoveManeuverNodeArgs
 * client would have to track itself. T-2 fixed: vessel id and body index are
 * separate fields in separate namespaces, so they can never be confused for
 * one another.
+*
+* @category Command arguments
 */
 export interface SetTargetArgs
 {
@@ -6981,13 +7551,21 @@ export interface SetTargetArgs
 /**
 * `time.setWarpIndex`'s args: sim-meta, never delayed (light-time fiction
 * doesn't apply to a ground-side simulation control).
+*
+* @category Command arguments
 */
 export interface SetWarpIndexArgs
 {
 	index: number;
 }
+/**
+* `time.setPaused`'s arguments: whether the game is paused.
+*
+* @category Command arguments
+*/
 export interface SetPausedArgs
 {
+	/** True to pause the game, false to resume it. */
 	paused: boolean;
 }
 /**
@@ -6996,6 +7574,8 @@ export interface SetPausedArgs
 * is KSP's own ambiguity, not one this contract introduces; we simply consume
 * whichever name `.ToString()` already commits to). `ControlState.Unknown` is
 * the graceful fallback for an unrecognized raw value.
+*
+* @category Comms
 */
 export enum ControlState {
 	None = 0,
@@ -7023,6 +7603,8 @@ export enum ControlState {
 * and link modelling live in a future `comms.*` CAPABILITY channel
 * (RemoteTech-default): the legacy `comm.signalDelay` does NOT get a field
 * here; that successor is `comms.delay`, a different provider entirely.
+*
+* @category Comms
 */
 export interface VesselComms
 {
@@ -7038,6 +7620,8 @@ export interface VesselComms
 * exists on this KSP version). `SasMode.Unknown` is the graceful fallback for
 * a raw value this contract doesn't recognize yet, same convention as
 * `VesselType`/`TransitionType`.
+*
+* @category Vessel
 */
 export enum SasMode {
 	StabilityAssist = 0,
@@ -7068,6 +7652,8 @@ export enum SasMode {
 * no mod extends: AGX adds custom groups, it does not add a second SAS.
 * Folding them into this list would trade a typed field for a string match and
 * gain nothing.
+*
+* @category Vessel
 */
 export interface ActionGroupState
 {
@@ -7109,6 +7695,8 @@ export interface ActionGroupState
 * clamped upstream: a kOS/mod-driven throttle can genuinely read > 1 (the
 * "200% throttle" phantom). Silently clamping it here would be a NEW wart
 * (lying about upstream game truth); the range is documented, reader beware.
+*
+* @category Vessel
 */
 export interface VesselControl
 {
@@ -7167,6 +7755,8 @@ export interface VesselControl
 * Sourced from KSP's `ProtoCrewMember`: `name`/`trait`/`experienceLevel` plus
 * the `type` (`KerbalType`) and `rosterStatus` (`RosterStatus`) enums,
 * captured as their string names.
+*
+* @category Crew
 */
 export interface CrewMember
 {
@@ -7203,11 +7793,21 @@ export interface CrewMember
 	/** Packed volume they are currently using, same unit as the limit. */
 	packedVolumeUsed?: Value<"1"> | null;
 }
+/**
+* The `vessel.crew` payload: who is aboard the active vessel and how many
+* seats it has.
+*
+* @category Crew
+*/
 export interface VesselCrew
 {
+	/** How many crew are aboard. */
 	count: Value<"count">;
+	/** How many crew seats the vessel has. */
 	capacity: Value<"count">;
+	/** Each crew member aboard. */
 	crew: CrewMember[];
+	/** Which vessel this describes. */
 	meta: PayloadMeta;
 }
 /**
@@ -7228,6 +7828,8 @@ export interface VesselCrew
 * readout however it likes; this contract intentionally ships the raw dot
 * product rather than a pre-baked percentage so the mapping stays a client
 * concern.
+*
+* @category Vessel
 */
 export interface DockAlignment
 {
@@ -7257,6 +7859,8 @@ export interface DockAlignment
 * one typed field. `Situation.Unknown` is the graceful fallback for a raw
 * value this contract doesn't yet recognize, rather than the mapper throwing
 * on a future KSP version adding a situation.
+*
+* @category Vessel
 */
 export enum Situation {
 	Landed = 0,
@@ -7276,6 +7880,8 @@ export enum Situation {
 * `VesselViewProvider.ParseVesselType`). `VesselType.Unknown` both mirrors
 * KSP's own `Unknown` member and is the fallback for a value this contract
 * doesn't recognize yet.
+*
+* @category Vessel
 */
 export enum VesselType {
 	Ship = 0,
@@ -7298,6 +7904,8 @@ export enum VesselType {
 * Mirrors KSP's `Orbit.PatchTransitionType`: parsed from the raw
 * `orbit.patchEndTransition.ToString()` value `KspHost` captures.
 * `TransitionType.Unknown` is the graceful fallback.
+*
+* @category Vessel
 */
 export enum TransitionType {
 	Initial = 0,
@@ -7313,6 +7921,8 @@ export enum TransitionType {
 * because the two in use are similar enough to be mistaken for each other and
 * different enough to be wrong, and the distinction previously lived only in
 * `ManeuverNode`'s prose.
+*
+* @category Orbits and trajectories
 */
 export enum ManeuverFrame {
 	/**
@@ -7339,6 +7949,8 @@ export enum ManeuverFrame {
 * kPa/Pa variants collapse to `VesselFlight.surfaceSpeed` and
 * `VesselFlight.dynamicPressureKPa`). `missionTime` deliberately does NOT
 * appear here: see `VesselIdentity.launchUt`'s doc comment.
+*
+* @category Vessel
 */
 export interface VesselFlight
 {
@@ -7399,6 +8011,8 @@ export interface VesselFlight
 * `VesselIdentity.launchUt` is static after liftoff, so MET (mission elapsed
 * time) is a consumer-side derivation (viewUt - launchUt) rather than a
 * tick-rate field that would force this whole record to re-emit every tick.
+*
+* @category Vessel
 */
 export interface VesselIdentity
 {
@@ -7444,6 +8058,8 @@ export interface VesselIdentity
 * This is STOCK, and deliberately not any Uplink's. Stock KSP's own repair
 * mechanic consumes stock cargo, so a stock-career player has inventories
 * worth showing whether or not a modelling mod is installed.
+*
+* @category Vessel
 */
 export interface VesselInventory
 {
@@ -7455,7 +8071,11 @@ export interface VesselInventory
 	stores: InventoryStore[];
 	meta: PayloadMeta;
 }
-/** One part's `ModuleInventoryPart`: a cargo hold aboard. */
+/**
+* One part's `ModuleInventoryPart`: a cargo hold aboard.
+*
+* @category Vessel
+*/
 export interface InventoryStore
 {
 	/**
@@ -7498,7 +8118,11 @@ export interface InventoryStore
 	*/
 	massLimit?: Value<"t"> | null;
 }
-/** One kind of thing stored in an `InventoryStore`, with how many of it. */
+/**
+* One kind of thing stored in an `InventoryStore`, with how many of it.
+*
+* @category Vessel
+*/
 export interface InventoryItem
 {
 	/**
@@ -7534,6 +8158,8 @@ export interface InventoryItem
 * Every field is nullable: a field is null when its input is unavailable this
 * tick (e.g. no PQS, no touchdown solution, not in atmosphere). Never ship a
 * 0.0 that was not verified.
+*
+* @category Vessel
 */
 export interface VesselLanding
 {
@@ -7686,6 +8312,8 @@ export interface VesselLanding
 * zero-duration burn with a thrust implies infinite acceleration, so any
 * consumer computing thrust times duration over mass gets nonsense instead of
 * an impulse. Absence says "not modelled", which is the true statement.
+*
+* @category Orbits and trajectories
 */
 export interface ManeuverNode
 {
@@ -7883,6 +8511,8 @@ export interface ManeuverNode
 * second expression of the same fact is a second thing that can be wrong. The
 * per-burn patch chain expresses the same linkage a third time, in a form only
 * a patched-conic planner can produce; see `ManeuverNode.patches`.
+*
+* @category Orbits and trajectories
 */
 export interface VesselManeuver
 {
@@ -7916,6 +8546,8 @@ export interface VesselManeuver
 * `VesselOrbit.meanAnomalyAtEpoch` in RADIANS (also KSP-native): this
 * degrees/radians split is an inherited KSP inconsistency, converting would
 * desync from every KSP reference and the recorder's own raw values.
+*
+* @category Orbits and trajectories
 */
 export interface VesselOrbit
 {
@@ -8039,6 +8671,8 @@ export interface VesselOrbit
 * `VesselOrbit.epoch`. `Epoch` is the mean-anomaly reference epoch and can sit
 * far from when the sample was taken, so subtracting it would answer a
 * different question with the same units and no type could catch it.
+*
+* @category Orbits and trajectories
 */
 export interface PropagationHorizon
 {
@@ -8082,6 +8716,8 @@ export interface PropagationHorizon
 * genuinely has no limit (an analytic two-body solver), not a default nobody
 * made. It is its own arm rather than an infinite `PropagationHorizon.untilUt`
 * so that "forever" never has to be recognised as an extreme number.
+*
+* @category Orbits and trajectories
 */
 export enum PropagationHorizonKind {
 	/** No provider stated one. Treat as unpropagatable. */
@@ -8100,6 +8736,8 @@ export enum PropagationHorizonKind {
 * gets the answer that WITHHOLDS rather than the one that permits. Had
 * `TrajectoryKind.Analytic` been zero, a provider that failed to populate it
 * would have every client treating an integrated trajectory as an ellipse.
+*
+* @category Orbits and trajectories
 */
 export enum TrajectoryKind {
 	/** No provider stated one. Treat the shape as unknown. */
@@ -8117,7 +8755,11 @@ export enum TrajectoryKind {
 	*/
 	Integrated = 2
 }
-/** One upcoming SOI patch transition: see `VesselOrbit.encounter`. */
+/**
+* One upcoming SOI patch transition: see `VesselOrbit.encounter`.
+*
+* @category Orbits and trajectories
+*/
 export interface OrbitEncounter
 {
 	transitionType: TransitionType;
@@ -8142,6 +8784,8 @@ export interface OrbitEncounter
 * is no engine-level "hide from the data picker" flag yet (that's a future
 * SDK/picker concern): this channel is dev-only BY CONVENTION today, enforced
 * by never binding it from a widget, not by engine-level gating.
+*
+* @category Orbits and trajectories
 */
 export interface VesselOrbitTruth
 {
@@ -8173,6 +8817,8 @@ export interface VesselOrbitTruth
 * same units). It is NOT serialized itself: the wire is written by
 * `JsonWriter` walking the provider's dictionary: so adding it changes no
 * bytes.
+*
+* @category Parts
 */
 export interface VesselParts
 {
@@ -8202,6 +8848,8 @@ export interface VesselParts
 * form for the same reason. flightID's stability across a docking/undocking
 * round-trip is a KSP-side caveat carried forward from the design's open
 * questions.
+*
+* @category Parts
 */
 export interface VesselPart
 {
@@ -8321,6 +8969,8 @@ export interface VesselPart
 * the `KSPActionGroup` enum member names (`SAS`/`RCS`/
 * `Brakes`/`Gear`/`Light`/`Abort`/`Stage`/ `Custom01`...) the action's Flags
 * bitmask decodes to (`None` excluded).
+*
+* @category Parts
 */
 export interface ActionBinding
 {
@@ -8366,6 +9016,8 @@ export interface ActionBinding
 * matching that precedent rather than inventing a shaky approximation.
 * `PartResourceFlow.nominalFlow` is omitted (left `null`) whenever it would
 * equal `PartResourceFlow.flow`, per the SDK contract.
+*
+* @category Parts
 */
 export interface PartResourceFlow
 {
@@ -8389,6 +9041,8 @@ export interface PartResourceFlow
 * `PartModuleState.type` discriminates the module and `PartModuleState.state`
 * carries the standardised deploy/activation word, whose vocabulary is on that
 * property.
+*
+* @category Parts
 */
 export interface PartModuleState
 {
@@ -8435,6 +9089,8 @@ export interface PartModuleState
 * every instance of that part however it was assembled. A consumer placing the
 * box on a ship rotates both by that part's `orgRot` before adding
 * `VesselPart.position`, which is `vessel-local`.
+*
+* @category Parts
 */
 export interface PartBounds
 {
@@ -8474,6 +9130,8 @@ export interface PartBounds
 *
 * `PhysicsMode.Unknown` is the graceful fallback for a raw value this contract
 * doesn't recognize (same convention as `SasMode`/`VesselType`).
+*
+* @category Vessel
 */
 export enum PhysicsMode {
 	OnRails = 0,
@@ -8486,6 +9144,8 @@ export enum PhysicsMode {
 * (`PhysicsMode`). DelayRole-Delayed like every other vessel-derived channel:
 * it describes the vessel itself, so ground learns about it at UT+delay, not
 * as a ground-side fact.
+*
+* @category Vessel
 */
 export interface VesselPhysicsMode
 {
@@ -8503,6 +9163,8 @@ export interface VesselPhysicsMode
 * *Derived, SDK-side, NOT streamed here:* TWR (`currentThrust / (totalMass ·
 * g)`), max-TWR, and a crude vessel-level burn-time estimate (retiring
 * `dv.currentTWR`/`dv.*` until a stage sim exists, G-14).
+*
+* @category Vessel
 */
 export interface VesselPropulsion
 {
@@ -8555,6 +9217,8 @@ export interface VesselPropulsion
 /**
 * One resource's current/max amounts: see `VesselResources`'s class doc
 * comment for the three-way absence semantics this type participates in.
+*
+* @category Vessel
 */
 export interface ResourceAmount
 {
@@ -8598,6 +9262,8 @@ export interface ResourceAmount
 * parts/power channel family with per-module provenance; bolting a
 * vessel-total `flow` on now would reproduce R-6 (a "truth" number that isn't
 * the game's truth).
+*
+* @category Vessel
 */
 export interface VesselResources
 {
@@ -8614,6 +9280,8 @@ export interface VesselResources
 * (KspHost's own normalization). A future part-tree/topology channel
 * (`vessel.parts`) is a SIBLING of this record, not a growth of it (R-8's
 * "bulk topology is its own ASSET-class design" lesson).
+*
+* @category Vessel
 */
 export interface VesselStructure
 {
@@ -8638,6 +9306,8 @@ export interface VesselStructure
 *
 * Whole-channel absence means the vessel has no reference body yet. The
 * channel is present in every situation, orbiting included.
+*
+* @category Vessel
 */
 export interface VesselSurface
 {
@@ -8680,6 +9350,8 @@ export interface VesselSurface
 * (see `SetTargetArgs.latitude`/ `SetTargetArgs.longitude`), a map-picked
 * lat/lon that isn't backed by any live KSP target object, so it never appears
 * as `vessel.target`'s own reported `VesselTarget.kind`.
+*
+* @category Orbits and trajectories
 */
 export enum TargetKind {
 	Vessel = 0,
@@ -8709,6 +9381,8 @@ export enum TargetKind {
 * same physics. Null on `VesselTarget` when there is no target, no frame the
 * provider can reach both objects in, or no encounter inside the window it was
 * asked about.
+*
+* @category Orbits and trajectories
 */
 export interface ClosestApproach
 {
@@ -8742,6 +9416,8 @@ export interface ClosestApproach
 * Whole-channel absence (the outer `VesselTarget?` being null) means nothing
 * is targeted, the common case, R1(b), never a sentinel
 * zero-distance/zero-vector record.
+*
+* @category Orbits and trajectories
 */
 export interface VesselTarget
 {
@@ -8801,6 +9477,8 @@ export interface VesselTarget
 /**
 * Raw readings for whichever part is hottest by internal-temperature ratio;
 * see `VesselThermal.hottestPart`.
+*
+* @category Vessel
 */
 export interface ThermalHottestPart
 {
@@ -8838,6 +9516,8 @@ export interface ThermalHottestPart
 * vessel currently has no parts at all (KspHost's `BuildThermal` returns no
 * group in that case), a DIFFERENT, coarser absence than an individual null
 * ratio.
+*
+* @category Vessel
 */
 export interface VesselThermal
 {
@@ -8895,6 +9575,8 @@ export interface VesselThermal
 * Mirrors KSP's own `TimeWarp.Modes` enum (confirmed via decompile: only
 * `HIGH`/`LOW` exist on this KSP version, no third mode). `WarpMode.Unknown`
 * is the graceful fallback for a future/unrecognized raw value.
+*
+* @category Game
 */
 export enum WarpMode {
 	High = 0,
@@ -8926,6 +9608,8 @@ export enum WarpMode {
 * `Sitrep.Host.VesselViewProvider.BuildWarp`'s doc comment for the emission
 * rule now in force (present whenever `Values["time"]` itself is present,
 * nothing else).
+*
+* @category Game
 */
 export interface WarpState
 {
@@ -9002,6 +9686,8 @@ export interface WarpState
 * same kind of thing, and giving them separate vocabularies would make "is
 * this burn in the frame I am looking at" a question nobody could answer
 * without a translation table.
+*
+* @category Orbits and trajectories
 */
 export enum ManeuverFrameReference {
 	/**
@@ -9036,6 +9722,8 @@ export enum ManeuverFrameReference {
 * hands back a sample from well before the delay window's edge, and stamping
 * it with the window edge asserts the craft was in that state later than it
 * was. Everything downstream is then confidently wrong with nothing to notice.
+*
+* @category Comms
 */
 export interface DelayedObservation
 {
@@ -9075,6 +9763,8 @@ export interface DelayedObservation
 * chosen.** Same rule as `TrajectoryKind`'s zero and for the same reason: had
 * the permissive value been zero, every existing caller would have been
 * granted it without anyone deciding, and the setting would be decoration.
+*
+* @category Orbits and trajectories
 */
 export enum PropagationCertification {
 	/** Nobody chose. Callers refuse rather than pick on their behalf. */
@@ -9108,6 +9798,8 @@ export enum PropagationCertification {
 * draw in cover three of these. A control frame outside that subset is a real
 * state and not an error: a widget set to follow the control frame resolves to
 * nothing, which is the behaviour that side already documents.
+*
+* @category Vessel
 */
 export enum ControlFrameKind {
 	/** Nothing stated one. Distinct from a frame we could not name. */

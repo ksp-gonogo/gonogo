@@ -262,6 +262,7 @@ namespace Sitrep.Contract
     /// still land, so a client reads the outcome here, never from the command's
     /// reply.</para>
     /// </summary>
+    /// <category>Mod settings</category>
     [SitrepContract]
 #if SITREP_CODEGEN
     [TsInterface]
@@ -284,6 +285,7 @@ namespace Sitrep.Contract
     }
 
     /// <summary>One mod setting, described well enough to draw, with the value in force.</summary>
+    /// <category>Mod settings</category>
     [SitrepContract]
 #if SITREP_CODEGEN
     [TsInterface]
@@ -348,6 +350,7 @@ namespace Sitrep.Contract
     /// kind can hold, or when the Uplink refuses it. What the mod holds after
     /// any of those is on <c>settings.&lt;uplink&gt;</c>.</para>
     /// </summary>
+    /// <category>Command arguments</category>
     [SitrepContract]
 #if SITREP_CODEGEN
     [TsInterface]

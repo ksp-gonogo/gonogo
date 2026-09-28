@@ -14,6 +14,7 @@ namespace Sitrep.Contract
     /// more than these is a <see cref="Text"/> row that the Uplink checks when
     /// it reads it.</para>
     /// </summary>
+    /// <category>Mod settings</category>
 #if SITREP_CODEGEN
     [TsEnum]
 #endif

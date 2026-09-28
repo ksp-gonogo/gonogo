@@ -23,6 +23,7 @@ namespace Sitrep.Contract;
 /// of mass). Not derivable from orbital elements (attitude depends on vessel
 /// orientation, not trajectory), hence streamed raw.
 /// </summary>
+/// <category>Vessel</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

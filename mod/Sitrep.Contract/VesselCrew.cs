@@ -15,6 +15,7 @@ namespace Sitrep.Contract;
 /// (<c>KerbalType</c>) and <c>rosterStatus</c> (<c>RosterStatus</c>) enums,
 /// captured as their string names.
 /// </summary>
+/// <category>Crew</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -66,6 +67,11 @@ public class CrewMember
     public double? PackedVolumeUsed { get; set; }
 }
 
+/// <summary>
+/// The <c>vessel.crew</c> payload: who is aboard the active vessel and how many
+/// seats it has.
+/// </summary>
+/// <category>Crew</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -73,13 +79,17 @@ public class CrewMember
 [SitrepTopic("vessel.crew")]
 public class VesselCrew
 {
+    /// <summary>How many crew are aboard.</summary>
     [SitrepUnit(Units.Count)]
     public int Count { get; set; }
 
+    /// <summary>How many crew seats the vessel has.</summary>
     [SitrepUnit(Units.Count)]
     public int Capacity { get; set; }
 
+    /// <summary>Each crew member aboard.</summary>
     public List<CrewMember> Crew { get; set; } = new();
 
+    /// <summary>Which vessel this describes.</summary>
     public PayloadMeta Meta { get; set; } = new();
 }

@@ -13,6 +13,7 @@ namespace Sitrep.Contract;
 /// number, and a contract parameter, which lives in a list no path can index,
 /// finds its contract and objective by identity.</para>
 /// </summary>
+/// <category>Alarms</category>
 #if SITREP_CODEGEN
 [TsEnum]
 #endif
@@ -54,6 +55,7 @@ public enum ScetAlarmConditionKind
 /// the command vantage and the same alarm armed on the craft's clock mean the
 /// same thing and can be checked against each other at zero delay.</para>
 /// </summary>
+/// <category>Alarms</category>
 #if SITREP_CODEGEN
 [TsEnum]
 #endif
@@ -94,6 +96,7 @@ public enum ScetAlarmThresholdOp
 /// so a condition that keeps holding cannot stop the warp again on the next
 /// tick.</para>
 /// </summary>
+/// <category>Alarms</category>
 #if SITREP_CODEGEN
 [TsEnum]
 #endif
@@ -140,6 +143,7 @@ public enum ScetAlarmState
 /// <see cref="ContractId"/>, <see cref="ParameterTitle"/>,
 /// <see cref="TargetState"/> and <see cref="SustainSeconds"/>.</para>
 /// </summary>
+/// <category>Alarms</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -259,6 +263,7 @@ public class ScetAlarmCondition
 /// <see cref="ScetAlarmAction.Group"/>, and cannot be read as the stage
 /// command however it is labelled.</para>
 /// </summary>
+/// <category>Alarms</category>
 #if SITREP_CODEGEN
 [TsEnum]
 #endif
@@ -305,6 +310,7 @@ public enum ScetAlarmActionKind
 /// against the state the craft reports at the moment of the fire, which is
 /// what pressing the group's key does.</para>
 /// </summary>
+/// <category>Alarms</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -342,6 +348,7 @@ public class ScetAlarmAction
 /// wire.
 /// </internal>
 /// </summary>
+/// <category>Alarms</category>
 [SitrepContract]
 [SitrepTopic("alarm.scet", isArray: true)]
 #if SITREP_CODEGEN
@@ -501,6 +508,7 @@ public class ScetAlarm
 /// Published RAW: see <c>JsonWriter.AppendScetAlarmFired</c>.
 /// </internal>
 /// </summary>
+/// <category>Alarms</category>
 [SitrepContract]
 [SitrepTopic("alarm.scet.fired")]
 #if SITREP_CODEGEN
@@ -555,6 +563,7 @@ public class ScetAlarmFired
 /// never be armed in time, and a delayed command is dropped outright during a
 /// blackout, which is exactly when a SCET alarm earns its keep.</para>
 /// </summary>
+/// <category>Command arguments</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -608,6 +617,7 @@ public class ScetAlarmArmArgs
 /// <para>Never delayed, for the reason its opposite is not: the inverse of an
 /// instant act must not be slower than the act.</para>
 /// </summary>
+/// <category>Command arguments</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

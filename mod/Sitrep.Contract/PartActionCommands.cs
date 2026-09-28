@@ -24,6 +24,7 @@ namespace Sitrep.Contract;
 /// <c>vessel.partActions.&lt;flightId&gt;</c> channel re-reporting the new
 /// button set one light-time later.</para>
 /// </summary>
+/// <category>Command arguments</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

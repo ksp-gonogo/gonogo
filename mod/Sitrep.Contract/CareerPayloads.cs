@@ -40,6 +40,7 @@ namespace Sitrep.Contract;
 /// deliberately NOT done here.</para>
 /// </internal>
 /// </summary>
+/// <category>Career</category>
 [SitrepContract]
 [SitrepTopic("career.status")]
 #if SITREP_CODEGEN
@@ -110,6 +111,7 @@ public class CareerStatus
 /// is what turns that null into silence instead of a tombstone.</para>
 /// </internal>
 /// </summary>
+/// <category>Career</category>
 [SitrepContract]
 [SitrepTopic("career.facilities")]
 #if SITREP_CODEGEN
@@ -132,6 +134,7 @@ public class CareerFacilities
 }
 
 /// <summary>Economy sub-group of <see cref="CareerStatus"/>: funds/reputation/science, each null when absent.</summary>
+/// <category>Career</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -244,6 +247,7 @@ public class CareerEconomy
 /// is absent when that model does not have the concept, never zero: an
 /// unmodelled source and a source costing nothing are different facts.
 /// </summary>
+/// <category>Career</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -284,6 +288,7 @@ public class CareerUpkeep
 /// fields share one live-facility gate on the KSP side, so they are null
 /// together when the facility isn't queryable in the current scene.
 /// </summary>
+/// <category>Career</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -318,6 +323,7 @@ public class CareerFacility
 }
 
 /// <summary>Contracts sub-group of <see cref="CareerStatus"/>. All three lists are always present (empty, never null).</summary>
+/// <category>Career</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -342,6 +348,7 @@ public class CareerContracts
 }
 
 /// <summary>One contract in <see cref="CareerContracts.Active"/> / <see cref="CareerContracts.Offered"/>.</summary>
+/// <category>Career</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -391,6 +398,7 @@ public class CareerContract
 }
 
 /// <summary>One parameter (objective) of a <see cref="CareerContract"/>.</summary>
+/// <category>Career</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -446,6 +454,7 @@ public class CareerContractParameter
 /// <see cref="ActiveCount"/> is NON-nullable, the provider defaults it to
 /// <c>Active.Count</c> when the raw value is absent.
 /// </summary>
+/// <category>Career</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -481,6 +490,7 @@ public class CareerStrategies
 }
 
 /// <summary>One strategy in <see cref="CareerStrategies.Active"/> / <see cref="CareerStrategies.All"/>.</summary>
+/// <category>Career</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -599,6 +609,7 @@ public class CareerStrategy
 /// <see cref="UnlockedCount"/> is NON-nullable, the provider defaults it to
 /// <c>UnlockedIds.Count</c> when the raw value is absent.
 /// </summary>
+/// <category>Career</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -615,6 +626,7 @@ public class CareerTech
 }
 
 /// <summary>One node in <see cref="CareerTech.Nodes"/>.</summary>
+/// <category>Career</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

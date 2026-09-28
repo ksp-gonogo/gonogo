@@ -29,6 +29,7 @@ namespace Sitrep.Contract;
 /// mark there: a prediction that stops short and a trajectory that ends look
 /// identical on a diagram and mean opposite things.</para>
 /// </summary>
+/// <category>Orbits and trajectories</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -79,6 +80,7 @@ public class TrajectoryArc
 }
 
 /// <summary>One sampled point: where, and when.</summary>
+/// <category>Orbits and trajectories</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -109,6 +111,7 @@ public class TrajectoryPoint
 /// property every provider's answer has, and putting one vendor's enum on the
 /// standard payload would make every other provider translate into it.</para>
 /// </summary>
+/// <category>Orbits and trajectories</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -144,6 +147,7 @@ public class TrajectoryFrameRef
 /// default in is the one where an unnamed frame silently reads as the frame the
 /// reader happened to expect.</para>
 /// </summary>
+/// <category>Orbits and trajectories</category>
 #if SITREP_CODEGEN
 [TsEnum]
 #endif
@@ -198,6 +202,7 @@ public enum TrajectoryFrameKind
 /// same reason a horizon does: a substituted answer that only says so in a panel
 /// elsewhere is a substituted answer nobody reads as one.</para>
 /// </summary>
+/// <category>Orbits and trajectories</category>
 #if SITREP_CODEGEN
 [TsEnum]
 #endif
@@ -231,6 +236,7 @@ public enum TrajectoryDerivation
 /// What an integration was actually against, so a reader can tell how far to
 /// trust the curve without being told to trust it.
 /// </summary>
+/// <category>Orbits and trajectories</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -326,6 +332,7 @@ public class TrajectoryForceModel
 /// <see cref="NotRefused"/> is the separate thing a producer says when it did
 /// attempt one and got a curve.</para>
 /// </summary>
+/// <category>Orbits and trajectories</category>
 #if SITREP_CODEGEN
 [TsEnum]
 #endif

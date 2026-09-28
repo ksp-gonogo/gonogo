@@ -182,67 +182,6 @@ An \`error\` frame carries a code and, when it answers a dispatch, the
 This channel has no \`address\` because these frames are not routed by one: they
 are typed by their own \`type\` field and belong to the socket itself.`;
 
-/**
- * The distinction between an `error` frame and a failed `command-response`, and
- * every code the mod puts in `code`.
- *
- * Written out because it is the question the surface could not answer and the
- * one an author has to get right to handle a write at all: the two are not
- * degrees of the same thing.
- *
- * Attached to the SCHEMA rather than to the message, via `schemas.describe`. The
- * contract declares no doc comment for `ErrorMsg`, and a reader routing off
- * `InboundFrame` never passes through the message at all, so on the message this
- * reached one of the two ways in.
- */
-const ERROR_DESCRIPTION = `A fault, never a refusal, and the difference decides how a client handles it.
-
-An \`error\` frame means something could not be CARRIED: a frame the mod could
-not read, an unknown command, a command whose provider has fail-softed, a
-result or payload the codec could not serialise, a subscription to a topic
-nothing declares, or a \`set-vantage\` naming a command centre that is not
-active. Nothing about the game was decided, so there is no game reason to
-report.
-
-A command the game REFUSED ran and said no. That arrives as a
-\`command-response\` with \`success: false\` and an \`errorCode\`, correlated on
-\`requestId\` like any other answer, and it is not an error frame.
-
-\`code\` is a \`FaultCode\`, enumerated in full under \`components.schemas\`
-with the sentence an operator reads for each. Its client-origin members are
-minted by a client's own transport into the same field, never by the mod.
-\`CommandErrorCode\` is the other half of the vocabulary: it names REFUSALS and
-never appears here.`;
-
-/**
- * What an `event` frame is, and why it is on the topic channels rather than on
- * the session.
- *
- * The frame's own payload requires a `topic`, and both names the mod emits are
- * per-subscription. Written here rather than in the C# because it is a fact
- * about the protocol, and attached to the `EventMsg` SCHEMA for the reason
- * `ERROR_DESCRIPTION` gives.
- */
-const EVENT_DESCRIPTION = `Something that happened to a SUBSCRIPTION, on the topic it happened to.
-
-Two names are emitted, and each names one topic this connection is subscribed
-to:
-
-- \`subscribed\` acknowledges a \`subscribe\`, once per subscribe, on the
-  reliable lane. It is the frame to wait for rather than the first
-  \`stream-data\`: a channel with nothing to say yet sends the ack and then
-  nothing. A \`subscribe\` naming a topic no declared channel and no registered
-  dynamic namespace owns is answered with NOTHING, not an error, so a missing
-  ack is how a client learns a topic is unowned
-- \`timeline-reset\` says the game quickloaded and UT rewound. It is sent to
-  every session for every topic it holds, and the delayed view built from
-  frames before it is abandoned rather than reconciled
-
-An event carries no payload of its own: \`name\` is the whole of what happened,
-and \`meta\` describes the delivery as it does on any other frame. Events on a
-DYNAMIC topic are emitted the same way and are absent here for the reason the
-document description gives.`;
-
 const STREAM_DATA_DESCRIPTION = `The envelope every telemetry frame arrives in.
 
 \`topic\` is the channel's \`address\` and \`payload\` is that channel's own
@@ -571,12 +510,12 @@ export function buildDocument({
   messages.event = {
     name: "event",
     title: "A named occurrence on a topic, carrying no payload of its own",
-    payload: schemas.describe("EventMsg", EVENT_DESCRIPTION),
+    payload: schemas.ref("EventMsg"),
   };
   messages.error = {
     name: "error",
     title: "A dispatch that could not be carried, or a bad session request",
-    payload: schemas.describe("ErrorMsg", ERROR_DESCRIPTION),
+    payload: schemas.ref("ErrorMsg"),
     correlationId: {
       description:
         "Present when the error answers a dispatch, absent when it is about the connection or a topic.",

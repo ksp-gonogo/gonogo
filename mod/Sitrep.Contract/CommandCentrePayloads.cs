@@ -21,6 +21,7 @@ namespace Sitrep.Contract;
 /// AppendCommandCentreEntry.
 /// </internal></para>
 /// </summary>
+/// <category>Comms</category>
 [SitrepContract]
 [SitrepTopic("commandCentre.roster", isArray: true)]
 #if SITREP_CODEGEN
@@ -126,6 +127,7 @@ public class CommandCentreEntry
 /// against a ground station, or two crewed craft: a crewed control-source vessel
 /// IS a centre, so no separate vocabulary is needed for it.</para>
 /// </summary>
+/// <category>Comms</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -180,6 +182,7 @@ public class CentreSeparationEntry
 /// writes the ledger is the pass that produces these.
 /// </internal></para>
 /// </summary>
+/// <category>Comms</category>
 [SitrepContract]
 [SitrepTopic("commandCentre.separation")]
 #if SITREP_CODEGEN
@@ -195,6 +198,7 @@ public class CommandCentreSeparation
 /// One command centre's own one-way delay to the active craft, in the
 /// <c>commandCentre.activeVesselDelay</c> channel.
 /// </summary>
+/// <category>Comms</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -235,6 +239,7 @@ public class CentreDelayEntry
 /// readout and the ledger cannot disagree about which centre has a row.
 /// </internal></para>
 /// </summary>
+/// <category>Comms</category>
 [SitrepContract]
 [SitrepTopic("commandCentre.activeVesselDelay")]
 #if SITREP_CODEGEN

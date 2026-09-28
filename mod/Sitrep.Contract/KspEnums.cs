@@ -56,6 +56,7 @@ namespace Sitrep.Contract;
 /// roster. Behind <c>spaceCenter.crewRoster[].situationOrdinal</c>, beside the
 /// name in <see cref="CrewRosterEntry.Situation"/>.
 /// </summary>
+/// <category>Crew</category>
 #if SITREP_CODEGEN
 [TsEnum]
 #endif
@@ -73,6 +74,7 @@ public enum KspRosterStatus
 /// is done. Behind <c>career.status.contracts[].parameters[].stateOrdinal</c>,
 /// beside the name in <see cref="CareerContractParameter.State"/>.
 /// </summary>
+/// <category>Career</category>
 #if SITREP_CODEGEN
 [TsEnum]
 #endif
@@ -94,6 +96,7 @@ public enum KspParameterState
 /// <c>namesOf</c>. The lower-case spelling is KSP's; <c>.ToString()</c> on that
 /// member yields <c>"none"</c> and the wire carries exactly that.</para>
 /// </summary>
+/// <category>Parts</category>
 #if SITREP_CODEGEN
 [TsEnum]
 #endif
@@ -132,6 +135,7 @@ public enum KspPartCategory
 /// are recorded here because the mirror test compares the whole member set, not
 /// the useful subset of it.</para>
 /// </summary>
+/// <category>Vessel</category>
 #if SITREP_CODEGEN
 [TsEnum]
 #endif
@@ -164,6 +168,7 @@ public enum KspActionGroup
 /// <c>spaceCenter.savedShips[].facilityOrdinal</c>, beside the name in
 /// <see cref="SavedShipEntry.Facility"/>.
 /// </summary>
+/// <category>Space center</category>
 #if SITREP_CODEGEN
 [TsEnum]
 #endif
@@ -186,6 +191,7 @@ public enum KspEditorFacility
 /// inside each entry instead, so a client can branch on it without trusting the
 /// key it arrived under.</para>
 /// </summary>
+/// <category>Space center</category>
 #if SITREP_CODEGEN
 [TsEnum]
 #endif
@@ -213,6 +219,7 @@ public enum KspSpaceCenterFacility
 /// Kerbalism's, and a second Uplink reading the same stock enum should get this
 /// declaration rather than a second copy of it.</para>
 /// </summary>
+/// <category>Parts</category>
 #if SITREP_CODEGEN
 [TsEnum]
 #endif

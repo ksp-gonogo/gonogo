@@ -10,6 +10,7 @@ namespace Sitrep.Contract;
 /// <see cref="Unknown"/> is the graceful fallback for a future/unrecognized
 /// raw value.
 /// </summary>
+/// <category>Game</category>
 #if SITREP_CODEGEN
 [TsEnum]
 #endif
@@ -48,6 +49,7 @@ public enum WarpMode
 /// comment for the emission rule now in force (present whenever
 /// <c>Values["time"]</c> itself is present, nothing else).</para>
 /// </summary>
+/// <category>Game</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

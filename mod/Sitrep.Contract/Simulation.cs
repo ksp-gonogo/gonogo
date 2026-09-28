@@ -52,6 +52,7 @@ public interface ISimulationBackend : ISitrepProvider
 /// <para><b>Absence is data.</b> A stock install publishes nothing here,
 /// because it has nothing to say; see <see cref="Simulated"/>.</para>
 /// </summary>
+/// <category>Flights</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -101,6 +102,7 @@ public class FlightSimulation
 /// Arguments to <c>comms.setSimulationDelayPolicy</c>: apply signal delay
 /// during a simulation, or cut it.
 /// </summary>
+/// <category>Command arguments</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

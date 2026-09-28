@@ -753,7 +753,7 @@ public static class RtConfig
 
     private static List<string> AppendDocBlock(StringBuilder sb, string indent, string summaryXml, string? category = null)
     {
-        var lines = RtDocText.ToDocLines(summaryXml, ErrorCodeCref);
+        var lines = RtDocText.ToDocLines(summaryXml, ErrorCodeCref, out _);
         sb.Append(indent).Append("/**\n");
         foreach (var line in lines)
         {

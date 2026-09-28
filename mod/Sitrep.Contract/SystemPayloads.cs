@@ -22,6 +22,7 @@ namespace Sitrep.Contract;
 /// per-payload provenance: its <see cref="Meta"/> rides the envelope
 /// (<c>StreamData.Meta</c>), never the payload body.</para>
 /// </summary>
+/// <category>Solar system and fleet</category>
 [SitrepContract]
 [SitrepTopic("system.bodies")]
 #if SITREP_CODEGEN
@@ -41,6 +42,7 @@ public class SystemBodies
 /// at all, because an orbit-patch formatter that carries one tends to fill it
 /// with the body's ECCENTRICITY instead.
 /// </summary>
+/// <category>Solar system and fleet</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -225,6 +227,7 @@ public class BodyEntry
 /// the payload's null-not-sentinel discipline). Mirrors the exact nested dict
 /// <c>SystemViewProvider.BuildAtmosphere</c> emits.
 /// </summary>
+/// <category>Solar system and fleet</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -320,6 +323,7 @@ public class AtmosphereEntry
 /// RADIANS; <see cref="Epoch"/> in UT seconds. No <c>eccentricAnomaly</c>
 /// field (see <see cref="BodyEntry"/>).</para>
 /// </summary>
+/// <category>Solar system and fleet</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -368,6 +372,7 @@ public class OrbitEntry
 /// Same <c>system</c>-domain convention as <see cref="SystemBodies"/>: no
 /// per-payload <c>Meta</c> (it rides the envelope).
 /// </summary>
+/// <category>Solar system and fleet</category>
 [SitrepContract]
 [SitrepTopic("system.vessels")]
 #if SITREP_CODEGEN
@@ -387,6 +392,7 @@ public class SystemVessels
 /// The three tiers happen to mirror stock <c>Vessel.ControlLevel</c>'s
 /// none/partial/full shape, which is coincidence, not a shared contract.
 /// </summary>
+/// <category>Solar system and fleet</category>
 #if SITREP_CODEGEN
 [TsEnum]
 #endif
@@ -411,6 +417,7 @@ public enum RosterCommsControlSource
 /// stable id is dropped by the provider, never emitted with a fabricated one,
 /// so <see cref="VesselId"/> is always present.
 /// </summary>
+/// <category>Solar system and fleet</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

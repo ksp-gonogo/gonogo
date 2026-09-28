@@ -28,6 +28,7 @@ namespace Sitrep.Contract;
 /// <see cref="Unknown"/> is the graceful fallback for a raw value this contract
 /// doesn't recognize (same convention as <see cref="SasMode"/>/<see cref="VesselType"/>).
 /// </summary>
+/// <category>Vessel</category>
 #if SITREP_CODEGEN
 [TsEnum]
 #endif
@@ -46,6 +47,7 @@ public enum PhysicsMode
 /// channel: it describes the vessel itself, so ground learns about it at
 /// UT+delay, not as a ground-side fact.
 /// </summary>
+/// <category>Vessel</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

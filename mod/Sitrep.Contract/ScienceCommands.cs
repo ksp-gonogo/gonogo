@@ -15,6 +15,7 @@ namespace Sitrep.Contract;
 /// <see cref="PartId"/> resolves to nothing and yields
 /// <see cref="CommandResult.ErrorCode"/> <see cref="CommandErrorCode.NotFound"/>.
 /// </summary>
+/// <category>Command arguments</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -39,6 +40,7 @@ public class ExperimentActionArgs
 /// the transmission from, which is the truth: an absent transmission is never a
 /// zero-length one.</para>
 /// </summary>
+/// <category>Science</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

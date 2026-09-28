@@ -154,6 +154,7 @@ public static class CommsOcclusionModels
 /// it as. Carrying both keeps the difference visible (and the multiplier
 /// derivable) without asking any consumer to apply one.</para>
 /// </summary>
+/// <category>Comms</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -195,6 +196,7 @@ public class CommsOcclusionBody
 /// producer republishes an unchanged instance, which the emitter's change-gate
 /// suppresses, so the channel costs a keyframe and nothing else.</para>
 /// </summary>
+/// <category>Comms</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

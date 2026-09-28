@@ -43,6 +43,7 @@ namespace Sitrep.Contract;
 /// NaN is substituted with 0 at capture time, preserving that pre-existing
 /// (imperfect but non-breaking) behaviour.
 /// </summary>
+/// <category>Orbits and trajectories</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

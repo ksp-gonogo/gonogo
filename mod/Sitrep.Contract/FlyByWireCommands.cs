@@ -15,6 +15,7 @@ namespace Sitrep.Contract;
 /// <c>false</c> detaches it and neutralizes the stored axes/trims so control is
 /// fully handed back to the player/SAS with no residual override.
 /// </summary>
+/// <category>Command arguments</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -41,6 +42,7 @@ public class SetFlyByWireArgs
 /// clamped to −1..1 at the admission gate (a hardware stick reading slightly
 /// past full is a routine quirk, not an error).
 /// </summary>
+/// <category>Command arguments</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

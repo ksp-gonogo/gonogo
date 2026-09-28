@@ -20,6 +20,7 @@ namespace Sitrep.Contract;
 /// <c>ContractShapeGateTests</c>) enforces the field set stays exactly this
 /// seven.</para>
 /// </summary>
+/// <category>Comms</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -127,6 +128,7 @@ public class PendingUplink
 }
 
 /// <summary>Wire wrapper for <c>system.uplink.pending</c>: the whole queue, resampled every emission.</summary>
+/// <category>Comms</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

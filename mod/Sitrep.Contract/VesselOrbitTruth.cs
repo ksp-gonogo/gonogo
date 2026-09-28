@@ -21,6 +21,7 @@ namespace Sitrep.Contract;
 /// CONVENTION today, enforced by never binding it from a widget, not by
 /// engine-level gating.
 /// </summary>
+/// <category>Orbits and trajectories</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

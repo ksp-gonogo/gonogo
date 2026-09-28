@@ -393,6 +393,7 @@ namespace Sitrep.Contract
     }
 
     /// <summary>What an evaluator concluded. Three-valued, and the third value is load-bearing.</summary>
+    /// <category>System diagnostics</category>
     [SitrepContract]
 #if SITREP_CODEGEN
     [TsEnum]
@@ -432,6 +433,7 @@ namespace Sitrep.Contract
     /// 18 t Launch Pad limit" through its own unit rendering, rather than the mod
     /// baking an English sentence in one unit system.</para>
     /// </summary>
+    /// <category>System diagnostics</category>
     [SitrepContract]
 #if SITREP_CODEGEN
     [TsInterface]
@@ -501,6 +503,7 @@ namespace Sitrep.Contract
     /// <summary>
     /// A verdict plus its evidence.
     /// </summary>
+    /// <category>System diagnostics</category>
     [SitrepContract]
 #if SITREP_CODEGEN
     // AutoExportMethods=false for the same reason CommandResult sets it: the

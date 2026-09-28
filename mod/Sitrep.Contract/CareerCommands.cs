@@ -15,6 +15,7 @@ namespace Sitrep.Contract;
 /// best-effort: a strategy with no factor slider ignores it and activates at
 /// its fixed factor.
 /// </summary>
+/// <category>Command arguments</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -31,6 +32,7 @@ public class ActivateStrategyArgs
 }
 
 /// <summary><c>career.strategy.deactivate</c>'s args: the strategy's stable <c>StrategyConfig.Name</c> id (see <see cref="ActivateStrategyArgs.StrategyId"/>).</summary>
+/// <category>Command arguments</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -47,6 +49,7 @@ public class DeactivateStrategyArgs
 /// the READ side emits for each tech node, <c>career.status</c>'s
 /// <c>tech.nodes[].id</c>). Unlocking deducts the node's science cost.
 /// </summary>
+/// <category>Command arguments</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -66,6 +69,7 @@ public class UnlockTechArgs
 /// (accept/decline require an offered contract, cancel an active one); an
 /// out-of-state request comes back <see cref="CommandErrorCode.ModeUnavailable"/>.
 /// </summary>
+/// <category>Command arguments</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -88,6 +92,7 @@ public class ContractActionArgs
 /// <c>career.status</c>. Upgrading raises the facility one tier and deducts
 /// its upgrade cost from funds.
 /// </summary>
+/// <category>Command arguments</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -110,6 +115,7 @@ public class UpgradeFacilityArgs
 /// <see cref="CommandErrorCode.Range"/>; a full roster (Astronaut Complex cap)
 /// or a non-career save <see cref="CommandErrorCode.ModeUnavailable"/>.
 /// </summary>
+/// <category>Command arguments</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -133,6 +139,7 @@ public class HireApplicantArgs
 /// Available (Assigned/Dead/Missing) comes back
 /// <see cref="CommandErrorCode.ModeUnavailable"/>.
 /// </summary>
+/// <category>Command arguments</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

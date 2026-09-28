@@ -15,6 +15,7 @@ namespace Sitrep.Contract;
 /// <para>Whole-channel absence means the vessel has no reference body yet.
 /// The channel is present in every situation, orbiting included.</para>
 /// </summary>
+/// <category>Vessel</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

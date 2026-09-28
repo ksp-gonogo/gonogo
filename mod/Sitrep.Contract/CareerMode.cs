@@ -21,6 +21,7 @@ namespace Sitrep.Contract;
 /// future KSP addition) into <see cref="Unknown"/> rather than the mapper
 /// throwing. <c>SCIENCE_SANDBOX</c> maps to <see cref="Science"/>.</para>
 /// </summary>
+/// <category>Career</category>
 #if SITREP_CODEGEN
 [TsEnum]
 #endif
@@ -49,6 +50,7 @@ public enum GameMode
 /// <c>Sitrep.Contract.Serialization.JsonWriter</c>). It is a codegen marker, not
 /// serialized itself.</para>
 /// </summary>
+/// <category>Career</category>
 [SitrepContract]
 [SitrepTopic("career.mode")]
 #if SITREP_CODEGEN

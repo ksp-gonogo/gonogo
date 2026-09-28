@@ -4,11 +4,23 @@ using Reinforced.Typings.Attributes;
 
 namespace Sitrep.Contract;
 
+/// <summary>
+/// Whether a payload's subject is simulated under physics
+/// (<see cref="Loaded"/>) or moving on rails (<see cref="OnRails"/>).
+/// </summary>
+/// <category>Stream messages</category>
 #if SITREP_CODEGEN
 [TsEnum]
 #endif
 [SitrepContract]
-public enum Quality { OnRails, Loaded }
+public enum Quality
+{
+    /// <summary>Moving on rails: KSP is not simulating it, and its orbit is a fixed conic.</summary>
+    OnRails,
+
+    /// <summary>Loaded and simulated under physics.</summary>
+    Loaded,
+}
 
 /// <summary>
 /// How current a delivered sample is, as the SERVER knows it (a client infers
@@ -24,14 +36,27 @@ public enum Quality { OnRails, Loaded }
 /// <see cref="Meta.DeliveredAt"/> is the real arrival, not
 /// <c>validAt + light-time</c>.</para>
 /// </summary>
+/// <category>Stream messages</category>
 #if SITREP_CODEGEN
 [TsEnum]
 #endif
 [SitrepContract]
 public enum Staleness
 {
+    /// <summary>
+    /// Delivered on its own schedule. An old <c>validAt</c> on a Topic that sends only
+    /// on change is still fresh.
+    /// </summary>
     Fresh,
+    /// <summary>
+    /// Sent to a subscriber that joined while contact was lost, and taken after contact
+    /// was lost.
+    /// </summary>
     HeldStale,
+    /// <summary>
+    /// Sent to a subscriber that joined while contact was lost: the last sample that
+    /// got out before contact was lost.
+    /// </summary>
     LastBeforeBlackout,
 
     /// <summary>
@@ -42,12 +67,19 @@ public enum Staleness
     Recorded,
 }
 
+/// <summary>
+/// The envelope every stream sample, event and command reply carries: where
+/// it was observed from, when it was true in the game, when it was delivered,
+/// and how current it is.
+/// </summary>
+/// <category>Stream messages</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class Meta
 {
+    /// <summary>The node the sample was read from.</summary>
     [SitrepUnit(Units.Id)]
     public string Source { get; set; } = "";
 
@@ -71,6 +103,7 @@ public class Meta
     /// </summary>
     [SitrepUnit(Units.UniversalTime)]
     public double ValidAt { get; set; }
+    /// <summary>A number that rises by one with every frame the mod sends.</summary>
     [SitrepUnit(Units.Id)]
     public long Seq { get; set; }
 
@@ -102,8 +135,10 @@ public class Meta
     /// </summary>
     [SitrepUnit(Units.Enumeration)]
     public Quality Quality { get; set; }
+    /// <summary>Always true on a frame the mod sends.</summary>
     [SitrepUnit(Units.Flag)]
     public bool Active { get; set; }
+    /// <summary>How current the sample is.</summary>
     [SitrepUnit(Units.Enumeration)]
     public Staleness Staleness { get; set; }
 
@@ -178,14 +213,20 @@ public class Meta
 /// deliberately has no home here either.</para>
 /// </internal>
 /// </summary>
+/// <category>Stream messages</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
 public class PayloadMeta
 {
+    /// <summary>
+    /// <c>"vessel:&lt;guid&gt;"</c> when the payload describes one craft, or
+    /// <c>"game"</c> when it describes the session.
+    /// </summary>
     [SitrepUnit(Units.Id)]
     public string Source { get; set; } = "";
+    /// <summary>Whether the craft is on rails or loaded under physics.</summary>
     [SitrepUnit(Units.Enumeration)]
     public Quality Quality { get; set; }
 }

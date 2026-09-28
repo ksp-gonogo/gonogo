@@ -47,6 +47,7 @@ namespace Sitrep.Contract
     /// with the window edge asserts the craft was in that state later than it was.
     /// Everything downstream is then confidently wrong with nothing to notice.</para>
     /// </summary>
+    /// <category>Comms</category>
     public readonly struct DelayedObservation
     {
         private DelayedObservation(
