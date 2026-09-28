@@ -1,5 +1,7 @@
 import type { ParsedManeuverNode } from "@ksp-gonogo/data";
+import type { OrbitPatch } from "@ksp-gonogo/sitrep-sdk";
 import { SectionTitle, Stack } from "@ksp-gonogo/ui-kit";
+import type { ProjectedOrbit } from "../shared/OrbitDiagram";
 import { BurnConformanceRow } from "./BurnConformanceRow";
 import { ConformancePlot } from "./ConformancePlot";
 import { burnConformance } from "./conformance";
@@ -11,6 +13,25 @@ interface ConformanceSectionProps {
   nodes: readonly ParsedManeuverNode[];
   maxDvByUt: ReadonlyMap<number, number>;
   telemetry: PlannerTelemetry;
+}
+
+/**
+ * A patch's conic in the diagram's terms, whose apsides are RADII from the
+ * body's centre like the current orbit's. The patch carries its apsides only as
+ * altitudes over its own reference body, so the radii come from the shape.
+ */
+export function plannedConic(
+  patch: Pick<OrbitPatch, "sma" | "ecc" | "argPe">,
+): ProjectedOrbit {
+  const sma = patch.sma.magnitude;
+  const ecc = patch.ecc.magnitude;
+  return {
+    sma,
+    ecc,
+    apoapsis: sma * (1 + ecc),
+    periapsis: sma * (1 - ecc),
+    argPe: patch.argPe.magnitude,
+  };
 }
 
 /**
@@ -71,17 +92,7 @@ export function ConformanceSection({
                 current={current}
                 currentTrajectory={currentTrajectory}
                 // Patches[0] only: a downstream patch cannot be compared (see ConformancePlot).
-                planned={
-                  first
-                    ? {
-                        sma: first.sma.magnitude,
-                        ecc: first.ecc.magnitude,
-                        apoapsis: first.apA.magnitude,
-                        periapsis: first.peA.magnitude,
-                        argPe: first.argPe.magnitude,
-                      }
-                    : null
-                }
+                planned={first ? plannedConic(first) : null}
                 regime={conformanceRegime(
                   {
                     ut: node.UT,

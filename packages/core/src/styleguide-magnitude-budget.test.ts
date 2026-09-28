@@ -235,12 +235,12 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // algebra has a term for.
   "packages/components/src/LibrationPoints/LibrationPointsView.tsx": 1,
   /*
-   * 5: the burn's first post-burn patch drawn as the planned conic. A
+   * 3: the burn's first post-burn patch drawn as the planned conic. A
    * `ProjectedOrbit` is plain numbers because core's maneuver solver computes
    * its transfer and final conics as numbers and hands them to the same
-   * diagram, so a Value form would only move these five into `OrbitDiagram`.
+   * diagram, so a Value form would only move these three into `OrbitDiagram`.
    */
-  "packages/components/src/ManeuverPlanner/ConformanceSection.tsx": 5,
+  "packages/components/src/ManeuverPlanner/ConformanceSection.tsx": 3,
   "packages/components/src/ManeuverPlanner/LocalManeuverTriggerService.ts": 10,
   // 4: each UnitInput's Value unwrapped into the edit patch, whose fields are the plain numbers the node-edit command carries on the wire.
   "packages/components/src/ManeuverPlanner/NodeEditor.tsx": 4,
