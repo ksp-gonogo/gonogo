@@ -9,7 +9,7 @@ import { contactPhase, type FleetVesselSilence } from "./fleet-contact";
  * not its ordinal, so there is no number to branch on instead. The branch
  * must not silently absorb a member it does not recognize into the Silent
  * treatment: the phase drives FleetRoster's badge, `lost` is
- * `severity="critical"` with `role="alert"`, `waiting` renders nothing at
+ * `tone="nogo"` with `role="alert"`, `waiting` renders nothing at
  * all, so a member appended to the C# enum, however grave, would otherwise be
  * reported as a vessel quietly waiting to come back.
  *
