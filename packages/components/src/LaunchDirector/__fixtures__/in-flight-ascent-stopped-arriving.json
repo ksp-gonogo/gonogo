@@ -33,13 +33,7 @@
       },
       {
         "channel": "spaceCenter.launchSites",
-        "value": [
-          {
-            "name": "__pad_occupancy__",
-            "padOccupied": true,
-            "padVesselTitle": "Mun Hopper I"
-          }
-        ]
+        "value": []
       },
       {
         "channel": "career.status",

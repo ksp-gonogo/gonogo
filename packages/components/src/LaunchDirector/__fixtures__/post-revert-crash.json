@@ -16,13 +16,7 @@
       },
       {
         "channel": "spaceCenter.launchSites",
-        "value": [
-          {
-            "name": "__pad_occupancy__",
-            "padOccupied": true,
-            "padVesselTitle": "Doomed Probe"
-          }
-        ]
+        "value": []
       },
       {
         "channel": "career.status",

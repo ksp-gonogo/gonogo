@@ -122,6 +122,23 @@ describe("useGameContext: career.mode streamed GameMode ordinal (mapped + carrie
     act(() => legacySource.emit("career.mode", "SANDBOX"));
     expect(result.current.careerMode).toBe("SCIENCE");
   });
+
+  it("does not read a mode NAME: only the wire's ordinal is a mode", async () => {
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
+
+    const { result } = renderHook(() => useGameContext(), {
+      wrapper: ({ children }) => (
+        <TelemetryProvider client={client}>{children}</TelemetryProvider>
+      ),
+    });
+
+    act(() => transport.emit("career.mode", { mode: 1 }));
+    await waitFor(() => expect(result.current.careerMode).toBe("CAREER"));
+
+    act(() => transport.emit("career.mode", { mode: "SCIENCE" }));
+    await waitFor(() => expect(result.current.careerMode).toBe("Unknown"));
+  });
 });
 
 /**

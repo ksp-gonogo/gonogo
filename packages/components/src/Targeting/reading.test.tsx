@@ -5,10 +5,6 @@ import { registerCoreReckoners } from "@ksp-gonogo/sitrep-sdk/spine";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import {
-  setupMockDataSource,
-  teardownMockDataSource,
-} from "../test/setupMockDataSource";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { TargetingComponent } from "./index";
 
@@ -40,16 +36,10 @@ const TARGET = {
   relativeVelocity: { x: 30, y: 0, z: 40 },
 };
 
-async function mount(instanceId: string, pinnedUt = 10) {
+function mount(instanceId: string, pinnedUt = 10) {
   const fixture = setupStreamFixture({
     pinnedUt,
     suspendFrames: true,
-  });
-  // The aux source carries flat keys the widget does not read.
-  const legacyAux = await setupMockDataSource({
-    id: "data",
-    keys: [{ key: "tar.name" }, { key: "tar.type" }],
-    connectSource: true,
   });
   const rendered = render(
     <fixture.Provider>
@@ -58,26 +48,22 @@ async function mount(instanceId: string, pinnedUt = 10) {
       </DashboardItemContext.Provider>
     </fixture.Provider>,
   );
-  return { fixture, legacyAux, rendered };
+  return { fixture, rendered };
 }
 
 describe("Targeting: pending is no longer reported as a confirmed absence", () => {
   it("says it is waiting, not that no target is set, before anything arrives", async () => {
-    const { legacyAux } = await mount("dtt-pending");
+    mount("dtt-pending");
 
     // A missing frame must never assert "No target set in KSP".
     expect(screen.getByText("Waiting for target telemetry")).toBeTruthy();
     expect(screen.queryByText("No target set in KSP")).toBeNull();
-
-    teardownMockDataSource(legacyAux);
   });
 
   it("says no target is set only once the wire confirms it, without dating the absence", async () => {
-    const { fixture, legacyAux } = await mount("dtt-absent", 10);
+    const { fixture } = mount("dtt-absent", 10);
 
     act(() => {
-      legacyAux.source.emit("tar.name", "Rendezvous Target");
-      legacyAux.source.emit("tar.type", "Vessel");
       fixture.emit("vessel.target", TARGET);
     });
     await waitFor(() => expect(visibleText()).toContain("10.0 km"));
@@ -93,18 +79,14 @@ describe("Targeting: pending is no longer reported as a confirmed absence", () =
     // Time is only shown through Unit, and an absence has no figure to carry it.
     expect(visibleText()).not.toMatch(/confirmed|last seen|\bago\b/i);
     expect(screen.queryByText("10.0 km")).toBeNull();
-
-    teardownMockDataSource(legacyAux);
   });
 });
 
 describe("Targeting: stale renders the last observation as an observation", () => {
   it("keeps the last distance, marked held by Unit rather than captioned, once the link drops", async () => {
-    const { fixture, legacyAux } = await mount("dtt-stale", 10);
+    const { fixture } = mount("dtt-stale", 10);
 
     act(() => {
-      legacyAux.source.emit("tar.name", "Rendezvous Target");
-      legacyAux.source.emit("tar.type", "Vessel");
       fixture.emit("vessel.target", TARGET);
     });
     await waitFor(() => expect(visibleText()).toContain("10.0 km"));
@@ -132,17 +114,13 @@ describe("Targeting: stale renders the last observation as an observation", () =
     // And it is not passed off as current.
     expect(screen.queryByText("No target set in KSP")).toBeNull();
     expect(screen.queryByText("Waiting for target telemetry")).toBeNull();
-
-    teardownMockDataSource(legacyAux);
   });
 
   it("shows no reckoned figure while nothing can honestly model one", async () => {
     clearReckoners();
-    const { fixture, legacyAux } = await mount("dtt-noreckon", 10);
+    const { fixture } = mount("dtt-noreckon", 10);
 
     act(() => {
-      legacyAux.source.emit("tar.name", "Rendezvous Target");
-      legacyAux.source.emit("tar.type", "Vessel");
       fixture.emit("vessel.target", TARGET);
     });
     await waitFor(() => expect(visibleText()).toContain("10.0 km"));
@@ -157,8 +135,6 @@ describe("Targeting: stale renders the last observation as an observation", () =
 
     // No model is registered for the topic, so no reckoned row: presence of the row is the statement of trust.
     expect(visibleText()).not.toMatch(/reckoned/i);
-
-    teardownMockDataSource(legacyAux);
   });
 
   it("renders the modelled range beside the observation once a model exists", async () => {
@@ -184,10 +160,8 @@ describe("Targeting: stale renders the last observation as an observation", () =
       },
     );
 
-    const { fixture, legacyAux } = await mount("dtt-reckon", 10);
+    const { fixture } = mount("dtt-reckon", 10);
     act(() => {
-      legacyAux.source.emit("tar.name", "Rendezvous Target");
-      legacyAux.source.emit("tar.type", "Vessel");
       fixture.emit("vessel.target", TARGET);
     });
     await waitFor(() => expect(visibleText()).toContain("10.0 km"));
@@ -203,19 +177,12 @@ describe("Targeting: stale renders the last observation as an observation", () =
     expect(visibleText()).toContain("12.0 km");
     expect(visibleText()).toContain("linear-dead-reckoning");
     expect(document.querySelector("[data-held]")).not.toBeNull();
-
-    teardownMockDataSource(legacyAux);
   });
 
   it("drops out of the docking HUD rather than drawing alignment from stale data", async () => {
     const fixture = setupStreamFixture({
       pinnedUt: 10,
       suspendFrames: true,
-    });
-    const legacyAux = await setupMockDataSource({
-      id: "data",
-      keys: [{ key: "tar.name" }, { key: "tar.type" }],
-      connectSource: true,
     });
     render(
       <fixture.Provider>
@@ -226,8 +193,6 @@ describe("Targeting: stale renders the last observation as an observation", () =
     );
 
     act(() => {
-      legacyAux.source.emit("tar.name", "Docking Port Mk2");
-      legacyAux.source.emit("tar.type", "Vessel");
       fixture.emit("vessel.target", {
         name: "Docking Port Mk2",
         kind: 0,
@@ -265,7 +230,5 @@ describe("Targeting: stale renders the last observation as an observation", () =
       ).toBeNull(),
     );
     expect(document.querySelector("[data-held]")).not.toBeNull();
-
-    teardownMockDataSource(legacyAux);
   });
 });

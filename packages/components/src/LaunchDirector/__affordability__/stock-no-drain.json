@@ -59,26 +59,14 @@
     {
       "name": "LaunchPad",
       "displayName": "KSC Launch Pad",
-      "facility": "VAB",
-      "body": "Kerbin",
-      "ready": true,
-      "unlocked": true
+      "editorFacility": "VAB",
+      "isStock": true
     },
     {
       "name": "Woomerang_Launch_Site",
       "displayName": "Woomerang",
-      "facility": "VAB",
-      "body": "Kerbin",
-      "ready": true,
-      "unlocked": true
-    },
-    {
-      "name": "Desert_Launch_Site",
-      "displayName": "Desert Launch Site",
-      "facility": "VAB",
-      "body": "Kerbin",
-      "ready": true,
-      "unlocked": false
+      "editorFacility": "VAB",
+      "isStock": true
     }
   ],
   "kc.scene": "SpaceCenter",
@@ -99,31 +87,14 @@
           {
             "name": "LaunchPad",
             "displayName": "KSC Launch Pad",
-            "facility": "VAB",
-            "body": "Kerbin",
-            "ready": true,
-            "unlocked": true
+            "editorFacility": "VAB",
+            "isStock": true
           },
           {
             "name": "Woomerang_Launch_Site",
             "displayName": "Woomerang",
-            "facility": "VAB",
-            "body": "Kerbin",
-            "ready": true,
-            "unlocked": true
-          },
-          {
-            "name": "Desert_Launch_Site",
-            "displayName": "Desert Launch Site",
-            "facility": "VAB",
-            "body": "Kerbin",
-            "ready": true,
-            "unlocked": false
-          },
-          {
-            "name": "__pad_occupancy__",
-            "padOccupied": false,
-            "padVesselTitle": null
+            "editorFacility": "VAB",
+            "isStock": true
           }
         ]
       },

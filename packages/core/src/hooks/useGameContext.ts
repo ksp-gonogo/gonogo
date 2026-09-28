@@ -80,12 +80,6 @@ const KNOWN_SCENES: ReadonlySet<GameScene> = new Set<GameScene>([
   "Other",
 ]);
 
-const KNOWN_MODES: ReadonlySet<CareerMode> = new Set<CareerMode>([
-  "CAREER",
-  "SCIENCE",
-  "SANDBOX",
-]);
-
 /**
  * `Sitrep.Contract.GameMode`'s enum declaration order (`contract.ts`:
  * Sandbox 0 / Career 1 / Science 2 / Unknown 3), index-matched so the
@@ -99,27 +93,13 @@ export const GAME_MODE_ORDINAL: readonly CareerMode[] = [
 ];
 
 /**
- * `career.mode` (P4a D1) reads through two possible shapes depending on
- * whether the read routed to the stream or the legacy `DataSource`:
- *  - **legacy** (GonogoTelemetry's flat `career.mode` key): a plain
- *    string (`"CAREER"`/`"SCIENCE"`/`"SANDBOX"`, any casing).
- *  - **stream** (mapped to `career.mode.mode`: see `map-topic.ts`): the
- *    mod's `GameMode` enum ORDINAL (a number), since `CareerMode.mode` is
- *    serialized as `(int)mode` on the wire, not the enum name.
- * Both resolve to the same `CareerMode` display string here so callers never
- * need to know which source answered.
+ * `career.mode.mode` is the mod's `GameMode` enum ORDINAL, since
+ * `CareerMode.mode` is serialized as `(int)mode` on the wire, not the enum
+ * name. Anything else is not a mode this app knows.
  */
 function resolveCareerMode(raw: unknown): CareerMode {
-  if (typeof raw === "number") {
-    return GAME_MODE_ORDINAL[raw] ?? "Unknown";
-  }
-  if (
-    typeof raw === "string" &&
-    KNOWN_MODES.has(raw.toUpperCase() as CareerMode)
-  ) {
-    return raw.toUpperCase() as CareerMode;
-  }
-  return "Unknown";
+  if (typeof raw !== "number") return "Unknown";
+  return GAME_MODE_ORDINAL[raw] ?? "Unknown";
 }
 
 /**
@@ -128,8 +108,7 @@ function resolveCareerMode(raw: unknown): CareerMode {
  * widgets dim themselves outside `Flight`, career-only widgets dim
  * outside `isCareerLike`, etc.
  *
- * Three subscriptions, one render. Cheap to call from many widgets at
- * once because `useDataValue` already deduplicates per-key.
+ * Three subscriptions, one render.
  */
 export function useGameContext(): GameContext {
   // Canonical Topic reads (former flat kc.*/career.* keys resolved

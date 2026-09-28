@@ -1,4 +1,3 @@
-import type { DataKey } from "@ksp-gonogo/core";
 import {
   clearActionHandlers,
   clearAugments,
@@ -16,10 +15,6 @@ import {
 import { useWidgetScope } from "@ksp-gonogo/ui-kit";
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it } from "vitest";
-import {
-  setupMockDataSource,
-  teardownMockDataSource,
-} from "../test/setupMockDataSource";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { PowerSystemsComponent } from "./index";
 
@@ -33,11 +28,6 @@ function render(ui: ReactElement) {
 }
 
 /** An empty `power-systems.sections` slot renders cleanly, and a registered augment appears and reads the widget's resource focus from its scope. */
-
-const KEYS: DataKey[] = [
-  { key: "r.resource[ElectricCharge]" },
-  { key: "parts.power" },
-];
 
 const VESSEL_PARTS_WIRE = {
   parts: [
@@ -68,11 +58,6 @@ async function renderFullList() {
     pinnedUt: 10,
     suspendFrames: true,
   });
-  const legacyAux = await setupMockDataSource({
-    id: "data",
-    keys: KEYS,
-    connectSource: true,
-  });
   render(
     <streamFixture.Provider>
       {/* `Panel` completes `${componentId}.${segment}` from this identity for its universal seams. */}
@@ -89,7 +74,6 @@ async function renderFullList() {
     streamFixture.emit("vessel.parts", VESSEL_PARTS_WIRE);
   });
   await waitFor(() => expect(screen.getByText("PROD")).toBeTruthy());
-  return legacyAux;
 }
 
 describe("PowerSystems: augment slots", () => {
@@ -105,11 +89,10 @@ describe("PowerSystems: augment slots", () => {
   });
 
   it("renders the full list with no augment bound (an empty slot is inert)", async () => {
-    const fixture = await renderFullList();
+    await renderFullList();
     expect(screen.getByText("Producers")).toBeTruthy();
     expect(screen.getByText("Consumers")).toBeTruthy();
     expect(screen.queryByTestId("ps-section-augment")).toBeNull();
-    teardownMockDataSource(fixture);
   });
 
   it("renders a test augment bound to the sections slot, which reads the focused resource from the widget's scope", async () => {
@@ -118,7 +101,7 @@ describe("PowerSystems: augment slots", () => {
       const resource = useWidgetScope("power-systems")?.resource;
       return <div data-testid="ps-section-augment">EC-BROKER: {resource}</div>;
     }
-    const fixture = await renderFullList();
+    await renderFullList();
 
     act(() => {
       registerAugment({
@@ -131,6 +114,5 @@ describe("PowerSystems: augment slots", () => {
     const augment = await screen.findByTestId("ps-section-augment");
     expect(augment).toBeTruthy();
     expect(augment.textContent).toBe("EC-BROKER: ElectricCharge");
-    teardownMockDataSource(fixture);
   });
 });

@@ -22,7 +22,7 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { FuelStatusComponent } from "./index";
 
 /**
- * FuelStatus off the real stream pipeline. The `dv.stages` fixtures here emit the legacy `StageInfo` field names on purpose, as a shape-tolerance proof, and the stage-scoped resource channels are registered on the fixture store because a `providedStore` does not register the production derived channels.
+ * FuelStatus off the real stream pipeline. The `dv.stages` rows here carry the wire's own `StageDeltaVEntry` names, and the stage-scoped resource channels are registered on the fixture store because a `providedStore` does not register the production derived channels.
  */
 
 // Tracked so afterEach unmounts them before clearing the augment registry; clearing under a mounted AugmentSlot is an update outside act().

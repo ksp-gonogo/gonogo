@@ -3,10 +3,6 @@ import { DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
-import {
-  setupMockDataSource,
-  teardownMockDataSource,
-} from "../test/setupMockDataSource";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import {
   extractLegacyPartLiveFromFixture,
@@ -26,7 +22,7 @@ describe("PowerSystems: behavior-preservation golden dual-run (delay=0)", () => 
   it("renders IDENTICAL markup with parts.power carried as without it, when totalProductionEc matches the topology-summed total", async () => {
     const mode = { name: "default-8x12", w: 8, h: 12 };
 
-    const legacyHtml = await snapshotWidgetMode({
+    const baselineHtml = await snapshotWidgetMode({
       Widget: PowerSystemsComponent,
       fixture: charging,
       mode,
@@ -37,16 +33,6 @@ describe("PowerSystems: behavior-preservation golden dual-run (delay=0)", () => 
       pinnedUt: 10,
       suspendFrames: true,
     });
-    const legacyAux = await setupMockDataSource({
-      id: "data",
-      keys: Object.keys(charging)
-        .filter(
-          (k) => k !== "_meta" && k !== "v.topology" && k !== "v.topologySeq",
-        )
-        .map((key) => ({ key })),
-      connectSource: true,
-    });
-
     const { container } = render(
       <streamFixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "ps-dual" }}>
@@ -56,16 +42,6 @@ describe("PowerSystems: behavior-preservation golden dual-run (delay=0)", () => 
     );
 
     act(() => {
-      for (const [key, value] of Object.entries(charging)) {
-        if (
-          key === "_meta" ||
-          key === "v.topology" ||
-          key === "v.topologySeq"
-        ) {
-          continue;
-        }
-        legacyAux.source.emit(key, value);
-      }
       // Topology and per-part resources both ride the one `vessel.parts` payload.
       streamFixture.emit(
         "vessel.parts",
@@ -93,8 +69,7 @@ describe("PowerSystems: behavior-preservation golden dual-run (delay=0)", () => 
     });
 
     const streamHtml = stripVolatile(container.innerHTML);
-    teardownMockDataSource(legacyAux);
 
-    expect(streamHtml).toBe(legacyHtml);
+    expect(streamHtml).toBe(baselineHtml);
   });
 });

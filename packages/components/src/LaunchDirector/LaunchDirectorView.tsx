@@ -89,11 +89,8 @@ export function LaunchDirectorComponent({
   const ships = parseSavedShips(savedShipsRaw);
   const crew = parseCrew(crewRosterRaw);
   const launchSites = parseLaunchSites(launchSitesRaw);
-  // Only sites the save can actually launch from, in the order the operator should read them: something on it first.
-  const pads = useMemo(
-    () => orderPads((launchSites ?? []).filter((s) => s.unlocked)),
-    [launchSites],
-  );
+  // In the order the operator should read them: something on it first.
+  const pads = useMemo(() => orderPads(launchSites ?? []), [launchSites]);
 
   const [selectedShip, setSelectedShip] = useState<string | null>(null);
   // Which pad row is open; null means the first pad in prioritised order stands in. Derived, so a pad that leaves cannot leave a dead selection.

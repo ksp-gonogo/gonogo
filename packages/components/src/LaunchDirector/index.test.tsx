@@ -681,30 +681,27 @@ describe("LaunchDirectorComponent", () => {
     });
   }
 
-  const legacySite = (
+  const site = (
     name: string,
     displayName: string,
-    unlocked: boolean,
   ): Record<string, unknown> => ({
     name,
     displayName,
-    facility: "VAB",
-    body: "Kerbin",
-    ready: true,
-    unlocked,
+    editorFacility: "VAB",
+    bodyIndex: 1,
+    isStock: true,
+    padOccupied: null,
+    padVesselTitle: null,
   });
 
   it("launches from the pad the operator opened, not the first in the list", async () => {
     const user = userEvent.setup();
     await setupForLaunch([
-      legacySite("LaunchPad", "KSC Launch Pad", true),
-      legacySite("Woomerang_Launch_Site", "Woomerang", true),
-      legacySite("Desert_Launch_Site", "Desert Site", false),
+      site("LaunchPad", "KSC Launch Pad"),
+      site("Woomerang_Launch_Site", "Woomerang"),
     ]);
 
-    // A site the save has not unlocked is not a pad the operator has.
     expect(await screen.findByText("KSC Launch Pad")).toBeInTheDocument();
-    expect(screen.queryByText("Desert Site")).not.toBeInTheDocument();
 
     await user.click(screen.getByText("Woomerang"));
     await user.click(await screen.findByText("Mun Hopper"));
@@ -719,7 +716,7 @@ describe("LaunchDirectorComponent", () => {
 
   it("opens the first pad on its own, so a single-pad save is still two clicks", async () => {
     const user = userEvent.setup();
-    await setupForLaunch([legacySite("LaunchPad", "KSC Launch Pad", true)]);
+    await setupForLaunch([site("LaunchPad", "KSC Launch Pad")]);
 
     await user.click(await screen.findByText("Mun Hopper"));
     await user.click(screen.getByText(/Launch Mun Hopper unmanned/i));
@@ -750,18 +747,21 @@ describe("parseLaunchSites", () => {
 
   it("drops entries with no name and falls back displayName to name", () => {
     const parsed = parseLaunchSites([
-      { name: "LaunchPad", unlocked: true },
+      { name: "LaunchPad", editorFacility: "VAB" },
       { displayName: "orphan" },
     ]);
     expect(parsed).toHaveLength(1);
     expect(parsed?.[0]?.displayName).toBe("LaunchPad");
-    expect(parsed?.[0]?.unlocked).toBe(true);
+    expect(parsed?.[0]?.facility).toBe("VAB");
   });
 
-  it("coerces ready/unlocked to booleans", () => {
-    const parsed = parseLaunchSites([{ name: "x" }]);
-    expect(parsed?.[0]?.ready).toBe(false);
-    expect(parsed?.[0]?.unlocked).toBe(false);
+  it("reads the facility only from editorFacility, never from an old-shape facility field", () => {
+    const parsed = parseLaunchSites([
+      { name: "LaunchPad", facility: "VAB", unlocked: false },
+    ]);
+    expect(parsed).toHaveLength(1);
+    expect(parsed?.[0]?.facility).toBe("");
+    expect(parsed?.[0]).not.toHaveProperty("unlocked");
   });
 });
 

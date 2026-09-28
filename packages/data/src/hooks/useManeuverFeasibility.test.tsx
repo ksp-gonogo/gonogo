@@ -38,7 +38,7 @@ function Probe({
 }
 
 /**
- * `useManeuverFeasibility` composes `useManeuverNodes` (`vessel.maneuver.legacy`)
+ * `useManeuverFeasibility` composes `useManeuverNodes` (`vessel.maneuver`)
  * and the shared `DELTA_V_BUDGET` processor (`dv.summary`): both real stream
  * reads, so these tests emit the raw `vessel.maneuver`/`dv.summary` wire topics
  * through a real `TelemetryProvider`/`TelemetryClient` instead of a

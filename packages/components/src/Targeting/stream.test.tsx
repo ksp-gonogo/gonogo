@@ -3,10 +3,6 @@ import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
-import {
-  setupMockDataSource,
-  teardownMockDataSource,
-} from "../test/setupMockDataSource";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { TargetingComponent } from "./index";
 
@@ -14,8 +10,7 @@ import { TargetingComponent } from "./index";
  * Targeting running off the real stream pipeline via `StubTransport`. Every
  * scalar and angle is derived client-side from the `vessel.target` and
  * `vessel.dock` Vec3 fields; docking roll is not on the wire and renders the
- * null placeholder. The small aux source carries flat keys the widget does not
- * read.
+ * null placeholder.
  */
 afterEach(() => {
   clearActionHandlers();
@@ -26,11 +21,6 @@ describe("Targeting: genuinely runs off the stream", () => {
     const fixture = setupStreamFixture({
       pinnedUt: 10,
       suspendFrames: true,
-    });
-    const legacyAux = await setupMockDataSource({
-      id: "data",
-      keys: [{ key: "tar.name" }, { key: "tar.type" }],
-      connectSource: true,
     });
 
     render(
@@ -46,8 +36,6 @@ describe("Targeting: genuinely runs off the stream", () => {
     expect(fixture.transport.isSubscribed("vessel.target")).toBe(true);
 
     act(() => {
-      legacyAux.source.emit("tar.name", "Stream Station");
-      legacyAux.source.emit("tar.type", "Vessel");
       // |(6000, 0, 8000)| = 10000 m; the dot product is positive, so opening at 50 m/s.
       fixture.emit("vessel.target", {
         name: "Stream Station",
@@ -61,19 +49,12 @@ describe("Targeting: genuinely runs off the stream", () => {
 
     await waitFor(() => expect(visibleText()).toContain("10.0 km"));
     expect(visibleText()).toContain("Δv 50.00 m/s");
-
-    teardownMockDataSource(legacyAux);
   });
 
   it("derives docking-HUD alignment angles + forwardDot from vessel.dock", async () => {
     const fixture = setupStreamFixture({
       pinnedUt: 10,
       suspendFrames: true,
-    });
-    const legacyAux = await setupMockDataSource({
-      id: "data",
-      keys: [{ key: "tar.name" }, { key: "tar.type" }],
-      connectSource: true,
     });
 
     render(
@@ -85,8 +66,6 @@ describe("Targeting: genuinely runs off the stream", () => {
     );
 
     act(() => {
-      legacyAux.source.emit("tar.name", "Docking Port Mk2");
-      legacyAux.source.emit("tar.type", "Vessel");
       // Under HUD_ENTER_M, forcing docking-hud mode.
       fixture.emit("vessel.target", {
         name: "Docking Port Mk2",
@@ -115,19 +94,12 @@ describe("Targeting: genuinely runs off the stream", () => {
     expect(visibleText()).toContain(`2.9° · -2.1° · ${NULL_DISPLAY}`);
     // The dock distance headlines the HUD, on the `length` ladder.
     expect(visibleText()).toContain("62.0 m");
-
-    teardownMockDataSource(legacyAux);
   });
 
   it("degrades correctly (not stale) when the target is cleared, vessel.target present -> null tombstone", async () => {
     const fixture = setupStreamFixture({
       pinnedUt: 10,
       suspendFrames: true,
-    });
-    const legacyAux = await setupMockDataSource({
-      id: "data",
-      keys: [{ key: "tar.name" }, { key: "tar.type" }],
-      connectSource: true,
     });
 
     const { container } = render(
@@ -139,9 +111,6 @@ describe("Targeting: genuinely runs off the stream", () => {
     );
 
     act(() => {
-      // A decoy legacy emit: the widget must not fall back to it once the target is cleared on the wire.
-      legacyAux.source.emit("tar.name", "Rendezvous Target");
-      legacyAux.source.emit("tar.type", "Vessel");
       fixture.emit("vessel.target", {
         name: "Rendezvous Target",
         kind: 0,
@@ -169,8 +138,6 @@ describe("Targeting: genuinely runs off the stream", () => {
     // The stale distance and name must not survive the clear.
     expect(screen.queryByText("10.0 km")).toBeNull();
     expect(screen.queryByText("Rendezvous Target")).toBeNull();
-
-    teardownMockDataSource(legacyAux);
   });
 
   it("renders approach-mode TCA from vessel.target.closestApproach and the SDK view-UT", async () => {
@@ -178,11 +145,6 @@ describe("Targeting: genuinely runs off the stream", () => {
     const fixture = setupStreamFixture({
       pinnedUt: 1000,
       suspendFrames: true,
-    });
-    const legacyAux = await setupMockDataSource({
-      id: "data",
-      keys: [{ key: "tar.name" }, { key: "tar.type" }],
-      connectSource: true,
     });
 
     render(
@@ -194,8 +156,6 @@ describe("Targeting: genuinely runs off the stream", () => {
     );
 
     act(() => {
-      legacyAux.source.emit("tar.name", "Rendezvous Target");
-      legacyAux.source.emit("tar.type", "Vessel");
       // 2000 m is approach mode, closing at 5 m/s; closest approach at UT 1125 is 125 s from the view-UT.
       fixture.emit("vessel.target", {
         name: "Rendezvous Target",
@@ -210,7 +170,5 @@ describe("Targeting: genuinely runs off the stream", () => {
 
     await waitFor(() => expect(screen.getByText("APPROACH")).toBeTruthy());
     expect(visibleText()).toMatch(/T−2min 5s/);
-
-    teardownMockDataSource(legacyAux);
   });
 });

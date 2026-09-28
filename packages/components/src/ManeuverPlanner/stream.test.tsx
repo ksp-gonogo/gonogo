@@ -5,10 +5,6 @@ import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ANALYTIC_UNBOUNDED_HORIZON } from "../test/orbitHorizon";
-import {
-  setupMockDataSource,
-  teardownMockDataSource,
-} from "../test/setupMockDataSource";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ManeuverPlannerComponent } from "./index";
 
@@ -16,17 +12,6 @@ import { ManeuverPlannerComponent } from "./index";
 afterEach(() => {
   clearActionHandlers();
 });
-
-const CARRIED_ORBIT = [
-  "vessel.orbit",
-  "vessel.flight",
-  "vessel.identity",
-  "system.bodies",
-  "vessel.control",
-  "vessel.target",
-  "vessel.comms",
-  "vessel.propulsion",
-];
 
 const REAL_NODE_ID = "3aabdda0-9d2a-4931-8511-d9bfa4be4b4e";
 
@@ -121,15 +106,7 @@ describe("ManeuverPlanner: maneuver-node id round-trip", () => {
     );
   });
 
-  it("Delete falls back to the plain positional index when no stream id has arrived at all", async () => {
-    const executed: string[] = [];
-    const legacyAux = await setupMockDataSource({
-      keys: [],
-      onExecute: (action) => {
-        executed.push(action);
-      },
-    });
-
+  it("offers no Delete control when no stream is mounted", () => {
     // With no provider mounted there are no nodes, so no row renders.
     render(
       <DashboardItemContext.Provider value={{ instanceId: "mnv-no-stream" }}>
@@ -140,9 +117,6 @@ describe("ManeuverPlanner: maneuver-node id round-trip", () => {
     expect(
       screen.queryByRole("button", { name: "Delete node" }),
     ).not.toBeInTheDocument();
-    expect(executed).toEqual([]);
-
-    teardownMockDataSource(legacyAux);
   });
 
   it("Edit (Save) dispatches vessel.maneuver.update with the REAL node id", async () => {

@@ -5,8 +5,6 @@ export interface LaunchSiteEntry {
   displayName: string;
   facility: string;
   body: string;
-  ready: boolean;
-  unlocked: boolean;
   /**
    * Whether a vessel is standing on this pad, `null` when this site reports no
    * occupancy at all. The mod reports occupancy for the stock VAB pad alone, so
@@ -17,17 +15,10 @@ export interface LaunchSiteEntry {
   occupantName: string | null;
 }
 
-function facilityOf(e: Record<string, unknown>): string {
-  if (typeof e.facility === "string") return e.facility;
-  if (typeof e.editorFacility === "string") return e.editorFacility;
-  return "";
-}
-
 /**
- * Parse `kc.launchSites`; null when the key is absent so the picker collapses.
- * Accepts the legacy `{ facility, body, ready, unlocked }` shape and the mod's
- * `LaunchSiteEntry` (`editorFacility`, `bodyIndex`, `isStock`). A new-shape
- * entry is selectable: the mod enumerates only sites available to launch from.
+ * Parse `spaceCenter.launchSites`; null when the channel is absent so the
+ * picker collapses. Every entry is selectable: the mod enumerates only the
+ * sites available to launch from.
  */
 export function parseLaunchSites(raw: unknown): LaunchSiteEntry[] | null {
   if (raw === null || raw === undefined) return null;
@@ -39,18 +30,14 @@ export function parseLaunchSites(raw: unknown): LaunchSiteEntry[] | null {
     const e = entry as Record<string, unknown>;
     const name = typeof e.name === "string" ? e.name : null;
     if (!name) continue;
-    // The mod entry has `editorFacility`/`isStock` and no legacy `unlocked` field.
-    const isNewShape = !("unlocked" in e) && "editorFacility" in e;
     out.push({
       name,
       displayName:
         typeof e.displayName === "string" && e.displayName
           ? e.displayName
           : name,
-      facility: facilityOf(e),
+      facility: typeof e.editorFacility === "string" ? e.editorFacility : "",
       body: typeof e.body === "string" ? e.body : "",
-      ready: e.ready === true,
-      unlocked: isNewShape ? true : e.unlocked === true,
       // Only a real boolean is an answer; anything else is a site that reported no occupancy.
       occupied: typeof e.padOccupied === "boolean" ? e.padOccupied : null,
       occupantName:

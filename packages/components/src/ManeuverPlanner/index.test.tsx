@@ -1,15 +1,12 @@
-import type { DataKey } from "@ksp-gonogo/core";
 import {
   clearAugments,
   clearRegistry,
   getComponent,
   registerAugment,
-  registerDataSource,
   WidgetMetaContext,
 } from "@ksp-gonogo/core";
-import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
 import { ManeuverFrame } from "@ksp-gonogo/sitrep-sdk";
-import { commandArgs, MockDataSource } from "@ksp-gonogo/sitrep-sdk/testing";
+import { commandArgs } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render as rtlRender, screen } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
@@ -19,7 +16,7 @@ import { ANALYTIC_UNBOUNDED_HORIZON } from "../test/orbitHorizon";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ManeuverPlannerComponent } from "./index";
 
-// Unmounted before disconnect() or clearAugments(), which would otherwise notify a mounted tree outside act().
+// Unmounted before clearAugments(), which would otherwise notify a mounted tree outside act().
 const renderedTrees: Array<() => void> = [];
 
 function render(ui: ReactElement) {
@@ -57,45 +54,14 @@ utFixture.client.subscribe("system.bodies", () => {});
 
 /**
  * One frame, so frame-driven quantities (view UT, the trigger service's
- * re-evaluation) reach the render. Needed after a legacy-source emit or a time
- * advance; a stream emit mints its own frame.
+ * re-evaluation) reach the render. Needed after a time advance; a stream emit
+ * mints its own frame.
  */
 async function flushViewUt(): Promise<void> {
   await act(async () => {
     utFixture.emitFrame();
   });
 }
-
-// The widget shell over a real BufferedDataSource; the orbital math has its own tests in core.
-const KEYS: DataKey[] = [
-  { key: "v.name" },
-  { key: "v.missionTime" },
-  { key: "v.body" },
-  { key: "comm.connected" },
-  { key: "o.sma" },
-  { key: "o.eccentricity" },
-  { key: "o.ApR" },
-  { key: "o.PeR" },
-  { key: "o.ApA" },
-  { key: "o.PeA" },
-  { key: "o.argumentOfPeriapsis" },
-  { key: "o.trueAnomaly" },
-  { key: "o.timeToAp" },
-  { key: "o.timeToPe" },
-  { key: "o.inclination" },
-  { key: "o.period" },
-  { key: "o.orbitalSpeed" },
-  { key: "o.radius" },
-  { key: "o.referenceBody" },
-  { key: "o.lan" },
-  { key: "o.maneuverNodes" },
-  { key: "t.universalTime" },
-  { key: "tar.name" },
-  { key: "tar.o.inclination" },
-  { key: "tar.o.lan" },
-  { key: "dv.stages" },
-  { key: "dv.summary" },
-];
 
 /** A self-consistent Keplerian orbit, at periapsis exactly at the pinned view UT. */
 const VESSEL_ORBIT_STREAM_FIXTURE = {
@@ -146,27 +112,7 @@ function emitManeuverNode(
 }
 
 /** `bodyName` is the name reported at index 1; a planet pack changes only that, which a name lookup misses. */
-function emitFullOrbit(source: MockDataSource, bodyName = "Kerbin"): void {
-  source.emit("comm.connected", true);
-  source.emit("v.name", "Test Vessel");
-  source.emit("v.missionTime", 0);
-  source.emit("v.body", "Kerbin");
-  source.emit("o.referenceBody", "Kerbin");
-  source.emit("o.sma", 700000);
-  source.emit("o.eccentricity", 0.01);
-  source.emit("o.ApR", 707000);
-  source.emit("o.PeR", 693000);
-  source.emit("o.ApA", 107000);
-  source.emit("o.PeA", 93000);
-  source.emit("o.argumentOfPeriapsis", 0);
-  source.emit("o.trueAnomaly", 0);
-  source.emit("o.timeToAp", 900);
-  source.emit("o.timeToPe", 1800);
-  source.emit("o.inclination", 0);
-  source.emit("o.period", 3600);
-  source.emit("o.orbitalSpeed", 2300);
-  source.emit("o.radius", 700000);
-  source.emit("t.universalTime", 1_000_000);
+function emitFullOrbit(bodyName = "Kerbin"): void {
   // The trigger tests threshold on this orbit's sma and plan against its conic, which needs the body radius.
   utFixture.emit("vessel.orbit", VESSEL_ORBIT_STREAM_FIXTURE);
   utFixture.emit("vessel.identity", VESSEL_IDENTITY_STREAM_FIXTURE);
@@ -184,20 +130,12 @@ function emitFullOrbit(source: MockDataSource, bodyName = "Kerbin"): void {
 }
 
 describe("ManeuverPlannerComponent", () => {
-  let source: MockDataSource;
-  let buffered: BufferedDataSource;
-
-  beforeEach(async () => {
+  beforeEach(() => {
     clearRegistry();
-    source = new MockDataSource({ keys: KEYS, affectedBySignalLoss: true });
-    buffered = new BufferedDataSource({ source, store: new MemoryStore() });
-    registerDataSource(buffered);
-    await buffered.connect();
   });
 
   afterEach(() => {
     unmountAll();
-    buffered.disconnect();
   });
 
   it("shows an ordinary empty state until there is an orbit to plan against", () => {
@@ -241,7 +179,7 @@ describe("ManeuverPlannerComponent", () => {
       </utFixture.Provider>,
     );
     act(() => {
-      emitFullOrbit(source);
+      emitFullOrbit();
     });
     await flushViewUt();
     expect(screen.queryByText(/Waiting for telemetry/i)).toBeNull();
@@ -257,7 +195,7 @@ describe("ManeuverPlannerComponent", () => {
       </utFixture.Provider>,
     );
     act(() => {
-      emitFullOrbit(source);
+      emitFullOrbit();
       emitManeuverNode([{ ut: 1_000_120, dvRadial: 30 }]);
     });
     // The node list recomputes on a frame tick, and the shared store otherwise holds the prior test's frame.
@@ -273,7 +211,7 @@ describe("ManeuverPlannerComponent", () => {
       </utFixture.Provider>,
     );
     act(() => {
-      emitFullOrbit(source);
+      emitFullOrbit();
       // ApR about 1_000_000 and PeR about 700_000: a real circularise cost against a tiny budget.
       utFixture.emit("vessel.orbit", {
         ...VESSEL_ORBIT_STREAM_FIXTURE,
@@ -382,19 +320,7 @@ describe("ManeuverPlannerComponent", () => {
 
   it("arms a conditional trigger and dispatches the burn when the condition holds", async () => {
     const user = userEvent.setup();
-    buffered.disconnect();
-    clearRegistry();
     const calls: string[] = [];
-    source = new MockDataSource({
-      keys: KEYS,
-      affectedBySignalLoss: true,
-      onExecute: (action) => {
-        calls.push(action);
-      },
-    });
-    buffered = new BufferedDataSource({ source, store: new MemoryStore() });
-    registerDataSource(buffered);
-    await buffered.connect();
     // A fired trigger dispatches over the stream, so it is captured off the transport.
     utFixture.transport.setCommandHandler((command, args) => {
       if (command === "vessel.maneuver.add") {
@@ -409,7 +335,7 @@ describe("ManeuverPlannerComponent", () => {
       </utFixture.Provider>,
     );
     act(() => {
-      emitFullOrbit(source);
+      emitFullOrbit();
     });
     await flushViewUt();
 
@@ -432,7 +358,6 @@ describe("ManeuverPlannerComponent", () => {
 
     // The trigger reads sma off the stream, so the crossing has to be a stream emit.
     await act(async () => {
-      source.emit("o.ApA", 250000);
       utFixture.emit("vessel.orbit", {
         ...VESSEL_ORBIT_STREAM_FIXTURE,
         sma: 900_000,
@@ -447,19 +372,7 @@ describe("ManeuverPlannerComponent", () => {
 
   it("fires immediately when the trigger condition is already true at arm time", async () => {
     const user = userEvent.setup();
-    buffered.disconnect();
-    clearRegistry();
     const calls: string[] = [];
-    source = new MockDataSource({
-      keys: KEYS,
-      affectedBySignalLoss: true,
-      onExecute: (action) => {
-        calls.push(action);
-      },
-    });
-    buffered = new BufferedDataSource({ source, store: new MemoryStore() });
-    registerDataSource(buffered);
-    await buffered.connect();
     utFixture.transport.setCommandHandler((command, args) => {
       if (command === "vessel.maneuver.add") {
         calls.push(formatManeuverAddCommand(args));
@@ -473,7 +386,7 @@ describe("ManeuverPlannerComponent", () => {
       </utFixture.Provider>,
     );
     act(() => {
-      emitFullOrbit(source);
+      emitFullOrbit();
     });
     await flushViewUt();
 
@@ -513,7 +426,7 @@ describe("ManeuverPlannerComponent", () => {
         </utFixture.Provider>,
       );
       act(() => {
-        emitFullOrbit(source);
+        emitFullOrbit();
       });
       // Fake timers also fake requestAnimationFrame, so the frame tick needs an explicit advance.
       act(() => {
@@ -554,7 +467,7 @@ describe("ManeuverPlannerComponent", () => {
       </utFixture.Provider>,
     );
     act(() => {
-      emitFullOrbit(source, "Earth");
+      emitFullOrbit("Earth");
     });
     await screen.findByText("New Ap");
     expect(visibleText()).toMatch(/107\.0 km/);
@@ -569,7 +482,7 @@ describe("ManeuverPlannerComponent", () => {
       </utFixture.Provider>,
     );
     act(() => {
-      emitFullOrbit(source);
+      emitFullOrbit();
     });
 
     // Default preset (circularize-apo) has no custom inputs.
@@ -605,7 +518,7 @@ describe("ManeuverPlannerComponent", () => {
       </utFixture.Provider>,
     );
     act(() => {
-      emitFullOrbit(source);
+      emitFullOrbit();
     });
 
     const select = screen.getByRole("combobox") as HTMLSelectElement;
@@ -652,7 +565,7 @@ describe("ManeuverPlannerComponent", () => {
       </utFixture.Provider>,
     );
     act(() => {
-      emitFullOrbit(source);
+      emitFullOrbit();
       emitManeuverNode([{ ut: 1_000_120, dvPrograde: 30 }]);
     });
     await flushViewUt();
@@ -704,7 +617,7 @@ describe("ManeuverPlannerComponent", () => {
       </utFixture.Provider>,
     );
     act(() => {
-      emitFullOrbit(source);
+      emitFullOrbit();
     });
 
     const addBtn = await screen.findByRole("button", { name: /^add node$/i });
@@ -720,22 +633,14 @@ describe("ManeuverPlannerComponent", () => {
 });
 
 describe("ManeuverPlanner: augment slots (Uplink §4)", () => {
-  let source: MockDataSource;
-  let buffered: BufferedDataSource;
-
-  beforeEach(async () => {
+  beforeEach(() => {
     clearRegistry();
-    source = new MockDataSource({ keys: KEYS, affectedBySignalLoss: true });
-    buffered = new BufferedDataSource({ source, store: new MemoryStore() });
-    registerDataSource(buffered);
-    await buffered.connect();
   });
 
   afterEach(() => {
     unmountAll();
     // A test may have bound an augment into the slot.
     clearAugments();
-    buffered.disconnect();
   });
 
   it("declares its whole-widget append slot on its component definition", () => {
@@ -751,7 +656,7 @@ describe("ManeuverPlanner: augment slots (Uplink §4)", () => {
       </utFixture.Provider>,
     );
     act(() => {
-      emitFullOrbit(source);
+      emitFullOrbit();
     });
     expect(screen.getByText("MANEUVER PLANNER")).toBeInTheDocument();
     expect(screen.queryByText(/from-sections-augment/i)).toBeNull();
@@ -774,7 +679,7 @@ describe("ManeuverPlanner: augment slots (Uplink §4)", () => {
       </utFixture.Provider>,
     );
     act(() => {
-      emitFullOrbit(source);
+      emitFullOrbit();
     });
     expect(screen.getByText("from-sections-augment")).toBeInTheDocument();
   });

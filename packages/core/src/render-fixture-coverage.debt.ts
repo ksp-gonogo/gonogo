@@ -100,17 +100,6 @@ export const COINCIDENTAL: readonly string[] = [
    */
   "packages/components/src/TransferWindow#period",
   "packages/components/src/TransferWindow#referenceBody",
-  /*
-   * `site.unlocked` on the widget's OWN `LaunchSiteEntry`, which is not the
-   * mod's: `spaceCenter.launchSites` declares no such field, and
-   * `parseLaunchSites` sets it true for every new-shape entry because the mod
-   * enumerates only the sites you can launch from. The name matched
-   * `CareerTechNode.unlocked`, reached through the `career.status` these
-   * fixtures do emit, and LaunchDirector reads nothing off the tech tree. The
-   * field it does read is drawn: `orderPads` filters on it, and a pad list with
-   * three sites in it is that filter passing them.
-   */
-  "packages/components/src/LaunchDirector#unlocked",
 ];
 
 /**

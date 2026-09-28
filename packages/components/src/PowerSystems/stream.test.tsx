@@ -8,10 +8,6 @@ import {
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it } from "vitest";
-import {
-  setupMockDataSource,
-  teardownMockDataSource,
-} from "../test/setupMockDataSource";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { PowerSystemsComponent } from "./index";
 
@@ -61,11 +57,6 @@ describe("PowerSystems: genuinely runs off the stream", () => {
       pinnedUt: 10,
       suspendFrames: true,
     });
-    const legacyAux = await setupMockDataSource({
-      id: "data",
-      keys: [],
-      connectSource: true,
-    });
 
     const { container } = render(
       <fixture.Provider>
@@ -109,19 +100,12 @@ describe("PowerSystems: genuinely runs off the stream", () => {
 
     // Nor is it dropped: it shows as a separate MEASURED reading.
     expect(visibleText()).toContain("42.00");
-
-    teardownMockDataSource(legacyAux);
   });
 
   it("shows no separate MEASURED reading when parts.power's totalProductionEc agrees with the itemized total", async () => {
     const fixture = setupStreamFixture({
       pinnedUt: 10,
       suspendFrames: true,
-    });
-    const legacyAux = await setupMockDataSource({
-      id: "data",
-      keys: [],
-      connectSource: true,
     });
 
     const { container } = render(
@@ -156,8 +140,6 @@ describe("PowerSystems: genuinely runs off the stream", () => {
       expect(fixture.transport.isSubscribed("parts.power")).toBe(true);
     });
     expect(screen.queryByText("MEASURED")).toBeNull();
-
-    teardownMockDataSource(legacyAux);
   });
 
   it("populates the Consumers section from a negative-flow part carried on vessel.parts (review finding I3)", async () => {
@@ -165,11 +147,6 @@ describe("PowerSystems: genuinely runs off the stream", () => {
     const fixture = setupStreamFixture({
       pinnedUt: 10,
       suspendFrames: true,
-    });
-    const legacyAux = await setupMockDataSource({
-      id: "data",
-      keys: [],
-      connectSource: true,
     });
 
     const wireWithConsumer = {
@@ -216,7 +193,5 @@ describe("PowerSystems: genuinely runs off the stream", () => {
     // "-1.80" appears twice: the CONS totals cell and the single Consumers row.
     expect(visibleText()).toContain("+3.20/s");
     expect(screen.getAllByText("-1.80")).toHaveLength(2);
-
-    teardownMockDataSource(legacyAux);
   });
 });
