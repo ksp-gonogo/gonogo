@@ -70,7 +70,7 @@ export type StreamBinaryMessage = Omit<StreamBinary, "segments"> & {
  * segments must be able to read that as "the producer had nothing to say",
  * which is a different fact from "the frame arrived broken".
  *
- * Every arm carries a `reason`, `not-binary` included, so a caller can log the
+ * Every case carries a `reason`, `not-binary` included, so a caller can log the
  * failure without first narrowing on `kind`. `kind` is for BEHAVIOUR (fall back
  * to text, or drop and warn); `reason` is for the human either way.
  *

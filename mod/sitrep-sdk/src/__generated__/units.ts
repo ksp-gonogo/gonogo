@@ -65,12 +65,8 @@ export type KnownSitrepUnit =
 /**
  * A declared unit. OPEN on purpose.
  *
- * The known tokens above still autocomplete, and a typo in first-party
- * code is still caught at codegen time by the catalog check. The open arm
- * exists because a third-party Uplink CANNOT add to Sitrep.Contract.Units:
- * it is a const-string class compiled into the contract assembly. Closing
- * this union would therefore have meant an Uplink could never declare a
- * unit at all, which contradicts third parties being first-class.
+ * The known tokens above still autocomplete. Any other string is accepted
+ * too, so an Uplink can declare a unit of its own.
  *
  * A consumer teaches the client what an unknown symbol MEANS by declaring it
  * in UnitDeclarations and calling registerUnit from @ksp-gonogo/sitrep-sdk.

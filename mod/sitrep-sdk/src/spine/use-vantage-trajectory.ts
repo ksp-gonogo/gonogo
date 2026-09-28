@@ -29,7 +29,7 @@ export interface VantageTrajectory {
    */
   solve: (request: VantagePlanRequest) => Promise<void>;
 
-  /** The most recent answer, or null before one has been asked for. */
+  /** The most recent reply, or null before one has been asked for. */
   reply: VantagePlanReply | null;
 
   /** True while a solve is outstanding. */
@@ -38,13 +38,8 @@ export interface VantageTrajectory {
   /**
    * The dispatch handle, to hand to `usePanelDelay(handle)` in the widget body.
    *
-   * Exposed rather than consumed here because `usePanelDelay` lives in
-   * `ui-kit`, which sits ABOVE the spine and which the spine therefore cannot
-   * import. `useCommand` asserts in dev that every dispatching handle reaches
-   * the rail and offers no opt-out, so until this was exposed, pressing a
-   * control wired to `solve` threw in every build but production: there was no
-   * handle to pass on, and the only widget calling it never dispatched under
-   * test. Same shape as `useBodyStates`, for the same reason.
+   * In a dev build `useCommand` throws when a dispatching handle never reaches
+   * the rail, so pass this on.
    */
   handle: UseCommandResult<VantagePlanRequest, VantagePlanReply>;
 }
@@ -52,7 +47,7 @@ export interface VantageTrajectory {
 /**
  * The client half of `vessel.trajectory.forVantage`.
  *
- * <p>There is no vantage argument, and that is the point. The answer depends on
+ * <p>There is no vantage argument, and that is the point. The reply depends on
  * which command centre is asking, and it is resolved from the connection where
  * the command enters. A client able to name its own vantage could name somebody
  * else's and be shown what they can see.</p>
@@ -85,8 +80,7 @@ export function refusalFromError(error: unknown): VantagePlanReply {
 
 /**
  * Asks the game where the active craft goes as seen from this connection's
- * command centre. Call `solve` to send a request; `reply` holds the latest
- * answer.
+ * command centre. Call `solve` to send a request; `reply` holds the latest reply.
  *
  * @category Orbits and trajectories
  */

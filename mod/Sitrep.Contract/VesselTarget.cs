@@ -70,7 +70,8 @@ public enum TargetKind
 #endif
 public class ClosestApproach
 {
-    /// <summary>Universal Time (seconds) of the minimum separation at or after the sample's UT.</summary>
+    /// <summary>Universal Time (seconds) of the minimum separation at or after
+    /// the sample's UT.</summary>
     [SitrepUnit(Units.UniversalTime)]
     public double Time { get; set; }
 
@@ -81,23 +82,17 @@ public class ClosestApproach
 
 /// <summary>
 /// The <c>vessel.target</c> channel payload: the active vessel's CURRENT
-/// target only (no roster; <c>system.vessels</c>/<c>tar.availableVessels</c>'s
-/// replacement is a deferred M1.5 add). Kills V-8:
-/// <see cref="RelativePosition"/>/<see cref="RelativeVelocity"/> both use the
-/// ONE canonical <see cref="Vec3"/> shape, replacing the legacy vocabulary's
-/// two incompatible vector encodings (bare <c>[x,y,z]</c> array vs. <c>{x,y,z}</c>
-/// object) that coexisted across different key families.
+/// target only. <see cref="RelativePosition"/>/<see cref="RelativeVelocity"/>
+/// both use the one <see cref="Vec3"/> shape.
 ///
 /// <para><see cref="Orbit"/> reuses <see cref="VesselOrbit"/> itself (not a
-/// separate "target orbit" shape), and that is load-bearing:
-/// it lets the SDK propagate a target with the EXACT SAME code path as the
-/// self vessel, so both are evaluated at the same view-UT by the same
-/// propagation logic (the single-view-time invariant). Its nested
-/// <see cref="Meta"/> is stamped with the SAME subject (the active vessel
-/// producing this sample), not a separate target-vessel identity,
-/// <see cref="VesselId"/>/<see cref="BodyIndex"/> below (M3 R3) now DO carry
-/// the target's own identity, closing the gap this doc comment used to
-/// flag as deferred.</para>
+/// separate "target orbit" shape), which lets the SDK propagate a target with
+/// the EXACT SAME code path as the self vessel, so both are evaluated at the
+/// same view-UT by the same propagation logic (the single-view-time invariant).
+/// Its nested <see cref="Meta"/> is stamped with the SAME subject (the active
+/// vessel producing this sample), not a separate target-vessel identity; <see
+/// cref="VesselId"/>/<see cref="BodyIndex"/> below carry the target's own
+/// identity.</para>
 ///
 /// <para>Whole-channel absence (the outer <c>VesselTarget?</c> being null)
 /// means nothing is targeted, the common case, R1(b), never a sentinel
@@ -131,12 +126,12 @@ public class VesselTarget
     [SitrepUnit(Units.Id)]
     public string? VesselId { get; set; }
 
-    /// <summary>
-    /// The target's <c>system.bodies</c> index: populated ONLY when
-    /// <see cref="Kind"/> is <see cref="TargetKind.Body"/>, mirroring
-    /// <see cref="VesselId"/>'s vessel case and <see cref="SetTargetArgs.BodyIndex"/>'s
-    /// own field. Null for a vessel/other target, or if the body name
-    /// couldn't be resolved against <c>system.bodies</c> this tick.
+    /// <summary> The target's <c>system.bodies</c> index: populated ONLY when
+    /// <see cref="Kind"/> is <see cref="TargetKind.Body"/>, mirroring <see
+    /// cref="VesselId"/>'s vessel case and <see
+    /// cref="SetTargetArgs.BodyIndex"/>'s own field. Null for a vessel/other
+    /// target, or if the body name couldn't be resolved against
+    /// <c>system.bodies</c> this tick.
     /// </summary>
     [SitrepUnit(Units.Id)]
     public int? BodyIndex { get; set; }
@@ -152,7 +147,8 @@ public class VesselTarget
     [SitrepUnit(Units.Id)]
     public uint? PartId { get; set; }
 
-    /// <summary>Metres, self-relative. Null only when the transform data needed to compute it wasn't available this tick.</summary>
+    /// <summary>Metres, self-relative. Null only when the transform data needed
+    /// to compute it wasn't available this tick.</summary>
     [SitrepUnit(Units.Metres)]
     [SitrepFrame(Frames.SubjectRelative)]
     // Both the position and the velocity that advances it ride this one payload, so a consumer
@@ -160,7 +156,10 @@ public class VesselTarget
     [SitrepReckonable(ReckoningBases.LinearDeadReckoning, "relativeVelocity")]
     public Vec3? RelativePosition { get; set; }
 
-    /// <summary>m/s, self-relative. R7 Fix 3: nullable for consistency with <see cref="RelativePosition"/>, null (never a sentinel <c>(0,0,0)</c>, the V-10 ambiguity) when the transform data needed to compute it wasn't available this tick.</summary>
+    /// <summary>m/s, self-relative. R7 Fix 3: nullable for consistency with
+    /// <see cref="RelativePosition"/>, null (never a sentinel <c>(0,0,0)</c>,
+    /// the V-10 ambiguity) when the transform data needed to compute it wasn't
+    /// available this tick.</summary>
     [SitrepUnit(Units.MetresPerSecond)]
     [SitrepFrame(Frames.SubjectRelative)]
     // Deliberately NOT [SitrepReckonable]: advancing a velocity needs an acceleration, and the
@@ -168,10 +167,13 @@ public class VesselTarget
     // when both orbits exist and share a reference body, and a mark is a floor that always holds.
     public Vec3? RelativeVelocity { get; set; }
 
-    /// <summary>Null when the target has no orbit (e.g. it's landed, or its orbit couldn't be resolved this tick).</summary>
+    /// <summary>Null when the target has no orbit (e.g. it's landed, or its
+    /// orbit couldn't be resolved this tick).</summary>
     public VesselOrbit? Orbit { get; set; }
 
-    /// <summary>Next closest approach (mod-side, elected solver). Null when there is no encounter to report; see <see cref="ClosestApproach"/>.</summary>
+    /// <summary>Next closest approach (mod-side, elected solver). Null when
+    /// there is no encounter to report; see <see
+    /// cref="ClosestApproach"/>.</summary>
     public ClosestApproach? ClosestApproach { get; set; }
 
     public PayloadMeta Meta { get; set; } = new();

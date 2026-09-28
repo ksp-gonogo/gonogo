@@ -39,7 +39,9 @@ namespace Sitrep.Contract;
 [SitrepTopic("vessel.parts")]
 public class VesselParts
 {
-    /// <summary>Every part on the active vessel this tick, in vessel part-list order. Always present (possibly empty); a vessel-less tick yields a <c>null</c> payload, not an empty list.</summary>
+    /// <summary>Every part on the active vessel this tick, in vessel part-list
+    /// order. Always present (possibly empty); a vessel-less tick yields a
+    /// <c>null</c> payload, not an empty list.</summary>
     public List<VesselPart> Parts { get; set; } = new();
 
     public PayloadMeta Meta { get; set; } = new();
@@ -59,10 +61,10 @@ public class VesselParts
 /// <para><b>Join key.</b> <see cref="Id"/> is <c>Part.flightID</c> stringified,
 /// the SAME string form <c>parts.power</c>/<c>parts.robotics</c>'s
 /// <c>partId</c> uses, so a consumer (RoboticsConsole, PowerSystems) can
-/// id-join a part across those channels. <see cref="ParentId"/> and
-/// <see cref="FuelLineTargetId"/> are the same string form for the same
-/// reason. flightID's stability across a docking/undocking round-trip is a
-/// KSP-side caveat carried forward from the design's open questions.</para>
+/// id-join a part across those channels. <see cref="ParentId"/> and <see
+/// cref="FuelLineTargetId"/> are the same string form for the same reason.
+/// Whether flightID survives a docking/undocking round-trip is up to
+/// KSP.</para>
 /// </summary>
 /// <category>Parts</category>
 [SitrepContract]
@@ -71,28 +73,36 @@ public class VesselParts
 #endif
 public class VesselPart
 {
-    /// <summary><c>Part.flightID</c> stringified: the tree/cross-channel join key. Empty string only for the uninitialized-0 sentinel (no live flight id yet).</summary>
+    /// <summary><c>Part.flightID</c> stringified: the tree/cross-channel join
+    /// key. Empty string only for the uninitialized-0 sentinel (no live flight
+    /// id yet).</summary>
     [SitrepUnit(Units.Id)]
     public string Id { get; set; } = "";
 
-    /// <summary><c>Part.parent?.flightID</c> stringified; <c>null</c> for the root part.</summary>
+    /// <summary><c>Part.parent?.flightID</c> stringified; <c>null</c> for the
+    /// root part.</summary>
     [SitrepUnit(Units.Id)]
     public string? ParentId { get; set; }
 
-    /// <summary><c>Part.partInfo.name</c> (the <c>AvailablePart.name</c> config id, e.g. <c>"solarPanels1"</c>).</summary>
+    /// <summary><c>Part.partInfo.name</c> (the <c>AvailablePart.name</c> config
+    /// id, e.g. <c>"solarPanels1"</c>).</summary>
     [SitrepUnit(Units.Text)]
     public string Name { get; set; } = "";
 
-    /// <summary><c>Part.partInfo.title</c> (the display title, e.g. <c>"OX-STAT Photovoltaic Panels"</c>).</summary>
+    /// <summary><c>Part.partInfo.title</c> (the display title, e.g. <c>"OX-STAT
+    /// Photovoltaic Panels"</c>).</summary>
     [SitrepUnit(Units.Text)]
     public string Title { get; set; } = "";
 
-    /// <summary><c>Part.orgPos</c>: the part's original vessel-local position (metres, vessel frame).</summary>
+    /// <summary><c>Part.orgPos</c>: the part's original vessel-local position
+    /// (metres, vessel frame).</summary>
     [SitrepUnit(Units.Metres)]
     [SitrepFrame(Frames.VesselLocal)]
     public Vec3 Position { get; set; } = new();
 
-    /// <summary>The part's local up axis (<c>Part.orgRot * Vector3.up</c>), for orienting flow/thrust glyphs. <c>null</c> on a snapshot recorded before this field existed.</summary>
+    /// <summary>The part's local up axis (<c>Part.orgRot * Vector3.up</c>), for
+    /// orienting flow/thrust glyphs. <c>null</c> on a snapshot recorded before
+    /// this field existed.</summary>
     [SitrepUnit(Units.Dimensionless)]
     // orgRot is the part's rotation within the construction frame, so the rotated axis lands in
     // the vessel's frame and not the part's own.
@@ -105,7 +115,9 @@ public class VesselPart
     [SitrepUnit(Units.Tonnes)]
     public double DryMass { get; set; }
 
-    /// <summary><c>Part.inverseStage</c> (KSP's own inverted staging numbering, carried forward unchanged; see <see cref="VesselStructure.CurrentStage"/>).</summary>
+    /// <summary><c>Part.inverseStage</c> (KSP's own inverted staging numbering,
+    /// carried forward unchanged; see <see
+    /// cref="VesselStructure.CurrentStage"/>).</summary>
     [SitrepUnit(Units.Id)]
     public int InverseStage { get; set; }
 
@@ -113,19 +125,24 @@ public class VesselPart
     [SitrepUnit(Units.Kelvin)]
     public double MaxTemp { get; set; }
 
-    /// <summary><c>Part.skinMaxTemp</c> (K); <c>null</c> for the <c>-1</c> "no skin-thermal model" sentinel.</summary>
+    /// <summary><c>Part.skinMaxTemp</c> (K); <c>null</c> for the <c>-1</c> "no
+    /// skin-thermal model" sentinel.</summary>
     [SitrepUnit(Units.Kelvin)]
     public double? SkinMaxTemp { get; set; }
 
-    /// <summary><c>Part.temperature</c>: current internal temperature (K); <c>null</c> for the <c>-1</c> "not yet simulated" sentinel.</summary>
+    /// <summary><c>Part.temperature</c>: current internal temperature (K);
+    /// <c>null</c> for the <c>-1</c> "not yet simulated" sentinel.</summary>
     [SitrepUnit(Units.Kelvin)]
     public double? CurrentTemp { get; set; }
 
-    /// <summary><c>Part.skinTemperature</c>: current skin temperature (K).</summary>
+    /// <summary><c>Part.skinTemperature</c>: current skin temperature
+    /// (K).</summary>
     [SitrepUnit(Units.Kelvin)]
     public double? SkinTemp { get; set; }
 
-    /// <summary><c>Part.partInfo.category</c> (<c>PartCategories</c> enum name, e.g. <c>"Engine"</c>). A display label; see <see cref="CategoryOrdinal"/>.</summary>
+    /// <summary><c>Part.partInfo.category</c> (<c>PartCategories</c> enum name,
+    /// e.g. <c>"Engine"</c>). A display label; see <see
+    /// cref="CategoryOrdinal"/>.</summary>
     [SitrepUnit(Units.Text)]
     public string Category { get; set; } = "";
 
@@ -147,19 +164,25 @@ public class VesselPart
     [SitrepUnit(Units.Enumeration)]
     public KspPartCategory? CategoryOrdinal { get; set; }
 
-    /// <summary>Each <c>PartModule</c>'s CLR class name (e.g. <c>"ModuleEngines"</c>, <c>"CModuleFuelLine"</c>), which is what a client classifies a part by.</summary>
+    /// <summary>Each <c>PartModule</c>'s CLR class name (e.g.
+    /// <c>"ModuleEngines"</c>, <c>"CModuleFuelLine"</c>), which is what a
+    /// client classifies a part by.</summary>
     [SitrepUnit(Units.Text)]
     public List<string> Modules { get; set; } = new();
 
-    /// <summary><c>Part.isRobotic()</c>: a Breaking Ground robotic servo part.</summary>
+    /// <summary><c>Part.isRobotic()</c>: a Breaking Ground robotic servo
+    /// part.</summary>
     [SitrepUnit(Units.Flag)]
     public bool IsRobotics { get; set; }
 
-    /// <summary>True when the part carries a solar panel, alternator, EC-producing converter, or an ElectricCharge resource capacity.</summary>
+    /// <summary>True when the part carries a solar panel, alternator,
+    /// EC-producing converter, or an ElectricCharge resource
+    /// capacity.</summary>
     [SitrepUnit(Units.Flag)]
     public bool IsPowerRelated { get; set; }
 
-    /// <summary>For a fuel-line part, the stringified <c>flightID</c> of the part it feeds; <c>null</c> otherwise.</summary>
+    /// <summary>For a fuel-line part, the stringified <c>flightID</c> of the
+    /// part it feeds; <c>null</c> otherwise.</summary>
     [SitrepUnit(Units.Id)]
     public string? FuelLineTargetId { get; set; }
 
@@ -193,12 +216,13 @@ public class VesselPart
     public List<ActionBinding> ActionBindings { get; set; } = new();
 }
 
-/// <summary>
-/// One action-group binding in <see cref="VesselPart.ActionBindings"/>: a
-/// single part action and the named action groups it fires with. <see cref="Groups"/>
-/// are the <c>KSPActionGroup</c> enum member names (<c>SAS</c>/<c>RCS</c>/
+/// <summary> One action-group binding in <see
+/// cref="VesselPart.ActionBindings"/>: a single part action and the named
+/// action groups it fires with. <see cref="Groups"/> are the
+/// <c>KSPActionGroup</c> enum member names (<c>SAS</c>/<c>RCS</c>/
 /// <c>Brakes</c>/<c>Gear</c>/<c>Light</c>/<c>Abort</c>/<c>Stage</c>/
-/// <c>Custom01</c>...) the action's Flags bitmask decodes to (<c>None</c> excluded).
+/// <c>Custom01</c>...) the action's Flags bitmask decodes to (<c>None</c>
+/// excluded).
 /// </summary>
 /// <category>Parts</category>
 [SitrepContract]
@@ -207,11 +231,14 @@ public class VesselPart
 #endif
 public class ActionBinding
 {
-    /// <summary>The action's PAW label: <c>BaseAction.guiName</c> (e.g. "Toggle", "Extend Panel").</summary>
+    /// <summary>The action's PAW label: <c>BaseAction.guiName</c> (e.g.
+    /// "Toggle", "Extend Panel").</summary>
     [SitrepUnit(Units.Text)]
     public string Action { get; set; } = "";
 
-    /// <summary>Named KSPActionGroup groups this action is bound to (e.g. <c>["SAS","Custom01"]</c>). Never empty, an action bound to no group isn't emitted. Display labels; see <see cref="GroupsMask"/>.</summary>
+    /// <summary>Named KSPActionGroup groups this action is bound to (e.g.
+    /// <c>["SAS","Custom01"]</c>). Never empty, an action bound to no group
+    /// isn't emitted. Display labels; see <see cref="GroupsMask"/>.</summary>
     [SitrepUnit(Units.Text)]
     public List<string> Groups { get; set; } = new();
 
@@ -265,11 +292,14 @@ public class PartResourceFlow
     [SitrepUnit(Units.ResourceUnits)]
     public double MaxAmount { get; set; }
 
-    /// <summary>Signed units/sec: positive = producing, negative = consuming. <c>null</c> when no cheaply-derivable module contributes.</summary>
+    /// <summary>Signed units/sec: positive = producing, negative = consuming.
+    /// <c>null</c> when no cheaply-derivable module contributes.</summary>
     [SitrepUnit(Units.ResourceUnitsPerSecond)]
     public double? Flow { get; set; }
 
-    /// <summary>Same-sign 100%-efficiency cap (rated solar output). <c>null</c> when no module supports a nominal, or when it would equal <see cref="Flow"/>.</summary>
+    /// <summary>Same-sign 100%-efficiency cap (rated solar output). <c>null</c>
+    /// when no module supports a nominal, or when it would equal <see
+    /// cref="Flow"/>.</summary>
     [SitrepUnit(Units.ResourceUnitsPerSecond)]
     public double? NominalFlow { get; set; }
 }
@@ -287,7 +317,11 @@ public class PartResourceFlow
 #endif
 public class PartModuleState
 {
-    /// <summary>Discriminator: <c>solarPanel</c> / <c>radiator</c> / <c>antenna</c> / <c>parachute</c> / <c>engine</c> / <c>drill</c> / <c>landingGear</c>. (<c>cargoBay</c> is a defined vocabulary value with no module here; see <c>KspHost.BuildPartModuleStates</c>'s doc comment for why.)</summary>
+    /// <summary>Discriminator: <c>solarPanel</c> / <c>radiator</c> /
+    /// <c>antenna</c> / <c>parachute</c> / <c>engine</c> / <c>drill</c> /
+    /// <c>landingGear</c>. (<c>cargoBay</c> is a defined vocabulary value with
+    /// no module here; see <c>KspHost.BuildPartModuleStates</c>'s doc comment
+    /// for why.)</summary>
     [SitrepUnit(Units.Id)]
     public string Type { get; set; } = "";
 
@@ -311,11 +345,13 @@ public class PartModuleState
     [SitrepUnit(Units.Text)]
     public string State { get; set; } = "";
 
-    /// <summary>Solar-panel-only: sun-tracking gimbal active. <c>null</c> for every other type.</summary>
+    /// <summary>Solar-panel-only: sun-tracking gimbal active. <c>null</c> for
+    /// every other type.</summary>
     [SitrepUnit(Units.Flag)]
     public bool? Tracking { get; set; }
 
-    /// <summary>Engine-only: fuel-starved. <c>null</c> unless <c>true</c> (never emitted as a bare <c>false</c>).</summary>
+    /// <summary>Engine-only: fuel-starved. <c>null</c> unless <c>true</c>
+    /// (never emitted as a bare <c>false</c>).</summary>
     [SitrepUnit(Units.Flag)]
     public bool? Flameout { get; set; }
 }
@@ -332,7 +368,8 @@ public class PartModuleState
 /// vessel's: they are authored fields of the part's config node, so one value
 /// has to serve every instance of that part however it was assembled. A
 /// consumer placing the box on a ship rotates both by that part's <c>orgRot</c>
-/// before adding <see cref="VesselPart.Position"/>, which is <c>vessel-local</c>.</para>
+/// before adding <see cref="VesselPart.Position"/>, which is
+/// <c>vessel-local</c>.</para>
 /// </summary>
 /// <category>Parts</category>
 [SitrepContract]
@@ -341,19 +378,20 @@ public class PartModuleState
 #endif
 public class PartBounds
 {
-    /// <summary><c>Part.prefabSize</c>: the part's untransformed bounding-box extents (metres).</summary>
+    /// <summary><c>Part.prefabSize</c>: the part's untransformed bounding-box
+    /// extents (metres).</summary>
     [SitrepUnit(Units.Metres)]
     [SitrepFrame(Frames.PartLocal)]
     public Vec3 Size { get; set; } = new();
 
-    /// <summary>
-    /// <c>Part.boundsCentroidOffset</c>: mesh-centre offset from the part's own origin
-    /// (metres, PART-local); <c>null</c> when absent.
+    /// <summary> <c>Part.boundsCentroidOffset</c>: mesh-centre offset from the
+    /// part's own origin (metres, PART-local); <c>null</c> when absent.
     ///
-    /// <para>Part-local, not vessel-local: an authored per-part-type constant like
-    /// <see cref="Size"/> beside it, so one value serves every instance of the part at whatever
-    /// attitude it was assembled at. <see cref="VesselPart.Position"/> is <c>vessel-local</c>,
-    /// so adding the two raw mixes frames and lands the box somewhere the part is not; rotate
+    /// <para>Part-local, not vessel-local: an authored per-part-type constant
+    /// like <see cref="Size"/> beside it, so one value serves every instance of
+    /// the part at whatever attitude it was assembled at. <see
+    /// cref="VesselPart.Position"/> is <c>vessel-local</c>, so adding the two
+    /// raw mixes frames and lands the box somewhere the part is not; rotate
     /// this one by the part's <c>orgRot</c> first.</para>
     /// </summary>
     [SitrepUnit(Units.Metres)]

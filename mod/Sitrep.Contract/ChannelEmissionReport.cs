@@ -19,22 +19,22 @@ namespace Sitrep.Contract;
 /// <c>ChannelEmitter.Decide</c> for this channel at all, so no emission policy
 /// was ever consulted. The cause is upstream of the emitter, and the four flags
 /// below say which one</description></item>
-/// <item><description><see cref="Considered"/> is above 0 while
-/// <see cref="Emitted"/> stays put and <see cref="Skipped"/> climbs: the engine
-/// did produce values and the emitter declined them. The cause is the mapper's
+/// <item><description><see cref="Considered"/> is above 0 while <see
+/// cref="Emitted"/> stays put and <see cref="Skipped"/> climbs: the engine did
+/// produce values and the emitter declined them. The cause is the mapper's
 /// value, the deadband, or the cadence gate, all of which live inside
-/// <c>ChannelEmitter.Decide</c> and <c>ChannelDeclaration.Emission</c></description></item>
+/// <c>ChannelEmitter.Decide</c> and
+/// <c>ChannelDeclaration.Emission</c></description></item>
 /// </list>
 ///
-/// <para><b><see cref="Emitted"/> is never 0 once
-/// <see cref="Considered"/> is above 0</b>, and the floor of 1 is worth knowing
-/// before reading one of these: a channel's first consideration is an
-/// unconditional keyframe (<c>ChannelEmitter</c>'s force-keyframe state, re-armed
-/// on every subscribe and every timeline reset), so a considered channel has
-/// emitted at least once by construction. The second case above therefore reads
-/// as an <see cref="Emitted"/> that is small and static rather than zero, and
-/// the useful comparison is against <see cref="Skipped"/>, not against
-/// nothing.</para>
+/// <para><b><see cref="Emitted"/> is never 0 once <see cref="Considered"/> is
+/// above 0</b>, and the floor of 1 is worth knowing before reading one of
+/// these: a channel's first consideration is an unconditional keyframe
+/// (<c>ChannelEmitter</c>'s force-keyframe state, set again on every subscribe
+/// and every timeline reset), so a considered channel has emitted at least once
+/// by construction. The second case above therefore reads as an <see
+/// cref="Emitted"/> that is small and static rather than zero, and the useful
+/// comparison is against <see cref="Skipped"/>, not against nothing.</para>
 ///
 /// <para>That floor is itself a finding when a capture saw no frames at all:
 /// <see cref="Emitted"/> above 0 with an empty capture means the sample was made
@@ -42,15 +42,15 @@ namespace Sitrep.Contract;
 /// freeze-on-disconnect gate, or the wire, none of which these counters
 /// see.</para>
 ///
-/// <para>For the first case, read the flags in this order.
-/// <see cref="Subscribers"/> at 0 is the ordinary answer and means nobody
-/// looked: a channel with no subscriber is deliberately never sampled (the
-/// outer gate, <c>SubscriptionRegistry</c>). With a subscriber present,
-/// <see cref="Available"/> false means the owning uplink went inert and took
-/// every channel it owns with it, <see cref="TickMapped"/> false means nothing
-/// ever pushed a value at a publish-driven channel, and
-/// <see cref="Born"/> false on a tick-mapped channel means the mapper returned
-/// null on every tick and the birth gate held it back.</para>
+/// <para>For the first case, read the flags in this order. <see
+/// cref="Subscribers"/> at 0 is the ordinary case and means nobody looked: a
+/// channel with no subscriber is deliberately never sampled (the outer gate,
+/// <c>SubscriptionRegistry</c>). With a subscriber present, <see
+/// cref="Available"/> false means the owning uplink went inert and took every
+/// channel it owns with it, <see cref="TickMapped"/> false means nothing ever
+/// pushed a value at a publish-driven channel, and <see cref="Born"/> false on
+/// a tick-mapped channel means the mapper returned null on every tick and the
+/// birth gate held it back.</para>
 /// </summary>
 /// <category>System diagnostics</category>
 [SitrepContract]
@@ -139,8 +139,8 @@ public class ChannelEmissionEntry
 /// A channel filtered out for having no subscriber would be absent from the
 /// payload, and absent is indistinguishable from never declared, which is the
 /// exact ambiguity this Topic exists to remove. So the roster is complete and
-/// <see cref="ChannelEmissionEntry.Subscribers"/> carries the "nobody looked"
-/// answer instead.</para>
+/// <see cref="ChannelEmissionEntry.Subscribers"/> says "nobody looked"
+/// instead.</para>
 ///
 /// <para><b>The report counts itself, and is behind by design.</b>
 /// <c>system.channels</c> is a declared, tick-mapped channel like any other, so

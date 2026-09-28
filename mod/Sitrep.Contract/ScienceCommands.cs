@@ -30,7 +30,7 @@ public class ExperimentActionArgs
 
 /// <summary>
 /// A science result the craft has started sending home, as
-/// <c>science.experiment.transmit</c> answers it: when the stream began at the
+/// <c>science.experiment.transmit</c> returns it: when the stream began at the
 /// craft and how long the transmitter needs to send all of it. The result has
 /// left the craft at <see cref="StartedAt"/> plus <see cref="StreamSeconds"/>,
 /// and it lands one light-time after that.
@@ -47,15 +47,18 @@ public class ExperimentActionArgs
 #endif
 public class ScienceTransmission
 {
-    /// <summary>The research subject's id (<c>ScienceSubject.id</c>), the same key <c>currency.&lt;guid&gt;.science</c> credits it under.</summary>
+    /// <summary>The research subject's id (<c>ScienceSubject.id</c>), the same
+    /// key <c>currency.&lt;guid&gt;.science</c> credits it under.</summary>
     [SitrepUnit(Units.Id)]
     public string SubjectId { get; set; } = string.Empty;
 
-    /// <summary>The result's human title, e.g. "Crew Report from Kerbin's Shores".</summary>
+    /// <summary>The result's human title, e.g. "Crew Report from Kerbin's
+    /// Shores".</summary>
     [SitrepUnit(Units.Text)]
     public string Title { get; set; } = string.Empty;
 
-    /// <summary>Universal Time at the craft when the transmitter was handed the result.</summary>
+    /// <summary>Universal Time at the craft when the transmitter was handed the
+    /// result.</summary>
     [SitrepUnit(Units.UniversalTime)]
     public double StartedAt { get; set; }
 

@@ -22,16 +22,16 @@ public class ResourceAmount
     [SitrepUnit(Units.ResourceUnits)]
     public double Max { get; set; }
 
-    /// <summary>
-    /// R7 Fix 2: explicit presence flag so a present-but-zero resource
-    /// (<c>{current: 0, max: &gt; 0, active: true}</c>) is distinguishable
-    /// from one that has stopped being reported, killing the R-3
-    /// "absence-as-signal" wart where a resource simply vanishing
-    /// from the map created a 0-vs-unknown ambiguity. Producers set this true
-    /// for every resource they actually report this tick; a consumer treating
-    /// a missing/false entry as "not reported" then never confuses it with a
+    /// <summary> R7 Fix 2: explicit presence flag so a present-but-zero
+    /// resource (<c>{current: 0, max: &gt; 0, active: true}</c>) is
+    /// distinguishable from one that has stopped being reported, killing the
+    /// R-3 "absence-as-signal" wart where a resource simply vanishing from the
+    /// map created a 0-vs-unknown ambiguity. Producers set this true for every
+    /// resource they actually report this tick; a consumer treating a
+    /// missing/false entry as "not reported" then never confuses it with a
     /// genuine zero reading. This is presence ONLY, flow/rate is a separate
-    /// future channel (see this class's doc comment), deliberately not added here.
+    /// future channel (see this class's doc comment), deliberately not added
+    /// here.
     /// </summary>
     [SitrepUnit(Units.Flag)]
     public bool Active { get; set; } = true;
@@ -50,9 +50,11 @@ public class ResourceAmount
 /// omits any resource with <c>maxAmount &lt;= 0</c>). Changes only on
 /// staging/docking.</description></item>
 /// <item><description><b>Key present, <c>{current: 0, max: &gt; 0}</c></b>,
-/// carried but currently empty (a real, meaningful reading, not an error).</description></item>
-/// <item><description><b>Whole channel absent/stale</b>: no vessel at all
-/// (R1(b), same convention as every other <c>vessel.*</c> channel).</description></item>
+/// carried but currently empty (a real, meaningful reading, not an
+/// error).</description></item>
+/// <item><description><b>Whole channel absent</b>: no vessel at all (R1(b),
+/// same convention as every other <c>vessel.*</c>
+/// channel).</description></item>
 /// </list>
 /// Because every emission is the FULL map (a structured, keyframed channel,
 /// never a delta), a key disappearing between two emissions is itself a real

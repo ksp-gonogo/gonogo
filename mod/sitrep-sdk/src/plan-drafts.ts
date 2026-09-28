@@ -28,13 +28,13 @@ export interface PlanDraft {
   /**
    * How many times what this draft would SEND has changed. Assigned by the store.
    *
-   * <p><b>The id alone cannot be the intent's id.</b> The receiving side answers
-   * a request id it has already seen out of its replay cache, without looking at
-   * the plan that came with it, which is exactly right for a retransmission after
-   * a silence and exactly wrong for an edit. A draft corrected and sent again
-   * under the id its earlier version was sent under is answered with the EARLIER
-   * receipt: the operator reads "aboard" about a plan the craft has never seen,
-   * and every further correction reads the same way.</p>
+   * <p><b>The id alone cannot be the intent's id.</b> The receiving side
+   * replies to a request id it has already seen from its replay cache, without
+   * looking at the plan that came with it, which is exactly right for a
+   * retransmission after a silence and exactly wrong for an edit. A draft
+   * corrected and sent again under the id its earlier version was sent under
+   * gets the EARLIER receipt: the operator reads "aboard" about a plan the
+   * craft has never seen, and every further correction reads the same way.</p>
    *
    * <p>So the intent is the draft's CONTENT, and this counts it. Only the fields
    * that travel move it: saving and reopening decide nothing about the plan, and
@@ -201,7 +201,7 @@ function touchesTheWire(changes: Partial<Omit<PlanDraft, "id">>): boolean {
  * is the draft AT ITS REVISION, not the draft: a retransmission of the same
  * plan carries the same id and is recognised as the same intent rather than
  * applied twice, and an edited plan carries a new one so the receiving side
- * cannot answer it out of the receipt it kept for the version before. See
+ * cannot reply to it from the receipt it kept for the version before. See
  * {@link PlanDraft.revision}.</p>
  *
  * @category Commands

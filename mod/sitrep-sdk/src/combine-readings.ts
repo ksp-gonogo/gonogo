@@ -27,7 +27,8 @@ import type { Value } from "./unit-system/value";
  * is why this carries no band (see below).
  *
  * - every input `observed` gives `observed`, stamped at the **oldest** `atUt`.
- *   A result cannot be fresher than the stalest thing it was computed from
+ *   A result cannot be more current than the least current thing it was
+ *   computed from
  * - any input `stale` gives `stale`, as of the **oldest instant any input
  *   speaks for**
  * - any input `absent`, `pending` or `unowned` gives that state with no value,
@@ -40,7 +41,7 @@ import type { Value } from "./unit-system/value";
  *   carry is `observed` with no value: the topic WAS observed and the field was
  *   simply not in it, so the state is right and there is still nothing to
  *   compute from. Passing the state through says exactly that, and avoids
- *   inventing the `atUt` an `absent` arm would need. It is the one shape the
+ *   inventing the `atUt` an `absent` state would need. It is the one shape the
  *   states alone get wrong, and it is the common one: a career reporting an
  *   upkeep and no subsidy crashed this function before the check existed,
  *   because the guard trusted `state` and handed `compute` an `undefined`
@@ -65,16 +66,16 @@ import type { Value } from "./unit-system/value";
  * deserves a band deserves a model: publish one, and the band comes from the
  * mathematics that knows it.
  *
- * ## `compute` may answer `undefined`, and that is not the same as an absence
+ * ## `compute` may return `undefined`, and that is not the same as an absence
  *
  * Arithmetic has domains. A range rate needs a line of sight to project onto
  * and has none at zero separation; a unit vector of a zero vector does not
- * exist; an arccos outside [-1, 1] is not a number. Those cases have no answer
+ * exist; an arccos outside [-1, 1] is not a number. Those cases have no result
  * rather than a wrong one, and the result says so by carrying no value while
  * keeping the state and the instant its inputs earned: the inputs DID arrive,
  * so reporting `absent` would be a claim about the wire instead of about the
- * mathematics. `Reading`'s value is optional on every arm, which is what makes
- * this expressible without a cast, and `Unit` draws it as the null token.
+ * mathematics. `Reading`'s value is optional in every state, which is what
+ * makes this expressible without a cast, and `Unit` draws it as the null token.
  *
  * @category Reading telemetry
  */
@@ -128,25 +129,25 @@ export interface CarriedCurrency {
  *
  * The difference from {@link combineReadings} is the whole point: that function
  * GATES, refusing to run `compute` when an input carries no value, which is
- * right for arithmetic where a missing operand means no answer. A derivation
+ * right for arithmetic where a missing operand means no result. A derivation
  * that was handed the readings themselves has already decided what a missing
- * one means, and gating it a second time would throw away an answer it
+ * one means, and gating it a second time would throw away a result it
  * deliberately produced from what it did have.
  *
  * ## It takes the currency, not the readings
  *
  * Deliberately, and it is not ergonomics. A whole-topic reading maps member
- * access into FIELD readings, so reaching `.atUt` through one answers a reading
+ * access into FIELD readings, so reaching `.atUt` through one returns a reading
  * of the instant rather than the instant. The caller holds the reading and
  * knows which kind it has, so it reads the currency off with the accessors that
- * handle both and hands the answer here.
+ * handle both and hands the result here.
  *
  * ## What the state means, and what it does NOT
  *
- * It answers "how current is what this was derived from", not "did everything
- * arrive". Stale when any value-bearing input is stale, observed otherwise, and
- * the instant is the oldest one spoken, so the answer is never dated newer than
- * the oldest thing behind it.
+ * It says "how current is what this was derived from", not "did everything
+ * arrive". `stale` (held) when any value-bearing input is `stale`, `observed`
+ * otherwise, and the instant is the oldest one spoken, so the result is never
+ * dated newer than the oldest thing behind it.
  *
  * An input that never arrived is therefore invisible here. That is deliberate
  * and narrower than it reads: with one input present and another missing, the

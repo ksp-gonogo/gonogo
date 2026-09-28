@@ -19,16 +19,13 @@ namespace Sitrep.Contract;
 /// already expects body names) needs zero reshaping to use them directly.
 ///
 /// <see cref="ReferenceBodyIndex"/>/<see cref="ClosestEncounterBodyIndex"/> sit
-/// beside them and are the IDENTITY, matching
-/// <see cref="VesselOrbit.ReferenceBodyIndex"/> and every other body reference
-/// in this contract. Both are carried on purpose: the names were once described
-/// here as "the one deliberate departure" from the index convention, which held
-/// only while nothing needed to resolve a patch's body to anything. Propagating
-/// a patch does, and a display name is the wrong key for that.
+/// beside them and are the IDENTITY, matching <see
+/// cref="VesselOrbit.ReferenceBodyIndex"/> and every other body reference in
+/// this contract. Both are carried on purpose: propagating a patch needs its
+/// body resolved, and a display name is the wrong key for that.
 ///
-/// <see cref="Mu"/> completes the same thought: a patch now carries everything
-/// needed to propagate it, so it is no longer the only orbit on the wire that
-/// requires a <c>system.bodies</c> join before it can be used.
+/// <see cref="Mu"/> completes the same thought: a patch carries everything
+/// needed to propagate it, with no <c>system.bodies</c> join.
 ///
 /// <see cref="Lan"/>/<see cref="ArgPe"/> are plain (non-nullable) doubles here,
 /// UNLIKE <see cref="VesselOrbit.Lan"/>/<see cref="VesselOrbit.ArgPe"/>: a
@@ -71,7 +68,9 @@ public class OrbitPatch
     [SitrepUnit(Units.UniversalTime)]
     public double Epoch { get; set; }
 
-    /// <summary>Orbital period, seconds. Non-finite (hyperbolic/parabolic patches) is carried as-is, the client's `isPatchElliptical` guard is what filters those, not this field.</summary>
+    /// <summary>Orbital period, seconds. Non-finite (hyperbolic/parabolic
+    /// patches) is carried as-is, the client's `isPatchElliptical` guard is
+    /// what filters those, not this field.</summary>
     [SitrepUnit(Units.Seconds)]
     public double Period { get; set; }
 
@@ -87,11 +86,13 @@ public class OrbitPatch
     [SitrepUnit(Units.Enumeration)]
     public TransitionType PatchEndTransition { get; set; }
 
-    /// <summary>Periapsis altitude above <see cref="ReferenceBody"/>'s mean radius, metres, `Orbit.PeA`.</summary>
+    /// <summary>Periapsis altitude above <see cref="ReferenceBody"/>'s mean
+    /// radius, metres, `Orbit.PeA`.</summary>
     [SitrepUnit(Units.Metres)]
     public double PeA { get; set; }
 
-    /// <summary>Apoapsis altitude above <see cref="ReferenceBody"/>'s mean radius, metres, `Orbit.ApA`.</summary>
+    /// <summary>Apoapsis altitude above <see cref="ReferenceBody"/>'s mean
+    /// radius, metres, `Orbit.ApA`.</summary>
     [SitrepUnit(Units.Metres)]
     public double ApA { get; set; }
 
@@ -101,11 +102,14 @@ public class OrbitPatch
     [SitrepUnit(Units.Metres)]
     public double SemiMinorAxis { get; set; }
 
-    /// <summary>Body this patch orbits: matches `system.bodies`' NAME, not its index (see class doc).</summary>
+    /// <summary>Body this patch orbits: matches `system.bodies`' NAME, not its
+    /// index (see class doc).</summary>
     [SitrepUnit(Units.Text)]
     public string ReferenceBody { get; set; } = "";
 
-    /// <summary>Body this patch's trajectory most closely encounters, if any, null when there is none. Same "name, not index" convention as <see cref="ReferenceBody"/>.</summary>
+    /// <summary>Body this patch's trajectory most closely encounters, if any,
+    /// null when there is none. Same "name, not index" convention as <see
+    /// cref="ReferenceBody"/>.</summary>
     [SitrepUnit(Units.Text)]
     public string? ClosestEncounterBody { get; set; }
 

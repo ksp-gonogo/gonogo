@@ -20,11 +20,11 @@ export const COMMAND_LOST = "E_LOST";
  * Why a dispatch promise rejected, in the same three words the command's
  * `CommandStatus` phase uses, because they are the same three outcomes:
  *
- * - `refused`: the handler ran, the game evaluated it, and the answer was no.
- *   Carries the mod's root `CommandErrorCode`, and the refinement's id as
- *   `reason` when the refusal was more specific. A retry changes nothing until
- *   the situation does, so the honest UI is a reason, not a try-again
- * - `lost`: no answer arrived by the predicted deadline. Nothing was decided
+ * - `refused`: the handler ran, the game evaluated it, and said no. Carries the
+ *   mod's root `CommandErrorCode`, and the refinement's id as `reason` when the
+ *   refusal was more specific. A retry changes nothing until the situation
+ *   does, so show a reason, not a try-again
+ * - `lost`: no reply arrived by the predicted deadline. Nothing was decided
  *   and the command may well have executed anyway, so re-sending can double it
  * - `failed`: the machinery broke (a handler threw, a result would not
  *   serialize, the link went down mid-flight), named by a `FaultCode`. A retry

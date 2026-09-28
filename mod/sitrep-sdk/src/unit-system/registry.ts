@@ -254,9 +254,9 @@ export function declaredUnitFor(dimensionKey: string): string | undefined {
  * unit is not point-like.
  *
  * Reads the same `affineVector` declaration the type layer reads, through the
- * registry rather than the static table so a unit registered at runtime by an Uplink
- * gets the same answer. Ratio-1 only, for the reason `declaredUnitFor` gives: a
- * computed value is in base units by construction.
+ * registry rather than the static table so a unit registered at runtime by an
+ * Uplink gets the same result. Ratio-1 only, for the reason `declaredUnitFor`
+ * gives: a computed value is in base units by construction.
  *
  * @category Units and values
  */
@@ -315,8 +315,8 @@ export function onUnitRegistered(listener: UnitListener): () => void {
  *
  * ## Overlap
  *
- * Two mods will sooner or later declare the same glyph, and the answer depends
- * on whether they disagree about anything that MATTERS:
+ * Two mods will sooner or later declare the same glyph, and what happens
+ * depends on whether they disagree about anything that MATTERS:
  *
  * - **Identical declaration** is idempotent and silent. Two Uplinks declaring
  *   `u` as resource units are declaring the same thing.
@@ -327,12 +327,9 @@ export function onUnitRegistered(listener: UnitListener): () => void {
  *   throw: a disagreement between two mods about what a symbol measures is not a
  *   reason to break someone's install.
  *
- * That last rule covers the case the design originally wanted to allow
- * outright, and here is why it cannot. A `Value` carries a bare symbol and
- * nothing else, so if one `g` were grams and another `g` were g-force, there
- * would be no way to answer whether two `g` values can be added. Two
- * dimensions on one symbol makes `plus` unanswerable, so one of them has to
- * win.
+ * A `Value` carries a bare symbol and nothing else, so if one `g` were grams and
+ * another `g` were g-force, there would be no way to tell whether two `g` values
+ * can be added. One of them has to win.
  *
  * Our own ladder sidesteps the `g` case anyway (mass starts at `kg`), which is
  * why this is a policy for Uplinks rather than a live first-party concern.

@@ -45,13 +45,13 @@ import { PresentationPacer } from "./worker/presentation-pacer";
 
 /** Minimal contract a queued frame payload must satisfy. A WebCodecs
  *  `VideoFrame` (the decoded backend) holds GPU/decoder resources, MUST be
- *  closed exactly once, so `close` is called wherever this interface's
- *  contract is exercised. `close` is OPTIONAL because an encoded-domain
- *  frame (`RTCEncodedVideoFrame`, the encoded-transform backend,
- *  2026-07-16) holds no such resource and has no `close()` method at all,
- *  it's a plain data object; every call site here uses `data.close?.()`,
- *  a no-op for that case. Kept generic so tests can drive the pipeline with
- *  a lightweight fake instead of a real browser.
+ *  closed exactly once, so `close` is called wherever this interface's contract
+ *  is exercised. `close` is OPTIONAL because an encoded-domain frame
+ *  (`RTCEncodedVideoFrame`, the encoded-transform backend) holds no such
+ *  resource and has no `close()` method at all, it's a plain data object; every
+ *  call site here uses `data.close?.()`, a no-op for that case. Kept generic so
+ *  tests can drive the pipeline with a lightweight fake instead of a real
+ *  browser.
  *
  * @category Delayed video
  */
@@ -118,9 +118,7 @@ export interface FrameDelayPipelineOptions<Frame extends FrameLike> {
    *  decoded video. */
   gopSafeEviction?: boolean;
   /**
-   * Opt into the presentation pacer (cross-browser video-delay
-   * design, 2026-07-16, finding F3 + "Paced release"; see
-   * `worker/presentation-pacer.ts`'s module doc for the full rationale).
+   * Opt into the presentation pacer (see `PresentationPacer`).
    * Omit (the default) for the original behaviour: each released frame is
    * written to `sink` immediately, synchronously, on release, exactly
    * what every pre-existing test in this file and
@@ -148,10 +146,9 @@ export interface FrameDelayPipelineOptions<Frame extends FrameLike> {
  */
 export interface FrameDelayPipeline {
   /** Drop (closing) whatever's currently queued, WITHOUT tearing down
-   *  source/sink: the timeline-reset case (revert/quickload/scene
-   *  reload): the track keeps flowing, only the stale pre-reset backlog is
-   *  discarded so it can never surface once the clock sweeps back past
-   *  those UTs post-reset. */
+   *  source/sink: the timeline-reset case (revert/quickload/scene reload): the
+   *  track keeps flowing, only the pre-reset backlog is discarded so it can
+   *  never surface once the clock sweeps back past those UTs post-reset. */
   flush(): void;
   /** Stop reading, close the sink, and drop (closing) anything still
    *  queued. Idempotent: safe to call more than once. */

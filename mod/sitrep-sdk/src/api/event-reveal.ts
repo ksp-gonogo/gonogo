@@ -4,12 +4,8 @@ import type { EventOccurrence } from "../event-timeline";
  * Mod-agnostic registry for the event occurrences an alarm's `event` trigger
  * fires on.
  *
- * <p><b>Why this exists.</b> The occurrences behind an `event` trigger are
- * produced by whichever Uplink owns the Topic, and the app used to reach for
- * one of them by name to build the reader it hands its alarm host. That put an
- * Uplink's package in the app's import graph for the sake of one function
- * call, and left every other Uplink unable to feed the same trigger at all: an
- * app that names one producer has no room for a second.</p>
+ * <p>The occurrences behind an `event` trigger are produced by whichever Uplink
+ * owns the Topic, so each Uplink registers its own source here.</p>
  *
  * <p><b>Why a registry and not an augment slot.</b> A source contributes DATA,
  * not a renderable component, so it is a registry parallel to the augment one,

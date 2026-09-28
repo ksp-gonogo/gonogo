@@ -81,15 +81,15 @@ public class CareerStatus
 /// The <c>career.facilities</c> channel payload: the space centre's buildings,
 /// each with the tier it stands at and the ladder it stands on.
 ///
-/// <para><b>It arrives only while the game can answer, and stops otherwise.</b>
-/// A facility's tier count and prices are readable from the building objects,
-/// which KSP registers at the space centre, in the editor and in flight. The
-/// tracking station reads the tier the save holds against the ladder last read
-/// in one of those scenes. Where no ladder has been read there is no reading to
-/// take, so this channel goes SILENT rather than reporting a row of nulls.
-/// The last reading stands, dated, through the client's ordinary staleness
-/// machinery: a whole channel can be held and said to be held, where a nullable
-/// field on a channel that keeps ticking cannot.</para>
+/// <para><b>It arrives only while the game can report it, and stops
+/// otherwise.</b> A facility's tier count and prices are readable from the
+/// building objects, which KSP registers at the space centre, in the editor and
+/// in flight. The tracking station reads the tier the save holds against the
+/// ladder last read in one of those scenes. Where no ladder has been read there
+/// is no reading to take, so this channel goes SILENT rather than reporting a
+/// row of nulls. The last reading stands, dated, through the client's ordinary
+/// staleness machinery: a whole channel can be held and said to be held, where
+/// a nullable field on a channel that keeps ticking cannot.</para>
 ///
 /// <para>A tier count does not change during a save, so a ladder held from an
 /// earlier scene is still true. The tier standing on it can move, and does when
@@ -105,9 +105,10 @@ public class CareerStatus
 /// CURRENT answer of null, which is the one thing they are not, and the grid
 /// dropped nine cells of a space centre that was still standing.</para>
 ///
-/// <para>The producer half is <c>Sitrep.Host.CareerViewProvider.BuildFacilities</c>
-/// over <c>Gonogo.KSP.KspHost.BuildCareerFacilities</c>, which returns null when
-/// no facility resolved a live object. <c>ChannelDeclaration.NullIsUnreadable</c>
+/// <para>The producer half is
+/// <c>Sitrep.Host.CareerViewProvider.BuildFacilities</c> over
+/// <c>Gonogo.KSP.KspHost.BuildCareerFacilities</c>, which returns null when no
+/// facility resolved a live object. <c>ChannelDeclaration.NullIsUnreadable</c>
 /// is what turns that null into silence instead of a tombstone.</para>
 /// </internal>
 /// </summary>
@@ -133,7 +134,8 @@ public class CareerFacilities
     public Dictionary<string, CareerFacility>? Facilities { get; set; }
 }
 
-/// <summary>Economy sub-group of <see cref="CareerStatus"/>: funds/reputation/science, each null when absent.</summary>
+/// <summary>Economy sub-group of <see cref="CareerStatus"/>:
+/// funds/reputation/science, each null when absent.</summary>
 /// <category>Career</category>
 [SitrepContract]
 #if SITREP_CODEGEN
@@ -174,12 +176,14 @@ public class CareerEconomy
     [SitrepOmittedWhenNull]
     public double? ReputationDecayPerDay { get; set; }
 
-    /// <summary>Funding the current reputation earns, per day. Zero on stock.</summary>
+    /// <summary>Funding the current reputation earns, per day. Zero on
+    /// stock.</summary>
     [SitrepUnit(Units.FundsPerDay)]
     [SitrepOmittedWhenNull]
     public double? SubsidyPerDay { get; set; }
 
-    /// <summary>The subsidy at zero reputation: the floor nothing takes away.</summary>
+    /// <summary>The subsidy at zero reputation: the floor nothing takes
+    /// away.</summary>
     [SitrepUnit(Units.FundsPerDay)]
     [SitrepOmittedWhenNull]
     public double? SubsidyMinPerDay { get; set; }
@@ -226,16 +230,15 @@ public class CareerEconomy
     [SitrepOmittedWhenNull]
     public CareerUpkeep? UpkeepBeforeModifiers { get; set; }
 
-    /// <summary>
-    /// A prepaid allowance the elected money model spends BEFORE <see cref="Funds"/>
-    /// on the purchases it covers. In funds, because that is what it discounts.
-    /// ABSENT on stock, which has no such pool.
+    /// <summary> A prepaid allowance the elected money model spends BEFORE <see
+    /// cref="Funds"/> on the purchases it covers. In funds, because that is
+    /// what it discounts. ABSENT on stock, which has no such pool.
     /// </summary>
-    /// <remarks>
-    /// The second reason <see cref="Funds"/> alone is not an affordability test:
-    /// where this exists, part of a price is already paid. It is a BALANCE and not
-    /// a per-purchase answer, so a surface that offers such a purchase shows this
-    /// and the funds balance together rather than deriving the split itself.
+    /// <remarks> The second reason <see cref="Funds"/> alone is not an
+    /// affordability test: where this exists, part of a price is already paid.
+    /// It is a BALANCE and not a per-purchase answer, so a surface that offers
+    /// such a purchase shows this and the funds balance together rather than
+    /// deriving the split itself.
     /// </remarks>
     [SitrepUnit(Units.Funds)]
     [SitrepOmittedWhenNull]
@@ -254,15 +257,18 @@ public class CareerEconomy
 #endif
 public class CareerUpkeep
 {
-    /// <summary>Buildings: the standing cost of having a space centre at all.</summary>
+    /// <summary>Buildings: the standing cost of having a space centre at
+    /// all.</summary>
     [SitrepUnit(Units.FundsPerDay)]
     public double? Facilities { get; set; }
 
-    /// <summary>Launch complexes and their pads, which cost whether or not anything is building.</summary>
+    /// <summary>Launch complexes and their pads, which cost whether or not
+    /// anything is building.</summary>
     [SitrepUnit(Units.FundsPerDay)]
     public double? LaunchComplexes { get; set; }
 
-    /// <summary>Researcher salaries, which an idle research queue does not stop.</summary>
+    /// <summary>Researcher salaries, which an idle research queue does not
+    /// stop.</summary>
     [SitrepUnit(Units.FundsPerDay)]
     public double? ResearchSalary { get; set; }
 
@@ -270,11 +276,13 @@ public class CareerUpkeep
     [SitrepUnit(Units.FundsPerDay)]
     public double? Training { get; set; }
 
-    /// <summary>Standing crew costs: everyone on the roster, flying or not.</summary>
+    /// <summary>Standing crew costs: everyone on the roster, flying or
+    /// not.</summary>
     [SitrepUnit(Units.FundsPerDay)]
     public double? CrewBase { get; set; }
 
-    /// <summary>The extra a crew in flight costs over a crew on the ground.</summary>
+    /// <summary>The extra a crew in flight costs over a crew on the
+    /// ground.</summary>
     [SitrepUnit(Units.FundsPerDay)]
     public double? CrewInFlight { get; set; }
 
@@ -322,7 +330,8 @@ public class CareerFacility
     public double? UpgradeCost { get; set; }
 }
 
-/// <summary>Contracts sub-group of <see cref="CareerStatus"/>. All three lists are always present (empty, never null).</summary>
+/// <summary>Contracts sub-group of <see cref="CareerStatus"/>. All three lists
+/// are always present (empty, never null).</summary>
 /// <category>Career</category>
 [SitrepContract]
 #if SITREP_CODEGEN
@@ -334,20 +343,21 @@ public class CareerContracts
 
     public List<CareerContract> Offered { get; set; } = new();
 
-    /// <summary>
-    /// BOUNDED recently-completed list: the last N (currently 10)
+    /// <summary> BOUNDED recently-completed list: the last N (currently 10)
     /// <c>State.Completed</c> contracts from
-    /// <c>ContractSystem.Instance.ContractsFinished</c>, sorted newest-first
-    /// by <c>Contract.DateFinished</c> (see
-    /// <c>Gonogo.KSP.KspHost.BuildCareerContracts</c>). Same
-    /// <see cref="CareerContract"/> element shape as <see cref="Active"/> /
-    /// <see cref="Offered"/>: no extra fields; <c>State</c> is always
-    /// <c>"Completed"</c> here. Rides <c>career.status</c> (held at the home command).
+    /// <c>ContractSystem.Instance.ContractsFinished</c>, sorted newest-first by
+    /// <c>Contract.DateFinished</c> (see
+    /// <c>Gonogo.KSP.KspHost.BuildCareerContracts</c>). Same <see
+    /// cref="CareerContract"/> element shape as <see cref="Active"/> / <see
+    /// cref="Offered"/>: no extra fields; <c>State</c> is always
+    /// <c>"Completed"</c> here. Rides <c>career.status</c> (held at the home
+    /// command).
     /// </summary>
     public List<CareerContract> CompletedRecent { get; set; } = new();
 }
 
-/// <summary>One contract in <see cref="CareerContracts.Active"/> / <see cref="CareerContracts.Offered"/>.</summary>
+/// <summary>One contract in <see cref="CareerContracts.Active"/> / <see
+/// cref="CareerContracts.Offered"/>.</summary>
 /// <category>Career</category>
 [SitrepContract]
 #if SITREP_CODEGEN
@@ -397,7 +407,8 @@ public class CareerContract
     public List<CareerContractParameter> Parameters { get; set; } = new();
 }
 
-/// <summary>One parameter (objective) of a <see cref="CareerContract"/>.</summary>
+/// <summary>One parameter (objective) of a <see
+/// cref="CareerContract"/>.</summary>
 /// <category>Career</category>
 [SitrepContract]
 #if SITREP_CODEGEN
@@ -473,11 +484,11 @@ public class CareerStrategies
     /// <c>true</c> when it does, <c>false</c> when the game's activation is its
     /// own, <c>null</c> when that could not be established.
     ///
-    /// <para>With the Administration Building shut, <c>career.strategy.activate</c>
-    /// commits a strategy only when this is <c>false</c>, and refuses otherwise:
-    /// a mod that changes activation owns the procedure, and offers its own
-    /// command for it. With the building open the game activates as it always
-    /// does, whatever this says.</para>
+    /// <para>With the Administration Building shut,
+    /// <c>career.strategy.activate</c> commits a strategy only when this is
+    /// <c>false</c>, and refuses otherwise: a mod that changes activation owns
+    /// the procedure, and offers its own command for it. With the building open
+    /// the game activates as it always does, whatever this says.</para>
     /// <internal>
     /// Read from Harmony's patch registry over Strategy.Activate and
     /// Strategy.CanBeActivated by StockActivationPatch, the same read the
@@ -489,7 +500,8 @@ public class CareerStrategies
     public bool? ActivationPatched { get; set; }
 }
 
-/// <summary>One strategy in <see cref="CareerStrategies.Active"/> / <see cref="CareerStrategies.All"/>.</summary>
+/// <summary>One strategy in <see cref="CareerStrategies.Active"/> / <see
+/// cref="CareerStrategies.All"/>.</summary>
 /// <category>Career</category>
 [SitrepContract]
 #if SITREP_CODEGEN
@@ -644,10 +656,10 @@ public class CareerTechNode
     /// can Rocket Science be anyway?").
     ///
     /// <para>It comes from the tree's own config rather than from
-    /// <c>RDTech</c>, whose <c>description</c> field only exists while the R&amp;D
-    /// Building scene is open. A tech tree a mod has replaced (RP-1) is read
-    /// the same way, so this is the node's description in whatever tree the
-    /// save is playing.</para>
+    /// <c>RDTech</c>, whose <c>description</c> field only exists while the
+    /// R&amp;D Building scene is open. A tech tree a mod has replaced (RP-1) is
+    /// read the same way, so this is the node's description in whatever tree
+    /// the save is playing.</para>
     /// </summary>
     [SitrepUnit(Units.Text)]
     public string? Description { get; set; }

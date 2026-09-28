@@ -75,10 +75,12 @@ namespace Sitrep.Contract;
 /// </summary>
 public interface ICommsDegradeModel
 {
-    /// <summary>Stable id for this rule, e.g. <c>"commnet-range-fraction"</c>.</summary>
+    /// <summary>Stable id for this rule, e.g.
+    /// <c>"commnet-range-fraction"</c>.</summary>
     string ModelId { get; }
 
-    /// <summary>Human-readable name a UI can show, e.g. <c>"Stock CommNet (range fraction)"</c>.</summary>
+    /// <summary>Human-readable name a UI can show, e.g. <c>"Stock CommNet
+    /// (range fraction)"</c>.</summary>
     string ModelName { get; }
 
     /// <summary>
@@ -96,7 +98,8 @@ public interface ICommsDegradeModel
     /// modelled.</description></item>
     /// <item><description><b>1</b>: UNUSABLE. Nothing worth sending gets
     /// through. A disconnected craft rates here.</description></item>
-    /// <item><description>anything between: worse as it rises.</description></item>
+    /// <item><description>anything between: worse as it
+    /// rises.</description></item>
     /// </list>
     /// </summary>
     double? Level { get; }
@@ -162,10 +165,12 @@ public sealed class RatedDegradeModel : ICommsDegradeModel
     }
 }
 
-/// <summary>The degrade models core itself declares, and the reads every consumer shares.</summary>
+/// <summary>The degrade models core itself declares, and the reads every
+/// consumer shares.</summary>
 public static class CommsDegradeModels
 {
-    /// <summary><see cref="Unknown"/>'s id, so a consumer can recognise "nobody told me" without string-matching a display name.</summary>
+    /// <summary><see cref="Unknown"/>'s id, so a consumer can recognise "nobody
+    /// told me" without string-matching a display name.</summary>
     public const string UnknownModelId = "unknown";
 
     /// <summary>
@@ -252,7 +257,7 @@ public static class CommsDegradeModels
 ///
 /// <para><see cref="Level"/> runs from 0, nothing wrong, to 1, nothing usable
 /// getting through. It is ABSENT when nothing graded the link, and absent is a
-/// third answer rather than a low one: "nobody rated this" and "this link is
+/// third case rather than a low one: "nobody rated this" and "this link is
 /// perfect" are opposite instructions to anything choosing a quality, so a
 /// consumer must branch on the absence rather than default it to a
 /// number.</para>
@@ -282,11 +287,13 @@ public static class CommsDegradeModels
 [SitrepTopic("comms.degrade")]
 public class CommsDegrade
 {
-    /// <summary>The grading rule's id; <c>"unknown"</c> when nothing graded the link.</summary>
+    /// <summary>The grading rule's id; <c>"unknown"</c> when nothing graded the
+    /// link.</summary>
     [SitrepUnit(Units.Id)]
     public string ModelId { get; set; } = "";
 
-    /// <summary>The grading rule's display name, so a surface can say which grading is in play.</summary>
+    /// <summary>The grading rule's display name, so a surface can say which
+    /// grading is in play.</summary>
     [SitrepUnit(Units.Text)]
     public string ModelName { get; set; } = "";
 

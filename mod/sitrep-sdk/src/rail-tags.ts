@@ -29,14 +29,15 @@
  *
  * - DIRECTION is the caller's own question, and it is not a judgement call: a
  *   declared command id is a command, and anything else on the rail is
- *   telemetry. The two namespaces are disjoint (asserted in `rail-tags.test.ts`),
- *   and a producer always knows which it holds, so the axis is answered by which
- *   derivation you reach for rather than by a lookup that could go either way
- * - DELIVERY comes off the generated rail table's `replies`, which codegen fills
- *   in from what the command answers. Telemetry has no reply channel at all, so
- *   nothing answers a push
+ *   telemetry. The two namespaces are disjoint (asserted in
+ *   `rail-tags.test.ts`), and a producer always knows which it holds, so the
+ *   axis is set by which derivation you reach for rather than by a lookup that
+ *   could go either way
+ * - DELIVERY comes off the generated rail table's `replies`, which codegen
+ *   fills in from whether the command replies. Telemetry has no reply channel
+ *   at all, so nothing replies to a push
  * - CONTINUITY is a property of the PRODUCER, and each of the three derivations
- *   below answers it from what the producer is doing rather than from a
+ *   below reads it from what the producer is doing rather than from a
  *   declaration. One dispatch of a command is a point, always: what is a span is
  *   the AXIS a widget holds, which is {@link railTagsForControlAxis}, or the
  *   stream a producer is pushing, which is {@link railTagsForTelemetry}. The
@@ -63,7 +64,7 @@ export type RailDirection = "command" | "telemetry";
 export type RailContinuity = "discrete" | "continuous";
 
 /**
- * Whether anything answers. Drives whether a RETURN LEG is drawn at all: a
+ * Whether anything replies. Drives whether a RETURN LEG is drawn at all: a
  * fire-and-forget entry reaches the far end and simply ends, and drawing it a
  * return leg would be the lie this vocabulary exists to remove.
  *
@@ -97,7 +98,7 @@ export interface CommandRail {
   /**
    * Whether the host holds this command for the signal delay before running it.
    *
-   * The mod's own answer, not a client-side reading of it: codegen copies it
+   * The mod's own statement, not a client-side reading of it: codegen copies it
    * from the `[SitrepCommand]` the host dispatches by. `commandDelayed` is the
    * one caller, and it is what keeps a countdown off a command that runs the
    * instant it arrives.
@@ -173,8 +174,8 @@ export const UNDECLARED_COMMAND_RAIL_TAGS: RailTags = railTags(
  *
  * Split from {@link railTagsForCommand} so the derivation can be exercised on a
  * row that does not exist yet: every command the contract declares today
- * answers something, so `replies: false` is unreachable through the lookup, and
- * a derivation whose other branch nothing can reach is a derivation nobody has
+ * replies, so `replies: false` is unreachable through the lookup, and a
+ * derivation whose other branch nothing can reach is a derivation nobody has
  * checked.
  *
  * @category Commands
@@ -233,11 +234,11 @@ export function railTagsForControlAxis(writeCommand: string): RailTags {
  *
  * Two of the three are intrinsic. DIRECTION is telemetry by construction, and
  * DELIVERY is fire-and-forget because a topic has no reply type: the contract
- * gives a command somewhere to answer and gives a push nowhere at all, so an
- * ack is not a thing that could arrive. CONTINUITY is the one the producer has
- * to state, and it is the same argument the command side makes: an open
- * microphone is a span, a science result is an event, and the difference is a
- * property of what is producing the data rather than of the rail.
+ * gives a command a reply and gives a push none, so an ack is not a thing that
+ * could arrive. CONTINUITY is the one the producer has to state, and it is the
+ * same argument the command side makes: an open microphone is a span, a science
+ * result is an event, and the difference is a property of what is producing the
+ * data rather than of the rail.
  *
  * @category Commands
  */

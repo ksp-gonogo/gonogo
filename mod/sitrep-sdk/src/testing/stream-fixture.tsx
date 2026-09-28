@@ -21,26 +21,15 @@ import { StubTransport } from "./stub-transport";
  * an in-memory reimplementation of it would leave their tests passing while
  * testing the reimplementation.
  *
- * It used to live a package above this one, on the reasoning that the sdk is the
- * leaf and so could not reach the spine at all. That turned out to be a fact
- * about where the spine was STORED rather than what it depended on: the whole
- * read-and-stream cluster's transitive imports were the sdk and itself, so it
- * moved here (`../spine`) and this fixture came with it. Nothing was
- * reimplemented to make that happen, which is the only version of this worth
- * having.
+ * It registers `PRODUCTION_DERIVED_CHANNELS`, the same list the provider
+ * registers, so every caller gets every derived channel.
  *
- * It replaces nine copies of itself. Every Uplink carried its own
- * `src/test/setupStreamFixture.tsx`, five byte-identical and the other four
- * varying only in the derived channels they registered. It registers
- * `PRODUCTION_DERIVED_CHANNELS`, the same list the provider registers, so every
- * caller gets every channel rather than discovering which one their widget
- * needed.
- *
- * - **`StubTransport`** (not `ReplayTransport`): subscription-gated exactly like
- *   production, `emit` only delivers once something has actually subscribed, so a
- *   test that renders a widget and sees the value proves the widget's own
- *   `useStream`/shim ref-count genuinely subscribed. A test that wants to replay a
- *   whole recording should build a `ReplayTransport` directly.
+ * - **`StubTransport`** (not `ReplayTransport`): subscription-gated exactly
+ *   like production, `emit` only delivers once something has actually
+ *   subscribed, so a test that renders a widget and sees the value proves the
+ *   widget's own `useStream`/shim ref-count genuinely subscribed. A test that
+ *   wants to replay a whole recording should build a `ReplayTransport`
+ *   directly.
  * - **Dynamic namespaces** resolve as production's do: a topic under one of
  *   `DYNAMIC_WHOLE_TOPIC_PREFIXES` (`fleet.<guid>.delay`) is sampled whole rather
  *   than mis-split into a `<parent>.<field>` the wire never publishes.
@@ -48,11 +37,11 @@ import { StubTransport } from "./stub-transport";
  *   caller passing a nonzero value MUST leave `pinnedUt` unset, because
  *   `ViewClock.viewUt()`'s `scrubTo` target wins outright over the
  *   confirmed-edge/delay computation, which makes a pinned clock silently turn
- *   `delaySeconds` into a no-op. Drive time with `fixture.wall.advanceBy(seconds)`
- *   plus `fixture.store.beginFrame()` instead, which applies it deterministically.
- *   Ingests are not the only frame source: a mounted `TelemetryProvider` also
- *   mints one every animation frame off `ViewClock.onFrame`, whether or not
- *   anything arrived.
+ *   `delaySeconds` into a no-op. Drive time with
+ *   `fixture.wall.advanceBy(seconds)` plus `fixture.store.beginFrame()`
+ *   instead, which applies it deterministically. Ingests are not the only frame
+ *   source: a mounted `TelemetryProvider` also mints one every animation frame
+ *   off `ViewClock.onFrame`, whether or not anything arrived.
  *
  * @category Stream fixture
  */
@@ -156,10 +145,10 @@ export function setupStreamFixture(
  * current. What a fixture's `"_stream": { "stopsArriving": true }` asks for.
  *
  * The drop rather than a clock advance, because it is what a widget's own
- * stale tests do (`store.setTransportConnected(false)`), so a fixture and the
- * test asserting on it stage the same thing. Call it after the scene's emits:
- * that is the order an operator meets it, and a drop first would leave the
- * emits nowhere to land.
+ * held-reading tests do (`store.setTransportConnected(false)`), so a fixture
+ * and the test asserting on it stage the same thing. Call it after the scene's
+ * emits: that is the order an operator meets it, and a drop first would leave
+ * the emits nowhere to land.
  *
  * @category Stream fixture
  */

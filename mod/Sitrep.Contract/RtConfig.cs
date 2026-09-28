@@ -836,10 +836,10 @@ public static class RtConfig
         Units.NotApplicable,
     };
 
-    /// <summary>
-    /// Retypes each quantity-bearing property from a bare <c>number</c> to
-    /// <c>Value&lt;"&lt;token&gt;"&gt;</c>, so the declared unit is carried by the
-    /// generated TYPE rather than only by the <see cref="EmitUnitMap"/> lookup.
+    /// <summary> Retypes each quantity-bearing property from a bare
+    /// <c>number</c> to <c>Value&lt;"&lt;token&gt;"&gt;</c>, so the declared
+    /// unit is carried by the generated TYPE rather than only by the <see
+    /// cref="EmitUnitMap"/> lookup.
     ///
     /// <para>Reinforced.Typings has no notion of a generic type argument built
     /// from an attribute value, but <c>PropertyExportBuilder.Type(string)</c>
@@ -1124,7 +1124,8 @@ public static class RtConfig
     private const string NullableContextAttributeName =
         "System.Runtime.CompilerServices.NullableContextAttribute";
 
-    /// <summary>The flag byte Roslyn writes for an annotated (nullable) reference type.</summary>
+    /// <summary>The flag byte Roslyn writes for an annotated (nullable)
+    /// reference type.</summary>
     private const byte NullableAnnotated = 2;
 
     /// <summary>
@@ -1290,16 +1291,16 @@ public static class RtConfig
     /// notion of a TS type chosen from an attribute, and a raw name is all this
     /// needs.</para>
     ///
-    /// <para><b>This is what makes the bag one line per payload.</b> Adding the bag
-    /// to a future elected payload (science is next) is the attribute on the
-    /// property; nothing here, in the SDK, or in the client runtime is edited
-    /// again. That permanence is the contract, the same one the open
+    /// <para><b>This is what makes the bag one line per payload.</b> Adding the
+    /// bag to a future elected payload (science is next) is the attribute on
+    /// the property; nothing here, in the SDK, or in the client runtime is
+    /// edited again. That permanence is the contract, the same one the open
     /// <c>SitrepUnit</c> union keeps for unit tokens.</para>
     ///
-    /// <para>Public and assembly-agnostic for the same reason
-    /// <see cref="ApplyUnitValueTypes"/> is: an Uplink that puts a bag on a payload
-    /// of its OWN calls this from its own <c>Configure</c> with its own types and
-    /// its own import path, and gets the identical emission.</para>
+    /// <para>Public and assembly-agnostic for the same reason <see
+    /// cref="ApplyUnitValueTypes"/> is: an Uplink that puts a bag on a payload
+    /// of its OWN calls this from its own <c>Configure</c> with its own types
+    /// and its own import path, and gets the identical emission.</para>
     /// </summary>
     /// <param name="builder">The Reinforced.Typings configuration being built.</param>
     /// <param name="exportedTypes">The types this pass scans for a bag, from any assembly.</param>
@@ -1345,11 +1346,11 @@ public static class RtConfig
             ProviderExtensions.TsTypeName);
     }
 
-    /// <summary>
-    /// True for a CLR numeric type, looking through <c>Nullable&lt;T&gt;</c> so
-    /// an optional quantity counts. Null (no sequence element) is false. Enums are excluded despite their numeric
-    /// underlying type: a closed set of named states is not a magnitude, and the
-    /// contract declares those with <see cref="Units.Enumeration"/> anyway.
+    /// <summary> True for a CLR numeric type, looking through
+    /// <c>Nullable&lt;T&gt;</c> so an optional quantity counts. Null (no
+    /// sequence element) is false. Enums are excluded despite their numeric
+    /// underlying type: a closed set of named states is not a magnitude, and
+    /// the contract declares those with <see cref="Units.Enumeration"/> anyway.
     /// </summary>
     private static bool IsNumeric(Type? type)
     {
@@ -1508,16 +1509,15 @@ public static class RtConfig
         }
     }
 
-    /// <summary>
-    /// Writes the generated Topic -> payload map (<c>GeneratedTopicPayloadMap</c>
-    /// + <c>GENERATED_TOPIC_IDS</c>) consumed by
-    /// <c>mod/sitrep-sdk/src/topics.ts</c>. Each <c>[SitrepTopic]</c>-tagged
-    /// contract type contributes one entry: the attribute's <c>TopicId</c> is the
-    /// key and the type's generated interface name is the value (with <c>[]</c>
-    /// appended for the <c>IsArray</c> channels, whose wire payload is a bare JSON
-    /// array of the tagged element type). Every referenced interface is emitted
-    /// into <c>./contract.ts</c> by the registrations above, so the map's imports
-    /// always resolve.
+    /// <summary> Writes the generated Topic -> payload map
+    /// (<c>GeneratedTopicPayloadMap</c> + <c>GENERATED_TOPIC_IDS</c>) consumed
+    /// by <c>mod/sitrep-sdk/src/topics.ts</c>. Each <c>[SitrepTopic]</c>-tagged
+    /// contract type contributes one entry: the attribute's <c>TopicId</c> is
+    /// the key and the type's generated interface name is the value (with
+    /// <c>[]</c> appended for the <c>IsArray</c> channels, whose wire payload
+    /// is a bare JSON array of the tagged element type). Every referenced
+    /// interface is emitted into <c>./contract.ts</c> by the registrations
+    /// above, so the map's imports always resolve.
     ///
     /// <para><c>GENERATED_COLLECTION_TOPIC_IDS</c> lists the <c>IsArray</c>
     /// channels again as runtime data, for a client that has to know a Topic's
@@ -1722,12 +1722,8 @@ public static class RtConfig
         sb.Append("/**\n");
         sb.Append(" * A declared unit. OPEN on purpose.\n");
         sb.Append(" *\n");
-        sb.Append(" * The known tokens above still autocomplete, and a typo in first-party\n");
-        sb.Append(" * code is still caught at codegen time by the catalog check. The open arm\n");
-        sb.Append(" * exists because a third-party Uplink CANNOT add to Sitrep.Contract.Units:\n");
-        sb.Append(" * it is a const-string class compiled into the contract assembly. Closing\n");
-        sb.Append(" * this union would therefore have meant an Uplink could never declare a\n");
-        sb.Append(" * unit at all, which contradicts third parties being first-class.\n");
+        sb.Append(" * The known tokens above still autocomplete. Any other string is accepted\n");
+        sb.Append(" * too, so an Uplink can declare a unit of its own.\n");
         sb.Append(" *\n");
         sb.Append(" * A consumer teaches the client what an unknown symbol MEANS by declaring it\n");
         sb.Append(" * in UnitDeclarations and calling registerUnit from @ksp-gonogo/sitrep-sdk.\n");
@@ -1857,18 +1853,17 @@ public static class RtConfig
         return true;
     }
 
-    /// <summary>
-    /// Writes the generated control-channel map
+    /// <summary> Writes the generated control-channel map
     /// (<c>GeneratedControlChannel</c> + <c>GENERATED_CONTROL_CHANNELS</c> +
     /// <c>GeneratedControlChannelId</c>) consumed by
-    /// <c>mod/sitrep-sdk/src/control-channels.ts</c>. Each
-    /// <see cref="SitrepControlChannelAttribute"/>-tagged READ property
-    /// contributes one row: the owning type's <see cref="SitrepTopicAttribute"/>
-    /// is the read topic (throws if the owning type has none, enforcing that the
-    /// read half is a real Topic field), the camelCased property name is the read
-    /// field, and the attribute carries the paired write command + its args type +
-    /// the camelCased value field. Read and write stay TWO wire keys; the SDK
-    /// wraps them into one handle.
+    /// <c>mod/sitrep-sdk/src/control-channels.ts</c>. Each <see
+    /// cref="SitrepControlChannelAttribute"/>-tagged READ property contributes
+    /// one row: the owning type's <see cref="SitrepTopicAttribute"/> is the
+    /// read topic (throws if the owning type has none, enforcing that the read
+    /// half is a real Topic field), the camelCased property name is the read
+    /// field, and the attribute carries the paired write command + its args
+    /// type + the camelCased value field. Read and write stay TWO wire keys;
+    /// the SDK wraps them into one handle.
     /// </summary>
     private static void EmitChannelMap(string outPath)
     {
@@ -1972,15 +1967,15 @@ public static class RtConfig
     /// and an element projection of an array Topic loses the identity fields that
     /// would join it back to its element.</para>
     ///
-    /// <para><b>Core's own assembly only</b>, unlike <see cref="EmitTopicMap"/>'s
-    /// optional <c>assembly</c> parameter. An Uplink marking a value in its own
-    /// contract slice needs more than the parameter: the SDK reads ONE generated
-    /// table, so a per-Uplink table needs a merge seam in
-    /// <c>mod/sitrep-sdk/src/reckonability.ts</c>, and the gate in
+    /// <para><b>Core's own assembly only</b>, unlike <see
+    /// cref="EmitTopicMap"/>'s optional <c>assembly</c> parameter. An Uplink
+    /// marking a value in its own contract slice needs more than the parameter:
+    /// the SDK reads ONE generated table, so a per-Uplink table needs a merge
+    /// seam in <c>mod/sitrep-sdk/src/reckonability.ts</c>, and the gate in
     /// <c>Sitrep.Contract.Tests</c> needs a per-Uplink leg to resolve the marks
-    /// against the core topic set plus the Uplink's own. No Uplink payload carries
-    /// a mark today, so this is deferred rather than blocked, and the parameter is
-    /// left off so its absence reads as the decision it is.</para>
+    /// against the core topic set plus the Uplink's own. No Uplink payload
+    /// carries a mark today, so this is deferred rather than blocked, and the
+    /// parameter is left off so its absence reads as the decision it is.</para>
     /// </summary>
     private static void EmitReckonability(string outPath)
     {
@@ -2466,11 +2461,11 @@ public static class RtConfig
         Console.WriteLine("codegen (command-map) -> " + outPath + " (" + rows.Count + " commands)");
     }
 
-    /// <summary>
-    /// The wire name of the args field <see cref="SitrepCommandAttribute.ArriveBefore"/>
-    /// names, or null when it names none. Stops the build when it names anything
-    /// but a <c>double</c> property of the args class, since a deadline read off
-    /// a field that is not there would never refuse anything.
+    /// <summary> The wire name of the args field <see
+    /// cref="SitrepCommandAttribute.ArriveBefore"/> names, or null when it
+    /// names none. Stops the build when it names anything but a <c>double</c>
+    /// property of the args class, since a deadline read off a field that is
+    /// not there would never refuse anything.
     /// </summary>
     private static string? ArriveBeforeField(SitrepCommandAttribute attr, Type argsType)
     {

@@ -39,15 +39,19 @@ namespace Sitrep.Contract;
 #endif
 public class PartActionEntry
 {
-    /// <summary><c>BaseEvent.name</c>: the STABLE code identifier, and the key <see cref="InvokePartActionArgs.EventName"/> carries back.</summary>
+    /// <summary><c>BaseEvent.name</c>: the STABLE code identifier, and the key
+    /// <see cref="InvokePartActionArgs.EventName"/> carries back.</summary>
     [SitrepUnit(Units.Id)]
     public string Name { get; set; } = "";
 
-    /// <summary><c>BaseEvent.guiName</c>: the localized text the player sees on the PAW button.</summary>
+    /// <summary><c>BaseEvent.guiName</c>: the localized text the player sees on
+    /// the PAW button.</summary>
     [SitrepUnit(Units.Text)]
     public string Label { get; set; } = "";
 
-    /// <summary><c>BaseEvent.group?.displayName</c>: the PAW group this button sits under, so a client can group like the real window. <c>null</c> for an ungrouped button.</summary>
+    /// <summary><c>BaseEvent.group?.displayName</c>: the PAW group this button
+    /// sits under, so a client can group like the real window. <c>null</c> for
+    /// an ungrouped button.</summary>
     [SitrepUnit(Units.Text)]
     public string? Group { get; set; }
 
@@ -61,19 +65,28 @@ public class PartActionEntry
     [SitrepUnit(Units.Id)]
     public string? ModuleName { get; set; }
 
-    /// <summary><c>BaseEvent.active</c>: the button is currently enabled. A <c>false</c> entry is present-but-inert, so a client renders it disabled rather than hiding it (hiding would make the PAW jump around as state changes).</summary>
+    /// <summary><c>BaseEvent.active</c>: the button is currently enabled. A
+    /// <c>false</c> entry is present-but-inert, so a client renders it disabled
+    /// rather than hiding it (hiding would make the PAW jump around as state
+    /// changes).</summary>
     [SitrepUnit(Units.Flag)]
     public bool Active { get; set; }
 
-    /// <summary><c>BaseEvent.guiActiveUnfocused</c>: the button also shows when near but not focused (the EVA-range set), so a client can hint that.</summary>
+    /// <summary><c>BaseEvent.guiActiveUnfocused</c>: the button also shows when
+    /// near but not focused (the EVA-range set), so a client can hint
+    /// that.</summary>
     [SitrepUnit(Units.Flag)]
     public bool GuiActiveUnfocused { get; set; }
 
-    /// <summary><c>BaseEvent.advancedTweakable</c>: KSP hides this behind its own advanced-tweakables setting; a client can mirror that preference.</summary>
+    /// <summary><c>BaseEvent.advancedTweakable</c>: KSP hides this behind its
+    /// own advanced-tweakables setting; a client can mirror that
+    /// preference.</summary>
     [SitrepUnit(Units.Flag)]
     public bool AdvancedTweakable { get; set; }
 
-    /// <summary><c>BaseEvent.requireFullControl</c>: the button needs full vessel control (not a partially-crewed/probe-limited state) to fire.</summary>
+    /// <summary><c>BaseEvent.requireFullControl</c>: the button needs full
+    /// vessel control (not a partially-crewed/probe-limited state) to
+    /// fire.</summary>
     [SitrepUnit(Units.Flag)]
     public bool RequireFullControl { get; set; }
 }
@@ -91,12 +104,12 @@ public class PartActionEntry
 /// nothing open costs nothing. See <c>Gonogo.KSP.VesselUplink</c>'s
 /// registration.</para>
 ///
-/// <para><b>Why a stream and not a one-shot query:</b> the action set is its own
-/// read-back. Invoking "Extend Solar Panel" flips this list to "Retract Solar
-/// Panel" one light-time later, which is how a client confirms a delayed
-/// command landed WITHOUT optimistically flipping its own UI. A request/response
-/// enumeration would hand back a snapshot that goes stale the instant its own
-/// command arrives.</para>
+/// <para><b>Why a stream and not a one-shot query:</b> the action set is its
+/// own read-back. Invoking "Extend Solar Panel" flips this list to "Retract
+/// Solar Panel" one light-time later, which is how a client confirms a delayed
+/// command landed WITHOUT optimistically flipping its own UI. A
+/// request/response enumeration would hand back a snapshot that is out of date
+/// the instant its own command arrives.</para>
 ///
 /// <para><b>Not a <c>[SitrepTopic]</c>-tagged root:</b> the topic string is
 /// computed at runtime (<c>vessel.partActions.</c> + the part's
@@ -112,7 +125,10 @@ public class PartActionEntry
 #endif
 public class PartActions
 {
-    /// <summary><c>Part.flightID</c> stringified: the same join key <see cref="VesselPart.Id"/>, <c>parts.power</c> and <c>robotics.servos</c> use, echoed so a payload is self-describing away from its topic string.</summary>
+    /// <summary><c>Part.flightID</c> stringified: the same join key <see
+    /// cref="VesselPart.Id"/>, <c>parts.power</c> and <c>robotics.servos</c>
+    /// use, echoed so a payload is self-describing away from its topic
+    /// string.</summary>
     [SitrepUnit(Units.Id)]
     public string PartId { get; set; } = "";
 

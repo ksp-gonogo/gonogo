@@ -1,7 +1,7 @@
 /**
  * How a widget-facing key resolves to the stream Topic it reads from.
  *
- * `isKnownFieldPath` / `resolveValueTopic` answer whether a dotted path names a
+ * `isKnownFieldPath` / `resolveValueTopic` say whether a dotted path names a
  * field the contract declares, and which Topic a caller should sample for it.
  * Both read the contract's own generated metadata through
  * `unitsForTopic`/`shapesForTopic`, so a Topic an Uplink or a derived channel
@@ -84,12 +84,10 @@ const PART_ACTIONS_DYNAMIC = /^vessel\.partActions\.\d+$/;
  * Every surviving entry is an IDENTITY map over a DYNAMIC namespace: a family of
  * Topics materialised per subject at runtime, so no `[SitrepTopic]` type names
  * one and nothing generated can enumerate them. The widget-facing key IS the
- * wire topic in each case; what this answers is whether the key belongs to a
+ * wire topic in each case; what this decides is whether the key belongs to a
  * namespace the mod actually publishes.
  *
- * That is why these outlived the retired flat vocabulary rather than going with
- * it. A flat key was a NAME FOR something the wire calls otherwise, and there is
- * nothing left to translate. A dynamic key needs no translation and cannot be
+ * A dynamic key needs no translation and cannot be
  * enumerated, so a pattern is the only thing that can vouch for it.
  *
  * @category Stream fixture

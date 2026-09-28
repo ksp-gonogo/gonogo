@@ -540,7 +540,7 @@ export function useTelemetry<Topic extends TopicId>(
 
 /**
  * The frame's view instant. See `GonogoHost.useViewUt` for why an Uplink needs
- * it and why it answers `undefined` rather than guessing.
+ * it and why it returns `undefined` rather than guessing.
  *
  * @category Delay and vantage
  */
@@ -549,7 +549,7 @@ export function useViewUt(): Value<"ut"> | undefined {
 }
 
 /**
- * Canonical overload: keyed by `CommandId`, answers a handle whose `send` takes
+ * Canonical overload: keyed by `CommandId`, returns a handle whose `send` takes
  * that command's arguments and resolves that command's reply.
  *
  *   const setSas = useCommand("vessel.control.setSas");
@@ -558,7 +558,7 @@ export function useViewUt(): Value<"ut"> | undefined {
  *
  * `send` RESOLVES only when the command ran. The game refusing is a REJECTION,
  * carrying a `CommandErrorCode` a caller can switch on, so a resolved reply is
- * never a polite no. A dispatch the mod never answered rejects too, once the
+ * never a polite no. A dispatch the mod never replied to rejects too, once the
  * loss deadline passes; a `void`ed `send` is safe, the hook marks its own
  * rejection handled and surfaces refusals on `refusals` instead.
  *
@@ -571,9 +571,9 @@ export function useViewUt(): Value<"ut"> | undefined {
  * Every command is DELAYED unless it is sim-meta, so a dispatch is not an event
  * that has happened, it is one that is travelling. The handle carries the whole
  * delay surface for that (`inFlight`, `effectiveDelaySeconds`, `delayMode`,
- * `gate`, `refusals`), and `<CommandDelay handle={cmd}>` renders it; in development the
- * hook throws on a dispatch made without one, so a delayed command cannot ship
- * with no delay UX.
+ * `gate`, `refusals`), and `<CommandDelay handle={cmd}>` renders it; in
+ * development the hook throws on a dispatch made without one, so a delayed
+ * command cannot ship with no delay UX.
  *
  * The full command vocabulary is `COMMAND_IDS`, generated from the mod's own
  * `[SitrepCommand]` declarations.
@@ -589,7 +589,7 @@ export function useCommand<Command extends CommandId>(
  * Uplink's own before its client package has augmented `CommandArgsMap`, or a
  * DYNAMIC command whose id is computed per subject and so can have no static
  * member. Args stay `unknown` unless the caller names them; the reply falls back
- * to `AnyCommandReply`, the result envelope every command answers with, so even
+ * to `AnyCommandReply`, the result envelope every command replies with, so even
  * a command nobody could name is not readable as though it were its own payload.
  *
  *   const reset = useCommand<{ id: string }>(`my-uplink.probe.${probeId}.reset`);
@@ -643,9 +643,9 @@ export function useUplinkRelay(uplinkId: string) {
  * screen broadcasts them and this is where they are read. Empty on the main
  * screen itself, which reaches the relay directly.
  *
- *   const ice = useHostIceServers();
- *   const pc = new RTCPeerConnection({ iceServers: ice.current() });
- *   useEffect(() => ice.onChange((servers) => reconfigure(pc, servers)), [ice, pc]);
+ *   const ice = useHostIceServers(); const pc = new RTCPeerConnection({
+ *   iceServers: ice.current() }); useEffect(() => ice.onChange((servers) =>
+ *   reconfigure(pc, servers)), [ice, pc]);
  *
  * Credentials rotate, so a long-lived connection has to watch `onChange` rather
  * than read `current()` once.
@@ -813,10 +813,10 @@ export function useRouteCommands(topic: string): UseRouteCommandsResult {
  * union at all. {@link WidgetChannelId} is the closed union of the two
  * first-party halves, and is the type to annotate a first-party read with.
  *
- * Unlike {@link useTelemetry}, `Payload` is whatever the caller supplies with nothing
- * checking it was right. Reach for it when the topic has no {@link TopicId}
- * entry (a derived channel, or your own Uplink's), and for a wire Topic prefer
- * `useTelemetry`, whose payload type comes from the contract.
+ * Unlike {@link useTelemetry}, `Payload` is whatever the caller supplies with
+ * nothing checking it was right. Reach for it when the topic has no
+ * {@link TopicId} entry (a derived channel, or your own Uplink's), and for a wire
+ * Topic prefer `useTelemetry`, whose payload type comes from the contract.
  *
  * @category Reading telemetry
  */
@@ -847,11 +847,12 @@ export function useModSettings(
  * the same handle (and any contribution that lists it in `deps`). Returns
  * `undefined` with no provider mounted, or before the first frame lands.
  *
- * A processor whose own deps include a reading answers a `Reading<Result>`, because
- * its inputs carried currency and so its answer is datable. One depending only
- * on raw topic ids answers the bare `Result`: there is nothing to date it by, and
- * inventing an instant would be a claim nothing supports. The handle's own
- * brand decides which, so the two cannot be confused at a call site.
+ * A processor whose own deps include a reading returns a `Reading<Result>`,
+ * because its inputs carried currency and so its result is datable. One
+ * depending only on raw topic ids returns the bare `Result`: there is nothing
+ * to date it by, and inventing an instant would be a claim nothing supports.
+ * The handle's own brand decides which, so the two cannot be confused at a call
+ * site.
  *
  * @category Processors
  */
@@ -1027,15 +1028,16 @@ export function useReplaySessionActive(): boolean {
 }
 
 /**
- * The authoritative host every Uplink dials: `saved ?? build-default`, where the
- * build default is `VITE_SITREP_HOST` or `localhost`. Ports are per-service and NOT
- * part of this, callers append their own.
+ * The authoritative host every Uplink dials: `saved ?? build-default`, where
+ * the build default is `VITE_SITREP_HOST` or `localhost`. Ports are per-service
+ * and NOT part of this, callers append their own.
  *
  * Implemented here rather than forwarded to the host. It was a shim while the
  * implementation lived in `@ksp-gonogo/core`, and the only thing it needed was
- * `getSetting`, which this package has owned since the settings store moved. A host
- * member for a two-line read of a setting this package already holds is indirection
- * with nothing on the other end, so the member retires with the shim.
+ * `getSetting`, which this package has owned since the settings store moved. A
+ * host member for a two-line read of a setting this package already holds is
+ * indirection with nothing on the other end, so the member retires with the
+ * shim.
  *
  * @category Host and runtime
  */
@@ -1057,7 +1059,8 @@ export function getGameHost(): string {
 // colliding.
 
 /**
- * Every contribution that wins a slot: the highest priority band present, in registration order.
+ * Every contribution that wins a slot: the highest priority band present, in
+ * registration order.
  *
  * @category Extensions
  */

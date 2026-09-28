@@ -5,28 +5,24 @@ import {
 } from "./rail-tags";
 import { LOSS_MARGIN } from "./spine/client";
 import { type Value, value } from "./unit-system";
+/*
+ * Pure derivations that turn `system.uplink.pending` entries, and a transmission's crossing, into display-ready `InFlightCommand` rows for a view time.
+ * Nothing here dispatches or fetches; own-dispatch memory and connectivity history live in the hooks that call these.
+ */
+
 /**
- * Pure delayed-command derivations. Delay is ambient and universal, every
- * command the mod accepts is already gated by the reveal/uplink machinery,
- * so there is no "delayed vs not" command to opt into. These helpers turn
- * `system.uplink.pending` entries (each carrying its own `oneWaySeconds`,
- * frozen at dispatch), and a transmission's crossing, into display-ready
- * `InFlightCommand` rows, given the caller's current view of `nowUt`.
- *
- * Nothing here dispatches or fetches. Statefulness (own-dispatch memory,
- * connectivity history,
- * judder-latching) lives one layer up in the hooks that call these
- * (`use-command.ts`, `use-route-commands.ts`), never here.
+ * Where a command in flight is expected to be: travelling out, waiting for its
+ * reply, due, overdue, or lost.
  *
  * @category Delay and vantage
  */
-
 export type PredictedPhase =
   | "in-transit"
   | "awaiting-reply"
   | "due"
   | "overdue"
   | "lost";
+
 /**
  * How a command sent now would travel: `live` when the one-way delay is a second
  * or less, `staged` when it is longer, and `no-path` when there is no path home.
@@ -36,7 +32,8 @@ export type PredictedPhase =
 export type DelayMode = "live" | "staged" | "no-path";
 
 /**
- * Structural subset of the `PendingUplink` wire entry (do NOT import the mod type).
+ * Structural subset of the `PendingUplink` wire entry (do NOT import the mod
+ * type).
  *
  * @category Delay and vantage
  */
@@ -94,7 +91,7 @@ export interface InFlightCommand {
  * What a rail entry is made from: something sent across the link at `sentAt`
  * under a one-way delay, arriving one delay later. An acked crossing then waits
  * the same delay again for its reply; a fire-and-forget one ends at arrival,
- * since nothing answers it. `tags` come from a `railTagsFor*` derivation.
+ * since nothing replies to it. `tags` come from a `railTagsFor*` derivation.
  *
  * @category Delay and vantage
  */
@@ -141,7 +138,7 @@ export function liveOneWaySeconds(
 /**
  * The one rail-entry derivation: where a crossing is at `nowUt`. A
  * fire-and-forget crossing is `in-transit` until it arrives and gone after,
- * so it answers `undefined` from arrival on rather than inventing an outcome.
+ * so it returns `undefined` from arrival on rather than inventing an outcome.
  *
  * @category Delay and vantage
  */
@@ -217,7 +214,8 @@ export function deriveInFlight(
 }
 
 /**
- * A caller-supplied predicate: was the comms path continuously connected across [from,to] UT?
+ * A caller-supplied predicate: was the comms path continuously connected across
+ * [from,to] UT?
  *
  * @category Delay and vantage
  */
@@ -225,11 +223,11 @@ export type PathConnectedDuring = (fromUt: number, toUt: number) => boolean;
 
 /**
  * For a retained (own) command that may have left the live queue: classify
- * overdue/lost. `present` = is the entry still in the current pending
- * queue. Defaults `pathConnectedDuring` to "always connected" when the
- * caller has no connectivity history to offer (e.g. a first render before
- * any `comms.link` sample has arrived). `undefined` once a command nothing
- * answers has arrived, since it has ended.
+ * overdue/lost. `present` = is the entry still in the current pending queue.
+ * Defaults `pathConnectedDuring` to "always connected" when the caller has no
+ * connectivity history to offer (e.g. a first render before any `comms.link`
+ * sample has arrived). `undefined` once a command nothing replies to has
+ * arrived, since it has ended.
  *
  * @category Delay and vantage
  */

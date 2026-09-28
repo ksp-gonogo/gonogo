@@ -12,10 +12,11 @@ namespace Sitrep.Contract;
 /// per-vessel channel delay and per-subject freeze; this surfaces the same
 /// numbers for the FleetRoster UI. Not a control input.
 ///
-/// <para>Rides the Delayed <c>fleet.</c> namespace like <c>fleet.&lt;guid&gt;.orbit</c>,
-/// so the value itself arrives light-time-late: honest (KSC's knowledge of a
-/// distant vessel's link geometry IS that old) and consistent, and the value
-/// varies slowly enough that the meta-lag is immaterial.</para>
+/// <para>Rides the Delayed <c>fleet.</c> namespace like
+/// <c>fleet.&lt;guid&gt;.orbit</c>, so the value itself arrives
+/// light-time-late: honest (KSC's knowledge of a distant vessel's link geometry
+/// IS that old) and consistent, and the value varies slowly enough that the
+/// meta-lag is immaterial.</para>
 ///
 /// <para>R7 typed-absence: <see cref="OneWaySeconds"/> is nullable, a vessel with
 /// no comms path carries <c>null</c>, never a sentinel <c>0</c> that would read
@@ -28,11 +29,13 @@ namespace Sitrep.Contract;
 #endif
 public class FleetVesselLink
 {
-    /// <summary>One-way light-time to this vessel, seconds. Null when there is no path (unreachable / torn-down state).</summary>
+    /// <summary>One-way light-time to this vessel, seconds. Null when there is
+    /// no path (unreachable / torn-down state).</summary>
     [SitrepUnit(Units.Seconds)]
     public double? OneWaySeconds { get; set; }
 
-    /// <summary>Whether this vessel is currently reachable (<c>v.connection.IsConnected</c>).</summary>
+    /// <summary>Whether this vessel is currently reachable
+    /// (<c>v.connection.IsConnected</c>).</summary>
     [SitrepUnit(Units.Flag)]
     public bool Connected { get; set; }
 }
@@ -62,23 +65,25 @@ public class FleetVesselLink
 #endif
 public class FleetVesselContact
 {
-    /// <summary>Whether contact was observed on the most recent capture tick.</summary>
+    /// <summary>Whether contact was observed on the most recent capture
+    /// tick.</summary>
     [SitrepUnit(Units.Flag)]
     public bool Connected { get; set; }
 
-    /// <summary>UT of the last sample that observed contact. Null before the first-ever contact.</summary>
+    /// <summary>UT of the last sample that observed contact. Null before the
+    /// first-ever contact.</summary>
     [SitrepUnit(Units.UniversalTime)]
     public double? LastContactUt { get; set; }
 }
 
-/// <summary>
-/// The COMMS-OWNED officially-lost reckoning on <c>silence.&lt;guid&gt;.state</c>:
-/// how long a vessel's silence has run and when it becomes eligible to be
-/// declared lost. This is a MODEL's opinion, not a fact: it exists only
-/// because something (the pure <c>Sitrep.Host.Comms.SilenceTracker</c>) is
-/// watching occultation geometry and deciding a craft is overdue, which is
-/// why it is registered from the comms uplink rather than riding the
-/// always-on core <see cref="FleetVesselContact"/>.
+/// <summary> The COMMS-OWNED officially-lost reckoning on
+/// <c>silence.&lt;guid&gt;.state</c>: how long a vessel's silence has run and
+/// when it becomes eligible to be declared lost. This is a MODEL's opinion, not
+/// a fact: it exists only because something (the pure
+/// <c>Sitrep.Host.Comms.SilenceTracker</c>) is watching occultation geometry
+/// and deciding a craft is overdue, which is why it is registered from the
+/// comms uplink rather than riding the always-on core <see
+/// cref="FleetVesselContact"/>.
 ///
 /// <para>A disjoint dynamic namespace (<c>ChannelEngine.SilenceEventPrefix</c>)
 /// that maps back onto the same per-vessel <c>fleet.&lt;guid&gt;</c> Courier
@@ -87,10 +92,7 @@ public class FleetVesselContact
 /// identical, freeze-exempt for the same reason
 /// <see cref="FleetVesselContact"/> is.</para>
 ///
-/// <para>Deliberately narrow for this pass: <c>declaredLostUt</c> and the
-/// monotonic <c>lostSeq</c> a future currency consumer needs for idempotent
-/// arming stay off the wire until that consumer exists. Nothing here is a
-/// control input.</para>
+/// <para>Nothing here is a control input.</para>
 /// </summary>
 /// <category>Solar system and fleet</category>
 [SitrepContract]
@@ -99,7 +101,8 @@ public class FleetVesselContact
 #endif
 public class FleetVesselSilence
 {
-    /// <summary>One of <c>Nominal</c> / <c>Silent</c> / <c>Lost</c> (<c>Sitrep.Host.Comms.SilenceState</c>).</summary>
+    /// <summary>One of <c>Nominal</c> / <c>Silent</c> / <c>Lost</c>
+    /// (<c>Sitrep.Host.Comms.SilenceState</c>).</summary>
     [SitrepUnit(Units.Enumeration)]
     public string State { get; set; } = "Nominal";
 
@@ -107,14 +110,15 @@ public class FleetVesselSilence
     [SitrepUnit(Units.UniversalTime)]
     public double? SilenceSinceUt { get; set; }
 
-    /// <summary>UT at which this silence run becomes eligible to be declared Lost. Null while Nominal, or for a destroyed vessel.</summary>
+    /// <summary>UT at which this silence run becomes eligible to be declared
+    /// Lost. Null while Nominal, or for a destroyed vessel.</summary>
     [SitrepUnit(Units.UniversalTime)]
     public double? DeadlineUt { get; set; }
 
-    /// <summary>
-    /// One of <c>orbital-period</c> / <c>policy-floor</c> / <c>policy-ceiling</c> /
-    /// <c>no-orbit</c> / <c>destroyed</c> / <c>predicted-reacquisition</c> /
-    /// <c>no-occultation</c> / <c>no-emergence-in-window</c> / <c>warp-limited</c> /
+    /// <summary> One of <c>orbital-period</c> / <c>policy-floor</c> /
+    /// <c>policy-ceiling</c> / <c>no-orbit</c> / <c>destroyed</c> /
+    /// <c>predicted-reacquisition</c> / <c>no-occultation</c> /
+    /// <c>no-emergence-in-window</c> / <c>warp-limited</c> /
     /// <c>grace-exceeds-ceiling</c>
     /// (<c>Sitrep.Host.Comms.SilenceDeadlineBasis</c>). Null while Nominal.
     /// </summary>
@@ -141,9 +145,9 @@ public class FleetVesselSilence
     /// something other than a late reappearance.
     ///
     /// <para>It is the only thing on the wire that says how much confidence to
-    /// place in <see cref="PredictedReacquisitionUt"/> beside it. Without it, "back in 15 min" and
-    /// "back in 15 min, and we would not call it late for another 5" render
-    /// identically.</para>
+    /// place in <see cref="PredictedReacquisitionUt"/> beside it. Without it,
+    /// "back in 15 min" and "back in 15 min, and we would not call it late for
+    /// another 5" render identically.</para>
     ///
     /// <para>ONE-SIDED, and not a symmetric uncertainty: it is an allowance
     /// after the predicted moment, so render "allowing 5 min of slack" and
@@ -201,7 +205,8 @@ public class FleetVesselResources
 #endif
 public class FleetSilenceEntry
 {
-    /// <summary>Stable subject id (KSP vessel GUID), the same id the <c>fleet.</c> and <c>silence.</c> namespaces key on.</summary>
+    /// <summary>Stable subject id (KSP vessel GUID), the same id the
+    /// <c>fleet.</c> and <c>silence.</c> namespaces key on.</summary>
     [SitrepUnit(Units.Id)]
     public string VesselId { get; set; } = "";
 
@@ -213,15 +218,18 @@ public class FleetSilenceEntry
     [SitrepUnit(Units.UniversalTime)]
     public double? SilenceSinceUt { get; set; }
 
-    /// <summary>UT at which this silence run becomes eligible to be declared Lost. Null while Nominal, or for a destroyed vessel.</summary>
+    /// <summary>UT at which this silence run becomes eligible to be declared
+    /// Lost. Null while Nominal, or for a destroyed vessel.</summary>
     [SitrepUnit(Units.UniversalTime)]
     public double? DeadlineUt { get; set; }
 
-    /// <summary>One of <c>Sitrep.Host.Comms.SilenceDeadlineBasis</c>. Null while Nominal.</summary>
+    /// <summary>One of <c>Sitrep.Host.Comms.SilenceDeadlineBasis</c>. Null
+    /// while Nominal.</summary>
     [SitrepUnit(Units.Enumeration)]
     public string? DeadlineBasis { get; set; }
 
-    /// <summary>UT the radio path is predicted to re-open. Null is a prediction WITHHELD, never an emergence of "now".</summary>
+    /// <summary>UT the radio path is predicted to re-open. Null is a prediction
+    /// WITHHELD, never an emergence of "now".</summary>
     [SitrepUnit(Units.UniversalTime)]
     public double? PredictedReacquisitionUt { get; set; }
 
@@ -231,9 +239,9 @@ public class FleetSilenceEntry
     /// something other than a late reappearance.
     ///
     /// <para>It is the only thing on the wire that says how much confidence to
-    /// place in <see cref="PredictedReacquisitionUt"/> beside it. Without it, "back in 15 min" and
-    /// "back in 15 min, and we would not call it late for another 5" render
-    /// identically.</para>
+    /// place in <see cref="PredictedReacquisitionUt"/> beside it. Without it,
+    /// "back in 15 min" and "back in 15 min, and we would not call it late for
+    /// another 5" render identically.</para>
     ///
     /// <para>ONE-SIDED, and not a symmetric uncertainty: it is an allowance
     /// after the predicted moment, so render "allowing 5 min of slack" and

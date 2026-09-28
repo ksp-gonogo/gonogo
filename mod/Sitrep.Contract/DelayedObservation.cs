@@ -16,10 +16,9 @@ namespace Sitrep.Contract
         /// </summary>
         NothingArrived = 1,
 
-        /// <summary>
-        /// Something arrived, but the archive no longer holds the sample that was
-        /// current at the requested instant, so the honest answer is silence rather
-        /// than the nearest sample.
+        /// <summary> Something arrived, but the archive no longer holds the
+        /// sample that was current at the requested instant, so the honest
+        /// answer is silence rather than the nearest sample.
         /// </summary>
         BeyondRetainedHistory = 2,
 
@@ -28,24 +27,24 @@ namespace Sitrep.Contract
         DelayUnknown = 3,
     }
 
-    /// <summary>
-    /// A vessel state that a particular vantage is entitled to know about, and the
-    /// instant it was actually true.
+    /// <summary> A vessel state that a particular vantage is entitled to know
+    /// about, and the instant it was actually true.
     ///
-    /// <para><b>This type exists so that a propagation cannot accidentally start from
-    /// the game's live truth.</b> The propagation seam resolves its target from the
-    /// running game (<c>PropagationTarget</c> carries an identity, never a state), so
-    /// anything solved through it answers for NOW, which is ahead of everything the
-    /// operator can see. At thirty light-minutes that difference is the whole
-    /// mission: it would report a craft as healthy four minutes after it stopped
-    /// existing.</para>
+    /// <para><b>This type exists so that a propagation cannot accidentally
+    /// start from the game's live truth.</b> The propagation seam resolves its
+    /// target from the running game (<c>PropagationTarget</c> carries an
+    /// identity, never a state), so anything solved through it is for NOW,
+    /// which is ahead of everything the operator can see. At thirty
+    /// light-minutes that difference is the whole mission: it would report a
+    /// craft as healthy four minutes after it stopped existing.</para>
     ///
-    /// <para>The load-bearing field is <see cref="ObservedAtUt"/>, and it is the
-    /// SAMPLE'S OWN instant, never a freshly computed <c>now - delay</c>. The two are
-    /// usually close and differ silently when they differ: a slow-changing channel
-    /// hands back a sample from well before the delay window's edge, and stamping it
-    /// with the window edge asserts the craft was in that state later than it was.
-    /// Everything downstream is then confidently wrong with nothing to notice.</para>
+    /// <para>The field that matters is <see cref="ObservedAtUt"/>, and it is
+    /// the SAMPLE'S OWN instant, never a freshly computed <c>now - delay</c>.
+    /// The two are usually close and differ silently when they differ: a
+    /// slow-changing channel hands back a sample from well before the delay
+    /// window's edge, and stamping it with the window edge asserts the craft
+    /// was in that state later than it was. Everything downstream is then
+    /// confidently wrong with nothing to notice.</para>
     /// </summary>
     /// <category>Comms</category>
     public readonly struct DelayedObservation
@@ -70,7 +69,8 @@ namespace Sitrep.Contract
 
         public bool Established { get; }
 
-        /// <summary>Position and velocity relative to <see cref="CentreBodyIndex"/>.</summary>
+        /// <summary>Position and velocity relative to <see
+        /// cref="CentreBodyIndex"/>.</summary>
         public StateVector State { get; }
 
         public int CentreBodyIndex { get; }
@@ -89,7 +89,8 @@ namespace Sitrep.Contract
         /// </summary>
         public double ViewUt { get; }
 
-        /// <summary>How long this state has been the newest thing the vantage has.</summary>
+        /// <summary>How long this state has been the newest thing the vantage
+        /// has.</summary>
         public double AgeSeconds => ViewUt - ObservedAtUt;
 
         public DelayedStateRefusal Refusal { get; }
@@ -98,11 +99,10 @@ namespace Sitrep.Contract
         public static DelayedObservation Refused(DelayedStateRefusal refusal, string reason) =>
             new DelayedObservation(false, default, -1, double.NaN, double.NaN, refusal, reason);
 
-        /// <summary>
-        /// Establish an observation. Refuses rather than constructing one when the
-        /// sample is dated AFTER the view instant, because that combination cannot
-        /// arise from light that has arrived and would be a future leak wearing the
-        /// shape of an observation.
+        /// <summary> Establish an observation. Refuses rather than constructing
+        /// one when the sample is dated AFTER the view instant, because that
+        /// combination cannot arise from light that has arrived and would be a
+        /// future leak wearing the shape of an observation.
         /// </summary>
         public static DelayedObservation At(
             StateVector state, int centreBodyIndex, double observedAtUt, double viewUt)

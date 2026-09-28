@@ -18,11 +18,11 @@ import {
  * The other half of an altitude, for the regime the conic hands over to.
  *
  * `keplerAdmissibility` withdraws at the atmosphere interface, and it is right
- * to: below it a two-body coast is not a degraded answer but a different
- * trajectory. What that left was a hole exactly where an operator leans hardest,
- * because the descent a reckoned altitude is FOR happens entirely inside the
- * hole. So this module carries the value across the same gap on the only
- * evidence that survives an unknown aero model.
+ * to: below it a two-body coast is not a worse estimate but a different
+ * trajectory. What that left was a hole exactly where an operator leans
+ * hardest, because the descent a reckoned altitude is FOR happens entirely
+ * inside the hole. So this module carries the value across the same gap on the
+ * only evidence that survives an unknown aero model.
  *
  * ## It integrates the OBSERVED deceleration, and models no drag at all
  *
@@ -65,7 +65,7 @@ import {
  * Each branch then owns its OWN declines. That is the reason the selector is a
  * predicate rather than a fall-through from one model's refusal: a descent past
  * this model's horizon would otherwise be reported to the operator as the
- * conic's "the craft is under physics", which is true and is not the answer.
+ * conic's "the craft is under physics", which is true and is not the reason.
  *
  * There is deliberately no `meta.quality` condition, which is the conic's FIRST
  * withdrawal. A craft under physics is one the conic cannot advance and one this
@@ -248,8 +248,7 @@ export const DESCENT_WINDOW = { spanUt: 8, maxSamples: 8 } as const;
  * THE HANDOVER, as one named predicate, so the two models of one altitude are
  * selected by a single test rather than by each guessing at the other's reach.
  * `true` and the rate integration owns the frame; `false` and the conic does.
- * There is no third answer and no band where both apply, which is the property
- * that could not be had while each branch drew its own boundary.
+ * There is no third case and no band where both apply.
  *
  * ## Why both ends, and why the far one is a RADIUS
  *
@@ -326,7 +325,7 @@ export interface SlopeFit {
    * small number:
    * - **two samples.** Two points determine a line exactly, so there is no
    *   residual degree of freedom (`n - 2` of them) to estimate a spread from.
-   *   This is the commonest case in a change-gated stream and it must answer no
+   *   This is the commonest case in a change-gated stream and it must return no
    *   band rather than a fabricated one
    * - **no spread in time.** Handled where {@link slope} is, since without it
    *   there is no fit at all
@@ -489,16 +488,15 @@ export function verticalAccelerationOver(
  *   closes as the regime gets violent. Declining is the point of it; a confident
  *   altitude ten seconds into a peak-deceleration entry is exactly the failure a
  *   `Reading` exists to withhold
- * - **too little of the record.** Fewer than two usable samples of the rate FROM
- *   THIS CRAFT,
- *   answered in the store's own `insufficient-history` shape. The note below
- *   says why that floor is asserted here rather than declared as
+ * - **too little of the record.** Fewer than two usable samples of the rate
+ *   FROM THIS CRAFT, returned in the store's own `insufficient-history` shape.
+ *   The note below says why that floor is asserted here rather than declared as
  *   `window.minSamples`
  * - **the fitted slope is not an acceleration.** The envelope: whatever the
  *   craft is feeling, its total vertical acceleration cannot exceed local
- *   gravity plus the sensed non-gravitational magnitude. A slope outside that is
- *   a window straddling a change of regime, a rewind, or a scene change, and the
- *   honest answer is that this is not a trend
+ *   gravity plus the sensed non-gravitational magnitude. A slope outside that
+ *   is a window straddling a change of regime, a rewind, or a scene change, and
+ *   the model declines because this is not a trend
  *
  * ## The window's floor is asserted HERE rather than declared
  *

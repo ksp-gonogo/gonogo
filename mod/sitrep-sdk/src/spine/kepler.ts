@@ -31,33 +31,27 @@ const MAX_NEWTON_ITERATIONS = 50;
 const NEWTON_TOLERANCE = 1e-12;
 
 /**
- * The client half of the propagation seam: whether an element set answers for a
+ * The client half of the propagation seam: whether an element set holds for a
  * window, asked BEFORE propagating into it.
  *
- * The TS twin of `IPropagationProvider.CanPropagate(target, frame, fromUt,
- * toUt)`, deliberately the same shape rather than a second design. Mod-side
- * that method takes a window precisely so a provider with a horizon can decline,
- * and until now no caller passed a window it cared about; this is that caller.
+ * The client twin of `IPropagationProvider.CanPropagate(target, frame, fromUt,
+ * toUt)`, in the same shape.
  *
- * ## Why a client cannot answer this itself
+ * ## Why a client cannot work this out itself
  *
  * The horizon depends on the perturbation environment (which bodies are near,
  * how massive, how far), so it arrives on the sample from the only thing that
  * knows. It is a LOCAL property: the same save at the same instant has horizons
- * differing by orders of magnitude between craft, because the perturbation ratio
- * scales as `2 (mu_perturber / mu_primary) (r / d)^3`. A measured 20 km Minmus
- * orbit drifts ~11 m per hour under two-body extrapolation; an ordinary
+ * differing by orders of magnitude between craft, because the perturbation
+ * ratio scales as `2 (mu_perturber / mu_primary) (r / d)^3`. A measured 20 km
+ * Minmus orbit drifts ~11 m per hour under two-body extrapolation; an ordinary
  * high-Kerbin orbit perturbed by the Mun drifts ~19 km per hour. One global
- * answer cannot be right, and reconstructing it client-side would mean
+ * horizon cannot be right, and reconstructing it client-side would mean
  * reimplementing the thing this seam exists to avoid.
  *
- * ## It does not refuse anything yet, and that is not a dead branch
- *
- * The only elected provider is the analytic two-body solver, which has no
- * horizon and says so (`Unbounded`). This gate therefore permits everything
- * today. It becomes load-bearing when a provider that INTEGRATES, i.e. an
- * n-body backend, is elected and starts returning `Until`. Do not delete it as
- * unreachable: it is the system working with a provider that has no limit.
+ * Under stock the provider is the analytic two-body solver, which has no
+ * horizon and says so (`Unbounded`), so this permits everything. It refuses
+ * once a provider that integrates, such as an n-body backend, returns `Until`.
  *
  * @category Orbits and trajectories
  */
@@ -73,14 +67,13 @@ export interface PropagationHorizonLike {
    */
   untilUt?: { magnitude: number } | number | null;
   /**
-   * What KIND of answer these elements are: a closed-form conic, or a snapshot
+   * What kind of result these elements are: a closed-form conic, or a snapshot
    * of an integrated path. Optional HERE and required on the wire, because this
    * shape also describes a caller-built horizon in a test.
    *
    * Carried so a refusal can say what a client cannot DO rather than who it
    * cannot ask. Never consulted by the gate's decision, which is `kind` and
-   * `untilUt` alone: the horizon answers reach, this answers shape, and mixing
-   * them is the confusion the field exists to end.
+   * `untilUt` alone: the horizon says reach and this says shape.
    */
   trajectoryKind?: TrajectoryKindLike;
 }
@@ -115,7 +108,7 @@ export type PropagationRefusal =
       reason: "past-horizon";
       horizonUt: number;
       /**
-       * What kind of answer was bounded. Present so a readout can say WHY a
+       * What kind of result was bounded. Present so a readout can say WHY a
        * conic stopped rather than going blank: an integrated trajectory past its
        * horizon is a different sentence from an analytic one, and the operator
        * can act on the difference.
@@ -149,7 +142,7 @@ export function horizonUtOf(
  * forgot the field.
  *
  * An `Until` horizon with no usable UT also refuses, for the same reason: the
- * arm claims a bound and then fails to name it.
+ * horizon claims a bound and then fails to name it.
  *
  * @category Orbits and trajectories
  */
@@ -230,7 +223,8 @@ export interface OrbitElements {
 export type Vector3 = readonly [x: number, y: number, z: number];
 
 /**
- * Position + velocity, both parent-body-relative, at a single instant. Mirrors `StateVector` in `Vector3d.cs`.
+ * Position + velocity, both parent-body-relative, at a single instant. Mirrors
+ * `StateVector` in `Vector3d.cs`.
  *
  * @category Orbits and trajectories
  */
@@ -262,9 +256,9 @@ export interface Anomalies {
  * Solves for `orbit`'s mean/eccentric/true anomaly at time `ut` -- the exact
  * angular computation `solve()` itself uses, exposed standalone for callers
  * that need an anomaly (or the mean motion) without a full state vector
- * (`orbital-solve.ts`'s true anomaly, period and apsis countdowns). Reuses the SAME Newton-Raphson solve `solve()` calls below --
- * never reimplement Kepler's equation a second time. Same ellipse-only guard
- * as `solve()`.
+ * (`orbital-solve.ts`'s true anomaly, period and apsis countdowns). Reuses the
+ * SAME Newton-Raphson solve `solve()` calls below -- never reimplement Kepler's
+ * equation a second time. Same ellipse-only guard as `solve()`.
  *
  * @category Orbits and trajectories
  */
@@ -343,19 +337,14 @@ export function solve(orbit: OrbitElements, ut: number): StateVector {
  * cap and tolerance below are a guard against pathological inputs near
  * e -> 1, not the expected case. Mirrors `SolveEccentricAnomaly`.
  *
- * **THE ONE Newton iteration on Kepler's equation in this repo.** There were three:
- * this one, `core/src/calc/trajectory.ts`'s `solveKepler`, and a hand-copy of that in
- * `orbit-patches.ts`. The other two started Newton at `M + e sin(M)` with no
- * high-eccentricity branch, so from `e = 0.994` upward they failed to converge on a
- * minority of mean anomalies just after periapsis and returned their last iterate,
- * wrong by up to pi radians and saying nothing. `kepler-conformance.test.ts` is what
- * caught it and is what keeps this the only one.
+ * Starts from a high-eccentricity guess where it needs one, so it converges
+ * just after periapsis on a near-parabolic orbit too.
  *
- * <b>Exported as ARITHMETIC, not as propagation.</b> It takes a mean anomaly and an
- * eccentricity and returns an angle: no elements, no frame, no time, so it cannot
- * answer "where is this craft" and is not a way around the propagation seam. That
- * question goes through a provider, and on the C# side the equivalent element-keyed
- * door is deliberately private.
+ * <b>Exported as ARITHMETIC, not as propagation.</b> It takes a mean anomaly
+ * and an eccentricity and returns an angle: no elements, no frame, no time, so
+ * it cannot say "where is this craft" and is not a way around the propagation
+ * seam. That question goes through a provider, and on the C# side the
+ * equivalent element-keyed door is deliberately private.
  *
  * Accepts any real mean anomaly and wraps it, because its callers propagate `M`
  * linearly in time and hand over values well outside one revolution.

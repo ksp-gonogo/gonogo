@@ -28,7 +28,7 @@ export const VISIBLE_GAP_SECONDS = 1;
 export type Certainty = "confirmed" | "predicted";
 
 /**
- * Estimator health, used to widen staleness margins; never to gate
+ * Estimator health, used to widen hold margins; never to gate
  * confirmation itself. Only the `"locked"`/`"coasting"` split
  * (silence-based) is implemented today; `"degraded"` (a warp-rate change
  * detected during silence) is deferred.
@@ -68,9 +68,9 @@ type FrameTickHandle =
  * delivered. That is the one invariant every other feature (staleness,
  * media release, reckoning to SCET) is built to never violate.
  *
- * Epoch-aware exactly like `ClientTimeline`: `observeSample`'s `epoch`
- * argument resets the fit + sample clamp + monotonic view cursor on a
- * rewind, and discards stale-epoch stragglers: the same per-epoch hygiene,
+ * Epoch-aware exactly like `ClientTimeline`: `observeSample`'s `epoch` argument
+ * resets the fit + sample clamp + monotonic view cursor on a rewind, and
+ * discards stragglers from before the rewind: the same per-epoch hygiene,
  * applied to the one clock instead of per-topic buffers.
  *
  * @category Stream fixture
@@ -157,11 +157,11 @@ export class ViewClock {
   }
 
   /**
-   * The certainty horizon: `min(utNowEstimate() - delaySeconds(), maxBufferedSampleUt + slack)`.
-   * Never ahead of the max sample UT actually observed; see the class doc.
-   * Returns `-Infinity` before any sample has ever been observed (nothing
-   * confirmed yet: the "resynchronizing" state after a rewind). Delegates
-   * to the shared pure formula: see `utNowEstimate()`'s doc.
+   * The certainty horizon: `min(utNowEstimate() - delaySeconds(),
+   * maxBufferedSampleUt + slack)`. Never ahead of the max sample UT actually
+   * observed; see the class doc. Returns `-Infinity` before any sample has ever
+   * been observed (nothing confirmed yet: the "resynchronizing" state after a
+   * rewind). Delegates to the shared pure formula: see `utNowEstimate()`'s doc.
    */
   confirmedEdgeUt(lane: DelayLane = "delayed"): number {
     return computeConfirmedEdgeUt(this.formulaInputs(lane), this.now());
@@ -191,12 +191,11 @@ export class ViewClock {
   /**
    * Serializable snapshot of this clock's formula inputs, for a SECOND
    * context to mirror `confirmedEdgeUt()`/`utNowEstimate()` locally against
-   * its own wall clock: the kerbcast per-frame video-delay worker's "Clock
-   * seam" (cross-browser kerbcast video-delay design, 2026-07-16). The
+   * its own wall clock, such as a video-delay worker. The
    * receiving side evaluates the exact same `view-clock-formula.ts`
    * functions this class uses, so there is one implementation, never a
-   * fork. `epoch` lets a stale-epoch snapshot be discarded the same way
-   * `observeSample` discards a stale-epoch straggler.
+   * fork. `epoch` lets a snapshot from an earlier epoch be discarded the same way
+   * `observeSample` discards a straggler from before a rewind.
    */
   snapshot(): ClockFormulaSnapshot {
     return { epoch: this.epoch, ...this.formulaInputs() };

@@ -41,7 +41,7 @@ export type ReckonableTopic = keyof typeof GENERATED_RECKONABLE_FIELDS;
  *
  * `never` rather than an error because this is applied inside a conditional
  * type: `useTelemetry` asks it of every `TopicId` and only reaches
- * `ReckonableReading` for the ones that answer.
+ * `ReckonableReading` for the ones that are marked.
  *
  * @category Reckoners
  */
@@ -93,17 +93,14 @@ export function reckonableValuesOf(
  *
  * `undefined` here, unlike {@link reckonableValuesOf}'s empty array, because a
  * mark's input list is NEVER empty (the gate rejects one that is), so an empty
- * answer could only mean the value is unmarked and saying so with a different
+ * result could only mean the value is unmarked and saying so with a different
  * shape costs nothing.
  *
  * The UNION across a value's models, deduped, and it has to be a union rather
- * than one model's list: a value with two models has no single "the inputs", and
- * this answers the question a consumer asks of it, which is what it may have to
- * subscribe to in order to carry the value forward at all. It used to take the
- * FIRST matching row, which was the same answer while every value had one model
- * and would silently have become the conic's half of `altitudeAsl`. A caller
- * that needs to know which inputs buy which model reaches
- * {@link reckonableValuesOf} and reads the rows.
+ * than one model's list: a value with two models has no single "the inputs",
+ * and it is what a consumer needs: everything it may have to subscribe to in
+ * order to carry the value forward at all. A caller that needs to know which
+ * inputs buy which model reaches {@link reckonableValuesOf} and reads the rows.
  *
  * @category Reckoners
  */

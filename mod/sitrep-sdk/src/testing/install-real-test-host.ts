@@ -36,22 +36,23 @@ import { recordAlarmRequest } from "./recorded-alarm-requests";
 /**
  * The four host members whose implementations belong to `@ksp-gonogo/ui-kit`.
  *
- * The augment registry and the `<AugmentSlot>` composition point live in ui-kit,
- * which imports this package, so this package cannot import them back: the edge
- * would be a `^build` cycle. The caller supplies them, and the caller CAN, because
- * ui-kit is published and an Uplink's `test/setup.ts` already imports it.
+ * The augment registry and the `<AugmentSlot>` composition point live in
+ * ui-kit, which imports this package, so this package cannot import them back:
+ * the edge would be a `^build` cycle. The caller supplies them, and the caller
+ * CAN, because ui-kit is published and an Uplink's `test/setup.ts` already
+ * imports it.
  *
- * Four values, one import, and TypeScript names any one a caller forgets. It is the
- * same shape as a sdk function taking an injectable seam for the one thing the leaf
- * cannot see, rather than a partial host: everything else here is the real
- * implementation, reached directly.
+ * Four values, one import, and TypeScript names any one a caller forgets. It is
+ * the same shape as a sdk function taking an injectable seam for the one thing
+ * the leaf cannot see, rather than a partial host: everything else here is the
+ * real implementation, reached directly.
  *
  * Deliberately NOT solved by having ui-kit register itself with this package at
- * module load. That would be an ordering contract nothing enforces and nothing can
- * see, which is exactly how `SettingsService` constructing a `PerfBudget` at module
- * scope held by luck until the flight layer imported directly and the suite died
- * with "PerfBudget is not a constructor". An explicit parameter cannot fail that
- * way.
+ * module load. That would be an ordering contract nothing enforces and nothing
+ * can see, which is exactly how `SettingsService` constructing a `PerfBudget`
+ * at module scope held by luck until the flight layer imported directly and the
+ * suite died with "PerfBudget is not a constructor". An explicit parameter
+ * cannot fail that way.
  *
  * @category Test hosts
  */
@@ -76,26 +77,13 @@ export interface UiKitHostPieces {
  * Install the REAL host for an Uplink's test run.
  *
  * A widget only ever touches sdk shims (`useTelemetry`, `registerComponent`,
- * `useCommand`, ...), which delegate to whatever host is installed and throw a named
- * error when none is. So a test has to install one, and every Uplink used to
- * hand-roll its own: nine `test/setup.ts` files each calling `installTestHost` with
- * a partial host "scoped to the subset this client's widget actually calls",
- * assembled by importing the real singletons out of `@ksp-gonogo/core` and
- * `@ksp-gonogo/sitrep-client`, both `private: true`.
- *
- * That is why nine Uplinks each had a `@ksp-gonogo/core` import they could not
- * have: it was never a widget reaching into the app, it was the harness. And the
- * partial-host approach fails in a specific way, repeatedly: re-point one widget
- * hook at the facade and the suite dies with
- * `getHost().registerAugment is not a function`, because that member was not in
- * the subset. The reason to install a WHOLE host is that a test gains nothing from
- * the host lacking members.
+ * `useCommand`, ...), which delegate to whatever host is installed and throw a
+ * named error when none is. So a test has to install one, and this installs the
+ * whole host: a partial one fails with `getHost().<member> is not a function`
+ * the first time a widget reaches a member it left out.
  *
  * `GonogoHost` is a full interface and this returns one, so TypeScript requires
- * every member: a new shim on the sdk breaks the build here rather than at a call
- * site months later. `packages/app/src/uplinks/host.ts` builds the same host for
- * the app at boot and is checked the same way, so the two cannot silently diverge
- * in shape, only in wiring.
+ * every member.
  *
  * Returns the disposer `installTestHost` returns: call it in `afterEach` if a
  * suite needs the host gone between tests. Most do not, since the host is

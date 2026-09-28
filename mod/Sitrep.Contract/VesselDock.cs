@@ -11,7 +11,7 @@ namespace Sitrep.Contract;
 /// currently-targeted docking port, for docking-alignment widgets. Whole-
 /// channel absence means "not docking-relevant right now", no target
 /// targeted, the target isn't itself a docking port, or the active vessel
-/// has no free port of its own; never a stale/zero-distance sentinel
+/// has no free port of its own; never an old or zero-distance sentinel
 /// record (same R1(b) convention <see cref="VesselTarget"/> already
 /// established).
 ///
@@ -44,14 +44,17 @@ public class DockAlignment
     [SitrepFrame(Frames.SubjectRelative)]
     public Vec3 RelativeVelocity { get; set; } = new();
 
-    /// <summary>Metres: <see cref="RelativePosition"/>'s magnitude, provided directly so a widget doesn't have to re-derive it every frame.</summary>
+    /// <summary>Metres: <see cref="RelativePosition"/>'s magnitude, provided
+    /// directly so a widget doesn't have to re-derive it every frame.</summary>
     [SitrepUnit(Units.Metres)]
     // The magnitude of a dead-reckoned separation: it needs the vector it is the magnitude of,
     // as well as the velocity, so both are declared rather than leaning on the implicit anchor.
     [SitrepReckonable(ReckoningBases.LinearDeadReckoning, "relativePosition", "relativeVelocity")]
     public double Distance { get; set; }
 
-    /// <summary>Dot product of the own port's and target port's forward vectors; see the class doc comment. Null only if either port's transform was unavailable this tick.</summary>
+    /// <summary>Dot product of the own port's and target port's forward
+    /// vectors; see the class doc comment. Null only if either port's transform
+    /// was unavailable this tick.</summary>
     [SitrepUnit(Units.Dimensionless)]
     public double? ForwardDot { get; set; }
 

@@ -289,17 +289,13 @@ function wrapScalarOrList(current: unknown, unit: string): unknown {
  * Takes every quantity in a payload back down to the bare number the wire
  * carries: the WRITE-side mirror of {@link wrapTopicPayload}.
  *
- * Command args travel the opposite way to telemetry, and until this existed
- * nothing carried them across the same boundary. The generated args types
+ * Command args travel the opposite way to telemetry. The generated args types
  * declare quantities the same way a channel payload does
  * (`VantagePlanRequest.toUt: Value<"ut">`), so a typed caller builds a `Value`,
  * `JSON.stringify` reaches `Value.toJSON`, and `{"magnitude":80,"unit":"ut"}`
  * arrives at a host binding a `double`. That is not a field the mod ignores:
  * `ChannelEngine.BindCommandArgs` rejects an object bag for a numeric slot by
- * design, the throw fail-softs the whole handler, and the command answers
- * `null` having never run. The only reason no shipped widget hit it is that
- * every call site had already worked around it with a bare object literal or a
- * `WireOf<>` cast.
+ * design, and the command replies `null` having never run.
  *
  * ## Why it needs no unit map
  *

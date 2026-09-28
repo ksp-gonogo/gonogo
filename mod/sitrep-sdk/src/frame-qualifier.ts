@@ -5,11 +5,11 @@ import { ControlFrameKind } from "./__generated__/contract";
  * Whether a quantity means anything in the frame currently in force.
  *
  * <p>Three states rather than a boolean, because "we have not been told what
- * frame this is" is not the same answer as "this frame makes the number
- * meaningless", and collapsing them picks one wrong behaviour or the other: a
- * boolean that defaults to valid quotes a length in a frame where lengths are
- * not lengths, and one that defaults to invalid blanks the boards for the
- * moment before the first frame sample lands.</p>
+ * frame this is" is not the same as "this frame makes the number meaningless",
+ * and collapsing them picks one wrong behaviour or the other: a boolean that
+ * defaults to valid quotes a length in a frame where lengths are not lengths,
+ * and one that defaults to invalid blanks the boards for the moment before the
+ * first frame sample lands.</p>
  *
  * @category Orbits and trajectories
  */

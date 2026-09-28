@@ -89,8 +89,7 @@ public enum TransitionType
 /// <summary>
 /// The basis a planned burn's delta-v components are expressed in. On the wire
 /// because the two in use are similar enough to be mistaken for each other and
-/// different enough to be wrong, and the distinction previously lived only in
-/// <c>ManeuverNode</c>'s prose.
+/// different enough to be wrong.
 /// </summary>
 /// <category>Orbits and trajectories</category>
 #if SITREP_CODEGEN
@@ -113,6 +112,7 @@ public enum ManeuverFrame
     /// </summary>
     TangentNormalBinormal,
 
-    /// <summary>Graceful fallback, same role as <see cref="TransitionType.Unknown"/>.</summary>
+    /// <summary>Graceful fallback, same role as <see
+    /// cref="TransitionType.Unknown"/>.</summary>
     Unknown,
 }

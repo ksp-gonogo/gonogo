@@ -40,26 +40,34 @@ public class VesselOrbit
     [SitrepUnit(Units.Id)]
     public int ReferenceBodyIndex { get; set; }
 
-    /// <summary>Semi-major axis, metres (see the class doc comment's units block).</summary>
+    /// <summary>Semi-major axis, metres (see the class doc comment's units
+    /// block).</summary>
     [SitrepUnit(Units.Metres)]
     public double Sma { get; set; }
 
-    /// <summary>Eccentricity: dimensionless by definition, hence the explicit "1" token rather than no annotation.</summary>
+    /// <summary>Eccentricity: dimensionless by definition, hence the explicit
+    /// "1" token rather than no annotation.</summary>
     [SitrepUnit(Units.Dimensionless)]
     public double Ecc { get; set; }
 
     [SitrepUnit(Units.Degrees)]
     public double Inc { get; set; }
 
-    /// <summary>Null = undefined ascending node (KSP's own LAN is NaN for a near-equatorial orbit, inc ~ 0 -- a routine case, not an error). Never NaN, never 0 as a stand-in (R1/F-1).</summary>
+    /// <summary>Null = undefined ascending node (KSP's own LAN is NaN for a
+    /// near-equatorial orbit, inc ~ 0 -- a routine case, not an error). Never
+    /// NaN, never 0 as a stand-in (R1/F-1).</summary>
     [SitrepUnit(Units.Degrees)]
     public double? Lan { get; set; }
 
-    /// <summary>Null = undefined periapsis (KSP's own argumentOfPeriapsis is NaN for a near-circular orbit, ecc ~ 0 -- a routine case, not an error). Never NaN, never 0 as a stand-in (R1/F-1).</summary>
+    /// <summary>Null = undefined periapsis (KSP's own argumentOfPeriapsis is
+    /// NaN for a near-circular orbit, ecc ~ 0 -- a routine case, not an error).
+    /// Never NaN, never 0 as a stand-in (R1/F-1).</summary>
     [SitrepUnit(Units.Degrees)]
     public double? ArgPe { get; set; }
 
-    /// <summary>RADIANS, not degrees. The KSP-native degrees/radians split this record deliberately keeps (see the class doc comment) is exactly the kind of trap a machine-readable unit exists to defuse.</summary>
+    /// <summary>RADIANS, not degrees. The KSP-native degrees/radians split this
+    /// record deliberately keeps (see the class doc comment) is exactly the
+    /// kind of trap a machine-readable unit exists to defuse.</summary>
     [SitrepUnit(Units.Radians)]
     // A coast moves the PHASE and nothing else: sma, ecc, inc, lan, argPe and mu
     // are constants of the orbit, so this pair is the whole of what a conic
@@ -76,7 +84,9 @@ public class VesselOrbit
     [SitrepReckonable(ReckoningBases.KeplerPropagation, "sma", "mu", "horizon", "@system.bodies")]
     public double MeanAnomalyAtEpoch { get; set; }
 
-    /// <summary>Epoch UT, in seconds -- the same UT-seconds convention as every other UT-typed field on this record (matches KSP's own <c>Orbit.epoch</c> units).</summary>
+    /// <summary>Epoch UT, in seconds -- the same UT-seconds convention as every
+    /// other UT-typed field on this record (matches KSP's own
+    /// <c>Orbit.epoch</c> units).</summary>
     [SitrepUnit(Units.UniversalTime)]
     // Moves with MeanAnomalyAtEpoch above and by the same model: the pair is one
     // statement of where the craft is on this orbit, and advancing one without
@@ -84,7 +94,8 @@ public class VesselOrbit
     [SitrepReckonable(ReckoningBases.KeplerPropagation, "sma", "mu", "horizon", "@system.bodies")]
     public double Epoch { get; set; }
 
-    /// <summary>Parent body's standard gravitational parameter (GM): self-sufficient propagation, no separate body lookup required.</summary>
+    /// <summary>Parent body's standard gravitational parameter (GM):
+    /// self-sufficient propagation, no separate body lookup required.</summary>
     [SitrepUnit(Units.CubicMetresPerSecondSquared)]
     public double Mu { get; set; }
 
@@ -121,7 +132,8 @@ public class VesselOrbit
     [SitrepUnit(Units.Seconds)]
     public double? TimeToPe { get; set; }
 
-    /// <summary>Null = no upcoming SOI transition on the current trajectory (the common case); NEVER a sentinel (kills O-9).</summary>
+    /// <summary>Null = no upcoming SOI transition on the current trajectory
+    /// (the common case); NEVER a sentinel (kills O-9).</summary>
     public OrbitEncounter? Encounter { get; set; }
 
     /// <summary>
@@ -186,11 +198,10 @@ public class VesselOrbit
 /// The window over which an element set is authoritative, as stated by whichever
 /// propagation provider produced it.
 ///
-/// <para>Measured from the sample's OBSERVATION instant, not from
-/// <see cref="VesselOrbit.Epoch"/>. `Epoch` is the mean-anomaly reference epoch
-/// and can sit far from when the sample was taken, so subtracting it would
-/// answer a different question with the same units and no type could catch
-/// it.</para>
+/// <para>Measured from the sample's OBSERVATION instant, not from <see
+/// cref="VesselOrbit.Epoch"/>. `Epoch` is the mean-anomaly reference epoch and
+/// can sit far from when the sample was taken, so subtracting it would give a
+/// different quantity with the same units and no type could catch it.</para>
 /// </summary>
 /// <category>Orbits and trajectories</category>
 [SitrepContract]
@@ -233,18 +244,20 @@ public class PropagationHorizon
 }
 
 /// <summary>
-/// Deliberately THREE arms, and the ordering is the point.
+/// How far an element set may be carried forward. Three values, and the ordering
+/// is the point.
 ///
 /// <para><see cref="Unspecified"/> is 0, so a producer that forgets the horizon
-/// gets the REFUSING answer rather than the permissive one. Had
+/// gets the REFUSING value rather than the permissive one. Had
 /// <see cref="Unbounded"/> been the default, a provider that failed to populate
 /// it would have read as "trust this conic forever", which is the most dangerous
 /// available reading and would have failed silently.</para>
 ///
 /// <para><see cref="Unbounded"/> is a CLAIM, made by a provider that genuinely
 /// has no limit (an analytic two-body solver), not a default nobody made. It is
-/// its own arm rather than an infinite <see cref="PropagationHorizon.UntilUt"/>
-/// so that "forever" never has to be recognised as an extreme number.</para>
+/// its own value rather than an infinite <see
+/// cref="PropagationHorizon.UntilUt"/> so that "forever" never has to be
+/// recognised as an extreme number.</para>
 /// </summary>
 /// <category>Orbits and trajectories</category>
 #if SITREP_CODEGEN
@@ -256,10 +269,12 @@ public enum PropagationHorizonKind
     /// <summary>No provider stated one. Treat as unpropagatable.</summary>
     Unspecified = 0,
 
-    /// <summary>Authoritative for all future UT: an analytic solver with no horizon.</summary>
+    /// <summary>Authoritative for all future UT: an analytic solver with no
+    /// horizon.</summary>
     Unbounded = 1,
 
-    /// <summary>Authoritative until <see cref="PropagationHorizon.UntilUt"/>.</summary>
+    /// <summary>Authoritative until <see
+    /// cref="PropagationHorizon.UntilUt"/>.</summary>
     Until = 2,
 }
 
@@ -267,11 +282,12 @@ public enum PropagationHorizonKind
 /// What kind of thing an element set describes: a closed-form conic, or a
 /// snapshot of an integrated path.
 ///
-/// <para><see cref="Unspecified"/> is 0 for the same reason
-/// <see cref="PropagationHorizonKind.Unspecified"/> is: a producer that forgets
-/// the field gets the answer that WITHHOLDS rather than the one that permits.
-/// Had <see cref="Analytic"/> been zero, a provider that failed to populate it
-/// would have every client treating an integrated trajectory as an ellipse.</para>
+/// <para><see cref="Unspecified"/> is 0 for the same reason <see
+/// cref="PropagationHorizonKind.Unspecified"/> is: a producer that forgets the
+/// field gets the value that WITHHOLDS rather than the one that permits. Had
+/// <see cref="Analytic"/> been zero, a provider that failed to populate it
+/// would have every client treating an integrated trajectory as an
+/// ellipse.</para>
 /// </summary>
 /// <category>Orbits and trajectories</category>
 #if SITREP_CODEGEN
@@ -298,7 +314,8 @@ public enum TrajectoryKind
     Integrated = 2,
 }
 
-/// <summary>One upcoming SOI patch transition: see <see cref="VesselOrbit.Encounter"/>.</summary>
+/// <summary>One upcoming SOI patch transition: see <see
+/// cref="VesselOrbit.Encounter"/>.</summary>
 /// <category>Orbits and trajectories</category>
 [SitrepContract]
 #if SITREP_CODEGEN
@@ -312,7 +329,8 @@ public class OrbitEncounter
     [SitrepUnit(Units.UniversalTime)]
     public double TransitionUt { get; set; }
 
-    /// <summary>Index into <c>system.bodies</c> of the body being transitioned INTO; null if that body couldn't be resolved.</summary>
+    /// <summary>Index into <c>system.bodies</c> of the body being transitioned
+    /// INTO; null if that body couldn't be resolved.</summary>
     [SitrepUnit(Units.Id)]
     public int? BodyIndex { get; set; }
 }

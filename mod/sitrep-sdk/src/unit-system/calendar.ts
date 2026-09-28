@@ -20,21 +20,13 @@
  * That is the important distinction: they are the FALLBACK, not the
  * assumption.
  *
- * The same channel carries an optional EPOCH, and it answers a different
- * question: not how long a day is but which day it is. A game whose date
- * formatter models a real calendar has one; stock does not, and the absence is
- * the correct answer for stock rather than a gap to fill.
+ * The same channel carries an optional EPOCH, and it says something different:
+ * not how long a day is but which day it is. A game whose date formatter models
+ * a real calendar has one; stock does not, and the absence is correct for stock
+ * rather than a gap to fill.
  *
- * ## Why this lives in the SDK rather than in the UI kit
- *
- * It was in the kit first, and that was half a fix. The kit could only reach
- * its own DISPLAY path, so `formatDuration` and `<Unit>` followed the live
- * calendar while `Value` arithmetic did not: `value("s", 86_400).in("d")`
- * answered 4 under an Earth calendar, where it should answer 1, and every
- * `plus` across `h` and `d` was wrong by the same factor in silence.
- *
- * The calendar belongs to the unit MODEL, because it is what decides the ratio
- * of `d` to `s`. Putting it here puts it below both consumers: the kit
+ * The calendar belongs to the unit model, because it decides the ratio of `d`
+ * to `s`. Putting it here puts it below both consumers: the kit
  * re-exports these functions, so there is one calendar and one place to set
  * it, and display and arithmetic cannot disagree.
  *
@@ -67,7 +59,7 @@ export interface KspCalendar {
    * deadline, expiry and window on the wire renders with it, because they are
    * all the same kind of number.
    *
-   * **Absent is the normal answer and is not zero.** Stock KSP has no real
+   * **Absent is the normal case and is not zero.** Stock KSP has no real
    * calendar, its own UI prints Year 1 Day 1, and so should this. The mod
    * publishes an epoch only when the running game's date formatter carries
    * one; see `time.calendar`'s `epoch` on the wire. Milliseconds rather than
@@ -109,16 +101,16 @@ export function kspCalendar(): KspCalendar {
  * Adopt the calendar the game reported, or pass nothing to go back to stock.
  *
  * One call changes every duration and date the app renders AND every unit
- * conversion it computes, which is what having one calendar buys. A day or
- * year that is not a positive finite number is refused outright and the stock
+ * conversion it computes, which is what having one calendar buys. A day or year
+ * that is not a positive finite number is refused outright and the stock
  * fallback kept: dividing by it would render every duration as infinity, which
- * is a worse answer than the one already on screen.
+ * is worse than the figures already on screen.
  *
  * The epoch is refused separately and more gently. A non-finite one is dropped
  * and the four lengths still adopted, because an anchor and a day length are
  * independent facts and losing the calendar over a bad anchor would misreport
- * every duration to fix a date. Omitting `epochMs` clears any anchor
- * previously set, which is what a game that stopped reporting one means.
+ * every duration to fix a date. Omitting `epochMs` clears any anchor already
+ * set, which is what a game that stopped reporting one means.
  *
  * @category Units and values
  */
@@ -185,9 +177,9 @@ const CALENDAR_RATIO: Record<string, (calendar: KspCalendar) => number> = {
  * The live ratio for a calendar-dependent symbol, or `undefined` for the
  * overwhelming majority of units, which are physical constants.
  *
- * `undefined` rather than a fallback to the baked number on purpose: the
- * caller already has the declared definition in hand and this only has to
- * answer "do I override it".
+ * `undefined` rather than a fallback to the baked number on purpose: the caller
+ * already has the declared definition in hand and this only says whether to
+ * override it.
  *
  * @category Units and values
  */

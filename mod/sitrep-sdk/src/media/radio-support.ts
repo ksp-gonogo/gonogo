@@ -2,20 +2,13 @@
  * Capability detection for the WebCodecs Opus path the push-to-talk radio
  * rides.
  *
- * The shape mirrors `isFrameDelaySupported()` next door: a synchronous
- * feature detect a caller runs before building anything, so an unsupported
- * browser gets a reported fact instead of a broken pipeline. It differs in
- * one way, and the difference is the whole reason this module exists.
- *
- * **A presence check alone gets the answer wrong, in both directions.**
- * `AudioEncoder`/`AudioDecoder` are secure-context-gated, and the engines
- * disagree about how that gate shows up. Measured 2026-09-05 against this
- * repo's own cached Playwright browsers on a plain-http LAN origin:
- * chromium and firefox leave both constructors `undefined`, while webkit
- * exposes them and would fail later, at `getUserMedia`. So a probe that
- * only asks "is `AudioEncoder` a function" reports a codec gap for the two
- * engines whose codec is fine, and reports success for the one engine that
- * is about to be refused a microphone. Neither answer is true.
+ * The shape mirrors `isFrameDelaySupported()` next door: a synchronous feature
+ * detect a caller runs before building anything, so an unsupported browser gets
+ * a reported fact instead of a broken pipeline. **A presence check alone is
+ * wrong in both directions.** `AudioEncoder`/`AudioDecoder` need a secure
+ * context, and on a plain-http origin chromium and firefox leave both
+ * constructors `undefined` while webkit exposes them and fails later, at
+ * `getUserMedia`.
  *
  * `radioSupportStatus()` therefore asks about the context FIRST and names
  * an insecure origin as its own outcome, so a caller can say "this page is
@@ -106,7 +99,7 @@ export type RadioSupport =
 
 /**
  * The full verdict, with the reason attached. Prefer this over
- * {@link isRadioSupported} anywhere the answer is shown to an operator: a
+ * {@link isRadioSupported} anywhere the result is shown to an operator: a
  * page served over plain http wants "not a secure origin", not "no codec".
  *
  * @category Radio

@@ -38,18 +38,18 @@ namespace Sitrep.Contract;
 #endif
 public class ManeuverNode
 {
-    /// <summary>
-    /// Stable, opaque id: the M3 R3 fix for the read/write correlation gap
-    /// (<c>packages/sitrep-client/src/map-command.ts</c>'s <c>KNOWN_COMMAND_GAPS</c>
-    /// comment): assigned by <c>Gonogo.KSP.KspHost</c> via a shared
-    /// <c>ReferenceIdRegistry&lt;global::ManeuverNode&gt;</c> (see that
-    /// class's doc comment for the full scheme), the SAME instance
+    /// <summary> Stable, opaque id: the M3 R3 fix for the read/write
+    /// correlation gap (<c>packages/sitrep-client/src/map-command.ts</c>'s
+    /// <c>KNOWN_COMMAND_GAPS</c> comment): assigned by
+    /// <c>Gonogo.KSP.KspHost</c> via a shared
+    /// <c>ReferenceIdRegistry&lt;global::ManeuverNode&gt;</c> (see that class's
+    /// doc comment for the full scheme), the SAME instance
     /// <c>KspVesselActuator</c> uses to resolve <c>vessel.maneuver.update</c>/
-    /// <c>.remove</c>'s <c>nodeId</c> argument: so a node's id round-trips
-    /// into those commands whether the node was created through
-    /// <c>vessel.maneuver.add</c> or placed by hand in the map view.
-    /// Empty string only for a node read off a recording captured BEFORE
-    /// this field existed (replay of old data; never a live capture).
+    /// <c>.remove</c>'s <c>nodeId</c> argument: so a node's id round-trips into
+    /// those commands whether the node was created through
+    /// <c>vessel.maneuver.add</c> or placed by hand in the map view. Empty
+    /// string only for a node read off a recording captured BEFORE this field
+    /// existed (replay of old data; never a live capture).
     /// </summary>
     [SitrepUnit(Units.Id)]
     public string Id { get; set; } = "";
@@ -143,15 +143,18 @@ public class ManeuverNode
     [SitrepUnit(Units.MetresPerSecond)]
     public double? DvRadial { get; set; }
 
-    /// <summary>Null only if KSP's own dv component was non-finite this tick; see <see cref="DvRadial"/>'s doc comment.</summary>
+    /// <summary>Null only if KSP's own dv component was non-finite this tick;
+    /// see <see cref="DvRadial"/>'s doc comment.</summary>
     [SitrepUnit(Units.MetresPerSecond)]
     public double? DvNormal { get; set; }
 
-    /// <summary>Null only if KSP's own dv component was non-finite this tick; see <see cref="DvRadial"/>'s doc comment.</summary>
+    /// <summary>Null only if KSP's own dv component was non-finite this tick;
+    /// see <see cref="DvRadial"/>'s doc comment.</summary>
     [SitrepUnit(Units.MetresPerSecond)]
     public double? DvPrograde { get; set; }
 
-    /// <summary>Null only if KSP's own dv magnitude was non-finite this tick; see <see cref="DvRadial"/>'s doc comment.</summary>
+    /// <summary>Null only if KSP's own dv magnitude was non-finite this tick;
+    /// see <see cref="DvRadial"/>'s doc comment.</summary>
     [SitrepUnit(Units.MetresPerSecond)]
     public double? DvTotal { get; set; }
 
@@ -167,12 +170,12 @@ public class ManeuverNode
     ///
     /// <para><b>A kind and a body, not a name.</b> A string would be a second
     /// vocabulary for something the app already has one of: the read-frame side
-    /// names exactly these four kinds, and every widget that draws a frame already
-    /// resolves them. Two ways of naming one concept is how a compatibility shim
-    /// starts.</para>
+    /// names exactly these four kinds, and every widget that draws a frame
+    /// already resolves them. Two ways of naming one concept is how a
+    /// compatibility shim starts.</para>
     ///
-    /// <para>Null when the planner has only one frame, which is the stock case and
-    /// not a gap.</para>
+    /// <para>Null when the planner has only one frame, which is the stock case
+    /// and not a gap.</para>
     /// </summary>
     [SitrepUnit(Units.Enumeration)]
     public ManeuverFrameReference? FrameReference { get; set; }
@@ -188,10 +191,10 @@ public class ManeuverNode
     /// What a burn's basis is measured relative to.
     ///
     /// <para>The same four the read-frame side names, deliberately. A frame an
-    /// operator picked to READ a trajectory in and a frame a burn was PLANNED in
-    /// are the same kind of thing, and giving them separate vocabularies would make
-    /// "is this burn in the frame I am looking at" a question nobody could answer
-    /// without a translation table.</para>
+    /// operator picked to READ a trajectory in and a frame a burn was PLANNED
+    /// in are the same kind of thing, and giving them separate vocabularies
+    /// would make "is this burn in the frame I am looking at" a question that
+    /// needs a translation table.</para>
     /// </summary>
     /// <category>Orbits and trajectories</category>
 #if SITREP_CODEGEN
@@ -200,11 +203,12 @@ public class ManeuverNode
     [SitrepContract]
     public enum ManeuverFrameReference
     {
-        /// <summary>Not stated. Zero so a planner that says nothing is not read as
-        /// having claimed a frame.</summary>
+        /// <summary>Not stated. Zero so a planner that says nothing is not read
+        /// as having claimed a frame.</summary>
         Unspecified = 0,
 
-        /// <summary>Whatever the craft's own control frame currently is.</summary>
+        /// <summary>Whatever the craft's own control frame currently
+        /// is.</summary>
         FollowControlFrame = 1,
 
         /// <summary>Non-rotating, centred on a body.</summary>
@@ -213,7 +217,8 @@ public class ManeuverNode
         /// <summary>Aligned with the direction to a body's parent.</summary>
         ParentDirection = 3,
 
-        /// <summary>Rotating with two primaries, with lengths that pulsate.</summary>
+        /// <summary>Rotating with two primaries, with lengths that
+        /// pulsate.</summary>
         RotatingPulsating = 4,
     }
 
@@ -221,9 +226,10 @@ public class ManeuverNode
     /// Whether the craft holds a fixed inertial attitude through the burn rather
     /// than following the frame as it rotates.
     ///
-    /// <para>Not a nicety: over a long burn the two steer differently, so a plan
-    /// shown without it is a plan whose execution cannot be predicted from what is
-    /// on screen. Null when the planner has no such concept, which is stock.</para>
+    /// <para>Not a nicety: over a long burn the two steer differently, so a
+    /// plan shown without it is a plan whose execution cannot be predicted from
+    /// what is on screen. Null when the planner has no such concept, which is
+    /// stock.</para>
     /// </summary>
     [SitrepUnit(Units.Flag)]
     public bool? InertiallyFixed { get; set; }
@@ -231,11 +237,12 @@ public class ManeuverNode
     /// <summary>
     /// Thrust the plan was computed against.
     ///
-    /// <para>Stock CAN fill this and today does not: the impulsive model has no use
-    /// for it, so nothing asked. It is here rather than on a planner-specific
-    /// channel because "what thrust was this planned against" is a question about
-    /// the burn, and the answer differs between a plan made at full throttle and one
-    /// made on a single engine whatever computed it.</para>
+    /// <para>Stock CAN fill this and today does not: the impulsive model has no
+    /// use for it, so nothing asked. It is here rather than on a
+    /// planner-specific channel because "what thrust was this planned against"
+    /// is a question about the burn, and the answer differs between a plan made
+    /// at full throttle and one made on a single engine whatever computed
+    /// it.</para>
     /// </summary>
     [SitrepUnit(Units.Kilonewtons)]
     public double? Thrust { get; set; }
@@ -263,14 +270,15 @@ public class ManeuverNode
     /// started from the node's own <c>nextPatch</c> instead of the
     /// vessel's current orbit).
     ///
-    /// <para><b>How one burn links to the next.</b> A burn's INPUT trajectory is the patch in the PREVIOUS
-    /// burn's chain whose <c>PatchEndTransition</c> is
-    /// <see cref="TransitionType.Maneuver"/>, equivalently the one whose
-    /// <c>EndUt</c> equals this burn's <see cref="Ut"/>. For the first burn it
-    /// is the craft's own <c>vessel.orbit</c>. Every chain is a suffix of the
-    /// previous one, but the number of patches skipped varies with how many SOI
-    /// crossings fall between the two burns, so counting positions is not the
-    /// rule and gets it wrong the first time a crossing appears.</para>
+    /// <para><b>How one burn links to the next.</b> A burn's INPUT trajectory
+    /// is the patch in the PREVIOUS burn's chain whose
+    /// <c>PatchEndTransition</c> is <see cref="TransitionType.Maneuver"/>,
+    /// equivalently the one whose <c>EndUt</c> equals this burn's <see
+    /// cref="Ut"/>. For the first burn it is the craft's own
+    /// <c>vessel.orbit</c>. Every chain is a suffix of the previous one, but
+    /// the number of patches skipped varies with how many SOI crossings fall
+    /// between the two burns, so counting positions is not the rule and gets it
+    /// wrong the first time a crossing appears.</para>
     ///
     /// <para>KSP re-parents strictly sequentially: inserting a
     /// burn ahead of an existing one re-derives every later chain, so a burn's

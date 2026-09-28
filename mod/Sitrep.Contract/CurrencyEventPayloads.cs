@@ -4,22 +4,23 @@ using Reinforced.Typings.Attributes;
 
 namespace Sitrep.Contract;
 
-/// <summary>
-/// Topic names for the source-attributed currency events. Each is a
+/// <summary> Topic names for the source-attributed currency events. Each is a
 /// <c>currency.&lt;vesselGuid&gt;.&lt;currency&gt;</c> channel in the
-/// <c>ChannelEngine.CurrencyEventPrefix</c> dynamic namespace, so it records under
-/// the per-vessel node <c>fleet.&lt;guid&gt;</c> and is revealed at that vessel's own
-/// light-time to the observer rather than instantly.
+/// <c>ChannelEngine.CurrencyEventPrefix</c> dynamic namespace, so it records
+/// under the per-vessel node <c>fleet.&lt;guid&gt;</c> and is revealed at that
+/// vessel's own light-time to the observer rather than instantly.
 /// </summary>
 public static class CurrencyEventTopics
 {
     /// <summary>The dynamic-namespace prefix both event families share.</summary>
     public const string Prefix = "currency.";
 
-    /// <summary>Sub-topic (appended after the vessel guid) for a science credit.</summary>
+    /// <summary>Sub-topic (appended after the vessel guid) for a science
+    /// credit.</summary>
     public const string ScienceField = "science";
 
-    /// <summary>Sub-topic (appended after the vessel guid) for a reputation loss.</summary>
+    /// <summary>Sub-topic (appended after the vessel guid) for a reputation
+    /// loss.</summary>
     public const string ReputationField = "reputation";
 
     /// <summary>The full topic for one vessel's science credits.</summary>
@@ -45,12 +46,13 @@ public static class CurrencyEventTopics
 /// <c>DelayTo(vantage, fleet.&lt;guid&gt;)</c>, so a probe five light-minutes out
 /// reports its transmit five minutes after the fact.</para>
 ///
-/// <para>ADDITIVE to <c>career.status.economy.science</c>, which is untouched and
-/// held at the home command: that field gates what tech the operator can afford, so
-/// it stays the number the game will actually gate against (the same principle as
-/// the always-show-the-funds-balance rule), reaching a ground centre at once and a
-/// crewed vessel after its path home. These events let a consumer build a separate,
-/// honestly-delayed running total; they never replace the gating one.</para>
+/// <para>ADDITIVE to <c>career.status.economy.science</c>, which is untouched
+/// and held at the home command: that field gates what tech the operator can
+/// afford, so it stays the number the game will actually gate against (the same
+/// principle as the always-show-the-funds-balance rule), reaching a ground
+/// centre at once and a crewed vessel after its path home. These events let a
+/// consumer build a separate, honestly-delayed running total; they never
+/// replace the gating one.</para>
 /// </summary>
 /// <category>Career</category>
 [SitrepContract]
@@ -59,27 +61,35 @@ public static class CurrencyEventTopics
 #endif
 public class ScienceCreditEvent
 {
-    /// <summary>The crediting vessel's persistent id (<c>ProtoVessel.vesselID</c>), the same guid the <c>fleet.</c> namespace keys by.</summary>
+    /// <summary>The crediting vessel's persistent id
+    /// (<c>ProtoVessel.vesselID</c>), the same guid the <c>fleet.</c> namespace
+    /// keys by.</summary>
     [SitrepUnit(Units.Id)]
     public string VesselId { get; set; } = string.Empty;
 
-    /// <summary>The crediting vessel's display name at the moment of the credit.</summary>
+    /// <summary>The crediting vessel's display name at the moment of the
+    /// credit.</summary>
     [SitrepUnit(Units.Text)]
     public string VesselName { get; set; } = string.Empty;
 
-    /// <summary>Science points credited by this event. Positive; science is monotonic-up outside the ground-side admin conversion, which is not attributed here.</summary>
+    /// <summary>Science points credited by this event. Positive; science is
+    /// monotonic-up outside the ground-side admin conversion, which is not
+    /// attributed here.</summary>
     [SitrepUnit(Units.Science)]
     public double Amount { get; set; }
 
-    /// <summary>The research subject's id (<c>ScienceSubject.id</c>), e.g. the experiment+body+biome key.</summary>
+    /// <summary>The research subject's id (<c>ScienceSubject.id</c>), e.g. the
+    /// experiment+body+biome key.</summary>
     [SitrepUnit(Units.Id)]
     public string SubjectId { get; set; } = string.Empty;
 
-    /// <summary>The research subject's human title, e.g. "Crew Report from Kerbin's Shores".</summary>
+    /// <summary>The research subject's human title, e.g. "Crew Report from
+    /// Kerbin's Shores".</summary>
     [SitrepUnit(Units.Text)]
     public string SubjectTitle { get; set; } = string.Empty;
 
-    /// <summary>Universal Time the credit happened at, the UT its reveal delay is measured from.</summary>
+    /// <summary>Universal Time the credit happened at, the UT its reveal delay
+    /// is measured from.</summary>
     [SitrepUnit(Units.UniversalTime)]
     public double Ut { get; set; }
 }
@@ -87,37 +97,41 @@ public class ScienceCreditEvent
 /// <summary>
 /// One reputation loss, attributed to the vessel it happened aboard.
 ///
-/// <para>NARRATIVE ONLY. This is not a reputation total and must never be read as
-/// one. See <see cref="ScienceCreditEvent"/> for the general shape, and the hard
-/// constraint below for why this type deliberately carries no absolute figure.</para>
+/// <para>NARRATIVE ONLY. This is not a reputation total and must never be read
+/// as one. See <see cref="ScienceCreditEvent"/> for the general shape, and the
+/// hard constraint below for why this type deliberately carries no absolute
+/// figure.</para>
 ///
-/// <para><b>The gating field is not delayed by this event, non-negotiably.</b> Reputation GATES:
-/// <c>StrategyEntry.RequiredReputation</c> is a strategy's minimum-rep unlock
-/// threshold, and contract offer availability keys off the game's real current
-/// reputation. A stale-high delayed number sitting where the operator reads it before
-/// clicking "Activate Strategy" or "Accept Contract" could show a strategy as
-/// available when the game's already-dropped reputation has made it unavailable, and
-/// the action would then fail against ground truth the operator had no way to see
-/// coming. So <c>career.status.economy.reputation</c> is held at the home command, where
-/// the gate is decided, and completely untouched: it is the number the game will actually gate against, the
-/// same principle as the always-show-the-funds-balance rule. This event is ADDITIVE
-/// and carries only a DELTA with no absolute total precisely so it can never be
-/// substituted for the gating value, and it must never be co-located with an
-/// activate/accept control.</para>
+/// <para><b>The gating field is not delayed by this event, non-negotiably.</b>
+/// Reputation GATES: <c>StrategyEntry.RequiredReputation</c> is a strategy's
+/// minimum-rep unlock threshold, and contract offer availability keys off the
+/// game's real current reputation. A delayed number that is still too high,
+/// sitting where the operator reads it before clicking "Activate Strategy" or
+/// "Accept Contract" could show a strategy as available when the game's
+/// already-dropped reputation has made it unavailable, and the action would
+/// then fail against ground truth the operator had no way to see coming. So
+/// <c>career.status.economy.reputation</c> is held at the home command, where
+/// the gate is decided, and completely untouched: it is the number the game
+/// will actually gate against, the same principle as the
+/// always-show-the-funds-balance rule. This event is ADDITIVE and carries only
+/// a DELTA with no absolute total precisely so it can never be substituted for
+/// the gating value, and it must never be co-located with an activate/accept
+/// control.</para>
 ///
-/// <para><b>What actually costs reputation in stock.</b> Decompile-confirmed: the only
-/// loss-related reputation penalty stock applies is <c>Reputation.OnCrewKilled</c>,
-/// which fires on <c>GameEvents.onCrewKilled</c> with
-/// <c>TransactionReasons.VesselLoss</c>. Losing an UNCREWED vessel costs no reputation
-/// at all, so a probe crashing raises no event here. <see cref="Cause"/> is carried
-/// rather than assumed so a mod that penalises other loss classes still fits this
-/// shape.</para>
+/// <para><b>What actually costs reputation in stock.</b> Decompile-confirmed:
+/// the only loss-related reputation penalty stock applies is
+/// <c>Reputation.OnCrewKilled</c>, which fires on
+/// <c>GameEvents.onCrewKilled</c> with <c>TransactionReasons.VesselLoss</c>.
+/// Losing an UNCREWED vessel costs no reputation at all, so a probe crashing
+/// raises no event here. <see cref="Cause"/> is carried rather than assumed so
+/// a mod that penalises other loss classes still fits this shape.</para>
 ///
-/// <para><b>Attribution.</b> <c>ProtoCrewMember.Die()</c> fires <c>onCrewKilled</c> with
-/// a NULL <c>EventReport.origin</c>, so the vessel cannot always be read off the event.
-/// The producer resolves it from the report's part when present, otherwise from the
-/// vessel a destruction detector armed in the same frame, otherwise the active vessel.
-/// An unattributable death raises no event rather than being blamed on a guess.</para>
+/// <para><b>Attribution.</b> <c>ProtoCrewMember.Die()</c> fires
+/// <c>onCrewKilled</c> with a NULL <c>EventReport.origin</c>, so the vessel
+/// cannot always be read off the event. The producer resolves it from the
+/// report's part when present, otherwise from the vessel a destruction detector
+/// flagged in the same frame, otherwise the active vessel. An unattributable
+/// death raises no event rather than being blamed on a guess.</para>
 /// </summary>
 /// <category>Career</category>
 [SitrepContract]
@@ -126,7 +140,9 @@ public class ScienceCreditEvent
 #endif
 public class ReputationLossEvent
 {
-    /// <summary>The vessel the loss happened aboard (<c>Vessel.id</c> as a string GUID), the same guid the <c>fleet.</c> namespace keys by.</summary>
+    /// <summary>The vessel the loss happened aboard (<c>Vessel.id</c> as a
+    /// string GUID), the same guid the <c>fleet.</c> namespace keys
+    /// by.</summary>
     [SitrepUnit(Units.Id)]
     public string VesselId { get; set; } = string.Empty;
 
@@ -134,23 +150,26 @@ public class ReputationLossEvent
     [SitrepUnit(Units.Text)]
     public string VesselName { get; set; } = string.Empty;
 
-    /// <summary>
-    /// The reputation CHANGE this loss caused, negative for a penalty. A delta, never a
-    /// total: there is deliberately no absolute reputation on this type, so it cannot be
-    /// mistaken for the gating figure (see the type's own doc comment).
+    /// <summary> The reputation CHANGE this loss caused, negative for a
+    /// penalty. A delta, never a total: there is deliberately no absolute
+    /// reputation on this type, so it cannot be mistaken for the gating figure
+    /// (see the type's own doc comment).
     /// </summary>
     [SitrepUnit(Units.Reputation)]
     public double Delta { get; set; }
 
-    /// <summary>What caused the loss, e.g. <c>crew-loss</c>. Carried rather than assumed so a non-stock penalty class still fits.</summary>
+    /// <summary>What caused the loss, e.g. <c>crew-loss</c>. Carried rather
+    /// than assumed so a non-stock penalty class still fits.</summary>
     [SitrepUnit(Units.Enumeration)]
     public string Cause { get; set; } = string.Empty;
 
-    /// <summary>The kerbals lost, all of those folded into this event's <see cref="Delta"/>.</summary>
+    /// <summary>The kerbals lost, all of those folded into this event's <see
+    /// cref="Delta"/>.</summary>
     [SitrepUnit(Units.Text)]
     public string[] CrewLost { get; set; } = new string[0];
 
-    /// <summary>Universal Time the loss happened at, the UT its reveal delay is measured from.</summary>
+    /// <summary>Universal Time the loss happened at, the UT its reveal delay is
+    /// measured from.</summary>
     [SitrepUnit(Units.UniversalTime)]
     public double Ut { get; set; }
 }

@@ -12,10 +12,10 @@ namespace Sitrep.Contract;
 /// <see cref="VesselOrbit"/>'s elements are osculating, so sampling them gives
 /// the conic the craft is tangent to at the sample instant. That is exactly the
 /// trajectory for an analytic provider and is NOT one for a provider that
-/// integrates: the curve it flies leaves that conic immediately, and drawing the
-/// conic under an integrated label is a confident wrong answer. So an
-/// integrating provider puts its real points here, and a client that has them
-/// draws them instead of solving anomalies.</para>
+/// integrates: the curve it flies leaves that conic immediately, and drawing
+/// the conic under an integrated label is confidently wrong. So an integrating
+/// provider puts its real points here, and a client that has them draws them
+/// instead of solving anomalies.</para>
 ///
 /// <para><b>Three dimensions and a frame, not two in the orbital plane.</b> An
 /// n-body path has no perifocal plane to be flat in, and in a rotating frame it
@@ -70,12 +70,14 @@ public class TrajectoryArc
     [SitrepUnit(Units.Count)]
     public int SourcePointCount { get; set; }
 
-    /// <summary>Where the curve came from, so the mark can travel ON it.</summary>
+    /// <summary>Where the curve came from, so the mark can travel ON
+    /// it.</summary>
     [SitrepUnit(Units.Enumeration)]
     public TrajectoryDerivation Derivation { get; set; }
 
     /// <summary>What the integration was against, when the producer integrated.
-    /// Null for a closed-form curve, which has no force model to describe.</summary>
+    /// Null for a closed-form curve, which has no force model to
+    /// describe.</summary>
     public TrajectoryForceModel? ForceModel { get; set; }
 }
 
@@ -107,8 +109,8 @@ public class TrajectoryPoint
 /// Which frame a set of trajectory points is expressed in, named well enough
 /// that the curve can be read.
 ///
-/// <para>Deliberately not the producing mod's own frame vocabulary. A frame is a
-/// property every provider's answer has, and putting one vendor's enum on the
+/// <para>Deliberately not the producing mod's own frame vocabulary. A frame is
+/// a property every provider's curve has, and putting one vendor's enum on the
 /// standard payload would make every other provider translate into it.</para>
 /// </summary>
 /// <category>Orbits and trajectories</category>
@@ -121,9 +123,10 @@ public class TrajectoryFrameRef
     [SitrepUnit(Units.Enumeration)]
     public TrajectoryFrameKind Kind { get; set; }
 
-    /// <summary>Index into <c>system.bodies</c> of the body the frame is centred
-    /// on, or null for a frame with no centre. Three of the frames a player can
-    /// plot in have none, which is also why apsides do not exist in them.</summary>
+    /// <summary>Index into <c>system.bodies</c> of the body the frame is
+    /// centred on, or null for a frame with no centre. Three of the frames a
+    /// player can plot in have none, which is also why apsides do not exist in
+    /// them.</summary>
     [SitrepUnit(Units.Id)]
     public int? CentreBodyIndex { get; set; }
 
@@ -142,10 +145,10 @@ public class TrajectoryFrameRef
 /// The frames a trajectory may be published in.
 ///
 /// <para><see cref="Unspecified"/> is 0 so a producer that forgets gets the
-/// answer a client must refuse to draw, on the same terms as
-/// <see cref="PropagationHorizonKind.Unspecified"/>: the wrong direction to
-/// default in is the one where an unnamed frame silently reads as the frame the
-/// reader happened to expect.</para>
+/// value a client must refuse to draw, on the same terms as <see
+/// cref="PropagationHorizonKind.Unspecified"/>: the wrong direction to default
+/// in is the one where an unnamed frame silently reads as the frame the reader
+/// happened to expect.</para>
 /// </summary>
 /// <category>Orbits and trajectories</category>
 #if SITREP_CODEGEN
@@ -188,9 +191,10 @@ public enum TrajectoryFrameKind
     /// The Lagrange points are fixed locations in this frame and in no other,
     /// which is the whole reason to draw in it.
     ///
-    /// <para>Always accompanied by <see cref="TrajectoryFrameRef.LengthsPulsate"/>
-    /// set, so a reader that does not know this member still knows not to quote a
-    /// number from it as a distance.</para>
+    /// <para>Always accompanied by <see
+    /// cref="TrajectoryFrameRef.LengthsPulsate"/> set, so a reader that does
+    /// not know this member still knows not to quote a number from it as a
+    /// distance.</para>
     /// </summary>
     RotatingPulsating = 5,
 }
@@ -199,8 +203,8 @@ public enum TrajectoryFrameKind
 /// Who derived a curve, and how faithfully.
 ///
 /// <para>The mark travels ON the curve rather than beside the widget, for the
-/// same reason a horizon does: a substituted answer that only says so in a panel
-/// elsewhere is a substituted answer nobody reads as one.</para>
+/// same reason a horizon does: a substituted curve that only says so in a panel
+/// elsewhere is one nobody reads as substituted.</para>
 /// </summary>
 /// <category>Orbits and trajectories</category>
 #if SITREP_CODEGEN
@@ -212,7 +216,8 @@ public enum TrajectoryDerivation
     /// <summary>No producer stated one.</summary>
     Unspecified = 0,
 
-    /// <summary>The points are the n-body mod's own, read from it directly.</summary>
+    /// <summary>The points are the n-body mod's own, read from it
+    /// directly.</summary>
     Foreign = 1,
 
     /// <summary>
@@ -244,11 +249,13 @@ public enum TrajectoryDerivation
 public class TrajectoryForceModel
 {
     /// <summary>True when the force model's configuration was found and parsed.
-    /// False means the curve is degraded and says which term is missing.</summary>
+    /// False means the curve is degraded and says which term is
+    /// missing.</summary>
     [SitrepUnit(Units.Flag)]
     public bool GravityModelFound { get; set; }
 
-    /// <summary>How many perturbing bodies were summed, not counting the primary.</summary>
+    /// <summary>How many perturbing bodies were summed, not counting the
+    /// primary.</summary>
     [SitrepUnit(Units.Count)]
     public int PerturbingBodyCount { get; set; }
 
@@ -318,17 +325,12 @@ public class TrajectoryForceModel
 /// <summary>
 /// Why a producer that CAN integrate published no arc this sample.
 ///
-/// <para>Separate from <see cref="PropagationHorizon"/>, which answers reach and
+/// <para>Separate from <see cref="PropagationHorizon"/>, which gives reach and
 /// shape for the ELEMENTS. These are refusals about the ARC, and each names a
 /// different remedy: a client that had to borrow the horizon's sentence for one
 /// of them would tell the operator to do the wrong thing.</para>
 ///
-/// <para><b>Zero is the state of having sought nothing</b>, and it used to be
-/// "nothing was refused", which covered BOTH an arc that was computed and an arc
-/// nobody attempted. That conflation shipped and it read as reassurance: with the
-/// integrated path unable to execute at all, every live frame carried
-/// <c>Unspecified</c>, which said the feature had no complaint rather than that it
-/// had never run. So an unattempted arc now says exactly that, and
+/// <para><b>Zero is the state of having sought nothing</b>, and
 /// <see cref="NotRefused"/> is the separate thing a producer says when it did
 /// attempt one and got a curve.</para>
 /// </summary>
@@ -345,10 +347,10 @@ public enum TrajectoryRefusal
     /// named no instant to integrate up to.
     ///
     /// <para>It does not mean an arc is fine, and it never accompanies one:
-    /// <see cref="NotRefused"/> does. Read it beside
-    /// <see cref="PropagationHorizon.TrajectoryKind"/>, which says WHY nothing was
-    /// sought: <c>Analytic</c> is an install that propagates in conics, and the arc
-    /// has nothing to add to that sentence.</para>
+    /// <see cref="NotRefused"/> does. Read it beside <see
+    /// cref="PropagationHorizon.TrajectoryKind"/>, which says WHY nothing was
+    /// sought: <c>Analytic</c> is an install that propagates in conics, and the
+    /// arc has nothing to add to that sentence.</para>
     /// </summary>
     NotAttempted = 0,
 
@@ -364,9 +366,10 @@ public enum TrajectoryRefusal
     /// an install problem and it says so.
     ///
     /// <para>The ordinary way to reach it is an n-body physics mod installed
-    /// against a solar system it ships no gravity model for, which is a real and
-    /// common install rather than a corner: the model config is guarded on the
-    /// planet pack it belongs to, so the mod runs and the node is not there.</para>
+    /// against a solar system it ships no gravity model for, which is a real
+    /// and common install rather than a corner: the model config is guarded on
+    /// the planet pack it belongs to, so the mod runs and the node is not
+    /// there.</para>
     /// </summary>
     NoForceModel = 2,
 

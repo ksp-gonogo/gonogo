@@ -56,50 +56,41 @@ import type { CommandRail } from "./rail-tags";
 export interface CommandArgsMap extends SdkOwnedCommandArgsMap {}
 
 /**
- * The command → reply-type map: what `send()` RESOLVES with, which is not the same
- * question as what the handler returns.
+ * The command → reply-type map: what `send()` RESOLVES with, which is not the
+ * same question as what the handler returns.
  *
- * A refusal never arrives here. The mod answers `CommandResult.Fail(code)` when the
- * game says no, and the client turns that into a rejection carrying the
- * `CommandErrorCode`, so a resolved value is always a command that ran. Most commands
- * resolve a bare `CommandResult`; the few that have something to say resolve
- * `CommandResultOf<Payload>` with the value on `payload`.
+ * A refusal never arrives here. The mod replies `CommandResult.Fail(code)` when
+ * the game says no, and the client turns that into a rejection carrying the
+ * `CommandErrorCode`, so a resolved value is always a command that ran. Most
+ * commands resolve a bare `CommandResult`; the few that have something to say
+ * resolve `CommandResultOf<Payload>` with the value on `payload`.
  *
  * @category Commands
  */
 export interface CommandReplyMap extends SdkOwnedCommandReplyMap {}
 
 /**
- * What a reply is known to be BEFORE the command id is known: the result envelope,
- * with the command's own value on `payload`.
+ * What a reply is known to be BEFORE the command id is known: the result
+ * envelope, with the command's own value on `payload`.
  *
- * The DEFAULT reply of `useCommand` and of `UseCommandResult`, and the reason that
- * default is no longer `unknown`. `unknown` is the top type, so it accepts every
- * reader including one that treats the envelope AS the payload it wraps. A widget
- * that typed its own control but declared the prop it passed the handle through as a
- * bare `UseCommandResult` had typed nothing, and seven controls in one Uplink read a
- * write receipt's fields off the `CommandResult` carrying it, so every one of them
- * read `undefined` forever and the banner they exist to raise could not fire.
+ * The default reply type of `useCommand` and `UseCommandResult`. Read the
+ * command's own value from `payload`, never from the envelope itself.
  *
- * True of every command but one. `vessel.trajectory.forVantage` declares
- * `[SitrepCommand(Result = typeof(VantagePlanReply))]`, and a `Result` command's handler
- * return value is what reaches the wire, so it genuinely answers something that is not a
- * `CommandResult`. Its handle is therefore NOT assignable to a bare `UseCommandResult`,
- * which is right rather than unfortunate: a reader that does not know which command it
- * holds cannot be handed one whose reply is not an envelope. Deliberately not widened to
- * a union with it, which would make the floor unreadable and grow a new arm every time a
- * command declared `Result`.
+ * True of every command but `vessel.trajectory.forVantage`, which replies with a
+ * `VantagePlanReply` rather than an envelope. Its handle is therefore not
+ * assignable to a bare `UseCommandResult`.
  *
  * @category Commands
  */
 export type AnyCommandReply = CommandResultOf<unknown>;
 
 /**
- * The SDK's OWN command maps: the generated entries and nothing else. DELIBERATELY
- * distinct from the augmentable maps above, so a downstream Uplink augmentation,
- * which adds a key and registers an id at runtime but never touches the static
- * `COMMAND_IDS` array, cannot turn the SDK's own array↔map assertions into false
- * failures. Same split, and same reason, as `SdkOwnedTopicPayloadMap`.
+ * The SDK's OWN command maps: the generated entries and nothing else.
+ * DELIBERATELY distinct from the augmentable maps above, so a downstream Uplink
+ * augmentation, which adds a key and registers an id at runtime but never
+ * touches the static `COMMAND_IDS` array, cannot turn the SDK's own array↔map
+ * assertions into false failures. Same split, and same reason, as
+ * `SdkOwnedTopicPayloadMap`.
  */
 interface SdkOwnedCommandArgsMap extends GeneratedCommandArgsMap {}
 
@@ -132,9 +123,10 @@ export type CommandReply<Command extends CommandId> =
 
 /**
  * Runtime list of the SDK's OWN `CommandId`s. Kept in lock-step with
- * `CommandArgsMap`'s SDK-owned keys by the compile-time assertions below. An Uplink's
- * own commands register at load into `uplinkCommandIds` and are NOT in this array;
- * use `getAllKnownCommandIds()` / `isCommandId` for the live full set.
+ * `CommandArgsMap`'s SDK-owned keys by the compile-time assertions below. An
+ * Uplink's own commands register at load into `uplinkCommandIds` and are NOT in
+ * this array; use `getAllKnownCommandIds()` / `isCommandId` for the live full
+ * set.
  *
  * @category Commands
  */
@@ -145,11 +137,11 @@ export const COMMAND_IDS = [
 const COMMAND_ID_SET: ReadonlySet<string> = new Set(COMMAND_IDS);
 
 /**
- * Runtime registry of Uplink-owned command ids, the commands whose args types live in
- * an Uplink's own contract slice rather than in `Sitrep.Contract`. Each owning
- * Uplink's client package calls `registerUplinkCommand` at module load, mirroring
- * `registerBarePrimitiveTopic` on the read side, so the SDK can enumerate and narrow
- * them without naming a single mod token in this file.
+ * Runtime registry of Uplink-owned command ids, the commands whose args types
+ * live in an Uplink's own contract slice rather than in `Sitrep.Contract`. Each
+ * owning Uplink's client package calls `registerUplinkCommand` at module load,
+ * mirroring `registerBarePrimitiveTopic` on the read side, so the SDK can
+ * enumerate and narrow them without naming a single mod token in this file.
  */
 const uplinkCommandIds = new Set<string>();
 
@@ -167,17 +159,18 @@ const uplinkCommandRails = new Map<string, CommandRail>();
 
 /**
  * Self-register an Uplink-owned command id absent from this SDK's own generated
- * registry. Called at module load by the owning Uplink's client package alongside its
- * `declare module` augmentation of `CommandArgsMap` / `CommandReplyMap`. Idempotent
- * (a `Set`), so a double import is harmless.
+ * registry. Called at module load by the owning Uplink's client package
+ * alongside its `declare module` augmentation of `CommandArgsMap` /
+ * `CommandReplyMap`. Idempotent (a `Set`), so a double import is harmless.
  *
- * The registration is the RUNTIME half and the augmentation is the TYPE half; they
- * are separate because they answer to different things. Without the augmentation an
- * author's `send` stays untyped; without this call the command is missing from
- * `getAllKnownCommandIds()` and `isCommandId` says no about a command that works.
+ * The registration is the RUNTIME half and the augmentation is the TYPE half;
+ * they are separate because each is needed on its own. Without the augmentation
+ * an author's `send` stays untyped; without this call the command is missing
+ * from `getAllKnownCommandIds()` and `isCommandId` says no about a command that
+ * works.
  *
  * `rail` is that command's row out of the Uplink's own generated command map,
- * and it is how an Uplink command that answers NOTHING would get a rail with no
+ * and it is how an Uplink command that sends no reply gets a rail with no
  * return leg. Omitted, the command reads as whatever the contract guarantees
  * about any command (`UNDECLARED_COMMAND_RAIL_TAGS`): discrete, acked. An
  * Uplink that drives the registration off its generated map, as every bundled
@@ -194,7 +187,7 @@ export function registerUplinkCommand(id: string, rail?: CommandRail): void {
  * One command's declared rail row, or `null` when nothing has declared it: the
  * SDK's own generated table first, then whatever an Uplink registered at load.
  *
- * `null` is a real answer and not a failure. A dynamic dispatch and an Uplink
+ * `null` is a real result and not a failure. A dynamic dispatch and an Uplink
  * whose client has not loaded both land here, so the caller decides what an
  * undeclared command reads as. `railTagsForCommand` is that decision.
  *
@@ -206,10 +199,10 @@ export function commandRail(id: string): CommandRail | null {
 }
 
 /**
- * Every command id currently known at runtime: the SDK's own `COMMAND_IDS` plus every
- * Uplink command registered so far. Reflects only Uplinks whose client package has
- * loaded, which is what makes it the honest answer to "what can this session
- * dispatch" rather than "what could some session dispatch".
+ * Every command id currently known at runtime: the SDK's own `COMMAND_IDS` plus
+ * every Uplink command registered so far. Reflects only Uplinks whose client
+ * package has loaded, so it lists what this session can dispatch rather than
+ * "what could some session dispatch".
  *
  * @category Commands
  */
@@ -218,8 +211,8 @@ export function getAllKnownCommandIds(): readonly string[] {
 }
 
 /**
- * Runtime narrowing guard: is `value` a known command? True for an SDK-owned command
- * OR an Uplink command whose owning client package has registered it.
+ * Runtime narrowing guard: is `value` a known command? True for an SDK-owned
+ * command OR an Uplink command whose owning client package has registered it.
  *
  * @category Commands
  */

@@ -3,14 +3,10 @@ import { namesByValue } from "./enum-names";
 
 /**
  * Value→name table and closed name union for `CrewStanding`, the contract's own
- * answer to where a kerbal sits on the books.
+ * statement of where a kerbal sits on the books.
  *
- * Its own module rather than a row in `ksp-enum-names.ts`, because it is
- * deliberately NOT a mirror of a KSP enum. That file's registry test asserts a
- * table exists for every `Ksp*` enum the contract exports and that each table
- * matches KSP's declaration; `CrewStanding` would fail the first premise and
- * misrepresent the second. The whole reason it exists is that KSP's roster
- * status is not the answer once a career overhaul is installed.
+ * Not a mirror of a KSP enum: KSP's roster status stops saying where a kerbal
+ * stands once a career overhaul is installed.
  *
  * @see `Sitrep.Contract/CrewStanding.cs` for the account of what RP-1 does to
  * `rosterStatus` and why a mirror could not have been made to work.
@@ -20,7 +16,8 @@ import { namesByValue } from "./enum-names";
 export const CREW_STANDING_NAMES = namesByValue(CrewStanding);
 
 /**
- * The members of {@link CrewStanding}, as a union a comparison can be checked against.
+ * The members of {@link CrewStanding}, as a union a comparison can be checked
+ * against.
  *
  * @category Crew
  */
@@ -68,9 +65,9 @@ export const CREW_STANDING_ORDER: readonly CrewStanding[] = [
  * against one, which is the truth about that pairing and the reason to upgrade
  * the mod rather than to guess here.</p>
  *
- * <p>An applicant answers {@link CrewStanding.Applicant} without the ordinal
+ * <p>An applicant returns {@link CrewStanding.Applicant} without the ordinal
  * being consulted, because an applicant has none; an unrecognised or absent
- * ordinal answers {@link CrewStanding.Unknown} rather than the friendliest
+ * ordinal returns {@link CrewStanding.Unknown} rather than the friendliest
  * guess.</p>
  *
  * @category Crew

@@ -459,8 +459,7 @@ public class CommsDelay
 }
 
 /// <summary>
-/// The <c>comms.link</c> connectivity MetaTopic: the ONE client-facing
-/// answer to "is there a control link home right now?", carried as a
+/// The <c>comms.link</c> connectivity MetaTopic: the ONE client-facing statement of "is there a control link home right now?", carried as a
 /// <b>Delayed, freeze-EXEMPT</b> channel (see
 /// <c>ChannelEngine.ConnectivityMetaTopic</c>). It is the delayed successor to
 /// the de-publicised TrueNow <see cref="CommsConnectivity"/> observation
@@ -513,16 +512,22 @@ public class CommsLink
 [SitrepTopic("comms.commandCentre")]
 public class CommsCommandCentre
 {
-    /// <summary>Stable authority/vantage key, same scheme as <see cref="CommandCentreEntry.Id"/>: "ground:&lt;name&gt;" | "vessel:&lt;guid&gt;". Null when no remote centre resolved.</summary>
+    /// <summary>Stable authority/vantage key, same scheme as <see
+    /// cref="CommandCentreEntry.Id"/>: "ground:&lt;name&gt;" |
+    /// "vessel:&lt;guid&gt;". Null when no remote centre resolved.</summary>
     [SitrepUnit(Units.Id)]
     public string? Id { get; set; }
     /// <summary>Human-facing name.</summary>
     [SitrepUnit(Units.Text)]
     public string? DisplayName { get; set; }
-    /// <summary>One of <c>GroundStation</c> / <c>CrewedVessel</c> / <c>Colony</c> / <c>Custom</c> (the <c>CommandCentreKind</c> name), same as <see cref="CommandCentreEntry.Kind"/>.</summary>
+    /// <summary>One of <c>GroundStation</c> / <c>CrewedVessel</c> /
+    /// <c>Colony</c> / <c>Custom</c> (the <c>CommandCentreKind</c> name), same
+    /// as <see cref="CommandCentreEntry.Kind"/>.</summary>
     [SitrepUnit(Units.Text)]
     public string? Kind { get; set; }
-    /// <summary>Index into system.bodies of the body this centre sits on; null when unknown, not surface-anchored, or the centre is a moving vessel.</summary>
+    /// <summary>Index into system.bodies of the body this centre sits on; null
+    /// when unknown, not surface-anchored, or the centre is a moving
+    /// vessel.</summary>
     [SitrepUnit(Units.Id)]
     public int? BodyIndex { get; set; }
     public PayloadMeta Meta { get; set; } = new();
@@ -592,10 +597,12 @@ public readonly struct CommsRouteHop
     /// <summary>True when EITHER endpoint is a ground station.</summary>
     public bool TouchesHome { get; }
 
-    /// <summary>The live object behind this hop's origin endpoint, or null when the caller had none to give.</summary>
+    /// <summary>The live object behind this hop's origin endpoint, or null when
+    /// the caller had none to give.</summary>
     public object? FromHandle { get; }
 
-    /// <summary>The live object behind this hop's destination endpoint, or null when the caller had none to give.</summary>
+    /// <summary>The live object behind this hop's destination endpoint, or null
+    /// when the caller had none to give.</summary>
     public object? ToHandle { get; }
 }
 
@@ -627,10 +634,10 @@ public interface ICommsBackend : ISitrepProvider
     /// </summary>
     CommsConnectivity Connectivity();
 
-    /// <summary>
-    /// How good the active vessel's link is right now. A backend that models no
-    /// signal strength still answers, saying so through the returned value rather
-    /// than by throwing: a caller cannot tell a thrown accessor from a broken one.
+    /// <summary> How good the active vessel's link is right now. A backend that
+    /// models no signal strength still answers, saying so through the returned
+    /// value rather than by throwing: a caller cannot tell a thrown accessor
+    /// from a broken one.
     /// </summary>
     CommsSignal SignalStrength();
 
@@ -813,7 +820,8 @@ public interface ICommsBackend : ISitrepProvider
     /// <para>Unlike the accessors above this returns a rule, not a reading. It
     /// may perform a live read to BUILD the rule (stock's multipliers are a
     /// difficulty setting), so it is called on the same capture-on-main seam;
-    /// the model it returns is thereafter pure arithmetic and safe anywhere.</para>
+    /// the model it returns is thereafter pure arithmetic and safe
+    /// anywhere.</para>
     /// </summary>
     ICommsOcclusionModel OcclusionModel();
 }

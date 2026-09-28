@@ -45,28 +45,28 @@ export interface StreamBinary
 *
 * **Why a command and not a channel.** The instants are the caller's, not the
 * game's: a transfer search asks about departure and arrival times nobody has
-* reached and may never reach. Nothing publishes an answer to a question that
-* has not been asked, so this is a query, the same shape
+* reached and may never reach. Nothing publishes a position for an instant
+* nobody has asked about, so this is a query, the same shape
 * `vessel.trajectory.forVantage` uses for the same reason.
 *
 * **No vantage field, for the reason the trajectory query gives:** a client
 * that could name one could name somebody else's and be shown what they can
 * see. It is resolved where the command enters instead.
 *
-* **A centre body IS named, and has to be.** The answer is expressed relative
+* **A centre body IS named, and has to be.** The reply is expressed relative
 * to whatever body you name, and there is no default: a transfer search wants
 * both endpoints about the parent they share, and saying which body that is
 * also lets one request serve a moon system as readily as a solar one.
 *
-* **The bound is ASKED FOR, never inherited.** Every provider answers a body
+* **The bound is ASKED FOR, never inherited.** Every provider computes a body
 * from the same analytical model, so what a caller actually has to state is
 * whether it will read that model past the span anyone vouches for. A transfer
 * search will, on purpose. So `BodyStatesRequest.certification` is part of the
-* question rather than a property of whoever answers it, and a request that
+* question rather than a property of whoever computes it, and a request that
 * does not name one is refused: a planning grid that silently acquired a bound
 * when a default moved underneath it would look like the transfer changed.
 *
-* No horizon applies to the analytical answer, and that follows from what a
+* No horizon applies to the analytical result, and that follows from what a
 * horizon IS: an ephemeris horizon bounds how long osculating elements still
 * stand in for an integrated path, and a conic search is not claiming to be
 * that path.
@@ -102,7 +102,7 @@ export interface BodyStatesRequest
 	certification: PropagationCertification;
 }
 /**
-* The answer, or why there is not one.
+* The reply, or why there is not one.
 *
 * `BodyStatesReply.solved` is the discriminator and is never inferred from an
 * empty list: a body the provider could not place and a caller that asked
@@ -224,10 +224,11 @@ export interface UpgradeFacilityArgs
 * id the READ side emits for each applicant (`spaceCenter.astronautComplex`'s
 * `applicants[].name`), so a client hires the applicant it read. Hiring debits
 * the current recruit cost from funds and moves the applicant into the crew
-* roster. An applicant that has left the pool since (a stale pool, someone
-* else hired, KSP refreshed it) comes back `CommandErrorCode.NotFound`; an
-* unaffordable hire `CommandErrorCode.Range`; a full roster (Astronaut Complex
-* cap) or a non-career save `CommandErrorCode.ModeUnavailable`.
+* roster. An applicant that has left the pool since (an out-of-date pool,
+* someone else hired, KSP refreshed it) comes back
+* `CommandErrorCode.NotFound`; an unaffordable hire `CommandErrorCode.Range`;
+* a full roster (Astronaut Complex cap) or a non-career save
+* `CommandErrorCode.ModeUnavailable`.
 *
 * @category Command arguments
 */
@@ -339,7 +340,7 @@ export interface CareerStatus
 * The `career.facilities` channel payload: the space centre's buildings, each
 * with the tier it stands at and the ladder it stands on.
 *
-* **It arrives only while the game can answer, and stops otherwise.** A
+* **It arrives only while the game can report it, and stops otherwise.** A
 * facility's tier count and prices are readable from the building objects,
 * which KSP registers at the space centre, in the editor and in flight. The
 * tracking station reads the tier the save holds against the ladder last read
@@ -721,8 +722,8 @@ export interface CareerTechNode
 * **`ChannelEmissionEntry.emitted` is never 0 once
 * `ChannelEmissionEntry.considered` is above 0**, and the floor of 1 is worth
 * knowing before reading one of these: a channel's first consideration is an
-* unconditional keyframe (`ChannelEmitter`'s force-keyframe state, re-armed on
-* every subscribe and every timeline reset), so a considered channel has
+* unconditional keyframe (`ChannelEmitter`'s force-keyframe state, set again
+* on every subscribe and every timeline reset), so a considered channel has
 * emitted at least once by construction. The second case above therefore reads
 * as an `ChannelEmissionEntry.emitted` that is small and static rather than
 * zero, and the useful comparison is against `ChannelEmissionEntry.skipped`,
@@ -734,7 +735,7 @@ export interface CareerTechNode
 * freeze-on-disconnect gate, or the wire, none of which these counters see.
 *
 * For the first case, read the flags in this order.
-* `ChannelEmissionEntry.subscribers` at 0 is the ordinary answer and means
+* `ChannelEmissionEntry.subscribers` at 0 is the ordinary case and means
 * nobody looked: a channel with no subscriber is deliberately never sampled
 * (the outer gate, `SubscriptionRegistry`). With a subscriber present,
 * `ChannelEmissionEntry.available` false means the owning uplink went inert
@@ -810,8 +811,7 @@ export interface ChannelEmissionEntry
 * filtered out for having no subscriber would be absent from the payload, and
 * absent is indistinguishable from never declared, which is the exact
 * ambiguity this Topic exists to remove. So the roster is complete and
-* `ChannelEmissionEntry.subscribers` carries the "nobody looked" answer
-* instead.
+* `ChannelEmissionEntry.subscribers` says "nobody looked" instead.
 *
 * **The report counts itself, and is behind by design.** `system.channels` is
 * a declared, tick-mapped channel like any other, so it appears in its own
@@ -1027,13 +1027,13 @@ export interface CommandCentreActiveVesselDelay
 * One gated command and what its gate says RIGHT NOW, evaluated with no
 * arguments at all.
 *
-* This is the addressability answer, not the dispatch answer. The engine
-* evaluates the same CommandRequirement set the same way in both cases (see
-* `ChannelEngine.EvaluateGates`); the only difference is that here the
-* argument bag is empty, so an argument-dependent requirement abstains rather
-* than deciding. A command whose verdict is `GateOutcome.Abstain` is one whose
-* answer depends on what you ask it to do, and the only honest thing to say in
-* advance is nothing.
+* This says whether the command can be addressed, not how a dispatch will go.
+* The engine evaluates the same CommandRequirement set the same way in both
+* cases (see `ChannelEngine.EvaluateGates`); the only difference is that here
+* the argument bag is empty, so an argument-dependent requirement abstains
+* rather than deciding. A command whose verdict is `GateOutcome.Abstain` is
+* one whose verdict depends on what you ask it to do, so nothing is said in
+* advance.
 *
 * The dispatch-time evaluation remains the authority: this snapshot is at most
 * one sampling interval old and a client must not treat it as permission. It
@@ -1488,8 +1488,8 @@ export interface CommsDelay
 	meta: PayloadMeta;
 }
 /**
-* The `comms.link` connectivity MetaTopic: the ONE client-facing answer to "is
-* there a control link home right now?", carried as a **Delayed,
+* The `comms.link` connectivity MetaTopic: the ONE client-facing statement of
+* "is there a control link home right now?", carried as a **Delayed,
 * freeze-EXEMPT** channel (see `ChannelEngine.ConnectivityMetaTopic`). It is
 * the delayed successor to the de-publicised TrueNow `CommsConnectivity`
 * observation channel: clients (the app's SignalLossIndicator/CameraFeed, the
@@ -1554,7 +1554,7 @@ export interface CommsCommandCentre
 *
 * `CommsDegrade.level` runs from 0, nothing wrong, to 1, nothing usable
 * getting through. It is ABSENT when nothing graded the link, and absent is a
-* third answer rather than a low one: "nobody rated this" and "this link is
+* third case rather than a low one: "nobody rated this" and "this link is
 * perfect" are opposite instructions to anything choosing a quality, so a
 * consumer must branch on the absence rather than default it to a number.
 *
@@ -1945,7 +1945,7 @@ export interface CrashFlightStats
 * read as a fatality. `CrewStanding.Applicant` is a standing KSP expresses as
 * a KerbalType rather than a RosterStatus, and it belongs in one enumeration
 * with the rest because a client asking "what is this kerbal's standing" wants
-* one answer.
+* one value.
 *
 * Behind `spaceCenter.crewRoster[].standing`, and it is the field to branch
 * on; see `CrewRosterEntry.situationOrdinal` for what the raw KSP ordinal
@@ -2065,11 +2065,11 @@ export interface ScienceCreditEvent
 * **The gating field is not delayed by this event, non-negotiably.**
 * Reputation GATES: `StrategyEntry.RequiredReputation` is a strategy's
 * minimum-rep unlock threshold, and contract offer availability keys off the
-* game's real current reputation. A stale-high delayed number sitting where
-* the operator reads it before clicking "Activate Strategy" or "Accept
-* Contract" could show a strategy as available when the game's already-dropped
-* reputation has made it unavailable, and the action would then fail against
-* ground truth the operator had no way to see coming. So
+* game's real current reputation. A delayed number that is still too high,
+* sitting where the operator reads it before clicking "Activate Strategy" or
+* "Accept Contract" could show a strategy as available when the game's
+* already-dropped reputation has made it unavailable, and the action would
+* then fail against ground truth the operator had no way to see coming. So
 * `career.status.economy.reputation` is held at the home command, where the
 * gate is decided, and completely untouched: it is the number the game will
 * actually gate against, the same principle as the
@@ -2089,9 +2089,9 @@ export interface ScienceCreditEvent
 * **Attribution.** `ProtoCrewMember.Die()` fires `onCrewKilled` with a NULL
 * `EventReport.origin`, so the vessel cannot always be read off the event. The
 * producer resolves it from the report's part when present, otherwise from the
-* vessel a destruction detector armed in the same frame, otherwise the active
-* vessel. An unattributable death raises no event rather than being blamed on
-* a guess.
+* vessel a destruction detector flagged in the same frame, otherwise the
+* active vessel. An unattributable death raises no event rather than being
+* blamed on a guess.
 *
 * @category Career
 */
@@ -2253,7 +2253,7 @@ export interface CommandResponse<Result>
 /**
 * Sent the moment the engine takes a dispatch onto the delayed path, carrying
 * the one-way light-time it will actually travel. It says THE COMMAND IS ON
-* ITS WAY AND HERE IS WHEN TO EXPECT AN ANSWER, never that anything executed.
+* ITS WAY AND HERE IS WHEN TO EXPECT A REPLY, never that anything executed.
 *
 * A client cannot work this out for itself. The delay depends on the node the
 * command is addressed to, which the engine resolves from the command's
@@ -2457,7 +2457,7 @@ export interface EvaKerbal
 * they left, so nothing reading the vessel's stream sees a discontinuity, and
 * this carries what is true of the kerbal instead.
 *
-* An empty list is a real answer: nobody is outside. The channel is absent
+* An empty list is a real reading: nobody is outside. The channel is absent
 * only before anything has been captured.
 *
 * @category Crew
@@ -2544,9 +2544,7 @@ export interface FleetVesselContact
 * vessel's telemetry and its silence reckoning stay identical, freeze-exempt
 * for the same reason `FleetVesselContact` is.
 *
-* Deliberately narrow for this pass: `declaredLostUt` and the monotonic
-* `lostSeq` a future currency consumer needs for idempotent arming stay off
-* the wire until that consumer exists. Nothing here is a control input.
+* Nothing here is a control input.
 *
 * @category Solar system and fleet
 */
@@ -2892,15 +2890,15 @@ export interface LaunchArgs
 	crew: string[];
 }
 /**
-* `vessel.control.setFlyByWire`'s args: arm/disarm the persistent fly-by-wire
-* override. FBW is the one `vessel.control.*` command that is NOT a one-shot
-* actuation: a raw control axis (pitch/yaw/roll/translation) is re-zeroed by
-* KSP every physics frame, so the mod holds an override struct and re-applies
-* it from a `Vessel.OnFlyByWire` callback while armed. This command flips that
-* armed flag: `SetFlyByWireArgs.enabled` `true` attaches the callback (axes
-* resume from their last-set values, or 0 on first arm), `false` detaches it
-* and neutralizes the stored axes/trims so control is fully handed back to the
-* player/SAS with no residual override.
+* `vessel.control.setFlyByWire`'s args: turn the persistent fly-by-wire
+* override on or off. FBW is the one `vessel.control.*` command that is NOT a
+* one-shot actuation: a raw control axis (pitch/yaw/roll/translation) is
+* re-zeroed by KSP every physics frame, so the mod holds an override struct
+* and re-applies it from a `Vessel.OnFlyByWire` callback while it is on. This
+* command flips that flag: `SetFlyByWireArgs.enabled` `true` attaches the
+* callback (axes resume from their last-set values, or 0 the first time),
+* `false` detaches it and neutralizes the stored axes/trims so control is
+* fully handed back to the player/SAS with no residual override.
 *
 * @category Command arguments
 */
@@ -2920,9 +2918,9 @@ export interface SetFlyByWireArgs
 * proportional RCS rather than the legacy fork's −1/0/1 quantisation). Trim
 * (`SetControlAxesArgs.pitchTrim`/`SetControlAxesArgs.yawTrim`/`SetControlAxesArgs.rollTrim`)
 * is applied from inside the callback each frame alongside the axes, so it
-* stays durable while armed instead of being stomped by SAS. Out-of-range
-* values are clamped to −1..1 at the admission gate (a hardware stick reading
-* slightly past full is a routine quirk, not an error).
+* holds while the override is on instead of being overwritten by SAS.
+* Out-of-range values are clamped to −1..1 at the admission gate (a hardware
+* stick reading slightly past full is a routine quirk, not an error).
 *
 * @category Command arguments
 */
@@ -3508,23 +3506,19 @@ export interface NoCommandArgs
 * `OrbitPatch.referenceBodyIndex`/`OrbitPatch.closestEncounterBodyIndex` sit
 * beside them and are the IDENTITY, matching `VesselOrbit.referenceBodyIndex`
 * and every other body reference in this contract. Both are carried on
-* purpose: the names were once described here as "the one deliberate
-* departure" from the index convention, which held only while nothing needed
-* to resolve a patch's body to anything. Propagating a patch does, and a
-* display name is the wrong key for that. `OrbitPatch.mu` completes the same
-* thought: a patch now carries everything needed to propagate it, so it is no
-* longer the only orbit on the wire that requires a `system.bodies` join
-* before it can be used. `OrbitPatch.lan`/`OrbitPatch.argPe` are plain
-* (non-nullable) doubles here, UNLIKE `VesselOrbit.lan`/`VesselOrbit.argPe`: a
-* deliberate, narrower exception to this codebase's usual R1 "never NaN, never
-* a fake 0" rule: the propagation math that consumes a patch already
-* hard-assumes a finite number for both (no null-handling branch), matching
-* the historical behaviour for a near-circular/near-equatorial patch.
-* Capturing them nullable here would silently break every consumer without a
-* matching client-side rewrite: out of scope for this Topic. See
-* `Gonogo.KSP.KspHost.BuildOrbitPatchChain`'s doc comment for how a NaN is
-* substituted with 0 at capture time, preserving that pre-existing (imperfect
-* but non-breaking) behaviour.
+* purpose: propagating a patch needs its body resolved, and a display name is
+* the wrong key for that. `OrbitPatch.mu` completes the same thought: a patch
+* carries everything needed to propagate it, with no `system.bodies` join.
+* `OrbitPatch.lan`/`OrbitPatch.argPe` are plain (non-nullable) doubles here,
+* UNLIKE `VesselOrbit.lan`/`VesselOrbit.argPe`: a deliberate, narrower
+* exception to this codebase's usual R1 "never NaN, never a fake 0" rule: the
+* propagation math that consumes a patch already hard-assumes a finite number
+* for both (no null-handling branch), matching the historical behaviour for a
+* near-circular/near-equatorial patch. Capturing them nullable here would
+* silently break every consumer without a matching client-side rewrite: out of
+* scope for this Topic. See `Gonogo.KSP.KspHost.BuildOrbitPatchChain`'s doc
+* comment for how a NaN is substituted with 0 at capture time, preserving that
+* pre-existing (imperfect but non-breaking) behaviour.
 *
 * @category Orbits and trajectories
 */
@@ -3744,8 +3738,8 @@ export interface PartActionEntry
 * read-back. Invoking "Extend Solar Panel" flips this list to "Retract Solar
 * Panel" one light-time later, which is how a client confirms a delayed
 * command landed WITHOUT optimistically flipping its own UI. A
-* request/response enumeration would hand back a snapshot that goes stale the
-* instant its own command arrives.
+* request/response enumeration would hand back a snapshot that is out of date
+* the instant its own command arrives.
 *
 * **Not a `[SitrepTopic]`-tagged root:** the topic string is computed at
 * runtime (`vessel.partActions.` + the part's `flightID`), so there is no
@@ -3871,11 +3865,9 @@ export interface PartsPower
 * every servo has.
 *
 * **This list is a description, not a rule.** The capture derives the kinds
-* from `BaseServo` itself rather than from any written-down set, which is the
-* whole point: the set used to be written down, rotation servos were left out
-* of it, and every one on every craft was dropped before it reached the wire.
-* A consumer should switch on the kinds it can draw and ignore the rest, never
-* assume this sentence is exhaustive.
+* from `BaseServo` itself rather than from any written-down set. A consumer
+* should switch on the kinds it can draw and ignore the rest, never assume
+* this sentence is exhaustive.
 *
 * **Typing-only mirror** of
 * `Sitrep.Host.BreakingGroundViewProvider.BuildServoEntry`: see `PartsPower`
@@ -3942,9 +3934,9 @@ export interface ServoEntry
 * only a historical one. `null` means the craft could not be surveyed: a
 * snapshot recorded before this field existed, or a live one where a part's
 * reflective read failed, since "no robotic parts" is a claim about every part
-* and one of them did not answer. `false` is the definite "this craft carries
-* none". A reader that treats null as false tells the operator there are no
-* robotic parts on a craft that may be full of them.
+* and one of them could not be read. `false` is the definite "this craft
+* carries none". A reader that treats null as false tells the operator there
+* are no robotic parts on a craft that may be full of them.
 *
 * **Typing-only mirror** of
 * `Sitrep.Host.BreakingGroundViewProvider.BuildRoboticsAvailable`: see
@@ -4340,9 +4332,9 @@ export interface RepairOutcome
 *
 * The whole payload is `null` (no key emitted) outside the flight scene: the
 * two flags are only meaningful in flight, and the backing `FlightDriver`
-* statics carry stale values from the previous flight otherwise. When present,
-* both bools are concrete (never null): a `false` means "this revert is
-* genuinely not available right now," which is exactly what the gate needs.
+* statics carry leftover values from the previous flight otherwise. When
+* present, both bools are concrete (never null): a `false` means "this revert
+* is genuinely not available right now," which is exactly what the gate needs.
 *
 * **Mapping (verified against KSP's `PauseMenu.drawStockRevertOptions` at
 * build time):** the pause menu shows the "Revert to Launch" button (which
@@ -4931,7 +4923,7 @@ export interface ExperimentActionArgs
 }
 /**
 * A science result the craft has started sending home, as
-* `science.experiment.transmit` answers it: when the stream began at the craft
+* `science.experiment.transmit` returns it: when the stream began at the craft
 * and how long the transmitter needs to send all of it. The result has left
 * the craft at `ScienceTransmission.startedAt` plus
 * `ScienceTransmission.streamSeconds`, and it lands one light-time after that.
@@ -5213,7 +5205,7 @@ export interface DeployedEntry
 /**
 * A deployed-science cluster's power state: OUR enum, not KSP's.
 *
-* KSP has no enum for this. `ModuleGroundSciencePart` carries the answer as a
+* KSP has no enum for this. `ModuleGroundSciencePart` carries the state as a
 * localised sentence, so this reproduces the five outcomes `UpdateModuleUI()`
 * distinguishes, derived from the booleans it reads rather than from the
 * sentence it writes. Being ours, it is an ordinal on the wire and a closed
@@ -6770,9 +6762,9 @@ export interface TimeCalendar
 * the craft is tangent to at the sample instant. That is exactly the
 * trajectory for an analytic provider and is NOT one for a provider that
 * integrates: the curve it flies leaves that conic immediately, and drawing
-* the conic under an integrated label is a confident wrong answer. So an
-* integrating provider puts its real points here, and a client that has them
-* draws them instead of solving anomalies.
+* the conic under an integrated label is confidently wrong. So an integrating
+* provider puts its real points here, and a client that has them draws them
+* instead of solving anomalies.
 *
 * **Three dimensions and a frame, not two in the orbital plane.** An n-body
 * path has no perifocal plane to be flat in, and in a rotating frame it has no
@@ -6844,7 +6836,7 @@ export interface TrajectoryPoint
 * that the curve can be read.
 *
 * Deliberately not the producing mod's own frame vocabulary. A frame is a
-* property every provider's answer has, and putting one vendor's enum on the
+* property every provider's curve has, and putting one vendor's enum on the
 * standard payload would make every other provider translate into it.
 *
 * @category Orbits and trajectories
@@ -6871,7 +6863,7 @@ export interface TrajectoryFrameRef
 * The frames a trajectory may be published in.
 *
 * `TrajectoryFrameKind.Unspecified` is 0 so a producer that forgets gets the
-* answer a client must refuse to draw, on the same terms as
+* value a client must refuse to draw, on the same terms as
 * `PropagationHorizonKind.Unspecified`: the wrong direction to default in is
 * the one where an unnamed frame silently reads as the frame the reader
 * happened to expect.
@@ -6918,8 +6910,8 @@ export enum TrajectoryFrameKind {
 * Who derived a curve, and how faithfully.
 *
 * The mark travels ON the curve rather than beside the widget, for the same
-* reason a horizon does: a substituted answer that only says so in a panel
-* elsewhere is a substituted answer nobody reads as one.
+* reason a horizon does: a substituted curve that only says so in a panel
+* elsewhere is one nobody reads as substituted.
 *
 * @category Orbits and trajectories
 */
@@ -7011,17 +7003,12 @@ export interface TrajectoryForceModel
 /**
 * Why a producer that CAN integrate published no arc this sample.
 *
-* Separate from `PropagationHorizon`, which answers reach and shape for the
+* Separate from `PropagationHorizon`, which gives reach and shape for the
 * ELEMENTS. These are refusals about the ARC, and each names a different
 * remedy: a client that had to borrow the horizon's sentence for one of them
 * would tell the operator to do the wrong thing.
 *
-* **Zero is the state of having sought nothing**, and it used to be "nothing
-* was refused", which covered BOTH an arc that was computed and an arc nobody
-* attempted. That conflation shipped and it read as reassurance: with the
-* integrated path unable to execute at all, every live frame carried
-* `Unspecified`, which said the feature had no complaint rather than that it
-* had never run. So an unattempted arc now says exactly that, and
+* **Zero is the state of having sought nothing**, and
 * `TrajectoryRefusal.NotRefused` is the separate thing a producer says when it
 * did attempt one and got a curve.
 *
@@ -7064,8 +7051,7 @@ export enum TrajectoryRefusal {
 	NotRefused = 3
 }
 /**
-* What an evaluator concluded. Three-valued, and the third value is
-* load-bearing.
+* What an evaluator concluded. Three-valued, and the third value matters.
 *
 * @category System diagnostics
 */
@@ -7312,7 +7298,7 @@ export enum SettingKind {
 * Args for `vessel.trajectory.forVantage`: where does this craft go, given
 * what my command centre has been told.
 *
-* There is deliberately no vantage field. The answer depends on who is asking,
+* There is deliberately no vantage field. The reply depends on who is asking,
 * and a client that could name its own vantage could name somebody else's and
 * be shown what they can see. It is resolved where the command enters instead.
 *
@@ -7332,7 +7318,7 @@ export interface VantagePlanRequest
 	maxPoints: Value<"count">;
 }
 /**
-* The answer, or why there is not one.
+* The reply, or why there is not one.
 *
 * `VantagePlanReply.seededAtUt` is not decoration. An arc detached from the
 * instant its seed was true is a path with no claim about when, and a
@@ -7817,7 +7803,7 @@ export interface VesselCrew
 * docking port, for docking-alignment widgets. Whole- channel absence means
 * "not docking-relevant right now", no target targeted, the target isn't
 * itself a docking port, or the active vessel has no free port of its own;
-* never a stale/zero-distance sentinel record (same R1(b) convention
+* never an old or zero-distance sentinel record (same R1(b) convention
 * `VesselTarget` already established).
 *
 * Reuses the ONE canonical `Vec3` shape (never a second vector encoding).
@@ -7919,8 +7905,7 @@ export enum TransitionType {
 /**
 * The basis a planned burn's delta-v components are expressed in. On the wire
 * because the two in use are similar enough to be mistaken for each other and
-* different enough to be wrong, and the distinction previously lived only in
-* `ManeuverNode`'s prose.
+* different enough to be wrong.
 *
 * @category Orbits and trajectories
 */
@@ -8042,12 +8027,11 @@ export interface VesselIdentity
 * The stock cargo a vessel's PARTS are carrying: the supply aboard.
 *
 * **Why the crew's own inventories are not here.** A kerbal carries the same
-* KSP module, `ModuleInventoryPart`, so one topic was the obvious shape and it
-* is the wrong one. These answer different questions. This channel answers
-* "what is aboard, and where", which is SUPPLY. `vessel.crew` answers "who is
-* here, are they qualified, and what are they holding", which is the ACTOR
-* list, and that is where a kerbal's two slots belong: beside the trait and
-* experience level that decide whether they may do the job at all.
+* KSP module, `ModuleInventoryPart`, but the two say different things. This
+* channel says "what is aboard, and where", which is SUPPLY. `vessel.crew`
+* says "who is here, are they qualified, and what are they holding", which is
+* the ACTOR list, and that is where a kerbal's two slots belong: beside the
+* trait and experience level that decide whether they may do the job at all.
 *
 * **Why location is carried rather than a per-vessel total.** A kerbal has two
 * slots, forty volume and a 65kg limit, one slot of which defaults to a
@@ -8150,8 +8134,8 @@ export interface InventoryItem
 * Whole-channel absence means "not descending toward a solid surface",
 * relevance-gated at the source on situation + a descent test +
 * `CelestialBody.hasSolidSurface` / a non-null `pqsController`, so this never
-* carries a stale reading from orbit or a fabricated 0.0 from a body with no
-* PQS. This is the third instance of the CaptureCrash house pattern (one
+* carries a leftover reading from orbit or a fabricated 0.0 from a body with
+* no PQS. This is the third instance of the CaptureCrash house pattern (one
 * source-gated channel published to every screen), with a continuous numeric
 * gate rather than a categorical event.
 *
@@ -8669,8 +8653,8 @@ export interface VesselOrbit
 *
 * Measured from the sample's OBSERVATION instant, not from
 * `VesselOrbit.epoch`. `Epoch` is the mean-anomaly reference epoch and can sit
-* far from when the sample was taken, so subtracting it would answer a
-* different question with the same units and no type could catch it.
+* far from when the sample was taken, so subtracting it would give a different
+* quantity with the same units and no type could catch it.
 *
 * @category Orbits and trajectories
 */
@@ -8704,18 +8688,20 @@ export interface PropagationHorizon
 	untilUt?: Value<"ut"> | null;
 }
 /**
-* Deliberately THREE arms, and the ordering is the point.
+* How far an element set may be carried forward. Three values, and the
+* ordering is the point.
 *
 * `PropagationHorizonKind.Unspecified` is 0, so a producer that forgets the
-* horizon gets the REFUSING answer rather than the permissive one. Had
+* horizon gets the REFUSING value rather than the permissive one. Had
 * `PropagationHorizonKind.Unbounded` been the default, a provider that failed
 * to populate it would have read as "trust this conic forever", which is the
 * most dangerous available reading and would have failed silently.
 *
 * `PropagationHorizonKind.Unbounded` is a CLAIM, made by a provider that
 * genuinely has no limit (an analytic two-body solver), not a default nobody
-* made. It is its own arm rather than an infinite `PropagationHorizon.untilUt`
-* so that "forever" never has to be recognised as an extreme number.
+* made. It is its own value rather than an infinite
+* `PropagationHorizon.untilUt` so that "forever" never has to be recognised as
+* an extreme number.
 *
 * @category Orbits and trajectories
 */
@@ -8733,7 +8719,7 @@ export enum PropagationHorizonKind {
 *
 * `TrajectoryKind.Unspecified` is 0 for the same reason
 * `PropagationHorizonKind.Unspecified` is: a producer that forgets the field
-* gets the answer that WITHHOLDS rather than the one that permits. Had
+* gets the value that WITHHOLDS rather than the one that permits. Had
 * `TrajectoryKind.Analytic` been zero, a provider that failed to populate it
 * would have every client treating an integrated trajectory as an ellipse.
 *
@@ -8845,9 +8831,8 @@ export interface VesselParts
 * string form `parts.power`/`parts.robotics`'s `partId` uses, so a consumer
 * (RoboticsConsole, PowerSystems) can id-join a part across those channels.
 * `VesselPart.parentId` and `VesselPart.fuelLineTargetId` are the same string
-* form for the same reason. flightID's stability across a docking/undocking
-* round-trip is a KSP-side caveat carried forward from the design's open
-* questions.
+* form for the same reason. Whether flightID survives a docking/undocking
+* round-trip is up to KSP.
 *
 * @category Parts
 */
@@ -9249,8 +9234,8 @@ export interface ResourceAmount
 *   `maxAmount <= 0`). Changes only on staging/docking.
 * - **Key present, `{current: 0, max: > 0}`**, carried but currently empty (a
 *   real, meaningful reading, not an error).
-* - **Whole channel absent/stale**: no vessel at all (R1(b), same convention
-*   as every other `vessel.*` channel).
+* - **Whole channel absent**: no vessel at all (R1(b), same convention as
+*   every other `vessel.*` channel).
 *
 * Because every emission is the FULL map (a structured, keyframed channel,
 * never a delta), a key disappearing between two emissions is itself a real
@@ -9395,23 +9380,18 @@ export interface ClosestApproach
 	distance: Value<"m">;
 }
 /**
-* The `vessel.target` channel payload: the active vessel's CURRENT target only
-* (no roster; `system.vessels`/`tar.availableVessels`'s replacement is a
-* deferred M1.5 add). Kills V-8:
-* `VesselTarget.relativePosition`/`VesselTarget.relativeVelocity` both use the
-* ONE canonical `Vec3` shape, replacing the legacy vocabulary's two
-* incompatible vector encodings (bare `[x,y,z]` array vs. `{x,y,z}` object)
-* that coexisted across different key families.
+* The `vessel.target` channel payload: the active vessel's CURRENT target
+* only. `VesselTarget.relativePosition`/`VesselTarget.relativeVelocity` both
+* use the one `Vec3` shape.
 *
 * `VesselTarget.orbit` reuses `VesselOrbit` itself (not a separate "target
-* orbit" shape), and that is load-bearing: it lets the SDK propagate a target
-* with the EXACT SAME code path as the self vessel, so both are evaluated at
-* the same view-UT by the same propagation logic (the single-view-time
-* invariant). Its nested `VesselTarget.meta` is stamped with the SAME subject
-* (the active vessel producing this sample), not a separate target-vessel
-* identity, `VesselTarget.vesselId`/`VesselTarget.bodyIndex` below (M3 R3) now
-* DO carry the target's own identity, closing the gap this doc comment used to
-* flag as deferred.
+* orbit" shape), which lets the SDK propagate a target with the EXACT SAME
+* code path as the self vessel, so both are evaluated at the same view-UT by
+* the same propagation logic (the single-view-time invariant). Its nested
+* `VesselTarget.meta` is stamped with the SAME subject (the active vessel
+* producing this sample), not a separate target-vessel identity;
+* `VesselTarget.vesselId`/`VesselTarget.bodyIndex` below carry the target's
+* own identity.
 *
 * Whole-channel absence (the outer `VesselTarget?` being null) means nothing
 * is targeted, the common case, R1(b), never a sentinel
@@ -9684,8 +9664,8 @@ export interface WarpState
 * The same four the read-frame side names, deliberately. A frame an operator
 * picked to READ a trajectory in and a frame a burn was PLANNED in are the
 * same kind of thing, and giving them separate vocabularies would make "is
-* this burn in the frame I am looking at" a question nobody could answer
-* without a translation table.
+* this burn in the frame I am looking at" a question that needs a translation
+* table.
 *
 * @category Orbits and trajectories
 */
@@ -9711,12 +9691,12 @@ export enum ManeuverFrameReference {
 * **This type exists so that a propagation cannot accidentally start from the
 * game's live truth.** The propagation seam resolves its target from the
 * running game (`PropagationTarget` carries an identity, never a state), so
-* anything solved through it answers for NOW, which is ahead of everything the
+* anything solved through it is for NOW, which is ahead of everything the
 * operator can see. At thirty light-minutes that difference is the whole
 * mission: it would report a craft as healthy four minutes after it stopped
 * existing.
 *
-* The load-bearing field is `DelayedObservation.observedAtUt`, and it is the
+* The field that matters is `DelayedObservation.observedAtUt`, and it is the
 * SAMPLE'S OWN instant, never a freshly computed `now - delay`. The two are
 * usually close and differ silently when they differ: a slow-changing channel
 * hands back a sample from well before the delay window's edge, and stamping
@@ -9748,16 +9728,15 @@ export interface DelayedObservation
 	reason?: string | null;
 }
 /**
-* Whether a caller will accept an answer past the span the provider vouches
-* for, which is a question about CERTIFICATION and not about which model
-* answered.
+* Whether a caller will accept a result past the span the provider vouches
+* for, which is a question about CERTIFICATION and not about which model ran.
 *
 * Both values get the same model out of the same provider. Under an
 * integrating provider that is the craft's conic either way, because there is
 * no integrated point query to select. What differs is whether the caller is
 * willing to read it past the point anybody stands behind it, which
-* IPropagationProvider.CanPropagate already answers and which nothing
-* previously made a caller state.
+* IPropagationProvider.CanPropagate already decides and which the caller now
+* has to state.
 *
 * **`PropagationCertification.Unspecified` is zero and means nothing was
 * chosen.** Same rule as `TrajectoryKind`'s zero and for the same reason: had

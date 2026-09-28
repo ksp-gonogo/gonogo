@@ -5,12 +5,13 @@ import type { CommandErrorCode } from "../__generated__/error-codes";
  * Everything a refusal needs to be SAID, beyond the typed reason itself.
  *
  * The reason alone reads "ModeUnavailable", which names neither the command nor
- * a single number. `command`/`args`/`label` are what the client dispatched, kept
- * client-side (the reply carries a `requestId` and no command name, deliberately);
- * `breach` is the comparison the mod attached when the refusal had one.
+ * a single number. `command`/`args`/`label` are what the client dispatched,
+ * kept client-side (the reply carries a `requestId` and no command name,
+ * deliberately); `breach` is the comparison the mod attached when the refusal
+ * had one.
  *
  * The code picks the sentence and the breach fills it in. Neither is much use
- * alone: an arm cannot say "16 of 16", and a pair of numbers does not say which
+ * alone: a code cannot say "16 of 16", and a pair of numbers does not say which
  * sentence they belong in.
  */
 export interface CommandRefusalDetail {
@@ -23,8 +24,8 @@ export interface CommandRefusalDetail {
   /** The limit and the actual behind the refusal, when there is one. */
   breach?: LimitBreach;
   /**
-   * The refusal in the GAME's own words, when the game had any to give: the arm
-   * of `ClearToSaveStatus`, a strategy's own `CanBeActivated` reason, a
+   * The refusal in the GAME's own words, when the game had any to give: the
+   * member of `ClearToSaveStatus`, a strategy's own `CanBeActivated` reason, a
    * pre-flight test's warning title, a state member's `[Description]` name.
    *
    * Quoted rather than inferred, so no client keeps an English table of KSP's
@@ -53,7 +54,7 @@ export interface CommandRefusal extends CommandRefusalDetail {
 }
 
 /**
- * One dispatch nothing ever answered, as a widget surface renders it.
+ * One dispatch nothing ever replied to, as a widget surface renders it.
  *
  * Separate from {@link CommandRefusal} because the two say opposite things. A
  * refusal is the game's verdict and carries a typed reason; a loss carries no
@@ -102,13 +103,13 @@ export interface CommandUndelivered extends CommandLoss {
 }
 
 /**
- * One dispatch that was called lost and then answered after all, as a widget
+ * One dispatch that was called lost and then replied to after all, as a widget
  * surface renders it.
  *
  * A {@link CommandLoss} that came back. It carries everything the loss did, so
  * a surface that was drawing the loss can draw this in its place without going
  * looking for the command's identity again, plus the one thing the loss never
- * had: what the answer actually said.
+ * had: what the reply actually said.
  *
  * `lost` means WE DO NOT KNOW, never IT DID NOT HAPPEN, and this is the case
  * that proves it. Nothing here prevents or undoes the execution; the command ran
@@ -161,53 +162,38 @@ export type CommandFoundOutcome =
  * There are three ways for a dispatch to end badly and they are NOT
  * interchangeable, so each has its own terminal phase:
  *
- * - `lost`: no answer arrived by the predicted deadline. Nothing was decided,
+ * - `lost`: no reply arrived by the predicted deadline. Nothing was decided,
  *   and the command may well have executed anyway
  * - `undelivered`: it never left this machine. The transport held it for a link
  *   that never came back and has stopped retrying, so nothing over there ever
- *   saw it. Distinct from `lost` because it answers the question `lost` leaves
+ *   saw it. Distinct from `lost` because it settles the question `lost` leaves
  *   open, and distinct from `failed` because nothing broke: the link went and
  *   did not return
  * - `failed`: the machinery broke. A handler threw, a result would not
  *   serialize, the client was disposed mid-flight. Carries a free-text
  *   `message` because the cause is not an enumerable game state, and a retry
  *   may genuinely succeed
- * - `refused`: the handler RAN, the game evaluated it, and the answer was no
- *   (crew cap reached, facility already max tier, funds short). Carries the
- *   mod's typed `CommandErrorCode` and no free text, because the reason IS an
- *   enumerable game state. A retry changes nothing until the world does
+ * - `refused`: the handler RAN, the game evaluated it, and said no (crew cap
+ *   reached, facility already max tier, funds short). Carries the mod's typed
+ *   `CommandErrorCode` and no free text, because the reason IS an enumerable
+ *   game state. A retry changes nothing until the world does
  *
- * The mod already separates the last two at the wire: a well-formed
- * `CommandResult.Fail(...)` rides the normal `command-response` message, while
- * the `"error"` message type is reserved for the machinery-broke class. Folding
- * a refusal into `failed` would discard a distinction the mod deliberately
- * maintains, and would force the client to invent the free-text message that
- * `CommandResult` exists to avoid.
+ * The mod separates the last two on the wire: a `CommandResult.Fail(...)` rides
+ * the normal `command-response` message, while the `"error"` message type is kept
+ * for the machinery-broke class.
  *
  * `lost` is the one terminal phase that is not the end. It says WE DO NOT KNOW,
  * never IT DID NOT HAPPEN, and a reply can still turn up long after it: the
- * correlation entry is retained, and the transport re-sends what it queued while
- * the socket was down. A late reply moves the command to `found`, which is the
- * only backwards transition in this type and is deliberate. Nothing about it
- * prevents the execution, because preventing it would trade an honest
- * uncertainty for a false certainty and lose the property that makes `lost`
- * worth having.
+ * correlation entry is retained, and the transport re-sends what it queued
+ * while the socket was down. A late reply moves the command to `found`, the
+ * only backwards transition in this type.
  *
- * `undelivered` is the OTHER way that doubt ends, and it is why a stranded
- * command needed a phase rather than an `error` frame. Both of the channels a
- * reply arrives on read a message correlated to a `lost` requestId as proof the
- * mod received the command, and move it to `found`; answering a command that
- * never left the browser that way would assert the opposite of the truth. So it
- * comes off `Transport.onUndelivered` instead, a channel no server writes to,
- * and it is terminal for good: nothing can answer a command nothing was sent.
+ * `undelivered` is the other way that doubt ends. It comes off
+ * `Transport.onUndelivered`, a channel no server writes to, and it is terminal:
+ * nothing can reply to a command that was never sent.
  *
- * A loss REPORTED BY SOMEONE ELSE takes the third channel, `Transport.onLost`,
- * for the same reason and to reach a different phase: the host relaying its own
- * lost verdict to a station is saying it does not know, which is `lost` exactly
- * and is neither an answer nor a claim that the command stayed put. Three
- * claims, three channels. A reserved code on the error channel would have been
- * cheaper and would have made "the mod answered" mean "unless the code is one
- * of these", which is the sort of exception the next reader does not find.
+ * A loss reported by someone else, such as the host relaying its own `lost`
+ * verdict to a station, arrives on `Transport.onLost` and reaches `lost`.
  *
  * @category Commands
  */

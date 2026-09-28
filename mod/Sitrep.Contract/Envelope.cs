@@ -27,7 +27,8 @@ public class StreamData<T>
     public string Topic { get; set; } = "";
     /// <summary>The sample itself, in the Topic's own payload type.</summary>
     public T Payload { get; set; } = default!;
-    /// <summary>When the sample was true, when it arrived, and where it was observed from.</summary>
+    /// <summary>When the sample was true, when it arrived, and where it was
+    /// observed from.</summary>
     public Meta Meta { get; set; } = new();
 }
 
@@ -64,7 +65,8 @@ public class EventMsg
     /// <summary>The subscribed Topic the event happened to.</summary>
     [SitrepUnit(Units.Id)]
     public string Topic { get; set; } = "";
-    /// <summary>What happened: <c>subscribed</c> or <c>timeline-reset</c>.</summary>
+    /// <summary>What happened: <c>subscribed</c> or
+    /// <c>timeline-reset</c>.</summary>
     [SitrepUnit(Units.Text)]
     public string Name { get; set; } = "";
     /// <summary>The delivery metadata, as on any other frame.</summary>
@@ -91,15 +93,16 @@ public class CommandRequest<TArgs>
     /// <summary>An id the client chooses; the reply carries it back.</summary>
     [SitrepUnit(Units.Id)]
     public string RequestId { get; set; } = "";
-    /// <summary>The command id, such as <c>vessel.control.setThrottle</c>.</summary>
+    /// <summary>The command id, such as
+    /// <c>vessel.control.setThrottle</c>.</summary>
     [SitrepUnit(Units.Id)]
     public string Command { get; set; } = "";
 
-    /// <summary>
-    /// Caller-supplied, generic display label for this dispatch, carried
-    /// verbatim into the corresponding <see cref="Sitrep.Contract.PendingUplink.Label"/>
-    /// entry on <c>system.uplink.pending</c>. Empty ⇒ the renderer falls back
-    /// to <see cref="Command"/>. Never inspected/parsed by the engine.
+    /// <summary> Caller-supplied, generic display label for this dispatch,
+    /// carried verbatim into the corresponding <see
+    /// cref="Sitrep.Contract.PendingUplink.Label"/> entry on
+    /// <c>system.uplink.pending</c>. Empty ⇒ the renderer falls back to <see
+    /// cref="Command"/>. Never inspected/parsed by the engine.
     /// </summary>
     [SitrepUnit(Units.Text)]
     public string Label { get; set; } = "";
@@ -112,20 +115,21 @@ public class CommandRequest<TArgs>
     [SitrepUnit(Units.Id)]
     public string Topic { get; set; } = "";
 
-    /// <summary>
-    /// Per-call vantage override (Plan 3 / delay-UX): the command centre this
-    /// specific command dispatches from, governing its delay via
+    /// <summary> Per-call vantage override (Plan 3 / delay-UX): the command
+    /// centre this specific command dispatches from, governing its delay via
     /// <c>DelayTo(vantage, node)</c>. Empty ⇒ the server uses the connection's
     /// own vantage (see <see cref="SetVantage"/>). A program-meta command
     /// (tech/strategy/contract) sends <c>"meta"</c> so it stays instant
     /// (<c>DelayTo("meta", *) = 0</c>) regardless of which centre the operator
     /// has selected. Nullable/optional: a pre-Vantage client omits it (codegen
-    /// emits vantage?: string), and the server treats null/empty as the session vantage.
+    /// emits vantage?: string), and the server treats null/empty as the session
+    /// vantage.
     /// </summary>
     [SitrepUnit(Units.Id)]
     public string? Vantage { get; set; }
 
-    /// <summary>The command's arguments, in the command's own argument type.</summary>
+    /// <summary>The command's arguments, in the command's own argument
+    /// type.</summary>
     public TArgs Args { get; set; } = default!;
 
     /// <summary>
@@ -172,7 +176,8 @@ public class CommandResponse<TResult>
     /// </summary>
     [SitrepUnit(Units.Id)]
     public string RequestId { get; set; } = "";
-    /// <summary>What the command returned, in the command's own reply type.</summary>
+    /// <summary>What the command returned, in the command's own reply
+    /// type.</summary>
     public TResult Result { get; set; } = default!;
     /// <summary>The delivery metadata, as on any other frame.</summary>
     public Meta Meta { get; set; } = new();
@@ -181,7 +186,7 @@ public class CommandResponse<TResult>
 /// <summary>
 /// Sent the moment the engine takes a dispatch onto the delayed path, carrying
 /// the one-way light-time it will actually travel. It says THE COMMAND IS ON
-/// ITS WAY AND HERE IS WHEN TO EXPECT AN ANSWER, never that anything executed.
+/// ITS WAY AND HERE IS WHEN TO EXPECT A REPLY, never that anything executed.
 ///
 /// <para>A client cannot work this out for itself. The delay depends on the
 /// node the command is addressed to, which the engine resolves from the
@@ -216,7 +221,8 @@ public class CommandAccepted
     [SitrepUnit(Units.Id)]
     public string Type { get; set; } = "command-accepted";
 
-    /// <summary>The client's own id, echoed from its <c>command-request</c>.</summary>
+    /// <summary>The client's own id, echoed from its
+    /// <c>command-request</c>.</summary>
     [SitrepUnit(Units.Id)]
     public string RequestId { get; set; } = "";
 
@@ -261,7 +267,8 @@ public class ErrorMsg
 #endif
     [SitrepUnit(Units.Id)]
     public string Type { get; set; } = "error";
-    /// <summary>The id of the command request this error is about, or null.</summary>
+    /// <summary>The id of the command request this error is about, or
+    /// null.</summary>
     [SitrepUnit(Units.Id)]
     public string? RequestId { get; set; }
     /// <summary>The Topic this error is about, or null.</summary>
@@ -349,7 +356,8 @@ public class SetVantage
     [SitrepUnit(Units.Id)]
     public string Type { get; set; } = "set-vantage";
 
-    /// <summary>The command centre Id to adopt as this connection's vantage.</summary>
+    /// <summary>The command centre Id to adopt as this connection's
+    /// vantage.</summary>
     [SitrepUnit(Units.Id)]
     public string CentreId { get; set; } = "";
 }

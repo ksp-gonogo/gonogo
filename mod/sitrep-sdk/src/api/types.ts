@@ -293,8 +293,8 @@ export interface WidgetScopeRegistry {}
 
 /**
  * The scope a given widget publishes, and `never` for a NAMED widget that
- * publishes none. A `Widget` erased to `string` gets the open record, for the reason
- * {@link ErasedOrNever} gives.
+ * publishes none. A `Widget` erased to `string` gets the open record, for the
+ * reason {@link ErasedOrNever} gives.
  *
  * @category Registering
  */
@@ -320,13 +320,14 @@ export interface ContributionRegistry {}
 
 /**
  * The entry type a `ContributionRegistry` slot's contributions render,
- * mirroring `packages/core/src/contributions.ts`'s own `ContributionEntry<Slot>`
- * (same name, same extraction: `ContributionRegistry[S] extends { entry:
- * infer Entry } ? Entry : ...`), same leaf constraint as `SlotProps<Slot>` above. An
- * Uplink contribution built against `ContributionEntry<"ship-map.part-
- * meters">` gets the real, host-declared entry shape once
- * `./contribution-slots.ts` mirrors that slot; a slot not yet declared here
- * falls back to the loose bag, matching `SlotProps`'s own fallback.
+ * mirroring `packages/core/src/contributions.ts`'s own
+ * `ContributionEntry<Slot>` (same name, same extraction:
+ * `ContributionRegistry[S] extends { entry: infer Entry } ? Entry : ...`), same
+ * leaf constraint as `SlotProps<Slot>` above. An Uplink contribution built
+ * against `ContributionEntry<"ship-map.part- meters">` gets the real,
+ * host-declared entry shape once `./contribution-slots.ts` mirrors that slot; a
+ * slot not yet declared here falls back to the loose bag, matching
+ * `SlotProps`'s own fallback.
  *
  * @category Extensions
  */
@@ -559,8 +560,8 @@ type DepKey<Dependency> = Dependency extends string
  * it.</para>
  *
  * <para>A PROCESSOR dep is the other way round and must track the evaluator
- * exactly: a processor whose own deps include a reading answers a `Reading`,
- * and the stored value a contribution is handed is that same answer. Typing it
+ * exactly: a processor whose own deps include a reading returns a `Reading`,
+ * and the stored value a contribution is handed is that same reading. Typing it
  * as the bare result here would hand a contribution a reading while telling it
  * otherwise, which is the defect the brand exists to prevent.</para>
  */
@@ -719,16 +720,16 @@ export interface AugmentSettingField {
 }
 
 /**
- * One contributor's settings block, namespaced for the host panel. `namespace` is
- * the contributor's id; the host stores each field under `<namespace>.<key>` in
- * the widget instance config so two contributors' identically-named settings never
- * collide, and an absent Uplink contributes nothing.
+ * One contributor's settings block, namespaced for the host panel. `namespace`
+ * is the contributor's id; the host stores each field under `<namespace>.<key>`
+ * in the widget instance config so two contributors' identically-named settings
+ * never collide, and an absent Uplink contributes nothing.
  *
- * Declared here rather than in `@ksp-gonogo/ui-kit`, which re-exports it, for the
- * reason `AugmentSettingField` already moved: it is a shape over that type, and it
- * is the return type of a registry read (`getCoverageSourceSettings`) that lives
- * in this package. ui-kit imports the sdk, so the type can only sit at this end if
- * both are to have it.
+ * Declared here rather than in `@ksp-gonogo/ui-kit`, which re-exports it, for
+ * the reason `AugmentSettingField` already moved: it is a shape over that type,
+ * and it is the return type of a registry read (`getCoverageSourceSettings`)
+ * that lives in this package. ui-kit imports the sdk, so the type can only sit
+ * at this end if both are to have it.
  *
  * @category Extensions
  */
@@ -943,10 +944,7 @@ export interface AtmosphereModel {
 /**
  * A celestial body, as the registry in `./bodies.ts` stores it.
  *
- * The registry lives in this package as of 2026-08-19, so this is the real
- * declaration rather than a mirror of core's. It moved because a planet pack is an
- * Uplink's business: `registerStockBodies` is called by seven Uplink test files
- * and `registerBody` is how a pack adds or overrides an entry.
+ * A planet pack adds or overrides an entry with `registerBody`.
  *
  * @category Solar system and fleet
  */
@@ -1437,9 +1435,9 @@ export interface UseCommandResult<Args = unknown, Reply = AnyCommandReply> {
  * resolved out of the generated command map.
  *
  * What to write on a prop, a field, or a helper that passes a dispatch handle
- * around: `useCommand("...")` already returns this, and the place a handle loses
- * its types is the annotation it travels through. It takes a union of ids as
- * readily as one, so a family of commands that answer alike can be declared
+ * around: `useCommand("...")` already returns this, and the place a handle
+ * loses its types is the annotation it travels through. It takes a union of ids
+ * as readily as one, so a family of commands that reply alike can be declared
  * once, and an Uplink's own augmented `CommandArgsMap` keys work here with
  * nothing extra registered.
  *
@@ -1491,7 +1489,8 @@ export interface HostIceServers {
 }
 
 /**
- * What {@link useRouteCommands} answers with: the queue for one topic, and the delay mode it is under.
+ * What {@link useRouteCommands} returns: the queue for one topic, and the delay
+ * mode it is under.
  *
  * @category Commands
  */

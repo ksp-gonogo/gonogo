@@ -145,10 +145,10 @@ export function isHeldAtHomeTopic(topic: string): topic is HeldAtHomeTopic {
 /**
  * Which lane `topic` is read in.
  *
- * Answers from `roles` when given, which is what the running mod stated and the
- * only answer that covers an Uplink channel. Without it, answers from the
- * generated core table, so a caller outside `TimelineStore` asking about an
- * Uplink topic gets `"delayed"` whatever the Uplink declared.
+ * Reads `roles` when given, which is what the running mod stated and the only
+ * source that covers an Uplink channel. Without it, reads the generated core
+ * table, so a caller outside `TimelineStore` asking about an Uplink topic gets
+ * `"delayed"` whatever the Uplink declared.
  *
  * A held-at-home topic takes the true-now lane. The delayed lane subtracts the
  * ACTIVE craft's light-time, which is not how far the reader is from the ledger:
@@ -156,7 +156,7 @@ export function isHeldAtHomeTopic(topic: string): topic is HeldAtHomeTopic {
  * home, which the mod has already waited out before the frame arrived.
  *
  * Takes the WHOLE topic only. A field subtopic (`time.warp.warpRate`) is not a
- * declared channel and answers `"delayed"` here, so a caller that resolves
+ * declared channel and returns `"delayed"` here, so a caller that resolves
  * subtopics has to resolve first and ask second; `TimelineStore` does exactly
  * that, and asking the other way round would silently delay every field read of
  * a true-now channel while the whole-record read of the same channel was

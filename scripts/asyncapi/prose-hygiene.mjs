@@ -177,7 +177,6 @@ export const PROSE_DEBT = {
   VesselParts: 5,
   VesselResources: 7,
   VesselStructure: 1,
-  VesselTarget: 1,
   "VesselTarget.relativeVelocity": 2,
   WarpMode: 1,
   WarpState: 2,

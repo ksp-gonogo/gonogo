@@ -38,15 +38,8 @@ import type { WireOf } from "../wrap-units";
 /**
  * `wrapTypePayload` under the name the fixtures already call it by.
  *
- * It used to bridge a real gap: the runtime function was declared
- * `<Payload>(name: string, payload: Payload): Payload`, which claimed to hand back what it was
- * given while actually wrapping bare numbers into `Value`s, so every fixture
- * writing the wire had to double-cast across the lie and lost the field-name
- * and nesting check that was the reason to annotate at all. The signature now
- * states the conversion it performs, so this is a plain alias.
- *
- * Kept rather than deleted because ten fixture files call it, and a rename
- * would churn them to say the same thing.
+ * Turns a payload as the mod sends it into the typed payload, with every
+ * number that has a declared unit wrapped in a `Value`.
  *
  * @category Stream fixture
  */
@@ -61,21 +54,21 @@ export function wrapWire<Payload>(
  * The observation a reckoner is always handed.
  *
  * `ReckonerFor` types its point as `TimelinePoint<Payload>`, whose `payload` is
- * `Payload | null`, but `readingFrom` returns the `absent` arm on a tombstone before
- * it ever reaches the reckoner, so the null is unreachable. Reckoners written
- * against the honest reading of that type end up adding a fallback for a case
- * the store cannot produce, and a fallback is a value: it would be modelled
- * forward and rendered as though someone had observed it.
+ * `Payload | null`, but `readingFrom` returns the `absent` state on a tombstone
+ * before it ever reaches the reckoner, so the null is unreachable. Reckoners
+ * written against the plain reading of that type end up adding a fallback for a
+ * case the store cannot produce, and a fallback is a value: it would be
+ * modelled forward and rendered as though someone had observed it.
  *
  * So this asserts the invariant rather than papering over it. If the store ever
  * does hand a reckoner a tombstone, the throw names it.
  *
- * The parameter is structural rather than `TimelinePoint<Payload>` on purpose, and
- * not for elegance: importing that type into this file put `../timeline` into
- * the `testing` entry point's bundled declarations, and that alone produced 45
- * `implicitly has an 'any' type` errors across `@ksp-gonogo/components`, on
- * `styled-components` props with nothing to do with either module. The function
- * reads one field, so it asks for one field.
+ * The parameter is structural rather than `TimelinePoint<Payload>` on purpose,
+ * and not for elegance: importing that type into this file put `../timeline`
+ * into the `testing` entry point's bundled declarations, and that alone
+ * produced 45 `implicitly has an 'any' type` errors across
+ * `@ksp-gonogo/components`, on `styled-components` props with nothing to do
+ * with either module. The function reads one field, so it asks for one field.
  *
  * @category Stream fixture
  */
@@ -93,7 +86,8 @@ export function observedPayload<Payload>(point: {
 type CommandHandler = (command: string, args: unknown) => unknown;
 
 /**
- * One recorded `command-request` envelope, verbatim: see `StubTransport.sentCommands`.
+ * One recorded `command-request` envelope, verbatim: see
+ * `StubTransport.sentCommands`.
  *
  * @category Stream fixture
  */

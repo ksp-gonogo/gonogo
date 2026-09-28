@@ -94,8 +94,9 @@ const DEFAULT_RETENTION_SECONDS = 300;
  * read (`revealed`) rather than a hold-last value read (`at`).
  *
  * Epoch-aware, identically to `ClientTimeline`: a lower-epoch occurrence is a
- * stale straggler and is discarded; a higher-epoch occurrence is a rewind that
- * drops every buffered occurrence atomically before adopting the new epoch.
+ * straggler from before a rewind and is discarded; a higher-epoch occurrence is
+ * a rewind that drops every buffered occurrence atomically before adopting the
+ * new epoch.
  *
  * @category Delay and vantage
  */

@@ -80,21 +80,20 @@ namespace Sitrep.Contract
         /// </summary>
         public DelayRole Delay { get; set; } = DelayRole.Delayed;
 
-        /// <summary>
-        /// Opt-in for a channel that is LEGITIMATELY empty from its very
-        /// first tick (e.g. <c>vessel.target</c> with no target selected,
+        /// <summary> Opt-in for a channel that is LEGITIMATELY empty from its
+        /// very first tick (e.g. <c>vessel.target</c> with no target selected,
         /// <c>vessel.dock</c> with no docking port aligned, <c>vessel.crew</c>
-        /// with no crew aboard): a real, present subject whose value can
-        /// simply be null, as opposed to "no subject yet" (main menu, before
+        /// with no crew aboard): a real, present subject whose value can simply
+        /// be null, as opposed to "no subject yet" (main menu, before
         /// <c>FlightGlobals</c> is ready). Defaults to <c>false</c>, which
-        /// preserves the pre-existing behavior: <c>ChannelEngine.ProcessTick</c>'s
-        /// birth-gate skips a null mapper result for a channel that has
-        /// never emitted a real value, so the client never learns the
-        /// channel is absent and shows "SYNCING" forever. Setting this
-        /// <c>true</c> makes the engine fall through to
+        /// preserves the pre-existing behavior:
+        /// <c>ChannelEngine.ProcessTick</c>'s birth-gate skips a null mapper
+        /// result for a channel that has never emitted a real value, so the
+        /// client never learns the channel is absent and shows "SYNCING"
+        /// forever. Setting this <c>true</c> makes the engine fall through to
         /// <c>ChannelEmitter.Decide</c> even from birth, emitting a
-        /// confirmed-empty tombstone (null payload) on the first tick so
-        /// the client shows "NO DATA" instead.
+        /// confirmed-empty tombstone (null payload) on the first tick so the
+        /// client shows "NO DATA" instead.
         /// </summary>
         public bool AbsenceIsData { get; set; } = false;
 
@@ -219,46 +218,50 @@ namespace Sitrep.Contract
         /// loss of signal and replayed on reacquisition, rather than discarded.
         ///
         /// <para>Defaults to <c>true</c>, and the default is the reading of
-        /// <see cref="Delay"/> rather than a separate guess:
-        /// <see cref="DelayRole.Delayed"/> already asserts the channel carries a
+        /// <see cref="Delay"/> rather than a separate guess: <see
+        /// cref="DelayRole.Delayed"/> already asserts the channel carries a
         /// flight-side fact that ground learns at light-time, and a flight-side
         /// fact is by construction one the craft's own instruments produced and
         /// could have written down. A <see cref="DelayRole.TrueNow"/> channel
         /// never reaches the recorder at all (it is never withheld, so there is
-        /// nothing to hold), which is why this needs no coupling to that role.</para>
+        /// nothing to hold), which is why this needs no coupling to that
+        /// role.</para>
         ///
-        /// <para>Set it <c>false</c> for a <see cref="DelayRole.Delayed"/> channel
-        /// whose value was never aboard: the session's warp rate, the game's
-        /// calendar, a roster of every other craft in the universe. Replaying
-        /// those would have the craft dump a recording of facts it could not
-        /// observe. A non-recording channel is not silent about the outage: its
-        /// first post-blackout sample carries <see cref="Meta.GapSinceUt"/>, so
-        /// the hole is stated rather than drawn through.</para>
+        /// <para>Set it <c>false</c> for a <see cref="DelayRole.Delayed"/>
+        /// channel whose value was never aboard: the session's warp rate, the
+        /// game's calendar, a roster of every other craft in the universe.
+        /// Replaying those would have the craft dump a recording of facts it
+        /// could not observe. A non-recording channel is not silent about the
+        /// outage: its first post-blackout sample carries <see
+        /// cref="Meta.GapSinceUt"/>, so the hole is stated rather than drawn
+        /// through.</para>
         /// </summary>
         public bool Recordable { get; set; } = true;
 
-        /// <summary>
-        /// Declares that this channel's value is a fact HELD AT THE HOME COMMAND
-        /// (the career ledger, the space centre's facilities and rosters) rather
-        /// than aboard a craft or nowhere in particular. It records under the home
-        /// command's own node, so each vantage learns a change after its own delay
-        /// to home: a ground centre at effectively zero over the ground network, a
-        /// crewed vessel after its path home, the same seconds a currency award
-        /// from that vessel waits to reach the ledger in the first place.
+        /// <summary> Declares that this channel's value is a fact HELD AT THE
+        /// HOME COMMAND (the career ledger, the space centre's facilities and
+        /// rosters) rather than aboard a craft or nowhere in particular. It
+        /// records under the home command's own node, so each vantage learns a
+        /// change after its own delay to home: a ground centre at effectively
+        /// zero over the ground network, a crewed vessel after its path home,
+        /// the same seconds a currency award from that vessel waits to reach
+        /// the ledger in the first place.
         ///
-        /// <para>Requires <see cref="Delay"/> to be <see cref="DelayRole.Delayed"/>.
-        /// A <see cref="DelayRole.TrueNow"/> channel reaches every vantage at once,
-        /// which is the claim this flag exists to retract, so declaring both is a
-        /// contradiction and the engine refuses the owning Uplink rather than
-        /// guessing which was meant. Ignored on a dynamic namespace template: a
-        /// per-vessel namespace is by definition not held at home.</para>
+        /// <para>Requires <see cref="Delay"/> to be <see
+        /// cref="DelayRole.Delayed"/>. A <see cref="DelayRole.TrueNow"/>
+        /// channel reaches every vantage at once, which is the claim this flag
+        /// exists to retract, so declaring both is a contradiction and the
+        /// engine refuses the owning Uplink rather than guessing which was
+        /// meant. Ignored on a dynamic namespace template: a per-vessel
+        /// namespace is by definition not held at home.</para>
         ///
-        /// <para>Never frozen by a blackout. The home command cannot lose contact
-        /// with its own ledger, so an out-of-contact active vessel does not withhold
-        /// it; a craft that cannot reach home learns nothing new until it can.</para>
+        /// <para>Never frozen by a blackout. The home command cannot lose
+        /// contact with its own ledger, so an out-of-contact active vessel does
+        /// not withhold it; a craft that cannot reach home learns nothing new
+        /// until it can.</para>
         ///
-        /// <para>Defaults to <c>false</c>: every existing channel keeps the node it
-        /// had.</para>
+        /// <para>Defaults to <c>false</c>: every existing channel keeps the
+        /// node it had.</para>
         /// </summary>
         public bool HeldAtHome { get; set; } = false;
     }
@@ -303,7 +306,8 @@ namespace Sitrep.Contract
         ///
         /// <para>No handler implements it and no widget checks it: the command
         /// says what it needs once and the engine does the rest. Empty (the
-        /// default) means ungated, which is every command that exists today.</para>
+        /// default) means ungated, which is every command that exists
+        /// today.</para>
         /// </summary>
         public CommandRequirement[] Requires { get; set; } = new CommandRequirement[0];
 
@@ -392,7 +396,8 @@ namespace Sitrep.Contract
         public string[] Needs { get; set; } = new string[0];
     }
 
-    /// <summary>What an evaluator concluded. Three-valued, and the third value is load-bearing.</summary>
+    /// <summary>What an evaluator concluded. Three-valued, and the third value
+    /// matters.</summary>
     /// <category>System diagnostics</category>
     [SitrepContract]
 #if SITREP_CODEGEN
@@ -458,7 +463,8 @@ namespace Sitrep.Contract
         [SitrepUnit(Units.Text)]
         public string FacilityName { get; set; } = "";
 
-        /// <summary>Normalised facility level, as KSP reports it. Not a tier index.</summary>
+        /// <summary>Normalised facility level, as KSP reports it. Not a tier
+        /// index.</summary>
         [SitrepUnit(Units.Ratio)]
         public double FacilityLevel { get; set; }
 
@@ -479,7 +485,8 @@ namespace Sitrep.Contract
         [SitrepUnit(Units.NotApplicable)]
         public double? Limit { get; set; }
 
-        /// <summary>What the call actually asked for, same unit as <see cref="Limit"/>.</summary>
+        /// <summary>What the call actually asked for, same unit as <see
+        /// cref="Limit"/>.</summary>
         [SitrepUnit(Units.NotApplicable)]
         public double? Actual { get; set; }
 
@@ -619,20 +626,21 @@ namespace Sitrep.Contract
     /// </remarks>
     public interface ICommandGateEvaluator
     {
-        /// <summary>The <see cref="CommandRequirement.Kind"/> this answers.</summary>
+        /// <summary>The <see cref="CommandRequirement.Kind"/> this
+        /// answers.</summary>
         string Kind { get; }
 
-        /// <summary>
-        /// Decide whether <paramref name="requirement"/> is met, reading whatever it
-        /// needs out of <paramref name="arguments"/>.
+        /// <summary> Decide whether <paramref name="requirement"/> is met,
+        /// reading whatever it needs out of <paramref name="arguments"/>.
         ///
-        /// <para>Called only for a requirement whose <see cref="CommandRequirement.Kind"/>
-        /// equals this evaluator's <see cref="Kind"/>, and only once the host has
-        /// established that the arguments it names are present, so there is no
-        /// "cannot answer" case: see the remarks on this interface for why
-        /// <see cref="GateOutcome.Abstain"/> is never a legal return. Throwing
-        /// refuses the command and is reported as a fault in the evaluator, not in
-        /// the caller's request; return a refusing <see cref="GateVerdict"/>
+        /// <para>Called only for a requirement whose <see
+        /// cref="CommandRequirement.Kind"/> equals this evaluator's <see
+        /// cref="Kind"/>, and only once the host has established that the
+        /// arguments it names are present, so there is no "cannot answer" case:
+        /// see the remarks on this interface for why <see
+        /// cref="GateOutcome.Abstain"/> is never a legal return. Throwing
+        /// refuses the command and is reported as a fault in the evaluator, not
+        /// in the caller's request; return a refusing <see cref="GateVerdict"/>
         /// instead.</para>
         /// </summary>
         GateVerdict Evaluate(CommandRequirement requirement, IGateArguments arguments);
@@ -654,10 +662,9 @@ namespace Sitrep.Contract
         /// </summary>
         public string Url { get; set; } = "";
 
-        /// <summary>
-        /// A dev-server URL or local build directory to load from while iterating,
-        /// so a change needs no publish to <see cref="Url"/>. <c>null</c> for a
-        /// released Uplink.
+        /// <summary> A dev-server URL or local build directory to load from
+        /// while iterating, so a change needs no publish to <see cref="Url"/>.
+        /// <c>null</c> for a released Uplink.
         /// </summary>
         public string? DevPath { get; set; }
     }
@@ -672,25 +679,29 @@ namespace Sitrep.Contract
     /// </summary>
     public sealed class UplinkManifest
     {
-        /// <summary>The registry-unique id. Must equal the <see cref="SitrepUplinkAttribute.Id"/> on the class.</summary>
+        /// <summary>The registry-unique id. Must equal the <see
+        /// cref="SitrepUplinkAttribute.Id"/> on the class.</summary>
         public string Id { get; set; } = "";
 
-        /// <summary>The Uplink's semver version, shared by its mod and client halves.</summary>
+        /// <summary>The Uplink's semver version, shared by its mod and client
+        /// halves.</summary>
         public string Version { get; set; } = "";
-        /// <summary>
-        /// The Uplink's human-facing name. With <see cref="Author"/> and
-        /// <see cref="Repo"/> it is emitted on <c>system.uplinks</c>, so the consent
-        /// dialog can say who wrote the bundle it is asking to run.
+        /// <summary> The Uplink's human-facing name. With <see cref="Author"/>
+        /// and <see cref="Repo"/> it is emitted on <c>system.uplinks</c>, so
+        /// the consent dialog can say who wrote the bundle it is asking to run.
         ///
         /// <para>Three fields and not a metadata block: an id is not a name, a
-        /// name is not an author, and a repo is where a suspicious operator goes to
-        /// look. Empty when not declared, which renders as absent.</para>
+        /// name is not an author, and a repo is where a suspicious operator
+        /// goes to look. Empty when not declared, which renders as
+        /// absent.</para>
         /// </summary>
         public string Name { get; set; } = "";
-        /// <summary>Who wrote the Uplink, shown beside <see cref="Name"/>. Empty when not declared.</summary>
+        /// <summary>Who wrote the Uplink, shown beside <see cref="Name"/>.
+        /// Empty when not declared.</summary>
         public string Author { get; set; } = "";
 
-        /// <summary>Where the Uplink's source lives, shown beside <see cref="Name"/>. Empty when not declared.</summary>
+        /// <summary>Where the Uplink's source lives, shown beside <see
+        /// cref="Name"/>. Empty when not declared.</summary>
         public string Repo { get; set; } = "";
         /// <summary>
         /// The sha256 of the client bundle this DLL was released with, as
@@ -699,9 +710,9 @@ namespace Sitrep.Contract
         /// client whose bytes do not match it.
         /// </summary>
         public string? ExpectedClientHash { get; set; }
-        /// <summary>
-        /// Where this Uplink's client bundle lives. <c>null</c> for a mod-only
-        /// Uplink with no client half. Emitted on <c>system.uplinks.clientSource</c>.
+        /// <summary> Where this Uplink's client bundle lives. <c>null</c> for a
+        /// mod-only Uplink with no client half. Emitted on
+        /// <c>system.uplinks.clientSource</c>.
         /// </summary>
         public UplinkClientSource? ClientSource { get; set; }
 
@@ -725,18 +736,18 @@ namespace Sitrep.Contract
         public IReadOnlyList<RefusalCode> ErrorCodes { get; set; } = Array.Empty<RefusalCode>();
     }
 
-    /// <summary>
-    /// Whether one registered Uplink is usable. An Uplink that throws during
-    /// <see cref="ISitrepUplink.Register"/>, or reports itself unavailable through
-    /// <see cref="IUplinkHost.SetAvailability"/>, is marked unavailable and every
-    /// other Uplink is unaffected.
+    /// <summary> Whether one registered Uplink is usable. An Uplink that throws
+    /// during <see cref="ISitrepUplink.Register"/>, or reports itself
+    /// unavailable through <see cref="IUplinkHost.SetAvailability"/>, is marked
+    /// unavailable and every other Uplink is unaffected.
     /// </summary>
     public readonly struct Availability
     {
         /// <summary>Whether the Uplink is usable.</summary>
         public bool IsAvailable { get; }
 
-        /// <summary>Why it is not, in the operator's terms; null when available.</summary>
+        /// <summary>Why it is not, in the operator's terms; null when
+        /// available.</summary>
         public string? Reason { get; }
 
         private Availability(bool isAvailable, string? reason)
@@ -764,14 +775,14 @@ namespace Sitrep.Contract
     /// </summary>
     public interface ISnapshotSampler
     {
-        /// <summary>
-        /// Add this uplink's data to <paramref name="snapshot"/>, in place, once per
-        /// tick, before any channel source reads it.
+        /// <summary> Add this uplink's data to <paramref name="snapshot"/>, in
+        /// place, once per tick, before any channel source reads it.
         ///
-        /// <para>Called on the main thread, so it may touch the game. It must not
-        /// REMOVE or overwrite a key another sampler put there: samplers run in an
-        /// order nobody controls, so a sampler that takes something away produces a
-        /// snapshot whose contents depend on registration order.</para>
+        /// <para>Called on the main thread, so it may touch the game. It must
+        /// not REMOVE or overwrite a key another sampler put there: samplers
+        /// run in an order nobody controls, so a sampler that takes something
+        /// away produces a snapshot whose contents depend on registration
+        /// order.</para>
         /// </summary>
         void Sample(KspSnapshot snapshot);
     }
@@ -791,9 +802,10 @@ namespace Sitrep.Contract
         /// <paramref name="ut"/> (UT seconds).
         ///
         /// <para>Offer, not send: the engine change-gates what it is given, so
-        /// publishing the same value twice puts one sample on the wire. Main thread
-        /// only. A <c>null</c> payload is a legitimate value, meaning the source has
-        /// nothing right now, and is not a way to withdraw an earlier one.</para>
+        /// publishing the same value twice puts one sample on the wire. Main
+        /// thread only. A <c>null</c> payload is a legitimate value, meaning
+        /// the source has nothing right now, and is not a way to withdraw an
+        /// earlier one.</para>
         /// </summary>
         void Publish(object? payload, double ut);
     }
@@ -820,7 +832,8 @@ namespace Sitrep.Contract
     /// </summary>
     public interface IDynamicChannelSource
     {
-        /// <summary>Publisher for one concrete sub-topic (<c>prefix + subTopic</c>) under this dynamic namespace.</summary>
+        /// <summary>Publisher for one concrete sub-topic (<c>prefix +
+        /// subTopic</c>) under this dynamic namespace.</summary>
         IChannelPublisher Publisher(string subTopic);
 
         /// <summary>
@@ -864,14 +877,16 @@ namespace Sitrep.Contract
         /// <summary>
         /// The game's current universal time, in seconds.
         ///
-        /// <para>Ask the host rather than the game directly: this is the same clock
-        /// every sample and every command on this tick is stamped with, so a payload
-        /// built from it agrees with the one beside it. It moves under warp, and it
-        /// jumps backwards on a load.</para>
+        /// <para>Ask the host rather than the game directly: this is the same
+        /// clock every sample and every command on this tick is stamped with,
+        /// so a payload built from it agrees with the one beside it. It moves
+        /// under warp, and it jumps backwards on a load.</para>
         /// </summary>
         double NowUt();
 
-        /// <summary>Contribute a sampler that augments the snapshot handed to <c>ChannelEngine.Tick</c>. See <see cref="ISnapshotSampler"/>.</summary>
+        /// <summary>Contribute a sampler that augments the snapshot handed to
+        /// <c>ChannelEngine.Tick</c>. See <see
+        /// cref="ISnapshotSampler"/>.</summary>
         void AddSampler(ISnapshotSampler sampler);
 
         /// <summary>
@@ -883,7 +898,8 @@ namespace Sitrep.Contract
         /// </summary>
         void AddChannelSource(string topic, Func<KspSnapshot?, object?> map);
 
-        /// <summary>Push-style channel source: see <see cref="IChannelPublisher"/>.</summary>
+        /// <summary>Push-style channel source: see <see
+        /// cref="IChannelPublisher"/>.</summary>
         IChannelPublisher Publisher(string topic);
 
         /// <summary>
@@ -938,77 +954,80 @@ namespace Sitrep.Contract
         /// prefix(es) an <see cref="RegisterDynamicNamespace"/> owns, and/or the exact
         /// topics a <see cref="Publisher"/> targets (an exact topic is its own prefix).
         ///
-        /// <para><b>The gate is a pure early-out ONLY for a capture whose entire
-        /// effect is its return value.</b> For one of those it is never a correctness
-        /// change: a late subscriber still gets the current value the ordinary way
-        /// (the emitter's keyframe-on-subscribe + the Courier archive's catch-up),
-        /// because the very next capture after a 0-&gt;1 subscription runs again.
-        /// Omitting this overload (or passing no prefixes) preserves the original
-        /// always-capture behaviour.</para>
+        /// <para><b>The gate is a pure early-out ONLY for a capture whose
+        /// entire effect is its return value.</b> For one of those it is never
+        /// a correctness change: a late subscriber still gets the current value
+        /// the ordinary way (the emitter's keyframe-on-subscribe + the Courier
+        /// archive's catch-up), because the very next capture after a 0-&gt;1
+        /// subscription runs again. Omitting this overload (or passing no
+        /// prefixes) preserves the original always-capture behaviour.</para>
         ///
-        /// <para><b>A capture that ALSO writes state something else reads is starved
-        /// by this, silently.</b> The skip is total: no capture, so no write, so
-        /// every reader of that state sees whatever was last left there, for as long
-        /// as nobody subscribes a declared prefix. There is no exception, no log
-        /// line, and no degraded mode to notice. If the reader is an EXCLUSIVE
-        /// capability there is no vanilla fallback either, because winning the
-        /// election is what stops stock answering: the client is told nothing, or is
-        /// told positively that there is nothing to tell. Both shapes of that have
-        /// shipped from this Uplink surface, and the first was found on a rig rather
-        /// than by any test.</para>
+        /// <para><b>A capture that ALSO writes state something else reads is
+        /// starved by this, silently.</b> The skip is total: no capture, so no
+        /// write, so every reader of that state sees whatever was last left
+        /// there, for as long as nobody subscribes a declared prefix. There is
+        /// no exception, no log line, and no degraded mode to notice. If the
+        /// reader is an EXCLUSIVE capability there is no vanilla fallback
+        /// either, because winning the election is what stops stock answering:
+        /// the client is told nothing, or is told positively that there is
+        /// nothing to tell. Both shapes of that have shipped from this Uplink
+        /// surface, and the first was found on a rig rather than by any
+        /// test.</para>
         ///
         /// <para><b>So: never gate a capture that feeds anything but its own
         /// topics.</b> Register it with the ungated overload above, and put the
-        /// subscription check on the PUBLISH instead if the expensive part is the
-        /// packing rather than the reading (<see cref="IsAnyTopicSubscribed"/>).
-        /// Skipping a publish starves nothing, because keyframe-on-subscribe hands a
-        /// late subscriber the current value; skipping the reading starves everything
-        /// downstream of it. An early-out is safe exactly where nothing else reads
-        /// what it skips.</para>
+        /// subscription check on the PUBLISH instead if the expensive part is
+        /// the packing rather than the reading (<see
+        /// cref="IsAnyTopicSubscribed"/>). Skipping a publish starves nothing,
+        /// because keyframe-on-subscribe hands a late subscriber the current
+        /// value; skipping the reading starves everything downstream of it. An
+        /// early-out is safe exactly where nothing else reads what it
+        /// skips.</para>
         /// </summary>
         void AddSampledSource(Func<KspSnapshot?, object?> captureOnMainThread, Action<object?> handleOnCourier, params string[] subscriptionTopicPrefixes);
 
-        /// <summary>
-        /// Point-in-time query: is at least one currently-subscribed channel
-        /// topic prefixed by <paramref name="topicPrefix"/> (ordinal
+        /// <summary> Point-in-time query: is at least one currently-subscribed
+        /// channel topic prefixed by <paramref name="topicPrefix"/> (ordinal
         /// <c>StartsWith</c>)? This is the same subscription-awareness the
-        /// gated <see cref="AddSampledSource(Func{KspSnapshot?, object?}, Action{object?}, string[])"/>
-        /// overload applies internally, exposed for an Uplink whose expensive
-        /// capture is NOT driven by the engine's sampled-source loop but by an
-        /// external callback it cannot gate declaratively: e.g. the kOS
-        /// Uplink's <c>ScreenBuffer.Print</c> Harmony postfix, which fires on
-        /// EVERY kerboscript <c>PRINT</c> and must short-circuit to nothing
-        /// while no <c>kos.compute.*</c> subscriber exists.
+        /// gated <see cref="AddSampledSource(Func{KspSnapshot?, object?},
+        /// Action{object?}, string[])"/> overload applies internally, exposed
+        /// for an Uplink whose expensive capture is NOT driven by the engine's
+        /// sampled-source loop but by an external callback it cannot gate
+        /// declaratively: e.g. the kOS Uplink's <c>ScreenBuffer.Print</c>
+        /// Harmony postfix, which fires on EVERY kerboscript <c>PRINT</c> and
+        /// must short-circuit to nothing while no <c>kos.compute.*</c>
+        /// subscriber exists.
         ///
         /// <para>Reads the engine's thread-safe subscribed-topics mirror, so it
         /// is safe to call from the KSP main thread (where the postfix runs) as
         /// well as the Courier thread.</para>
         ///
-        /// <para>It carries the SAME condition as the sampled-source gate, and for
-        /// the same reason: a pure early-out hint, never a correctness gate, ONLY
-        /// where the work it skips produces nothing but the gated topics. A late
-        /// subscriber gets the current value the ordinary way
+        /// <para>It carries the SAME condition as the sampled-source gate, and
+        /// for the same reason: a pure early-out hint, never a correctness
+        /// gate, ONLY where the work it skips produces nothing but the gated
+        /// topics. A late subscriber gets the current value the ordinary way
         /// (keyframe-on-subscribe + archive catch-up), so skipping a PUBLISH is
-        /// always safe. Skipping a READING that something else derives from is not:
-        /// see the gated
-        /// <see cref="AddSampledSource(Func{KspSnapshot?, object?}, Action{object?}, string[])"/>
-        /// overload for what that failure looks like from a client, which is
-        /// silence or a confident wrong answer, and nothing at all in a log.</para>
+        /// always safe. Skipping a READING that something else derives from is
+        /// not: see the gated <see cref="AddSampledSource(Func{KspSnapshot?,
+        /// object?}, Action{object?}, string[])"/> overload for what that
+        /// failure looks like from a client, which is silence or a confident
+        /// wrong answer, and nothing at all in a log.</para>
         /// </summary>
         bool IsAnyTopicSubscribed(string topicPrefix);
 
-        /// <summary>
-        /// Declares a dynamic namespace: a <paramref name="prefix"/> the
-        /// calling uplink owns, plus a <paramref name="template"/>
-        /// <see cref="ChannelDeclaration"/> (its <see cref="ChannelDeclaration.Topic"/>
-        /// is ignored, every materialized sub-topic gets its own) whose
-        /// <see cref="ChannelDeclaration.Delivery"/>/<see cref="ChannelDeclaration.Emission"/>/
-        /// <see cref="ChannelDeclaration.Delay"/> apply to every concrete
-        /// <c>prefix + subTopic</c> the returned <see cref="IDynamicChannelSource"/>
-        /// is asked to publish. Unlike a fixed <see cref="ChannelDeclaration"/>,
-        /// nothing under this prefix needs to be individually pre-declared
-        /// in <see cref="UplinkManifest.Channels"/>: see
-        /// <see cref="IDynamicChannelSource"/>'s doc comment for the
+        /// <summary> Declares a dynamic namespace: a <paramref name="prefix"/>
+        /// the calling uplink owns, plus a <paramref name="template"/> <see
+        /// cref="ChannelDeclaration"/> (its <see
+        /// cref="ChannelDeclaration.Topic"/> is ignored, every materialized
+        /// sub-topic gets its own) whose <see
+        /// cref="ChannelDeclaration.Delivery"/>/<see
+        /// cref="ChannelDeclaration.Emission"/>/ <see
+        /// cref="ChannelDeclaration.Delay"/> apply to every concrete <c>prefix
+        /// + subTopic</c> the returned <see cref="IDynamicChannelSource"/> is
+        /// asked to publish. Unlike a fixed <see cref="ChannelDeclaration"/>,
+        /// nothing under this prefix needs to be individually pre-declared in
+        /// <see cref="UplinkManifest.Channels"/>: see <see
+        /// cref="IDynamicChannelSource"/>'s doc comment for the
         /// per-concrete-topic keyframe/lossy semantics this preserves.
         /// </summary>
         IDynamicChannelSource RegisterDynamicNamespace(string prefix, ChannelDeclaration template);
@@ -1026,16 +1045,17 @@ namespace Sitrep.Contract
         /// Register a handler that is told which command centre the command came
         /// FROM, as well as what it said.
         ///
-        /// <para>Additive rather than a widening of the signature above, because
-        /// almost no command needs this: setting a throttle means the same thing
-        /// wherever it was sent from. The ones that do are the questions whose
-        /// correct answer differs per vantage, because each has been told different
-        /// things: where a craft goes, what a plan would do. Those cannot be answered
-        /// from the game's own state, which is every vantage's future.</para>
+        /// <para>Additive rather than a widening of the signature above,
+        /// because almost no command needs this: setting a throttle means the
+        /// same thing wherever it was sent from. The ones that do are the
+        /// questions whose correct answer differs per vantage, because each has
+        /// been told different things: where a craft goes, what a plan would
+        /// do. Those cannot be answered from the game's own state, which is
+        /// every vantage's future.</para>
         ///
-        /// <para>The vantage is the sender's, resolved where the command entered
-        /// rather than passed in its arguments. A client that named its own vantage
-        /// in a payload could name another one.</para>
+        /// <para>The vantage is the sender's, resolved where the command
+        /// entered rather than passed in its arguments. A client that named its
+        /// own vantage in a payload could name another one.</para>
         /// </summary>
         void AddVantageCommandHandler<TArgs, TResult>(
             string command, Func<TArgs, string, TResult> handler);
@@ -1086,10 +1106,10 @@ namespace Sitrep.Contract
         /// requirement that abstains ahead of them would hide every one of
         /// those.</para>
         ///
-        /// <para><b>The kind still needs an evaluator</b>
-        /// (<see cref="AddGateEvaluator"/>), validated once after every Uplink has
-        /// registered. A contributed requirement nobody can evaluate is a startup
-        /// failure for the same reason a declared one is.</para>
+        /// <para><b>The kind still needs an evaluator</b> (<see
+        /// cref="AddGateEvaluator"/>), validated once after every Uplink has
+        /// registered. A contributed requirement nobody can evaluate is a
+        /// startup failure for the same reason a declared one is.</para>
         ///
         /// <para>Contributing to a command that does not exist is an error at
         /// validation time rather than a silent no-op: a typo would otherwise
@@ -1097,28 +1117,28 @@ namespace Sitrep.Contract
         /// </summary>
         void AddCommandRequirement(string command, CommandRequirement requirement);
 
-        /// <summary>
-        /// Advertise the AUTHORITATIVE <c>comms.delay</c> one-way signal delay to
-        /// the engine's server-side reveal gate: the choke point that makes
-        /// <see cref="DelayRole.Delayed"/> channels actually withheld on the host
-        /// (spec-streaming-delay-model §4 / §7.3 Step 2). <paramref name="computeOnMainThread"/>
-        /// is evaluated on the SAME thread and cadence as
-        /// <see cref="AddSampledSource(Func{KspSnapshot?, object?}, Action{object?})"/>'s
-        /// capture (the Unity main thread in production), so it may safely read
-        /// the live elected comms backend, and it runs EVERY tick regardless of
-        /// what any client has subscribed, that subscription-independence is the
-        /// whole point.
+        /// <summary> Advertise the AUTHORITATIVE <c>comms.delay</c> one-way
+        /// signal delay to the engine's server-side reveal gate: the choke
+        /// point that makes <see cref="DelayRole.Delayed"/> channels actually
+        /// withheld on the host (spec-streaming-delay-model §4 / §7.3 Step 2).
+        /// <paramref name="computeOnMainThread"/> is evaluated on the SAME
+        /// thread and cadence as <see cref="AddSampledSource(Func{KspSnapshot?,
+        /// object?}, Action{object?})"/>'s capture (the Unity main thread in
+        /// production), so it may safely read the live elected comms backend,
+        /// and it runs EVERY tick regardless of what any client has subscribed,
+        /// that subscription-independence is the whole point.
         ///
         /// <para><b>Why this exists as a first-class seam:</b> the bundled
-        /// comms uplink publishes <c>comms.delay</c> through a
-        /// <see cref="Publisher"/> fed by a capture-on-main /
-        /// handle-on-Courier <see cref="AddSampledSource(Func{KspSnapshot?, object?}, Action{object?}, string[])"/> (live KSP reads must
-        /// stay on the main thread). That is NOT the pull-style
-        /// <see cref="AddChannelSource"/> shape the engine's per-tick delay
-        /// refresh could read, and the publish path is subscription-gated, so
-        /// with the production registration the reveal gate never learned the
-        /// delay and delivered Delayed channels live. This seam hands the gate
-        /// the delay directly, computed server-side, subscription-independent.</para>
+        /// comms uplink publishes <c>comms.delay</c> through a <see
+        /// cref="Publisher"/> fed by a capture-on-main / handle-on-Courier <see
+        /// cref="AddSampledSource(Func{KspSnapshot?, object?}, Action{object?},
+        /// string[])"/> (live KSP reads must stay on the main thread). That is
+        /// NOT the pull-style <see cref="AddChannelSource"/> shape the engine's
+        /// per-tick delay refresh could read, and the publish path is
+        /// subscription-gated, so with the production registration the reveal
+        /// gate never learned the delay and delivered Delayed channels live.
+        /// This seam hands the gate the delay directly, computed server-side,
+        /// subscription-independent.</para>
         ///
         /// <para>Fail-soft, mirroring the other registration points: a
         /// <paramref name="computeOnMainThread"/> that throws takes only its
@@ -1131,26 +1151,27 @@ namespace Sitrep.Contract
         /// </summary>
         void SetSignalDelaySource(Func<KspSnapshot?, CommsDelay?> computeOnMainThread);
 
-        /// <summary>
-        /// Set the one-way routed light-time for a FLEET vessel's telemetry
-        /// (Plan 2): the vessel's <c>fleet.&lt;vesselId&gt;.*</c> topics are
-        /// delayed by this from the single KSC observer. Call it per vessel each
-        /// fleet-capture tick (from the handle-on-Courier half of a gated
-        /// <see cref="AddSampledSource(Func{KspSnapshot?, object?}, Action{object?}, string[])"/>). Unlike <see cref="SetSignalDelaySource"/>
-        /// (the active vessel's global authority), this is a per-subject node
-        /// delay: freeze stays global in Plan 2 (the reveal gate is unchanged).
+        /// <summary> Set the one-way routed light-time for a FLEET vessel's
+        /// telemetry (Plan 2): the vessel's <c>fleet.&lt;vesselId&gt;.*</c>
+        /// topics are delayed by this from the single KSC observer. Call it per
+        /// vessel each fleet-capture tick (from the handle-on-Courier half of a
+        /// gated <see cref="AddSampledSource(Func{KspSnapshot?, object?},
+        /// Action{object?}, string[])"/>). Unlike <see
+        /// cref="SetSignalDelaySource"/> (the active vessel's global
+        /// authority), this is a per-subject node delay: freeze stays global in
+        /// Plan 2 (the reveal gate is unchanged).
         /// </summary>
         void SetVesselDelay(string vesselId, double oneWaySeconds);
 
-        /// <summary>
-        /// Set the per-(authority, subject) command delay (Plan 3): the one-way
-        /// light-time from a command centre (<paramref name="centreId"/>, an
-        /// authority/vantage) to a fleet subject. Writes the EXPLICIT (vantage,
-        /// node) pair tier, which overrides the <see cref="SetVesselDelay"/>
-        /// node-default for that observer; the node-default stays underneath for
-        /// any unselected vantage. Populated per capture pass, one row per active
-        /// centre x subject, INCLUDING a crewed centre's row against its own craft,
-        /// which is an explicit zero.
+        /// <summary> Set the per-(authority, subject) command delay (Plan 3):
+        /// the one-way light-time from a command centre (<paramref
+        /// name="centreId"/>, an authority/vantage) to a fleet subject. Writes
+        /// the EXPLICIT (vantage, node) pair tier, which overrides the <see
+        /// cref="SetVesselDelay"/> node-default for that observer; the
+        /// node-default stays underneath for any unselected vantage. Populated
+        /// per capture pass, one row per active centre x subject, INCLUDING a
+        /// crewed centre's row against its own craft, which is an explicit
+        /// zero.
         /// </summary>
         void SetAuthorityDelay(string centreId, string vesselId, double oneWaySeconds);
 
@@ -1172,31 +1193,34 @@ namespace Sitrep.Contract
         /// <paramref name="centreId"/> as a vantage: the delay every
         /// <see cref="ChannelDeclaration.HeldAtHome"/> channel rides to that centre.
         ///
-        /// <para>This is the centre's PATH HOME, not a route to the one station the
-        /// home-command claimant named. Every ground station reaches home over the
-        /// ground network, so a ground centre's row is zero; a crewed vessel's row is
-        /// its own control path to whichever station it reaches, which is the same
-        /// number a currency award from that vessel waits before it is booked. A
-        /// centre with no row reads zero, so a vessel that has never been measured
-        /// must be written rather than left out.</para>
+        /// <para>This is the centre's PATH HOME, not a route to the one station
+        /// the home-command claimant named. Every ground station reaches home
+        /// over the ground network, so a ground centre's row is zero; a crewed
+        /// vessel's row is its own control path to whichever station it
+        /// reaches, which is the same number a currency award from that vessel
+        /// waits before it is booked. A centre with no row reads zero, so a
+        /// vessel that has never been measured must be written rather than left
+        /// out.</para>
         ///
         /// <para>Populated per capture pass, one row per active centre.</para>
         /// </summary>
         void SetHomeCommandDelay(string centreId, double oneWaySeconds);
 
-        /// <summary>
-        /// Replace every centre's delay to the ACTIVE craft: the delay each ordinary
-        /// channel (one with no per-vessel node and not held at home) rides to that centre
-        /// as a vantage, since those channels all describe whichever craft is active.
+        /// <summary> Replace every centre's delay to the ACTIVE craft: the
+        /// delay each ordinary channel (one with no per-vessel node and not
+        /// held at home) rides to that centre as a vantage, since those
+        /// channels all describe whichever craft is active.
         ///
-        /// <para>The map is the whole set, not an update. A centre left out reads the
-        /// active craft's own light-time home, the same number it read before any row
-        /// existed, and a centre that had a row on the previous call and has none now
-        /// loses it. That is what keeps a pilot who switches away from their craft from
-        /// reading the next one instantly on a stale zero.</para>
+        /// <para>The map is the whole set, not an update. A centre left out
+        /// reads the active craft's own light-time home, the same number it
+        /// read before any row existed, and a centre that had a row on the
+        /// previous call and has none now loses it. That is what keeps a pilot
+        /// who switches away from their craft from reading the next one
+        /// instantly on a stale zero.</para>
         ///
-        /// <para>Populated per capture pass: zero for the crewed centre that IS the active
-        /// craft, its route to the active craft for any other centre that has one.</para>
+        /// <para>Populated per capture pass: zero for the crewed centre that IS
+        /// the active craft, its route to the active craft for any other centre
+        /// that has one.</para>
         /// </summary>
         void SetActiveVesselDelays(IReadOnlyDictionary<string, double> oneWaySecondsByCentre);
 
@@ -1279,13 +1303,14 @@ namespace Sitrep.Contract
         ///
         /// <para>Fail-soft, mirroring the two sources above: a throwing source
         /// takes only its owning uplink inert, a <c>null</c> or empty result is
-        /// the ordinary "no break this tick", and registering no source at all keeps
-        /// today's behaviour, which is that every recorded sample is delivered
-        /// at its own light-time whatever became of the route.</para>
+        /// the ordinary "no break this tick", and registering no source at all
+        /// keeps today's behaviour, which is that every recorded sample is
+        /// delivered at its own light-time whatever became of the route.</para>
         /// </summary>
         void SetPathBreakSource(Func<KspSnapshot?, double, IReadOnlyList<PathBreak>?> computeOnMainThread);
 
-        /// <summary>The C# port of <c>mod/sitrep-kernel</c>'s capability/provider registry (see <see cref="Kernel"/>).</summary>
+        /// <summary>The C# port of <c>mod/sitrep-kernel</c>'s
+        /// capability/provider registry (see <see cref="Kernel"/>).</summary>
         Kernel Kernel { get; }
 
         /// <summary>
@@ -1362,33 +1387,33 @@ namespace Sitrep.Contract
         /// <summary>
         /// Everything this Uplink declares: its id, its channels, its commands.
         ///
-        /// <para>Read before <see cref="Register"/> and constant for the Uplink's
-        /// lifetime, so it must not depend on game state. A channel published or a
-        /// command handled that it does not declare is refused at registration.</para>
+        /// <para>Read before <see cref="Register"/> and constant for the
+        /// Uplink's lifetime, so it must not depend on game state. A channel
+        /// published or a command handled that it does not declare is refused
+        /// at registration.</para>
         /// </summary>
         UplinkManifest Manifest { get; }
 
-        /// <summary>
-        /// Register this Uplink's channel sources, command handlers and providers.
-        /// Called once, on the main thread, at load.
+        /// <summary> Register this Uplink's channel sources, command handlers
+        /// and providers. Called once, on the main thread, at load.
         ///
-        /// <para>Throwing here, or calling <see cref="IUplinkHost.SetAvailability"/>
-        /// with an unavailable status, disables this Uplink only; every other Uplink
-        /// is unaffected.</para>
+        /// <para>Throwing here, or calling <see
+        /// cref="IUplinkHost.SetAvailability"/> with an unavailable status,
+        /// disables this Uplink only; every other Uplink is unaffected.</para>
         /// </summary>
         /// <param name="host">What the Uplink registers against.</param>
         void Register(IUplinkHost host);
 
-        /// <summary>
-        /// Returns this Uplink's current health. Only the Uplink knows what ready
-        /// means for it, such as a CPU on the vessel or a comms backend elected. An
-        /// Uplink with nothing to report returns <see cref="UplinkHealth.Healthy"/>.
+        /// <summary> Returns this Uplink's current health. Only the Uplink
+        /// knows what ready means for it, such as a CPU on the vessel or a
+        /// comms backend elected. An Uplink with nothing to report returns <see
+        /// cref="UplinkHealth.Healthy"/>.
         ///
-        /// <para>Polled on every sample, off the main thread, so it must be cheap,
-        /// must not block, and must not touch the game. A throw is reported as
-        /// <see cref="UplinkHealthState.Degraded"/> with the exception message as
-        /// <see cref="UplinkHealth.Detail"/>, and does not disable the Uplink's
-        /// channels or commands.</para>
+        /// <para>Polled on every sample, off the main thread, so it must be
+        /// cheap, must not block, and must not touch the game. A throw is
+        /// reported as <see cref="UplinkHealthState.Degraded"/> with the
+        /// exception message as <see cref="UplinkHealth.Detail"/>, and does not
+        /// disable the Uplink's channels or commands.</para>
         /// </summary>
         UplinkHealth Health();
     }
@@ -1429,17 +1454,18 @@ namespace Sitrep.Contract
         /// <summary>Working as it should.</summary>
         Healthy,
 
-        /// <summary>Registered and working, but something it needs is missing or wrong.</summary>
+        /// <summary>Registered and working, but something it needs is missing
+        /// or wrong.</summary>
         Degraded,
 
-        /// <summary>Not usable at all: none of its channels will carry anything.</summary>
+        /// <summary>Not usable at all: none of its channels will carry
+        /// anything.</summary>
         Unavailable,
     }
 
-    /// <summary>
-    /// One labelled diagnostic on an <see cref="UplinkHealth"/>: which file, which
-    /// build, which hash, whatever an operator would have to quote when reporting
-    /// this uplink's state to somebody else.
+    /// <summary> One labelled diagnostic on an <see cref="UplinkHealth"/>:
+    /// which file, which build, which hash, whatever an operator would have to
+    /// quote when reporting this uplink's state to somebody else.
     ///
     /// <para>Both halves are display text; nothing parses them.</para>
     ///
@@ -1450,7 +1476,8 @@ namespace Sitrep.Contract
     /// </summary>
     public readonly struct UplinkHealthFact
     {
-        /// <summary>What the value is, in the operator's terms, e.g. "binary".</summary>
+        /// <summary>What the value is, in the operator's terms, e.g.
+        /// "binary".</summary>
         public string Label { get; }
 
         /// <summary>The value as it should read on a screen. Null when the uplink
@@ -1483,7 +1510,8 @@ namespace Sitrep.Contract
         /// <summary>The overall state.</summary>
         public UplinkHealthState State { get; }
 
-        /// <summary>The sentence an operator reads under <see cref="State"/>, or null for nothing to add.</summary>
+        /// <summary>The sentence an operator reads under <see cref="State"/>,
+        /// or null for nothing to add.</summary>
         public string? Detail { get; }
 
         /// <summary>

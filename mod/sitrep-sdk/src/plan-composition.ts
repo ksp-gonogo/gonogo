@@ -70,7 +70,7 @@ export interface SendPlanOutcome {
  */
 export interface SendPlanHandle {
   /**
-   * Transmit the plan. Resolves with the game's answer, or with a refusal when
+   * Transmit the plan. Resolves with the game's reply, or with a refusal when
    * the message never left.
    */
   send: (plan: ComposedPlan) => Promise<SendPlanOutcome>;
@@ -136,9 +136,7 @@ export function sendRefusalFromError(error: unknown): SendPlanOutcome {
 /**
  * Why this plan cannot be transmitted, or undefined when it can.
  *
- * <p>Exported so a caller can grey a control out on the SAME answer the send
- * refuses on, rather than on a second opinion about it, and so the checks are
- * testable without a mounted provider.</p>
+ * <p>Grey a control out on this, so it agrees with what the send refuses.</p>
  *
  * @category Commands
  */
@@ -205,9 +203,9 @@ export function planSendArgs(
  * The outcome a command reply describes.
  *
  * <p>A reply that did not say it succeeded is a refusal, not an unknown. The
- * engine answers every dispatch it accepted, so an absent success flag means the
- * vessel declined, and treating it as "no news" would leave a control spinning
- * over a decision that has already been made.</p>
+ * engine replies to every dispatch it accepted, so an absent success flag means
+ * the vessel declined, and treating it as "no news" would leave a control
+ * spinning over a decision that has already been made.</p>
  */
 export function outcomeOfReply(
   reply: { success?: boolean; detail?: string } | undefined,

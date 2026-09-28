@@ -12,51 +12,49 @@ namespace Sitrep.Contract;
 /// <see cref="ExperimentBreakdownEntry.ValueModel"/>).
 ///
 /// <para><b>Why a discriminator at all.</b> <c>science</c> is a Kernel-elected
-/// capability, and the mods that model science do not merely put different NUMBERS
-/// in these fields, they compute them from different models. Stock's "value of the
-/// next report" is a diminishing-returns curve tracked per subject in R&amp;D;
-/// another's is a flat rate times remaining data. A widget that treats one
-/// provider's <c>scienceValueRatio</c> as comparable to another's is silently
-/// wrong, and nothing in the field's name or unit says so. This is the same job
-/// <see cref="ReliabilitySummary.Source"/> does for reliability: stop a
-/// consumer reading a number as something it is not.</para>
+/// capability, and the mods that model science do not merely put different
+/// NUMBERS in these fields, they compute them from different models. Stock's
+/// "value of the next report" is a diminishing-returns curve tracked per
+/// subject in R&amp;D; another's is a flat rate times remaining data. A widget
+/// that treats one provider's <c>scienceValueRatio</c> as comparable to
+/// another's is silently wrong, and nothing in the field's name or unit says
+/// so. This is the same job <see cref="ReliabilitySummary.Source"/> does for
+/// reliability: stop a consumer reading a number as something it is not.</para>
 ///
-/// <para><b>An OPEN vocabulary, deliberately.</b> Like <see cref="Units"/> and the
-/// generated <c>SitrepUnit</c> union it feeds, this is a bag of known tokens, not
-/// a closed enum: a provider Uplink cannot add a member to a const-string class in
-/// this assembly, so closing the set would mean a third-party science provider
-/// could never tag its own model. The tag is a plain string on the wire and a
-/// consumer must treat an unrecognised token as "a model I do not know", never as
-/// stock.</para>
+/// <para><b>An OPEN vocabulary, deliberately.</b> Like <see cref="Units"/> and
+/// the generated <c>SitrepUnit</c> union it feeds, this is a bag of known
+/// tokens, not a closed enum: a provider Uplink cannot add a member to a
+/// const-string class in this assembly, so closing the set would mean a
+/// third-party science provider could never tag its own model. The tag is a
+/// plain string on the wire and a consumer must treat an unrecognised token as
+/// "a model I do not know", never as stock.</para>
 /// </summary>
 public static class ScienceValueModels
 {
-    /// <summary>
-    /// Stock KSP: per-subject diminishing returns tracked in R&amp;D, data in mits.
-    /// Emitted by the stock backend on every value-bearing entry, so a consumer
-    /// never has to read ABSENCE as "probably stock".
+    /// <summary> Stock KSP: per-subject diminishing returns tracked in R&amp;D,
+    /// data in mits. Emitted by the stock backend on every value-bearing entry,
+    /// so a consumer never has to read ABSENCE as "probably stock".
     /// </summary>
     public const string Stock = "stock";
 }
 
-/// <summary>
-/// One entry in the <c>science.experiments</c> channel payload, a single
-/// science module (or a container holding stored results) on the ACTIVE
-/// vessel. The channel payload is a BARE ARRAY of these (<c>ExperimentEntry[]</c>)
-/// or <c>null</c>: never a wrapper object, and never an empty-vs-absent
-/// distinction beyond "the whole array is null when there is no active
-/// vessel / the sub-group could not be built" (see
+/// <summary> One entry in the <c>science.experiments</c> channel payload, a
+/// single science module (or a container holding stored results) on the ACTIVE
+/// vessel. The channel payload is a BARE ARRAY of these
+/// (<c>ExperimentEntry[]</c>) or <c>null</c>: never a wrapper object, and never
+/// an empty-vs-absent distinction beyond "the whole array is null when there is
+/// no active vessel / the sub-group could not be built" (see
 /// <c>Sitrep.Host.ScienceViewProvider</c>).
 ///
 /// <para><b>Typing-only mirror.</b> This type reproduces, field-for-field, the
-/// exact serialized shape <c>Sitrep.Host.ScienceViewProvider.BuildExperimentEntry</c>
-/// already emits (same names, same camelCase wire keys via
+/// exact serialized shape
+/// <c>Sitrep.Host.ScienceViewProvider.BuildExperimentEntry</c> already emits
+/// (same names, same camelCase wire keys via
 /// <c>RtConfig.CamelCaseForProperties</c>, same units). It is NOT serialized
 /// itself: the wire is written by <c>JsonWriter</c> walking the provider's
-/// dictionary: so adding it changes no bytes. Every field is nullable
-/// because each is read through <c>SnapshotDict.Get*</c>, which yields
-/// <c>null</c> (not a sentinel) whenever the raw value is absent or
-/// non-finite.</para>
+/// dictionary: so adding it changes no bytes. Every field is nullable because
+/// each is read through <c>SnapshotDict.Get*</c>, which yields <c>null</c> (not
+/// a sentinel) whenever the raw value is absent or non-finite.</para>
 /// </summary>
 /// <category>Science</category>
 [SitrepContract]
@@ -69,7 +67,8 @@ public class ExperimentEntry
     [SitrepUnit(Units.Text)]
     public string? PartName { get; set; }
 
-    /// <summary>"experiment" (a live science module) or "container" (a part storing collected results).</summary>
+    /// <summary>"experiment" (a live science module) or "container" (a part
+    /// storing collected results).</summary>
     [SitrepUnit(Units.Text)]
     public string? Location { get; set; }
 
@@ -134,12 +133,12 @@ public class ExperimentEntry
     /// against this file. See <see cref="ProviderExtensionBagAttribute"/> for the
     /// whole mechanism.
     ///
-    /// <para>This is where everything a richer science model knows that stock has
-    /// no concept of belongs: storage capacity, file-vs-sample, transmit rate,
-    /// per-unit science rate. Adding those as nullable members here instead is the
-    /// hand-curated-superset anti-pattern the bag replaces
-    /// (<c>Sitrep.Host.Tests.ScienceProviderExtensionRatchetTests</c> holds that
-    /// line).</para>
+    /// <para>This is where everything a richer science model knows that stock
+    /// has no concept of belongs: storage capacity, file-vs-sample, transmit
+    /// rate, per-unit science rate. Adding those as nullable members here
+    /// instead is the hand-curated-superset anti-pattern the bag replaces
+    /// (<c>Sitrep.Host.Tests.ScienceProviderExtensionRatchetTests</c> holds
+    /// that line).</para>
     /// </summary>
     // AppendProviderExtensions omits the key when no provider filled a bag, so a
     // payload no provider extended carries no trace of the mechanism.
@@ -172,7 +171,8 @@ public class ExperimentEntry
 #endif
 public class InstrumentEntry
 {
-    /// <summary>The part's KSP <c>flightID</c> (stringified): the stable join key for this instrument.</summary>
+    /// <summary>The part's KSP <c>flightID</c> (stringified): the stable join
+    /// key for this instrument.</summary>
     [SitrepUnit(Units.Id)]
     public string? PartId { get; set; }
 
@@ -200,11 +200,10 @@ public class InstrumentEntry
     [SitrepUnit(Units.Flag)]
     public bool? DataIsCollectable { get; set; }
 
-    /// <summary>
-    /// The provider-namespaced extension bag, instrument half. Same mechanism and
-    /// same rule as <see cref="ExperimentEntry.Extensions"/>. This payload carries
-    /// no value-model-dependent number (it is pure operability), so it takes the
-    /// bag but no <c>valueModel</c> tag.
+    /// <summary> The provider-namespaced extension bag, instrument half. Same
+    /// mechanism and same rule as <see cref="ExperimentEntry.Extensions"/>.
+    /// This payload carries no value-model-dependent number (it is pure
+    /// operability), so it takes the bag but no <c>valueModel</c> tag.
     ///
     /// <para>Stock's operability picture is a flat pair of bools
     /// (<see cref="Deployed"/>/<see cref="Inoperable"/>). A provider that models
@@ -295,16 +294,16 @@ public class LabEntry
     public Dictionary<string, object?>? Extensions { get; set; }
 }
 
-/// <summary>
-/// One entry in the <c>deployed.bases</c> channel payload, a Breaking
+/// <summary> One entry in the <c>deployed.bases</c> channel payload, a Breaking
 /// Ground deployed-science experiment. The channel payload is a BARE ARRAY
 /// (<c>DeployedEntry[]</c>) or <c>null</c>. Unlike the other two channels,
 /// <c>deployed.bases</c> is captured GLOBALLY across every loaded vessel: a
 /// deployed cluster is its own ground vessel, so an entry normally describes a
 /// vessel OTHER than the active one, distinguished by <see cref="VesselName"/>.
-/// Typing-only mirror of <c>Sitrep.Host.BreakingGroundViewProvider.BuildDeployedEntry</c>;
-/// see <see cref="ExperimentEntry"/> for the "no wire change, all fields
-/// nullable" rationale.
+/// Typing-only mirror of
+/// <c>Sitrep.Host.BreakingGroundViewProvider.BuildDeployedEntry</c>; see <see
+/// cref="ExperimentEntry"/> for the "no wire change, all fields nullable"
+/// rationale.
 /// </summary>
 /// <category>Science</category>
 [SitrepContract]
@@ -429,11 +428,12 @@ public class DeployedEntry
 /// A deployed-science cluster's power state: OUR enum, not KSP's.
 ///
 /// <para>KSP has no enum for this. <c>ModuleGroundSciencePart</c> carries the
-/// answer as a localised sentence, so this reproduces the five outcomes
+/// state as a localised sentence, so this reproduces the five outcomes
 /// <c>UpdateModuleUI()</c> distinguishes, derived from the booleans it reads
 /// rather than from the sentence it writes. Being ours, it is an ordinal on the
-/// wire and a closed union on the client like every other enum in this contract,
-/// and it needs no mirror test: nobody else owns its numbering.</para>
+/// wire and a closed union on the client like every other enum in this
+/// contract, and it needs no mirror test: nobody else owns its
+/// numbering.</para>
 /// </summary>
 /// <category>Science</category>
 #if SITREP_CODEGEN
@@ -442,16 +442,19 @@ public class DeployedEntry
 [SitrepContract]
 public enum DeployedPowerState
 {
-    /// <summary>Powered and working: the cluster reports <c>IsPowered</c>.</summary>
+    /// <summary>Powered and working: the cluster reports
+    /// <c>IsPowered</c>.</summary>
     Powered,
 
     /// <summary>Deployed and switched on, but the cluster has no power.</summary>
     Unpowered,
 
-    /// <summary>The cluster's CONTROLLER is switched off, so nothing is powered.</summary>
+    /// <summary>The cluster's CONTROLLER is switched off, so nothing is
+    /// powered.</summary>
     ControllerDisabled,
 
-    /// <summary>This experiment is switched off, or is not deployed on the ground.</summary>
+    /// <summary>This experiment is switched off, or is not deployed on the
+    /// ground.</summary>
     Disabled,
 
     /// <summary>
@@ -488,18 +491,23 @@ public enum DeployedPowerState
 #endif
 public class SensorEntry
 {
-    /// <summary>Flight-scoped <c>part.flightID</c> as a string (null when the sentinel 0), the join key that disambiguates symmetric same-named sensor parts.</summary>
+    /// <summary>Flight-scoped <c>part.flightID</c> as a string (null when the
+    /// sentinel 0), the join key that disambiguates symmetric same-named sensor
+    /// parts.</summary>
     [SitrepUnit(Units.Id)]
     public string? PartId { get; set; }
 
     [SitrepUnit(Units.Text)]
     public string? PartName { get; set; }
 
-    /// <summary>The raw <c>SensorType</c> enum name (<c>TEMP</c>/<c>PRES</c>/<c>GRAV</c>/<c>ACC</c>/...) passed through as a string so modded types survive.</summary>
+    /// <summary>The raw <c>SensorType</c> enum name
+    /// (<c>TEMP</c>/<c>PRES</c>/<c>GRAV</c>/<c>ACC</c>/...) passed through as a
+    /// string so modded types survive.</summary>
     [SitrepUnit(Units.Id)]
     public string? Type { get; set; }
 
-    /// <summary>The sensor's current human-readable readout string (KSP's <c>readoutInfo</c>, e.g. "293.1K" or "Off").</summary>
+    /// <summary>The sensor's current human-readable readout string (KSP's
+    /// <c>readoutInfo</c>, e.g. "293.1K" or "Off").</summary>
     [SitrepUnit(Units.Text)]
     public string? Readout { get; set; }
 
@@ -556,23 +564,26 @@ public class ExperimentBreakdownEntry
     [SitrepUnit(Units.Text)]
     public string? ExpTitle { get; set; }
 
-    /// <summary>Summed <c>ScienceData.dataAmount</c> (mits) across every stored blob for this subject.</summary>
+    /// <summary>Summed <c>ScienceData.dataAmount</c> (mits) across every stored
+    /// blob for this subject.</summary>
     [SitrepUnit(Units.Mits)]
     public double? DataMits { get; set; }
 
-    /// <summary>Absolute science still recoverable from this subject (<c>scienceCap - science</c>); <c>0</c> outside Career/Science mode.</summary>
+    /// <summary>Absolute science still recoverable from this subject
+    /// (<c>scienceCap - science</c>); <c>0</c> outside Career/Science
+    /// mode.</summary>
     [SitrepUnit(Units.Science)]
     public double? RemainingPotential { get; set; }
 
-    /// <summary>
-    /// Which value model produced <see cref="RemainingPotential"/>, and which unit
-    /// <see cref="DataMits"/> is really in. See <see cref="ScienceValueModels"/>.
+    /// <summary> Which value model produced <see cref="RemainingPotential"/>,
+    /// and which unit <see cref="DataMits"/> is really in. See <see
+    /// cref="ScienceValueModels"/>.
     ///
-    /// <para>Stock's rollup is a snapshot: one summed data figure and one
-    /// "how much is left". A provider with a full per-subject ledger (collected vs
-    /// retrieved, in-flight split, times completed) projects it down to those two
-    /// and carries the ledger in <see cref="Extensions"/>: stock's pair is a lossy
-    /// VIEW of the richer set, never the other way round.</para>
+    /// <para>Stock's rollup is a snapshot: one summed data figure and one "how
+    /// much is left". A provider with a full per-subject ledger (collected vs
+    /// retrieved, in-flight split, times completed) projects it down to those
+    /// two and carries the ledger in <see cref="Extensions"/>: stock's pair is
+    /// a lossy VIEW of the richer set, never the other way round.</para>
     /// </summary>
     [SitrepUnit(Units.Id)]
     public string? ValueModel { get; set; }
@@ -652,7 +663,8 @@ public class ArchiveEntry
     [SitrepUnit(Units.Science)]
     public double? ScienceCap { get; set; }
 
-    /// <summary>Absolute science still recoverable from this subject (<c>scienceCap - science</c>).</summary>
+    /// <summary>Absolute science still recoverable from this subject
+    /// (<c>scienceCap - science</c>).</summary>
     [SitrepUnit(Units.Science)]
     public double? RemainingPotential { get; set; }
 

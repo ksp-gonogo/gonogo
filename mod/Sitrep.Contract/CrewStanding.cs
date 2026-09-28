@@ -45,14 +45,13 @@ namespace Sitrep.Contract
     /// What a kerbal's place on the books IS, as the dashboard means it: this
     /// contract's own vocabulary, not a mirror of any game enum.
     ///
-    /// <para>The first four members line up with
-    /// <see cref="KspRosterStatus"/> in meaning but deliberately NOT in
-    /// numbering: a mirror would tie growth here to Squad shipping a new roster
-    /// status, which is the assumption that let a retiree read as a fatality.
-    /// <see cref="Applicant"/> is a standing KSP expresses as a KerbalType
-    /// rather than a RosterStatus, and it belongs in one enumeration with the
-    /// rest because a client asking "what is this kerbal's standing" wants one
-    /// answer.</para>
+    /// <para>The first four members line up with <see cref="KspRosterStatus"/>
+    /// in meaning but deliberately NOT in numbering: a mirror would tie growth
+    /// here to Squad shipping a new roster status, which is the assumption that
+    /// let a retiree read as a fatality. <see cref="Applicant"/> is a standing
+    /// KSP expresses as a KerbalType rather than a RosterStatus, and it belongs
+    /// in one enumeration with the rest because a client asking "what is this
+    /// kerbal's standing" wants one value.</para>
     ///
     /// <para>Behind <c>spaceCenter.crewRoster[].standing</c>, and it is the
     /// field to branch on; see <see cref="CrewRosterEntry.SituationOrdinal"/>
@@ -435,7 +434,8 @@ namespace Sitrep.Contract
     /// </remarks>
     public struct CrewStandingResolution
     {
-        /// <summary>The standing itself: the field a client branches on.</summary>
+        /// <summary>The standing itself: the field a client branches
+        /// on.</summary>
         public CrewStanding Standing { get; set; }
 
         /// <summary>
@@ -444,10 +444,12 @@ namespace Sitrep.Contract
         /// </summary>
         public string? Source { get; set; }
 
-        /// <summary>Whether the kerbal can be assigned to a flight today.</summary>
+        /// <summary>Whether the kerbal can be assigned to a flight
+        /// today.</summary>
         public bool Available { get; set; }
 
-        /// <summary>Why not, in prose with no date. Empty string when they can.</summary>
+        /// <summary>Why not, in prose with no date. Empty string when they
+        /// can.</summary>
         public string UnavailableReason { get; set; }
 
         /// <summary>When the current standing lapses, or null.</summary>
@@ -461,18 +463,19 @@ namespace Sitrep.Contract
     /// The exclusive capability id every crew-standing backend competes for,
     /// declared HERE rather than beside the election.
     /// </summary>
-    /// <remarks>
-    /// An id both halves must spell identically belongs where both halves can
-    /// reach it. <c>ActionGroupsElection.CapabilityId</c> was the counter-example:
-    /// it lived in the unpublished <c>Sitrep.Host</c>, so the AGX uplink had to
-    /// re-declare <c>"actionGroups"</c> as a constant of its own and a test pinned
-    /// the two equal. A test that pins two constants together is a test that
-    /// exists because there should only have been one, and that one now lives in
-    /// <see cref="ActionGroupsCapability"/> beside this.
+    /// <remarks> An id both halves must spell identically belongs where both
+    /// halves can reach it. <c>ActionGroupsElection.CapabilityId</c> was the
+    /// counter-example: it lived in the unpublished <c>Sitrep.Host</c>, so the
+    /// AGX uplink had to re-declare <c>"actionGroups"</c> as a constant of its
+    /// own and a test pinned the two equal. A test that pins two constants
+    /// together is a test that exists because there should only have been one,
+    /// and that one now lives in <see cref="ActionGroupsCapability"/> beside
+    /// this.
     /// </remarks>
     public static class CrewStandingCapability
     {
-        /// <summary>The capability id. One declaration, reachable from an Uplink.</summary>
+        /// <summary>The capability id. One declaration, reachable from an
+        /// Uplink.</summary>
         public const string Id = "crewStanding";
     }
 

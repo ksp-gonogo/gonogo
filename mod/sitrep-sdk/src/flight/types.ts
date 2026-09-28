@@ -72,13 +72,9 @@ export interface Sample<Payload = unknown> {
 /**
  * Which clock a `SeriesRange`'s `t` is stamped against.
  *
- * The two producers of a series use different ones and always did:
- * `TimelineStore.sampleRange` hands back the game's UT SECONDS, and the legacy
- * `BufferedDataSource` buffers wall-clock MILLISECONDS. Nothing said so, so
- * every consumer had to guess, and the chart guessed wall-clock: it scaled UT
- * samples against a `Date.now()` domain (fixed by `computeTimeDomain`) and then
- * went on labelling a twenty-minute window `0:00 ... 0:01`, a factor of a
- * thousand out, under a trace that was by then drawn correctly.
+ * The two producers of a series use different ones: `TimelineStore.sampleRange`
+ * hands back the game's UT seconds, and `BufferedDataSource` buffers wall-clock
+ * milliseconds.
  *
  * A basis cannot be inferred from the numbers: both are large monotonic
  * counts, and the wrong reading of either is plausible. So the producer states
@@ -112,9 +108,9 @@ export type SeriesTimeBasis = "ut-seconds" | "wall-ms";
  * all-live case (very nearly all of them) costs one empty array rather than one
  * string per sample.
  *
- * Only server-stamped grades appear here. `held-stale` and `disconnected` are
- * inferred about the topic NOW, not recorded about a sample, so they have no
- * honest per-sample extent to name.
+ * Only server-stamped grades appear here. `held-stale` and `disconnected`
+ * describe the topic now, not a recorded sample, so they have no per-sample
+ * extent.
  *
  * @category Flight recording
  */
@@ -128,8 +124,8 @@ export interface SeriesStatusSpan {
 
 /**
  * A contiguous run of points NOBODY MEASURED, as INCLUSIVE indices into
- * `t`/`v`: a model answered for those instants, and `basis` is the model that
- * did the answering, in the vocabulary `Reckoning` already uses.
+ * `t`/`v`: a model supplied those instants, and `basis` is the model that
+ * supplied them, in the vocabulary `Reckoning` already uses.
  *
  * This is the ONLY provenance a trace has cause to mark. A replayed sample is a
  * sample the craft measured and sent late, so it draws as live data draws (see
@@ -156,12 +152,12 @@ export interface SeriesReckonedSpan {
    * the same units `v` carries and one entry per point from `from` to `to`.
    *
    * On the RUN rather than as two series-length arrays beside `t` and `v`,
-   * because a band only exists where a model answered: two parallel arrays
-   * would be null for every measured point, which on a chart showing a long
-   * observed history and a short tail is nearly all of them. Keeping them here
-   * also keeps them with `bandKind`, which is what says what the two numbers
-   * mean, and makes the reindexing rule fall out for free: a run that loses
-   * points loses exactly the band entries that went with them.
+   * because a band only exists where a model supplied the point: two parallel
+   * arrays would be null for every measured point, which on a chart showing a
+   * long observed history and a short tail is nearly all of them. Keeping them
+   * here also keeps them with `bandKind`, which is what says what the two
+   * numbers mean, and makes the reindexing rule fall out for free: a run that
+   * loses points loses exactly the band entries that went with them.
    *
    * All three band fields move together. A run with `bandLo` and no `bandHi`,
    * or with either and no `bandKind`, is malformed and must be read as having
@@ -175,7 +171,7 @@ export interface SeriesReckonedSpan {
 
 /**
  * What a value's own model says happened across the part of one gap between
- * two samples that nothing observed: its answers at instants strictly inside
+ * two samples that nothing observed: its values at instants strictly inside
  * that span, in the same clock as `t` and the same units as `v`.
  *
  * `to` is the index of the LATER sample, the currency `breaks` uses. The chord a

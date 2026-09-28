@@ -10,22 +10,16 @@ import { isUnit } from "./unit-system/guards";
 import type { Value } from "./unit-system/value";
 
 /**
- * What a telemetry read answers with, and how a widget may use it.
+ * What a telemetry read returns, and how a widget may use it.
  *
- * This lives in the SDK rather than app-side because the Uplink devkit's
- * `useTelemetry` answers with a `Reading`, and the SDK sits below
- * `@ksp-gonogo/sitrep-client` in the dependency graph: the client depends on the
- * SDK, never the reverse. Exactly one bundled Uplink imports only through the
- * surface a third party actually has (this SDK plus ui-kit), and it is the one that
- * broke when this file's signature lied: an Uplink that also reaches app-internal
- * packages cannot feel a lie in this layer. That client is the canary for the devkit
- * contract.
+ * This lives in the SDK because `useTelemetry` returns a `Reading`, and the
+ * client depends on the SDK, never the reverse.
  *
  * Everything here is consumer-side and total over the union: the type, its
- * reckoning types, the accessors, declining a reckoning, and measuring an age. A
- * third-party author needs all of it to USE a reading. What stays in the client is
- * the producer half, which needs the timeline and the store: minting a reading from
- * a stored point, and the reckoner registry.
+ * reckoning types, the accessors, declining a reckoning, and measuring an age.
+ * A third-party author needs all of it to USE a reading. What stays in the
+ * client is the producer half, which needs the timeline and the store: minting
+ * a reading from a stored point, and the reckoner registry.
  */
 
 /**
@@ -48,14 +42,13 @@ import type { Value } from "./unit-system/value";
  *   change. Honest while the rate holds, which for a consumable means until
  *   something switches a converter, a light or a crew member
  * - `combination`: arithmetic over several readings resolved against ONE view
- *   time. The odd member, and it is worth saying why rather than leaving a
- *   reader to assume it propagates anything: it carries nothing forward. The
- *   other three answer "how did this number get from its observation to now";
- *   this one answers "how did this number come to exist at all", and the
- *   forward step, where there was one, happened inside each input under its
- *   own basis. So it is honest exactly as far as its inputs are, and no
- *   further: read {@link combineReadings} for the currency rule, and the
- *   inputs themselves for what actually propagated
+ *   time. The odd member: it carries nothing forward. The other three say "how
+ *   did this number get from its observation to now"; this one says "how did
+ *   this number come to exist at all", and the forward step, where there was
+ *   one, happened inside each input under its own basis. So it is honest
+ *   exactly as far as its inputs are, and no further: read
+ *   {@link combineReadings} for the currency rule, and the inputs themselves for what
+ *   actually propagated
  *
  * @category Reckoners
  */
@@ -70,9 +63,10 @@ export type ReckoningBasis =
  * craft's present (SCET), given the last real observation and however long ago
  * it was.
  *
- * `atUt` is the UT the reckoning is FOR, the frame's SCET, not the UT the observation behind it
- * was made at (`Reading`'s `asOfUt` carries that). Both are needed: an operator
- * reads a modelled figure against how far it has been carried.
+ * `atUt` is the UT the reckoning is FOR, the frame's SCET, not the UT the
+ * observation behind it was made at (`Reading`'s `asOfUt` carries that). Both
+ * are needed: an operator reads a modelled figure against how far it has been
+ * carried.
  *
  * @category Reckoners
  */
@@ -103,8 +97,7 @@ export interface TopicReckoningAvailable<Payload> {
    * identity fields only a command changes, two absolute UTs, and metadata.
    * A model that dead-reckons the relative position and copies the rest would
    * otherwise stamp `basis: "linear-dead-reckoning"` on the vessel's NAME,
-   * which is a modelled label over a stale observation: the failure this type
-   * exists to prevent, committed by the mechanism meant to prevent it.
+   * which is a modelled label over a held observation.
    *
    * `basis` above stays, and is the basis of the entry covering the root. A
    * whole-topic read only reaches `reckoning: "available"` when the model covers
@@ -116,12 +109,11 @@ export interface TopicReckoningAvailable<Payload> {
    * Which registered owner's model produced this. `"core"` for the vanilla
    * every installed client ships.
    *
-   * Reckonability is STATIC (the contract declares it), so the question a
-   * runtime answer has to settle is not whether a value can be carried forward
-   * but WHICH model carried it. That is the same question
-   * `vessel.maneuver.planner` already answers by naming its winner, and naming
-   * it is what lets an operator tell core's conic from an Uplink's without
-   * reading the numbers and guessing.
+   * Reckonability is STATIC (the contract declares it), so the question at
+   * runtime is not whether a value can be carried forward but WHICH model
+   * carried it. That is the same question `vessel.maneuver.planner` already
+   * settles by naming its winner, and naming it is what lets an operator tell
+   * core's conic from an Uplink's without reading the numbers and guessing.
    */
   owner: string;
   /**
@@ -153,11 +145,11 @@ export type TopicReckoning<Payload> =
   | { readonly status: "declined"; readonly declined: ReckoningDecline };
 
 /**
- * The arms a DECLARED value's topic reading may carry: it answered, or it said
- * why it could not. Never the silent `"none"`.
+ * The reckoning states a DECLARED value's topic reading may carry: the model
+ * ran, or it said why it could not. Never the silent `"none"`.
  *
  * The declaration is a promise that the wire carries the model's inputs, so on
- * a value-bearing arm there is no such thing as nothing-to-say. Dropping
+ * a value-bearing reading there is no such thing as nothing-to-say. Dropping
  * `"none"` here is what makes that promise a compile-time fact rather than a
  * convention.
  *
@@ -169,7 +161,8 @@ export type DeclaredTopicReckoning<Payload> = Exclude<
 >;
 
 /**
- * One path a model moved, and what moved it. See {@link TopicReckoningAvailable.modelled}.
+ * One path a model moved, and what moved it. See
+ * {@link TopicReckoningAvailable.modelled}.
  *
  * @category Reckoners
  */
@@ -182,12 +175,12 @@ export interface ModelledField {
 /**
  * What an {@link UncertaintyBand}'s two ends CLAIM.
  *
- * A hard bound and a one-sigma estimate are different statements about the
- * same two numbers, and without this field two producers would mean different
- * things by an identical interval with nothing able to notice. A consumer
- * comparing a band against a threshold is entitled to a different answer for
- * each: crossing a hard bound is impossible, crossing one sigma happens about
- * a third of the time.
+ * A hard bound and a one-sigma estimate are different statements about the same
+ * two numbers, and without this field two producers would mean different things
+ * by an identical interval with nothing able to notice. A consumer comparing a
+ * band against a threshold is entitled to a different result for each: crossing
+ * a hard bound is impossible, crossing one sigma happens about a third of the
+ * time.
  *
  * - `bound`: the model asserts the true value is INSIDE `[lo, hi]`. Only
  *   honest where the model's error is genuinely capped (a quantisation, an
@@ -270,36 +263,37 @@ export type ReckonedBands = {
  * the modelled payload.
  *
  * Coverage sits OUTSIDE the thunk because the store has to know what a model
- * answers for before deciding which arm to build, and running the model to
- * find out would defeat the pull. A model that does not cover the payload root
- * cannot answer for a whole-topic read, so that read stays `stale`.
+ * covers before deciding which reading to build, and running the model to find
+ * out would defeat the pull. A model that does not cover the payload root
+ * cannot cover a whole-topic read, so that read stays `stale` (held).
  *
- * `Projection` is what the pull ANSWERS WITH, and it defaults to the whole payload
+ * `Projection` is what the pull RETURNS, and it defaults to the whole payload
  * because that is what a whole-topic model produces. A model declared per VALUE
- * answers with the projection of the fields it moves instead, so `Projection` is
- * `Pick<Payload, ReckonableKey>` there. Two parameters rather than one because the coverage claim
- * is still about paths on `Payload` whichever shape the answer takes.
+ * returns the projection of the fields it moves instead, so `Projection` is
+ * `Pick<Payload, ReckonableKey>` there. Two parameters rather than one because
+ * the coverage claim is still about paths on `Payload` whichever shape the
+ * result takes.
  *
  * @category Reckoners
  */
 export interface TopicModel<Payload, Projection = Payload> {
   /** Paths this model moves. Empty claims nothing and is never offered. */
   readonly modelled: readonly ModelledField[];
-  /** Run the model for `viewUt`. Pure: same inputs, same answer. */
+  /** Run the model for `viewUt`. Pure: same inputs, same result. */
   reckon(viewUt: number): Projection;
   /**
-   * How well the model knows its answer for `viewUt`, per path. Optional, and
-   * `undefined` is the honest answer for a model that cannot bound its own
+   * How well the model knows its result for `viewUt`, per path. Optional, and
+   * `undefined` is the right result for a model that cannot bound its own
    * error: see {@link ReckonedBands}.
    *
    * ## Why this is a second PULL and not a field on `modelled`
    *
    * `{ path, basis, band? }` on {@link ModelledField} reads better and cannot
-   * work. Coverage sits outside the thunk precisely so the store can choose an
-   * arm without running the model, and a band is a function of how far the
+   * work. Coverage sits outside the thunk precisely so the store can choose a
+   * reading without running the model, and a band is a function of how far the
    * value has been carried, so it is not knowable until `viewUt` is. Putting
    * one on the coverage claim would either force the model to run before the
-   * arm was chosen, or freeze one frame's interval and report it forever.
+   * reading was chosen, or freeze one frame's interval and report it forever.
    *
    * Called at the same `viewUt` as `reckon`, immediately after it and only
    * when the model was actually used, so a model that shares work between the
@@ -309,23 +303,23 @@ export interface TopicModel<Payload, Projection = Payload> {
 }
 
 /**
- * Why a model could not answer for this frame, on a topic whose contract
+ * Why a model could not run for this frame, on a topic whose contract
  * DECLARES a value reckonable.
  *
- * On a plain {@link Reading}, `reckoning: { status: "none" }` is the honest majority answer
+ * On a plain {@link Reading}, `reckoning: { status: "none" }` is the usual case
  * and needs no explanation: most topics have no model and never will. On a
  * declared value it is a specific refusal, because the declaration is a promise
  * that the wire carries the model's inputs, so the only ways to reach `"none"`
- * are that an input did not arrive, that the model was asked past where it holds,
- * or that the model does not apply to this frame at all. A refusal a widget can
- * render ("no conic past the SOI transition") beats a silent absence, which is
- * why it is REQUIRED on the value-bearing `"none"` arms rather than optional.
- *
- * It sits on the arm and NOT inside `reckoned`, which is the rule
- * {@link Reading}'s own doc states under "No horizon field": a caller holding a
- * reckoning must never discover at call time that the capability has gone bad.
- * A model still withdraws by not being offered on the next frame. All that has
- * changed is that a declared value says WHY it withdrew.
+ * are that an input did not arrive, that the model was asked past where it
+ * holds, or that the model does not apply to this frame at all. A refusal a
+ * widget can render ("no conic past the SOI transition") beats a silent
+ * absence, which is why it is REQUIRED on the value-bearing `"none"` reckonings
+ * rather than optional. It sits on the reckoning and NOT inside `reckoned`,
+ * which is the rule {@link Reading}'s own doc states under "No horizon field":
+ * a caller holding a reckoning must never discover at call time that the
+ * capability has gone bad. A model still withdraws by not being offered on the
+ * next frame. All that has changed is that a declared value says WHY it
+ * withdrew.
  *
  * `input` names the declared input that was missing or that ruled the model out,
  * spelled exactly as the contract declares it (`relativeVelocity`,
@@ -372,16 +366,13 @@ export interface ReckoningDecline {
 }
 
 /**
- * What a reckoner answers: a model, or a refusal that says which input failed
- * it.
+ * What a reckoner returns: a model, or a refusal that says which input failed
+ * it, so an input that never arrived is told apart from a horizon that has been
+ * passed.
  *
- * `undefined` used to be the whole of "no", and it could not distinguish an
- * input that never arrived from a horizon that had been passed. A caller cannot
- * tell those apart from the outside, and they are the two things an operator
- * most wants said.
- *
- * `Projection` is the projection the model produces, which for a declared value is
- * `Pick<Payload, ReckonableKey>` rather than the whole payload. See {@link ReckonableReading}.
+ * `Projection` is the projection the model produces, which for a declared value
+ * is `Pick<Payload, ReckonableKey>` rather than the whole payload. See
+ * {@link ReckonableReading}.
  *
  * @category Reckoners
  */
@@ -398,13 +389,14 @@ export type ReckonerAnswer<Payload, Projection = Payload> =
  * `state` says what the reading holds, and the payload can only be reached
  * after checking it:
  *
- * | `state` | Meaning | Carries |
- * | --- | --- | --- |
- * | `"pending"` | Nothing has arrived yet: a Topic just subscribed, or a resync after a rewind | nothing |
- * | `"unowned"` | Nothing will ever publish this Topic: no installed Uplink declares it | nothing |
- * | `"absent"` | The game confirmed there is no value, such as no target set | `atUt` |
- * | `"observed"` | The newest value that could have reached us | `value`, `atUt` |
- * | `"stale"` | Held: updates stopped arriving, so this is the last value received | `value`, `asOfUt`, `grade` |
+ * | `state` | Meaning | Carries | | --- | --- | --- | | `"pending"` | Nothing
+ * has arrived yet: a Topic just subscribed, or a resync after a rewind |
+ * nothing | | `"unowned"` | Nothing will ever publish this Topic: no installed
+ * Uplink declares it | nothing | | `"absent"` | The game confirmed there is no
+ * value, such as no target set | `atUt` | | `"observed"` | The newest value
+ * that could have reached us | `value`, `atUt` | | `"stale"` | Held: updates
+ * stopped arriving, so this is the last value received | `value`, `asOfUt`,
+ * `grade` |
  *
  * A held value is shown as held, never as current. {@link StaleGrade} says why
  * updates stopped. There is no zero standing in for a missing value: the
@@ -448,7 +440,8 @@ export type TopicReading<Payload> = TopicCurrency<
  * satisfies it.
  *
  * @typeParam Payload - The Topic's payload type.
- * @typeParam ReckoningShape - What `reckoning` may hold on the states that carry a value.
+ * @typeParam ReckoningShape - What `reckoning` may hold on the states that
+ * carry a value.
  *
  * @category Reading telemetry
  */
@@ -601,10 +594,10 @@ export interface Reading<Payload> {
  * `vessel.flight` or `vessel.orbit`.
  *
  * It differs from {@link TopicReading} in two ways. `reckoning.value` holds
- * only the fields the model moves (`ReckonableKey`), so reading any other
- * field from the model does not compile. And when the reading carries a value, `reckoning` is
- * never `"none"`: either the model produced a value, or `declined` says what
- * stopped it.
+ * only the fields the model moves (`ReckonableKey`), so reading any other field
+ * from the model does not compile. And when the reading carries a value,
+ * `reckoning` is never `"none"`: either the model produced a value, or
+ * `declined` says what stopped it.
  *
  * To combine the two, write `{ ...reading.value, ...reading.reckoning.value }`
  * where the model's value is wanted.
@@ -792,16 +785,15 @@ export function stillTrue<Payload, Fallback>(
  * whether that field is current.
  *
  * `<Unit>` takes a `Reading<Value<Unit>>`, and a widget holds a
- * `Reading<VesselOrbit>`. Without this, reaching the first from the second
- * means a switch over the arms at every call site, and a switch written 373
- * times is one that gets written wrongly somewhere: the arm most likely to be
- * dropped is `stale`, which is the arm the whole type exists for.
+ * `Reading<VesselOrbit>`. This reaches the first from the second without a
+ * switch over the states at every call site, and keeps the `stale` (held) state
+ * that a hand-written switch most often drops.
  *
- * `select` runs only on the arms that HAVE a payload. The other three carry
+ * `select` runs only on the states that HAVE a payload. The other three carry
  * nothing to select from and come through unchanged, so a field of a pending
  * reading is a pending reading rather than an observation of `undefined`.
  *
- * ## It DROPS the model, and that is the honest answer rather than a shortcut
+ * ## It drops the model
  *
  * A {@link Reckoning} is a projection of the declared fields, keyed by their
  * own paths. A selector is an arbitrary function: it may pick a field no model
@@ -866,16 +858,16 @@ export function readingOf<Payload, Selected>(
 /**
  * A figure a widget derives from a topic, as a {@link Reading} of its own: the
  * figure as observed, and the same figure as the topic's model has it at the
- * instant the model answered for.
+ * instant the model ran for.
  *
  * `observed` runs on the observation. `reckoned` runs on the observation
  * overlaid by what the model moved, and is handed the reckoning's own instant,
- * so a figure at the craft's present can only come from a model that answered
- * and always arrives marked as that model's. Where the model declined, the
+ * so a figure at the craft's present can only come from a model that ran and
+ * always arrives marked as that model's. Where the model declined, the
  * derived reading carries the decline; where it had nothing to say, nothing.
  *
  * Unlike {@link readingOf}, the model survives, because the caller writes the
- * modelled arm itself rather than handing one selector to both.
+ * modelled branch itself rather than handing one selector to both.
  *
  * @category Reckoners
  */
@@ -1023,20 +1015,13 @@ function walkField(payload: unknown, path: string): unknown {
 /**
  * One path's {@link Reckoning}, projected out of the topic's own model.
  *
- * This is the whole reason a field property exists, and the reason it must not
- * be built by reading the subtopic of the same name instead. A second read
- * resolves to whichever channel answers to that name, and a reckoner that
- * claims the root offers no `bandAt` at all, so a delegating field property
- * would answer with a modelled value and no band and nothing would notice the
- * band had gone. Projecting instead keeps the band the topic's own model
- * produced, because it is read out of {@link TopicReckoningAvailable.bands} at
- * this path and never fetched a second time.
+ * Projected rather than read from the subtopic of the same name, so the field
+ * keeps the band the topic's own model produced: it is read out of
+ * {@link TopicReckoningAvailable.bands} at this path.
  *
- * A path no {@link ModelledField} covers reckons `"none"`, which is the honest
- * answer: the value sitting at that path in the modelled payload is a verbatim
- * copy of the last observation, carried along because the model answers with
- * the whole payload, and labelling it modelled is the failure the `modelled`
- * list exists to prevent.
+ * A path no {@link ModelledField} covers reckons `"none"`: the value sitting at
+ * that path in the modelled payload is a copy of the last observation, carried
+ * along because the model returns the whole payload.
  *
  * @category Reading telemetry
  */
@@ -1093,10 +1078,9 @@ function projectField(
  *
  * LAZY, through a proxy, because a topic has as many fields as the contract
  * gives it and a widget reads two of them. `vessel.target` flattens to
- * forty-seven, so building every field eagerly would run the walk and the
- * coverage search forty-five times per frame for nothing. Each answer is cached
- * on first ask, so two reads of one field are one projection and the reading a
- * caller holds keeps its identity.
+ * forty-seven, so fields are built on first read. Each is cached on first read,
+ * so two reads of one field are one projection and the reading a caller holds
+ * keeps its identity.
  *
  * A proxy rather than `Object.defineProperty` over the payload's own keys,
  * because the field half has to be there on `pending`, `unowned` and `absent`
@@ -1176,12 +1160,9 @@ function fieldReading(
 /**
  * The currency's own member names, which a path step may never be.
  *
- * `prop in target` is the obvious guard and it is WRONG, which a
- * `sitrep-client` test caught: a reading's optional members are simply absent
- * on the arms that do not carry them, so `.value` on a `pending` field reading
- * found no own property, fell through to path composition, and answered with a
- * nested reading for `"<path>.value"` instead of `undefined`. The guard has to
- * be the NAME, not whether this arm happens to carry it.
+ * `prop in target` is not enough: a reading's optional members are simply absent
+ * in the states that do not carry them, so the guard has to be the NAME, not
+ * whether this state happens to carry it.
  *
  * `satisfies Record<ReservedReadingKey, true>` is what keeps this honest: a
  * member added to the type and forgotten here is a compile error, so the type
@@ -1208,7 +1189,7 @@ const CURRENCY_MEMBERS = {
  * wrong unit hands the consumer nothing rather than a number it will read as
  * metres per second.
  *
- * Answering `undefined` rather than throwing is the same judgement the rest of
+ * Returning `undefined` rather than throwing is the same judgement the rest of
  * this file makes about a bad band: the reckoned value is still good, and a
  * consumer with no band behaves exactly as one whose model offered none.
  *
@@ -1275,7 +1256,7 @@ export function bandIsWellFormed<Unit extends string>(
  * consumer that renders no picture. A widget comparing a bare reckoned number
  * against a limit gets a verdict on every frame and has no way to say the one
  * true thing, which is that the model does not yet know. `"straddles"` is that
- * third answer, and a widget that acts on it says so rather than guessing.
+ * third result, and a widget that acts on it says so rather than guessing.
  *
  * The boundary is INCLUSIVE at both ends: a band whose `hi` lands exactly on
  * the threshold reads `"below"`, not `"straddles"`. An interval touching a
@@ -1300,34 +1281,24 @@ export function bandSide<Unit extends string>(
 /**
  * Whether the producer has spoken about this topic at all, whatever it said.
  *
- * The question a PRESENCE GATE asks, and five call sites were asking it by hand
- * as `reading.state !== "pending"`: the augment-availability feeder, the map's
- * POI provider gate, the mission log's dock read, the ΔV totals row, and two
- * Uplink test helpers. Every one of them reasoned "pending is the only answer
- * that means nothing is there".
- *
- * That reasoning was complete when `pending` was the only empty arm and stopped
- * being complete the moment `unowned` existed, in the dangerous direction: a
- * hand-rolled `!== "pending"` reads `unowned` as the producer having ANSWERED,
- * when it is the strongest evidence there is that no producer exists. A gate
- * built that way shows an Uplink's UI on an install where the Uplink is not
- * present. Named here so the next arm has one place to be considered rather
- * than five to be missed.
+ * The question a presence gate asks. Use it rather than
+ * `reading.state !== "pending"`, which reads `unowned` as the producer having
+ * reported when it is the strongest evidence that no producer exists.
  *
  * `absent` is deliberately TRUE: a producer saying "there is no value" is still
- * a producer, and a tombstone is data. `stale` likewise, since a domain that
- * reported and went quiet is still installed.
+ * a producer, and a tombstone is data. `stale` (held) likewise, since a domain
+ * that reported and went quiet is still installed.
  *
  * The two falses are NOT interchangeable even though this collapses them, and a
- * caller that renders something for the user should branch on the arm rather
+ * caller that renders something for the user should branch on `state` rather
  * than on this: `pending` may become true on the next frame and `unowned` never
- * will. This answers "should the gate be open", not "what should I say".
+ * will. This says whether the gate should be open, not what to show.
  *
- * Takes the discriminant rather than `Reading<Payload>`, because it reads nothing
- * else and because the callers that need it most cannot supply a `Reading<Payload>`:
- * a presence gate reads `` `${domain}.available` `` through a runtime `as
- * TopicId` cast, so its reading is the union over EVERY topic and unifies with
- * no single `Payload`.
+ * Takes the discriminant rather than `Reading<Payload>`, because it reads
+ * nothing else and because the callers that need it most cannot supply a
+ * `Reading<Payload>`: a presence gate reads `` `${domain}.available` `` through
+ * a runtime `as TopicId` cast, so its reading is the union over EVERY topic and
+ * unifies with no single `Payload`.
  *
  * @category Reading telemetry
  */
@@ -1375,8 +1346,8 @@ export function observedAt<Payload>(
 
 /**
  * A provider of forward models, consulted once per reading. Returning
- * `undefined` is the honest majority answer and leaves the reading
- * `reckoning: { status: "none" }`; returning a model makes it `"available"`.
+ * `undefined` is the usual case and leaves the reading `reckoning: { status:
+ * "none" }`; returning a model makes it `"available"`.
  *
  * `TopicModel.reckon` is what makes the reckoning a pull. This function itself
  * must stay cheap: it is asked whether a model EXISTS and what it covers,
@@ -1384,9 +1355,8 @@ export function observedAt<Payload>(
  *
  * `grade` is `undefined` when the reading is LIVE, and a reckoner is asked on
  * live readings deliberately. A model whose basis is a CAUSE (a conic, a rate)
- * is as true of a value that arrived on time as of one that stopped arriving,
- * and the only thing that used to stop it saying so was reckonability riding the
- * staleness discriminant. A reckoner that genuinely integrates FROM the last
+ * is as true of a value that arrived on time as of one that stopped arriving.
+ * A reckoner that genuinely integrates FROM the last
  * observation declines where {@link currentAtReckonTime} holds, and says why.
  *
  * `reckonUt` is the third argument because declining is the ONLY way a model has
@@ -1443,11 +1413,8 @@ type ResolvedReckonerDep<Dependency extends Dep> =
 /**
  * How much of its OWN topic's record a reckoner is handed, bounded both ways.
  *
- * A reckoner used to get exactly one point, which is why so little was
- * reckonable: a model that wants a trend (a rate, a drift, a slope) could not
- * take one, so every changing quantity needed a companion rate field published
- * beside it before anything could carry it forward. The window replaces that
- * narrowing with a declaration.
+ * A model that wants a trend (a rate, a drift, a slope) declares how much of
+ * the record it needs.
  *
  * ## The two bounds do different jobs, and only one of them refuses
  *
@@ -1457,10 +1424,10 @@ type ResolvedReckonerDep<Dependency extends Dep> =
  * points from a dense stretch costs a rate estimate nothing.
  *
  * `minSamples` is the SUFFICIENCY FLOOR and the only rejection here. Below it
- * the model never runs and the store answers
- * `declined: { reason: "insufficient-history" }` on its behalf, because a slope
- * taken from one point is not a slope, and a model given one anyway would
- * invent the very confidence {@link Reading} exists to withhold.
+ * the model never runs and the store returns `declined: { reason:
+ * "insufficient-history" }` on its behalf, because a slope taken from one point
+ * is not a slope, and a model given one anyway would invent the very confidence
+ * {@link Reading} exists to withhold.
  *
  * ## It applies to the reckoner's OWN topic, and to nothing else
  *
@@ -1546,8 +1513,7 @@ export type WindowableDep<Deps extends readonly Dep[]> = Extract<
  *
  * Keyed by `WindowableDep<Deps>` rather than by `string` so a window declared
  * for a topic this reckoner does not depend on is a compile error rather than a
- * silently ignored key, which is the same failure the bare-string `topic`
- * parameter used to allow one level up.
+ * silently ignored key.
  *
  * @category Reckoners
  */
@@ -1647,7 +1613,7 @@ export function currentAtReckonTime(frame: ReckonerFrame): boolean {
  *   never bounded; and an input band with width forbids a zero-width output
  *   band, because exactness cannot be derived from uncertainty. A band the rule
  *   rejects is DROPPED rather than widened to an invented number, which is the
- *   same answer {@link ReckonedBands} already gives for a model that cannot
+ *   same result {@link ReckonedBands} already gives for a model that cannot
  *   bound its own error
  *
  * ## What the band rule deliberately does NOT do
@@ -1657,7 +1623,7 @@ export function currentAtReckonTime(frame: ReckonerFrame): boolean {
  * input: an altitude taken from a precise conic and an imprecise body radius is
  * legitimately tighter in metres than either, and averaging independent samples
  * legitimately narrows. So the rule polices the two claims that are wrong
- * whatever the mathematics (a bound out of a sigma, an exact answer out of an
+ * whatever the mathematics (a bound out of a sigma, an exact result out of an
  * inexact input) and leaves the arithmetic to the model.
  *
  * @category Reckoners
@@ -1695,7 +1661,7 @@ export interface ReckonerExemptions {
    * The same opt-outs, but only for the models this registration produces on
    * the named {@link ReckoningBasis}.
    *
-   * ## Why a registration needs more than one answer
+   * ## Why a registration may need more than one set
    *
    * A registration is not always one model. `vessel.flight` returns a CONIC
    * above the atmosphere interface and an INTEGRATOR of the observed descent
@@ -1705,15 +1671,13 @@ export interface ReckonerExemptions {
    * whatever the installed aerodynamics did and is precisely the model that
    * takes over where the conic stopped.
    *
-   * A registration-wide `horizon` opt-out cannot say that. Taking one would
-   * unbind the conic too, which is wrong in the other direction, and the
-   * mismatch only surfaced when `vessel.orbit` gained a model of its own and
-   * the input-horizon rule went live for the first time.
+   * A registration-wide `horizon` opt-out cannot say that: taking one would
+   * unbind the conic too.
    *
    * ## Why by BASIS rather than on the returned model
    *
    * An opt-out attached to the model object would be invisible until the model
-   * ran, and `getReckonerExemptions` could no longer enumerate it: the whole
+   * ran, and `getReckonerExemptions` could not enumerate it: the whole
    * set would stop being reviewable, which is the property the rest of this doc
    * is about. A basis is DECLARED, so the set stays a list somebody can diff.
    *
@@ -1724,7 +1688,7 @@ export interface ReckonerExemptions {
    * the two differ exactly where it matters: the air model above is not bounded
    * by `vessel.orbit`, and IS bounded by `system.bodies`, because the
    * atmosphere depth is what tells it which regime it is in. A wholesale
-   * opt-out would free it from both and let it answer past the point its own
+   * opt-out would free it from both and let it run past the point its own
    * boundary is known.
    *
    * Same argument as the reason-string one level up, at the level where it is
@@ -1751,14 +1715,13 @@ export interface ReckonerExemptions {
  * ## Why the inputs are DECLARED rather than reached for
  *
  * A reckoner that reaches for whatever it likes cannot be told from one whose
- * inputs never arrived: both answer nothing, and the caller sees a silent
+ * inputs never arrived: both return nothing, and the caller sees a silent
  * `undefined` on a value the contract PROMISED was carriable. Declaring them
  * buys the honest decline that promise is worth: the store resolves each
  * declared input before the model runs, and an input the contract declared and
- * the frame did not carry produces
- * `declined: { reason: "input-absent", input: "@vessel.orbit" }` naming the
- * contract's own spelling, without the model being asked a question it cannot
- * answer.
+ * the frame did not carry produces `declined: { reason: "input-absent", input:
+ * "@vessel.orbit" }` naming the contract's own spelling, without the model
+ * being run on inputs it does not have.
  *
  * ## What the store enforces, and what it leaves to the model
  *
@@ -1814,11 +1777,9 @@ export interface ReckonerDefinition<
  *
  * Written out rather than spelled `ReckonerDefinition<unknown, unknown, ...>`
  * because the erasure IS the point: `reckon` is declared here with the argument
- * types the store passes and the answer type it reads back, so a definition
+ * types the store passes and the result type it reads back, so a definition
  * written against a concrete Topic reaches this shape by method bivariance and
- * the store calls it without an assertion in either direction. The two
- * `as unknown as` casts that used to bridge them were the same round trip
- * written twice, and neither said which way it was unsound.
+ * the store calls it without an assertion in either direction.
  *
  * @category Reckoners
  */

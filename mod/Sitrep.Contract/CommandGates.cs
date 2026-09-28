@@ -9,14 +9,13 @@ namespace Sitrep.Contract
     /// One gated command and what its gate says RIGHT NOW, evaluated with no
     /// arguments at all.
     ///
-    /// <para>This is the addressability answer, not the dispatch answer. The
-    /// engine evaluates the same <see cref="CommandRequirement"/> set the same
-    /// way in both cases (see <c>ChannelEngine.EvaluateGates</c>); the only
-    /// difference is that here the argument bag is empty, so an
+    /// <para>This says whether the command can be addressed, not how a dispatch
+    /// will go. The engine evaluates the same <see cref="CommandRequirement"/>
+    /// set the same way in both cases (see <c>ChannelEngine.EvaluateGates</c>);
+    /// the only difference is that here the argument bag is empty, so an
     /// argument-dependent requirement abstains rather than deciding. A command
-    /// whose verdict is <see cref="GateOutcome.Abstain"/> is one whose answer
-    /// depends on what you ask it to do, and the only honest thing to say in
-    /// advance is nothing.</para>
+    /// whose verdict is <see cref="GateOutcome.Abstain"/> is one whose verdict
+    /// depends on what you ask it to do, so nothing is said in advance.</para>
     ///
     /// <para>The dispatch-time evaluation remains the authority: this snapshot
     /// is at most one sampling interval old and a client must not treat it as
@@ -45,13 +44,15 @@ namespace Sitrep.Contract
         ///
         /// <list type="bullet">
         /// <item><description><see cref="GateOutcome.Pass"/>: an ordinary live
-        /// control. Not permission, see the type's own remarks.</description></item>
+        /// control. Not permission, see the type's own
+        /// remarks.</description></item>
         /// <item><description><see cref="GateOutcome.Fail"/>: dark, with the
         /// reason reachable. The game evaluated the requirement and said
         /// no.</description></item>
         /// <item><description><see cref="GateOutcome.Abstain"/>: an ordinary
         /// live control. The answer depends on arguments nobody has supplied
-        /// yet, so there is nothing honest to say in advance.</description></item>
+        /// yet, so there is nothing honest to say in
+        /// advance.</description></item>
         /// <item><description><see cref="GateOutcome.Unknown"/>: an ordinary
         /// live control, and <b>never</b> a dark one. This is an authority that
         /// was not there to ask, not a judgement about the command. It refuses
@@ -89,7 +90,8 @@ namespace Sitrep.Contract
     /// <para>Only GATED commands appear. An ungated command is absent rather
     /// than present-and-passing, so a client that finds no entry knows the
     /// command has nothing to say about itself, which is different from knowing
-    /// it is fine. Nothing here is a permission; see <see cref="CommandGate"/>.</para>
+    /// it is fine. Nothing here is a permission; see <see
+    /// cref="CommandGate"/>.</para>
     /// </summary>
     /// <category>System diagnostics</category>
     [SitrepContract]

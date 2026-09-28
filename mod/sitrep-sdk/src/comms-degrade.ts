@@ -26,7 +26,7 @@ export interface DegradeRating {
  * The link grading carried by one `comms.degrade` payload, or `undefined` when
  * nobody graded the link.
  *
- * `undefined` is a THIRD answer and not a low rating. A backend that will not
+ * `undefined` is a third result and not a low rating. A backend that will not
  * grade the link publishes no level, and "nobody rated this" is the opposite
  * instruction to "this link is perfect": one says keep doing what you were
  * doing, the other says send everything. Returning `undefined` is what forces
@@ -70,7 +70,7 @@ export function degradeRatingOf(
  * when there is nothing to act on: nothing has arrived yet, the producer has
  * nothing to say, or the backend declined to grade.
  *
- * A STALE rating is still returned, deliberately. Every reading on this channel
+ * A held rating is still returned. Every reading on this channel
  * describes the link as it was one light-time ago, because that is what a link
  * observation is; a grading held through an outage is the last thing anyone
  * actually knows about the link, and dropping it would leave a feed with no

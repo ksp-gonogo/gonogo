@@ -37,7 +37,7 @@ export interface RawFieldSubtopic {
  *
  * A key under no known Topic falls back to the historical
  * `<domain>.<channel>.<field...>` split, which is what a legacy flat key and
- * every synthetic test topic rely on, and which is also the honest answer for a
+ * every synthetic test topic rely on, and which is also the right split for a
  * Topic this build has never heard of.
  *
  * ── What this does NOT subsume ──────────────────────────────────────────────
@@ -47,7 +47,7 @@ export interface RawFieldSubtopic {
  * caller's own prefix mechanism (`TimelineStore`'s `dynamicWholeTopicPrefixes`),
  * which is consulted BEFORE this function. For the same reason the runtime
  * registry an Uplink self-registers into is not read here: it fills in after the
- * app has rendered, and a split that changed answer when a bundle loaded would
+ * app has rendered, and a split that changed result when a bundle loaded would
  * resolve one subscription differently from the next. No Uplink ships a
  * 3-segment Topic today; one that did would declare a prefix, as the dynamic
  * namespaces already do.

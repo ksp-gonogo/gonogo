@@ -129,7 +129,8 @@ export function isHyperbolic(ecc: number): boolean {
 }
 
 /**
- * Non-throwing `kepler.solve`: `null` on a hyperbolic orbit instead of a RangeError.
+ * Non-throwing `kepler.solve`: `null` on a hyperbolic orbit instead of a
+ * RangeError.
  *
  * @category Reckoners
  */
@@ -141,7 +142,8 @@ export function trySolve(
 }
 
 /**
- * Non-throwing `kepler.solveAnomalies`: `null` on a hyperbolic orbit instead of a RangeError.
+ * Non-throwing `kepler.solveAnomalies`: `null` on a hyperbolic orbit instead of
+ * a RangeError.
  *
  * @category Reckoners
  */
@@ -175,7 +177,7 @@ export function propagateVesselOrbit(
  * perturbation the propagator does not model". Drag is that perturbation, and
  * it is not a gentle one: a capsule crossing the interface at orbital speed
  * loses most of it inside a couple of minutes, so a conic carried past this
- * radius is not a degraded answer but a different trajectory. Below the surface
+ * radius is not a worse estimate but a different trajectory. Below the surface
  * it is not a trajectory at all.
  *
  * One number covers both because the model is asking one question, and the
@@ -189,9 +191,9 @@ export function propagateVesselOrbit(
  *
  * `withinAtmosphere` asks this too, for the view-time end of its span, so that
  * the selector and the conic's own floor test the identical comparison rather
- * than two spellings of it. It reaches this only after {@link atmosphereDepthOf}
- * has answered, which is what keeps the surface fallback below from reading as
- * an atmosphere on an airless body.
+ * than two spellings of it. It reaches this only after
+ * {@link atmosphereDepthOf} has returned, which is what keeps the surface fallback
+ * below from reading as an atmosphere on an airless body.
  *
  * @category Reckoners
  */
@@ -232,7 +234,7 @@ export function entryInterfaceRadius(
  * `undefined` for an airless body rather than zero, and that is what makes the
  * atmospheric branch decline to claim one: there is no atmospheric regime
  * without air, where a floor at the bare surface would have read as one. An
- * absent roster answers `undefined` for the same reason it does above, which the
+ * absent roster returns `undefined` for the same reason it does above, which the
  * two callers then treat oppositely and both correctly: the conic has no
  * interface to have crossed and carries on, and the rate integration has no
  * evidence it is in air and stands down.
@@ -258,14 +260,12 @@ export function atmosphereDepthOf(
  * solver, because stock KSP physics genuinely is two-body; an n-body backend
  * registers a higher-priority provider only when its own probe finds the
  * physics loaded, and `HorizonFor` then stamps every element set that provider
- * publishes with `TrajectoryKind.Integrated`. So the answer a reckoner needs is
+ * publishes with `TrajectoryKind.Integrated`. So what a reckoner needs is
  * already on the wire, on a field that names no vendor and that every provider
  * can state, stock included. That is also why this reads the horizon rather
  * than a planner or a provider id: `VesselManeuver.Planner`'s doc forbids a
  * consumer special-casing an elected implementation by name, and
- * `TrajectoryKind` exists precisely because an earlier draft of this field
- * carried the provider's id and answered "who computed this" where a client
- * needed "what is this like".
+ * `TrajectoryKind` says "what is this like" rather than "who computed this".
  *
  * **Only `Unbounded` is asked about, and the narrowness is the whole design.**
  * An `Until` bound is not a producer admitting a limit, it is a MEASUREMENT:
@@ -274,7 +274,7 @@ export function atmosphereDepthOf(
  * extrapolation of an integrated trajectory stays trustworthy". A provider that
  * publishes one has vouched for a conic across exactly that window, per craft,
  * and the reach gate below already enforces it. Declining there would discard
- * the measurement and leave that machinery answering nobody. `Unspecified`
+ * the measurement and leave that machinery unused. `Unspecified`
  * reach is already refused by the same gate. So the one case left over is an
  * unbounded reach with nothing vouching for its shape, which is the failure
  * `IIntegratedTrajectorySource`'s own doc names: an integrating provider in a
@@ -312,8 +312,8 @@ function trajectoryAuthority(
  * Five withdrawal conditions, in the order they cost least to ask:
  *
  * - **who owns the trajectory, where nothing bounds it.** The elected
- *   propagation provider states, on every element set it publishes, what KIND
- *   of answer it is. An `Unbounded` reach paired with a shape that is not
+ *   propagation provider states, on every element set it publishes, what kind
+ *   of result it is. An `Unbounded` reach paired with a shape that is not
  *   `Analytic` is a licence to carry an integrated path forever as an ellipse,
  *   which is not a degraded conic but a different physics
  * - **not on rails.** The elements describe a coast; a craft under physics is
@@ -322,7 +322,7 @@ function trajectoryAuthority(
  *   view time at or past the transition is asking this conic about an orbit
  *   round a different body
  * - **the producer's own stated reach.** `orbit.horizon` is where an
- *   INTEGRATING propagation provider says its elements stop answering; the
+ *   INTEGRATING propagation provider says its elements stop holding; the
  *   stock analytic provider says `Unbounded` and this never bites for it. It is
  *   also the seam a per-craft bound would arrive through, rather than anything
  *   here growing a constant of its own
@@ -339,15 +339,11 @@ function trajectoryAuthority(
  * **The authority condition is the exception, and deliberately.** Under an
  * unbounded reach an unstated shape is not a missing fact to be generous about,
  * it is the permissive default `TrajectoryKind.Unspecified = 0` was numbered to
- * remove: a producer that forgets gets the withholding answer rather than
- * "conic, obviously". The fixtures wrote this rule down before anything
- * enforced it, in `UNBOUNDED_HORIZON`'s own doc: a consumer deciding whether a
- * conic is the right renderer "must read that as 'unknown' rather than
- * 'conic'".
+ * remove: a producer that forgets gets a decline rather than "conic, obviously".
  *
  * What is still unbounded, and cannot be bounded here: a BURN. A craft out of
  * contact is exactly one whose burns we cannot see, so nothing inside this
- * function can bound it, and the `kepler-propagation` basis carries that caveat
+ * function can bound it, and the `kepler-propagation` basis states that limit
  * in its own words. That is what a basis is for.
  *
  * @category Reckoners

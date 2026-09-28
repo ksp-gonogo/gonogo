@@ -1,12 +1,11 @@
 /**
- * `ViewClock`'s certainty-horizon math, extracted as pure functions so a
- * SECOND context: the kerbcast per-frame video-delay worker
- * (`@ksp-gonogo/gonogo-kerbcast-uplink`'s `worker/` glue): can mirror it EXACTLY,
- * never forking the formula (cross-browser kerbcast video-delay design,
- * 2026-07-16, "Clock seam"). `ViewClock` itself is refactored to call these
- * same functions (`view-clock.ts`'s `utNowEstimate`/`confirmedEdgeUt`), so
- * there is exactly one implementation of "the estimate only schedules;
- * samples confirm": see that class's doc for the invariant.
+ * `ViewClock`'s certainty-horizon math, extracted as pure functions so a SECOND
+ * context: the kerbcast per-frame video-delay worker
+ * (`@ksp-gonogo/gonogo-kerbcast-uplink`'s `worker/` glue): can mirror it
+ * EXACTLY, never forking the formula. `ViewClock` calls these same functions
+ * (`view-clock.ts`'s `utNowEstimate`/`confirmedEdgeUt`), so there is exactly
+ * one implementation of "the estimate only schedules; samples confirm": see
+ * that class's doc for the invariant.
  *
  * Pure and side-effect free: no `performance.now()`, no class state. Callers
  * supply `nowWall` (wall-clock seconds, whatever basis their context uses)
@@ -38,9 +37,9 @@ export interface ClockFormulaInputs {
 }
 
 /** `ClockFormulaInputs` plus the epoch generation: the shape posted over
- *  the wire (kerbcast worker's `ClockSnapshot` message) so a stale-epoch
- *  snapshot can be discarded the same way `ViewClock.observeSample`
- *  discards a stale-epoch straggler.
+ *  the wire (kerbcast worker's `ClockSnapshot` message) so a snapshot from an
+ *  earlier epoch can be discarded the same way `ViewClock.observeSample`
+ *  discards a straggler from before a rewind.
  *
  * @category Delay and vantage
  */

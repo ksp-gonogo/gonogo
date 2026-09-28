@@ -30,7 +30,8 @@ namespace Sitrep.Contract;
 #endif
 public class EvaKerbal
 {
-    /// <summary>The kerbal's own vessel id, the same guid <c>system.vessels</c> carries for it.</summary>
+    /// <summary>The kerbal's own vessel id, the same guid <c>system.vessels</c>
+    /// carries for it.</summary>
     [SitrepUnit(Units.Id)]
     public string? KerbalVesselId { get; set; }
 
@@ -49,7 +50,8 @@ public class EvaKerbal
     [SitrepUnit(Units.Text)]
     public string? Name { get; set; }
 
-    /// <summary>KSP's own situation name for the kerbal (<c>FLYING</c>, <c>LANDED</c>, ...).</summary>
+    /// <summary>KSP's own situation name for the kerbal (<c>FLYING</c>,
+    /// <c>LANDED</c>, ...).</summary>
     [SitrepUnit(Units.Text)]
     public string? Situation { get; set; }
 
@@ -57,18 +59,21 @@ public class EvaKerbal
     [SitrepUnit(Units.ResourceUnits)]
     public double? PropellantAmount { get; set; }
 
-    /// <summary>What the pack holds when full, so a reader can draw a fraction without knowing the model.</summary>
+    /// <summary>What the pack holds when full, so a reader can draw a fraction
+    /// without knowing the model.</summary>
     [SitrepUnit(Units.ResourceUnits)]
     public double? PropellantCapacity { get; set; }
 
-    /// <summary>Whether this kerbal has a jetpack at all: without one the propellant figures describe nothing.</summary>
+    /// <summary>Whether this kerbal has a jetpack at all: without one the
+    /// propellant figures describe nothing.</summary>
     [SitrepUnit(Units.Flag)]
     public bool? HasJetpack { get; set; }
 
     [SitrepUnit(Units.Flag)]
     public bool? JetpackDeployed { get; set; }
 
-    /// <summary>Whether the pack is firing right now, which is the only signal that a kerbal is under thrust.</summary>
+    /// <summary>Whether the pack is firing right now, which is the only signal
+    /// that a kerbal is under thrust.</summary>
     [SitrepUnit(Units.Flag)]
     public bool? JetpackIsThrusting { get; set; }
 
@@ -92,7 +97,8 @@ public class EvaKerbal
     [SitrepUnit(Units.Flag)]
     public bool? WillDieWithoutHelmet { get; set; }
 
-    /// <summary>Whether the helmet can come off here and now, which is a stricter question than surviving it.</summary>
+    /// <summary>Whether the helmet can come off here and now, which is a
+    /// stricter question than surviving it.</summary>
     [SitrepUnit(Units.Flag)]
     public bool? CanSafelyRemoveHelmet { get; set; }
 
@@ -116,7 +122,7 @@ public class EvaKerbal
 /// craft they left, so nothing reading the vessel's stream sees a
 /// discontinuity, and this carries what is true of the kerbal instead.</para>
 ///
-/// <para>An empty list is a real answer: nobody is outside. The channel is
+/// <para>An empty list is a real reading: nobody is outside. The channel is
 /// absent only before anything has been captured.</para>
 /// </summary>
 /// <category>Crew</category>
@@ -127,7 +133,8 @@ public class EvaKerbal
 [SitrepTopic("eva.crew")]
 public class EvaCrew
 {
-    /// <summary>How many kerbals are outside, so a reader need not count to know whether to draw anything.</summary>
+    /// <summary>How many kerbals are outside, so a reader need not count to
+    /// know whether to draw anything.</summary>
     [SitrepUnit(Units.Count)]
     public int Count { get; set; }
 

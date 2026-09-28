@@ -60,7 +60,7 @@ import { CORE_UPLINK_CLIENT } from "./uplink-clients";
  * How far a body's elements may be carried forward, as the elected provider
  * stated it.
  *
- * **The SAME question a craft's elements answer, in the same words.** This is
+ * **The same question a craft's elements carry, in the same words.** This is
  * `PropagationHorizon` off the wire with its units stripped, which is what every
  * quantity in this model is; the two enums are the contract's own, not a second
  * copy. A body is not a vessel, but "how far do these elements reach" is one
@@ -79,7 +79,7 @@ import { CORE_UPLINK_CLIENT } from "./uplink-clients";
 export interface BodyHorizon {
   kind: PropagationHorizonKind;
   trajectoryKind: TrajectoryKind;
-  /** The last UT these elements answer for; set iff `kind` is `Until`. */
+  /** The last UT these elements hold for; set iff `kind` is `Until`. */
   untilUt: number | null;
 }
 
@@ -89,8 +89,7 @@ export interface BodyHorizon {
  *
  * A missing field is a host older than the field, and a host older than the
  * field has no seam for a provider to bound a body through, which is a stock
- * install. That is the same reading the host's own no-resolver arm takes
- * (`VesselViewProvider.ElementHorizon`), and it keeps `Unspecified` meaning what
+ * install. That keeps `Unspecified` meaning what
  * the contract says it means: a producer that HAS the field and could not fill
  * it.
  *
@@ -187,12 +186,12 @@ export interface CelestialFacts {
   /**
    * Body index to name, and back.
    *
-   * Plain records of primitives rather than `Map`s, and that is load-bearing
-   * rather than a style choice: the evaluator gates its fan-out on a structural
-   * comparison of the RESULT that walks plain objects, arrays, primitives and
-   * `Value`s, and compares anything else by identity. A `Map` in here would
-   * compare unequal on every frame and wake every consumer of the catalogue,
-   * which is the exact churn the notification budget exists to catch.
+   * Plain records of primitives rather than `Map`s, and that matters: the
+   * evaluator gates its fan-out on a structural comparison of the RESULT that
+   * walks plain objects, arrays, primitives and `Value`s, and compares anything
+   * else by identity. A `Map` in here would compare unequal on every frame and
+   * wake every consumer of the catalogue, which is the exact churn the
+   * notification budget exists to catch.
    */
   nameByIndex: Record<number, string>;
   indexByName: Record<string, number>;
@@ -385,7 +384,8 @@ export function bodyAtIndex(
 }
 
 /**
- * The enriched entry for one body name, or `null` when the catalogue does not carry it.
+ * The enriched entry for one body name, or `null` when the catalogue does not
+ * carry it.
  *
  * @category Solar system and fleet
  */

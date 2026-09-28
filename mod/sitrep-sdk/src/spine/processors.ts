@@ -33,17 +33,17 @@ export interface ProcessorHandle<
    * <p>Carried as a type parameter, not as a bare `string`, so a CONTRIBUTION
    * that deps on this handle can be handed its result under this exact key:
    * `topics[HANDLE.id]` is only typeable when `HANDLE.id` is more specific than
-   * `string`. The client id is not known statically, so what survives is
-   * `` `${string}:${ProcessorId}` ``, which is enough to key the record and still narrow
-   * enough that a Topic id cannot be read through it.</p>
+   * `string`. The client id is not known statically, so what survives is ``
+   * `${string}:${ProcessorId}` ``, which is enough to key the record and still
+   * narrow enough that a Topic id cannot be read through it.</p>
    */
   readonly id: ProcessorId;
   /** Type-only brand: never present at runtime, carries `Result` through inference. */
   readonly __resultType?: Result;
   /**
-   * Type-only brand: whether this processor ANSWERS with currency.
+   * Type-only brand: whether this processor returns a reading with currency.
    *
-   * True when its own deps include a reading, which is what makes the answer
+   * True when its own deps include a reading, which is what makes its result
    * datable. Carried on the handle because every consumer, a hook and a nested
    * dep alike, has to know which of the two shapes it is receiving; a processor
    * that gained or lost a reading dep would otherwise change what it hands back
@@ -53,11 +53,11 @@ export interface ProcessorHandle<
 }
 
 /**
- * Whether a dep list makes its processor's answer datable.
+ * Whether a dep list makes its processor's result datable.
  *
  * Wrapped in a tuple so a union of deps does not distribute: the question is
- * about the list as a whole, and a distributed `extends never` answers it once
- * per member.
+ * about the list as a whole, and a distributed `extends never` would decide it
+ * once per member.
  */
 export type CarriesCurrency<Deps extends readonly Dep[]> = [
   Extract<Deps[number], ReadingDep>,
@@ -89,9 +89,9 @@ export type CarriesCurrency<Deps extends readonly Dep[]> = [
  * `evaluate` skips a processor whose `lastFrameGeneration` matches the frame,
  * so it is memoised WITHIN a frame and re-evaluated ACROSS frames.
  * `sampleReading` re-derives a reading carrying a model whenever the frame's
- * view time moves. Both are keyed on the same thing, the frame, so a processor sees a
- * reading built for the moment it is deriving for without any new invalidation
- * machinery.
+ * view time moves. Both are keyed on the same thing, the frame, so a processor
+ * sees a reading built for the moment it is deriving for without any new
+ * invalidation machinery.
  *
  * ## What a processor should NOT do with it
  *
@@ -120,8 +120,8 @@ export interface ReadingDep<Topic extends TopicId = TopicId> {
  *
  * ## The payload type is stated, not looked up
  *
- * `Payload` is the payload the resolved topic carries, and the author gives it, the
- * same way `useStream<WireOf<VesselOrbitPayload>>(`fleet.${guid}.orbit`)`
+ * `Payload` is the payload the resolved topic carries, and the author gives it,
+ * the same way `useStream<WireOf<VesselOrbitPayload>>(`fleet.${guid}.orbit`)`
  * already does at every other dynamic read in the tree. A dynamic topic has no
  * member in `TopicPayloadMap` to infer from: the ids are computed at runtime,
  * which is the same reason `dynamicWholeTopicPrefixes` exists rather than a
@@ -132,7 +132,7 @@ export interface ReadingDep<Topic extends TopicId = TopicId> {
  * `subject` returning `undefined` resolves the dep to `undefined`, which the
  * store already turns into the `input-absent` decline every other unmet dep
  * gets. A model that cannot name its subject has not got its input, and saying
- * so is the same answer as an absent channel rather than a new one.
+ * so is the same result as an absent channel rather than a new one.
  */
 export interface SubjectDep<
   Payload = unknown,
@@ -208,11 +208,11 @@ export type ResolvedDeps<Deps extends readonly Dep[]> = {
 /**
  * What a `compute` is told about the frame it is running for, beyond its deps.
  *
- * Only the frame's instants, and deliberately only those: a processor that needs to
- * know WHEN it is deriving for is common (anything turning an instant on the
- * wire into a remaining duration), and a processor that reaches for a wall
- * clock instead is the bug `readingAge` and the wall-clock ratchet exist to
- * stop. Handing it the frame's own frozen instants means there is nothing to
+ * Only the frame's instants, and deliberately only those: a processor that
+ * needs to know WHEN it is deriving for is common (anything turning an instant
+ * on the wire into a remaining duration), and a processor that reaches for a
+ * wall clock instead is the bug `readingAge` and the wall-clock ratchet exist
+ * to stop. Handing it the frame's own frozen instants means there is nothing to
  * reach for.
  */
 export interface ProcessorFrame {
@@ -325,19 +325,17 @@ export function defineProcessor<
  * ## Absence is a value, not a crash
  *
  * A contract whose implementation never registers (the mod is not installed,
- * the Uplink did not load) evaluates to nothing and `useProcessor` answers
- * `undefined`, which every consumer already has to handle because that is also
- * what it answers with no provider mounted. That is deliberately the same
- * graceful-degradation shape a domain-gated widget already has, and it is why
- * this does not need a presence check bolted on.
+ * the Uplink did not load) evaluates to nothing and `useProcessor` returns
+ * `undefined`, which every consumer already handles because it also returns
+ * `undefined` with no provider mounted. No separate presence check is needed.
  *
  * ## What it cannot check
  *
  * That the registered `compute` returns what the contract promises. The two
  * sides are in different packages and the brand is type-only, so the guarantee
- * comes from the implementing Uplink importing `Result` from here and annotating its
- * `compute` with it. Declaring the type twice, once each side, is the failure
- * this exists to prevent, so do not.
+ * comes from the implementing Uplink importing `Result` from here and
+ * annotating its `compute` with it. Declaring the type twice, once each side,
+ * is the failure this exists to prevent, so do not.
  *
  * @category Processors
  */

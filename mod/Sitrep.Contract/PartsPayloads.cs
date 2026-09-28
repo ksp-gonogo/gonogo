@@ -5,12 +5,12 @@ using Reinforced.Typings.Attributes;
 
 namespace Sitrep.Contract;
 
-/// <summary>
-/// One solar panel in the <c>parts.power</c> payload's <c>solarPanels</c> array.
-/// Typing-only mirror of <c>Sitrep.Host.PartsViewProvider.BuildSolarPanelEntry</c>,
-/// every field nullable because each is read through <c>SnapshotDict.Get*</c>,
-/// which yields <c>null</c> (not a sentinel) on absence. See
-/// <see cref="PartsPower"/> for the "no wire change" rationale.
+/// <summary> One solar panel in the <c>parts.power</c> payload's
+/// <c>solarPanels</c> array. Typing-only mirror of
+/// <c>Sitrep.Host.PartsViewProvider.BuildSolarPanelEntry</c>, every field
+/// nullable because each is read through <c>SnapshotDict.Get*</c>, which yields
+/// <c>null</c> (not a sentinel) on absence. See <see cref="PartsPower"/> for
+/// the "no wire change" rationale.
 /// </summary>
 /// <category>Parts</category>
 [SitrepContract]
@@ -122,10 +122,10 @@ public class AlternatorEntry
 /// emits (same names, same camelCase wire keys via
 /// <c>RtConfig.CamelCaseForProperties</c>, same units). It is NOT serialized
 /// itself: the wire is written by <c>JsonWriter</c> walking the provider's
-/// dictionary: so adding it changes no bytes. The four arrays and the total
-/// are each nullable to mirror the provider (the arrays are always present in
-/// the emitted object, but the contract stays permissive; the total is
-/// <c>null</c> whenever <c>SnapshotDict.GetDouble</c> reads no finite value).</para>
+/// dictionary: so adding it changes no bytes. The four arrays and the total are
+/// each nullable to mirror the provider (the arrays are always present in the
+/// emitted object, but the contract stays permissive; the total is <c>null</c>
+/// whenever <c>SnapshotDict.GetDouble</c> reads no finite value).</para>
 /// </summary>
 /// <category>Parts</category>
 [SitrepContract]
@@ -164,9 +164,7 @@ public class PartsPower
 ///
 /// <para><b>This list is a description, not a rule.</b> The capture derives
 /// the kinds from <c>BaseServo</c> itself rather than from any written-down
-/// set, which is the whole point: the set used to be written down, rotation
-/// servos were left out of it, and every one on every craft was dropped
-/// before it reached the wire. A consumer should switch on the kinds it can
+/// set. A consumer should switch on the kinds it can
 /// draw and ignore the rest, never assume this sentence is exhaustive.</para>
 ///
 /// <para><b>Typing-only mirror</b> of
@@ -233,10 +231,10 @@ public class ServoEntry
     [SitrepUnit(Units.Metres)]
     public double? TargetExtension { get; set; }
 
-    /// <summary>
-    /// Rotor spin direction (rotor entries only: <c>null</c> for every other kind).
-    /// Mirrors <c>ModuleRoboticServoRotor.rotateCounterClockwise</c>: <c>true</c>
-    /// means the rotor spins counter-clockwise.
+    /// <summary> Rotor spin direction (rotor entries only: <c>null</c> for
+    /// every other kind). Mirrors
+    /// <c>ModuleRoboticServoRotor.rotateCounterClockwise</c>: <c>true</c> means
+    /// the rotor spins counter-clockwise.
     /// </summary>
     [SitrepUnit(Units.Flag)]
     public bool? CounterClockwise { get; set; }
@@ -279,7 +277,7 @@ public class ServoEntry
 /// only a historical one. <c>null</c> means the craft could not be surveyed:
 /// a snapshot recorded before this field existed, or a live one where a
 /// part's reflective read failed, since "no robotic parts" is a claim about
-/// every part and one of them did not answer. <c>false</c> is the definite
+/// every part and one of them could not be read. <c>false</c> is the definite
 /// "this craft carries none". A reader that treats null as false tells the
 /// operator there are no robotic parts on a craft that may be full of
 /// them.</para>
