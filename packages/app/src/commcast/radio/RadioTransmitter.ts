@@ -304,12 +304,6 @@ export class RadioTransmitter {
     this.capture = capture;
     this.current = transmission;
     this.seq = 0;
-    this.send({
-      kind: "start",
-      transmissionId: transmission.id,
-      authorStationKey: transmission.authorStationKey,
-      transmission,
-    });
     this.set({
       live: true,
       opening: false,
@@ -354,6 +348,7 @@ export class RadioTransmitter {
       kind: "chunk",
       transmissionId: transmission.id,
       authorStationKey: transmission.authorStationKey,
+      transmission,
       /*
        * The transmitter's own present, per chunk. NOT the frozen `startedUt`
        * plus an offset: a warp or a revert moves the clock, and a stream timed

@@ -13,11 +13,23 @@ import { radioFrameFromWire } from "./wire";
  * `Uint8Array` at both ends.
  */
 
+const TRANSMISSION = {
+  id: "t-1",
+  to: ["ksc"],
+  from: "vessel:near",
+  authorStationKey: "station-a",
+  authorName: "Pilot",
+  authorSeat: "pilot" as const,
+  startedUt: 1_000,
+  separationSeconds: 3,
+};
+
 function chunkFrame(bytes: Uint8Array | ArrayBuffer): RadioFrame {
   return {
     kind: "chunk",
     transmissionId: "t-1",
     authorStationKey: "station-a",
+    transmission: TRANSMISSION,
     seq: 0,
     ut: 1_000,
     bytes: bytes as Uint8Array,
@@ -47,22 +59,7 @@ describe("radioFrameFromWire", () => {
     expect(radioFrameFromWire(frame)).toBe(frame);
   });
 
-  it("leaves the envelope frames alone, which carry no audio at all", () => {
-    const start: RadioFrame = {
-      kind: "start",
-      transmissionId: "t-1",
-      authorStationKey: "station-a",
-      transmission: {
-        id: "t-1",
-        to: ["ksc"],
-        from: "vessel:near",
-        authorStationKey: "station-a",
-        authorName: "Pilot",
-        authorSeat: "pilot",
-        startedUt: 1_000,
-        separationSeconds: 3,
-      },
-    };
+  it("leaves the end frame alone, which carries no audio at all", () => {
     const end: RadioFrame = {
       kind: "end",
       transmissionId: "t-1",
@@ -70,7 +67,6 @@ describe("radioFrameFromWire", () => {
       ut: 1_002,
     };
 
-    expect(radioFrameFromWire(start)).toBe(start);
     expect(radioFrameFromWire(end)).toBe(end);
   });
 });

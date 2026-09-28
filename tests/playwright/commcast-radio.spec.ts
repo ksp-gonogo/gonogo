@@ -35,7 +35,7 @@
  * ## The light, and the leak it must not have
  *
  * `RadioReception.live` is populated only when a chunk is PRESENTED, never on
- * the `start` frame, because `start` crosses at the speed of the internet: a
+ * its arrival, because a chunk crosses the mesh at the speed of the internet: a
  * lamp lit by the envelope would announce a speaker a light-minute before
  * their first word. That is asserted here in the only place it can be, with a
  * real wire under it, and it is planted in both directions rather than
@@ -378,7 +378,7 @@ test.describe("commcast radio: two screens hearing each other @chromium-only", (
 
       /*
        * The whole claim in one line, and the strongest plant against a lamp lit
-       * by the envelope: `start` reaches both craft in the same internet
+       * by arrival: each chunk reaches both craft in the same internet
        * millisecond, so an envelope-driven light would put this difference at
        * roughly zero. It is six seconds.
        */

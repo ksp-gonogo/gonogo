@@ -690,8 +690,8 @@ export async function openScreen(
  * builds its receiver before it has reached mission control at all, and a
  * station's "connected" is its own end opening, which the host's end can trail.
  * A keying that starts before the host holds the link is one this screen joined
- * mid-transmission, and a screen that missed the `start` frame drops every chunk
- * after it, by design.
+ * mid-transmission, and it hears that keying only from the point it joined,
+ * which a scene asserting a whole utterance must not be measuring.
  *
  * Read off the host's own connection list, matched on the peer's station key,
  * because its peer id adds a per-session token the peer's page never shows.

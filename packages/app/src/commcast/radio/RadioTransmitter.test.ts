@@ -82,20 +82,13 @@ function scene(utNow: () => number | undefined = () => 1000) {
 }
 
 describe("radio transmit, one keying", () => {
-  it("opens with the envelope and then streams numbered chunks", async () => {
+  it("streams numbered chunks, each carrying the whole envelope", async () => {
     let ut = 1000;
     const { sent, mic, transmitter } = scene(() => ut);
     const keying = transmitter.keyDown(JEB);
     mic.open();
     await keying;
-
-    const opening = sent[0];
-    expect(opening?.kind).toBe("start");
-    if (opening?.kind !== "start") throw new Error("no start frame");
-    expect(opening.transmission.from).toBe(ARES);
-    expect(opening.transmission.to).toEqual([KSC]);
-    expect(opening.transmission.separationSeconds).toBe(240);
-    expect(opening.transmission.startedUt).toBe(1000);
+    expect(sent).toEqual([]);
 
     ut = 1000.02;
     mic.speak(new Uint8Array([9]));
@@ -104,9 +97,17 @@ describe("radio transmit, one keying", () => {
     transmitter.keyUp();
 
     const kinds = sent.map((f) => f.kind);
-    expect(kinds).toEqual(["start", "chunk", "chunk", "end"]);
+    expect(kinds).toEqual(["chunk", "chunk", "end"]);
     const chunks = sent.filter((f) => f.kind === "chunk");
     expect(chunks.map((c) => c.seq)).toEqual([0, 1]);
+    // Any one chunk is enough to place the keying, so a listener that joins partway through hears from there.
+    for (const c of chunks) {
+      expect(c.transmission.id).toBe(c.transmissionId);
+      expect(c.transmission.from).toBe(ARES);
+      expect(c.transmission.to).toEqual([KSC]);
+      expect(c.transmission.separationSeconds).toBe(240);
+      expect(c.transmission.startedUt).toBe(1000);
+    }
     /*
      * Each chunk carries the transmitter's OWN present at capture, not the
      * frozen start plus an offset: a warp or a revert moves the clock, and a
@@ -132,7 +133,7 @@ describe("radio transmit, one keying", () => {
     mic.speak();
 
     const opening = sent[0];
-    if (opening?.kind !== "start") throw new Error("no start frame");
+    if (opening?.kind !== "chunk") throw new Error("no chunk");
     expect(opening.transmission.separationSeconds).toBeNull();
     expect(sent.filter((f) => f.kind === "chunk")).toHaveLength(1);
     expect(transmitter.snapshot().live).toBe(true);

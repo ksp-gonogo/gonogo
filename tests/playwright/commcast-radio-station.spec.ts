@@ -60,7 +60,7 @@ import { getHostPeerId } from "./helpers";
  *   - **talk**: the fixed-label key, latched from the station
  *   - **the delay**: the same utterance arriving one light-time later, audible
  *   - **the transmission light**: dark while the words are crossing, with the
- *     station provably already mid-sentence. A lamp lit by the `start` frame
+ *     station provably already mid-sentence. A lamp lit by a chunk's arrival
  *     would announce a speaker before their first word could have arrived
  *   - **mute**: muted mid-transmission, the audio stops; unmuted, it resumes
  *     where the audio has GOT TO. The chunk indices either side of the gap are
@@ -296,7 +296,7 @@ test.describe("commcast radio from a station screen @chromium-only", () => {
       });
       await caption(
         screens,
-        `+${NEAR_SECONDS} s: the words arrive and the lamp lights. It is lit by audio being PRESENTED, never by the start frame.`,
+        `+${NEAR_SECONDS} s: the words arrive and the lamp lights. It is lit by audio being PRESENTED, never by a chunk merely arriving.`,
       );
       await station.page.waitForTimeout(HOLD_MS);
       /*

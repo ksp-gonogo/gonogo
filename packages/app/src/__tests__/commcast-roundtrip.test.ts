@@ -457,33 +457,31 @@ describe("Commcast radio, live across the mesh", () => {
     return { ground, aboard, range, heard };
   }
 
-  const KEYING: RadioFrame = {
-    kind: "start",
+  const TRANSMISSION = {
+    id: "t1",
+    to: [KSC],
+    from: ARES,
+    authorStationKey: "pilot-1",
+    authorName: "Jeb",
+    authorSeat: "pilot" as const,
+    startedUt: 1000,
+    separationSeconds: LIGHT_TIME,
+  };
+
+  const chunk = (seq: number, bytes: number[]): RadioFrame => ({
+    kind: "chunk",
     transmissionId: "t1",
     authorStationKey: "pilot-1",
-    transmission: {
-      id: "t1",
-      to: [KSC],
-      from: ARES,
-      authorStationKey: "pilot-1",
-      authorName: "Jeb",
-      authorSeat: "pilot",
-      startedUt: 1000,
-      separationSeconds: LIGHT_TIME,
-    },
-  };
+    transmission: TRANSMISSION,
+    seq,
+    ut: 1000 + seq * 0.02,
+    bytes: new Uint8Array(bytes),
+  });
 
   it("reaches every other screen, and never the one that spoke", () => {
     const { aboard, heard } = radioScene();
-    aboard.log.sendRadio(KEYING);
-    aboard.log.sendRadio({
-      kind: "chunk",
-      transmissionId: "t1",
-      authorStationKey: "pilot-1",
-      seq: 0,
-      ut: 1000,
-      bytes: new Uint8Array([7, 7, 7]),
-    });
+    aboard.log.sendRadio(chunk(0, [7, 7, 7]));
+    aboard.log.sendRadio(chunk(1, [7, 7, 7]));
 
     expect(heard.get("ksc")).toHaveLength(2);
     expect(heard.get("woomera")).toHaveLength(2);
@@ -497,16 +495,8 @@ describe("Commcast radio, live across the mesh", () => {
 
   it("carries the audio bytes through the wire untouched", () => {
     const { aboard, heard } = radioScene();
-    aboard.log.sendRadio(KEYING);
-    aboard.log.sendRadio({
-      kind: "chunk",
-      transmissionId: "t1",
-      authorStationKey: "pilot-1",
-      seq: 0,
-      ut: 1000,
-      bytes: new Uint8Array([0, 255, 128]),
-    });
-    const landed = heard.get("ksc")?.[1];
+    aboard.log.sendRadio(chunk(0, [0, 255, 128]));
+    const landed = heard.get("ksc")?.[0];
     expect(landed?.kind).toBe("chunk");
     if (landed?.kind !== "chunk") throw new Error("no chunk");
     expect([...landed.bytes]).toEqual([0, 255, 128]);
@@ -516,7 +506,7 @@ describe("Commcast radio, live across the mesh", () => {
     // Live audio has no transcript. A participant who was away missed it, the
     // way they would have on a radio, and the message ledger never sees it.
     const { ground, aboard, range } = radioScene();
-    aboard.log.sendRadio(KEYING);
+    aboard.log.sendRadio(chunk(0, [1]));
     for (const log of [ground.log, aboard.log, range.log]) {
       expect(log.snapshot()).toEqual(EMPTY_COMMCAST_LOG);
     }

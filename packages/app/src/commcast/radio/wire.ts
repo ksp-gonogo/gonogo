@@ -26,14 +26,16 @@ import type { RecipientId } from "../types";
  */
 
 /**
- * One keying of the microphone, described once at key-down.
+ * One keying of the microphone, described once at key-down and carried on every
+ * chunk of it.
  *
- * Sent ahead of the chunks rather than repeated on each of them: at 20 ms per
- * chunk the envelope would be 50 copies a second of five strings that never
- * change, which is more wire than the audio. The cost is that a screen which
- * joins mid-transmission cannot place the chunks it is hearing, and drops them;
- * it hears the next transmission whole. That is the honest failure for a live
- * medium and the same one a real radio has.
+ * On every chunk rather than once ahead of them, so each chunk is placeable on
+ * its own: a listener that starts receiving partway through a keying (a screen
+ * that joined the mesh late, a vantage a path has just reached) decodes from
+ * wherever the stream is when it gets there, one light-time later at its own
+ * vantage, with nothing replayed and nothing asked for. The cost is the envelope
+ * repeated fifty times a second, a few hundred bytes a chunk against a data
+ * channel that carries megabytes.
  */
 export interface RadioTransmission {
   /** Minted at key-down. Groups every chunk of one keying. */
@@ -79,8 +81,8 @@ export interface RadioTransmission {
 interface RadioFrameBase {
   transmissionId: string;
   /**
-   * Repeated on every frame, unlike the rest of the envelope, because it is
-   * what the relay drops its own echo on. The host repeats each frame to the
+   * On every frame, `end` included, because it is what the relay drops its own
+   * echo on. The host repeats each frame to the
    * other peers and then offers it to this screen, exactly as it does for a
    * text message, and it must not offer a screen its own voice back.
    *
@@ -93,15 +95,15 @@ interface RadioFrameBase {
 /**
  * One frame of the radio channel.
  *
- * Three kinds rather than one self-describing chunk, so the envelope is paid
- * for once per keying. `end` exists because a listener otherwise cannot tell a
- * finished transmission from one whose next chunk is merely late, and the two
- * read differently on the bar.
+ * `end` exists because a listener otherwise cannot tell a finished transmission
+ * from one whose next chunk is merely late, and the two read differently on the
+ * bar.
  */
 export type RadioFrame =
-  | (RadioFrameBase & { kind: "start"; transmission: RadioTransmission })
   | (RadioFrameBase & {
       kind: "chunk";
+      /** The keying this chunk belongs to, whole. See {@link RadioTransmission}. */
+      transmission: RadioTransmission;
       /** 0-based within the transmission, monotonic. */
       seq: number;
       /** The transmitter's own present when this chunk was captured. */

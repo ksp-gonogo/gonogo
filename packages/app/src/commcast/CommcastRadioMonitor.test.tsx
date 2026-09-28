@@ -162,7 +162,7 @@ function scene() {
       const authorStationKey = `station-${from}`;
       const frames: RadioFrame[] = [
         {
-          kind: "start",
+          kind: "chunk",
           transmissionId: id,
           authorStationKey,
           transmission: {
@@ -175,11 +175,6 @@ function scene() {
             startedUt: SPOKEN_UT,
             separationSeconds: null,
           },
-        },
-        {
-          kind: "chunk",
-          transmissionId: id,
-          authorStationKey,
           seq: 0,
           ut: SPOKEN_UT,
           bytes: Uint8Array.from(word, (c) => c.charCodeAt(0)),

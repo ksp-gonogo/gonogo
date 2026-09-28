@@ -354,10 +354,10 @@ describe("a keying with no path", () => {
     expect(scene.frames.filter((f) => f.kind === "chunk")).toHaveLength(
       SHORT_CLIP.chunks.length,
     );
-    const start = scene.frames[0];
-    expect(start.kind).toBe("start");
-    if (start.kind === "start") {
-      expect(start.transmission.separationSeconds).toBeNull();
+    const first = scene.frames[0];
+    expect(first.kind).toBe("chunk");
+    if (first.kind === "chunk") {
+      expect(first.transmission.separationSeconds).toBeNull();
     }
   });
 });

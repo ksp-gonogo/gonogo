@@ -105,15 +105,6 @@ function transmission(
   };
 }
 
-function start(t: RadioTransmission): RadioFrame {
-  return {
-    kind: "start",
-    transmissionId: t.id,
-    authorStationKey: t.authorStationKey,
-    transmission: t,
-  };
-}
-
 function chunk(
   t: RadioTransmission,
   seq: number,
@@ -124,6 +115,7 @@ function chunk(
     kind: "chunk",
     transmissionId: t.id,
     authorStationKey: t.authorStationKey,
+    transmission: t,
     seq,
     ut,
     bytes: new Uint8Array(bytes).fill(seq % 256),
@@ -169,7 +161,6 @@ describe("radio playout, held by the light-time", () => {
   it("plays nothing until the crossing is over, then plays it", () => {
     const { clock, sink, session } = scene();
     const t = transmission();
-    session.receive(start(t));
     session.receive(chunk(t, 0, 1000));
 
     clock.set(1000 + LIGHT_TIME - 0.001);
@@ -185,7 +176,6 @@ describe("radio playout, held by the light-time", () => {
     // The whole point of `utNowEstimate()` over `confirmedEdgeUt()`: a word spoken at 1000 across a four-minute path is heard at 1240, never 1480.
     const { clock, sink, session } = scene();
     const t = transmission();
-    session.receive(start(t));
     session.receive(chunk(t, 0, 1000));
     clock.set(1000 + 2 * LIGHT_TIME - 1);
     session.pump(100);
@@ -200,7 +190,6 @@ describe("radio playout, held by the light-time", () => {
      */
     const { clock, sink, session } = scene();
     const t = transmission();
-    session.receive(start(t));
     session.receive(chunk(t, 0, 1000));
 
     const nearer: SeparationMatrix = new Map([[ARES, new Map([[KSC, 5]])]]);
@@ -221,7 +210,6 @@ describe("radio playout, held by the light-time", () => {
     const pairs: SeparationMatrix = new Map([[ARES, new Map([[KSC, 60]])]]);
     const { clock, sink, session } = scene({ pairs });
     const t = transmission();
-    session.receive(start(t));
     session.receive(chunk(t, 0, 1000));
     clock.set(1060);
     session.pump(100);
@@ -231,7 +219,6 @@ describe("radio playout, held by the light-time", () => {
   it("plays in release order however the wire delivered it", () => {
     const { clock, sink, session } = scene();
     const t = transmission();
-    session.receive(start(t));
     session.receive(chunk(t, 1, 1000 + CHUNK));
     session.receive(chunk(t, 0, 1000));
     clock.set(2000);
@@ -244,9 +231,7 @@ describe("radio playout, held by the light-time", () => {
     const { clock, sink, session } = scene();
     const first = transmission({ id: "t1" });
     const second = transmission({ id: "t2", startedUt: 2000 });
-    session.receive(start(first));
     session.receive(chunk(first, 0, 1000));
-    session.receive(start(second));
     session.receive(chunk(second, 0, 2000));
     clock.set(3000);
     session.pump(100);
@@ -315,7 +300,6 @@ describe("radio playout, in the order it was spoken", () => {
     // A catch-up burst stamps several chunks inside one clock tick, so their instants tie and only arrival order separates them.
     const { clock, sink, session } = scene();
     const t = transmission();
-    session.receive(start(t));
     session.receive(chunk(t, 0, 1000));
     session.receive(chunk(t, 2, 1000 + CHUNK));
     session.receive(chunk(t, 1, 1000 + CHUNK));
@@ -332,7 +316,6 @@ describe("radio playout, in the order it was spoken", () => {
      */
     const { clock, sink, session } = scene();
     const t = transmission();
-    session.receive(start(t));
     session.receive(chunk(t, 0, 1600));
     session.receive(chunk(t, 1, 1000));
     clock.set(1000 + LIGHT_TIME);
@@ -348,7 +331,6 @@ describe("radio playout, a cut", () => {
     // transmitter learns through absence of acknowledgement, at their own end.
     const { clock, sink, session } = scene();
     const t = transmission({ separationSeconds: null });
-    session.receive(start(t));
     session.receive(chunk(t, 0, 1000));
     clock.set(9999);
     session.pump(100);
@@ -360,22 +342,12 @@ describe("radio playout, a cut", () => {
       droppedChunks: 0,
     });
   });
-
-  it("drops chunks of a keying whose opening frame never arrived", () => {
-    const { clock, sink, session } = scene();
-    const t = transmission();
-    session.receive(chunk(t, 0, 1000));
-    clock.set(9999);
-    session.pump(100);
-    expect(sink.decoded).toHaveLength(0);
-  });
 });
 
 describe("radio playout, what the operator is told", () => {
   it("names who is being heard, and falls silent when they finish", () => {
     const { clock, sink, session } = scene();
     const t = transmission();
-    session.receive(start(t));
     session.receive(chunk(t, 0, 1000));
     session.receive(chunk(t, 1, 1000 + CHUNK));
     session.receive({
@@ -405,7 +377,6 @@ describe("radio playout, what the operator is told", () => {
     // behind it is meanwhile.
     const { clock, session } = scene();
     const t = transmission();
-    session.receive(start(t));
     for (let seq = 0; seq < 5; seq++) {
       session.receive(chunk(t, seq, 1000 + seq * CHUNK));
     }
@@ -424,7 +395,6 @@ describe("radio playout, what the operator is told", () => {
     // it. That is why the buffer runs drop-oldest rather than GOP-safe.
     const { clock, sink, session } = scene({ maxBufferedBytes: 128 });
     const t = transmission();
-    session.receive(start(t));
     for (let seq = 0; seq < 6; seq++) {
       session.receive(chunk(t, seq, 1000 + seq * CHUNK));
     }
@@ -440,7 +410,6 @@ describe("radio playout, what the operator is told", () => {
   it("snaps past a backlog it can never drain, rather than lagging forever", () => {
     const { clock, sink, session } = scene({ maxBacklogSeconds: 0.25 });
     const t = transmission();
-    session.receive(start(t));
     for (let seq = 0; seq < 4; seq++) {
       session.receive(chunk(t, seq, 1000 + seq * CHUNK));
     }
@@ -465,7 +434,6 @@ describe("radio monitoring, a per-conversation mute", () => {
     // by the same function the log keys its conversations by.
     const { clock, session } = scene();
     const t = transmission();
-    session.receive(start(t));
     session.receive(chunk(t, 0, 1000));
     clock.set(1000 + LIGHT_TIME);
     session.pump(100);
@@ -494,7 +462,6 @@ describe("radio monitoring, a per-conversation mute", () => {
       authorName: "Woomera Range",
       separationSeconds: 3,
     });
-    session.receive(start(woomera));
     session.receive(chunk(woomera, 0, 1000));
     clock.set(1003);
     session.pump(100);
@@ -507,7 +474,6 @@ describe("radio monitoring, a per-conversation mute", () => {
     const { clock, sink, session } = scene();
     session.setMuted(new Set([ARES_THREAD]));
     const t = transmission();
-    session.receive(start(t));
     session.receive(chunk(t, 0, 1000));
     clock.set(1000 + LIGHT_TIME);
     session.pump(100);
@@ -528,7 +494,6 @@ describe("radio monitoring, a per-conversation mute", () => {
     const { clock, session } = scene();
     session.setMuted(new Set([ARES_THREAD]));
     const t = transmission();
-    session.receive(start(t));
     session.receive(chunk(t, 0, 1000));
     expect(session.snapshot().live).toEqual([]);
 
@@ -541,7 +506,6 @@ describe("radio monitoring, a per-conversation mute", () => {
     // A persistent operator decision that takes effect where they made it, not at the next keying: a loop muted mid-sentence goes quiet mid-sentence.
     const { clock, sink, session } = scene();
     const t = transmission();
-    session.receive(start(t));
     for (let seq = 0; seq < 3; seq++) {
       session.receive(chunk(t, seq, 1000 + seq * CHUNK));
     }
@@ -572,7 +536,6 @@ describe("radio monitoring, a per-conversation mute", () => {
     silent.session.setMuted(new Set([ARES_THREAD]));
     for (const { clock, session } of [heard, silent]) {
       const t = transmission();
-      session.receive(start(t));
       for (let seq = 0; seq < 5; seq++) {
         session.receive(chunk(t, seq, 1000 + seq * CHUNK));
       }
@@ -596,9 +559,7 @@ describe("radio monitoring, a per-conversation mute", () => {
       from: "ground:woomera",
       authorName: "Woomera Range",
     });
-    session.receive(start(ares));
     session.receive(chunk(ares, 0, 1000));
-    session.receive(start(woomera));
     session.receive(chunk(woomera, 0, 1000));
     clock.set(1000 + LIGHT_TIME);
     session.pump(100);
@@ -624,7 +585,6 @@ describe("radio playout, teardown", () => {
   it("closes the listening output and stops answering", () => {
     const { clock, sink, session } = scene();
     const t = transmission();
-    session.receive(start(t));
     session.dispose();
     session.receive(chunk(t, 0, 1000));
     clock.set(9999);
@@ -639,7 +599,6 @@ describe("radio, inside its budgets", () => {
   it("a talker at the 20 ms grid never approaches the chunk cap", () => {
     const { session } = scene();
     const t = transmission();
-    session.receive(start(t));
     for (let seq = 0; seq < 50; seq++) {
       session.receive(chunk(t, seq, 1000 + seq * CHUNK, 86));
     }
@@ -654,5 +613,63 @@ describe("radio, inside its budgets", () => {
     // One second of the worst engine measured in slice 0, well under both caps.
     expect(chunks?.rate()).toBe(50);
     expect(bytes?.rate()).toBe(50 * 86);
+  });
+});
+
+describe("radio playout, joined partway through a keying", () => {
+  it("hears from the first chunk that reaches it, one light-time after it was spoken", () => {
+    // Nothing of seq 0..49 ever reached this screen: it joined the mesh with the keying a second old.
+    const { clock, sink, session } = scene();
+    const t = transmission();
+    for (let seq = 50; seq < 60; seq++) {
+      session.receive(chunk(t, seq, 1000 + seq * CHUNK));
+    }
+
+    clock.set(1000 + 50 * CHUNK + LIGHT_TIME - 0.001);
+    session.pump(100);
+    expect(sink.decoded).toHaveLength(0);
+    expect(session.snapshot().live).toEqual([]);
+
+    clock.set(1000 + 60 * CHUNK + LIGHT_TIME);
+    for (let i = 0; i < 12; i++) session.pump(100 + i * CHUNK);
+    expect(sink.decoded.map((d) => d.bytes[0])).toEqual([
+      50, 51, 52, 53, 54, 55, 56, 57, 58, 59,
+    ]);
+    expect(sink.streams).toBe(1);
+    expect(session.snapshot().live).toEqual([
+      expect.objectContaining({ transmissionId: "t1", muted: false }),
+    ]);
+  });
+
+  it("places nothing until it knows its own vantage, then hears from the next chunk", () => {
+    const { clock, sink, session } = scene({ me: { seat: "mission-control" } });
+    const t = transmission();
+    session.receive(chunk(t, 0, 1000));
+    session.receive(chunk(t, 1, 1000 + CHUNK));
+
+    session.setVantage(GROUND);
+    session.receive(chunk(t, 2, 1000 + 2 * CHUNK));
+    clock.set(2000);
+    session.pump(100);
+    session.pump(101);
+    expect(sink.decoded.map((d) => d.bytes[0])).toEqual([2]);
+  });
+
+  it("is placed at THIS vantage's separation, not the one the transmitter froze for its target", () => {
+    const woomera = "ground:woomera";
+    const pairs: SeparationMatrix = new Map([[ARES, new Map([[woomera, 9]])]]);
+    const { clock, sink, session } = scene({
+      me: { seat: "mission-control", vantageId: woomera },
+      pairs,
+    });
+    const t = transmission({ separationSeconds: 3 });
+    session.receive(chunk(t, 40, 1000));
+
+    clock.set(1008.99);
+    session.pump(100);
+    expect(sink.decoded).toHaveLength(0);
+    clock.set(1009);
+    session.pump(100);
+    expect(sink.decoded).toHaveLength(1);
   });
 });

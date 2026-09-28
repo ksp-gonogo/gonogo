@@ -100,9 +100,10 @@ export interface RadioReceiver {
  * One transmission whose audio is reaching this screen right now.
  *
  * Read off the AUDIO rather than off the envelope, which is the difference
- * between an indicator light and a faster-than-light channel: `start` crosses
- * at the speed of the internet, so a light lit by it would announce somebody
- * speaking a light-minute before their first word could be heard. An entry
+ * between an indicator light and a faster-than-light channel: a chunk reaches
+ * this screen at the speed of the internet, so a light lit on arrival would
+ * announce somebody speaking a light-minute before their first word could be
+ * heard. An entry
  * appears here at the instant its first chunk is presented, which is the
  * instant an operator with the volume up would have heard it.
  */
@@ -182,8 +183,8 @@ interface HeldChunk {
 /** A transmission this screen is placing chunks against. */
 interface HeardTransmission {
   transmission: RadioTransmission;
-  /** Which conversation it belongs to here. Resolved once, at the `start`
-   *  frame, from the same vantage the separation was resolved against. */
+  /** Which conversation it belongs to here. Resolved once, at the first chunk
+   *  heard, from the same vantage the separation was resolved against. */
   threadKey: string;
   /** The other ends of that conversation, sorted, as the inbox names them. */
   with: readonly RecipientId[];
@@ -193,7 +194,7 @@ interface HeardTransmission {
    */
   presented: boolean;
   /**
-   * The separation resolved ONCE, at the `start` frame, and never re-read.
+   * The separation resolved ONCE, at the first chunk heard, and never re-read.
    *
    * Frozen for the same reason the transmitter froze its own: a separation that
    * moved between chunks would move their release instants independently across
@@ -225,7 +226,7 @@ interface HeardTransmission {
   /**
    * This keying's own decode stream, one lane of the listener's mix.
    *
-   * Opened at the `start` frame and closed when the transmission retires, so
+   * Opened at the first chunk heard and closed when the transmission retires, so
    * two people talking at once are two streams summed rather than one stream
    * being handed two people's chunks. Opened even for a conversation the
    * operator has muted, so unmuting mid-sentence resumes into a stream that was
@@ -378,12 +379,14 @@ export class RadioSession {
     this.unsubscribeFrame = opts.view.onFrame(() => this.pump());
   }
 
-  /** Where this screen is reading from. Only ever consulted at a `start`. */
+  /** Where this screen is reading from. Consulted only when a transmission is
+   *  first heard. */
   setVantage(me: Vantage): void {
     this.me = me;
   }
 
-  /** The published separation matrix, likewise consulted only at a `start`. */
+  /** The published separation matrix, likewise consulted only when a
+   *  transmission is first heard. */
   setPairs(pairs: SeparationMatrix | undefined): void {
     this.pairs = pairs;
   }
@@ -391,8 +394,8 @@ export class RadioSession {
   /**
    * Which conversations are tuned out, by thread key.
    *
-   * Consulted at the SPEAKER, per chunk, rather than frozen at the `start`
-   * frame like the separation is: a mute is a decision the operator makes now,
+   * Consulted at the SPEAKER, per chunk, rather than frozen at the first chunk
+   * like the separation is: a mute is a decision the operator makes now,
    * and one made mid-sentence has to take effect mid-sentence. Nothing about
    * the delay is re-read here, so this cannot move a release instant.
    */
@@ -410,14 +413,18 @@ export class RadioSession {
     if (this.disposed) return;
     recordRadioFrame(frame);
     switch (frame.kind) {
-      case "start":
-        this.begin(frame.transmission);
-        break;
       case "chunk": {
-        const held = this.heard.get(frame.transmissionId);
-        // Either no path (a cut: silence, and nothing said about it) or a
-        // transmission whose opening frame this screen never saw, which is what
-        // joining mid-keying looks like. Both are dropped without a reading.
+        /*
+         * Placed off the chunk itself, so a transmission is heard from whatever
+         * chunk of it first reaches this screen: the first one for a listener
+         * that was there at key-down, a later one for a screen that joined
+         * partway through. A chunk that cannot be placed (no path, which is a
+         * cut and is silent, or no vantage yet, so no arrival instant to give
+         * it) is dropped without a reading, and the next one is tried afresh.
+         */
+        const held =
+          this.heard.get(frame.transmissionId) ??
+          this.begin(frame.transmission);
         if (!held) return;
         held.inflight += 1;
         this.crossing += 1;
@@ -491,13 +498,19 @@ export class RadioSession {
   }
 
   /**
-   * A new keying, placed against this vantage once and for all.
+   * A keying heard here for the first time, placed against this vantage once
+   * and for all, or `undefined` where it cannot be placed.
    *
    * `no-path` is the whole cut expression on this side: the transmission is not
-   * registered, so its chunks find nothing and are dropped. Deliberately not
-   * recorded, not counted and not surfaced, see the class doc.
+   * registered, so its chunk is dropped. Deliberately not recorded, not counted
+   * and not surfaced, see the class doc. A screen that does not yet know its own
+   * vantage cannot say when the words reach it either, and places nothing
+   * until it does.
    */
-  private begin(transmission: RadioTransmission): void {
+  private begin(
+    transmission: RadioTransmission,
+  ): HeardTransmission | undefined {
+    if (this.me.vantageId === undefined) return undefined;
     const seconds = transitSecondsOf(
       separationBetween(
         transmission.from,
@@ -506,13 +519,13 @@ export class RadioSession {
         this.pairs,
       ),
     );
-    if (seconds === null) return;
+    if (seconds === null) return undefined;
     const counterparties = inboundCounterparties(
       transmission.from,
       transmission.to,
       this.me.vantageId,
     );
-    this.heard.set(transmission.id, {
+    const held: HeardTransmission = {
       transmission,
       threadKey: threadKeyOf(counterparties),
       with: [...counterparties].sort(),
@@ -535,7 +548,9 @@ export class RadioSession {
       inBuffer: [],
       waiting: [],
       ended: false,
-    });
+    };
+    this.heard.set(transmission.id, held);
+    return held;
   }
 
   /**
@@ -543,11 +558,11 @@ export class RadioSession {
    * clock let through ahead of a lower `seq` still crossing.
    *
    * The delay buffer orders by UT, and a chunk's UT is its transmitter's
-   * `utNowEstimate()`, which is not monotonic: it re-anchors on every delivered
-   * sample, so a sample reaching the talker's screen later than the one before
-   * it steps their present back, and the next chunk goes out stamped behind the
-   * one spoken 20 ms earlier. A burst of chunks stamped inside one clock tick
-   * ties instead, leaving only arrival order between them. Either way the
+   * present, which a transmitter holds monotonic only against jitter (see
+   * `RadioClock`): across a discontinuity it steps back, and the next chunk
+   * goes out stamped behind the one spoken 20 ms earlier. A burst of chunks
+   * stamped inside one clock tick ties instead, leaving only arrival order
+   * between them. Either way the
    * buffer would release two words in the order they were NOT spoken, which a
    * listener hears as a glitch. The wait costs the size of that step.
    *
