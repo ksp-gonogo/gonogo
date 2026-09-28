@@ -136,7 +136,12 @@ describe("TimelineStore.sampleReckonedTail: a registered reckoner", () => {
     registerReckoner("test.contact", "test", {
       deps: [],
       reckon: (point) => ({
-        modelled: [{ path: "", basis: "rate-integration" }],
+        // `name` is claimed too, so its refusal below is about shape rather than coverage.
+        modelled: [
+          { path: "", basis: "rate-integration" },
+          { path: "relativePosition", basis: "rate-integration" },
+          { path: "name", basis: "rate-integration" },
+        ],
         reckon: (at: number) => ({
           relativePosition:
             (point.payload as { relativePosition: number }).relativePosition +

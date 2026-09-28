@@ -136,24 +136,14 @@ describe("a field property carries the band its topic's model produced", () => {
     expect(altitude.value?.magnitude).toBe(OBSERVED_ALTITUDE);
   });
 
-  /*
-   * The MOST SPECIFIC entry wins, and this is the case that says so. Both the
-   * root and `altitudeAsl` cover the altitude, and taking the root's basis
-   * would label a rate-integrated descent as a conic. The sibling the model
-   * only copies takes the root's basis, which is the inheritance the store's
-   * own field read has always done.
-   */
-  it("takes the most specific covering entry, not the first one that covers", () => {
+  // The root and `altitudeAsl` both name the altitude; the more specific entry's basis is the altitude's.
+  it("offers no model for a sibling the model only copies", () => {
     registerAltitudeOnlyModel();
     const reading = storeWithFlight(40).sampleReading<Flight>("vessel.flight");
 
     expect(reading.reckoning.status).toBe("available");
-    const speed = reading.orbitalSpeed;
-    if (speed.reckoning.status !== "available")
-      throw new Error("expected the root claim to reach the sibling");
-    expect(speed.reckoning.basis).toBe("kepler-propagation");
-    expect(speed.reckoning.band).toBeUndefined();
-    expect(speed.value?.magnitude).toBe(OBSERVED_SPEED);
+    expect(reading.orbitalSpeed.reckoning.status).toBe("none");
+    expect(reading.orbitalSpeed.value?.magnitude).toBe(OBSERVED_SPEED);
   });
 
   /*
@@ -178,36 +168,8 @@ describe("a field property carries the band its topic's model produced", () => {
     expect(reading.altitudeAsl.reckoning.status).toBe("none");
   });
 
-  /*
-   * The delegating implementation, spelled out. A root-claiming reckoner,
-   * `{ modelled: [{ path: "", basis }], reckon }` with no `bandAt`, brings the
-   * reading back `available` with no band anywhere on it.
-   */
-  it("loses the band to a root-claiming reckoner, which is what delegating would reach", () => {
-    registerReckoner("vessel.flight", "test", {
-      deps: [],
-      reckon: () => ({
-        modelled: [{ path: "", basis: "rate-integration" }],
-        reckon: () => flightPayload(),
-      }),
-    });
-    const reading = storeWithFlight(40).sampleReading<Flight>("vessel.flight");
-
-    if (reading.reckoning.status !== "available")
-      throw new Error("expected the derived-shaped model to answer");
-    expect(reading.reckoning.bands).toBeUndefined();
-    expect(
-      reading.altitudeAsl.reckoning.status === "available" &&
-        reading.altitudeAsl.reckoning.band,
-    ).toBeUndefined();
-  });
-
-  /*
-   * A root claim DOES reach every field, for the basis. Coverage inherits down
-   * because a basis is a property of the model and is true of every path it
-   * moves; a band does not, which the case above is the other half of.
-   */
-  it("inherits a root claim's basis without inheriting the root's band", () => {
+  // A reckoner claiming only the root answers the topic and models none of its fields.
+  it("models no field for a reckoner that claims only the root", () => {
     registerReckoner("vessel.flight", "test", {
       deps: [],
       reckon: () => ({
@@ -218,11 +180,8 @@ describe("a field property carries the band its topic's model produced", () => {
     });
     const reading = storeWithFlight(40).sampleReading<Flight>("vessel.flight");
 
-    const altitude = reading.altitudeAsl;
-    if (altitude.reckoning.status !== "available")
-      throw new Error("expected the root claim to reach the field");
-    expect(altitude.reckoning.basis).toBe("kepler-propagation");
-    expect(altitude.reckoning.band).toBeUndefined();
+    expect(reading.reckoning.status).toBe("available");
+    expect(reading.altitudeAsl.reckoning.status).toBe("none");
   });
 });
 

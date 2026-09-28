@@ -51,7 +51,6 @@ export type {
   UnmodelledReading,
 } from "../reading";
 export {
-  bandFor,
   bandIn,
   bandIsWellFormed,
   bandSide,

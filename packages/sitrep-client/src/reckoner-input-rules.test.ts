@@ -176,7 +176,10 @@ describe("rule 1: a model reaches no further than its inputs do", () => {
     registerReckoner("test.contact", UPLINK, {
       deps: [INPUT],
       reckon: (point) => ({
-        modelled: [{ path: "", basis: "rate-integration" }],
+        modelled: [
+          { path: "", basis: "rate-integration" },
+          { path: "relativePosition", basis: "rate-integration" },
+        ],
         reckon: (at: number) => ({
           relativePosition: at - point.validAt,
           name: "a",

@@ -4,18 +4,8 @@ import { topicReading } from "./reading";
 import { value } from "./unit-system/value";
 
 /**
- * The collection-indexed field accessor #38 asked for and #250 recorded:
- *
- * > the design must reach a band under a COLLECTION-INDEXED path with a typed
- * > accessor, not `bandFor(reckoned, string)`
- *
- * The live case it was filed for is an Uplink slice keying its bands by
- * `` `${subject}.rules.${index}.problem` ``, so the shape under test is a map of
- * subjects, each holding a collection, each entry carrying the modelled field.
- *
- * The load-bearing pair is "reaches the band under a collection-indexed path",
- * which proves the mechanism, and "CANNOT reach a leaf whose name is a reserved
- * currency member", which is why that live case still needs its field renamed.
+ * A field reading reaches a band keyed by a collection-indexed path, composed
+ * one property at a time, so a consumer never spells the path the model wrote.
  */
 
 const AT = value("ut", 1_000);
@@ -23,6 +13,7 @@ const AT = value("ut", 1_000);
 /** Subjects by name, each holding a collection: the shape a per-subject model keys by. */
 interface Rule {
   value: number;
+  problem: number;
   limit: number;
 }
 interface Kerbal {
@@ -47,7 +38,7 @@ function crewReading(
   ],
 ) {
   const payload: Crew = {
-    crew: { Bill: { rules: [{ value: 3, limit: 10 }] } },
+    crew: { Bill: { rules: [{ value: 3, problem: 4, limit: 10 }] } },
   };
   const currency: TopicCurrency<Crew, TopicReckoning<Crew>> = {
     state: "observed",
@@ -94,11 +85,6 @@ describe("a field reading reaches through the payload", () => {
     expect(rule.limit.atUt?.magnitude).toBe(1_000);
   });
 
-  /**
-   * The one this exists for. The band is keyed by the dotted path the MODEL
-   * wrote, and the accessor composes the identical string on the way down, so
-   * no consumer spells a path and `bandFor(reckoned, "...")` is not needed.
-   */
   it("reaches the band under a collection-indexed path", () => {
     const leaf = firstRule(
       crewReading({ "crew.Bill.rules.0.limit": band(0.2, 0.4) }),
@@ -124,20 +110,18 @@ describe("a field reading reaches through the payload", () => {
     expect(leaf.reckoning.status).toBe("none");
   });
 
-  /**
-   * THE LIMIT, and it lands exactly on the case #250 named.
-   *
-   * The model this was filed for keys its bands by
-   * `` `${subject}.rules.${index}.problem` `` and the leaf segment is literally
-   * `value`, one of
-   * the six reserved currency names. So the accessor reaches `rules[0]` and
-   * stops: `.value` there answers with the READING's value, which is the rule
-   * payload object, not a field reading for the leaf.
-   *
-   * Asserted rather than left implicit, because it is the difference between
-   * "the accessor serves #250" and "the accessor serves #250 once that field
-   * is renamed". It is the second.
-   */
+  it("offers no model for a field the model copied, though it claims the root", () => {
+    const r = crewReading({}, ["", "crew.Bill.rules.0.problem"]);
+    expect(firstRule(r).limit.reckoning.status).toBe("none");
+    expect(firstRule(r).problem.reckoning.status).toBe("available");
+  });
+
+  it("inherits a basis from a moved field to the fields inside it", () => {
+    const r = crewReading({}, ["", "crew.Bill.rules.0"]);
+    expect(firstRule(r).limit.reckoning.status).toBe("available");
+  });
+
+  /** A reserved name answers with the reading's own member, so that leaf has no field reading. */
   it("CANNOT reach a leaf whose name is a reserved currency member", () => {
     const rule = firstRule(
       crewReading({ "crew.Bill.rules.0.problem": band(0.2, 0.4) }),

@@ -186,7 +186,10 @@ describe("a field's reckoning", () => {
       deps: [],
       reckon(observed) {
         return {
-          modelled: [{ path: "", basis: "rate-integration" }],
+          modelled: [
+            { path: "", basis: "rate-integration" },
+            { path: "relativePosition", basis: "rate-integration" },
+          ],
           reckon: () => observed.payload,
         };
       },

@@ -370,7 +370,6 @@ export type {
  * branches on `stale` itself and captions it.
  */
 export {
-  bandFor,
   bandIn,
   bandIsWellFormed,
   bandSide,

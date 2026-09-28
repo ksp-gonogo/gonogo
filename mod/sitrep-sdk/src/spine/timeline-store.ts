@@ -176,10 +176,12 @@ export interface TimelineStoreOptions {
  *
  * Segment-wise, never a string prefix: `relativePosition` must not answer for
  * `relativePositionError`, which is a different field that happens to start
- * with the same characters. `""` covers everything, being the payload root.
+ * with the same characters. `""` covers only the payload root: it says the
+ * record is under the model's claim, and a field no other entry names is a
+ * copy of the last observation.
  */
 function coversPath(covered: string, fieldPath: readonly string[]): boolean {
-  if (covered === "") return true;
+  if (covered === "") return fieldPath.length === 0;
   const segments = covered.split(".");
   if (segments.length > fieldPath.length) return false;
   return segments.every((segment, i) => segment === fieldPath[i]);
@@ -1731,17 +1733,10 @@ export class TimelineStore {
     if (!held || held.payload === null) return undefined;
     const from = after.validAt - span;
     const anchor: TimelinePoint<unknown> = { ...held, validAt: from };
-    /*
-     * A path the model MOVES. The root entry every model carries only says the
-     * record is under its claim, and a field copied verbatim beside a moved one
-     * is the last observation, which says nothing about the span.
-     */
     const answerAt = (at: number) => {
       const model = reckoner(anchor, "held-stale", at);
       const moved = model?.modelled.find((entry) =>
-        fieldPath.length === 0
-          ? entry.path === ""
-          : entry.path !== "" && coversPath(entry.path, fieldPath),
+        coversPath(entry.path, fieldPath),
       );
       if (!model || !moved) return undefined;
       return {

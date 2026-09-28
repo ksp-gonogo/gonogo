@@ -958,12 +958,14 @@ function pickedReckoning<Payload, Picked>(
  * The {@link ModelledField} that covers `path`, or `undefined` where no entry
  * does.
  *
- * A basis INHERITS from a shorter path: a model claiming the payload root has
- * moved every field under it, and the most specific claim wins where two apply.
- * A band does not inherit, and {@link fieldReckoning} looks one up at the exact
- * path for that reason: a basis is a property of the model and is true of every
- * path it moves, while a band is two numbers in one quantity's unit, so
- * borrowing the root's would put a metre interval around a speed.
+ * The root entry covers only the root: it says the payload is under the
+ * model's claim, and a field no other entry names is a copy of the last
+ * observation. A basis inherits from a moved field to the fields inside it,
+ * and the most specific claim wins where two apply. A band does not inherit,
+ * and {@link fieldReckoning} looks one up at the exact path for that reason: a
+ * basis is a property of the model and is true of every path it moves, while
+ * a band is two numbers in one quantity's unit, so borrowing a parent's would
+ * put a metre interval around a speed.
  */
 function coveringField(
   modelled: readonly ModelledField[],
@@ -972,9 +974,8 @@ function coveringField(
   let best: ModelledField | undefined;
   for (const entry of modelled) {
     const covers =
-      entry.path === "" ||
       entry.path === path ||
-      path.startsWith(`${entry.path}.`);
+      (entry.path !== "" && path.startsWith(`${entry.path}.`));
     if (!covers) continue;
     if (!best || entry.path.length > best.path.length) best = entry;
   }
@@ -1165,29 +1166,6 @@ const CURRENCY_MEMBERS = {
 } satisfies Record<ReservedReadingKey, true>;
 
 /**
- * The band a reckoning offers for one path, or `undefined` where it offers
- * none. `""` is the payload root, which is what a scalar topic's band is under.
- *
- * A one-line lookup, and exported for the one case a typed accessor cannot
- * serve: a path COMPOSED AT RUNTIME, as a model keyed by collection index does
- * (`` `${kerbal}.rules.${index}.value` ``). Reach a band on a known field
- * through the primitive that draws it instead; a widget hand-writing
- * `reading.reckoning.bands?.["field"]` is deciding for itself both what an
- * absent map means and what unit the band came in, and the second of those is
- * `bandIn`'s job.
- *
- * It is also the only place the default path is written down: a caller that
- * forgets `""` and passes the field name of a scalar topic gets `undefined` and
- * draws no band, which is a silent downgrade rather than an error.
- */
-export function bandFor(
-  reckoning: { readonly bands?: ReckonedBands },
-  path = "",
-): UncertaintyBand | undefined {
-  return reckoning.bands?.[path];
-}
-
-/**
  * A band narrowed to the unit a caller expects, or `undefined` where it is in
  * some other unit or is malformed.
  *
@@ -1201,14 +1179,6 @@ export function bandFor(
  * Answering `undefined` rather than throwing is the same judgement the rest of
  * this file makes about a bad band: the reckoned value is still good, and a
  * consumer with no band behaves exactly as one whose model offered none.
- *
- * It survived a reckoned tail's ends being typed to the tail's own value on
- * 2026-09-14, which looked at first as though it retired the mismatch arm. It
- * does not: that construction ties two ends to ONE value, and this one is
- * reached through {@link ReckonedBands}, a map keyed by a runtime path string
- * whose values are `UncertaintyBand<string>`. Nothing in the type system knows
- * what `"verticalSpeed"` is in, so the mismatch arm here is the only thing that
- * ever knew, and it stays the check rather than a backstop for one.
  */
 export function bandIn<Unit extends string, SourceUnit extends string = string>(
   band: UncertaintyBand<SourceUnit> | undefined,

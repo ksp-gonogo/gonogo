@@ -2,7 +2,6 @@ import "./reckoner-test-topics";
 import { type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import { afterEach, describe, expect, it } from "vitest";
 import {
-  bandFor,
   bandIn,
   bandIsWellFormed,
   bandSide,
@@ -181,7 +180,7 @@ describe("a reading carries the band its model offered", () => {
     if (reading.reckoning.status !== "available") {
       throw new Error(`expected a model, got ${reading.reckoning}`);
     }
-    const carried = bandFor(reading.reckoning);
+    const carried = reading.reckoning.bands?.[""];
     expect(carried).toBeDefined();
     expect(carried?.kind).toBe("sigma1");
     // 30 s carried at 0.5/s: 15 below, 45 above, around a value of 130.
@@ -209,7 +208,7 @@ describe("a reading carries the band its model offered", () => {
       throw new Error(`expected a model, got ${reading.reckoning}`);
     }
     expect(reading.reckoning.bands).toBeUndefined();
-    expect(bandFor(reading.reckoning)).toBeUndefined();
+    expect(reading.reckoning.bands?.[""]).toBeUndefined();
   });
 
   /*
@@ -231,8 +230,8 @@ describe("a reading carries the band its model offered", () => {
     if (near.reckoning.status !== "available")
       throw new Error("expected a model");
     const nearWidth =
-      (bandFor(near.reckoning)?.hi.magnitude ?? 0) -
-      (bandFor(near.reckoning)?.lo.magnitude ?? 0);
+      (near.reckoning.bands?.[""]?.hi.magnitude ?? 0) -
+      (near.reckoning.bands?.[""]?.lo.magnitude ?? 0);
 
     store.clock.scrubTo(120);
     store.beginFrame();
@@ -240,8 +239,8 @@ describe("a reading carries the band its model offered", () => {
     if (far.reckoning.status !== "available")
       throw new Error("expected a model");
     const farWidth =
-      (bandFor(far.reckoning)?.hi.magnitude ?? 0) -
-      (bandFor(far.reckoning)?.lo.magnitude ?? 0);
+      (far.reckoning.bands?.[""]?.hi.magnitude ?? 0) -
+      (far.reckoning.bands?.[""]?.lo.magnitude ?? 0);
 
     expect(farWidth).toBeGreaterThan(nearWidth);
   });
@@ -469,7 +468,7 @@ describe("a field subtopic borrows its record's band, at its own path only", () 
     if (reading.reckoning.status !== "available") {
       throw new Error(`expected a model, got ${reading.reckoning}`);
     }
-    const carried = bandFor(reading.reckoning);
+    const carried = reading.reckoning.bands?.[""];
     expect(carried?.lo.magnitude).toBe(100);
     expect(carried?.hi.magnitude).toBe(130);
   });
@@ -485,7 +484,7 @@ describe("a field subtopic borrows its record's band, at its own path only", () 
     if (reading.reckoning.status !== "available") {
       throw new Error(`expected a model, got ${reading.reckoning}`);
     }
-    expect(bandFor(reading.reckoning)).toBeUndefined();
+    expect(reading.reckoning.bands?.[""]).toBeUndefined();
   });
 
   it("carries it onto the plotted tail as well as the point read", () => {
