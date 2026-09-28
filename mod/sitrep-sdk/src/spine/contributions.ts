@@ -17,7 +17,7 @@ import type {
  * `clearContributions`.
  *
  * Everything it named was already on this side of the line once
- * `ContributionTopics`, `Contributed` and `UplinkClientIdentity` came down from
+ * `Contributed` and `UplinkClientIdentity` came down from
  * `@ksp-gonogo/ui-kit`: the definition type, the settings shape and the logger are
  * all sdk-side. The READ half (the per-widget store and the `useContributions`
  * hooks) stays in ui-kit, which reaches this through the ordinary
@@ -70,17 +70,17 @@ export function onContributionsChange(cb: () => void): () => void {
  */
 export function registerContribution<
   S extends string,
-  const D extends readonly ContributionDep[],
+  const D extends readonly ContributionDep[] = readonly [],
 >(def: ContributionDefinition<S, D>): void {
   const s = state();
   const existing = s.entries.get(def.id);
   if (existing !== undefined) {
-    // Widened through `unknown` because `compute` puts `S` in a PARAMETER
-    // position (`ContributionTopics<S>`), so `ContributionDefinition<S>` and
-    // `ContributionDefinition<string>` are not mutually assignable however
-    // narrow `S` is. The registry genuinely stores defs for many slots at once,
-    // so erasing `S` on the way in is the honest thing; every read hands the
-    // entries back to the aggregation, which re-narrows per slot.
+    // Widened through `unknown` because `compute` puts `D` in a PARAMETER
+    // position (`DepTopics<D>`), so a precisely typed definition and the erased
+    // `AnyContribution` are not mutually assignable. The registry genuinely
+    // stores defs for many slots at once, so erasing `S` and `D` on the way in
+    // is the honest thing; every read hands the entries back to the
+    // aggregation, which re-narrows per slot.
     if (existing.def === (def as unknown as AnyContribution)) return;
     throw new Error(
       `Contribution id "${def.id}" is already registered for slot "${existing.def.contributes}"; ` +

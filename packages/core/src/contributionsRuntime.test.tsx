@@ -34,29 +34,26 @@ declare module "@ksp-gonogo/sitrep-sdk" {
   interface ContributionRegistry {
     "fixture.rows": {
       entry: { id: string; label: string };
-      topics: "vessel.orbit";
     };
     "fixture.other": {
       entry: { id: string; label: string };
-      topics: never;
     };
     "fixture.derived": {
       entry: { id: string; label: string };
-      topics: "derived.contrib";
     };
-    "fixture.slot0": { entry: { id: string; label: string }; topics: never };
-    "fixture.slot1": { entry: { id: string; label: string }; topics: never };
-    "fixture.slot2": { entry: { id: string; label: string }; topics: never };
-    "fixture.slot3": { entry: { id: string; label: string }; topics: never };
-    "fixture.slot4": { entry: { id: string; label: string }; topics: never };
-    "fixture.slot5": { entry: { id: string; label: string }; topics: never };
-    "fixture.slot6": { entry: { id: string; label: string }; topics: never };
-    "fixture.slot7": { entry: { id: string; label: string }; topics: never };
-    "fixture.slot8": { entry: { id: string; label: string }; topics: never };
-    "fixture.slot9": { entry: { id: string; label: string }; topics: never };
+    "fixture.slot0": { entry: { id: string; label: string } };
+    "fixture.slot1": { entry: { id: string; label: string } };
+    "fixture.slot2": { entry: { id: string; label: string } };
+    "fixture.slot3": { entry: { id: string; label: string } };
+    "fixture.slot4": { entry: { id: string; label: string } };
+    "fixture.slot5": { entry: { id: string; label: string } };
+    "fixture.slot6": { entry: { id: string; label: string } };
+    "fixture.slot7": { entry: { id: string; label: string } };
+    "fixture.slot8": { entry: { id: string; label: string } };
+    "fixture.slot9": { entry: { id: string; label: string } };
     /** Undotted on purpose: the shape `plots` has, and the one the old
      *  dot-means-segment rule could not read. */
-    "fixture-global": { entry: { id: string; label: string }; topics: never };
+    "fixture-global": { entry: { id: string; label: string } };
   }
 }
 

@@ -23,8 +23,7 @@ export type WireInstrument = TopicPayload<"science.instruments">[number];
 /**
  * `experiments.instruments`: instruments this widget cannot observe itself, because
  * `science.instruments` is the stock experiment list and a mod running its own
- * science module never appears there. Declares no `topics`, since a contributor
- * brings its own. Mirrored in `mod/sitrep-sdk/src/api/contribution-slots.ts` as
+ * science module never appears there. Mirrored in `mod/sitrep-sdk/src/api/contribution-slots.ts` as
  * `ExperimentsInstrumentEntry`.
  */
 declare module "@ksp-gonogo/core" {

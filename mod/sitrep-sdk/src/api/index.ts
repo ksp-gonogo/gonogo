@@ -160,7 +160,6 @@ export type {
   ContributionEntry,
   ContributionRegistry,
   ContributionSlotId,
-  ContributionTopics,
   CoverageSourceDefinition,
   DataKey,
   DataRequirement,

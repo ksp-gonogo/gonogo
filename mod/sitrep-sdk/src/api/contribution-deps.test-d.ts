@@ -1,22 +1,14 @@
 import { defineUplinkClient } from "../spine/uplink-clients";
 
 /**
- * A contribution's `compute` is typed from the contribution's OWN `deps`, not
- * from the slot's declared topics.
- *
- * <para>The slot half was never able to type an Uplink reading its own channel:
- * a slot declares the core topics every contributor can rely on and deliberately
- * names no mod's topics, so a mod-owned channel could only ever arrive as
- * `unknown` through an `& Record<string, unknown>` tail. That tail made every key
- * readable, which is why eleven contributions across five Uplinks were reading
- * topics nothing had declared, each paying an assertion to get back the type it
- * already knew.</para>
+ * A contribution's `compute` is typed from the contribution's OWN `deps`, which
+ * are also the only Topics the aggregation feeds it. A slot declares its entry
+ * and nothing about the data a contributor reads.
  *
  * <para>Every assertion in this file would compile whether or not the typing
  * works, so none of the checks below is an assertion: each is either a real
  * assignment to a precise type, or a `@ts-expect-error` that FAILS THE BUILD if
- * the error it names stops happening. A test that cannot fail is the failure
- * mode this seam already had once.</para>
+ * the error it names stops happening.</para>
  */
 const CLIENT = defineUplinkClient({
   id: "typetest",
@@ -42,10 +34,10 @@ CLIENT.registerContribution({
 });
 
 CLIENT.registerContribution({
-  id: "slot-topics-still-guaranteed",
+  id: "slot-names-no-topics",
   contributes: "crew-status.row-tone",
   compute: (topics) => {
-    // The slot's own declaration still stands on its own: `crew-status.row-tone` guarantees `vessel.crew` to every contributor, deps or no deps.
+    // @ts-expect-error a slot feeds nothing, so a contribution with no deps reads nothing
     void topics["vessel.crew"];
     return [];
   },

@@ -60,7 +60,6 @@ declare module "@ksp-gonogo/core" {
   interface ContributionRegistry {
     "system-view.projection": {
       entry: SystemViewProjection;
-      topics: "system.bodies";
     };
   }
 }

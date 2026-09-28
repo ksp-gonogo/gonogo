@@ -53,7 +53,6 @@ declare module "@ksp-gonogo/core" {
   interface ContributionRegistry {
     "crew-status.row-tone": {
       entry: CrewRowToneEntry;
-      topics: "vessel.crew";
     };
   }
 }

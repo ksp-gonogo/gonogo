@@ -34,17 +34,8 @@
 // either: that is the same silence with worse determinism. A guest's mark
 // outside the winning frame is clipped, which is already this vocabulary's
 // stated policy for every mark.
-//
-// The `topics` union is `TopicId`, the whole of it, and that is the point
-// rather than laziness: every other declared slot names the two or three topics
-// its entries can be built from, because the host knows what its slot is about.
-// Nobody knows what a plot is about except the plot. A contributor therefore
-// gets every Topic precisely typed in `compute`'s argument and needs no casts
-// to read one, which is the difference between a seam an outside author can use
-// and one they can only copy from an in-repo example.
 // ---------------------------------------------------------------------------
 
-import type { TopicId } from "../topics";
 import type { PlotLayer } from "./plot-layers";
 
 /**
@@ -146,8 +137,9 @@ export interface PlotFrame {
  *
  * There is no `relevant` predicate on this type, and its absence is a decision
  * rather than an omission. **`compute` returning `null` IS the relevance
- * predicate**, and it is an arbitrary one: it sees every Topic, so a plot can
- * decline for any reason it likes, not merely because a reading is missing.
+ * predicate**, and it is an arbitrary one: it sees every Topic it names in
+ * `deps`, so a plot can decline for any reason it likes, not merely because a
+ * reading is missing.
  *
  * ```ts
  * compute: (topics) => {
@@ -229,7 +221,6 @@ declare module "./types" {
   interface ContributionRegistry {
     plots: {
       entry: PlotEntry;
-      topics: TopicId;
     };
   }
 }

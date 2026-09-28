@@ -469,38 +469,6 @@ export type ContributionEntry<S extends string> =
         : ComponentSlotRegistry[SegmentOf<S>]
       : ErasedOrNever<S>;
 
-/** Which slot ids a declared contribution slot names as its topics. */
-type DeclaredTopicUnion<S extends string> = S extends keyof ContributionRegistry
-  ? ContributionRegistry[S] extends { topics: infer T extends string }
-    ? T
-    : never
-  : never;
-
-/**
- * The typed argument a contribution's `compute` receives: the topics its SLOT
- * guarantees, plus everything the contribution itself declared in `deps`.
- *
- * <para><b>The deps half is what makes this precise, and it is the half that
- * belongs to the contributor.</b> A slot declares the core topics every
- * contributor can rely on and deliberately never names a mod's topics
- * (`./contribution-slots.ts` says why, and a refactor removed the ones that
- * were there). So a slot alone can never type an Uplink reading its OWN
- * channel, and for a while the gap was covered by an `& Record<string,
- * unknown>` tail: every key readable, every read `unknown`, every consumer
- * paying an assertion to get back to the type it already knew.</para>
- *
- * <para>The contribution already declares exactly what it reads. Typing from
- * `deps` means an Uplink gets its own topics precisely without a single
- * mod-owned id entering the published slot declaration, and a topic nobody
- * declared stops being readable at all, which is what the tail was hiding.</para>
- */
-export type ContributionTopics<
-  S extends string,
-  D extends readonly ContributionDep[] = readonly [],
-> = {
-  readonly [K in DeclaredTopicUnion<S> & TopicId]: TopicPayload<K> | undefined;
-} & DepTopics<D>;
-
 /**
  * The identity an aggregated entry is stamped with, for keys and for blame.
  *
@@ -596,11 +564,10 @@ export type DepTopics<D extends readonly ContributionDep[]> = {
  * another widget's slot. Not a mirror of anything: `spine/contributions.ts` is
  * the registry, and this is the type it registers.
  *
- * Both halves of `compute` are typed precisely, against the same
+ * Both halves of `compute` are typed precisely: what it returns against the
  * declaration-merged `ContributionEntry<S>` a slot owner declares in
- * `./contribution-slots.ts` and the same `ContributionTopics<S>` the aggregation
- * hands in. Neither is `any`: resolving `deps` to their values needs
- * `ContributionTopics`, which is declared above so this leaf can name it.
+ * `./contribution-slots.ts`, and what it receives against its own `deps`, which
+ * are the only Topics the aggregation feeds it.
  */
 export interface ContributionDefinition<
   S extends string = string,
@@ -619,7 +586,7 @@ export interface ContributionDefinition<
   deps?: D;
   /** Pure, and referentially stable when its inputs are unchanged. */
   compute: (
-    topics: ContributionTopics<S, D>,
+    topics: DepTopics<D>,
   ) => readonly ContributionEntry<S>[] | null | undefined;
   /** Domain presence gate, identical semantics to `AugmentDefinition.requires`. */
   requires?: string;

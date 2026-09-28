@@ -37,7 +37,7 @@ function stripComments(text: string): string {
 /**
  * Every depth-one key any sdk source file merges into one registry interface,
  * read from source because the merge exists only at the type level. A slot's
- * own `entry:` and `topics:` are not slot ids.
+ * own `entry:` is not a slot id.
  */
 function mirroredKeys(iface: string): Set<string> {
   const keys = new Set<string>();

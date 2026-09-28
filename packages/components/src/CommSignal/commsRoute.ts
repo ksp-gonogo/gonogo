@@ -12,8 +12,8 @@ export interface CommSignalHopRateEntry {
 
 /*
  * Kept member-for-member identical to the sdk leaf's mirror in
- * `contribution-slots.ts`. It declares no `topics`: any comms Uplink may fill
- * it from whatever channel it owns. Declared here rather than in `index.tsx`
+ * `contribution-slots.ts`. Any comms Uplink may fill it from whatever channel
+ * it owns. Declared here rather than in `index.tsx`
  * so the conformance test-d can load the augmentation through this module.
  */
 declare module "@ksp-gonogo/core" {

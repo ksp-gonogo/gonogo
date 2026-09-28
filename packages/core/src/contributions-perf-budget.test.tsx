@@ -20,7 +20,6 @@ declare module "@ksp-gonogo/sitrep-sdk" {
   interface ContributionRegistry {
     "fixture.perf": {
       entry: { id: string; label: string };
-      topics: "comms.link";
     };
   }
 }

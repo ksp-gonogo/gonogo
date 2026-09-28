@@ -29,7 +29,6 @@ declare module "@ksp-gonogo/core" {
   interface ContributionRegistry {
     "system-view.vessel-status": {
       entry: SystemViewVesselStatusEntry;
-      topics: "vessel.identity";
     };
   }
 }

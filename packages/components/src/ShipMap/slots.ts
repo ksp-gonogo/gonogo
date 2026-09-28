@@ -36,7 +36,6 @@ declare module "@ksp-gonogo/core" {
   interface ContributionRegistry {
     "ship-map.part-meters": {
       entry: ShipMapPartMeterEntry;
-      topics: "vessel.parts";
     };
     "ship-map.part-meta": {
       entry: ShipMapPartMetaEntry;

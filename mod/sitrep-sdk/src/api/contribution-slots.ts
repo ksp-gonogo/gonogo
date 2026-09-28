@@ -438,55 +438,33 @@ declare module "./plots" {
 declare module "./types" {
   interface ContributionRegistry {
     /*
-     * A slot declares the CORE topics every contributor can rely on, and no
-     * more. It never names a mod's topics.
-     *
-     * These unions used to list them: part-meters named `kerbalism.profile`,
-     * part-meta named only Kerbalism topics, hop-rates named only
-     * `realantennas.hopRates`. That put mod-owned ids in the PUBLISHED SDK and
-     * told an outside author that to fill part-meta they may read Kerbalism and
-     * nothing else, which is the opposite of what a slot is for.
-     *
-     * It was also redundant. A contribution declares its own `deps` at runtime,
-     * and that is what actually feeds `compute`. The union only typed the
-     * argument, `ContributionTopics` keeps an `& Record<string, unknown>` tail
-     * so an undeclared topic is still readable, and the one contributor each
-     * mod-topic was written for casts through it anyway. Nothing consumed the
-     * precision it existed to provide.
-     *
-     * A slot whose contributors bring their own data declares no `topics` at
-     * all, which resolves to `never` and leaves `compute` the open record. That
-     * is the honest statement: the slot does not care who fills it.
+     * A slot declares the entry its contributors produce, and nothing about the
+     * data they read. A contribution asks for Topics through its own `deps`, any
+     * Topic is valid there, and `deps` is the only thing that feeds `compute`.
      */
     "ship-map.part-meters": {
       entry: ShipMapPartMeterEntry;
-      topics: "vessel.parts";
     };
     "ship-map.part-meta": {
       entry: ShipMapPartMetaEntry;
     };
     "system-view.entities": {
       entry: SystemEntity;
-      topics: "system.vessels" | "system.bodies" | "comms.network";
     };
     "system-view.vessel-status": {
       entry: SystemViewVesselStatusEntry;
-      topics: "vessel.identity";
     };
     "system-view.projection": {
       entry: SystemViewProjection;
-      topics: "system.bodies";
     };
     "crew-status.row-tone": {
       entry: CrewRowToneEntry;
-      topics: "vessel.crew";
     };
     "comm-signal.hop-rates": {
       entry: CommSignalHopRateEntry;
     };
     "strategies.screens": {
       entry: StrategiesScreenEntry;
-      topics: "career.status";
     };
     "experiments.instruments": {
       entry: ExperimentsInstrumentEntry;
@@ -500,12 +478,10 @@ declare module "./types" {
      *
      * The strip is where an operator reads the state of the whole complex, and a
      * career overhaul owns half of that state: how many nauts are in training,
-     * how many qualifications are about to lapse. It declares the crew roster as
-     * the topic every contributor can rely on, and nothing of any mod's.
+     * how many qualifications are about to lapse.
      */
     "astronaut-complex.readouts": {
       entry: StatEntry;
-      topics: "spaceCenter.crewRoster";
     };
     /**
      * The tiers SpaceCenterStatus draws in its facility grid.
@@ -527,7 +503,6 @@ declare module "./types" {
      */
     "space-center-status.facilities": {
       entry: SpaceCenterFacilityEntry;
-      topics: "career.status";
     };
   }
 }

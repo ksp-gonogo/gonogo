@@ -1049,9 +1049,9 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
 
       /*
        * sitrep-sdk contribution-slots.ts: the SDK-layer mirror of the
-       * `comm-signal.hop-rates` slot names its Topic (`realantennas.hopRates`)
-       * and the built-in RA contributor in prose. Contract/SDK layer, no
-       * coupling: a slot's declared `topics` is a plain string literal.
+       * `comm-signal.hop-rates` slot names the built-in RA contributor and the
+       * Topic it reads (`realantennas.hopRates`) in prose. Contract/SDK layer,
+       * no coupling.
        */
       "mod/sitrep-sdk/src/api/contribution-slots.ts",
       /*
@@ -1512,15 +1512,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * the contract's job.
        */
       "mod/Sitrep.Contract/Reliability.cs",
-      /*
-       * contribution-slots.ts: the SDK's mirror of the host-declared
-       * contribution slots. `ship-map.part-meters` / `ship-map.part-meta`
-       * declare `kerbalism.profile` / `kerbalism.lifesupport` as the Topics a
-       * contribution to those slots may read, because that IS the slot's
-       * contract. String literal types in a slot declaration, not a payload
-       * type and not a TopicId: nothing kerbalism-specific is imported.
-       */
-      "mod/sitrep-sdk/src/api/contribution-slots.ts",
       /*
        * wrap-units.ts (the hand-written decoder, not a generated map): its
        * name-keyed-map branch cites kerbalism.lifesupport.rates as the case that

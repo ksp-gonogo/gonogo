@@ -111,7 +111,7 @@ export interface UplinkClientHandle {
 
   registerContribution<
     S extends string,
-    const D extends readonly ContributionDep[],
+    const D extends readonly ContributionDep[] = readonly [],
   >(def: Omit<ContributionDefinition<S, D>, "owner">): void;
   /**
    * Register a Processor auto-namespaced to this client (mirrors
@@ -220,7 +220,7 @@ export function defineUplinkClient(cfg: {
     },
     registerContribution<
       S extends string,
-      const D extends readonly ContributionDep[],
+      const D extends readonly ContributionDep[] = readonly [],
     >(def: Omit<ContributionDefinition<S, D>, "owner">): void {
       registerContribution({
         ...def,

@@ -12,6 +12,5 @@ export type {
   ContributionEntry,
   ContributionRegistry,
   ContributionSlotId,
-  ContributionTopics,
   UplinkClientIdentity,
 } from "@ksp-gonogo/sitrep-sdk";
