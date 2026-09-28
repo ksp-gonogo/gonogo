@@ -25,19 +25,7 @@ Power balance and per-experiment science progress for Breaking Ground deployed s
 | Default size | 5 × 9 |
 | Scenes | 4 |
 
-![Breaking Ground not installed: the empty state names the missing DLC rather than reporting an empty roster](docs/assets/breaking-ground-absent--default.png)
-
-![Duna base with no controller connection: progress bars still carry their fill, so the state has to read off the power indicator. The experiment name is deliberately long enough to reach the `Truncate`, which is what an operator sees for most real Breaking Ground part names at this tile](docs/assets/controller-not-connected--default.png)
-
-![The same widget at its minimum size](docs/assets/controller-not-connected--min.png)
-
-![The same bases once the link drops: each completion figure carries its held mark](docs/assets/mun-and-minmus-bases-stopped-arriving--default.png)
-
-![The same widget at its minimum size](docs/assets/mun-and-minmus-bases-stopped-arriving--min.png)
-
 ![A powered Mun base with two experiments collecting, above a Minmus base that has lost power overnight](docs/assets/mun-and-minmus-bases--default.png)
-
-![The same widget at its minimum size](docs/assets/mun-and-minmus-bases--min.png)
 
 ### Robotics Console
 
@@ -52,13 +40,7 @@ Current-vs-target position, at-target state and motor/lock controls for Breaking
 | Default size | 5 × 8 |
 | Scenes | 3 |
 
-![Breaking Ground not installed: the console names the missing DLC rather than reporting a craft with no joints on it](docs/assets/robotics-dlc-absent--default.png)
-
-![The same joints after the link drops: the angles held and marked, every setting held](docs/assets/servos-link-lost--default.png)
-
 ![A hinge driving towards its target, a piston already at one, and a locked rotor the console leaves to the tachometer](docs/assets/servos--default.png)
-
-![The same widget at its minimum size](docs/assets/servos--min.png)
 
 ### Rotor Tachometer
 
@@ -73,11 +55,5 @@ Live RPM vs commanded cap for Breaking Ground robotic rotors, with motor, lock, 
 | Default size | 6 × 10 |
 | Scenes | 3 |
 
-![Breaking Ground not installed: the dial is withheld entirely rather than drawn at zero RPM](docs/assets/rotors-dlc-absent--default.png)
-
-![The same rotors after the link drops: the rpm held and marked, every setting held](docs/assets/rotors-link-lost--default.png)
-
 ![Main rotor turning near its commanded cap, tail rotor stopped with the brake full on and the servo locked](docs/assets/rotors--default.png)
-
-![The same widget at its minimum size](docs/assets/rotors--min.png)
 

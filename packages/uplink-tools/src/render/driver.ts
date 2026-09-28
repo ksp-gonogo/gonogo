@@ -14,6 +14,7 @@ import type {
 import type { UplinkPackage } from "./context";
 import { encodeGif } from "./gif";
 import { buildProbePage, type ProbePage } from "./page";
+import { pngSize } from "./png";
 import { PROBE_CHROME_ATTR, RENDER_PROBE_GLOBAL } from "./probe-global";
 import { payloadFor } from "./sceneModel";
 import {
@@ -406,7 +407,8 @@ async function renderOneScene(
     const shape = foldShape([capture]);
     await growToFullContent(tab);
     await assertEveryPaintVisible(tab, scene, mode.name);
-    await shoot(tab, join(opts.outDir, file));
+    const png = await shoot(tab, join(opts.outDir, file));
+    if (scene.hero && index === 0) warnOnExtremeAspectRatio(scene, file, png);
     assets.push({ scene, mode: mode.name, file, kind: "still", shape });
     // The visible text is printed because a picture is the one output a
     // terminal cannot show you, and this is the cheapest way for an author to
@@ -1238,6 +1240,7 @@ async function captureMotion(
   assertMotionMoved(scene, frames);
   const gif = encodeGif(frames, scene.motion);
   const file = `${scene.name}--${mode.name}.gif`;
+  if (scene.hero) warnOnExtremeAspectRatio(scene, file, frames[0]);
   await writeFile(join(opts.outDir, file), gif);
   assets.push({
     scene,
@@ -1269,6 +1272,36 @@ function assertMotionMoved(scene: Scene, frames: readonly Buffer[]): void {
         "they name, or this scene has no motion in it and wants to be a still.",
     );
   }
+}
+
+/**
+ * A picture stretched past 4:1 either way is impractical in a README: too
+ * wide to read without a horizontal scroll, or too tall to see in one
+ * screenful. A WARNING rather than a failure, since a genuinely thin strip (an
+ * action-group row) or a genuinely tall one (a terminal) is still a real,
+ * honest shape for that widget, just one worth a human glancing at before it
+ * ships.
+ *
+ * Callers gate this on `scene.hero` (and, for a still, on it being the first
+ * mode): those are the only renders `docs.ts` ever puts in the page, so a
+ * warning about every other render would be about a picture nobody will see.
+ */
+const MAX_ASPECT_RATIO = 4;
+
+function warnOnExtremeAspectRatio(
+  scene: Scene,
+  file: string,
+  png: Buffer,
+): void {
+  const { width, height } = pngSize(png);
+  const ratio = Math.max(width, height) / Math.min(width, height);
+  if (ratio <= MAX_ASPECT_RATIO) return;
+  const shape = width > height ? "wide" : "tall";
+  console.warn(
+    `\n  warning: ${file} is ${width}×${height}px, ${ratio.toFixed(1)}:1 and ` +
+      `very ${shape}. That is impractical to read inline in a README; worth a ` +
+      `look before it ships as ${scene.target.kind} ${scene.target.id}'s picture.`,
+  );
 }
 
 /** Presses the pointer on a named control and drags it, without letting go. */

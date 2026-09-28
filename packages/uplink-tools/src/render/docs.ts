@@ -238,20 +238,12 @@ function table(
  *
  * The scene's caption goes in the alt, where a screen reader and a
  * broken-image placeholder both find it.
- *
- * A scene rendered at several sizes gets ONE caption, on the first, and a short
- * size phrase on the others: five images captioned with the same sentence is the
- * repetition this page is against, and "the same widget at its minimum size" is
- * the only thing the extra renders actually add.
  */
 function images(inputs: DocsInputs, assets: readonly PageAsset[]): string[] {
   const out: string[] = [];
-  const captioned = new Set<string>();
   for (const asset of assets) {
     const path = `${inputs.assetDir}/${asset.file}`;
-    const first = !captioned.has(asset.scene.name);
-    captioned.add(asset.scene.name);
-    out.push("", `![${first ? altFor(asset) : sizePhrase(asset)}](${path})`);
+    out.push("", `![${altFor(asset)}](${path})`);
   }
   return out;
 }
@@ -260,21 +252,44 @@ function altFor(asset: PageAsset): string {
   return asset.scene.caption ?? asset.scene.name;
 }
 
-function sizePhrase(asset: PageAsset): string {
-  if (asset.mode === "min") return "The same widget at its minimum size";
-  const mode = asset.scene.modes.find((m) => m.name === asset.mode);
-  return mode
-    ? `The same widget at ${mode.w} × ${mode.h}`
-    : `The same widget, ${asset.mode}`;
-}
-
-function assetsFor(
+/**
+ * The page's picture(s) of one registration: every `hero` scene, at its own
+ * first mode.
+ *
+ * A scene's first mode is the one `linkedAssets` records a motion scene's GIF
+ * under, so taking it here is what keeps a hero'd motion scene's picture a
+ * film rather than the still of some other mode.
+ *
+ * Throws rather than silently showing nothing or guessing one: a target with
+ * scenes and no hero among them is a target the author has not yet decided how
+ * to picture, and defaulting to "whichever fixture sorts first" would be a
+ * picture nobody chose standing in for one somebody did.
+ */
+function heroAssetsFor(
   inputs: DocsInputs,
   kind: string,
   id: string,
 ): readonly PageAsset[] {
+  const scenes = scenesFor(inputs, kind, id);
+  if (scenes.length === 0) return [];
+  const heroes = new Set(
+    scenes.filter((scene) => scene.hero).map((scene) => scene.name),
+  );
+  if (heroes.size === 0) {
+    throw new Error(
+      `gonogo-uplink docs: ${kind} "${id}" has ${scenes.length} scene(s) and ` +
+        'none is marked "_scene.hero": true, so the page has no picture to ' +
+        `show for it:\n  ${scenes.map((s) => s.file).join("\n  ")}\n\n` +
+        'Mark at least one fixture\'s "_scene" block with "hero": true. Any ' +
+        "number may carry it; every one that does is shown.",
+    );
+  }
   return inputs.assets.filter(
-    (a) => a.scene.target.kind === kind && a.scene.target.id === id,
+    (a) =>
+      a.scene.target.kind === kind &&
+      a.scene.target.id === id &&
+      heroes.has(a.scene.name) &&
+      a.mode === a.scene.modes[0].name,
   );
 }
 
@@ -344,7 +359,7 @@ function widgetSection(inputs: DocsInputs, widget: InventoryWidget): string[] {
       ["Scenes", String(scenesFor(inputs, "widget", widget.id).length)],
     ]),
   );
-  out.push(...images(inputs, assetsFor(inputs, "widget", widget.id)));
+  out.push(...images(inputs, heroAssetsFor(inputs, "widget", widget.id)));
   return out;
 }
 
@@ -379,7 +394,7 @@ function augmentTable(inputs: DocsInputs): string[] {
     "",
     ...table(["Augment", "Into", "Reads", "Presence", "Scenes", "Notes"], rows),
     ...inputs.inventory.augments.flatMap((augment) =>
-      images(inputs, assetsFor(inputs, "augment", augment.id)),
+      images(inputs, heroAssetsFor(inputs, "augment", augment.id)),
     ),
     "",
   ];
@@ -400,7 +415,7 @@ function contributionTable(inputs: DocsInputs): string[] {
     "",
     ...table(["Contribution", "Into", "Computed from", "Presence"], rows),
     ...inputs.inventory.contributions.flatMap((contribution) =>
-      images(inputs, assetsFor(inputs, "contribution", contribution.id)),
+      images(inputs, heroAssetsFor(inputs, "contribution", contribution.id)),
     ),
     "",
   ];

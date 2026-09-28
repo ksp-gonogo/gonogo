@@ -5,6 +5,7 @@
   },
   "_scene": {
     "widget": "rotor-tachometer",
+    "hero": true,
     "caption": "Main rotor turning near its commanded cap, tail rotor stopped with the brake full on and the servo locked",
     "modes": ["default", "min"],
     "paints": ["ROTOR", "Main Rotor"]

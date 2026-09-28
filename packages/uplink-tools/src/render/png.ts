@@ -24,6 +24,22 @@ export interface DecodedPng {
 
 const SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
 
+/**
+ * Width and height alone, without inflating a single `IDAT` byte.
+ *
+ * `IHDR` is always the first chunk after the signature, at a fixed offset, so
+ * this is four field reads rather than a decode. For a caller that only wants
+ * to know a picture's shape (an aspect-ratio check on a fresh screenshot), that
+ * is the whole job: `decodePng` earns its cost by handing back pixels, and
+ * nothing here needs any.
+ */
+export function pngSize(bytes: Buffer): { width: number; height: number } {
+  for (const [i, expected] of SIGNATURE.entries()) {
+    if (bytes[i] !== expected) throw new Error("pngSize: not a PNG");
+  }
+  return { width: bytes.readUInt32BE(16), height: bytes.readUInt32BE(20) };
+}
+
 export function decodePng(bytes: Buffer): DecodedPng {
   for (const [i, expected] of SIGNATURE.entries()) {
     if (bytes[i] !== expected) throw new Error("decodePng: not a PNG");

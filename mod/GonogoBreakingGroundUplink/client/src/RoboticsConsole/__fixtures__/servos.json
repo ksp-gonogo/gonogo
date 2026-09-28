@@ -5,6 +5,7 @@
   },
   "_scene": {
     "widget": "robotics-console",
+    "hero": true,
     "caption": "A hinge driving towards its target, a piston already at one, and a locked rotor the console leaves to the tachometer",
     "modes": ["default", "min"],
     "paints": ["ROBOTICS", "Target"]

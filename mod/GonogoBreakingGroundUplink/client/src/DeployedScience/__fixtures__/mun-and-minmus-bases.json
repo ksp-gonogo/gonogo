@@ -5,6 +5,7 @@
   },
   "_scene": {
     "widget": "deployed-science",
+    "hero": true,
     "caption": "A powered Mun base with two experiments collecting, above a Minmus base that has lost power overnight",
     "modes": ["default", "min"],
     "paints": ["Mun", "Minmus"]

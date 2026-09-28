@@ -154,6 +154,7 @@ describe("a staleness render of a scene driven by presses", () => {
     file: "composer.json",
     name: "composer-delayed",
     target: { kind: "widget", id: "composer" },
+    hero: false,
     paints: [],
     before: [{ press: "Save plan" }],
     pinnedUt: 0,
