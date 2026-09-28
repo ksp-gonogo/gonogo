@@ -229,7 +229,7 @@ export function AstronautComplexComponent(
                     decimals: 0,
                   })}
                 >
-                  <Unit value={value("funds", nextHireCost)} />
+                  <Unit value={complexReading.nextHireCost} />
                 </span>
               ) : (
                 NULL_DISPLAY

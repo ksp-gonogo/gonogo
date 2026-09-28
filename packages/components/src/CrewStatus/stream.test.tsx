@@ -45,4 +45,33 @@ describe("CrewStatus, genuinely runs off the stream", () => {
     expect(screen.getByText("Bill Kerman")).toBeInTheDocument();
     expect(screen.getByText("Bob Kerman")).toBeInTheDocument();
   });
+
+  it("marks the held headcount and capacity once the crew stops arriving", async () => {
+    const fixture = setupStreamFixture({ pinnedUt: 10, suspendFrames: true });
+    const { container } = render(
+      <fixture.Provider>
+        <DashboardItemContext.Provider value={{ instanceId: "crew-held" }}>
+          <CrewStatusComponent id="crew-held" w={3} h={3} />
+        </DashboardItemContext.Provider>
+      </fixture.Provider>,
+    );
+    act(() => {
+      fixture.emit("vessel.crew", { count: 3, capacity: 4, crew: [] });
+    });
+    await waitFor(() => expect(screen.getByText(/aboard/)).toBeInTheDocument());
+    expect(container.querySelectorAll("[data-held]")).toHaveLength(0);
+
+    act(() => {
+      fixture.store.setTransportConnected(false);
+      fixture.store.beginFrame();
+    });
+
+    await waitFor(() => {
+      const held = [...container.querySelectorAll("[data-held]")].map(
+        (el) => el.firstChild?.textContent,
+      );
+      expect(held).toEqual(["3", "4"]);
+    });
+    await act(async () => {});
+  });
 });

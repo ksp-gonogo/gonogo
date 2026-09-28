@@ -441,65 +441,13 @@ describe("no primitive is fed a reading's value instead of the reading", () => {
  * Which of them each site wants is a scheduling decision; what this list does
  * is stop the number growing while that decision is open.
  *
- * A cleared entry is only as strong as the REACH that cleared it, and "reach"
- * is two separate things: the SHAPES the walk knows, and how FAR it follows
- * one. A file has already sat at zero here while holding three sites, two
- * behind a callback parameter and one behind a depth ceiling, each cleared
- * honestly against what the walk could see at the time. So when the walk is
- * widened, the entries already at zero are where to look first.
+ * A cleared entry is only as strong as the walk's reach, so when the walk is
+ * widened, the files already cleared are where to look first.
  */
 const DERIVED_FEED_DEBT: Record<string, number> = {
-  /*
-   * SIX, and none of them is migratable, which makes this entry a different
-   * kind of thing from the rest of this list.
-   *
-   * Four are the provider-extension boundary: `CommsHop.extensions` is
-   * `ProviderExtensions`, a record of `unknown` opaque BY CONSTRUCTION because
-   * core cannot know a provider's shape, so a field reading there is
-   * `FieldReading<unknown>` and `Unit` refuses it. Its own ticket, because it
-   * recurs for every Uplink augment that reads an extension bag.
-   *
-   * The other two are ordinary field properties, and they are still NOT debt a
-   * migration can pay: a comms figure must null when the link stops arriving
-   * rather than draw held, and a field reading exists precisely to carry that
-   * currency to the screen. So the observed-only read is the wanted behaviour
-   * here and the gate's premise does not apply.
-   */
-  // The one RP-1 site no accessor can reach: `chosen` is an element of a
-  // FILTERED list, and a payload is addressed BY PATH, so an element selected
-  // by predicate has none. Filed as #310, and it will recur in the Targeting
-  // slices rather than being worked around here.
-  /*
-   * Newly VISIBLE rather than newly written: the walk followed a call's
-   * ARGUMENTS and not its callee, so `offered.find(...)` put the list nowhere
-   * it looked. Closed by the commit that added the currency exemption, since
-   * the shape turned up while planting that exemption's control.
-   *
-   * And it is #310 again: `selected` is an element chosen by PREDICATE, so the
-   * payload has no path for the accessor to address. Stays for the same reason
-   * `StartResearch` does.
-   */
-  "packages/components/src/AstronautComplex/AstronautComplexView.tsx": 1,
-  /*
-   * Migrated on 2026-09-17 and REVERTED the same day: #337 ruled that a comms
-   * figure NULLS when the link stops arriving rather than drawing held, and a
-   * field reading exists to carry that currency to the screen. The
-   * observed-only read plus a minted `Value` is the ruled behaviour, so this
-   * site is not debt a migration can pay. Revisit only if that ruling changes.
-   */
-  /*
-   * Newly VISIBLE rather than newly written, and the widening that exposed
-   * these three files was on `Countdown`: handing a clock a minted duration
-   * only counts as a dropped currency once the clock can take the reading
-   * instead, which it now can.
-   *
-   * Each is a client-computed `instant - viewUt`, which is the kind that
-   * already advances because the caller recomputes it every frame. What they
-   * cannot yet say is that the INSTANT behind them has stopped arriving, and
-   * that arrives with the topics they read rather than with the primitive.
-   */
+  // A comms figure nulls when the link stops arriving rather than drawing held, so these read the observation alone.
   "packages/components/src/CommSignal/CommSignalView.tsx": 2,
-  "packages/components/src/CrewStatus/CrewStatusView.tsx": 2,
+  // The elements draw only while current or under the conic, which holds them as constants of the orbit, never held.
   "packages/components/src/CurrentOrbit/index.tsx": 2,
 };
 

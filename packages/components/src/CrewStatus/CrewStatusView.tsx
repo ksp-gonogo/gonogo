@@ -94,13 +94,13 @@ export function CrewStatusComponent({
             {known ? (
               <BigReadout $tone="go" style={TINY_READOUT_STYLE}>
                 {crewCount !== undefined ? (
-                  <Unit value={crewCount} />
+                  <Unit value={crewReading.count} />
                 ) : (
                   NULL_DISPLAY
                 )}
                 {crewCapacity !== undefined && (
                   <ReadoutCaption>
-                    of <Unit value={crewCapacity} /> aboard
+                    of <Unit value={crewReading.capacity} /> aboard
                   </ReadoutCaption>
                 )}
               </BigReadout>

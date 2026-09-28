@@ -150,6 +150,23 @@ describe("AstronautComplex when its telemetry is held", () => {
     expect(visibleText(container)).not.toContain("No active crew");
   });
 
+  it("marks the held hire price as a held figure, not a current one", async () => {
+    renderWidget();
+    emitCareer();
+    await waitFor(() =>
+      expect(screen.getByText("Desdin Kerman")).toBeInTheDocument(),
+    );
+    const hire = () => screen.getByText("Next Hire").nextElementSibling;
+    expect(hire()?.querySelector("[data-held]")).toBeNull();
+
+    dropTheLink();
+
+    await waitFor(() =>
+      expect(hire()?.querySelector("[data-held]")).not.toBeNull(),
+    );
+    expect(hire()).toHaveTextContent("24,000");
+  });
+
   it("does not present a stale Complex as a save with no space programme", async () => {
     // "career mode only" is a statement about the save, never reached from a dropped link.
     const { container } = renderWidget();
