@@ -39,13 +39,12 @@ describe("stationKey", () => {
     expect(second).not.toBe(first);
   });
 
-  it("migrates the legacy persisted peer id forward as the new stationKey", () => {
+  it("does not read an old persisted peer id: a device with only that gets a fresh key", () => {
     const storage = makeStorage();
-    storage.setItem("gonogo.station.peer-id", "station-legacy-uuid");
+    storage.setItem("gonogo.station.peer-id", "station-old-uuid");
     const key = getStationKey(storage);
-    expect(key).toBe("legacy-uuid");
-    expect(storage.getItem("gonogo.station.peer-id")).toBeNull();
-    expect(storage.getItem("gonogo.station.key")).toBe("legacy-uuid");
+    expect(key).not.toBe("old-uuid");
+    expect(storage.getItem("gonogo.station.key")).toBe(key);
   });
 });
 

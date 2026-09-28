@@ -20,7 +20,6 @@ import { PORTS } from "../../../playwright.config";
 const MAIN_URL = "/";
 
 const SITREP_CONFIG = JSON.stringify({
-  host: "localhost",
   port: PORTS.sitrepReplay,
 });
 

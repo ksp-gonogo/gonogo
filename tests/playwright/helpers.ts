@@ -36,7 +36,7 @@ const MAIN_URL = "/";
 const STATION_URL = "/station";
 
 function sitrepConfig(port: number = PORTS.sitrepReplay): string {
-  return JSON.stringify({ host: "localhost", port });
+  return JSON.stringify({ port });
 }
 
 export interface DashboardItem {

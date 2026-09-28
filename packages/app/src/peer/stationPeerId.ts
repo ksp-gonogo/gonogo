@@ -19,10 +19,6 @@
  */
 
 const STATION_KEY_STORAGE = "gonogo.station.key";
-// Legacy storage key: earlier versions stored the full peer id here. We
-// migrate it forward as the stationKey so existing devices keep their
-// stable identity across the upgrade.
-const LEGACY_PEER_ID_STORAGE = "gonogo.station.peer-id";
 
 function generateUuid(): string {
   if (
@@ -43,15 +39,6 @@ export function getStationKey(
 ): string {
   const existing = storage.getItem(STATION_KEY_STORAGE);
   if (existing?.trim()) return existing.trim();
-
-  // Migrate the old persistent peer id forward as the stationKey so a device that had a long-lived id keeps it after the upgrade.
-  const legacy = storage.getItem(LEGACY_PEER_ID_STORAGE);
-  if (legacy?.trim()) {
-    const stripped = legacy.trim().replace(/^station-/, "");
-    storage.setItem(STATION_KEY_STORAGE, stripped);
-    storage.removeItem(LEGACY_PEER_ID_STORAGE);
-    return stripped;
-  }
 
   const id = generateUuid();
   storage.setItem(STATION_KEY_STORAGE, id);
@@ -79,9 +66,4 @@ export function clearStationKey(
   storage: Storage = globalThis.localStorage,
 ): void {
   storage.removeItem(STATION_KEY_STORAGE);
-  storage.removeItem(LEGACY_PEER_ID_STORAGE);
 }
-
-/** Back-compat alias for external importers: a call site asking for a "stable"
- * station id gets the session id, since no stable one exists. */
-export const clearStationPeerId = clearStationKey;

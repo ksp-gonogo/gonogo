@@ -28,7 +28,7 @@ export interface BackupPayload {
 /**
  * Only keys whose name starts with one of the gonogo separators are eligible.
  * The app uses three separators in the wild: `gonogo:` (dashboard layouts),
- * `gonogo.` (settings, datasources, alarms, ...) and `gonogo-` (the legacy
+ * `gonogo.` (settings, datasources, alarms, ...) and `gonogo-` (the
  * station-host-id, which is excluded as transient below). Bare keys like
  * `LOG_LEVEL` / `LOG_TAGS` have no prefix and are naturally skipped.
  */
@@ -47,8 +47,8 @@ const TRANSIENT_KEYS = new Set<string>([
 ]);
 
 /**
- * Per-device-instance identity keys: the station's stable key + (legacy) peer
- * id. Restoring these onto another device clones the instance identity, which
+ * Per-device-instance identity: the station's stable key. Restoring it onto
+ * another device clones the instance identity, which
  * is usually wrong, so they're excluded unless the operator opts in via the
  * "Include device identity" checkbox. `gonogo.station.name` is deliberately NOT
  * here (it's a human label, safe to carry across devices), and neither is
@@ -56,15 +56,11 @@ const TRANSIENT_KEYS = new Set<string>([
  * preserved on restore, not per-device identity, so it backs up like any other
  * config key.
  */
-const IDENTITY_KEYS = new Set<string>([
-  "gonogo.station.key",
-  "gonogo.station.peer-id",
-]);
+const IDENTITY_KEYS = new Set<string>(["gonogo.station.key"]);
 
 export interface BuildBackupOptions {
   /**
-   * Include per-device-instance identity keys (station key + legacy peer id).
-   * Default false.
+   * Include the per-device-instance identity (the station key). Default false.
    */
   includeIdentity?: boolean;
 }

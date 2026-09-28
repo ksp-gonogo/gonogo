@@ -239,7 +239,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/Sitrep.Core.Tests/UplinkContractOwnershipTests.cs",
 
       // -- Doc/comment-only mentions --
-      "packages/app/src/dataSources/migrateGameHost.ts",
       "packages/app/src/dataSources/seedKspHost.ts",
       "mod/sitrep-sdk/src/testing/install-dom-stubs.ts",
       "packages/data/src/FlightsManager/AutoRecordController.tsx",

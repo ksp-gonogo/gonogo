@@ -315,11 +315,7 @@ export type {
   TaggedLogger,
 } from "./types.js";
 
-/**
- * Back-compat wrapper around the new tag system. `debugPeer("foo", ctx)`
- * behaves the same as `logger.tag("peer").debug("foo", ctx)` but stays
- * honouring the legacy `DEBUG_PEER=1` flag so existing docs still work.
- */
+/** `debugPeer("foo", ctx)` is `logger.tag("peer").debug("foo", ctx)`. */
 const peerLogger = logger.tag("peer");
 export function debugPeer(message: string, context?: LogContext) {
   peerLogger.debug(message, context);

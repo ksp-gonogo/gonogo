@@ -21,7 +21,6 @@ const MAIN_URL = "/";
 const STATION_URL = "/station";
 
 const SITREP_CONFIG = JSON.stringify({
-  host: "localhost",
   port: PORTS.sitrepReplay,
 });
 

@@ -157,9 +157,6 @@ namespace Gonogo.KSP
         /// </summary>
         internal const string DelayInSimulationRow = "Uplinks/" + Rp1UplinkId + "/delayInSimulation";
 
-        /// <summary>Where the same choice was kept before it moved, read once to carry a save's value across.</summary>
-        internal const string LegacyDelayInSimulationRow = SignalDelayBlock + "/delayInSimulation";
-
         private static SettingsStore? _settings;
 
         /// <summary>
@@ -221,10 +218,6 @@ namespace Gonogo.KSP
         /// Declare the simulation-delay row, for a session in which RP-1 is
         /// running. Only then is there a simulation to delay, so only then is
         /// the choice offered; the value is kept in the file either way.
-        ///
-        /// <para>A save that still carries the choice at its old top-level place
-        /// has it carried into RP-1's block, so moving the setting does not reset
-        /// it. The old row stays in the file, as every unowned row does.</para>
         /// </summary>
         public static void DeclareSimulationDelaySetting(SettingsStore store)
         {
@@ -233,16 +226,9 @@ namespace Gonogo.KSP
                 throw new ArgumentNullException(nameof(store));
             }
 
-            var carried = store.Text(LegacyDelayInSimulationRow);
-            if (!store.Document.Has(DelayInSimulationRow) && SettingsText.ToBool(carried) != null)
-            {
-                store.Seed(DelayInSimulationRow, carried!);
-            }
-
             store.Declare(SettingsRow.Bool(
                 DelayInSimulationRow, false, "Apply the delay during a simulation as well as a real flight"));
 
-            // A carried value is in force from here, not from the next save.
             ConfigureSignalDelay(ReadSignalDelay(store));
         }
 

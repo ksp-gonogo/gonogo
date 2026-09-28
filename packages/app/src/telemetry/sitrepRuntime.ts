@@ -2,7 +2,6 @@ import {
   type DataSourceStatus,
   GAME_HOST_KEY,
   getGameHost,
-  seedSetting,
   setSetting,
   subscribeSetting,
 } from "@ksp-gonogo/core";
@@ -83,14 +82,6 @@ export function setSitrepHostConfig(config: SitrepHostConfig): void {
 export function subscribeSitrepHostConfig(cb: () => void): () => void {
   hostConfigListeners.add(cb);
   return () => hostConfigListeners.delete(cb);
-}
-
-/**
- * First-run KSP_HOST seed, delegates to the shared core seed layer. Kept
- * for back-compat; still called by nothing after Task 5, but harmless.
- */
-export function seedSitrepHost(host: string): void {
-  seedSetting(GAME_HOST_KEY, host);
 }
 
 // --- Live transport status ---------------------------------------------

@@ -38,22 +38,13 @@ describe("StationIdentityService", () => {
     expect(svc.getName()).toBe("Capsule Komm");
   });
 
-  it("migrates a legacy save-profile-scoped name into the flat key on first run", () => {
-    // Pre-migration shape: the active-profile id was stored separately and the station name was suffixed with it.
+  it("does not read an old save-profile-scoped name: a device with only that gets a fresh one", () => {
     storage.setItem("gonogo.saveProfiles.active", "profile-A");
     storage.setItem("gonogo.station.name.profile-A", "Old Capcom");
 
     const svc = new StationIdentityService(storage);
-    expect(svc.getName()).toBe("Old Capcom");
-    expect(storage.getItem("gonogo.station.name")).toBe("Old Capcom");
-    expect(storage.getItem("gonogo.station.name.profile-A")).toBeNull();
-  });
-
-  it("does not run the save-profile migration when no legacy active-profile pointer exists", () => {
-    storage.setItem("gonogo.station.name.profile-A", "Orphan");
-    const svc = new StationIdentityService(storage);
-    expect(svc.getName()).not.toBe("Orphan");
-    expect(storage.getItem("gonogo.station.name.profile-A")).toBe("Orphan");
+    expect(svc.getName()).toMatch(/^Station [A-Z0-9]{4}$/);
+    expect(storage.getItem("gonogo.station.name")).toBe(svc.getName());
   });
 
   it("setName persists, trims, and notifies listeners", () => {

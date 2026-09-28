@@ -7,15 +7,7 @@
  * Tag gating only affects `debug` and `info` on tagged logs. `warn` and
  * `error` always pass: a serious problem should surface even if you
  * forgot to enable the subsystem's tag beforehand.
- *
- * Legacy `DEBUG_PEER=1` / `DEBUG_FLIGHT=1` flags remain honoured so old
- * docs and muscle memory still work.
  */
-
-const LEGACY_FLAGS: Record<string, string> = {
-  peer: "DEBUG_PEER",
-  flight: "DEBUG_FLIGHT",
-};
 
 function readLocalStorage(key: string): string | null {
   try {
@@ -72,13 +64,12 @@ export class TagRegistry {
 
   isEnabled(tag: string): boolean {
     if (this.resolved === null) this.resolved = this.resolve();
-    if (this.resolved === "none") return this.isLegacyEnabled(tag);
+    if (this.resolved === "none") return false;
     if (this.resolved === "all") return true;
     if (this.resolved.has(tag)) return true;
     // Colon-scoped tags like "peer:kos" inherit enablement from their base ("peer") so `LOG_TAGS=peer` enables all peer sub-tags.
     const base = tag.split(":")[0];
-    if (base !== tag && this.resolved.has(base)) return true;
-    return this.isLegacyEnabled(tag);
+    return base !== tag && this.resolved.has(base);
   }
 
   snapshot(): { mode: "all" | "none" | "list"; tags: string[] } {
@@ -94,13 +85,6 @@ export class TagRegistry {
       parseTags(readEnv("LOG_TAGS")) ??
       "none"
     );
-  }
-
-  private isLegacyEnabled(tag: string): boolean {
-    const base = tag.split(":")[0];
-    const flag = LEGACY_FLAGS[base];
-    if (!flag) return false;
-    return readLocalStorage(flag) === "1" || readEnv(flag) === "1";
   }
 }
 

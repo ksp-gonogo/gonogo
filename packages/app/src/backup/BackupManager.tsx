@@ -89,10 +89,9 @@ export function BackupManager() {
               label="Include device identity"
             />
             <FieldHint>
-              Carries this station's identity (its key &amp; peer id) into the
-              backup. Leave off unless you're cloning this exact station,
-              restoring identity onto another device makes two stations claim
-              the same id.
+              Carries this station's identity (its station key) into the backup.
+              Leave off unless you're cloning this exact station, restoring
+              identity onto another device makes two stations claim the same id.
             </FieldHint>
           </IdentityRow>
         </Field>

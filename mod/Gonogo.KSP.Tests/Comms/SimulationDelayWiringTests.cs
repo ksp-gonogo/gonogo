@@ -215,41 +215,14 @@ namespace Gonogo.KSP.Tests.Comms
         }
 
         /// <summary>
-        /// The config, the kernel and the settings store behind the accessor
-        /// are process statics, so a case that left any of them set would
-        /// change the answer for whatever ran next. Restores all three, whatever
-        /// the body does.
-        ///
-        /// <para>Passing a path binds the policy to a real settings file at
-        /// that location; otherwise it gets an in-memory one, which applies
-        /// every change and remembers none of it.</para>
-        /// </summary>
-        /// <summary>
-        /// A save that kept the choice at its old top-level place has it carried
-        /// into RP-1's block, so moving the setting does not reset it, and the
-        /// old row is left in the file rather than deleted.
+        /// The choice is read only from RP-1's block: a value at the old
+        /// top-level place is not read and not carried across.
         /// </summary>
         [Fact]
-        public void AChoiceSavedAtTheOldPlaceIsCarriedIntoRp1sBlock()
+        public void AChoiceAtTheOldTopLevelPlaceIsNotRead()
         {
             var seed = new SettingsDocument();
-            seed.Set(CommsCoreUplink.LegacyDelayInSimulationRow, "True");
-            WithStore(seed, store =>
-            {
-                CommsCoreUplink.DeclareSimulationDelaySetting(store);
-
-                Assert.Equal("True", store.Text(CommsCoreUplink.DelayInSimulationRow));
-                Assert.True(CommsCoreUplink.AuthoredSignalDelayConfig.DelayInSimulation);
-                Assert.Equal("True", store.Text(CommsCoreUplink.LegacyDelayInSimulationRow));
-            });
-        }
-
-        [Fact]
-        public void AChoiceAlreadyInRp1sBlockIsNotOverwrittenByTheOldOne()
-        {
-            var seed = new SettingsDocument();
-            seed.Set(CommsCoreUplink.LegacyDelayInSimulationRow, "True");
-            seed.Set(CommsCoreUplink.DelayInSimulationRow, "False");
+            seed.Set(CommsCoreUplink.SignalDelayBlock + "/delayInSimulation", "True");
             WithStore(seed, store =>
             {
                 CommsCoreUplink.DeclareSimulationDelaySetting(store);
@@ -270,8 +243,7 @@ namespace Gonogo.KSP.Tests.Comms
             {
                 Assert.DoesNotContain(
                     store.DeclaredRows,
-                    row => row.Path == CommsCoreUplink.DelayInSimulationRow
-                        || row.Path == CommsCoreUplink.LegacyDelayInSimulationRow);
+                    row => row.Path == CommsCoreUplink.DelayInSimulationRow);
             });
         }
 
@@ -291,6 +263,16 @@ namespace Gonogo.KSP.Tests.Comms
             }
         }
 
+        /// <summary>
+        /// The config, the kernel and the settings store behind the accessor
+        /// are process statics, so a case that left any of them set would
+        /// change the answer for whatever ran next. Restores all three, whatever
+        /// the body does.
+        ///
+        /// <para>Passing a path binds the policy to a real settings file at
+        /// that location; otherwise it gets an in-memory one, which applies
+        /// every change and remembers none of it.</para>
+        /// </summary>
         private static void WithDelayOn(System.Action body, string? settingsPath = null)
         {
             var authored = CommsCoreUplink.AuthoredSignalDelayConfig;

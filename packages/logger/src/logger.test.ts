@@ -54,6 +54,19 @@ describe("ConsoleLogger tag gating", () => {
     expect(consoleSpy).toHaveBeenCalledTimes(1);
   });
 
+  it("does not read the old DEBUG_PEER / DEBUG_FLIGHT flags", () => {
+    vi.stubEnv("DEBUG_PEER", "1");
+    vi.stubEnv("DEBUG_FLIGHT", "1");
+    try {
+      const logger = new ConsoleLogger({ enabled: true, level: "debug" });
+      logger.tag("peer").debug("hello");
+      logger.tag("flight").debug("hello");
+      expect(consoleSpy).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
   it("colon-scoped tags inherit from their base tag", () => {
     const logger = new ConsoleLogger({ enabled: true, level: "debug" });
     tagRegistry.setTags(["peer"]);

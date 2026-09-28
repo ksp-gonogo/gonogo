@@ -41,11 +41,9 @@ describe("isBackupKey", () => {
     }
   });
 
-  it("gates per-device-instance identity keys on the opt-in flag", () => {
-    for (const k of ["gonogo.station.key", "gonogo.station.peer-id"]) {
-      expect(isBackupKey(k, false)).toBe(false);
-      expect(isBackupKey(k, true)).toBe(true);
-    }
+  it("gates the per-device-instance identity key on the opt-in flag", () => {
+    expect(isBackupKey("gonogo.station.key", false)).toBe(false);
+    expect(isBackupKey("gonogo.station.key", true)).toBe(true);
   });
 
   it("always includes the station name (a label, not identity)", () => {
@@ -63,7 +61,6 @@ describe("buildBackup", () => {
     localStorage.setItem("gonogo.settings", "{}");
     localStorage.setItem("gonogo.station.name", "Booster");
     localStorage.setItem("gonogo.station.key", "abc-123");
-    localStorage.setItem("gonogo.station.peer-id", "station-abc");
     localStorage.setItem("gonogo.logs.ringBuffer", "[...]");
     localStorage.setItem("gonogo-station-host-id", "XK3F");
     localStorage.setItem("LOG_TAGS", "*");
@@ -82,14 +79,12 @@ describe("buildBackup", () => {
   it("includes identity keys when opted in", () => {
     localStorage.setItem("gonogo.settings", "{}");
     localStorage.setItem("gonogo.station.key", "abc-123");
-    localStorage.setItem("gonogo.station.peer-id", "station-abc");
 
     const backup = buildBackup({ includeIdentity: true });
 
     expect(backup.data).toEqual({
       "gonogo.settings": "{}",
       "gonogo.station.key": "abc-123",
-      "gonogo.station.peer-id": "station-abc",
     });
   });
 

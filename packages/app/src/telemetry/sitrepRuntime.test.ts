@@ -13,7 +13,6 @@ import {
   onSitrepTransportStatusChange,
   reportSitrepTransportStatus,
   resetSitrepRuntimeForTests,
-  seedSitrepHost,
   setSitrepHostConfig,
   subscribeSitrepHostConfig,
   subscribeSitrepReconnectNonce,
@@ -55,11 +54,6 @@ describe("sitrepRuntime host = core gameHost", () => {
     const a = getSitrepHostConfig();
     const b = getSitrepHostConfig();
     expect(a).toBe(b); // useSyncExternalStore identity contract
-  });
-
-  it("seedSitrepHost delegates to the core seed layer", () => {
-    seedSitrepHost("seeded");
-    expect(getGameHost()).toBe("seeded");
   });
 
   it("notifies host-config subscribers exactly once per setSitrepHostConfig, and not at all for a port-only change on the same host", () => {
