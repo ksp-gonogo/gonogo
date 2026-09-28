@@ -364,7 +364,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * scansat-specific is imported or re-exported.
        */
       "mod/sitrep-sdk/src/api/slots.ts",
-      "mod/sitrep-sdk/src/dynamic-topic-prefixes.ts",
 
       // -- TEST-only --
 
@@ -1885,7 +1884,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
   scansat: [
     "mod/GonogoDevTools/GonogoDevStampScan.cs",
     "mod/Sitrep.Core.Tests/UplinkContractOwnershipTests.cs",
-    "mod/sitrep-sdk/src/dynamic-topic-prefixes.ts",
     "mod/sitrep-sdk/src/spine/map-topic.ts",
     "packages/app/src/__tests__/scansat-coverage-roundtrip.test.tsx",
     "packages/app/src/uplinks/loader.test.ts",

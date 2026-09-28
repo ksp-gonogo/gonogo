@@ -137,7 +137,6 @@ export {
   relativeDensityCurve,
   terminalVelocityCurve,
 } from "./descent";
-export { DYNAMIC_WHOLE_TOPIC_PREFIXES } from "./dynamic-topic-prefixes";
 // Ordinal->name tables and closed name unions for the contract's enums. On the
 // root barrel rather than in the spine because an Uplink needs them as much as
 // the app does: KSP's ResourceFlowMode reaches the Kerbalism Uplink and its
@@ -383,6 +382,7 @@ export {
   trySolveAnomalies,
   type WireOrbitElements,
 } from "./spine/kepler-reckoning";
+export { DYNAMIC_WHOLE_TOPIC_PREFIXES } from "./spine/map-topic";
 // The CONTRACT half of the Processor primitive, and the only route by which a
 // Processor one Uplink implements can be consumed, typed, by another. Published
 // alongside the handle type it returns; `defineProcessor` itself stays

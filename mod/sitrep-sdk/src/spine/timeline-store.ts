@@ -147,7 +147,7 @@ export interface TimelineStoreOptions {
    * being mis-split into a `<domain.channel>.<fieldPath>` parent that no channel
    * publishes. Injected (never hard-coded) so this mod-agnostic store names no
    * mod token: the app passes `DYNAMIC_WHOLE_TOPIC_PREFIXES`
-   * (`dynamic-topic-prefixes.ts`).
+   * (`map-topic.ts`).
    */
   dynamicWholeTopicPrefixes?: readonly string[];
   /**

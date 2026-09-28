@@ -1,7 +1,7 @@
 import type { JSX, ReactNode } from "react";
 import type { Meta } from "../__generated__/contract";
-import { DYNAMIC_WHOLE_TOPIC_PREFIXES } from "../dynamic-topic-prefixes";
 import {
+  DYNAMIC_WHOLE_TOPIC_PREFIXES,
   PRODUCTION_DERIVED_CHANNELS,
   TelemetryClient,
   TelemetryProvider,

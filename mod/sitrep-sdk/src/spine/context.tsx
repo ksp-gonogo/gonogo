@@ -18,7 +18,6 @@ import type {
   WarpState,
 } from "../__generated__/contract";
 import { COMMAND_REFUSED } from "../api/command-rejection";
-import { DYNAMIC_WHOLE_TOPIC_PREFIXES } from "../dynamic-topic-prefixes";
 import { magnitudeOf } from "../magnitude";
 import type { TopicReading } from "../reading";
 import { topicReading } from "../reading";
@@ -43,7 +42,7 @@ import {
   dvCurrentStageResourceMaxChannel,
 } from "./dv-stage-resources";
 import { commandDelayed } from "./map-command";
-import { resolveValueTopic } from "./map-topic";
+import { DYNAMIC_WHOLE_TOPIC_PREFIXES, resolveValueTopic } from "./map-topic";
 import { type OrbitalSolve, solveSelfOrbit } from "./orbital-solve";
 import { OwnCraftDelayGate } from "./own-craft-vantage";
 import { processorRuntimeFor } from "./processorEvaluator";
