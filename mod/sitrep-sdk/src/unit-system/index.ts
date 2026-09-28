@@ -53,8 +53,8 @@ export {
 } from "./value";
 
 /**
- * Operations on a physical dimension: `multiply`, `divide`, `equal`, `key`,
- * `formatDimension`, and `DIMENSIONLESS` for a pure number.
+ * Operations on a physical dimension: multiply and divide two, compare them,
+ * key and format one, and the dimensionless dimension of a pure number.
  *
  * @category Units and values
  */

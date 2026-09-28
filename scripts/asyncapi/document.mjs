@@ -182,6 +182,12 @@ An \`error\` frame carries a code and, when it answers a dispatch, the
 This channel has no \`address\` because these frames are not routed by one: they
 are typed by their own \`type\` field and belong to the socket itself.`;
 
+/** The contract's own summary for an envelope, followed by the protocol detail written here. */
+function withContractProse(contract, name, detail) {
+  const declared = contract.interfaces.get(name)?.description;
+  return declared ? `${declared}\n\n${detail}` : detail;
+}
+
 const STREAM_DATA_DESCRIPTION = `The envelope every telemetry frame arrives in.
 
 \`topic\` is the channel's \`address\` and \`payload\` is that channel's own
@@ -348,7 +354,11 @@ function defineEnvelopes(schemas, contract) {
 
   const streamData = schemas.define("StreamData", {
     type: "object",
-    description: STREAM_DATA_DESCRIPTION,
+    description: withContractProse(
+      contract,
+      "StreamData",
+      STREAM_DATA_DESCRIPTION,
+    ),
     required: ["type", "topic", "payload", "meta"],
     properties: {
       type: schemas.constSchema("StreamData", "type", "stream-data"),
@@ -365,7 +375,11 @@ function defineEnvelopes(schemas, contract) {
 
   const commandRequest = schemas.define("CommandRequest", {
     type: "object",
-    description: COMMAND_REQUEST_DESCRIPTION,
+    description: withContractProse(
+      contract,
+      "CommandRequest",
+      COMMAND_REQUEST_DESCRIPTION,
+    ),
     required: [
       "type",
       "requestId",
@@ -394,7 +408,11 @@ function defineEnvelopes(schemas, contract) {
 
   const commandResponse = schemas.define("CommandResponse", {
     type: "object",
-    description: COMMAND_RESPONSE_DESCRIPTION,
+    description: withContractProse(
+      contract,
+      "CommandResponse",
+      COMMAND_RESPONSE_DESCRIPTION,
+    ),
     required: ["type", "requestId", "result", "meta"],
     properties: {
       type: schemas.constSchema("CommandResponse", "type", "command-response"),

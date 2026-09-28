@@ -10178,6 +10178,9 @@ components:
     CommandRequest:
       type: object
       description: |-
+        A command the client sends: the command id, its arguments, and a request id
+        that the reply carries back.
+
         The envelope every dispatch is sent in.
 
         `command` is the channel's `address` and `args` is that command's own args
@@ -10265,6 +10268,9 @@ components:
     CommandResponse:
       type: object
       description: |-
+        The server's reply to a `CommandRequest`, matched to it by
+        `CommandResponse.requestId`.
+
         The envelope every answer to a dispatch arrives in.
 
         `result` is the command's own reply type, pinned by that command's
@@ -17711,6 +17717,10 @@ components:
     StreamData:
       type: object
       description: |-
+        One Topic sample as the server sends it: the Topic id, its payload, and the
+        envelope `StreamData.meta` saying when the payload was true and when it
+        arrived.
+
         The envelope every telemetry frame arrives in.
 
         `topic` is the channel's `address` and `payload` is that channel's own
