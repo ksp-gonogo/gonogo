@@ -83,7 +83,7 @@ const FUNCTIONS = [
   "clearActionHandlers",
   "clearUplinkHandles",
   "clearCoverageSources",
-  "clearProcessorRuntime",
+  "processorRuntimeFor",
   "registerDataSource",
   "registerStockBodies",
   "getAugmentsForSlot",

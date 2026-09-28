@@ -3,7 +3,6 @@ import {
   PROCESSOR_NOTIFY_BUDGET,
 } from "@ksp-gonogo/core";
 import {
-  clearProcessorRuntime,
   PRODUCTION_DERIVED_CHANNELS,
   setProcessorEvaluationRecorder,
   setProcessorNotificationRecorder,
@@ -67,9 +66,7 @@ export interface StreamFixture {
 }
 
 export function setupStreamFixture(opts: StreamFixtureOptions): StreamFixture {
-  // The Processor runtime is module-global and outlives a fixture, and a fresh store's frame generation restarts at 0, so a stale evaluation would otherwise be served.
-  clearProcessorRuntime();
-  // Clearing resets the recorders to no-ops; the real budgets go back so the PerfBudget gate still sees processor churn.
+  // The real budgets, so the PerfBudget gate sees processor churn.
   setProcessorEvaluationRecorder(() => PROCESSOR_EVAL_BUDGET.record());
   setProcessorNotificationRecorder(() => PROCESSOR_NOTIFY_BUDGET.record());
   const wall = createFakeWallClock();

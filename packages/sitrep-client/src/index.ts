@@ -333,33 +333,12 @@ export type {
 } from "./orbit-patches";
 export { mapOrbitPatch } from "./orbit-patches";
 export {
-  activateProcessor,
-  // Test-only: resets the shared Processor runtime cache (evaluated values +
-  // frame-generation bookkeeping). Needed by any test suite that mounts
-  // MULTIPLE independent TelemetryProvider/TimelineStore fixtures across
-  // sequential `it()` blocks while varying the data fed to the SAME
-  // globally-registered Processor id: each fresh store's frame generation
-  // counter restarts at 0, so a later fixture's `beginFrame()` can coincide
-  // with an earlier fixture's `lastFrameGeneration`, and `evaluate()` then
-  // (wrongly) treats the new store's frame as "already fresh," permanently
-  // serving the earlier fixture's stale computed value. This was previously
-  // sitrep-client-internal only (its own `use-processor.test.tsx` /
-  // `processorEvaluator.test.ts` import it by relative path); exported here
-  // so a consuming package's own Processor tests (e.g. an Uplink's) can
-  // reset between cases the same way, without reaching into this package's
-  // internals across the workspace boundary.
-  clearProcessorRuntime,
-  evaluateActiveProcessors,
-  getProcessorValue,
   // The uncomparable-result gate lives beside the evaluator (see its own doc
   // for why it is not wired core-side like the other two processor budgets);
   // named here so `@ksp-gonogo/core` can keep all three in one place.
   PROCESSOR_UNCOMPARABLE_BUDGET,
-  // Exported for the same reason `clearProcessorRuntime` above is: an Uplink's
-  // own Processor test needs to point the evaluator at a store it built, and
-  // reaching across the workspace boundary into this package's internals to do
-  // it is worse than naming the seam.
-  setActiveTimelineStore,
+  ProcessorRuntime,
+  processorRuntimeFor,
   setProcessorEvaluationRecorder,
   setProcessorNotificationRecorder,
   setProcessorUncomparableRecorder,

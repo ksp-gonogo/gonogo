@@ -2,13 +2,9 @@ import type { Reading } from "@ksp-gonogo/sitrep-sdk";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  activateProcessor,
-  clearProcessorRuntime,
-  getProcessorValue,
-  setActiveTimelineStore,
-  setProcessorTopicSubscriber,
+  type ProcessorRuntime,
+  processorRuntimeFor,
   setProcessorUncomparableRecorder,
-  subscribeProcessor,
 } from "./processorEvaluator";
 import { clearProcessors, defineProcessor } from "./processors";
 import { makeMeta } from "./stub-transport";
@@ -25,7 +21,7 @@ import { ViewClock } from "./view-clock";
  * derivation is, so the value is taken off whichever arm carries one.
  */
 function derived<R>(id: string): R | undefined {
-  const reading = getProcessorValue<Reading<R>>(id);
+  const reading = runtime.value<Reading<R>>(id);
   if (reading === undefined) return undefined;
   return "value" in reading ? reading.value : undefined;
 }
@@ -36,15 +32,17 @@ function makeStore(): TimelineStore {
   );
 }
 
+/** The runtime of the store the current case evaluates against. */
+let runtime: ProcessorRuntime;
+
 beforeEach(() => {
   clearProcessors();
-  clearProcessorRuntime();
 });
 
 describe("processorEvaluator", () => {
   it("evaluates a processor's deps in topological order and caches the result for the frame", () => {
     const store = makeStore();
-    setActiveTimelineStore(store);
+    runtime = processorRuntimeFor(store);
 
     const order: string[] = [];
     const base = defineProcessor({
@@ -66,10 +64,10 @@ describe("processorEvaluator", () => {
       },
     });
 
-    const deactivate = activateProcessor(derived.id);
+    const deactivate = runtime.activate(derived.id);
 
     expect(order).toEqual(["base", "derived"]);
-    expect(getProcessorValue(derived.id)).toBe(11);
+    expect(runtime.value(derived.id)).toBe(11);
 
     store.beginFrame();
 
@@ -78,9 +76,9 @@ describe("processorEvaluator", () => {
     deactivate();
   });
 
-  it("re-evaluates only on a new frame, not on every getProcessorValue call", () => {
+  it("re-evaluates only on a new frame, not on every value read", () => {
     const store = makeStore();
-    setActiveTimelineStore(store);
+    runtime = processorRuntimeFor(store);
 
     let calls = 0;
     const handle = defineProcessor({
@@ -93,24 +91,24 @@ describe("processorEvaluator", () => {
       },
     });
 
-    const deactivate = activateProcessor(handle.id);
+    const deactivate = runtime.activate(handle.id);
     expect(calls).toBe(1);
 
     store.beginFrame();
-    getProcessorValue(handle.id);
-    getProcessorValue(handle.id);
+    runtime.value(handle.id);
+    runtime.value(handle.id);
     expect(calls).toBe(2);
 
     store.beginFrame();
-    getProcessorValue(handle.id);
+    runtime.value(handle.id);
     expect(calls).toBe(3);
 
     deactivate();
   });
 
-  it("notifies subscribeProcessor listeners only when the value actually changes", () => {
+  it("notifies subscribed listeners only when the value actually changes", () => {
     const store = makeStore();
-    setActiveTimelineStore(store);
+    runtime = processorRuntimeFor(store);
 
     const handle = defineProcessor({
       id: "static",
@@ -120,8 +118,8 @@ describe("processorEvaluator", () => {
     });
 
     const cb = vi.fn();
-    const unsubscribe = subscribeProcessor(handle.id, cb);
-    const deactivate = activateProcessor(handle.id);
+    const unsubscribe = runtime.subscribe(handle.id, cb);
+    const deactivate = runtime.activate(handle.id);
 
     store.beginFrame();
     store.beginFrame();
@@ -140,7 +138,7 @@ describe("processorEvaluator", () => {
   // because a correct value delivered sixty times a second is exactly the bug.
   it("does not notify when an allocating compute returns an equal object across frames", () => {
     const store = makeStore();
-    setActiveTimelineStore(store);
+    runtime = processorRuntimeFor(store);
 
     const handle = defineProcessor({
       id: "allocating-object",
@@ -150,8 +148,8 @@ describe("processorEvaluator", () => {
     });
 
     const cb = vi.fn();
-    const unsubscribe = subscribeProcessor(handle.id, cb);
-    const deactivate = activateProcessor(handle.id);
+    const unsubscribe = runtime.subscribe(handle.id, cb);
+    const deactivate = runtime.activate(handle.id);
 
     for (let i = 0; i < 10; i++) store.beginFrame();
 
@@ -163,7 +161,7 @@ describe("processorEvaluator", () => {
 
   it("does not notify when an equal result carries wire Values (10 frames, 1 notification)", () => {
     const store = makeStore();
-    setActiveTimelineStore(store);
+    runtime = processorRuntimeFor(store);
 
     const handle = defineProcessor({
       id: "allocating-values",
@@ -176,8 +174,8 @@ describe("processorEvaluator", () => {
     });
 
     const cb = vi.fn();
-    const unsubscribe = subscribeProcessor(handle.id, cb);
-    const deactivate = activateProcessor(handle.id);
+    const unsubscribe = runtime.subscribe(handle.id, cb);
+    const deactivate = runtime.activate(handle.id);
 
     for (let i = 0; i < 10; i++) store.beginFrame();
 
@@ -189,7 +187,7 @@ describe("processorEvaluator", () => {
 
   it("still notifies when only the MAGNITUDE inside a carried Value moves", () => {
     const store = makeStore();
-    setActiveTimelineStore(store);
+    runtime = processorRuntimeFor(store);
 
     let magnitude = 4502;
     const handle = defineProcessor({
@@ -200,8 +198,8 @@ describe("processorEvaluator", () => {
     });
 
     const cb = vi.fn();
-    const deactivate = activateProcessor(handle.id);
-    const unsubscribe = subscribeProcessor(handle.id, cb);
+    const deactivate = runtime.activate(handle.id);
+    const unsubscribe = runtime.subscribe(handle.id, cb);
 
     for (let i = 0; i < 5; i++) store.beginFrame();
 
@@ -213,7 +211,7 @@ describe("processorEvaluator", () => {
 
   it("still notifies when only the UNIT of a carried Value changes", () => {
     const store = makeStore();
-    setActiveTimelineStore(store);
+    runtime = processorRuntimeFor(store);
 
     let flip = false;
     const handle = defineProcessor({
@@ -227,8 +225,8 @@ describe("processorEvaluator", () => {
     });
 
     const cb = vi.fn();
-    const deactivate = activateProcessor(handle.id);
-    const unsubscribe = subscribeProcessor(handle.id, cb);
+    const deactivate = runtime.activate(handle.id);
+    const unsubscribe = runtime.subscribe(handle.id, cb);
 
     for (let i = 0; i < 4; i++) store.beginFrame();
 
@@ -240,7 +238,7 @@ describe("processorEvaluator", () => {
 
   it("keeps the previous result's IDENTITY when the new one is equal, so a useSyncExternalStore snapshot is stable", () => {
     const store = makeStore();
-    setActiveTimelineStore(store);
+    runtime = processorRuntimeFor(store);
 
     const handle = defineProcessor({
       id: "allocating-identity",
@@ -249,23 +247,23 @@ describe("processorEvaluator", () => {
       compute: () => ({ crew: ["Jeb", "Bill"] }),
     });
 
-    const deactivate = activateProcessor(handle.id);
+    const deactivate = runtime.activate(handle.id);
     store.beginFrame();
-    const first = getProcessorValue(handle.id);
+    const first = runtime.value(handle.id);
     store.beginFrame();
     store.beginFrame();
 
     // Not merely equal: the SAME object. React re-reads `getSnapshot` outside
     // of any notification, and a fresh identity there is an infinite render
     // loop even with the listener silenced.
-    expect(getProcessorValue(handle.id)).toBe(first);
+    expect(runtime.value(handle.id)).toBe(first);
 
     deactivate();
   });
 
   it("still notifies on every frame where the result genuinely moves", () => {
     const store = makeStore();
-    setActiveTimelineStore(store);
+    runtime = processorRuntimeFor(store);
 
     let tick = 0;
     const handle = defineProcessor({
@@ -276,8 +274,8 @@ describe("processorEvaluator", () => {
     });
 
     const cb = vi.fn();
-    const deactivate = activateProcessor(handle.id);
-    const unsubscribe = subscribeProcessor(handle.id, cb);
+    const deactivate = runtime.activate(handle.id);
+    const unsubscribe = runtime.subscribe(handle.id, cb);
 
     for (let i = 0; i < 10; i++) store.beginFrame();
 
@@ -290,7 +288,7 @@ describe("processorEvaluator", () => {
 
   it("re-runs compute on every frame even while nobody is notified", () => {
     const store = makeStore();
-    setActiveTimelineStore(store);
+    runtime = processorRuntimeFor(store);
 
     let computes = 0;
     const handle = defineProcessor({
@@ -304,8 +302,8 @@ describe("processorEvaluator", () => {
     });
 
     const cb = vi.fn();
-    const unsubscribe = subscribeProcessor(handle.id, cb);
-    const deactivate = activateProcessor(handle.id);
+    const unsubscribe = runtime.subscribe(handle.id, cb);
+    const deactivate = runtime.activate(handle.id);
 
     for (let i = 0; i < 10; i++) store.beginFrame();
 
@@ -321,7 +319,7 @@ describe("processorEvaluator", () => {
 
   it("notifies a processor with NO deps whose result is a function of the frame's view time", () => {
     const store = makeStore();
-    setActiveTimelineStore(store);
+    runtime = processorRuntimeFor(store);
 
     const handle = defineProcessor({
       id: "countdown",
@@ -331,8 +329,8 @@ describe("processorEvaluator", () => {
     });
 
     const cb = vi.fn();
-    const deactivate = activateProcessor(handle.id);
-    const unsubscribe = subscribeProcessor(handle.id, cb);
+    const deactivate = runtime.activate(handle.id);
+    const unsubscribe = runtime.subscribe(handle.id, cb);
 
     for (let ut = 1; ut <= 5; ut++) {
       store.clock.scrubTo(ut);
@@ -351,7 +349,7 @@ describe("processorEvaluator", () => {
 
   it("does not notify a DEPENDENT processor whose own result is unchanged by a moving upstream", () => {
     const store = makeStore();
-    setActiveTimelineStore(store);
+    runtime = processorRuntimeFor(store);
 
     let tick = 0;
     const upstream = defineProcessor({
@@ -368,8 +366,8 @@ describe("processorEvaluator", () => {
     });
 
     const cb = vi.fn();
-    const unsubscribe = subscribeProcessor(downstream.id, cb);
-    const deactivate = activateProcessor(downstream.id);
+    const unsubscribe = runtime.subscribe(downstream.id, cb);
+    const deactivate = runtime.activate(downstream.id);
 
     for (let i = 0; i < 10; i++) store.beginFrame();
 
@@ -422,7 +420,7 @@ function quantity(amount: number, symbol: string): object {
 describe("the notify guard's answer set", () => {
   it("goes quiet over a wrapper it has never heard of: 10 frames, 1 notification", () => {
     const store = makeStore();
-    setActiveTimelineStore(store);
+    runtime = processorRuntimeFor(store);
 
     const handle = defineProcessor({
       id: "bespoke-wrapper",
@@ -435,8 +433,8 @@ describe("the notify guard's answer set", () => {
     });
 
     const cb = vi.fn();
-    const unsubscribe = subscribeProcessor(handle.id, cb);
-    const deactivate = activateProcessor(handle.id);
+    const unsubscribe = runtime.subscribe(handle.id, cb);
+    const deactivate = runtime.activate(handle.id);
 
     for (let i = 0; i < 10; i++) store.beginFrame();
 
@@ -450,7 +448,7 @@ describe("the notify guard's answer set", () => {
     // The counterweight. Silencing a wrapper whose contents genuinely changed
     // is a frozen dashboard, which is worse than the churn being fixed here.
     const store = makeStore();
-    setActiveTimelineStore(store);
+    runtime = processorRuntimeFor(store);
 
     let amount = 4502;
     const handle = defineProcessor({
@@ -461,8 +459,8 @@ describe("the notify guard's answer set", () => {
     });
 
     const cb = vi.fn();
-    const deactivate = activateProcessor(handle.id);
-    const unsubscribe = subscribeProcessor(handle.id, cb);
+    const deactivate = runtime.activate(handle.id);
+    const unsubscribe = runtime.subscribe(handle.id, cb);
 
     for (let i = 0; i < 5; i++) store.beginFrame();
 
@@ -478,7 +476,7 @@ describe("the notify guard's answer set", () => {
     // point of the third version is that it says so instead of quietly
     // answering "changed" ten times a second forever.
     const store = makeStore();
-    setActiveTimelineStore(store);
+    runtime = processorRuntimeFor(store);
 
     const reported: Array<[string, string]> = [];
     setProcessorUncomparableRecorder((id, shape) => {
@@ -493,8 +491,8 @@ describe("the notify guard's answer set", () => {
     });
 
     const cb = vi.fn();
-    const deactivate = activateProcessor(handle.id);
-    const unsubscribe = subscribeProcessor(handle.id, cb);
+    const deactivate = runtime.activate(handle.id);
+    const unsubscribe = runtime.subscribe(handle.id, cb);
 
     for (let i = 0; i < 10; i++) store.beginFrame();
 
@@ -511,7 +509,7 @@ describe("the notify guard's answer set", () => {
 
   it("names a closure in the result, which nothing can compare", () => {
     const store = makeStore();
-    setActiveTimelineStore(store);
+    runtime = processorRuntimeFor(store);
 
     const reported: string[] = [];
     setProcessorUncomparableRecorder((_id, shape) => {
@@ -525,7 +523,7 @@ describe("the notify guard's answer set", () => {
       compute: () => ({ label: "Oxygen", render: () => "Oxygen" }),
     });
 
-    const deactivate = activateProcessor(handle.id);
+    const deactivate = runtime.activate(handle.id);
     for (let i = 0; i < 3; i++) store.beginFrame();
 
     expect(reported).toEqual(["function", "function", "function"]);
@@ -541,7 +539,7 @@ describe("the notify guard's answer set", () => {
     // answer "equal" for two objects that differ, and a wrongly-silenced
     // processor is a widget stuck on a number that has moved.
     const store = makeStore();
-    setActiveTimelineStore(store);
+    runtime = processorRuntimeFor(store);
 
     const reported: string[] = [];
     setProcessorUncomparableRecorder((_id, shape) => {
@@ -563,8 +561,8 @@ describe("the notify guard's answer set", () => {
     });
 
     const cb = vi.fn();
-    const deactivate = activateProcessor(handle.id);
-    const unsubscribe = subscribeProcessor(handle.id, cb);
+    const deactivate = runtime.activate(handle.id);
+    const unsubscribe = runtime.subscribe(handle.id, cb);
 
     store.beginFrame();
     hidden = 2;
@@ -591,7 +589,7 @@ describe("the notify guard's answer set", () => {
     // broken guard as working, which is the exact instrument failure this arm
     // was added to end.
     const store = makeStore();
-    setActiveTimelineStore(store);
+    runtime = processorRuntimeFor(store);
 
     const reported: string[] = [];
     setProcessorUncomparableRecorder((_id, shape) => {
@@ -606,40 +604,10 @@ describe("the notify guard's answer set", () => {
       compute: () => ({ tick: tick++, headline: quantity(1, "m/s") }),
     });
 
-    const deactivate = activateProcessor(handle.id);
+    const deactivate = runtime.activate(handle.id);
     for (let i = 0; i < 10; i++) store.beginFrame();
 
     expect(reported).toEqual([]);
-
-    setProcessorUncomparableRecorder(undefined);
-    deactivate();
-  });
-
-  it("survives clearProcessorRuntime, because a reset that unplugs the report is the failure", () => {
-    // `clearProcessorRuntime` resets the evaluation and notification recorders
-    // (a leftover counter would corrupt the next test's rate). This one is a
-    // defect report rather than a counter, and every fixture in the tree calls
-    // that reset, so resetting it too would leave the instrument off in
-    // precisely the places that run the most processors.
-    const reported: string[] = [];
-    setProcessorUncomparableRecorder((_id, shape) => {
-      reported.push(shape);
-    });
-
-    clearProcessorRuntime();
-
-    const store = makeStore();
-    setActiveTimelineStore(store);
-    const handle = defineProcessor({
-      id: "uncomparable-after-clear",
-      owner: "core",
-      deps: [] as const,
-      compute: () => ({ when: new Date(0) }),
-    });
-    const deactivate = activateProcessor(handle.id);
-    store.beginFrame();
-
-    expect(reported).toEqual(["[object Date]"]);
 
     setProcessorUncomparableRecorder(undefined);
     deactivate();
@@ -658,6 +626,7 @@ function pointOf<T>(validAt: number, payload: T): TimelinePoint<T> {
 describe("processorEvaluator topic-dep subscription", () => {
   it("subscribes a processor's raw Topic deps on activation, so a topic nothing else reads still streams", () => {
     const store = makeStore();
+    runtime = processorRuntimeFor(store);
 
     // Model the server: a topic's data is delivered only once that topic is
     // SUBSCRIBED (use-stream's contract, and the reason sampling alone is the
@@ -668,13 +637,12 @@ describe("processorEvaluator topic-dep subscription", () => {
       ["comms.signal", pointOf(0, 101)],
     ]);
     const subscribed: string[] = [];
-    setProcessorTopicSubscriber((topic) => {
+    runtime.setTopicSubscriber((topic) => {
       subscribed.push(topic);
       const point = served.get(topic);
       if (point) store.ingest(topic, point);
       return () => {};
     });
-    setActiveTimelineStore(store);
 
     const pressure = defineProcessor({
       id: "pressure",
@@ -683,11 +651,11 @@ describe("processorEvaluator topic-dep subscription", () => {
       compute: (values) => values[0],
     });
 
-    const deactivate = activateProcessor(pressure.id);
+    const deactivate = runtime.activate(pressure.id);
     store.beginFrame();
 
     expect(subscribed).toContain("comms.signal");
-    expect(getProcessorValue(pressure.id)).toBe(101);
+    expect(runtime.value(pressure.id)).toBe(101);
 
     deactivate();
   });
@@ -695,8 +663,8 @@ describe("processorEvaluator topic-dep subscription", () => {
   it("unsubscribes the topic deps when the last activator deactivates", () => {
     const store = makeStore();
     const unsub = vi.fn();
-    setProcessorTopicSubscriber(() => unsub);
-    setActiveTimelineStore(store);
+    runtime = processorRuntimeFor(store);
+    runtime.setTopicSubscriber(() => unsub);
 
     const p = defineProcessor({
       id: "p",
@@ -704,67 +672,106 @@ describe("processorEvaluator topic-dep subscription", () => {
       deps: ["comms.signal"] as const,
       compute: (values) => values[0],
     });
-    const deactivate = activateProcessor(p.id);
+    const deactivate = runtime.activate(p.id);
     expect(unsub).not.toHaveBeenCalled();
 
     deactivate();
     expect(unsub).toHaveBeenCalledTimes(1);
   });
 
-  it("back-fills subscriptions when the store/subscriber arrive AFTER activation (the real effect order)", () => {
+  it("back-fills subscriptions when the subscriber arrives AFTER activation (the real effect order)", () => {
     const store = makeStore();
+    runtime = processorRuntimeFor(store);
     const served = new Map<string, TimelinePoint<number>>([
       ["comms.signal", pointOf(0, 202)],
     ]);
 
-    // Activate FIRST, before any store or subscriber is wired, exactly as a child `useProcessor` effect runs before the parent provider's effects.
+    // Activate FIRST, before the subscriber is wired, exactly as a child `useProcessor` effect runs before the parent provider's effect.
     const pressure = defineProcessor({
       id: "pressure",
       owner: "test",
       deps: ["comms.signal"] as const,
       compute: (values) => values[0],
     });
-    const deactivate = activateProcessor(pressure.id);
+    const deactivate = runtime.activate(pressure.id);
 
     // Provider wiring lands late.
-    setProcessorTopicSubscriber((topic) => {
+    runtime.setTopicSubscriber((topic) => {
       const point = served.get(topic);
       if (point) store.ingest(topic, point);
       return () => {};
     });
-    setActiveTimelineStore(store);
     store.beginFrame();
 
-    expect(getProcessorValue(pressure.id)).toBe(202);
+    expect(runtime.value(pressure.id)).toBe(202);
     deactivate();
   });
 });
 
-describe("processorEvaluator store swap", () => {
-  it("re-evaluates after a store swap even when the new store's frame generation collides with the cached one", () => {
+describe("a runtime per store", () => {
+  it("evaluates one processor against each store's own data, and deactivating on one leaves the other evaluating", () => {
     const storeA = makeStore();
-    setActiveTimelineStore(storeA);
-    let source = 1;
-    const swap = defineProcessor({
-      id: "swap",
-      owner: "test",
-      deps: [] as const,
-      compute: () => source,
-    });
-    const deactivate = activateProcessor(swap.id);
-    storeA.beginFrame();
-    expect(getProcessorValue(swap.id)).toBe(1);
-
-    // Swap to a fresh store: its generation restarts and collides with the
-    // generation cached on the entry. Change the source so a genuine re-eval
-    // yields a new value; a stale skip would wrongly keep 1.
-    source = 2;
     const storeB = makeStore();
-    setActiveTimelineStore(storeB);
-    storeB.beginFrame();
-    expect(getProcessorValue(swap.id)).toBe(2);
+    const signal = defineProcessor({
+      id: "signal",
+      owner: "test",
+      deps: ["comms.signal"] as const,
+      compute: (values) => values[0],
+    });
+    const a = processorRuntimeFor(storeA);
+    const b = processorRuntimeFor(storeB);
+    const deactivateA = a.activate(signal.id);
+    const deactivateB = b.activate(signal.id);
 
+    storeA.ingest("comms.signal", pointOf(0, 1));
+    storeB.ingest("comms.signal", pointOf(0, 2));
+    storeA.beginFrame();
+    storeB.beginFrame();
+    expect(a.value(signal.id)).toBe(1);
+    expect(b.value(signal.id)).toBe(2);
+
+    deactivateA();
+    storeB.ingest("comms.signal", pointOf(1, 3));
+    storeB.beginFrame();
+    expect(b.value(signal.id)).toBe(3);
+    expect(a.value(signal.id)).toBe(1);
+
+    deactivateB();
+  });
+
+  it("is the same runtime for the same store", () => {
+    const store = makeStore();
+    expect(processorRuntimeFor(store)).toBe(processorRuntimeFor(store));
+  });
+
+  it("keeps a later subscriber when an earlier one is released", () => {
+    // Two providers sharing one store each install their client's subscribe, and the first to unmount must not unplug the other.
+    const store = makeStore();
+    runtime = processorRuntimeFor(store);
+    const first: string[] = [];
+    const second: string[] = [];
+    const releaseFirst = runtime.setTopicSubscriber((topic) => {
+      first.push(topic);
+      return () => {};
+    });
+    const releaseSecond = runtime.setTopicSubscriber((topic) => {
+      second.push(topic);
+      return () => {};
+    });
+    releaseFirst();
+
+    const p = defineProcessor({
+      id: "p",
+      owner: "test",
+      deps: ["comms.signal"] as const,
+      compute: (values) => values[0],
+    });
+    const deactivate = runtime.activate(p.id);
+
+    expect(first).toEqual([]);
+    expect(second).toContain("comms.signal");
     deactivate();
+    releaseSecond();
   });
 });
 
@@ -810,7 +817,7 @@ describe("a reading-shaped dep", () => {
   it("hands over the whole Reading, so a derivation can see how current its input is", () => {
     const wall = fakeWall();
     const store = delayedStore(wall);
-    setActiveTimelineStore(store);
+    runtime = processorRuntimeFor(store);
 
     const seen: string[] = [];
     const proc = defineProcessor({
@@ -822,7 +829,7 @@ describe("a reading-shaped dep", () => {
         return reading.state;
       },
     });
-    const deactivate = activateProcessor(proc.id);
+    const deactivate = runtime.activate(proc.id);
 
     store.ingest("temperature", point(100, 5));
     store.beginFrame();
@@ -845,9 +852,9 @@ describe("a reading-shaped dep", () => {
     // subscription, which is the failure `StubTransport`'s subscribed-only
     // delivery exists to surface.
     const store = makeStore();
-    setActiveTimelineStore(store);
+    runtime = processorRuntimeFor(store);
     const subscribed: string[] = [];
-    setProcessorTopicSubscriber((topic) => {
+    const release = runtime.setTopicSubscriber((topic) => {
       subscribed.push(topic);
       return () => {};
     });
@@ -858,27 +865,26 @@ describe("a reading-shaped dep", () => {
       deps: [{ reading: "temperature" }] as never,
       compute: () => 1,
     });
-    const deactivate = activateProcessor(proc.id);
+    const deactivate = runtime.activate(proc.id);
 
     expect(subscribed).toContain("temperature");
     deactivate();
-    setProcessorTopicSubscriber(undefined);
+    release();
   });
 
-  it("is pending rather than undefined with no store wired", () => {
+  it("is pending rather than undefined before anything has arrived", () => {
     // A processor must never see a bare `undefined` where a Reading is
     // declared: `pending` is the arm that means "nothing has arrived", and a
     // consumer branching on `state` would crash on undefined.
-    setActiveTimelineStore(undefined);
+    const store = makeStore();
+    runtime = processorRuntimeFor(store);
     const proc = defineProcessor({
-      id: "no-store",
+      id: "nothing-arrived",
       owner: "core",
       deps: [{ reading: "temperature" }] as never,
       compute: ([reading]: readonly [{ state: string }]) => reading.state,
     });
-    const store = makeStore();
-    const deactivate = activateProcessor(proc.id);
-    setActiveTimelineStore(store);
+    const deactivate = runtime.activate(proc.id);
     store.beginFrame();
     expect(derived<string>(proc.id)).toBe("pending");
     deactivate();

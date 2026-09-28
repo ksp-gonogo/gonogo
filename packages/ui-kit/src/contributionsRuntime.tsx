@@ -6,13 +6,11 @@ import {
   type TopicId,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
-  activateProcessor,
-  evaluateActiveProcessors,
   type FrameToken,
   getContributionsForSlot,
-  getProcessorValue,
   onContributionsChange,
   type ProcessorHandle,
+  processorRuntimeFor,
   runContributionCompute,
   subscribeTopicRead,
   useTelemetryClientOptional,
@@ -196,16 +194,20 @@ function SlotAggregator({
 
   const client = useTelemetryClientOptional();
   const telemetryStore = useTelemetryStoreOptional();
+  const processorRuntime = telemetryStore
+    ? processorRuntimeFor(telemetryStore)
+    : undefined;
 
   // Processor freshness rides the same frame boundary as the Topic reads, so no per-processor subscription is needed.
   useEffect(() => {
+    if (!processorRuntime) return;
     const deactivates = unionDeps.processors.map((p) =>
-      activateProcessor(p.id),
+      processorRuntime.activate(p.id),
     );
     return () => {
       for (const d of deactivates) d();
     };
-  }, [unionDeps.processors]);
+  }, [processorRuntime, unionDeps.processors]);
 
   const subscribe = useCallback(
     (onChange: () => void) => {
@@ -216,7 +218,7 @@ function SlotAggregator({
       );
       const unsubscribeFrame = telemetryStore.subscribeFrame(() => {
         // Evaluate Processors BEFORE notifying React: this listener can fire before the evaluator's shared one. Idempotent.
-        if (unionDeps.processors.length > 0) evaluateActiveProcessors();
+        if (unionDeps.processors.length > 0) processorRuntime?.evaluateActive();
         onChange();
       });
       return () => {
@@ -224,7 +226,7 @@ function SlotAggregator({
         for (const u of unsubscribeInputs) u();
       };
     },
-    [client, telemetryStore, unionDeps],
+    [client, telemetryStore, processorRuntime, unionDeps],
   );
 
   // Keyed on the `FrameToken`, which is stable for a whole frame, so re-reads within one frame return the identical object.
@@ -247,7 +249,7 @@ function SlotAggregator({
       values[topic] = point ? point.payload : undefined;
     }
     for (const p of unionDeps.processors) {
-      values[p.id] = getProcessorValue(p.id);
+      values[p.id] = processorRuntime?.value(p.id);
     }
     /*
      * A frame arrives every animation tick whether or not anything moved, so
@@ -260,7 +262,7 @@ function SlotAggregator({
         : values;
     topicCacheRef.current = { token, values: next };
     return next;
-  }, [telemetryStore, unionDeps]);
+  }, [telemetryStore, processorRuntime, unionDeps]);
 
   const topicValues = useSyncExternalStore(subscribe, getSnapshot);
   // The host's presence store, the same one an augment's `requires` reads, so both gates follow one rule.

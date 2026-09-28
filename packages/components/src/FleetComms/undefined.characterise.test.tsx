@@ -1,5 +1,4 @@
 import { ContributionsProvider, WidgetMetaContext } from "@ksp-gonogo/core";
-import { clearProcessorRuntime } from "@ksp-gonogo/sitrep-client";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import {
   NULL_DISPLAY,
@@ -38,8 +37,6 @@ const teardowns: Array<() => void> = [];
 
 beforeEach(() => {
   __resetFleetCommsTogglesForTests();
-  // The badge's Processor caches per frame in a module global.
-  clearProcessorRuntime();
   fixture = setupStreamFixture({
     carriedChannels: CARRIED,
     pinnedUt: PINNED_UT,

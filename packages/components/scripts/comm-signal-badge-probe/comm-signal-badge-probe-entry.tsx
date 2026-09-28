@@ -7,7 +7,6 @@ import {
   useWidgetBadges,
   WidgetMetaContext,
 } from "@ksp-gonogo/core";
-import { clearProcessorRuntime } from "@ksp-gonogo/sitrep-client";
 import {
   defaultDarkTheme,
   PanelBadgesProvider,
@@ -78,8 +77,6 @@ async function renderCommSignalBadgeProbe(
     activeRoot.unmount();
     activeRoot = null;
   }
-  clearProcessorRuntime();
-
   const def = getComponent("comm-signal");
   if (!def) {
     throw new Error('CommSignal-badge probe: "comm-signal" not registered');

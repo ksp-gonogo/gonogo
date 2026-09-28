@@ -10,14 +10,11 @@ import {
   createFakeWallClock,
   type FakeWallClock,
 } from "@ksp-gonogo/sitrep-sdk/testing";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  activateProcessor,
-  clearProcessorRuntime,
-  getProcessorValue,
-  setActiveTimelineStore,
+  type ProcessorRuntime,
+  processorRuntimeFor,
   setProcessorEvaluationRecorder,
-  subscribeProcessor,
 } from "./processorEvaluator";
 import { makeMeta } from "./stub-transport";
 import type { TimelinePoint } from "./timeline";
@@ -33,7 +30,7 @@ import { ViewClock } from "./view-clock";
  * tests, so this reaches the value on whichever arm carries one.
  */
 function derived<R>(id: string): R | undefined {
-  const reading = getProcessorValue<Reading<R>>(id);
+  const reading = runtime.value<Reading<R>>(id);
   if (reading === undefined) return undefined;
   return "value" in reading ? reading.value : undefined;
 }
@@ -178,16 +175,11 @@ const DV_SUMMARY = {
 
 let store: TimelineStore;
 let wall: FakeWallClock;
+let runtime: ProcessorRuntime;
 
 beforeEach(() => {
-  clearProcessorRuntime();
   ({ store, wall } = makeStore());
-  setActiveTimelineStore(store);
-});
-
-afterEach(() => {
-  setActiveTimelineStore(undefined);
-  clearProcessorRuntime();
+  runtime = processorRuntimeFor(store);
 });
 
 /** Counts every `compute` run in the block, via the evaluator's own budget seam. */
@@ -213,10 +205,10 @@ describe("the evaluation counter", () => {
   it("counts per DERIVATION, not per frame: 2 processors over activation and 5 frames reads 12", () => {
     const counter = countEvaluations();
     const off = [
-      activateProcessor(CELESTIAL_FACTS.id),
-      activateProcessor(CELESTIAL_FACTS.id),
-      activateProcessor(DELTA_V_BUDGET.id),
-      activateProcessor(DELTA_V_BUDGET.id),
+      runtime.activate(CELESTIAL_FACTS.id),
+      runtime.activate(CELESTIAL_FACTS.id),
+      runtime.activate(DELTA_V_BUDGET.id),
+      runtime.activate(DELTA_V_BUDGET.id),
     ];
 
     for (let i = 0; i < 5; i++) store.beginFrame();
@@ -234,7 +226,7 @@ describe("CELESTIAL_FACTS", () => {
     // Four activations stands for the four sites that each re-derived the whole
     // catalogue every frame: SystemView's body, SystemView's config component,
     // TransferWindow, and useBodyRotation (which OrbitView calls).
-    const off = [1, 2, 3, 4].map(() => activateProcessor(CELESTIAL_FACTS.id));
+    const off = [1, 2, 3, 4].map(() => runtime.activate(CELESTIAL_FACTS.id));
 
     store.ingest("system.bodies", point(0, SYSTEM));
     for (let i = 0; i < 5; i++) store.beginFrame();
@@ -247,7 +239,7 @@ describe("CELESTIAL_FACTS", () => {
   });
 
   it("carries the 3 game-authored almanac fields verbatim, and derives 2 more", () => {
-    const off = activateProcessor(CELESTIAL_FACTS.id);
+    const off = runtime.activate(CELESTIAL_FACTS.id);
     store.ingest("system.bodies", point(0, SYSTEM));
     store.beginFrame();
 
@@ -282,7 +274,7 @@ describe("CELESTIAL_FACTS", () => {
     // The root star: KSP's own hillSphere is PositiveInfinity there and the
     // host's non-finite-is-absent rule drops it. Nothing bounds the star, and a
     // client-side reconstruction would have invented a number for it.
-    const off = activateProcessor(CELESTIAL_FACTS.id);
+    const off = runtime.activate(CELESTIAL_FACTS.id);
     store.ingest("system.bodies", point(0, SYSTEM));
     store.beginFrame();
 
@@ -301,10 +293,10 @@ describe("CELESTIAL_FACTS", () => {
     // rather than free-running, so with no new sample it does not move and the
     // catalogue is byte-identical frame to frame. Each consumer is woken once,
     // when the first value lands, and then not again.
-    const off = [1, 2, 3, 4].map(() => activateProcessor(CELESTIAL_FACTS.id));
+    const off = [1, 2, 3, 4].map(() => runtime.activate(CELESTIAL_FACTS.id));
     const listeners = [vi.fn(), vi.fn(), vi.fn(), vi.fn()];
     const unsubs = listeners.map((cb) =>
-      subscribeProcessor(CELESTIAL_FACTS.id, cb),
+      runtime.subscribe(CELESTIAL_FACTS.id, cb),
     );
 
     store.ingest("system.bodies", point(0, SYSTEM));
@@ -323,10 +315,10 @@ describe("CELESTIAL_FACTS", () => {
     // The other arm, so the case above cannot pass by the processor being
     // wedged. A later sample moves the confirmed edge, the Kepler solve answers
     // for a new instant, and every consumer is told exactly once more.
-    const off = [1, 2, 3, 4].map(() => activateProcessor(CELESTIAL_FACTS.id));
+    const off = [1, 2, 3, 4].map(() => runtime.activate(CELESTIAL_FACTS.id));
     const listeners = [vi.fn(), vi.fn(), vi.fn(), vi.fn()];
     const unsubs = listeners.map((cb) =>
-      subscribeProcessor(CELESTIAL_FACTS.id, cb),
+      runtime.subscribe(CELESTIAL_FACTS.id, cb),
     );
 
     store.ingest("system.bodies", point(0, SYSTEM));
@@ -344,7 +336,7 @@ describe("CELESTIAL_FACTS", () => {
   });
 
   it("carries both index lookups for the 3 bodies, keyed both ways", () => {
-    const off = activateProcessor(CELESTIAL_FACTS.id);
+    const off = runtime.activate(CELESTIAL_FACTS.id);
     store.ingest("system.bodies", point(0, SYSTEM));
     store.beginFrame();
 
@@ -356,7 +348,7 @@ describe("CELESTIAL_FACTS", () => {
   });
 
   it("keeps the catalogue when the link drops, because a body list is a fact", () => {
-    const off = activateProcessor(CELESTIAL_FACTS.id);
+    const off = runtime.activate(CELESTIAL_FACTS.id);
     store.ingest("system.bodies", point(0, SYSTEM));
     store.beginFrame();
     store.setTransportConnected(false);
@@ -368,7 +360,7 @@ describe("CELESTIAL_FACTS", () => {
   });
 
   it("is an empty catalogue, not a crash, before system.bodies lands", () => {
-    const off = activateProcessor(CELESTIAL_FACTS.id);
+    const off = runtime.activate(CELESTIAL_FACTS.id);
     store.beginFrame();
 
     const facts = derived<CelestialFacts>(CELESTIAL_FACTS.id);
@@ -389,7 +381,7 @@ describe("DELTA_V_BUDGET", () => {
   it("evaluates ONCE per frame for 4 consumers: 4 activations and 5 frames, 6 evaluations", () => {
     const counter = countEvaluations();
     // FuelStatus, ManeuverPlanner, TransferWindow, LandingStatus.
-    const off = [1, 2, 3, 4].map(() => activateProcessor(DELTA_V_BUDGET.id));
+    const off = [1, 2, 3, 4].map(() => runtime.activate(DELTA_V_BUDGET.id));
 
     ingestCraft();
     for (let i = 0; i < 5; i++) store.beginFrame();
@@ -405,10 +397,10 @@ describe("DELTA_V_BUDGET", () => {
     // The half a value-only assertion cannot see. Before the evaluator learned
     // to compare a `Value`, a budget carrying `Value<"m/s">` totals compared
     // unequal on every frame and this was 40.
-    const off = [1, 2, 3, 4].map(() => activateProcessor(DELTA_V_BUDGET.id));
+    const off = [1, 2, 3, 4].map(() => runtime.activate(DELTA_V_BUDGET.id));
     const listeners = [vi.fn(), vi.fn(), vi.fn(), vi.fn()];
     const unsubs = listeners.map((cb) =>
-      subscribeProcessor(DELTA_V_BUDGET.id, cb),
+      runtime.subscribe(DELTA_V_BUDGET.id, cb),
     );
 
     ingestCraft();
@@ -422,10 +414,10 @@ describe("DELTA_V_BUDGET", () => {
   });
 
   it("wakes all 4 again the frame the craft actually stages", () => {
-    const off = [1, 2, 3, 4].map(() => activateProcessor(DELTA_V_BUDGET.id));
+    const off = [1, 2, 3, 4].map(() => runtime.activate(DELTA_V_BUDGET.id));
     const listeners = [vi.fn(), vi.fn(), vi.fn(), vi.fn()];
     const unsubs = listeners.map((cb) =>
-      subscribeProcessor(DELTA_V_BUDGET.id, cb),
+      runtime.subscribe(DELTA_V_BUDGET.id, cb),
     );
 
     ingestCraft();
@@ -441,7 +433,7 @@ describe("DELTA_V_BUDGET", () => {
   });
 
   it("takes the vessel total off dv.summary, never a sum of the 3 stage rows", () => {
-    const off = activateProcessor(DELTA_V_BUDGET.id);
+    const off = runtime.activate(DELTA_V_BUDGET.id);
     ingestCraft();
     store.beginFrame();
 
@@ -459,7 +451,7 @@ describe("DELTA_V_BUDGET", () => {
   });
 
   it("spells a stage with no engine NaN, not 0, across all 6 dv/twr fields", () => {
-    const off = activateProcessor(DELTA_V_BUDGET.id);
+    const off = runtime.activate(DELTA_V_BUDGET.id);
     ingestCraft();
     store.beginFrame();
 
@@ -483,7 +475,7 @@ describe("DELTA_V_BUDGET", () => {
   });
 
   it("picks the active stage out of the 3 rows by vessel.structure.currentStage", () => {
-    const off = activateProcessor(DELTA_V_BUDGET.id);
+    const off = runtime.activate(DELTA_V_BUDGET.id);
     ingestCraft();
     store.beginFrame();
 
@@ -495,7 +487,7 @@ describe("DELTA_V_BUDGET", () => {
   });
 
   it("carries the budget when the link drops, and dates it", () => {
-    const off = activateProcessor(DELTA_V_BUDGET.id);
+    const off = runtime.activate(DELTA_V_BUDGET.id);
     ingestCraft();
     store.beginFrame();
     store.setTransportConnected(false);
@@ -512,7 +504,7 @@ describe("DELTA_V_BUDGET", () => {
   });
 
   it("is a pending budget of nulls, not zeros, before anything arrives", () => {
-    const off = activateProcessor(DELTA_V_BUDGET.id);
+    const off = runtime.activate(DELTA_V_BUDGET.id);
     store.beginFrame();
 
     const budget = derived<DeltaVBudget>(DELTA_V_BUDGET.id);
@@ -526,7 +518,7 @@ describe("DELTA_V_BUDGET", () => {
   });
 
   it("says a confirmed-no-figure craft apart from one nothing has arrived for", () => {
-    const off = activateProcessor(DELTA_V_BUDGET.id);
+    const off = runtime.activate(DELTA_V_BUDGET.id);
     store.ingest("dv.summary", point(0, null));
     store.beginFrame();
 

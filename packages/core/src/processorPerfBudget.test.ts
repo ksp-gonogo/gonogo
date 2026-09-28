@@ -1,13 +1,10 @@
 import {
-  activateProcessor,
   defineProcessor,
-  setActiveTimelineStore,
+  processorRuntimeFor,
   TimelineStore,
   ViewClock,
 } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
-// `subscribeProcessor` is not on sitrep-client's curated barrel; the spine subpath it re-exports from is the same module instance either way.
-import { subscribeProcessor } from "@ksp-gonogo/sitrep-sdk/spine";
 import { describe, expect, it } from "vitest";
 import {
   PROCESSOR_EVAL_BUDGET,
@@ -21,10 +18,6 @@ import {
 // it compiles: without it, dropping either `setProcessor*Recorder` call would
 // leave both numbers flat on the Perf Budgets widget forever and nothing would
 // say so.
-//
-// Deliberately does NOT call `clearProcessorRuntime()`: that resets the
-// recorders to no-ops, which is exactly the state under test. Unique processor
-// ids keep the cases apart instead.
 
 function makeStore(): TimelineStore {
   return new TimelineStore(
@@ -35,7 +28,7 @@ function makeStore(): TimelineStore {
 describe("the processor PerfBudgets", () => {
   it("counts one notification PER LISTENER against one evaluation", () => {
     const store = makeStore();
-    setActiveTimelineStore(store);
+    const runtime = processorRuntimeFor(store);
 
     let tick = 0;
     const handle = defineProcessor({
@@ -45,9 +38,9 @@ describe("the processor PerfBudgets", () => {
       compute: () => ({ n: tick++ }),
     });
 
-    const deactivate = activateProcessor(handle.id);
-    const unsubscribeA = subscribeProcessor(handle.id, () => {});
-    const unsubscribeB = subscribeProcessor(handle.id, () => {});
+    const deactivate = runtime.activate(handle.id);
+    const unsubscribeA = runtime.subscribe(handle.id, () => {});
+    const unsubscribeB = runtime.subscribe(handle.id, () => {});
 
     const evalsBefore = PROCESSOR_EVAL_BUDGET.rate();
     const notifiesBefore = PROCESSOR_NOTIFY_BUDGET.rate();
@@ -67,7 +60,7 @@ describe("the processor PerfBudgets", () => {
 
   it("keeps evaluating but stops notifying over an unmoving wire", () => {
     const store = makeStore();
-    setActiveTimelineStore(store);
+    const runtime = processorRuntimeFor(store);
 
     const handle = defineProcessor({
       id: "budget-still",
@@ -76,8 +69,8 @@ describe("the processor PerfBudgets", () => {
       compute: () => ({ steady: true }),
     });
 
-    const deactivate = activateProcessor(handle.id);
-    const unsubscribe = subscribeProcessor(handle.id, () => {});
+    const deactivate = runtime.activate(handle.id);
+    const unsubscribe = runtime.subscribe(handle.id, () => {});
 
     store.beginFrame(); // the one real derivation
     const evalsBefore = PROCESSOR_EVAL_BUDGET.rate();
@@ -99,7 +92,7 @@ describe("the processor PerfBudgets", () => {
     // test in the tree red and get "fixed" by raising the threshold. It has to
     // be provably silent over a normal result before its firing means anything.
     const store = makeStore();
-    setActiveTimelineStore(store);
+    const runtime = processorRuntimeFor(store);
 
     const handle = defineProcessor({
       id: "budget-comparable",
@@ -108,8 +101,8 @@ describe("the processor PerfBudgets", () => {
       compute: () => ({ totalVac: value("m/s", 3500) }),
     });
 
-    const deactivate = activateProcessor(handle.id);
-    const unsubscribe = subscribeProcessor(handle.id, () => {});
+    const deactivate = runtime.activate(handle.id);
+    const unsubscribe = runtime.subscribe(handle.id, () => {});
 
     const uncomparableBefore = PROCESSOR_UNCOMPARABLE_BUDGET.rate();
     for (let i = 0; i < 10; i++) store.beginFrame();
@@ -127,7 +120,7 @@ describe("the processor PerfBudgets", () => {
     // healthy. That is the failure mode the whole third arm exists to end, so
     // it gets a live check on this side of the re-export as well.
     const store = makeStore();
-    setActiveTimelineStore(store);
+    const runtime = processorRuntimeFor(store);
 
     const handle = defineProcessor({
       id: "budget-uncomparable",
@@ -136,8 +129,8 @@ describe("the processor PerfBudgets", () => {
       compute: () => ({ byResource: new Map([["Oxygen", 12]]) }),
     });
 
-    const deactivate = activateProcessor(handle.id);
-    const unsubscribe = subscribeProcessor(handle.id, () => {});
+    const deactivate = runtime.activate(handle.id);
+    const unsubscribe = runtime.subscribe(handle.id, () => {});
 
     const uncomparableBefore = PROCESSOR_UNCOMPARABLE_BUDGET.rate();
     // Activation is the genuine change (no previous value); all five frames after it are ones the guard cannot answer.

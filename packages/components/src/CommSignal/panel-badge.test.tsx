@@ -1,5 +1,4 @@
 import { ContributionsProvider, WidgetMetaContext } from "@ksp-gonogo/core";
-import { clearProcessorRuntime } from "@ksp-gonogo/sitrep-client";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import {
   Panel,
@@ -41,7 +40,6 @@ describe("CommSignal panel badge (comm-signal-no-signal-badge contribution)", ()
   let unmount: (() => void) | undefined;
 
   beforeEach(() => {
-    clearProcessorRuntime();
     fixture = setupStreamFixture({
       carriedChannels: ["comms.link", "vessel.comms"],
       pinnedUt: 10,

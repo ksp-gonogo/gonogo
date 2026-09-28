@@ -35,7 +35,6 @@ import {
   registerStockBodies,
   WidgetMetaContext,
 } from "@ksp-gonogo/core";
-import { clearProcessorRuntime } from "@ksp-gonogo/sitrep-client";
 import { defaultDarkTheme } from "@ksp-gonogo/ui-kit";
 import { createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
@@ -155,12 +154,6 @@ async function renderCrewAvatarProbe(
     activeRoot.unmount();
     activeRoot = null;
   }
-  // See `probe-entry.tsx`'s own comment on why this reset matters across
-  // repeated render calls in one page (Processor evaluator's module-global
-  // cache keyed by frame generation, which restarts at 0 for every fresh
-  // `setupStreamFixture` TimelineStore).
-  clearProcessorRuntime();
-
   const def = getComponent("crew-status");
   if (!def) {
     throw new Error('Crew-avatar probe: "crew-status" not registered');

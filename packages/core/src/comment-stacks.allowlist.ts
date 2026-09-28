@@ -208,8 +208,8 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/app/vite.config.ts": 5,
   "packages/app/vitest.config.ts": 1,
   "packages/components/scripts/banner-probe/banner-probe-entry.tsx": 2,
-  "packages/components/scripts/crew-avatar-probe/crew-avatar-probe-entry.tsx": 2,
-  "packages/components/scripts/crew-badge-probe/crew-badge-probe-entry.tsx": 2,
+  "packages/components/scripts/crew-avatar-probe/crew-avatar-probe-entry.tsx": 1,
+  "packages/components/scripts/crew-badge-probe/crew-badge-probe-entry.tsx": 1,
   "packages/components/scripts/gen-landing-status-fixtures.ts": 1,
   "packages/components/scripts/probe/capture-entry.tsx": 1,
   "packages/components/scripts/probe/probe-entry.tsx": 2,
@@ -328,7 +328,7 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/sitrep-client/src/fleet-silence-roster.test.ts": 1,
   "packages/sitrep-client/src/full-history-replay.test.ts": 2,
   "packages/sitrep-client/src/full-history-replay.ts": 1,
-  "packages/sitrep-client/src/index.ts": 3,
+  "packages/sitrep-client/src/index.ts": 2,
   "packages/sitrep-client/src/kepler.test.ts": 2,
   "packages/sitrep-client/src/map-topic.test.ts": 1,
   "packages/sitrep-client/src/media/delayed-playout-buffer.viewclock.integration.test.ts": 2,
@@ -399,5 +399,5 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
  * it exists to produce; the census is printed beside the verdict instead.
  */
 export const SCAN_FLOORS = {
-  files: 1435,
+  files: 1451,
 } as const;

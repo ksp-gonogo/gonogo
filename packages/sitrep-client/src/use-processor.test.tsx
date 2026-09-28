@@ -2,7 +2,6 @@ import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { beforeEach, describe, expect, it } from "vitest";
 import { TelemetryClient } from "./client";
 import { TelemetryProvider } from "./context";
-import { clearProcessorRuntime } from "./processorEvaluator";
 import { clearProcessors, defineProcessor } from "./processors";
 import { makeMeta, StubTransport } from "./stub-transport";
 import { TimelineStore } from "./timeline-store";
@@ -11,7 +10,6 @@ import { ViewClock } from "./view-clock";
 
 beforeEach(() => {
   clearProcessors();
-  clearProcessorRuntime();
 });
 
 describe("useProcessor", () => {
@@ -39,7 +37,7 @@ describe("useProcessor", () => {
     const client = new TelemetryClient(transport);
     // Inject the store so the test drives the frame boundary deterministically
     // (the provider's own rAF-scheduled beginFrame races waitFor); the provider
-    // still wires THIS store into the evaluator via setActiveTimelineStore.
+    // still evaluates against THIS store.
     const store = new TimelineStore(
       new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 }),
     );

@@ -63,13 +63,10 @@ export { clearUplinkHandles } from "../api/uplink-handles";
 // freeze the store's internals as third-party API. A test is a different audience
 // from a widget, and this subpath is where that difference is expressed.
 export {
-  activateProcessor,
-  clearProcessorRuntime,
   type DerivedGet,
-  getProcessorValue,
   mapTopic,
+  processorRuntimeFor,
   setActiveTelemetryClientForTests,
-  setActiveTimelineStore,
   TelemetryProvider,
   TimelineStore,
   ViewClock,

@@ -50,10 +50,7 @@ import { commandDelayed } from "./map-command";
 import { resolveValueTopic } from "./map-topic";
 import { type OrbitalSolve, solveSelfOrbit } from "./orbital-solve";
 import { OwnCraftDelayGate } from "./own-craft-vantage";
-import {
-  setActiveTimelineStore as setProcessorEvaluatorStore,
-  setProcessorTopicSubscriber,
-} from "./processorEvaluator";
+import { processorRuntimeFor } from "./processorEvaluator";
 import { StreamRecorder, type StreamRecorderOptions } from "./replay-recorder";
 import { spaceCenterStateChannel } from "./space-center-state";
 import { type ReadTopicResolver, subscribeTopicRead } from "./subscribe-read";
@@ -333,28 +330,24 @@ export function TelemetryProvider({
   // `getVesselIdentity()`'s source: see
   // `activeTimelineStore`'s doc comment.
   useEffect(() => {
+    mountedStores.push(store);
     activeViewClock = store.clock;
     setActiveTimelineStore(store);
-    // Same store, same lifecycle: point the Processor evaluator (Phase 3) at
-    // this provider's frame source so useProcessor / contribution Processor
-    // deps evaluate against it. Cleared on unmount so a torn-down provider
-    // never leaves the evaluator reading a dead store.
-    setProcessorEvaluatorStore(store);
     return () => {
-      if (activeViewClock === store.clock) activeViewClock = undefined;
-      if (activeTimelineStore === store) setActiveTimelineStore(undefined);
-      setProcessorEvaluatorStore(undefined);
+      removeLast(mountedStores, store);
+      const beneath = mountedStores.at(-1);
+      if (activeViewClock === store.clock) activeViewClock = beneath?.clock;
+      if (activeTimelineStore === store) setActiveTimelineStore(beneath);
     };
   }, [store]);
-  // A Processor that declares raw Topic deps must SUBSCRIBE them to stream, not
-  // just sample them (see processorEvaluator's setProcessorTopicSubscriber):
-  // wire the evaluator's subscribe seam to this provider's client, the same
-  // `client.subscribe` path useStream uses. Cleared on unmount / client swap so
-  // the evaluator never holds a dead client's subscribe.
-  useEffect(() => {
-    setProcessorTopicSubscriber((topic) => client.subscribe(topic, () => {}));
-    return () => setProcessorTopicSubscriber(undefined);
-  }, [client]);
+  // A Processor's raw Topic deps must be SUBSCRIBED to stream, not just sampled, so this store's Processor runtime subscribes them through this provider's client.
+  useEffect(
+    () =>
+      processorRuntimeFor(store).setTopicSubscriber((topic) =>
+        client.subscribe(topic, () => {}),
+      ),
+    [client, store],
+  );
   // The same seam for a reckoner's PER-SUBJECT dep, and it has to be here for
   // the same reason: the subject is not known when a read subscribes, so
   // `subscribeTopicRead`'s set cannot contain `fleet.<guid>.orbit` and only the
@@ -375,11 +368,14 @@ export function TelemetryProvider({
   // up the change instead of staying stuck on whatever it read at its own
   // first render.
   useEffect(() => {
+    mountedClients.push(client);
     activeTelemetryClient = client;
     notifyActiveTelemetryClientListeners();
     syncTopicHolds();
     return () => {
-      if (activeTelemetryClient === client) activeTelemetryClient = undefined;
+      removeLast(mountedClients, client);
+      if (activeTelemetryClient === client)
+        activeTelemetryClient = mountedClients.at(-1);
       notifyActiveTelemetryClientListeners();
       syncTopicHolds();
     };
@@ -390,10 +386,12 @@ export function TelemetryProvider({
   // plain-class caller's routing decision sees the same monotonically-growing
   // set a hook-based reader would.
   useEffect(() => {
+    mountedCarriedChannels.push(carriedChannels);
     activeCarriedChannels = carriedChannels;
     return () => {
+      removeLast(mountedCarriedChannels, carriedChannels);
       if (activeCarriedChannels === carriedChannels)
-        activeCarriedChannels = undefined;
+        activeCarriedChannels = mountedCarriedChannels.at(-1);
     };
   }, [carriedChannels]);
   // Keep the auto-built clock's delay value current by subscribing the
@@ -642,9 +640,9 @@ export type ViewClockView = Pick<
  * The most recently mounted `TelemetryProvider`'s clock, tracked outside
  * React for non-hook callers (plain classes: trigger/alarm services, that
  * can't call `useViewUt`). Set/cleared by the registration effect in
- * `TelemetryProvider` below. In practice only one provider is mounted at a
- * time (the main screen's single stream); a guard on unmount stops a stale
- * provider's teardown from clobbering a still-live one's registration.
+ * `TelemetryProvider` below. Several can be mounted at once (a modal's bridge,
+ * a replay session, a docs page), so an unmount hands it back to the most
+ * recent provider still mounted rather than clearing it.
  *
  * Deliberately typed as `Pick<ViewClock, "viewUt">`, NOT the narrower
  * `ViewClockView` (`confirmedEdgeUt` + `onFrame`) `useViewClockOptional`
@@ -658,6 +656,20 @@ export type ViewClockView = Pick<
 let activeViewClock:
   | Pick<ViewClock, "viewUt" | "scetUt" | "commandArrivalUt">
   | undefined;
+
+/**
+ * What each mounted provider registered, most recent last, so an unmount hands
+ * every active accessor back to the provider beneath it. Arrays, not sets: two
+ * providers can share one client or one store.
+ */
+const mountedStores: TimelineStore[] = [];
+const mountedClients: TelemetryClient[] = [];
+const mountedCarriedChannels: ReadonlySet<string>[] = [];
+
+function removeLast<T>(stack: T[], item: T): void {
+  const index = stack.lastIndexOf(item);
+  if (index >= 0) stack.splice(index, 1);
+}
 
 export function useViewClock(): ViewClockView {
   return useTelemetryStore().clock;

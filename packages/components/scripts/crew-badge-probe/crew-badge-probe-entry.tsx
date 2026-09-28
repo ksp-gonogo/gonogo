@@ -34,7 +34,6 @@ import {
   useWidgetBadges,
   WidgetMetaContext,
 } from "@ksp-gonogo/core";
-import { clearProcessorRuntime } from "@ksp-gonogo/sitrep-client";
 import { defaultDarkTheme, PanelBadgesProvider } from "@ksp-gonogo/ui-kit";
 import { createElement, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
@@ -120,12 +119,6 @@ async function renderCrewBadgeProbe(
     activeRoot.unmount();
     activeRoot = null;
   }
-  // See `probe-entry.tsx`'s own comment on why this reset matters across
-  // repeated `renderCrewBadgeProbe` calls in one page (Processor evaluator's
-  // module-global cache keyed by frame generation, which restarts at 0 for
-  // every fresh `setupStreamFixture` TimelineStore).
-  clearProcessorRuntime();
-
   const def = getComponent("crew-status");
   if (!def) {
     throw new Error('Crew-badge probe: "crew-status" not registered');

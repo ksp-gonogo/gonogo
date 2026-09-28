@@ -1,10 +1,7 @@
 import { useCallback, useEffect, useSyncExternalStore } from "react";
 import type { Reading } from "../reading";
-import {
-  activateProcessor,
-  getProcessorValue,
-  subscribeProcessor,
-} from "./processorEvaluator";
+import { useTelemetryStoreOptional } from "./context";
+import { processorRuntimeFor } from "./processorEvaluator";
 import type { ProcessorHandle } from "./processors";
 
 /** What a processor answers with: a datable reading, or the bare result. */
@@ -21,9 +18,9 @@ export type ProcessorResult<R, Carried extends boolean> = Carried extends true
  * share one evaluation) and deactivates on unmount.
  *
  * The value is there from the mount: the processor is evaluated against the
- * store's current frame as it activates, then again on every frame boundary.
- * Degrades to undefined with no TelemetryProvider mounted, matching every other
- * useStream-family hook's disconnected contract.
+ * nearest provider's store, at its current frame as it activates, then again
+ * on every frame boundary. Degrades to undefined with no TelemetryProvider
+ * mounted, matching every other useStream-family hook's disconnected contract.
  *
  * ## What comes back says how current it is, where the derivation can know
  *
@@ -39,15 +36,19 @@ export type ProcessorResult<R, Carried extends boolean> = Carried extends true
 export function useProcessor<R, Carried extends boolean>(
   handle: ProcessorHandle<R, string, Carried>,
 ): ProcessorResult<R, Carried> | undefined {
-  useEffect(() => activateProcessor(handle.id), [handle.id]);
+  const store = useTelemetryStoreOptional();
+  const runtime = store ? processorRuntimeFor(store) : undefined;
+
+  useEffect(() => runtime?.activate(handle.id), [runtime, handle.id]);
 
   const subscribe = useCallback(
-    (onChange: () => void) => subscribeProcessor(handle.id, onChange),
-    [handle.id],
+    (onChange: () => void) =>
+      runtime ? runtime.subscribe(handle.id, onChange) : () => {},
+    [runtime, handle.id],
   );
   const getSnapshot = useCallback(
-    () => getProcessorValue<ProcessorResult<R, Carried>>(handle.id),
-    [handle.id],
+    () => runtime?.value<ProcessorResult<R, Carried>>(handle.id),
+    [runtime, handle.id],
   );
 
   return useSyncExternalStore(subscribe, getSnapshot);

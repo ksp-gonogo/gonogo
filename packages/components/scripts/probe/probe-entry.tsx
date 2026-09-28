@@ -33,7 +33,6 @@ import {
   WidgetStreamStatusBridge,
 } from "@ksp-gonogo/core";
 import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
-import { clearProcessorRuntime } from "@ksp-gonogo/sitrep-client";
 import type { Meta, TopicId } from "@ksp-gonogo/sitrep-sdk";
 import { MockDataSource } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
@@ -338,8 +337,8 @@ export interface ProbeMountOptions {
  * mount on the page standing.
  *
  * The legacy "data" source is page-wide and held by the first live mount that
- * claims it. The Processor runtime and the sdk's active timeline store are
- * page-wide too, and the latest mount's are the ones every widget reads.
+ * claims it. Processors evaluate against each mount's own store; the sdk's
+ * non-hook accessors (`getViewUt`, `getVesselOrbit`) follow the latest mount.
  */
 export function mountProbe(
   root: HTMLElement,
@@ -387,22 +386,6 @@ async function mountInto(
   opts: ProbeMountOptions,
   state: MountState,
 ): Promise<void> {
-  // The Processor evaluator's runtime cache (evaluated value + frame
-  // generation, `@ksp-gonogo/sitrep-client`'s processorEvaluator.ts) is a
-  // module-global singleton keyed by Processor id, and this file's own
-  // `_stream` path builds a BRAND NEW TimelineStore per `renderProbe()` call
-  // (see `setupStreamFixture` below) whose frame-generation counter always
-  // restarts at 0. Without a reset, a later fixture's own frame can coincide
-  // with an earlier fixture's `lastFrameGeneration` (the driver replays the
-  // same deterministic sequence of `waitForSubscription`/`rafTick` awaits for
-  // every fixture, so the two renders' generation counters tend to land on
-  // the SAME number), and the evaluator then wrongly treats the new store's
-  // frame as "already fresh," permanently serving the earlier fixture's
-  // stale computed value: found while rendering CrewStatus's Kerbalism
-  // survival augment fixtures, where "nominal" and "crew-critical" rendered
-  // byte-identical until this reset was added.
-  clearProcessorRuntime();
-
   // Stream-driven mod-client widgets carry their fixture
   // data in `_stream` rather than plain data keys; see this file's top doc
   // comment and `StreamFixtureBlock`. Resolved once up-front so both the

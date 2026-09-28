@@ -1,5 +1,4 @@
 import { ContributionsProvider, WidgetMetaContext } from "@ksp-gonogo/core";
-import { clearProcessorRuntime } from "@ksp-gonogo/sitrep-client";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import {
   NULL_DISPLAY,
@@ -50,8 +49,6 @@ describe("SystemView panel badge (fleet-comms-badge contribution)", () => {
   let unmount: (() => void) | undefined;
 
   beforeEach(() => {
-    // The Processor evaluator caches per frame in a module global.
-    clearProcessorRuntime();
     fixture = setupStreamFixture({
       carriedChannels: ["comms.link"],
       pinnedUt: 100,

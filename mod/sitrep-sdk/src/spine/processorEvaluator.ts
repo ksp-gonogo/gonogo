@@ -23,7 +23,7 @@ import type { TimelineStore } from "./timeline-store";
 // (TimelineStore.beginFrame/subscribeFrame) is the natural batch boundary, so
 // evaluation happens once per frame, lazily, only for ACTIVATED processors
 // (ref-counted by useProcessor or a direct contribution call), never eagerly
-// for the whole registry.
+// for the whole registry. Each store has its own runtime (`ProcessorRuntime`).
 // ---------------------------------------------------------------------------
 
 // Perf-budget seam, the same pattern WebSocketTransport.onStreamFrame uses: a
@@ -123,103 +123,6 @@ export function setProcessorUncomparableRecorder(
   recordUncomparable = fn ?? (() => {});
 }
 
-let activeStore: TimelineStore | undefined;
-
-// One shared frame subscription for the whole evaluator (evaluateAllActive
-// walks every active processor per frame), plus a count of currently-active
-// processors. A single subscription rather than one per processor is both
-// cheaper and, crucially, back-fillable: `useProcessor`'s activation (a CHILD
-// effect) runs BEFORE `TelemetryProvider`'s `setActiveTimelineStore` (a PARENT
-// effect), so at activation time `activeStore` is often still undefined. The
-// subscription is (re)wired by `ensureFrameSubscription`, which BOTH activation
-// and store-arrival call, so whichever happens last connects the frame source.
-let frameUnsubscribe: (() => void) | undefined;
-let activeProcessorCount = 0;
-
-// Topic-subscription seam: a Processor that
-// declares raw Topic deps must SUBSCRIBE them, not merely sample them off the
-// store. A topic nothing else reads never streams (see use-stream.ts: a topic
-// flows only once `client.subscribe` asks the server for it), so sampling an
-// unsubscribed dep returns undefined forever. The evaluator cannot reach the
-// TelemetryClient (that would cycle sitrep-client -> core), so the provider
-// injects `client.subscribe` here, the same seam pattern as
-// `setProcessorEvaluationRecorder`. Ref-counted for each active processor's
-// lifetime, back-filled on late store/subscriber arrival exactly like the
-// frame subscription.
-let subscribeInputTopic: (topic: string) => () => void = () => () => {};
-let hasTopicSubscriber = false;
-
-function ensureFrameSubscription(): void {
-  if (activeProcessorCount > 0 && activeStore && !frameUnsubscribe) {
-    frameUnsubscribe = activeStore.subscribeFrame(evaluateAllActive);
-  }
-}
-
-function teardownFrameSubscription(): void {
-  frameUnsubscribe?.();
-  frameUnsubscribe = undefined;
-}
-
-/** Test/app-wiring seam: the ONE TimelineStore the evaluator reads frames from. */
-export function setActiveTimelineStore(store: TimelineStore | undefined): void {
-  if (store === activeStore) return;
-  teardownFrameSubscription();
-  // Topic subscriptions resolved against the OLD store's derived-topic graph must be torn down and re-established against the new one.
-  teardownAllTopicSubscriptions();
-  // A fresh store restarts frame generations from a low number, which can
-  // COLLIDE with a `lastFrameGeneration` cached from the previous store and
-  // make `evaluate` wrongly skip as "already fresh this frame", serving the old
-  // store's stale value. Clear the per-frame freshness marks (NOT the values or
-  // refCounts) so every active processor re-evaluates on the new store's frames.
-  resetFrameTracking();
-  activeStore = store;
-  // Back-fill: any processors activated before the store arrived get their frame source connected now, and an answer for the frame the store holds.
-  ensureFrameSubscription();
-  ensureAllTopicSubscriptions();
-  evaluateAllActive();
-}
-
-/**
- * Wire the raw-topic subscriber (the provider's `client.subscribe`). Called
- * when the provider mounts or its client changes; pass `undefined` to clear it
- * on unmount. Back-fills every already-active processor, so activation-before-
- * provider (the real child-then-parent effect order) still subscribes.
- */
-export function setProcessorTopicSubscriber(
-  fn: ((topic: string) => () => void) | undefined,
-): void {
-  subscribeInputTopic = fn ?? (() => () => {});
-  hasTopicSubscriber = fn !== undefined;
-  if (hasTopicSubscriber) ensureAllTopicSubscriptions();
-  else teardownAllTopicSubscriptions();
-}
-
-interface ProcessorRuntimeEntry {
-  refCount: number;
-  lastFrameGeneration: number | undefined;
-  value: unknown;
-  listeners: Set<() => void>;
-  /** Live `client.subscribe` unsubscribes for this processor's raw Topic deps, while active. */
-  topicUnsubs: (() => void)[] | undefined;
-}
-
-const runtime = new Map<string, ProcessorRuntimeEntry>();
-
-function entryFor(id: string): ProcessorRuntimeEntry {
-  let entry = runtime.get(id);
-  if (!entry) {
-    entry = {
-      refCount: 0,
-      lastFrameGeneration: undefined,
-      value: undefined,
-      listeners: new Set(),
-      topicUnsubs: undefined,
-    };
-    runtime.set(id, entry);
-  }
-  return entry;
-}
-
 /** True for a ProcessorHandle dep (has an `id`), false for a raw TopicId string. */
 function isHandle(dep: Dep): dep is { id: string } {
   return typeof dep === "object" && dep !== null && "id" in dep;
@@ -268,103 +171,9 @@ function collectRawTopicDeps(id: string): string[] {
 }
 
 /**
- * Subscribe an active processor's transitive raw Topic deps (resolved to the
- * wire topics the server understands, exactly as use-stream does) so they
- * stream. No-op until BOTH the store (to resolve) and the subscriber (to
- * subscribe) are wired, so the last of the two to arrive back-fills it.
- */
-function ensureTopicSubscriptions(id: string): void {
-  const entry = entryFor(id);
-  if (
-    entry.refCount === 0 ||
-    entry.topicUnsubs ||
-    !activeStore ||
-    !hasTopicSubscriber
-  ) {
-    return;
-  }
-  /*
-   * Through the shared read seam: a processor dep is resolved with `sample`,
-   * which runs the topic's elected model, so a dep whose reckoner declares
-   * inputs needs those inputs on the wire for the same reason a widget's read
-   * does. `subscribeInputTopic` is an injected one-argument subscribe rather
-   * than a client, hence the adapter.
-   */
-  const store = activeStore;
-  const subscriber = {
-    subscribe: (topic: string) => subscribeInputTopic(topic),
-  };
-  entry.topicUnsubs = collectRawTopicDeps(id).map((depTopic) =>
-    subscribeTopicRead(subscriber, store, depTopic),
-  );
-}
-
-function teardownTopicSubscriptions(entry: ProcessorRuntimeEntry): void {
-  if (!entry.topicUnsubs) return;
-  for (const unsub of entry.topicUnsubs) unsub();
-  entry.topicUnsubs = undefined;
-}
-
-function ensureAllTopicSubscriptions(): void {
-  for (const [id, entry] of runtime) {
-    if (entry.refCount > 0) ensureTopicSubscriptions(id);
-  }
-}
-
-function teardownAllTopicSubscriptions(): void {
-  for (const entry of runtime.values()) teardownTopicSubscriptions(entry);
-}
-
-/**
- * Clear every entry's per-frame freshness mark, forcing a re-evaluation against
- * the new store. Deliberately keeps `value` (a swap holds the last-known value
- * until the new store produces one) and `refCount`/`listeners` (the widgets are
- * still mounted). Used on store change to defeat the fresh-store generation
- * collision.
- */
-function resetFrameTracking(): void {
-  for (const entry of runtime.values()) entry.lastFrameGeneration = undefined;
-}
-
-function resolveDep(dep: Dep, token: { generation: number }): unknown {
-  if (isHandle(dep)) {
-    evaluate(dep.id, token);
-    return entryFor(dep.id).value;
-  }
-  if (isReadingDep(dep)) {
-    // The whole `Reading`, so a derivation can tell a current input from a
-    // carried one. Without this a processor saw `point.payload` and nothing
-    // else, and computed on last-contact values during a blackout while its
-    // consumers rendered the result as current.
-    if (!activeStore) return { state: "pending" };
-    return activeStore.sampleReading(dep.reading, activeStore.currentFrame());
-  }
-  /*
-   * A subject dep is a RECKONER's, and a processor has no point to take a
-   * subject from. Thrown rather than resolved to `undefined`, which is what the
-   * line below would do with an object where a topic id belongs: `undefined` is
-   * the spelling of an absent input, so a processor declaring one would derive
-   * from nothing for ever and report it as data that had not arrived.
-   */
-  if (isSubjectDep(dep)) {
-    throw new Error(
-      "A processor cannot declare a per-subject dep: the subject is read from " +
-        "a reckoner's point, and a processor has none. Resolve the subject in " +
-        "the reckoner that owns it and declare the resulting topic here.",
-    );
-  }
-  if (!activeStore) return undefined;
-  const point = activeStore.sample(dep, activeStore.currentFrame());
-  return point ? point.payload : undefined;
-}
-
-/**
  * Whether a resolved dep is a reading and not a bare payload.
  *
- * Narrowed rather than asserted: `resolveDep` answers `unknown`, and a reading
- * dep resolves to a store read that degrades to a bare `{ state: "pending" }`
- * with no store mounted. Checking the discriminant is what makes both shapes
- * safe to read a state off.
+ * Narrowed rather than asserted, because `resolveDep` answers `unknown`.
  */
 function isCurrency(value: unknown): value is TopicCurrency<unknown> {
   return typeof value === "object" && value !== null && "state" in value;
@@ -610,162 +419,268 @@ function compareResults(previous: unknown, next: unknown): Comparison {
   return verdict;
 }
 
-function evaluate(id: string, token: { generation: number }): void {
-  const entry = entryFor(id);
-  if (entry.lastFrameGeneration === token.generation) return; // already fresh this frame
-  const def = getProcessor(id);
-  if (!def) return;
-  const values = def.deps.map((dep) => resolveDep(dep, token));
-  // The frame's own frozen instants, so a processor deriving a remaining
-  // duration from an instant on the wire has a clock without reaching for a
-  // wall clock. Here `activeStore` is always non-null: every caller checks for
-  // one before evaluating.
-  const frame = activeStore?.currentFrame();
-  const computed = runOutsideContributionScope(() =>
-    def.compute(values as never, {
-      viewUt: frame?.viewUt ?? 0,
-      scetUt: frame?.scetUt ?? 0,
-      commandArrivalUt: frame?.commandArrivalUt ?? 0,
-    }),
-  );
-  /*
-   * A derivation whose inputs carry currency ANSWERS with it, and one whose
-   * inputs do not answers the bare value it always did. The opt-in is the dep
-   * list rather than a flag: a processor reading only raw topic ids has nothing
-   * to date its answer by, and inventing an instant for it would be a claim
-   * nothing supports.
-   *
-   * `compute` runs either way and runs FIRST. It was handed the readings and
-   * has already decided what a missing one means, so the dating is laid over
-   * the answer rather than deciding whether there is one. See `datedFrom` for
-   * what the resulting state does and does not say.
-   */
-  const carried = def.deps.flatMap((dep, i) => {
-    if (!isReadingDep(dep)) return [];
-    /*
-     * Through `observedAt` rather than reaching `.asOfUt ?? .atUt` by hand. A
-     * reading dep resolves to a WHOLE-TOPIC reading, which maps member access
-     * into field readings, so reaching the instant directly answers a reading
-     * OF the instant instead of the instant.
-     */
-    const reading = values[i];
-    if (!isCurrency(reading)) return [];
-    return [
-      {
-        state: reading.state,
-        instant: observedAt(reading),
-        grade: reading.state === "stale" ? reading.grade : undefined,
-      },
-    ];
-  });
-  const next = carried.length === 0 ? computed : datedFrom(carried, computed);
-  recordEvaluation();
-  entry.lastFrameGeneration = token.generation;
-  // Gated on the RESULT, and on equality rather than identity. Evaluation
-  // semantics are untouched (memoised within a frame, re-run across frames);
-  // only the fan-out is gated. The previous result's identity is KEPT when the
-  // new one is equal, which is the load-bearing half: `useProcessor` hands the
-  // value to `useSyncExternalStore`, which re-reads `getSnapshot` outside any
-  // notification and compares with `Object.is`, so a silenced listener over a
-  // fresh identity is still an infinite render loop.
-  const comparison = compareResults(entry.value, next);
-  // Reported BEFORE the fan-out, and separately from it. This is the arm where
-  // the guard is doing nothing, so it has to be visible as itself rather than
-  // as a notification indistinguishable from an earned one.
-  if (comparison === "uncomparable") {
-    reportUncomparable(id, lastUncomparableShape ?? "unknown");
-  }
-  if (comparison === "equal") return;
-  entry.value = next;
-  for (const cb of entry.listeners) {
-    recordNotification();
-    cb();
-  }
+interface ProcessorRuntimeEntry {
+  refCount: number;
+  lastFrameGeneration: number | undefined;
+  value: unknown;
+  listeners: Set<() => void>;
+  /** Live `client.subscribe` unsubscribes for this processor's raw Topic deps, while active. */
+  topicUnsubs: (() => void)[] | undefined;
 }
 
-function evaluateAllActive(): void {
-  if (!activeStore) return;
-  const token = activeStore.currentFrame();
-  for (const [id, entry] of runtime) {
-    if (entry.refCount > 0) {
-      for (const depId of topoOrder(id)) evaluate(depId, token);
-    }
-  }
-}
+type TopicSubscriber = (topic: string) => () => void;
 
 /**
- * Activate a processor for the life of the caller: subscribes it (and every
- * transitive Processor dep, via evaluateAllActive's topo walk) to the frame
- * boundary, lazily, on first activation. Ref-counted so N activators share one
- * evaluation. Returns the deactivate function.
+ * The evaluated state of every Processor against ONE `TimelineStore`: values,
+ * ref-counts, listeners, the store's frame subscription and the raw Topic
+ * subscriptions its active processors hold up.
  *
- * With a store already wired, the processor is also evaluated against the
- * store's current frame here, so its first answer lands with the activation
- * rather than on the next frame boundary.
+ * One per store, reached through `processorRuntimeFor`, so two providers on one
+ * page each evaluate against their own data and unmounting one leaves the other
+ * evaluating. Definitions stay page-wide (`processors.ts`): what a processor
+ * computes is the same everywhere, only what it computes FROM differs.
  */
-export function activateProcessor(id: string): () => void {
-  const entry = entryFor(id);
-  entry.refCount++;
-  if (entry.refCount === 1) {
-    activeProcessorCount++;
-    // Connect the frame source and subscribe this processor's raw Topic deps (both no-ops until the store / subscriber arrive, then back-filled).
-    ensureFrameSubscription();
-    ensureTopicSubscriptions(id);
-    if (activeStore) {
-      const token = activeStore.currentFrame();
-      for (const depId of topoOrder(id)) evaluate(depId, token);
+export class ProcessorRuntime {
+  private readonly entries = new Map<string, ProcessorRuntimeEntry>();
+  private frameUnsubscribe: (() => void) | undefined;
+  private activeCount = 0;
+  /**
+   * A processor that declares raw Topic deps must SUBSCRIBE them, not merely
+   * sample them off the store: a topic nothing else reads never streams, so
+   * sampling it returns undefined forever. The store cannot reach its client,
+   * so the provider hands its `client.subscribe` in through `setTopicSubscriber`.
+   */
+  private subscribeInputTopic: TopicSubscriber | undefined;
+
+  constructor(private readonly store: TimelineStore) {}
+
+  /**
+   * Wire the raw-topic subscriber (the provider's `client.subscribe`). Back-fills
+   * every already-active processor, because a child's activation runs before
+   * the provider's own effect. The returned release clears it only while it is
+   * still the installed one, so a second provider sharing this store cannot
+   * unplug the first.
+   */
+  setTopicSubscriber(fn: TopicSubscriber): () => void {
+    this.teardownAllTopicSubscriptions();
+    this.subscribeInputTopic = fn;
+    for (const [id, entry] of this.entries) {
+      if (entry.refCount > 0) this.ensureTopicSubscriptions(id);
+    }
+    return () => {
+      if (this.subscribeInputTopic !== fn) return;
+      this.teardownAllTopicSubscriptions();
+      this.subscribeInputTopic = undefined;
+    };
+  }
+
+  /**
+   * Activate a processor for the life of the caller: evaluates it (and every
+   * transitive Processor dep) against the store's current frame now, then on
+   * every frame boundary. Ref-counted so N activators share one evaluation.
+   * Returns the deactivate function.
+   */
+  activate(id: string): () => void {
+    const entry = this.entryFor(id);
+    entry.refCount++;
+    if (entry.refCount === 1) {
+      this.activeCount++;
+      this.frameUnsubscribe ??= this.store.subscribeFrame(() =>
+        this.evaluateActive(),
+      );
+      this.ensureTopicSubscriptions(id);
+      const token = this.store.currentFrame();
+      for (const depId of topoOrder(id)) this.evaluate(depId, token);
+    }
+    return () => {
+      entry.refCount--;
+      if (entry.refCount !== 0) return;
+      this.activeCount--;
+      this.teardownTopicSubscriptions(entry);
+      if (this.activeCount > 0) return;
+      this.frameUnsubscribe?.();
+      this.frameUnsubscribe = undefined;
+    };
+  }
+
+  value<R>(id: string): R | undefined {
+    return this.entries.get(id)?.value as R | undefined;
+  }
+
+  subscribe(id: string, cb: () => void): () => void {
+    const entry = this.entryFor(id);
+    entry.listeners.add(cb);
+    return () => {
+      entry.listeners.delete(cb);
+    };
+  }
+
+  /**
+   * Evaluate every active processor for the current frame, now. The same work
+   * the frame subscription does, for a consumer whose own `subscribeFrame`
+   * listener can fire before this runtime's and must read fresh values.
+   * Idempotent within a frame.
+   */
+  evaluateActive(): void {
+    const token = this.store.currentFrame();
+    for (const [id, entry] of this.entries) {
+      if (entry.refCount === 0) continue;
+      for (const depId of topoOrder(id)) this.evaluate(depId, token);
     }
   }
-  return () => {
-    entry.refCount--;
-    if (entry.refCount === 0) {
-      activeProcessorCount--;
-      teardownTopicSubscriptions(entry);
-      if (activeProcessorCount === 0) teardownFrameSubscription();
+
+  private entryFor(id: string): ProcessorRuntimeEntry {
+    let entry = this.entries.get(id);
+    if (!entry) {
+      entry = {
+        refCount: 0,
+        lastFrameGeneration: undefined,
+        value: undefined,
+        listeners: new Set(),
+        topicUnsubs: undefined,
+      };
+      this.entries.set(id, entry);
     }
-  };
+    return entry;
+  }
+
+  /**
+   * Subscribe an active processor's transitive raw Topic deps through the
+   * shared read seam, which also holds up the inputs of each dep's elected
+   * reckoner, since a processor dep is resolved with `sample` and so runs that
+   * model. No-op until a subscriber is wired.
+   */
+  private ensureTopicSubscriptions(id: string): void {
+    const entry = this.entryFor(id);
+    const subscribe = this.subscribeInputTopic;
+    if (entry.refCount === 0 || entry.topicUnsubs || !subscribe) return;
+    const subscriber = { subscribe: (topic: string) => subscribe(topic) };
+    entry.topicUnsubs = collectRawTopicDeps(id).map((depTopic) =>
+      subscribeTopicRead(subscriber, this.store, depTopic),
+    );
+  }
+
+  private teardownTopicSubscriptions(entry: ProcessorRuntimeEntry): void {
+    if (!entry.topicUnsubs) return;
+    for (const unsub of entry.topicUnsubs) unsub();
+    entry.topicUnsubs = undefined;
+  }
+
+  private teardownAllTopicSubscriptions(): void {
+    for (const entry of this.entries.values()) {
+      this.teardownTopicSubscriptions(entry);
+    }
+  }
+
+  private resolveDep(dep: Dep, token: { generation: number }): unknown {
+    if (isHandle(dep)) {
+      this.evaluate(dep.id, token);
+      return this.entryFor(dep.id).value;
+    }
+    if (isReadingDep(dep)) {
+      // The whole `Reading`, so a derivation can tell a current input from a
+      // carried one. Without this a processor saw `point.payload` and nothing
+      // else, and computed on last-contact values during a blackout while its
+      // consumers rendered the result as current.
+      return this.store.sampleReading(dep.reading, this.store.currentFrame());
+    }
+    /*
+     * A subject dep is a RECKONER's, and a processor has no point to take a
+     * subject from. Thrown rather than resolved to `undefined`, which is what the
+     * line below would do with an object where a topic id belongs: `undefined` is
+     * the spelling of an absent input, so a processor declaring one would derive
+     * from nothing for ever and report it as data that had not arrived.
+     */
+    if (isSubjectDep(dep)) {
+      throw new Error(
+        "A processor cannot declare a per-subject dep: the subject is read from " +
+          "a reckoner's point, and a processor has none. Resolve the subject in " +
+          "the reckoner that owns it and declare the resulting topic here.",
+      );
+    }
+    const point = this.store.sample(dep, this.store.currentFrame());
+    return point ? point.payload : undefined;
+  }
+
+  private evaluate(id: string, token: { generation: number }): void {
+    const entry = this.entryFor(id);
+    if (entry.lastFrameGeneration === token.generation) return; // already fresh this frame
+    const def = getProcessor(id);
+    if (!def) return;
+    const values = def.deps.map((dep) => this.resolveDep(dep, token));
+    // The frame's own frozen instants, so a processor deriving a remaining duration from an instant on the wire has a clock without reaching for a wall clock.
+    const frame = this.store.currentFrame();
+    const computed = runOutsideContributionScope(() =>
+      def.compute(values as never, {
+        viewUt: frame.viewUt,
+        scetUt: frame.scetUt,
+        commandArrivalUt: frame.commandArrivalUt,
+      }),
+    );
+    /*
+     * A derivation whose inputs carry currency ANSWERS with it, and one whose
+     * inputs do not answers the bare value it always did. The opt-in is the dep
+     * list rather than a flag: a processor reading only raw topic ids has nothing
+     * to date its answer by, and inventing an instant for it would be a claim
+     * nothing supports.
+     *
+     * `compute` runs either way and runs FIRST. It was handed the readings and
+     * has already decided what a missing one means, so the dating is laid over
+     * the answer rather than deciding whether there is one. See `datedFrom` for
+     * what the resulting state does and does not say.
+     */
+    const carried = def.deps.flatMap((dep, i) => {
+      if (!isReadingDep(dep)) return [];
+      /*
+       * Through `observedAt` rather than reaching `.asOfUt ?? .atUt` by hand. A
+       * reading dep resolves to a WHOLE-TOPIC reading, which maps member access
+       * into field readings, so reaching the instant directly answers a reading
+       * OF the instant instead of the instant.
+       */
+      const reading = values[i];
+      if (!isCurrency(reading)) return [];
+      return [
+        {
+          state: reading.state,
+          instant: observedAt(reading),
+          grade: reading.state === "stale" ? reading.grade : undefined,
+        },
+      ];
+    });
+    const next = carried.length === 0 ? computed : datedFrom(carried, computed);
+    recordEvaluation();
+    entry.lastFrameGeneration = token.generation;
+    // Gated on the RESULT, and on equality rather than identity. Evaluation
+    // semantics are untouched (memoised within a frame, re-run across frames);
+    // only the fan-out is gated. The previous result's identity is KEPT when the
+    // new one is equal, which is the load-bearing half: `useProcessor` hands the
+    // value to `useSyncExternalStore`, which re-reads `getSnapshot` outside any
+    // notification and compares with `Object.is`, so a silenced listener over a
+    // fresh identity is still an infinite render loop.
+    const comparison = compareResults(entry.value, next);
+    // Reported BEFORE the fan-out, and separately from it. This is the arm where
+    // the guard is doing nothing, so it has to be visible as itself rather than
+    // as a notification indistinguishable from an earned one.
+    if (comparison === "uncomparable") {
+      reportUncomparable(id, lastUncomparableShape ?? "unknown");
+    }
+    if (comparison === "equal") return;
+    entry.value = next;
+    for (const cb of entry.listeners) {
+      recordNotification();
+      cb();
+    }
+  }
 }
 
-export function getProcessorValue<R>(id: string): R | undefined {
-  return entryFor(id).value as R | undefined;
-}
+const runtimes = new WeakMap<TimelineStore, ProcessorRuntime>();
 
-/**
- * Evaluate every active processor for the current frame, now, on demand. The
- * same work the shared frame subscription does, exposed so a consumer whose own
- * `subscribeFrame` listener can fire BEFORE the evaluator's (a child's frame
- * subscription registers before the parent provider wires the store, so the
- * evaluator connects second) can force freshness before it reads. Idempotent
- * within a frame: `evaluate` skips any processor already fresh for the token, so
- * a redundant call after the shared subscription already ran is a no-op.
- */
-export function evaluateActiveProcessors(): void {
-  evaluateAllActive();
-}
-
-export function subscribeProcessor(id: string, cb: () => void): () => void {
-  const entry = entryFor(id);
-  entry.listeners.add(cb);
-  return () => {
-    entry.listeners.delete(cb);
-  };
-}
-
-/** Test-only: tear down the frame subscription and reset the runtime. */
-export function clearProcessorRuntime(): void {
-  teardownFrameSubscription();
-  teardownAllTopicSubscriptions();
-  runtime.clear();
-  activeProcessorCount = 0;
-  activeStore = undefined;
-  recordEvaluation = () => {};
-  recordNotification = () => {};
-  // `recordUncomparable` is deliberately NOT reset. The other two count a rate
-  // within one test and a leftover counter would corrupt the next one; this one
-  // reports a defect, and an instrument a routine reset quietly unplugs is the
-  // shape of failure the whole `Comparison` arm exists to stop happening a
-  // third time. A test that plants an uncomparable result on purpose resets the
-  // BUDGET at the end, which is the documented pattern for a deliberate breach.
-  subscribeInputTopic = () => () => {};
-  hasTopicSubscriber = false;
+/** The Processor runtime that evaluates against `store`, created on first use. */
+export function processorRuntimeFor(store: TimelineStore): ProcessorRuntime {
+  let runtime = runtimes.get(store);
+  if (!runtime) {
+    runtime = new ProcessorRuntime(store);
+    runtimes.set(store, runtime);
+  }
+  return runtime;
 }

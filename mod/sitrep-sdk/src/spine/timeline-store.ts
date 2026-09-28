@@ -42,7 +42,7 @@ import {
   HeartbeatTracker,
   type HeartbeatTrackerOptions,
 } from "./heartbeat-tracker";
-import { getProcessorValue } from "./processorEvaluator";
+import { processorRuntimeFor } from "./processorEvaluator";
 import { type Dep, isSubjectDep, type SubjectDep } from "./processors";
 import {
   CORE_RECKONER_OWNER,
@@ -739,7 +739,7 @@ export class TimelineStore {
    * (`attachStore`/`subscribeStore` re-wire the same store to a new one), so a
    * subscribe captured at construction would be a dead client's after the first
    * swap. Set from the provider's effect and cleared on unmount, exactly as
-   * `setProcessorTopicSubscriber` does for the evaluator's own seam.
+   * `ProcessorRuntime.setTopicSubscriber` does for a processor's inputs.
    *
    * The constructor option remains for a caller that has one up front, which is
    * every test double.
@@ -1161,10 +1161,10 @@ export class TimelineStore {
    * inputs under that method's own cycle guard.
    *
    * A `ProcessorHandle` dep names no wire topic and is skipped: a processor is
-   * ref-count ACTIVATED rather than subscribed (`activateProcessor`), and
-   * subscribing its inputs without activating it leaves `getProcessorValue`
-   * answering `undefined` anyway. Nothing in the tree declares one on a
-   * reckoner today, and the point layer has the same hole.
+   * ref-count ACTIVATED rather than subscribed (`ProcessorRuntime.activate`),
+   * and subscribing its inputs without activating it leaves its value
+   * `undefined` anyway. Nothing in the tree declares one on a reckoner today,
+   * and the point layer has the same hole.
    */
   reckonerDepTopics(topic: string): string[] {
     const parsed = this.resolveRawFieldSubtopic(topic);
@@ -2196,7 +2196,7 @@ export class TimelineStore {
      * spelled the same as an absent input.
      */
     if (isSubjectDep(dep)) return undefined;
-    return getProcessorValue(dep.id);
+    return processorRuntimeFor(this).value(dep.id);
   }
 
   /**
