@@ -69,6 +69,7 @@ test.describe("commcast radio: the relay repeats a peer once @chromium-only", ()
       sitrepPort: PORTS.radioStream.ksc,
       videoDir,
       clip: { name: "relay station", chunks: CHUNKS },
+      host: control.page,
     });
     const pilot = await openScreen(browser, {
       name: "near-craft",
@@ -77,6 +78,7 @@ test.describe("commcast radio: the relay repeats a peer once @chromium-only", ()
       sitrepPort: PORTS.radioStream.near,
       videoDir,
       clip: { name: "relay pilot", chunks: CHUNKS },
+      host: control.page,
     });
     const screens: Screen[] = [station, control, pilot];
 

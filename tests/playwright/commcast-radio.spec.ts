@@ -168,6 +168,7 @@ test.describe("commcast radio: two screens hearing each other @chromium-only", (
       sitrepPort: PORTS.radioStream.near,
       videoDir,
       clip: CLIP,
+      host: control.page,
     });
     const screens = [control, craft];
 
@@ -321,6 +322,7 @@ test.describe("commcast radio: two screens hearing each other @chromium-only", (
       sitrepPort: PORTS.radioStream.near,
       videoDir,
       clip: CLIP,
+      host: control.page,
     });
     const far = await openScreen(browser, {
       name: "far-craft",
@@ -329,6 +331,7 @@ test.describe("commcast radio: two screens hearing each other @chromium-only", (
       sitrepPort: PORTS.radioStream.far,
       videoDir,
       clip: CLIP,
+      host: control.page,
     });
     const screens = [near, control, far];
 

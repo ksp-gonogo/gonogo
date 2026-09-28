@@ -634,6 +634,11 @@ export interface OpenScreenOptions {
   sitrepPort: number;
   videoDir: string;
   clip: ClipSpec;
+  /**
+   * The mission-control page this screen joins the mesh through, for a peer
+   * screen. Set, the screen is not returned until that host holds its link.
+   */
+  host?: Page;
 }
 
 export async function openScreen(
@@ -673,7 +678,50 @@ export async function openScreen(
   });
   await installClipRadio(page, opts.clip);
   await watchReception(page);
+  if (opts.host) await joinedMesh(opts.host, page);
   return { name: opts.name, context, page, recordingFrom, audio: [] };
+}
+
+/**
+ * Waits until `host` holds an open link to `peer`, which is the instant a frame
+ * the host relays can first reach it.
+ *
+ * Nothing on the peer's own page says this. A pilot draws its instruments and
+ * builds its receiver before it has reached mission control at all, and a
+ * station's "connected" is its own end opening, which the host's end can trail.
+ * A keying that starts before the host holds the link is one this screen joined
+ * mid-transmission, and a screen that missed the `start` frame drops every chunk
+ * after it, by design.
+ *
+ * Read off the host's own connection list, matched on the peer's station key,
+ * because its peer id adds a per-session token the peer's page never shows.
+ */
+async function joinedMesh(host: Page, peer: Page): Promise<void> {
+  await expect
+    .poll(
+      async () => {
+        const key = await peer.evaluate(() =>
+          localStorage.getItem("gonogo.station.key"),
+        );
+        if (!key) return false;
+        return await host.evaluate(
+          (prefix) =>
+            (
+              (window as unknown as Record<string, unknown>)
+                .peerHostService as { getConnectedPeerIds(): string[] }
+            )
+              .getConnectedPeerIds()
+              .some((id) => id.startsWith(prefix)),
+          `station-${key}-`,
+        );
+      },
+      {
+        timeout: 45_000,
+        intervals: [100],
+        message: "the host never held this screen's peer link",
+      },
+    )
+    .toBe(true);
 }
 
 /* ------------------------------------------------------------------------- *

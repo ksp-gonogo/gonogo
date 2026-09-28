@@ -178,6 +178,7 @@ test.describe("commcast radio from a station screen @chromium-only", () => {
       sitrepPort: PORTS.radioStream.ksc,
       videoDir,
       clip: STATION_CLIP,
+      host: control.page,
     });
     const pilot = await openScreen(browser, {
       name: "near-craft",
@@ -186,6 +187,7 @@ test.describe("commcast radio from a station screen @chromium-only", () => {
       sitrepPort: PORTS.radioStream.near,
       videoDir,
       clip: PILOT_CLIP,
+      host: control.page,
     });
     // Left to right, and the order the pan positions are taken from.
     const screens: Screen[] = [station, control, pilot];
