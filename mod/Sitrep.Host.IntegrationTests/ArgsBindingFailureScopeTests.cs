@@ -39,7 +39,7 @@ namespace Sitrep.Host.IntegrationTests
                 command, args, "vantage-1",
                 r => { outcome.Resolved = true; outcome.Result = r; },
                 Timeout,
-                onRefused: reason => outcome.Refusal = reason,
+                onRefused: (_, reason) => outcome.Refusal = reason,
                 onMalformed: reason => outcome.Malformed = reason);
             return outcome;
         }
@@ -108,9 +108,9 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// Over the socket the malformed call gets an <c>invalid-envelope</c>
+        /// Over the socket the malformed call gets an <c>invalidEnvelope</c>
         /// error carrying its requestId, the same answer as any other unreadable
-        /// command-request, and not the <c>E_UNAVAILABLE</c> an unavailable
+        /// command-request, and not the <c>commandUnavailable</c> an unavailable
         /// command gets.
         /// </summary>
         [Fact]
@@ -126,7 +126,7 @@ namespace Sitrep.Host.IntegrationTests
 
                 await client.SendAsync(Request("r-bad", Malformed()));
                 var error = await ReceiveTypedAsync<ErrorMsg>(client, Timeout);
-                Assert.Equal("invalid-envelope", error.Code);
+                Assert.Equal(FaultCode.InvalidEnvelope, error.Code);
                 Assert.Equal("r-bad", error.RequestId);
                 Assert.Contains(ProbeUplink.Revert, error.Message);
 

@@ -1,4 +1,9 @@
-import { CommandErrorCode, value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  CommandErrorCode,
+  noteRosterErrorCodes,
+  RepairRefusal,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import { commandRefusalSentence } from "./commandRefusalSentence";
 
@@ -141,14 +146,58 @@ describe("what an operator reads when the game says no", () => {
     );
   });
 
-  it("falls back to the reason's own name for an arm it has no sentence for", () => {
-    // A newer mod can send an arm this client has never heard of.
+  it("falls back to the id itself for a code nothing declares", () => {
+    // A newer mod can send a root this client has never heard of.
     expect(
       commandRefusalSentence({
-        errorCode: CommandErrorCode.Unknown,
+        errorCode: "aRootFromALaterMod" as CommandErrorCode,
         command: "vessel.control.stage",
       }),
-    ).toBe("Stage refused: Unknown.");
+    ).toBe("Stage refused: aRootFromALaterMod.");
+  });
+
+  it("reads a refinement's own sentence ahead of its root's", () => {
+    expect(
+      commandRefusalSentence({
+        errorCode: CommandErrorCode.InsufficientResource,
+        reason: RepairRefusal.NoKits,
+        command: "vessel.repair",
+      }),
+    ).toBe("Repair refused: there are not enough repair kits aboard.");
+  });
+
+  it("falls back to the root's sentence for a refinement nothing declares", () => {
+    // The root always travels, so an unknown refinement still has a category.
+    expect(
+      commandRefusalSentence({
+        errorCode: CommandErrorCode.CareerModeRequired,
+        reason: "someUplink.notDeclaredHere",
+        command: "career.facility.upgrade",
+      }),
+    ).toBe("Upgrade refused: this save is not a career game.");
+  });
+
+  it("reads a refinement the running mod listed on the roster", () => {
+    noteRosterErrorCodes({
+      uplinks: [
+        {
+          errorCodes: [
+            {
+              id: "rosterProbe.notManaging",
+              refines: "careerModeRequired",
+              sentence: "the probe is not managing this save",
+            },
+          ],
+        },
+      ],
+    });
+    expect(
+      commandRefusalSentence({
+        errorCode: CommandErrorCode.CareerModeRequired,
+        reason: "rosterProbe.notManaging",
+        command: "career.facility.upgrade",
+      }),
+    ).toBe("Upgrade refused: the probe is not managing this save.");
   });
 
   it("quotes the game rather than the sentence written here", () => {

@@ -1,4 +1,5 @@
 import { type Meta, Quality, Staleness } from "../__generated__/contract";
+import { FaultCode } from "../__generated__/error-codes";
 import type { Transport, TransportStatus } from "../api/transport";
 import type { ClientMessage, ServerMessage } from "../envelope";
 import type { TopicId } from "../topics";
@@ -186,7 +187,10 @@ export class StubTransport implements Transport {
             const thrownMessage: unknown = named
               ? Reflect.get(named, "message")
               : undefined;
-            const code = typeof thrownCode === "string" ? thrownCode : "error";
+            const code =
+              typeof thrownCode === "string"
+                ? (thrownCode as FaultCode)
+                : FaultCode.CommandUnavailable;
             const errMessage =
               typeof thrownMessage === "string" ? thrownMessage : String(raw);
             this.deliver({

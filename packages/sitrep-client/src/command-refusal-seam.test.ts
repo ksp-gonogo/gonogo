@@ -94,7 +94,7 @@ describe("a refused command, engine frame to operator-visible failure", () => {
     // The operator sees a FAILURE, not silence and not a hang.
     expect(status?.phase).toBe("failed");
     // Straight from the engine's own frame, not restated here.
-    expect(error.code).toBe("E_UNAVAILABLE");
+    expect(error.code).toBe("commandUnavailable");
     expect(error.code).toBe(refusalFrame.code);
     expect(error.message).toBe(refusalFrame.message);
     // The whole operational value of the refusal: it names what to go and look at, which "signal-lost" never could.

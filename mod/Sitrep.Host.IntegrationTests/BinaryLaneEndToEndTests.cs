@@ -157,7 +157,7 @@ namespace Sitrep.Host.IntegrationTests
                 engine.TickAndWait(0.0, OpaqueUplink.Snapshot(), TestBudgets.Op);
 
                 var error = await ReceiveTypedAsync<ErrorMsg>(client, Timeout);
-                Assert.Equal("payload-serialization-error", error.Code);
+                Assert.Equal(FaultCode.PayloadSerializationError, error.Code);
                 Assert.Equal(OpaqueUplink.Topic, error.Topic);
                 Assert.Contains("returned null", error.Message);
 
@@ -188,7 +188,7 @@ namespace Sitrep.Host.IntegrationTests
                 engine.TickAndWait(0.0, OpaqueUplink.Snapshot(), TestBudgets.Op);
 
                 var error = await ReceiveTypedAsync<ErrorMsg>(client, Timeout);
-                Assert.Equal("payload-serialization-error", error.Code);
+                Assert.Equal(FaultCode.PayloadSerializationError, error.Code);
                 Assert.Contains("must return byte[]", error.Message);
 
                 await client.AssertNoBinaryFrameArrivesAsync(Quiet);
@@ -218,7 +218,7 @@ namespace Sitrep.Host.IntegrationTests
                 await client.SendBytesAsync(new byte[] { BinaryLane.Magic, BinaryLane.LaneStreamBinary, 0, 2, 0x7B, 0x7D });
 
                 var error = await ReceiveTypedAsync<ErrorMsg>(client, Timeout);
-                Assert.Equal("binary-frame-not-accepted", error.Code);
+                Assert.Equal(FaultCode.BinaryFrameNotAccepted, error.Code);
                 Assert.Contains("server-to-client only", error.Message);
             }
             finally
@@ -246,7 +246,7 @@ namespace Sitrep.Host.IntegrationTests
                 await client.SendBytesAsync(new byte[] { BinaryLane.Magic, 0x42, 0, 0 });
 
                 var error = await ReceiveTypedAsync<ErrorMsg>(client, Timeout);
-                Assert.Equal("binary-frame-not-accepted", error.Code);
+                Assert.Equal(FaultCode.BinaryFrameNotAccepted, error.Code);
                 Assert.Contains("unknown binary lane 0x42", error.Message);
             }
             finally
@@ -271,7 +271,7 @@ namespace Sitrep.Host.IntegrationTests
                 await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
                 await client.SendBytesAsync(new byte[] { BinaryLane.Magic, 0x42, 0, 0 });
                 var refusal = await ReceiveTypedAsync<ErrorMsg>(client, Timeout);
-                Assert.Equal("binary-frame-not-accepted", refusal.Code);
+                Assert.Equal(FaultCode.BinaryFrameNotAccepted, refusal.Code);
 
                 Assert.Equal("subscribed", (await SubscribeAsync(client, OpaqueUplink.Topic, Timeout)).Name);
             }

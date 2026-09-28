@@ -50,7 +50,7 @@ namespace Sitrep.Host.IntegrationTests
                     Vessel,
                     _ => Interlocked.Increment(ref resolved),
                     TestBudgets.Op,
-                    onRefused: reason => refused = reason,
+                    onRefused: (_, reason) => refused = reason,
                     onAccepted: seconds => flightTime = seconds);
 
                 Assert.True(refused == null, refused);

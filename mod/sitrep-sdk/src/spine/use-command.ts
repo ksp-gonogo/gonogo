@@ -7,10 +7,10 @@ import {
   useSyncExternalStore,
 } from "react";
 import type { CommandGateReport } from "../__generated__/contract";
+import { FaultCode } from "../__generated__/error-codes";
 import {
   COMMAND_LOST,
   COMMAND_REFUSED,
-  COMMAND_UNDELIVERED,
   classifyCommandRejection,
 } from "../api/command-rejection";
 import type {
@@ -760,6 +760,7 @@ export function useCommand(
                 ...loss,
                 outcome: "refused",
                 errorCode: status.errorCode,
+                reason: status.reason,
                 breach: status.breach,
                 detail: status.detail,
               }
@@ -861,13 +862,17 @@ export function useCommand(
        * would, so every caller, not only a button, is refused the same way.
        */
       const refuseLocally = (
-        verdict: Pick<CommandRefusal, "errorCode" | "breach" | "detail">,
+        verdict: Pick<
+          CommandRefusal,
+          "errorCode" | "reason" | "breach" | "detail"
+        >,
         reason: string,
       ): Promise<AnyCommandReply> => {
         localRefusalSeqRef.current += 1;
         const refusal: CommandRefusal = {
           id: `local-refusal:${command}:${localRefusalSeqRef.current}`,
           errorCode: verdict.errorCode,
+          reason: verdict.reason,
           command,
           args,
           label: opts?.label ?? "",
@@ -955,10 +960,10 @@ export function useCommand(
         // this was still waiting on it. Collected here rather than in the sweep
         // because there is no loss to promote, the deadline having never come
         // round (or never been armed). Classified `failed`, so this reads the
-        // code: see `COMMAND_UNDELIVERED` for why it is not a `kind` of its own.
+        // code, since nothing was decided over there and so it is not a `kind` of its own.
         if (
           rejection.kind === "failed" &&
-          rejection.code === COMMAND_UNDELIVERED
+          rejection.code === FaultCode.Undelivered
         ) {
           setUndelivered((prev) => [
             ...prev,
@@ -978,6 +983,7 @@ export function useCommand(
           {
             id: newRequestId,
             errorCode: rejection.errorCode,
+            reason: rejection.reason,
             command: rejection.command ?? command,
             args: rejection.args ?? args,
             label: rejection.label ?? opts?.label ?? "",

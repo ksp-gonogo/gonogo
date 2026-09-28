@@ -7,7 +7,7 @@ import type {
 import type { ClientMessage, ServerMessage } from "@ksp-gonogo/sitrep-sdk";
 import {
   COMMAND_LOST,
-  COMMAND_UNDELIVERED,
+  FaultCode,
   hydratePayload,
 } from "@ksp-gonogo/sitrep-sdk";
 import type { ConnStatus, PeerClientService } from "../peer/PeerClientService";
@@ -175,7 +175,7 @@ export class PeerTransport implements Transport {
          * proof the mod received it, which is the opposite of what happened.
          * See `Transport.onUndelivered`.
          */
-        if (code === COMMAND_UNDELIVERED) {
+        if (code === FaultCode.Undelivered) {
           for (const listener of this.undeliveredListeners) {
             listener({ requestId, reason: message });
           }
@@ -200,7 +200,12 @@ export class PeerTransport implements Transport {
           }
           return;
         }
-        this.deliver({ type: "error", requestId, code, message });
+        this.deliver({
+          type: "error",
+          requestId,
+          code: code as FaultCode,
+          message,
+        });
       }),
       client.onConnectionStatus((status) => {
         this.setStatus(toTransportStatus(status));
@@ -226,7 +231,7 @@ export class PeerTransport implements Transport {
           this.deliver({
             type: "error",
             requestId,
-            code: "E_PEER_DISCONNECTED",
+            code: FaultCode.PeerDisconnected,
             message: "no active peer connection to the host",
           }),
         );
@@ -273,7 +278,7 @@ export class PeerTransport implements Transport {
    * See `Transport.onUndelivered`. This transport strands nothing of its own (a
    * command pressed with no peer link is refused at the press), so the only
    * thing reported here is what the HOST could not send: its own queue, given
-   * up on, relayed as `E_UNDELIVERED`.
+   * up on, relayed as `undelivered`.
    */
   onUndelivered(listener: (command: UndeliveredCommand) => void): () => void {
     this.undeliveredListeners.add(listener);
@@ -340,7 +345,7 @@ export class PeerTransport implements Transport {
         this.deliver({
           type: "error",
           requestId,
-          code: "E_PEER_DISCONNECTED",
+          code: FaultCode.PeerDisconnected,
           message: "peer connection dropped mid-flight",
         });
       }

@@ -10,6 +10,7 @@ import {
   getComponent,
   getDataSource,
   registerDataSource,
+  registeredErrorCodes,
   registerStockBodies,
   unregisterDataSource,
 } from "@ksp-gonogo/sitrep-sdk";
@@ -371,6 +372,18 @@ export interface UplinkCompat {
   contractMinor: number;
 }
 
+/**
+ * One refusal refinement as the page lists it.
+ *
+ * @category Error codes
+ */
+export interface InventoryErrorCode {
+  id: string;
+  refines: string | null;
+  sentence: string;
+  meaning: string;
+}
+
 export interface UplinkInventory {
   id: string;
   name: string;
@@ -410,6 +423,11 @@ export interface UplinkInventory {
    */
   reckonerExemptions: InventoryReckonerExemption[];
   derivedChannels: string[];
+  /**
+   * The refusal refinements this Uplink declares, from the generated table its
+   * client registers, so the page says what each one reads as.
+   */
+  errorCodes?: InventoryErrorCode[];
   /** Every declared client id in the bundle, `core` included. Diagnostic. */
   declaredClients: string[];
   /**
@@ -522,6 +540,14 @@ export function readInventory(uplinkId?: string): UplinkInventory {
       contractMinor: CONTRACT_MINOR,
     },
     declaredClients: declared,
+    errorCodes: registeredErrorCodes()
+      .filter((code) => code.id.startsWith(`${client.id}.`))
+      .map(({ id, refines, sentence, meaning }) => ({
+        id,
+        refines,
+        sentence,
+        meaning,
+      })),
     widgets: getComponents()
       .filter((def) => owned(def.owner))
       .map(widgetInventory),

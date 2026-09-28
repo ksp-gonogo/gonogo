@@ -234,7 +234,7 @@ function startSession(owlt: number): ModStandIn {
            Range, because this one resolves by waiting. */
         return {
           success: false,
-          errorCode: 15,
+          errorCode: "notClearToProceed",
           detail: `no command centre is known yet, so '${String(bag.vantage ?? "")}' cannot be checked`,
         };
       }
@@ -246,7 +246,7 @@ function startSession(owlt: number): ModStandIn {
            a real refusal never puts them. */
         return {
           success: false,
-          errorCode: 4,
+          errorCode: "range",
           detail: `no SCET threshold can be read from '${String(condition.topic ?? "")}'`,
         };
       }

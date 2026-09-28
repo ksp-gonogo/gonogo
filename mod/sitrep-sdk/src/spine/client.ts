@@ -1,13 +1,6 @@
-import {
-  CommandErrorCode,
-  type LimitBreach,
-  type Meta,
-} from "../__generated__/contract";
-import {
-  COMMAND_LOST,
-  COMMAND_REFUSED,
-  COMMAND_UNDELIVERED,
-} from "../api/command-rejection";
+import type { LimitBreach, Meta } from "../__generated__/contract";
+import { CommandErrorCode, FaultCode } from "../__generated__/error-codes";
+import { COMMAND_LOST, COMMAND_REFUSED } from "../api/command-rejection";
 import type { Transport } from "../api/transport";
 import { wrapCommandReply } from "../command-reply-units";
 import type { ServerMessage } from "../envelope";
@@ -174,12 +167,13 @@ interface PendingCommand {
  * an explicit `success: false` counts.
  *
  * A refusal that somehow arrives without a usable `errorCode` still counts as
- * one, reported as `Unknown`: that we were refused is the load-bearing half,
- * and inventing a success out of a missing reason is the bug this whole path
- * exists to stop.
+ * one, reported as `modeUnavailable` (refused, with no reason given): that we
+ * were refused is the load-bearing half, and inventing a success out of a
+ * missing reason is the bug this whole path exists to stop.
  */
 function refusalOf(result: unknown): {
   errorCode: CommandErrorCode;
+  reason?: string;
   breach?: LimitBreach;
   detail?: string;
 } | null {
@@ -187,15 +181,20 @@ function refusalOf(result: unknown): {
   const candidate = result as {
     success?: unknown;
     errorCode?: unknown;
+    reason?: unknown;
     breach?: unknown;
     detail?: unknown;
   };
   if (candidate.success !== false) return null;
   return {
     errorCode:
-      typeof candidate.errorCode === "number"
+      typeof candidate.errorCode === "string"
         ? (candidate.errorCode as CommandErrorCode)
-        : CommandErrorCode.Unknown,
+        : CommandErrorCode.ModeUnavailable,
+    reason:
+      typeof candidate.reason === "string" && candidate.reason.length > 0
+        ? candidate.reason
+        : undefined,
     // The comparison behind the code, when the refusal had one. Absent is the
     // shape a reader keys on: an arm with no breach says the general thing
     // rather than rendering zeroes as a real limit of 0.
@@ -770,7 +769,7 @@ export class TelemetryClient {
       pending.cancelLossTimer = null;
       if (!pending.reject) continue; // already settled, nothing to reject
       const error = {
-        code: "E_DISPOSED",
+        code: FaultCode.Disposed,
         message: "TelemetryClient disposed while command was in flight",
       };
       const reject = pending.reject;
@@ -818,10 +817,10 @@ export class TelemetryClient {
       // the author was left with the exact silence the mod had just gone to
       // the trouble of explaining. See `channel-error-warning.ts`.
       if (!message.requestId && message.topic) {
-        /* `unknown-topic` is the mod refusing the subscribe, not a channel that
+        /* `unknownTopic` is the mod refusing the subscribe, not a channel that
            was acked and then broke, so it belongs to the ownership verdict and
            NOT to `warnChannelError`, whose text says the opposite happened. */
-        if (message.code === "unknown-topic") {
+        if (message.code === FaultCode.UnknownTopic) {
           this.ownership?.noteRefused(message.topic);
           return;
         }
@@ -967,11 +966,12 @@ export class TelemetryClient {
     // refused command had worked.
     const refusal = refusalOf(result);
     if (refusal !== null) {
-      const { errorCode, breach, detail } = refusal;
+      const { errorCode, reason, breach, detail } = refusal;
       pending.status = {
         phase: "refused",
         requestId,
         errorCode,
+        reason,
         command: pending.command,
         args: pending.args,
         label: pending.label,
@@ -981,12 +981,10 @@ export class TelemetryClient {
       reject?.(
         new CommandError(
           COMMAND_REFUSED,
-          // Names what was refused. The enum member alone reads identically for
-          // every refusal of every command in the mod, so an operator cannot
-          // tell which control said no.
-          `command ${JSON.stringify(pending.command)} refused: ${
-            CommandErrorCode[errorCode] ?? errorCode
-          }`,
+          // Names what was refused. The code alone reads identically for every
+          // refusal of every command in the mod, so an operator cannot tell
+          // which control said no.
+          `command ${JSON.stringify(pending.command)} refused: ${reason ?? errorCode}`,
           errorCode,
           {
             command: pending.command,
@@ -994,6 +992,7 @@ export class TelemetryClient {
             label: pending.label,
             breach,
             detail,
+            reason,
           },
         ),
       );
@@ -1075,6 +1074,7 @@ export class TelemetryClient {
             requestId,
             outcome: "refused",
             errorCode: refusal.errorCode,
+            reason: refusal.reason,
             breach: refusal.breach,
             detail: refusal.detail,
           };
@@ -1134,7 +1134,7 @@ export class TelemetryClient {
    * - the dispatch is still awaiting an answer, because nothing ever armed a
    *   loss timer for it (no delay authority, no transport prediction) or the
    *   deadline has not come round. Its promise is settled here, `failed` with
-   *   `E_UNDELIVERED`: `failed` because nothing was decided over there, and a
+   *   `undelivered`: `failed` because nothing was decided over there, and a
    *   retry is safe rather than doubling anything
    * - the loss timer already called it `lost` and rejected. That promise is
    *   spent and is deliberately left alone, exactly as `handleFound` leaves it;
@@ -1163,7 +1163,7 @@ export class TelemetryClient {
     pending.status = status;
     pending.resolve = null;
     pending.reject = null;
-    reject(new CommandError(COMMAND_UNDELIVERED, reason));
+    reject(new CommandError(FaultCode.Undelivered, reason));
     this.notifyStore();
   }
 

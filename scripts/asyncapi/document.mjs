@@ -208,30 +208,11 @@ A command the game REFUSED ran and said no. That arrives as a
 \`command-response\` with \`success: false\` and an \`errorCode\`, correlated on
 \`requestId\` like any other answer, and it is not an error frame.
 
-\`code\` is an open vocabulary rather than an enumeration. The mod emits these
-values into it:
-
-- \`invalid-envelope\`: a frame of a known type that could not be read, including
-  a \`command-request\` whose \`args\` do not fit the command. Only that call is
-  refused; the command stays available
-- \`unknown-envelope-type\`: a frame whose \`type\` this build does not recognise
-- \`unhandled-envelope\`: a frame that parsed as a type this build has nothing
-  to do with
-- \`binary-frame-not-accepted\`: a binary frame sent up the socket, which nothing
-  accepts
-- \`E_UNAVAILABLE\`: a command that is unknown or unavailable, or whose handler
-  threw. A handler that threw leaves its command unavailable for the session
-- \`result-serialization-error\`: a command that ran and whose result could not
-  be written
-- \`unknown-topic\`: a subscription to a topic nothing declares
-- \`payload-serialization-error\`: a topic whose payload could not be written
-- \`unknown-vantage\`: a \`set-vantage\`, or a command's \`vantage\`, naming a
-  centre that is not active
-
-A client's own transport mints codes into the same field, so an unrecognised
-code is still a fault and \`message\` is what to show for it.
-\`CommandErrorCode\`, enumerated in full under \`components.schemas\`, is a
-different vocabulary: it names REFUSALS and never appears here.`;
+\`code\` is a \`FaultCode\`, enumerated in full under \`components.schemas\`
+with the sentence an operator reads for each. Its client-origin members are
+minted by a client's own transport into the same field, never by the mod.
+\`CommandErrorCode\` is the other half of the vocabulary: it names REFUSALS and
+never appears here.`;
 
 /**
  * What an `event` frame is, and why it is on the topic channels rather than on
@@ -490,7 +471,7 @@ function defineEnvelopes(schemas, contract) {
       {
         type: "command-response",
         requestId: "0f3c9a12",
-        result: { success: true, errorCode: 0 },
+        result: { success: true },
         meta: EXAMPLE_META,
       },
     ],

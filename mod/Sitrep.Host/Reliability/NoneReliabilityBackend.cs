@@ -36,7 +36,7 @@ namespace Sitrep.Host.Reliability
         /// install, and a refusal costs the operator the same round trip a
         /// success would, so it says why.
         /// </summary>
-        public RepairOutcome Repair(string partId, string crewName) =>
-            new RepairOutcome { Repaired = false, Refusal = RepairRefusal.NotModelled };
+        public CommandResult<RepairOutcome> Repair(string partId, string crewName) =>
+            CommandResult<RepairOutcome>.Fail(RepairRefusal.NotModelled);
     }
 }

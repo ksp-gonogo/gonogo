@@ -1,4 +1,5 @@
 export * from "./__generated__/contract";
+export * from "./__generated__/error-codes";
 export * from "./api";
 // The HOST's logger, not `@ksp-gonogo/logger`'s singleton (a bundled second copy of
 // that is a dead logger: console-only, never reaching Axiom or the shared

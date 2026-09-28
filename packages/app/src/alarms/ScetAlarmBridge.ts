@@ -7,8 +7,8 @@ import {
 } from "@ksp-gonogo/sitrep-client";
 import {
   COMMAND_LOST,
-  COMMAND_UNDELIVERED,
   CommandErrorCode,
+  FaultCode,
   KspParameterState,
   type ScetAlarmAction,
   ScetAlarmActionKind,
@@ -374,7 +374,7 @@ export class ScetAlarmBridge {
          wrong. Asked again, up to a point. */
       if (
         refusal.code === COMMAND_LOST ||
-        refusal.code === COMMAND_UNDELIVERED
+        refusal.code === FaultCode.Undelivered
       ) {
         this.noAnswer(alarm, refusal.message);
         return;

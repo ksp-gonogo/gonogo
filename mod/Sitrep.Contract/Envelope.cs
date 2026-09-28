@@ -190,8 +190,14 @@ public class ErrorMsg
     public string? RequestId { get; set; }
     [SitrepUnit(Units.Id)]
     public string? Topic { get; set; }
+    /// <summary>Which fault: always a fault, never a refusal, since a command the game refused answers with a <c>command-response</c> instead.</summary>
+#if SITREP_CODEGEN
+    [TsProperty(Type = "FaultCode")]
+#endif
     [SitrepUnit(Units.Id)]
-    public string Code { get; set; } = "";
+    public FaultCode Code { get; set; } = FaultCode.Unclassified;
+
+    /// <summary>The machinery's own account of what went wrong, for a log rather than an operator.</summary>
     [SitrepUnit(Units.Text)]
     public string Message { get; set; } = "";
 }
@@ -230,7 +236,7 @@ public class Unsubscribe
 /// Client-to-server: select the command centre this connection commands from and
 /// observes at (Plan 3 vantage selection). Governs both the downlink cursor read
 /// and the command-dispatch vantage. The id must name a currently-active command
-/// centre, or the request is refused with an <c>unknown-vantage</c> error and the
+/// centre, or the request is refused with an <c>unknownVantage</c> error and the
 /// connection keeps the vantage it had.
 ///
 /// <para>A connection that has never sent one observes at the home command (the

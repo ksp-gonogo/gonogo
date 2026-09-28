@@ -157,7 +157,6 @@ describe("KspSettings", () => {
     const { fixture } = mount();
     fixture.transport.setCommandHandler(() => ({
       success: true,
-      errorCode: 0,
     }));
     await publish(fixture, model());
 
@@ -237,7 +236,7 @@ describe("KspSettings", () => {
     const { fixture } = mount();
     fixture.transport.setCommandHandler(() => ({
       success: false,
-      errorCode: 2,
+      errorCode: "noVessel",
       detail:
         "Uplinks/Rp1/upgradeSlipWarningDays holds a Number value, not 4 5",
     }));

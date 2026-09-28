@@ -52,7 +52,7 @@ namespace Sitrep.Host.IntegrationTests
                 // An id that names no active centre is refused, whatever it spells.
                 await client.SendAsync(EnvelopeCodec.WriteSetVantage(new SetVantage { CentreId = "ksc" }));
                 var error = await ReceiveTypedAsync<ErrorMsg>(client, Timeout);
-                Assert.Equal("unknown-vantage", error.Code);
+                Assert.Equal(FaultCode.UnknownVantage, error.Code);
             }
             finally
             {
@@ -75,7 +75,7 @@ namespace Sitrep.Host.IntegrationTests
                 await client.SendAsync(EnvelopeCodec.WriteSetVantage(new SetVantage { CentreId = "no-such-centre" }));
 
                 var error = await ReceiveTypedAsync<ErrorMsg>(client, Timeout);
-                Assert.Equal("unknown-vantage", error.Code);
+                Assert.Equal(FaultCode.UnknownVantage, error.Code);
             }
             finally
             {
@@ -123,7 +123,7 @@ namespace Sitrep.Host.IntegrationTests
                 // adopting the unknown id nor reverting to where it started.
                 await client.SendAsync(EnvelopeCodec.WriteSetVantage(new SetVantage { CentreId = "no-such-centre" }));
                 var error = await ReceiveTypedAsync<ErrorMsg>(client, Timeout);
-                Assert.Equal("unknown-vantage", error.Code);
+                Assert.Equal(FaultCode.UnknownVantage, error.Code);
 
                 var afterRejected = await DispatchAndAwaitResponse(client, "r2");
                 Assert.Equal("ground:gs2", afterRejected.Meta.Vantage);
@@ -159,7 +159,7 @@ namespace Sitrep.Host.IntegrationTests
                 await SendCommandAsync(client, "r1", vantage: "ground:gs99");
 
                 var error = await ReceiveTypedAsync<ErrorMsg>(client, Timeout);
-                Assert.Equal("unknown-vantage", error.Code);
+                Assert.Equal(FaultCode.UnknownVantage, error.Code);
                 Assert.Equal("r1", error.RequestId);
 
                 // Refused, not demoted: the handler ran for nobody. A silent fallback
@@ -243,7 +243,7 @@ namespace Sitrep.Host.IntegrationTests
 
                 await client.SendAsync(EnvelopeCodec.WriteSetVantage(new SetVantage { CentreId = "no-such-centre" }));
                 var error = await ReceiveTypedAsync<ErrorMsg>(client, Timeout);
-                Assert.Equal("unknown-vantage", error.Code);
+                Assert.Equal(FaultCode.UnknownVantage, error.Code);
 
                 var afterRejected = await DispatchAndAwaitResponse(client, "r2");
                 Assert.Equal("ground:gs1", afterRejected.Meta.Vantage);
@@ -288,7 +288,7 @@ namespace Sitrep.Host.IntegrationTests
 
                 await SendCommandAsync(client, "r2", vantage: "ground:gs99");
                 var error = await ReceiveTypedAsync<ErrorMsg>(client, Timeout);
-                Assert.Equal("unknown-vantage", error.Code);
+                Assert.Equal(FaultCode.UnknownVantage, error.Code);
                 Assert.Equal("r2", error.RequestId);
 
                 await SendCommandAsync(client, "r3", vantage: null);
@@ -328,11 +328,11 @@ namespace Sitrep.Host.IntegrationTests
 
                 await client.SendAsync(EnvelopeCodec.WriteSetVantage(new SetVantage { CentreId = "ground:gs1" }));
                 var error = await ReceiveTypedAsync<ErrorMsg>(client, Timeout);
-                Assert.Equal("unknown-vantage", error.Code);
+                Assert.Equal(FaultCode.UnknownVantage, error.Code);
 
                 await client.SendAsync(EnvelopeCodec.WriteSetVantage(new SetVantage { CentreId = "ksc" }));
                 var refused = await ReceiveTypedAsync<ErrorMsg>(client, Timeout);
-                Assert.Equal("unknown-vantage", refused.Code);
+                Assert.Equal(FaultCode.UnknownVantage, refused.Code);
 
                 Assert.Empty(source.Violations);
             }

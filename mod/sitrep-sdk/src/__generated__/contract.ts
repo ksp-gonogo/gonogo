@@ -4,6 +4,7 @@
 
 import { Value, Vec3Of } from '../value';
 import { ProviderExtensions } from '../extensions';
+import { CommandErrorCode, FaultCode } from './error-codes';
 
 /**
 * The JSON header of a BinaryLane frame: everything about the delivery except
@@ -1026,305 +1027,6 @@ export interface CommandGateReport
 	gates: CommandGate[];
 }
 /**
-* The typed, machine-readable failure code every command result carries. A
-* string code forces the client to string-match a magic value that the
-* compiler can neither check nor enumerate. This enum makes the failure
-* surface a closed, typed set instead.
-*
-* `CommandErrorCode.None` is the success sentinel (paired with
-* `CommandResult.success` = true); `CommandErrorCode.Unknown` is the
-* forward-compatible fallback for any code a newer producer emits that an
-* older consumer doesn't recognise: the same `Unknown`-style read-fallback
-* convention every other enum in this contract uses.
-*/
-export enum CommandErrorCode {
-	/** No error: the success sentinel, paired with `CommandResult.success` = true. */
-	None = 0,
-	/**
-	* Forward-compat fallback: a code a newer producer emitted that this consumer
-	* doesn't recognise.
-	*/
-	Unknown = 1,
-	/** No active vessel to act on (was `"E_NO_VESSEL"`). */
-	NoVessel = 2,
-	/**
-	* The requested mode/state isn't currently available (was
-	* `"E_MODE_UNAVAILABLE"`).
-	*/
-	ModeUnavailable = 3,
-	/** An argument was out of its valid range (was `"E_RANGE"`). */
-	Range = 4,
-	/**
-	* The referenced entity (node id, vessel/body target) didn't resolve (was
-	* `"E_NOT_FOUND"`).
-	*/
-	NotFound = 5,
-	/**
-	* F2-fix backstop: the command was marshaled onto the host's main-thread pump
-	* but that pump did not drain it within the bounded wait (a scene-load /
-	* loading-screen stall). A synthetic failure returned by the host so the
-	* Courier thread can never park indefinitely, not emitted by any uplink
-	* handler. Additive (Major 2, Minor 0 -> 1).
-	*/
-	Timeout = 6,
-	/**
-	* The elected maneuver-plan provider is not the one that reads stock's
-	* `patchedConicSolver`, so a write there would never be seen.
-	*
-	* Refused rather than attempted, because attempting it produces a GHOST NODE:
-	* we mutate stock's solver, the owning planner never reads it (an n-body
-	* backend clears that list every frame and writes its own guidance node into
-	* it), and the operator sees a maneuver node on the board that does precisely
-	* nothing. A silent wrong answer with a confident presentation.
-	*
-	* The code says WHY. It deliberately does not say WHO: this enum is typed
-	* precisely so a client never string-matches, and the owner is already on the
-	* wire as `VesselManeuver.Planner` for a readout to name. Additive (Major 5).
-	*/
-	PlanNotOwned = 7,
-	/**
-	* A capacity is full: the Astronaut Complex holds its cap of active crew, a
-	* facility holds its cap of anything else countable.
-	*
-	* Split out of `CommandErrorCode.ModeUnavailable`, which was carrying five
-	* unrelated causes at once (crew cap, facility maxed, no roster, no Funding,
-	* wrong scene) and so could not tell a permanent refusal from a transient one.
-	* This arm says the cap is reached and the world has to change before a retry
-	* means anything; freeing a slot is a thing an operator can actually do.
-	*
-	* The arm chooses the sentence, `CommandResult.breach` supplies the numbers in
-	* it. Neither is worth sending without the other: a code with no payload
-	* cannot say "16 of 16".
-	*/
-	LimitReached = 8,
-	/**
-	* Already at the top of an upgradeable scale, so there is nothing above this
-	* to move to. The Launch Pad at tier 3 of 3.
-	*
-	* Deliberately NOT `CommandErrorCode.LimitReached`. A cap that is full can be
-	* freed; a maximum tier cannot be exceeded by any action at all, and an
-	* operator reads those two differently.
-	*/
-	AlreadyAtMaximum = 9,
-	/**
-	* The command costs more than the funds on hand.
-	*
-	* Was `CommandErrorCode.Range`, which documents "an argument was out of its
-	* valid range" and is not what happened: affordability is not about an
-	* argument, and a client reading the enum name aloud got it wrong.
-	*
-	* `CommandResult.breach` carries the cost as `Actual` against the balance as
-	* `Limit`, so the client can say how short and in the operator's own currency
-	* rendering.
-	*/
-	InsufficientFunds = 10,
-	/**
-	* The command costs more science than is banked.
-	* `CommandErrorCode.InsufficientFunds`'s twin, and separate for the same
-	* reason the game keeps `Currency` as three members: an operator short of
-	* science does something entirely different about it from one short of funds.
-	*
-	* Authority: `CurrencyModifierQuery.RunQuery(reason,
-	* ...).CanAfford(Currency.Science)`, which is what `RDTech.ResearchTech` asks.
-	* NOT `ResearchAndDevelopment.CanAfford`, which skips the modifier chain and
-	* so answers a different question from the one the game acts on.
-	*/
-	InsufficientScience = 11,
-	/**
-	* The save is not a career save, so this command's whole subsystem does not
-	* exist here.
-	*
-	* Authority: `HighLogic.CurrentGame.Mode`, and in practice the null `Instance`
-	* of the `ScenarioModule` that would have answered (`Funding`,
-	* `ContractSystem`, `StrategySystem`, `ResearchAndDevelopment`,
-	* `ScenarioUpgradeableFacilities`).
-	*
-	* This is a PERMANENT property of the save, not a state that may change, which
-	* is exactly what `CommandErrorCode.ModeUnavailable` could not say. An
-	* operator should see the control absent rather than refused; a client that
-	* can tell this arm from the others can do that.
-	*/
-	CareerModeRequired = 12,
-	/**
-	* The game is in a scene this command cannot run from.
-	*
-	* Authority: `HighLogic.LoadedScene` (`GameScenes`). `CommandResult.detail`
-	* names the scene when the producer had one.
-	*/
-	WrongScene = 13,
-	/**
-	* The entity is not in a state this transition applies to: an already-active
-	* strategy asked to activate, an already-researched node asked to unlock, a
-	* contract asked to accept when it is not offered, an assigned kerbal asked to
-	* be sacked, a spent experiment asked to deploy.
-	*
-	* Authority: the entity's own state enum. `Strategies.Strategy.IsActive`,
-	* `RDTech.State`, `Contract.State`, `ProtoCrewMember.RosterStatus`,
-	* `ModuleScienceExperiment.Deployed`/`Inoperable`. Every one of those is
-	* `[Description]`-tagged or otherwise nameable, so `CommandResult.detail` can
-	* carry the state in the game's own words.
-	*/
-	WrongState = 14,
-	/**
-	* Right command, wrong moment: the flight is not in a state that permits it
-	* yet, and will be later.
-	*
-	* Authority: `FlightGlobals.ClearToSave()`, which returns one of five refusals
-	* (in atmosphere, under acceleration, moving over the surface, about to crash,
-	* on a ladder), plus `FlightDriver.CanRevertToPostInit`/`CanRevertToPrelaunch`
-	* and the `GameParameters` flags for leaving to the space center and to the
-	* tracking station. The arm rides on `CommandResult.detail`.
-	*
-	* Also the SCET alarm arm, for a vantage it cannot check because no command
-	* centre is known to the simulation yet: the main menu, and the ticks before
-	* the first capture. A vantage that is known and inactive is
-	* `CommandErrorCode.Range` instead, because that one does not resolve by
-	* waiting.
-	*
-	* Distinct from `CommandErrorCode.WrongState`, which is about the entity and
-	* does not resolve by waiting.
-	*/
-	NotClearToProceed = 15,
-	/**
-	* The part or vessel does not have the capability this command needs: a rotor
-	* asked for a target angle, an unmotorised servo asked to drive, a part with
-	* no such action, an action present but inert, an autopilot mode this craft
-	* cannot hold.
-	*
-	* Authority: the part's own module list and fields
-	* (`ModuleRoboticServoRotor`/`Hinge`/`Piston`, `servoIsMotorized`,
-	* `BaseEvent.active`, `BaseEvent.EventIsDisabledByVariant`) and
-	* `VesselAutopilot.CanSetMode`.
-	*
-	* Nothing an operator waits for. The craft would have to be different for this
-	* to work, which is why it is not `CommandErrorCode.NotClearToProceed` and not
-	* `CommandErrorCode.WrongState`.
-	*/
-	CapabilityMismatch = 16,
-	/**
-	* There is no usable link for what this command needs to send.
-	*
-	* Authority: `ScienceUtil.GetBestTransmitter(Vessel)` and
-	* `IScienceDataTransmitter.CanTransmit()`. Deliberately NOT the Courier's own
-	* comms-loss gate, which refuses the dispatch before a handler ever runs; this
-	* is the vessel finding it has no antenna that can carry the payload.
-	*/
-	NoConnection = 17,
-	/**
-	* The capability exists in the game but this save has not unlocked it: fuel
-	* transfer, custom action groups, flight planning, EVA, the maneuver tool.
-	*
-	* Authority: `GameVariables.UnlockedFuelTransfer`,
-	* `UnlockedActionGroupsStock`/`Custom`, `UnlockedFlightPlanning`,
-	* `UnlockedEVA`/`Flags`/`Clamber`, `ManeuverToolAvailable`, each read at the
-	* owning facility's normalised level.
-	*
-	* Distinct from `CommandErrorCode.LimitReached`, which is a number against a
-	* number. This is a switch that is off, and the fix is an upgrade rather than
-	* freeing a slot.
-	*/
-	NotUnlocked = 18,
-	/**
-	* Another vessel is on the launch site.
-	*
-	* Authority: `PreFlightTests.LaunchSiteClear`, whose
-	* `GetWarningTitle()`/`GetWarningDescription()` are the game's own words for
-	* it and ride on `CommandResult.detail`.
-	*/
-	SiteOccupied = 19,
-	/**
-	* The facility this command needs is destroyed or damaged.
-	*
-	* Authority: `PreFlightTests.FacilityOperational`, over
-	* `PSystemSetup.Instance.GetSpaceCenterFacility(name).GetFacilityDamage()`.
-	*/
-	FacilityDamaged = 20,
-	/**
-	* The vehicle is not a launchable article yet: an install's build and
-	* logistics model has work outstanding on it. Nothing is over a limit and
-	* nothing is broken, the thing simply has not been made ready.
-	*
-	* Authority: whichever Uplink CONTRIBUTED the readiness requirement that
-	* refused (see IUplinkHost.AddCommandRequirement), never a stock KSP read:
-	* stock has no build step, so it contributes no readiness requirements and
-	* this code never arrives on a stock install. Under RP-1 it is a vehicle that
-	* was never integrated, one still integrating, one finished but not rolled
-	* out, or one rolled out to a pad still being reconditioned.
-	* `CommandResult.detail` says which.
-	*
-	* Deliberately NOT `CommandErrorCode.LimitReached`, which is the launch
-	* refusal an operator already gets for a craft that is too heavy or too large
-	* for the site, and which is fixed by changing the craft or upgrading the pad.
-	* This one is fixed by doing the outstanding work, and the two want entirely
-	* different next moves.
-	*
-	* Deliberately NOT `CommandErrorCode.NotFound` either, which `ksp.launch`
-	* already returns when no craft file answers to the name. A craft that exists
-	* on disk and has never been built is a different situation from one that does
-	* not exist, and collapsing them tells an operator to go looking for a file
-	* that is sitting right there.
-	*/
-	NotReady = 21,
-	/**
-	* The command consumes a countable ITEM and there are not enough of them
-	* aboard: an EVA repair kit for a repair, on a provider that charges one.
-	*
-	* Authority: the provider's own charge, read back from the same function that
-	* STATES the cost on `ReliabilityPartEntry.repairCost`. The two come from one
-	* place precisely so a console cannot show one number while the repair takes
-	* another, and the ITEM is always the provider's to name: this code never
-	* asserts which one, only that there were too few.
-	*
-	* `CommandErrorCode.InsufficientFunds`'s and
-	* `CommandErrorCode.InsufficientScience`'s third sibling, and separate for the
-	* same reason those two are separate from each other: an operator short of a
-	* physical item does something entirely different about it from one short of a
-	* currency, and nothing can be bought to fix it.
-	*
-	* Deliberately NOT `CommandErrorCode.LimitReached`, which is a capacity that
-	* is FULL. This is a store that is empty, and the two read as opposites.
-	*/
-	InsufficientResource = 22,
-	/**
-	* The provider was ASKED and COULD NOT ANSWER. Nothing about the craft, the
-	* save or the moment was established, so the one fact this refusal carries is
-	* that the question went unanswered.
-	*
-	* None of its three neighbours, and folding it into any of them states
-	* something that was never established rather than merely stating it coarsely.
-	* "The answer is no" (a genuine omni antenna asked to aim) is a FACT about the
-	* craft, and that is `CommandErrorCode.CapabilityMismatch`. "Not applicable"
-	* (asked of a craft that carries nothing this command could act on) is a
-	* refusal about what is there at all, and that is `CommandErrorCode.NotFound`.
-	* "Not yet" resolves by waiting, which is
-	* `CommandErrorCode.NotClearToProceed`; this does not resolve by waiting, and
-	* a retry is a second attempt at the same question rather than a later one.
-	*
-	* `CommandResult.detail` names WHAT could not be read when the producer had a
-	* name for it, and never says what the answer would have been. A surface has
-	* nothing to tell the operator about their vehicle here, because nothing was
-	* learned about it; offering the command again is the only honest next move.
-	*/
-	Unreadable = 23,
-	/**
-	* The command acts at a PLACE, and the command centre it was sent from has no
-	* authority there: a launch from a pad in another planet's system.
-	*
-	* Authority, never delay. The command itself is still instant; what this
-	* refuses is the sender, not the moment, so no amount of waiting makes it
-	* succeed. Sending from a centre in the place's own system does.
-	*
-	* `CommandResult.detail` names the centre and the place, and the system each
-	* is in, so an operator learns which seat to move to rather than seeing a
-	* control that simply does nothing.
-	*
-	* Distinct from `CommandErrorCode.NoConnection`, which is a link that cannot
-	* carry the command. A centre may be perfectly linked to the place and still
-	* have no authority over it.
-	*/
-	OutOfReach = 24
-}
-/**
 * The ONE result shape every command returns. `CommandResult.success` false
 * pairs with a typed `CommandResult.errorCode` (never a free-text message a
 * client has to string-match). Results are always delivered (never a
@@ -1339,7 +1041,19 @@ export enum CommandErrorCode {
 export interface CommandResult
 {
 	success: boolean;
-	errorCode: CommandErrorCode;
+	/**
+	* Why it was refused, null on success. On the wire this is the ROOT's id, so
+	* every client can classify it; a refinement's own id travels beside it as
+	* `CommandResult.reason`.
+	*/
+	errorCode?: CommandErrorCode;
+	/**
+	* The refinement's id, when the refusal is more specific than its root:
+	* `rp1.notManaging` under `careerModeRequired`. Absent when the refusal is a
+	* root. An id this client does not know is still a refusal of kind
+	* `CommandResult.errorCode`.
+	*/
+	reason?: string;
 	/**
 	* The numbers behind the refusal, when the refusal has any: the cap and the
 	* count, the tier and the top tier, the price and the balance. Null on success
@@ -2381,7 +2095,15 @@ export interface ErrorMsg
 	type: "error";
 	requestId?: string;
 	topic?: string;
-	code: string;
+	/**
+	* Which fault: always a fault, never a refusal, since a command the game
+	* refused answers with a `command-response` instead.
+	*/
+	code: FaultCode;
+	/**
+	* The machinery's own account of what went wrong, for a log rather than an
+	* operator.
+	*/
 	message: string;
 }
 export interface Subscribe
@@ -2398,8 +2120,8 @@ export interface Unsubscribe
 * Client-to-server: select the command centre this connection commands from
 * and observes at (Plan 3 vantage selection). Governs both the downlink cursor
 * read and the command-dispatch vantage. The id must name a currently-active
-* command centre, or the request is refused with an `unknown-vantage` error
-* and the connection keeps the vantage it had.
+* command centre, or the request is refused with an `unknownVantage` error and
+* the connection keeps the vantage it had.
 *
 * A connection that has never sent one observes at the home command (the
 * roster entry whose `isHome` is true), and follows it if home moves. When no
@@ -4124,18 +3846,6 @@ export interface RepairOutcome
 {
 	/** Whether the part was actually repaired. */
 	repaired: boolean;
-	/**
-	* Why not, when `RepairOutcome.repaired` is false: one of the RepairRefusal
-	* tokens. Null on success.
-	*
-	* The FINER half of the refusal. It travels beside the
-	* `CommandResult.errorCode` RepairRefusal.CodeFor derives from it, on the
-	* payload of a result whose `CommandResult.success` is false, because the enum
-	* deliberately collapses distinctions this vocabulary keeps: a part that does
-	* not resolve and a crew member who does not are both
-	* `CommandErrorCode.NotFound`, and only this says which.
-	*/
-	refusal?: string | null;
 	/**
 	* Kits consumed. Kerbalism charges two for a critical failure and one
 	* otherwise.
@@ -6862,9 +6572,18 @@ export interface GateVerdict
 	* Named by the EVALUATOR, because only the evaluator knows which authority it
 	* asked: a full pad and an un-upgraded Tracking Station are both a gate saying
 	* no, and they are not the same refusal. `CommandErrorCode.ModeUnavailable` is
-	* the default for an evaluator that says nothing.
+	* what GateVerdict.Fail names for an evaluator that says nothing more. Null on
+	* every outcome but a Fail.
+	*
+	* On the wire the root's id, with a refinement's own id beside it as
+	* `GateVerdict.reason`, exactly as on `CommandResult`.
 	*/
-	errorCode: CommandErrorCode;
+	errorCode?: CommandErrorCode;
+	/**
+	* The refinement's id when `GateVerdict.errorCode` is more specific than its
+	* root; absent otherwise.
+	*/
+	reason?: string;
 	/**
 	* Set only for a numeric `GateOutcome.Fail`. Null is the shape a client keys
 	* on: an Abstain or an Unknown has nothing to compare, so it must not arrive

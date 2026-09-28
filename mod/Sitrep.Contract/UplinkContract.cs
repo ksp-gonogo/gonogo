@@ -522,11 +522,24 @@ namespace Sitrep.Contract
         /// <para>Named by the EVALUATOR, because only the evaluator knows which
         /// authority it asked: a full pad and an un-upgraded Tracking Station
         /// are both a gate saying no, and they are not the same refusal.
-        /// <see cref="CommandErrorCode.ModeUnavailable"/> is the default for an
-        /// evaluator that says nothing.</para>
+        /// <see cref="CommandErrorCode.ModeUnavailable"/> is what
+        /// <see cref="Fail(string)"/> names for an evaluator that says nothing
+        /// more. Null on every outcome but a Fail.</para>
+        ///
+        /// <para>On the wire the root's id, with a refinement's own id beside it
+        /// as <see cref="Reason"/>, exactly as on <see cref="CommandResult"/>.</para>
         /// </summary>
+#if SITREP_CODEGEN
+        [TsProperty(Type = "CommandErrorCode", ForceNullable = true)]
+#endif
         [SitrepUnit(Units.Enumeration)]
-        public CommandErrorCode ErrorCode { get; set; } = CommandErrorCode.ModeUnavailable;
+        [SitrepOmittedWhenNull]
+        public RefusalCode? ErrorCode { get; set; }
+
+        /// <summary>The refinement's id when <see cref="ErrorCode"/> is more specific than its root; absent otherwise.</summary>
+        [SitrepUnit(Units.Id)]
+        [SitrepOmittedWhenNull]
+        public string? Reason => ErrorCode is { IsRoot: false } ? ErrorCode.Id : null;
 
         /// <summary>
         /// Set only for a numeric <see cref="GateOutcome.Fail"/>. Null is the
@@ -549,13 +562,15 @@ namespace Sitrep.Contract
         public static GateVerdict Fail(LimitBreach breach) =>
             Fail(CommandErrorCode.LimitReached, breach);
 
-        public static GateVerdict Fail(CommandErrorCode errorCode, LimitBreach breach) =>
+        /// <summary>A refusal that carries its comparison.</summary>
+        public static GateVerdict Fail(RefusalCode errorCode, LimitBreach breach) =>
             new GateVerdict { Outcome = GateOutcome.Fail, ErrorCode = errorCode, Breach = breach };
 
         public static GateVerdict Fail(string detail) =>
             Fail(CommandErrorCode.ModeUnavailable, detail);
 
-        public static GateVerdict Fail(CommandErrorCode errorCode, string detail) =>
+        /// <summary>A refusal that names its cause in prose.</summary>
+        public static GateVerdict Fail(RefusalCode errorCode, string detail) =>
             new GateVerdict { Outcome = GateOutcome.Fail, ErrorCode = errorCode, Detail = detail ?? "" };
 
         public static GateVerdict Unknown(string detail) =>
@@ -692,6 +707,19 @@ namespace Sitrep.Contract
 
         /// <summary>Every command this Uplink handles.</summary>
         public IReadOnlyList<CommandDeclaration> Commands { get; set; } = Array.Empty<CommandDeclaration>();
+
+        /// <summary>
+        /// Every refusal refinement this Uplink's commands may answer with, read
+        /// off its holder class by <see cref="ErrorCodeCatalog.Of"/> so nothing
+        /// is listed twice.
+        ///
+        /// <para>Each id must begin with this Uplink's <see cref="Id"/>. The host
+        /// drops the whole set when one does not, and a result naming a
+        /// refinement missing from it is sent as that refinement's root. Emitted
+        /// on <c>system.uplinks</c> with each code's sentence, so a client that
+        /// never loaded this Uplink's bundle can still say it.</para>
+        /// </summary>
+        public IReadOnlyList<RefusalCode> ErrorCodes { get; set; } = Array.Empty<RefusalCode>();
     }
 
     /// <summary>

@@ -667,8 +667,7 @@ describe("CommandButton: the blocked phase", () => {
   function blockedGate(over: Record<string, unknown> = {}) {
     return {
       blocked: true,
-      // CommandErrorCode.SiteOccupied
-      errorCode: 17,
+      errorCode: CommandErrorCode.SiteOccupied,
       detail: "Launch Pad is occupied",
       ...over,
     };
@@ -741,7 +740,7 @@ describe("CommandButton: the blocked phase", () => {
         handle={makeHandle(() => Promise.resolve(OK), {
           gate: blockedGate({
             // CommandErrorCode.LimitReached
-            errorCode: 8,
+            errorCode: CommandErrorCode.LimitReached,
             detail: "",
             breach: {
               facility: "AstronautComplex",
@@ -823,7 +822,7 @@ describe("CommandButton: the blocked phase", () => {
     rerender(
       <CommandButton
         handle={makeHandle(send, {
-          gate: { blocked: false, errorCode: 0 },
+          gate: { blocked: false, errorCode: CommandErrorCode.ModeUnavailable },
         })}
         label="Launch"
       />,
@@ -885,7 +884,7 @@ describe("CommandButton: the blocked phase", () => {
             blocked: false,
             undetermined: true,
             command: "career.tech.unlock",
-            errorCode: 1,
+            errorCode: CommandErrorCode.ModeUnavailable,
             detail: "the facilities scenario is not loaded",
           },
         })}
@@ -1057,7 +1056,7 @@ describe("CommandButton warning text", () => {
         handle={makeHandle(() => Promise.resolve(OK), {
           gate: {
             blocked: true,
-            errorCode: 17,
+            errorCode: CommandErrorCode.NoConnection,
             detail: "Launch Pad is occupied",
           },
         })}

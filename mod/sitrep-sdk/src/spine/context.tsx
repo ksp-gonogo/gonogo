@@ -10,14 +10,15 @@ import {
 } from "react";
 import type {
   CareerContract,
-  CommandErrorCode,
   SystemBodies,
   VesselIdentity,
   VesselOrbit,
   VesselTarget,
   WarpState,
 } from "../__generated__/contract";
+import type { CommandErrorCode } from "../__generated__/error-codes";
 import { COMMAND_REFUSED } from "../api/command-rejection";
+import { noteRosterErrorCodes } from "../api/error-codes";
 import { magnitudeOf } from "../magnitude";
 import type { TopicReading } from "../reading";
 import { topicReading } from "../reading";
@@ -290,9 +291,14 @@ export function TelemetryProvider({
   /*
    * The store decides every declared topic's lane from the roles block on
    * `system.uplinks`, so the roster is held for the provider's life rather than
-   * only while something happens to be drawing Uplink health.
+   * only while something happens to be drawing Uplink health. The same roster
+   * lists every Uplink's refusal refinements, which is how a refusal from an
+   * Uplink whose bundle never loaded still reads as a sentence.
    */
-  useEffect(() => client.subscribe("system.uplinks", () => {}), [client]);
+  useEffect(
+    () => client.subscribe("system.uplinks", noteRosterErrorCodes),
+    [client],
+  );
   /*
    * Staleness is inferred from keyframe cadence, and under warp the mod floors
    * that cadence in real time: the gap a client must allow is published on
@@ -1139,6 +1145,8 @@ export interface DispatchCommandRefusal {
    * that names the subject it refused.
    */
   errorCode?: CommandErrorCode;
+  /** The refinement's id, when the refusal was more specific than `errorCode`. */
+  reason?: string;
   /**
    * The mod's own words about this refusal, when it quoted the game. `message`
    * is synthesised from the code and names the command, so it reads the same
@@ -1167,6 +1175,7 @@ function describeDispatchRejection(error: unknown): DispatchCommandRefusal {
       code?: unknown;
       message?: unknown;
       errorCode?: unknown;
+      reason?: unknown;
       detail?: unknown;
     };
     return {
@@ -1176,9 +1185,11 @@ function describeDispatchRejection(error: unknown): DispatchCommandRefusal {
           ? candidate.message
           : String(error),
       errorCode:
-        typeof candidate.errorCode === "number"
+        typeof candidate.errorCode === "string"
           ? (candidate.errorCode as CommandErrorCode)
           : undefined,
+      reason:
+        typeof candidate.reason === "string" ? candidate.reason : undefined,
       detail:
         typeof candidate.detail === "string" ? candidate.detail : undefined,
     };

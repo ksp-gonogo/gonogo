@@ -11,6 +11,7 @@ import {
 import type {
   InventoryAugment,
   InventoryContribution,
+  InventoryErrorCode,
   InventoryWidget,
   UplinkInventory,
 } from "../render-probe";
@@ -421,6 +422,32 @@ function contributionTable(inputs: DocsInputs): string[] {
   ];
 }
 
+/**
+ * The refusal refinements this Uplink answers with, each under the core code a
+ * client classifies it by. Absent when the Uplink declares none.
+ */
+function errorCodeTable(inputs: DocsInputs): string[] {
+  return errorCodeSection(inputs.inventory.errorCodes ?? []);
+}
+
+/** The "Error codes" section for a list of refinements, or nothing for none. */
+export function errorCodeSection(
+  codes: readonly InventoryErrorCode[],
+): string[] {
+  const rows = codes.map((code) => [
+    `\`${code.id}\``,
+    code.refines ? `\`${code.refines}\`` : "",
+    code.sentence,
+    code.meaning.replace(/\s+/g, " ").trim(),
+  ]);
+  if (rows.length === 0) return [];
+  return [
+    "## Error codes",
+    "",
+    ...table(["Code", "Refines", "Reads as", "Meaning"], rows),
+  ];
+}
+
 function modelTable(inputs: DocsInputs): string[] {
   const rows = [
     ...inputs.inventory.processors.map((id) => ["processor", `\`${id}\``]),
@@ -526,6 +553,7 @@ export function buildReadme(
   out.push(...augmentTable(inputs));
   out.push(...contributionTable(inputs));
   out.push(...modelTable(inputs));
+  out.push(...errorCodeTable(inputs));
 
   return `${out.join("\n").replace(/\n{3,}/g, "\n\n")}\n`;
 }

@@ -88,6 +88,11 @@ const OMITTED_WHEN_NULL = new Set([
   // JsonWriter.AppendCommandResult writes neither key on a success, rather than putting an empty refusal shape on every ack.
   "CommandResult.breach",
   "CommandResult.detail",
+  // JsonWriter.AppendRefusalCode writes errorCode only on a refusal, and reason only for a refinement.
+  "CommandResult.errorCode",
+  "CommandResult.reason",
+  "GateVerdict.errorCode",
+  "GateVerdict.reason",
   // EnvelopeCodec.WriteErrorMsg guards both on null: an error that names no request and no topic carries neither key.
   "ErrorMsg.requestId",
   "ErrorMsg.topic",

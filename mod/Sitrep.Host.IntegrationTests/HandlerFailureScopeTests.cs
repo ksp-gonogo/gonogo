@@ -34,7 +34,7 @@ namespace Sitrep.Host.IntegrationTests
                 command, args, "vantage-1",
                 r => { outcome.Resolved = true; outcome.Result = r; },
                 Timeout,
-                onRefused: reason => outcome.Refusal = reason);
+                onRefused: (_, reason) => outcome.Refusal = reason);
             return outcome;
         }
 
@@ -149,7 +149,7 @@ namespace Sitrep.Host.IntegrationTests
                     FlightOpsLikeUplink.DelayedSwitch, null, "vantage-1",
                     r => { thrown.Resolved = true; thrown.Result = r; },
                     Timeout,
-                    onRefused: reason => thrown.Refusal = reason);
+                    onRefused: (_, reason) => thrown.Refusal = reason);
                 engine.TickAndWait(20.0, null, Timeout);
 
                 Assert.False(thrown.Resolved);

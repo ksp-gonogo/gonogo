@@ -60,9 +60,9 @@ namespace Gonogo.KSP
         /// <see cref="PlanOwner.None"/> is a craft that cannot hold a plan, which
         /// has its own existing answer further down.
         /// </summary>
-        internal static Sitrep.Contract.CommandErrorCode? RefusalFor(PlanOwner owner) =>
+        internal static Sitrep.Contract.RefusalCode? RefusalFor(PlanOwner owner) =>
             owner == PlanOwner.Foreign
                 ? Sitrep.Contract.CommandErrorCode.PlanNotOwned
-                : (Sitrep.Contract.CommandErrorCode?)null;
+                : (Sitrep.Contract.RefusalCode?)null;
     }
 }

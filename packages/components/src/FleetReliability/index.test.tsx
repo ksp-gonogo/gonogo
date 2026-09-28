@@ -464,11 +464,12 @@ describe("a refused repair is refused on screen", () => {
 
   it("lands in the refused phase, not back at rest", async () => {
     const { fixture } = renderAugment("v-active");
-    // A failure code, with the finer token still on the payload.
+    // The root, with the finer refusal beside it.
     fixture.transport.setCommandHandler(() => ({
       success: false,
-      errorCode: 16, // CommandErrorCode.CapabilityMismatch
-      payload: { repaired: false, refusal: "crew-not-qualified" },
+      errorCode: "capabilityMismatch",
+      reason: "repair.crewNotQualified",
+      payload: null,
     }));
     arm(fixture);
 
@@ -482,7 +483,6 @@ describe("a refused repair is refused on screen", () => {
     const { fixture } = renderAugment("v-active");
     fixture.transport.setCommandHandler(() => ({
       success: true,
-      errorCode: 0,
       payload: { repaired: true, kitsUsed: 1, kitsFrom: "carried" },
     }));
     arm(fixture);
@@ -498,8 +498,7 @@ describe("a refused repair is refused on screen", () => {
     const { fixture } = renderAugment("v-active");
     fixture.transport.setCommandHandler(() => ({
       success: true,
-      errorCode: 0,
-      payload: { repaired: false, refusal: "crew-not-qualified" },
+      payload: { repaired: false, kitsUsed: 0, kitsFrom: null },
     }));
     arm(fixture);
 

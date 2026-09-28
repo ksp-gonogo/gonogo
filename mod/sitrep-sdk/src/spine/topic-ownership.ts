@@ -143,7 +143,7 @@ export class TopicOwnershipTracker {
   }
 
   /**
-   * The mod REFUSED `topic` outright, with an `unknown-topic` error frame.
+   * The mod REFUSED `topic` outright, with an `unknownTopic` error frame.
    * Settles it unowned now rather than waiting out the ack window.
    *
    * The window exists because silence was the only answer an undeclared topic

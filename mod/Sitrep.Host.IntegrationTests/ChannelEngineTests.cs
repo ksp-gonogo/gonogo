@@ -924,7 +924,7 @@ namespace Sitrep.Host.IntegrationTests
                     g => (string?)g["command"] == GateSampleProbeUplink.GatedCommand);
                 var verdict = Assert.IsType<Dictionary<string, object?>>(entry["verdict"]);
                 Assert.Equal((double)(int)GateOutcome.Fail, verdict["outcome"]);
-                Assert.Equal((double)(int)CommandErrorCode.SiteOccupied, verdict["errorCode"]);
+                Assert.Equal(CommandErrorCode.SiteOccupied.Id, verdict["errorCode"]);
                 Assert.Equal(GateSampleProbeUplink.RefusalDetail, verdict["detail"]);
 
                 // The ungated command the same uplink declares is not on the
@@ -1051,8 +1051,8 @@ namespace Sitrep.Host.IntegrationTests
         /// (the exact shape of a game paused long enough that even Update stops,
         /// or a scene-load stall), an instant command must NOT block the Courier
         /// thread indefinitely: the bounded wait expires and the command
-        /// resolves with a synthetic <see cref="CommandErrorCode.Timeout"/>
-        /// failure instead of parking the single-drain Courier forever. Uses a
+        /// answers with <see cref="FaultCode.MainThreadTimeout"/> instead of
+        /// parking the single-drain Courier forever. Uses a
         /// short timeout so the test is fast; the production default is seconds.
         /// </summary>
         [Fact]
@@ -1066,21 +1066,25 @@ namespace Sitrep.Host.IntegrationTests
             engine.Start();
             try
             {
-                using var resolved = new ManualResetEventSlim(false);
-                object? captured = null;
                 // No pump is started: RunPendingCommands is never called, so the
                 // marshaled command can only complete via the timeout backstop.
-                engine.DispatchCommand(MainThreadProbeUplink.Command, null, "vantage-1", r =>
+                // Twice, because a fault leaves the command available: the second
+                // dispatch times out too, rather than being refused as unavailable.
+                for (var attempt = 0; attempt < 2; attempt++)
                 {
-                    captured = r;
-                    resolved.Set();
-                });
+                    using var resolved = new ManualResetEventSlim(false);
+                    FaultCode? fault = null;
+                    engine.DispatchCommand(MainThreadProbeUplink.Command, null, "vantage-1", _ => resolved.Set(),
+                        onRefused: (code, _) =>
+                        {
+                            fault = code;
+                            resolved.Set();
+                        });
 
-                Assert.True(resolved.Wait(Timeout),
-                    "with no main-thread pump, the command must still resolve (via the timeout) rather than parking the Courier thread");
-                var result = Assert.IsType<CommandResult>(captured);
-                Assert.False(result.Success);
-                Assert.Equal(CommandErrorCode.Timeout, result.ErrorCode);
+                    Assert.True(resolved.Wait(Timeout),
+                        "with no main-thread pump, the command must still resolve (via the timeout) rather than parking the Courier thread");
+                    Assert.Equal(FaultCode.MainThreadTimeout, fault);
+                }
             }
             finally
             {
@@ -1090,7 +1094,7 @@ namespace Sitrep.Host.IntegrationTests
 
         /// <summary>
         /// F3 (F2-fix residual): once a command's bounded wait has timed out and
-        /// reported <see cref="CommandErrorCode.Timeout"/> to the caller, a pump
+        /// reported <see cref="FaultCode.MainThreadTimeout"/> to the caller, a pump
         /// that resumes LATER must DROP the abandoned job, it must NOT run the
         /// handler. Otherwise the side effect (staging, a maneuver node) applies
         /// seconds after the caller was already told it failed. Proven by a
@@ -1111,18 +1115,18 @@ namespace Sitrep.Host.IntegrationTests
             try
             {
                 using var resolved = new ManualResetEventSlim(false);
-                object? captured = null;
+                FaultCode? fault = null;
                 // No pump running: the command can only complete via the timeout
                 // backstop, which abandons the job.
-                engine.DispatchCommand(SideEffectProbeUplink.Command, null, "vantage-1", r =>
-                {
-                    captured = r;
-                    resolved.Set();
-                });
+                engine.DispatchCommand(SideEffectProbeUplink.Command, null, "vantage-1", _ => resolved.Set(),
+                    onRefused: (code, _) =>
+                    {
+                        fault = code;
+                        resolved.Set();
+                    });
 
                 Assert.True(resolved.Wait(Timeout), "the command must resolve via the timeout backstop");
-                var result = Assert.IsType<CommandResult>(captured);
-                Assert.Equal(CommandErrorCode.Timeout, result.ErrorCode);
+                Assert.Equal(FaultCode.MainThreadTimeout, fault);
 
                 // The pump resumes only NOW (e.g. the scene finished loading).
                 // The abandoned job must be dropped, not run.
@@ -1562,7 +1566,7 @@ namespace Sitrep.Host.IntegrationTests
                 // reading as success.
                 var error = await ReceiveTypedAsync<ErrorMsg>(client, Timeout);
                 Assert.Equal("r1", error.RequestId);
-                Assert.Equal("invalid-envelope", error.Code);
+                Assert.Equal(FaultCode.InvalidEnvelope, error.Code);
                 Assert.Contains(CrashyCommandTestUplink.Command, error.Message);
                 Assert.True(engine.AvailabilityOf(CrashyCommandTestUplink.UplinkId).IsAvailable);
 
@@ -1609,7 +1613,7 @@ namespace Sitrep.Host.IntegrationTests
 
                 var error = await ReceiveTypedAsync<ErrorMsg>(client, Timeout);
                 Assert.Equal("r-structured", error.RequestId);
-                Assert.Equal("invalid-envelope", error.Code);
+                Assert.Equal(FaultCode.InvalidEnvelope, error.Code);
                 Assert.Contains(ScalarArgCommandTestUplink.Command, error.Message);
                 Assert.True(engine.AvailabilityOf(ScalarArgCommandTestUplink.UplinkId).IsAvailable);
             }
@@ -1870,7 +1874,7 @@ namespace Sitrep.Host.IntegrationTests
                 // tick: the availability gate below stops the channel from
                 // being considered again.
                 var error = await ReceiveTypedAsync<ErrorMsg>(client, Timeout);
-                Assert.Equal("payload-serialization-error", error.Code);
+                Assert.Equal(FaultCode.PayloadSerializationError, error.Code);
                 Assert.Equal(PoisonPayloadTestUplink.Topic, error.Topic);
                 await client.AssertNoMessageArrivesAsync(TimeSpan.FromMilliseconds(300));
 
@@ -2096,7 +2100,7 @@ namespace Sitrep.Host.IntegrationTests
                     MessageGetterThrowsCommandTestUplink.Command, null, "vantage-1",
                     _ => resolved = true,
                     TestBudgets.Op,
-                    onRefused: reason => refusal = reason);
+                    onRefused: (_, reason) => refusal = reason);
 
                 // The guard must attribute the failure and still answer the
                 // caller, despite the poisoned Message getter.
@@ -2109,7 +2113,7 @@ namespace Sitrep.Host.IntegrationTests
                     MessageGetterThrowsCommandTestUplink.Command, null, "vantage-1",
                     _ => { },
                     TestBudgets.Op,
-                    onRefused: reason => again = reason);
+                    onRefused: (_, reason) => again = reason);
                 Assert.NotNull(again);
                 Assert.Contains("for the rest of this session", again);
             }

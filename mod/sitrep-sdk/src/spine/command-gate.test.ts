@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { CommandGateReport } from "../__generated__/contract";
-import { CommandErrorCode, GateOutcome } from "../__generated__/contract";
+import { GateOutcome } from "../__generated__/contract";
+import { CommandErrorCode } from "../__generated__/error-codes";
 import { selectCommandGate } from "./command-gate";
 
 function report(

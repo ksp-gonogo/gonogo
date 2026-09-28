@@ -12,11 +12,11 @@ describe("the channel-error warning", () => {
   it("names the topic, the code and what the author has to change", () => {
     const message = channelErrorMessage(
       "burn.plan",
-      "payload-serialization-error",
+      "payloadSerializationError",
       'channel "burn.plan" payload of type Acme.BurnPlan could not be serialized: unsupported CLR value type Acme.BurnPlan',
     );
     expect(message).toContain('"burn.plan"');
-    expect(message).toContain("payload-serialization-error");
+    expect(message).toContain("payloadSerializationError");
     expect(message).toContain("Acme.BurnPlan");
     expect(message).toContain("Dictionary<string, object?>");
   });
@@ -43,7 +43,7 @@ describe("the channel-error warning", () => {
     transport.emitRaw({
       type: "error",
       topic: "burn.plan",
-      code: "payload-serialization-error",
+      code: "payloadSerializationError",
       message:
         "could not be serialized: unsupported CLR value type Acme.BurnPlan",
     });
@@ -67,7 +67,7 @@ describe("the channel-error warning", () => {
       transport.emitRaw({
         type: "error",
         topic: "burn.plan",
-        code: "payload-serialization-error",
+        code: "payloadSerializationError",
         message: "could not be serialized",
       });
     }
@@ -93,7 +93,7 @@ describe("the channel-error warning", () => {
       type: "error",
       requestId: "req-1",
       topic: "burn.execute",
-      code: "E_UNAVAILABLE",
+      code: "commandUnavailable",
       message: "uplink is unavailable",
     });
 

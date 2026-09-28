@@ -293,9 +293,9 @@ namespace Sitrep.Core.Tests
             });
 
             SerializeThroughWire(
-                RepairRefusal.ResultFor(new RepairOutcome { Repaired = true, KitsUsed = 1, KitsFrom = "carried" }));
+                CommandResult<RepairOutcome>.Ok(new RepairOutcome { Repaired = true, KitsUsed = 1, KitsFrom = "carried" }));
             SerializeThroughWire(
-                RepairRefusal.ResultFor(new RepairOutcome { Repaired = false, Refusal = RepairRefusal.NoKits }));
+                CommandResult<RepairOutcome>.Fail(RepairRefusal.NoKits));
             SerializeThroughWire(
                 CommandResult<ScienceTransmission>.Ok(new ScienceTransmission { SubjectId = "crewReport@KerbinSrfLandedShores", StartedAt = 1000, StreamSeconds = 1.05, DataAmount = 5 }));
         }

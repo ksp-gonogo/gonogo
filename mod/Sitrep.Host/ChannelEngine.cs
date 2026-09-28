@@ -1219,6 +1219,17 @@ namespace Sitrep.Host
         private readonly Dictionary<string, string> _channelOwner = new Dictionary<string, string>();
         private readonly Dictionary<string, string> _commandOwner = new Dictionary<string, string>();
 
+        /// <summary>
+        /// The refusal refinements each registered Uplink declared and was
+        /// allowed, by Uplink id, and every accepted refinement's owner by code
+        /// id so no two Uplinks share one.
+        /// </summary>
+        private readonly Dictionary<string, List<RefusalCode>> _uplinkErrorCodes = new Dictionary<string, List<RefusalCode>>();
+        private readonly Dictionary<string, string> _refinementOwner = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        /// <summary>Refinements already reported as undeclared, so each is logged once rather than on every result.</summary>
+        private readonly HashSet<string> _undeclaredRefinementsLogged = new HashSet<string>(StringComparer.Ordinal);
+
         // topic -> "this channel has emitted at least one non-null value" --
         // the M2 finding-B fix's channel-birth guard (see ProcessTick's
         // channel loop). A channel that has never been "born" produces no
@@ -1737,6 +1748,7 @@ namespace Sitrep.Host
                 _commandDeclarations[command.Command] = command;
                 _commandOwner[command.Command] = id;
             }
+            AcceptErrorCodes(id, uplink.Manifest.ErrorCodes);
 
             _currentRegisteringUplinkId = id;
             try
@@ -1795,6 +1807,90 @@ namespace Sitrep.Host
         private static string? Blank(string value) =>
             string.IsNullOrEmpty(value) ? null : value;
 
+        /// <summary>
+        /// Takes an Uplink's declared refinements, or none of them: a code that
+        /// is a root, that is not under the Uplink's own id, or that another
+        /// Uplink or core already declared drops the whole set with one log line,
+        /// and the Uplink's refusals then travel as their roots.
+        /// </summary>
+        private void AcceptErrorCodes(string uplinkId, IReadOnlyList<RefusalCode>? codes)
+        {
+            if (codes == null || codes.Count == 0) return;
+            var accepted = new List<RefusalCode>();
+            foreach (var code in codes)
+            {
+                var problem = ErrorCodeProblem(uplinkId, code, accepted);
+                if (problem != null)
+                {
+                    LogHost("uplink \"" + uplinkId + "\" declares no error codes: " + problem);
+                    return;
+                }
+                accepted.Add(code);
+            }
+            foreach (var code in accepted) _refinementOwner[code.Id] = uplinkId;
+            _uplinkErrorCodes[uplinkId] = accepted;
+        }
+
+        private string? ErrorCodeProblem(string uplinkId, RefusalCode? code, List<RefusalCode> accepted)
+        {
+            if (code is null) return "a declared code is null";
+            if (code.IsRoot) return "\"" + code.Id + "\" is a root, and only core declares roots";
+            if (!string.Equals(code.Owner, uplinkId, StringComparison.Ordinal))
+            {
+                return "\"" + code.Id + "\" is not under the Uplink's own id \"" + uplinkId + ".\"";
+            }
+            if (CommandErrorCode.Find(code.Id) != null) return "\"" + code.Id + "\" is already a core code";
+            if (_refinementOwner.TryGetValue(code.Id, out var owner) && owner != uplinkId)
+            {
+                return "\"" + code.Id + "\" is already declared by \"" + owner + "\"";
+            }
+            foreach (var earlier in accepted)
+            {
+                if (earlier.Id == code.Id) return "\"" + code.Id + "\" is declared twice";
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// A result carrying a refinement its command's Uplink never declared is
+        /// sent as the refinement's root: the refusal still arrives, and only the
+        /// detail nobody declared is dropped.
+        /// </summary>
+        private object? GuardRefinement(string command, object? result)
+        {
+            if (result is not CommandResult refused || refused.ErrorCode is not { IsRoot: false } code) return result;
+            if (CommandErrorCode.Find(code.Id) != null) return result;
+            if (_commandOwner.TryGetValue(command, out var owner)
+                && _refinementOwner.TryGetValue(code.Id, out var declaredBy)
+                && declaredBy == owner)
+            {
+                return result;
+            }
+            if (_undeclaredRefinementsLogged.Add(code.Id))
+            {
+                LogHost("command \"" + command + "\" answered with \"" + code.Id + "\", which its Uplink does not declare; sent as \"" + code.Root.Id + "\"");
+            }
+            refused.ErrorCode = code.Root;
+            return result;
+        }
+
+        /// <summary>An Uplink's accepted refinements as the roster carries them: <c>[{ id, refines, sentence }]</c>.</summary>
+        private List<object?> ErrorCodesPayload(string uplinkId)
+        {
+            var entries = new List<object?>();
+            if (!_uplinkErrorCodes.TryGetValue(uplinkId, out var codes)) return entries;
+            foreach (var code in codes)
+            {
+                entries.Add(new Dictionary<string, object?>
+                {
+                    ["id"] = code.Id,
+                    ["refines"] = code.Root.Id,
+                    ["sentence"] = code.Sentence,
+                });
+            }
+            return entries;
+        }
+
         private object? BuildSystemUplinksPayload(KspSnapshot? snapshot)
         {
             var entries = new List<object?>();
@@ -1837,6 +1933,7 @@ namespace Sitrep.Host
                     ["contractMinor"] = declared.HasValue ? (int?)declared.Value.Minor : null,
                     ["health"] = BuildUplinkHealthPayload(uplink, availability),
                     ["ownedPrefixes"] = ComputeOwnedPrefixes(id),
+                    ["errorCodes"] = ErrorCodesPayload(id),
                 });
             }
 
@@ -2802,7 +2899,7 @@ namespace Sitrep.Host
             {
                 var error = new ErrorMsg
                 {
-                    Code = "unknown-vantage",
+                    Code = FaultCode.UnknownVantage,
                     Message = $"'{sv.CentreId}' is not an active command centre",
                 };
                 session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteErrorMsg(error)));
@@ -3959,7 +4056,7 @@ namespace Sitrep.Host
         {
             if (result is HandlerFault fault)
             {
-                job.OnRefused?.Invoke(fault.Reason);
+                job.OnRefused?.Invoke(fault.Code, fault.Reason);
             }
             else
             {
@@ -4310,7 +4407,7 @@ namespace Sitrep.Host
         {
             if (!IsCommandAvailable(command))
             {
-                return new HandlerFault(RefusalReason(command));
+                return new HandlerFault(FaultCode.CommandUnavailable, RefusalReason(command));
             }
 
             // A vantage-aware handler is tried first, and the two stores are
@@ -4320,13 +4417,17 @@ namespace Sitrep.Host
             {
                 try
                 {
-                    return _executeCommandsOnMainThread
+                    return GuardRefinement(command, _executeCommandsOnMainThread
                         ? RunOnMainThread(a => vantageHandler(a, vantage), args)
-                        : vantageHandler(args, vantage);
+                        : vantageHandler(args, vantage));
+                }
+                catch (CommandFaultException fault)
+                {
+                    return new HandlerFault(fault.Code, fault.Message);
                 }
                 catch (Exception ex)
                 {
-                    return new HandlerFault(FailSoftCommand(command, "its handler threw", ex));
+                    return new HandlerFault(FaultCode.CommandUnavailable, FailSoftCommand(command, "its handler threw", ex));
                 }
             }
 
@@ -4341,13 +4442,17 @@ namespace Sitrep.Host
                 // else inline on the Courier thread (headless). A marshaled
                 // throw is captured on the main thread and re-surfaced here by
                 // RunOnMainThread, so both are handled identically.
-                return _executeCommandsOnMainThread
+                return GuardRefinement(command, _executeCommandsOnMainThread
                     ? RunOnMainThread(handler, args)
-                    : handler(args);
+                    : handler(args));
+            }
+            catch (CommandFaultException fault)
+            {
+                return new HandlerFault(fault.Code, fault.Message);
             }
             catch (Exception ex)
             {
-                return new HandlerFault(FailSoftCommand(command, "its handler threw", ex));
+                return new HandlerFault(FaultCode.CommandUnavailable, FailSoftCommand(command, "its handler threw", ex));
             }
         }
 
@@ -4436,11 +4541,13 @@ namespace Sitrep.Host
             // pumping. On expiry we abandon the job (the pump may still run it
             // later: MainThreadCommand.Done is intentionally NOT disposed on
             // this path so that late Set() can't throw ObjectDisposedException)
-            // and return a synthetic Timeout failure so the Courier resumes.
+            // and answer with a fault, since nothing was decided, so the Courier
+            // resumes and the command stays available.
             if (!job.Done.Wait(_mainThreadCommandTimeout))
             {
                 job.Abandoned = true;
-                return CommandResult.Fail(CommandErrorCode.Timeout);
+                throw new CommandFaultException(
+                    FaultCode.MainThreadTimeout, "the game's main thread did not run the command within " + _mainThreadCommandTimeout.TotalSeconds + "s");
             }
 
             try
@@ -4666,7 +4773,7 @@ namespace Sitrep.Host
                 : "unknown binary lane 0x" + lane.ToString("X2") + "; this build accepts no inbound binary frames";
             var error = new ErrorMsg
             {
-                Code = "binary-frame-not-accepted",
+                Code = FaultCode.BinaryFrameNotAccepted,
                 Message = message,
             };
             try
@@ -4702,7 +4809,7 @@ namespace Sitrep.Host
             var error = new ErrorMsg
             {
                 RequestId = ex.RequestId,
-                Code = "invalid-envelope",
+                Code = FaultCode.InvalidEnvelope,
                 Message = $"{ex.EnvelopeType} envelope could not be read: {ex.Detail}",
             };
             try
@@ -4711,7 +4818,7 @@ namespace Sitrep.Host
             }
             catch (Exception publishEx)
             {
-                LogHost("could not deliver the invalid-envelope refusal: " + SafeExceptionMessage(publishEx));
+                LogHost("could not deliver the invalidEnvelope refusal: " + SafeExceptionMessage(publishEx));
             }
         }
 
@@ -4732,7 +4839,7 @@ namespace Sitrep.Host
             {
                 RequestId = ex.RequestId,
                 Topic = ex.Topic,
-                Code = "unknown-envelope-type",
+                Code = FaultCode.UnknownEnvelopeType,
                 Message = $"this build does not recognise type '{ex.EnvelopeType}'",
             });
         }
@@ -4748,7 +4855,7 @@ namespace Sitrep.Host
             {
                 RequestId = StringPropertyOf(msg, "RequestId"),
                 Topic = StringPropertyOf(msg, "Topic"),
-                Code = "unhandled-envelope",
+                Code = FaultCode.UnhandledEnvelope,
                 Message = $"this build parsed a {msg.GetType().Name} and has nothing to do with it",
             });
         }
@@ -4774,7 +4881,7 @@ namespace Sitrep.Host
             var error = new ErrorMsg
             {
                 Topic = topic,
-                Code = "payload-serialization-error",
+                Code = FaultCode.PayloadSerializationError,
                 Message = $"channel \"{topic}\" payload of type {clrType} could not be serialized: {SafeExceptionMessage(ex)}",
             };
             try
@@ -4821,7 +4928,7 @@ namespace Sitrep.Host
             var error = new ErrorMsg
             {
                 Topic = topic,
-                Code = "unknown-topic",
+                Code = FaultCode.UnknownTopic,
                 Message = message,
             };
             try
@@ -4830,7 +4937,7 @@ namespace Sitrep.Host
             }
             catch (Exception publishEx)
             {
-                LogHost("could not deliver the unknown-topic error for \"" + topic + "\": " + SafeExceptionMessage(publishEx));
+                LogHost("could not deliver the unknownTopic error for \"" + topic + "\": " + SafeExceptionMessage(publishEx));
             }
         }
 
@@ -5241,7 +5348,7 @@ namespace Sitrep.Host
         /// resolving only once <see cref="Tick"/> advances the clock far enough.
         /// See <see cref="ResolveCommandDelay"/> for where the answer comes from.
         /// </summary>
-        public void DispatchCommand(string command, object? args, string vantage, Action<object?> onResult, string label = "", string topic = "", Action<string>? onRefused = null, Action<double>? onAccepted = null, Action<string>? onMalformed = null) =>
+        public void DispatchCommand(string command, object? args, string vantage, Action<object?> onResult, string label = "", string topic = "", Action<FaultCode, string>? onRefused = null, Action<double>? onAccepted = null, Action<string>? onMalformed = null) =>
             EnqueueJob(new DispatchCommandJob(command, args, vantage, onResult, null, label, topic, onRefused, onAccepted, onMalformed));
 
         /// <summary>
@@ -5251,7 +5358,7 @@ namespace Sitrep.Host
         /// <see cref="TimeoutException"/> when the dispatch is not processed within
         /// <paramref name="timeout"/>.
         /// </summary>
-        internal void DispatchCommandAndWait(string command, object? args, string vantage, Action<object?> onResult, TimeSpan timeout, string label = "", string topic = "", Action<string>? onRefused = null, Action<double>? onAccepted = null, Action<string>? onMalformed = null)
+        internal void DispatchCommandAndWait(string command, object? args, string vantage, Action<object?> onResult, TimeSpan timeout, string label = "", string topic = "", Action<FaultCode, string>? onRefused = null, Action<double>? onAccepted = null, Action<string>? onMalformed = null)
         {
             var barrier = new ManualResetEventSlim(false);
             EnqueueJob(new DispatchCommandJob(command, args, vantage, onResult, barrier, label, topic, onRefused, onAccepted, onMalformed));
@@ -6917,7 +7024,7 @@ namespace Sitrep.Host
                 || (!_commandHandlers.ContainsKey(job.Command)
                     && !_vantageCommandHandlers.ContainsKey(job.Command)))
             {
-                job.OnRefused?.Invoke(RefusalReason(job.Command));
+                job.OnRefused?.Invoke(FaultCode.CommandUnavailable, RefusalReason(job.Command));
                 job.Done?.Set();
                 return;
             }
@@ -6925,7 +7032,8 @@ namespace Sitrep.Host
             var unbindable = UnbindableArgsReason(job.Command, job.Args);
             if (unbindable != null)
             {
-                (job.OnMalformed ?? job.OnRefused)?.Invoke(unbindable);
+                if (job.OnMalformed != null) job.OnMalformed(unbindable);
+                else job.OnRefused?.Invoke(FaultCode.InvalidEnvelope, unbindable);
                 job.Done?.Set();
                 return;
             }
@@ -6946,7 +7054,7 @@ namespace Sitrep.Host
                 // CommandResult, so the client lands in `refused` with the
                 // comparison attached.
                 //
-                // Deliberately NOT OnRefused, which emits an E_UNAVAILABLE error
+                // Deliberately NOT OnRefused, which emits a commandUnavailable error
                 // frame: that lands the client in `failed`, where
                 // classifyCommandRejection reports "the machinery broke, a retry
                 // may work". A limit breach is neither of those things. Nothing
@@ -6968,7 +7076,7 @@ namespace Sitrep.Host
                 // on: they are a bad declaration or unreadable live state, which
                 // IS the machinery-broke class, and the prose naming the cause is
                 // the whole value of them.
-                job.OnRefused?.Invoke(GateRefusalReason(job.Command, gate));
+                job.OnRefused?.Invoke(FaultCode.CommandUnavailable, GateRefusalReason(job.Command, gate));
                 job.Done?.Set();
                 return;
             }
@@ -7627,7 +7735,7 @@ namespace Sitrep.Host
                             var vantageError = new ErrorMsg
                             {
                                 RequestId = req.RequestId,
-                                Code = "unknown-vantage",
+                                Code = FaultCode.UnknownVantage,
                                 Message = $"'{req.Vantage}' is not an active command centre",
                             };
                             session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteErrorMsg(vantageError)));
@@ -7703,18 +7811,18 @@ namespace Sitrep.Host
                                 var error = new ErrorMsg
                                 {
                                     RequestId = req.RequestId,
-                                    Code = "result-serialization-error",
+                                    Code = FaultCode.ResultSerializationError,
                                     Message = FailSoftCommand(req.Command, "its result could not be serialized", ex),
                                 };
                                 session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteErrorMsg(error)));
                             }
-                        }, req.Label, req.Topic, onRefused: reason =>
+                        }, req.Label, req.Topic, onRefused: (code, reason) =>
                         {
                             // The dispatch never reached a handler (unknown
                             // command, or its uplink has fail-softed). An
                             // ErrorMsg rather than a CommandResponse carrying a
                             // failure, because no handler ran: the same category
-                            // as PeerTransport's E_PEER_DISCONNECTED, a dispatch
+                            // as PeerTransport's peerDisconnected, a dispatch
                             // that could not be carried. It lands the client in
                             // `failed` with a code, instead of `confirmed` with a
                             // refusal buried in a payload, and it cancels the
@@ -7723,7 +7831,7 @@ namespace Sitrep.Host
                             var error = new ErrorMsg
                             {
                                 RequestId = req.RequestId,
-                                Code = "E_UNAVAILABLE",
+                                Code = code,
                                 Message = reason,
                             };
                             session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteErrorMsg(error)));
@@ -7749,7 +7857,7 @@ namespace Sitrep.Host
                             var error = new ErrorMsg
                             {
                                 RequestId = req.RequestId,
-                                Code = "invalid-envelope",
+                                Code = FaultCode.InvalidEnvelope,
                                 Message = "command-request envelope could not be read: " + reason,
                             };
                             session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteErrorMsg(error)));
@@ -7999,7 +8107,13 @@ namespace Sitrep.Host
         /// </summary>
         private sealed class HandlerFault
         {
-            public HandlerFault(string reason) => Reason = reason;
+            public HandlerFault(FaultCode code, string reason)
+            {
+                Code = code;
+                Reason = reason;
+            }
+
+            public FaultCode Code { get; }
 
             public string Reason { get; }
         }
@@ -8020,7 +8134,7 @@ namespace Sitrep.Host
             /// because a client that gets neither a result nor a refusal has
             /// no way to tell the two apart from silence.
             /// </summary>
-            public readonly Action<string>? OnRefused;
+            public readonly Action<FaultCode, string>? OnRefused;
             /// <summary>
             /// Called when this dispatch is taken onto the DELAYED path,
             /// carrying the one-way light-time it will travel. Fires before any
@@ -8044,7 +8158,7 @@ namespace Sitrep.Host
             /// </summary>
             public readonly Action<string>? OnMalformed;
             public readonly ManualResetEventSlim? Done;
-            public DispatchCommandJob(string command, object? args, string vantage, Action<object?> onResult, ManualResetEventSlim? done, string label = "", string topic = "", Action<string>? onRefused = null, Action<double>? onAccepted = null, Action<string>? onMalformed = null)
+            public DispatchCommandJob(string command, object? args, string vantage, Action<object?> onResult, ManualResetEventSlim? done, string label = "", string topic = "", Action<FaultCode, string>? onRefused = null, Action<double>? onAccepted = null, Action<string>? onMalformed = null)
             {
                 OnMalformed = onMalformed;
                 Command = command;

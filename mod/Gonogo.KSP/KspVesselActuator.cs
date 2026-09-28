@@ -112,7 +112,7 @@ namespace Gonogo.KSP
         /// second provider and asserts all three commands refuse, and asserts
         /// they do NOT refuse with only the stock backend elected.</para>
         /// </summary>
-        private CommandErrorCode? PlanWriteRefusal() =>
+        private RefusalCode? PlanWriteRefusal() =>
             ManeuverPlanWriteRule.RefusalFor(_planOwner?.Invoke() ?? PlanOwner.None);
 
         /// <summary>
@@ -624,7 +624,7 @@ namespace Gonogo.KSP
             var refusal = PlanWriteRefusal();
             if (refusal != null)
             {
-                return CommandResult<string>.Fail(refusal.Value);
+                return CommandResult<string>.Fail(refusal);
             }
 
             var gate = ManeuverWriteRefusal(plans: true);
@@ -647,7 +647,7 @@ namespace Gonogo.KSP
             var refusal = PlanWriteRefusal();
             if (refusal != null)
             {
-                return CommandResult.Fail(refusal.Value);
+                return CommandResult.Fail(refusal);
             }
 
             var gate = ManeuverWriteRefusal(plans: true);
@@ -672,7 +672,7 @@ namespace Gonogo.KSP
             var refusal = PlanWriteRefusal();
             if (refusal != null)
             {
-                return CommandResult.Fail(refusal.Value);
+                return CommandResult.Fail(refusal);
             }
 
             var gate = ManeuverWriteRefusal(plans: false);

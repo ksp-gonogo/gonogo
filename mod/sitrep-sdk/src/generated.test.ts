@@ -57,11 +57,18 @@ describe("generated contract.ts", () => {
     );
   });
   it("emits the wire enums", () => {
-    expect(src).toMatch(/export enum CommandErrorCode \{/);
     expect(src).toMatch(/export enum VesselType \{/);
     expect(src).toMatch(/export enum Situation \{/);
     expect(src).toMatch(/export enum ControlState \{/);
   });
+});
+
+it("imports the error-code unions from their own generated file", () => {
+  // The error codes are string ids with a sentence each, so they are generated as const objects beside the contract rather than as enums inside it.
+  expect(src).toMatch(
+    /import \{ CommandErrorCode, FaultCode \} from '\.\/error-codes';/,
+  );
+  expect(src).not.toMatch(/export enum CommandErrorCode/);
 });
 
 // ── Declared units as TYPES ──────────────────────────────────────────────────

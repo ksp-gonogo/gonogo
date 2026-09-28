@@ -1,4 +1,4 @@
-import { CommandErrorCode } from "../__generated__/contract";
+import { CommandErrorCode } from "../__generated__/error-codes";
 import { commandRail } from "../commands";
 import { isValue } from "../unit-system/value";
 import type { ViewClockView } from "./context";

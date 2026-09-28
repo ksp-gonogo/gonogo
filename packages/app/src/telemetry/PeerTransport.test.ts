@@ -7,7 +7,7 @@ import { LOSS_MARGIN, TelemetryClient } from "@ksp-gonogo/sitrep-client";
 import type { Meta, ServerMessage } from "@ksp-gonogo/sitrep-sdk";
 import {
   COMMAND_LOST,
-  COMMAND_UNDELIVERED,
+  FaultCode,
   isValue,
   Quality,
   Staleness,
@@ -274,13 +274,13 @@ describe("PeerTransport", () => {
     const received: ServerMessage[] = [];
     transport.onMessage((m) => received.push(m));
 
-    client.emitCommandError("c0", "E_NO_CLIENT", "host has no live client");
+    client.emitCommandError("c0", "noClient", "host has no live client");
 
     expect(received).toEqual([
       {
         type: "error",
         requestId: "c0",
-        code: "E_NO_CLIENT",
+        code: "noClient",
         message: "host has no live client",
       },
     ]);
@@ -296,7 +296,7 @@ describe("PeerTransport", () => {
 
     client.emitCommandError(
       "c0",
-      COMMAND_UNDELIVERED,
+      FaultCode.Undelivered,
       "the link never came back",
     );
 
@@ -621,7 +621,7 @@ describe("PeerTransport", () => {
       {
         type: "error",
         requestId: "c9",
-        code: "E_PEER_DISCONNECTED",
+        code: "peerDisconnected",
         message: "no active peer connection to the host",
       },
     ]);
@@ -639,7 +639,7 @@ describe("PeerTransport", () => {
     // The peer link drops before any command-response/error arrives.
     client.emitStatus("disconnected");
 
-    await expect(result).rejects.toMatchObject({ code: "E_PEER_DISCONNECTED" });
+    await expect(result).rejects.toMatchObject({ code: "peerDisconnected" });
   });
 
   it("a dropped command that already settled via a real response is not double-settled by a later status drop", async () => {

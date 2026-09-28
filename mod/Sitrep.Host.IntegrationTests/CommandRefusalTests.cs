@@ -49,7 +49,7 @@ namespace Sitrep.Host.IntegrationTests
                     "nothing.registered.this", null, "vantage-1",
                     r => { resolved = true; result = r; },
                     Timeout,
-                    onRefused: reason => refusal = reason);
+                    onRefused: (_, reason) => refusal = reason);
 
                 Assert.False(resolved, "an unknown command has no handler, so it must never produce a RESULT");
                 Assert.Null(result);
@@ -78,7 +78,7 @@ namespace Sitrep.Host.IntegrationTests
                     RefusalTestUplink.Command, "x", "vantage-1",
                     _ => resolved = true,
                     Timeout,
-                    onRefused: reason => refusal = reason);
+                    onRefused: (_, reason) => refusal = reason);
 
                 Assert.False(resolved);
                 Assert.NotNull(refusal);
@@ -107,7 +107,7 @@ namespace Sitrep.Host.IntegrationTests
                     RefusalTestUplink.Command, "ping", "vantage-1",
                     r => result = r,
                     Timeout,
-                    onRefused: reason => refusal = reason);
+                    onRefused: (_, reason) => refusal = reason);
 
                 Assert.Null(refusal);
                 Assert.Equal("pong:ping", result);
@@ -119,7 +119,7 @@ namespace Sitrep.Host.IntegrationTests
         /// A DECIDED gate refusal is a refusal, not a breakage.
         ///
         /// <para>It used to leave through the same callback the unavailable-uplink
-        /// exit uses, which emits an <c>E_UNAVAILABLE</c> error frame. The client
+        /// exit uses, which emits an <c>commandUnavailable</c> error frame. The client
         /// put that in phase <c>failed</c> and <c>classifyCommandRejection</c>
         /// reported "the machinery broke, a retry may work". Nothing had broken,
         /// and no number of retries moves a limit.</para>
@@ -138,7 +138,7 @@ namespace Sitrep.Host.IntegrationTests
                     GatedTestUplink.Command, "x", "vantage-1",
                     r => result = r,
                     Timeout,
-                    onRefused: reason => refusal = reason);
+                    onRefused: (_, reason) => refusal = reason);
 
                 Assert.Null(refusal);
                 var commandResult = Assert.IsAssignableFrom<CommandResult>(result);
@@ -179,7 +179,7 @@ namespace Sitrep.Host.IntegrationTests
                     GatedTestUplink.Command, "x", "vantage-1",
                     r => result = r,
                     Timeout,
-                    onRefused: reason => refusal = reason);
+                    onRefused: (_, reason) => refusal = reason);
 
                 Assert.Null(result);
                 Assert.NotNull(refusal);
@@ -208,7 +208,7 @@ namespace Sitrep.Host.IntegrationTests
                     GatedTestUplink.Command, "x", "vantage-1",
                     r => result = r,
                     Timeout,
-                    onRefused: reason => refusal = reason);
+                    onRefused: (_, reason) => refusal = reason);
 
                 Assert.Null(result);
                 Assert.NotNull(refusal);
@@ -237,7 +237,7 @@ namespace Sitrep.Host.IntegrationTests
                     GatedTestUplink.Command, "x", "vantage-1",
                     r => result = r,
                     Timeout,
-                    onRefused: reason => refusal = reason);
+                    onRefused: (_, reason) => refusal = reason);
 
                 Assert.Null(result);
                 Assert.NotNull(refusal);
@@ -284,7 +284,7 @@ namespace Sitrep.Host.IntegrationTests
 
                 Assert.Equal("error", error.Type);
                 Assert.Equal("r-refused", error.RequestId);
-                Assert.Equal("E_UNAVAILABLE", error.Code);
+                Assert.Equal(FaultCode.CommandUnavailable, error.Code);
                 Assert.Contains(RefusalTestUplink.UplinkId, error.Message);
                 Assert.Contains("test harness assembly not loaded", error.Message);
 

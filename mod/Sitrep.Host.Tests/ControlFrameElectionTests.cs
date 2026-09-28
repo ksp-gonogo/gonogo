@@ -145,9 +145,9 @@ namespace Sitrep.Host.Tests
         {
             var kernel = Resolved(new FakeFrameSource("vanilla", Kerbin(), accepts: true));
 
-            var result = ControlFrameElection.Set(kernel, null);
+            var fault = Assert.Throws<CommandFaultException>(() => ControlFrameElection.Set(kernel, null));
 
-            Assert.False(result.Success);
+            Assert.Equal(FaultCode.InvalidEnvelope, fault.Code);
         }
 
         [Fact]

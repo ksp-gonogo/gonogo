@@ -1,5 +1,4 @@
 import {
-  CommandErrorCode,
   type CommandReply,
   railTagsForCommand,
   value,
@@ -29,7 +28,6 @@ type TransmitReply = CommandReply<"science.experiment.transmit">;
 
 const TRANSMITTED: TransmitReply = {
   success: true,
-  errorCode: CommandErrorCode.None,
   payload: {
     subjectId: "mysteryGoo@KerbinSrfLandedLaunchPad",
     title: "Mystery Goo Observation from LaunchPad",

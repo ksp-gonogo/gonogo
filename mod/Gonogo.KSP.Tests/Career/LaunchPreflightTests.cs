@@ -143,7 +143,7 @@ namespace Gonogo.KSP.Tests.Career
 
         private static LaunchCheck Check(
             bool passes,
-            CommandErrorCode code,
+            RefusalCode code,
             string description = "because",
             string title = "Cannot Launch") =>
             new LaunchCheck(new FakePreFlightTest(passes, title, description), code);

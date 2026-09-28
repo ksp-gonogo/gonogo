@@ -1,8 +1,5 @@
 import { dispatchActiveCommandTopic } from "@ksp-gonogo/sitrep-client";
-import {
-  COMMAND_UNDELIVERED,
-  classifyCommandRejection,
-} from "@ksp-gonogo/sitrep-sdk";
+import { classifyCommandRejection, FaultCode } from "@ksp-gonogo/sitrep-sdk";
 import type {
   CommandFailedEntry,
   CommandLossEntry,
@@ -115,7 +112,7 @@ function dispatchPlan(
         lost.push(dispatch);
         return;
       }
-      if (classified.code === COMMAND_UNDELIVERED) {
+      if (classified.code === FaultCode.Undelivered) {
         undelivered.push(dispatch);
         return;
       }

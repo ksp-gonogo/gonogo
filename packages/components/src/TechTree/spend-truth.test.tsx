@@ -104,7 +104,7 @@ describe("TechTree spend truth", () => {
             command: "career.tech.unlock",
             verdict: {
               outcome: 1,
-              errorCode: 3,
+              errorCode: "modeUnavailable",
               detail: "Use rp1.tech.research",
             },
           },

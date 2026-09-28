@@ -123,7 +123,7 @@ namespace Sitrep.Core.Tests
                     Meta = SampleMeta(),
                 }),
                 EnvelopeCodec.WriteEventMsg(new EventMsg { Topic = "vessel.flight", Name = "subscribed", Meta = SampleMeta() }),
-                EnvelopeCodec.WriteErrorMsg(new ErrorMsg { Code = "unknown-topic", Message = "no" }),
+                EnvelopeCodec.WriteErrorMsg(new ErrorMsg { Code = FaultCode.UnknownTopic, Message = "no" }),
             };
 
             foreach (var json in envelopes)

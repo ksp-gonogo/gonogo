@@ -33,7 +33,7 @@ describe("TopicOwnershipTracker", () => {
     expect(seen).toEqual(["nobody.publishes.this"]);
   });
 
-  it("decides unowned immediately on an unknown-topic refusal, without waiting out the window", () => {
+  it("decides unowned immediately on an unknownTopic refusal, without waiting out the window", () => {
     const seen: string[] = [];
     const tracker = new TopicOwnershipTracker((topic) => seen.push(topic));
     tracker.noteSubscribeSent("nobody.publishes.this");

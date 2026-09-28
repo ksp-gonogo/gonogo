@@ -265,7 +265,11 @@ describe("LaunchDirector actions", () => {
   it("revertToLaunch shows the game's refusal on the control, as a click does", async () => {
     stream.transport.setCommandHandler((command) =>
       command === "ksp.revertToLaunch"
-        ? { success: false, errorCode: 9, detail: "no revert point" }
+        ? {
+            success: false,
+            errorCode: "alreadyAtMaximum",
+            detail: "no revert point",
+          }
         : { success: true },
     );
     renderWidget();

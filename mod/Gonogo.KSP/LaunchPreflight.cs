@@ -17,7 +17,7 @@ namespace Gonogo.KSP
     /// </summary>
     internal sealed class LaunchCheck
     {
-        public LaunchCheck(PreFlightTests.IPreFlightTest test, CommandErrorCode code, LimitBreach? breach = null)
+        public LaunchCheck(PreFlightTests.IPreFlightTest test, RefusalCode code, LimitBreach? breach = null)
         {
             Test = test;
             Code = code;
@@ -26,7 +26,7 @@ namespace Gonogo.KSP
 
         public PreFlightTests.IPreFlightTest Test { get; }
 
-        public CommandErrorCode Code { get; }
+        public RefusalCode Code { get; }
 
         public LimitBreach? Breach { get; }
     }

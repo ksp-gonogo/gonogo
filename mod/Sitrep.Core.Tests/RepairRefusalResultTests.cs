@@ -7,93 +7,78 @@ using Xunit;
 namespace Sitrep.Core.Tests
 {
     /// <summary>
-    /// A refusal must not resolve as a success.
+    /// A refused repair must not resolve as a success, and it must say which of
+    /// the repair refusals it was.
     ///
     /// <para><c>Ok</c> sets <see cref="CommandResult.Success"/> true
-    /// unconditionally, so wrapping a refusal in
+    /// unconditionally, so a refusal wrapped in
     /// <c>CommandResult&lt;RepairOutcome&gt;.Ok(...)</c> would arrive on the
-    /// client's CONFIRMED path: the promise resolves, <c>CommandButton</c>
-    /// settles at <c>idle</c>, and the operator sees exactly what a successful
-    /// repair looks like. The button's own <c>refused</c> phase is unreachable
-    /// by a command wired that way.</para>
-    ///
-    /// <para>Two halves, because either alone passes while a wiring gap
-    /// exists: the RULE below decides what a refusal becomes, and the WIRING
-    /// test asserts the registrar actually routes through it. A correct rule
-    /// nothing calls is worth nothing.</para>
+    /// client's CONFIRMED path and look exactly like a repair that worked.</para>
     /// </summary>
     public class RepairRefusalResultTests
     {
-        [Fact]
-        public void ARepairedOutcomeIsTheOnlySuccess()
+        public static TheoryData<RefusalCode, RefusalCode> Refinements => new TheoryData<RefusalCode, RefusalCode>
         {
-            var result = RepairRefusal.ResultFor(new RepairOutcome { Repaired = true, KitsUsed = 1 });
-
-            Assert.True(result.Success);
-            Assert.Equal(CommandErrorCode.None, result.ErrorCode);
-            Assert.Equal(1, result.Payload?.KitsUsed);
-        }
+            { RepairRefusal.NoSuchPart, CommandErrorCode.NotFound },
+            { RepairRefusal.NoSuchCrew, CommandErrorCode.NotFound },
+            { RepairRefusal.CrewNotQualified, CommandErrorCode.CapabilityMismatch },
+            { RepairRefusal.Unrepairable, CommandErrorCode.CapabilityMismatch },
+            { RepairRefusal.EvaImpossible, CommandErrorCode.NotClearToProceed },
+            { RepairRefusal.NoKits, CommandErrorCode.InsufficientResource },
+            { RepairRefusal.NotModelled, CommandErrorCode.ModeUnavailable },
+        };
 
         [Theory]
-        [InlineData(RepairRefusal.NoSuchPart, CommandErrorCode.NotFound)]
-        [InlineData(RepairRefusal.NoSuchCrew, CommandErrorCode.NotFound)]
-        [InlineData(RepairRefusal.CrewNotQualified, CommandErrorCode.CapabilityMismatch)]
-        [InlineData(RepairRefusal.Unrepairable, CommandErrorCode.CapabilityMismatch)]
-        [InlineData(RepairRefusal.EvaImpossible, CommandErrorCode.NotClearToProceed)]
-        [InlineData(RepairRefusal.NoKits, CommandErrorCode.InsufficientResource)]
-        [InlineData(RepairRefusal.NotModelled, CommandErrorCode.ModeUnavailable)]
-        [InlineData(RepairRefusal.Refused, CommandErrorCode.ModeUnavailable)]
-        public void EveryRefusalIsAFailureCarryingItsOwnCode(string refusal, CommandErrorCode expected)
+        [MemberData(nameof(Refinements))]
+        public void EveryRepairRefusalRefinesTheRootAClientClassifiesItBy(RefusalCode refusal, RefusalCode root)
         {
-            var result = RepairRefusal.ResultFor(new RepairOutcome { Repaired = false, Refusal = refusal });
-
-            Assert.False(result.Success);
-            Assert.Equal(expected, result.ErrorCode);
+            Assert.False(refusal.IsRoot);
+            Assert.Equal(root, refusal.Root);
+            Assert.StartsWith("repair.", refusal.Id, StringComparison.Ordinal);
         }
 
         /// <summary>
-        /// The enum is coarser than the vocabulary on purpose, so the token has to
-        /// survive the mapping: a part that does not resolve and a crew member who
-        /// does not are both <see cref="CommandErrorCode.NotFound"/>, and only the
-        /// payload says which. A refusal that dropped it would leave the operator
-        /// re-sending the command to find out.
+        /// The root and the refinement both travel: a part that does not resolve
+        /// and a crew member who does not are both <c>notFound</c>, and only
+        /// <c>reason</c> says which.
         /// </summary>
         [Fact]
-        public void ARefusalStillCarriesItsFinerToken()
+        public void ARefusedRepairCarriesItsRootAndItsReasonOnTheWire()
         {
-            var result = RepairRefusal.ResultFor(
-                new RepairOutcome { Repaired = false, Refusal = RepairRefusal.NoSuchCrew });
+            var json = Sitrep.Contract.Serialization.EnvelopeCodec.WriteCommandResponse(new CommandResponse<object?>
+            {
+                RequestId = "r1",
+                Result = CommandResult<RepairOutcome>.Fail(RepairRefusal.NoSuchCrew),
+                Meta = new Meta { Source = "system", Vantage = "v" },
+            });
 
-            Assert.Equal(RepairRefusal.NoSuchCrew, result.Payload?.Refusal);
+            Assert.Contains("\"success\":false", json);
+            Assert.Contains("\"errorCode\":\"notFound\"", json);
+            Assert.Contains("\"reason\":\"repair.noSuchCrew\"", json);
         }
 
-        /// <summary>
-        /// A token a newer backend emits that this build has never heard of must
-        /// still refuse. Defaulting to the success arm is the whole defect,
-        /// arriving by a different route.
-        /// </summary>
         [Fact]
-        public void AnUnrecognisedTokenRefusesRatherThanSucceeds()
+        public void TheCoreRefinementsAreFoundByTheirIds()
         {
-            var result = RepairRefusal.ResultFor(
-                new RepairOutcome { Repaired = false, Refusal = "a-token-from-a-later-build" });
-
-            Assert.False(result.Success);
-            Assert.Equal(CommandErrorCode.ModeUnavailable, result.ErrorCode);
+            foreach (var code in CommandErrorCode.CoreRefinements)
+            {
+                Assert.Same(code, CommandErrorCode.Find(code.Id));
+            }
+            Assert.Equal(7, CommandErrorCode.CoreRefinements.Count);
         }
 
         /// <summary>
         /// Source text, because the registrar's handler body reaches
         /// <c>FlightGlobals</c> through the elected backend and cannot be entered
-        /// in a headless process. What is checked is exactly what regressed: an
-        /// <c>Ok(</c> on the repair path.
+        /// in a headless process. What is checked is that the registrar hands
+        /// back the backend's own result and never wraps one in <c>Ok(</c>.
         /// </summary>
         [Fact]
         public void TheRegistrarRoutesEveryRepairOutcomeThroughTheRule()
         {
             var source = File.ReadAllText(ReliabilityCoreUplinkPath());
 
-            Assert.Contains("RepairRefusal.ResultFor", source);
+            Assert.Contains("backend.Repair(", source);
             Assert.DoesNotMatch(
                 new Regex(@"CommandResult<RepairOutcome>\s*\.\s*Ok\("),
                 source);

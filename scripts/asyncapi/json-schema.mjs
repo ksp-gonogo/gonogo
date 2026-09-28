@@ -74,6 +74,7 @@ function classifyEnum(declaration) {
 }
 
 function enumSchema(declaration) {
+  if (declaration.stringValued) return stringEnumSchema(declaration);
   const kind = classifyEnum(declaration);
   const schema = { type: "integer" };
   if (declaration.description) schema.description = declaration.description;
@@ -90,6 +91,19 @@ function enumSchema(declaration) {
   schema.oneOf = declaration.members.map((member) => {
     const arm = { const: member.value, title: member.name };
     if (member.description) arm.description = member.description;
+    return arm;
+  });
+  return schema;
+}
+
+/** An error-code vocabulary: string ids, each with its meaning and the sentence an operator reads. */
+function stringEnumSchema(declaration) {
+  const schema = { type: "string" };
+  if (declaration.description) schema.description = declaration.description;
+  schema.oneOf = declaration.members.map((member) => {
+    const arm = { const: member.value, title: member.name };
+    if (member.description) arm.description = member.description;
+    if (member.sentence) arm["x-sitrep-sentence"] = member.sentence;
     return arm;
   });
   return schema;

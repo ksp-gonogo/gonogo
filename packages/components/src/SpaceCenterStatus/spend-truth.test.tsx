@@ -81,7 +81,7 @@ function blockFacilityUpgrade(
           verdict: {
             // GateOutcome.Fail / CommandErrorCode.ModeUnavailable.
             outcome: 1,
-            errorCode: 3,
+            errorCode: "modeUnavailable",
             detail: RP1_DETAIL,
           },
         },

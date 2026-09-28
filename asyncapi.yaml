@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 18.14.0
+  version: 19.0.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 79 telemetry
     channels a client subscribes to, and 55 commands it dispatches, with the payload
@@ -9824,53 +9824,35 @@ components:
             $ref: "#/components/schemas/CentreSeparationEntry"
           description: Every ordered pair with a routed path, plus each centre's own zero.
     CommandErrorCode:
-      type: integer
+      type: string
       description: |-
-        The typed, machine-readable failure code every command result carries. A
-        string code forces the client to string-match a magic value that the
-        compiler can neither check nor enumerate. This enum makes the failure
-        surface a closed, typed set instead.
+        The root refusals: the closed set every client can switch over. Each says
+        what KIND of no it was, and so whether waiting, changing the craft, or doing
+        something in the game is what makes a retry mean anything.
 
-        `CommandErrorCode.None` is the success sentinel (paired with
-        `CommandResult.success` = true); `CommandErrorCode.Unknown` is the
-        forward-compatible fallback for any code a newer producer emits that an
-        older consumer doesn't recognise: the same `Unknown`-style read-fallback
-        convention every other enum in this contract uses.
-      x-sitrep-enum-kind: ordinal
+        A producer that can say more names a refinement of one of these (see
+        `RefusalCode.Refine`); the root still travels, so nothing a client does with
+        a root depends on knowing the refinement.
       oneOf:
-        - const: 0
-          title: None
-          description: "No error: the success sentinel, paired with `CommandResult.success` = true."
-        - const: 1
-          title: Unknown
-          description: |-
-            Forward-compat fallback: a code a newer producer emitted that this consumer
-            doesn't recognise.
-        - const: 2
+        - const: noVessel
           title: NoVessel
-          description: No active vessel to act on (was `"E_NO_VESSEL"`).
-        - const: 3
+          description: No active vessel to act on.
+          x-sitrep-sentence: there is no vessel to act on
+        - const: modeUnavailable
           title: ModeUnavailable
           description: |-
-            The requested mode/state isn't currently available (was
-            `"E_MODE_UNAVAILABLE"`).
-        - const: 4
+            The requested mode or state is not available, and the game gave no more
+            specific reason.
+          x-sitrep-sentence: the game would not say why
+        - const: range
           title: Range
-          description: An argument was out of its valid range (was `"E_RANGE"`).
-        - const: 5
+          description: An argument was out of its valid range.
+          x-sitrep-sentence: an argument was outside its valid range
+        - const: notFound
           title: NotFound
-          description: |-
-            The referenced entity (node id, vessel/body target) didn't resolve (was
-            `"E_NOT_FOUND"`).
-        - const: 6
-          title: Timeout
-          description: |-
-            F2-fix backstop: the command was marshaled onto the host's main-thread pump
-            but that pump did not drain it within the bounded wait (a scene-load /
-            loading-screen stall). A synthetic failure returned by the host so the
-            Courier thread can never park indefinitely, not emitted by any uplink
-            handler. Additive (Major 2, Minor 0 -> 1).
-        - const: 7
+          description: The referenced entity (node id, vessel/body target) did not resolve.
+          x-sitrep-sentence: nothing here answers to that
+        - const: planNotOwned
           title: PlanNotOwned
           description: |-
             The elected maneuver-plan provider is not the one that reads stock's
@@ -9882,25 +9864,23 @@ components:
             it), and the operator sees a maneuver node on the board that does precisely
             nothing. A silent wrong answer with a confident presentation.
 
-            The code says WHY. It deliberately does not say WHO: this enum is typed
-            precisely so a client never string-matches, and the owner is already on the
-            wire as `VesselManeuver.Planner` for a readout to name. Additive (Major 5).
-        - const: 8
+            The code says WHY, not WHO: the owner is already on the wire as
+            `VesselManeuver.Planner` for a readout to name.
+          x-sitrep-sentence: another planner owns the flight plan
+        - const: limitReached
           title: LimitReached
           description: |-
             A capacity is full: the Astronaut Complex holds its cap of active crew, a
             facility holds its cap of anything else countable.
 
-            Split out of `CommandErrorCode.ModeUnavailable`, which was carrying five
-            unrelated causes at once (crew cap, facility maxed, no roster, no Funding,
-            wrong scene) and so could not tell a permanent refusal from a transient one.
-            This arm says the cap is reached and the world has to change before a retry
-            means anything; freeing a slot is a thing an operator can actually do.
+            The world has to change before a retry means anything; freeing a slot is a
+            thing an operator can actually do.
 
             The arm chooses the sentence, `CommandResult.breach` supplies the numbers in
             it. Neither is worth sending without the other: a code with no payload
             cannot say "16 of 16".
-        - const: 9
+          x-sitrep-sentence: a limit has been reached
+        - const: alreadyAtMaximum
           title: AlreadyAtMaximum
           description: |-
             Already at the top of an upgradeable scale, so there is nothing above this
@@ -9909,19 +9889,17 @@ components:
             Deliberately NOT `CommandErrorCode.LimitReached`. A cap that is full can be
             freed; a maximum tier cannot be exceeded by any action at all, and an
             operator reads those two differently.
-        - const: 10
+          x-sitrep-sentence: it is already at its maximum
+        - const: insufficientFunds
           title: InsufficientFunds
           description: |-
             The command costs more than the funds on hand.
 
-            Was `CommandErrorCode.Range`, which documents "an argument was out of its
-            valid range" and is not what happened: affordability is not about an
-            argument, and a client reading the enum name aloud got it wrong.
-
             `CommandResult.breach` carries the cost as `Actual` against the balance as
             `Limit`, so the client can say how short and in the operator's own currency
             rendering.
-        - const: 11
+          x-sitrep-sentence: there are not enough funds
+        - const: insufficientScience
           title: InsufficientScience
           description: |-
             The command costs more science than is banked.
@@ -9933,7 +9911,8 @@ components:
             ...).CanAfford(Currency.Science)`, which is what `RDTech.ResearchTech` asks.
             NOT `ResearchAndDevelopment.CanAfford`, which skips the modifier chain and
             so answers a different question from the one the game acts on.
-        - const: 12
+          x-sitrep-sentence: there is not enough science
+        - const: careerModeRequired
           title: CareerModeRequired
           description: |-
             The save is not a career save, so this command's whole subsystem does not
@@ -9948,14 +9927,16 @@ components:
             is exactly what `CommandErrorCode.ModeUnavailable` could not say. An
             operator should see the control absent rather than refused; a client that
             can tell this arm from the others can do that.
-        - const: 13
+          x-sitrep-sentence: this save is not a career game
+        - const: wrongScene
           title: WrongScene
           description: |-
             The game is in a scene this command cannot run from.
 
             Authority: `HighLogic.LoadedScene` (`GameScenes`). `CommandResult.detail`
             names the scene when the producer had one.
-        - const: 14
+          x-sitrep-sentence: the game is not in a scene that allows it
+        - const: wrongState
           title: WrongState
           description: |-
             The entity is not in a state this transition applies to: an already-active
@@ -9968,7 +9949,8 @@ components:
             `ModuleScienceExperiment.Deployed`/`Inoperable`. Every one of those is
             `[Description]`-tagged or otherwise nameable, so `CommandResult.detail` can
             carry the state in the game's own words.
-        - const: 15
+          x-sitrep-sentence: it is not in a state that allows it
+        - const: notClearToProceed
           title: NotClearToProceed
           description: |-
             Right command, wrong moment: the flight is not in a state that permits it
@@ -9988,7 +9970,8 @@ components:
 
             Distinct from `CommandErrorCode.WrongState`, which is about the entity and
             does not resolve by waiting.
-        - const: 16
+          x-sitrep-sentence: the flight is not clear for it yet
+        - const: capabilityMismatch
           title: CapabilityMismatch
           description: |-
             The part or vessel does not have the capability this command needs: a rotor
@@ -10004,7 +9987,8 @@ components:
             Nothing an operator waits for. The craft would have to be different for this
             to work, which is why it is not `CommandErrorCode.NotClearToProceed` and not
             `CommandErrorCode.WrongState`.
-        - const: 17
+          x-sitrep-sentence: this craft cannot do it
+        - const: noConnection
           title: NoConnection
           description: |-
             There is no usable link for what this command needs to send.
@@ -10013,7 +9997,8 @@ components:
             `IScienceDataTransmitter.CanTransmit()`. Deliberately NOT the Courier's own
             comms-loss gate, which refuses the dispatch before a handler ever runs; this
             is the vessel finding it has no antenna that can carry the payload.
-        - const: 18
+          x-sitrep-sentence: there is no usable link
+        - const: notUnlocked
           title: NotUnlocked
           description: |-
             The capability exists in the game but this save has not unlocked it: fuel
@@ -10027,7 +10012,8 @@ components:
             Distinct from `CommandErrorCode.LimitReached`, which is a number against a
             number. This is a switch that is off, and the fix is an upgrade rather than
             freeing a slot.
-        - const: 19
+          x-sitrep-sentence: it has not been unlocked yet
+        - const: siteOccupied
           title: SiteOccupied
           description: |-
             Another vessel is on the launch site.
@@ -10035,14 +10021,16 @@ components:
             Authority: `PreFlightTests.LaunchSiteClear`, whose
             `GetWarningTitle()`/`GetWarningDescription()` are the game's own words for
             it and ride on `CommandResult.detail`.
-        - const: 20
+          x-sitrep-sentence: another vessel is on the launch site
+        - const: facilityDamaged
           title: FacilityDamaged
           description: |-
             The facility this command needs is destroyed or damaged.
 
             Authority: `PreFlightTests.FacilityOperational`, over
             `PSystemSetup.Instance.GetSpaceCenterFacility(name).GetFacilityDamage()`.
-        - const: 21
+          x-sitrep-sentence: the building is out of action
+        - const: notReady
           title: NotReady
           description: |-
             The vehicle is not a launchable article yet: an install's build and
@@ -10050,7 +10038,7 @@ components:
             nothing is broken, the thing simply has not been made ready.
 
             Authority: whichever Uplink CONTRIBUTED the readiness requirement that
-            refused (see IUplinkHost.AddCommandRequirement), never a stock KSP read:
+            refused (see `IUplinkHost.AddCommandRequirement`), never a stock KSP read:
             stock has no build step, so it contributes no readiness requirements and
             this code never arrives on a stock install. Under RP-1 it is a vehicle that
             was never integrated, one still integrating, one finished but not rolled
@@ -10068,7 +10056,8 @@ components:
             on disk and has never been built is a different situation from one that does
             not exist, and collapsing them tells an operator to go looking for a file
             that is sitting right there.
-        - const: 22
+          x-sitrep-sentence: the vehicle is not ready to fly yet
+        - const: insufficientResource
           title: InsufficientResource
           description: |-
             The command consumes a countable ITEM and there are not enough of them
@@ -10088,7 +10077,8 @@ components:
 
             Deliberately NOT `CommandErrorCode.LimitReached`, which is a capacity that
             is FULL. This is a store that is empty, and the two read as opposites.
-        - const: 23
+          x-sitrep-sentence: there are not enough of what it uses aboard
+        - const: unreadable
           title: Unreadable
           description: |-
             The provider was ASKED and COULD NOT ANSWER. Nothing about the craft, the
@@ -10109,7 +10099,8 @@ components:
             name for it, and never says what the answer would have been. A surface has
             nothing to tell the operator about their vehicle here, because nothing was
             learned about it; offering the command again is the only honest next move.
-        - const: 24
+          x-sitrep-sentence: the game would not answer
+        - const: outOfReach
           title: OutOfReach
           description: |-
             The command acts at a PLACE, and the command centre it was sent from has no
@@ -10126,6 +10117,7 @@ components:
             Distinct from `CommandErrorCode.NoConnection`, which is a link that cannot
             carry the command. A centre may be perfectly linked to the place and still
             have no authority over it.
+          x-sitrep-sentence: this command centre has no authority over that place
     CommandRequest:
       type: object
       description: |-
@@ -10245,7 +10237,6 @@ components:
           requestId: 0f3c9a12
           result:
             success: true
-            errorCode: 0
           meta: &a5
             source: gonogo
             validAt: 1842006.5
@@ -10271,14 +10262,29 @@ components:
         `vessel.maneuver.add`'s created node id).
       required:
         - success
-        - errorCode
       properties:
         success:
           type: boolean
           x-sitrep-unit: flag
         errorCode:
-          $ref: "#/components/schemas/CommandErrorCode"
-          x-sitrep-unit: enum
+          description: |-
+            Why it was refused, null on success. On the wire this is the ROOT's id, so
+            every client can classify it; a refinement's own id travels beside it as
+            `CommandResult.reason`.
+          anyOf:
+            - $ref: "#/components/schemas/CommandErrorCode"
+              x-sitrep-unit: enum
+            - type: "null"
+        reason:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: id
+          description: |-
+            The refinement's id, when the refusal is more specific than its root:
+            `rp1.notManaging` under `careerModeRequired`. Absent when the refusal is a
+            root. An id this client does not know is still a refusal of kind
+            `CommandResult.errorCode`.
         breach:
           description: |-
             The numbers behind the refusal, when the refusal has any: the cap and the
@@ -12036,30 +12042,11 @@ components:
         `command-response` with `success: false` and an `errorCode`, correlated on
         `requestId` like any other answer, and it is not an error frame.
 
-        `code` is an open vocabulary rather than an enumeration. The mod emits these
-        values into it:
-
-        - `invalid-envelope`: a frame of a known type that could not be read, including
-          a `command-request` whose `args` do not fit the command. Only that call is
-          refused; the command stays available
-        - `unknown-envelope-type`: a frame whose `type` this build does not recognise
-        - `unhandled-envelope`: a frame that parsed as a type this build has nothing
-          to do with
-        - `binary-frame-not-accepted`: a binary frame sent up the socket, which nothing
-          accepts
-        - `E_UNAVAILABLE`: a command that is unknown or unavailable, or whose handler
-          threw. A handler that threw leaves its command unavailable for the session
-        - `result-serialization-error`: a command that ran and whose result could not
-          be written
-        - `unknown-topic`: a subscription to a topic nothing declares
-        - `payload-serialization-error`: a topic whose payload could not be written
-        - `unknown-vantage`: a `set-vantage`, or a command's `vantage`, naming a
-          centre that is not active
-
-        A client's own transport mints codes into the same field, so an unrecognised
-        code is still a fault and `message` is what to show for it.
-        `CommandErrorCode`, enumerated in full under `components.schemas`, is a
-        different vocabulary: it names REFUSALS and never appears here.
+        `code` is a `FaultCode`, enumerated in full under `components.schemas`
+        with the sentence an operator reads for each. Its client-origin members are
+        minted by a client's own transport into the same field, never by the mod.
+        `CommandErrorCode` is the other half of the vocabulary: it names REFUSALS and
+        never appears here.
       required:
         - type
         - code
@@ -12080,11 +12067,18 @@ components:
             - "null"
           x-sitrep-unit: id
         code:
-          type: string
-          x-sitrep-unit: id
+          description: |-
+            Which fault: always a fault, never a refusal, since a command the game
+            refused answers with a `command-response` instead.
+          allOf:
+            - $ref: "#/components/schemas/FaultCode"
+              x-sitrep-unit: id
         message:
           type: string
           x-sitrep-unit: text
+          description: |-
+            The machinery's own account of what went wrong, for a log rather than an
+            operator.
     EvaCrew:
       type: object
       description: |-
@@ -12511,6 +12505,101 @@ components:
             hand-curated-superset anti-pattern the bag replaces
             (`Sitrep.Host.Tests.ScienceProviderExtensionRatchetTests` holds that line).
           additionalProperties: true
+    FaultCode:
+      type: string
+      description: |-
+        Why a command, or any other request, could not be CARRIED: nothing about the
+        game was decided. The refused/failed split is the kind of code, not a
+        judgement a client makes: a `RefusalCode` says the game said no, this says
+        the machinery did not get that far, and a retry may work.
+
+        Closed, and declared only here. An Uplink never mints a fault: a handler
+        that throws already becomes `FaultCode.CommandUnavailable`, and
+        `CommandFaultException` is how a handler raises one of these deliberately.
+      oneOf:
+        - const: invalidEnvelope
+          title: InvalidEnvelope
+          description: |-
+            A frame of a known type that could not be read, including a
+            `command-request` whose `args` do not fit the command. Only that call is
+            refused; the command stays available.
+          x-sitrep-sentence: the request could not be read
+        - const: unknownEnvelopeType
+          title: UnknownEnvelopeType
+          description: A frame whose `type` this build does not recognise.
+          x-sitrep-sentence: the mod does not recognise that kind of request
+        - const: unhandledEnvelope
+          title: UnhandledEnvelope
+          description: A frame that parsed as a type this build has nothing to do with.
+          x-sitrep-sentence: the mod has nothing to do with that request
+        - const: binaryFrameNotAccepted
+          title: BinaryFrameNotAccepted
+          description: A binary frame sent up the socket, which nothing accepts.
+          x-sitrep-sentence: the mod accepts no binary frames
+        - const: commandUnavailable
+          title: CommandUnavailable
+          description: |-
+            A command that is unknown or unavailable, or whose handler threw. A handler
+            that threw leaves its command unavailable for the session.
+          x-sitrep-sentence: the command is not available
+        - const: mainThreadTimeout
+          title: MainThreadTimeout
+          description: |-
+            A command the host could not run in time: it was handed to the game's main
+            thread and the game did not take it before the host stopped waiting, as
+            during a scene load. Nothing was decided, and the command may still run
+            later.
+          x-sitrep-sentence: the game did not get to it in time
+        - const: resultSerializationError
+          title: ResultSerializationError
+          description: A command that ran and whose result could not be written.
+          x-sitrep-sentence: its answer could not be sent
+        - const: unknownTopic
+          title: UnknownTopic
+          description: A subscription to a topic nothing declares.
+          x-sitrep-sentence: nothing publishes that
+        - const: payloadSerializationError
+          title: PayloadSerializationError
+          description: A topic whose payload could not be written.
+          x-sitrep-sentence: its value could not be sent
+        - const: unknownVantage
+          title: UnknownVantage
+          description: |-
+            A `set-vantage`, or a command's `vantage`, naming a command centre that is
+            not active.
+          x-sitrep-sentence: that command centre is not active
+        - const: undelivered
+          title: Undelivered
+          description: |-
+            The transport held the command for a link that never came back, and has
+            stopped retrying. It never left this machine.
+          x-sitrep-sentence: it was never sent
+        - const: disposed
+          title: Disposed
+          description: The client was shut down while the command waited for an answer.
+          x-sitrep-sentence: the connection closed before an answer came
+        - const: sendQueueFull
+          title: SendQueueFull
+          description: |-
+            The transport's queue of commands waiting for a link is full, so this one
+            was not queued.
+          x-sitrep-sentence: too many commands are waiting for the link
+        - const: peerDisconnected
+          title: PeerDisconnected
+          description: A station's link to the main screen dropped while the command was on it.
+          x-sitrep-sentence: the link to the main screen dropped
+        - const: noClient
+          title: NoClient
+          description: |-
+            The main screen had no connection to the mod to relay a station's command
+            over.
+          x-sitrep-sentence: the main screen is not connected to the game
+        - const: unclassified
+          title: Unclassified
+          description: |-
+            A rejection that carried no code a client could read, such as a throw from
+            inside a handler on the client.
+          x-sitrep-sentence: something went wrong
     FireCrewArgs:
       type: object
       description: |-
@@ -15382,21 +15471,6 @@ components:
           type: boolean
           x-sitrep-unit: flag
           description: Whether the part was actually repaired.
-        refusal:
-          type:
-            - string
-            - "null"
-          x-sitrep-unit: enum
-          description: |-
-            Why not, when `RepairOutcome.repaired` is false: one of the RepairRefusal
-            tokens. Null on success.
-
-            The FINER half of the refusal. It travels beside the
-            `CommandResult.errorCode` RepairRefusal.CodeFor derives from it, on the
-            payload of a result whose `CommandResult.success` is false, because the enum
-            deliberately collapses distinctions this vocabulary keeps: a part that does
-            not resolve and a crew member who does not are both
-            `CommandErrorCode.NotFound`, and only this says which.
         kitsUsed:
           type: number
           x-sitrep-unit: count
@@ -16915,8 +16989,8 @@ components:
         Client-to-server: select the command centre this connection commands from
         and observes at (Plan 3 vantage selection). Governs both the downlink cursor
         read and the command-dispatch vantage. The id must name a currently-active
-        command centre, or the request is refused with an `unknown-vantage` error
-        and the connection keeps the vantage it had.
+        command centre, or the request is refused with an `unknownVantage` error and
+        the connection keeps the vantage it had.
 
         A connection that has never sent one observes at the home command (the
         roster entry whose `isHome` is true), and follows it if home moves. When no

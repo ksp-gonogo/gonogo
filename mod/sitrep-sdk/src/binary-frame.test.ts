@@ -139,7 +139,7 @@ describe("decodeBinaryFrame", () => {
         name: "subscribed",
         meta: META,
       }),
-      JSON.stringify({ type: "error", code: "unknown-topic", message: "no" }),
+      JSON.stringify({ type: "error", code: "unknownTopic", message: "no" }),
     ];
 
     for (const json of envelopes) {

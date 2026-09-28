@@ -103,17 +103,8 @@ namespace Gonogo.KSP
             _summary = host.Publisher(SummaryTopic);
             _parts = host.Publisher(PartsTopic);
             host.AddSampledSource(CaptureOnMain, HandleOnCourier, SummaryTopic, PartsTopic);
-            /*
-             * Dispatched to whichever backend won the capability, so the
-             * command works on any install and the widget never learns which
-             * mod answered. A backend that cannot repair refuses in its own
-             * words rather than throwing, so this is always answerable.
-             *
-             * RepairRefusal.ResultFor decides success, never this call site: an
-             * outcome wrapped in Ok() here reached the client on the CONFIRMED
-             * path whatever it said, so a refused repair settled the control at
-             * rest and looked exactly like one that worked.
-             */
+            // Dispatched to whichever backend won the capability, so the command
+            // works on any install and the widget never learns which mod answered.
             host.AddCommandHandler<RepairPartArgs, CommandResult<RepairOutcome>>(
                 RepairCommand,
                 args =>
@@ -121,15 +112,10 @@ namespace Gonogo.KSP
                     var backend = _kernel != null ? ReliabilityElection.Elected(_kernel) : null;
                     if (backend == null)
                     {
-                        return RepairRefusal.ResultFor(new RepairOutcome
-                        {
-                            Repaired = false,
-                            Refusal = RepairRefusal.NotModelled,
-                        });
+                        return CommandResult<RepairOutcome>.Fail(RepairRefusal.NotModelled);
                     }
 
-                    return RepairRefusal.ResultFor(
-                        backend.Repair(args?.PartId ?? "", args?.CrewName ?? ""));
+                    return backend.Repair(args?.PartId ?? "", args?.CrewName ?? "");
                 });
         }
 

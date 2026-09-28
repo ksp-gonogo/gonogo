@@ -51,7 +51,7 @@ namespace Sitrep.Core.Tests
             var result = WriteAndDecodeResult(CommandResult<int>.Ok(3));
 
             Assert.True(result.GetProperty("success").GetBoolean());
-            Assert.Equal(0, result.GetProperty("errorCode").GetInt32());
+            Assert.False(result.TryGetProperty("errorCode", out _));
             Assert.Equal(3, result.GetProperty("payload").GetInt32());
         }
 
@@ -61,7 +61,7 @@ namespace Sitrep.Core.Tests
             var result = WriteAndDecodeResult(CommandResult<string>.Ok("node-1"));
 
             Assert.True(result.GetProperty("success").GetBoolean());
-            Assert.Equal(0, result.GetProperty("errorCode").GetInt32());
+            Assert.False(result.TryGetProperty("errorCode", out _));
             Assert.Equal("node-1", result.GetProperty("payload").GetString());
         }
 
@@ -71,17 +71,18 @@ namespace Sitrep.Core.Tests
             var result = WriteAndDecodeResult(CommandResult.Ok());
 
             Assert.True(result.GetProperty("success").GetBoolean());
-            Assert.Equal(0, result.GetProperty("errorCode").GetInt32());
+            Assert.False(result.TryGetProperty("errorCode", out _));
             Assert.False(result.TryGetProperty("payload", out _), "a non-generic CommandResult must not emit a payload key");
         }
 
         [Fact]
-        public void FailedCommandResultCarriesTheTypedErrorCodeAsItsIntegerOrdinal()
+        public void FailedCommandResultCarriesTheTypedErrorCodeAsItsRootId()
         {
             var result = WriteAndDecodeResult(CommandResult<int>.Fail(CommandErrorCode.Range));
 
             Assert.False(result.GetProperty("success").GetBoolean());
-            Assert.Equal((int)CommandErrorCode.Range, result.GetProperty("errorCode").GetInt32());
+            Assert.Equal("range", result.GetProperty("errorCode").GetString());
+            Assert.False(result.TryGetProperty("reason", out _));
             // Generic subtype still emits the payload key on failure, for a
             // value-type T it is default(T) (0 for int), for a reference-type T
             // it is null (see the string case below).
@@ -94,8 +95,19 @@ namespace Sitrep.Core.Tests
             var result = WriteAndDecodeResult(CommandResult<string>.Fail(CommandErrorCode.NotFound));
 
             Assert.False(result.GetProperty("success").GetBoolean());
-            Assert.Equal((int)CommandErrorCode.NotFound, result.GetProperty("errorCode").GetInt32());
+            Assert.Equal("notFound", result.GetProperty("errorCode").GetString());
             Assert.Equal(JsonValueKind.Null, result.GetProperty("payload").ValueKind);
+        }
+
+        [Fact]
+        public void ARefinementTravelsAsItsRootWithItsOwnIdAsTheReason()
+        {
+            var refinement = CommandErrorCode.CareerModeRequired.Refine("probe.notManaging", "the probe is not managing this save");
+
+            var result = WriteAndDecodeResult(CommandResult.Fail(refinement));
+
+            Assert.Equal("careerModeRequired", result.GetProperty("errorCode").GetString());
+            Assert.Equal("probe.notManaging", result.GetProperty("reason").GetString());
         }
 
         [Fact]

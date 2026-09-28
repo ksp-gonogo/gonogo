@@ -1,7 +1,7 @@
 namespace Sitrep.Core.Tests
 {
     /// <summary>
-    /// Public <c>Sitrep.Contract</c> members with no XML doc comment, by doc id. 832 entries.
+    /// Public <c>Sitrep.Contract</c> members with no XML doc comment, by doc id. 825 entries.
     /// Shrink-only, rewritten by <see cref="ContractDocCoverageTests"/> with
     /// <c>GONOGO_CONTRACT_DOC_DEBT_UPDATE=1</c>, which only removes. Nothing is added by hand.
     /// </summary>
@@ -203,9 +203,7 @@ namespace Sitrep.Core.Tests
             "F:Sitrep.Contract.WarpMode.Low",
             "F:Sitrep.Contract.WarpMode.Unknown",
             "M:Sitrep.Contract.AmbiguousResolutionError.#ctor(System.String,System.Collections.Generic.IReadOnlyList{System.String})",
-            "M:Sitrep.Contract.CommandResult.Fail(Sitrep.Contract.CommandErrorCode)",
             "M:Sitrep.Contract.CommandResult.Ok",
-            "M:Sitrep.Contract.CommandResult`1.Fail(Sitrep.Contract.CommandErrorCode)",
             "M:Sitrep.Contract.CommandResult`1.Ok(`0)",
             "M:Sitrep.Contract.CommsBackendBase.Network(System.Object)",
             "M:Sitrep.Contract.CommsLinkState.#ctor(System.Boolean,Sitrep.Contract.CommsControlGrade,System.Double)",
@@ -221,8 +219,6 @@ namespace Sitrep.Core.Tests
             "M:Sitrep.Contract.DependencyCycleError.#ctor(System.Collections.Generic.IReadOnlyList{System.String})",
             "M:Sitrep.Contract.DependencyNode.#ctor(System.String,System.Collections.Generic.IReadOnlyList{System.String})",
             "M:Sitrep.Contract.EmissionPolicy.#ctor(System.Double,Sitrep.Contract.EmissionQuantum,System.Double,System.Double)",
-            "M:Sitrep.Contract.GateVerdict.Fail(Sitrep.Contract.CommandErrorCode,Sitrep.Contract.LimitBreach)",
-            "M:Sitrep.Contract.GateVerdict.Fail(Sitrep.Contract.CommandErrorCode,System.String)",
             "M:Sitrep.Contract.GateVerdict.Fail(Sitrep.Contract.LimitBreach)",
             "M:Sitrep.Contract.GateVerdict.Fail(System.String)",
             "M:Sitrep.Contract.GateVerdict.Pass",
@@ -392,7 +388,6 @@ namespace Sitrep.Core.Tests
             "P:Sitrep.Contract.CommandResponse`1.RequestId",
             "P:Sitrep.Contract.CommandResponse`1.Result",
             "P:Sitrep.Contract.CommandResponse`1.Type",
-            "P:Sitrep.Contract.CommandResult.ErrorCode",
             "P:Sitrep.Contract.CommandResult.Success",
             "P:Sitrep.Contract.CommandResult`1.Payload",
             "P:Sitrep.Contract.CommsBackendBase.ProviderId",
@@ -482,8 +477,6 @@ namespace Sitrep.Core.Tests
             "P:Sitrep.Contract.EmissionDecision.ShouldEmit",
             "P:Sitrep.Contract.EmissionDecision.Ut",
             "P:Sitrep.Contract.EmissionDecision.Value",
-            "P:Sitrep.Contract.ErrorMsg.Code",
-            "P:Sitrep.Contract.ErrorMsg.Message",
             "P:Sitrep.Contract.ErrorMsg.RequestId",
             "P:Sitrep.Contract.ErrorMsg.Topic",
             "P:Sitrep.Contract.ErrorMsg.Type",

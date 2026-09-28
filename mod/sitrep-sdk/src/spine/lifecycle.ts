@@ -1,4 +1,5 @@
-import type { CommandErrorCode, LimitBreach } from "../__generated__/contract";
+import type { LimitBreach } from "../__generated__/contract";
+import type { CommandErrorCode } from "../__generated__/error-codes";
 
 /**
  * Everything a refusal needs to be SAID, beyond the typed reason itself.
@@ -31,6 +32,11 @@ export interface CommandRefusalDetail {
    * machine-readable half; this is never parsed.
    */
   detail?: string;
+  /**
+   * The refinement's id, when the refusal was more specific than its root
+   * `errorCode`. `describeErrorCode` reads its sentence.
+   */
+  reason?: string;
 }
 
 /**
@@ -227,8 +233,8 @@ export type CommandStatus =
  * A real `Error`, not a bare object literal, because callers render it: a
  * plain `{ code, message }` reaches the operator as `[object Object]` through
  * the entirely reasonable `err instanceof Error ? err.message : String(err)`.
- * `code` is kept as an own property so the existing `E_LOST` / `E_DISPOSED`
- * discriminations keep reading the same.
+ * `code` is kept as an own property so the `E_LOST` marker and every
+ * `FaultCode` read the same way.
  */
 export class CommandError extends Error {
   readonly code: string;
@@ -243,6 +249,7 @@ export class CommandError extends Error {
   readonly label?: string;
   readonly breach?: LimitBreach;
   readonly detail?: string;
+  readonly reason?: string;
 
   constructor(
     code: string,
@@ -259,5 +266,6 @@ export class CommandError extends Error {
     this.label = refusal?.label;
     this.breach = refusal?.breach;
     this.detail = refusal?.detail;
+    this.reason = refusal?.reason;
   }
 }

@@ -228,6 +228,22 @@ public class RtDocVisitor : TypeScriptExportVisitor
                 _exportedTypes[simple] = simple;
                 _exportedMembers[simple] = ReflectedMembers(type, isEnum);
             }
+
+            // Error-code holders are emitted into error-codes.ts, which the SDK
+            // exports, as const objects keyed by the C# field names.
+            foreach (var type in SafeTypes(assembly))
+            {
+                var refusals = ErrorCodeCatalog.NamedFieldsOf<RefusalCode>(type);
+                var faults = ErrorCodeCatalog.NamedFieldsOf<FaultCode>(type);
+                if (refusals.Count == 0 && faults.Count == 0) continue;
+                var simple = Simple(type);
+                if (_exportedTypes.ContainsKey(simple)) continue;
+                _exportedTypes[simple] = simple;
+                var set = new HashSet<string>(StringComparer.Ordinal);
+                foreach (var (field, _) in refusals) set.Add(field);
+                foreach (var (field, _) in faults) set.Add(field);
+                _exportedMembers[simple] = set;
+            }
         }
     }
 

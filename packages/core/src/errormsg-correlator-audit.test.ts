@@ -12,7 +12,7 @@ import { describe, expect, it } from "vitest";
  * warning, and everything else reaches `warnConnectionError`. That third route
  * exists since 2026-09-16; before it, a frame carrying neither field arrived,
  * matched no branch, and was dropped on `handleCommandError`'s
- * `if (!requestId) return`. `binary-frame-not-accepted` spent its whole life
+ * `if (!requestId) return`. `binaryFrameNotAccepted` spent its whole life
  * there: the mod wrote a genuinely useful sentence about the binary lane and
  * nothing ever printed it.
  *
@@ -23,7 +23,7 @@ import { describe, expect, it } from "vitest";
  * destination, not a catch-all to drop a correlator into.
  *
  * Hence the allowlist below, keyed by method and code rather than by code
- * alone: `unknown-vantage` is minted twice, once for a `set-vantage` (whose
+ * alone: `unknownVantage` is minted twice, once for a `set-vantage` (whose
  * envelope carries no request id to correlate by) and once for a command
  * request (which does). Keyed by code they would be indistinguishable, and the
  * one that must carry a correlator could quietly stop.
@@ -33,9 +33,9 @@ const SCAN_ROOTS = ["mod"];
 
 /** Uncorrelated mints that are connection-level by construction, with the reason. */
 const CONNECTION_LEVEL: Record<string, string> = {
-  "RefuseInboundBinaryFrame/binary-frame-not-accepted":
+  "RefuseInboundBinaryFrame/binaryFrameNotAccepted":
     "A binary frame sent UP the socket is refused before anything reads a request id out of it: there is none, the lane byte is the whole frame header. The fault is about the connection, not about any one command.",
-  "HandleSetVantage/unknown-vantage":
+  "HandleSetVantage/unknownVantage":
     "`SetVantage` carries no RequestId (Sitrep.Contract/Envelope.cs): it is a connection-wide directive, not a request. Its refusal is correspondingly connection-wide.",
 };
 
@@ -48,7 +48,7 @@ const CONNECTION_LEVEL: Record<string, string> = {
  * below on its own; it is named here only so the next reader knows the field
  * being present is not the same as the value being non-null.
  */
-const BEST_EFFORT = ["RefuseInvalidEnvelope/invalid-envelope"];
+const BEST_EFFORT = ["RefuseInvalidEnvelope/invalidEnvelope"];
 
 /**
  * A `new ErrorMsg` and the object initializer that follows it.
@@ -114,11 +114,14 @@ function mintsIn(rel: string, source: string): Mint[] {
   const mints: Mint[] = [];
   for (const match of source.matchAll(MINT_RE)) {
     const body = match[1];
-    const code = /\bCode\s*=\s*"([^"]+)"/.exec(body);
+    // A mint names its code as a declared FaultCode field; the id is that field's name in camelCase.
+    const code = /\bCode\s*=\s*FaultCode\.([A-Za-z0-9]+)/.exec(body);
     mints.push({
       file: rel,
       method: enclosingMethod(source, match.index ?? 0),
-      code: code ? code[1] : "<computed>",
+      code: code
+        ? code[1].charAt(0).toLowerCase() + code[1].slice(1)
+        : "<computed>",
       correlated: /\bRequestId\s*=/.test(body),
       topical: /\bTopic\s*=/.test(body),
     });
@@ -165,13 +168,13 @@ describe("every ErrorMsg the mod mints can be routed by the client", () => {
       {
           var error = new ErrorMsg
           {
-              Code = "planted-refusal",
+              Code = FaultCode.PlantedRefusal,
               Message = "no correlator on this one",
           };
       }`;
     const [bad] = mintsIn("planted.cs", planted);
     expect(bad.method).toBe("RefuseSomething");
-    expect(bad.code).toBe("planted-refusal");
+    expect(bad.code).toBe("plantedRefusal");
     expect(bad.correlated).toBe(false);
     expect(bad.topical).toBe(false);
     expect(`${bad.method}/${bad.code}` in CONNECTION_LEVEL).toBe(false);

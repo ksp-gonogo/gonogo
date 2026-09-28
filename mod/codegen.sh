@@ -23,6 +23,9 @@ COMMAND_MAP_OUT="$ROOT/mod/sitrep-sdk/src/__generated__/command-map.ts"
 # off the [SitrepReckonable] tags: the model, and the published inputs it needs.
 # See RtConfig.EmitReckonability.
 RECKONABILITY_OUT="$ROOT/mod/sitrep-sdk/src/__generated__/reckonability.ts"
+# Every refusal and fault code, with its sentence and meaning. See
+# RtConfig.EmitErrorCodeMap.
+ERRORCODES_OUT="$ROOT/mod/sitrep-sdk/src/__generated__/error-codes.ts"
 RT_VER="1.6.7"
 RT_PKG="$HOME/.nuget/packages/reinforced.typings/$RT_VER"
 RTCLI="$RT_PKG/tools/net5.0/rtcli.dll"
@@ -58,6 +61,7 @@ DOTNET_ROLL_FORWARD=LatestMajor \
   SITREP_CHANNELMAP_OUT="$CHANNEL_MAP_OUT" \
   SITREP_COMMANDMAP_OUT="$COMMAND_MAP_OUT" \
   SITREP_RECKONABILITY_OUT="$RECKONABILITY_OUT" \
+  SITREP_ERRORCODES_OUT="$ERRORCODES_OUT" \
   dotnet "$RTCLI" \
   DocumentationFilePath="$BIN/Sitrep.Contract.xml" \
   SourceAssemblies="$BIN/Sitrep.Contract.dll" \
@@ -70,6 +74,7 @@ echo "codegen -> $UNIT_JSON_OUT"
 echo "codegen -> $CHANNEL_MAP_OUT"
 echo "codegen -> $COMMAND_MAP_OUT"
 echo "codegen -> $RECKONABILITY_OUT"
+echo "codegen -> $ERRORCODES_OUT"
 
 # One rtcli run per Uplink that owns its own wire types, in addition to the core
 # Sitrep.Contract run above. Each Uplink's types live in its OWN contract-slice
@@ -127,6 +132,11 @@ for uplink_twin in "$ROOT"/mod/Gonogo*Uplink.Contract.Codegen; do
   if grep -rEqs --include='*.cs' '^[[:space:]]*\[SitrepTopic' "$ROOT/mod/$slice.Contract"; then
     topic_env=("${prefix}_TOPICMAP_OUT=$out_dir/topic-map.ts")
     outputs=(topic-map.ts "${outputs[@]}")
+  fi
+  # Only a slice that declares refusal refinements gets an error-codes.ts.
+  if grep -rEqs --include='*.cs' '\.Refine\(' "$ROOT/mod/$slice.Contract"; then
+    topic_env+=("${prefix}_ERRORCODES_OUT=$out_dir/error-codes.ts")
+    outputs+=(error-codes.ts)
   fi
 
   env DOTNET_ROLL_FORWARD=LatestMajor \

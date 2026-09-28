@@ -669,7 +669,7 @@ describe("useCommand founds", () => {
       transport.deliver({
         type: "error",
         requestId: ONLY_REQUEST,
-        code: "E_HANDLER",
+        code: "commandUnavailable",
         message: "threw",
       });
     });
@@ -1007,7 +1007,7 @@ describe("useCommand fire-and-forget refusals", () => {
     process.on("unhandledRejection", onUnhandled);
     try {
       const t = new StubTransport();
-      t.setCommandHandler(() => ({ success: false, errorCode: 2 }));
+      t.setCommandHandler(() => ({ success: false, errorCode: "noVessel" }));
       const client = new TelemetryClient(t);
       render(
         <TelemetryProvider client={client}>
@@ -1081,7 +1081,7 @@ describe("useCommand refusals", () => {
   it("collects a refusal with the reason and the numbers behind it", async () => {
     renderWith(() => ({
       success: false,
-      errorCode: 8,
+      errorCode: "limitReached",
       breach: {
         facility: "AstronautComplex",
         facilityName: "Astronaut Complex",
@@ -1093,13 +1093,15 @@ describe("useCommand refusals", () => {
     }));
     fireEvent.click(screen.getByText("hire"));
     await waitFor(() =>
-      expect(screen.getByText("refusal:8:Astronaut Complex")).toBeTruthy(),
+      expect(
+        screen.getByText("refusal:limitReached:Astronaut Complex"),
+      ).toBeTruthy(),
     );
   });
 
   it("keeps every refusal, not just the latest dispatch's", async () => {
     // `status` tracks one requestId, so a widget fired twice would lose the first refusal entirely if this were derived from it.
-    renderWith(() => ({ success: false, errorCode: 8 }));
+    renderWith(() => ({ success: false, errorCode: "limitReached" }));
     fireEvent.click(screen.getByText("hire"));
     fireEvent.click(screen.getByText("hire"));
     await waitFor(() => expect(screen.getByText("count:2")).toBeTruthy());
@@ -1107,7 +1109,7 @@ describe("useCommand refusals", () => {
 
   it("collects nothing from a command that succeeded", async () => {
     // The negative: without it this would pass just as well if every dispatch were recorded as a refusal.
-    renderWith(() => ({ success: true, errorCode: 0 }));
+    renderWith(() => ({ success: true }));
     fireEvent.click(screen.getByText("hire"));
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 0));
@@ -1129,7 +1131,7 @@ describe("useCommand refusals", () => {
   it("clears one through the same dismiss the delay queue uses", async () => {
     let dismiss: ((id: string) => void) | undefined;
     renderWith(
-      () => ({ success: false, errorCode: 8 }),
+      () => ({ success: false, errorCode: "limitReached" }),
       (fn) => {
         dismiss = fn;
       },
@@ -1179,14 +1181,14 @@ describe("useCommand gate", () => {
           gates: [
             {
               command: "stow",
-              verdict: { outcome: 0, errorCode: 0, detail: "" },
+              verdict: { outcome: 0, detail: "" },
             },
             {
               command: "deploy",
               verdict: {
                 // GateOutcome.Fail / CommandErrorCode.NotClearToProceed
                 outcome: 1,
-                errorCode: 13,
+                errorCode: "wrongScene",
                 detail: "the craft is throttled up",
               },
             },
@@ -1219,7 +1221,11 @@ describe("useCommand gate", () => {
           gates: [
             {
               command: "deploy",
-              verdict: { outcome: 1, errorCode: 13, detail: "throttled up" },
+              verdict: {
+                outcome: 1,
+                errorCode: "wrongScene",
+                detail: "throttled up",
+              },
             },
           ],
         },
@@ -1237,7 +1243,7 @@ describe("useCommand gate", () => {
           gates: [
             {
               command: "deploy",
-              verdict: { outcome: 0, errorCode: 0, detail: "" },
+              verdict: { outcome: 0, detail: "" },
             },
           ],
         },
@@ -1277,7 +1283,11 @@ describe("useCommand gate", () => {
           gates: [
             {
               command: "deploy",
-              verdict: { outcome: 1, errorCode: 13, detail: "throttled up" },
+              verdict: {
+                outcome: 1,
+                errorCode: "wrongScene",
+                detail: "throttled up",
+              },
             },
           ],
         },
@@ -1296,7 +1306,7 @@ describe("useCommand gate", () => {
 
     await expect(sent).rejects.toMatchObject({
       code: "E_REFUSED",
-      errorCode: 13,
+      errorCode: "wrongScene",
       command: "deploy",
       detail: "throttled up",
     });
@@ -1307,7 +1317,7 @@ describe("useCommand gate", () => {
     expect(captured.handle?.refusals[0]).toMatchObject({
       command: "deploy",
       label: "Deploy",
-      errorCode: 13,
+      errorCode: "wrongScene",
       detail: "throttled up",
     });
   });
@@ -1334,7 +1344,7 @@ describe("useCommand gate", () => {
           gates: [
             {
               command: "deploy",
-              verdict: { outcome: 0, errorCode: 0, detail: "" },
+              verdict: { outcome: 0, detail: "" },
             },
           ],
         },

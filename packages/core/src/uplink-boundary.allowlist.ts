@@ -1594,6 +1594,12 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "mod/sitrep-sdk/src/__generated__/contract.ts",
       /*
+       * The same carried prose in the generated error-code table: the
+       * `repair.unrepairable` refusal names TestFlight's own repair check as
+       * the authority for it. Text only, in a generated file.
+       */
+      "mod/sitrep-sdk/src/__generated__/error-codes.ts",
+      /*
        * -- CI gating ratchet: names the four Uplink test
        * projects that were in mod/Gonogo.sln and in no CI job, which is the
        * finding itself: "four projects drifted" without saying which is not
@@ -1889,6 +1895,10 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/sitrep-client/src/use-late-telemetry-subscribe.test.tsx",
   ],
   testflight: [
+    // The generated error-code table carries each code's doc comment as a
+    // `meaning` string, and `repair.unrepairable`'s names TestFlight's repair
+    // check. The name as DATA in a generated file.
+    "mod/sitrep-sdk/src/__generated__/error-codes.ts",
     "mod/GonogoDevTools/GonogoDevKerbalismDump.cs",
     "mod/Sitrep.Host.IntegrationTests/FlightEndToEndTests.cs",
     "mod/Sitrep.Host.Tests/ReliabilityStateWireTests.cs",

@@ -106,8 +106,8 @@ namespace Sitrep.Host.Maneuver
         {
             if (plan == null || plan.Burns == null)
             {
-                return CommandResult.Fail(
-                    CommandErrorCode.Unknown,
+                throw new CommandFaultException(
+                    FaultCode.InvalidEnvelope,
                     "The command carried no burns. An empty plan clears the craft's plan "
                         + "and is sent as an empty list; a missing list is a malformed "
                         + "command and is not acted on.");

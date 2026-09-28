@@ -53,7 +53,7 @@ namespace Gonogo.KSP
         {
             if (!TryResolveExperiments(partId, out var experiments, out var error))
             {
-                return CommandResult.Fail(error);
+                return CommandResult.Fail(error!);
             }
 
             var anyInoperable = false;
@@ -174,7 +174,7 @@ namespace Gonogo.KSP
 
             if (!TryResolveExperiments(partId, out var experiments, out var error))
             {
-                return CommandResult.Fail(error);
+                return CommandResult.Fail(error!);
             }
 
             ModuleScienceExperiment? withData = null;
@@ -255,7 +255,7 @@ namespace Gonogo.KSP
         /// <see cref="CommandErrorCode.NotFound"/> when no part carries the id
         /// or the resolved part has no experiment module at all.
         /// </summary>
-        private static bool TryResolveExperiments(string partId, out List<ModuleScienceExperiment> experiments, out CommandErrorCode error)
+        private static bool TryResolveExperiments(string partId, out List<ModuleScienceExperiment> experiments, out RefusalCode? error)
         {
             experiments = new List<ModuleScienceExperiment>();
 
@@ -297,7 +297,7 @@ namespace Gonogo.KSP
             }
 
             experiments = modules;
-            error = CommandErrorCode.None;
+            error = null;
             return true;
         }
     }

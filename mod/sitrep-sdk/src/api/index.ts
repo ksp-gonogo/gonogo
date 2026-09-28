@@ -1051,7 +1051,6 @@ export function createPerfBudget(opts: PerfBudgetOptions): PerfBudgetHandle {
  */
 export {
   COMMAND_LOST,
-  COMMAND_UNDELIVERED,
   type CommandRejection,
   classifyCommandRejection,
   commandRefusalSubject,
@@ -1109,6 +1108,16 @@ export {
   registerCoverageSource as registerFogRevealSource,
   unregisterCoverageSource as unregisterFogRevealSource,
 } from "./coverage-source";
+/**
+ * The error vocabulary: every refusal and fault code, typed, and the sentence
+ * and meaning behind any id a client meets, including an Uplink's refinements.
+ */
+export {
+  describeErrorCode,
+  noteRosterErrorCodes,
+  registerErrorCodes,
+  registeredErrorCodes,
+} from "./error-codes";
 /*
  * Root providers: how an Uplink mounts a context Provider at the top of a
  * screen's tree without the app importing it to hand-wire one in. Published

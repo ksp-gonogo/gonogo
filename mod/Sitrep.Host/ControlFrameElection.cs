@@ -84,8 +84,8 @@ namespace Sitrep.Host
         {
             if (frame == null)
             {
-                return CommandResult.Fail(
-                    CommandErrorCode.Unknown,
+                throw new CommandFaultException(
+                    FaultCode.InvalidEnvelope,
                     "The command carried no frame, so there is nothing to put the view in.");
             }
 

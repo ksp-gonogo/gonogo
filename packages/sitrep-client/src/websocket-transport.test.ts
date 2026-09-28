@@ -1,7 +1,7 @@
 import type { ClientMessage, ServerMessage } from "@ksp-gonogo/sitrep-sdk";
 import {
-  COMMAND_UNDELIVERED,
   classifyCommandRejection,
+  FaultCode,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import { ManualClock } from "@ksp-gonogo/sitrep-server";
@@ -755,7 +755,7 @@ describe("WebSocketTransport outbound queue", () => {
     // cannot double it. The code is what separates it from a broken handler.
     expect(rejection).toMatchObject({
       kind: "failed",
-      code: COMMAND_UNDELIVERED,
+      code: FaultCode.Undelivered,
     });
     expect(client.getCommand(requestId).phase).toBe("undelivered");
 

@@ -296,6 +296,7 @@
     "CommandResult": {
       "detail": "text",
       "errorCode": "enum",
+      "reason": "id",
       "success": "flag"
     },
     "CommsCommandCentre": {
@@ -613,7 +614,8 @@
     "GateVerdict": {
       "detail": "text",
       "errorCode": "enum",
-      "outcome": "enum"
+      "outcome": "enum",
+      "reason": "id"
     },
     "HireApplicantArgs": {
       "applicantName": "id"
@@ -907,7 +909,6 @@
     "RepairOutcome": {
       "kitsFrom": "id",
       "kitsUsed": "count",
-      "refusal": "enum",
       "repaired": "flag"
     },
     "RepairPartArgs": {

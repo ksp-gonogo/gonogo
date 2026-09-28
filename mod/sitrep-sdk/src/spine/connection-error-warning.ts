@@ -13,8 +13,8 @@ import { logger } from "../api/logger";
  * sentence that explains the fault and the author never saw it.
  *
  * Two live producers today, both of them useful and both of them previously
- * invisible: `binary-frame-not-accepted` (a binary-lane frame sent UP the
- * socket, which nothing accepts) and the `unknown-vantage` refusal of a
+ * invisible: `binaryFrameNotAccepted` (a binary-lane frame sent UP the
+ * socket, which nothing accepts) and the `unknownVantage` refusal of a
  * `set-vantage`, whose envelope carries no requestId to correlate by.
  */
 export function connectionErrorMessage(code: string, message: string): string {

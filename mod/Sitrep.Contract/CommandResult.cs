@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 #if SITREP_CODEGEN
 using Reinforced.Typings.Attributes;
 #endif
@@ -5,49 +7,27 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The typed, machine-readable failure code every command result carries.
-/// A string code forces the client to string-match a magic value that the
-/// compiler can neither check nor enumerate. This enum
-/// makes the failure surface a closed, typed set instead.
+/// The root refusals: the closed set every client can switch over. Each says
+/// what KIND of no it was, and so whether waiting, changing the craft, or doing
+/// something in the game is what makes a retry mean anything.
 ///
-/// <para><see cref="None"/> is the success sentinel (paired with
-/// <see cref="CommandResult.Success"/> = true); <see cref="Unknown"/> is the
-/// forward-compatible fallback for any code a newer producer emits that an
-/// older consumer doesn't recognise: the same <c>Unknown</c>-style
-/// read-fallback convention every other enum in this contract uses.</para>
+/// <para>A producer that can say more names a refinement of one of these (see
+/// <see cref="RefusalCode.Refine"/>); the root still travels, so nothing a client
+/// does with a root depends on knowing the refinement.</para>
 /// </summary>
-#if SITREP_CODEGEN
-[TsEnum]
-#endif
-[SitrepContract]
-public enum CommandErrorCode
+public static class CommandErrorCode
 {
-    /// <summary>No error: the success sentinel, paired with <see cref="CommandResult.Success"/> = true.</summary>
-    None = 0,
+    /// <summary>No active vessel to act on.</summary>
+    public static readonly RefusalCode NoVessel = RefusalCode.DeclareRoot("noVessel", "there is no vessel to act on");
 
-    /// <summary>Forward-compat fallback: a code a newer producer emitted that this consumer doesn't recognise.</summary>
-    Unknown = 1,
+    /// <summary>The requested mode or state is not available, and the game gave no more specific reason.</summary>
+    public static readonly RefusalCode ModeUnavailable = RefusalCode.DeclareRoot("modeUnavailable", "the game would not say why");
 
-    /// <summary>No active vessel to act on (was <c>"E_NO_VESSEL"</c>).</summary>
-    NoVessel = 2,
+    /// <summary>An argument was out of its valid range.</summary>
+    public static readonly RefusalCode Range = RefusalCode.DeclareRoot("range", "an argument was outside its valid range");
 
-    /// <summary>The requested mode/state isn't currently available (was <c>"E_MODE_UNAVAILABLE"</c>).</summary>
-    ModeUnavailable = 3,
-
-    /// <summary>An argument was out of its valid range (was <c>"E_RANGE"</c>).</summary>
-    Range = 4,
-
-    /// <summary>The referenced entity (node id, vessel/body target) didn't resolve (was <c>"E_NOT_FOUND"</c>).</summary>
-    NotFound = 5,
-
-    /// <summary>
-    /// F2-fix backstop: the command was marshaled onto the host's main-thread
-    /// pump but that pump did not drain it within the bounded wait (a
-    /// scene-load / loading-screen stall). A synthetic failure returned by the
-    /// host so the Courier thread can never park indefinitely, not emitted by
-    /// any uplink handler. Additive (Major 2, Minor 0 -&gt; 1).
-    /// </summary>
-    Timeout = 6,
+    /// <summary>The referenced entity (node id, vessel/body target) did not resolve.</summary>
+    public static readonly RefusalCode NotFound = RefusalCode.DeclareRoot("notFound", "nothing here answers to that");
 
     /// <summary>
     /// The elected maneuver-plan provider is not the one that reads stock's
@@ -60,29 +40,23 @@ public enum CommandErrorCode
     /// board that does precisely nothing. A silent wrong answer with a
     /// confident presentation.</para>
     ///
-    /// <para>The code says WHY. It deliberately does not say WHO: this enum is
-    /// typed precisely so a client never string-matches, and the owner is
-    /// already on the wire as <c>VesselManeuver.Planner</c> for a readout to
-    /// name. Additive (Major 5).</para>
+    /// <para>The code says WHY, not WHO: the owner is already on the wire as
+    /// <c>VesselManeuver.Planner</c> for a readout to name.</para>
     /// </summary>
-    PlanNotOwned = 7,
+    public static readonly RefusalCode PlanNotOwned = RefusalCode.DeclareRoot("planNotOwned", "another planner owns the flight plan");
 
     /// <summary>
     /// A capacity is full: the Astronaut Complex holds its cap of active crew,
     /// a facility holds its cap of anything else countable.
     ///
-    /// <para>Split out of <see cref="ModeUnavailable"/>, which was carrying five
-    /// unrelated causes at once (crew cap, facility maxed, no roster, no
-    /// Funding, wrong scene) and so could not tell a permanent refusal from a
-    /// transient one. This arm says the cap is reached and the world has to
-    /// change before a retry means anything; freeing a slot is a thing an
-    /// operator can actually do.</para>
+    /// <para>The world has to change before a retry means anything; freeing a
+    /// slot is a thing an operator can actually do.</para>
     ///
-    /// <para>The arm chooses the sentence, <see cref="CommandResult.Breach"/>
+    /// <para>The arm chooses the sentence, <see cref="Sitrep.Contract.CommandResult.Breach"/>
     /// supplies the numbers in it. Neither is worth sending without the other:
     /// a code with no payload cannot say "16 of 16".</para>
     /// </summary>
-    LimitReached = 8,
+    public static readonly RefusalCode LimitReached = RefusalCode.DeclareRoot("limitReached", "a limit has been reached");
 
     /// <summary>
     /// Already at the top of an upgradeable scale, so there is nothing above
@@ -92,20 +66,16 @@ public enum CommandErrorCode
     /// be freed; a maximum tier cannot be exceeded by any action at all, and an
     /// operator reads those two differently.</para>
     /// </summary>
-    AlreadyAtMaximum = 9,
+    public static readonly RefusalCode AlreadyAtMaximum = RefusalCode.DeclareRoot("alreadyAtMaximum", "it is already at its maximum");
 
     /// <summary>
     /// The command costs more than the funds on hand.
     ///
-    /// <para>Was <see cref="Range"/>, which documents "an argument was out of
-    /// its valid range" and is not what happened: affordability is not about an
-    /// argument, and a client reading the enum name aloud got it wrong.</para>
-    ///
-    /// <para><see cref="CommandResult.Breach"/> carries the cost as
+    /// <para><see cref="Sitrep.Contract.CommandResult.Breach"/> carries the cost as
     /// <c>Actual</c> against the balance as <c>Limit</c>, so the client can say
     /// how short and in the operator's own currency rendering.</para>
     /// </summary>
-    InsufficientFunds = 10,
+    public static readonly RefusalCode InsufficientFunds = RefusalCode.DeclareRoot("insufficientFunds", "there are not enough funds");
 
     /// <summary>
     /// The command costs more science than is banked.
@@ -119,7 +89,7 @@ public enum CommandErrorCode
     /// <c>ResearchAndDevelopment.CanAfford</c>, which skips the modifier chain
     /// and so answers a different question from the one the game acts on.</para>
     /// </summary>
-    InsufficientScience = 11,
+    public static readonly RefusalCode InsufficientScience = RefusalCode.DeclareRoot("insufficientScience", "there is not enough science");
 
     /// <summary>
     /// The save is not a career save, so this command's whole subsystem does not
@@ -135,16 +105,16 @@ public enum CommandErrorCode
     /// say. An operator should see the control absent rather than refused; a
     /// client that can tell this arm from the others can do that.</para>
     /// </summary>
-    CareerModeRequired = 12,
+    public static readonly RefusalCode CareerModeRequired = RefusalCode.DeclareRoot("careerModeRequired", "this save is not a career game");
 
     /// <summary>
     /// The game is in a scene this command cannot run from.
     ///
     /// <para>Authority: <c>HighLogic.LoadedScene</c> (<c>GameScenes</c>).
-    /// <see cref="CommandResult.Detail"/> names the scene when the producer had
+    /// <see cref="Sitrep.Contract.CommandResult.Detail"/> names the scene when the producer had
     /// one.</para>
     /// </summary>
-    WrongScene = 13,
+    public static readonly RefusalCode WrongScene = RefusalCode.DeclareRoot("wrongScene", "the game is not in a scene that allows it");
 
     /// <summary>
     /// The entity is not in a state this transition applies to: an already-active
@@ -157,10 +127,10 @@ public enum CommandErrorCode
     /// <c>ProtoCrewMember.RosterStatus</c>,
     /// <c>ModuleScienceExperiment.Deployed</c>/<c>Inoperable</c>. Every one of
     /// those is <c>[Description]</c>-tagged or otherwise nameable, so
-    /// <see cref="CommandResult.Detail"/> can carry the state in the game's own
+    /// <see cref="Sitrep.Contract.CommandResult.Detail"/> can carry the state in the game's own
     /// words.</para>
     /// </summary>
-    WrongState = 14,
+    public static readonly RefusalCode WrongState = RefusalCode.DeclareRoot("wrongState", "it is not in a state that allows it");
 
     /// <summary>
     /// Right command, wrong moment: the flight is not in a state that permits it
@@ -172,7 +142,7 @@ public enum CommandErrorCode
     /// <c>FlightDriver.CanRevertToPostInit</c>/<c>CanRevertToPrelaunch</c> and
     /// the <c>GameParameters</c> flags for leaving to the space center and to
     /// the tracking station. The arm rides on
-    /// <see cref="CommandResult.Detail"/>.</para>
+    /// <see cref="Sitrep.Contract.CommandResult.Detail"/>.</para>
     ///
     /// <para>Also the SCET alarm arm, for a vantage it cannot check because no
     /// command centre is known to the simulation yet: the main menu, and the
@@ -192,7 +162,7 @@ public enum CommandErrorCode
     /// authority. Counting the enum is not counting the answers.
     /// </internal></para>
     /// </summary>
-    NotClearToProceed = 15,
+    public static readonly RefusalCode NotClearToProceed = RefusalCode.DeclareRoot("notClearToProceed", "the flight is not clear for it yet");
 
     /// <summary>
     /// The part or vessel does not have the capability this command needs: a
@@ -210,7 +180,7 @@ public enum CommandErrorCode
     /// for this to work, which is why it is not <see cref="NotClearToProceed"/>
     /// and not <see cref="WrongState"/>.</para>
     /// </summary>
-    CapabilityMismatch = 16,
+    public static readonly RefusalCode CapabilityMismatch = RefusalCode.DeclareRoot("capabilityMismatch", "this craft cannot do it");
 
     /// <summary>
     /// There is no usable link for what this command needs to send.
@@ -221,7 +191,7 @@ public enum CommandErrorCode
     /// handler ever runs; this is the vessel finding it has no antenna that can
     /// carry the payload.</para>
     /// </summary>
-    NoConnection = 17,
+    public static readonly RefusalCode NoConnection = RefusalCode.DeclareRoot("noConnection", "there is no usable link");
 
     /// <summary>
     /// The capability exists in the game but this save has not unlocked it: fuel
@@ -237,16 +207,16 @@ public enum CommandErrorCode
     /// a number. This is a switch that is off, and the fix is an upgrade rather
     /// than freeing a slot.</para>
     /// </summary>
-    NotUnlocked = 18,
+    public static readonly RefusalCode NotUnlocked = RefusalCode.DeclareRoot("notUnlocked", "it has not been unlocked yet");
 
     /// <summary>
     /// Another vessel is on the launch site.
     ///
     /// <para>Authority: <c>PreFlightTests.LaunchSiteClear</c>, whose
     /// <c>GetWarningTitle()</c>/<c>GetWarningDescription()</c> are the game's own
-    /// words for it and ride on <see cref="CommandResult.Detail"/>.</para>
+    /// words for it and ride on <see cref="Sitrep.Contract.CommandResult.Detail"/>.</para>
     /// </summary>
-    SiteOccupied = 19,
+    public static readonly RefusalCode SiteOccupied = RefusalCode.DeclareRoot("siteOccupied", "another vessel is on the launch site");
 
     /// <summary>
     /// The facility this command needs is destroyed or damaged.
@@ -254,7 +224,7 @@ public enum CommandErrorCode
     /// <para>Authority: <c>PreFlightTests.FacilityOperational</c>, over
     /// <c>PSystemSetup.Instance.GetSpaceCenterFacility(name).GetFacilityDamage()</c>.</para>
     /// </summary>
-    FacilityDamaged = 20,
+    public static readonly RefusalCode FacilityDamaged = RefusalCode.DeclareRoot("facilityDamaged", "the building is out of action");
 
     /// <summary>
     /// The vehicle is not a launchable article yet: an install's build and
@@ -267,7 +237,7 @@ public enum CommandErrorCode
     /// requirements and this code never arrives on a stock install. Under RP-1 it
     /// is a vehicle that was never integrated, one still integrating, one
     /// finished but not rolled out, or one rolled out to a pad still being
-    /// reconditioned. <see cref="CommandResult.Detail"/> says which.</para>
+    /// reconditioned. <see cref="Sitrep.Contract.CommandResult.Detail"/> says which.</para>
     ///
     /// <para>Deliberately NOT <see cref="LimitReached"/>, which is the launch
     /// refusal an operator already gets for a craft that is too heavy or too
@@ -281,7 +251,7 @@ public enum CommandErrorCode
     /// situation from one that does not exist, and collapsing them tells an
     /// operator to go looking for a file that is sitting right there.</para>
     /// </summary>
-    NotReady = 21,
+    public static readonly RefusalCode NotReady = RefusalCode.DeclareRoot("notReady", "the vehicle is not ready to fly yet");
 
     /// <summary>
     /// The command consumes a countable ITEM and there are not enough of them
@@ -304,7 +274,7 @@ public enum CommandErrorCode
     /// that is FULL. This is a store that is empty, and the two read as
     /// opposites.</para>
     /// </summary>
-    InsufficientResource = 22,
+    public static readonly RefusalCode InsufficientResource = RefusalCode.DeclareRoot("insufficientResource", "there are not enough of what it uses aboard");
 
     /// <summary>
     /// The provider was ASKED and COULD NOT ANSWER. Nothing about the craft, the
@@ -322,7 +292,7 @@ public enum CommandErrorCode
     /// by waiting, and a retry is a second attempt at the same question rather
     /// than a later one.</para>
     ///
-    /// <para><see cref="CommandResult.Detail"/> names WHAT could not be read
+    /// <para><see cref="Sitrep.Contract.CommandResult.Detail"/> names WHAT could not be read
     /// when the producer had a name for it, and never says what the answer would
     /// have been. A surface has nothing to tell the operator about their vehicle
     /// here, because nothing was learned about it; offering the command again is
@@ -350,7 +320,7 @@ public enum CommandErrorCode
     /// otherwise.
     /// </internal></para>
     /// </summary>
-    Unreadable = 23,
+    public static readonly RefusalCode Unreadable = RefusalCode.DeclareRoot("unreadable", "the game would not answer");
 
     /// <summary>
     /// The command acts at a PLACE, and the command centre it was sent from has
@@ -360,7 +330,7 @@ public enum CommandErrorCode
     /// this refuses is the sender, not the moment, so no amount of waiting makes
     /// it succeed. Sending from a centre in the place's own system does.</para>
     ///
-    /// <para><see cref="CommandResult.Detail"/> names the centre and the place,
+    /// <para><see cref="Sitrep.Contract.CommandResult.Detail"/> names the centre and the place,
     /// and the system each is in, so an operator learns which seat to move to
     /// rather than seeing a control that simply does nothing.</para>
     ///
@@ -368,7 +338,30 @@ public enum CommandErrorCode
     /// cannot carry the command. A centre may be perfectly linked to the place
     /// and still have no authority over it.</para>
     /// </summary>
-    OutOfReach = 24,
+    public static readonly RefusalCode OutOfReach = RefusalCode.DeclareRoot("outOfReach", "this command centre has no authority over that place");
+
+    // Built on first use rather than in the static initialiser: a core
+    // refinement's holder reads these roots from its own initialiser, so an
+    // eager index could run while that holder's fields are still null.
+    private static Dictionary<string, RefusalCode>? _byId;
+
+    /// <summary>Every root, in declaration order.</summary>
+    public static IReadOnlyList<RefusalCode> Roots => ErrorCodeCatalog.Of(typeof(CommandErrorCode));
+
+    /// <summary>Every refinement core itself declares, in declaration order.</summary>
+    public static IReadOnlyList<RefusalCode> CoreRefinements => ErrorCodeCatalog.Of(typeof(RepairRefusal));
+
+    /// <summary>The core-declared code (a root or a core refinement) with this id, or null.</summary>
+    public static RefusalCode? Find(string id) =>
+        id != null && (_byId ??= IndexById()).TryGetValue(id, out var code) ? code : null;
+
+    private static Dictionary<string, RefusalCode> IndexById()
+    {
+        var byId = new Dictionary<string, RefusalCode>(StringComparer.Ordinal);
+        foreach (var code in Roots) byId[code.Id] = code;
+        foreach (var code in CoreRefinements) byId[code.Id] = code;
+        return byId;
+    }
 }
 
 /// <summary>
@@ -395,8 +388,27 @@ public class CommandResult
     [SitrepUnit(Units.Flag)]
     public bool Success { get; set; } = true;
 
+    /// <summary>
+    /// Why it was refused, null on success. On the wire this is the ROOT's id,
+    /// so every client can classify it; a refinement's own id travels beside it
+    /// as <see cref="Reason"/>.
+    /// </summary>
+#if SITREP_CODEGEN
+    [TsProperty(Type = "CommandErrorCode", ForceNullable = true)]
+#endif
     [SitrepUnit(Units.Enumeration)]
-    public CommandErrorCode ErrorCode { get; set; } = CommandErrorCode.None;
+    [SitrepOmittedWhenNull]
+    public RefusalCode? ErrorCode { get; set; }
+
+    /// <summary>
+    /// The refinement's id, when the refusal is more specific than its root:
+    /// <c>rp1.notManaging</c> under <c>careerModeRequired</c>. Absent when the
+    /// refusal is a root. An id this client does not know is still a refusal
+    /// of kind <see cref="ErrorCode"/>.
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    [SitrepOmittedWhenNull]
+    public string? Reason => ErrorCode is { IsRoot: false } ? ErrorCode.Id : null;
 
     /// <summary>
     /// The numbers behind the refusal, when the refusal has any: the cap and the
@@ -449,11 +461,12 @@ public class CommandResult
 
     public static CommandResult Ok() => new CommandResult { Success = true };
 
-    public static CommandResult Fail(CommandErrorCode errorCode) =>
+    /// <summary>A refusal with nothing more to say than its code.</summary>
+    public static CommandResult Fail(RefusalCode errorCode) =>
         new CommandResult { Success = false, ErrorCode = errorCode };
 
     /// <summary>A refusal that quotes the game. See <see cref="Detail"/>.</summary>
-    public static CommandResult Fail(CommandErrorCode errorCode, string? detail) =>
+    public static CommandResult Fail(RefusalCode errorCode, string? detail) =>
         new CommandResult
         {
             Success = false,
@@ -464,7 +477,7 @@ public class CommandResult
         };
 
     /// <summary>A refusal that carries its comparison. See <see cref="Breach"/>.</summary>
-    public static CommandResult Fail(CommandErrorCode errorCode, LimitBreach breach) =>
+    public static CommandResult Fail(RefusalCode errorCode, LimitBreach breach) =>
         new CommandResult { Success = false, ErrorCode = errorCode, Breach = breach };
 }
 
@@ -490,11 +503,12 @@ public class CommandResult<T> : CommandResult
     public static CommandResult<T> Ok(T payload) =>
         new CommandResult<T> { Success = true, Payload = payload };
 
-    public static new CommandResult<T> Fail(CommandErrorCode errorCode) =>
+    /// <summary>A refusal with nothing more to say than its code.</summary>
+    public static new CommandResult<T> Fail(RefusalCode errorCode) =>
         new CommandResult<T> { Success = false, ErrorCode = errorCode };
 
     /// <summary>A refusal that quotes the game. See <see cref="CommandResult.Detail"/>.</summary>
-    public static new CommandResult<T> Fail(CommandErrorCode errorCode, string? detail) =>
+    public static new CommandResult<T> Fail(RefusalCode errorCode, string? detail) =>
         new CommandResult<T>
         {
             Success = false,
@@ -503,6 +517,6 @@ public class CommandResult<T> : CommandResult
         };
 
     /// <summary>A refusal that carries its comparison. See <see cref="CommandResult.Breach"/>.</summary>
-    public static new CommandResult<T> Fail(CommandErrorCode errorCode, LimitBreach breach) =>
+    public static new CommandResult<T> Fail(RefusalCode errorCode, LimitBreach breach) =>
         new CommandResult<T> { Success = false, ErrorCode = errorCode, Breach = breach };
 }

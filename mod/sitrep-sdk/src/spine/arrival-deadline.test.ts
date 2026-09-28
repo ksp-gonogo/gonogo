@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { CommandErrorCode } from "../__generated__/contract";
+import { CommandErrorCode } from "../__generated__/error-codes";
 import { createTestTelemetryClient } from "../testing/create-test-telemetry-client";
 import { StubTransport } from "../testing/stub-transport";
 import { value } from "../unit-system";

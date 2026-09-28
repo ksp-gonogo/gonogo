@@ -54,7 +54,7 @@ namespace Sitrep.Host.IntegrationTests
                 engine.TickAndWait(0.0, ThirdPartyPayloadUplink.Snapshot(), TestBudgets.Op);
 
                 var error = await ReceiveTypedAsync<ErrorMsg>(client, Timeout);
-                Assert.Equal("payload-serialization-error", error.Code);
+                Assert.Equal(FaultCode.PayloadSerializationError, error.Code);
                 Assert.Equal(ThirdPartyPayloadUplink.Topic, error.Topic);
 
                 // (b) of the brief: the message must name the offending type

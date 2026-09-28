@@ -12,6 +12,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import {
+  CommandErrorCode,
   deriveRailEntry,
   pendingCrossing,
   type RailCrossing,
@@ -335,8 +336,15 @@ const SCENARIOS: ReadonlyArray<{
             command: "vessel.control.setSasMode",
             args: { mode: "prograde" },
             label: "",
-            // 17 is NoConnection: the one general reason whose wording changed.
-            errorCode: 17,
+            errorCode: CommandErrorCode.NoConnection,
+          },
+          {
+            id: "r1",
+            command: "vessel.repair",
+            args: { partId: "4011229875" },
+            label: "",
+            errorCode: CommandErrorCode.CapabilityMismatch,
+            reason: "repair.crewNotQualified",
           },
         ],
         losses: [

@@ -25,6 +25,8 @@ export interface CommandFoundLike {
   label?: string;
   /** `outcome: "refused"` only: the game's typed reason. */
   errorCode?: CommandErrorCode;
+  /** `outcome: "refused"` only: the refinement's id, when the refusal was more specific than `errorCode`. */
+  reason?: string;
   /** `outcome: "refused"` only: the limit and the actual behind the reason. */
   breach?: LimitBreach;
   /** `outcome: "refused"` only: the refusal in the game's own words. */
@@ -67,6 +69,7 @@ export function commandFoundSentence(found: CommandFoundLike): string {
         : `${stripSubject(
             commandRefusalSentence({
               errorCode: found.errorCode,
+              reason: found.reason,
               command: found.command,
               args: found.args,
               label: found.label,

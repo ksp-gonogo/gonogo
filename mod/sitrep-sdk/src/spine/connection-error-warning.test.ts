@@ -11,10 +11,10 @@ describe("the connection-error warning", () => {
 
   it("names the code and keeps the mod's own sentence", () => {
     const message = connectionErrorMessage(
-      "binary-frame-not-accepted",
+      "binaryFrameNotAccepted",
       "the stream-binary lane is server-to-client only; send bytes as a command's arguments instead",
     );
-    expect(message).toContain("binary-frame-not-accepted");
+    expect(message).toContain("binaryFrameNotAccepted");
     expect(message).toContain("server-to-client only");
   });
 
@@ -37,13 +37,13 @@ describe("the connection-error warning", () => {
 
     transport.emitRaw({
       type: "error",
-      code: "binary-frame-not-accepted",
+      code: "binaryFrameNotAccepted",
       message:
         "the stream-binary lane is server-to-client only; send bytes as a command's arguments instead",
     });
 
     expect(logged).toHaveLength(1);
-    expect(logged[0]).toContain("binary-frame-not-accepted");
+    expect(logged[0]).toContain("binaryFrameNotAccepted");
     expect(logged[0]).toContain("server-to-client only");
   });
 
@@ -51,7 +51,7 @@ describe("the connection-error warning", () => {
    * The other live producer: `set-vantage` carries no requestId in the
    * envelope, so its refusal cannot be correlated even in principle.
    */
-  it("reports the unknown-vantage refusal of a set-vantage", () => {
+  it("reports the unknownVantage refusal of a set-vantage", () => {
     const logged: string[] = [];
     installTestHost({
       logger: { warn: (message: string) => logged.push(message) },
@@ -62,12 +62,12 @@ describe("the connection-error warning", () => {
 
     transport.emitRaw({
       type: "error",
-      code: "unknown-vantage",
+      code: "unknownVantage",
       message: "'ksc-2' is not an active command centre",
     });
 
     expect(logged).toHaveLength(1);
-    expect(logged[0]).toContain("unknown-vantage");
+    expect(logged[0]).toContain("unknownVantage");
     expect(logged[0]).toContain("ksc-2");
   });
 
@@ -83,7 +83,7 @@ describe("the connection-error warning", () => {
     for (let i = 0; i < 5; i++) {
       transport.emitRaw({
         type: "error",
-        code: "binary-frame-not-accepted",
+        code: "binaryFrameNotAccepted",
         message: "unknown binary lane 0x07",
       });
     }
@@ -108,7 +108,7 @@ describe("the connection-error warning", () => {
     transport.emitRaw({
       type: "error",
       requestId: "req-1",
-      code: "E_UNAVAILABLE",
+      code: "commandUnavailable",
       message: "uplink is unavailable",
     });
 
@@ -129,7 +129,7 @@ describe("the connection-error warning", () => {
     transport.emitRaw({
       type: "error",
       topic: "burn.plan",
-      code: "payload-serialization-error",
+      code: "payloadSerializationError",
       message: "could not be serialized",
     });
 

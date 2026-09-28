@@ -153,7 +153,7 @@ namespace Sitrep.Host.IntegrationTests
                 await client.SendAsync(EnvelopeCodec.WriteSubscribe(new Subscribe { Topic = topic }));
                 var error = await ReceiveTypedAsync<ErrorMsg>(client, Timeout);
 
-                Assert.Equal("unknown-topic", error.Code);
+                Assert.Equal(FaultCode.UnknownTopic, error.Code);
                 Assert.Equal(topic, error.Topic);
                 Assert.Contains(expectedFragment, error.Message);
             }

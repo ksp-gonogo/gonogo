@@ -53,7 +53,7 @@ export function unownedTopicMessage(
   return (
     `[unowned topic] Nothing will ever publish "${topic}". ${who}, and that read ` +
     `will never resolve. The mod either refused the subscribe with an ` +
-    `unknown-topic error or never acked it, which means no installed Uplink ` +
+    `unknownTopic error or never acked it, which means no installed Uplink ` +
     `declares the channel and it falls under no dynamic namespace. Check, in ` +
     `order: the topic is spelled the way the ` +
     `Uplink declares it; the Uplink that owns it is installed and enabled; and its ` +

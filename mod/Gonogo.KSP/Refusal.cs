@@ -15,13 +15,13 @@ namespace Gonogo.KSP
     /// </summary>
     internal readonly struct Refusal
     {
-        public Refusal(CommandErrorCode code, string detail)
+        public Refusal(RefusalCode code, string detail)
         {
             Code = code;
             Detail = detail;
         }
 
-        public CommandErrorCode Code { get; }
+        public RefusalCode Code { get; }
 
         /// <summary>The game's own words, when the rule had any. Empty is legal: the code is the load-bearing half.</summary>
         public string Detail { get; }

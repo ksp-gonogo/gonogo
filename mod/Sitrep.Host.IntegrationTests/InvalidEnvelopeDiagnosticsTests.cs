@@ -44,7 +44,7 @@ namespace Sitrep.Host.IntegrationTests
                 await client.SendAsync("{\"type\":\"command-request\",\"requestId\":\"r-1\",\"command\":\"noop\",\"args\":null}");
 
                 var error = await ReceiveTypedAsync<ErrorMsg>(client, Timeout);
-                Assert.Equal("invalid-envelope", error.Code);
+                Assert.Equal(FaultCode.InvalidEnvelope, error.Code);
                 Assert.Equal("r-1", error.RequestId);
                 Assert.Contains("command-request", error.Message);
                 Assert.Contains("sentAt", error.Message);
@@ -72,7 +72,7 @@ namespace Sitrep.Host.IntegrationTests
                 await client.SendAsync("{\"type\":\"command-request\",\"command\":\"noop\",\"sentAt\":1.0}");
 
                 var error = await ReceiveTypedAsync<ErrorMsg>(client, Timeout);
-                Assert.Equal("invalid-envelope", error.Code);
+                Assert.Equal(FaultCode.InvalidEnvelope, error.Code);
                 Assert.Null(error.RequestId);
                 Assert.Contains("requestId", error.Message);
             }
@@ -104,7 +104,7 @@ namespace Sitrep.Host.IntegrationTests
                 await client.SendAsync(frame);
 
                 var error = await ReceiveTypedAsync<ErrorMsg>(client, Timeout);
-                Assert.Equal("invalid-envelope", error.Code);
+                Assert.Equal(FaultCode.InvalidEnvelope, error.Code);
                 Assert.Contains(envelopeType, error.Message);
                 Assert.Contains(field, error.Message);
             }
@@ -135,7 +135,7 @@ namespace Sitrep.Host.IntegrationTests
 
                 Assert.NotEqual(frame, reply);
                 var error = Assert.IsType<ErrorMsg>(EnvelopeCodec.ParseServerMessage(reply));
-                Assert.Equal("unknown-envelope-type", error.Code);
+                Assert.Equal(FaultCode.UnknownEnvelopeType, error.Code);
                 Assert.Contains("teleport", error.Message);
             }
             finally
@@ -161,7 +161,7 @@ namespace Sitrep.Host.IntegrationTests
                 await client.SendAsync("{\"type\":\"teleport\",\"requestId\":\"r-9\",\"topic\":\"vessel.flight\"}");
 
                 var error = await ReceiveTypedAsync<ErrorMsg>(client, Timeout);
-                Assert.Equal("unknown-envelope-type", error.Code);
+                Assert.Equal(FaultCode.UnknownEnvelopeType, error.Code);
                 Assert.Equal("r-9", error.RequestId);
                 Assert.Equal("vessel.flight", error.Topic);
             }

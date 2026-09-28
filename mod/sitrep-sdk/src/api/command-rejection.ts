@@ -1,44 +1,39 @@
-import { CommandErrorCode, type LimitBreach } from "../__generated__/contract";
+import type { LimitBreach } from "../__generated__/contract";
+import { CommandErrorCode, FaultCode } from "../__generated__/error-codes";
 
 /**
- * The rejection codes a dispatch promise can carry, defined here rather than at
- * the throw site so the published guard below and the spine that throws read
- * ONE definition. The spine is unpublished, so an author who had to match these
- * strings would be matching something they could only have learned from our
- * source.
+ * The markers a dispatch promise's rejection carries in `code` for the two
+ * outcomes that are not a fault, defined here rather than at the throw site so
+ * the published guard below and the spine that throws read ONE definition.
+ * Every other rejection carries a `FaultCode`.
  */
 export const COMMAND_REFUSED = "E_REFUSED";
 export const COMMAND_LOST = "E_LOST";
-/**
- * The command never left this machine: the transport held it for a link that
- * never came back, and has now stopped retrying.
- *
- * A `failed` rejection rather than a `kind` of its own, for the same reason the
- * queue-full refusal and `E_DISPOSED` are: nothing was decided over there, so
- * `lost`'s warning (a re-send may double a command that already ran) would be a
- * lie, and an author who handles only the three kinds still reads it as "broke,
- * a retry may work", which is true here. The code is what carries the stronger
- * half, and it is the one of the three worth publishing: `refused` and `lost`
- * already have a `kind` to be recognised by, this one does not.
- */
-export const COMMAND_UNDELIVERED = "E_UNDELIVERED";
 
 /**
  * Why a dispatch promise rejected, in the same three words the command's
  * `CommandStatus` phase uses, because they are the same three outcomes:
  *
  * - `refused`: the handler ran, the game evaluated it, and the answer was no.
- *   Carries the mod's typed `CommandErrorCode`. A retry changes nothing until
+ *   Carries the mod's root `CommandErrorCode`, and the refinement's id as
+ *   `reason` when the refusal was more specific. A retry changes nothing until
  *   the situation does, so the honest UI is a reason, not a try-again
  * - `lost`: no answer arrived by the predicted deadline. Nothing was decided
  *   and the command may well have executed anyway, so re-sending can double it
  * - `failed`: the machinery broke (a handler threw, a result would not
- *   serialize, the link went down mid-flight). A retry may genuinely work
+ *   serialize, the link went down mid-flight), named by a `FaultCode`. A retry
+ *   may genuinely work
  */
 export type CommandRejection =
   | {
       kind: "refused";
       errorCode: CommandErrorCode;
+      /**
+       * The refinement's id, when the refusal was more specific than its root:
+       * `describeErrorCode` reads its sentence. An id no client knows is still a
+       * refusal of kind `errorCode`.
+       */
+      reason?: string;
       message: string;
       /**
        * What was dispatched, so the outcome can be SAID rather than only
@@ -57,7 +52,7 @@ export type CommandRejection =
       detail?: string;
     }
   | { kind: "lost"; message: string }
-  | { kind: "failed"; code: string; message: string };
+  | { kind: "failed"; code: FaultCode | (string & {}); message: string };
 
 /**
  * Sort a caught dispatch rejection into one of the three outcomes above.
@@ -74,6 +69,7 @@ export function classifyCommandRejection(err: unknown): CommandRejection {
     code?: unknown;
     message?: unknown;
     errorCode?: unknown;
+    reason?: unknown;
     command?: unknown;
     args?: unknown;
     label?: unknown;
@@ -88,13 +84,15 @@ export function classifyCommandRejection(err: unknown): CommandRejection {
   if (carrier.code === COMMAND_REFUSED) {
     return {
       kind: "refused",
-      // A refusal whose reason did not survive is still a refusal. Reporting
-      // `Unknown` keeps the outcome true where guessing at the reason would
-      // not, and `Unknown` is a real member of the mod's own enum.
+      // A refusal whose code did not survive is still a refusal, and modeUnavailable is a refusal with no reason given.
       errorCode:
-        typeof carrier.errorCode === "number"
+        typeof carrier.errorCode === "string"
           ? (carrier.errorCode as CommandErrorCode)
-          : CommandErrorCode.Unknown,
+          : CommandErrorCode.ModeUnavailable,
+      reason:
+        typeof carrier.reason === "string" && carrier.reason.length > 0
+          ? carrier.reason
+          : undefined,
       message,
       command:
         typeof carrier.command === "string" ? carrier.command : undefined,
@@ -113,7 +111,8 @@ export function classifyCommandRejection(err: unknown): CommandRejection {
   if (carrier.code === COMMAND_LOST) return { kind: "lost", message };
   return {
     kind: "failed",
-    code: typeof carrier.code === "string" ? carrier.code : "E_UNKNOWN",
+    code:
+      typeof carrier.code === "string" ? carrier.code : FaultCode.Unclassified,
     message,
   };
 }

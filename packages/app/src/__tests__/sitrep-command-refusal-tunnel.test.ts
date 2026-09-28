@@ -313,11 +313,11 @@ describe("a refused command crossing the peer boundary", () => {
 
     expect(stationClient.getCommand(requestId)).toMatchObject({
       phase: "failed",
-      error: { code: "E_NO_CLIENT" },
+      error: { code: "noClient" },
     });
     expect(classifyCommandRejection(await rejection)).toMatchObject({
       kind: "failed",
-      code: "E_NO_CLIENT",
+      code: "noClient",
     });
   });
 });

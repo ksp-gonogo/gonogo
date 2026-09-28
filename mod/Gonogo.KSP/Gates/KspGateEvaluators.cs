@@ -537,7 +537,7 @@ namespace Gonogo.KSP.Gates
             try
             {
                 PreFlightTests.IPreFlightTest test;
-                CommandErrorCode code;
+                RefusalCode code;
                 switch (requirement.Quantity)
                 {
                     case KspGateEvaluators.Quantities.LaunchSiteClear:

@@ -303,6 +303,7 @@ export function useCommandButton<Result = CommandReplyLike, Args = unknown>({
         }
         settle("refused", {
           errorCode: rejection.errorCode,
+          reason: rejection.reason,
           command: rejection.command,
           args: rejection.args,
           label: rejection.label ?? commandLabel,

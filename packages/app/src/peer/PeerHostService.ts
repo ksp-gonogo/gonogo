@@ -9,6 +9,7 @@ import { debugPeer, logger } from "@ksp-gonogo/logger";
 import { getActiveTelemetryClient } from "@ksp-gonogo/sitrep-client";
 import {
   classifyCommandRejection,
+  FaultCode,
   Quality,
   Staleness,
 } from "@ksp-gonogo/sitrep-sdk";
@@ -2078,7 +2079,7 @@ export class PeerHostService {
       conn.send({
         type: "sitrep-command-error",
         requestId: msg.requestId,
-        code: "E_NO_CLIENT",
+        code: FaultCode.NoClient,
         message: "host has no live telemetry client",
       } satisfies PeerMessage);
       return;
@@ -2160,6 +2161,7 @@ export class PeerHostService {
           result: {
             success: false,
             errorCode: rejection.errorCode,
+            reason: rejection.reason,
             breach: rejection.breach,
             detail: rejection.detail,
           },
@@ -2182,7 +2184,7 @@ export class PeerHostService {
       conn.send({
         type: "sitrep-command-error",
         requestId: msg.requestId,
-        code: code ?? "E_UNKNOWN",
+        code: code ?? FaultCode.Unclassified,
         message: message ?? String(err),
       } satisfies PeerMessage);
     }

@@ -314,10 +314,10 @@ describe("TelemetryClient commands", () => {
     const client = new TelemetryClient(t);
     // make the stub answer with an error for any command:
     t.setCommandHandler(() => {
-      throw { code: "E_NO", message: "nope" };
+      throw { code: "commandUnavailable", message: "nope" };
     });
     const { requestId, result } = client.dispatch("x");
-    await expect(result).rejects.toMatchObject({ code: "E_NO" });
+    await expect(result).rejects.toMatchObject({ code: "commandUnavailable" });
     expect(client.getCommand(requestId)).toMatchObject({
       phase: "failed",
       requestId,
@@ -382,7 +382,7 @@ describe("TelemetryClient commands", () => {
 
     client.dispose();
 
-    await expect(result).rejects.toMatchObject({ code: "E_DISPOSED" });
+    await expect(result).rejects.toMatchObject({ code: "disposed" });
     expect(sendSpy).toHaveBeenCalledWith({
       type: "unsubscribe",
       topic: "v.alt",
@@ -468,10 +468,10 @@ describe("TelemetryClient delayed command lifecycle (eta + loss)", () => {
     transport.deliver({
       type: "error",
       requestId,
-      code: "E_NO",
+      code: "commandUnavailable",
       message: "nope",
     });
-    await expect(result).rejects.toMatchObject({ code: "E_NO" });
+    await expect(result).rejects.toMatchObject({ code: "commandUnavailable" });
 
     clock.advanceTo(4 + LOSS_MARGIN + 10);
     expect(client.getCommand(requestId)).toMatchObject({
@@ -775,7 +775,6 @@ describe("TelemetryClient command refusals", () => {
     const t = new StubTransport();
     t.setCommandHandler(() => ({
       success: true,
-      errorCode: CommandErrorCode.None,
     }));
     const client = new TelemetryClient(t);
     const { requestId, result } = client.dispatch("vessel.control.stage");
@@ -841,7 +840,7 @@ describe("classifyCommandRejection against the spine that actually throws", () =
       kind: "refused",
       errorCode: CommandErrorCode.NotFound,
       // The typed reason reaches the words too, or an operator-facing message built from this is back to saying nothing useful.
-      message: expect.stringContaining("NotFound"),
+      message: expect.stringContaining("notFound"),
       // And WHICH command was refused, which the reply itself never says.
       command: "a",
       args: undefined,
@@ -852,13 +851,13 @@ describe("classifyCommandRejection against the spine that actually throws", () =
 
     const breaking = new StubTransport();
     breaking.setCommandHandler(() => {
-      throw { code: "E_NO", message: "nope" };
+      throw { code: "commandUnavailable", message: "nope" };
     });
     const failed = new TelemetryClient(breaking);
     const failedDispatch = failed.dispatch("b");
     expect(await classify(failedDispatch.result)).toEqual({
       kind: "failed",
-      code: "E_NO",
+      code: "commandUnavailable",
       message: "nope",
     });
     expect(failed.getCommand(failedDispatch.requestId).phase).toBe("failed");
@@ -970,7 +969,7 @@ describe("TelemetryClient found: a lost command that answers after all", () => {
     transport.deliver({
       type: "error",
       requestId,
-      code: "E_HANDLER",
+      code: "commandUnavailable",
       message: "the handler threw",
     });
 
@@ -978,7 +977,7 @@ describe("TelemetryClient found: a lost command that answers after all", () => {
       phase: "found",
       requestId,
       outcome: "errored",
-      error: { code: "E_HANDLER", message: "the handler threw" },
+      error: { code: "commandUnavailable", message: "the handler threw" },
     });
   });
 

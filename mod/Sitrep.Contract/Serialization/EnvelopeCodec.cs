@@ -391,7 +391,7 @@ namespace Sitrep.Contract.Serialization
             }
 
             AppendField(sb, "code");
-            JsonWriter.AppendString(sb, msg.Code);
+            JsonWriter.AppendString(sb, msg.Code.Id);
 
             AppendField(sb, "message");
             JsonWriter.AppendString(sb, msg.Message);
@@ -437,7 +437,7 @@ namespace Sitrep.Contract.Serialization
                 Type = "error",
                 RequestId = TryGetString(raw, "requestId"),
                 Topic = TryGetString(raw, "topic"),
-                Code = RequireString(raw, "code"),
+                Code = FaultCode.FromWire(RequireString(raw, "code")),
                 Message = RequireString(raw, "message"),
             };
         }

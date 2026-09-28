@@ -472,8 +472,10 @@ namespace Sitrep.Contract
             isList = sequenceElement != null;
             var element = sequenceElement ?? type;
             var underlying = Nullable.GetUnderlyingType(element) ?? element;
+            // An error code crosses the wire as its string id, so it is a scalar here too.
             if (underlying.IsPrimitive || underlying.IsEnum || underlying == typeof(string)
-                || underlying == typeof(decimal) || underlying == typeof(DateTime))
+                || underlying == typeof(decimal) || underlying == typeof(DateTime)
+                || underlying == typeof(RefusalCode) || underlying == typeof(FaultCode))
             {
                 return null;
             }

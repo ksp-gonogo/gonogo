@@ -207,7 +207,6 @@ describe("ExperimentsComponent", () => {
       command === "science.experiment.transmit"
         ? {
             success: true,
-            errorCode: 0,
             payload: {
               subjectId: "temperatureScan@KerbinSrfLandedLaunchPad",
               title: "Temperature Scan from LaunchPad",
@@ -216,7 +215,7 @@ describe("ExperimentsComponent", () => {
               dataAmount: 8,
             },
           }
-        : { success: true, errorCode: 0 },
+        : { success: true },
     );
     const { container, unmount } = render(
       <fixture.Provider>

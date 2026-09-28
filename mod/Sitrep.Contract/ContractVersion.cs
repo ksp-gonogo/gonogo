@@ -507,11 +507,36 @@ namespace Sitrep.Contract
         /// <c>SeamBreaks</c>, since the shape gate computes wire breaks only.</para>
         ///
         /// <para>Sanctioned on the same standing grounds as every Major above.</para>
+        ///
+        /// <para><b>Bumped 18 -&gt; 19: one error vocabulary, with string ids.</b>
+        /// <see cref="CommandErrorCode"/> stops being an integer enum and becomes
+        /// the closed set of ROOT <see cref="RefusalCode"/>s, each a camelCase id
+        /// with its own sentence; a producer can name a refinement of a root, and
+        /// an Uplink declares its own on <see cref="UplinkManifest.ErrorCodes"/>.
+        /// On the wire <c>errorCode</c> on <see cref="CommandResult"/> and
+        /// <see cref="GateVerdict"/> is the root's id and is omitted on success,
+        /// with a refinement's id beside it as <c>reason</c>. <c>None</c> and
+        /// <c>Unknown</c> are gone, and <c>Timeout</c> is now the fault
+        /// <see cref="FaultCode.MainThreadTimeout"/>, since nothing was decided.
+        /// <see cref="ErrorMsg.Code"/> is a declared <see cref="FaultCode"/>, and
+        /// its values are renamed to camelCase (<c>E_UNAVAILABLE</c> is
+        /// <c>commandUnavailable</c>). <c>RepairOutcome.Refusal</c> is removed in
+        /// favour of the <see cref="RepairRefusal"/> refinements on
+        /// <c>reason</c>.</para>
+        ///
+        /// <para><b>Also in 19, C# seam breaks the wire shape cannot see:</b>
+        /// <see cref="IReliabilityBackend.Repair"/> returns the
+        /// <see cref="CommandResult{T}"/> itself, and every <c>Fail</c> factory on
+        /// <see cref="CommandResult"/>, <see cref="CommandResult{T}"/> and
+        /// <see cref="GateVerdict"/> takes a <see cref="RefusalCode"/>. Declared in
+        /// the ledger's <c>SeamBreaks</c>.</para>
+        ///
+        /// <para>Sanctioned on the same standing grounds as every Major above.</para>
         /// </remarks>
-        public const int Major = 18;
+        public const int Major = 19;
 
         /// <summary>
-        /// Reset to 0 alongside the Major 17 -&gt; 18 bump (see <see cref="Major"/>).
+        /// Reset to 0 alongside the Major 18 -&gt; 19 bump (see <see cref="Major"/>).
         /// The Minor history below belongs to the earlier Major lines and is
         /// retained for provenance; every one of those additive changes is
         /// carried forward.
@@ -1949,6 +1974,6 @@ namespace Sitrep.Contract
         /// long it takes to leave the craft. Additive, and the capability seam still returns
         /// <see cref="CommandResult"/>, so an Uplink built against 18.13 is unaffected.</para>
         /// </remarks>
-        public const int Minor = 14;
+        public const int Minor = 0;
     }
 }

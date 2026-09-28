@@ -527,11 +527,10 @@ namespace Sitrep.Contract.Serialization
         /// <summary>
         /// Flattens a <see cref="Sitrep.Contract.CommandResult"/> (or its
         /// generic <c>CommandResult&lt;T&gt;</c> subtype) to the wire object
-        /// <c>{ success, errorCode, [breach], [payload] }</c>. <c>breach</c> is
+        /// <c>{ success, [errorCode], [reason], [breach], [payload] }</c>. <c>breach</c> is
         /// present only on a refusal that carries a comparison (see
-        /// <see cref="Sitrep.Contract.CommandResult.Breach"/>). <c>errorCode</c> is the
-        /// enum's integer ordinal (same convention as every other enum in
-        /// this codec). The <c>payload</c> key is emitted ONLY for the
+        /// <see cref="Sitrep.Contract.CommandResult.Breach"/>), and <c>errorCode</c>
+        /// only on a refusal (see <see cref="AppendRefusalCode"/>). The <c>payload</c> key is emitted ONLY for the
         /// generic subtype (read reflectively because <c>T</c> is open here)
         /// so a plain <see cref="Sitrep.Contract.CommandResult"/> (the "no
         /// payload" actuation ack) serializes without a payload key at all.
@@ -546,10 +545,7 @@ namespace Sitrep.Contract.Serialization
             sb.Append(':');
             AppendBool(sb, result.Success);
 
-            sb.Append(',');
-            AppendString(sb, "errorCode");
-            sb.Append(':');
-            AppendInteger(sb, (long)result.ErrorCode);
+            AppendRefusalCode(sb, result.ErrorCode);
 
             // Only on a refusal that HAS numbers. A success carrying a null
             // breach key would put the shape on every ack for nothing, and a
@@ -603,8 +599,27 @@ namespace Sitrep.Contract.Serialization
         /// <c>errorCode</c>. See the <c>case</c> in <see cref="AppendValue"/>.
         /// </summary>
         /// <summary>
-        /// A gate verdict as <c>{ outcome, errorCode, breach, detail }</c>, both
-        /// enums as integer ordinals like every sibling here.
+        /// A refusal as its root's id in <c>errorCode</c> and, for a refinement,
+        /// its own id in <c>reason</c>. Neither key is written when there is no
+        /// refusal: a success has no code, not a zero one.
+        /// </summary>
+        private static void AppendRefusalCode(StringBuilder sb, Sitrep.Contract.RefusalCode? code)
+        {
+            if (code is null) return;
+            sb.Append(',');
+            AppendString(sb, "errorCode");
+            sb.Append(':');
+            AppendString(sb, code.Root.Id);
+            if (code.IsRoot) return;
+            sb.Append(',');
+            AppendString(sb, "reason");
+            sb.Append(':');
+            AppendString(sb, code.Id);
+        }
+
+        /// <summary>
+        /// A gate verdict as <c>{ outcome, [errorCode], [reason], breach, detail }</c>,
+        /// the outcome as its integer ordinal like every enum sibling here.
         /// </summary>
         ///
         /// <remarks>
@@ -620,13 +635,7 @@ namespace Sitrep.Contract.Serialization
             sb.Append(':');
             AppendInteger(sb, (long)verdict.Outcome);
 
-            // Unconditional, unlike CommandResult.Detail: this key is not
-            // optional in the generated type, and the evaluator's chosen arm is
-            // the machine-readable half of the whole verdict.
-            sb.Append(',');
-            AppendString(sb, "errorCode");
-            sb.Append(':');
-            AppendInteger(sb, (long)verdict.ErrorCode);
+            AppendRefusalCode(sb, verdict.ErrorCode);
 
             sb.Append(',');
             AppendString(sb, "breach");
@@ -1972,16 +1981,9 @@ namespace Sitrep.Contract.Serialization
         }
 
         /// <summary>
-        /// A repair attempt's outcome as <c>{ repaired, refusal, kitsUsed,
-        /// kitsFrom }</c>, the payload half of <c>vessel.repair</c>'s reply.
+        /// A repair attempt's outcome as <c>{ repaired, kitsUsed, kitsFrom }</c>,
+        /// the payload half of <c>vessel.repair</c>'s reply.
         /// </summary>
-        ///
-        /// <remarks>
-        /// <c>refusal</c> is written as JSON null on success rather than as an
-        /// empty string, because it is the FINER half of a refusal and an empty
-        /// token would read as a reason that came back blank. The client's rule
-        /// turns on its presence.
-        /// </remarks>
         private static void AppendRepairOutcome(
             StringBuilder sb, Sitrep.Contract.RepairOutcome o)
         {
@@ -1989,10 +1991,6 @@ namespace Sitrep.Contract.Serialization
             AppendString(sb, "repaired");
             sb.Append(':');
             AppendBool(sb, o.Repaired);
-            sb.Append(',');
-            AppendString(sb, "refusal");
-            sb.Append(':');
-            AppendNullableString(sb, o.Refusal);
             sb.Append(',');
             AppendString(sb, "kitsUsed");
             sb.Append(':');

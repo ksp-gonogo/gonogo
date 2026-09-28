@@ -330,6 +330,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "CommandResult": {
     detail: "text",
     errorCode: "enum",
+    reason: "id",
     success: "flag",
   },
   "CommsCommandCentre": {
@@ -648,6 +649,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     detail: "text",
     errorCode: "enum",
     outcome: "enum",
+    reason: "id",
   },
   "HireApplicantArgs": {
     applicantName: "id",
@@ -941,7 +943,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "RepairOutcome": {
     kitsFrom: "id",
     kitsUsed: "count",
-    refusal: "enum",
     repaired: "flag",
   },
   "RepairPartArgs": {

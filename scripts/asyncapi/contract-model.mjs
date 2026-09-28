@@ -26,7 +26,8 @@
 // is the failure mode that matters here: a schema that says `object` about a
 // field nobody understood reads exactly like a schema that understood it.
 
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import ts from "typescript";
 
 /**
@@ -273,7 +274,91 @@ export function readContract(path) {
   if (interfaces.size === 0) {
     throw new Error(`asyncapi: no interfaces parsed out of ${path}`);
   }
+  const errorCodes = join(dirname(path), "error-codes.ts");
+  if (existsSync(errorCodes)) {
+    for (const [name, declaration] of readErrorCodes(errorCodes)) {
+      enums.set(name, declaration);
+    }
+  }
   return { interfaces, enums, methodLeaks };
+}
+
+/**
+ * The error-code vocabularies `error-codes.ts` declares, each as an enum whose
+ * members are STRING ids, with the sentence an operator reads for each.
+ *
+ * The file is `export const X = { Member: "id", ... } as const` per holder plus
+ * one table of every code; the table is where the sentence is, keyed by id.
+ */
+export function readErrorCodes(path) {
+  const file = sourceOf(path);
+  const sentences = new Map();
+  const holders = [];
+  for (const statement of file.statements) {
+    if (!ts.isVariableStatement(statement)) continue;
+    for (const declaration of statement.declarationList.declarations) {
+      const name = declaration.name.getText(file);
+      let initialiser = declaration.initializer;
+      if (initialiser && ts.isAsExpression(initialiser)) {
+        initialiser = initialiser.expression;
+      }
+      if (initialiser && ts.isArrayLiteralExpression(initialiser)) {
+        for (const row of initialiser.elements) {
+          const fields = objectFields(row, name, file);
+          sentences.set(fields.id, fields.sentence);
+        }
+        continue;
+      }
+      if (!initialiser || !ts.isObjectLiteralExpression(initialiser)) {
+        throw new Error(
+          `asyncapi: ${name} in ${path} is neither a code holder nor the code table`,
+        );
+      }
+      holders.push({ name, statement, initialiser });
+    }
+  }
+  const enums = new Map();
+  for (const { name, statement, initialiser } of holders) {
+    enums.set(name, {
+      name,
+      description: docOf(statement),
+      stringValued: true,
+      members: initialiser.properties.map((property) => {
+        if (
+          !ts.isPropertyAssignment(property) ||
+          !ts.isStringLiteral(property.initializer)
+        ) {
+          throw new Error(
+            `asyncapi: ${name} has a member that is not a string id`,
+          );
+        }
+        const value = property.initializer.text;
+        return {
+          name: property.name.getText(file),
+          value,
+          description: docOf(property),
+          sentence: sentences.get(value),
+        };
+      }),
+    });
+  }
+  return enums;
+}
+
+/** One row of the error-code table as plain strings, or null where the row says null. */
+function objectFields(node, owner, file) {
+  if (!ts.isObjectLiteralExpression(node)) {
+    throw new Error(`asyncapi: ${owner} holds a row that is not an object`);
+  }
+  const fields = {};
+  for (const property of node.properties) {
+    if (!ts.isPropertyAssignment(property)) continue;
+    const init = property.initializer;
+    fields[property.name.getText(file)] = ts.isStringLiteral(init)
+      ? init.text
+      : null;
+  }
+  return fields;
 }
 
 /**

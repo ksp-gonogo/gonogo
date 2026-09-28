@@ -1,10 +1,10 @@
 import type {
-  CommandErrorCode,
   CommandGateReport,
   GateVerdict,
   LimitBreach,
 } from "../__generated__/contract";
 import { GateOutcome } from "../__generated__/contract";
+import { CommandErrorCode } from "../__generated__/error-codes";
 
 /**
  * What the mod says about a command BEFORE anyone dispatches it, shaped for the
@@ -67,6 +67,8 @@ export interface CommandGateStatus {
   command: string;
   /** Which authority said no. `CommandErrorCode.ModeUnavailable` when the evaluator named none. */
   errorCode: CommandErrorCode;
+  /** The refinement's id, when the evaluator named one more specific than `errorCode`. */
+  reason?: string;
   /** The comparison behind a numeric refusal, when there is one. */
   breach?: LimitBreach;
   /** The game's own words, when it had any: quoted, never parsed. */
@@ -106,7 +108,8 @@ export function toGateStatus(
     command,
     blocked: verdict.outcome === GateOutcome.Fail,
     undetermined: verdict.outcome === GateOutcome.Unknown,
-    errorCode: verdict.errorCode,
+    errorCode: verdict.errorCode ?? CommandErrorCode.ModeUnavailable,
+    reason: verdict.reason,
     breach: verdict.breach ?? undefined,
     detail: verdict.detail || undefined,
   };

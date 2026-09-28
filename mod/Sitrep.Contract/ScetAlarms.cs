@@ -379,7 +379,7 @@ public class ScetAlarm
     /// checked against <c>ChannelEngine.IsSelectableVantage</c>, which requires a
     /// currently-active command centre (or the always-allowed default). A
     /// set-vantage naming anything else keeps the prior vantage, and a command
-    /// override naming anything else is refused with <c>unknown-vantage</c>
+    /// override naming anything else is refused with <c>unknownVantage</c>
     /// rather than falling back, so this can only ever name a centre that was
     /// real when the alarm was armed.
     /// </internal>

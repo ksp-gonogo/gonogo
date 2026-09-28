@@ -1,6 +1,7 @@
 import {
   CommandErrorCode,
   commandRefusalSubject,
+  describeErrorCode,
   type LimitBreach,
 } from "@ksp-gonogo/sitrep-sdk";
 import { writeQuantity } from "../units";
@@ -9,6 +10,8 @@ import type { RailTags } from "./railTags";
 /** One refused dispatch, as much of it as this text needs. Structurally the spine's `CommandRefusal`, so a hand-built refusal works too. */
 export interface CommandRefusalLike {
   errorCode: CommandErrorCode;
+  /** The refinement's id, when the refusal was more specific than its root `errorCode`. */
+  reason?: string;
   /** The command id that was dispatched, e.g. `career.facility.upgrade`. */
   command?: string;
   /** The args it was dispatched with. */
@@ -84,38 +87,14 @@ function comparison(
   }
 }
 
-/** The general sentence for an arm whose numbers are missing or that has none to give. */
-const GENERAL_REASON: Partial<Record<CommandErrorCode, string>> = {
-  [CommandErrorCode.LimitReached]: "a limit has been reached",
-  [CommandErrorCode.AlreadyAtMaximum]: "it is already at its maximum",
-  [CommandErrorCode.InsufficientFunds]: "there are not enough funds",
-  [CommandErrorCode.InsufficientScience]: "there is not enough science",
-  [CommandErrorCode.CareerModeRequired]: "this save is not a career game",
-  [CommandErrorCode.WrongScene]: "the game is not in a scene that allows it",
-  [CommandErrorCode.WrongState]: "it is not in a state that allows it",
-  [CommandErrorCode.NotClearToProceed]: "the flight is not clear for it yet",
-  [CommandErrorCode.CapabilityMismatch]: "this craft cannot do it",
-  [CommandErrorCode.NoConnection]: "there is no usable link",
-  [CommandErrorCode.NotUnlocked]: "it has not been unlocked yet",
-  [CommandErrorCode.SiteOccupied]: "another vessel is on the launch site",
-  // Not a limit: under a career overhaul the vehicle has simply not been built and rolled out yet.
-  [CommandErrorCode.NotReady]: "the vehicle is not ready to fly yet",
-  [CommandErrorCode.FacilityDamaged]: "the building is out of action",
-  [CommandErrorCode.NoVessel]: "there is no vessel to act on",
-  [CommandErrorCode.NotFound]: "nothing here answers to that",
-  [CommandErrorCode.Range]: "an argument was outside its valid range",
-  [CommandErrorCode.PlanNotOwned]: "another planner owns the flight plan",
-  [CommandErrorCode.Timeout]: "the game did not get to it in time",
-  [CommandErrorCode.ModeUnavailable]: "the game would not say why",
-  // Only that no answer arrived; `ModeUnavailable` got an answer without a reason.
-  [CommandErrorCode.Unreadable]: "the game would not answer",
-  [CommandErrorCode.OutOfReach]:
-    "this command centre has no authority over that place",
-};
-
 /** `activeCrew` -> `active crew`: a camelCase id inside a sentence reads as a leaked variable. */
 function readableQuantity(quantityId: string): string {
   return quantityId.replace(/([a-z0-9])([A-Z])/g, "$1 $2").toLowerCase();
+}
+
+/** The sentence a code was declared with, or `null` when nothing this client knows declares it. */
+function declaredSentence(id: string | undefined): string | null {
+  return (id && describeErrorCode(id)?.sentence) || null;
 }
 
 /**
@@ -134,8 +113,9 @@ function said(detail: string | undefined): string | null {
  *     Upgrade Launch Pad refused: it is already at tier 3 of 3.
  *     Upgrade Launch Pad refused: it costs 253,000f and funds are 189,412f.
  *
- * The command and args name the SUBJECT, the typed `errorCode` picks the
- * clause, and the `LimitBreach` supplies the NUMBERS, written by `units.ts`.
+ * The command and args name the SUBJECT, the code picks the clause (the
+ * refinement's own sentence ahead of its root's), and the `LimitBreach`
+ * supplies the NUMBERS, written by `units.ts`.
  *
  * Names are user-supplied and unbounded, so whatever renders this must WRAP:
  * truncation eats the numbers off the end.
@@ -163,12 +143,13 @@ function sentence(refusal: CommandRefusalLike, verb: string): string {
   const subject = commandRefusalSubject(refusal);
   const clause =
     (refusal.breach ? comparison(refusal.errorCode, refusal.breach) : null) ??
-    // What the game itself said, ahead of anything written here.
+    // What the game itself said, ahead of anything declared.
     said(refusal.detail) ??
-    GENERAL_REASON[refusal.errorCode] ??
-    // The enum member is not prose, but it beats a bare "refused." with nothing after it.
-    CommandErrorCode[refusal.errorCode] ??
-    String(refusal.errorCode);
+    declaredSentence(refusal.reason) ??
+    declaredSentence(refusal.errorCode) ??
+    // An id nothing declares is not prose, but it beats a bare "refused." with nothing after it.
+    refusal.reason ??
+    refusal.errorCode;
   return subject
     ? `${subject} ${verb}: ${clause}.`
     : `${verb.charAt(0).toUpperCase()}${verb.slice(1)}: ${clause}.`;

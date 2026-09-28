@@ -280,6 +280,15 @@ namespace Sitrep.Core.Tests
             {
                 return "x";
             }
+            // A refinement, so both the root's errorCode and the refinement's reason are written.
+            if (type == typeof(RefusalCode))
+            {
+                return RepairRefusal.NoKits;
+            }
+            if (type == typeof(FaultCode))
+            {
+                return FaultCode.UnknownTopic;
+            }
             if (type == typeof(bool))
             {
                 return true;

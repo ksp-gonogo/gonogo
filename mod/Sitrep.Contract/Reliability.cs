@@ -332,14 +332,17 @@ public interface IReliabilityBackend : ISitrepProvider
     /// kit sourcing including taking one from a part-hosted store, and the
     /// repair itself.</para>
     ///
-    /// <para>Returns the outcome, refusals included. A refusal is not an
-    /// exception: it is the answer, it costs the same round trip as a success,
-    /// and it has to say WHY so the operator's next choice is informed.</para>
+    /// <para>Returns the result, refusals included, and <c>Ok</c> only when the
+    /// part was actually repaired. A refusal is not an exception: it is the
+    /// answer, it costs the same round trip as a success, and it has to say WHY
+    /// (a <see cref="RepairRefusal"/> code where one fits) so the operator's
+    /// next choice is informed.</para>
     ///
-    /// <para>A backend that models no repair returns a refusal saying so
-    /// rather than throwing, so the command is always answerable.</para>
+    /// <para>A backend that models no repair returns
+    /// <see cref="RepairRefusal.NotModelled"/> rather than throwing, so the
+    /// command is always answerable.</para>
     /// </summary>
-    RepairOutcome Repair(string partId, string crewName);
+    CommandResult<RepairOutcome> Repair(string partId, string crewName);
 }
 
 /// <summary><c>vessel.repair</c>'s args: which part, and which crew member does it.</summary>
@@ -375,21 +378,6 @@ public class RepairOutcome
     [SitrepUnit(Units.Flag)]
     public bool Repaired { get; set; }
 
-    /// <summary>
-    /// Why not, when <see cref="Repaired"/> is false: one of the
-    /// <see cref="RepairRefusal"/> tokens. Null on success.
-    ///
-    /// <para>The FINER half of the refusal. It travels beside the
-    /// <see cref="CommandResult.ErrorCode"/>
-    /// <see cref="RepairRefusal.CodeFor"/> derives from it, on the payload of a
-    /// result whose <see cref="CommandResult.Success"/> is false, because the
-    /// enum deliberately collapses distinctions this vocabulary keeps: a part
-    /// that does not resolve and a crew member who does not are both
-    /// <see cref="CommandErrorCode.NotFound"/>, and only this says which.</para>
-    /// </summary>
-    [SitrepUnit(Units.Enumeration)]
-    public string? Refusal { get; set; }
-
     /// <summary>Kits consumed. Kerbalism charges two for a critical failure and one otherwise.</summary>
     [SitrepUnit(Units.Count)]
     public int KitsUsed { get; set; }
@@ -404,36 +392,45 @@ public class RepairOutcome
 }
 
 /// <summary>
-/// The vocabulary <see cref="RepairOutcome.Refusal"/> is drawn from, and the
-/// ONE place a refusal becomes a <see cref="CommandResult"/>.
+/// Why a repair was refused, finer than its root: a part that does not resolve
+/// and a crew member who does not are both <c>notFound</c>, and only the
+/// refinement says which.
 ///
-/// <para>A backend states WHY in this vocabulary and nothing else. It does not
-/// choose a <see cref="CommandErrorCode"/>, so a new backend cannot invent a
-/// mapping of its own, and it does not write a sentence: a code surfaced
-/// honestly is telemetry, an invented sentence is not.</para>
+/// <para>A backend states WHY in this vocabulary, or with a bare root when
+/// none of these fits. It does not write a sentence of its own: each code here
+/// carries the one an operator reads.</para>
 /// </summary>
 public static class RepairRefusal
 {
     /// <summary>No crew member aboard answers to the requested name.</summary>
-    public const string NoSuchCrew = "no-such-crew";
+    public static readonly RefusalCode NoSuchCrew =
+        CommandErrorCode.NotFound.Refine("repair.noSuchCrew", "no crew member aboard has that name");
 
     /// <summary>
     /// The named kerbal is aboard but does not satisfy the provider's own
     /// (elevated, for a critical failure) crew requirement.
     /// </summary>
-    public const string CrewNotQualified = "crew-not-qualified";
+    public static readonly RefusalCode CrewNotQualified =
+        CommandErrorCode.CapabilityMismatch.Refine("repair.crewNotQualified", "that crew member is not qualified to repair it");
 
-    /// <summary>The kerbal could not have got out: the hatch is inside a fairing.</summary>
-    public const string EvaImpossible = "eva-impossible";
+    /// <summary>
+    /// The kerbal could not have got out: the hatch is inside a fairing. Resolves
+    /// by waiting, since the fairing is jettisoned later in the same flight.
+    /// </summary>
+    public static readonly RefusalCode EvaImpossible =
+        CommandErrorCode.NotClearToProceed.Refine("repair.evaImpossible", "the crew cannot get out to it yet");
 
     /// <summary>Fewer consumables aboard than the provider charges for this repair.</summary>
-    public const string NoKits = "no-kits";
+    public static readonly RefusalCode NoKits =
+        CommandErrorCode.InsufficientResource.Refine("repair.noKits", "there are not enough repair kits aboard");
 
     /// <summary>Nothing on this install models reliability, so there is nothing to repair.</summary>
-    public const string NotModelled = "not-modelled";
+    public static readonly RefusalCode NotModelled =
+        CommandErrorCode.ModeUnavailable.Refine("repair.notModelled", "nothing on this install models part failures");
 
     /// <summary>No part on the vessel carries that id, or it carries nothing repairable.</summary>
-    public const string NoSuchPart = "no-such-part";
+    public static readonly RefusalCode NoSuchPart =
+        CommandErrorCode.NotFound.Refine("repair.noSuchPart", "no part aboard needs that repair");
 
     /// <summary>
     /// The provider models this failure and states that it cannot be repaired
@@ -444,66 +441,6 @@ public static class RepairRefusal
     /// <para>Deliberately NOT <see cref="NotModelled"/>. The model is present
     /// and working; this is its answer.</para>
     /// </summary>
-    public const string Unrepairable = "unrepairable";
-
-    /// <summary>The backend declined without saying more.</summary>
-    public const string Refused = "refused";
-
-    /// <summary>
-    /// Which <see cref="CommandErrorCode"/> a refusal token is. Coarser than the
-    /// token by design: the enum is the closed set every client can switch on,
-    /// the token is the detail that rides <see cref="RepairOutcome.Refusal"/>
-    /// beside it.
-    /// </summary>
-    public static CommandErrorCode CodeFor(string? refusal)
-    {
-        switch (refusal)
-        {
-            // Both are a reference that did not resolve, which is exactly what
-            // NotFound documents. RepairOutcome.Refusal says which.
-            case NoSuchPart:
-            case NoSuchCrew:
-                return CommandErrorCode.NotFound;
-            // The crew aboard cannot do it and no amount of waiting changes
-            // that; the vehicle would have to be crewed differently.
-            case CrewNotQualified:
-            case Unrepairable:
-                return CommandErrorCode.CapabilityMismatch;
-            // A fairing is jettisoned later in the same flight, so this one DOES
-            // resolve by waiting, which is the whole of NotClearToProceed.
-            case EvaImpossible:
-                return CommandErrorCode.NotClearToProceed;
-            case NoKits:
-                return CommandErrorCode.InsufficientResource;
-            // Nothing models reliability here, so the subsystem this command
-            // belongs to is not available on this install.
-            case NotModelled:
-            case Refused:
-            default:
-                return CommandErrorCode.ModeUnavailable;
-        }
-    }
-
-    /// <summary>
-    /// The outcome as a result: <c>Ok</c> only when the part was ACTUALLY
-    /// repaired, and a refusal otherwise, carrying the outcome as its payload
-    /// so the finer token survives the mapping to the coarser code.
-    /// </summary>
-    public static CommandResult<RepairOutcome> ResultFor(RepairOutcome? outcome)
-    {
-        if (outcome == null)
-        {
-            return CommandResult<RepairOutcome>.Fail(CommandErrorCode.ModeUnavailable);
-        }
-        if (outcome.Repaired)
-        {
-            return CommandResult<RepairOutcome>.Ok(outcome);
-        }
-        return new CommandResult<RepairOutcome>
-        {
-            Success = false,
-            ErrorCode = CodeFor(outcome.Refusal),
-            Payload = outcome,
-        };
-    }
+    public static readonly RefusalCode Unrepairable =
+        CommandErrorCode.CapabilityMismatch.Refine("repair.unrepairable", "that failure cannot be repaired");
 }

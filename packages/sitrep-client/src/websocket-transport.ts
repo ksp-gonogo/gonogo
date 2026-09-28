@@ -5,6 +5,7 @@ import type {
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   decodeBinaryFrame,
+  FaultCode,
   frameBytes,
   isBinaryFrame,
   parseServerMessage,
@@ -167,7 +168,7 @@ const DEFAULT_RETRY_TIMEOUT_MS = 5 * 60 * 1000;
 export const MAX_PENDING_COMMANDS = 64;
 
 /** The `code` on the synthetic `error` a refused command-request is answered with. */
-export const SEND_QUEUE_FULL = "E_SEND_QUEUE_FULL";
+export const SEND_QUEUE_FULL = FaultCode.SendQueueFull;
 
 /**
  * What the operator is told about a command that was still queued when this
