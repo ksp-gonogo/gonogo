@@ -357,7 +357,7 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/ui/vitest.config.ts": 1,
   "packages/uplink-tools/src/render-probe.tsx": 5,
   "packages/uplink-tools/src/render/docs.ts": 1,
-  "packages/uplink-tools/src/render/driver.ts": 3,
+  "packages/uplink-tools/src/render/driver.ts": 2,
   "packages/uplink-tools/src/render/minFit.ts": 2,
   "packages/uplink-tools/src/render/render.test.ts": 2,
   "playwright.config.ts": 4,

@@ -13,6 +13,7 @@ import type {
 } from "../render-probe";
 import type { UplinkPackage } from "./context";
 import { encodeGif } from "./gif";
+import { growRootToContent } from "./grow";
 import { buildProbePage, type ProbePage } from "./page";
 import { pngSize } from "./png";
 import { PROBE_CHROME_ATTR, RENDER_PROBE_GLOBAL } from "./probe-global";
@@ -777,48 +778,17 @@ async function fitViewportToRoot(tab: Page): Promise<void> {
 const VIEWPORT_MARGIN_PX = 64;
 
 /**
- * Grow `#root` until nothing is clipped, so the image shows the WHOLE widget.
+ * Grow `#root` so the image shows the WHOLE widget, then let it settle.
  *
  * The mount already laid out at the real tile WIDTH, so responsive breakpoints
- * stay honest; only the vertical crop is lifted. Content hides in two places, a
- * `Panel`'s `overflow: hidden` and a scroll area's `overflow: auto`, so both are
- * measured and the box grows to swallow the larger, iterating because growing it
- * can reveal a little more.
+ * stay honest; only the vertical crop is lifted. See `growRootToContent` for
+ * which overflow counts.
  *
  * On by default here, unlike the first-party visual gate: a per-tile baseline
  * wants the crop, and a reader of a docs page wants the widget.
  */
 async function growToFullContent(tab: Page): Promise<void> {
-  // No named arrow functions inside `evaluate`: tsx's `keepNames` wraps one in a
-  // `__name(...)` helper that exists in the module scope and not the serialised
-  // page context, so a named arrow here throws "__name is not defined".
-  await tab.evaluate(() => {
-    const el = document.getElementById("root");
-    if (!el) return;
-    el.style.overflow = "visible";
-    for (let i = 0; i < 8; i++) {
-      let need = 0;
-      // Every clipping box under the root, found rather than listed. The list
-      // this replaces named `#root`, its first child and `ScrollArea`'s marker,
-      // and a `Panel`'s BODY is the scroller in this kit and carries no marker
-      // at all: a widget mounted in its real host had its last rows cropped,
-      // and the crop was invisible because the picture still looked like a
-      // widget. A hand-kept list of the ways content hides is exactly the shape
-      // that goes stale silently.
-      const boxes: Element[] = [el, ...el.querySelectorAll("*")];
-      for (const node of boxes) {
-        const over = node.scrollHeight - node.clientHeight;
-        if (over <= need) continue;
-        if (node !== el && getComputedStyle(node).overflowY === "visible") {
-          continue;
-        }
-        need = over;
-      }
-      if (need <= 1) break;
-      el.style.height = `${el.clientHeight + need}px`;
-      void el.offsetHeight;
-    }
-  });
+  await tab.evaluate(growRootToContent);
   // ResizeObserver-driven bits (gauges, tapes, scroll glow) settle at the final height before the shot.
   await tab.evaluate(
     () =>
