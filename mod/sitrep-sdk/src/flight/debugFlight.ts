@@ -1,23 +1,11 @@
+import { hasHost } from "../api/host";
 import { logger } from "../api/logger";
 
-// Cached on first call so the hot path (every sample) is a single boolean
-// check after the initial resolution. Matches the debugPeer pattern in
-// @ksp-gonogo/core/src/logger/index.ts.
-let enabled: boolean | null = null;
-
+/** Flight-detection tracing on the logger's "flight" tag, printed when `LOG_TAGS` enables it. */
 export function debugFlight(
-  tag: string,
+  event: string,
   context?: Record<string, unknown>,
 ): void {
-  if (enabled === null) {
-    try {
-      enabled =
-        typeof localStorage !== "undefined" &&
-        localStorage.getItem("DEBUG_FLIGHT") === "1";
-    } catch {
-      enabled = false;
-    }
-  }
-  if (!enabled) return;
-  logger.debug(`[flight] ${tag}`, context);
+  if (!hasHost()) return;
+  logger.tag("flight").debug(event, context);
 }

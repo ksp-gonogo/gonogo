@@ -1017,7 +1017,7 @@ export class PeerClientService {
     return this.events.on("triggerSnapshot", cb);
   }
 
-  /** For tests + DEBUG_PEER diagnostics: exposes listener Set sizes. */
+  /** For tests and diagnostics: exposes listener Set sizes. */
   _listenerCounts() {
     return {
       data: this.events.size("data"),
