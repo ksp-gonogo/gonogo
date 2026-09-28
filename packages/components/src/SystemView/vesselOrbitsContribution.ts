@@ -9,7 +9,7 @@ import {
   type VesselRosterEntry,
   VesselType,
 } from "@ksp-gonogo/sitrep-sdk";
-import { magnitudeOf, magnitudeOr } from "@ksp-gonogo/ui-kit";
+import { magnitudeOf } from "@ksp-gonogo/ui-kit";
 import { edgeEntityId } from "./commsPath";
 import type {
   SystemEntity,
@@ -75,18 +75,39 @@ function metaFor(v: VesselRosterEntry, bodyName: string): SystemEntityMeta {
   };
 }
 
-/** Whether `v.orbit` has a finite, positive `sma`; shared by the vessel entities and the graph's node join. */
-function hasUsableOrbit(v: VesselRosterEntry): boolean {
-  const sma = magnitudeOf(v.orbit?.sma);
-  return v.orbit != null && sma != null && sma > 0;
+interface ConicElements {
+  sma: number;
+  ecc: number;
+  lan: number;
+  argPe: number;
+  inclination: number;
 }
 
-/** A vessel's position in `bodyName`'s frame: its Keplerian elements when usable, else a dot at the body without fabricated elements. */
+/**
+ * Every element a vessel's ring needs, or `null` when any is unread or the
+ * `sma` is not a positive length; shared by the vessel entities and the graph's
+ * node join. An unreported element is not a zero, and a ring drawn from a
+ * guessed one is a confident wrong orbit.
+ */
+function conicElements(v: VesselRosterEntry): ConicElements | null {
+  const sma = magnitudeOf(v.orbit?.sma);
+  const ecc = magnitudeOf(v.orbit?.ecc);
+  const lan = magnitudeOf(v.orbit?.lan);
+  const argPe = magnitudeOf(v.orbit?.argPe);
+  const inclination = magnitudeOf(v.orbit?.inc);
+  if (sma == null || !(sma > 0)) return null;
+  if (ecc == null || lan == null || argPe == null || inclination == null) {
+    return null;
+  }
+  return { sma, ecc, lan, argPe, inclination };
+}
+
+/** A vessel's position in `bodyName`'s frame: its Keplerian elements when all are read, else a dot at the body without fabricated elements. */
 function vesselPosition(
-  v: VesselRosterEntry,
+  elements: ConicElements | null,
   bodyName: string,
 ): SystemEntityPosition {
-  if (!hasUsableOrbit(v)) {
+  if (!elements) {
     return {
       kind: "fixed",
       parentName: bodyName,
@@ -98,18 +119,14 @@ function vesselPosition(
   return {
     kind: "orbit",
     parentName: bodyName,
-    sma: magnitudeOf(v.orbit?.sma) as number,
-    ecc: magnitudeOr(v.orbit?.ecc, 0),
-    lan: magnitudeOr(v.orbit?.lan, 0),
-    argPe: magnitudeOr(v.orbit?.argPe, 0),
-    inclination: magnitudeOr(v.orbit?.inc, 0),
+    ...elements,
     trueAnomaly: 0, // ignored by "orbit-path", which draws the whole ring
   };
 }
 
 /**
  * The fleet half of the contribution, exported for direct testing.
- * A usable orbit draws a faint full ring, no usable orbit degrades to a faint dot at the body, and an unresolvable body omits the vessel.
+ * A fully read orbit draws a faint full ring, anything less degrades to a faint dot at the body, and an unresolvable body omits the vessel.
  */
 export function computeVesselOrbitEntities(
   vessels: SystemVessels | null | undefined,
@@ -124,13 +141,12 @@ export function computeVesselOrbitEntities(
       v.bodyIndex != null ? (nameByIndex.get(v.bodyIndex) ?? null) : null;
     if (bodyName == null) continue;
 
+    const elements = conicElements(v);
     entities.push({
       id: `vessel-orbit:${v.vesselId}`,
       vesselId: v.vesselId,
-      position: vesselPosition(v, bodyName),
-      shape: hasUsableOrbit(v)
-        ? { kind: "orbit-path" }
-        : { kind: "point", radiusPx: 3 },
+      position: vesselPosition(elements, bodyName),
+      shape: elements ? { kind: "orbit-path" } : { kind: "point", radiusPx: 3 },
       style: { emphasis: "faint" },
       meta: metaFor(v, bodyName),
     });
@@ -173,7 +189,7 @@ function resolveNodePosition(
       ? (nameByIndex.get(vessel.bodyIndex) ?? null)
       : null;
   if (bodyName == null) return null;
-  return vesselPosition(vessel, bodyName);
+  return vesselPosition(conicElements(vessel), bodyName);
 }
 
 /** The CommNet half: one faint `connection-line` per `comms.network` edge, omitting any edge whose endpoint cannot be resolved; static topology only. */

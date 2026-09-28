@@ -531,7 +531,7 @@ const FUNNEL_BUDGET: Record<string, number> = {
   // One of these is `GoNoGoHostService` measuring liftoff against `getViewUt()`, which returns a plain number.
   "packages/app": 9,
   // Two of these are ShipMap taking the wire's wrapped throttle for the SVG engine-flame gate and the ambient temperature for its CSS colour ramp, both plain-number boundaries.
-  "packages/components": 149,
+  "packages/components": 148,
   "packages/data": 5,
   "packages/ui-kit": 8,
 };

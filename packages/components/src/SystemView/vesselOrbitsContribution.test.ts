@@ -100,21 +100,68 @@ describe("computeVesselOrbitEntities", () => {
     });
   });
 
-  it("defaults missing ecc/lan/argPe to 0 when only sma is present", () => {
+  it("draws no ring when an element the conic needs was never reported, only the dot at its body", () => {
     const entities = computeVesselOrbitEntities(
-      wire([vessel({ orbit: { sma: value("m", 700_000) } })]),
+      wire([
+        vessel({
+          orbit: {
+            sma: value("m", 700_000),
+            lan: value("°", 20),
+            argPe: value("°", 30),
+          },
+        }),
+      ]),
       bodies(),
     );
+    expect(entities).toHaveLength(1);
+    expect(entities[0].shape).toEqual({ kind: "point", radiusPx: 3 });
     expect(entities[0].position).toEqual({
-      kind: "orbit",
+      kind: "fixed",
       parentName: "Kerbin",
-      sma: 700_000,
-      ecc: 0,
-      lan: 0,
-      argPe: 0,
-      inclination: 0,
-      trueAnomaly: 0,
+      xMetres: 0,
+      yMetres: 0,
+      zMetres: 0,
     });
+  });
+
+  it.each([
+    "ecc",
+    "inc",
+    "lan",
+    "argPe",
+  ] as const)("draws no ring when %s arrives as null, only the dot at its body", (element) => {
+    const orbit = {
+      sma: value("m", 700_000),
+      ecc: value("1", 0.1),
+      inc: value("°", 5),
+      lan: value("°", 20),
+      argPe: value("°", 30),
+      [element]: null,
+    };
+    const entities = computeVesselOrbitEntities(
+      wire([vessel({ orbit })]),
+      bodies(),
+    );
+    expect(entities[0].shape).toEqual({ kind: "point", radiusPx: 3 });
+    expect(entities[0].position.kind).toBe("fixed");
+  });
+
+  it("draws a ring for a reported zero, which is not an absence", () => {
+    const entities = computeVesselOrbitEntities(
+      wire([
+        vessel({
+          orbit: {
+            sma: value("m", 700_000),
+            ecc: value("1", 0),
+            inc: value("°", 0),
+            lan: value("°", 0),
+            argPe: value("°", 0),
+          },
+        }),
+      ]),
+      bodies(),
+    );
+    expect(entities[0].shape).toEqual({ kind: "orbit-path" });
   });
 
   it("degrades a vessel with no sma to a faint dot at its body, never a fabricated orbit", () => {
@@ -252,7 +299,13 @@ describe("computeCommsNetworkEntities", () => {
   it("joins a vessel node's edge endpoint to that vessel's own orbit position", () => {
     const relay = vessel({
       vesselId: "v-relay",
-      orbit: { sma: value("m", 3_468_750) },
+      orbit: {
+        sma: value("m", 3_468_750),
+        ecc: value("1", 0),
+        inc: value("°", 0),
+        lan: value("°", 0),
+        argPe: value("°", 0),
+      },
     });
     const entities = computeCommsNetworkEntities(
       network(
@@ -433,7 +486,13 @@ describe("computeCommsNetworkEntities", () => {
   it("draws every other edge even when one is omitted for an unresolvable endpoint", () => {
     const relay = vessel({
       vesselId: "v-relay",
-      orbit: { sma: value("m", 3_468_750) },
+      orbit: {
+        sma: value("m", 3_468_750),
+        ecc: value("1", 0),
+        inc: value("°", 0),
+        lan: value("°", 0),
+        argPe: value("°", 0),
+      },
     });
     const entities = computeCommsNetworkEntities(
       network(
@@ -454,7 +513,13 @@ describe("computeCommsNetworkEntities", () => {
   it("omits an edge to home when no body is flagged isHome yet", () => {
     const relay = vessel({
       vesselId: "v-relay",
-      orbit: { sma: value("m", 3_468_750) },
+      orbit: {
+        sma: value("m", 3_468_750),
+        ecc: value("1", 0),
+        inc: value("°", 0),
+        lan: value("°", 0),
+        argPe: value("°", 0),
+      },
     });
     const entities = computeCommsNetworkEntities(
       network(
