@@ -4,7 +4,8 @@ export interface LaunchSiteEntry {
   name: string;
   displayName: string;
   facility: string;
-  body: string;
+  /** The `system.bodies` index of the body the site stands on; `null` when the site reported none. */
+  bodyIndex: number | null;
   /**
    * Whether a vessel is standing on this pad, `null` when this site reports no
    * occupancy at all. The mod reports occupancy for the stock VAB pad alone, so
@@ -37,7 +38,7 @@ export function parseLaunchSites(raw: unknown): LaunchSiteEntry[] | null {
           ? e.displayName
           : name,
       facility: typeof e.editorFacility === "string" ? e.editorFacility : "",
-      body: typeof e.body === "string" ? e.body : "",
+      bodyIndex: typeof e.bodyIndex === "number" ? e.bodyIndex : null,
       // Only a real boolean is an answer; anything else is a site that reported no occupancy.
       occupied: typeof e.padOccupied === "boolean" ? e.padOccupied : null,
       occupantName:
@@ -60,6 +61,35 @@ export function orderPads(
   return [...sites].sort(
     (a, b) => (a.occupied === true ? 0 : 1) - (b.occupied === true ? 0 : 1),
   );
+}
+
+/**
+ * The name of every body a pad can stand on that is not the home world, by
+ * index. The home world is the unmarked case, so it is left out; a body whose
+ * home flag is unreported keeps its name, since naming it is still true.
+ */
+export function awayBodyNames(
+  bodies: readonly {
+    index: number;
+    name?: string | null;
+    isHome?: boolean | null;
+  }[],
+): ReadonlyMap<number, string> {
+  const out = new Map<number, string>();
+  for (const body of bodies) {
+    if (!body.name || body.isHome === true) continue;
+    out.set(body.index, body.name);
+  }
+  return out;
+}
+
+/** The body a pad names beside its kind: only one resolved and away from home, never a guess. */
+export function padBodyName(
+  site: LaunchSiteEntry,
+  awayBodies: ReadonlyMap<number, string>,
+): string | null {
+  if (site.bodyIndex === null) return null;
+  return awayBodies.get(site.bodyIndex) ?? null;
 }
 
 /** What a site's `EditorFacility` makes it, in the operator's words. */

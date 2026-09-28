@@ -20,7 +20,7 @@
             "name": "Runway",
             "displayName": "KSC Runway",
             "editorFacility": "SPH",
-            "body": "Kerbin",
+            "bodyIndex": 1,
             "isStock": true,
             "padOccupied": null,
             "padVesselTitle": null
@@ -29,7 +29,7 @@
             "name": "LaunchPad",
             "displayName": "KSC Launch Pad",
             "editorFacility": "VAB",
-            "body": "Kerbin",
+            "bodyIndex": 1,
             "isStock": true,
             "padOccupied": true,
             "padVesselTitle": "Kerbal X"

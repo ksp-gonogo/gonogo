@@ -3,7 +3,12 @@ import type { CommandButtonHandle } from "@ksp-gonogo/ui-kit";
 import { ArmedButton } from "./ArmedButton";
 import { CrewPicker } from "./CrewPicker";
 import { type CrewMember, crewReading } from "./crew";
-import { type LaunchSiteEntry, occupancyText, padKindLabel } from "./pads";
+import {
+  type LaunchSiteEntry,
+  occupancyText,
+  padBodyName,
+  padKindLabel,
+} from "./pads";
 import { ShipPicker } from "./ShipPicker";
 import { launchFacilityArg, type SavedShip } from "./ships";
 import type { LaunchDirectorSlotContext } from "./slots";
@@ -29,6 +34,8 @@ interface PadSectionProps {
   pads: readonly LaunchSiteEntry[];
   activePad: LaunchSiteEntry | undefined;
   onPickPad: (name: string) => void;
+  /** Names of the bodies away from the home world, by `system.bodies` index. */
+  awayBodies: ReadonlyMap<number, string>;
   padCraft: readonly SavedShip[];
   /** False while the saved-craft list has never arrived, which is not an empty pad. */
   craftKnown: boolean;
@@ -55,7 +62,7 @@ interface PadSectionProps {
  * pad's picker is the craft list narrowed to this site's editor.
  */
 export function PadSection(props: PadSectionProps) {
-  const { pads, activePad, onPickPad, funds, slotContext } = props;
+  const { pads, activePad, onPickPad, awayBodies, funds, slotContext } = props;
   return (
     <>
       <SectionLabel>Pads</SectionLabel>
@@ -65,6 +72,7 @@ export function PadSection(props: PadSectionProps) {
         <PadList>
           {pads.map((site) => {
             const expanded = site.name === activePad?.name;
+            const bodyName = padBodyName(site, awayBodies);
             return (
               <PadCard key={site.name}>
                 <PadRowButton
@@ -78,9 +86,7 @@ export function PadSection(props: PadSectionProps) {
                     <PadName>{site.displayName}</PadName>
                     <PadDetails>
                       {padKindLabel(site.facility)}
-                      {site.body && site.body !== "Kerbin"
-                        ? ` · ${site.body}`
-                        : ""}
+                      {bodyName ? ` · ${bodyName}` : ""}
                     </PadDetails>
                   </PadMeta>
                   <PadOccupancy $occupied={site.occupied}>

@@ -20,7 +20,7 @@
             "name": "LaunchPad",
             "displayName": "KSC Launch Pad",
             "editorFacility": "VAB",
-            "body": "Kerbin",
+            "bodyIndex": 1,
             "isStock": true,
             "padOccupied": false,
             "padVesselTitle": null
@@ -29,7 +29,7 @@
             "name": "Runway",
             "displayName": "KSC Runway",
             "editorFacility": "SPH",
-            "body": "Kerbin",
+            "bodyIndex": 1,
             "isStock": true,
             "padOccupied": null,
             "padVesselTitle": null
@@ -38,7 +38,7 @@
             "name": "Woomerang_Launch_Site",
             "displayName": "Woomerang",
             "editorFacility": "VAB",
-            "body": "Kerbin",
+            "bodyIndex": 1,
             "isStock": false,
             "padOccupied": null,
             "padVesselTitle": null

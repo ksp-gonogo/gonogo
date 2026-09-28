@@ -13,7 +13,7 @@ import { BoundPresses } from "./actions";
 import { parseCrew } from "./crew";
 import { InFlightPanel } from "./InFlightPanel";
 import { PadSection } from "./PadSection";
-import { orderPads, padSummary, parseLaunchSites } from "./pads";
+import { awayBodyNames, orderPads, padSummary, parseLaunchSites } from "./pads";
 import { craftForPad, parseSavedShips } from "./ships";
 import type { LaunchDirectorSlotContext } from "./slots";
 import { DrainReadout, FundsReadout } from "./styles";
@@ -57,6 +57,12 @@ export function LaunchDirectorComponent({
   const launchSitesRaw = stillTrue(
     useTelemetry("spaceCenter.launchSites"),
     undefined,
+  );
+  // A site names its body by index; the body catalogue is a fact, so a held one still answers.
+  const bodies = stillTrue(useTelemetry("system.bodies"), undefined);
+  const awayBodies = useMemo(
+    () => awayBodyNames(bodies?.bodies ?? []),
+    [bodies],
   );
   /**
    * The balance decides which craft are launchable, and that verdict is spent,
@@ -208,6 +214,7 @@ export function LaunchDirectorComponent({
             ) : (
               <PadSection
                 pads={pads}
+                awayBodies={awayBodies}
                 activePad={activePad}
                 onPickPad={(name) => {
                   setPickedPad(name);

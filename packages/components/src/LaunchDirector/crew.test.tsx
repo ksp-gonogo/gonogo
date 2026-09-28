@@ -27,7 +27,7 @@ const PAD = {
   name: "LaunchPad",
   displayName: "KSC Pad",
   editorFacility: "VAB",
-  body: "Kerbin",
+  bodyIndex: 1,
   isStock: true,
   padOccupied: null,
   padVesselTitle: null,

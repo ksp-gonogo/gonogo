@@ -36,6 +36,7 @@ registerComponent<LaunchDirectorConfig>({
     "spaceCenter.savedShips",
     "spaceCenter.crewRoster",
     "spaceCenter.launchSites",
+    "system.bodies",
     "spaceCenter.scene.scene",
     "spaceCenter.scene.launchSite",
     "career.status.economy.funds",

@@ -87,7 +87,7 @@ function padSite(
     name,
     displayName,
     editorFacility: "VAB",
-    body: "Kerbin",
+    bodyIndex: 1,
     isStock: true,
     padOccupied: null,
     padVesselTitle: null,
@@ -203,6 +203,44 @@ describe("LaunchDirectorComponent", () => {
     expect(screen.getByText("On pad: Kerbal X")).toBeInTheDocument();
     // A site that reported no occupancy says so rather than rendering as clear.
     expect(screen.getAllByText("Occupancy unreported")).toHaveLength(2);
+  });
+
+  it("names a pad's body only when its index resolves to a body away from home", async () => {
+    renderWidget();
+    const padRowText = (name: string) =>
+      screen
+        .getAllByRole("button")
+        .find(
+          (b) =>
+            b.hasAttribute("data-pad-row") && b.textContent?.includes(name),
+        )?.textContent;
+    act(() => {
+      stream.emit("spaceCenter.savedShips", []);
+      stream.emit("spaceCenter.launchSites", [
+        padSite("LaunchPad", "KSC Pad"),
+        padSite("MunBase", "Mun Base", { bodyIndex: 2 }),
+        padSite("Farside", "Farside", { bodyIndex: 17 }),
+        padSite("Nowhere", "Unplaced", { bodyIndex: null }),
+      ]);
+    });
+    await screen.findByText("Mun Base");
+    // Before the catalogue arrives an index names nothing, and nothing stands in for it.
+    expect(padRowText("Mun Base")).not.toContain("·");
+    expect(padRowText("KSC Pad")).not.toContain("Kerbin");
+
+    act(() => {
+      stream.emit("system.bodies", {
+        bodies: [
+          { name: "Sun", index: 0, isHome: false },
+          { name: "Kerbin", index: 1, isHome: true },
+          { name: "Mun", index: 2, isHome: false },
+        ],
+      });
+    });
+    await waitFor(() => expect(padRowText("Mun Base")).toContain("Pad · Mun"));
+    expect(padRowText("KSC Pad")).not.toContain("·");
+    expect(padRowText("Farside")).not.toContain("·");
+    expect(padRowText("Unplaced")).not.toContain("·");
   });
 
   it("says it is waiting rather than offering a launch it cannot aim", async () => {
@@ -753,6 +791,14 @@ describe("parseLaunchSites", () => {
     expect(parsed).toHaveLength(1);
     expect(parsed?.[0]?.displayName).toBe("LaunchPad");
     expect(parsed?.[0]?.facility).toBe("VAB");
+  });
+
+  it("reads the body only as an index, never as a name", () => {
+    const parsed = parseLaunchSites([
+      { name: "MunBase", bodyIndex: 2 },
+      { name: "Named", body: "Mun" },
+    ]);
+    expect(parsed?.map((p) => p.bodyIndex)).toEqual([2, null]);
   });
 
   it("reads the facility only from editorFacility, never from an old-shape facility field", () => {

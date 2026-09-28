@@ -7,6 +7,7 @@ import inFlightCrash from "./__fixtures__/in-flight-crash.json";
 import padOccupied from "./__fixtures__/pad-occupied.json";
 import preLaunchInsufficient from "./__fixtures__/pre-launch-insufficient-funds.json";
 import preLaunchMixed from "./__fixtures__/pre-launch-mixed.json";
+import preLaunchOffKerbin from "./__fixtures__/pre-launch-off-kerbin.json";
 import { LaunchDirectorComponent } from "./index";
 
 /**
@@ -18,6 +19,7 @@ import { LaunchDirectorComponent } from "./index";
 const FIXTURES: Record<string, Record<string, unknown>> = {
   awaiting,
   "pre-launch-mixed": preLaunchMixed,
+  "pre-launch-off-kerbin": preLaunchOffKerbin,
   "pre-launch-insufficient-funds": preLaunchInsufficient,
   "pad-occupied": padOccupied,
   "in-flight-ascent": inFlightAscent,

@@ -44,7 +44,7 @@ describe("LaunchDirector: genuinely runs off the stream", () => {
           name: "LaunchPad",
           displayName: "KSC Launch Pad",
           editorFacility: "VAB",
-          body: "Kerbin",
+          bodyIndex: 1,
           isStock: true,
           padOccupied: false,
           padVesselTitle: null,

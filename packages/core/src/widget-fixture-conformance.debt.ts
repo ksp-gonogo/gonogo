@@ -42,11 +42,6 @@ export const FIXTURE_CONTRACT_DRIFT: readonly string[] = [
   "packages/components/src/Experiments#science.instruments.expId",
   "packages/components/src/Experiments#science.instruments.hasData",
   "packages/components/src/Experiments#science.instruments.partTitle",
-  /*
-   * `LaunchSiteEntry` locates a site by `bodyIndex`, never by a body NAME.
-   * Nothing on the wire has ever carried this string.
-   */
-  "packages/components/src/LaunchDirector#spaceCenter.launchSites.body",
   // Neither is declared on the science experiment entry.
   "packages/components/src/ScienceData#science.experiments.scienceValueBase",
   "packages/components/src/ScienceData#science.experiments.transmitBoost",
