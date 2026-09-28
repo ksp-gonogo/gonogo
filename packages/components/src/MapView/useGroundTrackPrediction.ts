@@ -1,6 +1,15 @@
 import { predictGroundTrack } from "@ksp-gonogo/core";
-import type { OrbitTrajectory, TrackSample } from "@ksp-gonogo/sitrep-client";
-import type { OrbitPatch, VesselManeuver } from "@ksp-gonogo/sitrep-sdk";
+import type {
+  OrbitTrajectory,
+  PredictionRef,
+  TrackSample,
+} from "@ksp-gonogo/sitrep-client";
+import {
+  type OrbitPatch,
+  type Value,
+  type VesselManeuver,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import { kspCalendar } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
 import type { bodyNamed } from "../shared/streamBody";
@@ -17,6 +26,23 @@ interface GroundTrackInputs {
   lat: { magnitude: number } | undefined;
   lon: { magnitude: number } | undefined;
   universalTime: number | undefined;
+}
+
+/** The observed ground position the predicted track is calibrated against. */
+function predictionRef(
+  ut: number,
+  lat: { magnitude: number },
+  lon: { magnitude: number },
+): PredictionRef {
+  return { ut, lat: lat.magnitude, lon: lon.magnitude };
+}
+
+/** How far ahead to predict: `lead`, then 1.5 periods to show the closed loop, capped at one calendar day (about one rotation, which a planet pack changes). */
+function loopHorizon(
+  period: Value<"s">,
+  lead: Value<"s"> = value("s", 0),
+): number {
+  return lead.plus(period.scaled(1.5)).min(kspCalendar().day).magnitude;
 }
 
 /**
@@ -59,17 +85,13 @@ export function useGroundTrackPrediction({
       (p) => p.referenceBody === targetBodyId,
     );
     if (!firstForBody) return [];
-    // 1.5 periods shows the closed loop, capped at one calendar day (about one rotation, which a planet pack changes).
-    const horizon = Math.min(
-      1.5 * firstForBody.period.magnitude,
-      kspCalendar().day,
-    );
+    const horizon = loopHorizon(firstForBody.period);
     const samples = predictGroundTrack(
       orbitPatches,
       targetBodyId,
       body.radius,
       body.rotationPeriod,
-      { ut: universalTime, lat: lat.magnitude, lon: lon.magnitude },
+      predictionRef(universalTime, lat, lon),
       horizon,
       10,
     );
@@ -100,10 +122,10 @@ export function useGroundTrackPrediction({
       const patches = node.patches ?? [];
       const firstPatch = patches.find((p) => p.referenceBody === targetBodyId);
       if (!firstPatch) return [];
-      // Horizon extends from ref.ut up through the maneuver and 1.5 × its first post-burn period: enough to see the new orbit close up.
-      const horizon = Math.min(
-        node.ut.magnitude - universalTime + 1.5 * firstPatch.period.magnitude,
-        kspCalendar().day,
+      // Horizon extends from ref.ut up through the maneuver, then over its first post-burn loop.
+      const horizon = loopHorizon(
+        firstPatch.period,
+        node.ut.minus(value("ut", universalTime)),
       );
       if (horizon <= 0) return [];
       const samples = predictGroundTrack(
@@ -111,7 +133,7 @@ export function useGroundTrackPrediction({
         targetBodyId,
         bodyRadius,
         rotPeriod,
-        { ut: universalTime, lat: lat.magnitude, lon: lon.magnitude },
+        predictionRef(universalTime, lat, lon),
         horizon,
         10,
         orbitPatches,

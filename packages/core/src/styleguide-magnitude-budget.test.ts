@@ -235,9 +235,10 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // algebra has a term for.
   "packages/components/src/LibrationPoints/LibrationPointsView.tsx": 1,
   /*
-   * 5: the burn's first post-burn patch drawn as the planned conic, whose
-   * `ProjectedOrbit` is the diagram's plain-number drawing space, beside the
-   * current conic `usePlannerTelemetry` unwraps into the same shape.
+   * 5: the burn's first post-burn patch drawn as the planned conic. A
+   * `ProjectedOrbit` is plain numbers because core's maneuver solver computes
+   * its transfer and final conics as numbers and hands them to the same
+   * diagram, so a Value form would only move these five into `OrbitDiagram`.
    */
   "packages/components/src/ManeuverPlanner/ConformanceSection.tsx": 5,
   "packages/components/src/ManeuverPlanner/LocalManeuverTriggerService.ts": 10,
@@ -247,14 +248,8 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   "packages/components/src/ManeuverPlanner/PresetInput.tsx": 8,
   "packages/components/src/ManeuverPlanner/usePlannerTelemetry.ts": 4,
   "packages/components/src/MapView/index.tsx": 6,
-  // 7: two `{ ut, lat, lon }` literals each unwrap a latitude
-  // and a longitude side by side. One of them is a maneuver node's own
-  // UT. It reads the modern vessel.maneuver shape, where the instant is a
-  // Value; the horizon it feeds is plain-number geometry against a plain-number
-  // view instant, so the unwrap belongs at that boundary rather than one term
-  // deeper. The other two are the first patch's period, current and post-burn,
-  // scaled into that same plain-number horizon beside the calendar day.
-  "packages/components/src/MapView/useGroundTrackPrediction.ts": 7,
+  // 3: `predictGroundTrack` is plain-number geometry, so the reference's latitude and longitude unwrap once in `predictionRef`, and the horizon, reckoned as Values, unwraps once in `loopHorizon`.
+  "packages/components/src/MapView/useGroundTrackPrediction.ts": 3,
   "packages/components/src/MapView/useMapPainting.ts": 2,
   "packages/components/src/MapView/useMapTelemetry.ts": 5,
   // 4: `predictGroundTrack` is plain-number geometry, so the reckoning's instant, the throttle bucket and the `{ ut, lat, lon }` reference unwrap at that boundary.
