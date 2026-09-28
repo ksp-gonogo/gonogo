@@ -47,8 +47,8 @@ export interface OrbitDiagramProps {
   apoapsis: number;
   /** Periapsis radius from body centre. */
   periapsis: number;
-  /** Current vessel true anomaly in degrees. */
-  trueAnomaly: number;
+  /** Current vessel true anomaly in degrees, or null where the craft's place on the orbit is not known, which draws no vessel. */
+  trueAnomaly: number | null;
   /** Argument of periapsis in degrees (rotates the ellipse in-plane). */
   argPe: number;
   /** Whether the vessel is in a stable orbit, drives trajectory colour. Defaults to true. */
@@ -334,8 +334,13 @@ export function OrbitDiagram({
     ? "rgba(0,255,136,0.55)"
     : "rgba(255,80,0,0.55)";
 
-  const r = trueAnomalyToRadius(sma, ecc, trueAnomaly);
-  const { x: vx, y: vy } = orbitalToCartesian(r, trueAnomaly);
+  const vessel =
+    trueAnomaly === null
+      ? null
+      : orbitalToCartesian(
+          trueAnomalyToRadius(sma, ecc, trueAnomaly),
+          trueAnomaly,
+        );
 
   // Marker positions pre-rotated into SVG space, so the labels stay axis-aligned.
   const argPeRad = (argPe * Math.PI) / 180;
@@ -579,12 +584,14 @@ export function OrbitDiagram({
             )}
 
             {/* Vessel: SVG y-flipped relative to orbital frame */}
-            <circle
-              cx={vx}
-              cy={-vy}
-              r={dotR * cfg.vesselDotScale}
-              fill="var(--color-accent-fg)"
-            />
+            {vessel && (
+              <circle
+                cx={vessel.x}
+                cy={-vessel.y}
+                r={dotR * cfg.vesselDotScale}
+                fill="var(--color-accent-fg)"
+              />
+            )}
 
             {maneuverHandles && (
               <ManeuverHandles

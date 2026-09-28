@@ -59,6 +59,7 @@ export type {
 export {
   bodyRadiusOf,
   buildElements,
+  conicApsides,
   findImpactPoint,
   predictImpactPoint,
   ROTATION_PERIOD_SECONDS,

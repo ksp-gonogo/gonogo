@@ -151,6 +151,37 @@ function nextApsis(
 }
 
 /**
+ * The apsides of a conic, which depend on its shape alone and not on where the
+ * craft is on it. An open orbit has no apoapsis. `referenceBodyRadius` follows
+ * {@link solveOrbit}'s rule, and only the altitudes read it.
+ */
+export function conicApsides(
+  orbit: Pick<WireOrbitElements, "sma" | "ecc">,
+  referenceBodyRadius: number | null | undefined,
+): Pick<
+  OrbitalSolve,
+  "apoapsisRadius" | "periapsisRadius" | "apoapsisAlt" | "periapsisAlt"
+> {
+  const hyperbolic = isHyperbolic(mag(orbit.ecc));
+  const apoapsisRadius = hyperbolic
+    ? null
+    : finiteOrNull(mag(orbit.sma) * (1 + mag(orbit.ecc)));
+  const periapsisRadius = finiteOrNull(mag(orbit.sma) * (1 - mag(orbit.ecc)));
+  const altitude = (radius: number | null): number | null | undefined =>
+    referenceBodyRadius == null
+      ? referenceBodyRadius
+      : radius == null
+        ? null
+        : finiteOrNull(radius - referenceBodyRadius);
+  return {
+    apoapsisRadius,
+    periapsisRadius,
+    apoapsisAlt: hyperbolic ? null : altitude(apoapsisRadius),
+    periapsisAlt: altitude(periapsisRadius),
+  };
+}
+
+/**
  * Solve `orbit` for `viewUt`.
  *
  * `referenceBodyRadius` is the mean radius of the body the orbit is about,
@@ -184,31 +215,16 @@ export function solveOrbit(
       ? null
       : timeToMeanAnomaly(anomalies.meanAnomaly, 0, anomalies.meanMotion);
 
-  const hyperbolic = isHyperbolic(mag(orbit.ecc));
-  const apoapsisRadius = hyperbolic
-    ? null
-    : finiteOrNull(mag(orbit.sma) * (1 + mag(orbit.ecc)));
-  const periapsisRadius = finiteOrNull(mag(orbit.sma) * (1 - mag(orbit.ecc)));
   const orbitalRadius =
     solved?.position == null ? null : finiteOrNull(magnitude(solved.position));
-
-  const altitude = (radius: number | null): number | null | undefined =>
-    referenceBodyRadius == null
-      ? referenceBodyRadius
-      : radius == null
-        ? null
-        : finiteOrNull(radius - referenceBodyRadius);
 
   return {
     period,
     trueAnomaly,
     timeToAp,
     timeToPe,
-    apoapsisRadius,
-    periapsisRadius,
+    ...conicApsides(orbit, referenceBodyRadius),
     orbitalRadius,
-    apoapsisAlt: hyperbolic ? null : altitude(apoapsisRadius),
-    periapsisAlt: altitude(periapsisRadius),
     ...nextApsis(timeToAp, timeToPe),
   };
 }

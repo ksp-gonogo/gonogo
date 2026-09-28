@@ -1,0 +1,81 @@
+{
+  "_meta": {
+    "scenario": "loaded-under-physics-stopped-arriving",
+    "notes": "loaded-under-physics, then the link drops. The elements are osculating, so no model carries the held reading: the last orbit is drawn held, with no craft on it, and the inclination and eccentricity wear the held mark."
+  },
+  "v.body": "Kerbin",
+  "o.referenceBody": "Kerbin",
+  "_stream": {
+    "emits": [
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 682500,
+          "ecc": 0.00367,
+          "inc": 0.3,
+          "lan": 0,
+          "argPe": 12.5,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 10,
+          "mu": 3531600000000,
+          "timeToAp": 942.58,
+          "timeToPe": 0,
+          "horizon": {
+            "kind": 1,
+            "trajectoryKind": 1
+          }
+        },
+        "meta": {
+          "quality": 1,
+          "validAt": 10
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0,
+          "longitude": 0,
+          "altitudeAsl": 82500,
+          "altitudeTerrain": 82500,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 2280,
+          "orbitalSpeed": 2274.5,
+          "gForce": 0,
+          "dynamicPressureKPa": 0,
+          "mach": 0,
+          "atmDensity": 0,
+          "externalTemperature": 4,
+          "atmosphericTemperature": 4
+        }
+      },
+      {
+        "channel": "vessel.identity",
+        "value": {
+          "vesselId": "v1",
+          "name": "Active Vessel",
+          "vesselType": 0,
+          "situation": 1,
+          "parentBodyIndex": 1,
+          "launchUt": 0
+        }
+      },
+      {
+        "channel": "system.bodies",
+        "value": {
+          "bodies": [
+            {
+              "name": "Kerbin",
+              "index": 1,
+              "parentIndex": 0,
+              "radius": 600000,
+              "orbit": null
+            }
+          ]
+        }
+      }
+    ],
+    "pinnedUt": 10,
+    "stopsArriving": true
+  }
+}

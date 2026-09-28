@@ -447,8 +447,6 @@ describe("no primitive is fed a reading's value instead of the reading", () => {
 const DERIVED_FEED_DEBT: Record<string, number> = {
   // A comms figure nulls when the link stops arriving rather than drawing held, so these read the observation alone.
   "packages/components/src/CommSignal/CommSignalView.tsx": 2,
-  // The elements draw only while current or under the conic, which holds them as constants of the orbit, never held.
-  "packages/components/src/CurrentOrbit/index.tsx": 2,
 };
 
 describe("no primitive is fed a figure a reading's currency was dropped from", () => {

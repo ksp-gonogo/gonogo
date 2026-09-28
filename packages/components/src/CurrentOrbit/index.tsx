@@ -8,6 +8,7 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/core";
 import {
+  conicApsides,
   type OrbitTrajectory,
   useOrbitTrajectory,
   useStream,
@@ -55,19 +56,18 @@ type OrbitReading = ReturnType<typeof useTelemetry<"vessel.orbit">>;
 /**
  * The elements the diagram draws from. The model overlays only the phase
  * (`meanAnomalyAtEpoch`, `epoch`); the other elements are constants of the
- * orbit, so they come from the observation either way. A stale orbit is drawn
- * only when a model makes it current.
+ * orbit, so they come from the observation either way. A stale orbit no model
+ * carries is still drawn, as the last orbit there was.
  */
 function drawableOrbit(reading: OrbitReading) {
-  const held =
+  const last =
     reading.state === "observed" || reading.state === "stale"
       ? reading.value
       : undefined;
-  if (held !== undefined && reading.reckoning.status === "available") {
-    return { ...held, ...reading.reckoning.value };
+  if (last !== undefined && reading.reckoning.status === "available") {
+    return { ...last, ...reading.reckoning.value };
   }
-  if (reading.state === "observed") return reading.value;
-  return undefined;
+  return last;
 }
 
 function CurrentOrbitComponent({
@@ -90,8 +90,6 @@ function CurrentOrbitComponent({
   // The solve is absent as a whole when the conic withdraws; `?? undefined` folds its `null` (a quantity the orbit lacks) and `undefined` (radius unresolved) into one absence.
   const solve = useOrbitSolve();
   const solveReading = useOrbitSolveReading();
-  const apoapsisR = solve?.apoapsisRadius ?? null;
-  const periapsisR = solve?.periapsisRadius ?? null;
 
   // An apsis needs a centre: in two-body and target-relative frames it does not exist, which is not the same as unmeasured.
   const frameReading = useStream<ControlFrame>("system.frame");
@@ -102,13 +100,16 @@ function CurrentOrbitComponent({
       : undefined;
   const apsides = apsidesExist(controlFrame);
   const noApsidesHere = apsides === "invalid";
-  // The diagram draws a position marker, so the elements come from a current reading or a model, never a held one.
   const orbitReading = useTelemetry("vessel.orbit");
   const observedOrbit =
     orbitReading.state === "observed" || orbitReading.state === "stale"
       ? orbitReading.value
       : undefined;
   const orbit = drawableOrbit(orbitReading);
+  // A held orbit no model carries says nothing of where the craft is now, so it is drawn with no craft on it.
+  const orbitHeld =
+    orbitReading.state === "stale" &&
+    orbitReading.reckoning.status !== "available";
   const sma = orbit?.sma;
   const eccentricity = orbit?.ecc;
   // Derived readouts null unless the reading is current, even under a model; the radii stay because the diagram gates its own geometry.
@@ -135,7 +136,14 @@ function CurrentOrbitComponent({
 
   // `body.radius` comes from the wire, `body.color` from the registry.
   const body = useStreamBody(bodyName, refBody);
-  const { isOrbiting } = useIsOrbiting();
+  // The apsides are the conic's shape, so a held orbit still has them.
+  const apsisShape =
+    orbitHeld && orbit !== undefined
+      ? conicApsides(orbit, body?.radius)
+      : solve;
+  const apoapsisR = apsisShape?.apoapsisRadius ?? null;
+  const periapsisR = apsisShape?.periapsisRadius ?? null;
+  const { isOrbiting } = useIsOrbiting(orbitHeld ? apsisShape : undefined);
 
   const bodyRef = useRef<HTMLDivElement | null>(null);
   const isLandscape = useIsLandscape(bodyRef);
@@ -157,6 +165,7 @@ function CurrentOrbitComponent({
   return (
     <Panel
       panelTitle="ORBIT"
+      panelStatus={orbitHeld && canDrawDiagram ? "held-stale" : undefined}
       sections={[
         <Section key="frame" full>
           {showSubtitle && refBody !== undefined && (
@@ -214,8 +223,8 @@ function CurrentOrbitComponent({
               timeToPe={current(
                 solveCountdown(solveReading, (s) => s.timeToPe),
               )}
-              inclination={orbit?.inc}
-              eccentricity={eccentricity}
+              inclination={orbitReading.inc}
+              eccentricity={orbitReading.ecc}
               period={current(solve?.period)}
             />
 
@@ -247,7 +256,7 @@ function CurrentOrbitComponent({
                       // Ignored by OrbitDiagram on a hyperbolic orbit, so the fallback is never drawn.
                       apoapsis={apoapsisR ?? 0}
                       periapsis={periapsisR}
-                      trueAnomaly={solve?.trueAnomaly ?? 0}
+                      trueAnomaly={orbitHeld ? null : (solve?.trueAnomaly ?? 0)}
                       argPe={orbit?.argPe?.magnitude ?? 0}
                       bodyColor={body?.color}
                       bodyRadius={body?.radius}
