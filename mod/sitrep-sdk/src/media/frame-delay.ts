@@ -51,7 +51,10 @@ import { PresentationPacer } from "./worker/presentation-pacer";
  *  2026-07-16) holds no such resource and has no `close()` method at all,
  *  it's a plain data object; every call site here uses `data.close?.()`,
  *  a no-op for that case. Kept generic so tests can drive the pipeline with
- *  a lightweight fake instead of a real browser. */
+ *  a lightweight fake instead of a real browser.
+ *
+ * @category Delayed video
+ */
 export interface FrameLike {
   close?(): void;
 }
@@ -59,7 +62,10 @@ export interface FrameLike {
 /** The pull side: satisfied directly by a real
  *  `ReadableStreamDefaultReader<VideoFrame>` (from
  *  `MediaStreamTrackProcessor.readable.getReader()`); tests pass a fake
- *  implementing just this shape. */
+ *  implementing just this shape.
+ *
+ * @category Delayed video
+ */
 export type FrameSource<Frame extends FrameLike> = Pick<
   ReadableStreamDefaultReader<Frame>,
   "read" | "cancel"
@@ -67,12 +73,20 @@ export type FrameSource<Frame extends FrameLike> = Pick<
 
 /** The push side: satisfied directly by a real
  *  `WritableStreamDefaultWriter<VideoFrame>` (from
- *  `MediaStreamTrackGenerator.writable.getWriter()`); tests pass a fake. */
+ *  `MediaStreamTrackGenerator.writable.getWriter()`); tests pass a fake.
+ *
+ * @category Delayed video
+ */
 export type FrameSink<Frame extends FrameLike> = Pick<
   WritableStreamDefaultWriter<Frame>,
   "write" | "close"
 >;
 
+/**
+ * Options for `runFrameDelayPipeline`.
+ *
+ * @category Delayed video
+ */
 export interface FrameDelayPipelineOptions<Frame extends FrameLike> {
   /** THE delay clock: the same instance telemetry reads. */
   view: DelayClockLike;
@@ -127,6 +141,11 @@ export interface FrameDelayPipelineOptions<Frame extends FrameLike> {
   };
 }
 
+/**
+ * A running frame delay pipeline, as `runFrameDelayPipeline` returns it.
+ *
+ * @category Delayed video
+ */
 export interface FrameDelayPipeline {
   /** Drop (closing) whatever's currently queued, WITHOUT tearing down
    *  source/sink: the timeline-reset case (revert/quickload/scene
@@ -152,6 +171,8 @@ const DEFAULT_MAX_BUFFERED_FRAMES = 300; // ~10s @ 30fps; see module docstring
  * exactly once: written-then-closed (release), dropped-then-closed
  * (over-cap eviction / `flush()` / leftovers at `dispose()`), or
  * closed-immediately if it arrives after `dispose()` already fired.
+ *
+ * @category Delayed video
  */
 export function runFrameDelayPipeline<Frame extends FrameLike>(
   opts: FrameDelayPipelineOptions<Frame>,
@@ -247,6 +268,8 @@ export function runFrameDelayPipeline<Frame extends FrameLike>(
  * (`createFrameDelayStream`, below) and the worker-hosted backend
  * (`worker/`), so there's one implementation of "how often do we drain the
  * pacer": mirrors `ViewClock.onFrame`'s own rAF/setTimeout duality.
+ *
+ * @category Delayed video
  */
 export function startPacingTicker(
   tickPacing: (nowWall: number) => void,
@@ -271,7 +294,10 @@ export function startPacingTicker(
 }
 
 /** True when the browser exposes the WebCodecs track-IO APIs the real
- *  pipeline needs. See module docstring re: browser support. */
+ *  pipeline needs. See module docstring re: browser support.
+ *
+ * @category Delayed video
+ */
 export function isFrameDelaySupported(): boolean {
   return (
     typeof MediaStreamTrackProcessor !== "undefined" &&
@@ -287,6 +313,11 @@ export function isFrameDelaySupported(): boolean {
  *  into visible added latency. */
 const DEFAULT_PACING_MAX_BACKLOG_SECONDS = 0.5;
 
+/**
+ * Options for `createFrameDelayStream`.
+ *
+ * @category Delayed video
+ */
 export interface CreateFrameDelayStreamOptions {
   view: DelayClockLike;
   captureUt(): number;
@@ -300,6 +331,11 @@ export interface CreateFrameDelayStreamOptions {
   maxPacingBacklogSeconds?: number;
 }
 
+/**
+ * A delayed copy of a video stream, as `createFrameDelayStream` returns it.
+ *
+ * @category Delayed video
+ */
 export interface FrameDelayStream {
   /** The delayed output: feed this to a `<video>`'s `srcObject`. */
   stream: MediaStream;
@@ -325,6 +361,8 @@ export interface VideoTrackSource {
  * racing the prior pipeline's un-awaited `cancel()`: see the try/catch
  * below): so the caller can fall back to live passthrough instead of a
  * black feed or an escaped exception.
+ *
+ * @category Delayed video
  */
 export function createFrameDelayStream(
   raw: VideoTrackSource,

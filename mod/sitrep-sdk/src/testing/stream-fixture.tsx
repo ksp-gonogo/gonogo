@@ -53,6 +53,8 @@ import { StubTransport } from "./stub-transport";
  *   Ingests are not the only frame source: a mounted `TelemetryProvider` also
  *   mints one every animation frame off `ViewClock.onFrame`, whether or not
  *   anything arrived.
+ *
+ * @category Stream fixture
  */
 export interface StreamFixtureOptions {
   /** UT to pin the view clock at, via `clock.scrubTo`. Omit to leave the clock live (required for `delaySeconds` to have any effect; see this file's doc comment). */
@@ -61,6 +63,12 @@ export interface StreamFixtureOptions {
   delaySeconds?: number;
 }
 
+/**
+ * What `setupStreamFixture` returns: the stub transport, the real client and
+ * store behind it, a fake wall clock, and a `Provider` to render widgets inside.
+ *
+ * @category Stream fixture
+ */
 export interface StreamFixture {
   transport: StubTransport;
   client: TelemetryClient;
@@ -89,6 +97,13 @@ export interface StreamFixture {
   ) => void;
 }
 
+/**
+ * Builds a real telemetry pipeline over a `StubTransport`, for a test to feed by
+ * hand. Render the widget under test inside `Provider`, then `emit` payloads to
+ * it.
+ *
+ * @category Stream fixture
+ */
 export function setupStreamFixture(
   opts: StreamFixtureOptions = {},
 ): StreamFixture {
@@ -145,6 +160,8 @@ export function setupStreamFixture(
  * test asserting on it stage the same thing. Call it after the scene's emits:
  * that is the order an operator meets it, and a drop first would leave the
  * emits nowhere to land.
+ *
+ * @category Stream fixture
  */
 export function stopArriving(stream: StreamFixture): void {
   stream.store.setTransportConnected(false);

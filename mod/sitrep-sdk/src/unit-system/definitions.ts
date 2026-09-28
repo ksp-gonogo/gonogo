@@ -7,6 +7,8 @@ import type { Dimension } from "./dimension";
  * `Value("h", 2).plus(Value("s", 120))` correct without anyone writing a
  * conversion. It is not a display decision: which rung a value renders at is
  * ui-kit's business, and lives there.
+ *
+ * @category Units and values
  */
 export interface UnitDefinition {
   /** Exponent map over base symbols. Never carries a zero exponent. */
@@ -126,9 +128,17 @@ export interface UnitDefinition {
  * `@ksp-gonogo/ui-kit`'s unit conversions. All three happened to say 9.80665, so
  * nothing was wrong yet, which is the only reason three copies of a physical
  * constant survived this long.
+ *
+ * @category Units and values
  */
 export const STANDARD_GRAVITY = 9.80665;
 
+/**
+ * Every built-in unit, keyed by its symbol: its dimension, its ratio to the base
+ * unit, and the ladder it steps along when a value is scaled for display.
+ *
+ * @category Units and values
+ */
 export const UNIT_DEFINITIONS = {
   // ── Length ───────────────────────────────────────────────────────────────
   m: { dim: { m: 1 }, ratio: 1, kind: "length", ladder: "length" },
@@ -440,4 +450,9 @@ export const UNIT_DEFINITIONS = {
   "irl:d": { dim: { irlS: 1 }, ratio: 24 * 60 * 60, kind: "irlTime" },
 } as const satisfies Record<string, UnitDefinition>;
 
+/**
+ * The symbol of a built-in unit.
+ *
+ * @category Units and values
+ */
 export type KnownUnit = keyof typeof UNIT_DEFINITIONS;

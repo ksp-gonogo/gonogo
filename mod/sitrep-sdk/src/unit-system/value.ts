@@ -54,6 +54,8 @@ declare const UnknownUnitBrand: unique symbol;
  * narrowing: the SHAPE is guaranteed even though the CONTENT is not, exactly
  * as `Array<unknown>` still has a `.length`. Arithmetic is what the brand
  * blocks, not field access.
+ *
+ * @category Units and values
  */
 export type UnknownUnit = string & { readonly [UnknownUnitBrand]: true };
 
@@ -65,6 +67,8 @@ export type UnknownUnit = string & { readonly [UnknownUnitBrand]: true };
  * `Value<"m">.plus(Value<"s">)` not. For a unit nothing declares the union
  * collapses to `never`, and `plus` then accepts only an exact match, which is
  * the safe reading when we know nothing about a symbol.
+ *
+ * @category Units and values
  */
 export type SameDimensionAs<Unit> = [DimensionOf<Unit>] extends [never]
   ? never
@@ -121,6 +125,8 @@ export type SameDimensionAs<Unit> = [DimensionOf<Unit>] extends [never]
  * so no range bounds it usefully, where an interval bounded by a range slides
  * fine. Derived from the registry's own `affineVector` rather than from a list,
  * so a unit added as point-like is point-like everywhere at once.</p>
+ *
+ * @category Units and values
  */
 export type PointUnit = {
   [Candidate in KnownUnit]: (typeof UNIT_DEFINITIONS)[Candidate] extends {
@@ -299,6 +305,8 @@ type CombinableWith<Unit extends string> = [Unit] extends [UnknownUnit]
  *   operators on object types regardless of `valueOf`, and that is the point:
  *   `timeToLaunch + timeToRendezvous` across a `Value<"s">` and a `Value<"h">`
  *   would otherwise give `120 + 2 = 122` and look fine.
+ *
+ * @category Units and values
  */
 export interface Value<Unit extends string = string> {
   readonly magnitude: number;
@@ -830,6 +838,8 @@ const prototype = {
  * happens instead is that the typo becomes its own base dimension and refuses
  * to combine with anything: `value("Klevin", 300).plus(value("K", 1))` throws
  * "Cannot add Klevin and K". Wrong, but loudly, rather than quietly wrong.
+ *
+ * @category Units and values
  */
 export function value<Unit extends string>(
   unit: Unit,
@@ -842,7 +852,11 @@ export function value<Unit extends string>(
   return instance as Value<Unit>;
 }
 
-/** True for something this module produced, or something `hydrate` restored. */
+/**
+ * True for something this module produced, or something `hydrate` restored.
+ *
+ * @category Units and values
+ */
 export function isValue(candidate: unknown): candidate is Value {
   return (
     typeof candidate === "object" &&
@@ -864,6 +878,8 @@ export function isValue(candidate: unknown): candidate is Value {
  *
  * Idempotent, and a pass-through for anything that is not a value, so it is
  * safe to map over a decoded payload without knowing which fields are wrapped.
+ *
+ * @category Units and values
  */
 export function hydrate<Candidate>(candidate: Candidate): Candidate {
   if (!isValue(candidate)) {
@@ -884,6 +900,8 @@ export function hydrate<Candidate>(candidate: Candidate): Candidate {
  * methods. That is why {@link vectorMagnitude} is a free function rather than
  * `v.magnitude()`, and it is the honest shape rather than a limitation: the
  * alternative is hydrating every vector on every sample to attach one method.
+ *
+ * @category Orbits and trajectories
  */
 export interface Vector3<Unit extends string = string> {
   readonly x: Value<Unit>;
@@ -903,6 +921,8 @@ export interface Vector3<Unit extends string = string> {
  * general: a `Vector3<Unit>` has all three leaves in the same unit BY TYPE, so
  * there is nothing to mix. That is the whole reason this can be one line
  * rather than two conversions.
+ *
+ * @category Units and values
  */
 export function vectorMagnitude<Unit extends string>(
   v: Vector3<Unit>,

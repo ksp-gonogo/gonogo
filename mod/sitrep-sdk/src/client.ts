@@ -44,6 +44,8 @@ const SERVER_TYPES = new Set<string>(
  * `command-response` is a result rather than telemetry, and a command's ARGS
  * travel the other way entirely (see `generated.test.ts` on why those stay
  * bare).
+ *
+ * @category Stream messages
  */
 export function parseServerMessage(raw: string): ServerMessage {
   const obj: unknown = JSON.parse(raw);

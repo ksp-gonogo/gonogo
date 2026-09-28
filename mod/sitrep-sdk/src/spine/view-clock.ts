@@ -72,6 +72,8 @@ type FrameTickHandle =
  * argument resets the fit + sample clamp + monotonic view cursor on a
  * rewind, and discards stale-epoch stragglers: the same per-epoch hygiene,
  * applied to the one clock instead of per-topic buffers.
+ *
+ * @category Stream fixture
  */
 export class ViewClock {
   private epoch = 0;

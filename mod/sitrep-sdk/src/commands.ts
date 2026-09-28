@@ -50,6 +50,8 @@ import type { CommandRail } from "./rail-tags";
  * The AUGMENTABLE surface. `SdkOwnedCommandArgsMap` below is the fixed SDK-owned
  * subset the compile invariants pin `COMMAND_IDS` against, exactly as `topics.ts`
  * splits the two.
+ *
+ * @category Commands
  */
 export interface CommandArgsMap extends SdkOwnedCommandArgsMap {}
 
@@ -62,6 +64,8 @@ export interface CommandArgsMap extends SdkOwnedCommandArgsMap {}
  * `CommandErrorCode`, so a resolved value is always a command that ran. Most commands
  * resolve a bare `CommandResult`; the few that have something to say resolve
  * `CommandResultOf<Payload>` with the value on `payload`.
+ *
+ * @category Commands
  */
 export interface CommandReplyMap extends SdkOwnedCommandReplyMap {}
 
@@ -85,6 +89,8 @@ export interface CommandReplyMap extends SdkOwnedCommandReplyMap {}
  * holds cannot be handed one whose reply is not an envelope. Deliberately not widened to
  * a union with it, which would make the floor unreadable and grow a new arm every time a
  * command declared `Result`.
+ *
+ * @category Commands
  */
 export type AnyCommandReply = CommandResultOf<unknown>;
 
@@ -99,19 +105,27 @@ interface SdkOwnedCommandArgsMap extends GeneratedCommandArgsMap {}
 
 interface SdkOwnedCommandReplyMap extends GeneratedCommandReplyMap {}
 
-/** Every command the mod declares statically, as a string-literal union. */
+/**
+ * Every command the mod declares statically, as a string-literal union.
+ *
+ * @category Commands
+ */
 export type CommandId = keyof CommandArgsMap;
 
 /**
  * The arguments `Command` takes. An empty interface (`NoCommandArgs`, or an
  * Uplink's own marker) means the command takes none, and `useCommand(...).send()`
  * accepts no argument for it.
+ *
+ * @category Commands
  */
 export type CommandArgs<Command extends CommandId> = CommandArgsMap[Command];
 
 /**
  * What dispatching `Command` resolves with. See {@link CommandReplyMap} for why a
  * refusal is not one of these.
+ *
+ * @category Commands
  */
 export type CommandReply<Command extends CommandId> =
   Command extends keyof CommandReplyMap ? CommandReplyMap[Command] : unknown;
@@ -121,6 +135,8 @@ export type CommandReply<Command extends CommandId> =
  * `CommandArgsMap`'s SDK-owned keys by the compile-time assertions below. An Uplink's
  * own commands register at load into `uplinkCommandIds` and are NOT in this array;
  * use `getAllKnownCommandIds()` / `isCommandId` for the live full set.
+ *
+ * @category Commands
  */
 export const COMMAND_IDS = [
   ...GENERATED_COMMAND_IDS,
@@ -166,6 +182,8 @@ const uplinkCommandRails = new Map<string, CommandRail>();
  * about any command (`UNDECLARED_COMMAND_RAIL_TAGS`): discrete, acked. An
  * Uplink that drives the registration off its generated map, as every bundled
  * one does, passes it without writing a line per command.
+ *
+ * @category Commands
  */
 export function registerUplinkCommand(id: string, rail?: CommandRail): void {
   uplinkCommandIds.add(id);
@@ -179,6 +197,8 @@ export function registerUplinkCommand(id: string, rail?: CommandRail): void {
  * `null` is a real answer and not a failure. A dynamic dispatch and an Uplink
  * whose client has not loaded both land here, so the caller decides what an
  * undeclared command reads as. `railTagsForCommand` is that decision.
+ *
+ * @category Commands
  */
 export function commandRail(id: string): CommandRail | null {
   const own = (GENERATED_COMMAND_RAIL as Record<string, CommandRail>)[id];
@@ -190,6 +210,8 @@ export function commandRail(id: string): CommandRail | null {
  * Uplink command registered so far. Reflects only Uplinks whose client package has
  * loaded, which is what makes it the honest answer to "what can this session
  * dispatch" rather than "what could some session dispatch".
+ *
+ * @category Commands
  */
 export function getAllKnownCommandIds(): readonly string[] {
   return [...COMMAND_IDS, ...uplinkCommandIds];
@@ -198,6 +220,8 @@ export function getAllKnownCommandIds(): readonly string[] {
 /**
  * Runtime narrowing guard: is `value` a known command? True for an SDK-owned command
  * OR an Uplink command whose owning client package has registered it.
+ *
+ * @category Commands
  */
 export function isCommandId(value: string): value is CommandId {
   return COMMAND_ID_SET.has(value) || uplinkCommandIds.has(value);

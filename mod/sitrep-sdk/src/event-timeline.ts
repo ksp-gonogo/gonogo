@@ -19,6 +19,8 @@
  * ingested under (mirrors `TimelinePoint.epoch`): a quickload rewind bumps the
  * epoch and drops superseded occurrences so a pre-rewind event can never be
  * re-revealed after the rewind.
+ *
+ * @category Delay and vantage
  */
 export interface EventOccurrence<
   Kind extends string = string,
@@ -38,9 +40,17 @@ export interface EventOccurrence<
  * Was the comms link up at a given UT? Mirrors the server reveal gate's
  * `ConnectivityAt(ut)`: an occurrence whose `ut` fell during a blackout is
  * dropped forever, never revealed late once the link returns.
+ *
+ * @category Delay and vantage
  */
 export type ConnectivityAt = (ut: number) => boolean;
 
+/**
+ * When an `EventTimeline` reveals an occurrence: once the view time has passed
+ * its time plus the signal delay, and only if the link was up when it happened.
+ *
+ * @category Delay and vantage
+ */
 export interface EventRevealOptions {
   /**
    * Current view UT. An occurrence reveals only once `now >= ut + delaySeconds`,
@@ -60,6 +70,11 @@ export interface EventRevealOptions {
   connectivityAt?: ConnectivityAt;
 }
 
+/**
+ * Options for a new `EventTimeline`.
+ *
+ * @category Delay and vantage
+ */
 export interface EventTimelineOptions {
   /**
    * How far behind the latest ingested occurrence `ut` older occurrences are
@@ -81,6 +96,8 @@ const DEFAULT_RETENTION_SECONDS = 300;
  * Epoch-aware, identically to `ClientTimeline`: a lower-epoch occurrence is a
  * stale straggler and is discarded; a higher-epoch occurrence is a rewind that
  * drops every buffered occurrence atomically before adopting the new epoch.
+ *
+ * @category Delay and vantage
  */
 export class EventTimeline<Kind extends string = string, Payload = unknown> {
   private occurrences: EventOccurrence<Kind, Payload>[] = [];

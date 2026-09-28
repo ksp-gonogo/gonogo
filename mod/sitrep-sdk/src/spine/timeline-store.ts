@@ -712,6 +712,8 @@ function interpolatedRead<Payload>(
  * Derived-channel registration (`registerDerivedChannel`) is implemented
  * here: see `sample`/`sampleDerived` for how a derived topic is resolved
  * and memoized through the exact same per-frame cache raw topics use.
+ *
+ * @category Stream fixture
  */
 export class TimelineStore {
   private readonly timelines = new Map<string, ClientTimeline<unknown>>();

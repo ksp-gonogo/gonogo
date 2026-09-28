@@ -37,6 +37,8 @@
  * origin in all three engines, so they never discriminate; the encoder and
  * decoder are the two that do. All four are listed because all four are
  * used.
+ *
+ * @category Radio
  */
 export const RADIO_REQUIRED_GLOBALS = [
   "AudioEncoder",
@@ -50,6 +52,8 @@ export const RADIO_REQUIRED_GLOBALS = [
  * measures. 20 ms of mono 48 kHz per chunk; `bitrate` is a hint that
  * firefox overshoots, so size buffers and budgets against the measured
  * rate rather than this number.
+ *
+ * @category Radio
  */
 export const RADIO_ENCODER_CONFIG = {
   codec: "opus",
@@ -59,7 +63,10 @@ export const RADIO_ENCODER_CONFIG = {
 } as const;
 
 /** The decoder half of {@link RADIO_ENCODER_CONFIG}: no bitrate, since a
- *  decoder is told what the stream is rather than what to aim for. */
+ *  decoder is told what the stream is rather than what to aim for.
+ *
+ * @category Radio
+ */
 export const RADIO_DECODER_CONFIG = {
   codec: "opus",
   sampleRate: 48_000,
@@ -67,14 +74,25 @@ export const RADIO_DECODER_CONFIG = {
 } as const;
 
 /** Samples per encoded chunk at {@link RADIO_ENCODER_CONFIG}'s sample
- *  rate: 20 ms, the grid Opus and the design's wire frame both use. */
+ *  rate: 20 ms, the grid Opus and the design's wire frame both use.
+ *
+ * @category Radio
+ */
 export const RADIO_CHUNK_FRAMES = 960;
 
 /** Why the radio cannot run here. `insecure-context` is recoverable by the
  *  operator (reach the page over https or via localhost); `no-codec` is
- *  not. */
+ *  not.
+ *
+ * @category Radio
+ */
 export type RadioUnsupportedReason = "insecure-context" | "no-codec";
 
+/**
+ * Whether this browser can carry radio audio, and why not when it cannot.
+ *
+ * @category Radio
+ */
 export type RadioSupport =
   | { supported: true }
   | {
@@ -90,6 +108,8 @@ export type RadioSupport =
  * The full verdict, with the reason attached. Prefer this over
  * {@link isRadioSupported} anywhere the answer is shown to an operator: a
  * page served over plain http wants "not a secure origin", not "no codec".
+ *
+ * @category Radio
  */
 export function radioSupportStatus(): RadioSupport {
   // `=== true` rather than a truthiness test: a host that is not a browser
@@ -116,7 +136,10 @@ export function radioSupportStatus(): RadioSupport {
 /** True when this page can run the radio's encode/decode path at all: a
  *  secure context exposing every WebCodecs constructor it needs. The
  *  boolean twin of {@link radioSupportStatus}, for callers that only branch
- *  on it. */
+ *  on it.
+ *
+ * @category Radio
+ */
 export function isRadioSupported(): boolean {
   return radioSupportStatus().supported;
 }

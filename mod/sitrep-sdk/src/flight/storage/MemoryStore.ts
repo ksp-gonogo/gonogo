@@ -15,6 +15,8 @@ interface SampleRow {
  * Insertion is O(1) when timestamps arrive monotonically, which is the
  * expected case from a live stream: with a fallback linear-insert path
  * for out-of-order samples (e.g. backfilled history).
+ *
+ * @category Flight recording
  */
 export class MemoryStore implements FlightStore {
   // Separator between flightId and key in a bucket map key. `\u0000`

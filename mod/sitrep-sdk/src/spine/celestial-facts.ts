@@ -73,6 +73,8 @@ import { CORE_UPLINK_CLIENT } from "./uplink-clients";
  * it when a caller asks for an instant rather than advancing it each frame.
  * Under an n-body install the bodies are integrated too, their osculating
  * elements part company with the path, and the provider says where.
+ *
+ * @category Solar system and fleet
  */
 export interface BodyHorizon {
   kind: PropagationHorizonKind;
@@ -91,6 +93,8 @@ export interface BodyHorizon {
  * (`VesselViewProvider.ElementHorizon`), and it keeps `Unspecified` meaning what
  * the contract says it means: a producer that HAS the field and could not fill
  * it.
+ *
+ * @category Solar system and fleet
  */
 export const ANALYTIC_BODY_HORIZON: BodyHorizon = Object.freeze({
   kind: PropagationHorizonKind.Unbounded,
@@ -98,6 +102,11 @@ export const ANALYTIC_BODY_HORIZON: BodyHorizon = Object.freeze({
   untilUt: null,
 });
 
+/**
+ * A body's atmosphere. Each field is null when the game did not report it.
+ *
+ * @category Solar system and fleet
+ */
 export interface BodyAtmosphere {
   /** Atmosphere height, metres. */
   depth: number | null;
@@ -107,6 +116,11 @@ export interface BodyAtmosphere {
   seaLevelPressure: number | null;
 }
 
+/**
+ * One body of the solar system as `CelestialFacts` holds it.
+ *
+ * @category Solar system and fleet
+ */
 export interface CelestialBody {
   index: number;
   name: string | null;
@@ -162,7 +176,11 @@ export interface CelestialBody {
   hasOxygen: boolean | null;
 }
 
-/** What the catalogue knows, this frame. */
+/**
+ * What the catalogue knows, this frame.
+ *
+ * @category Solar system and fleet
+ */
 export interface CelestialFacts {
   /** Every body the system carries, in wire order, enriched. */
   bodies: CelestialBody[];
@@ -302,6 +320,8 @@ const NOTHING_KNOWN: CelestialFacts = {
  * The whole derivation, pure. Exported so a test can exercise it directly
  * without a live evaluator, the way every processor in the tree exposes its
  * derivation beside its handle.
+ *
+ * @category Solar system and fleet
  */
 export function deriveCelestialFacts(
   wire: readonly BodyEntry[] | undefined,
@@ -325,6 +345,8 @@ export function deriveCelestialFacts(
  * `core:celestial-facts`. The owner-stamped Processor handle. Import it to
  * consume the catalogue, never re-declare it: a second registration under the
  * same id with a different compute throws (processors.ts).
+ *
+ * @category Solar system and fleet
  */
 export const CELESTIAL_FACTS = CORE_UPLINK_CLIENT.registerProcessor({
   id: "celestial-facts",
@@ -351,6 +373,8 @@ export const CELESTIAL_FACTS = CORE_UPLINK_CLIENT.registerProcessor({
  * carry it. A linear scan over a system-sized list, deliberately: an index-keyed
  * copy of every body would double the evaluator's structural comparison for a
  * lookup that costs nothing at seventeen bodies.
+ *
+ * @category Solar system and fleet
  */
 export function bodyAtIndex(
   facts: CelestialFacts | undefined,
@@ -360,7 +384,11 @@ export function bodyAtIndex(
   return facts.bodies.find((b) => b.index === index) ?? null;
 }
 
-/** The enriched entry for one body name, or `null` when the catalogue does not carry it. */
+/**
+ * The enriched entry for one body name, or `null` when the catalogue does not carry it.
+ *
+ * @category Solar system and fleet
+ */
 export function bodyNamed(
   facts: CelestialFacts | undefined,
   name: string | null | undefined,

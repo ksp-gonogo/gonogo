@@ -46,25 +46,56 @@ import { namesOf } from "./enum-names";
  * every craft read healthy, including one with no control. Typed as the union,
  * that line is a compile error, because a closed union and a non-member literal
  * have no overlap.
+ *
+ * @category Enum names
  */
 export type SituationName = keyof typeof Situation;
+/**
+ * The name of a `SasMode` member, such as `Prograde`.
+ *
+ * @category Enum names
+ */
 export type SasModeName = keyof typeof SasMode;
+/**
+ * The name of a `TargetKind` member.
+ *
+ * @category Enum names
+ */
 export type TargetKindName = keyof typeof TargetKind;
+/**
+ * The name of a `ControlState` member.
+ *
+ * @category Enum names
+ */
 export type ControlStateName = keyof typeof ControlState;
 
-/** `Sitrep.Contract.Situation`, behind `vessel.identity.situation`. */
+/**
+ * `Sitrep.Contract.Situation`, behind `vessel.identity.situation`.
+ *
+ * @category Enum names
+ */
 export const SITUATION_NAMES = namesOf(Situation);
 
 /**
  * `Sitrep.Contract.SasMode`, behind `vessel.control.sasMode`. It mirrors KSP's
  * `VesselAutopilot.AutopilotMode`, plus `Unknown` as the graceful fallback.
+ *
+ * @category Enum names
  */
 export const SAS_MODE_NAMES = namesOf(SasMode);
 
-/** `Sitrep.Contract.TargetKind`, behind `vessel.target.kind`. */
+/**
+ * `Sitrep.Contract.TargetKind`, behind `vessel.target.kind`.
+ *
+ * @category Enum names
+ */
 export const TARGET_KIND_NAMES = namesOf(TargetKind);
 
-/** `Sitrep.Contract.ControlState`, behind `vessel.comms.controlState`. */
+/**
+ * `Sitrep.Contract.ControlState`, behind `vessel.comms.controlState`.
+ *
+ * @category Enum names
+ */
 export const CONTROL_STATE_NAMES = namesOf(ControlState);
 
 /**
@@ -72,6 +103,8 @@ export const CONTROL_STATE_NAMES = namesOf(ControlState);
  *
  * Exported for `enum-name-tables.test.ts`, which is the check that these stay
  * derived: a table rebuilt by hand fails against its enum there.
+ *
+ * @category Enum names
  */
 export const ENUM_NAME_TABLES: ReadonlyArray<{
   label: string;
@@ -96,6 +129,8 @@ export const ENUM_NAME_TABLES: ReadonlyArray<{
  * no enum contains. The caller sees the same `undefined` it sees for a field
  * that did not arrive, which is correct at the drawing site: in both cases
  * there is no name to write.
+ *
+ * @category Enum names
  */
 export function enumNameOf<EnumName extends string>(
   names: readonly string[],
@@ -111,6 +146,8 @@ export function enumNameOf<EnumName extends string>(
  * source → 2 (full), `*Partial` → 1, `*None`/`None` → 0. `Unknown` (11) →
  * `undefined` (unrecognized). Index-aligned with {@link CONTROL_STATE_NAMES},
  * which is why it sits beside it: the alignment is checked in one file.
+ *
+ * @category Enum names
  */
 export const CONTROL_STATE_LEVEL: readonly (number | undefined)[] = [
   0, // None
@@ -133,6 +170,8 @@ export const CONTROL_STATE_LEVEL: readonly (number | undefined)[] = [
  * {@link CONTROL_STATE_LEVEL}. `undefined` for an out-of-range / `Unknown`
  * ordinal. The single source of truth for the collapse, so `CommSignal` and
  * `SignalLossIndicator` share it rather than re-tabulating the mapping.
+ *
+ * @category Enum names
  */
 export function collapseControlStateLevel(
   controlState: number,

@@ -25,6 +25,8 @@ import type { BodyDefinition } from "./types";
  * Atmospheric bodies get a floor of (maxAtmosphere + 10 km), you can't image
  * through the soup. Airless bodies use 5 % of the radius as the floor.
  * The ceiling is 0.8 × radius; the ideal is 0.2 × radius.
+ *
+ * @category Solar system and fleet
  */
 export function getImagingWindow(body: BodyDefinition): {
   min: number;
@@ -48,6 +50,8 @@ export function getImagingWindow(body: BodyDefinition): {
  * Trapezoidal quality curve over altitude: 0 below `min`, ramps up to 1 at
  * `ideal`, holds 1 until halfway between `ideal` and `max`, ramps back to 0
  * at `max`.
+ *
+ * @category Solar system and fleet
  */
 export function imagingQuality(altitude: number, body: BodyDefinition): number {
   const { min, ideal, max } = getImagingWindow(body);
@@ -74,20 +78,38 @@ function bodies(): Map<string, BodyDefinition> {
   return slot[BODY_REGISTRY_KEY];
 }
 
-/** Add or override a body. Last write wins, which is how a planet pack overrides. */
+/**
+ * Add or override a body. Last write wins, which is how a planet pack overrides.
+ *
+ * @category Solar system and fleet
+ */
 export function registerBody(def: BodyDefinition): void {
   bodies().set(def.id, def);
 }
 
+/**
+ * The body registered under `id`, or `undefined`.
+ *
+ * @category Solar system and fleet
+ */
 export function getBody(id: string): BodyDefinition | undefined {
   return bodies().get(id);
 }
 
+/**
+ * Every registered body.
+ *
+ * @category Solar system and fleet
+ */
 export function getAllBodies(): BodyDefinition[] {
   return Array.from(bodies().values());
 }
 
-/** For use in tests only: resets the body registry to empty. */
+/**
+ * For use in tests only: resets the body registry to empty.
+ *
+ * @category Solar system and fleet
+ */
 export function clearBodies(): void {
   bodies().clear();
 }

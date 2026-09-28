@@ -56,6 +56,8 @@ import type { Value } from "./unit-system/value";
  *   own basis. So it is honest exactly as far as its inputs are, and no
  *   further: read {@link combineReadings} for the currency rule, and the
  *   inputs themselves for what actually propagated
+ *
+ * @category Reckoners
  */
 export type ReckoningBasis =
   | "combination"
@@ -71,6 +73,8 @@ export type ReckoningBasis =
  * `atUt` is the UT the reckoning is FOR, the frame's SCET, not the UT the observation behind it
  * was made at (`Reading`'s `asOfUt` carries that). Both are needed: an operator
  * reads a modelled figure against how far it has been carried.
+ *
+ * @category Reckoners
  */
 export interface TopicReckoningAvailable<Payload> {
   /**
@@ -156,13 +160,19 @@ export type TopicReckoning<Payload> =
  * a value-bearing arm there is no such thing as nothing-to-say. Dropping
  * `"none"` here is what makes that promise a compile-time fact rather than a
  * convention.
+ *
+ * @category Reckoners
  */
 export type DeclaredTopicReckoning<Payload> = Exclude<
   TopicReckoning<Payload>,
   { readonly status: "none" }
 >;
 
-/** One path a model moved, and what moved it. See {@link TopicReckoningAvailable.modelled}. */
+/**
+ * One path a model moved, and what moved it. See {@link TopicReckoningAvailable.modelled}.
+ *
+ * @category Reckoners
+ */
 export interface ModelledField {
   /** Dotted from the payload root. `""` is the whole payload. */
   readonly path: string;
@@ -185,6 +195,8 @@ export interface ModelledField {
  * - `sigma1`: one standard deviation either side of `value`. The true value is
  *   outside it roughly a third of the time, and a widget must not draw or
  *   phrase it as a limit
+ *
+ * @category Reckoners
  */
 export type BandKind = "bound" | "sigma1";
 
@@ -220,6 +232,8 @@ export type BandKind = "bound" | "sigma1";
  * threshold comparison, a marker sizer or a chart, with no path walk at the
  * call site. A producer must keep it equal to the value it reckoned for that
  * path; `bandIsWellFormed` is the check, and the store's own suite asserts it.
+ *
+ * @category Reckoners
  */
 export interface UncertaintyBand<Unit extends string = string> {
   /** The model's point estimate: the same number `reckon` produced here. */
@@ -244,6 +258,8 @@ export interface UncertaintyBand<Unit extends string = string> {
  * than a second way to claim coverage. Nothing rejects it, because the
  * consumer reads bands BY path and never enumerates them, so an orphan is
  * simply never asked for.
+ *
+ * @category Reckoners
  */
 export type ReckonedBands = {
   readonly [path: string]: UncertaintyBand | undefined;
@@ -263,6 +279,8 @@ export type ReckonedBands = {
  * answers with the projection of the fields it moves instead, so `Projection` is
  * `Pick<Payload, ReckonableKey>` there. Two parameters rather than one because the coverage claim
  * is still about paths on `Payload` whichever shape the answer takes.
+ *
+ * @category Reckoners
  */
 export interface TopicModel<Payload, Projection = Payload> {
   /** Paths this model moves. Empty claims nothing and is never offered. */
@@ -333,6 +351,8 @@ export interface TopicModel<Payload, Projection = Payload> {
  * no `input`, because the topic being read is not one of its own declared
  * inputs; the `note` says how many samples were found and whether a gap is what
  * cut them down.
+ *
+ * @category Reckoners
  */
 export interface ReckoningDecline {
   readonly reason:
@@ -362,6 +382,8 @@ export interface ReckoningDecline {
  *
  * `Projection` is the projection the model produces, which for a declared value is
  * `Pick<Payload, ReckonableKey>` rather than the whole payload. See {@link ReckonableReading}.
+ *
+ * @category Reckoners
  */
 export type ReckonerAnswer<Payload, Projection = Payload> =
   | TopicModel<Payload, Projection>
@@ -793,6 +815,8 @@ export function stillTrue<Payload, Fallback>(
  * wants the modelled figure branches on `reckoning` itself and hands the
  * projection over as its own `Value`, which is a written choice and shows up in
  * review.
+ *
+ * @category Reading telemetry
  */
 export function readingOf<
   Payload,
@@ -852,6 +876,8 @@ export function readingOf<Payload, Selected>(
  *
  * Unlike {@link readingOf}, the model survives, because the caller writes the
  * modelled arm itself rather than handing one selector to both.
+ *
+ * @category Reckoners
  */
 // The ReckonableReading overload comes FIRST, for the same reason `withoutReckoning`'s does.
 export function deriveReading<
@@ -928,6 +954,8 @@ function derivedReckoning<Payload, Derived>(
  * One figure of a derived {@link Reading}, with its model carried through:
  * `pick` runs on the observation and on the modelled value alike, which is
  * sound only because both are the same type.
+ *
+ * @category Reading telemetry
  */
 export function pickReading<Payload, Picked>(
   reading: Reading<Payload>,
@@ -1009,6 +1037,8 @@ function walkField(payload: unknown, path: string): unknown {
  * copy of the last observation, carried along because the model answers with
  * the whole payload, and labelling it modelled is the failure the `modelled`
  * list exists to prevent.
+ *
+ * @category Reading telemetry
  */
 export function fieldReckoning(
   reckoning: TopicReckoning<unknown>,
@@ -1077,6 +1107,8 @@ function projectField(
  * Spreading one copies the currency and NOT the field readings: `ownKeys` is
  * the currency's, so `{ ...reading }` is what it has always been. Reach a field
  * off the reading itself.
+ *
+ * @category Reading telemetry
  */
 export function topicReading<Payload>(
   currency: TopicCurrency<Payload, { readonly status: "none" }>,
@@ -1179,6 +1211,8 @@ const CURRENCY_MEMBERS = {
  * Answering `undefined` rather than throwing is the same judgement the rest of
  * this file makes about a bad band: the reckoned value is still good, and a
  * consumer with no band behaves exactly as one whose model offered none.
+ *
+ * @category Reckoners
  */
 export function bandIn<Unit extends string, SourceUnit extends string = string>(
   band: UncertaintyBand<SourceUnit> | undefined,
@@ -1221,6 +1255,8 @@ export function bandIn<Unit extends string, SourceUnit extends string = string>(
  * `lo === value === hi` passes. A model claiming it knows a value exactly is
  * making a strong claim, not an ill-formed one, and a quantised or
  * integer-valued quantity is the honest case for it.
+ *
+ * @category Reckoners
  */
 export function bandIsWellFormed<Unit extends string>(
   band: UncertaintyBand<Unit>,
@@ -1249,6 +1285,8 @@ export function bandIsWellFormed<Unit extends string>(
  * Both arguments share `Unit`, so the two units are the same string and compare
  * directly. That is why there is no conversion here and no cast: a mismatch is
  * not representable in the signature.
+ *
+ * @category Reckoners
  */
 export function bandSide<Unit extends string>(
   band: UncertaintyBand<Unit>,
@@ -1290,6 +1328,8 @@ export function bandSide<Unit extends string>(
  * a presence gate reads `` `${domain}.available` `` through a runtime `as
  * TopicId` cast, so its reading is the union over EVERY topic and unifies with
  * no single `Payload`.
+ *
+ * @category Reading telemetry
  */
 export function hasAnswered(reading: {
   readonly state: ReadingState;
@@ -1356,6 +1396,8 @@ export function observedAt<Payload>(
  * could not decline at the one moment declining matters. Everything
  * `Reading`'s doc says about `"available"` being the statement of trust rests
  * on this argument existing.
+ *
+ * @category Reckoners
  */
 export type ReckonerFor<Payload> = (
   point: TimelinePoint<Payload>,
@@ -1437,6 +1479,8 @@ type ResolvedReckonerDep<Dependency extends Dep> =
  * seconds" and "is sampled every twenty seconds" are the same thing in the
  * buffer and different things in the world. Nothing here divides a span by an
  * interval, and nothing written against it should.
+ *
+ * @category Reckoners
  */
 export interface ReckonerWindow {
   /**
@@ -1464,6 +1508,8 @@ export interface ReckonerWindow {
  * exactly this to replay a derived channel over its inputs' change points.
  *
  * No `minSamples`: see {@link ReckonerWindow}.
+ *
+ * @category Reckoners
  */
 export interface DepWindow {
   /** As {@link ReckonerWindow.spanUt}, measured back from this dep's own newest point. */
@@ -1487,6 +1533,8 @@ export interface DepWindow {
  * stored timeline to range over. A reading is one topic's currency AT a view
  * time, and a processor is recomputed per frame and never buffered, so there is
  * no history to hand back for either.
+ *
+ * @category Reckoners
  */
 export type WindowableDep<Deps extends readonly Dep[]> = Extract<
   Deps[number],
@@ -1500,6 +1548,8 @@ export type WindowableDep<Deps extends readonly Dep[]> = Extract<
  * for a topic this reckoner does not depend on is a compile error rather than a
  * silently ignored key, which is the same failure the bare-string `topic`
  * parameter used to allow one level up.
+ *
+ * @category Reckoners
  */
 export type DepWindows<Deps extends readonly Dep[]> = {
   readonly [Dependency in WindowableDep<Deps>]?: DepWindow;
@@ -1514,6 +1564,8 @@ export type DepWindows<Deps extends readonly Dep[]> = {
  * matters: a dep that opted in destructures as an ARRAY and one that did not as
  * a single point, with no cast at either call site and no `Array.isArray` check
  * inside a model to find out which it got.
+ *
+ * @category Reckoners
  */
 export type ResolvedReckonerDeps<
   Deps extends readonly Dep[],
@@ -1526,7 +1578,11 @@ export type ResolvedReckonerDeps<
     : never;
 };
 
-/** What a reckoner is told about the frame it is running for, beyond its inputs. */
+/**
+ * What a reckoner is told about the frame it is running for, beyond its inputs.
+ *
+ * @category Reckoners
+ */
 export interface ReckonerFrame<Payload = unknown> {
   /** `undefined` when the reading is LIVE; see {@link ReckonerFor}. */
   readonly grade: StaleGrade | undefined;
@@ -1562,6 +1618,8 @@ export interface ReckonerFrame<Payload = unknown> {
  * so there is no gap for a model integrating from the last observation to carry
  * it across. Under signal delay a live observation is still a light-time behind
  * the craft's present, and that is a gap.
+ *
+ * @category Reading telemetry
  */
 export function currentAtReckonTime(frame: ReckonerFrame): boolean {
   return frame.grade === undefined && frame.reckonUt <= frame.viewUt;
@@ -1601,6 +1659,8 @@ export function currentAtReckonTime(frame: ReckonerFrame): boolean {
  * legitimately narrows. So the rule polices the two claims that are wrong
  * whatever the mathematics (a bound out of a sigma, an exact answer out of an
  * inexact input) and leaves the arithmetic to the model.
+ *
+ * @category Reckoners
  */
 export type ReckonerInputRule = "horizon" | "band";
 
@@ -1623,6 +1683,8 @@ export type ReckonerInputRule = "horizon" | "band";
  * `getReckonerExemptions`, so an opt-out is reviewable rather than merely
  * possible: an Uplink's generated page lists its own, and a ledger suite pins
  * the whole set.
+ *
+ * @category Reckoners
  */
 export interface ReckonerExemptions {
   /** Why this model may reach past an input's horizon. */
@@ -1707,6 +1769,8 @@ export interface ReckonerExemptions {
  * body roster as no evidence of an atmosphere rather than as a reason to blank
  * the reading. Withdrawal takes positive evidence; an absent optional input is
  * not evidence.
+ *
+ * @category Reckoners
  */
 export interface ReckonerDefinition<
   Payload,
@@ -1755,6 +1819,8 @@ export interface ReckonerDefinition<
  * the store calls it without an assertion in either direction. The two
  * `as unknown as` casts that used to bridge them were the same round trip
  * written twice, and neither said which way it was unsound.
+ *
+ * @category Reckoners
  */
 export interface AnyReckonerDefinition {
   /** Declared inputs, in the same notation a Processor's `deps` uses. */

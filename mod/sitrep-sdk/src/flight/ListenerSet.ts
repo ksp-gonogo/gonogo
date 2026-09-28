@@ -7,6 +7,8 @@
  * Standalone (not tied to DataSourceWrapper) so PeerClientDataSource, which
  * doesn't wrap an upstream `real` source and so doesn't extend the wrapper
  * base: can use it too.
+ *
+ * @category Flight recording
  */
 export class ListenerSet<Args extends readonly unknown[] = []> {
   private readonly listeners = new Set<(...args: Args) => void>();
@@ -38,6 +40,8 @@ export class ListenerSet<Args extends readonly unknown[] = []> {
  * for the per-key subscriber bookkeeping inside BufferedDataSource and
  * PeerClientDataSource. The bucket Set is created lazily and removed when its
  * last subscriber leaves so an empty Map entry never lingers.
+ *
+ * @category Flight recording
  */
 export class KeyedListenerSet<Args extends readonly unknown[] = []> {
   private readonly buckets = new Map<string, Set<(...args: Args) => void>>();

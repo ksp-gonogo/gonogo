@@ -71,6 +71,8 @@ import {
  *
  * `Value` is matched by its `magnitude`/`unit` pair rather than by name, so a
  * `Vec3Of<Unit>`'s three leaves collapse the same way its parent does.
+ *
+ * @category Units and values
  */
 export type WireOf<Shape> = Shape extends {
   readonly magnitude: number;
@@ -85,6 +87,13 @@ export type WireOf<Shape> = Shape extends {
         ? { [Key in keyof Shape]: WireOf<Shape[Key]> }
         : Shape;
 
+/**
+ * Turns a payload as the mod sends it into the typed payload a reader sees:
+ * every number with a declared unit becomes a `Value` in that unit. Mutates and
+ * returns `payload`.
+ *
+ * @category Units and values
+ */
 export function wrapTopicPayload<Payload>(
   topic: TopicId,
   payload: WireOf<Payload>,
@@ -101,6 +110,8 @@ export function wrapTopicPayload<Payload>(
  * The same, for a payload named by its generated interface rather than by a
  * Topic. Nested shapes (`ThermalHottestPart`) are reachable this way and no
  * Topic names them.
+ *
+ * @category Units and values
  */
 export function wrapTypePayload<Payload>(
   typeName: string,
@@ -306,6 +317,8 @@ function wrapScalarOrList(current: unknown, unit: string): unknown {
  * often a widget's own state, and rewriting a `Value` in it to a number would
  * corrupt the state of whatever dispatched. So every container that contains a
  * quantity is rebuilt, and one that contains none is passed through untouched.
+ *
+ * @category Units and values
  */
 export function dehydrateArgs<Args>(args: Args): WireOf<Args>;
 /* The implementation walks an untyped tree, so it cannot state the conditional
@@ -340,6 +353,13 @@ function dehydrate(args: unknown): unknown {
   return wire ?? args;
 }
 
+/**
+ * Restores every `Value` in a payload that lost its methods crossing JSON or a
+ * structured clone, such as on the hop to a station screen. Mutates and returns
+ * `payload`; anything that is not a value passes through.
+ *
+ * @category Units and values
+ */
 export function hydratePayload<Payload>(payload: Payload): Payload {
   if (payload === null || typeof payload !== "object") {
     return payload;

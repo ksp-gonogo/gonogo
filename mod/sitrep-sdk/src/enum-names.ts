@@ -18,6 +18,8 @@
  * (`Situation[0] === "Landed"`), walking up from 0 until the ordinals run out.
  * Every enum in this contract is densely indexed from zero: the wire depends on
  * declaration order, so the contract's own convention forbids explicit values.
+ *
+ * @category Enum names
  */
 export function namesOf(members: object): readonly string[] {
   const byOrdinal = members as Record<number, string | undefined>;
@@ -46,6 +48,8 @@ export function namesOf(members: object): readonly string[] {
  * Reads the same reverse map every TypeScript numeric enum carries, but off
  * `Object.entries` rather than by counting, so a negative, sparse or
  * power-of-two value set survives intact.
+ *
+ * @category Enum names
  */
 export function namesByValue(members: object): ReadonlyMap<number, string> {
   const byValue = new Map<number, string>();

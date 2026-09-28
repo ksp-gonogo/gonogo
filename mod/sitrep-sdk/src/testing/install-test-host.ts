@@ -8,13 +8,19 @@ import { __setGonogoHost, type GonogoHost } from "../api/host";
  *
  * Its own module rather than `./index.ts`'s body, so `./install-real-test-host.ts`
  * can reach it without importing the barrel that re-exports it.
+ *
+ * @category Test hosts
  */
 export function installTestHost(host: Partial<GonogoHost>): () => void {
   __setGonogoHost(host as GonogoHost);
   return () => __setGonogoHost(undefined);
 }
 
-/** Clear any installed host. */
+/**
+ * Clear any installed host.
+ *
+ * @category Test hosts
+ */
 export function resetTestHost(): void {
   __setGonogoHost(undefined);
 }

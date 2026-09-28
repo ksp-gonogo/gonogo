@@ -10,7 +10,11 @@
  * disagreement.
  */
 
-/** One integrated descent, in a velocity-height plot's own axes. */
+/**
+ * One integrated descent, in a velocity-height plot's own axes.
+ *
+ * @category Orbits and trajectories
+ */
 export interface DescentProjection {
   /** Sampled (speed, height-above-ground) pairs, vessel first, ground last. */
   points: readonly { speed: number; altitude: number }[];
@@ -26,13 +30,25 @@ export interface DescentProjection {
 
 /** How many altitude steps the descent is integrated in by default. The
  *  per-step solution is exact for a constant terminal velocity, so this only
- *  has to be fine enough that the curve's own shape is followed. */
+ *  has to be fine enough that the curve's own shape is followed.
+ *
+ * @category Orbits and trajectories
+ */
 export const DESCENT_TRACE_STEPS = 48;
 
 /** Within this fraction of the terminal curve the descent has settled: drag and
- *  weight are in balance to the eye and the remaining fall is the curve. */
+ *  weight are in balance to the eye and the remaining fall is the curve.
+ *
+ * @category Orbits and trajectories
+ */
 export const DESCENT_SETTLE_TOLERANCE = 0.12;
 
+/**
+ * The starting state and atmosphere `projectDescent` integrates over. Speeds are
+ * m/s, altitudes metres above the ground, and gravity m/s².
+ *
+ * @category Orbits and trajectories
+ */
 export interface ProjectDescentOptions {
   startSpeed: number;
   startAltitude: number;
@@ -52,6 +68,8 @@ export interface ProjectDescentOptions {
  * vessel is many times terminal velocity and the derivative is enormous; this
  * form relaxes toward the curve however large the step or the excess is, which
  * is also the physical behaviour.
+ *
+ * @category Orbits and trajectories
  */
 export function projectDescent(
   opts: Readonly<ProjectDescentOptions>,
@@ -107,6 +125,8 @@ export function projectDescent(
  * Published alongside the integrator for the same reason: a contributor that
  * re-derives the density column from its own assumptions draws a curve that
  * disagrees with the host's for reasons no operator can see.
+ *
+ * @category Orbits and trajectories
  */
 export function terminalVelocityCurve(opts: {
   speedNow: number;
@@ -123,6 +143,8 @@ export function terminalVelocityCurve(opts: {
  * Air density relative to the ground, from the SAME model as
  * {@link terminalVelocityCurve}, so a haze and a curve drawn from one plot's
  * anchors can never disagree. 1 at the surface, decaying with altitude.
+ *
+ * @category Orbits and trajectories
  */
 export function relativeDensityCurve(opts: {
   speedNow: number;

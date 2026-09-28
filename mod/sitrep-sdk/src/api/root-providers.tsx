@@ -24,6 +24,8 @@ import type { Screen } from "../spine/screen";
  * on the same machine, which for anything persisted means one screen
  * overwriting the other's. The Provider receives the screen it is being
  * mounted for and is responsible for keying its own state by it.</p>
+ *
+ * @category Registering
  */
 export interface RootProviderDefinition {
   /** Stable id, auto-namespaced to the Uplink when registered through its handle. */
@@ -77,17 +79,31 @@ function publish(): void {
   for (const listener of reg.listeners) listener();
 }
 
+/**
+ * Adds a React provider the app mounts around the whole dashboard, replacing any
+ * registered under the same id.
+ *
+ * @category Registering
+ */
 export function registerRootProvider(def: RootProviderDefinition): void {
   registry().providers.set(def.id, def);
   publish();
 }
 
-/** Registration order, which is mount order outermost-first. */
+/**
+ * Registration order, which is mount order outermost-first.
+ *
+ * @category Registering
+ */
 export function getRootProviders(): RootProviderDefinition[] {
   return registry().snapshot;
 }
 
-/** Tests only: resets the registry so one file's registrations cannot leak. */
+/**
+ * Tests only: resets the registry so one file's registrations cannot leak.
+ *
+ * @category Registering
+ */
 export function clearRootProviders(): void {
   registry().providers.clear();
   publish();
@@ -116,6 +132,8 @@ function subscribe(listener: () => void): () => void {
  * accepted: it happens as the Uplinks finish loading, which is the moment the
  * dashboard is coming up anyway, and the alternative is a value that never
  * arrives. Anything that must survive it belongs above this component.</p>
+ *
+ * @category Registering
  */
 export function RootProviders({
   screen,

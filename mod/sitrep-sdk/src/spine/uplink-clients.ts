@@ -51,6 +51,8 @@ import { registerReckoner } from "./reckoners";
  * declarations of a handle whose methods are typed `any` on one side is the
  * divergence shape that cannot fail loudly, which is the same reason the
  * contribution declaration-merge seam was collapsed to one.
+ *
+ * @category Registering
  */
 export interface UplinkClientHandle {
   /** MUST match the mod's `[SitrepUplink("<id>")]` id and its gonogo-uplink.json id. */

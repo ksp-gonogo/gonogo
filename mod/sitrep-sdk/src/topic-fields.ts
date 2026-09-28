@@ -23,6 +23,8 @@ import {
  * collection is a real field; what sits inside it is keyed by something the
  * contract never names (a facility id, a vessel id), so enumeration stops
  * there rather than guessing.
+ *
+ * @category Reading telemetry
  */
 export type TopicFieldKind =
   | "quantity"
@@ -31,7 +33,11 @@ export type TopicFieldKind =
   | "enum"
   | "collection";
 
-/** One enumerated field of one Topic, as a picker offers it. */
+/**
+ * One enumerated field of one Topic, as a picker offers it.
+ *
+ * @category Reading telemetry
+ */
 export interface TopicField {
   /** Dotted path relative to the Topic root, e.g. `"economy.funds"`. */
   path: string;
@@ -143,6 +149,8 @@ function walk(
  * same as a Topic with no fields: it means nothing has annotated it, and a
  * caller building a picker from this should treat an empty result as an
  * absence to surface rather than a Topic with nothing to offer.
+ *
+ * @category Reading telemetry
  */
 export function enumerateTopicFields(topic: string): TopicField[] {
   const units = unitsForTopic(topic as never);

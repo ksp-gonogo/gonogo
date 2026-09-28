@@ -72,6 +72,8 @@ import { type OrbitElements, solve, type Vector3 } from "./kepler";
  * has not chosen is a different state. It resolves against the observed frame
  * the settings channel carries, and resolves to nothing when no such channel is
  * mounted, which is the ordinary case.
+ *
+ * @category Frames of reference
  */
 export const READ_FRAME_KINDS = [
   "follow-control-frame",
@@ -80,6 +82,11 @@ export const READ_FRAME_KINDS = [
   "rotating-pulsating",
 ] as const;
 
+/**
+ * One of `READ_FRAME_KINDS`.
+ *
+ * @category Frames of reference
+ */
 export type ReadFrameKind = (typeof READ_FRAME_KINDS)[number];
 
 /**
@@ -90,6 +97,8 @@ export type ReadFrameKind = (typeof READ_FRAME_KINDS)[number];
  * and its parent. Carrying a pair here instead would let a caller name a pair
  * the mod cannot form, and then the frame we drew would not be a frame anyone
  * could switch to in game.
+ *
+ * @category Frames of reference
  */
 export interface ReadFrameChoice {
   kind: ReadFrameKind;
@@ -97,7 +106,11 @@ export interface ReadFrameChoice {
   bodyIndex?: number | null;
 }
 
-/** How to read a coordinate in a frame. */
+/**
+ * How to read a coordinate in a frame.
+ *
+ * @category Frames of reference
+ */
 export const TRAJECTORY_SCALE_CONVENTIONS = {
   /** Metres. Every frame whose length unit stands still. */
   metres: "metres",
@@ -108,6 +121,11 @@ export const TRAJECTORY_SCALE_CONVENTIONS = {
   separationAtPointInstant: "separation-at-point-instant",
 } as const;
 
+/**
+ * One of `TRAJECTORY_SCALE_CONVENTIONS`.
+ *
+ * @category Frames of reference
+ */
 export type TrajectoryScaleConvention =
   (typeof TRAJECTORY_SCALE_CONVENTIONS)[keyof typeof TRAJECTORY_SCALE_CONVENTIONS];
 
@@ -119,6 +137,8 @@ export type TrajectoryScaleConvention =
  * frame work is the whole cost and it is shared by every point on every curve
  * drawn in the same frame at the same instant, where the per-point work is a
  * rotation and a subtraction.
+ *
+ * @category Frames of reference
  */
 export interface FrameInstant {
   ut: number;
@@ -141,7 +161,11 @@ export interface FrameInstant {
   scaleConvention: TrajectoryScaleConvention;
 }
 
-/** A point and, when the caller had one, its velocity, both in a frame's coordinates. */
+/**
+ * A point and, when the caller had one, its velocity, both in a frame's coordinates.
+ *
+ * @category Frames of reference
+ */
 export interface FrameCoordinates {
   position: Vector3;
   velocity: Vector3;
@@ -271,6 +295,8 @@ function elementsOf(
  *
  * Distinct from the other reason a body is missing, an unsolvable parent chain,
  * which is a defect in the catalogue rather than a statement anybody made.
+ *
+ * @category Frames of reference
  */
 export interface BodyWithdrawal {
   /**
@@ -283,7 +309,11 @@ export interface BodyWithdrawal {
   untilUt: number;
 }
 
-/** Every body's root-centred state at one instant, plus the lookups the frame maths needs. */
+/**
+ * Every body's root-centred state at one instant, plus the lookups the frame maths needs.
+ *
+ * @category Frames of reference
+ */
 export interface SystemInstant {
   ut: number;
   positionByIndex: ReadonlyMap<number, Vector3>;
@@ -352,6 +382,8 @@ function horizonUt(body: CelestialBody): number | null {
  * origin, and so is a withdrawn one. A body at a wrong position pulls the
  * frame's origin to a wrong place and says nothing about it; a body that is
  * absent is one term missing from a sum of thirty-four.
+ *
+ * @category Frames of reference
  */
 export function systemInstantAt(
   facts: CelestialFacts,
@@ -619,6 +651,8 @@ function barycentreOf(
  * frame that needs a parent, and a pair whose separation is degenerate. All
  * three are states a widget shows as "cannot draw in this frame" rather than
  * drawing something plausible.
+ *
+ * @category Frames of reference
  */
 export function frameInstantAt(
   facts: CelestialFacts,
@@ -725,6 +759,8 @@ export function frameInstantAt(
  * the part that needs the accelerations: a position can be put into a rotating
  * frame with no force model at all, and only the velocity cannot. A caller with
  * no velocity to convert therefore pays for none of that.
+ *
+ * @category Frames of reference
  */
 export function toFrame(
   instant: FrameInstant,
@@ -775,6 +811,8 @@ export function toFrame(
  * Null means "no frame to move to", and a caller then draws the curve in the
  * frame it arrived in rather than refusing. A stream with no such mod on it has
  * no control frame, and that is the ordinary case rather than a fault.
+ *
+ * @category Frames of reference
  */
 export function resolveReadFrame(
   choice: ReadFrameChoice,
@@ -802,6 +840,8 @@ export function resolveReadFrame(
  * dilatation-rate terms in reverse and nothing asks for it, and an untravelled
  * branch of a coordinate transform is the kind of code that is wrong for a year
  * without anyone finding out.
+ *
+ * @category Frames of reference
  */
 export function fromFrame(
   instant: FrameInstant,

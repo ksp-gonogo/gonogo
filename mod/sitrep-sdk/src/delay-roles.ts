@@ -41,6 +41,8 @@ import {
  * held to the newest sample actually delivered. That is the whole of a TrueNow
  * fact, and it is also the right read for a fact held at the home command, whose
  * light-time the mod has already spent before delivering it.
+ *
+ * @category Delay and vantage
  */
 export type DelayLane = "delayed" | "true-now";
 
@@ -50,6 +52,8 @@ export type DelayLane = "delayed" | "true-now";
  * The set is deliberately small: uplink health, the body catalogue, the alarm
  * roster, the warp state and the comms geometry, none of which describe a craft
  * across the gap or a record held anywhere.
+ *
+ * @category Delay and vantage
  */
 export type TrueNowTopic = GeneratedTrueNowTopic;
 
@@ -57,6 +61,8 @@ export type TrueNowTopic = GeneratedTrueNowTopic;
  * A core topic the mod declares held at the home command: the career ledger and
  * the space centre's records. Delayed, but to each vantage by its own delay to
  * home rather than by the active craft's light-time.
+ *
+ * @category Delay and vantage
  */
 export type HeldAtHomeTopic = GeneratedHeldAtHomeTopic;
 
@@ -67,6 +73,8 @@ export type HeldAtHomeTopic = GeneratedHeldAtHomeTopic;
  * Complete for that mod: a static topic in neither set is delayed, and so is a
  * dynamic topic under no prefix in `trueNowPrefixes`. No prefix list for held at
  * home, because a dynamic namespace cannot be held there.
+ *
+ * @category Delay and vantage
  */
 export interface DeclaredDelayRoles {
   readonly trueNow: ReadonlySet<string>;
@@ -93,6 +101,8 @@ function stringsOf(value: unknown): string[] | undefined {
  * one of its lists is malformed rather than empty, and reads as absent for the
  * same reason: taking it at its word would move every core TrueNow channel into
  * the delayed lane on the strength of a field nobody sent.
+ *
+ * @category Delay and vantage
  */
 export function readDeclaredDelayRoles(
   rosterPayload: unknown,
@@ -114,12 +124,20 @@ export function readDeclaredDelayRoles(
   };
 }
 
-/** Whether the generated core table declares `topic` `DelayRole.TrueNow`. */
+/**
+ * Whether the generated core table declares `topic` `DelayRole.TrueNow`.
+ *
+ * @category Delay and vantage
+ */
 export function isTrueNowTopic(topic: string): topic is TrueNowTopic {
   return GENERATED_ROLES.trueNow.has(topic);
 }
 
-/** Whether the generated core table declares `topic` held at the home command. */
+/**
+ * Whether the generated core table declares `topic` held at the home command.
+ *
+ * @category Delay and vantage
+ */
 export function isHeldAtHomeTopic(topic: string): topic is HeldAtHomeTopic {
   return GENERATED_ROLES.heldAtHome.has(topic);
 }
@@ -143,6 +161,8 @@ export function isHeldAtHomeTopic(topic: string): topic is HeldAtHomeTopic {
  * that, and asking the other way round would silently delay every field read of
  * a true-now channel while the whole-record read of the same channel was
  * current.
+ *
+ * @category Delay and vantage
  */
 export function delayLaneOf(
   topic: string,

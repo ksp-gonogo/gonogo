@@ -7,7 +7,11 @@ import { TOPIC_IDS } from "./topics";
  */
 const KNOWN_TOPIC_IDS: ReadonlySet<string> = new Set<string>(TOPIC_IDS);
 
-/** What a dotted key resolves to: the wire Topic, and the path within its payload. */
+/**
+ * What a dotted key resolves to: the wire Topic, and the path within its payload.
+ *
+ * @category Reading telemetry
+ */
 export interface RawFieldSubtopic {
   rawTopic: string;
   fieldPath: string[];
@@ -47,6 +51,8 @@ export interface RawFieldSubtopic {
  * resolve one subscription differently from the next. No Uplink ships a
  * 3-segment Topic today; one that did would declare a prefix, as the dynamic
  * namespaces already do.
+ *
+ * @category Reading telemetry
  */
 export function splitRawFieldSubtopic(
   topic: string,

@@ -4,6 +4,8 @@ import type { FlightRecord, SeriesRange } from "../types";
  * Sort comparator for flight listings: most-recently-launched first.
  * Shared by every `FlightStore` implementation so all of them order
  * identically.
+ *
+ * @category Flight recording
  */
 export const FLIGHTS_DESC = (a: FlightRecord, b: FlightRecord): number =>
   b.launchedAt - a.launchedAt;
@@ -15,6 +17,8 @@ export const FLIGHTS_DESC = (a: FlightRecord, b: FlightRecord): number =>
  *
  * All methods are async to match IndexedDB's native shape. `MemoryStore`
  * resolves synchronously.
+ *
+ * @category Flight recording
  */
 export interface FlightStore {
   upsertFlight(record: FlightRecord): Promise<void>;

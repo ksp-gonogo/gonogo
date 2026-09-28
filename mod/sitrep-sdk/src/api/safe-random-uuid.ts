@@ -14,6 +14,8 @@
  * is a pure function with no state and no dependency beyond the `crypto` global, so
  * duplicating it carries none of the second-copy-of-a-registry risk that rules out
  * bundling stateful members, and this leaf cannot name core regardless.
+ *
+ * @category Host and runtime
  */
 export function safeRandomUuid(): string {
   if (

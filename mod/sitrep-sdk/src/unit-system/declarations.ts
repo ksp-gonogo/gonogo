@@ -18,6 +18,8 @@ import type { KnownUnit, UNIT_DEFINITIONS } from "./definitions";
  * The non-quantity tokens (`text`, `flag`, `id`) carry a kind and no dimension,
  * because they are declared so a formatter knows what they are, not so they can
  * take part in arithmetic.
+ *
+ * @category Units and values
  */
 export interface UnitDeclaration {
   readonly kind: string;
@@ -73,6 +75,8 @@ type FirstPartyNonQuantities = {
  * A declaration is a claim to the compiler only. The runtime learns the same
  * unit from `registerUnit`, whose argument is typed from the declaration, so
  * the two cannot say different things about it.
+ *
+ * @category Units and values
  */
 /*
  * It must stay an INTERFACE. `declare module` can only augment an interface,
@@ -87,5 +91,9 @@ export interface UnitDeclarations
   extends FirstPartyQuantities,
     FirstPartyNonQuantities {}
 
-/** Every declared unit symbol, first-party or merged in by an Uplink. */
+/**
+ * Every declared unit symbol, first-party or merged in by an Uplink.
+ *
+ * @category Units and values
+ */
 export type DeclaredUnit = keyof UnitDeclarations & string;

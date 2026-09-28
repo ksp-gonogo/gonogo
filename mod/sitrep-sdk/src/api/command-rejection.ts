@@ -8,6 +8,12 @@ import { CommandErrorCode, FaultCode } from "../__generated__/error-codes";
  * Every other rejection carries a `FaultCode`.
  */
 export const COMMAND_REFUSED = "E_REFUSED";
+/**
+ * The rejection code of a command that was sent and never replied to. It may
+ * have run, so sending it again may run it twice.
+ *
+ * @category Commands
+ */
 export const COMMAND_LOST = "E_LOST";
 
 /**
@@ -23,6 +29,8 @@ export const COMMAND_LOST = "E_LOST";
  * - `failed`: the machinery broke (a handler threw, a result would not
  *   serialize, the link went down mid-flight), named by a `FaultCode`. A retry
  *   may genuinely work
+ *
+ * @category Commands
  */
 export type CommandRejection =
   | {
@@ -63,6 +71,8 @@ export type CommandRejection =
  * on a station, and a foreign throw from inside a handler. Anything it cannot
  * place is `failed`, which is the safe default: it is the outcome that says
  * "something broke, a retry may work" rather than inventing a game reason.
+ *
+ * @category Commands
  */
 export function classifyCommandRejection(err: unknown): CommandRejection {
   const carrier = (err ?? {}) as {
@@ -161,6 +171,8 @@ function firstStringArg(args: unknown): string | undefined {
  *
  * Returns `""` when there is nothing to go on, and a caller that gets one
  * should say the general thing rather than print an empty subject.
+ *
+ * @category Commands
  */
 export function commandRefusalSubject(refusal: {
   command?: string;

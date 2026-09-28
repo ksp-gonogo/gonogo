@@ -33,34 +33,97 @@ import { namesByValue } from "./enum-names";
  * and the mirror test cannot see a consumer's `===`.
  */
 
-/** KSP's `ProtoCrewMember.RosterStatus`, behind `spaceCenter.crewRoster[]`. */
+/**
+ * KSP's `ProtoCrewMember.RosterStatus`, behind `spaceCenter.crewRoster[]`.
+ *
+ * @category Enum names
+ */
 export const KSP_ROSTER_STATUS_NAMES = namesByValue(KspRosterStatus);
+/**
+ * The name of a `KspRosterStatus` member.
+ *
+ * @category Enum names
+ */
 export type KspRosterStatusName = keyof typeof KspRosterStatus;
 
-/** KSP's `Contracts.ParameterState`, behind a contract's objective rows. */
+/**
+ * KSP's `Contracts.ParameterState`, behind a contract's objective rows.
+ *
+ * @category Enum names
+ */
 export const KSP_PARAMETER_STATE_NAMES = namesByValue(KspParameterState);
+/**
+ * The name of a `KspParameterState` member.
+ *
+ * @category Enum names
+ */
 export type KspParameterStateName = keyof typeof KspParameterState;
 
-/** KSP's `PartCategories`, behind `vessel.parts[]`. Carries `none = -1`. */
+/**
+ * KSP's `PartCategories`, behind `vessel.parts[]`. Carries `none = -1`.
+ *
+ * @category Enum names
+ */
 export const KSP_PART_CATEGORY_NAMES = namesByValue(KspPartCategory);
+/**
+ * The name of a `KspPartCategory` member.
+ *
+ * @category Enum names
+ */
 export type KspPartCategoryName = keyof typeof KspPartCategory;
 
-/** KSP's `KSPActionGroup`, behind a part action's bindings. A bitmask. */
+/**
+ * KSP's `KSPActionGroup`, behind a part action's bindings. A bitmask.
+ *
+ * @category Enum names
+ */
 export const KSP_ACTION_GROUP_NAMES = namesByValue(KspActionGroup);
+/**
+ * The name of a `KspActionGroup` member.
+ *
+ * @category Enum names
+ */
 export type KspActionGroupName = keyof typeof KspActionGroup;
 
-/** KSP's `EditorFacility`, behind `spaceCenter.savedShips[]`. */
+/**
+ * KSP's `EditorFacility`, behind `spaceCenter.savedShips[]`.
+ *
+ * @category Enum names
+ */
 export const KSP_EDITOR_FACILITY_NAMES = namesByValue(KspEditorFacility);
+/**
+ * The name of a `KspEditorFacility` member.
+ *
+ * @category Enum names
+ */
 export type KspEditorFacilityName = keyof typeof KspEditorFacility;
 
-/** KSP's `SpaceCenterFacility`, behind the career facilities map. */
+/**
+ * KSP's `SpaceCenterFacility`, behind the career facilities map.
+ *
+ * @category Enum names
+ */
 export const KSP_SPACE_CENTER_FACILITY_NAMES = namesByValue(
   KspSpaceCenterFacility,
 );
+/**
+ * The name of a `KspSpaceCenterFacility` member.
+ *
+ * @category Enum names
+ */
 export type KspSpaceCenterFacilityName = keyof typeof KspSpaceCenterFacility;
 
-/** KSP's `ResourceFlowMode`, behind Kerbalism's resource definitions. */
+/**
+ * KSP's `ResourceFlowMode`, behind Kerbalism's resource definitions.
+ *
+ * @category Enum names
+ */
 export const KSP_RESOURCE_FLOW_MODE_NAMES = namesByValue(KspResourceFlowMode);
+/**
+ * The name of a `KspResourceFlowMode` member.
+ *
+ * @category Enum names
+ */
 export type KspResourceFlowModeName = keyof typeof KspResourceFlowMode;
 
 /**
@@ -71,6 +134,8 @@ export type KspResourceFlowModeName = keyof typeof KspResourceFlowMode;
  * generated contract exports. The second is the one that catches the mistake
  * this file invites, which is declaring an eighth mirror in C# and never giving
  * the client a table for it.
+ *
+ * @category Enum names
  */
 export const KSP_ENUM_NAME_TABLES: ReadonlyArray<{
   label: string;
@@ -124,6 +189,8 @@ export const KSP_ENUM_NAME_TABLES: ReadonlyArray<{
  * than by a list, which is the point: intersecting the mask against a
  * hand-written table of the groups somebody thought of drops a group KSP added
  * before it ever reaches the wire.
+ *
+ * @category Enum names
  */
 export function actionGroupNames(mask: number | null | undefined): string[] {
   if (mask == null) return [];

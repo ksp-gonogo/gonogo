@@ -47,6 +47,8 @@ import type {
  * it must resolve to the app's single registry / context instance, never a
  * bundled copy. Stateless helpers (wire types, `parseServerMessage`, `TOPIC_IDS`)
  * are NOT here: they are real, published bytes re-exported directly from the sdk.
+ *
+ * @category Host and runtime
  */
 export interface GonogoHost {
   registerAugment<Slot extends string>(def: AugmentDefinition<Slot>): void;
@@ -304,7 +306,11 @@ export interface GonogoHost {
   useTelemetryClientOptional(): TelemetryClient | undefined;
 }
 
-/** The single global slot the app populates at boot. */
+/**
+ * The single global slot the app populates at boot.
+ *
+ * @category Host and runtime
+ */
 export const GONOGO_HOST_KEY = "__GONOGO_SDK__" as const;
 
 declare global {
@@ -330,7 +336,11 @@ export function getHost(): GonogoHost {
   return host;
 }
 
-/** True when a host is installed. Lets a shim probe without throwing. */
+/**
+ * True when a host is installed. Lets a shim probe without throwing.
+ *
+ * @category Host and runtime
+ */
 export function hasHost(): boolean {
   return Boolean(globalThis[GONOGO_HOST_KEY]);
 }

@@ -675,7 +675,11 @@ export class ProcessorRuntime {
 
 const runtimes = new WeakMap<TimelineStore, ProcessorRuntime>();
 
-/** The Processor runtime that evaluates against `store`, created on first use. */
+/**
+ * The Processor runtime that evaluates against `store`, created on first use.
+ *
+ * @category Stream fixture
+ */
 export function processorRuntimeFor(store: TimelineStore): ProcessorRuntime {
   let runtime = runtimes.get(store);
   if (!runtime) {

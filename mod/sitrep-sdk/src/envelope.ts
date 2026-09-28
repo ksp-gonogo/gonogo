@@ -13,6 +13,12 @@ import type {
 } from "./__generated__/contract";
 import type { StreamBinaryMessage } from "./binary-frame";
 
+/**
+ * Every frame the mod sends, told apart by its `type`. A binary-lane frame
+ * arrives already decoded.
+ *
+ * @category Stream messages
+ */
 export type ServerMessage =
   | StreamData<unknown>
   | EventMsg
@@ -25,6 +31,11 @@ export type ServerMessage =
   // silently dropping a delivery it does not recognise.
   | StreamBinaryMessage;
 
+/**
+ * Every frame a client sends, told apart by its `type`.
+ *
+ * @category Stream messages
+ */
 export type ClientMessage =
   | Subscribe
   | Unsubscribe

@@ -91,7 +91,11 @@ export const HEALTH_STATE_NAMES = [
   "unavailable",
 ] as const;
 
-/** Decoded, widget-facing form of `UplinkHealthState`. */
+/**
+ * Decoded, widget-facing form of `UplinkHealthState`.
+ *
+ * @category Host and runtime
+ */
 export type UplinkHealthStateName = (typeof HEALTH_STATE_NAMES)[number];
 
 /**
@@ -99,19 +103,29 @@ export type UplinkHealthStateName = (typeof HEALTH_STATE_NAMES)[number];
  * file, which build, which hash. Both halves are display text the Uplink itself
  * authored, so a client lists them without knowing what the Uplink is or what
  * the fact means.
+ *
+ * @category Host and runtime
  */
 export interface UplinkHealthFact {
   label: string;
   value: string | null;
 }
 
-/** A `Sitrep.Contract.ContractVersion` pair, as a Major/Minor the two sides can be compared on. */
+/**
+ * A `Sitrep.Contract.ContractVersion` pair, as a Major/Minor the two sides can be compared on.
+ *
+ * @category Host and runtime
+ */
 export interface ContractVersionReading {
   major: number;
   minor: number;
 }
 
-/** Decoded, widget-facing form of one Uplink's health self-report. */
+/**
+ * Decoded, widget-facing form of one Uplink's health self-report.
+ *
+ * @category Host and runtime
+ */
 export interface UplinkHealthEntry {
   id: string;
   /** The name the Uplink gives itself, or `null` when it gave none; `id` is then the name to show. */
@@ -155,7 +169,11 @@ export interface UplinkHealthEntry {
   };
 }
 
-/** The `system.uplinkHealth` derived-channel payload. */
+/**
+ * The `system.uplinkHealth` derived-channel payload.
+ *
+ * @category Host and runtime
+ */
 export interface SystemUplinkHealth {
   uplinks: UplinkHealthEntry[];
   /**

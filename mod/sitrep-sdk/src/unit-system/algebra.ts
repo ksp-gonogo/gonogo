@@ -282,6 +282,8 @@ type ExtUnit = Exclude<DeclaredUnit, StaticUnit>;
  * ```
  *
  * See {@link ResourceDim} for the token grammar this unlocks.
+ *
+ * @category Units and values
  */
 /*
  * It must stay an INTERFACE, and empty is the point. `declare module` can only

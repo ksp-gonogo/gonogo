@@ -34,19 +34,41 @@ import type {
 } from "../topics";
 import type { Value } from "../value";
 
-/** A dashboard component's declared data dependency, e.g. `"vessel.altitude"`. */
+/**
+ * A dashboard component's declared data dependency, e.g. `"vessel.altitude"`.
+ *
+ * @category Registering
+ */
 export type DataRequirement = string;
 
-/** Behaviours a component can opt into; `gonogo-participant` joins GO/NO-GO. */
+/**
+ * Behaviours a component can opt into; `gonogo-participant` joins GO/NO-GO.
+ *
+ * @category Registering
+ */
 export type ComponentBehavior = "gonogo-participant";
 
-/** Game-state preconditions the orchestrator dims a widget when unmet. */
+/**
+ * Game-state preconditions the orchestrator dims a widget when unmet.
+ *
+ * @category Registering
+ */
 export type ComponentRequirement = "flight" | "career";
 
 // --- Serial input actions ---------------------------------------------------
 
+/**
+ * The kind of input that can drive an action: a button, or an analog axis.
+ *
+ * @category Actions
+ */
 export type ActionInputKind = "button" | "analog";
 
+/**
+ * What an action handler receives from a bound input.
+ *
+ * @category Actions
+ */
 export interface ActionInputPayload {
   kind: ActionInputKind;
   /** Button: true=pressed, false=released. Analog: normalised to -1..1. */
@@ -55,6 +77,12 @@ export interface ActionInputPayload {
   raw?: unknown;
 }
 
+/**
+ * One action a widget declares in `ComponentDefinition.actions`, which an
+ * operator can bind to a key, button or axis.
+ *
+ * @category Actions
+ */
 export interface ActionDefinition {
   /** Stable ID used when persisting an input→action mapping. Unique per component. */
   id: string;
@@ -64,14 +92,22 @@ export interface ActionDefinition {
   description?: string;
 }
 
-/** Typed handler map for {@link useActionInput}, keyed by each action's `id`. */
+/**
+ * Typed handler map for {@link useActionInput}, keyed by each action's `id`.
+ *
+ * @category Actions
+ */
 export type ActionHandlers<Actions extends readonly ActionDefinition[]> = {
   [ActionId in Actions[number]["id"]]: (payload: ActionInputPayload) => unknown;
 };
 
 // --- Component registration -------------------------------------------------
 
-/** Props passed to every registered dashboard component. */
+/**
+ * Props passed to every registered dashboard component.
+ *
+ * @category Registering
+ */
 export interface ComponentProps<Config = Record<string, unknown>> {
   config?: Config;
   id: string;
@@ -80,13 +116,21 @@ export interface ComponentProps<Config = Record<string, unknown>> {
   onConfigChange?: (config: Config) => void;
 }
 
-/** Props passed to a component's config UI (rendered inside a modal). */
+/**
+ * Props passed to a component's config UI (rendered inside a modal).
+ *
+ * @category Registering
+ */
 export interface ConfigComponentProps<Config = Record<string, unknown>> {
   config: Config;
   onSave: (config: Config) => void;
 }
 
-/** Registration descriptor for a dashboard component. */
+/**
+ * Registration descriptor for a dashboard component.
+ *
+ * @category Registering
+ */
 export interface ComponentDefinition<Config = Record<string, unknown>> {
   id: string;
   name: string;
@@ -177,6 +221,8 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
  * (a `GonogoTheme` from `@ksp-gonogo/ui-kit`). Typed loosely here because the
  * concrete token shape ships from the separately-published ui-kit package, not
  * this leaf; an author composing ui-kit gets the precise type from there.
+ *
+ * @category Registering
  */
 export interface ThemeDefinition {
   id: string;
@@ -193,10 +239,17 @@ export interface ThemeDefinition {
  *
  * A widget that owns a slot declares it here by declaration merging, so an
  * augment of a misspelled slot does not typecheck.
+ *
+ * @category Extensions
  */
 // biome-ignore lint/suspicious/noEmptyInterface: declaration-merging seam
 export interface SlotRegistry {}
 
+/**
+ * The id of an augment slot some widget declares.
+ *
+ * @category Extensions
+ */
 export type SlotId = keyof SlotRegistry;
 
 /**
@@ -232,6 +285,8 @@ export type SlotProps<Slot extends string> = Slot extends keyof SlotRegistry
  * `packages/components` merging its scope is invisible to an Uplink that
  * cannot see that package, so the merge has to land somewhere every Uplink
  * already compiles against.
+ *
+ * @category Registering
  */
 // biome-ignore lint/suspicious/noEmptyInterface: declaration-merging seam
 export interface WidgetScopeRegistry {}
@@ -240,6 +295,8 @@ export interface WidgetScopeRegistry {}
  * The scope a given widget publishes, and `never` for a NAMED widget that
  * publishes none. A `Widget` erased to `string` gets the open record, for the reason
  * {@link ErasedOrNever} gives.
+ *
+ * @category Registering
  */
 export type WidgetScope<Widget extends string> =
   Widget extends keyof WidgetScopeRegistry
@@ -255,6 +312,8 @@ export type WidgetScope<Widget extends string> =
  *
  * A contribution reads the Topics it names in its own `deps`, and any Topic
  * may be named there.
+ *
+ * @category Extensions
  */
 // biome-ignore lint/suspicious/noEmptyInterface: declaration-merging seam
 export interface ContributionRegistry {}
@@ -268,10 +327,16 @@ export interface ContributionRegistry {}
  * meters">` gets the real, host-declared entry shape once
  * `./contribution-slots.ts` mirrors that slot; a slot not yet declared here
  * falls back to the loose bag, matching `SlotProps`'s own fallback.
+ *
+ * @category Extensions
  */
 export type ContributionSlotId = keyof ContributionRegistry;
 
-/** One badge on a widget's panel header: the entry of the `badges` segment. */
+/**
+ * One badge on a widget's panel header: the entry of the `badges` segment.
+ *
+ * @category Extensions
+ */
 export interface BadgeEntry {
   /** Stable id, unique within the contributing Uplink. */
   id: string;
@@ -284,6 +349,8 @@ export interface BadgeEntry {
 /**
  * One labelled bar in a widget's meter list: the entry of the `meters`
  * segment. The widget draws it with ui-kit's `Meter`.
+ *
+ * @category Extensions
  */
 export interface MeterEntry {
   /** Stable id, unique within the contributing Uplink. */
@@ -320,6 +387,8 @@ export interface MeterEntry {
  * roster occupancy, and RP-1 considers crew-in-training as core as any of them.
  * The alternative was an RP-1 branch inside a vanilla widget.
  * </internal>
+ *
+ * @category Extensions
  */
 export interface StatEntry {
   /** Stable id, unique within the contributing Uplink. */
@@ -357,6 +426,8 @@ export interface StatEntry {
  *
  * Only `badges` is on every widget. `filters` and `meters` exist on a widget
  * only where it renders the component that draws them.
+ *
+ * @category Extensions
  */
 export interface ComponentSlotRegistry {
   /**
@@ -373,7 +444,11 @@ export interface ComponentSlotRegistry {
   meters: MeterEntry;
 }
 
-/** Every segment declared as a host-invariant component slot. */
+/**
+ * Every segment declared as a host-invariant component slot.
+ *
+ * @category Extensions
+ */
 export type ComponentSlotSegment = keyof ComponentSlotRegistry;
 
 /** The trailing segment of a completed slot id: `"resource-ops.filters"` -> `"filters"`. */
@@ -407,6 +482,8 @@ export type ContributionEntry<Slot extends string> =
  * The narrow half of an `UplinkClientHandle`: the handle carries `Dep`-shaped
  * registration methods and lives with the registry, and a full handle is
  * structurally one of these, so the aggregation stamps one straight in.
+ *
+ * @category Registering
  */
 export interface UplinkClientIdentity {
   id: string;
@@ -414,7 +491,11 @@ export interface UplinkClientIdentity {
   name: string;
 }
 
-/** One rendered entry, tagged with provenance for keys and blame. */
+/**
+ * One rendered entry, tagged with provenance for keys and blame.
+ *
+ * @category Extensions
+ */
 export type Contributed<Entry> = Entry & {
   readonly contributionId: string;
   readonly owner?: UplinkClientIdentity;
@@ -424,6 +505,8 @@ export type Contributed<Entry> = Entry & {
  * One contribution's dependency: a Topic id, a Topic's `Reading` (the value
  * AND how current it is), or a Processor handle. Mirrors core's `Dep`
  * structurally, since the leaf cannot name sitrep-client's `ProcessorHandle`.
+ *
+ * @category Extensions
  */
 export type ContributionDep =
   | TopicId
@@ -611,6 +694,8 @@ export interface ContributionDefinition<
  * dynamically. The precision lives on `ContributionDefinition`, which is what an
  * author writes and what `registerContribution` infers, and nothing can reach
  * this erased form to read a topic it never declared.</para>
+ *
+ * @category Extensions
  */
 export type AnyContribution = Omit<
   ContributionDefinition<string, readonly ContributionDep[]>,
@@ -621,6 +706,11 @@ export type AnyContribution = Omit<
   ) => readonly Record<string, unknown>[] | null | undefined;
 };
 
+/**
+ * One setting an augment or contribution adds to its host widget's settings.
+ *
+ * @category Extensions
+ */
 export interface AugmentSettingField {
   key: string;
   type: "boolean" | "text" | "number";
@@ -639,6 +729,8 @@ export interface AugmentSettingField {
  * is the return type of a registry read (`getCoverageSourceSettings`) that lives
  * in this package. ui-kit imports the sdk, so the type can only sit at this end if
  * both are to have it.
+ *
+ * @category Extensions
  */
 export interface NamespacedAugmentSettings {
   augmentId: string;
@@ -731,6 +823,8 @@ export type { UplinkClientHandle } from "../spine/uplink-clients";
  * bytes for a body under some layerId), not a renderable component. See
  * `./coverage-source.ts`'s own header for why this isn't another AugmentSlot
  * kind.
+ *
+ * @category Maps and coverage
  */
 export interface CoverageSourceDefinition {
   id: string;
@@ -746,6 +840,8 @@ export interface CoverageSourceDefinition {
  * `MapPoiAction`: same leaf constraint as every other type in this file (see
  * module header). Named rather than inlined into `MapPoi`, so a provider can
  * build its actions in a helper and give that helper a return type.
+ *
+ * @category Maps and coverage
  */
 export interface MapPoiAction {
   id: string;
@@ -759,6 +855,8 @@ export interface MapPoiAction {
  * One point-of-interest record a `MapPoiProviderDefinition` contributes.
  * Mirrors `packages/core/src/mapPoi.ts`'s `MapPoi`: same leaf constraint as
  * every other type in this file (see module header).
+ *
+ * @category Maps and coverage
  */
 export interface MapPoi {
   /** Unique within the OWNING PROVIDER's namespace. */
@@ -776,13 +874,21 @@ export interface MapPoi {
   actions?: readonly MapPoiAction[];
 }
 
-/** What a POI provider's hook is told about the surface asking for points. */
+/**
+ * What a POI provider's hook is told about the surface asking for points.
+ *
+ * @category Maps and coverage
+ */
 export interface MapPoiProviderContext {
   /** The currently-mapped body. */
   bodyId: string | undefined;
 }
 
-/** A POI provider's hook: called per render of the mapping surface. */
+/**
+ * A POI provider's hook: called per render of the mapping surface.
+ *
+ * @category Maps and coverage
+ */
 export type UseMapPois = (
   ctx: MapPoiProviderContext,
 ) => readonly MapPoi[] | null | undefined;
@@ -793,6 +899,8 @@ export type UseMapPois = (
  * component. See packages/core/src/mapPoi.ts's own header for why MapView
  * owns the one shared hover/action/marker-styling surface instead of this
  * being another AugmentSlot kind.
+ *
+ * @category Maps and coverage
  */
 export interface MapPoiProviderDefinition {
   /** "<uplinkId>:<name>", e.g. "vanilla:spaceCenter", "example-uplink:anomalies". */
@@ -804,7 +912,11 @@ export interface MapPoiProviderDefinition {
 
 // --- Celestial bodies ---------------------------------------------------------
 
-/** Texture map metadata, required for accurate lat/lon to pixel mapping. */
+/**
+ * Texture map metadata, required for accurate lat/lon to pixel mapping.
+ *
+ * @category Maps and coverage
+ */
 export interface BodyMapConfig {
   type: "equirectangular";
   /** Pixel width of the source texture image. */
@@ -818,6 +930,8 @@ export interface BodyMapConfig {
  * and not purely exponential, but a single scale-height approximation is enough
  * to draw a recognisable pressure-vs-altitude curve and to distinguish "thin"
  * from "thick" atmospheres at a glance.
+ *
+ * @category Solar system and fleet
  */
 export interface AtmosphereModel {
   /** Surface pressure in pascals. */
@@ -833,6 +947,8 @@ export interface AtmosphereModel {
  * declaration rather than a mirror of core's. It moved because a planet pack is an
  * Uplink's business: `registerStockBodies` is called by seven Uplink test files
  * and `registerBody` is how a pack adds or overrides an entry.
+ *
+ * @category Solar system and fleet
  */
 export interface BodyDefinition {
   /** Unique identifier, matching the body name the telemetry stream reports. */
@@ -896,6 +1012,12 @@ export interface BodyDefinition {
 // here for that reason, and the cache itself has since moved to
 // `./coverage/CoverageMaskCache.ts` beside it.
 
+/**
+ * One body's coverage mask for one layer: a grid of alpha bytes over the body's
+ * map.
+ *
+ * @category Maps and coverage
+ */
 export interface BodyMask {
   readonly bodyId: string;
   readonly layerId: string;
@@ -912,6 +1034,8 @@ export interface BodyMask {
  * the hook's inferred return type (`const cache = useCoverageMaskCache();`),
  * never by importing the type name directly, so there is nothing to add to
  * the export list for it.
+ *
+ * @category Maps and coverage
  */
 export interface CoverageMaskCacheHandle {
   acquire(bodyId: string, layerId: string): Promise<BodyMask>;
@@ -941,17 +1065,33 @@ export interface CoverageMaskCacheHandle {
 // own connection-status field can still type it against
 // `DataSourceStatus` without registering through the facade at all.
 
+/**
+ * The connection state of a `DataSource`.
+ *
+ * @category Registering
+ */
 export type DataSourceStatus =
   | "connected"
   | "disconnected"
   | "reconnecting"
   | "error";
 
+/**
+ * One key a `DataSource` offers, as `DataSource.schema` lists it.
+ *
+ * @category Registering
+ */
 export interface DataKey {
   key: string;
   description?: string;
 }
 
+/**
+ * One field of a `DataSource`'s settings form, as `DataSource.configSchema`
+ * lists it.
+ *
+ * @category Registering
+ */
 export interface ConfigField {
   key: string;
   label: string;
@@ -963,6 +1103,8 @@ export interface ConfigField {
  * Base interface for all data sources: mirrors core's real `DataSource`
  * shape (see the module-level comment above) for typing an Uplink's own
  * `status: DataSourceStatus` connection field.
+ *
+ * @category Registering
  */
 export interface DataSource<
   Config extends Record<string, unknown> = Record<string, unknown>,
@@ -995,6 +1137,8 @@ export interface DataSource<
  * `"pilot"` is direct-WS aboard the craft without hosting. The same registered
  * component can render different UIs on each when it participates in a
  * multi-role interaction (e.g. GO/NO-GO voting).
+ *
+ * @category Host and runtime
  */
 export type Screen = "main" | "station" | "pilot";
 
@@ -1003,6 +1147,8 @@ export type Screen = "main" | "station" | "pilot";
  * `seatOf`, never declared beside it: a widget's availability and a message's
  * light-time are both questions about the seat, and a peer-fed pilot is a
  * different screen at the same seat.
+ *
+ * @category Host and runtime
  */
 export type Seat = "mission-control" | "pilot";
 
@@ -1013,7 +1159,7 @@ export type Seat = "mission-control" | "pilot";
  * same leaf constraint. An Uplink co-locates a whole Settings-modal tab's
  * registration with the code that owns it.
  *
- * @category Extensions
+ * @category Settings
  */
 export interface SettingsTabDefinition {
   /** Stable id: React key and tab id. */
@@ -1070,6 +1216,13 @@ export type {
 // `useTelemetryStoreOptional` returning `unknown` rather than a mirrored
 // `TimelineStore`.
 
+/**
+ * The connection to the telemetry stream: subscribe to a Topic, read its latest
+ * value, and send a command. Reach it with `getActiveTelemetryClient` or
+ * `useTelemetryClientOptional`.
+ *
+ * @category Reading telemetry
+ */
 export interface TelemetryClient {
   subscribe(topic: string, cb: (value: unknown) => void): () => void;
   getValue(topic: string): unknown;
@@ -1097,6 +1250,8 @@ export interface TelemetryClient {
  * subset of `ViewClock`'s `ViewClockView` (`confirmedEdgeUt` + `onFrame`).
  * Kept structural (not `ViewClock` itself) so a camera Uplink never needs to
  * import sitrep-client just to type the clock it's handed.
+ *
+ * @category Delay and vantage
  */
 export interface DelayClockLike {
   /** The certainty horizon: a frame stamped at-or-before this UT is
@@ -1117,7 +1272,11 @@ export interface DelayClockLike {
 // be one more thing to drift.
 export type { PerfBudgetOptions } from "../perf/PerfBudget";
 
-/** The subset of `PerfBudget` an author touches after construction. */
+/**
+ * The subset of `PerfBudget` an author touches after construction.
+ *
+ * @category Logging and performance
+ */
 export interface PerfBudgetHandle {
   record(amount?: number, now?: number): void;
 }
@@ -1192,12 +1351,18 @@ export interface InFlightCommand {
  * dev-only must-consume token `useCommand` hands out: `<CommandDelay>` flips
  * `consumed` on mount so a delayed command can't be dispatched without its
  * delay UX. Absent in production. Same leaf constraint as every other type.
+ *
+ * @category Commands
  */
 export interface CommandOutputToken {
   consumed: boolean;
 }
 
-/** The per-call options `useCommand` takes. */
+/**
+ * The per-call options `useCommand` takes.
+ *
+ * @category Commands
+ */
 export interface UseCommandOptions {
   /**
    * Per-call vantage override (delay-UX): the command centre this command
@@ -1219,6 +1384,8 @@ export interface UseCommandOptions {
  * the spine's copy gives: as a property, `strictFunctionTypes` checks the
  * parameter contravariantly and a typed handle stops being assignable to the
  * bare `UseCommandResult` that `<CommandDelay handle>` takes.
+ *
+ * @category Commands
  */
 export interface UseCommandResult<Args = unknown, Reply = AnyCommandReply> {
   send(args?: Args, opts?: { label?: string; topic?: string }): Promise<Reply>;
@@ -1278,6 +1445,8 @@ export interface UseCommandResult<Args = unknown, Reply = AnyCommandReply> {
  *
  * See the spine's copy for why it is named off `UseCommandResult` rather than
  * `CommandHandle`.
+ *
+ * @category Commands
  */
 export type UseCommandResultFor<Command extends CommandId> = UseCommandResult<
   CommandArgs<Command>,
@@ -1293,6 +1462,8 @@ export type UseCommandResultFor<Command extends CommandId> = UseCommandResult<
  * no live link) and on a throw inside the handle, whose own extra Error
  * properties survive the hop so a client can read back what its own host code
  * classified.
+ *
+ * @category Host and runtime
  */
 export type UplinkRelay = (method: string, args?: unknown) => Promise<unknown>;
 
@@ -1309,6 +1480,8 @@ export type UplinkRelay = (method: string, args?: unknown) => Promise<unknown>;
  * `RTCPeerConnection` config rather than JSX, and because credentials rotate:
  * a connection opened before a rotation has to be able to see the new ones
  * without the Uplink re-rendering anything.
+ *
+ * @category Host and runtime
  */
 export interface HostIceServers {
   /** What to use right now. Empty where the host is not issuing any, including the main screen. */
@@ -1317,7 +1490,11 @@ export interface HostIceServers {
   onChange(cb: (servers: RTCIceServer[]) => void): () => void;
 }
 
-/** What {@link useRouteCommands} answers with: the queue for one topic, and the delay mode it is under. */
+/**
+ * What {@link useRouteCommands} answers with: the queue for one topic, and the delay mode it is under.
+ *
+ * @category Commands
+ */
 export interface UseRouteCommandsResult {
   items: InFlightCommand[];
   mode: DelayMode;
@@ -1333,7 +1510,11 @@ export interface UseRouteCommandsResult {
 // conformance file in core, which already carries a real dependency on
 // sitrep-client.
 
-/** The staleness/absence status a topic (raw or derived) is in. */
+/**
+ * The staleness/absence status a topic (raw or derived) is in.
+ *
+ * @category Stream messages
+ */
 export type StreamStatusValue =
   | "live"
   | "held-stale"
@@ -1367,6 +1548,8 @@ export type StreamStatusValue =
  * plain `string` argument (a runtime-templated topic, e.g. a per-body coverage
  * mask) falls back to an explicit `Payload` type argument at the call site. Each
  * overload returns an unsubscribe function, safe to call more than once.
+ *
+ * @category Reading telemetry
  */
 export interface LateTelemetrySubscribe {
   <Topic extends TopicId>(

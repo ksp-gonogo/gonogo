@@ -1,4 +1,8 @@
-/** A controllable wall clock: advanced explicitly by a test/driver instead of racing real time. */
+/**
+ * A controllable wall clock: advanced explicitly by a test/driver instead of racing real time.
+ *
+ * @category Test doubles
+ */
 export interface FakeWallClock {
   now: () => number;
   advanceBy: (seconds: number) => void;
@@ -12,6 +16,8 @@ export interface FakeWallClock {
  * nowWall: wall.now, warpRate: () => 1, delaySeconds: () => 0 })`, then
  * `clock.scrubTo(fixtureUt)`) needs a `nowWall` function from OUTSIDE this
  * package, e.g. `@ksp-gonogo/components`' `setupStreamFixture`.
+ *
+ * @category Test doubles
  */
 export function createFakeWallClock(start = 0): FakeWallClock {
   let now = start;

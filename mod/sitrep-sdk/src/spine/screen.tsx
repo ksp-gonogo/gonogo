@@ -36,6 +36,8 @@ export function ScreenProvider({
  * tests and one-off renders don't need to set one up for components that
  * don't actually branch. Components that rely on the distinction should
  * still wrap with a ScreenProvider explicitly.
+ *
+ * @category Host and runtime
  */
 export function useScreen(): Screen {
   return useContext(ScreenContext) ?? "main";
@@ -46,17 +48,27 @@ export function useScreen(): Screen {
  * SEAT, never the screen: a future remote pilot (peer-fed, aboard) lands as
  * one more screen mapping to `"pilot"` and every existing declaration stays
  * correct.
+ *
+ * @category Host and runtime
  */
 export function seatOf(screen: Screen): Seat {
   return screen === "pilot" ? "pilot" : "mission-control";
 }
 
-/** The seat the current screen puts the operator in. */
+/**
+ * The seat the current screen puts the operator in.
+ *
+ * @category Host and runtime
+ */
 export function useSeat(): Seat {
   return seatOf(useScreen());
 }
 
-/** Is the operator aboard the craft rather than at a command centre? */
+/**
+ * Is the operator aboard the craft rather than at a command centre?
+ *
+ * @category Host and runtime
+ */
 export function useIsPilot(): boolean {
   return useSeat() === "pilot";
 }

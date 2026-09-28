@@ -16,22 +16,10 @@ declare global {
 }
 
 /**
- * Soft performance budget. Tracks an event-rate (or volume per second)
- * over a rolling window and emits a warn-level log when the threshold is
- * exceeded. Rate-limited so a sustained overrun emits at most one log per
- * window.
+ * Options for a new `PerfBudget`.
  *
- * Use this for hot paths where a regression would silently degrade the
- * experience: bytes/sec on the PeerJS broadcast, writes/sec to
- * localStorage, etc. The warning is informational; the budget is *soft*
- * (no throw, no behavioural change). Tests can also call `rate()` to
- * make explicit assertions about steady-state cost.
- *
- * Cost: one `Date.now()` and a small array push per `record()`. Window
- * trim is amortised O(1), events are appended in order, so we just
- * walk from the front while the head is older than the window.
+ * @category Logging and performance
  */
-
 export interface PerfBudgetOptions {
   /** Human-readable label used in the warning message. */
   name: string;
@@ -52,6 +40,18 @@ interface Event {
   n: number;
 }
 
+/**
+ * A soft performance budget: counts events (or bytes, or writes) over a
+ * rolling window and logs a warning when the total goes over `threshold`. At
+ * most one warning per window, and nothing else changes: it never throws or
+ * slows anything down. `rate()` returns the current total, for a test that
+ * asserts on steady-state cost.
+ *
+ * Construct one at module scope beside the code it measures and call
+ * `record()` on each event. Recording costs one `Date.now()` and an array push.
+ *
+ * @category Logging and performance
+ */
 export class PerfBudget {
   private readonly opts: Required<PerfBudgetOptions>;
   private events: Event[] = [];

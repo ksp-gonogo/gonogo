@@ -11,34 +11,7 @@ import { createElement } from "react";
 import { ThemeProvider } from "styled-components";
 import { harnessTheme } from "./theme";
 
-/**
- * The render an Uplink's tests use.
- *
- * A `@ksp-gonogo/ui-kit` primitive that reads `theme.colors[...]` off the
- * styled-components context needs a provider above it. With none in scope
- * styled-components hands it `{}`, so `theme.colors.text.primary` is a property
- * access on `undefined` and the render throws: not a guard, not a fallback, a
- * TypeError. That is a surprise every single time, and the module that knew about
- * it used to be `@ksp-gonogo/test-utils`, which is `private: true` and which a
- * third-party Uplink author therefore cannot install. 56 Uplink client files
- * imported it anyway, every one of them a file nobody outside this repo could run.
- *
- * Spacing and corner radii are NOT part of that: the kit resolves a `gap` or
- * `pad` prop against its own scale, so those render correctly with no provider
- * at all and `harnessTheme` does not carry them. Colour is what makes the
- * provider mandatory.
- *
- * So the theme is ON, always, from here. A test that renders a kit primitive needs
- * no setup call and no provider of its own, and one that renders no primitive pays
- * nothing: `ThemeProvider` emits no DOM, so wrapping unconditionally is invisible
- * to a snapshot.
- *
- * Testing Library and styled-components are OPTIONAL peers, and this module is
- * reached only through `@ksp-gonogo/sitrep-sdk/testing`, a separate entry from the
- * root barrel. A runtime consumer of the sdk never resolves it, so nothing here
- * reaches a shipped bundle.
- */
-
+// A kit primitive reads `theme.colors` off styled-components' context and throws a TypeError without a provider; spacing and radii resolve without one.
 type Wrapper = JSXElementConstructor<{ children: ReactNode }>;
 
 /**
@@ -56,6 +29,13 @@ function withTheme(Extra?: Wrapper): Wrapper {
   };
 }
 
+/**
+ * Testing Library's `render` with the kit's theme always mounted, so a
+ * `@ksp-gonogo/ui-kit` component renders without a provider of your own. A
+ * `wrapper` you pass is mounted inside the theme.
+ *
+ * @category Rendering
+ */
 export function render(
   ui: ReactElement,
   options?: RenderOptions,
@@ -63,6 +43,12 @@ export function render(
   return rtlRender(ui, { ...options, wrapper: withTheme(options?.wrapper) });
 }
 
+/**
+ * Testing Library's `renderHook` with the kit's theme always mounted. A
+ * `wrapper` you pass is mounted inside the theme.
+ *
+ * @category Rendering
+ */
 export function renderHook<Result, Props>(
   render: (initialProps: Props) => Result,
   options?: RenderHookOptions<Props>,
@@ -85,6 +71,8 @@ export function renderHook<Result, Props>(
  * So: the magnitude for a quantity, the value itself for anything else. Use
  * `visibleText` from `@ksp-gonogo/ui-kit/testing` when what a reader SEES is the
  * point.
+ *
+ * @category Rendering
  */
 export function probeText(v: unknown): string {
   return String(

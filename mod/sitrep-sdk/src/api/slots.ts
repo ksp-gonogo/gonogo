@@ -182,7 +182,11 @@ export interface ShipMapOverlayContext {
 
 // --- CrewStatus (packages/components/src/CrewStatus) -------------------
 
-/** Props passed to every `crew-status.row-badges` augment, once per crew row. */
+/**
+ * Props passed to every `crew-status.row-badges` augment, once per crew row.
+ *
+ * @category Extensions
+ */
 export interface CrewBadgeContext {
   /** The crew member this badge row belongs to, its identity for the augment. */
   crewName: string;
@@ -190,7 +194,11 @@ export interface CrewBadgeContext {
   crewIndex: number;
 }
 
-/** Props passed to every `crew-status.avatar` augment, once per crew row. */
+/**
+ * Props passed to every `crew-status.avatar` augment, once per crew row.
+ *
+ * @category Extensions
+ */
 export interface CrewAvatarContext {
   /** The crew member this avatar belongs to, its identity for the augment. */
   crewName: string;

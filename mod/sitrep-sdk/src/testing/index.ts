@@ -135,6 +135,8 @@ export { harnessTheme } from "./theme";
  * because it carries every Uplink's commands and cannot know whose it holds.
  * This is the one step from there to the declared shape, so a test asserting on
  * an arg field stops compiling when the contract renames it.
+ *
+ * @category Stream fixture
  */
 export function commandArgs<Command extends CommandId>(
   args: unknown,

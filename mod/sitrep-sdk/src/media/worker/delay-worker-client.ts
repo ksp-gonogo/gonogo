@@ -40,11 +40,19 @@ import type {
  *  `DelayClockLike`: a serializable snapshot of the formula inputs to
  *  forward at ~60Hz. `ViewClock` (the app's real clock) satisfies this
  *  structurally; a camera Uplink never imports `ViewClock` directly (same
- *  decoupling `delayed-playout-buffer.ts` already follows). */
+ *  decoupling `delayed-playout-buffer.ts` already follows).
+ *
+ * @category Delayed video
+ */
 export interface SnapshottableDelayClock extends DelayClockLike {
   snapshot(): ClockFormulaSnapshot;
 }
 
+/**
+ * Options for `createWorkerFrameDelayStream`.
+ *
+ * @category Delayed video
+ */
 export interface CreateWorkerFrameDelayStreamOptions {
   view: SnapshottableDelayClock;
   /** Read fresh on every ~60Hz tick; forwarded to the worker only when it
@@ -144,6 +152,8 @@ function startPipelineTicker(
  * throws) on any failure to build, including the synchronous
  * `postMessage(..., [track])` transfer failure this task's verification
  * found on Chrome/Firefox.
+ *
+ * @category Delayed video
  */
 export async function createWorkerFrameDelayStream(
   raw: MediaStream,
@@ -222,6 +232,11 @@ export async function createWorkerFrameDelayStream(
 // reconciliation of why this is wireable gonogo-side, no SDK change needed.
 // ---------------------------------------------------------------------------
 
+/**
+ * Options for `attachEncodedWorkerFrameDelay`.
+ *
+ * @category Delayed video
+ */
 export interface AttachEncodedFrameDelayOptions {
   view: SnapshottableDelayClock;
   /** Read fresh on every ~60Hz tick, same contract as
@@ -233,6 +248,11 @@ export interface AttachEncodedFrameDelayOptions {
   onError?(error: unknown): void;
 }
 
+/**
+ * What `attachEncodedWorkerFrameDelay` returns.
+ *
+ * @category Delayed video
+ */
 export interface EncodedFrameDelayHandle {
   /** Detach the transform (`receiver.transform = null`) and tear down this
    *  pipeline's worker-side state. Idempotent from the caller's
@@ -266,6 +286,8 @@ export interface EncodedFrameDelayHandle {
  * round trip). The caller treats a `null` resolution exactly like every
  * other backend's `null`/`unavailable` case (decision 5: never a silent
  * live fallback).
+ *
+ * @category Delayed video
  */
 export function attachEncodedWorkerFrameDelay(
   receiver: RTCRtpReceiver,

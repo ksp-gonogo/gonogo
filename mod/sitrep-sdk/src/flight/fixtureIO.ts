@@ -15,6 +15,8 @@ import type { FlightRecord } from "./types";
  * `samples` uses `[t, v]` tuples (not `{ t, v }` objects) to roughly halve
  * the on-disk size of long recordings. Sample `t` values are absolute unix
  * milliseconds (matching the in-store shape).
+ *
+ * @category Flight recording
  */
 export interface FlightChapter {
   readonly id: string;
@@ -23,6 +25,12 @@ export interface FlightChapter {
   readonly endMs: number;
 }
 
+/**
+ * A recorded flight as a portable JSON file: the flight's metadata and every
+ * sample, which `importFixtureToStore` loads back.
+ *
+ * @category Flight recording
+ */
 export interface FlightFixture {
   /**
    * Format identifier + version. Bump the version when the on-disk shape
@@ -51,12 +59,19 @@ export interface FlightFixture {
   readonly chapters?: ReadonlyArray<FlightChapter>;
 }
 
+/**
+ * The format tag every `FlightFixture` carries.
+ *
+ * @category Flight recording
+ */
 export const FLIGHT_FIXTURE_FORMAT = "gonogo-flight-fixture/v1" as const;
 
 /**
  * Narrow type predicate: useful when loading a JSON file at the boundary.
  * Validates the format tag, the flight metadata shape, and that every
  * sample series is an array of length-2 tuples sorted ascending by `t`.
+ *
+ * @category Flight recording
  */
 export function isFlightFixture(value: unknown): value is FlightFixture {
   if (!value || typeof value !== "object") return false;
@@ -109,11 +124,18 @@ export function isFlightFixture(value: unknown): value is FlightFixture {
 
 /**
  * Total span of the fixture in milliseconds (last sample - first sample).
+ *
+ * @category Flight recording
  */
 export function fixtureDurationMs(fixture: FlightFixture): number {
   return Math.max(0, fixture.flight.lastSampleAt - fixture.flight.launchedAt);
 }
 
+/**
+ * What `exportFlightToFixture` captures.
+ *
+ * @category Flight recording
+ */
 export interface ExportFlightOptions {
   /**
    * Keys to capture into the fixture. The Store doesn't track which keys
@@ -135,6 +157,8 @@ export interface ExportFlightOptions {
  * pack them into a portable `FlightFixture`. Empty key series are dropped
  * from `samples` (rather than carried as `[]`) so a fixture round-tripped
  * through this helper stays compact.
+ *
+ * @category Flight recording
  */
 export async function exportFlightToFixture(
   store: FlightStore,
@@ -171,6 +195,8 @@ export async function exportFlightToFixture(
  *
  * Calls `store.flush()` at the end so a store that batches its writes has them
  * observable to subsequent reads.
+ *
+ * @category Flight recording
  */
 export async function importFixtureToStore(
   store: FlightStore,

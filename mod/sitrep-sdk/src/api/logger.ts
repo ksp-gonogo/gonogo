@@ -21,6 +21,8 @@ import type { Logger } from "./logger-contract";
  * the real logger. Binding closes that hole and would keep working even if
  * the logger ever adopts ES `#private` fields, which a bare Proxy can't
  * forward at all.
+ *
+ * @category Logging and performance
  */
 export const logger: Logger = new Proxy({} as Logger, {
   get: (_target, prop) => {

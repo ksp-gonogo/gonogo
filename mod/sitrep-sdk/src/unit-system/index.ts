@@ -1,3 +1,5 @@
+import * as dimensionOperations from "./dimension";
+
 // The two augmentable interfaces are exported for one reason: `declare module`
 // merges into what a module EXPORTS, so an interface the package entry does not
 // name cannot be augmented through the package name. Left out, the documented
@@ -23,7 +25,6 @@ export {
   UNIT_DEFINITIONS,
   type UnitDefinition,
 } from "./definitions";
-export * as Dimension from "./dimension";
 export { assertGuardsRegistered, isUnit, unitGuard } from "./guards";
 export {
   affineVectorUnitFor,
@@ -50,3 +51,11 @@ export {
   value,
   vectorMagnitude,
 } from "./value";
+
+/**
+ * Operations on a physical dimension: `multiply`, `divide`, `equal`, `key`,
+ * `formatDimension`, and `DIMENSIONLESS` for a pure number.
+ *
+ * @category Units and values
+ */
+export const Dimension = dimensionOperations;

@@ -8,6 +8,8 @@
  * Note: `length` is fixed at 0 and `key()` always returns null, matching the
  * existing shims. Tests that rely on `Storage.length` or `Storage.key(i)`
  * will need a more complete fake.
+ *
+ * @category Test doubles
  */
 export function memoryStorage(): Storage {
   const map = new Map<string, string>();

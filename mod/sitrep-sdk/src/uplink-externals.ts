@@ -29,7 +29,11 @@
  * warning.
  */
 
-/** `[bare specifier, `ext-*` entry basename]`, one per resolvable specifier. */
+/**
+ * `[bare specifier, `ext-*` entry basename]`, one per resolvable specifier.
+ *
+ * @category Bundling
+ */
 export const UPLINK_EXTERNAL_ENTRIES = [
   ["react", "ext-react"],
   ["react-dom", "ext-react-dom"],
@@ -48,7 +52,11 @@ export const UPLINK_EXTERNAL_ENTRIES = [
   ["@ksp-gonogo/logger", "ext-logger"],
 ] as const satisfies readonly (readonly [string, string])[];
 
-/** Just the specifiers, which is what a bundler's `external` takes. */
+/**
+ * Just the specifiers, which is what a bundler's `external` takes.
+ *
+ * @category Bundling
+ */
 export const UPLINK_EXTERNAL_SPECIFIERS: readonly string[] =
   UPLINK_EXTERNAL_ENTRIES.map(([specifier]) => specifier);
 
@@ -56,13 +64,19 @@ export const UPLINK_EXTERNAL_SPECIFIERS: readonly string[] =
  * Externalised without an entry chunk of their own, because each is reached only
  * through a specifier that HAS one. A bundler must still leave them alone;
  * nothing needs to resolve them at load.
+ *
+ * @category Bundling
  */
 export const UPLINK_EXTERNAL_NO_CHUNK: readonly string[] = [
   "react-dom/client",
   "react/jsx-dev-runtime",
 ];
 
-/** Everything a bundler marks `external`, which is both lists together. */
+/**
+ * Everything a bundler marks `external`, which is both lists together.
+ *
+ * @category Bundling
+ */
 export const UPLINK_BUNDLE_EXTERNALS: readonly string[] = [
   ...UPLINK_EXTERNAL_SPECIFIERS,
   ...UPLINK_EXTERNAL_NO_CHUNK,

@@ -18,6 +18,8 @@ import type {
  * `id` / `name` are accepted as constructor overrides so subclasses (notably
  * `BufferedDataSource`, which registers under a different id from its wrapped
  * source) can rename themselves without shadowing a getter.
+ *
+ * @category Flight recording
  */
 export abstract class DataSourceWrapper<
   Config extends Record<string, unknown> = Record<string, unknown>,

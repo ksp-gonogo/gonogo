@@ -23,13 +23,25 @@ import type { Meta, StreamBinary } from "./__generated__/contract";
  * ends of the format have exactly one place to drift apart at.
  */
 
-/** First byte of every binary-lane frame. */
+/**
+ * First byte of every binary-lane frame.
+ *
+ * @category Binary lane
+ */
 export const BINARY_LANE_MAGIC = 0x9e;
 
-/** The one lane this version knows: a `stream-binary` delivery. */
+/**
+ * The one lane this version knows: a `stream-binary` delivery.
+ *
+ * @category Binary lane
+ */
 export const BINARY_LANE_STREAM_BINARY = 0x01;
 
-/** Magic + lane + the two length bytes. */
+/**
+ * Magic + lane + the two length bytes.
+ *
+ * @category Binary lane
+ */
 export const BINARY_LANE_PREFIX_BYTES = 4;
 
 /**
@@ -46,6 +58,8 @@ export const BINARY_LANE_PREFIX_BYTES = 4;
  * (`packages/app/src/commcast/radio/wire.ts`): a decoder takes either happily,
  * so the defect is invisible until something INDEXES the bytes, and then every
  * element reads `undefined`.
+ *
+ * @category Binary lane
  */
 export type StreamBinaryMessage = Omit<StreamBinary, "segments"> & {
   segments: Uint8Array[];
@@ -59,6 +73,8 @@ export type StreamBinaryMessage = Omit<StreamBinary, "segments"> & {
  * Every arm carries a `reason`, `not-binary` included, so a caller can log the
  * failure without first narrowing on `kind`. `kind` is for BEHAVIOUR (fall back
  * to text, or drop and warn); `reason` is for the human either way.
+ *
+ * @category Binary lane
  */
 export type BinaryFrameFailure =
   /** Not a binary-lane frame at all. The caller should treat it as text. */
@@ -68,6 +84,12 @@ export type BinaryFrameFailure =
   /** Well-formed prefix, unreadable frame. */
   | { kind: "malformed"; reason: string };
 
+/**
+ * What `decodeBinaryFrame` returns: the decoded message, or the reason the bytes
+ * are not one.
+ *
+ * @category Binary lane
+ */
 export type BinaryFrameResult =
   | { ok: true; message: StreamBinaryMessage }
   | ({ ok: false } & BinaryFrameFailure);
@@ -78,6 +100,8 @@ export type BinaryFrameResult =
  * module's parser: every frame the protocol writes as text opens with `{`
  * (0x7B), and 0x80-0xBF is the UTF-8 continuation range, which cannot lead a
  * UTF-8 document at all.
+ *
+ * @category Binary lane
  */
 export function isBinaryFrame(bytes: Uint8Array): boolean {
   return bytes.length >= 1 && bytes[0] === BINARY_LANE_MAGIC;
@@ -93,6 +117,8 @@ const HEADER_TEXT_DECODER = new TextDecoder("utf-8", { fatal: false });
  * be everywhere: the caller owns the buffer, having just received it, and
  * nothing on this path writes back into it. A consumer that intends to retain a
  * segment past the frame's own lifetime should copy it.
+ *
+ * @category Binary lane
  */
 export function decodeBinaryFrame(bytes: Uint8Array): BinaryFrameResult {
   if (!isBinaryFrame(bytes)) {
@@ -233,6 +259,8 @@ export function decodeBinaryFrame(bytes: Uint8Array): BinaryFrameResult {
  * `binaryType = "arraybuffer"` gets an `ArrayBuffer`; a test harness or a
  * relay may hand over a view already. A `Blob` is not handled and must not be:
  * reading one is asynchronous, which reorders the stream.
+ *
+ * @category Binary lane
  */
 export function frameBytes(data: ArrayBuffer | ArrayBufferView): Uint8Array {
   if (data instanceof ArrayBuffer) return new Uint8Array(data);

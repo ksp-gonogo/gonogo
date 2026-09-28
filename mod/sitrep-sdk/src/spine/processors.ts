@@ -19,6 +19,8 @@ import type { TopicReading } from "./client-reading";
 /**
  * Opaque, branded handle returned by defineProcessor. Never constructed by
  * hand: carries the `Result` type through inference for downstream consumers.
+ *
+ * @category Processors
  */
 export interface ProcessorHandle<
   Result,
@@ -336,6 +338,8 @@ export function defineProcessor<
  * comes from the implementing Uplink importing `Result` from here and annotating its
  * `compute` with it. Declaring the type twice, once each side, is the failure
  * this exists to prevent, so do not.
+ *
+ * @category Processors
  */
 export function defineProcessorContract<
   Result,

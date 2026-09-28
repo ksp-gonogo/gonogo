@@ -14,10 +14,16 @@ import { namesByValue } from "./enum-names";
  *
  * @see `Sitrep.Contract/CrewStanding.cs` for the account of what RP-1 does to
  * `rosterStatus` and why a mirror could not have been made to work.
+ *
+ * @category Crew
  */
 export const CREW_STANDING_NAMES = namesByValue(CrewStanding);
 
-/** The members of {@link CrewStanding}, as a union a comparison can be checked against. */
+/**
+ * The members of {@link CrewStanding}, as a union a comparison can be checked against.
+ *
+ * @category Crew
+ */
 export type CrewStandingName = keyof typeof CrewStanding;
 
 /**
@@ -34,6 +40,8 @@ export type CrewStandingName = keyof typeof CrewStanding;
  * `Unknown` is deliberately LAST rather than first, despite being ordinal zero.
  * It is the standing nobody could read, and a surface should show what it does
  * know before what it does not.
+ *
+ * @category Crew
  */
 export const CREW_STANDING_ORDER: readonly CrewStanding[] = [
   ...CREW_STANDING_NAMES.keys(),
@@ -64,6 +72,8 @@ export const CREW_STANDING_ORDER: readonly CrewStanding[] = [
  * being consulted, because an applicant has none; an unrecognised or absent
  * ordinal answers {@link CrewStanding.Unknown} rather than the friendliest
  * guess.</p>
+ *
+ * @category Crew
  */
 export function crewStandingFromRosterStatus(
   rosterStatusOrdinal: number | null | undefined,
@@ -93,6 +103,8 @@ export function crewStandingFromRosterStatus(
  * Null rather than a fallback string, because a label invented for an unknown
  * number is a label an operator will read as a fact. A caller with nothing to
  * show should show nothing.
+ *
+ * @category Crew
  */
 export function crewStandingLabel(
   standing: number | null | undefined,
@@ -107,6 +119,8 @@ export function crewStandingLabel(
  * Whether a standing means the kerbal is off the flight roster for good: dead,
  * missing, or retired. The three an operator groups together when planning, and
  * the reason they must still be told apart within it.
+ *
+ * @category Crew
  */
 export function isOffTheBooks(standing: number | null | undefined): boolean {
   return (
@@ -125,6 +139,8 @@ export function isOffTheBooks(standing: number | null | undefined): boolean {
  * sends a dead kerbal's badge quietly grey, and failing toward "nothing to see"
  * is the worst available direction for the one badge whose job is to be
  * alarming.
+ *
+ * @category Crew
  */
 export function isFatality(standing: number | null | undefined): boolean {
   return standing === CrewStanding.Dead || standing === CrewStanding.Missing;
@@ -147,6 +163,8 @@ export function isFatality(standing: number | null | undefined): boolean {
  * direction matters here too, because the failure is offering a control that
  * will be refused, or worse one the operator did not mean for a kerbal who is
  * off the books.</p>
+ *
+ * @category Crew
  */
 export function canBeSacked(standing: number | null | undefined): boolean {
   return (
@@ -173,6 +191,8 @@ export function canBeSacked(standing: number | null | undefined): boolean {
  *   has no scheduled end
  * @param formatUt the caller's own UT formatter, so the date is rendered in the
  *   client's calendar. Omit it to get the reason alone
+ *
+ * @category Crew
  */
 export function crewUnavailableSentence(
   reason: string | null | undefined,

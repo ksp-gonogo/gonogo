@@ -33,6 +33,8 @@ import {
  * Anomalies}Prefix` in that Uplink's mod, and its `scansat-wire-contract` test
  * asserts the two lists stay equal. A real wire topic never ends in `.`, so a
  * prefix never collides with an exact topic id.
+ *
+ * @category Reading telemetry
  */
 export const DYNAMIC_WHOLE_TOPIC_PREFIXES: readonly string[] = [
   "scansat.coverage.",
@@ -89,6 +91,8 @@ const PART_ACTIONS_DYNAMIC = /^vessel\.partActions\.\d+$/;
  * it. A flat key was a NAME FOR something the wire calls otherwise, and there is
  * nothing left to translate. A dynamic key needs no translation and cannot be
  * enumerated, so a pattern is the only thing that can vouch for it.
+ *
+ * @category Stream fixture
  */
 export function mapTopic(key: string): string | undefined {
   if (SCANSAT_DYNAMIC.test(key)) return key;

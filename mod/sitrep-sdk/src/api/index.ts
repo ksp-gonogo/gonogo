@@ -217,6 +217,8 @@ export type {
  * (the sdk leaf cannot depend on core; see `./types.ts`'s DataSource
  * type-mirror comment for the full constraint) and kept honest by
  * `packages/core/src/sdk-facade.conformance.test-d.ts`.
+ *
+ * @category Host and runtime
  */
 export const GAME_HOST_KEY = "gameHost" as const;
 
@@ -302,10 +304,16 @@ export {
  * Every augment bound into `slot`, in render order. The read half of
  * {@link registerAugment}: an Uplink's test observes what it registered through
  * the same host it registered into.
+ *
+ * @category Extensions
  */
 export const getAugmentsForSlot = (slot: string) =>
   getHost().getAugmentsForSlot(slot);
-/** Empty the augment registry. For tests; a running app never calls it. */
+/**
+ * Empty the augment registry. For tests; a running app never calls it.
+ *
+ * @category Extensions
+ */
 export const clearAugments = (): void => {
   getHost().clearAugments();
 };
@@ -401,6 +409,8 @@ export {
  * Pass the handle as `owner` to every `registerComponent` and
  * {@link registerAugment} call the client makes, and register contributions
  * through the handle's own `registerContribution`.
+ *
+ * @category Registering
  */
 export const defineUplinkClient = (cfg: {
   id: string;
@@ -410,6 +420,12 @@ export const defineUplinkClient = (cfg: {
   description?: string;
 }): UplinkClientHandle => getHost().defineUplinkClient(cfg);
 
+/**
+ * Adds a custom tab to the app's Settings. Prefer `registerSetting`, which the
+ * app renders for you.
+ *
+ * @category Settings
+ */
 export const registerSettingsTab = (def: SettingsTabDefinition): void =>
   getHost().registerSettingsTab(def);
 
@@ -425,6 +441,8 @@ export const registerSettingsTab = (def: SettingsTabDefinition): void =>
  * allowed to be: declare `type: "number"` and a `defaultValue` of
  * `true` is a compile error at the call site rather than a `Switch` rendering
  * a tolerance.
+ *
+ * @category Settings
  */
 export function registerSetting<
   SettingKind extends SettingType = "boolean",
@@ -523,6 +541,8 @@ export function useTelemetry<Topic extends TopicId>(
 /**
  * The frame's view instant. See `GonogoHost.useViewUt` for why an Uplink needs
  * it and why it answers `undefined` rather than guessing.
+ *
+ * @category Delay and vantage
  */
 export function useViewUt(): Value<"ut"> | undefined {
   return getHost().useViewUt();
@@ -557,6 +577,8 @@ export function useViewUt(): Value<"ut"> | undefined {
  *
  * The full command vocabulary is `COMMAND_IDS`, generated from the mod's own
  * `[SitrepCommand]` declarations.
+ *
+ * @category Commands
  */
 export function useCommand<Command extends CommandId>(
   command: Command,
@@ -606,6 +628,8 @@ export function useCommand(
  *
  * The returned function is stable for as long as the route is, so it is safe in
  * a dependency array. It rejects, rather than hanging, when no route exists.
+ *
+ * @category Host and runtime
  */
 export function useUplinkRelay(uplinkId: string) {
   return getHost().useUplinkRelay(uplinkId);
@@ -625,6 +649,8 @@ export function useUplinkRelay(uplinkId: string) {
  *
  * Credentials rotate, so a long-lived connection has to watch `onChange` rather
  * than read `current()` once.
+ *
+ * @category Host and runtime
  */
 export function useHostIceServers() {
   return getHost().useHostIceServers();
@@ -654,6 +680,8 @@ export function useHostIceServers() {
  * command-centre objects and the game never sees one until it is sent, which is
  * what lets two operators work on different plans for the same craft without
  * either disturbing the other or the player at the keyboard.</p>
+ *
+ * @category Commands
  */
 export function usePlanDrafts(): {
   store: PlanDraftStore;
@@ -691,6 +719,8 @@ const PLAN_DRAFTS = new PlanDraftStore();
  * asserting against each other's drafts. Call it after unmounting rather than
  * before: clearing while a tree is still mounted notifies its subscribers
  * outside `act`.</p>
+ *
+ * @category Commands
  */
 export const clearPlanDrafts = (): void => {
   for (const draft of PLAN_DRAFTS.list()) {
@@ -713,6 +743,8 @@ export const clearPlanDrafts = (): void => {
  * refuses to commit until a delay schedule is contributed, so a widget that
  * skips it gets a throw on the first press rather than a control with no delay
  * UX.
+ *
+ * @category Commands
  */
 export function useSendPlan(): SendPlanHandle {
   const command = useCommand(SEND_PLAN_COMMAND);
@@ -759,6 +791,8 @@ export function useSendPlan(): SendPlanHandle {
  * `topic`, regardless of which command centre dispatched it, the
  * companion to `useCommand`'s own-dispatch `inFlight`. See
  * `@ksp-gonogo/sitrep-client`'s `useRouteCommands` for the full contract.
+ *
+ * @category Commands
  */
 export function useRouteCommands(topic: string): UseRouteCommandsResult {
   return getHost().useRouteCommands(topic);
@@ -783,6 +817,8 @@ export function useRouteCommands(topic: string): UseRouteCommandsResult {
  * checking it was right. Reach for it when the topic has no {@link TopicId}
  * entry (a derived channel, or your own Uplink's), and for a wire Topic prefer
  * `useTelemetry`, whose payload type comes from the contract.
+ *
+ * @category Reading telemetry
  */
 export function useStream<Payload>(topic: string): TopicReading<Payload> {
   return getHost().useStream<Payload>(topic);
@@ -816,6 +852,8 @@ export function useModSettings(
  * on raw topic ids answers the bare `Result`: there is nothing to date it by, and
  * inventing an instant would be a claim nothing supports. The handle's own
  * brand decides which, so the two cannot be confused at a call site.
+ *
+ * @category Processors
  */
 export function useProcessor<Result, Carried extends boolean>(handle: {
   readonly id: string;
@@ -835,6 +873,8 @@ export function useProcessor<Result, Carried extends boolean>(handle: {
  *
  * Opaque here for the same reason as {@link useTelemetryStoreOptional}'s
  * return: narrow or cast at the call site.
+ *
+ * @category Delay and vantage
  */
 export function useViewClock(): unknown {
   return getHost().useViewClock();
@@ -858,6 +898,8 @@ export function useViewClock(): unknown {
  * closing over fresh state needs no memoisation and re-registers nothing. A
  * handler's return value is fed back to the device's render style, which is how
  * a display on the hardware follows the widget.
+ *
+ * @category Actions
  */
 export function useActionInput<Actions extends readonly ActionDefinition[]>(
   handlers: ActionHandlers<Actions>,
@@ -874,6 +916,8 @@ export function useActionInput<Actions extends readonly ActionDefinition[]>(
  * Sitrep stream itself, which is not a registered source: a widget asking
  * whether ITS data is current reads that off the {@link Reading} its
  * {@link useTelemetry} call already returns.
+ *
+ * @category Registering
  */
 export function useDataSources(): unknown {
   return getHost().useDataSources();
@@ -887,6 +931,8 @@ export function useDataSources(): unknown {
  * bookkeeping topics (dispatch timestamps, link facts), never delayed craft
  * telemetry. See `GonogoHost.useLatestValue`'s doc for the raw-vs-derived
  * distinction.
+ *
+ * @category Reading telemetry
  */
 export function useLatestValue<Payload = unknown>(
   topic: string,
@@ -898,6 +944,8 @@ export function useLatestValue<Payload = unknown>(
  * Fires `handler` once per discrete event delivered on a `ReliableOrdered`
  * channel topic: the event-consumption counterpart to `useStream`'s
  * sticky-latest-value read.
+ *
+ * @category Reading telemetry
  */
 export function useStreamEvent<Payload = unknown>(
   topic: string,
@@ -910,12 +958,18 @@ export function useStreamEvent<Payload = unknown>(
  * Returns a stable, imperative subscribe function for topics only known
  * after some async setup resolves, in a count decided at runtime. See
  * `LateTelemetrySubscribe`'s own doc for the full contract.
+ *
+ * @category Reading telemetry
  */
 export function useLateTelemetrySubscribe(): LateTelemetrySubscribe {
   return getHost().useLateTelemetrySubscribe();
 }
 
-/** The current view time (UT seconds), reactive per-frame. */
+/**
+ * The current view time (UT seconds), reactive per-frame.
+ *
+ * @category Delay and vantage
+ */
 export function useUtNow(): number | undefined {
   return getHost().useUtNow();
 }
@@ -924,12 +978,18 @@ export function useUtNow(): number | undefined {
  * The nearest `TelemetryProvider`'s `TimelineStore`, or `undefined` with none
  * mounted. Opaque (`unknown`), same reasoning as `useViewClock`, narrow/cast
  * at the call site if the concrete shape is needed.
+ *
+ * @category Reading telemetry
  */
 export function useTelemetryStoreOptional(): unknown {
   return getHost().useTelemetryStoreOptional();
 }
 
-/** Non-throwing variant of `useViewClock`: `undefined` with no provider mounted. */
+/**
+ * Non-throwing variant of `useViewClock`: `undefined` with no provider mounted.
+ *
+ * @category Delay and vantage
+ */
 export function useViewClockOptional(): unknown {
   return getHost().useViewClockOptional();
 }
@@ -938,6 +998,8 @@ export function useViewClockOptional(): unknown {
  * The most recently mounted `TelemetryProvider`'s `TelemetryClient`, or
  * `undefined` when none is mounted, for imperative use outside a hook
  * context (e.g. a `DataSource`'s own connect/dispatch bookkeeping).
+ *
+ * @category Reading telemetry
  */
 export function getActiveTelemetryClient(): TelemetryClient | undefined {
   return getHost().getActiveTelemetryClient();
@@ -946,6 +1008,8 @@ export function getActiveTelemetryClient(): TelemetryClient | undefined {
 /**
  * Non-throwing hook variant of reading the nearest `TelemetryProvider`'s
  * `TelemetryClient`: `undefined` with no provider mounted.
+ *
+ * @category Reading telemetry
  */
 export function useTelemetryClientOptional(): TelemetryClient | undefined {
   return getHost().useTelemetryClientOptional();
@@ -953,7 +1017,11 @@ export function useTelemetryClientOptional(): TelemetryClient | undefined {
 
 // --- Data introspection shims (stateful → injected host) ---------------------
 
-/** Whether a recorded-flight replay session is currently active. */
+/**
+ * Whether a recorded-flight replay session is currently active.
+ *
+ * @category Delay and vantage
+ */
 export function useReplaySessionActive(): boolean {
   return getHost().useReplaySessionActive();
 }
@@ -968,6 +1036,8 @@ export function useReplaySessionActive(): boolean {
  * `getSetting`, which this package has owned since the settings store moved. A host
  * member for a two-line read of a setting this package already holds is indirection
  * with nothing on the other end, so the member retires with the shim.
+ *
+ * @category Host and runtime
  */
 export function getGameHost(): string {
   /* Spelled `import.meta.env` on purpose: Vite substitutes that exact text,
@@ -986,17 +1056,29 @@ export function getGameHost(): string {
 // barrel would be a way to opt out of the namespacing that stops two Uplinks
 // colliding.
 
-/** Every contribution that wins a slot: the highest priority band present, in registration order. */
+/**
+ * Every contribution that wins a slot: the highest priority band present, in registration order.
+ *
+ * @category Extensions
+ */
 export function getContributionsForSlot(slot: string): AnyContribution[] {
   return getHost().getContributionsForSlot(slot);
 }
 
-/** Subscribe to any change (register/unregister) in the contribution registry. */
+/**
+ * Subscribe to any change (register/unregister) in the contribution registry.
+ *
+ * @category Extensions
+ */
 export function onContributionsChange(cb: () => void): () => void {
   return getHost().onContributionsChange(cb);
 }
 
-/** Empty the contribution registry. For tests; a running app never calls it. */
+/**
+ * Empty the contribution registry. For tests; a running app never calls it.
+ *
+ * @category Extensions
+ */
 export function clearContributions(): void {
   getHost().clearContributions();
 }
@@ -1026,6 +1108,8 @@ export { logger } from "./logger";
  * `@ksp-gonogo/ui-kit` exports this name too, and that one is the component
  * this resolves to. A widget should take it from there: same registry, and it
  * renders with no host installed, which an Uplink's own test wants.
+ *
+ * @category Extensions
  */
 export function AugmentSlot<Slot extends string>(props: {
   name: Slot;
@@ -1052,6 +1136,8 @@ export function AugmentSlot<Slot extends string>(props: {
  * Construct a performance budget on the app's single registry (design: every
  * new data source MUST register one). A factory, not a re-exported class, so the
  * budget self-registers into the host's registry rather than a bundled copy.
+ *
+ * @category Logging and performance
  */
 export function createPerfBudget(opts: PerfBudgetOptions): PerfBudgetHandle {
   return getHost().createPerfBudget(opts);

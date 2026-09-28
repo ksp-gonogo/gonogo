@@ -63,7 +63,10 @@ import {
  *  convention. Extends `FrameLike` explicitly (rather than relying on
  *  structural assignability) because TypeScript's weak-type check rejects
  *  an object type with literally zero overlapping property names, even
- *  when the only declared member is optional. */
+ *  when the only declared member is optional.
+ *
+ * @category Delayed video
+ */
 export interface EncodedVideoFrameLike extends FrameLike {
   readonly type: "key" | "delta";
   readonly data: ArrayBuffer;
@@ -72,12 +75,20 @@ export interface EncodedVideoFrameLike extends FrameLike {
 /** The minimal shape of a real `RTCRtpScriptTransform`'s
  *  `RTCTransformEvent.transformer`: a `{readable, writable}` pair of
  *  encoded frames. Matches what `self.onrtctransform`'s `event.transformer`
- *  provides directly. */
+ *  provides directly.
+ *
+ * @category Delayed video
+ */
 export interface EncodedTransformerLike {
   readable: ReadableStream<EncodedVideoFrameLike>;
   writable: WritableStream<EncodedVideoFrameLike>;
 }
 
+/**
+ * Options for `attachEncodedFrameDelayTransform`.
+ *
+ * @category Delayed video
+ */
 export interface EncodedFrameDelayOptions {
   /** THE delay clock: the same instance telemetry reads. */
   view: DelayClockLike;
@@ -102,7 +113,10 @@ export interface EncodedFrameDelayOptions {
 }
 
 /** ~4x the spike report's ~2MB unpinned-bitrate production estimate for a
- *  4-second buffer: generous headroom without inviting unbounded growth. */
+ *  4-second buffer: generous headroom without inviting unbounded growth.
+ *
+ * @category Delayed video
+ */
 export const DEFAULT_MAX_BUFFERED_BYTES = 8 * 1024 * 1024;
 
 /** Mirrors `frame-delay.ts`'s own default: see that constant's doc. */
@@ -119,6 +133,8 @@ const DEFAULT_PACING_MAX_BACKLOG_SECONDS = 0.5;
  * The caller (worker-side glue, once wired) is responsible for driving
  * `pipeline.tickPacing(nowWall)` on a ~60Hz loop: see
  * `frame-delay.ts`'s `startPacingTicker`, reused as-is.
+ *
+ * @category Delayed video
  */
 export function attachEncodedFrameDelayTransform(
   transformer: EncodedTransformerLike,

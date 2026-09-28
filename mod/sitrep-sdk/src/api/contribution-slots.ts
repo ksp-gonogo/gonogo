@@ -118,7 +118,11 @@ export interface CommSignalHopRateEntry {
 
 export type SystemEntityEmphasis = "faint" | "normal" | "bright";
 
-/** Mirrors `SystemEntitySeverity`. */
+/**
+ * Mirrors `SystemEntitySeverity`.
+ *
+ * @category Extensions
+ */
 export type SystemEntitySeverity = "info" | "warning" | "critical";
 
 /** Mirrors `SystemEntityStyle`. A contribution names `emphasis` and
@@ -229,6 +233,8 @@ export interface SystemViewProjection {
  * A contributor names the severity and nothing else; the widget owns the
  * palette. Omit a kerbal entirely for nothing to report, rather than
  * contributing an `info` entry.
+ *
+ * @category Extensions
  */
 export interface CrewRowToneEntry {
   /** The crew member this entry is about; matched to a roster row by name. */

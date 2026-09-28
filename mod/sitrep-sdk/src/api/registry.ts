@@ -90,12 +90,17 @@ function isSameRegistration(
   return existing === incoming || existing.name === incoming.name;
 }
 
-// Ids share one flat namespace across every registered package, and a duplicate
-// id is a hard error (below). There is no formal per-package namespace: external
-// and Uplink widgets SHOULD prefix their id with their package/mod slug (a "foo"
-// mod's widgets as `foo-status`, `foo-map`, ...) to stay clear of the built-ins and
-// each other. The hard error enforces uniqueness; the prefix convention is how
-// you avoid tripping it.
+/**
+ * Adds a widget to the dashboard's catalogue. Call it once, at module load.
+ *
+ * Widget ids share one namespace across every package, and registering a second
+ * widget under an id already taken throws. Prefix your ids with your Uplink's
+ * name (`foo-status`, `foo-map`) to stay clear of the built-in widgets and of
+ * other Uplinks. Registering the same widget twice, as happens when a module is
+ * loaded by two bundles, is allowed.
+ *
+ * @category Registering
+ */
 export function registerComponent<Config = Record<string, unknown>>(
   def: ComponentDefinition<Config>,
 ): void {
@@ -112,17 +117,32 @@ export function registerComponent<Config = Record<string, unknown>>(
   components.set(def.id, def as AnyDef);
 }
 
+/**
+ * Adds a data source, replacing any registered under the same id.
+ *
+ * @category Registering
+ */
 export function registerDataSource<
   Config extends Record<string, unknown> = Record<string, unknown>,
 >(source: DataSource<Config>): void {
   registry().dataSources.set(source.id, source as AnySource);
 }
 
-/** Remove the source registered under `id`. No-op if nothing is registered. */
+/**
+ * Remove the source registered under `id`. No-op if nothing is registered.
+ *
+ * @category Registering
+ */
 export function unregisterDataSource(id: string): void {
   registry().dataSources.delete(id);
 }
 
+/**
+ * Adds a theme the operator can switch to. Theme ids are unique, and registering
+ * a second theme under an id already taken throws.
+ *
+ * @category Registering
+ */
 export function registerTheme(def: ThemeDefinition): void {
   const { themes } = registry();
   const existing = themes.get(def.id);
@@ -142,6 +162,11 @@ export function getComponents(): AnyDef[] {
   return Array.from(registry().components.values());
 }
 
+/**
+ * The widget registered under `id`, or `undefined`.
+ *
+ * @category Registering
+ */
 export function getComponent(id: string): AnyDef | undefined {
   return registry().components.get(id);
 }
@@ -221,10 +246,20 @@ export function getResolvedComponents(): AnyDef[] {
   );
 }
 
+/**
+ * Every registered data source.
+ *
+ * @category Registering
+ */
 export function getDataSources(): AnySource[] {
   return Array.from(registry().dataSources.values());
 }
 
+/**
+ * The data source registered under `id`, or `undefined`.
+ *
+ * @category Registering
+ */
 export function getDataSource(id: string): AnySource | undefined {
   return registry().dataSources.get(id);
 }
@@ -255,6 +290,8 @@ export function getTheme(id: string): ThemeDefinition | undefined {
  * leaf every Uplink depends on, so it can never depend on one back. An Uplink
  * that keeps its own registry publishes its own clear, and a test wanting both
  * calls both.
+ *
+ * @category Registering
  */
 export function clearRegistry(): void {
   const state = registry();

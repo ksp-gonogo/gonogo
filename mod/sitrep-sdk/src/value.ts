@@ -29,5 +29,7 @@ export type Value<Unit extends SitrepUnit = SitrepUnit> = ModelValue<Unit>;
  * the field's unit onto the `x` / `y` / `z` leaves, because those are what
  * actually cross the wire. The difference is that a widget can now reach a
  * leaf and get something `<Unit>` will render.
+ *
+ * @category Units and values
  */
 export type Vec3Of<Unit extends SitrepUnit = SitrepUnit> = Vector3<Unit>;

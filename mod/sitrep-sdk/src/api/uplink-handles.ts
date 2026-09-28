@@ -28,6 +28,8 @@ function handles(): Map<string, unknown> {
 /**
  * Register a singleton handle for an Uplink, keyed by its id. Last write wins: a
  * second call for the same id replaces the first.
+ *
+ * @category Registering
  */
 export function registerUplinkHandle<Handle>(
   uplinkId: string,
@@ -36,19 +38,31 @@ export function registerUplinkHandle<Handle>(
   handles().set(uplinkId, handle);
 }
 
-/** Look up a previously registered handle by Uplink id. `undefined` if none. */
+/**
+ * Look up a previously registered handle by Uplink id. `undefined` if none.
+ *
+ * @category Registering
+ */
 export function getUplinkHandle<Handle = unknown>(
   uplinkId: string,
 ): Handle | undefined {
   return handles().get(uplinkId) as Handle | undefined;
 }
 
-/** Remove a previously registered handle. No-op if none was registered. */
+/**
+ * Remove a previously registered handle. No-op if none was registered.
+ *
+ * @category Registering
+ */
 export function unregisterUplinkHandle(uplinkId: string): void {
   handles().delete(uplinkId);
 }
 
-/** Remove every registered handle. For tests; a running app never calls it. */
+/**
+ * Remove every registered handle. For tests; a running app never calls it.
+ *
+ * @category Registering
+ */
 export function clearUplinkHandles(): void {
   handles().clear();
 }

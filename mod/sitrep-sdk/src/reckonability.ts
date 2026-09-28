@@ -30,6 +30,8 @@ export type { GeneratedReckonableInput, GeneratedReckonableValue };
  *
  * The set is small and it is meant to be: a mark is a promise that the wire
  * carries a model's inputs, so the majority of Topics are correctly absent.
+ *
+ * @category Reckoners
  */
 export type ReckonableTopic = keyof typeof GENERATED_RECKONABLE_FIELDS;
 
@@ -40,13 +42,19 @@ export type ReckonableTopic = keyof typeof GENERATED_RECKONABLE_FIELDS;
  * `never` rather than an error because this is applied inside a conditional
  * type: `useTelemetry` asks it of every `TopicId` and only reaches
  * `ReckonableReading` for the ones that answer.
+ *
+ * @category Reckoners
  */
 export type ReckonableFields<Topic extends TopicId> =
   Topic extends ReckonableTopic
     ? (typeof GENERATED_RECKONABLE_FIELDS)[Topic][number]
     : never;
 
-/** Whether the contract declares any value on `topic` reckonable. */
+/**
+ * Whether the contract declares any value on `topic` reckonable.
+ *
+ * @category Reckoners
+ */
 export function isReckonableTopic(topic: string): topic is ReckonableTopic {
   return topic in GENERATED_RECKONABLE_FIELDS;
 }
@@ -70,6 +78,8 @@ const BY_TOPIC: ReadonlyMap<string, readonly GeneratedReckonableValue[]> =
  * Empty rather than `undefined` so a caller iterating never has to branch first:
  * "no declared model" and "a declared model for none of these fields" are the
  * same statement to anyone reading the rows.
+ *
+ * @category Reckoners
  */
 export function reckonableValuesOf(
   topic: string,
@@ -94,6 +104,8 @@ export function reckonableValuesOf(
  * and would silently have become the conic's half of `altitudeAsl`. A caller
  * that needs to know which inputs buy which model reaches
  * {@link reckonableValuesOf} and reads the rows.
+ *
+ * @category Reckoners
  */
 export function reckonableInputsOf(
   topic: string,
@@ -119,6 +131,8 @@ export function reckonableInputsOf(
  * resolves a dep without parsing, but a decline names the input to an OPERATOR,
  * and the string they see should be the string the contract carries:
  * `relativeVelocity`, `@system.bodies`, `@vessel.orbit#mu`.
+ *
+ * @category Reckoners
  */
 export function reckonableInputSpelling(
   input: GeneratedReckonableInput,

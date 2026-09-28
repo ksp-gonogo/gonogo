@@ -123,7 +123,11 @@ interface Options {
   enrichKey?: KeyEnricher;
 }
 
-/** Supplies the human-facing half of a `DataKeyMeta` for one key. */
+/**
+ * Supplies the human-facing half of a `DataKeyMeta` for one key.
+ *
+ * @category Flight recording
+ */
 export type KeyEnricher = (key: string) => Omit<DataKeyMeta, "key">;
 
 const KEY_AS_LABEL: KeyEnricher = (key) => ({ label: key, group: "Other" });
@@ -147,6 +151,8 @@ interface SampleRow {
  * authoritative `vesselUid` from the vessel takes precedence once
  * available. The detector is seeded from persisted flights on `connect()`
  * so we resume rather than duplicate after a reload.
+ *
+ * @category Flight recording
  */
 export class BufferedDataSource extends DataSourceWrapper {
   private readonly store: FlightStore;

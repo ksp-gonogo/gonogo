@@ -38,16 +38,26 @@
  * `@ksp-gonogo/ui-kit` re-exports all three names, so no call site changed in
  * the move and an Uplink author still reaches them from the package they
  * already import.
+ *
+ * @category Units and values
  */
 export type Quantityish = { magnitude: number } | number | null | undefined;
 
-/** The magnitude, or `null` for anything absent or non-finite. */
+/**
+ * The magnitude, or `null` for anything absent or non-finite.
+ *
+ * @category Units and values
+ */
 export function magnitudeOf(v: Quantityish): number | null {
   const n = typeof v === "object" && v !== null ? v.magnitude : v;
   return n === null || n === undefined || !Number.isFinite(n) ? null : n;
 }
 
-/** The magnitude, or `fallback` when there is nothing usable to take. */
+/**
+ * The magnitude, or `fallback` when there is nothing usable to take.
+ *
+ * @category Units and values
+ */
 export function magnitudeOr(v: Quantityish, fallback: number): number {
   return magnitudeOf(v) ?? fallback;
 }
@@ -60,6 +70,8 @@ export function magnitudeOr(v: Quantityish, fallback: number): number {
  * naming the field back as a `Quantityish` tells `magnitudeOf` a shape the
  * value never had. This checks instead, so a renamed or retyped field reads as
  * absent rather than as a number nobody sent.
+ *
+ * @category Units and values
  */
 export function asQuantityish(value: unknown): Quantityish {
   if (value === null || value === undefined || typeof value === "number") {

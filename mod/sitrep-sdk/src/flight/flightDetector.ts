@@ -6,6 +6,8 @@ import type { FlightRecord } from "./types";
  * Inferred heuristically from `v.name` + `v.missionTime`. When an
  * authoritative `vesselUid` is available it takes precedence and the
  * heuristic becomes a fallback.
+ *
+ * @category Flight recording
  */
 export interface DetectorInput {
   vesselName: string;
@@ -16,6 +18,12 @@ export interface DetectorInput {
   vesselUid?: string | null;
 }
 
+/**
+ * What `FlightDetector` decides a sample belongs to: the current flight, a new
+ * one, or an earlier flight resumed.
+ *
+ * @category Flight recording
+ */
 export type DetectorDecision =
   | { kind: "append"; flight: FlightRecord }
   | { kind: "new"; flight: FlightRecord }
@@ -47,6 +55,8 @@ const REVERT_THRESHOLD_SEC = 5;
  * The detector mutates its own internal map but never touches the returned
  * FlightRecord references beyond producing them: callers can safely store
  * them without defensive copies.
+ *
+ * @category Flight recording
  */
 export class FlightDetector {
   private current: FlightRecord | null = null;

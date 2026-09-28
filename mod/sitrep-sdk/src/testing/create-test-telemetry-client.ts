@@ -17,6 +17,8 @@ import { TelemetryClient } from "../spine";
  * it would freeze all of that as public API where every future change becomes
  * someone else's breaking change. A factory freezes one call shape instead,
  * which is the whole of what a test depends on.
+ *
+ * @category Stream fixture
  */
 export function createTestTelemetryClient(
   transport: Transport,

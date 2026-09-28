@@ -34,6 +34,8 @@ import {
  * Declared structurally rather than as `VesselOrbitPayload`, so the propagator
  * depends on no record built on top of it. Every field is one
  * `VesselOrbitPayload` already carries, so a payload passes without a cast.
+ *
+ * @category Reckoners
  */
 export interface ConicOrbitInput {
   referenceBodyIndex: number;
@@ -49,7 +51,11 @@ export interface ConicOrbitInput {
   horizon?: PropagationHorizonLike;
 }
 
-/** The slice of `system.bodies` a conic needs: enough to find the air. */
+/**
+ * The slice of `system.bodies` a conic needs: enough to find the air.
+ *
+ * @category Reckoners
+ */
 export interface ConicBodiesInput {
   bodies: readonly {
     index: number;
@@ -61,6 +67,8 @@ export interface ConicBodiesInput {
 /**
  * Wire elements as `buildElements` reads them: every angle-bearing field as a
  * bare magnitude carrier, whatever wrapper the wire currently puts round it.
+ *
+ * @category Reckoners
  */
 export interface WireOrbitElements {
   sma: Quantityish;
@@ -90,6 +98,8 @@ function degToRad(deg: number): number {
  * physically-arbitrary-but-harmless reference. Shared by the self-vessel
  * OnRails branch, the target-orbit derivation and every registered reckoner, so
  * all of them propagate through the identical conversion.
+ *
+ * @category Reckoners
  */
 export function buildElements(o: WireOrbitElements): OrbitElements {
   return {
@@ -111,12 +121,18 @@ export function buildElements(o: WireOrbitElements): OrbitElements {
  * fast escape/flyby while time-warping) is real, though, so every caller here
  * checks explicitly rather than letting the throw escape into derived-channel
  * resolution or a reading build.
+ *
+ * @category Reckoners
  */
 export function isHyperbolic(ecc: number): boolean {
   return ecc >= 1;
 }
 
-/** Non-throwing `kepler.solve`: `null` on a hyperbolic orbit instead of a RangeError. */
+/**
+ * Non-throwing `kepler.solve`: `null` on a hyperbolic orbit instead of a RangeError.
+ *
+ * @category Reckoners
+ */
 export function trySolve(
   elements: OrbitElements,
   ut: number,
@@ -124,7 +140,11 @@ export function trySolve(
   return isHyperbolic(elements.ecc) ? null : solve(elements, ut);
 }
 
-/** Non-throwing `kepler.solveAnomalies`: `null` on a hyperbolic orbit instead of a RangeError. */
+/**
+ * Non-throwing `kepler.solveAnomalies`: `null` on a hyperbolic orbit instead of a RangeError.
+ *
+ * @category Reckoners
+ */
 export function trySolveAnomalies(
   elements: OrbitElements,
   ut: number,
@@ -137,6 +157,8 @@ export function trySolveAnomalies(
  * elements at `ut`, through the same `buildElements` + `trySolve` path the
  * active vessel uses. Returns null for a hyperbolic / unsolvable orbit rather
  * than throwing. No new math, just the shared propagator.
+ *
+ * @category Reckoners
  */
 export function propagateVesselOrbit(
   orbit: WireOrbitElements,
@@ -170,6 +192,8 @@ export function propagateVesselOrbit(
  * than two spellings of it. It reaches this only after {@link atmosphereDepthOf}
  * has answered, which is what keeps the surface fallback below from reading as
  * an atmosphere on an airless body.
+ *
+ * @category Reckoners
  */
 export function entryInterfaceRadius(
   bodies: ConicBodiesInput | undefined,
@@ -212,6 +236,8 @@ export function entryInterfaceRadius(
  * two callers then treat oppositely and both correctly: the conic has no
  * interface to have crossed and carries on, and the rate integration has no
  * evidence it is in air and stands down.
+ *
+ * @category Reckoners
  */
 export function atmosphereDepthOf(
   bodies: ConicBodiesInput | undefined,
@@ -323,6 +349,8 @@ function trajectoryAuthority(
  * contact is exactly one whose burns we cannot see, so nothing inside this
  * function can bound it, and the `kepler-propagation` basis carries that caveat
  * in its own words. That is what a basis is for.
+ *
+ * @category Reckoners
  */
 export function keplerAdmissibility(
   orbitPoint: TimelinePoint<ConicOrbitInput> | undefined,
@@ -398,6 +426,8 @@ export function magnitude(v: Vector3): number {
  * there is deliberately nothing from the conic in it: a relative pair has no
  * elements, no epoch and no mu, so pretending the two models have machinery in
  * common would be a shared abstraction over two things that are not alike.
+ *
+ * @category Reckoners
  */
 export function advanceByVelocity(
   position: readonly [number, number, number],

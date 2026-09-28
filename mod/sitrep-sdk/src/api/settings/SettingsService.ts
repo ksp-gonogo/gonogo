@@ -33,6 +33,13 @@ const SETTINGS_WRITE_BUDGET = new PerfBudget({
 
 type Listener<SettingValue = unknown> = (value: SettingValue) => void;
 
+/**
+ * Stores client settings in `localStorage` and notifies listeners when one
+ * changes. Writes are batched and flushed shortly after a change, and when the
+ * page unloads.
+ *
+ * @category Settings
+ */
 export class SettingsService {
   private values = new Map<string, unknown>();
   private listeners = new Map<string, Set<Listener>>();

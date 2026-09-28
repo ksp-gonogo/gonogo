@@ -8,6 +8,12 @@ import type { SitrepUnit } from "../units";
 // classify.
 // ---------------------------------------------------------------------------
 
+/**
+ * A display unit for a recorded key, used to group chart axes and format values.
+ * `raw` leaves the value unformatted.
+ *
+ * @category Flight recording
+ */
 export type UnitHint =
   | "m"
   | "km"
@@ -37,6 +43,8 @@ export type UnitHint =
 /**
  * DataKey enriched with human-facing metadata. A key picker consumes these
  * and groups alphabetically within `group`.
+ *
+ * @category Flight recording
  */
 export interface DataKeyMeta extends DataKey {
   label: string;
@@ -50,6 +58,11 @@ export interface DataKeyMeta extends DataKey {
   group?: string;
 }
 
+/**
+ * One recorded value and the wall-clock time it was taken.
+ *
+ * @category Flight recording
+ */
 export interface Sample<Payload = unknown> {
   /** Unix ms. */
   t: number;
@@ -70,6 +83,8 @@ export interface Sample<Payload = unknown> {
  * A basis cannot be inferred from the numbers: both are large monotonic
  * counts, and the wrong reading of either is plausible. So the producer states
  * it, and a consumer that does arithmetic on `t` reads the declaration.
+ *
+ * @category Flight recording
  */
 export type SeriesTimeBasis = "ut-seconds" | "wall-ms";
 
@@ -100,6 +115,8 @@ export type SeriesTimeBasis = "ut-seconds" | "wall-ms";
  * Only server-stamped grades appear here. `held-stale` and `disconnected` are
  * inferred about the topic NOW, not recorded about a sample, so they have no
  * honest per-sample extent to name.
+ *
+ * @category Flight recording
  */
 export interface SeriesStatusSpan {
   /** First sample of the run. */
@@ -125,6 +142,8 @@ export interface SeriesStatusSpan {
  * span names where an OBSERVATION came from, and a reckoned run says there was
  * no observation. Only the second one comes out of a model, and only the second
  * one carries a basis.
+ *
+ * @category Flight recording
  */
 export interface SeriesReckonedSpan {
   /** First point of the run. */
@@ -168,6 +187,8 @@ export interface SeriesReckonedSpan {
  * at all is a `breaks` index, not one of these.
  *
  * Presentation-time, like a reckoned run: nothing stores one.
+ *
+ * @category Flight recording
  */
 export interface SeriesBridge {
   to: number;
@@ -180,6 +201,8 @@ export interface SeriesBridge {
  * Columnar series slice. `t` and `v` have identical length. Used as the
  * return shape for `queryRange` + `getLatest` because the graph widget
  * consumes parallel arrays and it's cheaper to stream over PeerJS later.
+ *
+ * @category Flight recording
  */
 export interface SeriesRange<Payload = unknown> {
   t: number[];
@@ -264,6 +287,8 @@ export interface SeriesRange<Payload = unknown> {
  *
  * `vesselUid` is reserved for an authoritative ship id sourced from the
  * vessel. Until then the detector uses `vesselName + missionTime` heuristics.
+ *
+ * @category Flight recording
  */
 export interface FlightRecord {
   id: string;
@@ -315,6 +340,8 @@ export interface FlightRecord {
  * a flight-record view (vesselName + headline scalars + crew); the
  * full breakdown lives on `recovery.lastSummary` and isn't duplicated
  * onto every flight record.
+ *
+ * @category Flight recording
  */
 export interface FlightRecoveryOutcome {
   kind: "recovered";
@@ -332,6 +359,8 @@ export interface FlightRecoveryOutcome {
 /**
  * Crash-side outcome: KSP fired `onCrash` / `onCrashSplashdown`
  * for the vessel. Records the headline cause and any kerbals killed.
+ *
+ * @category Flight recording
  */
 export interface FlightCrashOutcome {
   kind: "crashed";
@@ -343,12 +372,19 @@ export interface FlightCrashOutcome {
   kerbalsKilled: string[];
 }
 
+/**
+ * How a flight ended: recovered or crashed.
+ *
+ * @category Flight recording
+ */
 export type FlightOutcome = FlightRecoveryOutcome | FlightCrashOutcome;
 
 /**
  * One named slice of a flight, persisted on the FlightRecord. Mirrors the
  * shape of `FlightChapter` (used in fixtures): when the flight is exported,
  * its chapters round-trip into the fixture's chapters array.
+ *
+ * @category Flight recording
  */
 export interface FlightChapterRecord {
   id: string;
@@ -364,6 +400,8 @@ export interface FlightChapterRecord {
  * object store, separate from the (potentially large) `fixture` payload, so
  * populating the FlightsManager list never has to pull every recording's raw
  * wire frames into memory.
+ *
+ * @category Flight recording
  */
 export interface MissionMeta {
   id: string;

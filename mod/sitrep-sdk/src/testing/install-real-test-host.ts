@@ -52,6 +52,8 @@ import { recordAlarmRequest } from "./recorded-alarm-requests";
  * scope held by luck until the flight layer imported directly and the suite died
  * with "PerfBudget is not a constructor". An explicit parameter cannot fail that
  * way.
+ *
+ * @category Test hosts
  */
 export interface UiKitHostPieces {
   /**
@@ -99,6 +101,8 @@ export interface UiKitHostPieces {
  * suite needs the host gone between tests. Most do not, since the host is
  * stateless dispatch and the state lives in the registries `resetRegistries`
  * clears.
+ *
+ * @category Test hosts
  */
 export function installRealTestHost(uiKit: UiKitHostPieces): () => void {
   const host: { [Key in keyof GonogoHost]: GonogoHost[Key] } = {

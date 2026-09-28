@@ -20,6 +20,8 @@ import type { EventOccurrence } from "../event-timeline";
  * not what has happened. An occurrence stamped at its live capture UT reveals
  * only once the view catches up past it, so the signal delay is realised by
  * the read itself rather than by anything the source has to remember to do.</p>
+ *
+ * @category Delay and vantage
  */
 export interface RevealedEventSourceDefinition {
   /** Stable id, auto-namespaced to the Uplink when registered through its handle. */
@@ -58,17 +60,32 @@ function registry(): EventRevealRegistry {
   return slot[EVENT_REVEAL_REGISTRY_KEY];
 }
 
+/**
+ * Adds a source of events that are revealed after the signal delay, replacing
+ * any registered under the same id.
+ *
+ * @category Delay and vantage
+ */
 export function registerRevealedEventSource(
   def: RevealedEventSourceDefinition,
 ): void {
   registry().sources.set(def.id, def);
 }
 
+/**
+ * Every registered revealed-event source.
+ *
+ * @category Delay and vantage
+ */
 export function getRevealedEventSources(): RevealedEventSourceDefinition[] {
   return [...registry().sources.values()];
 }
 
-/** Tests only: resets the registry so one file's registrations cannot leak. */
+/**
+ * Tests only: resets the registry so one file's registrations cannot leak.
+ *
+ * @category Delay and vantage
+ */
 export function clearRevealedEventSources(): void {
   registry().sources.clear();
 }
@@ -79,6 +96,8 @@ export function clearRevealedEventSources(): void {
  * <p>Two Uplinks may both feed one Topic, so this concatenates rather than
  * picking a winner: an alarm fires on an occurrence, and dropping one because
  * something else also produces that Topic would silently lose an alarm.</p>
+ *
+ * @category Delay and vantage
  */
 export function readRevealedEvents(
   topic: string,

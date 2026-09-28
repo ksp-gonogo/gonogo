@@ -1,6 +1,10 @@
 import type { ClientMessage, ServerMessage } from "../envelope";
 
-/** Connection status of a Transport's underlying pipe. */
+/**
+ * Connection status of a Transport's underlying pipe.
+ *
+ * @category Stream messages
+ */
 export type TransportStatus =
   | "connected"
   | "disconnected"
@@ -13,6 +17,8 @@ export type TransportStatus =
  * The `reason` is the transport's own words, kept out of the wire's `error`
  * frame vocabulary deliberately: this never reached a server, so no server
  * code applies to it.
+ *
+ * @category Stream messages
  */
 export interface UndeliveredCommand {
   /** The dispatch's own `requestId`, as it was handed to `send`. */
@@ -28,6 +34,8 @@ export interface UndeliveredCommand {
  * Structurally the same as {@link UndeliveredCommand} and deliberately not the
  * same type, because the two make opposite claims about the same command.
  * Undelivered says it never left; this says nobody knows whether it did.
+ *
+ * @category Stream messages
  */
 export interface LostCommand {
   /** The dispatch's own `requestId`, as it was handed to `send`. */
@@ -43,6 +51,8 @@ export interface LostCommand {
  * routing the SDK's wire messages; all of that semantics lives above this
  * boundary. Real implementations (WebSocket, PeerJS) are added over time,
  * this interface is what they (and `StubTransport`) implement.
+ *
+ * @category Stream messages
  */
 export interface Transport {
   /** Current connection status. */

@@ -15,7 +15,10 @@
 
 /** The formula's raw inputs: a serializable snapshot of everything
  *  `utNowEstimate`/`confirmedEdgeUt` need, independent of which context
- *  (main thread `ViewClock`, or a worker mirroring it) evaluates them. */
+ *  (main thread `ViewClock`, or a worker mirroring it) evaluates them.
+ *
+ * @category Delay and vantage
+ */
 export interface ClockFormulaInputs {
   /** Wall-clock seconds (same basis as the `nowWall` passed to the
    *  functions below) at the last `observeSample` fit anchor.
@@ -37,7 +40,10 @@ export interface ClockFormulaInputs {
 /** `ClockFormulaInputs` plus the epoch generation: the shape posted over
  *  the wire (kerbcast worker's `ClockSnapshot` message) so a stale-epoch
  *  snapshot can be discarded the same way `ViewClock.observeSample`
- *  discards a stale-epoch straggler. */
+ *  discards a stale-epoch straggler.
+ *
+ * @category Delay and vantage
+ */
 export interface ClockFormulaSnapshot extends ClockFormulaInputs {
   epoch: number;
 }
@@ -46,6 +52,8 @@ export interface ClockFormulaSnapshot extends ClockFormulaInputs {
  * Estimated "vessel now": a piecewise-linear UT(wall) fit, coasting on the
  * last observed slope between observations. Mirrors
  * `ViewClock.utNowEstimate()` exactly: see that method's doc.
+ *
+ * @category Delay and vantage
  */
 export function computeUtNowEstimate(
   inputs: ClockFormulaInputs,
@@ -65,6 +73,8 @@ export function computeUtNowEstimate(
  * slackSeconds)`. Never ahead of the max sample UT actually observed.
  * Returns `-Infinity` before any sample has ever been observed. Mirrors
  * `ViewClock.confirmedEdgeUt()` exactly: see that method's doc.
+ *
+ * @category Delay and vantage
  */
 export function computeConfirmedEdgeUt(
   inputs: ClockFormulaInputs,

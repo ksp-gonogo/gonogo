@@ -30,12 +30,16 @@
  * The reserved wire key a bag serialises under, on every payload that carries one.
  * Mirrors `Sitrep.Contract.ProviderExtensions.WireField`; `extensions.test.ts`
  * asserts the two strings agree, the same C#-to-TS pinning every Topic id gets.
+ *
+ * @category Reading telemetry
  */
 export const PROVIDER_EXTENSIONS_FIELD = "extensions";
 
 /**
  * One provider's namespace: opaque at the core layer. Narrowed by the provider's
  * own typed accessor, never by a cast at a consuming call site.
+ *
+ * @category Reading telemetry
  */
 export type ProviderExtension = unknown;
 
@@ -48,5 +52,7 @@ export type ProviderExtension = unknown;
  *
  * This is the type `[ProviderExtensionBag]` properties are generated as
  * (`RtConfig.ApplyProviderExtensionTypes`).
+ *
+ * @category Reading telemetry
  */
 export type ProviderExtensions = Readonly<Record<string, ProviderExtension>>;

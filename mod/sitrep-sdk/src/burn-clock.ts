@@ -15,6 +15,8 @@ import type { Value } from "./value";
  * minute and second count from zero, because they are offsets within a day
  * rather than names of days. Mixing those up puts everything a day out and does
  * it invisibly.</p>
+ *
+ * @category Orbits and trajectories
  */
 export interface BurnInstantParts {
   year: number;
@@ -37,6 +39,8 @@ export interface BurnInstantParts {
  * <p>Whole seconds. A burn scheduled to the microsecond is one nobody can
  * enter, and the fraction would reappear as a rounding difference the next time
  * the operator touched any other field.</p>
+ *
+ * @category Orbits and trajectories
  */
 export function decomposeUt(at: Value<"ut">): BurnInstantParts {
   const totalSeconds = Math.max(0, Math.floor(at.in("s").magnitude));
@@ -73,6 +77,8 @@ export function decomposeUt(at: Value<"ut">): BurnInstantParts {
  * <p>Out-of-range parts are NOT clamped, they carry. Entering minute 90 means
  * an hour and a half, which is what somebody typing it meant, and refusing it
  * would make the obvious way to say "half an hour later" an error.</p>
+ *
+ * @category Orbits and trajectories
  */
 export function composeUt(parts: BurnInstantParts): Value<"ut"> {
   const days = (parts.year - 1) * kspYearDays() + (parts.day - 1);
@@ -107,6 +113,8 @@ export function composeUt(parts: BurnInstantParts): Value<"ut"> {
  * anything expecting an instant. Negative once the burn has started, which is a
  * real state worth showing: a burn in progress is exactly when an operator most
  * wants to know how far into it they are.</p>
+ *
+ * @category Orbits and trajectories
  */
 export function timeToIgnition(
   burn: { ut: Value<"ut">; ignitionUt?: Value<"ut"> | null },
@@ -125,6 +133,8 @@ export function timeToIgnition(
  * <p>Between ignition and cutoff. A burn with no modelled duration is never
  * "in progress": it is instantaneous, so there is no interval to be inside, and
  * reporting one would invent a state the plan does not have.</p>
+ *
+ * @category Orbits and trajectories
  */
 export function isBurning(
   burn: { ignitionUt?: Value<"ut"> | null; cutoffUt?: Value<"ut"> | null },

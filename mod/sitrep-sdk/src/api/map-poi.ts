@@ -48,6 +48,12 @@ function notifyChange(): void {
   for (const cb of registry().listeners) cb();
 }
 
+/**
+ * Calls `cb` whenever a map point-of-interest provider is registered or removed,
+ * and returns the unsubscribe function.
+ *
+ * @category Maps and coverage
+ */
 export function onMapPoiProvidersChange(cb: () => void): () => void {
   const { listeners } = registry();
   listeners.add(cb);
@@ -56,20 +62,34 @@ export function onMapPoiProvidersChange(cb: () => void): () => void {
   };
 }
 
+/**
+ * Adds a provider of points of interest for the map, replacing any registered
+ * under the same id.
+ *
+ * @category Maps and coverage
+ */
 export function registerMapPoiProvider(def: MapPoiProviderDefinition): void {
   const state = registry();
   state.providers.set(def.id, { def, order: state.counter++ });
   notifyChange();
 }
 
-/** Every registered provider, in registration order. */
+/**
+ * Every registered provider, in registration order.
+ *
+ * @category Maps and coverage
+ */
 export function getMapPoiProviders(): MapPoiProviderDefinition[] {
   return Array.from(registry().providers.values())
     .sort((a, b) => a.order - b.order)
     .map((entry) => entry.def);
 }
 
-/** Empty the registry. For tests; a running app never calls it. */
+/**
+ * Empty the registry. For tests; a running app never calls it.
+ *
+ * @category Maps and coverage
+ */
 export function clearMapPoiProviders(): void {
   const state = registry();
   state.providers.clear();

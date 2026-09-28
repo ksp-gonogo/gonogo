@@ -38,9 +38,17 @@ const STORE = "masks";
 
 /** Incremented if the per-record on-disk shape changes. Independent from
  *  DB_VERSION: the IDB version controls store-level migrations; the
- *  record version controls per-row migrations. */
+ *  record version controls per-row migrations.
+ *
+ * @category Maps and coverage
+ */
 export const MASK_SCHEMA_VERSION = 3;
 
+/**
+ * A coverage mask as `CoverageMaskStore` saves it.
+ *
+ * @category Maps and coverage
+ */
 export interface StoredMask {
   key: string;
   version: number;
@@ -84,6 +92,8 @@ function makeKey(profileId: string, bodyId: string, layerId: string): string {
  * called `save(..., origin: this.tag)`, the listener fires with that
  * tag and the cache short-circuits. Without this, the cache would
  * race-reload its own data over a fresh in-memory mutation.
+ *
+ * @category Maps and coverage
  */
 export type CoverageMaskChangeListener = (
   profileId: string,
@@ -92,6 +102,12 @@ export type CoverageMaskChangeListener = (
   origin: string | undefined,
 ) => void;
 
+/**
+ * Saves coverage masks in the browser's IndexedDB, per profile, body and layer,
+ * and tells listeners when one changes.
+ *
+ * @category Maps and coverage
+ */
 export class CoverageMaskStore {
   private dbPromise: Promise<IDBDatabase> | null = null;
   private readonly dbName: string;

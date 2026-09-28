@@ -58,6 +58,8 @@ const NEWTON_TOLERANCE = 1e-12;
  * today. It becomes load-bearing when a provider that INTEGRATES, i.e. an
  * n-body backend, is elected and starts returning `Until`. Do not delete it as
  * unreachable: it is the system working with a provider that has no limit.
+ *
+ * @category Orbits and trajectories
  */
 export interface PropagationHorizonLike {
   kind: PropagationHorizonKindLike;
@@ -148,6 +150,8 @@ export function horizonUtOf(
  *
  * An `Until` horizon with no usable UT also refuses, for the same reason: the
  * arm claims a bound and then fails to name it.
+ *
+ * @category Orbits and trajectories
  */
 export function canPropagate(
   horizon: PropagationHorizonLike | undefined,
@@ -196,6 +200,8 @@ export function canPropagate(
  * body's standard gravitational parameter (GM), in the same length/time
  * units as the resulting state vector (KSP convention: meters and seconds).
  * Mirrors `OrbitElements.cs`.
+ *
+ * @category Orbits and trajectories
  */
 export interface OrbitElements {
   /** Semi-major axis. */
@@ -216,10 +222,18 @@ export interface OrbitElements {
   mu: number;
 }
 
-/** A plain (x, y, z) tuple. Mirrors `Vector3d.cs`. */
+/**
+ * A plain (x, y, z) tuple. Mirrors `Vector3d.cs`.
+ *
+ * @category Frames of reference
+ */
 export type Vector3 = readonly [x: number, y: number, z: number];
 
-/** Position + velocity, both parent-body-relative, at a single instant. Mirrors `StateVector` in `Vector3d.cs`. */
+/**
+ * Position + velocity, both parent-body-relative, at a single instant. Mirrors `StateVector` in `Vector3d.cs`.
+ *
+ * @category Orbits and trajectories
+ */
 export interface StateVector {
   position: Vector3;
   velocity: Vector3;
@@ -233,6 +247,8 @@ export interface StateVector {
  * alongside them so a caller that needs a period/time-to-apsis (derived from
  * mean motion, not from any one anomaly) doesn't have to recompute
  * `sqrt(mu/sma^3)` a second time.
+ *
+ * @category Orbits and trajectories
  */
 export interface Anomalies {
   meanAnomaly: number;
@@ -249,6 +265,8 @@ export interface Anomalies {
  * (`orbital-solve.ts`'s true anomaly, period and apsis countdowns). Reuses the SAME Newton-Raphson solve `solve()` calls below --
  * never reimplement Kepler's equation a second time. Same ellipse-only guard
  * as `solve()`.
+ *
+ * @category Orbits and trajectories
  */
 export function solveAnomalies(orbit: OrbitElements, ut: number): Anomalies {
   if (orbit.ecc < 0.0 || orbit.ecc >= 1.0) {
@@ -280,6 +298,8 @@ export function solveAnomalies(orbit: OrbitElements, ut: number): Anomalies {
  * wall-clock/random dependence. Throws for parabolic/hyperbolic
  * eccentricities (ecc < 0 or ecc >= 1), same guard as the C# side (via
  * `solveAnomalies`).
+ *
+ * @category Orbits and trajectories
  */
 export function solve(orbit: OrbitElements, ut: number): StateVector {
   const { eccentricAnomaly, trueAnomaly } = solveAnomalies(orbit, ut);

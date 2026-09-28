@@ -59,6 +59,8 @@ import { CORE_UPLINK_CLIENT } from "./uplink-clients";
  * is where that conversion has always happened. **`NaN` means the wire carried
  * no figure**, which is why every reader filters on `Number.isFinite` rather
  * than truthiness: a stage with no engine has no ΔV, and a spent stage has 0.
+ *
+ * @category Orbits and trajectories
  */
 export interface DeltaVStage {
   stage: number;
@@ -85,6 +87,8 @@ export interface DeltaVStage {
  * `ReadingDep`'s doc gives and `SHIP_SYSTEMS.levels` already follows: a
  * `Reading` is one Topic's currency, and a budget joined across `dv.summary`,
  * `dv.stages` and `vessel.structure` is not one Topic's anything.
+ *
+ * @category Orbits and trajectories
  */
 export interface BudgetProvenance {
   /** The reading arm `dv.summary` arrived on. */
@@ -101,6 +105,12 @@ export interface BudgetProvenance {
   confirmedAbsent: boolean;
 }
 
+/**
+ * The active vessel's delta-v, in total and per stage, as `deriveDeltaVBudget`
+ * builds it from the game's own figures.
+ *
+ * @category Orbits and trajectories
+ */
 export interface DeltaVBudget {
   /**
    * Vessel-total ΔV per situation, straight off `dv.summary`: the game's own
@@ -163,6 +173,8 @@ function field(entry: StageWireEntry, key: string): number {
 /**
  * One wire row to a {@link DeltaVStage}. Exported so a widget test can build a
  * row without a live evaluator.
+ *
+ * @category Orbits and trajectories
  */
 export function normaliseStage(raw: unknown): DeltaVStage | null {
   if (!raw || typeof raw !== "object") return null;
@@ -224,6 +236,8 @@ const NO_BUDGET: DeltaVBudget = {
  * The whole derivation, pure. Exported so a test can exercise it directly
  * without a live evaluator, the way every processor in the tree exposes its
  * derivation beside its handle.
+ *
+ * @category Orbits and trajectories
  */
 export function deriveDeltaVBudget(
   summaryReading: TopicCurrency<SummaryWire>,
@@ -288,6 +302,8 @@ export function deriveDeltaVBudget(
  * `core:delta-v-budget`. The owner-stamped Processor handle. Import it to
  * consume the budget, never re-declare it: a second registration under the same
  * id with a different compute throws (processors.ts).
+ *
+ * @category Orbits and trajectories
  */
 export const DELTA_V_BUDGET = CORE_UPLINK_CLIENT.registerProcessor({
   id: "delta-v-budget",

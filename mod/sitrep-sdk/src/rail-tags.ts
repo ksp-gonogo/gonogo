@@ -46,13 +46,19 @@
 
 import { commandRail } from "./commands";
 
-/** Who is talking to whom. Drives the entry's flow direction and its tone. */
+/**
+ * Who is talking to whom. Drives the entry's flow direction and its tone.
+ *
+ * @category Commands
+ */
 export type RailDirection = "command" | "telemetry";
 
 /**
  * Whether the entry is a point in time or a span of it. Drives the MARK: a
  * discrete entry is a dot travelling the rail, a continuous one is a ribbon
  * lying along it.
+ *
+ * @category Commands
  */
 export type RailContinuity = "discrete" | "continuous";
 
@@ -60,9 +66,17 @@ export type RailContinuity = "discrete" | "continuous";
  * Whether anything answers. Drives whether a RETURN LEG is drawn at all: a
  * fire-and-forget entry reaches the far end and simply ends, and drawing it a
  * return leg would be the lie this vocabulary exists to remove.
+ *
+ * @category Commands
  */
 export type RailDelivery = "acked" | "fire-and-forget";
 
+/**
+ * How a command or Topic travels: which way, whether it flows continuously or as
+ * single messages, and whether anything replies.
+ *
+ * @category Commands
+ */
 export interface RailTags {
   direction: RailDirection;
   continuity: RailContinuity;
@@ -74,6 +88,8 @@ export interface RailTags {
  * command map emits it. Declared structurally here rather than imported from
  * that map so an Uplink can hand over a row out of its OWN generated one, which
  * is a different declaration of the same shape.
+ *
+ * @category Commands
  */
 export interface CommandRail {
   readonly replies: boolean;
@@ -143,6 +159,8 @@ function railTags(
  * So this is what EVERY declared command reads as too, unless something other
  * than the command says otherwise. It stays its own name because the two
  * statements are different: this one is about an id nothing has declared.
+ *
+ * @category Commands
  */
 export const UNDECLARED_COMMAND_RAIL_TAGS: RailTags = railTags(
   "command",
@@ -158,6 +176,8 @@ export const UNDECLARED_COMMAND_RAIL_TAGS: RailTags = railTags(
  * answers something, so `replies: false` is unreachable through the lookup, and
  * a derivation whose other branch nothing can reach is a derivation nobody has
  * checked.
+ *
+ * @category Commands
  */
 export function railTagsFromCommandRail(rail: CommandRail): RailTags {
   return railTags(
@@ -171,6 +191,8 @@ export function railTagsFromCommandRail(rail: CommandRail): RailTags {
  * The three axes for a command, from what its owning assembly declared. Falls
  * back to {@link UNDECLARED_COMMAND_RAIL_TAGS} for a command no generated map
  * carries.
+ *
+ * @category Commands
  */
 export function railTagsForCommand(command: string): RailTags {
   const rail = commandRail(command);
@@ -197,6 +219,8 @@ export function railTagsForCommand(command: string): RailTags {
  *
  * DELIVERY still comes off the command, because whether an ack comes back is
  * the command's business either way.
+ *
+ * @category Commands
  */
 export function railTagsForControlAxis(writeCommand: string): RailTags {
   const command = railTagsForCommand(writeCommand);
@@ -214,6 +238,8 @@ export function railTagsForControlAxis(writeCommand: string): RailTags {
  * to state, and it is the same argument the command side makes: an open
  * microphone is a span, a science result is an event, and the difference is a
  * property of what is producing the data rather than of the rail.
+ *
+ * @category Commands
  */
 export function railTagsForTelemetry(continuity: RailContinuity): RailTags {
   return railTags("telemetry", continuity, "fire-and-forget");

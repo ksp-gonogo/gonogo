@@ -10,6 +10,8 @@ import type { UplinkClientHandle } from "../api/types";
  * arrives through `UiKitHostPieces` rather than being implemented here. What an
  * Uplink's own test needs is not a real alarm, it is the ability to assert that
  * pressing the button asked for the right one, so that is what this gives.
+ *
+ * @category Test doubles
  */
 export interface RecordedAlarmRequest extends UplinkAlarmRequest {
   /** The id off the handle the widget passed to `useAlarmRequest`. */
@@ -18,12 +20,20 @@ export interface RecordedAlarmRequest extends UplinkAlarmRequest {
 
 const recorded: RecordedAlarmRequest[] = [];
 
-/** Every alarm requested since the last clear, in the order they were asked for. */
+/**
+ * Every alarm requested since the last clear, in the order they were asked for.
+ *
+ * @category Test doubles
+ */
 export function getRequestedAlarms(): readonly RecordedAlarmRequest[] {
   return [...recorded];
 }
 
-/** Forget every recorded request. Call it between tests. */
+/**
+ * Forget every recorded request. Call it between tests.
+ *
+ * @category Test doubles
+ */
 export function clearRequestedAlarms(): void {
   recorded.length = 0;
 }

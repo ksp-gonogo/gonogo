@@ -8,7 +8,10 @@ const CoverageMaskStoreContext = createContext<CoverageMaskStore | null>(null);
 
 /** Shared bucket id used everywhere coverage masks are stored or fanned out over
  *  peers. There is no per-save-profile scoping; the storage layer keeps a slot
- *  for one only because the IndexedDB key shape encodes it. */
+ *  for one only because the IndexedDB key shape encodes it.
+ *
+ * @category Maps and coverage
+ */
 export const DEFAULT_PROFILE_ID = "default";
 
 /**
@@ -20,6 +23,8 @@ export const DEFAULT_PROFILE_ID = "default";
  * "default" profile id: the storage layer was originally designed to
  * support multiple save profiles, but that concept has been retired and
  * there's only ever one bucket now.
+ *
+ * @category Maps and coverage
  */
 export function CoverageMaskCacheProvider({
   store,
@@ -60,6 +65,8 @@ export function CoverageMaskCacheProvider({
  * Returns the underlying CoverageMaskStore, or null if no provider is mounted.
  * Useful for bulk operations that cross profile boundaries (e.g. deleting a
  * profile's coverage data).
+ *
+ * @category Maps and coverage
  */
 export function useCoverageMaskStore(): CoverageMaskStore | null {
   return useContext(CoverageMaskStoreContext);
@@ -69,6 +76,8 @@ export function useCoverageMaskStore(): CoverageMaskStore | null {
  * Standalone store provider: useful when a modal portal renders outside
  * the `CoverageMaskCacheProvider` tree but still needs access to the store for
  * bulk operations (e.g. clearing a profile's coverage on delete).
+ *
+ * @category Maps and coverage
  */
 export function CoverageMaskStoreProvider({
   store,
@@ -88,6 +97,8 @@ export function CoverageMaskStoreProvider({
  * Returns the current coverage mask cache, or null if no provider is mounted
  * above. Coverage is an optional dashboard feature, callers should handle null
  * by skipping the coverage pipeline rather than erroring.
+ *
+ * @category Maps and coverage
  */
 export function useCoverageMaskCache(): CoverageMaskCache | null {
   return useContext(CoverageMaskCacheContext);
@@ -101,6 +112,8 @@ export function useCoverageMaskCache(): CoverageMaskCache | null {
  *
  * When there is no provider, no body id, or no scan type, `mask` is
  * undefined.
+ *
+ * @category Maps and coverage
  */
 export function useBodyCoverageMask(
   bodyId: string | undefined,

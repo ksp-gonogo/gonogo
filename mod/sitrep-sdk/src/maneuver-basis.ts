@@ -27,6 +27,8 @@ import { ManeuverFrame } from "./__generated__/contract";
  * may be in another one, which is the claim this whole table exists to stop
  * anyone making by accident. A recording predating the field, and a provider
  * that never set it, both get the neutral slot names instead.</p>
+ *
+ * @category Orbits and trajectories
  */
 export type ManeuverBasisLabels = readonly [string, string, string];
 
@@ -62,6 +64,12 @@ const UNSTATED: ManeuverBasisLabels = [
   "Component 3",
 ];
 
+/**
+ * The names of a manoeuvre's three delta-v components in `frame`. A frame the
+ * vessel did not state gets numbered labels rather than a guess.
+ *
+ * @category Orbits and trajectories
+ */
 export function maneuverBasisLabels(
   frame: ManeuverFrame | null | undefined,
 ): ManeuverBasisLabels {

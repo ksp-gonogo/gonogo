@@ -36,13 +36,23 @@
  * How alarming a layer is. Deliberately the same five words `BadgeEntry` and
  * `MeterEntry` already carry, so an Uplink learns one severity vocabulary for
  * the whole framework rather than one per surface.
+ *
+ * @category Plots
  */
 export type PlotTone = "neutral" | "go" | "warn" | "nogo" | "info";
 
-/** How loudly a layer is drawn within its tone. */
+/**
+ * How loudly a layer is drawn within its tone.
+ *
+ * @category Plots
+ */
 export type PlotEmphasis = "faint" | "normal" | "bright";
 
-/** A point in the plot's own data space: `x` in the X axis's units, `y` in its axis's. */
+/**
+ * A point in the plot's own data space: `x` in the X axis's units, `y` in its axis's.
+ *
+ * @category Plots
+ */
 export interface PlotPoint {
   x: number;
   y: number;
@@ -66,7 +76,11 @@ interface PlotLayerBase {
   z?: number;
 }
 
-/** A curve or a trace: points joined in the order given. */
+/**
+ * A curve or a trace: points joined in the order given.
+ *
+ * @category Plots
+ */
 export interface PlotSeriesLayer extends PlotLayerBase {
   kind: "series";
   points: readonly PlotPoint[];
@@ -84,6 +98,8 @@ export interface PlotSeriesLayer extends PlotLayerBase {
  * The generalisation of the chart's existing threshold rule to both axes, and
  * the one layer kind that needs no geometry at all: "atmosphere ceiling",
  * "max-Q", "stall speed", "the antenna's range limit".
+ *
+ * @category Plots
  */
 export interface PlotRuleLayer extends PlotLayerBase {
   kind: "rule";
@@ -102,6 +118,8 @@ export interface PlotRuleLayer extends PlotLayerBase {
  * domain to name "everything right of this curve": the host closes the ring
  * along its own edges, in the winding the boundary's own direction implies, so
  * a contributor cannot draw the bow tie that closing it by hand produces.
+ *
+ * @category Plots
  */
 export interface PlotRegionLayer extends PlotLayerBase {
   kind: "region";
@@ -119,6 +137,8 @@ export interface PlotRegionLayer extends PlotLayerBase {
  * A wash whose intensity varies along one axis: an atmosphere's density, a
  * belt's flux, a night side. Context, not a second data channel, so it carries
  * an intensity rather than a value and never gets an axis label.
+ *
+ * @category Plots
  */
 export interface PlotFieldLayer extends PlotLayerBase {
   kind: "field";
@@ -137,7 +157,11 @@ export interface PlotFieldLayer extends PlotLayerBase {
   blur?: number;
 }
 
-/** A point mark at one (x, y): where a thing IS. */
+/**
+ * A point mark at one (x, y): where a thing IS.
+ *
+ * @category Plots
+ */
 export interface PlotMarkerLayer extends PlotLayerBase {
   kind: "marker";
   at: PlotPoint;
@@ -158,6 +182,8 @@ export interface PlotMarkerLayer extends PlotLayerBase {
 /**
  * A short bar through a point, carrying a label at that point: the reading IS
  * the position, so the number belongs at the position rather than in a corner.
+ *
+ * @category Plots
  */
 export interface PlotAnnotationLayer extends PlotLayerBase {
   kind: "annotation";
@@ -174,6 +200,8 @@ export interface PlotAnnotationLayer extends PlotLayerBase {
  * reliably clear of its curves, which is why the readouts an instrument wants
  * always end up there. Naming the anchor rather than a position is what lets
  * the host keep them from colliding as the plot resizes.
+ *
+ * @category Plots
  */
 export interface PlotCaptionLayer extends PlotLayerBase {
   kind: "caption";
@@ -210,6 +238,8 @@ export interface PlotCaptionLayer extends PlotLayerBase {
  * A grid whose values are all equal is flat, and draws flat. A grid with a
  * non-finite sample in it is not a field and must not be contributed: normalise
  * over a hole and every other cell moves.
+ *
+ * @category Plots
  */
 export interface PlotReliefLayer extends PlotLayerBase {
   kind: "relief";
@@ -223,6 +253,12 @@ export interface PlotReliefLayer extends PlotLayerBase {
   bands?: number;
 }
 
+/**
+ * One layer of a plot: a data series, a guide line, a shaded region, a field,
+ * markers, labels, a caption or relief.
+ *
+ * @category Plots
+ */
 export type PlotLayer =
   | PlotSeriesLayer
   | PlotRuleLayer

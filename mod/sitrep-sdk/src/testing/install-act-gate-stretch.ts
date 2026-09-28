@@ -1,4 +1,8 @@
-/** The variable the act-warning gate sets to the number of frames it wants held. */
+/**
+ * The variable the act-warning gate sets to the number of frames it wants held.
+ *
+ * @category Test hosts
+ */
 export const ACT_GATE_STRETCH_ENV = "GONOGO_ACT_GATE_STRETCH_FRAMES";
 
 type AfterEach = (fn: () => Promise<void>) => void;
@@ -32,6 +36,8 @@ const FRAME_MS = 1000 / 60;
  * plant is not counted.
  *
  * Call it last in a vitest setup file, and await it.
+ *
+ * @category Test hosts
  */
 export async function installActGateStretch(): Promise<void> {
   const raw =

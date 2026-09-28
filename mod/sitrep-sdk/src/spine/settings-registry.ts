@@ -45,6 +45,8 @@ import type { Screen } from "./screen";
 /**
  * What a row's value is. The same three words as `AugmentSettingField["type"]`,
  * and they must stay the same three: see the module header.
+ *
+ * @category Settings
  */
 export type SettingType = "boolean" | "text" | "number";
 
@@ -55,6 +57,8 @@ export type SettingType = "boolean" | "text" | "number";
  * codebase carries its own unit, and a tolerance in metres shown without "m"
  * beside it is the readout this rule exists to stop. Hand back
  * `value("m", 1)` and the row renders through `Unit`.
+ *
+ * @category Settings
  */
 export interface SettingValueByType {
   boolean: boolean;
@@ -62,13 +66,17 @@ export interface SettingValueByType {
   number: number | Value;
 }
 
-/** Any value a registered row can carry. */
+/**
+ * Any value a registered row can carry.
+ *
+ * @category Settings
+ */
 export type SettingValue = SettingValueByType[SettingType];
 
 /**
  * What every registered settings row carries, whatever its backing and type.
  *
- * @category Extensions
+ * @category Settings
  */
 export interface SettingDefinitionBase {
   id: string;
@@ -126,6 +134,8 @@ export interface SettingDefinitionBase {
  * A localStorage-backed preference: pure gonogo-side, no mod round-trip. The
  * `id` doubles as the localStorage key. This is the default backing; `backing`
  * may be omitted, and so may `type`, which means `"boolean"`.
+ *
+ * @category Settings
  */
 export interface ClientPrefSettingOf<SettingKind extends SettingType>
   extends SettingDefinitionBase {
@@ -143,6 +153,8 @@ export interface ClientPrefSettingOf<SettingKind extends SettingType>
  *
  * Read-only by construction, so `readOnly` is redundant here and the renderer
  * asks {@link isReadOnlySetting} rather than the flag.
+ *
+ * @category Settings
  */
 export interface StreamBackedSettingOf<
   SettingKind extends SettingType,
@@ -192,6 +204,8 @@ export interface StoredStreamBackedSettingOf<SettingKind extends SettingType>
  *
  * Reading the registry back hands you {@link SettingDefinition}, the union over
  * all three types, because the renderer has to cope with whatever was declared.
+ *
+ * @category Settings
  */
 export type SettingDefinitionOf<
   SettingKind extends SettingType,
@@ -200,17 +214,32 @@ export type SettingDefinitionOf<
   | ClientPrefSettingOf<SettingKind>
   | StreamBackedSettingOf<SettingKind, Topic>;
 
+/**
+ * A setting stored in this browser, of any value type.
+ *
+ * @category Settings
+ */
 export type ClientPrefSetting =
   | ClientPrefSettingOf<"boolean">
   | ClientPrefSettingOf<"text">
   | ClientPrefSettingOf<"number">;
 
+/**
+ * A setting the mod owns, read from a Topic and written with a command, of any
+ * value type.
+ *
+ * @category Settings
+ */
 export type StreamBackedSetting =
   | StoredStreamBackedSettingOf<"boolean">
   | StoredStreamBackedSettingOf<"text">
   | StoredStreamBackedSettingOf<"number">;
 
-/** Any registered row, whatever its backing and whatever its type. */
+/**
+ * Any registered row, whatever its backing and whatever its type.
+ *
+ * @category Settings
+ */
 export type SettingDefinition = ClientPrefSetting | StreamBackedSetting;
 
 /**
@@ -218,13 +247,19 @@ export type SettingDefinition = ClientPrefSetting | StreamBackedSetting;
  * there are two ways for a row to be uncontrollable (declared `readOnly`, or a
  * stream backing, which has no writer) and a renderer that checks only the flag would offer
  * a `Switch` on a stream.
+ *
+ * @category Settings
  */
 export function isReadOnlySetting(def: SettingDefinition): boolean {
   if (def.backing === "stream-backed") return true;
   return def.readOnly === true;
 }
 
-/** The declared type of a row, with the boolean default applied. */
+/**
+ * The declared type of a row, with the boolean default applied.
+ *
+ * @category Settings
+ */
 export function settingTypeOf(def: SettingDefinition): SettingType {
   return def.type ?? "boolean";
 }

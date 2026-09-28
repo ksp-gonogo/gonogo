@@ -58,12 +58,21 @@
  * which is the documented position rather than a new one.
  */
 
-/** One frame handed to the pacer: its capture UT (for spacing) and payload. */
+/**
+ * One frame handed to the pacer: its capture UT (for spacing) and payload.
+ *
+ * @category Delayed video
+ */
 export interface PacedFrame<Frame> {
   ut: number;
   data: Frame;
 }
 
+/**
+ * Options for a new `PresentationPacer`.
+ *
+ * @category Delayed video
+ */
 export interface PresentationPacerOptions<Frame> {
   /** Called, in order, for each frame the pacer determines is due at the
    *  `nowWall` passed to `tick()`. The caller does the actual sink write. */
@@ -107,6 +116,14 @@ const DEFAULT_RATE_BASELINE_SECONDS = 0.2;
  *  time warp produces. */
 const DEFAULT_MAX_RATE_DEPARTURE = 0.2;
 
+/**
+ * Spaces out frames that were released together, so they are shown at the
+ * intervals they were captured at rather than all at once. It only ever delays a
+ * frame, never shows one early. Drive it by calling `tick` with the wall-clock
+ * time.
+ *
+ * @category Delayed video
+ */
 export class PresentationPacer<Frame> {
   private queue: PacedFrame<Frame>[] = [];
   /** The (ut, wall) pair the NEXT queued frame's due time is computed

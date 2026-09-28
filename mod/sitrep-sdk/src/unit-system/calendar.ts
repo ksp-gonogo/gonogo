@@ -43,7 +43,11 @@
  * `title` attributes and template literals, where a hook cannot reach.
  */
 
-/** The calendar the game is running: four lengths in seconds, and an anchor. */
+/**
+ * The calendar the game is running: four lengths in seconds, and an anchor.
+ *
+ * @category Units and values
+ */
 export interface KspCalendar {
   /** Seconds in a minute. */
   minute: number;
@@ -76,6 +80,8 @@ export interface KspCalendar {
 /**
  * Stock KSP on Kerbin time. The fallback when nothing has said otherwise, and
  * what every test pins unless it is specifically about another calendar.
+ *
+ * @category Units and values
  */
 export const STOCK_KERBIN_CALENDAR: KspCalendar = {
   minute: 60,
@@ -92,6 +98,8 @@ let current: KspCalendar = STOCK_KERBIN_CALENDAR;
  * Call it per use, rather than destructuring at module load: anything that
  * captures the value once captures the stock fallback, before the game has had
  * a chance to say what it is actually running.
+ *
+ * @category Units and values
  */
 export function kspCalendar(): KspCalendar {
   return current;
@@ -111,6 +119,8 @@ export function kspCalendar(): KspCalendar {
  * independent facts and losing the calendar over a bad anchor would misreport
  * every duration to fix a date. Omitting `epochMs` clears any anchor
  * previously set, which is what a game that stopped reporting one means.
+ *
+ * @category Units and values
  */
 export function setKspCalendar(next?: Partial<KspCalendar>): void {
   if (next === undefined) {
@@ -137,6 +147,8 @@ export function setKspCalendar(next?: Partial<KspCalendar>): void {
  * The wire publishes seconds-per-day and seconds-per-year and nothing else, so
  * there is no second field to fall out of step with the first. 426 on stock,
  * 365 on an Earth calendar.
+ *
+ * @category Units and values
  */
 export function kspYearDays(): number {
   return current.year / current.day;
@@ -176,13 +188,19 @@ const CALENDAR_RATIO: Record<string, (calendar: KspCalendar) => number> = {
  * `undefined` rather than a fallback to the baked number on purpose: the
  * caller already has the declared definition in hand and this only has to
  * answer "do I override it".
+ *
+ * @category Units and values
  */
 export function calendarRatio(symbol: string): number | undefined {
   const read = CALENDAR_RATIO[symbol];
   return read ? read(current) : undefined;
 }
 
-/** Whether a symbol's size is decided by the game rather than by physics. */
+/**
+ * Whether a symbol's size is decided by the game rather than by physics.
+ *
+ * @category Units and values
+ */
 export function isCalendarUnit(symbol: string): boolean {
   return symbol in CALENDAR_RATIO;
 }

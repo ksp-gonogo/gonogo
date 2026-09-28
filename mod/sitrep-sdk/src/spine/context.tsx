@@ -135,6 +135,8 @@ export interface TelemetryProviderProps {
  * `useStream` reads through `store.sample(topic, store.currentFrame())`
  * (never `client.getValue` directly) so raw AND derived topics resolve
  * through the exact same surface: see `use-stream.ts`.
+ *
+ * @category Stream fixture
  */
 export function TelemetryProvider({
   client,
@@ -1266,6 +1268,8 @@ export function setActiveTimelineStoreForTests(
  * action-group dispatch, the maneuver-trigger fire path) without a React
  * tree to render. Mirrors `setActiveTimelineStoreForTests`. Pass `undefined`
  * to clear.
+ *
+ * @category Stream fixture
  */
 export function setActiveTelemetryClientForTests(
   client: TelemetryClient | undefined,

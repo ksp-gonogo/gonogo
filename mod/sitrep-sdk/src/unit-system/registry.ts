@@ -2,7 +2,11 @@ import type { DeclaredUnit, UnitDeclarations } from "./declarations";
 import { UNIT_DEFINITIONS, type UnitDefinition } from "./definitions";
 import * as Dim from "./dimension";
 
-/** One rung of a scaling ladder: a threshold in base units and its symbol. */
+/**
+ * One rung of a scaling ladder: a threshold in base units and its symbol.
+ *
+ * @category Units and values
+ */
 export interface UnitRung {
   /** Values at or above this magnitude (in base units) use this rung. */
   readonly from: number;
@@ -14,6 +18,8 @@ export interface UnitRung {
 /**
  * How a unit READS, which the model ignores and the kit applies. Every field is
  * optional, and a unit that sets none of them renders with its kind's defaults.
+ *
+ * @category Units and values
  */
 export interface UnitPresentation {
   /** Decimal places on the scaled value, for every unit of this kind. */
@@ -42,6 +48,8 @@ type DeclarationOf<Unit extends DeclaredUnit> = UnitDeclarations[Unit];
  * `rungs` is the only ladder fact the declaration does not carry, because a
  * rung is a display threshold rather than a unit. A registration naming a
  * ladder may supply them, and every unit on that ladder then climbs them.
+ *
+ * @category Units and values
  */
 export type UnitRegistration<Unit extends DeclaredUnit = DeclaredUnit> = {
   readonly symbol: Unit;
@@ -62,6 +70,8 @@ export type UnitRegistration<Unit extends DeclaredUnit = DeclaredUnit> = {
 /**
  * A registration as the runtime holds it, with its types erased: what a
  * {@link onUnitRegistered} listener receives.
+ *
+ * @category Units and values
  */
 export interface RegisteredUnit extends UnitPresentation {
   readonly symbol: string;
@@ -101,13 +111,19 @@ const RESERVED: ReadonlyArray<{
  * name up, and it is not a new idea here: `irl:s` is the first-party instance
  * of the same problem, where real seconds and game seconds share a glyph and
  * must not share a dimension.
+ *
+ * @category Units and values
  */
 export function displaySymbol(token: string): string {
   const colon = token.indexOf(":");
   return colon === -1 ? token : token.slice(colon + 1);
 }
 
-/** The declaring namespace, or `undefined` for a first-party token. */
+/**
+ * The declaring namespace, or `undefined` for a first-party token.
+ *
+ * @category Units and values
+ */
 export function namespaceOf(token: string): string | undefined {
   const colon = token.indexOf(":");
   return colon === -1 ? undefined : token.slice(0, colon);
@@ -137,7 +153,11 @@ function index(symbol: string, definition: UnitDefinition): void {
   byDimension.set(dimensionKey, existing);
 }
 
-/** Restores the first-party catalog and drops everything registered on top. */
+/**
+ * Restores the first-party catalog and drops everything registered on top.
+ *
+ * @category Units and values
+ */
 export function resetUnitRegistry(): void {
   registry.clear();
   accepted.length = 0;
@@ -186,6 +206,13 @@ function composeToken(
   };
 }
 
+/**
+ * The definition of a unit symbol, built-in or registered. A compound such as
+ * `kg/s` is built from its parts when both are known. `undefined` for a symbol
+ * nothing defines.
+ *
+ * @category Units and values
+ */
 export function lookupUnit(symbol: string): UnitDefinition | undefined {
   const direct = registry.get(symbol);
   if (direct) {
@@ -213,6 +240,8 @@ export function lookupUnit(symbol: string): UnitDefinition | undefined {
  * construction and rendering it as `kW` would be off by a thousand. First
  * registration wins, so a later `J/s` is an alias that parses but never
  * renders.
+ *
+ * @category Units and values
  */
 export function declaredUnitFor(dimensionKey: string): string | undefined {
   return byDimension
@@ -228,6 +257,8 @@ export function declaredUnitFor(dimensionKey: string): string | undefined {
  * registry rather than the static table so a unit registered at runtime by an Uplink
  * gets the same answer. Ratio-1 only, for the reason `declaredUnitFor` gives: a
  * computed value is in base units by construction.
+ *
+ * @category Units and values
  */
 export function affineVectorUnitFor(symbol: string): string | undefined {
   const definition = registry.get(symbol);
@@ -257,6 +288,8 @@ function sameDefinition(a: UnitDefinition, b: UnitDefinition): boolean {
  * This is how the kit learns a unit's presentation from the one registration
  * call rather than from a second registry of its own. An Uplink has no reason
  * to call it.
+ *
+ * @category Units and values
  */
 export function onUnitRegistered(listener: UnitListener): () => void {
   for (const unit of accepted) listener(unit);
@@ -303,6 +336,8 @@ export function onUnitRegistered(listener: UnitListener): () => void {
  *
  * Our own ladder sidesteps the `g` case anyway (mass starts at `kg`), which is
  * why this is a policy for Uplinks rather than a live first-party concern.
+ *
+ * @category Units and values
  */
 export function registerUnit<Unit extends DeclaredUnit>(
   registration: UnitRegistration<Unit>,

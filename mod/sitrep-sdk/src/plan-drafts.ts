@@ -18,6 +18,8 @@ import type { Value } from "./value";
  * time would stamp a plan with the age of data nobody used, and the divergence
  * measured against it later would be measured against a fiction. A draft edited
  * later takes a new one, because the decision was made again.</p>
+ *
+ * @category Commands
  */
 export interface PlanDraft {
   /** This draft's own id, assigned by the command centre and never the game's. */
@@ -76,6 +78,8 @@ export interface PlanDraft {
  * plain observable collection so the same drafts can be read by a widget, a
  * test, or anything else without a renderer, and so what persistence a screen
  * wants is that screen's decision rather than baked in here.</p>
+ *
+ * @category Commands
  */
 export class PlanDraftStore {
   private readonly drafts = new Map<string, PlanDraft>();
@@ -199,6 +203,8 @@ function touchesTheWire(changes: Partial<Omit<PlanDraft, "id">>): boolean {
  * applied twice, and an edited plan carries a new one so the receiving side
  * cannot answer it out of the receipt it kept for the version before. See
  * {@link PlanDraft.revision}.</p>
+ *
+ * @category Commands
  */
 export function draftAsPlan(draft: PlanDraft): ComposedPlan {
   return {

@@ -5,7 +5,11 @@ import type { ClientMessage, ServerMessage } from "../envelope";
 import type { TopicId } from "../topics";
 import { wrapTopicPayload, wrapTypePayload } from "../wrap-units";
 
-/** Builds a valid, deterministic `Meta` for stubbed/test data. */
+/**
+ * Builds a valid, deterministic `Meta` for stubbed/test data.
+ *
+ * @category Stream fixture
+ */
 export function makeMeta(overrides: Partial<Meta> = {}): Meta {
   return {
     source: "stub",
@@ -43,6 +47,8 @@ import type { WireOf } from "../wrap-units";
  *
  * Kept rather than deleted because ten fixture files call it, and a rename
  * would churn them to say the same thing.
+ *
+ * @category Stream fixture
  */
 export function wrapWire<Payload>(
   typeName: string,
@@ -70,6 +76,8 @@ export function wrapWire<Payload>(
  * `implicitly has an 'any' type` errors across `@ksp-gonogo/components`, on
  * `styled-components` props with nothing to do with either module. The function
  * reads one field, so it asks for one field.
+ *
+ * @category Stream fixture
  */
 export function observedPayload<Payload>(point: {
   readonly payload: Payload | null;
@@ -84,7 +92,11 @@ export function observedPayload<Payload>(point: {
 
 type CommandHandler = (command: string, args: unknown) => unknown;
 
-/** One recorded `command-request` envelope, verbatim: see `StubTransport.sentCommands`. */
+/**
+ * One recorded `command-request` envelope, verbatim: see `StubTransport.sentCommands`.
+ *
+ * @category Stream fixture
+ */
 export interface SentCommand {
   requestId: string;
   command: string;
@@ -101,6 +113,8 @@ export interface SentCommand {
  * `emit`/`setCommandHandler` are test-only helpers that don't exist on the
  * `Transport` interface itself: they let a test drive the stub as if it
  * were a real server on the other end of the pipe.
+ *
+ * @category Stream fixture
  */
 export class StubTransport implements Transport {
   readonly status: TransportStatus = "connected";

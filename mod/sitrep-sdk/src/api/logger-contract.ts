@@ -16,6 +16,8 @@
  *
  * `logger-contract.test-d.ts` asserts the app's real `Logger` is assignable to
  * this one, so the two cannot drift apart in silence.
+ *
+ * @category Logging and performance
  */
 
 export interface LogContext {
@@ -25,6 +27,12 @@ export interface LogContext {
   [key: string]: unknown;
 }
 
+/**
+ * A logger whose entries carry a tag, returned by `Logger.tag`. A tagged entry
+ * is shown only while its tag is switched on.
+ *
+ * @category Logging and performance
+ */
 export interface TaggedLogger {
   debug(message: string, context?: LogContext): void;
   info(message: string, context?: LogContext): void;
@@ -32,6 +40,11 @@ export interface TaggedLogger {
   error(message: string, error?: Error, context?: LogContext): void;
 }
 
+/**
+ * The app's logger, reached through `logger`.
+ *
+ * @category Logging and performance
+ */
 export interface Logger {
   debug(message: string, context?: LogContext): void;
   info(message: string, context?: LogContext): void;

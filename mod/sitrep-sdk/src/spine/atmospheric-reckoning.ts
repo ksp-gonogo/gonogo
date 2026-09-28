@@ -134,6 +134,8 @@ const FLOAT_RESIDUE_ULPS = 8;
  * OPTIONAL because the wire's is: a partial frame carries some of them, and
  * `magnitudeOr` plus a finiteness check is what turns an absence into a decline
  * rather than into arithmetic on nothing.
+ *
+ * @category Reckoners
  */
 export interface AtmosphericFlightInput {
   altitudeAsl?: Quantityish;
@@ -149,6 +151,8 @@ export interface AtmosphericFlightInput {
  * Held as data rather than as a closure because both halves are worth reporting:
  * a test asserts the fitted acceleration directly, and a decline can say what
  * the horizon was without re-deriving it.
+ *
+ * @category Reckoners
  */
 export interface AtmosphericDescentFit {
   /** UT of the observation everything here is anchored on. */
@@ -205,6 +209,8 @@ export interface AtmosphericDescentFit {
  * silently open back up to its widest on exactly the frames where nothing is
  * known about the regime. `gForce` is a DECLARED input of the mark instead, and
  * {@link atmosphericAdmissibility} declines naming it.
+ *
+ * @category Reckoners
  */
 export function horizonSecondsFor(gForce: number): number {
   return ATMOS_HORIZON_SECONDS / Math.max(1, gForce);
@@ -230,6 +236,8 @@ export function horizonSecondsFor(gForce: number): number {
  * on every frame where the record was short. The floor is asserted inside
  * {@link atmosphericAdmissibility} instead, which returns the same
  * `insufficient-history` shape the store would have.
+ *
+ * @category Reckoners
  */
 export const DESCENT_WINDOW = { spanUt: 8, maxSamples: 8 } as const;
 
@@ -272,6 +280,8 @@ export const DESCENT_WINDOW = { spanUt: 8, maxSamples: 8 } as const;
  * reason: `entryInterfaceRadius` falls back to the bare surface on an airless
  * body, and a far end tested against that floor would hand a craft skimming the
  * Minmus flats to a model named for atmospheric drag.
+ *
+ * @category Reckoners
  */
 export function withinAtmosphere(
   bodies: ConicBodiesInput | undefined,
@@ -292,7 +302,11 @@ export function withinAtmosphere(
   );
 }
 
-/** A least-squares slope over irregularly spaced samples, and how many there were. */
+/**
+ * A least-squares slope over irregularly spaced samples, and how many there were.
+ *
+ * @category Reckoners
+ */
 export interface SlopeFit {
   readonly samples: number;
   /** `undefined` when every sample carries the same instant. */
@@ -356,6 +370,8 @@ export interface SlopeFit {
  * is a step the fit would read as an enormous acceleration. Whatever survives
  * the filter meets the same floor as any other short window, so this needs no
  * rejection of its own.
+ *
+ * @category Reckoners
  */
 export function verticalAccelerationOver(
   history: readonly TimelinePoint<AtmosphericFlightInput>[],
@@ -500,6 +516,8 @@ export function verticalAccelerationOver(
  * `gravity` is the local `mu / r²`, or `undefined` where the roster or the
  * elements did not carry enough to compute it. Absent, the envelope is not
  * checked: a withdrawal is asserted on evidence, never on the lack of it.
+ *
+ * @category Reckoners
  */
 export function atmosphericAdmissibility(
   point: TimelinePoint<AtmosphericFlightInput>,
@@ -635,6 +653,8 @@ export function atmosphericAdmissibility(
  *
  * Pure, and asked per instant, so a plotted tail re-asking at every step gets
  * one curve rather than a chain of re-anchored guesses.
+ *
+ * @category Reckoners
  */
 export function atmosphericAltitudeAt(
   fit: AtmosphericDescentFit,
@@ -681,6 +701,8 @@ export function atmosphericAltitudeAt(
  * Pure and asked per instant, the same terms `atmosphericAltitudeAt` is on, so
  * a plotted tail asking at every step gets one widening interval rather than a
  * chain of re-anchored ones.
+ *
+ * @category Reckoners
  */
 export function atmosphericAltitudeBandAt(
   fit: AtmosphericDescentFit,
@@ -713,6 +735,8 @@ export function atmosphericAltitudeBandAt(
  *
  * A magnitude, with no sign convention to get wrong: the one place that uses it
  * compares magnitudes.
+ *
+ * @category Reckoners
  */
 export function localGravity(
   mu: Quantityish,

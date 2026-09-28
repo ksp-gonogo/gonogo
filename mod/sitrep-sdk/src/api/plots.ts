@@ -49,6 +49,8 @@ import type { PlotLayer } from "./plot-layers";
  *
  * An Uplink declaring a plot other Uplinks might want to enrich should merge
  * its subject in, the same way it merges a Topic id.
+ *
+ * @category Plots
  */
 // biome-ignore lint/suspicious/noEmptyInterface: declaration-merging seam
 export interface PlotSubjectRegistry {}
@@ -59,6 +61,8 @@ export interface PlotSubjectRegistry {}
  * The `string & {}` tail is what keeps the union open while still offering the
  * known keys as completions; a bare `string` would collapse the whole union and
  * offer nothing.
+ *
+ * @category Plots
  */
 export type PlotSubject = keyof PlotSubjectRegistry | (string & {});
 
@@ -73,6 +77,8 @@ export type PlotSubject = keyof PlotSubjectRegistry | (string & {});
  * Both domains are required. A plot with no frame it can state honestly has no
  * frame to guess at either, and the shape of that is a plot that does not
  * contribute itself this frame, never a plot drawn against invented anchors.
+ *
+ * @category Plots
  */
 export interface PlotFrame {
   /**
@@ -168,6 +174,8 @@ export interface PlotFrame {
  * A domain-wide "this Uplink's model is not installed" gate is `requires` on
  * the contribution, which the aggregation applies before `compute` is called at
  * all. Relevance WITHIN an installed domain is this function.
+ *
+ * @category Plots
  */
 export interface PlotEntry {
   /**

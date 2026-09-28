@@ -144,6 +144,8 @@ export type { Vector3 };
  * Position and velocity share one door because splitting them would buy
  * nothing: both would return the same tuple type, so neither spelling can stop
  * the two being handed to `toFrame` in the wrong order.
+ *
+ * @category Frames of reference
  */
 export function frameVector<Unit extends "m" | "m/s">(
   v: Vec3Of<Unit>,

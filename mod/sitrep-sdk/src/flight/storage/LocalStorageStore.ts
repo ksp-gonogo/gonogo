@@ -1,5 +1,11 @@
 import { logger } from "../../api/logger";
 
+/**
+ * Where a `LocalStorageStore` keeps its value and what it holds before anything
+ * is saved.
+ *
+ * @category Flight recording
+ */
 export interface LocalStorageStoreOptions<Stored> {
   /** localStorage key */
   key: string;
@@ -28,6 +34,8 @@ export interface LocalStorageStoreOptions<Stored> {
  * Non-object stored values (string, number, boolean, array, null) are
  * returned as-is, TypeScript can't enforce that at runtime, so the caller's
  * type parameter is trusted.
+ *
+ * @category Flight recording
  */
 export class LocalStorageStore<Stored> {
   private readonly key: string;

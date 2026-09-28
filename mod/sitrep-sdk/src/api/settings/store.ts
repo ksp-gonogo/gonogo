@@ -112,14 +112,22 @@ function notify(key: string): void {
   for (const cb of set) cb();
 }
 
-/** `saved ?? seed`; `undefined` if neither. The build default is the caller's. */
+/**
+ * `saved ?? seed`; `undefined` if neither. The build default is the caller's.
+ *
+ * @category Settings
+ */
 export function getSetting(key: string): string | undefined {
   const saved = readBlob().values[key];
   if (saved !== undefined) return saved;
   return state().seedLayer.get(key);
 }
 
-/** Persist a user-chosen value (the "saved" layer). Wins forever on this browser. */
+/**
+ * Persist a user-chosen value (the "saved" layer). Wins forever on this browser.
+ *
+ * @category Settings
+ */
 export function setSetting(key: string, value: string): void {
   const values = readBlob().values;
   values[key] = value;
@@ -127,13 +135,21 @@ export function setSetting(key: string, value: string): void {
   notify(key);
 }
 
-/** Set the in-memory seed layer (NOT persisted). Overridden by a saved value. */
+/**
+ * Set the in-memory seed layer (NOT persisted). Overridden by a saved value.
+ *
+ * @category Settings
+ */
 export function seedSetting(key: string, value: string): void {
   state().seedLayer.set(key, value);
   notify(key);
 }
 
-/** Subscribe to any change (save OR seed) for one key. */
+/**
+ * Subscribe to any change (save OR seed) for one key.
+ *
+ * @category Settings
+ */
 export function subscribeSetting(key: string, cb: () => void): () => void {
   const { listeners } = state();
   let set = listeners.get(key);
@@ -145,7 +161,11 @@ export function subscribeSetting(key: string, cb: () => void): () => void {
   return () => set?.delete(cb);
 }
 
-/** Test-only: clear the persisted blob and the in-memory seed layer. */
+/**
+ * Test-only: clear the persisted blob and the in-memory seed layer.
+ *
+ * @category Settings
+ */
 export function resetSettingsForTests(): void {
   state().seedLayer.clear();
   if (typeof localStorage !== "undefined") localStorage.removeItem(STORAGE_KEY);

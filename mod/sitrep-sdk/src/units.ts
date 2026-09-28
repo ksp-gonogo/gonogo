@@ -115,6 +115,8 @@ const registeredTopicShapes = new Map<string, ShapesByField>();
  * map. Called at module load by the owning Uplink's client package. Last
  * write wins for a given topic; a double import of the same Uplink client
  * registers the same data twice, harmlessly.
+ *
+ * @category Units and values
  */
 export function registerTopicUnits(
   topic: string,
@@ -166,6 +168,8 @@ const registeredTypeShapes = new Map<string, ShapesByField>();
  * load by the owning Uplink's client package, normally by looping over its own
  * generated `GENERATED_TYPE_UNITS`/`GENERATED_TYPE_SHAPES`, so a type added to
  * that Uplink's contract later needs no new call site.
+ *
+ * @category Units and values
  */
 export function registerTypeUnits(
   typeName: string,
@@ -217,6 +221,7 @@ const registeredExtensionShapes = new Map<string, Map<string, string>>();
  * @param providerId The Kernel provider id keying the namespace, the same string
  *   the provider registers with the Kernel and tags its payloads with.
  * @param typeName The provider's own generated interface name for that namespace.
+ * @category Units and values
  */
 export function registerProviderExtensionShape(
   owner: string,
@@ -245,6 +250,8 @@ export function providerExtensionShapes(
  *
  * For an array Topic the entry describes the ELEMENT's fields, which is what a consumer
  * indexes into.
+ *
+ * @category Units and values
  */
 export function unitsForTopic(topic: TopicId): UnitsByField {
   const generated = GENERATED_TOPIC_UNITS[topic];
@@ -259,6 +266,8 @@ export function unitsForTopic(topic: TopicId): UnitsByField {
  * The declared unit of one field on one Topic, or `undefined` when that field has no
  * annotation yet. See this module's header for why `undefined` is not the same as
  * dimensionless.
+ *
+ * @category Units and values
  */
 export function unitOf(topic: TopicId, field: string): SitrepUnit | undefined {
   return unitsForTopic(topic)[field];
@@ -268,6 +277,8 @@ export function unitOf(topic: TopicId, field: string): SitrepUnit | undefined {
  * The type-keyed view, for NESTED payload shapes that no Topic names directly (e.g.
  * `ThermalHottestPart`, which hangs off `vessel.thermal` rather than being a Topic of
  * its own). `typeName` is the generated interface name in `./__generated__/contract`.
+ *
+ * @category Units and values
  */
 export function unitsForType(typeName: string): UnitsByField {
   const generated = GENERATED_TYPE_UNITS[typeName];
@@ -282,6 +293,8 @@ export function unitsForType(typeName: string): UnitsByField {
  * from the parent's entry; this is what lets the runtime wrap follow the field
  * down. See `GENERATED_TOPIC_SHAPES` in mod/sitrep-sdk's generated unit map for
  * the case that forced it, and for the plural markers an entry can carry.
+ *
+ * @category Units and values
  */
 export function shapesForTopic(topic: TopicId): ShapesByField {
   const generated = GENERATED_TOPIC_SHAPES[topic];
@@ -292,14 +305,22 @@ export function shapesForTopic(topic: TopicId): ShapesByField {
   return handDeclared === undefined ? NO_SHAPES : shapesForType(handDeclared);
 }
 
-/** The same, keyed by generated interface name instead of Topic id. */
+/**
+ * The same, keyed by generated interface name instead of Topic id.
+ *
+ * @category Units and values
+ */
 export function shapesForType(typeName: string): ShapesByField {
   const generated = GENERATED_TYPE_SHAPES[typeName];
   if (generated !== undefined) return generated;
   return registeredTypeShapes.get(typeName) ?? NO_SHAPES;
 }
 
-/** As {@link unitOf}, but keyed by generated interface name instead of Topic id. */
+/**
+ * As {@link unitOf}, but keyed by generated interface name instead of Topic id.
+ *
+ * @category Units and values
+ */
 export function unitOfTypeField(
   typeName: string,
   field: string,

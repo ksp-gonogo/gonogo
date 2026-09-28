@@ -48,14 +48,21 @@
  */
 
 /** What a build produces: the value to publish, plus the physical pipeline's
- *  teardown/flush handles. `dispose` runs when the last lease releases. */
+ *  teardown/flush handles. `dispose` runs when the last lease releases.
+ *
+ * @category Delayed video
+ */
 export interface BuiltDelayedStream<Result> {
   result: Result;
   dispose?(): void;
   flush?(): void;
 }
 
-/** Build context handed to the caller's build function. */
+/**
+ * Build context handed to the caller's build function.
+ *
+ * @category Delayed video
+ */
 export interface DelayedStreamBuildContext<Contribution> {
   /** The first still-live lease's contribution, or `undefined` if every
    *  contributing lease has released. Call this PER USE (never hoist it),
@@ -63,11 +70,20 @@ export interface DelayedStreamBuildContext<Contribution> {
   contribution(): Contribution | undefined;
 }
 
+/**
+ * Builds the shared delayed stream for a `SharedDelayedStreams` entry.
+ *
+ * @category Delayed video
+ */
 export type DelayedStreamBuild<Result, Contribution> = (
   ctx: DelayedStreamBuildContext<Contribution>,
 ) => Promise<BuiltDelayedStream<Result>> | BuiltDelayedStream<Result>;
 
-/** One consumer's handle on a shared entry. */
+/**
+ * One consumer's handle on a shared entry.
+ *
+ * @category Delayed video
+ */
 export interface DelayedStreamLease<Result, Contribution> {
   /** The currently published result, or `undefined` while the build is in
    *  flight. */
@@ -104,6 +120,8 @@ interface Entry<Result, Contribution> {
  * test can mint an isolated instance instead of leaking entries through a
  * global: the media hook uses one shared instance; tests of the cache use
  * their own.
+ *
+ * @category Delayed video
  */
 export class SharedDelayedStreams<Result, Contribution, Key = object> {
   private entries = new Map<Key, Entry<Result, Contribution>>();

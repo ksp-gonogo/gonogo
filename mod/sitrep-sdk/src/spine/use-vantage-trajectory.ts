@@ -6,9 +6,18 @@ import type {
 import type { UseCommandResult } from "../api/types";
 import { useCommand } from "./use-command";
 
-/** The command the engine registers for this. Not an Uplink's. */
+/**
+ * The command the engine registers for this. Not an Uplink's.
+ *
+ * @category Orbits and trajectories
+ */
 export const VANTAGE_TRAJECTORY_COMMAND = "vessel.trajectory.forVantage";
 
+/**
+ * What `useVantageTrajectory` returns.
+ *
+ * @category Orbits and trajectories
+ */
 export interface VantageTrajectory {
   /**
    * Ask where the craft goes, from THIS command centre's point of view.
@@ -61,6 +70,8 @@ export interface VantageTrajectory {
  * network fact and the other a mission fact, and a widget that showed the second
  * for the first would have an operator believe something about their spacecraft
  * that is untrue.</p>
+ *
+ * @category Orbits and trajectories
  */
 export function refusalFromError(error: unknown): VantagePlanReply {
   return {
@@ -72,6 +83,13 @@ export function refusalFromError(error: unknown): VantagePlanReply {
   } as VantagePlanReply;
 }
 
+/**
+ * Asks the game where the active craft goes as seen from this connection's
+ * command centre. Call `solve` to send a request; `reply` holds the latest
+ * answer.
+ *
+ * @category Orbits and trajectories
+ */
 export function useVantageTrajectory(): VantageTrajectory {
   const command = useCommand(VANTAGE_TRAJECTORY_COMMAND);
   const [reply, setReply] = useState<VantagePlanReply | null>(null);

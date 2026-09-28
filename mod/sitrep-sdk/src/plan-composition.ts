@@ -7,10 +7,18 @@ import type { UseCommandResult } from "./spine/use-command";
 import type { Value } from "./value";
 import type { WireOf } from "./wrap-units";
 
-/** The command the engine registers for this. Not an Uplink's. */
+/**
+ * The command the engine registers for this. Not an Uplink's.
+ *
+ * @category Commands
+ */
 export const SEND_PLAN_COMMAND = "vessel.maneuver.plan.send";
 
-/** What a caller states about a plan it composed. */
+/**
+ * What a caller states about a plan it composed.
+ *
+ * @category Commands
+ */
 export interface ComposedPlan {
   /**
    * The burns, in order. An EMPTY array clears the vessel's plan, which is a
@@ -44,12 +52,22 @@ export interface ComposedPlan {
   desiredFinalTimeUt?: number;
 }
 
+/**
+ * What the game said to a sent plan.
+ *
+ * @category Commands
+ */
 export interface SendPlanOutcome {
   accepted: boolean;
   /** Why not, when it was not accepted. */
   refusal?: string;
 }
 
+/**
+ * What `useSendPlan` returns: `send` and the state of the last send.
+ *
+ * @category Commands
+ */
 export interface SendPlanHandle {
   /**
    * Transmit the plan. Resolves with the game's answer, or with a refusal when
@@ -85,6 +103,8 @@ export interface SendPlanHandle {
  * network fact and the other a mission fact, and showing the second for the
  * first would have an operator believe their vessel rejected a plan it never
  * saw.</p>
+ *
+ * @category Commands
  */
 export function sendRefusalFromError(error: unknown): SendPlanOutcome {
   const rejection = classifyCommandRejection(error);
@@ -119,6 +139,8 @@ export function sendRefusalFromError(error: unknown): SendPlanOutcome {
  * <p>Exported so a caller can grey a control out on the SAME answer the send
  * refuses on, rather than on a second opinion about it, and so the checks are
  * testable without a mounted provider.</p>
+ *
+ * @category Commands
  */
 export function whyNotSendable(
   plan: ComposedPlan,

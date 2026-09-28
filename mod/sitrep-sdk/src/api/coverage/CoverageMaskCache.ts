@@ -31,7 +31,17 @@ interface CacheOptions {
   height?: number;
 }
 
+/**
+ * The width, in pixels, of a new coverage mask.
+ *
+ * @category Maps and coverage
+ */
 export const DEFAULT_MASK_WIDTH = 2048;
+/**
+ * The height, in pixels, of a new coverage mask.
+ *
+ * @category Maps and coverage
+ */
 export const DEFAULT_MASK_HEIGHT = 1024;
 const DEFAULT_DEBOUNCE_MS = 10_000;
 
@@ -39,6 +49,13 @@ function makeCacheKey(bodyId: string, layerId: string): string {
   return `${bodyId}:${layerId}`;
 }
 
+/**
+ * Holds coverage masks in memory, loads them from a `CoverageMaskStore` on first
+ * use, and writes changes back after a pause. Reach the app's instance with
+ * `useCoverageMaskCache`.
+ *
+ * @category Maps and coverage
+ */
 export class CoverageMaskCache {
   private entries = new Map<string, CacheEntry>();
   private inflight = new Map<string, Promise<BodyMask>>();

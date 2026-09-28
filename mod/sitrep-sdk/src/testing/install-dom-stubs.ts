@@ -10,6 +10,8 @@
  * registry, no React, no import of any kind. An Uplink's `test/setup.ts` needs it
  * before it can render a widget, and `core` is unpublished, so the one file every
  * outside author's first test depends on was the one they could not obtain.
+ *
+ * @category Rendering
  */
 export function installDomStubs(): void {
   if (

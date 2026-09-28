@@ -5,6 +5,11 @@ import type {
   DataSourceStatus,
 } from "../api/types";
 
+/**
+ * Options for a new `MockDataSource`.
+ *
+ * @category Test doubles
+ */
 export interface MockDataSourceOptions {
   id?: string;
   name?: string;
@@ -25,6 +30,8 @@ export interface MockDataSourceOptions {
  * Published from here rather than `@ksp-gonogo/core` because 15 Uplink test files
  * construct one and that package is `private: true`. It names four types and no
  * behaviour, so there was nothing holding it up there.
+ *
+ * @category Test doubles
  */
 export class MockDataSource implements DataSource {
   readonly id: string;

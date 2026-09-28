@@ -12,7 +12,10 @@
 
 /** A capture-clock sample: the last mission-time UT the sidecar reported for
  *  the video, the warp rate at that sample, and the wall-clock instant (ms,
- *  `performance.now()` basis) we observed it. */
+ *  `performance.now()` basis) we observed it.
+ *
+ * @category Delayed video
+ */
 export interface CaptureClockSample {
   /** KSP universal time (seconds) the video was captured at, or `null` when no clock is known. */
   ut: number | null;
@@ -29,6 +32,8 @@ export interface CaptureClockSample {
  * than wall-clock under timewarp). Returns `null` when there's no clock.
  *
  * Pure + injectable `nowMs` so it unit-tests deterministically.
+ *
+ * @category Delayed video
  */
 export function interpolateCaptureUt(
   sample: CaptureClockSample,

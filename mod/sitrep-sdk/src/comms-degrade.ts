@@ -10,6 +10,8 @@ import type { TopicCurrency } from "./reading";
  * backends grade a link by genuinely different physics, so a feed that dropped a
  * bitrate can say which grading told it to, and two installs that rate the same
  * orbit differently can be told apart rather than argued about.
+ *
+ * @category Comms
  */
 export interface DegradeRating {
   /** 0 pristine, 1 unusable. Never outside that range and never `NaN`. */
@@ -45,6 +47,8 @@ export interface DegradeRating {
  * A finite overshoot clamps to the end it overshot; anything non-finite is
  * treated as ungraded, because it is arithmetic that did not run rather than a
  * rating that went too far.
+ *
+ * @category Comms
  */
 export function degradeRatingOf(
   payload: CommsDegrade | undefined,
@@ -74,6 +78,8 @@ export function degradeRatingOf(
  * is DOWN is `comms.link`, which is exempt from the freeze that holds this one
  * precisely so it can report that edge, and a consumer choosing a quality should
  * read both.
+ *
+ * @category Comms
  */
 export function degradeRating(
   reading: TopicCurrency<CommsDegrade>,

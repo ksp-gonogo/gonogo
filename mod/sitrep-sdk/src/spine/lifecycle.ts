@@ -208,6 +208,8 @@ export type CommandFoundOutcome =
  * claims, three channels. A reserved code on the error channel would have been
  * cheaper and would have made "the mod answered" mean "unless the code is one
  * of these", which is the sort of exception the next reader does not find.
+ *
+ * @category Commands
  */
 export type CommandStatus =
   | { phase: "idle" }

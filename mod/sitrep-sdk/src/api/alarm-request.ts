@@ -45,10 +45,16 @@ import type { UplinkClientHandle } from "./types";
  * caller could consult first. A refusal is not silent, the operator's row says
  * NOT ARMED and carries the mod's reason, and the alarm never fires: the
  * simulation judges every alarm, at either vantage, and nothing else does.
+ *
+ * @category Alarms
  */
 export type UplinkAlarmVantage = "command" | "scet";
 
-/** Fires at a fixed universal time. */
+/**
+ * Fires at a fixed universal time.
+ *
+ * @category Alarms
+ */
 export interface UplinkAlarmTimeTrigger {
   kind: "time";
   /** KSP universal time to fire at, seconds. */
@@ -61,7 +67,11 @@ export interface UplinkAlarmTimeTrigger {
   leadSeconds?: number;
 }
 
-/** The comparison a threshold makes. */
+/**
+ * The comparison a threshold makes.
+ *
+ * @category Alarms
+ */
 export type UplinkAlarmThresholdOp = ">" | ">=" | "<" | "<=" | "==" | "!=";
 
 /**
@@ -71,6 +81,8 @@ export type UplinkAlarmThresholdOp = ">" | ">=" | "<" | "<=" | "==" | "!=";
  * string: a Topic id can be two segments or three, so splitting a joined key
  * back apart is a guess, and an alarm armed against the wrong subject is
  * accepted and then never fires.
+ *
+ * @category Alarms
  */
 export interface UplinkAlarmThresholdTrigger {
   kind: "threshold";
@@ -90,11 +102,20 @@ export interface UplinkAlarmThresholdTrigger {
   vantage?: UplinkAlarmVantage;
 }
 
+/**
+ * When a requested alarm fires: at a time, or when a value crosses a threshold.
+ *
+ * @category Alarms
+ */
 export type UplinkAlarmTrigger =
   | UplinkAlarmTimeTrigger
   | UplinkAlarmThresholdTrigger;
 
-/** What an Uplink asks the app to create. */
+/**
+ * What an Uplink asks the app to create.
+ *
+ * @category Alarms
+ */
 export interface UplinkAlarmRequest {
   /**
    * This Uplink's own name for the thing the alarm is about, e.g.
@@ -141,6 +162,8 @@ export interface UplinkAlarmRequest {
  * rendered outside the dashboard). A widget that wants to hide the affordance
  * in that case should hide it on its own condition rather than probing this:
  * an alarm request is a thing to offer wherever the widget renders.
+ *
+ * @category Alarms
  */
 export function useAlarmRequest(
   owner: UplinkClientHandle,

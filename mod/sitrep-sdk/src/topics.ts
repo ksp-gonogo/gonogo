@@ -250,13 +250,23 @@ interface SdkOwnedTopicPayloadMap
  * client that statically imports its Uplink's augmenting module sees the augmented Topic
  * in the union. This is the AUGMENTABLE surface; `SdkOwnedTopicPayloadMap` above is the
  * fixed SDK-owned subset the compile invariants pin `TOPIC_IDS` against.
+ *
+ * @category Reading telemetry
  */
 export interface TopicPayloadMap extends SdkOwnedTopicPayloadMap {}
 
-/** Every Topic the mod declares, as a string-literal union. */
+/**
+ * Every Topic the mod declares, as a string-literal union.
+ *
+ * @category Reading telemetry
+ */
 export type TopicId = keyof TopicPayloadMap;
 
-/** The payload interface carried by `stream-data` messages on Topic `Topic`. */
+/**
+ * The payload interface carried by `stream-data` messages on Topic `Topic`.
+ *
+ * @category Reading telemetry
+ */
 export type TopicPayload<Topic extends TopicId> = TopicPayloadMap[Topic];
 
 /**
@@ -269,6 +279,8 @@ export type TopicPayload<Topic extends TopicId> = TopicPayloadMap[Topic];
  * `isTopicId` for the live full set. Dynamic namespaces (e.g. the per-CPU `kos.compute.*`
  * prefix) are intentionally NOT enumerated here, a runtime-computed sub-topic has no
  * fixed member in the union.
+ *
+ * @category Reading telemetry
  */
 export const TOPIC_IDS = [
   ...GENERATED_TOPIC_IDS,
@@ -325,6 +337,8 @@ for (const id of FIRST_PARTY_BARE_PRIMITIVE_TOPICS) {
  * rather than in `Sitrep.Contract`, registers here too. Such a Topic pairs this
  * call with `registerTopicUnits` (`units.ts`) for the numeric half of the same
  * problem.
+ *
+ * @category Reading telemetry
  */
 export function registerBarePrimitiveTopic(id: string): void {
   barePrimitiveTopicIds.add(id);
@@ -338,6 +352,8 @@ export function registerBarePrimitiveTopic(id: string): void {
  * `TOPIC_IDS`: consumers that want "subscribe to / iterate over EVERYTHING" (e.g. the
  * replay recorder's full-archive mode) read this, since a bare-primitive Topic is not a
  * static member of `TOPIC_IDS`. Reflects only Uplinks whose client package has loaded.
+ *
+ * @category Reading telemetry
  */
 export function getAllKnownTopicIds(): readonly string[] {
   return [...TOPIC_IDS, ...barePrimitiveTopicIds];
@@ -346,6 +362,8 @@ export function getAllKnownTopicIds(): readonly string[] {
 /**
  * Runtime narrowing guard: is `value` a known `TopicId`? True for an SDK-owned Topic OR a
  * bare-primitive Uplink Topic whose owning client package has registered it.
+ *
+ * @category Reading telemetry
  */
 export function isTopicId(value: string): value is TopicId {
   return TOPIC_ID_SET.has(value) || barePrimitiveTopicIds.has(value);
@@ -362,6 +380,8 @@ const collectionTopicIds = new Set<string>(GENERATED_COLLECTION_TOPIC_IDS);
  * The unit and shape maps registered for such a Topic describe one ELEMENT, so
  * without this a field path like `<topic>.name` looks like a field of the Topic
  * when it is a field of every row and of none of them.
+ *
+ * @category Reading telemetry
  */
 export function registerCollectionTopic(id: string): void {
   if (collectionTopicIds.has(id)) return;
@@ -376,6 +396,8 @@ export function registerCollectionTopic(id: string): void {
  *
  * A read of `<id>.<field>` walks into the array itself, which has no such
  * property, so a field path under a collection Topic never carries a value.
+ *
+ * @category Reading telemetry
  */
 export function isCollectionTopic(id: string): boolean {
   return collectionTopicIds.has(id);
@@ -396,6 +418,8 @@ export function isCollectionTopic(id: string): boolean {
  * before any type could read them. `derived-channel-ids.test.ts` asserts set
  * equality against that array in both directions, so a channel registered
  * without being listed here, or listed here without being registered, fails.
+ *
+ * @category Reading telemetry
  */
 export const DERIVED_CHANNEL_IDS = [
   "system.state",
@@ -405,14 +429,22 @@ export const DERIVED_CHANNEL_IDS = [
   "dv.currentStageResourceMax",
 ] as const;
 
-/** One of the client-side derived channels. See {@link DERIVED_CHANNEL_IDS}. */
+/**
+ * One of the client-side derived channels. See {@link DERIVED_CHANNEL_IDS}.
+ *
+ * @category Reading telemetry
+ */
 export type DerivedChannelId = (typeof DERIVED_CHANNEL_IDS)[number];
 
 const DERIVED_CHANNEL_ID_SET: ReadonlySet<string> = new Set(
   DERIVED_CHANNEL_IDS,
 );
 
-/** Runtime narrowing guard: is `value` a known {@link DerivedChannelId}? */
+/**
+ * Runtime narrowing guard: is `value` a known {@link DerivedChannelId}?
+ *
+ * @category Reading telemetry
+ */
 export function isDerivedChannelId(value: string): value is DerivedChannelId {
   return DERIVED_CHANNEL_ID_SET.has(value);
 }
@@ -426,10 +458,16 @@ export function isDerivedChannelId(value: string): value is DerivedChannelId {
  * typecheck that makes its removal permanent rather than a thing to be
  * re-litigated. A field path is not an arm either: it collapses to whichever of
  * these two carries it, which is what the read hook keys on anyway.
+ *
+ * @category Reading telemetry
  */
 export type WidgetChannelId = TopicId | DerivedChannelId;
 
-/** Runtime narrowing guard: is `value` a {@link WidgetChannelId}? */
+/**
+ * Runtime narrowing guard: is `value` a {@link WidgetChannelId}?
+ *
+ * @category Reading telemetry
+ */
 export function isWidgetChannelId(value: string): value is WidgetChannelId {
   return isTopicId(value) || isDerivedChannelId(value);
 }
@@ -449,6 +487,8 @@ export function isWidgetChannelId(value: string): value is WidgetChannelId {
  * flat key has no channel to hang from (`career.funds` would need a channel
  * called `career`, and `r.resource[ElectricCharge]` one called `r`), so neither
  * typechecks, which is the property that keeps the old vocabulary retired.
+ *
+ * @category Reading telemetry
  */
 export type WidgetFieldPath = WidgetChannelId | `${WidgetChannelId}.${string}`;
 

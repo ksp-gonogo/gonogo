@@ -10,6 +10,8 @@ import { ControlFrameKind } from "./__generated__/contract";
  * boolean that defaults to valid quotes a length in a frame where lengths are
  * not lengths, and one that defaults to invalid blanks the boards for the
  * moment before the first frame sample lands.</p>
+ *
+ * @category Orbits and trajectories
  */
 export type FrameValidity = "valid" | "invalid" | "unknown";
 
@@ -21,6 +23,8 @@ export type FrameValidity = "valid" | "invalid" | "unknown";
  * absolute length or label it as a pulsating-frame unit, and that is a physics
  * rule rather than a wording choice, so it lives here once instead of in each
  * widget that quotes a length.</p>
+ *
+ * @category Orbits and trajectories
  */
 export function lengthsAreLengths(
   frame: ControlFrame | undefined,
@@ -41,6 +45,8 @@ export function lengthsAreLengths(
  * before apsides are computed at all. In those an apsis is not merely
  * unavailable, it is undefined, which is a different thing to tell an operator
  * than "not measured".</p>
+ *
+ * @category Orbits and trajectories
  */
 export function apsidesExist(frame: ControlFrame | undefined): FrameValidity {
   if (frame === undefined || frame.kind === ControlFrameKind.Unspecified) {
@@ -86,6 +92,8 @@ const FRAME_NAMES: Readonly<Record<number, string>> = {
  * <p>A body the payload did not carry leaves its placeholder standing, for the
  * same reason: "&lt;centre&gt;-Centred Inertial" says a body is missing, where
  * "-Centred Inertial" reads like a formatting slip.</p>
+ *
+ * @category Orbits and trajectories
  */
 export function controlFrameLabel(
   frame: ControlFrame | undefined,
@@ -119,6 +127,8 @@ export function controlFrameLabel(
  * reads as a link fault. This is the console saying the quantity does not exist
  * in the frame the operator chose, which is a fact about their own view and
  * something they can act on by changing it.</p>
+ *
+ * @category Orbits and trajectories
  */
 export function frameCaveat(
   validity: FrameValidity,

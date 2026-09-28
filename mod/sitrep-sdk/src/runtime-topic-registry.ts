@@ -64,12 +64,18 @@ export function noteRuntimeTopicMetadata(): void {
  * Identity-stable between registrations, so it can be a `useSyncExternalStore`
  * snapshot and a `useMemo` dependency directly. Pair with
  * {@link subscribeRuntimeTopicRegistry}.
+ *
+ * @category Reading telemetry
  */
 export function getRuntimeRegisteredTopicIds(): readonly string[] {
   return snapshot;
 }
 
-/** Fires whenever a registration changes the snapshot. Returns the unsubscribe. */
+/**
+ * Fires whenever a registration changes the snapshot. Returns the unsubscribe.
+ *
+ * @category Reading telemetry
+ */
 export function subscribeRuntimeTopicRegistry(
   listener: () => void,
 ): () => void {

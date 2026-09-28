@@ -58,6 +58,12 @@ function notifyChange(): void {
   for (const cb of registry().listeners) cb();
 }
 
+/**
+ * Calls `cb` whenever a coverage source is registered or removed, and returns
+ * the unsubscribe function.
+ *
+ * @category Maps and coverage
+ */
 export function onCoverageSourcesChange(cb: () => void): () => void {
   const { listeners } = registry();
   listeners.add(cb);
@@ -66,6 +72,11 @@ export function onCoverageSourcesChange(cb: () => void): () => void {
   };
 }
 
+/**
+ * Adds a coverage source, replacing any registered under the same id.
+ *
+ * @category Maps and coverage
+ */
 export function registerCoverageSource(def: CoverageSourceDefinition): void {
   if (hasHost()) {
     getHost().logger.info(`REGISTERED coverage source ${def.id}`);
@@ -75,11 +86,20 @@ export function registerCoverageSource(def: CoverageSourceDefinition): void {
   notifyChange();
 }
 
+/**
+ * Removes the coverage source registered under `id`.
+ *
+ * @category Maps and coverage
+ */
 export function unregisterCoverageSource(id: string): void {
   if (registry().sources.delete(id)) notifyChange();
 }
 
-/** Every registered coverage source, in registration order. */
+/**
+ * Every registered coverage source, in registration order.
+ *
+ * @category Maps and coverage
+ */
 export function getCoverageSources(): CoverageSourceDefinition[] {
   return Array.from(registry().sources.values())
     .sort((a, b) => a.order - b.order)
@@ -89,6 +109,8 @@ export function getCoverageSources(): CoverageSourceDefinition[] {
 /**
  * The settings blocks the host panel renders, one per source that declares any.
  * Namespaced by source id so two sources' identically-named fields cannot collide.
+ *
+ * @category Maps and coverage
  */
 export function getCoverageSourceSettings(): NamespacedAugmentSettings[] {
   return getCoverageSources()
@@ -100,7 +122,11 @@ export function getCoverageSourceSettings(): NamespacedAugmentSettings[] {
     }));
 }
 
-/** Empty the registry. For tests; a running app never calls it. */
+/**
+ * Empty the registry. For tests; a running app never calls it.
+ *
+ * @category Maps and coverage
+ */
 export function clearCoverageSources(): void {
   const state = registry();
   state.sources.clear();

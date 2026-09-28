@@ -1,5 +1,11 @@
 import type { DataKeyMeta, Sample } from "./types";
 
+/**
+ * A value computed from recorded keys and recorded beside them, such as a rate
+ * of change.
+ *
+ * @category Flight recording
+ */
 export interface DerivedKeyDef {
   /** Key that will be emitted, e.g. `"v.altitudeRate"`. Must not collide with raw keys. */
   id: string;
@@ -22,15 +28,29 @@ export interface DerivedKeyDef {
 
 const registry: DerivedKeyDef[] = [];
 
+/**
+ * Adds a derived key, computed for every flight recorded from then on.
+ *
+ * @category Flight recording
+ */
 export function registerDerivedKey(def: DerivedKeyDef): void {
   registry.push(def);
 }
 
+/**
+ * Every registered derived key, in registration order.
+ *
+ * @category Flight recording
+ */
 export function getDerivedKeys(): readonly DerivedKeyDef[] {
   return registry;
 }
 
-/** Remove all registered derived keys. Only call from tests. */
+/**
+ * Remove all registered derived keys. Only call from tests.
+ *
+ * @category Flight recording
+ */
 export function clearDerivedKeys(): void {
   registry.length = 0;
 }

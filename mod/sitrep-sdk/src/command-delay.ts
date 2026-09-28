@@ -17,6 +17,8 @@ import { type Value, value } from "./unit-system";
  * connectivity history,
  * judder-latching) lives one layer up in the hooks that call these
  * (`use-command.ts`, `use-route-commands.ts`), never here.
+ *
+ * @category Delay and vantage
  */
 
 export type PredictedPhase =
@@ -25,9 +27,19 @@ export type PredictedPhase =
   | "due"
   | "overdue"
   | "lost";
+/**
+ * How a command sent now would travel: `live` when the one-way delay is a second
+ * or less, `staged` when it is longer, and `no-path` when there is no path home.
+ *
+ * @category Delay and vantage
+ */
 export type DelayMode = "live" | "staged" | "no-path";
 
-/** Structural subset of the `PendingUplink` wire entry (do NOT import the mod type). */
+/**
+ * Structural subset of the `PendingUplink` wire entry (do NOT import the mod type).
+ *
+ * @category Delay and vantage
+ */
 export interface PendingEntry {
   id: string;
   command: string;
@@ -44,7 +56,11 @@ export interface PendingEntry {
   commandedValue?: number;
 }
 
-/** Structural subset of the `CommsDelay` wire payload's field this module reads. */
+/**
+ * Structural subset of the `CommsDelay` wire payload's field this module reads.
+ *
+ * @category Delay and vantage
+ */
 export interface CommsDelayLike {
   oneWaySeconds: Value<"s"> | null;
 }
@@ -53,6 +69,8 @@ export interface CommsDelayLike {
  * One row on the delay rail: anything crossing the link, a command this client
  * sent or a transmission the craft is sending home. Produced only by
  * {@link deriveRailEntry}, so the two cannot drift in what their rows say.
+ *
+ * @category Delay and vantage
  */
 export interface InFlightCommand {
   id: string;
@@ -77,6 +95,8 @@ export interface InFlightCommand {
  * under a one-way delay, arriving one delay later. An acked crossing then waits
  * the same delay again for its reply; a fire-and-forget one ends at arrival,
  * since nothing answers it. `tags` come from a `railTagsFor*` derivation.
+ *
+ * @category Delay and vantage
  */
 export interface RailCrossing {
   id: string;
@@ -95,6 +115,8 @@ const STAGED_THRESHOLD_SECONDS = 1;
  * The current delay mode from a `comms.delay` payload. `oneWaySeconds` is
  * nullable: `null` means NO PATH, never a measured zero-distance delay.
  * Never coerce it to 0.
+ *
+ * @category Delay and vantage
  */
 export function currentMode(commsDelay: CommsDelayLike | undefined): DelayMode {
   const d = commsDelay?.oneWaySeconds;
@@ -120,6 +142,8 @@ export function liveOneWaySeconds(
  * The one rail-entry derivation: where a crossing is at `nowUt`. A
  * fire-and-forget crossing is `in-transit` until it arrives and gone after,
  * so it answers `undefined` from arrival on rather than inventing an outcome.
+ *
+ * @category Delay and vantage
  */
 export function deriveRailEntry(
   crossing: RailCrossing,
@@ -159,7 +183,11 @@ function ackedPhase(
   return "due";
 }
 
-/** A queued uplink as the crossing it is: its command, sent at dispatch. */
+/**
+ * A queued uplink as the crossing it is: its command, sent at dispatch.
+ *
+ * @category Delay and vantage
+ */
 export function pendingCrossing(entry: PendingEntry): RailCrossing {
   return {
     id: entry.id,
@@ -176,6 +204,8 @@ export function pendingCrossing(entry: PendingEntry): RailCrossing {
  * Reach/reply etas and the predicted phase for each pending entry, given the
  * caller's `nowUt`. No memory, no connectivity; see `classifyRetained` for the
  * retained/failure-aware variant.
+ *
+ * @category Delay and vantage
  */
 export function deriveInFlight(
   entries: PendingEntry[],
@@ -186,7 +216,11 @@ export function deriveInFlight(
   );
 }
 
-/** A caller-supplied predicate: was the comms path continuously connected across [from,to] UT? */
+/**
+ * A caller-supplied predicate: was the comms path continuously connected across [from,to] UT?
+ *
+ * @category Delay and vantage
+ */
 export type PathConnectedDuring = (fromUt: number, toUt: number) => boolean;
 
 /**
@@ -196,6 +230,8 @@ export type PathConnectedDuring = (fromUt: number, toUt: number) => boolean;
  * caller has no connectivity history to offer (e.g. a first render before
  * any `comms.link` sample has arrived). `undefined` once a command nothing
  * answers has arrived, since it has ended.
+ *
+ * @category Delay and vantage
  */
 export function classifyRetained(args: {
   entry: PendingEntry;
@@ -264,6 +300,8 @@ const PHASE_ORDER: Record<PredictedPhase, number> = {
  * generalizes). `memory` is the caller's own persisted map (typically a
  * `useRef`); mutated in place and also returned via the result. Ids no
  * longer present in `items` are forgotten so the map doesn't grow forever.
+ *
+ * @category Delay and vantage
  */
 export function latchForward(
   items: InFlightCommand[],

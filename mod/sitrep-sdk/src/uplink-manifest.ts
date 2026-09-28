@@ -39,7 +39,11 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-/** The sidecar's name. Fixed: the loader derives its URL from the bundle's. */
+/**
+ * The sidecar's name. Fixed: the loader derives its URL from the bundle's.
+ *
+ * @category Manifest
+ */
 export const UPLINK_MANIFEST_FILE = "gonogo-uplink.json";
 
 /**
@@ -47,6 +51,8 @@ export const UPLINK_MANIFEST_FILE = "gonogo-uplink.json";
  *
  * Distinct from what the code declares: an id and a name appear in both, and
  * `buildUplinkManifest` refuses rather than picking when the two disagree.
+ *
+ * @category Manifest
  */
 export interface UplinkDeclaration {
   id?: string;
@@ -63,7 +69,11 @@ export interface UplinkDeclaration {
   mod?: { name?: string; builtAgainst?: string; tier?: string };
 }
 
-/** Every field `gonogo-uplink.json` carries, in the order it is written. */
+/**
+ * Every field `gonogo-uplink.json` carries, in the order it is written.
+ *
+ * @category Manifest
+ */
 export interface UplinkManifest {
   id: string;
   name: string;
@@ -97,7 +107,11 @@ export interface UplinkManifest {
   sdkVersion: string;
 }
 
-/** What the client's registrations say, for a caller that has read them. */
+/**
+ * What the client's registrations say, for a caller that has read them.
+ *
+ * @category Manifest
+ */
 export interface RegisteredIdentity {
   id: string;
   name: string;
@@ -105,6 +119,11 @@ export interface RegisteredIdentity {
   description?: string;
 }
 
+/**
+ * What `buildUplinkManifest` reads.
+ *
+ * @category Manifest
+ */
 export interface UplinkManifestInputs {
   /** The Uplink's client package: the directory holding its `package.json`. */
   clientDir: string;
@@ -173,6 +192,8 @@ function readJsonFile(path: string, what: string): Record<string, unknown> {
  * and the operator's monorepo is not, so it is one level above a flat layout's
  * client and two above a monorepo's. Absent is normal for an Uplink that ships
  * inside the app's own repo and has no separate declaration.
+ *
+ * @category Manifest
  */
 export function readUplinkDeclaration(
   clientDir: string,
@@ -227,6 +248,8 @@ function agreed(
  * Deterministic: given the same client directory, declaration and compat block
  * it produces the same object every time, and `serialiseUplinkManifest` the same
  * bytes. Nothing here reads a clock, a build artifact or the environment.
+ *
+ * @category Manifest
  */
 export function buildUplinkManifest(
   inputs: UplinkManifestInputs,
@@ -308,7 +331,11 @@ export function buildUplinkManifest(
   };
 }
 
-/** The manifest's bytes: two-space JSON with a trailing newline, always. */
+/**
+ * The manifest's bytes: two-space JSON with a trailing newline, always.
+ *
+ * @category Manifest
+ */
 export function serialiseUplinkManifest(manifest: UplinkManifest): string {
   return `${JSON.stringify(manifest, null, 2)}\n`;
 }
@@ -320,6 +347,8 @@ export function serialiseUplinkManifest(manifest: UplinkManifest): string {
  * of this manifest: `bundle` hashes the file it just built and never needs it,
  * `docs` prints it whenever no `--bundle` was named, and a second writer of this
  * file should say the same sentence rather than invent its own.
+ *
+ * @category Manifest
  */
 export const NO_BUNDLE_INTEGRITY_WARNING =
   "no bundle was named, so gonogo-uplink.json carries an EMPTY integrity and " +

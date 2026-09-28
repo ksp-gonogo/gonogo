@@ -22,13 +22,19 @@ import {
 } from "./__generated__/control-channels";
 import { isTopicId, type TopicId } from "./topics";
 
-/** The id of a declared bidirectional control channel. */
+/**
+ * The id of a declared bidirectional control channel.
+ *
+ * @category Commands
+ */
 export type ControlChannelId = GeneratedControlChannelId;
 
 /**
  * ONE handle unifying a control channel's two wire keys. `readTopic`/`readField`
  * carry the confirmed readback (the echo); `writeCommand`/`toArgs` are the delayed
  * uplink half.
+ *
+ * @category Commands
  */
 export interface ControlChannelHandle {
   /** The channel id, e.g. `"vessel.control.throttle"`. */
@@ -59,6 +65,8 @@ const BY_ID: ReadonlyMap<string, GeneratedControlChannel> = new Map(
  * The handle for `id`, or `undefined` when no channel with that id is declared (or,
  * defensively, when its read topic is not a known `TopicId`, which a passing
  * control-channels-cs-sync test rules out for every first-party channel).
+ *
+ * @category Commands
  */
 export function getControlChannel(
   id: string,
@@ -78,7 +86,11 @@ export function getControlChannel(
   };
 }
 
-/** Every declared control-channel id. */
+/**
+ * Every declared control-channel id.
+ *
+ * @category Commands
+ */
 export function controlChannelIds(): readonly string[] {
   return GENERATED_CONTROL_CHANNELS.map((channel) => channel.id);
 }

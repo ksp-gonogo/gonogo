@@ -19,7 +19,11 @@
  * satisfies `DelayClockLike` structurally (its `ViewClockView` view is wider).
  */
 
-/** One UT-stamped media frame (or still) entering the buffer. */
+/**
+ * One UT-stamped media frame (or still) entering the buffer.
+ *
+ * @category Delayed video
+ */
 export interface StampedFrame<Frame = unknown> {
   /** Capture UT: the same timeline telemetry samples are stamped on. */
   ut: number;
@@ -43,6 +47,8 @@ export interface StampedFrame<Frame = unknown> {
  * keeps the buffer unit-testable against a clock double and documents the
  * two-method contract media delay needs off the one delay authority. The app
  * passes the real `ViewClock` instance (or any equivalent) at the call site.
+ *
+ * @category Delayed video
  */
 export interface DelayClockLike {
   /** The certainty horizon: a frame stamped at-or-before this UT is
@@ -54,6 +60,11 @@ export interface DelayClockLike {
   onFrame(cb: (viewUt: number) => void): () => void;
 }
 
+/**
+ * Options for a new `DelayedPlayoutBuffer`.
+ *
+ * @category Delayed video
+ */
 export interface DelayedPlayoutBufferOptions<Frame = unknown> {
   /** THE delay clock: the same object instance telemetry reads. */
   view: DelayClockLike;
@@ -109,6 +120,8 @@ export interface DelayedPlayoutBufferOptions<Frame = unknown> {
  * `confirmedEdgeUt()` reaches its `ut`: never earlier, so it can never
  * show data before the equivalent telemetry sample would confirm at the
  * same UT: the "common-mode" property.
+ *
+ * @category Delayed video
  */
 export class DelayedPlayoutBuffer<Frame = unknown> {
   private queue: StampedFrame<Frame>[] = [];

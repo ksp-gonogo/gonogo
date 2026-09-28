@@ -21,6 +21,8 @@
  * `registerAugment`, the hooks and the host. Hand-managed, and deliberately not
  * the sdk's package version: bump it when the surface an Uplink compiles against
  * changes, not when the package publishes.
+ *
+ * @category Host and runtime
  */
 export const EXTENSION_API_VERSION = "6.0.0";
 
@@ -28,6 +30,8 @@ export const EXTENSION_API_VERSION = "6.0.0";
  * The wire contract's major, mirroring `ContractVersion.Major` in
  * `mod/Sitrep.Contract/ContractVersion.cs`. A mismatch REFUSES an Uplink: the
  * payload shapes it was built against are not the ones on the wire.
+ *
+ * @category Host and runtime
  */
 export const CONTRACT_MAJOR = 19;
 
@@ -35,5 +39,7 @@ export const CONTRACT_MAJOR = 19;
  * The wire contract's minor, mirroring `ContractVersion.Minor`. An Uplink built
  * against a NEWER minor than the host is refused; an older one loads, since a
  * minor is additive.
+ *
+ * @category Host and runtime
  */
 export const CONTRACT_MINOR = 0;

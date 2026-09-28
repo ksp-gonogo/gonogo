@@ -16,6 +16,8 @@ import { registerBody } from "./bodies";
  * Base URL for body texture images. Textures are served from the app's
  * public/bodies/ directory. Pass import.meta.env.BASE_URL from the app
  * entrypoint to handle sub-path deployments (e.g. /gonogo/bodies/).
+ *
+ * @category Solar system and fleet
  */
 export function registerStockBodies(baseUrl = "bodies"): void {
   const tex = (name: string) => `${baseUrl}/${name}_Color.png`;

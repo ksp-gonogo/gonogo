@@ -21,6 +21,12 @@ import type { ActionInputPayload } from "./types";
  */
 const ACTION_HANDLERS_KEY = "__GONOGO_ACTION_HANDLERS__" as const;
 
+/**
+ * Handles one action for one widget instance. What it returns is written back to
+ * the device that fired it.
+ *
+ * @category Actions
+ */
 export type ActionHandler = (payload: ActionInputPayload) => unknown;
 
 function handlers(): Map<string, Map<string, ActionHandler>> {
@@ -41,6 +47,12 @@ function bucketFor(instanceId: string): Map<string, ActionHandler> {
   return bucket;
 }
 
+/**
+ * Registers the handler for one action of one widget instance, replacing any
+ * before it. `useActionInput` does this for you.
+ *
+ * @category Actions
+ */
 export function registerActionHandler(
   instanceId: string,
   actionId: string,
@@ -49,6 +61,11 @@ export function registerActionHandler(
   bucketFor(instanceId).set(actionId, handler);
 }
 
+/**
+ * Removes the handler for one action of one widget instance.
+ *
+ * @category Actions
+ */
 export function unregisterActionHandler(
   instanceId: string,
   actionId: string,
@@ -65,6 +82,8 @@ export function unregisterActionHandler(
  * Fires the handler registered for `instanceId`/`actionId` if one exists and
  * returns its value (for the render-output path). Unknown actions are a no-op
  * and return `undefined`.
+ *
+ * @category Actions
  */
 export function dispatchAction(
   instanceId: string,
@@ -76,7 +95,11 @@ export function dispatchAction(
   return handler(payload);
 }
 
-/** Test-only: wipe all registered handlers. */
+/**
+ * Test-only: wipe all registered handlers.
+ *
+ * @category Actions
+ */
 export function clearActionHandlers(): void {
   handlers().clear();
 }

@@ -75,6 +75,8 @@ import type { Value } from "./unit-system/value";
  * so reporting `absent` would be a claim about the wire instead of about the
  * mathematics. `Reading`'s value is optional on every arm, which is what makes
  * this expressible without a cast, and `Unit` draws it as the null token.
+ *
+ * @category Reading telemetry
  */
 export function combineReadings<
   const Inputs extends readonly Reading<unknown>[],
@@ -109,7 +111,11 @@ export function combineReadings<
   };
 }
 
-/** One input's currency, already read off it by the caller. */
+/**
+ * One input's currency, already read off it by the caller.
+ *
+ * @category Reading telemetry
+ */
 export interface CarriedCurrency {
   readonly state: ReadingState;
   /** When the observation behind it was made, where it has one. */
@@ -155,6 +161,8 @@ export interface CarriedCurrency {
  * A derived figure's uncertainty is not its inputs' uncertainty, and
  * propagating an interval through arbitrary arithmetic would claim otherwise
  * over errors nothing here knows to be independent.
+ *
+ * @category Reading telemetry
  */
 export function datedFrom<Derived>(
   carriers: readonly CarriedCurrency[],
@@ -182,7 +190,11 @@ export function datedFrom<Derived>(
   };
 }
 
-/** The value types of a tuple of readings, in the same order. */
+/**
+ * The value types of a tuple of readings, in the same order.
+ *
+ * @category Reading telemetry
+ */
 export type ReadingValues<Inputs extends readonly Reading<unknown>[]> = {
   [Index in keyof Inputs]: Inputs[Index] extends Reading<infer Payload>
     ? Payload

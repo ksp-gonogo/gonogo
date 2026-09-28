@@ -10,6 +10,12 @@ import type { SettingsService } from "./SettingsService";
 
 const SettingsContext = createContext<SettingsService | null>(null);
 
+/**
+ * Makes a `SettingsService` available to `useSetting` and `useSettingsService`
+ * below it.
+ *
+ * @category Settings
+ */
 export function SettingsProvider({
   service,
   children,
@@ -24,6 +30,11 @@ export function SettingsProvider({
   );
 }
 
+/**
+ * The `SettingsService` from the nearest `SettingsProvider`. Throws outside one.
+ *
+ * @category Settings
+ */
 export function useSettingsService(): SettingsService {
   const svc = useContext(SettingsContext);
   if (!svc) {
@@ -39,6 +50,8 @@ export function useSettingsService(): SettingsService {
  * `[value, setValue]` tuple; mutations persist through the underlying
  * `SettingsService` and broadcast to other subscribers. Client-pref rows
  * only: a stream-backed row's value is on a Topic, not in `SettingsService`.
+ *
+ * @category Settings
  */
 export function useSetting<SettingValue>(
   key: string,

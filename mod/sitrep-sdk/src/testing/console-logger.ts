@@ -19,6 +19,8 @@ import type { Logger } from "../api/logger-contract";
  * `tag()` returns this same object rather than a gated sub-logger: verbose tracing
  * is a delivery concern of the real logger's transports, and swallowing a tagged
  * line in a test would hide the one thing the author is reading.
+ *
+ * @category Test doubles
  */
 export const consoleLogger: Logger = {
   debug: (message, context) => {

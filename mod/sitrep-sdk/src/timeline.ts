@@ -28,6 +28,8 @@ import type { Meta } from "./__generated__/contract";
  * ingested under (mirrors `meta.timelineEpoch`, copied in verbatim by
  * whoever constructs the point: `ClientTimeline.append` trusts it, it does
  * not re-derive it from `meta`).
+ *
+ * @category Processors
  */
 export interface TimelinePoint<Payload = unknown> {
   validAt: number;
@@ -48,11 +50,19 @@ export interface TimelinePoint<Payload = unknown> {
  * any UT but the one this derive call was invoked for. `get` also resolves
  * derived-on-derived inputs transparently (it's just another `sample()`
  * call), so a derived channel can list another derived channel as an input.
+ *
+ * @category Processors
  */
 export type DerivedGet = <Payload = unknown>(
   topic: string,
 ) => TimelinePoint<Payload> | undefined;
 
+/**
+ * A Topic computed on the client from other Topics, registered on the timeline
+ * store so it is read like any other.
+ *
+ * @category Processors
+ */
 export interface DerivedChannelDefinition<Payload> {
   /** The topic this channel registers as, e.g. `"system.state"`. */
   topic: string;

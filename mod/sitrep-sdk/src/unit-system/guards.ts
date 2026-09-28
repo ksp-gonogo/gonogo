@@ -34,6 +34,8 @@ import type { Value } from "./value";
  * Each operand needs its own proof. `isOxygen(a) && isOxygen(b)` is the
  * pattern, and the asymmetry is the point: narrowing one side and not the
  * other leaves them different types, so it still will not compile.
+ *
+ * @category Units and values
  */
 export function unitGuard<const Unit extends string>(symbol: Unit) {
   return (candidate: Value): candidate is Value<Unit> =>
@@ -75,6 +77,8 @@ export function unitGuard<const Unit extends string>(symbol: Unit) {
  * Each value needs its own proof. Narrowing one component of a compound and
  * not its siblings leaves them different types, so a caller that wants the
  * whole thing narrowed asks about each part.
+ *
+ * @category Units and values
  */
 export function isUnit<Unit extends string>(
   candidate: Value,
@@ -109,6 +113,8 @@ export function isUnit<Unit extends string>(
  * Throws rather than warns: this can only fire on a symbol the caller both
  * guards on AND believes it registered, so it is a bug in the Uplink every
  * time, and a warning in a console nobody reads is how it survives to ship.
+ *
+ * @category Units and values
  */
 export function assertGuardsRegistered(symbols: readonly string[]): void {
   const missing = symbols.filter((symbol) => lookupUnit(symbol) === undefined);
