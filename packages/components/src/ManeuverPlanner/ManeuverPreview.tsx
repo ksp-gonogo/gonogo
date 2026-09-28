@@ -2,7 +2,12 @@ import type { BodyDefinition, CurrentOrbit, DataKey } from "@ksp-gonogo/core";
 import type { OrbitTrajectory } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { Button, GhostButton } from "@ksp-gonogo/ui";
-import { Countdown, SectionTitle, Unit } from "@ksp-gonogo/ui-kit";
+import {
+  Countdown,
+  SectionTitle,
+  SignalDelayBadge,
+  Unit,
+} from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 import {
   projectionDiffersFromTrajectory,
@@ -17,6 +22,7 @@ import { ShortfallBanner } from "./ShortfallBanner";
 import { Label, PreviewGrid, PreviewValue } from "./styles";
 import { TriggerEditor } from "./TriggerEditor";
 import type { ThresholdOp } from "./triggerTypes";
+import type { SendDelay } from "./useNodeCommands";
 
 export interface ManeuverPreviewProps {
   plan: PlanResult | null;
@@ -47,6 +53,8 @@ export interface ManeuverPreviewProps {
   currentUT: number | undefined;
   error: string | null;
   committing: boolean;
+  /** The light time a node crosses on its way to the craft, stated beside the send control. */
+  sendDelay: SendDelay;
   triggerEditorOpen: boolean;
   setTriggerEditorOpen: (next: boolean | ((prev: boolean) => boolean)) => void;
   numericKeys: DataKey[];
@@ -103,12 +111,22 @@ export function ManeuverPreview(props: ManeuverPreviewProps) {
         >
           Add Node When...
         </GhostButton>
-        <Button
-          onClick={() => void props.onCommit()}
-          disabled={props.committing || props.feasible === false}
-        >
-          {props.committing ? "Adding..." : "Add node"}
-        </Button>
+        {/* One group, so a narrow row wraps the light time with the control it qualifies. */}
+        <SendGroup>
+          {props.sendDelay.oneWaySeconds !== null &&
+            props.sendDelay.oneWaySeconds > 0 && (
+              <SignalDelayBadge
+                oneWaySeconds={props.sendDelay.oneWaySeconds}
+                delayReading={props.sendDelay.reading}
+              />
+            )}
+          <Button
+            onClick={() => void props.onCommit()}
+            disabled={props.committing || props.feasible === false}
+          >
+            {props.committing ? "Adding..." : "Add node"}
+          </Button>
+        </SendGroup>
       </CommitRow>
     </PreviewSection>
   );
@@ -200,8 +218,15 @@ const ErrorLine = styled.div`
 
 const CommitRow = styled.div`
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
   align-items: center;
   gap: var(--gap-related);
   padding-top: var(--gap-actions);
+`;
+
+const SendGroup = styled.div`
+  display: flex;
+  align-items: center;
+  gap: var(--gap-related);
 `;

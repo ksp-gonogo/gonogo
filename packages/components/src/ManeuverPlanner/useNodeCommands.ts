@@ -1,11 +1,18 @@
 import type { ParsedManeuverNode } from "@ksp-gonogo/data";
 import { useCommand } from "@ksp-gonogo/sitrep-client";
+import type { Reading, Value } from "@ksp-gonogo/sitrep-sdk";
 import { usePanelDelay } from "@ksp-gonogo/ui-kit";
 import { useCallback, useState } from "react";
 import { useBurnCompletionTracker } from "./BurnCompletionTracker";
 import type { NodeEditPatch } from "./NodeRow";
 import { describePartialDispatch } from "./partialDispatch";
 import { isSequence, type PlanResult } from "./planning";
+
+/** The one-way light time a sent node crosses, and the reading it arrived in; `null` seconds where there is none to state. */
+export interface SendDelay {
+  oneWaySeconds: number | null;
+  reading: Reading<Value<"s">> | null;
+}
 
 // An id-less node is off-contract; its array position is not an address the actuator resolves.
 const UNADDRESSABLE =
@@ -128,7 +135,14 @@ export function useNodeCommands(
     }
   }
 
+  // The light time a node crosses, for the send control to state beside itself.
+  const sendDelay: SendDelay = {
+    oneWaySeconds: addNodeCmd.effectiveDelaySeconds,
+    reading: addNodeCmd.delayReading,
+  };
+
   return {
+    sendDelay,
     committing,
     error,
     setError,

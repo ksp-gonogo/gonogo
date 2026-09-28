@@ -56,6 +56,7 @@ export function ManeuverPlannerComponent({
     hyperbolic,
   } = usePlan(inputs, telemetry);
   const {
+    sendDelay,
     committing,
     error,
     setError,
@@ -130,6 +131,7 @@ export function ManeuverPlannerComponent({
             currentUT={currentUT}
             error={error}
             committing={committing}
+            sendDelay={sendDelay}
             triggerEditorOpen={triggerEditorOpen}
             setTriggerEditorOpen={setTriggerEditorOpen}
             numericKeys={numericKeys}

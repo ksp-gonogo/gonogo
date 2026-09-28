@@ -4,15 +4,12 @@ import { Unit } from "../Unit";
 import { withDelayCurrency } from "./delayCurrency";
 
 /**
- * How long it takes to REACH the other end, as one small chip: the badge half
- * of `signalDelayPresentation`, shown when the separation is too short for a
- * readable countdown.
+ * How long it takes to REACH the other end, as one small chip.
  *
  * ONE-WAY, because the operator's question is when their words land; the
- * round trip is what the strip draws for a message actually crossing.
- *
- * `Console` owns its placement and is the only thing that draws one, so it is
- * not on the barrel.
+ * round trip is what the strip draws for a message actually crossing. Drawn
+ * beside a control that sends across the gap, so the light time is read before
+ * the press rather than learned after it.
  */
 export interface SignalDelayBadgeProps {
   /** One-way separation in seconds. Rendered as-is; the caller decides IF. */

@@ -191,6 +191,10 @@ export {
   type RailTags,
   railTagKey,
 } from "./CommandDelay/railTags";
+export {
+  SignalDelayBadge,
+  type SignalDelayBadgeProps,
+} from "./CommandDelay/SignalDelayBadge";
 export { toInFlightListItems } from "./CommandDelay/toInFlightListItems";
 export { usePanelDelay } from "./CommandDelay/usePanelDelay";
 export {
