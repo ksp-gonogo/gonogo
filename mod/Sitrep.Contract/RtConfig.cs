@@ -1707,7 +1707,11 @@ public static class RtConfig
         sb.Append("// which is not the same as being dimensionless: dimensionless is the\n");
         sb.Append("// explicit \"1\" token.\n\n");
 
-        sb.Append("/** Every token first-party payloads use (Sitrep.Contract.Units). */\n");
+        sb.Append("/**\n");
+        sb.Append(" * Every unit token the built-in payloads use.\n");
+        sb.Append(" *\n");
+        sb.Append(" * @category Units and values\n");
+        sb.Append(" */\n");
         sb.Append("export type KnownSitrepUnit =\n");
         foreach (var token in vocabulary)
         {
@@ -1728,10 +1732,16 @@ public static class RtConfig
         sb.Append(" * A consumer teaches the client what an unknown symbol MEANS by declaring it\n");
         sb.Append(" * in UnitDeclarations and calling registerUnit from @ksp-gonogo/sitrep-sdk.\n");
         sb.Append(" * Until it does, the value still renders, bare and unscaled.\n");
+        sb.Append(" *\n");
+        sb.Append(" * @category Units and values\n");
         sb.Append(" */\n");
         sb.Append("export type SitrepUnit = KnownSitrepUnit | (string & {});\n\n");
 
-        sb.Append("/** Declared units for one payload shape, keyed by camelCased field name. */\n");
+        sb.Append("/**\n");
+        sb.Append(" * Declared units for one payload shape, keyed by camelCased field name.\n");
+        sb.Append(" *\n");
+        sb.Append(" * @category Units and values\n");
+        sb.Append(" */\n");
         sb.Append("export type UnitsByField = Readonly<Record<string, SitrepUnit>>;\n\n");
 
         sb.Append("/**\n");
@@ -1750,7 +1760,11 @@ public static class RtConfig
         AppendMapBody(sb, byTopic);
         sb.Append("};\n\n");
 
-        sb.Append("/** The nested payload shape each complex field holds, by its interface name. */\n");
+        sb.Append("/**\n");
+        sb.Append(" * The nested payload shape each complex field holds, by its interface name.\n");
+        sb.Append(" *\n");
+        sb.Append(" * @category Units and values\n");
+        sb.Append(" */\n");
         sb.Append("export type ShapesByField = Readonly<Record<string, string>>;\n\n");
 
         sb.Append("/**\n");
@@ -2063,13 +2077,19 @@ public static class RtConfig
         sb.Append(" * `path` is \"\" when the input is another Topic's whole payload. Both halves\n");
         sb.Append(" * are carried separately so a consumer resolves the dep without parsing, and\n");
         sb.Append(" * the contract's own spelling is recoverable for a message an operator reads.\n");
+        sb.Append(" *\n");
+        sb.Append(" * @category Reckoners\n");
         sb.Append(" */\n");
         sb.Append("export interface GeneratedReckonableInput {\n");
         sb.Append("  readonly topic: string;\n");
         sb.Append("  readonly path: string;\n");
         sb.Append("}\n\n");
 
-        sb.Append("/** One value the contract declares a model can carry forward. */\n");
+        sb.Append("/**\n");
+        sb.Append(" * One value the contract declares a model can carry forward.\n");
+        sb.Append(" *\n");
+        sb.Append(" * @category Reckoners\n");
+        sb.Append(" */\n");
         sb.Append("export interface GeneratedReckonableValue {\n");
         sb.Append("  readonly topic: string;\n");
         sb.Append("  readonly field: string;\n");

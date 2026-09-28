@@ -34,6 +34,11 @@ const contents =
   `// Do not edit by hand, the version is single-sourced from the manifest so\n` +
   `// the exported marker can never drift from the published version. The\n` +
   `// version.gate.test.ts alongside it fails CI if this file goes stale.\n` +
+  `/**\n` +
+  ` * This package's version, as its package.json states it.\n` +
+  ` *\n` +
+  ` * @category Host and runtime\n` +
+  ` */\n` +
   `export const ${exportName} = "${version}";\n`;
 
 writeFileSync(outPath, contents);

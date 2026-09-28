@@ -2,4 +2,9 @@
 // Do not edit by hand, the version is single-sourced from the manifest so
 // the exported marker can never drift from the published version. The
 // version.gate.test.ts alongside it fails CI if this file goes stale.
+/**
+ * This package's version, as its package.json states it.
+ *
+ * @category Host and runtime
+ */
 export const CLIENT_VERSION = "0.0.1";

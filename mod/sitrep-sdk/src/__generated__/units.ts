@@ -9,7 +9,11 @@
 // which is not the same as being dimensionless: dimensionless is the
 // explicit "1" token.
 
-/** Every token first-party payloads use (Sitrep.Contract.Units). */
+/**
+ * Every unit token the built-in payloads use.
+ *
+ * @category Units and values
+ */
 export type KnownSitrepUnit =
   | "%"
   | "1"
@@ -71,10 +75,16 @@ export type KnownSitrepUnit =
  * A consumer teaches the client what an unknown symbol MEANS by declaring it
  * in UnitDeclarations and calling registerUnit from @ksp-gonogo/sitrep-sdk.
  * Until it does, the value still renders, bare and unscaled.
+ *
+ * @category Units and values
  */
 export type SitrepUnit = KnownSitrepUnit | (string & {});
 
-/** Declared units for one payload shape, keyed by camelCased field name. */
+/**
+ * Declared units for one payload shape, keyed by camelCased field name.
+ *
+ * @category Units and values
+ */
 export type UnitsByField = Readonly<Record<string, SitrepUnit>>;
 
 /**
@@ -2103,7 +2113,11 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
 };
 
-/** The nested payload shape each complex field holds, by its interface name. */
+/**
+ * The nested payload shape each complex field holds, by its interface name.
+ *
+ * @category Units and values
+ */
 export type ShapesByField = Readonly<Record<string, string>>;
 
 /**

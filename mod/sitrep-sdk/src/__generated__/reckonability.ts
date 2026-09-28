@@ -26,13 +26,19 @@ export type GeneratedReckoningBasis =
  * `path` is "" when the input is another Topic's whole payload. Both halves
  * are carried separately so a consumer resolves the dep without parsing, and
  * the contract's own spelling is recoverable for a message an operator reads.
+ *
+ * @category Reckoners
  */
 export interface GeneratedReckonableInput {
   readonly topic: string;
   readonly path: string;
 }
 
-/** One value the contract declares a model can carry forward. */
+/**
+ * One value the contract declares a model can carry forward.
+ *
+ * @category Reckoners
+ */
 export interface GeneratedReckonableValue {
   readonly topic: string;
   readonly field: string;
