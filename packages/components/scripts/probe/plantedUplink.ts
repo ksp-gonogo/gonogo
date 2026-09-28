@@ -63,7 +63,7 @@ PLANTED_UPLINK.registerContribution({
   deps: ["vessel.parts"],
   requires: "planted",
   compute: (topics) => {
-    const wire = topics["vessel.parts"] as PartsWire | undefined;
+    const wire = topics["vessel.parts"] as PartsWire | null | undefined;
     if (!wire) return null;
     const entries = [];
     for (const part of wire.parts) {
@@ -129,7 +129,7 @@ interface CrewWire {
 
 /** The planted rules for the kerbals actually aboard, in roster order. */
 function aboard(wire: unknown): [string, readonly [string, number][]][] {
-  const crew = (wire as CrewWire | undefined)?.crew ?? [];
+  const crew = (wire as CrewWire | null | undefined)?.crew ?? [];
   return crew
     .map((k): [string, readonly [string, number][]] => [
       k.name,

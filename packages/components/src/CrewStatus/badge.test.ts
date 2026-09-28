@@ -26,6 +26,10 @@ describe("crewAboardBadge", () => {
     expect(crewAboardBadge(undefined)).toBeNull();
   });
 
+  it("shows no badge when the mod confirms there is no crew to describe", () => {
+    expect(crewAboardBadge(null)).toBeNull();
+  });
+
   it("shows no badge when the headcount itself has not arrived", () => {
     expect(crewAboardBadge(crew(withoutCount()))).toBeNull();
   });

@@ -245,6 +245,7 @@ function SlotAggregator({
     if (cached && cached.token === token) return cached.values;
     const values: Record<string, unknown> = {};
     for (const topic of unionDeps.topics) {
+      // `undefined` is no point yet, and a tombstone's `null` passes through as the mod's confirmed absence.
       const point = telemetryStore.sample(topic, token);
       values[topic] = point ? point.payload : undefined;
     }

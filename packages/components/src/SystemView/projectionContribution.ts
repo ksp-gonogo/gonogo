@@ -8,7 +8,7 @@ import { projectionsForBody, type SystemViewProjection } from "./projection";
  */
 
 function projectionEntries(
-  bodies: SystemBodies | undefined,
+  bodies: SystemBodies | null | undefined,
 ): SystemViewProjection[] {
   const entries: SystemViewProjection[] = [];
   for (const body of bodies?.bodies ?? []) {

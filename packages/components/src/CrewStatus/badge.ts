@@ -4,7 +4,7 @@ import type { BadgeEntry } from "@ksp-gonogo/ui-kit";
 
 /** Info-tone headcount badge ("3/4 aboard"); coexists with the nogo-tone crew-survival badge an Uplink feeds to the same slot. */
 export function crewAboardBadge(
-  crew: VesselCrew | undefined,
+  crew: VesselCrew | null | undefined,
 ): BadgeEntry[] | null {
   if (!crew) return null;
   const count = crew.count?.magnitude;

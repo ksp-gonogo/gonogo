@@ -1,9 +1,5 @@
 import { CORE_UPLINK_CLIENT } from "@ksp-gonogo/core";
-import type {
-  PlotEntry,
-  PlotLayer,
-  TopicPayload,
-} from "@ksp-gonogo/sitrep-sdk";
+import type { PlotEntry, PlotLayer } from "@ksp-gonogo/sitrep-sdk";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { writeQuantity } from "@ksp-gonogo/ui-kit";
 import { parentBodyFromTopics } from "../shared/streamBody";
@@ -273,18 +269,10 @@ CORE_UPLINK_CLIENT.registerContribution({
     "vessel.orbit",
   ],
   compute: (topics) => {
-    const flight = topics["vessel.flight"] as
-      | TopicPayload<"vessel.flight">
-      | undefined;
-    const landing = topics["vessel.landing"] as
-      | TopicPayload<"vessel.landing">
-      | undefined;
-    const surface = topics["vessel.surface"] as
-      | TopicPayload<"vessel.surface">
-      | undefined;
-    const orbit = topics["vessel.orbit"] as
-      | TopicPayload<"vessel.orbit">
-      | undefined;
+    const flight = topics["vessel.flight"];
+    const landing = topics["vessel.landing"];
+    const surface = topics["vessel.surface"];
+    const orbit = topics["vessel.orbit"];
     const body = parentBodyFromTopics(topics);
     if (
       flight?.latitude == null ||

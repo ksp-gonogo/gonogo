@@ -219,6 +219,10 @@ describe("computeVesselOrbitEntities", () => {
     expect(computeVesselOrbitEntities(undefined, bodies())).toEqual([]);
   });
 
+  it("returns nothing when the mod confirms there is no roster", () => {
+    expect(computeVesselOrbitEntities(null, bodies())).toEqual([]);
+  });
+
   it("returns nothing for an empty roster", () => {
     expect(computeVesselOrbitEntities(wire([]), bodies())).toEqual([]);
   });
@@ -487,6 +491,10 @@ describe("computeCommsNetworkEntities", () => {
     expect(computeCommsNetworkEntities(undefined, wire([]), bodies())).toEqual(
       [],
     );
+  });
+
+  it("returns nothing when the mod confirms there is no network", () => {
+    expect(computeCommsNetworkEntities(null, wire([]), bodies())).toEqual([]);
   });
 
   it("returns nothing for a network with no edges", () => {

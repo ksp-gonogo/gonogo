@@ -147,6 +147,46 @@ describe("useContributions", () => {
     await waitFor(() => expect(screen.getByText("sma:700000")).toBeTruthy());
   });
 
+  it("hands compute undefined for a Topic that has not arrived and null for one the mod confirmed absent", async () => {
+    const seen: unknown[] = [];
+    registerContribution({
+      id: "fixture-absence",
+      contributes: "fixture.rows",
+      deps: ["vessel.orbit"],
+      compute: (topics) => {
+        const orbit = topics["vessel.orbit"];
+        seen.push(orbit);
+        if (orbit === undefined) return [{ id: "a", label: "not arrived" }];
+        if (orbit === null) return [{ id: "a", label: "confirmed absent" }];
+        return [{ id: "a", label: "present" }];
+      },
+    });
+
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
+
+    render(
+      <TelemetryProvider client={client}>
+        <Harness slots={["fixture.rows"] as const} />
+      </TelemetryProvider>,
+    );
+
+    await waitFor(() => expect(screen.getByText("not arrived")).toBeTruthy());
+
+    act(() => {
+      transport.emit("vessel.orbit", null, {
+        quality: Quality.Loaded,
+        source: "vessel:1",
+      });
+    });
+
+    await waitFor(() =>
+      expect(screen.getByText("confirmed absent")).toBeTruthy(),
+    );
+    expect(seen).toContain(undefined);
+    expect(seen).toContain(null);
+  });
+
   it("a contribution's compute() receives a Processor dep's resolved value alongside Topic values", async () => {
     const processor = defineProcessor({
       id: "fixture-doubled",

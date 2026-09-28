@@ -1,5 +1,5 @@
 import { CORE_UPLINK_CLIENT } from "@ksp-gonogo/core";
-import type { PlotLayer, PlotTone, TopicPayload } from "@ksp-gonogo/sitrep-sdk";
+import type { PlotLayer, PlotTone } from "@ksp-gonogo/sitrep-sdk";
 import {
   projectDescent,
   relativeDensityCurve,
@@ -385,15 +385,9 @@ CORE_UPLINK_CLIENT.registerContribution({
     "vessel.landing",
   ],
   compute: (topics) => {
-    const flight = topics["vessel.flight"] as
-      | TopicPayload<"vessel.flight">
-      | undefined;
-    const surface = topics["vessel.surface"] as
-      | TopicPayload<"vessel.surface">
-      | undefined;
-    const landing = topics["vessel.landing"] as
-      | TopicPayload<"vessel.landing">
-      | undefined;
+    const flight = topics["vessel.flight"];
+    const surface = topics["vessel.surface"];
+    const landing = topics["vessel.landing"];
     const body = parentBodyFromTopics(topics);
     // The burn datum as the widget derives it: the lowest point above terrain, falling back to CoM radar altitude when `vessel.surface` is null.
     const height =

@@ -23,7 +23,7 @@ import type {
  */
 
 function bodyNameByIndex(
-  bodies: SystemBodies | undefined,
+  bodies: SystemBodies | null | undefined,
 ): Map<number, string> {
   const m = new Map<number, string>();
   for (const b of bodies?.bodies ?? []) {
@@ -112,8 +112,8 @@ function vesselPosition(
  * A usable orbit draws a faint full ring, no usable orbit degrades to a faint dot at the body, and an unresolvable body omits the vessel.
  */
 export function computeVesselOrbitEntities(
-  vessels: SystemVessels | undefined,
-  bodies: SystemBodies | undefined,
+  vessels: SystemVessels | null | undefined,
+  bodies: SystemBodies | null | undefined,
 ): readonly SystemEntity[] {
   if (!vessels) return [];
   const nameByIndex = bodyNameByIndex(bodies);
@@ -140,7 +140,7 @@ export function computeVesselOrbitEntities(
 }
 
 /** The body flagged `isHome`, or `null` when none is, which keeps the home edge omitted rather than placed at a guessed body. */
-function homeBodyName(bodies: SystemBodies | undefined): string | null {
+function homeBodyName(bodies: SystemBodies | null | undefined): string | null {
   for (const b of bodies?.bodies ?? []) {
     if (b.isHome === true && b.name != null) return b.name;
   }
@@ -178,9 +178,9 @@ function resolveNodePosition(
 
 /** The CommNet half: one faint `connection-line` per `comms.network` edge, omitting any edge whose endpoint cannot be resolved; static topology only. */
 export function computeCommsNetworkEntities(
-  network: CommsNetwork | undefined,
-  vessels: SystemVessels | undefined,
-  bodies: SystemBodies | undefined,
+  network: CommsNetwork | null | undefined,
+  vessels: SystemVessels | null | undefined,
+  bodies: SystemBodies | null | undefined,
 ): readonly SystemEntity[] {
   if (!network) return [];
   const nameByIndex = bodyNameByIndex(bodies);

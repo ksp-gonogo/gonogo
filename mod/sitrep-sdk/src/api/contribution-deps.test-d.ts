@@ -1,4 +1,5 @@
 import { defineUplinkClient } from "../spine/uplink-clients";
+import type { TopicPayload } from "../topics";
 
 /**
  * A contribution's `compute` is typed from the contribution's OWN `deps`, which
@@ -39,6 +40,28 @@ CLIENT.registerContribution({
   compute: (topics) => {
     // @ts-expect-error a slot feeds nothing, so a contribution with no deps reads nothing
     void topics["vessel.crew"];
+    return [];
+  },
+});
+
+type CareerStatus = TopicPayload<"career.status">;
+
+CLIENT.registerContribution({
+  id: "topic-absence-is-two-facts",
+  contributes: "crew-status.row-tone",
+  deps: ["career.status", { reading: "vessel.crew" }],
+  compute: (topics) => {
+    const status: CareerStatus | null | undefined = topics["career.status"];
+    // @ts-expect-error a tombstoned Topic arrives as null, so null must be in the type
+    const notTombstoned: CareerStatus | undefined = topics["career.status"];
+    // @ts-expect-error a Topic that has not arrived is undefined, so undefined must be in the type
+    const arrived: CareerStatus | null = topics["career.status"];
+    const crew: TopicPayload<"vessel.crew"> | null | undefined =
+      topics["vessel.crew"];
+    // @ts-expect-error a reading dep is stored as the payload too, tombstone included
+    const crewNotTombstoned: TopicPayload<"vessel.crew"> | undefined =
+      topics["vessel.crew"];
+    void [status, notTombstoned, arrived, crew, crewNotTombstoned];
     return [];
   },
 });

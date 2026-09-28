@@ -1,9 +1,5 @@
 import { CORE_UPLINK_CLIENT } from "@ksp-gonogo/core";
-import type {
-  PlotEntry,
-  PlotLayer,
-  TopicPayload,
-} from "@ksp-gonogo/sitrep-sdk";
+import type { PlotEntry, PlotLayer } from "@ksp-gonogo/sitrep-sdk";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { writeQuantity } from "@ksp-gonogo/ui-kit";
 import { parentBodyFromTopics } from "../shared/streamBody";
@@ -300,15 +296,9 @@ CORE_UPLINK_CLIENT.registerContribution({
     "vessel.landing",
   ],
   compute: (topics) => {
-    const flight = topics["vessel.flight"] as
-      | TopicPayload<"vessel.flight">
-      | undefined;
-    const surface = topics["vessel.surface"] as
-      | TopicPayload<"vessel.surface">
-      | undefined;
-    const landing = topics["vessel.landing"] as
-      | TopicPayload<"vessel.landing">
-      | undefined;
+    const flight = topics["vessel.flight"];
+    const surface = topics["vessel.surface"];
+    const landing = topics["vessel.landing"];
     const body = parentBodyFromTopics(topics);
 
     // Derived here from the same two Topics an outside author would use, since a contribution has no route into the widget's copy.

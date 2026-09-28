@@ -527,6 +527,13 @@ type DepKey<E> = E extends string
 /**
  * The VALUE that arrives under that key.
  *
+ * <para>A Topic's value is three distinct facts. `undefined` is no point yet:
+ * the Topic has never arrived, or not since the last rewind. `null` is a point
+ * the mod sent to say there is nothing to describe (a tombstone). Anything else
+ * is the payload. Neither absence is a zero, and the two are not the same
+ * absence, so a contribution that draws anything for one must decide what it
+ * draws for the other.</para>
+ *
  * <para>A reading dep resolves to the topic's PAYLOAD here, not to its
  * `Reading`, and that is a statement about the aggregation rather than about
  * the dep: `SlotAggregator` stores `point.payload` for a bare id and a reading
@@ -543,10 +550,10 @@ type DepKey<E> = E extends string
  * otherwise, which is the defect the brand exists to prevent.</para>
  */
 type DepValue<E> = E extends string
-  ? TopicPayload<E & TopicId> | undefined
+  ? TopicPayload<E & TopicId> | null | undefined
   : E extends { readonly reading: infer T }
     ? T extends TopicId
-      ? TopicPayload<T> | undefined
+      ? TopicPayload<T> | null | undefined
       : never
     : E extends { readonly id: string; readonly __resultType?: infer R }
       ? E extends { readonly __carriesCurrency?: true }
@@ -584,7 +591,14 @@ export interface ContributionDefinition<
    * readable at all.
    */
   deps?: D;
-  /** Pure, and referentially stable when its inputs are unchanged. */
+  /**
+   * Pure, and referentially stable when its inputs are unchanged.
+   *
+   * <p>Each declared Topic arrives as its payload, `null` when the mod has
+   * confirmed there is nothing to describe, or `undefined` while it has not
+   * arrived. Returning no entries for either is honest; drawing a zero, an
+   * empty count or a nominal state for either is not.</p>
+   */
   compute: (
     topics: DepTopics<D>,
   ) => readonly ContributionEntry<S>[] | null | undefined;
