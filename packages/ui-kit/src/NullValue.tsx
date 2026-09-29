@@ -15,7 +15,7 @@ import { Text } from "./Text";
 export const NULL_DISPLAY = "—";
 
 /**
- * Renders `NULL_DISPLAY` through `Text tone="muted"`, so a bare placeholder
+ * Renders `NULL_DISPLAY` through `Text level="muted"`, so a bare placeholder
  * reads as intentionally empty rather than as ordinary body text.
  */
 export function NullValue(): ReactNode {
