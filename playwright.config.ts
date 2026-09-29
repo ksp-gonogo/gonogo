@@ -27,12 +27,11 @@ const SITREP_REPLAY_PORT = 18090;
 // power-systems.spec.ts/fuel-status.spec.ts via bootstrapPair's `sitrepPort`.
 const SITREP_REPLAY_TOPOLOGY_PORT = 18091;
 /**
- * One stream per SCREEN for the two-screen radio scene, because a light-time
- * is a property of a pair: the vantage a screen observes comes off its own
- * session's frames, so two screens sharing a server are co-located and the
- * whole delay model collapses. Three ports, three vantages, one mission
- * control and two craft at different distances. See
- * `commcast-radio-server.mjs` and `commcast-radio.spec.ts`.
+ * One stream per SCREEN for the radio scenes, because a light-time is a
+ * property of a pair: the vantage a screen observes comes off its own session's
+ * frames. Three ports, three vantages, one mission control and two craft at
+ * different distances, served by one process so Commcast crosses between them.
+ * See `commcast-radio-server.mjs`.
  */
 const RADIO_STREAM_PORTS = {
   ksc: 18095,
@@ -124,24 +123,22 @@ export default defineConfig({
         SITREP_REPLAY_TOPOLOGY_PORT: String(SITREP_REPLAY_TOPOLOGY_PORT),
       },
     },
-    ...(
-      [
-        ["ksc", "ksc"],
-        ["near", "vessel:near"],
-        ["far", "vessel:far"],
-      ] as const
-    ).map(([key, vantage]) => ({
+    {
+      // One process for all three, so Commcast said at one port reaches the others.
       command: "node ./tests/playwright/commcast-radio-server.mjs",
-      url: `http://localhost:${RADIO_STREAM_PORTS[key]}/health`,
+      url: `http://localhost:${RADIO_STREAM_PORTS.far}/health`,
       reuseExistingServer: !process.env.CI,
       stdout: "pipe" as const,
       stderr: "pipe" as const,
       timeout: 15_000,
       env: {
-        RADIO_STREAM_PORT: String(RADIO_STREAM_PORTS[key]),
-        RADIO_STREAM_VANTAGE: vantage,
+        RADIO_STREAM_SERVERS: [
+          `${RADIO_STREAM_PORTS.ksc}=ksc`,
+          `${RADIO_STREAM_PORTS.near}=vessel:near`,
+          `${RADIO_STREAM_PORTS.far}=vessel:far`,
+        ].join(","),
       },
-    })),
+    },
     {
       command: "pnpm --filter @ksp-gonogo/relay exec tsx src/index.ts",
       url: `http://localhost:${RELAY_PORT}/health`,

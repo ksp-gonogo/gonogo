@@ -26,9 +26,8 @@ import { getHostPeerId } from "./helpers";
 /**
  * Messages and radio go to a GROUP, and only its members hear them.
  *
- * Three real screens on the real mesh: mission control at `ksc` hosting it, a
- * craft 3 s out and a craft 9 s out. The relay repeats every frame to every
- * screen because PeerJS is a star, so what these show is that a screen outside
+ * Three real screens talking through the mod: mission control at `ksc`, a
+ * craft 3 s out and a craft 9 s out. What these show is that a screen outside
  * the group keeps, plays and lights nothing of it, and that a member added
  * while somebody is talking hears the change and then the stream from where it
  * had got to, each one light-time from mission control.

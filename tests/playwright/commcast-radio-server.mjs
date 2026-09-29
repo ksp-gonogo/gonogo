@@ -1,44 +1,33 @@
 /**
- * A Sitrep stream one SCREEN observes, at one vantage, on a live clock.
+ * The mod, as a radio scene needs it: one Sitrep stream per SCREEN, each at its
+ * own vantage, and Commcast carried between them the way the mod carries it.
  *
- * `sitrep-stream-server.mjs` cannot do this job and is not extended to,
- * for two reasons that are both about the delay rather than about topics:
+ * `sitrep-stream-server.mjs` cannot do this job and is not extended to:
  *
  *   - it stamps every frame `vantage: "fixture"`. A radio scene needs the
- *     screens to be at DIFFERENT vantages, because a light-time is a property
- *     of a PAIR and two screens reading the same vantage are co-located: the
- *     same transmission would be due at the same instant on both, which is the
- *     one thing the scene exists to disprove
- *   - it stamps a FIXED `validAt`/`deliveredAt`. The reader's clock is
- *     anchored on that, and every held chunk is released by comparing its
- *     instant against `utNowEstimate()`, so a pinned clock means nothing is
- *     ever due and the far end hears silence forever. The commcast render
- *     harness records the same finding, measured both ways.
+ *     screens at DIFFERENT vantages, because a light-time is a property of a
+ *     PAIR, so each port here serves one vantage
+ *   - it stamps a FIXED `validAt`/`deliveredAt`, and a pinned clock means
+ *     nothing is ever due. UT here advances with the wall clock
+ *   - Commcast is addressed and delayed by the mod, so the three ports share
+ *     one process and one set of groups: what a screen at one port says reaches
+ *     a screen at another one light-time later, and a screen that is not
+ *     addressed receives nothing
  *
- * So one process is one screen's mod: its own port, its own vantage, and a UT
- * that advances with the wall clock. Every instance derives UT from
- * `Date.now()` against a FIXED wall epoch rather than from its own start, so
- * three servers launched a second apart still agree on what time it is; a
- * per-process anchor would put a skew straight into the measurement the scene
- * is making.
+ * UT derives from `Date.now()` against a FIXED wall epoch, so it is a pure
+ * function of the machine clock. The scene itself is not baked in: the spec
+ * publishes `commandCentre.roster`, `commandCentre.separation` and the rest over
+ * `POST /publish` on each port, and the separations it publishes are the
+ * delays Commcast is carried at.
  *
- * The scene itself is not baked in. The spec publishes `commandCentre.roster`,
- * `commandCentre.separation` and the rest over `POST /publish`, so the
- * separation a test runs at is a value in the test rather than an environment
- * variable spread across three server launches.
+ * The addressing is the mod's rule (`Sitrep.Host.Commcast.CommcastUplink`),
+ * restated: a speaker addresses itself and every member it can see that it has
+ * a route to, and a membership change counts at a vantage once it has crossed
+ * there from its author.
  */
 import { createServer } from "node:http";
 import { WebSocketServer } from "ws";
 
-const PORT = Number.parseInt(process.env.RADIO_STREAM_PORT ?? "18095", 10);
-const VANTAGE = process.env.RADIO_STREAM_VANTAGE ?? "ksc";
-
-/**
- * The UT this scene calls zero-ish, and the wall instant it is pinned to.
- *
- * Both constants, so `ut()` is a pure function of the machine clock and every
- * server on this machine returns the same answer to the millisecond.
- */
 const UT_EPOCH = 1_000_000;
 const WALL_EPOCH_SECONDS = 1_756_000_000;
 
@@ -46,46 +35,252 @@ function ut() {
   return UT_EPOCH + (Date.now() / 1000 - WALL_EPOCH_SECONDS);
 }
 
-export function startRadioStreamServer({
-  port = PORT,
-  vantage = VANTAGE,
-} = {}) {
-  /** topic -> payload, as last published. Empty until the spec seeds it. */
-  const snapshot = new Map();
-  /** Every open connection, so a publish reaches the screens already watching. */
-  const clients = new Set();
-  let seq = 0;
+const BINARY_MAGIC = 0x9e;
+const LANE_STREAM_BINARY = 0x01;
+const TRAFFIC = "commcast.traffic";
+const RADIO = "commcast.radio";
 
-  function frameMeta() {
-    seq += 1;
-    const now = ut();
-    return {
-      source: "commcast-radio-server",
-      validAt: now,
-      seq,
-      deliveredAt: now,
-      vantage,
-      /*
-       * OnRails / Fresh, the same pair `sitrep-stream-server.mjs` justifies at
-       * length: nothing in a radio scene reads either, and disagreeing with
-       * the established fixture for no reason is its own trap.
-       */
-      quality: 0,
-      active: true,
-      staleness: 0,
-      timelineEpoch: 0,
-    };
+/** Every connection on every port, each at its port's vantage. */
+const clients = new Set();
+
+/** port -> topic -> payload, as last published there. */
+const snapshots = new Map();
+
+/** groupId -> membership changes, in the order they were made. */
+const groups = new Map();
+
+/** message id -> { author, to }, so an acknowledgement can be addressed. */
+const messages = new Map();
+
+/** transmission id -> { from, groupId, startedUt }. */
+const transmissions = new Map();
+
+let seq = 0;
+
+function meta(vantage, validAt, deliveredAt) {
+  seq += 1;
+  return {
+    source: "commcast-radio-server",
+    validAt,
+    seq,
+    deliveredAt,
+    vantage,
+    quality: 0,
+    active: true,
+    staleness: 0,
+    timelineEpoch: 0,
+  };
+}
+
+/** The published separation pairs, off whichever port holds them. */
+function separations() {
+  for (const snapshot of snapshots.values()) {
+    const pairs = snapshot.get("commandCentre.separation")?.pairs;
+    if (Array.isArray(pairs)) return pairs;
   }
+  return [];
+}
+
+/** One-way seconds between two vantages, or `null` where no route is published. */
+function delay(a, b) {
+  if (a === b) return 0;
+  for (const pair of separations()) {
+    if (
+      (pair.from === a && pair.to === b) ||
+      (pair.from === b && pair.to === a)
+    ) {
+      return pair.oneWaySeconds;
+    }
+  }
+  return null;
+}
+
+/** The group's members as `vantage` knows them at `at`. */
+function knownAt(changes, vantage, at) {
+  const members = new Set();
+  for (const change of changes) {
+    const d = delay(vantage, change.author);
+    const heard =
+      change.author === vantage ||
+      (change.reached.has(vantage) && d !== null && change.ut + d <= at);
+    if (!heard) continue;
+    for (const id of change.added) members.add(id);
+  }
+  return [...members];
+}
+
+/** The speaker, and every member it knows of that a signal from it can reach. */
+function addressed(speaker, members) {
+  const to = new Set([speaker]);
+  for (const member of members) {
+    if (delay(member, speaker) !== null) to.add(member);
+  }
+  return [...to].sort();
+}
+
+function binaryFrame(header, segments) {
+  const json = Buffer.from(
+    JSON.stringify({ ...header, segments: segments.map((s) => s.length) }),
+    "utf8",
+  );
+  const prefix = Buffer.from([
+    BINARY_MAGIC,
+    LANE_STREAM_BINARY,
+    json.length >> 8,
+    json.length & 0xff,
+  ]);
+  return Buffer.concat([prefix, json, ...segments]);
+}
+
+/**
+ * Deliver something said by `from` at `validAt` to each addressed vantage, one
+ * light-time later. Whoever is subscribed there when it lands hears it, which
+ * includes a screen that connected while it was still crossing.
+ */
+function say(topic, from, validAt, to, build) {
+  for (const vantage of to) {
+    const d = delay(vantage, from);
+    if (d === null) continue;
+    const deliveredAt = validAt + d;
+    setTimeout(
+      () => {
+        for (const client of clients) {
+          if (client.vantage !== vantage || !client.subs.has(topic)) continue;
+          if (client.ws.readyState !== client.ws.OPEN) continue;
+          client.ws.send(build(meta(vantage, validAt, deliveredAt)));
+        }
+      },
+      Math.max(0, (deliveredAt - ut()) * 1000),
+    );
+  }
+}
+
+function traffic(from, to, item, at) {
+  say(TRAFFIC, from, at, to, (m) =>
+    JSON.stringify({
+      type: "stream-data",
+      topic: TRAFFIC,
+      payload: { ...item, from, sentUt: at, to },
+      meta: m,
+    }),
+  );
+}
+
+function changeMembers(groupId, from, author, members, added, at) {
+  const reached = new Set(addressed(from, members));
+  const change = { ut: at, author: from, reached, added };
+  const changes = groups.get(groupId) ?? [];
+  changes.push(change);
+  groups.set(groupId, changes);
+  traffic(
+    from,
+    [...reached].sort(),
+    {
+      kind: "members",
+      id: `${groupId}@${at}`,
+      groupId,
+      author,
+      members: [...members].sort(),
+      added: [...added].sort(),
+    },
+    at,
+  );
+}
+
+/** A command, answered at once: `null` for success, or the reason it was refused. */
+function handle(from, command, args) {
+  const at = ut();
+  const author = args?.author ?? { name: "", stationKey: "", seat: "" };
+  if (command === "commcast.group.open") {
+    if (groups.has(args.groupId)) return "a group already holds that id";
+    const members = [...new Set([from, ...(args.members ?? [])])];
+    changeMembers(args.groupId, from, author, members, members, at);
+    return null;
+  }
+  if (command === "commcast.message.ack") {
+    const message = messages.get(args.messageId);
+    if (!message?.to.includes(from)) return "not addressed here";
+    const to = delay(message.author, from) === null ? [] : [message.author];
+    traffic(
+      from,
+      to,
+      { kind: "ack", groupId: "", author, messageId: args.messageId },
+      at,
+    );
+    return null;
+  }
+  const changes = groups.get(args?.groupId);
+  if (!changes) return "no group with that id is known";
+  const known = knownAt(changes, from, at);
+  if (!known.includes(from)) return "not a member as far as it knows";
+  if (command === "commcast.group.add") {
+    const added = (args.added ?? []).filter((id) => !known.includes(id));
+    if (added.length === 0) return null;
+    changeMembers(args.groupId, from, author, [...known, ...added], added, at);
+    return null;
+  }
+  const to = addressed(from, known);
+  if (command === "commcast.message.send") {
+    messages.set(args.id, { author: from, to });
+    traffic(
+      from,
+      to,
+      {
+        kind: "text",
+        id: args.id,
+        groupId: args.groupId,
+        author,
+        body: args.body,
+      },
+      at,
+    );
+    return null;
+  }
+  if (command === "commcast.radio.transmit") {
+    let t = transmissions.get(args.transmissionId);
+    if (!t) {
+      t = { from, groupId: args.groupId, startedUt: at };
+      transmissions.set(args.transmissionId, t);
+    }
+    const head = Buffer.from(
+      JSON.stringify({
+        transmissionId: args.transmissionId,
+        groupId: args.groupId,
+        from,
+        author,
+        startedUt: t.startedUt,
+        seq: args.seq,
+        end: args.end === true,
+        to,
+      }),
+      "utf8",
+    );
+    const chunks = (args.chunks ?? []).map((c) => Buffer.from(c, "base64"));
+    say(RADIO, from, at, to, (m) =>
+      binaryFrame({ type: "stream-binary", topic: RADIO, meta: m }, [
+        head,
+        ...chunks,
+      ]),
+    );
+    return null;
+  }
+  return `unknown command ${command}`;
+}
+
+export function startRadioStreamServer({ port, vantage }) {
+  const snapshot = new Map();
+  snapshots.set(port, snapshot);
 
   function sendTo(client, topic) {
     if (!snapshot.has(topic)) return;
     if (client.ws.readyState !== client.ws.OPEN) return;
+    const now = ut();
     client.ws.send(
       JSON.stringify({
         type: "stream-data",
         topic,
         payload: snapshot.get(topic),
-        meta: frameMeta(),
+        meta: meta(vantage, now, now),
       }),
     );
   }
@@ -115,18 +310,15 @@ export function startRadioStreamServer({
           res.end("bad json\n");
           return;
         }
-        /*
-         * A LIST, so a whole scene lands in one request and therefore in one
-         * burst of frames: publishing the roster and the separation
-         * separately gives a screen a frame in which it knows who it can talk
-         * to and not how far away they are, which the mod never produces.
-         */
+        // A LIST, so a whole scene lands in one burst of frames, as the mod would send it.
         const entries = Array.isArray(parsed) ? parsed : [parsed];
         for (const entry of entries) {
           if (typeof entry?.topic !== "string") continue;
           snapshot.set(entry.topic, entry.payload);
           for (const client of clients) {
-            if (client.subs.has(entry.topic)) sendTo(client, entry.topic);
+            if (client.port === port && client.subs.has(entry.topic)) {
+              sendTo(client, entry.topic);
+            }
           }
         }
         res.writeHead(200, { "Content-Type": "text/plain" });
@@ -142,18 +334,11 @@ export function startRadioStreamServer({
   const wss = new WebSocketServer({ server: http });
 
   wss.on("connection", (ws) => {
-    const client = { ws, subs: new Set() };
+    const client = { ws, subs: new Set(), vantage, port };
     clients.add(client);
     process.stdout.write(`[radio-stream ${vantage}] connect\n`);
 
-    /*
-     * Re-emit on an interval, which is what keeps the reader's clock moving:
-     * `utNowEstimate()` is anchored on the newest frame's `deliveredAt`, so a
-     * screen that stopped hearing frames would stop advancing and every held
-     * chunk would sit at the far end undelivered. 200 ms rather than the
-     * established fixture's 250 ms for no reason worth a comment; both are far
-     * under any light-time a scene runs at.
-     */
+    // Re-emit on an interval: `utNowEstimate()` is anchored on the newest frame, so a quiet screen's clock would stop.
     const ticker = setInterval(() => {
       if (ws.readyState !== ws.OPEN) return;
       for (const topic of client.subs) sendTo(client, topic);
@@ -170,9 +355,26 @@ export function startRadioStreamServer({
       if (data.type === "subscribe" && typeof data.topic === "string") {
         client.subs.add(data.topic);
         sendTo(client, data.topic);
+        return;
       }
       if (data.type === "unsubscribe" && typeof data.topic === "string") {
         client.subs.delete(data.topic);
+        return;
+      }
+      if (data.type === "command-request" && typeof data.command === "string") {
+        const refusal = handle(vantage, data.command, data.args);
+        const now = ut();
+        ws.send(
+          JSON.stringify({
+            type: "command-response",
+            requestId: data.requestId,
+            result:
+              refusal === null
+                ? { success: true }
+                : { success: false, errorCode: "wrongState", reason: refusal },
+            meta: meta(vantage, now, now),
+          }),
+        );
       }
     });
 
@@ -189,15 +391,32 @@ export function startRadioStreamServer({
     );
   });
 
-  for (const sig of ["SIGINT", "SIGTERM"]) {
-    process.on(sig, () => {
-      http.close(() => process.exit(0));
-    });
-  }
-
   return http;
+}
+
+/**
+ * `RADIO_STREAM_SERVERS` names every port and its vantage, `port=vantage`
+ * comma-separated, all served from this one process so they share Commcast.
+ */
+function serversFromEnv() {
+  const spec = process.env.RADIO_STREAM_SERVERS ?? "18095=ksc";
+  return spec.split(",").map((entry) => {
+    const at = entry.indexOf("=");
+    return {
+      port: Number.parseInt(entry.slice(0, at), 10),
+      vantage: entry.slice(at + 1),
+    };
+  });
 }
 
 const isMain =
   process.argv[1] && import.meta.url === `file://${process.argv[1]}`;
-if (isMain) startRadioStreamServer();
+if (isMain) {
+  const servers = serversFromEnv().map(startRadioStreamServer);
+  for (const sig of ["SIGINT", "SIGTERM"]) {
+    process.on(sig, () => {
+      for (const http of servers) http.close();
+      process.exit(0);
+    });
+  }
+}

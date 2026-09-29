@@ -2,6 +2,7 @@ import { PerfBudget } from "@ksp-gonogo/core";
 import { useTelemetryClientOptional } from "@ksp-gonogo/sitrep-client";
 import type { ServerMessage, StreamData } from "@ksp-gonogo/sitrep-sdk";
 import { useEffect, useRef, useState } from "react";
+import { isTransmission } from "../commcast/topics";
 import { HOST_SESSION, type PeerHostService } from "../peer/PeerHostService";
 import type { PeerMessage } from "../peer/protocol";
 
@@ -46,17 +47,19 @@ const SITREP_PEER_SUB_BUDGET = new PerfBudget({
   unit: "subscribes",
 });
 
-function isCarriedFrame(
-  message: ServerMessage,
-): message is StreamData<unknown> | Extract<ServerMessage, { type: "event" }> {
-  return message.type === "stream-data" || message.type === "event";
+function isCarriedFrame(message: ServerMessage): boolean {
+  return (
+    message.type === "stream-data" ||
+    message.type === "stream-binary" ||
+    message.type === "event"
+  );
 }
 
 /**
  * Host-side stream forwarding: taps the host's own live `TelemetryClient`
  * (via `useTelemetryClientOptional()`: the SAME client instance
  * `SitrepTelemetryProvider` mounted, never a second connection to the mod)
- * and relays every `stream-data`/`event` frame it receives VERBATIM to every
+ * and relays every `stream-data`/`stream-binary`/`event` frame it receives VERBATIM to every
  * connected station, wrapped in a `sitrep-frame` envelope. Architecturally a
  * live sibling of `StreamRecorder` (`@ksp-gonogo/sitrep-client`): instead of
  * pushing frames into an array for later replay, it pushes them onto the
@@ -84,8 +87,8 @@ function isCarriedFrame(
  * and never cleared, so it stays useful across a connect/disconnect gap. It is
  * replayed to a NEWLY connecting peer alone (`sendToPeer`, never `broadcast`)
  * and to a station that subscribes a topic the host was already holding, so
- * neither sits blank on a low-rate topic that has not changed since it asked. `event` frames are
- * one-shot by nature and deliberately NOT backfilled, same posture as
+ * neither sits blank on a low-rate topic that has not changed since it asked. `event` frames and
+ * transmissions are one-shot by nature and deliberately NOT backfilled, same posture as
  * `StreamRecorder`'s "don't replay events out of causal context".
  */
 export function SitrepPeerRelay({ peerHost }: { peerHost: PeerHostService }) {
@@ -139,7 +142,7 @@ export function SitrepPeerRelay({ peerHost }: { peerHost: PeerHostService }) {
   useEffect(() => {
     if (!client) return;
     return client.onRawMessage((message) => {
-      if (message.type === "stream-data") {
+      if (message.type === "stream-data" && !isTransmission(message)) {
         cacheRef.current.set(message.topic, message);
       }
     });

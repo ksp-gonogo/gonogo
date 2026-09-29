@@ -355,57 +355,6 @@ export type PeerMessage =
   | { type: "note-reorder"; id: string; afterId: string | null }
 
   // ──────────────────────────────────────────────────────────────────────
-  // Commcast: ADDRESSED messages between vantages, and their acknowledgements.
-  //
-  // Deliberately NOT the notes shape, and this is the one place in the
-  // protocol where copying notes would be wrong. Notes has a host-owned
-  // canonical list and a full-snapshot broadcast; Commcast has no canonical
-  // anything. A vantage owns what reached it, so these two frames are a RELAY
-  // and the host stores nothing on anybody's behalf: it keeps a frame
-  // addressed to its own vantage and passes every frame on to the other
-  // peers, because PeerJS is a star and two stations cannot speak directly.
-  //
-  // Both frames travel host-to-peer and peer-to-host on the same shape, since
-  // the host is a participant like any other and not an authority. The
-  // envelope carries everything the recipient needs to place the message
-  // itself: who it is for, where it was spoken, and the separation the author
-  // froze at send.
-  //
-  // There is no delete arm, deliberately: a message already revealed at
-  // another vantage cannot be un-said, so there is nothing to offer that
-  // would not be a lie about what the other operator saw.
-  // ──────────────────────────────────────────────────────────────────────
-  | {
-      type: "commcast-transmit";
-      msg: import("../commcast/types").CommsMessage;
-    }
-  | {
-      type: "commcast-ack";
-      ack: import("../commcast/types").CommsAck;
-    }
-  // Commcast RADIO: live push-to-talk, streamed as Opus chunks and played at the far end one light-time later.
-  //
-  // The same relay rule as the two frames above, and for the same topology
-  // reason with one extra consequence. A WebRTC media track cannot serve this
-  // at all: `peer.call()` needs the callee's peer id, a station holds only the
-  // host's, and PeerJS gives the host no way to forward a received track
-  // onward without decoding and re-encoding per listener. On the data channel
-  // the N-way relay is already built and already free.
-  //
-  // `bytes` inside the frame travels as a raw `Uint8Array`, the same precedent
-  // `uplink-bundle-response` and `fog-snapshot` record above: BinaryPack
-  // passes one through untouched and base64 would add a third to a channel
-  // carrying 50 chunks a second.
-  //
-  // Nothing is stored anywhere along the way, and there is deliberately no
-  // history arm: this is live audio, so a participant who was away missed it,
-  // the way they would have on a radio. Recorded audio MESSAGES are a separate
-  // feature and would ride `commcast-transmit` with `kind: "audio"`, not this.
-  | {
-      type: "commcast-radio";
-      frame: import("../commcast/radio/wire").RadioFrame;
-    }
-  // ──────────────────────────────────────────────────────────────────────
   // Sitrep telemetry-stream forwarding. The host taps its own
   // TelemetryClient (SitrepPeerRelay, one live subscriber to the mod,
   // never a second connection) and relays every `stream-data`/`event`

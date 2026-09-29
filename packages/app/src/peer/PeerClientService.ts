@@ -2,7 +2,6 @@ import { safeRandomUuid } from "@ksp-gonogo/core";
 import type { FlightRecord } from "@ksp-gonogo/data";
 import { debugPeer, logger } from "@ksp-gonogo/logger";
 import Peer, { type DataConnection } from "peerjs";
-import { radioFrameFromWire } from "../commcast/radio/wire";
 import { deriveHostPeerId } from "./hostPeerId";
 import { attachIceDiagnostics } from "./iceDiagnostics";
 import { MessageDispatcher } from "./MessageDispatcher";
@@ -103,9 +102,6 @@ type ClientEventMap = {
   alarmFired: [fire: { id: string; name: string; ut: number }];
   triggerSnapshot: [snap: import("@ksp-gonogo/components").TriggerSnapshot];
   notesSnapshot: [snap: import("../notes/types").NotesSnapshot];
-  commcastTransmit: [msg: import("../commcast/types").CommsMessage];
-  commcastAck: [ack: import("../commcast/types").CommsAck];
-  commcastRadio: [frame: import("../commcast/radio/wire").RadioFrame];
   gonogoAbortNotify: [stationName: string, t: number];
   analyticsConsent: [enabled: boolean];
   flightChange: [flight: FlightRecord | null];
@@ -529,28 +525,6 @@ export class PeerClientService {
       id,
       afterId,
     } satisfies PeerMessage);
-  }
-
-  /**
-   * Speak into the shared thread. The author's own seat and stationKey go on
-   * the wire beside the body: the seat is what the host and every recipient
-   * compute the reveal from, and it is exactly what has not arrived yet when
-   * a peer connects and talks in the same breath.
-   *
-   * `conn?` means a send while disconnected is DROPPED, not queued, the same
-   * as every other client send in this file. The thread surfaces that rather
-   * than pretending: see the widget's disconnected state.
-   */
-  sendCommcastMessage(msg: import("../commcast/types").CommsMessage) {
-    this.conn?.send({ type: "commcast-transmit", msg } satisfies PeerMessage);
-  }
-
-  sendCommcastAck(ack: import("../commcast/types").CommsAck) {
-    this.conn?.send({ type: "commcast-ack", ack } satisfies PeerMessage);
-  }
-
-  sendCommcastRadio(frame: import("../commcast/radio/wire").RadioFrame) {
-    this.conn?.send({ type: "commcast-radio", frame } satisfies PeerMessage);
   }
 
   sendAlarmWarpIntent(index: number) {
@@ -991,22 +965,6 @@ export class PeerClientService {
     return this.events.on("notesSnapshot", cb);
   }
 
-  onCommcastTransmit(
-    cb: (msg: import("../commcast/types").CommsMessage) => void,
-  ) {
-    return this.events.on("commcastTransmit", cb);
-  }
-
-  onCommcastAck(cb: (ack: import("../commcast/types").CommsAck) => void) {
-    return this.events.on("commcastAck", cb);
-  }
-
-  onCommcastRadio(
-    cb: (frame: import("../commcast/radio/wire").RadioFrame) => void,
-  ) {
-    return this.events.on("commcastRadio", cb);
-  }
-
   onAlarmFired(cb: (fire: { id: string; name: string; ut: number }) => void) {
     return this.events.on("alarmFired", cb);
   }
@@ -1142,18 +1100,6 @@ export class PeerClientService {
     },
     "notes-snapshot": (msg) => {
       this.events.emit("notesSnapshot", msg.snapshot);
-    },
-    "commcast-transmit": (msg) => {
-      this.events.emit("commcastTransmit", msg.msg);
-    },
-    "commcast-ack": (msg) => {
-      this.events.emit("commcastAck", msg.ack);
-    },
-    "commcast-radio": (msg) => {
-      // `radioFrameFromWire`, because BinaryPack delivers the chunk's audio as
-      // an `ArrayBuffer` where a `Uint8Array` went in. Undone at the boundary
-      // it changed at, so nothing downstream has to know it ever did.
-      this.events.emit("commcastRadio", radioFrameFromWire(msg.frame));
     },
     "alarm-fired": (msg) => {
       this.events.emit("alarmFired", {

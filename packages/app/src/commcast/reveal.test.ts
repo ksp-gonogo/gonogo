@@ -1,27 +1,21 @@
 import { describe, expect, it } from "vitest";
 import {
-  ackRevealUt,
   firstAckUtFor,
   groupSeparation,
+  heardUtOf,
   isSettled,
   legOf,
   revealedAcks,
-  revealUtFor,
   roundTripFor,
   sentArrivalUtFor,
   sentPhaseFor,
   separationBetween,
-  separationFor,
-  type Vantage,
 } from "./reveal";
 import type { CommsAck, CommsMessage, OutboundMessage } from "./types";
 
 const KSC = "ksc";
 const ARES = "vessel:ares";
 const WOOMERA = "ground:woomera";
-
-const GROUND: Vantage = { seat: "mission-control", vantageId: KSC };
-const ABOARD: Vantage = { seat: "pilot", vantageId: ARES };
 
 function msg(over: Partial<CommsMessage> = {}): CommsMessage {
   return {
@@ -53,6 +47,7 @@ function ack(over: Partial<CommsAck> = {}): CommsAck {
     stationKey: "pilot-key",
     seat: "pilot",
     atUt: 1240,
+    arrivedUt: 1480,
     ...over,
   };
 }
@@ -124,21 +119,13 @@ describe("separationBetween", () => {
   });
 });
 
-describe("revealUtFor", () => {
-  it("crosses once, never a round trip", () => {
-    expect(revealUtFor(msg(), ABOARD)).toBe(1240);
+describe("heardUtOf", () => {
+  it("is when the mod delivered it here, for anything received", () => {
+    expect(heardUtOf(msg({ arrivedUt: 1240 }))).toBe(1240);
   });
 
-  it("reveals at the send instant for a reader at the author's own vantage", () => {
-    expect(revealUtFor(msg(), GROUND)).toBe(1000);
-  });
-
-  it("measures from the LATEST attempt, so a resend really is a fresh journey", () => {
-    expect(revealUtFor(msg({ lastSentUt: 4000 }), ABOARD)).toBe(4240);
-  });
-
-  it("never delivers when there was no path", () => {
-    expect(revealUtFor(msg({ separationSeconds: null }), ABOARD)).toBeNull();
+  it("is when they were said, for this screen's own words", () => {
+    expect(heardUtOf(msg({ lastSentUt: 4000 }))).toBe(4000);
   });
 });
 
@@ -211,60 +198,48 @@ describe("groupSeparation", () => {
   });
 });
 
-describe("ackRevealUt", () => {
-  it("delays an acknowledgement back across the same separation", () => {
-    expect(ackRevealUt(ack(), msg(), GROUND)).toBe(1480);
-  });
-
-  it("shows one from a vantage alongside immediately", () => {
-    expect(ackRevealUt(ack({ from: KSC }), msg(), GROUND)).toBe(1240);
-  });
-});
-
 describe("revealedAcks", () => {
   const out = outbound({ acks: [ack()] });
 
   it("withholds one that has not got back yet", () => {
-    expect(revealedAcks(out, GROUND, 1479)).toHaveLength(0);
+    expect(revealedAcks(out, 1479)).toHaveLength(0);
   });
 
   it("counts it exactly at the instant it lands", () => {
-    expect(revealedAcks(out, GROUND, 1480)).toHaveLength(1);
+    expect(revealedAcks(out, 1480)).toHaveLength(1);
   });
 });
 
 describe("sentPhaseFor", () => {
   it("is on the outbound leg while it is still crossing", () => {
-    expect(sentPhaseFor(outbound(), GROUND, 1100)).toBe("in-transit");
+    expect(sentPhaseFor(outbound(), 1100)).toBe("in-transit");
     expect(legOf("in-transit")).toBe("outbound");
   });
 
   it("is on the return leg once it has reached the recipient", () => {
-    expect(sentPhaseFor(outbound(), GROUND, 1300)).toBe("awaiting-reply");
+    expect(sentPhaseFor(outbound(), 1300)).toBe("awaiting-reply");
     expect(legOf("awaiting-reply")).toBe("return");
   });
 
   it("is due from the reply instant until the loss margin runs out", () => {
-    expect(sentPhaseFor(outbound(), GROUND, 1480)).toBe("due");
-    expect(sentPhaseFor(outbound(), GROUND, 1482)).toBe("due");
+    expect(sentPhaseFor(outbound(), 1480)).toBe("due");
+    expect(sentPhaseFor(outbound(), 1482)).toBe("due");
   });
 
   it("goes overdue once the margin has passed with nothing back", () => {
-    expect(sentPhaseFor(outbound(), GROUND, 1483)).toBe("overdue");
+    expect(sentPhaseFor(outbound(), 1483)).toBe("overdue");
   });
 
   it("is confirmed only once the acknowledgement has REACHED the author", () => {
     const out = outbound({ acks: [ack()] });
     // Recorded at 1240 at the far end; still crossing back at 1300.
-    expect(sentPhaseFor(out, GROUND, 1300)).toBe("awaiting-reply");
-    expect(sentPhaseFor(out, GROUND, 1480)).toBe("confirmed");
+    expect(sentPhaseFor(out, 1300)).toBe("awaiting-reply");
+    expect(sentPhaseFor(out, 1480)).toBe("confirmed");
   });
 
   it("stays confirmed however late the clock runs on", () => {
     // The guard on the resend: a late acknowledgement must never flip a confirmed message back to unconfirmed.
-    expect(sentPhaseFor(outbound({ acks: [ack()] }), GROUND, 99_000)).toBe(
-      "confirmed",
-    );
+    expect(sentPhaseFor(outbound({ acks: [ack()] }), 99_000)).toBe("confirmed");
   });
 
   it("calls a message that never left lost, not a long wait", () => {
@@ -272,7 +247,7 @@ describe("sentPhaseFor", () => {
       msg: msg({ separationSeconds: null }),
       neverLeft: true,
     });
-    expect(sentPhaseFor(out, GROUND, 1000)).toBe("lost");
+    expect(sentPhaseFor(out, 1000)).toBe("lost");
   });
 });
 
@@ -289,23 +264,21 @@ describe("isSettled", () => {
 
 describe("sentArrivalUtFor", () => {
   it("holds the author's own words while the round trip is still running", () => {
-    expect(sentArrivalUtFor(outbound(), GROUND, 1300)).toBeUndefined();
+    expect(sentArrivalUtFor(outbound(), 1300)).toBeUndefined();
   });
 
   it("lands them the instant an acknowledgement gets back", () => {
-    expect(sentArrivalUtFor(outbound({ acks: [ack()] }), GROUND, 1000)).toBe(
-      1480,
-    );
+    expect(sentArrivalUtFor(outbound({ acks: [ack()] }), 1000)).toBe(1480);
   });
 
   it("hands them back unconfirmed rather than losing them forever", () => {
-    expect(sentArrivalUtFor(outbound(), GROUND, 1482)).toBeUndefined();
-    expect(sentArrivalUtFor(outbound(), GROUND, 1483)).toBe(1483);
+    expect(sentArrivalUtFor(outbound(), 1482)).toBeUndefined();
+    expect(sentArrivalUtFor(outbound(), 1483)).toBe(1483);
   });
 
   it("never waits past the give-up for an acknowledgement later still", () => {
-    const out = outbound({ acks: [ack({ atUt: 9000 })] });
-    expect(sentArrivalUtFor(out, GROUND, 9999)).toBe(1483);
+    const out = outbound({ acks: [ack({ atUt: 9000, arrivedUt: 9240 })] });
+    expect(sentArrivalUtFor(out, 9999)).toBe(1483);
   });
 
   it("shows words that never left at once, because the author is next to them", () => {
@@ -313,28 +286,19 @@ describe("sentArrivalUtFor", () => {
       msg: msg({ separationSeconds: null }),
       neverLeft: true,
     });
-    expect(sentArrivalUtFor(out, GROUND, 1000)).toBe(1000);
+    expect(sentArrivalUtFor(out, 1000)).toBe(1000);
   });
 });
 
 describe("firstAckUtFor", () => {
   it("takes the nearest ear, not the first entry in the list", () => {
     const out = outbound({
-      acks: [ack(), ack({ stationKey: "s2", from: KSC, atUt: 1010 })],
+      acks: [ack(), ack({ stationKey: "s2", from: KSC, arrivedUt: 1010 })],
     });
-    expect(firstAckUtFor(out, GROUND)).toBe(1010);
+    expect(firstAckUtFor(out)).toBe(1010);
   });
 
   it("is undefined while nobody has answered", () => {
-    expect(firstAckUtFor(outbound(), GROUND)).toBeUndefined();
-  });
-});
-
-describe("separationFor", () => {
-  it("resolves the reader's own distance from where it was spoken", () => {
-    expect(separationFor(msg(), ABOARD)).toEqual({
-      kind: "light-time",
-      seconds: 240,
-    });
+    expect(firstAckUtFor(outbound())).toBeUndefined();
   });
 });

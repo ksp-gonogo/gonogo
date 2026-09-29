@@ -2,7 +2,7 @@ import { radioSupportStatus } from "@ksp-gonogo/sitrep-sdk/media";
 import { useViewClockOptional } from "@ksp-gonogo/sitrep-sdk/spine";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CommcastLog } from "../CommcastLog";
-import type { SeparationMatrix, Vantage } from "../reveal";
+import type { Vantage } from "../reveal";
 import type { RecipientId } from "../types";
 import { useRadioBackend } from "./backend";
 import { loadInputDevice, saveInputDevice } from "./inputDevice";
@@ -90,7 +90,6 @@ export interface RadioControl {
 export interface UseRadioOptions {
   log: CommcastLog | null;
   me: Vantage;
-  pairs: SeparationMatrix | undefined;
   local: {
     stationKey: string;
     name: string;
@@ -131,7 +130,6 @@ const IDLE_TRANSMIT: RadioTransmitState = {
 export function useRadio({
   log,
   me,
-  pairs,
   local,
   groupId,
   members,
@@ -232,7 +230,6 @@ export function useRadio({
   }, [log, clock, present, support.supported, backend]);
 
   useEffect(() => session?.setVantage(me), [session, me]);
-  useEffect(() => session?.setPairs(pairs), [session, pairs]);
   useEffect(() => session?.setMuted(muted), [session, muted]);
 
   const setThreadMuted = useCallback(

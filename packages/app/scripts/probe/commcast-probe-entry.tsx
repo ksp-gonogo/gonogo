@@ -252,6 +252,12 @@ function twoFrames(): Promise<void> {
 let lastLogCounts: Record<string, number>[] = [];
 
 let nextId = 0;
+/** A message as the mod delivers it here, one separation after it was last sent. */
+function toReceived(held: Held): CommsMessage {
+  const msg = toMessage(held);
+  return { ...msg, arrivedUt: msg.lastSentUt + (held.separationSeconds ?? 0) };
+}
+
 function toMessage(held: Held): CommsMessage {
   nextId += 1;
   const ends = [...new Set([held.from, ...held.to])].sort();
@@ -489,11 +495,12 @@ function paneTree(pane: Pane, index: number) {
           stationKey: a.stationKey,
           seat: a.from.startsWith("vessel:") ? "pilot" : "mission-control",
           atUt: VIEW_UT + a.at,
+          arrivedUt: VIEW_UT + a.at + (held.separationSeconds ?? 0),
         }));
         return { msg, acks, neverLeft: held.neverLeft === true };
       }),
-      inbox: (pane.received ?? []).map(toMessage),
-      pending: (pane.crossing ?? []).map(toMessage),
+      inbox: (pane.received ?? []).map(toReceived),
+      pending: (pane.crossing ?? []).map(toReceived),
     });
   }
   /*

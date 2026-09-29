@@ -4,9 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { CommcastLog } from "./CommcastLog";
 import { groupsAt } from "./groups";
 import {
+  heardUtOf,
   isSettled,
-  revealUtFor,
-  type SeparationMatrix,
   sentArrivalUtFor,
   sentPhaseFor,
   type Vantage,
@@ -54,19 +53,14 @@ export interface CommcastFeed {
 const EMPTY_FEED: CommcastFeed = { log: [], outbound: [], groups: new Map() };
 
 /**
- * Runs the arrival rule for one vantage.
+ * Puts what one vantage holds in front of its operator, in the order it
+ * reached them.
  *
- * The release is a clock comparison and never a `setTimeout`, so a warp, a
- * quickload or a revert moves the clock and every pending message moves with
- * it. That is the valuable half of `DelayedPlayoutBuffer`'s design and the
- * reason to use the shipped buffer rather than a bespoke timer.
- *
- * What the buffer is fed is NOT the shared clock, though: it gets an adapter
- * whose `confirmedEdgeUt()` returns `utNowEstimate()`. A video frame carries a
- * capture UT from the craft's past and is rightly released against the delayed
- * confirmed edge; a human message carries a send UT minted at the sender's
- * present, and releasing it against the confirmed edge would hold it for
- * `sentUt + 2S`, a round trip for a one-way crossing.
+ * A received message is released at the instant the mod delivered it here, so
+ * it lands at once. The release is still a clock comparison and never a
+ * `setTimeout`, fed an adapter whose `confirmedEdgeUt()` returns
+ * `utNowEstimate()`, so a warp, a quickload or a revert moves every pending
+ * entry with the clock.
  *
  * Release ORDER is why the buffer earns its place over a sort. Sorting the
  * whole log by reveal instant retroactively inserts: a straggler that reaches
@@ -83,7 +77,6 @@ const EMPTY_FEED: CommcastFeed = { log: [], outbound: [], groups: new Map() };
 export function useCommcastFeed(
   log: CommcastLog | null,
   me: Vantage,
-  pairs?: SeparationMatrix,
 ): CommcastFeed {
   const clock = useViewClockOptional();
   const utNow = useUtNow();
@@ -189,16 +182,11 @@ export function useCommcastFeed(
      */
     for (const msg of [...snapshot.inbox, ...snapshot.pending]) {
       if (pinned.current.has(msg.id)) continue;
-      const ut = revealUtFor(msg, me, pairs);
-      // No path from where it was spoken to here. It is not pinned, so a pair
-      // matrix arriving later can still give it an instant, and it is shown
-      // nowhere in the meantime: at this vantage it has not happened.
-      if (ut === null) continue;
-      fresh.push({ ut, entry: { msg } });
+      fresh.push({ ut: heardUtOf(msg), entry: { msg } });
     }
     for (const out of snapshot.outbox) {
       if (pinned.current.has(out.msg.id)) continue;
-      const ut = sentArrivalUtFor(out, me, utNow, pairs);
+      const ut = sentArrivalUtFor(out, utNow);
       if (ut === undefined) continue;
       fresh.push({ ut, entry: { msg: out.msg, out } });
     }
@@ -217,16 +205,9 @@ export function useCommcastFeed(
       pinned.current.set(entry.msg.id, ut);
       buffer.push({ ut, data: entry, keyframe: true, bytes: 1 });
     }
-  }, [buffer, log, snapshot, me, pairs, utNow]);
+  }, [buffer, log, snapshot, utNow]);
 
-  /*
-   * Acknowledge on RELEASE, at the instant the message arrived rather than the
-   * instant this ran. What is delayed is the author LEARNING it, not the
-   * reading, so recording it the moment the operator can see the message is
-   * the honest instant; and stamping it with the arrival rather than with now
-   * keeps a screen that was closed for the crossing from reporting a round
-   * trip that reflects its owner's browsing rather than the geometry.
-   */
+  // Acknowledge on RELEASE: what is delayed is the author LEARNING it was read, one crossing back.
   const acked = useRef<Set<string>>(new Set());
   useEffect(() => {
     if (!log || me.vantageId === undefined) return;
@@ -235,13 +216,10 @@ export function useCommcastFeed(
       if (acked.current.has(entry.msg.id)) continue;
       acked.current.add(entry.msg.id);
       // A message already in the inbox was released on an earlier mount, and `release` finds nothing to move, so this cannot acknowledge twice.
-      const at = pinned.current.get(entry.msg.id);
-      if (at === undefined) continue;
       log.release(entry.msg.id, {
         from: me.vantageId,
         stationKey: log.screenKey,
         seat: me.seat,
-        atUt: at,
       });
     }
   }, [landed, log, me.vantageId, me.seat]);
@@ -262,14 +240,12 @@ export function useCommcastFeed(
     const outbound = snapshot.outbox.filter(
       (o) =>
         !landedIds.has(o.msg.id) &&
-        !isSettled(
-          sentPhaseFor(o, me, utNow ?? Number.NEGATIVE_INFINITY, pairs),
-        ),
+        !isSettled(sentPhaseFor(o, utNow ?? Number.NEGATIVE_INFINITY)),
     );
     return {
       log: entries,
       outbound,
-      groups: groupsAt(snapshot, me, utNow, pairs),
+      groups: groupsAt(snapshot, utNow),
     };
-  }, [log, snapshot, landed, me, pairs, utNow]);
+  }, [log, snapshot, landed, utNow]);
 }

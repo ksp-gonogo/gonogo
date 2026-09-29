@@ -45,12 +45,10 @@ import {
 import type { AlarmSnapshot } from "../alarms/types";
 import { AnalyticsConsentHost } from "../analytics/AnalyticsConsentHost";
 import { analyticsConsentService } from "../analytics/AnalyticsConsentService";
+import { CommcastLink } from "../commcast/CommcastLink";
 import type { CommcastLog } from "../commcast/CommcastLog";
 import { CommcastLogProvider } from "../commcast/CommcastLogContext";
-import {
-  attachCommcastHostMesh,
-  createCommcastLog,
-} from "../commcast/createCommcastLog";
+import { createCommcastLog } from "../commcast/createCommcastLog";
 import {
   ComponentOverlay,
   OverlayProvider,
@@ -259,18 +257,6 @@ export function MainScreen({
   const [commcastLog] = useState(() =>
     hostsThePeerMesh ? createCommcastLog() : null,
   );
-  /*
-   * Joined to the mesh in an effect, never in the initialiser above. React
-   * invokes a `useState` initialiser more than once, and a mesh registered from
-   * one has no disposal path: the extra ones stayed live on `onCommcastRadio`
-   * and each REPEATED every peer's frame onto the wire, so a station keying
-   * once was heard four times by everybody else. Constructing the log there is
-   * still fine, and is why the two are separate calls: it registers nothing.
-   */
-  useEffect(() => {
-    if (!commcastLog) return;
-    return attachCommcastHostMesh(commcastLog, peerHostService);
-  }, [commcastLog]);
   const [maneuverTriggerHost] = useState(() =>
     createManeuverTriggerHost(peerHostService),
   );
@@ -336,6 +322,7 @@ export function MainScreen({
   return (
     <SitrepTelemetryProvider transport={transport}>
       <SitrepPeerRelay peerHost={peerHostService} />
+      <CommcastLink log={commcastLog} />
       {/*
        * The host's own session is the relay above; this serves every OTHER
        * vantage a connected peer has asked to observe from, one mod session

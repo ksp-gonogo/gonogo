@@ -20,25 +20,12 @@ import { getHostPeerId } from "./helpers";
 /**
  * One keying from a PEER is heard exactly once, everywhere.
  *
- * **A host-authored transmission structurally cannot find this.** The host's
- * own `CommcastMesh` sends by calling `host.broadcast` directly, one call per
- * keying, so however many host meshes are registered on `onCommcastRadio` the
- * frame still goes out once and every existing radio scene passes. A frame from
- * a PEER takes the other path: it arrives as a `commcast-radio` message and
- * every registered listener repeats it, so a second registration is a second
- * copy on the wire and a third is a third.
- *
- * That is what a station found: `createCommcastLog` registered the host's mesh
- * from inside a `useState` initialiser, and React invokes those more than once
- * under StrictMode, leaving live undisposed listeners that each re-broadcast.
- * The craft decoded every chunk three times, which a listener hears as a
- * stutter and which no assertion in the tree was positioned to see.
- *
- * A chunk has no id, so nothing downstream can dedupe it: the text log hides
- * exactly this defect (a message is deduped on its id) and the radio cannot.
- * Kept as its own scene, with no film and no light-time, because it is a
- * property of the WIRE and wants to fail in seconds rather than inside a
- * two-minute film.
+ * A station reaches the mod only through its host: its batches go up as the
+ * host's commands, and what the mod sends back reaches it through the host's
+ * relay. Every hop is a place a copy can be repeated, and a chunk carries no id
+ * a listener could dedupe on, so a repeat is heard as a stutter. Kept as its own
+ * scene, with no film and no light-time, because it is a property of the wire
+ * and wants to fail in seconds.
  */
 
 /** Short: this is a count, not a timing measurement. */

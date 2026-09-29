@@ -97,6 +97,12 @@ export interface CommsMessage {
    * vessel.
    */
   authorVesselId?: string;
+  /**
+   * The instant it reached this vantage, as the mod delivered it one
+   * light-time after it was said. Set on everything received; absent from this
+   * screen's own words.
+   */
+  arrivedUt?: number;
 }
 
 /**
@@ -113,8 +119,10 @@ export interface CommsAck {
   from: RecipientId;
   stationKey: string;
   seat: Seat;
-  /** The recipient's `utNowEstimate()` when the message landed in front of them. */
+  /** When the recipient acknowledged it. */
   atUt: number;
+  /** When the acknowledgement reached the author, one light-time later. */
+  arrivedUt: number;
 }
 
 /**
@@ -126,12 +134,7 @@ export interface CommsAck {
  */
 export interface OutboundMessage {
   msg: CommsMessage;
-  /**
-   * Acknowledgements as they were RECEIVED here, raw. Each still has to cross
-   * the return leg before it may be read, which is `revealedAcks`' job: a
-   * receipt shown the instant the recipient tapped would be a
-   * faster-than-light channel hiding inside the UI.
-   */
+  /** Acknowledgements as they reached this screen. */
   acks: readonly CommsAck[];
   /**
    * Set when the author had no path to the recipient at the latest attempt, so
@@ -146,12 +149,7 @@ export interface OutboundMessage {
 export interface CommcastLogSnapshot {
   outbox: readonly OutboundMessage[];
   inbox: readonly CommsMessage[];
-  /**
-   * Addressed here and still crossing. Held rather than shown: a message this
-   * screen can read before it arrived would be the faster-than-light channel
-   * the whole model exists to avoid, and the mesh delivers at the speed of the
-   * internet.
-   */
+  /** Arrived here and not yet in front of the operator. */
   pending: readonly CommsMessage[];
   /**
    * How many messages have been dropped off the front of each list to stay

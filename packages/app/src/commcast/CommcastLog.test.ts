@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
+import type { OutgoingAck } from "./CommcastLog";
 import { CommcastLog, type CommcastTransmitter } from "./CommcastLog";
 import type { CommsAck, CommsMessage } from "./types";
 
@@ -32,7 +33,7 @@ function memoryStorage(): Storage {
 
 function recorder() {
   const sent: CommsMessage[] = [];
-  const acked: CommsAck[] = [];
+  const acked: OutgoingAck[] = [];
   const transmitter: CommcastTransmitter = {
     transmit: (msg) => {
       sent.push(msg);
@@ -115,20 +116,17 @@ describe("CommcastLog, one vantage's own record", () => {
       from: KSC,
       stationKey: "screen-a",
       seat: "mission-control",
-      atUt: 1240,
     });
     expect(log.snapshot().inbox).toHaveLength(1);
     expect(log.snapshot().pending).toHaveLength(0);
   });
 
-  it("acknowledges at the ARRIVAL instant, not at the instant it ran", () => {
-    // A screen closed for the crossing releases late in wall-clock and must still report the geometry, not its owner's browsing habits.
+  it("acknowledges a message once it is in front of the operator", () => {
     log.receiveTransmission(fromWire({ to: [KSC] }));
     log.release("m1", {
       from: KSC,
       stationKey: "screen-a",
       seat: "mission-control",
-      atUt: 1240,
     });
     expect(wire.acked).toEqual([
       {
@@ -136,7 +134,6 @@ describe("CommcastLog, one vantage's own record", () => {
         from: KSC,
         stationKey: "screen-a",
         seat: "mission-control",
-        atUt: 1240,
       },
     ]);
   });
@@ -148,7 +145,6 @@ describe("CommcastLog, one vantage's own record", () => {
       from: KSC,
       stationKey: "screen-a",
       seat: "mission-control",
-      atUt: 1000,
     });
     expect(log.snapshot().inbox).toHaveLength(1);
     expect(wire.acked).toEqual([]);
@@ -231,9 +227,10 @@ describe("CommcastLog, one vantage's own record", () => {
         stationKey: "pilot-1",
         seat: "pilot",
         atUt: 1240,
+        arrivedUt: 1480,
       };
       log.receiveAck(ack);
-      log.receiveAck({ ...ack, atUt: 2240 });
+      log.receiveAck({ ...ack, atUt: 2240, arrivedUt: 2480 });
       expect(log.snapshot().outbox[0].acks).toHaveLength(1);
     });
 

@@ -1,43 +1,15 @@
 /**
- * Group membership as a value that reaches each vantage one light-time after
- * the change was made there.
+ * Group membership as a value built from the changes that have reached this
+ * vantage, each counting from the instant the mod delivered it here.
  */
 import { describe, expect, it } from "vitest";
 import { groupsAt, groupWith, messageText } from "./groups";
-import type { SeparationMatrix, Vantage } from "./reveal";
 import type { CommcastLogSnapshot, CommsMessage } from "./types";
 import { EMPTY_COMMCAST_LOG } from "./types";
 
 const KSC = "ksc";
 const NEAR = "vessel:near";
 const FAR = "vessel:far";
-
-const PAIRS: SeparationMatrix = new Map([
-  [
-    KSC,
-    new Map([
-      [NEAR, 3],
-      [FAR, 9],
-    ]),
-  ],
-  [
-    NEAR,
-    new Map([
-      [KSC, 3],
-      [FAR, 7],
-    ]),
-  ],
-  [
-    FAR,
-    new Map([
-      [KSC, 9],
-      [NEAR, 7],
-    ]),
-  ],
-]);
-
-const AT_KSC: Vantage = { seat: "mission-control", vantageId: KSC };
-const AT_FAR: Vantage = { seat: "pilot", vantageId: FAR };
 
 function change(over: Partial<CommsMessage> = {}): CommsMessage {
   return {
@@ -68,11 +40,11 @@ describe("groupsAt", () => {
     const snap = held({
       outbox: [{ msg: change(), acks: [], neverLeft: false }],
     });
-    expect(groupsAt(snap, AT_KSC, 100, PAIRS).get("g1")).toEqual([KSC, NEAR]);
+    expect(groupsAt(snap, 100).get("g1")).toEqual([KSC, NEAR]);
   });
 
-  it("does not know a change made elsewhere until it has crossed to here", () => {
-    // Added at the ground at UT 200; the far craft is nine seconds out.
+  it("does not know a change made elsewhere until it has arrived here", () => {
+    // Added at the ground at UT 200, delivered to the far craft nine seconds later.
     const addFar = change({
       id: "c2",
       sentUt: 200,
@@ -80,18 +52,15 @@ describe("groupsAt", () => {
       to: [FAR, KSC, NEAR],
       members: [FAR, KSC, NEAR],
       added: [FAR],
+      arrivedUt: 209,
     });
     const snap = held({ pending: [addFar] });
-    expect(groupsAt(snap, AT_FAR, 208.9, PAIRS).has("g1")).toBe(false);
-    expect(groupsAt(snap, AT_FAR, 209, PAIRS).get("g1")).toEqual([
-      KSC,
-      FAR,
-      NEAR,
-    ]);
+    expect(groupsAt(snap, 208.9).has("g1")).toBe(false);
+    expect(groupsAt(snap, 209).get("g1")).toEqual([KSC, FAR, NEAR]);
   });
 
   it("is the union of every change that has landed, whatever order they landed in", () => {
-    const opened = change();
+    const opened = change({ arrivedUt: 103 });
     const grown = change({
       id: "c2",
       from: NEAR,
@@ -100,24 +69,15 @@ describe("groupsAt", () => {
       to: [FAR, KSC, NEAR],
       members: [FAR, KSC, NEAR],
       added: [FAR],
+      arrivedUt: 153,
     });
     const snap = held({ inbox: [grown, opened] });
-    expect(groupsAt(snap, AT_KSC, 1000, PAIRS).get("g1")).toEqual([
-      KSC,
-      FAR,
-      NEAR,
-    ]);
-  });
-
-  it("never reaches a vantage with no path from where the change was made", () => {
-    const cut: SeparationMatrix = new Map();
-    const snap = held({ pending: [change({ separationSeconds: null })] });
-    expect(groupsAt(snap, AT_FAR, 10_000, cut).size).toBe(0);
+    expect(groupsAt(snap, 1000).get("g1")).toEqual([KSC, FAR, NEAR]);
   });
 
   it("reads words as words, not as membership", () => {
     const text = change({ kind: "text", members: undefined, body: "hi" });
-    expect(groupsAt(held({ inbox: [text] }), AT_KSC, 1000, PAIRS).size).toBe(0);
+    expect(groupsAt(held({ inbox: [text] }), 1000).size).toBe(0);
   });
 });
 

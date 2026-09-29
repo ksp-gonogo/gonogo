@@ -4,54 +4,32 @@ import {
   DelayedPlayoutBuffer,
   PresentationPacer,
 } from "@ksp-gonogo/sitrep-sdk/media";
-import {
-  type SeparationMatrix,
-  separationBetween,
-  transitSecondsOf,
-  type Vantage,
-} from "../reveal";
+import type { Vantage } from "../reveal";
 import { inboundCounterparties } from "../threads";
 import type { RecipientId } from "../types";
-import type { RadioFrame, RadioTransmission } from "./wire";
+import type { HeardRadioFrame, RadioTransmission } from "./wire";
 import { recordRadioFrame } from "./wire";
 
 /**
- * The listening half of the radio: chunks off the wire, held until the light
- * has had time to cross, then decoded and played at natural rate.
+ * The listening half of the radio: chunks as the mod delivers them, decoded and
+ * played at natural rate.
  *
- * ONE delay mechanism at every distance, and a `DelayNode` is not it. The 180 s
- * cap is real and is not the reason: a `DelayNode` delays in WALL seconds while
- * the mission delay is a UT quantity that moves under warp, quickload and
- * revert. `DelayedPlayoutBuffer` releases on a clock COMPARISON instead, so a
- * revert moves the clock and every held chunk with it. Sub-180 s and
- * twenty-two minutes are therefore the same code path, with nothing to choose
- * between and nothing to get wrong at the boundary.
+ * The crossing is already behind a chunk when it arrives: the mod held it for
+ * this vantage's light-time from the speaker. What is left here is a short
+ * playout hold, so a batch arriving a little late plays straight on from the
+ * one before, and the pacing back onto the 20 ms grid.
  *
- * The clock this is handed is the reader's OWN present (`utNowEstimate()`), not
- * their `confirmedEdgeUt()`, the same choice `useCommcastFeed` documents at
- * length: a video frame carries a capture UT from the craft's past and is
- * rightly released against the delayed edge, while a human speaking carries a
- * UT minted at their own present, and releasing that against the confirmed edge
- * would hold every word for `spokenUt + 2S`, a round trip for a one-way
- * crossing.
+ * The hold is a clock COMPARISON against the reader's own present
+ * (`utNowEstimate()`), via `DelayedPlayoutBuffer`, never a wall timer or a
+ * `DelayNode`, so a warp, a quickload or a revert moves every held chunk with
+ * the clock.
  *
- * **Only a member hears it.** A chunk not addressed to this vantage is dropped
- * on arrival, before it is placed, counted or drawn: the relay repeats every
- * frame to every screen because PeerJS is a star, and this is where a screen
- * outside the group stops it. Nothing is held for a vantage that might be added
- * later either; a new member is addressed by the transmitter from the chunk
- * after the change reached it, and hears from there.
- *
- * **A cut is silence and nothing else.** No path from the transmitter's vantage
- * to this one means the chunks are dropped and NOTHING is drawn, announced or
- * counted here. A listener told "somebody is transmitting and you cannot hear
- * them" would be reading a faster-than-light channel, which is precisely what
- * the delay model exists to prevent; the transmitter learns through the absence
- * of acknowledgement, which is their own surface. That is why this class has no
- * cut reading, and why adding one later would be a defect rather than a
- * feature.
+ * **Only a member hears it.** The mod addresses each batch to the members its
+ * speaker could see, and a chunk not naming this vantage is dropped on arrival.
+ * A member with no path from the speaker is sent nothing, so a cut is silence
+ * here and nothing else: a listener told "somebody is transmitting and you
+ * cannot hear them" would be reading a faster-than-light channel.
  */
-
 /** Where decoded audio goes. Injected, so the delay logic is testable without an
  *  `AudioContext`, a worklet or a real output device. */
 export interface RadioAudioSink {
@@ -75,19 +53,12 @@ export interface RadioDecoderLike {
 /**
  * This screen's one listening output, and the reason mixing happens HERE.
  *
- * Every transmission addressed here that this vantage has a path to opens its
- * own decode stream on the receiver, and the receiver SUMS them into a single
- * output. Each stream
- * has already waited out its own crossing before a sample of it reaches the
- * sum, which is the property that matters: the sum must sit DOWNSTREAM of
- * per-source delay. What no arrangement can do is mix once and fan the result
- * out, because the transmissions in a mix have different light-times to
+ * Every transmission addressed here opens its own decode stream on the
+ * receiver, and the receiver SUMS them into a single output. Each stream has
+ * already crossed its own light-time before a sample of it reaches the sum,
+ * which is the property that matters: the sum must sit DOWNSTREAM of per-source
+ * delay, because the transmissions in a mix have different light-times to
  * different listeners.
- *
- * The host could delay per listener and sum correctly. It does not, for cost
- * rather than for truth: it would have to decode every stream to PCM, where it
- * currently forwards opaque Opus frames, and it would build a mix per listener
- * per speaker where each listener builds one. See `mix.ts`.
  *
  * One stream per transmission rather than one for the channel is also what
  * makes two talkers audible at all. Sharing a decoder means each keying's
@@ -201,20 +172,6 @@ interface HeardTransmission {
    */
   presented: boolean;
   /**
-   * The separation resolved ONCE, at the first chunk heard, and never re-read.
-   *
-   * Frozen for the same reason the transmitter froze its own: a separation that
-   * moved between chunks would move their release instants independently across
-   * the 20 ms grid, jittering the playout and, on a shrinking separation,
-   * reordering syllables inside a word.
-   *
-   * A separation that is CHANGING is still answered for, and not here. That is
-   * a RATE, a different quantity from this offset, and it is measured downstream
-   * by the pacer from the cadence chunks actually arrive at. Unfreezing this
-   * would buy the same honesty back at the price the freeze was paid to avoid.
-   */
-  transitSeconds: number;
-  /**
    * This keying's own release pacer.
    *
    * ONE PER TRANSMISSION, not one for the channel, and the reason is how the
@@ -261,10 +218,10 @@ interface HeardTransmission {
   waiting: Array<{ ut: number; chunk: HeldChunk }>;
   /**
    * Key-up has been heard. The envelope is kept anyway until the audio it
-   * describes has finished playing: `end` travels at the speed of the internet
-   * while the words it ends are still crossing the light-time, so forgetting
-   * the transmission on arrival would silence the name of whoever is still
-   * mid-sentence in the operator's ear.
+   * describes has finished playing: `end` arrives with the last batch, whose
+   * words are still in the playout hold, so forgetting the transmission on
+   * arrival would silence the name of whoever is still mid-sentence in the
+   * operator's ear.
    */
   ended: boolean;
 }
@@ -303,6 +260,12 @@ export interface RadioSessionOptions {
   maxBufferedBytes?: number;
   /** Seconds of audio one chunk carries: the 20 ms Opus grid. */
   chunkSeconds?: number;
+  /**
+   * How long a chunk is held past its arrival before it plays. The speaker's
+   * batch length and a little more, so the next batch is in hand before the
+   * last chunk of this one has played.
+   */
+  playoutHoldSeconds?: number;
 }
 
 export class RadioSession {
@@ -313,8 +276,8 @@ export class RadioSession {
   private readonly nowWall: () => number;
   private readonly chunkSeconds: number;
   private readonly maxBacklogSeconds: number;
+  private readonly playoutHoldSeconds: number;
   private me: Vantage = { seat: "mission-control" };
-  private pairs: SeparationMatrix | undefined;
   /**
    * Conversations the operator has tuned out, by thread key.
    *
@@ -349,6 +312,7 @@ export class RadioSession {
     this.nowWall = opts.nowWall ?? (() => performance.now() / 1000);
     this.chunkSeconds = opts.chunkSeconds ?? 0.02;
     this.maxBacklogSeconds = opts.maxBacklogSeconds ?? 0.25;
+    this.playoutHoldSeconds = opts.playoutHoldSeconds ?? 0.3;
     this.buffer = new DelayedPlayoutBuffer<HeldChunk>({
       view: opts.view,
       maxBufferedBytes: opts.maxBufferedBytes ?? DEFAULT_MAX_BUFFERED_BYTES,
@@ -386,25 +350,17 @@ export class RadioSession {
     this.unsubscribeFrame = opts.view.onFrame(() => this.pump());
   }
 
-  /** Where this screen is reading from. Consulted only when a transmission is
-   *  first heard. */
+  /** Where this screen is reading from, which a chunk must be addressed to. */
   setVantage(me: Vantage): void {
     this.me = me;
-  }
-
-  /** The published separation matrix, likewise consulted only when a
-   *  transmission is first heard. */
-  setPairs(pairs: SeparationMatrix | undefined): void {
-    this.pairs = pairs;
   }
 
   /**
    * Which conversations are tuned out, by thread key.
    *
-   * Consulted at the SPEAKER, per chunk, rather than frozen at the first chunk
-   * like the separation is: a mute is a decision the operator makes now,
-   * and one made mid-sentence has to take effect mid-sentence. Nothing about
-   * the delay is re-read here, so this cannot move a release instant.
+   * Consulted at the SPEAKER, per chunk: a mute is a decision the operator
+   * makes now, and one made mid-sentence has to take effect mid-sentence. It
+   * cannot move a release instant.
    */
   setMuted(keys: ReadonlySet<string>): void {
     if (this.disposed) return;
@@ -413,10 +369,10 @@ export class RadioSession {
   }
 
   /**
-   * One frame off the wire. The caller has already dropped this screen's own
-   * echo, on `authorStationKey`, exactly as the text relay does.
+   * One frame as the mod delivered it. The caller has already dropped this
+   * screen's own voice, on `authorStationKey`.
    */
-  receive(frame: RadioFrame): void {
+  receive(frame: HeardRadioFrame): void {
     if (this.disposed) return;
     recordRadioFrame(frame);
     switch (frame.kind) {
@@ -424,10 +380,9 @@ export class RadioSession {
         /*
          * Placed off the chunk itself, so a transmission is heard from whatever
          * chunk of it first reaches this screen: the first one for a listener
-         * that was there at key-down, a later one for a screen that joined
-         * partway through. A chunk that cannot be placed (no path, which is a
-         * cut and is silent, or no vantage yet, so no arrival instant to give
-         * it) is dropped without a reading, and the next one is tried afresh.
+         * that was there at key-down, a later one for a member added partway
+         * through. A chunk arriving before this screen knows its own vantage is
+         * dropped without a reading, and the next one is tried afresh.
          */
         if (
           this.me.vantageId === undefined ||
@@ -443,11 +398,11 @@ export class RadioSession {
         this.crossing += 1;
         insertBySeq(
           held.inBuffer,
-          { seq: frame.seq, ut: frame.ut + held.transitSeconds },
+          { seq: frame.seq, ut: frame.arrivedUt + this.playoutHoldSeconds },
           (c) => c.seq,
         );
         this.buffer.push({
-          ut: frame.ut + held.transitSeconds,
+          ut: frame.arrivedUt + this.playoutHoldSeconds,
           data: {
             transmissionId: frame.transmissionId,
             seq: frame.seq,
@@ -461,9 +416,9 @@ export class RadioSession {
       case "end": {
         /*
          * The envelope is retired, not the audio: whatever is already held
-         * keeps its release instants and plays out across the crossing it was
-         * given. Keying up at the far end does not silence what is still in
-         * flight, any more than it recalls a spoken word.
+         * keeps its release instants and plays out. Keying up at the far end
+         * does not silence what is still held, any more than it recalls a
+         * spoken word.
          */
         const held = this.heard.get(frame.transmissionId);
         if (!held) return;
@@ -511,35 +466,20 @@ export class RadioSession {
   }
 
   /**
-   * A keying heard here for the first time, placed against this vantage once
-   * and for all, or `undefined` where it cannot be placed.
-   *
-   * `no-path` is the whole cut expression on this side: the transmission is not
-   * registered, so its chunk is dropped. Deliberately not recorded, not counted
-   * and not surfaced, see the class doc. A screen that does not yet know its own
-   * vantage cannot say when the words reach it either, and places nothing
-   * until it does.
+   * A keying heard here for the first time, or `undefined` while this screen
+   * does not yet know its own vantage and so cannot tell whether it is
+   * addressed.
    */
   private begin(
     transmission: RadioTransmission,
     to: readonly RecipientId[],
   ): HeardTransmission | undefined {
     if (this.me.vantageId === undefined) return undefined;
-    const seconds = transitSecondsOf(
-      separationBetween(
-        transmission.from,
-        this.me.vantageId,
-        transmission.separationSeconds,
-        this.pairs,
-      ),
-    );
-    if (seconds === null) return undefined;
     const held: HeardTransmission = {
       transmission,
       threadKey: transmission.groupId,
       with: inboundCounterparties(transmission.from, to, this.me.vantageId),
       presented: false,
-      transitSeconds: seconds,
       pacer: new PresentationPacer<HeldChunk>({
         maxBacklogSeconds: this.maxBacklogSeconds,
         onPresent: (frame) => {

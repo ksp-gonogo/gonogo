@@ -28,7 +28,7 @@ import { CommcastLogProvider } from "./CommcastLogContext";
 import type { RadioBackend } from "./radio/backend";
 import { RadioBackendProvider } from "./radio/backend";
 import type { RadioDecoderLike } from "./radio/RadioSession";
-import type { RadioFrame } from "./radio/wire";
+import type { HeardRadioFrame } from "./radio/wire";
 
 const ARES = "vessel:ares";
 const WOOMERA = "ground:woomera";
@@ -36,9 +36,10 @@ const KSC = "ksc";
 const LIGHT_TIME = 240;
 
 /**
- * Spoken far enough in the past that the crossing is already over at the
- * fixture's clock, so one frame releases the chunk and the test is about the
- * MONITOR rather than about the delay, which its own suite covers.
+ * Spoken, and delivered here, far enough in the past that the playout hold is
+ * already over at the fixture's clock, so one frame releases the chunk and the
+ * test is about the MONITOR rather than about the timing, which its own suite
+ * covers.
  */
 const SPOKEN_UT = -1000;
 
@@ -160,7 +161,7 @@ function scene() {
      *  the light reports on. */
     begin(id: string, from: string, word: string) {
       const authorStationKey = `station-${from}`;
-      const frames: RadioFrame[] = [
+      const frames: HeardRadioFrame[] = [
         {
           kind: "chunk",
           transmissionId: id,
@@ -179,11 +180,12 @@ function scene() {
           seq: 0,
           ut: SPOKEN_UT,
           bytes: Uint8Array.from(word, (c) => c.charCodeAt(0)),
+          arrivedUt: SPOKEN_UT + LIGHT_TIME,
         },
       ];
       act(() => {
         for (const frame of frames) log.receiveRadio(frame);
-        // The frame that lets the delay clock release what has crossed, and the only one this suite ever mints.
+        // The frame that lets the playout clock release what has arrived, and the only one this suite ever mints.
         fixture.store.clock.emitFrame();
       });
     },

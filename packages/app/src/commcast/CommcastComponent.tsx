@@ -52,7 +52,7 @@ function CommcastComponent(_props: Readonly<ComponentProps>) {
   // Every roster entry, this vantage's own included, so a change that adds this vantage names it rather than printing its address.
   const roster = useRecipients({ seat: me.seat });
   const [view, setView] = useState<CommcastView>({ kind: "inbox" });
-  const feed = useCommcastFeed(log, me, pairs);
+  const feed = useCommcastFeed(log, me);
   const dropped = useDroppedCount(log);
   // A vantage id is an address; it reaches the screen only when the roster has not named that vantage.
   const nameFor = (id: RecipientId) =>
@@ -85,7 +85,6 @@ function CommcastComponent(_props: Readonly<ComponentProps>) {
   const radio = useRadio({
     log,
     me,
-    pairs,
     local,
     groupId,
     members,
@@ -229,7 +228,6 @@ function CommcastComponent(_props: Readonly<ComponentProps>) {
             )}
             me={me}
             utNow={utNow}
-            pairs={pairs}
             log={log}
             noSignal={noSignal}
             nameFor={nameFor}

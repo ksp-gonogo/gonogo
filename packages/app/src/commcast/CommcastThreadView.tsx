@@ -20,7 +20,7 @@ import { outboundItems } from "./outboundItems";
 import { RadioMute } from "./radio/RadioMute";
 import { RadioPtt } from "./radio/RadioPtt";
 import type { RadioControl } from "./radio/useRadio";
-import type { Separation, SeparationMatrix, Vantage } from "./reveal";
+import type { Separation, Vantage } from "./reveal";
 import type { CommcastThread } from "./threads";
 import type { RecipientId } from "./types";
 
@@ -29,7 +29,6 @@ export function CommcastThreadView({
   thread,
   me,
   utNow,
-  pairs,
   log,
   noSignal,
   nameFor,
@@ -45,7 +44,6 @@ export function CommcastThreadView({
   thread: CommcastThread;
   me: Vantage;
   utNow: number | undefined;
-  pairs: SeparationMatrix | undefined;
   log: CommcastLog;
   noSignal: boolean;
   nameFor: (id: RecipientId) => string;
@@ -105,7 +103,7 @@ export function CommcastThreadView({
       <Console
         tone={COMMCAST_TONE}
         oneWaySeconds={separationSeconds}
-        inFlight={outboundItems(thread.outbound, me, utNow, pairs, nameFor)}
+        inFlight={outboundItems(thread.outbound, utNow, nameFor)}
         inFlightFrozenAtDispatch
         composer={
           <CommcastComposer
@@ -129,9 +127,7 @@ export function CommcastThreadView({
               <CommcastMessageRow
                 key={entry.msg.id}
                 entry={entry}
-                me={me}
                 utNow={utNow}
-                pairs={pairs}
                 log={log}
                 nameFor={nameFor}
                 separationSeconds={separationSeconds}

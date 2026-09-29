@@ -9,20 +9,12 @@ import type { RecipientId } from "../types";
  * It is not an audio MESSAGE. Nothing is recorded, nothing is stored, and there
  * is no transcript: chunks play as they arrive and a listener who was not there
  * missed it, the same way they would have on a radio. That is why these frames
- * never touch `CommcastLog`'s message ledger even though they ride the same
- * wire it does.
+ * never touch `CommcastLog`'s message ledger.
  *
- * The wire is `CommcastMesh`, not a WebRTC media track, and the reason is
- * topology rather than preference. PeerJS is a star: a station holds the host's
- * peer id and nobody else's, so `peer.call()` cannot reach another station at
- * all, and the host has no way to forward a received track onward without
- * becoming a mixing SFU. The data channel already relays N ways, and it carries
- * binary through BinaryPack without base64's added third, so the chunks travel
- * as bytes.
- *
- * It does NOT carry them untouched: a `Uint8Array` comes out of BinaryPack at
- * the far end as an `ArrayBuffer`. See
- * {@link radioFrameFromWire}, which is where that is undone.
+ * The wire is the mod. Chunks go up in batches as `commcast.radio.transmit`
+ * commands and come down on the binary lane as `commcast.radio`, addressed to
+ * the group's members and delivered to each one light-time after they were
+ * spoken. See `CommcastModLink`.
  */
 
 /**
@@ -81,13 +73,10 @@ export interface RadioTransmission {
 interface RadioFrameBase {
   transmissionId: string;
   /**
-   * On every frame, `end` included, because it is what the relay drops its own
-   * echo on. The host repeats each frame to the
-   * other peers and then offers it to this screen, exactly as it does for a
-   * text message, and it must not offer a screen its own voice back.
-   *
-   * The STATION key rather than the vantage: a host and a station at one centre
-   * share a vantage and still have to hear each other.
+   * On every frame, `end` included, because it is what a screen drops its own
+   * voice on when the mod hands it back. The STATION key rather than the
+   * vantage: a host and a station at one centre share a vantage and still have
+   * to hear each other.
    */
   authorStationKey: string;
 }
@@ -132,17 +121,19 @@ export type RadioFrame =
     });
 
 /**
+ * A frame as it reached this screen. A chunk carries the instant the mod
+ * delivered it here, which is when it may be played.
+ */
+export type HeardRadioFrame =
+  | (Extract<RadioFrame, { kind: "chunk" }> & { arrivedUt: number })
+  | Extract<RadioFrame, { kind: "end" }>;
+
+/**
  * Chunks this screen puts on or takes off the radio channel, per second.
  *
  * One talker at the 20 ms grid is 50/s. The cap is five times that, which
- * leaves room for a relay hearing two or three at once and fails a runaway
- * capture loop, the failure mode a stuck transmit key produces.
- *
- * Sized against the host budgets these frames pass straight through:
- * `PEER_BROADCAST_COUNT_BUDGET` is 1500/s against a stated ~600/s baseline, so
- * one talker relayed to three stations is 150/s, a tenth of that cap but a
- * quarter of the headroom left in it. If it ever bites, 40 ms chunks halve the
- * count for 20 ms of added latency, which is nothing beside a light-minute.
+ * leaves room for hearing two or three at once and fails a runaway capture
+ * loop, the failure mode a stuck transmit key produces.
  */
 export const RADIO_CHUNK_BUDGET = new PerfBudget({
   name: "CommcastRadio chunks/sec",
@@ -169,45 +160,8 @@ export const RADIO_BYTES_BUDGET = new PerfBudget({
   unit: "bytes",
 });
 
-/**
- * One frame as it came OFF the wire, with its audio back in the shape the type
- * promises.
- *
- * **PeerJS hands the far end an `ArrayBuffer` where a `Uint8Array` went in.**
- * Measured across the real mesh, not reasoned about: every chunk arriving at a
- * peer reported `[object ArrayBuffer]`, `byteLength` 6, and `bytes[0]`
- * `undefined`. The declared type says `Uint8Array` on both sides and always
- * has, and the same conversion is already recorded one protocol message over,
- * where `sendBundleFetch` copies the wire's bytes before hashing them.
- *
- * Nothing caught it because the one consumer tolerates both: `EncodedAudioChunk`
- * takes any `BufferSource`, so the shipped decoder decodes an `ArrayBuffer`
- * perfectly happily and the defect is invisible to a listener. It is not
- * invisible to anything that INDEXES the audio, which is every other thing one
- * might do with it: a decoder that checks a magic byte, an amplitude read, a
- * test comparing what was heard against what was said.
- *
- * Normalised HERE rather than at the decoder, because the wire is where the
- * shape changed and a type that is only true on the sending side is worth
- * nothing to anybody downstream.
- */
-export function radioFrameFromWire(frame: RadioFrame): RadioFrame {
-  if (frame.kind !== "chunk") return frame;
-  const bytes = frame.bytes as Uint8Array | ArrayBuffer;
-  /*
-   * Already right, on the same screen or through a transport that preserved
-   * it: returned untouched rather than copied, because this runs 50 times a
-   * second per talker.
-   */
-  if (bytes instanceof Uint8Array) return frame;
-  if (bytes instanceof ArrayBuffer) {
-    return { ...frame, bytes: new Uint8Array(bytes) };
-  }
-  return frame;
-}
-
 /** Record one frame against both budgets, whichever direction it crossed in. */
-export function recordRadioFrame(frame: RadioFrame): void {
+export function recordRadioFrame(frame: RadioFrame | HeardRadioFrame): void {
   if (frame.kind !== "chunk") return;
   RADIO_CHUNK_BUDGET.record();
   RADIO_BYTES_BUDGET.record(frame.bytes.byteLength);

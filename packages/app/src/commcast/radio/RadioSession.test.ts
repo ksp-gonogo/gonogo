@@ -1,19 +1,20 @@
 /**
- * The listening end of the radio, which is where every delay decision is made.
+ * The listening end of the radio: chunks as the mod delivered them, played from
+ * their arrival onto the 20 ms grid.
  *
  * Driven off a hand-rolled clock and a recording decoder rather than a browser:
- * what is under test is WHEN a chunk may be heard and what a cut does, and both
+ * what is under test is WHEN a chunk may be heard and in what order, and both
  * of those are arithmetic. The audio graph is exercised in a real engine by
  * `tests/playwright/radio-capability.spec.ts`.
  */
 import { PerfBudget } from "@ksp-gonogo/core";
 import { ViewClock } from "@ksp-gonogo/sitrep-sdk/spine";
 import { afterEach, describe, expect, it } from "vitest";
-import type { SeparationMatrix, Vantage } from "../reveal";
+import type { Vantage } from "../reveal";
 import type { RadioDecoderLike, RadioReceiver } from "./RadioSession";
 import { RadioSession } from "./RadioSession";
 import { RadioTransmitter } from "./RadioTransmitter";
-import type { RadioFrame, RadioTransmission } from "./wire";
+import type { HeardRadioFrame, RadioFrame, RadioTransmission } from "./wire";
 
 const ARES = "vessel:ares";
 const KSC = "ksc";
@@ -104,13 +105,14 @@ function transmission(
   };
 }
 
+/** A chunk spoken at `ut`, delivered here one light-time later. */
 function chunk(
   t: RadioTransmission,
   seq: number,
   ut: number,
   bytes = 64,
   to: readonly string[] = [KSC, t.from],
-): RadioFrame {
+): HeardRadioFrame {
   return {
     kind: "chunk",
     transmissionId: t.id,
@@ -120,7 +122,15 @@ function chunk(
     seq,
     ut,
     bytes: new Uint8Array(bytes).fill(seq % 256),
+    arrivedUt: ut + (t.separationSeconds ?? LIGHT_TIME),
   };
+}
+
+/** A frame this screen's transmitter spoke, as the mod would deliver it one light-time on. */
+function heard(frame: RadioFrame): HeardRadioFrame {
+  return frame.kind === "chunk"
+    ? { ...frame, arrivedUt: frame.ut + LIGHT_TIME }
+    : frame;
 }
 
 const sessions: RadioSession[] = [];
@@ -133,8 +143,8 @@ afterEach(() => {
 function scene(
   opts: {
     me?: Vantage;
-    pairs?: SeparationMatrix;
     maxBufferedBytes?: number;
+    playoutHoldSeconds?: number;
     maxBacklogSeconds?: number;
     startUt?: number;
   } = {},
@@ -145,6 +155,7 @@ function scene(
     view: clock.view,
     receiver: sink.receiver,
     chunkSeconds: CHUNK,
+    playoutHoldSeconds: opts.playoutHoldSeconds ?? 0,
     ...(opts.maxBufferedBytes === undefined
       ? {}
       : { maxBufferedBytes: opts.maxBufferedBytes }),
@@ -153,13 +164,12 @@ function scene(
       : { maxBacklogSeconds: opts.maxBacklogSeconds }),
   });
   session.setVantage(opts.me ?? GROUND);
-  session.setPairs(opts.pairs);
   sessions.push(session);
   return { clock, sink, session };
 }
 
-describe("radio playout, held by the light-time", () => {
-  it("plays nothing until the crossing is over, then plays it", () => {
+describe("radio playout, from its arrival", () => {
+  it("plays nothing until it has arrived, then plays it", () => {
     const { clock, sink, session } = scene();
     const t = transmission();
     session.receive(chunk(t, 0, 1000));
@@ -183,36 +193,16 @@ describe("radio playout, held by the light-time", () => {
     expect(sink.decoded).toHaveLength(1);
   });
 
-  it("freezes the separation for the whole transmission", () => {
-    /*
-     * A published pair arriving mid-word must not move the chunks still to
-     * come: re-resolving per chunk jitters the playout across the 20 ms grid
-     * and, on a shrinking separation, reorders syllables inside a word.
-     */
-    const { clock, sink, session } = scene();
+  it("holds a chunk past its arrival for the playout hold, so the next batch is in hand", () => {
+    const { clock, sink, session } = scene({ playoutHoldSeconds: 0.3 });
     const t = transmission();
     session.receive(chunk(t, 0, 1000));
 
-    const nearer: SeparationMatrix = new Map([[ARES, new Map([[KSC, 5]])]]);
-    session.setPairs(nearer);
-    session.receive(chunk(t, 1, 1000 + CHUNK));
-
-    clock.set(1005);
+    clock.set(1000 + LIGHT_TIME + 0.299);
     session.pump(100);
     expect(sink.decoded).toHaveLength(0);
 
-    clock.set(1000 + LIGHT_TIME + CHUNK);
-    session.pump(100);
-    session.pump(100 + CHUNK);
-    expect(sink.decoded).toHaveLength(2);
-  });
-
-  it("resolves the separation at the READER when the matrix covers the pair", () => {
-    const pairs: SeparationMatrix = new Map([[ARES, new Map([[KSC, 60]])]]);
-    const { clock, sink, session } = scene({ pairs });
-    const t = transmission();
-    session.receive(chunk(t, 0, 1000));
-    clock.set(1060);
+    clock.set(1000 + LIGHT_TIME + 0.3);
     session.pump(100);
     expect(sink.decoded).toHaveLength(1);
   });
@@ -292,7 +282,7 @@ describe("radio playout, in the order it was spoken", () => {
     );
 
     const { clock, sink, session } = scene();
-    for (const frame of sent) session.receive(frame);
+    for (const frame of sent) session.receive(heard(frame));
     clock.set(2000);
     for (const at of [100, 100.02, 100.04, 100.06, 100.08]) session.pump(at);
     expect(sink.decoded.map((d) => d.bytes[0])).toEqual([0, 1, 2, 3]);
@@ -326,26 +316,6 @@ describe("radio playout, in the order it was spoken", () => {
   });
 });
 
-describe("radio playout, a cut", () => {
-  it("is silence, and says NOTHING about itself", () => {
-    // Announcing "somebody is transmitting and you cannot hear them" would be
-    // the faster-than-light channel the delay model exists to avoid. The
-    // transmitter learns through absence of acknowledgement, at their own end.
-    const { clock, sink, session } = scene();
-    const t = transmission({ separationSeconds: null });
-    session.receive(chunk(t, 0, 1000));
-    clock.set(9999);
-    session.pump(100);
-
-    expect(sink.decoded).toHaveLength(0);
-    expect(session.snapshot()).toEqual({
-      live: [],
-      backlogSeconds: 0,
-      droppedChunks: 0,
-    });
-  });
-});
-
 describe("radio playout, what the operator is told", () => {
   it("names who is being heard, and falls silent when they finish", () => {
     const { clock, sink, session } = scene();
@@ -358,7 +328,7 @@ describe("radio playout, what the operator is told", () => {
       authorStationKey: t.authorStationKey,
       ut: 1000 + 2 * CHUNK,
     });
-    // Key-up crosses at the speed of the internet while the words it ends are still crossing the light-time, so the name has to survive it.
+    // Key-up arrives with the last batch while its words are still held, so the name has to survive it.
     expect(session.snapshot().live).toEqual([]);
 
     clock.set(1000 + LIGHT_TIME + CHUNK);
@@ -658,34 +628,14 @@ describe("radio playout, joined partway through a keying", () => {
     session.pump(101);
     expect(sink.decoded.map((d) => d.bytes[0])).toEqual([2]);
   });
-
-  it("is placed at THIS vantage's separation, not the one the transmitter froze for its target", () => {
-    const woomera = "ground:woomera";
-    const pairs: SeparationMatrix = new Map([[ARES, new Map([[woomera, 9]])]]);
-    const { clock, sink, session } = scene({
-      me: { seat: "mission-control", vantageId: woomera },
-      pairs,
-    });
-    const t = transmission({ separationSeconds: 3 });
-    session.receive(chunk(t, 40, 1000, 64, [ARES, KSC, woomera]));
-
-    clock.set(1008.99);
-    session.pump(100);
-    expect(sink.decoded).toHaveLength(0);
-    clock.set(1009);
-    session.pump(100);
-    expect(sink.decoded).toHaveLength(1);
-  });
 });
 
 describe("radio, heard only by the group it is spoken to", () => {
   it("never hears, counts or lights a transmission not addressed here, whatever path there is", () => {
-    // Woomera has a path to the craft and is not in the group: a non-member hears nothing, and is told nothing.
+    // Woomera is not in the group: a chunk not naming it is heard, counted and lit nowhere.
     const woomera = "ground:woomera";
-    const pairs: SeparationMatrix = new Map([[ARES, new Map([[woomera, 9]])]]);
     const { clock, sink, session } = scene({
       me: { seat: "mission-control", vantageId: woomera },
-      pairs,
     });
     const t = transmission();
     for (let seq = 0; seq < 5; seq++) {
@@ -713,12 +663,10 @@ describe("radio, heard only by the group it is spoken to", () => {
   it("hears a member added mid-keying from the first chunk addressed to it, one light-time after it was spoken", () => {
     // The transmitter saw the addition after seq 2, and addressed Woomera from seq 3 on.
     const woomera = "ground:woomera";
-    const pairs: SeparationMatrix = new Map([[ARES, new Map([[woomera, 9]])]]);
     const { clock, sink, session } = scene({
       me: { seat: "mission-control", vantageId: woomera },
-      pairs,
     });
-    const t = transmission();
+    const t = transmission({ separationSeconds: 9 });
     for (let seq = 0; seq < 6; seq++) {
       const to = seq < 3 ? [ARES, KSC] : [ARES, KSC, woomera];
       session.receive(chunk(t, seq, 1000 + seq * CHUNK, 64, to));

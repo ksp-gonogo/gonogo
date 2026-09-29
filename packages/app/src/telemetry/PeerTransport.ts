@@ -146,6 +146,10 @@ export class PeerTransport implements Transport {
         if (message.type === "stream-data") {
           hydratePayload(message.payload);
         }
+        if (message.type === "stream-binary") {
+          this.deliver({ ...message, segments: message.segments.map(asBytes) });
+          return;
+        }
         this.deliver(message);
       }),
       client.onSitrepCommandResponse((requestId, result, meta) => {
@@ -365,4 +369,13 @@ export class PeerTransport implements Transport {
       }
     }
   }
+}
+
+/**
+ * A binary-lane segment as it came off the peer link. PeerJS hands a
+ * `Uint8Array` to the far end as an `ArrayBuffer`, and every reader of a
+ * segment indexes it.
+ */
+function asBytes(segment: Uint8Array | ArrayBuffer): Uint8Array {
+  return segment instanceof Uint8Array ? segment : new Uint8Array(segment);
 }

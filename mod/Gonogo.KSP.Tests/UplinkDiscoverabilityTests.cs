@@ -39,6 +39,8 @@ namespace Gonogo.KSP.Tests
         private static readonly string[] HandRegistered =
         {
             "CommandCentreDelayUplink",
+            // Core messaging between command centres; the addon constructs it beside the pass whose routes it reads.
+            "CommcastUplink",
             // Deliberately attribute-free: it earns its Availability from the
             // elected comms backend rather than from its own detection, so
             // GonogoAddon constructs it. It went unlisted here for as long as this

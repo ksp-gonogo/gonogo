@@ -42,9 +42,9 @@ export const RADIO_REQUIRED_GLOBALS = [
 
 /**
  * The encoder configuration the radio transmits at, and the one the probe
- * measures. 20 ms of mono 48 kHz per chunk; `bitrate` is a hint that
- * firefox overshoots, so size buffers and budgets against the measured
- * rate rather than this number.
+ * measures. 20 ms of mono 48 kHz per chunk at a voice-radio bitrate;
+ * `bitrate` is a hint that firefox overshoots, so size buffers and budgets
+ * against the measured rate rather than this number.
  *
  * @category Radio
  */
@@ -52,7 +52,7 @@ export const RADIO_ENCODER_CONFIG = {
   codec: "opus",
   sampleRate: 48_000,
   numberOfChannels: 1,
-  bitrate: 24_000,
+  bitrate: 12_000,
 } as const;
 
 /** The decoder half of {@link RADIO_ENCODER_CONFIG}: no bitrate, since a

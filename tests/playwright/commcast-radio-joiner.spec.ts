@@ -22,22 +22,23 @@ import {
 import { getHostPeerId } from "./helpers";
 
 /**
- * A screen that joins while somebody is already talking hears them from the
- * point it joined, one light-time later at its own vantage.
+ * A screen that opens while somebody is already talking hears whatever is
+ * still crossing to its vantage, and nothing that landed there before it was
+ * listening.
  *
  * Mission control keys to a group with both craft in it and keeps talking. The
- * far craft, nine seconds out, is not on the mesh when the key goes down: it
- * opens partway through, never having received the change that opened the
- * group, and hears the chunks addressed to it anyway. It never saw the first chunk go past, and it must still place and
- * decode every chunk spoken after it joined, hearing the first of them nine
- * seconds after it was spoken and nothing of what was said before.
+ * far craft, nine seconds out, opens partway through, never having received
+ * the change that opened the group. Everything spoken more than a light-time
+ * before it opened has already landed there and is missed; from the chunk
+ * spoken one light-time before it opened, it must place and decode every one,
+ * each nine seconds after it was spoken.
  */
 
 /** Thirty seconds of talking: long enough to open a whole screen partway through. */
 const CHUNKS = 1_500;
 
-/** How far into the keying the far craft starts opening. */
-const JOIN_AFTER_MS = 4_000;
+/** How far into the keying the far craft starts opening: past its light-time, so the start of the keying has already landed without it. */
+const JOIN_AFTER_MS = 13_000;
 
 test.use({ video: "off", trace: "off" });
 test.describe.configure({ timeout: 300_000 });
@@ -123,13 +124,12 @@ test.describe("commcast radio: a screen joining mid-transmission @chromium-only"
         Array.from({ length: CHUNKS }, (_, i) => i),
       );
 
-      /*
-       * From the join point, not from the top: nothing spoken before the far
-       * craft was on the mesh, and every chunk after it, in order, on one lane.
-       */
+      // From what was still crossing when it opened, not from the top, and every chunk after it, in order, on one lane.
       expect(firstIndex).toBeGreaterThan(0);
-      expect(spokenAt).toBeGreaterThan(joiningFrom - 1_000);
-      expect(spokenAt).toBeLessThan(joinedBy + 2_000);
+      expect(spokenAt).toBeGreaterThan(
+        joiningFrom - FAR_SECONDS * 1000 - 1_000,
+      );
+      expect(spokenAt).toBeLessThan(joinedBy - FAR_SECONDS * 1000 + 2_000);
       expect(farHeard.decoded).toEqual(
         Array.from({ length: CHUNKS - firstIndex }, (_, i) => firstIndex + i),
       );

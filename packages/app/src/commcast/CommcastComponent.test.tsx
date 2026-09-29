@@ -139,13 +139,16 @@ function sent(over: Partial<CommsMessage> = {}): CommsMessage {
   };
 }
 
+/** An acknowledgement, reaching this screen one 240 s crossing after it was made unless told otherwise. */
 function ack(over: Partial<CommsAck> = {}): CommsAck {
+  const atUt = over.atUt ?? -240;
   return {
     messageId: "m1",
     from: "vessel:ares",
     stationKey: "pilot-1",
     seat: "pilot",
-    atUt: -240,
+    atUt,
+    arrivedUt: atUt + 240,
     ...over,
   };
 }
@@ -517,13 +520,8 @@ describe("Commcast, rendered", () => {
     await act(async () => {});
   });
 
-  it("shows NOTHING at all for a message still crossing toward this vantage", async () => {
-    /*
-     * The terminal widget's rule: what has not arrived is absent, not described. Withholding
-     * the body while naming the author and printing a countdown still tells
-     * this vantage that somebody spoke, a light-time before that could
-     * possibly be known here. There is not even a conversation for it to be in.
-     */
+  it("shows NOTHING at all for a message whose arrival instant has not come", async () => {
+    // What has not arrived is absent, not described: not the body, not the author, not a conversation for it to be in.
     const log = makeLog();
     log.setVantage("ksc");
     log.receiveTransmission({
@@ -536,6 +534,7 @@ describe("Commcast, rendered", () => {
       authorSeat: "pilot",
       sentUt: 1_000_000,
       lastSentUt: 1_000_000,
+      arrivedUt: 1_000_240,
       body: "SECRET-IN-FLIGHT",
     });
     renderWidget(log);
@@ -613,12 +612,6 @@ describe("Commcast, rendered", () => {
   });
 
   it("counts only an acknowledgement that has REACHED this screen", async () => {
-    /*
-     * One crosses the same separation its message did. Reading the raw list
-     * would tell the author their words had been received a light-time before
-     * the news could have got back, which is the faster-than-light channel the
-     * whole design exists to avoid.
-     */
     const log = makeLog();
     log.replaceForTesting({
       outbox: [

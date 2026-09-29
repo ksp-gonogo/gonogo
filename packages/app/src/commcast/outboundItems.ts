@@ -1,13 +1,6 @@
 import type { InFlightListItem } from "@ksp-gonogo/ui-kit";
 import { messageText } from "./groups";
-import {
-  legOf,
-  roundTripFor,
-  type SentPhase,
-  type SeparationMatrix,
-  sentPhaseFor,
-  type Vantage,
-} from "./reveal";
+import { legOf, roundTripFor, type SentPhase, sentPhaseFor } from "./reveal";
 import type { OutboundMessage, RecipientId } from "./types";
 
 /**
@@ -21,14 +14,11 @@ import type { OutboundMessage, RecipientId } from "./types";
  */
 export function outboundItems(
   outbound: readonly OutboundMessage[],
-  me: Vantage,
   utNow: number | undefined,
-  pairs: SeparationMatrix | undefined,
   nameFor: (id: RecipientId) => string = (id) => id,
 ): InFlightListItem[] {
   return outbound.map((out) => {
-    const phase =
-      utNow === undefined ? "in-transit" : sentPhaseFor(out, me, utNow, pairs);
+    const phase = utNow === undefined ? "in-transit" : sentPhaseFor(out, utNow);
     return {
       id: out.msg.id,
       // The words themselves, as the terminal labels a dispatched line with what was typed.

@@ -1,20 +1,13 @@
 /**
- * When a Commcast message or radio transmission becomes visible to a reader.
+ * How a Commcast message stands at the screen that said it, and when things
+ * reached this one.
  *
- * This reveal is applied by the receiving client, so it is not enforced.
- * Messages and radio travel screen to screen over the PeerJS data channel and
- * never enter the mod, which means the Courier cannot hold them back the way it
- * holds a telemetry sample. The light-time NUMBER is the server's (the
- * `commandCentre.separation` matrix, solved once by the mod); the WITHHOLDING
- * is done here, in the reader's own browser, against that number.
- *
- * The difference in guarantee: anything the mod delays, no client can see
- * early, because the bytes have not been sent to it yet. Anything this module
- * delays has already arrived, so a modified client could read it the moment it
- * lands. That is acceptable for a co-operative game, and it is a weaker promise
- * than telemetry makes. Radio carried through the mod's binary lane would move
- * the audio onto the enforced side; messages stay on this one until they
- * travel through the mod as well.
+ * The crossing itself is the mod's: everything said goes up as a command and
+ * comes down addressed, one light-time from where it was said, so nothing here
+ * holds anything back. What is left is the author's own arithmetic, from the
+ * published separation matrix: how long their words take to reach the group,
+ * when an answer could soonest be back, and when an unanswered message stops
+ * waiting.
  */
 import { LOSS_MARGIN } from "@ksp-gonogo/sitrep-client";
 import type { Seat } from "@ksp-gonogo/sitrep-sdk/spine";
@@ -114,27 +107,6 @@ export function separationBetween(
 }
 
 /**
- * The separation `msg` crossed to reach a reader at `me`.
- *
- * The reader resolves it themselves rather than trusting the envelope, because
- * the published matrix is better evidence than a number the author froze
- * minutes ago. The frozen figure is the fallback, which is what makes the pair
- * resolvable at all before the matrix covers it.
- */
-export function separationFor(
-  msg: CommsMessage,
-  me: Vantage,
-  pairs?: SeparationMatrix,
-): Separation {
-  return separationBetween(
-    msg.from,
-    me.vantageId,
-    msg.separationSeconds,
-    pairs,
-  );
-}
-
-/**
  * Seconds a crossing over `sep` takes, or `null` when there is no crossing.
  *
  * The one place the four separation kinds collapse to a number, so a caller
@@ -153,35 +125,6 @@ export function transitSecondsOf(sep: Separation): number | null {
     case "no-path":
       return null;
   }
-}
-
-/** Seconds a message spends crossing to `me`, or `null` when it never arrives. */
-export function transitSecondsFor(
-  msg: CommsMessage,
-  me: Vantage,
-  pairs?: SeparationMatrix,
-): number | null {
-  return transitSecondsOf(separationFor(msg, me, pairs));
-}
-
-/**
- * The UT at which `msg` becomes visible at `me`, or `null` when it can never
- * get there.
- *
- * One crossing, not a round trip. `utNow` at the reader is their OWN present
- * (`ViewClock.utNowEstimate()`), never their `confirmedEdgeUt()`: the two
- * differ by the delay, and gating on the delayed one would hold a message
- * until `sentUt + 2S`. A telemetry sample and a video frame carry a CAPTURE UT
- * from the craft's past and are rightly released against the confirmed edge; a
- * human message carries a SEND UT minted at the sender's present and is not.
- */
-export function revealUtFor(
-  msg: CommsMessage,
-  me: Vantage,
-  pairs?: SeparationMatrix,
-): number | null {
-  const transit = transitSecondsFor(msg, me, pairs);
-  return transit === null ? null : msg.lastSentUt + transit;
 }
 
 /**
@@ -260,65 +203,30 @@ function secondsOf(sep: Separation): number {
 }
 
 /**
- * The UT at which an acknowledgement reaches the author at `me`, or `null`
- * when it can never get there.
- *
- * The return leg, delayed on exactly the rule the outbound one was: learning
- * that the crew read your message four minutes ago is the honest report, and
- * showing it the instant they tap would be the faster-than-light channel this
- * design exists to avoid.
+ * The instant `msg` became visible here: when it arrived, or, for this screen's
+ * own words, when they were said.
  */
-export function ackRevealUt(
-  ack: CommsAck,
-  msg: CommsMessage,
-  me: Vantage,
-  pairs?: SeparationMatrix,
-): number | null {
-  const sep = separationBetween(
-    ack.from,
-    me.vantageId,
-    msg.separationSeconds,
-    pairs,
-  );
-  switch (sep.kind) {
-    case "co-located":
-      return ack.atUt;
-    case "light-time":
-      return ack.atUt + sep.seconds;
-    case "unmeasured":
-      return ack.atUt;
-    case "no-path":
-      return null;
-  }
+export function heardUtOf(msg: CommsMessage): number {
+  return msg.arrivedUt ?? msg.lastSentUt;
 }
 
-/** The acknowledgements on `out` that have reached `me` by `utNow`. */
+/** The acknowledgements on `out` that have reached this screen by `utNow`. */
 export function revealedAcks(
   out: OutboundMessage,
-  me: Vantage,
   utNow: number,
-  pairs?: SeparationMatrix,
 ): readonly CommsAck[] {
-  return out.acks.filter((ack) => {
-    const at = ackRevealUt(ack, out.msg, me, pairs);
-    return at !== null && utNow >= at;
-  });
+  return out.acks.filter((ack) => ack.arrivedUt <= utNow);
 }
 
 /**
- * The instant the first acknowledgement of `out` reaches its author at `me`,
- * or `undefined` while nobody has made one.
+ * The instant the first acknowledgement of `out` reached its author, or
+ * `undefined` while none has.
  */
-export function firstAckUtFor(
-  out: OutboundMessage,
-  me: Vantage,
-  pairs?: SeparationMatrix,
-): number | undefined {
+export function firstAckUtFor(out: OutboundMessage): number | undefined {
   let soonest: number | undefined;
   for (const ack of out.acks) {
-    const at = ackRevealUt(ack, out.msg, me, pairs);
-    if (at === null) continue;
-    if (soonest === undefined || at < soonest) soonest = at;
+    if (soonest === undefined || ack.arrivedUt < soonest)
+      soonest = ack.arrivedUt;
   }
   return soonest;
 }
@@ -364,13 +272,8 @@ export function legOf(phase: SentPhase): "outbound" | "return" | null {
  * `firstAckUtFor` is compared against `utNow` rather than simply tested for
  * existence.
  */
-export function sentPhaseFor(
-  out: OutboundMessage,
-  me: Vantage,
-  utNow: number,
-  pairs?: SeparationMatrix,
-): SentPhase {
-  const firstAck = firstAckUtFor(out, me, pairs);
+export function sentPhaseFor(out: OutboundMessage, utNow: number): SentPhase {
+  const firstAck = firstAckUtFor(out);
   if (firstAck !== undefined && utNow >= firstAck) return "confirmed";
   // Nothing left, so nothing is travelling and nothing will answer. Not a long
   // wait: the operator is told, and can resend, rather than watching a
@@ -419,14 +322,12 @@ export function isSettled(phase: SentPhase): boolean {
  */
 export function sentArrivalUtFor(
   out: OutboundMessage,
-  me: Vantage,
   utNow: number,
-  pairs?: SeparationMatrix,
 ): number | undefined {
   if (out.neverLeft) return out.msg.lastSentUt;
   const trip = roundTripFor(out.msg);
   if (trip === null) return out.msg.lastSentUt;
-  const firstAck = firstAckUtFor(out, me, pairs);
+  const firstAck = firstAckUtFor(out);
   if (firstAck !== undefined && firstAck <= trip.overdueUt) return firstAck;
   return utNow >= trip.overdueUt ? trip.overdueUt : undefined;
 }

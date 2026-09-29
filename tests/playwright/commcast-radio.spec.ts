@@ -1,6 +1,6 @@
 /**
- * Two and three real screens, keying a real radio at each other over the real
- * mesh, and hearing each other one light-time later.
+ * Two and three real screens, keying a real radio at each other through the
+ * mod, and hearing each other one light-time later.
  *
  * **Every radio test before this one exercised ONE side.** `RadioSession` runs
  * against a stub, `clips.roundtrip` compares sample for sample, `RadioPtt`
@@ -11,11 +11,11 @@
  * is.
  *
  * What is real here: the widget, the composer, the push-to-talk key, the
- * transmitter, `CommcastMesh` over PeerJS, `CommcastLog`, `RadioSession`, the
- * delayed playout buffer, the pacer, and each screen's own view clock. What is
- * substituted is the microphone and the codec, through the seam `backend.ts`
- * was built to offer and `InjectedRadioBackend` finally provides: a recorded
- * clip in, a recording sink out, on both ends.
+ * transmitter, `CommcastModLink`, `CommcastLog`, `RadioSession`, the playout
+ * buffer, the pacer, and each screen's own view clock. What is substituted is
+ * the mod, by `commcast-radio-server.mjs`, and the microphone and the codec,
+ * through the seam `backend.ts` offers and `InjectedRadioBackend` provides: a
+ * recorded clip in, a recording sink out, on both ends.
  *
  * ## The three screens, and why there are three
  *
@@ -23,7 +23,7 @@
  * is. The sentence worth proving is that ONE transmission is due at two
  * different instants, and that needs a third vantage:
  *
- *   - mission control at `ksc`, hosting the mesh, on `/`
+ *   - mission control at `ksc`, hosting the peer link, on `/`
  *   - a pilot 3 s away at `vessel:near`, on `/pilot`
  *   - a pilot 9 s away at `vessel:far`, on `/pilot`
  *
@@ -35,9 +35,8 @@
  * ## The light, and the leak it must not have
  *
  * `RadioReception.live` is populated only when a chunk is PRESENTED, never on
- * its arrival, because a chunk crosses the mesh at the speed of the internet: a
- * lamp lit by the envelope would announce a speaker a light-minute before
- * their first word. That is asserted here in the only place it can be, with a
+ * anything earlier: a lamp lit before the words could be heard would announce a
+ * speaker a light-minute before their first word. That is asserted here with a
  * real wire under it, and it is planted in both directions rather than
  * assumed:
  *

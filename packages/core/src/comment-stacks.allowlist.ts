@@ -174,7 +174,7 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/app/src/peer/PeerHostService.ts": 9,
   "packages/app/src/peer/PeerHostService.uplinkRelay.test.ts": 1,
   "packages/app/src/peer/RelayRegistration.ts": 1,
-  "packages/app/src/peer/protocol.ts": 6,
+  "packages/app/src/peer/protocol.ts": 4,
   "packages/app/src/peer/typedListeners.ts": 1,
   "packages/app/src/screens/StationScreen.tsx": 3,
   "packages/app/src/screens/isStationRoute.ts": 1,
@@ -383,5 +383,5 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
  * it exists to produce; the census is printed beside the verdict instead.
  */
 export const SCAN_FLOORS = {
-  files: 1454,
+  files: 1455,
 } as const;

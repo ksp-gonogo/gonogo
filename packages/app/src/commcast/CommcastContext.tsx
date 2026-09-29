@@ -1,28 +1,29 @@
 import { useTelemetry } from "@ksp-gonogo/core";
-import { useObservedVantage } from "@ksp-gonogo/sitrep-client";
+import {
+  useObservedVantage,
+  useTelemetryClientOptional,
+} from "@ksp-gonogo/sitrep-client";
 import type { CommandCentreEntry } from "@ksp-gonogo/sitrep-sdk";
 import { useSeat } from "@ksp-gonogo/sitrep-sdk/spine";
 import type { ReactNode } from "react";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { usePeerClient } from "../peer/PeerClientContext";
 import { getStationKey } from "../peer/stationPeerId";
 import { useStationNameOptional } from "../stationIdentity";
 import { CommcastLog } from "./CommcastLog";
 import { useCommcastLogOptional } from "./CommcastLogContext";
-import { CommcastMesh } from "./CommcastMesh";
+import { attachCommcastModLink } from "./CommcastModLink";
 import type { SeparationMatrix, Vantage } from "./reveal";
 import type { CommsRecipient } from "./types";
 
 const CommcastContext = createContext<CommcastLog | null>(null);
 
 /**
- * Mounts this screen's own log and attaches it to the mesh.
+ * Mounts this screen's own log and puts it on the mod.
  *
- * Symmetric on purpose. Under the host-authoritative thread the two ends ran
- * different code: one owned the list, the other mirrored it. Here every
- * participant runs the same log over the same two frames, and the only
- * asymmetry left is that the host's mesh also repeats what it hears, because
- * PeerJS is a star and nobody else can reach the other stations.
+ * Every screen runs the same log. A host's is built at screen level (see
+ * `MainScreen`) so it hears what is said to its vantage whether or not the tile
+ * is showing, and reaches the widget through `CommcastLogProvider`; every other
+ * screen builds its own here, on whatever Sitrep client it reads from.
  */
 export function CommcastProvider({
   log: injected,
@@ -32,7 +33,7 @@ export function CommcastProvider({
   log?: CommcastLog | null;
   children: ReactNode;
 }) {
-  const peer = usePeerClient();
+  const client = useTelemetryClientOptional();
   const fromContext = useCommcastLogOptional();
   const me = useLocalParticipant();
   const [built, setBuilt] = useState<CommcastLog | null>(null);
@@ -57,22 +58,10 @@ export function CommcastProvider({
    */
   useEffect(() => log?.setVantage(me.vantageId), [log, me.vantageId]);
 
-  // A peer screen builds its own one-hop mesh. The host's was built with its
-  // log, at screen level, because the relay has to run for the other stations
-  // whether or not this screen is showing the tile.
   useEffect(() => {
-    if (!log || !peer || fromContext) return;
-    const mesh = CommcastMesh.forClient(peer, me.stationKey, {
-      onMessage: (msg) => log.receiveTransmission(msg),
-      onAck: (ack) => log.receiveAck(ack),
-      onRadio: (frame) => log.receiveRadio(frame),
-    });
-    log.setTransmitter(mesh);
-    return () => {
-      log.setTransmitter(undefined);
-      mesh.dispose();
-    };
-  }, [log, peer, fromContext, me.stationKey]);
+    if (!log || !client || fromContext) return;
+    return attachCommcastModLink(log, client);
+  }, [log, client, fromContext]);
 
   return (
     <CommcastContext.Provider value={log}>{children}</CommcastContext.Provider>

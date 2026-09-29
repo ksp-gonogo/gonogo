@@ -1,6 +1,6 @@
 import { PerfBudget, safeRandomUuid } from "@ksp-gonogo/core";
 import { logger } from "@ksp-gonogo/logger";
-import type { RadioFrame } from "./radio/wire";
+import type { HeardRadioFrame, RadioFrame } from "./radio/wire";
 import type {
   CommcastLogSnapshot,
   CommsAck,
@@ -35,17 +35,14 @@ const COMMCAST_TRANSMIT_BUDGET = new PerfBudget({
 
 type Listener = (snap: CommcastLogSnapshot) => void;
 
-/** What the log hands to the mesh. Delivery is somebody else's problem. */
+/** An acknowledgement this screen sends. The mod stamps when it was made, and when it arrives. */
+export type OutgoingAck = Omit<CommsAck, "atUt" | "arrivedUt">;
+
+/** What the log hands its words to. Delivery is somebody else's problem. */
 export interface CommcastTransmitter {
   transmit(msg: CommsMessage): void;
-  acknowledge(ack: CommsAck): void;
-  /**
-   * Live radio, riding the same wire.
-   *
-   * Optional so a transmitter double in a test that has nothing to do with
-   * audio stays two methods long, and so a mesh built before this existed keeps
-   * compiling. `CommcastMesh` implements it.
-   */
+  acknowledge(ack: OutgoingAck): void;
+  /** Live radio. Optional so a transmitter double with nothing to do with audio stays two methods long. */
   radio?(frame: RadioFrame): void;
 }
 
@@ -92,7 +89,7 @@ export class CommcastLog {
   private droppedCount = 0;
   private vantageId: string | undefined;
   private readonly listeners = new Set<Listener>();
-  private readonly radioListeners = new Set<(frame: RadioFrame) => void>();
+  private readonly radioListeners = new Set<(frame: HeardRadioFrame) => void>();
   private readonly now: () => number;
   private readonly storage: Storage | undefined;
   private readonly key: string;
@@ -112,10 +109,10 @@ export class CommcastLog {
   }
 
   /**
-   * Attach (or replace) the mesh this log transmits over. Separate from the
-   * constructor because a screen's log outlives its peer connection: a log
-   * that had to be rebuilt when the mesh reconnected would drop what it holds,
-   * which is the one thing a vantage's own log must never do.
+   * Attach (or replace) what this log transmits through. Separate from the
+   * constructor because a screen's log outlives its connection: a log that had
+   * to be rebuilt when the link reconnected would drop what it holds, which is
+   * the one thing a vantage's own log must never do.
    */
   setTransmitter(transmitter: CommcastTransmitter | undefined): void {
     this.transmitter = transmitter;
@@ -123,12 +120,6 @@ export class CommcastLog {
 
   /**
    * Put one live radio frame on the wire.
-   *
-   * Here rather than on a second provider because this object already owns the
-   * mesh, and both ends of the app reach it: a host's log is built at screen
-   * level with a `forHost` mesh, a station's in `CommcastProvider` with a
-   * `forClient` one, and the widget holds whichever it got. A parallel context
-   * would have to be threaded through both.
    *
    * It STORES nothing, and that is the difference from every other method on
    * this class. Radio is live: there is no transcript, a listener who was away
@@ -139,13 +130,13 @@ export class CommcastLog {
     this.transmitter?.radio?.(frame);
   }
 
-  /** A radio frame off the wire, already stripped of this screen's own echo. */
-  receiveRadio(frame: RadioFrame): void {
+  /** A radio frame as the mod delivered it, this screen's own voice already dropped. */
+  receiveRadio(frame: HeardRadioFrame): void {
     for (const listener of this.radioListeners) listener(frame);
   }
 
   /** Listen to the radio channel. Nothing is replayed: there is no backlog. */
-  onRadio(cb: (frame: RadioFrame) => void): () => void {
+  onRadio(cb: (frame: HeardRadioFrame) => void): () => void {
     this.radioListeners.add(cb);
     return () => {
       this.radioListeners.delete(cb);
@@ -179,9 +170,8 @@ export class CommcastLog {
    *
    * A `separationSeconds` of `null` is NO PATH, and nothing is transmitted:
    * the message is kept, marked as never having left, and the operator can
-   * resend when a path exists. Handing it to the mesh anyway would deliver it
-   * over PeerJS at the speed of the internet, which is exactly the
-   * faster-than-light channel the light-time model exists to model away.
+   * resend when a path exists, rather than watching a countdown for words the
+   * mod would address to nobody.
    */
   send(
     author: {
@@ -270,18 +260,12 @@ export class CommcastLog {
   }
 
   /**
-   * A transmission this screen heard on the mesh.
+   * A message the mod delivered here.
    *
-   * Kept only if it NAMES this vantage. Every frame passes every participant,
-   * because the star topology gives no choice, and dropping other people's mail
-   * unread here is what makes two vantages hold different message sets rather
-   * than one shared set filtered at render time.
-   *
-   * Deduped on the message id across everything this log already holds, which
-   * is what makes the resend idempotent: a resend whose original also arrived
-   * is ONE message here. `false` says it was a duplicate, and the caller
-   * acknowledges it anyway, because answering the second copy is exactly what
-   * makes a resend a re-ask.
+   * Kept only if it NAMES this vantage, and deduped on the message id across
+   * everything this log already holds, which is what makes the resend
+   * idempotent: a resend whose original also arrived is ONE message here.
+   * `false` says it was a duplicate or not addressed here.
    */
   receiveTransmission(msg: CommsMessage): boolean {
     if (this.vantageId === undefined) return false;
@@ -293,19 +277,14 @@ export class CommcastLog {
   }
 
   /**
-   * A held transmission has now crossed its separation: move it in front of
-   * the operator and tell the author it landed.
-   *
-   * `atUt` is the instant it ARRIVED, not the instant this ran. A screen that
-   * was closed for the crossing releases late in wall-clock and still
-   * acknowledges at the true arrival, so the author's round trip reads the
-   * geometry rather than the recipient's browsing habits.
+   * Move a message that has arrived in front of the operator, and tell the
+   * author it landed.
    *
    * A screen at the author's own vantage does not answer. It crossed nothing,
    * and an instant answer from a colleague at the same centre would confirm a
    * message that is still on its way to everyone it had to travel to.
    */
-  release(id: string, ack: Omit<CommsAck, "messageId">): void {
+  release(id: string, ack: Omit<OutgoingAck, "messageId">): void {
     const msg = this.pending.find((m) => m.id === id);
     if (!msg) return;
     this.pending = this.pending.filter((m) => m.id !== id);
@@ -317,7 +296,7 @@ export class CommcastLog {
   }
 
   /** Tell the author of a message that it landed here. */
-  acknowledge(ack: CommsAck): void {
+  acknowledge(ack: OutgoingAck): void {
     COMMCAST_TRANSMIT_BUDGET.record();
     this.transmitter?.acknowledge(ack);
   }

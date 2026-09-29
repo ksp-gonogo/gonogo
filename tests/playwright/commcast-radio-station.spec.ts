@@ -34,10 +34,9 @@ import { getHostPeerId } from "./helpers";
  * **A station is a different machine from the host in every way that the radio
  * touches.** It mounts `/station`, not `/`; its identity is a `stationKey` in
  * its own `localStorage` rather than the host's; it has no socket to the mod at
- * all, so its telemetry, its roster, its separations and its view clock all
- * arrive relayed over PeerJS through `PeerTransport`; and its `CommcastMesh` is
- * `forClient`, a spoke that reaches every other screen only because the host
- * repeats for it. Every previous radio scene ran the talking end on the host,
+ * all, so its telemetry, its roster, its separations, its view clock and every
+ * radio frame arrive relayed over PeerJS through `PeerTransport`, and its
+ * commands reach the mod only as the host's. Every previous radio scene ran the talking end on the host,
  * so none of that was under test: a station could have been unable to key, to
  * hear, to draw its own voice on the rail or to mute a loop, and every suite in
  * the tree would have stayed green.
@@ -51,7 +50,7 @@ import { getHostPeerId } from "./helpers";
  * ## The three screens
  *
  *   - the STATION at `ksc`, on `/station`, which does all the talking
- *   - mission control at `ksc`, on `/`, hosting the mesh and speaking once at
+ *   - mission control at `ksc`, on `/`, hosting the peer link and speaking once at
  *     the end so the craft has two people on top of each other
  *   - a pilot 3 s away at `vessel:near`, on `/pilot`
  *
@@ -207,7 +206,7 @@ test.describe("commcast radio from a station screen @chromium-only", () => {
     });
     await installCaption(control.page, {
       title: "MISSION CONTROL",
-      subtitle: "/ · hosts the mesh · at KSC",
+      subtitle: "/ · hosts the peer link · at KSC",
       accent: "#ffd166",
       epoch,
     });
@@ -221,7 +220,7 @@ test.describe("commcast radio from a station screen @chromium-only", () => {
     try {
       await beat(
         screens,
-        "Three screens, one mesh. The STATION on the left is a peer: no socket to the game, everything relayed through the host.",
+        "Three screens, one mod. The STATION on the left is a peer: no socket to the game, everything relayed through the host.",
         HOLD_MS + 2_000,
       );
 

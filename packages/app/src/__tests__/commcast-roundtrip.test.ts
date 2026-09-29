@@ -1,39 +1,219 @@
 /**
- * A message crosses the mesh, arrives LATE at the vantage it names, and is
- * acknowledged back across the same separation.
+ * Three screens' logs, each on its own link, talking through a stand-in for the
+ * mod that delivers what is said to its addressees one light-time later.
  *
- * Skips PeerJS entirely: the mesh runs over two callback sets mimicking the
- * peer host/client surfaces, the same shape `maneuver-trigger-roundtrip.test.ts`
- * uses. That keeps the test on Commcast's own contracts rather than dragging
- * the real PeerJS stack along.
- *
- * What it is actually for: every piece works in isolation, and the things that
- * can only be shown end to end are that two vantages hold different SETS, that
- * the relay stores nothing on anybody's behalf, and that the author's own
- * confirmation is a full round trip late.
+ * The addressing and the timing are the mod's and are tested there, over a real
+ * socket. What only shows end to end on this side is the round trip through the
+ * link: words sent as commands come back as messages in someone else's log, an
+ * acknowledgement crosses back to the author alone, and radio bytes survive the
+ * batch they ride in.
  */
-import { PerfBudget } from "@ksp-gonogo/core";
+import type { Meta, ServerMessage } from "@ksp-gonogo/sitrep-sdk";
 import { afterEach, describe, expect, it } from "vitest";
 import { CommcastLog } from "../commcast/CommcastLog";
-import { CommcastMesh } from "../commcast/CommcastMesh";
-import type { RadioFrame } from "../commcast/radio/wire";
 import {
-  sentArrivalUtFor,
-  sentPhaseFor,
-  type Vantage,
-} from "../commcast/reveal";
+  attachCommcastModLink,
+  type CommcastWire,
+} from "../commcast/CommcastModLink";
+import type { HeardRadioFrame, RadioFrame } from "../commcast/radio/wire";
+import { sentPhaseFor } from "../commcast/reveal";
 import { EMPTY_COMMCAST_LOG } from "../commcast/types";
-import type { PeerClientService } from "../peer/PeerClientService";
-import type { PeerHostService } from "../peer/PeerHostService";
-import type { PeerMessage } from "../peer/protocol";
 
 const KSC = "ksc";
 const ARES = "vessel:ares";
 const WOOMERA = "ground:woomera";
 const LIGHT_TIME = 240;
 
-const GROUND: Vantage = { seat: "mission-control", vantageId: KSC };
-const ABOARD: Vantage = { seat: "pilot", vantageId: ARES };
+/** One-way seconds between each pair; a vantage is no distance from itself. */
+function delay(from: string, to: string): number {
+  if (from === to) return 0;
+  return [from, to].includes(ARES) ? LIGHT_TIME : 5;
+}
+
+/**
+ * The mod, reduced to what the client can observe: every command is answered
+ * at once, and what it says reaches each addressee `delay` later. Groups are
+ * known to everyone at once here; who a speaker can see is the mod's rule and
+ * is not what this file is about.
+ */
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function str(a: Record<string, unknown>, key: string): string {
+  const v = a[key];
+  return typeof v === "string" ? v : "";
+}
+
+function strs(a: Record<string, unknown>, key: string): string[] {
+  const v = a[key];
+  return Array.isArray(v)
+    ? v.filter((e): e is string => typeof e === "string")
+    : [];
+}
+
+function fakeMod() {
+  let now = 1000;
+  const due: { at: number; to: string; message: ServerMessage }[] = [];
+  const listeners = new Map<string, Set<(m: ServerMessage) => void>>();
+  const groups = new Map<string, string[]>();
+  const authors = new Map<string, string>();
+
+  const meta = (validAt: number, deliveredAt: number, vantage: string): Meta =>
+    ({
+      source: "addressed",
+      validAt,
+      seq: 0,
+      deliveredAt,
+      vantage,
+      quality: 0,
+      active: true,
+      staleness: 0,
+      timelineEpoch: 0,
+    }) as Meta;
+
+  const say = (
+    from: string,
+    to: readonly string[],
+    build: (m: Meta) => ServerMessage,
+  ) => {
+    for (const vantage of to) {
+      const at = now + delay(from, vantage);
+      due.push({ at, to: vantage, message: build(meta(now, at, vantage)) });
+    }
+  };
+
+  const traffic = (from: string, to: readonly string[], item: object) =>
+    say(
+      from,
+      to,
+      (m): ServerMessage => ({
+        type: "stream-data",
+        topic: "commcast.traffic",
+        meta: m,
+        payload: { ...item, from, sentUt: now, to },
+      }),
+    );
+
+  const handle = (
+    from: string,
+    command: string,
+    a: Record<string, unknown>,
+  ) => {
+    const author = a.author;
+    const groupId = str(a, "groupId");
+    switch (command) {
+      case "commcast.group.open": {
+        const members = [...new Set([from, ...strs(a, "members")])];
+        groups.set(groupId, members);
+        traffic(from, members, {
+          kind: "members",
+          id: `${groupId}@${now}`,
+          groupId,
+          author,
+          members,
+          added: members,
+        });
+        return;
+      }
+      case "commcast.message.send": {
+        const to = groups.get(groupId) ?? [];
+        authors.set(str(a, "id"), from);
+        traffic(from, to, {
+          kind: "text",
+          id: a.id,
+          groupId: a.groupId,
+          author,
+          body: a.body,
+        });
+        return;
+      }
+      case "commcast.message.ack": {
+        const author = authors.get(str(a, "messageId"));
+        if (author)
+          traffic(from, [author], {
+            kind: "ack",
+            groupId: "",
+            author: a.author,
+            messageId: a.messageId,
+          });
+        return;
+      }
+      case "commcast.radio.transmit": {
+        const to = groups.get(groupId) ?? [];
+        const head = new TextEncoder().encode(
+          JSON.stringify({
+            transmissionId: a.transmissionId,
+            groupId: a.groupId,
+            from,
+            author,
+            startedUt: now,
+            seq: a.seq,
+            end: a.end,
+            to,
+          }),
+        );
+        const chunks = strs(a, "chunks").map((c) =>
+          Uint8Array.from(atob(c), (ch) => ch.charCodeAt(0)),
+        );
+        say(
+          from,
+          to,
+          (m): ServerMessage => ({
+            type: "stream-binary",
+            topic: "commcast.radio",
+            meta: m,
+            segments: [head, ...chunks],
+          }),
+        );
+      }
+    }
+  };
+
+  return {
+    wireAt(vantage: string): CommcastWire {
+      return {
+        dispatch(command, args) {
+          handle(vantage, command, isRecord(args) ? args : {});
+          return { result: Promise.resolve({ success: true }) };
+        },
+        subscribe: () => () => {},
+        onRawMessage(listener) {
+          let set = listeners.get(vantage);
+          if (!set) {
+            set = new Set();
+            listeners.set(vantage, set);
+          }
+          set.add(listener);
+          return () => set?.delete(listener);
+        },
+      };
+    },
+    advanceTo(ut: number) {
+      now = ut;
+      for (const d of due.filter((x) => x.at <= ut)) {
+        due.splice(due.indexOf(d), 1);
+        for (const l of listeners.get(d.to) ?? []) l(d.message);
+      }
+    },
+  };
+}
+
+const detachers: (() => void)[] = [];
+
+afterEach(() => {
+  for (const off of detachers.splice(0)) off();
+  localStorage.clear();
+});
+
+function screen(mod: ReturnType<typeof fakeMod>, vantage: string, key: string) {
+  const log = new CommcastLog({ screenKey: key, storage: undefined });
+  log.setVantage(vantage);
+  detachers.push(attachCommcastModLink(log, mod.wireAt(vantage)));
+  const heard: HeardRadioFrame[] = [];
+  log.onRadio((f) => heard.push(f));
+  return { log, heard };
+}
 
 const FLIGHT = {
   stationKey: "ksc-1",
@@ -41,533 +221,126 @@ const FLIGHT = {
   seat: "mission-control" as const,
   vantageId: KSC,
 };
-const JEB = {
-  stationKey: "pilot-1",
-  name: "Jeb",
-  seat: "pilot" as const,
-  vantageId: ARES,
-};
-
-type Transmit = Extract<PeerMessage, { type: "commcast-transmit" }>;
-type Ack = Extract<PeerMessage, { type: "commcast-ack" }>;
-type Radio = Extract<PeerMessage, { type: "commcast-radio" }>;
-
-/**
- * The star, wired by hand: peers speak only to the host, and the host repeats
- * what it hears. Every frame reaches every participant, which is the property
- * the addressing rule has to survive.
- */
-function fakeMesh() {
-  const fromPeers: Array<(peerId: string, msg: PeerMessage) => void> = [];
-  const toPeers: Array<(msg: PeerMessage) => void> = [];
-
-  const host = {
-    broadcast: (msg: PeerMessage) => {
-      for (const cb of toPeers) cb(msg);
-    },
-    onCommcastTransmit: (cb: (peerId: string, msg: Transmit) => void) => {
-      const fn = (peerId: string, msg: PeerMessage) => {
-        if (msg.type === "commcast-transmit") cb(peerId, msg);
-      };
-      fromPeers.push(fn);
-      return () => {
-        fromPeers.splice(fromPeers.indexOf(fn), 1);
-      };
-    },
-    onCommcastRadio: (cb: (peerId: string, msg: Radio) => void) => {
-      const fn = (peerId: string, msg: PeerMessage) => {
-        if (msg.type === "commcast-radio") cb(peerId, msg);
-      };
-      fromPeers.push(fn);
-      return () => {
-        fromPeers.splice(fromPeers.indexOf(fn), 1);
-      };
-    },
-    onCommcastAck: (cb: (peerId: string, msg: Ack) => void) => {
-      const fn = (peerId: string, msg: PeerMessage) => {
-        if (msg.type === "commcast-ack") cb(peerId, msg);
-      };
-      fromPeers.push(fn);
-      return () => {
-        fromPeers.splice(fromPeers.indexOf(fn), 1);
-      };
-    },
-  } as PeerHostService;
-
-  function peer(): PeerClientService {
-    return {
-      sendCommcastMessage: (msg: Transmit["msg"]) => {
-        for (const cb of fromPeers)
-          cb("peer", { type: "commcast-transmit", msg });
-      },
-      sendCommcastAck: (ack: Ack["ack"]) => {
-        for (const cb of fromPeers) cb("peer", { type: "commcast-ack", ack });
-      },
-      sendCommcastRadio: (frame: Radio["frame"]) => {
-        for (const cb of fromPeers)
-          cb("peer", { type: "commcast-radio", frame });
-      },
-      onCommcastTransmit: (cb: (msg: Transmit["msg"]) => void) => {
-        const fn = (msg: PeerMessage) => {
-          if (msg.type === "commcast-transmit") cb(msg.msg);
-        };
-        toPeers.push(fn);
-        return () => {
-          toPeers.splice(toPeers.indexOf(fn), 1);
-        };
-      },
-      onCommcastAck: (cb: (ack: Ack["ack"]) => void) => {
-        const fn = (msg: PeerMessage) => {
-          if (msg.type === "commcast-ack") cb(msg.ack);
-        };
-        toPeers.push(fn);
-        return () => {
-          toPeers.splice(toPeers.indexOf(fn), 1);
-        };
-      },
-      onCommcastRadio: (cb: (frame: Radio["frame"]) => void) => {
-        const fn = (msg: PeerMessage) => {
-          if (msg.type === "commcast-radio") cb(msg.frame);
-        };
-        toPeers.push(fn);
-        return () => {
-          toPeers.splice(toPeers.indexOf(fn), 1);
-        };
-      },
-    } as PeerClientService;
-  }
-
-  return { host, peer };
-}
-
-function memoryStorage(): Storage {
-  const m = new Map<string, string>();
-  return {
-    get length() {
-      return m.size;
-    },
-    clear: () => m.clear(),
-    key: (i: number) => [...m.keys()][i] ?? null,
-    getItem: (k: string) => m.get(k) ?? null,
-    setItem: (k: string, v: string) => {
-      m.set(k, String(v));
-    },
-    removeItem: (k: string) => {
-      m.delete(k);
-    },
-  } as Storage;
-}
-
-/** One participant: its own log, attached to its own end of the mesh. */
-function participant(
-  screenKey: string,
-  vantageId: string,
-  attach: (log: CommcastLog) => CommcastMesh,
-) {
-  const log = new CommcastLog({ screenKey, storage: memoryStorage() });
-  log.setVantage(vantageId);
-  const mesh = attach(log);
-  log.setTransmitter(mesh);
-  return { log, mesh };
-}
-
-const meshes: CommcastMesh[] = [];
-afterEach(() => {
-  for (const m of meshes.splice(0)) m.dispose();
-  for (const b of PerfBudget.getAll()) b.reset();
-});
 
 function scene() {
-  const wire = fakeMesh();
-  const ground = participant("ksc-1", KSC, (log) =>
-    CommcastMesh.forHost(wire.host, "ksc-1", {
-      onMessage: (msg) => log.receiveTransmission(msg),
-      onAck: (ack) => log.receiveAck(ack),
-      onRadio: (frame) => log.receiveRadio(frame),
-    }),
-  );
-  const aboard = participant("pilot-1", ARES, (log) =>
-    CommcastMesh.forClient(wire.peer(), "pilot-1", {
-      onMessage: (msg) => log.receiveTransmission(msg),
-      onAck: (ack) => log.receiveAck(ack),
-      onRadio: (frame) => log.receiveRadio(frame),
-    }),
-  );
-  const range = participant("woomera-1", WOOMERA, (log) =>
-    CommcastMesh.forClient(wire.peer(), "woomera-1", {
-      onMessage: (msg) => log.receiveTransmission(msg),
-      onAck: (ack) => log.receiveAck(ack),
-      onRadio: (frame) => log.receiveRadio(frame),
-    }),
-  );
-  meshes.push(ground.mesh, aboard.mesh, range.mesh);
-  return { ground, aboard, range };
+  const mod = fakeMod();
+  const ground = screen(mod, KSC, "ksc-1");
+  const aboard = screen(mod, ARES, "pilot-1");
+  const range = screen(mod, WOOMERA, "woomera-1");
+  ground.log.send(FLIGHT, {
+    kind: "members",
+    groupId: "g1",
+    to: [KSC, ARES],
+    members: [KSC, ARES],
+    added: [ARES],
+    sentUt: 1000,
+    separationSeconds: LIGHT_TIME,
+  });
+  return { mod, ground, aboard, range };
 }
 
-describe("Commcast, addressed across the mesh", () => {
-  it("reaches the vantage it names and NOBODY else", () => {
-    const { ground, aboard, range } = scene();
+describe("Commcast through the mod", () => {
+  it("reaches the members of the group one light-time later, and nobody else", () => {
+    const { mod, ground, aboard, range } = scene();
     ground.log.send(FLIGHT, {
       kind: "text",
       groupId: "g1",
-      body: "Ares, Kennedy. Go for the burn.",
-      to: [ARES],
+      body: "Go for the burn.",
+      to: [KSC, ARES],
       sentUt: 1000,
       separationSeconds: LIGHT_TIME,
     });
-    // Woomera saw the frame go past, because the star gives it no choice, and
-    // kept nothing. That is the whole ownership rule in one assertion.
-    expect(aboard.log.snapshot().pending).toHaveLength(1);
-    expect(range.log.snapshot().pending).toHaveLength(0);
-    expect(range.log.snapshot().inbox).toHaveLength(0);
-  });
 
-  it("leaves the relay holding nothing on anybody else's behalf", () => {
-    const { ground, aboard } = scene();
-    aboard.log.send(JEB, {
-      kind: "text",
-      groupId: "g1",
-      body: "Woomera, Ares. Reading you.",
-      to: [WOOMERA],
-      sentUt: 1000,
-      separationSeconds: LIGHT_TIME,
-    });
-    // The ground is the ROUTER for this message and not its owner: it repeated
-    // the frame and kept no copy. A host-authoritative thread would have one.
-    expect(ground.log.snapshot().inbox).toHaveLength(0);
-    expect(ground.log.snapshot().pending).toHaveLength(0);
-  });
-
-  it("confirms the author a FULL round trip after they spoke", () => {
-    const { ground, aboard } = scene();
-    const msg = ground.log.send(FLIGHT, {
-      kind: "text",
-      groupId: "g1",
-      body: "Ares, Kennedy. Go for the burn.",
-      to: [ARES],
-      sentUt: 1000,
-      separationSeconds: LIGHT_TIME,
-    });
-    // At 1240 it lands aboard and is acknowledged at that instant.
-    aboard.log.release(msg.id, {
-      from: ARES,
-      stationKey: "pilot-1",
-      seat: "pilot",
-      atUt: 1000 + LIGHT_TIME,
-    });
-    const out = () => ground.log.snapshot().outbox[0];
-    expect(sentPhaseFor(out(), GROUND, 1479)).toBe("awaiting-reply");
-    expect(sentPhaseFor(out(), GROUND, 1480)).toBe("confirmed");
-    // Which is also when the author's own words enter their own log: an echo after the round trip, the terminal widget's rule on a spoken line.
-    expect(sentArrivalUtFor(out(), GROUND, 1480)).toBe(1480);
-  });
-
-  it("gives two vantages different SETS, not merely different orders", () => {
-    const { ground, aboard, range } = scene();
-    ground.log.send(FLIGHT, {
-      kind: "text",
-      groupId: "g1",
-      body: "for the crew",
-      to: [ARES],
-      sentUt: 1000,
-      separationSeconds: LIGHT_TIME,
-    });
-    ground.log.send(FLIGHT, {
-      kind: "text",
-      groupId: "g1",
-      body: "for the range",
-      to: [WOOMERA],
-      sentUt: 1010,
-      separationSeconds: 12,
-    });
-    expect(aboard.log.snapshot().pending.map((m) => m.body)).toEqual([
-      "for the crew",
-    ]);
-    expect(range.log.snapshot().pending.map((m) => m.body)).toEqual([
-      "for the range",
-    ]);
-  });
-
-  it("delivers a group's words only to its members, and to a new member from the change that added it", () => {
-    const { ground, aboard, range } = scene();
-    const opened = ground.log.send(FLIGHT, {
-      kind: "members",
-      groupId: "crew",
-      to: [ARES, KSC],
-      members: [ARES, KSC],
-      added: [ARES],
-      sentUt: 1000,
-      separationSeconds: LIGHT_TIME,
-    });
-    ground.log.send(FLIGHT, {
-      kind: "text",
-      groupId: "crew",
-      body: "before the range was in",
-      to: opened.to,
-      sentUt: 1001,
-      separationSeconds: LIGHT_TIME,
-    });
-    // Woomera is not a member: it saw both frames go past and holds nothing of either.
-    expect(range.log.snapshot().pending).toEqual([]);
-
-    const grown = ground.log.send(FLIGHT, {
-      kind: "members",
-      groupId: "crew",
-      to: [ARES, WOOMERA, KSC],
-      members: [ARES, WOOMERA, KSC],
-      added: [WOOMERA],
-      sentUt: 1100,
-      separationSeconds: LIGHT_TIME,
-    });
-    ground.log.send(FLIGHT, {
-      kind: "text",
-      groupId: "crew",
-      body: "after",
-      to: grown.to,
-      sentUt: 1101,
-      separationSeconds: LIGHT_TIME,
-    });
-    expect(range.log.snapshot().pending.map((m) => m.kind)).toEqual([
-      "members",
-      "text",
-    ]);
-    expect(range.log.snapshot().pending[1]?.body).toBe("after");
-    expect(aboard.log.snapshot().pending).toHaveLength(4);
-  });
-
-  it("delivers ONE message when a resend and its original both arrive", () => {
-    const { ground, aboard } = scene();
-    const msg = ground.log.send(FLIGHT, {
-      kind: "text",
-      groupId: "g1",
-      body: "do you copy",
-      to: [ARES],
-      sentUt: 1000,
-      separationSeconds: LIGHT_TIME,
-    });
-    ground.log.resend(msg.id, 2000, LIGHT_TIME);
-    expect(aboard.log.snapshot().pending).toHaveLength(1);
-  });
-
-  it("carries an acknowledgement back to the author and to nobody else", () => {
-    const { ground, aboard, range } = scene();
-    const msg = ground.log.send(FLIGHT, {
-      kind: "text",
-      groupId: "g1",
-      body: "do you copy",
-      to: [ARES],
-      sentUt: 1000,
-      separationSeconds: LIGHT_TIME,
-    });
-    aboard.log.release(msg.id, {
-      from: ARES,
-      stationKey: "pilot-1",
-      seat: "pilot",
-      atUt: 1240,
-    });
-    expect(ground.log.snapshot().outbox[0].acks).toHaveLength(1);
-    // Woomera has no outbox entry for it, so the ack it saw pass changed nothing there.
-    expect(range.log.snapshot().outbox).toHaveLength(0);
-  });
-
-  it("never transmits a message with no path, and keeps it for the author", () => {
-    const { ground, aboard } = scene();
-    ground.log.send(FLIGHT, {
-      kind: "text",
-      groupId: "g1",
-      body: "Ares, do you read",
-      to: [ARES],
-      sentUt: 1000,
-      separationSeconds: null,
-    });
+    mod.advanceTo(1239);
     expect(aboard.log.snapshot().pending).toHaveLength(0);
-    const [out] = ground.log.snapshot().outbox;
-    expect(out.neverLeft).toBe(true);
-    // Unconfirmed and recoverable: the author still has their words, and the one action attached to them is a resend.
-    expect(sentPhaseFor(out, GROUND, 9999)).toBe("lost");
-    expect(sentArrivalUtFor(out, GROUND, 1000)).toBe(1000);
+    mod.advanceTo(1240);
+    const bodies = aboard.log.snapshot().pending.map((m) => m.body ?? m.kind);
+    expect(bodies).toEqual(["members", "Go for the burn."]);
+    expect(range.log.snapshot()).toEqual(EMPTY_COMMCAST_LOG);
   });
 
-  it("ignores its own frames coming back round the relay", () => {
-    const { ground } = scene();
+  it("does not hand the author its own words back", () => {
+    const { mod, ground } = scene();
     ground.log.send(FLIGHT, {
       kind: "text",
       groupId: "g1",
-      body: "to the crew",
-      to: [KSC],
-      sentUt: 1000,
-      separationSeconds: 0,
-    });
-    // Addressed to its OWN vantage, so the echo would land in its own inbox if the author filter keyed on the vantage rather than on the station.
-    expect(ground.log.snapshot().pending).toHaveLength(0);
-  });
-
-  it("stays inside its transmission budget on an ordinary exchange", () => {
-    const { ground, aboard } = scene();
-    const msg = ground.log.send(FLIGHT, {
-      kind: "text",
-      groupId: "g1",
-      body: "do you copy",
-      to: [ARES],
+      body: "hi",
+      to: [KSC, ARES],
       sentUt: 1000,
       separationSeconds: LIGHT_TIME,
     });
+    mod.advanceTo(2000);
+    expect(ground.log.snapshot().pending).toHaveLength(0);
+    expect(ground.log.snapshot().outbox).toHaveLength(2);
+  });
+
+  it("confirms the author a full round trip after they spoke, and nobody else", () => {
+    const { mod, ground, aboard, range } = scene();
+    const msg = ground.log.send(FLIGHT, {
+      kind: "text",
+      groupId: "g1",
+      body: "copy?",
+      to: [KSC, ARES],
+      sentUt: 1000,
+      separationSeconds: LIGHT_TIME,
+    });
+    mod.advanceTo(1240);
     aboard.log.release(msg.id, {
       from: ARES,
       stationKey: "pilot-1",
       seat: "pilot",
-      atUt: 1240,
     });
-    const budget = PerfBudget.getAll().find(
-      (b) => b.name === "CommcastLog transmissions/sec",
-    );
-    expect(budget?.getExceedanceCount()).toBe(0);
-  });
-});
 
-/** A station reading at the host's vantage is genuinely co-located with it. */
-describe("Commcast, a station beside its host", () => {
-  it("hears a message addressed to the vantage they share", () => {
-    const wire = fakeMesh();
-    const host = participant("ksc-1", KSC, (log) =>
-      CommcastMesh.forHost(wire.host, "ksc-1", {
-        onMessage: (msg) => log.receiveTransmission(msg),
-        onAck: (ack) => log.receiveAck(ack),
-        onRadio: (frame) => log.receiveRadio(frame),
-      }),
-    );
-    const station = participant("station-1", KSC, (log) =>
-      CommcastMesh.forClient(wire.peer(), "station-1", {
-        onMessage: (msg) => log.receiveTransmission(msg),
-        onAck: (ack) => log.receiveAck(ack),
-        onRadio: (frame) => log.receiveRadio(frame),
-      }),
-    );
-    const aboard = participant("pilot-1", ARES, (log) =>
-      CommcastMesh.forClient(wire.peer(), "pilot-1", {
-        onMessage: (msg) => log.receiveTransmission(msg),
-        onAck: (ack) => log.receiveAck(ack),
-        onRadio: (frame) => log.receiveRadio(frame),
-      }),
-    );
-    meshes.push(host.mesh, station.mesh, aboard.mesh);
-    aboard.log.send(JEB, {
-      kind: "text",
-      groupId: "g1",
-      body: "Kennedy, Ares. Burn complete.",
-      to: [KSC],
-      sentUt: 1000,
-      separationSeconds: LIGHT_TIME,
-    });
-    expect(host.log.snapshot().pending).toHaveLength(1);
-    expect(station.log.snapshot().pending).toHaveLength(1);
-    // And it reaches them at the same instant, because they are at one vantage.
-    expect(
-      sentArrivalUtFor(aboard.log.snapshot().outbox[0], ABOARD, 1000),
-    ).toBeUndefined();
-  });
-});
-
-/**
- * Live radio on the same star, and the two properties that only the whole wire
- * can show: everyone subscribed hears it, and nobody hears themselves.
- *
- * The delay is not here, deliberately. A radio frame reaches every screen at
- * the speed of the internet and is HELD at the far end, by `RadioSession`
- * against that vantage's own clock, exactly as a text message is held by
- * `useCommcastFeed`. What the wire owes is delivery and echo-suppression; the
- * light-time is the listener's own arithmetic.
- */
-describe("Commcast radio, live across the mesh", () => {
-  function radioScene() {
-    const heard = new Map<string, RadioFrame[]>();
-    const wire = fakeMesh();
-    const collect = (key: string) => (frame: RadioFrame) => {
-      const list = heard.get(key) ?? [];
-      list.push(frame);
-      heard.set(key, list);
+    const phaseAt = (ut: number) => {
+      mod.advanceTo(ut);
+      const out = ground.log.snapshot().outbox.find((o) => o.msg.id === msg.id);
+      if (!out) throw new Error("the author's log lost its own message");
+      return sentPhaseFor(out, ut);
     };
-    const ground = participant("ksc-1", KSC, (log) =>
-      CommcastMesh.forHost(wire.host, "ksc-1", {
-        onMessage: (msg) => log.receiveTransmission(msg),
-        onAck: (ack) => log.receiveAck(ack),
-        onRadio: (frame) => log.receiveRadio(frame),
-      }),
-    );
-    const aboard = participant("pilot-1", ARES, (log) =>
-      CommcastMesh.forClient(wire.peer(), "pilot-1", {
-        onMessage: (msg) => log.receiveTransmission(msg),
-        onAck: (ack) => log.receiveAck(ack),
-        onRadio: (frame) => log.receiveRadio(frame),
-      }),
-    );
-    const range = participant("woomera-1", WOOMERA, (log) =>
-      CommcastMesh.forClient(wire.peer(), "woomera-1", {
-        onMessage: (msg) => log.receiveTransmission(msg),
-        onAck: (ack) => log.receiveAck(ack),
-        onRadio: (frame) => log.receiveRadio(frame),
-      }),
-    );
-    meshes.push(ground.mesh, aboard.mesh, range.mesh);
-    ground.log.onRadio(collect("ksc"));
-    aboard.log.onRadio(collect("ares"));
-    range.log.onRadio(collect("woomera"));
-    return { ground, aboard, range, heard };
-  }
-
-  const TRANSMISSION = {
-    id: "t1",
-    groupId: "g1",
-    from: ARES,
-    authorStationKey: "pilot-1",
-    authorName: "Jeb",
-    authorSeat: "pilot" as const,
-    startedUt: 1000,
-    separationSeconds: LIGHT_TIME,
-  };
-
-  const chunk = (seq: number, bytes: number[]): RadioFrame => ({
-    kind: "chunk",
-    transmissionId: "t1",
-    authorStationKey: "pilot-1",
-    transmission: TRANSMISSION,
-    to: [ARES, KSC],
-    seq,
-    ut: 1000 + seq * 0.02,
-    bytes: new Uint8Array(bytes),
+    expect(phaseAt(1479)).toBe("awaiting-reply");
+    expect(phaseAt(1480)).toBe("confirmed");
+    expect(range.log.snapshot()).toEqual(EMPTY_COMMCAST_LOG);
   });
 
-  it("reaches every other screen, and never the one that spoke", () => {
-    const { aboard, heard } = radioScene();
-    aboard.log.sendRadio(chunk(0, [7, 7, 7]));
-    aboard.log.sendRadio(chunk(1, [7, 7, 7]));
+  it("carries radio bytes through the batch untouched, and stores nothing", () => {
+    const { mod, ground, aboard } = scene();
+    const frame = (seq: number, bytes: number[]): RadioFrame => ({
+      kind: "chunk",
+      transmissionId: "t1",
+      authorStationKey: "pilot-1",
+      transmission: {
+        id: "t1",
+        groupId: "g1",
+        from: ARES,
+        authorStationKey: "pilot-1",
+        authorName: "Jeb",
+        authorSeat: "pilot",
+        startedUt: 1300,
+        separationSeconds: LIGHT_TIME,
+      },
+      to: [ARES, KSC],
+      seq,
+      ut: 1300,
+      bytes: new Uint8Array(bytes),
+    });
+    mod.advanceTo(1300);
+    aboard.log.sendRadio(frame(0, [0, 255, 128]));
+    aboard.log.sendRadio({
+      kind: "end",
+      transmissionId: "t1",
+      authorStationKey: "pilot-1",
+      ut: 1300,
+    });
+    mod.advanceTo(1540);
 
-    expect(heard.get("ksc")).toHaveLength(2);
-    expect(heard.get("woomera")).toHaveLength(2);
-    /*
-     * The transmitter never hears themselves, and the drop is on the STATION
-     * key: a host and a station at one centre share a vantage and must still
-     * hear each other.
-     */
-    expect(heard.get("ares")).toBeUndefined();
-  });
-
-  it("carries the audio bytes through the wire untouched", () => {
-    const { aboard, heard } = radioScene();
-    aboard.log.sendRadio(chunk(0, [0, 255, 128]));
-    const landed = heard.get("ksc")?.[0];
-    expect(landed?.kind).toBe("chunk");
-    if (landed?.kind !== "chunk") throw new Error("no chunk");
+    const landed = ground.heard.find((f) => f.kind === "chunk");
+    if (landed?.kind !== "chunk")
+      throw new Error("no chunk reached the ground");
     expect([...landed.bytes]).toEqual([0, 255, 128]);
-  });
-
-  it("stores nothing anywhere, at either end", () => {
-    // Live audio has no transcript. A participant who was away missed it, the
-    // way they would have on a radio, and the message ledger never sees it.
-    const { ground, aboard, range } = radioScene();
-    aboard.log.sendRadio(chunk(0, [1]));
-    for (const log of [ground.log, aboard.log, range.log]) {
-      expect(log.snapshot()).toEqual(EMPTY_COMMCAST_LOG);
-    }
+    expect(landed.arrivedUt).toBe(1540);
+    expect(aboard.heard).toHaveLength(0);
+    expect(
+      ground.log.snapshot().pending.filter((m) => m.kind !== "members"),
+    ).toHaveLength(0);
   });
 });

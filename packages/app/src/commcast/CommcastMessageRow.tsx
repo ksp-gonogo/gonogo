@@ -8,32 +8,20 @@ import {
   Commcast__Meta,
 } from "./commcastStyles";
 import { messageText } from "./groups";
-import {
-  firstAckUtFor,
-  revealedAcks,
-  revealUtFor,
-  type SeparationMatrix,
-  sentPhaseFor,
-  separationFor,
-  type Vantage,
-} from "./reveal";
+import { firstAckUtFor, heardUtOf, revealedAcks, sentPhaseFor } from "./reveal";
 import type { OutboundMessage, RecipientId } from "./types";
 import type { CommcastEntry } from "./useCommcastFeed";
 
 /** One message in this vantage's log: something heard, or something settled. */
 export function CommcastMessageRow({
   entry,
-  me,
   utNow,
-  pairs,
   log,
   nameFor,
   separationSeconds,
 }: {
   entry: CommcastEntry;
-  me: Vantage;
   utNow: number | undefined;
-  pairs: SeparationMatrix | undefined;
   log: CommcastLog;
   nameFor: (id: RecipientId) => string;
   separationSeconds: number | null;
@@ -44,9 +32,9 @@ export function CommcastMessageRow({
       <Commcast__Meta>
         <Author $pilot={msg.authorSeat === "pilot"}>{msg.authorName}</Author>
         {out ? (
-          <SentVerdict out={out} me={me} utNow={utNow} pairs={pairs} />
+          <SentVerdict out={out} utNow={utNow} />
         ) : (
-          <HeardVerdict msg={msg} me={me} pairs={pairs} />
+          <HeardVerdict msg={msg} />
         )}
       </Commcast__Meta>
       <Commcast__Body $change={msg.kind === "members"}>
@@ -55,9 +43,7 @@ export function CommcastMessageRow({
       {out && (
         <UnconfirmedActions
           out={out}
-          me={me}
           utNow={utNow}
-          pairs={pairs}
           log={log}
           separationSeconds={separationSeconds}
         />
@@ -67,30 +53,11 @@ export function CommcastMessageRow({
 }
 
 /** When something arrived HERE: every stamp in the log is an instant at this vantage, so they compare down a column. */
-function HeardVerdict({
-  msg,
-  me,
-  pairs,
-}: {
-  msg: CommcastEntry["msg"];
-  me: Vantage;
-  pairs: SeparationMatrix | undefined;
-}) {
-  const at = revealUtFor(msg, me, pairs);
-  const sep = separationFor(msg, me, pairs);
+function HeardVerdict({ msg }: { msg: CommcastEntry["msg"] }) {
   return (
-    <>
-      {at !== null && (
-        <Text size="xs" tone="faint">
-          <MissionDate value={at} />
-        </Text>
-      )}
-      {sep.kind === "unmeasured" && (
-        <Text size="xs" tone="warn">
-          separation unpublished
-        </Text>
-      )}
-    </>
+    <Text size="xs" tone="faint">
+      <MissionDate value={heardUtOf(msg)} />
+    </Text>
   );
 }
 
@@ -101,20 +68,16 @@ function HeardVerdict({
  */
 function SentVerdict({
   out,
-  me,
   utNow,
-  pairs,
 }: {
   out: OutboundMessage;
-  me: Vantage;
   utNow: number | undefined;
-  pairs: SeparationMatrix | undefined;
 }) {
   const now = utNow ?? Number.NEGATIVE_INFINITY;
-  const phase = sentPhaseFor(out, me, now, pairs);
+  const phase = sentPhaseFor(out, now);
   if (phase === "confirmed") {
-    const heard = revealedAcks(out, me, now, pairs).length;
-    const ackUt = firstAckUtFor(out, me, pairs);
+    const heard = revealedAcks(out, now).length;
+    const ackUt = firstAckUtFor(out);
     return (
       <>
         {ackUt !== undefined && (
@@ -148,20 +111,16 @@ function SentVerdict({
 /** An unconfirmed message's one action; the recipient dedupes on the message id, so a resend also answers whether it arrived. */
 function UnconfirmedActions({
   out,
-  me,
   utNow,
-  pairs,
   log,
   separationSeconds,
 }: {
   out: OutboundMessage;
-  me: Vantage;
   utNow: number | undefined;
-  pairs: SeparationMatrix | undefined;
   log: CommcastLog;
   separationSeconds: number | null;
 }) {
-  const phase = sentPhaseFor(out, me, utNow ?? Number.NEGATIVE_INFINITY, pairs);
+  const phase = sentPhaseFor(out, utNow ?? Number.NEGATIVE_INFINITY);
   if (phase === "confirmed") return null;
   const ready = utNow !== undefined && separationSeconds !== null;
   return (

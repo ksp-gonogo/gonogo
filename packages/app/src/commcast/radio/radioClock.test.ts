@@ -14,6 +14,8 @@ import type { RadioFrame, RadioTransmission } from "./wire";
 const UT0 = 1000;
 const CHUNK = 0.02;
 const SAMPLE_EVERY = 0.2;
+/** One-way seconds to the craft the station talks to. */
+const CROSSING = 3;
 
 afterEach(() => {
   for (const budget of PerfBudget.getAll()) budget.reset();
@@ -159,6 +161,7 @@ describe("radio across a relayed clock", () => {
       },
       receiver,
       chunkSeconds: CHUNK,
+      playoutHoldSeconds: 0,
       nowWall: () => listenerWall,
     });
     session.setVantage({ seat: "pilot", vantageId: "vessel:near" });
@@ -179,7 +182,7 @@ describe("radio across a relayed clock", () => {
           ut: ut(),
           bytes: new Uint8Array(8).fill(i),
         };
-        session.receive(frame);
+        session.receive({ ...frame, arrivedUt: frame.ut + CROSSING });
       }
       session.pump(wall);
     }

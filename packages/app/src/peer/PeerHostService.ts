@@ -15,7 +15,6 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import type { Seat } from "@ksp-gonogo/sitrep-sdk/spine";
 import Peer, { type DataConnection } from "peerjs";
-import { radioFrameFromWire } from "../commcast/radio/wire";
 import { BUILD_TIME, VERSION } from "../version";
 import { BundleFetchCache } from "./BundleFetchCache";
 import { deriveHostPeerId } from "./hostPeerId";
@@ -292,18 +291,6 @@ type NoteUpdateListener = (
   msg: Extract<PeerMessage, { type: "note-update" }>,
 ) => void;
 type NoteDeleteListener = (peerId: string, id: string) => void;
-type CommcastTransmitListener = (
-  peerId: string,
-  msg: Extract<PeerMessage, { type: "commcast-transmit" }>,
-) => void;
-type CommcastAckListener = (
-  peerId: string,
-  msg: Extract<PeerMessage, { type: "commcast-ack" }>,
-) => void;
-type CommcastRadioListener = (
-  peerId: string,
-  msg: Extract<PeerMessage, { type: "commcast-radio" }>,
-) => void;
 type NoteReorderListener = (
   peerId: string,
   msg: Extract<PeerMessage, { type: "note-reorder" }>,
@@ -341,9 +328,6 @@ type HostEventMap = {
   noteUpdate: Parameters<NoteUpdateListener>;
   noteDelete: Parameters<NoteDeleteListener>;
   noteReorder: Parameters<NoteReorderListener>;
-  commcastTransmit: Parameters<CommcastTransmitListener>;
-  commcastAck: Parameters<CommcastAckListener>;
-  commcastRadio: Parameters<CommcastRadioListener>;
 };
 
 export class PeerHostService {
@@ -1641,23 +1625,6 @@ export class PeerHostService {
     "note-reorder": (msg, conn) => {
       this.events.emit("noteReorder", conn.peer, msg);
     },
-    "commcast-transmit": (msg, conn) => {
-      this.events.emit("commcastTransmit", conn.peer, msg);
-    },
-    "commcast-ack": (msg, conn) => {
-      this.events.emit("commcastAck", conn.peer, msg);
-    },
-    "commcast-radio": (msg, conn) => {
-      // `radioFrameFromWire`, because BinaryPack delivers the chunk's audio as
-      // an `ArrayBuffer` where a `Uint8Array` went in. Normalised before the
-      // host repeats it as well as before it hears it: the relay's copy is
-      // what reaches every other peer, so fixing only its own ear would leave
-      // every station listening to the wrong shape.
-      this.events.emit("commcastRadio", conn.peer, {
-        ...msg,
-        frame: radioFrameFromWire(msg.frame),
-      });
-    },
     "peer-data-mode": (msg, conn) => {
       this.peerMode.set(conn, msg.mode);
       // When switching to selective with no subs yet, the peer will get
@@ -1810,18 +1777,6 @@ export class PeerHostService {
   }
   onNoteReorder(cb: NoteReorderListener): () => void {
     return this.events.on("noteReorder", cb);
-  }
-
-  onCommcastTransmit(cb: CommcastTransmitListener): () => void {
-    return this.events.on("commcastTransmit", cb);
-  }
-
-  onCommcastAck(cb: CommcastAckListener): () => void {
-    return this.events.on("commcastAck", cb);
-  }
-
-  onCommcastRadio(cb: CommcastRadioListener): () => void {
-    return this.events.on("commcastRadio", cb);
   }
 
   onWidgetPush(cb: WidgetPushListener): () => void {

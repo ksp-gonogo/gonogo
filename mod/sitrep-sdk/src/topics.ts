@@ -358,9 +358,15 @@ export function registerBarePrimitiveTopic(id: string): void {
 }
 
 /**
- * Every Topic id currently known at runtime, the SDK's own `TOPIC_IDS` plus
- * every bare-primitive Uplink Topic registered so far. The
- * completeness-oriented counterpart to `TOPIC_IDS`: consumers that want
+ * Core Topics carried on the binary lane. Their payload is byte segments, not a
+ * contract type, so no generated map names them.
+ */
+const BINARY_TOPIC_IDS: readonly string[] = ["commcast.radio"];
+
+/**
+ * Every Topic id currently known at runtime, the SDK's own `TOPIC_IDS`, the
+ * binary-lane Topics, and every bare-primitive Uplink Topic registered so far.
+ * The completeness-oriented counterpart to `TOPIC_IDS`: consumers that want
  * "subscribe to / iterate over EVERYTHING" (e.g. the replay recorder's
  * full-archive mode) read this, since a bare-primitive Topic is not a static
  * member of `TOPIC_IDS`. Reflects only Uplinks whose client package has loaded.
@@ -368,7 +374,7 @@ export function registerBarePrimitiveTopic(id: string): void {
  * @category Reading telemetry
  */
 export function getAllKnownTopicIds(): readonly string[] {
-  return [...TOPIC_IDS, ...barePrimitiveTopicIds];
+  return [...TOPIC_IDS, ...BINARY_TOPIC_IDS, ...barePrimitiveTopicIds];
 }
 
 /**

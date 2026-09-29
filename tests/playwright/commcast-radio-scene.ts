@@ -7,7 +7,7 @@ import { expect } from "@playwright/test";
 import { seedContext } from "./helpers";
 
 /**
- * The machinery two radio scenes share: three real screens on the real mesh,
+ * The machinery the radio scenes share: three real screens talking through the mod,
  * a recorded clip standing in for each microphone, a tape on each screen's own
  * speakers, and one stacked mp4 at the end with each pane carrying the audio
  * that pane's decoder actually produced.
@@ -18,10 +18,10 @@ import { seedContext } from "./helpers";
  * the parts that would otherwise be copied.
  *
  * What is real: the widget, the composer, the key, the transmitter,
- * `CommcastMesh` over PeerJS, `CommcastLog`, `RadioSession`, the delayed playout
- * buffer, the pacer, and each screen's own view clock. What is substituted is
- * the microphone and the codec, through the seam `backend.ts` offers and
- * `InjectedRadioBackend` provides.
+ * `CommcastModLink`, `CommcastLog`, `RadioSession`, the playout buffer, the
+ * pacer, and each screen's own view clock. What is substituted is the mod, by
+ * `commcast-radio-server.mjs`, and the microphone and the codec, through the
+ * seam `backend.ts` offers and `InjectedRadioBackend` provides.
  */
 
 const execFileAsync = promisify(execFile);

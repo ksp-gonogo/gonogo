@@ -1,29 +1,25 @@
-import { revealUtFor, type SeparationMatrix, type Vantage } from "./reveal";
+import { heardUtOf } from "./reveal";
 import type { CommcastLogSnapshot, CommsMessage, RecipientId } from "./types";
 
 /**
  * Commcast groups: a list of vantages sharing one thread, which every message
  * and every radio transmission is addressed to.
  *
- * Membership is a VALUE built from the `members` changes a vantage holds, and a
- * change is carried and delayed exactly like a message: it counts at a vantage
- * from the instant it reaches that vantage, one light-time from wherever it was
- * made. So a group opened or joined far away is not known here until word of
- * it has crossed, and an author addresses only the members it can see, which
- * is what starts a new member hearing a transmission already under way from
- * wherever it has got to, one light-time after the change reached its speaker.
+ * Membership is a VALUE built from the `members` changes a vantage holds. The
+ * mod delivers a change to each member one light-time from wherever it was
+ * made, so a group opened or joined far away is not known here until word of it
+ * has arrived, and it is the mod that addresses a speaker's words to the
+ * members that speaker can see.
  *
  * Changes only ever add. Nobody is removed and nothing is renamed, so the value
  * is the union of the changes that have landed and the order they land in
  * cannot matter.
  */
 
-/** Every group known at `me` as of `utNow`, each with its members sorted. */
+/** Every group known here as of `utNow`, each with its members sorted. */
 export function groupsAt(
   snapshot: CommcastLogSnapshot,
-  me: Vantage,
   utNow: number | undefined,
-  pairs?: SeparationMatrix,
 ): ReadonlyMap<string, readonly RecipientId[]> {
   const byGroup = new Map<string, Set<RecipientId>>();
   if (utNow === undefined) return new Map();
@@ -34,8 +30,7 @@ export function groupsAt(
   ];
   for (const msg of held) {
     if (msg.kind !== "members" || !msg.members) continue;
-    const at = revealUtFor(msg, me, pairs);
-    if (at === null || utNow < at) continue;
+    if (utNow < heardUtOf(msg)) continue;
     let members = byGroup.get(msg.groupId);
     if (!members) {
       members = new Set();
@@ -88,7 +83,7 @@ export function messageText(
 }
 
 /** The change that brought a group into being: everyone but its author came in with it. */
-function opensGroup(msg: CommsMessage): boolean {
+export function opensGroup(msg: CommsMessage): boolean {
   const others = (msg.members ?? []).filter((m) => m !== msg.from);
   const added = new Set(msg.added ?? []);
   return others.length === added.size && others.every((m) => added.has(m));

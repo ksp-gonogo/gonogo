@@ -6,6 +6,7 @@ import {
 } from "@ksp-gonogo/sitrep-client";
 import type { ServerMessage, StreamData } from "@ksp-gonogo/sitrep-sdk";
 import { useEffect } from "react";
+import { isTransmission } from "../commcast/topics";
 import type { PeerHostService } from "../peer/PeerHostService";
 import type { PeerMessage } from "../peer/protocol";
 import { getSitrepHostConfig } from "./sitrepRuntime";
@@ -27,8 +28,8 @@ const SITREP_VANTAGE_RELAY_BUDGET = new PerfBudget({
   unit: "frames",
 });
 
-function isStreamFrame(message: ServerMessage): message is StreamData<unknown> {
-  return message.type === "stream-data";
+function isStreamFrame(message: ServerMessage): boolean {
+  return message.type === "stream-data" || message.type === "stream-binary";
 }
 
 /**
@@ -125,7 +126,9 @@ export function SitrepVantageSessions({
       const cache = new Map<string, StreamData<unknown>>();
       const detachRaw = client.onRawMessage((message) => {
         if (!isStreamFrame(message)) return;
-        cache.set(message.topic, message);
+        if (message.type === "stream-data" && !isTransmission(message)) {
+          cache.set(message.topic, message);
+        }
         peerHost.broadcastToVantage(vantage, {
           type: "sitrep-frame",
           message,

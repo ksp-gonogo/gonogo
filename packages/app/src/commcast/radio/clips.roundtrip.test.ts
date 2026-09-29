@@ -15,7 +15,7 @@
  */
 import { PerfBudget } from "@ksp-gonogo/core";
 import { afterEach, describe, expect, it } from "vitest";
-import type { SeparationMatrix, Vantage } from "../reveal";
+import type { Vantage } from "../reveal";
 import {
   CLIP_CHUNK_SECONDS,
   clipMic,
@@ -57,11 +57,22 @@ afterEach(() => {
   for (const budget of PerfBudget.getAll()) budget.reset();
 });
 
-function matrix(seconds: number): SeparationMatrix {
-  return new Map([
-    [ARES, new Map([[KSC, seconds]])],
-    [KSC, new Map([[ARES, seconds]])],
-  ]);
+/**
+ * What the mod does with a frame between the speaker and this listener: a chunk
+ * arrives one crossing after it was spoken, and nothing arrives where there is
+ * no path.
+ */
+function deliver(
+  session: RadioSession,
+  frame: RadioFrame,
+  crossingSeconds: number | null,
+): void {
+  if (crossingSeconds === null) return;
+  session.receive(
+    frame.kind === "chunk"
+      ? { ...frame, arrivedUt: frame.ut + crossingSeconds }
+      : frame,
+  );
 }
 
 /**
@@ -73,9 +84,13 @@ function matrix(seconds: number): SeparationMatrix {
  */
 function crossing(
   clips: readonly RadioClip[],
-  options: { separationSeconds?: number | null; pairs?: SeparationMatrix } = {},
+  options: { separationSeconds?: number | null } = {},
 ) {
   let ut = START_UT;
+  const crossingSeconds =
+    options.separationSeconds === undefined
+      ? LIGHT_TIME
+      : options.separationSeconds;
   const frames: RadioFrame[] = [];
   const receiver = new RecordingRadioReceiver();
   const session = new RadioSession({
@@ -83,18 +98,16 @@ function crossing(
     view: { confirmedEdgeUt: () => ut, onFrame: () => () => {} },
     receiver,
     chunkSeconds: CLIP_CHUNK_SECONDS,
+    playoutHoldSeconds: 0,
   });
   session.setVantage(GROUND);
-  if (options.pairs) session.setPairs(options.pairs);
 
   const mics = clips.map((clip) => clipMic(clip));
   let keying = 0;
   const transmitter = new RadioTransmitter({
     send: (frame) => {
       frames.push(frame);
-      // The wire is the mesh, which delivers at the speed of the internet. All
-      // the delay is at the far end, held by the session.
-      session.receive(frame);
+      deliver(session, frame, crossingSeconds);
     },
     utNow: () => ut,
     startCapture: (onChunk) => mics[keying++].start(onChunk),
@@ -120,10 +133,7 @@ function crossing(
         authorStationKey: "pilot-1",
         authorName: "Jeb",
         authorSeat: "pilot",
-        separationSeconds:
-          options.separationSeconds === undefined
-            ? LIGHT_TIME
-            : options.separationSeconds,
+        separationSeconds: crossingSeconds,
       });
       const mic = mics[index];
       while (mic.speak()) ut += CLIP_CHUNK_SECONDS;
@@ -178,45 +188,23 @@ describe("a keying, spoken and heard", () => {
     expect([...scene.receiver.pcm()]).toEqual([...clipPcm(SHORT_CLIP)]);
   });
 
-  it("holds every word until the light has had time to cross", async () => {
+  it("plays every word from its arrival, not before", async () => {
     const scene = crossing([SHORT_CLIP]);
     await scene.say(0);
 
-    // The whole utterance is on the wire and the far end has all of it. It has
-    // still heard nothing, which is the only thing the delay model asserts.
     scene.play(0, 10);
     expect(scene.receiver.played).toHaveLength(0);
     expect(scene.frames.filter((f) => f.kind === "chunk")).toHaveLength(
       SHORT_CLIP.chunks.length,
     );
 
-    // One light-time on from the first chunk, and the first chunk only: the rest is still crossing, spaced by the 20 ms it was spoken on.
+    // One light-time on from the first chunk, and the first chunk only: the rest arrive spaced by the 20 ms they were spoken on.
     scene.advance(LIGHT_TIME);
     scene.play(0, 1);
     expect(scene.receiver.played).toHaveLength(1);
     expect([...scene.receiver.played[0].samples]).toEqual([
       ...clipSamples({ ...SHORT_CLIP.chunks[0], index: 0 }),
     ]);
-  });
-
-  it("resolves the separation once, at the start frame", async () => {
-    /*
-     * The reader's own published pair beats the frozen envelope figure, and it
-     * is read ONCE. Halving the matrix mid-utterance must not pull the rest of
-     * the words forward: a separation that moved between chunks would move
-     * their release instants independently and reorder syllables inside a word.
-     */
-    const scene = crossing([SHORT_CLIP], { pairs: matrix(120) });
-    await scene.say(0);
-    scene.session.setPairs(matrix(10));
-
-    scene.advance(119);
-    scene.play(0, 5);
-    expect(scene.receiver.played).toHaveLength(0);
-
-    scene.advance(2);
-    scene.play(0, 1);
-    expect(scene.receiver.played).toHaveLength(1);
   });
 
   it("reports the backlog when the release edge outruns playback", async () => {
@@ -324,29 +312,6 @@ describe("a keying across a separation that is changing", () => {
 });
 
 describe("a keying with no path", () => {
-  it("is silence at the listener, and nothing else at all", async () => {
-    /*
-     * Announcing "somebody is transmitting and you cannot hear them" would be
-     * the faster-than-light channel the whole delay model exists to prevent,
-     * so the listener gets no reading of any kind: not a name, not a drop
-     * count, not a backlog.
-     */
-    const scene = crossing([SHORT_CLIP], { separationSeconds: null });
-    await scene.say(0);
-    scene.advance(LIGHT_TIME + 1);
-    scene.play(0, SHORT_CLIP.chunks.length);
-
-    expect(scene.receiver.played).toHaveLength(0);
-    expect(scene.session.snapshot()).toEqual({
-      // Not a light. A cut is silence and says nothing about itself:
-      // an indicator naming somebody this vantage cannot hear would be the
-      // faster-than-light channel the whole delay model exists to prevent.
-      live: [],
-      backlogSeconds: 0,
-      droppedChunks: 0,
-    });
-  });
-
   it("keeps talking anyway, every chunk on the wire", async () => {
     // Loss of path stops DELIVERY, never transmission: a listener elsewhere who does have a path to this vantage is entitled to the words.
     const scene = crossing([SHORT_CLIP], { separationSeconds: null });
@@ -425,19 +390,15 @@ function twoTalkers(near: RadioClip, far: RadioClip) {
     view: { confirmedEdgeUt: () => ut, onFrame: () => () => {} },
     receiver,
     chunkSeconds: CLIP_CHUNK_SECONDS,
+    playoutHoldSeconds: 0,
   });
   session.setVantage(GROUND);
-  session.setPairs(
-    new Map([
-      [ARES, new Map([[KSC, LIGHT_TIME]])],
-      [WOOMERA, new Map([[KSC, FAR_LIGHT_TIME]])],
-    ]),
-  );
 
   function talker(from: string, name: string, clip: RadioClip) {
     const mic = clipMic(clip);
     const transmitter = new RadioTransmitter({
-      send: (frame) => session.receive(frame),
+      send: (frame) =>
+        deliver(session, frame, from === ARES ? LIGHT_TIME : FAR_LIGHT_TIME),
       utNow: () => ut,
       startCapture: (onChunk) => mic.start(onChunk),
     });
@@ -451,7 +412,6 @@ function twoTalkers(near: RadioClip, far: RadioClip) {
           authorStationKey: `station-${from}`,
           authorName: name,
           authorSeat: "pilot",
-          // Resolved at the listener from the matrix above, which is what a vantage that can see the published pairs does.
           separationSeconds: null,
         }),
       unkey: () => transmitter.keyUp(),
