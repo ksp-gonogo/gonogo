@@ -183,12 +183,9 @@ const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
     ownedDirs: [],
   },
   avionics: {
-    // "avionics" alone is distinctive enough (no unrelated-word collision:
-    // the one incidental hit, "RP0Avionics" in a GonogoDevTools debug dump,
-    // is a real match on a real third-party PartModule name, allowlisted as
-    // permanent rather than excluded by the pattern). One case-insensitive
-    // pattern covers AvionicsStatus/AvionicsUplink/avionics.status/
-    // avionics.available/gonogo-avionics-uplink alike.
+    // "avionics" alone is distinctive enough, with no unrelated-word collision.
+    // One case-insensitive pattern covers AvionicsStatus/AvionicsUplink/
+    // avionics.status/avionics.available/gonogo-avionics-uplink alike.
     patterns: [/avionics/i],
     /*
      * Avionics is not a separate mod, it is RP-1, and RP-1's directories have

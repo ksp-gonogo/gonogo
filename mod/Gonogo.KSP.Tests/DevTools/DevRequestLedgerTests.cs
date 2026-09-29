@@ -109,10 +109,10 @@ namespace Gonogo.KSP.Tests.DevTools
         public void Ledgers_for_different_tools_do_not_share_a_claim()
         {
             var teleport = new DevRequestLedger(_stampPath, SessionStart);
-            var stamp = new DevRequestLedger(Path.Combine(_dir, "scanstamp-applied.cfg"), SessionStart);
+            var currency = new DevRequestLedger(Path.Combine(_dir, "currency-applied.cfg"), SessionStart);
             teleport.Claim("same-id");
 
-            Assert.Equal(DevRequestDecision.Apply, stamp.Decide("same-id", SessionStart.AddMinutes(1)));
+            Assert.Equal(DevRequestDecision.Apply, currency.Decide("same-id", SessionStart.AddMinutes(1)));
         }
     }
 }

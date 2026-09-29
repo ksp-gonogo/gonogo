@@ -25,7 +25,7 @@ namespace Gonogo.DevTools
 
     /// <summary>
     /// The applied-once guard for a dev tool whose request is an ACTION (teleport a craft,
-    /// award science, stamp a scan, capture a fixture) rather than standing state.
+    /// award science, warp time) rather than standing state.
     ///
     /// <para>A request cfg outlives the process that applied it, and an id held only in
     /// memory resets with the process, so every KSP start would apply whatever request was

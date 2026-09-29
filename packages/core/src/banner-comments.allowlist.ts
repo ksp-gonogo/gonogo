@@ -122,9 +122,9 @@ export const SCHEME_MIN = 3;
  */
 export const SECTIONED_CEILINGS = {
   /** Files carrying `SCHEME_MIN` or more banners. 35 under revision 1, 61 under 2. */
-  files: 61,
+  files: 59,
   /** Banner lines across those files. 277 under revision 1, 377 under 2. */
-  banners: 377,
+  banners: 369,
 } as const;
 
 /**
@@ -140,8 +140,8 @@ export const SECTIONED_CEILINGS = {
 export const SCAN_FLOORS = {
   /** Hand-written source files walked. 2,784 at seed time, 3,335 on 2026-09-02. */
   files: 2000,
-  /** Files carrying at least one banner. 93 under revision 2. */
-  filesWithBanner: 70,
+  /** Files carrying at least one banner. 93 under revision 2, 69 once the Uplink rig tools left core. */
+  filesWithBanner: 65,
   /** Banner lines found. 423 under revision 2. */
   banners: 300,
 } as const;

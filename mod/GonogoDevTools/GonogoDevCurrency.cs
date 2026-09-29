@@ -23,17 +23,16 @@ namespace Gonogo.DevTools
     /// craft with an instrument and a transmitter, in the right situation, with
     /// a comm link. That makes the delay model expensive to exercise and, in
     /// practice, untested. This awards the same currency through the same stock
-    /// entry points the game uses, so the delay subsystem, RP-1's currency
-    /// handlers, and anything else on those events all see an ordinary award.</para>
+    /// entry points the game uses, so the delay subsystem and anything else on
+    /// those events all see an ordinary award.</para>
     ///
-    /// <para><b>It cannot answer the science question on a Kerbalism install.</b>
-    /// <c>ResearchAndDevelopment.AddScience</c> is the stock path, and
-    /// GonogoKerbalismUplink sets <c>KERBALISM.API.preventScienceCrediting</c>,
-    /// which makes its own Harmony postfix on
-    /// <c>KERBALISM.SubjectData.RetrieveScience</c> the only thing that credits
-    /// science at all. Use <see cref="GonogoDevKerbalismScience"/> for science
-    /// wherever Kerbalism is installed; this tool remains the one for funds,
-    /// reputation, and stock-path science.</para>
+    /// <para><b>It measures stock-path science only.</b>
+    /// <c>ResearchAndDevelopment.AddScience</c> is the stock path. An Uplink that
+    /// stops its mod crediting science and hands each increment to
+    /// <c>IDelayedScienceSink</c> instead never takes it, so an award here measures a
+    /// path that structurally cannot delay on that install. Such an Uplink carries
+    /// its own probe; this tool remains the one for funds, reputation, and
+    /// stock-path science.</para>
     ///
     /// <para><b>Attribution: two kinds of mode.</b>
     /// <c>Gonogo.KSP.CurrencyDelay.StockCurrencyInterceptor</c> only delays a change
@@ -99,12 +98,8 @@ namespace Gonogo.DevTools
     /// credit from an award that never happened, and cannot tell a credit that landed
     /// from one that landed and is queued to land again.</para>
     ///
-    /// <para><b>And each sample reports whether the delay LEAKED.</b> An operator
-    /// watching confidence therefore knows the science arrived before it does, and in
-    /// RP-1 confidence gates real career decisions. The leak lines report that
-    /// co-occurrence per derived quantity; the causal reading is left as an inference,
-    /// since RP-1 crediting confidence off a science award is a belief about RP0.dll and
-    /// not something this probe reads.</para>
+    /// <para>Each sample also names the currencies withheld at that moment: this run
+    /// queued a row for them and the balance has not moved.</para>
     ///
     /// <para><b>An id fires once, ever.</b> Applying a request writes its id to
     /// <c>PluginData/currency-applied.cfg</c>, and a request whose id matches that
@@ -577,8 +572,7 @@ namespace Gonogo.DevTools
         }
 
         /// <summary>
-        /// Every balance the delay model can move, plus RP-1's two confidence
-        /// readings, which are the ones the double-credit question turns on.
+        /// Every balance the delay model can move.
         ///
         /// <para><b>Each currency carries its own readable flag.</b> The three stock
         /// balances live on separate ScenarioModules and any of them can be absent
@@ -593,8 +587,7 @@ namespace Gonogo.DevTools
             public Balances(
                 double funds, bool hasFunds,
                 double science, bool hasScience,
-                double reputation, bool hasReputation,
-                bool hasConfidence, double confidence, double confidenceEarned, string confidenceFault)
+                double reputation, bool hasReputation)
             {
                 Funds = funds;
                 HasFunds = hasFunds;
@@ -602,10 +595,6 @@ namespace Gonogo.DevTools
                 HasScience = hasScience;
                 Reputation = reputation;
                 HasReputation = hasReputation;
-                HasConfidence = hasConfidence;
-                Confidence = confidence;
-                ConfidenceEarned = confidenceEarned;
-                ConfidenceFault = confidenceFault ?? "";
             }
 
             public double Funds { get; }
@@ -614,15 +603,6 @@ namespace Gonogo.DevTools
             public bool HasScience { get; }
             public double Reputation { get; }
             public bool HasReputation { get; }
-            public bool HasConfidence { get; }
-            public double Confidence { get; }
-            public double ConfidenceEarned { get; }
-
-            /// <summary>Why confidence is unreadable, so "RP-1 is not installed" and
-            /// "RP-1 is installed and a property this probe names has moved" stop
-            /// sharing an answer. The second is a broken instrument and the first is
-            /// not, and the leak verdict must not report either as a clean run.</summary>
-            public string ConfidenceFault { get; }
 
             public bool Has(CurrencyKindRead kind)
             {
@@ -1290,56 +1270,10 @@ namespace Gonogo.DevTools
             var funding = Funding.Instance;
             var rnd = ResearchAndDevelopment.Instance;
             var reputation = Reputation.Instance;
-            var (hasConfidence, confidence, earned, confidenceFault) = ReadRp1Confidence();
             return new Balances(
                 funding != null ? funding.Funds : double.NaN, funding != null,
                 rnd != null ? rnd.Science : double.NaN, rnd != null,
-                reputation != null ? reputation.reputation : double.NaN, reputation != null,
-                hasConfidence, confidence, earned, confidenceFault);
-        }
-
-        /// <summary>
-        /// Reads RP-1's <c>Confidence.CurrentConfidence</c> and
-        /// <c>AllConfidenceEarned</c> by reflection. GonogoDevTools references
-        /// only KSP/Unity, so RP0.dll cannot be a compile-time dependency, and
-        /// on a career without RP-1 the type simply is not there.
-        /// </summary>
-        private static (bool has, double confidence, double earned, string fault) ReadRp1Confidence()
-        {
-            try
-            {
-                var type = ResolveType("RP0.Confidence");
-                if (type == null)
-                {
-                    return (false, double.NaN, double.NaN, "RP0.Confidence is not in any loaded assembly (RP-1 not installed)");
-                }
-
-                var confidence = type.GetProperty("CurrentConfidence", BindingFlags.Public | BindingFlags.Static);
-                var earned = type.GetProperty("AllConfidenceEarned", BindingFlags.Public | BindingFlags.Static);
-                if (confidence == null || earned == null)
-                {
-                    // RP-1 IS loaded and a property this probe names by string has
-                    // moved. That is a broken instrument, not an absent one, and it
-                    // must not arrive in the result file as the same "(RP-1 not
-                    // loaded)" line an uninstalled RP-1 produces.
-                    var missing = confidence == null
-                        ? (earned == null ? "CurrentConfidence and AllConfidenceEarned" : "CurrentConfidence")
-                        : "AllConfidenceEarned";
-                    return (false, double.NaN, double.NaN,
-                        "RP0.Confidence is loaded but " + missing + " could not be found on it, so this probe's"
-                        + " confidence reads are broken rather than inapplicable");
-                }
-
-                return (true,
-                    Convert.ToDouble(confidence.GetValue(null, null), CultureInfo.InvariantCulture),
-                    Convert.ToDouble(earned.GetValue(null, null), CultureInfo.InvariantCulture),
-                    "");
-            }
-            catch (Exception ex)
-            {
-                Debug.LogWarning(LogPrefix + "could not read RP-1 confidence: " + ex.Message);
-                return (false, double.NaN, double.NaN, "reading RP0.Confidence threw: " + ex.Message);
-            }
+                reputation != null ? reputation.reputation : double.NaN, reputation != null);
         }
 
         /// <summary>
@@ -1359,9 +1293,7 @@ namespace Gonogo.DevTools
         /// reading of whichever happened to come first, indistinguishable from a subsystem
         /// that did nothing. The count is reported and a count other than 1 is a fault.
         /// <c>Resources.FindObjectsOfTypeAll</c>, not <c>FindObjectOfType</c>, because the
-        /// latter returns one arbitrary match and skips an inactive object entirely.
-        /// <see cref="GonogoDevKerbalismScience"/> carries the fuller version of this,
-        /// including which instance the crediting path actually talks to.</para>
+        /// latter returns one arbitrary match and skips an inactive object entirely.</para>
         /// </summary>
         private DelaySubsystem ReadDelaySubsystem(WatchState? watch)
         {
@@ -2147,16 +2079,8 @@ namespace Gonogo.DevTools
                     + " above is understating what is queued. The row currency names and this probe's have diverged");
             }
 
-            if (b.HasConfidence)
-            {
-                sb.AppendLine("\t\tconfidence = " + b.Confidence.ToString("F3", CultureInfo.InvariantCulture));
-                sb.AppendLine("\t\tconfidenceEarned = " + b.ConfidenceEarned.ToString("F3", CultureInfo.InvariantCulture));
-            }
-            else
-            {
-                sb.AppendLine("\t\tconfidence = (unreadable: " + b.ConfidenceFault + ")");
-            }
-            AppendLeaks(sb, b, baseline, sample.Delay);
+            var withheld = WithheldCurrencies(b, baseline, sample.Delay);
+            sb.AppendLine("\t\twithheldAtThisSample = " + (withheld.Length > 0 ? withheld : "(none)"));
 
             AppendDelaySubsystem(sb, sample.Delay);
             sb.AppendLine("\t}");
@@ -2222,44 +2146,10 @@ namespace Gonogo.DevTools
         }
 
         /// <summary>
-        /// The LEAK lines: whether a quantity DERIVED from a delayed currency moved while
-        /// that currency was being withheld.
-        ///
-        /// <para>An operator watching confidence learns the science arrived before the
-        /// science does, and in RP-1 confidence gates real career decisions. That is the
-        /// delay leaking through a channel the subsystem never modelled, and it is the
-        /// shape of thing the validation matrix exists to catch.</para>
-        ///
-        /// <para>RP-1 confidence is the only such quantity this probe can reach today. It
-        /// is reported as a co-occurrence rather than a cause: that RP-1 credits
-        /// confidence off a science award is a belief about RP0.dll, not something read
-        /// here.</para>
-        /// </summary>
-        private static void AppendLeaks(StringBuilder sb, Balances now, Balances? baseline, DelaySubsystem delay)
-        {
-            var withheld = WithheldCurrencies(now, baseline, delay);
-            sb.AppendLine("\t\twithheldAtThisSample = " + (withheld.Length > 0 ? withheld : "(none)"));
-
-            if (!baseline.HasValue)
-            {
-                sb.AppendLine("\t\tconfidenceLeak = (indeterminate: no pre-award baseline was taken)");
-                return;
-            }
-
-            sb.AppendLine("\t\tconfidenceLeak = " + CurrencyProbeVerdicts.JudgeDerivedLeak(
-                "confidence", now.HasConfidence && baseline.Value.HasConfidence, now.ConfidenceFault,
-                baseline.Value.Confidence, now.Confidence, withheld, MovementTolerance));
-            sb.AppendLine("\t\tconfidenceEarnedLeak = " + CurrencyProbeVerdicts.JudgeDerivedLeak(
-                "confidenceEarned", now.HasConfidence && baseline.Value.HasConfidence, now.ConfidenceFault,
-                baseline.Value.ConfidenceEarned, now.ConfidenceEarned, withheld, MovementTolerance));
-        }
-
-        /// <summary>
         /// Which currencies are withheld at this sample: this run put a row in the
         /// ledger for them and the balance has not moved. An unreadable balance is left
-        /// OUT rather than assumed either way, because a leak verdict that named a
-        /// currency it could not measure would be asserting the thing it is meant to
-        /// test.
+        /// OUT rather than assumed either way, because naming a currency this probe
+        /// could not measure would assert the thing it is meant to test.
         /// </summary>
         private static string WithheldCurrencies(Balances now, Balances? baseline, DelaySubsystem delay)
         {

@@ -141,59 +141,6 @@ namespace Gonogo.DevTools
         }
 
         /// <summary>
-        /// Whether a quantity DERIVED from a currency moved while that currency was
-        /// being withheld, which is the delayed information leaking out of the side of
-        /// the subsystem.
-        ///
-        /// <para>An operator watching confidence therefore knows the science
-        /// arrived before the science does, and in RP-1 confidence gates real career
-        /// decisions, so the delay leaks through a channel it never modelled.</para>
-        ///
-        /// <para><b>The co-occurrence is the observation; the cause is not.</b> This says
-        /// the derived quantity moved while the currency was withheld. That RP-1 credits
-        /// confidence off a science award is a belief about RP0.dll, not something this
-        /// probe reads, so the wording stays at what was seen.</para>
-        ///
-        /// <para><paramref name="withheldCurrencies"/> empty means nothing was in flight
-        /// at this sample, which makes the reading INDETERMINATE rather than clean: a
-        /// quantity cannot leak information that is not being withheld, so a "no leak"
-        /// there would be a pass awarded for a test that never ran.</para>
-        /// </summary>
-        internal static string JudgeDerivedLeak(
-            string quantityName,
-            bool readable,
-            string unreadableFault,
-            double before,
-            double now,
-            string withheldCurrencies,
-            double tolerance)
-        {
-            var name = string.IsNullOrEmpty(quantityName) ? "(unnamed quantity)" : quantityName;
-
-            if (!readable)
-            {
-                return name + ": (unreadable: " + Fault(unreadableFault) + ")";
-            }
-
-            if (string.IsNullOrEmpty(withheldCurrencies))
-            {
-                return name + ": (indeterminate: nothing was being withheld at this sample, so there is no delayed"
-                    + " information for it to have leaked)";
-            }
-
-            var delta = now - before;
-            if (System.Math.Abs(delta) <= tolerance)
-            {
-                return name + ": no leak observed (held at " + Amount(now) + " while "
-                    + withheldCurrencies + " was withheld)";
-            }
-
-            return name + ": LEAK - moved " + Signed(delta) + " (" + Amount(before) + " to " + Amount(now)
-                + ") while " + withheldCurrencies + " was withheld, so this quantity reveals the credit"
-                + " before the credit itself lands";
-        }
-
-        /// <summary>
         /// Why a trigger-mode request cannot be applied, or null when it can.
         ///
         /// <para>The trigger modes cause a REAL recovery, a REAL vessel destruction or a
@@ -330,9 +277,6 @@ namespace Gonogo.DevTools
 
         private static string Fault(string? fault) =>
             string.IsNullOrEmpty(fault) ? "no reason recorded, which is itself a fault" : fault!;
-
-        private static string Amount(double value) =>
-            value.ToString("F3", CultureInfo.InvariantCulture);
 
         private static string Signed(double value) =>
             value.ToString("+0.000;-0.000;0.000", CultureInfo.InvariantCulture);

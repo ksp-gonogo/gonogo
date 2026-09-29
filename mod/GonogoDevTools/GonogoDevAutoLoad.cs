@@ -37,8 +37,8 @@ namespace Gonogo.DevTools
     /// quicksave never clobbers the save's <c>persistent.sfs</c>.
     ///
     /// A further optional cfg line, <c>newsandbox</c>, covers the case where the
-    /// requested save doesn't exist on disk yet (e.g. the first RO/RP-1 capture
-    /// run, with no pre-built save): instead of aborting, a brand-new SANDBOX
+    /// requested save doesn't exist on disk yet (e.g. the first capture run on a
+    /// fresh install, with no pre-built save): instead of aborting, a brand-new SANDBOX
     /// game is created under that save name (via <c>GamePersistence.CreateNewGame</c>,
     /// same call the stock "Start New Game" flow uses) and loaded straight to the
     /// SPACE CENTER, never FLIGHT - a fresh sandbox has no protoVessels to
@@ -52,9 +52,9 @@ namespace Gonogo.DevTools
     /// apart.
     ///
     /// The cfg is read via a short poll loop rather than a single
-    /// <c>File.Exists</c> check: on a heavily-modded boot (SCANsat,
-    /// ContractConfigurator, ...) a syncthing write/sync landing right around
-    /// launch can still be in flight when this addon's <c>Start()</c> fires.
+    /// <c>File.Exists</c> check: on a heavily-modded boot a syncthing write/sync
+    /// landing right around launch can still be in flight when this addon's
+    /// <c>Start()</c> fires.
     /// A single-shot check racing that write is the leading suspect for a
     /// prior silent failure - polling for up to <see cref="CfgPollTimeoutSeconds"/>
     /// closes that window while still logging loudly if the file never shows up.

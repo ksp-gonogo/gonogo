@@ -350,11 +350,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // SCANsat coverage shape (delayed dynamic per-(body,type)) in comments. Tests.
       "mod/Sitrep.Host.IntegrationTests/RevealGateTests.cs",
       /*
-       * GonogoDevStampScan.cs: the Deck-only dev tool that stamps SCANsat coverage
-       * for testing (reflects into SCANsat's API). Dev tooling, never shipped.
-       */
-      "mod/GonogoDevTools/GonogoDevStampScan.cs",
-      /*
        * slots.ts's header comment explains why scansat's OWN Scanning
        * slots ("scanning.sections"/".badges") are deliberately NOT
        * centrally mirrored here (would need the sdk leaf to import from an
@@ -380,7 +375,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // -- Cross-mod / doc-comment-only mentions --
       "mod/Gonogo.KSP/CommsCoreUplink.cs",
       "mod/Gonogo.KSP/SystemUplink.cs",
-      "mod/GonogoDevTools/GonogoDevAutoLoad.cs",
       "mod/Sitrep.Host/ChannelEngine.cs",
       /*
        * main.tsx was here: first for a static `@ksp-gonogo/gonogo-scansat-uplink`
@@ -781,9 +775,9 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/Gonogo.KSP/CommNetDegrade.cs",
       "mod/Gonogo.KSP/CommsCoreUplink.cs",
       /*
-       * dev-only comms override + its DevTools driver both name the stock
-       * comms backends ("CommNet / RealAntennas") in doc-comments explaining
-       * what they force: comment-only, no RA coupling.
+       * the dev-only comms override names the stock comms backends ("CommNet /
+       * RealAntennas") in a doc-comment explaining what it forces: comment-only,
+       * no RA coupling.
        */
       "mod/Gonogo.KSP/DevCommsOverride.cs",
       /*
@@ -793,48 +787,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "mod/Gonogo.KSP/FleetCommsReader.cs",
       "mod/Gonogo.KSP/GonogoAddon.cs",
-      "mod/GonogoDevTools/GonogoDevForceComms.cs",
-      /*
-       * GonogoDevAntenna.cs upgrades a test craft's antenna at runtime so that
-       * CommNet genuinely solves a route home, which is the only way to observe
-       * the currency-delay REVEAL: an early-career probe's 1 W UHF antenna
-       * closes no link, and the currency arm reads vessel.connection.ControlPath
-       * directly, so a faked route would measure nothing. It is DEV-ONLY, never
-       * shipped, and reaches RealAntennas purely by reflection with no
-       * compile-time reference or Uplink dependency, exactly as
-       * GonogoDevKerbalismScience.cs does for Kerbalism. Permanent rather than
-       * debt for the same reason as that one: a dev-only rig tool does not
-       * belong inside a shipped Uplink.
-       */
-      "mod/GonogoDevTools/GonogoDevAntenna.cs",
-      /*
-       * GonogoDevAntennaTarget.cs is the same shape and is here for the same
-       * reason. It points one antenna at a named place and then reads the
-       * BURST-JOB MIRROR the link solver actually consumes, because RealAntennas
-       * refreshes an antenna's pointing direction on every rebuild but its
-       * `isTracking` flag only when the precompute is re-initialised: a dish
-       * with no target counts as perfectly aimed, so a target that does not
-       * reach the mirror leaves the property, the part menu and the map cone all
-       * saying "aimed" while the solver goes on charging no pointing loss.
-       * Measured live, that window stays open indefinitely without
-       * an explicit invalidate. Nothing but a running game can show it, and
-       * nothing inside the Uplink could read the mirror without shipping the
-       * reflection in a released assembly. DEV-ONLY, never shipped, reflection
-       * only, no compile-time reference.
-       */
-      "mod/GonogoDevTools/GonogoDevAntennaTarget.cs",
-      /*
-       * AntennaProbeVerdictsTests.cs covers that same dev tool's report of
-       * whether its boost is still standing: the boost is a set of KSPField
-       * writes on a live module, so a vessel reload silently reverts it, and a
-       * lapsed boost is indistinguishable from one that never worked. The
-       * assertions are over plain strings and the tool's own shipped source
-       * text; RealAntennas is named only in comments explaining WHY the check
-       * compares the recalculated object and not just the module fields, since
-       * that library's Precompute reads the former. Comment-only, no coupling,
-       * and permanent for the same reason as the tool it covers.
-       */
-      "mod/Gonogo.KSP.Tests/DevTools/AntennaProbeVerdictsTests.cs",
       "mod/Sitrep.Contract/UplinkContract.cs",
       "mod/Sitrep.Host/ChannelEngine.cs",
       "mod/Sitrep.Host/Comms/CommsElection.cs",
@@ -1263,16 +1215,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * mechanism without citing a caller --
        */
       "mod/sitrep-sdk/src/topics.test.ts",
-
-      /*
-       * -- Unrelated RP-1/RP-0 module-name collision --
-       * GonogoDevKerbalismDump.cs is a GonogoDevTools debug dump unrelated to
-       * this Uplink; it lists "RP0Avionics" as one of many third-party
-       * PartModule class names it reflects, and separately explains in prose
-       * why RP-1's avionics controllable-mass isn't dumped there. No
-       * GonogoAvionicsUplink code or type reference.
-       */
-      "mod/GonogoDevTools/GonogoDevKerbalismDump.cs",
     ],
   },
 
@@ -1475,32 +1417,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/Gonogo.KSP/ReliabilityCoreUplink.cs",
       "mod/Sitrep.Host/Reliability/ReliabilityElection.cs",
       "mod/Sitrep.Host/Reliability/NoneReliabilityBackend.cs",
-      /*
-       * GonogoDevKerbalismDump.cs: a DEV-ONLY fixture collector, never shipped.
-       * It reflects into Kerbalism at runtime with no compile-time reference and
-       * exists precisely so this Uplink's shapes could be grounded in captured
-       * fixtures. It is arguably this Uplink's own tooling living in the dev-tools
-       * project; it stays permanent rather than debt because moving a dev-only
-       * dump into a shipped Uplink would be the wrong direction.
-       */
-      "mod/GonogoDevTools/GonogoDevKerbalismDump.cs",
-      /*
-       * GonogoDevKerbalismScience.cs: the same case as the dump above, one step
-       * further. It is DEV-ONLY, never shipped, and reaches Kerbalism purely by
-       * reflection with no compile-time reference. It drives
-       * SubjectData.RetrieveScience, which is the choke point this Uplink's own
-       * Harmony postfix patches, because with preventScienceCrediting set that
-       * is the ONLY path science can be credited through, so there is no way to
-       * observe currency delay on a Kerbalism install without naming it.
-       * Permanent rather than debt for the dump's reason: a dev-only probe does
-       * not belong inside a shipped Uplink.
-       *
-       * GonogoDevCurrency.cs names Kerbalism in prose only, to say why its own
-       * AddScience path cannot answer the science question here and to point at
-       * the tool above.
-       */
-      "mod/GonogoDevTools/GonogoDevKerbalismScience.cs",
-      "mod/GonogoDevTools/GonogoDevCurrency.cs",
 
       /*
        * -- TEST-only --
@@ -1622,8 +1538,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * backends in the same breath, for the same reason.
        */
       "mod/Gonogo.KSP/ReliabilityCoreUplink.cs",
-      // Dev-only Kerbalism dump tool, doc-mention.
-      "mod/GonogoDevTools/GonogoDevKerbalismDump.cs",
       /*
        * The reliability wire contract and its election, which name both
        * competing backends to explain the shape and the precedence. Contract
@@ -1774,8 +1688,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
   ],
   realantennas: [
     "mod/Gonogo.KSP.Tests/Comms/RouteBackendDispatchTests.cs",
-    "mod/Gonogo.KSP.Tests/DevTools/AntennaProbeVerdictsTests.cs",
-    "mod/GonogoDevTools/GonogoDevAntenna.cs",
     "mod/Sitrep.CaptureAnalysis.Tests/CommandLineTests.cs",
     "mod/Sitrep.CaptureAnalysis.Tests/RealCaptureTests.cs",
     "mod/Sitrep.CaptureAnalysis.Tests/SyntheticCapture.cs",
@@ -1802,15 +1714,12 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     // stacks, isolation, TrueNow and the two app-side gates) went when this
     // Uplink left for the gonogo-uplinks repo and those inventories stopped
     // naming any file of its.
-    "mod/GonogoDevTools/GonogoDevKerbalismDump.cs",
     "mod/Sitrep.Core.Tests/UplinkContractOwnershipTests.cs",
   ],
   kerbalism: [
     "packages/components/scripts/provenance-card-probe/provenance-card-probe-entry.tsx",
     "packages/components/scripts/widgets.ts",
     "packages/core/src/uplink-permanent-code.test.ts",
-    "mod/GonogoDevTools/GonogoDevKerbalismDump.cs",
-    "mod/GonogoDevTools/GonogoDevKerbalismScience.cs",
     "mod/Sitrep.Core.Tests/UplinkContractOwnershipTests.cs",
     "mod/Sitrep.Host.Tests/ReliabilityStateWireTests.cs",
     "packages/components/src/CrewStatus/index.test.tsx",
@@ -1849,7 +1758,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
   ],
   principia: [],
   scansat: [
-    "mod/GonogoDevTools/GonogoDevStampScan.cs",
     "mod/Sitrep.Core.Tests/UplinkContractOwnershipTests.cs",
     "mod/sitrep-sdk/src/spine/map-topic.ts",
     "packages/app/src/__tests__/scansat-coverage-roundtrip.test.tsx",
@@ -1863,7 +1771,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     // `meaning` string, and `repair.unrepairable`'s names TestFlight's repair
     // check. The name as DATA in a generated file.
     "mod/sitrep-sdk/src/__generated__/error-codes.ts",
-    "mod/GonogoDevTools/GonogoDevKerbalismDump.cs",
     "mod/Sitrep.Host.IntegrationTests/FlightEndToEndTests.cs",
     "mod/Sitrep.Host.Tests/ReliabilityStateWireTests.cs",
     "packages/components/src/FleetReliability/composition.test.tsx",

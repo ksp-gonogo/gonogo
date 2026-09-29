@@ -173,7 +173,6 @@
        nothing useful. No KSP/Unity type, so no KspManaged gating. -->
   <ItemGroup>
     <Compile Include="..\GonogoDevTools\CurrencyProbeVerdicts.cs" />
-    <Compile Include="..\GonogoDevTools\AntennaProbeVerdicts.cs" />
     <Compile Include="..\GonogoDevTools\DevRequestLedger.cs" />
   </ItemGroup>
 
