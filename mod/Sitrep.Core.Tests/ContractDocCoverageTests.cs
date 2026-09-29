@@ -66,10 +66,9 @@ namespace Sitrep.Core.Tests
         public void EveryPublicMemberIsDocumentedOrListed()
         {
             var documented = DocumentedIds();
-            var undocumented = new SortedSet<string>(
-                GradedMembers(PublicTypes()).Select(DocId).Where(id => !documented.Contains(id)),
-                StringComparer.Ordinal);
-            Assert.True(undocumented.Count > 0 || ContractDocCoverageDebt.Undocumented.Length == 0, "graded nothing");
+            var graded = GradedMembers(PublicTypes()).Select(DocId).ToList();
+            Assert.True(graded.Count > 0, "BLIND: graded nothing");
+            var undocumented = new SortedSet<string>(graded.Where(id => !documented.Contains(id)), StringComparer.Ordinal);
 
             var listed = new HashSet<string>(ContractDocCoverageDebt.Undocumented);
             if (Environment.GetEnvironmentVariable("GONOGO_CONTRACT_DOC_DEBT_UPDATE") == "1")
