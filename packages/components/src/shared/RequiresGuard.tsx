@@ -6,8 +6,8 @@ import {
   useUplinkHealthFor,
 } from "@ksp-gonogo/core";
 import { DimmedOverlay } from "@ksp-gonogo/ui";
-import type { ReactNode } from "react";
-import styled from "styled-components";
+import { ReadoutCaption, Stack, Text } from "@ksp-gonogo/ui-kit";
+import type { CSSProperties, ReactNode } from "react";
 
 export interface RequiresGuardProps {
   requires?: readonly ComponentRequirement[];
@@ -92,39 +92,40 @@ export function GuardPlaceholder({
   hint?: string;
 }) {
   return (
-    <PlaceholderWrap role="status" aria-live="polite">
-      <PlaceholderMessage>{message}</PlaceholderMessage>
-      {hint && <PlaceholderHint>{hint}</PlaceholderHint>}
-    </PlaceholderWrap>
+    <Stack
+      gap="caption"
+      style={PLACEHOLDER_STYLE}
+      role="status"
+      aria-live="polite"
+    >
+      <ReadoutCaption style={MESSAGE_STYLE}>{message}</ReadoutCaption>
+      {hint && (
+        <Text level="faint" style={HINT_STYLE}>
+          {hint}
+        </Text>
+      )}
+    </Stack>
   );
 }
 
-const PlaceholderWrap = styled.div`
-  flex: 0 1 auto;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  padding: 8px 12px;
-  text-align: center;
-  color: var(--color-text-faint);
-`;
+const PLACEHOLDER_STYLE: CSSProperties = {
+  flex: "0 1 auto",
+  minHeight: 0,
+  alignItems: "center",
+  justifyContent: "center",
+  textAlign: "center",
+  padding: "var(--inset-refusal)",
+};
 
-const PlaceholderMessage = styled.span`
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-`;
+const MESSAGE_STYLE: CSSProperties = {
+  fontWeight: 600,
+  letterSpacing: "0.1em",
+};
 
-const PlaceholderHint = styled.span`
-  font-size: 10px;
-  letter-spacing: 0.04em;
-  color: var(--color-text-faint);
-`;
+const HINT_STYLE: CSSProperties = {
+  fontSize: "var(--font-size-caption)",
+  letterSpacing: "0.04em",
+};
 
 export { DimmedOverlay };
 

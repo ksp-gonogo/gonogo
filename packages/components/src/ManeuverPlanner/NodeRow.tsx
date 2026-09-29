@@ -2,8 +2,8 @@ import type { ParsedManeuverNode } from "@ksp-gonogo/data";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { CloseIcon, PencilIcon } from "@ksp-gonogo/ui";
 import { Button, Countdown, IconButton, Unit } from "@ksp-gonogo/ui-kit";
+import type { ButtonHTMLAttributes, CSSProperties, ReactNode } from "react";
 import { useState } from "react";
-import styled from "styled-components";
 import { NodeEditor } from "./NodeEditor";
 import { FeasibilityChip } from "./styles";
 
@@ -47,9 +47,12 @@ export function NodeRow({
       ? null
       : availableDv >= node.deltaVMagnitude;
   return (
-    <NodeLi $completed={completed} role={completed ? "status" : undefined}>
-      <NodeMain>
-        <NodePrimary $completed={completed}>
+    <li
+      style={completed ? NODE_LI_COMPLETED : NODE_LI_ACTIVE}
+      role={completed ? "status" : undefined}
+    >
+      <div style={NODE_MAIN_STYLE}>
+        <div style={completed ? NODE_PRIMARY_COMPLETED : NODE_PRIMARY_ACTIVE}>
           {completed ? (
             "Burn complete"
           ) : (
@@ -62,8 +65,8 @@ export function NodeRow({
           {feasible === false && (
             <FeasibilityChip $ok={false}>SHORT</FeasibilityChip>
           )}
-        </NodePrimary>
-        <NodeMeta>
+        </div>
+        <div style={NODE_META_STYLE}>
           {completed ? (
             "Removing in 10 s"
           ) : timeTo !== null && timeTo < 0 ? (
@@ -76,9 +79,9 @@ export function NodeRow({
               burn in <Countdown value={timeTo} />
             </>
           )}
-        </NodeMeta>
-      </NodeMain>
-      <RowActions>
+        </div>
+      </div>
+      <div style={ROW_ACTIONS_STYLE}>
         {onEdit && !completed && (
           <StepButton
             type="button"
@@ -94,9 +97,9 @@ export function NodeRow({
             <CloseIcon size={12} />
           </Button>
         )}
-      </RowActions>
+      </div>
       {editing && onEdit && (
-        <EditPanel>
+        <div style={EDIT_PANEL_STYLE}>
           <NodeEditor
             node={node}
             currentUT={currentUT}
@@ -112,72 +115,113 @@ export function NodeRow({
             }}
             onCancel={() => setEditing(false)}
           />
-        </EditPanel>
+        </div>
       )}
-    </NodeLi>
+    </li>
   );
 }
 
-const NodeLi = styled.li<{ $completed: boolean }>`
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  gap: var(--gap-related);
-  padding: var(--inset-surface);
-  background: ${({ $completed }) =>
-    $completed ? "var(--color-go-muted)" : "var(--color-surface-panel)"};
-  border: 1px solid
-    ${({ $completed }) =>
-      $completed ? "var(--color-go-mark)" : "var(--color-border-subtle)"};
-  border-radius: var(--radius-regular);
-`;
+const NODE_LI_BASE: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "1fr auto",
+  alignItems: "center",
+  gap: "var(--gap-related)",
+  padding: "var(--inset-surface)",
+  borderRadius: "var(--radius-regular)",
+};
 
-const NodeMain = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-line);
-  min-width: 0;
-`;
+const NODE_LI_ACTIVE: CSSProperties = {
+  ...NODE_LI_BASE,
+  background: "var(--color-surface-panel)",
+  border: "1px solid var(--color-border-subtle)",
+};
 
-const NodePrimary = styled.div<{ $completed: boolean }>`
-  display: flex;
-  align-items: center;
-  gap: var(--gap-related);
-  font-size: var(--font-size-value);
-  color: ${({ $completed }) =>
-    $completed ? "var(--color-go-text)" : "var(--color-text-primary)"};
-  font-weight: ${({ $completed }) => ($completed ? 600 : 400)};
-`;
+const NODE_LI_COMPLETED: CSSProperties = {
+  ...NODE_LI_BASE,
+  background: "var(--color-go-muted)",
+  border: "1px solid var(--color-go-mark)",
+};
 
-const NodeMeta = styled.div`
-  font-size: var(--font-size-caption);
-  color: var(--color-text-dim);
-  letter-spacing: 0.04em;
-`;
+const NODE_MAIN_STYLE: CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "var(--gap-line)",
+  minWidth: 0,
+};
 
-const RowActions = styled.div`
-  display: flex;
-  align-items: center;
-  gap: var(--gap-related);
-`;
+const NODE_PRIMARY_BASE: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "var(--gap-related)",
+  fontSize: "var(--font-size-value)",
+};
 
-const StepButton = styled(IconButton)<{ $active: boolean }>`
-  background: ${({ $active }) =>
-    $active ? "var(--color-surface-raised)" : "transparent"};
-  border: 1px solid var(--color-border-subtle);
-  color: var(--color-text-muted);
-  width: 22px;
-  height: 22px;
-  border-radius: var(--radius-regular);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-`;
+const NODE_PRIMARY_ACTIVE: CSSProperties = {
+  ...NODE_PRIMARY_BASE,
+  color: "var(--color-text-primary)",
+  fontWeight: 400,
+};
 
-const EditPanel = styled.div`
-  grid-column: 1 / -1;
-  border-top: 1px dashed var(--color-border-subtle);
-  padding-top: var(--inset-below-rule);
-  margin-top: var(--gap-disclosure);
-`;
+const NODE_PRIMARY_COMPLETED: CSSProperties = {
+  ...NODE_PRIMARY_BASE,
+  color: "var(--color-go-text)",
+  fontWeight: 600,
+};
+
+const NODE_META_STYLE: CSSProperties = {
+  fontSize: "var(--font-size-caption)",
+  color: "var(--color-text-dim)",
+  letterSpacing: "0.04em",
+};
+
+const ROW_ACTIONS_STYLE: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "var(--gap-related)",
+};
+
+function StepButton({
+  $active,
+  ...rest
+}: Readonly<
+  ButtonHTMLAttributes<HTMLButtonElement> & {
+    $active: boolean;
+    children?: ReactNode;
+  }
+>) {
+  return (
+    <IconButton
+      style={$active ? STEP_BUTTON_ACTIVE : STEP_BUTTON_INACTIVE}
+      {...rest}
+    />
+  );
+}
+
+const STEP_BUTTON_BASE: CSSProperties = {
+  border: "1px solid var(--color-border-subtle)",
+  color: "var(--color-text-muted)",
+  width: 22,
+  height: 22,
+  borderRadius: "var(--radius-regular)",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: 0,
+};
+
+const STEP_BUTTON_ACTIVE: CSSProperties = {
+  ...STEP_BUTTON_BASE,
+  background: "var(--color-surface-raised)",
+};
+
+const STEP_BUTTON_INACTIVE: CSSProperties = {
+  ...STEP_BUTTON_BASE,
+  background: "transparent",
+};
+
+const EDIT_PANEL_STYLE: CSSProperties = {
+  gridColumn: "1 / -1",
+  borderTop: "1px dashed var(--color-border-subtle)",
+  paddingTop: "var(--inset-below-rule)",
+  marginTop: "var(--gap-disclosure)",
+};

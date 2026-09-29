@@ -1,4 +1,5 @@
-import styled from "styled-components";
+import { Button } from "@ksp-gonogo/ui-kit";
+import type { ButtonHTMLAttributes, CSSProperties } from "react";
 
 export const BODY_STYLE = {
   display: "flex",
@@ -85,27 +86,52 @@ export const ALARM_NAME_STYLE = {
   fontSize: "var(--font-size-sm)",
 } as const;
 
-/* Styled rather than inline for its :focus-visible ring. */
-export const WarpButton = styled.button<{ $active: boolean }>`
-  background: ${({ $active }) =>
-    $active ? "var(--color-go-status)" : "var(--color-surface-raised)"};
-  color: var(--color-go-on-status);
-  border: 1px solid
-    ${({ $active }) =>
-      $active ? "var(--color-go-status)" : "var(--color-border-subtle)"};
-  border-radius: var(--radius-regular);
-  padding: var(--inset-warp-button);
-  font-size: var(--font-size-compact);
-  font-weight: ${({ $active }) => ($active ? 700 : 500)};
-  letter-spacing: 0.04em;
-  cursor: pointer;
-  min-width: 0;
-  &:focus-visible {
-    outline: 2px solid var(--color-accent-fg);
-    outline-offset: 2px;
+/**
+ * The kit's `Button`, geometry pinned back to the compact grid this control
+ * needs: its own `pressed` look already matches the lit state exactly
+ * (`--color-go-status` fill, `--color-go-on-status` text), so only the rest
+ * state and sizing need an override. `pressed` is passed as `true` or
+ * `undefined`, never `false`, so a momentary stepper (+/−, no
+ * `aria-pressed` of its own) never picks one up: `Button` writes
+ * `aria-pressed` from this prop, and a caller that wants the attribute sets
+ * its own `aria-pressed`, which lands after this in the props and wins.
+ */
+export function WarpButton({
+  $active,
+  style,
+  ...rest
+}: Readonly<
+  ButtonHTMLAttributes<HTMLButtonElement> & {
+    $active: boolean;
+    style?: CSSProperties;
   }
-  &:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
-`;
+>) {
+  return (
+    <Button
+      pressed={$active ? true : undefined}
+      style={{
+        ...WARP_BUTTON_GEOMETRY,
+        ...($active ? WARP_BUTTON_ACTIVE : WARP_BUTTON_REST),
+        ...style,
+      }}
+      {...rest}
+    />
+  );
+}
+
+const WARP_BUTTON_GEOMETRY: CSSProperties = {
+  minHeight: 0,
+  lineHeight: "normal",
+  padding: "var(--inset-warp-button)",
+  fontSize: "var(--font-size-compact)",
+  letterSpacing: "0.04em",
+  minWidth: 0,
+};
+
+const WARP_BUTTON_ACTIVE: CSSProperties = { fontWeight: 700 };
+
+const WARP_BUTTON_REST: CSSProperties = {
+  fontWeight: 500,
+  borderColor: "var(--color-border-subtle)",
+  color: "var(--color-go-on-status)",
+};

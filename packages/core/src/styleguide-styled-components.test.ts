@@ -44,8 +44,12 @@ const MOD_CLIENT_SRC_SUFFIX = ["client", "src"];
 //
 // A baseline sitting above its live count is permission for that many new
 // imports, which is a gate that has stopped gating while still reporting
-// green. Measured 22 lines in 22 files.
-const STYLED_COMPONENTS_IMPORT_BASELINE = 22;
+// green. Measured 14 lines in 14 files: RequiresGuard, OrbitView/styles,
+// ManeuverPlanner/{ManeuverPlannerView,ManeuverPreview,NodeRow,styles} and
+// MapView/MapPoiLayer.styles migrated onto ui-kit primitives and the new
+// ContainerBreak (a container-query breakpoint with no inline-style
+// equivalent), WarpControl/styles migrated onto the kit's Button.
+const STYLED_COMPONENTS_IMPORT_BASELINE = 14;
 
 const STYLED_IMPORT_RE = /(?:from\s+|require\()\s*["']styled-components["']/;
 

@@ -5,10 +5,10 @@ import {
   Section,
   SectionTitle,
   Tabs,
+  Text,
   WidgetSections,
 } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
-import styled from "styled-components";
 import { ArmedTriggersList } from "./ArmedTriggersList";
 import { BurnWindowsSection } from "./BurnWindowsSection";
 import { ConformanceSection } from "./ConformanceSection";
@@ -161,7 +161,13 @@ export function ManeuverPlannerComponent({
       sections={[
         refBody !== undefined && (
           <Section key="body" full>
-            <RefBodyCaption data-ref-body-caption="">{refBody}</RefBodyCaption>
+            <Text
+              level="muted"
+              style={REF_BODY_CAPTION_STYLE}
+              data-ref-body-caption=""
+            >
+              {refBody}
+            </Text>
           </Section>
         ),
         // The node list sits above the tabs: it is the subject both tabs are views of.
@@ -203,7 +209,6 @@ export function ManeuverPlannerComponent({
   );
 }
 
-const RefBodyCaption = styled.div`
-  font-size: var(--font-size-caption);
-  color: var(--color-text-muted);
-`;
+const REF_BODY_CAPTION_STYLE = {
+  fontSize: "var(--font-size-caption)",
+} as const;

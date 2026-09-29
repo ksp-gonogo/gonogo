@@ -3,12 +3,13 @@ import type { OrbitTrajectory } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { Button } from "@ksp-gonogo/ui";
 import {
+  ContainerBreak,
   Countdown,
   SectionTitle,
   SignalDelayBadge,
   Unit,
 } from "@ksp-gonogo/ui-kit";
-import styled from "styled-components";
+import type { CSSProperties, ReactNode } from "react";
 import {
   projectionDiffersFromTrajectory,
   TwoBodyProjectionNote,
@@ -66,16 +67,24 @@ export function ManeuverPreview(props: ManeuverPreviewProps) {
   const { plan } = props;
   if (!plan) return null;
   return (
-    <PreviewSection>
+    <div style={PREVIEW_SECTION_STYLE}>
       <SectionTitle as="h4">Preview</SectionTitle>
-      <PreviewContainer>
-        <PreviewMain>
-          <PreviewReadouts>
+      <div style={CONTAINER_STYLE}>
+        <ContainerBreak
+          at={460}
+          narrow={PREVIEW_MAIN_NARROW}
+          wide={PREVIEW_MAIN_WIDE}
+        >
+          <ContainerBreak
+            at={460}
+            narrow={PREVIEW_READOUTS_NARROW}
+            wide={PREVIEW_READOUTS_WIDE}
+          >
             <PreviewBody {...props} />
-          </PreviewReadouts>
+          </ContainerBreak>
           <ManeuverDiagram {...props} />
-        </PreviewMain>
-      </PreviewContainer>
+        </ContainerBreak>
+      </div>
       {/* Above the plane caveat: it qualifies every readout, that one only the drawing. */}
       {projectionDiffersFromTrajectory(props.currentTrajectory) && (
         <Note>
@@ -129,7 +138,7 @@ export function ManeuverPreview(props: ManeuverPreviewProps) {
           </Button>
         </SendGroup>
       </CommitRow>
-    </PreviewSection>
+    </div>
   );
 }
 
@@ -171,63 +180,73 @@ function PreviewBody({
   );
 }
 
-const PreviewSection = styled.section`
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-related);
-  padding-top: var(--gap-planner-section);
-`;
+const PREVIEW_SECTION_STYLE: CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "var(--gap-related)",
+  paddingTop: "var(--gap-planner-section)",
+};
 
-const PreviewContainer = styled.div`
-  container-type: inline-size;
-`;
+const CONTAINER_STYLE: CSSProperties = { containerType: "inline-size" };
 
-const PreviewMain = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-related);
+const PREVIEW_MAIN_NARROW: CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "var(--gap-related)",
+};
 
-  @container (min-width: 460px) {
-    flex-direction: row;
-    align-items: flex-start;
-    gap: var(--gap-section);
-  }
-`;
+const PREVIEW_MAIN_WIDE: CSSProperties = {
+  flexDirection: "row",
+  alignItems: "flex-start",
+  gap: "var(--gap-section)",
+};
 
-const PreviewReadouts = styled.div`
-  min-width: 0;
+const PREVIEW_READOUTS_NARROW: CSSProperties = { minWidth: 0 };
 
-  @container (min-width: 460px) {
-    flex: 0 0 auto;
-  }
-`;
+const PREVIEW_READOUTS_WIDE: CSSProperties = { flex: "0 0 auto" };
 
-const Note = styled.div`
-  font-size: var(--font-size-compact);
-  color: var(--color-text-dim);
-  font-style: italic;
-`;
+function Note({ children }: Readonly<{ children?: ReactNode }>) {
+  return <div style={NOTE_STYLE}>{children}</div>;
+}
 
-const ErrorLine = styled.div`
-  font-size: var(--font-size-compact);
-  color: var(--color-nogo-text);
-  background: var(--color-tag-dark-brown-bg);
-  border: 1px solid var(--color-border-strong);
-  padding: var(--inset-surface);
-  border-radius: var(--radius-regular);
-`;
+const NOTE_STYLE: CSSProperties = {
+  fontSize: "var(--font-size-compact)",
+  color: "var(--color-text-dim)",
+  fontStyle: "italic",
+};
 
-const CommitRow = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  align-items: center;
-  gap: var(--gap-related);
-  padding-top: var(--gap-actions);
-`;
+function ErrorLine({ children }: Readonly<{ children?: ReactNode }>) {
+  return <div style={ERROR_LINE_STYLE}>{children}</div>;
+}
 
-const SendGroup = styled.div`
-  display: flex;
-  align-items: center;
-  gap: var(--gap-related);
-`;
+const ERROR_LINE_STYLE: CSSProperties = {
+  fontSize: "var(--font-size-compact)",
+  color: "var(--color-nogo-text)",
+  background: "var(--color-tag-dark-brown-bg)",
+  border: "1px solid var(--color-border-strong)",
+  padding: "var(--inset-surface)",
+  borderRadius: "var(--radius-regular)",
+};
+
+function CommitRow({ children }: Readonly<{ children?: ReactNode }>) {
+  return <div style={COMMIT_ROW_STYLE}>{children}</div>;
+}
+
+const COMMIT_ROW_STYLE: CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
+  justifyContent: "flex-end",
+  alignItems: "center",
+  gap: "var(--gap-related)",
+  paddingTop: "var(--gap-actions)",
+};
+
+function SendGroup({ children }: Readonly<{ children?: ReactNode }>) {
+  return <div style={SEND_GROUP_STYLE}>{children}</div>;
+}
+
+const SEND_GROUP_STYLE: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "var(--gap-related)",
+};

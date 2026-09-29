@@ -218,6 +218,10 @@ export {
 export { ComposerBar, type ComposerBarProps } from "./ComposerBar";
 // The only door to the console's parts; `ComposerBar` stays public because what goes on the row is the widget's.
 export { Console, type ConsoleProps, type ConsoleTone } from "./Console";
+export {
+  ContainerBreak,
+  type ContainerBreakProps,
+} from "./ContainerBreak";
 export { Countdown, type CountdownProps } from "./Countdown";
 export { configEqual } from "./configEqual";
 // The contribution type surface, read hooks, per-widget store and per-frame aggregation; registration lives on the sdk.
