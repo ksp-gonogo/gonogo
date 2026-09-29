@@ -80,15 +80,23 @@ const ESSENTIAL_TONE: Record<Tone, TinyEssentialTone> = {
   neutral: "neutral",
 };
 
-/** The signal figure with its bars, which is all a tiny tile has room for. */
+/** The signal figure with its bars, which is all a tiny tile has room for; a lost link says LOS beside the bars, as the body's headline does. */
 export function useCommSignalEssentials(): readonly TinyEssential[] {
-  const { noSignal, bars, control, strengthReading } = useSignalVerdict();
+  const { connected, noSignal, bars, control, strengthReading } =
+    useSignalVerdict();
+  const level = { lit: bars, of: 4 };
+  if (noSignal) {
+    return [{ label: "Signal", value: null, level, tone: "neutral" }];
+  }
+  if (connected === false) {
+    return [{ label: "Signal", word: "LOS", level, tone: "nogo" }];
+  }
   return [
     {
       label: "Signal",
       value: strengthReading,
-      level: { lit: bars, of: 4 },
-      tone: noSignal ? "neutral" : ESSENTIAL_TONE[control.tone],
+      level,
+      tone: ESSENTIAL_TONE[control.tone],
     },
   ];
 }

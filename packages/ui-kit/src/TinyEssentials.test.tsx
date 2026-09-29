@@ -211,5 +211,65 @@ describe("TinyEssentials", () => {
         3,
       );
     });
+
+    it("still says the word of a row it had no room to draw", () => {
+      stubLayout(25);
+      const { container } = render(
+        <TinyEssentials
+          title="KSC"
+          essentials={[
+            { label: "Funds", value: value("funds", 1200) },
+            { label: "Pad", word: "ACTIVE", tone: "go" },
+          ]}
+        />,
+      );
+      expect(screen.queryByText("ACTIVE")).toBeNull();
+      const spoken = [...container.querySelectorAll("[aria-live]")]
+        .map((r) => r.textContent)
+        .filter((t) => t !== "");
+      expect(spoken).toEqual(["Pad ACTIVE"]);
+    });
+  });
+
+  it("draws a state word in the figure's place, in its tone, beside any level glyph", async () => {
+    const { container } = render(
+      <TinyEssentials
+        title="COMMNET"
+        essentials={[
+          {
+            label: "Signal",
+            word: "LOS",
+            value: value("ratio", 0.62),
+            level: { lit: 0, of: 4 },
+            tone: "nogo",
+          },
+        ]}
+      />,
+    );
+    const figure = container.querySelector("dd") as HTMLElement;
+    expect(figure.textContent).toContain("LOS");
+    expect(figure.textContent).not.toContain("62");
+    expect(figure.querySelector("[data-level-bars]")).not.toBeNull();
+    expect(getComputedStyle(figure).color).toBe("var(--color-nogo-text)");
+    await expectNoA11yViolations(container);
+  });
+
+  it("says each state word through one polite region that is there before any word is", () => {
+    const essentials = (pad?: string): readonly TinyEssential[] => [
+      { label: "Funds", value: value("funds", 1200) },
+      { label: "Pad", word: pad, value: null },
+    ];
+    const { container, rerender } = render(
+      <TinyEssentials title="KSC" essentials={essentials()} />,
+    );
+    const before = [...container.querySelectorAll("[aria-live]")];
+    expect(before.every((r) => r.textContent === "")).toBe(true);
+
+    rerender(<TinyEssentials title="KSC" essentials={essentials("ACTIVE")} />);
+    const after = [...container.querySelectorAll("[aria-live]")];
+    expect(after).toEqual(before);
+    const speaking = after.filter((r) => r.textContent !== "");
+    expect(speaking.map((r) => r.textContent)).toEqual(["Pad ACTIVE"]);
+    expect(speaking[0]?.getAttribute("aria-live")).toBe("polite");
   });
 });

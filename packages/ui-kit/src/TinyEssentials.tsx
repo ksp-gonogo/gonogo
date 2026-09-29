@@ -8,6 +8,7 @@ import type {
 import { useLayoutEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import { LevelBars } from "./LevelBars";
+import { LiveRegion } from "./LiveRegion";
 import { Panel } from "./Panel";
 import { Section } from "./Section";
 import { TONE_TEXT } from "./tone";
@@ -28,7 +29,8 @@ export interface TinyEssentialsProps {
 /**
  * The one form every widget with a tiny mode takes at the tiny size: its short
  * heading over its essential values, the first drawn large and the rest as
- * label and figure rows under it.
+ * label and figure rows under it. A state word stands in a figure's place and
+ * is announced through the tile's one polite live region.
  *
  * Rows are drawn in order while they fit the tile and the ones that do not
  * are dropped from the end, so every figure the tile shows is whole.
@@ -49,6 +51,7 @@ export function TinyEssentials({ title, essentials }: TinyEssentialsProps) {
       fitToSize
       sections={
         <Section full>
+          <LiveRegion visuallyHidden>{spokenWords(essentials)}</LiveRegion>
           {hero !== undefined && (
             <TinyEssentials__Hero data-tiny-essential="">
               {heroNamedByTitle ? (
@@ -97,7 +100,7 @@ function useRowsThatFit(rows: readonly TinyEssential[]) {
   const [drawn, setDrawn] = useState(rows.length);
   const [pass, setPass] = useState(0);
   const figures = rows
-    .map((row) => `${row.label}\u0000${figureKey(row.value)}`)
+    .map((row) => `${row.label}\u0000${row.word ?? figureKey(row.value)}`)
     .join("\u0001");
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: a new figure or a resized box starts the count again.
@@ -163,9 +166,21 @@ function EssentialFigure({ essential }: { essential: TinyEssential }) {
           label={essential.label}
         />
       )}
-      <Unit value={essential.value} decimals={essential.decimals} />
+      {essential.word !== undefined ? (
+        essential.word
+      ) : (
+        <Unit value={essential.value} decimals={essential.decimals} />
+      )}
     </>
   );
+}
+
+/** Every state word on the tile with its label, the only thing the tile says aloud. */
+function spokenWords(essentials: readonly TinyEssential[]): string {
+  return essentials
+    .filter((e) => e.word !== undefined)
+    .map((e) => `${e.label} ${e.word}`)
+    .join(", ");
 }
 
 /**

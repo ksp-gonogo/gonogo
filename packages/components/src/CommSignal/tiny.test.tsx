@@ -32,4 +32,26 @@ describe("CommSignal tiny mode", () => {
     expect(document.querySelector("[data-tiny-essential]")).toBeNull();
     await act(async () => {});
   });
+
+  it("says LOS beside the bars when the link is lost, and announces it politely", async () => {
+    const fixture = setupStreamFixture({ pinnedUt: 10, suspendFrames: true });
+    renderWidget("comm-signal", { w: 3, h: 3, wrapper: fixture.Provider });
+    act(() => {
+      fixture.emit("comms.link", { connected: false });
+      fixture.emit("vessel.comms", {
+        connected: false,
+        signalStrength: 0,
+        controlState: 0,
+      });
+    });
+
+    await waitFor(() => expect(visibleText()).toContain("LOS"));
+    expect(screen.getByRole("img", { name: "Signal 0 of 4" })).toBeTruthy();
+    const spoken = [...document.querySelectorAll("[aria-live=polite]")].map(
+      (r) => r.textContent,
+    );
+    expect(spoken).toContain("Signal LOS");
+    expect(document.querySelector("[aria-live=assertive]")).toBeNull();
+    await act(async () => {});
+  });
 });

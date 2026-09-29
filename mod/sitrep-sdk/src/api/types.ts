@@ -137,9 +137,15 @@ export interface TinyEssential {
   label: string;
   /**
    * The figure, drawn through `<Unit>`. A whole Reading also draws whether it
-   * is current; null or undefined draws the null token.
+   * is current; null or absent draws the null token.
    */
-  value: Value | Reading<Value> | null | undefined;
+  value?: Value | Reading<Value> | null;
+  /**
+   * A short state word drawn in the figure's place and in its tone: `LOS`,
+   * `ACTIVE`. The kit announces it politely whenever it changes, which it never
+   * does for a figure. A level glyph is still drawn beside it.
+   */
+  word?: string;
   /** Decimal places, where the unit's own default says more than the figure means. */
   decimals?: number;
   /** How alarming the figure is. Defaults to `neutral`. */
