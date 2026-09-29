@@ -554,6 +554,8 @@ export {
   type TapeZone,
 } from "./Tape";
 export {
+  FAINT_TEXT_STYLE,
+  faintText,
   Text,
   type TextLevel,
   type TextProps,
@@ -582,8 +584,6 @@ export {
 } from "./Tooltip";
 export { Truncate } from "./Truncate";
 export {
-  FAINT_TEXT_STYLE,
-  faintText,
   TONE_LABEL,
   TONE_MARK,
   TONE_MUTED,

@@ -42,6 +42,34 @@ const LEVEL_COLOR: Record<TextLevel, string> = {
   faint: "var(--color-text-faint)",
 };
 
+/**
+ * Recedes every neutral word inside a box to the faint text level, which still
+ * clears AA on the panel. The way to quiet a block of words: opacity drops them
+ * below contrast, so it is kept for marks that carry no text. A word in a tone
+ * keeps its tone, since a state is never dimmed away. The same declarations as
+ * {@link faintText}, for a `style` prop.
+ *
+ * @category Text
+ */
+export const FAINT_TEXT_STYLE: Readonly<Record<string, string>> = {
+  color: LEVEL_COLOR.faint,
+  "--color-neutral-text": LEVEL_COLOR.faint,
+  "--color-text-primary": LEVEL_COLOR.faint,
+  "--color-text-muted": LEVEL_COLOR.faint,
+  "--color-text-dim": LEVEL_COLOR.faint,
+};
+
+/**
+ * {@link FAINT_TEXT_STYLE} as declarations for a styled-components rule.
+ *
+ * @category Text
+ */
+export function faintText(): string {
+  return Object.entries(FAINT_TEXT_STYLE)
+    .map(([property, value]) => `${property}: ${value};`)
+    .join("\n");
+}
+
 const WEIGHT_STYLES = {
   regular: css`
     font-weight: 400;
