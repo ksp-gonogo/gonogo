@@ -125,6 +125,8 @@ describe("getUndescribedTopics()", () => {
         "recovery.hasRecent",
         // A string carrying a JSON document: the Topic IS the value, so it has no fields.
         "system.units",
+        // A binary-lane topic: raw Opus frames, not a JSON payload with fields to describe.
+        "commcast.radio",
         // Nothing annotates this one's fields. Its three segments are no
         // longer the reason: the split resolves a Topic of any depth now, and
         // its sibling `system.uplink.pending` is described.
