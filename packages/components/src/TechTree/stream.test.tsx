@@ -11,7 +11,7 @@ beforeEach(() => {
 });
 
 describe("TechTree: genuinely runs off the stream", () => {
-  it("renders the science readout derived from career.status.economy.science", async () => {
+  it("renders the science readout derived from career.status.balances.science", async () => {
     const fixture = setupStreamFixture({
       pinnedUt: 10,
       suspendFrames: true,
@@ -30,7 +30,7 @@ describe("TechTree: genuinely runs off the stream", () => {
     act(() => {
       // The wire shape carries `unlocked: boolean`, not a `state` string.
       fixture.emit("career.status", {
-        economy: { funds: 100, reputation: 0, science: 4854 },
+        balances: { funds: 100, reputation: 0, science: 4854 },
         facilities: null,
         contracts: null,
         strategies: null,

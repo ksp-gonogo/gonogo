@@ -47,10 +47,10 @@ describe("widget dataRequirements resolve to something real", () => {
   it("rejects a plausible-looking field that does not exist", () => {
     // Positive control: a kind here means the classifier has gone permissive.
     expect(
-      classifyRequirement("career.status.economy.notAField"),
+      classifyRequirement("career.status.balances.notAField"),
     ).toBeUndefined();
     expect(classifyRequirement("spaceCenter.state.notAField")).toBeUndefined();
-    expect(classifyRequirement("career.status.economy.funds")).toBe(
+    expect(classifyRequirement("career.status.balances.funds")).toBe(
       "field-path",
     );
     expect(classifyRequirement("career.status")).toBe("wire-topic");

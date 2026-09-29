@@ -5,7 +5,7 @@ import { useStream } from "./use-stream";
 /**
  * Source-attributed currency events, read off `currency.<guid>.<currency>`.
  *
- * A career currency total reveals at home instantly (`career.status.economy.*` is
+ * A career currency total reveals at home instantly (`career.status.balances.*` is
  * held at the home command, where the game gates a spend) while the vessel
  * telemetry confirming the underlying event is delayed.
  * These events carry each delta on its SOURCE vessel's own clock instead, so a
@@ -79,7 +79,7 @@ function isCredit(payload: unknown): payload is ScienceCreditEvent {
  * `viewUt`, plus their sum.
  *
  * WHAT THIS DELIBERATELY DOES NOT EXPOSE: the amount of science still in flight.
- * That figure is only derivable as `career.status.economy.science` (instant, true)
+ * That figure is only derivable as `career.status.balances.science` (instant, true)
  * minus a revealed total, and displaying it would tell the operator that N science
  * is inbound the instant it is earned, which is exactly the inference the delayed
  * reveal exists to prevent. So no `pending` field is offered here, by design.
@@ -89,7 +89,7 @@ function isCredit(payload: unknown): payload is ScienceCreditEvent {
  * includes credits still in flight, and how much is in flight is unknowable to the
  * client by design. Seeding from it and then adding those credits as they reveal
  * double-counts them permanently. So the honest quantity is the one reported here:
- * the exact science that has been REVEALED to this observer. `career.status.economy
+ * the exact science that has been REVEALED to this observer. `career.status.balances
  * .science` remains the absolute total, instant and untouched, for spend gating.
  *
  * Subscribes imperatively through the client rather than one `useStream` per guid,
@@ -149,7 +149,7 @@ export function useRevealedScience(
  *
  * NARRATIVE ONLY. `delta` is a change, never a total, and there is deliberately no
  * absolute reputation on this shape: the number that GATES (a strategy's minimum-rep
- * unlock, contract offer availability) is `career.status.economy.reputation`, which
+ * unlock, contract offer availability) is `career.status.balances.reputation`, which
  * stays instant and untouched. Never render this beside an activate/accept control.
  */
 export interface ReputationLossEvent {

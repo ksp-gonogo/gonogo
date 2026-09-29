@@ -7,7 +7,7 @@ function usePlantedEssentials(): readonly TinyEssential[] {
   return [
     {
       label: "Bal",
-      value: readingOf(career, (c) => c.economy?.funds ?? undefined),
+      value: readingOf(career, (c) => c.balances?.funds ?? undefined),
       decimals: 0,
     },
   ];

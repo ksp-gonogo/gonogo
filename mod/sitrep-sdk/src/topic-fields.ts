@@ -53,7 +53,7 @@ export type EnumEncoding =
  * @category Reading telemetry
  */
 export interface TopicField {
-  /** Dotted path relative to the Topic root, e.g. `"economy.funds"`. */
+  /** Dotted path relative to the Topic root, e.g. `"balances.funds"`. */
   path: string;
   /** The declared unit token. Absent on a `collection`, which has no unit. */
   unit?: SitrepUnit;

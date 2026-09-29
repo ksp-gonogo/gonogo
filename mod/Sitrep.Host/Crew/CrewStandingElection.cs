@@ -4,8 +4,7 @@ using Sitrep.Contract;
 namespace Sitrep.Host.Crew
 {
     /// <summary>
-    /// The crew-standing election, the same shape as
-    /// <see cref="Economy.EconomyElection"/>. ONE EXCLUSIVE capability
+    /// The crew-standing election. ONE EXCLUSIVE capability
     /// <c>"crewStanding"</c> whose active instance is an
     /// <see cref="ICrewStandingBackend"/>.
     ///
@@ -29,8 +28,8 @@ namespace Sitrep.Host.Crew
     ///
     /// <para>No provider declares a channel of its own; the standing rides the
     /// <c>spaceCenter.crewRoster</c> entries the space-centre uplink already
-    /// publishes, the same shared-namespace-single-declaration rule comms, ISRU
-    /// and the economy follow.</para>
+    /// publishes, the same shared-namespace-single-declaration rule comms and
+    /// ISRU follow.</para>
     /// </summary>
     public static class CrewStandingElection
     {
@@ -51,10 +50,9 @@ namespace Sitrep.Host.Crew
         /// capability-declaration pass.
         /// </summary>
         /// <remarks>
-        /// Takes no vanilla factory, for the same reason the economy election
-        /// does not: mapping a roster ordinal onto the contract's vocabulary
-        /// needs no KSP, so the stock backend lives here where it is also
-        /// headlessly testable.
+        /// Takes no vanilla factory: mapping a roster ordinal onto the
+        /// contract's vocabulary needs no KSP, so the stock backend lives here
+        /// where it is also headlessly testable.
         ///
         /// <para>Not SpineCritical. A roster whose standings nobody corrects is
         /// still the stock roster, which is what every stock install flies on.</para>

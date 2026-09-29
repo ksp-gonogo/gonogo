@@ -105,7 +105,7 @@ describe("alarm attribution survives the vocabulary migration", () => {
     "f",
     "FUNDS",
     "firing",
-    threshold("career.status.economy.funds"),
+    threshold("career.status.balances.funds"),
   );
   const bodies = makeAlarm(
     "b",
@@ -121,7 +121,7 @@ describe("alarm attribution survives the vocabulary migration", () => {
   );
 
   it("matches a widget declaring the field subtopic the key maps to", () => {
-    expect(alarmMatchesWidget(funds, ["career.status.economy.funds"])).toBe(
+    expect(alarmMatchesWidget(funds, ["career.status.balances.funds"])).toBe(
       true,
     );
     expect(alarmMatchesWidget(bodies, ["system.state.bodyCount"])).toBe(true);
@@ -245,7 +245,9 @@ describe("AlarmStatusBridge", () => {
           makeAlarm("a", "IMPACT", "firing", threshold("vessel.altitude")),
         ]),
         <>
-          <AlarmStatusBridge declaredTopics={["career.status.economy.funds"]} />
+          <AlarmStatusBridge
+            declaredTopics={["career.status.balances.funds"]}
+          />
           <SummaryProbe />
         </>,
       ),

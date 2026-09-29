@@ -134,10 +134,9 @@ describe("combineReadings on an input with no value", () => {
 
   /**
    * The shape the states alone get wrong, and the one a field reading hands
-   * over every day: `career.status.economy.subsidyPerDay` on a career that
-   * reports an upkeep and no subsidy is `observed` (the topic WAS observed)
-   * with no value (the field was not in it). Trusting `state` here handed
-   * `compute` an `undefined` and `CareerEconomy` threw on `.minus`.
+   * over every day: a field the payload did not carry is `observed` (the topic
+   * WAS observed) with no value (the field was not in it). Trusting `state`
+   * here once handed `compute` an `undefined`, which threw on `.minus`.
    */
   it("treats an observed input that carries no value as one with none", () => {
     const fieldNotCarried: Reading<number> = {

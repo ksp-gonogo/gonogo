@@ -7,12 +7,10 @@ import {
   Unit,
   type UnitValue,
 } from "@ksp-gonogo/ui-kit";
-import { FundsDrain, reportsFundsDrain } from "../shared/FundsDrain";
-import { TinyDrain, TinyFunds, TinyFundsUnit, TinyPad } from "./styles";
+import { TinyFunds, TinyFundsUnit, TinyPad } from "./styles";
 
 export interface SpaceCenterStatusTinyProps {
   careerFunds: number | null;
-  netFunds: number | null;
   heldFunds: boolean;
   fundsReading: UnitValue<"funds">;
   padOccupied: boolean | null | undefined;
@@ -21,7 +19,6 @@ export interface SpaceCenterStatusTinyProps {
 
 export function SpaceCenterStatusTiny({
   careerFunds,
-  netFunds,
   heldFunds,
   fundsReading,
   padOccupied,
@@ -41,16 +38,6 @@ export function SpaceCenterStatusTiny({
             >
               {formatTinyFunds(Math.round(careerFunds))}
               <TinyFundsUnit>f</TinyFundsUnit>
-              {/* At this size the drain arrives as how long the balance lasts. */}
-              {reportsFundsDrain(netFunds) && (
-                <TinyDrain>
-                  <FundsDrain
-                    funds={careerFunds}
-                    netPerDay={netFunds}
-                    compact
-                  />
-                </TinyDrain>
-              )}
             </TinyFunds>
           ) : (
             <TinyFunds>

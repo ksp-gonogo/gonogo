@@ -5,17 +5,15 @@ import { isKnownFieldPath, mapTopic } from "./map-topic";
 
 describe("isKnownFieldPath", () => {
   it("resolves a contract field that no legacy key ever named", () => {
-    // The half the migration table cannot carry. `reputationDecayPerDay` is a
+    // The half the migration table cannot carry. `activationPatched` is a
     // field the wire gained after the migration began, so it has no legacy
     // predecessor to be the new home of, and a widget declaring it had nothing
     // to validate against.
-    expect(
-      isKnownFieldPath("career.status.economy.reputationDecayPerDay"),
-    ).toBe(true);
-    expect(isKnownFieldPath("career.status.economy.upkeep")).toBe(true);
-    expect(
-      isKnownFieldPath("career.status.economy.upkeep.launchComplexes"),
-    ).toBe(true);
+    expect(isKnownFieldPath("career.status.strategies.activationPatched")).toBe(
+      true,
+    );
+    expect(isKnownFieldPath("career.status.balances")).toBe(true);
+    expect(isKnownFieldPath("career.status.balances.science")).toBe(true);
   });
 
   it("still resolves a derived-channel field, which no contract type declares", () => {
@@ -26,8 +24,8 @@ describe("isKnownFieldPath", () => {
   it("rejects a plausible name the contract does not declare", () => {
     // The positive control. A walk that returned true here would make every
     // declaration gate downstream of it vacuous.
-    expect(isKnownFieldPath("career.status.economy.notAField")).toBe(false);
-    expect(isKnownFieldPath("career.status.economy.upkeep.notASource")).toBe(
+    expect(isKnownFieldPath("career.status.balances.notAField")).toBe(false);
+    expect(isKnownFieldPath("career.status.balances.funds.notAField")).toBe(
       false,
     );
     expect(isKnownFieldPath("spaceCenter.state.notAField")).toBe(false);

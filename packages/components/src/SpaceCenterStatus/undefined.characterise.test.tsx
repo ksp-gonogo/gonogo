@@ -132,7 +132,7 @@ describe("SpaceCenterStatus: what undefined telemetry renders today", () => {
         },
       });
       fixture.emit("career.status", {
-        economy: { funds: 500000, reputation: 0, science: 0 },
+        balances: { funds: 500000, reputation: 0, science: 0 },
         contracts: null,
         strategies: null,
         tech: null,
@@ -165,14 +165,14 @@ describe("SpaceCenterStatus: what undefined telemetry renders today", () => {
 
     act(() => {
       fixture.emit("spaceCenter.scene", { scene: "SpaceCenter" });
-      // The tiers arrived and `economy` is null.
+      // The tiers arrived and `balances` is null.
       fixture.emit("career.facilities", {
         facilities: {
           LaunchPad: { currentTier: 1, maxTier: 2, upgradeCost: 150000 },
         },
       });
       fixture.emit("career.status", {
-        economy: null,
+        balances: null,
         contracts: null,
         strategies: null,
         tech: null,
@@ -196,7 +196,7 @@ describe("SpaceCenterStatus: what undefined telemetry renders today", () => {
         },
       });
       fixture.emit("career.status", {
-        economy: { funds: 100, reputation: 0, science: 0 },
+        balances: { funds: 100, reputation: 0, science: 0 },
         contracts: null,
         strategies: null,
         tech: null,

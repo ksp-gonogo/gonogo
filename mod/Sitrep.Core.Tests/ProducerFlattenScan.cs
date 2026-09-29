@@ -109,7 +109,7 @@ namespace Sitrep.Core.Tests
     /// evidence there is, and it is read off the FIRST parameter only, the same
     /// convention <c>scripts/wire-payload-coverage.mjs</c> uses.</item>
     /// <item>it sits in a WIRE-PRODUCING class and names one:
-    /// <c>CareerViewProvider.BuildEconomy</c> (owner prefix + method stem),
+    /// <c>CareerViewProvider.BuildBalances</c> (owner prefix + method stem),
     /// <c>FleetVesselLinkBuilder.Build</c> (owner prefix alone),
     /// <c>ScienceViewProvider.BuildArchiveEntry</c> (method stem).</item>
     /// </list>
@@ -127,10 +127,9 @@ namespace Sitrep.Core.Tests
     /// <para><b>Keys are every string literal in the body, deliberately.</b> Not
     /// the literals in write position. A producer legitimately spells a key
     /// somewhere other than a <c>["k"] =</c>:
-    /// <c>CareerViewProvider.BuildEconomy</c> passes nine of its keys as
-    /// ARGUMENTS to <c>CarryIfPresent</c>, and two more to <c>CarryUpkeep</c>,
-    /// which writes the nested dictionary in a sibling method. Reading write
-    /// position only reported eleven omissions there, all false. So the question
+    /// a key can be passed as an ARGUMENT to a helper that writes it, or to a
+    /// sibling method that writes a nested dictionary. Reading write position
+    /// only once reported eleven omissions in one producer, all false. So the question
     /// this asks is the weaker and answerable one: does the producer MENTION the
     /// field at all. A field whose name appears nowhere in the method that stands
     /// for its type cannot be on the wire, which is exactly the bug class, and a
@@ -175,8 +174,8 @@ namespace Sitrep.Core.Tests
         /// Class-name suffixes that mark a class as a producer of WIRE
         /// dictionaries rather than of the internal capture snapshot. Stripping
         /// one yields the prefix half of the composed subject:
-        /// <c>CareerViewProvider</c> -> <c>Career</c>, so <c>BuildEconomy</c>
-        /// claims <c>CareerEconomy</c>.
+        /// <c>CareerViewProvider</c> -> <c>Career</c>, so <c>BuildBalances</c>
+        /// claims <c>CareerBalances</c>.
         /// </summary>
         private static readonly string[] WireOwnerSuffixes =
         {

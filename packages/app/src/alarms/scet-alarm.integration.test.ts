@@ -397,7 +397,7 @@ function startSession(owlt: number): ModStandIn {
         condition: {
           kind: "threshold",
           topic: "career.status",
-          fieldPath: "economy.funds",
+          fieldPath: "balances.funds",
           op: 1,
           threshold: 250_000,
           sustainSeconds: 0,
@@ -779,7 +779,7 @@ describe("SCET alarms", () => {
           condition: {
             kind: "threshold",
             topic: "career.status",
-            fieldPath: "economy.funds",
+            fieldPath: "balances.funds",
             op: ">=",
             value: expect.any(Number),
           },
@@ -1429,12 +1429,12 @@ describe("SCET alarms", () => {
       name: "Funds",
       trigger: {
         kind: "threshold",
-        dataKey: "career.economy.funds",
+        dataKey: "career.balances.funds",
         op: "<",
         value: 1000,
         sustainSeconds: 0,
         vantage: "scet",
-        topic: "career.economy",
+        topic: "career.balances",
         fieldPath: "funds",
       },
     });
@@ -1445,7 +1445,7 @@ describe("SCET alarms", () => {
     expect(session.armed()).toEqual([]);
     expect(snap.alarms.find((a) => a.id === alarm.id)?.state).toBe("pending");
     // The mod's own words, carrying the Topic the operator chose.
-    expect(snap.scetArmRefusals?.[alarm.id]).toContain("career.economy");
+    expect(snap.scetArmRefusals?.[alarm.id]).toContain("career.balances");
   });
 
   /** A SCET altitude threshold the simulation can read, for the arm outcomes below. */
@@ -1537,12 +1537,12 @@ describe("SCET alarms", () => {
       name: "Funds",
       trigger: {
         kind: "threshold",
-        dataKey: "career.economy.funds",
+        dataKey: "career.balances.funds",
         op: "<",
         value: 1000,
         sustainSeconds: 0,
         vantage: "scet",
-        topic: "career.economy",
+        topic: "career.balances",
         fieldPath: "funds",
       },
     });
@@ -1639,9 +1639,9 @@ describe("SCET alarms", () => {
       name: "Balance reaches 250,000 funds",
       trigger: {
         kind: "threshold",
-        dataKey: "career.status.economy.funds",
+        dataKey: "career.status.balances.funds",
         topic: "career.status",
-        fieldPath: "economy.funds",
+        fieldPath: "balances.funds",
         op: ">=",
         value: 250_000,
         sustainSeconds: 0,
@@ -1668,7 +1668,7 @@ describe("SCET alarms", () => {
     expect(session.armOf(alarm.id)?.condition).toEqual({
       kind: "threshold",
       topic: "career.status",
-      fieldPath: "economy.funds",
+      fieldPath: "balances.funds",
       op: 1,
       threshold: 250_000,
       sustainSeconds: 0,
@@ -1918,12 +1918,12 @@ describe("SCET alarms", () => {
         name: "Funds",
         trigger: {
           kind: "threshold",
-          dataKey: "career.economy.funds",
+          dataKey: "career.balances.funds",
           op: "<",
           value: 1000,
           sustainSeconds: 0,
           vantage: "command",
-          topic: "career.economy",
+          topic: "career.balances",
           fieldPath: "funds",
         },
       });
@@ -2038,9 +2038,9 @@ describe("SCET alarms", () => {
         name: "Balance reaches 250,000 funds",
         trigger: {
           kind: "threshold",
-          dataKey: "career.status.economy.funds",
+          dataKey: "career.status.balances.funds",
           topic: "career.status",
-          fieldPath: "economy.funds",
+          fieldPath: "balances.funds",
           op: ">=",
           value: 250_000,
           sustainSeconds: 0,
@@ -2059,7 +2059,7 @@ describe("SCET alarms", () => {
       expect(session.armOf(alarm.id)?.condition).toEqual({
         kind: "threshold",
         topic: "career.status",
-        fieldPath: "economy.funds",
+        fieldPath: "balances.funds",
         op: 1,
         threshold: 250_000,
         sustainSeconds: 0,

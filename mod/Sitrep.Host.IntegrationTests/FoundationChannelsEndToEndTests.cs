@@ -209,7 +209,7 @@ namespace Sitrep.Host.IntegrationTests
                 {
                     ["career"] = new Dictionary<string, object?>
                     {
-                        ["economy"] = new Dictionary<string, object?>
+                        ["balances"] = new Dictionary<string, object?>
                         {
                             ["funds"] = 289_848.0,
                             ["reputation"] = 55.0,
@@ -223,8 +223,8 @@ namespace Sitrep.Host.IntegrationTests
                 new ISitrepUplink[] { new TestCareerUplink() }, CareerViewProvider.Topic, ut, snapshot);
             AssertLiveMeta(delivered, CareerViewProvider.Topic, ut);
             var payload = Assert.IsType<Dictionary<string, object?>>(delivered.Payload);
-            var economy = Assert.IsType<Dictionary<string, object?>>(payload["economy"]);
-            Assert.Equal(289_848.0, economy["funds"]);
+            var balances = Assert.IsType<Dictionary<string, object?>>(payload["balances"]);
+            Assert.Equal(289_848.0, balances["funds"]);
         }
 
         [Fact]
@@ -327,7 +327,7 @@ namespace Sitrep.Host.IntegrationTests
                     {
                         ["career"] = new Dictionary<string, object?>
                         {
-                            ["economy"] = new Dictionary<string, object?> { ["funds"] = funds },
+                            ["balances"] = new Dictionary<string, object?> { ["funds"] = funds },
                         },
                     },
                 };

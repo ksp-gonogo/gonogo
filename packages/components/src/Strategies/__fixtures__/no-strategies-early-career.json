@@ -57,7 +57,7 @@
       {
         "channel": "career.status",
         "value": {
-          "economy": {
+          "balances": {
             "funds": 12450,
             "reputation": 8.5,
             "science": 3

@@ -15,13 +15,7 @@ import {
   Unit,
   useSlotBound,
 } from "@ksp-gonogo/ui-kit";
-import type { ReactNode } from "react";
 import { useMemo, useState } from "react";
-import {
-  FundsDrain,
-  netFundsPerDay,
-  reportsFundsDrain,
-} from "../shared/FundsDrain";
 import { magnitudeOf } from "../shared/magnitude";
 import { ActivePanel } from "./ActivePanel";
 import { ApplicantsPanel } from "./ApplicantsPanel";
@@ -82,12 +76,12 @@ export function AstronautComplexComponent(
    * screen as the whole field reading, marked by its Unit.
    */
   const fundsReading = astronautComplexTopics.useTelemetry("career.status");
-  const careerEconomy =
-    fundsReading.state === "observed" ? fundsReading.value.economy : undefined;
-  const careerFunds = magnitudeOf(careerEconomy?.funds);
-  const hasFunds = stillTrue(fundsReading, undefined)?.economy?.funds != null;
-  // Crew are a standing cost: the rate from whichever money model won `economy`; stock reports none.
-  const netFunds = netFundsPerDay(careerEconomy);
+  const careerFunds = magnitudeOf(
+    fundsReading.state === "observed"
+      ? fundsReading.value.balances?.funds
+      : undefined,
+  );
+  const hasFunds = stillTrue(fundsReading, undefined)?.balances?.funds != null;
   // A kerbal is on the books until an event takes them off, so the last roster received stands.
   const crewRosterRaw = stillTrue(
     astronautComplexTopics.useTelemetry("spaceCenter.crewRoster"),
@@ -161,20 +155,11 @@ export function AstronautComplexComponent(
     nextHireCost !== null &&
     (careerFunds === null || careerFunds >= nextHireCost);
 
-  /**
-   * The lines qualifying the funds figure, composed only when there is one:
-   * an empty detail line would still take its height and lift the figure out of
-   * line with the rest of the strip.
-   */
-  const fundsDetail: ReactNode = reportsFundsDrain(netFunds) ? (
-    <FundsDrain funds={careerFunds} netPerDay={netFunds} />
-  ) : undefined;
-
   const fundsStat = (
-    <Stat label="Funds" detail={fundsDetail}>
+    <Stat label="Funds">
       {hasFunds ? (
         <span title={fundsTitle(fundsReading.state === "held", careerFunds)}>
-          <Unit value={fundsReading.economy.funds} />
+          <Unit value={fundsReading.balances.funds} />
         </span>
       ) : (
         NULL_DISPLAY

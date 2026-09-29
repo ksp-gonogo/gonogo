@@ -44,7 +44,7 @@ describe("ContractManager: real recorded-fixture render off the stream (delay=0)
         };
       };
       streamFixture.emit("career.status", {
-        economy: null,
+        balances: null,
         facilities: null,
         contracts: {
           active: smallCareerDetail["contracts.active"].map(toWire),

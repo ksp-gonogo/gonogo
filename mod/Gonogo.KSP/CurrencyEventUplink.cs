@@ -18,7 +18,7 @@ namespace Gonogo.KSP
     /// Delayed. An operator at home watching the total could therefore infer a distant event a full
     /// return light-time before the model says they can know it. These events close
     /// that gap by carrying each delta on its SOURCE vessel's clock, additively:
-    /// nothing about <c>career.status.economy</c> changes.</para>
+    /// nothing about <c>career.status.balances</c> changes.</para>
     ///
     /// <para><b>How the reveal is routed.</b> <c>ChannelEngine.NodeForTopic</c> maps a
     /// <c>currency.&lt;guid&gt;.*</c> topic to the per-vessel Courier node

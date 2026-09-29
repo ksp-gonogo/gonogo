@@ -14,7 +14,6 @@ import {
 } from "@ksp-gonogo/sitrep-client";
 import { readingOf, stillTrue } from "@ksp-gonogo/sitrep-sdk";
 import { useContributions } from "@ksp-gonogo/ui-kit";
-import { netFundsPerDay } from "../shared/FundsDrain";
 import { magnitudeOf } from "../shared/magnitude";
 import { facilityLevelsFrom } from "./facilities";
 // Imported for its registration side effect too; the age caption is only honest while that contribution is on screen.
@@ -31,9 +30,7 @@ const topics = defineTopicManifest({
   ],
   fields: [
     "career.facilities.facilities",
-    "career.status.economy.funds",
-    "career.status.economy.subsidyPerDay",
-    "career.status.economy.upkeepPerDay",
+    "career.status.balances.funds",
     "spaceCenter.scene.launchSite",
     "spaceCenter.state.padOccupied",
     "spaceCenter.state.padVesselTitle",
@@ -49,22 +46,20 @@ function SpaceCenterStatusComponent({
   const careerReading = useTelemetry("career.status");
   // Read for its currency only, to date the grid: values arrive through the contribution slot's payload-only compute.
   const facilitiesReading = useTelemetry("career.facilities");
-  const careerEconomy =
+  const careerFunds = magnitudeOf(
     careerReading.state === "observed"
-      ? careerReading.value.economy
-      : undefined;
-  const careerFunds = magnitudeOf(careerEconomy?.funds);
+      ? careerReading.value.balances?.funds
+      : undefined,
+  );
   const fundsHeld = careerReading.state === "held";
-  // The standing per-day cost against a subsidy, from whichever money model won the `economy` capability; stock reports none.
-  const netFunds = netFundsPerDay(careerEconomy);
   // "Held" only when a balance actually arrived and is being refused.
   const heldFunds =
     fundsHeld &&
-    magnitudeOf(stillTrue(careerReading, undefined)?.economy?.funds) !== null;
+    magnitudeOf(stillTrue(careerReading, undefined)?.balances?.funds) !== null;
   // The balance on screen, marked by Unit while held; affordability reads only the current `careerFunds`.
   const fundsReading = readingOf(
     careerReading,
-    (c) => c.economy?.funds ?? undefined,
+    (c) => c.balances?.funds ?? undefined,
   );
   const { chargesFunds } = useGameContext();
   const sceneReading = useTelemetry("spaceCenter.scene");
@@ -105,7 +100,6 @@ function SpaceCenterStatusComponent({
       w={w}
       h={h}
       careerFunds={careerFunds}
-      netFunds={netFunds}
       heldFunds={heldFunds}
       fundsReading={fundsReading}
       chargesFunds={chargesFunds}

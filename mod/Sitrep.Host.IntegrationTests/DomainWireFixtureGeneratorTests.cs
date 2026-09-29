@@ -148,9 +148,9 @@ namespace Sitrep.Host.IntegrationTests
             Assert.True(careerFrames.Count > 0, "expected at least one career.status frame");
 
             Assert.Contains(careerFrames, c =>
-                c.TryGetValue("economy", out var econ) &&
-                econ is IDictionary<string, object?> econDict &&
-                econDict.TryGetValue("funds", out var funds) &&
+                c.TryGetValue("balances", out var group) &&
+                group is IDictionary<string, object?> balances &&
+                balances.TryGetValue("funds", out var funds) &&
                 funds is double);
 
             // Whatever this recording has to say about facilities, it says on
@@ -214,9 +214,9 @@ namespace Sitrep.Host.IntegrationTests
             Assert.True(careerFrames.Count > 0, "expected at least one career.status frame");
 
             Assert.Contains(careerFrames, c =>
-                c.TryGetValue("economy", out var econ) &&
-                econ is IDictionary<string, object?> econDict &&
-                econDict.TryGetValue("funds", out var funds) &&
+                c.TryGetValue("balances", out var group) &&
+                group is IDictionary<string, object?> balances &&
+                balances.TryGetValue("funds", out var funds) &&
                 funds is double fundsD && fundsD > 0);
 
             // Extended facilities: real integer currentTier/maxTier + a
@@ -330,7 +330,7 @@ namespace Sitrep.Host.IntegrationTests
         {
             return new Dictionary<string, object?>
             {
-                ["economy"] = new Dictionary<string, object?>
+                ["balances"] = new Dictionary<string, object?>
                 {
                     ["funds"] = 525000.75,
                     ["reputation"] = 62.3,

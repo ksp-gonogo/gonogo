@@ -197,7 +197,7 @@ describe("useReputationLossEvents", () => {
 
   it("carries no absolute reputation, only a delta", async () => {
     // Structural guard on the hazard: the number that gates a strategy activate or a
-    // contract accept is career.status.economy.reputation, which stays instant. A
+    // contract accept is career.status.balances.reputation, which stays instant. A
     // narrative event carrying an absolute could be mistaken for it.
     const t = new StubTransport();
     const client = new TelemetryClient(t);

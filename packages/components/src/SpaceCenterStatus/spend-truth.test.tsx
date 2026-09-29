@@ -61,7 +61,7 @@ function emitCareer(
     ]);
     fixture.emit("career.facilities", { facilities });
     fixture.emit("career.status", {
-      economy: { funds: 41250, reputation: 62, science: 340 },
+      balances: { funds: 41250, reputation: 62, science: 340 },
       contracts: null,
       strategies: null,
       tech: null,

@@ -228,45 +228,11 @@ namespace Sitrep.Host.Tests
             {
                 ["career"] = new Dictionary<string, object?>
                 {
-                    ["economy"] = new Dictionary<string, object?>
+                    ["balances"] = new Dictionary<string, object?>
                     {
                         ["funds"] = 125_000.5,
                         ["reputation"] = 42.0,
                         ["science"] = 310.25,
-                        // The elected economy model's interpretation, populated
-                        // here because this fixture's contract is that every
-                        // branch is reachable. A model that answers nothing is
-                        // CareerViewProviderTests' subject, not this gate's.
-                        ["economyModel"] = "stock",
-                        ["reputationDecayPerDay"] = 0.021,
-                        ["subsidyPerDay"] = 1_200.0,
-                        ["subsidyMinPerDay"] = 400.0,
-                        ["subsidyMaxPerDay"] = 3_000.0,
-                        ["upkeepPerDay"] = 980.0,
-                        ["upkeep"] = new Dictionary<string, object?>
-                        {
-                            ["facilities"] = 300.0,
-                            ["launchComplexes"] = 250.0,
-                            ["researchSalary"] = 180.0,
-                            ["training"] = 60.0,
-                            ["crewBase"] = 100.0,
-                            ["crewInFlight"] = 40.0,
-                            ["integrationSalary"] = 50.0,
-                        },
-                        // The same sources before the model's own modifiers, so
-                        // the two sets are here as two independently reachable
-                        // branches rather than as one shape used twice.
-                        ["upkeepBeforeModifiers"] = new Dictionary<string, object?>
-                        {
-                            ["facilities"] = 320.0,
-                            ["launchComplexes"] = 250.0,
-                            ["researchSalary"] = 240.0,
-                            ["training"] = 80.0,
-                            ["crewBase"] = 100.0,
-                            ["crewInFlight"] = 40.0,
-                            ["integrationSalary"] = 50.0,
-                        },
-                        ["unlockCredit"] = 25_000.0,
                     },
                     ["facilities"] = new Dictionary<string, object?>
                     {

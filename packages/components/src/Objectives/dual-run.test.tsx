@@ -37,7 +37,7 @@ describe("Objectives: stream render golden (delay=0)", () => {
         };
       });
       streamFixture.emit("career.status", {
-        economy: null,
+        balances: null,
         facilities: null,
         contracts: { active: wireActive, offered: [] },
         strategies: null,

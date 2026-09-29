@@ -267,8 +267,7 @@ public static class RtConfig
                 typeof(SetControlAxesArgs),
                 // career.status channel payload + sub-groups
                 typeof(CareerStatus),
-                typeof(CareerEconomy),
-                typeof(CareerUpkeep),
+                typeof(CareerBalances),
                 // career.facilities channel payload + its entry
                 typeof(CareerFacilities),
                 typeof(CareerFacility),

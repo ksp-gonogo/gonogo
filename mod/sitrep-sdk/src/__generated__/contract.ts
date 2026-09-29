@@ -338,7 +338,7 @@ export interface CareerMode
 }
 /**
 * The `career.status` channel payload: the KSC and career-mode snapshot, in
-* four groups (economy, contracts, strategies, tech). The space centre's
+* four groups (balances, contracts, strategies, tech). The space centre's
 * buildings are NOT here: they ride `CareerFacilities`, which can be held on
 * its own while this channel keeps arriving.
 *
@@ -360,11 +360,10 @@ export interface CareerMode
 export interface CareerStatus
 {
 	/**
-	* The career's balances (funds, reputation, science) and what the elected
-	* money model says they are worth. `null` when none of the three balances
-	* could be read this tick.
+	* The career's balances (funds, reputation, science). `null` when none of the
+	* three could be read this tick.
 	*/
-	economy?: CareerEconomy | null;
+	balances?: CareerBalances | null;
 	/**
 	* Active, offered and recently completed contracts. `null` when KSP's contract
 	* system is not loaded this tick.
@@ -426,13 +425,12 @@ export interface CareerFacilities
 	facilities?: { [key: string]: CareerFacility } | null;
 }
 /**
-* Economy sub-group of `CareerStatus`: the funds, reputation and science
-* balances, each `null` when unreadable, plus what the elected money model
-* says reputation is worth.
+* Balances sub-group of `CareerStatus`: the funds, reputation and science
+* balances, each `null` when unreadable.
 *
 * @category Career
 */
-export interface CareerEconomy
+export interface CareerBalances
 {
 	/**
 	* The career's funds balance, KSP's `Funding.Funds`. `null` when the funding
@@ -440,10 +438,8 @@ export interface CareerEconomy
 	*/
 	funds?: Value<"funds"> | null;
 	/**
-	* The career's reputation, KSP's `Reputation.reputation`, unchanged by any
-	* money model. Under a career overhaul it is the most consequential number in
-	* the save (it IS the income); the fields below say what it is worth. `null`
-	* when the reputation module is not loaded.
+	* The career's reputation, KSP's `Reputation.reputation`. `null` when the
+	* reputation module is not loaded.
 	*/
 	reputation?: Value<"rep"> | null;
 	/**
@@ -451,90 +447,6 @@ export interface CareerEconomy
 	* when the R&D module is not loaded.
 	*/
 	science?: Value<"science"> | null;
-	/**
-	* Which money model produced the fields below, e.g. `"stock"`. Provenance
-	* only: a client reads the interpretation, never branches on who produced it.
-	*/
-	economyModel?: string;
-	/**
-	* Reputation lost per day at the current reputation. Zero on stock, which
-	* genuinely has no decay, and that zero is a statement rather than a
-	* placeholder.
-	*/
-	reputationDecayPerDay?: Value<"rep/day">;
-	/** Funding the current reputation earns, per day. Zero on stock. */
-	subsidyPerDay?: Value<"f/day">;
-	/** The subsidy at zero reputation: the floor nothing takes away. */
-	subsidyMinPerDay?: Value<"f/day">;
-	/**
-	* The subsidy reputation cannot beat. With the minimum it says how much of the
-	* range the current reputation has bought, which is what turns a bare
-	* reputation number into something an operator can act on.
-	*/
-	subsidyMaxPerDay?: Value<"f/day">;
-	/**
-	* Total ongoing cost per day. This is why `CareerEconomy.funds` is the right
-	* balance and the wrong affordability test under an overhaul: a balance that
-	* covers a purchase today may not cover it plus next month's salaries.
-	*/
-	upkeepPerDay?: Value<"f/day">;
-	/**
-	* Where the upkeep goes: the parts `CareerEconomy.upkeepPerDay` is made of,
-	* and they sum to it. ABSENT on stock, which has no per-source model at all:
-	* seven zeros would claim stock levies seven kinds of nothing, where the truth
-	* is that it levies none of them.
-	*
-	* Also absent when the model can state its costs but cannot price them, in
-	* which case `CareerEconomy.upkeepBeforeModifiers` stands alone. A set that
-	* did not add up to the total beside it would be worse than no set: a reader
-	* has no way to tell which of the two lied.
-	*/
-	upkeep?: CareerUpkeep;
-	/**
-	* The same sources, priced BEFORE whatever the model does to them at
-	* transaction time: leaders, strategies, standing discounts. ABSENT when the
-	* model applies nothing, so the difference between this and
-	* `CareerEconomy.upkeep` is what the career's current arrangements are worth.
-	*/
-	upkeepBeforeModifiers?: CareerUpkeep;
-	/**
-	* A prepaid allowance the elected money model spends BEFORE
-	* `CareerEconomy.funds` on the purchases it covers. In funds, because that is
-	* what it discounts. ABSENT on stock, which has no such pool.
-	*
-	* The second reason `CareerEconomy.funds` alone is not an affordability test:
-	* where this exists, part of a price is already paid. It is a BALANCE and not
-	* a per-purchase figure, so a surface that offers such a purchase shows this
-	* and the funds balance together rather than deriving the split itself.
-	*/
-	unlockCredit?: Value<"funds">;
-}
-/**
-* Ongoing cost by source, per day, from the elected economy model. Every
-* member is absent when that model does not have the concept, never zero: an
-* unmodelled source and a source costing nothing are different facts.
-*
-* @category Career
-*/
-export interface CareerUpkeep
-{
-	/** Buildings: the standing cost of having a space centre at all. */
-	facilities?: Value<"f/day"> | null;
-	/**
-	* Launch complexes and their pads, which cost whether or not anything is
-	* building.
-	*/
-	launchComplexes?: Value<"f/day"> | null;
-	/** Researcher salaries, which an idle research queue does not stop. */
-	researchSalary?: Value<"f/day"> | null;
-	/** Crew training in progress. */
-	training?: Value<"f/day"> | null;
-	/** Standing crew costs: everyone on the roster, flying or not. */
-	crewBase?: Value<"f/day"> | null;
-	/** The extra a crew in flight costs over a crew on the ground. */
-	crewInFlight?: Value<"f/day"> | null;
-	/** Engineer salaries on the integration teams. */
-	integrationSalary?: Value<"f/day"> | null;
 }
 /**
 * One facility entry in `CareerFacilities.facilities`. A facility the game
@@ -2632,7 +2544,7 @@ export enum CrewStanding {
 * observer's vantage to that vessel, so a probe five light-minutes out reports
 * its transmit five minutes after the fact.
 *
-* In addition to `career.status.economy.science`, which it does not change.
+* In addition to `career.status.balances.science`, which it does not change.
 * That field is held at the home command because it gates what tech the
 * operator can afford, so it stays the number the game will gate against,
 * reaching a ground centre at once and a crewed vessel after its path home.
@@ -2683,7 +2595,7 @@ export interface ScienceCreditEvent
 * could show a strategy as available when the game's already-dropped
 * reputation has made it unavailable, and the action would then fail against
 * ground truth the operator had no way to see coming. So
-* `career.status.economy.reputation` is held at the home command, where the
+* `career.status.balances.reputation` is held at the home command, where the
 * gate is decided, and this event does not change it: it is the number the
 * game will gate against. This event carries only a delta with no absolute
 * total, so it can never be substituted for the gating value; do not place it

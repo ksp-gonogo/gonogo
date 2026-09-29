@@ -38,8 +38,8 @@ describe("useNumericFields", () => {
 
   it("does not offer an object, a collection, a name or a flag", () => {
     const keys = keysOf(capture(useNumericFields));
-    expect(keys.has("career.status.economy.funds")).toBe(true);
-    expect(keys.has("career.status.economy")).toBe(false);
+    expect(keys.has("career.status.balances.funds")).toBe(true);
+    expect(keys.has("career.status.balances")).toBe(false);
     expect(keys.has("career.status.contracts.active")).toBe(false);
     expect(keys.has("vessel.landing.outcome")).toBe(false);
     expect(keys.has("vessel.control.sas")).toBe(false);
@@ -71,7 +71,7 @@ describe("usePrintableFields", () => {
 
   it("does not offer an object or a collection", () => {
     const keys = keysOf(capture(usePrintableFields));
-    expect(keys.has("career.status.economy")).toBe(false);
+    expect(keys.has("career.status.balances")).toBe(false);
     expect(keys.has("career.status.contracts.active")).toBe(false);
   });
 

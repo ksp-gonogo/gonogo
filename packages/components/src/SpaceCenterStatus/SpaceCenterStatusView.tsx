@@ -9,14 +9,12 @@ import {
   type UnitValue,
   WidgetSections,
 } from "@ksp-gonogo/ui-kit";
-import { FundsDrain, reportsFundsDrain } from "../shared/FundsDrain";
 import { FacilityGridItem, type HeldSince } from "./FacilityCell";
 import { FACILITIES, type FacilityLevels } from "./facilities";
 import { SpaceCenterStatusTiny } from "./SpaceCenterStatusTiny";
 import {
   AbsenceLine,
   Body,
-  DrainReadout,
   FacilityGrid,
   FundsReadout,
   PadStatusLine,
@@ -26,7 +24,6 @@ export interface SpaceCenterStatusViewProps {
   w: number | undefined;
   h: number | undefined;
   careerFunds: number | null;
-  netFunds: number | null;
   heldFunds: boolean;
   fundsReading: UnitValue<"funds">;
   chargesFunds: boolean;
@@ -42,7 +39,6 @@ export function SpaceCenterStatusView({
   w,
   h,
   careerFunds,
-  netFunds,
   heldFunds,
   fundsReading,
   chargesFunds,
@@ -75,7 +71,6 @@ export function SpaceCenterStatusView({
     return (
       <SpaceCenterStatusTiny
         careerFunds={careerFunds}
-        netFunds={netFunds}
         heldFunds={heldFunds}
         fundsReading={fundsReading}
         padOccupied={padOccupied}
@@ -99,15 +94,6 @@ export function SpaceCenterStatusView({
                     · <Unit value={fundsReading} />
                   </FundsReadout>
                 ) : null}
-                {reportsFundsDrain(netFunds) && (
-                  <DrainReadout>
-                    <FundsDrain
-                      funds={careerFunds}
-                      netPerDay={netFunds}
-                      separator
-                    />
-                  </DrainReadout>
-                )}
                 {careerFunds === null &&
                   !heldFunds &&
                   /* The balance is required beside a spend control; sandbox charges nothing. */

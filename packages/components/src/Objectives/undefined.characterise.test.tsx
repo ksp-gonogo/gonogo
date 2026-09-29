@@ -60,7 +60,7 @@ describe("Objectives: the absence gates around `contracts.active`", () => {
 
     act(() => {
       fixture.emit("career.status", {
-        economy: null,
+        balances: null,
         facilities: null,
         contracts: { active: [], offered: [] },
         strategies: null,
@@ -80,7 +80,7 @@ describe("Objectives: the absence gates around `contracts.active`", () => {
 
     act(() => {
       fixture.emit("career.status", {
-        economy: { funds: 1000, reputation: 0, science: 0 },
+        balances: { funds: 1000, reputation: 0, science: 0 },
         facilities: null,
         contracts: null,
         strategies: null,
@@ -101,7 +101,7 @@ describe("Objectives: the absence gates around `contracts.active`", () => {
 
     act(() => {
       fixture.emit("career.status", {
-        economy: null,
+        balances: null,
         facilities: null,
         contracts: { active: null, offered: [] },
         strategies: null,
@@ -122,7 +122,7 @@ describe("Objectives: the absence gates around `contracts.active`", () => {
 
     act(() => {
       fixture.emit("career.status", {
-        economy: null,
+        balances: null,
         facilities: null,
         contracts: {
           active: [
@@ -171,7 +171,7 @@ describe("Objectives: partial payloads inside an arrived contract", () => {
     act(() => {
       // A missing agency is filled with a generic word rather than marked unknown.
       fixture.emit("career.status", {
-        economy: null,
+        balances: null,
         facilities: null,
         contracts: {
           active: [{ id: "8002", title: "Unspecified job" }],
@@ -195,7 +195,7 @@ describe("Objectives: partial payloads inside an arrived contract", () => {
 
     act(() => {
       fixture.emit("career.status", {
-        economy: null,
+        balances: null,
         facilities: null,
         contracts: {
           active: [

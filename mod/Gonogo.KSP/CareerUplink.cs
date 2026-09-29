@@ -3,7 +3,6 @@ using Gonogo.KSP.Gates;
 using Sitrep.Contract;
 using Sitrep.Core;
 using Sitrep.Host;
-using Sitrep.Host.Economy;
 
 namespace Gonogo.KSP
 {
@@ -152,29 +151,19 @@ namespace Gonogo.KSP
         public UplinkHealth Health() => UplinkHealth.Healthy;
 
         /// <summary>
-        /// Declares the exclusive <c>"economy"</c> capability: what this install's
-        /// money model makes of the reputation this uplink already publishes.
+        /// Declares the shared <c>"strategyAvailability"</c> capability, through
+        /// which a career mod refuses a strategy on a rule KSP's own activation
+        /// gate cannot see.
         ///
-        /// <para>Declared HERE, in the pre-Register capability pass, for the same
-        /// two-pass reason the comms, reliability and ISRU capabilities are: a
+        /// <para>Declared HERE, in the pre-Register capability pass, because a
         /// provider uplink's <c>RegisterProvider</c> throws if the capability does
         /// not exist yet, and assembly-scan discovery fixes no order between
-        /// uplinks. The declaration cannot race the provider from here.</para>
-        ///
-        /// <para>Owned by THIS uplink because it owns <c>career.status</c>, whose
-        /// economy group carries the elected backend's answer. That is the
-        /// shared-namespace-single-declaration rule: a provider adds an
-        /// interpretation, never a channel of its own.</para>
-        ///
-        /// <para>Also declares the shared <c>"strategyAvailability"</c> capability,
-        /// through which a career mod refuses a strategy on a rule KSP's own
-        /// activation gate cannot see. Owned here because both places that consult
-        /// it, the strategy roster and <c>career.strategy.activate</c>, are this
-        /// Uplink's. No vanilla: a stock install holds no such rule.</para>
+        /// uplinks. Owned by this Uplink because both places that consult it, the
+        /// strategy roster and <c>career.strategy.activate</c>, are this Uplink's.
+        /// No vanilla: a stock install holds no such rule.</para>
         /// </summary>
         public void DeclareCapabilities(Kernel kernel)
         {
-            EconomyElection.RegisterCapability(kernel);
             kernel.RegisterCapability(new CapabilityDescriptor
             {
                 Id = StrategyAvailabilityCapability.CapabilityId,

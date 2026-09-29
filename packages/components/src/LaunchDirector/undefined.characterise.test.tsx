@@ -90,7 +90,7 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
       });
       fixture.emit("spaceCenter.launchSites", [PAD]);
       fixture.emit("career.status", {
-        economy: { funds: 42500, reputation: 200, science: 100 },
+        balances: { funds: 42500, reputation: 200, science: 100 },
         facilities: null,
         contracts: null,
         strategies: null,
@@ -177,7 +177,7 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
     // Absence and a short balance are both "cannot afford this".
     act(() => {
       fixture.emit("career.status", {
-        economy: { funds: 100, reputation: 0, science: 0 },
+        balances: { funds: 100, reputation: 0, science: 0 },
         facilities: null,
         contracts: null,
         strategies: null,

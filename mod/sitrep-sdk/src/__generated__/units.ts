@@ -181,6 +181,11 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     certification: "enum",
     uts: "ut",
   },
+  "CareerBalances": {
+    funds: "funds",
+    reputation: "rep",
+    science: "science",
+  },
   "CareerContract": {
     agent: "text",
     dateAccepted: "ut",
@@ -202,18 +207,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     state: "text",
     stateOrdinal: "enum",
     title: "text",
-  },
-  "CareerEconomy": {
-    economyModel: "id",
-    funds: "funds",
-    reputation: "rep",
-    reputationDecayPerDay: "rep/day",
-    science: "science",
-    subsidyMaxPerDay: "f/day",
-    subsidyMinPerDay: "f/day",
-    subsidyPerDay: "f/day",
-    unlockCredit: "funds",
-    upkeepPerDay: "f/day",
   },
   "CareerFacility": {
     currentTier: "count",
@@ -262,15 +255,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     scienceCost: "science",
     title: "text",
     unlocked: "flag",
-  },
-  "CareerUpkeep": {
-    crewBase: "f/day",
-    crewInFlight: "f/day",
-    facilities: "f/day",
-    integrationSalary: "f/day",
-    launchComplexes: "f/day",
-    researchSalary: "f/day",
-    training: "f/day",
   },
   "CentreDelayEntry": {
     id: "id",
@@ -2241,16 +2225,12 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
     completedRecent: "CareerContract[]",
     offered: "CareerContract[]",
   },
-  "CareerEconomy": {
-    upkeep: "CareerUpkeep",
-    upkeepBeforeModifiers: "CareerUpkeep",
-  },
   "CareerFacilities": {
     facilities: "*CareerFacility",
   },
   "CareerStatus": {
+    balances: "CareerBalances",
     contracts: "CareerContracts",
-    economy: "CareerEconomy",
     meta: "PayloadMeta",
     strategies: "CareerStrategies",
     tech: "CareerTech",
@@ -2369,10 +2349,6 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "DockAlignment": {
     meta: "PayloadMeta",
-  },
-  "EconomyReading": {
-    upkeepBeforeModifiers: "EconomyUpkeepBreakdown",
-    upkeepBreakdown: "EconomyUpkeepBreakdown",
   },
   "EmissionPolicy": {
     quantum: "EmissionQuantum",
@@ -2620,8 +2596,8 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
     facilities: "*CareerFacility",
   },
   "career.status": {
+    balances: "CareerBalances",
     contracts: "CareerContracts",
-    economy: "CareerEconomy",
     meta: "PayloadMeta",
     strategies: "CareerStrategies",
     tech: "CareerTech",

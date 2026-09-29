@@ -73,7 +73,7 @@ describe("ScienceData when its reads are held", () => {
       ]);
       stream.emit("spaceCenter.scene", { scene: "Flight" });
       stream.emit("career.mode", { mode: 1 });
-      stream.emit("career.status", { economy: { science: 1234 } });
+      stream.emit("career.status", { balances: { science: 1234 } });
     });
   }
 

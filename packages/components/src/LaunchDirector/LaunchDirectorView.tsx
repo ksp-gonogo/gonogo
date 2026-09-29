@@ -3,11 +3,6 @@ import { useGameContext, useTelemetry } from "@ksp-gonogo/core";
 import { stillTrue } from "@ksp-gonogo/sitrep-sdk";
 import { Panel, Section, Unit } from "@ksp-gonogo/ui-kit";
 import { useMemo, useState } from "react";
-import {
-  FundsDrain,
-  netFundsPerDay,
-  reportsFundsDrain,
-} from "../shared/FundsDrain";
 import { magnitudeOf } from "../shared/magnitude";
 import { BoundPresses } from "./actions";
 import { parseCrew } from "./crew";
@@ -16,7 +11,7 @@ import { PadSection } from "./PadSection";
 import { awayBodyNames, orderPads, padSummary, parseLaunchSites } from "./pads";
 import { craftForPad, parseSavedShips } from "./ships";
 import type { LaunchDirectorSlotContext } from "./slots";
-import { DrainReadout, FundsReadout } from "./styles";
+import { FundsReadout } from "./styles";
 import { useFlightState } from "./useFlightState";
 import { useLaunchCommands } from "./useLaunchCommands";
 
@@ -69,17 +64,15 @@ export function LaunchDirectorComponent({
    * not read. Funds move while nobody looks, so a held balance is withheld.
    */
   const careerReading = useTelemetry("career.status");
-  const careerEconomy =
+  const careerFunds = magnitudeOf(
     careerReading.state === "observed"
-      ? careerReading.value.economy
-      : undefined;
-  const careerFunds = magnitudeOf(careerEconomy?.funds);
+      ? careerReading.value.balances?.funds
+      : undefined,
+  );
   // Drawn as the whole field reading, so a held balance stays on screen with the Unit's own mark.
-  const fundsReading = careerReading.economy.funds;
-  const hasFunds = stillTrue(careerReading, undefined)?.economy?.funds != null;
+  const fundsReading = careerReading.balances.funds;
+  const hasFunds = stillTrue(careerReading, undefined)?.balances?.funds != null;
   const fundsHeld = careerReading.state === "held";
-  // The standing rate the elected money model reports, beside the balance rather than folded into the gate; stock reports none.
-  const netFunds = netFundsPerDay(careerEconomy);
   const { chargesFunds } = useGameContext();
   const flight = useFlightState();
   const {
@@ -178,16 +171,6 @@ export function LaunchDirectorComponent({
                   >
                     · <Unit value={fundsReading} />
                   </FundsReadout>
-                )}
-                {/* Not inside FundsReadout: that span is nowrap and would clip the drain. */}
-                {reportsFundsDrain(netFunds) && (
-                  <DrainReadout>
-                    <FundsDrain
-                      funds={careerFunds}
-                      netPerDay={netFunds}
-                      separator
-                    />
-                  </DrainReadout>
                 )}
                 {/* The balance is required beside a spend control. */}
                 {!hasFunds && chargesFunds && (

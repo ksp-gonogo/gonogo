@@ -7,7 +7,7 @@ namespace Sitrep.Contract;
 
 /// <summary>
 /// The <c>career.status</c> channel payload: the KSC and career-mode snapshot,
-/// in four groups (economy, contracts, strategies, tech). The space centre's
+/// in four groups (balances, contracts, strategies, tech). The space centre's
 /// buildings are NOT here: they ride <see cref="CareerFacilities"/>, which can
 /// be held on its own while this channel keeps arriving.
 ///
@@ -44,11 +44,10 @@ namespace Sitrep.Contract;
 public class CareerStatus
 {
     /// <summary>
-    /// The career's balances (funds, reputation, science) and what the elected
-    /// money model says they are worth. <c>null</c> when none of the three
-    /// balances could be read this tick.
+    /// The career's balances (funds, reputation, science). <c>null</c> when none
+    /// of the three could be read this tick.
     /// </summary>
-    public CareerEconomy? Economy { get; set; }
+    public CareerBalances? Balances { get; set; }
 
     /// <summary>
     /// Active, offered and recently completed contracts. <c>null</c> when KSP's
@@ -109,7 +108,7 @@ public class CareerStatus
 /// <para>Kept off <c>CareerStatus</c> on purpose. A field subtopic takes its
 /// parent channel's freshness outright (see the client's
 /// <c>TimelineStore.sampleStatus</c>), and <c>career.status</c> keeps arriving
-/// everywhere because the economy on it does, so a nested facilities group
+/// everywhere because the balances on it do, so a nested facilities group
 /// would read as a CURRENT null, which is the one thing it is not.</para>
 ///
 /// <para>The producer half is
@@ -143,16 +142,15 @@ public class CareerFacilities
 }
 
 /// <summary>
-/// Economy sub-group of <see cref="CareerStatus"/>: the funds, reputation and
-/// science balances, each <c>null</c> when unreadable, plus what the elected
-/// money model says reputation is worth.
+/// Balances sub-group of <see cref="CareerStatus"/>: the funds, reputation and
+/// science balances, each <c>null</c> when unreadable.
 /// </summary>
 /// <category>Career</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-public class CareerEconomy
+public class CareerBalances
 {
     /// <summary>
     /// The career's funds balance, KSP's <c>Funding.Funds</c>. <c>null</c> when
@@ -162,10 +160,8 @@ public class CareerEconomy
     public double? Funds { get; set; }
 
     /// <summary>
-    /// The career's reputation, KSP's <c>Reputation.reputation</c>, unchanged by
-    /// any money model. Under a career overhaul it is the most consequential
-    /// number in the save (it IS the income); the fields below say what it is
-    /// worth. <c>null</c> when the reputation module is not loaded.
+    /// The career's reputation, KSP's <c>Reputation.reputation</c>. <c>null</c>
+    /// when the reputation module is not loaded.
     /// </summary>
     [SitrepUnit(Units.Reputation)]
     public double? Reputation { get; set; }
@@ -176,138 +172,6 @@ public class CareerEconomy
     /// </summary>
     [SitrepUnit(Units.Science)]
     public double? Science { get; set; }
-
-    /// <summary>
-    /// Which money model produced the fields below, e.g. <c>"stock"</c>.
-    /// Provenance only: a client reads the interpretation, never branches on who
-    /// produced it.
-    /// </summary>
-    [SitrepUnit(Units.Id)]
-    [SitrepOmittedWhenNull]
-    public string? EconomyModel { get; set; }
-
-    /// <summary>
-    /// Reputation lost per day at the current reputation. Zero on stock, which
-    /// genuinely has no decay, and that zero is a statement rather than a
-    /// placeholder.
-    /// </summary>
-    [SitrepUnit(Units.ReputationPerDay)]
-    [SitrepOmittedWhenNull]
-    public double? ReputationDecayPerDay { get; set; }
-
-    /// <summary>Funding the current reputation earns, per day. Zero on
-    /// stock.</summary>
-    [SitrepUnit(Units.FundsPerDay)]
-    [SitrepOmittedWhenNull]
-    public double? SubsidyPerDay { get; set; }
-
-    /// <summary>The subsidy at zero reputation: the floor nothing takes
-    /// away.</summary>
-    [SitrepUnit(Units.FundsPerDay)]
-    [SitrepOmittedWhenNull]
-    public double? SubsidyMinPerDay { get; set; }
-
-    /// <summary>
-    /// The subsidy reputation cannot beat. With the minimum it says how much of
-    /// the range the current reputation has bought, which is what turns a bare
-    /// reputation number into something an operator can act on.
-    /// </summary>
-    [SitrepUnit(Units.FundsPerDay)]
-    [SitrepOmittedWhenNull]
-    public double? SubsidyMaxPerDay { get; set; }
-
-    /// <summary>
-    /// Total ongoing cost per day. This is why <see cref="Funds"/> is the right
-    /// balance and the wrong affordability test under an overhaul: a balance that
-    /// covers a purchase today may not cover it plus next month's salaries.
-    /// </summary>
-    [SitrepUnit(Units.FundsPerDay)]
-    [SitrepOmittedWhenNull]
-    public double? UpkeepPerDay { get; set; }
-
-    /// <summary>
-    /// Where the upkeep goes: the parts <see cref="UpkeepPerDay"/> is made of,
-    /// and they sum to it. ABSENT on stock, which has no per-source model at all:
-    /// seven zeros would claim stock levies seven kinds of nothing, where the
-    /// truth is that it levies none of them.
-    /// </summary>
-    /// <remarks>
-    /// Also absent when the model can state its costs but cannot price them, in
-    /// which case <see cref="UpkeepBeforeModifiers"/> stands alone. A set that
-    /// did not add up to the total beside it would be worse than no set: a reader
-    /// has no way to tell which of the two lied.
-    /// </remarks>
-    [SitrepOmittedWhenNull]
-    public CareerUpkeep? Upkeep { get; set; }
-
-    /// <summary>
-    /// The same sources, priced BEFORE whatever the model does to them at
-    /// transaction time: leaders, strategies, standing discounts. ABSENT when the
-    /// model applies nothing, so the difference between this and
-    /// <see cref="Upkeep"/> is what the career's current arrangements are worth.
-    /// </summary>
-    [SitrepOmittedWhenNull]
-    public CareerUpkeep? UpkeepBeforeModifiers { get; set; }
-
-    /// <summary> A prepaid allowance the elected money model spends BEFORE <see
-    /// cref="Funds"/> on the purchases it covers. In funds, because that is
-    /// what it discounts. ABSENT on stock, which has no such pool.
-    /// </summary>
-    /// <remarks> The second reason <see cref="Funds"/> alone is not an
-    /// affordability test: where this exists, part of a price is already paid.
-    /// It is a BALANCE and not a per-purchase figure, so a surface that offers
-    /// such a purchase shows this and the funds balance together rather than
-    /// deriving the split itself.
-    /// </remarks>
-    [SitrepUnit(Units.Funds)]
-    [SitrepOmittedWhenNull]
-    public double? UnlockCredit { get; set; }
-}
-
-/// <summary>
-/// Ongoing cost by source, per day, from the elected economy model. Every member
-/// is absent when that model does not have the concept, never zero: an
-/// unmodelled source and a source costing nothing are different facts.
-/// </summary>
-/// <category>Career</category>
-[SitrepContract]
-#if SITREP_CODEGEN
-[TsInterface]
-#endif
-public class CareerUpkeep
-{
-    /// <summary>Buildings: the standing cost of having a space centre at
-    /// all.</summary>
-    [SitrepUnit(Units.FundsPerDay)]
-    public double? Facilities { get; set; }
-
-    /// <summary>Launch complexes and their pads, which cost whether or not
-    /// anything is building.</summary>
-    [SitrepUnit(Units.FundsPerDay)]
-    public double? LaunchComplexes { get; set; }
-
-    /// <summary>Researcher salaries, which an idle research queue does not
-    /// stop.</summary>
-    [SitrepUnit(Units.FundsPerDay)]
-    public double? ResearchSalary { get; set; }
-
-    /// <summary>Crew training in progress.</summary>
-    [SitrepUnit(Units.FundsPerDay)]
-    public double? Training { get; set; }
-
-    /// <summary>Standing crew costs: everyone on the roster, flying or
-    /// not.</summary>
-    [SitrepUnit(Units.FundsPerDay)]
-    public double? CrewBase { get; set; }
-
-    /// <summary>The extra a crew in flight costs over a crew on the
-    /// ground.</summary>
-    [SitrepUnit(Units.FundsPerDay)]
-    public double? CrewInFlight { get; set; }
-
-    /// <summary>Engineer salaries on the integration teams.</summary>
-    [SitrepUnit(Units.FundsPerDay)]
-    public double? IntegrationSalary { get; set; }
 }
 
 /// <summary>

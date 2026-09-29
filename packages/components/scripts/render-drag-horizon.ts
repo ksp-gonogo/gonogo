@@ -20,9 +20,9 @@
  * Altitude rather than speed, because the atmosphere is an altitude and the
  * eye can put the two together.
  *
- * Deliberately NOT registered in `widgets.ts`, the same reasoning
- * `render-affordability.ts` gives: that file is the visual gate's input, and a
- * scene added to it with no committed baseline fails the gate as MISSING.
+ * Deliberately NOT registered in `widgets.ts`: that file is the visual gate's
+ * input, and a scene added to it with no committed baseline fails the gate as
+ * MISSING.
  * These exist to be looked at by a person.
  *
  * Run via `pnpm --filter @ksp-gonogo/components render-drag-horizon`. Pass

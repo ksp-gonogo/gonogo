@@ -178,7 +178,7 @@ namespace Sitrep.Core.Tests
             new object[] { nameof(PartActions), "PartActionsViewProvider", "ToWire" },
             new object[] { nameof(VesselParts), "VesselPartsViewProvider", "ToWire" },
             // Owner prefix composed with the method stem.
-            new object[] { nameof(CareerEconomy), "CareerViewProvider", "BuildEconomy" },
+            new object[] { nameof(CareerBalances), "CareerViewProvider", "BuildBalances" },
             new object[] { nameof(PartsPower), "PartsViewProvider", "BuildPower" },
             new object[] { nameof(SystemBodies), "SystemViewProvider", "BuildSystemBodies" },
             // Owner prefix alone, the method being just `Build`.
@@ -261,7 +261,7 @@ namespace Sitrep.Core.Tests
             Assert.Contains("delta", blockBodied[0].Literals);
 
             // Subject from a WIRE-PRODUCING owner class rather than a parameter,
-            // the way CareerViewProvider.BuildEconomy and
+            // the way CareerViewProvider.BuildBalances and
             // FleetVesselLinkBuilder.Build are found.
             var byOwner = Scan(
                 @"namespace P { static class PlantedPayloadBuilder {
@@ -322,7 +322,6 @@ namespace Sitrep.Core.Tests
             new object[] { nameof(SystemBodies), "BuildSystemBodies", "BuildBody" },
             new object[] { nameof(SystemBodies), "BuildSystemBodies", "BuildAtmosphere" },
             new object[] { nameof(SystemVessels), "BuildSystemVessels", "BuildOrbit" },
-            new object[] { nameof(CareerEconomy), "BuildEconomy", "CarryUpkeep" },
             new object[] { nameof(CareerContracts), "BuildContracts", "BuildContractParameters" },
             new object[] { nameof(CareerStrategies), "BuildStrategies", "BuildStrategyList" },
             new object[] { nameof(CareerTech), "BuildTech", "BuildTechNodes" },

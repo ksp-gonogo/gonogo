@@ -136,7 +136,7 @@ namespace Sitrep.Host.IntegrationTests
             {
                 // Production builder again. Note there is no absolute reputation
                 // on this shape, by design: the gating total stays on
-                // career.status.economy.reputation.
+                // career.status.balances.reputation.
                 _events.Publisher(vesselId + "." + CurrencyEventTopics.ReputationField).Publish(
                     Gonogo.KSP.CurrencyEventBuilder.BuildReputationLoss(
                         vesselId,

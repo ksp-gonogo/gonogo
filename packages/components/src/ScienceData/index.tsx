@@ -50,7 +50,7 @@ const topics = defineTopicManifest({
     "science.experiments",
     "science.experimentBreakdown",
     "science.archive",
-    "career.status.economy.science",
+    "career.status.balances.science",
   ],
 });
 
@@ -112,7 +112,7 @@ function ScienceDataComponent({
   // A balance moves only on events, and nothing here spends it, so the last one received is still shown.
   const careerScience = magnitudeOf(
     asQuantityish(
-      stillTrue(useTelemetry("career.status"), undefined)?.economy?.science,
+      stillTrue(useTelemetry("career.status"), undefined)?.balances?.science,
     ),
   );
 

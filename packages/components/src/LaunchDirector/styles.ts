@@ -307,11 +307,6 @@ export const FundsReadout = styled.span`
   white-space: nowrap;
 `;
 
-// Not FundsReadout: the drain manages its own break opportunities and must wrap.
-export const DrainReadout = styled.span`
-  margin-left: var(--gap-lead-figure);
-`;
-
 const armButtonBase = `
   font-size: var(--font-size-compact);
   font-weight: 600;

@@ -101,7 +101,7 @@ describe("ScienceDataComponent", () => {
     renderData(career);
     act(() => {
       career.emit("career.mode", { mode: 1 });
-      career.emit("career.status", { economy: { science: 1234 } });
+      career.emit("career.status", { balances: { science: 1234 } });
     });
     await waitFor(() =>
       expect(screen.getByText(/1234 SCI/)).toBeInTheDocument(),
@@ -118,7 +118,7 @@ describe("ScienceDataComponent", () => {
     renderData(sandbox);
     act(() => {
       sandbox.emit("career.mode", { mode: 0 });
-      sandbox.emit("career.status", { economy: { science: 42 } });
+      sandbox.emit("career.status", { balances: { science: 42 } });
     });
     await waitFor(() =>
       expect(screen.getByRole("tab", { name: "Aboard" })).toBeInTheDocument(),

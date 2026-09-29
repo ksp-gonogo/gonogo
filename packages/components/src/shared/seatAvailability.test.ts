@@ -16,7 +16,7 @@ describe("declaredDomains", () => {
         ...declaredDomains({
           channels: ["vessel.orbit"],
           optionalChannels: ["comms.delay"],
-          dataRequirements: ["career.status.economy.funds"],
+          dataRequirements: ["career.status.balances.funds"],
         }),
       ].sort(),
     ).toEqual(["career", "comms", "vessel"]);
@@ -124,12 +124,6 @@ describe("the built-in catalogue, derived", () => {
             "spaceCenter",
           ],
           "id": "astronaut-complex",
-        },
-        {
-          "domains": [
-            "career",
-          ],
-          "id": "career-economy",
         },
         {
           "domains": [

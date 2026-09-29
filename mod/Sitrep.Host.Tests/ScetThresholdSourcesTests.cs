@@ -214,7 +214,7 @@ namespace Sitrep.Host.Tests
                 {
                     ["career"] = new Dictionary<string, object?>
                     {
-                        ["economy"] = new Dictionary<string, object?>
+                        ["balances"] = new Dictionary<string, object?>
                         {
                             ["funds"] = funds,
                             ["reputation"] = 12.0,
@@ -242,7 +242,7 @@ namespace Sitrep.Host.Tests
             var reader = new SnapshotScetStateReader(
                 CareerSnapshot(funds: 25_000), ScetThresholdSources.CoreOnly);
 
-            var reading = reader.Read("game", CareerViewProvider.Topic, "economy.funds");
+            var reading = reader.Read("game", CareerViewProvider.Topic, "balances.funds");
 
             Assert.Equal(ScetReadingStatus.Observed, reading.Status);
             Assert.Equal(25_000, reading.Value);
@@ -269,7 +269,7 @@ namespace Sitrep.Host.Tests
 
             Assert.Equal(
                 ScetReadingStatus.NotObservable,
-                reader.Read(Subject, CareerViewProvider.Topic, "economy.funds").Status);
+                reader.Read(Subject, CareerViewProvider.Topic, "balances.funds").Status);
         }
 
         [Fact]
@@ -284,7 +284,7 @@ namespace Sitrep.Host.Tests
 
             Assert.Equal(
                 ScetReadingStatus.NotObservable,
-                reader.Read("game", CareerViewProvider.Topic, "economy.funds").Status);
+                reader.Read("game", CareerViewProvider.Topic, "balances.funds").Status);
         }
 
         private static KspSnapshot ProbeSnapshot(double reserves = 42)

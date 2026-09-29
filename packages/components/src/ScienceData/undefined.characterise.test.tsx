@@ -99,7 +99,7 @@ describe("ScienceData with nothing on the stream", () => {
 
   it("hides the banked-science readout when career.mode is absent, even with a science figure in hand", () => {
     const fixture = renderData();
-    feed(fixture, "career.status", { economy: { science: 1234 } });
+    feed(fixture, "career.status", { balances: { science: 1234 } });
     // An absent `career.mode` reads as "not a career", suppressing a figure that did arrive.
     expect(screen.queryByText(/1234 SCI/)).not.toBeInTheDocument();
 

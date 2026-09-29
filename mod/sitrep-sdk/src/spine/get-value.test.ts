@@ -66,15 +66,15 @@ describe("getValue over a field of a published parent Topic", () => {
 
   /**
    * A nested record's field, where the unit is declared on the nested shape
-   * rather than on the Topic. `career.status.economy.funds` is the case an
-   * operator meets first: it is a career threshold, and the whole `economy`
+   * rather than on the Topic. `career.status.balances.funds` is the case an
+   * operator meets first: it is a career threshold, and the whole `balances`
    * record arrives under one Topic.
    */
   it("reads a unit-carrying field of a nested record", () => {
     const publish = streamHarness();
-    publish("career.status", { economy: { funds: 12345, science: 40 } });
+    publish("career.status", { balances: { funds: 12345, science: 40 } });
 
-    expect(getValue("career.status.economy.funds")).toBe(12345);
+    expect(getValue("career.status.balances.funds")).toBe(12345);
   });
 
   /**

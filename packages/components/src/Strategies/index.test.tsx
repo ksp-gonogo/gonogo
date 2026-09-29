@@ -13,11 +13,11 @@ import {
 function emitCareer(
   fixture: ReturnType<typeof setupStreamFixture>,
   all: unknown[],
-  economy: { funds: number; reputation: number; science: number },
+  balances: { funds: number; reputation: number; science: number },
 ) {
   const active = all.filter((s) => activeFlag(s) === true);
   fixture.emit("career.status", {
-    economy,
+    balances,
     facilities: null,
     contracts: null,
     strategies: { active, all, activeCount: active.length },

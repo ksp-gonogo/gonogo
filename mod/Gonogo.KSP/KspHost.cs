@@ -130,26 +130,6 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// The elected <see cref="IEconomyBackend"/> resolver: what this install's
-        /// money model makes of the reputation this host reads. Same late-bound
-        /// install shape and the same reason as
-        /// <see cref="_actionGroupsBackend"/>, and read on the same main-thread
-        /// sample, because an overhaul's figures come off its own live scenario
-        /// modules.
-        ///
-        /// <para>Null before the addon wires it, and in a bare-host unit test,
-        /// which degrades to reputation published bare: exactly the state that
-        /// existed before the capability, so nothing regresses.</para>
-        /// </summary>
-        private Func<IEconomyBackend?>? _economyBackend;
-
-        /// <summary>Installs the elected economy-backend resolver; see <see cref="_economyBackend"/>.</summary>
-        public void SetEconomyBackendSource(Func<IEconomyBackend?> resolver)
-        {
-            _economyBackend = resolver;
-        }
-
-        /// <summary>
         /// The elected <see cref="ICrewStandingBackend"/> resolver: what this
         /// install makes of a kerbal whose roster status alone is not the answer.
         /// Same late-bound install shape and the same reason as
@@ -390,7 +370,7 @@ namespace Gonogo.KSP
                 // career mode - see its own doc comment.
                 try
                 {
-                    var career = BuildCareer(_economyBackend?.Invoke(), ut);
+                    var career = BuildCareer();
                     if (career != null)
                     {
                         values["career"] = career;
@@ -3694,7 +3674,7 @@ namespace Gonogo.KSP
 
         /// <summary>
         /// Primitives-only snapshot of KSP's career-mode state - the
-        /// funds/reputation/science economy, per-facility level/upgrade
+        /// funds/reputation/science balances, per-facility level/upgrade
         /// cost, active+offered contracts, active strategies, and unlocked
         /// tech count. Scene-independent (career state is global, unlike
         /// vessel/body data), so <see cref="Sample"/> attempts this every
@@ -3732,7 +3712,7 @@ namespace Gonogo.KSP
             return game.Mode.ToString();
         }
 
-        private static Dictionary<string, object?>? BuildCareer(IEconomyBackend? economy, double ut)
+        private static Dictionary<string, object?>? BuildCareer()
         {
             var game = HighLogic.CurrentGame;
             if (game == null || game.Mode != Game.Modes.CAREER)
@@ -3741,7 +3721,7 @@ namespace Gonogo.KSP
             }
 
             var career = new Dictionary<string, object?>();
-            TryBuildGroup(career, "economy", () => BuildCareerEconomy(economy, ut));
+            TryBuildGroup(career, "balances", BuildCareerBalances);
             TryBuildGroup(career, "facilities", BuildCareerFacilities);
             TryBuildGroup(career, "contracts", BuildCareerContracts);
             TryBuildGroup(career, "strategies", BuildCareerStrategies);
@@ -3762,7 +3742,7 @@ namespace Gonogo.KSP
         /// mode gate already passed) - so a hiccup in one doesn't blank the
         /// other two.
         /// </summary>
-        private static Dictionary<string, object?>? BuildCareerEconomy(IEconomyBackend? economy, double ut)
+        private static Dictionary<string, object?>? BuildCareerBalances()
         {
             var funding = Funding.Instance;
             var reputation = Reputation.Instance;
@@ -3772,89 +3752,11 @@ namespace Gonogo.KSP
                 return null;
             }
 
-            var rep = reputation != null ? (double?)reputation.reputation : null;
-            var group = new Dictionary<string, object?>
+            return new Dictionary<string, object?>
             {
                 ["funds"] = funding != null ? (double?)funding.Funds : null,
-                ["reputation"] = rep,
+                ["reputation"] = reputation != null ? (double?)reputation.reputation : null,
                 ["science"] = rnd != null ? (double?)rnd.Science : null,
-            };
-
-            // What that reputation MEANS, from whichever money model won the
-            // election. The reading above is untouched by it: the value was never
-            // in dispute, and a career overhaul that decays reputation daily and
-            // converts it to a funding subsidy changes what the number is FOR
-            // rather than what it is. The elected backend is handed the reputation
-            // rather than reading it, so there is exactly one place that number
-            // comes from.
-            //
-            // A throw takes this GROUP only, via TryBuildGroup, leaving
-            // funds/reputation/science standing.
-            //
-            // This runs on the COURIER thread, not the main one: it is reached
-            // from the career.status channel mapper, and AddChannelSource mappers
-            // run on the Courier thread by design. So a backend here may read an
-            // overhaul's own scenario modules, which is what the elected backends
-            // do, but must not call anything that touches Unity or broadcasts a
-            // game event. RP-1's per-line upkeep pricing does broadcast one, which
-            // is why it is captured on the main thread by the RP-1 Uplink's own
-            // sampled source and only read from here.
-            var reading = economy?.Interpret(ut, rep);
-            if (reading == null)
-            {
-                return group;
-            }
-
-            group["economyModel"] = economy?.ProviderId;
-            group["reputationDecayPerDay"] = reading.ReputationDecayPerDay;
-            group["subsidyPerDay"] = reading.SubsidyPerDay;
-            group["subsidyMinPerDay"] = reading.SubsidyMinPerDay;
-            group["subsidyMaxPerDay"] = reading.SubsidyMaxPerDay;
-            group["upkeepPerDay"] = reading.UpkeepPerDay;
-
-            // Two breakdowns, and each is emitted only when the model has one.
-            // `upkeep` decomposes upkeepPerDay and is absent when the model cannot
-            // state its parts in the same convention as its total;
-            // `upkeepBeforeModifiers` is the same sources priced before whatever
-            // the model applies at transaction time. Either can stand without the
-            // other, so neither gates the other's key.
-            AddUpkeepGroup(group, "upkeep", reading.UpkeepBreakdown);
-            AddUpkeepGroup(group, "upkeepBeforeModifiers", reading.UpkeepBeforeModifiers);
-
-            // Emitted only when a model actually has such a pool, the same way
-            // the breakdown above is. Unlike decay and subsidy, where stock's
-            // answer is a real zero worth stating, "no prepaid allowance exists
-            // in this install" is said by the key not being there: a zero would
-            // read as an exhausted allowance, which is a different fact.
-            if (reading.UnlockCredit != null)
-            {
-                group["unlockCredit"] = reading.UnlockCredit;
-            }
-            return group;
-        }
-
-        /// <summary>
-        /// One upkeep breakdown under <paramref name="key"/>, or nothing at all
-        /// when the model does not have that one. Absent rather than a bag of
-        /// nulls, the same way the group itself is absent on a model with no
-        /// per-source concept.
-        /// </summary>
-        private static void AddUpkeepGroup(
-            Dictionary<string, object?> group, string key, EconomyUpkeepBreakdown? breakdown)
-        {
-            if (breakdown == null)
-            {
-                return;
-            }
-            group[key] = new Dictionary<string, object?>
-            {
-                ["facilities"] = breakdown.Facilities,
-                ["launchComplexes"] = breakdown.LaunchComplexes,
-                ["researchSalary"] = breakdown.ResearchSalary,
-                ["training"] = breakdown.Training,
-                ["crewBase"] = breakdown.CrewBase,
-                ["crewInFlight"] = breakdown.CrewInFlight,
-                ["integrationSalary"] = breakdown.IntegrationSalary,
             };
         }
 

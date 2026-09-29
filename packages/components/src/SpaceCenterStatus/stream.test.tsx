@@ -41,7 +41,7 @@ describe("SpaceCenterStatus: genuinely runs off the stream", () => {
     act(() => {
       fixture.emit("spaceCenter.scene", { scene: "SpaceCenter" });
       fixture.emit("career.status", {
-        economy: { funds: 78400.5, reputation: 200, science: 100 },
+        balances: { funds: 78400.5, reputation: 200, science: 100 },
         facilities: null,
         contracts: null,
         strategies: null,
@@ -75,7 +75,7 @@ describe("SpaceCenterStatus: genuinely runs off the stream", () => {
 
     act(() => {
       fixture.emit("career.status", {
-        economy: { funds: 78400.5, reputation: 200, science: 100 },
+        balances: { funds: 78400.5, reputation: 200, science: 100 },
         facilities: null,
         contracts: null,
         strategies: null,
@@ -120,7 +120,7 @@ describe("SpaceCenterStatus: genuinely runs off the stream", () => {
         },
       });
       fixture.emit("career.status", {
-        economy: { funds: 500000, reputation: 0, science: 0 },
+        balances: { funds: 500000, reputation: 0, science: 0 },
         contracts: null,
         strategies: null,
         tech: null,
@@ -166,7 +166,7 @@ describe("SpaceCenterStatus: genuinely runs off the stream", () => {
         { padOccupied: true, padVesselTitle: "Kerbal X" },
       ]);
       fixture.emit("career.status", {
-        economy: { funds: 100000, reputation: 200, science: 100 },
+        balances: { funds: 100000, reputation: 200, science: 100 },
         facilities: null,
         contracts: null,
         strategies: null,

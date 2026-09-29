@@ -425,7 +425,7 @@ describe("no primitive is fed a reading's value instead of the reading", () => {
 /**
  * Per file, how many primitives are fed a figure that CAME from a reading with
  * the currency dropped on the way: `value("funds", careerFunds)` where the
- * funds were read, `career?.economy?.funds` reached off a payload, or a
+ * funds were read, `career?.balances?.funds` reached off a payload, or a
  * `describeReckonable(reading)` helper that hands back bare values.
  *
  * Derived from the walk rather than typed out, so the total lives in the list

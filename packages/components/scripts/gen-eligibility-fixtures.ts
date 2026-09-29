@@ -371,18 +371,7 @@ function withRoster(all: Row[], meta: Record<string, unknown>): Fixture {
         {
           channel: "career.status",
           value: {
-            /*
-             * The standing rates ride along because this roster is the one
-             * Strategies fixture that carries them, and render-fixture
-             * coverage asks that every field the widget reads is fed somewhere.
-             */
-            economy: {
-              funds: 1_284_900,
-              reputation: 812,
-              science: 1_460,
-              subsidyPerDay: 3_180,
-              upkeepPerDay: 2_940,
-            },
+            balances: { funds: 1_284_900, reputation: 812, science: 1_460 },
             contracts: null,
             strategies: { active, all, activeCount: active.length },
             tech: null,

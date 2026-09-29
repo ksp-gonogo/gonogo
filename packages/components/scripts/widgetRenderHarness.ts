@@ -1691,7 +1691,7 @@ async function proveTinyFitAuditWorks(page: Page): Promise<void> {
         {
           channel: "career.status",
           value: {
-            economy: { funds: PLANTED_TINY_MISFIT_FUNDS },
+            balances: { funds: PLANTED_TINY_MISFIT_FUNDS },
             contracts: null,
             strategies: null,
             tech: null,

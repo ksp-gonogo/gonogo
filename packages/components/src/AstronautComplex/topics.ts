@@ -10,8 +10,6 @@ export const astronautComplexTopics = defineTopicManifest({
   fields: [
     "spaceCenter.astronautComplex",
     "spaceCenter.crewRoster",
-    "career.status.economy.funds",
-    "career.status.economy.subsidyPerDay",
-    "career.status.economy.upkeepPerDay",
+    "career.status.balances.funds",
   ],
 });

@@ -62,7 +62,7 @@ describe("AstronautComplex when its telemetry is held", () => {
 
   function emitCareer(): void {
     act(() => {
-      stream.emit("career.status", { economy: { funds: 500000 } });
+      stream.emit("career.status", { balances: { funds: 500000 } });
       stream.emit("spaceCenter.astronautComplex", {
         applicants: [APPLICANT],
         activeCrew: 3,

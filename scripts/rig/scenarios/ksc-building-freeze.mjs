@@ -18,7 +18,6 @@ const spaceCenter = [
   panel("warp", "warp-control", 0, 0, 12, 10),
   panel("scs", "space-center-status", 12, 0, 12, 16),
   panel("admin", "strategies", 24, 0, 12, 24),
-  panel("funding", "career-economy", 0, 10, 12, 14),
 ];
 
 export default {

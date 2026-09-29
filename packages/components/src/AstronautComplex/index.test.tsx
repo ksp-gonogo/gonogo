@@ -70,7 +70,7 @@ function emitHireGate(
 
 // Generous, so affordability blocks a hire only when a test lowers it.
 function emitFunds(fixture: StreamFixture, funds: number | null) {
-  fixture.emit("career.status", { economy: { funds } });
+  fixture.emit("career.status", { balances: { funds } });
 }
 
 function emitCrewRoster(

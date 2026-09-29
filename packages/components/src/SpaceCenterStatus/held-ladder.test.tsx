@@ -62,7 +62,7 @@ function emitSession(
     fixture.emit(
       "career.status",
       {
-        economy: { funds: 500_000, reputation: 0, science: 0 },
+        balances: { funds: 500_000, reputation: 0, science: 0 },
         contracts: null,
         strategies: null,
         tech: null,

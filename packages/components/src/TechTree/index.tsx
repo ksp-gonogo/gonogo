@@ -21,7 +21,7 @@ export { parseTechNodes } from "./wire";
 
 const topics = defineTopicManifest({
   channels: ["career.status"],
-  fields: ["career.status.tech.nodes", "career.status.economy.science"],
+  fields: ["career.status.tech.nodes", "career.status.balances.science"],
 });
 
 type TechTreeConfig = Record<string, never>;
@@ -35,12 +35,12 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
   const career = topics.useTelemetry("career.status");
   const nodesRaw = stillTrue(career, undefined)?.tech?.nodes;
   const careerScience =
-    career.state === "observed" ? career.value.economy?.science : undefined;
+    career.state === "observed" ? career.value.balances?.science : undefined;
   const careerHeld = career.state === "held";
   // The balance as drawn: a held one stays on screen and Unit marks it.
   const scienceShown = readingOf(
     career,
-    (c) => c.economy?.science ?? undefined,
+    (c) => c.balances?.science ?? undefined,
   );
   const { chargesScience } = useGameContext();
   // An R&D-desk action with no vessel signal delay, so it dispatches at the meta-vantage.
@@ -79,14 +79,14 @@ function useTechTreeEssentials(): readonly TinyEssential[] {
           "count",
           computeResearchable(
             parseTechNodes(c.tech?.nodes) ?? [],
-            c.economy?.science,
+            c.balances?.science,
           ).size,
         ),
       ),
     },
     {
       label: "Science",
-      value: readingOf(career, (c) => c.economy?.science ?? undefined),
+      value: readingOf(career, (c) => c.balances?.science ?? undefined),
       decimals: 0,
     },
   ];

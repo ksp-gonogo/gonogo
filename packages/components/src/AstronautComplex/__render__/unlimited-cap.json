@@ -8,7 +8,7 @@
     "emits": [
       {
         "channel": "career.status",
-        "value": { "economy": { "funds": 1250000 } }
+        "value": { "balances": { "funds": 1250000 } }
       },
       {
         "channel": "spaceCenter.astronautComplex",

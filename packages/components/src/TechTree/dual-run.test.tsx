@@ -29,7 +29,7 @@ describe("TechTree: real small career-detail fixture render off the stream (dela
 
     act(() => {
       streamFixture.emit("career.status", {
-        economy: {
+        balances: {
           funds: 0,
           reputation: 0,
           science: smallCareerDetail["career.science"],

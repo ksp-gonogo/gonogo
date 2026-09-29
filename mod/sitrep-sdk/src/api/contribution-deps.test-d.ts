@@ -24,7 +24,7 @@ CLIENT.registerContribution({
   compute: (topics) => {
     // A declared dep arrives with its real payload type, no assertion needed.
     const funds: number | undefined =
-      topics["career.status"]?.economy?.funds?.magnitude;
+      topics["career.status"]?.balances?.funds?.magnitude;
     void funds;
     // @ts-expect-error a topic nobody declared is not readable at all
     void topics["vessel.flight"];

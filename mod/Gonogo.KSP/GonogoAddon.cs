@@ -2,7 +2,6 @@ using System;
 using System.IO;
 using Sitrep.Host;
 using Sitrep.Host.Crew;
-using Sitrep.Host.Economy;
 using Sitrep.Host.Maneuver;
 using Sitrep.Host.ActionGroups;
 using Sitrep.Host.Propagation;
@@ -294,16 +293,6 @@ namespace Gonogo.KSP
                 // encounter on it, which is what stops the two disagreeing.
                 _host.SetPropagationSource(
                     () => PropagationElection.Elected(engine.Kernel));
-
-                // Same late-bound install for the economy interpretation: whatever
-                // money model won the election says what this career's reputation
-                // MEANS, and KspHost hands it the reputation it already read
-                // rather than the backend reading it, so there is one place that
-                // number comes from. Read on the main thread inside
-                // BuildCareerEconomy, because an overhaul's figures come off its
-                // own live scenario modules.
-                _host.SetEconomyBackendSource(
-                    () => EconomyElection.Elected(engine.Kernel));
 
                 // Same late-bound install for the crew standing: whatever crew
                 // model won the election decides whether a kerbal off the flight

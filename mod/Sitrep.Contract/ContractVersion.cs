@@ -556,9 +556,22 @@ namespace Sitrep.Contract
         /// complete set per pass, so a (centre, craft) pair that loses its route
         /// loses its row; a per-row setter cannot remove a row, and no Uplink
         /// called it. Declared in the ledger's <c>SeamBreaks</c>.</para>
+        ///
+        /// <para><b>Bumped 20 -&gt; 21: the career economy leaves core.</b>
+        /// <c>career.status</c>'s <c>economy</c> group is renamed
+        /// <see cref="CareerStatus.Balances"/> (<see cref="CareerBalances"/>) and
+        /// carries only funds, reputation and science. Its money-model fields
+        /// (<c>economyModel</c>, reputation decay, subsidy, upkeep and its two
+        /// breakdowns, unlock credit) and the <c>CareerUpkeep</c> type are removed,
+        /// and so is the exclusive <c>economy</c> capability
+        /// (<c>IEconomyBackend</c>, <c>EconomyReading</c>,
+        /// <c>EconomyUpkeepBreakdown</c>, <c>EconomyCapability</c>): stock has no
+        /// economy beyond its balances, and a career mod that models one publishes
+        /// it on its own Topic. Sanctioned on the same standing grounds as every
+        /// Major above.</para>
         /// </internal>
         /// </summary>
-        public const int Major = 20;
+        public const int Major = 21;
 
         /// <summary>
         /// The contract's minor version within the current <see cref="Major"/>. It
@@ -566,7 +579,7 @@ namespace Sitrep.Contract
         /// Minor of the same Major stays compatible. The value is inlined into an
         /// Uplink at compile time, so it records the Minor that Uplink was built against.
         /// <internal>
-        /// Reset to 0 alongside the Major 19 -&gt; 20 bump (see <see cref="Major"/>).
+        /// Reset to 0 alongside the Major 20 -&gt; 21 bump (see <see cref="Major"/>).
         /// The Minor history below belongs to the earlier Major lines and is
         /// retained for provenance; every one of those additive changes is
         /// carried forward.
@@ -994,7 +1007,7 @@ namespace Sitrep.Contract
         /// <see cref="ReputationLossEvent"/> on <c>currency.&lt;guid&gt;.reputation</c>,
         /// the narrative record of a crew loss and the reputation it cost, revealed at the
         /// losing vessel's own light-time. It carries a DELTA and no absolute total, by
-        /// design: the GATING field <c>career.status.economy.reputation</c> stays TrueNow
+        /// design: the GATING field <c>career.status.balances.reputation</c> stays TrueNow
         /// and instant (a strategy's <c>RequiredReputation</c> and contract offer
         /// availability key off the game's real current reputation, so a stale-high
         /// delayed number in front of an activate/accept control would fail against ground
@@ -1461,11 +1474,11 @@ namespace Sitrep.Contract
         /// above is carried forward into Major 13.</para>
         ///
         /// <para><b>Bumped 0 -&gt; 1: reputation gains its context.</b> Seven new
-        /// members on <see cref="CareerEconomy"/> (the elected model's id, the
+        /// members on <c>CareerEconomy</c> (the elected model's id, the
         /// daily reputation decay, three subsidy figures, the daily upkeep and a
-        /// breakdown of it) plus the new <see cref="CareerUpkeep"/> type they
+        /// breakdown of it) plus the new <c>CareerUpkeep</c> type they
         /// point at. Every one is nullable and every existing member is untouched:
-        /// <see cref="CareerEconomy.Reputation"/> in particular still carries the
+        /// <c>CareerEconomy.Reputation</c> in particular still carries the
         /// same stock field, because the value was never wrong and only its
         /// meaning was missing. Additive-only, so an Uplink built against 13.0 is
         /// unaffected and the frozen Major-13 floor is NOT re-frozen.</para>
@@ -1538,13 +1551,13 @@ namespace Sitrep.Contract
         /// bodies on the burn removes the join instead of repairing it.</para>
         ///
         /// <para><b>Bumped 3 -&gt; 4: an upkeep breakdown that adds up.</b>
-        /// <see cref="CareerEconomy"/> gains <c>UpkeepBeforeModifiers</c> and
-        /// <see cref="EconomyReading"/> gains the matching
+        /// <c>CareerEconomy</c> gains <c>UpkeepBeforeModifiers</c> and
+        /// <c>EconomyReading</c> gains the matching
         /// <c>UpkeepBeforeModifiers</c>, both nullable, additive, nothing removed
         /// or retyped, so an Uplink built against 14.3 is unaffected and the
         /// frozen Major-14 floor is NOT re-frozen.</para>
         ///
-        /// <para><see cref="CareerEconomy.Upkeep"/>'s VALUES change on the RP-1
+        /// <para><c>CareerEconomy.Upkeep</c>'s VALUES change on the RP-1
         /// path, which is the point of the bump rather than a side effect of it.
         /// RP-1 states its per-source costs before its own currency modifiers and
         /// its total after them, so the seven parts we published never summed to
@@ -2022,6 +2035,6 @@ namespace Sitrep.Contract
         /// lapses. Additive, so an Uplink built against 20.0 is unaffected.</para>
         /// </internal>
         /// </summary>
-        public const int Minor = 1;
+        public const int Minor = 0;
     }
 }

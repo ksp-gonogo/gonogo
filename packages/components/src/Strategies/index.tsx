@@ -2,7 +2,6 @@ import type { ComponentProps } from "@ksp-gonogo/core";
 import { defineTopicManifest, registerComponent } from "@ksp-gonogo/core";
 import { META_VANTAGE, useCommand } from "@ksp-gonogo/sitrep-client";
 import {
-  combineReadings,
   readingOf,
   stillTrue,
   type TinyEssential,
@@ -10,7 +9,6 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import { useContributions } from "@ksp-gonogo/ui-kit";
 import { useMemo, useState } from "react";
-import { netFundsPerDay, netFundsPerDayReading } from "../shared/FundsDrain";
 import { parseEffectLines, parseStrategies } from "./parsing";
 import { inferCap, partition } from "./partition";
 import { StrategiesView } from "./StrategiesView";
@@ -24,11 +22,9 @@ const topics = defineTopicManifest({
   fields: [
     "career.status.strategies.all",
     "career.status.strategies.activationPatched",
-    "career.status.economy.funds",
-    "career.status.economy.reputation",
-    "career.status.economy.science",
-    "career.status.economy.subsidyPerDay",
-    "career.status.economy.upkeepPerDay",
+    "career.status.balances.funds",
+    "career.status.balances.reputation",
+    "career.status.balances.science",
   ],
 });
 
@@ -49,26 +45,24 @@ function StrategiesComponent({
   // Only an explicit false says the game's activation is its own; absent and null say nothing.
   const commitsUnanswered = rosterRaw?.activationPatched === false;
   // An affordability verdict may only rest on an observation.
-  const economy =
+  const balances =
     careerReading.state === "observed"
-      ? careerReading.value.economy
+      ? careerReading.value.balances
       : undefined;
-  const funds = economy?.funds;
-  const reputation = economy?.reputation;
-  const science = economy?.science;
-  // Held balances and a never-arrived economy both refuse Activate, but only one is about the link.
+  const funds = balances?.funds;
+  const reputation = balances?.reputation;
+  const science = balances?.science;
+  // Held balances and never-arrived ones both refuse Activate, but only one is about the link.
   const balancesHeld = careerReading.state === "held";
   // The balances as the rail draws them: held ones stay on screen and Unit marks them.
   const shownBalances = {
-    funds: readingOf(careerReading, (c) => c.economy?.funds ?? undefined),
+    funds: readingOf(careerReading, (c) => c.balances?.funds ?? undefined),
     reputation: readingOf(
       careerReading,
-      (c) => c.economy?.reputation ?? undefined,
+      (c) => c.balances?.reputation ?? undefined,
     ),
-    science: readingOf(careerReading, (c) => c.economy?.science ?? undefined),
+    science: readingOf(careerReading, (c) => c.balances?.science ?? undefined),
   };
-  // The standing funds rate beside Activate; stock reports none and it renders nothing.
-  const netFunds = netFundsPerDay(economy);
   // An Administration Building action carries no vessel signal delay.
   const activateCmd = useCommand("career.strategy.activate", {
     vantage: META_VANTAGE,
@@ -101,7 +95,6 @@ function StrategiesComponent({
       science={science}
       balancesHeld={balancesHeld}
       shownBalances={shownBalances}
-      netFunds={netFunds}
       factorById={factorById}
       setFactorById={setFactorById}
       activateCmd={activateCmd}
@@ -112,21 +105,17 @@ function StrategiesComponent({
   );
 }
 
-/** The balance, the commitments held against it, and the standing rate it moves at. */
+/** The balance and the commitments held against it. */
 function useStrategiesEssentials(): readonly TinyEssential[] {
   const career = topics.useTelemetry("career.status");
   const roster = partition(
     parseStrategies(stillTrue(career, undefined)?.strategies?.all) ?? [],
   );
   const cap = inferCap(roster.softBlocked);
-  const net = netFundsPerDayReading(
-    career.economy.subsidyPerDay,
-    career.economy.upkeepPerDay,
-  );
-  const essentials: TinyEssential[] = [
+  return [
     {
       label: "Funds",
-      value: readingOf(career, (c) => c.economy?.funds ?? undefined),
+      value: readingOf(career, (c) => c.balances?.funds ?? undefined),
       decimals: 0,
     },
     {
@@ -135,14 +124,6 @@ function useStrategiesEssentials(): readonly TinyEssential[] {
       tone: cap !== null && roster.active.length > cap ? "warn" : "neutral",
     },
   ];
-  // A career with no standing rate has no row: an absent rate is not a zero one.
-  if (net.value === undefined || net.value.isZero()) return essentials;
-  // Named, not signed: a leading minus reads as a formatting artefact.
-  essentials.push({
-    label: net.value.isNegative() ? "Drain" : "Gain",
-    value: combineReadings([net], (rate) => rate.abs()),
-  });
-  return essentials;
 }
 
 registerComponent<StrategiesConfig>({
@@ -152,7 +133,7 @@ registerComponent<StrategiesConfig>({
     "Administration Building strategies for career mode. Shows active commitments, their per-strategy effect bullets, and the available alternatives with cost previews scaled by the commitment-factor slider. With that building open KSP answers eligibility itself; with it shut the same rules are asked one at a time, which is enough to name what the career refuses but never enough to say yes. A strategy left unanswered can still be committed from here when no other mod has changed how activation works: the remaining checks are made when you confirm.",
   tags: ["career"],
   defaultSize: { w: 5, h: 9 },
-  // Three columns and four rows hold a full balance over the tally and the standing rate.
+  // Three columns and four rows hold a full balance over the tally.
   minSize: { w: 3, h: 4 },
   component: StrategiesComponent,
   tiny: { title: "ADMIN", useEssentials: useStrategiesEssentials },

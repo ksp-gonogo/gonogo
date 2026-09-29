@@ -238,7 +238,7 @@ describe("widget and augment declarations resolve to something real", () => {
     // passing because the classifier went permissive, not because the
     // declarations are sound.
     expect(
-      classifyRequirement("career.status.economy.notAField"),
+      classifyRequirement("career.status.balances.notAField"),
     ).toBeUndefined();
     expect(classifyRequirement("spaceCenter.state.notAField")).toBeUndefined();
     expect(classifyRequirement("career.status")).toBe("wire-topic");

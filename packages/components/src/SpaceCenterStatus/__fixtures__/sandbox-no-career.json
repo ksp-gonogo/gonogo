@@ -32,7 +32,7 @@
       {
         "channel": "career.status",
         "value": {
-          "economy": {
+          "balances": {
             "funds": null,
             "reputation": null,
             "science": null

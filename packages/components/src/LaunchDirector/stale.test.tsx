@@ -80,7 +80,7 @@ describe("LaunchDirector when its telemetry is held", () => {
       stream.emit("spaceCenter.savedShips", [KERBAL_X]);
       stream.emit("spaceCenter.crewRoster", [JEB]);
       stream.emit("career.status", {
-        economy: { funds: 289_848, reputation: 0, science: 0 },
+        balances: { funds: 289_848, reputation: 0, science: 0 },
         facilities: null,
         contracts: null,
         strategies: null,

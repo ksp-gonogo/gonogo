@@ -26,10 +26,6 @@ export const FundsReadout = styled.span`
   margin-left: var(--gap-lead-figure);
 `;
 
-export const DrainReadout = styled.span`
-  margin-left: var(--gap-lead-figure);
-`;
-
 export const TinyFunds = styled.div`
   /* Fluid, so off the type scale: the compact value must still fit the 2x3 minimum size. */
   font-size: clamp(12px, 13cqw, 22px);
@@ -46,13 +42,6 @@ export const TinyFundsUnit = styled.span`
   font-size: 12px;
   color: var(--color-text-muted);
   margin-left: var(--gap-unit-suffix);
-`;
-
-export const TinyDrain = styled.div`
-  /* The smallest rung: a qualifier must not out-size the balance it qualifies. */
-  font-size: var(--font-size-compact);
-  font-weight: 400;
-  line-height: var(--line-height-flush);
 `;
 
 export const TinyPad = styled.span<{ $occupied: boolean }>`

@@ -68,10 +68,10 @@ const DERIVED_PRICEY = {
 
 function careerStatus(
   nodes: unknown,
-  economy: Record<string, unknown> | null,
+  balances: Record<string, unknown> | null,
 ): Record<string, unknown> {
   return {
-    economy,
+    balances,
     facilities: null,
     contracts: null,
     strategies: null,
@@ -195,7 +195,7 @@ describe("TechTree: no building-scene gate on Unlock", () => {
   });
 });
 
-describe("TechTree: the economy.science absence gate", () => {
+describe("TechTree: the balances.science absence gate", () => {
   it("withholds Unlock on a 500-science node while the balance is unknown", async () => {
     const user = userEvent.setup();
     const fixture = newFixture();

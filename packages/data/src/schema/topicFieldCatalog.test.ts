@@ -9,7 +9,7 @@ import {
 describe("getTopicFieldCatalog()", () => {
   it("offers a key for every field of a contract Topic", () => {
     const keys = new Set(getTopicFieldCatalog().map((k) => k.key));
-    expect(keys.has("career.status.economy.funds")).toBe(true);
+    expect(keys.has("career.status.balances.funds")).toBe(true);
     expect(keys.has("vessel.orbit.sma")).toBe(true);
   });
 
@@ -29,11 +29,11 @@ describe("getTopicFieldCatalog()", () => {
 
   it("keys every entry by the path a read actually samples", () => {
     const funds = getTopicFieldCatalog().find(
-      (k) => k.key === "career.status.economy.funds",
+      (k) => k.key === "career.status.balances.funds",
     );
     expect(funds).toMatchObject({
       topic: "career.status",
-      fieldPath: "economy.funds",
+      fieldPath: "balances.funds",
       unit: "funds",
       kind: "quantity",
       group: "career.status",
@@ -188,7 +188,7 @@ describe("humaniseFieldPath", () => {
   });
 
   it("reads a nested path as one phrase", () => {
-    expect(humaniseFieldPath("economy.funds")).toBe("Economy funds");
+    expect(humaniseFieldPath("balances.funds")).toBe("Balances funds");
     expect(humaniseFieldPath("position.x")).toBe("Position x");
   });
 });

@@ -369,9 +369,8 @@ namespace Sitrep.Contract
         /// <summary>
         /// KSP's own <c>(int)ProtoCrewMember.RosterStatus</c>, or null for an
         /// applicant (who has none) and when the capture could not read one.
-        /// Handed over rather than read for the reason
-        /// <see cref="IEconomyBackend"/> is handed the reputation: the value is
-        /// not in dispute, only what it means.
+        /// Handed over rather than read because the value is not in dispute,
+        /// only what it means.
         /// </summary>
         public int? RosterStatusOrdinal { get; set; }
 

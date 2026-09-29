@@ -51,7 +51,7 @@ describe("LaunchDirector: genuinely runs off the stream", () => {
         },
       ]);
       fixture.emit("career.status", {
-        economy: { funds: 42500, reputation: 200, science: 100 },
+        balances: { funds: 42500, reputation: 200, science: 100 },
         facilities: null,
         contracts: null,
         strategies: null,

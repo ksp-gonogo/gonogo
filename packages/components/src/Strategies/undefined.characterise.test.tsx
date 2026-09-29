@@ -73,7 +73,7 @@ const EXPENSIVE = {
 function emitCareer(fixture: StreamFixture, over: Record<string, unknown>) {
   act(() => {
     fixture.emit("career.status", {
-      economy: null,
+      balances: null,
       facilities: null,
       contracts: null,
       strategies: null,
@@ -115,7 +115,7 @@ describe("Strategies: the `strategies === null` absence gate", () => {
     expect(screen.getByText(/Awaiting career data/)).toBeInTheDocument();
 
     emitCareer(fixture, {
-      economy: { funds: 1000, reputation: 5, science: 20 },
+      balances: { funds: 1000, reputation: 5, science: 20 },
       strategies: { active: [], all: [], activeCount: 0 },
     });
 
@@ -133,9 +133,9 @@ describe("Strategies: the `strategies === null` absence gate", () => {
     const fixture = newFixture();
     renderStrategies(fixture, undefined, { probe: true });
 
-    // Economy without strategies is indistinguishable from the topic never having arrived.
+    // Balances without strategies are indistinguishable from the topic never having arrived.
     emitCareer(fixture, {
-      economy: { funds: 289_848, reputation: 420, science: 145 },
+      balances: { funds: 289_848, reputation: 420, science: 145 },
       strategies: null,
     });
 
@@ -179,7 +179,7 @@ describe("Strategies: an absent balance beside a present strategy list", () => {
     renderStrategies(fixture);
 
     emitCareer(fixture, {
-      economy: null,
+      balances: null,
       strategies: { active: [], all: [EXPENSIVE], activeCount: 0 },
     });
 
@@ -200,7 +200,7 @@ describe("Strategies: an absent balance beside a present strategy list", () => {
     renderStrategies(fixture);
 
     emitCareer(fixture, {
-      economy: null,
+      balances: null,
       strategies: { active: [], all: [EXPENSIVE], activeCount: 0 },
     });
 
@@ -220,7 +220,7 @@ describe("Strategies: an absent balance beside a present strategy list", () => {
     renderStrategies(fixture);
 
     emitCareer(fixture, {
-      economy: { funds: 10, reputation: 0, science: 0 },
+      balances: { funds: 10, reputation: 0, science: 0 },
       strategies: { active: [], all: [EXPENSIVE], activeCount: 0 },
     });
 
@@ -236,13 +236,13 @@ describe("Strategies: an absent balance beside a present strategy list", () => {
 });
 
 describe("Strategies: tiny mode keeps the funds essential", () => {
-  it("draws the null token for funds while economy is absent, and the balance once it arrives", async () => {
+  it("draws the null token for funds while balances are absent, and the balance once it arrives", async () => {
     const fixture = newFixture();
     // w=4 is the tiny bucket.
     renderWidget("strategies", { w: 4, h: 4, wrapper: fixture.Provider });
 
     emitCareer(fixture, {
-      economy: null,
+      balances: null,
       strategies: { active: [], all: [EXPENSIVE], activeCount: 0 },
     });
 
@@ -251,7 +251,7 @@ describe("Strategies: tiny mode keeps the funds essential", () => {
     );
 
     emitCareer(fixture, {
-      economy: { funds: 1234, reputation: 0, science: 0 },
+      balances: { funds: 1234, reputation: 0, science: 0 },
       strategies: { active: [], all: [EXPENSIVE], activeCount: 0 },
     });
 

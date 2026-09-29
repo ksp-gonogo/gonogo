@@ -14,31 +14,6 @@
     "reason": "The velocity components ARE the derivative of the position components, so this pairing is real. Nothing should integrate it here: every state in a reply is SOLVED at an instant the caller named, by the elected propagation provider, so a reading taken between two of them is a straight line drawn across a conic. Asking for another instant costs one more entry in a list that is already batched, which is cheaper than the error.",
     "verdict": "real-but-unmodelled"
   },
-  "CareerEconomy.funds": {
-    "rates": [
-      "subsidyMaxPerDay",
-      "subsidyMinPerDay",
-      "subsidyPerDay",
-      "upkeepPerDay"
-    ],
-    "reason": "Funds really do integrate under a career overhaul, and none of these four is the derivative on its own. The balance moves at subsidy MINUS upkeep, so a reckoning wants a composed expression rather than a field pairing; the min and max are the envelope the subsidy sits in and are not rates in effect at all; and the impulses that actually dominate the balance (a contract award, a launch, a facility upgrade) are described by none of them. Also conditional on the elected model: stock answers all four as zero, so a reckoning fitted to them would hold the balance still through every purchase.",
-    "verdict": "real-but-unmodelled"
-  },
-  "CareerEconomy.reputation": {
-    "rates": ["reputationDecayPerDay"],
-    "reason": "A true derivative and the sign is the trap: reputation FALLS by this, so integrating it forward adds where it should subtract. It is also state-dependent rather than constant, being a fixed portion of the current reputation applied daily, which makes the honest model an exponential decay and not a linear ramp. Zero on stock, which has no decay at all.",
-    "verdict": "real-but-unmodelled"
-  },
-  "CareerEconomy.unlockCredit": {
-    "rates": [
-      "subsidyMaxPerDay",
-      "subsidyMinPerDay",
-      "subsidyPerDay",
-      "upkeepPerDay"
-    ],
-    "reason": "The allowance genuinely does accrue continuously, and its rate is not on the wire and is not any of these four. RP-1 grows it as a fraction of the researcher salary bill, a band that falls from 0.6 to 0.1 as the research department grows, and ONLY while a tech node is actually progressing in the research queue: an idle queue accrues nothing however large the payroll. So the nearest true rate is a slice of upkeep.researchSalary gated on a condition no field expresses, and upkeepPerDay is the whole outgoing bill rather than that slice. Spending is impulsive too, drawn at a part, upgrade or tooling purchase and at nothing else. Absent entirely under stock, so a reckoning fitted here would be describing one install's mod.",
-    "verdict": "real-but-unmodelled"
-  },
   "CareerStrategy.activateAvailableFromUt": {
     "rates": ["factor", "factorSliderDefault"],
     "reason": "Dimensional degeneracy, the same shape as CareerStrategy.dateActivated: an instant's dimensional rate is the dimensionless quantity, so the commitment factor qualifies. It is not the rate of the instant a career mod's refusal lapses, and that instant does not move: it is fixed when the strategy is dismissed and stays put until it passes.",

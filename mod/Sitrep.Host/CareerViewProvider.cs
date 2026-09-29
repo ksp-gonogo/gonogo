@@ -25,14 +25,14 @@ namespace Sitrep.Host
     /// actually need; see each <c>Build*</c> method below and
     /// <c>Gonogo.KSP.KspHost</c>'s matching <c>BuildCareer*</c> methods for
     /// the decompile-confirmed KSP APIs behind each new field. Purely
-    /// additive/reshaping within each group: <c>economy</c> is untouched.</para>
+    /// additive/reshaping within each group: <c>balances</c> is untouched.</para>
     ///
     /// <para><b>Raw snapshot encoding (Gonogo.KSP.KspHost.BuildCareer must
     /// populate exactly this shape at <c>Values["career"]</c>: entirely
     /// OMITTED, no key at all, outside career mode):</b></para>
     /// <code>
     /// snapshot.Values["career"] = Dictionary&lt;string, object?&gt; {
-    ///   "economy":    { "funds": double?, "reputation": double?, "science": double? }
+    ///   "balances":   { "funds": double?, "reputation": double?, "science": double? }
     ///   "facilities": { "&lt;SpaceCenterFacility name&gt;": { "currentTier": int?, "maxTier": int?, "upgradeCost": double? }, ... }
     ///   "contracts":  { "active": [ ContractEntry, ... ], "offered": [ ContractEntry, ... ], "completedRecent": [ ContractEntry, ... ] }
     ///   "strategies": { "active": [ StrategyEntry, ... ], "all": [ StrategyEntry, ... ], "activeCount": int,
@@ -81,8 +81,8 @@ namespace Sitrep.Host
         /// centre, the editor and flight near the KSC, so the reading is
         /// unavailable through most of a session. Riding <c>career.status</c> it
         /// could not be HELD: a field takes its channel's staleness, and
-        /// <c>career.status</c> keeps arriving everywhere because the economy on
-        /// it does, so the tiers read as a current answer of null. On its own
+        /// <c>career.status</c> keeps arriving everywhere because the balances on
+        /// it do, so the tiers read as a current answer of null. On its own
         /// channel the silence is the client's to date. See
         /// <see cref="BuildFacilities"/>.</para>
         /// </summary>
@@ -110,7 +110,7 @@ namespace Sitrep.Host
 
             return new Dictionary<string, object?>
             {
-                ["economy"] = BuildEconomy(career),
+                ["balances"] = BuildBalances(career),
                 ["contracts"] = BuildContracts(career),
                 ["strategies"] = BuildStrategies(career),
                 ["tech"] = BuildTech(career),
@@ -182,78 +182,19 @@ namespace Sitrep.Host
             ["mode"] = (int)mode.Mode,
         };
 
-        private static Dictionary<string, object?>? BuildEconomy(IDictionary<string, object?> career)
+        private static Dictionary<string, object?>? BuildBalances(IDictionary<string, object?> career)
         {
-            if (!TryGetDict(career, "economy", out var raw))
+            if (!TryGetDict(career, "balances", out var raw))
             {
                 return null;
             }
 
-            var economy = new Dictionary<string, object?>
+            return new Dictionary<string, object?>
             {
                 ["funds"] = GetDouble(raw, "funds"),
                 ["reputation"] = GetDouble(raw, "reputation"),
                 ["science"] = GetDouble(raw, "science"),
             };
-
-            // The elected money model's interpretation of that reputation. Every
-            // key is carried only when the capture had it, so a stock save's wire
-            // shape is unchanged from before the capability and an overhaul adds
-            // context rather than replacing a reading.
-            CarryIfPresent(raw, economy, "economyModel", (d, k) => GetString(d, k));
-            CarryIfPresent(raw, economy, "reputationDecayPerDay", (d, k) => GetDouble(d, k));
-            CarryIfPresent(raw, economy, "subsidyPerDay", (d, k) => GetDouble(d, k));
-            CarryIfPresent(raw, economy, "subsidyMinPerDay", (d, k) => GetDouble(d, k));
-            CarryIfPresent(raw, economy, "subsidyMaxPerDay", (d, k) => GetDouble(d, k));
-            CarryIfPresent(raw, economy, "upkeepPerDay", (d, k) => GetDouble(d, k));
-            CarryIfPresent(raw, economy, "unlockCredit", (d, k) => GetDouble(d, k));
-
-            CarryUpkeep(raw, economy, "upkeep");
-            CarryUpkeep(raw, economy, "upkeepBeforeModifiers");
-            return economy;
-        }
-
-        /// <summary>
-        /// One upkeep breakdown, carried only when the capture had that one. The
-        /// two are independent: a model can price its sources without applying
-        /// anything to them, and one that applies something can lose the ability
-        /// to price it while still stating its raw costs.
-        /// </summary>
-        private static void CarryUpkeep(
-            IDictionary<string, object?> raw, IDictionary<string, object?> economy, string key)
-        {
-            if (!TryGetDict(raw, key, out var upkeep))
-            {
-                return;
-            }
-            economy[key] = new Dictionary<string, object?>
-            {
-                ["facilities"] = GetDouble(upkeep, "facilities"),
-                ["launchComplexes"] = GetDouble(upkeep, "launchComplexes"),
-                ["researchSalary"] = GetDouble(upkeep, "researchSalary"),
-                ["training"] = GetDouble(upkeep, "training"),
-                ["crewBase"] = GetDouble(upkeep, "crewBase"),
-                ["crewInFlight"] = GetDouble(upkeep, "crewInFlight"),
-                ["integrationSalary"] = GetDouble(upkeep, "integrationSalary"),
-            };
-        }
-
-        /// <summary>
-        /// Copies a key only when the capture actually carried it. An absent key
-        /// and a key holding null are different facts here: the first is a model
-        /// that does not have the concept, the second a model that has it and
-        /// cannot read it this tick.
-        /// </summary>
-        private static void CarryIfPresent(
-            IDictionary<string, object?> raw,
-            IDictionary<string, object?> into,
-            string key,
-            Func<IDictionary<string, object?>, string, object?> read)
-        {
-            if (raw.ContainsKey(key))
-            {
-                into[key] = read(raw, key);
-            }
         }
 
         /// <summary>

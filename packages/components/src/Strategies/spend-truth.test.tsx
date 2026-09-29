@@ -68,7 +68,7 @@ describe("Strategies: what a card claims activating it costs", () => {
   function emit(all: unknown[]) {
     act(() => {
       stream.emit("career.status", {
-        economy: { funds: 289848, reputation: 976, science: 0 },
+        balances: { funds: 289848, reputation: 976, science: 0 },
         facilities: null,
         contracts: null,
         strategies: { active: [], all, activeCount: 0 },

@@ -33,7 +33,7 @@ function emitFunds(
   funds: number,
 ) {
   stream.emit("career.status", {
-    economy: { funds, reputation: 0, science: 0 },
+    balances: { funds, reputation: 0, science: 0 },
     facilities: null,
     contracts: null,
     strategies: null,

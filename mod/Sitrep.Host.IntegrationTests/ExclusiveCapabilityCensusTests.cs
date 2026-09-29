@@ -110,7 +110,6 @@ namespace Sitrep.Host.IntegrationTests
             new Entry("maneuverPlan", "Sitrep.Host/Maneuver/ManeuverPlanElection.cs", FedByGatedCapture: true),
             new Entry("propagation", "Sitrep.Host/Propagation/PropagationElection.cs", FedByGatedCapture: false),
             new Entry("gravityModel", "Sitrep.Host/Propagation/GravityModelElection.cs", FedByGatedCapture: false),
-            new Entry("economy", "Sitrep.Host/Economy/EconomyElection.cs", FedByGatedCapture: false),
             new Entry("actionGroups", "Sitrep.Host/ActionGroups/ActionGroupsElection.cs", FedByGatedCapture: false),
             new Entry("crewStanding", "Sitrep.Host/Crew/CrewStandingElection.cs", FedByGatedCapture: false),
             new Entry(

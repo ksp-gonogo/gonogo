@@ -15,7 +15,7 @@ afterEach(() => {
 });
 
 describe("Strategies: genuinely runs off the stream (M3/M3b career batch)", () => {
-  it("renders the funds/reputation/science tallies derived from career.status.economy", async () => {
+  it("renders the funds/reputation/science tallies derived from career.status.balances", async () => {
     const fixture = setupStreamFixture({
       pinnedUt: 10,
       suspendFrames: true,
@@ -34,7 +34,7 @@ describe("Strategies: genuinely runs off the stream (M3/M3b career batch)", () =
 
     act(() => {
       fixture.emit("career.status", {
-        economy: { funds: 289848, reputation: 420, science: 145 },
+        balances: { funds: 289848, reputation: 420, science: 145 },
         facilities: null,
         contracts: null,
         strategies: { active: [], all: [], activeCount: 0 },
@@ -93,7 +93,7 @@ describe("Strategies: genuinely runs off the stream (M3/M3b career batch)", () =
         effect: "Effects: -1.5% funds off launch costs.",
       };
       fixture.emit("career.status", {
-        economy: { funds: 289848, reputation: 420, science: 145 },
+        balances: { funds: 289848, reputation: 420, science: 145 },
         facilities: null,
         contracts: null,
         // The widget reads `strategies.all` only; `active` is derived from `isActive`.

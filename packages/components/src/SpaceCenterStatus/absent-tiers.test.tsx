@@ -49,7 +49,7 @@ function emitFacilities(
     fixture.emit("spaceCenter.scene", { scene: "SpaceCenter" });
     fixture.emit("career.facilities", { facilities });
     fixture.emit("career.status", {
-      economy: { funds: 100_000, reputation: 0, science: 0 },
+      balances: { funds: 100_000, reputation: 0, science: 0 },
       contracts: null,
       strategies: null,
       tech: null,

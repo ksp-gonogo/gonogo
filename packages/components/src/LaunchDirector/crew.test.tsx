@@ -91,7 +91,7 @@ describe("LaunchDirector crew selection", () => {
   function emitPadAndShip() {
     act(() => {
       stream.emit("career.status", {
-        economy: { funds: 100_000, reputation: 0, science: 0 },
+        balances: { funds: 100_000, reputation: 0, science: 0 },
         facilities: null,
         contracts: null,
         strategies: null,

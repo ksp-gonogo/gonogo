@@ -85,10 +85,10 @@ namespace Sitrep.Core.Tests
             // `Sitrep.Host.Crash.CrashPayload.Build` produces `CrashReport`.
             //
             // career.status: CareerViewProvider.BuildCareer returns the
-            // Dictionary<string, object?> tree, and BuildEconomy/BuildContracts/
+            // Dictionary<string, object?> tree, and BuildBalances/BuildContracts/
             // BuildStrategies/BuildTech fill its four groups. Those four ARE
             // graded; the wrapper and the nested rows under them are not.
-            "CareerStatus", "CareerUpkeep", "CareerFacility",
+            "CareerStatus", "CareerFacility",
             "CareerContract", "CareerContractParameter", "CareerStrategy", "CareerTechNode",
             // fleet.silence: FleetSilenceRosterBuilder wraps per-vessel entries
             // (reused from FleetVesselSilenceBuilder, which IS graded) in a

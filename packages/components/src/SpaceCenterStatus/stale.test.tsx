@@ -61,7 +61,7 @@ function emitCareer(fixture: ReturnType<typeof setupStreamFixture>): void {
       },
     });
     fixture.emit("career.status", {
-      economy: { funds: 500000, reputation: 0, science: 0 },
+      balances: { funds: 500000, reputation: 0, science: 0 },
       contracts: null,
       strategies: null,
       tech: null,

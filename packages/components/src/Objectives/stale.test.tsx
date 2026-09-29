@@ -38,7 +38,7 @@ function newFixture() {
 function emitObjectives(fixture: ReturnType<typeof setupStreamFixture>): void {
   act(() => {
     fixture.emit("career.status", {
-      economy: null,
+      balances: null,
       facilities: null,
       contracts: {
         active: [

@@ -29,7 +29,7 @@ describe("Objectives: genuinely runs off the stream (M3b career-detail batch)", 
 
     act(() => {
       fixture.emit("career.status", {
-        economy: null,
+        balances: null,
         facilities: null,
         contracts: {
           active: [

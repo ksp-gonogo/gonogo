@@ -9,12 +9,10 @@
       {
         "channel": "career.status",
         "value": {
-          "economy": {
+          "balances": {
             "funds": 1284900,
             "reputation": 812,
-            "science": 1460,
-            "subsidyPerDay": 3180,
-            "upkeepPerDay": 2940
+            "science": 1460
           },
           "contracts": null,
           "strategies": {

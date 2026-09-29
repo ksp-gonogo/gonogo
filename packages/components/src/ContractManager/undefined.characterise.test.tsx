@@ -109,7 +109,7 @@ describe("ContractManager: the `active === null` absence gate", () => {
     act(() => {
       // The record arrived without the sub-tree, indistinguishable from nothing arriving.
       fixture.emit("career.status", {
-        economy: { funds: 1000, reputation: 0, science: 0 },
+        balances: { funds: 1000, reputation: 0, science: 0 },
         facilities: null,
         contracts: null,
         strategies: null,

@@ -8,8 +8,6 @@ import {
   type UnitValue,
 } from "@ksp-gonogo/ui-kit";
 import type { Dispatch, SetStateAction } from "react";
-import { FundsDrain, reportsFundsDrain } from "../shared/FundsDrain";
-import { magnitudeOf } from "../shared/magnitude";
 import { Balance } from "./BalanceRail";
 import { inferCap, partition } from "./partition";
 import { ScreenSections } from "./ScreenSections";
@@ -33,8 +31,6 @@ export interface StrategiesViewProps {
     reputation: UnitValue<"rep">;
     science: UnitValue<"science">;
   };
-  /** The standing funds rate beside Activate; stock reports none and it renders nothing. */
-  netFunds: number | null;
   factorById: Record<string, number>;
   setFactorById: Dispatch<SetStateAction<Record<string, number>>>;
   activateCmd: CommandButtonHandle;
@@ -54,7 +50,6 @@ export function StrategiesView({
   science,
   balancesHeld,
   shownBalances,
-  netFunds,
   factorById,
   setFactorById,
   activateCmd,
@@ -121,12 +116,6 @@ export function StrategiesView({
             <Tally>
               <Balance balance={shownBalances.funds} unit="funds" />
             </Tally>
-            {reportsFundsDrain(netFunds) && (
-              <>
-                <Sep>·</Sep>
-                <FundsDrain funds={magnitudeOf(funds)} netPerDay={netFunds} />
-              </>
-            )}
             {(w ?? 9) >= 6 && (
               <>
                 <Sep>·</Sep>

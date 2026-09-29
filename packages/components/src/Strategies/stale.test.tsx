@@ -69,7 +69,7 @@ const CHEAP = {
 function emitCareer(fixture: StreamFixture): void {
   act(() => {
     fixture.emit("career.status", {
-      economy: { funds: 289_848, reputation: 420, science: 145 },
+      balances: { funds: 289_848, reputation: 420, science: 145 },
       facilities: null,
       contracts: null,
       strategies: { active: [], all: [CHEAP], activeCount: 0 },

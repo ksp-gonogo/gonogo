@@ -72,7 +72,7 @@
       {
         "channel": "career.status",
         "value": {
-          "economy": null,
+          "balances": null,
           "contracts": {
             "active": [
               {

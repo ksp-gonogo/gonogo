@@ -61,7 +61,7 @@ async function renderWithTiers(
     fixture.emit("spaceCenter.scene", { scene: "SpaceCenter" });
     // `career.facilities` is never emitted, so the contributed rows are the only thing in the slot.
     fixture.emit("career.status", {
-      economy: { funds: 100000, reputation: 0, science: 0 },
+      balances: { funds: 100000, reputation: 0, science: 0 },
       contracts: null,
       strategies: null,
       tech: null,

@@ -11,16 +11,16 @@ import { TOPIC_IDS } from "./topics";
 describe("enumerateTopicFields", () => {
   it("walks a nested singular shape down to its leaves", () => {
     const paths = enumerateTopicFields("career.status").map((f) => f.path);
-    expect(paths).toContain("economy.funds");
-    expect(paths).toContain("economy.science");
+    expect(paths).toContain("balances.funds");
+    expect(paths).toContain("balances.science");
   });
 
   it("carries the declared unit and the kind it implies", () => {
     const funds = enumerateTopicFields("career.status").find(
-      (f) => f.path === "economy.funds",
+      (f) => f.path === "balances.funds",
     );
     expect(funds).toEqual({
-      path: "economy.funds",
+      path: "balances.funds",
       unit: "funds",
       kind: "quantity",
     });
@@ -94,7 +94,7 @@ describe("enumerateTopicFields", () => {
 
 describe("isKnownFieldPath plurality", () => {
   it("accepts a scalar leaf under a singular nested shape", () => {
-    expect(isKnownFieldPath("career.status.economy.funds")).toBe(true);
+    expect(isKnownFieldPath("career.status.balances.funds")).toBe(true);
   });
 
   it("refuses a field read off a LIST", () => {

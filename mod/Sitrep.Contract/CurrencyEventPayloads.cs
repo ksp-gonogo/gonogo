@@ -53,7 +53,7 @@ public static class CurrencyEventTopics
 /// the light-time from the observer's vantage to that vessel, so a probe five
 /// light-minutes out reports its transmit five minutes after the fact.</para>
 ///
-/// <para>In addition to <c>career.status.economy.science</c>, which it does not
+/// <para>In addition to <c>career.status.balances.science</c>, which it does not
 /// change. That field is held at the home command because it gates what tech the
 /// operator can afford, so it stays the number the game will gate against,
 /// reaching a ground centre at once and a crewed vessel after its path home.
@@ -115,7 +115,7 @@ public class ScienceCreditEvent
 /// "Accept Contract" could show a strategy as available when the game's
 /// already-dropped reputation has made it unavailable, and the action would
 /// then fail against ground truth the operator had no way to see coming. So
-/// <c>career.status.economy.reputation</c> is held at the home command, where
+/// <c>career.status.balances.reputation</c> is held at the home command, where
 /// the gate is decided, and this event does not change it: it is the number the
 /// game will gate against. This event carries only a delta with no absolute
 /// total, so it can never be substituted for the gating value; do not place it

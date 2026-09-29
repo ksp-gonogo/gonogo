@@ -70,7 +70,7 @@ function careerStatusFrom(
   science: number,
 ): Record<string, unknown> {
   return {
-    economy: { funds: 0, reputation: 0, science },
+    balances: { funds: 0, reputation: 0, science },
     facilities: null,
     contracts: null,
     strategies: null,

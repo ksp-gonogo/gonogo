@@ -70,7 +70,7 @@ describe("SpaceCenterStatusComponent", () => {
         },
       });
       stream.emit("career.status", {
-        economy: { funds: null, reputation: null, science: null },
+        balances: { funds: null, reputation: null, science: null },
         contracts: null,
         strategies: null,
         tech: null,
@@ -123,7 +123,7 @@ describe("SpaceCenterStatusComponent", () => {
         },
       });
       stream.emit("career.status", {
-        economy: { funds: 200_000, reputation: null, science: null },
+        balances: { funds: 200_000, reputation: null, science: null },
         contracts: null,
         strategies: null,
         tech: null,
@@ -169,7 +169,7 @@ describe("SpaceCenterStatusComponent", () => {
         },
       });
       stream.emit("career.status", {
-        economy: { funds: 200_000, reputation: null, science: null },
+        balances: { funds: 200_000, reputation: null, science: null },
         contracts: null,
         strategies: null,
         tech: null,
@@ -196,7 +196,7 @@ describe("SpaceCenterStatusComponent", () => {
         },
       });
       stream.emit("career.status", {
-        economy: { funds: 1_000, reputation: null, science: null },
+        balances: { funds: 1_000, reputation: null, science: null },
         contracts: null,
         strategies: null,
         tech: null,

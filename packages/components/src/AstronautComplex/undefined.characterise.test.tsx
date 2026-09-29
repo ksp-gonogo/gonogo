@@ -95,7 +95,7 @@ describe("AstronautComplex, what undefined telemetry renders today", () => {
     // Both branches render the same funds `Stat`, so the assertion is on its spoken quantity.
     renderWidget();
     act(() => {
-      fixture.emit("career.status", { economy: { funds: 500000 } });
+      fixture.emit("career.status", { balances: { funds: 500000 } });
     });
 
     await waitFor(() =>

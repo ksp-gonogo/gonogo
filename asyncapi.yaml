@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 20.1.0
+  version: 21.0.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 81 telemetry
     channels a client subscribes to, and 61 commands it dispatches, with the payload
@@ -505,7 +505,7 @@ channels:
       Carries a `CareerStatus`.
 
       The `career.status` channel payload: the KSC and career-mode snapshot, in
-      four groups (economy, contracts, strategies, tech). The space centre's
+      four groups (balances, contracts, strategies, tech). The space centre's
       buildings are NOT here: they ride `CareerFacilities`, which can be held on
       its own while this channel keeps arriving.
 
@@ -9163,6 +9163,36 @@ components:
           allOf:
             - $ref: "#/components/schemas/PropagationCertification"
               x-sitrep-unit: enum
+    CareerBalances:
+      type: object
+      description: |-
+        Balances sub-group of `CareerStatus`: the funds, reputation and science
+        balances, each `null` when unreadable.
+      properties:
+        funds:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: funds
+          description: |-
+            The career's funds balance, KSP's `Funding.Funds`. `null` when the funding
+            module is not loaded.
+        reputation:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: rep
+          description: |-
+            The career's reputation, KSP's `Reputation.reputation`. `null` when the
+            reputation module is not loaded.
+        science:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: science
+          description: |-
+            The career's science balance, KSP's `ResearchAndDevelopment.Science`. `null`
+            when the R&D module is not loaded.
     CareerContract:
       type: object
       description: |-
@@ -9351,123 +9381,6 @@ components:
             withdrawn contracts are not included. Same `CareerContract` element shape as
             `CareerContracts.active` / `CareerContracts.offered`: no extra fields;
             `State` is always `"Completed"` here.
-    CareerEconomy:
-      type: object
-      description: |-
-        Economy sub-group of `CareerStatus`: the funds, reputation and science
-        balances, each `null` when unreadable, plus what the elected money model
-        says reputation is worth.
-      properties:
-        funds:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: funds
-          description: |-
-            The career's funds balance, KSP's `Funding.Funds`. `null` when the funding
-            module is not loaded.
-        reputation:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: rep
-          description: |-
-            The career's reputation, KSP's `Reputation.reputation`, unchanged by any
-            money model. Under a career overhaul it is the most consequential number in
-            the save (it IS the income); the fields below say what it is worth. `null`
-            when the reputation module is not loaded.
-        science:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: science
-          description: |-
-            The career's science balance, KSP's `ResearchAndDevelopment.Science`. `null`
-            when the R&D module is not loaded.
-        economyModel:
-          type:
-            - string
-            - "null"
-          x-sitrep-unit: id
-          description: |-
-            Which money model produced the fields below, e.g. `"stock"`. Provenance
-            only: a client reads the interpretation, never branches on who produced it.
-        reputationDecayPerDay:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: rep/day
-          description: |-
-            Reputation lost per day at the current reputation. Zero on stock, which
-            genuinely has no decay, and that zero is a statement rather than a
-            placeholder.
-        subsidyPerDay:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: f/day
-          description: Funding the current reputation earns, per day. Zero on stock.
-        subsidyMinPerDay:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: f/day
-          description: "The subsidy at zero reputation: the floor nothing takes away."
-        subsidyMaxPerDay:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: f/day
-          description: |-
-            The subsidy reputation cannot beat. With the minimum it says how much of the
-            range the current reputation has bought, which is what turns a bare
-            reputation number into something an operator can act on.
-        upkeepPerDay:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: f/day
-          description: |-
-            Total ongoing cost per day. This is why `CareerEconomy.funds` is the right
-            balance and the wrong affordability test under an overhaul: a balance that
-            covers a purchase today may not cover it plus next month's salaries.
-        upkeep:
-          description: |-
-            Where the upkeep goes: the parts `CareerEconomy.upkeepPerDay` is made of,
-            and they sum to it. ABSENT on stock, which has no per-source model at all:
-            seven zeros would claim stock levies seven kinds of nothing, where the truth
-            is that it levies none of them.
-
-            Also absent when the model can state its costs but cannot price them, in
-            which case `CareerEconomy.upkeepBeforeModifiers` stands alone. A set that
-            did not add up to the total beside it would be worse than no set: a reader
-            has no way to tell which of the two lied.
-          anyOf:
-            - $ref: "#/components/schemas/CareerUpkeep"
-            - type: "null"
-        upkeepBeforeModifiers:
-          description: |-
-            The same sources, priced BEFORE whatever the model does to them at
-            transaction time: leaders, strategies, standing discounts. ABSENT when the
-            model applies nothing, so the difference between this and
-            `CareerEconomy.upkeep` is what the career's current arrangements are worth.
-          anyOf:
-            - $ref: "#/components/schemas/CareerUpkeep"
-            - type: "null"
-        unlockCredit:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: funds
-          description: |-
-            A prepaid allowance the elected money model spends BEFORE
-            `CareerEconomy.funds` on the purchases it covers. In funds, because that is
-            what it discounts. ABSENT on stock, which has no such pool.
-
-            The second reason `CareerEconomy.funds` alone is not an affordability test:
-            where this exists, part of a price is already paid. It is a BALANCE and not
-            a per-purchase figure, so a surface that offers such a purchase shows this
-            and the funds balance together rather than deriving the split itself.
     CareerFacilities:
       type: object
       description: |-
@@ -9570,7 +9483,7 @@ components:
       type: object
       description: |-
         The `career.status` channel payload: the KSC and career-mode snapshot, in
-        four groups (economy, contracts, strategies, tech). The space centre's
+        four groups (balances, contracts, strategies, tech). The space centre's
         buildings are NOT here: they ride `CareerFacilities`, which can be held on
         its own while this channel keeps arriving.
 
@@ -9589,13 +9502,12 @@ components:
       required:
         - meta
       properties:
-        economy:
+        balances:
           description: |-
-            The career's balances (funds, reputation, science) and what the elected
-            money model says they are worth. `null` when none of the three balances
-            could be read this tick.
+            The career's balances (funds, reputation, science). `null` when none of the
+            three could be read this tick.
           anyOf:
-            - $ref: "#/components/schemas/CareerEconomy"
+            - $ref: "#/components/schemas/CareerBalances"
             - type: "null"
         contracts:
           description: |-
@@ -9945,57 +9857,6 @@ components:
             The tech ids of the node's prerequisites, from the tree's parent edges.
             Empty for a root node. Whether a locked node is researchable is left to the
             client, from these edges and each parent's `CareerTechNode.unlocked`.
-    CareerUpkeep:
-      type: object
-      description: |-
-        Ongoing cost by source, per day, from the elected economy model. Every
-        member is absent when that model does not have the concept, never zero: an
-        unmodelled source and a source costing nothing are different facts.
-      properties:
-        facilities:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: f/day
-          description: "Buildings: the standing cost of having a space centre at all."
-        launchComplexes:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: f/day
-          description: |-
-            Launch complexes and their pads, which cost whether or not anything is
-            building.
-        researchSalary:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: f/day
-          description: Researcher salaries, which an idle research queue does not stop.
-        training:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: f/day
-          description: Crew training in progress.
-        crewBase:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: f/day
-          description: "Standing crew costs: everyone on the roster, flying or not."
-        crewInFlight:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: f/day
-          description: The extra a crew in flight costs over a crew on the ground.
-        integrationSalary:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: f/day
-          description: Engineer salaries on the integration teams.
     CentreDelayEntry:
       type: object
       description: |-

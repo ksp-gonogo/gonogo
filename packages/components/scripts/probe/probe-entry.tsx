@@ -108,7 +108,7 @@ export interface StreamFixtureBlock {
    * token used to be, the caption naming the state. A field reading and a
    * minted `Value` of the same magnitude draw identical pixels, so a stale
    * scene rendered live is byte-identical to its live twin and shows nothing
-   * (measured on CareerEconomy before this existed: the same md5 for both).
+   * (measured on a career widget before this existed: the same md5 for both).
    *
    * The DROP is the lever rather than a clock advance because it is the one the
    * widgets' own stale tests use (`store.setTransportConnected(false)`), so a

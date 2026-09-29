@@ -69,7 +69,7 @@ function renderObjectives() {
 function emitContracts(fixture: StreamFixture, active: unknown[]) {
   act(() => {
     fixture.emit("career.status", {
-      economy: null,
+      balances: null,
       facilities: null,
       contracts: { active, offered: [] },
       strategies: null,

@@ -253,7 +253,7 @@ function emitCareer(
   all: unknown[],
 ) {
   stream.emit("career.status", {
-    economy: { funds: 100000, reputation: 500, science: 200 },
+    balances: { funds: 100000, reputation: 500, science: 200 },
     facilities: null,
     contracts: null,
     strategies: {
