@@ -14,14 +14,14 @@ const meta = {
     ),
     withGonogoFrame,
   ],
-  args: { status: "held-stale" },
+  args: { status: "held" },
 } satisfies Meta<typeof StreamStatusBadge>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
 const DEGRADED: StreamStatusValue[] = [
-  "held-stale",
+  "held",
   "last-before-blackout",
   "recorded",
   "disconnected",

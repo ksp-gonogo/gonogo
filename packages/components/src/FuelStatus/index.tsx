@@ -35,7 +35,7 @@ function useFuelEssentials({
   const mode: DeltaVMode = config?.deltaVMode ?? "actual";
   const budgetReading = useProcessor(DELTA_V_BUDGET);
   const budget =
-    budgetReading?.state === "observed" || budgetReading?.state === "stale"
+    budgetReading?.state === "observed" || budgetReading?.state === "held"
       ? budgetReading.value
       : undefined;
   const dated = <UnitSymbol extends string>(

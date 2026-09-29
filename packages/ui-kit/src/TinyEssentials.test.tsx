@@ -17,11 +17,11 @@ import {
 } from "./TinyEssentials";
 
 const held: Reading<Value<"m">> = {
-  state: "stale",
+  state: "held",
   reckoning: { status: "none" },
   value: value("m", 1200),
   asOfUt: value("ut", 100),
-  grade: "held-stale",
+  grade: "held",
 };
 
 const ESSENTIALS: readonly TinyEssential[] = [

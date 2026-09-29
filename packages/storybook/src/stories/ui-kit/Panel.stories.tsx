@@ -174,7 +174,7 @@ export const Narrow: Story = {
 export const StreamHeld: Story = {
   args: {
     panelTitle: "Kerbal X",
-    panelStatus: "held-stale",
+    panelStatus: "held",
     sections: (
       <Section title="Flight">
         <StatStrip>
