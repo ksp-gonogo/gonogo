@@ -20,6 +20,7 @@ import { facilityLevelsFrom } from "./facilities";
 import { STOCK_FACILITY_CONTRIBUTION_ID } from "./facilitiesContribution";
 import "./slots";
 import { SpaceCenterStatusView } from "./SpaceCenterStatusView";
+import { useSpaceCenterEssentials } from "./useSpaceCenterEssentials";
 
 const topics = defineTopicManifest({
   channels: [
@@ -103,7 +104,6 @@ function SpaceCenterStatusComponent({
       heldFunds={heldFunds}
       fundsReading={fundsReading}
       chargesFunds={chargesFunds}
-      padOccupied={padOccupied}
       padLine={padLine}
       tiersHeldSince={tiersHeldSince}
       facilities={facilities}
@@ -135,8 +135,15 @@ registerComponent<SpaceCenterStatusConfig>({
     "KSC overview: facility levels (VAB, SPH, R&D, ...), launch-pad state, and arm-then-confirm upgrade buttons per facility.",
   tags: ["career", "kc"],
   defaultSize: { w: 6, h: 7 },
-  minSize: { w: 2, h: 3 },
+  // A real balance does not fit two columns, and the pad word needs a fourth row under it.
+  minSize: { w: 3, h: 4 },
   component: SpaceCenterStatusComponent,
+  tiny: {
+    title: "KSC",
+    // At four rows the facility grid's empty state sits under the scroll edge's fade.
+    bodyMinSize: { w: 5, h: 5 },
+    useEssentials: useSpaceCenterEssentials,
+  },
   channels: topics.channels,
   fields: topics.fields,
   defaultConfig: {},

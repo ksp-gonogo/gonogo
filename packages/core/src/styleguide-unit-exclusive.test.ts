@@ -119,10 +119,6 @@ const LOCAL_FORMATTER_DEBT: Record<string, { count: number; why: string }> = {
     count: 1,
     why: "unit renderer: a k ladder over resource units",
   },
-  "packages/components/src/SpaceCenterStatus/SpaceCenterStatusTiny.tsx": {
-    count: 1,
-    why: "unit renderer: a k/M funds ladder",
-  },
   "packages/core/src/utils/format.ts": {
     count: 4,
     why: "two already delegate to writeQuantity; formatCompactNumber and formatCompactCurrency are still k/M ladders",

@@ -185,7 +185,6 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/components/src/PowerSystems/styles.ts": 1,
     "packages/components/src/SemiMajorAxis/index.tsx": 1,
     "packages/components/src/shared/OrbitalEventChips.tsx": 2,
-    "packages/components/src/SpaceCenterStatus/styles.ts": 3,
     "packages/components/src/StationConnectView/StationConnectView.styles.ts": 7,
     "packages/components/src/SystemView/index.tsx": 1,
     "packages/components/src/TechTree/styles.ts": 3,

@@ -354,9 +354,9 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "SpaceCenterStatus/__fixtures__",
     outPath: "renders/space-center-status-widget",
     modes: [
-      // Tiny mode (sizeBucket="tiny"): funds + PAD ACTIVE/CLEAR pill only.
-      { name: "tiny-2x3", w: 2, h: 3 },
-      // Compact: facility grid in 2-col (cols<5), no full-text tier bodies.
+      // minSize: the kit's tiny form, the balance over the pad word.
+      { name: "tiny-3x4", w: 3, h: 4 },
+      // Four columns is still the tiny form, however tall: the facility grid needs five.
       { name: "compact-4x7", w: 4, h: 7 },
       // Default registered size: 3-col facility grid, subtitle with funds.
       { name: "default-6x7", w: 6, h: 7 },

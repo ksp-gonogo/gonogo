@@ -2,7 +2,6 @@ import {
   AutoEmptyState,
   type CommandButtonHandle,
   EmptyState,
-  getSizeBucket,
   Panel,
   Section,
   Unit,
@@ -11,7 +10,6 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { FacilityGridItem, type HeldSince } from "./FacilityCell";
 import { FACILITIES, type FacilityLevels } from "./facilities";
-import { SpaceCenterStatusTiny } from "./SpaceCenterStatusTiny";
 import {
   AbsenceLine,
   Body,
@@ -27,7 +25,6 @@ export interface SpaceCenterStatusViewProps {
   heldFunds: boolean;
   fundsReading: UnitValue<"funds">;
   chargesFunds: boolean;
-  padOccupied: boolean | null | undefined;
   padLine: string;
   tiersHeldSince: HeldSince;
   facilities: FacilityLevels;
@@ -42,7 +39,6 @@ export function SpaceCenterStatusView({
   heldFunds,
   fundsReading,
   chargesFunds,
-  padOccupied,
   padLine,
   tiersHeldSince,
   facilities,
@@ -56,7 +52,6 @@ export function SpaceCenterStatusView({
   const compactGrid = cols < 6;
   // Below 9 columns the tier lists do not fit a cell; the descriptions stay in the hover tooltip.
   const tierSpecsFit = cols >= 9;
-  const sizeBucket = getSizeBucket(w, h);
   // A producer emits tier text for every facility or for none, so the whole-grid silence is stated once.
   const anyTierText = FACILITIES.some(({ key }) => {
     const f = facilities[key];
@@ -66,18 +61,6 @@ export function SpaceCenterStatusView({
   const answeredFacilities = FACILITIES.filter(
     ({ key }) => facilities[key] !== undefined,
   );
-
-  if (sizeBucket === "tiny") {
-    return (
-      <SpaceCenterStatusTiny
-        careerFunds={careerFunds}
-        heldFunds={heldFunds}
-        fundsReading={fundsReading}
-        padOccupied={padOccupied}
-        padLine={padLine}
-      />
-    );
-  }
 
   return (
     <Panel

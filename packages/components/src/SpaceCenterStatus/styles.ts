@@ -26,32 +26,6 @@ export const FundsReadout = styled.span`
   margin-left: var(--gap-lead-figure);
 `;
 
-export const TinyFunds = styled.div`
-  /* Fluid, so off the type scale: the compact value must still fit the 2x3 minimum size. */
-  font-size: clamp(12px, 13cqw, 22px);
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  color: var(--color-go-text);
-  line-height: var(--line-height-flush);
-  max-width: 100%;
-  white-space: nowrap;
-`;
-
-export const TinyFundsUnit = styled.span`
-  /* Off the type scale: the suffix must not out-size the balance, which is pinned at 12px at the minimum size. */
-  font-size: 12px;
-  color: var(--color-text-muted);
-  margin-left: var(--gap-unit-suffix);
-`;
-
-export const TinyPad = styled.span<{ $occupied: boolean }>`
-  font-size: var(--font-size-caption);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: ${(p) =>
-    p.$occupied ? "var(--color-accent-fg)" : "var(--color-text-faint)"};
-`;
-
 export const FacilityGrid = styled.div<{ $compact: boolean }>`
   display: grid;
   grid-template-columns: ${(p) =>

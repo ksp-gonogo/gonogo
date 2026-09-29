@@ -53,40 +53,6 @@ describe("SpaceCenterStatus: genuinely runs off the stream", () => {
     await waitFor(() => expect(visibleText()).toContain("· 78,401f"));
   });
 
-  it("renders the tiny-bucket funds readout from the same stream key", async () => {
-    const fixture = setupStreamFixture({
-      pinnedUt: 10,
-      suspendFrames: true,
-    });
-
-    const { unmount } = render(
-      <fixture.Provider>
-        <DashboardItemContext.Provider value={{ instanceId: "scs-tiny" }}>
-          <ContributionHost
-            componentId="space-center-status"
-            contributionSlots={["space-center-status.facilities"]}
-          >
-            <SpaceCenterStatusComponent id="scs-tiny" w={2} h={3} />
-          </ContributionHost>
-        </DashboardItemContext.Provider>
-      </fixture.Provider>,
-    );
-    renderedTrees.push(unmount);
-
-    act(() => {
-      fixture.emit("career.status", {
-        balances: { funds: 78400.5, reputation: 200, science: 100 },
-        facilities: null,
-        contracts: null,
-        strategies: null,
-        tech: null,
-      });
-    });
-
-    // The title is `speakQuantity`: the unit spelled out as a word, with grouping.
-    await waitFor(() => expect(screen.getByTitle("78,401 funds")).toBeTruthy());
-  });
-
   it("renders facility tiers/upgrade costs derived from career.facilities", async () => {
     const fixture = setupStreamFixture({
       pinnedUt: 10,

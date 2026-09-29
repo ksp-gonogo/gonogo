@@ -1,7 +1,5 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
-import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
-import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { ContributionHost } from "../test/contributionHost";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -233,24 +231,5 @@ describe("SpaceCenterStatus: what undefined telemetry renders today", () => {
     expect(screen.queryAllByRole("button", { name: "Upgrade" })).toHaveLength(
       0,
     );
-  });
-
-  /** In the tiny bucket, nothing arrived must not read as PAD CLEAR. */
-  it("reports the pad state as unknown in the tiny bucket when nothing has arrived", async () => {
-    const fixture = setupStreamFixture({
-      pinnedUt: 10,
-      suspendFrames: true,
-    });
-    mount(fixture, "scs-tiny-cold", 2, 3);
-
-    await waitFor(() =>
-      expect(screen.getByLabelText("Pad state unknown").textContent).toBe(
-        "PAD UNKNOWN",
-      ),
-    );
-    expect(screen.queryByLabelText("No vehicle on pad")).toBeNull();
-    // Funds is the one read the tiny bucket DOES admit ignorance about.
-    expect(visibleText()).toContain(NULL_DISPLAY);
-    expect(screen.queryByTitle(/funds/)).toBeNull();
   });
 });

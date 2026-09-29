@@ -1,6 +1,5 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
-import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { ContributionHost } from "../test/contributionHost";
@@ -218,36 +217,5 @@ describe("SpaceCenterStatus when career telemetry is held", () => {
     await waitFor(() => expect(screen.getByText("SPACE CENTER")).toBeTruthy());
     expect(container.querySelector("[data-held]")).toBeNull();
     expect(visibleText(container)).toContain("funds unknown");
-  });
-
-  it("marks the tiny bucket's held balance rather than blanking it", async () => {
-    const fixture = setupStreamFixture({
-      pinnedUt: 10,
-      suspendFrames: true,
-    });
-    const container = mount(fixture, "scs-stale-tiny", 2, 3);
-    emitCareer(fixture);
-    await waitFor(() =>
-      expect(visibleText(container)).not.toContain(NULL_DISPLAY),
-    );
-    expect(container.querySelector("[data-held]")).toBeNull();
-
-    goStale(fixture);
-
-    await waitFor(() =>
-      expect(container.querySelector("[data-held]")).not.toBeNull(),
-    );
-    expect(visibleText(container)).not.toContain(NULL_DISPLAY);
-  });
-
-  it("leaves a cold tiny bucket unmarked, so a held balance is distinguishable there too", async () => {
-    const fixture = setupStreamFixture({
-      pinnedUt: 10,
-      suspendFrames: true,
-    });
-    const container = mount(fixture, "scs-stale-tiny-cold", 2, 3);
-
-    await waitFor(() => expect(visibleText(container)).toContain(NULL_DISPLAY));
-    expect(container.querySelector("[data-held]")).toBeNull();
   });
 });
