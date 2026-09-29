@@ -758,13 +758,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "mod/sitrep-sdk/src/comms-degrade.ts",
       /*
-       * The install-profile harness names RealAntennas as a roster entry, because
-       * an Uplink that is installed while the mod it wraps is not is what gives
-       * `RequiresGuard` a named empty state to show. A wire value off
-       * `system.uplinks`; see the matching entries under `testflight`.
-       */
-      "packages/components/src/FleetReliability/install-profiles.test.tsx",
-      /*
        * -- Uplink ISOLATION ratchet inventory: the inward guard's
        * debt list is keyed by file path, so it necessarily names every Uplink
        * directory. Ratchet-inventory file, the case this bucket documents.
@@ -1605,7 +1598,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/components/src/test/installProfile.ts",
       "packages/components/src/test/installProfile.test.ts",
       "packages/components/src/FleetReliability/install-profiles.test.tsx",
-      "packages/components/src/LaunchDirector/install-profiles.test.tsx",
       /*
        * The coverage-state distinctness matrix hands the augment a
        * `reliability.summary.source` per case, and the vendor strings are the
@@ -1793,7 +1785,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "mod/Sitrep.Core.Tests/UplinkContractOwnershipTests.cs",
     "mod/Sitrep.Host.Tests/CommsElectionTests.cs",
     "mod/sitrep-kernel/src/registry.test.ts",
-    "packages/components/src/FleetReliability/install-profiles.test.tsx",
     "packages/core/src/uplink-isolation.allowlist.ts",
   ],
   agx: [],
@@ -1883,7 +1874,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/components/src/FleetReliability/install-profiles.test.tsx",
     "packages/components/src/FleetReliability/stale.test.tsx",
     "packages/components/src/FleetReliability/undefined.characterise.test.tsx",
-    "packages/components/src/LaunchDirector/install-profiles.test.tsx",
     "packages/components/src/test/installProfile.test.ts",
     "packages/components/src/test/installProfile.ts",
   ],

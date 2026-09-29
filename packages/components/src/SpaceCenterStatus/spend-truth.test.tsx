@@ -8,15 +8,15 @@ import { SpaceCenterStatusComponent } from "./index";
 /**
  * What the upgrade control may claim about the operator's money. The gate has
  * the last word on whether the control is a purchase at all, and a money
- * verdict is drawn only where money is what decides. Under RP-1 the command is
- * blocked and a tier builds progressively, so "cannot afford" would be false.
+ * verdict is drawn only where money is what decides. Under a career mod that
+ * blocks the command and builds a tier progressively, "cannot afford" would be
+ * false.
  */
 
-/** RP-1's own sentence, as `Rp1CareerProjectGate.FacilityDetail` writes it. */
-const RP1_DETAIL =
-  "RP-1 builds a facility upgrade as a construction project with its own cost " +
-  "and duration, so it has to be queued rather than bought outright. Use " +
-  "rp1.facility.upgrade";
+/** A planted career mod's refusal, naming the command of its own that replaces this one. */
+const PLANTED_DETAIL =
+  "This career builds a facility upgrade as a project of its own, so it has " +
+  "to be queued rather than bought outright. Use planted.facility.upgrade";
 
 const renderedTrees: Array<() => void> = [];
 
@@ -82,7 +82,7 @@ function blockFacilityUpgrade(
             // GateOutcome.Fail / CommandErrorCode.ModeUnavailable.
             outcome: 1,
             errorCode: "modeUnavailable",
-            detail: RP1_DETAIL,
+            detail: PLANTED_DETAIL,
           },
         },
       ],
@@ -127,7 +127,7 @@ describe("SpaceCenterStatus: what the upgrade control claims about money", () =>
     ).toBe("yes");
   });
 
-  /** RP-1 has blocked the command, so the balance decides nothing. */
+  /** The career mod has blocked the command, so the balance decides nothing. */
   it("draws no shortfall over a price the blocked command is not charging", async () => {
     const fixture = setupStreamFixture({
       pinnedUt: 10,
@@ -154,14 +154,14 @@ describe("SpaceCenterStatus: what the upgrade control claims about money", () =>
     blockFacilityUpgrade(fixture);
 
     const button = await screen.findByRole("button", {
-      name: /rp1\.facility\.upgrade/,
+      name: /planted\.facility\.upgrade/,
     });
     // aria-disabled, not disabled, so a screen reader still finds it and a press surfaces the reason.
     expect(button.getAttribute("aria-disabled")).toBe("true");
     expect((button as HTMLButtonElement).disabled).toBe(false);
   });
 
-  /** An affordable tier is the one the operator would press, and under RP-1 the press cannot land. */
+  /** An affordable tier is the one the operator would press, and under a blocking career mod the press cannot land. */
   it("does not offer an affordable tier as a live purchase the game will refuse", async () => {
     const fixture = setupStreamFixture({
       pinnedUt: 10,
@@ -171,7 +171,7 @@ describe("SpaceCenterStatus: what the upgrade control claims about money", () =>
     blockFacilityUpgrade(fixture);
 
     const button = await screen.findByRole("button", {
-      name: /rp1\.facility\.upgrade/,
+      name: /planted\.facility\.upgrade/,
     });
     expect(button.getAttribute("aria-disabled")).toBe("true");
   });

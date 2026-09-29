@@ -10,7 +10,7 @@ import {
 import { TechTreeComponent } from "./index";
 
 /**
- * What the Unlock control may claim about a spend: a price that never arrived is not free, and a command the career model refuses outright (RP-1 researches through its own queue) is not a purchase the balance decides.
+ * What the Unlock control may claim about a spend: a price that never arrived is not free, and a command the career model refuses outright (one that researches through a queue of its own) is not a purchase the balance decides.
  */
 
 function careerStatus(
@@ -105,7 +105,7 @@ describe("TechTree spend truth", () => {
             verdict: {
               outcome: 1,
               errorCode: "modeUnavailable",
-              detail: "Use rp1.tech.research",
+              detail: "Use planted.tech.research",
             },
           },
         ],
@@ -117,6 +117,6 @@ describe("TechTree spend truth", () => {
     // No affordability verdict on the row either: the grey and the red cost claim the balance decides.
     expect(document.querySelector("[data-afford]")).toBeNull();
     // It says the career model's own reason instead.
-    expect(unlock).toHaveAccessibleName(/rp1\.tech\.research/);
+    expect(unlock).toHaveAccessibleName(/planted\.tech\.research/);
   });
 });

@@ -12,14 +12,14 @@ const SCENE: InstallProfileStreamBlock = {
   emits: [
     { channel: "reliability.summary", value: { source: "scene" } },
     { channel: "reliability.parts", value: [{ partId: "p1" }] },
-    { channel: "rp1.available", value: {} },
+    { channel: "kerbalism.available", value: {} },
   ],
 };
 
 describe("applying an install profile to a scene", () => {
   it("puts the roster on the wire first, so ownership resolves before any read", () => {
     const block = applyInstallProfile(
-      getInstallProfile("rp1-testflight"),
+      getInstallProfile("testflight-elected"),
       SCENE,
     );
     expect(block.emits[0]?.channel).toBe("system.uplinks");
@@ -30,7 +30,7 @@ describe("applying an install profile to a scene", () => {
 
   it("replaces a scene's payload rather than racing it", () => {
     const block = applyInstallProfile(
-      getInstallProfile("rp1-testflight"),
+      getInstallProfile("testflight-elected"),
       SCENE,
     );
     const summaries = block.emits.filter(
@@ -46,7 +46,9 @@ describe("applying an install profile to a scene", () => {
 
   it("takes an absent Uplink's channels off the wire entirely", () => {
     const block = applyInstallProfile(getInstallProfile("stock-career"), SCENE);
-    expect(block.emits.some((e) => e.channel === "rp1.available")).toBe(false);
+    expect(block.emits.some((e) => e.channel === "kerbalism.available")).toBe(
+      false,
+    );
   });
 
   it("leaves the scene it was handed untouched", () => {
@@ -70,10 +72,10 @@ describe("the declared profiles", () => {
 
   it("serialises health state as the mod's own integer ordinal", () => {
     const stock = systemUplinksPayload(getInstallProfile("stock-career"));
-    const rp1 = stock.uplinks.find((entry) => entry.id === "rp1");
-    expect(rp1).toMatchObject({
+    const kerbalism = stock.uplinks.find((entry) => entry.id === "kerbalism");
+    expect(kerbalism).toMatchObject({
       available: false,
-      health: { state: 2, detail: "RP-1 assembly not loaded" },
+      health: { state: 2, detail: "Kerbalism assembly not loaded" },
     });
     const reliability = stock.uplinks.find(
       (entry) => entry.id === "reliability",
@@ -82,12 +84,12 @@ describe("the declared profiles", () => {
   });
 
   it("says which provider won each election it speaks about", () => {
-    expect(getInstallProfile("rp1-testflight").elections.reliability).toBe(
+    expect(getInstallProfile("testflight-elected").elections.reliability).toBe(
       "testflight",
     );
-    expect(getInstallProfile("rp1-no-testflight").elections.reliability).toBe(
-      "kerbalism",
-    );
+    expect(
+      getInstallProfile("kerbalism-elected-off").elections.reliability,
+    ).toBe("kerbalism");
     expect(getInstallProfile("stock-career").elections.reliability).toBe(
       "none",
     );

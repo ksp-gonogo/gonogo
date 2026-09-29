@@ -1,13 +1,13 @@
 {
   "_meta": {
     "scenario": "A two-craft fleet whose active craft has a busted reaction wheel, an antenna overdue for service, an RD-180 well into its continuous burn rating, and an AJ10 upper stage three ignitions into a rated four.",
-    "notes": "Rendered under four declared installs. Only the install changes: the fleet, the active craft and its parts are the same in all four, so any difference in what the roster row shows is the reliability election and nothing else. The part list is the TestFlight shape (it survives under rp1-testflight); the Kerbalism-live profile substitutes its own, because Kerbalism models conditions and a service clock and no probability at all, and a scene that gave it a survival figure would be inventing one. The AJ10's ignition budget is the only one in the tree carrying the COUNT pair rather than the seconds pair, and the only `hard-limit`: `budgetRow` writes the same three sentences either way and until this part existed nobody had seen the count half of them, or the wording a hard limit gets."
+    "notes": "Rendered under four declared installs. Only the install changes: the fleet, the active craft and its parts are the same in all four, so any difference in what the roster row shows is the reliability election and nothing else. The part list is the TestFlight shape (it survives under testflight-elected); the kerbalism-elected profile substitutes its own, because Kerbalism models conditions and a service clock and no probability at all, and a scene that gave it a survival figure would be inventing one. The AJ10's ignition budget is the only one in the tree carrying the COUNT pair rather than the seconds pair, and the only `hard-limit`: `budgetRow` writes the same three sentences either way and until this part existed nobody had seen the count half of them, or the wording a hard limit gets."
   },
   "_stream": {
     "profiles": [
-      "rp1-testflight",
-      "rp1-kerbalism-live",
-      "rp1-no-testflight",
+      "testflight-elected",
+      "kerbalism-elected",
+      "kerbalism-elected-off",
       "stock-career",
       "reliability-unavailable",
       "testflight-unreadable"

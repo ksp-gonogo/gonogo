@@ -743,15 +743,15 @@ describe("SCET alarms", () => {
     /* What a contributed warp-stop button does: send `alarm.scet.arm` itself.
        The Uplink has no way into this client's alarm list, which lives in the
        app and is not on any published surface. */
-    session.armForeign("rp1-fund-target");
-    expect(session.armed()).toEqual(["rp1-fund-target"]);
+    session.armForeign("planted-fund-target");
+    expect(session.armed()).toEqual(["planted-fund-target"]);
 
     await run(session, UT_START + 4 * DT);
 
     try {
       /* Missing from this client's list says only that this client does not
          know it. Any screen may still disarm it deliberately. */
-      expect(session.armed()).toEqual(["rp1-fund-target"]);
+      expect(session.armed()).toEqual(["planted-fund-target"]);
       expect(session.commands).not.toContain("alarm.scet.disarm");
     } finally {
       svc.dispose();
@@ -768,12 +768,12 @@ describe("SCET alarms", () => {
       getOwltSeconds: () => OWLT,
     });
     try {
-      session.armForeign("rp1-fund-target");
+      session.armForeign("planted-fund-target");
       await run(session, UT_START + 4 * DT);
       expect(svc.snapshot().scetForeign).toEqual([
         {
-          id: "rp1-fund-target",
-          name: "rp1-fund-target",
+          id: "planted-fund-target",
+          name: "planted-fund-target",
           armedBy: HOME,
           state: "armed",
           condition: {
@@ -786,7 +786,7 @@ describe("SCET alarms", () => {
         },
       ]);
 
-      svc.deleteAlarm("rp1-fund-target");
+      svc.deleteAlarm("planted-fund-target");
       for (let ut = UT_START + 5 * DT; ut <= UT_START + 8 * DT; ut += DT) {
         session.emitAt(ut);
         nowMs += DT * 1000;
@@ -902,8 +902,8 @@ describe("SCET alarms", () => {
       name: "Launch pad upgrade complete",
       trigger: { kind: "time", ut: 90_000, leadSeconds: 10 },
       requestedBy: {
-        uplinkId: "rp1",
-        uplinkName: "RP-1",
+        uplinkId: "planted",
+        uplinkName: "Planted",
         key: "facility-upgrade:LaunchPad",
       },
     });
@@ -913,7 +913,7 @@ describe("SCET alarms", () => {
     // Many frames later, with the reconcile having run on every one of them.
     await run(session, UT_START + 12 * DT);
     expect(session.armed()).toEqual([alarm.id]);
-    expect(svc.snapshot().alarms[0].requestedBy?.uplinkName).toBe("RP-1");
+    expect(svc.snapshot().alarms[0].requestedBy?.uplinkName).toBe("Planted");
     svc.dispose();
   });
 
@@ -2021,13 +2021,13 @@ describe("SCET alarms", () => {
     });
 
     /**
-     * RP-1's fund target, as `useAlarmRequest` hands it on. Career bookkeeping
+     * An Uplink's fund target, as `useAlarmRequest` hands it on. Career bookkeeping
      * reaches a command centre without a light-time, so the alarm is armed at
      * the centre this screen commands from, and the mod stops the warp on the
      * tick that centre learns the balance. Nothing is sent from here: a warp
      * command would be a round trip arriving after the stop.
      */
-    it("arms RP-1's fund target at the active command centre, and stops the warp there", async () => {
+    it("arms an Uplink's fund target at the active command centre, and stops the warp there", async () => {
       const ACTIVE_CENTRE = "ground:Tracking Station North";
       const session = startSession(OWLT);
       session.emitAt(UT_START);
@@ -2047,8 +2047,8 @@ describe("SCET alarms", () => {
           vantage: "command",
         },
         requestedBy: {
-          uplinkId: "rp1",
-          uplinkName: "RP-1",
+          uplinkId: "planted",
+          uplinkName: "Planted",
           key: "fund-target",
         },
       });

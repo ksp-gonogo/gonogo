@@ -1,0 +1,54 @@
+{
+  "id": "planted-space-centre",
+  "name": "A career mod with its own space centre",
+  "description": "A career install where an Uplink runs a space centre of its own: the planted Uplink owns its own pad and complex channels, and the stock launch-site read carries that centre's sites rather than the KSC's. Its channels are live, so a widget that reads none of them is shown to read none of them where they carry values, and its sites say nothing about stock pad occupancy.",
+  "uplinks": [
+    {
+      "id": "planted",
+      "available": true,
+      "ownedPrefixes": [
+        "planted.available",
+        "planted.pads",
+        "planted.complexes",
+        "planted.operations"
+      ],
+      "detail": "Planted career mod loaded."
+    }
+  ],
+  "elections": {},
+  "wire": {
+    "planted.available": {},
+    "planted.pads": [{ "id": "site-1", "name": "Site One" }],
+    "planted.complexes": [{ "id": "complex-1", "name": "Complex One" }],
+    "planted.operations": [],
+    "spaceCenter.launchSites": [
+      {
+        "name": "Planted_Site_1",
+        "displayName": "Planted Site 1",
+        "editorFacility": "VAB",
+        "bodyIndex": 3,
+        "isStock": false,
+        "padOccupied": null,
+        "padVesselTitle": null
+      },
+      {
+        "name": "Planted_Site_2",
+        "displayName": "Planted Site 2",
+        "editorFacility": "VAB",
+        "bodyIndex": 3,
+        "isStock": false,
+        "padOccupied": null,
+        "padVesselTitle": null
+      },
+      {
+        "name": "Runway",
+        "displayName": "KSC Runway",
+        "editorFacility": "SPH",
+        "bodyIndex": 3,
+        "isStock": true,
+        "padOccupied": null,
+        "padVesselTitle": null
+      }
+    ]
+  }
+}

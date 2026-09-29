@@ -12,9 +12,10 @@ import preLaunchMixed from "./__fixtures__/pre-launch-mixed.json";
 import { LaunchDirectorComponent } from "./index";
 
 /**
- * The same pre-launch scene under a stock career and under RP-1: vanilla is not
- * a degraded mode. Stock carries the pads and their occupancy, so both installs
- * render the same widget off the same reads and differ ONLY in the pads.
+ * The same pre-launch scene under a stock career and under a career mod that
+ * runs its own space centre: vanilla is not a degraded mode. Stock carries the
+ * pads and their occupancy, so both installs render the same widget off the
+ * same reads and differ ONLY in the pads.
  */
 const SCENE = preLaunchMixed._stream as InstallProfileStreamBlock;
 
@@ -71,7 +72,7 @@ function padNames(container: HTMLElement): string[] {
 describe("LaunchDirector across declared installs", () => {
   it("is declared interesting under exactly the installs asserted below", () => {
     expect(fixtureProfiles(preLaunchMixed).sort()).toEqual([
-      "rp1-testflight",
+      "planted-space-centre",
       "stock-career",
     ]);
   });
@@ -93,16 +94,16 @@ describe("LaunchDirector across declared installs", () => {
     expect(screen.getByTitle("Available funds")).toBeInTheDocument();
   });
 
-  it("renders the same widget, the same way, on the RP-1 install's own pads", async () => {
-    const { view } = await renderUnder("rp1-testflight");
+  it("renders the same widget, the same way, on a career mod's own pads", async () => {
+    const { view } = await renderUnder("planted-space-centre");
 
     // A different space centre entirely, off the same read.
     expect(padNames(view.container)).toEqual([
-      "Cape Canaveral LC-1",
-      "Cape Canaveral LC-5",
+      "Planted Site 1",
+      "Planted Site 2",
       "KSC Runway",
     ]);
-    // RP-1 pads are silent about stock occupancy, and the row says so rather than claiming clear.
+    // The mod's sites are silent about stock occupancy, and the row says so rather than claiming clear.
     expect(screen.getAllByText("Occupancy unreported")).toHaveLength(3);
     expect(screen.queryByText("Clear")).not.toBeInTheDocument();
     // Same shape, same controls, same funds rule.
@@ -111,11 +112,15 @@ describe("LaunchDirector across declared installs", () => {
     expect(screen.getByTitle("Available funds")).toBeInTheDocument();
   });
 
-  it("reads nothing off rp1.* even where those channels are live", async () => {
-    // An Uplink adds to a pad row; the widget subscribes to no `rp1.*` channel.
-    const { fixture } = await renderUnder("rp1-testflight");
+  it("reads nothing off the career mod's own channels even where they are live", async () => {
+    // An Uplink adds to a pad row; the widget subscribes to none of its channels.
+    const { fixture } = await renderUnder("planted-space-centre");
 
-    for (const channel of ["rp1.pads", "rp1.operations", "rp1.complexes"]) {
+    for (const channel of [
+      "planted.pads",
+      "planted.operations",
+      "planted.complexes",
+    ]) {
       expect(fixture.transport.isSubscribed(channel)).toBe(false);
     }
   });

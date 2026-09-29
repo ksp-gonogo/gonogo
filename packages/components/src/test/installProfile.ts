@@ -1,9 +1,10 @@
 import { HEALTH_STATE_NAMES } from "@ksp-gonogo/sitrep-sdk/spine";
+import kerbalismElected from "./__profiles__/kerbalism-elected.json";
+import kerbalismElectedOff from "./__profiles__/kerbalism-elected-off.json";
+import plantedSpaceCentre from "./__profiles__/planted-space-centre.json";
 import reliabilityUnavailable from "./__profiles__/reliability-unavailable.json";
-import rp1KerbalismLive from "./__profiles__/rp1-kerbalism-live.json";
-import rp1NoTestflight from "./__profiles__/rp1-no-testflight.json";
-import rp1Testflight from "./__profiles__/rp1-testflight.json";
 import stockCareer from "./__profiles__/stock-career.json";
+import testflightElected from "./__profiles__/testflight-elected.json";
 import testflightUnreadable from "./__profiles__/testflight-unreadable.json";
 
 /**
@@ -77,15 +78,19 @@ export function fixtureProfiles(fixture: {
 }
 
 export const INSTALL_PROFILES: Record<string, InstallProfile> = Object.freeze({
-  [(rp1Testflight as InstallProfile).id]: rp1Testflight as InstallProfile,
-  [(rp1NoTestflight as InstallProfile).id]: rp1NoTestflight as InstallProfile,
+  [(testflightElected as InstallProfile).id]:
+    testflightElected as InstallProfile,
+  [(kerbalismElectedOff as InstallProfile).id]:
+    kerbalismElectedOff as InstallProfile,
   [(stockCareer as InstallProfile).id]: stockCareer as InstallProfile,
   // States no other profile reaches: a modelling Kerbalism backend, TestFlight part conditions that cannot be read, and a provider whose factory threw.
-  [(rp1KerbalismLive as InstallProfile).id]: rp1KerbalismLive as InstallProfile,
+  [(kerbalismElected as InstallProfile).id]: kerbalismElected as InstallProfile,
   [(testflightUnreadable as InstallProfile).id]:
     testflightUnreadable as InstallProfile,
   [(reliabilityUnavailable as InstallProfile).id]:
     reliabilityUnavailable as InstallProfile,
+  [(plantedSpaceCentre as InstallProfile).id]:
+    plantedSpaceCentre as InstallProfile,
 });
 
 /** Looks a profile up by id, naming the ones that exist when it misses. */

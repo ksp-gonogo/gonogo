@@ -49,15 +49,15 @@ function Complex({ entries }: { entries: readonly StatEntry[] }) {
   );
 }
 
-const RP1_ENTRIES: readonly StatEntry[] = [
+const PLANTED_ENTRIES: readonly StatEntry[] = [
   {
-    id: "rp1.training",
+    id: "planted.training",
     label: "In training",
     text: "2 kerbals",
     detail: "Valentina done in 14d",
   },
   {
-    id: "rp1.upkeep",
+    id: "planted.upkeep",
     label: "Crew upkeep",
     value: value("f/day", 4_100),
     tone: "warn",
@@ -83,7 +83,7 @@ type Story = StoryObj<typeof meta>;
 
 /** Two contributed stats drawn as cells of the host's strip, after its own two. */
 export const IntoHostStrip: Story = {
-  render: () => <Complex entries={RP1_ENTRIES} />,
+  render: () => <Complex entries={PLANTED_ENTRIES} />,
 };
 
 /** Every figure form an entry can carry: a quantity, text, a null reading, and neither. */

@@ -1,0 +1,42 @@
+{
+  "id": "testflight-elected",
+  "name": "TestFlight elected",
+  "description": "TestFlight and Kerbalism both installed, with Kerbalism's reliability feature switched off. TestFlight registers a reliability provider at priority 10 against Kerbalism's 1, so it wins the election and reliability.summary carries engine-authoritative failure data.",
+  "uplinks": [
+    {
+      "id": "reliability",
+      "available": true,
+      "ownedPrefixes": ["reliability.summary", "reliability.parts"],
+      "detail": "Reliability channels are live."
+    },
+    {
+      "id": "testflight",
+      "available": true,
+      "ownedPrefixes": [],
+      "detail": "TestFlight assembly loaded."
+    },
+    {
+      "id": "kerbalism",
+      "available": true,
+      "ownedPrefixes": [
+        "kerbalism.available",
+        "kerbalism.features",
+        "kerbalism.spaceweather",
+        "kerbalism.lifesupport",
+        "kerbalism.crew",
+        "kerbalism.profile"
+      ],
+      "detail": "Kerbalism loaded; reliability feature off."
+    }
+  ],
+  "elections": {
+    "reliability": "testflight"
+  },
+  "wire": {
+    "kerbalism.available": {},
+    "reliability.summary": {
+      "source": "testflight",
+      "coverage": "modeled"
+    }
+  }
+}

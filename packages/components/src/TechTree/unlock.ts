@@ -34,7 +34,7 @@ function priceTooltip(
   return `Need ${need()} (have ${sciAvailable})`;
 }
 
-// A career model that refuses `career.tech.unlock` (RP-1 researches through its own queue) refuses for a reason the balance has no part in, so no affordability verdict is drawn.
+// A career model that refuses `career.tech.unlock` (one that researches through a queue of its own) refuses for a reason the balance has no part in, so no affordability verdict is drawn.
 export function unlockHandlersFor(
   n: TechNode,
   ctx: UnlockContext,

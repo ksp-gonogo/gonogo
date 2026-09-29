@@ -13,6 +13,7 @@ import {
   applyInstallProfile,
   fixtureProfiles,
   getInstallProfile,
+  type InstallProfile,
   type InstallProfileStreamBlock,
 } from "../test/installProfile";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -28,9 +29,9 @@ const SCENE = brokenReactionWheel._stream as InstallProfileStreamBlock;
 
 /** The installs the cases below actually assert against; checked against the scene's own declaration. */
 const COVERED = [
-  "rp1-testflight",
-  "rp1-kerbalism-live",
-  "rp1-no-testflight",
+  "testflight-elected",
+  "kerbalism-elected",
+  "kerbalism-elected-off",
   "stock-career",
   "reliability-unavailable",
   "testflight-unreadable",
@@ -119,7 +120,7 @@ describe("the reliability election, seen from six installs", () => {
   });
 
   it("renders the failure list when TestFlight won", async () => {
-    const { fixture, block } = renderScene("rp1-testflight");
+    const { fixture, block } = renderScene("testflight-elected");
     await replay(fixture, block);
 
     expect(
@@ -144,7 +145,7 @@ describe("the reliability election, seen from six installs", () => {
 
   /** A Kerbalism craft with a failed part. */
   it("renders Kerbalism's own conditions, and no probability, when Kerbalism won", async () => {
-    const { fixture, block } = renderScene("rp1-kerbalism-live");
+    const { fixture, block } = renderScene("kerbalism-elected");
     await replay(fixture, block);
 
     const roster = await screen.findByText(/kerbalism=healthy/, {
@@ -165,7 +166,7 @@ describe("the reliability election, seen from six installs", () => {
 
   /** The two absent-provider installs say what is true of them, and different things. */
   it("keeps the row silent when the backend is not modelling this save", async () => {
-    const { fixture, block } = renderScene("rp1-no-testflight");
+    const { fixture, block } = renderScene("kerbalism-elected-off");
     await replay(fixture, block);
 
     const roster = await screen.findByText(/kerbalism=healthy/, {
@@ -184,7 +185,7 @@ describe("the reliability election, seen from six installs", () => {
     await replay(fixture, block);
 
     expect(
-      await screen.findByText(/rp1=unavailable/, { selector: "p" }),
+      await screen.findByText(/kerbalism=unavailable/, { selector: "p" }),
     ).toBeInTheDocument();
     expect(await screen.findByText("Active Craft")).toBeInTheDocument();
     // Nothing installed could be silently broken, so silence cannot conceal a fault.
@@ -243,7 +244,7 @@ describe("the reliability election, seen from six installs", () => {
     // Named rather than counted: the silent installs are the three where nothing is modelling this craft.
     const SILENT = [
       "stock-career",
-      "rp1-no-testflight",
+      "kerbalism-elected-off",
       "reliability-unavailable",
     ];
     for (const id of SILENT) expect(rendered[id]).toBe("");
@@ -260,13 +261,36 @@ describe("the reliability election, seen from six installs", () => {
 
 /**
  * A channel whose owning Uplink is installed but reports its target assembly
- * missing: `RequiresGuard` reads that off the profile's roster, so the gate is
- * driven by the declared install alone.
+ * missing: `RequiresGuard` reads that off the install's roster, so the gate is
+ * driven by the declared install alone. The owner is a planted Uplink, since
+ * the gate is the subject and no particular mod is.
  */
 describe("channel ownership, seen from two installs", () => {
+  const GUARDED_CHANNEL = "planted.reading";
   const GUARDED: InstallProfileStreamBlock = {
-    emits: [{ channel: "comms.linkMargin", value: { db: 12.5 } }],
+    emits: [{ channel: GUARDED_CHANNEL, value: { reading: 12.5 } }],
   };
+
+  function plantedInstall(available: boolean): InstallProfile {
+    return {
+      id: available ? "planted-installed" : "planted-assembly-missing",
+      name: available ? "Planted installed" : "Planted assembly missing",
+      description: "A planted Uplink owning the guarded channel.",
+      uplinks: [
+        {
+          id: "planted",
+          available,
+          reason: available ? null : "Planted assembly not loaded",
+          ownedPrefixes: [GUARDED_CHANNEL],
+          state: available ? "healthy" : "unavailable",
+          detail: available ? null : "Planted assembly not loaded",
+        },
+      ],
+      elections: {},
+      wire: {},
+      absentChannels: available ? [] : [GUARDED_CHANNEL],
+    };
+  }
 
   // The guard checks the telemetry host first, so it has to be up for the ownership branch to be under test.
   beforeEach(() => {
@@ -285,37 +309,37 @@ describe("channel ownership, seen from two installs", () => {
     });
   });
 
-  function renderGuard(profileId: string) {
-    const block = applyInstallProfile(getInstallProfile(profileId), GUARDED);
+  function renderGuard(install: InstallProfile) {
+    const block = applyInstallProfile(install, GUARDED);
     const fixture = setupStreamFixture({
       suspendFrames: true,
     });
     render(
       <fixture.Provider>
-        <RequiresGuard channels={["comms.linkMargin"]}>
-          <p>link margin panel</p>
+        <RequiresGuard channels={[GUARDED_CHANNEL]}>
+          <p>guarded panel</p>
         </RequiresGuard>
       </fixture.Provider>,
     );
     return { fixture, block };
   }
 
-  it("passes the widget through when RealAntennas is installed", async () => {
-    const { fixture, block } = renderGuard("rp1-testflight");
+  it("passes the widget through when the owning Uplink is installed", async () => {
+    const { fixture, block } = renderGuard(plantedInstall(true));
     await replay(fixture, block);
 
-    expect(await screen.findByText("link margin panel")).toBeInTheDocument();
+    expect(await screen.findByText("guarded panel")).toBeInTheDocument();
     await act(async () => {});
   });
 
   it("blocks with the owning Uplink's own reason when it is not", async () => {
-    const { fixture, block } = renderGuard("stock-career");
+    const { fixture, block } = renderGuard(plantedInstall(false));
     await replay(fixture, block);
 
     expect(
-      await screen.findByText("RealAntennas assembly not loaded"),
+      await screen.findByText("Planted assembly not loaded"),
     ).toBeInTheDocument();
-    expect(screen.queryByText("link margin panel")).toBeNull();
+    expect(screen.queryByText("guarded panel")).toBeNull();
     await act(async () => {});
   });
 });

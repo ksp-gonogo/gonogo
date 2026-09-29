@@ -81,7 +81,7 @@ function SpaceCenterStatusComponent({
   const upgradeCmd = useCommand("career.facility.upgrade", {
     vantage: META_VANTAGE,
   });
-  // The gate's own refusal outranks any affordability verdict; under RP-1 a queued tier is billed as it builds, so a shortfall slows it rather than blocking it, and `undetermined` is not a block.
+  // The gate's own refusal outranks any affordability verdict; a career mod may queue a tier and bill it as it builds, so a shortfall slows it rather than blocking it, and `undetermined` is not a block.
   const upgradeBlocked = upgradeCmd.gate?.blocked === true;
 
   // Whichever contribution won the slot; the widget's own reading sits at the band every other contributor outranks.

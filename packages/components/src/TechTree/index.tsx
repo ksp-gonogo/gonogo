@@ -45,7 +45,7 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
   const { chargesScience } = useGameContext();
   // An R&D-desk action with no vessel signal delay, so it dispatches at the meta-vantage.
   const unlockCmd = useCommand("career.tech.unlock", { vantage: META_VANTAGE });
-  // A career model that refuses `career.tech.unlock` (RP-1 researches through its own queue) refuses for a reason the balance has no part in, so no affordability verdict is drawn.
+  // A career model that refuses `career.tech.unlock` (one that researches through a queue of its own) refuses for a reason the balance has no part in, so no affordability verdict is drawn.
   const unlockBlocked = unlockCmd.gate?.blocked === true;
 
   const allNodes = parseTechNodes(nodesRaw);

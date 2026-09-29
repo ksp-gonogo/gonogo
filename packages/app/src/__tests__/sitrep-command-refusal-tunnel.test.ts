@@ -195,7 +195,7 @@ async function refusedRoundTrip() {
   const transport = new PeerTransport(peerClient);
   const stationClient = new TelemetryClient(transport);
   const { requestId, result } = stationClient.dispatch(
-    "rp1.facility.upgrade",
+    "planted.facility.upgrade",
     { facility: "VehicleAssemblyBuilding" },
     "Upgrade Vehicle Assembly Building",
   );
@@ -240,7 +240,7 @@ describe("a refused command crossing the peer boundary", () => {
        * SAID ("Upgrade Vehicle Assembly Building refused: ..."), not only
        * classified.
        */
-      command: "rp1.facility.upgrade",
+      command: "planted.facility.upgrade",
       label: "Upgrade Vehicle Assembly Building",
     });
   });
@@ -305,7 +305,7 @@ describe("a refused command crossing the peer boundary", () => {
     const transport = new PeerTransport(peerClient);
     const stationClient = new TelemetryClient(transport);
     const { requestId, result } = stationClient.dispatch(
-      "rp1.facility.upgrade",
+      "planted.facility.upgrade",
       { facility: "VehicleAssemblyBuilding" },
     );
     const rejection = result.catch((err: unknown) => err);
