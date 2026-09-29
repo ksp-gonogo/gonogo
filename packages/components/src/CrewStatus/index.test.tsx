@@ -7,7 +7,12 @@ import {
 } from "@ksp-gonogo/core";
 import { VesselType, value } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
-import { ContributionsPanelStore, WidgetMetaContext } from "@ksp-gonogo/ui-kit";
+import {
+  ContributionsPanelStore,
+  createDomainAvailabilityStore,
+  DomainAvailabilityContext,
+  WidgetMetaContext,
+} from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -491,6 +496,47 @@ describe("CrewStatusComponent, avatar slot", () => {
     );
     expect(screen.queryByTestId("crew-avatar-cell")).not.toBeInTheDocument();
     unmount();
+  });
+
+  it("reserves no avatar cell for an avatar augment whose Domain is not announced, and grows it once the Domain is", async () => {
+    // A bundled client registers its augment whether or not its mod is running; with the Domain absent the row keeps its stock layout.
+    registerAugment<"crew-status.avatar">({
+      id: "test-gated-crew-avatar",
+      augments: "crew-status.avatar",
+      requires: "absent-avatar-mod",
+      component: ({ crewName }: CrewAvatarContext) => (
+        <span data-testid="crew-avatar">{crewName} face</span>
+      ),
+    });
+    const availability = createDomainAvailabilityStore();
+    const fixture = newFixture();
+    const { unmount } = render(
+      <DomainAvailabilityContext.Provider value={availability}>
+        <fixture.Provider>
+          <CrewStatusComponent config={{}} id="crew" />
+        </fixture.Provider>
+      </DomainAvailabilityContext.Provider>,
+    );
+    renderedTrees.push(unmount);
+    act(() => {
+      fixture.emit("vessel.crew", {
+        count: 2,
+        capacity: 2,
+        crew: [{ name: "Jebediah Kerman" }, { name: "Bill Kerman" }],
+      });
+    });
+
+    await waitFor(() =>
+      expect(screen.getByText("Jebediah Kerman")).toBeInTheDocument(),
+    );
+    expect(screen.queryByTestId("crew-avatar-cell")).not.toBeInTheDocument();
+
+    act(() => availability.setAvailable("absent-avatar-mod", true));
+
+    await waitFor(() =>
+      expect(screen.getAllByTestId("crew-avatar-cell")).toHaveLength(2),
+    );
+    expect(screen.getAllByTestId("crew-avatar")).toHaveLength(2);
   });
 });
 

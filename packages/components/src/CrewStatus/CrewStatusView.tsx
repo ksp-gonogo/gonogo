@@ -1,9 +1,5 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
-import {
-  AugmentSlot,
-  getAugmentsForSlot,
-  useContributions,
-} from "@ksp-gonogo/core";
+import { AugmentSlot, useContributions } from "@ksp-gonogo/core";
 import { stillTrue, VesselType } from "@ksp-gonogo/sitrep-sdk";
 import {
   Panel,
@@ -11,6 +7,7 @@ import {
   type ReadoutTone,
   Section,
   useElementSize,
+  useSlotBound,
 } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
 import {
@@ -77,11 +74,14 @@ export function CrewStatusComponent(
   const evaKerbalName =
     known && isEVA === true && names.length === 1 ? names[0] : undefined;
 
+  const avatarBound = useSlotBound("crew-status.avatar");
+  const rowBadgesBound = useSlotBound("crew-status.row-badges");
+
   // A Card showing only the name the header already carries is an empty box, so it is dropped unless something else is bound to that row.
   const evaRowHasBoundContent =
     evaKerbalName !== undefined &&
-    (getAugmentsForSlot("crew-status.avatar").length > 0 ||
-      getAugmentsForSlot("crew-status.row-badges").length > 0 ||
+    (avatarBound ||
+      rowBadgesBound ||
       rowToneByName.has(evaKerbalName) ||
       meterContributions.some((entry) => entry.row === evaKerbalName));
 
@@ -106,6 +106,7 @@ export function CrewStatusComponent(
               crewCount: crewCount?.magnitude,
               names,
               avatarSizePx,
+              avatarBound,
               rowToneByName,
               omitCardFor:
                 evaKerbalName !== undefined && !evaRowHasBoundContent

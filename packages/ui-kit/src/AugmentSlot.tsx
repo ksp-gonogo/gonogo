@@ -6,7 +6,10 @@ import {
   onAugmentsChange,
   type SlotProps,
 } from "./augments";
-import { useDomainAvailable } from "./domainAvailability";
+import {
+  useDomainAvailabilityStore,
+  useDomainAvailable,
+} from "./domainAvailability";
 import { useWidgetMeta } from "./WidgetMetaContext";
 
 /**
@@ -68,24 +71,43 @@ function useAugmentsFor(slotName: string | undefined): AnyAugment[] {
 }
 
 /**
- * Whether anything is bound to the mounting widget's `${componentId}.${segment}`
- * slot, for a host deciding whether to draw chrome around it. Registration
- * alone: it ignores the `requires` gate.
+ * Whether anything would render in the mounting widget's
+ * `${componentId}.${segment}` slot, for a host deciding whether to draw chrome
+ * around it. Counts only augments that pass the `requires` gate, so an Uplink
+ * whose mod half is absent changes no layout.
  */
 export function useWidgetSegmentBound(segment: string): boolean {
   const meta = useWidgetMeta();
   const slotName = meta ? `${meta.componentId}.${segment}` : undefined;
-  return useAugmentsFor(slotName).length > 0;
+  return useAnyAvailable(useAugmentsFor(slotName));
 }
 
 /**
- * Whether anything is bound to a slot named in full, for a host affordance
- * (such as a tab) that must not exist unless something can fill it. Unlike the
- * segment form it does not depend on `useWidgetMeta()`. Registration alone: it
- * ignores the `requires` gate.
+ * Whether anything would render in a slot named in full, for a host
+ * affordance (such as a tab or a reserved cell) that must not exist unless
+ * something can fill it. Unlike the segment form it does not depend on
+ * `useWidgetMeta()`. Counts only augments that pass the `requires` gate, so an
+ * Uplink whose mod half is absent changes no layout.
  */
 export function useSlotBound(name: string): boolean {
-  return useAugmentsFor(name).length > 0;
+  return useAnyAvailable(useAugmentsFor(name));
+}
+
+const NO_SUBSCRIBE = (): (() => void) => () => {};
+
+/** Whether any of `augments` passes the same presence gate {@link AugmentEntry} applies, re-read as Domains announce. */
+function useAnyAvailable(augments: AnyAugment[]): boolean {
+  const store = useDomainAvailabilityStore();
+  const snapshot = (): boolean =>
+    augments.some(
+      (augment) =>
+        !augment.requires || store?.isAvailable(augment.requires) === true,
+    );
+  return useSyncExternalStore(
+    store ? store.subscribe : NO_SUBSCRIBE,
+    snapshot,
+    snapshot,
+  );
 }
 
 // useSyncExternalStore loops without a referentially stable snapshot, so each slot's list is memoised until the registry notifies.

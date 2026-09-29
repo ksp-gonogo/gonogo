@@ -1,4 +1,4 @@
-import { AugmentSlot, getAugmentsForSlot } from "@ksp-gonogo/core";
+import { AugmentSlot } from "@ksp-gonogo/core";
 import {
   Cluster,
   EmptyState,
@@ -6,6 +6,7 @@ import {
   NULL_DISPLAY,
   Text,
   Truncate,
+  useSlotBound,
 } from "@ksp-gonogo/ui-kit";
 import { Fragment } from "react";
 import { COMMS, COMMS_TONE } from "./comms";
@@ -121,6 +122,8 @@ export function RosterTable({
   /** Narrow widths shed the Body column; height never gates columns, the list scrolls. */
   compact: boolean;
 }) {
+  // Not gated on `compact`: the augment sheds detail at narrow widths itself, so a critical alarm never vanishes.
+  const showUpdates = useSlotBound("fleet-roster.updates");
   if (vessels.length === 0) {
     return (
       <EmptyState>
@@ -128,8 +131,6 @@ export function RosterTable({
       </EmptyState>
     );
   }
-  // Non-reactive read, augments register at module load, before first render. Not gated on `compact`: the augment sheds detail at narrow widths itself, so a critical alarm never vanishes.
-  const showUpdates = getAugmentsForSlot("fleet-roster.updates").length > 0;
   return (
     <>
       <Grid

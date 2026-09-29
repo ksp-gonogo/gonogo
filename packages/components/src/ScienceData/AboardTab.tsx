@@ -1,4 +1,4 @@
-import { AugmentSlot, getAugmentsForSlot } from "@ksp-gonogo/core";
+import { AugmentSlot } from "@ksp-gonogo/core";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   DataTable,
@@ -11,6 +11,7 @@ import {
   Text,
   Unit,
   useRowFilter,
+  useSlotBound,
 } from "@ksp-gonogo/ui-kit";
 import type { ExperimentBreakdownEntry, ParsedExperiment } from "./parsers";
 
@@ -153,7 +154,7 @@ export function AboardTab({
   compact,
 }: Readonly<AboardTabProps>) {
   // An unbound slot gets no detail row at all, rather than an empty one under every row.
-  const slotFilled = getAugmentsForSlot("science-data.aboard-row").length > 0;
+  const slotFilled = useSlotBound("science-data.aboard-row");
   const filter = useRowFilter({ placeholder: "Filter subjects..." });
   const shownBreakdown = (breakdown ?? []).filter((b) =>
     filter.matches(`${b.expTitle} ${b.biome} ${b.situation}`),

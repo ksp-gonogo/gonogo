@@ -1,4 +1,4 @@
-import { AugmentSlot, getAugmentsForSlot } from "@ksp-gonogo/core";
+import { AugmentSlot } from "@ksp-gonogo/core";
 import {
   Card,
   EmptyState,
@@ -36,6 +36,7 @@ export function renderRoster({
   crewCount,
   names,
   avatarSizePx,
+  avatarBound,
   rowToneByName,
   omitCardFor,
   suppressNameFor,
@@ -44,6 +45,8 @@ export function renderRoster({
   crewCount: number | undefined;
   names: string[];
   avatarSizePx: number;
+  /** Reserve the leading avatar cell: an augment that can render is bound to `crew-status.avatar`. */
+  avatarBound: boolean;
   rowToneByName: ReadonlyMap<string, ReadoutTone>;
   /** Skip this row's Card entirely: the EVA header already named this
    *  kerbal and nothing else is bound to their row. */
@@ -82,10 +85,6 @@ export function renderRoster({
     );
   }
 
-  // Augments register at module load, so a non-reactive read is enough.
-  const avatarAugmentPresent =
-    getAugmentsForSlot("crew-status.avatar").length > 0;
-
   return (
     <Stack as="ul" style={rosterListStyle}>
       {names.map((name, index) => {
@@ -100,7 +99,7 @@ export function renderRoster({
             aria-label={suppressName ? name : undefined}
             /* The avatar is a visual, so it sits in a framed left aside; the aside sets the frame's corner. */
             left={
-              avatarAugmentPresent ? (
+              avatarBound ? (
                 <CrewAvatarCell
                   sizePx={avatarSizePx}
                   slot={

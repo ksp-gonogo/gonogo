@@ -21,7 +21,11 @@ import {
   waitFor,
   within,
 } from "@ksp-gonogo/test-utils";
-import { WidgetMetaContext } from "@ksp-gonogo/ui-kit";
+import {
+  createDomainAvailabilityStore,
+  DomainAvailabilityContext,
+  WidgetMetaContext,
+} from "@ksp-gonogo/ui-kit";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement } from "react";
@@ -998,6 +1002,53 @@ describe("AstronautComplexComponent", () => {
     expect(
       screen.queryByRole("tab", { name: "Training" }),
     ).not.toBeInTheDocument();
+  });
+
+  /** A bundled client registers its augment whether or not its mod is running, so an absent Domain grows no tab. */
+  it("grows no Training tab for an augment whose Domain is not announced, and grows it once the Domain is", async () => {
+    registerAugment({
+      id: "test-training-tab-gated",
+      augments: "astronaut-complex.training",
+      requires: "absent-training-mod",
+      component: () => <span>Two courses running</span>,
+    });
+    const availability = createDomainAvailabilityStore();
+
+    render(
+      <DomainAvailabilityContext.Provider value={availability}>
+        <fixture.Provider>
+          <DashboardItemContext.Provider
+            value={{ instanceId: "astronaut-complex" }}
+          >
+            <AstronautComplexComponent
+              config={{}}
+              id="astronaut-complex"
+              w={6}
+              h={8}
+            />
+          </DashboardItemContext.Provider>
+        </fixture.Provider>
+      </DomainAvailabilityContext.Provider>,
+    );
+    act(() => {
+      emitFunds(fixture, 500000);
+      emitComplex(fixture, {
+        applicants: APPLICANTS,
+        activeCrew: CREW_ROSTER.length,
+        crewCapacity: 13,
+        nextHireCost: NEXT_HIRE_COST,
+      });
+      emitCrewRoster(fixture, CREW_ROSTER);
+    });
+
+    expect(await screen.findByRole("tab", { name: "Active" })).toBeVisible();
+    expect(
+      screen.queryByRole("tab", { name: "Training" }),
+    ).not.toBeInTheDocument();
+
+    act(() => availability.setAvailable("absent-training-mod", true));
+
+    expect(await screen.findByRole("tab", { name: "Training" })).toBeVisible();
   });
 
   /** Training is a whole TAB beside Applicants and Active, not nested under either. */

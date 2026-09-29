@@ -1,6 +1,11 @@
 import { act, render, screen, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { AugmentSlot, useAugmentAvailable } from "./AugmentSlot";
+import {
+  AugmentSlot,
+  useAugmentAvailable,
+  useSlotBound,
+  useWidgetSegmentBound,
+} from "./AugmentSlot";
 import {
   type AugmentDefinition,
   clearAugments,
@@ -273,6 +278,103 @@ describe("useAugmentAvailable", () => {
 
     await waitFor(() =>
       expect(screen.getByTestId("probe").textContent).toBe("available=true"),
+    );
+  });
+});
+
+// A host reserving layout for a slot must count only augments that would render, or an Uplink whose mod half is absent still reshapes the widget.
+describe("useSlotBound / useWidgetSegmentBound", () => {
+  function SlotProbe({ name }: { name: string }) {
+    return <div data-testid="bound">bound={String(useSlotBound(name))}</div>;
+  }
+  function SegmentProbe({ segment }: { segment: string }) {
+    return (
+      <div data-testid="bound">
+        bound={String(useWidgetSegmentBound(segment))}
+      </div>
+    );
+  }
+
+  it("is true for a bound augment with no `requires`, even without an availability provider", () => {
+    registerAugment({
+      id: "ungated-bound",
+      augments: "power-systems.sections",
+      component: () => null,
+    });
+
+    render(<SlotProbe name="power-systems.sections" />);
+
+    expect(screen.getByTestId("bound").textContent).toBe("bound=true");
+  });
+
+  it("is false for a registered augment whose Domain is not announced, true once it is", async () => {
+    registerAugment({
+      id: "gated-bound",
+      augments: "power-systems.sections",
+      component: () => null,
+      requires: "absent-mod",
+    });
+    const store = createDomainAvailabilityStore();
+
+    render(
+      <DomainAvailabilityContext.Provider value={store}>
+        <SlotProbe name="power-systems.sections" />
+      </DomainAvailabilityContext.Provider>,
+    );
+
+    expect(screen.getByTestId("bound").textContent).toBe("bound=false");
+
+    act(() => store.setAvailable("absent-mod", true));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("bound").textContent).toBe("bound=true"),
+    );
+
+    act(() => store.setAvailable("absent-mod", false));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("bound").textContent).toBe("bound=false"),
+    );
+  });
+
+  it("is false for a gated augment when no availability provider is mounted", () => {
+    registerAugment({
+      id: "gated-bound-no-provider",
+      augments: "power-systems.sections",
+      component: () => null,
+      requires: "absent-mod",
+    });
+
+    render(<SlotProbe name="power-systems.sections" />);
+
+    expect(screen.getByTestId("bound").textContent).toBe("bound=false");
+  });
+
+  it("gates the segment form on the same Domain presence", async () => {
+    registerAugment({
+      id: "gated-segment",
+      augments: "power-systems.actions",
+      component: () => null,
+      requires: "absent-mod",
+    });
+    const store = createDomainAvailabilityStore();
+
+    render(
+      <DomainAvailabilityContext.Provider value={store}>
+        <WidgetMetaContext.Provider
+          value={{ componentId: "power-systems", contributionSlots: [] }}
+        >
+          <SegmentProbe segment="actions" />
+        </WidgetMetaContext.Provider>
+      </DomainAvailabilityContext.Provider>,
+    );
+
+    expect(screen.getByTestId("bound").textContent).toBe("bound=false");
+
+    act(() => store.setAvailable("absent-mod", true));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("bound").textContent).toBe("bound=true"),
     );
   });
 });
