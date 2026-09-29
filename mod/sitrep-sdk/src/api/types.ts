@@ -24,7 +24,7 @@ import type {
   CommandReply,
 } from "../commands";
 import type { RailDirection, RailTags } from "../rail-tags";
-import type { Reading } from "../reading";
+import type { HeldGrade, Reading } from "../reading";
 import type { UplinkClientHandle } from "../spine/uplink-clients";
 import type {
   TopicId,
@@ -405,6 +405,17 @@ export interface BadgeEntry {
   label: string;
   /** How the badge reads. `neutral`, or no tone, is a decorative chip that takes no part in the panel's summary. */
   tone?: Tone;
+  /**
+   * The reading this badge's `label` and `tone` were derived from, or just its
+   * grade. A grade only shows up here once the reading itself is `"held"`
+   * (`Reading.grade` is unset on every other state), so a producer can pass its
+   * whole reading unconditionally and only a held one changes anything.
+   *
+   * Held, the panel draws the grade's own word and severity in place of
+   * `label`/`tone`, through the kit's one held vocabulary, so a verdict read off
+   * a Topic that stopped arriving is never shown as though it were current.
+   */
+  held?: HeldGrade | Reading<unknown>;
 }
 
 /**

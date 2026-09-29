@@ -1,8 +1,33 @@
+import type { Reading } from "@ksp-gonogo/sitrep-sdk";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it } from "vitest";
 import { Panel } from "./Panel";
 import { PanelBadgesProvider } from "./PanelBadges";
 import { PanelStatusStoreProvider } from "./status/PanelStatusStore";
+
+const AT = value("ut", 12_000);
+
+/** A reading held for the given grade, with a value of its own the badge is not meant to show once held. */
+function heldReading(grade: Reading<unknown>["grade"]): Reading<unknown> {
+  return {
+    state: "held",
+    value: { verdict: "No control" },
+    asOfUt: AT,
+    grade,
+    reckoning: { status: "none" },
+  };
+}
+
+/** A reading still current: `grade` is unset, the same as any observed reading. */
+function liveReading(): Reading<unknown> {
+  return {
+    state: "observed",
+    value: { verdict: "No control" },
+    atUt: AT,
+    reckoning: { status: "none" },
+  };
+}
 
 /**
  * The two header shapes that exist for widgets whose chrome does not fit one
@@ -206,6 +231,79 @@ describe("Panel panelBadges", () => {
     );
     expect(screen.getByText("3/4 ABOARD")).toBeTruthy();
     expect(screen.getByText("OFFLINE")).toBeTruthy();
+  });
+
+  it("draws a contributed badge fed a bare held grade as the grade's own word, not the verdict it was derived from", () => {
+    render(
+      <Panel
+        panelTitle="Fixture"
+        panelBadges={[
+          {
+            id: "lock-verdict",
+            label: "No control",
+            tone: "nogo",
+            held: "held",
+          },
+        ]}
+      />,
+    );
+    expect(screen.getByText("HELD")).toBeTruthy();
+    expect(screen.queryByText("No control")).toBeNull();
+  });
+
+  it("draws a contributed badge fed a held Reading, taking its grade off it", () => {
+    render(
+      <Panel
+        panelTitle="Fixture"
+        panelBadges={[
+          {
+            id: "lock-verdict",
+            label: "No control",
+            tone: "nogo",
+            held: heldReading("recorded"),
+          },
+        ]}
+      />,
+    );
+    expect(screen.getByText("RECORDED")).toBeTruthy();
+    expect(screen.queryByText("No control")).toBeNull();
+  });
+
+  it("leaves a contributed badge alone when the Reading it carries is not held", () => {
+    render(
+      <Panel
+        panelTitle="Fixture"
+        panelBadges={[
+          {
+            id: "lock-verdict",
+            label: "No control",
+            tone: "nogo",
+            held: liveReading(),
+          },
+        ]}
+      />,
+    );
+    expect(screen.getByText("No control")).toBeTruthy();
+    expect(screen.queryByText("HELD")).toBeNull();
+  });
+
+  it("sets a held badge's hover text to the verdict it replaced, unless one is already given", () => {
+    render(
+      <Panel
+        panelTitle="Fixture"
+        panelBadges={[
+          {
+            id: "lock-verdict",
+            label: "No control",
+            tone: "nogo",
+            held: "held",
+          },
+        ]}
+      />,
+    );
+    expect(
+      screen.getByText("HELD").closest("[title]")?.getAttribute("title"),
+    ).toBe("No control: HELD");
   });
 });
 

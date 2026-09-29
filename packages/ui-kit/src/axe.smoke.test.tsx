@@ -148,6 +148,25 @@ describe("a11y smoke (jest-axe)", () => {
     await expectNoA11yViolations(container);
   });
 
+  it("Panel (held contributed badge) has no axe violations", async () => {
+    const { container } = render(
+      <Panel
+        panelTitle="Navball"
+        panelBadges={[
+          {
+            id: "lock-verdict",
+            label: "No control",
+            tone: "nogo",
+            held: "held",
+          },
+        ]}
+      >
+        <p>content</p>
+      </Panel>,
+    );
+    await expectNoA11yViolations(container);
+  });
+
   it("Card has no axe violations", async () => {
     const { container } = render(<Card>Kerbin Explorer I</Card>);
     await expectNoA11yViolations(container);

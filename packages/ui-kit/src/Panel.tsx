@@ -1,4 +1,4 @@
-import type { StreamStatusValue } from "@ksp-gonogo/sitrep-sdk";
+import type { HeldGrade, StreamStatusValue } from "@ksp-gonogo/sitrep-sdk";
 import {
   Children,
   type ComponentPropsWithoutRef,
@@ -30,7 +30,7 @@ import { SECTION_FILL_ATTR, SECTION_FULL_ATTR, Section } from "./Section";
 import { PanelStatusDot } from "./status/PanelStatusDot";
 import type { StatusSummary } from "./status/PanelStatusStore";
 import { severityFromStreamStatus } from "./status/severity";
-import { formatStreamStatus } from "./status/streamStatusWord";
+import { formatStreamStatus, heldWord } from "./status/streamStatusWord";
 import { useStatusBreakdown } from "./status/useStatusBreakdown";
 import { useStatusContribution } from "./status/useStatusContribution";
 import { useStatusSummary } from "./status/useStatusSummary";
@@ -1254,6 +1254,18 @@ function mergeBadges(
   return [...own, ...contributed.filter((b) => !taken.has(b.id))];
 }
 
+/**
+ * A badge's own grade, whether it names one directly or carries the whole
+ * `Reading` it was derived from. `Reading.grade` is only ever set once the
+ * reading itself is `"held"`, so a live reading passed through `held` yields
+ * `undefined` here the same as no `held` at all.
+ */
+function heldGradeOf(entry: BadgeEntry): HeldGrade | undefined {
+  const held = entry.held;
+  if (held === undefined) return undefined;
+  return typeof held === "string" ? held : held.grade;
+}
+
 /** The augment segments `Panel` mounts for every widget. */
 export const FRAMEWORK_AUGMENT_SEGMENTS = ["sections", "actions"] as const;
 
@@ -1439,19 +1451,28 @@ function PanelRoot({
     badges.length === 0
       ? null
       : badges.map((b) => {
+          const grade = heldGradeOf(b);
+          // Held, the grade's own word and severity replace the verdict computed from it: a reading that stopped arriving cannot still be asserted as current.
+          const label = grade === undefined ? b.label : heldWord(grade);
+          const tone =
+            grade === undefined ? b.tone : severityFromStreamStatus(grade);
+          const title =
+            grade === undefined || b.title !== undefined
+              ? b.title
+              : `${b.label}: ${label}`;
           return (
             <Badge
               key={b.id}
-              tone={b.tone}
-              title={b.title}
+              tone={tone}
+              title={title}
               /* A decorative chip stays out of the collapsed header's dot summary. */
               report={
-                b.tone === undefined || b.tone === "neutral"
+                tone === undefined || tone === "neutral"
                   ? undefined
                   : { id: b.id }
               }
             >
-              {b.label}
+              {label}
             </Badge>
           );
         });
