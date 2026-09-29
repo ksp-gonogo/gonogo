@@ -125,6 +125,17 @@ export function Tabs({
   const [compact, setCompact] = useState(false);
   // State as well as a ref: `expanded` swaps the strip in and out of the tree, and the overflow watch must follow it.
   const [scroller, setScroller] = useState<HTMLDivElement | null>(null);
+  /*
+   * Memoized so its identity is stable across renders. An inline ref callback
+   * is a new function every render, and React detaches then reattaches a ref
+   * whose identity changed, so an inline callback that calls a state setter
+   * fires that setter on every render it causes, which is the render it just
+   * caused: an infinite loop, React error #185.
+   */
+  const scrollerRef = useCallback((el: HTMLDivElement | null) => {
+    barRef.current = el;
+    setScroller(el);
+  }, []);
   const overflow = useInlineOverflow(scroller);
   // Measured, since labels differ in width and the blob must land exactly on the active one.
   const [blob, setBlob] = useState<{ left: number; width: number } | null>(
@@ -252,12 +263,7 @@ export function Tabs({
   return (
     <Tabs__Root ref={sizeRef} data-tabs-root="" className={className}>
       <Tabs__BarShell>
-        <Tabs__Scroller
-          ref={(el) => {
-            barRef.current = el;
-            setScroller(el);
-          }}
-        >
+        <Tabs__Scroller ref={scrollerRef}>
           <Tabs__Bar
             role="tablist"
             aria-label={ariaLabel}
