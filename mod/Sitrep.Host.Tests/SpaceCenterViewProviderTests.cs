@@ -426,8 +426,8 @@ namespace Sitrep.Host.Tests
         /// reason field, because that reads as a diagnosis where the truth is
         /// silence. The raw ordinal reaches the client intact.
         ///
-        /// <para>This case is NOT how RP-1's retirement arrives, and the comment
-        /// here used to say it was. RP-1 appends no member to
+        /// <para>This case is NOT how a career mod's retirement arrives, and the
+        /// comment here used to say it was. Such a mod can append no member to
         /// <c>RosterStatus</c>: it writes stock's <c>Dead</c>, ordinal 2, and a
         /// retiree therefore arrives at the recognised-status path above looking
         /// exactly like a fatality. That is what the crew-standing capability is
@@ -503,8 +503,8 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
-        /// THE defect, at the provider. An RP-1 retiree arrives with stock's
-        /// <c>Dead</c> in the roster ordinal, because that is literally what RP-1
+        /// THE defect, at the provider. A career mod's retiree arrives with stock's
+        /// <c>Dead</c> in the roster ordinal, because that is literally what the mod
         /// wrote there, and the elected backend's corrected standing is what the
         /// provider must derive every operator-facing field from.
         ///
@@ -531,7 +531,7 @@ namespace Sitrep.Host.Tests
                                 ["rosterStatus"] = "Dead",
                                 ["rosterStatusOrdinal"] = (int)KspRosterStatus.Dead,
                                 ["standing"] = (int)CrewStanding.Retired,
-                                ["standingSource"] = "rp1",
+                                ["standingSource"] = "planted",
                             },
                         },
                     },
@@ -543,7 +543,7 @@ namespace Sitrep.Host.Tests
             Assert.Equal("Retired", wernher["situation"]);
             Assert.Equal("Retired", wernher["unavailableReason"]);
             Assert.Equal(false, wernher["available"]);
-            Assert.Equal("rp1", wernher["standingSource"]);
+            Assert.Equal("planted", wernher["standingSource"]);
 
             // And KSP's own answer is still on the wire, unfolded, because what
             // the game holds is worth knowing even when it is not the answer.

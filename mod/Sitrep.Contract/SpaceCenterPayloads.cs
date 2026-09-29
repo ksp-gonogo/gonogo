@@ -187,7 +187,7 @@ public class CrewRosterEntry
     /// otherwise derived from KSP's roster status by the stock backend.
     ///
     /// <para>This exists because the roster status alone is NOT enough under
-    /// a career overhaul. RP-1 retires a kerbal by writing stock's <c>Dead</c>
+    /// a career overhaul. Such a mod can retire a kerbal by writing stock's <c>Dead</c>
     /// into the roster status, so <see cref="SituationOrdinal"/> below reads
     /// <c>Dead</c> for a living retiree and no reading of it can recover the
     /// difference. See <see cref="CrewStanding"/> for the whole account.</para>
@@ -197,7 +197,7 @@ public class CrewRosterEntry
 
     /// <summary>
     /// Which provider decided <see cref="Standing"/>: the elected backend's
-    /// <c>ProviderId</c>, e.g. <c>"stock"</c> or <c>"rp1"</c>. Absent when no
+    /// <c>ProviderId</c>, e.g. <c>"stock"</c> or an Uplink's id. Absent when no
     /// backend was reachable at capture time.
     ///
     /// <para>Carried so a surface can attribute a correction rather than merely
@@ -249,7 +249,7 @@ public class CrewRosterEntry
     /// <para>A truthful read of the game field and nothing more, kept because
     /// what KSP itself holds is worth knowing and because a command core
     /// dispatches is arbitrated against this value. It is NOT the field to
-    /// branch on: under RP-1 it reads <c>Dead</c> for a living retiree.
+    /// branch on: under a career overhaul it can read <c>Dead</c> for a living retiree.
     /// <see cref="Standing"/> is the field to branch on.</para>
     ///
     /// <para><c>null</c> for an APPLICANT, and that is a real distinction

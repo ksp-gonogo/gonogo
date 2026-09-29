@@ -137,7 +137,7 @@ namespace Sitrep.Contract
         /// <summary>
         /// An Uplink's own unit catalog: a public static class in the assembly
         /// being reflected whose name is <c>Units</c> or ends in <c>Units</c>
-        /// (<c>Rp1Units</c>, <c>AeroUnits</c>).
+        /// (<c>CareerUnits</c>, <c>AeroUnits</c>).
         /// </summary>
         /// <remarks>
         /// An Uplink models quantities core has never heard of, so it declares

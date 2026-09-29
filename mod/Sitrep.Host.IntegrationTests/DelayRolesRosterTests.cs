@@ -97,15 +97,15 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// One of each role. The held-at-home and TrueNow topics borrow real Uplink
-        /// channel names so the client half reads as the case it stands for: an RP-1
-        /// ledger held at home and two comms-link facts current everywhere at once.
+        /// One of each role. The TrueNow topics borrow real channel names so the
+        /// client half reads as the case it stands for: a career ledger held at
+        /// home and two comms-link facts current everywhere at once.
         /// Beside them a craft-side channel that stays delayed, and a TrueNow dynamic
         /// namespace.
         /// </summary>
         private sealed class DelayRolesTestUplink : ISitrepUplink
         {
-            public const string HeldAtHomeTopic = "rp1.programs";
+            public const string HeldAtHomeTopic = "uplinktest.ledger";
             public const string LinkTrueNowTopic = "comms.linkMargin";
             public const string SecondTrueNowTopic = "comms.dataRate";
             public const string DelayedTopic = "uplinktest.craftState";

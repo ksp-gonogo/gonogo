@@ -172,9 +172,8 @@ PLANTED_UPLINK.registerContribution({
 });
 
 /**
- * A screen naming no departments, the same shape RP-1's Finances tab will
- * contribute (`local_docs/design/2026-09-29-rp1-finances-placement.md`
- * section 1): chrome for whatever augment binds `strategies.screen-body`, no
+ * A screen naming no departments, the shape an Uplink's own tab contributes:
+ * chrome for whatever augment binds `strategies.screen-body`, no
  * departments to list. No augment is planted here, so the tab is deliberately
  * blank: the render this exists for is about the HOST drawing no strategy
  * lists on it, not about any particular body.

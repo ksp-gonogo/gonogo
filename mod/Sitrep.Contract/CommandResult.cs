@@ -219,10 +219,10 @@ public static class CommandErrorCode
     /// <para>Authority: whichever Uplink contributed the readiness requirement
     /// that refused (see <see cref="IUplinkHost.AddCommandRequirement"/>), never
     /// a stock KSP read: stock has no build step, so this code never arrives on
-    /// a stock install. Under RP-1 it is a vehicle that was never integrated,
-    /// one still integrating, one finished but not rolled out, or one rolled out
-    /// to a pad still being reconditioned. <see cref="Sitrep.Contract.CommandResult.Detail"/>
-    /// says which.</para>
+    /// a stock install. Under a build model it may be a vehicle that was never
+    /// integrated, one still integrating, one finished but not rolled out, or one
+    /// rolled out to a pad still being reconditioned.
+    /// <see cref="Sitrep.Contract.CommandResult.Detail"/> says which.</para>
     ///
     /// <para>Not <see cref="LimitReached"/>, the launch refusal for a craft too
     /// heavy or too large for the site, fixed by changing the craft or upgrading
@@ -354,7 +354,7 @@ public class CommandResult
 
     /// <summary>
     /// The refinement's id, when the refusal is more specific than its root:
-    /// <c>rp1.notManaging</c> under <c>careerModeRequired</c>. Absent when the
+    /// <c>example.notManaging</c> under <c>careerModeRequired</c>. Absent when the
     /// refusal is a root. An id this client does not know is still a refusal
     /// of kind <see cref="ErrorCode"/>.
     /// </summary>

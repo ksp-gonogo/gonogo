@@ -47,7 +47,9 @@ export type ModToken =
   | "testflight"
   | "principia"
   | "ferram"
-  | "realsolarsystem";
+  | "realsolarsystem"
+  | "rp1"
+  | "realfuels";
 
 /**
  * How much of a `packages/<pkg>` directory the scan walks. Recorded HERE, in
@@ -1653,6 +1655,72 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
   // be: "far." would match prose in half the tree and would be matching a string
   // no production file contains.
   ferram: { domainDebt: [], permanent: [] },
+
+  /*
+   * === rp1: the career overhaul, whose Uplink left for gonogo-uplinks. No
+   * owning directory, `domainDebt` EMPTY and meant to stay so: every file that
+   * named RP-1 in code (settings fixtures, delay-role rosters, Harmony owner
+   * ids, standing sources, a published error string) was neutralised onto a
+   * planted id when the token landed, and every app-side file was reworded, so
+   * nothing under `packages/` is excused here at all.
+   *
+   * What remains is comment prose under `mod/`, in two kinds.
+   */
+  rp1: {
+    domainDebt: [],
+    permanent: [
+      /*
+       * HISTORICAL RECORD: the version ledger names the RP-1 Uplink in the
+       * entries that moved its types and Topics, and a Major "cannot rewrite
+       * what it inherited".
+       */
+      "mod/Sitrep.Contract/ContractVersion.cs",
+      /*
+       * PRIOR ART and INTEROP EVIDENCE. Core's stock-side mechanisms (strategy
+       * activation, off-scene facility writes, derived-currency withholding,
+       * the calendar epoch, crew standing) are generic, and these comments cite
+       * the one real career that exercised each edge: the Harmony prefix that
+       * overwrites a counter, the `Deactivate` that throws after it has acted,
+       * the second zero-science query that erased a science base. Naming the
+       * mod is what makes the claim checkable against its source; none of
+       * these files branches on it, reads its Topics or loads its assembly.
+       */
+      "mod/Gonogo.KSP/CalendarEpoch.cs",
+      "mod/Gonogo.KSP/Career/FacilityLadder.cs",
+      "mod/Gonogo.KSP/Career/OffSceneFacilityUpgrade.cs",
+      "mod/Gonogo.KSP/Career/StrategyProcedure.cs",
+      "mod/Gonogo.KSP/Career/StrategyRelease.cs",
+      "mod/Gonogo.KSP/CurrencyDelay/DerivedCurrencyWithholding.cs",
+      "mod/Gonogo.KSP/CurrencyDelay/StockCurrencyInterceptor.cs",
+      "mod/Gonogo.KSP/Gates/GateDeclarations.cs",
+      "mod/Gonogo.KSP/KspCareerActuator.cs",
+      "mod/Gonogo.KSP/KspHost.cs",
+      "mod/Gonogo.KSP/LiveStrategyArms.cs",
+      "mod/Gonogo.KSP/StockStrategyActivation.cs",
+      "mod/Gonogo.KSP/StrategyActivationRule.cs",
+      "mod/Gonogo.KSP/StrategyEligibility.cs",
+      "mod/Sitrep.Host/Crew/CrewStandingElection.cs",
+      "mod/Gonogo.KSP.Tests/CalendarEpochTests.cs",
+      "mod/Gonogo.KSP.Tests/Career/CommandGateDeclarationTests.cs",
+      "mod/Gonogo.KSP.Tests/Career/StrategyReleaseTests.cs",
+      "mod/Gonogo.KSP.Tests/CurrencyDelay/AwayScienceArmIsWiredTests.cs",
+      "mod/Gonogo.KSP.Tests/CurrencyDelay/CurrencyQueryBasesTests.cs",
+      "mod/Gonogo.KSP.Tests/StrategyActivationRuleTests.cs",
+      "mod/Gonogo.KSP.Tests/StrategyEligibilityTests.cs",
+      "mod/Sitrep.Host.IntegrationTests/ContributedRequirementTests.cs",
+      "mod/Sitrep.Host.Tests/CrewStandingElectionTests.cs",
+      /*
+       * The Uplink wiring scan's doc comments cite the two declaration shapes
+       * (command names in one `foreach` array) that the walk had to learn,
+       * which is the reason the walk reads them.
+       */
+      "mod/Sitrep.Core.Tests/UplinkWiringCoverageTests.cs",
+      "mod/Sitrep.Core.Tests/UplinkWiringScan.cs",
+    ],
+  },
+
+  // === realfuels: no owning directory and nothing excused. Nothing in core names it.
+  realfuels: { domainDebt: [], permanent: [] },
 };
 
 /**

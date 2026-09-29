@@ -90,7 +90,7 @@ public class TimeCalendar
     /// those games.</para>
     /// <internal>
     /// The anchor lives in a private DateTime field on those formatters and is
-    /// read by reflection, the same way RP-1 does (RP0DTUtils.TryGetEpoch).
+    /// read by reflection, the same way a career mod's own date utilities do.
     /// Nothing here knows which mod is installed.
     /// </internal>
     /// </summary>

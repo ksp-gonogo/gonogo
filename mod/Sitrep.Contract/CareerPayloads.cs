@@ -445,7 +445,7 @@ public class CareerStrategies
     /// Read from Harmony's patch registry over Strategy.Activate and
     /// Strategy.CanBeActivated by StockActivationPatch, the same read the
     /// off-screen activation refuses on, so the roster and the command cannot
-    /// disagree. RP-1 is the career that reads true.
+    /// disagree. A career mod that patches activation is what reads true.
     /// </internal>
     /// </summary>
     [SitrepUnit(Units.Flag)]
@@ -594,8 +594,8 @@ public class CareerStrategy
     /// CanBeActivated. The commit ceiling comes from GameVariables, which is
     /// where Administration.Start reads it from itself and which is virtual so a
     /// retiering mod's override is inherited. Check 1 is deliberately not
-    /// reproduced: activeStrategyCount is a scroll-view item counter RP-1
-    /// overwrites, so substituting a roster count would enforce stock's rule on a
+    /// reproduced: activeStrategyCount is a scroll-view item counter a career
+    /// mod can overwrite, so substituting a roster count would enforce stock's rule on a
     /// career that has replaced it. The write side applies check 1 off the
     /// roster only after confirming nothing has patched stock's activation,
     /// which is the one case where the roster count and the screen's counter
@@ -607,7 +607,7 @@ public class CareerStrategy
 
     /// <summary>
     /// When a refusal that lapses on its own will lapse, such as a dismissed
-    /// Leader's re-hire cooldown under RP-1. <c>null</c> when the refusal does
+    /// Leader's re-hire cooldown under a career mod. <c>null</c> when the refusal does
     /// not lapse with time, or when nothing refused.
     /// <internal>
     /// Supplied by a career mod through IStrategyAvailability, the same answer
@@ -701,7 +701,7 @@ public class CareerTechNode
     ///
     /// <para>It comes from the tree's own config rather than from
     /// <c>RDTech</c>, whose <c>description</c> field only exists while the
-    /// R&amp;D Building scene is open. A tech tree a mod has replaced (RP-1) is
+    /// R&amp;D Building scene is open. A tech tree a mod has replaced is
     /// read the same way, so this is the node's description in whatever tree
     /// the save is playing.</para>
     /// </summary>

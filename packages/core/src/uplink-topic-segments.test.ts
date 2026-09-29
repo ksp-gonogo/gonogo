@@ -293,7 +293,7 @@ declare module "@ksp-gonogo/sitrep-sdk" {
   const TWO_SEGMENT = `
 declare module "@ksp-gonogo/sitrep-sdk" {
   interface TopicPayloadMap {
-    "rp1.buildQueue": Rp1BuildItemEntry[];
+    "demo.buildQueue": DemoBuildItemEntry[];
   }
 }
 `;
@@ -350,7 +350,7 @@ export const GENERATED_TOPIC_IDS = [
 
   it("PASSES a two-segment Uplink id", () => {
     const { declared, dead } = verdict(TWO_SEGMENT);
-    expect(declared.map((d) => d.id)).toEqual(["rp1.buildQueue"]);
+    expect(declared.map((d) => d.id)).toEqual(["demo.buildQueue"]);
     expect(dead).toEqual([]);
   });
 

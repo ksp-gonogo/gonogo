@@ -164,7 +164,7 @@ export function readChannelDispositions(
      * Only the FIRST argument is read, and the terminator is `,` or `)` rather
      * than `)` alone. Requiring a single argument was the first version, and the
      * cross-check caught it immediately: one Uplink passes a second argument to
-     * one of its factories, so `rp1.confidence` came back with no declaration
+     * one of its factories, so one of its Topics came back with no declaration
      * found. Which is the whole point of the cross-check existing.
      */
     for (const [name, disposition] of factories) {

@@ -14,7 +14,7 @@ namespace Sitrep.Host.Tests.Settings
     /// </summary>
     public class SettingsPreserveUnknownTests
     {
-        private const string Owned = "Uplinks/Rp1/upgradeSlipWarningDays";
+        private const string Owned = "Uplinks/Planted/upgradeSlipWarningDays";
 
         private static SettingsDocument FileWithAGhost()
         {
@@ -43,7 +43,7 @@ namespace Sitrep.Host.Tests.Settings
             return lost;
         }
 
-        private static SettingsDocument SaveWithOnlyRp1Declared(ISettingsBackingStore backing)
+        private static SettingsDocument SaveWithOnlyPlantedDeclared(ISettingsBackingStore backing)
         {
             var store = new SettingsStore(backing);
             store.Declare(SettingsRow.Number(Owned, 30));
@@ -55,7 +55,7 @@ namespace Sitrep.Host.Tests.Settings
         [Fact]
         public void ABlockNothingDeclaredSurvivesASaveWhole()
         {
-            var written = SaveWithOnlyRp1Declared(new InMemorySettingsStore(FileWithAGhost()));
+            var written = SaveWithOnlyPlantedDeclared(new InMemorySettingsStore(FileWithAGhost()));
 
             Assert.Empty(GhostLoss(written));
             Assert.Equal("45", written.Text(Owned));
@@ -69,7 +69,7 @@ namespace Sitrep.Host.Tests.Settings
         [Fact]
         public void TheSameCheckSeesAWriterThatRebuildsFromDeclarations()
         {
-            var written = SaveWithOnlyRp1Declared(
+            var written = SaveWithOnlyPlantedDeclared(
                 new DeclaredOnlyWriter(new InMemorySettingsStore(FileWithAGhost()), Owned));
 
             Assert.Equal(new[] { "someSetting", "writtenBy" }, GhostLoss(written));

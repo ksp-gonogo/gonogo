@@ -163,7 +163,7 @@ function localNarrowers(text: string): string[] {
  *
  * A widget with its own rule writes a helper; several widgets sharing one rule
  * import it, and the parameter type is what makes either safe. Reading only the
- * calling file said otherwise: `GonogoRp1Uplink`'s `current(reading)` is typed
+ * calling file said otherwise: one Uplink's `current(reading)` is typed
  * `TopicReading<T>`, is used 77 times across 22 widgets, and was refused here
  * purely for living in `shared/current.ts`. The alternative on offer was 22
  * copies of one helper, which is the thing a gate exists to prevent.
@@ -539,7 +539,7 @@ describe("styleguide: a Reading is never handed on whole", () => {
         "widget/good.tsx",
         [
           'import { current } from "./shared/current";',
-          'const slots = topics.useTelemetry("rp1.programSlots");',
+          'const slots = topics.useTelemetry("planted.programSlots");',
           "const plain = current(slots);",
         ].join("\n"),
       ],
@@ -551,7 +551,7 @@ describe("styleguide: a Reading is never handed on whole", () => {
         "other/impostor.tsx",
         [
           'import { current } from "./shared/current";',
-          'const slots = topics.useTelemetry("rp1.programSlots");',
+          'const slots = topics.useTelemetry("planted.programSlots");',
           "const plain = current(slots);",
         ].join("\n"),
       ],
@@ -559,7 +559,7 @@ describe("styleguide: a Reading is never handed on whole", () => {
         "nowhere/unresolved.tsx",
         [
           'import { current } from "./shared/current";',
-          'const slots = topics.useTelemetry("rp1.programSlots");',
+          'const slots = topics.useTelemetry("planted.programSlots");',
           "const plain = current(slots);",
         ].join("\n"),
       ],

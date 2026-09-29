@@ -25,7 +25,7 @@ import {
 } from "./styles";
 import type { Strategy } from "./types";
 
-/** A strategy's own blurb, cut to a couple of lines with the rest a press away: RP-1's run past 1,500 characters. */
+/** A strategy's own blurb, cut to a couple of lines with the rest a press away: a career mod's can run past 1,500 characters. */
 export function StrategyDescription({ of: s }: Readonly<{ of: Strategy }>) {
   if (!s.description) return null;
   return (
@@ -217,7 +217,7 @@ export function AvailableRow({
         </CostRow>
       )}
       {noListedCost && (
-        // Three zeros say nothing about a currency this record has no field for, such as RP-1's Confidence. A plain note, so a list of them is not announced.
+        // Three zeros say nothing about a currency this record has no field for, such as a career mod's own currency. A plain note, so a list of them is not announced.
         <Notice tone="neutral" role="note">
           No funds, science or rep cost on this record
         </Notice>

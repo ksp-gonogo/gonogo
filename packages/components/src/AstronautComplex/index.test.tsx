@@ -146,9 +146,9 @@ const NEXT_HIRE_COST = 24000;
 const UNLIMITED_CREW_CAP = 2_147_483_647;
 
 /*
- * Spans every stock standing plus a real RP-1 retiree, so the Active tab must
+ * Spans every stock standing plus a career mod's retiree, so the Active tab must
  * derive its sub-tabs. Gus carries KSP's Dead ordinal AND a Retired standing
- * attributed to the backend that corrected it, exactly as a live RP-1 career
+ * attributed to the backend that corrected it, exactly as a live career mod
  * sends it.
  */
 const CREW_ROSTER = [
@@ -212,10 +212,10 @@ const CREW_ROSTER = [
     name: "Gus Kerman",
     trait: "Pilot",
     experienceLevel: 4,
-    // KSP's own ordinal is Dead, which is what RP-1 writes.
+    // KSP's own ordinal is Dead, which is what the career mod writes.
     situation: "Retired",
     standing: CrewStanding.Retired,
-    standingSource: "rp1",
+    standingSource: "planted",
     situationOrdinal: 2,
     available: false,
     unavailableReason: "Retired",
@@ -811,8 +811,8 @@ describe("AstronautComplexComponent", () => {
     );
   });
 
-  /** RP-1 writes stock's Dead into a retiree's roster status: Gus belongs in his own tab, never under a fatality badge. */
-  it("puts an RP-1 retiree in a Retired tab and not in the Dead tab, with a badge that is not a fatality", async () => {
+  /** A career mod can write stock's Dead into a retiree's roster status: Gus belongs in his own tab, never under a fatality badge. */
+  it("puts a career mod's retiree in a Retired tab and not in the Dead tab, with a badge that is not a fatality", async () => {
     const user = userEvent.setup();
     renderWidget();
     act(() => {
@@ -929,7 +929,7 @@ describe("AstronautComplexComponent", () => {
           ...CREW_ROSTER[0],
           standing: CrewStanding.Training,
           situation: "Training",
-          standingSource: "rp1",
+          standingSource: "planted",
           // KSP's own ordinal reads Available throughout a course.
           situationOrdinal: 0,
           available: false,

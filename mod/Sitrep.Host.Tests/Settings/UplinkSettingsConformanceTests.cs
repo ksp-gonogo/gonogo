@@ -73,7 +73,7 @@ namespace Sitrep.Host.Tests.Settings
         {
             var store = new SettingsStore(new InMemorySettingsStore());
 
-            UplinkSettingsConformance.AssertDeclaringHandleContract(new UplinkSettingsScope(store, "Rp1", "0.4.1"));
+            UplinkSettingsConformance.AssertDeclaringHandleContract(new UplinkSettingsScope(store, "Planted", "0.4.1"));
         }
 
         [Fact]

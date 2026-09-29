@@ -322,8 +322,8 @@ async function docs(
   // The COVERAGE gate. Note what this is NOT: a new check. `assertEveryWidgetCovered`
   // has always THROWN for a widget with no scene, and has always let an AUGMENT off
   // with a line on stdout. That line was drawn when augments were rare, and twelve
-  // of RP-1's thirteen registrations are augments, so the strict half stopped
-  // covering almost everything. `rp1-warp-targets` sat in the page's Augments table
+  // of one Uplink's thirteen registrations are augments, so the strict half
+  // stopped covering almost everything. One of those augments sat in the page's Augments table
   // for a day with no renders and `--check` passed every time, because drift asks
   // whether the page matches the code and a registration that renders nothing
   // matches perfectly.
@@ -348,7 +348,7 @@ async function docs(
         "Add a `_scene` fixture under the widget's `__fixtures__/`, showing a state " +
         "worth reviewing rather than the happy path.\n\n" +
         "COVERAGE IS NOT CORRECTNESS: a registration with four scenes can still hide " +
-        "its interesting state, which is exactly how RP-1's dismantle warnings stayed " +
+        "its interesting state, which is exactly how one Uplink's dismantle warnings stayed " +
         "invisible with four scenes already committed. This only says somebody CAN look.",
     );
   }

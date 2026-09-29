@@ -31,7 +31,7 @@ describe("CREW_STANDING_ORDER", () => {
    * The whole reason this list is derived rather than transcribed. The
    * predecessor derived the same ordering from KSP's `RosterStatus` and carried
    * a comment promising a mod's "Retired" a tab for free; it never got one,
-   * because RP-1 appends no roster status.
+   * because a career mod can append no roster status.
    */
   it("carries Retired, which no KSP roster status supplies", () => {
     expect(CREW_STANDING_ORDER).toContain(CrewStanding.Retired);
@@ -71,7 +71,7 @@ describe("crewStandingFromRosterStatus", () => {
   /**
    * The direction that matters. This exists for version skew against a mod
    * build older than the crew-standing capability, and against such a build
-   * there is no retiree set to consult: an RP-1 retiree carries stock's Dead
+   * there is no retiree set to consult: such a retiree carries stock's Dead
    * and reads as a fatality. That is the truth about that pairing, and
    * inventing a retirement from the ordinal alone would be a guess the client
    * has no grounds for.

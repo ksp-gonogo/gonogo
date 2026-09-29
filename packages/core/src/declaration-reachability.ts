@@ -9,7 +9,7 @@
  * CORRECT: the isolation ratchets police what an Uplink may import, the
  * extraction probe proves the published surface builds standing alone, the docs
  * gate proves each page regenerates. None of them asks whether what exists is
- * REACHED. `rp1.tooling` shipped as the mod half only, a Topic plus two commands
+ * REACHED. One Uplink's tooling Topic shipped as the mod half only, a Topic plus two commands
  * plus 159 lines of payload contract with no consumer at all, and passed every
  * one of them, because a declaration nothing reads is still a correct
  * declaration.
@@ -24,7 +24,7 @@
  * its Uplink declares. Re-export is plumbing, not consumption: counting it marks
  * every declaration reached and the gate reports a permanent all-clear. Measured
  * on 2026-09-02, taking barrels at face value hid 8 of the 44 declared Topics,
- * `rp1.tooling` among them. `collectReferences` walks the tree and skips
+ * that tooling Topic among them. `collectReferences` walks the tree and skips
  * `ExportDeclaration` outright for exactly that reason.
  */
 import { readdirSync, readFileSync, statSync } from "node:fs";
@@ -33,10 +33,10 @@ import ts from "typescript";
 
 /** A Topic or command declared by an Uplink, with the constant that names it. */
 export interface Declaration {
-  /** Directory name under `mod/`, e.g. `GonogoRp1Uplink`. */
+  /** Directory name under `mod/`, e.g. `GonogoPlantedUplink`. */
   uplink: string;
   kind: "topic" | "command";
-  /** The wire id, e.g. `rp1.tooling`. */
+  /** The wire id, e.g. `planted.tooling`. */
   id: string;
   /** The exported constant, when one names it. Commands come off a generated array and have none. */
   konst?: string;
@@ -103,7 +103,7 @@ const isTest = (path: string): boolean =>
 /**
  * Identifiers and string literals a file USES.
  *
- * `ExportDeclaration` is skipped whole, so `export { RP1_TOOLING_TOPIC } from
+ * `ExportDeclaration` is skipped whole, so `export { PLANTED_TOOLING_TOPIC } from
  * "./topics"` contributes nothing. A declaration site is excluded by the caller
  * rather than here, because `export const X = "x"` is a variable statement and
  * looks identical to a use from inside the AST.
@@ -134,7 +134,7 @@ function collectReferences(
   return { identifiers, strings };
 }
 
-/** Uplink client source roots, e.g. `mod/GonogoRp1Uplink/client/src`. */
+/** Uplink client source roots, e.g. `mod/GonogoPlantedUplink/client/src`. */
 export function uplinkClientRoots(repoRoot: string): string[] {
   const modDir = join(repoRoot, "mod");
   let entries: string[];

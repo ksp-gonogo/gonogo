@@ -11,7 +11,7 @@
       "system.uplink.pending",
       "system.uplinks"
     ],
-    "heldAtHome": ["rp1.programs"],
+    "heldAtHome": ["uplinktest.ledger"],
     "trueNowPrefixes": ["uplinktest.live."]
   }
 }

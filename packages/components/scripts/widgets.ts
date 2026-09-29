@@ -497,7 +497,7 @@ const WIDGETS: WidgetRenderConfig[] = [
       },
       /*
        * Active tab, Dead sub-tab: proves Dead/Missing get their own tabs rather
-       * than folding into a stock-style "Lost" tab, and that the RP-1 retiree
+       * than folding into a stock-style "Lost" tab, and that the career mod's retiree
        * is NOT in here despite carrying KSP's Dead ordinal.
        */
       {
@@ -517,7 +517,7 @@ const WIDGETS: WidgetRenderConfig[] = [
         ],
       },
       // Active tab, Retired sub-tab: THE render this widget exists to get right.
-      // Gus carries KSP's Dead ordinal because that is what RP-1 wrote into it,
+      // Gus carries KSP's Dead ordinal because that is what the career mod wrote into it,
       // and the standing is what puts him here instead, with a badge that is
       // not the red one Val's fatality wears.
       {

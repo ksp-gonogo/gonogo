@@ -42,7 +42,7 @@ describe("formatKspDate", () => {
 
 /**
  * A game with a real calendar renders real dates; one with none renders
- * offsets. The anchor is RP-1's own (1951-01-01).
+ * offsets. The anchor is a realism career's (1951-01-01).
  */
 describe("formatKspDate with an epoch", () => {
   const RSS = {
@@ -64,7 +64,7 @@ describe("formatKspDate with an epoch", () => {
 
   it("renders a UT as the real instant that many seconds later", () => {
     setKspCalendar(RSS);
-    // 1957-03-14T03:22:37Z, the shape of date RP-1 prints.
+    // 1957-03-14T03:22:37Z, the shape of date such a career prints.
     const ut = (Date.UTC(1957, 2, 14, 3, 22, 37) - Date.UTC(1951, 0, 1)) / 1000;
     expect(formatKspDate(ut)).toBe("14 Mar 1957 03:22:37");
   });

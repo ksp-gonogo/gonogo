@@ -119,7 +119,7 @@ describe("the scan can be seen to work", () => {
    * constant and the command by its id, and a test file naming the other Topic,
    * which does not count.
    *
-   * This replaced a named control (an RP-1 Topic) and floors on how many files
+   * This replaced a named control (one Uplink's Topic) and floors on how many files
    * were parsed, how many declarations were found and how many Uplinks
    * contributed them. Every declaration in this repo is an Uplink's, and every
    * mod Uplink is leaving for the gonogo-uplinks repo, so those counts are

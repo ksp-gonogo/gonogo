@@ -602,7 +602,7 @@ declare module "./types" {
      * the level persisted in the save when the scene is empty, but its sibling
      * `GetLevelCount()` returns -1 there, and that level is NORMALISED: without
      * a tier count it cannot be turned back into a tier. A career overhaul that
-     * carries its own tier counts (RP-1 parses the CustomBarnKit upgrade lists
+     * carries its own tier counts (one that parses the CustomBarnKit upgrade lists
      * at load and bills the career off them in all four scenes) can report
      * tiers wherever the operator is standing.</para>
      */

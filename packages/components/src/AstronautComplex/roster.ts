@@ -54,7 +54,7 @@ export interface CrewRosterRow {
   standing: number | null;
   /** Which provider decided {@link standing}; shown on a corrected row so the operator sees which mod claims a retirement. */
   standingSource: string | null;
-  /** KSP's own `RosterStatus` ordinal, carried and never branched on: under RP-1 it reads `Dead` for a living retiree. */
+  /** KSP's own `RosterStatus` ordinal, carried and never branched on: a career mod can leave it reading `Dead` for a living retiree. */
   situationOrdinal: number | null;
   /** `ProtoCrewMember.inactive`, an input to the producer's `Resting` standing; never branched on here. */
   inactive: boolean;

@@ -108,9 +108,9 @@ function buildOrbitStoreFixture(pinnedUt: number) {
 }
 
 /**
- * An Earth-sized body under a name no stock table carries, which is what RSS
- * hands RP-1: the same index the orbit already references, reported with its
- * own radius. A planner that resolves the radius by NAME against the bundled
+ * An Earth-sized body under a name no stock table carries, which is what a
+ * planet pack hands over: the same index the orbit already references,
+ * reported with its own radius. A planner that resolves the radius by NAME against the bundled
  * stock bodies finds nothing here and silently plans no transfer at all.
  */
 function seedRenamedBodyOrbit(pinnedUt = 1_000_000) {

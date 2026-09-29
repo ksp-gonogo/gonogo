@@ -9,7 +9,7 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
     /// <summary>
     /// The core's fan-out to the arms that keep a DERIVED currency withheld.
     ///
-    /// <para>The defect this closes is not RP-1's: it is the shape of every
+    /// <para>The defect this closes is not one mod's: it is the shape of every
     /// quantity a mod computes from a currency change. The core neutralises the
     /// change with a balance write, a balance write fires no currency query, so the
     /// mod is never told to revisit what it derived.</para>
@@ -208,19 +208,19 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
         public void a_fan_out_that_reached_its_arms_names_them()
         {
             var noted = new List<string>();
-            DerivedCurrencyWithholding.Bind(KernelWith(new RecordingArm("rp1"), new RecordingArm("other")));
+            DerivedCurrencyWithholding.Bind(KernelWith(new RecordingArm("planted"), new RecordingArm("other")));
             DerivedCurrencyWithholding.Note = noted.Add;
 
             DerivedCurrencyWithholding.WithholdDerived(DerivedCurrencyCapability.Science, 25.0, 100.0);
 
             Assert.Single(noted);
-            Assert.Contains("rp1", noted[0], StringComparison.Ordinal);
+            Assert.Contains("planted", noted[0], StringComparison.Ordinal);
             Assert.Contains("other", noted[0], StringComparison.Ordinal);
         }
 
         /// <summary>
         /// The arm ids the startup line reports are the ACTIVE ones, so a line that
-        /// names <c>rp1</c> is evidence the arm registered and a line that names none
+        /// names <c>planted</c> is evidence the arm registered and a line that names none
         /// is evidence it did not. Absent that, both were the same silence.
         /// </summary>
         [Fact]
@@ -228,9 +228,9 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
         {
             Assert.Empty(DerivedCurrencyWithholding.ActiveArmIds());
 
-            DerivedCurrencyWithholding.Bind(KernelWith(new RecordingArm("rp1")));
+            DerivedCurrencyWithholding.Bind(KernelWith(new RecordingArm("planted")));
 
-            Assert.Equal(new[] { "rp1" }, DerivedCurrencyWithholding.ActiveArmIds());
+            Assert.Equal(new[] { "planted" }, DerivedCurrencyWithholding.ActiveArmIds());
         }
 
         /// <summary>
@@ -244,13 +244,13 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
         {
             var said = new List<string>();
             DerivedCurrencyWithholding.Report = said.Add;
-            var arm = new RecordingArm("rp1");
+            var arm = new RecordingArm("planted");
             DerivedCurrencyWithholding.Bind(KernelWith(arm));
 
             DerivedCurrencyWithholding.WithholdDerived(DerivedCurrencyCapability.Science, 25.0, 100.0);
-            arm.Diagnostic("could not read RP-1's confidence");
+            arm.Diagnostic("could not read the planted currency");
 
-            Assert.Contains("could not read RP-1's confidence", said);
+            Assert.Contains("could not read the planted currency", said);
         }
 
         /// <summary>
@@ -264,11 +264,11 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
             var noted = new List<string>();
             DerivedCurrencyWithholding.Note = noted.Add;
 
-            DerivedCurrencyWithholding.Bind(KernelWith(new RecordingArm("rp1")), "scene load SPACECENTER");
+            DerivedCurrencyWithholding.Bind(KernelWith(new RecordingArm("planted")), "scene load SPACECENTER");
 
             Assert.Single(noted);
             Assert.Contains("BOUND on scene load SPACECENTER", noted[0], StringComparison.Ordinal);
-            Assert.Contains("1 arm(s) active: rp1", noted[0], StringComparison.Ordinal);
+            Assert.Contains("1 arm(s) active: planted", noted[0], StringComparison.Ordinal);
         }
 
         /// <summary>
@@ -316,7 +316,7 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
         {
             var warned = new List<string>();
             DerivedCurrencyWithholding.Note = _ => { };
-            DerivedCurrencyWithholding.Bind(KernelWith(new RecordingArm("rp1")), "uplink Register");
+            DerivedCurrencyWithholding.Bind(KernelWith(new RecordingArm("planted")), "uplink Register");
             DerivedCurrencyWithholding.Unbind("scene load MAINMENU");
             DerivedCurrencyWithholding.Report = warned.Add;
 

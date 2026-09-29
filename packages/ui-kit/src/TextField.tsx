@@ -10,7 +10,7 @@ export interface TextFieldProps {
   /**
    * Refused by the control that owns the field, not by the field: naming a
    * complex is refused for reasons only the caller knows (a duplicate at this
-   * centre, RP-1's own wording), and a field that invented its own rule would
+   * centre, or a career mod's own naming rule), and a field that invented its own rule would
    * disagree with the command.
    */
   invalid?: string;

@@ -741,8 +741,8 @@ export interface CareerStrategy
 	activateVerdictSource?: string | null;
 	/**
 	* When a refusal that lapses on its own will lapse, such as a dismissed
-	* Leader's re-hire cooldown under RP-1. `null` when the refusal does not lapse
-	* with time, or when nothing refused.
+	* Leader's re-hire cooldown under a career mod. `null` when the refusal does
+	* not lapse with time, or when nothing refused.
 	*/
 	activateAvailableFromUt?: Value<"ut"> | null;
 	/**
@@ -803,7 +803,7 @@ export interface CareerTechNode
 	*
 	* It comes from the tree's own config rather than from `RDTech`, whose
 	* `description` field only exists while the R&D Building scene is open. A tech
-	* tree a mod has replaced (RP-1) is read the same way, so this is the node's
+	* tree a mod has replaced is read the same way, so this is the node's
 	* description in whatever tree the save is playing.
 	*/
 	description?: string | null;
@@ -1210,8 +1210,8 @@ export interface CommandResult
 	errorCode?: CommandErrorCode;
 	/**
 	* The refinement's id, when the refusal is more specific than its root:
-	* `rp1.notManaging` under `careerModeRequired`. Absent when the refusal is a
-	* root. An id this client does not know is still a refusal of kind
+	* `example.notManaging` under `careerModeRequired`. Absent when the refusal is
+	* a root. An id this client does not know is still a refusal of kind
 	* `CommandResult.errorCode`.
 	*/
 	reason?: string;
@@ -6706,15 +6706,15 @@ export interface CrewRosterEntry
 	* derived from KSP's roster status by the stock backend.
 	*
 	* This exists because the roster status alone is NOT enough under a career
-	* overhaul. RP-1 retires a kerbal by writing stock's `Dead` into the roster
-	* status, so `CrewRosterEntry.situationOrdinal` below reads `Dead` for a
-	* living retiree and no reading of it can recover the difference. See
+	* overhaul. Such a mod can retire a kerbal by writing stock's `Dead` into the
+	* roster status, so `CrewRosterEntry.situationOrdinal` below reads `Dead` for
+	* a living retiree and no reading of it can recover the difference. See
 	* `CrewStanding` for the whole account.
 	*/
 	standing?: CrewStanding | null;
 	/**
 	* Which provider decided `CrewRosterEntry.standing`: the elected backend's
-	* `ProviderId`, e.g. `"stock"` or `"rp1"`. Absent when no backend was
+	* `ProviderId`, e.g. `"stock"` or an Uplink's id. Absent when no backend was
 	* reachable at capture time.
 	*
 	* Carried so a surface can attribute a correction rather than merely apply it.
@@ -6757,9 +6757,9 @@ export interface CrewRosterEntry
 	*
 	* A truthful read of the game field and nothing more, kept because what KSP
 	* itself holds is worth knowing and because a command core dispatches is
-	* arbitrated against this value. It is NOT the field to branch on: under RP-1
-	* it reads `Dead` for a living retiree. `CrewRosterEntry.standing` is the
-	* field to branch on.
+	* arbitrated against this value. It is NOT the field to branch on: under a
+	* career overhaul it can read `Dead` for a living retiree.
+	* `CrewRosterEntry.standing` is the field to branch on.
 	*
 	* `null` for an APPLICANT, and that is a real distinction rather than a
 	* missing value: an applicant is not in the roster, so it has no

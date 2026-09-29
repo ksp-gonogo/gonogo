@@ -463,8 +463,8 @@ export interface MeterEntry {
  * <internal>
  * A career overhaul's idea of what belongs beside the vanilla figures is the
  * case this was built for: the Astronaut Complex quotes funds, hire price and
- * roster occupancy, and RP-1 considers crew-in-training as core as any of them.
- * The alternative was an RP-1 branch inside a vanilla widget.
+ * roster occupancy, and such a career can consider crew-in-training as core as
+ * any of them. The alternative was a career-mod branch inside a vanilla widget.
  * </internal>
  *
  * @category Extensions

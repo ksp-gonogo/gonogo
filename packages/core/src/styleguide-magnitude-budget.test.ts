@@ -69,19 +69,6 @@ import { describe, expect, it } from "vitest";
  * warning.
  */
 const MAGNITUDE_BUDGET: Record<string, number> = {
-  // ONE, in a named `kilograms()` helper at the command boundary and nowhere else.
-  // `rp1.contracts.setPayload` declares its two fields as `int?` in kilograms,
-  // because RP-1 stores them as `int` and validates against an integer range and
-  // an integer step, so a raw number has to exist where the typed value meets the
-  // wire. The figures a READER sees go out through `<Unit>`.
-  /*
-   * The one place a wire Value meets transcribed arithmetic. A new complex is
-   * priced against what the operator is typing, so its pad and integration halves
-   * are a closed form over plain numbers, transcribed from RP-1 and pinned against
-   * figures the shipped assembly generated. The resource half arrives as a
-   * funds-per-unit Value and has to join those as a number to be summed with them.
-   * Every figure a READER sees goes back out through `<Unit>`.
-   */
   // 1: the contribution entry carries a BARE bits/sec so CommSignal can compare
   // legs to find the bottleneck. A comparison across a slot boundary cannot
   // carry a Value, because the entry crosses the published contract as JSON.

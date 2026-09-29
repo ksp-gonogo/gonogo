@@ -213,9 +213,9 @@ export const CommandErrorCode = {
    * Authority: whichever Uplink contributed the readiness requirement that
    * refused (see `IUplinkHost.AddCommandRequirement`), never a stock KSP read:
    * stock has no build step, so this code never arrives on a stock install.
-   * Under RP-1 it is a vehicle that was never integrated, one still integrating,
-   * one finished but not rolled out, or one rolled out to a pad still being
-   * reconditioned. `CommandResult.detail` says which.
+   * Under a build model it may be a vehicle that was never integrated, one still
+   * integrating, one finished but not rolled out, or one rolled out to a pad
+   * still being reconditioned. `CommandResult.detail` says which.
    *
    * Not `CommandErrorCode.LimitReached`, the launch refusal for a craft too
    * heavy or too large for the site, fixed by changing the craft or upgrading
@@ -578,7 +578,7 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     refines: null,
     origin: null,
     sentence: "the vehicle is not ready to fly yet",
-    meaning: "The vehicle is not a launchable article yet: an install's build and logistics model has work outstanding on it. Nothing is over a limit and nothing is broken, the thing simply has not been made ready.\n\nAuthority: whichever Uplink contributed the readiness requirement that refused (see `IUplinkHost.AddCommandRequirement`), never a stock KSP read: stock has no build step, so this code never arrives on a stock install. Under RP-1 it is a vehicle that was never integrated, one still integrating, one finished but not rolled out, or one rolled out to a pad still being reconditioned. `CommandResult.detail` says which.\n\nNot `CommandErrorCode.LimitReached`, the launch refusal for a craft too heavy or too large for the site, fixed by changing the craft or upgrading the pad. This one is fixed by doing the outstanding work.\n\nNot `CommandErrorCode.NotFound` either, which `ksp.launch` returns when no craft file has the name. A craft that exists on disk and has never been built is a different situation from one that does not exist.",
+    meaning: "The vehicle is not a launchable article yet: an install's build and logistics model has work outstanding on it. Nothing is over a limit and nothing is broken, the thing simply has not been made ready.\n\nAuthority: whichever Uplink contributed the readiness requirement that refused (see `IUplinkHost.AddCommandRequirement`), never a stock KSP read: stock has no build step, so this code never arrives on a stock install. Under a build model it may be a vehicle that was never integrated, one still integrating, one finished but not rolled out, or one rolled out to a pad still being reconditioned. `CommandResult.detail` says which.\n\nNot `CommandErrorCode.LimitReached`, the launch refusal for a craft too heavy or too large for the site, fixed by changing the craft or upgrading the pad. This one is fixed by doing the outstanding work.\n\nNot `CommandErrorCode.NotFound` either, which `ksp.launch` returns when no craft file has the name. A craft that exists on disk and has never been built is a different situation from one that does not exist.",
   },
   {
     id: "insufficientResource",

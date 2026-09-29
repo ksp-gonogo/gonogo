@@ -33,10 +33,10 @@ namespace Gonogo.KSP.Tests
         [InlineData("Finalizers")]
         public void AnyOneKindOfPatchIsPatched(string kind)
         {
-            var reading = HarmonyPatchProbe.Read(FakePatches.With(kind, "RP-0"));
+            var reading = HarmonyPatchProbe.Read(FakePatches.With(kind, "Planted.Career"));
 
             Assert.Equal(HarmonyPatchProbe.PatchState.Patched, reading.State);
-            Assert.Equal(new[] { "RP-0" }, reading.Owners);
+            Assert.Equal(new[] { "Planted.Career" }, reading.Owners);
         }
 
         /// <summary>
@@ -57,16 +57,16 @@ namespace Gonogo.KSP.Tests
             var reading = HarmonyPatchProbe.Read(new FieldPatches());
 
             Assert.Equal(HarmonyPatchProbe.PatchState.Patched, reading.State);
-            Assert.Equal(new[] { "RP-0" }, reading.Owners);
+            Assert.Equal(new[] { "Planted.Career" }, reading.Owners);
         }
 
         [Fact]
         public void AnOwnerNamedTwiceIsNamedOnce()
         {
-            var patches = FakePatches.With("Prefixes", "RP-0");
-            patches.Owners = new ReadOnlyCollection<string>(new List<string> { "RP-0", "RP-0", "Other" });
+            var patches = FakePatches.With("Prefixes", "Planted.Career");
+            patches.Owners = new ReadOnlyCollection<string>(new List<string> { "Planted.Career", "Planted.Career", "Other" });
 
-            Assert.Equal(new[] { "RP-0", "Other" }, HarmonyPatchProbe.Read(patches).Owners);
+            Assert.Equal(new[] { "Planted.Career", "Other" }, HarmonyPatchProbe.Read(patches).Owners);
         }
 
         [Fact]
@@ -81,11 +81,11 @@ namespace Gonogo.KSP.Tests
         public void EitherHalfPatchedIsPatchedNamingEveryOwnerOnce()
         {
             var reading = HarmonyPatchProbe.Combine(
-                new HarmonyPatchProbe.Reading(HarmonyPatchProbe.PatchState.Patched, new[] { "RP-0" }),
-                new HarmonyPatchProbe.Reading(HarmonyPatchProbe.PatchState.Patched, new[] { "RP-0", "Other" }));
+                new HarmonyPatchProbe.Reading(HarmonyPatchProbe.PatchState.Patched, new[] { "Planted.Career" }),
+                new HarmonyPatchProbe.Reading(HarmonyPatchProbe.PatchState.Patched, new[] { "Planted.Career", "Other" }));
 
             Assert.Equal(HarmonyPatchProbe.PatchState.Patched, reading.State);
-            Assert.Equal(new[] { "RP-0", "Other" }, reading.Owners);
+            Assert.Equal(new[] { "Planted.Career", "Other" }, reading.Owners);
         }
 
         /// <summary>
@@ -97,7 +97,7 @@ namespace Gonogo.KSP.Tests
         public void AnUnreadableHalfIsUnknownWhateverTheOtherSays()
         {
             var reading = HarmonyPatchProbe.Combine(
-                new HarmonyPatchProbe.Reading(HarmonyPatchProbe.PatchState.Patched, new[] { "RP-0" }),
+                new HarmonyPatchProbe.Reading(HarmonyPatchProbe.PatchState.Patched, new[] { "Planted.Career" }),
                 HarmonyPatchProbe.Reading.Unknown);
 
             Assert.Equal(HarmonyPatchProbe.PatchState.Unknown, reading.State);
@@ -179,7 +179,7 @@ namespace Gonogo.KSP.Tests
             public readonly ReadOnlyCollection<object> Transpilers = None;
             public readonly ReadOnlyCollection<object> Finalizers = None;
 
-            public ReadOnlyCollection<string> Owners => new ReadOnlyCollection<string>(new List<string> { "RP-0" });
+            public ReadOnlyCollection<string> Owners => new ReadOnlyCollection<string>(new List<string> { "Planted.Career" });
         }
 
         private sealed class NoFinalizers

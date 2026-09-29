@@ -766,8 +766,8 @@ describe("AlarmsModal provenance", () => {
       state: "pending",
       createdBy: "main",
       requestedBy: {
-        uplinkId: "rp1",
-        uplinkName: "RP-1",
+        uplinkId: "builder",
+        uplinkName: "Builder",
         key: "facility-upgrade:LaunchPad",
       },
       createdAt: 1_700_000_000_000,
@@ -785,7 +785,7 @@ describe("AlarmsModal provenance", () => {
     );
 
     await screen.findByText("Launch pad upgrade complete");
-    expect(screen.getByText(/Requested by RP-1/)).toBeInTheDocument();
+    expect(screen.getByText(/Requested by Builder/)).toBeInTheDocument();
   });
 
   it("says nothing about provenance on an alarm the operator made", async () => {

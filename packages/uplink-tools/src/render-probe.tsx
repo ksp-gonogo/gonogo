@@ -1189,7 +1189,7 @@ async function feedInRounds(mounted: Mounted): Promise<string[]> {
  * <p>A tab's content is not mounted until the tab is selected, and
  * `_scene.before` runs after the feed, so a topic only the tab's content reads
  * had no subscriber when the fixture emitted it and was dropped in silence.
- * Every training picture in the RP-1 Uplink was rendered in the stand-in host
+ * Every training picture in one Uplink was rendered in the stand-in host
  * for exactly that reason, which meant the one thing an operator actually meets,
  * the tab with its sections in the order they appear, had never been photographed
  * at all.</p>

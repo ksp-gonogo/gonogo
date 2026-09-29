@@ -24,8 +24,8 @@ import { EMPTY_STYLE, LIST_STYLE } from "./styles";
 /**
  * The Active tab, sub-tabbed by the `CrewStanding` values actually present, so
  * no tab is ever empty and a new standing gets a tab with no edit. Grouped by
- * STANDING, not KSP's roster status: RP-1 writes `Dead` into the roster status
- * of a living retiree.
+ * STANDING, not KSP's roster status: a career mod can write `Dead` into the
+ * roster status of a living retiree.
  */
 export function ActivePanel({
   crew,

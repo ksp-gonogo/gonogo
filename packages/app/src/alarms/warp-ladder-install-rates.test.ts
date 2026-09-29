@@ -22,7 +22,7 @@ import { AlarmHostService } from "./AlarmHostService";
  * the game keeps sending on `time.warp`, and an install is free to publish a
  * different table: Kopernicus and RealSolarSystem both do.
  *
- * Measured on the Deck against the shipped RSS/RO/RP-1 install on 2026-09-12 by
+ * Measured on the Deck against the shipped realism-pack install on 2026-09-12 by
  * commanding each index and reading `time.warp.warpRate` back:
  *
  * | index | this install | `HIGH_WARP_RATES` |

@@ -301,8 +301,7 @@ describe("widget fixtures conform to the generated contract", () => {
           "where the real wire produces 7.3.\n" +
           "If the field belongs to a DIFFERENT topic or a different row type " +
           "than the one it is attached to, move it rather than deleting it: " +
-          "`rolloutRefusals` is a real RP-1 field, on the warehouse entry, not " +
-          "on a build-queue row.\n" +
+          "a real field on the wrong row type is still a real field.\n" +
           "FIXTURE_CONTRACT_DRIFT in " +
           "packages/core/src/widget-fixture-conformance.debt.ts is shrink-only " +
           "and is NOT where a new one goes: the last test in this file refuses " +

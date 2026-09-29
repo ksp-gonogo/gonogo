@@ -5,8 +5,8 @@
  * pulling in vitest or the scan machinery. Same split-module shape as
  * `uplink-isolation.allowlist.ts`.
  *
- * A DECLARATION NOBODY READS IS NOT A FEATURE. `rp1.tooling` was folded as the
- * mod half only: a Topic, two commands and 159 lines of payload contract with no
+ * A DECLARATION NOBODY READS IS NOT A FEATURE. One Uplink's tooling Topic was folded
+ * as the mod half only: a Topic, two commands and 159 lines of payload contract with no
  * client consumer at all. The isolation ratchets passed, the extraction probe
  * passed, the docs gate passed, and the queue recorded it built for days when it
  * was built only on the wire. Every gate in the tree asked whether what exists is
@@ -48,15 +48,14 @@
  * Wiring them would have meant rebuilding a subsystem that was deliberately
  * removed. `kos.run` is the surviving way to run anything on a CPU.
  *
- * The three career spends CLAUDE.md's funds rule names by hand,
- * `rp1.tech.research`, `rp1.facility.upgrade` and `rp1.strategy.activate`. Each
- * landed in the surface the operator was already looking at rather than in one
- * RP-1 screen: research in `StartResearch` on the tech tree, the facility tier
- * in `FacilityUpgrades` on the Space Center, and the Program accept in
- * `ProgramDetail` on the Administration building. Note the LEADER half of
- * `rp1.strategy.activate` has no control: RP-1 publishes no availability fact
- * for a leader and the command asks RP-1's own `IsUnlocked` predicate for none,
- * so a picker would offer appointments RP-1's own building forbids.
+ * The three career spends CLAUDE.md's funds rule names by hand, research, a
+ * facility upgrade and a strategy activation. Each landed in the surface the
+ * operator was already looking at rather than in one Uplink screen: research on
+ * the tech tree, the facility tier on the Space Center, and the Program accept on
+ * the Administration building. The LEADER half of the activation has no control:
+ * the mod publishes no availability fact for a leader and its command asks the
+ * mod's own unlock predicate for none, so a picker would offer appointments the
+ * mod's own building forbids.
  *
  * And the whole Principia planning write path: `principia.plan.create`,
  * `.delete`, `.duplicate`, `.horizon` and `.send`. What that exercise taught,

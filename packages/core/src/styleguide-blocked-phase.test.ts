@@ -27,19 +27,19 @@ import {
  *
  * ## The defect this exists to prevent
  *
- * `SpaceCenterStatus` hosts RP-1's facility-upgrade control and drew its own
- * stock funds verdict on the stock `career.facility.upgrade` button. Under RP-1
- * that command is blocked outright on every managed save, and the widget never
+ * `SpaceCenterStatus` hosts a career Uplink's facility-upgrade control and drew its own
+ * stock funds verdict on the stock `career.facility.upgrade` button. Under that
+ * career the command is blocked outright on every managed save, and the widget never
  * read the gate. One screen showed:
  *
  *   - Launch Pad `112.5k` and R&D `60.0k` in RED with dark Upgrade buttons, a
  *     shortfall verdict on a purchase nobody is charged for
- *   - VAB `40.0k` in GREEN with a LIVE Upgrade button, for a press RP-1 refuses
- *   - and 300px below, the correct sentence: "RP-1 bills a construction as it
- *     builds, so a short career slows the work rather than stopping it",
+ *   - VAB `40.0k` in GREEN with a LIVE Upgrade button, for a press the career refuses
+ *   - and 300px below, the correct sentence: "The career bills a construction as
+ *     it builds, so a short career slows the work rather than stopping it",
  *     offering Queue upgrade on the same tiers
  *
- * Neither half of that was in the RP-1 Uplink. All three RP-1 controls were
+ * Neither half of that was in the career Uplink. All three of its controls were
  * compliant; the wrong claim was in the CORE widget the Uplink contributes
  * into. That is structural to the augment model rather than one unlucky file:
  * an Uplink's spend control lands inside a host that already carries one, and

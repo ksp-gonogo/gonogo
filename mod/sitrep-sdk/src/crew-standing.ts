@@ -8,7 +8,7 @@ import { namesByValue } from "./enum-names";
  * Not a mirror of a KSP enum: KSP's roster status stops saying where a kerbal
  * stands once a career overhaul is installed.
  *
- * @see `Sitrep.Contract/CrewStanding.cs` for the account of what RP-1 does to
+ * @see `Sitrep.Contract/CrewStanding.cs` for the account of what a career mod can do to
  * `rosterStatus` and why a mirror could not have been made to work.
  *
  * @category Crew
@@ -31,7 +31,7 @@ export type CrewStandingName = keyof typeof CrewStanding;
  * added to the contract takes a place here without anybody remembering to add
  * one. That is the specific failure this replaces: the Astronaut Complex ordered
  * its tabs off `KSP_ROSTER_STATUS_NAMES` and carried a comment promising that a
- * mod's "Retired" would get a tab for free. It never did, because RP-1 appends
+ * mod's "Retired" would get a tab for free. It never did, because a career mod can append
  * no roster status; the ordering was fine and the premise was wrong.
  *
  * `Unknown` is deliberately LAST rather than first, despite being ordinal zero.
@@ -61,7 +61,7 @@ export const CREW_STANDING_ORDER: readonly CrewStanding[] = [
  * means by it, so it is read.</p>
  *
  * <p>What this deliberately does NOT do is invent a retirement. An old mod build
- * has no retiree set to consult, so an RP-1 retiree still reads as a fatality
+ * has no retiree set to consult, so such a retiree still reads as a fatality
  * against one, which is the truth about that pairing and the reason to upgrade
  * the mod rather than to guess here.</p>
  *

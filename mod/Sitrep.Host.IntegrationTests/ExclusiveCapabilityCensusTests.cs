@@ -124,7 +124,7 @@ namespace Sitrep.Host.IntegrationTests
                     + "core, and opening a craft file instantiates Unity parts an Uplink may not "
                     + "name. No capture feeds it either: its answer is a folder walk made at the "
                     + "moment it is asked, so there is no gated path that could starve it, and its "
-                    + "consumers treat an absent catalogue as data (GonogoRp1Uplink.Tests covers "
+                    + "consumers treat an absent catalogue as data (the consuming Uplink's own suite covers "
                     + "both, as a refusal and as a control dark with its reason)."),
             new Entry(
                 "delayedScience",

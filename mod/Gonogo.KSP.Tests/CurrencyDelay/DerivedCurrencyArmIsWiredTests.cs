@@ -20,8 +20,8 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
     {
         /// <summary>
         /// The observation has to come off the MODIFIER QUERY, not off the
-        /// <c>On*Changed</c> that follows it. <c>PatchRnD.Prefix_AddScience</c> fires
-        /// query, then <c>OnCurrencyModified</c> (where RP-1 banks its confidence
+        /// <c>On*Changed</c> that follows it. a career mod's AddScience prefix fires
+        /// query, then <c>OnCurrencyModified</c> (where a career mod banks its derived
         /// award), then <c>OnScienceChanged</c> (where the interceptor neutralises).
         /// By the time the interceptor is told the science moved, the derived
         /// currency has already moved with it, so the query is the last moment a
@@ -43,8 +43,8 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
                 interceptor, "private static void ObserveIfAsked(string primaryCurrency, double asked, double ut)");
             Assert.Contains("DerivedCurrencyWithholding.ObserveBeforeDerivation", helper, StringComparison.Ordinal);
 
-            // And a zero ask takes no reading, which is what stops RP-1's own
-            // zero-science confidence-pricing query from overwriting a live one.
+            // And a zero ask takes no reading, which is what stops a career mod's own
+            // zero-science pricing query from overwriting a live one.
             Assert.Contains("asked > 0.0", helper, StringComparison.Ordinal);
         }
 
@@ -68,7 +68,7 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
             Assert.True(neutraliseAt >= 0, "ResolveScienceAway no longer neutralises");
             Assert.True(
                 withholdAt > neutraliseAt,
-                "The derived-currency withhold must run AFTER the neutralise: RP-1 banks its confidence "
+                "The derived-currency withhold must run AFTER the neutralise: a career mod banks its derived "
                 + "award before the interceptor is told the science moved, so there is nothing to put "
                 + "back until the science has actually been withheld");
         }
@@ -121,7 +121,7 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
 
         /// <summary>
         /// And it binds it again on the way BACK INTO a game. Without that re-bind,
-        /// the science would be withheld correctly while RP-1's confidence moved
+        /// the science would be withheld correctly while a derived currency moved
         /// anyway, with nothing in <c>KSP.log</c> either way.
         ///
         /// <para><c>Register</c> runs once for the whole process (the host addon is

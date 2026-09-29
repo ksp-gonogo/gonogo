@@ -42,7 +42,7 @@ public static class ScetThresholdCapability
 public sealed class ScetThresholdSource
 {
     /// <summary>
-    /// The Topic, spelled as the wire spells one (<c>"rp1.projects"</c>).
+    /// The Topic, spelled as the wire spells one (<c>"example.projects"</c>).
     ///
     /// <para>A Topic core already knows is NOT overridden: the built-in table is
     /// consulted first and a contributed entry naming one of its Topics is

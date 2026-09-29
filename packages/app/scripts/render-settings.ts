@@ -83,7 +83,7 @@ const SAVED = 0;
 const MEMORY_ONLY = 1;
 const RECOVERED = 2;
 
-/** What the mod publishes with RP-1 running: its own three rows, and one in RP-1's block. */
+/** What the mod publishes with a facility-building Uplink running: its own three rows, and one in that Uplink's block. */
 function kspSettings(state: number, reason: string | null = null) {
   return {
     rows: [
@@ -116,8 +116,8 @@ function kspSettings(state: number, reason: string | null = null) {
         default: "False",
       },
       {
-        path: "Uplinks/rp1/upgradeSlipWarningDays",
-        owner: "rp1",
+        path: "Uplinks/builder/upgradeSlipWarningDays",
+        owner: "builder",
         kind: NUMBER,
         label:
           "Warn before a facility upgrade whose finish date slips past this many days",
@@ -152,8 +152,8 @@ const UPLINKS = {
       },
     },
     {
-      id: "rp1",
-      name: "RP-1",
+      id: "builder",
+      name: "Builder",
       version: "1.0.0",
       available: true,
       reason: null,
@@ -401,10 +401,10 @@ const SCENES: Scene[] = [
     pxH: 620,
   },
   {
-    // RP-1's page: its rows in Gonogo's own settings file, with their SAVE.
-    name: "uplinks-rp1",
+    // The Builder Uplink's page: its rows in Gonogo's own settings file, with their SAVE.
+    name: "uplinks-builder",
     tab: "uplinks",
-    clickTab: "RP-1",
+    clickTab: "Builder",
     connected: true,
     emit: UPLINK_EMIT,
     outcomes: OUTCOMES,

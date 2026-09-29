@@ -94,7 +94,7 @@ describe("StatContributions", () => {
       <WithStats
         entries={[
           {
-            id: "rp1:in-training",
+            id: "planted:in-training",
             label: "In training",
             value: value("count", 4),
             detail: "across 3 courses",

@@ -25,7 +25,7 @@ import { describe, expect, it } from "vitest";
  *   that has renders
  *
  * The second is the one with teeth against the failure this exercise found: the
- * RP-1 client had three `_scene` fixtures AND a hand-rolled driver that ignored
+ * client of one Uplink had three `_scene` fixtures AND a hand-rolled driver that ignored
  * them, so `pnpm ... render` rendered a different set of pictures from the one the
  * fixtures described, and nothing said so.
  *

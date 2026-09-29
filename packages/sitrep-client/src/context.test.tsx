@@ -389,7 +389,7 @@ describe("TelemetryProvider holds the roster its store reads delay lanes from", 
     );
 
     expect(transport.isSubscribed("system.uplinks")).toBe(true);
-    const unsubscribeWidget = client.subscribe("rp1.programs", () => {});
+    const unsubscribeWidget = client.subscribe("uplinktest.ledger", () => {});
 
     const utNow = 10_000;
     const at = { validAt: utNow, deliveredAt: utNow };
@@ -405,18 +405,18 @@ describe("TelemetryProvider holds the roster its store reads delay lanes from", 
           uplinks: [],
           delayRoles: {
             trueNow: [],
-            heldAtHome: ["rp1.programs"],
+            heldAtHome: ["uplinktest.ledger"],
             trueNowPrefixes: [],
           },
         },
         at,
       );
-      transport.emit("rp1.programs", { programs: [] }, at);
+      transport.emit("uplinktest.ledger", { programs: [] }, at);
     });
     store?.beginFrame();
 
     expect(store?.currentFrame().viewUt).toBeLessThan(utNow);
-    expect(store?.sample("rp1.programs")?.validAt).toBe(utNow);
+    expect(store?.sample("uplinktest.ledger")?.validAt).toBe(utNow);
 
     unsubscribeWidget();
     client.dispose();

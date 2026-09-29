@@ -9,8 +9,8 @@ namespace Sitrep.Contract
      * dead, or merely finished flying.
      *
      * KSP's ProtoCrewMember.RosterStatus has four members and no notion of a
-     * career ending any way but badly. RP-1 retires a kerbal by assigning
-     * rosterStatus = (RosterStatus)2, which is stock's Dead, and remembers who is
+     * career ending any way but badly. A career mod can retire a kerbal by assigning
+     * rosterStatus = (RosterStatus)2, which is stock's Dead, and remember who is
      * a retiree in a private set on its own CrewHandler. KerbalRoster.Crew
      * filters on type only, so the retiree stays on the published roster, and no
      * reading of the stock field can tell a retiree from a fatality.
@@ -298,7 +298,7 @@ namespace Sitrep.Contract
     {
         /// <summary>
         /// The standing itself. Null when the backend has nothing to say about
-        /// this kerbal, which for a mod backend is the ordinary case: RP-1
+        /// this kerbal, which for a mod backend is the ordinary case: it
         /// corrects the handful of names in its retiree set and leaves every
         /// other kerbal to the stock reading.
         /// </summary>

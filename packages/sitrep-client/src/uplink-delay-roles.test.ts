@@ -62,7 +62,7 @@ const fixture = readFixture();
 const OWLT = 240;
 const UT_NOW = 10_000;
 
-const HELD_AT_HOME = "rp1.programs";
+const HELD_AT_HOME = "uplinktest.ledger";
 const LINK_TRUE_NOW = "comms.linkMargin";
 const SECOND_TRUE_NOW = "comms.dataRate";
 const DYNAMIC_TRUE_NOW = "uplinktest.live.alpha";
@@ -103,7 +103,7 @@ function connect(roster: Record<string, unknown> | undefined) {
 }
 
 describe("an Uplink channel's delay role, carried on system.uplinks", () => {
-  it("reads an rp1 held-at-home value at the home node's delivery, with no light-time taken off", () => {
+  it("reads a held-at-home value at the home node's delivery, with no light-time taken off", () => {
     const { store, deliver } = connect({ delayRoles: fixture.delayRoles });
     deliver(HELD_AT_HOME, { programs: ["earth-orbit"] }, UT_NOW);
     store.beginFrame();

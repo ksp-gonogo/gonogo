@@ -103,8 +103,8 @@ namespace Sitrep.Host.Tests.Settings
         [Fact]
         public void ADeclaredSettingIsInForceWhileTheUplinkRegisters()
         {
-            var store = new SettingsStore(new InMemorySettingsStore(FileWith("Rp1", "0.4.1", ("upgradeSlipWarningDays", "45"))));
-            var uplink = new SettingsUplink("Rp1", "0.4.1",
+            var store = new SettingsStore(new InMemorySettingsStore(FileWith("Planted", "0.4.1", ("upgradeSlipWarningDays", "45"))));
+            var uplink = new SettingsUplink("Planted", "0.4.1",
                 s => s.Declare(UplinkSettingRow.Number("upgradeSlipWarningDays", 30, "Slip warning")));
 
             Discover(store, uplink);
@@ -121,11 +121,11 @@ namespace Sitrep.Host.Tests.Settings
         [Fact]
         public void ABlockAnOlderVersionWroteReachesTheInitialiserWithThatVersion()
         {
-            var store = new SettingsStore(new InMemorySettingsStore(FileWith("Rp1", "0.3.0", ("slipDays", "45"))));
+            var store = new SettingsStore(new InMemorySettingsStore(FileWith("Planted", "0.3.0", ("slipDays", "45"))));
             string? heardVersion = null;
             string? heardOldValue = null;
             IReadOnlyList<string>? heardNames = null;
-            var uplink = new SettingsUplink("Rp1", "0.4.1", s =>
+            var uplink = new SettingsUplink("Planted", "0.4.1", s =>
             {
                 heardVersion = s.WrittenBy;
                 heardOldValue = s.Stored("slipDays");
@@ -153,9 +153,9 @@ namespace Sitrep.Host.Tests.Settings
         [Fact]
         public void TheNextSaveCarriesTheMigrationAndTheNewVersionAndKeepsTheOldRow()
         {
-            var backing = new InMemorySettingsStore(FileWith("Rp1", "0.3.0", ("slipDays", "45")));
+            var backing = new InMemorySettingsStore(FileWith("Planted", "0.3.0", ("slipDays", "45")));
             var store = new SettingsStore(backing);
-            var uplink = new SettingsUplink("Rp1", "0.4.1", s =>
+            var uplink = new SettingsUplink("Planted", "0.4.1", s =>
             {
                 s.Declare(UplinkSettingRow.Number("upgradeSlipWarningDays", 30, "Slip warning"));
                 s.Migrate("upgradeSlipWarningDays", s.Stored("slipDays")!);
@@ -166,9 +166,9 @@ namespace Sitrep.Host.Tests.Settings
             store.Commit();
 
             var written = backing.Read();
-            Assert.Equal("45", written.Text("Uplinks/Rp1/upgradeSlipWarningDays"));
-            Assert.Equal("0.4.1", written.Text("Uplinks/Rp1/writtenBy"));
-            Assert.Equal("45", written.Text("Uplinks/Rp1/slipDays"));
+            Assert.Equal("45", written.Text("Uplinks/Planted/upgradeSlipWarningDays"));
+            Assert.Equal("0.4.1", written.Text("Uplinks/Planted/writtenBy"));
+            Assert.Equal("45", written.Text("Uplinks/Planted/slipDays"));
         }
 
         [Fact]
@@ -176,7 +176,7 @@ namespace Sitrep.Host.Tests.Settings
         {
             var store = new SettingsStore(new InMemorySettingsStore());
             string? heard = "unset";
-            var uplink = new SettingsUplink("Rp1", "0.4.1", s => heard = s.WrittenBy);
+            var uplink = new SettingsUplink("Planted", "0.4.1", s => heard = s.WrittenBy);
 
             Discover(store, uplink);
 
@@ -192,10 +192,10 @@ namespace Sitrep.Host.Tests.Settings
         [Fact]
         public void AThrowingDeclarerLeavesTheUplinkRegisteredAndItsBlockUntouched()
         {
-            var seed = FileWith("Rp1", "0.3.0", ("upgradeSlipWarningDays", "45"));
+            var seed = FileWith("Planted", "0.3.0", ("upgradeSlipWarningDays", "45"));
             var backing = new InMemorySettingsStore(seed);
             var store = new SettingsStore(backing);
-            var uplink = new SettingsUplink("Rp1", "0.4.1", s =>
+            var uplink = new SettingsUplink("Planted", "0.4.1", s =>
             {
                 s.Declare(UplinkSettingRow.Number("upgradeSlipWarningDays", 30, "Slip warning"));
                 s.Declare(UplinkSettingRow.Bool("newRow", true, "New"));
@@ -208,8 +208,8 @@ namespace Sitrep.Host.Tests.Settings
             store.Commit();
 
             Assert.True(uplink.Registered);
-            Assert.Contains("descriptor typo", engine.SettingsDeclarationFailures["Rp1"]);
-            Assert.Null(RowsOf(backing.Read(), "Rp1").FirstDifferenceFrom(RowsOf(seed, "Rp1")));
+            Assert.Contains("descriptor typo", engine.SettingsDeclarationFailures["Planted"]);
+            Assert.Null(RowsOf(backing.Read(), "Planted").FirstDifferenceFrom(RowsOf(seed, "Planted")));
             // The handle still answers, with the defaults it was told.
             Assert.Equal(30, uplink.Handle!.Number("upgradeSlipWarningDays"));
         }
@@ -223,14 +223,14 @@ namespace Sitrep.Host.Tests.Settings
         public void ARowTheFileCannotCarryIsAThrowNotALostUplink()
         {
             var store = new SettingsStore(new InMemorySettingsStore());
-            var uplink = new SettingsUplink("Rp1", "0.4.1",
+            var uplink = new SettingsUplink("Planted", "0.4.1",
                 s => s.Declare(UplinkSettingRow.Text("endpoint", "ws://localhost:8090", "Endpoint")));
 
             var engine = Discover(store, uplink);
 
             Assert.True(uplink.Registered);
-            Assert.Contains("//", engine.SettingsDeclarationFailures["Rp1"]);
-            Assert.Null(store.Text("Uplinks/Rp1/endpoint"));
+            Assert.Contains("//", engine.SettingsDeclarationFailures["Planted"]);
+            Assert.Null(store.Text("Uplinks/Planted/endpoint"));
         }
 
         /// <summary>
@@ -241,10 +241,10 @@ namespace Sitrep.Host.Tests.Settings
         [Fact]
         public void AnUplinkRefusedOnItsContractMajorNeverDeclaresAndKeepsItsBlock()
         {
-            var seed = FileWith("Rp1", "0.3.0", ("upgradeSlipWarningDays", "45"));
+            var seed = FileWith("Planted", "0.3.0", ("upgradeSlipWarningDays", "45"));
             var backing = new InMemorySettingsStore(seed);
             var store = new SettingsStore(backing);
-            var uplink = new SettingsUplink("Rp1", "0.4.1",
+            var uplink = new SettingsUplink("Planted", "0.4.1",
                 s => s.Declare(UplinkSettingRow.Number("upgradeSlipWarningDays", 30, "Slip warning")));
 
             Discover(store, ContractVersion.Major + 1, uplink);
@@ -252,7 +252,7 @@ namespace Sitrep.Host.Tests.Settings
             store.Commit();
 
             Assert.False(uplink.DeclareRan);
-            Assert.Null(RowsOf(backing.Read(), "Rp1").FirstDifferenceFrom(RowsOf(seed, "Rp1")));
+            Assert.Null(RowsOf(backing.Read(), "Planted").FirstDifferenceFrom(RowsOf(seed, "Planted")));
         }
 
         [Fact]
@@ -278,16 +278,16 @@ namespace Sitrep.Host.Tests.Settings
         [Fact]
         public void ASubscriptionTakenWhileDeclaringHearsTheStoredValueThenChanges()
         {
-            var store = new SettingsStore(new InMemorySettingsStore(FileWith("Rp1", "0.4.1", ("upgradeSlipWarningDays", "45"))));
+            var store = new SettingsStore(new InMemorySettingsStore(FileWith("Planted", "0.4.1", ("upgradeSlipWarningDays", "45"))));
             var heard = new List<double>();
-            var uplink = new SettingsUplink("Rp1", "0.4.1", s =>
+            var uplink = new SettingsUplink("Planted", "0.4.1", s =>
             {
                 s.Declare(UplinkSettingRow.Number("upgradeSlipWarningDays", 30, "Slip warning"));
                 s.OnChanged(block => heard.Add(block.Number("upgradeSlipWarningDays")));
             });
 
             Discover(store, uplink);
-            store.Stage("Uplinks/Rp1/upgradeSlipWarningDays", 60);
+            store.Stage("Uplinks/Planted/upgradeSlipWarningDays", 60);
             store.Commit();
 
             Assert.Equal(new[] { 45.0, 60.0 }, heard);
@@ -297,7 +297,7 @@ namespace Sitrep.Host.Tests.Settings
         public void DeclaringOutsideTheDeclarerIsRefused()
         {
             var store = new SettingsStore(new InMemorySettingsStore());
-            var uplink = new SettingsUplink("Rp1", "0.4.1", _ => { });
+            var uplink = new SettingsUplink("Planted", "0.4.1", _ => { });
             Discover(store, uplink);
 
             Assert.Throws<InvalidOperationException>(

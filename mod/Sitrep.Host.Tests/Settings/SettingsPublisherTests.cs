@@ -15,7 +15,7 @@ namespace Sitrep.Host.Tests.Settings
     {
         private const string Enabled = "SIGNAL_DELAY/enabled";
         private const string Scale = "SIGNAL_DELAY/lightSpeedScale";
-        private const string Slip = "Uplinks/Rp1/upgradeSlipWarningDays";
+        private const string Slip = "Uplinks/Planted/upgradeSlipWarningDays";
 
         private static readonly Dictionary<string, string> NoFailures = new Dictionary<string, string>();
 
@@ -69,7 +69,7 @@ namespace Sitrep.Host.Tests.Settings
 
             Assert.Equal(new[] { Enabled, Scale, Slip }, rows.ConvertAll(r => (string)r["path"]!));
             Assert.Equal("gonogo", rows[0]["owner"]);
-            Assert.Equal("Rp1", rows[2]["owner"]);
+            Assert.Equal("Planted", rows[2]["owner"]);
             Assert.Equal(SettingKind.Bool, rows[0]["kind"]);
             Assert.Equal(SettingKind.Number, rows[1]["kind"]);
             Assert.Equal("Apply light-time delay", rows[0]["label"]);

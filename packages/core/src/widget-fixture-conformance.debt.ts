@@ -28,13 +28,6 @@
  */
 export const FIXTURE_CONTRACT_DRIFT: readonly string[] = [
   /*
-   * A real field on the wrong type. `rolloutRefusals` is declared on
-   * `Rp1WarehouseItemEntry`, which is what `rp1.warehouse` carries, and NOT on
-   * the `Rp1BuildItemEntry` rows of `rp1.buildQueue` these fixtures attach it
-   * to. A refusal shown against a queued build is a refusal the mod reports
-   * about a finished, warehoused vehicle.
-   */
-  /*
    * `ScienceInstrumentEntry` declares `partName` / `experimentId` /
    * `dataIsCollectable`. The second of the five defects, still in four
    * fixtures.

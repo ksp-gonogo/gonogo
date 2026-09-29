@@ -104,12 +104,12 @@ namespace Sitrep.Host.Tests.Settings
         {
             var document = new SettingsDocument();
             document.Set("SIGNAL_DELAY/enabled", "True");
-            document.Root.BlockOrAdd("Uplinks").BlockOrAdd("Rp1").SetValue("endpoint", "ws://host");
+            document.Root.BlockOrAdd("Uplinks").BlockOrAdd("Planted").SetValue("endpoint", "ws://host");
 
             var violation = document.FirstEncodingViolation();
 
             Assert.NotNull(violation);
-            Assert.StartsWith("Uplinks/Rp1/endpoint: ", violation);
+            Assert.StartsWith("Uplinks/Planted/endpoint: ", violation);
         }
 
         [Fact]

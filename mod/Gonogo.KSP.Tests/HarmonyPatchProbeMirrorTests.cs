@@ -49,20 +49,20 @@ namespace Gonogo.KSP.Tests
 
         /// <summary>
         /// A real <c>Patches</c> carrying one prefix, which is what
-        /// <c>GetPatchInfo</c> hands back for a method RP-1 has patched.
+        /// <c>GetPatchInfo</c> hands back for a method a career mod has patched.
         /// </summary>
         [Fact]
         public void ARealPatchesWithAPrefixReadsAsPatchedByItsOwner()
         {
             var prefix = typeof(HarmonyPatchProbeMirrorTests).GetMethod(
                 nameof(Prefix), BindingFlags.NonPublic | BindingFlags.Static)!;
-            var patch = new Patch(prefix, 0, "RP-0", Priority.Normal, new string[0], new string[0], false);
+            var patch = new Patch(prefix, 0, "Planted.Career", Priority.Normal, new string[0], new string[0], false);
             var patches = new Patches(new[] { patch }, new Patch[0], new Patch[0], new Patch[0]);
 
             var reading = HarmonyPatchProbe.Read(patches);
 
             Assert.Equal(HarmonyPatchProbe.PatchState.Patched, reading.State);
-            Assert.Equal(new[] { "RP-0" }, reading.Owners);
+            Assert.Equal(new[] { "Planted.Career" }, reading.Owners);
         }
 
         [Fact]

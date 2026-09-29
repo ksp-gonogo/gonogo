@@ -9,7 +9,7 @@ namespace Sitrep.Contract.TestSupport
     /// <remarks>
     /// In the shared test-support assembly rather than beside each suite because
     /// the crew-standing tests live in three of them (core's election, the space
-    /// centre view, RP-1's backend) and a per-suite copy is three defaults that
+    /// centre view, a career Uplink's backend) and a per-suite copy is three defaults that
     /// drift. It exists at all because the query is a struct with six members and
     /// most cases care about one: spelled out at every call site, a case reads as
     /// a list of values rather than as the thing it is testing.

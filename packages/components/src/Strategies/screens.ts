@@ -16,7 +16,7 @@ export interface StrategiesScreenEntry {
   disabledReason?: string;
   /**
    * True when the screen's own body already carries the activate/deactivate
-   * verbs for its cards (RP-1's Programs screen offers Accept and Complete
+   * verbs for its cards (as when an Uplink's screen offers its own Accept and Complete
    * through its `strategies.screen-body` augment). The host then draws that
    * screen's Active and Available cards with no Activate or Deactivate button
    * of its own, rather than one that could only ever be refused.

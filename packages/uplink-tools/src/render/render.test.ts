@@ -813,7 +813,7 @@ describe("coverage of the registrations", () => {
     // A scene with no `paints` still renders and still gets looked at, so this
     // WARNS rather than failing. But it asserts nothing about what the render
     // says, and `paints` is the mechanism that catches a sentence which silently
-    // stopped appearing: it is how the RP-1 dismantle warning was found sitting
+    // stopped appearing: it is how one Uplink's dismantle warning was found sitting
     // behind a branch a fresh complex could never reach.
     expect(named).toEqual(["overlay / silent"]);
   });

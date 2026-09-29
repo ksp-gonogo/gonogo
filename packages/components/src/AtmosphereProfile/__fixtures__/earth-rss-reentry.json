@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "earth-rss-reentry",
-    "notes": "RealSolarSystem: Earth at 30 km on the way down, the configuration RP-1 is played in. Both halves of the bug this fixture exists for. The body is named Earth, which the bundled table of stock bodies has never heard of, so the whole plot used to be empty. And its atmosphere carries the profile the mod sampled off the game's own GetPressure: the marker reads 1.21 kPa here, which is what RSS Earth's pressure curve gives, where an exponential with a physical 8.5 km scale height would have said 2.98. The 17 samples are the sampler's own output for that curve."
+    "notes": "RealSolarSystem: Earth at 30 km on the way down, the configuration a realism career is played in. Both halves of the bug this fixture exists for. The body is named Earth, which the bundled table of stock bodies has never heard of, so the whole plot used to be empty. And its atmosphere carries the profile the mod sampled off the game's own GetPressure: the marker reads 1.21 kPa here, which is what RSS Earth's pressure curve gives, where an exponential with a physical 8.5 km scale height would have said 2.98. The 17 samples are the sampler's own output for that curve."
   },
   "v.body": "Earth",
   "v.altitude": 30000,

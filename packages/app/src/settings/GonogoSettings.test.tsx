@@ -66,8 +66,8 @@ const ROWS: Row[] = [
     default: "1",
   },
   {
-    path: "Uplinks/Rp1/upgradeSlipWarningDays",
-    owner: "Rp1",
+    path: "Uplinks/Builder/upgradeSlipWarningDays",
+    owner: "Builder",
     kind: SettingKind.Number,
     label: "Slip warning",
     value: "30",
@@ -144,7 +144,7 @@ describe("GonogoSettings", () => {
 
   it("draws only one Uplink's rows when given its id", async () => {
     registerDataSource(sitrep("connected"));
-    const { fixture } = mount("main", "Rp1");
+    const { fixture } = mount("main", "Builder");
     await publish(fixture, model());
 
     expect(

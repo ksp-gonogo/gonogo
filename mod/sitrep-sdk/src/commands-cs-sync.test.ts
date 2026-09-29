@@ -125,7 +125,7 @@ describe("command map to C# sync", () => {
    *
    * Asserted against CORE commands by name rather than against a count. A count
    * is a floor on how many Uplinks happen to live in this repo today, so every
-   * Uplink that departs breaks it: RP-1 leaving took the total from over 90 to
+   * Uplink that departs breaks it: one Uplink leaving took the total from over 90 to
    * 77 and turned staging red for a scan that was working perfectly. Four more
    * Uplinks are due to leave, so a number here would have to be lowered four
    * more times, and each of those edits looks exactly like weakening a gate.

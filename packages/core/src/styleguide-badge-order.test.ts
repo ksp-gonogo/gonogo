@@ -19,7 +19,7 @@ import { modClientRoots } from "./styleguideScanRoots";
  * these lines, and it takes its status through a prop rather than as a child, so
  * the order is not a caller's to pass in. Adopting it is what clears a hit here.
  *
- * Two sites were violating it when the guard was written (an RP-1 Program's
+ * Two sites were violating it when the guard was written (a career Uplink's Program
  * detail pane and a training course's card), out of 112 badge call sites across
  * `packages/components` and the eleven bundled Uplinks. Both are fixed; the
  * allowed count is zero and there is no allowlist.

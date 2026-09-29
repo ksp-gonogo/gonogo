@@ -267,6 +267,27 @@ const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
      */
     ownedDirs: [],
   },
+  rp1: {
+    /*
+     * The mod's own spellings: RP-1 and rp1 as a word, the Rp1-prefixed and
+     * RP1_-prefixed identifiers, and RP-0/RP0, the name its assembly and
+     * namespaces still carry. Realism Overhaul is the pack it is played on.
+     * `\b` keeps a warp multiplier such as "warp-1000x" out.
+     */
+    patterns: [
+      /\b[Rr][Pp]-?1\b/,
+      /Rp1[A-Z_]/,
+      /\bRP1_/,
+      /\bRP-?0\b/,
+      /\bRP0[A-Z._]/,
+      /realism\s*overhaul/i,
+    ],
+    ownedDirs: [],
+  },
+  realfuels: {
+    patterns: [/real\s*fuels?/i],
+    ownedDirs: [],
+  },
 };
 
 /**

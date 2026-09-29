@@ -1119,7 +1119,7 @@ namespace Sitrep.Contract
         /// Uplink that declares a command knows what the game requires of it.
         /// It cannot know what an installed mod requires, and under a career
         /// overhaul that is most of what stands between an operator and a launch:
-        /// stock will fly any craft file, RP-1 will fly only a vehicle a launch
+        /// stock will fly any craft file, a realism career only a vehicle a launch
         /// complex integrated and then rolled out to a pad. A launch that walks
         /// past both steps passes every stock test on the way.</para>
         ///

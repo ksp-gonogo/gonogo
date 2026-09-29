@@ -211,7 +211,7 @@ describe("rate-integration candidates carry a written verdict", () => {
     // correct division (an Uplink owns its own quantities) and a real gap in
     // the coverage, so it is written down rather than passed over. Kerbalism's
     // science-data rate is a genuine rate-integration case sitting inside it.
-    // `bp`/`bp/s` are RP-1 build points and the rate progress advances at, and
+    // `bp`/`bp/s` are a career mod's build points and the rate progress advances at, and
     // they are the case this gate is blind to in its most load-bearing form:
     // the pairing IS real (an ETA is remaining points over that rate) and the
     // ETA is already derived from it server-side, efficiency-ramped and
@@ -219,7 +219,7 @@ describe("rate-integration candidates carry a written verdict", () => {
     // integrate.
     //
     // Which tokens those are is DERIVED rather than listed. The list named
-    // Kerbalism's and RP-1's units, both Uplinks leaving for the gonogo-uplinks
+    // two Uplinks' units, both leaving for the gonogo-uplinks
     // repo, and the written-down half already exists where it belongs: each
     // Uplink's own descriptor vocabulary. So every opaque token must be one a
     // client descriptor declares, never core's, and the classification itself is
