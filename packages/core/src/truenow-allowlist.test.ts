@@ -81,10 +81,11 @@ const HELPER_TRUENOW = /(?<![.\w])TrueNow\s*\(/g;
  * match, the line inside its own body, no matter how many channels are built
  * through it.
  *
- * One exists today: `VesselUplink.WarpChannel()` carries 1 channel and scores
- * 1, which happens to be the right number. The numbers in this file total 23
- * against 21 real channels; the gap is `CommsCoreUplink`'s helper body and
- * helper declaration line, which its entry below explains.
+ * Two exist today: `VesselUplink.WarpChannel()` and `CalendarChannel()` each
+ * carry 1 channel and score 1, which happens to be the right number. The
+ * numbers in this file total 24 against 22 real channels; the gap is
+ * `CommsCoreUplink`'s helper body and helper declaration line, which its entry
+ * below explains.
  *
  * The hole itself is still open: a new helper under any other name hides every
  * channel after its first, so nothing asks whether the next one is ground-side.
@@ -126,10 +127,18 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   // light-time for it to cross, and this is the read side agreeing with the
   // write side: time.setWarpIndex is TrueNow for exactly this reason.
   //
-  // Declared through the file's own WarpChannel() helper rather than the shared
-  // Channel() one, so the count stays honest: a second delay-bypassing channel
-  // on that uplink has to declare itself. 1 explicit declaration.
-  "mod/Gonogo.KSP/VesselUplink.cs": 1,
+  // time.calendar: how long a minute, hour, day and year are in the running
+  // game, read off the formatter RSS and Kopernicus replace. A fact about the
+  // install rather than a craft, same Source = "game" and recordable: false as
+  // time.warp. Delayed, it froze with the active vessel's link, and with no
+  // vessel at the Space Center the backend reports no link, so it never
+  // published there and the app formatted UT with the stock 6-hour day.
+  //
+  // Each declared through its own helper (WarpChannel(), CalendarChannel())
+  // rather than the shared Channel() one, so the count stays honest: a further
+  // delay-bypassing channel on that uplink has to declare itself.
+  // 2 explicit declarations.
+  "mod/Gonogo.KSP/VesselUplink.cs": 2,
 
   // alarm.scet and alarm.scet.fired: the SCET alarm arm.
   //

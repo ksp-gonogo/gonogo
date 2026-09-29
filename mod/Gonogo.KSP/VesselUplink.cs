@@ -155,8 +155,8 @@ namespace Gonogo.KSP
                 Channel(VesselViewProvider.StructureTopic),
                 // time.warp -- see WarpState's doc comment for why this channel
                 // is declared/registered here alongside the genuinely
-                // vessel-scoped ones, and WarpChannel below for why it is the
-                // one channel on this uplink that does not ride the delay clock.
+                // vessel-scoped ones, and WarpChannel below for why it does not
+                // ride the delay clock.
                 WarpChannel(),
                 // time.calendar -- the game's own day/year lengths, registered
                 // by this uplink for the same reason time.warp is: it rides the
@@ -164,13 +164,8 @@ namespace Gonogo.KSP
                 // Register: AddChannelSource throws for an undeclared topic, and
                 // that throw takes the WHOLE uplink Unavailable, which is how
                 // every vessel.* channel once went silent on one missing line.
-                //
-                // NOT recordable, the only channel besides time.warp on this
-                // uplink that is not: BuildGameMeta stamps it Source = "game",
-                // so it was never a reading taken aboard the craft, and a
-                // blackout recorder that dumped it would have the vessel report
-                // the game's own calendar back to the player, hours late.
-                Channel(VesselViewProvider.CalendarTopic, recordable: false),
+                // CalendarChannel below says why it does not ride the delay clock.
+                CalendarChannel(),
                 // ---- M3 R3 capture-adds -- same cadence/deadband posture
                 // as every other structured vessel.* channel above.
                 // vessel.dock: legitimately null when a present, active
@@ -546,14 +541,14 @@ namespace Gonogo.KSP
             // (delay-architecture-resolution.md §3). Stated explicitly here
             // rather than relying on the default so this is provable, not
             // inferred from silence: see ChannelDeclaration.Delay's doc comment.
-            // WarpChannel overrides it, and is the only caller that does.
+            // WarpChannel and CalendarChannel override it, and are the only callers that do.
             Delay = DelayRole.Delayed,
             AbsenceIsData = absenceIsData,
         };
 
         /// <summary>
-        /// <c>time.warp</c>: this uplink's cadence and delivery, and the one
-        /// channel on it that does not ride the delay clock.
+        /// <c>time.warp</c>: this uplink's cadence and delivery, and one of the
+        /// two channels on it that do not ride the delay clock.
         ///
         /// <para>Warp is a meta-state of the simulation, effectively the scene
         /// changing. <c>BuildGameMeta</c> stamps it <c>Source = "game"</c>, it
@@ -577,6 +572,29 @@ namespace Gonogo.KSP
         private static ChannelDeclaration WarpChannel()
         {
             var declaration = Channel(VesselViewProvider.WarpTopic, recordable: false);
+            declaration.Delay = DelayRole.TrueNow;
+            return declaration;
+        }
+
+        /// <summary>
+        /// <c>time.calendar</c>: the second channel on this uplink that does not
+        /// ride the delay clock, for the reason <see cref="WarpChannel"/> gives.
+        ///
+        /// <para>How long a day is on this install is a fact about the game, not
+        /// about a craft. Delayed, it froze with the active vessel's link, and
+        /// with no vessel at all (the Space Center, the tracking station with
+        /// nothing selected) the comms backend reports no link, so the channel
+        /// never published and a client formatted every UT with the stock
+        /// six-hour day on an RSS install.</para>
+        ///
+        /// <para>NOT recordable, like <c>time.warp</c>: <c>BuildGameMeta</c>
+        /// stamps it <c>Source = "game"</c>, so it was never a reading taken
+        /// aboard the craft, and a blackout recorder that dumped it would have
+        /// the vessel report the game's own calendar back to the player.</para>
+        /// </summary>
+        private static ChannelDeclaration CalendarChannel()
+        {
+            var declaration = Channel(VesselViewProvider.CalendarTopic, recordable: false);
             declaration.Delay = DelayRole.TrueNow;
             return declaration;
         }
