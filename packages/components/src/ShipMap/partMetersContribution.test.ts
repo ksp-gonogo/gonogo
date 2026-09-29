@@ -128,7 +128,7 @@ describe("builtinPartMeterReadings", () => {
     part("2", { LiquidFuel: { amount: 90, maxAmount: 180 } }),
   ]);
 
-  it("dates each amount by the parts reading, so a held level is marked", () => {
+  it("dates each amount and capacity by the parts reading, so both go held together", () => {
     const [entry] = builtinPartMeterReadings({
       state: "held",
       value: tank,
@@ -143,7 +143,13 @@ describe("builtinPartMeterReadings", () => {
       grade: "disconnected",
       reckoning: { status: "none" },
     });
-    expect(entry?.capacity).toEqual(value("units", 180));
+    expect(entry?.capacity).toEqual({
+      state: "held",
+      value: value("units", 180),
+      asOfUt: value("ut", 500),
+      grade: "disconnected",
+      reckoning: { status: "none" },
+    });
   });
 
   it("carries a current level as an observation", () => {
@@ -156,6 +162,12 @@ describe("builtinPartMeterReadings", () => {
     expect(entry?.amount).toEqual({
       state: "observed",
       value: value("units", 90),
+      atUt: value("ut", 900),
+      reckoning: { status: "none" },
+    });
+    expect(entry?.capacity).toEqual({
+      state: "observed",
+      value: value("units", 180),
       atUt: value("ut", 900),
       reckoning: { status: "none" },
     });

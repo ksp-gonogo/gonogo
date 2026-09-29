@@ -37,21 +37,21 @@ function isHeldFigure(
 }
 
 /**
- * Whether a row's level is the last one there was rather than the tank now.
- * Only a contributor that sends the whole reading can say so; a bare quantity
- * claims nothing about when it was read.
+ * Whether either figure of a row is the last one there was rather than the
+ * tank now. Only a contributor that sends the whole reading can say so; a bare
+ * quantity claims nothing about when it was read.
  */
 function isHeld(row: ShipMapPartMeterEntry): boolean {
   return isHeldFigure(row.amount) || isHeldFigure(row.capacity);
 }
 
-/** Whether any row on the diagram is held, so the hatch pattern is only defined when something draws it. */
+/** Whether any row on the diagram has a held capacity, so the hatch pattern is only defined when something draws it. */
 export function anyMeterHeld(
   partMeters: ReadonlyMap<string, readonly ShipMapPartMeterEntry[]> | undefined,
 ): boolean {
   if (!partMeters) return false;
   for (const rows of partMeters.values()) {
-    if (rows.some(isHeld)) return true;
+    if (rows.some((row) => isHeldFigure(row.capacity))) return true;
   }
   return false;
 }
@@ -120,8 +120,8 @@ export function renderResourceFill(
         const statusBorder = m.status
           ? METER_STATUS_COLOR[m.status]
           : undefined;
-        // A held row hatches the unfilled part of its track, like the kit Meter's held capacity; a held amount also dims its fill.
-        const held = isHeld(m);
+        // The kit Meter's rule: a held capacity hatches the unfilled part of the track, a held amount dims the fill.
+        const trackHeld = isHeldFigure(m.capacity);
         const fillHeld = isHeldFigure(m.amount);
         return (
           <g key={m.resource}>
@@ -144,7 +144,7 @@ export function renderResourceFill(
               fill={resourceColor(m.resource)}
               opacity={fillHeld ? 0.4 : 0.85}
             />
-            {held && innerH - fillH > 0 && (
+            {trackHeld && innerH - fillH > 0 && (
               <rect
                 data-held-hatch=""
                 x={barX}

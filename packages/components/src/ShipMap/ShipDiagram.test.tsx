@@ -1,5 +1,6 @@
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { fireEvent, render, screen } from "@ksp-gonogo/test-utils";
+import { resourceColor } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { ShipDiagram } from "./ShipDiagram";
@@ -9,6 +10,17 @@ import type { ShipMapPart } from "./shipTopology";
 const SIZE_SMALL = { x: 0.6, y: 0.4, z: 0.6 };
 const SIZE_TANK = { x: 1.25, y: 1.85, z: 1.25 };
 const SIZE_ENGINE = { x: 1.25, y: 1.0, z: 1.25 };
+
+/** A figure the stream stopped sending, on the held arm. */
+function heldUnits(n: number) {
+  return {
+    state: "held" as const,
+    value: value("units", n),
+    asOfUt: value("ut", 500),
+    grade: "disconnected" as const,
+    reckoning: { status: "none" as const },
+  };
+}
 
 function half(size: { x: number; y: number; z: number }) {
   return {
@@ -145,7 +157,7 @@ describe("ShipDiagram", () => {
     expect(fillGroups.length).toBeGreaterThan(0);
   });
 
-  it("says a held level is held, on the part's label and by hatching its unfilled track in the held mark's hue", () => {
+  it("hatches and dims a row whose whole stream is held, in the body and in the tooltip Meter alike", () => {
     const partMeters = new Map([
       [
         "2",
@@ -154,14 +166,8 @@ describe("ShipDiagram", () => {
             partId: "2",
             resource: "LiquidFuel",
             displayName: "LiquidFuel",
-            amount: {
-              state: "held" as const,
-              value: value("units", 90),
-              asOfUt: value("ut", 500),
-              grade: "disconnected" as const,
-              reckoning: { status: "none" as const },
-            },
-            capacity: value("units", 180),
+            amount: heldUnits(90),
+            capacity: heldUnits(180),
             status: null,
           },
         ],
@@ -186,7 +192,54 @@ describe("ShipDiagram", () => {
     expect(pattern?.querySelector("rect")?.getAttribute("fill")).toBe(
       "var(--color-warn-mark)",
     );
+    expect(hatch?.previousElementSibling?.getAttribute("opacity")).toBe("0.4");
     expect(container.querySelector("rect[stroke-dasharray]")).toBeNull();
+
+    fireEvent.focus(screen.getByLabelText(/FL-T400 Fuel Tank/));
+    const meter = screen.getByRole("meter", { name: /LiquidFuel/ });
+    expect(meter.querySelector("[data-track-hatch]")).not.toBeNull();
+    expect(meter.querySelector("[data-fill-held]")).not.toBeNull();
+  });
+
+  it("dims a held amount on a live capacity without hatching, in the body and in the tooltip Meter alike", () => {
+    const partMeters = new Map([
+      [
+        "2",
+        [
+          {
+            partId: "2",
+            resource: "LiquidFuel",
+            displayName: "LiquidFuel",
+            amount: heldUnits(90),
+            capacity: value("units", 180),
+            status: null,
+          },
+        ],
+      ],
+    ]);
+    const { container } = render(
+      <ShipDiagram
+        parts={PARTS}
+        width={400}
+        height={400}
+        partMeters={partMeters}
+      />,
+    );
+    expect(
+      container.querySelector('[aria-label*="LiquidFuel 50 percent, held"]'),
+    ).not.toBeNull();
+    expect(container.querySelector("rect[data-held-hatch]")).toBeNull();
+    expect(container.querySelector("pattern")).toBeNull();
+    expect(
+      container
+        .querySelector(`rect[fill="${resourceColor("LiquidFuel")}"]`)
+        ?.getAttribute("opacity"),
+    ).toBe("0.4");
+
+    fireEvent.focus(screen.getByLabelText(/FL-T400 Fuel Tank/));
+    const meter = screen.getByRole("meter", { name: /LiquidFuel/ });
+    expect(meter.querySelector("[data-track-hatch]")).toBeNull();
+    expect(meter.querySelector("[data-fill-held]")).not.toBeNull();
   });
 
   it("hatches a held capacity even when the amount is live, leaving the fill undimmed", () => {
@@ -199,13 +252,7 @@ describe("ShipDiagram", () => {
             resource: "LiquidFuel",
             displayName: "LiquidFuel",
             amount: value("units", 90),
-            capacity: {
-              state: "held" as const,
-              value: value("units", 180),
-              asOfUt: value("ut", 500),
-              grade: "disconnected" as const,
-              reckoning: { status: "none" as const },
-            },
+            capacity: heldUnits(180),
             status: null,
           },
         ],

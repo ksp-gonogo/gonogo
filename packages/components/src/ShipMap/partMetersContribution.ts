@@ -42,8 +42,11 @@ function statusFor(
   return null;
 }
 
-/** A meter whose amount is the bare quantity read off the wire. */
-type BareMeterEntry = ShipMapPartMeterEntry & { amount: Value<"units"> };
+/** A meter whose amount and capacity are the bare quantities read off the wire. */
+type BareMeterEntry = ShipMapPartMeterEntry & {
+  amount: Value<"units">;
+  capacity: Value<"units">;
+};
 
 /** Pure core of the built-in contribution, exported so a test can call it against a plain `VesselParts` fixture. */
 export function computeBuiltinPartMeters(
@@ -70,17 +73,18 @@ export function computeBuiltinPartMeters(
 }
 
 /**
- * One tank's amount on the arm the parts reading it came from arrived on, so
- * ShipMap can mark a held level rather than draw it as the tank now.
+ * One tank's amount or capacity on the arm the parts reading it came from
+ * arrived on, so ShipMap can mark a held figure rather than draw it as the
+ * tank now.
  */
-function amountReading(
+function figureReading(
   parts: Reading<VesselParts | undefined>,
-  amount: Value<"units">,
+  figure: Value<"units">,
 ): Reading<Value<"units">> {
   if (parts.state === "observed") {
     return {
       state: "observed",
-      value: amount,
+      value: figure,
       atUt: parts.atUt,
       reckoning: { status: "none" },
     };
@@ -88,7 +92,7 @@ function amountReading(
   if (parts.state === "held") {
     return {
       state: "held",
-      value: amount,
+      value: figure,
       asOfUt: parts.asOfUt,
       grade: parts.grade,
       reckoning: { status: "none" },
@@ -98,8 +102,9 @@ function amountReading(
 }
 
 /**
- * The meters with each amount carrying the currency of the `vessel.parts`
- * reading. A level that stopped arriving is still drawn, and marked.
+ * The meters with each amount and capacity carrying the currency of the
+ * `vessel.parts` reading. Both come off the one stream, so they go held
+ * together; a level that stopped arriving is still drawn, and marked.
  */
 export function builtinPartMeterReadings(
   parts: Reading<VesselParts | undefined> | undefined,
@@ -107,7 +112,8 @@ export function builtinPartMeterReadings(
   if (parts?.state !== "observed" && parts?.state !== "held") return [];
   return computeBuiltinPartMeters(parts.value).map((entry) => ({
     ...entry,
-    amount: amountReading(parts, entry.amount),
+    amount: figureReading(parts, entry.amount),
+    capacity: figureReading(parts, entry.capacity),
   }));
 }
 
