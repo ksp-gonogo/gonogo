@@ -1,6 +1,6 @@
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it } from "vitest";
-import { BigReadout, Readout, ReadoutCaption, StatusPill } from "./Readout";
+import { BigReadout, Readout, ReadoutCaption } from "./Readout";
 
 describe("Readout family", () => {
   it("BigReadout renders its value", () => {
@@ -18,10 +18,5 @@ describe("Readout family", () => {
   it("ReadoutCaption renders a sub-label", () => {
     render(<ReadoutCaption>ΔV remaining</ReadoutCaption>);
     expect(screen.getByText("ΔV remaining")).toBeInTheDocument();
-  });
-
-  it("StatusPill renders its token text", () => {
-    render(<StatusPill $tone="nogo">ABORT</StatusPill>);
-    expect(screen.getByText("ABORT")).toBeInTheDocument();
   });
 });

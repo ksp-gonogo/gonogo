@@ -67,21 +67,6 @@ export const TONE_ON_STATUS: Readonly<Record<Tone, string>> = {
 };
 
 /**
- * A quiet ground under ordinary text, tinted by the tone.
- *
- * @category Tone
- */
-export const TONE_MUTED: Readonly<Record<Tone, string>> = {
-  neutral: "var(--color-neutral-muted)",
-  info: "var(--color-info-muted)",
-  go: "var(--color-go-muted)",
-  caution: "var(--color-caution-muted)",
-  warn: "var(--color-warn-muted)",
-  nogo: "var(--color-nogo-muted)",
-  offline: "var(--color-offline-muted)",
-};
-
-/**
  * The word a screen reader hears for a tone that is announced rather than seen.
  *
  * @category Tone

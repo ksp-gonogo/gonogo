@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "sub-orbital-kerbin",
-    "notes": "Sub-orbital arc over Kerbin. Periapsis is below the surface (PeR < Kerbin radius 600000 m), so the trajectory dips into the body. The body disc should occlude the part of the orbit below the surface. Widget should show StatusPill 'Sub-orbital' or orange orbit stroke (isOrbiting=false, PeA<0)."
+    "notes": "Sub-orbital arc over Kerbin. Periapsis is below the surface (PeR < Kerbin radius 600000 m), so the trajectory dips into the body. The body disc should occlude the part of the orbit below the surface. Widget should show status badge 'Sub-orbital' or orange orbit stroke (isOrbiting=false, PeA<0)."
   },
   "v.body": "Kerbin",
   "o.sma": 820000,

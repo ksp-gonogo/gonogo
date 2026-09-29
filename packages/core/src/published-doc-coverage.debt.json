@@ -333,7 +333,6 @@
     ".:StatusContribution",
     ".:StatusIndicator",
     ".:StatusIndicatorProps",
-    ".:StatusPill",
     ".:StatusSummary",
     ".:Stepper",
     ".:StepperProps",

@@ -47,13 +47,11 @@ import { describe, expect, it } from "vitest";
  * never see it. It needs a different kind of check, which is the second half of
  * this file.
  *
- * The instance that prompted it: `StatusPill` (`Readout.tsx`) is `Badge` with a
- * rival tone vocabulary. Both are uppercase, letter-spaced, pill-radiused
- * status chips; `Badge` speaks the canonical `Severity` and reports itself into
- * `PanelStatusStore`, `StatusPill` speaks `ReadoutTone` and reports nothing. So
- * six render sites are status chips that can never reach a panel's status
- * summary, and nothing said so. The Panel failure mode above, one package
- * inward.
+ * What it looks for: a second uppercase, letter-spaced, pill-radiused static
+ * chip beside `Badge`. `Badge` speaks the one `Tone` scale and reports itself
+ * into `PanelStatusStore`; a rival chip reports nothing, so every site drawn
+ * through it is a status that can never reach a panel's status summary, and
+ * nothing on screen says so.
  */
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -219,14 +217,7 @@ const PILL_OWNER = "Badge__Body";
  * failure rather than an addition. Allowlisting a fresh duplicate is the move
  * this whole file exists to make hard.
  */
-const PILL_DEBT: Readonly<Record<string, string>> = {
-  // `Badge` with a rival tone vocabulary (`ReadoutTone` rather than `Severity`)
-  // and no `report`, so its six render sites are status chips that cannot
-  // contribute to a panel's status summary. Folding it means giving `Badge`
-  // StatusPill's padding, weight and alert pulse as a variant and migrating
-  // seven call sites across three packages, which is its own change.
-  StatusPill: "packages/ui-kit/src/Readout.tsx",
-};
+const PILL_DEBT: Readonly<Record<string, string>> = {};
 
 describe("within ui-kit, one visual form is one component", () => {
   it("finds no static pill outside Badge and the recorded debt", () => {

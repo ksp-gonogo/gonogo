@@ -7,14 +7,11 @@ export const PILL_ROW_STYLE = {
   gap: "var(--gap-related)",
 } as const;
 
-/* `minWidth: 0` lets the pill shrink so "CRITICAL" ellipsises instead of overflowing at the 3-column minimum; the padding is deliberately tighter than the base StatusPill. */
+/* `minWidth: 0` lets the badge shrink so "CRITICAL" ellipsises instead of overflowing at the 3-column minimum. */
 export const COMPACT_PILL_STYLE = {
   minWidth: 0,
   maxWidth: "100%",
-  padding: "5px 10px",
-  letterSpacing: "0.06em",
   overflow: "hidden",
-  whiteSpace: "nowrap",
   textOverflow: "ellipsis",
 } as const;
 

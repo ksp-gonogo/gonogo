@@ -1,7 +1,7 @@
 import { AugmentSlot } from "@ksp-gonogo/core";
 import type { OrbitTrajectory } from "@ksp-gonogo/sitrep-client";
 import type { ReckoningDecline } from "@ksp-gonogo/sitrep-sdk";
-import { Panel, StatusPill } from "@ksp-gonogo/ui";
+import { Badge, Panel } from "@ksp-gonogo/ui";
 import { FramedDisplay, Section, Text } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import { TrajectoryFrameCaption } from "../shared/trajectoryFrame";
@@ -73,7 +73,7 @@ export function OrbitViewPanel({
                 {bodyName}
               </Text>
             )}
-            <StatusPill $tone={pill.tone}>{pill.label}</StatusPill>
+            <Badge tone={pill.tone}>{pill.label}</Badge>
           </LandscapeChrome>
         }
         sidebarSide="start"
@@ -95,7 +95,7 @@ export function OrbitViewPanel({
     if (!showDiagram)
       return (
         <PillFill>
-          <StatusPill $tone={pill.tone}>{pill.label}</StatusPill>
+          <Badge tone={pill.tone}>{pill.label}</Badge>
         </PillFill>
       );
     if (withheld) return <TrajectoryWithheld withheld={withheld} />;

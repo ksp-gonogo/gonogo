@@ -15,7 +15,7 @@
  *                                                  sentinel: widget drops
  *                                                  the shield row entirely)
  *
- * Worst band across part + engine is `nominal`, so the StatusPill reads
+ * Worst band across part + engine is `nominal`, so the status badge reads
  * "nominal" and the row layout drops the heat-shield slot.
  *
  * Station-side scope: only the "THERMAL" panel title (static chrome) is

@@ -1,7 +1,6 @@
 import type { Tone } from "@ksp-gonogo/sitrep-sdk";
-import styled, { css } from "styled-components";
-import { fitBox } from "./fitBox";
-import { TONE_MUTED, TONE_TEXT, toneEdge } from "./tone";
+import styled from "styled-components";
+import { TONE_TEXT } from "./tone";
 
 /**
  * Big centred readout: typical "tiny mode" hero element. Fills the remaining
@@ -49,41 +48,4 @@ export const ReadoutCaption = styled.span`
   letter-spacing: 0.05em;
   color: var(--color-text-muted);
   text-transform: uppercase;
-`;
-
-/**
- * Status pill: single-token badge ("NOMINAL", "GO", "ABORT"), for tiny-mode
- * widgets that boil their state down to one indicator.
- */
-export const StatusPill = styled.div<{ $tone: Tone }>`
-  ${fitBox("status-pill")}
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  /* --inset-control's value, not the token: a status pill is read, never pressed, so it must not widen for touch. */
-  padding: var(--inset-pill);
-  border-radius: var(--radius-pill);
-  font-size: var(--font-size-caption);
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: ${({ $tone }) => TONE_TEXT[$tone]};
-  background: ${({ $tone }) => TONE_MUTED[$tone]};
-  border: 1px solid ${({ $tone }) => toneEdge($tone)};
-  ${({ $tone }) =>
-    $tone === "nogo" &&
-    css`
-      @media (prefers-reduced-motion: no-preference) {
-        animation: pill-pulse 1.4s var(--ease-emphasis) infinite;
-      }
-      @keyframes pill-pulse {
-        0%,
-        100% {
-          opacity: 1;
-        }
-        50% {
-          opacity: 0.7;
-        }
-      }
-    `}
 `;

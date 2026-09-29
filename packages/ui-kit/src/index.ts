@@ -480,7 +480,6 @@ export {
   BigReadout,
   Readout,
   ReadoutCaption,
-  StatusPill,
 } from "./Readout";
 export { Row, RowName, type RowProps } from "./Row";
 export {
@@ -590,7 +589,6 @@ export { Truncate } from "./Truncate";
 export {
   TONE_LABEL,
   TONE_MARK,
-  TONE_MUTED,
   TONE_ON_STATUS,
   TONE_STATUS,
   TONE_TEXT,

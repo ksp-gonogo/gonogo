@@ -1,7 +1,7 @@
 import { type Tone, value } from "@ksp-gonogo/sitrep-sdk";
 import {
+  Badge,
   NULL_DISPLAY,
-  StatusPill,
   Text,
   Unit,
   writeQuantity,
@@ -25,9 +25,9 @@ export function VerdictBanner({ model }: Model) {
   const hazard = model.hazardVerdict.verdict;
   return (
     <div role="status" aria-live="polite">
-      <StatusPill $tone={bannerTone(noLandingVector, hazard)}>
+      <Badge tone={bannerTone(noLandingVector, hazard)}>
         {noLandingVector ? "ABORT" : (hazard ?? "NO SITE")}
-      </StatusPill>
+      </Badge>
     </div>
   );
 }

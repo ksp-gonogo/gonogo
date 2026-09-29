@@ -12,13 +12,13 @@
 import { getComponents, registerComponent } from "@ksp-gonogo/core";
 import { SerialDeviceProvider, SerialDeviceService } from "@ksp-gonogo/serial";
 import {
+  Badge,
   Field,
   FieldLabel,
   Input,
   Panel,
   Select,
   Stack,
-  StatusPill,
   smallestBodyTile,
   Textarea,
 } from "@ksp-gonogo/ui-kit";
@@ -71,6 +71,7 @@ const CANARY_ID = "minsize-gate-canary";
  *  is the audit still seeing a clipped box rather than the kit's spacing scale
  *  happening to overflow this week. */
 const BARE_PILL = {
+  display: "flex",
   padding: 0,
   border: 0,
   width: 120,
@@ -96,12 +97,12 @@ function Canary() {
           value="A value no forty pixel field could show"
         />
         <div style={{ overflow: "hidden", width: 80 }}>
-          <StatusPill
-            $tone="warn"
+          <Badge
+            tone="warn"
             style={{ ...BARE_PILL, justifyContent: "flex-start" }}
           >
             <span style={{ width: 40 }}>FITS</span>
-          </StatusPill>
+          </Badge>
         </div>
       </Panel>
       {/* Outside the panel, so their nearest clipping box is the tile itself
@@ -112,12 +113,12 @@ function Canary() {
       <span style={{ marginLeft: -160, whiteSpace: "nowrap" }}>
         A label pushed clean off the left edge of its tile
       </span>
-      <StatusPill
-        $tone="warn"
+      <Badge
+        tone="warn"
         style={{ ...BARE_PILL, marginLeft: -40, justifyContent: "flex-end" }}
       >
         <span style={{ width: 40 }}>FITS</span>
-      </StatusPill>
+      </Badge>
     </>
   );
 }

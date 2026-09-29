@@ -8,10 +8,10 @@
 import { type Reading, type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import type { ReactNode } from "react";
 import { createRoot } from "react-dom/client";
+import { Badge } from "../src/Badge";
 import { ComboboxListbox } from "../src/Combobox";
 import { DivergingBar } from "../src/DivergingBar";
 import { Meter } from "../src/Meter";
-import { StatusPill } from "../src/Readout";
 import { Switch } from "../src/Switch";
 import { type GoMarkSheet, SHEETS } from "./goMarkScenarios";
 
@@ -122,8 +122,8 @@ function Body({ id }: { id: string }) {
           </Card>
         </div>
       );
-    case "readout-status-pill":
-      return <StatusPill $tone="go">GO</StatusPill>;
+    case "badge-go":
+      return <Badge tone="go">GO</Badge>;
     case "switch-checked":
       return <Switch checked onChange={() => {}} label="Armed" />;
     default:

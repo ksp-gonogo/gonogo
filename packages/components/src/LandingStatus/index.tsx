@@ -1,12 +1,12 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import { registerComponent } from "@ksp-gonogo/core";
 import {
+  Badge,
   Countdown,
   EmptyState,
   Panel,
   Section,
   Stack,
-  StatusPill,
   Text,
 } from "@ksp-gonogo/ui-kit";
 import { PlotBoard } from "../Plots/PlotBoard";
@@ -164,9 +164,9 @@ function LandingStatusComponent({
                 gap: "var(--gap-related)",
               }}
             >
-              <StatusPill $tone={REGIME_TONE[clocks.regime]}>
+              <Badge tone={REGIME_TONE[clocks.regime]}>
                 {REGIME_LABEL[clocks.regime]}
-              </StatusPill>
+              </Badge>
             </span>
           </div>
         </Section>,

@@ -35,8 +35,8 @@ export const SHEETS: GoMarkSheet[] = [
     width: 320,
   },
   {
-    id: "readout-status-pill",
-    title: "Readout: StatusPill go edge",
+    id: "badge-go",
+    title: "Badge: go edge",
     blurb: "The go tone's only edge, on the panel.",
     width: 200,
   },

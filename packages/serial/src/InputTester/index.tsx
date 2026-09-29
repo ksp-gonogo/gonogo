@@ -1,6 +1,7 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import { registerComponent } from "@ksp-gonogo/core";
 import {
+  Badge,
   EmptyState,
   Field,
   FieldLabel,
@@ -8,7 +9,6 @@ import {
   Panel,
   Section,
   Select,
-  StatusPill,
   type Tone,
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
@@ -134,9 +134,7 @@ function InputTesterComponent({
       <Section key="status" full>
         <StatusRow>
           <StatusLabel>Status</StatusLabel>
-          <StatusPill $tone={STATUS_TONE[status] ?? "neutral"}>
-            {status}
-          </StatusPill>
+          <Badge tone={STATUS_TONE[status] ?? "neutral"}>{status}</Badge>
           <Spacer />
           <Counts>
             {buttons.length} btn · {analogs.length} axis
@@ -256,8 +254,8 @@ registerComponent<InputTesterConfig>({
 export { InputTesterComponent };
 
 /**
- * The kit's StatusPill is tone-driven; this widget's transport status is a raw
- * string. Mapping it here is the conversion: the pill's colours stop being a
+ * The kit's Badge is tone-driven; this widget's transport status is a raw
+ * string. Mapping it here is the conversion: the badge's colours stop being a
  * private ternary and become the same three tones every other status surface
  * in the dashboard uses.
  */
@@ -268,7 +266,7 @@ const STATUS_TONE: Record<string, Tone> = {
 
 // ── Styles ───────────────────────────────────────────────────────────────────
 
-/* The counts sit on their own line when the status pill has already used the
+/* The counts sit on their own line when the status badge has already used the
    width, rather than running off the side of a narrow tile. */
 const StatusRow = styled.div`
   display: flex;

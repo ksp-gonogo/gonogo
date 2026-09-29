@@ -1,5 +1,6 @@
 import type { Reading, Value } from "@ksp-gonogo/sitrep-sdk";
 import {
+  Badge,
   EmptyState,
   Meter,
   type MeterProps,
@@ -7,7 +8,6 @@ import {
   Panel,
   Section,
   Stack,
-  StatusPill,
 } from "@ksp-gonogo/ui-kit";
 import { BAND_COLOR, BAND_LABEL, BAND_TONE, type Band } from "./bands";
 import { Flux, Temp, TempOverMax } from "./readouts";
@@ -70,12 +70,13 @@ export function ThermalStatusView({
               role={anyCritical ? "alert" : "status"}
               aria-live={anyCritical ? "assertive" : "polite"}
             >
-              <StatusPill
-                $tone={BAND_TONE[worstBand]}
+              <Badge
+                tone={BAND_TONE[worstBand]}
+                size="sm"
                 style={COMPACT_PILL_STYLE}
               >
                 {BAND_LABEL[worstBand]}
-              </StatusPill>
+              </Badge>
               {alertNote !== null && (
                 <span style={CRITICAL_NOTE_STYLE}>{alertNote}</span>
               )}
