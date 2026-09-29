@@ -315,16 +315,17 @@ export function GraphView({
               <div style={EMPTY_STATE_OVERLAY}>{emptyState}</div>
             )}
         </div>
+        {/* Draws nothing, so it rides inside the frame and leaves it the chart's only content when there's no notice beside it. */}
+        <GraphFetchers
+          series={series.filter((cfg) => !computedKeys.has(cfg.key))}
+          extraFetchKeys={extraFetchKeys}
+          xFetchKey={!xIsTime && !xPinned ? xKey : undefined}
+          windowSec={windowSec}
+          onData={handleData}
+          onXData={handleXData}
+        />
       </FramedDisplay>
       {notice && <GraphNotice placement="inline">{notice}</GraphNotice>}
-      <GraphFetchers
-        series={series.filter((cfg) => !computedKeys.has(cfg.key))}
-        extraFetchKeys={extraFetchKeys}
-        xFetchKey={!xIsTime && !xPinned ? xKey : undefined}
-        windowSec={windowSec}
-        onData={handleData}
-        onXData={handleXData}
-      />
     </>
   );
 

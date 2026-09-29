@@ -3,6 +3,7 @@ import {
   Children,
   type ComponentPropsWithoutRef,
   createContext,
+  Fragment,
   forwardRef,
   isValidElement,
   type ReactElement,
@@ -20,6 +21,7 @@ import styled, { css } from "styled-components";
 import { AugmentSlot, useWidgetSegmentBound } from "./AugmentSlot";
 import { Badge } from "./Badge";
 import { PanelDelayRail } from "./CommandDelay/PanelDelayRail";
+import { FramedDisplay } from "./FramedDisplay";
 import { fitBox, fitMask } from "./fitBox";
 import { focusRing, focusRingInset } from "./focusRing";
 import { LiveRegion } from "./LiveRegion";
@@ -452,17 +454,27 @@ export const PanelToolbar = styled.div`
  * names so a panel nested inside a compact `Card` does not inherit the card's
  * density.
  */
-const PanelBody__Box = styled.div<{ $fitToSize?: boolean }>`
+const PanelBody__Box = styled.div<{
+  $fitToSize?: boolean;
+  $loneFrame?: boolean;
+}>`
   --gap-related: var(--gap-related-comfortable);
   --gap-section: var(--gap-section-comfortable);
   --bleed-inline: var(--gutter-panel);
+  /* The body's side and bottom inset; a lone framed drawing steps this down under a narrow container. */
+  --panel-body-gutter: var(--gutter-panel);
+  --panel-body-bottom: var(--inset-panel-bottom);
 
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
   gap: var(--gap-related);
-  padding: var(--inset-panel-body);
+  /* Longhands, because jsdom drops a shorthand made of var() calls. */
+  padding-top: var(--inset-panel-top);
+  padding-right: var(--panel-body-gutter);
+  padding-bottom: var(--panel-body-bottom);
+  padding-left: var(--panel-body-gutter);
   /* Body is the scroller, so the inset sits inside the scrolling box and never clips overflow. */
   overflow: auto;
   ${focusRingInset}
@@ -476,8 +488,22 @@ const PanelBody__Box = styled.div<{ $fitToSize?: boolean }>`
   }
   /* Fit-to-size never scrolls, and centres only once measurement says the content fits: Firefox clips safe center while reporting support for it. */
   ${({ $fitToSize }) => ($fitToSize ? "flex: 1; overflow: hidden;" : "")}
+  ${({ $loneFrame }) =>
+    $loneFrame
+      ? `@container (width < ${LONE_FRAME_BREAKPOINT}) {
+           --panel-body-gutter: var(--inset-lone-frame);
+           --panel-body-bottom: var(--inset-lone-frame);
+         }`
+      : ""}
   ${SECTION_FILL_RULE}
 `;
+
+/**
+ * The panel width below which a lone framed drawing takes the thin inset.
+ * Under it the standard gutters cost such a drawing 15 to 35 percent of its
+ * area; above it about 10.
+ */
+const LONE_FRAME_BREAKPOINT = "25rem";
 
 /**
  * The content box, the inset, and the scrolling. Registers itself with the
@@ -486,9 +512,12 @@ const PanelBody__Box = styled.div<{ $fitToSize?: boolean }>`
 export function PanelBody({
   children,
   fitToSize,
+  loneFrame,
   ...rest
 }: ComponentPropsWithoutRef<"div"> & {
   fitToSize?: boolean;
+  /** The body is one framed drawing and nothing else. See `Panel`'s `sections`. */
+  loneFrame?: boolean;
 }) {
   const ctx = useContext(PanelCtx);
   const register = ctx?.registerScroller;
@@ -508,6 +537,8 @@ export function PanelBody({
       tabIndex={tabIndex}
       data-panel-body=""
       $fitToSize={fitToSize}
+      $loneFrame={loneFrame}
+      data-panel-lone-frame={loneFrame ? "" : undefined}
       {...rest}
     >
       {children}
@@ -1324,7 +1355,8 @@ const PanelStickyTop = styled.div`
   top: calc(-1 * var(--inset-panel-top));
   z-index: 2;
   /* Cancel the body's inset so the unit spans the full panel width. */
-  margin: calc(-1 * var(--inset-panel-top)) calc(-1 * var(--gutter-panel)) 0;
+  margin: calc(-1 * var(--inset-panel-top)) calc(-1 * var(--panel-body-gutter))
+    0;
   display: flex;
   flex-direction: column;
   /* Never shrink, or a short tile crushes the band and the title. */
@@ -1401,6 +1433,7 @@ function PanelRoot({
   const contextBadges = usePanelBadgesContext();
   // Asked as a boolean first, because an aside that exists at all is a padded box.
   const hasActionAugments = useWidgetSegmentBound("actions");
+  const hasSectionAugments = useWidgetSegmentBound("sections");
   const badges = mergeBadges(panelBadges, contextBadges);
   const badgePills =
     badges.length === 0
@@ -1497,6 +1530,15 @@ function PanelRoot({
    */
   const sectionNodes = Children.toArray(sections as ReactNode);
   const hasSections = sectionNodes.length > 0;
+  /* The body is one framed drawing and nothing else: no hand-composed children,
+     no bound sections augment (it would add content beside the frame), not
+     fitToSize, and the one section is a filling one holding only a frame. */
+  const loneFrame =
+    children === undefined &&
+    !(panelSections && hasSectionAugments) &&
+    !fitToSize &&
+    sectionNodes.length === 1 &&
+    holdsOnlyAFrame(sectionNodes[0]);
   /*
    * A filling section is lifted out of the grid into the body, the box that
    * knows the leftover height, since no grid row can be named for it. The
@@ -1560,7 +1602,7 @@ function PanelRoot({
   );
 
   const body = (
-    <PanelBody fitToSize={fitToSize}>
+    <PanelBody fitToSize={fitToSize} loneFrame={loneFrame}>
       <PanelStickyTop data-panel-sticky-top="">
         <PanelDelayRail />
         <PanelStickyHeader
@@ -1596,6 +1638,28 @@ function PanelRoot({
       </PanelContainer>
     </PanelProviders>
   );
+}
+
+/**
+ * Whether a section is a filling `Section` whose whole content is one
+ * `FramedDisplay`, reached through plain elements and fragments that each hold
+ * only the next.
+ */
+function holdsOnlyAFrame(section: ReactNode): boolean {
+  if (!isValidElement<{ fill?: boolean; children?: ReactNode }>(section)) {
+    return false;
+  }
+  if (section.type !== Section || section.props.fill !== true) return false;
+  let node: ReactNode = section.props.children;
+  for (;;) {
+    const only = Children.toArray(node);
+    if (only.length !== 1) return false;
+    const [child] = only;
+    if (!isValidElement<{ children?: ReactNode }>(child)) return false;
+    if (child.type === FramedDisplay) return true;
+    if (child.type !== Fragment && typeof child.type !== "string") return false;
+    node = child.props.children;
+  }
 }
 
 export const Panel = Object.assign(PanelRoot, {
