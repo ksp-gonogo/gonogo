@@ -9,10 +9,12 @@ import { writeQuantity } from "./units";
  * these read it back.
  *
  * `renderWidget` mounts a widget inside the dashboard's provider stack, which is
- * made of this package's providers. `render`/`renderHook` are the bare
- * equivalent, the sdk's themed render with a command rail mounted above it, for
- * a component or hook under test that is not a registered widget but still
- * dispatches through `useCommand`. Neither re-exports the sdk's testing entry
+ * made of this package's providers. `renderWithRail`/`renderHookWithRail` are
+ * the bare equivalent, the sdk's themed `render`/`renderHook` with a command
+ * rail mounted above it, for a component or hook under test that is not a
+ * registered widget but still dispatches through `useCommand`. Named apart
+ * from the sdk's own `render`/`renderHook` rather than shadowing them, since
+ * both packages are published. Neither re-exports the sdk's testing entry
  * wholesale: an Uplink's setup takes a host from the sdk and a provider stack
  * from here.
  */
@@ -113,7 +115,7 @@ export {
   paintChecker,
 } from "./checkerFraming";
 export { expectNoA11yViolations } from "./expectNoA11yViolations";
-export { render, renderHook } from "./render";
+export { renderHookWithRail, renderWithRail } from "./render";
 export {
   type RenderWidgetOptions,
   renderWidget,

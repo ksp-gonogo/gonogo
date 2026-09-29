@@ -6,7 +6,7 @@ import {
   setupStreamFixture,
 } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it } from "vitest";
-import { render, renderHook } from "./testing";
+import { renderHookWithRail, renderWithRail } from "./testing";
 
 /** A widget-shaped dispatch, the same command id the sdk's own rail tests use. */
 function Unlock({ rail }: { rail?: false }) {
@@ -18,10 +18,10 @@ function Unlock({ rail }: { rail?: false }) {
   );
 }
 
-describe("@ksp-gonogo/ui-kit/testing render/renderHook", () => {
+describe("@ksp-gonogo/ui-kit/testing renderWithRail/renderHookWithRail", () => {
   it("mounts a command rail, so a dispatched command reaches the transport with no throw", () => {
     const stream = setupStreamFixture();
-    render(
+    renderWithRail(
       <stream.Provider>
         <Unlock />
       </stream.Provider>,
@@ -45,11 +45,12 @@ describe("@ksp-gonogo/ui-kit/testing render/renderHook", () => {
     }).toThrow(/no command rail/);
   });
 
-  it("renderHook mounts the same rail, so a hook-level dispatch reaches the transport", () => {
+  it("renderHookWithRail mounts the same rail, so a hook-level dispatch reaches the transport", () => {
     const stream = setupStreamFixture();
-    const { result } = renderHook(() => useCommand("career.tech.unlock"), {
-      wrapper: stream.Provider,
-    });
+    const { result } = renderHookWithRail(
+      () => useCommand("career.tech.unlock"),
+      { wrapper: stream.Provider },
+    );
     expect(() => {
       result.current.send({ techId: "n" });
     }).not.toThrow();
@@ -58,7 +59,7 @@ describe("@ksp-gonogo/ui-kit/testing render/renderHook", () => {
 
   it("composes with a caller's own wrapper rather than replacing it", () => {
     const stream = setupStreamFixture();
-    render(<Unlock />, { wrapper: stream.Provider });
+    renderWithRail(<Unlock />, { wrapper: stream.Provider });
     expect(() => {
       fireEvent.click(screen.getByText("unlock"));
     }).not.toThrow();
@@ -67,7 +68,7 @@ describe("@ksp-gonogo/ui-kit/testing render/renderHook", () => {
 
   it("still keeps a rail: false handle off the rail, same as the sdk's bare render", () => {
     const stream = setupStreamFixture();
-    render(
+    renderWithRail(
       <stream.Provider>
         <Unlock rail={false} />
       </stream.Provider>,

@@ -16,8 +16,11 @@ import { DelayRailProvider } from "./CommandDelay/DelayRailContext";
  * `useCommand` registers every handle it returns with the nearest command
  * rail and a dev build throws on the first dispatch with none mounted (see
  * `DelayRailProvider`). `renderWidget` already carries one, as the dashboard
- * does; this is the same rail around the sdk's themed `render`/`renderHook`,
- * for a component or hook under test that is not a registered widget.
+ * does; `renderWithRail`/`renderHookWithRail` are the same rail around the
+ * sdk's themed `render`/`renderHook`, for a component or hook under test that
+ * is not a registered widget. Named apart from the sdk's own `render`/
+ * `renderHook` rather than shadowing them: both packages are published, and
+ * `styleguide-shared-published-surface.test.ts` fails a name declared in both.
  *
  * Lives in ui-kit rather than the sdk because `DelayRailProvider` is ui-kit's:
  * the sdk owns the `RailRegistry` seam it implements, but not the store or the
@@ -45,7 +48,7 @@ function withRail(Extra?: Wrapper): Wrapper {
  *
  * @category Rendering
  */
-export function render(
+export function renderWithRail(
   ui: ReactElement,
   options?: RenderOptions,
 ): RenderResult {
@@ -53,11 +56,11 @@ export function render(
 }
 
 /**
- * `renderHook`, with the same rail as {@link render}.
+ * `renderHook`, with the same rail as {@link renderWithRail}.
  *
  * @category Rendering
  */
-export function renderHook<Result, Props>(
+export function renderHookWithRail<Result, Props>(
   callback: (initialProps: Props) => Result,
   options?: RenderHookOptions<Props>,
 ): RenderHookResult<Result, Props> {
