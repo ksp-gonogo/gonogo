@@ -16,7 +16,7 @@ export interface BarTrackProps extends HTMLAttributes<HTMLDivElement> {
   tone: Tone;
   /** An arbitrary CSS colour that wins outright over the tone fill. */
   fillColor?: string;
-  /** The capacity has stopped being current: the track's edge dashes. */
+  /** The capacity has stopped being current: the unfilled part hatches. */
   trackHeld?: boolean;
   /** The reading has stopped being current: the fill dims. */
   fillHeld?: boolean;
@@ -37,11 +37,7 @@ export function BarTrack({
   ...rest
 }: BarTrackProps) {
   return (
-    <BarTrack__Track
-      $held={trackHeld}
-      data-track-held={trackHeld ? "" : undefined}
-      {...rest}
-    >
+    <BarTrack__Track data-track-held={trackHeld ? "" : undefined} {...rest}>
       {percent !== null && (
         <BarTrack__Fill
           $tone={tone}
@@ -51,23 +47,46 @@ export function BarTrack({
           style={{ width: `${percent}%` }}
         />
       )}
+      {trackHeld && (
+        <BarTrack__Hatch
+          data-track-hatch=""
+          style={{ left: `${percent ?? 0}%` }}
+        />
+      )}
       {children}
     </BarTrack__Track>
   );
 }
 
-/* A held capacity dashes the track's edge in the held mark's hue, which clears 3:1 against the panel where the subtle border does not: colour already means the fill's status. */
-const BarTrack__Track = styled.div<{ $held: boolean }>`
+/* The edge stays solid whether or not the capacity is current: a held capacity is drawn by BarTrack__Hatch inside it. */
+const BarTrack__Track = styled.div`
   width: 100%;
   border-radius: var(--radius-pill);
   background: var(--color-surface-raised);
-  border: 1px
-    ${({ $held }) =>
-      $held ? `dashed ${TONE_MARK.warn}` : "solid var(--color-border-subtle)"};
+  border: 1px solid var(--color-border-subtle);
   overflow: hidden;
   /* Positioned for the fill only: this overflow rounds the fill's ends and would clip any mark drawn over it. */
   position: relative;
   height: ${TRACK_HEIGHT};
+`;
+
+/**
+ * The unfilled part of a track whose capacity has stopped being current,
+ * hatched thinly in the held mark's hue: the extent is what aged, so the
+ * figure's fill is left clear of it. Static, so there is no motion to reduce.
+ */
+const BarTrack__Hatch = styled.div`
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  background-image: repeating-linear-gradient(
+    -45deg,
+    ${TONE_MARK.warn} 0 1px,
+    transparent 1px 4px
+  );
+  opacity: 0.55;
+  pointer-events: none;
 `;
 
 const BarTrack__Fill = styled.div<{

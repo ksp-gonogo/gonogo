@@ -116,7 +116,7 @@ export interface MeterProps<UnitSymbol extends string = string>
  *
  * With no number to show, the meter draws a dash and an empty track, never a
  * 0% bar. Given a {@link Reading}, a held value is marked as held, and a held
- * capacity draws the track dashed.
+ * capacity hatches the unfilled part of the track.
  *
  * ## Bands
  *

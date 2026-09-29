@@ -563,7 +563,41 @@ describe("Meter, given a capacity that is itself a reading", () => {
     expect(container.querySelector("[data-track-held]")).not.toBeNull();
   });
 
-  it("dashes a held track in the held mark's hue, not the 1.4:1 subtle border", () => {
+  it("hatches the unfilled part of a held track in the held mark's hue, from where the fill ends", () => {
+    const { container } = render(
+      <Meter
+        label="LiquidFuel"
+        value={value("units", 100)}
+        capacity={{
+          state: "held",
+          reckoning: { status: "none" },
+          value: value("units", 400),
+          asOfUt: AT,
+          grade: "held",
+        }}
+      />,
+    );
+    const hatch = container.querySelector("[data-track-hatch]") as HTMLElement;
+    expect(hatch).not.toBeNull();
+    expect(hatch.style.left).toBe("25%");
+    const rule = emittedRuleFor(hatch);
+    expect(rule).toContain("repeating-linear-gradient");
+    expect(rule).toContain("var(--color-warn-mark)");
+    expect(rule).not.toContain("animation");
+  });
+
+  it("draws no hatch on a live meter", () => {
+    const { container } = render(
+      <Meter
+        label="LiquidFuel"
+        value={value("units", 100)}
+        capacity={value("units", 400)}
+      />,
+    );
+    expect(container.querySelector("[data-track-hatch]")).toBeNull();
+  });
+
+  it("keeps a held track's edge solid, since the hatch is what says held", () => {
     const { container } = render(
       <Meter
         label="LiquidFuel"
@@ -578,9 +612,7 @@ describe("Meter, given a capacity that is itself a reading", () => {
       />,
     );
     const track = container.querySelector("[data-track-held]") as HTMLElement;
-    const rule = emittedRuleFor(track);
-    expect(rule).toContain("dashed var(--color-warn-mark)");
-    expect(rule).not.toContain("--color-border-subtle");
+    expect(emittedRuleFor(track)).not.toContain("dashed");
   });
 });
 
