@@ -21,12 +21,18 @@ namespace Sitrep.Host.Commcast
     /// there from its author. So a centre brought in far away starts hearing a
     /// transmission already under way from the first batch its speaker spoke
     /// after word of the change reached it.</para>
+    ///
+    /// <para>Radio is also LISTED, on <c>commcast.transmissions</c>, at every centre
+    /// the speaker's signal reaches, member or not: addressing is who hears the
+    /// audio, not a secret. A centre a transmission has reached may add itself to
+    /// its group, which is how a listener tunes in.</para>
     /// </summary>
     public sealed class CommcastUplink : ISitrepUplink
     {
         public const string UplinkId = "commcast";
         public const string TrafficTopic = "commcast.traffic";
         public const string RadioTopic = "commcast.radio";
+        public const string TransmissionsTopic = "commcast.transmissions";
         public const string OpenCommand = "commcast.group.open";
         public const string AddCommand = "commcast.group.add";
         public const string SendCommand = "commcast.message.send";
@@ -56,6 +62,12 @@ namespace Sitrep.Host.Commcast
         /// <summary>How many keyings are remembered at once; the oldest is forgotten first.</summary>
         private const int TransmissionMemory = 256;
 
+        /// <summary>
+        /// Game seconds between discovery rows for one keying, so a connection that
+        /// subscribes partway through learns of it within this long.
+        /// </summary>
+        private const double RowIntervalUt = 1.0;
+
         private sealed class MembershipChange
         {
             public double Ut;
@@ -76,6 +88,8 @@ namespace Sitrep.Host.Commcast
             public string From = "";
             public string GroupId = "";
             public double StartedUt;
+            public double LastRowUt = double.NegativeInfinity;
+            public bool Ended;
         }
 
         private readonly Dictionary<string, List<MembershipChange>> _groups =
@@ -101,6 +115,14 @@ namespace Sitrep.Host.Commcast
                 new ChannelDeclaration
                 {
                     Topic = TrafficTopic,
+                    Delivery = Delivery.ReliableOrdered,
+                    Delay = DelayRole.Delayed,
+                    Recordable = false,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
+                },
+                new ChannelDeclaration
+                {
+                    Topic = TransmissionsTopic,
                     Delivery = Delivery.ReliableOrdered,
                     Delay = DelayRole.Delayed,
                     Recordable = false,
@@ -135,6 +157,7 @@ namespace Sitrep.Host.Commcast
                 ?? throw new InvalidOperationException("commcast needs a host that carries addressed streams");
             _streams.DeclareAddressedTopic(TrafficTopic);
             _streams.DeclareAddressedTopic(RadioTopic);
+            _streams.DeclareAddressedTopic(TransmissionsTopic);
 
             host.AddVantageCommandHandler<CommcastGroupOpenArgs, CommandResult>(OpenCommand, HandleOpen);
             host.AddVantageCommandHandler<CommcastGroupAddArgs, CommandResult>(AddCommand, HandleAdd);
@@ -192,7 +215,7 @@ namespace Sitrep.Host.Commcast
             }
             var now = Now();
             var refusal = RefuseNonMember(args.GroupId, from, now, out var known);
-            if (refusal != null)
+            if (refusal != null && !TunesIn(args, from, now, ref known))
             {
                 return refusal;
             }
@@ -342,7 +365,64 @@ namespace Sitrep.Host.Commcast
             })));
             RadioChunksBudget.Record(args.Chunks.Count, now);
             _streams!.PublishAddressed(RadioTopic, segments, now, from, to);
+            PublishRow(args.TransmissionId, transmission, args.Author, to, args.End, now);
             return CommandResult.Ok();
+        }
+
+        /// <summary>
+        /// A vantage adding itself alone to a group it is not in, which it may do
+        /// once a transmission to that group has reached it: tuning in. The group's
+        /// members are then taken as that transmission's speaker knows them, since
+        /// the one tuning in has never been told.
+        /// </summary>
+        private bool TunesIn(CommcastGroupAddArgs args, string from, double now, ref List<string> known)
+        {
+            if (args.Added.Count != 1 || args.Added[0] != from || !_groups.TryGetValue(args.GroupId, out var changes))
+            {
+                return false;
+            }
+            foreach (var transmission in _transmissions.Values)
+            {
+                if (transmission.GroupId != args.GroupId || transmission.Ended || !_streams!.HasRoute(transmission.From, from))
+                {
+                    continue;
+                }
+                if (transmission.StartedUt + _streams.StampFrom(transmission.From).For(from) > now)
+                {
+                    continue;
+                }
+                known = MembersKnownAt(changes, transmission.From, now);
+                return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Tell every centre the speaker reaches that a keying is under way: when it
+        /// begins, at most once a <see cref="RowIntervalUt"/> while it lasts, and when
+        /// it ends. Each row crosses from the speaker as the audio does, so the two
+        /// agree about when the transmission began at any vantage.
+        /// </summary>
+        private void PublishRow(
+            string transmissionId, Transmission transmission, CommcastAuthor author, List<string> to, bool end, double now)
+        {
+            if (!end && now - transmission.LastRowUt < RowIntervalUt)
+            {
+                return;
+            }
+            transmission.LastRowUt = now;
+            transmission.Ended = end;
+            _streams!.PublishAddressed(TransmissionsTopic, ToWire(new CommcastTransmissionRow
+            {
+                Phase = end ? "ended" : "open",
+                TransmissionId = transmissionId,
+                GroupId = transmission.GroupId,
+                From = transmission.From,
+                Author = author,
+                StartedUt = transmission.StartedUt,
+                To = to,
+                Topic = RadioTopic,
+            }), now, transmission.From, _streams.ReachedFrom(transmission.From));
         }
 
         /// <summary>
@@ -497,6 +577,18 @@ namespace Sitrep.Host.Commcast
             }
             return wire;
         }
+
+        private static Dictionary<string, object?> ToWire(CommcastTransmissionRow row) => new Dictionary<string, object?>
+        {
+            ["phase"] = row.Phase,
+            ["transmissionId"] = row.TransmissionId,
+            ["groupId"] = row.GroupId,
+            ["from"] = row.From,
+            ["author"] = ToWire(row.Author),
+            ["startedUt"] = row.StartedUt,
+            ["to"] = row.To,
+            ["topic"] = row.Topic,
+        };
 
         private static Dictionary<string, object?> ToWire(CommcastRadioBatch batch) => new Dictionary<string, object?>
         {

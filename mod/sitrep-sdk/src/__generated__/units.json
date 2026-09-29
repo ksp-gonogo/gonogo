@@ -348,6 +348,15 @@
       "sentUt": "ut",
       "to": "id"
     },
+    "CommcastTransmissionRow": {
+      "from": "id",
+      "groupId": "id",
+      "phase": "enum",
+      "startedUt": "ut",
+      "to": "id",
+      "topic": "id",
+      "transmissionId": "id"
+    },
     "CommsCommandCentre": {
       "bodyIndex": "id",
       "displayName": "text",
@@ -1595,6 +1604,15 @@
       "sentUt": "ut",
       "to": "id"
     },
+    "commcast.transmissions": {
+      "from": "id",
+      "groupId": "id",
+      "phase": "enum",
+      "startedUt": "ut",
+      "to": "id",
+      "topic": "id",
+      "transmissionId": "id"
+    },
     "comms.commandCentre": {
       "bodyIndex": "id",
       "displayName": "text",
@@ -2217,6 +2235,9 @@
     "CommcastTraffic": {
       "author": "CommcastAuthor"
     },
+    "CommcastTransmissionRow": {
+      "author": "CommcastAuthor"
+    },
     "CommsCommandCentre": {
       "meta": "PayloadMeta"
     },
@@ -2535,6 +2556,9 @@
       "pairs": "CentreSeparationEntry[]"
     },
     "commcast.traffic": {
+      "author": "CommcastAuthor"
+    },
+    "commcast.transmissions": {
       "author": "CommcastAuthor"
     },
     "comms.commandCentre": {

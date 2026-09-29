@@ -37,6 +37,7 @@ import type {
   CommandCentreEntry,
   CommandCentreSeparation,
   CommcastTraffic,
+  CommcastTransmissionRow,
   CommsCommandCentre,
   CommsConnectivity,
   CommsControl,
@@ -120,6 +121,7 @@ export interface GeneratedTopicPayloadMap {
   "commandCentre.roster": CommandCentreEntry[];
   "commandCentre.separation": CommandCentreSeparation;
   "commcast.traffic": CommcastTraffic;
+  "commcast.transmissions": CommcastTransmissionRow;
   "comms.commandCentre": CommsCommandCentre;
   "comms.connectivity": CommsConnectivity;
   "comms.control": CommsControl;
@@ -203,6 +205,7 @@ export const GENERATED_TOPIC_IDS = [
   "commandCentre.roster",
   "commandCentre.separation",
   "commcast.traffic",
+  "commcast.transmissions",
   "comms.commandCentre",
   "comms.connectivity",
   "comms.control",

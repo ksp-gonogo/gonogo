@@ -10,6 +10,7 @@ namespace Sitrep.Contract;
 /// and trusted for nothing else: the vantage a thing was said FROM is always the
 /// one the mod resolved for the connection that said it, never a field here.
 /// </summary>
+/// <category>Comms</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -39,6 +40,7 @@ public class CommcastAuthor
 /// crossing on the way down; delaying the command as well would count the gap
 /// twice.</para>
 /// </summary>
+/// <category>Command arguments</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -63,6 +65,7 @@ public class CommcastGroupOpenArgs
 /// speaker can see is a member may add; nobody is ever removed. Refused unless
 /// the speaker is a member as its own vantage currently knows the group.
 /// </summary>
+/// <category>Command arguments</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -86,6 +89,7 @@ public class CommcastGroupAddArgs
 /// <c>commcast.message.send</c>'s args: say something to a group in text.
 /// Refused unless the speaker is a member as its own vantage knows the group.
 /// </summary>
+/// <category>Command arguments</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -114,6 +118,7 @@ public class CommcastMessageSendArgs
 /// acknowledgement crosses back to the author at their pair's light-time, so the
 /// author learns it was read one crossing after it was.
 /// </summary>
+/// <category>Command arguments</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -138,6 +143,7 @@ public class CommcastMessageAckArgs
 /// on <c>commcast.radio</c>, and the per-frame header is what costs, not the
 /// audio.</para>
 /// </summary>
+/// <category>Command arguments</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
@@ -192,6 +198,7 @@ public class CommcastRadioTransmitArgs
 /// to that message's author alone</item>
 /// </list>
 /// </summary>
+/// <category>Comms</category>
 [SitrepContract]
 [SitrepTopic("commcast.traffic")]
 #if SITREP_CODEGEN
@@ -254,6 +261,7 @@ public class CommcastTraffic
 /// description, so a listener that starts hearing partway through a keying
 /// places it from the first frame it gets.</para>
 /// </summary>
+/// <category>Comms</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]

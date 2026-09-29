@@ -1,10 +1,10 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 19.0.0
+  version: 19.2.0
   description: |-
-    The wire contract of the Gonogo mod's telemetry socket: 79 telemetry
-    channels a client subscribes to, and 56 commands it dispatches, with the payload
+    The wire contract of the Gonogo mod's telemetry socket: 81 telemetry
+    channels a client subscribes to, and 61 commands it dispatches, with the payload
     schema and the contract's own prose for each.
 
     **Generated.** Emitted by `scripts/asyncapi-doc.mjs` from the committed
@@ -155,6 +155,8 @@ info:
       description: 3 telemetry channels, 9 commands
     - name: commandCentre
       description: 3 telemetry channels, 0 commands
+    - name: commcast
+      description: 2 telemetry channels, 5 commands
     - name: comms
       description: 10 telemetry channels, 1 command
     - name: crash
@@ -683,6 +685,171 @@ channels:
     messages:
       streamData:
         $ref: "#/components/messages/streamData.commandCentre.separation"
+      event:
+        $ref: "#/components/messages/event"
+  commcast.group.add:
+    address: commcast.group.add
+    description: |-
+      Takes `CommcastGroupAddArgs`.
+
+      **Not delayed.** This command takes effect immediately, because it is ground-side bookkeeping rather than a signal to a craft.
+
+      `commcast.group.add`'s args: bring more centres into a group. Anyone the
+      speaker can see is a member may add; nobody is ever removed. Refused unless
+      the speaker is a member as its own vantage currently knows the group.
+    servers:
+      - $ref: "#/servers/mod"
+    x-sitrep-delayed: false
+    messages:
+      commandRequest:
+        $ref: "#/components/messages/commandRequest.commcast.group.add"
+      commandResponse:
+        $ref: "#/components/messages/commandResponse.commcast.group.add"
+  commcast.group.open:
+    address: commcast.group.open
+    description: |-
+      Takes `CommcastGroupOpenArgs`.
+
+      **Not delayed.** This command takes effect immediately, because it is ground-side bookkeeping rather than a signal to a craft.
+
+      `commcast.group.open`'s args: start a group, a set of command centres
+      sharing one thread for messages and radio. The speaker is always a member,
+      named here or not.
+
+      Never delayed on the way up. What is said crosses once, from the speaker to
+      each listener at that pair's light-time, and the mod times that crossing on
+      the way down; delaying the command as well would count the gap twice.
+    servers:
+      - $ref: "#/servers/mod"
+    x-sitrep-delayed: false
+    messages:
+      commandRequest:
+        $ref: "#/components/messages/commandRequest.commcast.group.open"
+      commandResponse:
+        $ref: "#/components/messages/commandResponse.commcast.group.open"
+  commcast.message.ack:
+    address: commcast.message.ack
+    description: |-
+      Takes `CommcastMessageAckArgs`.
+
+      **Not delayed.** This command takes effect immediately, because it is ground-side bookkeeping rather than a signal to a craft.
+
+      `commcast.message.ack`'s args: tell a message's author it arrived. The
+      acknowledgement crosses back to the author at their pair's light-time, so
+      the author learns it was read one crossing after it was.
+    servers:
+      - $ref: "#/servers/mod"
+    x-sitrep-delayed: false
+    messages:
+      commandRequest:
+        $ref: "#/components/messages/commandRequest.commcast.message.ack"
+      commandResponse:
+        $ref: "#/components/messages/commandResponse.commcast.message.ack"
+  commcast.message.send:
+    address: commcast.message.send
+    description: |-
+      Takes `CommcastMessageSendArgs`.
+
+      **Not delayed.** This command takes effect immediately, because it is ground-side bookkeeping rather than a signal to a craft.
+
+      `commcast.message.send`'s args: say something to a group in text. Refused
+      unless the speaker is a member as its own vantage knows the group.
+    servers:
+      - $ref: "#/servers/mod"
+    x-sitrep-delayed: false
+    messages:
+      commandRequest:
+        $ref: "#/components/messages/commandRequest.commcast.message.send"
+      commandResponse:
+        $ref: "#/components/messages/commandResponse.commcast.message.send"
+  commcast.radio.transmit:
+    address: commcast.radio.transmit
+    description: |-
+      Takes `CommcastRadioTransmitArgs`.
+
+      **Not delayed.** This command takes effect immediately, because it is ground-side bookkeeping rather than a signal to a craft.
+
+      `commcast.radio.transmit`'s args: one batch of live push-to-talk audio,
+      spoken to a group.
+
+      Each chunk is one raw Opus packet of 20 ms, base64-encoded. Send about 200
+      ms per batch: each batch leaves the mod as one binary frame per listener on
+      `commcast.radio`, and the per-frame header is what costs, not the audio.
+    servers:
+      - $ref: "#/servers/mod"
+    x-sitrep-delayed: false
+    messages:
+      commandRequest:
+        $ref: "#/components/messages/commandRequest.commcast.radio.transmit"
+      commandResponse:
+        $ref: "#/components/messages/commandResponse.commcast.radio.transmit"
+  commcast.traffic:
+    address: commcast.traffic
+    description: |-
+      Carries a `CommcastTraffic`.
+
+      One item of `commcast.traffic`: something said to a group this vantage
+      belongs to, delivered one light-time after it was said from where it was
+      said.
+
+      **Addressed, never broadcast.** A connection receives only the items
+      addressed to its own vantage. A group's members are addressed as the speaker
+      could see them when it spoke, so a centre added far away starts receiving
+      once word of it has reached the speaker, and a member with no path from the
+      speaker misses what was said.
+
+      **A stream, not state.** Nothing is replayed to a connection that subscribes
+      after an item reached it, as with anything heard on a radio.
+
+      Three kinds, by `CommcastTraffic.kind`:
+
+      - `"members"`: a group opened or grew. `CommcastTraffic.members` is its
+        whole membership after the change, `CommcastTraffic.added` who came in
+      - `"text"`: a message, `CommcastTraffic.id` and `CommcastTraffic.body`
+      - `"ack"`: a member acknowledging `CommcastTraffic.messageId`, addressed to
+        that message's author alone
+    servers:
+      - $ref: "#/servers/mod"
+    x-sitrep-delivery: reliable-ordered
+    x-sitrep-delay-role: delayed
+    x-sitrep-keyframe-interval-ut: 1000
+    messages:
+      streamData:
+        $ref: "#/components/messages/streamData.commcast.traffic"
+      event:
+        $ref: "#/components/messages/event"
+  commcast.transmissions:
+    address: commcast.transmissions
+    description: |-
+      Carries a `CommcastTransmissionRow`.
+
+      One row of `commcast.transmissions`: a radio transmission this vantage can
+      detect, and how to hear it.
+
+      **Detectable** means a signal from the speaker has a routed path to this
+      vantage, the same path its audio would take. The row reaches a vantage at
+      exactly the delay the transmission's audio does, so the instant a
+      transmission begins here is the same whichever of the two is read.
+
+      Rows are sent when a keying begins, again at most once a second of game time
+      while it continues (so a connection that subscribes partway through learns
+      of it), and once when it ends. Nothing is replayed to a connection that
+      subscribes after a row reached it.
+
+      **Tuning in.** A transmission's audio on `CommcastTransmissionRow.topic` is
+      addressed to the members of its group only. To hear it, send
+      `commcast.group.add` naming this vantage alone in
+      `CommcastGroupAddArgs.added`: the mod accepts that from a vantage the
+      transmission has reached. Joining is itself a change that crosses to the
+      speaker, so the audio starts one round trip later.
+    servers:
+      - $ref: "#/servers/mod"
+    x-sitrep-delivery: reliable-ordered
+    x-sitrep-delay-role: delayed
+    x-sitrep-keyframe-interval-ut: 1000
+    messages:
+      streamData:
+        $ref: "#/components/messages/streamData.commcast.transmissions"
       event:
         $ref: "#/components/messages/event"
   comms.commandCentre:
@@ -3909,6 +4076,76 @@ operations:
         $ref: "#/channels/career.tech.unlock"
       messages:
         - $ref: "#/channels/career.tech.unlock/messages/commandResponse"
+  dispatch:commcast.group.add:
+    action: send
+    channel:
+      $ref: "#/channels/commcast.group.add"
+    title: Dispatch commcast.group.add
+    tags:
+      - name: commcast
+    messages:
+      - $ref: "#/channels/commcast.group.add/messages/commandRequest"
+    reply:
+      channel:
+        $ref: "#/channels/commcast.group.add"
+      messages:
+        - $ref: "#/channels/commcast.group.add/messages/commandResponse"
+  dispatch:commcast.group.open:
+    action: send
+    channel:
+      $ref: "#/channels/commcast.group.open"
+    title: Dispatch commcast.group.open
+    tags:
+      - name: commcast
+    messages:
+      - $ref: "#/channels/commcast.group.open/messages/commandRequest"
+    reply:
+      channel:
+        $ref: "#/channels/commcast.group.open"
+      messages:
+        - $ref: "#/channels/commcast.group.open/messages/commandResponse"
+  dispatch:commcast.message.ack:
+    action: send
+    channel:
+      $ref: "#/channels/commcast.message.ack"
+    title: Dispatch commcast.message.ack
+    tags:
+      - name: commcast
+    messages:
+      - $ref: "#/channels/commcast.message.ack/messages/commandRequest"
+    reply:
+      channel:
+        $ref: "#/channels/commcast.message.ack"
+      messages:
+        - $ref: "#/channels/commcast.message.ack/messages/commandResponse"
+  dispatch:commcast.message.send:
+    action: send
+    channel:
+      $ref: "#/channels/commcast.message.send"
+    title: Dispatch commcast.message.send
+    tags:
+      - name: commcast
+    messages:
+      - $ref: "#/channels/commcast.message.send/messages/commandRequest"
+    reply:
+      channel:
+        $ref: "#/channels/commcast.message.send"
+      messages:
+        - $ref: "#/channels/commcast.message.send/messages/commandResponse"
+  dispatch:commcast.radio.transmit:
+    action: send
+    channel:
+      $ref: "#/channels/commcast.radio.transmit"
+    title: Dispatch commcast.radio.transmit
+    tags:
+      - name: commcast
+    messages:
+      - $ref: "#/channels/commcast.radio.transmit/messages/commandRequest"
+    reply:
+      channel:
+        $ref: "#/channels/commcast.radio.transmit"
+      messages:
+        - $ref: "#/channels/commcast.radio.transmit/messages/commandResponse"
   dispatch:comms.setSimulationDelayPolicy:
     action: send
     channel:
@@ -4627,6 +4864,28 @@ operations:
     messages:
       - $ref: "#/channels/commandCentre.separation/messages/streamData"
       - $ref: "#/channels/commandCentre.separation/messages/event"
+  read:commcast.traffic:
+    action: receive
+    channel:
+      $ref: "#/channels/commcast.traffic"
+    title: Read commcast.traffic
+    description: Delivered only after `subscribe` names `commcast.traffic` on the session channel, which the mod answers here with an `event` named `subscribed`.
+    tags:
+      - name: commcast
+    messages:
+      - $ref: "#/channels/commcast.traffic/messages/streamData"
+      - $ref: "#/channels/commcast.traffic/messages/event"
+  read:commcast.transmissions:
+    action: receive
+    channel:
+      $ref: "#/channels/commcast.transmissions"
+    title: Read commcast.transmissions
+    description: Delivered only after `subscribe` names `commcast.transmissions` on the session channel, which the mod answers here with an `event` named `subscribed`.
+    tags:
+      - name: commcast
+    messages:
+      - $ref: "#/channels/commcast.transmissions/messages/streamData"
+      - $ref: "#/channels/commcast.transmissions/messages/event"
   read:comms.commandCentre:
     action: receive
     channel:
@@ -5600,6 +5859,81 @@ components:
                 const: career.tech.unlock
               args:
                 $ref: "#/components/schemas/UnlockTechArgs"
+    commandRequest.commcast.group.add:
+      name: command-request
+      title: Dispatch commcast.group.add
+      contentType: application/json
+      correlationId:
+        $ref: "#/components/correlationIds/requestId"
+      payload:
+        description: The `command-request` envelope for `commcast.group.add`, with its typed `args`.
+        allOf:
+          - $ref: "#/components/schemas/CommandRequest"
+          - properties:
+              command:
+                const: commcast.group.add
+              args:
+                $ref: "#/components/schemas/CommcastGroupAddArgs"
+    commandRequest.commcast.group.open:
+      name: command-request
+      title: Dispatch commcast.group.open
+      contentType: application/json
+      correlationId:
+        $ref: "#/components/correlationIds/requestId"
+      payload:
+        description: The `command-request` envelope for `commcast.group.open`, with its typed `args`.
+        allOf:
+          - $ref: "#/components/schemas/CommandRequest"
+          - properties:
+              command:
+                const: commcast.group.open
+              args:
+                $ref: "#/components/schemas/CommcastGroupOpenArgs"
+    commandRequest.commcast.message.ack:
+      name: command-request
+      title: Dispatch commcast.message.ack
+      contentType: application/json
+      correlationId:
+        $ref: "#/components/correlationIds/requestId"
+      payload:
+        description: The `command-request` envelope for `commcast.message.ack`, with its typed `args`.
+        allOf:
+          - $ref: "#/components/schemas/CommandRequest"
+          - properties:
+              command:
+                const: commcast.message.ack
+              args:
+                $ref: "#/components/schemas/CommcastMessageAckArgs"
+    commandRequest.commcast.message.send:
+      name: command-request
+      title: Dispatch commcast.message.send
+      contentType: application/json
+      correlationId:
+        $ref: "#/components/correlationIds/requestId"
+      payload:
+        description: The `command-request` envelope for `commcast.message.send`, with its typed `args`.
+        allOf:
+          - $ref: "#/components/schemas/CommandRequest"
+          - properties:
+              command:
+                const: commcast.message.send
+              args:
+                $ref: "#/components/schemas/CommcastMessageSendArgs"
+    commandRequest.commcast.radio.transmit:
+      name: command-request
+      title: Dispatch commcast.radio.transmit
+      contentType: application/json
+      correlationId:
+        $ref: "#/components/correlationIds/requestId"
+      payload:
+        description: The `command-request` envelope for `commcast.radio.transmit`, with its typed `args`.
+        allOf:
+          - $ref: "#/components/schemas/CommandRequest"
+          - properties:
+              command:
+                const: commcast.radio.transmit
+              args:
+                $ref: "#/components/schemas/CommcastRadioTransmitArgs"
     commandRequest.comms.setSimulationDelayPolicy:
       name: command-request
       title: Dispatch comms.setSimulationDelayPolicy
@@ -6418,6 +6752,71 @@ components:
           - properties:
               result:
                 $ref: "#/components/schemas/CommandResult"
+    commandResponse.commcast.group.add:
+      name: command-response
+      title: Reply to commcast.group.add
+      contentType: application/json
+      correlationId:
+        $ref: "#/components/correlationIds/requestId"
+      payload:
+        description: The `command-response` envelope for `commcast.group.add`, with its typed `result`.
+        allOf:
+          - $ref: "#/components/schemas/CommandResponse"
+          - properties:
+              result:
+                $ref: "#/components/schemas/CommandResult"
+    commandResponse.commcast.group.open:
+      name: command-response
+      title: Reply to commcast.group.open
+      contentType: application/json
+      correlationId:
+        $ref: "#/components/correlationIds/requestId"
+      payload:
+        description: The `command-response` envelope for `commcast.group.open`, with its typed `result`.
+        allOf:
+          - $ref: "#/components/schemas/CommandResponse"
+          - properties:
+              result:
+                $ref: "#/components/schemas/CommandResult"
+    commandResponse.commcast.message.ack:
+      name: command-response
+      title: Reply to commcast.message.ack
+      contentType: application/json
+      correlationId:
+        $ref: "#/components/correlationIds/requestId"
+      payload:
+        description: The `command-response` envelope for `commcast.message.ack`, with its typed `result`.
+        allOf:
+          - $ref: "#/components/schemas/CommandResponse"
+          - properties:
+              result:
+                $ref: "#/components/schemas/CommandResult"
+    commandResponse.commcast.message.send:
+      name: command-response
+      title: Reply to commcast.message.send
+      contentType: application/json
+      correlationId:
+        $ref: "#/components/correlationIds/requestId"
+      payload:
+        description: The `command-response` envelope for `commcast.message.send`, with its typed `result`.
+        allOf:
+          - $ref: "#/components/schemas/CommandResponse"
+          - properties:
+              result:
+                $ref: "#/components/schemas/CommandResult"
+    commandResponse.commcast.radio.transmit:
+      name: command-response
+      title: Reply to commcast.radio.transmit
+      contentType: application/json
+      correlationId:
+        $ref: "#/components/correlationIds/requestId"
+      payload:
+        description: The `command-response` envelope for `commcast.radio.transmit`, with its typed `result`.
+        allOf:
+          - $ref: "#/components/schemas/CommandResponse"
+          - properties:
+              result:
+                $ref: "#/components/schemas/CommandResult"
     commandResponse.comms.setSimulationDelayPolicy:
       name: command-response
       title: Reply to comms.setSimulationDelayPolicy
@@ -7181,6 +7580,32 @@ components:
                 const: commandCentre.separation
               payload:
                 $ref: "#/components/schemas/CommandCentreSeparation"
+    streamData.commcast.traffic:
+      name: stream-data
+      title: A frame on commcast.traffic
+      contentType: application/json
+      payload:
+        description: The `stream-data` envelope carrying `commcast.traffic`.
+        allOf:
+          - $ref: "#/components/schemas/StreamData"
+          - properties:
+              topic:
+                const: commcast.traffic
+              payload:
+                $ref: "#/components/schemas/CommcastTraffic"
+    streamData.commcast.transmissions:
+      name: stream-data
+      title: A frame on commcast.transmissions
+      contentType: application/json
+      payload:
+        description: The `stream-data` envelope carrying `commcast.transmissions`.
+        allOf:
+          - $ref: "#/components/schemas/StreamData"
+          - properties:
+              topic:
+                const: commcast.transmissions
+              payload:
+                $ref: "#/components/schemas/CommcastTransmissionRow"
     streamData.comms.commandCentre:
       name: stream-data
       title: A frame on comms.commandCentre
@@ -10394,6 +10819,347 @@ components:
             property: an existing consumer that builds a `CommandResult` is not made to
             supply a field it has nothing to put in, which is what makes this additive
             rather than a Major.
+    CommcastAuthor:
+      type: object
+      description: |-
+        Who is speaking, as the speaking client describes itself. Shown to listeners
+        and trusted for nothing else: the vantage a thing was said FROM is always
+        the one the mod resolved for the connection that said it, never a field
+        here.
+      required:
+        - name
+        - stationKey
+        - seat
+      properties:
+        name:
+          type: string
+          x-sitrep-unit: text
+          description: The name a listener reads beside what was said.
+        stationKey:
+          type: string
+          x-sitrep-unit: id
+          description: |-
+            The speaking device's own stable key, so a screen can recognise its own
+            words coming back.
+        seat:
+          type: string
+          x-sitrep-unit: id
+          description: |-
+            Which end of the light-path the speaker sits at, in the client's own
+            vocabulary (`"pilot"`, `"mission-control"`).
+    CommcastGroupAddArgs:
+      type: object
+      description: |-
+        `commcast.group.add`'s args: bring more centres into a group. Anyone the
+        speaker can see is a member may add; nobody is ever removed. Refused unless
+        the speaker is a member as its own vantage currently knows the group.
+      required:
+        - groupId
+        - added
+        - author
+      properties:
+        groupId:
+          type: string
+          x-sitrep-unit: id
+          description: The group, by the id it was opened with.
+        added:
+          type: array
+          items:
+            type: string
+            x-sitrep-unit: id
+          description: |-
+            The centres to bring in, as `commandCentre.roster` ids. One already in the
+            group is ignored.
+        author:
+          description: How the speaker describes itself, for display only.
+          allOf:
+            - $ref: "#/components/schemas/CommcastAuthor"
+    CommcastGroupOpenArgs:
+      type: object
+      description: |-
+        `commcast.group.open`'s args: start a group, a set of command centres
+        sharing one thread for messages and radio. The speaker is always a member,
+        named here or not.
+
+        Never delayed on the way up. What is said crosses once, from the speaker to
+        each listener at that pair's light-time, and the mod times that crossing on
+        the way down; delaying the command as well would count the gap twice.
+      required:
+        - groupId
+        - members
+        - author
+      properties:
+        groupId:
+          type: string
+          x-sitrep-unit: id
+          description: |-
+            Minted by the client, so a resend opens nothing twice. Refused if another
+            group already holds it.
+        members:
+          type: array
+          items:
+            type: string
+            x-sitrep-unit: id
+          description: Every centre the group starts with, as `commandCentre.roster` ids.
+        author:
+          description: How the speaker describes itself, for display only.
+          allOf:
+            - $ref: "#/components/schemas/CommcastAuthor"
+    CommcastMessageAckArgs:
+      type: object
+      description: |-
+        `commcast.message.ack`'s args: tell a message's author it arrived. The
+        acknowledgement crosses back to the author at their pair's light-time, so
+        the author learns it was read one crossing after it was.
+      required:
+        - messageId
+        - author
+      properties:
+        messageId:
+          type: string
+          x-sitrep-unit: id
+          description: The message being acknowledged, by its `CommcastMessageSendArgs.id`.
+        author:
+          description: How the speaker describes itself, for display only.
+          allOf:
+            - $ref: "#/components/schemas/CommcastAuthor"
+    CommcastMessageSendArgs:
+      type: object
+      description: |-
+        `commcast.message.send`'s args: say something to a group in text. Refused
+        unless the speaker is a member as its own vantage knows the group.
+      required:
+        - id
+        - groupId
+        - body
+        - author
+      properties:
+        id:
+          type: string
+          x-sitrep-unit: id
+          description: |-
+            Minted by the client and kept across a resend, so a listener holding both
+            copies holds one message.
+        groupId:
+          type: string
+          x-sitrep-unit: id
+          description: The group, by the id it was opened with.
+        body:
+          type: string
+          x-sitrep-unit: text
+          description: The words.
+        author:
+          description: How the speaker describes itself, for display only.
+          allOf:
+            - $ref: "#/components/schemas/CommcastAuthor"
+    CommcastRadioTransmitArgs:
+      type: object
+      description: |-
+        `commcast.radio.transmit`'s args: one batch of live push-to-talk audio,
+        spoken to a group.
+
+        Each chunk is one raw Opus packet of 20 ms, base64-encoded. Send about 200
+        ms per batch: each batch leaves the mod as one binary frame per listener on
+        `commcast.radio`, and the per-frame header is what costs, not the audio.
+      required:
+        - transmissionId
+        - groupId
+        - seq
+        - chunks
+        - end
+        - author
+      properties:
+        transmissionId:
+          type: string
+          x-sitrep-unit: id
+          description: Minted by the client at key-down and carried on every batch of that keying.
+        groupId:
+          type: string
+          x-sitrep-unit: id
+          description: The group, by the id it was opened with.
+        seq:
+          type: number
+          x-sitrep-unit: count
+          description: |-
+            The 0-based index, within the transmission, of the first chunk in this
+            batch.
+        chunks:
+          type: array
+          items:
+            type: string
+            x-sitrep-unit: text
+          description: |-
+            Opus packets, 20 ms each, base64. May be empty on the batch that ends a
+            keying.
+        end:
+          type: boolean
+          x-sitrep-unit: flag
+          description: True on the last batch of a keying.
+        author:
+          description: How the speaker describes itself, for display only.
+          allOf:
+            - $ref: "#/components/schemas/CommcastAuthor"
+    CommcastTraffic:
+      type: object
+      description: |-
+        One item of `commcast.traffic`: something said to a group this vantage
+        belongs to, delivered one light-time after it was said from where it was
+        said.
+
+        **Addressed, never broadcast.** A connection receives only the items
+        addressed to its own vantage. A group's members are addressed as the speaker
+        could see them when it spoke, so a centre added far away starts receiving
+        once word of it has reached the speaker, and a member with no path from the
+        speaker misses what was said.
+
+        **A stream, not state.** Nothing is replayed to a connection that subscribes
+        after an item reached it, as with anything heard on a radio.
+
+        Three kinds, by `CommcastTraffic.kind`:
+
+        - `"members"`: a group opened or grew. `CommcastTraffic.members` is its
+          whole membership after the change, `CommcastTraffic.added` who came in
+        - `"text"`: a message, `CommcastTraffic.id` and `CommcastTraffic.body`
+        - `"ack"`: a member acknowledging `CommcastTraffic.messageId`, addressed to
+          that message's author alone
+      required:
+        - kind
+        - groupId
+        - from
+        - author
+        - sentUt
+        - to
+      properties:
+        kind:
+          type: string
+          x-sitrep-unit: enum
+          description: "`\"members\"`, `\"text\"` or `\"ack\"`."
+        id:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: id
+          description: A text message's own id, or a membership change's. Absent from an ack.
+        groupId:
+          type: string
+          x-sitrep-unit: id
+          description: The group, by the id it was opened with.
+        from:
+          type: string
+          x-sitrep-unit: id
+          description: |-
+            The centre it was said from, as the mod resolved it for the speaker's
+            connection.
+        author:
+          description: How the speaker describes itself, for display only.
+          allOf:
+            - $ref: "#/components/schemas/CommcastAuthor"
+        sentUt:
+          type: number
+          x-sitrep-unit: ut
+          description: The UT it was said at, which is also this delivery's `meta.validAt`.
+        to:
+          type: array
+          items:
+            type: string
+            x-sitrep-unit: id
+          description: |-
+            Everyone it was addressed to, the speaker included, as the speaker could see
+            the group.
+        members:
+          type:
+            - array
+            - "null"
+          items:
+            type: string
+            x-sitrep-unit: id
+          description: The group's whole membership after a `"members"` change. Absent otherwise.
+        added:
+          type:
+            - array
+            - "null"
+          items:
+            type: string
+            x-sitrep-unit: id
+          description: Who a `"members"` change brought in. Absent otherwise.
+        body:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: text
+          description: A `"text"` message's words. Absent otherwise.
+        messageId:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: id
+          description: The message an `"ack"` acknowledges. Absent otherwise.
+    CommcastTransmissionRow:
+      type: object
+      description: |-
+        One row of `commcast.transmissions`: a radio transmission this vantage can
+        detect, and how to hear it.
+
+        **Detectable** means a signal from the speaker has a routed path to this
+        vantage, the same path its audio would take. The row reaches a vantage at
+        exactly the delay the transmission's audio does, so the instant a
+        transmission begins here is the same whichever of the two is read.
+
+        Rows are sent when a keying begins, again at most once a second of game time
+        while it continues (so a connection that subscribes partway through learns
+        of it), and once when it ends. Nothing is replayed to a connection that
+        subscribes after a row reached it.
+
+        **Tuning in.** A transmission's audio on `CommcastTransmissionRow.topic` is
+        addressed to the members of its group only. To hear it, send
+        `commcast.group.add` naming this vantage alone in
+        `CommcastGroupAddArgs.added`: the mod accepts that from a vantage the
+        transmission has reached. Joining is itself a change that crosses to the
+        speaker, so the audio starts one round trip later.
+      required:
+        - phase
+        - transmissionId
+        - groupId
+        - from
+        - author
+        - startedUt
+        - to
+        - topic
+      properties:
+        phase:
+          type: string
+          x-sitrep-unit: enum
+          description: "`\"open\"` while the speaker is keyed, `\"ended\"` on the last row of a keying."
+        transmissionId:
+          type: string
+          x-sitrep-unit: id
+          description: The keying, by the id the speaking client minted at key-down.
+        groupId:
+          type: string
+          x-sitrep-unit: id
+          description: The group it is spoken to.
+        from:
+          type: string
+          x-sitrep-unit: id
+          description: The centre it is spoken from.
+        author:
+          description: How the speaker describes itself, for display only.
+          allOf:
+            - $ref: "#/components/schemas/CommcastAuthor"
+        startedUt:
+          type: number
+          x-sitrep-unit: ut
+          description: The UT the keying's first batch reached the mod.
+        to:
+          type: array
+          items:
+            type: string
+            x-sitrep-unit: id
+          description: Who the speaker addressed when this row was sent, the speaker included.
+        topic:
+          type: string
+          x-sitrep-unit: id
+          description: "The binary-lane topic its audio rides: `commcast.radio`."
     CommsCommandCentre:
       type: object
       description: |-

@@ -1990,7 +1990,12 @@ namespace Sitrep.Contract
         /// <see cref="CommcastAuthor"/>, and the five <c>commcast.*</c> commands' args.
         /// Additive, nothing removed or retyped, so an Uplink built against 19.0 is
         /// unaffected.</para>
+        ///
+        /// <para><b>Major-19 line, Bumped 1 -&gt; 2:</b> the <c>commcast.transmissions</c>
+        /// Topic and its <see cref="CommcastTransmissionRow"/> payload, the radio
+        /// transmissions detectable at a vantage. Additive, so an Uplink built against
+        /// 19.1 is unaffected.</para>
         /// </remarks>
-        public const int Minor = 1;
+        public const int Minor = 2;
     }
 }

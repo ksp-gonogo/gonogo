@@ -388,6 +388,15 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     sentUt: "ut",
     to: "id",
   },
+  "CommcastTransmissionRow": {
+    from: "id",
+    groupId: "id",
+    phase: "enum",
+    startedUt: "ut",
+    to: "id",
+    topic: "id",
+    transmissionId: "id",
+  },
   "CommsCommandCentre": {
     bodyIndex: "id",
     displayName: "text",
@@ -1640,6 +1649,15 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     sentUt: "ut",
     to: "id",
   },
+  "commcast.transmissions": {
+    from: "id",
+    groupId: "id",
+    phase: "enum",
+    startedUt: "ut",
+    to: "id",
+    topic: "id",
+    transmissionId: "id",
+  },
   "comms.commandCentre": {
     bodyIndex: "id",
     displayName: "text",
@@ -2291,6 +2309,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "CommcastTraffic": {
     author: "CommcastAuthor",
   },
+  "CommcastTransmissionRow": {
+    author: "CommcastAuthor",
+  },
   "CommsCommandCentre": {
     meta: "PayloadMeta",
   },
@@ -2611,6 +2632,9 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
     pairs: "CentreSeparationEntry[]",
   },
   "commcast.traffic": {
+    author: "CommcastAuthor",
+  },
+  "commcast.transmissions": {
     author: "CommcastAuthor",
   },
   "comms.commandCentre": {

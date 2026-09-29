@@ -1187,6 +1187,8 @@ export interface CommandResultOf<Payload> extends CommandResult
 * and trusted for nothing else: the vantage a thing was said FROM is always
 * the one the mod resolved for the connection that said it, never a field
 * here.
+*
+* @category Comms
 */
 export interface CommcastAuthor
 {
@@ -1211,6 +1213,8 @@ export interface CommcastAuthor
 * Never delayed on the way up. What is said crosses once, from the speaker to
 * each listener at that pair's light-time, and the mod times that crossing on
 * the way down; delaying the command as well would count the gap twice.
+*
+* @category Command arguments
 */
 export interface CommcastGroupOpenArgs
 {
@@ -1228,6 +1232,8 @@ export interface CommcastGroupOpenArgs
 * `commcast.group.add`'s args: bring more centres into a group. Anyone the
 * speaker can see is a member may add; nobody is ever removed. Refused unless
 * the speaker is a member as its own vantage currently knows the group.
+*
+* @category Command arguments
 */
 export interface CommcastGroupAddArgs
 {
@@ -1244,6 +1250,8 @@ export interface CommcastGroupAddArgs
 /**
 * `commcast.message.send`'s args: say something to a group in text. Refused
 * unless the speaker is a member as its own vantage knows the group.
+*
+* @category Command arguments
 */
 export interface CommcastMessageSendArgs
 {
@@ -1263,6 +1271,8 @@ export interface CommcastMessageSendArgs
 * `commcast.message.ack`'s args: tell a message's author it arrived. The
 * acknowledgement crosses back to the author at their pair's light-time, so
 * the author learns it was read one crossing after it was.
+*
+* @category Command arguments
 */
 export interface CommcastMessageAckArgs
 {
@@ -1278,6 +1288,8 @@ export interface CommcastMessageAckArgs
 * Each chunk is one raw Opus packet of 20 ms, base64-encoded. Send about 200
 * ms per batch: each batch leaves the mod as one binary frame per listener on
 * `commcast.radio`, and the per-frame header is what costs, not the audio.
+*
+* @category Command arguments
 */
 export interface CommcastRadioTransmitArgs
 {
@@ -1321,6 +1333,8 @@ export interface CommcastRadioTransmitArgs
 * - `"text"`: a message, `CommcastTraffic.id` and `CommcastTraffic.body`
 * - `"ack"`: a member acknowledging `CommcastTraffic.messageId`, addressed to
 *   that message's author alone
+*
+* @category Comms
 */
 export interface CommcastTraffic
 {
@@ -1363,6 +1377,8 @@ export interface CommcastTraffic
 * batch was spoken. Every frame carries this whole description, so a listener
 * that starts hearing partway through a keying places it from the first frame
 * it gets.
+*
+* @category Comms
 */
 export interface CommcastRadioBatch
 {
@@ -1394,6 +1410,48 @@ export interface CommcastRadioBatch
 	* could see the group.
 	*/
 	to: string[];
+}
+/**
+* One row of `commcast.transmissions`: a radio transmission this vantage can
+* detect, and how to hear it.
+*
+* **Detectable** means a signal from the speaker has a routed path to this
+* vantage, the same path its audio would take. The row reaches a vantage at
+* exactly the delay the transmission's audio does, so the instant a
+* transmission begins here is the same whichever of the two is read.
+*
+* Rows are sent when a keying begins, again at most once a second of game time
+* while it continues (so a connection that subscribes partway through learns
+* of it), and once when it ends. Nothing is replayed to a connection that
+* subscribes after a row reached it.
+*
+* **Tuning in.** A transmission's audio on `CommcastTransmissionRow.topic` is
+* addressed to the members of its group only. To hear it, send
+* `commcast.group.add` naming this vantage alone in
+* `CommcastGroupAddArgs.added`: the mod accepts that from a vantage the
+* transmission has reached. Joining is itself a change that crosses to the
+* speaker, so the audio starts one round trip later.
+*
+* @category Comms
+*/
+export interface CommcastTransmissionRow
+{
+	/** `"open"` while the speaker is keyed, `"ended"` on the last row of a keying. */
+	phase: string;
+	/** The keying, by the id the speaking client minted at key-down. */
+	transmissionId: string;
+	/** The group it is spoken to. */
+	groupId: string;
+	/** The centre it is spoken from. */
+	from: string;
+	/** How the speaker describes itself, for display only. */
+	author: CommcastAuthor;
+	/** The UT the keying's first batch reached the mod. */
+	startedUt: Value<"ut">;
+	/** Who the speaker addressed when this row was sent, the speaker included. */
+	to: string[];
+	/** The binary-lane topic its audio rides: `commcast.radio`. */
+	topic: string;
 }
 /**
 * Degree of vessel control the link currently affords, the `controlSource`

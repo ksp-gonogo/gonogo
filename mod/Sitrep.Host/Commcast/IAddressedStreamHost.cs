@@ -40,6 +40,12 @@ namespace Sitrep.Host.Commcast
         bool HasRoute(string fromCentre, string toCentre);
 
         /// <summary>
+        /// Every centre a signal from <paramref name="fromCentre"/> has a routed
+        /// path to right now, <paramref name="fromCentre"/> itself included.
+        /// </summary>
+        IReadOnlyCollection<string> ReachedFrom(string fromCentre);
+
+        /// <summary>
         /// The delay a signal leaving <paramref name="fromCentre"/> now is sent
         /// under, per listening vantage: the same stamp a published sample carries.
         /// </summary>

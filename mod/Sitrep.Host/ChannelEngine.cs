@@ -2806,6 +2806,19 @@ namespace Sitrep.Host
 
         public DelayStamp StampFrom(string fromCentre) => _network.StampFor(CentreNodePrefix + fromCentre);
 
+        public IReadOnlyCollection<string> ReachedFrom(string fromCentre)
+        {
+            var reached = new List<string> { fromCentre };
+            foreach (var row in _centreRoutes)
+            {
+                if (row.Key != fromCentre && row.Value.Contains(fromCentre))
+                {
+                    reached.Add(row.Key);
+                }
+            }
+            return reached;
+        }
+
         public void SetHomeCommandDelay(string centreId, double oneWaySeconds)
         {
             // The explicit (vantage, node) tier again, against the one node every

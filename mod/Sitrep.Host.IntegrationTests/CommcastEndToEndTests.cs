@@ -250,6 +250,97 @@ namespace Sitrep.Host.IntegrationTests
             Assert.False(refused.Success);
         }
 
+        /// <summary>
+        /// A transmission is detectable wherever its speaker's signal reaches, member
+        /// or not, and its row lands there exactly when its audio would.
+        /// </summary>
+        [Fact]
+        public async Task ATransmissionIsListedWhereverItsSignalReachesAtTheInstantItsAudioWould()
+        {
+            await using var scene = await Scene.StartAsync(discovery: true);
+            await scene.CommandAsync(scene.A, CommcastUplink.OpenCommand, Open("g1", B));
+            await scene.CommandAsync(scene.A, CommcastUplink.TransmitCommand, Transmit("t1", "g1", 0, OneChunk));
+
+            scene.Tick(19);
+            await scene.C.AssertNoMessageArrivesAsync(Quiet);
+
+            scene.Tick(20);
+            var data = await NextOnAsync(scene.C, CommcastUplink.TransmissionsTopic);
+            var row = (Dictionary<string, object?>)data.Payload!;
+            Assert.Equal("open", row["phase"]);
+            Assert.Equal("t1", row["transmissionId"]);
+            Assert.Equal(A, row["from"]);
+            Assert.Equal(CommcastUplink.RadioTopic, row["topic"]);
+            Assert.Equal(0.0, data.Meta.ValidAt);
+            Assert.Equal(20.0, data.Meta.DeliveredAt);
+            await scene.C.AssertNoBinaryFrameArrivesAsync(Quiet);
+        }
+
+        [Fact]
+        public async Task NothingIsListedWhereTheSpeakerHasNoPath()
+        {
+            await using var scene = await Scene.StartAsync(unrouted: (A, C), discovery: true);
+            await scene.CommandAsync(scene.A, CommcastUplink.OpenCommand, Open("g1", B));
+            await scene.CommandAsync(scene.A, CommcastUplink.TransmitCommand, Transmit("t1", "g1", 0, OneChunk));
+
+            scene.Tick(100);
+            await scene.C.AssertNoMessageArrivesAsync(Quiet);
+        }
+
+        /// <summary>
+        /// Tuning in is adding yourself, allowed once the transmission has reached
+        /// you. The speaker addresses you from when word of that reaches it, so the
+        /// audio starts one round trip after you asked.
+        /// </summary>
+        [Fact]
+        public async Task AVantageTheTransmissionHasReachedCanTuneInAndHearsFromOneRoundTripLater()
+        {
+            await using var scene = await Scene.StartAsync(discovery: true);
+            await scene.CommandAsync(scene.A, CommcastUplink.OpenCommand, Open("g1", B));
+            await scene.CommandAsync(scene.A, CommcastUplink.TransmitCommand, Transmit("t1", "g1", 0, OneChunk));
+            var tuneIn = new Dictionary<string, object?> { ["groupId"] = "g1", ["added"] = new List<object?> { C } };
+
+            scene.Tick(19);
+            Assert.False((await scene.CommandAsync(scene.C, CommcastUplink.AddCommand, tuneIn)).Success);
+
+            scene.Tick(20);
+            Assert.True((await scene.CommandAsync(scene.C, CommcastUplink.AddCommand, tuneIn)).Success);
+
+            scene.Tick(39);
+            await scene.CommandAsync(scene.A, CommcastUplink.TransmitCommand, Transmit("t1", "g1", 100, OneChunk));
+            scene.Tick(40);
+            await scene.CommandAsync(scene.A, CommcastUplink.TransmitCommand, Transmit("t1", "g1", 200, OneChunk));
+
+            scene.Tick(100);
+            var (_, batch, _) = await NextRadioAsync(scene.C);
+            Assert.Equal(200, batch.GetProperty("seq").GetInt32());
+            await scene.C.AssertNoBinaryFrameArrivesAsync(Quiet);
+        }
+
+        [Fact]
+        public async Task TuningInAddsNobodyElse()
+        {
+            await using var scene = await Scene.StartAsync(discovery: true);
+            await scene.CommandAsync(scene.A, CommcastUplink.OpenCommand, Open("g1", B));
+            await scene.CommandAsync(scene.A, CommcastUplink.TransmitCommand, Transmit("t1", "g1", 0, OneChunk));
+            scene.Tick(20);
+
+            var both = new Dictionary<string, object?> { ["groupId"] = "g1", ["added"] = new List<object?> { C, "ground:d" } };
+            Assert.False((await scene.CommandAsync(scene.C, CommcastUplink.AddCommand, both)).Success);
+        }
+
+        private static async Task<StreamData<object?>> NextOnAsync(TestClient client, string topic)
+        {
+            while (true)
+            {
+                var data = await ReceiveStreamDataAsync(client, Timeout);
+                if (data.Topic == topic)
+                {
+                    return data;
+                }
+            }
+        }
+
         private static readonly byte[][] OneChunk = { new byte[] { 0x01, 0x02 } };
 
         private static Dictionary<string, object?> Open(string groupId, params string[] members) => new()
@@ -302,6 +393,7 @@ namespace Sitrep.Host.IntegrationTests
         {
             private readonly ChannelEngine _engine;
             private int _request;
+            private bool _discovery;
 
             public TestClient A { get; private set; } = null!;
             public TestClient B { get; private set; } = null!;
@@ -309,7 +401,7 @@ namespace Sitrep.Host.IntegrationTests
 
             private Scene(ChannelEngine engine) => _engine = engine;
 
-            public static async Task<Scene> StartAsync((string, string)? unrouted = null, bool subscribeB = true)
+            public static async Task<Scene> StartAsync((string, string)? unrouted = null, bool subscribeB = true, bool discovery = false)
             {
                 var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
                 foreach (var id in new[] { CommcastEndToEndTests.A, CommcastEndToEndTests.B, CommcastEndToEndTests.C })
@@ -319,7 +411,7 @@ namespace Sitrep.Host.IntegrationTests
                 engine.RegisterUplink(new LedgerUplink(unrouted));
                 engine.RegisterUplink(new CommcastUplink());
                 engine.Start();
-                var scene = new Scene(engine);
+                var scene = new Scene(engine) { _discovery = discovery };
                 scene.Tick(0);
                 scene.A = await scene.ConnectAtAsync(CommcastEndToEndTests.A, subscribe: true);
                 scene.B = await scene.ConnectAtAsync(CommcastEndToEndTests.B, subscribe: subscribeB);
@@ -361,6 +453,10 @@ namespace Sitrep.Host.IntegrationTests
                 {
                     Assert.Equal("subscribed", (await SubscribeAsync(client, CommcastUplink.TrafficTopic, Timeout)).Name);
                     Assert.Equal("subscribed", (await SubscribeAsync(client, CommcastUplink.RadioTopic, Timeout)).Name);
+                }
+                if (_discovery)
+                {
+                    Assert.Equal("subscribed", (await SubscribeAsync(client, CommcastUplink.TransmissionsTopic, Timeout)).Name);
                 }
                 return client;
             }
