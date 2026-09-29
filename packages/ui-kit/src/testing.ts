@@ -99,6 +99,16 @@ export interface UnitMatchers<Result = unknown> {
   ): Result;
 }
 
+export {
+  CHECKER_TOLERANCE,
+  type CheckerFit,
+  type CheckerGrid,
+  type CheckerPaint,
+  type FramingFault,
+  fitOf,
+  framingFaults,
+  paintChecker,
+} from "./checkerFraming";
 export { expectNoA11yViolations } from "./expectNoA11yViolations";
 export {
   type RenderWidgetOptions,
