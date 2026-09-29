@@ -433,6 +433,9 @@
          Strategy.Activate calls CanBeActivated, so neither runs anywhere but the
          Administration screen. The sequence takes an interface instead. -->
     <Compile Include="..\Gonogo.KSP\Career\StrategyCommit.cs" />
+    <!-- Deactivation judged by the strategy's state, because a career mod's
+         Deactivate can throw after the release has already happened. -->
+    <Compile Include="..\Gonogo.KSP\Career\StrategyRelease.cs" />
     <!-- What a facility's obstructing-vessel walk becomes as a refusal. The walk
          itself is two public SpaceCenterBuilding methods over live scene
          objects; only its answer is decided here. -->

@@ -161,9 +161,22 @@ namespace Gonogo.KSP
                 return CommandResult.Fail(CommandErrorCode.WrongState, CareerRefusals.DeactivateRefusal(reason));
             }
 
-            return strategy.Deactivate()
-                ? CommandResult.Ok()
-                : CommandResult.Fail(CommandErrorCode.WrongState, CareerRefusals.DeactivateRefusal(null));
+            return StrategyRelease.Deactivate(
+                new LiveRelease(strategy),
+                ex => UnityEngine.Debug.LogWarning(
+                    "[Gonogo] strategy " + strategyId + " was deactivated but its deactivation threw afterwards: " + ex));
+        }
+
+        /// <summary>The real <c>Strategies.Strategy</c> behind <see cref="IStrategyReleaseTarget"/>.</summary>
+        private sealed class LiveRelease : IStrategyReleaseTarget
+        {
+            private readonly Strategy _strategy;
+
+            public LiveRelease(Strategy strategy) => _strategy = strategy;
+
+            public bool IsActive => _strategy.IsActive;
+
+            public bool Deactivate() => _strategy.Deactivate();
         }
 
         /// <summary>

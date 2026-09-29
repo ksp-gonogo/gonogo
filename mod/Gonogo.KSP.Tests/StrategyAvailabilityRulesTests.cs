@@ -126,7 +126,7 @@ namespace Gonogo.KSP.Tests
 
             var gate = body.IndexOf("CanBeDeactivated(out var reason)", StringComparison.Ordinal);
             Assert.True(gate >= 0, "DeactivateStrategy never asks CanBeDeactivated for its reason");
-            Assert.True(gate < body.IndexOf(".Deactivate()", StringComparison.Ordinal));
+            Assert.True(gate < body.IndexOf("StrategyRelease.Deactivate(", StringComparison.Ordinal));
             Assert.Contains("CareerRefusals.DeactivateRefusal(reason)", body, StringComparison.Ordinal);
         }
 
