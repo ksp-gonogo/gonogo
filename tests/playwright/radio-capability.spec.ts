@@ -38,14 +38,23 @@ import {
  * Encoded bytes per second of audio, the band `RADIO_ENCODER_CONFIG`'s
  * measured output must stay inside.
  *
- * Measured 2026-09-05 on this repo's cached browsers: chromium 3331,
- * firefox 4338, webkit 3946. `bitrate: 24000` nominally asks for 3000, and
- * firefox overshoots it; the band is deliberately wide enough that normal
- * per-version codec drift does not go red, and narrow enough to catch the
- * two failures that matter: an encoder emitting nothing, and an engine
- * falling back to something PCM-sized (int16 mono at 16 kHz is 32000).
+ * Derived from `RADIO_ENCODER_CONFIG.bitrate` rather than a fixed figure, so
+ * the band moves when the configured bitrate does: pinning it to one
+ * bitrate's measured bytes/sec is what went stale when the radio budget
+ * dropped from 24 to 12 kbps. The two multipliers are what a 2026-09-05
+ * measurement at 24 kbps reduces to: chromium 3331, firefox 4338, webkit
+ * 3946 bytes/sec against a nominal 3000 (`bitrate / 8`), so 2/3 to 2x nominal
+ * is wide enough that normal per-version codec drift and firefox's own
+ * overshoot do not go red, and narrow enough to catch the two failures that
+ * matter at any bitrate the radio uses: an encoder emitting nothing, and an
+ * engine falling back to something PCM-sized (int16 mono at 16 kHz is 32000
+ * bytes/sec, several multiples above the top of this band either way).
  */
-const BYTE_RATE_BAND = { min: 2_000, max: 6_000 } as const;
+const NOMINAL_BYTES_PER_SEC = RADIO_ENCODER_CONFIG.bitrate / 8;
+const BYTE_RATE_BAND = {
+  min: NOMINAL_BYTES_PER_SEC * (2 / 3),
+  max: NOMINAL_BYTES_PER_SEC * 2,
+} as const;
 
 /** 1 s of tone, at 20 ms per chunk. */
 const CHUNKS_TO_ENCODE = 50;
