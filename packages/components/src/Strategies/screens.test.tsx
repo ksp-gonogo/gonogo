@@ -8,6 +8,11 @@ import {
   WidgetMetaContext,
 } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
+import {
+  createDomainAvailabilityStore,
+  DomainAvailabilityContext,
+  type DomainAvailabilityStore,
+} from "@ksp-gonogo/ui-kit";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
@@ -151,6 +156,49 @@ describe("resolveScreens", () => {
     );
     expect(screens[0].lockedReason).toBe("Not available yet");
   });
+
+  it("marks a screen naming no departments as listing nothing", () => {
+    const screens = resolveScreens(
+      [{ id: "finances", label: "Finances" }],
+      [parsed("earlySounding", "Programs")],
+    );
+    expect(screens[0].listsStrategies).toBe(false);
+    expect(screens[0].strategies).toEqual([]);
+  });
+
+  it("marks a screen naming departments as listing them", () => {
+    const screens = resolveScreens(
+      [{ id: "programs", label: "Programs", departments: ["Programs"] }],
+      [parsed("earlySounding", "Programs")],
+    );
+    expect(screens[0].listsStrategies).toBe(true);
+  });
+
+  it("always lists strategies on the trailing unclaimed screen", () => {
+    const screens = resolveScreens(
+      [{ id: "programs", label: "Programs", departments: ["Programs"] }],
+      [parsed("earlySounding", "Programs"), parsed("vonBraun", "Engineering")],
+    );
+    expect(screens[1].id).toBe("strategies.unclaimed");
+    expect(screens[1].listsStrategies).toBe(true);
+  });
+
+  it("carries drawsOwnActions from the entry, false when the entry omits it", () => {
+    const screens = resolveScreens(
+      [
+        {
+          id: "programs",
+          label: "Programs",
+          departments: ["Programs"],
+          drawsOwnActions: true,
+        },
+        { id: "leaders", label: "Leaders", departments: ["Engineering"] },
+      ],
+      [],
+    );
+    expect(screens[0].drawsOwnActions).toBe(true);
+    expect(screens[1].drawsOwnActions).toBe(false);
+  });
 });
 
 const META = {
@@ -160,12 +208,13 @@ const META = {
 
 const renderedTrees: Array<() => void> = [];
 
-function renderWidget() {
+/** `availability` is only needed to prove the Divider's Domain gate; every other test leaves it undefined and gets an always-available store. */
+function renderWidget(availability?: DomainAvailabilityStore) {
   const stream = setupStreamFixture({
     pinnedUt: 10,
     suspendFrames: true,
   });
-  const result = render(
+  const tree = (
     <stream.Provider>
       <WidgetMetaContext.Provider value={META}>
         <ContributionsProvider>
@@ -174,7 +223,16 @@ function renderWidget() {
           </DashboardItemContext.Provider>
         </ContributionsProvider>
       </WidgetMetaContext.Provider>
-    </stream.Provider>,
+    </stream.Provider>
+  );
+  const result = render(
+    availability ? (
+      <DomainAvailabilityContext.Provider value={availability}>
+        {tree}
+      </DomainAvailabilityContext.Provider>
+    ) : (
+      tree
+    ),
   );
   renderedTrees.push(result.unmount);
   return { stream, ...result };
@@ -343,6 +401,38 @@ describe("Strategies: the screen contribution slot", () => {
     expect(screen.queryByText("Sergei Korolev")).toBeNull();
   });
 
+  /*
+   * useSlotBound counts only augments whose requires Domain has announced:
+   * a screen that lists strategies but whose body augment is not yet
+   * available draws its sections with no divider under them, matching
+   * AugmentSlot itself drawing nothing for that augment.
+   */
+  it("draws no divider above a not-yet-available screen body, even on a screen that lists strategies", async () => {
+    registerContribution({
+      id: "test-programs-screen",
+      contributes: "strategies.screens",
+      compute: () => [
+        { id: "programs", label: "Programs", departments: ["Programs"] },
+      ],
+    });
+    registerAugment({
+      id: "test-programs-body-gated",
+      augments: "strategies.screen-body",
+      requires: "rp1",
+      component: () => <div data-testid="screen-body">body</div>,
+    });
+    const availability = createDomainAvailabilityStore();
+    const { stream } = renderWidget(availability);
+    act(() => {
+      emitCareer(stream, RP1_CAREER);
+    });
+    await screen.findByRole("tablist");
+
+    expect(screen.getByLabelText("Active")).toBeInTheDocument();
+    expect(screen.queryByTestId("screen-body")).toBeNull();
+    expect(screen.queryByRole("separator")).toBeNull();
+  });
+
   it("composes an augment into the selected screen's body", async () => {
     registerContribution({
       id: "test-programs-screen",
@@ -431,6 +521,64 @@ describe("Strategies: the screen contribution slot", () => {
     });
     expect(await screen.findByText("Early Sounding Rockets")).toBeTruthy();
     expect(screen.getByText("Programs")).toBeTruthy();
+  });
+
+  it("draws no strategy lists on a screen naming no departments, only its augment body", async () => {
+    registerContribution({
+      id: "test-finances-screen",
+      contributes: "strategies.screens",
+      compute: () => [{ id: "finances", label: "Finances" }],
+    });
+    registerAugment({
+      id: "test-finances-body",
+      augments: "strategies.screen-body",
+      component: ({ screenId }: { screenId: string }) =>
+        screenId === "finances" ? (
+          <div data-testid="finances-body">budget</div>
+        ) : null,
+    });
+    const user = userEvent.setup();
+    const { stream } = renderWidget();
+    act(() => {
+      emitCareer(stream, RP1_CAREER);
+    });
+    await screen.findByRole("tablist");
+
+    await user.click(screen.getByRole("tab", { name: "Finances" }));
+    expect(await screen.findByTestId("finances-body")).toBeTruthy();
+    expect(screen.queryByLabelText("Active")).toBeNull();
+    expect(screen.queryByLabelText("Available")).toBeNull();
+    expect(screen.queryByText(/No active strategies/)).toBeNull();
+    expect(screen.queryByText(/No strategies available/)).toBeNull();
+
+    // The trailing screen still lists every strategy: nothing went missing.
+    await user.click(screen.getByRole("tab", { name: "Other" }));
+    expect(screen.getByText("Early Sounding Rockets")).toBeTruthy();
+  });
+
+  it("draws a screen's cards with no Activate/Deactivate when it draws its own actions", async () => {
+    registerContribution({
+      id: "test-programs-screen",
+      contributes: "strategies.screens",
+      compute: () => [
+        {
+          id: "programs",
+          label: "Programs",
+          departments: ["Programs"],
+          drawsOwnActions: true,
+        },
+      ],
+    });
+    const { stream } = renderWidget();
+    act(() => {
+      emitCareer(stream, RP1_CAREER);
+    });
+    await screen.findByRole("tablist");
+
+    // Programs are eligible under RP1_CAREER, so a host Activate would normally draw here.
+    expect(screen.getByText("Early Sounding Rockets")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Deactivate/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Activate/ })).toBeNull();
   });
 
   it("has no axe violations with the tab strip up", async () => {

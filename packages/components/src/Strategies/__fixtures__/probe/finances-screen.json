@@ -1,0 +1,121 @@
+{
+  "_meta": {
+    "scenario": "finances-screen",
+    "notes": "Saga #649 (T4) review render: the planted Uplink contributes a Finances-like screen naming no departments (scripts/probe/plantedUplink.ts, requires 'planted'), alongside the real Operations/Finances/Public Relations strategies from small-career-detail.json's roster, which land on the trailing 'Other' screen since nobody claims those departments. Demonstrates the host fix: a screen naming no departments draws no Active/Available/Locked sections, only its (here empty) augment body, while the 'Other' screen keeps listing its real strategies untouched. Not a live capture."
+  },
+  "_stream": {
+    "emits": [
+      {
+        "channel": "planted.available",
+        "value": true
+      },
+      {
+        "channel": "career.status",
+        "value": {
+          "economy": {
+            "funds": 525000,
+            "reputation": 62,
+            "science": 310
+          },
+          "contracts": null,
+          "strategies": {
+            "active": [
+              {
+                "id": "AggressiveNegotiations",
+                "title": "Aggressive Negotiations",
+                "description": "Push harder on every deal.",
+                "departmentName": "Operations",
+                "isActive": true,
+                "factor": 0.15,
+                "dateActivated": 33246,
+                "requiredReputation": -10,
+                "initialCostFunds": 0,
+                "initialCostScience": 0,
+                "initialCostReputation": 14.5,
+                "effectiveCostReputation": 14.5,
+                "hasFactorSlider": true,
+                "factorSliderDefault": 0.05,
+                "factorSliderSteps": 20,
+                "canActivate": false,
+                "activateBlockedReason": "Strategy already active.",
+                "canDeactivate": true,
+                "deactivateBlockedReason": "",
+                "effect": "Effects: -1.5% funds off launch costs."
+              }
+            ],
+            "all": [
+              {
+                "id": "AggressiveNegotiations",
+                "title": "Aggressive Negotiations",
+                "description": "Push harder on every deal.",
+                "departmentName": "Operations",
+                "isActive": true,
+                "factor": 0.15,
+                "dateActivated": 33246,
+                "requiredReputation": -10,
+                "initialCostFunds": 0,
+                "initialCostScience": 0,
+                "initialCostReputation": 14.5,
+                "effectiveCostReputation": 14.5,
+                "hasFactorSlider": true,
+                "factorSliderDefault": 0.05,
+                "factorSliderSteps": 20,
+                "canActivate": false,
+                "activateBlockedReason": "Strategy already active.",
+                "canDeactivate": true,
+                "deactivateBlockedReason": "",
+                "effect": "Effects: -1.5% funds off launch costs."
+              },
+              {
+                "id": "FundraisingCampaignCfg",
+                "title": "Fundraising Campaign",
+                "description": "Reach out to the public for monetary donations.",
+                "departmentName": "Finances",
+                "isActive": false,
+                "factor": 0.05,
+                "dateActivated": 0,
+                "requiredReputation": -437.5,
+                "initialCostFunds": 0,
+                "initialCostScience": 0,
+                "initialCostReputation": 7.3,
+                "effectiveCostReputation": 7.3,
+                "hasFactorSlider": true,
+                "factorSliderDefault": 0.05,
+                "factorSliderSteps": 20,
+                "canActivate": true,
+                "activateBlockedReason": "",
+                "canDeactivate": false,
+                "deactivateBlockedReason": "Strategy is not active",
+                "effect": "Effects: takes 5% reputation gains."
+              },
+              {
+                "id": "PatriotismDriveCfg",
+                "title": "Patriotism Drive",
+                "description": "Instill a sense of national pride in the populace.",
+                "departmentName": "Public Relations",
+                "isActive": false,
+                "factor": 0.05,
+                "dateActivated": 0,
+                "requiredReputation": 750,
+                "initialCostFunds": 0,
+                "initialCostScience": 0,
+                "initialCostReputation": 0,
+                "effectiveCostReputation": 0,
+                "hasFactorSlider": false,
+                "factorSliderDefault": 0.05,
+                "factorSliderSteps": 1,
+                "canActivate": false,
+                "activateBlockedReason": "Requires more reputation than the program has earned.",
+                "canDeactivate": false,
+                "deactivateBlockedReason": "Strategy is not active",
+                "effect": ""
+              }
+            ],
+            "activeCount": 1
+          },
+          "tech": null
+        }
+      }
+    ]
+  }
+}

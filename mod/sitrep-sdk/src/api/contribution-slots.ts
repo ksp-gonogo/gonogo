@@ -294,6 +294,14 @@ export interface StrategiesScreenEntry {
   enabled?: boolean;
   /** Why `enabled` is false, in the operator's own terms. */
   disabledReason?: string;
+  /**
+   * True when the screen's own `strategies.screen-body` already carries the
+   * activate/deactivate verbs for its cards (e.g. a Programs screen offering
+   * Accept and Complete), so the host draws that screen's Active and
+   * Available cards with no Activate or Deactivate button of its own, rather
+   * than one that could only ever be refused.
+   */
+  drawsOwnActions?: boolean;
 }
 
 /** Mirrors `MissionLogAmount`. */

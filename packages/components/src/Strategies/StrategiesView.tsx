@@ -157,6 +157,8 @@ export function StrategiesView({
                         strategies={screen.strategies}
                         screenId={screen.id}
                         showDepartment={!screen.namesOneDepartment}
+                        listsStrategies={screen.listsStrategies}
+                        drawsOwnActions={screen.drawsOwnActions}
                       />
                     ),
                 }),

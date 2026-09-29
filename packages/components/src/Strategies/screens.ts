@@ -14,6 +14,14 @@ export interface StrategiesScreenEntry {
   departments?: readonly string[];
   enabled?: boolean;
   disabledReason?: string;
+  /**
+   * True when the screen's own body already carries the activate/deactivate
+   * verbs for its cards (RP-1's Programs screen offers Accept and Complete
+   * through its `strategies.screen-body` augment). The host then draws that
+   * screen's Active and Available cards with no Activate or Deactivate button
+   * of its own, rather than one that could only ever be refused.
+   */
+  drawsOwnActions?: boolean;
 }
 
 /** One screen as the widget draws it, after the contributions are resolved. */
@@ -24,6 +32,14 @@ export interface ResolvedScreen {
   lockedReason: string | null;
   /** True when the screen claims exactly one department, so a per-card department chip would repeat the tab's name. */
   namesOneDepartment: boolean;
+  /**
+   * False for a screen naming no departments: it lists nothing and is chrome
+   * for its augment body, so the host draws no Active/Available/Locked
+   * sections at all rather than an empty-looking building.
+   */
+  listsStrategies: boolean;
+  /** Mirrors {@link StrategiesScreenEntry.drawsOwnActions}. */
+  drawsOwnActions: boolean;
   /** The strategies this screen lists, in the order the career reported them. */
   strategies: Strategy[];
 }
@@ -81,6 +97,8 @@ export function resolveScreens(
           (entry.disabledReason ?? "Not available yet")
         : null,
     namesOneDepartment: (entry.departments ?? []).length === 1,
+    listsStrategies: (entry.departments ?? []).length > 0,
+    drawsOwnActions: entry.drawsOwnActions === true,
     strategies: strategies.filter((s) =>
       (entry.departments ?? []).includes(s.departmentName),
     ),
@@ -93,6 +111,9 @@ export function resolveScreens(
       label: "Other",
       lockedReason: null,
       namesOneDepartment: false,
+      // The trailing screen always has real, unclaimed strategies to show.
+      listsStrategies: true,
+      drawsOwnActions: false,
       strategies: unclaimed,
     });
   }

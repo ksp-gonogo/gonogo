@@ -77,6 +77,7 @@ export function AvailableRow({
   factor,
   onFactorChange,
   activateCmd,
+  drawsOwnActions = false,
   expanded,
   onToggleExpanded,
   note,
@@ -97,6 +98,8 @@ export function AvailableRow({
   onFactorChange: (v: number) => void;
   /** The shared activate handle; each row's `CommandButton` holds its own arm and in-flight state. */
   activateCmd: CommandButtonHandle;
+  /** True when the screen's own body carries the activate verb, so this card draws no Activate button. */
+  drawsOwnActions?: boolean;
   expanded: boolean;
   onToggleExpanded: () => void;
   /** A standing account of this card's own state, on screen above the price. */
@@ -145,26 +148,33 @@ export function AvailableRow({
         showDepartment ? <CardDept>{s.departmentName}</CardDept> : undefined
       }
       footer={
-        <CommandButton
-          handle={activateCmd}
-          args={{ strategyId: s.id, factor }}
-          commandLabel={`Activate ${s.title}`}
-          label="Activate"
-          confirmLabel="Confirm activate"
-          pendingLabel="Activating..."
-          /*
-           * Arms on a screened yes, or on no verdict where the command re-runs
-           * every check itself. A derived verdict never arms, yes or no.
-           */
-          disabled={
-            !(
-              (s.canActivate === true &&
-                s.activateVerdictSource === "screened") ||
-              (s.canActivate === null && commitsUnanswered)
-            ) || cantAfford
-          }
-          title={activateTitle(s, commitsUnanswered, balancesHeld, cantAfford)}
-        />
+        drawsOwnActions ? undefined : (
+          <CommandButton
+            handle={activateCmd}
+            args={{ strategyId: s.id, factor }}
+            commandLabel={`Activate ${s.title}`}
+            label="Activate"
+            confirmLabel="Confirm activate"
+            pendingLabel="Activating..."
+            /*
+             * Arms on a screened yes, or on no verdict where the command re-runs
+             * every check itself. A derived verdict never arms, yes or no.
+             */
+            disabled={
+              !(
+                (s.canActivate === true &&
+                  s.activateVerdictSource === "screened") ||
+                (s.canActivate === null && commitsUnanswered)
+              ) || cantAfford
+            }
+            title={activateTitle(
+              s,
+              commitsUnanswered,
+              balancesHeld,
+              cantAfford,
+            )}
+          />
+        )
       }
     >
       <StrategyDescription of={s} />

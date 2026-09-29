@@ -189,6 +189,13 @@ export const EXTENSION_SCENES: readonly ExtensionScene[] = [
     w: 9,
     h: 10,
   },
+  {
+    id: "planted:strategies-finances-screen",
+    widgetId: "strategies",
+    fixture: `${COMPONENTS}/Strategies/__fixtures__/probe/finances-screen.json`,
+    w: 9,
+    h: 12,
+  },
   ...SLOT_SCENES,
 ];
 
