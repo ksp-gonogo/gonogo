@@ -102,6 +102,33 @@ namespace Sitrep.Core.Tests
         }
 
         [Fact]
+        public void EveryNamedEnumFieldHasItsMembers()
+        {
+            var maps = UnitDescriptor.Collect();
+            var named = maps.EnumsByType.Values
+                .Concat(maps.EnumsByTopic.Values)
+                .SelectMany(fields => fields.Values)
+                .Where(enumName => enumName != null);
+
+            Assert.All(named, enumName => Assert.True(maps.EnumMembers.ContainsKey(enumName), enumName + " has no members"));
+        }
+
+        [Fact]
+        public void AnOrdinalEnumNamesItsMembersAStringIsNullAndAMaskIsAbsent()
+        {
+            var maps = UnitDescriptor.Collect();
+
+            Assert.Equal("Situation", maps.EnumsByType["VesselIdentity"]["situation"]);
+            foreach (Situation member in Enum.GetValues(typeof(Situation)))
+            {
+                Assert.Equal(member.ToString(), maps.EnumMembers["Situation"][(long)member]);
+            }
+
+            Assert.Null(maps.EnumsByType["ReliabilitySummary"]["coverage"]);
+            Assert.False(maps.EnumsByType.TryGetValue("ActionBinding", out var binding) && binding.ContainsKey("groupsMask"));
+        }
+
+        [Fact]
         public void DescribesAnUplinksOwnAssemblyWithNoFirstPartyEdit()
         {
             // The codegen half of a symmetry that already existed on the

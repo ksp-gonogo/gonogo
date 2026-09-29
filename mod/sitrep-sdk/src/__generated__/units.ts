@@ -2697,3 +2697,549 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
     meta: "PayloadMeta",
   },
 };
+
+/**
+ * How each `enum` field reads as a word, keyed by camelCased field name:
+ * the enum whose ordinal the wire carries (see GENERATED_ENUM_MEMBERS), or
+ * null for a field whose value is already the member's name.
+ */
+export type EnumsByField = Readonly<Record<string, string | null>>;
+
+/** Keyed by the generated interface name in ./contract.ts. */
+export const GENERATED_TYPE_ENUMS: Readonly<Record<string, EnumsByField>> = {
+  "BodyStatesRequest": {
+    certification: "PropagationCertification",
+  },
+  "CareerContractParameter": {
+    stateOrdinal: "KspParameterState",
+  },
+  "CareerFacility": {
+    facilityOrdinal: "KspSpaceCenterFacility",
+  },
+  "CareerMode": {
+    mode: "GameMode",
+  },
+  "CommsConnectivity": {
+    controlSource: "CommsControlSource",
+  },
+  "CommsControl": {
+    level: "CommsControlStateKind",
+  },
+  "CommsDelay": {
+    source: "CommsDelaySource",
+  },
+  "CommsHop": {
+    kind: "CommsHopKind",
+  },
+  "CommsNetworkNode": {
+    kind: "CommsHopKind",
+  },
+  "ComposedBurn": {
+    frame: "ManeuverFrame",
+  },
+  "ControlFrame": {
+    kind: "ControlFrameKind",
+  },
+  "CrewRosterEntry": {
+    situationOrdinal: "KspRosterStatus",
+    standing: "CrewStanding",
+  },
+  "DeployedEntry": {
+    power: "DeployedPowerState",
+  },
+  "FleetSilenceEntry": {
+    deadlineBasis: null,
+    state: null,
+  },
+  "FleetVesselSilence": {
+    deadlineBasis: null,
+    state: null,
+  },
+  "FlightCurrent": {
+    phase: "Situation",
+  },
+  "FlightEnded": {
+    reason: "FlightEndReason",
+  },
+  "GateVerdict": {
+    outcome: "GateOutcome",
+  },
+  "ManeuverNode": {
+    frame: "ManeuverFrame",
+    frameReference: "ManeuverFrameReference",
+  },
+  "Meta": {
+    quality: "Quality",
+    staleness: "Staleness",
+  },
+  "ModSettingRow": {
+    kind: "SettingKind",
+  },
+  "OrbitEncounter": {
+    transitionType: "TransitionType",
+  },
+  "OrbitPatch": {
+    patchEndTransition: "TransitionType",
+    patchStartTransition: "TransitionType",
+  },
+  "PayloadMeta": {
+    quality: "Quality",
+  },
+  "PropagationHorizon": {
+    kind: "PropagationHorizonKind",
+    trajectoryKind: "TrajectoryKind",
+  },
+  "ReliabilityBudget": {
+    kind: null,
+  },
+  "ReliabilityPartEntry": {
+    condition: null,
+  },
+  "ReliabilitySummary": {
+    coverage: null,
+  },
+  "ReputationLossEvent": {
+    cause: null,
+  },
+  "SavedShipEntry": {
+    facilityOrdinal: "KspEditorFacility",
+  },
+  "ScetAlarm": {
+    state: "ScetAlarmState",
+  },
+  "ScetAlarmAction": {
+    kind: "ScetAlarmActionKind",
+  },
+  "ScetAlarmCondition": {
+    kind: "ScetAlarmConditionKind",
+    op: "ScetAlarmThresholdOp",
+    targetState: "KspParameterState",
+  },
+  "SetControlFrameArgs": {
+    kind: "ControlFrameKind",
+  },
+  "SetSasModeArgs": {
+    mode: "SasMode",
+  },
+  "SetTargetArgs": {
+    kind: "TargetKind",
+  },
+  "SettingsPersistence": {
+    state: "SettingsPersistenceState",
+  },
+  "SettingsRowState": {
+    kind: "SettingKind",
+  },
+  "TargetListEntry": {
+    kind: "TargetKind",
+    situation: "Situation",
+    vesselType: "VesselType",
+  },
+  "TrajectoryArc": {
+    derivation: "TrajectoryDerivation",
+  },
+  "TrajectoryFrameRef": {
+    kind: "TrajectoryFrameKind",
+  },
+  "VesselComms": {
+    controlState: "ControlState",
+  },
+  "VesselControl": {
+    sasMode: "SasMode",
+  },
+  "VesselIdentity": {
+    situation: "Situation",
+    vesselType: "VesselType",
+  },
+  "VesselOrbit": {
+    arcRefusal: "TrajectoryRefusal",
+  },
+  "VesselPart": {
+    categoryOrdinal: "KspPartCategory",
+  },
+  "VesselPhysicsMode": {
+    mode: "PhysicsMode",
+  },
+  "VesselRosterEntry": {
+    commsControlSource: "RosterCommsControlSource",
+    situation: "Situation",
+    vesselType: "VesselType",
+  },
+  "VesselTarget": {
+    kind: "TargetKind",
+  },
+  "WarpState": {
+    warpMode: "WarpMode",
+  },
+};
+
+/** The same, keyed by Topic id. */
+export const GENERATED_TOPIC_ENUMS: Readonly<Record<string, EnumsByField>> = {
+  "alarm.scet": {
+    state: "ScetAlarmState",
+  },
+  "career.mode": {
+    mode: "GameMode",
+  },
+  "comms.connectivity": {
+    controlSource: "CommsControlSource",
+  },
+  "comms.control": {
+    level: "CommsControlStateKind",
+  },
+  "comms.delay": {
+    source: "CommsDelaySource",
+  },
+  "deployed.bases": {
+    power: "DeployedPowerState",
+  },
+  "flight.current": {
+    phase: "Situation",
+  },
+  "flight.ended": {
+    reason: "FlightEndReason",
+  },
+  "reliability.parts": {
+    condition: null,
+  },
+  "reliability.summary": {
+    coverage: null,
+  },
+  "spaceCenter.crewRoster": {
+    situationOrdinal: "KspRosterStatus",
+    standing: "CrewStanding",
+  },
+  "spaceCenter.savedShips": {
+    facilityOrdinal: "KspEditorFacility",
+  },
+  "system.frame": {
+    kind: "ControlFrameKind",
+  },
+  "time.warp": {
+    warpMode: "WarpMode",
+  },
+  "vessel.comms": {
+    controlState: "ControlState",
+  },
+  "vessel.control": {
+    sasMode: "SasMode",
+  },
+  "vessel.identity": {
+    situation: "Situation",
+    vesselType: "VesselType",
+  },
+  "vessel.orbit": {
+    arcRefusal: "TrajectoryRefusal",
+  },
+  "vessel.physics.mode": {
+    mode: "PhysicsMode",
+  },
+  "vessel.target": {
+    kind: "TargetKind",
+  },
+};
+
+/** Each enum an `enum` field names, as its wire value to member name. */
+export const GENERATED_ENUM_MEMBERS: Readonly<Record<string, Readonly<Record<number, string>>>> = {
+  "CommsControlSource": {
+    0: "None",
+    1: "Partial",
+    2: "Full",
+    3: "Unknown",
+  },
+  "CommsControlStateKind": {
+    0: "None",
+    1: "PartialManoeuvre",
+    2: "Full",
+    3: "Unknown",
+  },
+  "CommsDelaySource": {
+    0: "None",
+    1: "SignalDelay",
+    2: "Simulation",
+    3: "NoCommsModel",
+  },
+  "CommsHopKind": {
+    0: "Home",
+    1: "Relay",
+    2: "Vessel",
+  },
+  "ControlFrameKind": {
+    0: "Unspecified",
+    1: "BodyCentredInertial",
+    2: "BodyCentredBodyDirection",
+    3: "BarycentricRotating",
+    4: "RotatingPulsating",
+    5: "BodySurface",
+  },
+  "ControlState": {
+    0: "None",
+    1: "Probe",
+    2: "Kerbal",
+    3: "Partial",
+    4: "Full",
+    5: "ProbeNone",
+    6: "ProbePartial",
+    7: "ProbeFull",
+    8: "KerbalNone",
+    9: "KerbalPartial",
+    10: "KerbalFull",
+    11: "Unknown",
+  },
+  "CrewStanding": {
+    0: "Unknown",
+    1: "Applicant",
+    2: "Available",
+    3: "Assigned",
+    4: "Training",
+    5: "Resting",
+    6: "Retired",
+    7: "Dead",
+    8: "Missing",
+  },
+  "DeployedPowerState": {
+    0: "Powered",
+    1: "Unpowered",
+    2: "ControllerDisabled",
+    3: "Disabled",
+    4: "NotConnected",
+  },
+  "FlightEndReason": {
+    0: "Recovered",
+    1: "Crashed",
+    2: "Reverted",
+    3: "Destroyed",
+  },
+  "GameMode": {
+    0: "Sandbox",
+    1: "Career",
+    2: "Science",
+    3: "Unknown",
+  },
+  "GateOutcome": {
+    0: "Pass",
+    1: "Fail",
+    2: "Abstain",
+    3: "Unknown",
+  },
+  "KspEditorFacility": {
+    0: "None",
+    1: "VAB",
+    2: "SPH",
+  },
+  "KspParameterState": {
+    0: "Incomplete",
+    1: "Complete",
+    2: "Failed",
+  },
+  "KspPartCategory": {
+    "-1": "none",
+    0: "Propulsion",
+    1: "Control",
+    2: "Structural",
+    3: "Aero",
+    4: "Utility",
+    5: "Science",
+    6: "Pods",
+    7: "FuelTank",
+    8: "Engine",
+    9: "Communication",
+    10: "Electrical",
+    11: "Ground",
+    12: "Thermal",
+    13: "Payload",
+    14: "Coupling",
+    15: "Cargo",
+    16: "Robotics",
+  },
+  "KspRosterStatus": {
+    0: "Available",
+    1: "Assigned",
+    2: "Dead",
+    3: "Missing",
+  },
+  "KspSpaceCenterFacility": {
+    0: "Administration",
+    1: "AstronautComplex",
+    2: "LaunchPad",
+    3: "MissionControl",
+    4: "ResearchAndDevelopment",
+    5: "Runway",
+    6: "TrackingStation",
+    7: "SpaceplaneHangar",
+    8: "VehicleAssemblyBuilding",
+  },
+  "ManeuverFrame": {
+    0: "RadialNormalPrograde",
+    1: "TangentNormalBinormal",
+    2: "Unknown",
+  },
+  "ManeuverFrameReference": {
+    0: "Unspecified",
+    1: "FollowControlFrame",
+    2: "BodyCentredInertial",
+    3: "ParentDirection",
+    4: "RotatingPulsating",
+  },
+  "PhysicsMode": {
+    0: "OnRails",
+    1: "Packed",
+    2: "Unpacked",
+    3: "Unknown",
+  },
+  "PropagationCertification": {
+    0: "Unspecified",
+    1: "Unbounded",
+    2: "CertifiedOnly",
+  },
+  "PropagationHorizonKind": {
+    0: "Unspecified",
+    1: "Unbounded",
+    2: "Until",
+  },
+  "Quality": {
+    0: "OnRails",
+    1: "Loaded",
+  },
+  "RosterCommsControlSource": {
+    0: "None",
+    1: "Partial",
+    2: "Full",
+    3: "Unknown",
+  },
+  "SasMode": {
+    0: "StabilityAssist",
+    1: "Prograde",
+    2: "Retrograde",
+    3: "Normal",
+    4: "Antinormal",
+    5: "RadialIn",
+    6: "RadialOut",
+    7: "Target",
+    8: "AntiTarget",
+    9: "Maneuver",
+    10: "Unknown",
+  },
+  "ScetAlarmActionKind": {
+    0: "ActionGroup",
+    1: "Stage",
+    2: "Sas",
+    3: "Rcs",
+    4: "Lights",
+    5: "Gear",
+    6: "Brakes",
+    7: "Abort",
+  },
+  "ScetAlarmConditionKind": {
+    0: "Time",
+    1: "Threshold",
+    2: "ContractParameter",
+  },
+  "ScetAlarmState": {
+    0: "Armed",
+    1: "Fired",
+    2: "Unreachable",
+    3: "Cancelled",
+  },
+  "ScetAlarmThresholdOp": {
+    0: "GreaterThan",
+    1: "GreaterThanOrEqual",
+    2: "LessThan",
+    3: "LessThanOrEqual",
+    4: "Equal",
+    5: "NotEqual",
+  },
+  "SettingKind": {
+    0: "Text",
+    1: "Bool",
+    2: "Number",
+  },
+  "SettingsPersistenceState": {
+    0: "Saved",
+    1: "MemoryOnly",
+    2: "Recovered",
+    3: "Defaults",
+    4: "Unreadable",
+  },
+  "Situation": {
+    0: "Landed",
+    1: "Splashed",
+    2: "PreLaunch",
+    3: "Orbiting",
+    4: "Escaping",
+    5: "Flying",
+    6: "SubOrbital",
+    7: "Docked",
+    8: "Unknown",
+  },
+  "Staleness": {
+    0: "Fresh",
+    1: "HeldStale",
+    2: "LastBeforeBlackout",
+    3: "Recorded",
+  },
+  "TargetKind": {
+    0: "Vessel",
+    1: "Body",
+    2: "Other",
+    3: "Position",
+    4: "Part",
+  },
+  "TrajectoryDerivation": {
+    0: "Unspecified",
+    1: "Foreign",
+    2: "OwnNBody",
+    3: "OwnNBodyDegraded",
+    4: "OwnClosedForm",
+  },
+  "TrajectoryFrameKind": {
+    0: "Unspecified",
+    1: "Perifocal",
+    2: "BodyCentredInertial",
+    3: "BodyCentredRotating",
+    4: "BodyCentredParentDirection",
+    5: "RotatingPulsating",
+  },
+  "TrajectoryKind": {
+    0: "Unspecified",
+    1: "Analytic",
+    2: "Integrated",
+  },
+  "TrajectoryRefusal": {
+    0: "NotAttempted",
+    1: "BeyondBudget",
+    2: "NoForceModel",
+    3: "NotRefused",
+  },
+  "TransitionType": {
+    0: "Initial",
+    1: "Final",
+    2: "Encounter",
+    3: "Escape",
+    4: "Maneuver",
+    5: "Collision",
+    6: "Unknown",
+  },
+  "VesselType": {
+    0: "Ship",
+    1: "Station",
+    2: "Lander",
+    3: "Probe",
+    4: "Rover",
+    5: "Base",
+    6: "Relay",
+    7: "EVA",
+    8: "Flag",
+    9: "Debris",
+    10: "SpaceObject",
+    11: "DeployedScienceController",
+    12: "DeployedSciencePart",
+    13: "DroppedPart",
+    14: "Unknown",
+  },
+  "WarpMode": {
+    0: "High",
+    1: "Low",
+    2: "Unknown",
+  },
+};

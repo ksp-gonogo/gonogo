@@ -1791,6 +1791,37 @@ public static class RtConfig
         sb.Append("/** The same, keyed by Topic id. */\n");
         sb.Append("export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {\n");
         AppendMapBody(sb, shapesByTopic);
+        sb.Append("};\n\n");
+
+        sb.Append("/**\n");
+        sb.Append(" * How each `enum` field reads as a word, keyed by camelCased field name:\n");
+        sb.Append(" * the enum whose ordinal the wire carries (see GENERATED_ENUM_MEMBERS), or\n");
+        sb.Append(" * null for a field whose value is already the member's name.\n");
+        sb.Append(" */\n");
+        sb.Append("export type EnumsByField = Readonly<Record<string, string | null>>;\n\n");
+
+        sb.Append("/** Keyed by the generated interface name in ./contract.ts. */\n");
+        sb.Append("export const GENERATED_TYPE_ENUMS: Readonly<Record<string, EnumsByField>> = {\n");
+        AppendEnumFieldsBody(sb, maps.EnumsByType);
+        sb.Append("};\n\n");
+
+        sb.Append("/** The same, keyed by Topic id. */\n");
+        sb.Append("export const GENERATED_TOPIC_ENUMS: Readonly<Record<string, EnumsByField>> = {\n");
+        AppendEnumFieldsBody(sb, maps.EnumsByTopic);
+        sb.Append("};\n\n");
+
+        sb.Append("/** Each enum an `enum` field names, as its wire value to member name. */\n");
+        sb.Append("export const GENERATED_ENUM_MEMBERS: Readonly<Record<string, Readonly<Record<number, string>>>> = {\n");
+        foreach (var e in maps.EnumMembers)
+        {
+            sb.Append("  \"").Append(e.Key).Append("\": {\n");
+            foreach (var member in e.Value)
+            {
+                var value = member.Key < 0 ? "\"" + member.Key + "\"" : member.Key.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                sb.Append("    ").Append(value).Append(": \"").Append(member.Value).Append("\",\n");
+            }
+            sb.Append("  },\n");
+        }
         sb.Append("};\n");
 
         File.WriteAllText(outPath, sb.ToString());
@@ -1800,6 +1831,23 @@ public static class RtConfig
         {
             File.WriteAllText(jsonOutPath, UnitDescriptor.ToJson(maps));
             Console.WriteLine("codegen (unit-descriptor) -> " + jsonOutPath);
+        }
+    }
+
+    private static void AppendEnumFieldsBody(
+        StringBuilder sb,
+        SortedDictionary<string, SortedDictionary<string, string>> map)
+    {
+        foreach (var outer in map)
+        {
+            sb.Append("  \"").Append(outer.Key).Append("\": {\n");
+            foreach (var inner in outer.Value)
+            {
+                var key = IsIdentifierKey(inner.Key) ? inner.Key : "\"" + inner.Key + "\"";
+                var value = inner.Value == null ? "null" : "\"" + inner.Value + "\"";
+                sb.Append("    ").Append(key).Append(": ").Append(value).Append(",\n");
+            }
+            sb.Append("  },\n");
         }
     }
 

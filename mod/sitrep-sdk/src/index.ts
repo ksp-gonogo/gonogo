@@ -423,6 +423,7 @@ export type {
 } from "./spine/uplink-health";
 export * from "./timeline";
 export {
+  type EnumEncoding,
   enumerateTopicFields,
   type TopicField,
   type TopicFieldKind,

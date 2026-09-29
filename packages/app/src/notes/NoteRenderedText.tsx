@@ -1,3 +1,4 @@
+import { useTopicFieldCatalog, withEnumName } from "@ksp-gonogo/data";
 import { useMemo } from "react";
 import { extractTags, renderTemplate } from "./templating";
 import { useTagValues } from "./useTagValues";
@@ -9,12 +10,19 @@ const NO_KNOWN_KEYS: ReadonlySet<string> = new Set<string>();
 export function NoteRenderedText({ body }: Readonly<{ body: string }>) {
   const tags = useMemo(() => extractTags(body), [body]);
   const valueMap = useTagValues(tags);
+  const catalog = useTopicFieldCatalog();
+  const fieldsByKey = useMemo(
+    () => new Map(catalog.map((entry) => [entry.key, entry])),
+    [catalog],
+  );
   const text = useMemo(
     () =>
-      renderTemplate(body, (k) => valueMap.get(k), {
-        knownKeys: NO_KNOWN_KEYS,
-      }),
-    [body, valueMap],
+      renderTemplate(
+        body,
+        (k) => withEnumName(fieldsByKey.get(k), valueMap.get(k)),
+        { knownKeys: NO_KNOWN_KEYS },
+      ),
+    [body, valueMap, fieldsByKey],
   );
   return <>{text}</>;
 }

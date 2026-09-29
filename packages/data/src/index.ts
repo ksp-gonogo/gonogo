@@ -96,6 +96,7 @@ export {
   isNumericField,
   isPrintableField,
   type TopicFieldKey,
+  withEnumName,
 } from "./schema/topicFieldCatalog";
 export { IndexedDbStore } from "./storage/IndexedDbStore";
 export type {

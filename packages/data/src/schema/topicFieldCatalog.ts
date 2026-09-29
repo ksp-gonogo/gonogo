@@ -7,6 +7,7 @@ import {
   PRODUCTION_DERIVED_CHANNELS,
 } from "@ksp-gonogo/sitrep-client";
 import {
+  type EnumEncoding,
   enumerateTopicFields,
   getAllKnownTopicIds,
   getRuntimeRegisteredTopicIds,
@@ -25,6 +26,8 @@ export interface TopicFieldKey extends DataKeyMeta {
   topic: string;
   /** Dotted path within the Topic's payload; empty for the Topic itself. */
   fieldPath: string;
+  /** How an `enum` field reads as a word, when its schema says. */
+  enumEncoding?: EnumEncoding;
 }
 
 /**
@@ -106,6 +109,9 @@ function entryFor(topic: string, field: TopicField): TopicFieldKey {
     kind: field.kind,
     topic,
     fieldPath: field.path,
+    ...(field.enumEncoding === undefined
+      ? {}
+      : { enumEncoding: field.enumEncoding }),
   };
 }
 
@@ -245,15 +251,30 @@ const NON_ORDERABLE_UNIT_HINTS: ReadonlySet<string> = new Set([
 
 /**
  * Whether a catalogue entry prints as a word or a number when interpolated
- * into text: a quantity, a name or a flag.
+ * into text: a quantity, a name, a flag, or an enum its schema can name.
  *
- * An enum arrives as its ordinal, so it would print as a bare integer that
- * names nothing, and a collection would print as a whole array.
+ * An enum with no {@link TopicFieldKey.enumEncoding} would print as a bare
+ * ordinal that names nothing, and a collection would print as a whole array.
  */
 export function isPrintableField(entry: TopicFieldKey): boolean {
+  if (entry.kind === "enum") return entry.enumEncoding !== undefined;
   return (
     entry.kind === "quantity" || entry.kind === "text" || entry.kind === "flag"
   );
+}
+
+/**
+ * A field's value as text prints it: an enum carried by its ordinal becomes
+ * the member's name. An ordinal with no member passes through, since there is
+ * no word for it.
+ */
+export function withEnumName(
+  entry: TopicFieldKey | undefined,
+  value: unknown,
+): unknown {
+  const encoding = entry?.enumEncoding;
+  if (encoding?.by !== "ordinal" || typeof value !== "number") return value;
+  return encoding.names[value] ?? value;
 }
 
 /**

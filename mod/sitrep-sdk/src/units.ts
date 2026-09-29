@@ -33,24 +33,35 @@
 // must treat all of those differently, which is why they are distinct values.
 
 import type {
+  EnumsByField,
   KnownSitrepUnit,
   ShapesByField,
   SitrepUnit,
   UnitsByField,
 } from "./__generated__/units";
 import {
+  GENERATED_ENUM_MEMBERS,
+  GENERATED_TOPIC_ENUMS,
   GENERATED_TOPIC_SHAPES,
   GENERATED_TOPIC_UNITS,
+  GENERATED_TYPE_ENUMS,
   GENERATED_TYPE_SHAPES,
   GENERATED_TYPE_UNITS,
 } from "./__generated__/units";
 import { noteRuntimeTopicMetadata } from "./runtime-topic-registry";
 import type { TopicId } from "./topics";
 
-export type { KnownSitrepUnit, ShapesByField, SitrepUnit, UnitsByField };
+export type {
+  EnumsByField,
+  KnownSitrepUnit,
+  ShapesByField,
+  SitrepUnit,
+  UnitsByField,
+};
 
 const EMPTY: UnitsByField = Object.freeze({});
 const NO_SHAPES: ShapesByField = Object.freeze({});
+const NO_ENUMS: EnumsByField = Object.freeze({});
 
 /**
  * Whether a shape-map entry holds MANY of its element type: a leading `*` for
@@ -326,4 +337,29 @@ export function unitOfTypeField(
   field: string,
 ): SitrepUnit | undefined {
   return unitsForType(typeName)[field];
+}
+
+/**
+ * How each of `topic`'s `enum` fields reads as a word: the enum its ordinal
+ * indexes (see {@link enumMembersOf}), or `null` for a field that already
+ * carries the member's name. A field absent here is an enum the schema cannot
+ * name.
+ */
+export function enumsForTopic(topic: TopicId): EnumsByField {
+  const generated = GENERATED_TOPIC_ENUMS[topic];
+  if (generated !== undefined) return generated;
+  const handDeclared = HAND_DECLARED_PAYLOAD_TYPES[topic];
+  return handDeclared === undefined ? NO_ENUMS : enumsForType(handDeclared);
+}
+
+/** The same, keyed by generated interface name instead of Topic id. */
+export function enumsForType(typeName: string): EnumsByField {
+  return GENERATED_TYPE_ENUMS[typeName] ?? NO_ENUMS;
+}
+
+/** A contract enum's wire value to member name, or `undefined` for an enum the schema does not carry. */
+export function enumMembersOf(
+  enumName: string,
+): Readonly<Record<number, string>> | undefined {
+  return GENERATED_ENUM_MEMBERS[enumName];
 }

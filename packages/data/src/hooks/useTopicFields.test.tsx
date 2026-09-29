@@ -1,8 +1,13 @@
 import { resolveValueTopic } from "@ksp-gonogo/sitrep-client";
+import { SITUATION_NAMES } from "@ksp-gonogo/sitrep-sdk";
 import { render } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
-import type { TopicFieldKey } from "../schema/topicFieldCatalog";
-import { useNumericFields, usePrintableFields } from "./useTopicFields";
+import { type TopicFieldKey, withEnumName } from "../schema/topicFieldCatalog";
+import {
+  useNumericFields,
+  usePrintableFields,
+  useTopicFieldCatalog,
+} from "./useTopicFields";
 
 function capture(hook: () => TopicFieldKey[]): TopicFieldKey[] {
   let captured: TopicFieldKey[] = [];
@@ -64,11 +69,51 @@ describe("usePrintableFields", () => {
     expect(keys.has("vessel.control.sas")).toBe(true);
   });
 
-  it("does not offer an object, a collection or an enum ordinal", () => {
-    const fields = capture(usePrintableFields);
-    const keys = keysOf(fields);
+  it("does not offer an object or a collection", () => {
+    const keys = keysOf(capture(usePrintableFields));
     expect(keys.has("career.status.economy")).toBe(false);
     expect(keys.has("career.status.contracts.active")).toBe(false);
-    expect(fields.filter((f) => f.kind === "enum")).toEqual([]);
+  });
+
+  it("offers an enum carried by its ordinal, with the names it prints as", () => {
+    const situation = capture(usePrintableFields).find(
+      (f) => f.key === "vessel.identity.situation",
+    );
+    expect(situation?.enumEncoding).toEqual({
+      by: "ordinal",
+      names: expect.objectContaining({ 0: SITUATION_NAMES[0] }),
+    });
+  });
+
+  it("offers an enum the wire already carries by name", () => {
+    const coverage = capture(usePrintableFields).find(
+      (f) => f.key === "reliability.summary.coverage",
+    );
+    expect(coverage?.enumEncoding).toEqual({ by: "name" });
+  });
+
+  it("offers no enum it cannot name", () => {
+    for (const entry of capture(usePrintableFields)) {
+      if (entry.kind === "enum") expect(entry.enumEncoding).toBeDefined();
+    }
+  });
+});
+
+describe("withEnumName", () => {
+  const situation = () =>
+    capture(useTopicFieldCatalog).find(
+      (f) => f.key === "vessel.identity.situation",
+    );
+
+  it("prints an ordinal as its member's name", () => {
+    expect(withEnumName(situation(), 0)).toBe(SITUATION_NAMES[0]);
+  });
+
+  it("passes an ordinal with no member through, since there is no word for it", () => {
+    expect(withEnumName(situation(), 999)).toBe(999);
+  });
+
+  it("leaves a field that is not an ordinal enum alone", () => {
+    expect(withEnumName(undefined, 3)).toBe(3);
   });
 });

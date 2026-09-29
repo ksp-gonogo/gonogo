@@ -1,4 +1,8 @@
 import {
+  type EnumsByField,
+  enumMembersOf,
+  enumsForTopic,
+  enumsForType,
   isPluralShape,
   type ShapesByField,
   type SitrepUnit,
@@ -34,6 +38,16 @@ export type TopicFieldKind =
   | "collection";
 
 /**
+ * How an `enum` field's value reads as a word: by looking its ordinal up in
+ * `names`, or as-is when the wire already carries the member's name.
+ *
+ * @category Reading telemetry
+ */
+export type EnumEncoding =
+  | { by: "ordinal"; names: Readonly<Record<number, string>> }
+  | { by: "name" };
+
+/**
  * One enumerated field of one Topic, as a picker offers it.
  *
  * @category Reading telemetry
@@ -44,6 +58,19 @@ export interface TopicField {
   /** The declared unit token. Absent on a `collection`, which has no unit. */
   unit?: SitrepUnit;
   kind: TopicFieldKind;
+  /** Set on an `enum` field whose schema says how it reads as a word; absent, its ordinal names nothing. */
+  enumEncoding?: EnumEncoding;
+}
+
+function enumEncodingOf(
+  enums: EnumsByField,
+  field: string,
+): EnumEncoding | undefined {
+  const enumName = enums[field];
+  if (enumName === undefined) return undefined;
+  if (enumName === null) return { by: "name" };
+  const names = enumMembersOf(enumName);
+  return names === undefined ? undefined : { by: "ordinal", names };
 }
 
 /**
@@ -86,6 +113,7 @@ const MAX_DEPTH = 8;
 function walk(
   units: UnitsByField,
   shapes: ShapesByField,
+  enums: EnumsByField,
   prefix: string,
   seenTypes: ReadonlySet<string>,
   depth: number,
@@ -95,10 +123,14 @@ function walk(
 
   for (const field of Object.keys(units).sort()) {
     const unit = units[field];
+    const kind = kindOfUnit(unit);
+    const enumEncoding =
+      kind === "enum" ? enumEncodingOf(enums, field) : undefined;
     out.push({
       path: prefix + field,
       unit,
-      kind: kindOfUnit(unit),
+      kind,
+      ...(enumEncoding === undefined ? {} : { enumEncoding }),
     });
   }
 
@@ -125,6 +157,7 @@ function walk(
     walk(
       nestedUnits,
       nestedShapes,
+      enumsForType(nested),
       `${prefix + field}.`,
       new Set([...seenTypes, nested]),
       depth + 1,
@@ -159,7 +192,7 @@ export function enumerateTopicFields(topic: string): TopicField[] {
     return [];
   }
   const out: TopicField[] = [];
-  walk(units, shapes, "", new Set(), 0, out);
+  walk(units, shapes, enumsForTopic(topic as never), "", new Set(), 0, out);
   out.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
   return out;
 }

@@ -60,6 +60,19 @@ namespace Sitrep.Contract
             public SortedDictionary<string, SortedDictionary<string, string>> ByTopic { get; set; }
             public SortedDictionary<string, SortedDictionary<string, string>> ShapesByType { get; set; }
             public SortedDictionary<string, SortedDictionary<string, string>> ShapesByTopic { get; set; }
+
+            /// <summary>
+            /// Per type, each <c>enum</c> field's CLR enum wire name, or null for a
+            /// field carried as the member's name rather than its ordinal. A field
+            /// absent here has no single name to read as.
+            /// </summary>
+            public SortedDictionary<string, SortedDictionary<string, string>> EnumsByType { get; set; }
+
+            /// <summary>The same, keyed by Topic id.</summary>
+            public SortedDictionary<string, SortedDictionary<string, string>> EnumsByTopic { get; set; }
+
+            /// <summary>Every enum an <c>enum</c> field names, as its wire value to member name.</summary>
+            public SortedDictionary<string, SortedDictionary<long, string>> EnumMembers { get; set; }
         }
 
         /// <summary>
@@ -176,6 +189,9 @@ namespace Sitrep.Contract
             var byTopic = new SortedDictionary<string, SortedDictionary<string, string>>(StringComparer.Ordinal);
             var shapesByType = new SortedDictionary<string, SortedDictionary<string, string>>(StringComparer.Ordinal);
             var shapesByTopic = new SortedDictionary<string, SortedDictionary<string, string>>(StringComparer.Ordinal);
+            var enumsByType = new SortedDictionary<string, SortedDictionary<string, string>>(StringComparer.Ordinal);
+            var enumsByTopic = new SortedDictionary<string, SortedDictionary<string, string>>(StringComparer.Ordinal);
+            var enumMembers = new SortedDictionary<string, SortedDictionary<long, string>>(StringComparer.Ordinal);
 
             var target = assembly ?? typeof(UnitDescriptor).Assembly;
             var assemblyTypes = LoadableTypes(target);
@@ -202,6 +218,7 @@ namespace Sitrep.Contract
             {
                 var fields = new SortedDictionary<string, string>(StringComparer.Ordinal);
                 var nested = new SortedDictionary<string, string>(StringComparer.Ordinal);
+                var enums = new SortedDictionary<string, string>(StringComparer.Ordinal);
                 foreach (var prop in type.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
                 {
                     // A property whose type is ANOTHER contract shape (or a
@@ -259,6 +276,12 @@ namespace Sitrep.Contract
                     }
 
                     var field = CamelCase(prop.Name);
+                    string enumName;
+                    if (unit.Unit == Units.Enumeration && TryEnumWireName(prop.PropertyType, enumMembers, out enumName))
+                    {
+                        enums.Add(field, enumName);
+                    }
+
                     if (prop.PropertyType == typeof(Vec3))
                     {
                         // A [SitrepUnit] on a Vec3-TYPED field states the unit
@@ -286,6 +309,15 @@ namespace Sitrep.Contract
                     }
                 }
 
+                if (enums.Count > 0)
+                {
+                    enumsByType.Add(WireName(type), enums);
+                    if (topic != null)
+                    {
+                        enumsByTopic.Add(topic.TopicId, enums);
+                    }
+                }
+
                 if (fields.Count == 0)
                 {
                     continue;
@@ -306,7 +338,54 @@ namespace Sitrep.Contract
                 ByTopic = byTopic,
                 ShapesByType = shapesByType,
                 ShapesByTopic = shapesByTopic,
+                EnumsByType = enumsByType,
+                EnumsByTopic = enumsByTopic,
+                EnumMembers = enumMembers,
             };
+        }
+
+        /// <summary>
+        /// Whether an <c>enum</c> field of <paramref name="propertyType"/> can be
+        /// read as a word: a CLR enum yields its wire name (recording its members
+        /// in <paramref name="members"/>), a string already carries the member's
+        /// name and yields null. Anything else, a bitmask held as an integer, has
+        /// no single name.
+        /// </summary>
+        private static bool TryEnumWireName(
+            Type propertyType,
+            SortedDictionary<string, SortedDictionary<long, string>> members,
+            out string name)
+        {
+            name = null;
+            if (propertyType == typeof(string))
+            {
+                return true;
+            }
+
+            var underlying = Nullable.GetUnderlyingType(propertyType) ?? propertyType;
+            if (!underlying.IsEnum)
+            {
+                return false;
+            }
+
+            name = WireName(underlying);
+            if (!members.ContainsKey(name))
+            {
+                var byValue = new SortedDictionary<long, string>();
+                foreach (var member in Enum.GetValues(underlying))
+                {
+                    var value = Convert.ToInt64(member);
+                    // An alias shares its value with another member, and one name per value is all a reader needs.
+                    if (!byValue.ContainsKey(value))
+                    {
+                        byValue.Add(value, Enum.GetName(underlying, member));
+                    }
+                }
+
+                members.Add(name, byValue);
+            }
+
+            return true;
         }
 
         /// <summary>
