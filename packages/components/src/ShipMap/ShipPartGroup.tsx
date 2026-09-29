@@ -18,6 +18,7 @@ export function ShipPartGroup({
   highlightColor,
   throttle,
   meters,
+  heldHatchId,
   interactive,
   onPartHover,
   onPartFocus,
@@ -30,6 +31,8 @@ export function ShipPartGroup({
   highlightColor: string;
   throttle: number;
   meters: readonly ShipMapPartMeterEntry[];
+  /** The id of the diagram's held hatch `<pattern>`. */
+  heldHatchId: string;
   interactive: boolean;
   onPartHover: ShipDiagramSvgProps["onPartHover"];
   onPartFocus: ShipDiagramSvgProps["onPartFocus"];
@@ -106,7 +109,7 @@ export function ShipPartGroup({
           pointerEvents="none"
         />
       )}
-      {showFuel && renderResourceFill(meters, box)}
+      {showFuel && renderResourceFill(meters, box, heldHatchId)}
       {p.ecFlowSign && !isHot && (
         <rect
           data-role="ec-flow-ring"

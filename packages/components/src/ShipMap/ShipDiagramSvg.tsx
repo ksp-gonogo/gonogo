@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
-import { useMemo } from "react";
+import { useId, useMemo } from "react";
 import { FuelLineArrow } from "./FuelLineArrow";
-import { NO_METERS } from "./partMeters";
+import { anyMeterHeld, HeldHatchPattern, NO_METERS } from "./partMeters";
 import { ShipPartGroup } from "./ShipPartGroup";
 import { computeShipBaseScale, project } from "./shipLayout";
 import type { ShipMapPart, ShipMapPartMeterEntry } from "./shipTopology";
@@ -74,6 +74,8 @@ export function ShipDiagramSvg({
     () => project(parts),
     [parts],
   );
+  // useId's colons would need escaping inside url(#...).
+  const heldHatchId = `ship-held-hatch-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
 
   if (parts.length === 0) {
     return (
@@ -128,6 +130,11 @@ export function ShipDiagramSvg({
       aria-label="Ship diagram"
       style={ROOT_SVG_STYLE}
     >
+      {anyMeterHeld(partMeters) && (
+        <defs>
+          <HeldHatchPattern id={heldHatchId} zoom={cam.zoom} />
+        </defs>
+      )}
       <g transform={transform}>
         <line
           x1={toBase(0, bounds.cy + bounds.h / 2 + 0.5).x}
@@ -186,6 +193,7 @@ export function ShipDiagramSvg({
             highlightColor={highlightColor}
             throttle={throttle}
             meters={partMeters?.get(String(p.flightId)) ?? NO_METERS}
+            heldHatchId={heldHatchId}
             interactive={interactive}
             onPartHover={onPartHover}
             onPartFocus={onPartFocus}

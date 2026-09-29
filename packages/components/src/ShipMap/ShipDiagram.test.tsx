@@ -145,7 +145,7 @@ describe("ShipDiagram", () => {
     expect(fillGroups.length).toBeGreaterThan(0);
   });
 
-  it("says a held level is held, on the part's label and in a dashed track", () => {
+  it("says a held level is held, on the part's label and by hatching its unfilled track in the held mark's hue", () => {
     const partMeters = new Map([
       [
         "2",
@@ -178,9 +178,78 @@ describe("ShipDiagram", () => {
     expect(
       container.querySelector('[aria-label*="LiquidFuel 50 percent, held"]'),
     ).not.toBeNull();
-    expect(
-      container.querySelector('rect[stroke-dasharray="2 1"]'),
-    ).not.toBeNull();
+    const hatch = container.querySelector("rect[data-held-hatch]");
+    const patternId = /^url\(#(.+)\)$/.exec(
+      hatch?.getAttribute("fill") ?? "",
+    )?.[1];
+    const pattern = container.querySelector(`pattern[id="${patternId}"]`);
+    expect(pattern?.querySelector("rect")?.getAttribute("fill")).toBe(
+      "var(--color-warn-mark)",
+    );
+    expect(container.querySelector("rect[stroke-dasharray]")).toBeNull();
+  });
+
+  it("hatches a held capacity even when the amount is live, leaving the fill undimmed", () => {
+    const partMeters = new Map([
+      [
+        "2",
+        [
+          {
+            partId: "2",
+            resource: "LiquidFuel",
+            displayName: "LiquidFuel",
+            amount: value("units", 90),
+            capacity: {
+              state: "held" as const,
+              value: value("units", 180),
+              asOfUt: value("ut", 500),
+              grade: "disconnected" as const,
+              reckoning: { status: "none" as const },
+            },
+            status: null,
+          },
+        ],
+      ],
+    ]);
+    const { container } = render(
+      <ShipDiagram
+        parts={PARTS}
+        width={400}
+        height={400}
+        partMeters={partMeters}
+      />,
+    );
+    const hatch = container.querySelector("rect[data-held-hatch]");
+    expect(hatch).not.toBeNull();
+    expect(hatch?.previousElementSibling?.getAttribute("opacity")).toBe("0.85");
+  });
+
+  it("draws no hatch for a live level", () => {
+    const partMeters = new Map([
+      [
+        "2",
+        [
+          {
+            partId: "2",
+            resource: "LiquidFuel",
+            displayName: "LiquidFuel",
+            amount: value("units", 90),
+            capacity: value("units", 180),
+            status: null,
+          },
+        ],
+      ],
+    ]);
+    const { container } = render(
+      <ShipDiagram
+        parts={PARTS}
+        width={400}
+        height={400}
+        partMeters={partMeters}
+      />,
+    );
+    expect(container.querySelector("rect[data-held-hatch]")).toBeNull();
+    expect(container.querySelector("pattern")).toBeNull();
   });
 
   it("renders no fuel-fill bars when no part-meters are contributed", () => {

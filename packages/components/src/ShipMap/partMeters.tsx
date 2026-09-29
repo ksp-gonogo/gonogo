@@ -1,5 +1,5 @@
 import type { Reading, Value } from "@ksp-gonogo/sitrep-sdk";
-import { resourceColor } from "@ksp-gonogo/ui-kit";
+import { resourceColor, TONE_MARK } from "@ksp-gonogo/ui-kit";
 import type React from "react";
 import type { ScreenBox } from "./partOverlays";
 import type { ShipMapPart, ShipMapPartMeterEntry } from "./shipTopology";
@@ -30,13 +30,51 @@ function quantityOf(
     : undefined;
 }
 
+function isHeldFigure(
+  figure: Value<"units"> | Reading<Value<"units">>,
+): boolean {
+  return "state" in figure && figure.state === "held";
+}
+
 /**
  * Whether a row's level is the last one there was rather than the tank now.
  * Only a contributor that sends the whole reading can say so; a bare quantity
  * claims nothing about when it was read.
  */
 function isHeld(row: ShipMapPartMeterEntry): boolean {
-  return "state" in row.amount && row.amount.state === "held";
+  return isHeldFigure(row.amount) || isHeldFigure(row.capacity);
+}
+
+/** Whether any row on the diagram is held, so the hatch pattern is only defined when something draws it. */
+export function anyMeterHeld(
+  partMeters: ReadonlyMap<string, readonly ShipMapPartMeterEntry[]> | undefined,
+): boolean {
+  if (!partMeters) return false;
+  for (const rows of partMeters.values()) {
+    if (rows.some(isHeld)) return true;
+  }
+  return false;
+}
+
+/**
+ * The hatch a held row's unfilled track is drawn with: the kit Meter's held
+ * hatch as an SVG pattern, a 1px line every 4px at 45 degrees in the held
+ * mark's hue. Sized against the camera zoom so the density on screen matches
+ * the kit's. Static, so there is no motion to reduce.
+ */
+export function HeldHatchPattern({ id, zoom }: { id: string; zoom: number }) {
+  const period = 4 / zoom;
+  return (
+    <pattern
+      id={id}
+      patternUnits="userSpaceOnUse"
+      width={period}
+      height={period}
+      patternTransform="rotate(45)"
+    >
+      <rect width={1 / zoom} height={period} fill={TONE_MARK.warn} />
+    </pattern>
+  );
 }
 
 /**
@@ -57,6 +95,7 @@ function fillRatio(row: ShipMapPartMeterEntry): number | null {
 export function renderResourceFill(
   meters: readonly ShipMapPartMeterEntry[],
   box: ScreenBox,
+  heldHatchId: string,
 ): React.ReactNode {
   const drainable = meters.filter((m) => fillRatio(m) !== null);
   if (drainable.length === 0) return null;
@@ -81,8 +120,9 @@ export function renderResourceFill(
         const statusBorder = m.status
           ? METER_STATUS_COLOR[m.status]
           : undefined;
-        // A held level is drawn faded inside a dashed track: still the last level there was, and visibly not the tank now.
+        // A held row hatches the unfilled part of its track, like the kit Meter's held capacity; a held amount also dims its fill.
         const held = isHeld(m);
+        const fillHeld = isHeldFigure(m.amount);
         return (
           <g key={m.resource}>
             <rect
@@ -92,11 +132,8 @@ export function renderResourceFill(
               height={innerH}
               fill="var(--color-surface-raised)"
               opacity={0.35}
-              stroke={
-                statusBorder ?? (held ? "var(--color-text-muted)" : undefined)
-              }
-              strokeWidth={statusBorder || held ? 1 : 0}
-              strokeDasharray={held ? "2 1" : undefined}
+              stroke={statusBorder}
+              strokeWidth={statusBorder ? 1 : 0}
               strokeOpacity={0.9}
             />
             <rect
@@ -105,8 +142,19 @@ export function renderResourceFill(
               width={barW}
               height={fillH}
               fill={resourceColor(m.resource)}
-              opacity={held ? 0.4 : 0.85}
+              opacity={fillHeld ? 0.4 : 0.85}
             />
+            {held && innerH - fillH > 0 && (
+              <rect
+                data-held-hatch=""
+                x={barX}
+                y={box.y + padY}
+                width={barW}
+                height={innerH - fillH}
+                fill={`url(#${heldHatchId})`}
+                opacity={0.55}
+              />
+            )}
           </g>
         );
       })}
