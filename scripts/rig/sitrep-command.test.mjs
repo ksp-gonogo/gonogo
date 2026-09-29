@@ -94,15 +94,58 @@ test("settles on an error naming its request", async () => {
   }
 });
 
-test("times out when nothing settles it", async () => {
+test("stays unconfirmed, never failed, when nothing ever settles it", async () => {
   const server = await standIn(() => {});
   try {
-    const { outcome } = await sendCommand({
+    let told = 0;
+    const { outcome, late } = await sendCommand({
       url: server.url,
       command: "ksp.launch",
-      timeoutMs: 200,
+      timeoutMs: 100,
+      giveUpMs: 300,
+      onUnconfirmed: () => told++,
     });
-    assert.equal(outcome, "timeout");
+    assert.equal(outcome, "unconfirmed");
+    assert.equal(late, true);
+    assert.equal(told, 1);
+  } finally {
+    await server.close();
+  }
+});
+
+/**
+ * The game's clock is stopped (a KSC building open), so the reply comes long
+ * after the deadline. It must still be reported, on the same connection.
+ */
+test("reports a reply that lands after it was called unconfirmed", async () => {
+  let unfreeze;
+  const frozen = new Promise((resolve) => {
+    unfreeze = resolve;
+  });
+  const server = await standIn(async (socket, request) => {
+    await frozen;
+    socket.send(
+      JSON.stringify({
+        type: "command-response",
+        requestId: request.requestId,
+        result: { success: true },
+      }),
+    );
+  });
+  try {
+    const { outcome, late, messages } = await sendCommand({
+      url: server.url,
+      command: "career.strategy.deactivate",
+      timeoutMs: 100,
+      giveUpMs: 5_000,
+      onUnconfirmed: () => unfreeze(),
+    });
+    assert.equal(outcome, "response");
+    assert.equal(late, true);
+    assert.deepEqual(
+      messages.map((m) => m.type),
+      ["command-response"],
+    );
   } finally {
     await server.close();
   }

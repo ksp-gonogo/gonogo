@@ -1,3 +1,4 @@
+import { classifyCommandRejection } from "@ksp-gonogo/sitrep-sdk";
 import {
   Courier,
   CourierTransport,
@@ -176,6 +177,78 @@ describe("CourierTransport + TelemetryClient client-side loss inference (Task 8)
       phase: "confirmed",
       requestId,
       result: { ok: "deploy" },
+    });
+  });
+});
+
+/**
+ * Game time stops while the operator's wall clock keeps running: a KSC building
+ * open in KSP, where no delayed command executes until the building closes.
+ * The client's deadline runs on the wall clock, as it does in the app, while
+ * the courier holds the command on the frozen game clock.
+ */
+describe("a command held by a frozen game clock", () => {
+  function frozenGame() {
+    const game = new ManualClock();
+    const wall = new ManualClock();
+    const network = new StubNetwork();
+    network.setDelay("KSC", "home", 0);
+    const courier = new Courier({ clock: game, network });
+    const executed: string[] = [];
+    courier.setCommandHandler((command) => {
+      executed.push(command);
+      return { success: true };
+    });
+    const courierTransport = new CourierTransport({
+      courier,
+      node: "home",
+      vantage: "KSC",
+      clock: game,
+    });
+    // The app's stream transport does not predict; the delay authority sizes the deadline.
+    const transport = {
+      get status() {
+        return courierTransport.status;
+      },
+      send: courierTransport.send.bind(courierTransport),
+      onMessage: courierTransport.onMessage.bind(courierTransport),
+      onStatusChange: courierTransport.onStatusChange.bind(courierTransport),
+    };
+    const client = new TelemetryClient(transport, wall);
+    client.setDelaySource(() => 0);
+    return { game, wall, client, executed };
+  }
+
+  it("calls a timed-out command unconfirmed, never failed, while the game has not run it", async () => {
+    const { wall, client, executed } = frozenGame();
+
+    const { requestId, result } = client.dispatch("career.strategy.deactivate");
+    wall.advanceTo(LOSS_MARGIN + 30);
+
+    const rejection = await result.then(
+      () => null,
+      (err: unknown) => classifyCommandRejection(err),
+    );
+    expect(rejection?.kind).toBe("lost");
+    expect(client.getCommand(requestId).phase).toBe("lost");
+    expect(executed).toEqual([]);
+  });
+
+  it("reports the late execution when game time moves again", async () => {
+    const { game, wall, client, executed } = frozenGame();
+
+    const { requestId, result } = client.dispatch("career.strategy.deactivate");
+    wall.advanceTo(LOSS_MARGIN + 30);
+    await result.catch(() => undefined);
+
+    game.advanceTo(1);
+
+    expect(executed).toEqual(["career.strategy.deactivate"]);
+    expect(client.getCommand(requestId)).toEqual({
+      phase: "found",
+      requestId,
+      outcome: "ran",
+      result: { success: true },
     });
   });
 });

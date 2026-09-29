@@ -1141,6 +1141,68 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
+        /// The other half of the rule above: a handler the pump has ALREADY
+        /// started when the bounded wait runs out is not reported as
+        /// <see cref="FaultCode.MainThreadTimeout"/>, because it is running and
+        /// its side effect will land. The waiter waits it out and returns its
+        /// real result. Proven by a handler that holds the main thread past the
+        /// timeout before completing.
+        /// </summary>
+        [Fact]
+        public void CommandTheGameHasAlreadyStartedIsWaitedOutNotReportedAsTimedOut()
+        {
+            var probe = new SlowHandlerProbeUplink();
+            using var engine = new ChannelEngine(
+                "ws://127.0.0.1:0",
+                executeCommandsOnMainThread: true,
+                mainThreadCommandTimeoutSeconds: 0.3);
+            engine.RegisterUplink(probe);
+            engine.Start();
+            try
+            {
+                using var resolved = new ManualResetEventSlim(false);
+                FaultCode? fault = null;
+                var confirmed = false;
+                engine.DispatchCommand(SlowHandlerProbeUplink.Command, null, "vantage-1",
+                    _ =>
+                    {
+                        confirmed = true;
+                        resolved.Set();
+                    },
+                    onRefused: (code, _) =>
+                    {
+                        fault = code;
+                        resolved.Set();
+                    });
+
+                var pump = Task.Run(() =>
+                {
+                    while (!probe.Started.IsSet)
+                    {
+                        engine.RunPendingCommands();
+                        Thread.Sleep(5);
+                    }
+                });
+
+                Assert.True(probe.Started.Wait(Timeout), "the pump must have started the handler");
+                // The handler holds the main thread well past the waiter's bounded wait, and nothing may settle meanwhile.
+                Assert.False(resolved.Wait(TimeSpan.FromSeconds(1)));
+                probe.Release.Set();
+                Assert.True(pump.Wait(Timeout));
+
+                Assert.True(resolved.Wait(Timeout), "the command must settle once the handler completes");
+                Assert.Null(fault);
+                Assert.True(confirmed);
+                Assert.Equal(1, probe.HandlerRunCount);
+            }
+            finally
+            {
+                probe.Release.Set();
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
         /// F2-fix (Fix #2, shutdown gate): a shutdown with multiple instant
         /// commands in flight against a main-thread seam whose pump is NOT
         /// running must complete promptly and never leave the Courier thread
@@ -1487,6 +1549,40 @@ namespace Sitrep.Host.IntegrationTests
         /// handler actually RAN: the probe for
         /// <see cref="AbandonedCommandIsDroppedByThePumpAndItsHandlerNeverRunsLate"/>.
         /// </summary>
+        private sealed class SlowHandlerProbeUplink : ISitrepUplink
+        {
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
+            public const string Command = "probe.slow-handler";
+
+            public readonly ManualResetEventSlim Started = new ManualResetEventSlim(false);
+            public readonly ManualResetEventSlim Release = new ManualResetEventSlim(false);
+
+            private int _handlerRunCount;
+            public int HandlerRunCount => Volatile.Read(ref _handlerRunCount);
+
+            public UplinkManifest Manifest { get; } = new UplinkManifest
+            {
+                Id = "slow-handler-probe",
+                Version = "1.0.0",
+                Commands = new List<CommandDeclaration>
+                {
+                    new CommandDeclaration { Command = Command, Delay = DelayRole.TrueNow },
+                },
+            };
+
+            public void Register(IUplinkHost host)
+            {
+                host.AddCommandHandler<object?, CommandResult>(Command, _ =>
+                {
+                    Started.Set();
+                    Release.Wait(TestBudgets.Op);
+                    Interlocked.Increment(ref _handlerRunCount);
+                    return CommandResult.Ok();
+                });
+            }
+        }
+
         private sealed class SideEffectProbeUplink : ISitrepUplink
         {
             // Mandatory health floor (test double).

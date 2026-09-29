@@ -311,7 +311,7 @@ export class TelemetryClient {
         this.handleLoss(
           command.requestId,
           "relayed-loss",
-          `command lost: ${command.reason}`,
+          `command unconfirmed: ${command.reason}`,
         ),
       ) ?? (() => undefined);
     this.unsubscribeFromTransportStatus = transport.onStatusChange((status) => {
@@ -1104,7 +1104,7 @@ export class TelemetryClient {
   private handleLoss(
     requestId: string,
     reason = "signal-lost",
-    message = "command lost: no confirmation received by predicted ETA",
+    message = "command unconfirmed: no reply by the predicted time, it may still run",
   ): void {
     const pending = this.commands.get(requestId);
     if (!pending || pending.status.phase !== "in-flight") return;

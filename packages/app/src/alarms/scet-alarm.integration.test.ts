@@ -222,7 +222,8 @@ function startSession(owlt: number): ModStandIn {
         armsToLose -= 1;
         throw {
           code: "E_LOST",
-          message: "command lost: no confirmation received by predicted ETA",
+          message:
+            "command unconfirmed: no reply by the predicted time, it may still run",
         };
       }
       const condition = (bag.condition ?? {}) as Record<string, unknown>;

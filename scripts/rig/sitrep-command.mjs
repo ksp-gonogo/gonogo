@@ -4,7 +4,7 @@
  * what came back. The same `command-request` the app sends, so a rig check
  * drives the product's own command path rather than a dev-only stand-in.
  *
- *   node scripts/rig/sitrep-command.mjs <command> [argsJson] [--url <ws>] [--vantage <id>] [--timeout <s>]
+ *   node scripts/rig/sitrep-command.mjs <command> [argsJson] [--url <ws>] [--vantage <id>] [--timeout <s>] [--give-up <s>]
  *
  * Reaching the rig means tunnelling its port first; the mod binds 8090:
  *
@@ -18,8 +18,14 @@
  *
  * Every line printed is one server message as JSON: a `command-accepted` when
  * the uplink has taken the order, then the `command-response` or `error` that
- * settles it. The exit status is 0 only for a response; an error, a timeout or
- * a connection that fails is non-zero, so a script can stop on it.
+ * settles it. The exit status is 0 only for a response, 1 for an error or a
+ * connection that fails, and 3 for a command that stayed unconfirmed.
+ *
+ * No reply by `--timeout` is NOT a failure. A sent command can still run: the
+ * game holds a delayed command while its clock is stopped (a KSC building open,
+ * a pause) and runs it when the clock moves. So the command is reported
+ * unconfirmed and the socket stays open until `--give-up`, because the late
+ * reply can only come back on the connection that sent it.
  *
  * It lives in the repo rather than a scratch directory because `ws` resolves
  * from the importing file's own directory.
@@ -30,8 +36,13 @@ import WebSocket from "ws";
 
 /**
  * Send `command` with `args` and resolve with every message about it, ending
- * with the one that settles it (`command-response` or `error`), or with a
- * timeout. Messages about anything else on the stream are ignored.
+ * with the one that settles it (`command-response` or `error`). Messages about
+ * anything else on the stream are ignored.
+ *
+ * Past `timeoutMs` with nothing back the command is unconfirmed: `onUnconfirmed`
+ * is told, and listening goes on until `giveUpMs`, so a reply that comes late
+ * still settles it, with `late` set. Only then does it resolve `unconfirmed`,
+ * which says the command may yet run and nothing here will see it.
  */
 export function sendCommand({
   url = "ws://127.0.0.1:8090",
@@ -39,17 +50,28 @@ export function sendCommand({
   args = {},
   vantage,
   timeoutMs = 30_000,
+  giveUpMs = 600_000,
+  onUnconfirmed = () => {},
 }) {
   const requestId = randomUUID();
   return new Promise((resolve) => {
     const seen = [];
+    let late = false;
     const socket = new WebSocket(url);
     const finish = (outcome) => {
-      clearTimeout(timer);
+      clearTimeout(unconfirmedTimer);
+      clearTimeout(giveUpTimer);
       socket.close();
-      resolve({ outcome, messages: seen });
+      resolve({ outcome, late, messages: seen });
     };
-    const timer = setTimeout(() => finish("timeout"), timeoutMs);
+    const unconfirmedTimer = setTimeout(() => {
+      late = true;
+      onUnconfirmed();
+    }, timeoutMs);
+    const giveUpTimer = setTimeout(
+      () => finish("unconfirmed"),
+      Math.max(timeoutMs, giveUpMs),
+    );
     socket.on("error", (error) => {
       seen.push({ type: "connection-error", message: String(error.message) });
       finish("connection-error");
@@ -99,20 +121,36 @@ async function main() {
   const [command, argsJson] = positional;
   if (!command) {
     console.error(
-      "usage: sitrep-command.mjs <command> [argsJson] [--url <ws>] [--vantage <id>] [--timeout <s>]",
+      "usage: sitrep-command.mjs <command> [argsJson] [--url <ws>] [--vantage <id>] [--timeout <s>] [--give-up <s>]",
     );
     process.exit(2);
   }
-  const { outcome, messages } = await sendCommand({
+  const { outcome, late, messages } = await sendCommand({
     url: flags.url,
     command,
     args: argsJson ? JSON.parse(argsJson) : {},
     vantage: flags.vantage,
     timeoutMs:
       flags.timeout === undefined ? undefined : Number(flags.timeout) * 1000,
+    giveUpMs:
+      flags["give-up"] === undefined
+        ? undefined
+        : Number(flags["give-up"]) * 1000,
+    onUnconfirmed: () =>
+      console.error(
+        `${command} unconfirmed: no reply yet, it may still run; still listening`,
+      ),
   });
   for (const message of messages) console.log(JSON.stringify(message));
-  if (outcome === "timeout") console.error(`no settling reply for ${command}`);
+  if (late && outcome !== "unconfirmed") {
+    console.error(`${command} settled after it was reported unconfirmed`);
+  }
+  if (outcome === "unconfirmed") {
+    console.error(
+      `${command} still unconfirmed: it may yet run, and its outcome will not be seen here`,
+    );
+    process.exit(3);
+  }
   process.exit(outcome === "response" ? 0 : 1);
 }
 

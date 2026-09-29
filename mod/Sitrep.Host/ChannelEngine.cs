@@ -4767,26 +4767,32 @@ namespace Sitrep.Host
             // dispose Done here: FailPendingMainThreadCommands may still dequeue
             // and Set() it; the abandoned flag routes disposal to whichever of
             // the pump/flush drains it.
-            if (_engineStopping)
+            if (_engineStopping && job.TryAbandon())
             {
-                job.Abandoned = true;
                 throw new InvalidOperationException("ChannelEngine stopped before the command executed on the main thread.");
             }
 
-            // A BOUNDED wait, as the pause backstop. In production the drain
-            // rides Update(), which runs even when Time.timeScale == 0, so a
-            // paused game does not wedge this; the timeout is the last-resort guard
-            // for a scene-load / loading-screen stall where even Update stops
-            // pumping. On expiry we abandon the job (the pump may still run it
-            // later: MainThreadCommand.Done is intentionally NOT disposed on
-            // this path so that late Set() can't throw ObjectDisposedException)
-            // and answer with a fault, since nothing was decided, so the Courier
-            // resumes and the command stays available.
+            /*
+             * A BOUNDED wait, as the pause backstop. In production the drain
+             * rides Update(), which runs even when Time.timeScale == 0, so a
+             * paused game does not wedge this; the timeout is the last-resort
+             * guard for a scene-load stall where even Update stops pumping.
+             *
+             * The fault is only ever told for a job the pump can no longer run:
+             * abandoning and claiming are one atomic race, so a handler the pump
+             * has already started is waited out and its real result returned.
+             * Answering "the game did not get to it" for a command that then
+             * runs is the lie this guards against. The abandoned job's handle is
+             * left for the pump to dispose when it drops it.
+             */
             if (!job.Done.Wait(_mainThreadCommandTimeout))
             {
-                job.Abandoned = true;
-                throw new CommandFaultException(
-                    FaultCode.MainThreadTimeout, "the game's main thread did not run the command within " + _mainThreadCommandTimeout.TotalSeconds + "s");
+                if (job.TryAbandon())
+                {
+                    throw new CommandFaultException(
+                        FaultCode.MainThreadTimeout, "the game's main thread did not run the command within " + _mainThreadCommandTimeout.TotalSeconds + "s");
+                }
+                job.Done.Wait();
             }
 
             try
@@ -4821,13 +4827,8 @@ namespace Sitrep.Host
         {
             while (_mainThreadCommands.TryDequeue(out var job))
             {
-                // F3 (F2-fix residual): the waiter already timed out, reported
-                // Timeout to the caller, and abandoned this job. Running the
-                // handler now would apply its side effect (staging, a maneuver
-                // node) seconds AFTER the caller was told it failed. So DROP the
-                // job (do not run the handler) and dispose the handle (the
-                // waiter deliberately left it for the pump to own on this path).
-                if (job.Abandoned)
+                // The waiter already told its caller the game did not get to this, so running it now would make that a lie.
+                if (!job.TryClaim())
                 {
                     job.Done.Dispose();
                     continue;
@@ -4844,15 +4845,6 @@ namespace Sitrep.Host
                 finally
                 {
                     job.Done.Set();
-                    // If the waiter abandoned this job WHILE the handler was
-                    // running (the flag flipped after the top-of-loop check),
-                    // no one will observe the result or dispose the handle, so
-                    // the pump disposes it here: the waiter never disposes on
-                    // its timeout path, so this is the sole owner.
-                    if (job.Abandoned)
-                    {
-                        job.Done.Dispose();
-                    }
                 }
             }
         }
@@ -4871,13 +4863,14 @@ namespace Sitrep.Host
         {
             while (_mainThreadCommands.TryDequeue(out var job))
             {
+                if (!job.TryClaim())
+                {
+                    job.Done.Dispose();
+                    continue;
+                }
                 job.Captured = System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(
                     new InvalidOperationException("ChannelEngine stopped before the command executed on the main thread."));
                 job.Done.Set();
-                if (job.Abandoned)
-                {
-                    job.Done.Dispose();
-                }
             }
         }
 
@@ -8499,11 +8492,23 @@ namespace Sitrep.Host
             public System.Runtime.ExceptionServices.ExceptionDispatchInfo? Captured;
             public readonly ManualResetEventSlim Done = new ManualResetEventSlim(false);
 
-            // F2-fix: set by the Courier-side waiter (RunOnMainThread) when its
-            // bounded wait times out and it walks away. The pump reads this so
-            // it can dispose the handle it just Set() (no waiter remains), and
-            // never assumes a waiter is still listening.
-            public volatile bool Abandoned;
+            private const int Queued = 0;
+            private const int Claimed = 1;
+            private const int Abandoned = 2;
+
+            private int _state = Queued;
+
+            /// <summary>
+            /// The pump takes the job to run it (or to fail it on shutdown).
+            /// False when the waiter walked away first, and then nothing may run it.
+            /// </summary>
+            public bool TryClaim() => Interlocked.CompareExchange(ref _state, Claimed, Queued) == Queued;
+
+            /// <summary>
+            /// The waiter gives up on the job. False when the pump has already
+            /// claimed it, and then its outcome is coming and must be waited for.
+            /// </summary>
+            public bool TryAbandon() => Interlocked.CompareExchange(ref _state, Abandoned, Queued) == Queued;
 
             public MainThreadCommand(Func<object?, object?> handler, object? args)
             {
