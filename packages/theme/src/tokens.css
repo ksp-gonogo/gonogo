@@ -747,8 +747,6 @@ textarea {
   --inset-switch-panel: var(--space-2);
   /* The spacing around a reveal toggle at a list header. */
   --outset-reveal-toggle: var(--space-2) var(--space-2) var(--space-4);
-  /* A compact tile's funds and drain rows. */
-  --inset-tiny-row: 0 var(--space-12) var(--space-6);
 
   /* Rules. */
   /* Content opening below a divider rule. */

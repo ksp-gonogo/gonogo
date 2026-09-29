@@ -229,34 +229,3 @@ export const Tally = styled.span<{ $overCap?: boolean }>`
 export const Sep = styled.span`
   color: var(--color-text-dim);
 `;
-
-export const TinyFundsRow = styled.div`
-  display: flex;
-  gap: var(--gap-related);
-  padding: var(--inset-tiny-row);
-  font-size: var(--font-size-compact);
-  color: var(--color-status-go-fg);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-  overflow: hidden;
-`;
-
-/** The balance never gives up width: the tally beside it does. */
-export const TinyFundsFigure = styled.span`
-  flex: none;
-`;
-
-export const TinyTally = styled.span`
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-`;
-
-export const TinyDrainRow = styled.div`
-  padding: var(--inset-tiny-row);
-  font-size: var(--font-size-compact);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-`;

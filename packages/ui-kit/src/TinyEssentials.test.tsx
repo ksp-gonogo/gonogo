@@ -103,6 +103,29 @@ describe("TinyEssentials", () => {
     await expectNoA11yViolations(container);
   });
 
+  it("keeps a lone figure's caption for the ear only when the heading already names it", () => {
+    const { container, unmount } = render(
+      <TinyEssentials
+        title="TWR"
+        essentials={[{ label: "TWR", value: value("1", 1.4) }]}
+      />,
+    );
+    const term = container.querySelector("dt");
+    expect(term?.textContent).toBe("TWR");
+    expect(getComputedStyle(term as Element).position).toBe("absolute");
+    unmount();
+
+    const { container: named } = render(
+      <TinyEssentials
+        title="CREW"
+        essentials={[{ label: "Aboard", value: value("count", 3) }]}
+      />,
+    );
+    expect(
+      getComputedStyle(named.querySelector("dt") as Element).position,
+    ).not.toBe("absolute");
+  });
+
   it("marks a held reading and draws the null token for a missing one", () => {
     const { container } = render(
       <TinyEssentials

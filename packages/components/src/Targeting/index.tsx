@@ -1,6 +1,8 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import { registerComponent } from "@ksp-gonogo/core";
+import type { TinyEssential } from "@ksp-gonogo/sitrep-sdk";
 import { EmptyState } from "@ksp-gonogo/ui-kit";
+import { closingRateReading, rangeReading } from "../shared/dockAngles";
 import { ApproachHud } from "./ApproachHud";
 import type { DockingHudMode, TargetingConfig } from "./config";
 import { DockingHud } from "./DockingHud";
@@ -136,6 +138,21 @@ function TargetingComponent({
   );
 }
 
+/** How far the target is and how fast that is closing. */
+function useTargetingEssentials(): readonly TinyEssential[] {
+  const target = targetingTopics.useTelemetry("vessel.target");
+  return [
+    { label: "Range", value: rangeReading(target.relativePosition) },
+    {
+      label: "Closing",
+      value: closingRateReading(
+        target.relativePosition,
+        target.relativeVelocity,
+      ),
+    },
+  ];
+}
+
 registerComponent<TargetingConfig>({
   id: "targeting",
   name: "Targeting",
@@ -143,9 +160,14 @@ registerComponent<TargetingConfig>({
     "Target name + distance, with an auto-switching docking HUD (crosshair + alignment reticle + optional camera backdrop) when closing on a vessel or docking port.",
   tags: ["telemetry", "rendezvous"],
   defaultSize: { w: 6, h: 9 },
-  /* Five rows: at four the overflow glow painted out the waiting hint's last word. */
-  minSize: { w: 3, h: 5 },
+  minSize: { w: 3, h: 3 },
   component: TargetingComponent,
+  tiny: {
+    title: "TARGET",
+    // Five rows: at four the overflow glow painted out the waiting hint's last word.
+    bodyMinSize: { w: 3, h: 5 },
+    useEssentials: useTargetingEssentials,
+  },
   configComponent: TargetingConfigForm,
   channels: targetingTopics.channels,
   defaultConfig: { autoSwitch: true, hudMode: "hud-with-camera" },

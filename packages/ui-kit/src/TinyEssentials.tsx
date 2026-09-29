@@ -10,6 +10,7 @@ import { Panel } from "./Panel";
 import { Section } from "./Section";
 import { STAT_TONE_COLOR, type StatTone } from "./statTone";
 import { Unit } from "./Unit";
+import { VisuallyHidden } from "./VisuallyHidden";
 import { TINY_BELOW } from "./widgetSize";
 
 /**
@@ -31,6 +32,11 @@ export interface TinyEssentialsProps {
  */
 export function TinyEssentials({ title, essentials }: TinyEssentialsProps) {
   const [hero, ...rest] = essentials;
+  // A lone figure named like the tile already has its caption in the heading.
+  const heroNamedByTitle =
+    hero !== undefined &&
+    rest.length === 0 &&
+    hero.label.toUpperCase() === title.toUpperCase();
   return (
     <Panel
       panelTitle={title}
@@ -39,7 +45,11 @@ export function TinyEssentials({ title, essentials }: TinyEssentialsProps) {
         <Section full>
           {hero !== undefined && (
             <TinyEssentials__Hero data-tiny-essential="">
-              <TinyEssentials__Label>{hero.label}</TinyEssentials__Label>
+              {heroNamedByTitle ? (
+                <VisuallyHidden as="dt">{hero.label}</VisuallyHidden>
+              ) : (
+                <TinyEssentials__Label>{hero.label}</TinyEssentials__Label>
+              )}
               <TinyEssentials__HeroFigure $tone={hero.tone ?? "neutral"}>
                 <EssentialFigure essential={hero} />
               </TinyEssentials__HeroFigure>
@@ -179,17 +189,22 @@ const TinyEssentials__Label = styled.dt`
 `;
 
 const TinyEssentials__Rows = styled.dl`
-  display: grid;
-  grid-template-columns: auto auto;
-  justify-content: center;
-  align-items: baseline;
-  gap: var(--gap-row-wrap) var(--gap-label-value-tight);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--gap-row-wrap);
   margin: 0;
+  max-width: 100%;
 `;
 
-/* Contents only, so each pair lays out on the list's two columns while staying one element for the eye and the query. */
+/* A row too wide for the tile drops its figure under its label rather than spilling past the edges. */
 const TinyEssentials__Row = styled.div`
-  display: contents;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: baseline;
+  column-gap: var(--gap-label-value-tight);
+  max-width: 100%;
 `;
 
 const TinyEssentials__RowFigure = styled.dd<{ $tone: StatTone }>`

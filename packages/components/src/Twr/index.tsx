@@ -1,10 +1,13 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import { registerComponent, useTelemetry } from "@ksp-gonogo/core";
-import { combineReadings, value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  combineReadings,
+  type TinyEssential,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import { Gauge, Sparkline } from "@ksp-gonogo/ui";
 import {
   EmptyState,
-  NULL_DISPLAY,
   Panel,
   Section,
   Text,
@@ -13,24 +16,30 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { magnitudeOf } from "../shared/magnitude";
 import { useComputedSeries } from "../shared/useComputedSeries";
-import { GAUGE_MAX, GAUGE_MIN, toneColorFor, twrOf, ZONES } from "./scale";
+import {
+  essentialToneFor,
+  GAUGE_MAX,
+  GAUGE_MIN,
+  toneColorFor,
+  twrOf,
+  ZONES,
+} from "./scale";
 
 type TwrConfig = Record<string, never>;
 
 const SPARK_WINDOW_SEC = 60;
 
-type Variant = "tiny" | "small" | "normal";
+type Variant = "small" | "normal";
 
 function variantFor(cols: number, rows: number): Variant {
-  if (rows < 3 || cols < 3) return "tiny";
   if (rows < 4 || cols < 4) return "small";
   return "normal";
 }
 
-function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
-  // The wire carries thrust and mass, not their ratio.
+/** Thrust over weight: the wire carries thrust and mass, not their ratio. */
+function useTwrReading() {
   const propulsionReading = useTelemetry("vessel.propulsion");
-  const twrReading = combineReadings(
+  return combineReadings(
     [propulsionReading.currentThrust, propulsionReading.totalMass],
     (currentThrust, totalMass) => {
       const thrust = magnitudeOf(currentThrust);
@@ -42,9 +51,25 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
         : value("1", ratio);
     },
   );
+}
+
+function useTwrEssentials(): readonly TinyEssential[] {
+  const twrReading = useTwrReading();
   const twr = twrReading.value;
+  return [
+    {
+      label: "TWR",
+      value: twrReading,
+      decimals: 1,
+      tone: twr === undefined ? "neutral" : essentialToneFor(twr),
+    },
+  ];
+}
+
+function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
+  const twrReading = useTwrReading();
   // A stale TWR is held, never blanked: the empty state means the craft has no engine.
-  const twrHeld = twrReading.state === "stale";
+  const twr = twrReading.value;
   const series = useComputedSeries(
     "vessel.propulsion.currentThrust",
     "vessel.propulsion.totalMass",
@@ -81,10 +106,7 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
         panelTitle="TWR"
         sections={
           <Section full>
-            {/* The full sentence clips to "No" at tiny width. */}
-            <EmptyState>
-              {variant === "tiny" ? NULL_DISPLAY : "No engine data"}
-            </EmptyState>
+            <EmptyState>No engine data</EmptyState>
           </Section>
         }
       />
@@ -92,29 +114,6 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
   }
 
   const toneColor = toneColorFor(twr);
-
-  if (variant === "tiny") {
-    return (
-      <Panel
-        panelTitle="TWR"
-        fitToSize
-        sections={
-          <Section full>
-            {/* No room here for the larger layout's word mark, so a held figure is dimmed instead. */}
-            <span
-              style={{
-                ...TINY_VALUE_STYLE,
-                color: toneColor,
-                ...(twrHeld ? { opacity: 0.55 } : {}),
-              }}
-            >
-              {writeQuantity(twr, { decimals: 1 })}
-            </span>
-          </Section>
-        }
-      />
-    );
-  }
 
   return (
     <Panel
@@ -177,16 +176,6 @@ const SPARK_SLOT_STYLE = {
   marginTop: "8px",
 } as const;
 
-// 24px keeps a three-character value inside the tiny panel's ~70px inner width, so it is off the type scale.
-const TINY_VALUE_STYLE = {
-  fontSize: "24px",
-  fontWeight: 700,
-  fontVariantNumeric: "tabular-nums",
-  letterSpacing: "0.04em",
-  lineHeight: "var(--line-height-flush)",
-  whiteSpace: "nowrap",
-} as const;
-
 registerComponent<TwrConfig>({
   id: "twr",
   name: "TWR",
@@ -196,6 +185,12 @@ registerComponent<TwrConfig>({
   defaultSize: { w: 4, h: 5 },
   minSize: { w: 2, h: 2 },
   component: TwrComponent,
+  tiny: {
+    title: "TWR",
+    // The dial needs three columns and rows; below that the figure stands alone.
+    bodyMinSize: { w: 3, h: 3 },
+    useEssentials: useTwrEssentials,
+  },
   dataRequirements: [
     "vessel.propulsion.currentThrust",
     "vessel.propulsion.totalMass",

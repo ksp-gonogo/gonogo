@@ -1,15 +1,17 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import { registerComponent, useTelemetry } from "@ksp-gonogo/core";
 import { DELTA_V_BUDGET, useProcessor } from "@ksp-gonogo/sitrep-client";
-import { stillTrue, type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import {
-  BigReadout,
+  stillTrue,
+  type TinyEssential,
+  type Value,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
+import {
   getWidgetShape,
-  NULL_DISPLAY,
   Panel,
   ReadoutCaption,
   Section,
-  Unit,
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import { magnitudeOf } from "../shared/magnitude";
@@ -25,6 +27,32 @@ import { useResourceRows } from "./resources";
 import { StageStackSection } from "./StageStackSection";
 import { TotalsSection } from "./TotalsSection";
 import "./slots";
+
+/** The craft's ΔV in the configured reference, and how long it burns for. */
+function useFuelEssentials({
+  config,
+}: ComponentProps<FuelStatusConfig>): readonly TinyEssential[] {
+  const mode: DeltaVMode = config?.deltaVMode ?? "actual";
+  const budgetReading = useProcessor(DELTA_V_BUDGET);
+  const budget =
+    budgetReading?.state === "observed" || budgetReading?.state === "stale"
+      ? budgetReading.value
+      : undefined;
+  const dated = <UnitSymbol extends string>(
+    figure: Value<UnitSymbol> | null | undefined,
+  ) =>
+    figure == null || budgetReading === undefined
+      ? figure
+      : budgetFigure(budgetReading, figure);
+  return [
+    {
+      label: `ΔV ${DELTA_V_MODE_SHORT[mode]}`,
+      value: dated(pickTotal(budget, mode)),
+      decimals: 0,
+    },
+    { label: "Burn", value: dated(budget?.totalBurnTime) },
+  ];
+}
 
 function FuelStatusComponent({
   config,
@@ -70,10 +98,8 @@ function FuelStatusComponent({
   // Wide-short: width compensates for the height gates, so the resource list and stage stack show beneath the totals row.
   const isLandscape = getWidgetShape(w, h).shape === "landscape";
   const showSubtitle = rows >= 5;
-  const showTotals = rows >= 4;
   const showResourceList = cols >= 5 && (rows >= 7 || isLandscape);
   const showStageStack = cols >= 5 && (rows >= 10 || isLandscape);
-  const showHeroDv = !showTotals && totalDv !== undefined;
 
   // Keyed by name so a column keeps its identity as the size gates add and drop them.
   const columns: { key: string; node: ReactNode }[] = [];
@@ -114,26 +140,7 @@ function FuelStatusComponent({
             </ReadoutCaption>
           </Section>
         ),
-        showHeroDv && (
-          <Section key="hero" full>
-            <BigReadout
-              $tone="alert"
-              style={{ fontSize: "clamp(13px, 3.5vw, 17px)" }}
-            >
-              <span style={{ whiteSpace: "nowrap" }}>
-                <Unit value={dated(value("m/s", totalDv))} decimals={0} />
-              </span>
-              <ReadoutCaption>ΔV {DELTA_V_MODE_SHORT[mode]}</ReadoutCaption>
-            </BigReadout>
-          </Section>
-        ),
-        /* No engine data and no totals row: draw a dash so the tiny widget is not blank. */
-        !showHeroDv && !showTotals && totalDv === undefined && (
-          <Section key="null" full>
-            <BigReadout>{NULL_DISPLAY}</BigReadout>
-          </Section>
-        ),
-        showTotals && budgetReported && (
+        budgetReported && (
           <Section key="totals" full>
             <TotalsSection
               totalDv={
@@ -163,6 +170,12 @@ registerComponent<FuelStatusConfig>({
   defaultSize: { w: 8, h: 14 },
   minSize: { w: 3, h: 3 },
   component: FuelStatusComponent,
+  tiny: {
+    title: "FUEL",
+    // The totals row needs four rows; below it the two figures stand alone.
+    bodyMinSize: { w: 3, h: 4 },
+    useEssentials: useFuelEssentials,
+  },
   configComponent: FuelStatusConfigForm,
   // The three resource channels rather than per-resource paths: the component reads each map whole, and every `r.resource[X]` alarm target lies inside one of them.
   dataRequirements: [

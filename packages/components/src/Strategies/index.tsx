@@ -1,11 +1,18 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import { defineTopicManifest, registerComponent } from "@ksp-gonogo/core";
 import { META_VANTAGE, useCommand } from "@ksp-gonogo/sitrep-client";
-import { readingOf, stillTrue } from "@ksp-gonogo/sitrep-sdk";
+import {
+  combineReadings,
+  readingOf,
+  stillTrue,
+  type TinyEssential,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import { useContributions } from "@ksp-gonogo/ui-kit";
 import { useMemo, useState } from "react";
-import { netFundsPerDay } from "../shared/FundsDrain";
+import { netFundsPerDay, netFundsPerDayReading } from "../shared/FundsDrain";
 import { parseEffectLines, parseStrategies } from "./parsing";
+import { inferCap, partition } from "./partition";
 import { StrategiesView } from "./StrategiesView";
 import { resolveScreens } from "./screens";
 
@@ -105,6 +112,39 @@ function StrategiesComponent({
   );
 }
 
+/** The balance, the commitments held against it, and the standing rate it moves at. */
+function useStrategiesEssentials(): readonly TinyEssential[] {
+  const career = topics.useTelemetry("career.status");
+  const roster = partition(
+    parseStrategies(stillTrue(career, undefined)?.strategies?.all) ?? [],
+  );
+  const cap = inferCap(roster.softBlocked);
+  const net = netFundsPerDayReading(
+    career.economy.subsidyPerDay,
+    career.economy.upkeepPerDay,
+  );
+  const essentials: TinyEssential[] = [
+    {
+      label: "Funds",
+      value: readingOf(career, (c) => c.economy?.funds ?? undefined),
+      decimals: 0,
+    },
+    {
+      label: "Active",
+      value: readingOf(career, () => value("count", roster.active.length)),
+      tone: cap !== null && roster.active.length > cap ? "warn" : "neutral",
+    },
+  ];
+  // A career with no standing rate has no row: an absent rate is not a zero one.
+  if (net.value === undefined || net.value.isZero()) return essentials;
+  // Named, not signed: a leading minus reads as a formatting artefact.
+  essentials.push({
+    label: net.value.isNegative() ? "Drain" : "Gain",
+    value: combineReadings([net], (rate) => rate.abs()),
+  });
+  return essentials;
+}
+
 registerComponent<StrategiesConfig>({
   id: "strategies",
   name: "Admin Building",
@@ -112,8 +152,10 @@ registerComponent<StrategiesConfig>({
     "Administration Building strategies for career mode. Shows active commitments, their per-strategy effect bullets, and the available alternatives with cost previews scaled by the commitment-factor slider. With that building open KSP answers eligibility itself; with it shut the same rules are asked one at a time, which is enough to name what the career refuses but never enough to say yes. A strategy left unanswered can still be committed from here when no other mod has changed how activation works: the remaining checks are made when you confirm.",
   tags: ["career"],
   defaultSize: { w: 5, h: 9 },
-  minSize: { w: 2, h: 2 },
+  // Three columns and four rows hold a full balance over the tally and the standing rate.
+  minSize: { w: 3, h: 4 },
   component: StrategiesComponent,
+  tiny: { title: "ADMIN", useEssentials: useStrategiesEssentials },
   channels: topics.channels,
   fields: topics.fields,
   defaultConfig: {},

@@ -1,4 +1,9 @@
-import { STANDARD_GRAVITY, type Value, value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  STANDARD_GRAVITY,
+  type TinyEssentialTone,
+  type Value,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import type { GaugeZone } from "@ksp-gonogo/ui";
 
 /**
@@ -44,4 +49,14 @@ function toneFor(twr: Value<"1">): Tone {
 
 export function toneColorFor(twr: Value<"1">): string {
   return TONE_COLOR[toneFor(twr)];
+}
+
+const ESSENTIAL_TONE: Record<Tone, TinyEssentialTone> = {
+  ok: "go",
+  warn: "warn",
+  lost: "nogo",
+};
+
+export function essentialToneFor(twr: Value<"1">): TinyEssentialTone {
+  return ESSENTIAL_TONE[toneFor(twr)];
 }

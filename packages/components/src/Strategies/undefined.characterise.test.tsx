@@ -1,7 +1,7 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
-import { visibleText } from "@ksp-gonogo/ui-kit/testing";
+import { renderWidget, visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { ReadingProbe } from "../test/ReadingProbe";
 import {
@@ -235,27 +235,26 @@ describe("Strategies: an absent balance beside a present strategy list", () => {
   });
 });
 
-describe("Strategies: tiny mode keeps the balance row", () => {
-  // The tiny bucket keeps its funds row while the economy is absent.
-  it("says the funds balance is unknown while economy is absent, and shows it once funds arrive", async () => {
+describe("Strategies: tiny mode keeps the funds essential", () => {
+  it("draws the null token for funds while economy is absent, and the balance once it arrives", async () => {
     const fixture = newFixture();
     // w=4 is the tiny bucket.
-    renderStrategies(fixture, { w: 4, h: 4 });
+    renderWidget("strategies", { w: 4, h: 4, wrapper: fixture.Provider });
 
     emitCareer(fixture, {
       economy: null,
       strategies: { active: [], all: [EXPENSIVE], activeCount: 0 },
     });
 
-    // The tiny panel shares the awaiting branch's title, so wait on the active tally instead.
-    await waitFor(() => expect(visibleText()).toContain("0 active"));
-    expect(visibleText()).toBe("Strategiesfunds unknown· 0 active");
+    await waitFor(() =>
+      expect(visibleText()).toBe(`ADMINFunds${NULL_DISPLAY}Active0`),
+    );
 
     emitCareer(fixture, {
       economy: { funds: 1234, reputation: 0, science: 0 },
       strategies: { active: [], all: [EXPENSIVE], activeCount: 0 },
     });
 
-    await waitFor(() => expect(visibleText()).toBe("Strategies1kf· 0 active"));
+    await waitFor(() => expect(visibleText()).toBe("ADMINFunds1,234fActive0"));
   });
 });

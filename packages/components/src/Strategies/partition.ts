@@ -44,3 +44,14 @@ export function sharedReason(strategies: readonly Strategy[]): string | null {
     ? first
     : null;
 }
+
+/** The highest active-strategy cap the blocked-reason text names, or null when nothing is soft-blocked. */
+export function inferCap(softBlocked: readonly Strategy[]): number | null {
+  for (const s of softBlocked) {
+    const m = s.activateBlockedReason.match(/(\d+)\s+active strategies/i);
+    if (!m) continue;
+    const n = Number(m[1]);
+    if (Number.isFinite(n) && n > 0) return n;
+  }
+  return null;
+}

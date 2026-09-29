@@ -271,7 +271,6 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
    * numbers and put a `Value` into `toFixed` the moment they were not.
    */
   "packages/components/src/shared/dockAngles.ts": 3,
-  "packages/components/src/Strategies/StrategiesView.tsx": 1,
   "packages/components/src/SystemView/index.tsx": 8,
   // 6: the LAN and argPe coalesce, each `?.magnitude ?? 0` or `?.magnitude`
   // behind a `Number.isFinite` guard, is expressed through `magnitudeOr` and
@@ -531,7 +530,7 @@ const FUNNEL_BUDGET: Record<string, number> = {
   // One of these is `GoNoGoHostService` measuring liftoff against `getViewUt()`, which returns a plain number.
   "packages/app": 9,
   // Two of these are ShipMap taking the wire's wrapped throttle for the SVG engine-flame gate and the ambient temperature for its CSS colour ramp, both plain-number boundaries.
-  "packages/components": 148,
+  "packages/components": 147,
   "packages/data": 5,
   "packages/ui-kit": 8,
 };

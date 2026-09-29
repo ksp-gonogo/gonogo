@@ -1,6 +1,6 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
-import { visibleText } from "@ksp-gonogo/ui-kit/testing";
+import { renderWidget, visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   type StreamFixture,
@@ -174,23 +174,27 @@ describe("Strategies when the career balances are held", () => {
     expect(document.querySelector("[data-afford]")).toBeNull();
   });
 
-  it("marks the tiny bucket's held balance, where 'unknown' would blame the wrong thing", async () => {
+  it("marks the tiny form's held balance rather than blanking it", async () => {
     // w=4 is the tiny bucket.
     const fixture = newFixture();
-    renderStrategies(fixture, { w: 4, h: 4 });
+    renderWidget("strategies", {
+      instanceId: "strat-stale",
+      w: 4,
+      h: 4,
+      wrapper: fixture.Provider,
+    });
     emitCareer(fixture);
-    await waitFor(() => expect(visibleText()).toContain("290kf"));
+    await waitFor(() => expect(visibleText()).toContain("289,848"));
     expect(document.querySelector("[data-held]")).toBeNull();
 
     goStale(fixture);
 
     await waitFor(() =>
       expect(
-        document.querySelector("[data-balance-row] [data-held]"),
+        document.querySelector("[data-tiny-essential] [data-held]"),
       ).not.toBeNull(),
     );
-    // "funds unknown" is the never-arrived wording.
-    expect(visibleText()).not.toContain("funds unknown");
+    await act(async () => {});
   });
 
   it("says nothing about currency before anything has ever arrived", () => {

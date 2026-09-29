@@ -196,7 +196,7 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "Twr/__fixtures__",
     outPath: "renders/twr-widget",
     modes: [
-      // Tiny variant: numeric readout only.
+      // The kit's tiny form: the ratio alone.
       { name: "tiny-2x2", w: 2, h: 2 },
       // Small: gauge only, no sparkline.
       { name: "small-3x3", w: 3, h: 3 },
@@ -278,6 +278,8 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "Targeting/__fixtures__",
     outPath: "renders/targeting-widget",
     modes: [
+      // The kit's tiny form: range and closing rate.
+      { name: "tiny-3x3", w: 3, h: 3 },
       {
         name: "tiny-3x5",
         w: 3,
@@ -904,13 +906,12 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "FuelStatus/__fixtures__",
     outPath: "renders/fuel-status-widget",
     modes: [
-      // rows=3, cols=3: showTotals=false, showHeroDv=true if totalDv set.
-      // No subtitle, no resources, no stages: hero ΔV branch.
+      // The kit's tiny form: ΔV and burn time.
       { name: "tiny-3x3", w: 3, h: 3 },
-      // rows=4, cols=4: showTotals=true; showSubtitle still false (rows<5).
+      // rows=4, cols=4: showSubtitle still false (rows<5).
       // TotalsRow appears, resource list + stage stack still hidden.
       { name: "compact-4x4", w: 4, h: 4 },
-      // rows=7, cols=5: showTotals + showSubtitle + showResourceList all true.
+      // rows=7, cols=5: showSubtitle + showResourceList both true.
       // Stage stack still hidden (rows<10). Resource bars first appear here.
       { name: "medium-5x7", w: 5, h: 7 },
       // defaultSize (8×14): all sections live. Stage stack + resources both on.
@@ -954,8 +955,8 @@ const WIDGETS: WidgetRenderConfig[] = [
     // Activate spends career funds, so the balance (or the statement standing in for it) has to be readable at every size the widget is rendered at.
     mustBeVisible: { selector: "[data-balance-row]" },
     modes: [
-      // tiny bucket (w<5 or h<4): header-only showing just the active count tally; no ScrollArea, no section lists.
-      { name: "tiny-3x3", w: 3, h: 3 },
+      // minSize: the kit's tiny form, the balance over the tally and the standing rate.
+      { name: "tiny-3x4", w: 3, h: 4 },
       // compact normal: full panel with tight vertical room; tests ScrollArea overflow when Active + Available sections both have entries.
       { name: "compact-5x7", w: 5, h: 7 },
       // default registered size: the most common operator view.

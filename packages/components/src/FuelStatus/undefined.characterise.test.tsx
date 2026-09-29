@@ -2,7 +2,7 @@ import { DashboardItemContext } from "@ksp-gonogo/core";
 import { normaliseStage } from "@ksp-gonogo/sitrep-client";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
-import { visibleText } from "@ksp-gonogo/ui-kit/testing";
+import { renderWidget, visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { FuelStatusComponent } from "./index";
@@ -58,17 +58,20 @@ describe("FuelStatus: what undefined means today", () => {
     expect(screen.queryByText("Power")).not.toBeInTheDocument();
     // Stage stack section: a cold topic, so no caption.
     expect(screen.queryByText(/Stages ·/)).not.toBeInTheDocument();
-    // And no placeholder either: the em dash belongs to the small-size branch.
+    // And no placeholder either: the em dash belongs to the tiny form.
     expect(screen.queryByText(NULL_DISPLAY)).not.toBeInTheDocument();
   });
 
-  it("renders an em dash instead, at a size too small for the totals box", async () => {
-    // Same data at 3x3: `showTotals` is false, so the `totalDv === undefined` branch prints a placeholder.
+  it("draws both tiny essentials as the null token at 3x3 before anything arrives", async () => {
     const fixture = makeFixture();
-    const { container } = renderFuel(fixture, { w: 3, h: 3 });
+    const { container } = renderWidget("fuel-status", {
+      w: 3,
+      h: 3,
+      wrapper: fixture.Provider,
+    });
 
-    await waitFor(() => expect(visibleText(container)).toContain("FUEL · ΔV"));
-    expect(screen.getByText(NULL_DISPLAY)).toBeInTheDocument();
+    await waitFor(() => expect(visibleText(container)).toContain("FUEL"));
+    expect(screen.getAllByText(NULL_DISPLAY)).toHaveLength(2);
   });
 
   it("reads a resource with no reported capacity as a resource the vessel does not have", async () => {
