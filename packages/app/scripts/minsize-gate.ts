@@ -24,6 +24,11 @@
  * gate under-reports rather than over-reports, which is the right bias for a
  * shrink-only ratchet.
  *
+ * What it under-reports most is a tiny form, which is a few figures drawn as
+ * large as the tile allows: unfed each is one dash, and a real balance is a
+ * dozen digits. The components render harness audits every tiny form it draws
+ * with its fixture's real figures, the same audit, and fails on what it finds.
+ *
  * ## It proves it can still see
  *
  * `minsize-probe.tsx` registers a widget that is broken in all seven ways the

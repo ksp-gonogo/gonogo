@@ -21,9 +21,14 @@ import {
   type Page,
   webkit,
 } from "playwright";
+import type { MinFitFinding } from "../../uplink-tools/src/render/minFit";
 import { fixtureProfiles, getInstallProfile } from "../src/test/installProfile";
 import { jetbrainsMonoFontFace } from "./jetbrainsMonoFontFace";
 import { type ProbePayload, probePayload } from "./probe/payload";
+import {
+  PLANTED_TINY_MISFIT_FUNDS,
+  PLANTED_TINY_MISFIT_ID,
+} from "./probe/plantedTinyMisfit";
 import type { ScreenProbePayload } from "./probe/screen-entry";
 
 const require = createRequire(import.meta.url);
@@ -240,6 +245,7 @@ export interface ScreenRenderConfig {
  */
 declare global {
   var __renderProbe: ((payload: ProbePayload) => Promise<void>) | undefined;
+  var __auditTinyFit: (() => MinFitFinding[] | null) | undefined;
   var __renderScreen:
     | ((payload: ScreenProbePayload) => Promise<void>)
     | undefined;
@@ -351,6 +357,7 @@ export async function renderWidgets(
 
     await proveOverlapDetectorWorks(page);
     await proveClipDetectorWorks(page);
+    await proveTinyFitAuditWorks(page);
 
     /*
      * CSS.getPlatformFontsForNode is a DevTools Protocol call, so the
@@ -405,6 +412,24 @@ export async function renderWidgets(
           "Bundle a face that covers it there, or draw the text in a glyph " +
           "the bundled faces carry.)",
       );
+    }
+
+    if (findings.tinyMisfits.length > 0) {
+      const message =
+        `${findings.tinyMisfits.length} thing(s) an operator cannot read in a ` +
+        "tiny form drawn with its fixture's real figures:\n  " +
+        findings.tinyMisfits.join("\n  ");
+      if (process.env.PROBE_ALLOW_TINY_MISFIT === "1") {
+        console.warn(`\n[warn] ${message}`);
+      } else {
+        throw new Error(
+          `${message}\n(Set PROBE_ALLOW_TINY_MISFIT=1 to render anyway. The ` +
+            "kit draws the tiny form at the smallest sizes, so a figure that " +
+            "does not fit there has no other size to be read at. Shorten the " +
+            "tiny title or the essential's label, drop an essential, or raise " +
+            "the widget's minSize to a tile the figures fit.)",
+        );
+      }
     }
 
     if (findings.overlaps.length > 0) {
@@ -1628,6 +1653,85 @@ async function proveFontDetectorWorks(
 }
 
 /**
+ * The min-fit audit over the render just mounted, when the kit's tiny form is
+ * what it shows; nothing when it shows the widget's own body.
+ *
+ * The minsize gate audits every tiny form empty, which is the least a body
+ * carries and the least a tiny form carries too, but a tiny form is a few
+ * figures drawn as large as the tile allows, and a figure's width is its
+ * value's. A balance that reads as one dash unfed reads as twelve digits in a
+ * career. The fixtures here carry the real ones.
+ */
+async function auditTinyFit(page: Page): Promise<MinFitFinding[]> {
+  return (await page.evaluate(() => window.__auditTinyFit?.() ?? null)) ?? [];
+}
+
+function describeMisfit(f: MinFitFinding): string {
+  return `${f.kind} ${f.px}px [${f.axis}] "${f.text}"`;
+}
+
+/**
+ * Mount a tiny form that fits its tile empty and cannot hold its real figure,
+ * both ways, and require the audit to pass the first and fail the second.
+ *
+ * The empty half is what makes the fed half mean something: an audit that
+ * called every tiny form cut would pass the plant too.
+ */
+async function proveTinyFitAuditWorks(page: Page): Promise<void> {
+  const mountPlant = async (fixture: Record<string, unknown>) => {
+    await page.evaluate(
+      (p) => window.__renderProbe?.(p),
+      probePayload({
+        widgetId: PLANTED_TINY_MISFIT_ID,
+        fixture,
+        size: { w: 2, h: 3 },
+      }),
+    );
+    return page.evaluate(() => window.__auditTinyFit?.() ?? null);
+  };
+  const unfed = await mountPlant({});
+  const fed = await mountPlant({
+    _stream: {
+      pinnedUt: 10,
+      emits: [
+        {
+          channel: "career.status",
+          value: {
+            economy: { funds: PLANTED_TINY_MISFIT_FUNDS },
+            contracts: null,
+            strategies: null,
+            tech: null,
+          },
+        },
+      ],
+    },
+  });
+  if (unfed === null || fed === null) {
+    throw new Error(
+      "The tiny fit audit is BLIND: the planted tiny widget did not draw the " +
+        "kit's tiny form at 2x3, so no render in this run can be recognised as " +
+        "one and every tiny form goes unaudited.",
+    );
+  }
+  if (unfed.length > 0) {
+    throw new Error(
+      "The tiny fit audit reported the planted tiny widget with no data, where " +
+        "it draws one dash in a tile with room for it, so its verdict on a real " +
+        "tiny form cannot be trusted either:\n  " +
+        unfed.map(describeMisfit).join("\n  "),
+    );
+  }
+  if (!fed.some((f) => f.axis.includes("x"))) {
+    throw new Error(
+      "The tiny fit audit is BLIND: the planted tiny widget was fed a " +
+        "fifteen-digit balance in a 2x3 tile and the audit did not report it " +
+        "running out of width, so a clean run proves nothing about the " +
+        `widgets. What it did report: ${fed.map(describeMisfit).join("; ") || "nothing"}`,
+    );
+  }
+}
+
+/**
  * Everything a run collects across every widget and reports once at the end.
  *
  * Collected rather than thrown on the spot, and `mounts` is why that matters
@@ -1656,6 +1760,8 @@ interface RenderFindings {
   clipSurvey: string[];
   /** Text Chromium actually drew in a font other than JetBrains Mono. */
   fontFallbacks: string[];
+  /** What cannot be read in the kit's tiny form, measured fed rather than empty. */
+  tinyMisfits: string[];
 }
 
 function noFindings(): RenderFindings {
@@ -1666,6 +1772,7 @@ function noFindings(): RenderFindings {
     clipSurvey: [],
     fontFallbacks: [],
     mounts: [],
+    tinyMisfits: [],
   };
 }
 
@@ -1777,6 +1884,12 @@ async function renderOneWidget(
             (err instanceof Error ? err.message.split("\n")[0] : String(err)),
         );
         continue;
+      }
+      // Before any full-content growth, which measures a tile nobody runs.
+      for (const f of await auditTinyFit(page)) {
+        findings.tinyMisfits.push(
+          `${config.widgetId} @ ${mode.name} (${sceneLabel}): ${describeMisfit(f)}`,
+        );
       }
       // Full-content capture (review path): grow `#root` until nothing is clipped, so the PNG shows the WHOLE widget, not a tile-height crop.
       /* Content can hide in three places, and the third was missing for as

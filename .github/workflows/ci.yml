@@ -208,6 +208,11 @@ jobs:
       # the detector plants a known-bad layout on every run and throws if it does
       # not catch it, so a green here is a green from an instrument that has just
       # demonstrated it can fail.
+      #
+      # The same renders carry the min-fit audit over every tiny form, fed with
+      # the fixture's real figures, which the minsize gate's empty renders cannot
+      # see overflow. A planted tiny widget must fit empty and fail fed at 2x3,
+      # or the run fails as blind.
       - run: pnpm --filter @ksp-gonogo/components overlap-gate
 
       # Font-fallback gate: does any widget draw a glyph in something other
