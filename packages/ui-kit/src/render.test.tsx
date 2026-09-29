@@ -1,0 +1,80 @@
+import { useCommand } from "@ksp-gonogo/sitrep-sdk/spine";
+import {
+  fireEvent,
+  screen,
+  render as sdkRender,
+  setupStreamFixture,
+} from "@ksp-gonogo/sitrep-sdk/testing";
+import { describe, expect, it } from "vitest";
+import { render, renderHook } from "./testing";
+
+/** A widget-shaped dispatch, the same command id the sdk's own rail tests use. */
+function Unlock({ rail }: { rail?: false }) {
+  const cmd = useCommand("career.tech.unlock", rail === false ? { rail } : {});
+  return (
+    <button type="button" onClick={() => void cmd.send({ techId: "n" })}>
+      unlock
+    </button>
+  );
+}
+
+describe("@ksp-gonogo/ui-kit/testing render/renderHook", () => {
+  it("mounts a command rail, so a dispatched command reaches the transport with no throw", () => {
+    const stream = setupStreamFixture();
+    render(
+      <stream.Provider>
+        <Unlock />
+      </stream.Provider>,
+    );
+    expect(() => {
+      fireEvent.click(screen.getByText("unlock"));
+    }).not.toThrow();
+    expect(stream.transport.sentCommands).toHaveLength(1);
+    expect(stream.transport.sentCommands[0].command).toBe("career.tech.unlock");
+  });
+
+  it("is what an Uplink test needs: the bare sdk render mounts no rail and throws on the same dispatch", () => {
+    const stream = setupStreamFixture();
+    sdkRender(
+      <stream.Provider>
+        <Unlock />
+      </stream.Provider>,
+    );
+    expect(() => {
+      fireEvent.click(screen.getByText("unlock"));
+    }).toThrow(/no command rail/);
+  });
+
+  it("renderHook mounts the same rail, so a hook-level dispatch reaches the transport", () => {
+    const stream = setupStreamFixture();
+    const { result } = renderHook(() => useCommand("career.tech.unlock"), {
+      wrapper: stream.Provider,
+    });
+    expect(() => {
+      result.current.send({ techId: "n" });
+    }).not.toThrow();
+    expect(stream.transport.sentCommands).toHaveLength(1);
+  });
+
+  it("composes with a caller's own wrapper rather than replacing it", () => {
+    const stream = setupStreamFixture();
+    render(<Unlock />, { wrapper: stream.Provider });
+    expect(() => {
+      fireEvent.click(screen.getByText("unlock"));
+    }).not.toThrow();
+    expect(stream.transport.sentCommands).toHaveLength(1);
+  });
+
+  it("still keeps a rail: false handle off the rail, same as the sdk's bare render", () => {
+    const stream = setupStreamFixture();
+    render(
+      <stream.Provider>
+        <Unlock rail={false} />
+      </stream.Provider>,
+    );
+    expect(() => {
+      fireEvent.click(screen.getByText("unlock"));
+    }).not.toThrow();
+    expect(stream.transport.sentCommands).toHaveLength(1);
+  });
+});
