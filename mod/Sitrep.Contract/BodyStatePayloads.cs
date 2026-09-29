@@ -5,24 +5,22 @@ using Reinforced.Typings.Attributes;
 
 namespace Sitrep.Contract
 {
-    /// <summary> Args for <c>system.bodies.statesAt</c>: where is this body at
-    /// each of these instants, from whichever propagation provider the install
-    /// elected.
+    /// <summary>
+    /// Args for <c>system.bodies.statesAt</c>: where one body is at each of a
+    /// list of instants, from the propagation provider elected on this install.
     ///
-    /// <para><b>Why a command and not a channel.</b> The instants are the
-    /// caller's, not the game's: a transfer search asks about departure and
-    /// arrival times nobody has reached and may never reach. Nothing publishes
-    /// a position for an instant nobody has asked about, so this is a query,
-    /// the same shape <c>vessel.trajectory.forVantage</c> uses for the same
-    /// reason.</para>
+    /// <para>A command rather than a channel because the instants are the
+    /// caller's: a transfer search asks about departure and arrival times
+    /// nobody has reached, and nothing publishes a position for an instant
+    /// nobody asked about. <c>vessel.trajectory.forVantage</c> is a query for
+    /// the same reason.</para>
     ///
-    /// <para><b>No vantage field, for the reason the trajectory query
-    /// gives:</b> a client that could name one could name somebody else's and
-    /// be shown what they can see. It is resolved where the command enters
-    /// instead.</para>
+    /// <para>There is no vantage field: the vantage is resolved from the
+    /// connection the command arrives on, so a client cannot name somebody
+    /// else's.</para>
     ///
-    /// <para><b>A centre body IS named, and has to be.</b> The reply is
-    /// expressed relative to whatever body you name, and there is no default: a
+    /// <para><b>A centre body must be named.</b> The reply is expressed
+    /// relative to whatever body you name, and there is no default: a
     /// transfer search wants both endpoints about the parent they share, and
     /// saying which body that is also lets one request serve a moon system as
     /// readily as a solar one.
@@ -33,19 +31,15 @@ namespace Sitrep.Contract
     /// so a convenience overload would have no parent on the target to resolve.
     /// </internal></para>
     ///
-    /// <para><b>The bound is ASKED FOR, never inherited.</b> Every provider
-    /// computes a body from the same analytical model, so what a caller
-    /// actually has to state is whether it will read that model past the span
-    /// anyone vouches for. A transfer search will, on purpose. So <see
-    /// cref="Certification"/> is part of the question rather than a property of
-    /// whoever computes it, and a request that does not name one is refused: a
-    /// planning grid that silently acquired a bound when a default moved
-    /// underneath it would look like the transfer changed.</para>
+    /// <para><b>The bound is asked for, never inherited.</b> Every provider
+    /// computes a body from the same analytical model, so the caller states
+    /// whether it will read that model past the span anyone vouches for, in
+    /// <see cref="Certification"/>. A request that does not name one is
+    /// refused.</para>
     ///
-    /// <para>No horizon applies to the analytical result, and that follows from
-    /// what a horizon IS: an ephemeris horizon bounds how long osculating
-    /// elements still stand in for an integrated path, and a conic search is
-    /// not claiming to be that path.</para>
+    /// <para>No ephemeris horizon applies to the result: a horizon bounds how
+    /// long osculating elements stand in for an integrated path, and this is a
+    /// conic (two-body) solve, not a claim to be that path.</para>
     /// </summary>
     /// <category>Command arguments</category>
     [SitrepContract]
@@ -63,14 +57,14 @@ namespace Sitrep.Contract
         public int BodyIndex { get; set; }
 
         /// <summary>
-        /// The body the answer is expressed relative to, by the same index. For a
+        /// The body the reply is expressed relative to, by the same index. For a
         /// transfer search this is the parent both endpoints orbit.
         /// </summary>
         [SitrepUnit(Units.Id)]
         public int CentreBodyIndex { get; set; }
 
         /// <summary>
-        /// The instants to solve for, in UT seconds. Answered in the order given,
+        /// The instants to solve for, in UT seconds. Returned in the order given,
         /// so a caller can zip the reply against its own grid without matching on
         /// a time it would have to compare as a float.
         /// </summary>
@@ -78,17 +72,16 @@ namespace Sitrep.Contract
         public List<double> Uts { get; set; } = new();
 
         /// <summary>
-        /// Whether this caller accepts an answer past the span the provider
-        /// vouches for. A transfer search asks
-        /// <see cref="PropagationCertification.Unbounded"/>, deliberately: it
-        /// is a two-body question about instants nobody has reached, and a
-        /// bound derived from how long osculating elements stand in for an
-        /// integrated path says nothing about it.
+        /// Whether this caller accepts a result past the span the provider
+        /// vouches for. Only <see cref="PropagationCertification.Unbounded"/>
+        /// is accepted: a transfer search is a two-body question about instants
+        /// nobody has reached, and a bound on how long osculating elements stand
+        /// in for an integrated path says nothing about it.
         ///
         /// <para><see cref="PropagationCertification.Unspecified"/> is refused
-        /// rather than defaulted, so a caller that says nothing is told to
-        /// choose instead of silently inheriting whatever this install would
-        /// have produced.</para>
+        /// rather than defaulted, and so is
+        /// <see cref="PropagationCertification.CertifiedOnly"/>, because the
+        /// request carries instants with no origin to measure a span from.</para>
         /// <internal>
         /// <see cref="PropagationCertification.CertifiedOnly"/> is refused too,
         /// and not because it is unwanted: certification is a property of a
@@ -104,12 +97,13 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
-    /// The reply, or why there is not one.
+    /// The reply to <c>system.bodies.statesAt</c>: the solved states, or why
+    /// there are none.
     ///
-    /// <para><see cref="Solved"/> is the discriminator and is never inferred
-    /// from an empty list: a body the provider could not place and a caller
-    /// that asked about no instants are different facts, and a search that read
-    /// them the same would draw an empty plot for an install problem.</para>
+    /// <para>Branch on <see cref="Solved"/>, never on an empty list: a body the
+    /// provider could not place and a request that named no instants are
+    /// different facts, and reading them the same draws an empty plot for an
+    /// install problem.</para>
     /// </summary>
     /// <category>Orbits and trajectories</category>
     [SitrepContract]
@@ -118,28 +112,30 @@ namespace Sitrep.Contract
 #endif
     public class BodyStatesReply
     {
+        /// <summary>True when the provider solved every requested instant and
+        /// <see cref="States"/> holds them; false when the request was refused,
+        /// with the reason in <see cref="Refusal"/>.</summary>
         [SitrepUnit(Units.Flag)]
         public bool Solved { get; set; }
 
         /// <summary>One state per requested instant, in the order
-        /// asked.</summary>
+        /// asked. Empty when <see cref="Solved"/> is false.</summary>
         public List<BodyState> States { get; set; } = new();
 
-        /// <summary> Which provider answered, so a reading that looks wrong can
-        /// be attributed without guessing at the install.
+        /// <summary>Id of the propagation provider that solved the request, so a
+        /// reading that looks wrong can be attributed to it. Null on a refusal.
         /// </summary>
         [SitrepUnit(Units.Id)]
         public string? ProviderId { get; set; }
 
-        /// <summary>Why there is no answer, when <see cref="Solved"/> is
-        /// false.</summary>
+        /// <summary>Why the request was refused, in words a reader can act on,
+        /// when <see cref="Solved"/> is false; null when it is true.</summary>
         [SitrepUnit(Units.Text)]
         public string? Refusal { get; set; }
 
         /// <summary>
-        /// A refusal, said in words a reader can act on. The states list stays
-        /// empty: an unsolved reply with points in it would be read as a partial
-        /// answer, and there is no such thing here.
+        /// A refusal carrying <paramref name="why"/>, with <see cref="States"/>
+        /// empty: there is no partial reply.
         /// </summary>
         public static BodyStatesReply Refused(string why) =>
             new BodyStatesReply { Solved = false, Refusal = why };
@@ -147,11 +143,10 @@ namespace Sitrep.Contract
 
     /// <summary>
     /// One body's position and velocity at one instant, relative to the request's
-    /// centre body.
+    /// centre body, in a non-rotating, Z-up inertial frame centred on that body.
     ///
     /// <para>Flat keys rather than nested vectors, matching
-    /// <see cref="TrajectoryPoint"/>: these arrive in bulk and the wire cost of a
-    /// nested object per point is paid on every cell of every grid.</para>
+    /// <see cref="TrajectoryPoint"/>, because these arrive in bulk.</para>
     /// </summary>
     /// <category>Orbits and trajectories</category>
     [SitrepContract]
@@ -164,21 +159,27 @@ namespace Sitrep.Contract
         [SitrepUnit(Units.UniversalTime)]
         public double Ut { get; set; }
 
+        /// <summary>Position along the frame's X axis, metres from the centre body.</summary>
         [SitrepUnit(Units.Metres)]
         public double X { get; set; }
 
+        /// <summary>Position along the frame's Y axis, metres from the centre body.</summary>
         [SitrepUnit(Units.Metres)]
         public double Y { get; set; }
 
+        /// <summary>Position along the frame's Z (up) axis, metres from the centre body.</summary>
         [SitrepUnit(Units.Metres)]
         public double Z { get; set; }
 
+        /// <summary>Velocity along the frame's X axis, m/s, relative to the centre body.</summary>
         [SitrepUnit(Units.MetresPerSecond)]
         public double Vx { get; set; }
 
+        /// <summary>Velocity along the frame's Y axis, m/s, relative to the centre body.</summary>
         [SitrepUnit(Units.MetresPerSecond)]
         public double Vy { get; set; }
 
+        /// <summary>Velocity along the frame's Z (up) axis, m/s, relative to the centre body.</summary>
         [SitrepUnit(Units.MetresPerSecond)]
         public double Vz { get; set; }
     }

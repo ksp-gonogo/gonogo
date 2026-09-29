@@ -25,6 +25,7 @@ namespace Sitrep.Contract
 #endif
     public class ComposedBurn
     {
+        /// <summary>The instant the burn starts, as a universal time.</summary>
         [SitrepUnit(Units.UniversalTime)]
         public double IgnitionUt { get; set; }
 
@@ -51,9 +52,19 @@ namespace Sitrep.Contract
         [SitrepUnit(Units.MetresPerSecond)]
         public double DvRadial { get; set; }
 
+        /// <summary>
+        /// The basis's second component: normal under either basis. See
+        /// <see cref="DvRadial"/>.
+        /// </summary>
         [SitrepUnit(Units.MetresPerSecond)]
         public double DvNormal { get; set; }
 
+        /// <summary>
+        /// The basis's third component: prograde under
+        /// <see cref="ManeuverFrame.RadialNormalPrograde"/>, binormal under
+        /// <see cref="ManeuverFrame.TangentNormalBinormal"/>. See
+        /// <see cref="DvRadial"/>.
+        /// </summary>
         [SitrepUnit(Units.MetresPerSecond)]
         public double DvPrograde { get; set; }
 
@@ -77,6 +88,10 @@ namespace Sitrep.Contract
         [SitrepUnit(Units.Kilonewtons)]
         public double? Thrust { get; set; }
 
+        /// <summary>
+        /// The specific impulse of the engine to burn with. Set together with
+        /// <see cref="Thrust"/>; both absent leaves the plan's engine as it is.
+        /// </summary>
         [SitrepUnit(Units.SpecificImpulse)]
         public double? SpecificImpulse { get; set; }
     }
@@ -105,6 +120,7 @@ namespace Sitrep.Contract
     [SitrepCommand("vessel.maneuver.plan.send")]
     public class SendManeuverPlanArgs
     {
+        /// <summary>The craft the plan is for: KSP's <c>Vessel.id</c> GUID, as a string.</summary>
         [SitrepUnit(Units.Id)]
         public string? VesselId { get; set; }
 
@@ -126,7 +142,7 @@ namespace Sitrep.Contract
         /// The instant the state used for planning was actually TRUE, at or before
         /// <see cref="ComposedAtViewUt"/>.
         ///
-        /// <para>Both travel because they answer different questions: one is when
+        /// <para>Both travel because they record different things: one is when
         /// the operator decided, the other is how old their information already
         /// was. Together they make the divergence between what was planned against
         /// and what received the plan a measurement rather than a guess.</para>

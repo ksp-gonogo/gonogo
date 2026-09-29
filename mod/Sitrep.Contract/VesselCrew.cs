@@ -6,14 +6,14 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// One crew member in the <c>vessel.crew</c> payload's <c>crew</c> roster.
-/// Typing-only mirror of the entry <c>Sitrep.Host.VesselViewProvider</c> reads
-/// out of the snapshot's <c>crew</c> group: every field nullable because each
-/// is read through <c>SnapshotDict.Get*</c>, which yields <c>null</c> (not a
-/// sentinel) on absence. Sourced from KSP's <c>ProtoCrewMember</c>:
-/// <c>name</c>/<c>trait</c>/<c>experienceLevel</c> plus the <c>type</c>
-/// (<c>KerbalType</c>) and <c>rosterStatus</c> (<c>RosterStatus</c>) enums,
-/// captured as their string names.
+/// One crew member aboard the active vessel, in <see cref="VesselCrew.Crew"/>,
+/// from KSP's <c>ProtoCrewMember</c>. Every field is nullable: an absent value
+/// is null, never a sentinel.
+/// <internal>
+/// Typing-only mirror of the entry Sitrep.Host.VesselViewProvider reads out of
+/// the snapshot's crew group through SnapshotDict.Get*, which yields null on
+/// absence.
+/// </internal>
 /// </summary>
 /// <category>Crew</category>
 [SitrepContract]
@@ -22,18 +22,23 @@ namespace Sitrep.Contract;
 #endif
 public class CrewMember
 {
+    /// <summary>The kerbal's name (<c>ProtoCrewMember.name</c>), which is also their roster key.</summary>
     [SitrepUnit(Units.Text)]
     public string? Name { get; set; }
 
+    /// <summary>The kerbal's career trait (<c>ProtoCrewMember.trait</c>), e.g. <c>"Pilot"</c>, <c>"Engineer"</c>, <c>"Scientist"</c> or <c>"Tourist"</c>.</summary>
     [SitrepUnit(Units.Text)]
     public string? Trait { get; set; }
 
+    /// <summary>The kerbal's experience level (<c>ProtoCrewMember.experienceLevel</c>), 0 to 5 in stock.</summary>
     [SitrepUnit(Units.Count)]
     public int? ExperienceLevel { get; set; }
 
+    /// <summary>The kerbal's <c>KerbalType</c> member name: <c>"Crew"</c>, <c>"Tourist"</c>, <c>"Applicant"</c> or <c>"Unowned"</c> in stock.</summary>
     [SitrepUnit(Units.Id)]
     public string? Type { get; set; }
 
+    /// <summary>The kerbal's <c>RosterStatus</c> member name: <c>"Available"</c>, <c>"Assigned"</c>, <c>"Dead"</c> or <c>"Missing"</c> in stock. A kerbal aboard a vessel is normally <c>"Assigned"</c>.</summary>
     [SitrepUnit(Units.Text)]
     public string? RosterStatus { get; set; }
 
@@ -41,12 +46,10 @@ public class CrewMember
     /// What this kerbal is personally carrying, from their own
     /// <c>ModuleInventoryPart</c>.
     ///
-    /// <para>Here rather than on <c>vessel.inventory</c> because it answers a
-    /// different question. That channel is SUPPLY, what is aboard and where.
-    /// This is the ACTOR: whether THIS kerbal, whose trait and experience level
-    /// sit two fields up, can do a job right now without anything being
-    /// fetched first. A consumer deciding who should perform a task reads one
-    /// payload, not a join.</para>
+    /// <para>Distinct from <c>vessel.inventory</c>, which is what is aboard and
+    /// where. This is what this kerbal, with the trait and experience level
+    /// above, has to hand for a job right now without anything being fetched
+    /// first.</para>
     ///
     /// <para>Null when the crew source could not read inventories at all,
     /// which is not the same as an empty list, meaning they are carrying

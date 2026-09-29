@@ -5,90 +5,158 @@ using System.Linq;
 namespace Sitrep.Contract
 {
     /// <summary>
-    /// C# port of <c>mod/sitrep-kernel/src/capability.ts</c>'s provider-side
-    /// version constraints. Mirrors the TS <c>ProviderVersions</c> interface.
+    /// The version constraints a provider declares, checked by
+    /// <see cref="Kernel.Resolve"/> before any provider is selected. Versions are
+    /// plain <c>"x.y.z"</c> strings compared numerically; a missing trailing
+    /// component counts as <c>0</c>.
+    /// <internal>C# port of <c>mod/sitrep-kernel/src/capability.ts</c>'s
+    /// <c>ProviderVersions</c> interface.</internal>
     /// </summary>
+    /// <category>Host and Kernel</category>
     public sealed class ProviderVersions
     {
+        /// <summary>The provider's own version. Informational: resolution does not gate on it.</summary>
         public string Self { get; set; } = "";
+
+        /// <summary>
+        /// The lowest kernel version this provider runs on, inclusive. A provider
+        /// whose minimum exceeds <see cref="ResolveOptions.KernelVersion"/> is
+        /// excluded with a <c>"version-excluded"</c> notice. Null means no minimum.
+        /// </summary>
         public string? MinKernelVersion { get; set; }
+
+        /// <summary>
+        /// The mod versions this provider supports (minimum inclusive, maximum
+        /// exclusive). The provider is excluded when
+        /// <see cref="ResolveOptions.ModVersion"/> falls outside the range, and
+        /// also when the resolution carries no mod version at all. Null means no
+        /// constraint.
+        /// </summary>
         public VersionRange? TargetModVersionRange { get; set; }
     }
 
     /// <summary>
-    /// C# port of <c>mod/sitrep-kernel/src/capability.ts</c>'s
-    /// <c>CapabilityDescriptor</c>. A "capability" is a named extension point
-    /// (e.g. "comms", "sensors"). An <see cref="Exclusive"/> capability
-    /// activates at most one provider (falling back to <see cref="Vanilla"/>
-    /// when no provider is registered); a shared (non-exclusive) capability
+    /// A capability: a named extension point (for example <c>"comms"</c>) that
+    /// providers register against. An <see cref="Exclusive"/> capability
+    /// activates at most one provider, falling back to <see cref="Vanilla"/>
+    /// when none is selected or able to run; a shared (non-exclusive) capability
     /// activates every registered provider.
+    /// <internal>C# port of <c>mod/sitrep-kernel/src/capability.ts</c>'s
+    /// <c>CapabilityDescriptor</c>.</internal>
     /// </summary>
+    /// <category>Host and Kernel</category>
     public sealed class CapabilityDescriptor
     {
+        /// <summary>
+        /// The capability's id, the key providers register against and
+        /// <see cref="Kernel.Query{T}"/> looks up. Registering a second descriptor
+        /// with the same id replaces the first.
+        /// </summary>
         public string Id { get; set; } = "";
 
         /// <summary>One active provider (exclusive) vs many active providers (shared).</summary>
         public bool Exclusive { get; set; }
 
         /// <summary>
-        /// A capability the spine cannot run without: unsatisfiable (no
-        /// provider, no vanilla) halts <see cref="Kernel.Resolve"/>.
+        /// A capability the telemetry spine cannot run without. When no provider
+        /// is able to serve it and it has no vanilla, <see cref="Kernel.Resolve"/>
+        /// throws <see cref="SpineCapabilityUnsatisfiedError"/>.
         /// </summary>
         public bool SpineCritical { get; set; }
 
-        /// <summary>Always-present, lowest-priority fallback factory.</summary>
+        /// <summary>
+        /// The always-present, lowest-priority fallback factory, run when no
+        /// provider is selected or every selected provider failed or declined.
+        /// Null means the capability has no fallback.
+        /// </summary>
         public Func<ProviderContext, object?>? Vanilla { get; set; }
     }
 
     /// <summary>
-    /// C# port of <c>mod/sitrep-kernel/src/capability.ts</c>'s
-    /// <c>ProviderRegistration</c>.
+    /// One provider's claim on a capability, passed to
+    /// <see cref="Kernel.RegisterProvider"/>.
+    /// <internal>C# port of <c>mod/sitrep-kernel/src/capability.ts</c>'s
+    /// <c>ProviderRegistration</c>.</internal>
     /// </summary>
+    /// <category>Host and Kernel</category>
     public sealed class ProviderRegistration
     {
+        /// <summary>The id of the capability this provider serves. It must already be registered.</summary>
         public string Capability { get; set; } = "";
+
+        /// <summary>
+        /// The provider's id, unique within its capability. Resolution notices
+        /// name the provider by it, and a preference in
+        /// <see cref="ResolveOptions.Preferences"/> selects the provider by it.
+        /// </summary>
         public string Id { get; set; } = "";
 
-        /// <summary>Exclusive-conflict tie-breaking.</summary>
+        /// <summary>
+        /// Marks the provider as the default for an exclusive capability. With no
+        /// preference set, a single default wins over priority; two or more
+        /// defaults are an ambiguous election.
+        /// </summary>
         public bool IsDefault { get; set; }
 
-        /// <summary>Exclusive-conflict tie-breaking. Unset providers compare as 0.</summary>
+        /// <summary>
+        /// Tie-break for an exclusive capability when neither a preference nor a
+        /// single default decides it: the unique highest priority wins. Unset
+        /// providers compare as <c>0</c>.
+        /// </summary>
         public double Priority { get; set; }
 
-        /// <summary>Capabilities this provider's factory depends on.</summary>
+        /// <summary>
+        /// Ids of the capabilities this provider's factory depends on. They
+        /// activate before this one, so the factory can
+        /// <see cref="ProviderContext.Query{T}"/> them.
+        /// </summary>
         public IReadOnlyList<string>? Deps { get; set; }
 
+        /// <summary>The provider's version constraints. Null means always compatible.</summary>
         public ProviderVersions? Versions { get; set; }
 
         /// <summary>
         /// Whether this provider can serve the capability on THIS install, asked
         /// at resolve time before any winner is picked.
         ///
-        /// <para>A provider that answers false withdraws: it is not a candidate,
-        /// so for an exclusive capability the runner-up wins outright rather than
-        /// the capability falling through to vanilla. Relative priority therefore
+        /// <para>A provider that returns false withdraws with a
+        /// <c>"provider-declined"</c> notice: it is not a candidate, so for an
+        /// exclusive capability the runner-up wins outright rather than the
+        /// capability falling through to vanilla. Relative priority therefore
         /// cannot make a provider that models nothing beat one that does.</para>
         ///
-        /// <para>Null means "always able", which is the right default: a provider
-        /// that registered at all is normally claiming it can do the job.</para>
+        /// <para>Null means always able.</para>
         /// </summary>
         public Func<bool>? CanServe { get; set; }
 
+        /// <summary>
+        /// Builds the provider's instance when it is selected. Returning null
+        /// declines (a <c>"provider-declined"</c> notice); throwing records a
+        /// <c>"factory-failed"</c> notice. Either way the provider contributes no
+        /// instance, and an exclusive capability left with none falls back to its
+        /// vanilla.
+        /// </summary>
         public Func<ProviderContext, object?> Factory { get; set; } = null!;
     }
 
     /// <summary>
-    /// C# port of <c>mod/sitrep-kernel/src/capability.ts</c>'s
-    /// <c>ProviderContext</c>: passed to every factory (provider or
-    /// vanilla) when it runs.
+    /// Passed to every factory, provider or vanilla, when it runs.
+    /// <internal>C# port of <c>mod/sitrep-kernel/src/capability.ts</c>'s
+    /// <c>ProviderContext</c>.</internal>
     /// </summary>
+    /// <category>Host and Kernel</category>
     public sealed class ProviderContext
     {
+        /// <summary>The kernel version of the running resolution, from <see cref="ResolveOptions.KernelVersion"/>.</summary>
         public string KernelVersion { get; }
 
         private readonly Func<string, object?> _query;
         private readonly Func<string, object?> _vanilla;
 
+        /// <summary>Builds a context. The kernel constructs one per resolution.</summary>
+        /// <param name="kernelVersion">The value of <see cref="KernelVersion"/>.</param>
+        /// <param name="query">Returns a capability's single active instance, for <see cref="Query{T}"/>.</param>
+        /// <param name="vanilla">Returns a capability's vanilla instance, for <see cref="Vanilla{T}"/>.</param>
         public ProviderContext(
             string kernelVersion,
             Func<string, object?> query,
@@ -99,7 +167,12 @@ namespace Sitrep.Contract
             _vanilla = vanilla;
         }
 
-        /// <summary>Resolve another (already-active) capability's single active instance.</summary>
+        /// <summary>
+        /// Returns another, already-active capability's single active instance.
+        /// Throws when the capability is unknown or does not have exactly one
+        /// active instance. Declare the capability in
+        /// <see cref="ProviderRegistration.Deps"/> so it activates first.
+        /// </summary>
         public T Query<T>(string capability)
         {
             return (T)_query(capability)!;
@@ -109,21 +182,17 @@ namespace Sitrep.Contract
         /// The capability's VANILLA instance, whether or not the vanilla won the
         /// election, and including the election this factory is being run for.
         ///
-        /// <para><b>Why <see cref="Query{T}"/> cannot serve this.</b> Query
-        /// answers with whatever is ACTIVE, so a provider that has just won
-        /// <c>propagation</c> asking for <c>propagation</c> gets either nothing
-        /// (its own capability's instances are not published until its factory
-        /// returns) or, after resolution, itself. There was no way at all to
-        /// reach the implementation it displaced.</para>
+        /// <para><see cref="Query{T}"/> cannot reach it: that returns whatever is
+        /// active, so a provider that has just won <c>propagation</c> asking for
+        /// <c>propagation</c> gets either nothing (its own capability's instances
+        /// are not published until its factory returns) or, after resolution,
+        /// itself.</para>
         ///
-        /// <para><b>Why a provider would want one.</b> Displacing an
-        /// implementation is not the same as having no further use for it. The
-        /// transfer-window search is a patched-conic tool BY DESIGN, because that
-        /// is what mission design is; a provider that models n-body still needs
-        /// conic answers to drive it, and the alternative to reaching the vanilla
-        /// is every such provider carrying its own second copy of two-body
-        /// motion. Two copies of the two-body maths is exactly what the seam was
-        /// drawn to prevent.</para>
+        /// <para>A provider that displaces an implementation may still need it.
+        /// The transfer-window search is patched-conic by design, so a provider
+        /// that models n-body still needs conic results to drive it, and can
+        /// take them from the vanilla rather than carrying its own copy of
+        /// two-body motion.</para>
         ///
         /// <para>One instance per capability per resolution, shared: two
         /// providers asking, and the fallback path itself, all get the same
@@ -136,33 +205,68 @@ namespace Sitrep.Contract
         }
     }
 
-    /// <summary>C# port of <c>mod/sitrep-kernel/src/registry.ts</c>'s <c>ResolveOptions</c>.</summary>
+    /// <summary>
+    /// The inputs to one <see cref="Kernel.Resolve"/>.
+    /// <internal>C# port of <c>mod/sitrep-kernel/src/registry.ts</c>'s
+    /// <c>ResolveOptions</c>.</internal>
+    /// </summary>
+    /// <category>Host and Kernel</category>
     public sealed class ResolveOptions
     {
+        /// <summary>
+        /// The running kernel's version, checked against each provider's
+        /// <see cref="ProviderVersions.MinKernelVersion"/>. The mod passes the
+        /// contract version as <c>"Major.Minor.0"</c>.
+        /// <internal>Set by Sitrep.Host.ChannelEngine.ResolveCapabilities from
+        /// <see cref="ContractVersion"/>.</internal>
+        /// </summary>
         public string KernelVersion { get; set; } = "";
+
+        /// <summary>
+        /// The running mod's version, checked against each provider's
+        /// <see cref="ProviderVersions.TargetModVersionRange"/>. When null, any
+        /// provider that declares a mod version range is excluded.
+        /// <internal>The mod's own resolution leaves this null.</internal>
+        /// </summary>
         public string? ModVersion { get; set; }
+
+        /// <summary>
+        /// Preferred provider per exclusive capability: capability id to provider
+        /// id. A preference naming a registered provider wins that election
+        /// outright; one naming no registered provider is ignored. Null means no
+        /// preferences.
+        /// </summary>
         public IReadOnlyDictionary<string, string>? Preferences { get; set; }
     }
 
     /// <summary>
-    /// C# port of <c>mod/sitrep-kernel/src/registry.ts</c>'s
-    /// <c>ResolutionNotice</c>. <see cref="Kind"/> is one of:
-    /// "superseded" (exclusive-conflict resolution), "version-excluded"
-    /// (version gating), "vanilla-fallback" (no provider survived
-    /// selection, used the capability's vanilla factory instead),
-    /// "factory-failed" (a selected provider threw during activation and
-    /// contributes no instance), or "provider-declined" (a provider withdrew
-    /// through <see cref="ProviderRegistration.CanServe"/>, or its factory
-    /// returned null, so it never became a candidate), "ambiguous" (an
-    /// exclusive election tied with nothing to break the tie; one notice per
-    /// tied provider, and the capability is left unresolved), or
-    /// "selection-failed" (selection threw for any other reason; the
-    /// capability is left unresolved).
+    /// One event from a <see cref="Kernel.Resolve"/>: a provider excluded,
+    /// superseded, failed or declined, or a capability that fell back or was
+    /// left unresolved.
+    /// <internal>C# port of <c>mod/sitrep-kernel/src/registry.ts</c>'s
+    /// <c>ResolutionNotice</c>.</internal>
     /// </summary>
+    /// <category>Host and Kernel</category>
     public sealed class ResolutionNotice
     {
+        /// <summary>The id of the capability the notice concerns.</summary>
         public string Capability { get; set; } = "";
+
+        /// <summary>
+        /// What happened. One of:
+        /// <list type="bullet">
+        /// <item><c>"superseded"</c>: the provider lost an exclusive election.</item>
+        /// <item><c>"version-excluded"</c>: the provider failed its version constraints.</item>
+        /// <item><c>"provider-declined"</c>: the provider withdrew through <see cref="ProviderRegistration.CanServe"/>, or its factory returned null.</item>
+        /// <item><c>"factory-failed"</c>: the selected provider's factory threw, so it contributes no instance.</item>
+        /// <item><c>"vanilla-fallback"</c>: no provider was selected or able to run, and the capability's vanilla was activated.</item>
+        /// <item><c>"ambiguous"</c>: an exclusive election tied with nothing to break the tie. One notice per tied provider; the capability is left unresolved, with no vanilla.</item>
+        /// <item><c>"selection-failed"</c>: selection threw for any other reason; the capability is left unresolved.</item>
+        /// </list>
+        /// </summary>
         public string Kind { get; set; } = "";
+
+        /// <summary>A human-readable description of the event, for logs. Do not parse it; branch on <see cref="Kind"/> and <see cref="ProviderId"/>.</summary>
         public string Detail { get; set; } = "";
 
         /// <summary>
@@ -173,65 +277,61 @@ namespace Sitrep.Contract
         /// "selection-failed", which is about the capability rather than the
         /// conduct of one provider.
         ///
-        /// <para>A field rather than something a reader digs back out of
-        /// <see cref="Detail"/>: a consumer that sniffs a prose string is one
-        /// rewording away from silently matching nothing. The reliability core
-        /// uplink needs this to say WHICH provider switched itself off, which
-        /// is the whole difference between "installed and not modelling this
-        /// save" and "nothing installed that could model it".</para>
+        /// <para>This is what tells "installed and not modelling this save"
+        /// (a named provider declined) apart from "nothing installed that could
+        /// model it".</para>
         /// </summary>
         public string? ProviderId { get; set; }
     }
 
     /// <summary>Result of <see cref="Kernel.Resolve"/>.</summary>
+    /// <category>Host and Kernel</category>
     public sealed class ResolveResult
     {
+        /// <summary>Every notice the resolution produced, in the order they arose. Empty when nothing was excluded, superseded, declined, failed or fell back.</summary>
         public IReadOnlyList<ResolutionNotice> Notices { get; set; } = Array.Empty<ResolutionNotice>();
     }
 
     /// <summary>
+    /// The capability and provider registry. Capabilities and providers are
+    /// registered first; <see cref="Resolve"/> then elects the providers and
+    /// runs their factories, and <see cref="Active"/> and <see cref="Query{T}"/>
+    /// return the resulting instances.
+    ///
+    /// <para><see cref="Resolve"/> runs in three phases:</para>
+    /// <list type="number">
+    /// <item><b>Selection</b>: for every capability, in registration order,
+    /// decide which providers win: version gating, then
+    /// <see cref="ProviderRegistration.CanServe"/>, then an exclusive election
+    /// or shared fan-out. No factory runs yet.</item>
+    /// <item><b>Ordering</b>: sort capabilities so each selected provider's
+    /// <see cref="ProviderRegistration.Deps"/> come before it. Throws
+    /// <see cref="DependencyCycleError"/> on a cycle.</item>
+    /// <item><b>Activation</b>: run the factories in that order, publishing each
+    /// capability's instances as soon as its factory returns, so a later factory
+    /// can <see cref="ProviderContext.Query{T}"/> an earlier one.</item>
+    /// </list>
+    ///
+    /// <para>Nothing is published until selection and ordering have both
+    /// succeeded, so a <see cref="Resolve"/> that throws leaves the active
+    /// instances untouched. Only two outcomes throw: a spine-critical capability
+    /// nothing can serve (<see cref="SpineCapabilityUnsatisfiedError"/>) and a
+    /// dependency cycle. Every other selection failure, an ambiguous exclusive
+    /// election included, is reported as a notice and leaves only its own
+    /// capability unresolved.</para>
+    /// <internal>
     /// C# port of <c>mod/sitrep-kernel/src/registry.ts</c>'s <c>Kernel</c>
-    /// class: the capability/provider registry. Semantics MUST stay
-    /// byte-for-byte identical to the TS reference: conformance is asserted
-    /// by <c>Sitrep.Core.Tests</c> against the shared golden fixture in
-    /// <c>mod/golden-fixtures/kernel.json</c>, not by re-deriving semantics
-    /// here. If you touch this file, regenerate the fixture from the TS side
-    /// first (`pnpm --filter @ksp-gonogo/sitrep-kernel gen:golden-fixtures`) and
-    /// re-run `dotnet test` to confirm the two still agree.
-    ///
-    /// <see cref="Resolve"/> runs in three phases, in order:
-    ///  1. <b>Selection</b> (<see cref="SelectCapability"/>): for every
-    ///     registered capability, decide which provider(s) win (version
-    ///     gating, then exclusive-conflict resolution or shared fan-out). No
-    ///     factory runs yet, so this phase can freely iterate capabilities in
-    ///     registration order without any capability depending on another
-    ///     capability's factory having already run.
-    ///  2. <b>Ordering</b> (<see cref="Broker.TopoSortActivationOrder"/>):
-    ///     build one dependency-graph node per capability from its selected
-    ///     provider(s)' <see cref="ProviderRegistration.Deps"/>, and
-    ///     topo-sort so a capability's declared dependencies precede it.
-    ///     Throws <see cref="DependencyCycleError"/> if the graph has a
-    ///     cycle.
-    ///  3. <b>Activation</b> (<see cref="ActivateSelection"/>): walk the
-    ///     topo order and invoke factories, writing each capability's active
-    ///     instances into the active-instance table immediately after its
-    ///     factory runs (not batched at the end), so a later capability's
-    ///     factory can call <c>ctx.Query(dep)</c> and see the dependency's
-    ///     already-active instance.
-    ///
-    /// Both selection and ordering happen before any factory runs, which is
-    /// what makes a throwing <see cref="Resolve"/> atomic: nothing is
-    /// written to the active-instance table until activation begins, and
-    /// activation only starts once selection/ordering have both succeeded
-    /// without throwing.
-    ///
-    /// Only two outcomes throw out of <see cref="Resolve"/> now: a
-    /// spine-critical capability nothing can serve, and a dependency cycle.
-    /// Every other selection failure, an ambiguous exclusive election above
-    /// all, is kept to its own capability (see <see cref="SelectIsolated"/>),
-    /// because an ambiguity on one capability used to abort the election for
-    /// every capability together.
+    /// class. Semantics must stay identical to the TS reference: conformance is
+    /// asserted by <c>Sitrep.Core.Tests</c> against the shared golden fixture in
+    /// <c>mod/golden-fixtures/kernel.json</c>. If you touch this file,
+    /// regenerate the fixture from the TS side first
+    /// (<c>pnpm --filter @ksp-gonogo/sitrep-kernel gen:golden-fixtures</c>) and
+    /// re-run <c>dotnet test</c>. The phases are <c>SelectCapability</c>,
+    /// <c>Broker.TopoSortActivationOrder</c> and <c>ActivateSelection</c>;
+    /// isolation per capability is <c>SelectIsolated</c>.
+    /// </internal>
     /// </summary>
+    /// <category>Host and Kernel</category>
     public sealed class Kernel
     {
         private readonly Dictionary<string, CapabilityDescriptor> _capabilities =
@@ -255,11 +355,11 @@ namespace Sitrep.Contract
         private readonly HashSet<string> _vanillaInFlight = new HashSet<string>();
 
         /// <summary>
-        /// Notices from the most recent <see cref="Resolve"/>. Retained because a
-        /// capability's consumer has no other way to tell "no provider registered"
-        /// from "the selected provider's factory threw and we fell through to
-        /// vanilla": both leave the vanilla instance elected, and the second is a
-        /// fault the operator must be told about.
+        /// Notices from the most recent <see cref="Resolve"/>, empty before the
+        /// first. This is how a capability's consumer tells "no provider
+        /// registered" from "the selected provider's factory threw and the
+        /// capability fell back to vanilla": both leave the vanilla elected, and
+        /// the second is a fault worth reporting.
         /// </summary>
         public IReadOnlyList<ResolutionNotice> LastNotices { get; private set; } =
             Array.Empty<ResolutionNotice>();
@@ -272,6 +372,12 @@ namespace Sitrep.Contract
         /// </summary>
         private readonly List<string> _capabilityOrder = new List<string>();
 
+        /// <summary>
+        /// Registers a capability. Registering the same id again replaces its
+        /// descriptor and keeps its providers and its place in the registration
+        /// order.
+        /// </summary>
+        /// <param name="descriptor">The capability to register.</param>
         public void RegisterCapability(CapabilityDescriptor descriptor)
         {
             if (!_capabilities.ContainsKey(descriptor.Id))
@@ -289,6 +395,12 @@ namespace Sitrep.Contract
             }
         }
 
+        /// <summary>
+        /// Registers a provider against an already-registered capability. Throws
+        /// <see cref="InvalidOperationException"/> when the capability is unknown.
+        /// Nothing is selected or built until <see cref="Resolve"/>.
+        /// </summary>
+        /// <param name="registration">The provider to register.</param>
         public void RegisterProvider(ProviderRegistration registration)
         {
             if (!_providers.TryGetValue(registration.Capability, out var providers))
@@ -300,13 +412,17 @@ namespace Sitrep.Contract
             providers.Add(registration);
         }
 
+        /// <summary>
+        /// Elects providers for every registered capability and runs their
+        /// factories, replacing the previous resolution's active and vanilla
+        /// instances. See the type summary for the phases and what throws.
+        /// </summary>
+        /// <param name="opts">The kernel version, mod version and preferences to resolve against.</param>
+        /// <returns>The notices the resolution produced, also kept on <see cref="LastNotices"/>.</returns>
         public ResolveResult Resolve(ResolveOptions opts)
         {
             var notices = new List<ResolutionNotice>();
-            // A resolution builds its own provider instances, so it builds its own
-            // vanilla instances too: a re-resolve that handed out objects from the
-            // previous one would leave a displaced provider talking to a vanilla
-            // nothing else is using any more.
+            // Vanilla instances are per resolution: reusing the previous one's would leave a displaced provider talking to a vanilla nothing else uses.
             _vanillaInstances.Clear();
             LastNotices = Array.Empty<ResolutionNotice>();
             ProviderContext ctx = null!;
@@ -315,20 +431,14 @@ namespace Sitrep.Contract
                 capability => Query<object?>(capability),
                 capability => VanillaInstance(capability, ctx));
 
-            // Phase 1: selection, decide the winning provider(s) per
-            // capability. No factory has run yet, so this can safely iterate
-            // in plain registration order regardless of any Deps
-            // relationships.
+            // Phase 1: selection. No factory has run yet, so registration order is safe regardless of Deps.
             var selections = new List<CapabilitySelection>();
             foreach (var id in _capabilityOrder)
             {
                 selections.Add(SelectIsolated(_capabilities[id], opts, notices));
             }
 
-            // Phase 2: ordering, topo-sort capability activation so a
-            // provider's Deps are active before its factory runs. Edges come
-            // from each capability's *selected* provider(s), not every
-            // registered candidate.
+            // Phase 2: ordering. Edges come from each capability's selected providers, not every registered candidate.
             var nodes = selections
                 .Select(selection => new DependencyNode(
                     selection.Descriptor.Id,
@@ -337,9 +447,7 @@ namespace Sitrep.Contract
             var order = Broker.TopoSortActivationOrder(nodes);
             var selectionById = selections.ToDictionary(s => s.Descriptor.Id);
 
-            // Phase 3: activation, run factories in topo order, publishing
-            // each capability's active instances immediately so later
-            // factories in the order can ctx.Query() them.
+            // Phase 3: activation, publishing each capability's instances immediately so later factories can ctx.Query() them.
             foreach (var capability in order)
             {
                 if (!selectionById.TryGetValue(capability, out var selection))
@@ -365,13 +473,10 @@ namespace Sitrep.Contract
         /// kernel quietly picking a winner, which is what the ambiguity rule
         /// refuses to do.</para>
         ///
-        /// <para>Isolated because a throw here used to escape the whole of
-        /// <see cref="Resolve"/>, so one mis-prioritised pair of claimants left
-        /// every capability unresolved together. The tie-break rules themselves are
-        /// untouched. <see cref="SpineCapabilityUnsatisfiedError"/> is deliberately
-        /// not caught: a spine-critical capability with nothing to serve it means
-        /// the kernel cannot start, and that is the one selection outcome whose
-        /// blast radius is meant to be everything.</para>
+        /// <para>Isolated so one mis-prioritised pair of claimants cannot leave
+        /// every capability unresolved. <see cref="SpineCapabilityUnsatisfiedError"/>
+        /// is deliberately not caught: a spine-critical capability with nothing to
+        /// serve it means the kernel cannot start.</para>
         /// </summary>
         private CapabilitySelection SelectIsolated(
             CapabilityDescriptor descriptor,
@@ -446,18 +551,6 @@ namespace Sitrep.Contract
         }
 
         /// <summary>
-        /// Version-gate pass: runs BEFORE exclusive/shared selection, so
-        /// ambiguity is computed only over providers compatible with the
-        /// running kernel/mod version. A provider whose
-        /// <c>Versions.MinKernelVersion</c> exceeds
-        /// <see cref="ResolveOptions.KernelVersion"/>, or whose
-        /// <c>Versions.TargetModVersionRange</c> does not contain
-        /// <see cref="ResolveOptions.ModVersion"/>, is excluded and gets a
-        /// "version-excluded" notice naming it. A provider with no
-        /// <c>Versions</c> (or no constraints within it) is always
-        /// compatible.
-        /// </summary>
-        /// <summary>
         /// Ability-to-serve pass: runs BEFORE exclusive selection, so a provider
         /// that cannot serve the capability on this install is not a CANDIDATE and
         /// the runner-up wins the election outright.
@@ -500,6 +593,18 @@ namespace Sitrep.Contract
             return able;
         }
 
+        /// <summary>
+        /// Version-gate pass: runs BEFORE exclusive/shared selection, so
+        /// ambiguity is computed only over providers compatible with the
+        /// running kernel/mod version. A provider whose
+        /// <c>Versions.MinKernelVersion</c> exceeds
+        /// <see cref="ResolveOptions.KernelVersion"/>, or whose
+        /// <c>Versions.TargetModVersionRange</c> does not contain
+        /// <see cref="ResolveOptions.ModVersion"/>, is excluded and gets a
+        /// "version-excluded" notice naming it. A provider with no
+        /// <c>Versions</c> (or no constraints within it) is always
+        /// compatible.
+        /// </summary>
         private static List<ProviderRegistration> FilterVersionCompatible(
             string capability,
             List<ProviderRegistration> candidates,
@@ -535,6 +640,13 @@ namespace Sitrep.Contract
             return compatible;
         }
 
+        /// <summary>
+        /// Returns a capability's active instances from the most recent
+        /// <see cref="Resolve"/>: one for a resolved exclusive capability, any
+        /// number for a shared one, none when unresolved or not yet resolved.
+        /// Throws <see cref="InvalidOperationException"/> for an unknown capability.
+        /// </summary>
+        /// <param name="capability">The capability id.</param>
         public IReadOnlyList<object?> Active(string capability)
         {
             AssertKnownCapability(capability);
@@ -543,6 +655,14 @@ namespace Sitrep.Contract
                 : new List<object?>();
         }
 
+        /// <summary>
+        /// Returns a capability's single active instance, cast to
+        /// <typeparamref name="T"/>. Throws <see cref="InvalidOperationException"/>
+        /// when the capability is unknown or does not have exactly one active
+        /// instance.
+        /// </summary>
+        /// <typeparam name="T">The type the instance is cast to.</typeparam>
+        /// <param name="capability">The capability id.</param>
         public T Query<T>(string capability)
         {
             var instances = Active(capability);
@@ -599,8 +719,7 @@ namespace Sitrep.Contract
         /// Precedence for an exclusive capability with &gt;=2 candidates:
         ///  1. <c>preferences[capability]</c> naming a registered provider id
         ///     wins outright (preference beats default). A preference naming
-        ///     an unregistered id is a stale preference, ignored, falling
-        ///     through.
+        ///     an unregistered id is ignored.
         ///  2. Else a single <c>IsDefault</c> provider wins. Multiple
         ///     <c>IsDefault</c> providers is itself ambiguous.
         ///  3. Else the single provider with the unique highest
@@ -624,9 +743,7 @@ namespace Sitrep.Contract
                 {
                     return (preferred, "user preference");
                 }
-                // Stale preference (names a provider that isn't registered
-                // for this capability): ignore it and fall through to
-                // default/priority.
+                // A preference naming no registered provider falls through to default/priority.
             }
 
             var defaults = candidates.Where(c => c.IsDefault).ToList();
@@ -656,18 +773,14 @@ namespace Sitrep.Contract
         /// or shared selection) falls back to the capability's vanilla
         /// factory.
         ///
-        /// <para>A factory that THROWS does not take the capability, or the
-        /// rest of the resolution, down with it. Winning an election is not
-        /// the same as being able to run: a provider compiled against an older
-        /// contract fails its vtable setup at instantiation, long after
-        /// selection has already declared it the winner. Letting that
-        /// propagate left the capability with no instance at all and aborted
-        /// every capability later in the topo order, which is the exact
-        /// opposite of what a vanilla fallback is for. So each factory runs in
-        /// isolation: a thrower is recorded as <c>factory-failed</c> and
-        /// contributes nothing, and an exclusive capability whose sole winner
-        /// failed falls through to vanilla exactly as if the provider had
-        /// never registered.</para>
+        /// <para>A factory that throws does not take the capability, or the rest
+        /// of the resolution, down with it. Winning an election is not the same
+        /// as being able to run: a provider compiled against an older contract
+        /// fails its vtable setup at instantiation, long after selection chose
+        /// it. So each factory runs in isolation: a thrower is recorded as
+        /// <c>factory-failed</c> and contributes nothing, and an exclusive
+        /// capability whose sole winner failed falls through to vanilla exactly
+        /// as if the provider had never registered.</para>
         /// </summary>
         private List<object?> ActivateSelection(
             CapabilitySelection selection,
@@ -691,14 +804,8 @@ namespace Sitrep.Contract
                     var instance = provider.Factory(ctx);
                     if (instance == null)
                     {
-                        // A DECLINE, not a failure. A provider that cannot serve
-                        // the capability on this install must not hold it: an
-                        // exclusive capability held by a provider that answers
-                        // nothing starves every lower-priority provider that
-                        // could have served it. The notice kind is distinct from
-                        // factory-failed on purpose, because a consumer maps that
-                        // one to "we are blind" and being blind is not what
-                        // happened here.
+                        /* A decline, not a failure: its notice kind is distinct from
+                           factory-failed because a consumer reads that one as "we are blind". */
                         notices.Add(new ResolutionNotice
                         {
                             Capability = selection.Descriptor.Id,

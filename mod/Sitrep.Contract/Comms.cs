@@ -5,32 +5,32 @@ using System.Collections.Generic;
 
 namespace Sitrep.Contract;
 
-// ====================================================================
-// The comms.* wire contract (U2: comms trio).
-//
-// Two axes govern every channel here (comms-uplink-design.md §1): a
-// PROVIDER axis (the elected backend: CommNet vanilla, or RealAntennas
-// when present: sources the shared channels; RealAntennas alone sources
-// its private link-budget channels) and a PRESENCE axis (always-present
-// vs provider-dependent). A third axis decides the DELAY classification, and
-// it splits this family rather than covering it: what KSC can establish about
-// the link from its own end (connectivity, signal strength, control state, the
-// network graph, the occluding geometry) is TRUE-NOW, and what describes the
-// far end of the link (comms.delay, comms.path, comms.degrade) is DELAYED,
-// because a fact about where the craft was travels home at the same speed the
-// telemetry does. Delaying comms.delay is not circular: the reveal gate and the
-// command scheduler read the engine's delay LEDGER, which the capture pass
-// writes directly, never this channel.
-//
-// R7 discipline: every payload carries PayloadMeta; absence is a nullable
-// (T?), never a NaN/0/-1 sentinel.
-// ====================================================================
+/*
+ * The comms.* wire contract. Two axes govern every channel here: a PROVIDER
+ * axis (the elected backend, stock CommNet or RealAntennas when present,
+ * sources the shared channels; RealAntennas alone sources its private
+ * link-budget channels) and a PRESENCE axis (always-present vs
+ * provider-dependent).
+ *
+ * The DELAY classification splits this family rather than covering it: what
+ * KSC can establish about the link from its own end (connectivity, signal
+ * strength, control state, the network graph, the occluding geometry) is
+ * TRUE-NOW, and what describes the far end of the link (comms.delay,
+ * comms.path, comms.degrade) is DELAYED, because a fact about where the craft
+ * was travels home at the same speed the telemetry does. Delaying comms.delay
+ * is not circular: the reveal gate and the command scheduler read the engine's
+ * delay LEDGER, which the capture pass writes directly, never this channel.
+ *
+ * Every payload carries PayloadMeta; absence is a nullable, never a NaN/0/-1
+ * sentinel.
+ */
 
 /// <summary>
-/// Degree of vessel control the link currently affords, the
-/// <c>controlSource</c> axis of <see cref="CommsConnectivity"/>. Mirrors
-/// stock <c>CommNet.VesselControlState</c>'s partial/full distinction
-/// without leaking a KSP enum onto the wire.
+/// The degree of control a vessel currently has, the <c>controlSource</c> axis
+/// of <see cref="CommsConnectivity"/>. The game's control level collapsed to
+/// three tiers: partial covers both crewed and uncrewed partial control, and
+/// whether a crew is aboard shows on
+/// <see cref="CommsConnectivity.HasLocalControl"/> instead.
 /// </summary>
 /// <category>Comms</category>
 #if SITREP_CODEGEN
@@ -41,7 +41,9 @@ public enum CommsControlSource
 {
     /// <summary>A measurement: the craft has no control source.</summary>
     None,
+    /// <summary>Partial control, crewed or uncrewed: stock's <c>PARTIAL_MANNED</c> or <c>PARTIAL_UNMANNED</c> level.</summary>
     Partial,
+    /// <summary>Full control.</summary>
     Full,
     /// <summary>
     /// The game reported a control level this build does not name. Not
@@ -53,9 +55,9 @@ public enum CommsControlSource
 }
 
 /// <summary>
-/// The <c>comms.connectivity</c> payload: always-present, sourced from the
-/// elected backend. Ground-side truth about
-/// whether the active vessel has a control link home right now.
+/// The <c>comms.connectivity</c> payload: always present, sourced from the
+/// elected comms backend. Ground-side truth about whether the active vessel
+/// has a control link home right now. All three fields describe the same tick.
 /// </summary>
 /// <category>Comms</category>
 [SitrepContract]
@@ -65,19 +67,35 @@ public enum CommsControlSource
 [SitrepTopic("comms.connectivity")]
 public class CommsConnectivity
 {
+    /// <summary>
+    /// True when the backend resolved a control path home for the active
+    /// vessel. False when it has none, and also when no link state could be
+    /// read (then <see cref="ControlSource"/> is
+    /// <see cref="CommsControlSource.None"/>).
+    /// </summary>
     [SitrepUnit(Units.Flag)]
     public bool Connected { get; set; }
+    /// <summary>The degree of control the vessel has.</summary>
     [SitrepUnit(Units.Enumeration)]
     public CommsControlSource ControlSource { get; set; }
+    /// <summary>
+    /// True when the vessel's control level is crewed partial control or full
+    /// control. Independent of <see cref="Connected"/>: a crewed craft can be
+    /// flown with no link home. Full control sets it too, including full control
+    /// an uncrewed probe has over its link. False alongside
+    /// <see cref="CommsControlSource.Unknown"/>.
+    /// </summary>
     [SitrepUnit(Units.Flag)]
     public bool HasLocalControl { get; set; }
+    /// <summary>The payload's provenance (<c>"vessel:&lt;guid&gt;"</c> or <c>"game"</c>) and quality.</summary>
     public PayloadMeta Meta { get; set; } = new();
 }
 
 /// <summary>
-/// The <c>comms.signal</c> payload: always-present, elected
-/// backend. 0..1. CommNet gives a coarse range-fraction; RealAntennas gives
-/// a link-budget-derived value.
+/// The <c>comms.signal</c> payload: always present, sourced from the elected
+/// comms backend. A strength from 0 to 1 whose meaning depends on the backend:
+/// stock CommNet reports a coarse range fraction, RealAntennas a
+/// link-budget-derived value.
 ///
 /// <para>A save with the stock CommNet difficulty option off models no link
 /// budget at all and reports 1 here: nothing attenuates a link that is not
@@ -91,6 +109,9 @@ public class CommsConnectivity
 /// without a Major bump. Of the two things a non-nullable double can say, 1 is
 /// the one that does not lie, because 0 is what the app's own
 /// SignalLossIndicator keys its "Lost" verdict on.
+/// <para>RealAntennas' value is a headroom fraction on its data-rate ladder
+/// (<c>CommsLinkState.SignalStrength</c>), so the two backends put different
+/// curves behind one field.</para>
 /// </internal>
 /// </summary>
 /// <category>Comms</category>
@@ -101,12 +122,22 @@ public class CommsConnectivity
 [SitrepTopic("comms.signal")]
 public class CommsSignal
 {
+    /// <summary>
+    /// Link strength from 0 to 1, in the backend's own terms (see this type's
+    /// summary), so compare values only within one install. 0 when no link
+    /// state could be read.
+    /// </summary>
     [SitrepUnit(Units.Ratio)]
     public double Strength { get; set; }
+    /// <summary>The payload's provenance (<c>"vessel:&lt;guid&gt;"</c> or <c>"game"</c>) and quality.</summary>
     public PayloadMeta Meta { get; set; } = new();
 }
 
-/// <summary>Control-state kind for <see cref="CommsControl"/>.</summary>
+/// <summary>
+/// What the active vessel can be commanded to do, for
+/// <see cref="CommsControl"/>. The game's control level collapsed to three
+/// tiers, crewed and uncrewed partial control sharing one.
+/// </summary>
 /// <category>Comms</category>
 #if SITREP_CODEGEN
 [TsEnum]
@@ -116,7 +147,9 @@ public enum CommsControlStateKind
 {
     /// <summary>A measurement: the craft cannot be commanded.</summary>
     None,
+    /// <summary>Partial control, crewed or uncrewed: stock's <c>PARTIAL_MANNED</c> or <c>PARTIAL_UNMANNED</c> level.</summary>
     PartialManoeuvre,
+    /// <summary>Full control.</summary>
     Full,
     /// <summary>
     /// The game reported a control level this build does not name, so whether
@@ -126,9 +159,9 @@ public enum CommsControlStateKind
 }
 
 /// <summary>
-/// The <c>comms.control</c> payload: always-present, elected backend.
-/// <see cref="Reason"/> is a nullable annotation (absent = no annotation),
-/// never an empty-string sentinel.
+/// The <c>comms.control</c> payload: always present, sourced from the elected
+/// comms backend. What the active vessel can be commanded to do right now,
+/// which is a different question from whether it is connected.
 /// </summary>
 /// <category>Comms</category>
 [SitrepContract]
@@ -138,14 +171,26 @@ public enum CommsControlStateKind
 [SitrepTopic("comms.control")]
 public class CommsControl
 {
+    /// <summary>The vessel's control level. <see cref="CommsControlStateKind.None"/> when no link state could be read.</summary>
     [SitrepUnit(Units.Enumeration)]
     public CommsControlStateKind Level { get; set; }
+    /// <summary>
+    /// A human-readable annotation on the control state, or null for none
+    /// (never an empty string). The shipped backends set
+    /// <c>"no connection to a command source"</c> when the vessel has no link
+    /// home, and null when it is connected.
+    /// </summary>
     [SitrepUnit(Units.Text)]
     public string? Reason { get; set; }
+    /// <summary>The payload's provenance (<c>"vessel:&lt;guid&gt;"</c> or <c>"game"</c>) and quality.</summary>
     public PayloadMeta Meta { get; set; } = new();
 }
 
-/// <summary>Kind of a node participating in a <see cref="CommsHop"/>.</summary>
+/// <summary>
+/// Whether a comms node is a ground station, or whether a hop touches one.
+/// Carried by <see cref="CommsHop.Kind"/> and
+/// <see cref="CommsNetworkNode.Kind"/>.
+/// </summary>
 /// <category>Comms</category>
 #if SITREP_CODEGEN
 [TsEnum]
@@ -153,34 +198,27 @@ public class CommsControl
 [SitrepContract]
 public enum CommsHopKind
 {
+    /// <summary>A ground station, or a hop with a ground station at either end.</summary>
     Home,
+    /// <summary>A vessel node (the active craft included), or a hop between two vessels.</summary>
     Relay,
+    /// <summary>Not reported by the shipped backends: vessel nodes, the active craft included, arrive as <see cref="Relay"/>.</summary>
     Vessel,
 }
 
 /// <summary>
-/// One ordered hop toward KSC in the control path. <see cref="DistanceMeters"/>
-/// is the geometry SignalDelay consumes for light-time; it is nullable,
-/// absent when the backend cannot supply per-hop geometry (typed absence,
-/// never 0). Per-hop RealAntennas rate is NOT a field on this shared shape: the
-/// forward band rate rides the RA uplink's own <c>realantennas.hopRates</c>
-/// channel (a thin per-hop annotation keyed by these same node ids, joined onto
-/// the route client-side by a <c>comm-signal.hop-rates</c> contribution), and
-/// the other RA per-hop facts ride <see cref="Extensions"/> under
-/// <c>"realantennas"</c>. The core hop stays RA-agnostic.
+/// One ordered hop toward home in the control path. Per-hop RealAntennas
+/// facts are not fields on this shared shape: the forward band rate rides the
+/// RealAntennas Uplink's own <c>realantennas.hopRates</c> channel (a per-hop
+/// annotation keyed by these same node ids, joined onto the route
+/// client-side), and the other RealAntennas per-hop facts ride
+/// <see cref="Extensions"/> under <c>"realantennas"</c>.
 ///
-/// <para><see cref="From"/>/<see cref="To"/> name the endpoints. Ground
-/// stations carry their OWN name (RSS/RealAntennas fly a dozen of them), not a
-/// single shared "home" label: two consecutive samples both showing a one-hop
-/// direct link, one to Kourou and one to Canberra, are a STATION HANDOFF, and
-/// under a shared label they were indistinguishable from one station whose
-/// range simply changed. That ambiguity is what made a relay handoff readable
-/// as an occlusion blackout.</para>
-///
-/// <para><see cref="FromIsHome"/>/<see cref="ToIsHome"/> carry that home-ness
-/// per endpoint, so it survives without parsing a name. <see cref="Kind"/>
-/// cannot serve: it is one value for the whole hop, so it says a ground
-/// station is involved but never which end.</para>
+/// <para>Ground stations carry their OWN name in <see cref="From"/> and
+/// <see cref="To"/> (RSS/RealAntennas fly a dozen of them), not a single
+/// shared "home" label: two consecutive samples both showing a one-hop direct
+/// link, one to Kourou and one to Canberra, are a STATION HANDOFF, not one
+/// station whose range changed.</para>
 /// </summary>
 /// <category>Comms</category>
 [SitrepContract]
@@ -189,50 +227,68 @@ public enum CommsHopKind
 #endif
 public class CommsHop
 {
+    /// <summary>
+    /// The node id at the end of the hop nearer the vessel, in the same id space as
+    /// <see cref="CommsNetworkNode.Id"/>: a vessel's persistent id for a craft,
+    /// the station's own name for a ground station.
+    /// </summary>
     [SitrepUnit(Units.Id)]
     public string From { get; set; } = "";
+    /// <summary>The node id at the end of the hop nearer home, in the same id space as <see cref="From"/>.</summary>
     [SitrepUnit(Units.Id)]
     public string To { get; set; } = "";
+    /// <summary>True when the <see cref="From"/> end is a ground station.</summary>
     [SitrepUnit(Units.Flag)]
     public bool FromIsHome { get; set; }
+    /// <summary>True when the <see cref="To"/> end is a ground station.</summary>
     [SitrepUnit(Units.Flag)]
     public bool ToIsHome { get; set; }
+    /// <summary>
+    /// <see cref="CommsHopKind.Home"/> when either end is a ground station,
+    /// otherwise <see cref="CommsHopKind.Relay"/>. One value for the whole hop,
+    /// so read <see cref="FromIsHome"/> and <see cref="ToIsHome"/> for which end.
+    /// </summary>
     [SitrepUnit(Units.Enumeration)]
     public CommsHopKind Kind { get; set; }
+    /// <summary>
+    /// Straight-line distance between the two endpoints, in metres: the
+    /// geometry the signal delay's light-time is computed over. Null when the
+    /// backend cannot supply per-hop geometry, never 0.
+    /// </summary>
     [SitrepUnit(Units.Metres)]
     public double? DistanceMeters { get; set; }
 
     /// <summary>
     /// The provider-namespaced extension bag: how the elected comms backend
-    /// carries per-hop facts this shared shape does not declare, WITHOUT a PR
-    /// against core (see <see cref="ProviderExtensionBagAttribute"/> for the
-    /// whole mechanism). Null under the vanilla CommNet backend, which has
-    /// nothing stock does not already say; a RealAntennas install fills
+    /// carries per-hop facts this shared shape does not declare (see
+    /// <see cref="ProviderExtensionBagAttribute"/> for the whole mechanism).
+    /// Absent under the stock CommNet backend, which has nothing stock does not
+    /// already say; a RealAntennas install fills
     /// <c>Extensions["realantennas"]</c> with band, tech level, modulation,
     /// encoder, required Eb/N0, beamwidth, EC draw and the reverse-direction
-    /// rate, typed by the RA client's own <c>RealAntennasHopExt</c>. It rides
-    /// <c>comms.path</c>, so it inherits that channel's Delayed classification.
+    /// rate, typed by the RealAntennas client's own <c>RealAntennasHopExt</c>.
+    /// It rides <c>comms.path</c>, so it is Delayed like that channel.
     /// </summary>
-    // AppendProviderExtensions omits the key when no provider filled a bag, so a
-    // payload no provider extended carries no trace of the mechanism.
+    // The key is omitted when no provider filled a bag, so a payload no provider
+    // extended carries no trace of the mechanism.
     [SitrepOmittedWhenNull]
     [ProviderExtensionBag]
     public Dictionary<string, object?>? Extensions { get; set; }
 }
 
 /// <summary>
-/// The <c>comms.path</c> payload: always-present, elected backend. Ordered
-/// hops from the active vessel to KSC. Empty <see cref="Hops"/> = no path
-/// home (a real, control-loss state, not absence-of-data).
+/// The <c>comms.path</c> payload: always present, sourced from the elected
+/// comms backend. Ordered hops from the active vessel home. An empty
+/// <see cref="Hops"/> means no path home, a real control-loss state rather than
+/// missing data.
 ///
 /// <para>DELAYED, and NEVER RECKONABLE. The route is the one the arriving
-/// signal took, so it reveals with the telemetry that came down it. It also
-/// carries no forward model and cannot be given one: a route changes
-/// DISCRETELY, a relay drops below the horizon and the whole chain re-solves to
-/// different hops, and every basis a reckoner could declare
-/// (Kepler propagation, dead reckoning, rate integration) moves a continuous
-/// quantity. What you are shown is the topology AS OBSERVED; nothing may
-/// extrapolate it forward.</para>
+/// signal took, so it reveals with the telemetry that came down it. It carries
+/// no forward model and cannot be given one: a route changes DISCRETELY (a
+/// relay drops below the horizon and the whole chain re-solves to different
+/// hops), and every reckoning basis moves a continuous quantity. What you are
+/// shown is the topology as observed; nothing may extrapolate it
+/// forward.</para>
 /// </summary>
 /// <category>Comms</category>
 [SitrepContract]
@@ -242,19 +298,16 @@ public class CommsHop
 [SitrepTopic("comms.path")]
 public class CommsPath
 {
+    /// <summary>The hops in order, the first starting at the active vessel and the last ending at home. Empty when there is no path home, never null.</summary>
     public IReadOnlyList<CommsHop> Hops { get; set; } = new List<CommsHop>();
+    /// <summary>The payload's provenance (<c>"vessel:&lt;guid&gt;"</c> or <c>"game"</c>) and quality.</summary>
     public PayloadMeta Meta { get; set; } = new();
 }
 
 /// <summary>
-/// One node in the <see cref="CommsNetwork"/> relay graph. <see cref="Id"/> is
-/// a UNIQUE, stable join key in the same id space
-/// <see cref="CommsHop.From"/>/<see cref="CommsHop.To"/> use: a vessel's
-/// persistent id for a craft, the station's own name for a ground station.
-/// Never a vessel's display name, which two craft can share, which made it
-/// unsafe as a graph or roster key. <see cref="DisplayName"/> carries the
-/// label, and <see cref="Kind"/> carries home-ness, so nothing has to read
-/// meaning out of the id.
+/// One node in the <see cref="CommsNetwork"/> relay graph.
+/// <see cref="DisplayName"/> carries the label and <see cref="Kind"/> carries
+/// home-ness, so nothing has to read meaning out of <see cref="Id"/>.
 /// </summary>
 /// <category>Comms</category>
 [SitrepContract]
@@ -263,15 +316,23 @@ public class CommsPath
 #endif
 public class CommsNetworkNode
 {
+    /// <summary>
+    /// A unique, stable join key in the same id space
+    /// <see cref="CommsHop.From"/> and <see cref="CommsHop.To"/> use: a vessel's
+    /// persistent id for a craft, the station's own name for a ground station.
+    /// Never a vessel's display name, which two craft can share.
+    /// </summary>
     [SitrepUnit(Units.Id)]
     public string Id { get; set; } = "";
+    /// <summary>The node's human-facing name: the vessel's name, or the ground station's.</summary>
     [SitrepUnit(Units.Text)]
     public string DisplayName { get; set; } = "";
+    /// <summary><see cref="CommsHopKind.Home"/> for a ground station, <see cref="CommsHopKind.Relay"/> for a vessel.</summary>
     [SitrepUnit(Units.Enumeration)]
     public CommsHopKind Kind { get; set; }
 }
 
-/// <summary>One edge in the <see cref="CommsNetwork"/> relay graph.</summary>
+/// <summary>One edge in the <see cref="CommsNetwork"/> relay graph, joining two <see cref="CommsNetworkNode.Id"/> values.</summary>
 /// <category>Comms</category>
 [SitrepContract]
 #if SITREP_CODEGEN
@@ -279,19 +340,26 @@ public class CommsNetworkNode
 #endif
 public class CommsNetworkEdge
 {
+    /// <summary>The <see cref="CommsNetworkNode.Id"/> of the end nearer the vessel.</summary>
     [SitrepUnit(Units.Id)]
     public string A { get; set; } = "";
+    /// <summary>The <see cref="CommsNetworkNode.Id"/> of the end nearer home.</summary>
     [SitrepUnit(Units.Id)]
     public string B { get; set; } = "";
+    /// <summary>
+    /// True when the edge carries the vessel's current control path. The
+    /// shipped backends report only the control path's edges, so every edge
+    /// they emit is true.
+    /// </summary>
     [SitrepUnit(Units.Flag)]
     public bool Active { get; set; }
 }
 
 /// <summary>
-/// The <c>comms.network</c> payload: always-emitted, but its richness
-/// tracks the elected backend (a "backend-dependent
-/// detail"). Under bare CommNet this may be a single home-edge; under
-/// RealAntennas it enumerates the relay graph.
+/// The <c>comms.network</c> payload: always emitted, the network as the
+/// elected comms backend sees it from the active vessel. The shipped backends
+/// report the nodes and edges of the vessel's control path, so the graph is
+/// empty when there is no path home.
 /// </summary>
 /// <category>Comms</category>
 [SitrepContract]
@@ -301,12 +369,15 @@ public class CommsNetworkEdge
 [SitrepTopic("comms.network")]
 public class CommsNetwork
 {
+    /// <summary>Every node in the graph, each <see cref="CommsNetworkNode.Id"/> once. Never null.</summary>
     public IReadOnlyList<CommsNetworkNode> Nodes { get; set; } = new List<CommsNetworkNode>();
+    /// <summary>Every edge in the graph. Never null.</summary>
     public IReadOnlyList<CommsNetworkEdge> Edges { get; set; } = new List<CommsNetworkEdge>();
+    /// <summary>The payload's provenance (<c>"vessel:&lt;guid&gt;"</c> or <c>"game"</c>) and quality.</summary>
     public PayloadMeta Meta { get; set; } = new();
 }
 
-/// <summary>Where a <see cref="CommsDelay"/> value came from.</summary>
+/// <summary>Why <see cref="CommsDelay.OneWaySeconds"/> has the value it has.</summary>
 /// <category>Comms</category>
 #if SITREP_CODEGEN
 [TsEnum]
@@ -314,7 +385,9 @@ public class CommsNetwork
 [SitrepContract]
 public enum CommsDelaySource
 {
+    /// <summary>No delay measured: either there is no measurable path (the value is null) or the delay feature is off (the value is 0).</summary>
     None,
+    /// <summary>A light-time computed over the route's hop geometry.</summary>
     SignalDelay,
 
     /// <summary>
@@ -348,25 +421,24 @@ public enum CommsDelaySource
 }
 
 /// <summary>
-/// The <c>comms.delay</c> payload: the CORE SignalDelay capability's output,
-/// gated by the <c>comms.signalDelay.enabled</c>
-/// config flag. <see cref="OneWaySeconds"/> distinguishes two DIFFERENT
-/// "no delay" cases by value (R7: typed absence, never a single overloaded
-/// sentinel):
+/// The <c>comms.delay</c> payload: the one-way signal delay to the active
+/// vessel, gated by the <c>comms.signalDelay.enabled</c> setting.
+/// <see cref="OneWaySeconds"/> distinguishes two DIFFERENT "no delay" cases
+/// by value, never by one overloaded sentinel:
 /// <list type="bullet">
 /// <item><description><b>null</b>: no measurable <see cref="CommsPath"/>
 /// (no path home, or incomplete hop geometry). There is nothing to measure,
 /// so nothing is reported. <see cref="Source"/> is
 /// <see cref="CommsDelaySource.None"/>.</description></item>
 /// <item><description><b>0</b>: the delay feature is disabled
-/// (<c>comms.signalDelay.enabled = false</c>) but the vessel IS connected. A
-/// genuine "zero delay applied", not an absence. <see cref="Source"/> is
-/// also <see cref="CommsDelaySource.None"/> here: the two cases share the
-/// same <c>Source</c> and are told apart only by whether the value is
+/// (<c>comms.signalDelay.enabled = false</c>). A genuine "zero delay
+/// applied", not an absence. <see cref="Source"/> is also
+/// <see cref="CommsDelaySource.None"/> here: the two cases share the same
+/// <c>Source</c> and are told apart only by whether the value is
 /// null.</description></item>
 /// <item><description>a real number: <see cref="Source"/> is
-/// <see cref="CommsDelaySource.SignalDelay"/>; gonogo's own light-time math
-/// over the elected backend's hop geometry.</description></item>
+/// <see cref="CommsDelaySource.SignalDelay"/>, a light-time computed over
+/// the elected backend's hop geometry.</description></item>
 /// </list>
 /// Two of the zeroes name their own reason instead of sharing
 /// <see cref="CommsDelaySource.None"/>:
@@ -384,8 +456,7 @@ public enum CommsDelaySource
 /// has grown says so one light-time after it grew. Read it as an observation
 /// rather than as the current state of the link.
 /// <internal>
-/// Delaying it is not circular, though two doc comments used to say it was.
-/// What releases every other Delayed channel is the engine's delay LEDGER
+/// Delaying it is not circular. What releases every other Delayed channel is the engine's delay LEDGER
 /// (<c>INetwork.DelayTo</c>), fed by <c>ChannelEngine.CaptureSignalDelay</c> and
 /// the per-vessel/per-centre writes, all of which run on the ungated capture
 /// path. This channel is a readout published from the same computation. The SDK
@@ -437,8 +508,7 @@ public class CommsDelay
     /// The client divides the OBSERVED delay by the OBSERVED route rather than
     /// by a light-speed constant, which recovers whatever
     /// <c>SignalDelay.EffectiveC</c> used, <c>LightSpeedScale</c> included,
-    /// without that setting reaching the wire; putting it there was tried and
-    /// reverted. It also makes the model reproduce the observation exactly at
+    /// without that setting reaching the wire. It also makes the model reproduce the observation exactly at
     /// its own instant, so the reckoned value leaves the measured one
     /// continuously.
     /// </internal>
@@ -453,29 +523,32 @@ public class CommsDelay
         "@commandCentre.roster")]
     public double? OneWaySeconds { get; set; }
 
+    /// <summary>Why <see cref="OneWaySeconds"/> has the value it has; see <see cref="CommsDelaySource"/>.</summary>
     [SitrepUnit(Units.Enumeration)]
     public CommsDelaySource Source { get; set; }
+    /// <summary>The payload's provenance (<c>"vessel:&lt;guid&gt;"</c> or <c>"game"</c>) and quality.</summary>
     public PayloadMeta Meta { get; set; } = new();
 }
 
 /// <summary>
-/// The <c>comms.link</c> connectivity MetaTopic: the ONE client-facing statement of "is there a control link home right now?", carried as a
-/// <b>Delayed, freeze-EXEMPT</b> channel (see
-/// <c>ChannelEngine.ConnectivityMetaTopic</c>). It is the delayed successor to
-/// the de-publicised TrueNow <see cref="CommsConnectivity"/> observation
-/// channel: clients (the app's SignalLossIndicator/CameraFeed, the kOS
-/// terminal's line-mode gate) read <c>comms.link.connected</c> instead of any
-/// raw <c>comms.*</c> observation.
+/// The <c>comms.link</c> payload: the one statement a client should read for
+/// "is there a control link home right now?". Read <c>comms.link.connected</c>
+/// for that question rather than any raw <c>comms.*</c> observation such as
+/// <see cref="CommsConnectivity"/>.
 ///
-/// <para><b>Why its own topic, freeze-exempt:</b> the link state is what
-/// REPORTS the freeze, so: exactly parallel to <c>comms.delay</c> being exempt
-/// from its own delay: it must be exempt from the freeze it drives. It reveals
-/// the disconnect edge at <c>T+delay</c> (you learn of the outage one light-time
-/// after it happens) and keeps reporting <c>connected:false</c> through the
-/// blackout, so the client's "NO SIGNAL" flips at the correct delayed instant.
-/// The <see cref="VesselComms"/> observation struct (signalStrength/controlState)
-/// stays Delayed AND freeze-gated: it freezes at last-known through the
+/// <para><b>Delayed, and exempt from the freeze.</b> The link state is what
+/// reports a signal-loss freeze, so it cannot be frozen by it. It reveals a
+/// disconnect at <c>T+delay</c> (you learn of the outage one light-time after
+/// it happens) and keeps reporting <c>connected:false</c> through the
+/// blackout, so a "no signal" indicator flips at the correct delayed instant.
+/// The <see cref="VesselComms"/> observations (signal strength, control
+/// state) are Delayed and DO freeze: they hold their last value through the
 /// outage.</para>
+/// <internal>
+/// Published by <c>ChannelEngine.ConnectivityMetaTopic</c>. Its readers include
+/// the app's SignalLossIndicator and CameraFeed and the kOS terminal's
+/// line-mode gate.
+/// </internal>
 /// </summary>
 /// <category>Comms</category>
 [SitrepContract]
@@ -485,24 +558,27 @@ public class CommsDelay
 [SitrepTopic("comms.link")]
 public class CommsLink
 {
+    /// <summary>True while the active vessel has a control link home, as of one light-time ago; false through a blackout.</summary>
     [SitrepUnit(Units.Flag)]
     public bool Connected { get; set; }
+    /// <summary>The payload's provenance (<c>"vessel:&lt;guid&gt;"</c> or <c>"game"</c>) and quality.</summary>
     public PayloadMeta Meta { get; set; } = new();
 }
 
 /// <summary>
-/// The <c>comms.commandCentre</c> payload:
-/// identifies WHICH command centre the active vessel's control path currently
-/// terminates at, vanilla KSC or a crewed control-source vessel (the stock
-/// "6-kerbal command center" mechanic), so a client can show its own stats
-/// against the right name instead of assuming KSC. Shares its id/kind scheme
-/// with <see cref="CommandCentreEntry"/> (the <c>commandCentre.roster</c>
-/// union): it names ONE entry from that same set, whichever one the vessel's
-/// own <c>ControlPath</c> resolved to this tick. Every field is null when
-/// there is no live remote centre right now (no connection, or the terminal
-/// node matches neither a ground station nor a crewed control source), the
-/// existing comms.link/comms.connectivity "No signal" case already covers
-/// that for a reader.
+/// The <c>comms.commandCentre</c> payload: WHICH command centre the active
+/// vessel's control path currently terminates at, a ground station or a
+/// crewed control-source vessel (the stock "command center" mechanic), so a
+/// client can show its own stats against the right name instead of assuming
+/// KSC. Shares its id and kind scheme with <see cref="CommandCentreEntry"/>
+/// (the <c>commandCentre.roster</c> entries): it names ONE entry from that
+/// same set, whichever one the vessel's control path resolved to this tick.
+/// A ground station is preferred when the last hop touches both.
+///
+/// <para>Every field is null when there is no live remote centre right now (no
+/// connection, or the last hop touches neither a ground station nor a crewed
+/// control source); <c>comms.link</c> already reports that case as no
+/// signal.</para>
 /// </summary>
 /// <category>Comms</category>
 [SitrepContract]
@@ -512,24 +588,30 @@ public class CommsLink
 [SitrepTopic("comms.commandCentre")]
 public class CommsCommandCentre
 {
-    /// <summary>Stable authority/vantage key, same scheme as <see
-    /// cref="CommandCentreEntry.Id"/>: "ground:&lt;name&gt;" |
-    /// "vessel:&lt;guid&gt;". Null when no remote centre resolved.</summary>
+    /// <summary>
+    /// Stable centre key, same scheme as <see cref="CommandCentreEntry.Id"/>:
+    /// <c>"ground:&lt;name&gt;"</c> or <c>"vessel:&lt;guid&gt;"</c>. Null when no
+    /// remote centre resolved.
+    /// </summary>
     [SitrepUnit(Units.Id)]
     public string? Id { get; set; }
-    /// <summary>Human-facing name.</summary>
+    /// <summary>The centre's human-facing name. Null when no remote centre resolved.</summary>
     [SitrepUnit(Units.Text)]
     public string? DisplayName { get; set; }
-    /// <summary>One of <c>GroundStation</c> / <c>CrewedVessel</c> /
-    /// <c>Colony</c> / <c>Custom</c> (the <c>CommandCentreKind</c> name), same
-    /// as <see cref="CommandCentreEntry.Kind"/>.</summary>
+    /// <summary>
+    /// One of <c>GroundStation</c>, <c>CrewedVessel</c>, <c>Colony</c> or
+    /// <c>Custom</c>, same as <see cref="CommandCentreEntry.Kind"/>. Null when
+    /// no remote centre resolved.
+    /// </summary>
     [SitrepUnit(Units.Text)]
     public string? Kind { get; set; }
-    /// <summary>Index into system.bodies of the body this centre sits on; null
-    /// when unknown, not surface-anchored, or the centre is a moving
-    /// vessel.</summary>
+    /// <summary>
+    /// Index into <c>system.bodies</c> of the body this centre sits on. Null
+    /// when unknown, not surface-anchored, or the centre is a moving vessel.
+    /// </summary>
     [SitrepUnit(Units.Id)]
     public int? BodyIndex { get; set; }
+    /// <summary>The payload's provenance (<c>"vessel:&lt;guid&gt;"</c> or <c>"game"</c>) and quality.</summary>
     public PayloadMeta Meta { get; set; } = new();
 }
 
@@ -543,13 +625,11 @@ public class CommsCommandCentre
  * contract slice instead. Its producer flattens it itself, so core's serializer
  * needs no case for it either.
  *
- * The tempting counter-argument, that a nullable field on a shared type is not
- * the same as a private type, does not hold. A provider-only number sitting on
- * CommsHop is still a core change a future out-of-tree comms provider cannot
- * land, and it reads as jank. A per-provider fact rides either that provider's
- * own channel, keyed by these same node ids and joined onto the route
- * client-side, or CommsHop.Extensions under the provider's namespace.
- * Provider-only presence is not provider-only ownership.
+ * A provider-only nullable field on a shared type is still a core change an
+ * out-of-tree comms provider cannot land. A per-provider fact rides either
+ * that provider's own channel, keyed by these same node ids and joined onto
+ * the route client-side, or CommsHop.Extensions under the provider's
+ * namespace.
  */
 
 /// <summary>
@@ -557,32 +637,41 @@ public class CommsCommandCentre
 /// endpoints, whether either end is a ground station, and the two endpoints'
 /// own opaque node handles.
 ///
-/// <para>Deliberately NOT a <see cref="CommsHop"/>. That shape is a wire
-/// payload and carries node ids, and NAMING one costs a walk over every
-/// vessel in the game per node, which the centre-to-centre matrix (centres
-/// squared, every tick) cannot pay for an answer nobody reads. The handles
-/// below cost nothing extra to carry: a backend already holds them while it
-/// walks its own route, so this struct passes them along uninterpreted and
-/// naming happens only where and when a caller actually needs a name.</para>
+/// <para>Not a <see cref="CommsHop"/>: it carries no node ids, only the
+/// backend's own node handles, which a caller resolves to a name only when it
+/// needs one.</para>
 ///
-/// <para><see cref="FromHandle"/>/<see cref="ToHandle"/> are the same opaque
-/// terms <see cref="CommsNodeView.Handle"/> and
-/// <see cref="ICommsBackend.RouteBetween"/> already traffic in: a live
-/// object, reference-matched by whoever asked for it, never dereferenced and
-/// never resolved to a name by this struct. They are optional because a hop
-/// built outside a live backend walk (a test fixture, a synthesised route)
-/// may have none to give.</para>
+/// <para><see cref="FromHandle"/> and <see cref="ToHandle"/> are the same
+/// opaque terms <see cref="CommsNodeView.Handle"/> and
+/// <see cref="ICommsBackend.RouteBetween"/> use: a live object,
+/// reference-matched by whoever asked for it, never dereferenced and never
+/// resolved to a name by this struct. They are optional because a hop built
+/// outside a live backend walk (a test fixture, a synthesised route) may have
+/// none to give.</para>
 ///
-/// <para>Carries no KSP type, so the light-time arithmetic built on it
-/// compiles and is exercised with no KSP reference assemblies at all.</para>
+/// <para>Carries no KSP type, so arithmetic built on it runs with no KSP
+/// reference assemblies at all.</para>
+/// <internal>
+/// Naming a node costs a walk over every vessel in the game, which the
+/// centre-to-centre delay matrix (centres squared, every tick) cannot pay.
+/// </internal>
 /// </summary>
+/// <category>Uplink API</category>
 public readonly struct CommsRouteHop
 {
+    /// <summary>A hop with no node handles.</summary>
+    /// <param name="distanceMeters">Straight-line distance between the two endpoints, in metres.</param>
+    /// <param name="touchesHome">True when either endpoint is a ground station.</param>
     public CommsRouteHop(double distanceMeters, bool touchesHome)
         : this(distanceMeters, touchesHome, fromHandle: null, toHandle: null)
     {
     }
 
+    /// <summary>A hop carrying the backend's own handles for its two endpoints.</summary>
+    /// <param name="distanceMeters">Straight-line distance between the two endpoints, in metres.</param>
+    /// <param name="touchesHome">True when either endpoint is a ground station.</param>
+    /// <param name="fromHandle">The live object behind the origin endpoint, or null.</param>
+    /// <param name="toHandle">The live object behind the destination endpoint, or null.</param>
     public CommsRouteHop(double distanceMeters, bool touchesHome, object? fromHandle, object? toHandle)
     {
         DistanceMeters = distanceMeters;
@@ -591,7 +680,7 @@ public readonly struct CommsRouteHop
         ToHandle = toHandle;
     }
 
-    /// <summary>Straight-line distance between the hop's two endpoints.</summary>
+    /// <summary>Straight-line distance between the hop's two endpoints, in metres.</summary>
     public double DistanceMeters { get; }
 
     /// <summary>True when EITHER endpoint is a ground station.</summary>
@@ -608,37 +697,41 @@ public readonly struct CommsRouteHop
 
 /// <summary>
 /// The pure, KSP-free object the exclusive <c>"comms"</c> capability resolves
-/// to. Exactly the readouts BOTH backends can
-/// honestly supply: the minimal shape the parallel CommNet+RA build forces
-/// (§6). RealAntennas-only richness (link margin, data rate) is deliberately
-/// OUT of this interface and lives on RA's private channels instead.
+/// to: exactly the readouts every comms backend can honestly supply.
+/// RealAntennas-only richness (link margin, data rate) is not on this
+/// interface and lives on RealAntennas' own channels instead.
 ///
-/// <para>Each accessor returns a wire payload the shared core comms
+/// <para>Each accessor returns a wire payload that the core comms
 /// registration publishes to its channel after resolving the elected backend
 /// via <c>host.Kernel.Query&lt;ICommsBackend&gt;("comms")</c>. Implementations
-/// read live KSP/mod state and MUST be called only where such reads are safe
-/// (the capture-on-main seam): the interface itself is pure.</para>
+/// read live KSP and mod state and MUST be called only where such reads are
+/// safe (on the main thread, during capture): the interface itself is
+/// pure.</para>
 ///
 /// <para>Every accessor that reads a ROUTE takes the craft it is asked about,
 /// as <c>vessel</c>, and none of them assumes the one on screen: the active
 /// craft is simply the vessel its caller passes. <c>vessel</c> is an OPAQUE
 /// handle on the same terms as <see cref="RouteBetween"/>'s node handles. Both
 /// shipped backends read it as a KSP <c>Vessel</c>, and a handle a backend does
-/// not recognise, or a null one, answers as a craft with no route.</para>
+/// not recognise, or a null one, is treated as a craft with no route.</para>
 /// </summary>
+/// <category>Uplink API</category>
 public interface ICommsBackend : ISitrepProvider
 {
     /// <summary>
     /// Whether the active vessel is connected right now, and on which axis.
     /// Live read, main thread only, like every accessor here.
     /// </summary>
+    /// <returns>The <c>comms.connectivity</c> payload.</returns>
     CommsConnectivity Connectivity();
 
-    /// <summary> How good the active vessel's link is right now. A backend that
-    /// models no signal strength still answers, saying so through the returned
-    /// value rather than by throwing: a caller cannot tell a thrown accessor
-    /// from a broken one.
+    /// <summary>
+    /// How good the active vessel's link is right now. A backend that models
+    /// no signal strength still returns a value, saying so through it rather
+    /// than by throwing: a caller cannot tell a thrown accessor from a broken
+    /// one.
     /// </summary>
+    /// <returns>The <c>comms.signal</c> payload.</returns>
     CommsSignal SignalStrength();
 
     /// <summary>
@@ -647,12 +740,15 @@ public interface ICommsBackend : ISitrepProvider
     /// link is connected to nothing AND uncontrollable, a crewed vessel out of
     /// contact is uncontrollable remotely and fully controllable locally.
     /// </summary>
+    /// <returns>The <c>comms.control</c> payload.</returns>
     CommsControl ControlState();
 
     /// <summary>
-    /// <paramref name="vessel"/>'s ordered hops home: the geometry SignalDelay
-    /// reads for light-time (§3). Empty when it has no route.
+    /// <paramref name="vessel"/>'s ordered hops home: the geometry the signal
+    /// delay's light-time is computed over. Empty when it has no route.
     /// </summary>
+    /// <param name="vessel">The craft to route from, as an opaque handle.</param>
+    /// <returns>The <c>comms.path</c> payload.</returns>
     CommsPath Path(object? vessel);
 
     /// <summary>
@@ -661,6 +757,8 @@ public interface ICommsBackend : ISitrepProvider
     /// and ground stations rotate, so a caller reads it per frame rather than
     /// caching it.
     /// </summary>
+    /// <param name="vessel">The craft to view the network from, as an opaque handle.</param>
+    /// <returns>The <c>comms.network</c> payload.</returns>
     CommsNetwork Network(object? vessel);
 
     /// <summary>
@@ -669,26 +767,28 @@ public interface ICommsBackend : ISitrepProvider
     ///
     /// <para>It is on the interface for the same reason
     /// <see cref="OcclusionModel"/> is: routing is a rule the elected backend
-    /// owns, not a stock method core can call on its behalf. Core used to call
-    /// <c>CommNetwork.FindPath</c> directly for the command-centre delay matrix
-    /// and quoted light-times over routes RealAntennas refuses to carry, because
-    /// RA overrides <c>FindClosestWhere</c> and leaves <c>FindPath</c> alone
-    /// (see <c>FleetCommsReader.ReadNodePath</c> for the whole trap).</para>
+    /// owns, not a stock method core can call on its behalf. RealAntennas
+    /// overrides <c>CommNetwork.FindClosestWhere</c> and leaves
+    /// <c>FindPath</c> alone, so calling stock <c>FindPath</c> directly quotes
+    /// light-times over routes RealAntennas refuses to carry.</para>
     ///
     /// <para><paramref name="from"/> and <paramref name="to"/> are OPAQUE node
     /// handles on the same terms as <see cref="IActiveVessel.Reported"/>: both
     /// shipped backends read them as a KSP <c>CommNet.CommNode</c>, and a
-    /// backend handed something it does not recognise answers null rather than
-    /// guessing. Null is also the answer for a missing handle, the same node at
+    /// backend handed something it does not recognise returns null rather than
+    /// guessing. Null is also the result for a missing handle, the same node at
     /// both ends (a path to yourself is not a route), and an unreachable end: a
     /// caller that wants "no delay because it is the same place" says so itself,
     /// because a route that does not exist has no light-time and a zero would
     /// claim one.</para>
     ///
-    /// <para>An EMPTY list is a different answer again: routed, with nothing to
-    /// measure. Live read, so main thread only, on the same capture-on-main seam
-    /// as every accessor above.</para>
+    /// <para>An EMPTY list is a different result again: routed, with nothing to
+    /// measure. Live read, so main thread only, like every accessor
+    /// above.</para>
     /// </summary>
+    /// <param name="from">The start node, as an opaque handle.</param>
+    /// <param name="to">The end node, as an opaque handle.</param>
+    /// <returns>The hops in order, or null when there is no route.</returns>
     IReadOnlyList<CommsRouteHop>? RouteBetween(object? from, object? to);
 
     /// <summary>
@@ -713,25 +813,25 @@ public interface ICommsBackend : ISitrepProvider
     /// which is deliver, because a wrongly-declared break deletes telemetry that
     /// physically arrived.</para>
     ///
-    /// <para>Live read, so main thread only, on the same capture-on-main seam as
-    /// every accessor above.</para>
+    /// <para>Live read, so main thread only, like every accessor above.</para>
     /// </summary>
+    /// <param name="vessel">The craft whose route is in question, as an opaque handle.</param>
+    /// <param name="nodeId">The node id, as <see cref="CommsHop.From"/> and <see cref="CommsHop.To"/> carry it.</param>
+    /// <returns>True when the signal still reaches the node, false when it does not, null when the backend cannot say.</returns>
     bool? StillCarriesTo(object? vessel, string nodeId);
 
     /// <summary>
     /// The reach rule this backend applies between two nodes: how far apart
     /// they can be and still carry a link (see <see cref="ICommsReachModel"/>
-    /// for the whole rule, and <c>CommsReach.cs</c>'s header for why core
-    /// cannot answer it for anybody).
+    /// for the whole rule, and why core cannot supply it for any backend).
     ///
     /// <para>It is on the interface for the same reason
-    /// <see cref="OcclusionModel"/> and <see cref="RouteBetween"/> are, and the
-    /// consequence of its absence was the worst of the three: nothing declared
-    /// reach, so <c>Sitrep.Propagation.Visibility</c> modelled the geometry and
-    /// nothing else, and every contact prediction promised reacquisition on
-    /// line of sight alone. That is a PREDICTION an operator plans against
-    /// rather than a readout they can check against the game, which is what
-    /// makes it worse than a wrong number on screen.</para>
+    /// <see cref="OcclusionModel"/> and <see cref="RouteBetween"/> are. Without
+    /// a declared reach, a contact prediction models the geometry and nothing
+    /// else, and promises reacquisition on line of sight alone. That is a
+    /// PREDICTION an operator plans against rather than a readout they can
+    /// check against the game, which makes it worse than a wrong number on
+    /// screen.</para>
     ///
     /// <para><paramref name="from"/> and <paramref name="to"/> are OPAQUE node
     /// handles on exactly the terms <see cref="RouteBetween"/> established: both
@@ -744,38 +844,41 @@ public interface ICommsBackend : ISitrepProvider
     /// asserts no limit and leaves the consumer predicting what it can, which is
     /// the only honest fallback here (<see cref="CommsReachModels.Unknown"/>
     /// carries the argument for why there is no conservative guess to make).
-    /// Live read to BUILD the rule, so main thread only, on the same
-    /// capture-on-main seam as every accessor above; the model it returns is
-    /// thereafter pure arithmetic and safe anywhere, including a sweep
-    /// evaluating it at thousands of future instants off-thread.</para>
+    /// Live read to BUILD the rule, so main thread only, like every accessor
+    /// above; the model it returns is thereafter pure arithmetic and safe
+    /// anywhere, including a sweep evaluating it at thousands of future
+    /// instants off-thread.</para>
     /// </summary>
+    /// <param name="from">One node, as an opaque handle.</param>
+    /// <param name="to">The other node, as an opaque handle.</param>
+    /// <returns>The reach rule for the pair, never null.</returns>
     ICommsReachModel ReachModel(object? from, object? to);
 
     /// <summary>
     /// How degraded this backend grades the active vessel's link home right now
-    /// (see <see cref="ICommsDegradeModel"/>, and <c>CommsDegrade.cs</c>'s header
-    /// for why core cannot grade it for anybody).
+    /// (see <see cref="ICommsDegradeModel"/> for the scale, and why core cannot
+    /// grade it for any backend).
     ///
     /// <para>It is on the interface for the same reason
-    /// <see cref="OcclusionModel"/> and <see cref="ReachModel"/> are, and the
-    /// alternative was already shipping: consumers derive a quality from
-    /// <c>1 - comms.signal.strength</c>, and that field carries a range fraction
-    /// under stock and a rate-ladder headroom fraction under RealAntennas. The
-    /// derivation is therefore a different curve per install with nothing saying
-    /// so, which is a wrong number acted on rather than a missing one noticed.
-    /// Asking the seam gets a rating that arrives with its rule attached.</para>
+    /// <see cref="OcclusionModel"/> and <see cref="ReachModel"/> are. A quality
+    /// derived as <c>1 - comms.signal.strength</c> is a different curve per
+    /// install, because that field carries a range fraction under stock and a
+    /// rate-ladder headroom fraction under RealAntennas, with nothing saying
+    /// so. Asking the backend gets a rating that arrives with its rule
+    /// attached.</para>
     ///
     /// <para>NEVER null: a backend that will not grade the link returns
     /// <see cref="CommsDegradeModels.Unknown"/>, whose rating is ABSENT, and
-    /// that is a one-line answer a backend with no opinion should give rather
-    /// than inventing one. Absent leaves a consumer doing exactly what it was
-    /// doing before, which is the only honest fallback on a scale whose every
-    /// value is an instruction.</para>
+    /// that is the one-line implementation a backend with no opinion should
+    /// give rather than inventing one. Absent leaves a consumer doing exactly
+    /// what it would do with no rating, which is the only honest fallback on a
+    /// scale whose every value is an instruction.</para>
     ///
-    /// <para>Live read to BUILD the rating, so main thread only, on the same
-    /// capture-on-main seam as every accessor above; the model it returns is
-    /// thereafter just a number and safe anywhere.</para>
+    /// <para>Live read to BUILD the rating, so main thread only, like every
+    /// accessor above; the model it returns is thereafter just a number and
+    /// safe anywhere.</para>
     /// </summary>
+    /// <returns>The degrade rating for the active vessel's link, never null.</returns>
     ICommsDegradeModel DegradeModel();
 
     /// <summary>
@@ -784,29 +887,22 @@ public interface ICommsBackend : ISitrepProvider
     /// nowhere (no connection, or a last hop that touches neither a ground
     /// station nor a crewed control source).
     ///
-    /// <para><b>Why a handle and not a
-    /// <see cref="CommsCommandCentre"/>.</b> Naming the centre takes two things
-    /// and only one of them is the backend's: WHICH node the path ended at is a
-    /// fact about the path, and the path is the backend's; matching that node
-    /// against the live centre registry, and shaping the answer, is core's, and
-    /// the registry is a core type an Uplink may not even reference. So the
-    /// backend answers the half it owns and core does the rest, once, for
-    /// whichever backend won.</para>
-    ///
-    /// <para>Before this method existed the whole question sat behind a
-    /// <c>backend is CommNetBackend</c> downcast in the core comms
-    /// registration, so <c>comms.commandCentre</c> was all-null forever on a
-    /// RealAntennas install: indistinguishable from "no connection", and dark
-    /// exactly where RSS/RA's dozen ground stations make "which one am I
-    /// talking to" a real question rather than a trivial one. The terminal-node
-    /// rule itself is shared (both backends inherit stock's <c>isHome</c> and
-    /// <c>isControlSource</c> unchanged), which is why it is asked of the
-    /// interface rather than reimplemented per backend.</para>
+    /// <para><b>A handle, not a <see cref="CommsCommandCentre"/>.</b> Naming
+    /// the centre takes two things and only one of them is the backend's: WHICH
+    /// node the path ended at is a fact about the path, and the path is the
+    /// backend's; matching that node against the live centre registry, and
+    /// shaping the payload, is core's, and the registry is a core type an Uplink
+    /// may not reference. So the backend supplies the half it owns and core does
+    /// the rest, once, for whichever backend won. The terminal-node rule itself
+    /// is shared (both shipped backends inherit stock's <c>isHome</c> and
+    /// <c>isControlSource</c> unchanged).</para>
     ///
     /// <para>Live read, main thread only. The handle it returns is a live KSP
     /// object and MUST NOT cross a thread boundary or outlive the capture that
-    /// produced it; core resolves it to a payload on the same seam.</para>
+    /// produced it; core resolves it to a payload on the same thread.</para>
     /// </summary>
+    /// <param name="vessel">The craft whose control path is read, as an opaque handle.</param>
+    /// <returns>The terminal node's handle, or null.</returns>
     object? ControlPathTerminus(object? vessel);
 
     /// <summary>
@@ -819,9 +915,10 @@ public interface ICommsBackend : ISitrepProvider
     ///
     /// <para>Unlike the accessors above this returns a rule, not a reading. It
     /// may perform a live read to BUILD the rule (stock's multipliers are a
-    /// difficulty setting), so it is called on the same capture-on-main seam;
+    /// difficulty setting), so it is called on the main thread during capture;
     /// the model it returns is thereafter pure arithmetic and safe
     /// anywhere.</para>
     /// </summary>
+    /// <returns>The occlusion rule, never null.</returns>
     ICommsOcclusionModel OcclusionModel();
 }

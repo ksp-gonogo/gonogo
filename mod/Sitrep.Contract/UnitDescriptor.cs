@@ -6,42 +6,39 @@ using System.Text;
 namespace Sitrep.Contract
 {
     /// <summary>
-    /// The contract's unit knowledge, as data, derived by reflection.
+    /// The contract's unit knowledge as data, derived by reflection over the
+    /// <see cref="SitrepUnitAttribute"/> on every payload property.
+    ///
+    /// <para>Units do not travel on the wire: a consumer receives
+    /// <c>{"heatShieldFlux": 3400.0}</c> with no way to learn it is kilowatts.
+    /// This descriptor is how a consumer that is not the TypeScript SDK can find
+    /// out. The mod serves it as the <c>system.units</c> Topic, and an Uplink can
+    /// build its own from its own contract assembly.</para>
+    ///
+    /// <para>It is reflected from the same assembly the payloads come from, so it
+    /// cannot drift from the attributes it describes.</para>
+    /// <internal>
+    /// Lives here rather than in RtConfig because RtConfig references
+    /// Reinforced.Typings, a codegen-time dependency the shipped mod does not
+    /// carry. Nothing in this file references anything outside the contract
+    /// assembly and the BCL. Codegen calls this too, so units.json on disk and
+    /// the document on the wire are one implementation; embedding units.json as
+    /// a resource would have given the served descriptor its own copy of the
+    /// truth.
+    /// </internal>
     /// </summary>
-    ///
-    /// <remarks>
-    /// <para>Every other piece of the unit system is a TypeScript artifact:
-    /// the generated <c>Value&lt;"kW"&gt;</c> types, the unit maps, the
-    /// decode-time wrap. None of it survives the wire. A consumer that is not
-    /// TypeScript receives <c>{"heatShieldFlux": 3400.0}</c> and has no way to
-    /// learn it is kilowatts.</para>
-    ///
-    /// <para>This class is why the mod can answer that question. It lives here
-    /// rather than in <c>RtConfig</c> because <c>RtConfig</c> references
-    /// Reinforced.Typings, which is a codegen-time dependency that the shipped
-    /// mod does not carry: touching it at runtime would fail to load. Nothing
-    /// in this file references anything outside the contract assembly and the
-    /// BCL.</para>
-    ///
-    /// <para><b>Reflected, not embedded.</b> The obvious alternative is to
-    /// bake the generated <c>units.json</c> into the assembly as a resource.
-    /// That would give the served descriptor its own copy of the truth, free
-    /// to drift from the attributes it claims to describe the moment someone
-    /// annotates a property without re-running codegen. Reflecting the same
-    /// assembly the payloads come from makes drift impossible rather than
-    /// merely tested-against. Codegen calls this too, so the file on disk and
-    /// the document on the wire are one implementation.</para>
-    /// </remarks>
+    /// <category>Serialization</category>
     public static class UnitDescriptor
     {
-        /// <summary>Version of the descriptor DOCUMENT's shape, not of the contract it describes.</summary>
+        /// <summary>The version of the descriptor document's own shape (its <c>"version"</c> field), not of the contract it describes.</summary>
         public const int Version = 1;
 
         /// <summary>
-        /// Tokens that declare a property has no physical dimension AND is not
-        /// a number you would ever scale, add or compare. They stay bare on the
-        /// wire type. See <c>RtConfig</c>'s copy of this reasoning for why
-        /// Count/Ratio/Percent/Dimensionless are deliberately absent.
+        /// Unit tokens that declare a property has no physical dimension and is
+        /// not a number you would scale, add or compare: text, flag,
+        /// enumeration, id and not-applicable. Count, ratio, percent and
+        /// dimensionless are quantities and are not in this set.
+        /// <internal>These stay bare on the generated wire type; RtConfig carries the same reasoning.</internal>
         /// </summary>
         public static readonly ISet<string> NonQuantityUnits = new HashSet<string>(StringComparer.Ordinal)
         {
@@ -55,10 +52,43 @@ namespace Sitrep.Contract
         /// <summary>The five collections the descriptor carries, all sorted so the output is byte-stable.</summary>
         public sealed class Maps
         {
+            /// <summary>
+            /// Every unit token the catalog knows: the <see cref="Units"/>
+            /// constants, plus an Uplink's own catalog when describing an Uplink
+            /// assembly. Written as <c>"vocabulary"</c>. A compound token such as
+            /// <c>kg/s</c> is not listed; it is known when both halves are.
+            /// </summary>
             public SortedSet<string> Vocabulary { get; set; }
+
+            /// <summary>
+            /// Type name to (camelCase field name to unit token), for every type
+            /// with at least one unit-tagged property. A <c>Vec3</c> field
+            /// contributes three dotted keys (<c>field.x</c>, <c>field.y</c>,
+            /// <c>field.z</c>) with the vector's unit. Generic type names carry
+            /// no arity suffix. Written as <c>"types"</c>.
+            /// </summary>
             public SortedDictionary<string, SortedDictionary<string, string>> ByType { get; set; }
+
+            /// <summary>
+            /// The same field-to-unit maps as <see cref="ByType"/>, keyed by Topic
+            /// id for each payload type tagged with one. Written as
+            /// <c>"topics"</c>.
+            /// </summary>
             public SortedDictionary<string, SortedDictionary<string, string>> ByTopic { get; set; }
+
+            /// <summary>
+            /// Type name to (camelCase field name to nested type name), for each
+            /// field whose type is another contract shape, so a consumer can follow
+            /// units into nested objects. A leading <c>*</c> marks a dictionary of
+            /// that shape and a trailing <c>[]</c> a list of it; <c>Vec3</c> fields
+            /// are not listed. Written as <c>"typeShapes"</c>.
+            /// </summary>
             public SortedDictionary<string, SortedDictionary<string, string>> ShapesByType { get; set; }
+
+            /// <summary>
+            /// The same nested-shape maps as <see cref="ShapesByType"/>, keyed by
+            /// Topic id. Written as <c>"topicShapes"</c>.
+            /// </summary>
             public SortedDictionary<string, SortedDictionary<string, string>> ShapesByTopic { get; set; }
 
             /// <summary>
@@ -82,10 +112,10 @@ namespace Sitrep.Contract
         /// <param name="assembly">
         /// Which assembly to describe. Defaults to this one, the first-party
         /// contract. An Uplink passes its OWN contract assembly and gets its
-        /// own descriptor with no edit to first-party code: declaring a unit
-        /// was always symmetric (<see cref="SitrepUnitAttribute"/> takes an
-        /// arbitrary string), and this is the codegen half of that symmetry.
+        /// own descriptor: <see cref="SitrepUnitAttribute"/> takes an arbitrary
+        /// string, so an Uplink declares units the same way this contract does.
         /// </param>
+        /// <returns>The descriptor as a JSON document.</returns>
         public static string ToJson(Assembly assembly = null)
         {
             return ToJson(Collect(assembly: assembly));
@@ -124,9 +154,8 @@ namespace Sitrep.Contract
         /// own as <c>Contract.Units.X</c>, which is a trick nobody would guess
         /// and which the guide could only document as a trap. Accepting a
         /// suffixed name lets an author call theirs <c>ExampleUnits</c> and have
-        /// no collision to work round. Widening only ADDS tokens to the
-        /// vocabulary, so nothing that passed the check before can start
-        /// failing.</para>
+        /// no collision to work round. Accepting the suffix only adds tokens to
+        /// the vocabulary, so it cannot make a passing check fail.</para>
         /// </remarks>
         private static void AddUplinkCatalog(Assembly target, SortedSet<string> into)
         {
@@ -163,23 +192,23 @@ namespace Sitrep.Contract
         }
 
         /// <summary>
-        /// Reflects over every <c>[SitrepUnit]</c>-tagged property in this
-        /// assembly.
+        /// Reflects over every unit-tagged property in <paramref name="assembly"/>
+        /// and returns the descriptor's collections.
         /// </summary>
         /// <param name="validateVocabulary">
-        /// When true, a token outside the <see cref="Units"/> catalog throws.
-        /// That is right for CODEGEN, where everything reflected is compiled
-        /// into this assembly and a typo is drift. It is wrong at RUNTIME
-        /// inside KSP, where throwing would take the mod down over a
-        /// descriptor nobody asked for; there the offending field is simply
-        /// carried as-is and a consumer sees an unknown token, which the
-        /// open `SitrepUnit` union already allows for.
+        /// When <c>true</c>, a token outside the catalog (core's
+        /// <see cref="Units"/> plus the Uplink's own <c>*Units</c> class, with a
+        /// compound known when both halves are) throws
+        /// <see cref="InvalidOperationException"/>. Use it at build time, where a
+        /// typo is a defect. Leave it <c>false</c> at runtime inside KSP, where
+        /// an unknown token is carried as-is rather than taking the mod down.
         /// </param>
         /// <param name="assembly">
         /// Which assembly to reflect over. Defaults to this one. An Uplink's
         /// own contract assembly works exactly as well: nothing here is
         /// specific to the first-party contract except the default.
         /// </param>
+        /// <returns>The five sorted collections.</returns>
         public static Maps Collect(bool validateVocabulary = false, Assembly assembly = null)
         {
             var vocabulary = new SortedSet<string>(StringComparer.Ordinal);
@@ -196,17 +225,11 @@ namespace Sitrep.Contract
             var target = assembly ?? typeof(UnitDescriptor).Assembly;
             var assemblyTypes = LoadableTypes(target);
             AddUplinkCatalog(target, vocabulary);
-            // The catalog belongs to THIS assembly, so it can only judge this
-            // assembly's tokens. A third party cannot add to `Units` (a
-            // const-string class compiled in here), which is exactly why the
-            // generated `SitrepUnit` union is open; validating their tokens
-            // against our catalog would mean an Uplink could never declare a
-            // unit at all.
-            // Every Uplink is judged against core's catalog PLUS its own, so an
-            // Uplink can declare whatever units it models while a typo in either
-            // still fails. There is no first-party exemption because there are no
-            // first-party Uplinks: the rule that applies to the ones shipped here
-            // is the rule that applies to anyone else's.
+            /*
+             * An Uplink cannot add to `Units`, a const-string class compiled in here, so every
+             * Uplink is judged against core's catalog plus its own: it can declare whatever units
+             * it models while a typo in either still fails.
+             */
             var validate = validateVocabulary;
             var contractTypes = new HashSet<string>(StringComparer.Ordinal);
             foreach (var t in assemblyTypes)
@@ -221,12 +244,12 @@ namespace Sitrep.Contract
                 var enums = new SortedDictionary<string, string>(StringComparer.Ordinal);
                 foreach (var prop in type.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
                 {
-                    // A property whose type is ANOTHER contract shape (or a
-                    // list, or a map, of one). The unit maps are flat per
-                    // type, so without this a nested shape's declared units
-                    // are unreachable from the parent's entry. Vec3 is
-                    // excluded: its unit is declared per USE SITE and
-                    // propagates onto dotted leaf keys below.
+                    /*
+                     * A property whose type is another contract shape (or a list or map of one). The
+                     * unit maps are flat per type, so without this a nested shape's units are
+                     * unreachable from the parent. Vec3 is excluded: its unit is declared per use site
+                     * and propagates onto dotted leaf keys below.
+                     */
                     bool isMap;
                     bool isList;
                     var nestedType = NestedContractType(prop.PropertyType, out isMap, out isList);
@@ -234,19 +257,13 @@ namespace Sitrep.Contract
                         && nestedType != typeof(Vec3)
                         && contractTypes.Contains(WireName(nestedType)))
                     {
-                        // Both markers name the ELEMENT type, because that is
-                        // what a consumer of the payload indexes into, and say
-                        // how many of it the field holds. A leading `*` marks a
-                        // DICTIONARY: the runtime maps over the values rather
-                        // than treating the dictionary itself as one payload. A
-                        // trailing `[]` marks a LIST, spelled as the topic map
-                        // already spells an array channel.
-                        //
-                        // Plurality is what separates a path a caller can
-                        // sample from one it cannot. Without the list marker
-                        // `contracts.active.agent` reads as a field of
-                        // `career.status`, and it is a field of one element of
-                        // an array that no sample can reach.
+                        /*
+                         * Both markers name the element type and say how many of it the field holds. A
+                         * leading `*` marks a dictionary, which the runtime maps over rather than treating
+                         * as one payload; a trailing `[]` marks a list. Plurality separates a path a caller
+                         * can sample from one it cannot: without it `contracts.active.agent` reads as a
+                         * field of `career.status`, when it is a field of one element of an array.
+                         */
                         nested[CamelCase(prop.Name)] =
                             (isMap ? "*" : string.Empty)
                             + WireName(nestedType)
@@ -259,13 +276,7 @@ namespace Sitrep.Contract
                         continue;
                     }
 
-                    // An Uplink's token is NOT checked against this catalog
-                    // even when validating: it cannot add to `Units`, which is
-                    // a const-string class in this assembly, so a closed check
-                    // would mean an Uplink could never declare a unit at all.
-                    // Its tokens ride the open arm of the generated
-                    // `SitrepUnit` union and are registered client-side
-                    // through `registerUnit`.
+                    // Validation judges against core's catalog plus the Uplink's own; see the comment above `validate`.
                     if (validate && !IsKnownToken(unit.Unit, vocabulary))
                     {
                         throw new InvalidOperationException(
@@ -284,9 +295,7 @@ namespace Sitrep.Contract
 
                     if (prop.PropertyType == typeof(Vec3))
                     {
-                        // A [SitrepUnit] on a Vec3-TYPED field states the unit
-                        // of the WHOLE vector, and the wire carries three
-                        // scalar leaves, so the unit propagates to each.
+                        // A unit on a Vec3 field is the whole vector's, and the wire carries three scalar leaves, so each leaf gets it.
                         foreach (var leaf in Vec3LeafNames())
                         {
                             fields.Add(field + "." + leaf, unit.Unit);
@@ -389,12 +398,14 @@ namespace Sitrep.Contract
         }
 
         /// <summary>
-        /// The maps as JSON. Written by hand rather than through a serializer
-        /// because this assembly targets netstandard2.0 and carries no JSON
-        /// dependency, and because the output wants to be stable byte-for-byte:
-        /// every collection is already sorted, so a diff means the contract
-        /// actually changed.
+        /// Writes <paramref name="maps"/> as the descriptor JSON document:
+        /// <c>version</c>, <c>vocabulary</c>, <c>types</c>, <c>topics</c>,
+        /// <c>typeShapes</c> and <c>topicShapes</c>. Every collection is sorted,
+        /// so the output is byte-stable and a diff means the contract changed.
+        /// <internal>Written by hand: this assembly targets netstandard2.0 and carries no JSON dependency.</internal>
         /// </summary>
+        /// <param name="maps">The collections from <see cref="Collect"/>.</param>
+        /// <returns>The JSON document, newline-terminated.</returns>
         public static string ToJson(Maps maps)
         {
             var sb = new StringBuilder();
@@ -482,19 +493,11 @@ namespace Sitrep.Contract
         /// loaded.
         /// </summary>
         /// <remarks>
-        /// <para><c>GetTypes()</c> resolves EVERY type in the assembly and
+        /// <para><c>GetTypes()</c> resolves every type in the assembly and
         /// throws the whole call away if one of them references something
-        /// absent. This used to bite: the netstandard2.0 build carried
-        /// <c>RtConfig</c> and the Reinforced.Typings attributes, so any
-        /// consumer of it needed a codegen DLL that is deliberately never
-        /// deployed. No build of this assembly carries them now, they are
-        /// compiled only into Sitrep.Contract.Codegen (see
-        /// Sitrep.Contract.csproj).</para>
-        ///
-        /// <para>Keeping the tolerant path anyway: a contract assembly may
-        /// always hold a type whose dependencies are not deployed, and a
-        /// descriptor that omits an unloadable type is better than one that
-        /// refuses to exist.</para>
+        /// absent. A contract assembly may hold a type whose dependencies are
+        /// not deployed, and a descriptor that omits an unloadable type is
+        /// better than none.</para>
         /// </remarks>
         internal static Type[] LoadableTypes(Assembly assembly)
         {
@@ -519,11 +522,7 @@ namespace Sitrep.Contract
             }
             catch (System.IO.FileNotFoundException)
             {
-                // Hard load failure: a dependency of some type in the
-                // assembly is not deployed at all, and nothing comes back.
-                // Empty rather than throwing, so a caller gets "no
-                // descriptor" instead of an exception it has no way to act
-                // on.
+                // A dependency is not deployed at all and nothing comes back: empty rather than an exception the caller cannot act on.
                 return new Type[0];
             }
         }

@@ -1,26 +1,5 @@
 namespace Sitrep.Contract;
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Delayed science crediting as a Kernel-elected capability, the same shape
-// "science" / "comms" / "actionGroups" already use (ScienceCapability.cs,
-// Comms.cs, ActionGroupsBackend.cs).
-//
-//   • ONE exclusive capability "delayedScience" whose active instance is an
-//     IDelayedScienceSink (this file).
-//   • A core registrar (mod/Gonogo.KSP/CurrencyEventUplink.cs) OWNS the
-//     capability and ships the currency-delay sink as its Vanilla factory, so
-//     the capability is satisfied on every install.
-//   • An Uplink that OBSERVES science crediting a third-party mod does its own
-//     way resolves the sink through host.Kernel and hands increments to it. It
-//     needs no reference to the implementing assembly, which is the whole
-//     reason this interface exists here rather than staying a static call into
-//     Gonogo.KSP: that reference put five unpublished assemblies on the calling
-//     Uplink's compile surface, and an outside author cannot obtain any of them.
-//
-// Closure is zero: the one method's parameters are primitives, so nothing new
-// arrives in this assembly alongside it.
-// ─────────────────────────────────────────────────────────────────────────────
-
 /// <summary>
 /// The "delayedScience" capability's active-instance interface: the
 /// source-agnostic entry point a per-increment science source hands its raw
@@ -28,13 +7,23 @@ namespace Sitrep.Contract;
 /// knowing anything about the aggregator, the pending-credit ledger, or how a
 /// reveal-UT is derived.
 ///
+/// <para>Core registers a default sink, so once capabilities are resolved the
+/// capability is satisfied on every install; before that, resolving through
+/// <c>host.Kernel</c> returns nothing. An Uplink that observes a
+/// third-party mod crediting science its own way resolves the sink and hands
+/// each increment to it, with no reference to the implementing
+/// assembly.</para>
+///
 /// <para>Deliberately primitives-only. The implementation resolves the vessel
 /// itself, from the <c>vesselId</c> it is handed, because only a LIVE vessel has a
 /// CommNet route and a route is the only thing that produces a delay: a handle
-/// to a vessel the caller happens to hold says nothing about routability. An
-/// earlier signature took a stock <c>ProtoVessel</c> alongside the id and
-/// documented the light-time as coming from it, which was never true.</para>
+/// to a vessel the caller happens to hold says nothing about routability.</para>
+/// <internal>
+/// The core registrar is <c>Gonogo.KSP.CurrencyEventUplink</c>, which ships the
+/// currency-delay sink as the capability's Vanilla factory.
+/// </internal>
 /// </summary>
+/// <category>Uplink API</category>
 public interface IDelayedScienceSink : ISitrepProvider
 {
     /// <summary>
@@ -44,19 +33,22 @@ public interface IDelayedScienceSink : ISitrepProvider
     /// a non-positive amount, an empty id, or a currency-delay subsystem that
     /// is not currently active (no loaded game).
     /// </summary>
+    /// <param name="vesselId">The earning vessel, as KSP's <c>Vessel.id</c> GUID string.</param>
+    /// <param name="amount">The raw science amount earned.</param>
+    /// <param name="ut">The universal time it was earned at.</param>
+    /// <param name="originDescription">An opaque label shown on the pending-credit row.</param>
     void RecordDelayedScienceIncrement(string vesselId, double amount, double ut, string originDescription);
 }
 
 /// <summary>
-/// The capability id both halves name. It lives HERE, not on the core
-/// registrar, because both halves must spell it identically and only one of them
-/// is published: the older elections keep their id constant in the unpublished
-/// Sitrep.Host, which leaves each Uplink re-declaring the string as its own
-/// constant with a test to pin the two equal. Two spellings of one identity
-/// drift silently, the capability simply never elects. A capability an Uplink is
-/// expected to resolve should not need that test at all.
+/// The capability id both the registrar and a resolving Uplink name. It lives
+/// here, in the published contract, so both spell it from one constant: two
+/// spellings of one identity drift silently, and the capability simply never
+/// resolves.
 /// </summary>
+/// <category>Uplink API</category>
 public static class DelayedScienceCapability
 {
+    /// <summary>The capability id, <c>"delayedScience"</c>: resolve an <see cref="IDelayedScienceSink"/> under exactly this string.</summary>
     public const string CapabilityId = "delayedScience";
 }

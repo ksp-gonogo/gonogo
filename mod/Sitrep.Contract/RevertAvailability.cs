@@ -6,22 +6,19 @@ namespace Sitrep.Contract;
 
 /// <summary>
 /// The <c>ksp.revertAvailability</c> Topic payload: whether the two stock
-/// in-flight "revert" actions are currently available, so a widget
-/// (LaunchDirector) can gate its Revert-to-Launch / Revert-to-Editor
-/// controls exactly like KSP's own pause menu does. Produced by
-/// <c>Sitrep.Host.SystemViewProvider.BuildRevertAvailability</c> from the
-/// two static <c>FlightDriver</c> bools KSP reads when it draws those very
-/// buttons.
+/// in-flight "revert" actions are currently available, so a widget can gate
+/// its Revert-to-Launch and Revert-to-Editor controls exactly as KSP's own
+/// pause menu does. Read from the two static <c>FlightDriver</c> flags KSP
+/// reads when it draws those buttons.
 ///
 /// <para>The whole payload is <c>null</c> (no key emitted) outside the flight
 /// scene: the two flags are only meaningful in flight, and the backing
 /// <c>FlightDriver</c> statics carry leftover values from the previous flight
 /// otherwise. When present, both bools are concrete (never null): a
-/// <c>false</c> means "this revert is genuinely not available right now," which
-/// is exactly what the gate needs.</para>
+/// <c>false</c> means "this revert is not available right now".</para>
 ///
-/// <para><b>Mapping (verified against KSP's
-/// <c>PauseMenu.drawStockRevertOptions</c> at build time):</b> the pause menu
+/// <para><b>Mapping (as KSP's <c>PauseMenu.drawStockRevertOptions</c> draws
+/// it):</b> the pause menu
 /// shows the "Revert to Launch" button (which calls
 /// <c>FlightDriver.RevertToLaunch()</c>, restoring the <c>PostInitState</c>)
 /// when <c>FlightDriver.CanRevertToPostInit</c> is set, and the "Revert to
@@ -30,12 +27,15 @@ namespace Sitrep.Contract;
 /// set. So <see cref="CanRevertToLaunch"/> maps to <c>CanRevertToPostInit</c>
 /// and <see cref="CanRevertToEditor"/> maps to <c>CanRevertToPrelaunch</c>: the
 /// KSP field names read backwards to their button labels, so the mapping is
-/// deliberately the inverse of a naive name-match.</para>
+/// the inverse of a naive name match.</para>
 ///
-/// <para>Same <c>system</c>-uplink convention as <c>SystemBodies</c>: a
-/// scene-side fact carried on its own Topic with no per-payload <c>Meta</c>
-/// (it rides the envelope), classified <c>DelayRole.TrueNow</c>: a
-/// ground-side game-state fact, not comms-derived vessel telemetry.</para>
+/// <para>A scene-side fact with no per-payload <c>Meta</c> (the envelope's
+/// applies), classified <see cref="DelayRole.TrueNow"/>: a ground-side
+/// game-state fact, not comms-delayed vessel telemetry.</para>
+/// <internal>
+/// Produced by <c>Sitrep.Host.SystemViewProvider.BuildRevertAvailability</c>,
+/// on the same convention as <c>SystemBodies</c>.
+/// </internal>
 /// </summary>
 /// <category>Flights</category>
 [SitrepContract]

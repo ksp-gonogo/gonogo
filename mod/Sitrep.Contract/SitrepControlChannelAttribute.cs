@@ -3,31 +3,27 @@ using System;
 namespace Sitrep.Contract
 {
     /// <summary>
-    /// Declares a wire-payload read property to be one half of a BIDIRECTIONAL
-    /// control channel, pairing it with the write command that actuates the same
-    /// control. Placed on the READ property of a <see cref="SitrepTopicAttribute"/>
-    /// payload (e.g. <c>VesselControl.Throttle</c>); the attribute's constructor
-    /// carries the WRITE half (the command name, its typed args, and the field of
-    /// those args that carries the value). Codegen (<c>RtConfig.EmitChannelMap</c>,
-    /// invoked from <c>mod/codegen.sh</c>) reflects over these and emits
-    /// <c>mod/sitrep-sdk/src/__generated__/control-channels.ts</c>, which the SDK
-    /// wraps into ONE handle per channel (see <c>control-channels.ts</c>).
+    /// Declares a Topic payload property to be the read half of a two-way
+    /// control channel, and names the command that writes the same control.
+    /// Placed on the read property (e.g. <c>VesselControl.Throttle</c>); the
+    /// constructor carries the write half: the command name, its typed args
+    /// class, and the property of those args that carries the value. The SDK
+    /// exposes each declared channel as one handle that reads the property and
+    /// writes through the command.
     ///
-    /// <para><b>Bidirectionality is required by the type.</b> There is no
-    /// parameterless or read-only overload: declaring the attribute at all forces
-    /// a write command + args + value field, and the read half is the property it
-    /// sits on. A control axis cannot be declared one-way, the same discipline as
-    /// a mandatory interface member. It also gives the write side a real
-    /// contract-declared type instead of the bare command string it was before.</para>
-    ///
-    /// <para>Lives IN <c>Sitrep.Contract</c> and is compiled into BOTH target
-    /// frameworks, the same rule <see cref="SitrepTopicAttribute"/> and
-    /// <see cref="SitrepUnitAttribute"/> follow and for the same reason: anything
-    /// reflecting over it (codegen, the coverage gate) must never have to resolve
-    /// an external assembly. It is metadata only and does NOT touch the wire: the
-    /// read topic field and the write command stay two separate wire keys, exactly
-    /// as before, and only the SDK unifies them.</para>
+    /// <para>There is no read-only form: declaring the attribute requires a
+    /// write command, args type and value field. It is metadata only. On the
+    /// wire the read field and the write command stay two separate keys.</para>
+    /// <internal>
+    /// RtConfig.EmitChannelMap (run from mod/codegen.sh) reflects over these and
+    /// emits mod/sitrep-sdk/src/__generated__/control-channels.ts, which
+    /// control-channels.ts wraps into one handle per channel. Lives in
+    /// Sitrep.Contract and is compiled into both target frameworks, like
+    /// SitrepTopicAttribute and SitrepUnitAttribute, so codegen and the
+    /// coverage gate never have to resolve an external assembly.
+    /// </internal>
     /// </summary>
+    /// <category>Channels and emission</category>
     [AttributeUsage(AttributeTargets.Property, Inherited = false, AllowMultiple = false)]
     public sealed class SitrepControlChannelAttribute : Attribute
     {
@@ -43,6 +39,11 @@ namespace Sitrep.Contract
         /// <summary>The C# property name on <see cref="Args"/> that carries the value, e.g. <c>nameof(SetThrottleArgs.Value)</c>.</summary>
         public string ValueField { get; }
 
+        /// <summary>Declares the property this sits on as the read half of the control channel <paramref name="channelId"/>.</summary>
+        /// <param name="channelId">The channel id, unique across all declared channels.</param>
+        /// <param name="writeCommand">The command that writes the control.</param>
+        /// <param name="args">The typed args class <paramref name="writeCommand"/> takes.</param>
+        /// <param name="valueField">The C# property name on <paramref name="args"/> that carries the value.</param>
         public SitrepControlChannelAttribute(string channelId, string writeCommand, Type args, string valueField)
         {
             ChannelId = channelId;

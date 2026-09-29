@@ -5,18 +5,12 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The <c>vessel.propulsion</c> channel payload: the TWR/burn-time
-/// derivation inputs (G-4). <see cref="TotalMass"/>/<see cref="DryMass"/> in
-/// tonnes, <see cref="CurrentThrust"/>/<see cref="AvailableThrust"/> in kN
-/// (dimensionally consistent for TWR: kN/(t·m/s²): see
-/// kN/(t·m/s²)). <see cref="AvailableThrust"/>
-/// already excludes shut-down/flamed-out engines at capture (only
-/// <c>EngineIgnited &amp;&amp; !flameout</c> engines contribute): it is
-/// "what this vessel can produce RIGHT NOW," not its rated maximum.
-/// *Derived, SDK-side, NOT streamed here:* TWR
-/// (<c>currentThrust / (totalMass · g)</c>), max-TWR, and a crude vessel-level
-/// burn-time estimate (retiring <c>dv.currentTWR</c>/<c>dv.*</c> until a
-/// stage sim exists, G-14).
+/// The <c>vessel.propulsion</c> channel payload: the active vessel's mass and
+/// thrust, the inputs to thrust-to-weight and burn-time figures. Mass is in
+/// tonnes and thrust in kN, so <c>thrust / (mass · g)</c> is a
+/// thrust-to-weight ratio directly.
+/// <para>TWR, maximum TWR and a vessel-level burn-time estimate are derived by
+/// the client from these fields, and are not streamed here.</para>
 /// </summary>
 /// <category>Vessel</category>
 [SitrepContract]
@@ -26,15 +20,24 @@ namespace Sitrep.Contract;
 [SitrepTopic("vessel.propulsion")]
 public class VesselPropulsion
 {
+    /// <summary>The vessel's total mass including resources, in tonnes (KSP's <c>Vessel.totalMass</c>).</summary>
     [SitrepUnit(Units.Tonnes)]
     public double TotalMass { get; set; }
 
+    /// <summary>The vessel's mass without resources, in tonnes: the sum of every part's <c>Part.mass</c>.</summary>
     [SitrepUnit(Units.Tonnes)]
     public double DryMass { get; set; }
 
+    /// <summary>The thrust every engine on the vessel is producing now, in kN (the sum of <c>ModuleEngines.finalThrust</c>). Zero when nothing is firing.</summary>
     [SitrepUnit(Units.Kilonewtons)]
     public double CurrentThrust { get; set; }
 
+    /// <summary>
+    /// The thrust the vessel can produce right now, in kN: the maximum thrust
+    /// (<c>ModuleEngines.GetMaxThrust</c>) of every engine that is ignited and
+    /// not flamed out. A shut-down or flamed-out engine contributes nothing, so
+    /// this is not the vessel's rated maximum.
+    /// </summary>
     [SitrepUnit(Units.Kilonewtons)]
     public double AvailableThrust { get; set; }
 
@@ -49,12 +52,11 @@ public class VesselPropulsion
     /// type-legal and meaningless; the only duration it belongs in is one
     /// measured against the reader's own view clock.</para>
     ///
-    /// <para>Latched rather than emitted as an edge, and that is the whole
-    /// design. Every vessel channel is <c>Delivery.LossyLatest</c> over a
-    /// UT-gated snapshot, so a "thrust just started" event is a one-shot the
-    /// transport is entitled to drop, and a consumer that missed it cannot tell
-    /// that from nothing having happened. A latched instant is on every
-    /// subsequent frame until it changes.</para>
+    /// <para>Latched rather than sent as an edge: every vessel channel is
+    /// <c>Delivery.LossyLatest</c>, so a one-shot "thrust just started" event
+    /// could be dropped, and a consumer that missed it could not tell that from
+    /// nothing having happened. A latched instant is on every subsequent frame
+    /// until it changes.</para>
     ///
     /// <para>Held, not cleared, while thrust is unmeasurable (an on-rails or
     /// packed craft has no parts to read). Otherwise switching away from a
@@ -85,5 +87,6 @@ public class VesselPropulsion
     [SitrepUnit(Units.UniversalTime)]
     public double? LastThrustEndUt { get; set; }
 
+    /// <summary>Payload provenance. <c>Source</c> is <c>"vessel:&lt;guid&gt;"</c> for the active vessel; <c>Quality</c> is <c>Loaded</c> under physics and <c>OnRails</c> otherwise.</summary>
     public PayloadMeta Meta { get; set; } = new();
 }

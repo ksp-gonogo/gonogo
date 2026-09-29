@@ -45,5 +45,6 @@ public class VesselSurface
     [SitrepUnit(Units.Metres)]
     public double? HeightFromTerrain { get; set; }
 
+    /// <summary>Payload provenance. <c>Source</c> is <c>"vessel:&lt;guid&gt;"</c> for the active vessel; <c>Quality</c> is <c>Loaded</c> under physics and <c>OnRails</c> otherwise.</summary>
     public PayloadMeta Meta { get; set; } = new();
 }

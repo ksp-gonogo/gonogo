@@ -20,6 +20,7 @@ namespace Sitrep.Contract
     /// marked unavailable with both versions in the reason. A minor difference in
     /// either direction loads, because minor versions only add.</para>
     /// </summary>
+    /// <category>Uplink API</category>
     [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
     public sealed class SitrepUplinkAttribute : Attribute
     {
@@ -36,7 +37,6 @@ namespace Sitrep.Contract
         /// <param name="id">The Uplink's id, the same string as its manifest's.</param>
         /// <param name="contractMajor">Leave defaulted: the compiled-against contract major.</param>
         /// <param name="contractMinor">Leave defaulted: the compiled-against contract minor.</param>
-
         public SitrepUplinkAttribute(
             string id,
             int contractMajor = ContractVersion.Major,

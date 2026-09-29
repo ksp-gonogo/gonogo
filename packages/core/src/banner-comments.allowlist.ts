@@ -143,5 +143,5 @@ export const SCAN_FLOORS = {
   /** Files carrying at least one banner. 93 under revision 2. */
   filesWithBanner: 70,
   /** Banner lines found. 423 under revision 2. */
-  banners: 320,
+  banners: 300,
 } as const;

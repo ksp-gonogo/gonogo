@@ -7,30 +7,22 @@ namespace Sitrep.Contract;
 /// <summary>
 /// One conic segment of a vessel's future trajectory, a patched-conic
 /// "patch" in KSP's own sense (<c>Orbit.nextPatch</c>/<c>previousPatch</c>).
-/// Unlike <see cref="VesselOrbit"/> (which is deliberately elements-only,
-/// see its own doc comment), a patch chain exists purely so the CLIENT can
-/// propagate/render a forward trajectory, so it carries the same
-/// already-computed apsis/shape fields KSP's own <c>Orbit</c> exposes
-/// (<see cref="PeA"/>/<see cref="ApA"/>/<see cref="SemiLatusRectum"/>/
-/// <see cref="SemiMinorAxis"/>) rather than forcing the client to re-derive
-/// them per patch. <see cref="ReferenceBody"/>/<see cref="ClosestEncounterBody"/>
-/// are body NAME strings, because the client's existing patch-consuming math
-/// (<c>packages/core/src/calc/trajectory.ts</c>, which predates this Topic and
-/// already expects body names) needs zero reshaping to use them directly.
+/// A patch carries everything needed to propagate and draw it with no
+/// <c>system.bodies</c> join: its Keplerian elements, KSP's own
+/// already-computed shape fields (<see cref="PeA"/>, <see cref="ApA"/>,
+/// <see cref="SemiLatusRectum"/>, <see cref="SemiMinorAxis"/>), its body's
+/// gravitational parameter (<see cref="Mu"/>) and the transitions at each end.
 ///
-/// <see cref="ReferenceBodyIndex"/>/<see cref="ClosestEncounterBodyIndex"/> sit
-/// beside them and are the IDENTITY, matching <see
-/// cref="VesselOrbit.ReferenceBodyIndex"/> and every other body reference in
-/// this contract. Both are carried on purpose: propagating a patch needs its
-/// body resolved, and a display name is the wrong key for that.
+/// <para>Bodies are carried twice. <see cref="ReferenceBodyIndex"/> and
+/// <see cref="ClosestEncounterBodyIndex"/> are the identity, the
+/// <c>system.bodies</c> index every other body reference in this contract uses
+/// (<see cref="VesselOrbit.ReferenceBodyIndex"/> among them). <see cref="ReferenceBody"/>
+/// and <see cref="ClosestEncounterBody"/> are the body's name, for display.</para>
 ///
-/// <see cref="Mu"/> completes the same thought: a patch carries everything
-/// needed to propagate it, with no <c>system.bodies</c> join.
-///
-/// Every element is a plain (non-nullable) double, unlike
-/// <see cref="VesselOrbit.Lan"/>/<see cref="VesselOrbit.ArgPe"/>: a patch
-/// is propagated, and a patch missing any element needed to propagate it is
-/// not sent at all rather than sent with a stand-in.
+/// <para>Every element is a plain, non-nullable double, unlike
+/// <see cref="VesselOrbit.Lan"/> and <see cref="VesselOrbit.ArgPe"/>: a patch
+/// missing any element needed to propagate it is not sent at all, rather than
+/// sent with a stand-in.</para>
 /// </summary>
 /// <category>Orbits and trajectories</category>
 [SitrepContract]
@@ -39,120 +31,120 @@ namespace Sitrep.Contract;
 #endif
 public class OrbitPatch
 {
+    /// <summary>Semi-major axis in metres, KSP's <c>Orbit.semiMajorAxis</c>.</summary>
     [SitrepUnit(Units.Metres)]
     public double Sma { get; set; }
 
+    /// <summary>Eccentricity, KSP's <c>Orbit.eccentricity</c>: below 1 for a closed patch.</summary>
     [SitrepUnit(Units.Dimensionless)]
     public double Ecc { get; set; }
 
+    /// <summary>Inclination in degrees, KSP's <c>Orbit.inclination</c>.</summary>
     [SitrepUnit(Units.Degrees)]
     public double Inc { get; set; }
 
+    /// <summary>Longitude of the ascending node in degrees, KSP's <c>Orbit.LAN</c>. <c>0</c> when KSP's value is undefined (NaN).</summary>
     [SitrepUnit(Units.Degrees)]
     public double Lan { get; set; }
 
+    /// <summary>Argument of periapsis in degrees, KSP's <c>Orbit.argumentOfPeriapsis</c>. <c>0</c> when KSP's value is undefined (NaN).</summary>
     [SitrepUnit(Units.Degrees)]
     public double ArgPe { get; set; }
 
+    /// <summary>Mean anomaly at <see cref="Epoch"/> in radians, KSP's <c>Orbit.meanAnomalyAtEpoch</c>. <c>0</c> when KSP's value is undefined (NaN).</summary>
     [SitrepUnit(Units.Radians)]
     public double MeanAnomalyAtEpoch { get; set; }
 
+    /// <summary>The universal time at which <see cref="MeanAnomalyAtEpoch"/> holds, KSP's <c>Orbit.epoch</c>.</summary>
     [SitrepUnit(Units.UniversalTime)]
     public double Epoch { get; set; }
 
-    /// <summary>Orbital period, seconds. Non-finite (hyperbolic/parabolic
-    /// patches) is carried as-is, the client's `isPatchElliptical` guard is
-    /// what filters those, not this field.</summary>
+    /// <summary>Orbital period in seconds, KSP's <c>Orbit.period</c>. Always
+    /// finite: a patch whose period is not finite is not carried in the chain.</summary>
     [SitrepUnit(Units.Seconds)]
     public double Period { get; set; }
 
+    /// <summary>Universal time at which the trajectory enters this patch, KSP's <c>Orbit.StartUT</c>.</summary>
     [SitrepUnit(Units.UniversalTime)]
     public double StartUt { get; set; }
 
+    /// <summary>Universal time at which the trajectory leaves this patch, KSP's <c>Orbit.EndUT</c>.</summary>
     [SitrepUnit(Units.UniversalTime)]
     public double EndUt { get; set; }
 
+    /// <summary>How the trajectory enters this patch, KSP's <c>Orbit.patchStartTransition</c>.</summary>
     [SitrepUnit(Units.Enumeration)]
     public TransitionType PatchStartTransition { get; set; }
 
+    /// <summary>How the trajectory leaves this patch, KSP's <c>Orbit.patchEndTransition</c>. <see cref="TransitionType.Final"/> when it does not leave it.</summary>
     [SitrepUnit(Units.Enumeration)]
     public TransitionType PatchEndTransition { get; set; }
 
     /// <summary>Periapsis altitude above <see cref="ReferenceBody"/>'s mean
-    /// radius, metres, `Orbit.PeA`.</summary>
+    /// radius in metres, KSP's <c>Orbit.PeA</c>.</summary>
     [SitrepUnit(Units.Metres)]
     public double PeA { get; set; }
 
     /// <summary>Apoapsis altitude above <see cref="ReferenceBody"/>'s mean
-    /// radius, metres, `Orbit.ApA`.</summary>
+    /// radius in metres, KSP's <c>Orbit.ApA</c>.</summary>
     [SitrepUnit(Units.Metres)]
     public double ApA { get; set; }
 
+    /// <summary>Semi-latus rectum in metres, KSP's <c>Orbit.semiLatusRectum</c>.</summary>
     [SitrepUnit(Units.Metres)]
     public double SemiLatusRectum { get; set; }
 
+    /// <summary>Semi-minor axis in metres, KSP's <c>Orbit.semiMinorAxis</c>.</summary>
     [SitrepUnit(Units.Metres)]
     public double SemiMinorAxis { get; set; }
 
-    /// <summary>Body this patch orbits: matches `system.bodies`' NAME, not its
-    /// index (see class doc).</summary>
+    /// <summary>Name of the body this patch orbits, as <c>system.bodies</c>
+    /// names it. For display; <see cref="ReferenceBodyIndex"/> is the identity.</summary>
     [SitrepUnit(Units.Text)]
     public string ReferenceBody { get; set; } = "";
 
-    /// <summary>Body this patch's trajectory most closely encounters, if any,
-    /// null when there is none. Same "name, not index" convention as <see
-    /// cref="ReferenceBody"/>.</summary>
+    /// <summary>Name of the body this patch's trajectory most closely
+    /// encounters, KSP's <c>Orbit.closestEncounterBody</c>; null when there is
+    /// none. For display; <see cref="ClosestEncounterBodyIndex"/> is the identity.</summary>
     [SitrepUnit(Units.Text)]
     public string? ClosestEncounterBody { get; set; }
 
     /// <summary>
-    /// Parent body's standard gravitational parameter (GM), so a patch is
-    /// self-sufficient to propagate exactly as <see cref="VesselOrbit.Mu"/>
-    /// makes a vessel's own orbit self-sufficient.
+    /// Parent body's standard gravitational parameter (GM), read off the same
+    /// body the elements are relative to, so a patch can be propagated from
+    /// what it carries, as <see cref="VesselOrbit.Mu"/> does for a vessel's own
+    /// orbit.
     ///
-    /// <para>Without it a patch was the only orbit on the wire that could not
-    /// be propagated from what it carries: a consumer had to resolve
-    /// <see cref="ReferenceBody"/> through <c>system.bodies</c> to find the
-    /// number. That asymmetry made an A/B between a vessel's own orbit and a
-    /// maneuver patch measure the lookup as well as the arithmetic.</para>
-    ///
-    /// <para>Null only on a patch read off a recording captured BEFORE this
-    /// field existed, on the same terms as <see cref="ManeuverNode.Id"/>.
-    /// Nullable rather than 0 because a zero GM is not a body, and every
-    /// consumer of it divides.</para>
+    /// <para>Null only on a patch read off a recording that does not carry it,
+    /// on the same terms as <see cref="ManeuverNode.Id"/>. Never 0.</para>
     /// </summary>
     [SitrepUnit(Units.CubicMetresPerSecondSquared)]
     public double? Mu { get; set; }
 
     /// <summary>
-    /// Body this patch orbits, as its <c>system.bodies</c> INDEX. The
-    /// identity, where <see cref="ReferenceBody"/> is the display name: index
-    /// is what every other body reference in this contract is keyed on
+    /// Body this patch orbits, as its <c>system.bodies</c> index (KSP's
+    /// <c>CelestialBody.flightGlobalsIndex</c>). This is the identity, where
+    /// <see cref="ReferenceBody"/> is the display name, and it is the key every
+    /// other body reference in this contract uses
     /// (<see cref="VesselOrbit.ReferenceBodyIndex"/>, <c>VesselTarget</c>,
-    /// <c>TargetAvailable</c>, <c>VesselIdentity.ParentBodyIndex</c>) and what
-    /// <c>Sitrep.Propagation</c>'s <c>PropagationTarget</c> and
-    /// <c>PropagationFrame</c> name a body by.
+    /// <c>TargetAvailable</c>, <c>VesselIdentity.ParentBodyIndex</c>).
     ///
-    /// <para>Carried ALONGSIDE the name rather than replacing it: the name is
-    /// load-bearing in <c>orbit-patches.ts</c>'s SOI-change detection and in
-    /// <c>trajectory.ts</c>, which predates this Topic (see the class doc), so
-    /// dropping it is a client migration and not a contract edit.</para>
-    ///
-    /// <para>Null only on a pre-existing recording, per <see cref="Mu"/>.
-    /// Nullable rather than 0 specifically because 0 is a REAL body index (the
-    /// star), so a defaulted value here would read as a confident wrong answer
-    /// rather than as an absent one.</para>
+    /// <para>Null only on a patch read off a recording that does not carry it,
+    /// as for <see cref="Mu"/>. <c>0</c> is a real index (the star), so null is
+    /// the only absent value.</para>
+    /// <internal>
+    /// Also what Sitrep.Propagation's PropagationTarget and PropagationFrame
+    /// name a body by.
+    /// </internal>
     /// </summary>
     [SitrepUnit(Units.Id)]
     public int? ReferenceBodyIndex { get; set; }
 
     /// <summary>
     /// <see cref="ClosestEncounterBody"/>'s <c>system.bodies</c> index, on the
-    /// same index-is-identity terms as <see cref="ReferenceBodyIndex"/>. Null
-    /// when there is no encounter at all, and also null on a pre-existing
-    /// recording: the two are indistinguishable here, which is acceptable only
-    /// because <see cref="ClosestEncounterBody"/> already carries the
-    /// distinction.
+    /// same terms as <see cref="ReferenceBodyIndex"/>. Null when there is no
+    /// encounter, and also null on a recording that does not carry it; read
+    /// <see cref="ClosestEncounterBody"/> to tell the two apart.
     /// </summary>
     [SitrepUnit(Units.Id)]
     public int? ClosestEncounterBodyIndex { get; set; }

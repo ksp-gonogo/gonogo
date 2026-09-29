@@ -5,53 +5,34 @@ using Reinforced.Typings.Attributes;
 
 namespace Sitrep.Contract;
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Reliability: a Domain-NEUTRAL capability namespace (reliability.*), exactly
-// like comms.* (Comms.cs). It is NOT owned by one uplink Domain: multiple mods
-// can model reliability (Kerbalism-Reliability, TestFlight), so it rides the
-// Kernel capability election, modelled on the "comms" capability (Kernel.cs,
-// mod/Sitrep.Host/Comms/CommsElection.cs, mod/Gonogo.KSP/ReliabilityCoreUplink.cs).
-//
-//   • ONE exclusive capability "reliability" whose active instance is an
-//     IReliabilityBackend (this file).
-//   • A core registrar (mod/Gonogo.KSP/ReliabilityCoreUplink.cs) OWNS the
-//     capability, ships the vanilla "no model" fallback, declares the two
-//     reliability.* channels ONCE, and sources them from whichever backend the
-//     election picked (Kernel.Query<IReliabilityBackend>("reliability")).
-//   • Providers register in their OWN uplink's Register (host.Kernel.RegisterProvider):
-//       - GonogoKerbalismUplink  → Priority 1  (LOW specificity)
-//       - GonogoTestFlightUplink → Priority 10 (engine-authoritative; wins under RO)
-//     Under RO only TestFlight is live; in stock Kerbalism only Kerbalism is
-//     live; both-registered resolves by Priority in the Kernel, never in the client.
-//
-// MODEL-FIRST SHAPE. The payloads below describe what a reliability model KNOWS
-// rather than which mod is speaking. The previous shape was a hand-curated
-// superset with one mod's fields beside another's, all nullable, each doc-commented
-// with who fills it: that needed a core PR per provider and it encoded two
-// providers' vocabularies into a shared record. What replaced it is smaller (the
-// summary went 6 members to 3, the part entry 12 to 9) and open where it needs to
-// be: a consumed dimension is a ReliabilityBudget entry a provider names itself,
-// and anything genuinely provider-shaped goes in the extension bag.
-//
-// ReliabilitySummary / ReliabilityPartEntry / ReliabilityBudget are wire POCOs
-// (typing + codegen). IReliabilityBackend is the capability's active-instance
-// interface, NOT a wire type: parameterless and KSP-free (backends read the
-// active vessel internally, exactly like ICommsBackend), so Sitrep.Contract stays
-// KSP-free / MIT.
-// ─────────────────────────────────────────────────────────────────────────────
+/*
+ * reliability.* is a Domain-neutral capability namespace, like comms.*: several mods can
+ * model reliability, so one exclusive "reliability" capability is elected in the Kernel and
+ * its active instance is an IReliabilityBackend. A core registrar owns the capability, ships
+ * the "no model" fallback and declares both reliability.* channels once; each provider
+ * registers from its own Uplink, and an install with several resolves by Priority in the
+ * Kernel (TestFlight outranks Kerbalism), never in the client.
+ *
+ * The payloads describe what a reliability model KNOWS rather than which mod is speaking: a
+ * consumed dimension is a ReliabilityBudget entry the provider names itself, and anything
+ * genuinely provider-shaped goes in the extension bag. IReliabilityBackend is not a wire
+ * type; it is parameterless and KSP-free so this assembly stays KSP-free.
+ */
 
 /// <summary>
-/// Whether anything is watching this craft's reliability, and if not, why not.
-/// Five states because five different things are wrong (or not wrong), and the
-/// operator's response differs in each. Replaces the boolean Unmodeled, which
-/// could not tell "off" from "could not tell" and reported the reassuring answer.
+/// The vocabulary of <see cref="ReliabilitySummary.Coverage"/>: whether anything
+/// is watching this craft's reliability, and if not, why not. Five states
+/// because five different things are wrong (or not wrong), and the operator's
+/// response differs in each. "Off" and "could not tell" are separate states and
+/// must never be merged.
 /// </summary>
+/// <category>Parts</category>
 public static class ReliabilityCoverage
 {
     /// <summary>No provider registered for the capability. Nothing is installed that could model reliability, and nothing could therefore be silently broken.</summary>
     public const string None = "none";
 
-    /// <summary>A provider WAS selected and could not be read: its factory threw during Kernel activation, or its Summary()/Parts() threw this capture. We are blind and must say so.</summary>
+    /// <summary>A provider WAS selected and could not be read: its factory threw during Kernel activation, or its Summary()/Parts() threw this capture. Nothing can be seen, and the payload says so.</summary>
     public const string Unavailable = "unavailable";
 
     /// <summary>The elected backend is present and is not modelling reliability for this save. Says nothing about whether some OTHER mod is.</summary>
@@ -104,10 +85,10 @@ public class ReliabilitySummary
 
 /// <summary>
 /// One consumed dimension of a part's rated life: the open-ended member of the
-/// per-part shape, and the reason this contract could shrink rather than grow.
-/// A provider declares a dimension the shared shape has never heard of without a
-/// core PR, which is what the extension bag cannot deliver for a SHARED renderer
-/// (a bag entry is readable only by a widget that already knows the provider id).
+/// per-part shape. A provider declares a dimension the shared shape has never
+/// heard of without a change to this contract, and any renderer can draw it
+/// from <see cref="Label"/> and the numbers (an extension bag entry, by
+/// contrast, is readable only by a widget that already knows the provider id).
 ///
 /// <para>A budget is BACKWARD-looking: how much of a rated allowance has been
 /// used. It is not a forecast; that is <see cref="ReliabilityPartEntry.Survival"/>.</para>
@@ -151,12 +132,14 @@ public class ReliabilityBudget
 
     /// <summary>
     /// Seconds of the allowance used. RATED seconds, not wall-clock: TestFlight
-    /// consumes engine life thrust-weighted
-    /// (<c>currentRunTime += dt * thrustModifier.Evaluate(engine.thrustRatio)</c>
-    /// in TestFlightReliability_EngineCycle.UpdateCycle), so remaining rated
-    /// seconds are not seconds of burn at partial throttle. Every rendered
-    /// sentence says "rated" for that reason, and no wall-clock conversion is
-    /// attempted because the future throttle profile is unknown.
+    /// consumes engine life thrust-weighted, so remaining rated seconds are not
+    /// seconds of burn at partial throttle. Say "rated" when rendering it, and do
+    /// not convert it to wall-clock time: the future throttle profile is unknown.
+    /// <internal>
+    /// TestFlight's rule is
+    /// <c>currentRunTime += dt * thrustModifier.Evaluate(engine.thrustRatio)</c>
+    /// in <c>TestFlightReliability_EngineCycle.UpdateCycle</c>.
+    /// </internal>
     /// </summary>
     [SitrepUnit(Units.Seconds)]
     public double? UsedSeconds { get; set; }
@@ -187,7 +170,16 @@ public class ReliabilityBudget
 [SitrepTopic("reliability.parts", isArray: true)]
 public class ReliabilityPartEntry
 {
-    /// <summary>UNIQUE within one reliability.parts payload. Producers MUST enforce this; it is not a KSP flightID and must not be treated as one.</summary>
+    /// <summary>
+    /// UNIQUE within one reliability.parts payload. Producers MUST enforce this;
+    /// it is not a KSP flightID and must not be treated as one. It is the id
+    /// <see cref="RepairPartArgs.PartId"/> takes.
+    /// <internal>
+    /// Both bundled providers write <c>&lt;flightID&gt;:&lt;occurrence&gt;</c>,
+    /// because one part can carry more than one modelled core and a bare
+    /// flightID would merge the rows.
+    /// </internal>
+    /// </summary>
     [SitrepUnit(Units.Id)]
     public string? PartId { get; set; }
 
@@ -198,8 +190,7 @@ public class ReliabilityPartEntry
     /// <para>Carried so a console can offer only the crew who could actually do
     /// it, rather than listing everyone aboard and letting the operator spend a
     /// round trip discovering that the pilot cannot. This is the PROVIDER's own
-    /// requirement read back, never our guess at one: guessing would put a
-    /// second authority beside the one that actually decides.</para>
+    /// requirement read back, never a guess at one.</para>
     ///
     /// <para>Already ELEVATED where the provider elevates it. Kerbalism asks
     /// more of a critical failure than an ordinary one, so this is the
@@ -212,6 +203,7 @@ public class ReliabilityPartEntry
     [SitrepUnit(Units.Count)]
     public int? RepairLevel { get; set; }
 
+    /// <summary>The part's display title, as the provider reports it.</summary>
     [SitrepUnit(Units.Text)]
     public string? Title { get; set; }
 
@@ -225,17 +217,20 @@ public class ReliabilityPartEntry
     /// the crew requirement by one level before Repair() clears it). Nothing in
     /// this contract asserts that a part cannot be recovered, because
     /// repairability is a function of the part AND the crew, kits and difficulty
-    /// flags aboard, which no per-part field can answer.</para>
+    /// flags aboard, which no per-part field can settle.</para>
     ///
     /// <para>"unknown" means the provider could not read this part's condition. It
     /// is a first-class value and the client renders it; it must never be
     /// substituted with "nominal".</para>
     ///
-    /// <para>There is deliberately NO "wear" value: wear is a threshold on a
-    /// number, the numbers are in <see cref="Budgets"/>/<see cref="Survival"/>,
-    /// and the thresholds live client-side in one table. Two authorities for one
-    /// word is how "2 wearing" comes to disagree with the number of wearing rows
-    /// beneath it.</para>
+    /// <para>There is no "wear" value: wear is a threshold on a number, the
+    /// numbers are in <see cref="Budgets"/> and <see cref="Survival"/>, and the
+    /// thresholds live client-side.</para>
+    /// <internal>
+    /// One authority for the word: a server-side "wear" beside client-side
+    /// thresholds is how "2 wearing" comes to disagree with the number of
+    /// wearing rows beneath it.
+    /// </internal>
     /// </summary>
     [SitrepUnit(Units.Enumeration)]
     public string? Condition { get; set; }
@@ -261,14 +256,12 @@ public class ReliabilityPartEntry
     /// that is not the same claim as a cost of zero, and a console must render
     /// it as "nothing is consumed" rather than as "needs 0".
     ///
-    /// <para>Carried because a consumable cost is the PROVIDER's arithmetic and
-    /// nothing else can derive it. Kerbalism charges two EVA repair kits for its
-    /// critical class and one for an ordinary failure, and nothing for a service;
-    /// TestFlight has no consumable in its model at all. A client that derived
-    /// the number from <see cref="Condition"/> would be applying one backend's
-    /// rule to every install, which is exactly what this field replaced: the
-    /// fleet-reliability row asked a TestFlight player for a repair kit its mod
-    /// never needs, and refused the command when none was aboard.</para>
+    /// <para>A consumable cost is the PROVIDER's arithmetic and nothing else can
+    /// derive it. Kerbalism charges two EVA repair kits for its critical class
+    /// and one for an ordinary failure, and nothing for a service; TestFlight has
+    /// no consumable in its model at all. Do not derive a cost from
+    /// <see cref="Condition"/>: that applies one backend's rule to every
+    /// install.</para>
     ///
     /// <para>Already ELEVATED where the provider elevates it, on the same rule as
     /// <see cref="RepairTrait"/>: this is the cost for this part in this
@@ -310,14 +303,16 @@ public class RepairCostItem
 
 /// <summary>
 /// The "reliability" capability's active-instance interface (parallel to
-/// <see cref="ICommsBackend"/>). Parameterless + KSP-free: implementations
-/// (in the KSP-referencing uplink projects) read the active vessel internally.
-/// Registered as a Kernel provider by each modelling uplink; the core registrar
-/// resolves the elected one and publishes its readouts on reliability.*.
+/// <see cref="ICommsBackend"/>). An Uplink that models reliability implements it
+/// and registers it as a Kernel provider; the elected one's readouts are
+/// published on <c>reliability.summary</c> and <c>reliability.parts</c>.
+/// Parameterless and KSP-free: an implementation reads the active vessel
+/// itself.
 /// </summary>
+/// <category>Uplink API</category>
 public interface IReliabilityBackend : ISitrepProvider
 {
-    /// <summary>One of <see cref="ReliabilityCoverage"/>. Replaces the bool IsModeled: a boolean structurally cannot say "I could not tell", so it reported the reassuring answer.</summary>
+    /// <summary>One of <see cref="ReliabilityCoverage"/>. Report <see cref="ReliabilityCoverage.Indeterminate"/> rather than guessing when the backend cannot tell.</summary>
     string Coverage { get; }
 
     /// <summary>Vessel-level summary for the active vessel.</summary>
@@ -338,14 +333,17 @@ public interface IReliabilityBackend : ISitrepProvider
     ///
     /// <para>Returns the result, refusals included, and <c>Ok</c> only when the
     /// part was actually repaired. A refusal is not an exception: it is the
-    /// answer, it costs the same round trip as a success, and it has to say WHY
+    /// result, it costs the same round trip as a success, and it has to say WHY
     /// (a <see cref="RepairRefusal"/> code where one fits) so the operator's
     /// next choice is informed.</para>
     ///
     /// <para>A backend that models no repair returns
     /// <see cref="RepairRefusal.NotModelled"/> rather than throwing, so the
-    /// command is always answerable.</para>
+    /// command always gets a result.</para>
     /// </summary>
+    /// <param name="partId">The part, as <see cref="ReliabilityPartEntry.PartId"/> names it.</param>
+    /// <param name="crewName">The kerbal who performs the repair, by name.</param>
+    /// <returns>The outcome on success, or the refusal that stopped the repair.</returns>
     CommandResult<RepairOutcome> Repair(string partId, string crewName);
 }
 
@@ -358,7 +356,7 @@ public interface IReliabilityBackend : ISitrepProvider
 [SitrepCommand("vessel.repair", Payload = typeof(RepairOutcome))]
 public class RepairPartArgs
 {
-    /// <summary>The failed part, joined by the same id <c>reliability.parts</c> and <c>vessel.parts</c> use.</summary>
+    /// <summary>The failed part, by the id <c>reliability.parts</c> gives it (<see cref="ReliabilityPartEntry.PartId"/>).</summary>
     [SitrepUnit(Units.Id)]
     public string PartId { get; set; } = "";
 
@@ -406,9 +404,10 @@ public class RepairOutcome
 /// none of these fits. It does not write a sentence of its own: each code here
 /// carries the one an operator reads.</para>
 /// </summary>
+/// <category>Parts</category>
 public static class RepairRefusal
 {
-    /// <summary>No crew member aboard answers to the requested name.</summary>
+    /// <summary>No crew member aboard has the requested name.</summary>
     public static readonly RefusalCode NoSuchCrew =
         CommandErrorCode.NotFound.Refine("repair.noSuchCrew", "no crew member aboard has that name");
 
@@ -444,8 +443,8 @@ public static class RepairRefusal
     /// false for an exploded part, a fired docking clamp and a snapped solar
     /// mechanism, whatever crew are aboard and whatever they carry.
     ///
-    /// <para>Deliberately NOT <see cref="NotModelled"/>. The model is present
-    /// and working; this is its answer.</para>
+    /// <para>Not <see cref="NotModelled"/>: the model is present and working,
+    /// and this is its verdict.</para>
     /// </summary>
     public static readonly RefusalCode Unrepairable =
         CommandErrorCode.CapabilityMismatch.Refine("repair.unrepairable", "that failure cannot be repaired");

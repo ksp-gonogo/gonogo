@@ -11,34 +11,40 @@ namespace Sitrep.Contract.Serialization
     /// <see cref="EnvelopeCodec.WriteStreamBinaryHeader"/>) and the segment
     /// region.
     ///
-    /// <para>Split from <see cref="EnvelopeCodec"/> on the line between JSON
-    /// and BYTES. Everything that produces or consumes a JSON document lives
-    /// there and is held byte-for-byte identical to the TypeScript reference by
-    /// the golden fixture; this file owns only the envelope around it, which is
-    /// not JSON and has no TS-serialization twin to conform to. The equivalent
-    /// conformance for this layer is a round trip against the client's decoder,
-    /// which is what <c>binary-frame.test.ts</c> holds.</para>
+    /// <para>The JSON header itself is written and read by
+    /// <see cref="EnvelopeCodec"/>; this class owns only the byte framing around
+    /// it: a magic byte, a lane byte, a big-endian 16-bit header length, the
+    /// header, then the segments back to back with their lengths listed in the
+    /// header.</para>
     ///
-    /// <para><b>Malformed is UNREAD.</b> Every failure path here returns false
-    /// or throws with a named reason, and none of them yields a frame with zero
-    /// segments. A caller handed an empty segment list must be able to read it
-    /// as a producer that genuinely sent nothing this frame, which is not the
-    /// same claim as "the frame arrived broken" and must not be spelled the
-    /// same way.</para>
+    /// <para><b>A malformed frame is never read as an empty one.</b> Every
+    /// failure returns false or throws with a named reason, so an empty segment
+    /// list always means the producer sent no segments, never that the frame
+    /// arrived broken.</para>
+    /// <internal>
+    /// EnvelopeCodec's JSON is held byte-for-byte to the TypeScript reference by
+    /// the golden fixture; this layer has no JSON twin, and its conformance is
+    /// the round trip against the client decoder in binary-frame.test.ts.
+    /// </internal>
     /// </summary>
+    /// <category>Serialization</category>
     public static class BinaryFrameCodec
     {
         /// <summary>
         /// Frame one delivery: prefix, header, then the segments concatenated
         /// in order.
         ///
-        /// <para><paramref name="header"/>'s own <c>Segments</c> is IGNORED and
-        /// overwritten from <paramref name="segments"/>. The length table is
-        /// derived, never declared: a producer that could state a length
-        /// separately from the bytes it is writing is a producer that can state
-        /// it wrong, and the resulting frame would be undecodable at the far
-        /// end for a reason invisible at this one.</para>
+        /// <para><paramref name="header"/>'s own <c>Segments</c> is ignored and
+        /// overwritten from <paramref name="segments"/>: the length table is
+        /// always derived from the bytes written, so it cannot disagree with
+        /// them.</para>
         /// </summary>
+        /// <param name="header">The frame's header. Its <c>Segments</c> is overwritten with the segment lengths.</param>
+        /// <param name="segments">The segments to carry, in order. None may be null.</param>
+        /// <returns>The complete frame bytes.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="header"/> or <paramref name="segments"/> is null.</exception>
+        /// <exception cref="ArgumentException">A segment is null.</exception>
+        /// <exception cref="InvalidOperationException">The encoded header is longer than <see cref="BinaryLane.MaxHeaderBytes"/>.</exception>
         public static byte[] WriteStreamBinary(StreamBinary header, IReadOnlyList<byte[]> segments)
         {
             if (header is null)
@@ -101,13 +107,20 @@ namespace Sitrep.Contract.Serialization
         /// naming what was wrong, for anything that is not a well-formed frame
         /// of a lane this build knows.
         ///
-        /// <para>Refusing an unknown LANE is the load-bearing case and the
-        /// reason this returns a reason at all. A decoder that met one and fell
-        /// back to treating the bytes as text would hand a UTF-8 decoder a
-        /// buffer of compressed audio and get a string of replacement
-        /// characters, which then fails JSON parsing somewhere else entirely,
-        /// having thrown away the one fact worth reporting.</para>
+        /// <para>An unknown lane is refused with its lane byte in the reason,
+        /// rather than falling back to reading the bytes as text: a UTF-8 decode
+        /// of, say, compressed audio fails JSON parsing somewhere else and loses
+        /// the one fact worth reporting. The segment lengths in the header must
+        /// sum exactly to the bytes that follow it; a shorter or longer frame is
+        /// refused.</para>
         /// </summary>
+        /// <param name="frame">The buffer holding the frame.</param>
+        /// <param name="offset">Where the frame starts in <paramref name="frame"/>.</param>
+        /// <param name="count">How many bytes of <paramref name="frame"/> the frame occupies.</param>
+        /// <param name="header">The parsed header on success; null on failure.</param>
+        /// <param name="segments">The segments, in order, on success; empty on failure.</param>
+        /// <param name="reason">What was wrong on failure; empty on success.</param>
+        /// <returns>True when the frame was well formed and read.</returns>
         public static bool TryParseStreamBinary(
             byte[] frame,
             int offset,

@@ -2,81 +2,72 @@ using System;
 
 namespace Sitrep.Contract;
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Withholding a DERIVED currency, as a shared Kernel capability, alongside the
-// exclusive "delayedScience" one in DelayedScience.cs.
-//
-// THE DEFECT THIS EXISTS FOR. The currency-delay subsystem delays a primary
-// currency change by neutralising it at earn time and re-applying it when the
-// vessel's light-time says the news could have arrived. A third-party mod that
-// computes something of its own FROM that change computes it at earn time, off
-// the same game event, before the neutralise has happened - and a neutralise is
-// a balance write, which fires no currency query, so the mod is never told to
-// revisit its answer. The derived quantity then moves while the primary one is
-// still withheld, and an operator watching the derived quantity knows the
-// arrival before the model says they can.
-//
-// It is not an RP-1 problem, it is the shape of every derived quantity. So the
-// core says WHEN it neutralised and WHAT, and each mod's own arm decides what
-// that means for whatever it derived. The core names no mod, and an arm needs no
-// reference to the assembly the interceptor lives in.
-//
-// SHARED, not exclusive: more than one installed mod can derive from the same
-// change, and every one of them has to be told. No vanilla either - a stock
-// install derives nothing and should activate nothing.
-//
-// Closure is zero: primitives and one string only.
-// ─────────────────────────────────────────────────────────────────────────────
-
 /// <summary>
-/// The "derivedCurrency" capability's per-provider interface: one mod's arm for
-/// keeping whatever it derives from a currency change withheld for exactly as
-/// long as the change itself is.
+/// The <c>derivedCurrency</c> capability's per-provider interface: one mod's
+/// way of keeping whatever it derives from a currency change withheld for
+/// exactly as long as the change itself is.
 ///
-/// <para>The two calls are a PAIR around the core's own neutralise, and the
+/// <para>When signal delay is on, the core delays a currency change by
+/// neutralising it when it is earned and re-applying it once the vessel's
+/// light-time says the news could have arrived. A mod that computes something
+/// of its own from that change computes it at earn time, before the neutralise,
+/// and nothing tells it to revisit the result. Without a withholder, the derived
+/// quantity moves while the primary one is still withheld, and an operator
+/// watching it learns of the arrival early. The core says when it neutralised
+/// and what; each implementation decides what that means for the quantity its
+/// mod derived.</para>
+///
+/// <para>The capability is shared, not exclusive: more than one installed mod
+/// can derive from the same change, and every one is called. A stock install
+/// derives nothing and registers none.</para>
+///
+/// <para>The two calls are a pair around the core's own neutralise, and the
 /// order is guaranteed: <see cref="ObserveBeforeDerivation"/> runs off the
 /// modifier query that precedes the change, so it is the last moment before any
 /// mod can have derived anything from it, and <see cref="WithholdDerived"/> runs
 /// immediately after the core has neutralised the primary balance.</para>
 ///
-/// <para><b>Observe, do not compute.</b> An implementation is meant to read its
-/// own derived quantities in the first call and put them back in the second, not
-/// to re-derive what the mod would have charged. Re-deriving means holding a
-/// second copy of the mod's pricing, which drifts, and it means pricing against
+/// <para><b>Observe, do not compute.</b> An implementation reads its own
+/// derived quantities in the first call and puts them back in the second; it
+/// does not re-derive what the mod would have charged. Re-deriving means
+/// holding a second copy of the mod's pricing, which drifts, and pricing against
 /// state the earn has already moved.</para>
 ///
-/// <para><b>Nothing is enqueued for the reveal.</b> The reveal re-applies the
-/// primary change through the game's own AddX, which fires the same events the
-/// earn did, so the mod derives again by itself - once, and priced against the
-/// career the operator actually has when the news lands. An implementation that
-/// also replayed its own withheld amount would double it.</para>
+/// <para><b>Nothing is queued for the reveal.</b> The reveal re-applies the
+/// primary change through the game's own <c>AddFunds</c>/<c>AddScience</c>/<c>AddReputation</c>,
+/// which fires the same events the earn did, so the mod derives again by itself,
+/// once, priced against the career the operator has when the news lands. An
+/// implementation that also replayed its own withheld amount would double
+/// it.</para>
+/// <internal>
+/// A neutralise is a balance write, which fires no currency query, which is why
+/// a deriving mod is never told on its own. The sibling exclusive capability is
+/// "delayedScience" in DelayedScience.cs. The interface closes over primitives
+/// and one string only.
+/// </internal>
 /// </summary>
+/// <category>Host and Kernel</category>
 public interface IDerivedCurrencyWithholder : ISitrepProvider
 {
     /// <summary>
-    /// Where this arm says what it could not do. The core installs a sink that
-    /// reaches the game log before it makes either call below, so an arm that
-    /// refuses to withhold something says why somewhere the person running the
-    /// game can read it.
+    /// Where this implementation reports what it could not do. The core installs
+    /// a sink that reaches the game log before it makes either call below, so an
+    /// implementation that declines to withhold something can say why somewhere
+    /// the person running the game can read it.
     ///
-    /// <para><b>On the interface rather than left to each arm.</b> An arm lives
-    /// in its own Uplink assembly, and an Uplink references no game or engine
-    /// assembly at all, so it has no log of its own to write to: the first
-    /// version of this seam counted its failures into a health fact on
-    /// <c>system.uplinks</c> and nothing else, which is a surface only a
-    /// connected client can read. A diagnostic that exists only where the
-    /// diagnostician cannot reach is not a diagnostic, and the outcome it was
-    /// meant to report was unreadable for the whole of the first rig run.</para>
+    /// <para>It is on the interface because an implementation lives in an
+    /// Uplink assembly, which references no game or engine assembly and so has
+    /// no log of its own.</para>
     ///
-    /// <para>Defaults to a no-op in every implementation, so an arm reached
-    /// through some other host still runs.</para>
+    /// <para>Initialise it to a no-op, so the implementation still runs under a
+    /// host that installs no sink.</para>
     /// </summary>
     Action<string> Diagnostic { get; set; }
 
     /// <summary>
     /// A change to <paramref name="primaryCurrency"/> has been ASKED for and
     /// nothing has derived from it yet: record whatever derived quantities this
-    /// arm is responsible for, against <paramref name="ut"/>.
+    /// implementation is responsible for, against <paramref name="ut"/>.
     ///
     /// <para>Called for every such query, whether or not the change turns out to
     /// be delayed, because whether it is delayed is not known this early. An
@@ -87,7 +78,7 @@ public interface IDerivedCurrencyWithholder : ISitrepProvider
     /// <summary>
     /// The core has just neutralised a <paramref name="primaryCurrency"/> change
     /// of <paramref name="baseAmount"/> at <paramref name="ut"/>: put back
-    /// whatever this arm's mod derived from it in the meantime.
+    /// whatever this implementation's mod derived from it in the meantime.
     ///
     /// <para>Idempotent for a given <paramref name="ut"/>: one earn can reach
     /// the core through more than one game event, so this may be called more
@@ -95,26 +86,31 @@ public interface IDerivedCurrencyWithholder : ISitrepProvider
     /// must land in the same place as putting it back once.</para>
     ///
     /// <para>An implementation with no observation for <paramref name="ut"/>
-    /// must do NOTHING and say so, rather than restore an older reading. A stale
-    /// restore erases a currency movement that had nothing to do with this
+    /// must do NOTHING and report it through <see cref="Diagnostic"/>, rather
+    /// than restore an older reading. Restoring an older reading erases a currency movement that had nothing to do with this
     /// change.</para>
     /// </summary>
     void WithholdDerived(string primaryCurrency, double baseAmount, double ut);
 }
 
 /// <summary>
-/// The capability id and the primary-currency names both halves name, here for
-/// the reason <see cref="DelayedScienceCapability"/> spells out: two spellings
-/// of one identity drift silently and the capability simply never elects.
+/// The <c>derivedCurrency</c> capability id and the primary-currency names
+/// passed to <see cref="IDerivedCurrencyWithholder"/>. Use these constants
+/// rather than literals: a second spelling of one identity means the capability
+/// never elects.
 /// </summary>
+/// <category>Host and Kernel</category>
 public static class DerivedCurrencyCapability
 {
+    /// <summary>The capability id, <c>"derivedCurrency"</c>.</summary>
     public const string CapabilityId = "derivedCurrency";
 
-    /// <summary>The primary currency a withhold names. Lowercase, and the same three the currency-delay ledger carries.</summary>
+    /// <summary>The primary-currency name for career funds, <c>"funds"</c>. The three names are lowercase and match the currency-delay ledger.</summary>
     public const string Funds = "funds";
 
+    /// <summary>The primary-currency name for science points, <c>"science"</c>.</summary>
     public const string Science = "science";
 
+    /// <summary>The primary-currency name for reputation, <c>"reputation"</c>.</summary>
     public const string Reputation = "reputation";
 }

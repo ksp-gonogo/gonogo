@@ -9,8 +9,8 @@ namespace Sitrep.Contract;
 /// One kerbal currently outside a craft, on the <c>eva.crew</c> channel.
 ///
 /// <para>A kerbal on EVA is a vessel in KSP's model, with its own id, so it
-/// already appears on <c>system.vessels</c> and gets its own <c>fleet.</c> node.
-/// What is here and nowhere else is the SUIT: what it is carrying, what it can
+/// already appears on <c>system.vessels</c> and on its own <c>fleet.</c> topics.
+/// What is here and nowhere else is the suit: what it is carrying, what it can
 /// do, and whether the place it is standing in would kill the wearer without
 /// it.</para>
 ///
@@ -36,17 +36,18 @@ public class EvaKerbal
     public string? KerbalVesselId { get; set; }
 
     /// <summary>
-    /// The craft this kerbal stepped out of, or <c>null</c> when that is not
-    /// known (a kerbal already outside when the save was loaded by a build that
-    /// did not record it, or one whose craft has since gone).
+    /// The vessel id of the craft this kerbal stepped out of, or <c>null</c>
+    /// when that is not known (the step-out was not recorded, or the craft has
+    /// since gone).
     ///
-    /// <para>This is the vessel gonogo goes on reporting as active while they
+    /// <para>This is the vessel the mod goes on reporting as active while they
     /// are outside, so a reader that follows the active vessel sees no
     /// discontinuity when a kerbal steps out.</para>
     /// </summary>
     [SitrepUnit(Units.Id)]
     public string? ParentVesselId { get; set; }
 
+    /// <summary>The kerbal's name, from the EVA vessel's <c>GetName()</c>.</summary>
     [SitrepUnit(Units.Text)]
     public string? Name { get; set; }
 
@@ -69,6 +70,7 @@ public class EvaKerbal
     [SitrepUnit(Units.Flag)]
     public bool? HasJetpack { get; set; }
 
+    /// <summary>Whether the jetpack is switched on (KSP's <c>KerbalEVA.JetpackDeployed</c>).</summary>
     [SitrepUnit(Units.Flag)]
     public bool? JetpackDeployed { get; set; }
 
@@ -77,38 +79,38 @@ public class EvaKerbal
     [SitrepUnit(Units.Flag)]
     public bool? JetpackIsThrusting { get; set; }
 
+    /// <summary>Whether the kerbal is on a ladder (KSP's <c>KerbalEVA.OnALadder</c>).</summary>
     [SitrepUnit(Units.Flag)]
     public bool? OnALadder { get; set; }
 
+    /// <summary>Whether the suit's helmet lamp is on (KSP's <c>KerbalEVA.lampOn</c>).</summary>
     [SitrepUnit(Units.Flag)]
     public bool? LampOn { get; set; }
 
-    /// <summary>KSP's own visor state name.</summary>
+    /// <summary>KSP's own visor state name, from <c>KerbalEVA.VisorState</c>.</summary>
     [SitrepUnit(Units.Text)]
     public string? VisorState { get; set; }
 
     /// <summary>
-    /// Whether removing the helmet here would KILL this kerbal.
+    /// Whether removing the helmet here would kill this kerbal, from
+    /// <c>KerbalEVA.WillDieWithoutHelmet()</c>.
     ///
-    /// <para>The sharpest fact on this channel, and the reason it is worth a
-    /// channel: nothing else on the wire says whether the place a kerbal is
-    /// standing in is survivable unsuited.</para>
+    /// <para>Nothing else on the wire says whether the place a kerbal is
+    /// standing in is survivable without a helmet.</para>
     /// </summary>
     [SitrepUnit(Units.Flag)]
     public bool? WillDieWithoutHelmet { get; set; }
 
-    /// <summary>Whether the helmet can come off here and now, which is a
-    /// stricter question than surviving it.</summary>
+    /// <summary>Whether the helmet can come off here and now, from
+    /// <c>KerbalEVA.CanSafelyRemoveHelmet()</c>. A stricter test than
+    /// <see cref="WillDieWithoutHelmet"/>.</summary>
     [SitrepUnit(Units.Flag)]
     public bool? CanSafelyRemoveHelmet { get; set; }
 
     /// <summary>
-    /// KSP's OWN words for why the helmet cannot come off, or <c>null</c> when
-    /// it can.
-    ///
-    /// <para>Passed through verbatim rather than re-worded: the game already
-    /// phrases this for a player, and inventing a second vocabulary for the
-    /// same fact would only let the two drift.</para>
+    /// KSP's own words for why the helmet cannot come off, passed through
+    /// verbatim from <c>KerbalEVA.HelmetUnsafeReason</c>, or <c>null</c> when it
+    /// can.
     /// </summary>
     [SitrepUnit(Units.Text)]
     public string? HelmetUnsafeReason { get; set; }
@@ -117,10 +119,9 @@ public class EvaKerbal
 /// <summary>
 /// Every kerbal currently outside a craft.
 ///
-/// <para>ADDITIVE, and deliberately a channel of its own: a kerbal stepping out
-/// must not change what the vessel channels report. The vantage stays with the
-/// craft they left, so nothing reading the vessel's stream sees a
-/// discontinuity, and this carries what is true of the kerbal instead.</para>
+/// <para>A channel of its own so that a kerbal stepping out does not change
+/// what the vessel channels report: those stay with the craft they left, and
+/// this carries what is true of the kerbal.</para>
 ///
 /// <para>An empty list is a real reading: nobody is outside. The channel is
 /// absent only before anything has been captured.</para>
@@ -138,7 +139,9 @@ public class EvaCrew
     [SitrepUnit(Units.Count)]
     public int Count { get; set; }
 
+    /// <summary>One entry per kerbal on EVA. Never null; empty when nobody is outside.</summary>
     public List<EvaKerbal> Kerbals { get; set; } = new();
 
+    /// <summary>The payload's provenance (<c>"game"</c>) and quality.</summary>
     public PayloadMeta Meta { get; set; } = new();
 }

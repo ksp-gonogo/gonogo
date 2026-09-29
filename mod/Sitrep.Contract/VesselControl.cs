@@ -5,12 +5,10 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// Mirrors KSP's own <c>VesselAutopilot.AutopilotMode</c> enum (confirmed via
-/// decompile: <c>StabilityAssist, Prograde, Retrograde, Normal, Antinormal,
-/// RadialIn, RadialOut, Target, AntiTarget, Maneuver</c>: no
-/// <c>Navigation</c> member exists on this KSP version). <see cref="Unknown"/>
-/// is the graceful fallback for a raw value this contract doesn't recognize
-/// yet, same convention as <see cref="VesselType"/>/<see cref="TransitionType"/>.
+/// The SAS autopilot's hold mode, KSP's <c>VesselAutopilot.AutopilotMode</c>
+/// with the same member names. The directional modes follow the navball's
+/// current speed mode (orbit, surface or target). <see cref="Unknown"/> stands
+/// for a value this contract does not recognise.
 /// </summary>
 /// <category>Vessel</category>
 #if SITREP_CODEGEN
@@ -19,35 +17,50 @@ namespace Sitrep.Contract;
 [SitrepContract]
 public enum SasMode
 {
+    /// <summary>Holds the vessel's current attitude.</summary>
     StabilityAssist,
+
+    /// <summary>Points along the velocity vector.</summary>
     Prograde,
+
+    /// <summary>Points against the velocity vector.</summary>
     Retrograde,
+
+    /// <summary>Points along the orbit normal.</summary>
     Normal,
+
+    /// <summary>Points against the orbit normal.</summary>
     Antinormal,
+
+    /// <summary>Points towards the body being orbited.</summary>
     RadialIn,
+
+    /// <summary>Points away from the body being orbited.</summary>
     RadialOut,
+
+    /// <summary>Points towards the current target.</summary>
     Target,
+
+    /// <summary>Points away from the current target.</summary>
     AntiTarget,
+
+    /// <summary>Points along the burn vector of the next maneuver node.</summary>
     Maneuver,
+
+    /// <summary>A mode this contract does not recognise.</summary>
     Unknown,
 }
 
 /// <summary>
-/// One custom action group's IDENTITY plus its live state. Deliberately NOT a
-/// positional <c>bool[]</c> indexed <c>[ag1..ag10]</c>: such an array can carry
-/// state but never a NAME, and a name is the whole point. Stock KSP's ten
-/// customs are anonymous, but Action Groups Extended (AGX) gives the player up
-/// to 250 groups they name themselves ("Solar Panels", "Science Bay"). A
-/// positional array cannot express that, and forces the client to hardcode
-/// "AG1".."AG10" labels.
+/// One custom action group: its number, its display name and its live state.
+/// Stock KSP has ten anonymous custom groups; Action Groups Extended (AGX)
+/// gives the player up to 250 groups they name themselves ("Solar Panels",
+/// "Science Bay"), so identify a group by <see cref="Index"/> and label it with
+/// <see cref="Name"/>, never by its position in a list.
 ///
-/// <para>Scope: this list carries the CUSTOM (extensible) groups only. The
-/// stock singletons (SAS/RCS/Gear/Brakes/Lights/Abort) keep their own
-/// dedicated <see cref="VesselControl"/> fields and their own dedicated
-/// commands (<c>vessel.control.setGear</c> etc.), because they are fixed
-/// stock concepts that no mod extends: AGX adds custom groups, it does not
-/// add a second SAS. Folding them into this list would trade a typed field
-/// for a string match and gain nothing.</para>
+/// <para>Custom groups only. The stock singletons (SAS, RCS, Gear, Brakes,
+/// Lights, Abort) have their own <see cref="VesselControl"/> fields and their
+/// own commands (<c>vessel.control.setGear</c> and so on).</para>
 /// </summary>
 /// <category>Vessel</category>
 [SitrepContract]
@@ -60,17 +73,16 @@ public class ActionGroupState
     /// 1-based group number: the same number
     /// <c>vessel.control.setActionGroup</c> takes. Stock KSP: 1..10
     /// (<c>KSPActionGroup.Custom01..Custom10</c>). An AGX backend may report
-    /// indices up to 250. Consumers must NOT assume 10, nor assume the list
-    /// is dense or sorted.
+    /// indices up to 250. Do not assume 10 groups, nor that the indices are
+    /// dense or sorted.
     /// </summary>
     [SitrepUnit(Units.Id)]
     public int Index { get; set; }
 
     /// <summary>
-    /// Human display name. Stock KSP has no per-group naming, so the stock
-    /// backend reports <c>"AG1".."AG10"</c>: exactly what the UI already
-    /// showed, now sourced from the mod rather than hardcoded client-side.
-    /// An AGX backend reports the player's own names instead.
+    /// Human display name. Stock KSP has no per-group naming, so stock groups
+    /// are named <c>"AG1".."AG10"</c>. With AGX installed, the player's own
+    /// names.
     /// </summary>
     [SitrepUnit(Units.Text)]
     public string Name { get; set; } = "";
@@ -78,13 +90,13 @@ public class ActionGroupState
     /// <summary>
     /// Whether the group is currently engaged. <c>null</c> means the backend
     /// knows this group exists (it has an index and a name) but could not read
-    /// whether it is engaged: NOT that the group is disengaged. A client that
-    /// collapses the two draws an OFF toggle for a group whose state nobody
-    /// knows, and inverting that reading commands the wrong way.
+    /// whether it is engaged: it does NOT mean the group is disengaged. Treating
+    /// null as off draws an OFF toggle for a group whose state nobody knows, and
+    /// toggling from that reading commands the wrong way.
     /// <internal>
     /// Three-valued because a backend can fail per-group. AGX reads each
     /// group's state through reflection into its own scenario module, so one
-    /// group can fail while the rest answer; the whole-tick null on
+    /// group can fail while the rest read fine; the whole-tick null on
     /// <see cref="VesselControl.ActionGroups"/> cannot express that, and a
     /// plain bool forced the failure to publish as <c>false</c>. Stock has no
     /// such failure mode and keeps publishing a real bool: see
@@ -96,22 +108,25 @@ public class ActionGroupState
 }
 
 /// <summary>
-/// The <c>vessel.control</c> channel payload: the READ half of what the
-/// legacy vocabulary split across <c>f.</c> (toggle/action) and <c>v.</c>
-/// (value-read) prefixes for the same concept (N-1's read half; the WRITE
-/// half is a future typed-command task). Every field is individually
-/// nullable, R1(a): a null field is a normal, meaningful "this input isn't
-/// available this tick" (e.g. no <c>ctrlState</c>/no action-group data),
-/// never a sentinel default: while the record ITSELF is present whenever a
-/// vessel is (KspHost's <c>BuildControl</c> always returns a group, never a
-/// null one).
+/// The <c>vessel.control</c> channel payload: the active vessel's control
+/// state (the stock toggles, SAS mode, throttle, the commanded fly-by-wire
+/// axes and the custom action groups). The payload is present whenever there
+/// is an active vessel; each field is individually nullable, and <c>null</c>
+/// means that input could not be read this tick (for example no flight input
+/// state, or no action-group data), never a default.
 ///
-/// <para><b>V-3 documented, not silently "fixed":</b> <see cref="Throttle"/>
-/// is 0..1 NOMINALLY, but KSP's own <c>FlightInputHandler.state.mainThrottle</c>
-/// isn't clamped upstream: a kOS/mod-driven throttle can genuinely read
-/// &gt; 1 (the "200% throttle" phantom). Silently clamping it here would be a
-/// NEW wart (lying about upstream game truth); the range is documented,
-/// reader beware.</para>
+/// <para>Each control field that can be changed is paired with its command
+/// through its control channel, so the confirmed state and the command that
+/// changes it are one handle. The confirmed value lags a command by the round
+/// trip, including any comms delay.</para>
+///
+/// <para><see cref="Throttle"/> is 0..1 nominally, but KSP does not clamp
+/// <c>Vessel.ctrlState.mainThrottle</c>: a throttle driven by kOS or
+/// another mod can read above 1. The value is passed through unclamped.</para>
+/// <internal>
+/// Filled by KspHost.BuildControl, which always returns a group while a vessel
+/// exists.
+/// </internal>
 /// </summary>
 /// <category>Vessel</category>
 [SitrepContract]
@@ -121,100 +136,96 @@ public class ActionGroupState
 [SitrepTopic("vessel.control")]
 public class VesselControl
 {
-    /// <summary>SAS master switch. Its control channel pairs it with <c>setSas</c> so a client can read the confirmed state and dispatch a change through ONE handle.</summary>
+    /// <summary>Whether SAS is on. Changed with <c>vessel.control.setSas</c>.</summary>
     [SitrepControlChannel("vessel.control.sas", "vessel.control.setSas", typeof(SetEnabledArgs), nameof(SetEnabledArgs.Enabled))]
     [SitrepUnit(Units.Flag)]
     public bool? Sas { get; set; }
 
+    /// <summary>The SAS hold mode. Changed with <c>vessel.control.setSasMode</c>.</summary>
     [SitrepControlChannel("vessel.control.sasMode", "vessel.control.setSasMode", typeof(SetSasModeArgs), nameof(SetSasModeArgs.Mode))]
     [SitrepUnit(Units.Enumeration)]
     public SasMode? SasMode { get; set; }
 
+    /// <summary>Whether RCS is on. Changed with <c>vessel.control.setRcs</c>.</summary>
     [SitrepControlChannel("vessel.control.rcs", "vessel.control.setRcs", typeof(SetEnabledArgs), nameof(SetEnabledArgs.Enabled))]
     [SitrepUnit(Units.Flag)]
     public bool? Rcs { get; set; }
 
+    /// <summary>Whether the Gear action group is engaged (landing gear deployed). Changed with <c>vessel.control.setGear</c>.</summary>
     [SitrepControlChannel("vessel.control.gear", "vessel.control.setGear", typeof(SetEnabledArgs), nameof(SetEnabledArgs.Enabled))]
     [SitrepUnit(Units.Flag)]
     public bool? Gear { get; set; }
 
+    /// <summary>Whether the Brakes action group is engaged. Changed with <c>vessel.control.setBrakes</c>.</summary>
     [SitrepControlChannel("vessel.control.brakes", "vessel.control.setBrakes", typeof(SetEnabledArgs), nameof(SetEnabledArgs.Enabled))]
     [SitrepUnit(Units.Flag)]
     public bool? Brakes { get; set; }
 
+    /// <summary>Whether the Lights action group is engaged. Changed with <c>vessel.control.setLights</c>.</summary>
     [SitrepControlChannel("vessel.control.lights", "vessel.control.setLights", typeof(SetEnabledArgs), nameof(SetEnabledArgs.Enabled))]
     [SitrepUnit(Units.Flag)]
     public bool? Lights { get; set; }
 
+    /// <summary>Whether the Abort action group is engaged. Changed with <c>vessel.control.setAbort</c>.</summary>
     [SitrepControlChannel("vessel.control.abort", "vessel.control.setAbort", typeof(SetEnabledArgs), nameof(SetEnabledArgs.Enabled))]
     [SitrepUnit(Units.Flag)]
     public bool? Abort { get; set; }
 
     /// <summary>
     /// Precision-control (fine-control / caps-lock) mode. Mirrors KSP's
-    /// <c>FlightInputHandler.fetch.precisionMode</c>. Null when there's no
-    /// active flight scene (<c>FlightInputHandler.fetch</c> is null), never a
-    /// sentinel default (R1(a)).
+    /// <c>FlightInputHandler.fetch.precisionMode</c>. Null when there is no
+    /// active flight scene.
     /// </summary>
     [SitrepUnit(Units.Flag)]
     public bool? PrecisionControl { get; set; }
 
-    /// <summary>0..1 nominal range: NOT guaranteed clamped upstream (V-3), see the class doc comment.</summary>
+    /// <summary>Main throttle, KSP's <c>Vessel.ctrlState.mainThrottle</c>: 0..1 nominally, but not clamped, so a mod-driven throttle can read above 1. Changed with <c>vessel.control.setThrottle</c>.</summary>
     [SitrepControlChannel("vessel.control.throttle", "vessel.control.setThrottle", typeof(SetThrottleArgs), nameof(SetThrottleArgs.Value))]
     [SitrepUnit(Units.Ratio)]
     public double? Throttle { get; set; }
 
-    // Commanded fly-by-wire axis inputs (the ECHO half of the setAxes stream
-    // channels below), each -1..1 mirroring KSP's FlightInputHandler ctrlState.
-    // These exist so each axis has a read-anchor for its
-    // [SitrepControlChannel] and a confirmed-readback track in the client's
-    // ControlDelayStream: the operator sees a delayed axis command ARRIVE
-    // (the echo lags the commanded track by the round trip), exactly as the
-    // throttle channel does. Null when no active flight scene (no ctrlState),
-    // never a sentinel default (R1(a)). Populated by KspHost.BuildControl.
-    // LIVE-TEST-REQUIRED: verify these read the applied axis, not a stale zero.
-
-    /// <summary>Commanded pitch axis input, -1..1 (FlightInputHandler ctrlState.pitch).</summary>
+    /// <summary>The applied pitch axis input, -1..1, from KSP's <c>Vessel.ctrlState.pitch</c>. Null when the vessel has no control state. Set with <c>vessel.control.setAxes</c>.</summary>
     [SitrepControlChannel("vessel.control.pitch", "vessel.control.setAxes", typeof(SetControlAxesArgs), nameof(SetControlAxesArgs.Pitch))]
     [SitrepUnit(Units.Dimensionless)]
     public double? Pitch { get; set; }
 
-    /// <summary>Commanded yaw axis input, -1..1 (FlightInputHandler ctrlState.yaw).</summary>
+    /// <summary>The applied yaw axis input, -1..1, from KSP's <c>Vessel.ctrlState.yaw</c>. Null when the vessel has no control state. Set with <c>vessel.control.setAxes</c>.</summary>
     [SitrepControlChannel("vessel.control.yaw", "vessel.control.setAxes", typeof(SetControlAxesArgs), nameof(SetControlAxesArgs.Yaw))]
     [SitrepUnit(Units.Dimensionless)]
     public double? Yaw { get; set; }
 
-    /// <summary>Commanded roll axis input, -1..1 (FlightInputHandler ctrlState.roll).</summary>
+    /// <summary>The applied roll axis input, -1..1, from KSP's <c>Vessel.ctrlState.roll</c>. Null when the vessel has no control state. Set with <c>vessel.control.setAxes</c>.</summary>
     [SitrepControlChannel("vessel.control.roll", "vessel.control.setAxes", typeof(SetControlAxesArgs), nameof(SetControlAxesArgs.Roll))]
     [SitrepUnit(Units.Dimensionless)]
     public double? Roll { get; set; }
 
-    /// <summary>Commanded translation X (RCS right/left) input, -1..1 (ctrlState.X).</summary>
+    /// <summary>The applied translation X input (RCS right/left), -1..1, from KSP's <c>Vessel.ctrlState.X</c>. Null when the vessel has no control state. Set with <c>vessel.control.setAxes</c>.</summary>
     [SitrepControlChannel("vessel.control.translationX", "vessel.control.setAxes", typeof(SetControlAxesArgs), nameof(SetControlAxesArgs.X))]
     [SitrepUnit(Units.Dimensionless)]
     public double? TranslationX { get; set; }
 
-    /// <summary>Commanded translation Y (RCS up/down) input, -1..1 (ctrlState.Y).</summary>
+    /// <summary>The applied translation Y input (RCS up/down), -1..1, from KSP's <c>Vessel.ctrlState.Y</c>. Null when the vessel has no control state. Set with <c>vessel.control.setAxes</c>.</summary>
     [SitrepControlChannel("vessel.control.translationY", "vessel.control.setAxes", typeof(SetControlAxesArgs), nameof(SetControlAxesArgs.Y))]
     [SitrepUnit(Units.Dimensionless)]
     public double? TranslationY { get; set; }
 
-    /// <summary>Commanded translation Z (RCS fwd/back) input, -1..1 (ctrlState.Z).</summary>
+    /// <summary>The applied translation Z input (RCS forward/back), -1..1, from KSP's <c>Vessel.ctrlState.Z</c>. Null when the vessel has no control state. Set with <c>vessel.control.setAxes</c>.</summary>
     [SitrepControlChannel("vessel.control.translationZ", "vessel.control.setAxes", typeof(SetControlAxesArgs), nameof(SetControlAxesArgs.Z))]
     [SitrepUnit(Units.Dimensionless)]
     public double? TranslationZ { get; set; }
 
     /// <summary>
-    /// Every CUSTOM action group the elected action-groups backend knows,
+    /// Every custom action group the vessel has,
     /// each NAMED and carrying its own index (see
     /// <see cref="ActionGroupState"/>). Stock KSP yields ten entries
     /// (<c>AG1..AG10</c>); an AGX backend may yield up to 250 with the
     /// player's own names. Null when action-group data wasn't available this
-    /// tick: never a partial list. Order is by <see cref="ActionGroupState.Index"/>
+    /// tick; never a partial list. Order is by <see cref="ActionGroupState.Index"/>
     /// ascending, but read <see cref="ActionGroupState.Index"/> rather than
     /// relying on array position: position does not carry identity here.
     /// </summary>
     public ActionGroupState[]? ActionGroups { get; set; }
 
+    /// <summary>The payload's provenance (<c>"vessel:&lt;guid&gt;"</c>) and quality.</summary>
     public PayloadMeta Meta { get; set; } = new();
 }

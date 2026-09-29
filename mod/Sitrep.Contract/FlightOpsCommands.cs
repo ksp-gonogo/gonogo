@@ -9,9 +9,8 @@ namespace Sitrep.Contract;
 /// <c>ksp.revertToEditor</c>'s args, which editor the flight reverts back
 /// into. <see cref="Editor"/> is a small opaque string (<c>"vab"</c> or
 /// <c>"sph"</c>, case-insensitive) rather than the KSP <c>EditorFacility</c>
-/// enum, so the wire contract never leaks a native KSP type; the host bridges
-/// the string to the real facility (unrecognised value fails admission with
-/// <see cref="CommandErrorCode.Range"/> before the game is ever touched).
+/// enum; an unrecognised value fails with <see cref="CommandErrorCode.Range"/>
+/// before the game is ever touched.
 ///
 /// <para><c>ksp.revertToLaunch</c>, <c>ksp.toTrackingStation</c> and
 /// <c>ksp.recover</c> take no args (they operate on the current flight /
@@ -33,11 +32,9 @@ public class RevertToEditorArgs
 /// <summary>
 /// <c>ksp.switchVessel</c>'s args: the STABLE opaque vessel id
 /// (<c>vessel.id.ToString()</c>, the same id <see cref="SetTargetArgs.VesselId"/>
-/// uses), resolved server-side against <c>FlightGlobals.Vessels</c>. Never a
-/// live roster array index a client would have to track itself: the same
-/// index-vs-stable-id hazard the target commands already fixed (T-1). An empty
-/// id fails admission with <see cref="CommandErrorCode.NotFound"/> before the
-/// game is ever touched.
+/// uses), resolved server-side against <c>FlightGlobals.Vessels</c>, never a
+/// roster array index. An empty id fails with
+/// <see cref="CommandErrorCode.NotFound"/> before the game is ever touched.
 /// </summary>
 /// <category>Command arguments</category>
 [SitrepContract]
@@ -47,6 +44,7 @@ public class RevertToEditorArgs
 [SitrepCommand("ksp.switchVessel", Delay = DelayRole.TrueNow)]
 public class SwitchVesselArgs
 {
+    /// <summary>The vessel to switch to: KSP's <c>Vessel.id</c> guid as a string, as <c>system.vessels</c> carries it.</summary>
     [SitrepUnit(Units.Id)]
     public string VesselId { get; set; } = "";
 }
@@ -54,18 +52,14 @@ public class SwitchVesselArgs
 /// <summary>
 /// <c>ksp.launch</c>'s args: load a saved craft onto a launch site. The craft
 /// is identified by <see cref="ShipName"/> plus the <see cref="Facility"/> it
-/// was saved from (<c>"VAB"</c>/<c>"SPH"</c>, case-insensitive, the host
-/// bridges it to KSP's <c>EditorFacility</c> and rebuilds the on-disk
-/// <c>.craft</c> path server-side, so the wire never carries a native KSP type
-/// or an absolute path). An empty ship name or an unrecognised facility fails
-/// admission (<see cref="CommandErrorCode.NotFound"/>/<see cref="CommandErrorCode.Range"/>)
-/// before the game is ever touched.
+/// was saved from (<c>"VAB"</c> or <c>"SPH"</c>, case-insensitive); the mod
+/// rebuilds the <c>.craft</c> path itself, so the wire never carries a native
+/// KSP type or an absolute path. An empty ship name fails with
+/// <see cref="CommandErrorCode.NotFound"/> and an unrecognised facility with
+/// <see cref="CommandErrorCode.Range"/>, before the game is ever touched.
 ///
-/// <para><see cref="Crew"/> is a real array of kerbal names (empty = launch
-/// unmanned), NOT the legacy semicolon-joined blob the old action
-/// string used: the command surface is JSON, so the client unwinds its
-/// <c>;</c>-encoded crew list back into an array before dispatching and the
-/// host assigns each name into a free craft seat.</para>
+/// <para><see cref="Crew"/> is an array of kerbal names (empty to launch
+/// unmanned), each assigned to a free craft seat.</para>
 /// </summary>
 /// <category>Command arguments</category>
 [SitrepContract]
@@ -75,6 +69,11 @@ public class SwitchVesselArgs
 [SitrepCommand("ksp.launch", Delay = DelayRole.TrueNow)]
 public class LaunchArgs
 {
+    /// <summary>
+    /// The saved craft's name: its <c>.craft</c> file name without the
+    /// extension, under the save's <c>Ships/VAB</c> or <c>Ships/SPH</c> folder.
+    /// No such file fails with <see cref="CommandErrorCode.NotFound"/>.
+    /// </summary>
     [SitrepUnit(Units.Text)]
     public string ShipName { get; set; } = "";
 
@@ -82,10 +81,15 @@ public class LaunchArgs
     [SitrepUnit(Units.Text)]
     public string Facility { get; set; } = "";
 
+    /// <summary>
+    /// The KSP launch site name to launch from, <c>"LaunchPad"</c> by default.
+    /// Refused unless the sending command centre is in the same planetary
+    /// system (a planet and its moons) as the site.
+    /// </summary>
     [SitrepUnit(Units.Text)]
     public string Site { get; set; } = "LaunchPad";
 
-    /// <summary>Kerbal names to seat, in order. Empty = launch unmanned.</summary>
+    /// <summary>Kerbal names to seat, in order. Empty to launch unmanned.</summary>
     [SitrepUnit(Units.Text)]
     public List<string> Crew { get; set; } = new();
 }

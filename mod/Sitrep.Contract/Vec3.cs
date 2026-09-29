@@ -5,11 +5,10 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// One canonical 3-vector shape for the whole wire contract, kills V-8 (bare
-/// <c>[x,y,z]</c> arrays in some places, <c>{x,y,z}</c>
-/// objects in others, no consistent units). Every vector-valued field in
-/// Sitrep.Contract uses this type; units are documented on the FIELD that
-/// holds a <see cref="Vec3"/>, never implied by the shape itself.
+/// The one 3-vector shape on the wire: an <c>{x, y, z}</c> object. Every
+/// vector-valued field in the contract uses this type. The unit and the
+/// reference frame are documented on the field that holds a <see cref="Vec3"/>,
+/// never implied by the shape itself.
 /// </summary>
 /// <category>Units and values</category>
 [SitrepContract]
@@ -18,17 +17,25 @@ namespace Sitrep.Contract;
 #endif
 public class Vec3
 {
+    /// <summary>The x component, in the unit and frame of the field holding this vector.</summary>
     [SitrepUnit(Units.NotApplicable)]
     public double X { get; set; }
+    /// <summary>The y component, in the unit and frame of the field holding this vector.</summary>
     [SitrepUnit(Units.NotApplicable)]
     public double Y { get; set; }
+    /// <summary>The z component, in the unit and frame of the field holding this vector.</summary>
     [SitrepUnit(Units.NotApplicable)]
     public double Z { get; set; }
 
+    /// <summary>Creates the zero vector.</summary>
     public Vec3()
     {
     }
 
+    /// <summary>Creates a vector from its three components.</summary>
+    /// <param name="x">The x component.</param>
+    /// <param name="y">The y component.</param>
+    /// <param name="z">The z component.</param>
     public Vec3(double x, double y, double z)
     {
         X = x;

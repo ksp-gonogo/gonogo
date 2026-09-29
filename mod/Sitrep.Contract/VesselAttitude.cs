@@ -5,23 +5,21 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The <c>vessel.attitude</c> channel payload: pitch/heading/roll in TWO
-/// named frames, both anchored to the same reference-transform ORIENTATION
-/// but measuring the surface up/north vectors from a different POSITION (see
-/// <c>Gonogo.KSP.KspHost.BuildAttitude</c>'s doc comment for the shared
-/// construction). Kills V-9: the legacy <c>n.heading</c>/
-/// <c>n.heading2</c>/<c>n.rawheading</c>/<c>n.rawheading2</c> quartet (root
-/// vs CoM, raw vs adjusted, no guidance which to use) is NOT reproduced by
-/// numeric suffix: per this class's original decision, a second frame is a
-/// new NAMED field with a frame tag: <see cref="Pitch"/>/<see cref="Heading"/>/
-/// <see cref="Roll"/> are the CoM-referenced frame (up/north measured from
-/// <c>Vessel.CoM</c>: MechJeb's construction), and
-/// <see cref="PitchRootFrame"/>/<see cref="HeadingRootFrame"/>/
-/// <see cref="RollRootFrame"/> are the genuinely distinct ROOT-PART-referenced
-/// frame (up/north measured from <c>Vessel.rootPart</c>'s position instead,
-/// the two diverge whenever the root part sits away from the vessel's centre
-/// of mass). Not derivable from orbital elements (attitude depends on vessel
-/// orientation, not trajectory), hence streamed raw.
+/// The <c>vessel.attitude</c> channel payload: pitch, heading and roll of the
+/// vessel's control reference (<c>Vessel.GetTransform()</c>) against the local
+/// surface up and north, in two named frames.
+///
+/// <para><see cref="Pitch"/>, <see cref="Heading"/> and <see cref="Roll"/> are
+/// the primary frame, with up and north measured at <c>Vessel.CoM</c> (MechJeb's
+/// construction). <see cref="PitchRootFrame"/>, <see cref="HeadingRootFrame"/>
+/// and <see cref="RollRootFrame"/> measure up and north at the root part's
+/// position instead. The orientation is the same in both; the two differ only
+/// when the root part sits away from the centre of mass. Without a root part
+/// the root frame repeats the primary one.</para>
+///
+/// <para>Absent when the vessel has no reference body. Attitude is not
+/// derivable from orbital elements, so it is streamed raw.</para>
+/// <internal>Built by <c>Gonogo.KSP.KspHost.BuildAttitude</c>.</internal>
 /// </summary>
 /// <category>Vessel</category>
 [SitrepContract]
@@ -31,29 +29,30 @@ namespace Sitrep.Contract;
 [SitrepTopic("vessel.attitude")]
 public class VesselAttitude
 {
-    /// <summary>CoM-referenced frame. Degrees, -90..90 (nose down/up).</summary>
+    /// <summary>Pitch above the horizon, measured at the centre of mass. Degrees, -90 (nose down) to 90 (nose up).</summary>
     [SitrepUnit(Units.Degrees)]
     public double Pitch { get; set; }
 
-    /// <summary>CoM-referenced frame. Degrees, 0..360.</summary>
+    /// <summary>Compass heading, measured at the centre of mass. Degrees, 0 to 360, clockwise from north.</summary>
     [SitrepUnit(Units.Degrees)]
     public double Heading { get; set; }
 
-    /// <summary>CoM-referenced frame. Degrees, -180..180.</summary>
+    /// <summary>Roll, measured at the centre of mass. Degrees, -180 to 180.</summary>
     [SitrepUnit(Units.Degrees)]
     public double Roll { get; set; }
 
-    /// <summary>Root-part-referenced frame (see class doc). Degrees, -90..90.</summary>
+    /// <summary>As <see cref="Pitch"/>, measured at the root part. Degrees, -90 to 90.</summary>
     [SitrepUnit(Units.Degrees)]
     public double PitchRootFrame { get; set; }
 
-    /// <summary>Root-part-referenced frame (see class doc). Degrees, 0..360.</summary>
+    /// <summary>As <see cref="Heading"/>, measured at the root part. Degrees, 0 to 360.</summary>
     [SitrepUnit(Units.Degrees)]
     public double HeadingRootFrame { get; set; }
 
-    /// <summary>Root-part-referenced frame (see class doc). Degrees, -180..180.</summary>
+    /// <summary>As <see cref="Roll"/>, measured at the root part. Degrees, -180 to 180.</summary>
     [SitrepUnit(Units.Degrees)]
     public double RollRootFrame { get; set; }
 
+    /// <summary>The payload's provenance (<c>"vessel:&lt;guid&gt;"</c>) and quality.</summary>
     public PayloadMeta Meta { get; set; } = new();
 }

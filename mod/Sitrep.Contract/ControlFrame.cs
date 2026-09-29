@@ -4,25 +4,19 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract
 {
     /// <summary>
-    /// The kinds of reference frame a control frame can be.
+    /// The kinds of reference frame a control frame can be: the five frame types
+    /// an n-body producer constructs, plus <see cref="Unspecified"/>.
     ///
-    /// <para>Taken from what an n-body producer actually offers rather than from
-    /// what this app would find convenient: the five members below are the five
-    /// frame types the shipped native build constructs. A vocabulary invented
-    /// here would name frames nothing can select, and would have no name for
-    /// frames a player is looking at right now.</para>
-    ///
-    /// <para><b>A superset of what a widget can FOLLOW.</b> The read frames a
-    /// widget may draw in cover three of these. A control frame outside that
-    /// subset is a real state and not an error: a widget set to follow the
-    /// control frame resolves to nothing, which is the behaviour that side
-    /// already documents.</para>
+    /// <para>This is a superset of the frames a widget can draw in, which cover
+    /// three of these. A control frame outside that subset is a real state, not
+    /// an error: a widget set to follow the control frame then resolves to
+    /// nothing.</para>
     /// </summary>
     /// <category>Vessel</category>
     [SitrepContract]
     public enum ControlFrameKind
     {
-        /// <summary>Nothing stated one. Distinct from a frame we could not name.</summary>
+        /// <summary>No kind was stated, including for the target frame (see <see cref="ControlFrame.TargetFrameSelected"/>).</summary>
         Unspecified = 0,
 
         /// <summary>Centred on a body, axes fixed against the stars.</summary>
@@ -53,24 +47,23 @@ namespace Sitrep.Contract
     /// is looking at, and what a burn expressed relative to the control frame is
     /// held fixed against.
     ///
-    /// <para><b>Why this is not a widget's choice.</b> A widget picks a read
-    /// frame for itself and nothing else sees it. This is the game's, it is one
-    /// at a time, and it is written as well as read, so a command centre can put
-    /// the player's view where a plan is being discussed.</para>
+    /// <para>This is not a widget's own read frame, which nothing else sees. It
+    /// belongs to the game, there is one at a time, and it can be written as
+    /// well as read (<see cref="SetControlFrameArgs"/>), so a command centre can
+    /// put the player's view where a plan is being discussed.</para>
     ///
-    /// <para><b>Bodies travel by name.</b> Every other body table in this mod is
-    /// keyed by <c>bodyName</c>, <c>system.bodies</c> included, so a frame named
-    /// the same way needs no join to be understood and cannot disagree with the
-    /// table beside it.</para>
+    /// <para>Bodies are named by <c>bodyName</c>, the key of every other body
+    /// table on the wire, <c>system.bodies</c> included.</para>
     ///
-    /// <para><b>The pulsating frames carry SETS, not just a pair.</b> A rotating
-    /// frame turns about two bodies; a pulsating one turns about two groups, and
-    /// the origin is defined by the mass of the whole group. Publishing only the
-    /// head of each side loses bodies out of the mass that decides where the
-    /// origin is, and loses them silently, because the head is the name a reader
-    /// recognises. <see cref="PrimaryBodies"/> always leads with
-    /// <see cref="PrimaryBody"/> so a reader wanting the pair can take the heads
-    /// and a reader computing the frame can take the sets.</para>
+    /// <para>A pulsating frame turns about two groups of bodies, and its origin
+    /// is defined by the mass of each whole group, so the sets travel as well as
+    /// the pair. <see cref="PrimaryBodies"/> always leads with
+    /// <see cref="PrimaryBody"/>: take the heads for the pair, or the sets to
+    /// compute the frame.</para>
+    ///
+    /// <para>The whole payload is <c>null</c> when the frame could not be read.
+    /// With stock KSP the frame is always <see cref="ControlFrameKind.BodyCentredInertial"/>
+    /// about the active vessel's reference body.</para>
     /// </summary>
     /// <category>Vessel</category>
     [SitrepContract]
@@ -80,45 +73,52 @@ namespace Sitrep.Contract
 #endif
     public sealed class ControlFrame
     {
+        /// <summary>The kind of frame. <see cref="ControlFrameKind.Unspecified"/> for the target frame, which has no kind.</summary>
         [SitrepUnit(Units.Enumeration)]
         public ControlFrameKind Kind { get; set; }
 
         /// <summary>
-        /// The body the frame is centred on, when it has one. The rotating frames
-        /// are defined by their pair rather than by a centre.
+        /// The <c>bodyName</c> the frame is centred on, or <c>null</c> when it has
+        /// none. The rotating frames are defined by their pair rather than by a
+        /// centre.
         /// </summary>
         [SitrepUnit(Units.Text)]
         public string? CentreBody { get; set; }
 
-        /// <summary>The body a rotating frame turns about. Null for the centred frames.</summary>
+        /// <summary>The <c>bodyName</c> a rotating frame turns about. <c>null</c> for the centred frames.</summary>
         [SitrepUnit(Units.Text)]
         public string? PrimaryBody { get; set; }
 
-        /// <summary>The body a rotating frame is anchored to. Null for the centred frames.</summary>
+        /// <summary>The <c>bodyName</c> a rotating frame is anchored to. <c>null</c> for the centred frames.</summary>
         [SitrepUnit(Units.Text)]
         public string? SecondaryBody { get; set; }
 
         /// <summary>
-        /// Every body on the primary side, leading with <see cref="PrimaryBody"/>.
-        /// See this type's own doc for why the set travels rather than the head.
+        /// Every body on the primary side, by <c>bodyName</c>, leading with
+        /// <see cref="PrimaryBody"/>. <c>null</c> when the head is the whole side,
+        /// never an empty array.
         /// </summary>
         [SitrepUnit(Units.Text)]
         public string[]? PrimaryBodies { get; set; }
 
-        /// <summary>Every body on the secondary side, leading with <see cref="SecondaryBody"/>.</summary>
+        /// <summary>
+        /// Every body on the secondary side, by <c>bodyName</c>, leading with
+        /// <see cref="SecondaryBody"/>. <c>null</c> when the head is the whole
+        /// side, never an empty array.
+        /// </summary>
         [SitrepUnit(Units.Text)]
         public string[]? SecondaryBodies { get; set; }
 
         /// <summary>
-        /// The frame is defined against the current target rather than against a
-        /// body, which sits orthogonally to <see cref="Kind"/> rather than inside
-        /// it. Closest approach is computed only in this frame, and apsides do not
-        /// exist in it at all.
+        /// <c>true</c> when the frame is defined against the current target rather
+        /// than against a body. This sits beside <see cref="Kind"/> rather than
+        /// inside it. Closest approach is computed only in this frame, and apsides
+        /// do not exist in it. <c>null</c> when the source did not say.
         /// </summary>
         [SitrepUnit(Units.Flag)]
         public bool? TargetFrameSelected { get; set; }
 
-        /// <summary>The target the frame is defined against, when it is a target frame.</summary>
+        /// <summary>The id of the target vessel the frame is defined against, when it is a target frame; otherwise <c>null</c>.</summary>
         [SitrepUnit(Units.Id)]
         public string? TargetId { get; set; }
     }
@@ -126,13 +126,15 @@ namespace Sitrep.Contract
     /// <summary>
     /// <c>system.frame.set</c>'s args: the frame to put the view in.
     ///
-    /// <para><b>A caller names the pair, not the sets.</b> Unlike
+    /// <para>A caller names the pair, not the sets. Unlike
     /// <see cref="ControlFrame"/>, which reports <c>PrimaryBodies</c> and
-    /// <c>SecondaryBodies</c>, this carries only the two heads. Which bodies fall
-    /// on each side of a pulsating frame is decided by the producer walking its
-    /// own body tree, so a caller stating them would be stating a conclusion it
-    /// cannot reach, and a set that disagreed with the producer's would name a
-    /// frame nothing can select.</para>
+    /// <c>SecondaryBodies</c>, this carries only the two heads: the producer
+    /// decides which bodies fall on each side of a pulsating frame from its own
+    /// body tree.</para>
+    ///
+    /// <para>Refusal is normal: stock KSP's frame follows the active vessel's
+    /// reference body and cannot be set, so the command fails with
+    /// <c>ModeUnavailable</c>.</para>
     /// </summary>
     /// <category>Command arguments</category>
     [SitrepContract]
@@ -142,23 +144,24 @@ namespace Sitrep.Contract
     [SitrepCommand("system.frame.set", Delay = DelayRole.TrueNow)]
     public class SetControlFrameArgs
     {
+        /// <summary>The kind of frame to select.</summary>
         [SitrepUnit(Units.Enumeration)]
         public ControlFrameKind Kind { get; set; }
 
-        /// <summary>The body to centre on. Required for the centred frames.</summary>
+        /// <summary>The <c>bodyName</c> to centre on. Required for the centred frames.</summary>
         [SitrepUnit(Units.Text)]
         public string? CentreBody { get; set; }
 
-        /// <summary>The body a rotating frame turns about. Required for the rotating frames.</summary>
+        /// <summary>The <c>bodyName</c> a rotating frame turns about. Required for the rotating frames.</summary>
         [SitrepUnit(Units.Text)]
         public string? PrimaryBody { get; set; }
 
-        /// <summary>The body a rotating frame is anchored to. Required for the rotating frames.</summary>
+        /// <summary>The <c>bodyName</c> a rotating frame is anchored to. Required for the rotating frames.</summary>
         [SitrepUnit(Units.Text)]
         public string? SecondaryBody { get; set; }
 
         /// <summary>
-        /// Ask for the target frame, which sits orthogonally to
+        /// <c>true</c> to ask for the target frame, which sits beside
         /// <see cref="Kind"/> rather than inside it.
         /// </summary>
         [SitrepUnit(Units.Flag)]
@@ -166,54 +169,51 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
-    /// Whatever knows what frame the game's navigation view is currently in.
+    /// The provider that knows which frame the game's navigation view is in, and
+    /// can move it. It competes for <see cref="ControlFrameCapability.Id"/>.
     ///
-    /// <para>A capability rather than a method on core, because the answer belongs
-    /// to whichever mod owns the view. Stock's answer is real and simple, a body
-    /// and inertial axes; an n-body producer's is one of five kinds over sets of
-    /// bodies. Core resolves the interface and never learns which is installed,
-    /// which is the whole of what makes this side stock-shaped rather than
-    /// producer-shaped.</para>
+    /// <para>It is a capability because the frame belongs to whichever mod owns
+    /// the view. Stock's is a body with inertial axes; an n-body producer's is
+    /// one of five kinds over sets of bodies.</para>
     /// </summary>
+    /// <category>Uplink API</category>
     public interface IControlFrameSource : ISitrepProvider
     {
         /// <summary>
         /// The frame the navigation view is in right now, or <c>null</c> when
         /// nothing could be read.
         ///
-        /// <para>Null is not a gap to fill with a default: a substituted frame draws
-        /// a trajectory that looks exactly like one drawn in the frame the player is
-        /// actually in, and nothing downstream could tell them apart.</para>
+        /// <para>Do not substitute a default for <c>null</c>: a trajectory drawn in
+        /// a substituted frame looks exactly like one drawn in the frame the player
+        /// is actually in.</para>
         /// </summary>
         ControlFrame? Frame { get; }
 
         /// <summary>
-        /// Put the view in <paramref name="frame"/>.
+        /// Puts the view in <paramref name="frame"/>.
         ///
-        /// <para>On the SAME interface as the read rather than a seam of its own,
-        /// because the thing that owns the view is the only thing that can move
-        /// it, and splitting them would let an install elect one source to read
-        /// and another to write, which is two answers about one view.</para>
+        /// <para>Read and write share one interface because the owner of the view
+        /// is the only thing that can move it.</para>
         ///
-        /// <para>Refusing is a normal outcome and not a fault: stock's frame
-        /// follows the craft's own reference body and cannot be set at all. A
-        /// source that cannot honour a frame says so, rather than accepting and
+        /// <para>Refusing is a normal outcome, not a fault: stock's frame follows
+        /// the craft's own reference body and cannot be set at all. A source that
+        /// cannot honour a frame returns a failure rather than succeeding and
         /// leaving the view where it was.</para>
         /// </summary>
+        /// <param name="frame">The frame to select.</param>
+        /// <returns>Success once the view is in the frame, or a failure saying why it could not be.</returns>
         CommandResult SetFrame(SetControlFrameArgs frame);
     }
 
     /// <summary>
     /// The capability id an <see cref="IControlFrameSource"/> competes for.
-    ///
-    /// <para>Declared here rather than at the election for the same reason
-    /// <see cref="GravityModelCapability"/> is: an Uplink cannot compile against
-    /// core, so a literal at the election would be a copy free to disagree with
-    /// the one an Uplink writes, and a disagreement shows only as a frame that
-    /// never arrives.</para>
+    /// Register against this constant rather than a literal: a mismatch shows
+    /// only as a frame that never arrives.
     /// </summary>
+    /// <category>Uplink API</category>
     public static class ControlFrameCapability
     {
+        /// <summary>The capability id, <c>"controlFrame"</c>.</summary>
         public const string Id = "controlFrame";
     }
 }

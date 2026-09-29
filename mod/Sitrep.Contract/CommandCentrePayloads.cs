@@ -6,14 +6,13 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// One command centre in the <c>commandCentre.roster</c> channel: a vantage/
-/// authority the operator can command from and observe at (Plan 3). The union of
-/// the stock CommNet home nodes (KSC, Extra Ground Stations, Kerbal Konstructs
-/// sites) and crewed control-source vessels. Produced by the mod's command-centre
-/// enumeration pass.
+/// One command centre in the <c>commandCentre.roster</c> channel: a vantage the
+/// operator can command from and observe at. The roster is the union of the
+/// CommNet home nodes (KSC, Extra Ground Stations, Kerbal Konstructs sites) and
+/// crewed control-source vessels.
 ///
-/// <para>The channel is a BARE ARRAY of these entries (tagged <c>isArray: true</c>,
-/// like <see cref="SpaceCenterPoiEntry"/>), one per active centre keyed by
+/// <para>The channel payload is a bare array of these entries, like
+/// <see cref="SpaceCenterPoiEntry"/>, one per centre, keyed by
 /// <see cref="Id"/>.
 /// <internal>
 /// Published RAW: the producer builds this POCO and the publisher hands the list
@@ -43,7 +42,7 @@ public class CommandCentreEntry
     [SitrepUnit(Units.Text)]
     public string? DisplayName { get; set; }
 
-    /// <summary>One of <c>GroundStation</c> / <c>CrewedVessel</c> / <c>Colony</c> / <c>Custom</c> (the <c>CommandCentreKind</c> name).</summary>
+    /// <summary>One of <c>GroundStation</c>, <c>CrewedVessel</c>, <c>Colony</c> or <c>Custom</c>: the kind of centre.</summary>
     [SitrepUnit(Units.Text)]
     public string? Kind { get; set; }
 
@@ -107,11 +106,11 @@ public class CommandCentreEntry
     public bool IsHomeFallback { get; set; }
 
     /// <summary>
-    /// Whether this centre can be routed to: <c>"routed"</c> (a CommNode
-    /// ControlPath exists, occlusion-aware) or <c>"unroutable"</c> (no CommNode,
-    /// so no command path and no delay). There is deliberately no
-    /// position-only approximation: commands ride the relay network, and a pair
-    /// with no route has no delay to quote.
+    /// Whether this centre can be routed to: <c>"routed"</c> (it has a CommNet
+    /// node, so a control path can be found, occlusion-aware) or
+    /// <c>"unroutable"</c> (no CommNet node, so no command path and no delay).
+    /// There is no position-only approximation: commands ride the relay network,
+    /// and a centre with no route has no delay to quote.
     /// </summary>
     [SitrepUnit(Units.Text)]
     public string? DelayQuality { get; set; }
@@ -169,8 +168,7 @@ public class CentreSeparationEntry
 /// OBSERVED, never as it is at this instant, and a pair whose geometry has
 /// changed since says so one light-time later.
 /// <internal>
-/// Delaying it does NOT make the gate depend on itself, whatever an earlier
-/// version of this comment said. What schedules traffic between vantages is the
+/// Delaying it does NOT make the gate depend on itself. What schedules traffic between vantages is the
 /// engine's delay LEDGER, written directly by
 /// <c>ChannelEngine.SetCentreDelay</c>/<c>SetAuthorityDelays</c> from the rows
 /// below; those writes never read a topic. This channel is a readout off the

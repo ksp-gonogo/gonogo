@@ -11,20 +11,12 @@ namespace Sitrep.Contract;
 /// <see cref="IgnitionUt"/> and <see cref="CutoffUt"/> are absent rather than
 /// equal.
 ///
-/// <para>Kills O-4: the legacy <c>o.addManeuverNode[ut, x, y, z]</c> (where
-/// <c>[x,y,z]</c> is secretly <c>[radialOut, normal, prograde]</c>, with
-/// <c>updateManeuverNode</c> prepending an <c>id</c> that shifts every
-/// subsequent index by one, and a THIRD, different display order) is the
-/// textbook arg-order footgun this named shape makes impossible to
-/// mis-order.</para>
-///
-/// <para><b>Why this is a burn and not a stock node.</b> A stock node is an
-/// instantaneous impulse and real burns are not, which stock KSP itself
-/// concedes by computing <c>DeltaVStageInfo.stageBurnTime</c> and by carrying a
-/// burn-time readout on its own navball. Every serious maneuver mod in the
-/// ecosystem then reimplements the same correction independently, because the
-/// stock type has nowhere to put it. The three instants here are that
-/// nowhere-to-put-it, filled in.</para>
+/// <para><b>A burn, not a stock node.</b> A stock node is an instantaneous
+/// impulse and real burns are not, which stock KSP itself concedes by computing
+/// <c>DeltaVStageInfo.stageBurnTime</c> and by carrying a burn-time readout on
+/// its own navball. <see cref="Ut"/>, <see cref="IgnitionUt"/> and
+/// <see cref="CutoffUt"/> carry the impulsive instant and the finite burn's
+/// start and end.</para>
 ///
 /// <para><b>The impulsive case is absent duration, never zero duration.</b> A
 /// zero-duration burn with a thrust implies infinite acceleration, so any
@@ -38,34 +30,30 @@ namespace Sitrep.Contract;
 #endif
 public class ManeuverNode
 {
-    /// <summary> Stable, opaque id: the M3 R3 fix for the read/write
-    /// correlation gap (<c>packages/sitrep-client/src/map-command.ts</c>'s
-    /// <c>KNOWN_COMMAND_GAPS</c> comment): assigned by
-    /// <c>Gonogo.KSP.KspHost</c> via a shared
+    /// <summary> Stable, opaque id: the <c>nodeId</c> that
+    /// <c>vessel.maneuver.update</c> and <c>vessel.maneuver.remove</c> take. It
+    /// round-trips into those commands whether the node was created through
+    /// <c>vessel.maneuver.add</c> or placed by hand in the map view. A live
+    /// capture always carries one; the empty string appears only on a node
+    /// replayed from a recording that carries no ids.
+    /// <internal>
+    /// Assigned by <c>Gonogo.KSP.KspHost</c> through a shared
     /// <c>ReferenceIdRegistry&lt;global::ManeuverNode&gt;</c> (see that class's
-    /// doc comment for the full scheme), the SAME instance
-    /// <c>KspVesselActuator</c> uses to resolve <c>vessel.maneuver.update</c>/
-    /// <c>.remove</c>'s <c>nodeId</c> argument: so a node's id round-trips into
-    /// those commands whether the node was created through
-    /// <c>vessel.maneuver.add</c> or placed by hand in the map view. Empty
-    /// string only for a node read off a recording captured BEFORE this field
-    /// existed (replay of old data; never a live capture).
+    /// doc comment for the scheme), the same instance <c>KspVesselActuator</c>
+    /// uses to resolve the commands' <c>nodeId</c> argument.
+    /// </internal>
     /// </summary>
     [SitrepUnit(Units.Id)]
     public string Id { get; set; } = "";
 
     /// <summary>
     /// The instant the burn's IMPULSIVE EQUIVALENT occurs: the one instant a
-    /// zero-duration model has, and the one every countdown in the app has
-    /// always shown. Stock's <c>ManeuverNode.UT</c> is exactly this.
+    /// zero-duration model has. Stock's <c>ManeuverNode.UT</c> is exactly this.
     ///
-    /// <para><b>It is not the ignition time, and the difference is a real
-    /// defect elsewhere in the ecosystem.</b> A finite burn starts before this
-    /// and ends after it, which is why every serious KSP maneuver mod
-    /// independently reimplements "start at UT minus half the burn time".
-    /// <see cref="IgnitionUt"/> and <see cref="CutoffUt"/> carry those two
-    /// instants directly instead of leaving each consumer to guess a
-    /// convention.</para>
+    /// <para><b>It is not the ignition time.</b> A finite burn starts before
+    /// this and ends after it. <see cref="IgnitionUt"/> and
+    /// <see cref="CutoffUt"/> carry those two instants directly, so there is no
+    /// "UT minus half the burn time" convention to guess.</para>
     /// </summary>
     [SitrepUnit(Units.UniversalTime)]
     public double Ut { get; set; }
@@ -74,7 +62,7 @@ public class ManeuverNode
     /// When the engines light, or null when nothing supplies a burn-duration
     /// model for this craft.
     ///
-    /// <para>Null is a real answer and not a failure, on the same terms as
+    /// <para>Null is a real reading and not a failure, on the same terms as
     /// <c>IPropagationProvider.CharacteristicCycleSeconds</c>. Stock computes a
     /// burn time only for a LOADED vessel
     /// (<c>VesselDeltaV.CheckDirtyAndRun</c> early-returns on
@@ -108,15 +96,15 @@ public class ManeuverNode
 
     /// <summary>
     /// The basis <see cref="DvRadial"/>/<see cref="DvNormal"/>/
-    /// <see cref="DvPrograde"/> are expressed in. Null only on a node read off
-    /// a recording captured BEFORE this field existed, on the same terms as
-    /// <see cref="Id"/>.
-    ///
-    /// <para>Previously this lived only in this class's prose, which was safe
-    /// exactly as long as one basis existed. Nullable rather than defaulted
-    /// because <see cref="ManeuverFrame.RadialNormalPrograde"/> is index 0, so
-    /// a defaulted value would assert the stock basis for components that might
-    /// be in another one.</para>
+    /// <see cref="DvPrograde"/> are expressed in. Null only on a node replayed
+    /// from a recording that does not carry it, on the same terms as
+    /// <see cref="Id"/>. Do not read null as the stock basis.
+    /// <internal>
+    /// Nullable rather than defaulted because
+    /// <see cref="ManeuverFrame.RadialNormalPrograde"/> is index 0, so a
+    /// defaulted value would assert the stock basis for components that might
+    /// be in another one.
+    /// </internal>
     ///
     /// <para><b>The three fields are POSITIONAL slots, and this names what they
     /// hold.</b> They are the basis's first, second and third component in the
@@ -125,36 +113,40 @@ public class ManeuverNode
     /// prograde in them, and <see cref="ManeuverFrame.TangentNormalBinormal"/>
     /// puts tangent, normal and binormal. So on a Frenet burn
     /// <see cref="DvRadial"/> carries the TANGENT and <see cref="DvPrograde"/>
-    /// carries the BINORMAL, which the field names actively work against and is
-    /// why it is written down here rather than left to be inferred. Saying so is
-    /// the difference between a reader that renders a Frenet burn correctly and
-    /// one that silently rotates every burn an integrating planner produces while
-    /// looking right.</para>
+    /// carries the BINORMAL, whatever the field names suggest. A reader that
+    /// ignores this silently rotates every burn an integrating planner
+    /// produces.</para>
     /// </summary>
     [SitrepUnit(Units.Enumeration)]
     public ManeuverFrame? Frame { get; set; }
 
     /// <summary>
-    /// Null only if KSP's own dv component was non-finite (NaN/Infinity) this
-    /// tick: the NODE is still preserved (never silently dropped just
-    /// because one component came back bad); see
-    /// <c>VesselViewProvider.BuildManeuver</c>.
+    /// First delta-v component in <see cref="Frame"/>'s basis (radial under
+    /// the stock basis). Null only if KSP's own dv component was non-finite
+    /// (NaN/Infinity) this tick; the node is still sent, never dropped because
+    /// one component came back bad.
+    /// <internal>
+    /// See <c>VesselViewProvider.BuildManeuver</c>.
+    /// </internal>
     /// </summary>
     [SitrepUnit(Units.MetresPerSecond)]
     public double? DvRadial { get; set; }
 
-    /// <summary>Null only if KSP's own dv component was non-finite this tick;
-    /// see <see cref="DvRadial"/>'s doc comment.</summary>
+    /// <summary>Second delta-v component in <see cref="Frame"/>'s basis
+    /// (normal). Null only if KSP's own dv component was non-finite this tick,
+    /// as for <see cref="DvRadial"/>.</summary>
     [SitrepUnit(Units.MetresPerSecond)]
     public double? DvNormal { get; set; }
 
-    /// <summary>Null only if KSP's own dv component was non-finite this tick;
-    /// see <see cref="DvRadial"/>'s doc comment.</summary>
+    /// <summary>Third delta-v component in <see cref="Frame"/>'s basis
+    /// (prograde under the stock basis). Null only if KSP's own dv component
+    /// was non-finite this tick, as for <see cref="DvRadial"/>.</summary>
     [SitrepUnit(Units.MetresPerSecond)]
     public double? DvPrograde { get; set; }
 
-    /// <summary>Null only if KSP's own dv magnitude was non-finite this tick;
-    /// see <see cref="DvRadial"/>'s doc comment.</summary>
+    /// <summary>Magnitude of the burn's delta-v. Null only if KSP's own dv
+    /// magnitude was non-finite this tick, as for
+    /// <see cref="DvRadial"/>.</summary>
     [SitrepUnit(Units.MetresPerSecond)]
     public double? DvTotal { get; set; }
 
@@ -168,11 +160,8 @@ public class ManeuverNode
     /// different burn depending on what it is tangent TO, and a client shown the
     /// numbers without this is being shown a burn it cannot identify.</para>
     ///
-    /// <para><b>A kind and a body, not a name.</b> A string would be a second
-    /// vocabulary for something the app already has one of: the read-frame side
-    /// names exactly these four kinds, and every widget that draws a frame
-    /// already resolves them. Two ways of naming one concept is how a
-    /// compatibility shim starts.</para>
+    /// <para>A kind plus <see cref="FrameReferenceBodyIndex"/>, using the same
+    /// four kinds the read-frame side names.</para>
     ///
     /// <para>Null when the planner has only one frame, which is the stock case
     /// and not a gap.</para>
@@ -190,11 +179,10 @@ public class ManeuverNode
     /// <summary>
     /// What a burn's basis is measured relative to.
     ///
-    /// <para>The same four the read-frame side names, deliberately. A frame an
-    /// operator picked to READ a trajectory in and a frame a burn was PLANNED
-    /// in are the same kind of thing, and giving them separate vocabularies
-    /// would make "is this burn in the frame I am looking at" a question that
-    /// needs a translation table.</para>
+    /// <para>The same four the read-frame side names: a frame an operator
+    /// picked to READ a trajectory in and a frame a burn was PLANNED in are the
+    /// same kind of thing, so "is this burn in the frame I am looking at" needs
+    /// no translation.</para>
     /// </summary>
     /// <category>Orbits and trajectories</category>
 #if SITREP_CODEGEN
@@ -235,27 +223,24 @@ public class ManeuverNode
     public bool? InertiallyFixed { get; set; }
 
     /// <summary>
-    /// Thrust the plan was computed against.
-    ///
-    /// <para>Stock CAN fill this and today does not: the impulsive model has no
-    /// use for it, so nothing asked. It is here rather than on a
-    /// planner-specific channel because "what thrust was this planned against"
-    /// is a question about the burn, and the answer differs between a plan made
-    /// at full throttle and one made on a single engine whatever computed
-    /// it.</para>
+    /// Thrust the plan was computed against. Null when the planner did not
+    /// state it; stock's impulsive model does not fill it.
     /// </summary>
     [SitrepUnit(Units.Kilonewtons)]
     public double? Thrust { get; set; }
 
-    /// <summary>Specific impulse the plan was computed against.</summary>
+    /// <summary>Specific impulse the plan was computed against. Null when the
+    /// planner did not state it.</summary>
     [SitrepUnit(Units.SpecificImpulse)]
     public double? SpecificImpulse { get; set; }
 
-    /// <summary>Craft mass at ignition, as the plan assumed it.</summary>
+    /// <summary>Craft mass at ignition, as the plan assumed it. Null when the
+    /// planner did not state it.</summary>
     [SitrepUnit(Units.Tonnes)]
     public double? InitialMass { get; set; }
 
-    /// <summary>Craft mass at cutoff, as the plan assumed it.</summary>
+    /// <summary>Craft mass at cutoff, as the plan assumed it. Null when the
+    /// planner did not state it.</summary>
     [SitrepUnit(Units.Tonnes)]
     public double? FinalMass { get; set; }
 
@@ -263,12 +248,13 @@ public class ManeuverNode
     /// This node's post-burn future-orbit patch chain: element 0 is the
     /// orbit the vessel is on IMMEDIATELY after the burn (KSP's own
     /// <c>ManeuverNode.nextPatch</c>), followed by any subsequent
-    /// SOI-transition patches. ALWAYS an array (R2): empty when the
-    /// solver hasn't produced a post-burn patch yet (a just-added node
-    /// mid-tick). See <c>Gonogo.KSP.KspHost.BuildOrbitPatchChain</c> for
-    /// the walk (same helper <see cref="VesselOrbit.Patches"/> uses,
-    /// started from the node's own <c>nextPatch</c> instead of the
-    /// vessel's current orbit).
+    /// SOI-transition patches, built the same way as
+    /// <see cref="VesselOrbit.Patches"/> but starting from the node's own
+    /// <c>nextPatch</c>. ALWAYS an array, never null: empty when the solver has
+    /// not produced a post-burn patch yet (a just-added node mid-tick).
+    /// <internal>
+    /// The walk is <c>Gonogo.KSP.KspHost.BuildOrbitPatchChain</c>.
+    /// </internal>
     ///
     /// <para><b>How one burn links to the next.</b> A burn's INPUT trajectory
     /// is the patch in the PREVIOUS burn's chain whose
@@ -294,20 +280,20 @@ public class ManeuverNode
 }
 
 /// <summary>
-/// The <c>vessel.maneuver</c> channel payload. <see cref="Nodes"/> is ALWAYS
-/// an array: kills R2's empty-vs-null inconsistency (KspHost's
-/// <c>BuildManeuverNodes</c> returns <c>null</c> for "no nodes queued," the
-/// common case; this mapper normalizes that to <c>[]</c>, never a null
-/// collection). *Derived, SDK-side, NOT streamed here:* the post-burn orbit
-/// preview (elements + node → new elements, consumer-side math).
+/// The <c>vessel.maneuver</c> channel payload: the active vessel's planned
+/// burns. <see cref="Nodes"/> is ALWAYS an array, empty when no burn is
+/// queued, never null.
+/// <internal>
+/// <c>KspHost.BuildManeuverNodes</c> returns <c>null</c> for "no nodes
+/// queued", the common case; the mapper normalises that to <c>[]</c>.
+/// </internal>
 ///
 /// <para><b><see cref="Nodes"/> is ordered by execution</b>, earliest
 /// <see cref="ManeuverNode.Ut"/> first, and that ordering IS the plan: burn N
 /// is flown after burn N-1 and acts on what burn N-1 left behind. No separate
-/// ordinal or predecessor field is carried, because array position already says
-/// it and a second expression of the same fact is a second thing that can be
-/// wrong. The per-burn patch chain expresses the same linkage a third time, in
-/// a form only a patched-conic planner can produce; see
+/// ordinal or predecessor field is carried: array position says it. The
+/// per-burn patch chain expresses the same linkage again, in a form only a
+/// patched-conic planner can produce; see
 /// <see cref="ManeuverNode.Patches"/>.</para>
 /// </summary>
 /// <category>Orbits and trajectories</category>
@@ -318,6 +304,8 @@ public class ManeuverNode
 [SitrepTopic("vessel.maneuver")]
 public class VesselManeuver
 {
+    /// <summary>Every queued burn, earliest <see cref="ManeuverNode.Ut"/>
+    /// first. Empty when none is queued, never null.</summary>
     public List<ManeuverNode> Nodes { get; set; } = new();
 
     /// <summary>
@@ -339,5 +327,6 @@ public class VesselManeuver
     [SitrepUnit(Units.Id)]
     public string? Planner { get; set; }
 
+    /// <summary>The payload's provenance (<c>"vessel:&lt;guid&gt;"</c> or <c>"game"</c>) and quality.</summary>
     public PayloadMeta Meta { get; set; } = new();
 }

@@ -6,34 +6,50 @@ using Sitrep.Contract;
 namespace Sitrep.Contract.Serialization
 {
     /// <summary>
-    /// Hand-written writer/reader for every envelope DTO in
-    /// <c>Sitrep.Contract</c> (<see cref="Meta"/>, <c>StreamData&lt;object?&gt;</c>,
-    /// <c>CommandResponse&lt;object?&gt;</c>, <see cref="CommandAccepted"/>, <see cref="EventMsg"/>,
-    /// <see cref="ErrorMsg"/>, <see cref="Subscribe"/>, <see cref="Unsubscribe"/>,
-    /// <c>CommandRequest&lt;object?&gt;</c>): no Json.NET, no
-    /// System.Text.Json; see <see cref="JsonWriter"/>/<see cref="JsonReader"/>.
+    /// Writes and parses every Sitrep envelope message as JSON:
+    /// <see cref="Meta"/>, <c>StreamData&lt;object?&gt;</c>,
+    /// <see cref="StreamBinary"/> headers, <see cref="EventMsg"/>,
+    /// <c>CommandRequest&lt;object?&gt;</c>, <c>CommandResponse&lt;object?&gt;</c>,
+    /// <see cref="CommandAccepted"/>, <see cref="ErrorMsg"/>,
+    /// <see cref="Subscribe"/>, <see cref="Unsubscribe"/> and
+    /// <see cref="SetVantage"/>. It depends on no JSON library.
     ///
-    /// Field order in every <c>Write*</c> method matches the TS interface
-    /// declaration order in <c>mod/sitrep-sdk/src/__generated__/contract.ts</c>
-    /// exactly (and the golden-fixture generator constructs its object
-    /// literals in that same order), so the on-wire shape this produces is
-    /// byte-for-byte identical to what the real TS SDK serializes for the
-    /// same message: asserted in
+    /// <para>Every <c>Write*</c> method emits fields in the TypeScript SDK's
+    /// declaration order, so the output is byte-for-byte identical to what the
+    /// TypeScript SDK serializes for the same message.</para>
+    ///
+    /// <para>Optional properties (TS <c>foo?: T</c>, C# <c>string?</c> or
+    /// <c>double?</c>) are OMITTED from the object when null, matching
+    /// <c>JSON.stringify</c>'s treatment of <c>undefined</c>, and are never
+    /// written as an explicit <c>null</c>. The always-present generic
+    /// <c>Payload</c>, <c>Args</c> and <c>Result</c> fields are the opposite: a
+    /// CLR <c>null</c> there is a real value and is written as JSON
+    /// <c>null</c>.</para>
+    ///
+    /// <para>Every <c>Parse*</c> method throws <see cref="FormatException"/>
+    /// when the text is not a JSON object, the <c>type</c> field does not name
+    /// the expected envelope, or a required field is missing or has the wrong
+    /// JSON type.</para>
+    /// <internal>
+    /// Field order matches the interface declaration order in
+    /// <c>mod/sitrep-sdk/src/__generated__/contract.ts</c> (and the
+    /// golden-fixture generator constructs its object literals in that same
+    /// order); asserted in
     /// <c>Sitrep.Core.Tests/EnvelopeSerializationGoldenFixtureTests.cs</c>
-    /// against <c>mod/golden-fixtures/serialization.json</c>.
-    ///
-    /// Optional properties (TS <c>foo?: T</c>, C# <c>string?</c>/<c>double?</c>)
-    /// are OMITTED from the object entirely when null, matching
-    /// <c>JSON.stringify</c>'s treatment of <c>undefined</c>-valued
-    /// properties: never written as an explicit <c>null</c>. The always-present
-    /// generic <c>Payload</c>/<c>Args</c>/<c>Result</c> fields are the
-    /// opposite: a CLR <c>null</c> there is a real value and IS written as
-    /// JSON <c>null</c>, via <see cref="JsonWriter.AppendValue"/>.
+    /// against <c>mod/golden-fixtures/serialization.json</c>. Values are
+    /// written through <see cref="JsonWriter"/> and read through
+    /// <see cref="JsonReader"/>; a null generic field goes out via
+    /// <see cref="JsonWriter.AppendValue"/>.
+    /// </internal>
     /// </summary>
+    /// <category>Serialization</category>
     public static class EnvelopeCodec
     {
-        // ----- Meta -----
-
+        /// <summary>Serializes a <see cref="Meta"/> block as a JSON object.
+        /// <see cref="Meta.GapSinceUt"/> is omitted when null; every other field
+        /// is always written.</summary>
+        /// <param name="meta">The block to write.</param>
+        /// <returns>The JSON text of the object.</returns>
         public static string WriteMeta(Meta meta)
         {
             var sb = new StringBuilder();
@@ -41,6 +57,13 @@ namespace Sitrep.Contract.Serialization
             return sb.ToString();
         }
 
+        /// <summary>Parses a JSON <see cref="Meta"/> object. <c>gapSinceUt</c> may be
+        /// absent or <c>null</c>, both read as <c>null</c>; every other field is
+        /// required.</summary>
+        /// <param name="json">The JSON text of one <c>meta</c> object.</param>
+        /// <returns>The parsed block.</returns>
+        /// <exception cref="FormatException">The text is not a JSON object, or a
+        /// required field is missing or has the wrong type.</exception>
         public static Meta ParseMeta(string json)
         {
             return ParseMetaRaw(ExpectObject(JsonReader.Parse(json)));
@@ -76,15 +99,13 @@ namespace Sitrep.Contract.Serialization
             AppendField(sb, "timelineEpoch");
             JsonWriter.AppendInteger(sb, meta.TimelineEpoch);
 
-            // OMITTED when null, unlike every field above it, which are always
-            // written. Two reasons and they point the same way. The generated TS
-            // envelope type declares it optional (`gapSinceUt?: number`), so the
-            // TS reference this codec is held byte-for-byte identical to cannot
-            // express an explicit null and simply leaves the key out; writing
-            // one here would break that conformance for every frame. And a gap
-            // is rare by construction (one sample per known break), so the
-            // absent case is the hot path and every frame on the wire would
-            // otherwise carry 17 bytes saying nothing happened.
+            /*
+             * Omitted when null, unlike every field above it. The TS envelope
+             * declares it optional (`gapSinceUt?: number`), so the TS output this
+             * codec must match byte for byte leaves the key out rather than writing
+             * null. A gap is also rare (one sample per known break), so absence is
+             * the hot path and an explicit null would cost every frame 17 bytes.
+             */
             if (meta.GapSinceUt.HasValue)
             {
                 AppendField(sb, "gapSinceUt");
@@ -107,17 +128,15 @@ namespace Sitrep.Contract.Serialization
                 Active = RequireBool(raw, "active"),
                 Staleness = (Staleness)(int)RequireDouble(raw, "staleness"),
                 TimelineEpoch = (int)RequireDouble(raw, "timelineEpoch"),
-                // Optional on the way IN, unlike every field above it: a
-                // recording made by a host older than contract 14.7 has no
-                // gapSinceUt, and refusing to parse the envelope would make a
-                // fixture from last month unreadable. Absent and null both mean
-                // "this sample opens no known break", which is the same claim.
+                // Optional on the way in so a recording that never carried it still parses; absent and null both mean "this sample opens no known break".
                 GapSinceUt = OptionalDouble(raw, "gapSinceUt"),
             };
         }
 
-        // ----- StreamData<object?> -----
-
+        /// <summary>Serializes a <c>stream-data</c> envelope. A null
+        /// <c>Payload</c> is written as JSON <c>null</c>.</summary>
+        /// <param name="msg">The envelope to write.</param>
+        /// <returns>The JSON text of the envelope.</returns>
         public static string WriteStreamData(StreamData<object?> msg)
         {
             var sb = new StringBuilder();
@@ -137,6 +156,14 @@ namespace Sitrep.Contract.Serialization
             return sb.ToString();
         }
 
+        /// <summary>Parses a <c>stream-data</c> envelope. The payload is left as
+        /// parsed JSON (dictionaries, lists, strings, doubles, bools and
+        /// <c>null</c>); an absent <c>payload</c> reads as <c>null</c>.</summary>
+        /// <param name="json">The JSON text of the envelope.</param>
+        /// <returns>The parsed envelope.</returns>
+        /// <exception cref="FormatException">The text is not a <c>stream-data</c>
+        /// envelope, or a required field is missing or has the wrong
+        /// type.</exception>
         public static StreamData<object?> ParseStreamData(string json)
         {
             var raw = ExpectObject(JsonReader.Parse(json));
@@ -151,17 +178,18 @@ namespace Sitrep.Contract.Serialization
         }
 
         /// <summary>
-        /// The JSON half of a <see cref="BinaryLane"/> frame. Field order
-        /// matches <see cref="StreamBinary"/>'s declaration order, and
-        /// therefore the generated TS interface's, on the same rule the rest of
-        /// this class follows.
-        ///
-        /// <para>Written here rather than in <c>BinaryFrameCodec</c> next door
-        /// so it can reuse <see cref="AppendMeta"/>: the whole point of the
-        /// header is that a binary delivery carries the SAME <see cref="Meta"/>
-        /// a JSON one does, byte for byte, and a second hand-written copy of
-        /// that block is how the two would drift.</para>
+        /// Serializes the JSON header of a <see cref="BinaryLane"/> frame: the
+        /// topic, the segment length table and a <see cref="Meta"/> block
+        /// written byte for byte as a <c>stream-data</c> envelope writes it.
+        /// Field order matches <see cref="StreamBinary"/>'s declaration order.
+        /// <internal>
+        /// Written here rather than in <c>BinaryFrameCodec</c> so it can reuse
+        /// <see cref="AppendMeta"/>: a second hand-written copy of that block is
+        /// how the binary and JSON deliveries would drift.
+        /// </internal>
         /// </summary>
+        /// <param name="msg">The header to write.</param>
+        /// <returns>The JSON text of the header.</returns>
         public static string WriteStreamBinaryHeader(StreamBinary msg)
         {
             var sb = new StringBuilder();
@@ -192,6 +220,14 @@ namespace Sitrep.Contract.Serialization
             return sb.ToString();
         }
 
+        /// <summary>Parses the JSON header of a binary-lane frame, the
+        /// <c>stream-binary</c> half written by
+        /// <see cref="WriteStreamBinaryHeader"/>.</summary>
+        /// <param name="json">The JSON text of the header.</param>
+        /// <returns>The parsed header.</returns>
+        /// <exception cref="FormatException">The text is not a
+        /// <c>stream-binary</c> header, a required field is missing, or a segment
+        /// length is not a non-negative integer.</exception>
         public static StreamBinary ParseStreamBinaryHeader(string json)
         {
             var raw = ExpectObject(JsonReader.Parse(json));
@@ -236,8 +272,9 @@ namespace Sitrep.Contract.Serialization
             return result;
         }
 
-        // ----- EventMsg -----
-
+        /// <summary>Serializes an <c>event</c> envelope.</summary>
+        /// <param name="msg">The envelope to write.</param>
+        /// <returns>The JSON text of the envelope.</returns>
         public static string WriteEventMsg(EventMsg msg)
         {
             var sb = new StringBuilder();
@@ -257,6 +294,13 @@ namespace Sitrep.Contract.Serialization
             return sb.ToString();
         }
 
+        /// <summary>Parses an <c>event</c> envelope; every field is
+        /// required.</summary>
+        /// <param name="json">The JSON text of the envelope.</param>
+        /// <returns>The parsed envelope.</returns>
+        /// <exception cref="FormatException">The text is not an <c>event</c>
+        /// envelope, or a required field is missing or has the wrong
+        /// type.</exception>
         public static EventMsg ParseEventMsg(string json)
         {
             var raw = ExpectObject(JsonReader.Parse(json));
@@ -270,8 +314,13 @@ namespace Sitrep.Contract.Serialization
             };
         }
 
-        // ----- CommandRequest<object?> -----
-
+        /// <summary>Serializes a <c>command-request</c> envelope. <c>vantage</c>
+        /// is written only when <see cref="CommandRequest{T}.Vantage"/> is
+        /// non-empty; absent, the server uses the vantage the session selected
+        /// with <see cref="SetVantage"/>. A null <c>Args</c> is written as JSON
+        /// <c>null</c>.</summary>
+        /// <param name="msg">The envelope to write.</param>
+        /// <returns>The JSON text of the envelope.</returns>
         public static string WriteCommandRequest(CommandRequest<object?> msg)
         {
             var sb = new StringBuilder();
@@ -291,10 +340,7 @@ namespace Sitrep.Contract.Serialization
             AppendField(sb, "topic");
             JsonWriter.AppendString(sb, msg.Topic);
 
-            // Vantage is optional (codegen emits `vantage?: string`): write it
-            // ONLY when set, so the on-wire shape byte-matches the TS SDK, which
-            // omits an undefined optional. An empty/null vantage ⇒ the field is
-            // absent and the server falls back to the session's SelectedVantage.
+            // Written only when set, matching the TS SDK's omission of an undefined optional; absent, the server uses the session's selected vantage.
             if (!string.IsNullOrEmpty(msg.Vantage))
             {
                 AppendField(sb, "vantage");
@@ -310,6 +356,14 @@ namespace Sitrep.Contract.Serialization
             return sb.ToString();
         }
 
+        /// <summary>Parses a <c>command-request</c> envelope. <c>label</c>,
+        /// <c>topic</c> and <c>vantage</c> are optional and read as an empty
+        /// string when absent; an absent <c>args</c> reads as <c>null</c>.</summary>
+        /// <param name="json">The JSON text of the envelope.</param>
+        /// <returns>The parsed envelope.</returns>
+        /// <exception cref="FormatException">The text is not a
+        /// <c>command-request</c> envelope, or <c>requestId</c>, <c>command</c> or
+        /// <c>sentAt</c> is missing or has the wrong type.</exception>
         public static CommandRequest<object?> ParseCommandRequest(string json)
         {
             var raw = ExpectObject(JsonReader.Parse(json));
@@ -319,24 +373,21 @@ namespace Sitrep.Contract.Serialization
                 Type = "command-request",
                 RequestId = RequireString(raw, "requestId"),
                 Command = RequireString(raw, "command"),
-                // Optional for backward compatibility with a pre-Label client:
-                // defaults to "" (PendingUplink.Label's own fallback-to-Command
-                // contract), never RequireString'd.
+                // Optional: "" makes PendingUplink.Label fall back to Command.
                 Label = TryGetString(raw, "label") ?? "",
-                // Optional for backward compatibility with a pre-Topic client:
-                // defaults to "" (PendingUplink.Topic's own unscoped fallback),
-                // never RequireString'd.
+                // Optional: "" leaves PendingUplink.Topic unscoped.
                 Topic = TryGetString(raw, "topic") ?? "",
-                // Optional for backward compatibility with a pre-Vantage client:
-                // "" ⇒ the server falls back to the session's SelectedVantage.
+                // Optional: "" makes the server use the session's selected vantage.
                 Vantage = TryGetString(raw, "vantage") ?? "",
                 Args = raw.TryGetValue("args", out var args) ? args : null,
                 SentAt = RequireDouble(raw, "sentAt"),
             };
         }
 
-        // ----- CommandResponse<object?> -----
-
+        /// <summary>Serializes a <c>command-response</c> envelope. A null
+        /// <c>Result</c> is written as JSON <c>null</c>.</summary>
+        /// <param name="msg">The envelope to write.</param>
+        /// <returns>The JSON text of the envelope.</returns>
         public static string WriteCommandResponse(CommandResponse<object?> msg)
         {
             var sb = new StringBuilder();
@@ -356,6 +407,13 @@ namespace Sitrep.Contract.Serialization
             return sb.ToString();
         }
 
+        /// <summary>Parses a <c>command-response</c> envelope. The result is left
+        /// as parsed JSON; an absent <c>result</c> reads as <c>null</c>.</summary>
+        /// <param name="json">The JSON text of the envelope.</param>
+        /// <returns>The parsed envelope.</returns>
+        /// <exception cref="FormatException">The text is not a
+        /// <c>command-response</c> envelope, or a required field is missing or has
+        /// the wrong type.</exception>
         public static CommandResponse<object?> ParseCommandResponse(string json)
         {
             var raw = ExpectObject(JsonReader.Parse(json));
@@ -369,8 +427,10 @@ namespace Sitrep.Contract.Serialization
             };
         }
 
-        // ----- ErrorMsg -----
-
+        /// <summary>Serializes an <c>error</c> envelope. <c>requestId</c> and
+        /// <c>topic</c> are omitted when null.</summary>
+        /// <param name="msg">The envelope to write.</param>
+        /// <returns>The JSON text of the envelope.</returns>
         public static string WriteErrorMsg(ErrorMsg msg)
         {
             var sb = new StringBuilder();
@@ -399,6 +459,9 @@ namespace Sitrep.Contract.Serialization
             return sb.ToString();
         }
 
+        /// <summary>Serializes a <c>command-accepted</c> envelope.</summary>
+        /// <param name="msg">The envelope to write.</param>
+        /// <returns>The JSON text of the envelope.</returns>
         public static string WriteCommandAccepted(CommandAccepted msg)
         {
             var sb = new StringBuilder();
@@ -416,6 +479,13 @@ namespace Sitrep.Contract.Serialization
             return sb.ToString();
         }
 
+        /// <summary>Parses a <c>command-accepted</c> envelope; every field is
+        /// required.</summary>
+        /// <param name="json">The JSON text of the envelope.</param>
+        /// <returns>The parsed envelope.</returns>
+        /// <exception cref="FormatException">The text is not a
+        /// <c>command-accepted</c> envelope, or a required field is missing or has
+        /// the wrong type.</exception>
         public static CommandAccepted ParseCommandAccepted(string json)
         {
             var raw = ExpectObject(JsonReader.Parse(json));
@@ -428,6 +498,13 @@ namespace Sitrep.Contract.Serialization
             };
         }
 
+        /// <summary>Parses an <c>error</c> envelope. <c>requestId</c> and
+        /// <c>topic</c> are optional and read as <c>null</c> when absent.</summary>
+        /// <param name="json">The JSON text of the envelope.</param>
+        /// <returns>The parsed envelope.</returns>
+        /// <exception cref="FormatException">The text is not an <c>error</c>
+        /// envelope, or <c>code</c> or <c>message</c> is missing or not a
+        /// string.</exception>
         public static ErrorMsg ParseErrorMsg(string json)
         {
             var raw = ExpectObject(JsonReader.Parse(json));
@@ -442,8 +519,9 @@ namespace Sitrep.Contract.Serialization
             };
         }
 
-        // ----- Subscribe -----
-
+        /// <summary>Serializes a <c>subscribe</c> envelope.</summary>
+        /// <param name="msg">The envelope to write.</param>
+        /// <returns>The JSON text of the envelope.</returns>
         public static string WriteSubscribe(Subscribe msg)
         {
             var sb = new StringBuilder();
@@ -457,6 +535,11 @@ namespace Sitrep.Contract.Serialization
             return sb.ToString();
         }
 
+        /// <summary>Parses a <c>subscribe</c> envelope.</summary>
+        /// <param name="json">The JSON text of the envelope.</param>
+        /// <returns>The parsed envelope.</returns>
+        /// <exception cref="FormatException">The text is not a <c>subscribe</c>
+        /// envelope, or <c>topic</c> is missing or not a string.</exception>
         public static Subscribe ParseSubscribe(string json)
         {
             var raw = ExpectObject(JsonReader.Parse(json));
@@ -464,8 +547,9 @@ namespace Sitrep.Contract.Serialization
             return new Subscribe { Type = "subscribe", Topic = RequireString(raw, "topic") };
         }
 
-        // ----- Unsubscribe -----
-
+        /// <summary>Serializes an <c>unsubscribe</c> envelope.</summary>
+        /// <param name="msg">The envelope to write.</param>
+        /// <returns>The JSON text of the envelope.</returns>
         public static string WriteUnsubscribe(Unsubscribe msg)
         {
             var sb = new StringBuilder();
@@ -479,6 +563,12 @@ namespace Sitrep.Contract.Serialization
             return sb.ToString();
         }
 
+        /// <summary>Parses an <c>unsubscribe</c> envelope.</summary>
+        /// <param name="json">The JSON text of the envelope.</param>
+        /// <returns>The parsed envelope.</returns>
+        /// <exception cref="FormatException">The text is not an
+        /// <c>unsubscribe</c> envelope, or <c>topic</c> is missing or not a
+        /// string.</exception>
         public static Unsubscribe ParseUnsubscribe(string json)
         {
             var raw = ExpectObject(JsonReader.Parse(json));
@@ -486,8 +576,9 @@ namespace Sitrep.Contract.Serialization
             return new Unsubscribe { Type = "unsubscribe", Topic = RequireString(raw, "topic") };
         }
 
-        // ----- SetVantage -----
-
+        /// <summary>Serializes a <c>set-vantage</c> envelope.</summary>
+        /// <param name="msg">The envelope to write.</param>
+        /// <returns>The JSON text of the envelope.</returns>
         public static string WriteSetVantage(SetVantage msg)
         {
             var sb = new StringBuilder();
@@ -501,6 +592,12 @@ namespace Sitrep.Contract.Serialization
             return sb.ToString();
         }
 
+        /// <summary>Parses a <c>set-vantage</c> envelope.</summary>
+        /// <param name="json">The JSON text of the envelope.</param>
+        /// <returns>The parsed envelope.</returns>
+        /// <exception cref="FormatException">The text is not a
+        /// <c>set-vantage</c> envelope, or <c>centreId</c> is missing or not a
+        /// string.</exception>
         public static SetVantage ParseSetVantage(string json)
         {
             var raw = ExpectObject(JsonReader.Parse(json));
@@ -508,15 +605,22 @@ namespace Sitrep.Contract.Serialization
             return new SetVantage { Type = "set-vantage", CentreId = RequireString(raw, "centreId") };
         }
 
-        // ----- Discriminated envelope parsing, mirroring sitrep-sdk's envelope.ts/client.ts -----
-
         /// <summary>
-        /// Parses a server-to-client envelope (<c>StreamData&lt;object?&gt;</c> /
-        /// <see cref="EventMsg"/> / <c>CommandResponse&lt;object?&gt;</c> /
-        /// <see cref="ErrorMsg"/>), dispatching on the <c>"type"</c>
-        /// discriminant exactly like <c>mod/sitrep-sdk/src/client.ts</c>'s
-        /// <c>parseServerMessage</c>.
+        /// Parses a server-to-client envelope (<c>StreamData&lt;object?&gt;</c>,
+        /// <see cref="EventMsg"/>, <c>CommandResponse&lt;object?&gt;</c>,
+        /// <see cref="CommandAccepted"/> or <see cref="ErrorMsg"/>), dispatching
+        /// on the <c>"type"</c> field the same way the TypeScript SDK does.
+        /// <internal>
+        /// Mirrors <c>parseServerMessage</c> in
+        /// <c>mod/sitrep-sdk/src/client.ts</c>.
+        /// </internal>
         /// </summary>
+        /// <param name="json">The JSON text of one frame.</param>
+        /// <returns>The parsed envelope, typed by its <c>type</c> field.</returns>
+        /// <exception cref="UnknownEnvelopeTypeException">The frame names no
+        /// server envelope, or has no readable <c>type</c>.</exception>
+        /// <exception cref="InvalidEnvelopeException">The frame names a server
+        /// envelope but a field is missing or has the wrong type.</exception>
         public static object ParseServerMessage(string json)
         {
             var type = PeekType(json);
@@ -540,19 +644,23 @@ namespace Sitrep.Contract.Serialization
         }
 
         /// <summary>
-        /// Parses a client-to-server envelope (<see cref="Subscribe"/> /
-        /// <see cref="Unsubscribe"/> / <see cref="SetVantage"/> /
-        /// <c>CommandRequest&lt;object?&gt;</c>), mirroring <c>ClientMessage</c>
-        /// in <c>envelope.ts</c>.
+        /// Parses a client-to-server envelope (<see cref="Subscribe"/>,
+        /// <see cref="Unsubscribe"/>, <see cref="SetVantage"/> or
+        /// <c>CommandRequest&lt;object?&gt;</c>), dispatching on the
+        /// <c>"type"</c> field.
         ///
         /// <para>Failure comes back as one of two <see cref="FormatException"/>
-        /// subclasses, and the difference is the whole point of them: an
-        /// <see cref="UnknownEnvelopeTypeException"/> means the frame named no
-        /// envelope this build has, and a caller has nothing to report beyond
-        /// that; an <see cref="InvalidEnvelopeException"/> means it named one
-        /// and got a field wrong, and carries the type and the field so a
-        /// caller can say which.</para>
+        /// subclasses: an <see cref="UnknownEnvelopeTypeException"/> means the
+        /// frame named no envelope this build has, and there is nothing more to
+        /// report; an <see cref="InvalidEnvelopeException"/> means it named one
+        /// and got a field wrong, and carries the type and the field so a caller
+        /// can say which.</para>
+        /// <internal>
+        /// Mirrors <c>ClientMessage</c> in <c>envelope.ts</c>.
+        /// </internal>
         /// </summary>
+        /// <param name="json">The JSON text of one frame.</param>
+        /// <returns>The parsed envelope, typed by its <c>type</c> field.</returns>
         public static object ParseClientMessage(string json)
         {
             var type = PeekType(json);
@@ -615,8 +723,6 @@ namespace Sitrep.Contract.Serialization
                 return null;
             }
         }
-
-        // ----- shared helpers -----
 
         private static void AppendField(StringBuilder sb, string name, bool first = false)
         {

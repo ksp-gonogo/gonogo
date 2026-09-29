@@ -30,13 +30,8 @@ namespace Sitrep.Contract;
 /// already emits (same names, same camelCase wire keys via
 /// <c>RtConfig.CamelCaseForProperties</c>, same units). It is NOT serialized
 /// itself: the wire is written by <c>JsonWriter</c> walking the provider's
-/// dictionary, so adding it changed no bytes. The nullability rule above is
-/// <c>SnapshotDict.Get*</c>'s, not a choice made per field. Source is
-/// <c>VesselDeltaV.OperatingStageInfo</c>.</para>
-///
-/// <para>Deliberately carries no <c>Meta</c> field: like the <c>system.*</c>
-/// family, this is a hand-built snapshot payload with no per-payload
-/// provenance.</para>
+/// dictionary. The nullability rule above is <c>SnapshotDict.Get*</c>'s, not a
+/// choice made per field. Source is <c>VesselDeltaV.OperatingStageInfo</c>.</para>
 /// </internal>
 /// </summary>
 /// <category>Vessel</category>
@@ -108,15 +103,18 @@ public class StageDeltaVEntry
     public double? FuelMass { get; set; }
 
     /// <summary>
-    /// Per-resource current/max amounts for the parts active IN THIS STAGE,
-    /// the old <c>r.resourceCurrent[X]</c>/<c>r.resourceCurrentMax[X]</c>
-    /// pair (as opposed to <c>vessel.resources</c>'s vessel-WIDE totals).
-    /// <c>DeltaVStageInfo</c> itself has no per-resource field (only aggregate
-    /// dry/fuel mass), so this is built by walking every part's
-    /// <c>DeltaVPartInfo.stageFuelMass</c> snapshot for this stage number and
-    /// summing by resource name (<c>Gonogo.KSP.KspHost.BuildStageResources</c>).
-    /// Never null: an empty map is a real "no tracked resources active in
-    /// this stage" reading, distinct from the whole stage entry being absent.
+    /// Per-resource current and maximum amounts for the parts active in this
+    /// stage, keyed by resource name, as opposed to <c>vessel.resources</c>'s
+    /// vessel-wide totals. Summed from each part's
+    /// <c>DeltaVPartInfo.stageFuelMass</c> for this stage number, since
+    /// <c>DeltaVStageInfo</c> itself has only aggregate masses. Sent as an
+    /// empty map, never null, when no tracked resource is active in this
+    /// stage.
+    /// <internal>
+    /// Built by Gonogo.KSP.KspHost.BuildStageResources; StageDeltaVViewProvider
+    /// maps a missing key to an empty dict. The property is nullable in C#
+    /// although the wire never carries null.
+    /// </internal>
     /// </summary>
     public Dictionary<string, ResourceAmount>? Resources { get; set; }
 }
@@ -125,15 +123,15 @@ public class StageDeltaVEntry
 /// The <c>dv.summary</c> channel payload: the whole-vessel ΔV rollup KSP's
 /// stock <c>VesselDeltaV</c> exposes alongside the per-stage
 /// <see cref="StageDeltaVEntry"/> list: the ΔV-producing stage count plus the
-/// vacuum / sea-level / current totals and total burn time. A SINGLE WRAPPER
-/// OBJECT (or <c>null</c> when the stock sim isn't ready / there is no active
-/// vessel), so the Topic tag sits on this type directly with the default
-/// <c>IsArray = false</c>.
-///
-/// <para><b>Typing-only mirror</b> of
-/// <c>StageDeltaVViewProvider.BuildSummary</c>, same convention as
-/// <see cref="StageDeltaVEntry"/>: hand-built by the provider, never
-/// serialized itself, no per-payload <c>Meta</c> (it rides the envelope).</para>
+/// vacuum, sea-level and current totals and total burn time. A single object,
+/// or <c>null</c> when the stock simulation is not ready or there is no active
+/// vessel. Every field is <c>null</c> when its raw value is absent or
+/// non-finite. Carries no <c>meta</c> of its own: provenance rides the
+/// envelope.
+/// <internal>
+/// Typing-only mirror of StageDeltaVViewProvider.BuildSummary, same convention
+/// as StageDeltaVEntry.
+/// </internal>
 /// </summary>
 /// <category>Vessel</category>
 [SitrepContract]

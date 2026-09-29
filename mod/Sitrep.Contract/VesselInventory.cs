@@ -39,6 +39,7 @@ public class VesselInventory
     /// tick yields a <c>null</c> payload, not an empty list.</summary>
     public List<InventoryStore> Stores { get; set; } = new();
 
+    /// <summary>The payload's provenance (<c>"vessel:&lt;guid&gt;"</c> or <c>"game"</c>) and quality.</summary>
     public PayloadMeta Meta { get; set; } = new();
 }
 

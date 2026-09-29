@@ -30,7 +30,6 @@ public static class RtConfig
         // reason this can be done from here at all.
         RtDocText.MergeIntoSummaries(builder);
 
-        // --- Envelope (non-generic) ---
         // Register directly via ExportAsInterface<T>(), which shares the same
         // TypeBlueprint the [TsInterface] attribute already created for the type.
         // AutoI(false) keeps the plain C# name (no I-prefix); WithPublicProperties
@@ -45,7 +44,6 @@ public static class RtConfig
         builder.ExportAsInterface<SetVantage>().AutoI(false).WithPublicProperties().OverrideName("SetVantage");
         builder.ExportAsInterface<StreamBinary>().AutoI(false).WithPublicProperties().OverrideName("StreamBinary");
 
-        // --- Envelope + command generics (open generic definitions) ---
         // ExportAsInterface<StreamData<object>>() would target the CLOSED
         // constructed type (a distinct TypeBlueprint from the open generic definition
         // the attribute scan already registered), producing a redundant non-generic
@@ -73,7 +71,6 @@ public static class RtConfig
             new[] { typeof(CommandResult<>) },
             c => c.AutoI(false).WithPublicProperties().OverrideName("CommandResultOf"));
 
-        // --- Wire payload types (non-generic) ---
         // Everything else marked [SitrepContract]/[TsInterface] that crosses the wire:
         // vessel.* channel payloads, comms.* channels, command args, and the
         // shared value shapes (Vec3, PayloadMeta, CommandResult).
@@ -183,7 +180,7 @@ public static class RtConfig
                 // comms.commandCentre: which centre the active vessel's own
                 // ControlPath currently terminates at (see CommsCommandCentre)
                 typeof(CommsCommandCentre),
-                // fleet.<guid>.* per-vessel dynamic channels (Plan 2c): the
+                // fleet.<guid>.* per-vessel dynamic channels: the
                 // display-only delay/connectivity carried on fleet.<guid>.delay
                 // (fleet.<guid>.orbit reuses VesselOrbit, already listed above).
                 typeof(FleetVesselLink),
@@ -228,9 +225,9 @@ public static class RtConfig
                 typeof(SetTargetArgs),
                 typeof(SetThrottleArgs),
                 typeof(SetWarpIndexArgs),
-                // alarm.scet / alarm.scet.fired: the SCET alarm arm's roster
-                // rows, its condition shape and its fire notice, plus the two
-                // arm/disarm command args. Registered for AutoI(false) so the
+                // alarm.scet / alarm.scet.fired: the SCET alarm roster rows,
+                // their condition shape and the fire notice, plus the
+                // alarm.scet.arm and alarm.scet.disarm command args. Registered for AutoI(false) so the
                 // generated interfaces stay I-prefix-free like every other
                 // payload; the topic map names ScetAlarm and ScetAlarmFired, and
                 // an I-prefixed emission would leave it naming types that do not
@@ -268,7 +265,7 @@ public static class RtConfig
                 // vessel.control fly-by-wire command args
                 typeof(SetFlyByWireArgs),
                 typeof(SetControlAxesArgs),
-                // career.status channel payload + sub-groups (P0.5)
+                // career.status channel payload + sub-groups
                 typeof(CareerStatus),
                 typeof(CareerEconomy),
                 typeof(CareerUpkeep),
@@ -282,14 +279,14 @@ public static class RtConfig
                 typeof(CareerStrategy),
                 typeof(CareerTech),
                 typeof(CareerTechNode),
-                // parts.* channel payloads + entries (P0.5)
+                // parts.* channel payloads + entries
                 typeof(SolarPanelEntry),
                 typeof(BatteryEntry),
                 typeof(FuelCellEntry),
                 typeof(AlternatorEntry),
                 typeof(PartsPower),
                 typeof(ServoEntry),
-                // science.* channel payload entries (P0.5)
+                // science.* channel payload entries
                 typeof(ExperimentEntry),
                 typeof(LabEntry),
                 typeof(DeployedEntry),
@@ -297,14 +294,14 @@ public static class RtConfig
                 typeof(ExperimentBreakdownEntry),
                 // science.archive per-subject career-wide archive entry
                 typeof(ArchiveEntry),
-                // system.* channel payloads + entries (P0.5)
+                // system.* channel payloads + entries
                 // system.uplink.pending, the in-transit command queue snapshot
                 // (engine-declared channel, no [SitrepTopic]; hand-declared in
                 // topics.ts). Registered here for AutoI(false) so the generated
                 // interfaces stay I-prefix-free like every other payload.
                 typeof(PendingUplink),
                 typeof(PendingUplinkQueue),
-                // A declared command gate's answer: the refusal payload and the
+                // A declared command gate's verdict: the refusal payload and the
                 // per-command entry of the addressability set. Registered here
                 // for AutoI(false) so the generated interfaces stay I-prefix-free
                 // like every other payload. CommandRequirement is deliberately
@@ -357,16 +354,14 @@ public static class RtConfig
                 typeof(VesselInventory),
                 typeof(InventoryStore),
                 typeof(InventoryItem),
-                // vessel.parts channel payload + nested value shapes (P1b)
+                // vessel.parts channel payload + nested value shapes
                 typeof(VesselParts),
                 typeof(VesselPart),
                 typeof(PartBounds),
-                // vessel.parts per-part live data (resources/module state
-                // gap-close, un-gaps usePartsLive off the legacy source)
+                // vessel.parts per-part live data (resources and module state)
                 typeof(PartResourceFlow),
                 typeof(PartModuleState),
-                // vessel.parts per-part action-group bindings (retires the
-                // f.ag.bindings shim)
+                // vessel.parts per-part action-group bindings
                 typeof(ActionBinding),
                 // vessel.partActions.<flightId> payload + its entry shape: a part's
                 // right-click PAW buttons. A dynamic per-part namespace, so neither
@@ -375,20 +370,20 @@ public static class RtConfig
                 // wire payload has.
                 typeof(PartActions),
                 typeof(PartActionEntry),
-                // spaceCenter.launchSites / spaceCenter.scene (P1b)
+                // spaceCenter.launchSites / spaceCenter.scene
                 typeof(LaunchSiteEntry),
                 typeof(SpaceCenterScene),
                 // spaceCenter.crewRoster / spaceCenter.savedShips / spaceCenter.partsAvailable
                 typeof(CrewRosterEntry),
                 typeof(SavedShipEntry),
                 typeof(SpaceCenterPartsAvailable),
-                // spaceCenter.pois: the map points-of-interest union (T-POI-3)
+                // spaceCenter.pois: the map points-of-interest union
                 typeof(SpaceCenterPoiEntry),
                 // spaceCenter.astronautComplex: the hire pool (CrewRosterEntry,
                 // shared with spaceCenter.crewRoster) + roster cap + next-hire cost
                 // (Value<"funds">)
                 typeof(AstronautComplexInfo),
-                // commandCentre.roster: the vantage/authority union (Plan 3)
+                // commandCentre.roster: the vantage/authority union
                 typeof(CommandCentreEntry),
                 // commandCentre.separation: how far each vantage is from each
                 // other, the number a human at one needs to know how long their
@@ -407,7 +402,7 @@ public static class RtConfig
                 typeof(CommcastRadioBatch),
                 // commcast.transmissions: what a vantage can detect
                 typeof(CommcastTransmissionRow),
-                // dv.stages / dv.summary (P1b)
+                // dv.stages / dv.summary
                 typeof(StageDeltaVEntry),
                 typeof(StageDeltaVSummary),
                 // crash.lastCrash payload + nested value shapes
@@ -426,8 +421,7 @@ public static class RtConfig
                 typeof(FlightStarted),
                 typeof(FlightEnded),
                 typeof(FlightVesselChanged),
-                // One NAMED custom action group on vessel.control.actionGroups,
-                // the element type that replaced the positional bool[].
+                // One named custom action group on vessel.control.actionGroups
                 typeof(ActionGroupState),
                 // reliability.* capability channels (Domain-neutral; see Reliability.cs)
                 typeof(ReliabilitySummary),
@@ -442,32 +436,18 @@ public static class RtConfig
             };
         builder.ExportAsInterfaces(wirePayloadTypes, c => c.AutoI(false).WithPublicProperties());
 
-        // --- Declared units become TYPES, not just a lookup ---
-        // Retypes every quantity-bearing property to Value<"<token>"> so the unit
+        // Declared units become TYPES, not just a lookup: retypes every quantity-bearing property to Value<"<token>"> so the unit
         // travels in the type system rather than in a map a caller has to
         // remember to consult. Runs last: it configures properties on blueprints
         // the registrations above already created.
         //
-        // The ENVELOPE is deliberately absent from this list, and it was
-        // deliberately present once.
-        //
-        // `generated.test.ts` walks the whole field->unit map against the
-        // emitted source, so when Meta.validAt/deliveredAt turned up untyped it
-        // looked like a bug and the envelope types were added to close it.
-        // Migrating the readers showed that was backwards. Those timestamps are
-        // never RENDERED: ten transport and timeline files use them for
-        // ordering, staleness and heartbeats, and not one readout shows them.
-        //
-        // So wrapping them buys nothing and costs twice. It puts a Value in the
-        // way of arithmetic in code that is transport rather than telemetry,
-        // and Meta rides on EVERY stream-data message, so it allocates two
-        // objects per message on the hottest path in the app for a quantity
-        // nobody looks at.
-        //
-        // The declaration stays on the C# property, because the field IS in
-        // seconds and the coverage gate is right to want it said. What changes
-        // is that the declaration stops becoming a type. The exhaustive test
-        // carries the matching exemption, with this reasoning.
+        /*
+         * The ENVELOPE is deliberately absent from this list. Meta.validAt/deliveredAt are never
+         * rendered, only used for ordering and heartbeats, so a Value wrapper would get in the way of
+         * transport arithmetic and allocate twice on every stream-data message. The unit declaration
+         * stays on the C# property for the coverage gate; it just does not become a type, and
+         * `generated.test.ts` carries the matching exemption.
+         */
         //
         // CommandResult<T> rides along despite being registered above rather than
         // in the list: AppendCommandResult writes the payload key on every
@@ -475,8 +455,7 @@ public static class RtConfig
         // the failure branch a caller guards, so the type has to admit it.
         ApplyUnitValueTypes(builder, wirePayloadTypes.Concat(new[] { typeof(CommandResult<>) }));
 
-        // --- Provider extension bags become the opaque ProviderExtensions type ---
-        // Same shape of pass as the unit retyping above, and for the same reason:
+        // Provider extension bags become the opaque ProviderExtensions type. Same shape of pass as the unit retyping above, and for the same reason:
         // the declaration lives on the C# property (a [ProviderExtensionBag]
         // attribute) and the generated TYPE has to carry it. Left as the default
         // Dictionary emission the bag would be `{ [key: string]: any }`, which is
@@ -484,7 +463,7 @@ public static class RtConfig
         // or a provider parser off it.
         ApplyProviderExtensionTypes(builder, wirePayloadTypes);
 
-        // --- Enums (numeric `export enum`, per the existing Quality/Staleness convention) ---
+        // Enums emit as numeric `export enum`, the Quality/Staleness convention.
         builder.ExportAsEnums(
             new[]
             {
@@ -532,7 +511,7 @@ public static class RtConfig
                 typeof(KspResourceFlowMode),
             });
 
-        // --- Topic -> payload map (single source of truth for the SDK registry) ---
+        // The topic -> payload map, the single source of truth for the SDK registry.
         // Reinforced.Typings emits the payload INTERFACES above but has no notion
         // of the TopicId -> payload string-keyed map the SDK's topics.ts needs.
         // codegen.sh sets SITREP_TOPICMAP_OUT to the generated map's path; when it
@@ -547,8 +526,7 @@ public static class RtConfig
             EmitTopicMap(topicMapOut!);
         }
 
-        // --- Field -> unit map (see SitrepUnitAttribute) ---
-        // Same shape of problem, and same answer, as the topic map above:
+        // The field -> unit map (see SitrepUnitAttribute). Same shape of problem, and same solution, as the topic map above:
         // Reinforced.Typings emits TYPES, and a unit is a runtime VALUE a
         // formatter has to look up, so it cannot live in contract.ts at all
         // (rtcli emits interfaces + enums; there is no hook for an arbitrary
@@ -570,8 +548,7 @@ public static class RtConfig
             EmitUnitMap(unitMapOut!, Environment.GetEnvironmentVariable("SITREP_UNITJSON_OUT"));
         }
 
-        // --- Control-channel map (see SitrepControlChannelAttribute) ---
-        // Same shape of problem, and same answer, as the topic and unit maps:
+        // The control-channel map (see SitrepControlChannelAttribute). Same shape of problem, and same solution, as the topic and unit maps:
         // rtcli emits TYPES, and a control channel is a runtime pairing (read
         // topic field + write command) the SDK looks up, so it needs its own
         // artifact. codegen.sh sets SITREP_CHANNELMAP_OUT and we reflect over the
@@ -583,11 +560,9 @@ public static class RtConfig
             EmitChannelMap(channelMapOut!);
         }
 
-        // --- Command -> args/reply map (see SitrepCommandAttribute) ---
-        // The write-side twin of the topic map above, and it exists because the
-        // read half was enumerable and the write half was not: `useCommand` took
-        // a bare string and answered `Promise<unknown>`, and the SDK named nine
-        // commands out of a hundred and eight. codegen.sh sets
+        // The command -> args/reply map (see SitrepCommandAttribute), the write-side
+        // twin of the topic map above, so `useCommand` is typed by command rather
+        // than taking a bare string and returning `Promise<unknown>`. codegen.sh sets
         // SITREP_COMMANDMAP_OUT and we reflect over the [SitrepCommand]-tagged
         // args types to write command-map.ts alongside. No-op when unset.
         var commandMapOut = Environment.GetEnvironmentVariable("SITREP_COMMANDMAP_OUT");
@@ -607,7 +582,7 @@ public static class RtConfig
             EmitErrorCodeMap(errorCodesOut!, builder.Context.DocumentationFilePath);
         }
 
-        // The reckonable-value map takes the same answer as the four maps
+        // The reckonable-value map takes the same approach as the four maps
         // above, to the same problem: rtcli emits TYPES, and a reckonability
         // declaration is a runtime record (which model, which published
         // inputs) the SDK looks up to build the projection type and to name an
@@ -857,12 +832,7 @@ public static class RtConfig
     /// <para>Reinforced.Typings has no notion of a generic type argument built
     /// from an attribute value, but <c>PropertyExportBuilder.Type(string)</c>
     /// takes a raw TS type name, and a raw name is all this needs. That string
-    /// overload is the whole mechanism. (Do not go looking for a structured
-    /// route: <c>RtRaw</c> does not exist in 1.6.7, <c>RtSimpleTypeName</c>'s
-    /// generic-argument parameter is an array rather than <c>params</c>, and
-    /// <c>Type()</c> has exactly three overloads (<c>string</c>,
-    /// <c>&lt;T&gt;()</c>, <c>Type</c>), none of which accept an
-    /// <c>RtTypeName</c>.)</para>
+    /// overload is the whole mechanism.</para>
     ///
     /// <para>Three shapes, one rule. A scalar becomes <c>Value&lt;U&gt;</c>. A
     /// SEQUENCE of same-unit readings takes the unit inside the array, since a
@@ -879,7 +849,7 @@ public static class RtConfig
     /// not compile.</para>
     ///
     /// <para><b>The same pass also widens a nullable value type to
-    /// <c>T | null</c></b>, since both rules answer the same question (what does
+    /// <c>T | null</c></b>, since both rules address the same question (what does
     /// the emitted TYPE have to say about this wire value) and both want the one
     /// <c>Type(string)</c> call per property: two passes would fight over it,
     /// last writer winning. A quantity that is also nullable composes, giving
@@ -891,20 +861,14 @@ public static class RtConfig
     /// <param name="valueImportFrom">
     /// Where the emitted file should import <c>Value</c>/<c>Vec3Of</c> from.
     /// Defaults to the first party's own layout. An UPLINK passes the path
-    /// that reaches the SDK from ITS generated file, which is the only thing
-    /// about this pass that was ever first-party-specific.
+    /// that reaches the SDK from ITS generated file.
     /// </param>
     /// <remarks>
-    /// <para><b>Public, and reusable against any assembly's types.</b>
-    /// Declaring a unit was always symmetric (<see cref="SitrepUnitAttribute"/>
-    /// takes an arbitrary string), but GENERATING from the declaration was
-    /// not, so an Uplink author hand-wrote the <c>Value&lt;&gt;</c> types the
-    /// first party generates. That is the drift generation exists to prevent.
-    /// This pass never cared which assembly the types came from, it takes them
-    /// as an argument; it was simply private. An Uplink's own
-    /// <c>Configure</c> calls this with its own exported types and gets the
-    /// same retyping, and <see cref="UnitDescriptor.ToJson(Assembly)"/> gives
-    /// it the matching descriptor.</para>
+    /// <para><b>Public, and reusable against any assembly's types.</b> An
+    /// Uplink's own <c>Configure</c> calls this with its own exported types and
+    /// gets the same retyping as the first party, so no author hand-writes
+    /// <c>Value&lt;&gt;</c> types, and <see cref="UnitDescriptor.ToJson(Assembly)"/>
+    /// gives it the matching descriptor.</para>
     /// </remarks>
     public static void ApplyUnitValueTypes(
         ConfigurationBuilder builder,
@@ -1031,14 +995,6 @@ public static class RtConfig
             // name). Same rule as the sequence above: the unit belongs to
             // each VALUE, so it lands inside the map rather than on it,
             // and the key is just a name.
-            //
-            // Every name-keyed channel before this one had a POCO value
-            // (vessel.resources -> ResourceAmount, career.facilities ->
-            // CareerFacility) whose own properties carried the units, so
-            // a map of BARE scalars had never come up and this branch did
-            // not exist. Its absence was a gap, not a decision: without it
-            // the only ways to declare such a map were a wrapper object
-            // per entry, or a bare `number` the client has to guess at.
             return "{ [key: string]: " + value + " }";
         }
 
@@ -1190,10 +1146,7 @@ public static class RtConfig
             // ELSEWHERE is not emitted into this file at all and rtcli falls
             // back to its ordinal, which is why an Uplink slice reading one of
             // core's enums gets `number`: naming it here would emit an
-            // identifier the generated file never declares. Measured, not
-            // assumed: KerbalismResource.flowModeOrdinal and
-            // Rp1BuildableCraftEntry.facility are both core enums seen from an
-            // Uplink and both emit as `number` today.
+            // identifier the generated file never declares.
             return underlying.Assembly == declaringType.Assembly ? underlying.Name : "number";
         }
 
@@ -1305,7 +1258,7 @@ public static class RtConfig
     /// needs.</para>
     ///
     /// <para><b>This is what makes the bag one line per payload.</b> Adding the
-    /// bag to a future elected payload (science is next) is the attribute on
+    /// bag to a future elected payload is the attribute on
     /// the property; nothing here, in the SDK, or in the client runtime is
     /// edited again. That permanence is the contract, the same one the open
     /// <c>SitrepUnit</c> union keeps for unit tokens.</para>
@@ -1415,8 +1368,7 @@ public static class RtConfig
     };
 
     /// <summary>
-    /// CORE's reserved-name collisions that already existed when this check was
-    /// written, as <c>"&lt;topic&gt;.&lt;field&gt;"</c>. SHRINK-ONLY: a new one
+    /// CORE's excused reserved-name collisions, as <c>"&lt;topic&gt;.&lt;field&gt;"</c>. SHRINK-ONLY: a new one
     /// fails codegen, and an entry that has stopped colliding fails codegen too,
     /// so the list cannot outlive what it excuses.
     ///
@@ -1432,9 +1384,7 @@ public static class RtConfig
     /// </summary>
     internal static readonly string[] ReservedFieldNameDebt =
     {
-        // The element's arm state is unreachable as a field reading. No new name
-        // is ruled: its third value, Unreachable, is about the craft rather than
-        // arming, so the field belongs with the alarm roster work.
+        // The element's alarm state is unreachable as a field reading; its third value, Unreachable, is about the craft, so a rename belongs with the alarm roster.
         "alarm.scet.state",
     };
 
@@ -1461,7 +1411,7 @@ public static class RtConfig
     /// each slice's codegen leg checks its own topics. That is also why the
     /// shrink half only judges a debt entry whose topic this assembly declares:
     /// core's run cannot see an Uplink's topic and must not read its own
-    /// blindness as a stale excuse.</para>
+    /// blindness as an entry to drop.</para>
     /// </summary>
     internal static void CheckReservedFieldNames(Assembly assembly, string[] sliceDebt = null)
     {
@@ -1543,8 +1493,7 @@ public static class RtConfig
     /// <param name="outPath">Where to write the generated map.</param>
     /// <param name="assembly">
     /// Which assembly to reflect over. Defaults to this one (first-party
-    /// core). An Uplink's own <c>Configure</c> (see
-    /// <c>MechJebRtConfig.Configure</c> for the first one to do this) passes
+    /// core). An Uplink's own <c>Configure</c> passes
     /// its own contract assembly and gets its own topic map, written into
     /// ITS OWN generated directory, never into <c>sitrep-sdk</c>: same
     /// per-assembly opt-in <see cref="ApplyUnitValueTypes"/> already
@@ -1678,7 +1627,7 @@ public static class RtConfig
     /// <para>The <c>SitrepUnit</c> union is emitted from the whole
     /// <see cref="Units"/> catalog, not merely the tokens currently in use, so
     /// it is the stable vocabulary a client-side formatter can switch over
-    /// exhaustively while annotation coverage is still being filled in.</para>
+    /// exhaustively.</para>
     /// </summary>
     /// <param name="outPath">Where to write the generated map.</param>
     /// <param name="jsonOutPath">Where to write the JSON twin, or null to skip it.</param>
@@ -2035,8 +1984,7 @@ public static class RtConfig
     /// seam in <c>mod/sitrep-sdk/src/reckonability.ts</c>, and the gate in
     /// <c>Sitrep.Contract.Tests</c> needs a per-Uplink leg to resolve the marks
     /// against the core topic set plus the Uplink's own. No Uplink payload
-    /// carries a mark today, so this is deferred rather than blocked, and the
-    /// parameter is left off so its absence reads as the decision it is.</para>
+    /// carries a mark, so the parameter is left off.</para>
     /// </summary>
     private static void EmitReckonability(string outPath)
     {
@@ -2235,8 +2183,8 @@ public static class RtConfig
 
     /// <summary>
     /// C# scalar -> the TypeScript primitive it generates as, for the payload a
-    /// command answers with. Only the types a <c>CommandResult&lt;T&gt;</c>
-    /// actually carries today; anything else has to be a contract type the same
+    /// command returns. Only the types a <c>CommandResult&lt;T&gt;</c>
+    /// actually carries; anything else has to be a contract type the same
     /// run emits, and <see cref="TsResultName"/> refuses the rest.
     /// </summary>
     private static readonly Dictionary<Type, string> ScalarPayloadTypes =
@@ -2306,17 +2254,14 @@ public static class RtConfig
 
                 var reply = CommandReply(attr, type.Name, localNames, replyNames);
 
-                // The rail columns. `replies` is derived from what the command
-                // answers, and is true for every command the contract has ever
-                // declared because `CommandResult` rules that results are always
-                // delivered. It is read rather than assumed so that a command
-                // answering nothing would land as fire-and-forget without a new
-                // branch anywhere downstream.
-                //
-                // `delayed` is copied straight off the declaration the HOST
-                // dispatches by (see SitrepCommandAttribute.Delay), which is
-                // what makes the client's delay UX a reading of the mod's answer
-                // rather than a second opinion about it.
+                /*
+                 * The rail columns. `replies` is derived from what the command returns, and is true
+                 * for every command because `CommandResult` guarantees results are delivered; it is
+                 * read rather than assumed so a command returning nothing would land as
+                 * fire-and-forget with no new branch downstream. `delayed` is copied straight off the
+                 * declaration the HOST dispatches by (SitrepCommandAttribute.Delay), so the client's
+                 * delay UX reads the mod's declaration rather than holding a second opinion.
+                 */
                 rows.Add((attr.CommandId, type.Name, reply, reply != null, attr.Delay == DelayRole.Delayed, ArriveBeforeField(attr, type)));
                 argsNames.Add(type.Name);
             }
@@ -2548,12 +2493,7 @@ public static class RtConfig
         if (attr.Result != null)
         {
             var named = TsResultName(attr.Result, attr.CommandId, argsName, localNames);
-            // Only a NAME needs importing. A primitive and the open
-            // `Record<string, unknown>` are spelled inline, and adding
-            // the C# type's name for one of those put a literal
-            // `Dictionary`2` in the import list, which is exactly the
-            // "check the output rather than assuming" failure this
-            // codegen is warned about.
+            // Only a NAME needs importing: a primitive and the open `Record<string, unknown>` are spelled inline, and importing the C# name for one would put `Dictionary`2` in the import list.
             if (named == attr.Result.Name) replyNames.Add(named);
             return named;
         }
@@ -2581,7 +2521,7 @@ public static class RtConfig
             return primitive;
         }
 
-        // A string-keyed bag, which is what a handler answering
+        // A string-keyed bag, which is what a handler returning
         // Dictionary<string, object?> puts on the wire. Spelled as the open
         // record it is rather than given a fabricated contract type: the keys
         // are the handler's and this contract does not name them, and a named

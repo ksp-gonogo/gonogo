@@ -1,50 +1,15 @@
 namespace Sitrep.Contract
 {
-    // ─────────────────────────────────────────────────────────────────────────
-    // The economy capability: what a career's reputation MEANS.
-    //
-    // Reputation is a number every career mode has and stock treats as a score.
-    // A career-overhaul mod can make it an income: reputation decays daily and
-    // sets a funding subsidy, against which a continuous per-day upkeep runs. So
-    // the same field, correctly read, is either a score or a salary depending on
-    // what is installed, and nothing on the wire said which.
-    //
-    // This capability does NOT replace the reading. `career.status.economy
-    // .reputation` keeps publishing the same stock field unchanged, because the
-    // value was never wrong: what was missing is the context that makes it
-    // legible. So the capability INTERPRETS a reading core already owns, which is
-    // a different shape from the other elections in this contract, and the
-    // interface says so by taking the reputation as an argument rather than
-    // reading it.
-    //
-    //   • ONE exclusive capability "economy" whose active instance is an
-    //     IEconomyBackend.
-    //   • A core registrar owns the capability, supplies the stock backend as its
-    //     Vanilla factory, and folds the elected backend's answer into the
-    //     career.status.economy group it already publishes.
-    //   • An overhaul mod registers a provider from its OWN uplink's Register,
-    //     gated by its own presence probe: registering IS the gate.
-    //
-    // ── Why the vanilla backend is not a no-op ───────────────────────────────
-    // Stock career genuinely has no decay and no subsidy and levies no ongoing
-    // cost. Saying so is a truthful answer rather than an invented one, and it is
-    // the same shape the ISRU capability's stock backend has: a real reader whose
-    // answer happens to be simple. What stock has no CONCEPT of is the per-source
-    // breakdown, so that stays absent rather than arriving as a bag of zeros.
-    // ─────────────────────────────────────────────────────────────────────────
-
     /// <summary>The exclusive capability id every economy backend competes for.</summary>
     /// <remarks>
-    /// An id both halves must spell identically belongs where both halves can
-    /// reach it, and this was the last one that did not. The election declared it
-    /// in the unpublished <c>Sitrep.Host</c>, so the career-overhaul uplink that
-    /// registers against it had no declaration to reach and spelled
-    /// <c>"economy"</c> as a literal instead. <see cref="CrewStandingCapability"/>
-    /// and <see cref="ActionGroupsCapability"/> are the shape this now follows.
+    /// Declared here so the election and a registering Uplink spell it from one
+    /// constant, the same shape as <see cref="CrewStandingCapability"/> and
+    /// <see cref="ActionGroupsCapability"/>.
     /// </remarks>
+    /// <category>Uplink API</category>
     public static class EconomyCapability
     {
-        /// <summary>The capability id. One declaration, reachable from an Uplink.</summary>
+        /// <summary>The capability id, <c>"economy"</c>: register an <see cref="IEconomyBackend"/> under exactly this string.</summary>
         public const string Id = "economy";
     }
 
@@ -55,11 +20,13 @@ namespace Sitrep.Contract
     /// </summary>
     /// <remarks>
     /// Every member is nullable and every null means the SAME thing: this backend
-    /// does not model that quantity. A zero means it models it and the answer is
+    /// does not model that quantity. A zero means it models it and the value is
     /// zero, which for stock is the truth about decay, subsidy and upkeep alike.
-    /// Not a wire type: the wire keys are built by the career view provider, and
-    /// this is the SPI shape a backend answers in.
+    /// Not a wire type: this is the shape a backend returns, and core folds it
+    /// into <c>career.status</c>'s <c>economy</c> group
+    /// (<see cref="CareerEconomy"/>).
     /// </remarks>
+    /// <category>Uplink API</category>
     public sealed class EconomyReading
     {
         /// <summary>
@@ -92,7 +59,7 @@ namespace Sitrep.Contract
         /// <summary>
         /// Where the upkeep goes: the parts <see cref="UpkeepPerDay"/> is made
         /// of, and they sum to it. Null when the backend has no per-source model,
-        /// which is the honest answer for stock rather than seven zeros.
+        /// which is the truthful value for stock rather than seven zeros.
         /// </summary>
         /// <remarks>
         /// A DECOMPOSITION, which is a stronger promise than "seven costs". A
@@ -109,12 +76,12 @@ namespace Sitrep.Contract
         /// <summary>
         /// The same sources, priced BEFORE whatever the model does to them at
         /// transaction time: leaders, strategies, standing discounts. Null when
-        /// the model applies nothing, which is stock's answer and also the answer
-        /// of any model whose two sets would be identical.
+        /// the model applies nothing, which is true of stock and of any model
+        /// whose two sets would be identical.
         /// </summary>
         /// <remarks>
         /// Carried beside <see cref="UpkeepBreakdown"/> rather than instead of it
-        /// because the two answer different questions and an operator has both.
+        /// because the two serve different questions and an operator has both.
         /// The modified set says what the programme is reported to cost; this one
         /// says what it costs before the career's current arrangements are
         /// applied, so the difference between them is what those arrangements are
@@ -126,11 +93,11 @@ namespace Sitrep.Contract
         /// <summary>
         /// A prepaid allowance, denominated in funds, that this money model
         /// consumes BEFORE funds on the purchases it applies to. Null when the
-        /// model has no such pool, which is stock's answer.
+        /// model has no such pool, as on stock.
         /// </summary>
         /// <remarks>
-        /// A balance, never an affordability answer. What a given purchase will
-        /// actually draw from it is a per-purchase question the model answers with
+        /// A balance, never an affordability verdict. What a given purchase will
+        /// actually draw from it is a per-purchase question the model settles with
         /// a currency-modifier query, and a query broadcasts to every modifier in
         /// the save: a thing to run at the moment an operator commits, not a thing
         /// to sample. So a client reads this beside the funds balance and shows
@@ -144,6 +111,7 @@ namespace Sitrep.Contract
     /// <see cref="EconomyReading"/>'s: a source this backend does not model is
     /// absent, not zero.
     /// </summary>
+    /// <category>Uplink API</category>
     public sealed class EconomyUpkeepBreakdown
     {
         /// <summary>Buildings: the standing cost of having a space centre at all.</summary>
@@ -171,7 +139,36 @@ namespace Sitrep.Contract
     /// <summary>
     /// The active instance of the exclusive <c>"economy"</c> capability: what this
     /// install's money model makes of a reputation reading.
+    ///
+    /// <para>Reputation is a number every career mode has and stock treats as a
+    /// score. A career-overhaul mod can make it an income: reputation decays
+    /// daily and sets a funding subsidy, against which a continuous per-day
+    /// upkeep runs. This capability does NOT replace the reading:
+    /// <c>career.status.economy.reputation</c> keeps publishing the stock field
+    /// unchanged. The backend INTERPRETS a value core already owns, which is why
+    /// it is handed the reputation rather than reading it.</para>
+    ///
+    /// <para>Core supplies a stock backend, which is a real reader and not a
+    /// no-op: stock has no decay, no subsidy and no ongoing cost, and says so
+    /// with zeros. What stock has no CONCEPT of is the per-source breakdown, so
+    /// that stays null. An overhaul mod registers its own provider from its
+    /// Uplink's registration, gated by its own presence probe. The elected
+    /// backend's <see cref="ISitrepProvider.ProviderId"/> is published as
+    /// <see cref="CareerEconomy.EconomyModel"/>.</para>
+    ///
+    /// <para><b>Threading.</b> <see cref="Interpret"/> is called OFF the main
+    /// thread. It may read an overhaul's own scenario state, but must not call
+    /// anything that touches Unity or broadcasts a game event; a value that
+    /// needs one is captured on the main thread by the backend's own Uplink and
+    /// only read here.</para>
+    /// <internal>
+    /// Called from <c>Gonogo.KSP.KspHost.BuildCareerEconomy</c>, reached from
+    /// the <c>career.status</c> channel mapper on the Courier thread. RP-1's
+    /// per-line upkeep pricing broadcasts a game event, which is why the RP-1
+    /// Uplink samples it on the main thread.
+    /// </internal>
     /// </summary>
+    /// <category>Uplink API</category>
     public interface IEconomyBackend : ISitrepProvider
     {
         /// <summary>
@@ -187,7 +184,7 @@ namespace Sitrep.Contract
         /// The reputation core already read, or null when it could not be read.
         /// Passed in rather than read for the reason this capability exists: the
         /// value is not in dispute, only what it MEANS. A backend handed null
-        /// answers what it can without it.
+        /// returns what it can without it.
         /// </param>
         /// <returns>
         /// The reading, or null when nothing can be said this tick. Null is not

@@ -5,23 +5,16 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The flight-lifecycle domain: retires the client-side
-/// <c>FlightDetector</c> heuristic that
-/// reconstructed flight boundaries from <c>vesselName</c> + <c>missionTime</c>
-/// + a revert-threshold guess. The
-/// producer (<c>Gonogo.KSP.FlightUplink</c> + <c>Sitrep.Host.Flight.FlightLifecycleSampler</c>)
-/// hooks KSP's flight GameEvents internally and translates them into this
-/// clean contract: no KSP names ever cross the wire.
-///
-/// <para><b>Crash/recovery stayed separate</b> (the smaller-blast-radius
-/// pick, per the spec's build-time TBD): <c>crash.lastCrash</c>/
-/// <c>recovery.lastSummary</c> keep their own rich detail payloads
-/// unmodified; <see cref="FlightEnded"/> only carries the coarse
-/// <see cref="FlightEndReason"/>. <c>FlightUplink</c> hooks the SAME
-/// <c>onCrash</c>/<c>onCrashSplashdown</c>/<c>onVesselWillDestroy</c>/
-/// <c>onVesselRecoveryProcessingComplete</c> GameEvents <c>CrashUplink</c>/
-/// <c>RecoveryUplink</c> already hook, independently: zero coupling, zero
-/// risk to the existing detail streams.</para>
+/// Why a flight ended, carried on <see cref="FlightEnded"/>. The detail of a
+/// crash or a recovery is on the <c>crash.lastCrash</c> and
+/// <c>recovery.lastSummary</c> channels; this is only the coarse reason.
+/// <internal>
+/// Gonogo.KSP.FlightUplink hooks the same onCrash / onCrashSplashdown /
+/// onVesselWillDestroy / onVesselRecoveryProcessingComplete GameEvents that
+/// CrashUplink and RecoveryUplink hook, independently, so the detail streams
+/// are unaffected. Revert is detected by Sitrep.Host.Flight.FlightLifecycleSampler
+/// from UT jumping backward, not from a GameEvent.
+/// </internal>
 /// </summary>
 /// <category>Flights</category>
 [SitrepContract]
@@ -30,24 +23,34 @@ namespace Sitrep.Contract;
 #endif
 public enum FlightEndReason
 {
+    /// <summary>The vessel was recovered.</summary>
     Recovered,
+
+    /// <summary>The vessel was lost to a collision or a hard splashdown.</summary>
     Crashed,
+
+    /// <summary>
+    /// The game rewound (a revert or a quickload) to before the flight's end,
+    /// or the flight was still open when the rewind happened. Also sent for a
+    /// flight that had already ended by crash or recovery on the timeline the
+    /// rewind discarded.
+    /// </summary>
     Reverted,
+
+    /// <summary>The vessel was destroyed without a collision, for example burning up on re-entry.</summary>
     Destroyed,
 }
 
 /// <summary>
-/// The <c>flight.current</c> channel payload: a UT-indexed <b>Value</b>
-/// (LossyLatest + <see cref="DelayRole.Delayed"/>, mirroring every
-/// <c>vessel.*</c> channel): the authoritative "what flight is this, and what
-/// phase is it in" reading for whichever vessel gonogo is presently
+/// The <c>flight.current</c> channel payload: a UT-indexed value, delivered
+/// latest-wins and delayed like every <c>vessel.*</c> channel. It says which
+/// flight is active and what phase it is in, for the vessel gonogo is
 /// reporting as active. That is the vessel the game is flying, with one
-/// exception: a kerbal on EVA does not become the subject of this reading, the
-/// craft they stepped out of stays it for as long as that craft is in the
-/// world. <see cref="Phase"/> reuses
-/// <see cref="Situation"/> rather than inventing a parallel enum; see
-/// <c>FlightLifecycleSampler</c> doc reference in
-/// <c>Sitrep.Host.Flight</c> for the exact phase source.
+/// exception: a kerbal on EVA does not become the subject of this reading,
+/// the craft they stepped out of stays it for as long as that craft is in the
+/// world.
+/// <para>Nothing is published while there is no active vessel; the last
+/// value is held.</para>
 /// </summary>
 /// <category>Flights</category>
 [SitrepContract]
@@ -57,28 +60,38 @@ public enum FlightEndReason
 [SitrepTopic("flight.current")]
 public class FlightCurrent
 {
-    /// <summary>The mod-minted stable flight id: KSP's <c>Vessel.id</c> GUID as a string, the same currency <c>VesselIdentity.VesselId</c>/<c>CrashReport.VesselId</c> already use.</summary>
+    /// <summary>
+    /// The stable flight id: KSP's <c>Vessel.id</c> GUID as a string, the same
+    /// value as <see cref="VesselId"/> and as <c>VesselIdentity.VesselId</c>
+    /// and <c>CrashReport.VesselId</c>, so it joins against those directly.
+    /// </summary>
     [SitrepUnit(Units.Id)]
     public string FlightId { get; set; } = "";
 
+    /// <summary>KSP's <c>Vessel.id</c> GUID of the active vessel, as a string. Always equal to <see cref="FlightId"/>.</summary>
     [SitrepUnit(Units.Id)]
     public string VesselId { get; set; } = "";
 
+    /// <summary>The active vessel's display name.</summary>
     [SitrepUnit(Units.Text)]
     public string VesselName { get; set; } = "";
 
-    /// <summary>The vessel's current flight phase: reuses <see cref="Situation"/> (PreLaunch/Flying/Landed/...), not a parallel enum.</summary>
+    /// <summary>The vessel's current flight phase, as its <see cref="Situation"/> (PreLaunch, Flying, Landed and so on).</summary>
     [SitrepUnit(Units.Enumeration)]
     public Situation Phase { get; set; }
 }
 
 /// <summary>
-/// The <c>flight.started</c> channel payload: a <see cref="Delivery.ReliableOrdered"/>
-/// + <see cref="DelayRole.Delayed"/> event, fired the moment a genuinely NEW
-/// flight begins (first-ever observation of a vessel id, or a switch onto a
-/// vessel this session has never tracked before; see
-/// <c>FlightLifecycleSampler</c>'s doc comment for the exact started-vs-
-/// vesselChanged distinction).
+/// The <c>flight.started</c> channel payload: a reliable, ordered, delayed
+/// event sent when a new flight begins. A flight is new when its vessel id
+/// has not been started before in this game session (a launch, or a first
+/// switch onto a vessel), and every vessel active just after a revert or a
+/// quickload starts a new flight, even one with the same id.
+/// <para>A client that subscribes while a flight is already open receives
+/// that flight's <c>flight.started</c>, carrying its original start
+/// <see cref="Ut"/>. A repeat with an unchanged <see cref="Ut"/> is the same
+/// flight announced again; a new <see cref="Ut"/> for the same vessel id is a
+/// new flight after a rewind.</para>
 /// </summary>
 /// <category>Flights</category>
 [SitrepContract]
@@ -88,28 +101,30 @@ public class FlightCurrent
 [SitrepTopic("flight.started")]
 public class FlightStarted
 {
+    /// <summary>The stable flight id: KSP's <c>Vessel.id</c> GUID as a string. Always equal to <see cref="VesselId"/>.</summary>
     [SitrepUnit(Units.Id)]
     public string FlightId { get; set; } = "";
 
+    /// <summary>KSP's <c>Vessel.id</c> GUID of the vessel flying this flight, as a string.</summary>
     [SitrepUnit(Units.Id)]
     public string VesselId { get; set; } = "";
 
+    /// <summary>The vessel's display name when the flight was announced.</summary>
     [SitrepUnit(Units.Text)]
     public string VesselName { get; set; } = "";
 
-    /// <summary>Universal time this flight began: the UUT the sampler first observed the vessel active (or the revert-target UT, for a flight started as a revert's counterpart).</summary>
+    /// <summary>Universal time this flight began: when the vessel was first observed active, or the revert-target UT for a flight started by a rewind.</summary>
     [SitrepUnit(Units.UniversalTime)]
     public double Ut { get; set; }
 }
 
 /// <summary>
-/// The <c>flight.ended</c> channel payload: a <see cref="Delivery.ReliableOrdered"/>
-/// + <see cref="DelayRole.Delayed"/> event, fired once per flight when it
-/// stops being trackable (recovered, crashed/destroyed, or reverted). Rides
-/// the SAME delay class as <c>crash.lastCrash</c>/<c>recovery.lastSummary</c>,
-/// so it inherits the already-proven revert-before-reveal erasure invariant
-/// (<c>RevertBeforeRevealErasesAReliableOrderedDelayedEventForever</c>,
-/// commit <c>82132a08</c>) for free: no new reveal-gate work needed.
+/// The <c>flight.ended</c> channel payload: a reliable, ordered, delayed
+/// event sent once per flight when it stops being trackable: recovered,
+/// crashed, destroyed or reverted. It shares the delay class of
+/// <c>crash.lastCrash</c> and <c>recovery.lastSummary</c>, so an end that a
+/// rewind discards before its light-time has elapsed is never revealed.
+/// <para>Debris, flags and vessels of unknown type never end a flight.</para>
 /// </summary>
 /// <category>Flights</category>
 [SitrepContract]
@@ -119,30 +134,36 @@ public class FlightStarted
 [SitrepTopic("flight.ended")]
 public class FlightEnded
 {
+    /// <summary>The id of the flight that ended: KSP's <c>Vessel.id</c> GUID as a string. Always equal to <see cref="VesselId"/>.</summary>
     [SitrepUnit(Units.Id)]
     public string FlightId { get; set; } = "";
 
+    /// <summary>KSP's <c>Vessel.id</c> GUID of the vessel whose flight ended, as a string.</summary>
     [SitrepUnit(Units.Id)]
     public string VesselId { get; set; } = "";
 
+    /// <summary>The vessel's display name at the end of the flight.</summary>
     [SitrepUnit(Units.Text)]
     public string VesselName { get; set; } = "";
 
+    /// <summary>Why the flight ended. When a crash and a destruction are both detected for one loss, the first detected wins.</summary>
     [SitrepUnit(Units.Enumeration)]
     public FlightEndReason Reason { get; set; }
 
-    /// <summary>Universal time the flight ended. For <see cref="FlightEndReason.Reverted"/> this is the revert-TARGET UT (see <c>FlightLifecycleSampler</c>'s revert-epoch-consistency doc), not the wall-clock moment the player hit revert.</summary>
+    /// <summary>Universal time the flight ended. For <see cref="FlightEndReason.Reverted"/> this is the revert-target UT, not the moment the player chose to revert.</summary>
     [SitrepUnit(Units.UniversalTime)]
     public double Ut { get; set; }
 }
 
 /// <summary>
-/// The <c>flight.vesselChanged</c> channel payload: a
-/// <see cref="Delivery.ReliableOrdered"/> + <see cref="DelayRole.Delayed"/>
-/// event, fired whenever the operator's active-vessel focus moves to a
-/// DIFFERENT, already-known vessel (docking/undocking/EVA/tracking-station
-/// reselect): decoupled from <see cref="FlightStarted"/>/<see cref="FlightEnded"/>:
-/// switching focus away from a still-flying vessel does not end its flight.
+/// The <c>flight.vesselChanged</c> channel payload: a reliable, ordered,
+/// delayed event sent whenever the active vessel changes after the first
+/// observation of the session (docking, undocking, a tracking-station
+/// reselect). Switching away from a vessel that is still flying does not end
+/// its flight, and switching back to a known one does not start a new one.
+/// Switching onto a vessel for the first time also sends
+/// <see cref="FlightStarted"/>. Going on EVA does not change the active vessel
+/// (see <see cref="FlightCurrent"/>).
 /// </summary>
 /// <category>Flights</category>
 [SitrepContract]
@@ -152,19 +173,23 @@ public class FlightEnded
 [SitrepTopic("flight.vesselChanged")]
 public class FlightVesselChanged
 {
+    /// <summary>The flight now active: KSP's <c>Vessel.id</c> GUID as a string. Always equal to <see cref="VesselId"/>.</summary>
     [SitrepUnit(Units.Id)]
     public string FlightId { get; set; } = "";
 
+    /// <summary>KSP's <c>Vessel.id</c> GUID of the vessel focus moved TO, as a string.</summary>
     [SitrepUnit(Units.Id)]
     public string VesselId { get; set; } = "";
 
+    /// <summary>The display name of the vessel focus moved to.</summary>
     [SitrepUnit(Units.Text)]
     public string VesselName { get; set; } = "";
 
-    /// <summary>The vessel id the operator's focus moved FROM, null on the very first observation (nothing to switch away from).</summary>
+    /// <summary>The vessel id focus moved FROM, or null when there was no previous vessel.</summary>
     [SitrepUnit(Units.Id)]
     public string? PreviousVesselId { get; set; }
 
+    /// <summary>Universal time of the switch.</summary>
     [SitrepUnit(Units.UniversalTime)]
     public double Ut { get; set; }
 }

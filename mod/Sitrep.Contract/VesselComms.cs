@@ -5,12 +5,13 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// Mirrors KSP's own <c>VesselControlState</c> enum by name (its underlying
-/// int values collide by design in stock KSP, e.g. <c>Probe == ProbeNone == 2</c>,
-/// which is KSP's own ambiguity, not one this contract introduces; we
-/// simply consume whichever name <c>.ToString()</c> already commits to).
-/// <see cref="Unknown"/> is the graceful fallback for an unrecognized raw
-/// value.
+/// KSP's <c>VesselControlState</c>, carried by name: what is controlling the
+/// vessel (a probe core, a kerbal) and how much control it has (none, partial,
+/// full). Mirrors the stock member names; <see cref="Unknown"/> covers any name
+/// the mod does not recognise.
+/// <internal>Several stock members share an underlying int (for example
+/// <c>Probe == ProbeNone</c>), so the mod parses <c>.ToString()</c> rather than
+/// the int, and this enum's ordinals are its own, not KSP's.</internal>
 /// </summary>
 /// <category>Comms</category>
 #if SITREP_CODEGEN
@@ -19,34 +20,41 @@ namespace Sitrep.Contract;
 [SitrepContract]
 public enum ControlState
 {
+    /// <summary>No control.</summary>
     None,
+    /// <summary>Controlled by a probe core.</summary>
     Probe,
+    /// <summary>Controlled by a kerbal.</summary>
     Kerbal,
+    /// <summary>Partial control.</summary>
     Partial,
+    /// <summary>Full control.</summary>
     Full,
+    /// <summary>A probe-controlled vessel with no control.</summary>
     ProbeNone,
+    /// <summary>A probe-controlled vessel with partial control, typically without a connection home.</summary>
     ProbePartial,
+    /// <summary>A probe-controlled vessel with full control.</summary>
     ProbeFull,
+    /// <summary>A kerbal-controlled vessel with no control.</summary>
     KerbalNone,
+    /// <summary>A kerbal-controlled vessel with partial control.</summary>
     KerbalPartial,
+    /// <summary>A kerbal-controlled vessel with full control.</summary>
     KerbalFull,
+    /// <summary>A state name the mod does not recognise.</summary>
     Unknown,
 }
 
 /// <summary>
-/// The <c>vessel.comms</c> channel payload: the raw CommNet VESSEL snapshot.
-/// Kills M-3 (one typed <see cref="ControlState"/> enum replaces the
-/// magic-int <c>comm.controlState</c> + parallel <c>comm.controlStateName</c>
-/// string key) and M-4 (no <c>0</c>/<c>0d</c> no-data sentinel, absence is
-/// the WHOLE channel being null when <c>vessel.connection</c> is null,
-/// R1(b), never a fake zero reading indistinguishable from "no telemetry at
-/// all").
+/// The <c>vessel.comms</c> channel payload: the active vessel's own CommNet
+/// connection, from KSP's <c>vessel.connection</c>. The whole payload is null
+/// when the vessel has no CommNet connection object; there is no zero or
+/// disconnected placeholder reading.
 ///
-/// <para><b>Scope fence</b>: this is what the vessel
-/// itself reports. The delay authority and link modelling live in a future
-/// <c>comms.*</c> CAPABILITY channel (RemoteTech-default): the legacy
-/// <c>comm.signalDelay</c> does NOT get a field here; that successor is
-/// <c>comms.delay</c>, a different provider entirely.</para>
+/// <para>This is what the vessel itself reports. Signal delay and link
+/// modelling are on the <c>comms.*</c> channels (<c>comms.delay</c> for the
+/// delay), not here.</para>
 /// </summary>
 /// <category>Comms</category>
 [SitrepContract]
@@ -56,14 +64,18 @@ public enum ControlState
 [SitrepTopic("vessel.comms")]
 public class VesselComms
 {
+    /// <summary>Whether the vessel has a CommNet connection home, from <c>vessel.connection.IsConnected</c>.</summary>
     [SitrepUnit(Units.Flag)]
     public bool Connected { get; set; }
 
+    /// <summary>The connection's signal strength, from <c>vessel.connection.SignalStrength</c>: a ratio from <c>0</c> (none) to <c>1</c> (full).</summary>
     [SitrepUnit(Units.Ratio)]
     public double SignalStrength { get; set; }
 
+    /// <summary>What is controlling the vessel and how much control it has, from <c>vessel.connection.ControlState</c>.</summary>
     [SitrepUnit(Units.Enumeration)]
     public ControlState ControlState { get; set; }
 
+    /// <summary>The payload's provenance (<c>"vessel:&lt;guid&gt;"</c>) and quality.</summary>
     public PayloadMeta Meta { get; set; } = new();
 }

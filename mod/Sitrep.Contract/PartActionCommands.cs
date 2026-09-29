@@ -11,16 +11,15 @@ namespace Sitrep.Contract;
 ///
 /// <para>This is an actuation of a part ON the craft, so the command rides
 /// light-time (<see cref="DelayRole.Delayed"/>) exactly like <c>vessel.control.*</c> and
-/// the robotics commands it is modelled on.</para>
+/// the robotics commands.</para>
 ///
 /// <para><b>No state field, unlike every other actuation command.</b> The
 /// contract's usual discipline is "absolute set, never toggle" (see
 /// <see cref="ServoSetEnabledArgs"/>), but a <c>BaseEvent</c> has no settable
 /// value: KSP models these as fire-this-button, and the button's own label is
 /// what changes ("Deploy" becomes "Retract"). So this command is a pure
-/// invoke, in the same position as <c>robotics.rotor.reverse</c>: the lone
-/// stateless member of its family, for a reason that comes from KSP rather than
-/// from convenience. The operator's read-back is the
+/// invoke, like <c>robotics.rotor.reverse</c>, for a reason that comes from
+/// KSP. The operator's read-back is the
 /// <c>vessel.partActions.&lt;flightId&gt;</c> channel re-reporting the new
 /// button set one light-time later.</para>
 /// </summary>

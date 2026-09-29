@@ -98,32 +98,30 @@ public class CommandRequest<TArgs>
     [SitrepUnit(Units.Id)]
     public string Command { get; set; } = "";
 
-    /// <summary> Caller-supplied, generic display label for this dispatch,
-    /// carried verbatim into the corresponding <see
-    /// cref="Sitrep.Contract.PendingUplink.Label"/> entry on
-    /// <c>system.uplink.pending</c>. Empty ⇒ the renderer falls back to <see
-    /// cref="Command"/>. Never inspected/parsed by the engine.
+    /// <summary>
+    /// A display label the caller chooses for this dispatch, carried verbatim
+    /// into the matching <see cref="PendingUplink.Label"/> on
+    /// <c>system.uplink.pending</c>. When empty, show <see cref="Command"/>
+    /// instead. The mod never reads or parses it.
     /// </summary>
     [SitrepUnit(Units.Text)]
     public string Label { get; set; } = "";
 
     /// <summary>
-    /// Dispatch-time addressing: carried verbatim into the corresponding
-    /// <see cref="Sitrep.Contract.PendingUplink.Topic"/> entry on
-    /// <c>system.uplink.pending</c>. Never inspected/parsed by the engine.
+    /// A Topic the caller associates with this dispatch, carried verbatim into
+    /// the matching <see cref="PendingUplink.Topic"/> on
+    /// <c>system.uplink.pending</c>. The mod never reads or parses it.
     /// </summary>
     [SitrepUnit(Units.Id)]
     public string Topic { get; set; } = "";
 
-    /// <summary> Per-call vantage override (Plan 3 / delay-UX): the command
-    /// centre this specific command dispatches from, governing its delay via
-    /// <c>DelayTo(vantage, node)</c>. Empty ⇒ the server uses the connection's
-    /// own vantage (see <see cref="SetVantage"/>). A program-meta command
-    /// (tech/strategy/contract) sends <c>"meta"</c> so it stays instant
-    /// (<c>DelayTo("meta", *) = 0</c>) regardless of which centre the operator
-    /// has selected. Nullable/optional: a pre-Vantage client omits it (codegen
-    /// emits vantage?: string), and the server treats null/empty as the session
-    /// vantage.
+    /// <summary>
+    /// Per-call vantage override: the command centre id this command dispatches
+    /// from, which decides its signal delay. Optional: null or empty uses the
+    /// connection's own vantage (see <see cref="SetVantage"/>). A program-level
+    /// command (tech, strategy, contract) sends <c>"meta"</c>, which carries no
+    /// delay whichever centre the operator has selected. A centre that is not
+    /// active is refused with an <c>unknown-vantage</c> error.
     /// </summary>
     [SitrepUnit(Units.Id)]
     public string? Vantage { get; set; }
@@ -134,20 +132,20 @@ public class CommandRequest<TArgs>
 
     /// <summary>
     /// When the client dispatched, in UT seconds (KSP universal time), the same
-    /// base as <see cref="Meta.ValidAt"/>. The declaration reaches a client
-    /// through the units map rather than through the emitted type: the
-    /// <c>Value&lt;"ut"&gt;</c> retyping pass runs over wire PAYLOAD types only,
-    /// so every command-args and envelope field stays a bare number in
-    /// <c>contract.ts</c> and carries its unit in <c>units.json</c>.
+    /// base as <see cref="Meta.ValidAt"/>. A bare number in the TypeScript type,
+    /// like every envelope field; its unit is declared in the SDK's units map.
     ///
-    /// <b>Every client sends 0 today.</b> The dispatching client has no UT to
-    /// hand at that point that the server would not know better, and the server
-    /// stamps the response's <see cref="Meta.DeliveredAt"/> off its own clock,
-    /// so a caller wanting a round-trip measures against its own view time
-    /// rather than reading this back. The field is carried onto a response's
-    /// <see cref="Meta.ValidAt"/>, which therefore reads 0 on a command
-    /// response: nothing consumes that today, and a consumer that starts to
-    /// must make the client fill this in first.
+    /// <para><b>The shipped clients send 0.</b> The server stamps the response's
+    /// <see cref="Meta.DeliveredAt"/> off its own clock, so a caller wanting a
+    /// round-trip measures against its own view time rather than reading this
+    /// back. The field is carried onto the response's
+    /// <see cref="Meta.ValidAt"/>, which therefore reads 0 on a command response
+    /// unless the client fills this in.</para>
+    /// <internal>
+    /// The <c>Value&lt;"ut"&gt;</c> retyping pass runs over wire PAYLOAD types
+    /// only, so this stays a bare number in <c>contract.ts</c> and carries its
+    /// unit in <c>units.json</c>.
+    /// </internal>
     /// </summary>
     [SitrepUnit(Units.UniversalTime)]
     public double SentAt { get; set; }
@@ -330,7 +328,7 @@ public class Unsubscribe
 
 /// <summary>
 /// Client-to-server: select the command centre this connection commands from and
-/// observes at (Plan 3 vantage selection). Governs both the downlink cursor read
+/// observes at. Governs both the downlink cursor read
 /// and the command-dispatch vantage. The id must name a currently-active command
 /// centre, or the request is refused with an <c>unknownVantage</c> error and the
 /// connection keeps the vantage it had.

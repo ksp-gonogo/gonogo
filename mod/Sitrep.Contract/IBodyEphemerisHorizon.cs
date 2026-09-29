@@ -9,7 +9,7 @@ namespace Sitrep.Contract
     /// window.</b> That member is asked by the machinery that COMPUTES a bound: the
     /// acceleration walk behind a craft's horizon places each perturbing body
     /// through it, so a provider that bounded a body there would refuse the walk its
-    /// own answer is made of. Asking as a separate question leaves that path alone
+    /// own result is made of. Asking as a separate question leaves that path alone
     /// and gives the body catalogue somewhere to ask from.</para>
     ///
     /// <para><b>Why a body needs one at all, given a body is not a craft.</b> Under
@@ -26,13 +26,14 @@ namespace Sitrep.Contract
     /// marker: a provider that has nothing to say about bodies says it by not being
     /// one of these, and cannot claim an unbounded ephemeris by omission.</para>
     /// </summary>
+    /// <category>Propagation and models</category>
     public interface IBodyEphemerisHorizon
     {
         /// <summary>
         /// How many seconds past <paramref name="fromUt"/> this body's published
         /// elements are still worth having, or <c>null</c> when nothing can be said.
         ///
-        /// <para>Null is the REFUSING answer and must stay distinguishable from a
+        /// <para>Null is the REFUSING result and must stay distinguishable from a
         /// long span: it is what an install with no readable force model gets, and
         /// what a body the provider cannot place gets. A caller turns it into
         /// <see cref="PropagationHorizonKind.Unspecified"/> rather than into a
@@ -40,6 +41,7 @@ namespace Sitrep.Contract
         /// </summary>
         /// <param name="bodyIndex">The body, in the propagation seam's own vocabulary.</param>
         /// <param name="fromUt">The instant the elements were sampled at.</param>
+        /// <returns>The span in seconds, or <c>null</c> to refuse.</returns>
         double? BodySpanSeconds(int bodyIndex, double fromUt);
     }
 }

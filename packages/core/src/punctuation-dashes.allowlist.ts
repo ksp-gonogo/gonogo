@@ -20,12 +20,9 @@
  */
 export const PUNCTUATION_DASH_DEBT: Record<string, number> = {
   "CLAUDE.md": 1,
-  "asyncapi.yaml": 14,
   "docs/DEPLOYMENT.md": 2,
   "docs/NETWORKING.md": 1,
   "mod/Gonogo.KSP/KspRoboticsActuator.cs": 1,
-  "mod/Sitrep.Contract/RoboticsCommands.cs": 4,
-  "mod/Sitrep.Contract/SpaceCenterPayloads.cs": 4,
   "mod/Sitrep.Host.IntegrationTests/TestUplinks.cs": 1,
   "mod/Sitrep.Host/ChannelEngine.cs": 2,
   "mod/Sitrep.Host/RoboticsCommandProvider.cs": 4,

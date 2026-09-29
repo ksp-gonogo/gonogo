@@ -5,49 +5,28 @@ using Reinforced.Typings.Attributes;
 
 namespace Sitrep.Contract;
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ISRU / resource ops: a Domain-NEUTRAL capability namespace (isru.*), the same
-// shape reliability.* and science.* follow. More than one mod models in-situ
-// resource extraction (stock's own ModuleResourceHarvester/ModuleResourceConverter,
-// and mods that delete both and replace them wholesale), so it rides the Kernel
-// capability election rather than belonging to any one uplink Domain.
-//
-//   • ONE exclusive capability "isru" whose active instance is an IIsruBackend.
-//   • A core registrar (mod/Gonogo.KSP/IsruCoreUplink.cs) OWNS the capability,
-//     supplies the stock backend as its Vanilla factory, declares the two isru.*
-//     channels ONCE, and sources them from whichever backend the election picked
-//     (Kernel.Query<IIsruBackend>("isru")).
-//   • A modelling mod registers a provider from its OWN uplink's Register, gated
-//     by its own presence probe, and declares neither channel itself.
-//
-// ── Why there is no "unmodeled" flag ─────────────────────────────────────────
-// Reliability needs one because plain stock has no reliability system at all, so
-// its vanilla backend has nothing to say. Stock ISRU is a real system, so the
-// vanilla backend here is a real reader and an EMPTY list is meaningful in its own
-// right: "no drills on this vessel", never "ISRU is not tracked". A flag would
-// only be able to lie.
-//
-// ── What is deliberately absent ──────────────────────────────────────────────
-// No logistics/supply-line field and no process-pipeline graph object. Neither
-// stock nor any surveyed modelling mod has either concept, so a field for one
-// could only ever be null. A client that wants a flow view derives it by matching
-// resource names across these two channels, and must label it as gonogo's own
-// view rather than as something the game reports.
-//
-// The entry types are wire POCOs (typing + codegen). IIsruBackend is the
-// capability's active-instance interface, NOT a wire type: parameterless and
-// KSP-free (backends read the active vessel internally, exactly like
-// IReliabilityBackend), so Sitrep.Contract stays KSP-free / MIT.
-// ─────────────────────────────────────────────────────────────────────────────
+/*
+ * isru.* is a Domain-neutral capability namespace, the same shape as reliability.*: more than
+ * one mod models in-situ resource extraction (stock's ModuleResourceHarvester and
+ * ModuleResourceConverter, and mods that replace both), so one exclusive "isru" capability is
+ * elected in the Kernel and its active instance is an IIsruBackend. A core registrar owns the
+ * capability, supplies the stock backend as its Vanilla factory and declares both isru.*
+ * channels once; a modelling mod registers a provider from its own Uplink, gated by its own
+ * presence probe, and declares neither channel.
+ *
+ * There is no "unmodeled" flag: stock ISRU is a real system, so the vanilla backend is a real
+ * reader and an empty list means "no drills on this vessel", never "ISRU is not tracked".
+ */
 
 /// <summary>
-/// One drill (resource harvester) on the active vessel. The field set is
-/// deliberately exactly what stock ISRU has: resource, abundance, rate, deploy,
-/// running, plus the two identification fields every list-shaped payload in this
-/// contract carries. It is not "stock's fields with nulls for what a richer mod
-/// does", it is the literal intersection, and the intersection happens to be
-/// everything stock has. Anything one provider knows and another does not goes in
+/// One drill (resource harvester) on the active vessel. The field set is what
+/// every ISRU model shares, which is exactly what stock ISRU has: resource,
+/// abundance, rate, deploy and running, plus the two identification fields.
+/// Anything one provider knows and another does not goes in
 /// <see cref="Extensions"/>.
+///
+/// <para>The <c>isru.drills</c> payload is an array of these. An empty array
+/// means the vessel has no drills, never that ISRU is not tracked.</para>
 /// </summary>
 /// <category>Parts</category>
 [SitrepContract]
@@ -104,8 +83,7 @@ public class IsruDrillEntry
 
     /// <summary>
     /// The provider-namespaced extension bag: how an ISRU backend carries a
-    /// per-drill field this shared shape does not declare, WITHOUT a PR against
-    /// this file. See <see cref="ProviderExtensionBagAttribute"/> for the whole
+    /// per-drill field this shared shape does not declare. See <see cref="ProviderExtensionBagAttribute"/> for the whole
     /// mechanism. Null for the vanilla backend, which has nothing stock does not
     /// already say. A blocking-reason string, an EC draw, an asteroid's remaining
     /// mass: all of those belong here rather than as nullable members above.
@@ -130,9 +108,15 @@ public class IsruDrillEntry
 #endif
 public class IsruResourceFlow
 {
+    /// <summary>The resource's name as the install's configs name it (for
+    /// example "Ore", "LiquidFuel"). Free text, not a closed enum. <c>null</c>
+    /// when the recipe entry names no resource.</summary>
     [SitrepUnit(Units.Text)]
     public string? Resource { get; set; }
 
+    /// <summary>The live rate this resource is consumed (on an input) or
+    /// produced (on an output) at, already scaled by the converter's current
+    /// efficiency.</summary>
     [SitrepUnit(Units.ResourceUnitsPerSecond)]
     public double? Rate { get; set; }
 }
@@ -140,6 +124,8 @@ public class IsruResourceFlow
 /// <summary>
 /// One chemical converter on the active vessel. Field set matches stock's
 /// surface: whether it is running, and the recipe it is running, at live rates.
+/// The <c>isru.converters</c> payload is an array of these; empty when the
+/// vessel has no converters.
 /// </summary>
 /// <category>Parts</category>
 [SitrepContract]
@@ -149,9 +135,13 @@ public class IsruResourceFlow
 [SitrepTopic("isru.converters", isArray: true)]
 public class IsruConverterEntry
 {
+    /// <summary>Part.flightID stringified: the same join key as
+    /// <see cref="IsruDrillEntry.PartId"/>.</summary>
     [SitrepUnit(Units.Id)]
     public string? PartId { get; set; }
 
+    /// <summary>Part.partInfo.title, for display without a vessel.parts
+    /// join.</summary>
     [SitrepUnit(Units.Text)]
     public string? PartTitle { get; set; }
 
@@ -162,18 +152,16 @@ public class IsruConverterEntry
     /// <summary>Recipe inputs at their live rate. Empty list, not null, when the converter carries no recipe.</summary>
     public List<IsruResourceFlow> Inputs { get; set; } = new();
 
-    /// <summary>Recipe outputs at their live rate.</summary>
+    /// <summary>Recipe outputs at their live rate. Empty list, not null, when the converter carries no recipe.</summary>
     public List<IsruResourceFlow> Outputs { get; set; } = new();
 
     /// <summary>
     /// The provider-namespaced extension bag, converter half. Same mechanism and
     /// same rule as <see cref="IsruDrillEntry.Extensions"/>.
     ///
-    /// <para>Note what does NOT belong here: a blocking-reason string for a
-    /// starved recipe. A converter that is on but moving nothing is already fully
-    /// described by <see cref="Running"/> true alongside zero rates, so a reader
-    /// derives that condition from the shared fields. Inventing an issue field
-    /// would mean fabricating a diagnostic no engine actually reports.</para>
+    /// <para>A starved recipe has no blocking-reason field: a converter that is
+    /// on but moving nothing is <see cref="Running"/> true alongside zero rates,
+    /// so derive that condition from the shared fields.</para>
     /// </summary>
     // AppendProviderExtensions omits the key when no provider filled a bag, so a
     // payload no provider extended carries no trace of the mechanism.
@@ -184,15 +172,16 @@ public class IsruConverterEntry
 
 /// <summary>
 /// The "isru" capability's active-instance interface (parallel to
-/// <see cref="IReliabilityBackend"/>). Parameterless + KSP-free: implementations
-/// live in the KSP-referencing uplink projects and read the active vessel
-/// internally. Registered as a Kernel provider by each modelling uplink; the core
-/// registrar resolves the elected one and publishes its readouts on isru.*.
+/// <see cref="IReliabilityBackend"/>). An Uplink that models ISRU implements it
+/// and registers it as a Kernel provider; the elected one's readouts are
+/// published on <c>isru.drills</c> and <c>isru.converters</c>. Parameterless and
+/// KSP-free: an implementation reads the active vessel itself.
 ///
-/// <para><b>Main thread only.</b> Both readers walk live PartModules, so the core
-/// registrar calls them from its main-thread capture and never from a channel
-/// mapper (which runs on the Courier thread).</para>
+/// <para><b>Main thread only.</b> Both readers walk live PartModules, so they
+/// are called from the main-thread capture and never from a channel mapper,
+/// which runs off the main thread.</para>
 /// </summary>
+/// <category>Uplink API</category>
 public interface IIsruBackend : ISitrepProvider
 {
     /// <summary>Every drill on the active vessel. Empty, never null, when there are none.</summary>

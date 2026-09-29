@@ -7,9 +7,9 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The root refusals: the closed set every client can switch over. Each says
-/// what KIND of no it was, and so whether waiting, changing the craft, or doing
-/// something in the game is what makes a retry mean anything.
+/// The root refusals: the closed set every client can switch on. Each says
+/// what kind of refusal it was, and so whether waiting, changing the craft, or
+/// doing something in the game is what makes a retry worthwhile.
 ///
 /// <para>A producer that can say more names a refinement of one of these (see
 /// <see cref="RefusalCode.Refine"/>); the root still travels, so nothing a client
@@ -17,7 +17,7 @@ namespace Sitrep.Contract;
 /// </summary>
 public static class CommandErrorCode
 {
-    /// <summary>No active vessel to act on.</summary>
+    /// <summary>There is no active vessel to act on.</summary>
     public static readonly RefusalCode NoVessel = RefusalCode.DeclareRoot("noVessel", "there is no vessel to act on");
 
     /// <summary>The requested mode or state is not available, and the game gave no more specific reason.</summary>
@@ -26,22 +26,17 @@ public static class CommandErrorCode
     /// <summary>An argument was out of its valid range.</summary>
     public static readonly RefusalCode Range = RefusalCode.DeclareRoot("range", "an argument was outside its valid range");
 
-    /// <summary>The referenced entity (node id, vessel/body target) did not resolve.</summary>
+    /// <summary>The referenced entity (a node id, a vessel or body target, a craft name) did not resolve.</summary>
     public static readonly RefusalCode NotFound = RefusalCode.DeclareRoot("notFound", "nothing here answers to that");
 
     /// <summary>
-    /// The elected maneuver-plan provider is not the one that reads stock's
-    /// <c>patchedConicSolver</c>, so a write there would never be seen.
+    /// The maneuver plan is owned by a planner other than stock's
+    /// <c>patchedConicSolver</c>, so a node written there would never be used.
     ///
-    /// <para>Refused rather than attempted, because attempting it produces a
-    /// GHOST NODE: we mutate stock's solver, the owning planner never reads it
-    /// (an n-body backend clears that list every frame and writes its own
-    /// guidance node into it), and the operator sees a maneuver node on the
-    /// board that does precisely nothing. A silent wrong answer with a
-    /// confident presentation.</para>
-    ///
-    /// <para>The code says WHY, not WHO: the owner is already on the wire as
-    /// <c>VesselManeuver.Planner</c> for a readout to name.</para>
+    /// <para>Refused rather than attempted: an n-body planner clears stock's node
+    /// list every frame and writes its own guidance node into it, so a written
+    /// node would show on the board and do nothing. The owning planner is on the
+    /// wire as <c>VesselManeuver.Planner</c>.</para>
     /// </summary>
     public static readonly RefusalCode PlanNotOwned = RefusalCode.DeclareRoot("planNotOwned", "another planner owns the flight plan");
 
@@ -49,12 +44,11 @@ public static class CommandErrorCode
     /// A capacity is full: the Astronaut Complex holds its cap of active crew,
     /// a facility holds its cap of anything else countable.
     ///
-    /// <para>The world has to change before a retry means anything; freeing a
-    /// slot is a thing an operator can actually do.</para>
+    /// <para>A retry succeeds only once something changes, such as freeing a
+    /// slot.</para>
     ///
-    /// <para>The arm chooses the sentence, <see cref="Sitrep.Contract.CommandResult.Breach"/>
-    /// supplies the numbers in it. Neither is worth sending without the other:
-    /// a code with no payload cannot say "16 of 16".</para>
+    /// <para><see cref="Sitrep.Contract.CommandResult.Breach"/> carries the
+    /// numbers, so a client can say "16 of 16".</para>
     /// </summary>
     public static readonly RefusalCode LimitReached = RefusalCode.DeclareRoot("limitReached", "a limit has been reached");
 
@@ -62,9 +56,8 @@ public static class CommandErrorCode
     /// Already at the top of an upgradeable scale, so there is nothing above
     /// this to move to. The Launch Pad at tier 3 of 3.
     ///
-    /// <para>Deliberately NOT <see cref="LimitReached"/>. A cap that is full can
-    /// be freed; a maximum tier cannot be exceeded by any action at all, and an
-    /// operator reads those two differently.</para>
+    /// <para>Not <see cref="LimitReached"/>: a cap that is full can be freed; a
+    /// maximum tier cannot be exceeded by any action at all.</para>
     /// </summary>
     public static readonly RefusalCode AlreadyAtMaximum = RefusalCode.DeclareRoot("alreadyAtMaximum", "it is already at its maximum");
 
@@ -78,16 +71,14 @@ public static class CommandErrorCode
     public static readonly RefusalCode InsufficientFunds = RefusalCode.DeclareRoot("insufficientFunds", "there are not enough funds");
 
     /// <summary>
-    /// The command costs more science than is banked.
-    /// <see cref="InsufficientFunds"/>'s twin, and separate for the same reason
-    /// the game keeps <c>Currency</c> as three members: an operator short of
-    /// science does something entirely different about it from one short of
-    /// funds.
+    /// The command costs more science than is banked. Separate from
+    /// <see cref="InsufficientFunds"/>, as the game keeps science and funds
+    /// separate currencies.
     ///
     /// <para>Authority: <c>CurrencyModifierQuery.RunQuery(reason, ...).CanAfford(Currency.Science)</c>,
-    /// which is what <c>RDTech.ResearchTech</c> asks. NOT
-    /// <c>ResearchAndDevelopment.CanAfford</c>, which skips the modifier chain
-    /// and so answers a different question from the one the game acts on.</para>
+    /// which is what <c>RDTech.ResearchTech</c> checks, modifiers included.
+    /// <internal>Not <c>ResearchAndDevelopment.CanAfford</c>, which skips the
+    /// modifier chain and so disagrees with what the game acts on.</internal></para>
     /// </summary>
     public static readonly RefusalCode InsufficientScience = RefusalCode.DeclareRoot("insufficientScience", "there is not enough science");
 
@@ -97,13 +88,11 @@ public static class CommandErrorCode
     ///
     /// <para>Authority: <c>HighLogic.CurrentGame.Mode</c>, and in practice the
     /// null <c>Instance</c> of the <c>ScenarioModule</c> that would have
-    /// answered (<c>Funding</c>, <c>ContractSystem</c>, <c>StrategySystem</c>,
+    /// served it (<c>Funding</c>, <c>ContractSystem</c>, <c>StrategySystem</c>,
     /// <c>ResearchAndDevelopment</c>, <c>ScenarioUpgradeableFacilities</c>).</para>
     ///
-    /// <para>This is a PERMANENT property of the save, not a state that may
-    /// change, which is exactly what <see cref="ModeUnavailable"/> could not
-    /// say. An operator should see the control absent rather than refused; a
-    /// client that can tell this arm from the others can do that.</para>
+    /// <para>A permanent property of the save, not a state that may change, so a
+    /// client can hide the control rather than show it refused.</para>
     /// </summary>
     public static readonly RefusalCode CareerModeRequired = RefusalCode.DeclareRoot("careerModeRequired", "this save is not a career game");
 
@@ -141,10 +130,10 @@ public static class CommandErrorCode
     /// surface, about to crash, on a ladder), plus
     /// <c>FlightDriver.CanRevertToPostInit</c>/<c>CanRevertToPrelaunch</c> and
     /// the <c>GameParameters</c> flags for leaving to the space center and to
-    /// the tracking station. The arm rides on
+    /// the tracking station. The game's reason is on
     /// <see cref="Sitrep.Contract.CommandResult.Detail"/>.</para>
     ///
-    /// <para>Also the SCET alarm arm, for a vantage it cannot check because no
+    /// <para>Also returned by the SCET alarm command for a vantage it cannot check because no
     /// command centre is known to the simulation yet: the main menu, and the
     /// ticks before the first capture. A vantage that is known and inactive is
     /// <see cref="Range"/> instead, because that one does not resolve by
@@ -153,13 +142,10 @@ public static class CommandErrorCode
     /// <para>Distinct from <see cref="WrongState"/>, which is about the entity
     /// and does not resolve by waiting.
     /// <internal>
-    /// <c>ClearToSaveStatus</c> declares seven members and
-    /// <c>PauseMenu.drawExitWithoutSaveOptions</c> switches over six of them,
-    /// which is where the number came from, but <c>ClearToSave</c> itself
-    /// produces only five: nothing in <c>Assembly-CSharp</c> assigns
-    /// <c>NOT_WHILE_THROTTLED_UP</c> anywhere, and <c>ORBIT_EVENT_IMMINENT</c>
-    /// comes only from <c>TimeWarp.getMaxOnRailsRateIdx</c>, a different
-    /// authority. Counting the enum is not counting the answers.
+    /// <c>ClearToSaveStatus</c> declares seven members, but <c>ClearToSave</c>
+    /// itself produces only five: nothing in <c>Assembly-CSharp</c> assigns
+    /// <c>NOT_WHILE_THROTTLED_UP</c>, and <c>ORBIT_EVENT_IMMINENT</c> comes only
+    /// from <c>TimeWarp.getMaxOnRailsRateIdx</c>, a different authority.
     /// </internal></para>
     /// </summary>
     public static readonly RefusalCode NotClearToProceed = RefusalCode.DeclareRoot("notClearToProceed", "the flight is not clear for it yet");
@@ -186,10 +172,9 @@ public static class CommandErrorCode
     /// There is no usable link for what this command needs to send.
     ///
     /// <para>Authority: <c>ScienceUtil.GetBestTransmitter(Vessel)</c> and
-    /// <c>IScienceDataTransmitter.CanTransmit()</c>. Deliberately NOT the
-    /// Courier's own comms-loss gate, which refuses the dispatch before a
-    /// handler ever runs; this is the vessel finding it has no antenna that can
-    /// carry the payload.</para>
+    /// <c>IScienceDataTransmitter.CanTransmit()</c>: the vessel has no antenna
+    /// that can carry the payload. This is not the comms-loss refusal that stops
+    /// a command before it reaches the vessel.</para>
     /// </summary>
     public static readonly RefusalCode NoConnection = RefusalCode.DeclareRoot("noConnection", "there is no usable link");
 
@@ -231,25 +216,22 @@ public static class CommandErrorCode
     /// logistics model has work outstanding on it. Nothing is over a limit and
     /// nothing is broken, the thing simply has not been made ready.
     ///
-    /// <para>Authority: whichever Uplink CONTRIBUTED the readiness requirement
+    /// <para>Authority: whichever Uplink contributed the readiness requirement
     /// that refused (see <see cref="IUplinkHost.AddCommandRequirement"/>), never
-    /// a stock KSP read: stock has no build step, so it contributes no readiness
-    /// requirements and this code never arrives on a stock install. Under RP-1 it
-    /// is a vehicle that was never integrated, one still integrating, one
-    /// finished but not rolled out, or one rolled out to a pad still being
-    /// reconditioned. <see cref="Sitrep.Contract.CommandResult.Detail"/> says which.</para>
+    /// a stock KSP read: stock has no build step, so this code never arrives on
+    /// a stock install. Under RP-1 it is a vehicle that was never integrated,
+    /// one still integrating, one finished but not rolled out, or one rolled out
+    /// to a pad still being reconditioned. <see cref="Sitrep.Contract.CommandResult.Detail"/>
+    /// says which.</para>
     ///
-    /// <para>Deliberately NOT <see cref="LimitReached"/>, which is the launch
-    /// refusal an operator already gets for a craft that is too heavy or too
-    /// large for the site, and which is fixed by changing the craft or upgrading
-    /// the pad. This one is fixed by doing the outstanding work, and the two
-    /// want entirely different next moves.</para>
+    /// <para>Not <see cref="LimitReached"/>, the launch refusal for a craft too
+    /// heavy or too large for the site, fixed by changing the craft or upgrading
+    /// the pad. This one is fixed by doing the outstanding work.</para>
     ///
-    /// <para>Deliberately NOT <see cref="NotFound"/> either, which
-    /// <c>ksp.launch</c> already returns when no craft file answers to the name.
-    /// A craft that exists on disk and has never been built is a different
-    /// situation from one that does not exist, and collapsing them tells an
-    /// operator to go looking for a file that is sitting right there.</para>
+    /// <para>Not <see cref="NotFound"/> either, which <c>ksp.launch</c> returns
+    /// when no craft file has the name. A craft that exists on disk and has
+    /// never been built is a different situation from one that does not
+    /// exist.</para>
     /// </summary>
     public static readonly RefusalCode NotReady = RefusalCode.DeclareRoot("notReady", "the vehicle is not ready to fly yet");
 
@@ -257,67 +239,39 @@ public static class CommandErrorCode
     /// The command consumes a countable ITEM and there are not enough of them
     /// aboard: an EVA repair kit for a repair, on a provider that charges one.
     ///
-    /// <para>Authority: the provider's own charge, read back from the same
-    /// function that STATES the cost on
-    /// <see cref="ReliabilityPartEntry.RepairCost"/>. The two come from one
-    /// place precisely so a console cannot show one number while the repair
-    /// takes another, and the ITEM is always the provider's to name: this code
-    /// never asserts which one, only that there were too few.</para>
+    /// <para>Authority: the provider's own charge, the same one it states on
+    /// <see cref="ReliabilityPartEntry.RepairCost"/>, so the cost shown and the
+    /// cost taken agree. The item is the provider's to name: this code says only
+    /// that there were too few, never which item.</para>
     ///
-    /// <para><see cref="InsufficientFunds"/>'s and
-    /// <see cref="InsufficientScience"/>'s third sibling, and separate for the
-    /// same reason those two are separate from each other: an operator short of
-    /// a physical item does something entirely different about it from one
-    /// short of a currency, and nothing can be bought to fix it.</para>
+    /// <para>Separate from <see cref="InsufficientFunds"/> and
+    /// <see cref="InsufficientScience"/>: a physical item cannot be bought.</para>
     ///
-    /// <para>Deliberately NOT <see cref="LimitReached"/>, which is a capacity
-    /// that is FULL. This is a store that is empty, and the two read as
-    /// opposites.</para>
+    /// <para>Not <see cref="LimitReached"/>, which is a capacity that is full.
+    /// This is a store that is empty.</para>
     /// </summary>
     public static readonly RefusalCode InsufficientResource = RefusalCode.DeclareRoot("insufficientResource", "there are not enough of what it uses aboard");
 
     /// <summary>
-    /// The provider was ASKED and COULD NOT ANSWER. Nothing about the craft, the
-    /// save or the moment was established, so the one fact this refusal carries
-    /// is that the question went unanswered.
+    /// The provider was asked and could not read the state it needed. Nothing
+    /// about the craft, the save or the moment was established, so the one fact
+    /// this refusal carries is that the question went unresolved.
     ///
-    /// <para>None of its three neighbours, and folding it into any of them
-    /// states something that was never established rather than merely stating it
-    /// coarsely. "The answer is no" (a genuine omni antenna asked to aim) is a
-    /// FACT about the craft, and that is
-    /// <see cref="CapabilityMismatch"/>. "Not applicable" (asked of a craft that
-    /// carries nothing this command could act on) is a refusal about what is
-    /// there at all, and that is <see cref="NotFound"/>. "Not yet" resolves by
-    /// waiting, which is <see cref="NotClearToProceed"/>; this does not resolve
-    /// by waiting, and a retry is a second attempt at the same question rather
-    /// than a later one.</para>
+    /// <para>Not <see cref="CapabilityMismatch"/>, which is an established fact
+    /// about the craft (a genuine omni antenna asked to aim). Not
+    /// <see cref="NotFound"/>, which says the craft carries nothing this command
+    /// could act on. Not <see cref="NotClearToProceed"/>, which resolves by
+    /// waiting; this does not, and a retry is a second attempt at the same
+    /// question.</para>
     ///
-    /// <para><see cref="Sitrep.Contract.CommandResult.Detail"/> names WHAT could not be read
-    /// when the producer had a name for it, and never says what the answer would
-    /// have been. A surface has nothing to tell the operator about their vehicle
-    /// here, because nothing was learned about it; offering the command again is
-    /// the only honest next move.
+    /// <para><see cref="Sitrep.Contract.CommandResult.Detail"/> names what could not be read
+    /// when the producer had a name for it, and never says what the result would
+    /// have been. Nothing was learned about the vehicle, so offering the command
+    /// again is the only sound next move.
     /// <internal>
     /// In practice a reflection read whose member does not resolve on the loaded
     /// assembly, or resolves and throws: the fail-soft posture every Uplink
-    /// takes towards a third-party mod it cannot compile against, and the same
-    /// posture a nullable read carries through the capture layers.
-    ///
-    /// Split out because both arms that were carrying it assert something the
-    /// read never established. <see cref="CapabilityMismatch"/> is documented as
-    /// "the craft would have to be different for this to work" and renders as
-    /// "this craft cannot do it", which is the original defect one layer down.
-    /// <see cref="ModeUnavailable"/> renders as "the game would not say why",
-    /// which describes the SHAPE of the answer rather than a cause and leaves a
-    /// client structurally unable to tell a failed read from a real mode
-    /// refusal: the whole reason this enum is typed.
-    ///
-    /// First caller: an unread antenna shape in the elected comms Uplink, which
-    /// had to settle for <see cref="ModeUnavailable"/> for want of this arm
-    /// after the same read had been publishing an unread dish as an omni. The
-    /// career Uplink's command surface holds by far the most of them, every one
-    /// already carrying a Detail that said the read failed while the code said
-    /// otherwise.
+    /// takes towards a third-party mod it cannot compile against.
     /// </internal></para>
     /// </summary>
     public static readonly RefusalCode Unreadable = RefusalCode.DeclareRoot("unreadable", "the game would not answer");
@@ -413,46 +367,32 @@ public class CommandResult
     /// count, the tier and the top tier, the price and the balance. Null on
     /// success and on every refusal that is not a comparison.
     ///
-    /// <para><see cref="ErrorCode"/> alone cannot say "16 of 16 active crew", and
-    /// the code and the numbers only mean anything together: the code picks the
-    /// sentence, this fills the gaps in it. Every number here was already in
-    /// scope on the line that refused.</para>
+    /// <para><see cref="ErrorCode"/> picks the sentence and this fills in its
+    /// numbers, as in "16 of 16 active crew".</para>
     ///
-    /// <para>The SAME <see cref="LimitBreach"/> the declared-gate path carries on
-    /// <see cref="GateVerdict.Breach"/>, so an operator reads one
-    /// sentence shape whether the refusal came from a gate or from an actuator
-    /// that got far enough to look.</para>
+    /// <para>The same <see cref="LimitBreach"/> shape a declared gate carries on
+    /// <see cref="GateVerdict.Breach"/>, so a refusal reads the same whether it
+    /// came from a gate or from the command's own handler. Omitted from the wire
+    /// when null.</para>
     /// </summary>
-    // AppendCommandResult omits the key on a success and on a refusal that is
-    // not a comparison, rather than putting an empty shape on every ack.
     [SitrepOmittedWhenNull]
     public LimitBreach? Breach { get; set; }
 
     /// <summary>
-    /// The refusal in the GAME's own words, when the game had any: the arm of
+    /// The refusal in the GAME's own words, when the game had any: the member of
     /// <c>ClearToSaveStatus</c> it came back with,
     /// <c>Strategies.Strategy.CanBeActivated(out string reason)</c>'s reason,
     /// <c>GameVariables.GetEVALockedReason</c>'s sentence, a
     /// <c>PreFlightTests.IPreFlightTest</c>'s <c>GetWarningTitle()</c>, a
     /// <c>[Description]</c>-tagged state member's name. Empty when the refusal
-    /// had nothing to quote.
+    /// had nothing to quote: omitted from the wire, never an empty string.
     ///
-    /// <para>Interpolating what the game says beats inferring a cause from the
-    /// mechanism that produced it, and it means this mod does not maintain an
-    /// English table of KSP's own vocabulary that goes stale on every update and
-    /// is wrong in every other language.</para>
+    /// <para>The text is the game's own, so it is in the game's language.</para>
     ///
     /// <para>Prose for a human, never parsed: <see cref="ErrorCode"/> is the
-    /// machine-readable half and this is the readable one. The same split, and
-    /// the same field name, as <see cref="GateVerdict.Detail"/>.</para>
-    ///
-    /// <para>Nullable rather than empty-defaulted, so it lands on the wire as an
-    /// OPTIONAL property: an existing consumer that builds a
-    /// <c>CommandResult</c> is not made to supply a field it has nothing to put
-    /// in, which is what makes this additive rather than a Major.</para>
+    /// machine-readable half. The same split, and the same field name, as
+    /// <see cref="GateVerdict.Detail"/>.</para>
     /// </summary>
-    // AppendCommandResult omits the key when the refusal quoted nothing: an
-    // empty detail reads as a sentence that came back blank.
     [SitrepUnit(Units.Text)]
     [SitrepOmittedWhenNull]
     public string? Detail { get; set; }
@@ -464,14 +404,13 @@ public class CommandResult
     public static CommandResult Fail(RefusalCode errorCode) =>
         new CommandResult { Success = false, ErrorCode = errorCode };
 
-    /// <summary>A refusal that quotes the game. See <see cref="Detail"/>.</summary>
+    /// <summary>A refusal that quotes the game. A null, empty or whitespace <paramref name="detail"/> leaves <see cref="Detail"/> null. See <see cref="Detail"/>.</summary>
     public static CommandResult Fail(RefusalCode errorCode, string? detail) =>
         new CommandResult
         {
             Success = false,
             ErrorCode = errorCode,
-            // Whitespace is not a sentence. An empty Detail on the wire would
-            // render as a refusal that quoted the game and got nothing.
+            // Whitespace is not a sentence: an empty Detail on the wire would render as a refusal that quoted nothing.
             Detail = string.IsNullOrWhiteSpace(detail) ? null : detail,
         };
 
@@ -506,7 +445,7 @@ public class CommandResult<T> : CommandResult
     public static new CommandResult<T> Fail(RefusalCode errorCode) =>
         new CommandResult<T> { Success = false, ErrorCode = errorCode };
 
-    /// <summary>A refusal that quotes the game. See <see cref="CommandResult.Detail"/>.</summary>
+    /// <summary>A refusal that quotes the game. A null, empty or whitespace <paramref name="detail"/> leaves <see cref="CommandResult.Detail"/> null.</summary>
     public static new CommandResult<T> Fail(RefusalCode errorCode, string? detail) =>
         new CommandResult<T>
         {

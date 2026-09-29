@@ -7,12 +7,10 @@ namespace Sitrep.Contract;
 
 /// <summary>
 /// One entry in the <c>target.available</c> list: anything the active vessel
-/// could set as its target right now. Produced generically off KSP's
-/// <c>ITargetable</c> contract (Vessel / CelestialBody / ModuleDockingNode all
-/// implement it), then classified by concrete type into a <see cref="Kind"/> +
-/// its stable id, rather than three hardcoded per-kind lists, so a modded
-/// <c>ITargetable</c> shows up as <see cref="TargetKind.Other"/> with no code
-/// change. The stable id per kind (<see cref="VesselId"/> guid /
+/// could set as its target right now. Built from KSP's <c>ITargetable</c>
+/// (Vessel / CelestialBody / ModuleDockingNode all implement it) and classified
+/// by concrete type into a <see cref="Kind"/> plus its stable id, so a modded
+/// <c>ITargetable</c> appears as <see cref="TargetKind.Other"/>. The stable id per kind (<see cref="VesselId"/> guid /
 /// <see cref="BodyIndex"/> / <see cref="PartId"/> flightID) is the SAME id
 /// <see cref="SetTargetArgs"/> takes, so a widget hands an entry straight back
 /// into <c>vessel.target.set</c> with no lookup.
@@ -24,6 +22,11 @@ namespace Sitrep.Contract;
 #endif
 public class TargetListEntry
 {
+    /// <summary>
+    /// What sort of target this is, which says which id field is set:
+    /// <see cref="VesselId"/> for a vessel, <see cref="BodyIndex"/> for a body,
+    /// <see cref="PartId"/> (with <see cref="VesselId"/>) for a part.
+    /// </summary>
     [SitrepUnit(Units.Enumeration)]
     public TargetKind Kind { get; set; }
 
@@ -52,11 +55,12 @@ public class TargetListEntry
     public Situation? Situation { get; set; }
 
     /// <summary>
-    /// Current metric distance (metres) from the active vessel. A coarse sort
-    /// aid for the picker, NOT a HUD value, it rides the periodic re-key, not
-    /// the change-gate (it moves every tick). Live distance for the CURRENT
-    /// target comes off <c>vessel.target</c>. Null when a transform wasn't
-    /// available this tick.
+    /// Distance from the active vessel, as of the last emission. A coarse sort
+    /// aid for a picker, NOT a live readout: it moves every tick but is only
+    /// refreshed on the channel's slow periodic re-send, and a change in it
+    /// alone does not trigger an emission. Live distance for the CURRENT target
+    /// comes off <c>vessel.target</c>. Null when a position was not available
+    /// this tick.
     /// </summary>
     [SitrepUnit(Units.Metres)]
     public double? Distance { get; set; }
@@ -69,12 +73,11 @@ public class TargetListEntry
 /// <summary>
 /// The <c>target.available</c> channel payload: the list of everything
 /// targetable from the active vessel. Wrapper object <c>{ "entries": [ ... ] }</c>,
-/// mirroring the provider's hand-built shape (like <c>system.vessels</c>).
-/// Emitted part-tree style: a full keyframe on subscribe (sticky-cached for
-/// late subscribers), then re-emitted on set-change (a target enters/leaves
-/// range, or the current target changes) plus a slow heartbeat re-key,
-/// per-entry <see cref="TargetListEntry.Distance"/> rides that periodic re-key,
-/// deliberately NOT the change-gate.
+/// like <c>system.vessels</c>. A full keyframe arrives on subscribe (a late
+/// subscriber gets the last one), then the list is re-sent whenever the set
+/// changes (a target enters or leaves range, or the current target changes)
+/// and on a slow periodic re-send, which is what refreshes each
+/// <see cref="TargetListEntry.Distance"/>.
 /// </summary>
 /// <category>Orbits and trajectories</category>
 [SitrepContract]
@@ -84,5 +87,6 @@ public class TargetListEntry
 [SitrepTopic("target.available")]
 public class TargetAvailable
 {
+    /// <summary>Every current target candidate. Empty, never null, when there is none.</summary>
     public IReadOnlyList<TargetListEntry> Entries { get; set; } = new List<TargetListEntry>();
 }

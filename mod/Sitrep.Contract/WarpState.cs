@@ -5,10 +5,9 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// Mirrors KSP's own <c>TimeWarp.Modes</c> enum (confirmed via decompile:
-/// only <c>HIGH</c>/<c>LOW</c> exist on this KSP version, no third mode).
-/// <see cref="Unknown"/> is the graceful fallback for a future/unrecognized
-/// raw value.
+/// KSP's time-warp mode, mirroring its <c>TimeWarp.Modes</c> enum, which has
+/// only <c>HIGH</c> and <c>LOW</c>. <see cref="Unknown"/> covers a raw value
+/// KSP reports that neither matches.
 /// </summary>
 /// <category>Game</category>
 #if SITREP_CODEGEN
@@ -17,37 +16,34 @@ namespace Sitrep.Contract;
 [SitrepContract]
 public enum WarpMode
 {
+    /// <summary>On-rails time warp (KSP's <c>HIGH</c> mode).</summary>
     High,
+
+    /// <summary>Physics warp (KSP's <c>LOW</c> mode).</summary>
     Low,
+
+    /// <summary>KSP reported a mode this contract does not know.</summary>
     Unknown,
 }
 
 /// <summary>
-/// The <c>time.warp</c> channel payload: kills N-3 (the legacy
-/// <c>p.paused</c> conflates game-pause, no-power, off, antenna-not-found,
-/// and scene state into one undocumented int, with a doc/impl mismatch: the
-/// docs say <c>0..4</c> but <c>partPaused()</c> can return an undocumented
-/// <c>5</c>). This record is instead orthogonal typed fields, no single int
-/// can arrive with a meaning outside its own documented range.
+/// The <c>time.warp</c> channel payload: the game's time-warp and pause state,
+/// as separate typed fields.
 ///
-/// <para><b>Current UT is deliberately NOT a field here</b> (or anywhere in
-/// this contract): <c>meta.validAt</c> stamps every sample and the SDK's
-/// view-clock is the consumer-facing "what time is it" surface, polling
-/// <c>t.universalTime</c> over the wire (a tick-rate channel by definition)
-/// is not reproduced.</para>
+/// <para>Current UT is not a field here (or anywhere in this contract):
+/// <c>meta.validAt</c> stamps every sample, and the SDK's view clock is the
+/// "what time is it" surface.</para>
 ///
-/// <para><b>Decoupled from vessel presence (M1 Task 3 fold-in fix):</b> this
-/// record's <see cref="Meta"/> is stamped <c>Source = "game"</c>, NOT
-/// <c>"vessel:&lt;guid&gt;"</c>: warp/pause is genuinely GLOBAL game state
-/// (<c>Gonogo.KSP.KspHost.BuildTime</c> reads it unconditionally, with or
-/// without an active vessel), so it emits at the Space Center / tracking
-/// station too, not just in flight. An earlier draft gated this channel on
-/// active-vessel presence as a scoping simplification (reusing the vessel
-/// provenance/epoching mechanism uniformly); that gate silenced the channel
-/// exactly where warp control matters most (out-of-flight scenes), so it was
-/// removed: see <c>Sitrep.Host.VesselViewProvider.BuildWarp</c>'s doc
-/// comment for the emission rule now in force (present whenever
-/// <c>Values["time"]</c> itself is present, nothing else).</para>
+/// <para>Warp and pause are GLOBAL game state, so <see cref="Meta"/> is
+/// stamped <c>Source = "game"</c>, not <c>"vessel:&lt;guid&gt;"</c>, and the
+/// channel emits at the Space Center and Tracking Station as well as in
+/// flight, with or without an active vessel.</para>
+/// <internal>
+/// <c>Gonogo.KSP.KspHost.BuildTime</c> reads it unconditionally; see
+/// <c>Sitrep.Host.VesselViewProvider.BuildWarp</c> for the emission rule
+/// (present whenever <c>Values["time"]</c> itself is present, and the rate,
+/// index and pause flag all read).
+/// </internal>
 /// </summary>
 /// <category>Game</category>
 [SitrepContract]
@@ -57,15 +53,25 @@ public enum WarpMode
 [SitrepTopic("time.warp")]
 public class WarpState
 {
+    /// <summary>The current time-warp multiplier (KSP's
+    /// <c>TimeWarp.CurrentRate</c>): <c>1</c> is real time, <c>1000</c> is
+    /// game time passing a thousand times faster.</summary>
     [SitrepUnit(Units.Dimensionless)]
     public double WarpRate { get; set; }
 
+    /// <summary>The current rung of the warp rate table (KSP's
+    /// <c>TimeWarp.CurrentRateIndex</c>), <c>0</c> at real time. Under
+    /// <see cref="Sitrep.Contract.WarpMode.High"/> it indexes <see cref="WarpRates"/>.</summary>
     [SitrepUnit(Units.Id)]
     public int WarpRateIndex { get; set; }
 
+    /// <summary>Which warp mode is in force, on-rails or physics (KSP's
+    /// <c>TimeWarp.WarpMode</c>).</summary>
     [SitrepUnit(Units.Enumeration)]
     public WarpMode WarpMode { get; set; }
 
+    /// <summary>Whether the game is paused (KSP's
+    /// <c>FlightDriver.Pause</c>).</summary>
     [SitrepUnit(Units.Flag)]
     public bool Paused { get; set; }
 
@@ -75,12 +81,10 @@ public class WarpState
     /// <c>time.setWarpIndex</c> with <c>index = i</c> produces. Null when the
     /// game has no warp controller to read it off (no scene that can warp).
     ///
-    /// <para>It ships because the table is CONFIG, not a constant: Kopernicus
-    /// and RealSolarSystem both republish it, and a client that assumed
-    /// stock's asked for the rung it believed to be 100x on an install that
-    /// runs it at 10000x. Without it a client can only learn a rung's rate by
-    /// warping at it, which is exactly the experiment that costs the game
-    /// clock the overshoot it was trying to avoid.</para>
+    /// <para>The table is CONFIG, not a constant: Kopernicus and
+    /// RealSolarSystem both republish it, so a rung stock runs at 100x may run
+    /// at 10000x on another install. Read the rate here rather than assuming
+    /// stock's table.</para>
     /// <internal>
     /// <c>TimeWarp.fetch.warpRates</c>, HIGH warp only (the same table
     /// <c>Gonogo.KSP.KspVesselActuator</c> bounds a <c>time.setWarpIndex</c>
@@ -100,7 +104,7 @@ public class WarpState
     /// time. The gap a client sees between two keyframes of a quiet channel is
     /// therefore at least <c>keyframeFloorSec × warpRate</c> UT. A client that
     /// infers staleness from keyframe cadence has to allow for that, or every
-    /// quiet channel reads stale just after a warp step-up.</para>
+    /// quiet channel reads as held too long just after a warp step-up.</para>
     ///
     /// <para>On this topic because its only use is that product, and both
     /// halves then arrive in the same sample.</para>
@@ -136,7 +140,7 @@ public class WarpState
     /// at 1x. Constant for the life of the mod.
     ///
     /// <para>The chord between two samples this far apart is the resolution
-    /// every channel is sampled at, and a chart has always drawn it. Where the
+    /// every channel is sampled at, and a chart can draw it. Where the
     /// quantum is wider, the span beyond this is one the sampling skipped
     /// because of warp, and a line across it that no model of the value
     /// carries asserts a path nothing observed.</para>
@@ -144,5 +148,6 @@ public class WarpState
     [SitrepUnit(Units.Seconds)]
     public double SampleIntervalUt { get; set; }
 
+    /// <summary>The payload's provenance (always <c>"game"</c>) and quality.</summary>
     public PayloadMeta Meta { get; set; } = new();
 }

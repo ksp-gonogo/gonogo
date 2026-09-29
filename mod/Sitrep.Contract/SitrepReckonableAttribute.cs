@@ -8,11 +8,11 @@ namespace Sitrep.Contract
     /// statement that a new class of arithmetic is honest, which is a decision to
     /// take deliberately rather than a string to invent at a call site.
     ///
-    /// <para>Mirrors the TypeScript <c>ReckoningBasis</c> union in
-    /// <c>mod/sitrep-sdk/src/reading.ts</c>. That union keeps its own prose (what
-    /// each model assumes and where it stops being true) because a widget author
-    /// hovers it there; this catalogue is the machine-readable half.</para>
+    /// <para>The same tokens as the SDK's <c>ReckoningBasis</c> union, whose own
+    /// prose says what each model assumes and where it stops being true; this
+    /// catalogue is the machine-readable half.</para>
     /// </summary>
+    /// <category>Propagation and models</category>
     public static class ReckoningBases
     {
         /// <summary>Two-body propagation of an orbital state. Honest until a burn, an SOI change or an unmodelled perturbation.</summary>
@@ -29,16 +29,11 @@ namespace Sitrep.Contract
         /// nothing forward itself: the forward step, where there was one, happened
         /// inside each input under its own basis, so this is honest exactly as far
         /// as its inputs are and no further.
+        ///
+        /// <para>No contract field ever declares this basis. A combination is
+        /// minted client-side by the SDK's combinator from values the wire already
+        /// carries, so there is no single field for the contract to mark.</para>
         /// </summary>
-        /// <remarks>
-        /// The one member no <c>[SitrepReckonable]</c> field will ever declare, and
-        /// that is correct rather than an oversight. This catalogue is the closed
-        /// set of arithmetic classes the project considers honest; it is not a
-        /// claim that every member is reachable from a contract declaration. A
-        /// combination is minted client-side by the published combinator from
-        /// values the wire already carries, so there is no single field for the
-        /// contract to mark.
-        /// </remarks>
         public const string Combination = "combination";
     }
 
@@ -50,7 +45,7 @@ namespace Sitrep.Contract
     /// what a client happens to have implemented: an API consumer holding only the
     /// stream must be able to advance the value from the inputs named here. A
     /// registered reckoner is a convenience over published data, never the
-    /// definition. Do not add a mark because our client can do the arithmetic; add
+    /// definition. Do not add a mark because a client can do the arithmetic; add
     /// it because the wire carries the arithmetic's inputs.</para>
     ///
     /// <para><b>Per value, never per topic.</b> A payload is a bundle of
@@ -66,18 +61,11 @@ namespace Sitrep.Contract
     /// share inputs (the conic wants the elements, the integration wants the
     /// descent rate and the sensed deceleration). So each model declares itself,
     /// with its OWN basis and its OWN input list, and the same property carries as
-    /// many marks as it has models.</para>
-    ///
-    /// <para>The alternative considered and rejected was one mark whose
-    /// <see cref="Basis"/> was a SET. It reads shorter and it cannot be honest: one
-    /// mark has one input list, so two models with different dependencies would
-    /// have to merge theirs into a single claim, and a consumer holding the stream
-    /// could no longer tell which inputs buy which model. That is a new falsehood
-    /// in place of the old one (a value whose second model could not be declared at
-    /// all), which is not a trade worth making.</para>
+    /// many marks as it has models, so a consumer can tell which inputs buy which
+    /// model.</para>
     ///
     /// <para>Two marks with the SAME basis on one property is a duplicate rather
-    /// than a second model, and the gate rejects it.</para>
+    /// than a second model, and the build rejects it.</para>
     ///
     /// <para><b>Input spelling.</b> Each entry is one of:</para>
     /// <list type="bullet">
@@ -88,17 +76,17 @@ namespace Sitrep.Contract
     /// <item><c>@&lt;topicId&gt;#&lt;path&gt;</c> (<c>@vessel.orbit#mu</c>): a field
     /// path inside another Topic's payload</item>
     /// </list>
-    /// <para>The <c>@</c> is what lets a reader and the gate tell a topic from a
+    /// <para>The <c>@</c> is what lets a reader and the build tell a topic from a
     /// field without consulting the topic set, so a typo fails as "unknown topic"
     /// instead of silently re-resolving as a field path. The <c>#</c> is explicit
     /// rather than inferred because <c>vessel.orbit</c> and <c>vessel.orbit.truth</c>
-    /// are both Topics in this contract today, and longest-prefix matching over that
-    /// pair is a coin toss.</para>
+    /// are both Topics, and longest-prefix matching over that pair is a coin
+    /// toss.</para>
     ///
     /// <para><b>The value's own property is an IMPLICIT input and must not be
     /// listed.</b> Every model is anchored on the value it advances, so listing it
-    /// would appear on every mark and inform nobody. The gate REJECTS a
-    /// self-reference so the convention cannot drift into optional.</para>
+    /// would appear on every mark and inform nobody. The build REJECTS a
+    /// self-reference.</para>
     ///
     /// <para><b><see cref="Basis"/> is a FLOOR, not a prediction.</b> It names the
     /// model the wire always supports for this value. A reckoner that has more on a
@@ -107,7 +95,7 @@ namespace Sitrep.Contract
     ///
     /// <para><b>A mark's availability is coupled to its SIBLINGS'.</b> One reading
     /// carries ONE projection over every marked field of a Topic, so the model
-    /// answers for all of them or for none of them. A value whose own declared
+    /// covers all of them or none of them. A value whose own declared
     /// inputs all arrived is still withheld while a SIBLING value's input is
     /// missing, and the decline names the sibling's input:
     /// <see cref="Sitrep.Contract.VesselFlight.OrbitalSpeed"/> declares only
@@ -129,15 +117,14 @@ namespace Sitrep.Contract
     /// constant forward is exact.</para>
     ///
     /// <internal>
-    /// Nothing enforces the composition rule mechanically, and stages 1-4 of the
-    /// reckoning pass deliberately do not try: it needs a machine-readable answer to
+    /// Nothing enforces the composition rule mechanically: it needs a machine-readable verdict on
     /// "does this input move, and is it unmodelled", and the only classification in
     /// the tree is the SDK's <c>NEVER_RECKONABLE</c>, whose groups are comment-only.
     /// Splitting that list is the prerequisite, and it is a TS-side change, so the
-    /// check cannot live here without resurrecting the cross-language ratchet that
-    /// putting the declaration in the contract was meant to kill.
+    /// check cannot live here without a cross-language ratchet.
     /// </internal>
     /// </summary>
+    /// <category>Propagation and models</category>
     [AttributeUsage(AttributeTargets.Property, Inherited = false, AllowMultiple = true)]
     public sealed class SitrepReckonableAttribute : Attribute
     {
@@ -145,12 +132,14 @@ namespace Sitrep.Contract
         public string Basis { get; }
 
         /// <summary>
-        /// The published inputs the model needs, beyond the value itself. Never
-        /// empty: a mark with no declared inputs is the pre-declaration state this
-        /// attribute exists to end.
+        /// The published inputs the model needs, beyond the value itself, in the
+        /// input spelling above. Never empty.
         /// </summary>
         public string[] Inputs { get; }
 
+        /// <summary>Marks the property as carried forward by <paramref name="basis"/> from <paramref name="inputs"/>.</summary>
+        /// <param name="basis">One of the <see cref="ReckoningBases"/> tokens.</param>
+        /// <param name="inputs">The published inputs the model needs, beyond the value itself.</param>
         public SitrepReckonableAttribute(string basis, params string[] inputs)
         {
             Basis = basis;

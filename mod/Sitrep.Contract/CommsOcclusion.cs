@@ -5,53 +5,39 @@ using System.Collections.Generic;
 
 namespace Sitrep.Contract;
 
-// ====================================================================
-// The OCCLUSION half of the comms contract: how big a body has to be
-// treated as, for the purpose of deciding whether it blocks a radio path.
-//
-// This is VISIBILITY GEOMETRY, not delay. It answers "does this rock sit
-// between the two endpoints", and it is the one comms question whose
-// answer genuinely differs between backends rather than merely being
-// richer under one of them:
-//
-//   * Stock CommNet shrinks the body before testing, by
-//     CommNetParams.occlusionMultiplierVac (0.9) for an airless body and
-//     occlusionMultiplierAtm (0.75) for one with an atmosphere. For Kerbin
-//     that is a 450 km occluder against a 600 km rock.
-//   * RealAntennas tests against the BARE radius, no multiplier at all
-//     (FilterCommNodesByOcclusion.Occluded / Precompute.SetupOccluders both
-//     take body.Radius straight).
-//
-// ~11 minutes of predicted low-orbit blackout separate those two answers
-// for one Kerbin orbit, so a consumer that guesses is not approximately
-// right, it is wrong. Rather than have every consumer branch on which mod
-// is installed, the ELECTED backend declares its own model
-// (ICommsBackend.OcclusionModel) and consumers read whatever the winner
-// declared.
-// ====================================================================
-
 /// <summary>
 /// The occlusion geometry one comms backend applies: a pure, KSP-free rule
 /// mapping a body to the radius that actually blocks a radio path through it.
+/// This is visibility geometry, not delay: it decides whether a body sits
+/// between two endpoints.
+///
+/// <para>Backends genuinely differ here. Stock CommNet shrinks the body before
+/// testing, by <c>CommNetParams.occlusionMultiplierVac</c> (0.9) for an
+/// airless body and <c>occlusionMultiplierAtm</c> (0.75) for one with an
+/// atmosphere, so Kerbin occludes at 450 km against a 600 km rock.
+/// RealAntennas tests against the BARE radius. For one low Kerbin orbit that
+/// is about 11 minutes of predicted blackout, so a consumer reads the elected
+/// backend's model (<see cref="ICommsBackend.OcclusionModel"/>) rather than
+/// guessing which mod is installed.</para>
 ///
 /// <para>Deliberately a RESOLVED RADIUS rather than the multipliers behind
 /// it. Multipliers on the wire would push the rule out to every consumer,
 /// and each would have to know which of the two to apply (the vac/atm choice
 /// is stock's, not a universal one) and what to do when a backend has no
-/// multipliers at all. A radius is the answer to the question actually being
-/// asked, and it is the same shape whatever the backend's internal rule is:
-/// a future backend whose occluder is not a scaled sphere still has a
-/// number to give here.</para>
+/// multipliers at all. A radius is the value actually asked for, and it is
+/// the same shape whatever the backend's internal rule is: a backend whose
+/// occluder is not a scaled sphere still has a number to give here.</para>
 ///
 /// <para><see cref="ModelId"/>/<see cref="ModelName"/> travel WITH the
-/// answer so the assumption stays inspectable: a predictor that says
+/// radius so the assumption stays inspectable: a predictor that says
 /// "reacquire in 11 minutes" can also say which geometry it believed.</para>
 ///
 /// <para>Pure: implementations must not read live KSP state. A backend that
 /// needs a live read (stock's multipliers come from the game's difficulty
-/// settings) does it when BUILDING the model, on the capture seam, and hands
-/// back a model that is thereafter just arithmetic.</para>
+/// settings) does it when BUILDING the model, during capture, and hands back a
+/// model that is thereafter just arithmetic.</para>
 /// </summary>
+/// <category>Propagation and models</category>
 public interface ICommsOcclusionModel
 {
     /// <summary>Stable id for this model, e.g. <c>"commnet-scaled-radius"</c>.</summary>
@@ -66,12 +52,14 @@ public interface ICommsOcclusionModel
     /// any backend currently discriminates on; a body's bare radius is
     /// <paramref name="bodyRadiusMeters"/>.
     /// </summary>
+    /// <param name="bodyRadiusMeters">The body's own mean radius, in metres.</param>
+    /// <param name="hasAtmosphere">Whether the body has an atmosphere.</param>
+    /// <returns>The occluding radius, in metres.</returns>
     double OccludingRadiusMeters(double bodyRadiusMeters, bool hasAtmosphere);
 }
 
 /// <summary>
-/// The occlusion rule every backend that exists today happens to use: the
-/// body's radius scaled by one multiplier for an airless body and another for
+/// The occlusion rule both shipped backends use: the body's radius scaled by one multiplier for an airless body and another for
 /// one with an atmosphere. Both stock CommNet (0.9 / 0.75) and RealAntennas
 /// (1.0 / 1.0, i.e. the bare radius) are instances of it, differing only in
 /// the two numbers and in what they call themselves.
@@ -80,8 +68,18 @@ public interface ICommsOcclusionModel
 /// its own multipliers needs no new type, and one whose rule is NOT a scaled
 /// sphere implements <see cref="ICommsOcclusionModel"/> directly instead.</para>
 /// </summary>
+/// <category>Propagation and models</category>
 public sealed class ScaledRadiusOcclusionModel : ICommsOcclusionModel
 {
+    /// <summary>
+    /// Builds a model from its identity and its two multipliers. A non-finite
+    /// or negative multiplier is replaced by 1.0 (the bare radius), and a null
+    /// id or name by the empty string.
+    /// </summary>
+    /// <param name="modelId">Stable id, e.g. <c>"commnet-scaled-radius"</c>.</param>
+    /// <param name="modelName">Human-readable name a UI can show.</param>
+    /// <param name="vacuumMultiplier">The factor applied to an airless body's radius.</param>
+    /// <param name="atmosphereMultiplier">The factor applied to the radius of a body with an atmosphere.</param>
     public ScaledRadiusOcclusionModel(
         string modelId,
         string modelName,
@@ -94,8 +92,10 @@ public sealed class ScaledRadiusOcclusionModel : ICommsOcclusionModel
         AtmosphereMultiplier = Finite(atmosphereMultiplier);
     }
 
+    /// <inheritdoc />
     public string ModelId { get; }
 
+    /// <inheritdoc />
     public string ModelName { get; }
 
     /// <summary>Applied to an airless body (stock: <c>occlusionMultiplierVac</c>).</summary>
@@ -104,6 +104,14 @@ public sealed class ScaledRadiusOcclusionModel : ICommsOcclusionModel
     /// <summary>Applied to a body with an atmosphere (stock: <c>occlusionMultiplierAtm</c>).</summary>
     public double AtmosphereMultiplier { get; }
 
+    /// <summary>
+    /// <paramref name="bodyRadiusMeters"/> times the multiplier for
+    /// <paramref name="hasAtmosphere"/>. Returns <c>0</c> (blocks nothing) for
+    /// a radius that is non-finite, zero or negative.
+    /// </summary>
+    /// <param name="bodyRadiusMeters">The body's own mean radius, in metres.</param>
+    /// <param name="hasAtmosphere">Whether the body has an atmosphere.</param>
+    /// <returns>The occluding radius, in metres.</returns>
     public double OccludingRadiusMeters(double bodyRadiusMeters, bool hasAtmosphere)
     {
         if (double.IsNaN(bodyRadiusMeters) || double.IsInfinity(bodyRadiusMeters) || bodyRadiusMeters <= 0)
@@ -127,6 +135,7 @@ public sealed class ScaledRadiusOcclusionModel : ICommsOcclusionModel
 }
 
 /// <summary>The occlusion models core itself declares.</summary>
+/// <category>Propagation and models</category>
 public static class CommsOcclusionModels
 {
     /// <summary><see cref="Unknown"/>'s id, so a consumer can recognise "nobody told me" without string-matching a display name.</summary>
@@ -161,16 +170,30 @@ public static class CommsOcclusionModels
 #endif
 public class CommsOcclusionBody
 {
+    /// <summary>
+    /// The body's <c>CelestialBody.flightGlobalsIndex</c>: the join key onto
+    /// <c>BodyEntry.Index</c> in <c>system.bodies</c>.
+    /// </summary>
     [SitrepUnit(Units.Id)]
     public int Index { get; set; }
 
+    /// <summary>The body's name, e.g. <c>"Kerbin"</c>; <c>null</c> when unread. Display only: join on <see cref="Index"/>.</summary>
     [SitrepUnit(Units.Text)]
     public string? Name { get; set; }
 
-    /// <summary>The body's own mean radius (<c>CelestialBody.Radius</c>).</summary>
+    /// <summary>
+    /// The body's own mean radius (<c>CelestialBody.Radius</c>). <c>0</c> when
+    /// the radius has not been read yet, and then
+    /// <see cref="OccludingRadiusMeters"/> is <c>0</c> too: the body blocks
+    /// nothing.
+    /// </summary>
     [SitrepUnit(Units.Metres)]
     public double RadiusMeters { get; set; }
 
+    /// <summary>
+    /// Whether the body has an atmosphere, which selects the multiplier a
+    /// scaled-radius model applies. <c>false</c> when unread.
+    /// </summary>
     [SitrepUnit(Units.Flag)]
     public bool HasAtmosphere { get; set; }
 
@@ -180,10 +203,9 @@ public class CommsOcclusionBody
 }
 
 /// <summary>
-/// The <c>comms.occlusion</c> payload: always-present, sourced from the elected
-/// backend (the PROVIDER axis <c>Comms.cs</c>'s header describes). The declared
-/// occlusion model, named, with its rule already applied to every celestial
-/// body the game knows about.
+/// The <c>comms.occlusion</c> payload: always present, sourced from the elected
+/// comms backend. The declared occlusion model, named, with its rule already
+/// applied to every celestial body the game knows about.
 ///
 /// <para>TRUE-NOW like the rest of the comms family, and for a stronger reason
 /// than most: this is not an observation of the vessel at all, it is a
@@ -192,9 +214,14 @@ public class CommsOcclusionBody
 /// blackout from yesterday's model.</para>
 ///
 /// <para>Effectively static within a session: the body set does not change and
-/// the multipliers change only if the player edits the difficulty settings. The
-/// producer republishes an unchanged instance, which the emitter's change-gate
-/// suppresses, so the channel costs a keyframe and nothing else.</para>
+/// the multipliers change only if the player edits the difficulty settings. An
+/// unchanged declaration is not re-sent, so the channel costs a keyframe and
+/// nothing else.</para>
+/// <internal>
+/// Built by <c>Sitrep.Host.Comms.CommsOcclusionBuilder</c>, which republishes
+/// the same instance while the declaration holds so the emitter's
+/// reference-equality change-gate suppresses it.
+/// </internal>
 /// </summary>
 /// <category>Comms</category>
 [SitrepContract]
@@ -215,5 +242,9 @@ public class CommsOcclusion
     /// <summary>Every known celestial body, with the model applied. Empty before the game has populated a body list, never null.</summary>
     public IReadOnlyList<CommsOcclusionBody> Bodies { get; set; } = new List<CommsOcclusionBody>();
 
+    /// <summary>
+    /// Provenance, always <c>"game"</c> with quality <c>OnRails</c>: this
+    /// describes the universe and the rule applied to it, not any craft.
+    /// </summary>
     public PayloadMeta Meta { get; set; } = new();
 }

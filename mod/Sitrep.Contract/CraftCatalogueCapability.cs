@@ -3,40 +3,33 @@ using System.Collections.Generic;
 
 namespace Sitrep.Contract
 {
-    // ─────────────────────────────────────────────────────────────────────────
-    // The save's craft files, as a capability rather than as a channel.
-    //
-    // WHAT WAS MISSING. spaceCenter.savedShips lists the craft folders and is a
-    // READ: name, part count, mass, stock cost, missing parts. Nothing can act
-    // on it. An Uplink that models a build queue needs the craft itself, and
-    // reaching one means ShipConstruction.GetShipsPathFor, ConfigNode.Load and
-    // ShipConstruct.LoadShip, which INSTANTIATES a part prefab per PART node and
-    // leaves the GameObjects for somebody to destroy.
-    //
-    // An Uplink may not reference KSP, and every Uplink in this repo is an
-    // example of what an outside author can build, so "reach it by reflection"
-    // is not an answer either: Unity object lifetime managed through
-    // MethodInfo.Invoke from an assembly that cannot name UnityEngine.Object is
-    // how a scene ends up with a craft standing at the world origin.
-    //
-    // So core does the KSP half, where KSP is a compile-time reference, and
-    // hands an Uplink a handle it never has to name. The Uplink passes that
-    // handle to its own mod's constructor by reflection and gives it back. The
-    // seam is the sanctioned one: the interface is declared here, in the only
-    // assembly an Uplink may reference, and the implementation is resolved
-    // through host.Kernel.
-    // ─────────────────────────────────────────────────────────────────────────
-
-    /// <summary>The capability id, and the reason it is not exclusive.</summary>
-    /// <remarks>
-    /// One provider, core's, and no election: a craft folder is a fact about the
-    /// save's directory rather than a model any mod could hold a rival opinion
-    /// about. It is declared as a capability all the same because that is the
-    /// only route an Uplink has into core, and a second provider would be a mod
-    /// that stores craft somewhere else, which is a thing that could exist.
-    /// </remarks>
+    /// <summary>
+    /// The <c>craftCatalogue</c> capability: the save's <c>.craft</c> files,
+    /// listed, measured, and loaded into live parts for an Uplink that needs the
+    /// craft itself (a build queue, for example). Resolve it through
+    /// <c>host.Kernel</c> as an <see cref="ICraftCatalogue"/>.
+    ///
+    /// <para><c>spaceCenter.savedShips</c> is the read-only listing a widget
+    /// draws; this capability is what a command acts on. The core mod does the
+    /// KSP half (loading a craft instantiates part prefabs that must later be
+    /// destroyed) and hands the Uplink an opaque handle it never has to name,
+    /// which the Uplink passes to its own mod by reflection and gives back.</para>
+    ///
+    /// <para>There is one provider and no election: a craft folder is a fact
+    /// about the save's directory, not a model mods hold rival opinions
+    /// about.</para>
+    /// <internal>
+    /// Implemented by Gonogo.KSP.CraftCatalogueBackend and registered from
+    /// SpaceCenterUplink. It is a capability because that is the only route an
+    /// Uplink has into core; an Uplink may not reference KSP, and managing Unity
+    /// object lifetime by reflection from an assembly that cannot name
+    /// UnityEngine.Object leaves craft standing at the world origin.
+    /// </internal>
+    /// </summary>
+    /// <category>Host and Kernel</category>
     public static class CraftCatalogueCapability
     {
+        /// <summary>The capability id, <c>"craftCatalogue"</c>.</summary>
         public const string Id = "craftCatalogue";
     }
 
@@ -49,6 +42,7 @@ namespace Sitrep.Contract
     /// "this weighs nothing" from "nobody weighed this", because the two want
     /// opposite verdicts.</para>
     /// </summary>
+    /// <category>Host and Kernel</category>
     public sealed class CraftFileRecord
     {
         /// <summary>
@@ -70,6 +64,7 @@ namespace Sitrep.Contract
         /// <summary>Which editor built it, from the file rather than from the folder it sits in.</summary>
         public KspEditorFacility? Facility { get; set; }
 
+        /// <summary>The number of parts in the craft, as KSP's craft profile reads it from the file.</summary>
         public int? PartCount { get; set; }
 
         /// <summary>Total mass in tonnes, everything included.</summary>
@@ -87,11 +82,13 @@ namespace Sitrep.Contract
         /// </summary>
         public double? MassExcludingClamps { get; set; }
 
-        /// <summary>The craft's bounding size in metres, x/y/z, or null when it could not be measured.</summary>
+        /// <summary>The craft's bounding size along x, in metres, as KSP's <c>ShipTemplate.GetShipSize</c> measures it. Null when it could not be measured.</summary>
         public double? SizeX { get; set; }
 
+        /// <summary>The craft's bounding size along y (the editor's vertical axis), in metres. Null when it could not be measured.</summary>
         public double? SizeY { get; set; }
 
+        /// <summary>The craft's bounding size along z, in metres. Null when it could not be measured.</summary>
         public double? SizeZ { get; set; }
 
         /// <summary>Stock total cost in funds. A career mod's own price may differ and this is not it.</summary>
@@ -122,6 +119,7 @@ namespace Sitrep.Contract
     /// craft" and "the file is corrupt" are different sentences to put in front
     /// of an operator and a consumer cannot make either one up.</para>
     /// </summary>
+    /// <category>Host and Kernel</category>
     public sealed class CraftLoad
     {
         /// <summary>
@@ -144,9 +142,9 @@ namespace Sitrep.Contract
         ///
         /// <para>Both exist because they are asked at different moments and a
         /// consumer needs to know which it is holding. <see cref="ICraftCatalogue.Craft"/>
-        /// answers a widget drawing a list and is allowed to be a rescan behind;
-        /// this answers a command about to spend money, and a part unlocked since
-        /// the last rescan has to count.</para>
+        /// serves a widget drawing a list and may be a rescan behind; this serves
+        /// a command about to spend money, where a part unlocked since the last
+        /// rescan has to count.</para>
         /// </summary>
         public CraftFileRecord? Measured { get; set; }
 
@@ -163,8 +161,14 @@ namespace Sitrep.Contract
         /// </summary>
         public string[]? ConfigErrors { get; set; }
 
+        /// <summary>A successful load carrying the loaded craft.</summary>
+        /// <param name="ship">The KSP <c>ShipConstruct</c>, as an opaque handle.</param>
+        /// <returns>A load whose <see cref="Ship"/> is set and whose <see cref="Failure"/> is null.</returns>
         public static CraftLoad Loaded(object ship) => new CraftLoad { Ship = ship };
 
+        /// <summary>A failed load carrying the reason.</summary>
+        /// <param name="reason">Why nothing was loaded, in words an operator can act on.</param>
+        /// <returns>A load whose <see cref="Failure"/> is set and whose <see cref="Ship"/> is null.</returns>
         public static CraftLoad Failed(string reason) => new CraftLoad { Failure = reason };
     }
 
@@ -173,17 +177,18 @@ namespace Sitrep.Contract
     ///
     /// <para><b>Every member is main-thread only.</b> The listing walks the disk
     /// and reads part prefabs; the load instantiates them. Neither is legal from
-    /// the Courier thread, so a channel mapper must not call either.</para>
+    /// the stream thread, so a channel mapper must not call either.</para>
     /// </summary>
+    /// <category>Host and Kernel</category>
     public interface ICraftCatalogue : ISitrepProvider
     {
         /// <summary>
         /// Every craft file in the save, VAB and SPH.
         ///
-        /// <para>Empty when the save has no craft; that is a real answer and the
-        /// caller should say so rather than treating it as a failure. Callers
-        /// should not assume it is cheap: implementations are free to cache, and
-        /// this one does.</para>
+        /// <para>Empty when the save has no craft, which the caller should report
+        /// as such rather than as a failure. Do not assume it is cheap:
+        /// implementations are free to cache, and the core one does, so the
+        /// listing may be a rescan behind.</para>
         /// </summary>
         IReadOnlyList<CraftFileRecord> Craft();
 

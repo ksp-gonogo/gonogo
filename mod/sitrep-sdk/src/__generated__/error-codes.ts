@@ -24,9 +24,9 @@ export interface ErrorCodeDeclaration {
 }
 
 /**
- * The root refusals: the closed set every client can switch over. Each says
- * what KIND of no it was, and so whether waiting, changing the craft, or doing
- * something in the game is what makes a retry mean anything.
+ * The root refusals: the closed set every client can switch on. Each says what
+ * kind of refusal it was, and so whether waiting, changing the craft, or doing
+ * something in the game is what makes a retry worthwhile.
  *
  * A producer that can say more names a refinement of one of these (see
  * `RefusalCode.Refine`); the root still travels, so nothing a client does with
@@ -36,7 +36,7 @@ export interface ErrorCodeDeclaration {
  */
 export const CommandErrorCode = {
   /**
-   * No active vessel to act on.
+   * There is no active vessel to act on.
    */
   NoVessel: "noVessel",
   /**
@@ -49,42 +49,35 @@ export const CommandErrorCode = {
    */
   Range: "range",
   /**
-   * The referenced entity (node id, vessel/body target) did not resolve.
+   * The referenced entity (a node id, a vessel or body target, a craft name) did
+   * not resolve.
    */
   NotFound: "notFound",
   /**
-   * The elected maneuver-plan provider is not the one that reads stock's
-   * `patchedConicSolver`, so a write there would never be seen.
+   * The maneuver plan is owned by a planner other than stock's
+   * `patchedConicSolver`, so a node written there would never be used.
    *
-   * Refused rather than attempted, because attempting it produces a GHOST NODE:
-   * we mutate stock's solver, the owning planner never reads it (an n-body
-   * backend clears that list every frame and writes its own guidance node into
-   * it), and the operator sees a maneuver node on the board that does precisely
-   * nothing. A silent wrong answer with a confident presentation.
-   *
-   * The code says WHY, not WHO: the owner is already on the wire as
-   * `VesselManeuver.Planner` for a readout to name.
+   * Refused rather than attempted: an n-body planner clears stock's node list
+   * every frame and writes its own guidance node into it, so a written node
+   * would show on the board and do nothing. The owning planner is on the wire as
+   * `VesselManeuver.Planner`.
    */
   PlanNotOwned: "planNotOwned",
   /**
    * A capacity is full: the Astronaut Complex holds its cap of active crew, a
    * facility holds its cap of anything else countable.
    *
-   * The world has to change before a retry means anything; freeing a slot is a
-   * thing an operator can actually do.
+   * A retry succeeds only once something changes, such as freeing a slot.
    *
-   * The arm chooses the sentence, `CommandResult.breach` supplies the numbers in
-   * it. Neither is worth sending without the other: a code with no payload
-   * cannot say "16 of 16".
+   * `CommandResult.breach` carries the numbers, so a client can say "16 of 16".
    */
   LimitReached: "limitReached",
   /**
    * Already at the top of an upgradeable scale, so there is nothing above this
    * to move to. The Launch Pad at tier 3 of 3.
    *
-   * Deliberately NOT `CommandErrorCode.LimitReached`. A cap that is full can be
-   * freed; a maximum tier cannot be exceeded by any action at all, and an
-   * operator reads those two differently.
+   * Not `CommandErrorCode.LimitReached`: a cap that is full can be freed; a
+   * maximum tier cannot be exceeded by any action at all.
    */
   AlreadyAtMaximum: "alreadyAtMaximum",
   /**
@@ -96,15 +89,13 @@ export const CommandErrorCode = {
    */
   InsufficientFunds: "insufficientFunds",
   /**
-   * The command costs more science than is banked.
-   * `CommandErrorCode.InsufficientFunds`'s twin, and separate for the same
-   * reason the game keeps `Currency` as three members: an operator short of
-   * science does something entirely different about it from one short of funds.
+   * The command costs more science than is banked. Separate from
+   * `CommandErrorCode.InsufficientFunds`, as the game keeps science and funds
+   * separate currencies.
    *
    * Authority: `CurrencyModifierQuery.RunQuery(reason,
-   * ...).CanAfford(Currency.Science)`, which is what `RDTech.ResearchTech` asks.
-   * NOT `ResearchAndDevelopment.CanAfford`, which skips the modifier chain and
-   * so answers a different question from the one the game acts on.
+   * ...).CanAfford(Currency.Science)`, which is what `RDTech.ResearchTech`
+   * checks, modifiers included.
    */
   InsufficientScience: "insufficientScience",
   /**
@@ -112,14 +103,12 @@ export const CommandErrorCode = {
    * exist here.
    *
    * Authority: `HighLogic.CurrentGame.Mode`, and in practice the null `Instance`
-   * of the `ScenarioModule` that would have answered (`Funding`,
+   * of the `ScenarioModule` that would have served it (`Funding`,
    * `ContractSystem`, `StrategySystem`, `ResearchAndDevelopment`,
    * `ScenarioUpgradeableFacilities`).
    *
-   * This is a PERMANENT property of the save, not a state that may change, which
-   * is exactly what `CommandErrorCode.ModeUnavailable` could not say. An
-   * operator should see the control absent rather than refused; a client that
-   * can tell this arm from the others can do that.
+   * A permanent property of the save, not a state that may change, so a client
+   * can hide the control rather than show it refused.
    */
   CareerModeRequired: "careerModeRequired",
   /**
@@ -150,11 +139,11 @@ export const CommandErrorCode = {
    * (in atmosphere, under acceleration, moving over the surface, about to crash,
    * on a ladder), plus `FlightDriver.CanRevertToPostInit`/`CanRevertToPrelaunch`
    * and the `GameParameters` flags for leaving to the space center and to the
-   * tracking station. The arm rides on `CommandResult.detail`.
+   * tracking station. The game's reason is on `CommandResult.detail`.
    *
-   * Also the SCET alarm arm, for a vantage it cannot check because no command
-   * centre is known to the simulation yet: the main menu, and the ticks before
-   * the first capture. A vantage that is known and inactive is
+   * Also returned by the SCET alarm command for a vantage it cannot check
+   * because no command centre is known to the simulation yet: the main menu, and
+   * the ticks before the first capture. A vantage that is known and inactive is
    * `CommandErrorCode.Range` instead, because that one does not resolve by
    * waiting.
    *
@@ -182,9 +171,9 @@ export const CommandErrorCode = {
    * There is no usable link for what this command needs to send.
    *
    * Authority: `ScienceUtil.GetBestTransmitter(Vessel)` and
-   * `IScienceDataTransmitter.CanTransmit()`. Deliberately NOT the Courier's own
-   * comms-loss gate, which refuses the dispatch before a handler ever runs; this
-   * is the vessel finding it has no antenna that can carry the payload.
+   * `IScienceDataTransmitter.CanTransmit()`: the vessel has no antenna that can
+   * carry the payload. This is not the comms-loss refusal that stops a command
+   * before it reaches the vessel.
    */
   NoConnection: "noConnection",
   /**
@@ -221,66 +210,54 @@ export const CommandErrorCode = {
    * logistics model has work outstanding on it. Nothing is over a limit and
    * nothing is broken, the thing simply has not been made ready.
    *
-   * Authority: whichever Uplink CONTRIBUTED the readiness requirement that
+   * Authority: whichever Uplink contributed the readiness requirement that
    * refused (see `IUplinkHost.AddCommandRequirement`), never a stock KSP read:
-   * stock has no build step, so it contributes no readiness requirements and
-   * this code never arrives on a stock install. Under RP-1 it is a vehicle that
-   * was never integrated, one still integrating, one finished but not rolled
-   * out, or one rolled out to a pad still being reconditioned.
-   * `CommandResult.detail` says which.
+   * stock has no build step, so this code never arrives on a stock install.
+   * Under RP-1 it is a vehicle that was never integrated, one still integrating,
+   * one finished but not rolled out, or one rolled out to a pad still being
+   * reconditioned. `CommandResult.detail` says which.
    *
-   * Deliberately NOT `CommandErrorCode.LimitReached`, which is the launch
-   * refusal an operator already gets for a craft that is too heavy or too large
-   * for the site, and which is fixed by changing the craft or upgrading the pad.
-   * This one is fixed by doing the outstanding work, and the two want entirely
-   * different next moves.
+   * Not `CommandErrorCode.LimitReached`, the launch refusal for a craft too
+   * heavy or too large for the site, fixed by changing the craft or upgrading
+   * the pad. This one is fixed by doing the outstanding work.
    *
-   * Deliberately NOT `CommandErrorCode.NotFound` either, which `ksp.launch`
-   * already returns when no craft file answers to the name. A craft that exists
-   * on disk and has never been built is a different situation from one that does
-   * not exist, and collapsing them tells an operator to go looking for a file
-   * that is sitting right there.
+   * Not `CommandErrorCode.NotFound` either, which `ksp.launch` returns when no
+   * craft file has the name. A craft that exists on disk and has never been
+   * built is a different situation from one that does not exist.
    */
   NotReady: "notReady",
   /**
    * The command consumes a countable ITEM and there are not enough of them
    * aboard: an EVA repair kit for a repair, on a provider that charges one.
    *
-   * Authority: the provider's own charge, read back from the same function that
-   * STATES the cost on `ReliabilityPartEntry.repairCost`. The two come from one
-   * place precisely so a console cannot show one number while the repair takes
-   * another, and the ITEM is always the provider's to name: this code never
-   * asserts which one, only that there were too few.
+   * Authority: the provider's own charge, the same one it states on
+   * `ReliabilityPartEntry.repairCost`, so the cost shown and the cost taken
+   * agree. The item is the provider's to name: this code says only that there
+   * were too few, never which item.
    *
-   * `CommandErrorCode.InsufficientFunds`'s and
-   * `CommandErrorCode.InsufficientScience`'s third sibling, and separate for the
-   * same reason those two are separate from each other: an operator short of a
-   * physical item does something entirely different about it from one short of a
-   * currency, and nothing can be bought to fix it.
+   * Separate from `CommandErrorCode.InsufficientFunds` and
+   * `CommandErrorCode.InsufficientScience`: a physical item cannot be bought.
    *
-   * Deliberately NOT `CommandErrorCode.LimitReached`, which is a capacity that
-   * is FULL. This is a store that is empty, and the two read as opposites.
+   * Not `CommandErrorCode.LimitReached`, which is a capacity that is full. This
+   * is a store that is empty.
    */
   InsufficientResource: "insufficientResource",
   /**
-   * The provider was ASKED and COULD NOT ANSWER. Nothing about the craft, the
-   * save or the moment was established, so the one fact this refusal carries is
-   * that the question went unanswered.
+   * The provider was asked and could not read the state it needed. Nothing about
+   * the craft, the save or the moment was established, so the one fact this
+   * refusal carries is that the question went unresolved.
    *
-   * None of its three neighbours, and folding it into any of them states
-   * something that was never established rather than merely stating it coarsely.
-   * "The answer is no" (a genuine omni antenna asked to aim) is a FACT about the
-   * craft, and that is `CommandErrorCode.CapabilityMismatch`. "Not applicable"
-   * (asked of a craft that carries nothing this command could act on) is a
-   * refusal about what is there at all, and that is `CommandErrorCode.NotFound`.
-   * "Not yet" resolves by waiting, which is
-   * `CommandErrorCode.NotClearToProceed`; this does not resolve by waiting, and
-   * a retry is a second attempt at the same question rather than a later one.
+   * Not `CommandErrorCode.CapabilityMismatch`, which is an established fact
+   * about the craft (a genuine omni antenna asked to aim). Not
+   * `CommandErrorCode.NotFound`, which says the craft carries nothing this
+   * command could act on. Not `CommandErrorCode.NotClearToProceed`, which
+   * resolves by waiting; this does not, and a retry is a second attempt at the
+   * same question.
    *
-   * `CommandResult.detail` names WHAT could not be read when the producer had a
-   * name for it, and never says what the answer would have been. A surface has
-   * nothing to tell the operator about their vehicle here, because nothing was
-   * learned about it; offering the command again is the only honest next move.
+   * `CommandResult.detail` names what could not be read when the producer had a
+   * name for it, and never says what the result would have been. Nothing was
+   * learned about the vehicle, so offering the command again is the only sound
+   * next move.
    */
   Unreadable: "unreadable",
   /**
@@ -407,7 +384,7 @@ export type FaultCode = (typeof FaultCode)[keyof typeof FaultCode];
  */
 export const RepairRefusal = {
   /**
-   * No crew member aboard answers to the requested name.
+   * No crew member aboard has the requested name.
    */
   NoSuchCrew: "repair.noSuchCrew",
   /**
@@ -438,8 +415,8 @@ export const RepairRefusal = {
    * exploded part, a fired docking clamp and a snapped solar mechanism, whatever
    * crew are aboard and whatever they carry.
    *
-   * Deliberately NOT `RepairRefusal.NotModelled`. The model is present and
-   * working; this is its answer.
+   * Not `RepairRefusal.NotModelled`: the model is present and working, and this
+   * is its verdict.
    */
   Unrepairable: "repair.unrepairable",
 } as const;
@@ -457,7 +434,7 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     refines: null,
     origin: null,
     sentence: "there is no vessel to act on",
-    meaning: "No active vessel to act on.",
+    meaning: "There is no active vessel to act on.",
   },
   {
     id: "modeUnavailable",
@@ -481,7 +458,7 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     refines: null,
     origin: null,
     sentence: "nothing here answers to that",
-    meaning: "The referenced entity (node id, vessel/body target) did not resolve.",
+    meaning: "The referenced entity (a node id, a vessel or body target, a craft name) did not resolve.",
   },
   {
     id: "planNotOwned",
@@ -489,7 +466,7 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     refines: null,
     origin: null,
     sentence: "another planner owns the flight plan",
-    meaning: "The elected maneuver-plan provider is not the one that reads stock's `patchedConicSolver`, so a write there would never be seen.\n\nRefused rather than attempted, because attempting it produces a GHOST NODE: we mutate stock's solver, the owning planner never reads it (an n-body backend clears that list every frame and writes its own guidance node into it), and the operator sees a maneuver node on the board that does precisely nothing. A silent wrong answer with a confident presentation.\n\nThe code says WHY, not WHO: the owner is already on the wire as `VesselManeuver.Planner` for a readout to name.",
+    meaning: "The maneuver plan is owned by a planner other than stock's `patchedConicSolver`, so a node written there would never be used.\n\nRefused rather than attempted: an n-body planner clears stock's node list every frame and writes its own guidance node into it, so a written node would show on the board and do nothing. The owning planner is on the wire as `VesselManeuver.Planner`.",
   },
   {
     id: "limitReached",
@@ -497,7 +474,7 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     refines: null,
     origin: null,
     sentence: "a limit has been reached",
-    meaning: "A capacity is full: the Astronaut Complex holds its cap of active crew, a facility holds its cap of anything else countable.\n\nThe world has to change before a retry means anything; freeing a slot is a thing an operator can actually do.\n\nThe arm chooses the sentence, `CommandResult.breach` supplies the numbers in it. Neither is worth sending without the other: a code with no payload cannot say \"16 of 16\".",
+    meaning: "A capacity is full: the Astronaut Complex holds its cap of active crew, a facility holds its cap of anything else countable.\n\nA retry succeeds only once something changes, such as freeing a slot.\n\n`CommandResult.breach` carries the numbers, so a client can say \"16 of 16\".",
   },
   {
     id: "alreadyAtMaximum",
@@ -505,7 +482,7 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     refines: null,
     origin: null,
     sentence: "it is already at its maximum",
-    meaning: "Already at the top of an upgradeable scale, so there is nothing above this to move to. The Launch Pad at tier 3 of 3.\n\nDeliberately NOT `CommandErrorCode.LimitReached`. A cap that is full can be freed; a maximum tier cannot be exceeded by any action at all, and an operator reads those two differently.",
+    meaning: "Already at the top of an upgradeable scale, so there is nothing above this to move to. The Launch Pad at tier 3 of 3.\n\nNot `CommandErrorCode.LimitReached`: a cap that is full can be freed; a maximum tier cannot be exceeded by any action at all.",
   },
   {
     id: "insufficientFunds",
@@ -521,7 +498,7 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     refines: null,
     origin: null,
     sentence: "there is not enough science",
-    meaning: "The command costs more science than is banked. `CommandErrorCode.InsufficientFunds`'s twin, and separate for the same reason the game keeps `Currency` as three members: an operator short of science does something entirely different about it from one short of funds.\n\nAuthority: `CurrencyModifierQuery.RunQuery(reason, ...).CanAfford(Currency.Science)`, which is what `RDTech.ResearchTech` asks. NOT `ResearchAndDevelopment.CanAfford`, which skips the modifier chain and so answers a different question from the one the game acts on.",
+    meaning: "The command costs more science than is banked. Separate from `CommandErrorCode.InsufficientFunds`, as the game keeps science and funds separate currencies.\n\nAuthority: `CurrencyModifierQuery.RunQuery(reason, ...).CanAfford(Currency.Science)`, which is what `RDTech.ResearchTech` checks, modifiers included.",
   },
   {
     id: "careerModeRequired",
@@ -529,7 +506,7 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     refines: null,
     origin: null,
     sentence: "this save is not a career game",
-    meaning: "The save is not a career save, so this command's whole subsystem does not exist here.\n\nAuthority: `HighLogic.CurrentGame.Mode`, and in practice the null `Instance` of the `ScenarioModule` that would have answered (`Funding`, `ContractSystem`, `StrategySystem`, `ResearchAndDevelopment`, `ScenarioUpgradeableFacilities`).\n\nThis is a PERMANENT property of the save, not a state that may change, which is exactly what `CommandErrorCode.ModeUnavailable` could not say. An operator should see the control absent rather than refused; a client that can tell this arm from the others can do that.",
+    meaning: "The save is not a career save, so this command's whole subsystem does not exist here.\n\nAuthority: `HighLogic.CurrentGame.Mode`, and in practice the null `Instance` of the `ScenarioModule` that would have served it (`Funding`, `ContractSystem`, `StrategySystem`, `ResearchAndDevelopment`, `ScenarioUpgradeableFacilities`).\n\nA permanent property of the save, not a state that may change, so a client can hide the control rather than show it refused.",
   },
   {
     id: "wrongScene",
@@ -553,7 +530,7 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     refines: null,
     origin: null,
     sentence: "the flight is not clear for it yet",
-    meaning: "Right command, wrong moment: the flight is not in a state that permits it yet, and will be later.\n\nAuthority: `FlightGlobals.ClearToSave()`, which returns one of five refusals (in atmosphere, under acceleration, moving over the surface, about to crash, on a ladder), plus `FlightDriver.CanRevertToPostInit`/`CanRevertToPrelaunch` and the `GameParameters` flags for leaving to the space center and to the tracking station. The arm rides on `CommandResult.detail`.\n\nAlso the SCET alarm arm, for a vantage it cannot check because no command centre is known to the simulation yet: the main menu, and the ticks before the first capture. A vantage that is known and inactive is `CommandErrorCode.Range` instead, because that one does not resolve by waiting.\n\nDistinct from `CommandErrorCode.WrongState`, which is about the entity and does not resolve by waiting.",
+    meaning: "Right command, wrong moment: the flight is not in a state that permits it yet, and will be later.\n\nAuthority: `FlightGlobals.ClearToSave()`, which returns one of five refusals (in atmosphere, under acceleration, moving over the surface, about to crash, on a ladder), plus `FlightDriver.CanRevertToPostInit`/`CanRevertToPrelaunch` and the `GameParameters` flags for leaving to the space center and to the tracking station. The game's reason is on `CommandResult.detail`.\n\nAlso returned by the SCET alarm command for a vantage it cannot check because no command centre is known to the simulation yet: the main menu, and the ticks before the first capture. A vantage that is known and inactive is `CommandErrorCode.Range` instead, because that one does not resolve by waiting.\n\nDistinct from `CommandErrorCode.WrongState`, which is about the entity and does not resolve by waiting.",
   },
   {
     id: "capabilityMismatch",
@@ -569,7 +546,7 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     refines: null,
     origin: null,
     sentence: "there is no usable link",
-    meaning: "There is no usable link for what this command needs to send.\n\nAuthority: `ScienceUtil.GetBestTransmitter(Vessel)` and `IScienceDataTransmitter.CanTransmit()`. Deliberately NOT the Courier's own comms-loss gate, which refuses the dispatch before a handler ever runs; this is the vessel finding it has no antenna that can carry the payload.",
+    meaning: "There is no usable link for what this command needs to send.\n\nAuthority: `ScienceUtil.GetBestTransmitter(Vessel)` and `IScienceDataTransmitter.CanTransmit()`: the vessel has no antenna that can carry the payload. This is not the comms-loss refusal that stops a command before it reaches the vessel.",
   },
   {
     id: "notUnlocked",
@@ -601,7 +578,7 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     refines: null,
     origin: null,
     sentence: "the vehicle is not ready to fly yet",
-    meaning: "The vehicle is not a launchable article yet: an install's build and logistics model has work outstanding on it. Nothing is over a limit and nothing is broken, the thing simply has not been made ready.\n\nAuthority: whichever Uplink CONTRIBUTED the readiness requirement that refused (see `IUplinkHost.AddCommandRequirement`), never a stock KSP read: stock has no build step, so it contributes no readiness requirements and this code never arrives on a stock install. Under RP-1 it is a vehicle that was never integrated, one still integrating, one finished but not rolled out, or one rolled out to a pad still being reconditioned. `CommandResult.detail` says which.\n\nDeliberately NOT `CommandErrorCode.LimitReached`, which is the launch refusal an operator already gets for a craft that is too heavy or too large for the site, and which is fixed by changing the craft or upgrading the pad. This one is fixed by doing the outstanding work, and the two want entirely different next moves.\n\nDeliberately NOT `CommandErrorCode.NotFound` either, which `ksp.launch` already returns when no craft file answers to the name. A craft that exists on disk and has never been built is a different situation from one that does not exist, and collapsing them tells an operator to go looking for a file that is sitting right there.",
+    meaning: "The vehicle is not a launchable article yet: an install's build and logistics model has work outstanding on it. Nothing is over a limit and nothing is broken, the thing simply has not been made ready.\n\nAuthority: whichever Uplink contributed the readiness requirement that refused (see `IUplinkHost.AddCommandRequirement`), never a stock KSP read: stock has no build step, so this code never arrives on a stock install. Under RP-1 it is a vehicle that was never integrated, one still integrating, one finished but not rolled out, or one rolled out to a pad still being reconditioned. `CommandResult.detail` says which.\n\nNot `CommandErrorCode.LimitReached`, the launch refusal for a craft too heavy or too large for the site, fixed by changing the craft or upgrading the pad. This one is fixed by doing the outstanding work.\n\nNot `CommandErrorCode.NotFound` either, which `ksp.launch` returns when no craft file has the name. A craft that exists on disk and has never been built is a different situation from one that does not exist.",
   },
   {
     id: "insufficientResource",
@@ -609,7 +586,7 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     refines: null,
     origin: null,
     sentence: "there are not enough of what it uses aboard",
-    meaning: "The command consumes a countable ITEM and there are not enough of them aboard: an EVA repair kit for a repair, on a provider that charges one.\n\nAuthority: the provider's own charge, read back from the same function that STATES the cost on `ReliabilityPartEntry.repairCost`. The two come from one place precisely so a console cannot show one number while the repair takes another, and the ITEM is always the provider's to name: this code never asserts which one, only that there were too few.\n\n`CommandErrorCode.InsufficientFunds`'s and `CommandErrorCode.InsufficientScience`'s third sibling, and separate for the same reason those two are separate from each other: an operator short of a physical item does something entirely different about it from one short of a currency, and nothing can be bought to fix it.\n\nDeliberately NOT `CommandErrorCode.LimitReached`, which is a capacity that is FULL. This is a store that is empty, and the two read as opposites.",
+    meaning: "The command consumes a countable ITEM and there are not enough of them aboard: an EVA repair kit for a repair, on a provider that charges one.\n\nAuthority: the provider's own charge, the same one it states on `ReliabilityPartEntry.repairCost`, so the cost shown and the cost taken agree. The item is the provider's to name: this code says only that there were too few, never which item.\n\nSeparate from `CommandErrorCode.InsufficientFunds` and `CommandErrorCode.InsufficientScience`: a physical item cannot be bought.\n\nNot `CommandErrorCode.LimitReached`, which is a capacity that is full. This is a store that is empty.",
   },
   {
     id: "unreadable",
@@ -617,7 +594,7 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     refines: null,
     origin: null,
     sentence: "the game would not answer",
-    meaning: "The provider was ASKED and COULD NOT ANSWER. Nothing about the craft, the save or the moment was established, so the one fact this refusal carries is that the question went unanswered.\n\nNone of its three neighbours, and folding it into any of them states something that was never established rather than merely stating it coarsely. \"The answer is no\" (a genuine omni antenna asked to aim) is a FACT about the craft, and that is `CommandErrorCode.CapabilityMismatch`. \"Not applicable\" (asked of a craft that carries nothing this command could act on) is a refusal about what is there at all, and that is `CommandErrorCode.NotFound`. \"Not yet\" resolves by waiting, which is `CommandErrorCode.NotClearToProceed`; this does not resolve by waiting, and a retry is a second attempt at the same question rather than a later one.\n\n`CommandResult.detail` names WHAT could not be read when the producer had a name for it, and never says what the answer would have been. A surface has nothing to tell the operator about their vehicle here, because nothing was learned about it; offering the command again is the only honest next move.",
+    meaning: "The provider was asked and could not read the state it needed. Nothing about the craft, the save or the moment was established, so the one fact this refusal carries is that the question went unresolved.\n\nNot `CommandErrorCode.CapabilityMismatch`, which is an established fact about the craft (a genuine omni antenna asked to aim). Not `CommandErrorCode.NotFound`, which says the craft carries nothing this command could act on. Not `CommandErrorCode.NotClearToProceed`, which resolves by waiting; this does not, and a retry is a second attempt at the same question.\n\n`CommandResult.detail` names what could not be read when the producer had a name for it, and never says what the result would have been. Nothing was learned about the vehicle, so offering the command again is the only sound next move.",
   },
   {
     id: "outOfReach",
@@ -761,7 +738,7 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     refines: "notFound",
     origin: null,
     sentence: "no crew member aboard has that name",
-    meaning: "No crew member aboard answers to the requested name.",
+    meaning: "No crew member aboard has the requested name.",
   },
   {
     id: "repair.crewNotQualified",
@@ -809,6 +786,6 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     refines: "capabilityMismatch",
     origin: null,
     sentence: "that failure cannot be repaired",
-    meaning: "The provider models this failure and states that it cannot be repaired at all: TestFlight's `ITestFlightFailure.CanAttemptRepair()` is false for an exploded part, a fired docking clamp and a snapped solar mechanism, whatever crew are aboard and whatever they carry.\n\nDeliberately NOT `RepairRefusal.NotModelled`. The model is present and working; this is its answer.",
+    meaning: "The provider models this failure and states that it cannot be repaired at all: TestFlight's `ITestFlightFailure.CanAttemptRepair()` is false for an exploded part, a fired docking clamp and a snapped solar mechanism, whatever crew are aboard and whatever they carry.\n\nNot `RepairRefusal.NotModelled`: the model is present and working, and this is its verdict.",
   },
 ];

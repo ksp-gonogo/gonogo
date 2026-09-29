@@ -29,10 +29,11 @@ namespace Sitrep.Contract
     /// claimant at 10 and the career overhaul at 20. A claimant
     /// that cannot serve on this install should withdraw through
     /// <see cref="ProviderRegistration.CanServe"/>, which lets the runner-up win,
-    /// rather than winning and answering <see cref="HomeCommand.NotIdentified"/>:
+    /// rather than winning and returning <see cref="HomeCommand.NotIdentified"/>:
     /// the election is decided once at resolve time, and an elected claimant's
     /// per-tick "not identified" does not fall through to anyone else.</para>
     /// </remarks>
+    /// <category>Host and Kernel</category>
     public static class HomeCommandCapability
     {
         /// <summary>The capability id. One declaration, reachable from an Uplink.</summary>
@@ -44,16 +45,17 @@ namespace Sitrep.Contract
     /// funds and makes spending choices. Any centre may issue commands; only home
     /// is the career's.
     ///
-    /// <para>An answer is either a command-centre id, the same id
+    /// <para>A result is either a command-centre id, the same id
     /// <see cref="ICommandCentre.Id"/> carries, or <see cref="NotIdentified"/>.
-    /// Not identified is an honest answer rather than a failure: on an install
+    /// Not identified is a real result rather than a failure: on an install
     /// whose ground stations all look alike to the elected claimant, it cannot say
     /// which of them is home, and a guess would put the ledger somewhere it is
     /// not.</para>
     ///
-    /// <para>Immutable, so an answer captured on one thread is safe to read on any
+    /// <para>Immutable, so a value captured on one thread is safe to read on any
     /// other.</para>
     /// </summary>
+    /// <category>Uplink API</category>
     public sealed class HomeCommand
     {
         /// <summary>The claimant cannot say which centre is home.</summary>
@@ -64,8 +66,10 @@ namespace Sitrep.Contract
         /// <summary>Home is the command centre whose id is <paramref name="centreId"/>.</summary>
         /// <exception cref="ArgumentException">
         /// <paramref name="centreId"/> is null or empty. An absent id is
-        /// <see cref="NotIdentified"/>, never an identified answer with nothing in it.
+        /// <see cref="NotIdentified"/>, never an identified result with nothing in it.
         /// </exception>
+        /// <param name="centreId">The home centre's <see cref="ICommandCentre.Id"/>.</param>
+        /// <returns>An identified home.</returns>
         public static HomeCommand Identified(string centreId)
         {
             if (string.IsNullOrEmpty(centreId))
@@ -82,6 +86,7 @@ namespace Sitrep.Contract
         /// <summary>The home centre's id when <see cref="IsIdentified"/>, otherwise null.</summary>
         public string? CentreId { get; }
 
+        /// <summary>The home centre's id, or <c>"not identified"</c>.</summary>
         public override string ToString() => CentreId ?? "not identified";
     }
 
@@ -90,9 +95,10 @@ namespace Sitrep.Contract
     /// logic that decides which command centre is home on this install.
     ///
     /// <para>Nothing but the elected claimant decides who is home. Everything
-    /// else asks for its answer and never reads the game's own home flags to
+    /// else asks for its result and never reads the game's own home flags to
     /// work it out again.</para>
     /// </summary>
+    /// <category>Uplink API</category>
     public interface IHomeCommandProvider : ISitrepProvider
     {
         /// <summary>
@@ -105,12 +111,13 @@ namespace Sitrep.Contract
         /// </summary>
         /// <param name="activeCentres">
         /// The command centres that capture found active, every kind included. A
-        /// claimant names home by answering with one of their
+        /// claimant names home by returning one of their
         /// <see cref="ICommandCentre.Id"/>s rather than spelling an id itself: core
         /// mints every id, so an id copied from here is the one the roster carries
         /// and one built by hand may not be (two stations that share a name are told
         /// apart by a suffix only core can hand out).
         /// </param>
+        /// <returns>The home centre, or <see cref="HomeCommand.NotIdentified"/>.</returns>
         HomeCommand Identify(IReadOnlyList<ICommandCentre> activeCentres);
     }
 }

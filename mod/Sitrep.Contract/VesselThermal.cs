@@ -19,12 +19,15 @@ public class ThermalHottestPart
     [SitrepUnit(Units.Kelvin)]
     public double InternalTemp { get; set; }
 
+    /// <summary>The part's maximum internal temperature, Kelvin (<c>Part.maxTemp</c>). Always greater than 0, since only a part with a valid maximum can be the hottest.</summary>
     [SitrepUnit(Units.Kelvin)]
     public double MaxTemp { get; set; }
 
+    /// <summary>The part's current skin temperature, Kelvin (<c>Part.skinTemperature</c>).</summary>
     [SitrepUnit(Units.Kelvin)]
     public double SkinTemp { get; set; }
 
+    /// <summary>The part's maximum skin temperature, Kelvin (<c>Part.skinMaxTemp</c>), passed through raw: KSP reports <c>-1</c> for a part with no skin-thermal model, and that value arrives here unchanged.</summary>
     [SitrepUnit(Units.Kelvin)]
     public double SkinMaxTemp { get; set; }
 
@@ -38,18 +41,18 @@ public class ThermalHottestPart
 }
 
 /// <summary>
-/// The <c>vessel.thermal</c> channel payload: kills P-5 (the int-where-
-/// object-expected "partless-paused" sentinel, and the divide-by-zero/NaN
-/// risk of a part with <c>maxTemp &lt;= 0</c>): both ratios are typed
-/// <c>double?</c>, null meaning "no part had a valid <c>maxTemp</c>/
-/// <c>skinMaxTemp</c> this tick": a distinct, typed state, never an
-/// indistinguishable-from-real-data <c>0.0</c> ("no valid part" vs. "coldest
-/// possible part").
+/// The <c>vessel.thermal</c> channel payload: the active vessel's thermal
+/// rollup, its hottest part, heat shield and engine. Each ratio is null when
+/// no part had a valid maximum temperature this tick, never 0, so "no valid
+/// part" and "coldest possible part" stay distinct.
 ///
-/// <para>Whole-channel absence (the outer <c>VesselThermal?</c> being null)
-/// means the vessel currently has no parts at all (KspHost's
-/// <c>BuildThermal</c> returns no group in that case), a DIFFERENT,
-/// coarser absence than an individual null ratio.</para>
+/// <para>The whole payload is null when the vessel has no parts at all, a
+/// different, coarser absence than an individual null ratio. For every part's
+/// temperatures rather than a rollup, see <c>vessel.parts</c>.</para>
+/// <internal>
+/// Filled from KspHost.BuildThermal, which returns no group for a partless
+/// vessel.
+/// </internal>
 /// </summary>
 /// <category>Vessel</category>
 [SitrepContract]
@@ -59,18 +62,18 @@ public class ThermalHottestPart
 [SitrepTopic("vessel.thermal")]
 public class VesselThermal
 {
-    /// <summary>Null = no part this tick had a valid (&gt; 0) <c>skinMaxTemp</c>, typed, never 0.0.</summary>
+    /// <summary>The highest skin-temperature ratio (<c>skinTemperature / skinMaxTemp</c>) of any part this tick; 1 is at the limit. Not necessarily <see cref="HottestPart"/>'s. Null when no part had a valid (&gt; 0) <c>skinMaxTemp</c>, never 0.</summary>
     [SitrepUnit(Units.Ratio)]
     public double? MaxSkinTempRatio { get; set; }
 
-    /// <summary>Null = no part this tick had a valid (&gt; 0) <c>maxTemp</c>, typed, never 0.0.</summary>
+    /// <summary>The highest internal-temperature ratio (<c>temperature / maxTemp</c>) of any part this tick, which is <see cref="HottestPart"/>'s; 1 is at the limit. Null when no part had a valid (&gt; 0) <c>maxTemp</c>, never 0.</summary>
     [SitrepUnit(Units.Ratio)]
     public double? MaxInternalTempRatio { get; set; }
 
-    /// <summary>Null = no part qualified as "hottest" (same no-valid-part condition as <see cref="MaxInternalTempRatio"/>).</summary>
+    /// <summary>The part with the highest internal-temperature ratio. Null when no part qualified, the same condition as a null <see cref="MaxInternalTempRatio"/>.</summary>
     public ThermalHottestPart? HottestPart { get; set; }
 
-    /// <summary>Hottest heat-shield part's internal temperature (K, raw: the part carrying a <c>ModuleAblator</c>, <c>Part.temperature</c>). Null when the vessel carries no ablative heat shield this tick. Was °C until the units audit: the wire is SI, and a Celsius display is the client's choice to make.</summary>
+    /// <summary>Hottest heat-shield part's internal temperature (K, raw: the part carrying a <c>ModuleAblator</c>, <c>Part.temperature</c>). Null when the vessel carries no ablative heat shield this tick.</summary>
     [SitrepUnit(Units.Kelvin)]
     public double? HeatShieldTemp { get; set; }
 
@@ -78,7 +81,7 @@ public class VesselThermal
     [SitrepUnit(Units.Kilowatts)]
     public double? HeatShieldFlux { get; set; }
 
-    /// <summary>Internal temperature (K, raw: same unit as <see cref="ThermalHottestPart.InternalTemp"/>) of whichever part carrying a <c>ModuleEngines</c>/<c>ModuleEnginesFX</c> module has the highest internal-temperature ratio. Null when the vessel carries no engine parts this tick.</summary>
+    /// <summary>Internal temperature (K) of whichever part carrying a <c>ModuleEngines</c> or <c>ModuleEnginesFX</c> module has the highest internal-temperature ratio. Null when the vessel carries no engine part with a valid <c>maxTemp</c> this tick.</summary>
     [SitrepUnit(Units.Kelvin)]
     public double? HottestEngineTemp { get; set; }
 
@@ -90,9 +93,10 @@ public class VesselThermal
     [SitrepUnit(Units.Ratio)]
     public double? HottestEngineTempRatio { get; set; }
 
-    /// <summary>True when ANY engine part's internal-temperature ratio is at or above 0.9, the same "&gt;90% max" threshold ThermalStatus's own inline alert copy already states. False (not null) whenever the vessel has engine parts and none crosses it; null only alongside a null <see cref="HottestEngineTempRatio"/> (no engine parts at all this tick).</summary>
+    /// <summary>True when any engine part's internal-temperature ratio is at or above 0.9. False, not null, whenever the vessel has an engine part and none crosses it; null only alongside a null <see cref="HottestEngineTempRatio"/>, when no engine part with a valid <c>maxTemp</c> was found this tick.</summary>
     [SitrepUnit(Units.Flag)]
     public bool? AnyEnginesOverheating { get; set; }
 
+    /// <summary>The payload's provenance, <c>"vessel:&lt;guid&gt;"</c> for the active vessel, and quality.</summary>
     public PayloadMeta Meta { get; set; } = new();
 }

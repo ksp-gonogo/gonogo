@@ -10,17 +10,16 @@ namespace Sitrep.Contract;
 /// Uplinks declared, what each holds now, and whether the settings file on the
 /// KSP machine holds the same.
 ///
-/// <para><b>The whole model on one topic.</b> A client renders a control per
-/// row from the row's own description, so a setting an Uplink adds needs no
-/// client code of its own.</para>
+/// <para>The whole model is on one Topic. A client draws a control per row
+/// from the row's own description, so a setting an Uplink adds needs no client
+/// code of its own.</para>
 ///
-/// <para><b>TrueNow.</b> A setting configures the system the operator is
-/// sitting at, not a craft, so there is no vantage from which it is not yet
-/// known.</para>
+/// <para>It is never delayed by light time: a setting configures the system
+/// the operator is sitting at, not a craft.</para>
 ///
-/// <para><b>The authority for "did it save".</b> A save command can time out
-/// and still land, so a client reads the outcome of a save here, never from
-/// the command's reply.</para>
+/// <para>This is where a client learns whether a save landed. A save command
+/// can time out and still land, so read the outcome here, never from the
+/// command's reply.</para>
 /// </summary>
 /// <category>Mod settings</category>
 [SitrepContract]
@@ -43,6 +42,7 @@ public class SettingsModel
     /// </summary>
     public List<SettingsDeclarationFailure> Undeclared { get; set; } = new();
 
+    /// <summary>Payload provenance. <c>Source</c> is always <c>"game"</c> and <c>Quality</c> always <c>Loaded</c>: settings describe the install, not a craft.</summary>
     public PayloadMeta Meta { get; set; } = new();
 }
 
@@ -136,18 +136,19 @@ public enum SettingsPersistenceState
 #endif
 public class SettingsPersistence
 {
+    /// <summary>Where the settings in force stand against the file.</summary>
     [SitrepUnit(Units.Enumeration)]
     public SettingsPersistenceState State { get; set; }
 
-    /// <summary>The settings file on the KSP machine.</summary>
+    /// <summary>The path of the settings file on the KSP machine.</summary>
     [SitrepUnit(Units.Text)]
     public string Path { get; set; } = "";
 
-    /// <summary>The instant of the last save that wrote the file, or null when none has this session.</summary>
+    /// <summary>The UT of the last save that wrote the file, or <c>null</c> when none has this session.</summary>
     [SitrepUnit(Units.UniversalTime)]
     public double? SavedAtUt { get; set; }
 
-    /// <summary>Why the file could not be written or read, for an operator to read. Null when nothing went wrong.</summary>
+    /// <summary>Why the file could not be written or read, for an operator to read. <c>null</c> when nothing went wrong.</summary>
     [SitrepUnit(Units.Text)]
     public string? Reason { get; set; }
 }
@@ -160,6 +161,7 @@ public class SettingsPersistence
 #endif
 public class SettingsDeclarationFailure
 {
+    /// <summary>The id of the Uplink whose settings could not be declared.</summary>
     [SitrepUnit(Units.Id)]
     public string UplinkId { get; set; } = "";
 
@@ -169,16 +171,16 @@ public class SettingsDeclarationFailure
 }
 
 /// <summary>
-/// Arguments to <c>settings.save</c>: one SAVE press, applied together and
-/// written to the settings file once.
+/// Arguments to <c>settings.save</c>: one Save press, applied together and
+/// written to the settings file once. Never delayed by light time.
 ///
-/// <para><b>Safe to send again.</b> A save sets each row to the value named,
+/// <para>Safe to send again. A save sets each row to the value named,
 /// so repeating one that already landed changes nothing. That matters because
 /// a save that times out may still land.</para>
 ///
 /// <para>Refused, with nothing changed, when any row is not declared or any
 /// value is not one its row can hold. A save that changes the values but
-/// cannot write the file is NOT refused: the values are in force, and
+/// cannot write the file is not refused: the values are in force, and
 /// <c>settings.gonogo</c>'s <see cref="SettingsModel.Persistence"/> says the
 /// file was not written.</para>
 /// </summary>
@@ -190,6 +192,7 @@ public class SettingsDeclarationFailure
 [SitrepCommand("settings.save", Delay = DelayRole.TrueNow)]
 public class SaveSettingsArgs
 {
+    /// <summary>Every row to change, each with its new value. Rows not listed keep their values.</summary>
     public List<SettingsChange> Changes { get; set; } = new();
 }
 

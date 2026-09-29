@@ -3,29 +3,40 @@ using System;
 namespace Sitrep.Contract
 {
     /// <summary>
-    /// Why a given <c>ChannelEmitter.Decide</c> call chose to emit.
+    /// Why the engine decided to put a channel's sample on the wire.
     /// <see cref="None"/> is only ever seen on a skipped decision (see
-    /// <see cref="EmissionDecision.ShouldEmit"/>): it is never the reason on
-    /// an emitted one.
+    /// <see cref="EmissionDecision.ShouldEmit"/>), never on an emitted one.
+    /// <internal>
+    /// Returned by Sitrep.Core.ChannelEmitter.Decide.
+    /// </internal>
     /// </summary>
+    /// <category>Channels and emission</category>
     public enum EmissionReason
     {
+        /// <summary>Nothing was emitted: the decision was a skip.</summary>
         None = 0,
+
+        /// <summary>
+        /// An unconditional emission, sent whether or not the value changed: the
+        /// first sample of a channel, the first after a new subscriber, or the
+        /// periodic one due every <see cref="EmissionPolicy.KeyframeIntervalUt"/>.
+        /// </summary>
         Keyframe,
+
+        /// <summary>The value moved beyond the channel's <see cref="EmissionPolicy.Quantum"/>.</summary>
         Change,
     }
 
     /// <summary>
-    /// The deadband width a numeric channel must clear before a value change
-    /// is considered meaningful. Either an <see cref="Absolute"/> magnitude,
-    /// or a <see cref="PercentOfRange"/> fraction of a known value range
-    /// (the recommended default per the streaming-slice-1 plan, an absolute
-    /// quantum tends to either flood on a wide-range channel or over-suppress
-    /// on a narrow one, whereas percent-of-range self-scales). Not consulted
-    /// at all for non-numeric (discrete/structured) values: see
-    /// <c>ChannelEmitter.HasChangedBeyondQuantum</c>, which falls back to
-    /// <c>Equals</c> for those.
+    /// The deadband a numeric channel's value must clear before a change is
+    /// emitted. Either an <see cref="Absolute"/> width, or a
+    /// <see cref="PercentOfRange"/> fraction of a known value range, which
+    /// scales itself: an absolute width tends to flood a wide-range channel or
+    /// over-suppress a narrow one. Not consulted for non-numeric values, which
+    /// emit a change whenever they are not equal (by value) to the last emitted
+    /// one.
     /// </summary>
+    /// <category>Channels and emission</category>
     public readonly struct EmissionQuantum
     {
         private readonly double _magnitude;
@@ -42,6 +53,8 @@ namespace Sitrep.Contract
         }
 
         /// <summary>A fixed deadband width in the channel's own units.</summary>
+        /// <param name="quantum">The width. Must be 0 or more; 0 emits on any change.</param>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="quantum"/> is negative.</exception>
         public static EmissionQuantum Absolute(double quantum)
         {
             if (quantum < 0)
@@ -53,12 +66,13 @@ namespace Sitrep.Contract
 
         /// <summary>
         /// A deadband width expressed as <paramref name="fraction"/> of
-        /// <paramref name="rangeMax"/> - <paramref name="rangeMin"/> (e.g.
-        /// <c>0.01</c> for a 1% quantum). Resolved once per
-        /// <see cref="Resolve"/> call rather than cached, so it stays correct
-        /// even if a caller mutates policy between calls (not expected in
-        /// practice, but cheap to keep honest).
+        /// <paramref name="rangeMax"/> minus <paramref name="rangeMin"/> (for
+        /// example <c>0.01</c> for a 1% quantum).
         /// </summary>
+        /// <param name="fraction">The fraction of the range, 0 or more.</param>
+        /// <param name="rangeMin">The low end of the value's expected range.</param>
+        /// <param name="rangeMax">The high end of the value's expected range, at least <paramref name="rangeMin"/>.</param>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="fraction"/> is negative, or <paramref name="rangeMax"/> is below <paramref name="rangeMin"/>.</exception>
         public static EmissionQuantum PercentOfRange(double fraction, double rangeMin, double rangeMax)
         {
             if (fraction < 0)
@@ -72,7 +86,8 @@ namespace Sitrep.Contract
             return new EmissionQuantum(fraction, rangeMin, rangeMax, isPercent: true);
         }
 
-        /// <summary>Resolve this quantum to an absolute deadband width.</summary>
+        /// <summary>Resolves this quantum to an absolute deadband width, in the channel's own units.</summary>
+        /// <returns>The width itself for <see cref="Absolute"/>, or the fraction times the range for <see cref="PercentOfRange"/>.</returns>
         public double Resolve()
         {
             return _isPercent ? _magnitude * (_rangeMax - _rangeMin) : _magnitude;
@@ -80,50 +95,58 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
-    /// Per-channel emission configuration for <c>ChannelEmitter</c>.
-    /// Every interval is expressed in UT seconds (never wall-clock) because
-    /// the whole point of this policy is to scale sampling/emission cost with
-    /// how fast the underlying value actually changes in game time, not with
-    /// how often the host happens to call <c>ChannelEmitter.Decide</c>
-    /// (which, under time-warp, can be every physics tick regardless of UT
-    /// throughput).
+    /// When the engine puts a channel's sample on the wire: its keyframe
+    /// cadence, its deadband, and two optional rate gates. Every interval is in
+    /// UT seconds, never wall-clock, so emission cost scales with how fast the
+    /// value changes in game time rather than with how often the host samples
+    /// (which under time warp can be every physics tick). Set on
+    /// <see cref="ChannelDeclaration.Emission"/>.
     /// </summary>
+    /// <category>Channels and emission</category>
     public sealed class EmissionPolicy
     {
         /// <summary>
-        /// Don't even consider (sample) this channel more often than this
-        /// many UT seconds since it was last considered, the OUTER-most gate
-        /// within <c>ChannelEmitter.Decide</c> itself (distinct from
-        /// <c>SubscriptionRegistry</c>, which gates whether Decide is
-        /// called at all). <c>0</c> disables this gate (every call is
-        /// considered).
+        /// The minimum UT seconds between two samples considered for a change
+        /// emission. A due keyframe is not held by this gate. <c>0</c> disables
+        /// it, so every sample is considered.
+        /// <internal>
+        /// This is ChannelEmitter.Decide's inner gate; SubscriptionRegistry is
+        /// the outer one, deciding whether Decide is called at all.
+        /// </internal>
         /// </summary>
         public double MinSampleIntervalUt { get; }
 
         /// <summary>
-        /// Emit unconditionally at least this often, regardless of whether
-        /// the value changed: the baseline that makes cold-start,
-        /// quickload, and subscriber-eviction/rejoin recoverable without
-        /// waiting for the next real change. Must be > 0.
+        /// Emit unconditionally at least this often, in UT seconds, whether or
+        /// not the value changed. This is what lets a client recover after a
+        /// cold start, a quickload or a reconnect without waiting for the next
+        /// real change. Always greater than 0. Periodic keyframes are also held to at
+        /// most one per second of real time, so under heavy time warp they arrive
+        /// less often than this interval implies.
         /// </summary>
         public double KeyframeIntervalUt { get; }
 
         /// <summary>
         /// The deadband a numeric value must clear (or the not-equal check a
-        /// non-numeric value must fail) before a CHANGE emission fires.
-        /// Never consulted for keyframe emissions, which are unconditional.
+        /// non-numeric value must fail) before a change emission fires. Never
+        /// consulted for keyframes, which are unconditional.
         /// </summary>
         public EmissionQuantum Quantum { get; }
 
         /// <summary>
-        /// Max-rate clamp: even if the deadband keeps re-tripping (a rapidly
-        /// oscillating value), don't fire more than one CHANGE emission per
-        /// this many UT seconds. Scoped to <see cref="EmissionReason.Change"/>
-        /// only: keyframes stay unconditional per their own cadence.
-        /// <c>0</c> disables the clamp.
+        /// The minimum UT seconds between two change emissions: even if the
+        /// deadband keeps tripping (a rapidly oscillating value), no more than
+        /// one <see cref="EmissionReason.Change"/> emission fires per this many
+        /// UT seconds. Keyframes are not clamped. <c>0</c> disables the clamp.
         /// </summary>
         public double MaxRateIntervalUt { get; }
 
+        /// <summary>Creates an emission policy.</summary>
+        /// <param name="keyframeIntervalUt">The keyframe cadence in UT seconds. Must be greater than 0.</param>
+        /// <param name="quantum">The deadband a change must clear.</param>
+        /// <param name="minSampleIntervalUt">The minimum UT seconds between samples considered for a change. 0 or more; 0 disables it.</param>
+        /// <param name="maxRateIntervalUt">The minimum UT seconds between change emissions. 0 or more; 0 disables it.</param>
+        /// <exception cref="ArgumentOutOfRangeException">An interval is out of range.</exception>
         public EmissionPolicy(
             double keyframeIntervalUt,
             EmissionQuantum quantum,
@@ -151,15 +174,26 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
-    /// Result of one <c>ChannelEmitter.Decide</c> call. A value type,
-    /// this is the hot-path return, called at up to physics-tick rate per
-    /// channel, so it's kept allocation-free rather than a class.
+    /// The engine's decision for one sample of one channel: whether to emit it
+    /// and why. A value type because it is returned at up to physics-tick rate
+    /// per channel.
+    /// <internal>
+    /// Returned by Sitrep.Core.ChannelEmitter.Decide.
+    /// </internal>
     /// </summary>
+    /// <category>Channels and emission</category>
     public readonly struct EmissionDecision
     {
+        /// <summary>True when the sample goes on the wire.</summary>
         public bool ShouldEmit { get; }
+
+        /// <summary>Why it was emitted; <see cref="EmissionReason.None"/> when <see cref="ShouldEmit"/> is false.</summary>
         public EmissionReason Reason { get; }
+
+        /// <summary>The universal time of the sample that was decided on.</summary>
         public double Ut { get; }
+
+        /// <summary>The sample's value when emitted; null on a skip.</summary>
         public object? Value { get; }
 
         private EmissionDecision(bool shouldEmit, EmissionReason reason, double ut, object? value)
@@ -182,14 +216,17 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
-    /// Per-channel emission-rate visibility, exposed so a mis-tuned channel
-    /// (quantum too tight, keyframe interval too short) shows up as a number
-    /// somewhere rather than silently tar-pitting the host. See
-    /// <c>ChannelEmitter.CountersFor</c>.
+    /// How many samples of one channel were considered and how many emitted,
+    /// so a mis-tuned channel (quantum too tight, keyframe interval too short)
+    /// shows up as a number rather than silently loading the host.
+    /// <internal>
+    /// See Sitrep.Core.ChannelEmitter.CountersFor.
+    /// </internal>
     /// </summary>
+    /// <category>Channels and emission</category>
     public readonly struct EmissionCounters
     {
-        /// <summary>Total <c>ChannelEmitter.Decide</c> calls for this channel, emitted or not.</summary>
+        /// <summary>Total samples considered for this channel, emitted or not.</summary>
         public long Considered { get; }
 
         /// <summary>Of those, how many actually emitted.</summary>

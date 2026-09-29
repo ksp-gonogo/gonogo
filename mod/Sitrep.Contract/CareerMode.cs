@@ -5,21 +5,18 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The game's save mode, mirroring KSP's <c>Game.Modes</c>, the ground-side
-/// fact that decides which career surfaces (funds, tech tree, contracts,
-/// strategies, facility upgrades) are even meaningful. Distinct from
-/// <c>CareerStatus</c>: that payload is <c>null</c> in sandbox/science (no
-/// <c>Funding</c>/<c>ContractSystem</c> to read), so it can't carry the mode,
-/// a save can be in <see cref="Sandbox"/> or <see cref="Science"/> and still
-/// need widgets to know which one. Hence <c>career.mode</c> is its OWN topic,
-/// emitted in ALL modes.
+/// The game's save mode, from KSP's <c>Game.Modes</c>. It decides which career
+/// surfaces (funds, tech tree, contracts, strategies, facility upgrades) mean
+/// anything. <c>CareerStatus</c> is <c>null</c> outside career, so the mode is
+/// its own Topic, <c>career.mode</c>, emitted in every mode.
 ///
-/// <para>KSP's <c>Game.Modes</c> also has <c>SCENARIO</c>,
-/// <c>SCENARIO_NON_RESUMABLE</c>, <c>MISSION</c> and <c>MISSION_BUILDER</c>;
-/// none map to a distinct player-career surface, so
-/// <c>Sitrep.Host.CareerViewProvider.ParseGameMode</c> folds them (and any
-/// future KSP addition) into <see cref="Unknown"/> rather than the mapper
-/// throwing. <c>SCIENCE_SANDBOX</c> maps to <see cref="Science"/>.</para>
+/// <para>On the wire an enum is its integer ordinal: <c>Sandbox</c> 0,
+/// <c>Career</c> 1, <c>Science</c> 2, <c>Unknown</c> 3.</para>
+/// <internal>
+/// Sitrep.Host.CareerViewProvider.ParseGameMode maps the raw Game.Modes name.
+/// SCENARIO, SCENARIO_NON_RESUMABLE, MISSION, MISSION_BUILDER and any future
+/// KSP addition fold into Unknown rather than the mapper throwing.
+/// </internal>
 /// </summary>
 /// <category>Career</category>
 #if SITREP_CODEGEN
@@ -28,27 +25,29 @@ namespace Sitrep.Contract;
 [SitrepContract]
 public enum GameMode
 {
+    /// <summary>A sandbox save (<c>SANDBOX</c>): no funds, science or reputation.</summary>
     Sandbox,
+
+    /// <summary>A career save (<c>CAREER</c>): funds, contracts, reputation and the tech tree all apply.</summary>
     Career,
+
+    /// <summary>A science save (<c>SCIENCE_SANDBOX</c>): the tech tree and science apply, funds and contracts do not.</summary>
     Science,
+
+    /// <summary>Any other KSP mode (a scenario or a mission), which has no player-career surface.</summary>
     Unknown,
 }
 
 /// <summary>
-/// The <c>career.mode</c> channel payload: a single <see cref="GameMode"/>,
-/// the active save's mode. Produced by
-/// <c>Sitrep.Host.CareerViewProvider.BuildCareerMode</c>, which reads the raw
-/// <c>Game.Modes.ToString()</c> string <c>Gonogo.KSP.KspHost</c> captures each
-/// tick. The whole payload is <c>null</c> only when no game is loaded at all
-/// (main menu / no save): a "no data yet" absence, never a fabricated mode;
-/// once a save is loaded the mode is always one of the four
-/// <see cref="GameMode"/> members.
-///
-/// <para><b>Typing-only mirror.</b> This type reproduces the EXACT serialized
-/// shape <c>CareerViewProvider.BuildCareerMode</c> emits (<c>{ "mode": &lt;int&gt; }</c>,
-/// the enum's integer ordinal, matching every other enum in this codec; see
-/// <c>Sitrep.Contract.Serialization.JsonWriter</c>). It is a codegen marker, not
-/// serialized itself.</para>
+/// The <c>career.mode</c> channel payload: the active save's
+/// <see cref="GameMode"/>, as <c>{ "mode": &lt;int&gt; }</c>. The whole payload
+/// is <c>null</c> when no game is loaded (main menu, no save). Once a save is
+/// loaded the mode is always one of the four <see cref="GameMode"/> members.
+/// <internal>
+/// Produced by Sitrep.Host.CareerViewProvider.BuildCareerMode from the raw
+/// Game.Modes.ToString() string KspHost captures each tick. Typing-only mirror
+/// of that shape; not serialized itself.
+/// </internal>
 /// </summary>
 /// <category>Career</category>
 [SitrepContract]
@@ -58,6 +57,7 @@ public enum GameMode
 #endif
 public class CareerMode
 {
+    /// <summary>The active save's mode, as its integer ordinal.</summary>
     [SitrepUnit(Units.Enumeration)]
     public GameMode Mode { get; set; }
 }

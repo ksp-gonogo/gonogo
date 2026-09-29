@@ -4,65 +4,53 @@ using Reinforced.Typings.Attributes;
 
 namespace Sitrep.Contract
 {
-    // ─────────────────────────────────────────────────────────────────────────
-    // The crew-standing capability: whether a kerbal off the flight roster is
-    // dead, or merely finished flying.
-    //
-    // KSP's ProtoCrewMember.RosterStatus has four members and no notion of a
-    // career ending any way but badly. RP-1 retires a kerbal by assigning
-    // rosterStatus = (RosterStatus)2, which is stock's Dead, and remembers who
-    // is a retiree in a private HashSet on its own CrewHandler. Verified in the
-    // disassembly of the shipped RP-1 v4.6.0.0 RP0.dll: ProcessRetirements sets
-    // exactly that value and adds the name to _retirees, and IsRetired is a
-    // lookup in that set. KerbalRoster.Crew filters on type only, so the retiree
-    // stays on the roster we publish.
-    //
-    // So a retiree reached the wire indistinguishable from a fatality, and a
-    // mission-control board told an operator their astronauts had been killed.
-    // No reading of the stock field can recover the difference, because the
-    // difference is not in the stock field.
-    //
-    //   • ONE exclusive capability "crewStanding" whose active instance is an
-    //     ICrewStandingBackend.
-    //   • A core registrar owns the capability, supplies the stock backend as its
-    //     Vanilla factory, and stamps the elected backend's answer onto the
-    //     crew entries it already publishes.
-    //   • A career-overhaul mod registers a provider from its OWN uplink's
-    //     Register, gated by its own presence probe: registering IS the gate.
-    //
-    // ── Why an enum core owns, rather than an open string ────────────────────
-    // The obvious cheaper fix is to let a mod put any label it likes on the
-    // wire and have the client group by whatever it finds. That is what the
-    // roster channel already did, and what the comment on
-    // CrewRosterEntry.Situation claimed would give RP-1 "a tab for free". It
-    // gave nothing, because RP-1 introduces no new RosterStatus: an open label
-    // channel only works when somebody is writing a new label into it, and
-    // nobody was. A standing an operator acts on differently is a standing this
-    // contract should name, and naming it is free.
-    // ─────────────────────────────────────────────────────────────────────────
+    /*
+     * The crew-standing capability: whether a kerbal off the flight roster is
+     * dead, or merely finished flying.
+     *
+     * KSP's ProtoCrewMember.RosterStatus has four members and no notion of a
+     * career ending any way but badly. RP-1 retires a kerbal by assigning
+     * rosterStatus = (RosterStatus)2, which is stock's Dead, and remembers who is
+     * a retiree in a private set on its own CrewHandler. KerbalRoster.Crew
+     * filters on type only, so the retiree stays on the published roster, and no
+     * reading of the stock field can tell a retiree from a fatality.
+     *
+     * One exclusive capability "crewStanding" whose active instance is an
+     * ICrewStandingBackend. A core registrar owns the capability, supplies the
+     * stock backend as its Vanilla factory, and stamps the elected backend's
+     * reading onto the crew entries it already publishes. A career-overhaul mod
+     * registers a provider from its own Uplink's Register, gated by its own
+     * presence probe.
+     *
+     * The vocabulary is an enum this contract owns rather than an open string: a
+     * standing an operator acts on differently is a standing the contract should
+     * name.
+     */
 
     /// <summary>
     /// What a kerbal's place on the books IS, as the dashboard means it: this
     /// contract's own vocabulary, not a mirror of any game enum.
     ///
-    /// <para>The first four members line up with <see cref="KspRosterStatus"/>
-    /// in meaning but deliberately NOT in numbering: a mirror would tie growth
-    /// here to Squad shipping a new roster status, which is the assumption that
-    /// let a retiree read as a fatality. <see cref="Applicant"/> is a standing
-    /// KSP expresses as a KerbalType rather than a RosterStatus, and it belongs
-    /// in one enumeration with the rest because a client asking "what is this
-    /// kerbal's standing" wants one value.</para>
+    /// <para>The roster-status members line up with
+    /// <see cref="KspRosterStatus"/> in meaning but NOT in numbering, so never
+    /// cast one to the other. <see cref="Applicant"/> is a standing KSP
+    /// expresses as a KerbalType rather than a RosterStatus, and it sits in one
+    /// enumeration with the rest so "what is this kerbal's standing" is one
+    /// value.</para>
     ///
     /// <para>Behind <c>spaceCenter.crewRoster[].standing</c>, and it is the
     /// field to branch on; see <see cref="CrewRosterEntry.SituationOrdinal"/>
     /// for what the raw KSP ordinal beside it is still good for.</para>
     ///
-    /// <para><b>The numbering IS the reading order</b>, and members are inserted
-    /// rather than appended for that reason. The SDK's
-    /// <c>CREW_STANDING_ORDER</c> sorts by value so a crew surface reads free to
-    /// fly, then committed, then off the books, and derives that from the enum so
-    /// nobody has to maintain a second list. Appending <see cref="Training"/>
-    /// would have filed it after <see cref="Dead"/>.</para>
+    /// <para><b>The numbering IS the reading order</b>: sorted by value, a crew
+    /// surface reads free to fly, then committed, then off the books. The SDK's
+    /// <c>CREW_STANDING_ORDER</c> is derived from it. A new member is inserted at
+    /// its place in that order rather than appended.</para>
+    /// <internal>
+    /// A numbering mirror of KspRosterStatus would tie growth here to Squad
+    /// shipping a new roster status, which is the assumption that let a retiree
+    /// read as a fatality.
+    /// </internal>
     /// </summary>
     /// <category>Crew</category>
 #if SITREP_CODEGEN
@@ -72,7 +60,7 @@ namespace Sitrep.Contract
     public enum CrewStanding
     {
         /// <summary>
-        /// No backend could say. Distinct from every answer below, and never a
+        /// No backend could say. Distinct from every member below, and never a
         /// stand-in for one: a capture that read no roster status at all reports
         /// this rather than guessing at Available.
         /// </summary>
@@ -94,8 +82,8 @@ namespace Sitrep.Contract
         ///
         /// <para>Reachable only through a backend that models training. Stock has
         /// no courses, so a stock install never reports it, and KSP's roster
-        /// status for a kerbal mid-course is <c>Available</c>: the same shape as
-        /// the retiree, where the game field is not the answer.</para>
+        /// status for a kerbal mid-course is <c>Available</c>, so the game field
+        /// alone does not say it.</para>
         /// </summary>
         Training = 4,
 
@@ -105,7 +93,7 @@ namespace Sitrep.Contract
         /// <see cref="CrewStandingReading.StandingEndsAtUt"/> carries its end.
         ///
         /// <para>Derived from KSP's own <c>ProtoCrewMember.inactive</c>, so the
-        /// stock backend answers it and every install gets it. Stock rarely sets
+        /// stock backend reports it and every install gets it. Stock rarely sets
         /// the field; a career overhaul's post-flight R&amp;R is what usually
         /// does.</para>
         /// </summary>
@@ -121,68 +109,68 @@ namespace Sitrep.Contract
         /// <summary>Killed.</summary>
         Dead = 7,
 
-        /// <summary>Missing: KSP's own separate answer, kept separate.</summary>
+        /// <summary>Missing: KSP's own <c>Missing</c> roster status, kept separate from <see cref="Dead"/>.</summary>
         Missing = 8,
     }
 
     /// <summary>
     /// The mapping between the two enums this contract declares: what KSP's own
     /// roster status means in the vocabulary above, before any backend has a say.
+    /// The core registrar applies it wherever a backend declines to read a
+    /// kerbal, and a mod backend that corrects one standing can use it for the
+    /// default of every other kerbal it is handed.
     /// </summary>
-    /// <remarks>
-    /// In the contract rather than in the stock backend because BOTH halves need
-    /// it and they live in different assemblies: the core registrar applies it
-    /// wherever a backend declines to answer, and a mod backend that corrects one
-    /// standing needs the default for every other kerbal it is handed. An Uplink
-    /// may reference only this assembly, so a copy in <c>Sitrep.Host</c> would be
-    /// a copy an Uplink author has to rewrite.
-    /// </remarks>
+    /// <category>Uplink API</category>
     public static class CrewStandings
     {
         /// <summary>
-        /// What <c>standingSource</c> reads when the answer is the stock map:
+        /// What <c>standingSource</c> reads when the standing is the stock map:
         /// either no backend was reachable, or the elected one declined for this
-        /// kerbal. One spelling, because a client that groups by source needs the
-        /// two halves of "nobody corrected this" to agree.
+        /// kerbal. Both cases share this one spelling.
         /// </summary>
         public const string StockSource = "stock";
 
         /// <summary>
         /// Whether a standing means the kerbal can be assigned to a flight
-        /// today, and the single definition of it.
-        /// </summary>
-        /// <remarks>
-        /// A WHITELIST, deliberately, and the reason is the failure this whole
-        /// file exists for. Stated as a blocklist, every standing added later is
-        /// flyable until somebody remembers to add it, and the standing most
-        /// likely to be added is another way of being committed: a course, a
-        /// medical, a quarantine. Stated as a whitelist, a new member is
-        /// unavailable until somebody writes down that it is not, which is the
-        /// direction that fails safely and needs no edit here.
+        /// today, and the single definition of it: true only for
+        /// <see cref="CrewStanding.Available"/> and
+        /// <see cref="CrewStanding.Applicant"/>.
         ///
-        /// <para>An applicant counts as free: nothing blocks hiring one, and the
-        /// hire surface reads this field.</para>
-        /// </remarks>
+        /// <para>A WHITELIST, so any standing added later reads as unavailable
+        /// until it is written down as flyable. An applicant counts as free:
+        /// nothing blocks hiring one, and the hire surface reads this
+        /// field.</para>
+        /// <internal>
+        /// As a blocklist, every standing added later would be flyable until
+        /// somebody remembered to add it, and the standing most likely to be
+        /// added is another way of being committed: a course, a medical, a
+        /// quarantine.
+        /// </internal>
+        /// </summary>
+        /// <param name="standing">The standing to test.</param>
+        /// <returns>True when a kerbal with this standing can be assigned today.</returns>
         public static bool CanFly(CrewStanding standing) =>
             standing == CrewStanding.Available || standing == CrewStanding.Applicant;
 
         /// <summary>
-        /// The human reason a kerbal cannot fly, in this contract's own words.
-        /// Empty string when they can.
-        /// </summary>
-        /// <remarks>
-        /// PROSE ONLY, carrying no date. The when rides
-        /// <see cref="CrewStandingResolution.StandingEndsAtUt"/> as a <c>ut</c>
-        /// value instead, because a date formatted here would be formatted in the
-        /// mod's idea of a calendar: an RSS save counts years differently from a
-        /// stock one, and the client owns that model. A string with a date baked
-        /// into it is the one field on the payload a client cannot re-render.
+        /// The human reason a kerbal cannot fly, in this contract's own words:
+        /// <c>"On mission"</c>, <c>"In training"</c>, <c>"Standing down"</c>, or
+        /// the standing's own name for the rest. Empty string when they can fly,
+        /// and for <see cref="CrewStanding.Unknown"/>.
         ///
-        /// <para><see cref="CrewStanding.Unknown"/> answers empty rather than the
-        /// word "Unknown". This string sits in a tooltip beside a disabled
-        /// control, where "Unknown" reads as a diagnosis; a standing nobody could
-        /// read is a standing this field has nothing to say about.</para>
-        /// </remarks>
+        /// <para>PROSE ONLY, carrying no date. The when rides
+        /// <see cref="CrewStandingResolution.StandingEndsAtUt"/> as a <c>ut</c>
+        /// value instead, because a date formatted here would use the mod's idea
+        /// of a calendar: an RSS save counts years differently from a stock one,
+        /// and the client owns that model.</para>
+        /// <internal>
+        /// Unknown returns empty rather than the word "Unknown" because this
+        /// string sits in a tooltip beside a disabled control, where "Unknown"
+        /// reads as a diagnosis.
+        /// </internal>
+        /// </summary>
+        /// <param name="standing">The standing to describe.</param>
+        /// <returns>The reason text, or an empty string.</returns>
         public static string UnavailableReason(CrewStanding standing)
         {
             switch (standing)
@@ -199,29 +187,19 @@ namespace Sitrep.Contract
         }
 
         /// <summary>
-        /// KSP's roster status as a <see cref="CrewStanding"/>. An applicant
-        /// answers <see cref="CrewStanding.Applicant"/> without consulting the
-        /// ordinal at all, because an applicant has none; an unreadable or
-        /// unrecognised ordinal answers <see cref="CrewStanding.Unknown"/> rather
-        /// than the friendliest guess.
-        /// </summary>
-        /// <summary>
         /// The stock reading over EVERY axis KSP itself exposes: the roster
-        /// status, applicant-hood, and the stand-down flag.
-        /// </summary>
-        /// <remarks>
-        /// Separate from <see cref="FromRosterStatus"/> rather than folded into
-        /// it because the two answer different questions and both callers exist.
-        /// This one is "what does stock make of this kerbal"; that one is "what
-        /// does this ordinal mean", which is what a mod backend wants when it
-        /// corrects one kerbal and needs the default for the rest.
+        /// status, applicant-hood, and the stand-down flag. Where
+        /// <see cref="FromRosterStatus"/> says what an ordinal means, this says
+        /// what stock makes of the whole kerbal.
         ///
-        /// <para><c>inactive</c> only reaches <see cref="CrewStanding.Resting"/>
-        /// from <see cref="CrewStanding.Available"/>. A kerbal crewing a vessel
-        /// is <see cref="CrewStanding.Assigned"/> whatever the flag says: they
-        /// are on a mission, which is the more specific and more useful answer,
-        /// and stock leaves the flag set from the last rest period.</para>
-        /// </remarks>
+        /// <para><c>inactive</c> only turns <see cref="CrewStanding.Available"/>
+        /// into <see cref="CrewStanding.Resting"/>. A kerbal crewing a vessel is
+        /// <see cref="CrewStanding.Assigned"/> whatever the flag says, because
+        /// they are on a mission and stock leaves the flag set from the last rest
+        /// period.</para>
+        /// </summary>
+        /// <param name="query">What the capture read about the kerbal.</param>
+        /// <returns>The stock standing.</returns>
         public static CrewStanding FromQuery(CrewStandingQuery query)
         {
             var standing = FromRosterStatus(query.RosterStatusOrdinal, query.IsApplicant);
@@ -232,23 +210,24 @@ namespace Sitrep.Contract
 
         /// <summary>
         /// The whole derivation, in ONE place: a backend's reading folded onto
-        /// the stock answer, and <c>available</c> / <c>unavailableReason</c> /
-        /// the scheduled whens derived from the result.
-        /// </summary>
-        /// <remarks>
-        /// It lives here, in the contract, because the alternative already
-        /// failed. The capture stamped a standing and the space-centre view
-        /// provider derived availability from it, in two assemblies, and neither
-        /// half ever consulted the stand-down flag: a kerbal resting after a
-        /// flight reached the wire <c>available: true</c> with an empty reason,
-        /// for the same reason a retiree had reached it as a fatality. A
-        /// derivation split across two files is a derivation with axes nobody
-        /// owns.
+        /// the stock standing, and <c>available</c>, <c>unavailableReason</c> and
+        /// the scheduled times derived from the result.
         ///
         /// <para>Every field a backend leaves null falls back to the stock
-        /// answer, so a backend that corrects one kerbal's standing gets correct
-        /// availability and wording for free and never restates them.</para>
-        /// </remarks>
+        /// derivation, so a backend that corrects one kerbal's standing gets
+        /// correct availability and wording without restating them. The
+        /// stand-down's end is quoted only while the kerbal is actually
+        /// resting.</para>
+        /// <internal>
+        /// In the contract so the capture and the space-centre view provider
+        /// cannot each derive half of it: split across two assemblies, neither
+        /// half consulted the stand-down flag.
+        /// </internal>
+        /// </summary>
+        /// <param name="query">What the capture read about the kerbal.</param>
+        /// <param name="reading">The elected backend's reading, or null when it declined.</param>
+        /// <param name="providerId">The elected backend's provider id, credited as the source when its reading supplies the standing.</param>
+        /// <returns>The resolved standing, source, availability, reason and times.</returns>
         public static CrewStandingResolution Resolve(
             CrewStandingQuery query,
             CrewStandingReading? reading,
@@ -278,6 +257,16 @@ namespace Sitrep.Contract
             };
         }
 
+        /// <summary>
+        /// KSP's roster status as a <see cref="CrewStanding"/>. An applicant
+        /// maps to <see cref="CrewStanding.Applicant"/> without consulting the
+        /// ordinal at all, because an applicant has none; an unreadable or
+        /// unrecognised ordinal maps to <see cref="CrewStanding.Unknown"/> rather
+        /// than the friendliest guess.
+        /// </summary>
+        /// <param name="rosterStatusOrdinal">KSP's <c>(int)ProtoCrewMember.RosterStatus</c>, or null when none was read.</param>
+        /// <param name="isApplicant">Whether the kerbal is a hireable candidate rather than owned crew.</param>
+        /// <returns>The stock standing for that status.</returns>
         public static CrewStanding FromRosterStatus(int? rosterStatusOrdinal, bool isApplicant)
         {
             if (isApplicant)
@@ -296,16 +285,15 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
-    /// One backend's reading of a single kerbal's standing. Plain data, no KSP
-    /// and no game types, so this assembly stays KSP-free and a backend can be
-    /// exercised headless.
+    /// One backend's reading of a single kerbal's standing: what
+    /// <see cref="ICrewStandingBackend.Read"/> returns. Plain data with no KSP
+    /// types, so a backend can be exercised headless.
+    ///
+    /// <para>Not a wire type. Every member is nullable, and null means this
+    /// backend does not model that field, so the stock derivation stands for
+    /// it.</para>
     /// </summary>
-    /// <remarks>
-    /// Not a wire type: the wire keys are built by the space-centre view
-    /// provider, and this is the SPI shape a backend answers in. Every member is
-    /// nullable and null means this backend does not model that field, so the
-    /// core registrar's own derivation stands for it.
-    /// </remarks>
+    /// <category>Uplink API</category>
     public sealed class CrewStandingReading
     {
         /// <summary>
@@ -354,7 +342,7 @@ namespace Sitrep.Contract
         /// read a course ETA as the end of it.</para>
         ///
         /// <para>Absent rather than zero when a backend holds no date. A career
-        /// overhaul's own getter commonly answers 0 for "no record", and 0 is a
+        /// overhaul's own getter commonly returns 0 for "no record", and 0 is a
         /// date: it would retire the whole roster at the epoch.</para>
         /// </summary>
         public double? RetiresAtUt { get; set; }
@@ -362,18 +350,14 @@ namespace Sitrep.Contract
 
     /// <summary>
     /// Everything a backend is handed about one kerbal, and everything the stock
-    /// derivation needs: one struct rather than a parameter list.
-    /// </summary>
-    /// <remarks>
-    /// A struct because the list was three parameters and is now six, and every
-    /// future axis would break every third-party backend's signature. An author
-    /// who ignores a field they have never heard of keeps compiling.
+    /// derivation needs. A struct rather than a parameter list, so a field added
+    /// later does not break a backend's signature: an author who ignores a field
+    /// they have never heard of keeps compiling.
     ///
-    /// <para>Nothing here is a KSP type. This assembly has none and must not
-    /// acquire any, so the capture reads the game objects and hands over
-    /// primitives, the same split every other capability in this contract
-    /// uses.</para>
-    /// </remarks>
+    /// <para>Nothing here is a KSP type: the capture reads the game objects and
+    /// hands over primitives.</para>
+    /// </summary>
+    /// <category>Uplink API</category>
     public struct CrewStandingQuery
     {
         /// <summary>
@@ -401,8 +385,7 @@ namespace Sitrep.Contract
         /// <summary>
         /// KSP's <c>ProtoCrewMember.inactive</c>: the kerbal is standing down
         /// rather than on duty. The axis behind
-        /// <see cref="CrewStanding.Resting"/>, and the one the derivation used to
-        /// publish without consulting.
+        /// <see cref="CrewStanding.Resting"/>.
         /// </summary>
         public bool Inactive { get; set; }
 
@@ -414,8 +397,8 @@ namespace Sitrep.Contract
         public double? InactiveUntilUt { get; set; }
 
         /// <summary>
-        /// Universal time at the moment of the capture. Carried because a
-        /// backend's answer can be a DEADLINE, and a deadline derived from a
+        /// Universal time at the moment of the capture, in seconds. Carried because
+        /// a backend's reading can be a DEADLINE, and a deadline derived from a
         /// remaining amount over a rate needs the now it is measured from. A
         /// backend must not read the clock itself: the capture's own UT is what
         /// every other field on this tick was read against.
@@ -424,18 +407,14 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
-    /// The derivation's whole answer for one kerbal: what
-    /// <see cref="CrewStandings.Resolve"/> returns and what the capture stamps.
+    /// The derivation's whole result for one kerbal: what
+    /// <see cref="CrewStandings.Resolve"/> returns and what the capture stamps
+    /// onto the published crew entry.
     /// </summary>
-    /// <remarks>
-    /// A type rather than a tuple because six of these travel together from the
-    /// capture through to the wire, and a positional tuple crossing an assembly
-    /// boundary is a rename waiting to silently swap two fields.
-    /// </remarks>
+    /// <category>Uplink API</category>
     public struct CrewStandingResolution
     {
-        /// <summary>The standing itself: the field a client branches
-        /// on.</summary>
+        /// <summary>The standing itself: the field a client branches on.</summary>
         public CrewStanding Standing { get; set; }
 
         /// <summary>
@@ -444,46 +423,37 @@ namespace Sitrep.Contract
         /// </summary>
         public string? Source { get; set; }
 
-        /// <summary>Whether the kerbal can be assigned to a flight
-        /// today.</summary>
+        /// <summary>Whether the kerbal can be assigned to a flight today.</summary>
         public bool Available { get; set; }
 
-        /// <summary>Why not, in prose with no date. Empty string when they
-        /// can.</summary>
+        /// <summary>Why not, in prose with no date. Empty string when they can.</summary>
         public string UnavailableReason { get; set; }
 
-        /// <summary>When the current standing lapses, or null.</summary>
+        /// <summary>When the current standing lapses, as universal time in seconds, or null.</summary>
         public double? StandingEndsAtUt { get; set; }
 
-        /// <summary>When the kerbal is scheduled to retire, or null.</summary>
+        /// <summary>When the kerbal is scheduled to retire, as universal time in seconds, or null.</summary>
         public double? RetiresAtUt { get; set; }
     }
 
     /// <summary>
     /// The exclusive capability id every crew-standing backend competes for,
-    /// declared HERE rather than beside the election.
+    /// declared in the contract so a backend and the core registrar spell it
+    /// from one constant.
     /// </summary>
-    /// <remarks> An id both halves must spell identically belongs where both
-    /// halves can reach it. <c>ActionGroupsElection.CapabilityId</c> was the
-    /// counter-example: it lived in the unpublished <c>Sitrep.Host</c>, so the
-    /// AGX uplink had to re-declare <c>"actionGroups"</c> as a constant of its
-    /// own and a test pinned the two equal. A test that pins two constants
-    /// together is a test that exists because there should only have been one,
-    /// and that one now lives in <see cref="ActionGroupsCapability"/> beside
-    /// this.
-    /// </remarks>
+    /// <category>Uplink API</category>
     public static class CrewStandingCapability
     {
-        /// <summary>The capability id. One declaration, reachable from an
-        /// Uplink.</summary>
+        /// <summary>The capability id, <c>"crewStanding"</c>.</summary>
         public const string Id = "crewStanding";
     }
 
     /// <summary>
     /// The active instance of the exclusive <c>"crewStanding"</c> capability:
-    /// what this install makes of a kerbal whose roster status alone is not the
-    /// answer.
+    /// what this install makes of a kerbal whose roster status alone does not
+    /// say their standing.
     /// </summary>
+    /// <category>Uplink API</category>
     public interface ICrewStandingBackend : ISitrepProvider
     {
         /// <summary>
@@ -495,7 +465,7 @@ namespace Sitrep.Contract
         /// </param>
         /// <returns>
         /// The reading, or null when this backend has nothing to add for this
-        /// kerbal. Null is the common answer and is not a failure: every field
+        /// kerbal. Null is the common result and is not a failure: every field
         /// left null falls back to the stock derivation.
         /// </returns>
         CrewStandingReading? Read(CrewStandingQuery query);

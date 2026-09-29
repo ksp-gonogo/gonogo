@@ -925,14 +925,10 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * what moved and when, on a comment line, with no reference to a
        * relocated type left behind.
        *   • ContractVersion.cs: the Major-bump history entry for the move.
-       *   • JsonWriter.cs: says where the three deleted serializer cases went
-       *     and why core no longer needs them, which is the one thing a reader
-       *     hitting the gap will want to know.
        *   • UplinkContractOwnershipTests.cs: the mod-side ownership ratchet has
        *     to NAME the token it registers, so it names this one too.
        */
       "mod/Sitrep.Contract/ContractVersion.cs",
-      "mod/Sitrep.Contract/Serialization/JsonWriter.cs",
       "mod/Sitrep.Core.Tests/UplinkContractOwnershipTests.cs",
 
       /*
@@ -965,10 +961,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * The contract files sit beside Comms.cs and CommsOcclusion.cs for the
        * reason Comms.cs's own entry gives at length: comms is a two-provider
        * channel set, so a contract file legitimately explains which backend
-       * sources what and names one to do it. CommsBackendBase.cs additionally
-       * records WHY it exists, which is that the two backends' duplicated
-       * copies had drifted into two different error contracts; that history is
-       * unstatable without naming both.
+       * sources what and names one to do it.
        *
        * The three test files are the RouteBackendDispatchTests.cs case, already
        * above: a test that models a two-backend divergence and cannot name the
@@ -994,7 +987,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * its own rule, so this file computes nothing for either of them.
        */
       "mod/Sitrep.Contract/CommsDegrade.cs",
-      "mod/Sitrep.Contract/CommsBackendBase.cs",
       "mod/Sitrep.Contract/CommsBackendViews.cs",
       "mod/Gonogo.KSP/CommNetReach.cs",
       "mod/Gonogo.KSP/CommandCentres/CommandCentreResolution.cs",
@@ -1002,13 +994,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/Gonogo.KSP.Tests/Comms/CommandCentreOffTheSeamTests.cs",
       "mod/Sitrep.Host.Tests/CommsReachSeamTests.cs",
 
-      /*
-       * sitrep-sdk contribution-slots.ts: the SDK-layer mirror of the
-       * `comm-signal.hop-rates` slot names the built-in RA contributor and the
-       * Topic it reads (`realantennas.hopRates`) in prose. Contract/SDK layer,
-       * no coupling.
-       */
-      "mod/sitrep-sdk/src/api/contribution-slots.ts",
       /*
        * CommsHopContractShapeTests.cs: the CommsHop ratchet's doc-comment now
        * cites `realantennas.hopRates` as where the removed per-hop rate went.
@@ -1209,14 +1194,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * only, the types themselves no longer live here.
        */
       "mod/Sitrep.Contract/ContractVersion.cs",
-      /*
-       * RtConfig.cs's wirePayloadTypes comment records where the two types
-       * went (GonogoMechJebUplink.Contract) and EmitTopicMap/EmitUnitMap's
-       * doc comments name MechJebRtConfig as the first caller of the
-       * assembly-generic overloads: provenance/seam documentation, no type
-       * reference.
-       */
-      "mod/Sitrep.Contract/RtConfig.cs",
       /*
        * SitrepUnitAttribute.cs's Kilometres doc-comment explains why that
        * token exists by citing MechJebAscentArgs.TargetAltitudeKm as the
@@ -1438,15 +1415,13 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/core/src/reckoning-candidates.test.ts",
       /*
        * -- contract/SDK layer --
-       * ContractVersion.cs and RtConfig.cs carry the relocation's PROVENANCE
-       * prose (the Major 9 -> 10 entry, the Minor-history entry recording the
-       * Domain's original landing, and the wirePayloadTypes comment recording
-       * what left), which is exactly what the permanent bucket is for.
+       * ContractVersion.cs carries the relocation's PROVENANCE prose (the
+       * Major 9 -> 10 entry and the Minor-history entry recording the Domain's
+       * original landing), which is exactly what the permanent bucket is for.
        * KerbalismPayloads.cs is NOT here: it left this bucket by leaving core
        * outright.
        */
       "mod/Sitrep.Contract/ContractVersion.cs",
-      "mod/Sitrep.Contract/RtConfig.cs",
       /*
        * The source-attributed currency events name Kerbalism in PROSE ONLY, to
        * record why the science-credit event is a core type rather than a

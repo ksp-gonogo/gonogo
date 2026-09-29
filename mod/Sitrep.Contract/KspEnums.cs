@@ -5,50 +5,23 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /*
- * KSP's OWN enums, declared here so their ordinals can cross the wire.
+ * KSP's own enums, declared here so their ordinals can cross the wire.
  *
- * Every other enum in this contract is ours: we choose the members, we choose
- * the order, and the ordinal on the wire means whatever this file says it
- * means. These are the opposite. KSP owns the member set and the numbering, and
- * this file's only job is to state, in one place a compiler and a test can both
- * see, what that numbering IS.
+ * KSP owns the member set and the numbering; this file only records what that
+ * numbering is. So these mirrors carry explicit values, unlike the rest of the
+ * contract: the value is the fact being recorded, and two of them are not dense
+ * from zero (KspPartCategory has a negative member, KspActionGroup is a bitmask).
  *
- * Why they are here at all. A KSP enum used to reach the client as its bare
- * .ToString() name and nothing else, so a consumer had no choice but to branch
- * on the spelling. That is the defect class the 2026-08-21 sweep fixed eight
- * instances of: it fails silently, in the "everything is fine" direction, at
- * the moment somebody adds a member, which is the moment nobody re-reads the
- * consumers. For our own enums it is now a compile error, because the client's
- * union is DERIVED from the C# declaration (see contract-enum-names.ts's
- * SituationName and friends). KSP's enums had no declaration to derive from. Now they do.
+ * Member names are KSP's spelling character for character (KspPartCategory.none,
+ * KspResourceFlowMode's SCREAMING_SNAKE_CASE), because the name beside each
+ * ordinal on the wire is KSP's own .ToString() and the client's closed union is
+ * derived from these members.
  *
- * These mirrors carry EXPLICIT VALUES, and that is deliberate. The rest of the
- * contract forbids them, because an ordinal is declaration order and writing a
- * value down only invites it to disagree with the position. Here the numbering
- * is not ours to choose, so the value IS the fact being recorded, and leaving
- * it implicit would be recording a guess. Two of these are not dense from zero
- * at all - KspPartCategory has a negative member, KspActionGroup is a bitmask -
- * so an implicitly-numbered mirror would be wrong rather than merely
- * undocumented.
+ * There is no Unknown member: an ordinal outside these members is an unknown
+ * state at the point of use, never the pessimistic branch.
  *
- * Member names are KSP's spelling, character for character, including
- * KspPartCategory.none's lower case and KspResourceFlowMode's
- * SCREAMING_SNAKE_CASE. They have to be: the name field beside each ordinal on
- * the wire carries KSP's own .ToString(), and the client's closed union is
- * derived from these members, so a tidied-up spelling here would make the union
- * reject the exact string the mod sends.
- *
- * No Unknown member. Our enums carry one because we can promise it exists. KSP's
- * value set is KSP's, and inventing a member it does not have would put a number
- * on the wire that means nothing on either side. An ordinal outside these
- * members is an UNKNOWN state at the point of use: a third arm, never the
- * pessimistic one.
- *
- * What keeps these honest is Gonogo.KSP.Tests/KspEnumMirrorTests.cs, which
- * reflects over the REAL enum out of Assembly-CSharp.dll and fails if a member,
- * a name or a value here disagrees with it. That test is the point of this file.
- * Without it this is another transcription, and a transcription drifts the
- * moment somebody appends a member.
+ * Gonogo.KSP.Tests/KspEnumMirrorTests.cs reflects over the real enum in
+ * Assembly-CSharp.dll and fails if a member, a name or a value here disagrees.
  */
 
 /// <summary>
@@ -63,9 +36,13 @@ namespace Sitrep.Contract;
 [SitrepContract]
 public enum KspRosterStatus
 {
+    /// <summary>In the roster and free to be assigned to a flight.</summary>
     Available = 0,
+    /// <summary>Assigned to a vessel.</summary>
     Assigned = 1,
+    /// <summary>Killed.</summary>
     Dead = 2,
+    /// <summary>Lost with a vessel. In a save with respawn enabled, a missing kerbal returns to <see cref="Available"/> after a delay.</summary>
     Missing = 3,
 }
 
@@ -81,8 +58,11 @@ public enum KspRosterStatus
 [SitrepContract]
 public enum KspParameterState
 {
+    /// <summary>Not yet met.</summary>
     Incomplete = 0,
+    /// <summary>Met.</summary>
     Complete = 1,
+    /// <summary>Failed, and can no longer be met.</summary>
     Failed = 2,
 }
 
@@ -91,10 +71,10 @@ public enum KspParameterState
 /// <c>vessel.parts[].categoryOrdinal</c>, beside the name in
 /// <see cref="VesselPart.Category"/>.
 ///
-/// <para><see cref="none"/> is <c>-1</c>, not <c>0</c>, so this enum is NOT
-/// dense from zero and the client cannot resolve it with the array-walking
-/// <c>namesOf</c>. The lower-case spelling is KSP's; <c>.ToString()</c> on that
-/// member yields <c>"none"</c> and the wire carries exactly that.</para>
+/// <para><see cref="none"/> is <c>-1</c>, not <c>0</c>, so this enum is not
+/// dense from zero and cannot be resolved with the array-walking
+/// <c>namesOf</c>. The lower-case spelling is KSP's, and the name on the wire
+/// is exactly <c>"none"</c>.</para>
 /// </summary>
 /// <category>Parts</category>
 #if SITREP_CODEGEN
@@ -103,23 +83,41 @@ public enum KspParameterState
 [SitrepContract]
 public enum KspPartCategory
 {
+    /// <summary>No category. KSP spells it in lower case.</summary>
     none = -1,
+    /// <summary>Propulsion.</summary>
     Propulsion = 0,
+    /// <summary>Control: reaction wheels, RCS thrusters and similar.</summary>
     Control = 1,
+    /// <summary>Structural.</summary>
     Structural = 2,
+    /// <summary>Aerodynamics: wings, control surfaces, nose cones, intakes.</summary>
     Aero = 3,
+    /// <summary>Utility.</summary>
     Utility = 4,
+    /// <summary>Science.</summary>
     Science = 5,
+    /// <summary>Command pods and probe cores.</summary>
     Pods = 6,
+    /// <summary>Fuel tanks.</summary>
     FuelTank = 7,
+    /// <summary>Engines.</summary>
     Engine = 8,
+    /// <summary>Communication: antennas and relays.</summary>
     Communication = 9,
+    /// <summary>Electrical: batteries, generators, solar panels.</summary>
     Electrical = 10,
+    /// <summary>Ground: landing gear, legs and wheels.</summary>
     Ground = 11,
+    /// <summary>Thermal: heat shields and radiators.</summary>
     Thermal = 12,
+    /// <summary>Payload: fairings and cargo bays.</summary>
     Payload = 13,
+    /// <summary>Coupling: decouplers, separators and docking ports.</summary>
     Coupling = 14,
+    /// <summary>Cargo: inventory parts.</summary>
     Cargo = 15,
+    /// <summary>Robotics (Breaking Ground servos and rotors).</summary>
     Robotics = 16,
 }
 
@@ -128,12 +126,12 @@ public enum KspPartCategory
 /// Behind <c>vessel.parts[].actionBindings[].groupsMask</c>, beside the names in
 /// <see cref="ActionBinding.Groups"/>.
 ///
-/// <para>A <c>[Flags]</c> BITMASK, so the members are powers of two and the wire
+/// <para>A <c>[Flags]</c> bitmask, so the members are powers of two and the wire
 /// carries the whole mask as one integer rather than one ordinal.
 /// <see cref="None"/> is <c>0</c> and <see cref="REPLACEWITHDEFAULT"/> is
-/// <c>-1</c>. Neither is a group a part action is usefully bound to, and both
-/// are recorded here because the mirror test compares the whole member set, not
-/// the useful subset of it.</para>
+/// <c>-1</c>; neither is a group a part action is usefully bound to.
+/// <internal>Both are recorded because the mirror test compares the whole member
+/// set, not the useful subset of it.</internal></para>
 /// </summary>
 /// <category>Vessel</category>
 #if SITREP_CODEGEN
@@ -142,24 +140,43 @@ public enum KspPartCategory
 [SitrepContract]
 public enum KspActionGroup
 {
+    /// <summary>KSP's placeholder for "use the action's default group". Not a real group.</summary>
     REPLACEWITHDEFAULT = -1,
+    /// <summary>No group.</summary>
     None = 0,
+    /// <summary>The staging group (bit 1).</summary>
     Stage = 1,
+    /// <summary>The gear group (bit 2).</summary>
     Gear = 2,
+    /// <summary>The lights group (bit 4).</summary>
     Light = 4,
+    /// <summary>The RCS group (bit 8).</summary>
     RCS = 8,
+    /// <summary>The SAS group (bit 16).</summary>
     SAS = 16,
+    /// <summary>The brakes group (bit 32).</summary>
     Brakes = 32,
+    /// <summary>The abort group (bit 64).</summary>
     Abort = 64,
+    /// <summary>Custom action group 1 (bit 128).</summary>
     Custom01 = 128,
+    /// <summary>Custom action group 2 (bit 256).</summary>
     Custom02 = 256,
+    /// <summary>Custom action group 3 (bit 512).</summary>
     Custom03 = 512,
+    /// <summary>Custom action group 4 (bit 1024).</summary>
     Custom04 = 1024,
+    /// <summary>Custom action group 5 (bit 2048).</summary>
     Custom05 = 2048,
+    /// <summary>Custom action group 6 (bit 4096).</summary>
     Custom06 = 4096,
+    /// <summary>Custom action group 7 (bit 8192).</summary>
     Custom07 = 8192,
+    /// <summary>Custom action group 8 (bit 16384).</summary>
     Custom08 = 16384,
+    /// <summary>Custom action group 9 (bit 32768).</summary>
     Custom09 = 32768,
+    /// <summary>Custom action group 10 (bit 65536).</summary>
     Custom10 = 65536,
 }
 
@@ -175,8 +192,11 @@ public enum KspActionGroup
 [SitrepContract]
 public enum KspEditorFacility
 {
+    /// <summary>No editor recorded.</summary>
     None = 0,
+    /// <summary>The Vehicle Assembly Building.</summary>
     VAB = 1,
+    /// <summary>The Spaceplane Hangar.</summary>
     SPH = 2,
 }
 
@@ -185,11 +205,9 @@ public enum KspEditorFacility
 /// <c>career.status.facilities[].facilityOrdinal</c> and
 /// <c>LimitBreach.facilityOrdinal</c>.
 ///
-/// <para><c>career.status.facilities</c> is keyed by the NAME rather than the
-/// ordinal, and stays that way: rekeying the map would be a breaking retype and
-/// would change the shape of every consumer's key walk. The ordinal rides
-/// inside each entry instead, so a client can branch on it without trusting the
-/// key it arrived under.</para>
+/// <para><c>career.status.facilities</c> is keyed by the facility name, not the
+/// ordinal. The ordinal is carried inside each entry, so a client can branch on
+/// it without relying on the key it arrived under.</para>
 /// </summary>
 /// <category>Space center</category>
 #if SITREP_CODEGEN
@@ -198,14 +216,23 @@ public enum KspEditorFacility
 [SitrepContract]
 public enum KspSpaceCenterFacility
 {
+    /// <summary>The Administration building.</summary>
     Administration = 0,
+    /// <summary>The Astronaut Complex.</summary>
     AstronautComplex = 1,
+    /// <summary>The Launch Pad.</summary>
     LaunchPad = 2,
+    /// <summary>Mission Control.</summary>
     MissionControl = 3,
+    /// <summary>Research and Development.</summary>
     ResearchAndDevelopment = 4,
+    /// <summary>The Runway.</summary>
     Runway = 5,
+    /// <summary>The Tracking Station.</summary>
     TrackingStation = 6,
+    /// <summary>The Spaceplane Hangar.</summary>
     SpaceplaneHangar = 7,
+    /// <summary>The Vehicle Assembly Building.</summary>
     VehicleAssemblyBuilding = 8,
 }
 
@@ -214,10 +241,11 @@ public enum KspSpaceCenterFacility
 /// <c>kerbalism.resourceDefs[].flowModeOrdinal</c>, beside the name in
 /// <c>ResourceDefRaw.FlowMode</c>.
 ///
-/// <para>Read by the Kerbalism Uplink, which is why it is declared in the core
-/// contract rather than in that Uplink's own slice: the enum is stock KSP's, not
-/// Kerbalism's, and a second Uplink reading the same stock enum should get this
-/// declaration rather than a second copy of it.</para>
+/// <para>The enum is stock KSP's, so any Uplink that reports a resource's flow
+/// mode uses this declaration.
+/// <internal>Read by the Kerbalism Uplink; declared in the core contract rather
+/// than that Uplink's slice so a second Uplink reading the same stock enum gets
+/// this declaration rather than a second copy.</internal></para>
 /// </summary>
 /// <category>Parts</category>
 #if SITREP_CODEGEN
@@ -226,13 +254,22 @@ public enum KspSpaceCenterFacility
 [SitrepContract]
 public enum KspResourceFlowMode
 {
+    /// <summary>The resource does not flow between parts; each part uses only its own.</summary>
     NO_FLOW = 0,
+    /// <summary>The resource flows to any part on the vessel.</summary>
     ALL_VESSEL = 1,
+    /// <summary>The resource flows vessel-wide, drawn from the highest stage priority first.</summary>
     STAGE_PRIORITY_FLOW = 2,
+    /// <summary>The resource flows along the stack through crossfeed-capable connections.</summary>
     STACK_PRIORITY_SEARCH = 3,
+    /// <summary>As <see cref="ALL_VESSEL"/>, drawn evenly across the containing parts.</summary>
     ALL_VESSEL_BALANCE = 4,
+    /// <summary>As <see cref="STAGE_PRIORITY_FLOW"/>, drawn evenly within a priority.</summary>
     STAGE_PRIORITY_FLOW_BALANCE = 5,
+    /// <summary>The resource flows within the stage through crossfeed-capable connections.</summary>
     STAGE_STACK_FLOW = 6,
+    /// <summary>As <see cref="STAGE_STACK_FLOW"/>, drawn evenly across the containing parts.</summary>
     STAGE_STACK_FLOW_BALANCE = 7,
+    /// <summary>No flow mode set.</summary>
     NULL = 8,
 }

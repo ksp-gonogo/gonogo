@@ -47,12 +47,13 @@ namespace Sitrep.Contract
     /// <para><c>=</c>, <c>:</c>, a backslash and an empty value are all safe in a
     /// value. A name additionally cannot be empty or contain <c>=</c>.</para>
     /// </summary>
+    /// <category>Uplink API</category>
     public static class SettingsEncoding
     {
-        /// <summary>Why <paramref name="value"/> cannot be stored, or null when it can.</summary>
+        /// <summary>Why <paramref name="value"/> cannot be stored, as a human-readable sentence, or <c>null</c> when it can.</summary>
         public static string? RefusalOf(string? value) => HazardIn(value, "value");
 
-        /// <summary>Why <paramref name="name"/> cannot name a setting or a block, or null when it can.</summary>
+        /// <summary>Why <paramref name="name"/> cannot name a setting or a block, as a human-readable sentence, or <c>null</c> when it can.</summary>
         public static string? RefusalOfName(string? name)
         {
             if (string.IsNullOrEmpty(name))
@@ -113,11 +114,18 @@ namespace Sitrep.Contract
     /// <para>Its name and default are held to <see cref="SettingsEncoding"/>,
     /// and a declaration that breaks it is refused.</para>
     /// </summary>
+    /// <category>Uplink API</category>
     public sealed class UplinkSettingRow
     {
         /// <summary>The name a block stores <see cref="IUplinkSettings.WrittenBy"/> under, reserved for it.</summary>
         public const string WrittenByName = "writtenBy";
 
+        /// <summary>A row of any kind, with its default already written as text.</summary>
+        /// <param name="name">The setting's name within the Uplink's block. Must not be <c>null</c>.</param>
+        /// <param name="kind">What the setting may hold.</param>
+        /// <param name="defaultText">The default, written as the settings file stores it (<c>"True"</c>/<c>"False"</c> for a bool, an invariant-culture number). Must not be <c>null</c>.</param>
+        /// <param name="label">What an operator reads beside the control. <c>null</c> becomes empty.</param>
+        /// <param name="description">Text read under the label. <c>null</c> becomes empty.</param>
         public UplinkSettingRow(string name, SettingKind kind, string defaultText, string label, string description = "")
         {
             Name = name ?? throw new ArgumentNullException(nameof(name));
@@ -127,18 +135,35 @@ namespace Sitrep.Contract
             Description = description ?? string.Empty;
         }
 
+        /// <summary>A <see cref="SettingKind.Bool"/> row whose default is <paramref name="defaultValue"/>, stored as <c>"True"</c> or <c>"False"</c>.</summary>
+        /// <param name="name">The setting's name within the Uplink's block.</param>
+        /// <param name="defaultValue">The value in force until the operator changes it.</param>
+        /// <param name="label">What an operator reads beside the control.</param>
+        /// <param name="description">Text read under the label; empty when the label says enough.</param>
         public static UplinkSettingRow Bool(string name, bool defaultValue, string label, string description = "") =>
             new UplinkSettingRow(name, SettingKind.Bool, defaultValue ? "True" : "False", label, description);
 
+        /// <summary>A <see cref="SettingKind.Number"/> row whose default is <paramref name="defaultValue"/>, stored round-trip exact in the invariant culture.</summary>
+        /// <param name="name">The setting's name within the Uplink's block.</param>
+        /// <param name="defaultValue">The value in force until the operator changes it.</param>
+        /// <param name="label">What an operator reads beside the control.</param>
+        /// <param name="description">Text read under the label; empty when the label says enough.</param>
         public static UplinkSettingRow Number(string name, double defaultValue, string label, string description = "") =>
             new UplinkSettingRow(
                 name, SettingKind.Number, defaultValue.ToString("R", CultureInfo.InvariantCulture), label, description);
 
+        /// <summary>A <see cref="SettingKind.Text"/> row whose default is <paramref name="defaultValue"/>.</summary>
+        /// <param name="name">The setting's name within the Uplink's block.</param>
+        /// <param name="defaultValue">The value in force until the operator changes it; held to <see cref="SettingsEncoding"/>.</param>
+        /// <param name="label">What an operator reads beside the control.</param>
+        /// <param name="description">Text read under the label; empty when the label says enough.</param>
         public static UplinkSettingRow Text(string name, string defaultValue, string label, string description = "") =>
             new UplinkSettingRow(name, SettingKind.Text, defaultValue, label, description);
 
+        /// <summary>The setting's name within the Uplink's own block. Never <c>null</c>.</summary>
         public string Name { get; }
 
+        /// <summary>What the setting may hold.</summary>
         public SettingKind Kind { get; }
 
         /// <summary>The value in force when the settings file holds none for this row.</summary>
@@ -160,10 +185,11 @@ namespace Sitrep.Contract
     /// block means the Uplink was never asked, which is not the same as any
     /// value being false.</para>
     /// </summary>
+    /// <category>Uplink API</category>
     public interface IUplinkSettings
     {
         /// <summary>
-        /// The Uplink version that last saved this block, or null when the file
+        /// The Uplink version that last saved this block, or <c>null</c> when the file
         /// holds no block for it. A migration compares this with its own
         /// version; doing nothing is always safe.
         ///
@@ -175,11 +201,11 @@ namespace Sitrep.Contract
         /// <summary>Every name the stored block holds, including ones this version no longer declares.</summary>
         IReadOnlyList<string> StoredNames { get; }
 
-        /// <summary>The value stored for <paramref name="name"/> exactly as the file holds it, or null when there is none.</summary>
+        /// <summary>The value stored for <paramref name="name"/> exactly as the file holds it, or <c>null</c> when there is none.</summary>
         string? Stored(string name);
 
         /// <summary>
-        /// Declare a setting. Only valid inside
+        /// Declares a setting. Only valid inside
         /// <see cref="IUplinkSettingsDeclarer.DeclareSettings"/>. Refused with an
         /// <see cref="ArgumentException"/> when the name is
         /// <see cref="UplinkSettingRow.WrittenByName"/>, when the name or default
@@ -189,7 +215,7 @@ namespace Sitrep.Contract
         void Declare(UplinkSettingRow row);
 
         /// <summary>
-        /// Replace a stored value, for an Uplink migrating a block an older
+        /// Replaces a stored value, for an Uplink migrating a block an older
         /// version wrote. Takes effect at once and reaches the file with the
         /// operator's next save, so a migration must give the same result if it
         /// runs again. Only valid inside
@@ -207,8 +233,8 @@ namespace Sitrep.Contract
         double Number(string name);
 
         /// <summary>
-        /// Hear every change to this block for the lifetime of the returned
-        /// handle. The callback also runs once with the values as they stand: at
+        /// Calls <paramref name="callback"/> on every change to this block until
+        /// the returned handle is disposed. The callback also runs once with the values as they stand: at
         /// once when registered outside
         /// <see cref="IUplinkSettingsDeclarer.DeclareSettings"/>, or as it
         /// returns when registered inside it, since only then are the values
@@ -231,13 +257,16 @@ namespace Sitrep.Contract
     /// the session, and its stored block is left in the file exactly as it
     /// was.</para>
     ///
-    /// <para>Not shape-gated: this is an interface on the Uplink-facing surface,
-    /// not a wire type, so adding it does not change
-    /// <see cref="ContractVersion"/>.</para>
+    /// <internal>
+    /// Not shape-gated: an interface on the Uplink-facing surface, not a wire
+    /// type, so adding it does not change ContractVersion.
+    /// </internal>
     /// </summary>
+    /// <category>Uplink API</category>
     public interface IUplinkSettingsDeclarer
     {
-        /// <summary>Declare this Uplink's settings, and migrate what an older version stored if it needs to.</summary>
+        /// <summary>Declares this Uplink's settings, and migrates what an older version stored if it needs to.</summary>
+        /// <param name="settings">This Uplink's block; keep it to read the values later.</param>
         void DeclareSettings(IUplinkSettings settings);
     }
 }

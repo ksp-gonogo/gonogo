@@ -2,94 +2,84 @@ using System.Collections.Generic;
 
 namespace Sitrep.Contract
 {
-    /// <summary>The exclusive capability id every action-groups backend competes for.</summary>
-    /// <remarks>
-    /// An id both halves must spell identically belongs where both halves can
-    /// reach it. This one used to be declared beside the election in the
-    /// unpublished <c>Sitrep.Host</c>, so the AGX uplink re-declared
-    /// <c>"actionGroups"</c> as a constant of its own and a test pinned the two
-    /// equal: a test that pins two constants together is a test that exists
-    /// because there should only have been one. <see cref="CrewStandingCapability"/>
-    /// is the shape this now follows.
-    /// </remarks>
+    /// <summary>
+    /// The exclusive <c>actionGroups</c> capability id every action-groups
+    /// backend competes for. Declared here so the core mod and an Uplink
+    /// spell it from one constant.
+    /// </summary>
+    /// <category>Host and Kernel</category>
     public static class ActionGroupsCapability
     {
-        /// <summary>The capability id. One declaration, reachable from an Uplink.</summary>
+        /// <summary>The capability id, <c>"actionGroups"</c>.</summary>
         public const string Id = "actionGroups";
     }
 
     /// <summary>
-    /// The action-groups capability seam: the exact shape
-    /// <see cref="ICommsBackend"/> established for comms, and
-    /// for the same reason: ONE client interface, SWAPPABLE authority.
+    /// The action-groups capability: one client-facing shape, with the backend
+    /// that supplies it swappable, the same pattern as
+    /// <see cref="ICommsBackend"/>.
     ///
-    /// <para><b>The precedent being mirrored</b> is the comms capability and its
-    /// backends: core registers an always-present vanilla factory for an
-    /// exclusive capability; a mod-specific uplink registers a higher-priority
-    /// provider that is elected only when that mod is actually loaded; the read
-    /// path resolves the winner at CAPTURE time. Critically, <b>the topics never
-    /// change and the mod-specific uplink ships no client at all</b>, because
-    /// <c>comms.*</c> looks identical whoever sources it.</para>
+    /// <para>The core mod registers an always-present stock backend for this
+    /// exclusive capability; a mod-specific Uplink registers a higher-priority
+    /// provider that is elected only when its mod is loaded, and the winner is
+    /// resolved each time the vessel is captured. The topics never change, so
+    /// the mod-specific Uplink ships no client of its own.</para>
     ///
-    /// <para><b>What that buys here:</b> stock KSP has exactly ten anonymous
-    /// custom groups; Action Groups Extended (AGX) gives the player up to 250
-    /// that they NAME. Because <c>vessel.control.actionGroups</c> is now a
-    /// NAMED, arbitrary-length list (<see cref="ActionGroupState"/>) rather
-    /// than a positional <c>bool[10]</c>, an AGX backend elected over
-    /// <c>StockActionGroupsBackend</c> needs <b>zero client change</b>: the
-    /// widget already renders whatever names/indices arrive. That is the whole
-    /// point of the seam, and it is why the contract had to stop being
-    /// positional first.</para>
+    /// <para>Stock KSP has ten unnamed custom groups; Action Groups Extended
+    /// (AGX) gives the player up to 250 that they name. Because
+    /// <c>vessel.control.actionGroups</c> is a named, variable-length list of
+    /// <see cref="ActionGroupState"/>, an AGX backend elected over the stock
+    /// one needs no client change: a widget renders whatever names and indices
+    /// arrive.</para>
     ///
-    /// <para><b>Why this interface is here and not in Sitrep.Host.</b> It was
-    /// written for a third-party AGX uplink to implement, and then put in an
-    /// assembly no third-party author can install or build against. That is the
-    /// whole of the mistake: the comms seam it mirrors, <see cref="ICommsBackend"/>,
-    /// has always been in this assembly, and the uplink implementing THAT one
-    /// reaches into nothing private to do it. An Uplink may build against
-    /// Sitrep.Contract and its own contract slice, so anything an Uplink is
-    /// expected to implement has to live here. The election helper stays in
-    /// Sitrep.Host: registering the capability and resolving the winner are
-    /// core's side of the seam, not an implementor's.</para>
-    ///
-    /// <para><b>Threading: read this before adding a backend.</b> Unlike a
-    /// <c>Sitrep.Host</c> view-provider (which maps an ALREADY-captured
-    /// <c>KspSnapshot</c> and may run on the Courier thread), an
-    /// implementation of this interface reads LIVE KSP. It is therefore only
-    /// ever called from the main-thread capture (<c>Gonogo.KSP.KspHost</c>'s
-    /// <c>BuildControl</c>), which is the same main-thread seam
-    /// <c>CommsCoreUplink.CaptureOnMain</c> uses. Never call a backend from a
-    /// channel-source closure.</para>
+    /// <para><b>Threading.</b> An implementation reads live KSP, so it is only
+    /// ever called on the game's main thread, during vessel capture. Never call
+    /// a backend from a channel-source closure, which runs on the stream
+    /// thread.</para>
+    /// <internal>
+    /// The election helper stays in Sitrep.Host: registering the capability and
+    /// resolving the winner are core's side of the seam. The stock backend is
+    /// StockActionGroupsBackend; the caller is Gonogo.KSP.KspHost.BuildControl,
+    /// the same main-thread seam CommsCoreUplink.CaptureOnMain uses. A Sitrep.Host
+    /// view-provider maps an already-captured KspSnapshot and may run on the
+    /// Courier thread; a backend may not.
+    /// </internal>
     /// </summary>
+    /// <category>Host and Kernel</category>
     public interface IActionGroupsBackend : ISitrepProvider
     {
         /// <summary>
-        /// Every CUSTOM action group this backend knows, each named and
+        /// Every custom action group this backend knows, each named and
         /// carrying its own 1-based index, ordered by index ascending. Stock
         /// yields ten (<c>AG1..AG10</c>); an AGX backend may yield up to 250
-        /// with the player's own names. Returns null when there is nothing to
-        /// report this tick (no active vessel / no action-group data), a null
-        /// is the contract's documented "not available this tick", NOT an
-        /// empty list, which would wrongly assert "this vessel has no groups".
+        /// with the player's own names.
         ///
-        /// <para>A backend that can enumerate a group but not READ it reports
+        /// <para>Return null when there is nothing to report this tick (no
+        /// active vessel, or no action-group data): null means "not available
+        /// this tick". An empty list would instead claim the vessel has no
+        /// groups.</para>
+        ///
+        /// <para>A backend that can enumerate a group but not read it reports
         /// the entry with a null <see cref="ActionGroupState.State"/> rather
-        /// than dropping it or defaulting it to false. Those are three
-        /// different answers and the operator is owed the right one: dropping
-        /// the entry hides a group the vessel has, and false claims it is
-        /// disengaged. Whole-tick failure is still the list-level null above,
-        /// per-group failure is this.</para>
+        /// than dropping it or defaulting it to false: dropping the entry hides
+        /// a group the vessel has, and false claims it is disengaged. A null
+        /// list is for a whole-tick failure, a null state for a single
+        /// group.</para>
         /// </summary>
         IList<ActionGroupState>? Groups();
 
         /// <summary>
         /// Sets one group by its 1-based <see cref="ActionGroupState.Index"/>.
-        /// Returns false when the index is not one this backend knows, which
-        /// is what lets <c>VesselCommandProvider.HandleSetActionGroup</c> keep
-        /// failing cleanly on an unknown group WITHOUT hardcoding the 1..10
-        /// stock bound it can no longer assume (AGX legitimately goes to 250).
-        /// The BACKEND owns the range, because only the backend knows it.
+        /// The backend owns the valid range, since only it knows how many
+        /// groups exist (ten on stock, up to 250 under AGX).
+        /// <internal>
+        /// The false return is what lets VesselCommandProvider.HandleSetActionGroup
+        /// fail an unknown group cleanly without hardcoding the stock 1..10 bound.
+        /// </internal>
         /// </summary>
+        /// <param name="index">The group's 1-based index.</param>
+        /// <param name="state">True to engage the group, false to disengage it.</param>
+        /// <returns>False when the index is not one this backend knows, and the command should fail; true when the group was set.</returns>
         bool SetGroup(int index, bool state);
     }
 }

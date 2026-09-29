@@ -8,12 +8,12 @@ namespace Sitrep.Contract;
 /// The <c>vessel.flight</c> channel payload: MEASUREMENTS, not evaluations:
 /// quantities the game measures that aren't derivable from orbital elements
 /// (terrain height, aero state) or that serve as off-rails ground truth
-/// (speeds). Kills V-10 (no (0,0) lat/long sentinel, the channel is simply
-/// absent when there's no vessel, never a fake origin point) and V-12 (one
-/// canonical field per quantity: the srfSpeed/speed/surfaceSpeed triplet and
-/// kPa/Pa variants collapse to <see cref="SurfaceSpeed"/> and
-/// <see cref="DynamicPressureKPa"/>). <c>missionTime</c> deliberately does
-/// NOT appear here: see <see cref="VesselIdentity.LaunchUt"/>'s doc comment.
+/// (speeds). One field per quantity.
+///
+/// <para>The channel is absent when there is no active vessel or any of its
+/// fields could not be read; there is never a <c>(0,0)</c> lat/long
+/// placeholder. There is no mission time field: see
+/// <see cref="VesselIdentity.LaunchUt"/>.</para>
 /// </summary>
 /// <category>Vessel</category>
 [SitrepContract]
@@ -23,10 +23,11 @@ namespace Sitrep.Contract;
 [SitrepTopic("vessel.flight")]
 public class VesselFlight
 {
-    /// <summary>Degrees. PRESENT means valid, no (0,0) no-data sentinel (V-10); absence is the whole channel being unavailable.</summary>
+    /// <summary>Latitude of the vessel's position on its reference body, degrees (KSP's <c>Vessel.latitude</c>). Present means valid: there is no <c>(0,0)</c> no-data placeholder, and absence is the whole channel being unavailable.</summary>
     [SitrepUnit(Units.Degrees)]
     public double Latitude { get; set; }
 
+    /// <summary>Longitude of the vessel's position on its reference body, degrees (KSP's <c>Vessel.longitude</c>, passed through without normalising its range). Same presence rule as <see cref="Latitude"/>.</summary>
     [SitrepUnit(Units.Degrees)]
     public double Longitude { get; set; }
 
@@ -47,7 +48,7 @@ public class VesselFlight
     [SitrepReckonable(ReckoningBases.RateIntegration, "verticalSpeed", "gForce", "@system.bodies")]
     public double AltitudeAsl { get; set; }
 
-    /// <summary>Height above terrain (AGL, radar altitude), metres, NOT derivable from orbital elements, hence streamed raw.</summary>
+    /// <summary>Height above terrain (AGL, KSP's <c>Vessel.radarAltitude</c>), metres. Not derivable from orbital elements, so it is streamed as measured.</summary>
     [SitrepUnit(Units.Metres)]
     public double AltitudeTerrain { get; set; }
 
@@ -70,10 +71,11 @@ public class VesselFlight
     [SitrepUnit(Units.GForce)]
     public double GForce { get; set; }
 
+    /// <summary>Dynamic pressure on the vessel, kilopascals (KSP's <c>Vessel.dynamicPressurekPa</c>). <c>0</c> outside an atmosphere.</summary>
     [SitrepUnit(Units.Kilopascals)]
     public double DynamicPressureKPa { get; set; }
 
-    /// <summary>Mach number: dimensionless by definition, so it carries the explicit "1" unit token rather than being left unannotated.</summary>
+    /// <summary>Mach number (KSP's <c>Vessel.mach</c>), dimensionless.</summary>
     [SitrepUnit(Units.Dimensionless)]
     public double Mach { get; set; }
 
@@ -89,5 +91,6 @@ public class VesselFlight
     [SitrepUnit(Units.Kelvin)]
     public double AtmosphericTemperature { get; set; }
 
+    /// <summary>The payload's provenance (<c>"vessel:&lt;guid&gt;"</c>) and quality.</summary>
     public PayloadMeta Meta { get; set; } = new();
 }

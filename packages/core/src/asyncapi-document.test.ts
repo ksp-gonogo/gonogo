@@ -497,10 +497,16 @@ describe("asyncapi.yaml", () => {
     });
 
     it("fails when a declaration publishes more than its allowance", () => {
-      // Against the real contract with an EMPTY debt list: every entry currently
-      // on the list is over allowance, so the gate must refuse. A gate that
-      // passed here would be one whose comparison never runs.
-      expect(() => hygiene.assertProseHygiene(contract, { debt: {} })).toThrow(
+      // The real contract plus one declaration carrying a planted marker, so the comparison is exercised even while the contract itself is clean.
+      const [, { plant }] = Object.entries(hygiene.FAMILIES)[0];
+      const planted = {
+        ...contract,
+        interfaces: new Map<string, unknown>([
+          ...contract.interfaces,
+          ["PlantedDeclaration", { description: plant, fields: [] }],
+        ]),
+      };
+      expect(() => hygiene.assertProseHygiene(planted, { debt: {} })).toThrow(
         /publish maintainer prose beyond their allowance/,
       );
     });

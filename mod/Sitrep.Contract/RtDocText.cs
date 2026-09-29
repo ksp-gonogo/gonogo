@@ -25,6 +25,7 @@ namespace Sitrep.Contract;
 /// re-wrapping is what makes two runs over the same prose agree regardless of
 /// how the C# happened to be formatted.</para>
 /// </summary>
+/// <category>Serialization</category>
 public static class RtDocText
 {
     /// <summary>
@@ -42,11 +43,10 @@ public static class RtDocText
     /// <para>The doc comment is one text with two audiences. A client author
     /// reading the SDK or the AsyncAPI document needs WHAT the value is: its
     /// vocabulary, its null rule, its shape on the wire. A maintainer needs WHY
-    /// it is that way: which provider fills it, what it used to be, which defect
-    /// made it nullable. Both belong in the C#, beside the type, where the next
+    /// it is that way: which provider fills it, why it is nullable, the trap
+    /// a change would fall into. Both belong in the C#, beside the type, where the next
     /// person changing it will read them. Only the first belongs on the published
-    /// surface, and today all of it goes: 34% of the document's prose is the
-    /// second kind, and the longest descriptions are long BECAUSE of it.</para>
+    /// surface.</para>
     ///
     /// <para>An explicit element rather than a heuristic on the prose. A
     /// generator guessing which sentence is which would be wrong quietly, and
@@ -402,7 +402,8 @@ public static class RtDocText
 
     /// <summary>
     /// Whether a <c>cref</c> is one the C# compiler could not resolve. Those
-    /// arrive as <c>!:Whatever</c> and are a stale doc, so nothing is pointed at.
+    /// arrive as <c>!:Whatever</c> and name a symbol that no longer exists, so
+    /// nothing is pointed at.
     /// </summary>
     public static bool IsUnresolvedCref(string cref) =>
         !string.IsNullOrEmpty(cref) && cref.Length > 1 && cref[0] == '!';

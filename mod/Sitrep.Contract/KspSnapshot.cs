@@ -3,36 +3,29 @@ using System.Collections.Generic;
 namespace Sitrep.Contract
 {
     /// <summary>
-    /// Primitives-only snapshot returned by <c>Sitrep.Host.IKspHost.Sample</c>.
-    /// Raw and schema-free by design (see the M5b plan's record-format
-    /// spec): new providers add keys to <see cref="Values"/> without any
-    /// change here, and a recording stays valid across provider changes
-    /// because the replay side never needs to understand the keys, only
-    /// carry them.
+    /// One tick's primitives-only sample of game state, handed to every
+    /// <see cref="ISnapshotSampler"/> and channel mapper an Uplink registers.
+    /// Raw and schema-free: a sampler adds keys to <see cref="Values"/> without
+    /// any change to this type, and a recording stays valid across such
+    /// changes because replay only carries the keys.
     ///
-    /// Lives in <c>Sitrep.Contract</c> (moved from <c>Sitrep.Host</c> during
-    /// the Uplink-foundation review's fix round) rather than the engine
-    /// assembly it was originally authored in: <c>IUplinkHost.AddSampler</c>
-    /// hands an <c>ISnapshotSampler</c> a <see cref="KspSnapshot"/> directly,
-    /// so a third-party Uplink implementing that interface needs the type
-    /// visible from the ONE assembly it references; see
-    /// <c>ISitrepUplink</c>'s own doc comment for the full carve-out
-    /// rationale.
+    /// <para>Treat a snapshot as immutable. The same instance goes to every
+    /// sampler and mapper for the tick, and is read on another thread after
+    /// the tick returns, so mutating <see cref="Values"/> corrupts what the
+    /// others see and races with that read.</para>
+    /// <internal>Returned by <c>Sitrep.Host.IKspHost.Sample</c>. Declared here
+    /// rather than in Sitrep.Host because <c>IUplinkHost.AddSampler</c> hands it
+    /// to a third-party Uplink, which references only this assembly.</internal>
     /// </summary>
+    /// <category>Channels and emission</category>
     public sealed class KspSnapshot
     {
+        /// <summary>The game time the snapshot was taken at, in seconds of universal time (KSP's <c>Planetarium.GetUniversalTime()</c>).</summary>
         public double Ut { get; set; }
 
+        /// <summary>The sampled values, keyed by group name. Each value is a primitive, a string, a list, or a nested <c>Dictionary&lt;string, object?&gt;</c> of the same. Never null.</summary>
         public Dictionary<string, object?> Values { get; set; } = new Dictionary<string, object?>();
 
-        // NOTE: a KspSnapshot handed to ChannelEngine.Tick MUST be treated as
-        // immutable once Sample() returns it. ChannelEngine hands the SAME
-        // instance to every registered ISnapshotSampler and every
-        // AddChannelSource mapper for that tick: a sampler/mapper that
-        // mutates Values in place would corrupt what every OTHER
-        // sampler/mapper sees for the same tick, and (worse) could race with
-        // whatever the caller does with its own reference after Tick()
-        // returns, since Tick() only enqueues a job, the Courier thread
-        // reads this snapshot asynchronously, on its own schedule.
+        // A snapshot handed to ChannelEngine.Tick is shared by every sampler and mapper and read later on the Courier thread, so it must not be mutated once Sample() returns it.
     }
 }

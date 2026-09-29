@@ -30,6 +30,7 @@ namespace Sitrep.Contract;
 /// TypeScript name; every other cref degrades to plain prose, which still says
 /// where a value came from without implying there is something to reach for.</para>
 /// </summary>
+/// <category>Serialization</category>
 public class RtDocVisitor : TypeScriptExportVisitor
 {
     /// <summary>
@@ -197,10 +198,10 @@ public class RtDocVisitor : TypeScriptExportVisitor
         // Sorted, and taking the name-for-name match first, because two C# types
         // can share a simple name: `CommandResult` and `CommandResult<T>` both
         // key on `CommandResult` while the generic one emits as
-        // `CommandResultOf`. Whichever landed last used to win, so a cref to
-        // `CommandResult.ErrorCode` looked up the generic's members, found no
-        // such field, and degraded eleven live pointers to prose. Order in a
-        // `HashSet` is not a thing to leave a generated file resting on either.
+        // `CommandResultOf`. If whichever landed last won, a cref to
+        // `CommandResult.ErrorCode` would look up the generic's members, find no
+        // such field, and degrade to prose; and `HashSet` order is not something
+        // a generated file should rest on.
         var exportable = new List<Type>(file.TypesToExport);
         exportable.Sort((a, b) => string.CompareOrdinal(a.FullName, b.FullName));
         foreach (var pass in new[] { true, false })

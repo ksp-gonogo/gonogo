@@ -6,10 +6,10 @@ using System.Text;
 namespace Sitrep.Contract.Serialization
 {
     /// <summary>
-    /// Hand-written, allocation-conscious JSON writer: no Json.NET, no
-    /// System.Text.Json (the latter is a separate NuGet package on
+    /// Hand-written, allocation-conscious JSON writer. No Json.NET and no
+    /// System.Text.Json: the latter is a separate NuGet package on
     /// <c>netstandard2.0</c> and would break <c>Sitrep.Core</c>'s
-    /// zero-PackageReference invariant; see <c>Sitrep.Core.csproj</c>).
+    /// zero-PackageReference invariant (see <c>Sitrep.Core.csproj</c>).
     /// Writes directly into a caller-supplied <see cref="StringBuilder"/> so
     /// a full envelope write is one buffer, not one allocation per field.
     /// <c>EnvelopeCodec</c> owns fixed-schema field order and optional-field
@@ -20,7 +20,7 @@ namespace Sitrep.Contract.Serialization
     internal static class JsonWriter
     {
         /// <summary>
-        /// THE only place a <see cref="double"/> is ever appended; see
+        /// The only place a <see cref="double"/> is ever appended; see
         /// <see cref="NanPolicy"/> for why. Finite values are written as a
         /// plain JSON number (shortest round-trippable form, matching what
         /// <c>JSON.stringify</c> produces for ordinary telemetry-range
@@ -45,11 +45,13 @@ namespace Sitrep.Contract.Serialization
             sb.Append(value.ToString(CultureInfo.InvariantCulture));
         }
 
+        /// <summary>Appends <c>true</c> or <c>false</c>.</summary>
         public static void AppendBool(StringBuilder sb, bool value)
         {
             sb.Append(value ? "true" : "false");
         }
 
+        /// <summary>Appends <c>null</c>.</summary>
         public static void AppendNull(StringBuilder sb)
         {
             sb.Append("null");
@@ -105,41 +107,36 @@ namespace Sitrep.Contract.Serialization
         /// <c>bool</c>, <c>double</c> (also accepts boxed <c>int</c>/<c>long</c>/
         /// <c>float</c> for caller convenience), <c>string</c>,
         /// <c>Dictionary&lt;string, object?&gt;</c>, and <c>List&lt;object?&gt;</c>,
-        /// the same shape <c>CourierGoldenFixtureTests.ToClrValue</c> already
-        /// uses elsewhere in this codebase. Numbers always go through
-        /// <see cref="AppendNumber"/>, so the NaN/Infinity policy applies
-        /// uniformly however deeply nested the value is.
+        /// the same shape <c>CourierGoldenFixtureTests.ToClrValue</c> uses.
+        /// Numbers always go through <see cref="AppendNumber"/>, so the
+        /// NaN/Infinity policy applies however deeply nested the value is.
         ///
-        /// WIDER NUMERIC TYPES (C2-2, second fail-soft round): a channel
-        /// mapper is uplink-authored and can legitimately hand back any
-        /// of the numeric CLR types <c>ChannelEmitter.TryToDouble</c>
-        /// already accepts for its deadband gate: <c>short</c>/<c>sbyte</c>/
-        /// <c>byte</c>/<c>uint</c>/<c>ulong</c>/<c>decimal</c>, not just
-        /// <c>double</c>/<c>float</c>/<c>int</c>/<c>long</c>. Before this
-        /// fix, one of those types would clear the emitter's gate fine and
-        /// only THEN throw <c>NotSupportedException</c> here, at delivery
-        /// time: every one of those is now converted (widened to
-        /// <c>double</c>, matching the emitter's own conversion) and routed
-        /// through <see cref="AppendNumber"/> exactly like any other number.
+        /// <para>Numeric types: a channel mapper is Uplink-authored and can hand
+        /// back any numeric CLR type <c>ChannelEmitter.TryToDouble</c> accepts
+        /// for its deadband gate (<c>short</c>, <c>sbyte</c>, <c>byte</c>,
+        /// <c>uint</c>, <c>ulong</c>, <c>decimal</c> as well as <c>double</c>,
+        /// <c>float</c>, <c>int</c>, <c>long</c>). Each is widened to
+        /// <c>double</c>, matching the emitter's own conversion.</para>
         ///
-        /// ENUMS: a boxed enum is written as its integer ordinal, matching
-        /// how every DECLARED enum in this codec already serializes. It needs
-        /// its own case because a boxed enum's runtime type is the enum type,
-        /// so it matches neither <c>case int</c> nor any other numeric case
-        /// and used to reach the <c>default</c> throw.
+        /// <para>Enums: a boxed enum is written as its integer ordinal, like every
+        /// declared enum in this codec. It needs its own case because a boxed
+        /// enum's runtime type is the enum type, so it matches no numeric
+        /// case.</para>
         ///
-        /// ARRAYS: anything else that's an <see cref="IEnumerable"/> (e.g.
-        /// <c>double[]</c>, <c>object?[]</c>, <c>float[]</c>: any real
-        /// capture code writes a typed array, not a hand-built
-        /// <c>List&lt;object?&gt;</c>) is written as a JSON array too, one
-        /// element at a time back through THIS method, so a numeric element
-        /// still gets the NaN/Infinity sentinel policy and a nested
-        /// array/dict still recurses correctly. This case is deliberately
-        /// last among the collection cases: <c>string</c> is itself
-        /// <c>IEnumerable&lt;char&gt;</c> and <c>Dictionary&lt;,&gt;</c>/
-        /// <c>IDictionary&lt;,&gt;</c> are themselves <c>IEnumerable</c>, so
-        /// both must (and do, per C#'s in-order switch matching) get matched
-        /// by their own case above before this catch-all runs.
+        /// <para>Arrays: any other <see cref="IEnumerable"/> (<c>double[]</c>,
+        /// <c>object?[]</c>, <c>float[]</c>) is written as a JSON array, each
+        /// element back through this method, so numeric elements keep the
+        /// sentinel policy and nested values recurse. That case is last among
+        /// the collection cases because <c>string</c> and
+        /// <c>IDictionary&lt;,&gt;</c> are themselves <c>IEnumerable</c> and must
+        /// match their own cases first.</para>
+        ///
+        /// <para>A contract POCO needs its own case below whenever a producer
+        /// publishes it raw rather than flattening it to a dictionary first:
+        /// without one it reaches the <c>default</c> branch, throws
+        /// <c>NotSupportedException</c> at the wire boundary, and the frame is
+        /// dropped. An empty list of such POCOs serializes without a case, so
+        /// only a populated payload shows the gap.</para>
         /// </summary>
         public static void AppendValue(StringBuilder sb, object? value)
         {
@@ -182,21 +179,11 @@ namespace Sitrep.Contract.Serialization
                     AppendNumber(sb, (double)dec);
                     break;
                 case System.Enum e:
-                    // An enum is written as its integer ordinal, the same
-                    // convention every DECLARED enum in this codec already
-                    // follows (Meta.quality, Meta.staleness,
-                    // CommandResult.errorCode, and every enum a hand-written
-                    // Append<Type> flattener writes). Without this case a
-                    // boxed enum matched no case at all -- `case int i` does
-                    // not match a boxed enum, whose runtime type is the enum
-                    // type, not Int32 -- and reached the default branch, so
-                    // an uplink publishing one of its own enums got the
-                    // unsupported-type throw and its frame never left the
-                    // host, despite the codec being perfectly willing to
-                    // write the identical value under a contract type.
-                    // Convert.ToInt64 covers every underlying integral type
-                    // an enum may declare, including a ulong-backed one whose
-                    // ordinal is read back through the unchecked cast below.
+                    /*
+                     * A boxed enum's runtime type is the enum type, not Int32, so `case int` never
+                     * matches it. Convert.ToInt64 covers every underlying integral type, and a
+                     * ulong-backed ordinal is read back through the unchecked cast.
+                     */
                     AppendInteger(sb, e.GetTypeCode() == System.TypeCode.UInt64
                         ? unchecked((long)System.Convert.ToUInt64(e, CultureInfo.InvariantCulture))
                         : System.Convert.ToInt64(e, CultureInfo.InvariantCulture));
@@ -205,40 +192,12 @@ namespace Sitrep.Contract.Serialization
                     AppendString(sb, s);
                     break;
                 case Sitrep.Contract.CommandResult commandResult:
-                    // F2 Part 3 (R7 wire-flatten): a CommandResult /
-                    // CommandResult<T> POCO is what every command handler
-                    // returns and travels back as CommandResponse.Result.
-                    // JsonWriter otherwise has no idea how to serialize an
-                    // arbitrary POCO, so before this case existed EVERY
-                    // command response (success OR failure) fail-softed at the
-                    // wire boundary (see EnvelopeCodec.WriteCommandResponse ->
-                    // this method). Flattened here, in the SAME "producer owns
-                    // the flatten" spirit as VesselViewProvider.ToWire, rather
-                    // than adding a wire-shape method to the BCL-only contract
-                    // type. Enum error code is emitted as its integer ordinal,
-                    // matching how every other enum in this codec serializes
-                    // (Meta.quality / Meta.staleness).
                     AppendCommandResult(sb, commandResult);
                     break;
                 case Sitrep.Contract.CommsDelay commsDelay:
-                    // Same "producer owns the flatten" boundary as CommandResult
-                    // above: comms.delay's payload is a CommsDelay POCO (see
-                    // Gonogo.KSP.CommsCoreUplink.HandleOnCourier, which publishes
-                    // the raw value), which JsonWriter otherwise cannot
-                    // serialize: WITHOUT this case it fail-softs at the wire
-                    // boundary and a client that subscribed comms.delay gets
-                    // nothing at all. Flattened to { oneWaySeconds, source,
-                    // meta:{ source, quality } } with enum ordinals +
-                    // camelCase keys, matching every other enum/field in this
-                    // codec.
                     AppendCommsDelay(sb, commsDelay);
                     break;
                 case Sitrep.Contract.VesselInventory vesselInventory:
-                    // Stock cargo carried by the vessel's PARTS. Written here
-                    // rather than flattened by a producer for the same reason
-                    // comms.delay is: the channel source hands the POCO
-                    // straight over, so without a case it fail-softs at the
-                    // wire boundary and a client that subscribed gets nothing.
                     AppendVesselInventory(sb, vesselInventory);
                     break;
                 case Sitrep.Contract.InventoryStore inventoryStore:
@@ -248,25 +207,11 @@ namespace Sitrep.Contract.Serialization
                     AppendInventoryItem(sb, inventoryItem);
                     break;
                 case Sitrep.Contract.FlightSimulation flightSimulation:
-                    // Whether the flight on screen is a rehearsal, and whether
-                    // signal delay is being applied to it. Flattened here rather
-                    // than by a producer because the channel source hands the
-                    // POCO straight over (FlightUplink's SimulationTopic maps
-                    // FlightSimulationProvider.Build directly).
                     AppendFlightSimulation(sb, flightSimulation);
                     break;
-                // There is deliberately no case for the scripting Uplink's three
-                // raw-POCO wire types (its processor listing, its terminal
-                // channel and its per-core run result). All three self-flatten
-                // producer-side in that Uplink's own builders, so JsonWriter
-                // never sees the raw POCO: see
-                // WirePayloadCoverageTests.FlattenedByProducer.
+                // No case for the scripting Uplink's wire types: they flatten producer-side (see WirePayloadCoverageTests.FlattenedByProducer).
                 case Sitrep.Contract.ScetAlarm scetAlarm:
-                    // alarm.scet is a BARE ARRAY of these, published raw by
-                    // ScetAlarmUplink, so every element reaches here through the
-                    // IEnumerable case below. Same boundary CommandCentreEntry
-                    // met: an EMPTY roster serializes fine without a case and
-                    // every POPULATED one throws at the wire.
+                    // alarm.scet is a bare array of these, published raw, so each element reaches here through the IEnumerable case.
                     AppendScetAlarm(sb, scetAlarm);
                     break;
                 case Sitrep.Contract.ScetAlarmCondition scetAlarmCondition:
@@ -282,11 +227,6 @@ namespace Sitrep.Contract.Serialization
                     AppendScetAlarmFired(sb, scetAlarmFired);
                     break;
                 case Sitrep.Contract.GateVerdict verdict:
-                    // A declared command gate's answer: the refusal payload, and
-                    // the per-command entry of the addressability set. Flattened
-                    // here rather than by a producer because BOTH consumers hand
-                    // the POCO straight over: there is no view provider in
-                    // between to own the flatten.
                     AppendGateVerdict(sb, verdict);
                     break;
                 case Sitrep.Contract.LimitBreach breachValue:
@@ -295,68 +235,28 @@ namespace Sitrep.Contract.Serialization
                     AppendLimitBreach(sb, breachValue);
                     break;
                 case Sitrep.Contract.CommsLink link:
-                    // Same "producer owns the flatten" boundary as CommsDelay /
-                    // CommsConnectivity below: the comms.link connectivity
-                    // MetaTopic publishes a CommsLink POCO (see
-                    // Gonogo.KSP.CommsCoreUplink's link publisher). Without this
-                    // case a populated payload would throw NotSupportedException
-                    // at the wire boundary and the client's "NO SIGNAL" edge
-                    // would never arrive. Flattened to { connected, meta } with
-                    // camelCase keys, matching every sibling below.
                     AppendCommsLink(sb, link);
                     break;
                 case Sitrep.Contract.CommsCommandCentre commandCentre:
-                    // Same "producer owns the flatten" boundary as CommsLink
-                    // above: comms.commandCentre publishes a CommsCommandCentre
-                    // POCO directly (see Gonogo.KSP.CommsCoreUplink's
-                    // command-centre publisher). Without this case a populated
-                    // payload would throw NotSupportedException at the wire
-                    // boundary. Flattened to { id, displayName, kind, bodyIndex,
-                    // meta } with camelCase keys, matching every sibling here.
                     AppendCommsCommandCentre(sb, commandCentre);
                     break;
                 case Sitrep.Contract.CommandCentreSeparation separation:
-                    // Same "producer owns the flatten" boundary as
-                    // CommsCommandCentre above: CommandCentreDelayUplink
-                    // publishes the POCO straight over. Without this case every
-                    // commandCentre.separation frame threw NotSupportedException
-                    // at the wire boundary and was silently dropped, so a client
-                    // that subscribed sat on "subscribed" forever.
                     AppendCommandCentreSeparation(sb, separation);
                     break;
                 case Sitrep.Contract.CentreSeparationEntry separationEntry:
                     AppendCentreSeparationEntry(sb, separationEntry);
                     break;
                 case Sitrep.Contract.CommandCentreActiveVesselDelay activeVesselDelay:
-                    // The same boundary as CommandCentreSeparation: the uplink
-                    // publishes the POCO straight over.
                     AppendCommandCentreActiveVesselDelay(sb, activeVesselDelay);
                     break;
                 case Sitrep.Contract.CentreDelayEntry centreDelayEntry:
                     AppendCentreDelayEntry(sb, centreDelayEntry);
                     break;
                 case Sitrep.Contract.CommandCentreEntry centreEntry:
-                    // Same "producer owns the flatten" boundary as
-                    // CommandCentreSeparation above, and the fourth time this
-                    // codec has met the same defect. commandCentre.roster is a
-                    // BARE ARRAY of these entries and its producer
-                    // (CommandCentreDelayUplink.ToRosterEntry) publishes the
-                    // List<CommandCentreEntry> raw, so every element arrives here
-                    // through the IEnumerable case below. Without this case an
-                    // EMPTY roster serialized fine and every POPULATED one threw
-                    // NotSupportedException at the wire boundary, which is why no
-                    // headless rig could see it: it took a live save with real
-                    // command centres in it.
+                    // commandCentre.roster is a bare List<CommandCentreEntry> published raw, so each element reaches here through the IEnumerable case.
                     AppendCommandCentreEntry(sb, centreEntry);
                     break;
                 case Sitrep.Contract.CommsConnectivity connectivity:
-                    // Same "producer owns the flatten" boundary as CommsDelay
-                    // above: the comms.connectivity channel
-                    // publishes a CommsConnectivity POCO (see
-                    // Gonogo.KSP.CommsCoreUplink.HandleOnCourier). Without a case
-                    // here a populated payload threw NotSupportedException at the
-                    // wire boundary and fail-softed to nothing, the client
-                    // subscribed but got zero stream-data.
                     AppendCommsConnectivity(sb, connectivity);
                     break;
                 case Sitrep.Contract.CommsSignal signal:
@@ -396,22 +296,12 @@ namespace Sitrep.Contract.Serialization
                     // AppendValue flattens rather than throwing, same as CommsHop.
                     AppendCommsOcclusionBody(sb, occlusionBody);
                     break;
-                // There is deliberately no case for the three provider-private
-                // comms payloads (comms.linkQuality / comms.dataRate /
-                // comms.linkMargin). Their types live in
-                // GonogoRealAntennasUplink.Contract, and a core serializer may
-                // not reference an Uplink's assembly, so their producer
-                // flattens them to a Dictionary<string, object?> before Publish
-                // (RaWire) and they arrive through the IDictionary case below.
-                // That is the self-flattening producer boundary every
-                // Uplink-owned payload uses.
+                /*
+                 * No case for comms.linkQuality, comms.dataRate or comms.linkMargin: their types live in
+                 * an Uplink's own contract, which a core serializer may not reference, so the producer
+                 * flattens them to a dictionary before Publish.
+                 */
                 case Sitrep.Contract.FlightCurrent flightCurrent:
-                    // Same "producer owns the flatten" boundary as CommsDelay
-                    // above: flight.current publishes a FlightCurrent POCO
-                    // directly (see Sitrep.Host.Flight.FlightLifecycleSampler),
-                    // unlike crash/recovery which hand-flatten to a Dictionary.
-                    // Without this case a populated payload threw
-                    // NotSupportedException at the wire boundary.
                     AppendFlightCurrent(sb, flightCurrent);
                     break;
                 case Sitrep.Contract.FlightStarted flightStarted:
@@ -424,74 +314,39 @@ namespace Sitrep.Contract.Serialization
                     AppendFlightVesselChanged(sb, flightVesselChanged);
                     break;
                 case Sitrep.Contract.PendingUplinkQueue pendingUplinkQueue:
-                    // Same "producer owns the flatten" boundary as CommsDelay
-                    // above: system.uplink.pending's channel
-                    // source (ChannelEngine's UplinkPendingTopic mapper)
-                    // returns a PendingUplinkQueue POCO directly. Without this
-                    // case a populated (or even empty) queue threw
-                    // NotSupportedException at the wire boundary and every
-                    // subscriber got zero stream-data for this topic.
                     AppendPendingUplinkQueue(sb, pendingUplinkQueue);
                     break;
                 case Sitrep.Contract.CommandGateReport commandGateReport:
-                    // Same "producer owns the flatten" boundary again:
-                    // system.uplink.gates' channel source (ChannelEngine's
-                    // UplinkGatesTopic mapper) hands back a CommandGateReport
-                    // POCO directly. Without these two cases the whole channel
-                    // threw NotSupportedException at the wire boundary and every
-                    // subscriber got zero stream-data for it, which is the exact
-                    // failure PendingUplinkQueue's case above was added for.
                     AppendCommandGateReport(sb, commandGateReport);
                     break;
                 case Sitrep.Contract.CommandGate commandGate:
                     AppendCommandGate(sb, commandGate);
                     break;
                 case Sitrep.Contract.ChannelEmissionReport channelEmissionReport:
-                    // Same "producer owns the flatten" boundary once more:
-                    // system.channels' channel source (ChannelEngine's
-                    // ChannelsTopic mapper) hands back a ChannelEmissionReport
-                    // POCO directly. A diagnostic Topic that threw at the wire
-                    // boundary would be the very silence it exists to explain.
                     AppendChannelEmissionReport(sb, channelEmissionReport);
                     break;
                 case Sitrep.Contract.ChannelEmissionEntry channelEmissionEntry:
                     AppendChannelEmissionEntry(sb, channelEmissionEntry);
                     break;
                 case Sitrep.Contract.ReliabilitySummary reliabilitySummary:
-                    // Same "producer owns the flatten" boundary as CommsDelay
-                    // above: reliability.summary's producer
-                    // (Gonogo.KSP.ReliabilityCoreUplink.HandleOnCourier) publishes
-                    // the ReliabilitySummary POCO RAW (capture.Summary), and
-                    // reliability.parts publishes a List<ReliabilityPartEntry>
-                    // whose elements route through here one by one. Without these
-                    // cases a populated payload threw NotSupportedException at the
-                    // wire boundary and every subscriber got zero stream-data.
                     AppendReliabilitySummary(sb, reliabilitySummary);
                     break;
                 case Sitrep.Contract.ReliabilityPartEntry reliabilityPartEntry:
                     AppendReliabilityPartEntry(sb, reliabilityPartEntry);
                     break;
                 case Sitrep.Contract.ReliabilityBudget reliabilityBudget:
-                    // A part's Budgets list routes its elements through here one
-                    // by one via the IEnumerable case below, exactly as
-                    // reliability.parts already routes ReliabilityPartEntry.
+                    // Reached element by element from a part's Budgets list through the IEnumerable case.
                     AppendReliabilityBudget(sb, reliabilityBudget);
                     break;
                 case Sitrep.Contract.RepairCostItem repairCostItem:
-                    // A part's RepairCost list routes its elements through here
-                    // the same way its Budgets do.
+                    // Reached element by element from a part's RepairCost list.
                     AppendRepairCostItem(sb, repairCostItem);
                     break;
                 case Sitrep.Contract.RepairOutcome repairOutcome:
                     /*
-                     * vessel.repair's reply payload. Not a channel value: it rides
-                     * out inside CommandResult<RepairOutcome>.Payload, which
-                     * AppendCommandResult writes back through AppendValue, so it
-                     * reaches this switch as a raw POCO exactly like a published
-                     * one. RepairRefusal.ResultFor sets Payload on EVERY outcome
-                     * it is given, success and refusal alike, so without this case
-                     * the only vessel.repair reply that survived the wire was the
-                     * null-outcome failure.
+                     * vessel.repair's reply payload, inside CommandResult<RepairOutcome>.Payload, which
+                     * AppendCommandResult writes back through AppendValue. RepairRefusal.ResultFor sets
+                     * Payload on every outcome, success and refusal alike.
                      */
                     AppendRepairOutcome(sb, repairOutcome);
                     break;
@@ -500,10 +355,7 @@ namespace Sitrep.Contract.Serialization
                     AppendScienceTransmission(sb, scienceTransmission);
                     break;
                 case Sitrep.Contract.IsruDrillEntry isruDrillEntry:
-                    // Same boundary again: isru.drills/isru.converters publish
-                    // List<IsruDrillEntry>/List<IsruConverterEntry> raw, whose
-                    // elements route through here one by one, and a converter's
-                    // recipe flows nest one level deeper still.
+                    // isru.drills and isru.converters publish their lists raw; a converter's recipe flows nest one level deeper.
                     AppendIsruDrillEntry(sb, isruDrillEntry);
                     break;
                 case Sitrep.Contract.IsruConverterEntry isruConverterEntry:
@@ -530,12 +382,12 @@ namespace Sitrep.Contract.Serialization
         /// <c>{ success, [errorCode], [reason], [breach], [payload] }</c>. <c>breach</c> is
         /// present only on a refusal that carries a comparison (see
         /// <see cref="Sitrep.Contract.CommandResult.Breach"/>), and <c>errorCode</c>
-        /// only on a refusal (see <see cref="AppendRefusalCode"/>). The <c>payload</c> key is emitted ONLY for the
+        /// only on a refusal (see <see cref="AppendRefusalCode"/>). The <c>payload</c> key is emitted only for the
         /// generic subtype (read reflectively because <c>T</c> is open here)
         /// so a plain <see cref="Sitrep.Contract.CommandResult"/> (the "no
         /// payload" actuation ack) serializes without a payload key at all.
         /// A null payload on a <c>CommandResult&lt;T&gt;</c> (the failure
-        /// case) is still a real value and IS written as JSON <c>null</c>,
+        /// case) is still a real value and is written as JSON <c>null</c>,
         /// via <see cref="AppendValue"/>.
         /// </summary>
         private static void AppendCommandResult(StringBuilder sb, Sitrep.Contract.CommandResult result)
@@ -547,7 +399,7 @@ namespace Sitrep.Contract.Serialization
 
             AppendRefusalCode(sb, result.ErrorCode);
 
-            // Only on a refusal that HAS numbers. A success carrying a null
+            // Only on a refusal that has numbers. A success carrying a null
             // breach key would put the shape on every ack for nothing, and a
             // breach of zeroes would render as a real limit of 0, the same
             // reason AppendGateVerdict keeps its own null strictly meaningful.
@@ -561,7 +413,7 @@ namespace Sitrep.Contract.Serialization
 
             // Same rule as breach: only when the refusal actually quotes the
             // game. An empty detail key on every ack would put the shape on the
-            // wire for nothing, and an empty STRING reads as a sentence that
+            // wire for nothing, and an empty string reads as a sentence that
             // came back blank rather than as a refusal that quoted nothing.
             if (!string.IsNullOrEmpty(result.Detail))
             {
@@ -584,20 +436,6 @@ namespace Sitrep.Contract.Serialization
             sb.Append('}');
         }
 
-        /// <summary>
-        /// Flattens a <see cref="Sitrep.Contract.CommsDelay"/> to the wire
-        /// object <c>{ oneWaySeconds, source, meta:{ source, quality } }</c>.
-        /// <c>oneWaySeconds</c> is nullable (R7 typed absence; see
-        /// <see cref="Sitrep.Contract.CommsDelay.OneWaySeconds"/>'s own doc
-        /// comment): written as JSON <c>null</c> when there is no measurable
-        /// path, the same nullable-double wire path as
-        /// <see cref="AppendCommsHop"/>'s <c>distanceMeters</c>, never collapsed
-        /// to a 0 sentinel. Enum
-        /// values (<c>source</c>, <c>meta.quality</c>) are emitted as their
-        /// integer ordinal, the same convention as <c>Meta.quality</c>/
-        /// <c>Meta.staleness</c> and <see cref="AppendCommandResult"/>'s
-        /// <c>errorCode</c>. See the <c>case</c> in <see cref="AppendValue"/>.
-        /// </summary>
         /// <summary>
         /// A refusal as its root's id in <c>errorCode</c> and, for a refinement,
         /// its own id in <c>reason</c>. Neither key is written when there is no
@@ -708,6 +546,14 @@ namespace Sitrep.Contract.Serialization
             sb.Append('}');
         }
 
+        /// <summary>
+        /// Flattens a <see cref="Sitrep.Contract.CommsDelay"/> to the wire
+        /// object <c>{ oneWaySeconds, source, meta:{ source, quality } }</c>.
+        /// <c>oneWaySeconds</c> is written as JSON <c>null</c> when there is no
+        /// measurable path (see <see cref="Sitrep.Contract.CommsDelay.OneWaySeconds"/>),
+        /// never collapsed to 0. Enums (<c>source</c>, <c>meta.quality</c>) are
+        /// written as integer ordinals.
+        /// </summary>
         private static void AppendCommsDelay(StringBuilder sb, Sitrep.Contract.CommsDelay delay)
         {
             sb.Append('{');
@@ -776,11 +622,7 @@ namespace Sitrep.Contract.Serialization
             sb.Append('}');
         }
 
-        // Nullable-field writers for the reliability.* POCOs (nearly every field
-        // is optional). Each is exactly the inline "HasValue / non-null ? value :
-        // JSON null" idiom the sibling helpers already use (AppendCommsDelay's
-        // oneWaySeconds, AppendCommsControl's reason): named so the two
-        // reliability writers below stay one line per field.
+        // Nullable-field writers: a value, or JSON null when absent.
         private static void AppendNullableBool(StringBuilder sb, bool? value)
         {
             if (value.HasValue)
@@ -817,18 +659,6 @@ namespace Sitrep.Contract.Serialization
             }
         }
 
-        /// <summary>
-        /// Flattens a <see cref="Sitrep.Contract.ReliabilitySummary"/> to the wire
-        /// object <c>{ source, coverage }</c>, plus <c>extensions</c> when a provider
-        /// filled its namespace (see <see cref="AppendProviderExtensions"/>, and note
-        /// that key is OMITTED rather than null when empty): camelCase keys, JSON
-        /// null for absent nullable fields, matching the generated SDK interface.
-        /// reliability.summary
-        /// (<c>Gonogo.KSP.ReliabilityCoreUplink.HandleOnCourier</c>) publishes this
-        /// POCO raw, so before this existed a populated payload threw
-        /// <c>NotSupportedException</c> at the wire boundary. See the <c>case</c> in
-        /// <see cref="AppendValue"/>.
-        /// </summary>
         /// <summary>
         /// Writes <c>vessel.inventory</c> as
         /// <c>{ stores: [...], meta: { source, quality } }</c>.
@@ -925,6 +755,13 @@ namespace Sitrep.Contract.Serialization
             sb.Append('}');
         }
 
+        /// <summary>
+        /// Flattens a <see cref="Sitrep.Contract.ReliabilitySummary"/> to the wire
+        /// object <c>{ source, coverage }</c>, plus <c>extensions</c> when a provider
+        /// filled its namespace (omitted rather than null when empty; see
+        /// <see cref="AppendProviderExtensions"/>): camelCase keys, JSON null for
+        /// absent nullable fields, matching the generated SDK interface.
+        /// </summary>
         private static void AppendReliabilitySummary(StringBuilder sb, Sitrep.Contract.ReliabilitySummary r)
         {
             sb.Append('{');
@@ -943,18 +780,17 @@ namespace Sitrep.Contract.Serialization
         /// Appends the provider extension bag as <c>,"extensions":{ ... }</c>, or
         /// nothing at all when no provider filled one.
         ///
-        /// <para><b>Omitted rather than written as null</b>, unlike every other
-        /// optional field in these flatteners. The bag is a mechanism, not a
-        /// reading: a payload no provider extended has to be byte-for-byte what it
-        /// was before the mechanism existed, so nothing downstream can tell the
-        /// difference. That is the whole additive claim, and
-        /// <c>ReliabilityExtensionWireTests</c> pins it.</para>
+        /// <para>Omitted rather than written as null, unlike every other optional
+        /// field in these flatteners. The bag is a mechanism, not a reading: a
+        /// payload no provider extended is byte-for-byte the same as one from a
+        /// payload type with no bag. <c>ReliabilityExtensionWireTests</c> pins
+        /// it.</para>
         ///
         /// <para>The namespaces themselves go through <see cref="AppendValue"/>:
         /// they are the provider's own untyped value tree (a
         /// <c>Dictionary&lt;string, object?&gt;</c>), exactly the shape this writer
         /// already walks for every producer-flattened payload. Core never learns
-        /// the provider's shape, which is the point.</para>
+        /// the provider's shape.</para>
         /// </summary>
         private static void AppendProviderExtensions(
             StringBuilder sb,
@@ -982,7 +818,7 @@ namespace Sitrep.Contract.Serialization
         /// route through here via <see cref="AppendValue"/>'s <c>IEnumerable</c> case.
         ///
         /// <para><c>budgets</c> is written as JSON <c>null</c> when the list is null
-        /// and <c>[]</c> when it is empty, deliberately NOT following the
+        /// and <c>[]</c> when it is empty, not following the
         /// omit-when-empty rule <c>extensions</c> uses: the bag is a mechanism, a
         /// budget list is a reading, and "this provider models no dimensions" is
         /// something a reader is entitled to see.</para>
@@ -1135,8 +971,8 @@ namespace Sitrep.Contract.Serialization
         /// Flattens a <see cref="Sitrep.Contract.IsruDrillEntry"/> to the wire
         /// object <c>{ partId, partTitle, resource, deployed, running, abundance,
         /// rate }</c>, plus <c>extensions</c> when a provider filled its namespace
-        /// (see <see cref="AppendProviderExtensions"/>, and note that key is OMITTED
-        /// rather than null when empty): camelCase keys, JSON null for absent
+        /// (omitted rather than null when empty; see
+        /// <see cref="AppendProviderExtensions"/>): camelCase keys, JSON null for absent
         /// nullable fields, matching the generated SDK interface. <c>isru.drills</c>
         /// publishes a <c>List&lt;IsruDrillEntry&gt;</c> raw, whose elements route
         /// through here via <see cref="AppendValue"/>'s <c>IEnumerable</c> case.
@@ -1179,7 +1015,7 @@ namespace Sitrep.Contract.Serialization
         /// Flattens a <see cref="Sitrep.Contract.IsruConverterEntry"/> to the wire
         /// object <c>{ partId, partTitle, running, inputs, outputs }</c>, plus
         /// <c>extensions</c> when a provider filled its namespace. The two recipe
-        /// sides are ALWAYS written as arrays, empty rather than null, because the
+        /// sides are always written as arrays, empty rather than null, because the
         /// contract declares them non-nullable lists: a converter with no recipe has
         /// no flows, which is an empty recipe rather than an unknown one.
         /// </summary>
@@ -1315,8 +1151,8 @@ namespace Sitrep.Contract.Serialization
         /// <summary>
         /// Flattens a <see cref="Sitrep.Contract.FlightVesselChanged"/> to the
         /// wire object <c>{ flightId, vesselId, vesselName, previousVesselId, ut }</c>,
-        /// <c>previousVesselId</c> written as JSON <c>null</c> when absent
-        /// (R7 typed-absence), never a sentinel empty string. See the
+        /// <c>previousVesselId</c> written as JSON <c>null</c> when absent,
+        /// never a sentinel empty string. See the
         /// <c>case</c> in <see cref="AppendValue"/>.
         /// </summary>
         private static void AppendFlightVesselChanged(StringBuilder sb, Sitrep.Contract.FlightVesselChanged f)
@@ -1379,7 +1215,7 @@ namespace Sitrep.Contract.Serialization
         /// Flattens one <see cref="Sitrep.Contract.CommandGate"/> to
         /// <c>{ command, verdict }</c>, the verdict through the same
         /// <see cref="AppendGateVerdict"/> a refused dispatch uses, so a client
-        /// reads one shape whether the gate answered in advance or at dispatch.
+        /// reads one shape whether the gate ruled in advance or at dispatch.
         /// </summary>
         private static void AppendCommandGate(StringBuilder sb, Sitrep.Contract.CommandGate gate)
         {
@@ -1426,7 +1262,7 @@ namespace Sitrep.Contract.Serialization
         /// <para>Hand-enumerated, so a field added to the POCO is invisible on
         /// the wire until it is added here too, the same trap
         /// <see cref="AppendPendingUplink"/> below records. Every field is
-        /// written unconditionally, including the zeros and the falses: this
+        /// written unconditionally, including zeros and falses: this
         /// payload's whole purpose is to let a reader tell zero apart from
         /// absent, so omitting a zero the way an optional field is omitted
         /// would defeat it.</para>
@@ -1502,21 +1338,19 @@ namespace Sitrep.Contract.Serialization
         /// <summary>
         /// Flattens one <see cref="Sitrep.Contract.PendingUplink"/> entry to
         /// the wire object <c>{ id, command, label, topic, vantage,
-        /// dispatchedAt, oneWaySeconds, commandedValue? }</c>: the SAME fields
+        /// dispatchedAt, oneWaySeconds, commandedValue? }</c>: the same fields
         /// <c>Sitrep.Host.Tests.UplinkPendingShapeTests</c> ratchets on
-        /// <see cref="Sitrep.Contract.PendingUplink"/> itself (prediction-only:
-        /// dispatch-time facts only, never an execution/result field).
+        /// <see cref="Sitrep.Contract.PendingUplink"/> itself (dispatch-time
+        /// facts only, never an execution or result field).
         ///
         /// <para>Hand-enumerated, so a field added to the POCO is invisible on
-        /// the wire until it is added HERE too. That is how
-        /// <c>commandedValue</c> first went missing: the contract carried it,
-        /// codegen emitted it, the shape ratchet passed, and the wire simply did
-        /// not have it. An integration test that reads the delivered frame is
-        /// the only thing that catches that, which is why the commanded-value
-        /// cases in <c>UplinkPendingQueueTests</c> assert on the frame rather
-        /// than on the POCO.</para>
+        /// the wire until it is added here too. Codegen and the shape ratchet
+        /// both pass without it; only a test that reads the delivered frame
+        /// catches the gap, which is why the commanded-value cases in
+        /// <c>UplinkPendingQueueTests</c> assert on the frame rather than on
+        /// the POCO.</para>
         ///
-        /// <para><c>commandedValue</c> is OMITTED when null rather than written
+        /// <para><c>commandedValue</c> is omitted when null rather than written
         /// as JSON null, matching how every other optional field crosses this
         /// wire and how <c>JSON.stringify</c> treats <c>undefined</c>. It also
         /// matters here specifically: a zero throttle and an unknown value must
@@ -1570,16 +1404,7 @@ namespace Sitrep.Contract.Serialization
             sb.Append('}');
         }
 
-        // ================================================================
-        // comms.* payload flatteners (U2 wire-boundary fix). Each mirrors
-        // AppendCommsDelay: camelCase keys, enum ordinals as integers,
-        // PayloadMeta as { source, quality }, and
-        // nullable fields written as JSON null (R7 typed-absence) rather than
-        // a sentinel. Without these, a POPULATED comms.* payload threw
-        // NotSupportedException in AppendValue at the wire boundary and the
-        // frame was dropped, a subscribed client received only "subscribed"
-        // and zero stream-data, exactly the processor-listing / comms.delay bug.
-        // ================================================================
+        // The comms.* flatteners share AppendCommsDelay's rules: camelCase keys, enum ordinals, PayloadMeta as { source, quality }, JSON null for absent nullable fields.
 
         /// <summary>Writes a <see cref="Sitrep.Contract.PayloadMeta"/> as <c>{ source, quality }</c> (quality as its integer ordinal). Null meta collapses to the defaults, matching <see cref="AppendCommsDelay"/>.</summary>
         private static void AppendPayloadMeta(StringBuilder sb, Sitrep.Contract.PayloadMeta? meta)
@@ -1792,14 +1617,14 @@ namespace Sitrep.Contract.Serialization
         }
 
         /// <summary>
-        /// One armed SCET alarm as <c>{ id, name, armedBy, vantage, subject,
+        /// One set SCET alarm as <c>{ id, name, armedBy, vantage, subject,
         /// condition, state, firedAtUt, onFire, actsOn }</c>, the element shape of the <c>alarm.scet</c>
         /// array.
         /// </summary>
         ///
         /// <remarks>
         /// <c>state</c> goes as its ordinal, the wire form every other contract
-        /// enum takes. <c>firedAtUt</c> is JSON null while the alarm is armed
+        /// enum takes. <c>firedAtUt</c> is JSON null while the alarm is waiting to fire
         /// rather than 0, which is a real instant (the game's own epoch) and
         /// would read to a client as an alarm that fired at the dawn of the save.
         /// </remarks>
@@ -1954,7 +1779,7 @@ namespace Sitrep.Contract.Serialization
         /// The fire notice as <c>{ id, firedAtUt, vantage, actionsWithheld }</c>.
         /// See <see cref="Sitrep.Contract.ScetAlarmFired"/> for why nothing about
         /// the craft may travel on this channel. The vantage is the place the
-        /// operator named when they armed it, and <c>actionsWithheld</c> says the
+        /// operator named when they set it, and <c>actionsWithheld</c> says the
         /// craft being flown was not the one the actions were for: facts about
         /// the alarm and the game, not readings of anything aboard.
         /// </summary>
@@ -2123,9 +1948,7 @@ namespace Sitrep.Contract.Serialization
             {
                 AppendNull(sb);
             }
-            // Omitted entirely when no provider filled a bag, so a bare-CommNet hop
-            // is byte-for-byte what it was before the bag existed (see
-            // AppendProviderExtensions).
+            // Omitted entirely when no provider filled a bag (see AppendProviderExtensions).
             AppendProviderExtensions(sb, h.Extensions);
             sb.Append('}');
         }
@@ -2331,12 +2154,7 @@ namespace Sitrep.Contract.Serialization
             sb.Append('}');
         }
 
-        // RaWire (beside the Uplink that publishes comms.linkQuality /
-        // comms.dataRate / comms.linkMargin) builds those payload objects
-        // itself, because their types live in GonogoRealAntennasUplink.Contract
-        // and this file cannot reference them. AppendPayloadMeta above is what
-        // RaWire mirrors for the nested meta object, quality as its integer
-        // ordinal included: the two must agree.
+        // RaWire, beside the Uplink that publishes comms.linkQuality / dataRate / linkMargin, mirrors AppendPayloadMeta for its nested meta object; the two must agree.
 
         private static void AppendObject(StringBuilder sb, IDictionary<string, object?> obj)
         {
@@ -2391,12 +2209,11 @@ namespace Sitrep.Contract.Serialization
         /// exponential notation) a lowercased, non-zero-padded exponent
         /// (<c>"1e+21"</c> / <c>"1e-7"</c>) to look like V8's own output.
         ///
-        /// NOT a claim of byte-for-byte parity with V8's exact
-        /// shortest-round-trip / fixed-vs-exponential switchover algorithm
-        /// (ECMA-262 Number::ToString) across EVERY possible double: that's
-        /// out of scope for M5a. Telemetry values are realistically within
-        /// the range where .NET's own shortest-round-trippable formatting
-        /// already agrees with JS's default number-to-string conversion.
+        /// <para>Not byte-for-byte parity with V8's shortest-round-trip and
+        /// fixed-versus-exponential switchover (ECMA-262 Number::ToString) across
+        /// every possible double. Telemetry values sit within the range where
+        /// .NET's shortest-round-trippable formatting agrees with JS's default
+        /// conversion.</para>
         /// </summary>
         private static string FormatFiniteNumber(double value)
         {

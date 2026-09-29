@@ -7,18 +7,19 @@ namespace Sitrep.Contract;
 
 /// <summary>
 /// One entry in the ground-side pending-uplink queue, backing
-/// <c>system.uplink.pending</c> (see <c>ChannelEngine.UplinkPendingTopic</c>).
+/// <c>system.uplink.pending</c>.
 ///
 /// <para><b>Prediction-only, hard invariant:</b> this type carries ONLY
-/// dispatch-time facts: what the centre sent and when. It must NEVER grow
-/// an execution/result/vessel-derived field (e.g. whether the craft actually
-/// received or ran the command, any onboard state). That distinction is what
-/// keeps the queue "predicted, not confirmed", the client renders these
-/// entries as in-flight until they naturally age out, never as an
-/// acknowledgement of vessel-side effect. <c>Sitrep.Host.Tests.UplinkPendingShapeTests</c>
-/// (a G1 shape ratchet with NO additive carve-out, unlike
-/// <c>ContractShapeGateTests</c>) enforces the field set stays exactly this
-/// seven.</para>
+/// dispatch-time facts: what the centre sent and when. It never carries an
+/// execution, result or vessel-derived field (e.g. whether the craft actually
+/// received or ran the command, any onboard state). That is what keeps the
+/// queue "predicted, not confirmed": render these entries as in flight until
+/// they age out, never as an acknowledgement of a vessel-side effect.</para>
+/// <internal>
+/// <c>Sitrep.Host.Tests.UplinkPendingShapeTests</c> pins the field set, with
+/// no additive carve-out (unlike <c>ContractShapeGateTests</c>). The topic
+/// constant is <c>ChannelEngine.UplinkPendingTopic</c>.
+/// </internal>
 /// </summary>
 /// <category>Comms</category>
 [SitrepContract]
@@ -51,7 +52,7 @@ public class PendingUplink
     [SitrepUnit(Units.Id)]
     public string Command { get; set; } = "";
 
-    /// <summary>Caller-supplied envelope label; empty ⇒ the renderer falls back to <see cref="Command"/>.</summary>
+    /// <summary>Caller-supplied envelope label, carried verbatim; empty when none was given, in which case show <see cref="Command"/> instead.</summary>
     [SitrepUnit(Units.Text)]
     public string Label { get; set; } = "";
 
@@ -60,17 +61,18 @@ public class PendingUplink
     /// (an opaque MQTT-style route, e.g. <c>kos/7</c>), known at the command
     /// centre at send time. NOT vessel state and NOT an execution result, so
     /// it stays inside the prediction-only invariant; it lets a renderer
-    /// scope entries to one part/terminal. Empty ⇒ unscoped.
+    /// scope entries to one part/terminal. Empty when unscoped.
     /// </summary>
     [SitrepUnit(Units.Id)]
     public string Topic { get; set; } = "";
 
     /// <summary>
-    /// Which command centre / ground station dispatched this command
-    /// (available at dispatch as <c>job.Vantage</c>): dispatch-time
-    /// command-centre bookkeeping, not vessel state, so it stays inside the
-    /// prediction-only invariant. Future-proofs multiple command sources
-    /// without a later contract migration.
+    /// Which command centre / ground station dispatched this command:
+    /// dispatch-time command-centre bookkeeping, not vessel state, so it stays inside the prediction-only
+    /// invariant.
+    /// <internal>
+    /// Read from <c>job.Vantage</c> at dispatch.
+    /// </internal>
     /// </summary>
     [SitrepUnit(Units.Id)]
     public string Vantage { get; set; } = "";
@@ -86,9 +88,10 @@ public class PendingUplink
     /// <summary>
     /// The scalar this command asked for, when its command is one half of a
     /// declared <see cref="SitrepControlChannelAttribute"/> channel: a throttle
-    /// setting, a switch as 1 or 0, an SAS mode as its ordinal. Null for every
-    /// other command, and for a channel command whose args did not carry the
-    /// value key.
+    /// setting, a switch as 1 or 0, an SAS mode as its ordinal. ABSENT (the key
+    /// is omitted, never written as null) for every other command, and for a
+    /// channel command whose args did not carry the value key, so a zero
+    /// throttle and an unknown value never look the same.
     /// </summary>
     ///
     /// <remarks>
@@ -101,27 +104,16 @@ public class PendingUplink
     /// dispatched it: carrying it is not new information and not an inference
     /// about the craft.</para>
     ///
-    /// <para><b>Why it is needed.</b> Without it the queue says a SAS command is
-    /// in flight and cannot say which mode it asked for, so a renderer can show
-    /// that something is happening and not what. An optimistic expectation, and
-    /// the render it exists for (one control in a group marked out from its
-    /// siblings), both need the value. It is also the only path a SECOND command
-    /// centre or a station screen has to it: own-dispatch memory is per-client
-    /// by construction.</para>
+    /// <para>With it, a renderer can show WHICH SAS mode is in flight rather than
+    /// only that something is, and mark one control in a group out from its
+    /// siblings. It is also the only path a SECOND command centre or a station
+    /// screen has to the value: own-dispatch memory is per-client.</para>
     ///
     /// <para>ONE numeric field rather than a variant because the channel's own
-    /// declared args type already says how to read the number back, and because
-    /// the coverage gate requires a channel's value field to be a scalar. See
+    /// declared args type already says how to read the number back. See
     /// <see cref="ControlChannelDescriptor"/> for the reflected lookup.</para>
-    ///
-    /// <para><c>Sitrep.Host.Tests.UplinkPendingShapeTests</c> pins the field set
-    /// and was deliberately written with no additive carve-out. This addition
-    /// was asked for explicitly rather than slipped past it; the test carries
-    /// the same reasoning.</para>
     /// </remarks>
-    // The key is OMITTED when null rather than written as null
-    // (JsonWriter.AppendPendingUplink guards it on HasValue), because a zero
-    // throttle and an unknown value must never arrive looking the same.
+    // JsonWriter.AppendPendingUplink omits the key on !HasValue, so a zero throttle and an unknown value never arrive looking the same.
     [SitrepUnit(Units.NotApplicable)]
     [SitrepOmittedWhenNull]
     public double? CommandedValue { get; set; }
@@ -135,5 +127,9 @@ public class PendingUplink
 #endif
 public class PendingUplinkQueue
 {
+    /// <summary>
+    /// Every command still believed in flight, in no guaranteed order. Empty,
+    /// never null, when nothing is pending.
+    /// </summary>
     public List<PendingUplink> Pending { get; set; } = new List<PendingUplink>();
 }

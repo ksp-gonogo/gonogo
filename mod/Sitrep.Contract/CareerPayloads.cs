@@ -8,13 +8,13 @@ namespace Sitrep.Contract;
 /// <summary>
 /// The <c>career.status</c> channel payload: the KSC and career-mode snapshot,
 /// in four groups (economy, contracts, strategies, tech). The space centre's
-/// buildings are NOT here: they ride <see cref="CareerFacilities"/>, for the
-/// staleness reason that type's own doc gives.
+/// buildings are NOT here: they ride <see cref="CareerFacilities"/>, which can
+/// be held on its own while this channel keeps arriving.
 ///
 /// <para><b>Three states, and they mean different things.</b> The whole payload
 /// is <c>null</c> in SANDBOX, where there is no career at all. A non-null
 /// payload with a sub-group <c>null</c> means career mode is running and that
-/// group is genuinely unavailable this tick. All four top-level keys are ALWAYS
+/// group is genuinely unavailable this tick. All four group keys are ALWAYS
 /// present, each nullable, never omitted, so a missing key is a protocol error
 /// rather than an absent group.</para>
 ///
@@ -25,19 +25,14 @@ namespace Sitrep.Contract;
 /// because an empty list counts as zero rather than as unknown.</para>
 ///
 /// <internal>
-/// <para><b>Typing-only mirror (P0.5).</b> This type reproduces, field for
-/// field, the EXACT serialized shape
-/// <c>Sitrep.Host.CareerViewProvider.BuildCareer</c> already emits: same names,
-/// same camelCase wire keys (via <c>RtConfig.CamelCaseForProperties</c>), same
-/// types, same units. It is NOT serialized itself: the wire bytes are written by
+/// <para>Typing-only mirror of the shape
+/// <c>Sitrep.Host.CareerViewProvider.BuildCareer</c> emits: same names, same
+/// camelCase wire keys (via <c>RtConfig.CamelCaseForProperties</c>), same
+/// types, same units. The wire bytes are written by
 /// <c>Sitrep.Contract.Serialization.JsonWriter</c> walking the provider's live
-/// <c>Dictionary&lt;string, object?&gt;</c> tree, so adding this type changed no
-/// bytes. The sandbox case is the absence of a <c>"career"</c> group in the
-/// snapshot. Nullability is <c>SnapshotDict.Get*</c>'s rule, not a per-field
-/// choice.</para>
-///
-/// <para>The hierarchical-naming and unit cleanup is a later phase (P5) and is
-/// deliberately NOT done here.</para>
+/// <c>Dictionary&lt;string, object?&gt;</c> tree. The sandbox case is the
+/// absence of a <c>"career"</c> group in the snapshot. Nullability is
+/// <c>SnapshotDict.Get*</c>'s rule, not a per-field choice.</para>
 /// </internal>
 /// </summary>
 /// <category>Career</category>
@@ -48,12 +43,29 @@ namespace Sitrep.Contract;
 #endif
 public class CareerStatus
 {
+    /// <summary>
+    /// The career's balances (funds, reputation, science) and what the elected
+    /// money model says they are worth. <c>null</c> when none of the three
+    /// balances could be read this tick.
+    /// </summary>
     public CareerEconomy? Economy { get; set; }
 
+    /// <summary>
+    /// Active, offered and recently completed contracts. <c>null</c> when KSP's
+    /// contract system is not loaded this tick.
+    /// </summary>
     public CareerContracts? Contracts { get; set; }
 
+    /// <summary>
+    /// The save's strategy roster and which strategies are active. <c>null</c>
+    /// when KSP's strategy system is not loaded this tick.
+    /// </summary>
     public CareerStrategies? Strategies { get; set; }
 
+    /// <summary>
+    /// The tech tree and which of it is unlocked. <c>null</c> when R&amp;D or
+    /// the part list is not loaded this tick.
+    /// </summary>
     public CareerTech? Tech { get; set; }
 
     /// <summary>
@@ -61,17 +73,14 @@ public class CareerStatus
     /// to anything flying, so switching vessels cannot change which one is being
     /// read.
     ///
-    /// <para>It is here because a SCET alarm compares this stamp against the
-    /// subject the alarm was armed for, and refuses a reading that does not
-    /// match. Without it a threshold on a career figure could be armed and would
-    /// then never come due, which an operator cannot tell apart from a condition
-    /// that has not been met. <c>"game"</c> is the same token
-    /// <see cref="ScetAlarm.Subject"/> already carried for anything the whole
-    /// simulation shares.</para>
+    /// <para>A SCET alarm compares this stamp against the subject the alarm was
+    /// set for, and refuses a reading that does not match. Without it a
+    /// threshold on a career figure could be set and would then never come due,
+    /// which an operator cannot tell apart from a condition that has not been
+    /// met. <c>"game"</c> is the same token <see cref="ScetAlarm.Subject"/>
+    /// carries for anything the whole simulation shares.</para>
     /// <internal>
-    /// Stamped by <c>Sitrep.Host.CareerViewProvider.BuildCareer</c>. The last
-    /// payload in the tree to gain one; every other channel with a threshold
-    /// source behind it has carried a meta since M1.
+    /// Stamped by <c>Sitrep.Host.CareerViewProvider.BuildCareer</c>.
     /// </internal>
     /// </summary>
     public PayloadMeta Meta { get; set; } = new();
@@ -87,9 +96,9 @@ public class CareerStatus
 /// in flight. The tracking station reads the tier the save holds against the
 /// ladder last read in one of those scenes. Where no ladder has been read there
 /// is no reading to take, so this channel goes SILENT rather than reporting a
-/// row of nulls. The last reading stands, dated, through the client's ordinary
-/// staleness machinery: a whole channel can be held and said to be held, where
-/// a nullable field on a channel that keeps ticking cannot.</para>
+/// row of nulls. The last reading stands, dated, and the client marks it as
+/// held: a whole channel can be held and said to be held, where a nullable
+/// field on a channel that keeps ticking cannot.</para>
 ///
 /// <para>A tier count does not change during a save, so a ladder held from an
 /// earlier scene is still true. The tier standing on it can move, and does when
@@ -97,13 +106,11 @@ public class CareerStatus
 /// rather than one being trusted further than the other.</para>
 ///
 /// <internal>
-/// <para>Split out of <c>CareerStatus</c>, which it used to ride as a nullable
-/// <c>facilities</c> group. It could not be held there: a field subtopic takes
-/// its parent channel's staleness outright (see the client's
+/// <para>Kept off <c>CareerStatus</c> on purpose. A field subtopic takes its
+/// parent channel's freshness outright (see the client's
 /// <c>TimelineStore.sampleStatus</c>), and <c>career.status</c> keeps arriving
-/// everywhere because the economy on it does. So the facilities read as a
-/// CURRENT answer of null, which is the one thing they are not, and the grid
-/// dropped nine cells of a space centre that was still standing.</para>
+/// everywhere because the economy on it does, so a nested facilities group
+/// would read as a CURRENT null, which is the one thing it is not.</para>
 ///
 /// <para>The producer half is
 /// <c>Sitrep.Host.CareerViewProvider.BuildFacilities</c> over
@@ -124,7 +131,8 @@ public class CareerFacilities
     /// DYNAMIC-KEY MAP keyed by <c>SpaceCenterFacility</c> name (e.g.
     /// <c>"LaunchPad"</c>, <c>"VehicleAssemblyBuilding"</c>): not a fixed record,
     /// so enumerate the keys rather than reaching for one you expect to be there.
-    /// Never empty on the wire: the channel is absent instead.
+    /// A facility the game cannot report is left out of the map. Never empty on
+    /// the wire: the channel is absent instead.
     /// <internal>
     /// Modelled as a <c>Dictionary&lt;string, CareerFacility&gt;</c> so codegen
     /// emits a TS index signature, matching how <c>VesselResources.Resources</c>
@@ -134,8 +142,11 @@ public class CareerFacilities
     public Dictionary<string, CareerFacility>? Facilities { get; set; }
 }
 
-/// <summary>Economy sub-group of <see cref="CareerStatus"/>:
-/// funds/reputation/science, each null when absent.</summary>
+/// <summary>
+/// Economy sub-group of <see cref="CareerStatus"/>: the funds, reputation and
+/// science balances, each <c>null</c> when unreadable, plus what the elected
+/// money model says reputation is worth.
+/// </summary>
 /// <category>Career</category>
 [SitrepContract]
 #if SITREP_CODEGEN
@@ -143,23 +154,31 @@ public class CareerFacilities
 #endif
 public class CareerEconomy
 {
+    /// <summary>
+    /// The career's funds balance, KSP's <c>Funding.Funds</c>. <c>null</c> when
+    /// the funding module is not loaded.
+    /// </summary>
     [SitrepUnit(Units.Funds)]
     public double? Funds { get; set; }
 
     /// <summary>
-    /// The stock reputation field, unchanged. Under a career overhaul it is the
-    /// most consequential number in the save (it IS the income) and the value was
-    /// never wrong: what was missing is the context below, which is why that
-    /// arrived as an elected interpretation rather than as a replacement here.
+    /// The career's reputation, KSP's <c>Reputation.reputation</c>, unchanged by
+    /// any money model. Under a career overhaul it is the most consequential
+    /// number in the save (it IS the income); the fields below say what it is
+    /// worth. <c>null</c> when the reputation module is not loaded.
     /// </summary>
     [SitrepUnit(Units.Reputation)]
     public double? Reputation { get; set; }
 
+    /// <summary>
+    /// The career's science balance, KSP's <c>ResearchAndDevelopment.Science</c>.
+    /// <c>null</c> when the R&amp;D module is not loaded.
+    /// </summary>
     [SitrepUnit(Units.Science)]
     public double? Science { get; set; }
 
     /// <summary>
-    /// Which money model answered the four fields below, e.g. <c>"stock"</c>.
+    /// Which money model produced the fields below, e.g. <c>"stock"</c>.
     /// Provenance only: a client reads the interpretation, never branches on who
     /// produced it.
     /// </summary>
@@ -236,7 +255,7 @@ public class CareerEconomy
     /// </summary>
     /// <remarks> The second reason <see cref="Funds"/> alone is not an
     /// affordability test: where this exists, part of a price is already paid.
-    /// It is a BALANCE and not a per-purchase answer, so a surface that offers
+    /// It is a BALANCE and not a per-purchase figure, so a surface that offers
     /// such a purchase shows this and the funds balance together rather than
     /// deriving the split itself.
     /// </remarks>
@@ -292,9 +311,10 @@ public class CareerUpkeep
 }
 
 /// <summary>
-/// One facility entry in <see cref="CareerFacilities.Facilities"/>. All three
-/// fields share one live-facility gate on the KSP side, so they are null
-/// together when the facility isn't queryable in the current scene.
+/// One facility entry in <see cref="CareerFacilities.Facilities"/>. A facility
+/// the game cannot currently report is left out of the map rather than sent
+/// with null fields, so an entry that is present always carries
+/// <see cref="CurrentTier"/> and <see cref="MaxTier"/>.
 /// </summary>
 /// <category>Career</category>
 [SitrepContract]
@@ -307,25 +327,37 @@ public class CareerFacility
     /// Which facility this entry is, as KSP's <c>SpaceCenterFacility</c>
     /// ORDINAL, typed to <see cref="KspSpaceCenterFacility"/>.
     ///
-    /// <para><c>career.status.facilities</c> is keyed by the enum NAME and stays
-    /// that way: rekeying the map to a number would be a breaking retype and
-    /// would change the shape of every consumer's key walk. So the identity
-    /// rides INSIDE the entry instead, and a client no longer has to recognise
-    /// the key it arrived under. It used to have to: the key was matched against
-    /// a hand-written nine-entry name table, and a facility whose name missed
-    /// was skipped outright, so it simply vanished from the display.</para>
+    /// <para><see cref="CareerFacilities.Facilities"/> is keyed by the enum
+    /// NAME. The identity also rides INSIDE the entry, so a client can identify
+    /// the facility without recognising the key it arrived under.</para>
     ///
-    /// <para><c>null</c> from a producer that predates this field.</para>
+    /// <para><c>null</c> when the producer sent no ordinal.</para>
     /// </summary>
     [SitrepUnit(Units.Enumeration)]
     public KspSpaceCenterFacility? FacilityOrdinal { get; set; }
 
+    /// <summary>
+    /// The tier the facility stands at, KSP's zero-based
+    /// <c>UpgradeableFacility.FacilityLevel</c>: <c>0</c> is the first tier.
+    /// Away from a scene that registers the building, this is the tier the save
+    /// holds, read against the ladder last seen.
+    /// </summary>
     [SitrepUnit(Units.Count)]
     public int? CurrentTier { get; set; }
 
+    /// <summary>
+    /// The highest tier this facility can reach, KSP's zero-based
+    /// <c>UpgradeableFacility.MaxLevel</c>. The facility is fully upgraded when
+    /// <see cref="CurrentTier"/> equals it, and it has <c>MaxTier + 1</c> tiers.
+    /// </summary>
     [SitrepUnit(Units.Count)]
     public int? MaxTier { get; set; }
 
+    /// <summary>
+    /// The price of upgrading to the next tier, as KSP's
+    /// <c>UpgradeableFacility.GetUpgradeCost</c> prices it (the save's funds
+    /// difficulty multiplier applied). <c>null</c> when it could not be read.
+    /// </summary>
     [SitrepUnit(Units.Funds)]
     public double? UpgradeCost { get; set; }
 }
@@ -339,25 +371,34 @@ public class CareerFacility
 #endif
 public class CareerContracts
 {
+    /// <summary>
+    /// Contracts the career has accepted and not yet finished
+    /// (<c>Contract.State.Active</c>).
+    /// </summary>
     public List<CareerContract> Active { get; set; } = new();
 
+    /// <summary>
+    /// Contracts on offer and not yet accepted (<c>Contract.State.Offered</c>).
+    /// </summary>
     public List<CareerContract> Offered { get; set; } = new();
 
     /// <summary> BOUNDED recently-completed list: the last N (currently 10)
     /// <c>State.Completed</c> contracts from
     /// <c>ContractSystem.Instance.ContractsFinished</c>, sorted newest-first by
-    /// <c>Contract.DateFinished</c> (see
-    /// <c>Gonogo.KSP.KspHost.BuildCareerContracts</c>). Same <see
-    /// cref="CareerContract"/> element shape as <see cref="Active"/> / <see
-    /// cref="Offered"/>: no extra fields; <c>State</c> is always
-    /// <c>"Completed"</c> here. Rides <c>career.status</c> (held at the home
-    /// command).
+    /// <c>Contract.DateFinished</c>. Failed, expired, cancelled and withdrawn
+    /// contracts are not included. Same <see cref="CareerContract"/> element
+    /// shape as <see cref="Active"/> / <see cref="Offered"/>: no extra fields;
+    /// <c>State</c> is always <c>"Completed"</c> here.
+    /// <internal>
+    /// Filled by <c>Gonogo.KSP.KspHost.BuildCareerContracts</c>.
+    /// </internal>
     /// </summary>
     public List<CareerContract> CompletedRecent { get; set; } = new();
 }
 
-/// <summary>One contract in <see cref="CareerContracts.Active"/> / <see
-/// cref="CareerContracts.Offered"/>.</summary>
+/// <summary>One contract in <see cref="CareerContracts.Active"/>, <see
+/// cref="CareerContracts.Offered"/> or <see
+/// cref="CareerContracts.CompletedRecent"/>.</summary>
 /// <category>Career</category>
 [SitrepContract]
 #if SITREP_CODEGEN
@@ -365,45 +406,83 @@ public class CareerContracts
 #endif
 public class CareerContract
 {
+    /// <summary>
+    /// KSP's <c>Contract.ContractID</c> as a decimal string: the id save files
+    /// and other mods key contracts by, and stable for the contract's life. A
+    /// string because the value routinely exceeds JavaScript's safe integer
+    /// range.
+    /// </summary>
     [SitrepUnit(Units.Id)]
     public string? Id { get; set; }
 
+    /// <summary>The contract's display title, <c>Contract.Title</c>.</summary>
     [SitrepUnit(Units.Text)]
     public string? Title { get; set; }
 
+    /// <summary>
+    /// The name of the agency offering the contract. <c>null</c> when the
+    /// contract has no agent.
+    /// </summary>
     [SitrepUnit(Units.Text)]
     public string? Agent { get; set; }
 
+    /// <summary>
+    /// KSP's <c>Contract.State</c> enum NAME, e.g. <c>"Active"</c>,
+    /// <c>"Offered"</c> or <c>"Completed"</c>.
+    /// </summary>
     [SitrepUnit(Units.Text)]
     public string? State { get; set; }
 
+    /// <summary>Funds paid when the contract is accepted.</summary>
     [SitrepUnit(Units.Funds)]
     public double? FundsAdvance { get; set; }
 
+    /// <summary>Funds paid when the contract is completed.</summary>
     [SitrepUnit(Units.Funds)]
     public double? FundsCompletion { get; set; }
 
+    /// <summary>Funds taken when the contract fails.</summary>
     [SitrepUnit(Units.Funds)]
     public double? FundsFailure { get; set; }
 
+    /// <summary>Science awarded when the contract is completed.</summary>
     [SitrepUnit(Units.Science)]
     public double? ScienceCompletion { get; set; }
 
+    /// <summary>Reputation awarded when the contract is completed.</summary>
     [SitrepUnit(Units.Reputation)]
     public double? ReputationCompletion { get; set; }
 
+    /// <summary>Reputation lost when the contract fails.</summary>
     [SitrepUnit(Units.Reputation)]
     public double? ReputationFailure { get; set; }
 
+    /// <summary>
+    /// When the contract was accepted, KSP's <c>Contract.DateAccepted</c>.
+    /// </summary>
     [SitrepUnit(Units.UniversalTime)]
     public double? DateAccepted { get; set; }
 
+    /// <summary>
+    /// When an accepted contract must be completed by, KSP's
+    /// <c>Contract.DateDeadline</c>. Passed through as KSP holds it, so a
+    /// contract with no deadline carries <c>0</c> here rather than <c>null</c>.
+    /// </summary>
     [SitrepUnit(Units.UniversalTime)]
     public double? DateDeadline { get; set; }
 
+    /// <summary>
+    /// When an offered contract is withdrawn if not accepted, KSP's
+    /// <c>Contract.DateExpire</c>.
+    /// </summary>
     [SitrepUnit(Units.UniversalTime)]
     public double? DateExpire { get; set; }
 
+    /// <summary>
+    /// The contract's top-level objectives, in KSP's order. Nested
+    /// sub-parameters are not listed. Always present, empty when the contract
+    /// has none.
+    /// </summary>
     public List<CareerContractParameter> Parameters { get; set; } = new();
 }
 
@@ -416,6 +495,7 @@ public class CareerContract
 #endif
 public class CareerContractParameter
 {
+    /// <summary>The objective's display title, KSP's ContractParameter.Title.</summary>
     [SitrepUnit(Units.Text)]
     public string? Title { get; set; }
 
@@ -429,17 +509,13 @@ public class CareerContractParameter
 
     /// <summary>
     /// <see cref="State"/>'s KSP ORDINAL, typed to
-    /// <see cref="KspParameterState"/>.
-    ///
-    /// <para>Whether an objective reads as DONE was decided by comparing
-    /// <see cref="State"/> against <c>"Complete"</c>, and an unrecognised
-    /// spelling collapsed onto <c>Incomplete</c>. That is the pessimistic arm:
-    /// a completed objective showing as outstanding, and a contract-parameter
-    /// ALARM set on "Complete" that simply never fires. An alarm that never
-    /// fires is the failure mode this whole exercise is about.</para>
+    /// <see cref="KspParameterState"/>. Branch on this rather than on the
+    /// spelling of <see cref="State"/>: matching a label means an unrecognised
+    /// spelling reads as outstanding, and a contract-parameter alarm set on
+    /// "Complete" never fires.
     ///
     /// <para><c>null</c> when the capture carried no state, which is a third
-    /// answer and must not be read as either arm.</para>
+    /// value and must not be read as either complete or incomplete.</para>
     /// </summary>
     [SitrepUnit(Units.Enumeration)]
     public KspParameterState? StateOrdinal { get; set; }
@@ -461,9 +537,8 @@ public class CareerContractParameter
 }
 
 /// <summary>
-/// Strategies sub-group of <see cref="CareerStatus"/>.
-/// <see cref="ActiveCount"/> is NON-nullable, the provider defaults it to
-/// <c>Active.Count</c> when the raw value is absent.
+/// Strategies sub-group of <see cref="CareerStatus"/>. Both lists are always
+/// present (empty, never null).
 /// </summary>
 /// <category>Career</category>
 [SitrepContract]
@@ -472,10 +547,23 @@ public class CareerContractParameter
 #endif
 public class CareerStrategies
 {
+    /// <summary>
+    /// The strategies currently active, in the same entry shape as
+    /// <see cref="All"/>. Not filtered against the Administration Building's
+    /// cap, so a save that carries more active strategies than its building
+    /// allows shows all of them.
+    /// </summary>
     public List<CareerStrategy> Active { get; set; } = new();
 
+    /// <summary>
+    /// Every strategy the save knows about, active or not.
+    /// </summary>
     public List<CareerStrategy> All { get; set; } = new();
 
+    /// <summary>
+    /// How many strategies are active. Never null: it is the length of
+    /// <see cref="Active"/> when the raw count is absent.
+    /// </summary>
     [SitrepUnit(Units.Count)]
     public int ActiveCount { get; set; }
 
@@ -509,57 +597,101 @@ public class CareerStrategies
 #endif
 public class CareerStrategy
 {
+    /// <summary>
+    /// The strategy's internal config name, KSP's <c>StrategyConfig.Name</c>
+    /// (e.g. <c>"OutsourceRnDStrategy"</c>): stable across a save, and the id
+    /// <see cref="ActivateStrategyArgs.StrategyId"/> takes.
+    /// </summary>
     [SitrepUnit(Units.Id)]
     public string? Id { get; set; }
 
+    /// <summary>The strategy's display title, KSP's Strategy.Title.</summary>
     [SitrepUnit(Units.Text)]
     public string? Title { get; set; }
 
+    /// <summary>The strategy's description text, KSP's Strategy.Description.</summary>
     [SitrepUnit(Units.Text)]
     public string? Description { get; set; }
 
+    /// <summary>
+    /// The name of the Administration department the strategy belongs to,
+    /// KSP's Strategy.DepartmentName.
+    /// </summary>
     [SitrepUnit(Units.Text)]
     public string? Department { get; set; }
 
+    /// <summary>Whether the strategy is active, KSP's Strategy.IsActive.</summary>
     [SitrepUnit(Units.Flag)]
     public bool? IsActive { get; set; }
 
+    /// <summary>
+    /// The strategy's commitment level, KSP's Strategy.Factor: the position of
+    /// its commitment slider as a 0..1 fraction.
+    /// </summary>
     [SitrepUnit(Units.Ratio)]
     public double? Factor { get; set; }
 
+    /// <summary>
+    /// When the strategy was activated, KSP's Strategy.DateActivated.
+    /// Meaningful only while <see cref="IsActive"/> is <c>true</c>.
+    /// </summary>
     [SitrepUnit(Units.UniversalTime)]
     public double? DateActivated { get; set; }
 
+    /// <summary>
+    /// The reputation the career needs before the strategy can be activated,
+    /// KSP's Strategy.RequiredReputation.
+    /// </summary>
     [SitrepUnit(Units.Reputation)]
     public double? RequiredReputation { get; set; }
 
+    /// <summary>
+    /// The funds charged on activation, KSP's Strategy.InitialCostFunds.
+    /// </summary>
     [SitrepUnit(Units.Funds)]
     public double? InitialCostFunds { get; set; }
 
+    /// <summary>
+    /// The science charged on activation, KSP's Strategy.InitialCostScience.
+    /// </summary>
     [SitrepUnit(Units.Science)]
     public double? InitialCostScience { get; set; }
 
+    /// <summary>
+    /// The reputation charged on activation,
+    /// KSP's Strategy.InitialCostReputation.
+    /// </summary>
     [SitrepUnit(Units.Reputation)]
     public double? InitialCostReputation { get; set; }
 
+    /// <summary>
+    /// Whether the strategy offers a commitment slider, so that
+    /// <see cref="Factor"/> can be chosen, KSP's Strategy.HasFactorSlider.
+    /// </summary>
     [SitrepUnit(Units.Flag)]
     public bool? HasFactorSlider { get; set; }
 
+    /// <summary>
+    /// The 0..1 position the game starts the commitment slider at,
+    /// KSP's Strategy.FactorSliderDefault.
+    /// </summary>
     [SitrepUnit(Units.Ratio)]
     public double? FactorSliderDefault { get; set; }
 
+    /// <summary>
+    /// How many discrete positions the commitment slider has,
+    /// KSP's Strategy.FactorSliderSteps.
+    /// </summary>
     [SitrepUnit(Units.Count)]
     public int? FactorSliderSteps { get; set; }
 
     /// <summary>
     /// Whether KSP would allow this strategy to be committed to right now.
     /// <c>null</c> means the question could not be put at all, which is NOT a
-    /// refusal: <see cref="ActivateBlockedReason"/> then accounts for why nobody
-    /// answered rather than naming a rule the strategy broke.
+    /// refusal: <see cref="ActivateBlockedReason"/> then says why no check could
+    /// run rather than naming a rule the strategy broke.
     /// <internal>
-    /// Written from Gonogo.KSP.StrategyEligibility. The absent case used to be
-    /// the whole roster whenever the Administration Building was shut; it is now
-    /// only an arm that genuinely could not be read.
+    /// Written from Gonogo.KSP.StrategyEligibility.
     /// </internal>
     /// </summary>
     [SitrepUnit(Units.Flag)]
@@ -569,40 +701,41 @@ public class CareerStrategy
     /// KSP's own wording for the rule that refused, or an installed career mod's
     /// wording for a rule of its own, or an account of why the question could not
     /// be put when <see cref="CanActivate"/> is <c>null</c>.
-    /// Empty when the answer was yes.
+    /// Empty when activation is allowed.
     /// </summary>
     [SitrepUnit(Units.Text)]
     public string? ActivateBlockedReason { get; set; }
 
     /// <summary>
     /// Which route produced <see cref="CanActivate"/>: <c>"screened"</c> when
-    /// KSP's own check answered, <c>"derived"</c> when the same rules were
-    /// evaluated one at a time because the Administration Building was shut, or
-    /// when the strategy is already active or an installed career mod refused it
-    /// on a rule of its own, and <c>"none"</c> when there is no verdict to carry.
+    /// KSP's own check ran, <c>"derived"</c> when the same rules were checked
+    /// one at a time because the Administration Building was shut, or when the
+    /// strategy is already active or an installed career mod refused it on a
+    /// rule of its own, and <c>"none"</c> when there is no verdict to carry.
     ///
     /// <para><c>"derived"</c> always accompanies a refusal and never a yes. The
-    /// game stops at its first refusal, so an arm that refuses off-screen would
-    /// have refused on it; but one arm counts the career's running strategies on
-    /// that screen and cannot be asked anywhere else, and permission is owed to
-    /// every arm. A row nothing could refuse therefore arrives unanswered with
-    /// <c>"none"</c> rather than allowed.</para>
+    /// game stops at its first refusal, so a rule that refuses off-screen would
+    /// have refused on it; but one rule counts the career's running strategies
+    /// on that screen and cannot be checked anywhere else, and permission needs
+    /// every rule to pass. A strategy no rule refused therefore arrives with no
+    /// verdict and <c>"none"</c> rather than as allowed.</para>
     ///
-    /// <para>A <c>"derived"</c> verdict never arms an activation control: it can
-    /// only refuse. Whether a strategy the roster left unanswered may be
-    /// committed is decided by <c>career.strategy.activate</c> itself, which puts
-    /// every check again at the moment it runs and refuses in the game's words
-    /// or as unreadable rather than guessing.</para>
+    /// <para>Never enable an activation control from a <c>"derived"</c> verdict:
+    /// it can only refuse. Whether a strategy without a verdict may be committed
+    /// is decided by <c>career.strategy.activate</c> itself, which runs every
+    /// check again at the moment it executes and refuses in the game's words or
+    /// as unreadable rather than guessing.</para>
     /// <internal>
-    /// StrategyActivationRule walks arms 2-9 of Strategies.Strategy.
+    /// StrategyActivationRule walks checks 2-9 of Strategies.Strategy.
     /// CanBeActivated. The commit ceiling comes from GameVariables, which is
     /// where Administration.Start reads it from itself and which is virtual so a
-    /// retiering mod's override is inherited. Arm 1 is deliberately not
+    /// retiering mod's override is inherited. Check 1 is deliberately not
     /// reproduced: activeStrategyCount is a scroll-view item counter RP-1
     /// overwrites, so substituting a roster count would enforce stock's rule on a
-    /// career that has replaced it. The write side asks arm 1 off the roster only
-    /// after confirming nothing has patched stock's activation, which is the one
-    /// case where the roster count and the screen's counter agree.
+    /// career that has replaced it. The write side applies check 1 off the
+    /// roster only after confirming nothing has patched stock's activation,
+    /// which is the one case where the roster count and the screen's counter
+    /// agree.
     /// </internal>
     /// </summary>
     [SitrepUnit(Units.Text)]
@@ -620,20 +753,33 @@ public class CareerStrategy
     [SitrepUnit(Units.UniversalTime)]
     public double? ActivateAvailableFromUt { get; set; }
 
+    /// <summary>
+    /// Whether KSP would allow this strategy to be ended right now,
+    /// KSP's Strategy.CanBeDeactivated. <c>false</c> with a reason beginning
+    /// <c>"eligibility check failed: "</c> when the check itself threw.
+    /// </summary>
     [SitrepUnit(Units.Flag)]
     public bool? CanDeactivate { get; set; }
 
+    /// <summary>
+    /// KSP's own wording for why the strategy cannot be ended, or the failed
+    /// check described in <see cref="CanDeactivate"/>. Empty or <c>null</c> when
+    /// deactivation is allowed.
+    /// </summary>
     [SitrepUnit(Units.Text)]
     public string? DeactivateBlockedReason { get; set; }
 
+    /// <summary>
+    /// KSP's text describing what the strategy does while active,
+    /// Strategy.Effect.
+    /// </summary>
     [SitrepUnit(Units.Text)]
     public string? Effect { get; set; }
 }
 
 /// <summary>
-/// Tech sub-group of <see cref="CareerStatus"/>.
-/// <see cref="UnlockedCount"/> is NON-nullable, the provider defaults it to
-/// <c>UnlockedIds.Count</c> when the raw value is absent.
+/// Tech sub-group of <see cref="CareerStatus"/>. Both lists are always present
+/// (empty, never null).
 /// </summary>
 /// <category>Career</category>
 [SitrepContract]
@@ -642,12 +788,27 @@ public class CareerStrategy
 #endif
 public class CareerTech
 {
+    /// <summary>
+    /// How many distinct tech nodes are unlocked. Never null: it is the length
+    /// of <see cref="UnlockedIds"/> when the raw count is absent.
+    /// </summary>
     [SitrepUnit(Units.Count)]
     public int UnlockedCount { get; set; }
 
+    /// <summary>
+    /// The ids of the unlocked tech nodes, in no particular order. Derived from
+    /// the loaded parts (each part's <c>TechRequired</c> whose tech is
+    /// available), so a node that unlocks no part never appears here even when
+    /// it is researched; <see cref="CareerTechNode.Unlocked"/> is the per-node
+    /// reading.
+    /// </summary>
     [SitrepUnit(Units.Id)]
     public List<string> UnlockedIds { get; set; } = new();
 
+    /// <summary>
+    /// Every node of the tech tree the save is playing, including a tree a mod
+    /// has replaced. Empty when the tree is not loaded yet.
+    /// </summary>
     public List<CareerTechNode> Nodes { get; set; } = new();
 }
 
@@ -659,9 +820,14 @@ public class CareerTech
 #endif
 public class CareerTechNode
 {
+    /// <summary>The node's tech id, KSP's <c>techID</c> (e.g. <c>"basicRocketry"</c>).</summary>
     [SitrepUnit(Units.Id)]
     public string? Id { get; set; }
 
+    /// <summary>
+    /// The node's display title, from
+    /// <c>ResearchAndDevelopment.GetTechnologyTitle</c>.
+    /// </summary>
     [SitrepUnit(Units.Text)]
     public string? Title { get; set; }
 
@@ -678,12 +844,25 @@ public class CareerTechNode
     [SitrepUnit(Units.Text)]
     public string? Description { get; set; }
 
+    /// <summary>
+    /// The science it costs to research the node, from the tree's config.
+    /// </summary>
     [SitrepUnit(Units.Science)]
     public double? ScienceCost { get; set; }
 
+    /// <summary>
+    /// Whether the node is researched in this save
+    /// (<c>ResearchAndDevelopment.GetTechnologyState</c> is <c>Available</c>).
+    /// </summary>
     [SitrepUnit(Units.Flag)]
     public bool? Unlocked { get; set; }
 
+    /// <summary>
+    /// The tech ids of the node's prerequisites, from the tree's parent edges.
+    /// Empty for a root node. Whether a locked node is researchable is left to
+    /// the client, from these edges and each parent's
+    /// <see cref="Unlocked"/>.
+    /// </summary>
     [SitrepUnit(Units.Id)]
     public List<string> Parents { get; set; } = new();
 }

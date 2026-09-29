@@ -301,20 +301,11 @@ export const DOC_DEBT: Record<string, Partial<Record<Tier, number>>> = {
  * reachable now, so the reference is not a violation and the entry is gone
  * rather than lowered.
  *
- * - `IPropagationProvider.cs` crefs `KeplerProvider`, in `Sitrep.Propagation`.
- *   Residue of the original bug: the interface moved to the contract, the cref
- *   pointing into the private assembly did not.
  * - `PropagationTarget.cs` names `KeplerProvider` normatively, twice: "the same
  *   Z-up inertial convention `KeplerProvider` emits" is a requirement stated
  *   only by reference to code the implementer cannot read.
- * - `ActionGroupsBackend.cs` names `StockActionGroupsBackend`, in `Gonogo.KSP`.
- *   Informative rather than instructive, but it is the first-party
- *   implementation of a third-party extension point, so it is the one a new
- *   backend author would most want to read.
  */
 export const CS_CAPABILITY_SEAM_DEBT: Record<string, number> = {
-  "mod/Sitrep.Contract/ActionGroupsBackend.cs": 1,
-  "mod/Sitrep.Contract/IPropagationProvider.cs": 1,
   "mod/Sitrep.Contract/PropagationTarget.cs": 2,
 };
 

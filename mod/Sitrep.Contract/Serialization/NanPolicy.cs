@@ -10,9 +10,8 @@ namespace Sitrep.Contract.Serialization
     ///
     /// A browser's <c>JSON.parse</c> rejects bare <c>NaN</c> / <c>Infinity</c>
     /// tokens (they aren't valid JSON), and KSP's own orbit math is a real
-    /// source of these values on the wire (eccentric-anomaly / landing
-    /// telemetry can genuinely be NaN; see the fork's known n-body/NaN
-    /// quirks). Rather than dropping the sample or crashing the writer, a
+    /// source of these values on the wire (eccentric-anomaly and landing
+    /// telemetry can genuinely be NaN). Rather than dropping the sample or crashing the writer, a
     /// non-finite <c>double</c> is encoded as one of three fixed JSON
     /// STRING tokens (<c>"NaN"</c>, <c>"Infinity"</c>, <c>"-Infinity"</c>)
     /// matching JavaScript's own <c>String(NaN)</c> / <c>String(Infinity)</c>
@@ -29,15 +28,10 @@ namespace Sitrep.Contract.Serialization
     /// string-value parsing (read side, the ONLY place a JSON string token
     /// is converted into a CLR value).
     ///
-    /// KNOWN TRADE-OFF (documented, accepted for M5a): because the decode
-    /// side applies to every parsed string uniformly, a genuine string
-    /// PAYLOAD value that happens to be exactly <c>"NaN"</c>, <c>"Infinity"</c>,
-    /// or <c>"-Infinity"</c> will be misread back as the corresponding
-    /// double rather than preserved as a string. Telemetry payloads are
-    /// essentially never literal strings with those exact values, so this is
-    /// an acceptable ambiguity rather than a real-world bug; a future
-    /// protocol version could resolve it with explicit type tagging if that
-    /// ever changes.
+    /// Known trade-off: because the decode side applies to every parsed string
+    /// uniformly, a genuine string PAYLOAD value that happens to be exactly
+    /// <c>"NaN"</c>, <c>"Infinity"</c>, or <c>"-Infinity"</c> is read back as
+    /// the corresponding double rather than preserved as a string.
     /// </summary>
     internal static class NanPolicy
     {

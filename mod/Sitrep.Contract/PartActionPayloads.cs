@@ -6,31 +6,27 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// One button in a part's right-click Part Action Window: a single KSP
-/// <c>BaseEvent</c>, either from the <c>Part</c> itself or from one of its
-/// <c>PartModule</c>s (the full PAW is the UNION of both, and the module half
-/// is where the interesting actions live: scanners, antennas, solar, deploy).
+/// One button in a part's right-click Part Action Window (PAW): a single KSP
+/// <c>BaseEvent</c>, from the <c>Part</c> itself or from one of its
+/// <c>PartModule</c>s. The full PAW is the union of both, and the module half
+/// is where most actions live: scanners, antennas, solar panels, deploy.
 ///
 /// <para><see cref="Name"/> is the invoke key and <see cref="Label"/> is the
-/// display text: they are deliberately separate because <c>BaseEvent.name</c>
-/// is a stable code identifier while <c>guiName</c> is localized, so a client
-/// that invoked by label would break the moment the player switches language.
-/// The invoke command (<see cref="InvokePartActionArgs"/>) takes
-/// <see cref="Name"/>.</para>
+/// display text. They are separate because <c>BaseEvent.name</c> is a stable
+/// code identifier while <c>guiName</c> is localized, so invoking by label
+/// breaks when the player switches language. The invoke command
+/// (<see cref="InvokePartActionArgs"/>) takes <see cref="Name"/>.</para>
 ///
-/// <para><b>The gating flags are carried, not applied.</b> The producer filters
-/// to "is this button in the flight PAW at all" (<c>guiActive</c>) and then
-/// reports <see cref="Active"/>/<see cref="GuiActiveUnfocused"/>/
-/// <see cref="AdvancedTweakable"/>/<see cref="RequireFullControl"/> rather than
-/// filtering on them, so display policy (does this operator want EVA-range
-/// actions? advanced tweakables?) stays a client decision. Baking that policy
-/// into the wire would make it unchangeable without a contract revision.</para>
+/// <para>Only buttons that appear in the flight PAW at all (<c>guiActive</c>)
+/// are listed. The gating flags <see cref="Active"/>,
+/// <see cref="GuiActiveUnfocused"/>, <see cref="AdvancedTweakable"/> and
+/// <see cref="RequireFullControl"/> are reported rather than filtered on, so
+/// display policy (EVA-range actions, advanced tweakables) is the client's
+/// decision.</para>
 ///
-/// <para><see cref="Active"/> specifically is CARRIED, not filtered: KSP itself
-/// shows an inert PAW button greyed out rather than removing it, and a client
-/// that dropped <c>!active</c> entries would make the list jump around as craft
-/// state changes. Filtering on it would also make <see cref="Active"/> a field
-/// that is true by construction, which says nothing.</para>
+/// <para>An inactive button is listed, not dropped: KSP shows it greyed out,
+/// and dropping it would make the list jump around as craft state
+/// changes.</para>
 /// </summary>
 /// <category>Parts</category>
 [SitrepContract]
@@ -39,7 +35,7 @@ namespace Sitrep.Contract;
 #endif
 public class PartActionEntry
 {
-    /// <summary><c>BaseEvent.name</c>: the STABLE code identifier, and the key
+    /// <summary><c>BaseEvent.name</c>: the stable code identifier, and the key
     /// <see cref="InvokePartActionArgs.EventName"/> carries back.</summary>
     [SitrepUnit(Units.Id)]
     public string Name { get; set; } = "";
@@ -57,24 +53,22 @@ public class PartActionEntry
 
     /// <summary>
     /// Which <c>PartModule</c> owns this event (<c>PartModule.moduleName</c>),
-    /// or <c>null</c> when the event is on the <c>Part</c> itself. Carried
-    /// because it is the only way a client can tell two same-named events on
-    /// different modules of one part apart, and because it reads as useful
-    /// provenance ("Toggle" on which module?).
+    /// or <c>null</c> when the event is on the <c>Part</c> itself. It is the only
+    /// way to tell apart two same-named events on different modules of one
+    /// part ("Toggle" on which module?).
     /// </summary>
     [SitrepUnit(Units.Id)]
     public string? ModuleName { get; set; }
 
     /// <summary><c>BaseEvent.active</c>: the button is currently enabled. A
-    /// <c>false</c> entry is present-but-inert, so a client renders it disabled
-    /// rather than hiding it (hiding would make the PAW jump around as state
+    /// <c>false</c> entry is present but inert, so render it disabled rather
+    /// than hiding it (hiding would make the list jump around as state
     /// changes).</summary>
     [SitrepUnit(Units.Flag)]
     public bool Active { get; set; }
 
     /// <summary><c>BaseEvent.guiActiveUnfocused</c>: the button also shows when
-    /// near but not focused (the EVA-range set), so a client can hint
-    /// that.</summary>
+    /// near but not focused (the EVA-range set).</summary>
     [SitrepUnit(Units.Flag)]
     public bool GuiActiveUnfocused { get; set; }
 
@@ -85,7 +79,7 @@ public class PartActionEntry
     public bool AdvancedTweakable { get; set; }
 
     /// <summary><c>BaseEvent.requireFullControl</c>: the button needs full
-    /// vessel control (not a partially-crewed/probe-limited state) to
+    /// vessel control (not a partially crewed or probe-limited state) to
     /// fire.</summary>
     [SitrepUnit(Units.Flag)]
     public bool RequireFullControl { get; set; }
@@ -94,29 +88,23 @@ public class PartActionEntry
 /// <summary>
 /// The payload of one <c>vessel.partActions.&lt;flightId&gt;</c> channel: the
 /// PAW buttons currently available on a single part of the active vessel.
+/// <c>&lt;flightId&gt;</c> is the part's <c>Part.flightID</c>, the same value as
+/// <see cref="VesselPart.Id"/>. There is no fixed Topic id: subscribe to the
+/// computed sub-topic directly (in TypeScript, with <c>useStream</c>).
 ///
-/// <para><b>Why a dynamic per-part namespace</b> rather than a field on
-/// <c>vessel.parts</c>: a vessel is 50-200+ parts and each exposes ~5-15 PAW
-/// events across its modules, so materializing every part's list on the
-/// all-parts keyframe would multiply it for data only needed while an operator
-/// has one part open. The per-part namespace is subscription-gated instead, the
-/// producer enumerates ONLY the parts a client is actually subscribed to, so
-/// nothing open costs nothing. See <c>Gonogo.KSP.VesselUplink</c>'s
-/// registration.</para>
+/// <para>The channel is per part and subscription-gated: only the parts a
+/// client is subscribed to are enumerated, so a vessel of hundreds of parts
+/// costs nothing until one is open.</para>
 ///
-/// <para><b>Why a stream and not a one-shot query:</b> the action set is its
-/// own read-back. Invoking "Extend Solar Panel" flips this list to "Retract
-/// Solar Panel" one light-time later, which is how a client confirms a delayed
-/// command landed WITHOUT optimistically flipping its own UI. A
-/// request/response enumeration would hand back a snapshot that is out of date
-/// the instant its own command arrives.</para>
-///
-/// <para><b>Not a <c>[SitrepTopic]</c>-tagged root:</b> the topic string is
-/// computed at runtime (<c>vessel.partActions.</c> + the part's
-/// <c>flightID</c>), so there is no fixed name to tag, same posture as the
-/// mod's other dynamic per-subject namespaces, whose element types are
-/// likewise untagged. The client subscribes to the computed sub-topic
-/// directly.</para>
+/// <para>It is a stream rather than a one-shot query because the action set is
+/// its own read-back. Invoking "Extend Solar Panel" changes this list to
+/// "Retract Solar Panel" one light-time later, which is how a client confirms a
+/// delayed command landed without optimistically changing its own UI.</para>
+/// <internal>
+/// Registered as a dynamic namespace by Gonogo.KSP.VesselUplink; the element
+/// types of the mod's dynamic per-subject namespaces are untagged because the
+/// topic string is computed at runtime.
+/// </internal>
 /// </summary>
 /// <category>Parts</category>
 [SitrepContract]
@@ -127,20 +115,26 @@ public class PartActions
 {
     /// <summary><c>Part.flightID</c> stringified: the same join key <see
     /// cref="VesselPart.Id"/>, <c>parts.power</c> and <c>robotics.servos</c>
-    /// use, echoed so a payload is self-describing away from its topic
+    /// use, repeated so the payload identifies its part without the topic
     /// string.</summary>
     [SitrepUnit(Units.Id)]
     public string PartId { get; set; } = "";
 
     /// <summary>
     /// The part's currently-available PAW buttons, the union of the part's own
-    /// events and every one of its modules' events, filtered to
-    /// <c>guiActive</c> (see <see cref="PartActionEntry.Active"/> for why the
-    /// enabled flag is carried rather than filtered on). Always present,
-    /// possibly empty (a structural part with no actions); an empty list is a
-    /// real answer, not an absence.
+    /// events and every one of its modules' events, limited to those shown in
+    /// the flight PAW (<c>guiActive</c>). Disabled buttons are included; see
+    /// <see cref="PartActionEntry.Active"/>. Always present, possibly empty (a
+    /// structural part with no actions): an empty list means the part has no
+    /// actions, not that the list is missing.
     /// </summary>
     public List<PartActionEntry> Actions { get; set; } = new();
 
+    /// <summary>
+    /// Payload provenance. <c>Source</c> is <c>"vessel:&lt;guid&gt;"</c> for the
+    /// active vessel, or <c>""</c> when no vessel id was known.
+    /// <c>Quality</c> is always <c>OnRails</c> on this payload and says nothing
+    /// about whether the part is loaded.
+    /// </summary>
     public PayloadMeta Meta { get; set; } = new();
 }

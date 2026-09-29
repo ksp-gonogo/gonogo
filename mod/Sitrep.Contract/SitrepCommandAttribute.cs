@@ -4,29 +4,23 @@ namespace Sitrep.Contract
 {
     /// <summary>
     /// Tags a command's ARGS class with the command id (or ids) it is the args
-    /// for, so the TS-SDK codegen can build the
-    /// <c>CommandId -&gt; CommandArgs&lt;C&gt;</c> / <c>CommandReply&lt;C&gt;</c>
-    /// maps by reflection. The write-side twin of
-    /// <see cref="SitrepTopicAttribute"/>, and it exists for the same reason: a
-    /// command an author cannot enumerate is a command they cannot find. Before
-    /// this tag the SDK named nine commands out of a hundred and typed
-    /// <c>send</c> as <c>(args?: unknown) =&gt; Promise&lt;unknown&gt;</c>.
+    /// for, so every command can be enumerated and typed in the TypeScript SDK:
+    /// its args type, what it returns, and whether it rides the light-time
+    /// delay. It is metadata only and does not touch the wire.
     ///
-    /// <para><c>AllowMultiple</c> is on because one args shape routinely
-    /// serves several commands: <see cref="SetEnabledArgs"/> carries six
+    /// <para><c>AllowMultiple</c> is on because one args shape routinely serves
+    /// several commands: <see cref="SetEnabledArgs"/> carries six
     /// (<c>setSas</c>/<c>setRcs</c>/<c>setGear</c>/<c>setBrakes</c>/
-    /// <c>setLights</c>/<c>setAbort</c>), and a command that took its own
-    /// one-field class purely to be enumerable would be a shape invented for the
-    /// codegen rather than for the wire.</para>
+    /// <c>setLights</c>/<c>setAbort</c>).</para>
     ///
-    /// <para>What the command ANSWERS is one of three things, and the two
+    /// <para>What the command returns is one of three things, and the two
     /// optional properties are how a declaration says which. Neither set (the
     /// common case) means a bare <see cref="CommandResult"/>: success or a typed
     /// refusal, nothing more. <see cref="Payload"/> is the <c>T</c> of a
     /// handler's <c>CommandResult&lt;T&gt;</c>, which the SDK maps to
-    /// <c>CommandResultOf&lt;T&gt;</c>. <see cref="Result"/> is for the command
-    /// that answers with something that is not a <see cref="CommandResult"/> at
-    /// all (<c>vessel.trajectory.forVantage</c> resolves a bare
+    /// <c>CommandResultOf&lt;T&gt;</c>. <see cref="Result"/> is for a command
+    /// that resolves with something that is not a <see cref="CommandResult"/>
+    /// at all (<c>vessel.trajectory.forVantage</c> resolves a bare
     /// <see cref="VantagePlanReply"/>), and names that type exactly. Setting
     /// both is a contradiction and stops the build.</para>
     ///
@@ -34,20 +28,23 @@ namespace Sitrep.Contract
     /// exist stops the build here, where the mistake is, rather than reaching a
     /// client as a name that resolves to nothing.</para>
     ///
-    /// <para>A command with NO arguments still needs somewhere to carry its tag,
-    /// and that somewhere is <see cref="NoCommandArgs"/> for core (an Uplink's
-    /// own slice declares its own marker). The
-    /// alternative, an attribute on some catalog class listing the ids, is a
-    /// hand-maintained list in a new place, which is the failure this tag
-    /// exists to end.</para>
-    ///
-    /// <para>Lives IN <c>Sitrep.Contract</c> and is compiled into every build,
-    /// not just the codegen one, the same rule
+    /// <para>A command with NO arguments still needs somewhere to carry its tag:
+    /// <see cref="NoCommandArgs"/> for core, and a marker class of its own in an
+    /// Uplink's slice.</para>
+    /// <internal>
+    /// The write-side twin of <see cref="SitrepTopicAttribute"/>: the TS-SDK
+    /// codegen builds the <c>CommandId -&gt; CommandArgs&lt;C&gt;</c> /
+    /// <c>CommandReply&lt;C&gt;</c> maps from it by reflection. A command that
+    /// took its own one-field class purely to be enumerable would be a shape
+    /// invented for the codegen rather than for the wire, hence
+    /// <c>AllowMultiple</c>. Lives in <c>Sitrep.Contract</c> and is compiled
+    /// into every build, not just the codegen one, the same rule
     /// <see cref="SitrepTopicAttribute"/> and
     /// <see cref="SitrepControlChannelAttribute"/> follow: anything reflecting
-    /// over it must never have to resolve an external assembly. It is metadata
-    /// only and does NOT touch the wire.</para>
+    /// over it must never have to resolve an external assembly.
+    /// </internal>
     /// </summary>
+    /// <category>Commands</category>
     [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = true)]
     public sealed class SitrepCommandAttribute : Attribute
     {
@@ -56,19 +53,20 @@ namespace Sitrep.Contract
 
         /// <summary>
         /// The type carried in <c>CommandResult.payload</c> on success, or null
-        /// when the command answers a bare <see cref="CommandResult"/>.
+        /// when the command returns a bare <see cref="CommandResult"/>.
         /// </summary>
         public Type Payload { get; set; }
 
         /// <summary>
         /// The exact type the dispatch resolves with, for a command that does
-        /// not answer a <see cref="CommandResult"/> at all. Mutually exclusive
+        /// not return a <see cref="CommandResult"/> at all. Null otherwise.
+        /// Mutually exclusive
         /// with <see cref="Payload"/>.
         /// </summary>
         public Type Result { get; set; }
 
         /// <summary>
-        /// Whether this command rides the Courier's light-time delay. Default
+        /// Whether this command rides the light-time delay. Default
         /// <see cref="DelayRole.Delayed"/>: an order to a craft crosses the gap
         /// like any other signal, and only a fact with no analogue in flight is
         /// <see cref="DelayRole.TrueNow"/>.
@@ -81,19 +79,16 @@ namespace Sitrep.Contract
         /// <c>time.setWarpIndex</c> is a <see cref="DelayRole.TrueNow"/> command;
         /// the <c>alarm.scet.*</c> channels and the <c>alarm.scet.arm</c> /
         /// <c>alarm.scet.disarm</c> commands that write them are the same pair
-        /// again. This property used to be a <c>bool Delayed</c>, so one answer
-        /// had two spellings and <c>Delayed = false</c> had to be read as
-        /// <see cref="DelayRole.TrueNow"/> by anyone who met both.</para>
+        /// again.</para>
         ///
-        /// <para>THIS IS THE ONLY PLACE A COMMAND'S ANSWER IS WRITTEN DOWN. The
-        /// host reads it here when it dispatches
-        /// (<c>Sitrep.Host.CommandDelayCatalog</c>), and the SDK codegen writes
-        /// the same value into <c>GENERATED_COMMAND_RAIL</c>, which is what a
-        /// client's delay UX reads. Before this property the mod stated it on
-        /// <see cref="CommandDeclaration"/> and the client kept a hand-written
-        /// set of ids, and the two disagreed about 52 commands: the mod ran them
-        /// instantly while every console drew a countdown and an in-flight queue
-        /// row for them.</para>
+        /// <para>This is the only place a command's delay role is declared: the
+        /// mod applies it at dispatch, and a client's delay UX reads the same
+        /// value from the SDK.</para>
+        /// <internal>
+        /// The host reads it through <c>Sitrep.Host.CommandDelayCatalog</c>, and
+        /// the SDK codegen writes the same value into
+        /// <c>GENERATED_COMMAND_RAIL</c>.
+        /// </internal>
         ///
         /// <para>Three things earn <see cref="DelayRole.TrueNow"/>, and the rule
         /// is the SIMULATION's point of view rather than one console's. A command
@@ -120,11 +115,13 @@ namespace Sitrep.Contract
         /// Null for every command without such an instant.</para>
         ///
         /// <para>Must name a <c>double</c> property of the args class, which the
-        /// command-map codegen checks, and is written with <c>nameof</c> so a
-        /// rename cannot leave it naming nothing.</para>
+        /// build checks. Write it with <c>nameof</c> so a rename cannot leave it
+        /// naming nothing.</para>
         /// </summary>
         public string? ArriveBefore { get; set; }
 
+        /// <summary>Declares the args class as the args of one command.</summary>
+        /// <param name="commandId">The command id as dispatched, e.g. <c>"vessel.control.setThrottle"</c>. Unique across all declared commands.</param>
         public SitrepCommandAttribute(string commandId)
         {
             CommandId = commandId;

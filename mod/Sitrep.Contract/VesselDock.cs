@@ -5,24 +5,19 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The <c>vessel.dock</c> channel payload: the docking/rendezvous
-/// capture-add (M3 R3): relative position/velocity + coarse orientation
-/// between the active vessel's nearest FREE (undocked) docking port and the
-/// currently-targeted docking port, for docking-alignment widgets. Whole-
-/// channel absence means "not docking-relevant right now", no target
-/// targeted, the target isn't itself a docking port, or the active vessel
-/// has no free port of its own; never an old or zero-distance sentinel
-/// record (same R1(b) convention <see cref="VesselTarget"/> already
-/// established).
+/// The <c>vessel.dock</c> channel payload: the relative position, velocity and
+/// coarse orientation between the active vessel's nearest free (undocked)
+/// docking port and the targeted docking port, for docking-alignment widgets.
+/// The whole payload is absent when docking is not relevant right now: nothing
+/// is targeted, the target is not a docking port, or the active vessel has no
+/// free port. It is never an old or zero-distance placeholder record, the same
+/// convention as <see cref="VesselTarget"/>.
 ///
-/// <para>Reuses the ONE canonical <see cref="Vec3"/> shape (never a second
-/// vector encoding). <see cref="ForwardDot"/> is the dot product of the two
-/// ports' forward (docking-axis) vectors: -1.0 means the ports face each
-/// other head-on (the alignment a successful dock needs), +1.0 means they
-/// point the same direction (facing away from each other), a widget maps
-/// this to a 0..100% "facing" readout however it likes; this contract
-/// intentionally ships the raw dot product rather than a pre-baked
-/// percentage so the mapping stays a client concern.</para>
+/// <para><see cref="ForwardDot"/> is the dot product of the two ports' forward
+/// (docking-axis) vectors: -1 means the ports face each other head-on (the
+/// alignment a dock needs), +1 means they point the same way. It is the raw
+/// dot product, so how to show it (for example as a percentage) is up to the
+/// widget.</para>
 /// </summary>
 /// <category>Vessel</category>
 [SitrepContract]
@@ -32,20 +27,20 @@ namespace Sitrep.Contract;
 [SitrepTopic("vessel.dock")]
 public class DockAlignment
 {
-    /// <summary>Metres, own-port-relative (target port minus own port).</summary>
+    /// <summary>The target port's position relative to the own port (target minus own), metres.</summary>
     [SitrepUnit(Units.Metres)]
     [SitrepFrame(Frames.SubjectRelative)]
     // Same one-payload dead reckoning as vessel.target: the closing velocity is right here.
     [SitrepReckonable(ReckoningBases.LinearDeadReckoning, "relativeVelocity")]
     public Vec3 RelativePosition { get; set; } = new();
 
-    /// <summary>m/s, own-port-relative.</summary>
+    /// <summary>The target port's velocity relative to the own port, m/s.</summary>
     [SitrepUnit(Units.MetresPerSecond)]
     [SitrepFrame(Frames.SubjectRelative)]
     public Vec3 RelativeVelocity { get; set; } = new();
 
     /// <summary>Metres: <see cref="RelativePosition"/>'s magnitude, provided
-    /// directly so a widget doesn't have to re-derive it every frame.</summary>
+    /// directly so a widget does not have to derive it every frame.</summary>
     [SitrepUnit(Units.Metres)]
     // The magnitude of a dead-reckoned separation: it needs the vector it is the magnitude of,
     // as well as the velocity, so both are declared rather than leaning on the implicit anchor.
@@ -53,10 +48,11 @@ public class DockAlignment
     public double Distance { get; set; }
 
     /// <summary>Dot product of the own port's and target port's forward
-    /// vectors; see the class doc comment. Null only if either port's transform
-    /// was unavailable this tick.</summary>
+    /// vectors, -1..1: -1 facing head-on, +1 pointing the same way. Null only
+    /// when either port's transform was unavailable this tick.</summary>
     [SitrepUnit(Units.Dimensionless)]
     public double? ForwardDot { get; set; }
 
+    /// <summary>The payload's provenance (<c>"vessel:&lt;guid&gt;"</c>) and quality.</summary>
     public PayloadMeta Meta { get; set; } = new();
 }

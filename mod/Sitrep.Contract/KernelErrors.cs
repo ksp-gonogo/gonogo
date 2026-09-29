@@ -4,29 +4,28 @@ using System.Collections.Generic;
 namespace Sitrep.Contract
 {
     /// <summary>
-    /// C# port of the error classes in <c>mod/sitrep-kernel/src/errors.ts</c>.
-    /// Kept in one file, mirroring the TS side, so later kernel work can add
-    /// its own alongside these three.
-    /// </summary>
-
-    /// <summary>
     /// Raised during <see cref="Kernel.Resolve"/>'s selection when an EXCLUSIVE
     /// capability has two or more equally-ranked provider candidates and there
     /// is no user preference or unique <c>IsDefault</c>/highest-priority
     /// provider to break the tie.
     ///
-    /// This is a fail-loud condition: the kernel refuses to silently pick a
-    /// winner (e.g. by registration order) when the tie is genuinely
-    /// ambiguous, since that non-determinism is exactly what the
-    /// exclusive-provider model exists to prevent. It does not escape
-    /// <see cref="Kernel.Resolve"/>: the kernel turns it into one "ambiguous"
-    /// notice per tied provider and leaves only that capability unresolved.
+    /// <para>The kernel refuses to pick a winner by anything arbitrary, such as
+    /// registration order. This does not escape <see cref="Kernel.Resolve"/>:
+    /// the kernel turns it into one "ambiguous" notice per tied provider and
+    /// leaves only that capability unresolved.</para>
     /// </summary>
+    /// <category>Host and Kernel</category>
     public sealed class AmbiguousResolutionError : Exception
     {
+        /// <summary>The id of the exclusive capability that could not be resolved.</summary>
         public string Capability { get; }
+
+        /// <summary>The ids of the tied providers.</summary>
         public IReadOnlyList<string> ProviderIds { get; }
 
+        /// <summary>An ambiguous resolution of <paramref name="capability"/> between <paramref name="providerIds"/>.</summary>
+        /// <param name="capability">The capability id.</param>
+        /// <param name="providerIds">The tied provider ids.</param>
         public AmbiguousResolutionError(string capability, IReadOnlyList<string> providerIds)
             : base(
                 $"Ambiguous exclusive resolution for capability \"{capability}\": " +
@@ -45,15 +44,19 @@ namespace Sitrep.Contract
     /// excluded by version gating, or none were registered at all) AND no
     /// <c>Vanilla</c> fallback.
     ///
-    /// The spine cannot boot without this capability, so the kernel refuses
-    /// to silently continue with the capability absent, unlike a
-    /// non-spine-critical capability in the same situation, which simply
-    /// resolves to zero active instances.
+    /// <para>Gonogo cannot start without a spine-critical capability, so the
+    /// kernel stops rather than continue without it. A capability that is not
+    /// spine-critical in the same situation simply resolves to zero active
+    /// instances.</para>
     /// </summary>
+    /// <category>Host and Kernel</category>
     public sealed class SpineCapabilityUnsatisfiedError : Exception
     {
+        /// <summary>The id of the spine-critical capability with no provider.</summary>
         public string Capability { get; }
 
+        /// <summary>No provider for <paramref name="capability"/>.</summary>
+        /// <param name="capability">The capability id.</param>
         public SpineCapabilityUnsatisfiedError(string capability)
             : base(
                 $"Spine-critical capability \"{capability}\" has no compatible provider " +
@@ -64,22 +67,24 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
-    /// Thrown by <see cref="Kernel.Resolve"/> (via the dependency broker's
-    /// topo-sort, <see cref="Broker.TopoSortActivationOrder"/>) when two or
-    /// more capabilities' *selected* providers depend on each other, directly
-    /// or transitively, so there is no valid dependency-first activation
-    /// order.
-    ///
-    /// <see cref="Cycle"/> lists the capability ids that form the cycle, in
-    /// dependency order (each depends on the next, and the last depends back
-    /// on the first): it is a diagnostic aid, not necessarily every
-    /// capability affected by the cycle (a capability outside the cycle that
-    /// merely depends on a cyclic one is not included).
+    /// Thrown by <see cref="Kernel.Resolve"/> (from
+    /// <see cref="Broker.TopoSortActivationOrder"/>) when two or more
+    /// capabilities' selected providers depend on each other, directly or
+    /// transitively, so there is no dependency-first activation order.
     /// </summary>
+    /// <category>Host and Kernel</category>
     public sealed class DependencyCycleError : Exception
     {
+        /// <summary>
+        /// The capability ids that form the cycle, in dependency order: each
+        /// depends on the next, and the last depends back on the first. A
+        /// capability outside the cycle that merely depends on one inside it is
+        /// not listed.
+        /// </summary>
         public IReadOnlyList<string> Cycle { get; }
 
+        /// <summary>A dependency cycle through <paramref name="cycle"/>.</summary>
+        /// <param name="cycle">The capability ids in the cycle, in dependency order.</param>
         public DependencyCycleError(IReadOnlyList<string> cycle)
             : base(
                 $"Dependency cycle detected among capabilities: {string.Join(" -> ", cycle)}. " +

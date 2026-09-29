@@ -14,61 +14,58 @@ namespace Sitrep.Contract;
 /// are all fixed here. What constitutes a successful connection, what a link
 /// costs, how far it reaches, how badly it is degraded, and which rock blocks
 /// it are not touched: those stay abstract, or off this class entirely, because
-/// they are the questions the backends genuinely answer differently.</para>
+/// they are the questions the backends genuinely treat differently.</para>
 ///
-/// <para><b>Why it is not merely tidier.</b> Before this class, five accessors
-/// were the same code twice in two assemblies, down to the shared
-/// <c>"no connection to a command source"</c> string. The copies had already
-/// drifted, and not decoratively: the stock copy wrapped every read in a
-/// try/catch that turned a throw into an authoritative <c>connected:false</c>,
-/// and the RealAntennas copy let it propagate. <c>connected:false</c> is a
-/// freeze lever (<c>ChannelEngine.RevealDelayFor</c> returns <c>+Inf</c> for
-/// every Delayed topic of a disconnected subject, regardless of whether signal
-/// delay is even enabled), so one transient scene settle froze the whole board
-/// under stock and was a one-tick hold under RealAntennas. The duplication was
-/// carrying a divergence that decided whether the operator's screen stopped
-/// updating.</para>
-///
-/// <para><b>The one error contract, and it is to THROW.</b>
-/// <c>CommsCoreUplink.ComputeConnectedOnMain</c> already reasons this out at
-/// length and its conclusion is adopted here rather than restated: a read that
-/// throws on a torn-down vessel must NOT become an authoritative disconnect,
-/// because the reveal gate treats that as a real blackout and freezes every
-/// <c>vessel.*</c> channel while the link is in fact up. A propagating throw is
-/// caught by the engine's own fail-soft, which treats a thrown connectivity
-/// source as CONNECTED and retries next tick, and by
-/// <c>CommsCoreUplink.CaptureOnMain</c>, which drops the tick and leaves
-/// last-known standing. Nothing here catches. A GENUINE disconnect still
-/// arrives as a clean <see cref="CommsLinkState.Connected"/> of false, with no
-/// throw, and still freezes, as intended. A backend that wants to GUARD against
-/// a torn read (stock gates on <c>vessel.loaded</c>) does so where it reads,
-/// which is a guard and not a swallow.</para>
+/// <para><b>The one error contract, and it is to THROW.</b> A read that fails
+/// (a torn-down vessel, a comms graph mid-rebuild) must throw, and must NOT be
+/// turned into a disconnect. A disconnected craft is treated as a real
+/// blackout: every delayed <c>vessel.*</c> channel of that craft freezes, even
+/// while the link is in fact up. A propagating throw is caught by the engine,
+/// which treats a thrown connectivity read as CONNECTED, drops the tick, leaves
+/// the last reading standing and retries next tick. Nothing in this class
+/// catches. A GENUINE disconnect arrives as a clean
+/// <see cref="CommsLinkState.Connected"/> of false, with no throw, and freezes
+/// as intended. A backend that wants to GUARD against a torn read (stock gates
+/// on <c>vessel.loaded</c>) does so where it reads, which is a guard and not a
+/// swallow.</para>
 ///
 /// <para><b>Threading.</b> Every abstract member below reads live game state, so
-/// the whole class is main-thread only, on the capture-on-main seam. The views
-/// it is answered in carry live handles that must not outlive the capture.</para>
+/// the whole class is main-thread only, during capture. The views it returns
+/// carry live handles that must not outlive the capture.</para>
 ///
 /// <para>Inheriting is optional. A backend with a reason to shape a payload
 /// differently implements <see cref="ICommsBackend"/> directly and owns the
 /// consequences; both shipped backends inherit, which is what makes them a
 /// working example rather than a special case.</para>
+/// <internal>
+/// <para>The throw rule matters because <c>connected:false</c> is a freeze
+/// lever: <c>ChannelEngine.RevealDelayFor</c> returns <c>+Inf</c> for every
+/// Delayed topic of a disconnected subject, whether or not signal delay is
+/// enabled, so a try/catch that turned a throw into <c>connected:false</c>
+/// froze the whole board on one transient scene settle.
+/// <c>CommsCoreUplink.ComputeConnectedOnMain</c> reasons this out at length;
+/// <c>CommsCoreUplink.CaptureOnMain</c> is what drops the tick.</para>
+/// </internal>
 /// </summary>
+/// <category>Uplink API</category>
 public abstract class CommsBackendBase : ICommsBackend
 {
     /// <summary>
     /// The annotation on <see cref="CommsControl.Reason"/> when there is no
     /// link home.
     ///
-    /// <para>Byte-identical in both backends before this constant existed, which
-    /// is the tell that it was never a backend fact: it describes the CONTRACT's
-    /// own None state, not any game's rule for reaching it. A backend with a
-    /// more specific reason overrides <see cref="DisconnectedReason"/>.</para>
+    /// <para>It describes the CONTRACT's own None state, not any game's rule for
+    /// reaching it. A backend with a more specific reason overrides
+    /// <see cref="DisconnectedReason"/>.</para>
     /// </summary>
     public const string NoCommandSourceReason = "no connection to a command source";
 
+    /// <summary>
+    /// This backend's stable provider id, e.g. <c>"stock"</c>: the same string it
+    /// registers under, and the namespace its <see cref="HopExtensions"/> ride
+    /// under. See <see cref="ISitrepProvider.ProviderId"/>.
+    /// </summary>
     public abstract string ProviderId { get; }
-
-    // ── The judgement, left entirely alone ──────────────────────────────────
 
     /// <inheritdoc />
     public abstract IReadOnlyList<CommsRouteHop>? RouteBetween(object? from, object? to);
@@ -82,14 +79,12 @@ public abstract class CommsBackendBase : ICommsBackend
     /// <inheritdoc />
     public abstract ICommsDegradeModel DegradeModel();
 
-    // ── What only the backend can read ──────────────────────────────────────
-
     /// <summary>
-    /// The craft this backend is answering for this tick, or
+    /// The craft this backend is reporting on this tick, or
     /// <see cref="CommsSubject.None"/> when there is none.
     ///
     /// <para>WHICH craft is a real per-backend decision and not a formality:
-    /// KSP's own answer during an EVA is the kerbal, whose connection is the
+    /// KSP's own active vessel during an EVA is the kerbal, whose connection is the
     /// suit's, so a backend that reads the game directly reports a link that has
     /// nothing to do with the ship on screen. Both shipped backends resolve it
     /// through core's <c>activeVessel</c> capability instead, by different
@@ -116,7 +111,7 @@ public abstract class CommsBackendBase : ICommsBackend
     /// and a handle this backend does not recognise has no path.
     ///
     /// <para>The PATH is the backend's: which route the game solved, under whose
-    /// gates, is the question <c>RaRouting</c> exists for. What the shared code
+    /// gates, is the backend's own question. What the shared code
     /// does with it is fixed here, so hop geometry, node identity, home-ness,
     /// graph de-duplication and the terminus are derived once from whatever the
     /// winner solved.</para>
@@ -142,8 +137,6 @@ public abstract class CommsBackendBase : ICommsBackend
     /// empty-string sentinel).
     /// </summary>
     protected virtual string? DisconnectedReason => NoCommandSourceReason;
-
-    // ── The shape, derived once ─────────────────────────────────────────────
 
     /// <summary>
     /// <inheritdoc cref="ICommsBackend.Connectivity" path="/summary"/>
@@ -174,10 +167,11 @@ public abstract class CommsBackendBase : ICommsBackend
     }
 
     /// <summary>
-    /// The backend's own strength, carried through unchanged. See
-    /// <see cref="CommsLinkState.SignalStrength"/> for the known defect in what
-    /// this field MEANS across backends, which is a wire question rather than a
-    /// derivation one and is deliberately not papered over here.
+    /// The backend's own strength, carried through unchanged, or <c>0</c> when
+    /// there is no live link to read. See
+    /// <see cref="CommsLinkState.SignalStrength"/> for what this value means,
+    /// which differs across backends; that is a wire question rather than a
+    /// derivation one, so it is not smoothed over here.
     /// </summary>
     public CommsSignal SignalStrength() =>
         new CommsSignal { Strength = LinkState()?.SignalStrength ?? 0.0, Meta = Meta() };
@@ -235,18 +229,6 @@ public abstract class CommsBackendBase : ICommsBackend
         return new CommsPath { Hops = hops, Meta = Meta() };
     }
 
-    /// <summary>
-    /// <inheritdoc cref="ICommsBackend.Network" path="/summary"/>
-    ///
-    /// <para>De-duplicated by <see cref="CommsNodeView.Id"/>, which is why that
-    /// id has to be unique: a display name two craft can share merged them into
-    /// one node and lost a link. Both backends' graphs are the control path's
-    /// nodes and edges today, so <see cref="CommsNetworkEdge.Active"/> is true
-    /// for every edge under both. That is a field with one value, and it stays
-    /// on the wire rather than being quietly derived away, because a richer
-    /// graph is a change to what a backend SUPPLIES here and this shape is
-    /// already the one that would carry it.</para>
-    /// </summary>
     /*
      * Per vessel: the node views seen on its control path most recently, by id,
      * plus the vessel's own end of it. Retained so StillCarriesTo can still
@@ -255,14 +237,15 @@ public abstract class CommsBackendBase : ICommsBackend
      * else to get one.
      *
      * Keyed by the vessel handle ITSELF, compared by reference and held weakly,
-     * so one vessel's route can never answer for another's, and a destroyed
+     * so one vessel's route can never stand in for another's, and a destroyed
      * vessel's memory goes when the vessel does. A hash of the handle is never
      * the key: two handles can share one, and a route memory handed to the
      * wrong vessel names a break that did not happen.
      *
-     * Handles are held across ticks and never dereferenced here. A stale one is
-     * safe by RouteBetween's own contract, which answers null for a missing
-     * handle, and that answer is exactly the one a destroyed relay should give.
+     * Handles are held across ticks and never dereferenced here. A held handle
+     * to a destroyed node is safe by RouteBetween's own contract, which returns
+     * null for a missing handle, and that is exactly what a destroyed relay
+     * should give.
      */
     private sealed class RouteMemory
     {
@@ -304,7 +287,7 @@ public abstract class CommsBackendBase : ICommsBackend
             return null;
         }
 
-        // The craft's own transmitter. RouteBetween answers null for the same
+        // The craft's own transmitter. RouteBetween returns null for the same
         // node at both ends, which would read as a break at zero light-seconds
         // and doom every sample ever sent.
         if (memory.Origin.Value.Id == nodeId)
@@ -339,6 +322,19 @@ public abstract class CommsBackendBase : ICommsBackend
         }
     }
 
+    /// <summary>
+    /// <inheritdoc cref="ICommsBackend.Network" path="/summary"/>
+    ///
+    /// <para>De-duplicated by <see cref="CommsNodeView.Id"/>, which is why that
+    /// id has to be unique: a display name two craft can share would merge them
+    /// into one node and lose a link. Both shipped backends' graphs are the
+    /// control path's nodes and edges, so <see cref="CommsNetworkEdge.Active"/>
+    /// is true for every edge under both. The field stays on the wire because a
+    /// richer graph is a change to what a backend SUPPLIES here, and this shape
+    /// already carries it.</para>
+    /// </summary>
+    /// <param name="vessel">The craft to view the network from, as an opaque handle.</param>
+    /// <returns>The <c>comms.network</c> payload.</returns>
     public CommsNetwork Network(object? vessel)
     {
         var nodes = new List<CommsNetworkNode>();
@@ -366,10 +362,7 @@ public abstract class CommsBackendBase : ICommsBackend
     /// home-reachable path's last hop can in principle also touch a
     /// control-source relay. Both shipped backends inherit <c>isHome</c> and
     /// <c>isControlSource</c> from stock unchanged, which is why this is one
-    /// rule here rather than two copies: it was a UNIVERSAL question made
-    /// backend-specific purely by living on a concrete class, and the
-    /// consequence was <c>comms.commandCentre</c> going all-null forever on a
-    /// RealAntennas install.</para>
+    /// rule here rather than a copy per backend.</para>
     /// </summary>
     public object? ControlPathTerminus(object? vessel)
     {

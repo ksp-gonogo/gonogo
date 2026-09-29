@@ -24,6 +24,12 @@ namespace Sitrep.Contract;
 [SitrepCommand("science.experiment.transmit", Payload = typeof(ScienceTransmission))]
 public class ExperimentActionArgs
 {
+    /// <summary>
+    /// The experiment's part, as <c>Part.flightID.ToString()</c>: the same id
+    /// <c>science.instruments</c> keys its entries by. Resolved against the
+    /// active vessel's parts; empty or unknown yields
+    /// <see cref="CommandErrorCode.NotFound"/>.
+    /// </summary>
     [SitrepUnit(Units.Id)]
     public string PartId { get; set; } = "";
 }

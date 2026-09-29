@@ -23,14 +23,14 @@ public enum Quality
 }
 
 /// <summary>
-/// How current a delivered sample is, as the SERVER knows it (a client infers
+/// How current a delivered sample is, as the mod knows it (a client infers
 /// the rest from its own heartbeat tracking).
 ///
 /// <para><see cref="Fresh"/> is a sample delivered on its own schedule.
 /// <see cref="Held"/> and <see cref="LastBeforeBlackout"/> are catch-up
 /// grades for a late or reconnecting subscriber.
 /// <see cref="Recorded"/> is different in kind from all three: the sample is
-/// EXACT as of its own <see cref="Meta.ValidAt"/>, it simply did not travel at
+/// exact as of its own <see cref="Meta.ValidAt"/>, it simply did not travel at
 /// the time it was taken. It was held aboard through a loss of signal and dumped
 /// on acquisition, so it arrives long after the instant it describes, and its
 /// <see cref="Meta.DeliveredAt"/> is the real arrival, not
@@ -62,7 +62,7 @@ public enum Staleness
     /// <summary>
     /// Recovered from the subject's own recorder: taken while it was out of
     /// contact, replayed on reacquisition. Precisely dated and never a guess,
-    /// but not a live reading, and never the state of the subject NOW.
+    /// but not a live reading, and never the subject's current state.
     /// </summary>
     Recorded,
 }
@@ -84,22 +84,22 @@ public class Meta
     public string Source { get; set; } = "";
 
     /// <summary>
-    /// When the payload was TRUE in the game, in UT seconds (KSP universal
-    /// time), the same base every <c>*Ut</c> field on every payload uses. This
-    /// is the instant a reading is "as of", and the one a client compares
-    /// against its view time to decide currency.
+    /// When the payload was true in the game, in seconds of KSP universal time,
+    /// the same base every <c>*Ut</c> field on every payload uses. This is the
+    /// instant a reading is "as of", and the one a client compares against its
+    /// view time to decide currency.
     ///
-    /// The unit IS declared, and reaches a client through the units map rather
-    /// than through the emitted type: the <c>Value&lt;"ut"&gt;</c> retyping pass
-    /// runs over wire PAYLOAD types only, so this stays a bare number in
-    /// <c>contract.ts</c> and carries <c>"ut"</c> in <c>units.json</c>. Every
-    /// command-args field does the same; reading only the type under-reports the
-    /// declaration.
-    ///
-    /// Keeping the envelope out of that pass is deliberate: nothing renders
-    /// these, ten transport and timeline files do arithmetic on them, and the
-    /// envelope rides every message, so a wrapper would allocate twice per
-    /// message on the hottest path for a quantity no readout shows.
+    /// <para>A plain number in the TypeScript type, not a <c>Value</c> wrapper;
+    /// its unit is still <c>"ut"</c>.</para>
+    /// <internal>
+    /// The unit reaches a client through <c>units.json</c> rather than the
+    /// emitted type: the <c>Value&lt;"ut"&gt;</c> retyping pass runs over wire
+    /// payload types only, so this stays a bare number in <c>contract.ts</c>, as
+    /// every command-args field does. Keeping the envelope out of that pass is
+    /// deliberate: nothing renders these, transport and timeline code does
+    /// arithmetic on them, and the envelope rides every message, so a wrapper
+    /// would allocate twice per message on the hottest path.
+    /// </internal>
     /// </summary>
     [SitrepUnit(Units.UniversalTime)]
     public double ValidAt { get; set; }
@@ -108,12 +108,11 @@ public class Meta
     public long Seq { get; set; }
 
     /// <summary>
-    /// When the server handed the message to the transport, in the same UT
-    /// seconds as <see cref="ValidAt"/>. The two differ by the signal delay the
-    /// vantage is under, so subtracting one from the other is how old the
-    /// payload was when it arrived, and they are equal on a live (zero-delay)
-    /// link.
-    /// Declared, and bare in the emitted type, as <see cref="ValidAt"/> is.
+    /// When the mod handed the message to the transport, in the same universal
+    /// time seconds as <see cref="ValidAt"/>. The two differ by the signal delay
+    /// the vantage is under, so subtracting one from the other is how old the
+    /// payload was when it arrived, and they are equal on a zero-delay link. A
+    /// plain number in the TypeScript type, as <see cref="ValidAt"/> is.
     /// </summary>
     [SitrepUnit(Units.UniversalTime)]
     public double DeliveredAt { get; set; }
@@ -143,16 +142,15 @@ public class Meta
     public Staleness Staleness { get; set; }
 
     /// <summary>
-    /// Generation counter for the current timeline: 0 at boot, incremented
-    /// once for every quickload/rewind (<c>Courier.ResetTimeline</c>).
-    /// Stamped on EVERY envelope <see cref="Meta"/> (streams AND command
-    /// responses) by <c>Courier.MakeMeta</c>: see that method's doc
-    /// comment for why this had to be added now rather than retrofitted
-    /// later: once recordings/stations exist, a sample with no epoch can
-    /// never be told apart from one on an abandoned pre-rewind timeline.
-    /// A client compares this against its own last-seen epoch to detect a
-    /// rewind atomically, without re-deriving it from a backward `validAt`
-    /// jump (which a reordered/coalesced delivery could mask).
+    /// Generation counter for the current timeline: <c>0</c> when the mod
+    /// starts, incremented once for every quickload or rewind. Carried on every
+    /// envelope, streams and command responses alike, so a sample from an
+    /// abandoned pre-rewind timeline can be told apart. A client compares it
+    /// against its own last-seen epoch to detect a rewind, rather than inferring
+    /// one from a backward <c>validAt</c> jump, which a reordered or coalesced
+    /// delivery could mask.
+    /// <internal>Incremented by <c>Courier.ResetTimeline</c>, stamped by
+    /// <c>Courier.MakeMeta</c>.</internal>
     /// </summary>
     [SitrepUnit(Units.Id)]
     public int TimelineEpoch { get; set; }
@@ -163,36 +161,32 @@ public class Meta
     /// that break and <c>null</c> on every other sample.
     ///
     /// <para>Non-null is a positive claim, not an absence: data existed between
-    /// this UT and the carrying sample's own <see cref="ValidAt"/>, and it is
+    /// this universal time and the carrying sample's own <see cref="ValidAt"/>, and it is
     /// gone. Two things produce one. A blackout recording that overran its
     /// storage bound had its oldest span dropped, so the replay resumes mid-hole.
     /// A channel that does not record at all (a session fact, never aboard the
-    /// craft: see <c>ChannelDeclaration.Recordable</c>) has no replay, so its
+    /// craft: see <see cref="ChannelDeclaration.Recordable"/>) has no replay, so its
     /// first post-blackout sample carries the whole outage as the gap.</para>
     ///
-    /// <para>A client draws it as a break rather than joining across it. Without
-    /// it a chart interpolates a straight line through an outage it has no
-    /// readings for, which is the one thing an operator must not be shown: the
-    /// line looks like data.</para>
+    /// <para>A client draws it as a break rather than joining across it: a line
+    /// interpolated through an outage looks like data. Omitted from the wire
+    /// when there is no gap, the only <see cref="Meta"/> field that is.</para>
     /// </summary>
-    // The key is OMITTED when there is no gap rather than written as null:
-    // EnvelopeCodec.AppendMeta guards it on HasValue, alone among Meta's
-    // fields, because a gap is rare by construction and every frame would
-    // otherwise carry 17 bytes saying nothing happened.
+    // EnvelopeCodec.AppendMeta omits the key on HasValue, alone among Meta's fields, so ordinary frames do not carry a null.
     [SitrepUnit(Units.UniversalTime)]
     [SitrepOmittedWhenNull]
     public double? GapSinceUt { get; set; }
 }
 
 /// <summary>
-/// The slim, payload-specific sibling of <see cref="Meta"/>, carried on every
-/// <c>vessel.*</c> and <c>time.warp</c> PAYLOAD (<c>VesselOrbit.Meta</c>,
-/// <c>VesselIdentity.Meta</c> and so on).
+/// The slim, payload-specific sibling of <see cref="Meta"/>, carried inside
+/// payloads such as every <c>vessel.*</c> one and <c>time.warp</c>
+/// (<c>VesselOrbit.Meta</c>, <c>VesselIdentity.Meta</c> and so on).
 ///
-/// <para>It says what the payload is ABOUT, and nothing about its delivery. The
-/// real <c>seq</c>, <c>deliveredAt</c>, <c>vantage</c> and <c>validAt</c> are on
-/// the ENVELOPE <see cref="Meta"/>, one per <c>stream-data</c> frame: read those
-/// there, never here.</para>
+/// <para>It says what the payload is about, and nothing about its delivery.
+/// <c>seq</c>, <c>deliveredAt</c>, <c>vantage</c> and <c>validAt</c> are on the
+/// envelope <see cref="Meta"/>, one per <c>stream-data</c> frame: read those
+/// there.</para>
 ///
 /// <para><see cref="Source"/> is the subject's provenance, and takes one of two
 /// forms: <c>"vessel:&lt;guid&gt;"</c> when the payload describes one craft, or
@@ -201,16 +195,9 @@ public class Meta
 /// this type.</para>
 ///
 /// <internal>
-/// <para>Stamped by <c>Sitrep.Core.Courier.MakeMeta</c> onto every
-/// <c>StreamData&lt;T&gt;</c>. Before this type existed, every payload carried a
-/// full <see cref="Meta"/> of its own, fabricating <c>seq:0</c>,
-/// <c>deliveredAt:0</c>, <c>vantage:""</c> and <c>validAt:0</c>: dead duplicates
-/// of the envelope's real values that a consumer could easily mistake for
-/// genuine delivery metadata. Source and Quality are the only two fields a
-/// payload mapper actually produces itself.</para>
-///
-/// <para>Staleness is a separate, not-yet-implemented M2 concern and
-/// deliberately has no home here either.</para>
+/// Filled by each ViewProvider's payload mapper; the envelope <see cref="Meta"/>
+/// is stamped separately by <c>Sitrep.Core.Courier.MakeMeta</c>. Source and
+/// Quality are the only two fields a payload mapper produces itself.
 /// </internal>
 /// </summary>
 /// <category>Stream messages</category>

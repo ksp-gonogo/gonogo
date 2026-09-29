@@ -4,75 +4,27 @@ using Reinforced.Typings.Attributes;
 
 namespace Sitrep.Contract;
 
-// ====================================================================
-// The QUALITY half of the comms contract: how bad the link is right
-// now, on one scale, for a consumer that has to decide how much of
-// something to send over it.
-//
-// The third sibling of CommsOcclusion.cs and CommsReach.cs, and the
-// same wall. Occlusion answers "does a rock sit between these two",
-// reach answers "can they hear each other at all", and this answers
-// "given that they can, how well". It exists because the consumers of
-// that last question are not comms surfaces at all: a video feed
-// choosing a bitrate and a voice channel choosing how much noise to mix
-// in both need ONE number they can key a ladder on, and neither has any
-// business knowing which comms mod is installed.
-//
-// WHY comms.signal COULD NOT SERVE. That field is 0..1 and
-// looks like exactly this number, and it is not, because it means two
-// different things depending on which backend filled it:
-//
-//   * Stock CommNet fills it with a RANGE fraction, how far through the
-//     antenna pair's range curve the link currently sits, with the
-//     plasma-blackout multiplier already folded in.
-//   * RealAntennas fills it with a RATE-LADDER headroom fraction, how
-//     much of the negotiated modulation ladder is spare, and applies no
-//     plasma multiplier at all.
-//
-// Those are different quantities in the same slot, under one unit
-// annotation, with nothing on the wire to tell them apart. A consumer
-// that computes 1 - strength (which is what the camera feed does
-// today) is therefore computing two different things on two installs
-// and cannot know which. This file does NOT fix that field. It adds a
-// separate, honest one beside it: a rating that arrives NAMED, so a
-// consumer keying a quality ladder on it can see which rule produced
-// the number it is acting on, and a rating that can be ABSENT, so a
-// backend with no opinion is not forced to invent one.
-//
-// WHAT THE CONTRACT FORCES, AND WHAT IT LEAVES ALONE. It forces the
-// SHAPE and the SCALE: one number, 0..1, 0 meaning nothing is wrong and
-// 1 meaning nothing usable is getting through, or no number at all. It
-// does not touch the JUDGEMENT: what degrades a link, and by how much,
-// stays entirely the backend's, because that is precisely the thing the
-// two shipped backends disagree about. There is deliberately no formula
-// here, and adding one later would be the same mistake comms.signal
-// already made.
-// ====================================================================
-
 /// <summary>
-/// How degraded ONE comms link is, as one backend grades it: a pure, KSP-free
-/// rating on a fixed scale, with the rule that produced it named alongside.
+/// How degraded one comms link is, as one backend grades it: a rating on a
+/// fixed 0..1 scale, with the rule that produced it named alongside. A comms
+/// backend returns one of these for a link, and <c>comms.degrade</c> publishes it.
 ///
-/// <para>Deliberately a RESOLVED RATING rather than the quantities behind it,
-/// for the same reason <see cref="ICommsReachModel"/> carries a distance rather
-/// than antenna powers. A margin in dB, a range fraction and a rate-ladder
-/// position are three incomparable currencies, and a consumer handed any of
-/// them would have to know which backend is winning before it could read it.
-/// One bounded number is the answer to the question actually being asked, and
-/// it is the same shape whatever the backend's internal rule is.</para>
+/// <para>A resolved rating rather than the quantities behind it: a margin in
+/// dB, a range fraction and a rate-ladder position cannot be compared, and a
+/// consumer handed any of them would have to know which backend produced it.
+/// The judgement of what degrades a link, and by how much, is the backend's;
+/// the contract fixes only the shape and the scale.</para>
 ///
-/// <para><b>The rule travels WITH the answer.</b>
-/// <see cref="ModelId"/>/<see cref="ModelName"/> are not decoration: this is a
-/// number a consumer acts on, and the two shipped backends grade a link by
-/// genuinely different physics. A feed that drops to a lower bitrate can say
-/// which grading told it to, and an operator comparing two installs can see why
-/// the same orbit rates differently.</para>
+/// <para><see cref="ModelId"/> and <see cref="ModelName"/> name the rule, because
+/// different backends grade a link by different physics: a feed that drops to
+/// a lower bitrate can say which grading told it to, and an operator comparing
+/// two installs can see why the same orbit rates differently.</para>
 ///
-/// <para>Pure once built: implementations must not read live game state. A
-/// backend that needs a live read (both shipped ones do) does it when BUILDING
-/// the model, on the capture seam, and hands back a model that is thereafter
-/// just a number.</para>
+/// <para>Pure once built: an implementation must not read live game state. A
+/// backend that needs a live read does it while building the model, on the
+/// main thread, and hands back a model that is thereafter just a number.</para>
 /// </summary>
+/// <category>Propagation and models</category>
 public interface ICommsDegradeModel
 {
     /// <summary>Stable id for this rule, e.g.
@@ -84,8 +36,8 @@ public interface ICommsDegradeModel
     string ModelName { get; }
 
     /// <summary>
-    /// How degraded the link is, 0..1, or absent. Three answers, three meanings,
-    /// and they must not be collapsed:
+    /// How degraded the link is, 0..1, or absent. The three cases mean
+    /// different things and must not be collapsed:
     /// <list type="bullet">
     /// <item><description><b>null</b>: UNRATED. This backend does not grade this
     /// link, or could not this tick. A consumer applies no quality term and
@@ -93,7 +45,7 @@ public interface ICommsDegradeModel
     /// this" and "this link is perfect" are opposite instructions to a feed
     /// deciding whether to drop a bitrate.</description></item>
     /// <item><description><b>0</b>: PRISTINE. Nothing is wrong with the link, as
-    /// a real graded answer. A save that models no comms network at all reports
+    /// a real grading. A save that models no comms network at all reports
     /// exactly this, because nothing can attenuate a link that is not
     /// modelled.</description></item>
     /// <item><description><b>1</b>: UNUSABLE. Nothing worth sending gets
@@ -106,18 +58,20 @@ public interface ICommsDegradeModel
 }
 
 /// <summary>
-/// The degrade rule shape every backend that exists today happens to fit: one
-/// resolved rating, named. General rather than per-backend for the same reason
-/// <see cref="MaxRangeReachModel"/> is: a third comms mod whose grading also
-/// resolves to a single fraction needs no new type.
+/// A degrade model holding one resolved rating and the name of its rule. Use it
+/// for any backend whose grading resolves to a single fraction.
 ///
-/// <para>This is also the ONE place the 0..1 promise is kept. A backend hands
-/// its own arithmetic to the constructor and gets back a value that is either
-/// in range or absent, so no consumer has to defend against a rating of 1.4 and
-/// no backend has to remember to clamp.</para>
+/// <para>The constructor enforces the 0..1 range: a finite rating outside it is
+/// clamped to the nearer end, and a NaN or infinite rating becomes absent, so
+/// <see cref="Level"/> is always in range or <c>null</c>.</para>
 /// </summary>
+/// <category>Propagation and models</category>
 public sealed class RatedDegradeModel : ICommsDegradeModel
 {
+    /// <summary>Builds a model from a backend's own rating.</summary>
+    /// <param name="modelId">Stable id for the rule, e.g. <c>"commnet-range-fraction"</c>. A null id becomes <c>""</c>.</param>
+    /// <param name="modelName">Display name for the rule. A null name becomes <c>""</c>.</param>
+    /// <param name="level">The rating, 0 pristine to 1 unusable, or <c>null</c> for unrated. Clamped into 0..1 when finite; a NaN or infinite value becomes <c>null</c>.</param>
     public RatedDegradeModel(string modelId, string modelName, double? level)
     {
         ModelId = modelId ?? "";
@@ -125,27 +79,28 @@ public sealed class RatedDegradeModel : ICommsDegradeModel
         Level = Sane(level);
     }
 
+    /// <summary>Stable id for this rule; never null.</summary>
     public string ModelId { get; }
 
+    /// <summary>Display name for this rule; never null.</summary>
     public string ModelName { get; }
 
+    /// <summary>The rating, 0 pristine to 1 unusable, or <c>null</c> when unrated. Never outside 0..1 and never NaN.</summary>
     public double? Level { get; }
 
     /// <summary>
-    /// The clamp rule, declared rather than assumed.
+    /// The clamp rule.
     ///
-    /// <para>A NaN or infinite rating becomes ABSENT rather than a number,
-    /// because both mean the arithmetic failed to resolve and neither is a
-    /// grading a consumer can act on: a NaN silently fails every comparison and
-    /// so reads as "not degraded", which is the most dangerous of the wrong
-    /// answers. This is where a reflection read that came back empty stops
-    /// being a value.</para>
+    /// <para>A NaN or infinite rating becomes absent rather than a number,
+    /// because both mean the arithmetic failed to resolve: a NaN silently fails
+    /// every comparison and so reads as "not degraded". This is where a
+    /// reflection read that came back empty stops being a value.</para>
     ///
     /// <para>A FINITE rating outside 0..1 clamps to the nearer end, and that
     /// asymmetry with the non-finite case is deliberate. An out-of-range finite
     /// number is an arithmetic that ran and overshot (a headroom fraction above
     /// 1, a difference that went slightly negative), so the end it overshot is
-    /// the honest answer. A non-finite one is an arithmetic that did not run at
+    /// the honest value. A non-finite one is an arithmetic that did not run at
     /// all, and there is no end to pick.</para>
     /// </summary>
     private static double? Sane(double? level)
@@ -165,8 +120,9 @@ public sealed class RatedDegradeModel : ICommsDegradeModel
     }
 }
 
-/// <summary>The degrade models core itself declares, and the reads every
-/// consumer shares.</summary>
+/// <summary>The built-in <see cref="Unknown"/> degrade model, and the shared
+/// reads over any <see cref="ICommsDegradeModel"/>.</summary>
+/// <category>Propagation and models</category>
 public static class CommsDegradeModels
 {
     /// <summary><see cref="Unknown"/>'s id, so a consumer can recognise "nobody
@@ -174,52 +130,39 @@ public static class CommsDegradeModels
     public const string UnknownModelId = "unknown";
 
     /// <summary>
-    /// The model a consumer gets when no backend is elected, or when the elected
-    /// one will not grade the link it was handed.
+    /// The model in force when no comms backend is elected, or when the elected
+    /// one does not grade the link, or its grading throws.
     ///
-    /// <para>Its rating is ABSENT, and there is deliberately no conservative
-    /// substitute, the same conclusion <see cref="CommsReachModels.Unknown"/>
-    /// reaches for reach and for a sharper reason. Both ends of this scale are
+    /// <para>Its rating is absent, with no conservative substitute, as for
+    /// <see cref="CommsReachModels.Unknown"/>. Both ends of the scale are
     /// actionable: a guessed 0 tells a video feed to send full quality down a
     /// link nobody has vouched for, and a guessed 1 blacks out a feed that is
-    /// arriving perfectly. There is no midpoint that is honest either, because a
-    /// consumer cannot tell a real 0.5 from a shrug. So an unelected backend
-    /// rates nothing and the consumer keeps doing what it was doing.</para>
+    /// arriving perfectly. A consumer seeing it applies no quality term and
+    /// keeps doing what it was doing.</para>
     ///
-    /// <para>The state is still DECLARED rather than assumed: the id says
-    /// "unknown", so a surface can report that it is running ungraded instead of
-    /// silently looking the same as a perfect link.</para>
+    /// <para>Its id is <see cref="UnknownModelId"/>, so a surface can report that
+    /// it is running ungraded rather than looking the same as a perfect link.</para>
     /// </summary>
     public static readonly ICommsDegradeModel Unknown =
         new RatedDegradeModel(UnknownModelId, "Unknown (no comms backend elected)", null);
 
     /// <summary>
     /// The rating under <paramref name="model"/>, or null when it declines to
-    /// grade, which is the THIRD answer and not a zero.
-    ///
-    /// <para>One line, and it exists anyway, for the reason
-    /// <see cref="CommsReachModels.Reaches"/> gives at length about its own
-    /// comparison: the null-versus-zero branch is the whole discipline of this
-    /// file, and a consumer writing <c>model.Level ?? 0</c> by hand has
-    /// discarded it without noticing. A null-taking overload is part of that: a
-    /// consumer holding no model at all is in the same position as one holding
-    /// an unrated one.</para>
+    /// grade or <paramref name="model"/> is null. Null is not a zero: do not
+    /// default it with <c>?? 0</c>, which reads an unrated link as a perfect one.
     /// </summary>
     public static double? LevelOf(ICommsDegradeModel? model) => model?.Level;
 
     /// <summary>
     /// Whether the link is AT LEAST as degraded as
     /// <paramref name="threshold"/>, under <paramref name="model"/>. Null when
-    /// the model declines to grade, which is a third answer and not a false:
-    /// "this rule does not say" must not be readable as "the link is fine".
+    /// the model declines to grade, or <paramref name="threshold"/> is NaN: null
+    /// is not a false, and must not be read as "the link is fine".
     ///
-    /// <para>The comparison lives here, once, for the reason
-    /// <c>CommsReachModels.Reaches</c> gives: two copies that disagreed by one
-    /// <c>=</c> would put two surfaces on opposite sides of the same rung of a
-    /// quality ladder. Meeting the threshold EXACTLY counts as meeting it, so a
-    /// ladder built from ascending thresholds picks the highest rung the rating
-    /// reaches. A non-finite threshold answers null rather than a comparison no
-    /// consumer could have meant.</para>
+    /// <para>Meeting the threshold exactly counts as meeting it, so a ladder built
+    /// from ascending thresholds picks the highest rung the rating reaches. Use
+    /// this rather than comparing by hand, so every surface puts a rating on the
+    /// same rung.</para>
     /// </summary>
     public static bool? AtLeast(ICommsDegradeModel? model, double threshold)
     {
@@ -233,10 +176,11 @@ public static class CommsDegradeModels
 
     /// <summary>
     /// One model as the payload its channel carries, stamped with
-    /// <paramref name="meta"/>. A null model is <see cref="Unknown"/>, so a
-    /// producer that could not resolve a backend publishes an honest "nobody
-    /// graded this" rather than nothing at all: the channel is always-present,
-    /// and a silent channel is indistinguishable from a stalled one.
+    /// <paramref name="meta"/> (a null <paramref name="meta"/> becomes an empty
+    /// one). A null model is published as <see cref="Unknown"/>, so a producer
+    /// that could not resolve a backend still publishes "nobody graded this":
+    /// the channel is always present, and a silent channel looks the same as a
+    /// stalled one.
     /// </summary>
     public static CommsDegrade ToPayload(ICommsDegradeModel? model, PayloadMeta? meta)
     {
@@ -256,11 +200,10 @@ public static class CommsDegradeModels
 /// is right now, on one fixed scale, as the comms backend in force grades it.
 ///
 /// <para><see cref="Level"/> runs from 0, nothing wrong, to 1, nothing usable
-/// getting through. It is ABSENT when nothing graded the link, and absent is a
+/// getting through. It is absent when nothing graded the link, and absent is a
 /// third case rather than a low one: "nobody rated this" and "this link is
-/// perfect" are opposite instructions to anything choosing a quality, so a
-/// consumer must branch on the absence rather than default it to a
-/// number.</para>
+/// perfect" are opposite instructions to anything choosing a quality, so branch
+/// on the absence rather than defaulting it to a number.</para>
 ///
 /// <para><b>Read this rather than deriving a quality from
 /// <c>comms.signal</c>.</b> That field is 0..1 too, and it is a
@@ -270,14 +213,12 @@ public static class CommsDegradeModels
 /// different quality curves on two saves. This channel names its rule, so a
 /// consumer acting on the number can see which grading produced it.</para>
 ///
-/// <para>DELAYED, like the link observations it grades and unlike its
-/// always-live <c>comms.delay</c> sibling. A rating is an observation of the
-/// craft's link, so an operator should learn of a degradation one light-time
-/// after it happened, at the same instant the telemetry that suffered it
-/// arrives. It is delay-gated on the ordinary terms, so through a blackout it
-/// holds at last-known; the disconnect edge itself reaches a client on
-/// <c>comms.link</c>, which is the connectivity authority and is exempt from
-/// that freeze precisely so it can report it.</para>
+/// <para>Delayed, like the link observations it grades and unlike the
+/// always-live <c>comms.delay</c>. A rating is an observation of the craft's
+/// link, so an operator learns of a degradation one light-time after it
+/// happened, at the same instant the telemetry that suffered it arrives.
+/// Through a blackout it holds its last-known value; the disconnect itself
+/// reaches a client on <c>comms.link</c>, which is not held.</para>
 /// </summary>
 /// <category>Comms</category>
 [SitrepContract]
@@ -305,5 +246,6 @@ public class CommsDegrade
     [SitrepUnit(Units.Ratio)]
     public double? Level { get; set; }
 
+    /// <summary>The payload's provenance and quality.</summary>
     public PayloadMeta Meta { get; set; } = new();
 }

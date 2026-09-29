@@ -30,8 +30,8 @@ public enum ScetAlarmConditionKind
     ///
     /// <para>This is the kind that cannot be done anywhere else. A time alarm
     /// needs only a clock, and a client has one; a threshold needs the craft's
-    /// true state, which reaches the ground a light-time late and by then is no
-    /// longer the answer to "is it above 100 km NOW".</para>
+    /// true state, which reaches the ground a light-time late and by then no
+    /// longer says whether it is above 100 km NOW.</para>
     /// </summary>
     Threshold,
 
@@ -40,9 +40,9 @@ public enum ScetAlarmConditionKind
     /// chose, as <c>career.status.contracts.active</c> reports it.
     ///
     /// <para>Level rather than edge, like the threshold: an objective already
-    /// in its target state when the alarm is armed is a condition that holds.
+    /// in its target state when the alarm is set is a condition that holds.
     /// A contract no longer active leaves the condition unmet for ever, which
-    /// is the fail-safe answer for a contract that was completed, failed or
+    /// is the fail-safe outcome for a contract that was completed, failed or
     /// withdrawn by some other route.</para>
     /// </summary>
     ContractParameter,
@@ -51,8 +51,8 @@ public enum ScetAlarmConditionKind
 /// <summary>
 /// How a threshold condition compares the reading to the operator's number.
 ///
-/// <para>The same six the client's own alarm list offers, so an alarm armed on
-/// the command vantage and the same alarm armed on the craft's clock mean the
+/// <para>The same six the client's own alarm list offers, so an alarm set on
+/// the command vantage and the same alarm set on the craft's clock mean the
 /// same thing and can be checked against each other at zero delay.</para>
 /// </summary>
 /// <category>Alarms</category>
@@ -85,12 +85,12 @@ public enum ScetAlarmThresholdOp
     /// </summary>
     Equal,
 
-    /// <summary>Reading differs from the threshold. The inverse of <see cref="Equal"/>, and inherits its caveat.</summary>
+    /// <summary>Reading differs from the threshold. The inverse of <see cref="Equal"/>, and just as much a knife edge on anything continuous.</summary>
     NotEqual,
 }
 
 /// <summary>
-/// Where an armed SCET alarm has got to.
+/// Where a SCET alarm has got to.
 ///
 /// <para>A latch, not a level: <see cref="Fired"/> is reached once and stays,
 /// so a condition that keeps holding cannot stop the warp again on the next
@@ -124,8 +124,8 @@ public enum ScetAlarmState
     /// <summary>
     /// The player switched to a different craft before the alarm came due, so it
     /// will never fire. An alarm belongs to the craft being flown when it was
-    /// armed, whatever its condition reads, and a switch ends every alarm still
-    /// armed. A kerbal on EVA counts as the craft they stepped out of.
+    /// set, whatever its condition reads, and a switch ends every alarm still
+    /// watching. A kerbal on EVA counts as the craft they stepped out of.
     /// </summary>
     Cancelled,
 }
@@ -150,6 +150,10 @@ public enum ScetAlarmState
 #endif
 public class ScetAlarmCondition
 {
+    /// <summary>
+    /// Which kind of condition this is, and so which of the other fields carry
+    /// meaning. The rest are left at their defaults and ignored.
+    /// </summary>
     [SitrepUnit(Units.Enumeration)]
     public ScetAlarmConditionKind Kind { get; set; } = ScetAlarmConditionKind.Time;
 
@@ -161,8 +165,8 @@ public class ScetAlarmCondition
     /// moves continuously as the craft does. A client that subtracts it once,
     /// at the moment the operator clicks, is right only for that instant; this
     /// field is the instant itself, compared against the game's own clock every
-    /// tick, so the answer stays right however the geometry changes between
-    /// arming and firing.</para>
+    /// tick, so the result stays right however the geometry changes between
+    /// setting the alarm and its firing.</para>
     /// </summary>
     [SitrepUnit(Units.UniversalTime)]
     public double Ut { get; set; }
@@ -243,7 +247,7 @@ public class ScetAlarmCondition
 
     /// <summary>
     /// Contract parameter only: the objective's title within that contract,
-    /// matched exactly. The first objective with the title answers.
+    /// matched exactly. The first objective with the title is the one watched.
     /// </summary>
     [SitrepUnit(Units.Text)]
     public string ParameterTitle { get; set; } = "";
@@ -303,8 +307,8 @@ public enum ScetAlarmActionKind
 /// judged against what a command centre has been told comes due a light-time
 /// after the craft passed the condition, and acting on the craft in that same
 /// frame would carry the ground's decision to the craft faster than light, so
-/// such an arm is refused. A ground-side alarm's action travels as an ordinary
-/// command instead.</para>
+/// <c>alarm.scet.arm</c> refuses such an alarm. A ground-side alarm's action
+/// travels as an ordinary command instead.</para>
 ///
 /// <para>Every kind but <see cref="ScetAlarmActionKind.Stage"/> TOGGLES,
 /// against the state the craft reports at the moment of the fire, which is
@@ -317,6 +321,10 @@ public enum ScetAlarmActionKind
 #endif
 public class ScetAlarmAction
 {
+    /// <summary>
+    /// What the action does: a stock singleton such as staging or SAS, or the
+    /// custom group named by <see cref="Group"/>.
+    /// </summary>
     [SitrepUnit(Units.Enumeration)]
     public ScetAlarmActionKind Kind { get; set; } = ScetAlarmActionKind.ActionGroup;
 
@@ -330,21 +338,22 @@ public class ScetAlarmAction
 }
 
 /// <summary>
-/// One armed SCET alarm as the simulation host holds it: the
-/// <c>alarm.scet</c> channel is a bare array of these.
+/// One SCET alarm as the simulation host holds it: the <c>alarm.scet</c>
+/// channel is a bare array of these.
 ///
-/// <para>The roster exists so an operator can see what is still armed after a
-/// reconnect, and so a client can disarm an entry it no longer remembers. It is
+/// <para>The roster exists so an operator can see which alarms are still set
+/// after a reconnect, and so a client can remove an entry it no longer
+/// remembers. The roster is held in memory for the game session and is not
+/// written to the save: when the session ends it is gone, and a client sets its
+/// alarms again. It is
 /// ground-side bookkeeping, a list of things somebody asked for rather than a
 /// reading of any craft, which is why the channel does not ride the reveal
 /// clock.</para>
 /// <internal>
 /// Held in memory by <c>Sitrep.Host.Alarms.ScetAlarmRoster</c> and published by
-/// <c>Gonogo.KSP.ScetAlarmUplink</c>. Deliberately NOT written to the save,
-/// though <c>EvaParentageScenario</c> shows how: the client's own list is the
-/// one the operator edits, and two authorities for one list diverge across a
-/// quickload. The roster dies with the game session and the client re-arms.
-/// Published RAW, so <c>JsonWriter.AppendScetAlarm</c> is what puts it on the
+/// <c>Gonogo.KSP.ScetAlarmUplink</c>. Not written to the save because the
+/// client's own list is the one the operator edits, and two authorities for one
+/// list diverge across a quickload. Published RAW, so <c>JsonWriter.AppendScetAlarm</c> is what puts it on the
 /// wire.
 /// </internal>
 /// </summary>
@@ -358,8 +367,9 @@ public class ScetAlarm
 {
     /// <summary>
     /// The client's own id for the alarm, minted where the alarm was created and
-    /// carried unchanged. Arming an id that is already armed REPLACES it, so a
-    /// re-arm is idempotent and a reconnect cannot duplicate a row.
+    /// carried unchanged. Setting an alarm under an id already held REPLACES it,
+    /// so repeating <c>alarm.scet.arm</c> is idempotent and a reconnect cannot
+    /// duplicate a row.
     /// </summary>
     [SitrepUnit(Units.Id)]
     public string Id { get; set; } = "";
@@ -369,7 +379,7 @@ public class ScetAlarm
     public string Name { get; set; } = "";
 
     /// <summary>
-    /// The command centre the arm command was sent from, as a
+    /// The command centre the <c>alarm.scet.arm</c> command was sent from, as a
     /// <c>commandCentre.roster</c> id.
     ///
     /// <para>Who ASKED for the alarm, never where it is read. That is
@@ -379,7 +389,7 @@ public class ScetAlarm
     /// than the light carrying it.</para>
     /// <internal>
     /// Resolved by the engine from where the command entered
-    /// (<c>AddVantageCommandHandler</c>) rather than taken from the arm
+    /// (<c>AddVantageCommandHandler</c>) rather than taken from the command's
     /// arguments. The dispatch vantage it resolves from is either the session's
     /// <c>SelectedVantage</c> or the per-command override on the request
     /// envelope, and BOTH are client-supplied, so neither is trusted: each is
@@ -388,7 +398,7 @@ public class ScetAlarm
     /// set-vantage naming anything else keeps the prior vantage, and a command
     /// override naming anything else is refused with <c>unknownVantage</c>
     /// rather than falling back, so this can only ever name a centre that was
-    /// real when the alarm was armed.
+    /// real when the alarm was set.
     /// </internal>
     /// </summary>
     [SitrepUnit(Units.Id)]
@@ -398,8 +408,8 @@ public class ScetAlarm
     /// The place whose knowledge the condition is read against, and therefore
     /// the place that decides WHEN this alarm comes due. A
     /// <c>commandCentre.roster</c> id (<c>"ground:&lt;name&gt;"</c>,
-    /// <c>"vessel:&lt;guid&gt;"</c>), or empty, which is read as the alarm's own
-    /// <see cref="Subject"/>.
+    /// <c>"vessel:&lt;guid&gt;"</c>). An empty vantage in the command is resolved
+    /// to the alarm's own <see cref="Subject"/> when the alarm is set.
     ///
     /// <para>A vantage that IS the subject reads the craft's true state, so the
     /// alarm comes due at the instant the condition is met. Any other vantage
@@ -408,20 +418,18 @@ public class ScetAlarm
     /// light carrying it lands. The vantage decides when, never whether.</para>
     ///
     /// <para><b>Distinct from <see cref="ArmedBy"/>, which is provenance.</b>
-    /// That says where the arm command came from and nothing else. An operator
+    /// That says where the command came from and nothing else. An operator
     /// at one centre may legitimately ask when ANOTHER centre will know, and
     /// where the command entered cannot express that.</para>
     ///
     /// <para>A place, never a connection. Two operators sharing a command
-    /// centre share its knowledge and its answer, and a browser reconnecting is
+    /// centre share its knowledge and its result, and a browser reconnecting is
     /// the same place it was before, so the simulation never learns that
     /// clients exist.</para>
     /// <internal>
-    /// Taken from the arm ARGUMENTS rather than resolved from where the command
-    /// entered, which is the opposite of <see cref="ArmedBy"/>. Resolved to
-    /// <see cref="Subject"/> at arm time when empty, which is what keeps the
-    /// rename off a flag day: an older client's arm still lands somewhere
-    /// correct. <c>Sitrep.Host.Alarms.ScetAlarmVantage</c> holds the rule, and
+    /// Taken from the command's ARGUMENTS rather than resolved from where the
+    /// command entered, which is the opposite of <see cref="ArmedBy"/>.
+    /// <c>Sitrep.Host.Alarms.ScetAlarmVantage</c> holds the rule, and
     /// which of the two readers an entry gets follows from it.
     /// </internal>
     /// </summary>
@@ -438,7 +446,7 @@ public class ScetAlarm
     /// craft, and this is what stops it silently re-aiming when the player
     /// switches vessels: the simulation compares this against the
     /// <c>meta.source</c> stamped on the payload it read, and a reading about
-    /// somebody else's craft is not an answer to this alarm's question.</para>
+    /// somebody else's craft is ignored.</para>
     ///
     /// <para>A threshold on something the save owns rather than a craft is
     /// <c>"game"</c> too, and <c>career.status</c> is the one core publishes:
@@ -450,14 +458,19 @@ public class ScetAlarm
     [SitrepUnit(Units.Id)]
     public string Subject { get; set; } = "game";
 
+    /// <summary>What the alarm watches for, as it was set.</summary>
     public ScetAlarmCondition Condition { get; set; } = new ScetAlarmCondition();
 
+    /// <summary>
+    /// Where the alarm has got to: still watching, fired, unreachable or
+    /// cancelled. See <see cref="ScetAlarmState"/>.
+    /// </summary>
     [SitrepUnit(Units.Enumeration)]
     public ScetAlarmState State { get; set; } = ScetAlarmState.Armed;
 
     /// <summary>
-    /// The universal time the alarm fired at, or <c>null</c> while it is still
-    /// armed. On the craft's clock, like <see cref="ScetAlarmCondition.Ut"/>.
+    /// The universal time the alarm fired at, or <c>null</c> until it has
+    /// fired. On the craft's clock, like <see cref="ScetAlarmCondition.Ut"/>.
     /// </summary>
     [SitrepUnit(Units.UniversalTime)]
     public double? FiredAtUt { get; set; }
@@ -495,16 +508,13 @@ public class ScetAlarm
 /// handle, which tells them nothing they did not already write down. The instant
 /// is inseparable from the stop: without it a warp that halted at one universal
 /// time is indistinguishable from one that halted at another, and the operator
-/// cannot tell which of two armed alarms stopped them. The other fields say
+/// cannot tell which of two alarms stopped them. The other fields say
 /// where it was learned and whether its actions were withheld for want of the
 /// right craft, and neither is a reading of the craft.</para>
+/// <para>The condition is not echoed: for a threshold it would be a claim
+/// about the craft ahead of the light that carries it. A client that wants to
+/// name the alarm reads the roster.</para>
 /// <internal>
-/// The spec also proposed echoing the condition back. For a time arm that is
-/// the instant restated, so it adds nothing; for the threshold arm to come it
-/// would be a claim about the craft ("altitude passed 100 km") wearing the
-/// operator's own words, and the firing shows true-now while the REASON does
-/// not. So the condition is not echoed, here or
-/// later, and a client that wants to name the alarm reads the roster.
 /// Published RAW: see <c>JsonWriter.AppendScetAlarmFired</c>.
 /// </internal>
 /// </summary>
@@ -516,7 +526,7 @@ public class ScetAlarm
 #endif
 public class ScetAlarmFired
 {
-    /// <summary>Which alarm, as the <see cref="ScetAlarm.Id"/> it was armed under.</summary>
+    /// <summary>Which alarm, as the <see cref="ScetAlarm.Id"/> it was set under.</summary>
     [SitrepUnit(Units.Id)]
     public string Id { get; set; } = "";
 
@@ -525,8 +535,8 @@ public class ScetAlarmFired
     public double FiredAtUt { get; set; }
 
     /// <summary>
-    /// The place that learned it, echoing the <see cref="ScetAlarm.Vantage"/> it
-    /// was armed at.
+    /// The place that learned it, echoing the alarm's
+    /// <see cref="ScetAlarm.Vantage"/>.
     ///
     /// <para>Carried rather than left to the client to look up, because a reader
     /// that has to consult the roster first is a reader that will act on the
@@ -542,7 +552,7 @@ public class ScetAlarmFired
     /// the craft named by <see cref="ScetAlarm.ActsOn"/> was not the one being
     /// flown. False for an alarm with no actions.
     ///
-    /// <para>Says nothing about how the craft answered an action that WAS sent.
+    /// <para>Says nothing about how the craft responded to an action that WAS sent.
     /// That is a fact aboard the craft, and it reaches the ground the way every
     /// other one does, a light-time later in the craft's own telemetry: this
     /// notice travels at once and must not carry it.</para>
@@ -555,13 +565,13 @@ public class ScetAlarmFired
 /// <c>alarm.scet.arm</c>'s args: register an alarm with the simulation host, or
 /// replace one already registered under the same <see cref="Id"/>.
 ///
-/// <para>Never delayed. Arming changes nothing aboard the craft, so there is no
-/// light-time fiction to honour, and the same reasoning
-/// <c>time.setWarpIndex</c> has always carried applies: this is a control on the
-/// simulation, not a signal to a spacecraft. Delayed it would also be
-/// unusable, because an alarm for an event less than one light-time away could
-/// never be armed in time, and a delayed command is dropped outright during a
-/// blackout, which is exactly when a SCET alarm earns its keep.</para>
+/// <para>Never delayed. Setting an alarm changes nothing aboard the craft, so
+/// there is no light-time fiction to honour, and the same reasoning as
+/// <c>time.setWarpIndex</c> applies: this is a control on the simulation, not a
+/// signal to a spacecraft. Delayed it would also be unusable, because an alarm
+/// for an event less than one light-time away could never be set in time, and
+/// a delayed command is dropped outright during a blackout, which is exactly
+/// when a SCET alarm earns its keep.</para>
 /// </summary>
 /// <category>Command arguments</category>
 [SitrepContract]
@@ -571,16 +581,21 @@ public class ScetAlarmFired
 [SitrepCommand("alarm.scet.arm", Delay = DelayRole.TrueNow)]
 public class ScetAlarmArmArgs
 {
+    /// <summary>
+    /// The client's own id for the alarm, echoed as <see cref="ScetAlarm.Id"/>.
+    /// An id already held is replaced rather than duplicated.
+    /// </summary>
     [SitrepUnit(Units.Id)]
     public string Id { get; set; } = "";
 
+    /// <summary>What the operator called the alarm, echoed as <see cref="ScetAlarm.Name"/>.</summary>
     [SitrepUnit(Units.Text)]
     public string Name { get; set; } = "";
 
     /// <summary>
-    /// See <see cref="ScetAlarm.Vantage"/>. Empty is accepted and resolved at
-    /// arm time to <see cref="Subject"/>, which is the behaviour every alarm
-    /// already had, so a client that names no vantage keeps it.
+    /// See <see cref="ScetAlarm.Vantage"/>. Empty is accepted and resolved to
+    /// <see cref="Subject"/> when the alarm is set, so the alarm is read at its
+    /// own subject.
     /// </summary>
     [SitrepUnit(Units.Id)]
     public string Vantage { get; set; } = "";
@@ -589,13 +604,14 @@ public class ScetAlarmArmArgs
     [SitrepUnit(Units.Id)]
     public string Subject { get; set; } = "game";
 
+    /// <summary>What the alarm watches for. See <see cref="ScetAlarmCondition"/>.</summary>
     public ScetAlarmCondition Condition { get; set; } = new ScetAlarmCondition();
 
     /// <summary>
     /// See <see cref="ScetAlarm.OnFire"/>. Non-empty only where the alarm is read
     /// at its own subject's vantage and that subject is a craft, or the condition
-    /// is a time on the game's clock; any other arm carrying actions is refused
-    /// rather than accepted with them dropped.
+    /// is a time on the game's clock; any other alarm carrying actions is
+    /// refused rather than accepted with them dropped.
     /// </summary>
     public List<ScetAlarmAction> OnFire { get; set; } = new();
 
@@ -625,6 +641,7 @@ public class ScetAlarmArmArgs
 [SitrepCommand("alarm.scet.disarm", Delay = DelayRole.TrueNow)]
 public class ScetAlarmDisarmArgs
 {
+    /// <summary>The <see cref="ScetAlarm.Id"/> of the alarm to remove.</summary>
     [SitrepUnit(Units.Id)]
     public string Id { get; set; } = "";
 }

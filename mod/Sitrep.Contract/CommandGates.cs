@@ -6,21 +6,22 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract
 {
     /// <summary>
-    /// One gated command and what its gate says RIGHT NOW, evaluated with no
+    /// One gated command and what its gate says right now, evaluated with no
     /// arguments at all.
     ///
     /// <para>This says whether the command can be addressed, not how a dispatch
-    /// will go. The engine evaluates the same <see cref="CommandRequirement"/>
-    /// set the same way in both cases (see <c>ChannelEngine.EvaluateGates</c>);
-    /// the only difference is that here the argument bag is empty, so an
-    /// argument-dependent requirement abstains rather than deciding. A command
-    /// whose verdict is <see cref="GateOutcome.Abstain"/> is one whose verdict
-    /// depends on what you ask it to do, so nothing is said in advance.</para>
+    /// will go. The same <see cref="CommandRequirement"/> set is evaluated the
+    /// same way as at dispatch, except that the arguments are empty, so a
+    /// requirement that depends on arguments abstains rather than deciding: a
+    /// verdict of <see cref="GateOutcome.Abstain"/> means the result depends on
+    /// what you ask the command to do.</para>
     ///
-    /// <para>The dispatch-time evaluation remains the authority: this snapshot
-    /// is at most one sampling interval old and a client must not treat it as
-    /// permission. It exists so a control can be drawn dark BEFORE the operator
-    /// presses it, which is the whole point of asking the game in advance.</para>
+    /// <para>The evaluation at dispatch remains the authority: this snapshot is
+    /// up to one sampling interval old and is not a permission. It lets a
+    /// control be drawn dark before the operator presses it.</para>
+    /// <internal>
+    /// Both paths run ChannelEngine.EvaluateGates.
+    /// </internal>
     /// </summary>
     /// <category>System diagnostics</category>
     [SitrepContract]
@@ -34,63 +35,50 @@ namespace Sitrep.Contract
         public string Command { get; set; } = "";
 
         /// <summary>
-        /// The verdict, in the same shape a refused dispatch carries. Same type
-        /// deliberately: one client renderer then serves both "the game will
-        /// refuse this" and "the game refused this", and the two can never
-        /// disagree about how a reason is worded.
+        /// The verdict, in the same shape a refused dispatch carries, so one
+        /// renderer serves both "the game will refuse this" and "the game
+        /// refused this" and the two word a reason the same way.
         ///
-        /// <para><b>What a client should draw, per outcome. The four are NOT
-        /// two.</b></para>
+        /// <para><b>What a client should draw, per outcome. There are four
+        /// cases, not two.</b></para>
         ///
         /// <list type="bullet">
         /// <item><description><see cref="GateOutcome.Pass"/>: an ordinary live
-        /// control. Not permission, see the type's own
-        /// remarks.</description></item>
+        /// control. Not a permission; see <see cref="CommandGate"/>.</description></item>
         /// <item><description><see cref="GateOutcome.Fail"/>: dark, with the
         /// reason reachable. The game evaluated the requirement and said
         /// no.</description></item>
         /// <item><description><see cref="GateOutcome.Abstain"/>: an ordinary
-        /// live control. The answer depends on arguments nobody has supplied
-        /// yet, so there is nothing honest to say in
-        /// advance.</description></item>
+        /// live control. The verdict depends on arguments nobody has supplied
+        /// yet, so nothing can be said in advance.</description></item>
         /// <item><description><see cref="GateOutcome.Unknown"/>: an ordinary
-        /// live control, and <b>never</b> a dark one. This is an authority that
-        /// was not there to ask, not a judgement about the command. It refuses
-        /// at DISPATCH, deliberately, because a gate that cannot be read must
-        /// not read as no gate; that is a fail-closed rule about ACTING, and it
-        /// is not a licence to render a false certainty in advance. A refusal
-        /// that arrives on dispatch at least names itself as one at the moment
-        /// it happens; a permanently dark control with a confident sentence
-        /// teaches a false belief and never corrects it.</description></item>
+        /// live control, and <b>never</b> a dark one. The authority that decides
+        /// could not be read, which is not a judgement about the command. A
+        /// dispatch in this state is refused (a gate that cannot be read must
+        /// not act as no gate), and that refusal names itself when it happens;
+        /// a control drawn permanently dark with a confident reason would teach
+        /// a false belief and never correct it.</description></item>
         /// </list>
         ///
-        /// <para>The case that makes this concrete: a career save is still
-        /// loading and <c>ScenarioUpgradeableFacilities.Instance</c> is not there
-        /// yet, so every facility gate answers Unknown for as long as that takes.
-        /// Collapsing Unknown into Fail would black those controls out and
-        /// explain it in the game's own voice, and the explanation would be
-        /// about a building rather than about a scene that had not finished
-        /// loading.</para>
-        ///
-        /// <para>That example used to be the sandbox save, where the scenario is
-        /// absent for good. It is not any more, and the reason is worth keeping:
-        /// sandbox HAS no facility tiers, so "cannot read the tier" was the wrong
-        /// question there and the gates now answer max instead of Unknown. An
-        /// authority that does not exist is not an authority that could not be
-        /// read, and only the second one is this.</para>
+        /// <para>For example, while a career save is still loading and
+        /// <c>ScenarioUpgradeableFacilities.Instance</c> does not exist yet, every
+        /// facility gate returns Unknown. Drawing those as Fail would black the
+        /// controls out with a reason about a building rather than about a
+        /// scene that had not finished loading. (A sandbox save has no facility
+        /// tiers at all, so its facility gates evaluate against the maximum tier
+        /// rather than returning Unknown.)</para>
         /// </summary>
         public GateVerdict Verdict { get; set; } = new GateVerdict();
     }
 
     /// <summary>
     /// Wire wrapper for <c>system.uplink.gates</c>: every command that declares
-    /// a requirement, with its current verdict. Resampled on the main thread at
-    /// the engine's gate cadence and republished whole.
+    /// a requirement, with its current verdict. Resampled at the gate sampling
+    /// interval and republished whole.
     ///
     /// <para>Only GATED commands appear. An ungated command is absent rather
-    /// than present-and-passing, so a client that finds no entry knows the
-    /// command has nothing to say about itself, which is different from knowing
-    /// it is fine. Nothing here is a permission; see <see
+    /// than present and passing, so a client that finds no entry knows the
+    /// command declares no gate, which is different from knowing it is fine. Nothing here is a permission; see <see
     /// cref="CommandGate"/>.</para>
     /// </summary>
     /// <category>System diagnostics</category>
@@ -100,6 +88,7 @@ namespace Sitrep.Contract
 #endif
     public class CommandGateReport
     {
+        /// <summary>One entry per gated command, each with its current verdict. Never null; empty when no command declares a requirement.</summary>
         public List<CommandGate> Gates { get; set; } = new List<CommandGate>();
     }
 }

@@ -8,10 +8,9 @@ namespace Sitrep.Contract;
 /// Args for the servo target commands (<c>robotics.servo.setTarget</c>),
 /// the ABSOLUTE angle (hinge) or extension (piston) to drive to, keyed by
 /// the part's <see cref="PartId"/>. <see cref="PartId"/> is the same
-/// <c>flightID.ToString()</c> the read side emits on each
-/// <c>parts.robotics</c> servo entry, so a widget round-trips the exact id
-/// it already displays. A rotor has no target (it spins continuously); a
-/// <c>setTarget</c> aimed at one comes back
+/// <c>flightID</c> string <c>parts.robotics</c> publishes on each servo
+/// entry, so a widget sends back the exact id it displays. A rotor has no
+/// target (it spins continuously); a <c>setTarget</c> aimed at one fails with
 /// <see cref="CommandResult.ErrorCode"/> <see cref="CommandErrorCode.ModeUnavailable"/>.
 /// </summary>
 /// <category>Command arguments</category>
@@ -34,10 +33,10 @@ public class ServoSetTargetArgs
 /// <summary>
 /// Args shared by every robotics boolean actuation
 /// (<c>robotics.servo.setMotor</c>/<c>setLock</c> and
-/// <c>robotics.rotor.setMotor</c>/<c>setLock</c>): an ABSOLUTE state to
-/// apply, never a toggle, matching every other actuation command in this
-/// contract (see <see cref="SetEnabledArgs"/>'s doc comment). Keyed by
-/// <see cref="PartId"/> (the read side's <c>flightID.ToString()</c>).
+/// <c>robotics.rotor.setMotor</c>/<c>setLock</c>): an absolute state to
+/// apply, never a toggle, like every other actuation command (see
+/// <see cref="SetEnabledArgs"/>). Keyed by <see cref="PartId"/>, the
+/// <c>flightID</c> string <c>parts.robotics</c> publishes.
 /// </summary>
 /// <category>Command arguments</category>
 [SitrepContract]
@@ -54,6 +53,7 @@ public class ServoSetEnabledArgs
     [SitrepUnit(Units.Id)]
     public string PartId { get; set; } = "";
 
+    /// <summary>The state to apply: for <c>setMotor</c>, <c>true</c> engages the part's motor and <c>false</c> disengages it; for <c>setLock</c>, <c>true</c> locks the part and <c>false</c> unlocks it. <c>setMotor</c> on a servo with no motor fails with <see cref="CommandErrorCode.CapabilityMismatch"/>.</summary>
     [SitrepUnit(Units.Flag)]
     public bool Enabled { get; set; }
 }
@@ -62,8 +62,8 @@ public class ServoSetEnabledArgs
 /// Args for the rotor scalar-limit commands
 /// (<c>robotics.rotor.setRpmLimit</c>/<c>setTorqueLimit</c>/<c>setBrake</c>),
 /// the ABSOLUTE value to apply, keyed by <see cref="PartId"/>. The bounded
-/// ones (torque 0–100, brake 0–200) are range-validated at the send gate;
-/// out of range yields <see cref="CommandResult.ErrorCode"/>
+/// ones (torque 0 to 100, brake 0 to 200) are range-checked before they are
+/// sent; out of range fails with <see cref="CommandResult.ErrorCode"/>
 /// <see cref="CommandErrorCode.Range"/>.
 /// </summary>
 /// <category>Command arguments</category>
@@ -80,7 +80,7 @@ public class RotorSetValueArgs
     [SitrepUnit(Units.Id)]
     public string PartId { get; set; } = "";
 
-    /// <summary>The absolute value to apply (rpm limit, torque-limit percent 0–100, or brake percent 0–200).</summary>
+    /// <summary>The absolute value to apply: the rpm limit, the torque-limit percent (0 to 100), or the brake percent (0 to 200).</summary>
     [SitrepUnit(Units.Ratio)]
     public double Value { get; set; }
 }

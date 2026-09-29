@@ -5,25 +5,26 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// Coarse classification of what <c>vessel.target</c> points at. KspHost's
-/// raw <c>type</c> string is either a <see cref="VesselType"/>-shaped string
-/// (target is a vessel, <c>target.GetVessel() != null</c>), the literal
-/// <c>"CelestialBody"</c>, or an arbitrary CLR type name for anything else
-/// (a docking port, a waypoint, ...). Rather than reproduce that CLR-name
-/// passthrough on the wire (its own naming wart), this contract collapses it
-/// to the three cases a consumer actually needs to branch on;
-/// <see cref="Other"/> covers docking ports/waypoints/anything not yet
-/// classified more finely (a future, more specific target-kind split is a
-/// non-breaking additive change, same convention as every other
-/// unknown-style fallback in this contract).
+/// Coarse classification of what <c>vessel.target</c> points at: a vessel, a
+/// celestial body, a part of a vessel (a docking port), or
+/// <see cref="Other"/> for anything not classified more finely (a waypoint,
+/// for instance). A more specific kind may be added later; treat an
+/// unrecognised value as <see cref="Other"/>.
 ///
-/// <para><see cref="Position"/> (additive, appended never inserted: enum
-/// member order is wire-significant per this contract's numeric-serialisation
-/// convention) is a client-chosen surface fix used ONLY as an input to
-/// <c>vessel.target.set</c> (see <see cref="SetTargetArgs.Latitude"/>/
-/// <see cref="SetTargetArgs.Longitude"/>), a map-picked lat/lon that isn't
-/// backed by any live KSP target object, so it never appears as
+/// <para>Member order is wire-significant, so members are only ever
+/// appended.</para>
+///
+/// <para><see cref="Position"/> is used ONLY as an input to
+/// <c>vessel.target.set</c> (see <see cref="SetTargetArgs.Latitude"/> and
+/// <see cref="SetTargetArgs.Longitude"/>): a map-picked latitude and longitude
+/// that no live KSP target object backs, so it never appears as
 /// <c>vessel.target</c>'s own reported <see cref="VesselTarget.Kind"/>.</para>
+/// <internal>
+/// The capture's raw <c>type</c> string is a VesselType name, the literal
+/// <c>"CelestialBody"</c>, the literal <c>"Part"</c> for any targetable part
+/// module, or an arbitrary CLR type name, which the view provider collapses
+/// to these members.
+/// </internal>
 /// </summary>
 /// <category>Orbits and trajectories</category>
 #if SITREP_CODEGEN
@@ -32,9 +33,13 @@ namespace Sitrep.Contract;
 [SitrepContract]
 public enum TargetKind
 {
+    /// <summary>A vessel. <see cref="VesselTarget.VesselId"/> carries its guid.</summary>
     Vessel,
+    /// <summary>A celestial body. <see cref="VesselTarget.BodyIndex"/> carries its <c>system.bodies</c> index.</summary>
     Body,
+    /// <summary>Anything not classified more finely, such as a waypoint. Carries no id.</summary>
     Other,
+    /// <summary>A surface latitude and longitude, used only as a <c>vessel.target.set</c> input and never reported.</summary>
     Position,
 
     /// <summary>
@@ -42,20 +47,17 @@ public enum TargetKind
     /// which implements <c>ITargetable</c>). Identity is the owning vessel's
     /// <see cref="VesselTarget.VesselId"/> guid PLUS the part's
     /// <see cref="VesselTarget.PartId"/> (KSP <c>Part.flightID</c>): a part id
-    /// alone is not globally unique, only within its vessel. Appended (never
-    /// inserted) per this contract's wire-significant enum-order convention.
+    /// alone is not globally unique, only within its vessel.
     /// </summary>
     Part,
 }
 
 /// <summary>
 /// Next closest approach between the active vessel and its current target,
-/// computed MOD-side by the elected <see cref="IPropagationProvider"/> (stock
-/// two-body Kepler by default, an n-body provider when elected over it).
-/// Replaces the SDK's former client-side <c>o.closestTgtApprUT</c> two-body
-/// solve: the authority moves into the mod so an n-body physics mod can supply
-/// the true encounter instead of a Kepler approximation that is simply wrong
-/// under n-body.
+/// computed by the mod's elected <see cref="IPropagationProvider"/> (stock
+/// two-body Kepler by default, an n-body provider when one is elected over
+/// it), so an n-body physics mod can supply the true encounter rather than a
+/// Kepler approximation.
 ///
 /// <para>It comes from the propagation provider rather than a solver of its own
 /// so that the encounter and the trajectory it is an encounter ON are always the
@@ -86,17 +88,14 @@ public class ClosestApproach
 /// both use the one <see cref="Vec3"/> shape.
 ///
 /// <para><see cref="Orbit"/> reuses <see cref="VesselOrbit"/> itself (not a
-/// separate "target orbit" shape), which lets the SDK propagate a target with
-/// the EXACT SAME code path as the self vessel, so both are evaluated at the
-/// same view-UT by the same propagation logic (the single-view-time invariant).
-/// Its nested <see cref="Meta"/> is stamped with the SAME subject (the active
-/// vessel producing this sample), not a separate target-vessel identity; <see
-/// cref="VesselId"/>/<see cref="BodyIndex"/> below carry the target's own
-/// identity.</para>
+/// separate "target orbit" shape), so the SDK propagates a target with the same
+/// code path as the active vessel and both are evaluated at the same view
+/// time. Its nested <see cref="Meta"/> is stamped with the SAME subject (the
+/// active vessel producing this sample), not the target's; <see cref="VesselId"/>
+/// and <see cref="BodyIndex"/> carry the target's own identity.</para>
 ///
-/// <para>Whole-channel absence (the outer <c>VesselTarget?</c> being null)
-/// means nothing is targeted, the common case, R1(b), never a sentinel
-/// zero-distance/zero-vector record.</para>
+/// <para>A null payload means nothing is targeted, the common case, never a
+/// zero-distance or zero-vector record.</para>
 /// </summary>
 /// <category>Orbits and trajectories</category>
 [SitrepContract]
@@ -106,32 +105,32 @@ public class ClosestApproach
 [SitrepTopic("vessel.target")]
 public class VesselTarget
 {
+    /// <summary>The target's name as KSP gives it (<c>ITargetable.GetName()</c>). Empty string when none was read.</summary>
     [SitrepUnit(Units.Text)]
     public string Name { get; set; } = "";
 
+    /// <summary>What kind of thing is targeted. Never <see cref="TargetKind.Position"/>.</summary>
     [SitrepUnit(Units.Enumeration)]
     public TargetKind Kind { get; set; }
 
     /// <summary>
-    /// The target's own stable id: the M3 R3 fix for the "no target id to
-    /// round-trip into <c>vessel.target.set</c>" gap this class's doc
-    /// comment originally flagged as deferred. Populated ONLY when
-    /// <see cref="Kind"/> is <see cref="TargetKind.Vessel"/>, KSP's
-    /// <c>Vessel.id</c> guid, the same opaque id <c>system.vessels</c>'
-    /// roster and <c>SetTargetArgs.VesselId</c> both use, so a widget can
-    /// read this straight off <c>vessel.target</c> and hand it back into a
-    /// re-target command with no extra lookup. Null for a body/other target;
-    /// see <see cref="BodyIndex"/> for the body case.
+    /// The target's own stable id, populated when <see cref="Kind"/> is
+    /// <see cref="TargetKind.Vessel"/> (KSP's <c>Vessel.id</c> guid) or
+    /// <see cref="TargetKind.Part"/> (the owning vessel's guid). The same opaque
+    /// id <c>system.vessels</c>' roster and <see cref="SetTargetArgs.VesselId"/>
+    /// use, so a widget can hand it straight back into a re-target command
+    /// with no extra lookup. Null for a body or other target; see
+    /// <see cref="BodyIndex"/> for the body case.
     /// </summary>
     [SitrepUnit(Units.Id)]
     public string? VesselId { get; set; }
 
-    /// <summary> The target's <c>system.bodies</c> index: populated ONLY when
-    /// <see cref="Kind"/> is <see cref="TargetKind.Body"/>, mirroring <see
-    /// cref="VesselId"/>'s vessel case and <see
-    /// cref="SetTargetArgs.BodyIndex"/>'s own field. Null for a vessel/other
-    /// target, or if the body name couldn't be resolved against
-    /// <c>system.bodies</c> this tick.
+    /// <summary>
+    /// The target's <c>system.bodies</c> index, populated ONLY when
+    /// <see cref="Kind"/> is <see cref="TargetKind.Body"/>, matching
+    /// <see cref="SetTargetArgs.BodyIndex"/>. Null for any other target, or when
+    /// the body name could not be resolved against <c>system.bodies</c> this
+    /// tick.
     /// </summary>
     [SitrepUnit(Units.Id)]
     public int? BodyIndex { get; set; }
@@ -147,8 +146,7 @@ public class VesselTarget
     [SitrepUnit(Units.Id)]
     public uint? PartId { get; set; }
 
-    /// <summary>Metres, self-relative. Null only when the transform data needed
-    /// to compute it wasn't available this tick.</summary>
+    /// <summary>The target's position relative to the active vessel, in metres. Null only when the transform data needed to compute it was not available this tick.</summary>
     [SitrepUnit(Units.Metres)]
     [SitrepFrame(Frames.SubjectRelative)]
     // Both the position and the velocity that advances it ride this one payload, so a consumer
@@ -156,25 +154,20 @@ public class VesselTarget
     [SitrepReckonable(ReckoningBases.LinearDeadReckoning, "relativeVelocity")]
     public Vec3? RelativePosition { get; set; }
 
-    /// <summary>m/s, self-relative. R7 Fix 3: nullable for consistency with
-    /// <see cref="RelativePosition"/>, null (never a sentinel <c>(0,0,0)</c>,
-    /// the V-10 ambiguity) when the transform data needed to compute it wasn't
-    /// available this tick.</summary>
+    /// <summary>The target's velocity relative to the active vessel, in m/s. Null (never <c>(0,0,0)</c>) when the transform data needed to compute it was not available this tick.</summary>
     [SitrepUnit(Units.MetresPerSecond)]
     [SitrepFrame(Frames.SubjectRelative)]
-    // Deliberately NOT [SitrepReckonable]: advancing a velocity needs an acceleration, and the
-    // wire publishes none for the relative pair. Both craft's conics would give one, but only
-    // when both orbits exist and share a reference body, and a mark is a floor that always holds.
+    // Not reckonable: advancing a velocity needs an acceleration, and the wire publishes none for
+    // the relative pair. Both craft's conics would give one, but only when both orbits exist and
+    // share a reference body.
     public Vec3? RelativeVelocity { get; set; }
 
-    /// <summary>Null when the target has no orbit (e.g. it's landed, or its
-    /// orbit couldn't be resolved this tick).</summary>
+    /// <summary>The target's orbit. Null when the target has no orbit (it is landed, say, or its orbit could not be resolved this tick).</summary>
     public VesselOrbit? Orbit { get; set; }
 
-    /// <summary>Next closest approach (mod-side, elected solver). Null when
-    /// there is no encounter to report; see <see
-    /// cref="ClosestApproach"/>.</summary>
+    /// <summary>Next closest approach, from the mod's elected propagation provider. Null when there is no encounter to report; see <see cref="Sitrep.Contract.ClosestApproach"/>.</summary>
     public ClosestApproach? ClosestApproach { get; set; }
 
+    /// <summary>The payload's provenance, stamped with the active vessel (<c>"vessel:&lt;guid&gt;"</c>), and quality.</summary>
     public PayloadMeta Meta { get; set; } = new();
 }

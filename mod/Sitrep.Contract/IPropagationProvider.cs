@@ -4,76 +4,60 @@ using System.Collections.Generic;
 namespace Sitrep.Contract
 {
     /// <summary>
-    /// A capability that answers where something is at a given UT. This is the
-    /// dead-reckoning foundation for the streaming model: we transmit sparse
-    /// orbital elements over the wire and let each consumer (the mod, the SDK)
-    /// derive position on demand, rather than streaming dense position samples
-    /// every tick.
-    ///
-    /// <para>Deliberately an interface, not a static method: propagation is a
-    /// swappable capability. <c>KeplerProvider</c> is the two-body analytic
-    /// solver used by default; a provider backed by a different physics is a
-    /// second implementation of this same contract.</para>
-    ///
-    /// <para><b>Keyed on an identity and a frame, not on elements.</b> An earlier
-    /// shape of this interface took <see cref="OrbitElements"/> directly, which
-    /// meant the argument itself was the two-body assumption: an implementation
-    /// handed a conic can answer only in conics, however it works internally. A
-    /// <see cref="PropagationTarget"/> names the object instead and carries the
-    /// conic only as the payload this particular implementation needs.</para>
-    ///
-    /// <para><b>Everything a caller used to compute for itself is here.</b> The
-    /// members beyond <c>Solve</c> are not conveniences. Each replaces arithmetic
-    /// that was being done outside any provider, and so escaped every attempt to
-    /// swap one: an orbital period from sma/mu, a propagability predicate from
-    /// ecc/sma/mu, a batch of solves run one at a time in the visibility sweep's
-    /// inner loop, and a closest approach that used to be a capability of its
-    /// own.</para>
-    ///
-    /// <para><b>Closest approach is on this interface, and it has to be.</b> It
-    /// was a sibling capability with its own election for a while, which modelled
-    /// the two as unrelated. They are not: an encounter is a CONSEQUENCE of a
-    /// trajectory. Whoever can propagate can answer where two craft are closest,
-    /// and whoever cannot answers in conics precisely because their propagation
-    /// is conic. Two elections could disagree, and the failure had no symptom: an
-    /// integrated trajectory and a two-body encounter for the same vessel at the
-    /// same instant, both on the wire, with nothing to tell them apart. One
-    /// election cannot produce that pair.</para>
-    /// </summary>
-    /// <summary>
     /// The capability id every <see cref="IPropagationProvider"/> competes for.
     ///
-    /// <para>Declared HERE rather than at the election, which is core's and so
-    /// out of an Uplink's reach, on exactly the reasoning <see
-    /// cref="GravityModelCapability"/> states: a registering Uplink and the
-    /// election that resolves it have to agree on this string, and a second
-    /// copy of it on the far side of a boundary neither can compile across is a
-    /// copy free to disagree in silence. The provider registers, nothing
-    /// resolves it, and the only symptom is a trajectory that stays closed-form
-    /// forever.</para>
+    /// <para>Declared here, beside the interface, because a registering Uplink
+    /// and the election that resolves it have to agree on this string, on the
+    /// same reasoning as <see cref="GravityModelCapability"/>. A provider
+    /// registered under any other id is never resolved, and the only symptom is
+    /// a trajectory that stays closed-form.</para>
     /// </summary>
+    /// <category>Propagation and models</category>
     public static class PropagationCapability
     {
+        /// <summary>The capability id, <c>"propagation"</c>: register an <see cref="IPropagationProvider"/> under exactly this string.</summary>
         public const string Id = "propagation";
     }
 
     /// <summary> Whatever can say where something will be: the one authority on
     /// a trajectory for this install, elected under <see
-    /// cref="PropagationCapability.Id"/>.
+    /// cref="PropagationCapability.Id"/>. Sparse orbital elements travel over
+    /// the wire and each consumer derives position on demand from this, rather
+    /// than position samples being streamed every tick.
     ///
-    /// <para>An implementation answers for a <see cref="PropagationTarget"/> in
-    /// a <see cref="PropagationFrame"/> at a UT, and every answer must be
+    /// <para><b>Keyed on an identity and a frame, not on elements.</b> A
+    /// <see cref="PropagationTarget"/> names the object and carries a conic only
+    /// as the payload a two-body implementation needs, so an implementation
+    /// backed by a different physics is not forced to reason in conics. The
+    /// default provider is a two-body analytic solver.</para>
+    ///
+    /// <para>The members beyond <c>Solve</c> are not conveniences: an orbital
+    /// period, a propagability predicate, a batch of solves and the closest
+    /// approach all belong to whoever propagates, so that swapping the provider
+    /// swaps every one of them.</para>
+    ///
+    /// <para><b>Closest approach is on this interface, and it has to be.</b> An
+    /// encounter is a CONSEQUENCE of a trajectory. Whoever can propagate can say
+    /// where two craft are closest, and whoever cannot says it in conics
+    /// precisely because their propagation is conic. One election means an
+    /// integrated trajectory and a two-body encounter for the same vessel at the
+    /// same instant cannot both be on the wire.</para>
+    ///
+    /// <para>An implementation returns results for a
+    /// <see cref="PropagationTarget"/> in a <see cref="PropagationFrame"/> at a
+    /// UT, and every result must be
     /// DETERMINISTIC (same inputs, same outputs, no wall-clock and no
     /// randomness), because callers cache results, compare two of them, and
     /// draw the difference. What is not supported is declined through <see
     /// cref="CanPropagate(PropagationTarget, PropagationFrame, double,
-    /// double)"/> rather than approximated: a two-body answer to an n-body
+    /// double)"/> rather than approximated: a two-body result for an n-body
     /// question looks exactly like a right one on screen.</para>
     ///
     /// <para>A stock install has a provider and so does an n-body one; core
     /// resolves this interface and never learns which is installed, which is
     /// what keeps the rest of the mod free of any particular physics.</para>
     /// </summary>
+    /// <category>Propagation and models</category>
     public interface IPropagationProvider : ISitrepProvider
     {
         /// <summary>
@@ -87,6 +71,10 @@ namespace Sitrep.Contract
         /// double)"/> would refuse. Callers on a hot path should ask first
         /// rather than catch.</para>
         /// </summary>
+        /// <param name="target">The object to locate.</param>
+        /// <param name="frame">The frame the result is expressed in.</param>
+        /// <param name="ut">The instant, in UT seconds.</param>
+        /// <returns>Position (metres) and velocity (metres per second) in <paramref name="frame"/>.</returns>
         StateVector Solve(PropagationTarget target, PropagationFrame frame, double ut);
 
         /// <summary>
@@ -99,6 +87,10 @@ namespace Sitrep.Contract
         /// the sweep must be able to ask this way even while the default
         /// provider does not need it.</para>
         /// </summary>
+        /// <param name="target">The object to locate.</param>
+        /// <param name="frame">The frame every result is expressed in.</param>
+        /// <param name="uts">The instants, in UT seconds.</param>
+        /// <param name="into">Receives one state vector per entry of <paramref name="uts"/>, at the same index.</param>
         void SolveMany(
             PropagationTarget target,
             PropagationFrame frame,
@@ -110,11 +102,9 @@ namespace Sitrep.Contract
         /// null when its motion has no repeat.
         ///
         /// <para>For a two-body ellipse this is the orbital period. Null is a
-        /// real answer and not a failure: a hyperbolic trajectory has no
-        /// period, and neither does a general non-Keplerian one. Every caller
-        /// of this already had a no-period branch before it existed, because
-        /// each of the sites it replaces guarded on <c>ecc >= 1</c> and fell
-        /// through to a fixed ceiling.</para>
+        /// real result and not a failure: a hyperbolic trajectory has no
+        /// period, and neither does a general non-Keplerian one. A caller needs
+        /// a no-period branch.</para>
         /// </summary>
         double? CharacteristicCycleSeconds(PropagationTarget target);
 
@@ -130,13 +120,13 @@ namespace Sitrep.Contract
         /// fixed apsides that <c>sma * (1 +/- ecc)</c> can be written out
         /// for.</para>
         ///
-        /// <para>Null is a real answer, on the same terms as <see
+        /// <para>Null is a real result, on the same terms as <see
         /// cref="CharacteristicCycleSeconds"/>: a hyperbolic trajectory recedes
         /// forever and has no furthest point.</para>
         /// </summary>
         RadiusExtremes? RadiusExtremesOf(PropagationTarget target);
 
-        /// <summary> Whether this provider will answer honestly for <paramref
+        /// <summary> Whether this provider can return a trustworthy result for <paramref
         /// name="target"/> in <paramref name="frame"/> across the window
         /// [<paramref name="fromUt"/>, <paramref name="toUt"/>].
         ///
@@ -145,15 +135,14 @@ namespace Sitrep.Contract
         /// <c>ecc = 1</c> and <c>sma = 0</c>, so the root body reaches this
         /// guard on every hierarchy walk that climbs to the star). Or the FRAME
         /// may be unreachable, or the window may run past a horizon beyond
-        /// which the answer stops being trustworthy. An analytic two-body
+        /// which the result stops being trustworthy. An analytic two-body
         /// solver has no such horizon; anything that integrates does, and the
         /// window is a parameter so that it can say so.</para>
         ///
         /// <para>This is the ONLY question a caller should ask before reaching
-        /// for a frame centred on another body. It replaced a predicate the
-        /// visibility side kept over its own list of links, which was a second
-        /// opinion about the same walk and so free to disagree with the
-        /// provider that performs it.</para>
+        /// for a frame centred on another body. A second predicate kept by the
+        /// caller over the same walk would be free to disagree with the provider
+        /// that performs it.</para>
         /// </summary>
         bool CanPropagate(PropagationTarget target, PropagationFrame frame, double fromUt, double toUt);
 
@@ -169,23 +158,20 @@ namespace Sitrep.Contract
         /// <para>The FIRST such instant, deliberately, not the smallest
         /// separation in the window. An operator flying a rendezvous is asking
         /// what happens next; a deeper approach three orbits later is a different
-        /// question and would read as a wrong answer to this one.</para>
+        /// question and would read as a wrong result for this one.</para>
         ///
-        /// <para><b>Both objects are named, not described.</b> That is the whole
-        /// difference from the interface this replaces, whose only argument was a
-        /// UT: a solver handed a bare instant has to reach for its own source of
-        /// truth about who is involved, and the stock one reached for KSP's
-        /// two-body helper because that was the nearest source to hand. Named
-        /// targets, a frame and a bounded window are the same vocabulary the rest
-        /// of this interface speaks, and they are enough for an integrator to
-        /// answer from its own trajectories.</para>
+        /// <para><b>Both objects are named, not described.</b> Named targets, a
+        /// frame and a bounded window are the same vocabulary the rest of this
+        /// interface speaks, and they are enough for an integrator to compute
+        /// the approach from its own trajectories rather than from KSP's
+        /// two-body helper.</para>
         ///
         /// <para><b>Symmetric.</b> Swapping the two arguments must not change the
-        /// answer. The names distinguish the caller's point of view (the craft
+        /// result. The names distinguish the caller's point of view (the craft
         /// being reported on, and what it is approaching), nothing else.</para>
         ///
         /// <para><b>The window is a real bound, not a hint.</b> An encounter
-        /// after <paramref name="toUt"/> is not an answer, because a provider
+        /// after <paramref name="toUt"/> is not a result, because a provider
         /// that integrates has a horizon past which it would be inventing one:
         /// the same reason <see cref="CanPropagate(PropagationTarget,
         /// PropagationFrame, double, double)"/> takes a window. A caller
@@ -196,10 +182,16 @@ namespace Sitrep.Contract
         /// resolve that faster motion across it.</para>
         ///
         /// <para>Deterministic, on the same terms as <c>Solve</c>: same inputs,
-        /// same answer, no wall-clock and no random dependence. A provider that
+        /// same result, no wall-clock and no random dependence. A provider that
         /// searches numerically must therefore derive its sampling from the
         /// arguments rather than from anything ambient.</para>
         /// </summary>
+        /// <param name="subject">The craft being reported on.</param>
+        /// <param name="other">What it is approaching.</param>
+        /// <param name="frame">The frame the approach is computed in.</param>
+        /// <param name="fromUt">Start of the search window, in UT seconds.</param>
+        /// <param name="toUt">End of the search window, in UT seconds.</param>
+        /// <returns>The next approach in the window, or null.</returns>
         ClosestApproach? SolveClosestApproach(
             PropagationTarget subject,
             PropagationTarget other,
@@ -217,13 +209,11 @@ namespace Sitrep.Contract
     /// is no integrated point query to select. What differs is whether the
     /// caller is willing to read it past the point anybody stands behind it,
     /// which <see cref="IPropagationProvider.CanPropagate"/> already decides
-    /// and which the caller now has to state.</para>
+    /// and which the caller has to state.</para>
     ///
     /// <para><b><see cref="Unspecified"/> is zero and means nothing was
-    /// chosen.</b> Same rule as <c>TrajectoryKind</c>'s zero and for the same
-    /// reason: had the permissive value been zero, every existing caller would
-    /// have been granted it without anyone deciding, and the setting would be
-    /// decoration.</para>
+    /// chosen.</b> Same rule as <c>TrajectoryKind</c>'s zero: a default value
+    /// must never grant the permissive setting without anyone deciding.</para>
     /// </summary>
     /// <category>Orbits and trajectories</category>
     public enum PropagationCertification
@@ -233,7 +223,7 @@ namespace Sitrep.Contract
         Unspecified = 0,
 
         /// <summary>
-        /// Answer wherever the solver can reach, horizon or no horizon. What a
+        /// Return a result wherever the solver can reach, horizon or no horizon. What a
         /// PLANNING search wants: a transfer grid asks a two-body question about
         /// instants nobody has reached, on purpose, and a bound derived from how
         /// long osculating elements stand in for an integrated path is not a
@@ -242,9 +232,9 @@ namespace Sitrep.Contract
         Unbounded = 1,
 
         /// <summary>
-        /// Answer only across spans the provider vouches for, and decline past
-        /// them. What an OPERATIONAL prediction wants: a reacquisition sweep
-        /// quoting a UT read off arc nobody stands behind is a confident answer
+        /// Return results only across spans the provider vouches for, and decline
+        /// past them. What an OPERATIONAL prediction wants: a reacquisition sweep
+        /// quoting a UT read off arc nobody stands behind is a confident figure
         /// with nothing under it.
         /// </summary>
         CertifiedOnly = 2,
@@ -252,6 +242,7 @@ namespace Sitrep.Contract
 
     /// <summary>Frame-free overloads for callers working in the target's own
     /// parent frame.</summary>
+    /// <category>Propagation and models</category>
     public static class PropagationProviderExtensions
     {
         /// <summary>

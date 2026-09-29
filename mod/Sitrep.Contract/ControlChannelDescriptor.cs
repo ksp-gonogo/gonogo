@@ -8,20 +8,9 @@ namespace Sitrep.Contract
     /// <summary>
     /// The contract's control-channel knowledge, as data, derived by reflection:
     /// which write command carries a value, and which wire key that value sits
-    /// under in its args.
-    /// </summary>
-    ///
-    /// <remarks>
-    /// <para>Sibling of <see cref="UnitDescriptor"/> and here for the same
-    /// reason. <c>RtConfig.EmitChannelMap</c> already reflects over
-    /// <see cref="SitrepControlChannelAttribute"/> to generate the TypeScript
-    /// table, but <c>RtConfig</c> references Reinforced.Typings, a codegen-time
-    /// dependency the shipped mod does not carry: touching it at runtime would
-    /// fail to load. Nothing in this file references anything outside the
-    /// contract assembly and the BCL, which is exactly the rule the attribute's
-    /// own doc states it exists to satisfy ("anything reflecting over it
-    /// (codegen, the coverage gate) must never have to resolve an external
-    /// assembly").</para>
+    /// under in its args. A sibling of <see cref="UnitDescriptor"/>, and like it
+    /// reflected at runtime from the declarations rather than embedded, so it
+    /// cannot drift from them.
     ///
     /// <para><b>What it is for.</b> A pending uplink says a command is in
     /// flight; without this it cannot say WHAT the command asked for, because
@@ -29,12 +18,15 @@ namespace Sitrep.Contract
     /// server knows which key of that bag is the value. That is the difference
     /// between rendering "a SAS command is in flight" and rendering the mode it
     /// asked for, and the second is what a command-echo expectation needs.</para>
-    ///
-    /// <para>Reflected rather than embedded, same argument
-    /// <see cref="UnitDescriptor"/> makes: a baked copy of the table would be
-    /// free to drift from the attributes it claims to describe the moment
-    /// someone declares a channel without re-running codegen.</para>
-    /// </remarks>
+    /// <internal>
+    /// <c>RtConfig.EmitChannelMap</c> reflects over the same attribute to generate
+    /// the TypeScript table, but <c>RtConfig</c> references Reinforced.Typings, a
+    /// codegen-time dependency the shipped mod does not carry, so it cannot be
+    /// touched at runtime. Nothing in this file references anything outside the
+    /// contract assembly and the BCL.
+    /// </internal>
+    /// </summary>
+    /// <category>Commands</category>
     public static class ControlChannelDescriptor
     {
         /// <summary>
@@ -49,6 +41,8 @@ namespace Sitrep.Contract
         /// the command carries more than one value and no single scalar
         /// describes it, so it is omitted rather than guessed at.</para>
         /// </summary>
+        /// <param name="assembly">The assembly to read declarations from; this contract assembly when null.</param>
+        /// <returns>Write command name to its camel-cased value key.</returns>
         public static IReadOnlyDictionary<string, string> ValueKeyByCommand(Assembly assembly = null)
         {
             var target = assembly ?? typeof(ControlChannelDescriptor).Assembly;
@@ -88,17 +82,17 @@ namespace Sitrep.Contract
         /// <summary>
         /// Pull the scalar a decoded args bag carries under <paramref name="valueKey"/>,
         /// as a double, or null when there is nothing usable there.
-        /// </summary>
         ///
-        /// <remarks>
-        /// A bool comes back as 1 or 0 and an enum as its ordinal, which is what
-        /// they already are on the wire: the channel's own declared args type
-        /// says how to read the number back, so nothing is lost by carrying one
-        /// numeric field rather than a variant. A string or a nested object
-        /// yields null rather than a parse attempt: the coverage gate already
-        /// requires a channel's value field to be a scalar, so anything else
-        /// here means the args did not come from the channel it claims.
-        /// </remarks>
+        /// <para>A bool comes back as 1 or 0 and an enum as its ordinal, which is
+        /// what they already are on the wire: the channel's own declared args type
+        /// says how to read the number back. A string or a nested object yields
+        /// null rather than a parse attempt, because a channel's value field is
+        /// always a scalar, so anything else means the args did not come from the
+        /// channel they claim.</para>
+        /// </summary>
+        /// <param name="args">The decoded args bag, an <c>IDictionary&lt;string, object&gt;</c> keyed by wire name.</param>
+        /// <param name="valueKey">The camel-cased key, as <see cref="ValueKeyByCommand"/> returns it.</param>
+        /// <returns>The value as a double, or null.</returns>
         public static double? ScalarFrom(object args, string valueKey)
         {
             if (args == null || string.IsNullOrEmpty(valueKey)) return null;
@@ -119,12 +113,6 @@ namespace Sitrep.Contract
             }
         }
 
-        /// <summary>
-        /// Reflection over a loaded assembly can partially fail; the same
-        /// defensive walk <see cref="UnitDescriptor"/> uses, for the same
-        /// reason. A type that will not load contributes no channels rather
-        /// than taking the mod down over a descriptor.
-        /// </summary>
         /// <summary>
         /// This type's public instance properties, or none if the type will not
         /// yield them. The <see cref="SafeTypes"/> argument one level down: a
@@ -157,16 +145,15 @@ namespace Sitrep.Contract
         /// only (<c>PrivateAssets="all"</c> with no <c>runtime</c>, because a
         /// deployed net472 assembly carrying RT attributes would make Kopernicus
         /// fail to resolve them at startup). So on any runtime consumer of the
-        /// netstandard2.0 build this threw <c>FileNotFoundException</c> for an
+        /// netstandard2.0 build this throws <c>FileNotFoundException</c> for an
         /// assembly that is correctly absent.
         ///
-        /// Unguarded, that throw escaped through this method's only caller into
-        /// the middle of an object initializer and aborted the whole dispatch,
-        /// so a delayed command was never enqueued AND never sent. Skipping the
-        /// property is right rather than merely safe: a property whose
-        /// attributes will not load cannot be declaring a control channel we
-        /// could act on, and this type's own doc says anything reflecting over
-        /// it must never have to resolve an external assembly.
+        /// <para>Unguarded, that throw escapes through this method's only caller
+        /// into the middle of an object initializer and aborts the whole dispatch,
+        /// so a delayed command is never enqueued AND never sent. Skipping the
+        /// property is right rather than merely safe: a property whose attributes
+        /// will not load cannot be declaring a control channel that could be
+        /// acted on.</para>
         /// </remarks>
         private static SitrepControlChannelAttribute SafeControlChannelAttribute(PropertyInfo property)
         {
@@ -191,6 +178,12 @@ namespace Sitrep.Contract
             || ex is TypeLoadException
             || ex is BadImageFormatException;
 
+        /// <summary>
+        /// Reflection over a loaded assembly can partially fail; the same
+        /// defensive walk <see cref="UnitDescriptor"/> uses, for the same
+        /// reason. A type that will not load contributes no channels rather
+        /// than taking the mod down over a descriptor.
+        /// </summary>
         private static IEnumerable<Type> SafeTypes(Assembly assembly)
         {
             try

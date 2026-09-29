@@ -1,28 +1,33 @@
 namespace Sitrep.Contract
 {
     /// <summary>
-    /// The Uplink ABI's version: see
-    /// <c>local_docs/telemetry-mod/uplink-versioning-research.md</c>. This is
-    /// intentionally a bare <c>const int</c> pair, not a struct/semver type:
-    /// every consumer that needs "what contract version was I built against"
-    /// (see <see cref="SitrepUplinkAttribute"/>'s default constructor
-    /// arguments) relies on the C# compiler inlining a <c>const</c> at the
-    /// CALL SITE, at COMPILE time: a struct/property read would instead
-    /// resolve against the CALLER's loaded copy of this assembly, defeating
-    /// the whole point of stamping "what version this Uplink was built
-    /// against" into an old, un-recompiled binary.
-    ///
-    /// <see cref="Major"/> bumps are BREAKING (removed/renamed/retyped
-    /// members on a wire-visible <c>[TsInterface]</c> type: the CI "lying
-    /// minor" gate, see <c>local_docs/telemetry-mod/uplink-versioning-research.md</c>,
-    /// fails the build on exactly this unless <see cref="Major"/> bumps in
-    /// the same commit). <see cref="Minor"/> bumps are additive-only (new
-    /// field/type) and never break an Uplink built against an older Minor of
-    /// the same Major.
+    /// The version of the Sitrep wire contract and Uplink ABI, as a pair of
+    /// <c>const int</c> values.
+    /// <para><see cref="Major"/> changes on a breaking change: a wire-visible
+    /// member removed, renamed or retyped, or an Uplink-facing interface
+    /// changed so an existing Uplink no longer compiles. <see cref="Minor"/>
+    /// changes on an additive change only (a new field or type), and never
+    /// breaks an Uplink built against an older Minor of the same Major.</para>
+    /// <para>Both are constants, so the compiler inlines them into an Uplink at
+    /// compile time: the values an Uplink reads (and the defaults of
+    /// <see cref="SitrepUplinkAttribute"/>) record the contract it was built
+    /// against, not the one loaded beside it at run time.</para>
+    /// <internal>
+    /// A struct or property read would resolve against the caller's loaded copy
+    /// of this assembly and defeat the point of stamping the build-time version
+    /// into an old, un-recompiled binary. The CI shape gate fails the build on a
+    /// wire break unless Major moves in the same commit.
+    /// </internal>
     /// </summary>
+    /// <category>Uplink API</category>
     public static class ContractVersion
     {
         /// <summary>
+        /// The contract's major version. It changes on a breaking change to the
+        /// wire contract or the Uplink ABI; an Uplink built against a different
+        /// Major is not compatible. The value is inlined into an Uplink at
+        /// compile time, so it records the Major that Uplink was built against.
+        /// <internal>
         /// Bumped 3 -&gt; 4 (Minor reset to 0). The Major-4 line carries TWO
         /// breaking retypes, deliberately collapsed into ONE Major because
         /// v4 was never released and there are no external Uplinks: no
@@ -57,8 +62,6 @@ namespace Sitrep.Contract
         /// applied); a real number means <see cref="CommsDelaySource.SignalDelay"/>.
         /// See
         /// <c>local_docs/Wednesday Work/2026-07-16-comms-delay-nullable-when-no-path.md</c>.</para>
-        /// </summary>
-        /// <remarks>
         /// <para><b>Bumped 4 -&gt; 5 (Minor reset to 0): the thermal channel
         /// carries kelvin only.</b> Removed
         /// <c>VesselThermal.HeatShieldTempCelsius</c>, replaced by
@@ -553,16 +556,20 @@ namespace Sitrep.Contract
         /// complete set per pass, so a (centre, craft) pair that loses its route
         /// loses its row; a per-row setter cannot remove a row, and no Uplink
         /// called it. Declared in the ledger's <c>SeamBreaks</c>.</para>
-        /// </remarks>
+        /// </internal>
+        /// </summary>
         public const int Major = 20;
 
         /// <summary>
+        /// The contract's minor version within the current <see cref="Major"/>. It
+        /// changes on an additive change only, and an Uplink built against any older
+        /// Minor of the same Major stays compatible. The value is inlined into an
+        /// Uplink at compile time, so it records the Minor that Uplink was built against.
+        /// <internal>
         /// Reset to 0 alongside the Major 19 -&gt; 20 bump (see <see cref="Major"/>).
         /// The Minor history below belongs to the earlier Major lines and is
         /// retained for provenance; every one of those additive changes is
         /// carried forward.
-        /// </summary>
-        /// <remarks>
         /// <para>Major-3 history, Bumped 2 -&gt; 3 (Minor reset to 0): the
         /// Principia mod-seam revert. Removed
         /// <c>VesselPhysicsMode.IsPrincipiaActive</c> from the
@@ -2013,7 +2020,8 @@ namespace Sitrep.Contract
         /// strategy on a rule of its own, and
         /// <see cref="CareerStrategy.ActivateAvailableFromUt"/>, when such a refusal
         /// lapses. Additive, so an Uplink built against 20.0 is unaffected.</para>
-        /// </remarks>
+        /// </internal>
+        /// </summary>
         public const int Minor = 1;
     }
 }

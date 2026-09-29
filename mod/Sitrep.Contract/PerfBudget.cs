@@ -4,18 +4,21 @@ using System.Collections.Generic;
 namespace Sitrep.Contract
 {
     /// <summary>
-    /// Soft performance budget, the mod-side counterpart to the app's
-    /// <c>@ksp-gonogo/core</c> <c>PerfBudget</c>
-    /// (<c>packages/core/src/perf/PerfBudget.ts</c>): tracks a volume over a
-    /// rolling window and warns (rate-limited to once per window) when a
-    /// threshold is exceeded. No throw, no behavioural change: the budget is
-    /// purely diagnostic.
+    /// Soft performance budget: tracks a volume over a rolling window and warns
+    /// (rate-limited to once per window) when a threshold is exceeded. No throw,
+    /// no behavioural change: the budget is purely diagnostic.
     ///
     /// <para>Keyed on whatever time axis the caller already samples on
     /// (typically UT, since a KSP-side capture cadence is driven by UT, not
-    /// wall clock - see <c>SampleCadence.IntervalUtAt</c>). Nothing here
-    /// calls a clock itself, so it stays KSP-free and unit-testable.</para>
+    /// wall clock). Nothing here calls a clock itself, so it stays KSP-free and
+    /// unit-testable.</para>
+    /// <internal>
+    /// The mod-side counterpart to the app's <c>PerfBudget</c>
+    /// (<c>packages/core/src/perf/PerfBudget.ts</c>). The UT cadence it usually
+    /// runs on is <c>SampleCadence.IntervalUtAt</c>.
+    /// </internal>
     /// </summary>
+    /// <category>Uplink API</category>
     public sealed class PerfBudget
     {
         private readonly string _name;
@@ -29,6 +32,12 @@ namespace Sitrep.Contract
         private double _lastWarnAt = double.NegativeInfinity;
         private int _exceedanceCount;
 
+        /// <summary>Builds a budget. It does nothing until <see cref="Record"/> is called.</summary>
+        /// <param name="name">What is being budgeted, named in every warning. Must not be null.</param>
+        /// <param name="threshold">The windowed total above which a warning is raised. Must be greater than zero.</param>
+        /// <param name="windowSec">The rolling window's length, on the caller's own time axis. Must be greater than zero.</param>
+        /// <param name="unit">The unit of a recorded amount, named in every warning; <c>"events"</c> when null.</param>
+        /// <param name="warn">Where a warning goes; standard error when null.</param>
         public PerfBudget(string name, double threshold, double windowSec = 1.0, string unit = "events", Action<string>? warn = null)
         {
             _name = name ?? throw new ArgumentNullException(nameof(name));
@@ -41,9 +50,20 @@ namespace Sitrep.Contract
             _warn = warn ?? (message => Console.Error.WriteLine(message));
         }
 
+        /// <summary>The name given at construction, as it appears in warnings.</summary>
         public string Name => _name;
+
+        /// <summary>The windowed total above which a warning is raised, in the budget's unit.</summary>
         public double Threshold => _threshold;
+
+        /// <summary>The rolling window's length, on the caller's own time axis.</summary>
         public double WindowSec => _windowSec;
+
+        /// <summary>
+        /// How many calls to <see cref="Record"/> have left the windowed total
+        /// above the threshold, counting every one, including those whose
+        /// warning was rate-limited away.
+        /// </summary>
         public int ExceedanceCount => _exceedanceCount;
 
         /// <summary>

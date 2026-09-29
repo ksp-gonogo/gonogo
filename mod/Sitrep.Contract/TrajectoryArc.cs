@@ -95,12 +95,19 @@ public class TrajectoryPoint
     [SitrepUnit(Units.UniversalTime)]
     public double Ut { get; set; }
 
+    /// <summary>
+    /// Position on the frame's x axis, in metres. In a frame whose
+    /// <see cref="TrajectoryFrameRef.LengthsPulsate"/> is set it is a multiple of
+    /// the pair's separation instead, not a distance.
+    /// </summary>
     [SitrepUnit(Units.Metres)]
     public double X { get; set; }
 
+    /// <summary>Position on the frame's y axis, on the same terms as <see cref="X"/>.</summary>
     [SitrepUnit(Units.Metres)]
     public double Y { get; set; }
 
+    /// <summary>Position on the frame's z axis, on the same terms as <see cref="X"/>.</summary>
     [SitrepUnit(Units.Metres)]
     public double Z { get; set; }
 }
@@ -120,6 +127,7 @@ public class TrajectoryPoint
 #endif
 public class TrajectoryFrameRef
 {
+    /// <summary>Which frame it is. <see cref="TrajectoryFrameKind.Unspecified"/> means the points cannot be drawn.</summary>
     [SitrepUnit(Units.Enumeration)]
     public TrajectoryFrameKind Kind { get; set; }
 
@@ -221,19 +229,19 @@ public enum TrajectoryDerivation
     Foreign = 1,
 
     /// <summary>
-    /// Our integration, against the n-body model we read from the installed
+    /// Gonogo's own integration, against the n-body model read from the installed
     /// mod's own configuration.
     /// </summary>
     OwnNBody = 2,
 
     /// <summary>
-    /// Our integration, with the force model incompletely matched: some body's
+    /// Gonogo's own integration, with the force model incompletely matched: some body's
     /// parameters could not be resolved, and
     /// <see cref="TrajectoryForceModel.MissingTerm"/> says which.
     /// </summary>
     OwnNBodyDegraded = 3,
 
-    /// <summary>A closed-form conic, ours, from the elements alone.</summary>
+    /// <summary>A closed-form conic Gonogo computed from the elements alone.</summary>
     OwnClosedForm = 4,
 }
 
@@ -274,7 +282,7 @@ public class TrajectoryForceModel
     /// forward from its present state rather than read from an integrated
     /// ephemeris. The n-body mod evaluates every body from its own integrated
     /// ephemeris fitted to a millimetre; no export it offers takes a future time
-    /// that we may honestly call, so this is the substitute. It is acceptable
+    /// that can honestly be called, so this is the substitute. It is acceptable
     /// because body positions enter only through the PERTURBING terms and
     /// planetary orbits are near-Keplerian over a week. It is NOT acceptable
     /// where a third body dominates: near a libration point, during a close
@@ -284,8 +292,8 @@ public class TrajectoryForceModel
     /// published on every arc and why the horizon closes when it crosses its
     /// bound.</para>
     ///
-    /// <para>Stated on every payload rather than in documentation, because a
-    /// caveat a reader has to go and find is a caveat nobody meets.</para>
+    /// <para>Stated on every payload, so a reader meets the limit where it
+    /// reads the curve.</para>
     /// </summary>
     [SitrepUnit(Units.Text)]
     public string? BodyEphemeris { get; set; }
