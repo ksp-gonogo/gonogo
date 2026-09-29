@@ -1,5 +1,5 @@
 import type { HTMLAttributes } from "react";
-import styled from "styled-components";
+import { BarFill, BarTrack } from "./BarTrack";
 import { type FillQuantity, fillFraction } from "./fillQuantity";
 import { speakQuantity } from "./units";
 
@@ -55,7 +55,9 @@ export type ProgressBarProps<Unit extends string = string> =
   | ProgressBarQuantityProps<Unit>;
 
 /**
- * Thin track and fill progress indicator, a native `role="progressbar"`.
+ * A task's progress toward done, a native `role="progressbar"`, drawn on the
+ * same track and fill as `Meter`. Reach for `Meter` instead when the bar is a
+ * level within a range (a tank, a load) rather than work advancing to an end.
  * Handed a `quantity` pair it also speaks both halves ("120 of 400 build
  * points"), not only the percentage.
  */
@@ -75,7 +77,7 @@ export function ProgressBar<Unit extends string = string>({
   const clamped = Math.max(0, Math.min(100, percent));
 
   return (
-    <ProgressBar__Track
+    <BarTrack
       role="progressbar"
       aria-label={ariaLabel}
       aria-valuenow={clamped}
@@ -84,8 +86,12 @@ export function ProgressBar<Unit extends string = string>({
       aria-valuetext={quantity ? bothHalves(quantity) : undefined}
       {...rest}
     >
-      <ProgressBar__Fill $percent={clamped} $fillColor={fillColor} />
-    </ProgressBar__Track>
+      <BarFill
+        $tone="neutral"
+        $fillColor={fillColor ?? "var(--color-accent-fg)"}
+        style={{ width: `${clamped}%` }}
+      />
+    </BarTrack>
   );
 }
 
@@ -101,23 +107,3 @@ function bothHalves<Unit extends string>(pair: FillQuantity<Unit>): string {
     said,
   )}`;
 }
-
-const ProgressBar__Track = styled.div`
-  height: 6px;
-  background: var(--color-surface-raised);
-  /* --radius-pill keeps the stadium shape through a height change. */
-  border-radius: var(--radius-pill);
-  overflow: hidden;
-`;
-
-const ProgressBar__Fill = styled.div<{ $percent: number; $fillColor?: string }>`
-  height: 100%;
-  width: ${({ $percent }) => `${$percent}%`};
-  background: ${({ $fillColor }) => $fillColor ?? "var(--color-accent-fg)"};
-  /* Off the motion scale: a determinate fill advances at a constant rate. */
-  transition: width 250ms linear;
-
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-  }
-`;

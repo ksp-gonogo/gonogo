@@ -12,13 +12,13 @@ import {
   useRef,
 } from "react";
 import styled, { css } from "styled-components";
+import { BarFill, BarTrack } from "./BarTrack";
 import { bandClaim } from "./bandClaim";
 import { HeldFigure, HeldHost, HeldMark } from "./HeldMark";
 import { magnitudeOr } from "./magnitude";
 import { NullValue } from "./NullValue";
 import { resolveCurrency, type UnitValue } from "./readingCurrency";
 import { placedOnScale, standsApart } from "./standsApart";
-import { TONE_MARK } from "./tone";
 import { Unit } from "./Unit";
 import { UnitSharedFormat, useSharedFormat } from "./UnitSharedFormat";
 import {
@@ -174,7 +174,7 @@ export function Meter<UnitSymbol extends string = string>({
         {...rest}
       >
         {/* Decorative: the label and placeholder are the whole accessible content. */}
-        <Meter__Track $held={false} aria-hidden="true" />
+        <BarTrack $held={false} aria-hidden="true" />
       </MeterFrame>
     );
   }
@@ -422,7 +422,7 @@ interface MeterBarProps
   pct: number;
   tone: Tone;
   fillColor?: string;
-  /** Whether the AXIS has stopped being current. See `Meter__Track`. */
+  /** Whether the AXIS has stopped being current. See `BarTrack`. */
   trackHeld: boolean;
   /**
    * Whether the figure has stopped being current: one treatment for the whole
@@ -459,7 +459,7 @@ function MeterBar({
 }: MeterBarProps) {
   return (
     <MeterFrame layout={layout} label={label} display={display} {...rest}>
-      <Meter__Track
+      <BarTrack
         $held={trackHeld}
         data-track-held={trackHeld ? "" : undefined}
         role="meter"
@@ -469,14 +469,14 @@ function MeterBar({
         aria-valuemax={100}
         aria-valuetext={spoken}
       >
-        <Meter__Fill
+        <BarFill
           $tone={tone}
           $fillColor={fillColor}
           $held={fillHeld}
           data-fill-held={fillHeld ? "" : undefined}
           style={{ width: `${pct}%` }}
         />
-      </Meter__Track>
+      </BarTrack>
       {/* Decorative: what the marks say is already in `aria-valuetext`. */}
       {(bounds !== null || endBounds !== null) && (
         <Meter__Marks aria-hidden="true">
@@ -790,11 +790,7 @@ const Meter__Stack = styled.div`
   }
 `;
 
-/**
- * The one track height a meter has. A mark sits one pixel inside each edge, in
- * a layer over the track, since the track's `overflow: hidden` rounds the fill.
- */
-const TRACK_HEIGHT = "8px";
+/** A mark sits one pixel inside each edge of the track, in a layer over it. */
 const MARK_INSET = "1px";
 
 /* In the row form the three parts wrap rather than shrink. */
@@ -857,21 +853,6 @@ const Meter__Value = styled.span<{ $row: boolean }>`
   padding-right: max(0.44em, var(--inset-meter-mark));
 `;
 
-/* The bar's axis, dashed where the capacity has stopped being current: colour already means the fill's status. */
-/* A held capacity dashes the track's edge in the held mark's hue, which clears 3:1 against the panel where the subtle border does not. */
-const Meter__Track = styled.div<{ $held: boolean }>`
-  width: 100%;
-  border-radius: var(--radius-pill);
-  background: var(--color-surface-raised);
-  border: 1px
-    ${({ $held }) =>
-      $held ? `dashed ${TONE_MARK.warn}` : "solid var(--color-border-subtle)"};
-  overflow: hidden;
-  /* Positioned for the fill only: this overflow rounds the fill's ends and would clip the bound marks. */
-  position: relative;
-  height: ${TRACK_HEIGHT};
-`;
-
 /* The layer the marks are drawn in, over the track rather than inside its clip. */
 const Meter__Marks = styled.div`
   position: absolute;
@@ -915,22 +896,4 @@ const Meter__Bound = styled.div`
     inset 0 0 0 0.5px rgb(0 0 0 / 0.35);
   opacity: 0.62;
   pointer-events: none;
-`;
-
-const Meter__Fill = styled.div<{
-  $tone: Tone;
-  $fillColor?: string;
-  $held: boolean;
-}>`
-  height: 100%;
-  border-radius: var(--radius-pill);
-  transition: width var(--duration-slow) var(--ease-standard);
-  /* A held reading dims the fill, not the hue and not the whole meter, so the label and figure stay readable. */
-  ${({ $held }) => ($held ? "opacity: 0.55;" : "")}
-  /* $fillColor is an arbitrary CSS colour and wins outright over the tone fill. */
-  background: ${({ $tone, $fillColor }) => $fillColor ?? TONE_MARK[$tone]};
-
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-  }
 `;

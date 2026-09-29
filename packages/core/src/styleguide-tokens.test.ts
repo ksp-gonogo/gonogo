@@ -301,7 +301,6 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/serial/src/SerialDevicesMenu/GamepadLearnWizard.tsx": 1,
     "packages/serial/src/SerialDevicesMenu/SelfDescribingAddWizard.tsx": 1,
     "packages/ui-kit/src/CommandDelay/InFlightList.tsx": 1,
-    "packages/ui-kit/src/ProgressBar.tsx": 2,
     "packages/ui-kit/src/Readout.tsx": 1,
     "packages/ui/src/BannerPill.tsx": 1,
     "packages/ui/src/Fab.tsx": 1,
