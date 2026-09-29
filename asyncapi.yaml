@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 20.0.0
+  version: 20.1.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 81 telemetry
     channels a client subscribes to, and 61 commands it dispatches, with the payload
@@ -9891,9 +9891,10 @@ components:
             - "null"
           x-sitrep-unit: text
           description: |-
-            KSP's own wording for the rule that refused, or an account of why the
-            question could not be put when `CareerStrategy.canActivate` is `null`. Empty
-            when the answer was yes.
+            KSP's own wording for the rule that refused, or an installed career mod's
+            wording for a rule of its own, or an account of why the question could not
+            be put when `CareerStrategy.canActivate` is `null`. Empty when the answer
+            was yes.
         activateVerdictSource:
           type:
             - string
@@ -9902,8 +9903,9 @@ components:
           description: |-
             Which route produced `CareerStrategy.canActivate`: `"screened"` when KSP's
             own check answered, `"derived"` when the same rules were evaluated one at a
-            time because the Administration Building was shut, and `"none"` when there
-            is no verdict to carry.
+            time because the Administration Building was shut, or when the strategy is
+            already active or an installed career mod refused it on a rule of its own,
+            and `"none"` when there is no verdict to carry.
 
             `"derived"` always accompanies a refusal and never a yes. The game stops at
             its first refusal, so an arm that refuses off-screen would have refused on
@@ -9917,6 +9919,15 @@ components:
             `career.strategy.activate` itself, which puts every check again at the
             moment it runs and refuses in the game's words or as unreadable rather than
             guessing.
+        activateAvailableFromUt:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: ut
+          description: |-
+            When a refusal that lapses on its own will lapse, such as a dismissed
+            Leader's re-hire cooldown under RP-1. `null` when the refusal does not lapse
+            with time, or when nothing refused.
         canDeactivate:
           type:
             - boolean

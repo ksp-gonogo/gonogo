@@ -566,8 +566,9 @@ public class CareerStrategy
     public bool? CanActivate { get; set; }
 
     /// <summary>
-    /// KSP's own wording for the rule that refused, or an account of why the
-    /// question could not be put when <see cref="CanActivate"/> is <c>null</c>.
+    /// KSP's own wording for the rule that refused, or an installed career mod's
+    /// wording for a rule of its own, or an account of why the question could not
+    /// be put when <see cref="CanActivate"/> is <c>null</c>.
     /// Empty when the answer was yes.
     /// </summary>
     [SitrepUnit(Units.Text)]
@@ -576,8 +577,9 @@ public class CareerStrategy
     /// <summary>
     /// Which route produced <see cref="CanActivate"/>: <c>"screened"</c> when
     /// KSP's own check answered, <c>"derived"</c> when the same rules were
-    /// evaluated one at a time because the Administration Building was shut, and
-    /// <c>"none"</c> when there is no verdict to carry.
+    /// evaluated one at a time because the Administration Building was shut, or
+    /// when the strategy is already active or an installed career mod refused it
+    /// on a rule of its own, and <c>"none"</c> when there is no verdict to carry.
     ///
     /// <para><c>"derived"</c> always accompanies a refusal and never a yes. The
     /// game stops at its first refusal, so an arm that refuses off-screen would
@@ -605,6 +607,18 @@ public class CareerStrategy
     /// </summary>
     [SitrepUnit(Units.Text)]
     public string? ActivateVerdictSource { get; set; }
+
+    /// <summary>
+    /// When a refusal that lapses on its own will lapse, such as a dismissed
+    /// Leader's re-hire cooldown under RP-1. <c>null</c> when the refusal does
+    /// not lapse with time, or when nothing refused.
+    /// <internal>
+    /// Supplied by a career mod through IStrategyAvailability, the same answer
+    /// that wrote ActivateBlockedReason.
+    /// </internal>
+    /// </summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double? ActivateAvailableFromUt { get; set; }
 
     [SitrepUnit(Units.Flag)]
     public bool? CanDeactivate { get; set; }

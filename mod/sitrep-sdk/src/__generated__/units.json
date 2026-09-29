@@ -189,6 +189,7 @@
       "activeCount": "count"
     },
     "CareerStrategy": {
+      "activateAvailableFromUt": "ut",
       "activateBlockedReason": "text",
       "activateVerdictSource": "text",
       "canActivate": "flag",

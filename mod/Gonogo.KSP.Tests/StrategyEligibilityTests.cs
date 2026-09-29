@@ -1,4 +1,5 @@
 using Gonogo.KSP;
+using Sitrep.Contract;
 using Xunit;
 
 namespace Gonogo.KSP.Tests
@@ -88,6 +89,64 @@ namespace Gonogo.KSP.Tests
             Assert.Equal(screened.CanActivate, derived.CanActivate);
             Assert.NotEqual(screened.VerdictSource, derived.VerdictSource);
             Assert.Equal(StrategyEligibility.DerivedSource, derived.VerdictSource);
+        }
+
+        [Fact]
+        public void An_active_strategy_is_refused_as_active_without_asking_the_game()
+        {
+            // Asking KSP's gate of a running strategy trips a rule over itself, and
+            // under RP-1 that rule's text talks about Leaders even for a Program.
+            var asked = false;
+            var eligibility = StrategyEligibility.Judge(
+                isActive: true,
+                careerRefusal: null,
+                askGame: () =>
+                {
+                    asked = true;
+                    return StrategyEligibility.Derived(false, "Cannot appoint Leader for this department, remove the existing Leader first.");
+                });
+
+            Assert.False(asked);
+            Assert.False(eligibility.CanActivate);
+            Assert.Equal(StrategyEligibility.AlreadyActiveReason, eligibility.BlockedReason);
+        }
+
+        [Fact]
+        public void A_career_mods_own_rule_refuses_in_its_words_and_carries_when_it_lapses()
+        {
+            var asked = false;
+            var eligibility = StrategyEligibility.Judge(
+                isActive: false,
+                careerRefusal: new StrategyUnavailability
+                {
+                    Reason = "This Leader was dismissed and cannot be re-appointed yet.",
+                    AvailableFromUt = 12345.0,
+                },
+                askGame: () =>
+                {
+                    asked = true;
+                    return StrategyEligibility.Screened(true, "");
+                });
+
+            Assert.False(asked);
+            Assert.False(eligibility.CanActivate);
+            Assert.Equal("This Leader was dismissed and cannot be re-appointed yet.", eligibility.BlockedReason);
+            Assert.Equal(12345.0, eligibility.AvailableFromUt);
+            Assert.Equal(StrategyEligibility.DerivedSource, eligibility.VerdictSource);
+        }
+
+        [Fact]
+        public void With_nothing_against_it_the_game_is_asked_and_its_answer_stands()
+        {
+            var eligibility = StrategyEligibility.Judge(
+                isActive: false,
+                careerRefusal: null,
+                askGame: () => StrategyEligibility.Screened(false, "This Program has unmet requirements."));
+
+            Assert.False(eligibility.CanActivate);
+            Assert.Equal("This Program has unmet requirements.", eligibility.BlockedReason);
+            Assert.Equal(StrategyEligibility.ScreenedSource, eligibility.VerdictSource);
+            Assert.Null(eligibility.AvailableFromUt);
         }
     }
 }

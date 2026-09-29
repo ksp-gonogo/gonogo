@@ -2006,7 +2006,14 @@ namespace Sitrep.Contract
         /// Topic and its <see cref="CommcastTransmissionRow"/> payload, the radio
         /// transmissions detectable at a vantage. Additive, so an Uplink built against
         /// 19.1 is unaffected.</para>
+        ///
+        /// <para><b>Major-20 line, Bumped 0 -&gt; 1:</b> the shared
+        /// <c>strategyAvailability</c> capability (<see cref="IStrategyAvailability"/>,
+        /// <see cref="StrategyUnavailability"/>), through which a career mod refuses a
+        /// strategy on a rule of its own, and
+        /// <see cref="CareerStrategy.ActivateAvailableFromUt"/>, when such a refusal
+        /// lapses. Additive, so an Uplink built against 20.0 is unaffected.</para>
         /// </remarks>
-        public const int Minor = 0;
+        public const int Minor = 1;
     }
 }

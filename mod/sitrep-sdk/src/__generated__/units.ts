@@ -229,6 +229,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     activeCount: "count",
   },
   "CareerStrategy": {
+    activateAvailableFromUt: "ut",
     activateBlockedReason: "text",
     activateVerdictSource: "text",
     canActivate: "flag",

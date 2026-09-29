@@ -113,6 +113,7 @@
     <Compile Include="..\Gonogo.KSP\SceneExitRule.cs" />
     <Compile Include="..\Gonogo.KSP\StrategyEligibility.cs" />
     <Compile Include="..\Gonogo.KSP\StrategyActivationRule.cs" />
+    <Compile Include="..\Gonogo.KSP\StrategyAvailabilityRules.cs" />
     <!-- The reproduced body of Strategy.Activate() over an interface, and the
          Harmony registry read that decides whether it may run. Neither names a
          KSP type. -->

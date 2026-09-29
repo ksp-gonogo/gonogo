@@ -4261,21 +4261,30 @@ namespace Gonogo.KSP
             // fabricated no: it reads as a strategy that was judged and refused,
             // it reads as intermittent, and neither is true.
             //
+            // An active strategy is never put to the gate at all (see
+            // StrategyEligibility.Judge), and a career mod's own rule is asked
+            // before it, so a Leader RP-1 is holding in its re-hire cooldown reads
+            // as refused rather than as a question nobody could answer.
+            //
             // The try/catch stays. A throw from anywhere in the eligibility walk
             // must not propagate: BuildCareerStrategies would lose the ENTIRE
             // strategies channel for every tick one bad strategy is in the roster.
+            var id = strategy.Config != null ? strategy.Config.Name : null;
             StrategyEligibility eligibility;
             try
             {
-                if (Administration.Instance != null)
-                {
-                    var answer = strategy.CanBeActivated(out var reason);
-                    eligibility = StrategyEligibility.Screened(answer, reason);
-                }
-                else
-                {
-                    eligibility = LiveStrategyArms.Eligibility(strategy, system);
-                }
+                eligibility = StrategyEligibility.Judge(
+                    strategy.IsActive,
+                    strategy.IsActive ? null : StrategyAvailabilityRules.Refusal(id),
+                    () =>
+                    {
+                        if (Administration.Instance != null)
+                        {
+                            var answer = strategy.CanBeActivated(out var reason);
+                            return StrategyEligibility.Screened(answer, reason);
+                        }
+                        return LiveStrategyArms.Eligibility(strategy, system);
+                    });
             }
             catch (Exception ex)
             {
@@ -4295,7 +4304,7 @@ namespace Gonogo.KSP
 
             return new Dictionary<string, object?>
             {
-                ["id"] = strategy.Config != null ? strategy.Config.Name : null,
+                ["id"] = id,
                 ["title"] = strategy.Title,
                 ["description"] = strategy.Description,
                 ["department"] = strategy.DepartmentName,
@@ -4312,6 +4321,7 @@ namespace Gonogo.KSP
                 ["canActivate"] = eligibility.CanActivate,
                 ["activateBlockedReason"] = eligibility.BlockedReason,
                 ["activateVerdictSource"] = eligibility.VerdictSource,
+                ["activateAvailableFromUt"] = eligibility.AvailableFromUt,
                 ["canDeactivate"] = canDeactivate,
                 ["deactivateBlockedReason"] = deactivateBlockedReason,
                 ["effect"] = strategy.Effect,

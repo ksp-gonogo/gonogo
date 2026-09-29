@@ -14,6 +14,25 @@ namespace Gonogo.KSP.Tests.Career
     public class CareerRefusalsTests
     {
         [Fact]
+        public void A_deactivate_refusal_carries_the_career_mods_own_sentence()
+        {
+            Assert.Equal(
+                "This Program has unmet objectives.",
+                CareerRefusals.DeactivateRefusal("This Program has unmet objectives."));
+        }
+
+        [Theory]
+        [InlineData(null)]
+        [InlineData("")]
+        [InlineData("  ")]
+        public void A_deactivate_gate_that_gave_no_reason_is_answered_plainly(string? gameReason)
+        {
+            Assert.Equal(
+                "the strategy cannot be deactivated yet",
+                CareerRefusals.DeactivateRefusal(gameReason));
+        }
+
+        [Fact]
         public void ACrewCapThatIsReachedRefusesWithBothNumbers()
         {
             var breach = CareerRefusals.CrewCapBreach(

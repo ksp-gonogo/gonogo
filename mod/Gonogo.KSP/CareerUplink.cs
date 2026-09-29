@@ -165,12 +165,29 @@ namespace Gonogo.KSP
         /// economy group carries the elected backend's answer. That is the
         /// shared-namespace-single-declaration rule: a provider adds an
         /// interpretation, never a channel of its own.</para>
+        ///
+        /// <para>Also declares the shared <c>"strategyAvailability"</c> capability,
+        /// through which a career mod refuses a strategy on a rule KSP's own
+        /// activation gate cannot see. Owned here because both places that consult
+        /// it, the strategy roster and <c>career.strategy.activate</c>, are this
+        /// Uplink's. No vanilla: a stock install holds no such rule.</para>
         /// </summary>
-        public void DeclareCapabilities(Kernel kernel) =>
+        public void DeclareCapabilities(Kernel kernel)
+        {
             EconomyElection.RegisterCapability(kernel);
+            kernel.RegisterCapability(new CapabilityDescriptor
+            {
+                Id = StrategyAvailabilityCapability.CapabilityId,
+                Exclusive = false,
+                SpineCritical = false,
+            });
+        }
 
         public void Register(IUplinkHost host)
         {
+            StrategyAvailabilityRules.Report = message => UnityEngine.Debug.LogWarning(message);
+            StrategyAvailabilityRules.Bind(host.Kernel);
+
             host.AddChannelSource(CareerViewProvider.Topic, CareerViewProvider.BuildCareer);
             host.AddChannelSource(CareerViewProvider.ModeTopic, CareerViewProvider.BuildCareerMode);
             host.AddChannelSource(CareerViewProvider.FacilitiesTopic, CareerViewProvider.BuildFacilities);

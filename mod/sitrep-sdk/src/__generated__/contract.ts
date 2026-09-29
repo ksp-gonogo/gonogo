@@ -634,16 +634,18 @@ export interface CareerStrategy
 	*/
 	canActivate?: boolean | null;
 	/**
-	* KSP's own wording for the rule that refused, or an account of why the
-	* question could not be put when `CareerStrategy.canActivate` is `null`. Empty
-	* when the answer was yes.
+	* KSP's own wording for the rule that refused, or an installed career mod's
+	* wording for a rule of its own, or an account of why the question could not
+	* be put when `CareerStrategy.canActivate` is `null`. Empty when the answer
+	* was yes.
 	*/
 	activateBlockedReason?: string | null;
 	/**
 	* Which route produced `CareerStrategy.canActivate`: `"screened"` when KSP's
 	* own check answered, `"derived"` when the same rules were evaluated one at a
-	* time because the Administration Building was shut, and `"none"` when there
-	* is no verdict to carry.
+	* time because the Administration Building was shut, or when the strategy is
+	* already active or an installed career mod refused it on a rule of its own,
+	* and `"none"` when there is no verdict to carry.
 	*
 	* `"derived"` always accompanies a refusal and never a yes. The game stops at
 	* its first refusal, so an arm that refuses off-screen would have refused on
@@ -659,6 +661,12 @@ export interface CareerStrategy
 	* guessing.
 	*/
 	activateVerdictSource?: string | null;
+	/**
+	* When a refusal that lapses on its own will lapse, such as a dismissed
+	* Leader's re-hire cooldown under RP-1. `null` when the refusal does not lapse
+	* with time, or when nothing refused.
+	*/
+	activateAvailableFromUt?: Value<"ut"> | null;
 	canDeactivate?: boolean | null;
 	deactivateBlockedReason?: string | null;
 	effect?: string | null;

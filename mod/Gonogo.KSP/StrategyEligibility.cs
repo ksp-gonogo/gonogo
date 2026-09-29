@@ -1,3 +1,6 @@
+using System;
+using Sitrep.Contract;
+
 namespace Gonogo.KSP
 {
     /// <summary>
@@ -56,11 +59,45 @@ namespace Gonogo.KSP
         /// </summary>
         public string VerdictSource { get; }
 
-        private StrategyEligibility(bool? canActivate, string? blockedReason, string verdictSource)
+        /// <summary>
+        /// When a career mod's refusal lapses on its own, or <c>null</c> when
+        /// nothing refused on a clock.
+        /// </summary>
+        public double? AvailableFromUt { get; }
+
+        /// <summary>
+        /// What an active strategy is told. Asking KSP's gate of one that is
+        /// already running answers with whichever rule it trips over itself, and
+        /// under RP-1 that is the department clash, reworded to talk about
+        /// Leaders even for a Program.
+        /// </summary>
+        public const string AlreadyActiveReason = "Already active";
+
+        private StrategyEligibility(
+            bool? canActivate, string? blockedReason, string verdictSource, double? availableFromUt = null)
         {
             CanActivate = canActivate;
             BlockedReason = blockedReason;
             VerdictSource = verdictSource;
+            AvailableFromUt = availableFromUt;
+        }
+
+        /// <summary>
+        /// The roster's verdict on one strategy. An active strategy is refused as
+        /// active without asking anything, a career mod's own rule refuses next in
+        /// its own words, and only then is KSP's gate put through
+        /// <paramref name="askGame"/>.
+        /// </summary>
+        public static StrategyEligibility Judge(
+            bool isActive, StrategyUnavailability? careerRefusal, Func<StrategyEligibility> askGame)
+        {
+            if (isActive) return Derived(false, AlreadyActiveReason);
+            if (careerRefusal != null)
+            {
+                return new StrategyEligibility(
+                    false, careerRefusal.Reason, DerivedSource, careerRefusal.AvailableFromUt);
+            }
+            return askGame();
         }
 
         /// <summary>

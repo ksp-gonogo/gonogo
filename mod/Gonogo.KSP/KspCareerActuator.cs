@@ -89,6 +89,12 @@ namespace Gonogo.KSP
                 return CommandResult.Fail(CommandErrorCode.WrongState, "the strategy is already active");
             }
 
+            var careerRefusal = StrategyAvailabilityRules.Refusal(strategyId);
+            if (careerRefusal != null)
+            {
+                return CommandResult.Fail(CommandErrorCode.WrongState, careerRefusal.Reason);
+            }
+
             if (Administration.Instance == null)
             {
                 return StockStrategyActivation.Activate(strategy, system, factor);
@@ -124,7 +130,14 @@ namespace Gonogo.KSP
             public bool Activate() => _strategy.Activate();
         }
 
-        /// <summary><c>Strategy.Deactivate()</c> is self-gating (<c>CanBeDeactivated</c>, which includes a minimum elapsed commitment), a <c>false</c> return means it wasn't deactivatable right now.</summary>
+        /// <summary>
+        /// <c>Strategy.Deactivate()</c> is self-gating on <c>CanBeDeactivated</c>,
+        /// which includes a minimum elapsed commitment, but it drops that gate's
+        /// reason and answers a bare <c>false</c>. So the gate is put first and its
+        /// own wording refuses: a career mod that overrides it (RP-1's Programs
+        /// refuse with "This Program has unmet objectives.") reaches the operator
+        /// in its own words.
+        /// </summary>
         public CommandResult DeactivateStrategy(string strategyId)
         {
             var system = StrategySystem.Instance;
@@ -143,11 +156,14 @@ namespace Gonogo.KSP
                 return CommandResult.Fail(CommandErrorCode.WrongState, "the strategy is not active");
             }
 
+            if (!strategy.CanBeDeactivated(out var reason))
+            {
+                return CommandResult.Fail(CommandErrorCode.WrongState, CareerRefusals.DeactivateRefusal(reason));
+            }
+
             return strategy.Deactivate()
                 ? CommandResult.Ok()
-                : CommandResult.Fail(
-                    CommandErrorCode.WrongState,
-                    "the strategy cannot be deactivated yet");
+                : CommandResult.Fail(CommandErrorCode.WrongState, CareerRefusals.DeactivateRefusal(null));
         }
 
         /// <summary>

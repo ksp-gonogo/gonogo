@@ -21,6 +21,16 @@ namespace Gonogo.KSP.Career
     public static class CareerRefusals
     {
         /// <summary>
+        /// The deactivate gate's own wording, or a plain account when it gave
+        /// none. A career mod that overrides the gate words its own refusal, and
+        /// that sentence is the one the operator needs.
+        /// </summary>
+        public static string DeactivateRefusal(string? gameReason) =>
+            string.IsNullOrWhiteSpace(gameReason)
+                ? "the strategy cannot be deactivated yet"
+                : gameReason!;
+
+        /// <summary>
         /// KSP's "no limit" sentinel, mapped to the absence of a limit.
         ///
         /// <para><c>GameVariables</c> returns <c>float.MaxValue</c> (and
