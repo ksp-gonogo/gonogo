@@ -283,6 +283,7 @@ namespace Gonogo.KSP.CommandCentres
             // Handed over as one set on every pass, empty included, so a centre that
             // stopped being the active craft or lost its route to it loses its row.
             var activeVesselRows = new Dictionary<string, double>();
+            var centreRoutes = new Dictionary<string, List<string>>();
             foreach (var row in cap.Rows)
             {
                 if (row.Node == ChannelEngine.HomeCommandNode)
@@ -302,10 +303,14 @@ namespace Gonogo.KSP.CommandCentres
                 // subject id, so strip the prefix back off to pick the hook.
                 if (row.Node.StartsWith(ChannelEngine.CentreNodePrefix))
                 {
-                    _host?.SetCentreDelay(
-                        row.Vantage,
-                        row.Node.Substring(ChannelEngine.CentreNodePrefix.Length),
-                        row.Seconds);
+                    var destination = row.Node.Substring(ChannelEngine.CentreNodePrefix.Length);
+                    _host?.SetCentreDelay(row.Vantage, destination, row.Seconds);
+                    if (!centreRoutes.TryGetValue(row.Vantage, out var reached))
+                    {
+                        reached = new List<string>();
+                        centreRoutes[row.Vantage] = reached;
+                    }
+                    reached.Add(destination);
                     continue;
                 }
 
@@ -317,6 +322,8 @@ namespace Gonogo.KSP.CommandCentres
 
             _host?.SetActiveVesselDelays(activeVesselRows);
             (_host as IHomeCommandReachWriter)?.SetOffTheGroundNetwork(cap.OffTheGround);
+            (_host as ICentreRouteWriter)?.SetCentreRoutes(
+                centreRoutes.ToDictionary(r => r.Key, r => (IReadOnlyCollection<string>)r.Value));
 
             PublishSeparation(cap);
             PublishActiveVesselDelay(activeVesselRows, cap.Ut);

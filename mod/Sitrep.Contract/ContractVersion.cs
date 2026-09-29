@@ -1983,7 +1983,14 @@ namespace Sitrep.Contract
         /// payload <c>science.experiment.transmit</c> answers with: when the stream began and how
         /// long it takes to leave the craft. Additive, and the capability seam still returns
         /// <see cref="CommandResult"/>, so an Uplink built against 18.13 is unaffected.</para>
+        ///
+        /// <para><b>Major-19 line, Bumped 0 -&gt; 1: Commcast on the mod.</b> The
+        /// <c>commcast.traffic</c> Topic and its <see cref="CommcastTraffic"/> payload,
+        /// <see cref="CommcastRadioBatch"/> for the binary <c>commcast.radio</c> Topic,
+        /// <see cref="CommcastAuthor"/>, and the five <c>commcast.*</c> commands' args.
+        /// Additive, nothing removed or retyped, so an Uplink built against 19.0 is
+        /// unaffected.</para>
         /// </remarks>
-        public const int Minor = 0;
+        public const int Minor = 1;
     }
 }

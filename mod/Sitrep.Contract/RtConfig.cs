@@ -241,6 +241,12 @@ public static class RtConfig
                 typeof(ScetAlarmFired),
                 typeof(ScetAlarmArmArgs),
                 typeof(ScetAlarmDisarmArgs),
+                // commcast command args
+                typeof(CommcastGroupOpenArgs),
+                typeof(CommcastGroupAddArgs),
+                typeof(CommcastMessageSendArgs),
+                typeof(CommcastMessageAckArgs),
+                typeof(CommcastRadioTransmitArgs),
                 // career-write / flight-ops / robotics / science command args
                 typeof(ActivateStrategyArgs),
                 typeof(DeactivateStrategyArgs),
@@ -394,6 +400,11 @@ public static class RtConfig
                 // commands are timed by
                 typeof(CommandCentreActiveVesselDelay),
                 typeof(CentreDelayEntry),
+                // commcast.traffic, and the descriptor that opens every
+                // commcast.radio frame on the binary lane
+                typeof(CommcastTraffic),
+                typeof(CommcastAuthor),
+                typeof(CommcastRadioBatch),
                 // dv.stages / dv.summary (P1b)
                 typeof(StageDeltaVEntry),
                 typeof(StageDeltaVSummary),

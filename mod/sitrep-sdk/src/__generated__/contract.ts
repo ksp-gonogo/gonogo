@@ -1183,6 +1183,219 @@ export interface CommandResultOf<Payload> extends CommandResult
 	payload?: Payload | null;
 }
 /**
+* Who is speaking, as the speaking client describes itself. Shown to listeners
+* and trusted for nothing else: the vantage a thing was said FROM is always
+* the one the mod resolved for the connection that said it, never a field
+* here.
+*/
+export interface CommcastAuthor
+{
+	/** The name a listener reads beside what was said. */
+	name: string;
+	/**
+	* The speaking device's own stable key, so a screen can recognise its own
+	* words coming back.
+	*/
+	stationKey: string;
+	/**
+	* Which end of the light-path the speaker sits at, in the client's own
+	* vocabulary (`"pilot"`, `"mission-control"`).
+	*/
+	seat: string;
+}
+/**
+* `commcast.group.open`'s args: start a group, a set of command centres
+* sharing one thread for messages and radio. The speaker is always a member,
+* named here or not.
+*
+* Never delayed on the way up. What is said crosses once, from the speaker to
+* each listener at that pair's light-time, and the mod times that crossing on
+* the way down; delaying the command as well would count the gap twice.
+*/
+export interface CommcastGroupOpenArgs
+{
+	/**
+	* Minted by the client, so a resend opens nothing twice. Refused if another
+	* group already holds it.
+	*/
+	groupId: string;
+	/** Every centre the group starts with, as `commandCentre.roster` ids. */
+	members: string[];
+	/** How the speaker describes itself, for display only. */
+	author: CommcastAuthor;
+}
+/**
+* `commcast.group.add`'s args: bring more centres into a group. Anyone the
+* speaker can see is a member may add; nobody is ever removed. Refused unless
+* the speaker is a member as its own vantage currently knows the group.
+*/
+export interface CommcastGroupAddArgs
+{
+	/** The group, by the id it was opened with. */
+	groupId: string;
+	/**
+	* The centres to bring in, as `commandCentre.roster` ids. One already in the
+	* group is ignored.
+	*/
+	added: string[];
+	/** How the speaker describes itself, for display only. */
+	author: CommcastAuthor;
+}
+/**
+* `commcast.message.send`'s args: say something to a group in text. Refused
+* unless the speaker is a member as its own vantage knows the group.
+*/
+export interface CommcastMessageSendArgs
+{
+	/**
+	* Minted by the client and kept across a resend, so a listener holding both
+	* copies holds one message.
+	*/
+	id: string;
+	/** The group, by the id it was opened with. */
+	groupId: string;
+	/** The words. */
+	body: string;
+	/** How the speaker describes itself, for display only. */
+	author: CommcastAuthor;
+}
+/**
+* `commcast.message.ack`'s args: tell a message's author it arrived. The
+* acknowledgement crosses back to the author at their pair's light-time, so
+* the author learns it was read one crossing after it was.
+*/
+export interface CommcastMessageAckArgs
+{
+	/** The message being acknowledged, by its `CommcastMessageSendArgs.id`. */
+	messageId: string;
+	/** How the speaker describes itself, for display only. */
+	author: CommcastAuthor;
+}
+/**
+* `commcast.radio.transmit`'s args: one batch of live push-to-talk audio,
+* spoken to a group.
+*
+* Each chunk is one raw Opus packet of 20 ms, base64-encoded. Send about 200
+* ms per batch: each batch leaves the mod as one binary frame per listener on
+* `commcast.radio`, and the per-frame header is what costs, not the audio.
+*/
+export interface CommcastRadioTransmitArgs
+{
+	/** Minted by the client at key-down and carried on every batch of that keying. */
+	transmissionId: string;
+	/** The group, by the id it was opened with. */
+	groupId: string;
+	/**
+	* The 0-based index, within the transmission, of the first chunk in this
+	* batch.
+	*/
+	seq: number;
+	/**
+	* Opus packets, 20 ms each, base64. May be empty on the batch that ends a
+	* keying.
+	*/
+	chunks: string[];
+	/** True on the last batch of a keying. */
+	end: boolean;
+	/** How the speaker describes itself, for display only. */
+	author: CommcastAuthor;
+}
+/**
+* One item of `commcast.traffic`: something said to a group this vantage
+* belongs to, delivered one light-time after it was said from where it was
+* said.
+*
+* **Addressed, never broadcast.** A connection receives only the items
+* addressed to its own vantage. A group's members are addressed as the speaker
+* could see them when it spoke, so a centre added far away starts receiving
+* once word of it has reached the speaker, and a member with no path from the
+* speaker misses what was said.
+*
+* **A stream, not state.** Nothing is replayed to a connection that subscribes
+* after an item reached it, as with anything heard on a radio.
+*
+* Three kinds, by `CommcastTraffic.kind`:
+*
+* - `"members"`: a group opened or grew. `CommcastTraffic.members` is its
+*   whole membership after the change, `CommcastTraffic.added` who came in
+* - `"text"`: a message, `CommcastTraffic.id` and `CommcastTraffic.body`
+* - `"ack"`: a member acknowledging `CommcastTraffic.messageId`, addressed to
+*   that message's author alone
+*/
+export interface CommcastTraffic
+{
+	/** `"members"`, `"text"` or `"ack"`. */
+	kind: string;
+	/** A text message's own id, or a membership change's. Absent from an ack. */
+	id?: string | null;
+	/** The group, by the id it was opened with. */
+	groupId: string;
+	/**
+	* The centre it was said from, as the mod resolved it for the speaker's
+	* connection.
+	*/
+	from: string;
+	/** How the speaker describes itself, for display only. */
+	author: CommcastAuthor;
+	/** The UT it was said at, which is also this delivery's `meta.validAt`. */
+	sentUt: Value<"ut">;
+	/**
+	* Everyone it was addressed to, the speaker included, as the speaker could see
+	* the group.
+	*/
+	to: string[];
+	/** The group's whole membership after a `"members"` change. Absent otherwise. */
+	members?: string[] | null;
+	/** Who a `"members"` change brought in. Absent otherwise. */
+	added?: string[] | null;
+	/** A `"text"` message's words. Absent otherwise. */
+	body?: string | null;
+	/** The message an `"ack"` acknowledges. Absent otherwise. */
+	messageId?: string | null;
+}
+/**
+* The first segment of every `commcast.radio` frame, as UTF-8 JSON. The
+* segments after it are that batch's raw Opus packets, 20 ms each, in order.
+*
+* `commcast.radio` rides the binary lane (see the binary-frames reference) and
+* is addressed exactly as `CommcastTraffic` is: a connection hears only
+* transmissions to groups its vantage belongs to, one light-time after each
+* batch was spoken. Every frame carries this whole description, so a listener
+* that starts hearing partway through a keying places it from the first frame
+* it gets.
+*/
+export interface CommcastRadioBatch
+{
+	/**
+	* The keying this belongs to, by the id the speaking client minted at
+	* key-down.
+	*/
+	transmissionId: string;
+	/** The group, by the id it was opened with. */
+	groupId: string;
+	/**
+	* The centre it is spoken from, as the mod resolved it for the speaker's
+	* connection.
+	*/
+	from: string;
+	/** How the speaker describes itself, for display only. */
+	author: CommcastAuthor;
+	/** The UT the keying's first batch reached the mod. */
+	startedUt: Value<"ut">;
+	/**
+	* The 0-based index, within the transmission, of this frame's first audio
+	* segment.
+	*/
+	seq: Value<"count">;
+	/** True on the frame that ends the keying. */
+	end: boolean;
+	/**
+	* Everyone this batch was addressed to, the speaker included, as the speaker
+	* could see the group.
+	*/
+	to: string[];
+}
+/**
 * Degree of vessel control the link currently affords, the `controlSource`
 * axis of `CommsConnectivity`. Mirrors stock `CommNet.VesselControlState`'s
 * partial/full distinction without leaking a KSP enum onto the wire.

@@ -221,6 +221,9 @@ namespace Gonogo.KSP
                 }
                 var homeEngine = _engine;
                 _engine.RegisterUplink(new CommandCentres.CommandCentreDelayUplink(ccRegistry, () => homeEngine.CurrentHomeCommand));
+                // Messages and radio between centres, timed by the centre-to-centre
+                // rows the pass above writes.
+                _engine.RegisterUplink(new Sitrep.Host.Commcast.CommcastUplink());
                 // comms.commandCentre: give
                 // CommsCoreUplink the SAME registry instance so it resolves the
                 // active vessel's terminal node against the live centres the

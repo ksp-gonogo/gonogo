@@ -339,6 +339,55 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     reason: "id",
     success: "flag",
   },
+  "CommcastAuthor": {
+    name: "text",
+    seat: "id",
+    stationKey: "id",
+  },
+  "CommcastGroupAddArgs": {
+    added: "id",
+    groupId: "id",
+  },
+  "CommcastGroupOpenArgs": {
+    groupId: "id",
+    members: "id",
+  },
+  "CommcastMessageAckArgs": {
+    messageId: "id",
+  },
+  "CommcastMessageSendArgs": {
+    body: "text",
+    groupId: "id",
+    id: "id",
+  },
+  "CommcastRadioBatch": {
+    end: "flag",
+    from: "id",
+    groupId: "id",
+    seq: "count",
+    startedUt: "ut",
+    to: "id",
+    transmissionId: "id",
+  },
+  "CommcastRadioTransmitArgs": {
+    chunks: "text",
+    end: "flag",
+    groupId: "id",
+    seq: "count",
+    transmissionId: "id",
+  },
+  "CommcastTraffic": {
+    added: "id",
+    body: "text",
+    from: "id",
+    groupId: "id",
+    id: "id",
+    kind: "enum",
+    members: "id",
+    messageId: "id",
+    sentUt: "ut",
+    to: "id",
+  },
   "CommsCommandCentre": {
     bodyIndex: "id",
     displayName: "text",
@@ -1579,6 +1628,18 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     latitude: "°",
     longitude: "°",
   },
+  "commcast.traffic": {
+    added: "id",
+    body: "text",
+    from: "id",
+    groupId: "id",
+    id: "id",
+    kind: "enum",
+    members: "id",
+    messageId: "id",
+    sentUt: "ut",
+    to: "id",
+  },
   "comms.commandCentre": {
     bodyIndex: "id",
     displayName: "text",
@@ -2209,6 +2270,27 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "CommandResult": {
     breach: "LimitBreach",
   },
+  "CommcastGroupAddArgs": {
+    author: "CommcastAuthor",
+  },
+  "CommcastGroupOpenArgs": {
+    author: "CommcastAuthor",
+  },
+  "CommcastMessageAckArgs": {
+    author: "CommcastAuthor",
+  },
+  "CommcastMessageSendArgs": {
+    author: "CommcastAuthor",
+  },
+  "CommcastRadioBatch": {
+    author: "CommcastAuthor",
+  },
+  "CommcastRadioTransmitArgs": {
+    author: "CommcastAuthor",
+  },
+  "CommcastTraffic": {
+    author: "CommcastAuthor",
+  },
   "CommsCommandCentre": {
     meta: "PayloadMeta",
   },
@@ -2527,6 +2609,9 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "commandCentre.separation": {
     pairs: "CentreSeparationEntry[]",
+  },
+  "commcast.traffic": {
+    author: "CommcastAuthor",
   },
   "comms.commandCentre": {
     meta: "PayloadMeta",

@@ -57,6 +57,11 @@ import type {
   BodyStatesRequest,
   CommandResult,
   CommandResultOf,
+  CommcastGroupAddArgs,
+  CommcastGroupOpenArgs,
+  CommcastMessageAckArgs,
+  CommcastMessageSendArgs,
+  CommcastRadioTransmitArgs,
   ContractActionArgs,
   DeactivateStrategyArgs,
   ExperimentActionArgs,
@@ -110,6 +115,11 @@ export interface GeneratedCommandArgsMap {
   "career.strategy.activate": ActivateStrategyArgs;
   "career.strategy.deactivate": DeactivateStrategyArgs;
   "career.tech.unlock": UnlockTechArgs;
+  "commcast.group.add": CommcastGroupAddArgs;
+  "commcast.group.open": CommcastGroupOpenArgs;
+  "commcast.message.ack": CommcastMessageAckArgs;
+  "commcast.message.send": CommcastMessageSendArgs;
+  "commcast.radio.transmit": CommcastRadioTransmitArgs;
   "comms.setSimulationDelayPolicy": SetSimulationDelayPolicyArgs;
   "ksp.launch": LaunchArgs;
   "ksp.recover": NoCommandArgs;
@@ -169,6 +179,11 @@ export interface GeneratedCommandReplyMap {
   "career.strategy.activate": CommandResult;
   "career.strategy.deactivate": CommandResult;
   "career.tech.unlock": CommandResult;
+  "commcast.group.add": CommandResult;
+  "commcast.group.open": CommandResult;
+  "commcast.message.ack": CommandResult;
+  "commcast.message.send": CommandResult;
+  "commcast.radio.transmit": CommandResult;
   "comms.setSimulationDelayPolicy": CommandResult;
   "ksp.launch": CommandResult;
   "ksp.recover": CommandResult;
@@ -238,6 +253,11 @@ export const GENERATED_COMMAND_REPLY_TYPES = {
   "career.strategy.activate": "CommandResult",
   "career.strategy.deactivate": "CommandResult",
   "career.tech.unlock": "CommandResult",
+  "commcast.group.add": "CommandResult",
+  "commcast.group.open": "CommandResult",
+  "commcast.message.ack": "CommandResult",
+  "commcast.message.send": "CommandResult",
+  "commcast.radio.transmit": "CommandResult",
   "comms.setSimulationDelayPolicy": "CommandResult",
   "ksp.launch": "CommandResult",
   "ksp.recover": "CommandResult",
@@ -335,6 +355,11 @@ export const GENERATED_COMMAND_RAIL = {
   "career.strategy.activate": { replies: true, delayed: true },
   "career.strategy.deactivate": { replies: true, delayed: true },
   "career.tech.unlock": { replies: true, delayed: true },
+  "commcast.group.add": { replies: true, delayed: false },
+  "commcast.group.open": { replies: true, delayed: false },
+  "commcast.message.ack": { replies: true, delayed: false },
+  "commcast.message.send": { replies: true, delayed: false },
+  "commcast.radio.transmit": { replies: true, delayed: false },
   "comms.setSimulationDelayPolicy": { replies: true, delayed: false },
   "ksp.launch": { replies: true, delayed: false },
   "ksp.recover": { replies: true, delayed: false },
@@ -394,6 +419,11 @@ export const GENERATED_COMMAND_IDS = [
   "career.strategy.activate",
   "career.strategy.deactivate",
   "career.tech.unlock",
+  "commcast.group.add",
+  "commcast.group.open",
+  "commcast.message.ack",
+  "commcast.message.send",
+  "commcast.radio.transmit",
   "comms.setSimulationDelayPolicy",
   "ksp.launch",
   "ksp.recover",

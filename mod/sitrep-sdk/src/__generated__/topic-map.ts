@@ -36,6 +36,7 @@ import type {
   CommandCentreActiveVesselDelay,
   CommandCentreEntry,
   CommandCentreSeparation,
+  CommcastTraffic,
   CommsCommandCentre,
   CommsConnectivity,
   CommsControl,
@@ -118,6 +119,7 @@ export interface GeneratedTopicPayloadMap {
   "commandCentre.activeVesselDelay": CommandCentreActiveVesselDelay;
   "commandCentre.roster": CommandCentreEntry[];
   "commandCentre.separation": CommandCentreSeparation;
+  "commcast.traffic": CommcastTraffic;
   "comms.commandCentre": CommsCommandCentre;
   "comms.connectivity": CommsConnectivity;
   "comms.control": CommsControl;
@@ -200,6 +202,7 @@ export const GENERATED_TOPIC_IDS = [
   "commandCentre.activeVesselDelay",
   "commandCentre.roster",
   "commandCentre.separation",
+  "commcast.traffic",
   "comms.commandCentre",
   "comms.connectivity",
   "comms.control",

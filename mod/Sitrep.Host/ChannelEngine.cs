@@ -36,7 +36,7 @@ namespace Sitrep.Host
     /// only ever touches primitives, registered mapper delegates, and the
     /// explicit job queue.
     /// </summary>
-    public sealed class ChannelEngine : IUplinkHost, IVesselJourneyWriter, CommandCentres.IHomeCommandReachWriter, IDisposable
+    public sealed class ChannelEngine : IUplinkHost, IVesselJourneyWriter, CommandCentres.IHomeCommandReachWriter, CommandCentres.ICentreRouteWriter, Commcast.IAddressedStreamHost, IDisposable
     {
         public const string NodeId = "system";
 
@@ -96,6 +96,13 @@ namespace Sitrep.Host
         /// row of its own is standing on the ground network.</para>
         /// </summary>
         public const string HomeCommandNode = "home-command";
+
+        /// <summary>
+        /// The node every addressed topic records under. Its own node, so nothing
+        /// said about the active craft's link (a path drop, a blackout) is ever
+        /// read as being about a conversation.
+        /// </summary>
+        public const string AddressedNode = "addressed";
 
         /// <summary>
         /// Source-attributed currency-event namespace: a
@@ -182,6 +189,10 @@ namespace Sitrep.Host
         /// </summary>
         internal string NodeFor(string topic)
         {
+            if (_addressedTopics.Contains(topic))
+            {
+                return AddressedNode;
+            }
             if (_heldAtHomeTopics.Contains(topic))
             {
                 return HomeCommandNode;
@@ -2736,6 +2747,64 @@ namespace Sitrep.Host
         {
             _offTheGroundNetwork = new HashSet<string>(centreIds);
         }
+
+        /*
+         * Centre-to-centre pairs with a routed path as of the last SetCentreRoutes,
+         * vantage -> destinations. Courier-thread-only, like every ledger write.
+         */
+        private Dictionary<string, HashSet<string>> _centreRoutes = new Dictionary<string, HashSet<string>>();
+
+        public void SetCentreRoutes(IReadOnlyDictionary<string, IReadOnlyCollection<string>> routes)
+        {
+            var next = new Dictionary<string, HashSet<string>>();
+            foreach (var row in routes)
+            {
+                next[row.Key] = new HashSet<string>(row.Value, StringComparer.Ordinal);
+            }
+            _centreRoutes = next;
+        }
+
+        /*
+         * Topics whose samples are addressed rather than broadcast. Written only
+         * while Uplinks register, so any thread may read it once the engine runs.
+         */
+        private readonly HashSet<string> _addressedTopics = new HashSet<string>(StringComparer.Ordinal);
+
+        public void DeclareAddressedTopic(string topic)
+        {
+            if (!_channelDeclarations.ContainsKey(topic))
+            {
+                throw new InvalidOperationException(
+                    $"DeclareAddressedTopic(\"{topic}\") has no matching ChannelDeclaration in the registering uplink's manifest.");
+            }
+            _addressedTopics.Add(topic);
+        }
+
+        public void PublishAddressed(
+            string topic,
+            object payload,
+            double validAtUt,
+            string fromCentre,
+            IEnumerable<string> audience)
+        {
+            if (!_addressedTopics.Contains(topic))
+            {
+                throw new InvalidOperationException($"PublishAddressed(\"{topic}\"): the topic was never declared addressed.");
+            }
+            _courier.RecordAddressed(AddressedNode, topic, payload, validAtUt, CentreNodePrefix + fromCentre, audience);
+        }
+
+        public bool HasRoute(string fromCentre, string toCentre)
+        {
+            if (fromCentre == toCentre)
+            {
+                return true;
+            }
+            // The ledger's orientation: a listener's row against the speaker's node.
+            return _centreRoutes.TryGetValue(toCentre, out var reached) && reached.Contains(fromCentre);
+        }
+
+        public DelayStamp StampFrom(string fromCentre) => _network.StampFor(CentreNodePrefix + fromCentre);
 
         public void SetHomeCommandDelay(string centreId, double oneWaySeconds)
         {

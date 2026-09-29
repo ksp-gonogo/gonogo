@@ -145,6 +145,23 @@ namespace Sitrep.Core
         private readonly Dictionary<string, Dictionary<string, ArchiveSample>> _stickyKeyframes =
             new Dictionary<string, Dictionary<string, ArchiveSample>>();
 
+        /// <summary>
+        /// One <see cref="RecordAddressed"/> sample still crossing to at least one
+        /// of its audience. Held apart from the <see cref="Archive"/> because an
+        /// addressed sample is a transmission rather than state: nothing reads it
+        /// back once the last delivery it owes has fired.
+        /// </summary>
+        private sealed class AddressedSample
+        {
+            public ArchiveSample Sample;
+            public HashSet<string> Audience = null!;
+            public double LastFireUt;
+        }
+
+        // node -> topic -> addressed samples not yet delivered to their whole audience.
+        private readonly Dictionary<string, Dictionary<string, List<AddressedSample>>> _addressed =
+            new Dictionary<string, Dictionary<string, List<AddressedSample>>>();
+
         private long _seq;
         private CommandHandler _commandHandler = (_, __, ___, ____) => null;
 
@@ -359,6 +376,8 @@ namespace Sitrep.Core
             // ever match it again. Dropped whole rather than pruned by UT, the
             // same treatment the reveal buffer gets in ChannelEngine.ProcessTick.
             _gapOpeningSample.Clear();
+            // Its scheduled deliveries go with the clock below, so nothing is in flight.
+            _addressed.Clear();
             // Same reasoning one layer over: a break is a statement about the
             // abandoned timeline, and left in place it would go on dooming light
             // sent before it on a timeline where the relay is still alive. See
@@ -677,6 +696,92 @@ namespace Sitrep.Core
         }
 
         /// <summary>
+        /// Record a sample addressed to <paramref name="audience"/> alone, timed
+        /// from <paramref name="fromNode"/> rather than from the node it is
+        /// subscribed under.
+        ///
+        /// <para>The shape of something one party says to others: it crosses from
+        /// where it was said to each listener at that pair's light-time, and a
+        /// vantage outside the audience is never delivered it on any path. Each
+        /// sample is forwarded once, in record order, as the
+        /// <see cref="Delivery.ReliableOrdered"/> lane does. A subscriber that
+        /// arrives while a sample is still crossing to it gets that sample when
+        /// it lands; one that arrives afterwards does not, because a
+        /// transmission is not state and there is no latest value to catch up
+        /// on.</para>
+        /// </summary>
+        public void RecordAddressed(
+            string node,
+            string topic,
+            object? value,
+            double validAtUt,
+            string fromNode,
+            IEnumerable<string> audience)
+        {
+            var stamp = _network.StampFor(fromNode);
+            var addressed = new AddressedSample
+            {
+                Sample = new ArchiveSample(value, validAtUt, _epoch, stamp),
+                Audience = new HashSet<string>(audience, StringComparer.Ordinal),
+            };
+            addressed.LastFireUt = validAtUt;
+            foreach (var vantage in addressed.Audience)
+            {
+                addressed.LastFireUt = Math.Max(addressed.LastFireUt, validAtUt + stamp.For(vantage));
+            }
+
+            var inFlight = AddressedFor(node, topic);
+            inFlight.RemoveAll(held => held.LastFireUt < _clock.Now());
+            inFlight.Add(addressed);
+
+            if (!_subscribers.TryGetValue(node, out var byTopic) || !byTopic.TryGetValue(topic, out var subs))
+            {
+                return;
+            }
+            foreach (var subscriber in new List<Subscriber>(subs))
+            {
+                ScheduleAddressed(node, topic, subs, subscriber, addressed);
+            }
+        }
+
+        private List<AddressedSample> AddressedFor(string node, string topic)
+        {
+            if (!_addressed.TryGetValue(node, out var byTopic))
+            {
+                byTopic = new Dictionary<string, List<AddressedSample>>();
+                _addressed[node] = byTopic;
+            }
+            if (!byTopic.TryGetValue(topic, out var list))
+            {
+                list = new List<AddressedSample>();
+                byTopic[topic] = list;
+            }
+            return list;
+        }
+
+        private void ScheduleAddressed(
+            string node,
+            string topic,
+            HashSet<Subscriber> subs,
+            Subscriber subscriber,
+            AddressedSample addressed)
+        {
+            if (!addressed.Audience.Contains(subscriber.Vantage))
+            {
+                return;
+            }
+            var fireUt = addressed.Sample.ValidAt + addressed.Sample.Stamp!.For(subscriber.Vantage);
+            _clock.Schedule(fireUt, () =>
+            {
+                if (!subs.Contains(subscriber))
+                {
+                    return;
+                }
+                subscriber.OnData(StreamDataFor(node, topic, subscriber.Vantage, addressed.Sample, fireUt, isCatchUp: false));
+            });
+        }
+
+        /// <summary>
         /// Subscribe a Vantage to a (node, topic) stream. Immediately
         /// delivers a catch-up of the latest already-arrived value (if any),
         /// schedules delivery of every sample still in flight to this
@@ -805,6 +910,20 @@ namespace Sitrep.Core
                     }
                     Deliver(node, topic, subscriber, fireUt, sampleDelay);
                 });
+            }
+
+            if (_addressed.TryGetValue(node, out var addressedByTopic)
+                && addressedByTopic.TryGetValue(topic, out var inFlight))
+            {
+                foreach (var addressed in inFlight)
+                {
+                    // Arrived before this subscriber was listening: missed, as on a radio.
+                    if (addressed.Sample.ValidAt + addressed.Sample.Stamp!.For(vantage) <= now)
+                    {
+                        continue;
+                    }
+                    ScheduleAddressed(node, topic, subs, subscriber, addressed);
+                }
             }
 
             return () => subs.Remove(subscriber);
