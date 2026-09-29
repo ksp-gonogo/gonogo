@@ -100,6 +100,12 @@ namespace Sitrep.Contract.TestSupport
 
         public void SetPathBreakSource(Func<KspSnapshot?, double, IReadOnlyList<PathBreak>?> computeOnMainThread) { }
 
+        /// <summary>Every delay modifier the Uplink holds on this host.</summary>
+        public HeldDelayModifiers DelayModifiers { get; } = new HeldDelayModifiers();
+
+        public IDisposable RegisterDelayModifier(double factor, string reason) =>
+            DelayModifiers.Register(factor, reason);
+
         public void ForceKeyframe(string topic) { }
 
         public void ResetChannelBirth(IEnumerable<string> topics) { }

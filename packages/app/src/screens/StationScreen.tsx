@@ -38,10 +38,10 @@ import { Dashboard } from "../components/Dashboard";
 import { useDashboardState } from "../components/Dashboard/useDashboardState";
 import { FlightOutcomeBanner } from "../components/FlightOutcomeBanner";
 import { FullscreenFab } from "../components/FullscreenFab";
+import { HeaderBadges } from "../components/HeaderBadges";
 import { HomeFallbackNotice } from "../components/HomeFallbackNotice";
 import { MissionBanner } from "../components/MissionBanner";
 import { SignalLossIndicator } from "../components/SignalLossIndicator";
-import { SimulationIndicator } from "../components/SimulationIndicator";
 import { StationConnectionFab } from "../components/StationConnectionFab";
 import { SustainedFailureBanner } from "../components/SustainedFailureBanner";
 import { downloadLogs } from "../logs/downloadLogs";
@@ -488,7 +488,7 @@ export function StationScreen() {
                                   }
                                 />
                                 <HostDisconnectBanner client={client} />
-                                <SimulationIndicator />
+                                <HeaderBadges />
                                 <SignalLossIndicator />
                                 <SustainedFailureBanner />
                                 <HostVersionBanner client={client} />

@@ -127,19 +127,6 @@ namespace Sitrep.Host.IntegrationTests
                     + "consumers treat an absent catalogue as data (GonogoRp1Uplink.Tests covers "
                     + "both, as a refusal and as a control dark with its reason)."),
             new Entry(
-                "simulation",
-                "Sitrep.Host/Comms/SimulationElection.cs",
-                FedByGatedCapture: false,
-                Excuse: Excuse.NoUplinkProvider,
-                WhyNoBehaviouralCase: "No Uplink in this repo registers a provider any more: the "
-                    + "one that did has moved to the gonogo-uplinks repo, which is what this "
-                    + "walk is meant to notice and did. Core ships the only provider, as the "
-                    + "capability's Vanilla. Nothing about the shape changed with it: the "
-                    + "flight.simulation CHANNEL is subscription-gated and safe to be, because "
-                    + "its source's whole effect is its return value and the delay cut it "
-                    + "reports rides a config read every tick regardless of who watches. An "
-                    + "Uplink provider appearing for it again makes this line stale and fails."),
-            new Entry(
                 "delayedScience",
                 "Gonogo.KSP/CurrencyEventUplink.cs",
                 FedByGatedCapture: false,

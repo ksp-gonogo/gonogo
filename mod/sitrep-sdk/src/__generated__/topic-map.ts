@@ -59,7 +59,6 @@ import type {
   FleetSilence,
   FlightCurrent,
   FlightEnded,
-  FlightSimulation,
   FlightStarted,
   FlightVesselChanged,
   GameDlc,
@@ -140,7 +139,6 @@ export interface GeneratedTopicPayloadMap {
   "fleet.silence": FleetSilence;
   "flight.current": FlightCurrent;
   "flight.ended": FlightEnded;
-  "flight.simulation": FlightSimulation;
   "flight.started": FlightStarted;
   "flight.vesselChanged": FlightVesselChanged;
   "game.dlc": GameDlc;
@@ -224,7 +222,6 @@ export const GENERATED_TOPIC_IDS = [
   "fleet.silence",
   "flight.current",
   "flight.ended",
-  "flight.simulation",
   "flight.started",
   "flight.vesselChanged",
   "game.dlc",

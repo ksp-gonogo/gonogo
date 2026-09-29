@@ -162,16 +162,6 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   // not have to. 2 explicit declarations.
   "mod/Gonogo.KSP/ScetAlarmUplink.cs": 2,
 
-  // flight.simulation: whether the flight on screen is one of RP-1's
-  // REHEARSALS. Meta about the stream rather than an observation of a craft,
-  // the same class as comms.delay: a channel that told an operator "this is a
-  // simulation" only after the light-time had elapsed would be describing the
-  // board they were looking at four minutes ago, and the delay it reports is
-  // the delay being cut for that very flight. Nothing about a rehearsal
-  // travels down a link, because there is no craft at the far end of one.
-  // 1 explicit declaration.
-  "mod/Gonogo.KSP/FlightUplink.cs": 1,
-
   // KSP version/build id and similar mod-host facts, not vessel state, plus
   // system.frame: what frame the player's own navigation view is in. That is a
   // fact about their screen rather than anything observed down a link, so no

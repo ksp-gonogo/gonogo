@@ -83,10 +83,7 @@ const SAVED = 0;
 const MEMORY_ONLY = 1;
 const RECOVERED = 2;
 
-/**
- * What the mod publishes with RP-1 running: its own three rows, and two in
- * RP-1's block, one of them the mod's own choice about delaying a simulation.
- */
+/** What the mod publishes with RP-1 running: its own three rows, and one in RP-1's block. */
 function kspSettings(state: number, reason: string | null = null) {
   return {
     rows: [
@@ -115,14 +112,6 @@ function kspSettings(state: number, reason: string | null = null) {
         kind: BOOL,
         label:
           "Record a development capture of this session, which costs disk and log",
-        value: "False",
-        default: "False",
-      },
-      {
-        path: "Uplinks/rp1/delayInSimulation",
-        owner: "rp1",
-        kind: BOOL,
-        label: "Apply the delay during a simulation as well as a real flight",
         value: "False",
         default: "False",
       },

@@ -269,6 +269,12 @@ namespace Sitrep.Contract.TestSupport
         {
         }
 
+        /// <summary>Every delay modifier the Uplink holds on this host.</summary>
+        public HeldDelayModifiers DelayModifiers { get; } = new HeldDelayModifiers();
+
+        public IDisposable RegisterDelayModifier(double factor, string reason) =>
+            DelayModifiers.Register(factor, reason);
+
         public void ForceKeyframe(string topic)
         {
         }

@@ -70,14 +70,13 @@ namespace Gonogo.KSP.Tests.DevTools
         }
 
         [Fact]
-        public void SignalDelayConfig_still_exposes_the_four_fields_the_probe_reports()
+        public void SignalDelayConfig_still_exposes_the_three_fields_the_probe_reports()
         {
             var type = typeof(SignalDelayConfig);
 
             Assert.NotNull(type.GetProperty("Enabled", PublicInstance));
             Assert.NotNull(type.GetProperty("LightSpeedScale", PublicInstance));
             Assert.NotNull(type.GetProperty("SilenceDeclarationSeconds", PublicInstance));
-            Assert.NotNull(type.GetProperty("CutForSimulation", PublicInstance));
         }
 
         [Fact]
@@ -94,7 +93,7 @@ namespace Gonogo.KSP.Tests.DevTools
             var source = ReadModSource(Path.Combine("Gonogo.KSP", "CommsCoreUplink.cs"));
 
             // EFFECTIVE is the one the currency arm consults; AUTHORED sits beside it
-            // in the report so a simulation-cut delay is visible rather than looking
+            // in the report so a delay cut by a modifier is visible rather than looking
             // like a subsystem that never engaged.
             Assert.Contains("static SignalDelayConfig SignalDelayConfig", source, StringComparison.Ordinal);
             Assert.Contains("static SignalDelayConfig AuthoredSignalDelayConfig", source, StringComparison.Ordinal);

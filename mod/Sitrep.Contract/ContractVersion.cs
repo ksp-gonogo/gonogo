@@ -569,9 +569,24 @@ namespace Sitrep.Contract
         /// economy beyond its balances, and a career mod that models one publishes
         /// it on its own Topic. Sanctioned on the same standing grounds as every
         /// Major above.</para>
+        ///
+        /// <para><b>Bumped 21 -&gt; 22: core carries no rehearsal mode.</b> The
+        /// <c>flight.simulation</c> Topic and its <c>FlightSimulation</c> payload,
+        /// the <c>comms.setSimulationDelayPolicy</c> command and its
+        /// <c>SetSimulationDelayPolicyArgs</c>, <c>CommsDelaySource.Simulation</c>
+        /// and the exclusive <c>simulation</c> capability's
+        /// <c>ISimulationBackend</c> are removed. Stock has no simulations; the
+        /// mod that does owns the concept, its Topic and its setting.</para>
+        ///
+        /// <para><b>Also in 22, a C# seam break the wire shape cannot see:</b>
+        /// <see cref="IUplinkHost.RegisterDelayModifier"/> is added, so an
+        /// existing implementation of <see cref="IUplinkHost"/> no longer
+        /// compiles. It is how an Uplink scales or switches off signal delay
+        /// without core knowing why. Declared in the ledger's
+        /// <c>SeamBreaks</c>.</para>
         /// </internal>
         /// </summary>
-        public const int Major = 21;
+        public const int Major = 22;
 
         /// <summary>
         /// The contract's minor version within the current <see cref="Major"/>. It

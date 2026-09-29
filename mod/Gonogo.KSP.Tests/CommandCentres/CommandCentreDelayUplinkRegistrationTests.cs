@@ -215,6 +215,9 @@ namespace Gonogo.KSP.Tests.CommandCentres
         {
 
         public void SetPathBreakSource(Func<KspSnapshot?, double, IReadOnlyList<PathBreak>?> computeOnMainThread) { }
+
+            public IDisposable RegisterDelayModifier(double factor, string reason) => throw new NotSupportedException();
+
             public List<(Func<KspSnapshot?, object?> Capture, Action<object?> Handle, string[] Prefixes)> SampledSources { get; }
                 = new List<(Func<KspSnapshot?, object?>, Action<object?>, string[])>();
 

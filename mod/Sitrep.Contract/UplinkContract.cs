@@ -1324,6 +1324,36 @@ namespace Sitrep.Contract
         /// <param name="computeOnMainThread">Given the tick's snapshot and UT in seconds, returns the breaks this tick, or <c>null</c> for none.</param>
         void SetPathBreakSource(Func<KspSnapshot?, double, IReadOnlyList<PathBreak>?> computeOnMainThread);
 
+        /// <summary>
+        /// Scale every signal delay by <paramref name="factor"/> until the
+        /// returned handle is disposed. <c>2</c> doubles each light-time,
+        /// <c>0.5</c> halves it, and <c>0</c> switches delay off entirely, so
+        /// telemetry arrives live and commands land at once.
+        ///
+        /// <para>Every modifier in force multiplies: two Uplinks each holding
+        /// <c>2</c> make every delay four times its light-time, and any one
+        /// holding <c>0</c> switches delay off whatever the others hold. The
+        /// operator's own delay settings are applied the same way, so a
+        /// modifier composes with them rather than overriding them.</para>
+        ///
+        /// <para>The factor reaches every place a delay is read at once: the
+        /// release of delayed telemetry, <c>comms.delay</c>, each fleet craft's
+        /// own light-time, each command centre's, and when a change in the
+        /// career is announced. Hold a modifier for as long as its condition
+        /// lasts and dispose it when the condition ends; disposing twice is
+        /// harmless.</para>
+        ///
+        /// <para>Nothing about a modifier reaches the wire. A client sees the
+        /// delay it produces, and an Uplink that wants the operator to know why
+        /// says so itself.</para>
+        /// </summary>
+        /// <param name="factor">The multiplier: zero or a positive, finite number.</param>
+        /// <param name="reason">Why the delay is scaled, in a few words, for the mod's log.</param>
+        /// <returns>The handle whose disposal withdraws the modifier.</returns>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="factor"/> is negative, NaN or infinite.</exception>
+        /// <exception cref="ArgumentException"><paramref name="reason"/> is null or blank.</exception>
+        IDisposable RegisterDelayModifier(double factor, string reason);
+
         /// <summary>The capability and provider registry, through which an
         /// Uplink provides a capability or resolves one another Uplink provides.
         /// See <see cref="Sitrep.Contract.Kernel"/>.</summary>

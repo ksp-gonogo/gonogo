@@ -142,10 +142,6 @@ public static class RtConfig
                 typeof(ThermalHottestPart),
                 typeof(WarpState),
                 typeof(TimeCalendar),
-                // flight.simulation: a rehearsal is not a mission, and stock
-                // has no such distinction to report
-                typeof(FlightSimulation),
-                typeof(SetSimulationDelayPolicyArgs),
                 // settings.gonogo, and the one command that writes it
                 typeof(SettingsModel),
                 typeof(SettingsRowState),

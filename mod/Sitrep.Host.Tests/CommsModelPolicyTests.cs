@@ -100,20 +100,17 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
-        /// Both cuts at once: a rehearsal has no light-time because there is no
-        /// craft, this save has none because there is no network, and the
-        /// second survives loading a different craft.
+        /// Both cuts at once: a delay modifier of zero and a save with no
+        /// network. The second is the one that survives loading a different
+        /// craft, so it is the reason the wire carries.
         /// </summary>
         [Fact]
-        public void NoCommsModel_OutranksTheSimulationCut()
+        public void NoCommsModel_OutranksAModifierCut()
         {
-            var simulationCut = new SignalDelayConfig
-            {
-                Enabled = false,
-                CutForSimulation = true,
-            };
+            var modifiers = new DelayModifiers();
+            modifiers.Register(0.0, "a test cut");
 
-            var config = CommsModelPolicy.Effective(simulationCut, modelPresent: false);
+            var config = CommsModelPolicy.Effective(modifiers.Apply(On()), modelPresent: false);
             var delay = SignalDelay.Compute(config, new CommsPath(), "vessel:x", Quality.Loaded);
 
             Assert.Equal(CommsDelaySource.NoCommsModel, delay.Source);

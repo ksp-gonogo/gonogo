@@ -11,9 +11,8 @@ namespace Gonogo.KSP.CurrencyDelay
     /// interceptor neutralised one, so a quantity some other mod derives from
     /// that change stays withheld for as long as the change is.
     ///
-    /// <para>A static pointer to the live <see cref="Kernel"/>, the same shape
-    /// <c>CommsCoreUplink.ConfigureSimulationKernel</c> uses and for the same
-    /// reason: the interceptor is owned by a <c>ScenarioModule</c>, which has no
+    /// <para>A static pointer to the live <see cref="Kernel"/>, because the
+    /// interceptor is owned by a <c>ScenarioModule</c>, which has no
     /// <c>IUplinkHost</c> and therefore no kernel of its own. It holds no derived
     /// state, only the reference, so the "all pending state lives in the
     /// persisted scenario module" invariant is untouched.</para>

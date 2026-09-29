@@ -342,14 +342,24 @@ function reportContributionThrew(id: string, err: unknown): void {
   else console.error(message, error);
 }
 
+/**
+ * Aggregates contributions for the tree below it. Inside a widget it serves
+ * the widget's declared slots and its framework segments; `slots` names the
+ * slots to serve instead, for a host surface that is not a widget, such as the
+ * screen header's `app.header-badges`.
+ */
 export function ContributionsProvider({
+  slots,
   children,
 }: {
+  slots?: readonly string[];
   children?: ReactNode;
 }): ReactElement {
   return (
     <ContributionsPanelStore.Provider>
-      <ContributionsAggregation>{children}</ContributionsAggregation>
+      <ContributionsAggregation slots={slots}>
+        {children}
+      </ContributionsAggregation>
     </ContributionsPanelStore.Provider>
   );
 }
@@ -361,10 +371,17 @@ export function ContributionsProvider({
  * host. Only something every widget has belongs here; any other slot is
  * declared by the widget that hosts it.
  */
-function ContributionsAggregation({ children }: { children?: ReactNode }) {
+function ContributionsAggregation({
+  slots: named,
+  children,
+}: {
+  slots?: readonly string[];
+  children?: ReactNode;
+}) {
   const meta = useWidgetMeta();
   const store = ContributionsPanelStore.useStore();
   const slots = useMemo(() => {
+    if (named) return named;
     const declared = meta?.contributionSlots ?? [];
     if (!meta) return declared;
     const merged = [...declared];
@@ -373,7 +390,7 @@ function ContributionsAggregation({ children }: { children?: ReactNode }) {
       if (!merged.includes(slot as never)) merged.push(slot as never);
     }
     return merged;
-  }, [meta]);
+  }, [meta, named]);
 
   if (!store) return <>{children}</>;
 

@@ -31,32 +31,6 @@ namespace Sitrep.Host.Comms
             GameDayDefaults.StockDaySeconds;
 
         /// <summary>
-        /// Apply signal delay during a SIMULATION as well as a mission. Off,
-        /// so a simulation cuts the delay.
-        ///
-        /// <para>A simulation is a ground-side rehearsal. There is no
-        /// spacecraft, so there is no light-time, and delaying it models a
-        /// distance to a craft that does not exist. A controller may still want
-        /// the delay on, to rehearse under the conditions the real flight will
-        /// have, which is why this is a choice and not a rule.</para>
-        ///
-        /// <para>Only meaningful where something says what a simulation IS: see
-        /// <c>ISimulationBackend</c>. A game with no such concept never reaches
-        /// this flag.</para>
-        /// </summary>
-        public bool DelayInSimulation { get; set; }
-
-        /// <summary>
-        /// Set only on the DERIVED config <see cref="SimulationDelayPolicy"/>
-        /// hands out while a simulation is cutting the delay, never on an
-        /// authored one. It is what lets <see cref="SignalDelay.Compute"/>
-        /// report <see cref="CommsDelaySource.Simulation"/> rather than a bare
-        /// <see cref="CommsDelaySource.None"/>, so a live board says why it is
-        /// live.
-        /// </summary>
-        public bool CutForSimulation { get; set; }
-
-        /// <summary>
         /// Set only on the DERIVED config <see cref="CommsModelPolicy"/> hands
         /// out while this save models no comms network at all (the stock
         /// CommNet difficulty option is off), never on an authored one. It is
@@ -64,11 +38,6 @@ namespace Sitrep.Host.Comms
         /// <see cref="CommsDelaySource.NoCommsModel"/> rather than a bare
         /// <see cref="CommsDelaySource.None"/>, so an operator can tell a save
         /// with no comms model from one whose delay was simply never turned on.
-        ///
-        /// <para>Outranks <see cref="CutForSimulation"/> when both are set: a
-        /// rehearsal has no light-time because there is no craft, and this save
-        /// has none because there is no network, and the second is the more
-        /// fundamental of the two.</para>
         /// </summary>
         public bool CutForNoCommsModel { get; set; }
 
@@ -93,11 +62,10 @@ namespace Sitrep.Host.Comms
     /// nothing to report at all (<c>OneWaySeconds = null</c>). Neither case
     /// is ever mistaken for a measured zero-distance delay.</para>
     ///
-    /// <para>Two of the ways to reach that zero name themselves rather than
-    /// sharing <c>None</c>, because the operator's next move differs:
-    /// <see cref="CommsDelaySource.Simulation"/> (a rehearsal has no craft to
-    /// be distant from) and <see cref="CommsDelaySource.NoCommsModel"/> (this
-    /// save models no network at all).</para>
+    /// <para>One way to reach that zero names itself rather than sharing
+    /// <c>None</c>, because the operator's next move differs:
+    /// <see cref="CommsDelaySource.NoCommsModel"/> (this save models no network
+    /// at all).</para>
     /// </summary>
     public static class SignalDelay
     {
@@ -205,11 +173,10 @@ namespace Sitrep.Host.Comms
         /// Delay feature is off but the vessel IS connected, a real "zero
         /// applied", so <c>OneWaySeconds = 0</c> (never null).
         ///
-        /// <para>Three ways to be off, told apart by <see cref="Source"/>: the
-        /// operator never turned delay on, this flight is a simulation and the
-        /// delay was cut for it, or this save models no comms network at all.
-        /// The magnitude is the same zero and the reason is not, and an
-        /// operator looking at a live board deserves the reason.</para>
+        /// <para>Two ways to be off, told apart by <see cref="Source"/>: delay
+        /// is switched off, or this save models no comms network at all. The
+        /// magnitude is the same zero and the reason is not, and an operator
+        /// looking at a live board deserves the reason.</para>
         /// </summary>
         private static CommsDelay Disabled(SignalDelayConfig? config, PayloadMeta meta) => new CommsDelay
         {
@@ -218,22 +185,8 @@ namespace Sitrep.Host.Comms
             Meta = meta,
         };
 
-        private static CommsDelaySource SourceOfZero(SignalDelayConfig? config)
-        {
-            if (config == null)
-            {
-                return CommsDelaySource.None;
-            }
-            // No comms model outranks the simulation cut: a rehearsal has no
-            // light-time because there is no craft, this save has none because
-            // there is no network, and only one of the two survives loading a
-            // different save.
-            if (config.CutForNoCommsModel)
-            {
-                return CommsDelaySource.NoCommsModel;
-            }
-            return config.CutForSimulation ? CommsDelaySource.Simulation : CommsDelaySource.None;
-        }
+        private static CommsDelaySource SourceOfZero(SignalDelayConfig? config) =>
+            config != null && config.CutForNoCommsModel ? CommsDelaySource.NoCommsModel : CommsDelaySource.None;
 
         /// <summary>No measurable path (no hops, incomplete hop geometry, or an unusable light-speed scale), nothing to report, so <c>OneWaySeconds = null</c> (never 0).</summary>
         private static CommsDelay NoPath(PayloadMeta meta) => new CommsDelay

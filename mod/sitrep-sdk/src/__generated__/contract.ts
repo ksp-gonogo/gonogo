@@ -1816,23 +1816,11 @@ export interface CommsNetwork
 export enum CommsDelaySource {
 	/**
 	* No delay measured: either there is no measurable path (the value is null) or
-	* the delay feature is off (the value is 0).
+	* delay is switched off (the value is 0).
 	*/
 	None = 0,
 	/** A light-time computed over the route's hop geometry. */
 	SignalDelay = 1,
-	/**
-	* Zero, because the flight on screen is a SIMULATION and the operator has not
-	* asked for delay during one. A rehearsal has no spacecraft, so it has no
-	* light-time, and modelling a distance to a craft that is not there is a
-	* fiction rather than a measurement.
-	*
-	* Its own member rather than `CommsDelaySource.None` because a live board is a
-	* claim, and an operator is entitled to know which claim it is: "no delay is
-	* configured" and "delay is off because this is a rehearsal" call for
-	* different reactions. See `flight.simulation`.
-	*/
-	Simulation = 2,
 	/**
 	* Zero, because this save models no comms network AT ALL: the stock CommNet
 	* difficulty option is off, so there are no ground stations, no relay graph
@@ -1847,7 +1835,7 @@ export enum CommsDelaySource {
 	* keeps arriving with nothing held back, where a real blackout reports null
 	* and stops.
 	*/
-	NoCommsModel = 3
+	NoCommsModel = 2
 }
 /**
 * The `comms.delay` payload: the one-way signal delay to the active vessel,
@@ -1866,13 +1854,12 @@ export enum CommsDelaySource {
 * - a real number: `CommsDelay.source` is `CommsDelaySource.SignalDelay`, a
 *   light-time computed over the elected backend's hop geometry.
 *
-* Two of the zeroes name their own reason instead of sharing
-* `CommsDelaySource.None`: `CommsDelaySource.Simulation` and
-* `CommsDelaySource.NoCommsModel`. The second is what tells a client that a
-* board showing no path and no relay graph is a save with the CommNet
-* difficulty option off, not a craft in a permanent blackout: the blackout
-* reports `null` here and `connected:false` on `CommsLink`, and this reports
-* `0` and `connected:true`.
+* One zero names its own reason instead of sharing `CommsDelaySource.None`:
+* `CommsDelaySource.NoCommsModel`, which is what tells a client that a board
+* showing no path and no relay graph is a save with the CommNet difficulty
+* option off, not a craft in a permanent blackout: the blackout reports `null`
+* here and `connected:false` on `CommsLink`, and this reports `0` and
+* `connected:true`.
 *
 * DELAYED, like the telemetry it describes. A light-time is measured over the
 * route a signal actually took, so the figure that reaches an operator is the
@@ -1909,11 +1896,10 @@ export interface CommsDelay
 	* promise made about it. A client reading a relayed route gets an honest
 	* refusal naming that channel rather than a modelled number.
 	*
-	* The `CommsDelay.source` is an input because three of its four members are a
-	* zero that means something other than "no distance": the feature is off, the
-	* flight is a rehearsal, or the save models no comms network. None of those
-	* stops being true as the craft moves, so only `CommsDelaySource.SignalDelay`
-	* is carried forward.
+	* The `CommsDelay.source` is an input because two of its three members are a
+	* zero that means something other than "no distance": delay is switched off,
+	* or the save models no comms network. Neither stops being true as the craft
+	* moves, so only `CommsDelaySource.SignalDelay` is carried forward.
 	*/
 	oneWaySeconds?: Value<"s"> | null;
 	/** Why `CommsDelay.oneWaySeconds` has the value it has; see `CommsDelaySource`. */
@@ -6554,61 +6540,6 @@ export interface SettingsChange
 	path: string;
 	/** The new value, spelled as `SettingsRowState.value` is. */
 	value: string;
-}
-/**
-* The `flight.simulation` channel payload: is this a rehearsal, and is signal
-* delay being applied to it.
-*
-* Delivered without signal delay: this describes the stream rather than a
-* reading from a craft, as `comms.delay` does.
-*
-* Absence is data: an install with no concept of a simulation (stock)
-* publishes nothing here, and a client reads the silence as "this game does
-* not distinguish". It never publishes `simulated: false` in its place.
-*
-* @category Flights
-*/
-export interface FlightSimulation
-{
-	/**
-	* Whether the flight on screen is a simulation. When the install has no such
-	* concept the whole payload is absent, so on a published payload this is true
-	* or false.
-	*/
-	simulated?: boolean | null;
-	/**
-	* Whether signal delay is currently being applied to this flight.
-	*
-	* By default a simulation cuts the delay, since a rehearsal has no real
-	* spacecraft to be distant from. `FlightSimulation.delayInSimulation` turns it
-	* back on. This field is the outcome, the same one the mod enforces, so a
-	* client can say why the board is live without re-deriving it.
-	*/
-	delayApplied: boolean;
-	/**
-	* The operator's standing choice: apply signal delay during a simulation
-	* anyway. Off by default. Set with `comms.setSimulationDelayPolicy`.
-	*
-	* This is the value the mod is enforcing, so a settings control should read it
-	* here rather than remember what it last sent.
-	*/
-	delayInSimulation: boolean;
-	/** The payload's provenance (`"game"`) and quality. */
-	meta: PayloadMeta;
-}
-/**
-* Arguments to `comms.setSimulationDelayPolicy`: apply signal delay during a
-* simulation, or cut it.
-*
-* @category Command arguments
-*/
-export interface SetSimulationDelayPolicyArgs
-{
-	/**
-	* True to apply signal delay during a simulation, false to cut it. Reported
-	* back as `FlightSimulation.delayInSimulation`.
-	*/
-	applyDuringSimulation: boolean;
 }
 /**
 * One launch site in the `spaceCenter.launchSites` channel: the stock KSC pad

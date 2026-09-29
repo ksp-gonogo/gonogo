@@ -61,11 +61,11 @@ namespace Sitrep.Host.Tests.Settings
         public void AWatcherHearsTheCurrentValueAsItSubscribes()
         {
             var seed = new SettingsDocument();
-            seed.Set("SIGNAL_DELAY/delayInSimulation", "True");
+            seed.Set("SIGNAL_DELAY/sampleFlag", "True");
             var store = new SettingsStore(new InMemorySettingsStore(seed));
             var heard = new List<string?>();
 
-            store.OnChanged("SIGNAL_DELAY", doc => heard.Add(doc.Text("SIGNAL_DELAY/delayInSimulation")));
+            store.OnChanged("SIGNAL_DELAY", doc => heard.Add(doc.Text("SIGNAL_DELAY/sampleFlag")));
 
             Assert.Equal(new[] { "True" }, heard);
         }
@@ -74,11 +74,11 @@ namespace Sitrep.Host.Tests.Settings
         public void ACommitTellsAWatcherOnTheBlockAbove()
         {
             var store = new SettingsStore(new InMemorySettingsStore());
-            store.Declare(SettingsRow.Bool("SIGNAL_DELAY/delayInSimulation", false));
+            store.Declare(SettingsRow.Bool("SIGNAL_DELAY/sampleFlag", false));
             var heard = new List<bool>();
-            store.OnChanged("SIGNAL_DELAY", _ => heard.Add(store.Bool("SIGNAL_DELAY/delayInSimulation")));
+            store.OnChanged("SIGNAL_DELAY", _ => heard.Add(store.Bool("SIGNAL_DELAY/sampleFlag")));
 
-            store.Stage("SIGNAL_DELAY/delayInSimulation", true);
+            store.Stage("SIGNAL_DELAY/sampleFlag", true);
             store.Commit();
 
             Assert.Equal(new[] { false, true }, heard);
@@ -152,14 +152,14 @@ namespace Sitrep.Host.Tests.Settings
         {
             var backing = new InMemorySettingsStore { FailWith = "read-only GameData" };
             var store = new SettingsStore(backing);
-            store.Declare(SettingsRow.Bool("SIGNAL_DELAY/delayInSimulation", false));
+            store.Declare(SettingsRow.Bool("SIGNAL_DELAY/sampleFlag", false));
 
-            store.Stage("SIGNAL_DELAY/delayInSimulation", true);
+            store.Stage("SIGNAL_DELAY/sampleFlag", true);
             var outcome = store.Commit();
 
             Assert.False(outcome.Success);
             Assert.Equal("read-only GameData", outcome.Reason);
-            Assert.True(store.Bool("SIGNAL_DELAY/delayInSimulation"));
+            Assert.True(store.Bool("SIGNAL_DELAY/sampleFlag"));
         }
 
         /// <summary>

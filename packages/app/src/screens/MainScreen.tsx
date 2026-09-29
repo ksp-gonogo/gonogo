@@ -57,11 +57,11 @@ import { Dashboard } from "../components/Dashboard";
 import { useDashboardState } from "../components/Dashboard/useDashboardState";
 import { FlightOutcomeBanner } from "../components/FlightOutcomeBanner";
 import { FullscreenFab } from "../components/FullscreenFab";
+import { HeaderBadges } from "../components/HeaderBadges";
 import { HomeFallbackNotice } from "../components/HomeFallbackNotice";
 import { MissionBanner } from "../components/MissionBanner";
 import { SceneChangeBanner } from "../components/SceneChangeBanner";
 import { SignalLossIndicator } from "../components/SignalLossIndicator";
-import { SimulationIndicator } from "../components/SimulationIndicator";
 import { StationLinkFab } from "../components/StationLinkFab";
 import { SustainedFailureBanner } from "../components/SustainedFailureBanner";
 import { CoverageSyncHostService } from "../coverage/CoverageSyncHostService";
@@ -471,7 +471,7 @@ export function MainScreen({
                                             <FiredAlarmPills />
                                             <UnscheduledWarpPill />
                                             <AlarmsCancelledPill />
-                                            <SimulationIndicator />
+                                            <HeaderBadges />
                                             <SignalLossIndicator />
                                             <SustainedFailureBanner />
                                             <SceneChangeBanner />

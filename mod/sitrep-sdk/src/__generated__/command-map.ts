@@ -90,7 +90,6 @@ import type {
   SetFlyByWireArgs,
   SetPausedArgs,
   SetSasModeArgs,
-  SetSimulationDelayPolicyArgs,
   SetTargetArgs,
   SetThrottleArgs,
   SetWarpIndexArgs,
@@ -120,7 +119,6 @@ export interface GeneratedCommandArgsMap {
   "commcast.message.ack": CommcastMessageAckArgs;
   "commcast.message.send": CommcastMessageSendArgs;
   "commcast.radio.transmit": CommcastRadioTransmitArgs;
-  "comms.setSimulationDelayPolicy": SetSimulationDelayPolicyArgs;
   "ksp.launch": LaunchArgs;
   "ksp.recover": NoCommandArgs;
   "ksp.revertToEditor": RevertToEditorArgs;
@@ -184,7 +182,6 @@ export interface GeneratedCommandReplyMap {
   "commcast.message.ack": CommandResult;
   "commcast.message.send": CommandResult;
   "commcast.radio.transmit": CommandResult;
-  "comms.setSimulationDelayPolicy": CommandResult;
   "ksp.launch": CommandResult;
   "ksp.recover": CommandResult;
   "ksp.revertToEditor": CommandResult;
@@ -258,7 +255,6 @@ export const GENERATED_COMMAND_REPLY_TYPES = {
   "commcast.message.ack": "CommandResult",
   "commcast.message.send": "CommandResult",
   "commcast.radio.transmit": "CommandResult",
-  "comms.setSimulationDelayPolicy": "CommandResult",
   "ksp.launch": "CommandResult",
   "ksp.recover": "CommandResult",
   "ksp.revertToEditor": "CommandResult",
@@ -360,7 +356,6 @@ export const GENERATED_COMMAND_RAIL = {
   "commcast.message.ack": { replies: true, delayed: false },
   "commcast.message.send": { replies: true, delayed: false },
   "commcast.radio.transmit": { replies: true, delayed: false },
-  "comms.setSimulationDelayPolicy": { replies: true, delayed: false },
   "ksp.launch": { replies: true, delayed: false },
   "ksp.recover": { replies: true, delayed: false },
   "ksp.revertToEditor": { replies: true, delayed: false },
@@ -424,7 +419,6 @@ export const GENERATED_COMMAND_IDS = [
   "commcast.message.ack",
   "commcast.message.send",
   "commcast.radio.transmit",
-  "comms.setSimulationDelayPolicy",
   "ksp.launch",
   "ksp.recover",
   "ksp.revertToEditor",

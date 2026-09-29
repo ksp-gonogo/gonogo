@@ -206,9 +206,6 @@ namespace Sitrep.Contract.Serialization
                 case Sitrep.Contract.InventoryItem inventoryItem:
                     AppendInventoryItem(sb, inventoryItem);
                     break;
-                case Sitrep.Contract.FlightSimulation flightSimulation:
-                    AppendFlightSimulation(sb, flightSimulation);
-                    break;
                 // No case for the scripting Uplink's wire types: they flatten producer-side (see WirePayloadCoverageTests.FlattenedByProducer).
                 case Sitrep.Contract.ScetAlarm scetAlarm:
                     // alarm.scet is a bare array of these, published raw, so each element reaches here through the IEnumerable case.
@@ -584,39 +581,6 @@ namespace Sitrep.Contract.Serialization
             AppendString(sb, "quality");
             sb.Append(':');
             AppendInteger(sb, (long)(delay.Meta?.Quality ?? Sitrep.Contract.Quality.OnRails));
-            sb.Append('}');
-
-            sb.Append('}');
-        }
-
-        private static void AppendFlightSimulation(StringBuilder sb, Sitrep.Contract.FlightSimulation simulation)
-        {
-            sb.Append('{');
-            AppendString(sb, "simulated");
-            sb.Append(':');
-            AppendNullableBool(sb, simulation.Simulated);
-
-            sb.Append(',');
-            AppendString(sb, "delayApplied");
-            sb.Append(':');
-            sb.Append(simulation.DelayApplied ? "true" : "false");
-
-            sb.Append(',');
-            AppendString(sb, "delayInSimulation");
-            sb.Append(':');
-            sb.Append(simulation.DelayInSimulation ? "true" : "false");
-
-            sb.Append(',');
-            AppendString(sb, "meta");
-            sb.Append(':');
-            sb.Append('{');
-            AppendString(sb, "source");
-            sb.Append(':');
-            AppendString(sb, simulation.Meta?.Source ?? "");
-            sb.Append(',');
-            AppendString(sb, "quality");
-            sb.Append(':');
-            AppendInteger(sb, (long)(simulation.Meta?.Quality ?? Sitrep.Contract.Quality.OnRails));
             sb.Append('}');
 
             sb.Append('}');

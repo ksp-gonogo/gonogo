@@ -20,6 +20,10 @@ namespace Sitrep.Host.Tests
     {
 
         public void SetPathBreakSource(Func<KspSnapshot?, double, IReadOnlyList<PathBreak>?> computeOnMainThread) { }
+
+        public IDisposable RegisterDelayModifier(double factor, string reason) =>
+            new Sitrep.Host.Comms.DelayModifiers().Register(factor, reason);
+
         private readonly Action<string> _onForceKeyframe;
         private readonly Action<IEnumerable<string>> _onResetChannelBirth;
 

@@ -161,8 +161,7 @@ namespace Gonogo.KSP
                 CommsCoreUplink.BindSettings(settings);
                 var delay = CommsCoreUplink.AuthoredSignalDelayConfig;
                 Debug.Log("[Gonogo] SignalDelay enabled=" + delay.Enabled
-                    + " lightSpeedScale=" + delay.LightSpeedScale
-                    + " delayInSimulation=" + delay.DelayInSimulation);
+                    + " lightSpeedScale=" + delay.LightSpeedScale);
 
                 // The dev-capture recorder's own row. Off unless the file says
                 // otherwise, unlike signal delay: recording costs disk and log
@@ -188,14 +187,6 @@ namespace Gonogo.KSP
                 // exactly like one that loaded and had not published yet.
                 _engine.RegisterDiscoveredUplinks(
                     UplinkDiscovery.Discover(msg => Debug.LogWarning("[Gonogo] " + msg)));
-
-                // Only a session with RP-1 running has a simulation to delay, so
-                // only such a session is offered the choice.
-                if (_engine.IsUplinkRunning(CommsCoreUplink.Rp1UplinkId))
-                {
-                    CommsCoreUplink.DeclareSimulationDelaySetting(settings);
-                    _engine.RefreshSettings();
-                }
 
                 // Plan 3 command centres (agent-6): the stock home-node + crewed-
                 // vessel sources feed BOTH set-vantage validation (the engine's own

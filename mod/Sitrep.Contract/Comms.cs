@@ -385,23 +385,10 @@ public class CommsNetwork
 [SitrepContract]
 public enum CommsDelaySource
 {
-    /// <summary>No delay measured: either there is no measurable path (the value is null) or the delay feature is off (the value is 0).</summary>
+    /// <summary>No delay measured: either there is no measurable path (the value is null) or delay is switched off (the value is 0).</summary>
     None,
     /// <summary>A light-time computed over the route's hop geometry.</summary>
     SignalDelay,
-
-    /// <summary>
-    /// Zero, because the flight on screen is a SIMULATION and the operator has
-    /// not asked for delay during one. A rehearsal has no spacecraft, so it has
-    /// no light-time, and modelling a distance to a craft that is not there is
-    /// a fiction rather than a measurement.
-    ///
-    /// <para>Its own member rather than <see cref="None"/> because a live board
-    /// is a claim, and an operator is entitled to know which claim it is: "no
-    /// delay is configured" and "delay is off because this is a rehearsal" call
-    /// for different reactions. See <c>flight.simulation</c>.</para>
-    /// </summary>
-    Simulation,
 
     /// <summary>
     /// Zero, because this save models no comms network AT ALL: the stock
@@ -440,10 +427,9 @@ public enum CommsDelaySource
 /// <see cref="CommsDelaySource.SignalDelay"/>, a light-time computed over
 /// the elected backend's hop geometry.</description></item>
 /// </list>
-/// Two of the zeroes name their own reason instead of sharing
+/// One zero names its own reason instead of sharing
 /// <see cref="CommsDelaySource.None"/>:
-/// <see cref="CommsDelaySource.Simulation"/> and
-/// <see cref="CommsDelaySource.NoCommsModel"/>. The second is what tells a
+/// <see cref="CommsDelaySource.NoCommsModel"/>, which is what tells a
 /// client that a board showing no path and no relay graph is a save with the
 /// CommNet difficulty option off, not a craft in a permanent blackout: the
 /// blackout reports <c>null</c> here and <c>connected:false</c> on
@@ -499,10 +485,10 @@ public class CommsDelay
     /// client reading a relayed route gets an honest refusal naming that
     /// channel rather than a modelled number.</para>
     ///
-    /// <para>The <see cref="Source"/> is an input because three of its four
-    /// members are a zero that means something other than "no distance": the
-    /// feature is off, the flight is a rehearsal, or the save models no comms
-    /// network. None of those stops being true as the craft moves, so only
+    /// <para>The <see cref="Source"/> is an input because two of its three
+    /// members are a zero that means something other than "no distance": delay
+    /// is switched off, or the save models no comms network. Neither stops
+    /// being true as the craft moves, so only
     /// <see cref="CommsDelaySource.SignalDelay"/> is carried forward.</para>
     /// <internal>
     /// The client divides the OBSERVED delay by the OBSERVED route rather than

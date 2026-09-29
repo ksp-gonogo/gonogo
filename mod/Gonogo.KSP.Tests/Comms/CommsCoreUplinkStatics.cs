@@ -7,7 +7,7 @@ namespace Gonogo.KSP.Tests.Comms
     /// process static belongs to, so that no two of them run at the same time.
     ///
     /// <para><b>The failure it ends.</b> The delay accessor is read through
-    /// three settable statics (the authored config, the simulation kernel, and
+    /// three settable statics (the authored config, the delay modifiers, and
     /// the comms-model probe), because five surfaces reach it without an
     /// instance of the uplink in hand. Two test classes write them, each
     /// restoring what it set; xunit runs different classes IN PARALLEL, so one

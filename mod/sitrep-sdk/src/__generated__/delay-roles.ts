@@ -24,7 +24,6 @@ export const GENERATED_TRUENOW_TOPICS = [
   "comms.network",
   "comms.occlusion",
   "comms.signal",
-  "flight.simulation",
   "game.dlc",
   "ksp.revertAvailability",
   "settings.gonogo",
@@ -36,6 +35,7 @@ export const GENERATED_TRUENOW_TOPICS = [
   "system.uplink.gates",
   "system.uplink.pending",
   "system.uplinks",
+  "time.calendar",
   "time.warp",
 ] as const;
 

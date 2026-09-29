@@ -90,6 +90,7 @@ export {
   IconButton,
   TextButton,
 } from "./Button";
+export { type BadgeFace, badgeFace } from "./badgeFace";
 // How doubt is spoken, in one place, for surfaces outside this package too.
 export { bandClaim } from "./bandClaim";
 export { Card, type CardProps } from "./Card";

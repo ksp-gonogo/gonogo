@@ -541,20 +541,19 @@ namespace Gonogo.DevTools
 
         /// <summary>
         /// The signal-delay config the currency arm actually reads, which is the
-        /// EFFECTIVE one: a live simulation cuts the delay, and a run where every
-        /// credit landed instantly for that reason looks exactly like a subsystem that
-        /// never engaged. The authored flag is reported beside it so the cut is
-        /// visible rather than inferred.
+        /// EFFECTIVE one: a delay modifier of zero cuts the delay, and a run where
+        /// every credit landed instantly for that reason looks exactly like a
+        /// subsystem that never engaged. The authored flag is reported beside it so
+        /// the cut is visible rather than inferred.
         /// </summary>
         private readonly struct DelayConfigReadout
         {
-            public DelayConfigReadout(bool readable, bool enabled, double lightSpeedScale, double silenceSeconds, bool cutForSimulation, bool authoredEnabled, string fault)
+            public DelayConfigReadout(bool readable, bool enabled, double lightSpeedScale, double silenceSeconds, bool authoredEnabled, string fault)
             {
                 Readable = readable;
                 Enabled = enabled;
                 LightSpeedScale = lightSpeedScale;
                 SilenceSeconds = silenceSeconds;
-                CutForSimulation = cutForSimulation;
                 AuthoredEnabled = authoredEnabled;
                 Fault = fault ?? "";
             }
@@ -563,12 +562,11 @@ namespace Gonogo.DevTools
             public bool Enabled { get; }
             public double LightSpeedScale { get; }
             public double SilenceSeconds { get; }
-            public bool CutForSimulation { get; }
             public bool AuthoredEnabled { get; }
             public string Fault { get; }
 
             public static DelayConfigReadout Unreadable(string fault) =>
-                new DelayConfigReadout(false, false, 0.0, 0.0, false, false, fault);
+                new DelayConfigReadout(false, false, 0.0, 0.0, false, fault);
         }
 
         /// <summary>
@@ -1649,8 +1647,8 @@ namespace Gonogo.DevTools
                 }
                 if (probe.Config.Readable && !probe.Config.Enabled)
                 {
-                    probe.FailedTest = Append(probe.FailedTest, probe.Config.CutForSimulation
-                        ? "signal delay is CUT FOR A SIMULATION, so every credit reveals instantly by policy"
+                    probe.FailedTest = Append(probe.FailedTest, probe.Config.AuthoredEnabled
+                        ? "signal delay is on in the settings but CUT in effect, so every credit reveals instantly by policy"
                         : "signal delay is switched OFF, so every credit reveals instantly by policy");
                 }
 
@@ -1799,8 +1797,8 @@ namespace Gonogo.DevTools
 
         /// <summary>
         /// The signal-delay config the currency arm actually consults, which is
-        /// <c>CommsCoreUplink.SignalDelayConfig</c> (EFFECTIVE, after a simulation may
-        /// have cut it), plus the authored flag beside it so a cut is visible.
+        /// <c>CommsCoreUplink.SignalDelayConfig</c> (EFFECTIVE, after every delay
+        /// modifier), plus the authored flag beside it so a cut is visible.
         /// </summary>
         private static DelayConfigReadout ReadDelayConfig(out object? configObject)
         {
@@ -1826,13 +1824,12 @@ namespace Gonogo.DevTools
                 var enabled = (bool)(type.GetProperty("Enabled", Public)?.GetValue(effective, null) ?? false);
                 var scale = Convert.ToDouble(type.GetProperty("LightSpeedScale", Public)?.GetValue(effective, null) ?? 0.0, CultureInfo.InvariantCulture);
                 var silence = Convert.ToDouble(type.GetProperty("SilenceDeclarationSeconds", Public)?.GetValue(effective, null) ?? 0.0, CultureInfo.InvariantCulture);
-                var cut = (bool)(type.GetProperty("CutForSimulation", Public)?.GetValue(effective, null) ?? false);
 
                 var authored = uplinkType.GetProperty("AuthoredSignalDelayConfig", Static)?.GetValue(null, null);
                 var authoredEnabled = authored != null
                     && (bool)(authored.GetType().GetProperty("Enabled", Public)?.GetValue(authored, null) ?? false);
 
-                return new DelayConfigReadout(true, enabled, scale, silence, cut, authoredEnabled, "");
+                return new DelayConfigReadout(true, enabled, scale, silence, authoredEnabled, "");
             }
             catch (Exception ex)
             {
@@ -2261,7 +2258,6 @@ namespace Gonogo.DevTools
             sb.AppendLine("\t\t\t\tconfigReadable = " + (config.Readable ? "True" : "False"));
             sb.AppendLine("\t\t\t\tdelayEnabledEFFECTIVE = " + (config.Readable ? (config.Enabled ? "True" : "False") : "(unreadable)"));
             sb.AppendLine("\t\t\t\tdelayEnabledAUTHORED = " + (config.Readable ? (config.AuthoredEnabled ? "True" : "False") : "(unreadable)"));
-            sb.AppendLine("\t\t\t\tcutForSimulation = " + (config.Readable ? (config.CutForSimulation ? "True" : "False") : "(unreadable)"));
             sb.AppendLine("\t\t\t\tlightSpeedScale = " + Measured(config.Readable ? config.LightSpeedScale : double.NaN));
             sb.AppendLine("\t\t\t\tsilenceDeclarationSeconds = " + Measured(config.Readable ? config.SilenceSeconds : double.NaN));
             if (config.Fault.Length > 0)

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using Gonogo.KSP.CommandCentres;
 using Gonogo.KSP.SilenceTracking;
 using Sitrep.Contract;
@@ -128,13 +129,6 @@ namespace Gonogo.KSP
         /// </summary>
         public const string CommandCentreTopic = "comms.commandCentre";
 
-        /// <summary>
-        /// Apply signal delay during a SIMULATION, or cut it. The console's
-        /// only way to change a policy the mod enforces; see
-        /// <see cref="SimulationDelayPolicy"/> for what it decides.
-        /// </summary>
-        public const string SetSimulationDelayPolicyCommand = "comms.setSimulationDelayPolicy";
-
         // The config flag lives in core (§3). Default OFF for in-place upgraders;
         // the intended forward default is ON at real light-speed (§3.1), that
         // literal is a config/onboarding decision, so core ships it off and the
@@ -147,29 +141,6 @@ namespace Gonogo.KSP
 
         internal const string DelayEnabledRow = SignalDelayBlock + "/enabled";
         internal const string LightSpeedScaleRow = SignalDelayBlock + "/lightSpeedScale";
-        /// <summary>RP-1's Uplink id, whose block the simulation-delay choice is kept in.</summary>
-        internal const string Rp1UplinkId = "rp1";
-
-        /// <summary>
-        /// Whether a simulation is delayed too. The mod's own setting, enforced by
-        /// this uplink's policy, and kept in RP-1's block because only RP-1 has
-        /// simulations to delay.
-        /// </summary>
-        internal const string DelayInSimulationRow = "Uplinks/" + Rp1UplinkId + "/delayInSimulation";
-
-        private static SettingsStore? _settings;
-
-        /// <summary>
-        /// The store the signal-delay policy reads and writes, bound on first
-        /// use so that staging a policy is total: there is no arm on which a
-        /// change is accepted and then applied nowhere.
-        ///
-        /// <para>A process that never called <see cref="BindSettings"/> gets an
-        /// in-memory one, which keeps the policy in force for the session and
-        /// forgets it afterwards. That is the same bargain a read-only GameData
-        /// already strikes.</para>
-        /// </summary>
-        internal static SettingsStore DelaySettings => _settings ?? Bind(new SettingsStore(new InMemorySettingsStore()));
 
         /// <summary>
         /// Bind the signal-delay policy to a settings store: declare the rows,
@@ -182,22 +153,17 @@ namespace Gonogo.KSP
         /// </summary>
         public static void BindSettings(SettingsStore store)
         {
-            Bind(store ?? throw new ArgumentNullException(nameof(store)));
-        }
-
-        private static SettingsStore Bind(SettingsStore store)
-        {
-            _settings = store;
+            if (store == null)
+            {
+                throw new ArgumentNullException(nameof(store));
+            }
 
             // Delay is ON at real light-speed when the file says nothing: a
             // player who never opened the settings still flies under the rule
-            // the mod exists to enforce. Delaying a SIMULATION is the one that
-            // defaults off, because a rehearsal has no craft to be distant from.
+            // the mod exists to enforce.
             store.Declare(SettingsRow.Bool(DelayEnabledRow, true, "Apply light-time delay to commands and telemetry"));
             store.Declare(SettingsRow.Number(LightSpeedScaleRow, 1.0, "One-way light time as a fraction of c, where 1 is real light speed"));
             store.OnChanged(SignalDelayBlock, _ => ConfigureSignalDelay(ReadSignalDelay(store)));
-            store.OnChanged(DelayInSimulationRow, _ => ConfigureSignalDelay(ReadSignalDelay(store)));
-            return store;
         }
 
         private static SignalDelayConfig ReadSignalDelay(SettingsStore store)
@@ -210,48 +176,109 @@ namespace Gonogo.KSP
                 // infinite delay, so it reverts to real light-speed rather than
                 // freezing every channel.
                 LightSpeedScale = scale > 0.0 ? scale : 1.0,
-                DelayInSimulation = store.Bool(DelayInSimulationRow),
             };
         }
 
         /// <summary>
-        /// Declare the simulation-delay row, for a session in which RP-1 is
-        /// running. Only then is there a simulation to delay, so only then is
-        /// the choice offered; the value is kept in the file either way.
+        /// Apply a SignalDelay config directly, which is what a settings commit
+        /// does: its switch and its light-speed scale become this uplink's own
+        /// two delay modifiers, beside any an Uplink holds.
         /// </summary>
-        public static void DeclareSimulationDelaySetting(SettingsStore store)
+        public static void ConfigureSignalDelay(SignalDelayConfig config)
         {
-            if (store == null)
+            _signalDelayConfig = config ?? SignalDelayConfig.Off();
+            _base = new SignalDelayConfig
             {
-                throw new ArgumentNullException(nameof(store));
-            }
-
-            store.Declare(SettingsRow.Bool(
-                DelayInSimulationRow, false, "Apply the delay during a simulation as well as a real flight"));
-
-            ConfigureSignalDelay(ReadSignalDelay(store));
+                Enabled = true,
+                LightSpeedScale = 1.0,
+                SilenceDeclarationSeconds = _signalDelayConfig.SilenceDeclarationSeconds,
+            };
+            HoldSettingsModifiers(_delayModifiers);
         }
 
-        /// <summary>Apply a SignalDelay config directly, which is what a settings commit does.</summary>
-        public static void ConfigureSignalDelay(SignalDelayConfig config) =>
-            _signalDelayConfig = config ?? SignalDelayConfig.Off();
+        /*
+         * The modifiers every delay reader's config is folded through: the
+         * host's own once Register has run, and a private set before that, so a
+         * settings commit at boot is in force from the first read. Static for
+         * the same reason the config is, since five readers reach
+         * SignalDelayConfig below with no instance of this uplink in hand.
+         */
+        private static DelayModifiers _delayModifiers = new DelayModifiers();
 
-        // The kernel, held statically alongside the config because the delay
-        // policy is a STATIC read: five separate readers reach
-        // SignalDelayConfig below without an instance of this uplink in hand,
-        // and the simulation backend that can cut the delay is elected on the
-        // kernel. Set from Register, the same place the instance field is.
-        private static Kernel? _policyKernel;
+        // The delay config before any modifier, the settings' own included: on, at real light speed.
+        private static SignalDelayConfig _base = new SignalDelayConfig { Enabled = true, LightSpeedScale = 1.0 };
+
+        private static IDisposable? _switchModifier;
+        private static IDisposable? _scaleModifier;
+
+        // Holds the switched-off modifier the authored default above implies, until a settings commit replaces it.
+        static CommsCoreUplink() => HoldSettingsModifiers(_delayModifiers);
 
         /// <summary>
-        /// Point the delay policy at a kernel. Called from
-        /// <see cref="Register"/> with the host's own; the parameter exists so a
-        /// test can drive the policy without a live engine, and can put it back.
+        /// Fold the delay config through <paramref name="modifiers"/> from now
+        /// on, carrying this uplink's own settings modifiers across. Called from
+        /// <see cref="Register"/> with the host's set; internal so a test can
+        /// drive the composition without a live engine, and can put it back.
         /// </summary>
-        internal static void ConfigureSimulationKernel(Kernel? kernel) => _policyKernel = kernel;
+        internal static void UseDelayModifiers(DelayModifiers modifiers)
+        {
+            if (modifiers == null)
+            {
+                throw new ArgumentNullException(nameof(modifiers));
+            }
+            if (ReferenceEquals(modifiers, _delayModifiers))
+            {
+                return;
+            }
 
-        // Whether this save models a comms network. Held behind a delegate for
-        // the same reason _policyKernel is a settable static: the delay accessor
+            var previousSwitch = _switchModifier;
+            var previousScale = _scaleModifier;
+            _switchModifier = null;
+            _scaleModifier = null;
+            HoldSettingsModifiers(modifiers);
+            _delayModifiers = modifiers;
+            previousSwitch?.Dispose();
+            previousScale?.Dispose();
+        }
+
+        /// <summary>The modifiers the delay config is folded through now.</summary>
+        internal static DelayModifiers DelayModifiersInForce => _delayModifiers;
+
+        /*
+         * The settings as modifiers: switched off is a factor of 0, and a light
+         * speed of s times c is a factor of 1/s on every light-time. Each is
+         * replaced in one step, so a reader on another thread never sees the old
+         * one withdrawn before the new one is held.
+         */
+        private static void HoldSettingsModifiers(DelayModifiers modifiers)
+        {
+            var authored = _signalDelayConfig;
+            _switchModifier = Hold(
+                modifiers,
+                _switchModifier,
+                authored.Enabled ? (double?)null : 0.0,
+                "signal delay is switched off in the settings");
+
+            var scale = authored.LightSpeedScale;
+            _scaleModifier = Hold(
+                modifiers,
+                _scaleModifier,
+                scale > 0.0 && scale != 1.0 ? 1.0 / scale : (double?)null,
+                "light speed is set to " + scale.ToString("R", CultureInfo.InvariantCulture) + " c in the settings");
+        }
+
+        private static IDisposable? Hold(DelayModifiers modifiers, IDisposable? held, double? factor, string reason)
+        {
+            if (factor == null)
+            {
+                held?.Dispose();
+                return null;
+            }
+            return modifiers.Replace(held, factor.Value, reason);
+        }
+
+        // Whether this save models a comms network. Held behind a delegate
+        // because the delay accessor
         // below is read by five surfaces without an instance of this uplink in
         // hand, and the read underneath it goes through HighLogic.CurrentGame,
         // which is a property over a MonoBehaviour singleton and therefore
@@ -295,26 +322,24 @@ namespace Gonogo.KSP
         /// gate, comms.delay, fleet light-time, the command-centre pass and the
         /// currency deadline) uses one answer.
         ///
-        /// <para>EFFECTIVE, not authored: a simulation cuts the delay unless the
-        /// operator asked otherwise, and a save that models no comms network at
-        /// all cuts it outright. Deriving both here is what makes every one of
-        /// those readers cut together rather than leaving a board whose
-        /// telemetry is live and whose money still arrives late. See
-        /// <see cref="SimulationDelayPolicy"/> and
+        /// <para>EFFECTIVE, not authored: every delay modifier in force is
+        /// folded in, the settings' own switch and light-speed scale among
+        /// them, and a save that models no comms network at all cuts delay
+        /// outright. Deriving both here is what makes every one of those
+        /// readers agree rather than leaving a board whose telemetry is live and
+        /// whose money still arrives late. See <see cref="DelayModifiers"/> and
         /// <see cref="CommsModelPolicy"/>.</para>
         ///
-        /// <para>The no-comms-model cut is applied SECOND so it wins: it is the
-        /// more fundamental of the two (see
+        /// <para>The no-comms-model cut is applied SECOND so it carries its
+        /// reason whatever the modifiers say (see
         /// <see cref="SignalDelayConfig.CutForNoCommsModel"/>).</para>
         /// </summary>
         internal static SignalDelayConfig SignalDelayConfig =>
             CommsModelPolicy.Effective(
-                SimulationDelayPolicy.Effective(
-                    _signalDelayConfig,
-                    SimulationElection.Elected(_policyKernel)),
+                _delayModifiers.Apply(_base),
                 CommsModelPresent);
 
-        /// <summary>The config as AUTHORED, before a simulation could have cut it: what the settings row reports and the command below writes.</summary>
+        /// <summary>The config as the settings author it, before any modifier: what the settings rows say.</summary>
         internal static SignalDelayConfig AuthoredSignalDelayConfig => _signalDelayConfig;
 
         // Held the same way as _signalDelayConfig above: Plan 3's command-centre
@@ -458,18 +483,6 @@ namespace Gonogo.KSP
                 },
                 TrueNow(CommandCentreTopic),
             },
-            Commands = new List<CommandDeclaration>
-            {
-                // A gonogo SETTING rather than an order, and instant for that
-                // reason: a preference about delay that itself rode the delay
-                // would be unusable at exactly the moment an operator wanted to
-                // change it. Declared on the args type, not here, so the client
-                // reads the same answer (SitrepCommandAttribute.Delay).
-                new CommandDeclaration
-                {
-                    Command = SetSimulationDelayPolicyCommand,
-                },
-            },
         };
 
         /// <summary>
@@ -501,16 +514,14 @@ namespace Gonogo.KSP
         {
             _host = host;
             _kernel = host.Kernel;
-            ConfigureSimulationKernel(host.Kernel);
 
-            // The simulation delay policy, written by the console and read by
-            // every delay reader through SignalDelayConfig above. Ground
-            // infrastructure, so DelayRole.TrueNow: a preference about delay that
-            // itself arrived four minutes late would be unusable exactly when
-            // an operator wanted to change it.
-            host.AddCommandHandler<SetSimulationDelayPolicyArgs, CommandResult>(
-                SetSimulationDelayPolicyCommand,
-                SetSimulationDelayPolicy);
+            // The host's delay modifiers, which an Uplink holds through
+            // IUplinkHost.RegisterDelayModifier and every delay reader sees
+            // through SignalDelayConfig above.
+            if (host is IDelayModifierSource source)
+            {
+                UseDelayModifiers(source.DelayModifiers);
+            }
 
             _connectivity = host.Publisher(ConnectivityTopic);
             _signal = host.Publisher(SignalTopic);
@@ -646,44 +657,6 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// Set the standing "apply signal delay during a simulation" policy.
-        ///
-        /// <para>The MOD owns this value, not the console, and that is
-        /// deliberate: the mod is what enforces the delay, so a console
-        /// preference the enforcer never heard would be a switch wired to
-        /// nothing. It goes through the settings store, so it survives a
-        /// restart beside the flag that turns delay on at all.</para>
-        ///
-        /// <para>There is no separate in-memory assignment here. Staging and
-        /// committing is the one mutation, and the store's own change callback
-        /// is what puts the new policy in force, so the two cannot drift.</para>
-        ///
-        /// <para>A failed WRITE is not a failed command. The policy is in force
-        /// from the moment this returns; all that is lost is remembering it next
-        /// launch, and refusing a change that has already taken effect would
-        /// leave the console showing the opposite of what the mod is doing.</para>
-        /// </summary>
-        internal static CommandResult SetSimulationDelayPolicy(SetSimulationDelayPolicyArgs? args)
-        {
-            if (args == null)
-            {
-                return CommandResult.Fail(CommandErrorCode.Range, "no policy given");
-            }
-
-            var settings = DelaySettings;
-            settings.Stage(DelayInSimulationRow, args.ApplyDuringSimulation);
-            var written = settings.Commit();
-            return written.Success
-                ? CommandResult.Ok()
-                : new CommandResult
-                {
-                    Success = true,
-                    Detail = "in force for this session only, " + settings.Path
-                        + " could not be written: " + written.Reason,
-                };
-        }
-
-        /// <summary>
         /// MAIN-THREAD delay computation for the engine's reveal gate (see
         /// <see cref="IUplinkHost.SetSignalDelaySource"/>): the same elected-
         /// backend resolution + core <see cref="SignalDelay"/> light-time math
@@ -714,12 +687,10 @@ namespace Gonogo.KSP
             // tick: the correct "never reveal earlier than the known horizon"
             // behaviour, symmetric with ComputeConnectedOnMain above.
             var path = backend.Path(_activeVesselProbe());
-            // The EFFECTIVE config, not the authored one. Reading the authored
-            // field here (and in CaptureOnMain below) left the two readers this
-            // accessor exists to keep together - the reveal gate and comms.delay
-            // itself - as the only two that never saw a cut, so a simulation
-            // cut the currency deadline and the fleet's light-time while the
-            // gate went on holding telemetry for the full delay.
+            // The EFFECTIVE config, not the authored one: the reveal gate and
+            // comms.delay itself must see every modifier the currency deadline
+            // and the fleet's light-time see, or the gate holds telemetry for a
+            // delay the rest of the board has already dropped.
             return SignalDelay.Compute(
                 SignalDelayConfig,
                 path,

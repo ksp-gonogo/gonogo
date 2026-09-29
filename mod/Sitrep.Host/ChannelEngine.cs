@@ -36,7 +36,7 @@ namespace Sitrep.Host
     /// only ever touches primitives, registered mapper delegates, and the
     /// explicit job queue.
     /// </summary>
-    public sealed class ChannelEngine : IUplinkHost, IVesselJourneyWriter, CommandCentres.ICommandReachWriter, CommandCentres.ICentreRouteWriter, Commcast.IAddressedStreamHost, IDisposable
+    public sealed class ChannelEngine : IUplinkHost, Comms.IDelayModifierSource, IVesselJourneyWriter, CommandCentres.ICommandReachWriter, CommandCentres.ICentreRouteWriter, Commcast.IAddressedStreamHost, IDisposable
     {
         public const string NodeId = "system";
 
@@ -2327,9 +2327,6 @@ namespace Sitrep.Host
         private SettingsStore? _settings;
         private SettingsPublisher? _settingsPublisher;
 
-        /// <summary>Republish <see cref="SettingsTopic"/> after a row was declared outside discovery.</summary>
-        public void RefreshSettings() => _settingsPublisher?.Rebuild();
-
         /// <summary>Whether an uplink registered this session and is available, so it is actually running.</summary>
         public bool IsUplinkRunning(string uplinkId) =>
             _registeredUplinks.ContainsKey(uplinkId) && IsUplinkAvailable(uplinkId);
@@ -2681,6 +2678,14 @@ namespace Sitrep.Host
             _pathBreakSourceOwnerId = _currentRegisteringUplinkId ?? "";
             _pathBreakSourceDisabled = false;
         }
+
+        private Comms.DelayModifiers? _delayModifiers;
+
+        /// <inheritdoc />
+        public Comms.DelayModifiers DelayModifiers => _delayModifiers ??= new Comms.DelayModifiers(LogHost);
+
+        public IDisposable RegisterDelayModifier(double factor, string reason) =>
+            DelayModifiers.Register(factor, reason);
 
         public void SetVesselDelay(string vesselId, double oneWaySeconds)
         {

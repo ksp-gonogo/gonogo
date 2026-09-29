@@ -106,9 +106,9 @@ export interface CommsDelayObservation {
  *
  * ## Only a measured delay can be carried forward
  *
- * Three of the four `CommsDelaySource` members are a zero that means something
- * other than "no distance": the feature is off, the flight is a rehearsal, or
- * the save models no comms network at all. Each is a statement about the
+ * Two of the three `CommsDelaySource` members are a zero that means something
+ * other than "no distance": delay is switched off, or the save models no comms
+ * network at all. Each is a statement about the
  * OPERATOR'S CONFIGURATION rather than about geometry, and none of them stops
  * being true as the craft moves. Deriving a growing light-time from one would
  * put a delay on a board the player has deliberately switched off, which is a

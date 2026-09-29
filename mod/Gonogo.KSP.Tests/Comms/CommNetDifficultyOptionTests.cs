@@ -350,6 +350,9 @@ namespace Gonogo.KSP.Tests.Comms
         {
 
         public void SetPathBreakSource(Func<KspSnapshot?, double, IReadOnlyList<PathBreak>?> computeOnMainThread) { }
+
+            public IDisposable RegisterDelayModifier(double factor, string reason) => throw new NotSupportedException();
+
             internal NoOpUplinkHost(Kernel kernel) => Kernel = kernel;
 
             public Kernel Kernel { get; }
@@ -507,7 +510,7 @@ namespace Gonogo.KSP.Tests.Comms
         }
 
         /// <summary>
-        /// The config, the kernel and the model probe behind the shared delay
+        /// The config and the model probe behind the shared delay
         /// accessor are all process statics, so a case that left any of them
         /// set would change the answer for whatever ran next.
         /// </summary>
@@ -528,7 +531,6 @@ namespace Gonogo.KSP.Tests.Comms
             finally
             {
                 CommsCoreUplink.ConfigureCommsModelProbe(null);
-                CommsCoreUplink.ConfigureSimulationKernel(null);
                 CommsCoreUplink.ConfigureSignalDelay(authored);
                 CommsCoreUplink.ConfigureActiveVesselProbe(null);
             }

@@ -29,8 +29,7 @@ namespace Sitrep.Host.Comms
     /// held through an outage. Signal strength goes the other way: it is not
     /// modelled here, so it is ABSENT (null), not zero.</para>
     ///
-    /// <para><b>Kept free of KSP</b>, the same discipline as
-    /// <see cref="SimulationDelayPolicy"/>: the one live read (is the option
+    /// <para><b>Kept free of KSP</b>: the one live read (is the option
     /// on) happens in <c>Gonogo.KSP</c> and arrives here as a
     /// <see cref="bool"/>?, so every rule below is exercised headlessly.</para>
     /// </summary>
@@ -38,7 +37,7 @@ namespace Sitrep.Host.Comms
     {
         /// <summary>
         /// The config every delay reader should use this tick, given the
-        /// authored (or already simulation-derived) one and whether this save
+        /// one with every delay modifier applied and whether this save
         /// models comms at all.
         ///
         /// <para><paramref name="modelPresent"/> is three-state on purpose.
@@ -66,7 +65,6 @@ namespace Sitrep.Host.Comms
                 Enabled = false,
                 LightSpeedScale = config.LightSpeedScale,
                 SilenceDeclarationSeconds = config.SilenceDeclarationSeconds,
-                DelayInSimulation = config.DelayInSimulation,
                 CutForNoCommsModel = true,
             };
         }

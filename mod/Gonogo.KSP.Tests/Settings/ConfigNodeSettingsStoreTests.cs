@@ -52,10 +52,10 @@ namespace Gonogo.KSP.Tests.Settings
             var store = new SettingsStore(new ConfigNodeSettingsStore(_path, _ => { }));
             store.Declare(SettingsRow.Bool("SIGNAL_DELAY/enabled", true));
             store.Declare(SettingsRow.Number("SIGNAL_DELAY/lightSpeedScale", 1.0));
-            store.Declare(SettingsRow.Bool("SIGNAL_DELAY/delayInSimulation", false));
+            store.Declare(SettingsRow.Bool("SIGNAL_DELAY/sampleFlag", false));
 
             store.Stage("SIGNAL_DELAY/lightSpeedScale", 0.1);
-            store.Stage("SIGNAL_DELAY/delayInSimulation", true);
+            store.Stage("SIGNAL_DELAY/sampleFlag", true);
             var outcome = store.Commit();
 
             Assert.True(outcome.Success, outcome.Reason);
@@ -67,7 +67,7 @@ namespace Gonogo.KSP.Tests.Settings
                 + "{\n"
                 + "\tenabled = True // True or False, default True\n"
                 + "\tlightSpeedScale = 0.1 // A number, default 1\n"
-                + "\tdelayInSimulation = True // True or False, default False\n"
+                + "\tsampleFlag = True // True or False, default False\n"
                 + "}\n",
                 File.ReadAllText(_path).Replace("\r\n", "\n"));
         }

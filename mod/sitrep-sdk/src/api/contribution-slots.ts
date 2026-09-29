@@ -49,7 +49,7 @@ import type { Reading } from "../reading";
 import type { ReadFrameChoice } from "../spine/reference-frame";
 import type { Value } from "../unit-system/value";
 import type { AlertTone, Tone } from "./tone";
-import type { MeterEntry, StatEntry } from "./types";
+import type { BadgeEntry, MeterEntry, StatEntry } from "./types";
 
 /**
  * One resource meter on a part of the Ship Map, contributed to
@@ -608,6 +608,20 @@ declare module "./types" {
      */
     "space-center-status.facilities": {
       entry: SpaceCenterFacilityEntry;
+    };
+    /**
+     * Badges in the screen header's status strip, drawn on the main screen and
+     * on every station alike: a fact about the whole board rather than about
+     * any one widget, such as the flight on screen being something other than
+     * it looks.
+     *
+     * The host draws each entry with its own `Badge`, in registration order,
+     * inside a polite live region, so a badge appearing is announced. A
+     * contribution that declares `requires` shows only while its Domain is
+     * present, so a bundled client whose mod is not running adds nothing.
+     */
+    "app.header-badges": {
+      entry: BadgeEntry;
     };
   }
 }

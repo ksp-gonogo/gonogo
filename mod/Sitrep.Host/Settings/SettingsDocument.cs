@@ -149,7 +149,7 @@ namespace Sitrep.Host.Settings
     /// <summary>
     /// The whole settings document, addressed by a slash-separated path whose
     /// last segment names a row and whose earlier segments name the blocks
-    /// above it: <c>SIGNAL_DELAY/delayInSimulation</c>.
+    /// above it: <c>SIGNAL_DELAY/lightSpeedScale</c>.
     /// </summary>
     public sealed class SettingsDocument
     {

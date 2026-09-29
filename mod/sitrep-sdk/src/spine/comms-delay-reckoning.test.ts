@@ -268,7 +268,6 @@ describe("what the model refuses", () => {
   it("refuses a configured zero, which no amount of craft motion changes", () => {
     for (const source of [
       CommsDelaySource.None,
-      CommsDelaySource.Simulation,
       CommsDelaySource.NoCommsModel,
     ]) {
       expect(declineOf(DIRECT, { source })).toMatchObject({

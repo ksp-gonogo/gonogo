@@ -145,6 +145,9 @@ namespace Gonogo.KSP.Tests.CommandCentres
         {
 
         public void SetPathBreakSource(Func<KspSnapshot?, double, IReadOnlyList<PathBreak>?> computeOnMainThread) { }
+
+            public IDisposable RegisterDelayModifier(double factor, string reason) => throw new NotSupportedException();
+
             public RecordingPublisher RosterPublisher { get; } = new RecordingPublisher();
 
             public IChannelPublisher Publisher(string topic) =>

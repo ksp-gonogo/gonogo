@@ -1,10 +1,10 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 21.0.0
+  version: 22.0.0
   description: |-
-    The wire contract of the Gonogo mod's telemetry socket: 81 telemetry
-    channels a client subscribes to, and 61 commands it dispatches, with the payload
+    The wire contract of the Gonogo mod's telemetry socket: 80 telemetry
+    channels a client subscribes to, and 60 commands it dispatches, with the payload
     schema and the contract's own prose for each.
 
     **Generated.** Emitted by `scripts/asyncapi-doc.mjs` from the committed
@@ -158,7 +158,7 @@ info:
     - name: commcast
       description: 2 telemetry channels, 5 commands
     - name: comms
-      description: 10 telemetry channels, 1 command
+      description: 10 telemetry channels, 0 commands
     - name: crash
       description: 1 telemetry channel, 0 commands
     - name: deployed
@@ -170,7 +170,7 @@ info:
     - name: fleet
       description: 1 telemetry channel, 0 commands
     - name: flight
-      description: 5 telemetry channels, 0 commands
+      description: 4 telemetry channels, 0 commands
     - name: game
       description: 1 telemetry channel, 0 commands
     - name: isru
@@ -965,13 +965,12 @@ channels:
       - a real number: `CommsDelay.source` is `CommsDelaySource.SignalDelay`, a
         light-time computed over the elected backend's hop geometry.
 
-      Two of the zeroes name their own reason instead of sharing
-      `CommsDelaySource.None`: `CommsDelaySource.Simulation` and
-      `CommsDelaySource.NoCommsModel`. The second is what tells a client that a
-      board showing no path and no relay graph is a save with the CommNet
-      difficulty option off, not a craft in a permanent blackout: the blackout
-      reports `null` here and `connected:false` on `CommsLink`, and this reports
-      `0` and `connected:true`.
+      One zero names its own reason instead of sharing `CommsDelaySource.None`:
+      `CommsDelaySource.NoCommsModel`, which is what tells a client that a board
+      showing no path and no relay graph is a save with the CommNet difficulty
+      option off, not a craft in a permanent blackout: the blackout reports `null`
+      here and `connected:false` on `CommsLink`, and this reports `0` and
+      `connected:true`.
 
       DELAYED, like the telemetry it describes. A light-time is measured over the
       route a signal actually took, so the figure that reaches an operator is the
@@ -1088,23 +1087,6 @@ channels:
         $ref: "#/components/messages/streamData.comms.path"
       event:
         $ref: "#/components/messages/event"
-  comms.setSimulationDelayPolicy:
-    address: comms.setSimulationDelayPolicy
-    description: |-
-      Takes `SetSimulationDelayPolicyArgs`.
-
-      **Not delayed.** This command takes effect immediately, because it is ground-side bookkeeping rather than a signal to a craft.
-
-      Arguments to `comms.setSimulationDelayPolicy`: apply signal delay during a
-      simulation, or cut it.
-    servers:
-      - $ref: "#/servers/mod"
-    x-sitrep-delayed: false
-    messages:
-      commandRequest:
-        $ref: "#/components/messages/commandRequest.comms.setSimulationDelayPolicy"
-      commandResponse:
-        $ref: "#/components/messages/commandResponse.comms.setSimulationDelayPolicy"
   comms.signal:
     address: comms.signal
     description: |-
@@ -1326,31 +1308,6 @@ channels:
     messages:
       streamData:
         $ref: "#/components/messages/streamData.flight.ended"
-      event:
-        $ref: "#/components/messages/event"
-  flight.simulation:
-    address: flight.simulation
-    description: |-
-      Carries a `FlightSimulation`.
-
-      The `flight.simulation` channel payload: is this a rehearsal, and is signal
-      delay being applied to it.
-
-      Delivered without signal delay: this describes the stream rather than a
-      reading from a craft, as `comms.delay` does.
-
-      Absence is data: an install with no concept of a simulation (stock)
-      publishes nothing here, and a client reads the silence as "this game does
-      not distinguish". It never publishes `simulated: false` in its place.
-    servers:
-      - $ref: "#/servers/mod"
-    x-sitrep-delivery: lossy-latest
-    x-sitrep-delay-role: true-now
-    x-sitrep-keyframe-interval-ut: 30
-    x-sitrep-absence-is-data: true
-    messages:
-      streamData:
-        $ref: "#/components/messages/streamData.flight.simulation"
       event:
         $ref: "#/components/messages/event"
   flight.started:
@@ -3946,20 +3903,6 @@ operations:
         $ref: "#/channels/commcast.radio.transmit"
       messages:
         - $ref: "#/channels/commcast.radio.transmit/messages/commandResponse"
-  dispatch:comms.setSimulationDelayPolicy:
-    action: send
-    channel:
-      $ref: "#/channels/comms.setSimulationDelayPolicy"
-    title: Dispatch comms.setSimulationDelayPolicy
-    tags:
-      - name: comms
-    messages:
-      - $ref: "#/channels/comms.setSimulationDelayPolicy/messages/commandRequest"
-    reply:
-      channel:
-        $ref: "#/channels/comms.setSimulationDelayPolicy"
-      messages:
-        - $ref: "#/channels/comms.setSimulationDelayPolicy/messages/commandResponse"
   dispatch:ksp.launch:
     action: send
     channel:
@@ -4884,17 +4827,6 @@ operations:
     messages:
       - $ref: "#/channels/flight.ended/messages/streamData"
       - $ref: "#/channels/flight.ended/messages/event"
-  read:flight.simulation:
-    action: receive
-    channel:
-      $ref: "#/channels/flight.simulation"
-    title: Read flight.simulation
-    description: Delivered only after `subscribe` names `flight.simulation` on the session channel, which the mod answers here with an `event` named `subscribed`.
-    tags:
-      - name: flight
-    messages:
-      - $ref: "#/channels/flight.simulation/messages/streamData"
-      - $ref: "#/channels/flight.simulation/messages/event"
   read:flight.started:
     action: receive
     channel:
@@ -5734,21 +5666,6 @@ components:
                 const: commcast.radio.transmit
               args:
                 $ref: "#/components/schemas/CommcastRadioTransmitArgs"
-    commandRequest.comms.setSimulationDelayPolicy:
-      name: command-request
-      title: Dispatch comms.setSimulationDelayPolicy
-      contentType: application/json
-      correlationId:
-        $ref: "#/components/correlationIds/requestId"
-      payload:
-        description: The `command-request` envelope for `comms.setSimulationDelayPolicy`, with its typed `args`.
-        allOf:
-          - $ref: "#/components/schemas/CommandRequest"
-          - properties:
-              command:
-                const: comms.setSimulationDelayPolicy
-              args:
-                $ref: "#/components/schemas/SetSimulationDelayPolicyArgs"
     commandRequest.ksp.launch:
       name: command-request
       title: Dispatch ksp.launch
@@ -6612,19 +6529,6 @@ components:
         $ref: "#/components/correlationIds/requestId"
       payload:
         description: The `command-response` envelope for `commcast.radio.transmit`, with its typed `result`.
-        allOf:
-          - $ref: "#/components/schemas/CommandResponse"
-          - properties:
-              result:
-                $ref: "#/components/schemas/CommandResult"
-    commandResponse.comms.setSimulationDelayPolicy:
-      name: command-response
-      title: Reply to comms.setSimulationDelayPolicy
-      contentType: application/json
-      correlationId:
-        $ref: "#/components/correlationIds/requestId"
-      payload:
-        description: The `command-response` envelope for `comms.setSimulationDelayPolicy`, with its typed `result`.
         allOf:
           - $ref: "#/components/schemas/CommandResponse"
           - properties:
@@ -7644,19 +7548,6 @@ components:
                 const: flight.ended
               payload:
                 $ref: "#/components/schemas/FlightEnded"
-    streamData.flight.simulation:
-      name: stream-data
-      title: A frame on flight.simulation
-      contentType: application/json
-      payload:
-        description: The `stream-data` envelope carrying `flight.simulation`.
-        allOf:
-          - $ref: "#/components/schemas/StreamData"
-          - properties:
-              topic:
-                const: flight.simulation
-              payload:
-                $ref: "#/components/schemas/FlightSimulation"
     streamData.flight.started:
       name: stream-data
       title: A frame on flight.started
@@ -11165,13 +11056,12 @@ components:
         - a real number: `CommsDelay.source` is `CommsDelaySource.SignalDelay`, a
           light-time computed over the elected backend's hop geometry.
 
-        Two of the zeroes name their own reason instead of sharing
-        `CommsDelaySource.None`: `CommsDelaySource.Simulation` and
-        `CommsDelaySource.NoCommsModel`. The second is what tells a client that a
-        board showing no path and no relay graph is a save with the CommNet
-        difficulty option off, not a craft in a permanent blackout: the blackout
-        reports `null` here and `connected:false` on `CommsLink`, and this reports
-        `0` and `connected:true`.
+        One zero names its own reason instead of sharing `CommsDelaySource.None`:
+        `CommsDelaySource.NoCommsModel`, which is what tells a client that a board
+        showing no path and no relay graph is a save with the CommNet difficulty
+        option off, not a craft in a permanent blackout: the blackout reports `null`
+        here and `connected:false` on `CommsLink`, and this reports `0` and
+        `connected:true`.
 
         DELAYED, like the telemetry it describes. A light-time is measured over the
         route a signal actually took, so the figure that reaches an operator is the
@@ -11212,11 +11102,10 @@ components:
             promise made about it. A client reading a relayed route gets an honest
             refusal naming that channel rather than a modelled number.
 
-            The `CommsDelay.source` is an input because three of its four members are a
-            zero that means something other than "no distance": the feature is off, the
-            flight is a rehearsal, or the save models no comms network. None of those
-            stops being true as the craft moves, so only `CommsDelaySource.SignalDelay`
-            is carried forward.
+            The `CommsDelay.source` is an input because two of its three members are a
+            zero that means something other than "no distance": delay is switched off,
+            or the save models no comms network. Neither stops being true as the craft
+            moves, so only `CommsDelaySource.SignalDelay` is carried forward.
         source:
           description: Why `CommsDelay.oneWaySeconds` has the value it has; see `CommsDelaySource`.
           allOf:
@@ -11235,23 +11124,11 @@ components:
           title: None
           description: |-
             No delay measured: either there is no measurable path (the value is null) or
-            the delay feature is off (the value is 0).
+            delay is switched off (the value is 0).
         - const: 1
           title: SignalDelay
           description: A light-time computed over the route's hop geometry.
         - const: 2
-          title: Simulation
-          description: |-
-            Zero, because the flight on screen is a SIMULATION and the operator has not
-            asked for delay during one. A rehearsal has no spacecraft, so it has no
-            light-time, and modelling a distance to a craft that is not there is a
-            fiction rather than a measurement.
-
-            Its own member rather than `CommsDelaySource.None` because a live board is a
-            claim, and an operator is entitled to know which claim it is: "no delay is
-            configured" and "delay is off because this is a rehearsal" call for
-            different reactions. See `flight.simulation`.
-        - const: 3
           title: NoCommsModel
           description: |-
             Zero, because this save models no comms network AT ALL: the stock CommNet
@@ -13649,55 +13526,6 @@ components:
           description: |-
             Universal time the flight ended. For `FlightEndReason.Reverted` this is the
             revert-target UT, not the moment the player chose to revert.
-    FlightSimulation:
-      type: object
-      description: |-
-        The `flight.simulation` channel payload: is this a rehearsal, and is signal
-        delay being applied to it.
-
-        Delivered without signal delay: this describes the stream rather than a
-        reading from a craft, as `comms.delay` does.
-
-        Absence is data: an install with no concept of a simulation (stock)
-        publishes nothing here, and a client reads the silence as "this game does
-        not distinguish". It never publishes `simulated: false` in its place.
-      required:
-        - delayApplied
-        - delayInSimulation
-        - meta
-      properties:
-        simulated:
-          type:
-            - boolean
-            - "null"
-          x-sitrep-unit: flag
-          description: |-
-            Whether the flight on screen is a simulation. When the install has no such
-            concept the whole payload is absent, so on a published payload this is true
-            or false.
-        delayApplied:
-          type: boolean
-          x-sitrep-unit: flag
-          description: |-
-            Whether signal delay is currently being applied to this flight.
-
-            By default a simulation cuts the delay, since a rehearsal has no real
-            spacecraft to be distant from. `FlightSimulation.delayInSimulation` turns it
-            back on. This field is the outcome, the same one the mod enforces, so a
-            client can say why the board is live without re-deriving it.
-        delayInSimulation:
-          type: boolean
-          x-sitrep-unit: flag
-          description: |-
-            The operator's standing choice: apply signal delay during a simulation
-            anyway. Off by default. Set with `comms.setSimulationDelayPolicy`.
-
-            This is the value the mod is enforcing, so a settings control should read it
-            here rather than remember what it last sent.
-        meta:
-          description: The payload's provenance (`"game"`) and quality.
-          allOf:
-            - $ref: "#/components/schemas/PayloadMeta"
     FlightStarted:
       type: object
       description: |-
@@ -17961,20 +17789,6 @@ components:
           allOf:
             - $ref: "#/components/schemas/SasMode"
               x-sitrep-unit: enum
-    SetSimulationDelayPolicyArgs:
-      type: object
-      description: |-
-        Arguments to `comms.setSimulationDelayPolicy`: apply signal delay during a
-        simulation, or cut it.
-      required:
-        - applyDuringSimulation
-      properties:
-        applyDuringSimulation:
-          type: boolean
-          x-sitrep-unit: flag
-          description: |-
-            True to apply signal delay during a simulation, false to cut it. Reported
-            back as `FlightSimulation.delayInSimulation`.
     SetTargetArgs:
       type: object
       description: |-
