@@ -329,7 +329,7 @@ describe("PeerClientService reconnect loop", () => {
     expect(statuses).toContain("disconnected");
   });
 
-  it("ignores peer-unavailable for an auxiliary peer (e.g. OCISLY) without tearing down host conn", () => {
+  it("ignores peer-unavailable for an auxiliary peer without tearing down host conn", () => {
     const svc = new PeerClientService({
       retryIntervalMs: 50,
       retryTimeoutMs: 60_000,
@@ -943,32 +943,14 @@ describe("PeerClientService.sendFlightRpc", () => {
 });
 
 // ---------------------------------------------------------------------------
-// relay-peer-id: applying iceServers to the station's Peer. The station's
+// relay-ice-servers: applying iceServers to the station's Peer. The station's
 // Peer has empty iceServers (deliberate, see iceServers.ts) and cannot reach
-// the relay's container-bridge ICE candidates on its own, so the host bundles
-// its iceServers into the relay-peer-id message, and the station mutates its
-// Peer's _options.config so a fresh peer.connect() for the camera channel
-// uses them.
+// the relay's container-bridge ICE candidates on its own, so the host sends
+// its iceServers, and the station mutates its Peer's _options.config so a
+// fresh peer.connect() uses them.
 // ---------------------------------------------------------------------------
 
-describe("PeerClientService: relay-peer-id iceServers application", () => {
-  it("fires the relay-peer-id listener with the new peer id", () => {
-    const svc = new PeerClientService();
-    const received: Array<string | null> = [];
-    svc.onRelayPeerIdChange((peerId) => {
-      received.push(peerId);
-    });
-
-    fromHost(svc).send({
-      type: "relay-peer-id",
-      peerId: "relay-abc",
-      iceServers: [
-        { urls: "turn:relay.example.com:3478", username: "u", credential: "p" },
-      ],
-    });
-    expect(received).toEqual(["relay-abc"]);
-  });
-
+describe("PeerClientService: relay-ice-servers application", () => {
   it("mutates the Peer's _options.config.iceServers when the message carries them", () => {
     const { svc, peer } = connectedSvc();
 
@@ -981,31 +963,12 @@ describe("PeerClientService: relay-peer-id iceServers application", () => {
     ];
 
     fromHost(svc).send({
-      type: "relay-peer-id",
-      peerId: "relay-abc",
+      type: "relay-ice-servers",
       iceServers: turn,
     });
 
     expect(peer._options.config).toBeDefined();
     expect(peer._options.config?.iceServers).toEqual(turn);
-  });
-
-  it("does not touch the Peer when iceServers is absent (older host bundle)", () => {
-    const { svc, peer } = connectedSvc();
-    // Pre-existing config: if our code mistakenly overwrote with an empty array, the station would lose any local TURN config it had set elsewhere.
-    peer._options.config = {
-      iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
-    };
-
-    fromHost(svc).send({
-      type: "relay-peer-id",
-      peerId: "relay-abc",
-      // iceServers omitted: older host bundle that doesn't ship this.
-    });
-
-    expect(peer._options.config?.iceServers).toEqual([
-      { urls: "stun:stun.l.google.com:19302" },
-    ]);
   });
 
   it("does not throw when iceServers arrives after the station's Peer is torn down", () => {
@@ -1015,8 +978,7 @@ describe("PeerClientService: relay-peer-id iceServers application", () => {
 
     expect(() =>
       host.send({
-        type: "relay-peer-id",
-        peerId: "relay-abc",
+        type: "relay-ice-servers",
         iceServers: [{ urls: "turn:r" }],
       }),
     ).not.toThrow();

@@ -373,7 +373,6 @@ export class PeerHostService {
     string,
     Map<string, { refCount: number; unsub: () => void }>
   >();
-  private relayPeerId: string | null = null;
   // Operator's technical-analytics consent. Retained (not just broadcast
   // transiently) so it can be sent to each station on connect and
   // re-asserted to the relay on every heartbeat. Privacy-first default:
@@ -687,23 +686,11 @@ export class PeerHostService {
           sessionToken: this.sessionToken,
         } satisfies PeerMessage);
         this.sendSchema(conn);
-        // Station needs this to reach the relay directly, resend whenever
-        // a new station connects so latecomers aren't stuck in "disconnected".
-        // Bundles iceServers so the station's Peer can configure TURN for
-        // the station→relay camera channel (without TURN the relay's
-        // container-bridge candidates are unreachable from the LAN).
-        //
-        // Send when there's a relay peer id (OCISLY) OR just TURN creds: a
-        // station in brokered camera mode has no relay *peer* (it streams
-        // direct from the sidecar) but still needs the relay's TURN creds
-        // for the non-LAN hop, and a station can't fetch /ice-config itself
-        // (localhost).
-        if (this.relayPeerId !== null || this.iceServers.length > 0) {
+        // A station cannot fetch /ice-config itself (it is this host's loopback), so a joining one is handed the TURN creds here.
+        if (this.iceServers.length > 0) {
           conn.send({
-            type: "relay-peer-id",
-            peerId: this.relayPeerId,
-            iceServers:
-              this.iceServers.length > 0 ? this.iceServers : undefined,
+            type: "relay-ice-servers",
+            iceServers: this.iceServers,
           } satisfies PeerMessage);
         }
         // Tell the joining station the host's current analytics consent so it gates its own Axiom transport from the moment it connects.
@@ -751,8 +738,7 @@ export class PeerHostService {
     // NOT reset that flag automatically when the WS comes back. As a
     // result `peer.connect()` keeps returning undefined forever even
     // though incoming connections still flow through (separate path).
-    // The OcislyStreamSource was burning retries against this stuck
-    // flag. Calling `peer.reconnect()` here resets the flag and
+    // Outgoing connects burn retries against this stuck flag. Calling `peer.reconnect()` here resets the flag and
     // re-handshakes with the broker.
     //
     // Backoff: PeerJS fires `disconnected` synchronously from the WS's
@@ -994,11 +980,6 @@ export class PeerHostService {
     }
   }
 
-  /**
-   * Set (and broadcast) the current relay peer id. Called by the host-side
-   * OcislyStreamSource once it resolves the id over HTTP. Passing null tears
-   * it back down for all stations.
-   */
   private findConnByPeerId(peerId: string): DataConnection | null {
     for (const c of this.connections) if (c.peer === peerId) return c;
     return null;
@@ -1340,11 +1321,6 @@ export class PeerHostService {
     }
   }
 
-  setRelayPeerId(peerId: string | null) {
-    this.relayPeerId = peerId;
-    this.broadcastRelayInfo();
-  }
-
   /**
    * Set the operator's technical-analytics consent. Retains the value,
    * broadcasts it to every connected station, and POSTs it to the relay
@@ -1380,17 +1356,13 @@ export class PeerHostService {
   }
 
   /**
-   * Broadcast the current relay peerId + iceServers to every connected
-   * station. Called whenever EITHER changes, without iceServers, stations
-   * can't traverse the relay's container bridge for camera streams and
-   * every WebRTC negotiation dies with `negotiation-failed`.
+   * Broadcast the current TURN creds to every connected station. Without them
+   * a station's media connection cannot traverse the relay's container bridge
+   * and its WebRTC negotiation dies with `negotiation-failed`.
    */
-  private broadcastRelayInfo(): void {
-    this.broadcast({
-      type: "relay-peer-id",
-      peerId: this.relayPeerId,
-      iceServers: this.iceServers.length > 0 ? this.iceServers : undefined,
-    });
+  private broadcastRelayIceServers(): void {
+    if (this.iceServers.length === 0) return;
+    this.broadcast({ type: "relay-ice-servers", iceServers: this.iceServers });
   }
 
   /**
@@ -1404,24 +1376,6 @@ export class PeerHostService {
     const conn = this.findConnByPeerId(peerId);
     if (!conn) return;
     conn.send(msg);
-  }
-
-  /**
-   * Returns a Promise that resolves with the open Peer instance once the
-   * broker handshake completes. Used by services that need to make outgoing
-   * peer connections of their own (e.g. OcislyStreamSource calling the
-   * relay's OCISLY peer). Resolves immediately if already open.
-   */
-  waitForPeer(): Promise<Peer> {
-    if (this.peer && this.peerId) return Promise.resolve(this.peer);
-    return new Promise<Peer>((resolve) => {
-      const remove = this.onPeerIdChange(() => {
-        if (this.peer && this.peerId) {
-          remove();
-          resolve(this.peer);
-        }
-      });
-    });
   }
 
   broadcast(msg: PeerMessage) {
@@ -2298,11 +2252,8 @@ export class PeerHostService {
         "[PeerHost] ice-config refreshed: creds stored for station broadcast (STUN-only host)",
       );
     }
-    // Push the refresh to every connected station so their station→relay
-    // peer connections can pick up the new credentials too. Without this,
-    // a coturn secret rotation (relay restart) would silently break
-    // station camera streams until each station refreshes.
-    this.broadcastRelayInfo();
+    // Push the refresh to every connected station, or a coturn secret rotation (relay restart) silently breaks each station's media connections until it reloads.
+    this.broadcastRelayIceServers();
   }
 
   /**

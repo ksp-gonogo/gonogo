@@ -78,20 +78,14 @@ export type PeerMessage =
       v: unknown[];
       error?: string;
     }
-  // Broadcast from host → stations so stations know which peer to connect to
-  // for camera streams. Sent on initial station connect (if known) and again
-  // whenever the relay is re-resolved. null means the main screen no longer
-  // has a live relay connection.
-  //
-  // `iceServers` carries the relay's TURN credentials (the same payload
-  // the host fetched from /ice-config). Stations need this for their
-  // station→relay peer connection: without it the station's Peer
-  // gathers only host-LAN candidates and the relay's container-bridge
-  // candidates are unreachable from the LAN.
+  // Host → stations: the relay's TURN credentials, the payload the host
+  // fetched from /ice-config, which a station cannot fetch itself because
+  // that address is the host's loopback. Sent on connect and on every
+  // refresh, and only when there are any. A station applies them to its
+  // own Peer and hands them to an Uplink's media connection.
   | {
-      type: "relay-peer-id";
-      peerId: string | null;
-      iceServers?: RTCIceServer[];
+      type: "relay-ice-servers";
+      iceServers: RTCIceServer[];
     }
   // Station → host: relay a single call through to a host-side handle
   // registered for `uplinkId` (see `@ksp-gonogo/core`'s

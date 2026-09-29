@@ -1005,8 +1005,7 @@ describe("host-issued ICE servers, read from a station", () => {
 
     act(() => {
       peerHost.broadcast({
-        type: "relay-peer-id",
-        peerId: "relay-1",
+        type: "relay-ice-servers",
         iceServers: TURN,
       });
     });

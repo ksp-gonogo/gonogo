@@ -35,7 +35,7 @@ function isPeerJsError(e: unknown): e is PeerJsError {
 /**
  * peer-unavailable carries the missing peer id in the message
  * (`Could not connect to peer XYZ`; see peerjs `bundler.mjs:1575`).
- * Match exactly so auxiliary connects (OCISLY proxy etc.) don't
+ * Match exactly so an auxiliary connect on the same Peer doesn't
  * masquerade as a host outage, and so a host id that's a substring of
  * some other peer id can't false-positive either.
  */
@@ -92,7 +92,6 @@ type ClientEventMap = {
   sourceStatus: [sourceId: string, status: string];
   connStatus: [status: ConnStatus];
   schema: [sources: PeerSchemaSource[]];
-  relayPeerId: [peerId: string | null];
   relayIceServers: [servers: RTCIceServer[]];
   hostHello: [info: { version: string; buildTime: string }];
   hostRestart: [];
@@ -157,11 +156,10 @@ export class PeerClientService {
   private connStatus: ConnStatus = "idle";
   /** Last broker-reachability verdict; `null` until the first attempt resolves. */
   private brokerReachable: boolean | null = null;
-  private relayPeerId: string | null = null;
-  // Relay TURN creds from the latest `relay-peer-id` broadcast. Applied to the
-  // station's own Peer (see applyRelayIceServers) AND exposed here so a brokered
-  // camera data source can feed them to its station↔sidecar PeerConnection,
-  // a path separate from PeerJS. Empty until the first broadcast carrying creds.
+  // Relay TURN creds from the latest `relay-ice-servers` broadcast. Applied to
+  // the station's own Peer (see applyRelayIceServers) AND exposed here so an
+  // Uplink's station broker can feed them to a media connection of its own,
+  // a path separate from PeerJS. Empty until the first broadcast arrives.
   private relayIceServers: RTCIceServer[] = [];
   private hostVersion: { version: string; buildTime: string } | null = null;
   private hostSessionToken: string | null = null;
@@ -289,9 +287,9 @@ export class PeerClientService {
         this.setBrokerReachable(false);
       }
       // PeerJS emits `peer-unavailable` on the *Peer* (not the conn) when
-      // any outgoing peer.connect() targets a missing id. The station's
-      // OCISLY stream source shares this Peer, so its failed connect to a
-      // missing proxy would otherwise tear down our live host conn here.
+      // any outgoing peer.connect() targets a missing id, so a failed
+      // auxiliary connect on this Peer would otherwise tear down our live
+      // host conn here.
       // Only treat it as a host failure when the host is the missing peer.
       if (
         isPeerJsError(err) &&
@@ -1070,16 +1068,8 @@ export class PeerClientService {
       );
       this.events.emit("schema", msg.sources);
     },
-    "relay-peer-id": (msg) => {
-      this.relayPeerId = msg.peerId;
-      this.events.emit("relayPeerId", msg.peerId);
-      // Carry the host's TURN credentials into the station's own Peer.
-      // The station→relay camera channel is a separate peer.connect()
-      // call from the station's Peer instance; without TURN the relay's
-      // container-bridge candidates can't be reached from the LAN.
-      if (msg.iceServers && msg.iceServers.length > 0) {
-        this.applyRelayIceServers(msg.iceServers);
-      }
+    "relay-ice-servers": (msg) => {
+      this.applyRelayIceServers(msg.iceServers);
     },
     "fog-snapshot": (msg) => {
       this.events.emit("coverageSnapshot", msg);
@@ -1152,12 +1142,12 @@ export class PeerClientService {
    * Mirrors `PeerHostService.refreshIceConfig`: PeerJS doesn't expose a
    * public setter for `iceServers`, but `_options.config` is read every
    * time the Peer constructs an underlying RTCPeerConnection, so a fresh
-   * `peer.connect()` for the camera channel picks up the new value.
+   * `peer.connect()` picks up the new value.
    * Existing connections (the station→host data channel) keep their
    * already-negotiated ICE pair and aren't disturbed.
    */
   private applyRelayIceServers(iceServers: RTCIceServer[]): void {
-    // Expose for the brokered camera data source regardless of whether the Peer is up yet, the camera client reads these for its own connection.
+    // Expose for station brokers regardless of whether the Peer is up yet, an Uplink's media connection reads these for itself.
     this.relayIceServers = iceServers;
     this.events.emit("relayIceServers", iceServers);
     if (!this.peer) return;
@@ -1165,7 +1155,7 @@ export class PeerClientService {
     if (typeof opts === "object" && opts !== null) {
       Reflect.set(opts, "config", { iceServers });
       logger.info(
-        `[PeerClient] applied ${iceServers.length} iceServer(s) from relay-peer-id broadcast, station→relay camera channel can now use TURN`,
+        `[PeerClient] applied ${iceServers.length} iceServer(s) from the host, future connections on this Peer can now use TURN`,
       );
     }
   }
@@ -1178,11 +1168,6 @@ export class PeerClientService {
   /** Notified whenever the host broadcasts a fresh set of relay TURN creds. */
   onRelayIceServersChange(cb: (servers: RTCIceServer[]) => void): () => void {
     return this.events.on("relayIceServers", cb);
-  }
-
-  /** Latest relay peer id the host has announced, or null if none. */
-  getRelayPeerId(): string | null {
-    return this.relayPeerId;
   }
 
   /**
@@ -1223,14 +1208,6 @@ export class PeerClientService {
     return this.events.on("hostRestart", cb);
   }
 
-  /**
-   * Notified every time the host announces a new relay peer id (including
-   * null → relay is down).
-   */
-  onRelayPeerIdChange(cb: (peerId: string | null) => void): () => void {
-    return this.events.on("relayPeerId", cb);
-  }
-
   /** Latest analytics consent the host has broadcast (false until one
    *  arrives). Stations gate their Axiom transport on this. */
   getAnalyticsConsent(): boolean {
@@ -1250,8 +1227,7 @@ export class PeerClientService {
 
   /**
    * Resolves with the station's own Peer instance once the broker handshake
-   * completes. Used by OcislyStreamSource on stations so it can open an
-   * outgoing data channel + accept media calls directly from the proxy.
+   * completes.
    */
   waitForPeer(): Promise<Peer> {
     if (this.peer?.open) return Promise.resolve(this.peer);
