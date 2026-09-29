@@ -107,7 +107,7 @@ function renderModal(screen_: "main" | "station" = "main") {
 /**
  * A fixture shaped like `packages/app/src/dataSources/sitrep.ts`'s
  * `sitrepStreamSource` singleton: same id/name production uses, so the
- * Data Sources tab's "just this one connection" behaviour is exercised
+ * Connection tab's "just this one connection" behaviour is exercised
  * against the real production id, not an arbitrary test id.
  */
 function makeSitrepStub(
@@ -137,7 +137,7 @@ function makeSitrepStub(
 }
 
 /**
- * An arbitrary OTHER registered `DataSource`: proves the Data Sources tab
+ * An arbitrary OTHER registered `DataSource`: proves the Connection tab
  * does NOT fall back to an "Other Connections" list of every registered
  * source.
  */
@@ -162,7 +162,7 @@ function makeOtherSourceStub(id: string, name: string): DataSource {
  * `systemUplinkHealthChannel` registered, over a `StubTransport`) around
  * `SettingsModal`: mirrors `telemetry-components.test.tsx`'s
  * `setupTelemetryStream` helper. `emit` pushes a raw `system.uplinks`
- * stream-data frame once the mounted `UplinkHealthList` has subscribed.
+ * stream-data frame once something mounted has subscribed to it.
  */
 function setupTelemetryStream() {
   const wall = createFakeWallClock();
@@ -209,9 +209,30 @@ function renderModalWithStream(
   return view;
 }
 
-async function openDataSourcesTab() {
+async function openConnectionTab() {
   const user = userEvent.setup();
-  await user.click(screen.getByRole("tab", { name: /data sources/i }));
+  await user.click(screen.getByRole("tab", { name: /connection/i }));
+}
+
+async function openUplinkPage(name: string) {
+  const user = userEvent.setup();
+  await user.click(await screen.findByRole("tab", { name: "Uplinks" }));
+  await user.click(await screen.findByRole("tab", { name }));
+}
+
+/** Gives an Uplink a page before the mod reports anything about it. */
+function registerUplinkPanel(uplink: string) {
+  registerSettingsTab({
+    id: `${uplink}-panel`,
+    label: "Panel",
+    uplink,
+    component: () => null,
+  });
+}
+
+/** An Uplink as `system.uplinks` carries it. */
+function uplinkEntry(id: string, health: Record<string, unknown>) {
+  return { id, version: "1.0.0", available: true, reason: null, health };
 }
 
 beforeEach(() => {
@@ -228,18 +249,18 @@ afterEach(() => {
   __clearSettingsTabsForTests();
 });
 
-describe("SettingsModal Data Sources tab: single Gonogo/Sitrep connection", () => {
+describe("SettingsModal Connection tab: the one game connection", () => {
   it("shows the Sitrep Stream connection row when registered", async () => {
     registerDataSource(makeSitrepStub());
     renderModal("main");
-    await openDataSourcesTab();
+    await openConnectionTab();
     expect(screen.getByText("Sitrep Stream")).toBeInTheDocument();
     expect(screen.getByText("disconnected")).toBeInTheDocument();
   });
 
   it("shows a placeholder when the sitrep source isn't registered", async () => {
     renderModal("main");
-    await openDataSourcesTab();
+    await openConnectionTab();
     expect(
       screen.getByText("Telemetry stream not registered"),
     ).toBeInTheDocument();
@@ -247,7 +268,7 @@ describe("SettingsModal Data Sources tab: single Gonogo/Sitrep connection", () =
 
   it("labels the host row 'Game host' and never shows the Sitrep codename", async () => {
     renderModal("main");
-    await openDataSourcesTab();
+    await openConnectionTab();
     expect(screen.getByText("Game host")).toBeInTheDocument();
     expect(screen.queryByText(/sitrep/i)).not.toBeInTheDocument();
   });
@@ -256,7 +277,7 @@ describe("SettingsModal Data Sources tab: single Gonogo/Sitrep connection", () =
     registerDataSource(makeSitrepStub());
     registerDataSource(makeOtherSourceStub("kos", "kOS"));
     renderModal("main");
-    await openDataSourcesTab();
+    await openConnectionTab();
     expect(screen.getByText("Sitrep Stream")).toBeInTheDocument();
     expect(screen.queryByText("kOS")).not.toBeInTheDocument();
   });
@@ -265,7 +286,7 @@ describe("SettingsModal Data Sources tab: single Gonogo/Sitrep connection", () =
     const configureSpy = vi.fn();
     registerDataSource(makeSitrepStub(configureSpy));
     renderModal("main");
-    await openDataSourcesTab();
+    await openConnectionTab();
 
     const user = userEvent.setup();
     await user.click(
@@ -286,324 +307,175 @@ describe("SettingsModal Data Sources tab: single Gonogo/Sitrep connection", () =
   });
 });
 
-describe("SettingsModal Data Sources tab: per-Uplink health (system.uplinkHealth)", () => {
-  it("shows a waiting placeholder before any report has arrived", async () => {
+describe("SettingsModal: an Uplink's page reports its health", () => {
+  it("waits for the mod's roster before saying anything about health", async () => {
     const stream = setupTelemetryStream();
     registerDataSource(makeSitrepStub(vi.fn(), "connected"));
+    registerUplinkPanel("kos");
     renderModalWithStream(stream);
-    await openDataSourcesTab();
+    await openUplinkPage("kos");
     expect(
-      screen.getByText("Waiting for uplink health report..."),
+      screen.getByText("Waiting for KSP to report kos's health."),
     ).toBeInTheDocument();
   });
 
-  it("renders each reported Uplink's id, version and health state", async () => {
+  it("shows the mod half's version, health state and detail on its own page", async () => {
     const stream = setupTelemetryStream();
     registerDataSource(makeSitrepStub(vi.fn(), "connected"));
     renderModalWithStream(stream);
-    await openDataSourcesTab();
+    act(() =>
+      stream.emit({
+        uplinks: [
+          uplinkEntry("kos", { state: 1, detail: "no active CPU selected" }),
+          uplinkEntry("system", { state: 0, detail: null }),
+        ],
+      }),
+    );
+    await openUplinkPage("kos");
 
-    stream.emit({
-      uplinks: [
-        {
-          id: "kos",
-          version: "1.0.0",
-          available: true,
-          reason: null,
-          health: { state: 1, detail: "no active CPU selected" },
-        },
-        {
-          id: "system",
-          version: "1.0.0",
-          available: true,
-          reason: null,
-          health: { state: 0, detail: null },
-        },
-      ],
-    });
-
-    await waitFor(() => expect(screen.getByText("kos")).toBeInTheDocument());
+    expect(screen.getByRole("heading", { name: "Status" })).toBeInTheDocument();
+    expect(screen.getByText("Mod")).toBeInTheDocument();
+    expect(screen.getByText("v1.0.0")).toBeInTheDocument();
     expect(screen.getByText("degraded")).toBeInTheDocument();
     expect(screen.getByText("no active CPU selected")).toBeInTheDocument();
-
-    // "system" is healthy with no detail, so it collapses into the N/M healthy chip by default (Task 6): expand it to assert its fields too.
-    const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: /show/i }));
-
-    expect(screen.getByText("system")).toBeInTheDocument();
-    expect(screen.getByText("healthy")).toBeInTheDocument();
-    expect(screen.getAllByText("v1.0.0")).toHaveLength(2);
+    expect(screen.queryByText("healthy")).toBeNull();
   });
 
-  it("shows the registration-failure reason as detail for an Unavailable uplink", async () => {
+  it("shows the registration-failure reason as detail for an unavailable Uplink", async () => {
     const stream = setupTelemetryStream();
     registerDataSource(makeSitrepStub(vi.fn(), "connected"));
     renderModalWithStream(stream);
-    await openDataSourcesTab();
-
-    stream.emit({
-      uplinks: [
-        {
-          id: "broken",
-          version: "1.0.0",
-          available: false,
-          reason: "registration threw: boom",
-          health: { state: 2, detail: "registration threw: boom" },
-        },
-      ],
-    });
-
-    await waitFor(() =>
-      expect(screen.getByText("unavailable")).toBeInTheDocument(),
+    act(() =>
+      stream.emit({
+        uplinks: [
+          {
+            ...uplinkEntry("broken", { state: 2, detail: null }),
+            available: false,
+            reason: "registration threw: boom",
+          },
+        ],
+      }),
     );
+    await openUplinkPage("broken");
+
+    expect(screen.getByText("unavailable")).toBeInTheDocument();
     expect(screen.getByText("registration threw: boom")).toBeInTheDocument();
   });
 
-  it("renders a rich self-reported detail in full and keeps a healthy-with-detail uplink visible", async () => {
-    const stream = setupTelemetryStream();
-    registerDataSource(makeSitrepStub(vi.fn(), "connected"));
-    renderModalWithStream(stream);
-    await openDataSourcesTab();
-
-    // A "rich health" uplink (health mandatory now; richness = a denser detail
-    // string). Healthy-WITH-a-detail is NOT collapsed into the N/M-healthy chip,
-    // and the full formatted string renders (UplinkDetail wraps, never truncates).
-    const richDetail = "3 cameras · docking cam bound · capture core running";
-    stream.emit({
-      uplinks: [
-        {
-          id: "demo-cam",
-          version: "1.0.0",
-          available: true,
-          reason: null,
-          health: { state: 0, detail: richDetail },
-        },
-      ],
-    });
-
-    await waitFor(() =>
-      expect(screen.getByText(richDetail)).toBeInTheDocument(),
-    );
-    // No plain-healthy entries → no "N/M healthy" collapse chip / Show toggle.
-    expect(screen.queryByRole("button", { name: /show/i })).toBeNull();
-  });
-
-  it("lists an uplink's own diagnostic facts as labelled rows", async () => {
+  it("lists an Uplink's own diagnostic facts as labelled rows", async () => {
     const stream = setupTelemetryStream();
     registerDataSource(makeSitrepStub(vi.fn(), "connected"));
     const { container } = renderModalWithStream(stream);
-    await openDataSourcesTab();
-
-    // The identity of whatever the uplink depends on, authored entirely by the
-    // uplink. Nothing here knows what a "descriptor" is, which is the point: an
-    // uplink publishes its dependency's build and hash without a topic of its
-    // own and without this file learning a word about it.
-    stream.emit({
-      uplinks: [
-        {
-          id: "demo-native",
-          version: "1.0.0",
-          available: true,
-          reason: null,
-          health: {
+    act(() =>
+      stream.emit({
+        uplinks: [
+          uplinkEntry("demo-native", {
             state: 1,
             detail: "This build has not been vetted here.",
             facts: [
               { label: "descriptor", value: "b2569d21" },
               { label: "release", value: null },
             ],
-          },
-        },
-      ],
-    });
+          }),
+        ],
+      }),
+    );
+    await openUplinkPage("demo-native");
 
     const label = await screen.findByText("descriptor");
     expect(label.closest("dt")).not.toBeNull();
     expect(screen.getByText("b2569d21").closest("dl")).toBe(
       label.closest("dl"),
     );
-    // A fact the uplink could not establish reads as the null placeholder rather than as a blank cell an operator scans past.
+    // A fact the Uplink could not establish reads as the null placeholder rather than as a blank cell an operator scans past.
     const placeholders = [...container.querySelectorAll("dd")].filter(
       (dd) => dd.textContent === NULL_DISPLAY,
     );
     expect(placeholders).toHaveLength(1);
+    await expectNoA11yViolations(container);
   });
 
-  it("shows a placeholder when the reported uplink list is empty", async () => {
+  it("says so when the mod does not list an Uplink whose client has a page", async () => {
     const stream = setupTelemetryStream();
     registerDataSource(makeSitrepStub(vi.fn(), "connected"));
+    registerUplinkPanel("ghost");
     renderModalWithStream(stream);
-    await openDataSourcesTab();
-
-    stream.emit({ uplinks: [] });
-
-    await waitFor(() =>
-      expect(screen.getByText("No uplinks registered")).toBeInTheDocument(),
+    act(() =>
+      stream.emit({
+        uplinks: [uplinkEntry("kos", { state: 0, detail: null })],
+      }),
     );
+    await openUplinkPage("ghost");
+
+    expect(screen.getByText("KSP does not list ghost.")).toBeInTheDocument();
   });
 
-  it("shows 'No telemetry host' instead of the generic waiting placeholder when the sitrep source is disconnected", async () => {
+  it("says there is no telemetry host rather than waiting, when the stream is down", async () => {
     const stream = setupTelemetryStream();
     registerDataSource(makeSitrepStub(vi.fn(), "disconnected"));
+    registerUplinkPanel("kos");
     renderModalWithStream(stream);
-    await openDataSourcesTab();
-    expect(screen.getByText("No telemetry host")).toBeInTheDocument();
-    expect(
-      screen.queryByText("Waiting for uplink health report..."),
-    ).not.toBeInTheDocument();
-  });
-});
+    await openUplinkPage("kos");
 
-describe("SettingsModal Data Sources tab: healthy-uplinks collapse chip", () => {
-  it("folds plain healthy/no-detail uplinks into an N/M healthy chip, collapsed by default", async () => {
+    expect(screen.getByText("No telemetry host.")).toBeInTheDocument();
+  });
+
+  it("opens the Uplinks tab on the first Uplink that is not healthy, and marks it", async () => {
     const stream = setupTelemetryStream();
     registerDataSource(makeSitrepStub(vi.fn(), "connected"));
     renderModalWithStream(stream);
-    await openDataSourcesTab();
-
-    stream.emit({
-      uplinks: [
-        {
-          id: "vessel",
-          version: "1.0.0",
-          available: true,
-          reason: null,
-          health: { state: 0, detail: null },
-        },
-        {
-          id: "career",
-          version: "1.0.0",
-          available: true,
-          reason: null,
-          health: { state: 0, detail: null },
-        },
-        {
-          id: "kos",
-          version: "1.0.0",
-          available: true,
-          reason: null,
-          health: { state: 1, detail: "no active CPU selected" },
-        },
-      ],
-    });
-
-    await waitFor(() =>
-      expect(screen.getByText("2/3 healthy")).toBeInTheDocument(),
+    act(() =>
+      stream.emit({
+        uplinks: [
+          uplinkEntry("system", { state: 0, detail: null }),
+          uplinkEntry("kos", { state: 1, detail: "no active CPU selected" }),
+        ],
+      }),
     );
-    expect(screen.queryByText("vessel")).not.toBeInTheDocument();
-    expect(screen.queryByText("career")).not.toBeInTheDocument();
-    // The non-healthy uplink stays individually visible, uncollapsed.
-    expect(screen.getByText("kos")).toBeInTheDocument();
-    expect(screen.getByText("no active CPU selected")).toBeInTheDocument();
-  });
-
-  it("expands the healthy list when the chip's toggle is clicked", async () => {
-    const stream = setupTelemetryStream();
-    registerDataSource(makeSitrepStub(vi.fn(), "connected"));
-    renderModalWithStream(stream);
-    await openDataSourcesTab();
-
-    stream.emit({
-      uplinks: [
-        {
-          id: "vessel",
-          version: "1.0.0",
-          available: true,
-          reason: null,
-          health: { state: 0, detail: null },
-        },
-        {
-          id: "career",
-          version: "1.0.0",
-          available: true,
-          reason: null,
-          health: { state: 0, detail: null },
-        },
-      ],
-    });
-    await waitFor(() =>
-      expect(screen.getByText("2/2 healthy")).toBeInTheDocument(),
-    );
-    expect(screen.queryByText("vessel")).not.toBeInTheDocument();
-
     const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: /show/i }));
+    const uplinksTab = await screen.findByRole("tab", { name: /^Uplinks/ });
+    await waitFor(() =>
+      expect(uplinksTab).toHaveAccessibleDescription(/attention/i),
+    );
+    await user.click(uplinksTab);
 
-    expect(screen.getByText("vessel")).toBeInTheDocument();
-    expect(screen.getByText("career")).toBeInTheDocument();
+    expect(
+      screen.getByRole("tab", { name: /^kos/, selected: true }),
+    ).toBeInTheDocument();
   });
 
-  it("does NOT collapse a healthy uplink that carries a self-reported detail string", async () => {
+  it("keeps health off the Connection tab", async () => {
     const stream = setupTelemetryStream();
     registerDataSource(makeSitrepStub(vi.fn(), "connected"));
     renderModalWithStream(stream);
-    await openDataSourcesTab();
-
-    stream.emit({
-      uplinks: [
-        {
-          id: "comms",
-          version: "1.0.0",
-          available: true,
-          reason: null,
-          health: { state: 0, detail: "backend: CommNet elected" },
-        },
-      ],
-    });
-
-    await waitFor(() => expect(screen.getByText("comms")).toBeInTheDocument());
-    expect(screen.getByText("backend: CommNet elected")).toBeInTheDocument();
-    // No collapse chip renders, distinct from the row's own inline health
-    // state label (also literally "healthy"), which is why this checks the
-    // chip's specific "N/M healthy" wording rather than a bare /healthy$/.
-    expect(screen.queryByText(/\d+\/\d+ healthy/)).not.toBeInTheDocument();
-  });
-
-  it("has no axe violations with a mix of collapsed-healthy and expanded non-healthy uplinks", async () => {
-    const stream = setupTelemetryStream();
-    registerDataSource(makeSitrepStub(vi.fn(), "connected"));
-    const { container } = renderModalWithStream(stream);
-    await openDataSourcesTab();
-
-    stream.emit({
-      uplinks: [
-        {
-          id: "vessel",
-          version: "1.0.0",
-          available: true,
-          reason: null,
-          health: { state: 0, detail: null },
-        },
-        {
-          id: "kos",
-          version: "1.0.0",
-          available: true,
-          reason: null,
-          health: { state: 1, detail: "no active CPU selected" },
-        },
-      ],
-    });
-    await waitFor(() =>
-      expect(screen.getByText("1/2 healthy")).toBeInTheDocument(),
+    act(() =>
+      stream.emit({
+        uplinks: [uplinkEntry("kos", { state: 1, detail: "no active CPU" })],
+      }),
     );
+    await openConnectionTab();
 
-    await expectNoA11yViolations(container);
+    expect(screen.getByText("Sitrep Stream")).toBeInTheDocument();
+    expect(screen.queryByText("no active CPU")).toBeNull();
+    expect(
+      screen.getByRole("tab", { name: /^Connection/ }),
+    ).not.toHaveAccessibleDescription(/attention/i);
   });
 });
 
 describe("SettingsModal: initialTabId", () => {
-  it("opens directly on the named tab (the first-run auto-open host)", () => {
+  it("opens directly on the named tab", () => {
     const service = new SettingsService(memoryStorage());
     const view = render(
       <ScreenProvider value="main">
         <SettingsProvider service={service}>
-          <SettingsModal initialTabId="data-sources" />
+          <SettingsModal initialTabId="connection" />
         </SettingsProvider>
       </ScreenProvider>,
     );
     renderedTrees.push(view.unmount);
     expect(
-      screen.getByRole("tab", { name: "Data Sources", selected: true }),
+      screen.getByRole("tab", { name: /^Connection/, selected: true }),
     ).toBeInTheDocument();
   });
 });
@@ -995,7 +867,7 @@ describe("SettingsModal: a row that cannot be written", () => {
  * running, and it named each Uplink and nothing else: no author, no repo, and
  * no way to tell a mod-vouched name from one a bundle wrote about itself.
  */
-describe("SettingsModal Data Sources tab: loaded-client identity", () => {
+describe("SettingsModal: an Uplink page's loaded-client identity", () => {
   it("shows a mod-vouched author and repo against the Uplink that declared them", async () => {
     setUplinkOutcome({
       id: "widget-y",
@@ -1015,7 +887,7 @@ describe("SettingsModal Data Sources tab: loaded-client identity", () => {
     });
     registerDataSource(makeSitrepStub(vi.fn(), "connected"));
     renderModal("main");
-    await openDataSourcesTab();
+    await openUplinkPage("Widget Y");
 
     expect(screen.getByText("by A Stranger")).toBeInTheDocument();
     expect(
@@ -1041,7 +913,7 @@ describe("SettingsModal Data Sources tab: loaded-client identity", () => {
     });
     registerDataSource(makeSitrepStub(vi.fn(), "connected"));
     renderModal("main");
-    await openDataSourcesTab();
+    await openUplinkPage("Widget Z");
 
     expect(screen.getByText("by A Stranger")).toBeInTheDocument();
     expect(
@@ -1062,11 +934,35 @@ describe("SettingsModal Data Sources tab: loaded-client identity", () => {
     });
     registerDataSource(makeSitrepStub(vi.fn(), "connected"));
     renderModal("main");
-    await openDataSourcesTab();
+    await openUplinkPage("widget-q");
 
     expect(screen.getByText("widget-q")).toBeInTheDocument();
     expect(screen.queryByText(/^by /)).not.toBeInTheDocument();
     expect(screen.queryByText(/Vouched by|Self-declared/)).toBeNull();
+  });
+});
+
+describe("SettingsModal: an Uplink page's client status", () => {
+  it("shows a quarantined client with its reason, marks the page, and offers to reconsider a declined consent", async () => {
+    setUplinkOutcome({
+      id: "widget-d",
+      name: "Widget D",
+      version: "1.0.0",
+      status: "quarantined",
+      reason: "consent declined",
+    });
+    const { container } = renderModal("main");
+    const uplinksTab = screen.getByRole("tab", { name: /^Uplinks/ });
+    expect(uplinksTab).toHaveAccessibleDescription(/attention/i);
+    await openUplinkPage("Widget D");
+
+    expect(screen.getByText("Client")).toBeInTheDocument();
+    expect(screen.getByText("quarantined")).toBeInTheDocument();
+    expect(screen.getByText("consent declined")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Reconsider" }),
+    ).toBeInTheDocument();
+    await expectNoA11yViolations(container);
   });
 });
 
@@ -1181,7 +1077,7 @@ describe("SettingsModal: the Uplinks tab", () => {
     const headings = screen
       .getAllByRole("heading", { level: 3 })
       .map((h) => h.textContent);
-    expect(headings).toEqual(["Gonogo", "Survival"]);
+    expect(headings).toEqual(["Status", "Gonogo", "Survival"]);
     expect(
       screen.getByRole("checkbox", { name: "Warn on wear" }),
     ).toBeInTheDocument();

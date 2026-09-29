@@ -38,9 +38,9 @@ import { dashboardWithWidget } from "./helpers";
  *     post-load-and-mount render proof, not a race against the import();
  *  4. the loader's outcome store (`loaderState.ts`'s `getUplinkOutcomes`/
  *     `subscribeUplinkOutcomes`) reports the id as `loaded`: asserted through the
- *     real Settings -> Data Sources "Loaded clients" panel
- *     (`SettingsModal.tsx`'s `UplinkLoaderSection`, the one UI surface that reads
- *     that store via `useSyncExternalStore`). The store itself isn't reachable from
+ *     Uplink's own page under Settings -> Uplinks, whose Status section
+ *     (`UplinksSettings.tsx`, the one UI surface that reads that store via
+ *     `useSyncExternalStore`) shows its client's outcome. The store itself isn't reachable from
  *     a bare `page.evaluate` import the way `@ksp-gonogo/core` is: `loaderState.ts`
  *     is an app-internal module, not one of the externalised bare specifiers baked
  *     into the import map (`vite.config.ts`'s `UPLINK_EXTERNALS`), so there is no
@@ -171,30 +171,31 @@ test.describe("Uplink loader (default path)", () => {
       timeout: 15_000,
     });
 
-    // Loaded-outcomes proof: open Settings -> Data Sources and read the
-    // "Loaded clients" panel (`SettingsModal.tsx`'s `UplinkLoaderSection`),
-    // the one UI surface backed by `loaderState.ts`'s `getUplinkOutcomes`/
-    // `subscribeUplinkOutcomes`: not reachable via a bare page.evaluate
-    // import (see the module doc comment above for why). The id must show
-    // `loaded`, never `quarantined`.
+    /*
+     * Loaded-outcomes proof: open Settings -> Uplinks -> Breaking Ground and
+     * read its Status section, the one UI surface backed by `loaderState.ts`'s
+     * `getUplinkOutcomes`/`subscribeUplinkOutcomes`: not reachable via a bare
+     * page.evaluate import (see the module doc comment above for why). The
+     * client must show `loaded`, never `quarantined`.
+     */
     const settingsFab = page.getByRole("button", { name: /^Settings/ });
     await expect(settingsFab).toBeAttached({ timeout: 15_000 });
     await settingsFab.focus();
     await settingsFab.click();
-    await page.getByRole("tab", { name: "Data Sources" }).click();
+    await page.getByRole("tab", { name: "Uplinks", exact: true }).click();
+    await page
+      .getByRole("tab", { name: "Breaking Ground", exact: true })
+      .click();
 
-    const dataSourcesPanel = page.getByRole("tabpanel");
+    const uplinkPage = page.getByRole("tabpanel", { name: "Breaking Ground" });
+    await expect(uplinkPage.getByText("Client", { exact: true })).toBeVisible({
+      timeout: 15_000,
+    });
+    await expect(uplinkPage.getByText("loaded", { exact: true })).toHaveCount(
+      1,
+    );
     await expect(
-      dataSourcesPanel.getByText("Loaded clients", { exact: true }),
-    ).toBeVisible({ timeout: 15_000 });
-    await expect(
-      dataSourcesPanel.getByText("Breaking Ground", { exact: true }),
-    ).toBeVisible();
-    await expect(
-      dataSourcesPanel.getByText("loaded", { exact: true }),
-    ).toHaveCount(1);
-    await expect(
-      dataSourcesPanel.getByText("quarantined", { exact: true }),
+      uplinkPage.getByText("quarantined", { exact: true }),
     ).toHaveCount(0);
   });
 

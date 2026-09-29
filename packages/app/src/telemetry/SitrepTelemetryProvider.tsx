@@ -112,7 +112,7 @@ export interface SitrepTelemetryProviderProps {
    */
   enabled?: boolean;
   /**
-   * Overrides the runtime host (Data Sources panel config, `KSP_HOST` seed,
+   * Overrides the runtime host (Connection tab config, `KSP_HOST` seed,
    * or `VITE_SITREP_HOST`/`localhost` build default: see `sitrepRuntime.ts`).
    * Tests pass this directly; production code leaves it unset so panel
    * edits take effect live.
@@ -136,7 +136,7 @@ export interface SitrepTelemetryProviderProps {
  * to fall back to.
  *
  * Host/port are runtime-configurable, not just build-time env vars: they
- * come from `sitrepRuntime.ts`, which layers a saved Data Sources panel
+ * come from `sitrepRuntime.ts`, which layers a saved Connection tab
  * config (see `../dataSources/sitrep.ts`) over a `KSP_HOST` bundle seed
  * (`../dataSources/seedKspHost.ts`) over `VITE_SITREP_HOST`/`_PORT` build
  * defaults. Editing the panel's Host/Port fields reconnects the live
@@ -198,9 +198,9 @@ export function SitrepTelemetryProvider({
           },
         })
       : undefined;
-    // Mirror the OWNED transport's connection status into the "Sitrep
-    // Stream" Data Sources panel row: an injected test transport has no
-    // bearing on what that panel should report about the real connection.
+    // Mirror the OWNED transport's connection status into the Connection tab's
+    // "Sitrep Stream" row: an injected test transport has no bearing on what
+    // that row should report about the real connection.
     const unsubStatus = ownedTransport?.onStatusChange(
       reportSitrepTransportStatus,
     );

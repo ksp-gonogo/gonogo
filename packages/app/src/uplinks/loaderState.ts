@@ -1,5 +1,5 @@
 // The loader-outcome store: every runtime-load attempt records a legible result
-// here, and the Settings › Data Sources › Uplinks surface renders it. The design's
+// here, and each Uplink's page under Settings › Uplinks renders it. The design's
 // core invariant is that a mismatched or unverified client is NEVER silently
 // loaded and NEVER a silent no-op (design §2.4): every refusal carries a reason,
 // and this store is where that reason becomes visible.

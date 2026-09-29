@@ -1,19 +1,35 @@
 import {
   getSettingsTabsForScreen,
+  NO_TELEMETRY_HOST_MESSAGE,
   type Screen,
   type SettingsTabDefinition,
   useTelemetry,
+  useTelemetryHostDown,
 } from "@ksp-gonogo/core";
-import type { SystemUplinkHealth } from "@ksp-gonogo/sitrep-client";
+import type {
+  SystemUplinkHealth,
+  UplinkHealthEntry,
+} from "@ksp-gonogo/sitrep-client";
 import { useStream } from "@ksp-gonogo/sitrep-client";
 import { type TabDescriptor, Tabs } from "@ksp-gonogo/ui";
 import { SectionTitle, Stack } from "@ksp-gonogo/ui-kit";
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
+import {
+  getUplinkOutcomes,
+  subscribeUplinkOutcomes,
+  type UplinkLoadOutcome,
+} from "../uplinks/loaderState";
 import { CORE_OWNER, GonogoSettings } from "./GonogoSettings";
 import { ModSettingsSection } from "./ModSettingsSection";
 import { getSettingsForScreen, type SettingDefinition } from "./registry";
 import { CategoryRows } from "./SettingRows";
-import { SectionStack } from "./settingsLayout";
+import { Empty, SectionStack } from "./settingsLayout";
+import {
+  StatusList,
+  statusNeedsAttention,
+  UplinkClientStatus,
+  UplinkHealthReport,
+} from "./UplinkStatus";
 
 /** Everything one Uplink has to show on its page, from every place an Uplink's settings come from. */
 export interface UplinkPage {
@@ -26,6 +42,14 @@ export interface UplinkPage {
   undeclared: boolean;
   /** It reports its host mod's own settings on `settings.<id>`. */
   modSettings: boolean;
+  /** Its mod half's own health report, while the mod lists it. */
+  health?: UplinkHealthEntry;
+  /** Whether the mod's roster has arrived, which tells an Uplink it does not list from one not heard yet. */
+  rosterKnown: boolean;
+  /** What the runtime loader made of its client, when it tried. */
+  client?: UplinkLoadOutcome;
+  /** Its health or its client asks for the operator's attention. */
+  attention: boolean;
   /** Rows its client registered for this screen. */
   rows: SettingDefinition[];
   /** Custom panels its client registered for this screen. */
@@ -33,17 +57,18 @@ export interface UplinkPage {
 }
 
 /**
- * Every Uplink with something to show on `screen`, in the order the mod lists
- * its Uplinks, then any whose client registered settings the mod does not
- * list.
+ * Every Uplink the mod lists or the runtime loader tried, and any whose client
+ * registered settings for `screen`: the mod's order first, then the rest.
  */
 export function useUplinkPages(screen: Screen): UplinkPage[] {
   const health = useStream<SystemUplinkHealth>("system.uplinkHealth");
   const gonogo = useTelemetry("settings.gonogo");
-  const roster =
-    health.state === "observed" || health.state === "stale"
-      ? health.value.uplinks
-      : [];
+  const rosterKnown = health.state === "observed" || health.state === "stale";
+  const roster = rosterKnown ? health.value.uplinks : [];
+  const outcomes = useSyncExternalStore(
+    subscribeUplinkOutcomes,
+    getUplinkOutcomes,
+  );
   const model =
     gonogo.state === "observed" || gonogo.state === "stale"
       ? gonogo.value
@@ -64,48 +89,47 @@ export function useUplinkPages(screen: Screen): UplinkPage[] {
   for (const failure of model?.undeclared ?? []) add(failure.uplinkId);
   for (const def of rows) add(def.uplink);
   for (const tab of panels) add(tab.uplink);
+  for (const outcome of outcomes) add(outcome.id);
 
   const pages: UplinkPage[] = [];
   for (const id of ids) {
     const entry = roster.find((e) => e.id === id);
+    const client = outcomes.find((o) => o.id === id);
     const undeclared =
       model?.undeclared.some((f) => f.uplinkId === id) ?? false;
-    const page: UplinkPage = {
+    pages.push({
       id,
-      name: entry?.name ?? id,
+      name: entry?.name ?? client?.name ?? id,
       gonogo: undeclared || (model?.rows.some((r) => r.owner === id) ?? false),
       undeclared,
       modSettings: entry?.modSettings ?? false,
+      health: entry,
+      rosterKnown,
+      client,
+      attention: undeclared || statusNeedsAttention(entry, client),
       rows: rows.filter((def) => def.uplink === id),
       panels: panels.filter((tab) => tab.uplink === id),
-    };
-    if (
-      page.gonogo ||
-      page.modSettings ||
-      page.rows.length > 0 ||
-      page.panels.length > 0
-    ) {
-      pages.push(page);
-    }
+    });
   }
   return pages;
 }
 
 /**
  * The Uplinks tab: one page per Uplink, chosen from a tab strip of its own.
- * Each page leads with the Uplink's settings in Gonogo's own file, then its
- * host mod's own settings, then what its client keeps on this screen.
+ * Each page leads with how the Uplink is running, then its settings in
+ * Gonogo's own file, its host mod's own settings, and what its client keeps
+ * on this screen.
  */
 export function UplinksSettings({ pages }: { pages: UplinkPage[] }) {
   // Until the operator picks a page, the pick follows the roster as it arrives.
   const [chosen, setChosen] = useState<string | null>(null);
   const activeId =
-    chosen ?? pages.find((p) => p.undeclared)?.id ?? pages[0]?.id ?? "";
+    chosen ?? pages.find((p) => p.attention)?.id ?? pages[0]?.id ?? "";
   const tabs: TabDescriptor[] = pages.map((page) => ({
     id: page.id,
     label: page.name,
     content: <UplinkPageView page={page} />,
-    indicator: page.undeclared,
+    indicator: page.attention,
   }));
   return (
     <Tabs
@@ -120,6 +144,12 @@ export function UplinksSettings({ pages }: { pages: UplinkPage[] }) {
 function UplinkPageView({ page }: { page: UplinkPage }) {
   return (
     <SectionStack>
+      <Stack as="section" gap="related-comfortable">
+        <SectionTitle as="h3" $rule>
+          Status
+        </SectionTitle>
+        <UplinkStatusSection page={page} />
+      </Stack>
       {page.gonogo && (
         <Stack as="section" gap="related-comfortable">
           <SectionTitle as="h3" $rule>
@@ -154,4 +184,28 @@ function UplinkPageView({ page }: { page: UplinkPage }) {
       ))}
     </SectionStack>
   );
+}
+
+/** The mod half's health report, then the client's load outcome. */
+function UplinkStatusSection({ page }: { page: UplinkPage }) {
+  const hostDown = useTelemetryHostDown();
+  return (
+    <StatusList>
+      {page.health ? (
+        <UplinkHealthReport entry={page.health} />
+      ) : (
+        <li>
+          <Empty role="status">{healthAbsence(page, hostDown)}</Empty>
+        </li>
+      )}
+      {page.client && <UplinkClientStatus outcome={page.client} />}
+    </StatusList>
+  );
+}
+
+function healthAbsence(page: UplinkPage, hostDown: boolean): string {
+  if (hostDown) return `${NO_TELEMETRY_HOST_MESSAGE}.`;
+  if (!page.rosterKnown)
+    return `Waiting for KSP to report ${page.name}'s health.`;
+  return `KSP does not list ${page.name}.`;
 }

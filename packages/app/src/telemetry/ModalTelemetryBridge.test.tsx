@@ -56,7 +56,7 @@ function Harness({
  * (the client hasn't connected yet). A one-shot `getActiveTelemetryClient()`
  * read at `ModalTelemetryBridge`'s own render would capture `undefined` at
  * that moment and never re-render, leaving every telemetry read inside the
- * modal (e.g. the Data Sources tab reading `system.uplinkHealth` via
+ * modal (e.g. an Uplink page reading `system.uplinkHealth` via
  * `useStream`) permanently unavailable, waiting forever, confirmed live on the
  * Deck.
  */

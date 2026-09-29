@@ -9,9 +9,9 @@ export function DoneStep() {
   return (
     <Stack gap="related-dense">
       <Text tone="muted" size="sm">
-        Settings, Data Sources carries the same readings from now on: the mod
-        connection, each Uplink's health, and every client the app loaded or
-        refused.
+        Settings carries the same readings from now on: the mod connection under
+        Connection, and each Uplink's health and whether its client loaded on
+        its own page under Uplinks.
       </Text>
     </Stack>
   );

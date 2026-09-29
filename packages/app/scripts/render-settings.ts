@@ -156,7 +156,11 @@ const UPLINKS = {
       available: true,
       reason: null,
       modSettings: true,
-      health: { state: 0, detail: null },
+      health: {
+        state: 1,
+        detail: "no reliability backend elected",
+        facts: [{ label: "Profile", value: "Default" }],
+      },
     },
     {
       id: "rp1",
@@ -165,7 +169,7 @@ const UPLINKS = {
       available: true,
       reason: null,
       modSettings: false,
-      health: { state: 0, detail: null },
+      health: { state: 0, detail: null, facts: [] },
     },
     {
       id: "streamer",
@@ -174,10 +178,22 @@ const UPLINKS = {
       available: true,
       reason: null,
       modSettings: true,
-      health: { state: 0, detail: null },
+      health: { state: 0, detail: "2 cameras", facts: [] },
     },
   ],
 };
+
+/** What the runtime loader made of each Uplink's client, as the Loaded clients list reads it. */
+const OUTCOMES = [
+  { id: "survival", name: "Survival", version: "1.0.0", status: "loaded" },
+  {
+    id: "streamer",
+    name: "Streamer",
+    version: "1.0.0",
+    status: "quarantined",
+    reason: "consent declined",
+  },
+];
 
 /** One mod setting as `settings.<uplink>` carries it. */
 function modSetting(fields: Record<string, unknown> & { id: string }) {
@@ -273,6 +289,8 @@ interface Scene {
   openDisclosures?: boolean;
   /** A tab to press once the modal is drawn, by its name: an Uplink's page under the Uplinks tab. */
   clickTab?: string;
+  /** What the runtime loader recorded for each Uplink's client. None when unset. */
+  outcomes?: readonly Record<string, unknown>[];
 }
 
 const SCENES: Scene[] = [
@@ -374,11 +392,22 @@ const SCENES: Scene[] = [
     pxH: 300,
   },
   {
+    // The Connection tab: the game host and whether the stream is up.
+    name: "connection",
+    tab: "connection",
+    connected: true,
+    emit: UPLINK_EMIT,
+    outcomes: OUTCOMES,
+    pxW: 900,
+    pxH: 620,
+  },
+  {
     // The Uplinks tab on its first page: Survival's own settings as its Uplink reads them, one of them unknown until a save is loaded.
     name: "uplinks-survival",
     tab: "uplinks",
     connected: true,
     emit: UPLINK_EMIT,
+    outcomes: OUTCOMES,
     pxW: 900,
     pxH: 620,
   },
@@ -389,6 +418,7 @@ const SCENES: Scene[] = [
     clickTab: "RP-1",
     connected: true,
     emit: UPLINK_EMIT,
+    outcomes: OUTCOMES,
     pxW: 900,
     pxH: 620,
   },
@@ -399,6 +429,7 @@ const SCENES: Scene[] = [
     clickTab: "Streamer",
     connected: true,
     emit: UPLINK_EMIT,
+    outcomes: OUTCOMES,
     pxW: 900,
     pxH: 620,
   },
@@ -507,6 +538,7 @@ async function main(): Promise<void> {
       connected,
       openDisclosures,
       clickTab,
+      outcomes,
     } of SCENES) {
       await page.evaluate(
         (s) =>
@@ -515,7 +547,7 @@ async function main(): Promise<void> {
               __renderSettings: (p: unknown) => Promise<void>;
             }
           ).__renderSettings(s),
-        { emit, prefs, pxW, pxH, tab, screen, connected },
+        { emit, prefs, pxW, pxH, tab, screen, connected, outcomes },
       );
       if (clickTab !== undefined) {
         await page.getByRole("tab", { name: clickTab, exact: true }).click();

@@ -7,7 +7,7 @@
  * modal's "Devices" tab (the standalone joystick FAB was retired when
  * settings were folded into one tabbed modal; see SettingsFab.tsx), so this
  * opens Settings → Devices the same way data-source-status.spec.ts opens
- * Settings → Data Sources, and asserts the unsupported-browser banner text
+ * Settings → Connection, and asserts the unsupported-browser banner text
  * that `getWebSerialSupport()` actually renders.
  *
  * Skipped in Chromium, where Web Serial is present and the banner never

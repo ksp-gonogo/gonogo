@@ -14,8 +14,8 @@ import { LocalStorageStore } from "@ksp-gonogo/data";
  * is a property of the service, not the machine.
  *
  * Shared between `SitrepTelemetryProvider` (which owns and builds the actual
- * `WebSocketTransport`) and the "Sitrep Stream" entry in the Data Sources
- * settings panel (`../dataSources/sitrep.ts`, a thin `DataSource` front with
+ * `WebSocketTransport`) and the "Sitrep Stream" entry in the Connection
+ * settings tab (`../dataSources/sitrep.ts`, a thin `DataSource` front with
  * no data path of its own: see that file's doc comment).
  */
 

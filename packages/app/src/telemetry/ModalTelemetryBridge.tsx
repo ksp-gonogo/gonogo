@@ -17,8 +17,7 @@ import type { ReactNode } from "react";
  * into: and that call site here is `ModalProvider` itself, above
  * `SitrepTelemetryProvider`. So `useStream`/`useTelemetry`-family hooks
  * inside modal content never see the real provider's context and silently
- * degrade to `undefined` forever: found in a real browser, where the Data
- * Sources tab's `UplinkHealthList` read "Waiting for uplink health report..."
+ * degrade to `undefined` forever, so an Uplink's health report would wait
  * forever despite `system.uplinks` genuinely flowing over the wire.
  *
  * Reuses the SAME live `TelemetryClient` (read reactively via

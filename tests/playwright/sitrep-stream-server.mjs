@@ -291,7 +291,7 @@ export const SNAPSHOT = {
   // Mod-side Uplink self-report (Sitrep.Contract.ISitrepUplink.Health(),
   // aggregated by ChannelEngine: see @ksp-gonogo/sitrep-client's
   // uplink-health.ts). Reports "kos" installed + healthy + available, which
-  // is what the Data Sources tab's Uplink health list reads. Only "kos":
+  // is what each Uplink page's health report reads. Only "kos":
   // this fixture doesn't need to report every Uplink
   // (same "topics with no snapshot entry are simply never sent" convention
   // as the rest of this file: see the module doc comment).

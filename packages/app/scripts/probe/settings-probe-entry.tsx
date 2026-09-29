@@ -23,6 +23,11 @@ import { ThemeProvider } from "styled-components";
 import { SettingsProvider } from "../../src/settings/SettingsContext";
 import { SettingsModal } from "../../src/settings/SettingsModal";
 import { SettingsService } from "../../src/settings/SettingsService";
+import {
+  __resetUplinkOutcomes,
+  setUplinkOutcome,
+  type UplinkLoadOutcome,
+} from "../../src/uplinks/loaderState";
 
 /**
  * Browser entry for the settings-surface render harness. esbuild bundles it
@@ -74,6 +79,8 @@ interface Scene {
   screen?: "main" | "station";
   /** Whether KSP reads as connected, which is what lets a KSP setting be changed. */
   connected?: boolean;
+  /** What the runtime loader recorded for each Uplink's client. */
+  outcomes?: UplinkLoadOutcome[];
 }
 
 /**
@@ -139,6 +146,9 @@ async function renderScene(scene: Scene): Promise<void> {
   registerDataSource(
     sitrepSource(scene.connected ? "connected" : "disconnected"),
   );
+
+  __resetUplinkOutcomes();
+  for (const outcome of scene.outcomes ?? []) setUplinkOutcome(outcome);
 
   const service = new SettingsService(memoryStorage());
   for (const [id, v] of Object.entries(scene.prefs ?? {})) {

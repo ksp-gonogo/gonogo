@@ -1,49 +1,26 @@
 import {
   getSettingsTabsForScreen,
-  NO_TELEMETRY_HOST_MESSAGE,
   useDataSources,
   useScreen,
   useTelemetry,
-  useTelemetryHostDown,
 } from "@ksp-gonogo/core";
 import {
   SerialDevicesMenu,
   useSerialAggregateStatus,
 } from "@ksp-gonogo/serial";
-import type {
-  SystemUplinkHealth,
-  UplinkHealthEntry,
-  UplinkHealthStateName,
-} from "@ksp-gonogo/sitrep-client";
-import { useStream } from "@ksp-gonogo/sitrep-client";
 import { SettingsPersistenceState } from "@ksp-gonogo/sitrep-sdk";
-import {
-  GhostButton,
-  Placeholder,
-  Switch,
-  type TabDescriptor,
-  Tabs,
-} from "@ksp-gonogo/ui";
-import { Badge, NULL_DISPLAY, SectionTitle, Stack } from "@ksp-gonogo/ui-kit";
-import { Fragment, useState, useSyncExternalStore } from "react";
+import { Switch, type TabDescriptor, Tabs } from "@ksp-gonogo/ui";
+import { SectionTitle, Stack } from "@ksp-gonogo/ui-kit";
+import { useState, useSyncExternalStore } from "react";
 import styled from "styled-components";
 import { analyticsConsentService } from "../analytics/AnalyticsConsentService";
 import { BackupManager } from "../backup/BackupManager";
 import { LogsManager } from "../logs/LogsManager";
-import { revokeConsent } from "../uplinks/consent";
-import {
-  getUplinkOutcomes,
-  subscribeUplinkOutcomes,
-  type UplinkLoadStatus,
-} from "../uplinks/loaderState";
-import { UplinkIdentityBlock } from "../uplinks/UplinkIdentityBlock";
-import { UplinkIntegrityDetail } from "../uplinks/UplinkIntegrityDetail";
-import { UplinkSkewOverride } from "../uplinks/UplinkSkewOverride";
 import { GonogoSettings } from "./GonogoSettings";
 import type { SettingDefinition } from "./registry";
 import { getSettingsForScreen } from "./registry";
 import { bucketBy, CategoryRows } from "./SettingRows";
-import { ConnectionRow, Name, SitrepConnection } from "./SitrepConnection";
+import { SitrepConnection } from "./SitrepConnection";
 import {
   Empty,
   RowDesc,
@@ -55,8 +32,7 @@ import {
 import { UplinksSettings, useUplinkPages } from "./UplinksSettings";
 
 export interface SettingsModalProps {
-  /** Force the initially-active tab (e.g. "data-sources" for the first-run
-   * auto-open host). Defaults to the existing attention-first selection. */
+  /** The tab to open on, such as "connection". Otherwise the first tab asking for attention. */
   initialTabId?: string;
 }
 
@@ -77,31 +53,19 @@ export function SettingsModal({ initialTabId }: SettingsModalProps = {}) {
   // screen owns its own boot. Stations follow the host's consent over PeerJS
   // and have no local control.
   const showConsent = screen !== "station";
-  // Data-source management belongs to whichever screen holds its OWN telemetry
-  // session. A station follows the host over PeerJS and has nothing to manage;
-  // a PILOT holds its own direct connection to the mod, so this is exactly
-  // where it configures the Sitrep host. Gating on `=== "main"` would lock a
-  // pilot out of its own connection settings.
-  const showDataSources = screen !== "station";
+  /*
+   * The connection belongs to whichever screen holds its own telemetry session.
+   * A station follows the host over PeerJS and has nothing to manage; a pilot
+   * holds its own direct connection to the mod, so gating on the main screen
+   * would lock a pilot out of its own host setting.
+   */
+  const showConnection = screen !== "station";
 
-  // Data Sources now leads with the single Gonogo/Sitrep connection (no
-  // more "Other Connections" list of every registered DataSource; see
-  // DataSourcesPanel) plus per-Uplink health rows fed by the mod-side
-  // self-report (system.uplinkHealth). The tab's attention dot reflects
-  // both: the stream connection itself, and any Uplink reporting worse
-  // than Healthy.
-  const dataSources = useDataSources();
-  const sitrepSource = dataSources.find((s) => s.id === "sitrep");
-  const healthReading = useStream<SystemUplinkHealth>("system.uplinkHealth");
-  const uplinkIssue =
-    healthReading.state === "observed" || healthReading.state === "stale"
-      ? healthReading.value.uplinks.some((u) => u.health.state !== "healthy")
-      : false;
-  const dataSourceIssue =
-    showDataSources &&
+  const sitrepSource = useDataSources().find((s) => s.id === "sitrep");
+  const connectionIssue =
+    showConnection &&
     (sitrepSource?.status === "disconnected" ||
-      sitrepSource?.status === "error" ||
-      uplinkIssue);
+      sitrepSource?.status === "error");
   const serialStatus = useSerialAggregateStatus();
   const serialIssue = serialStatus === "partial" || serialStatus === "error";
   // The Gonogo tab's dot: the settings file does not hold what is in force, or
@@ -137,12 +101,12 @@ export function SettingsModal({ initialTabId }: SettingsModalProps = {}) {
     ),
     indicator: gonogoIssue,
   });
-  if (showDataSources) {
+  if (showConnection) {
     tabs.push({
-      id: "data-sources",
-      label: "Data Sources",
-      content: <DataSourcesPanel />,
-      indicator: dataSourceIssue,
+      id: "connection",
+      label: "Connection",
+      content: <ConnectionPanel />,
+      indicator: connectionIssue,
     });
   }
   tabs.push({
@@ -164,7 +128,7 @@ export function SettingsModal({ initialTabId }: SettingsModalProps = {}) {
       id: "uplinks",
       label: "Uplinks",
       content: <UplinksSettings pages={uplinkPages} />,
-      indicator: uplinkPages.some((page) => page.undeclared),
+      indicator: uplinkPages.some((page) => page.attention),
     });
   }
   tabs.push({
@@ -178,9 +142,7 @@ export function SettingsModal({ initialTabId }: SettingsModalProps = {}) {
     content: <LogsManager />,
   });
 
-  // An explicit initial tab (e.g. the first-run auto-open host targeting
-  // "data-sources") wins; otherwise open on the first tab that wants
-  // attention, else the first tab.
+  // An explicit initial tab wins; otherwise the first tab that wants attention, else the first tab.
   const [activeId, setActiveId] = useState(
     () =>
       initialTabId ??
@@ -206,15 +168,10 @@ export function SettingsModal({ initialTabId }: SettingsModalProps = {}) {
 }
 
 /**
- * The Data Sources tab. Leads with the single Gonogo/Sitrep connection
- * (host/port config, connect status, setup instructions): the app's sole
- * live telemetry source: then lists every registered mod-side Uplink's
- * self-reported health beneath it. Deliberately does NOT list every registered
- * `DataSource`: stations don't reach this tab (`showDataSources` gates it
- * main-only), and on main there is exactly one telemetry connection to manage,
- * with the per-Uplink rows carrying the finer-grained detail.
+ * The Connection tab: the game host this screen streams from, and whether the
+ * stream is up. Each Uplink's own health is on its page under Uplinks.
  */
-function DataSourcesPanel() {
+function ConnectionPanel() {
   return (
     <SectionStack>
       <Stack as="section" gap="related-comfortable">
@@ -223,177 +180,7 @@ function DataSourcesPanel() {
         </SectionTitle>
         <SitrepConnection />
       </Stack>
-      <Stack as="section" gap="related-comfortable">
-        <SectionTitle as="h3" $rule>
-          Uplink health
-        </SectionTitle>
-        <UplinkHealthList />
-      </Stack>
-      <UplinkLoaderSection />
     </SectionStack>
-  );
-}
-
-/**
- * Loaded Uplink CLIENTS (runtime loader path). Distinct from the Uplinks section
- * above, which reports the mod-side self-report over `system.uplinks`: this
- * reports whether each runtime-loaded client bundle passed the compat gates +
- * integrity check and registered, or was quarantined with a reason (design §2.4:
- * every refusal is legible, never a silent load). The store is empty, and this
- * renders nothing, wherever the loader attempted nothing: a station before its
- * deferred `StationUplinkLoader` pass, a boot with no mod talking and no
- * `?uplinkLoaderIds=` naming ids by hand, or that override with an empty list.
- */
-function UplinkLoaderSection() {
-  const outcomes = useSyncExternalStore(
-    subscribeUplinkOutcomes,
-    getUplinkOutcomes,
-  );
-  if (outcomes.length === 0) return null;
-  return (
-    <Stack as="section" gap="related-comfortable">
-      <SectionTitle as="h3" $rule>
-        Loaded clients
-      </SectionTitle>
-      <UplinkList>
-        {outcomes.map((o) => (
-          <UplinkItem key={o.id}>
-            <ConnectionRow>
-              <LoaderIndicator $status={o.status} />
-              <Name>{o.name}</Name>
-              {o.version && <UplinkVersion>v{o.version}</UplinkVersion>}
-              <LoaderLabel $status={o.status}>{o.status}</LoaderLabel>
-            </ConnectionRow>
-            {o.identity && <UplinkIdentityBlock identity={o.identity} live />}
-            {/* Above the reason string, not instead of it: the reason stays the
-                diagnostic line, this says which KIND of refusal it was. */}
-            {o.integrity && <UplinkIntegrityDetail failure={o.integrity} />}
-            {o.reason && <UplinkDetail>{o.reason}</UplinkDetail>}
-            {/* Renders only for a DECLARATION finding (mod/index skew), never
-                for a measured bytes mismatch: the component asks
-                `isOverridableIntegrityFailure` rather than being gated here. */}
-            <UplinkSkewOverride outcome={o} />
-            {o.status === "quarantined" &&
-              o.reason === "consent declined" &&
-              o.version && (
-                <GhostButton
-                  type="button"
-                  onClick={() => {
-                    revokeConsent(o.id, o.version as string);
-                    window.location.reload();
-                  }}
-                >
-                  Reconsider
-                </GhostButton>
-              )}
-          </UplinkItem>
-        ))}
-      </UplinkList>
-    </Stack>
-  );
-}
-
-/**
- * Per-Uplink health rows, fed by `system.uplinkHealth`: the client-derived
- * reader over the mod's `system.uplinks` self-report (see
- * `@ksp-gonogo/sitrep-client`'s `uplink-health.ts`). Each Uplink reports its
- * OWN health; this never infers readiness from topic staleness.
- */
-function UplinkHealthList() {
-  const hostDown = useTelemetryHostDown();
-  const healthReading = useStream<SystemUplinkHealth>("system.uplinkHealth");
-  const [showHealthy, setShowHealthy] = useState(false);
-
-  if (hostDown) {
-    return <Placeholder>{NO_TELEMETRY_HOST_MESSAGE}</Placeholder>;
-  }
-  if (healthReading.state === "pending" || healthReading.state === "unowned") {
-    return <Placeholder>Waiting for uplink health report...</Placeholder>;
-  }
-  // A held report is still the roster: uplinks do not come and go with the link.
-  const uplinkHealth =
-    healthReading.state === "absent" ? null : healthReading.value;
-  if (uplinkHealth === null || uplinkHealth.uplinks.length === 0) {
-    return <Placeholder>No uplinks registered</Placeholder>;
-  }
-
-  // Health is mandatory (every uplink self-reports). Collapse a
-  // plain "Healthy, nothing to say" entry into the chip below; anything
-  // non-healthy, or healthy-WITH a detail string (an uplink offering more than
-  // the trivial floor), stays individually visible.
-  const collapsible = uplinkHealth.uplinks.filter(
-    (u) => u.health.state === "healthy" && u.health.detail === null,
-  );
-  const alwaysVisible = uplinkHealth.uplinks.filter(
-    (u) => !(u.health.state === "healthy" && u.health.detail === null),
-  );
-
-  return (
-    <UplinkList>
-      {alwaysVisible.map((entry) => (
-        <UplinkRow key={entry.id} entry={entry} />
-      ))}
-      {collapsible.length > 0 && (
-        <HealthySummaryItem>
-          <HealthySummaryRow>
-            <Badge severity="nominal">
-              {collapsible.length}/{uplinkHealth.uplinks.length} healthy
-            </Badge>
-            <GhostButton
-              type="button"
-              aria-expanded={showHealthy}
-              aria-controls="uplink-healthy-list"
-              onClick={() => setShowHealthy((v) => !v)}
-            >
-              {showHealthy ? "Hide" : "Show"}
-            </GhostButton>
-          </HealthySummaryRow>
-          {showHealthy && (
-            <UplinkList id="uplink-healthy-list">
-              {collapsible.map((entry) => (
-                <UplinkRow key={entry.id} entry={entry} />
-              ))}
-            </UplinkList>
-          )}
-        </HealthySummaryItem>
-      )}
-    </UplinkList>
-  );
-}
-
-function UplinkRow({ entry }: { entry: UplinkHealthEntry }) {
-  const detail =
-    entry.health.detail ?? (!entry.available ? entry.reason : null);
-  return (
-    <UplinkItem>
-      <ConnectionRow>
-        <HealthIndicator $state={entry.health.state} />
-        <Name>{entry.id}</Name>
-        <UplinkVersion>v{entry.version}</UplinkVersion>
-        <HealthLabel $state={entry.health.state}>
-          {entry.health.state}
-        </HealthLabel>
-      </ConnectionRow>
-      {detail && <UplinkDetail>{detail}</UplinkDetail>}
-      {/* A description list rather than more detail text: these are the identity
-          of whatever the Uplink depends on (a file, a build, a hash), and what an
-          operator does with them is copy one into a bug report. Labels the Uplink
-          wrote, values the Uplink wrote, and nothing here knows what any of them
-          mean. */}
-      {entry.health.facts.length > 0 && (
-        <UplinkFacts>
-          {entry.health.facts.map((fact) => (
-            <Fragment key={fact.label}>
-              <UplinkFactLabel>{fact.label}</UplinkFactLabel>
-              {/* An unestablished fact reads as the null placeholder rather
-                  than as a blank, which an operator scans past as an alignment
-                  gap. */}
-              <UplinkFactValue>{fact.value ?? NULL_DISPLAY}</UplinkFactValue>
-            </Fragment>
-          ))}
-        </UplinkFacts>
-      )}
-    </UplinkItem>
   );
 }
 
@@ -466,128 +253,10 @@ const Wrap = styled.div`
   display: flex;
   flex-direction: column;
   /* Give the tab system a workable box: wide enough for the embedded
-     Data Sources / Devices / Diagnostics panels, and a height so a tall
+     Connection / Devices / Diagnostics panels, and a height so a tall
      panel scrolls within the modal rather than stretching it unbounded. */
   min-width: 460px;
   max-width: 80vw;
   height: min(70vh, 640px);
   min-height: 0;
-`;
-
-// --- Data Sources tab (per-Uplink health; ConnectionRow/Name come from
-// SitrepConnection.tsx, shared with the single Gonogo/Sitrep connection
-// row) ---
-
-const UplinkList = styled.ul`
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-related);
-`;
-
-const HealthySummaryItem = styled.li`
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-related);
-`;
-
-const HealthySummaryRow = styled.div`
-  display: flex;
-  align-items: center;
-  gap: var(--gap-related);
-  padding: var(--inset-settings-row);
-`;
-
-const UplinkItem = styled.li`
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-related);
-`;
-
-const UplinkVersion = styled.span`
-  font-size: var(--font-size-compact);
-  color: var(--color-text-faint);
-  white-space: nowrap;
-`;
-
-const uplinkHealthColor: Record<UplinkHealthStateName, string> = {
-  healthy: "var(--color-accent-fg)",
-  degraded: "var(--color-status-warning-bg)",
-  unavailable: "var(--color-status-nogo-bg)",
-};
-
-const HealthIndicator = styled.span<{ $state: UplinkHealthStateName }>`
-  width: 8px;
-  height: 8px;
-  border-radius: var(--radius-circle);
-  flex-shrink: 0;
-  background: ${({ $state }) => uplinkHealthColor[$state]};
-`;
-
-const HealthLabel = styled.span<{ $state: UplinkHealthStateName }>`
-  font-size: var(--font-size-caption);
-  color: ${({ $state }) => uplinkHealthColor[$state]};
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-`;
-
-const UplinkDetail = styled.span`
-  font-size: var(--font-size-compact);
-  color: var(--color-text-dim);
-  margin-left: var(--indent-settings);
-  /* A rich self-reported detail can be long or multi-line (an uplink that offers
-     more than the trivial floor, e.g. "3 cameras" / "no comms backend elected");
-     render the full string, wrapping cleanly and honouring any line breaks it
-     carries, rather than truncating it. */
-  display: block;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  line-height: var(--line-height-body);
-`;
-
-const UplinkFacts = styled.dl`
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: var(--gap-readout-row) var(--gap-label-value);
-  margin: 0 0 0 var(--indent-settings);
-  font-size: var(--font-size-compact);
-`;
-
-const UplinkFactLabel = styled.dt`
-  color: var(--color-text-faint);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  white-space: nowrap;
-`;
-
-const UplinkFactValue = styled.dd`
-  margin: 0;
-  color: var(--color-text-dim);
-  /* A path or a SHA has no spaces to wrap at and would otherwise push the modal
-     wide; breaking anywhere keeps the column its share of the row. */
-  overflow-wrap: anywhere;
-`;
-
-const loaderStatusColor: Record<UplinkLoadStatus, string> = {
-  loading: "var(--color-status-warning-bg)",
-  loaded: "var(--color-accent-fg)",
-  quarantined: "var(--color-status-nogo-bg)",
-};
-
-const LoaderIndicator = styled.span<{ $status: UplinkLoadStatus }>`
-  width: 8px;
-  height: 8px;
-  border-radius: var(--radius-circle);
-  flex-shrink: 0;
-  background: ${({ $status }) => loaderStatusColor[$status]};
-`;
-
-const LoaderLabel = styled.span<{ $status: UplinkLoadStatus }>`
-  font-size: var(--font-size-caption);
-  color: ${({ $status }) => loaderStatusColor[$status]};
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
 `;

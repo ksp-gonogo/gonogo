@@ -1,18 +1,14 @@
 /**
- * Data sources are host-only. The main screen owns the KSP data sources and
- * surfaces them through the Settings FAB's "Data Sources" tab (the standalone
- * Data Sources FAB and dashboard widget were both retired when settings was
- * folded into one tabbed modal). Stations (which only consume the host's data
- * over PeerJS) have no data-source panel of their own.
+ * The game connection is host-only. The main screen owns the Sitrep stream and
+ * surfaces it through the Settings FAB's "Connection" tab; stations, which
+ * only consume the host's data over PeerJS, have no connection of their own.
  *
- * This boots the main screen, opens Settings → Data Sources, and asserts the
+ * This boots the main screen, opens Settings → Connection, and asserts the
  * `sitrep` row (`SitrepStreamDataSource`, named "Telemetry stream": a thin
  * status/config front over the live `WebSocketTransport`
  * `SitrepTelemetryProvider` owns, see `packages/app/src/dataSources/sitrep.ts`)
  * reports "connected": exercising the host's Sitrep stream path end to end
- * against the replay server. The old buffered `data` row
- * this test used to check no longer exists, that `DataSource` was deleted in
- * `806e7fe2` once the Sitrep stream became the app's only telemetry source.
+ * against the replay server.
  */
 import { expect, test } from "@playwright/test";
 import { PORTS } from "../../../playwright.config";
@@ -23,8 +19,8 @@ const SITREP_CONFIG = JSON.stringify({
   port: PORTS.sitrepReplay,
 });
 
-test.describe("Settings: Data Sources tab: main screen", () => {
-  test("data source row shows connected in the Data Sources tab", async ({
+test.describe("Settings: Connection tab: main screen", () => {
+  test("the stream row shows connected in the Connection tab", async ({
     browser,
   }) => {
     const context = await browser.newContext();
@@ -58,26 +54,23 @@ test.describe("Settings: Data Sources tab: main screen", () => {
     await fab.focus();
     await fab.click();
 
-    // Data-source management now lives behind the "Data Sources" tab in the
-    // Settings modal. The tab auto-opens when a source is offline, but select
-    // it explicitly so the test is deterministic regardless of env state.
-    await page.getByRole("tab", { name: "Data Sources" }).click();
+    /*
+     * The tab auto-opens when the stream is offline, but select it explicitly
+     * so the test is deterministic regardless of env state.
+     */
+    await page.getByRole("tab", { name: "Connection" }).click();
 
-    // The panel (`DataSourcesPanel` in SettingsModal.tsx) leads with the
-    // single Gonogo/Sitrep connection row (`SitrepConnection`, a styled
-    // `<div>`: not an `<li>`; the per-Uplink health list below it is the
-    // only `<li>`-based list now) followed by per-Uplink health rows. Scope
-    // to the tabpanel so a visible "Telemetry stream" name is proof the tab
-    // opened and the row rendered. "connected" (exact) only ever labels the
-    // Sitrep row here (Uplink rows report health states, healthy/degraded/
-    // unavailable, never "connected"), so asserting it within the panel is
-    // an unambiguous stand-in for "that row's status".
-    const dataSourcesPanel = page.getByRole("tabpanel");
+    /*
+     * The panel holds only the game host row (`SitrepConnection`), so a visible
+     * "Telemetry stream" name inside it is proof the tab opened and the row
+     * rendered, and "connected" (exact) can only be that row's status.
+     */
+    const connectionPanel = page.getByRole("tabpanel");
     await expect(
-      dataSourcesPanel.getByText("Telemetry stream", { exact: true }),
+      connectionPanel.getByText("Telemetry stream", { exact: true }),
     ).toBeVisible({ timeout: 30_000 });
     await expect(
-      dataSourcesPanel.getByText("connected", { exact: true }),
+      connectionPanel.getByText("connected", { exact: true }),
     ).toBeVisible({ timeout: 30_000 });
 
     await page.close();

@@ -15,9 +15,9 @@ import {
 
 /**
  * A thin `DataSource`-shaped FRONT for the Sitrep telemetry stream, so it
- * shows up in the Settings modal's Data Sources panel with the same
- * connected/disconnected pill, Reconnect button and host/port config form
- * every other source gets, no bespoke settings UI needed.
+ * shows up in the Settings modal's Connection tab with the generic
+ * connected/disconnected pill, Reconnect button and host/port config form,
+ * no bespoke settings UI needed.
  *
  * IMPORTANT: this is a status/config front, not a data path. Sitrep topics
  * never route through this source's `subscribe()`: `useTelemetry` reads

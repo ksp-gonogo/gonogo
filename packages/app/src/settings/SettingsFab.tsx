@@ -14,14 +14,12 @@ import { SettingsModal } from "./SettingsModal";
  * Settings FAB: the modal portal renders outside this provider tree, so we
  * capture the services here at the call site and re-wrap inside the modal,
  * including `ModalTelemetryBridge`, which re-provides the live Sitrep
- * telemetry context the Data Sources tab's `UplinkHealthList` needs (see that
- * component's own doc comment for why the modal portal doesn't inherit it
- * automatically).
+ * telemetry context every Uplink page's health report reads.
  *
- * Data-source management and serial-device management live inside the
- * Settings modal, so this one button carries the aggregate "something in here
- * needs attention" badge: an offline data source or a dropped serial device
- * lights it, mirroring the per-tab dots.
+ * The connection and serial devices are managed inside the Settings modal, so
+ * this one button carries the aggregate "something in here needs attention"
+ * badge: an offline data source or a dropped serial device lights it,
+ * mirroring the per-tab dots.
  */
 export function SettingsFab({ bottom = 384 }: { bottom?: number } = {}) {
   const { open } = useModal();
