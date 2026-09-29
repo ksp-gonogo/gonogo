@@ -1,4 +1,4 @@
-import { ScrollArea } from "@ksp-gonogo/ui-kit";
+import { ScrollArea, SearchBox } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 
 /** Collapses when there is no encounter or apsis data. */
@@ -49,18 +49,8 @@ export const CurrentSummaryMeta = styled.div`
   letter-spacing: 0.04em;
 `;
 
-export const FilterInput = styled.input`
+export const FilterBox = styled(SearchBox)`
   margin-top: var(--gap-related-compact);
-  font-size: var(--font-size-value);
-  padding: var(--inset-control);
-  background: var(--color-surface-app);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-regular);
-  color: var(--color-text-primary);
-  &:focus-visible {
-    outline: 2px solid var(--color-accent-fg);
-    outline-offset: 2px;
-  }
 `;
 
 export const ListScroll = styled(ScrollArea)`

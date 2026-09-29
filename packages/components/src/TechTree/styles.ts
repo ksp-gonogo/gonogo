@@ -24,7 +24,9 @@ export const Controls = styled.div`
   gap: var(--gap-related);
   /* No horizontal inset: Panel.Body already aligns the pills with the title. */
   padding-bottom: var(--gap-related-compact);
-  flex-shrink: 0;
+  /* The toolbar's whole row, or the pills keep their one-line width and push the search box past the tile. */
+  flex: 0 0 100%;
+  min-width: 0;
 `;
 
 export const FilterBar = styled.div`
@@ -48,25 +50,6 @@ export const FilterBtn = styled.button<{ $active: boolean }>`
 
   &:hover {
     color: var(--color-text-primary);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--color-accent-fg);
-    outline-offset: 2px;
-  }
-`;
-
-export const SearchInput = styled.input`
-  background: var(--color-surface-sunken);
-  border: 1px solid var(--color-border-strong);
-  color: var(--color-text-primary);
-  font: inherit;
-  padding: var(--inset-control);
-  border-radius: var(--radius-regular);
-  outline: none;
-
-  &:focus {
-    border-color: var(--color-accent-fg);
   }
 
   &:focus-visible {

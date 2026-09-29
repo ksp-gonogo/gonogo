@@ -1,6 +1,6 @@
 import type { Value } from "@ksp-gonogo/sitrep-sdk";
 import type { CommandButtonHandle, UnitValue } from "@ksp-gonogo/ui-kit";
-import { Panel, Section, Unit } from "@ksp-gonogo/ui-kit";
+import { Panel, SearchBox, Section, Unit } from "@ksp-gonogo/ui-kit";
 import { useMemo, useState } from "react";
 import { DetailPanel } from "./DetailPanel";
 import {
@@ -20,7 +20,6 @@ import {
   LegendItem,
   NodeList,
   SciReadout,
-  SearchInput,
   Swatch,
   TechMeta,
 } from "./styles";
@@ -190,11 +189,10 @@ export function TechTreeView({
                   <Swatch $kind="locked" /> Locked
                 </LegendItem>
               </Legend>
-              <SearchInput
-                type="search"
+              <SearchBox
                 placeholder="Highlight by name..."
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={setQuery}
                 aria-label="Highlight tech nodes by text"
               />
             </GraphToolbar>
@@ -275,11 +273,10 @@ export function TechTreeView({
               Unlocked
             </FilterBtn>
           </FilterBar>
-          <SearchInput
-            type="search"
+          <SearchBox
             placeholder="Filter by name or description..."
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={setQuery}
             aria-label="Filter tech nodes by text"
           />
         </Controls>

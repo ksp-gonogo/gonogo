@@ -21,7 +21,7 @@ import {
   CompactCurrent,
   CompactDistance,
   CompactName,
-  FilterInput,
+  FilterBox,
   Hint,
   ListScroll,
   OrbitalEventChipsRow,
@@ -188,11 +188,10 @@ export function TargetPickerComponent({
             closingRateR={closingRateR}
             onClear={clearTarget}
           />
-          <FilterInput
-            type="search"
+          <FilterBox
             placeholder="Filter targets"
             value={filter}
-            onChange={(e) => setFilter(e.target.value)}
+            onChange={setFilter}
             aria-label="Filter targets"
           />
         </Section>,
