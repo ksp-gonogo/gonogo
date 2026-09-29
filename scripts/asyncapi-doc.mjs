@@ -840,7 +840,9 @@ function updateProseDebt({ reseed = false } = {}) {
   }
   const rewritten = source.replace(
     literal,
-    `export const PROSE_DEBT = {\n${body}\n};`,
+    body === ""
+      ? "export const PROSE_DEBT = {};"
+      : `export const PROSE_DEBT = {\n${body}\n};`,
   );
   const total = Object.values(merged).reduce((sum, n) => sum + n, 0);
   if (rewritten === source) {
