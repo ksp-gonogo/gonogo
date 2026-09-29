@@ -238,8 +238,6 @@ export function MainScreen({
    * somebody else's and this screen must not build one.
    */
   const hostsThePeerMesh = screen !== "pilot";
-  const { scene, inFlight, hasGameSignal } = useGameContext();
-  const dashboard = useDashboardState(dashboardKeyForScene(scene), DEMO_CONFIG);
   const [serialService] = useState(
     () => new SerialDeviceService({ screenKey: screen }),
   );
@@ -276,16 +274,6 @@ export function MainScreen({
   // it in sync. MAIN-ONLY: StationScreen never calls this, so station
   // tones stay structurally impossible. Default ON.
   useEffect(() => initSoundSettings(settingsService), [settingsService]);
-
-  useEffect(() => {
-    const dispatcher = new InputDispatcher({
-      service: serialService,
-      getItems: dashboard.getItems,
-    });
-    return () => {
-      dispatcher.dispose();
-    };
-  }, [serialService, dashboard.getItems]);
 
   useEffect(() => {
     // Auto-reopen previously-authorised serial ports on load. Silent no-op
@@ -354,7 +342,7 @@ export function MainScreen({
             />
             <FirstRunSetupHost analyticsConsent={analyticsConsentService} />
             <ConsoleSettingsFromHost service={settingsService} />
-            <AutoRecordControllerWithMissionHistory scene={scene} />
+            <AutoRecordControllerWithMissionHistory />
             <AlarmHostProvider service={alarmHost}>
               {/*
                * So a deliberate press on this screen's own warp control does
@@ -378,124 +366,15 @@ export function MainScreen({
                                   store={coverageMaskStore}
                                 >
                                   <SerialDeviceProvider service={serialService}>
-                                    <OverlayProvider
-                                      addItem={dashboard.addItem}
-                                      updateItemConfig={
-                                        dashboard.updateItemConfig
-                                      }
-                                    >
-                                      <MainAlarmsLauncherScope>
-                                        <Layout
-                                          as="main"
-                                          aria-label="Mission control"
-                                        >
-                                          <UplinkIntegrityBanner />
-                                          <MissionBanner />
-                                          {screen === "pilot" && !inFlight ? (
-                                            <NoActiveVessel
-                                              hasGameSignal={hasGameSignal}
-                                              scene={scene}
-                                            />
-                                          ) : null}
-                                          <Dashboard
-                                            items={dashboard.items}
-                                            layouts={dashboard.layouts}
-                                            currentLayouts={
-                                              dashboard.currentLayouts
-                                            }
-                                            breakpoint={dashboard.breakpoint}
-                                            onLayoutChange={
-                                              dashboard.handleLayoutChange
-                                            }
-                                            onBreakpointChange={
-                                              dashboard.handleBreakpointChange
-                                            }
-                                            updateItemConfig={
-                                              dashboard.updateItemConfig
-                                            }
-                                            updateItemMappings={
-                                              dashboard.updateItemMappings
-                                            }
-                                            updateItemMobileWidth={
-                                              dashboard.updateItemMobileWidth
-                                            }
-                                            updateItemMobileHeight={
-                                              dashboard.updateItemMobileHeight
-                                            }
-                                            removeItem={dashboard.removeItem}
-                                            moveItemUp={dashboard.moveItemUp}
-                                            moveItemDown={
-                                              dashboard.moveItemDown
-                                            }
-                                            lastAddedId={dashboard.lastAddedId}
-                                            clearLastAdded={
-                                              dashboard.clearLastAdded
-                                            }
-                                          />
-                                          <FabClusterProvider>
-                                            <ComponentOverlay
-                                              currentLayouts={
-                                                dashboard.currentLayouts
-                                              }
-                                            />
-                                            <FlightsFabWithMissionHistory />
-                                            <SerialPortRecoveryWatcher />
-                                            <StationLinkFab />
-                                            <FullscreenFab bottom={204} />
-                                            <SettingsFab bottom={264} />
-                                            <MissionProfilesFab
-                                              bottom={324}
-                                              currentItems={dashboard.items}
-                                              currentLayouts={dashboard.layouts}
-                                              onLoad={(p) =>
-                                                dashboard.replaceState(
-                                                  p.items,
-                                                  p.layouts,
-                                                )
-                                              }
-                                            />
-                                            <MainAlarmsFab />
-                                          </FabClusterProvider>
-                                          <ReplaySessionBanner />
-                                          <BannerStack>
-                                            {/* BannerStack is row-reverse,
-                                        first DOM child sits closest
-                                        to the FAB. AlarmBanner stays
-                                        adjacent; per-concern pills
-                                        (safety margin, fired alarms,
-                                        unscheduled warp) stack to its
-                                        left as separate single-row
-                                        pills. */}
-                                            <AlarmBanner />
-                                            <SafetyMarginPill />
-                                            <FiredAlarmPills />
-                                            <UnscheduledWarpPill />
-                                            <AlarmsCancelledPill />
-                                            <HeaderBadges />
-                                            <SignalLossIndicator />
-                                            <SustainedFailureBanner />
-                                            <SceneChangeBanner />
-                                            <FlightOutcomeBanner />
-                                            <HomeFallbackNotice />
-                                            <SceneSwitchPrompt
-                                              onLoad={(items, layouts) =>
-                                                dashboard.replaceState(
-                                                  items,
-                                                  layouts,
-                                                )
-                                              }
-                                            />
-                                          </BannerStack>
-                                          <PushedDashboardOverlay />
-                                        </Layout>
-                                      </MainAlarmsLauncherScope>
-                                    </OverlayProvider>
+                                    <MainDashboard
+                                      screen={screen}
+                                      serialService={serialService}
+                                    />
                                   </SerialDeviceProvider>
                                 </CoverageMaskCacheProvider>
                               </PushHostProvider>
                             </GoNoGoHostProvider>
                           </MissionProfilesProvider>
-                          ,
                         </RootProviders>
                       </ManeuverTriggerProvider>
                     </CommcastLogProviderOrPassthrough>
@@ -507,6 +386,112 @@ export function MainScreen({
         </ScreenProvider>
       </ReplaySessionProvider>
     </SitrepTelemetryProvider>
+  );
+}
+
+/**
+ * The scene-keyed dashboard and everything that edits it.
+ *
+ * Split out of `MainScreen` because the scene is a telemetry read, and
+ * `MainScreen` renders the `SitrepTelemetryProvider` rather than sitting under
+ * it: read there, the scene never left `"Unknown"`, so the screen stayed on
+ * the base layout in every scene.
+ */
+function MainDashboard({
+  screen,
+  serialService,
+}: {
+  screen: Screen;
+  serialService: SerialDeviceService;
+}) {
+  const { scene, inFlight, hasGameSignal } = useGameContext();
+  const dashboard = useDashboardState(dashboardKeyForScene(scene), DEMO_CONFIG);
+
+  useEffect(() => {
+    const dispatcher = new InputDispatcher({
+      service: serialService,
+      getItems: dashboard.getItems,
+    });
+    return () => {
+      dispatcher.dispose();
+    };
+  }, [serialService, dashboard.getItems]);
+
+  return (
+    <OverlayProvider
+      addItem={dashboard.addItem}
+      updateItemConfig={dashboard.updateItemConfig}
+    >
+      <MainAlarmsLauncherScope>
+        <Layout as="main" aria-label="Mission control">
+          <UplinkIntegrityBanner />
+          <MissionBanner />
+          {screen === "pilot" && !inFlight ? (
+            <NoActiveVessel hasGameSignal={hasGameSignal} scene={scene} />
+          ) : null}
+          <Dashboard
+            items={dashboard.items}
+            layouts={dashboard.layouts}
+            currentLayouts={dashboard.currentLayouts}
+            breakpoint={dashboard.breakpoint}
+            onLayoutChange={dashboard.handleLayoutChange}
+            onBreakpointChange={dashboard.handleBreakpointChange}
+            updateItemConfig={dashboard.updateItemConfig}
+            updateItemMappings={dashboard.updateItemMappings}
+            updateItemMobileWidth={dashboard.updateItemMobileWidth}
+            updateItemMobileHeight={dashboard.updateItemMobileHeight}
+            removeItem={dashboard.removeItem}
+            moveItemUp={dashboard.moveItemUp}
+            moveItemDown={dashboard.moveItemDown}
+            lastAddedId={dashboard.lastAddedId}
+            clearLastAdded={dashboard.clearLastAdded}
+          />
+          <FabClusterProvider>
+            <ComponentOverlay currentLayouts={dashboard.currentLayouts} />
+            <FlightsFabWithMissionHistory />
+            <SerialPortRecoveryWatcher />
+            <StationLinkFab />
+            <FullscreenFab bottom={204} />
+            <SettingsFab bottom={264} />
+            <MissionProfilesFab
+              bottom={324}
+              currentItems={dashboard.items}
+              currentLayouts={dashboard.layouts}
+              onLoad={(p) => dashboard.replaceState(p.items, p.layouts)}
+            />
+            <MainAlarmsFab />
+          </FabClusterProvider>
+          <ReplaySessionBanner />
+          <BannerStack>
+            {/* BannerStack is row-reverse,
+                                        first DOM child sits closest
+                                        to the FAB. AlarmBanner stays
+                                        adjacent; per-concern pills
+                                        (safety margin, fired alarms,
+                                        unscheduled warp) stack to its
+                                        left as separate single-row
+                                        pills. */}
+            <AlarmBanner />
+            <SafetyMarginPill />
+            <FiredAlarmPills />
+            <UnscheduledWarpPill />
+            <AlarmsCancelledPill />
+            <HeaderBadges />
+            <SignalLossIndicator />
+            <SustainedFailureBanner />
+            <SceneChangeBanner />
+            <FlightOutcomeBanner />
+            <HomeFallbackNotice />
+            <SceneSwitchPrompt
+              onLoad={(items, layouts) =>
+                dashboard.replaceState(items, layouts)
+              }
+            />
+          </BannerStack>
+          <PushedDashboardOverlay />
+        </Layout>
+      </MainAlarmsLauncherScope>
+    </OverlayProvider>
   );
 }
 
@@ -534,19 +519,14 @@ function FlightsFabWithMissionHistory() {
  * lifecycle (see that component's own doc comment for the flight-boundary
  * approach), for the app's lifetime. Same settings-bridging need as
  * `FlightsFabWithMissionHistory` above: `@ksp-gonogo/data` has no access to
- * this app's `SettingsService`. `scene` is passed down rather than read via
- * a second `useGameContext()` call: `MainScreen` already calls it once
- * (for the per-scene dashboard key) and this wrapper reuses that value.
+ * this app's `SettingsService`.
  *
  * Deliberately main-only by construction: this is only ever rendered from
  * `MainScreen`'s own JSX, never `StationScreen`'s: there is no separate
  * `isMain` gate to get wrong.
  */
-function AutoRecordControllerWithMissionHistory({
-  scene,
-}: {
-  scene: GameScene;
-}) {
+function AutoRecordControllerWithMissionHistory() {
+  const { scene } = useGameContext();
   const { missionHistoryEnabled, recordAllTopics, videoRecordingEnabled } =
     useMissionHistorySettings();
   return (

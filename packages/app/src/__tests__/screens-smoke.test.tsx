@@ -12,7 +12,8 @@
 
 import { clearRegistry, ErrorBoundary } from "@ksp-gonogo/core";
 import "@ksp-gonogo/components"; // self-register the built-in components
-import { render, screen } from "@ksp-gonogo/test-utils";
+import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
+import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { ModalProvider } from "@ksp-gonogo/ui";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ANALYTICS_CONSENT_KEY } from "../analytics/AnalyticsConsentService";
@@ -95,6 +96,32 @@ describe("MainScreen smoke", () => {
     expect(screen.getByRole("status")).toHaveTextContent(
       "Command centre vantage: Unknown",
     );
+  });
+
+  it("swaps to the Space Center layout when the stream says the game is at KSC", async () => {
+    localStorage.setItem(
+      "gonogo:dashboard:main:SpaceCenter",
+      JSON.stringify({
+        items: [{ i: "warp", componentId: "warp-control" }],
+        layouts: { lg: [{ i: "warp", x: 0, y: 0, w: 4, h: 4 }] },
+      }),
+    );
+    const transport = new StubTransport();
+    const { container } = renderScreen(<MainScreen transport={transport} />);
+    expect(container.querySelector('[data-i="orbit"]')).not.toBeNull();
+    expect(container.querySelector('[data-i="warp"]')).toBeNull();
+
+    await waitFor(() =>
+      expect(transport.isSubscribed("spaceCenter.scene")).toBe(true),
+    );
+    await act(async () => {
+      transport.emit("spaceCenter.scene", { scene: "SpaceCenter" });
+    });
+
+    await waitFor(() =>
+      expect(container.querySelector('[data-i="warp"]')).not.toBeNull(),
+    );
+    expect(container.querySelector('[data-i="orbit"]')).toBeNull();
   });
 
   it("hides the dashboard behind the analytics consent gate until it is answered", () => {
