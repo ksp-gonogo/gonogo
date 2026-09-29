@@ -6,16 +6,17 @@ import { StrategiesComponent } from "./index";
 
 /**
  * What a strategy card may claim about what activating it costs. Three zero
- * stock cost fields say those three are zero and nothing more: an RP-1 Program
- * is priced in Confidence, which the record has no field for.
+ * stock cost fields say those three are zero and nothing more: a strategy a
+ * career mod adds may be priced in a currency of its own, which the record has
+ * no field for.
  */
 
 const PROGRAM = {
-  // An RP-1 Program: priced in Confidence, so every stock cost field is zero.
-  id: "EarlyXPlanes",
-  title: "Early X-Planes",
+  // Priced in a currency the record has no field for, so every stock cost field is zero.
+  id: "SurveysHighAltitude",
+  title: "High Altitude Survey",
   description: "Fly high and fast.",
-  departmentName: "Programs",
+  departmentName: "Surveys",
   isActive: false,
   factor: 0,
   dateActivated: 0,
@@ -92,7 +93,7 @@ describe("Strategies: what a card claims activating it costs", () => {
     const { container } = renderWidget();
     emit([PROGRAM]);
 
-    await screen.findByText("Early X-Planes");
+    await screen.findByText("High Altitude Survey");
     expect(container.textContent).not.toContain("No setup cost");
   });
 
@@ -101,7 +102,7 @@ describe("Strategies: what a card claims activating it costs", () => {
     const { container } = renderWidget();
     emit([PROGRAM]);
 
-    await screen.findByText("Early X-Planes");
+    await screen.findByText("High Altitude Survey");
     expect(container.textContent).toContain(
       "No funds, science or rep cost on this record",
     );

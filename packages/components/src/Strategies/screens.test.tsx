@@ -68,9 +68,11 @@ function activeFlag(row: unknown): boolean | undefined {
   return typeof flag === "boolean" ? flag : undefined;
 }
 
+const LOCKED_REASON = "Administrators will unlock once a survey completes.";
+
 describe("resolveScreens", () => {
   it("draws no screens at all when nobody contributes one", () => {
-    expect(resolveScreens([], [parsed("a", "Programs")])).toEqual([]);
+    expect(resolveScreens([], [parsed("a", "Surveys")])).toEqual([]);
   });
 
   it("orders by the stated order, then by contribution order", () => {
@@ -90,68 +92,73 @@ describe("resolveScreens", () => {
 
   it("keeps the first of two screens claiming the same id", () => {
     const entries: StrategiesScreenEntry[] = [
-      { id: "programs", label: "Programs" },
-      { id: "programs", label: "Programmes" },
+      { id: "surveys", label: "Surveys" },
+      { id: "surveys", label: "Survey work" },
     ];
     const screens = resolveScreens(entries, []);
     expect(screens).toHaveLength(1);
-    expect(screens[0].label).toBe("Programs");
+    expect(screens[0].label).toBe("Surveys");
   });
 
   it("lists only the departments a screen claims", () => {
     const screens = resolveScreens(
-      [{ id: "programs", label: "Programs", departments: ["Programs"] }],
-      [parsed("earlySounding", "Programs"), parsed("vonBraun", "Engineering")],
+      [{ id: "surveys", label: "Surveys", departments: ["Surveys"] }],
+      [
+        parsed("surveyPolar", "Surveys"),
+        parsed("designerAster", "Engineering"),
+      ],
     );
-    expect(screens[0].strategies.map((s) => s.id)).toEqual(["earlySounding"]);
+    expect(screens[0].strategies.map((s) => s.id)).toEqual(["surveyPolar"]);
   });
 
   it("sweeps unclaimed strategies into a trailing screen rather than hiding them", () => {
     const screens = resolveScreens(
-      [{ id: "programs", label: "Programs", departments: ["Programs"] }],
+      [{ id: "surveys", label: "Surveys", departments: ["Surveys"] }],
       [
-        parsed("earlySounding", "Programs"),
-        parsed("vonBraun", "Engineering"),
-        parsed("korolev", "Administration"),
+        parsed("surveyPolar", "Surveys"),
+        parsed("designerAster", "Engineering"),
+        parsed("administratorArdent", "Administration"),
       ],
     );
     expect(screens).toHaveLength(2);
     expect(screens[1].strategies.map((s) => s.id)).toEqual([
-      "vonBraun",
-      "korolev",
+      "designerAster",
+      "administratorArdent",
     ]);
   });
 
   it("drops the trailing screen once every department is claimed", () => {
     const screens = resolveScreens(
       [
-        { id: "programs", label: "Programs", departments: ["Programs"] },
-        { id: "leaders", label: "Leaders", departments: ["Engineering"] },
+        { id: "surveys", label: "Surveys", departments: ["Surveys"] },
+        { id: "leads", label: "Leads", departments: ["Engineering"] },
       ],
-      [parsed("earlySounding", "Programs"), parsed("vonBraun", "Engineering")],
+      [
+        parsed("surveyPolar", "Surveys"),
+        parsed("designerAster", "Engineering"),
+      ],
     );
-    expect(screens.map((s) => s.id)).toEqual(["programs", "leaders"]);
+    expect(screens.map((s) => s.id)).toEqual(["surveys", "leads"]);
   });
 
   it("carries a locked screen's reason through", () => {
     const screens = resolveScreens(
       [
         {
-          id: "leaders",
-          label: "Leaders",
+          id: "leads",
+          label: "Leads",
           enabled: false,
-          disabledReason:
-            "Administrators will unlock once you complete the Karman Line contract.",
+          disabledReason: LOCKED_REASON,
         },
       ],
       [],
     );
-    expect(screens[0].lockedReason).toMatch(/Karman Line/);
+    expect(screens[0].lockedReason).toMatch(/unlock once a survey completes/);
   });
 
   it("still says a screen is locked when the contributor gave no reason", () => {
     const screens = resolveScreens(
-      [{ id: "leaders", label: "Leaders", enabled: false }],
+      [{ id: "leads", label: "Leads", enabled: false }],
       [],
     );
     expect(screens[0].lockedReason).toBe("Not available yet");
@@ -160,7 +167,7 @@ describe("resolveScreens", () => {
   it("marks a screen naming no departments as listing nothing", () => {
     const screens = resolveScreens(
       [{ id: "finances", label: "Finances" }],
-      [parsed("earlySounding", "Programs")],
+      [parsed("surveyPolar", "Surveys")],
     );
     expect(screens[0].listsStrategies).toBe(false);
     expect(screens[0].strategies).toEqual([]);
@@ -168,16 +175,19 @@ describe("resolveScreens", () => {
 
   it("marks a screen naming departments as listing them", () => {
     const screens = resolveScreens(
-      [{ id: "programs", label: "Programs", departments: ["Programs"] }],
-      [parsed("earlySounding", "Programs")],
+      [{ id: "surveys", label: "Surveys", departments: ["Surveys"] }],
+      [parsed("surveyPolar", "Surveys")],
     );
     expect(screens[0].listsStrategies).toBe(true);
   });
 
   it("always lists strategies on the trailing unclaimed screen", () => {
     const screens = resolveScreens(
-      [{ id: "programs", label: "Programs", departments: ["Programs"] }],
-      [parsed("earlySounding", "Programs"), parsed("vonBraun", "Engineering")],
+      [{ id: "surveys", label: "Surveys", departments: ["Surveys"] }],
+      [
+        parsed("surveyPolar", "Surveys"),
+        parsed("designerAster", "Engineering"),
+      ],
     );
     expect(screens[1].id).toBe("strategies.unclaimed");
     expect(screens[1].listsStrategies).toBe(true);
@@ -187,12 +197,12 @@ describe("resolveScreens", () => {
     const screens = resolveScreens(
       [
         {
-          id: "programs",
-          label: "Programs",
-          departments: ["Programs"],
+          id: "surveys",
+          label: "Surveys",
+          departments: ["Surveys"],
           drawsOwnActions: true,
         },
-        { id: "leaders", label: "Leaders", departments: ["Engineering"] },
+        { id: "leads", label: "Leads", departments: ["Engineering"] },
       ],
       [],
     );
@@ -255,17 +265,24 @@ function emitCareer(
   });
 }
 
-const RP1_CAREER = [
-  strategy("EarlySoundingRockets", "Programs", {
-    title: "Early Sounding Rockets",
+/**
+ * A career carrying two contributed departments' worth of strategies plus a
+ * locked lead, the shape an Uplink that contributes Administration Building
+ * screens brings. Invented names, the same vocabulary as the planted Uplink
+ * (`scripts/probe/plantedUplink.ts`), so no real mod's roster is copied here.
+ */
+const PLANTED_CAREER = [
+  strategy("SurveysPolarOrbit", "Surveys", { title: "Polar Orbit Survey" }),
+  strategy("SurveysMagnetosphere", "Surveys", {
+    title: "Magnetosphere Survey",
   }),
-  strategy("KarmanLine", "Programs", { title: "Karman Line" }),
-  strategy("leaderKorolev", "Engineering", { title: "Sergei Korolev" }),
-  strategy("leaderLockedAdmin", "Administration", {
-    title: "Reach the Karman Line First",
+  strategy("EngineeringAster", "Engineering", {
+    title: "Chief Designer Aster",
+  }),
+  strategy("AdministrationLocked", "Administration", {
+    title: "Locked Administration",
     canActivate: false,
-    activateBlockedReason:
-      "Administrators will unlock once you complete the Karman Line contract.",
+    activateBlockedReason: LOCKED_REASON,
   }),
 ];
 
@@ -280,30 +297,30 @@ describe("Strategies: the screen contribution slot", () => {
   it("renders no tab strip while nobody contributes a screen", async () => {
     const { stream } = renderWidget();
     act(() => {
-      emitCareer(stream, RP1_CAREER);
+      emitCareer(stream, PLANTED_CAREER);
     });
-    expect(await screen.findByText("Early Sounding Rockets")).toBeTruthy();
+    expect(await screen.findByText("Polar Orbit Survey")).toBeTruthy();
     // Every strategy is on screen, ungrouped.
-    expect(screen.getByText("Sergei Korolev")).toBeTruthy();
+    expect(screen.getByText("Chief Designer Aster")).toBeTruthy();
     expect(screen.queryByRole("tablist")).toBeNull();
   });
 
   it("draws a tab per contributed screen and lists only that screen's departments", async () => {
     registerContribution({
-      id: "test-programs-screen",
+      id: "test-surveys-screen",
       contributes: "strategies.screens",
       compute: () => [
         {
-          id: "programs",
-          label: "Programs",
+          id: "surveys",
+          label: "Surveys",
           order: 10,
-          departments: ["Programs"],
+          departments: ["Surveys"],
         },
       ],
     });
     const { stream } = renderWidget();
     act(() => {
-      emitCareer(stream, RP1_CAREER);
+      emitCareer(stream, PLANTED_CAREER);
     });
 
     const tablist = await screen.findByRole("tablist", {
@@ -313,56 +330,56 @@ describe("Strategies: the screen contribution slot", () => {
       within(tablist)
         .getAllByRole("tab")
         .map((t) => t.textContent),
-    ).toEqual(["Programs", "Other"]);
+    ).toEqual(["Surveys", "Other"]);
 
-    expect(screen.getByText("Early Sounding Rockets")).toBeTruthy();
-    // Leaders belong to no contributed screen, so they are on the trailing one.
-    expect(screen.queryByText("Sergei Korolev")).toBeNull();
+    expect(screen.getByText("Polar Orbit Survey")).toBeTruthy();
+    // Leads belong to no contributed screen, so they are on the trailing one.
+    expect(screen.queryByText("Chief Designer Aster")).toBeNull();
   });
 
   it("keeps the unclaimed strategies reachable on the trailing screen", async () => {
     registerContribution({
-      id: "test-programs-screen",
+      id: "test-surveys-screen",
       contributes: "strategies.screens",
       compute: () => [
-        { id: "programs", label: "Programs", departments: ["Programs"] },
+        { id: "surveys", label: "Surveys", departments: ["Surveys"] },
       ],
     });
     const user = userEvent.setup();
     const { stream } = renderWidget();
     act(() => {
-      emitCareer(stream, RP1_CAREER);
+      emitCareer(stream, PLANTED_CAREER);
     });
     await screen.findByRole("tablist");
 
     await user.click(screen.getByRole("tab", { name: "Other" }));
-    expect(screen.getByText("Sergei Korolev")).toBeTruthy();
-    expect(screen.queryByText("Early Sounding Rockets")).toBeNull();
+    expect(screen.getByText("Chief Designer Aster")).toBeTruthy();
+    expect(screen.queryByText("Polar Orbit Survey")).toBeNull();
   });
 
   it("moves between screens on the arrow keys, per the tablist pattern", async () => {
     registerContribution({
-      id: "test-programs-screen",
+      id: "test-surveys-screen",
       contributes: "strategies.screens",
       compute: () => [
-        { id: "programs", label: "Programs", departments: ["Programs"] },
+        { id: "surveys", label: "Surveys", departments: ["Surveys"] },
       ],
     });
     const user = userEvent.setup();
     const { stream } = renderWidget();
     act(() => {
-      emitCareer(stream, RP1_CAREER);
+      emitCareer(stream, PLANTED_CAREER);
     });
     await screen.findByRole("tablist");
 
-    const programs = screen.getByRole("tab", { name: "Programs" });
-    programs.focus();
+    const surveys = screen.getByRole("tab", { name: "Surveys" });
+    surveys.focus();
     await user.keyboard("{ArrowRight}");
     expect(screen.getByRole("tab", { name: "Other" })).toHaveAttribute(
       "aria-selected",
       "true",
     );
-    expect(programs).toHaveAttribute("aria-selected", "false");
+    expect(surveys).toHaveAttribute("aria-selected", "false");
   });
 
   // A locked screen exists, is reachable and states its reason; an absent one would look like a bundle that failed to load.
@@ -371,34 +388,33 @@ describe("Strategies: the screen contribution slot", () => {
       id: "test-locked-screen",
       contributes: "strategies.screens",
       compute: () => [
-        { id: "programs", label: "Programs", departments: ["Programs"] },
+        { id: "surveys", label: "Surveys", departments: ["Surveys"] },
         {
-          id: "leaders",
-          label: "Leaders",
+          id: "leads",
+          label: "Leads",
           departments: ["Engineering", "Administration"],
           enabled: false,
-          disabledReason:
-            "Administrators will unlock once you complete the Karman Line contract.",
+          disabledReason: LOCKED_REASON,
         },
       ],
     });
     const user = userEvent.setup();
     const { stream } = renderWidget();
     act(() => {
-      emitCareer(stream, RP1_CAREER);
+      emitCareer(stream, PLANTED_CAREER);
     });
     await screen.findByRole("tablist");
 
-    const leaders = screen.getByRole("tab", { name: "Leaders" });
-    expect(leaders).not.toBeDisabled();
+    const leads = screen.getByRole("tab", { name: "Leads" });
+    expect(leads).not.toBeDisabled();
 
-    await user.click(leaders);
-    expect(leaders).toHaveAttribute("aria-selected", "true");
+    await user.click(leads);
+    expect(leads).toHaveAttribute("aria-selected", "true");
     expect(
-      screen.getByText(/Administrators will unlock once you complete/),
+      screen.getByText(/Administrators will unlock once a survey completes/),
     ).toBeTruthy();
     // Locked means locked: none of the screen's own strategies are drawn.
-    expect(screen.queryByText("Sergei Korolev")).toBeNull();
+    expect(screen.queryByText("Chief Designer Aster")).toBeNull();
   });
 
   /*
@@ -409,22 +425,22 @@ describe("Strategies: the screen contribution slot", () => {
    */
   it("draws no divider above a not-yet-available screen body, even on a screen that lists strategies", async () => {
     registerContribution({
-      id: "test-programs-screen",
+      id: "test-surveys-screen",
       contributes: "strategies.screens",
       compute: () => [
-        { id: "programs", label: "Programs", departments: ["Programs"] },
+        { id: "surveys", label: "Surveys", departments: ["Surveys"] },
       ],
     });
     registerAugment({
-      id: "test-programs-body-gated",
+      id: "test-surveys-body-gated",
       augments: "strategies.screen-body",
-      requires: "rp1",
+      requires: "planted",
       component: () => <div data-testid="screen-body">body</div>,
     });
     const availability = createDomainAvailabilityStore();
     const { stream } = renderWidget(availability);
     act(() => {
-      emitCareer(stream, RP1_CAREER);
+      emitCareer(stream, PLANTED_CAREER);
     });
     await screen.findByRole("tablist");
 
@@ -435,14 +451,14 @@ describe("Strategies: the screen contribution slot", () => {
 
   it("composes an augment into the selected screen's body", async () => {
     registerContribution({
-      id: "test-programs-screen",
+      id: "test-surveys-screen",
       contributes: "strategies.screens",
       compute: () => [
-        { id: "programs", label: "Programs", departments: ["Programs"] },
+        { id: "surveys", label: "Surveys", departments: ["Surveys"] },
       ],
     });
     registerAugment({
-      id: "test-programs-body",
+      id: "test-surveys-body",
       augments: "strategies.screen-body",
       component: ({ screenId }: { screenId: string }) => (
         <div data-testid="screen-body">body for {screenId}</div>
@@ -450,13 +466,13 @@ describe("Strategies: the screen contribution slot", () => {
     });
     const { stream } = renderWidget();
     act(() => {
-      emitCareer(stream, RP1_CAREER);
+      emitCareer(stream, PLANTED_CAREER);
     });
     await screen.findByRole("tablist");
 
     await waitFor(() =>
       expect(screen.getByTestId("screen-body")).toHaveTextContent(
-        "body for programs",
+        "body for surveys",
       ),
     );
   });
@@ -464,20 +480,20 @@ describe("Strategies: the screen contribution slot", () => {
   // jsdom lays nothing out, so this asserts the structure: one box carries the screen's inset and everything is inside it.
   it("puts an augment's body inside the same inset box as the widget's own sections", async () => {
     registerContribution({
-      id: "test-programs-screen",
+      id: "test-surveys-screen",
       contributes: "strategies.screens",
       compute: () => [
-        { id: "programs", label: "Programs", departments: ["Programs"] },
+        { id: "surveys", label: "Surveys", departments: ["Surveys"] },
       ],
     });
     registerAugment({
-      id: "test-programs-body",
+      id: "test-surveys-body",
       augments: "strategies.screen-body",
       component: () => <div data-testid="screen-body">body</div>,
     });
     const { container, stream } = renderWidget();
     act(() => {
-      emitCareer(stream, RP1_CAREER);
+      emitCareer(stream, PLANTED_CAREER);
     });
     await screen.findByTestId("screen-body");
 
@@ -494,19 +510,19 @@ describe("Strategies: the screen contribution slot", () => {
   // A one-department tab drops the per-card department chip, which would repeat the tab's name.
   it("drops the department chip on a screen that IS one department, and keeps it on Other", async () => {
     registerContribution({
-      id: "test-programs-screen",
+      id: "test-surveys-screen",
       contributes: "strategies.screens",
       compute: () => [
-        { id: "programs", label: "Programs", departments: ["Programs"] },
+        { id: "surveys", label: "Surveys", departments: ["Surveys"] },
       ],
     });
     const user = userEvent.setup();
     const { stream } = renderWidget();
     act(() => {
-      emitCareer(stream, RP1_CAREER);
+      emitCareer(stream, PLANTED_CAREER);
     });
     await screen.findByRole("tablist");
-    expect(screen.queryByText("Programs", { ignore: "[role=tab]" })).toBeNull();
+    expect(screen.queryByText("Surveys", { ignore: "[role=tab]" })).toBeNull();
 
     // The trailing screen names no department, so there the chip is the only thing that says which is which.
     await user.click(screen.getByRole("tab", { name: "Other" }));
@@ -517,10 +533,10 @@ describe("Strategies: the screen contribution slot", () => {
   it("keeps the department chip in the ungrouped widget, whatever it holds", async () => {
     const { stream } = renderWidget();
     act(() => {
-      emitCareer(stream, [RP1_CAREER[0]]);
+      emitCareer(stream, [PLANTED_CAREER[0]]);
     });
-    expect(await screen.findByText("Early Sounding Rockets")).toBeTruthy();
-    expect(screen.getByText("Programs")).toBeTruthy();
+    expect(await screen.findByText("Polar Orbit Survey")).toBeTruthy();
+    expect(screen.getByText("Surveys")).toBeTruthy();
   });
 
   it("draws no strategy lists on a screen naming no departments, only its augment body", async () => {
@@ -540,7 +556,7 @@ describe("Strategies: the screen contribution slot", () => {
     const user = userEvent.setup();
     const { stream } = renderWidget();
     act(() => {
-      emitCareer(stream, RP1_CAREER);
+      emitCareer(stream, PLANTED_CAREER);
     });
     await screen.findByRole("tablist");
 
@@ -553,45 +569,45 @@ describe("Strategies: the screen contribution slot", () => {
 
     // The trailing screen still lists every strategy: nothing went missing.
     await user.click(screen.getByRole("tab", { name: "Other" }));
-    expect(screen.getByText("Early Sounding Rockets")).toBeTruthy();
+    expect(screen.getByText("Polar Orbit Survey")).toBeTruthy();
   });
 
   it("draws a screen's cards with no Activate/Deactivate when it draws its own actions", async () => {
     registerContribution({
-      id: "test-programs-screen",
+      id: "test-surveys-screen",
       contributes: "strategies.screens",
       compute: () => [
         {
-          id: "programs",
-          label: "Programs",
-          departments: ["Programs"],
+          id: "surveys",
+          label: "Surveys",
+          departments: ["Surveys"],
           drawsOwnActions: true,
         },
       ],
     });
     const { stream } = renderWidget();
     act(() => {
-      emitCareer(stream, RP1_CAREER);
+      emitCareer(stream, PLANTED_CAREER);
     });
     await screen.findByRole("tablist");
 
-    // Programs are eligible under RP1_CAREER, so a host Activate would normally draw here.
-    expect(screen.getByText("Early Sounding Rockets")).toBeTruthy();
+    // Surveys are eligible under PLANTED_CAREER, so a host Activate would normally draw here.
+    expect(screen.getByText("Polar Orbit Survey")).toBeTruthy();
     expect(screen.queryByRole("button", { name: /Deactivate/ })).toBeNull();
     expect(screen.queryByRole("button", { name: /Activate/ })).toBeNull();
   });
 
   it("has no axe violations with the tab strip up", async () => {
     registerContribution({
-      id: "test-programs-screen",
+      id: "test-surveys-screen",
       contributes: "strategies.screens",
       compute: () => [
-        { id: "programs", label: "Programs", departments: ["Programs"] },
+        { id: "surveys", label: "Surveys", departments: ["Surveys"] },
       ],
     });
     const { stream, container } = renderWidget();
     act(() => {
-      emitCareer(stream, RP1_CAREER);
+      emitCareer(stream, PLANTED_CAREER);
     });
     await screen.findByRole("tablist");
     await expectNoA11yViolations(container);

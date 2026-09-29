@@ -33,8 +33,6 @@ export const PUNCTUATION_DASH_DEBT: Record<string, number> = {
   "packages/components/src/CurrentOrbit/__fixtures__/circular-lko-stopped-arriving.json": 1,
   "packages/components/src/CurrentOrbit/__fixtures__/circular-lko.json": 1,
   "packages/components/src/LandingStatus/carried-altitude.test.tsx": 1,
-  "packages/components/src/Strategies/__render_unknown__/1-admin-building-shut.json": 1,
-  "packages/components/src/Strategies/__render_unknown__/3-admin-building-shut-derived.json": 1,
   "packages/components/src/Targeting/__fixtures__/approach-closing-stopped-arriving.json": 1,
   "packages/components/src/Targeting/__fixtures__/approach-closing.json": 1,
   "packages/components/src/Twr/index.tsx": 1,

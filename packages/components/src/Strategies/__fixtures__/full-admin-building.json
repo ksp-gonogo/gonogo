@@ -1,8 +1,8 @@
 {
   "_meta": {
-    "scenario": "admin-building-shut-derived",
+    "scenario": "full-admin-building",
     "synthetic": true,
-    "notes": "DERIVED from the same 91-row synthetic roster as 1-admin-building-shut.json, and deliberately its twin: same career, same shut facility, same rows, differing only in what the career model can now say about them. A row the source holds as refused by arms 2-9 keeps that verdict and its wording, marked activateVerdictSource=derived, because stock returns on its first refusal so an arm that fires off-screen would have fired on it. Every other row is unanswered with activateVerdictSource=none, naming arm 1: the concurrent-strategy cap compares a counter that exists only while that screen is up, and a pass is owed to every arm. Rendered beside fixture 1 this is the whole of the change from the operator's side: one silent heap becomes a real Locked list plus a much smaller unknown one, and every Activate button stays dark because KSP's own commitment runs inside that building either way."
+    "notes": "SYNTHETIC, written by scripts/gen-eligibility-fixtures.ts: 91 rows on career.status.strategies.all across 7 departments, against the two to four every other Strategies fixture carries. Every name is invented. 3 rows are running, 7 are refused by the concurrent-strategy cap, 10 by another arm (a reputation shortfall, or a department that is still locked), and the rest are eligible. Several blurbs run past a thousand characters, so this is the fixture where a description is cut and there is something to expand. Not a live capture."
   },
   "_stream": {
     "emits": [
@@ -141,12 +141,11 @@
                 "hasFactorSlider": false,
                 "factorSliderDefault": 1,
                 "factorSliderSteps": 1,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": false,
+                "activateBlockedReason": "The Administration Facility cannot support more than 3 active strategies at this level.",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 600,000 over 5 years as survey milestones land.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 600,000 over 5 years as survey milestones land.</color></b>\n"
               },
               {
                 "id": "SurveysEquatorialOrbit",
@@ -163,12 +162,11 @@
                 "hasFactorSlider": false,
                 "factorSliderDefault": 1,
                 "factorSliderSteps": 1,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": false,
+                "activateBlockedReason": "The Administration Facility cannot support more than 3 active strategies at this level.",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 600,000 over 5 years as survey milestones land.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 600,000 over 5 years as survey milestones land.</color></b>\n"
               },
               {
                 "id": "SurveysPolarOrbit",
@@ -185,12 +183,11 @@
                 "hasFactorSlider": false,
                 "factorSliderDefault": 1,
                 "factorSliderSteps": 1,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": false,
+                "activateBlockedReason": "The Administration Facility cannot support more than 3 active strategies at this level.",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 600,000 over 5 years as survey milestones land.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 600,000 over 5 years as survey milestones land.</color></b>\n"
               },
               {
                 "id": "SurveysSunSynchronous",
@@ -207,12 +204,11 @@
                 "hasFactorSlider": true,
                 "factorSliderDefault": 0.5,
                 "factorSliderSteps": 10,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 600,000 over 5 years as survey milestones land.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 600,000 over 5 years as survey milestones land.</color></b>\n"
               },
               {
                 "id": "SurveysGeostationaryBelt",
@@ -229,12 +225,11 @@
                 "hasFactorSlider": true,
                 "factorSliderDefault": 0.5,
                 "factorSliderSteps": 10,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 600,000 over 5 years as survey milestones land.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 600,000 over 5 years as survey milestones land.</color></b>\n"
               },
               {
                 "id": "SurveysWeatherBand",
@@ -255,8 +250,7 @@
                 "activateBlockedReason": "Requires more reputation than the program has earned.",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 600,000 over 5 years as survey milestones land.</color></b>\n",
-                "activateVerdictSource": "derived"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 600,000 over 5 years as survey milestones land.</color></b>\n"
               },
               {
                 "id": "SurveysMagnetosphere",
@@ -273,12 +267,11 @@
                 "hasFactorSlider": true,
                 "factorSliderDefault": 0.5,
                 "factorSliderSteps": 10,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 600,000 over 5 years as survey milestones land.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 600,000 over 5 years as survey milestones land.</color></b>\n"
               },
               {
                 "id": "SurveysRadiationBelt",
@@ -295,12 +288,11 @@
                 "hasFactorSlider": true,
                 "factorSliderDefault": 0.5,
                 "factorSliderSteps": 10,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 600,000 over 5 years as survey milestones land.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 600,000 over 5 years as survey milestones land.</color></b>\n"
               },
               {
                 "id": "SurveysRelayNetwork",
@@ -317,12 +309,11 @@
                 "hasFactorSlider": true,
                 "factorSliderDefault": 0.5,
                 "factorSliderSteps": 10,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 600,000 over 5 years as survey milestones land.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 600,000 over 5 years as survey milestones land.</color></b>\n"
               },
               {
                 "id": "SurveysNavigationGrid",
@@ -339,12 +330,11 @@
                 "hasFactorSlider": true,
                 "factorSliderDefault": 0.5,
                 "factorSliderSteps": 10,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 600,000 over 5 years as survey milestones land.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 600,000 over 5 years as survey milestones land.</color></b>\n"
               },
               {
                 "id": "SurveysMappingConstellation",
@@ -361,12 +351,11 @@
                 "hasFactorSlider": true,
                 "factorSliderDefault": 0.5,
                 "factorSliderSteps": 10,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 600,000 over 5 years as survey milestones land.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 600,000 over 5 years as survey milestones land.</color></b>\n"
               },
               {
                 "id": "SurveysNearMoonFlyby",
@@ -383,12 +372,11 @@
                 "hasFactorSlider": true,
                 "factorSliderDefault": 0.5,
                 "factorSliderSteps": 10,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 600,000 over 5 years as survey milestones land.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 600,000 over 5 years as survey milestones land.</color></b>\n"
               },
               {
                 "id": "SurveysNearMoonOrbit",
@@ -409,8 +397,7 @@
                 "activateBlockedReason": "Requires more reputation than the program has earned.",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 600,000 over 5 years as survey milestones land.</color></b>\n",
-                "activateVerdictSource": "derived"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 600,000 over 5 years as survey milestones land.</color></b>\n"
               },
               {
                 "id": "SurveysNearMoonSurface",
@@ -427,12 +414,11 @@
                 "hasFactorSlider": true,
                 "factorSliderDefault": 0.5,
                 "factorSliderSteps": 10,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 600,000 over 5 years as survey milestones land.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 600,000 over 5 years as survey milestones land.</color></b>\n"
               },
               {
                 "id": "SurveysFarMoonFlyby",
@@ -449,12 +435,11 @@
                 "hasFactorSlider": true,
                 "factorSliderDefault": 0.5,
                 "factorSliderSteps": 10,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 600,000 over 5 years as survey milestones land.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 600,000 over 5 years as survey milestones land.</color></b>\n"
               },
               {
                 "id": "SurveysFarMoonSurface",
@@ -471,12 +456,11 @@
                 "hasFactorSlider": true,
                 "factorSliderDefault": 0.5,
                 "factorSliderSteps": 10,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 600,000 over 5 years as survey milestones land.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 600,000 over 5 years as survey milestones land.</color></b>\n"
               },
               {
                 "id": "SurveysInnerPlanetFlyby",
@@ -493,12 +477,11 @@
                 "hasFactorSlider": true,
                 "factorSliderDefault": 0.5,
                 "factorSliderSteps": 10,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 600,000 over 5 years as survey milestones land.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 600,000 over 5 years as survey milestones land.</color></b>\n"
               },
               {
                 "id": "SurveysInnerPlanetOrbit",
@@ -515,12 +498,11 @@
                 "hasFactorSlider": true,
                 "factorSliderDefault": 0.5,
                 "factorSliderSteps": 10,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 600,000 over 5 years as survey milestones land.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 600,000 over 5 years as survey milestones land.</color></b>\n"
               },
               {
                 "id": "SurveysInnerPlanetSurface",
@@ -537,12 +519,11 @@
                 "hasFactorSlider": true,
                 "factorSliderDefault": 0.5,
                 "factorSliderSteps": 10,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 600,000 over 5 years as survey milestones land.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 600,000 over 5 years as survey milestones land.</color></b>\n"
               },
               {
                 "id": "SurveysRedPlanetFlyby",
@@ -563,8 +544,7 @@
                 "activateBlockedReason": "Requires more reputation than the program has earned.",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 600,000 over 5 years as survey milestones land.</color></b>\n",
-                "activateVerdictSource": "derived"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 600,000 over 5 years as survey milestones land.</color></b>\n"
               },
               {
                 "id": "SurveysRedPlanetSurface",
@@ -581,12 +561,11 @@
                 "hasFactorSlider": true,
                 "factorSliderDefault": 0.5,
                 "factorSliderSteps": 10,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 600,000 over 5 years as survey milestones land.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 600,000 over 5 years as survey milestones land.</color></b>\n"
               },
               {
                 "id": "SurveysAsteroidField",
@@ -603,12 +582,11 @@
                 "hasFactorSlider": true,
                 "factorSliderDefault": 0.5,
                 "factorSliderSteps": 10,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 600,000 over 5 years as survey milestones land.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 600,000 over 5 years as survey milestones land.</color></b>\n"
               },
               {
                 "id": "SurveysCometIntercept",
@@ -625,12 +603,11 @@
                 "hasFactorSlider": true,
                 "factorSliderDefault": 0.5,
                 "factorSliderSteps": 10,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 600,000 over 5 years as survey milestones land.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 600,000 over 5 years as survey milestones land.</color></b>\n"
               },
               {
                 "id": "SurveysGasGiantFlyby",
@@ -647,12 +624,11 @@
                 "hasFactorSlider": true,
                 "factorSliderDefault": 0.5,
                 "factorSliderSteps": 10,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 600,000 over 5 years as survey milestones land.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 600,000 over 5 years as survey milestones land.</color></b>\n"
               },
               {
                 "id": "SurveysGasGiantMoons",
@@ -669,12 +645,11 @@
                 "hasFactorSlider": true,
                 "factorSliderDefault": 0.5,
                 "factorSliderSteps": 10,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 600,000 over 5 years as survey milestones land.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 600,000 over 5 years as survey milestones land.</color></b>\n"
               },
               {
                 "id": "SurveysRingedGiant",
@@ -691,12 +666,11 @@
                 "hasFactorSlider": true,
                 "factorSliderDefault": 0.5,
                 "factorSliderSteps": 10,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 600,000 over 5 years as survey milestones land.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 600,000 over 5 years as survey milestones land.</color></b>\n"
               },
               {
                 "id": "SurveysIceGiant",
@@ -717,8 +691,7 @@
                 "activateBlockedReason": "Requires more reputation than the program has earned.",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 600,000 over 5 years as survey milestones land.</color></b>\n",
-                "activateVerdictSource": "derived"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 600,000 over 5 years as survey milestones land.</color></b>\n"
               },
               {
                 "id": "SurveysOuterDwarf",
@@ -735,12 +708,11 @@
                 "hasFactorSlider": true,
                 "factorSliderDefault": 0.5,
                 "factorSliderSteps": 10,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 600,000 over 5 years as survey milestones land.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 600,000 over 5 years as survey milestones land.</color></b>\n"
               },
               {
                 "id": "SurveysDeepSpace",
@@ -757,12 +729,11 @@
                 "hasFactorSlider": true,
                 "factorSliderDefault": 0.5,
                 "factorSliderSteps": 10,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 600,000 over 5 years as survey milestones land.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Pays 600,000 over 5 years as survey milestones land.</color></b>\n"
               },
               {
                 "id": "AdministrationArdent",
@@ -800,12 +771,11 @@
                 "hasFactorSlider": false,
                 "factorSliderDefault": 1,
                 "factorSliderSteps": 1,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Facility upkeep x0.95.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Facility upkeep x0.95.</color></b>\n"
               },
               {
                 "id": "AdministrationCanny",
@@ -822,12 +792,11 @@
                 "hasFactorSlider": false,
                 "factorSliderDefault": 1,
                 "factorSliderSteps": 1,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Facility upkeep x0.95.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Facility upkeep x0.95.</color></b>\n"
               },
               {
                 "id": "AdministrationDeft",
@@ -844,12 +813,11 @@
                 "hasFactorSlider": false,
                 "factorSliderDefault": 1,
                 "factorSliderSteps": 1,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Facility upkeep x0.95.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Facility upkeep x0.95.</color></b>\n"
               },
               {
                 "id": "AdministrationEven",
@@ -866,12 +834,11 @@
                 "hasFactorSlider": false,
                 "factorSliderDefault": 1,
                 "factorSliderSteps": 1,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Facility upkeep x0.95.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Facility upkeep x0.95.</color></b>\n"
               },
               {
                 "id": "AdministrationLocked",
@@ -892,8 +859,7 @@
                 "activateBlockedReason": "Administrators will unlock once a survey completes.",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "",
-                "activateVerdictSource": "derived"
+                "effect": ""
               },
               {
                 "id": "MainContractorAlder",
@@ -910,12 +876,11 @@
                 "hasFactorSlider": false,
                 "factorSliderDefault": 1,
                 "factorSliderSteps": 1,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Part costs x0.9.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Part costs x0.9.</color></b>\n"
               },
               {
                 "id": "MainContractorBirch",
@@ -932,12 +897,11 @@
                 "hasFactorSlider": false,
                 "factorSliderDefault": 1,
                 "factorSliderSteps": 1,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Part costs x0.9.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Part costs x0.9.</color></b>\n"
               },
               {
                 "id": "MainContractorCedar",
@@ -954,12 +918,11 @@
                 "hasFactorSlider": false,
                 "factorSliderDefault": 1,
                 "factorSliderSteps": 1,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Part costs x0.9.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Part costs x0.9.</color></b>\n"
               },
               {
                 "id": "MainContractorDogwood",
@@ -976,12 +939,11 @@
                 "hasFactorSlider": false,
                 "factorSliderDefault": 1,
                 "factorSliderSteps": 1,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": false,
+                "activateBlockedReason": "The Administration Facility cannot support more than 3 active strategies at this level.",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Part costs x0.9.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Part costs x0.9.</color></b>\n"
               },
               {
                 "id": "MainContractorElm",
@@ -998,12 +960,11 @@
                 "hasFactorSlider": false,
                 "factorSliderDefault": 1,
                 "factorSliderSteps": 1,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Part costs x0.9.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Part costs x0.9.</color></b>\n"
               },
               {
                 "id": "MainContractorFir",
@@ -1020,12 +981,11 @@
                 "hasFactorSlider": false,
                 "factorSliderDefault": 1,
                 "factorSliderSteps": 1,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Part costs x0.9.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Part costs x0.9.</color></b>\n"
               },
               {
                 "id": "MainContractorGinkgo",
@@ -1042,12 +1002,11 @@
                 "hasFactorSlider": false,
                 "factorSliderDefault": 1,
                 "factorSliderSteps": 1,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Part costs x0.9.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Part costs x0.9.</color></b>\n"
               },
               {
                 "id": "MainContractorHazel",
@@ -1064,12 +1023,11 @@
                 "hasFactorSlider": false,
                 "factorSliderDefault": 1,
                 "factorSliderSteps": 1,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Part costs x0.9.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Part costs x0.9.</color></b>\n"
               },
               {
                 "id": "MainContractorIronwood",
@@ -1086,12 +1044,11 @@
                 "hasFactorSlider": false,
                 "factorSliderDefault": 1,
                 "factorSliderSteps": 1,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Part costs x0.9.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Part costs x0.9.</color></b>\n"
               },
               {
                 "id": "MainContractorJuniper",
@@ -1108,12 +1065,11 @@
                 "hasFactorSlider": false,
                 "factorSliderDefault": 1,
                 "factorSliderSteps": 1,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Part costs x0.9.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Part costs x0.9.</color></b>\n"
               },
               {
                 "id": "MainContractorLarch",
@@ -1130,12 +1086,11 @@
                 "hasFactorSlider": false,
                 "factorSliderDefault": 1,
                 "factorSliderSteps": 1,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Part costs x0.9.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Part costs x0.9.</color></b>\n"
               },
               {
                 "id": "MainContractorMaple",
@@ -1152,12 +1107,11 @@
                 "hasFactorSlider": false,
                 "factorSliderDefault": 1,
                 "factorSliderSteps": 1,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Part costs x0.9.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Part costs x0.9.</color></b>\n"
               },
               {
                 "id": "MainContractorLocked",
@@ -1178,8 +1132,7 @@
                 "activateBlockedReason": "Some contractors will unlock after the next research tier.",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "",
-                "activateVerdictSource": "derived"
+                "effect": ""
               },
               {
                 "id": "EngineeringAster",
@@ -1196,12 +1149,11 @@
                 "hasFactorSlider": false,
                 "factorSliderDefault": 1,
                 "factorSliderSteps": 1,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Build rate x1.1.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Build rate x1.1.</color></b>\n"
               },
               {
                 "id": "EngineeringBellis",
@@ -1218,12 +1170,11 @@
                 "hasFactorSlider": false,
                 "factorSliderDefault": 1,
                 "factorSliderSteps": 1,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Build rate x1.1.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Build rate x1.1.</color></b>\n"
               },
               {
                 "id": "EngineeringCrocus",
@@ -1240,12 +1191,11 @@
                 "hasFactorSlider": false,
                 "factorSliderDefault": 1,
                 "factorSliderSteps": 1,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Build rate x1.1.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Build rate x1.1.</color></b>\n"
               },
               {
                 "id": "EngineeringDahlia",
@@ -1262,12 +1212,11 @@
                 "hasFactorSlider": false,
                 "factorSliderDefault": 1,
                 "factorSliderSteps": 1,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Build rate x1.1.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Build rate x1.1.</color></b>\n"
               },
               {
                 "id": "EngineeringErica",
@@ -1284,12 +1233,11 @@
                 "hasFactorSlider": false,
                 "factorSliderDefault": 1,
                 "factorSliderSteps": 1,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Build rate x1.1.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Build rate x1.1.</color></b>\n"
               },
               {
                 "id": "EngineeringFreesia",
@@ -1306,12 +1254,11 @@
                 "hasFactorSlider": false,
                 "factorSliderDefault": 1,
                 "factorSliderSteps": 1,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Build rate x1.1.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Build rate x1.1.</color></b>\n"
               },
               {
                 "id": "EngineeringGerbera",
@@ -1328,12 +1275,11 @@
                 "hasFactorSlider": false,
                 "factorSliderDefault": 1,
                 "factorSliderSteps": 1,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Build rate x1.1.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Build rate x1.1.</color></b>\n"
               },
               {
                 "id": "EngineeringHeather",
@@ -1350,12 +1296,11 @@
                 "hasFactorSlider": false,
                 "factorSliderDefault": 1,
                 "factorSliderSteps": 1,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Build rate x1.1.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Build rate x1.1.</color></b>\n"
               },
               {
                 "id": "EngineeringIris",
@@ -1372,12 +1317,11 @@
                 "hasFactorSlider": false,
                 "factorSliderDefault": 1,
                 "factorSliderSteps": 1,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": false,
+                "activateBlockedReason": "The Administration Facility cannot support more than 3 active strategies at this level.",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Build rate x1.1.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Build rate x1.1.</color></b>\n"
               },
               {
                 "id": "EngineeringLocked",
@@ -1398,8 +1342,7 @@
                 "activateBlockedReason": "Chief Designers will unlock after the first research tier.",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "",
-                "activateVerdictSource": "derived"
+                "effect": ""
               },
               {
                 "id": "FlightDirectorAmber",
@@ -1416,12 +1359,11 @@
                 "hasFactorSlider": false,
                 "factorSliderDefault": 1,
                 "factorSliderSteps": 1,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Crew training time x0.9.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Crew training time x0.9.</color></b>\n"
               },
               {
                 "id": "FlightDirectorBeryl",
@@ -1438,12 +1380,11 @@
                 "hasFactorSlider": false,
                 "factorSliderDefault": 1,
                 "factorSliderSteps": 1,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Crew training time x0.9.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Crew training time x0.9.</color></b>\n"
               },
               {
                 "id": "FlightDirectorCoral",
@@ -1460,12 +1401,11 @@
                 "hasFactorSlider": false,
                 "factorSliderDefault": 1,
                 "factorSliderSteps": 1,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Crew training time x0.9.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Crew training time x0.9.</color></b>\n"
               },
               {
                 "id": "FlightDirectorDune",
@@ -1482,12 +1422,11 @@
                 "hasFactorSlider": false,
                 "factorSliderDefault": 1,
                 "factorSliderSteps": 1,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Crew training time x0.9.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Crew training time x0.9.</color></b>\n"
               },
               {
                 "id": "FlightDirectorEmber",
@@ -1504,12 +1443,11 @@
                 "hasFactorSlider": false,
                 "factorSliderDefault": 1,
                 "factorSliderSteps": 1,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Crew training time x0.9.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Crew training time x0.9.</color></b>\n"
               },
               {
                 "id": "FlightDirectorFlint",
@@ -1526,12 +1464,11 @@
                 "hasFactorSlider": false,
                 "factorSliderDefault": 1,
                 "factorSliderSteps": 1,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Crew training time x0.9.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Crew training time x0.9.</color></b>\n"
               },
               {
                 "id": "FlightDirectorGarnet",
@@ -1548,12 +1485,11 @@
                 "hasFactorSlider": false,
                 "factorSliderDefault": 1,
                 "factorSliderSteps": 1,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Crew training time x0.9.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Crew training time x0.9.</color></b>\n"
               },
               {
                 "id": "FlightDirectorLocked",
@@ -1574,8 +1510,7 @@
                 "activateBlockedReason": "Flight Directors will unlock after the first crewed flight.",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "",
-                "activateVerdictSource": "derived"
+                "effect": ""
               },
               {
                 "id": "ScienceArgon",
@@ -1592,12 +1527,11 @@
                 "hasFactorSlider": false,
                 "factorSliderDefault": 1,
                 "factorSliderSteps": 1,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Science from surveys x1.1.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Science from surveys x1.1.</color></b>\n"
               },
               {
                 "id": "ScienceBoron",
@@ -1614,12 +1548,11 @@
                 "hasFactorSlider": false,
                 "factorSliderDefault": 1,
                 "factorSliderSteps": 1,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Science from surveys x1.1.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Science from surveys x1.1.</color></b>\n"
               },
               {
                 "id": "ScienceCobalt",
@@ -1636,12 +1569,11 @@
                 "hasFactorSlider": false,
                 "factorSliderDefault": 1,
                 "factorSliderSteps": 1,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Science from surveys x1.1.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Science from surveys x1.1.</color></b>\n"
               },
               {
                 "id": "ScienceDysprosium",
@@ -1658,12 +1590,11 @@
                 "hasFactorSlider": false,
                 "factorSliderDefault": 1,
                 "factorSliderSteps": 1,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Science from surveys x1.1.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Science from surveys x1.1.</color></b>\n"
               },
               {
                 "id": "ScienceErbium",
@@ -1680,12 +1611,11 @@
                 "hasFactorSlider": false,
                 "factorSliderDefault": 1,
                 "factorSliderSteps": 1,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Science from surveys x1.1.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Science from surveys x1.1.</color></b>\n"
               },
               {
                 "id": "ScienceFluorine",
@@ -1702,12 +1632,11 @@
                 "hasFactorSlider": false,
                 "factorSliderDefault": 1,
                 "factorSliderSteps": 1,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Science from surveys x1.1.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Science from surveys x1.1.</color></b>\n"
               },
               {
                 "id": "ScienceGallium",
@@ -1724,12 +1653,11 @@
                 "hasFactorSlider": false,
                 "factorSliderDefault": 1,
                 "factorSliderSteps": 1,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Science from surveys x1.1.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Science from surveys x1.1.</color></b>\n"
               },
               {
                 "id": "ScienceHelium",
@@ -1746,12 +1674,11 @@
                 "hasFactorSlider": false,
                 "factorSliderDefault": 1,
                 "factorSliderSteps": 1,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Science from surveys x1.1.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Science from surveys x1.1.</color></b>\n"
               },
               {
                 "id": "ScienceIndium",
@@ -1768,12 +1695,11 @@
                 "hasFactorSlider": false,
                 "factorSliderDefault": 1,
                 "factorSliderSteps": 1,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": false,
+                "activateBlockedReason": "The Administration Facility cannot support more than 3 active strategies at this level.",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Science from surveys x1.1.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Science from surveys x1.1.</color></b>\n"
               },
               {
                 "id": "ScienceLocked",
@@ -1794,8 +1720,7 @@
                 "activateBlockedReason": "Some scientists will unlock after a suborbital return.",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "",
-                "activateVerdictSource": "derived"
+                "effect": ""
               },
               {
                 "id": "SubcontractorAnvil",
@@ -1812,12 +1737,11 @@
                 "hasFactorSlider": false,
                 "factorSliderDefault": 1,
                 "factorSliderSteps": 1,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Tooling costs x0.9.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Tooling costs x0.9.</color></b>\n"
               },
               {
                 "id": "SubcontractorBellows",
@@ -1834,12 +1758,11 @@
                 "hasFactorSlider": false,
                 "factorSliderDefault": 1,
                 "factorSliderSteps": 1,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Tooling costs x0.9.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Tooling costs x0.9.</color></b>\n"
               },
               {
                 "id": "SubcontractorChisel",
@@ -1856,12 +1779,11 @@
                 "hasFactorSlider": false,
                 "factorSliderDefault": 1,
                 "factorSliderSteps": 1,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Tooling costs x0.9.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Tooling costs x0.9.</color></b>\n"
               },
               {
                 "id": "SubcontractorDrill",
@@ -1878,12 +1800,11 @@
                 "hasFactorSlider": false,
                 "factorSliderDefault": 1,
                 "factorSliderSteps": 1,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Tooling costs x0.9.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Tooling costs x0.9.</color></b>\n"
               },
               {
                 "id": "SubcontractorEasel",
@@ -1900,12 +1821,11 @@
                 "hasFactorSlider": false,
                 "factorSliderDefault": 1,
                 "factorSliderSteps": 1,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Tooling costs x0.9.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Tooling costs x0.9.</color></b>\n"
               },
               {
                 "id": "SubcontractorForge",
@@ -1922,12 +1842,11 @@
                 "hasFactorSlider": false,
                 "factorSliderDefault": 1,
                 "factorSliderSteps": 1,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Tooling costs x0.9.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Tooling costs x0.9.</color></b>\n"
               },
               {
                 "id": "SubcontractorGauge",
@@ -1944,12 +1863,11 @@
                 "hasFactorSlider": false,
                 "factorSliderDefault": 1,
                 "factorSliderSteps": 1,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Tooling costs x0.9.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Tooling costs x0.9.</color></b>\n"
               },
               {
                 "id": "SubcontractorHammer",
@@ -1966,12 +1884,11 @@
                 "hasFactorSlider": false,
                 "factorSliderDefault": 1,
                 "factorSliderSteps": 1,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": false,
+                "activateBlockedReason": "The Administration Facility cannot support more than 3 active strategies at this level.",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Tooling costs x0.9.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Tooling costs x0.9.</color></b>\n"
               },
               {
                 "id": "SubcontractorJig",
@@ -1988,12 +1905,11 @@
                 "hasFactorSlider": false,
                 "factorSliderDefault": 1,
                 "factorSliderSteps": 1,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Tooling costs x0.9.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Tooling costs x0.9.</color></b>\n"
               },
               {
                 "id": "SubcontractorKiln",
@@ -2010,12 +1926,11 @@
                 "hasFactorSlider": false,
                 "factorSliderDefault": 1,
                 "factorSliderSteps": 1,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Tooling costs x0.9.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Tooling costs x0.9.</color></b>\n"
               },
               {
                 "id": "SubcontractorLathe",
@@ -2032,12 +1947,11 @@
                 "hasFactorSlider": false,
                 "factorSliderDefault": 1,
                 "factorSliderSteps": 1,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Tooling costs x0.9.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Tooling costs x0.9.</color></b>\n"
               },
               {
                 "id": "SubcontractorMallet",
@@ -2054,12 +1968,11 @@
                 "hasFactorSlider": false,
                 "factorSliderDefault": 1,
                 "factorSliderSteps": 1,
-                "canActivate": null,
-                "activateBlockedReason": "unknown: KSP counts your running strategies only inside the Administration Building, so that check is not made in this list",
+                "canActivate": true,
+                "activateBlockedReason": "",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Tooling costs x0.9.</color></b>\n",
-                "activateVerdictSource": "none"
+                "effect": "<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* Tooling costs x0.9.</color></b>\n"
               },
               {
                 "id": "SubcontractorLocked",
@@ -2080,8 +1993,7 @@
                 "activateBlockedReason": "Some subcontractors will unlock after the next research tier.",
                 "canDeactivate": false,
                 "deactivateBlockedReason": "Strategy is not active",
-                "effect": "",
-                "activateVerdictSource": "derived"
+                "effect": ""
               }
             ],
             "activeCount": 3

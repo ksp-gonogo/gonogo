@@ -3,20 +3,22 @@ import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { ExpandableText } from "./ExpandableText";
 
-/** A real RP-1 strategy description, at full length. */
+/** A strategy description at the length a career mod's blurbs reach. */
 const LONG =
-  'Soviet OKBs (OKB translates roughly to "Experimental Design Bureau") were ' +
-  "state-run institutions that would design and prototype things for military " +
-  "and space applications. Officially, they were numbered rather than named, " +
-  "and the number outlived every chief designer who ran one. OKB-1 was " +
-  "Korolev's, and it built the launch vehicle that put the first satellite " +
-  "and the first human into orbit.";
+  'Survey bureaus ("mapping offices" in the charter) were agency-run ' +
+  "offices that would design and fly " +
+  "instruments for mapping, weather and navigation. Officially they were " +
+  "numbered rather than named, and the number outlived every chief who " +
+  "ran one. The first bureau built the launcher that put the first mapping " +
+  "satellite and the first crewed survey flight into orbit.";
 
 describe("ExpandableText", () => {
   it("renders short prose whole, with no control at all", () => {
-    render(<ExpandableText limit={160}>Reach the Karman line.</ExpandableText>);
+    render(
+      <ExpandableText limit={160}>Reach the upper atmosphere.</ExpandableText>,
+    );
 
-    expect(screen.getByText("Reach the Karman line.")).toBeInTheDocument();
+    expect(screen.getByText("Reach the upper atmosphere.")).toBeInTheDocument();
     expect(screen.queryByRole("button")).toBeNull();
   });
 
@@ -57,7 +59,7 @@ describe("ExpandableText", () => {
   it("cuts at a word boundary and never rewrites what it keeps", () => {
     render(<ExpandableText limit={40}>{LONG}</ExpandableText>);
 
-    const shown = screen.getByText(/^Soviet OKBs/).textContent ?? "";
+    const shown = screen.getByText(/^Survey bureaus/).textContent ?? "";
     const kept = shown.replace(/\.\.\.$/, "");
     // A prefix of the authored string, ending on a whole word: truncation is a cut, never a paraphrase.
     expect(LONG.startsWith(kept)).toBe(true);
@@ -92,7 +94,7 @@ describe("ExpandableText", () => {
     const controlled = trigger.getAttribute("aria-controls");
     expect(controlled).toBeTruthy();
     expect(document.getElementById(controlled ?? "")).toHaveTextContent(
-      /^Soviet OKBs/,
+      /^Survey bureaus/,
     );
   });
 

@@ -5,14 +5,14 @@
  * `canActivate` is a THREE-valued reading and `Strategies` now draws all three.
  * The bug it fixes is one only a picture states plainly: with the
  * Administration Building shut, KSP answers eligibility for nothing on the
- * roster, and the old parse coerced that silence to `false`, so a live RP-1
+ * roster, and the old parse coerced that silence to `false`, so a large
  * career put its whole programme list under a heading reading LOCKED while
  * every card underneath said the state was unknown.
  *
  * Two scenes, and the pair is the point:
  *
- * - `admin-building-shut` is that career: 91 real RP-1 rows, 88 of them
- *   unanswered. It is the scene worth rendering against BOTH sides of the
+ * - `admin-building-shut` is that career at the same scale: 91 synthetic
+ *   rows, 88 of them unanswered. It is the scene worth rendering against BOTH sides of the
  *   commit, because the heading is the defect
  * - `three-buckets` cuts the same roster down until Available, Locked and
  *   Eligibility unknown are on screen together, which the shut-facility scene
