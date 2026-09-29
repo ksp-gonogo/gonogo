@@ -6,7 +6,7 @@ import {
   useState,
 } from "react";
 import type { NotesHostService } from "./NotesHostService";
-import type { NotesSnapshot } from "./types";
+import { EMPTY_NOTES_SNAPSHOT, type NotesSnapshot } from "./types";
 
 const NotesHostContext = createContext<NotesHostService | null>(null);
 
@@ -28,18 +28,16 @@ export function useNotesHostOptional(): NotesHostService | null {
   return useContext(NotesHostContext);
 }
 
-export function useNotesHost(): NotesHostService {
-  const svc = useContext(NotesHostContext);
-  if (!svc) {
-    throw new Error("useNotesHost must be used inside a <NotesHostProvider>");
-  }
-  return svc;
-}
-
-/** Reactive snapshot for React consumers. Re-renders on every host emit. */
-export function useNotesHostSnapshot(): NotesSnapshot {
-  const svc = useNotesHost();
-  const [snap, setSnap] = useState(() => svc.snapshot());
-  useEffect(() => svc.subscribe(setSnap), [svc]);
-  return snap;
+/**
+ * Reactive snapshot of `svc` for React consumers, re-rendering on every host
+ * emit. With no host there is nothing to mirror, so it reads as no notes.
+ */
+export function useNotesHostSnapshot(
+  svc: NotesHostService | null,
+): NotesSnapshot {
+  const [snap, setSnap] = useState<NotesSnapshot>(
+    () => svc?.snapshot() ?? EMPTY_NOTES_SNAPSHOT,
+  );
+  useEffect(() => svc?.subscribe(setSnap), [svc]);
+  return svc === null ? EMPTY_NOTES_SNAPSHOT : snap;
 }

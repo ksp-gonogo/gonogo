@@ -17,7 +17,7 @@ function NotesComponent(_props: Readonly<ComponentProps>) {
 
 function MainView() {
   const host = useNotesHostOptional();
-  const snap = useNotesHostSnapshot();
+  const snap = useNotesHostSnapshot(host);
   if (!host) return <Empty>Notes host unavailable</Empty>;
   const actions: NotesActions = {
     addNote: (body) => host.addNote({ body }),
