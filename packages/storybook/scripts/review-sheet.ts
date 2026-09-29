@@ -13,6 +13,12 @@
  * row: every run first drops one slot's rows and fails as BLIND if that check
  * does not report it.
  *
+ * Each item carries its fingerprint and how it stands against the review
+ * ledger (`--ledger <path>`, see `ledger.ts`). The page lists only what is not
+ * approved at its current fingerprint, and says how many it left out; `--all`
+ * lists everything. An item that cannot be fingerprinted is a fault like a
+ * missing story.
+ *
  * `--storybook-url <url>` is where the links point (default
  * http://localhost:6006), `--only <id,id>` narrows the page, `--out <dir>`
  * moves it from `dist/review/`.
@@ -25,7 +31,15 @@ import { chromium } from "playwright";
 import { Project, SyntaxKind } from "ts-morph";
 import type { Registered } from "../src/stories/Coverage.stories";
 import { serve, storyIds } from "./built";
+import { Fingerprinter } from "./fingerprint";
 import type { TargetKind } from "./generate-stories";
+import {
+  ledgerKey,
+  ledgerPath,
+  readLedger,
+  type Standing,
+  standing,
+} from "./ledger";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const DIST = resolve(HERE, "../dist");
@@ -34,7 +48,8 @@ const STORIES = join(DIST, "stories");
 const TEMPLATE = join(HERE, "review-sheet.html");
 const REGISTRY_STORY = "coverage--registry";
 const KINDS: readonly TargetKind[] = ["widget", "extension", "primitive"];
-const SLOTS = resolve(HERE, "../../../mod/sitrep-sdk/src/api/slots.ts");
+const REPO = resolve(HERE, "../../..");
+const SLOTS = resolve(REPO, "mod/sitrep-sdk/src/api/slots.ts");
 
 type Targets = Record<TargetKind, Record<string, string[]>>;
 
@@ -46,6 +61,11 @@ interface Listing {
   /** The slot an augment row fills. */
   slot?: string;
   stories: string[];
+}
+
+interface Reviewed extends Listing {
+  fingerprint: string;
+  standing: Standing;
 }
 
 function flag(argv: string[], name: string): string | undefined {
@@ -198,6 +218,7 @@ async function main(): Promise<void> {
     flag(argv, "--storybook-url") ?? "http://localhost:6006"
   ).replace(/\/+$/, "");
   const only = flag(argv, "--only");
+  const everything = argv.includes("--all");
   const outDir = resolve(flag(argv, "--out") ?? join(DIST, "review"));
 
   const primitives = readUiKit(join(STORIES, "ui-kit-coverage.json"));
@@ -228,7 +249,26 @@ async function main(): Promise<void> {
       `BLIND: with every row for slot ${plant} dropped, the slot check did not report it, so a clean run means nothing.`,
     );
   }
+  const fingerprinter = new Fingerprinter(REPO);
+  const ledgerFile = ledgerPath(argv);
+  const ledger = readLedger(ledgerFile);
+  const reviewed: Reviewed[] = [];
+  const unprinted: string[] = [];
+  for (const l of all) {
+    const print = fingerprinter.fingerprint(l);
+    if ("fault" in print) {
+      unprinted.push(`cannot fingerprint: ${print.fault}`);
+      continue;
+    }
+    const entry = ledger[ledgerKey(l.kind, l.id)];
+    reviewed.push({
+      ...l,
+      fingerprint: print.hash,
+      standing: standing(entry, print.hash),
+    });
+  }
   const found = [
+    ...unprinted,
     ...faults(all, indexed),
     ...unlistedSlots(all, declared).map(
       (slot) => `slot ${slot} is declared and no augment row fills it`,
@@ -244,13 +284,19 @@ async function main(): Promise<void> {
   }
 
   const wanted = only ? new Set(only.split(",").map((s) => s.trim())) : null;
-  const items = wanted ? all.filter((l) => wanted.has(l.id)) : all;
+  const asked = wanted ? reviewed.filter((l) => wanted.has(l.id)) : reviewed;
+  const items = everything
+    ? asked
+    : asked.filter((l) => l.standing !== "approved");
+  const stillApproved = asked.filter((l) => l.standing === "approved").length;
+  const leftOut = asked.length - items.length;
   const data = {
     generatedAt: new Date().toISOString(),
     sourceSha: execFileSync("git", ["rev-parse", "HEAD"], { cwd: HERE })
       .toString()
       .trim(),
     storybookUrl,
+    leftOut,
     items,
   };
   mkdirSync(outDir, { recursive: true });
@@ -266,6 +312,17 @@ async function main(): Promise<void> {
     items.filter((i) => i.kind === kind).length;
   console.log(
     `review-sheet: ${count("widget")} widgets, ${count("extension")} extensions, ${count("primitive")} ui-kit components, every one linked to a story in the built index`,
+  );
+  const changed = items.filter((i) => i.standing === "changed").length;
+  console.log(
+    everything
+      ? `review-sheet: every item listed, ${stillApproved} of them approved and unchanged`
+      : `review-sheet: ${items.length} unapproved item(s) listed (${changed} approved before and changed since); ${stillApproved} approved and unchanged, left out`,
+  );
+  console.log(
+    existsSync(ledgerFile)
+      ? `review-sheet: ledger ${ledgerFile}`
+      : `review-sheet: no ledger at ${ledgerFile}, so nothing counts as approved`,
   );
   console.log(
     `review-sheet: all ${declared.length} declared slots have an augment row (plant: slot ${plant} dropped, reported)`,

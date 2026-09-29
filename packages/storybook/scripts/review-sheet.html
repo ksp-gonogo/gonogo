@@ -126,6 +126,10 @@
         color: var(--text-dim);
         font-size: 12px;
       }
+      .item-head .changed {
+        color: var(--warn);
+        font-size: 12px;
+      }
       .approve-row {
         display: flex;
         align-items: center;
@@ -222,7 +226,7 @@
     <main id="main"></main>
     <script>
       const DATA = "__REVIEW_DATA__";
-      const STORAGE_KEY = "gonogo-review-sheet:v1";
+      const STORAGE_KEY = "gonogo-review-sheet:v2";
 
       function loadState() {
         try {
@@ -250,10 +254,18 @@
         return `${item.kind}:${item.id}`;
       }
 
+      /** Saved decisions are keyed by fingerprint too, so a changed item starts from the ledger again. */
+      function stateKey(item) {
+        return `${itemKey(item)}@${item.fingerprint}`;
+      }
+
       function itemState(item) {
-        const key = itemKey(item);
+        const key = stateKey(item);
         if (state[key]) return state[key];
-        state[key] = { approved: false, comments: [] };
+        state[key] = {
+          approved: item.standing === "approved",
+          comments: [],
+        };
         return state[key];
       }
 
@@ -326,6 +338,7 @@
           <div class="item-head">
             <h3>${escapeHtml(item.title)}</h3>
             <span class="subtitle">${escapeHtml(item.subtitle)}</span>
+            ${item.standing === "changed" ? '<span class="changed">changed since approved</span>' : ""}
             <span class="story">${storyLink(item.stories[0], "Open story")}</span>
           </div>
           <div class="approve-row">
@@ -351,7 +364,7 @@
 
       function renderMain() {
         document.getElementById("meta").textContent =
-          `generated ${DATA.generatedAt} · source ${DATA.sourceSha.slice(0, 12)} · stories at ${DATA.storybookUrl}`;
+          `generated ${DATA.generatedAt} · source ${DATA.sourceSha.slice(0, 12)} · stories at ${DATA.storybookUrl} · ${DATA.leftOut} approved and unchanged, not listed`;
         document.getElementById("main").innerHTML =
           buildSection("widget") + buildSection("extension") + buildSection("primitive");
         renderCounts();
@@ -428,6 +441,7 @@
           return {
             kind: item.kind,
             id: item.id,
+            fingerprint: item.fingerprint,
             approved: s.approved,
             comments: s.comments,
           };

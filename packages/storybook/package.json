@@ -10,7 +10,9 @@
     "build-storybook": "pnpm generate && storybook build -o dist/static",
     "smoke": "pnpm build-storybook && tsx scripts/smoke.ts",
     "review-sheet": "pnpm build-storybook && tsx scripts/review-sheet.ts",
-    "typecheck": "pnpm generate && tsc --noEmit"
+    "typecheck": "pnpm generate && tsc --noEmit",
+    "review-ledger": "tsx scripts/review-ledger.ts",
+    "test": "vitest run"
   },
   "dependencies": {
     "@ksp-gonogo/components": "workspace:*",
@@ -34,6 +36,7 @@
     "storybook": "10.6.0",
     "tsx": "^4.0.0",
     "typescript": "^5.0.0",
-    "vite": "^6.0.0"
+    "vite": "^6.0.0",
+    "vitest": "^4.1.4"
   }
 }
