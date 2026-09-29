@@ -28,7 +28,6 @@ export * from "./Navball";
 export * from "./Objectives";
 export * from "./OrbitalAscent";
 export * from "./OrbitView";
-export * from "./PerfBudgets";
 export * from "./PowerSystems";
 export * from "./ResourceOps";
 export * from "./ScienceData";

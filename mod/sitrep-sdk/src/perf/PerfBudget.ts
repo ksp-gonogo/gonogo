@@ -173,8 +173,7 @@ export class PerfBudget {
 
   /**
    * Every PerfBudget self-registers here on construction, which is what lets the
-   * Perf Budgets widget list every rate in the app and what lets the test gate
-   * below iterate all of them.
+   * test gate below iterate all of them.
    *
    * Held on `globalThis`, not as a module-static `Set`.
    *

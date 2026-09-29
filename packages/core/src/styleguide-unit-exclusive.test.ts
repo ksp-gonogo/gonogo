@@ -111,10 +111,6 @@ const LOCAL_FORMATTER_DEBT: Record<string, { count: number; why: string }> = {
     count: 2,
     why: "unit renderer: a k/M readout ladder plus an axis-tick ladder",
   },
-  "packages/components/src/PerfBudgets/budgets.ts": {
-    count: 1,
-    why: "unit renderer: a K/M rate ladder",
-  },
   "packages/components/src/PowerSystems/flow.ts": {
     count: 1,
     why: "unit renderer: a k ladder over resource units",

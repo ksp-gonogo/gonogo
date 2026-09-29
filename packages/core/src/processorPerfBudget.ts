@@ -39,7 +39,7 @@ setProcessorEvaluationRecorder(() => PROCESSOR_EVAL_BUDGET.record());
  * stayed green. Consolidating N re-derivations onto processors would then trade
  * N derivations for one derivation plus N wakeups, with nothing measuring the
  * second half. Recorded once per listener told, so the ratio against
- * PROCESSOR_EVAL_BUDGET is readable straight off the Perf Budgets widget.
+ * PROCESSOR_EVAL_BUDGET is readable straight off the registry.
  *
  * Threshold: steady state is only the processors whose answer really
  * does move each frame, a handful of them with a few consumers each, so ~500/s
@@ -68,7 +68,7 @@ setProcessorNotificationRecorder(() => PROCESSOR_NOTIFY_BUDGET.record());
  * processors. An Uplink author is the likeliest person to write the processor
  * that trips this, so a gate they cannot see is not a gate.
  *
- * Kept exported from this module so `Perf Budgets` and every existing importer
- * still finds all three processor budgets in one place.
+ * Kept exported from this module so every existing importer still finds all
+ * three processor budgets in one place.
  */
 export { PROCESSOR_UNCOMPARABLE_BUDGET } from "@ksp-gonogo/sitrep-client";

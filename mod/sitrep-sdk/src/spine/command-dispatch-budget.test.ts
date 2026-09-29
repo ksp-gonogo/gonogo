@@ -28,8 +28,8 @@ const BUDGET_NAME = "TelemetryClient command dispatch/sec";
 /**
  * The dispatch budget, or a failure that says what is missing rather than
  * `undefined is not an object` twenty lines later. A budget nothing can find is
- * a budget the Perf Budgets widget cannot list and the test gate cannot read,
- * so its absence is the interesting failure, not a detail of this file.
+ * a budget the test gate cannot read, so its absence is the interesting
+ * failure, not a detail of this file.
  */
 function dispatchBudget(): PerfBudget {
   const found = PerfBudget.getAll().find((b) => b.name === BUDGET_NAME);

@@ -25,12 +25,6 @@ const APP_WIDGETS = "packages/storybook/src/appWidgets.tsx";
 
 export const UNFIXTURED_WIDGETS: readonly UnfixturedWidget[] = [
   {
-    widgetId: "perf-budgets",
-    w: 6,
-    h: 8,
-    reason: "It reads the page's own PerfBudget registry, not telemetry.",
-  },
-  {
     widgetId: "notes",
     w: 6,
     h: 8,

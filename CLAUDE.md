@@ -525,7 +525,7 @@ Baseline expectations for every new or modified component. Targets WCAG 2.1 AA; 
 
 ## Performance Budgets
 
-`@ksp-gonogo/core` exposes a `PerfBudget` class that tracks rolling-window event rates and warns + fails CI when a soft cap is breached. The dashboard widget `Perf Budgets` shows every registered budget live; a global test-gate (`PerfBudget.installTestGate()` wired into each package's `setupFiles`) fails any test that pushes a budget over its threshold. See `local_docs/performance_review.md` for the design and the existing budgets.
+`@ksp-gonogo/core` exposes a `PerfBudget` class that tracks rolling-window event rates and warns + fails CI when a soft cap is breached. A global test-gate (`PerfBudget.installTestGate()` wired into each package's `setupFiles`) fails any test that pushes a budget over its threshold. See `local_docs/performance_review.md` for the design and the existing budgets.
 
 **Required: any new data source MUST register a sample-rate or dispatch-rate `PerfBudget`.** Data sources are the highest-frequency surface in the app, a misconfigured WebSocket, a runaway poll, or a duplicated subscription will silently degrade the whole dashboard. The budget catches all three.
 
@@ -552,7 +552,7 @@ private handleSample(...) {
 }
 ```
 
-Add the budget at module scope (it self-registers in the global registry on construction). The dashboard widget will pick it up automatically.
+Add the budget at module scope (it self-registers in the global registry on construction), which is all the test gate needs to find it.
 
 ## Serial Input Platform
 

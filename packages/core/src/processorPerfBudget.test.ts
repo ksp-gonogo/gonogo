@@ -16,8 +16,7 @@ import {
 // `processorPerfBudget.ts`, and a recorder that is never called reports zero
 // while zero reads as healthy. So this asserts the seam is LIVE, not just that
 // it compiles: without it, dropping either `setProcessor*Recorder` call would
-// leave both numbers flat on the Perf Budgets widget forever and nothing would
-// say so.
+// leave both numbers flat forever and nothing would say so.
 
 function makeStore(): TimelineStore {
   return new TimelineStore(
@@ -78,7 +77,7 @@ describe("the processor PerfBudgets", () => {
 
     for (let i = 0; i < 10; i++) store.beginFrame();
 
-    // The two numbers coming apart IS the fix, stated in the instrument the dashboard reads: ten more evaluations, no more wakeups.
+    // The two numbers coming apart IS the fix, stated in the same instrument the budgets record: ten more evaluations, no more wakeups.
     expect(PROCESSOR_EVAL_BUDGET.rate() - evalsBefore).toBe(10);
     expect(PROCESSOR_NOTIFY_BUDGET.rate() - notifiesBefore).toBe(0);
 
