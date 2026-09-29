@@ -8,9 +8,6 @@
 # contributors still use those.
 #
 # Build context is the REPO ROOT so pnpm can resolve workspace deps.
-# Unlike the per-service Dockerfiles, the app pulls @jonpepler/kerbcast from
-# GitHub Packages, so the build stage needs a real GITHUB_TOKEN
-# (read:packages). Pass it with `--build-arg GITHUB_TOKEN=$(gh auth token)`.
 
 # ── builder ───────────────────────────────────────────────────────────────────
 # One Debian base for both packages: glibc is the reliable choice for the
@@ -22,14 +19,9 @@ WORKDIR /repo
 # pnpm via corepack: workspace-aware install.
 RUN corepack enable
 
-# The app build authenticates to GitHub Packages for @jonpepler/kerbcast.
-# .npmrc references ${GITHUB_TOKEN}; without it `pnpm install` 401s.
-ARG GITHUB_TOKEN
-ENV GITHUB_TOKEN=${GITHUB_TOKEN}
-
 # Install the full workspace once (the app pulls in components/core/data/
-# kerbcast/serial/ui, so a partial --filter install buys little here and
-# the bundle wants all three packages anyway).
+# serial/ui, so a partial --filter install buys little here and the bundle
+# wants all three packages anyway).
 COPY . .
 RUN pnpm install --frozen-lockfile
 

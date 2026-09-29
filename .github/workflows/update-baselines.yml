@@ -20,10 +20,8 @@ on:
         type: string
 
 # contents: write so the job can commit the regenerated baselines back.
-# packages: read so pnpm install can pull @jonpepler/kerbcast.
 permissions:
   contents: write
-  packages: read
 
 jobs:
   update:
@@ -52,8 +50,6 @@ jobs:
           restore-keys: ${{ runner.os }}-pnpm-
 
       - name: pnpm install
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: pnpm install --frozen-lockfile
 
       - name: Build render dependencies

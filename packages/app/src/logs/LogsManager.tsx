@@ -45,11 +45,6 @@ const KNOWN_TAGS: Array<{ id: string; label: string; hint: string }> = [
     hint: "Per-sample broadcast traffic (noisy)",
   },
   {
-    id: "peer:kos",
-    label: "peer:kos",
-    hint: "kOS terminal tunnel over peer",
-  },
-  {
     id: "peer:stream",
     label: "peer:stream",
     hint: "WebRTC media calls (cameras)",
@@ -58,11 +53,6 @@ const KNOWN_TAGS: Array<{ id: string; label: string; hint: string }> = [
     id: "peer:ice",
     label: "peer:ice",
     hint: "Per-data-conn ICE state + candidate gathering (verbose)",
-  },
-  {
-    id: "kos",
-    label: "kos",
-    hint: "kOS script dispatch + raw WS buffer on timeout",
   },
   { id: "camera", label: "camera", hint: "Camera stream source lifecycle" },
   { id: "serial", label: "serial", hint: "Serial device connect / parse" },

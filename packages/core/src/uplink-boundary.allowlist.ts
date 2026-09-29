@@ -645,7 +645,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/app/src/alarms/types.ts",
       "packages/app/src/components/ComponentOverlay.tsx",
       "packages/app/src/dataSources/seedKspHost.ts",
-      "packages/app/src/logs/LogsManager.tsx",
       /*
        * main.tsx was here (`import "@ksp-gonogo/gonogo-kos-uplink"`, a sanctioned self-
        * registration import). That static
@@ -1842,7 +1841,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "mod/sitrep-sdk/src/topics.test.ts",
     "packages/app/src/__tests__/kos-execute-tunnel.test.ts",
     "packages/app/src/__tests__/sitrep-command-label-topic-tunnel.test.ts",
-    "packages/app/src/logs/LogsManager.tsx",
     "packages/app/src/settings/SettingsModal.test.tsx",
     "packages/app/src/telemetry/PeerTransport.test.ts",
     "packages/core/src/hooks/useUplinkHealthFor.test.tsx",

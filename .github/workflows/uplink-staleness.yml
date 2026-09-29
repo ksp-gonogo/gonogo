@@ -79,7 +79,6 @@ on:
 
 permissions:
   contents: read
-  packages: read
 
 # Latest push on a ref wins. This reports rather than gates, so an older run's
 # verdict is of no use once a newer commit exists.
@@ -112,10 +111,6 @@ jobs:
           restore-keys: ${{ runner.os }}-pnpm-
 
       - name: pnpm install
-        env:
-          # .npmrc references ${GITHUB_TOKEN} for the @jonpepler scope
-          # registry on GitHub Packages.
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: pnpm install --frozen-lockfile
 
       # `components` alongside ui-kit, and pnpm cannot infer it: five Uplinks

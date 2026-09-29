@@ -115,8 +115,7 @@ jobs:
 
   # End-user bundle: app + relay in one image, served from
   # Dockerfile.bundle (repo-root context). Separate job from the matrix
-  # because it needs a GITHUB_TOKEN build-arg (the app pulls @jonpepler/
-  # kerbcast from GitHub Packages) and a different Dockerfile shape.
+  # because it has a different Dockerfile shape.
   publish-bundle:
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
@@ -170,11 +169,7 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          # The app build authenticates to GitHub Packages for
-          # @jonpepler/kerbcast. The auto-injected GITHUB_TOKEN has
-          # read:packages, same as the Pages deploy workflow's install step.
           build-args: |
-            GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
             VITE_AXIOM_TOKEN=${{ secrets.VITE_AXIOM_TOKEN }}
             GONOGO_VERSION_SUFFIX=${{ steps.suffix.outputs.value }}
             GONOGO_VERSION=${{ steps.appver.outputs.version }}${{ steps.suffix.outputs.value }}

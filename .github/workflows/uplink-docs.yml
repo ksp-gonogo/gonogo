@@ -80,10 +80,8 @@ on:
   workflow_dispatch:
 
 # contents: write so the job can commit the regenerated pages back.
-# packages: read so pnpm install can pull @jonpepler/kerbcast.
 permissions:
   contents: write
-  packages: read
 
 # One run at a time on a ref, and the later one wins. Two concurrent runs would
 # both regenerate and both try to push, and the loser's push is rejected as
@@ -119,8 +117,6 @@ jobs:
           restore-keys: ${{ runner.os }}-pnpm-
 
       - name: pnpm install
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: pnpm install --frozen-lockfile
 
       # `...` pulls the dependency graph so the pages are generated against a

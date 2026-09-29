@@ -61,9 +61,6 @@ on:
 permissions:
   contents: write
   actions: write
-  # @jonpepler/kerbcast comes from GitHub Packages; pnpm install needs
-  # read:packages even though the package is public.
-  packages: read
 
 concurrency:
   group: release
@@ -114,8 +111,6 @@ jobs:
           restore-keys: ${{ runner.os }}-pnpm-
 
       - name: pnpm install
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: pnpm install --frozen-lockfile
 
       - name: Test
@@ -187,7 +182,6 @@ jobs:
     permissions:
       contents: read
       id-token: write
-      packages: read
     strategy:
       # One package's failure must not cancel the other's publish.
       fail-fast: false
@@ -245,8 +239,6 @@ jobs:
           restore-keys: ${{ runner.os }}-pnpm-
 
       - name: pnpm install
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: pnpm install --frozen-lockfile
 
       - name: Is this version already on npm?

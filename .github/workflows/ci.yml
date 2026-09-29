@@ -38,11 +38,7 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  # `read:packages` is required so pnpm install can pull
-  # @jonpepler/kerbcast from GitHub Packages. The other defaults
-  # (contents: read) stay implicit.
   contents: read
-  packages: read
 
 jobs:
   test:
@@ -92,10 +88,6 @@ jobs:
           restore-keys: ${{ runner.os }}-pnpm-
 
       - name: pnpm install
-        env:
-          # .npmrc references ${GITHUB_TOKEN} for the @jonpepler scope
-          # registry on GitHub Packages.
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: pnpm install --frozen-lockfile
 
       # `lint:ci`, not `lint`: the latter is `biome check --write .`, which FIXES
@@ -780,10 +772,6 @@ jobs:
           restore-keys: ${{ runner.os }}-pnpm-
 
       - name: pnpm install
-        env:
-          # .npmrc references ${GITHUB_TOKEN} for the @jonpepler scope
-          # registry on GitHub Packages.
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: pnpm install --frozen-lockfile
 
       # turbo build so the Playwright webServers (relay via tsx, app via

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Sister project
 
-**`~/personal/kerbcast/`** is a from-scratch KSP camera-streaming mod (successor to OCISLY) that gonogo now consumes for camera feeds, it replaced the old OCISLY+relay camera path (removed in `55d3fbd`; the relay no longer carries any OCISLY gRPC/jpeg-js fan-out). gonogo pulls in the `@ksp-gonogo/kerbcast` SDK, which is where the `CameraFeed` widget lives. When working on anything that touches camera feeds or the WebRTC stream-source code, check `~/personal/kerbcast/CLAUDE.md` first, and the full design at `local_docs/ocisly_state_and_rebuild.md`. The two projects evolve in parallel; conventions (Conventional Commits, semver, perf-budget patterns, Steam-Deck-to-MacBook topology) are shared between them.
+**`~/personal/kerbcam/`** (repo `ksp-gonogo/kerbcast`) is a from-scratch KSP camera-streaming mod (successor to OCISLY) that fed camera feeds straight into gonogo's own workspace until it departed as an Uplink in `8f6ff0040`; the old OCISLY+relay camera path it replaced was removed earlier still in `55d3fbd` (the relay no longer carries any OCISLY gRPC/jpeg-js fan-out). Camera feeds are now the `kerbcast` Uplink (`gonogo-uplinks/uplinks/kerbcast`), consumed the same way every Uplink is, through `@ksp-gonogo/sitrep-sdk` and `@ksp-gonogo/ui-kit` only; the `CameraFeed` widget lives in that Uplink's client, not in gonogo core, and the Uplink's own client package is the one that pulls in the kerbcast WebRTC SDK. Aim and zoom ride the Uplink's Sitrep commands; the video itself stays on kerbcast's own WebRTC path, outside the Sitrep stream. When working on anything that touches camera feeds or the WebRTC stream-source code, check `~/personal/kerbcam/CLAUDE.md` first. The two projects evolve in parallel; conventions (Conventional Commits, semver, perf-budget patterns, Steam-Deck-to-MacBook topology) are shared between them.
 
 ## Telemetry mod: brand "Gonogo", codename "Sitrep"
 
@@ -306,7 +306,7 @@ Top-level fields you can filter on:
 
 - `level`: `debug` | `info` | `warn` | `error`
 - `message`: human string (already prefixed with `[tag]` if tagged)
-- `tag`: optional verbose-tracing tag (`peer`, `peer:ice`, `peer:kos`, ...)
+- `tag`: optional verbose-tracing tag (`peer`, `peer:ice`, `peer:broadcast`, ...)
 - `device.role`: `host` | `station` | `unknown`
 - `device.id`: host short id (e.g. `XK3F`) or station UUID (`stationKey`)
 - `device.peerId`: broker peer id (host: same as `id`; station: `station-<key>-<sessionToken>`, fresh each page-load)
@@ -342,7 +342,7 @@ Top-level fields you can filter on:
 1. Get the `device.id` (or `sessionId`) from the user / log line.
 2. Pull all entries for that device in the relevant window.
 3. If it's a peer/connection bug, also pull the *other* side's log, the host's view of the same `peerId`, or the station's view of the same `hostPeerId`.
-4. Verbose tracing tags (`peer:ice`, `peer:kos`) are off in console output by default but always shipped to Axiom; check those first when chasing a peer/connection issue.
+4. Verbose tracing tags (`peer:ice`, `peer:broadcast`) are off in console output by default but always shipped to Axiom; check those first when chasing a peer/connection issue.
 
 ### When NOT to use
 
