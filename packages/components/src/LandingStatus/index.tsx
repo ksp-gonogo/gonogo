@@ -177,8 +177,8 @@ function LandingStatusComponent({
             </Text>
           </Section>
         ) : null,
-        // The rail and its readouts take the height the captions leave.
-        <Section key="descent" fill>
+        /* Not a filling section: the readouts scroll with the panel body, and a section held to the leftover height would overflow past the body's bottom inset. */
+        <Section key="descent" full>
           {board === "not-descending" && !landed ? (
             <EmptyState>No landing in progress</EmptyState>
           ) : (
@@ -187,8 +187,6 @@ function LandingStatusComponent({
               ref={measureScroller}
               style={{
                 display: "flex",
-                flex: 1,
-                minHeight: 0,
                 alignItems: "stretch",
                 gap: "var(--gap-section)",
               }}

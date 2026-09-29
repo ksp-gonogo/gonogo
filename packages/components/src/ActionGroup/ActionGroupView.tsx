@@ -209,6 +209,8 @@ export function ActionGroupView({
                   border: "none",
                   padding: 0,
                   font: "inherit",
+                  // A bare button takes the browser's black, not the panel's text colour.
+                  color: "var(--color-text-primary)",
                 }}
               >
                 <Truncate style={{ fontWeight: 600, letterSpacing: "0.05em" }}>

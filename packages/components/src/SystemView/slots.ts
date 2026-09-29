@@ -2,7 +2,7 @@ import type { SystemViewVesselStatusEntry } from "./vesselStatusContribution";
 
 /**
  * Props for `system-view.overlay`, a layer over the body diagram. The frame body sits at `center`, and `d` metres projects to `d * plotScale` user units in a `width` by `height` origin-centred viewBox.
- * It describes the auto-fit view only (zoom 1, no pan), like `orbit-view.overlay`.
+ * Both follow the diagram's pan and zoom, so an overlay drawn this way moves with it.
  */
 export interface SystemOverlayContext {
   /** Name of the parent body the diagram is centred on. */
@@ -11,9 +11,9 @@ export interface SystemOverlayContext {
   width: number;
   /** Diagram pixel height. */
   height: number;
-  /** Metres → SVG-user-unit plot scale at the diagram's auto-fit zoom. */
+  /** Metres → SVG-user-unit plot scale at the diagram's current zoom. */
   plotScale: number;
-  /** The parent body sits at the SVG origin. */
+  /** Where the parent body is drawn, after the diagram's pan: the origin until it is panned. */
   center: { x: number; y: number };
 }
 

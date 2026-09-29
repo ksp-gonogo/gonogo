@@ -9,7 +9,7 @@ import {
   type TabDescriptor,
   Tabs,
 } from "@ksp-gonogo/ui-kit";
-import { KerbalBadges, KerbalStats } from "../shared/KerbalStats";
+import { KerbalBadges, KerbalName, KerbalStats } from "../shared/KerbalStats";
 import { FireButton } from "./CrewButtons";
 import {
   type CrewRosterRow,
@@ -19,7 +19,7 @@ import {
   orderStandings,
 } from "./roster";
 import { ASTRONAUT_COMPLEX_CREW_BADGE_SLOT } from "./slots";
-import { EMPTY_STYLE, LIST_STYLE, WHO_STYLE } from "./styles";
+import { EMPTY_STYLE, LIST_STYLE } from "./styles";
 
 /**
  * The Active tab, sub-tabbed by the `CrewStanding` values actually present, so
@@ -98,16 +98,15 @@ export function ActivePanel({
                       </Cluster>
                     }
                   >
-                    <Stack style={WHO_STYLE}>
-                      <KerbalStats
-                        kerbal={stats}
-                        showRank
-                        showTraits
-                        showExperienceProgress
-                        showInfo
-                      />
-                    </Stack>
+                    <KerbalName name={m.name} />
                   </Card.TitleRow>
+                  <KerbalStats
+                    kerbal={stats}
+                    showRank
+                    showTraits
+                    showExperienceProgress
+                    showInfo
+                  />
                   {/* This kerbal's schedule from whichever Uplink manages their career; nothing under stock. */}
                   <AugmentSlot
                     name="astronaut-complex.crew"

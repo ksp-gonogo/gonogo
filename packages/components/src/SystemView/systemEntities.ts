@@ -106,9 +106,9 @@ export interface SystemEntitiesContext {
   parentName: string;
   width: number;
   height: number;
-  /** Metres → SVG-user-unit plot scale at the diagram's auto-fit zoom. */
+  /** Metres → SVG-user-unit plot scale at the diagram's current zoom. */
   plotScale: number;
-  /** The parent body sits at this SVG-space point (the origin, in practice). */
+  /** Where the parent body is drawn, in the origin-centred frame, after the diagram's pan. */
   center: { x: number; y: number };
   /** The frame the diagram draws in, so an entity lands where the bodies do; absent is parent-centred inertial, the frame positions arrive in. */
   placement?: Placement;
@@ -138,7 +138,10 @@ export function projectEntityPosition(
         position.trueAnomaly,
       ),
     );
-    return { x: at[0] * ctx.plotScale, y: at[1] * ctx.plotScale };
+    return {
+      x: ctx.center.x + at[0] * ctx.plotScale,
+      y: ctx.center.y + at[1] * ctx.plotScale,
+    };
   }
   if (
     !Number.isFinite(position.xMetres) ||

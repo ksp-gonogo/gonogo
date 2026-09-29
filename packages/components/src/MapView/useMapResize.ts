@@ -15,10 +15,8 @@ export function useMapResize() {
       const entry = entries[0];
       if (!entry) return;
       const { width, height } = entry.contentRect;
-      // 2:1 contain: fill the width unless that would exceed the available height.
-      const cW = Math.floor(Math.min(width, height * 2));
-      const cH = Math.floor(cW / 2);
-      setContainerSize({ w: cW, h: cH });
+      /* The whole frame, not a 2:1 box inside it: the fit camera letterboxes the world at rest, and a zoomed-in map draws into the margins. */
+      setContainerSize({ w: Math.floor(width), h: Math.floor(height) });
     });
 
     obs.observe(el);

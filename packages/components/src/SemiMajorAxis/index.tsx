@@ -20,7 +20,6 @@ import {
   Section,
   Unit,
 } from "@ksp-gonogo/ui-kit";
-import { useCallback, useRef, useState } from "react";
 import { useBodyName } from "../shared/useBodyName";
 
 const topics = defineTopicManifest({
@@ -52,32 +51,9 @@ function SemiMajorAxisComponent({
   const cols = w ?? 4;
   const rows = h ?? 4;
   const showSubtitle = rows >= 5 && cols >= 4;
-  const showSparkline = rows >= 4 && cols >= 3;
+  const showSparkline = rows >= 3;
 
   const fontPx = readoutFontPx(cols);
-
-  // The Sparkline is fixed-width SVG, so its slot is measured. A callback ref, since the slot only mounts once orbit data arrives.
-  const roRef = useRef<ResizeObserver | null>(null);
-  const [sparkWidth, setSparkWidth] = useState(120);
-  const sparkRef = useCallback((el: HTMLDivElement | null) => {
-    roRef.current?.disconnect();
-    roRef.current = null;
-    if (!el) return;
-    const measure = (width: number) => {
-      if (width > 0) {
-        setSparkWidth((prev) => {
-          const next = Math.max(40, Math.floor(width));
-          return prev === next ? prev : next;
-        });
-      }
-    };
-    measure(el.clientWidth);
-    const ro = new ResizeObserver((entries) => {
-      measure(entries[0].contentRect.width);
-    });
-    ro.observe(el);
-    roRef.current = ro;
-  }, []);
 
   if (sma === undefined || !sma.isFinite()) {
     return (
@@ -96,6 +72,18 @@ function SemiMajorAxisComponent({
     <Panel
       panelTitle="SMA"
       fitToSize
+      panelTrend={
+        showSparkline
+          ? ({ w, h }) => (
+              <Sparkline
+                values={sparkValues}
+                width={w}
+                height={h}
+                ariaLabel="SMA trend"
+              />
+            )
+          : undefined
+      }
       sections={
         <Section full gap="related-dense">
           {showSubtitle && (
@@ -118,16 +106,6 @@ function SemiMajorAxisComponent({
             <ReadoutCaption role="status">
               {controlFrameLabel(controlFrame) ?? "pulsating frame"}
             </ReadoutCaption>
-          )}
-          {showSparkline && (
-            <div ref={sparkRef} style={SPARK_SLOT_STYLE}>
-              <Sparkline
-                values={sparkValues}
-                width={sparkWidth}
-                height={28}
-                ariaLabel="SMA trend"
-              />
-            </div>
           )}
         </Section>
       }
@@ -159,17 +137,6 @@ const SMA_DISPLAY_STYLE = {
   color: "var(--color-text-primary)",
   textAlign: "center",
   whiteSpace: "nowrap",
-} as const;
-
-/**
- * Reserves the sparkline's height before it measures. `contain: inline-size`
- * keeps the sparkline's starting width from sizing the column, which would
- * spill a three-column tile.
- */
-const SPARK_SLOT_STYLE = {
-  width: "100%",
-  height: "28px",
-  contain: "inline-size",
 } as const;
 
 registerComponent<SemiMajorAxisConfig>({

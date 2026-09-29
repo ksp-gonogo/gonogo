@@ -105,6 +105,39 @@ describe("CommandButton: single-click dispatch", () => {
 });
 
 describe("CommandButton: arm then confirm", () => {
+  it("keeps one width across its resting and armed words, so arming it never reflows its row", async () => {
+    const user = userEvent.setup();
+    const send = vi.fn(() => Promise.resolve(OK));
+    render(
+      <CommandButton
+        handle={makeHandle(send)}
+        label="Fire"
+        confirmLabel="Confirm"
+      />,
+    );
+    const resting = screen.getByRole("button", { name: "Fire" });
+    expect(resting.dataset.restLabel).toBe("Fire");
+    expect(resting.dataset.armedLabel).toBe("Confirm");
+
+    await user.click(resting);
+
+    const armed = screen.getByRole("button", { name: "Confirm" });
+    expect(armed.dataset.restLabel).toBe("Fire");
+    expect(armed.dataset.armedLabel).toBe("Confirm");
+  });
+
+  it("reserves no width for a one-press control", () => {
+    render(
+      <CommandButton
+        handle={makeHandle(vi.fn(() => Promise.resolve(OK)))}
+        label="Stage"
+      />,
+    );
+    expect(
+      screen.getByRole("button", { name: "Stage" }).dataset.restLabel,
+    ).toBeUndefined();
+  });
+
   it("arms on the first click and dispatches nothing", async () => {
     const user = userEvent.setup();
     const send = vi.fn(() => Promise.resolve(OK));

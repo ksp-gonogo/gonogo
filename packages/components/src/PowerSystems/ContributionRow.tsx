@@ -2,13 +2,14 @@ import { readingOf, type TopicReading } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   NULL_DISPLAY,
+  Row,
   RowName,
   speakQuantity,
   Text,
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import type { Contribution } from "./flow";
-import { PowerRow, ROW_EFF } from "./styles";
+import { ROW_EFF } from "./styles";
 
 type FlowSign = "pos" | "neg" | "zero";
 
@@ -38,7 +39,7 @@ export function ContributionRow({
       ? Math.abs(flow / nominalFlow)
       : null;
   return (
-    <PowerRow>
+    <Row>
       <RowName>{partTitle}</RowName>
       {eff !== null && (
         <span
@@ -59,6 +60,6 @@ export function ContributionRow({
           ? `${sign === "pos" ? "+" : ""}${flow.toFixed(2)}`
           : NULL_DISPLAY}
       </Text>
-    </PowerRow>
+    </Row>
   );
 }

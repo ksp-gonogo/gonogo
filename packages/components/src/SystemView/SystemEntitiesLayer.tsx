@@ -34,7 +34,7 @@ export interface SystemEntitiesLayerProps {
   nowUt?: number;
 }
 
-/** Draws every `system-view.entities` contribution as an SVG primitive in its own layer, matching the diagram's static auto-fit viewBox; renders nothing when nothing projects. */
+/** Draws every `system-view.entities` contribution as an SVG primitive in its own layer, placed where the panned and zoomed diagram draws; renders nothing when nothing projects. */
 export function SystemEntitiesLayer({
   entities,
   ctx,
@@ -53,7 +53,8 @@ export function SystemEntitiesLayer({
 
   const halfW = ctx.width / 2;
   const halfH = ctx.height / 2;
-  const viewBox = `${ctx.center.x - halfW} ${ctx.center.y - halfH} ${ctx.width} ${ctx.height}`;
+  // The diagram's unzoomed frame: the context already carries its zoom and pan.
+  const viewBox = `${-halfW} ${-halfH} ${ctx.width} ${ctx.height}`;
 
   return (
     <svg

@@ -251,3 +251,23 @@ describe("Panel toolbar occupies its own header line", () => {
     expect(getComputedStyle(toolbar as Element).flexBasis).toBe("100%");
   });
 });
+
+describe("Panel panelTrend", () => {
+  it("draws the trend strip outside the scrolling body, after it", () => {
+    render(
+      <Panel
+        panelTitle="SMA"
+        panelTrend={() => <span>trend</span>}
+        sections={<span>680 km</span>}
+      />,
+    );
+    const strip = document.querySelector("[data-panel-trend]");
+    const body = document.querySelector("[data-panel-body]");
+    expect(strip).not.toBeNull();
+    expect(body?.contains(strip)).toBe(false);
+    expect(
+      (body as Node).compareDocumentPosition(strip as Node) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+});

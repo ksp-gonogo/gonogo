@@ -2,7 +2,7 @@ import { AugmentSlot } from "@ksp-gonogo/core";
 import type { OrbitTrajectory } from "@ksp-gonogo/sitrep-client";
 import type { ReckoningDecline } from "@ksp-gonogo/sitrep-sdk";
 import { Panel, StatusPill } from "@ksp-gonogo/ui";
-import { Section, Text } from "@ksp-gonogo/ui-kit";
+import { FramedDisplay, Section, Text } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import { TrajectoryFrameCaption } from "../shared/trajectoryFrame";
 import type { WithheldTrajectory } from "../shared/trajectoryWithheld";
@@ -46,17 +46,20 @@ export function OrbitViewPanel({
   overlay,
 }: OrbitViewPanelProps) {
   const hasTrajectory = diagram !== null;
-  const diagramWithOverlay =
-    diagram && overlay ? (
-      <DiagramOverlayWrap>
-        {diagram}
-        <OverlayLayer>
-          <AugmentSlot name="orbit-view.overlay" props={overlay} />
-        </OverlayLayer>
-      </DiagramOverlayWrap>
-    ) : (
-      diagram
-    );
+  const diagramWithOverlay = diagram ? (
+    <FramedDisplay style={DIAGRAM_FRAME}>
+      {overlay ? (
+        <DiagramOverlayWrap>
+          {diagram}
+          <OverlayLayer>
+            <AugmentSlot name="orbit-view.overlay" props={overlay} />
+          </OverlayLayer>
+        </DiagramOverlayWrap>
+      ) : (
+        diagram
+      )}
+    </FramedDisplay>
+  ) : null;
 
   if (isLandscape && showDiagram && hasTrajectory) {
     // Wide-short slot: chrome in the sidebar, diagram beside it.
@@ -80,11 +83,10 @@ export function OrbitViewPanel({
     );
   }
 
-  // The title floats over the diagram only when there is one; over centred text it would overlap.
-  const drawingFillsPanel = hasTrajectory && showDiagram;
-  const showBodyNameInAside = drawingFillsPanel && bodyName !== undefined;
+  const drawingShown = hasTrajectory && showDiagram;
+  const showBodyNameInAside = drawingShown && bodyName !== undefined;
   const showBodyNameInBody =
-    !drawingFillsPanel && showSubtitle && bodyName !== undefined;
+    !drawingShown && showSubtitle && bodyName !== undefined;
   // A refusal outranks the no-data sentence: the elements arrived, and nobody vouches for the path.
   const panelContent = () => {
     if (!hasOrbit && withheld === null)
@@ -110,21 +112,29 @@ export function OrbitViewPanel({
           </Text>
         ) : undefined
       }
-      floatingHeader={drawingFillsPanel}
-    >
-      {showBodyNameInBody && (
-        <Text tone="muted" size="xs">
-          {bodyName}
-        </Text>
-      )}
-      {/* An orbit that closes in one frame is a rosette in another, so the drawing needs its frame's name. */}
-      {showDiagram && (
-        <TrajectoryFrameCaption
-          trajectory={trajectory}
-          centreBodyIndex={centreBodyIndex}
-        />
-      )}
-      {panelContent()}
-    </Panel>
+      sections={[
+        (showBodyNameInBody || showDiagram) && (
+          <Section key="caption" full>
+            {showBodyNameInBody && (
+              <Text tone="muted" size="xs">
+                {bodyName}
+              </Text>
+            )}
+            {/* An orbit that closes in one frame is a rosette in another, so the drawing needs its frame's name. */}
+            {showDiagram && (
+              <TrajectoryFrameCaption
+                trajectory={trajectory}
+                centreBodyIndex={centreBodyIndex}
+              />
+            )}
+          </Section>
+        ),
+        <Section key="orbit" fill>
+          {panelContent()}
+        </Section>,
+      ]}
+    />
   );
 }
+
+const DIAGRAM_FRAME = { flex: 1, minHeight: 0 } as const;

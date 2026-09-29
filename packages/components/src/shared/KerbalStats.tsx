@@ -127,69 +127,71 @@ export function KerbalStats({
   const atMaxRank =
     rankKnown && (kerbal.experienceLevel as number) >= MAX_EXPERIENCE_LEVEL;
   return (
-    <>
-      <span style={NAME_STYLE}>{kerbal.name || NULL_DISPLAY}</span>
-      <span style={META_STYLE}>
-        <span
-          style={TRAIT_TAG_STYLE}
-          title={`Trait: ${kerbal.trait || "Unknown"}`}
-        >
-          {kerbal.trait || NULL_DISPLAY}
-        </span>
-        {showRank &&
-          (rankKnown ? (
-            <span
-              style={LEVEL_STYLE}
-              role="img"
-              title={`Experience level ${kerbal.experienceLevel}`}
-              aria-label={`Experience level ${kerbal.experienceLevel}`}
-            >
-              L{kerbal.experienceLevel}
-            </span>
-          ) : (
-            <span
-              style={LEVEL_STYLE}
-              role="img"
-              title="Experience level unknown"
-              aria-label="Experience level unknown"
-            >
-              L{NULL_DISPLAY}
-            </span>
-          ))}
-        {showTraits && (
-          <RatioChip symbol="C" name="Courage" reading={kerbal.courage} />
-        )}
-        {showTraits && (
-          <RatioChip symbol="S" name="Stupidity" reading={kerbal.stupidity} />
-        )}
-        {showExperienceProgress &&
-          (atMaxRank ? (
-            <span
-              style={LEVEL_STYLE}
-              role="img"
-              title="Max rank"
-              aria-label="Max rank"
-            >
-              MAX
-            </span>
-          ) : (
-            <RatioChip
-              symbol="XP"
-              name="Experience toward next rank"
-              reading={kerbal.experienceLevelDelta}
-            />
-          ))}
-        {showInfo && (
-          <KerbalInfoPopover
-            name={kerbal.name}
-            roleDescription={kerbal.roleDescription}
-            descriptionEffects={kerbal.descriptionEffects}
-          />
-        )}
-        {children}
+    <span style={META_STYLE}>
+      <span
+        style={TRAIT_TAG_STYLE}
+        title={`Trait: ${kerbal.trait || "Unknown"}`}
+      >
+        {kerbal.trait || NULL_DISPLAY}
       </span>
-    </>
+      {showRank &&
+        (rankKnown ? (
+          <span
+            style={LEVEL_STYLE}
+            role="img"
+            title={`Experience level ${kerbal.experienceLevel}`}
+            aria-label={`Experience level ${kerbal.experienceLevel}`}
+          >
+            L{kerbal.experienceLevel}
+          </span>
+        ) : (
+          <span
+            style={LEVEL_STYLE}
+            role="img"
+            title="Experience level unknown"
+            aria-label="Experience level unknown"
+          >
+            L{NULL_DISPLAY}
+          </span>
+        ))}
+      {showTraits && (
+        <RatioChip symbol="C" name="Courage" reading={kerbal.courage} />
+      )}
+      {showTraits && (
+        <RatioChip symbol="S" name="Stupidity" reading={kerbal.stupidity} />
+      )}
+      {showExperienceProgress &&
+        (atMaxRank ? (
+          <span
+            style={LEVEL_STYLE}
+            role="img"
+            title="Max rank"
+            aria-label="Max rank"
+          >
+            MAX
+          </span>
+        ) : (
+          <RatioChip
+            symbol="XP"
+            name="Experience toward next rank"
+            reading={kerbal.experienceLevelDelta}
+          />
+        ))}
+      {showInfo && (
+        <KerbalInfoPopover
+          name={kerbal.name}
+          roleDescription={kerbal.roleDescription}
+          descriptionEffects={kerbal.descriptionEffects}
+        />
+      )}
+      {children}
+    </span>
   );
+}
+
+/** A kerbal's name, ellipsised to the width its row leaves it. */
+export function KerbalName({ name }: { name: string }) {
+  return <span style={NAME_STYLE}>{name || NULL_DISPLAY}</span>;
 }
 
 /**

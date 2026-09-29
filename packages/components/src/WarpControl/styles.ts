@@ -58,9 +58,26 @@ export const STEP_LADDER_STYLE = {
   alignContent: "center",
 } as const;
 
-/* A row of its own under the controls, however wide the body is. */
+/* The buttons and the alarm row under them, as one column beside the rate readout. */
+export const CONTROLS_STYLE = {
+  flex: "3 1 180px",
+  minWidth: 0,
+  display: "flex",
+  flexDirection: "column",
+  gap: "var(--gap-related)",
+} as const;
+
+export const CONTROL_ROW_STYLE = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: "var(--gap-related)",
+  alignItems: "center",
+  justifyContent: "center",
+  minWidth: 0,
+} as const;
+
+/* A row of its own under the buttons. */
 export const FOOT_ROW_STYLE = {
-  flex: "1 1 100%",
   minWidth: 0,
 } as const;
 

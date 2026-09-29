@@ -14,7 +14,6 @@ interface Props {
   meta: DataKeyMeta | undefined;
   raw: SeriesRange<number>;
   containerRef: RefObject<HTMLDivElement>;
-  size: { w: number; h: number } | null;
   /** Whether this series still needs its own fetcher mounted, false when it arrived via `computedSeries`. */
   needsFetch: boolean;
   windowSec: number;
@@ -29,7 +28,6 @@ export function GraphReadout({
   meta,
   raw,
   containerRef,
-  size,
   needsFetch,
   windowSec,
   onData,
@@ -47,6 +45,15 @@ export function GraphReadout({
     <Panel
       panelTitle={readoutTitle}
       panelAside={headerActions}
+      panelTrend={({ w, h }) => (
+        <Sparkline
+          values={sparkValues}
+          width={w}
+          height={h}
+          color={color}
+          ariaLabel={`${seriesLabel} trend`}
+        />
+      )}
       sections={
         <Section fill>
           <div ref={containerRef} style={READOUT_BODY}>
@@ -57,17 +64,6 @@ export function GraphReadout({
               {latest !== undefined ? formatReadoutValue(latest) : NULL_DISPLAY}
               {unit && <ReadoutCaption>{unit}</ReadoutCaption>}
             </BigReadout>
-            <div style={SPARK_SLOT}>
-              {size && (
-                <Sparkline
-                  values={sparkValues}
-                  width={size.w}
-                  height={Math.min(80, Math.max(24, Math.floor(size.h * 0.35)))}
-                  color={color}
-                  ariaLabel={`${seriesLabel} trend`}
-                />
-              )}
-            </div>
           </div>
           {needsFetch && (
             <GraphSeries
@@ -97,5 +93,3 @@ const READOUT_LABEL: CSSProperties = {
   letterSpacing: "0.04em",
   flex: "0 0 auto",
 };
-
-const SPARK_SLOT: CSSProperties = { width: "100%", flex: "0 0 auto" };

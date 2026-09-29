@@ -6,13 +6,6 @@ export const LIST_STYLE = {
   gap: "var(--gap-related)",
 } as const;
 
-// The identity column takes the row's width and lets the name ellipsise.
-export const WHO_STYLE = {
-  minWidth: 0,
-  flex: 1,
-  gap: "var(--gap-related)",
-} as const;
-
 export const EMPTY_STYLE = {
   fontSize: "var(--font-size-compact)",
   color: "var(--color-text-faint)",

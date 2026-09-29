@@ -276,7 +276,6 @@ export function GraphView({
         meta={metaMap.get(cfg.key)}
         raw={seriesData.get(cfg.key) ?? { t: [], v: [] }}
         containerRef={containerRef}
-        size={size}
         needsFetch={!computedKeys.has(cfg.key)}
         windowSec={windowSec}
         onData={handleData}

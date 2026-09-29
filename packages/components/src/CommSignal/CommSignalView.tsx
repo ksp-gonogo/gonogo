@@ -156,6 +156,7 @@ export function CommSignalComponent({
             </span>
           )}
         </Section>,
+        /* The short readouts share one section, so the taller route is what takes a second column. */
         <Section key="signal">
           <Cluster justify="start" wrap>
             <SignalBars
@@ -165,9 +166,7 @@ export function CommSignalComponent({
             />
             <SignalHeadline headline={headline} lost={connected === false} />
           </Cluster>
-        </Section>,
-        showDetailGrid && (
-          <Section key="detail">
+          {showDetailGrid && (
             <Grid
               cols="auto 1fr"
               gap="label-value"
@@ -180,8 +179,8 @@ export function CommSignalComponent({
                 noSignal={noSignal}
               />
             </Grid>
-          </Section>
-        ),
+          )}
+        </Section>,
         showFullPath && (
           <Section key="route">
             <CommsPathRoute

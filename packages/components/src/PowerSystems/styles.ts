@@ -1,7 +1,7 @@
 import { ScrollArea } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
-// SectionsScroll styles ScrollArea's inner element, which no prop reaches; PowerRow is a passive row :hover.
-// biome-ignore lint/style/noRestrictedImports: ScrollArea-internals selector and a passive row :hover, neither of which an inline style or a primitive can express
+// SectionsScroll styles ScrollArea's inner element, which no prop reaches.
+// biome-ignore lint/style/noRestrictedImports: a ScrollArea-internals selector, which neither an inline style nor a primitive can express
 import styled from "styled-components";
 import type { NetTone } from "./flow";
 
@@ -117,22 +117,12 @@ export const CONTRIB_LIST: CSSProperties = {
   display: "flex",
   flexDirection: "column",
   gap: "var(--gap-line)",
+  listStyle: "none",
+  margin: 0,
+  padding: 0,
 };
 
 export const IDLE_LIST: CSSProperties = { ...CONTRIB_LIST, opacity: 0.55 };
-
-export const PowerRow = styled.div`
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  gap: var(--gap-related);
-  padding: var(--inset-surface);
-  font-size: var(--font-size-compact);
-  background: var(--color-surface-app);
-  border-radius: var(--radius-regular);
-  &:hover {
-    background: var(--color-surface-panel);
-  }
-`;
 
 export const ROW_EFF: CSSProperties = {
   fontSize: "var(--font-size-compact)",

@@ -30,7 +30,7 @@ import type { SystemViewConfig } from "./config";
 import { encounterDirectionOf } from "./encounter";
 import { frameCaption, resolveFrame } from "./frame";
 import { conicPatches } from "./orbitPatches";
-import { overlayGeometry } from "./overlayGeometry";
+import { overlayGeometry, viewedGeometry } from "./overlayGeometry";
 import type { TrajectoryPatch } from "./predictedTrajectory";
 import { inertialFrameFor, resolveProjection } from "./projection";
 import { createUtBucketThrottle } from "./utBucketThrottle";
@@ -43,6 +43,7 @@ import "./vesselOrbitsContribution";
 import { panelHohmannFor, transferStatusesFor } from "./transferWindow";
 import { type CelestialBody, useCelestialBodies } from "./useCelestialBodies";
 import { useCommsEntities } from "./useCommsEntities";
+import { usePanZoom } from "./usePanZoom";
 import { usePhaseAngleReading, usePhaseAngles } from "./usePhaseAngles";
 import { VesselInfoPanel } from "./VesselInfoPanel";
 import { vesselPlotStateFromStatus } from "./VesselMarker";
@@ -335,10 +336,30 @@ function SystemViewComponent({
     [facts, frameBodyIndex, chosenProjectionEntry, utBucket],
   );
 
+  // Owned here rather than by the diagram, so the entity layer and the overlay slot follow the same pan and zoom.
+  const panZoom = usePanZoom(wrapRef, parentName !== null && bodies.length > 0);
   const overlayContext = useMemo(
     () =>
-      overlayGeometry({ parentName, children, vesselOrbit, size, projection }),
-    [parentName, children, vesselOrbit, size, projection],
+      viewedGeometry(
+        overlayGeometry({
+          parentName,
+          children,
+          vesselOrbit,
+          size,
+          projection,
+        }),
+        panZoom.zoom,
+        panZoom.pan,
+      ),
+    [
+      parentName,
+      children,
+      vesselOrbit,
+      size,
+      projection,
+      panZoom.zoom,
+      panZoom.pan,
+    ],
   );
 
   // The selected vessel's roster fields while something is selected, else the frame body's almanac.
@@ -430,6 +451,7 @@ function SystemViewComponent({
                     projection={projection}
                     width={size.w}
                     height={size.h}
+                    view={panZoom}
                   />
                 )}
                 {/* Host-drawn contribution entities, on the same auto-fit projection as the overlay slot. */}

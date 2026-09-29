@@ -540,6 +540,18 @@ export function CommandButton<Result = CommandReplyLike, Args = unknown>({
     return label;
   };
   const body = resolveBody();
+  /*
+   * An arm-then-confirm control keeps the width of its wider word in both
+   * states, so arming it never reflows the row it sits in. Only plain-text
+   * labels can be measured this way; a node label sizes itself as before.
+   */
+  const reserve =
+    typeof label === "string" &&
+    typeof confirmLabel === "string" &&
+    !isRefused &&
+    !isLost &&
+    !isFound &&
+    !isShowingReason;
 
   const outcome = isRefused
     ? refusalText
@@ -604,9 +616,11 @@ export function CommandButton<Result = CommandReplyLike, Args = unknown>({
         }
         title={foundText ?? refusalText ?? (isPending ? pendingLabel : title)}
         onClick={() => press(confirmLabel !== undefined)}
+        data-rest-label={reserve ? label : undefined}
+        data-armed-label={reserve ? confirmLabel : undefined}
         {...rest}
       >
-        {body}
+        {reserve ? <CommandButton__Face>{body}</CommandButton__Face> : body}
       </CommandButton__Body>
       {/* Mounted with the control, so an outcome lands in a region assistive tech is already watching. */}
       <LiveRegion visuallyHidden>{outcome}</LiveRegion>
@@ -652,6 +666,16 @@ const SIZE_STYLES = {
     padding: var(--inset-control);
   `,
 } as const;
+
+const CommandButton__Face = styled.span`
+  grid-area: 1 / 1;
+  /* First in the cell's order, so the button's baseline is the face's and not an invisible sizer's. */
+  order: -1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gap-glyph);
+`;
 
 const CommandButton__Body = styled.button<{
   $tone: CommandButtonTone;
@@ -720,6 +744,24 @@ const CommandButton__Body = styled.button<{
         }
       }
     `}
+
+  /* Both labels sit invisibly in the one grid cell with the face, so the box is as wide as the wider of them. */
+  &[data-rest-label] {
+    display: inline-grid;
+    justify-items: center;
+  }
+  &[data-rest-label]::before,
+  &[data-rest-label]::after {
+    grid-area: 1 / 1;
+    visibility: hidden;
+    height: 0;
+  }
+  &[data-rest-label]::before {
+    content: attr(data-rest-label);
+  }
+  &[data-rest-label]::after {
+    content: attr(data-armed-label);
+  }
 
   /* In flight, not unavailable: full strength with a spinner. */
   &[aria-busy="true"] {

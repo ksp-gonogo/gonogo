@@ -1,7 +1,10 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
-import { visibleText } from "@ksp-gonogo/ui-kit/testing";
-import { describe, expect, it } from "vitest";
+import {
+  installFixedSizeResizeObserver,
+  visibleText,
+} from "@ksp-gonogo/ui-kit/testing";
+import { describe, expect, it, onTestFinished } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { SemiMajorAxisComponent } from "./index";
 
@@ -57,6 +60,12 @@ describe("SemiMajorAxis: genuinely runs off the stream", () => {
   });
 
   it("the plotted sparkline itself streams off the ClientTimeline", async () => {
+    // The trend strip draws only once measured, and jsdom measures nothing.
+    const restoreResizeObserver = installFixedSizeResizeObserver({
+      width: 120,
+      height: 28,
+    });
+    onTestFinished(restoreResizeObserver);
     const fixture = setupStreamFixture({
       pinnedUt: 10,
       suspendFrames: true,

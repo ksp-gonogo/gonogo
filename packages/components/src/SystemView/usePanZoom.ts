@@ -90,3 +90,5 @@ export function usePanZoom(
 
   return { zoom, pan, isDragging, handlePointerDown, resetView };
 }
+
+export type PanZoom = ReturnType<typeof usePanZoom>;

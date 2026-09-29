@@ -15,6 +15,8 @@ import type { PendingAlarmSummary } from "../shared/AlarmsLauncher";
 import { NextAlarm } from "./NextAlarm";
 import {
   BODY_STYLE,
+  CONTROL_ROW_STYLE,
+  CONTROLS_STYLE,
   FOOT_ROW_STYLE,
   FULL_LADDER_STYLE,
   RATE_VALUE_STYLE,
@@ -99,106 +101,112 @@ export function WarpControlView({
                 )}
               </div>
 
-              {/* Hidden at small grid counts so the warp buttons keep their own line. */}
-              {scene === "Flight" && cols >= 4 && rows >= 4 && (
-                <ToggleButton
-                  active={paused === true}
-                  tone="warn"
-                  size="sm"
-                  onClick={onTogglePause}
-                  aria-label={paused === true ? "Resume game" : "Pause game"}
-                  title={paused === true ? "Resume" : "Pause"}
-                >
-                  {paused === true ? (
-                    <PlayIcon size={12} />
-                  ) : (
-                    <PauseIcon size={12} />
+              {/* The alarm row is centred under the buttons it governs, not across the rate readout too. */}
+              <div style={CONTROLS_STYLE}>
+                <div style={CONTROL_ROW_STYLE}>
+                  {/* Hidden at small grid counts so the warp buttons keep their own line. */}
+                  {scene === "Flight" && cols >= 4 && rows >= 4 && (
+                    <ToggleButton
+                      active={paused === true}
+                      tone="warn"
+                      size="sm"
+                      onClick={onTogglePause}
+                      aria-label={
+                        paused === true ? "Resume game" : "Pause game"
+                      }
+                      title={paused === true ? "Resume" : "Pause"}
+                    >
+                      {paused === true ? (
+                        <PlayIcon size={12} />
+                      ) : (
+                        <PauseIcon size={12} />
+                      )}
+                    </ToggleButton>
                   )}
-                </ToggleButton>
-              )}
 
-              {showFullLadder && (
-                // biome-ignore lint/a11y/useSemanticElements: <fieldset> names itself from <legend> and groups form controls; these are grid buttons and it would need UA resets
-                <div
-                  style={FULL_LADDER_STYLE}
-                  role="group"
-                  aria-label="Time warp levels"
-                >
-                  {HIGH_LEVELS.map((lvl) => {
-                    const active = currentIndex === lvl.index;
-                    return (
+                  {showFullLadder && (
+                    // biome-ignore lint/a11y/useSemanticElements: <fieldset> names itself from <legend> and groups form controls; these are grid buttons and it would need UA resets
+                    <div
+                      style={FULL_LADDER_STYLE}
+                      role="group"
+                      aria-label="Time warp levels"
+                    >
+                      {HIGH_LEVELS.map((lvl) => {
+                        const active = currentIndex === lvl.index;
+                        return (
+                          <WarpButton
+                            key={lvl.index}
+                            type="button"
+                            $active={active}
+                            aria-pressed={active}
+                            disabled={alarmRequired && lvl.index > idx}
+                            onClick={() => onSetWarp(lvl.index)}
+                          >
+                            {lvl.label}
+                          </WarpButton>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {showStepper && (
+                    // biome-ignore lint/a11y/useSemanticElements: <fieldset> names itself from <legend> and groups form controls; these are grid buttons and it would need UA resets
+                    <div
+                      style={STEP_LADDER_STYLE}
+                      role="group"
+                      aria-label="Time warp controls"
+                    >
                       <WarpButton
-                        key={lvl.index}
                         type="button"
-                        $active={active}
-                        aria-pressed={active}
-                        disabled={alarmRequired && lvl.index > idx}
-                        onClick={() => onSetWarp(lvl.index)}
+                        $active={false}
+                        disabled={idx === 0}
+                        onClick={() => onSetWarp(downIdx)}
+                        aria-label="Warp down"
                       >
-                        {lvl.label}
+                        −
                       </WarpButton>
-                    );
-                  })}
+                      <WarpButton
+                        type="button"
+                        $active={idx === 0}
+                        aria-pressed={idx === 0}
+                        onClick={() => onSetWarp(0)}
+                        aria-label="Drop to realtime"
+                      >
+                        1×
+                      </WarpButton>
+                      <WarpButton
+                        type="button"
+                        $active={false}
+                        disabled={alarmRequired || idx === TOP_WARP_INDEX}
+                        onClick={() => onSetWarp(upIdx)}
+                        aria-label="Warp up"
+                      >
+                        +
+                      </WarpButton>
+                    </div>
+                  )}
+
+                  <AugmentSlot name="warp-control.stepper" props={{}} />
                 </div>
-              )}
-
-              {showStepper && (
-                // biome-ignore lint/a11y/useSemanticElements: <fieldset> names itself from <legend> and groups form controls; these are grid buttons and it would need UA resets
-                <div
-                  style={STEP_LADDER_STYLE}
-                  role="group"
-                  aria-label="Time warp controls"
-                >
-                  <WarpButton
-                    type="button"
-                    $active={false}
-                    disabled={idx === 0}
-                    onClick={() => onSetWarp(downIdx)}
-                    aria-label="Warp down"
-                  >
-                    −
-                  </WarpButton>
-                  <WarpButton
-                    type="button"
-                    $active={idx === 0}
-                    aria-pressed={idx === 0}
-                    onClick={() => onSetWarp(0)}
-                    aria-label="Drop to realtime"
-                  >
-                    1×
-                  </WarpButton>
-                  <WarpButton
-                    type="button"
-                    $active={false}
-                    disabled={alarmRequired || idx === TOP_WARP_INDEX}
-                    onClick={() => onSetWarp(upIdx)}
-                    aria-label="Warp up"
-                  >
-                    +
-                  </WarpButton>
-                </div>
-              )}
-
-              <AugmentSlot name="warp-control.stepper" props={{}} />
-
-              {alarmRequired ? (
-                <Cluster justify="center" wrap style={FOOT_ROW_STYLE}>
-                  <Button type="button" onClick={onOpenAlarms}>
-                    Set alarm to warp
-                  </Button>
-                  <ReadoutCaption>
-                    {blockingDelay === "no-path" ? (
-                      "No path"
-                    ) : (
-                      <>
-                        <Unit value={oneWayDelay} /> delay
-                      </>
-                    )}
-                  </ReadoutCaption>
-                </Cluster>
-              ) : (
-                nextAlarm !== null && <NextAlarm alarm={nextAlarm} />
-              )}
+                {alarmRequired ? (
+                  <Cluster justify="center" wrap style={FOOT_ROW_STYLE}>
+                    <Button type="button" onClick={onOpenAlarms}>
+                      Set alarm to warp
+                    </Button>
+                    <ReadoutCaption>
+                      {blockingDelay === "no-path" ? (
+                        "No path"
+                      ) : (
+                        <>
+                          <Unit value={oneWayDelay} /> delay
+                        </>
+                      )}
+                    </ReadoutCaption>
+                  </Cluster>
+                ) : (
+                  nextAlarm !== null && <NextAlarm alarm={nextAlarm} />
+                )}
+              </div>
             </div>
           </DimmedOverlay>
         </Section>

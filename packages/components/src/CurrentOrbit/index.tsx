@@ -167,32 +167,7 @@ function CurrentOrbitComponent({
       panelTitle="ORBIT"
       panelStatus={orbitHeld && canDrawDiagram ? "held-stale" : undefined}
       sections={[
-        <Section key="frame" full>
-          {showSubtitle && refBody !== undefined && (
-            <span
-              style={{
-                fontSize: "var(--font-size-caption)",
-                color: "var(--color-text-muted)",
-                letterSpacing: "0.03em",
-              }}
-            >
-              {refBody}
-            </span>
-          )}
-          {/* The same points are a different path in every frame, so the curve is only readable beside its frame. */}
-          <TrajectoryFrameCaption
-            trajectory={trajectory}
-            centreBodyIndex={orbit?.referenceBodyIndex}
-          />
-          {modelState !== null && (
-            <ReadoutCaption title={declined?.note}>{modelState}</ReadoutCaption>
-          )}
-          {/* The game's own view frame, named only when it removes the apsides below. */}
-          {noApsidesHere && controlFrameLabel(controlFrame) !== undefined && (
-            <FrameCaveat>{`Frame: ${controlFrameLabel(controlFrame)}`}</FrameCaveat>
-          )}
-        </Section>,
-        /* One section: the widget measures its own tile to place the diagram, through a plain div because ui-kit layout primitives don't forward refs. */
+        /* One section: the widget measures its own tile to place the diagram beside or under the readouts, through a plain div because ui-kit layout primitives don't forward refs. */
         <Section key="orbit" fill>
           <div
             ref={bodyRef}
@@ -204,29 +179,58 @@ function CurrentOrbitComponent({
               gap: "var(--gap-related)",
             }}
           >
-            <OrbitReadoutGrid
-              // At minimum size a formatted distance wraps unless the label column and value font shrink.
-              tight={cols < 4 || rows < 5}
-              // Long values clip at 3-4 cols at the base font size.
-              narrow={cols < 5}
-              isLandscape={isLandscape}
-              showInclinationRow={rows >= 5}
-              showApProgressRows={rows >= 6}
-              showEccentricityRows={rows >= 8}
-              apsides={apsides}
-              noApsidesHere={noApsidesHere}
-              apoapsisAltitude={current(solve?.apoapsisAlt)}
-              periapsisAltitude={current(solve?.periapsisAlt)}
-              timeToAp={current(
-                solveCountdown(solveReading, (s) => s.timeToAp),
+            {/* The captions label the readouts, so they sit in the readout column and the diagram beside it can use the full height. */}
+            <Stack style={READOUT_COLUMN}>
+              {showSubtitle && refBody !== undefined && (
+                <span
+                  style={{
+                    fontSize: "var(--font-size-caption)",
+                    color: "var(--color-text-muted)",
+                    letterSpacing: "0.03em",
+                  }}
+                >
+                  {refBody}
+                </span>
               )}
-              timeToPe={current(
-                solveCountdown(solveReading, (s) => s.timeToPe),
+              {/* The same points are a different path in every frame, so the curve is only readable beside its frame. */}
+              <TrajectoryFrameCaption
+                trajectory={trajectory}
+                centreBodyIndex={orbit?.referenceBodyIndex}
+              />
+              {modelState !== null && (
+                <ReadoutCaption title={declined?.note}>
+                  {modelState}
+                </ReadoutCaption>
               )}
-              inclination={orbitReading.inc}
-              eccentricity={orbitReading.ecc}
-              period={current(solve?.period)}
-            />
+              {/* The game's own view frame, named only when it removes the apsides below. */}
+              {noApsidesHere &&
+                controlFrameLabel(controlFrame) !== undefined && (
+                  <FrameCaveat>{`Frame: ${controlFrameLabel(controlFrame)}`}</FrameCaveat>
+                )}
+              <OrbitReadoutGrid
+                // At minimum size a formatted distance wraps unless the label column and value font shrink.
+                tight={cols < 4 || rows < 5}
+                // Long values clip at 3-4 cols at the base font size.
+                narrow={cols < 5}
+                isLandscape={isLandscape}
+                showInclinationRow={rows >= 5}
+                showApProgressRows={rows >= 6}
+                showEccentricityRows={rows >= 8}
+                apsides={apsides}
+                noApsidesHere={noApsidesHere}
+                apoapsisAltitude={current(solve?.apoapsisAlt)}
+                periapsisAltitude={current(solve?.periapsisAlt)}
+                timeToAp={current(
+                  solveCountdown(solveReading, (s) => s.timeToAp),
+                )}
+                timeToPe={current(
+                  solveCountdown(solveReading, (s) => s.timeToPe),
+                )}
+                inclination={orbitReading.inc}
+                eccentricity={orbitReading.ecc}
+                period={current(solve?.period)}
+              />
+            </Stack>
 
             {showDiagramSlot && (
               <Stack
@@ -272,6 +276,8 @@ function CurrentOrbitComponent({
     />
   );
 }
+
+const READOUT_COLUMN = { gap: "var(--gap-related)", minWidth: 0 } as const;
 
 registerComponent<CurrentOrbitConfig>({
   id: "current-orbit",

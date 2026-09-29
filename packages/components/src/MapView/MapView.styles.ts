@@ -64,8 +64,9 @@ export const MapBody = styled.div`
 
 /**
  * The frame around the map: visual content gets an edge while the augment
- * sections below keep the body inset. `flush` because the map is letterboxed
- * to 2:1 and already carries dead space; a gutter would read as a double border.
+ * sections below keep the body inset. Unpadded because the fit view letterboxes
+ * the 2:1 world and already carries dead space; a gutter would read as a
+ * double border.
  */
 export const MapFrame = styled(FramedDisplay)`
   flex: 1;
@@ -73,7 +74,7 @@ export const MapFrame = styled(FramedDisplay)`
   min-width: 0;
 `;
 
-/** Fills leftover space; the ResizeObserver measures it to letterbox CanvasContainer. */
+/** Fills leftover space; the ResizeObserver measures it to size CanvasContainer. */
 export const MapOuter = styled.div`
   flex: 1;
   min-height: 0;

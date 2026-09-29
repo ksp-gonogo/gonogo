@@ -41,13 +41,7 @@ export function StageStackSection({
   maxStageDv: Value<"m/s">;
 }) {
   return (
-    <Stack
-      style={{
-        marginTop: "var(--gap-stage-section)",
-        paddingTop: "var(--inset-below-rule)",
-        borderTop: "1px solid var(--color-border-subtle)",
-      }}
-    >
+    <Stack>
       <ReadoutCaption
         style={{
           color: "var(--color-text-faint)",

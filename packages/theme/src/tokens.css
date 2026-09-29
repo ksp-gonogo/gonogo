@@ -547,8 +547,6 @@ textarea {
   --gap-config-group: var(--space-4);
   /* A crew row's contributed meters and the next row. */
   --gap-crew-meters: var(--space-4);
-  /* The stage breakdown opening under the resource meters. */
-  --gap-stage-section: var(--space-10);
   /* A toolbar's rule and the table under it. */
   --gap-toolbar: var(--space-4);
   /* A section opening below a rule inside a popover. */
@@ -587,6 +585,8 @@ textarea {
   --gap-panel-columns: var(--space-16);
   /* Sections stacked in a panel body's grid. */
   --gap-panel-sections: var(--space-12);
+  /* The height of a panel's full-bleed trend strip along its bottom edge. */
+  --size-panel-trend: var(--space-24);
   /* The band every panel reserves at its top edge for the delay rail. */
   --panel-rail-band: var(--space-16);
 

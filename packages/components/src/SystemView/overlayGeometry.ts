@@ -39,3 +39,24 @@ export function overlayGeometry({
     placement: projection ?? undefined,
   };
 }
+
+/**
+ * The same context with the diagram's live zoom and pan folded into its scale
+ * and centre, so a layer drawn in the unzoomed origin-centred frame lands where
+ * the zoomed diagram draws, while its strokes and markers keep their pixel size.
+ */
+export function viewedGeometry(
+  ctx: SystemEntitiesContext | null,
+  zoom: number,
+  pan: { x: number; y: number },
+): SystemEntitiesContext | null {
+  if (ctx === null) return null;
+  return {
+    ...ctx,
+    plotScale: ctx.plotScale * zoom,
+    center: {
+      x: (ctx.center.x - pan.x) * zoom,
+      y: (ctx.center.y - pan.y) * zoom,
+    },
+  };
+}

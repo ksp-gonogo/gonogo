@@ -14,7 +14,7 @@ export interface SparklineProps {
   yDomain?: [number, number];
   /** Render a faint baseline at y=0 if 0 falls within the visible range. */
   showZeroBaseline?: boolean;
-  /** Faint plot background and fill under the line; set false inside a chip that has its own background. */
+  /** The faint fill under the line; set false inside a chip that has its own background. */
   background?: boolean;
   /** ARIA label for screen readers. Defaults to "Trend sparkline". */
   ariaLabel?: string;
@@ -91,22 +91,12 @@ export function Sparkline({
     >
       <title>{ariaLabel}</title>
       {background && (
-        <>
-          <defs>
-            <linearGradient id={fillId} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={color} stopOpacity="0.25" />
-              <stop offset="100%" stopColor={color} stopOpacity="0.02" />
-            </linearGradient>
-          </defs>
-          <rect
-            x={0}
-            y={0}
-            width={width}
-            height={height}
-            fill="var(--color-surface-app)"
-            opacity={0.6}
-          />
-        </>
+        <defs>
+          <linearGradient id={fillId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity="0.25" />
+            <stop offset="100%" stopColor={color} stopOpacity="0.02" />
+          </linearGradient>
+        </defs>
       )}
       {showBaseline && zeroY !== null && (
         <line

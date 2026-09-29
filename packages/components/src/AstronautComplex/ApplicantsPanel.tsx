@@ -6,11 +6,11 @@ import {
   type CommandButtonHandle,
   Stack,
 } from "@ksp-gonogo/ui-kit";
-import { KerbalBadges, KerbalStats } from "../shared/KerbalStats";
+import { KerbalBadges, KerbalName, KerbalStats } from "../shared/KerbalStats";
 import { HireButton } from "./CrewButtons";
 import { type ApplicantRow, applicantStats } from "./roster";
 import { ASTRONAUT_COMPLEX_CREW_BADGE_SLOT } from "./slots";
-import { EMPTY_STYLE, LIST_STYLE, WHO_STYLE } from "./styles";
+import { EMPTY_STYLE, LIST_STYLE } from "./styles";
 
 export function ApplicantsPanel({
   applicants,
@@ -53,15 +53,9 @@ export function ApplicantsPanel({
                 </Cluster>
               }
             >
-              <Stack style={WHO_STYLE}>
-                <KerbalStats
-                  kerbal={stats}
-                  showRank={false}
-                  showTraits
-                  showInfo
-                />
-              </Stack>
+              <KerbalName name={a.name} />
             </Card.TitleRow>
+            <KerbalStats kerbal={stats} showRank={false} showTraits showInfo />
             {/* An applicant has a schedule too under a career overhaul, flagged so an augment knows which list it is in. */}
             <AugmentSlot
               name="astronaut-complex.crew"

@@ -35,7 +35,7 @@ import {
   type ResolvedProjection,
 } from "./projection";
 import type { CelestialBody } from "./useCelestialBodies";
-import { usePanZoom } from "./usePanZoom";
+import type { PanZoom } from "./usePanZoom";
 import { usePlacedPrediction } from "./usePlacedPrediction";
 import { VesselMarker, type VesselPlotState } from "./VesselMarker";
 
@@ -73,6 +73,8 @@ export interface SystemDiagramProps {
   projection?: ResolvedProjection | null;
   width: number;
   height: number;
+  /** The diagram's pan and zoom, owned by the host so the layers over the diagram can follow it. */
+  view: PanZoom;
 }
 
 /** Body orbit rings stay visibly thicker than both vessel ring classes; every stroke is divided by zoom to stay screen-constant. */
@@ -99,6 +101,7 @@ export function SystemDiagram({
   projection = null,
   width,
   height,
+  view,
 }: SystemDiagramProps) {
   const { parent, children, maxRadius } = useMemo(
     () => organise(bodies, parentName),
@@ -158,10 +161,7 @@ export function SystemDiagram({
   }, [focusedBody, onFocusBodyChange]);
 
   const emptyDiagram = !parent || children.length === 0;
-  const { zoom, pan, isDragging, handlePointerDown, resetView } = usePanZoom(
-    containerRef,
-    !emptyDiagram,
-  );
+  const { zoom, pan, isDragging, handlePointerDown, resetView } = view;
 
   const hoverStart = useCallback(
     (body: CelestialBody, e: ReactPointerEvent) => {

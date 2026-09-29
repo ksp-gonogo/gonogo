@@ -1209,6 +1209,12 @@ export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
    */
   panelFooter?: ReactNode;
   /**
+   * A trend across the panel's whole bottom edge, with no inset and on the
+   * panel's own surface: the sparkline under a small readout. Handed the
+   * strip's measured size, since a sparkline draws to fixed pixels.
+   */
+  panelTrend?: (size: { w: number; h: number }) => ReactNode;
+  /**
    * Secondary content beside or below the body, in its own scrolling region:
    * an almanac for a diagram, a legend for a plot, a detail pane for the
    * selected row.
@@ -1375,6 +1381,27 @@ const PanelStickyTop = styled.div`
   }
 `;
 
+/** The full-bleed strip `panelTrend` draws into, measured so the trend can be drawn to its pixels. */
+function PanelTrend({
+  render,
+}: {
+  render: (size: { w: number; h: number }) => ReactNode;
+}) {
+  const { ref, size } = useElementSize<HTMLDivElement>({ w: 0, h: 0 });
+  return (
+    <PanelTrend__Strip ref={ref} data-panel-trend="">
+      {size.w > 0 && size.h > 0 && render(size)}
+    </PanelTrend__Strip>
+  );
+}
+
+const PanelTrend__Strip = styled.div`
+  flex: 0 0 var(--size-panel-trend);
+  height: var(--size-panel-trend);
+  min-width: 0;
+  overflow: hidden;
+`;
+
 /* A filter control takes the toolbar row's whole width, so its search box is not squeezed beside other controls. */
 const PanelFilterSlot = styled.div`
   flex: 1 1 100%;
@@ -1405,6 +1432,7 @@ function PanelRoot({
   panelToolbar,
   panelFilter,
   panelFooter,
+  panelTrend,
   floatingHeader,
   fitToSize,
   panelSidebar,
@@ -1599,6 +1627,7 @@ function PanelRoot({
         <PanelDelayRail />
         {content}
         {panelSections && !hasSections && <WidgetSections />}
+        {panelTrend !== undefined && <PanelTrend render={panelTrend} />}
         {panelFooter !== undefined && <PanelFooter>{panelFooter}</PanelFooter>}
       </PanelContainer>
     );
@@ -1674,6 +1703,7 @@ function PanelRoot({
           {floatingHeader && panelSidebar === undefined && header}
           {bodyRegion}
         </PanelGlow>
+        {panelTrend !== undefined && <PanelTrend render={panelTrend} />}
         {panelFooter !== undefined && <PanelFooter>{panelFooter}</PanelFooter>}
         {/* Mounted empty, so the first status is a change to a region already watched; outside the aside, so collapsing does not unmount it. */}
         <LiveRegion visuallyHidden>{statusAnnouncement}</LiveRegion>

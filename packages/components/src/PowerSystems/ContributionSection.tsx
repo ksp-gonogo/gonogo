@@ -41,7 +41,7 @@ export function ContributionSection({
       {rows.length === 0 ? (
         <div style={SECTION_EMPTY}>{emptyText}</div>
       ) : (
-        <div style={listStyle}>
+        <ul style={listStyle}>
           {rows.map((c) => (
             <ContributionRow
               key={c.flightId}
@@ -49,7 +49,7 @@ export function ContributionSection({
               currency={currency}
             />
           ))}
-        </div>
+        </ul>
       )}
     </Section>
   );

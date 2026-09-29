@@ -52,6 +52,24 @@ describe("projectEntityPosition", () => {
     expect(p?.y).toBeCloseTo(0, 6);
   });
 
+  it("measures an orbit position from the drawn parent body, wherever it has been panned", () => {
+    const p = projectEntityPosition(
+      {
+        kind: "orbit",
+        parentName: "Kerbin",
+        sma: 1_000_000,
+        ecc: 0,
+        lan: 0,
+        argPe: 0,
+        inclination: 0,
+        trueAnomaly: 0,
+      },
+      { ...CTX, center: { x: -5, y: 3 } },
+    );
+    expect(p?.x).toBeCloseTo(5, 6);
+    expect(p?.y).toBeCloseTo(3, 6);
+  });
+
   it("places trueAnomaly=90deg on +y for a circular equatorial orbit", () => {
     const p = projectEntityPosition(
       {
