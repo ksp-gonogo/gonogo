@@ -24,7 +24,7 @@ function FleetRosterComponent({
   const chosenVantage = useSelectedVantage();
   const observedVantage = useObservedVantage();
   const vantage = chosenVantage ?? observedVantage;
-  // Centres do not move, so a stale list is still the list.
+  // Centres do not move, so a held list is still the list.
   const centresReading = fleetRosterTopics.useTelemetry("commandCentre.roster");
   const centres =
     centresReading.state === "observed" || centresReading.state === "held"

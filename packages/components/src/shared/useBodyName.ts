@@ -3,7 +3,7 @@ import { CELESTIAL_FACTS, useProcessor } from "@ksp-gonogo/sitrep-client";
 
 /**
  * The name of the body at a stable index. A held catalogue is still the
- * catalogue, so a stale one answers. `undefined` means not resolvable yet;
+ * catalogue, so a held one answers. `undefined` means not resolvable yet;
  * `null` means `system.bodies` itself is a confirmed tombstone, read from the
  * topic because the processor answers an absent input with an empty catalogue.
  */

@@ -56,7 +56,7 @@ function writeStoredScene(scene: string): void {
 export function SceneChangeBanner() {
   // A discrete game state, declared unmodellable. Same reasoning as
   // `useGameContext`: the game does not leave the Flight scene because a frame
-  // went missing, so a stale scene is still the scene and only never-arrived is
+  // went missing, so a held scene is still the scene and only never-arrived is
   // unknown. This banner announces a CHANGE, so a spurious unknown would fire a
   // transition that did not happen.
   const sceneReading = useTelemetry("spaceCenter.scene");

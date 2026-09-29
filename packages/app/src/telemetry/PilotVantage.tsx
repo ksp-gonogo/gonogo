@@ -35,7 +35,7 @@ function usePilotCraftVantageId(): string | undefined {
     orbitReading.state === "observed" || orbitReading.state === "held"
       ? orbitReading.value.meta?.source
       : undefined;
-  // Same read as `VantageControl`'s `useActiveCentres`, minus the home-centre question this has no use for: a stale roster is still the roster, and only never-arrived is empty.
+  // Same read as `VantageControl`'s `useActiveCentres`, minus the home-centre question this has no use for: a held roster is still the roster, and only never-arrived is empty.
   const rosterReading = useTelemetry("commandCentre.roster");
   const roster =
     rosterReading.state === "observed" || rosterReading.state === "held"

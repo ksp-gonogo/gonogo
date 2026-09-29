@@ -1265,7 +1265,7 @@ function useActionGroupBindings(): AgBinding[] | null {
   // more than it should.
   //
   // Action-group BINDINGS are structure, not a quantity: they change when a
-  // craft is built or docked, so a stale set is still the set, and a label is
+  // craft is built or docked, so a held set is still the set, and a label is
   // better than a bare "(f.ag1)" fallback even on an old frame.
   const parts =
     partsReading.state === "observed" || partsReading.state === "held"

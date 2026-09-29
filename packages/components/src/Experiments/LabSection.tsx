@@ -3,12 +3,11 @@ import {
   Badge,
   Cluster,
   Divider,
-  formatStreamStatus,
+  HeldBadge,
   Inline,
   RowName,
   type Severity,
   Stack,
-  severityFromStreamStatus,
   Text,
 } from "@ksp-gonogo/ui-kit";
 import type { LabStatus } from "./parse";
@@ -48,12 +47,7 @@ export function LabSection({
                   </Badge>
                   {lab.processingData === true && <Badge>PROCESSING</Badge>}
                   {labGrade !== undefined && (
-                    <Badge
-                      severity={severityFromStreamStatus(labGrade)}
-                      title={`${lab.partName}: lab state is held`}
-                    >
-                      {formatStreamStatus(labGrade)}
-                    </Badge>
+                    <HeldBadge grade={labGrade} subject={lab.partName} />
                   )}
                 </Inline>
               </Cluster>

@@ -18,7 +18,7 @@ CORE_UPLINK_CLIENT.registerContribution({
   id: "comm-signal-no-signal-badge",
   contributes: "comm-signal.badges",
   deps: [COMM_SIGNAL_HELD],
-  // A held flag is the last thing the link said about itself, so a stale answer still counts.
+  // A held flag is the last thing the link said about itself, so a held answer still counts.
   compute: (topics) => {
     const reading = topics[COMM_SIGNAL_HELD.id];
     return commSignalNoSignalBadge(

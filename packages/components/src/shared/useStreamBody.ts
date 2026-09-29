@@ -11,7 +11,7 @@ export function useStreamBody(
   fallbackName?: string | null,
 ): StreamBody | undefined {
   const reading = useTelemetry("system.bodies");
-  // A body roster does not decay, so a stale one still answers.
+  // A body roster does not decay, so a held one still answers.
   const bodies =
     reading.state === "observed" || reading.state === "held"
       ? (reading.value as StreamBodies | undefined)

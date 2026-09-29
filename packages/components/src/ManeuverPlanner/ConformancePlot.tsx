@@ -90,7 +90,7 @@ export interface ConformancePlotProps {
   residual: number | null;
   /**
    * Whether the CURRENT orbit is a live observation. The planned conic is
-   * AUTHORED and never dims: a plan does not go stale, it just is.
+   * AUTHORED and never dims: a plan does not be held, it just is.
    */
   currentIsObserved: boolean;
   bodyRadius?: number | null;

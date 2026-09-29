@@ -14,6 +14,12 @@ import type {
 import type { UplinkPackage } from "./context";
 import { encodeGif } from "./gif";
 import { growRootToContent } from "./grow";
+import {
+  type HeldStage,
+  type HeldVerdict,
+  judgeHeld,
+  mountForHeld,
+} from "./held";
 import { buildProbePage, type ProbePage } from "./page";
 import { pngSize } from "./png";
 import { PROBE_CHROME_ATTR, RENDER_PROBE_GLOBAL } from "./probe-global";
@@ -33,12 +39,6 @@ import {
   type ShapeCapture,
   settleAnimations,
 } from "./shape";
-import {
-  judgeStaleness,
-  mountForStaleness,
-  type StalenessStage,
-  type StalenessVerdict,
-} from "./staleness";
 
 /*
  * The Playwright half: one browser, one page, every scene.
@@ -347,7 +347,7 @@ export async function renderUplink(
 }
 
 /**
- * Name the guests no scene drew, which the staleness check therefore never
+ * Name the guests no scene drew, which the held check therefore never
  * judged. Said rather than failed: a guest can legitimately draw nothing in
  * every scene this Uplink has, and the fix is a scene, which is the author's
  * call. Silent on a one-scene run, where most guests are simply not in view.
@@ -357,7 +357,7 @@ function reportUnjudgedGuests(ledger: GuestLedger, oneScene: boolean): void {
   const unjudged = ledger.guests.filter((g) => !ledger.judged.has(g.id));
   if (unjudged.length === 0) return;
   console.log(
-    `\n  ! staleness: ${unjudged.length} guest(s) no scene draws, so nothing ` +
+    `\n  ! held: ${unjudged.length} guest(s) no scene draws, so nothing ` +
       "has checked what they show when the link drops: " +
       unjudged.map((g) => `${g.kind} ${g.id}`).join(", "),
   );
@@ -395,14 +395,14 @@ async function renderOneScene(
 
   // The starved run, once per scene rather than once per mode: the question is about the FIXTURE, and a tile size cannot answer it.
   const starved = await mount(tab, payloadFor(scene, first, true));
-  const staleness = await stalenessRenders(tab, scene, first);
-  if (staleness) {
-    await assertStalenessShows(tab, scene, first, staleness, ledger);
+  const heldPair = await heldRenders(tab, scene, first);
+  if (heldPair) {
+    await assertHeldShows(tab, scene, first, heldPair, ledger);
   }
   for (const [index, mode] of scene.modes.entries()) {
     const fed = await mount(tab, payloadFor(scene, mode, false));
     if (index === 0) assertFedRenderMeansSomething(scene, fed, starved);
-    const control = index === 0 ? staleness?.control : undefined;
+    const control = index === 0 ? heldPair?.control : undefined;
 
     if (scene.steps && scene.steps.length > 0 && index === 0) {
       await captureMotion(tab, scene, mode, opts, assets, control);
@@ -879,21 +879,21 @@ function assertFedRenderMeansSomething(
  * Whether a scene can be asked what it does when the link drops: it feeds the
  * stream, and it is not an empty state, which draws no figure to hold.
  */
-function stalenessApplies(scene: Scene): boolean {
+function heldApplies(scene: Scene): boolean {
   return scene.emits.length > 0 && !scene.expectsEmpty;
 }
 
 /** The scene's whole render in both states, at the first mode. */
-interface StalenessPair {
+interface HeldPair {
   live: SceneReport;
-  stale: SceneReport;
+  held: SceneReport;
 }
 
 /** An augment or contribution, and the slot it fills. */
 type Guest = SceneTarget & { slot: string };
 
 /**
- * This Uplink's augments and contributions, which the staleness check judges
+ * This Uplink's augments and contributions, which the held check judges
  * wherever a scene draws them, the ids it has judged at least once in this
  * run, and every widget's declared slots, for a guest filling a global one.
  */
@@ -928,7 +928,7 @@ function guestLedger(inventory: UplinkInventory): GuestLedger {
 }
 
 /**
- * Everything the staleness gate reads for one scene, mounted before the fed
+ * Everything the held gate reads for one scene, mounted before the fed
  * render because that has to be the last mount: everything after it reads the
  * page as it was left.
  *
@@ -936,18 +936,18 @@ function guestLedger(inventory: UplinkInventory): GuestLedger {
  * that differ would make every comparison read as a change, so the check
  * proves it can see "the same" before it trusts "different".</p>
  */
-async function stalenessRenders(
+async function heldRenders(
   tab: Page,
   scene: Scene,
   mode: Scene["modes"][number],
-): Promise<(StalenessPair & { control: SceneReport }) | undefined> {
-  if (!stalenessApplies(scene)) return undefined;
+): Promise<(HeldPair & { control: SceneReport }) | undefined> {
+  if (!heldApplies(scene)) return undefined;
   const staged = scene.stopsArriving === true;
   const control = await mountAs(tab, scene, mode, staged);
   const twin = await mountAs(tab, scene, mode, !staged);
   return staged
-    ? { live: twin, stale: control, control }
-    : { live: control, stale: twin, control };
+    ? { live: twin, held: control, control }
+    : { live: control, held: twin, control };
 }
 
 function mountAs(
@@ -957,14 +957,14 @@ function mountAs(
   stopsArriving: boolean,
   withhold?: SceneTarget,
 ): Promise<SceneReport> {
-  return mountForStaleness(stalenessStage(tab), scene, {
+  return mountForHeld(heldStage(tab), scene, {
     ...payloadFor(scene, mode, false),
     stopsArriving,
     withhold,
   });
 }
 
-function stalenessStage(tab: Page): StalenessStage {
+function heldStage(tab: Page): HeldStage {
   return {
     mount: (payload) => mount(tab, payload),
     act: (scene, missing) => performActs(tab, scene, missing),
@@ -988,10 +988,10 @@ function hostOf(scene: Scene): string | undefined {
 }
 
 /**
- * The staleness gate for one scene. Fails a subject that draws the same thing
+ * The held gate for one scene. Fails a subject that draws the same thing
  * whether its figures are arriving or not, and one that marks a figure held
  * without saying so. Every stream-fed scene is checked, so nothing escapes it
- * for want of a stale fixture.
+ * for want of a held fixture.
  *
  * <p>A widget is judged on its whole render. A guest (an augment or a
  * contribution) is judged on what is left once the render without it is taken
@@ -1001,30 +1001,30 @@ function hostOf(scene: Scene): string | undefined {
  * and so is every other guest of this Uplink the scene's host draws: a guest
  * with no scene of its own is still on screen wherever its host is.</p>
  */
-async function assertStalenessShows(
+async function assertHeldShows(
   tab: Page,
   scene: Scene,
   mode: Scene["modes"][number],
-  pair: StalenessPair & { control: SceneReport },
+  pair: HeldPair & { control: SceneReport },
   ledger: GuestLedger,
 ): Promise<void> {
   const staged = scene.stopsArriving === true;
   const host = hostOf(scene);
   const withoutGuest = async (guest: SceneTarget) => ({
     live: (await mountAs(tab, scene, mode, false, guest)).elements,
-    stale: (await mountAs(tab, scene, mode, true, guest)).elements,
+    held: (await mountAs(tab, scene, mode, true, guest)).elements,
   });
 
   const subjectIsGuest = scene.target.kind !== "widget" && scene.host;
-  const verdict = judgeStaleness({
+  const verdict = judgeHeld({
     live: pair.live.elements,
-    stale: pair.stale.elements,
+    held: pair.held.elements,
     hostOnly: subjectIsGuest ? await withoutGuest(scene.target) : undefined,
   });
   ledger.judged.add(scene.target.id);
-  reportStaleness(scene, scene.target, verdict, {
+  reportHeld(scene, scene.target, verdict, {
     staged,
-    excuse: scene.unchangedWhenStale,
+    excuse: scene.unchangedWhenHeld,
     hosted: Boolean(subjectIsGuest),
   });
 
@@ -1035,16 +1035,16 @@ async function assertStalenessShows(
       guest.slot.startsWith(`${host}.`) ||
       ledger.hostSlots.get(host)?.has(guest.slot) === true;
     if (!fills) continue;
-    const guestVerdict = judgeStaleness({
+    const guestVerdict = judgeHeld({
       live: pair.live.elements,
-      stale: pair.stale.elements,
+      held: pair.held.elements,
       hostOnly: await withoutGuest(guest),
     });
     // Not drawn in this scene at all.
-    if (guestVerdict.drawn.live === 0 && guestVerdict.drawn.stale === 0)
+    if (guestVerdict.drawn.live === 0 && guestVerdict.drawn.held === 0)
       continue;
     ledger.judged.add(guest.id);
-    reportStaleness(scene, guest, guestVerdict, {
+    reportHeld(scene, guest, guestVerdict, {
       staged,
       excuse: undefined,
       hosted: true,
@@ -1052,16 +1052,16 @@ async function assertStalenessShows(
   }
 }
 
-function reportStaleness(
+function reportHeld(
   scene: Scene,
   subject: SceneTarget,
-  verdict: StalenessVerdict,
+  verdict: HeldVerdict,
   how: { staged: boolean; excuse: string | undefined; hosted: boolean },
 ): void {
   const who = `${scene.name}: ${subject.kind} ${subject.id}`;
   if (how.excuse !== undefined && !verdict.unchanged) {
     throw new Error(
-      `${who}: "_scene.unchangedWhenStale" says this scene draws the same ` +
+      `${who}: "_scene.unchangedWhenHeld" says this scene draws the same ` +
         `with the link dropped ("${how.excuse}"), and it no longer does: ` +
         `${verdict.changed} element(s) differ. Remove the field.`,
     );
@@ -1071,7 +1071,7 @@ function reportStaleness(
       `${who} draws exactly the same whether its figures are arriving or ` +
         `not${how.hosted ? ", once what its host draws for itself is taken out" : ""}` +
         `${how.staged ? "" : ' (compared against this scene rendered again with "_stream": { "stopsArriving": true })'}. ` +
-        `It draws ${verdict.drawn.live} element(s) live and ${verdict.drawn.stale} with the link dropped, and they match. ` +
+        `It draws ${verdict.drawn.live} element(s) live and ${verdict.drawn.held} with the link dropped, and they match. ` +
         "An operator has no way to tell a held figure from a current one.\n" +
         "Mark what is held the way the kit does: read the value as a Reading " +
         "and draw it through `Unit` (or a `Meter`/readout fed the reading), so " +
@@ -1081,7 +1081,7 @@ function reportStaleness(
         "it owns saying that data is held.\n" +
         "If the subject draws no figure an operator could take for current (a " +
         "vocabulary, a control, a label), say so on its scene with " +
-        '"_scene": { "unchangedWhenStale": "<why>" }.',
+        '"_scene": { "unchangedWhenHeld": "<why>" }.',
     );
   }
   if (verdict.unannounced.length > 0) {
@@ -1096,13 +1096,13 @@ function reportStaleness(
   }
   if (verdict.unchanged) {
     console.log(
-      `   staleness ${subject.id}: unchanged with the link dropped, excused: ${how.excuse}`,
+      `   held ${subject.id}: unchanged with the link dropped, excused: ${how.excuse}`,
     );
     return;
   }
   console.log(
-    `   staleness ${subject.id}: ${verdict.changed} of ` +
-      `${verdict.drawn.live}/${verdict.drawn.stale} element(s) differ with the link dropped` +
+    `   held ${subject.id}: ${verdict.changed} of ` +
+      `${verdict.drawn.live}/${verdict.drawn.held} element(s) differ with the link dropped` +
       `${how.staged ? "" : " (derived twin)"}`,
   );
   for (const line of verdict.differences.slice(0, 2)) {

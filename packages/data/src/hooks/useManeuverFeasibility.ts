@@ -52,7 +52,7 @@ export function useManeuverFeasibility(): ManeuverFeasibility {
   const nodes = useManeuverNodes();
   /*
    * The one shared budget: the game's own vessel total, carried and dated
-   * rather than blanked when it goes stale. A blanked budget reads as "no
+   * rather than blanked when it is held. A blanked budget reads as "no
    * opinion", and `allOk` is what a commit gate consults.
    *
    * So BOTH value-bearing states are taken. Reading `observed` alone would drop

@@ -68,7 +68,7 @@ function useTwrEssentials(): readonly TinyEssential[] {
 
 function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
   const twrReading = useTwrReading();
-  // A stale TWR is held, never blanked: the empty state means the craft has no engine.
+  // A held TWR stays drawn, never blanked: the empty state means the craft has no engine.
   const twr = twrReading.value;
   const series = useComputedSeries(
     "vessel.propulsion.currentThrust",

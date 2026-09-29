@@ -103,7 +103,7 @@ function PoiProviderGate({
   ) as TopicId;
   const available = useTelemetry(availabilityTopic);
 
-  // A `.available` topic is a presence gate: stale and absent both mean installed, and only pending or unowned hides the provider.
+  // A `.available` topic is a presence gate: held and absent both mean installed, and only pending or unowned hides the provider.
   const domainReported = hasAnswered(available);
 
   if (provider.requires && !domainReported) {

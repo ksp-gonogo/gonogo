@@ -35,7 +35,7 @@ type RoboticsConsoleConfig = Record<string, never>;
 function RoboticsConsoleComponent({
   h,
 }: Readonly<ComponentProps<RoboticsConsoleConfig>>) {
-  // The list is held through stale, and each drawn position carries its field reading, so a held one is marked.
+  // The list is kept while held, and each drawn position carries its field reading, so a held one is marked.
   const roboticsReading = useTelemetry("robotics.servos");
   const roboticsRaw = stillTrue(roboticsReading, undefined);
   // Two different facts: whether this craft carries a robotic part, and whether the install has the expansion.

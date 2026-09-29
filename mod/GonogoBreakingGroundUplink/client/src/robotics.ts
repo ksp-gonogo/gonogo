@@ -1,6 +1,6 @@
 /**
  * The empty-state sentence both robotics widgets show when they have no joint to draw.
- * The DLC answer comes off `game.dlc.breakingGround`; the craft answer off a definite `robotics.available === false` or a list that has been read (observed or stale) and filtered to nothing; anything else is still waiting.
+ * The DLC answer comes off `game.dlc.breakingGround`; the craft answer off a definite `robotics.available === false` or a list that has been read (observed or held) and filtered to nothing; anything else is still waiting.
  */
 export function emptyStateText(
   breakingGround: boolean | undefined,

@@ -41,7 +41,7 @@ export interface ActionGroupViewProps
   extends Readonly<ComponentProps<ActionGroupConfig>> {
   group: ActionGroup | undefined;
   value: unknown;
-  /** The state was withheld because it went stale, not because it never came. */
+  /** The state was withheld because its reading is held, not because it never came. */
   valueHeld: boolean;
   /** A current payload named this group and could not say whether it is engaged. */
   stateUnreadable: boolean;

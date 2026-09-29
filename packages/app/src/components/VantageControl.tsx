@@ -50,7 +50,7 @@ export function useActiveCentres(): {
   // FAIL-OPEN FIX as well as a migration: `(roster ?? [])` never took its
   // fallback once the read became a Reading, so the filter below ran against a
   // Reading rather than a list. Ground-side and declared unmodellable, so a
-  // stale roster is still the roster and only never-arrived is empty.
+  // held roster is still the roster and only never-arrived is empty.
   const rosterReading = useTelemetry("commandCentre.roster");
   const roster =
     rosterReading.state === "observed" || rosterReading.state === "held"

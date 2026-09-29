@@ -1,4 +1,5 @@
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import { heldWord } from "@ksp-gonogo/ui-kit";
 import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { FleetReliabilityUpdates } from "./index";
@@ -54,6 +55,9 @@ function emitFailure(fixture: ReturnType<typeof setupStreamFixture>): void {
   });
 }
 
+/** A dropped link holds every reading with the `disconnected` grade, and the notice says that grade's word. */
+const DROPPED = heldWord("disconnected");
+
 function dropTheLink(fixture: ReturnType<typeof setupStreamFixture>): void {
   act(() => {
     fixture.store.setTransportConnected(false);
@@ -70,7 +74,7 @@ describe("FleetReliability when the reliability read is held", () => {
     expect(await screen.findByText("LV-909 Terrier")).toBeInTheDocument();
     expect(screen.getByText("1 at risk")).toBeInTheDocument();
     expect(
-      screen.queryByRole("status", { name: "Reliability held" }),
+      screen.queryByRole("status", { name: `Reliability ${DROPPED}` }),
     ).not.toBeInTheDocument();
   });
 
@@ -83,7 +87,7 @@ describe("FleetReliability when the reliability read is held", () => {
 
     await waitFor(() =>
       expect(
-        screen.getByRole("status", { name: "Reliability held" }),
+        screen.getByRole("status", { name: `Reliability ${DROPPED}` }),
       ).toBeInTheDocument(),
     );
     // Withheld, not merely reworded: no part name, no severity word, no count.
@@ -104,7 +108,7 @@ describe("FleetReliability when the reliability read is held", () => {
     dropTheLink(fixture);
 
     await waitFor(() => expect(container).not.toBeEmptyDOMElement());
-    expect(screen.getByText("held")).toBeInTheDocument();
+    expect(screen.getByText(DROPPED)).toBeInTheDocument();
   });
 
   it("keeps the notice on the ACTIVE row only, because identity is held rather than withheld", async () => {
@@ -113,7 +117,7 @@ describe("FleetReliability when the reliability read is held", () => {
     emitFailure(active.fixture);
     expect(await screen.findByText("LV-909 Terrier")).toBeInTheDocument();
     dropTheLink(active.fixture);
-    await waitFor(() => expect(screen.getByText("held")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(DROPPED)).toBeInTheDocument());
     active.unmount();
 
     const other = renderAugment("v-other");
@@ -121,18 +125,18 @@ describe("FleetReliability when the reliability read is held", () => {
     dropTheLink(other.fixture);
 
     await waitFor(() => expect(other.container).toBeEmptyDOMElement());
-    expect(screen.queryByText("held")).not.toBeInTheDocument();
+    expect(screen.queryByText(DROPPED)).not.toBeInTheDocument();
   });
 
   it("does not call a cold start a dropped link", async () => {
-    // A cold start is not a dropped link: there is no reading to call stale.
+    // A cold start is not a dropped link: there is no reading to call held.
     const { fixture, container } = renderAugment("v-active");
     act(() => {
       fixture.emit("vessel.identity", ACTIVE_IDENTITY);
     });
 
     await waitFor(() => expect(container).toBeEmptyDOMElement());
-    expect(screen.queryByText("held")).not.toBeInTheDocument();
+    expect(screen.queryByText(DROPPED)).not.toBeInTheDocument();
   });
 
   it("still renders blank for the none backend after the link drops", async () => {
@@ -148,6 +152,6 @@ describe("FleetReliability when the reliability read is held", () => {
     dropTheLink(fixture);
 
     await waitFor(() => expect(container).toBeEmptyDOMElement());
-    expect(screen.queryByText("held")).not.toBeInTheDocument();
+    expect(screen.queryByText(DROPPED)).not.toBeInTheDocument();
   });
 });

@@ -44,7 +44,7 @@ function markAnnounced(centreId: string): void {
  * situation and is explained again.
  */
 export function HomeFallbackNotice() {
-  // Ground-side and declared unmodellable, as VantageControl reads it: a stale roster is still the roster.
+  // Ground-side and declared unmodellable, as VantageControl reads it: a held roster is still the roster.
   const rosterReading = useTelemetry("commandCentre.roster");
   const roster =
     rosterReading.state === "observed" || rosterReading.state === "held"

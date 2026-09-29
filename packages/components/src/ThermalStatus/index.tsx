@@ -25,7 +25,7 @@ function ThermalStatusComponent({
   w,
   h,
 }: Readonly<ComponentProps<ThermalStatusConfig>>) {
-  // Temperatures are measurements and survive a stale record, dated; the bands are judgements about now and drop to `unknown`.
+  // Temperatures are measurements and survive a held record, dated; the bands are judgements about now and drop to `unknown`.
   const thermalReading = topics.useTelemetry("vessel.thermal");
   const thermal =
     thermalReading.state === "observed" || thermalReading.state === "held"

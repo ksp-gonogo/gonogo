@@ -7,7 +7,7 @@ import type { Scene } from "./scenes";
  * scene: live, and with the link dropped.
  *
  * <p>Every render the harness takes of a stream-fed scene gets a twin with the
- * other `stopsArriving` value, so an Uplink needs no stale fixture for its
+ * other `stopsArriving` value, so an Uplink needs no held fixture for its
  * widgets to be held to this. A scene that already stages the drop is compared
  * with itself fed live; one that does not is compared with itself dropped.</p>
  *
@@ -23,14 +23,14 @@ import type { Scene } from "./scenes";
  * states, and the guest's elements are what is left after the host's are taken
  * away.</p>
  */
-export interface StalenessRenders {
+export interface HeldRenders {
   live: readonly string[];
-  stale: readonly string[];
+  held: readonly string[];
   /** The same two renders with the guest withheld, for a hosted scene. */
-  hostOnly?: { live: readonly string[]; stale: readonly string[] };
+  hostOnly?: { live: readonly string[]; held: readonly string[] };
 }
 
-export interface StalenessVerdict {
+export interface HeldVerdict {
   /** The subject drew the same elements live and with the link dropped. */
   unchanged: boolean;
   /** How many of the subject's elements differ between the two, counted both ways. */
@@ -38,7 +38,7 @@ export interface StalenessVerdict {
   /** The differing elements, `-` drawn only live and `+` only with the link dropped. */
   differences: string[];
   /** How many elements the subject drew live, and with the link dropped, bare wrappers not counted. */
-  drawn: { live: number; stale: number };
+  drawn: { live: number; held: number };
   /** Elements the subject drew held with no caption saying so. */
   unannounced: string[];
 }
@@ -61,7 +61,7 @@ export function multisetMinus(
 
 /**
  * An element with no text of its own and nothing but a class: a layout wrapper.
- * See {@link judgeStaleness} for when one is not counted.
+ * See {@link judgeHeld} for when one is not counted.
  */
 function isBareWrapper(line: string): boolean {
   return /^<[a-z0-9-]+ (class="[^"]*")?> $/.test(line);
@@ -91,16 +91,16 @@ function withoutLoneWrappers(
   };
 }
 
-export function judgeStaleness(renders: StalenessRenders): StalenessVerdict {
+export function judgeHeld(renders: HeldRenders): HeldVerdict {
   const subjectLive = renders.hostOnly
     ? multisetMinus(renders.live, renders.hostOnly.live)
     : renders.live;
-  const subjectStale = renders.hostOnly
-    ? multisetMinus(renders.stale, renders.hostOnly.stale)
-    : renders.stale;
+  const subjectHeld = renders.hostOnly
+    ? multisetMinus(renders.held, renders.hostOnly.held)
+    : renders.held;
   const { gone, added } = withoutLoneWrappers(
-    multisetMinus(subjectLive, subjectStale),
-    multisetMinus(subjectStale, subjectLive),
+    multisetMinus(subjectLive, subjectHeld),
+    multisetMinus(subjectHeld, subjectLive),
   );
   const differences = [
     ...gone.map((line) => `- ${line}`),
@@ -114,14 +114,14 @@ export function judgeStaleness(renders: StalenessRenders): StalenessVerdict {
     differences,
     drawn: {
       live: subjectLive.filter((l) => !isBareWrapper(l)).length,
-      stale: subjectStale.filter((l) => !isBareWrapper(l)).length,
+      held: subjectHeld.filter((l) => !isBareWrapper(l)).length,
     },
-    unannounced: subjectStale.filter((line) => line.endsWith(UNANNOUNCED_MARK)),
+    unannounced: subjectHeld.filter((line) => line.endsWith(UNANNOUNCED_MARK)),
   };
 }
 
-/** The page calls one staleness render is made of. */
-export interface StalenessStage {
+/** The page calls one held render is made of. */
+export interface HeldStage {
   /** Mount the scene with the drop held back. */
   mount(payload: ScenePayload): Promise<SceneReport>;
   act(scene: Scene, missing: "throw" | "skip"): Promise<void>;
@@ -132,7 +132,7 @@ export interface StalenessStage {
 }
 
 /**
- * One render of a scene for the staleness comparison, live or dropped as the
+ * One render of a scene for the held comparison, live or dropped as the
  * payload says, in the state the scene pictures.
  *
  * <p>The render in the scene's own state is the fed render again, so it drops
@@ -146,8 +146,8 @@ export interface StalenessStage {
  * withheld, a press that finds no control is skipped: the control was the
  * guest's, and the host without it is in the state the press leaves it.</p>
  */
-export async function mountForStaleness(
-  stage: StalenessStage,
+export async function mountForHeld(
+  stage: HeldStage,
   scene: Scene,
   payload: ScenePayload,
 ): Promise<SceneReport> {

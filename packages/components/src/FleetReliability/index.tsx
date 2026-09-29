@@ -8,10 +8,13 @@ import {
   Badge,
   Card,
   Cluster,
+  heldWord,
   magnitudeOf,
   Stack,
+  severityFromStreamStatus,
   worstSeverity,
 } from "@ksp-gonogo/ui-kit";
+import { heldGrade } from "../shared/heldGrade";
 import { AbsenceLine } from "./AbsenceLine";
 import { CARD_TONE, isNoteworthy, rowFor } from "./partRows";
 import { RepairControl } from "./RepairControl";
@@ -62,7 +65,7 @@ export function FleetReliabilityUpdates({ vesselId, compact }: UpdatesProps) {
       : undefined) ?? [];
   const costOf = repairCostResolver(crew, stores);
   // Either channel being old replaces the whole row with a notice.
-  const held = partsReading.state === "held" || summaryReading.state === "held";
+  const held = heldGrade(partsReading) ?? heldGrade(summaryReading);
 
   // reliability.* is active-vessel-only.
   if (!identity || identity.vesselId !== vesselId) return null;
@@ -79,9 +82,13 @@ export function FleetReliabilityUpdates({ vesselId, compact }: UpdatesProps) {
   if (coverage !== "modeled") return null;
 
   // Something IS modelling this craft and the held frame is old: the one case worth a word.
-  if (held) {
+  if (held !== undefined) {
     return (
-      <AbsenceLine severity="offline" state="held" label="Reliability held" />
+      <AbsenceLine
+        severity={severityFromStreamStatus(held)}
+        state={heldWord(held)}
+        label={`Reliability ${heldWord(held)}`}
+      />
     );
   }
 

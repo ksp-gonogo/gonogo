@@ -44,7 +44,7 @@ export function SignalLossIndicator() {
   // gating either never shows loss or always does, and both are worse than what
   // it did before.
   //
-  // A LINK is the one thing silence is evidence about, so a stale one reads as
+  // A LINK is the one thing silence is evidence about, so a held one reads as
   // unknown rather than as its last value: painting "connected" from a
   // last-known true asserts the fact the silence contradicts. `undefined` is
   // already this component's not-yet-known state, and the confirmed-true gate

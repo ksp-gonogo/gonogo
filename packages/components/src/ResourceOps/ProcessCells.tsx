@@ -19,7 +19,7 @@ const RESOURCE_NAME_STYLE = {
   color: "var(--color-text-primary)",
 } as const;
 
-/** A figure withheld because its channel is stale, drawn apart from one that never arrived. */
+/** A figure withheld because its channel is held, drawn apart from one that never arrived. */
 export function WithheldOr({
   withheld,
   figure,
@@ -41,7 +41,7 @@ export function ResourceCells({
 }: Readonly<{
   flow: IsruResourceFlow;
   direction: "in" | "out" | "extract";
-  /** Stale rather than never arrived: the cell reads as held back, not "unknown". */
+  /** Held rather than never arrived: the cell reads as held back, not "unknown". */
   ratesHeld: boolean;
 }>) {
   return (

@@ -18,7 +18,7 @@ import { deriveTopologyFromVesselParts } from "./vesselPartsAdapter";
 export function useTopology(): VesselTopology | undefined {
   const reading = useTelemetry("vessel.parts");
   // Structure, not a quantity: exact between events and unpredictable across
-  // one, which is why `vessel.parts` is declared unmodellable. A stale topology
+  // one, which is why `vessel.parts` is declared unmodellable. A held topology
   // is the topology, so it is derived from the last observed record; only a
   // never-arrived one yields undefined.
   const wire =

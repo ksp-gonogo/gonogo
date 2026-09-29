@@ -128,7 +128,7 @@ export function ReachList({
                   {haveBudget && (
                     <ReachTd>
                       {verdict ? (
-                        // A stale budget can only over-state reach, so dated verdicts do not wear the live GO colour.
+                        // A held budget can only over-state reach, so dated verdicts do not wear the live GO colour.
                         <Badge
                           severity={
                             budgetHeld ? undefined : VERDICT_SEVERITY[verdict]

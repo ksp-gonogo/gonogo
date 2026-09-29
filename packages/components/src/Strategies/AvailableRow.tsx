@@ -38,7 +38,7 @@ export function StrategyDescription({ of: s }: Readonly<{ of: Strategy }>) {
 /**
  * What the Activate control says to a pointer resting on it. A refusal names
  * which kind it is, because the operator does something different about each:
- * a stale balance wants the link looked at, a short one wants funds.
+ * a held balance wants the link looked at, a short one wants funds.
  */
 function activateTitle(
   s: Strategy,
@@ -91,7 +91,7 @@ export function AvailableRow({
   funds: number | null;
   reputation: number | null;
   science: number | null;
-  /** Withheld because the balances went stale, rather than never having arrived. */
+  /** Withheld because the balances were held, rather than never having arrived. */
   balancesHeld: boolean;
   factor: number;
   onFactorChange: (v: number) => void;

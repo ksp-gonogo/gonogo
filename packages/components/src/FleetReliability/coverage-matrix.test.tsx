@@ -1,4 +1,5 @@
 import { act, render, screen } from "@ksp-gonogo/test-utils";
+import { heldWord } from "@ksp-gonogo/ui-kit";
 import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { FleetReliabilityUpdates } from "./index";
@@ -226,7 +227,7 @@ describe("what the reliability augment says in each coverage state", () => {
     });
 
     expect(screen.queryByText(/at risk/)).not.toBeInTheDocument();
-    expect(screen.getByText("held")).toBeInTheDocument();
+    expect(screen.getByText(heldWord("disconnected"))).toBeInTheDocument();
     await act(async () => {});
   });
 });

@@ -139,10 +139,10 @@ function toggleRefusal(
  * vessel's now or the one a widget last saw before it unmounted. Only an
  * `observed` reading is inverted. `vessel.control` has no relative form to fall
  * back on (every actuation command in the contract is an ABSOLUTE set, which is
- * the point of the toggle-to-absolute bridge existing at all), so a stale
+ * the point of the toggle-to-absolute bridge existing at all), so a held
  * reading refuses, and the refusal reaches the alarm's own row.
  *
- * The group NAMES are taken off a stale reading too, the same way
+ * The group NAMES are taken off a held reading too, the same way
  * `useActionGroups` does: "AG1: Solar Panels" is still called that whatever the
  * link is doing. Only the VALUE decays.
  */

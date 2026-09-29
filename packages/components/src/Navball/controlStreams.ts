@@ -45,7 +45,7 @@ export function useThrottleCommand(throttle: number | null): {
     setThrottleTouched(true);
     setThrottleCmdState(next);
   };
-  // An id does not decay, so a stale one still names the vessel.
+  // An id does not decay, so a held one still names the vessel.
   const activeVesselId = lastObserved(
     useTelemetry("vessel.identity"),
   )?.vesselId;

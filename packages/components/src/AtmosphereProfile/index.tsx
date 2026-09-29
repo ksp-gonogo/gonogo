@@ -30,7 +30,7 @@ function AtmosphereProfileComponent({
 }: Readonly<ComponentProps<AtmosphereProfileConfig>>) {
   /**
    * The chip states the air the craft is flying through now, undated, and
-   * density decides whether it is in atmosphere at all, so a stale record
+   * density decides whether it is in atmosphere at all, so a held record
    * withholds the chip; the marked altitude line says the record went quiet.
    */
   const flightReading = topics.useTelemetry("vessel.flight");

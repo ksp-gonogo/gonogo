@@ -137,10 +137,10 @@ export function useActionGroups(): ActionGroup[] {
   const control = useTelemetry("vessel.control");
   // A group's NAME does not decay. "AG1: Solar Panels" is still called that
   // whether the last frame arrived a second ago or an hour ago, so the registry
-  // uses the last observed record on every arm that carries one, and a stale
+  // uses the last observed record on every arm that carries one, and a held
   // link degrades to the stock half only when nothing has EVER arrived.
   //
-  // The group's VALUE is the part that goes stale, and it is read separately by
+  // The group's VALUE is the part that is held, and it is read separately by
   // whatever renders a toggle: that read branches, this one does not need to.
   // `vessel.control` is declared unmodellable, so its reckoning is always
   // `"none"` and there is no model to consider here.
@@ -341,7 +341,7 @@ export function toggleCommandFor(group: ActionGroup): string | null {
  * the group's own live `value`. Stage takes no args (its handler ignores
  * them, matching `map-command.ts`'s `f.stage` home) and needs no invert.
  * Every other group is `TOGGLE_INVALID` unless `value` is a real boolean:
- * an unresolved/stale read must never be blindly inverted.
+ * an unresolved/held read must never be blindly inverted.
  */
 export function buildToggleArgs(
   group: ActionGroup,

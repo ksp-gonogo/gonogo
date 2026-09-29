@@ -144,7 +144,7 @@ export function usePlan(inputs: PlannerInputs, telemetry: PlannerTelemetry) {
 
   /*
    * Positive finite checks, since values can land NaN mid-scene-load. Withheld
-   * on a stale orbit too: a craft out of contact may have burned unseen, so its
+   * on a held orbit too: a craft out of contact may have burned unseen, so its
    * carried elements can describe an orbit it has left. This gates planning
    * only, never the diagram's own trajectory.
    */

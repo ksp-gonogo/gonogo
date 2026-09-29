@@ -238,11 +238,11 @@ export interface ScenePayload {
    * draws when a figure is held is exactly the thing worth seeing: the
    * mark on the figure, the held value where a null token used to be, the
    * caption naming which half is dated. A field reading and a minted `Value` of
-   * the same magnitude draw identical pixels, so a stale scene rendered live is
+   * the same magnitude draw identical pixels, so a held scene rendered live is
    * byte-identical to its live twin and shows nothing.</p>
    *
    * <p>The DROP is the lever rather than a clock advance because it is the one
-   * the widgets' own stale tests use (`store.setTransportConnected(false)`), so
+   * the widgets' own held tests use (`store.setTransportConnected(false)`), so
    * a render and the test asserting on it are staging the same thing.</p>
    *
    * <p>The same field `packages/components/scripts/probe/probe-entry.tsx` and
@@ -286,7 +286,7 @@ export interface ScenePayload {
   starve: boolean;
   /**
    * An augment or contribution to take out of its registry for this mount, so
-   * the render is of everything else. The staleness check reads a guest's
+   * the render is of everything else. The held check reads a guest's
    * response to the link dropping as the difference between the render with
    * it and the render without it, because the host around it may mark its own
    * held readings whatever the guest does.

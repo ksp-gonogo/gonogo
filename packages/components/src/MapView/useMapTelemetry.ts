@@ -25,7 +25,7 @@ export interface MapTelemetry {
   lat: Value<"°"> | undefined;
   lon: Value<"°"> | undefined;
   /** The position is held and nothing models it, so no marker draws. */
-  positionStale: boolean;
+  markerWithheld: boolean;
   /** The marker stands on a held position that nothing carries forward. */
   positionHeld: boolean;
   /** Where the conic puts the craft at the instant it reckoned to, beside the observed marker; `null` where no model reaches past the received edge. */
@@ -77,8 +77,8 @@ export function useMapTelemetry(
       : flightReading.state === "observed"
         ? flightReading.value
         : undefined;
-  // True exactly when no marker is drawn: a stale reading with a model still draws.
-  const positionStale =
+  // True exactly when no marker is drawn: a held reading with a model still draws.
+  const markerWithheld =
     flightReading.state === "held" &&
     flightReading.reckoning.status !== "available";
   const lat = positioned?.latitude;
@@ -116,7 +116,7 @@ export function useMapTelemetry(
       : orbitReading.reckoning.status === "available"
         ? { ...orbitSampleObserved, ...orbitReading.reckoning.value }
         : orbitSampleObserved;
-  // Holds when stale. Memoised on the sample so the memos keyed on the array rerun only on a new sample.
+  // Holds when held. Memoised on the sample so the memos keyed on the array rerun only on a new sample.
   const orbitPatches = useMemo(
     () =>
       orbitSampleObserved === undefined
@@ -147,7 +147,7 @@ export function useMapTelemetry(
   const targetBodyId = bodyOverride ?? bodyName;
   /* Radius and rotation period come off `system.bodies`, matched by name, so a planet-pack rename still gets a ground track. */
   const bodiesReading = useTelemetry("system.bodies");
-  /* A body's radius does not decay, so a stale roster is the right read. */
+  /* A body's radius does not decay, so a held roster is the right read. */
   const bodies =
     bodiesReading.state === "observed" || bodiesReading.state === "held"
       ? bodiesReading.value
@@ -188,7 +188,7 @@ export function useMapTelemetry(
   return {
     lat,
     lon,
-    positionStale,
+    markerWithheld,
     positionHeld,
     modelledPosition,
     latitudeReading: flightReading.latitude,

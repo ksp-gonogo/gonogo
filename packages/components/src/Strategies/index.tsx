@@ -41,7 +41,7 @@ function StrategiesComponent({
   /*
    * The strategy list is a fact that only moves when the operator acts, so the
    * last list received is still the list. The balances are judgements: they
-   * arm or refuse a control that spends them, so a stale balance is withheld.
+   * arm or refuse a control that spends them, so a held balance is withheld.
    */
   const careerReading = topics.useTelemetry("career.status");
   const rosterRaw = stillTrue(careerReading, undefined)?.strategies;
@@ -56,7 +56,7 @@ function StrategiesComponent({
   const funds = economy?.funds;
   const reputation = economy?.reputation;
   const science = economy?.science;
-  // Stale balances and a never-arrived economy both refuse Activate, but only one is about the link.
+  // Held balances and a never-arrived economy both refuse Activate, but only one is about the link.
   const balancesHeld = careerReading.state === "held";
   // The balances as the rail draws them: held ones stay on screen and Unit marks them.
   const shownBalances = {

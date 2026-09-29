@@ -88,7 +88,7 @@ function SystemViewComponent({
     orbitObserved !== undefined && orbitReading.reckoning.status === "available"
       ? { ...orbitObserved, ...orbitReading.reckoning.value }
       : orbitObserved;
-  // An identity does not decay: a stale SOI index is still which body this craft is around, and it only decides which FRAME the dot belongs in.
+  // An identity does not decay: a held SOI index is still which body this craft is around, and it only decides which FRAME the dot belongs in.
   const identityReading = topics.useTelemetry("vessel.identity");
   const identity =
     identityReading.state === "observed" || identityReading.state === "held"
@@ -118,7 +118,7 @@ function SystemViewComponent({
     targetReading.state === "observed" || targetReading.state === "held"
       ? targetReading.value.name
       : undefined;
-  // Read directly for the host-side selection path; a stale relay graph still says what the topology last was.
+  // Read directly for the host-side selection path; a held relay graph still says what the topology last was.
   const commsNetworkReading = topics.useTelemetry("comms.network");
   const commsNetwork =
     commsNetworkReading.state === "observed" ||

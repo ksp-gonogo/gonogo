@@ -31,7 +31,7 @@ function emptySentence(
 function DeployedScienceComponent(
   _: Readonly<ComponentProps<DeployedScienceConfig>>,
 ) {
-  // The roster is a fact, held through stale; the reading stays named so each progress figure can carry its currency.
+  // The roster is a fact, kept while held; the reading stays named so each progress figure can carry its currency.
   const basesReading = useTelemetry("deployed.bases");
   const available = stillTrue(
     useTelemetry("game.dlc"),

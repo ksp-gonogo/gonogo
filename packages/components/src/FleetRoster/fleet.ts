@@ -86,7 +86,7 @@ export function useFleet(): {
   vessels: FleetVessel[];
   coverage: Reading<Value<"ratio">>;
 } {
-  // A stale roster counts as known (vessels do not vanish with a missing frame), and a tombstone is a confirmed empty fleet, not a wait that never ends.
+  // A held roster counts as known (vessels do not vanish with a missing frame), and a tombstone is a confirmed empty fleet, not a wait that never ends.
   const systemReading = fleetRosterTopics.useTelemetry("system.vessels");
   const system = stillTrue(systemReading, EMPTY_FLEET);
   // The body catalogue is a fact, and a tombstone for it would mean a save with no celestial bodies, which cannot happen; `undefined` is the honest answer there.

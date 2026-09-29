@@ -1,9 +1,4 @@
-import {
-  Badge,
-  formatStreamStatus,
-  severityFromStreamStatus,
-  Text,
-} from "@ksp-gonogo/ui-kit";
+import { HeldBadge, Text } from "@ksp-gonogo/ui-kit";
 import type { heldGrade } from "../shared/heldGrade";
 import { formatUnits, type NetTone } from "./flow";
 import {
@@ -75,9 +70,7 @@ export function PowerTotals({
       {partsHeld !== undefined && (
         <div style={TOTALS_CELL}>
           <span style={CELL_LABEL}>READ</span>
-          <Badge severity={severityFromStreamStatus(partsHeld)}>
-            {formatStreamStatus(partsHeld)}
-          </Badge>
+          <HeldBadge grade={partsHeld} />
         </div>
       )}
       {storage.maxAmount > 0 && (

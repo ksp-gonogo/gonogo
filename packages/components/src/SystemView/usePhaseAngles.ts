@@ -25,7 +25,7 @@ import type { CelestialBody } from "./useCelestialBodies";
 export function usePhaseAngles(
   bodies: readonly CelestialBody[],
 ): Map<number, number> {
-  // A position relationship, so only a current reading or a model will do; a stale one would draw the window the craft was in.
+  // A position relationship, so only a current reading or a model will do; a held one would draw the window the craft was in.
   const orbitReading = useTelemetry("vessel.orbit");
   // The observation overlaid by what the conic moved (the phase); `reckoning.value` alone is not an orbit.
   const orbitObserved =

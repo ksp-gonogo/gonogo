@@ -56,7 +56,7 @@ export function usePlannerTelemetry() {
   const { value: target, needsDating: targetNeedsDating } =
     dateableReckonable(targetReading);
   const elementsNeedDating = orbitNeedsDating || targetNeedsDating;
-  // Latched rather than `currentThrust > 0` and held on stale, so it survives a dropped frame; undefined is not "engines off".
+  // Latched rather than `currentThrust > 0` and kept when held, so it survives a dropped frame; undefined is not "engines off".
   const propulsion = stillTrue(useTelemetry("vessel.propulsion"), undefined);
   const thrustLatch = propulsion
     ? {
@@ -120,7 +120,7 @@ export function usePlannerTelemetry() {
   const period = solve?.period ?? undefined;
   /*
    * The game's own vessel ΔV total, never a sum of the stage rows, which come
-   * from a different stage list. Held on stale, since a budget vanishing in a
+   * from a different stage list. Kept when held, since a budget vanishing in a
    * blackout would re-enable the commit for a craft known to be short.
    */
   const budgetReading = useProcessor(DELTA_V_BUDGET);

@@ -41,7 +41,7 @@ export function useSignalVerdict(): SignalVerdict {
       : undefined;
   const noSignal =
     linkReading.state === "held" || commsReading.state === "held";
-  // Held through a stale reading because a pill that blanked between frames would read as a control loss; `noSignal` withholds it on screen.
+  // Kept through a held reading because a pill that blanked between frames would read as a control loss; `noSignal` withholds it on screen.
   const commsHeld =
     commsReading.state === "observed" || commsReading.state === "held"
       ? commsReading.value

@@ -93,7 +93,7 @@ export function CommSignalComponent({
 
   /*
    * The empty state is for never-arrived only. A panel that has something
-   * must not hide it when its verdicts go stale: it renders with null lines
+   * must not hide it when its verdicts are held: it renders with null lines
    * and the badge instead.
    */
   if (nothingHasArrived && !noSignal) {

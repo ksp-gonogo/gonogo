@@ -72,15 +72,15 @@ interface RawScene {
    * Why this scene draws exactly the same with the link dropped, and why that
    * is honest.
    *
-   * <p>The only escape from the staleness comparison, and prose for the same
+   * <p>The only escape from the held comparison, and prose for the same
    * reason `expectsEmpty` is. It is for a subject that draws no figure an
    * operator could take for current: a vocabulary, a control, a label. A
    * subject that draws a reading does not qualify, however small the reading.</p>
    *
-   * <p>A scene carrying it whose stale render DOES change fails, so the excuse
+   * <p>A scene carrying it whose held render DOES change fails, so the excuse
    * comes off the moment it stops being needed.</p>
    */
-  unchangedWhenStale?: string;
+  unchangedWhenHeld?: string;
   /**
    * Text this scene must actually PAINT, each in a box wider and taller than
    * nothing.
@@ -148,7 +148,7 @@ export interface Scene {
   host?: string;
   caption?: string;
   expectsEmpty?: string;
-  unchangedWhenStale?: string;
+  unchangedWhenHeld?: string;
   hero: boolean;
   paints: string[];
   before: SceneAct[];
@@ -282,7 +282,7 @@ function oneScene(
     host: scene.hostWidget,
     caption: scene.caption,
     expectsEmpty: scene.expectsEmpty,
-    unchangedWhenStale: unchangedWhenStaleFor(where, scene, stream),
+    unchangedWhenHeld: unchangedWhenHeldFor(where, scene, stream),
     hero: scene.hero === true,
     paints: paintsFor(where, scene),
     before: beforeFor(where, scene),
@@ -342,25 +342,25 @@ function delayFor(
 }
 
 /**
- * `_scene.unchangedWhenStale`, refused where it could not be read: it has to be
+ * `_scene.unchangedWhenHeld`, refused where it could not be read: it has to be
  * a reason, and a scene with no stream or an empty state is never compared.
  */
-function unchangedWhenStaleFor(
+function unchangedWhenHeldFor(
   where: string,
   scene: RawScene,
   stream: RawStream,
 ): string | undefined {
-  const why = scene.unchangedWhenStale;
+  const why = scene.unchangedWhenHeld;
   if (why === undefined) return undefined;
   if (typeof why !== "string" || why.trim() === "") {
     throw new Error(
-      `${where}: "_scene.unchangedWhenStale" must say why this scene draws ` +
+      `${where}: "_scene.unchangedWhenHeld" must say why this scene draws ` +
         "the same with the link dropped; a blank reason is not one.",
     );
   }
   if ((stream.emits ?? []).length === 0 || scene.expectsEmpty !== undefined) {
     throw new Error(
-      `${where}: "_scene.unchangedWhenStale" is set on a scene the staleness ` +
+      `${where}: "_scene.unchangedWhenHeld" is set on a scene the held ` +
         "check never compares (it emits nothing on the stream, or it is an " +
         "empty state), so it excuses nothing. Remove it.",
     );

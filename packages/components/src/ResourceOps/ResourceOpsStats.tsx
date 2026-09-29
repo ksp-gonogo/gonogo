@@ -18,7 +18,7 @@ export function ResourceOpsStats({
   location,
 }: Readonly<{
   total: number;
-  /** Withheld (`undefined`) while either channel's run flags are stale. */
+  /** Withheld (`undefined`) while either channel's run flags are held. */
   activeCount: number | undefined;
   netEc: { moves: boolean; net: number | null };
   /** Whether `netEc.net` is a held figure rather than the vessel's current draw. */

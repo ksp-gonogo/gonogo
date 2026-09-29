@@ -41,7 +41,7 @@ export function CrewStatusComponent(
   const isEVA =
     identity === undefined ? undefined : identity.vesselType === VesselType.EVA;
 
-  // Suit resources are never held like the roster: they only fall, so a stale figure is drawn marked, never as current.
+  // Suit resources are not kept like the roster: they only fall, so a held figure is drawn marked, never as current.
   const resourcesReading = crewStatusTopics.useTelemetry("vessel.resources");
   const suitOxygen = isEVA ? suitTank(resourcesReading, "Oxygen") : undefined;
   const suitElectricCharge = isEVA

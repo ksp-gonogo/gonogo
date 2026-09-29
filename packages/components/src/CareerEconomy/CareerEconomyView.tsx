@@ -46,7 +46,7 @@ export function CareerEconomyComponent({
   h,
 }: ComponentProps<CareerEconomyConfig>) {
   const careerReading = useTelemetry("career.status");
-  // The payload is read on stale too, for structure only: which rows exist.
+  // The payload is read when held too, for structure only: which rows exist.
   const economyReading = careerReading.economy;
   const economy = stillTrue(careerReading, undefined)?.economy;
 

@@ -47,7 +47,7 @@ export function GonogoSettings({ owner = CORE_OWNER }: { owner?: string }) {
   const stationOnly = screen === "station";
   const hostDown = useTelemetryHostDown();
   /*
-   * Configuration does not lapse when a frame goes missing, so a stale
+   * Configuration does not lapse when a frame goes missing, so a held
    * reading is still the settings; only a reading that never arrived is
    * unknown.
    */

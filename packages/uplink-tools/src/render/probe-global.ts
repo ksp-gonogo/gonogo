@@ -75,7 +75,7 @@ export function announcesHeld(el: Element): boolean {
 }
 
 /**
- * The subject's render as a list of elements, for the staleness comparison.
+ * The subject's render as a list of elements, for the held comparison.
  *
  * <p>Finer than the probe's size-outline signature on purpose. A widget that
  * says a figure is held often changes nothing a size outline can see: a colour, a

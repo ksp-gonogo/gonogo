@@ -40,7 +40,7 @@ import { useEffect } from "react";
  */
 export function KspCalendarObserver() {
   // Calendar CONSTANTS, declared unmodellable: a day is 21600 s until the game
-  // itself says otherwise, so a stale calendar is the calendar and the whole
+  // itself says otherwise, so a held calendar is the calendar and the whole
   // point of this observer is that the answer persists. Only never-arrived
   // leaves the kit on its defaults.
   const calendarReading = useTelemetry("time.calendar");

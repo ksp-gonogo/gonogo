@@ -43,7 +43,7 @@ const topics = defineTopicManifest({
  * no drills or converters. The header's location comes from `vessel.identity`
  * and `system.bodies` because the entries carry no vessel or body field.
  *
- * The hardware on a card is a fact and survives a stale channel; what it is
+ * The hardware on a card is a fact and survives a held channel; what it is
  * doing (run state, rates, abundance) is withheld, with the header naming which
  * channel went.
  */
@@ -63,7 +63,7 @@ function locationLabel(
 function ResourceOpsComponent(
   _props: Readonly<ComponentProps<ResourceOpsConfig>>,
 ) {
-  // Each channel carries its own currency: a stale drill channel says nothing about the converters.
+  // Each channel carries its own currency: a held drill channel says nothing about the converters.
   const drillsReading = topics.useTelemetry("isru.drills");
   const convertersReading = topics.useTelemetry("isru.converters");
   const drillsHeld = drillsReading.state === "held";

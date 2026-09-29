@@ -66,7 +66,7 @@ export function useOrbitSolve(): OrbitalSolve | null {
   const solveUt = utOf(useViewUt());
 
   /*
-   * A stale reading still carries its elements, and they are constants of the
+   * A held reading still carries its elements, and they are constants of the
    * orbit rather than figures that go out of date, so it is as good a starting
    * point as an observed one. Whether they may be ADVANCED is the reckoning's
    * answer, which `solveSelfOrbit` asks.

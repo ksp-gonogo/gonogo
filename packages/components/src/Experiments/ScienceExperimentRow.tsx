@@ -4,11 +4,10 @@ import {
   Badge,
   CommandButton,
   type CommandButtonHandle,
-  formatStreamStatus,
+  HeldBadge,
   Inline,
   Row,
   RowName,
-  severityFromStreamStatus,
 } from "@ksp-gonogo/ui-kit";
 import type { Instrument } from "./instrument";
 
@@ -54,14 +53,8 @@ export function ScienceExperimentRow({
         {instrument.deployed && <Badge>DEPLOYED</Badge>}
         {!instrument.rerunnable && <Badge>ONE-SHOT</Badge>}
         {instrument.inoperable && <Badge severity="critical">INOPERABLE</Badge>}
-        {/* A plain `Badge`, not the live-region `StreamStatusBadge`: many rows going held at once is one event. */}
         {heldGrade !== undefined && (
-          <Badge
-            severity={severityFromStreamStatus(heldGrade)}
-            title={heldReason}
-          >
-            {formatStreamStatus(heldGrade)}
-          </Badge>
+          <HeldBadge grade={heldGrade} subject={instrument.partTitle} />
         )}
       </Inline>
       {/* Hidden rather than disabled: the INOPERABLE badge already says why. */}

@@ -486,24 +486,24 @@ describe("fixtures become scenes", () => {
     ).toThrow(/names widget and augment/);
   });
 
-  it("carries an unchangedWhenStale reason and refuses one that excuses nothing", () => {
+  it("carries an unchangedWhenHeld reason and refuses one that excuses nothing", () => {
     const emits = [{ topic: "example.reactor", payload: {} }];
     const [scene] = buildScenes(
       resolveUplinkPackage(
         fixture({
-          _scene: { widget: "reactor", unchangedWhenStale: "a label" },
+          _scene: { widget: "reactor", unchangedWhenHeld: "a label" },
           _stream: { emits },
         }),
       ),
       INVENTORY,
     );
-    expect(scene.unchangedWhenStale).toBe("a label");
+    expect(scene.unchangedWhenHeld).toBe("a label");
 
     expect(() =>
       buildScenes(
         resolveUplinkPackage(
           fixture({
-            _scene: { widget: "reactor", unchangedWhenStale: " " },
+            _scene: { widget: "reactor", unchangedWhenHeld: " " },
             _stream: { emits },
           }),
         ),
@@ -513,7 +513,7 @@ describe("fixtures become scenes", () => {
     expect(() =>
       buildScenes(
         resolveUplinkPackage(
-          fixture({ _scene: { widget: "reactor", unchangedWhenStale: "x" } }),
+          fixture({ _scene: { widget: "reactor", unchangedWhenHeld: "x" } }),
         ),
         INVENTORY,
       ),

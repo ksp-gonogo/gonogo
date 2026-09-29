@@ -91,7 +91,7 @@ export function useTimeContexts(): TimeContexts {
  * The observed vantage as an operator reads it: the roster's display name for
  * the centre the frames are stamped from, falling back to the raw id.
  *
- * A stale roster is still the roster: centres do not move, so nothing but
+ * A held roster is still the roster: centres do not move, so nothing but
  * never-arrived leaves it empty. The roster is held at the home command, so a
  * vessel vantage reads it at its own light-time home and the raw id stands in
  * until it lands. Same branch `VantageControl` takes over the same read, for

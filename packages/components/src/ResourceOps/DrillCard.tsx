@@ -23,7 +23,7 @@ export function DrillCard({
 }: Readonly<{
   drill: IsruDrillEntry;
   highlighted: boolean;
-  /** The drill channel went stale: the rig is still there, its figures are not. */
+  /** The drill channel was held: the rig is still there, its figures are not. */
   held: boolean;
 }>) {
   return (

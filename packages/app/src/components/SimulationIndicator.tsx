@@ -24,7 +24,7 @@ import { Badge, Cluster } from "@ksp-gonogo/ui-kit";
 export function SimulationIndicator() {
   /*
    * A discrete game fact, the same reasoning as the scene: a flight does not
-   * stop being a rehearsal because a frame went missing, so a stale reading is
+   * stop being a rehearsal because a frame went missing, so a held reading is
    * still the reading and only never-arrived is unknown.
    *
    * Unlike the scene, `flight.simulation` is NOT in `NEVER_RECKONABLE`, so a

@@ -56,7 +56,7 @@ type OrbitReading = ReturnType<typeof useTelemetry<"vessel.orbit">>;
 /**
  * The elements the diagram draws from. The model overlays only the phase
  * (`meanAnomalyAtEpoch`, `epoch`); the other elements are constants of the
- * orbit, so they come from the observation either way. A stale orbit no model
+ * orbit, so they come from the observation either way. A held orbit no model
  * carries is still drawn, as the last orbit there was.
  */
 function drawableOrbit(reading: OrbitReading) {

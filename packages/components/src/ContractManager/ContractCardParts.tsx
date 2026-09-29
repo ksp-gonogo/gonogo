@@ -1,9 +1,5 @@
 import { formatCompactCurrency } from "@ksp-gonogo/core";
-import {
-  Badge,
-  formatStreamStatus,
-  severityFromStreamStatus,
-} from "@ksp-gonogo/ui-kit";
+import { HeldBadge } from "@ksp-gonogo/ui-kit";
 import type { heldGrade } from "../shared/heldGrade";
 import { type ContractEntry, formatDeadline } from "./contracts";
 import {
@@ -31,13 +27,7 @@ export function ContractDeadline({
       </span>
       {boardHeld !== undefined && (
         /* On the card, in the operator's eyeline while they look at its Cancel. */
-        <Badge
-          severity={severityFromStreamStatus(boardHeld)}
-          size="sm"
-          title="Contract board is held"
-        >
-          {formatStreamStatus(boardHeld)}
-        </Badge>
+        <HeldBadge grade={boardHeld} subject="Contract board" size="sm" />
       )}
     </>
   );

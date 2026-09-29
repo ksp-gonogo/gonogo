@@ -20,7 +20,7 @@ import { useMemo } from "react";
  */
 /** Resolve a `system.bodies` index (its stable index, never array position) to its name. */
 function useBodyNameByIndex(): Map<number, string> {
-  // A body catalogue changes only when the game does, so a stale one is still the catalogue.
+  // A body catalogue changes only when the game does, so a held one is still the catalogue.
   const bodiesReading = useTelemetry("system.bodies");
   const systemBodies =
     bodiesReading.state === "observed" || bodiesReading.state === "held"
@@ -102,7 +102,7 @@ registerMapPoiProvider({
   id: "vanilla:spaceCenter",
   // No `requires`: core data, always potentially present.
   usePois: (ctx) => {
-    // Fixed ground positions, so a stale list is still where they are; a contract deadline is rendered against the view time by whatever draws it.
+    // Fixed ground positions, so a held list is still where they are; a contract deadline is rendered against the view time by whatever draws it.
     const poisReading = useTelemetry("spaceCenter.pois");
     // A tombstone means no POIs on this body, which must not read as waiting forever.
     const raw = stillTrue(poisReading, EMPTY_POIS);

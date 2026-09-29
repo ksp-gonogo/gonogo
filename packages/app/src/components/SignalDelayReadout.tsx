@@ -191,7 +191,7 @@ function PilotSignalDelay() {
 }
 
 /**
- * Observed only: silence is evidence about a link, so a stale "connected" is
+ * Observed only: silence is evidence about a link, so a held "connected" is
  * not one. The same read `SignalLossIndicator` and `CommSignal` take.
  */
 function useLinkConnected(): boolean | undefined {
