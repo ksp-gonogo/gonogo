@@ -151,6 +151,7 @@ function seededLog(props: CommcastSceneProps): CommcastLog {
         stationKey: a.stationKey,
         seat: a.from.startsWith("vessel:") ? "pilot" : "mission-control",
         atUt: VIEW_UT + a.at,
+        arrivedUt: VIEW_UT + a.at + (held.separationSeconds ?? 0),
       }));
       return { msg, acks, neverLeft: held.neverLeft === true };
     }),
