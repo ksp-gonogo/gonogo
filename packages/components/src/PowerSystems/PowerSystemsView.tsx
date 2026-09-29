@@ -26,7 +26,6 @@ import {
   COMPACT_RESOURCE,
   CONTRIB_LIST,
   HINT,
-  IDLE_LIST,
   RESOURCE_SELECT,
   SECTION_EMPTY,
   SectionsScroll,
@@ -266,7 +265,7 @@ export function PowerSystemsComponent({
               <ContributionSection
                 title="Idle"
                 rows={idle}
-                listStyle={IDLE_LIST}
+                listStyle={CONTRIB_LIST}
                 landscape={isLandscape}
                 currency={partsReading}
               />

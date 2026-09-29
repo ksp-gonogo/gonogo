@@ -1,6 +1,6 @@
 import { defineTopicManifest } from "@ksp-gonogo/core";
 import { stillTrue } from "@ksp-gonogo/sitrep-sdk";
-import { BellIcon } from "@ksp-gonogo/ui-kit";
+import { BellIcon, IconButton } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties, ReactNode } from "react";
 import {
   type ContractEntry,
@@ -114,12 +114,9 @@ export function ContractsObjectiveSource({ Section }: ObjectiveSourceContext) {
       }) ?? null;
     const isSet = existingId !== null;
     return (
-      <button
+      <IconButton
         type="button"
-        style={{
-          ...ALARM_BELL,
-          color: isSet ? "var(--color-go-text)" : "var(--color-text-muted)",
-        }}
+        style={ALARM_BELL}
         aria-pressed={isSet}
         title={
           isSet
@@ -149,7 +146,7 @@ export function ContractsObjectiveSource({ Section }: ObjectiveSourceContext) {
         }}
       >
         <BellIcon size={12} />
-      </button>
+      </IconButton>
     );
   };
 
@@ -159,9 +156,4 @@ export function ContractsObjectiveSource({ Section }: ObjectiveSourceContext) {
 const ALARM_BELL: CSSProperties = {
   flex: "0 0 auto",
   alignSelf: "flex-start",
-  display: "inline-flex",
-  padding: "var(--inset-icon-button-tight)",
-  background: "none",
-  border: "none",
-  cursor: "pointer",
 };

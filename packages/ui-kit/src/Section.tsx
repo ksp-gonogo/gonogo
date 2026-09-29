@@ -1,7 +1,8 @@
-import type { ElementType, HTMLAttributes, ReactNode } from "react";
+import type { HTMLAttributes, ReactNode } from "react";
 import styled from "styled-components";
 import { Stack } from "./Stack";
 import type { GapToken } from "./scales";
+import type { StaticElement } from "./staticElement";
 
 /** Marks a section that spans every column of a panel's section grid; the rule acting on it lives on the grid (see `Panel`). */
 export const SECTION_FULL_ATTR = "data-section-full";
@@ -13,13 +14,13 @@ export const SECTION_FILL_ATTR = "data-section-fill";
 export interface SectionProps
   extends Omit<HTMLAttributes<HTMLDivElement>, "title"> {
   /** Rendered tag. Defaults to `div`. */
-  as?: ElementType;
+  as?: StaticElement;
   /** Gap between the section's children. Defaults to `rows`; a section of groups wants a wider one. */
   gap?: GapToken;
   /** The section's heading, rendered as a `SectionTitle` above its children. */
   title?: ReactNode;
   /** Tag for `title`. Defaults to `h4`, the level under a panel's own `h3`. */
-  titleAs?: ElementType;
+  titleAs?: StaticElement;
   /**
    * Span every column of the panel's section grid rather than taking one, for a
    * summary strip or a table whose columns are already its own. Inert outside a

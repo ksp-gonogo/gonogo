@@ -16,8 +16,9 @@ import { WidgetScene, type WidgetSceneProps } from "../WidgetScene";
  * Deliberate failures for the smoke check to catch, one per way a story can
  * fail: a component that throws as it renders, a widget scene whose mount
  * rejects after the first render, and an extension story whose scene never
- * draws its extension, a set of scenes sharing the page's one probe slot, and
- * a story that draws nothing or only its own title's name.
+ * draws its extension, a set of scenes sharing the page's one probe slot, a
+ * story that draws nothing or only its own title's name, and words drawn in a
+ * browser's default button colour on the dark panel.
  * `scripts/smoke.ts` fails as BLIND if any is reported clean.
  */
 function Throws(): never {
@@ -92,5 +93,26 @@ export const SharedProbeSlot: StoryObj<typeof SceneSet> = {
       scenes={SCENES.filter((scene) => scene.kind === "widget")}
       widgetScene={SlotScene}
     />
+  ),
+};
+
+/** A bare button with no colour of its own on the panel, which draws its words in the browser's default black. */
+export const UnreadableText: StoryObj = {
+  render: () => (
+    <div
+      style={{
+        all: "revert",
+        background: "var(--color-surface-panel)",
+        padding: 12,
+      }}
+    >
+      <button
+        id="planted-unreadable"
+        type="button"
+        style={{ all: "revert", background: "none", border: "none" }}
+      >
+        Chutes
+      </button>
+    </div>
   ),
 };

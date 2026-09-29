@@ -133,7 +133,6 @@ export const EntryName = styled.span`
 export const RowSubtitle = styled.span`
   font-size: var(--font-size-caption);
   color: currentColor;
-  opacity: 0.7;
   letter-spacing: 0.05em;
   text-transform: uppercase;
 `;

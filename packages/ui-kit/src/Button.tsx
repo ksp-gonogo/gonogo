@@ -249,7 +249,10 @@ export const TextButton = styled.button`
   }
 `;
 
-/** Icon-only button: no chrome, just text/icon */
+/**
+ * Icon-only button: no chrome, just the glyph. As a toggle, with
+ * `aria-pressed`, it takes the one pressed look while pressed.
+ */
 export const IconButton = styled.button`
   background: none;
   border: none;
@@ -264,6 +267,10 @@ export const IconButton = styled.button`
     &:hover {
       color: var(--color-text-primary);
     }
+  }
+  &[aria-pressed="true"] {
+    border-radius: var(--radius-regular);
+    ${filledLook("go")}
   }
   ${focusRing}
   &:disabled {

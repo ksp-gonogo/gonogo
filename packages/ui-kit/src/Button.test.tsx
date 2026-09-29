@@ -167,3 +167,19 @@ describe("the text button", () => {
     );
   });
 });
+
+describe("IconButton as a toggle", () => {
+  it("takes the one pressed look while aria-pressed", () => {
+    render(
+      <IconButton aria-label="Alarm" aria-pressed>
+        <CloseIcon />
+      </IconButton>,
+    );
+    expect(
+      emittedStateRuleFor(
+        screen.getByRole("button", { name: "Alarm" }),
+        '[aria-pressed="true"]',
+      ),
+    ).toContain("background:var(--color-go-status)");
+  });
+});

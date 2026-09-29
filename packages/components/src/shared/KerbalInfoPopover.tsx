@@ -1,4 +1,4 @@
-import { Floating, InfoIcon, Stack } from "@ksp-gonogo/ui-kit";
+import { Floating, IconButton, InfoIcon, Stack } from "@ksp-gonogo/ui-kit";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 
 /**
@@ -48,10 +48,9 @@ export function KerbalInfoPopover({
 
   return (
     <>
-      <button
+      <IconButton
         ref={triggerRef}
         type="button"
-        style={INFO_TRIGGER_STYLE}
         aria-expanded={open}
         aria-controls={panelId}
         aria-label={label}
@@ -65,7 +64,7 @@ export function KerbalInfoPopover({
         }}
       >
         <InfoIcon size={13} />
-      </button>
+      </IconButton>
       {open && (
         <Floating anchor={anchor}>
           <Stack
@@ -98,21 +97,6 @@ export function KerbalInfoPopover({
     </>
   );
 }
-
-/** Smaller than any kit control, so it sits inline in a crew row without pushing the line height. */
-const INFO_TRIGGER_STYLE = {
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  width: "18px",
-  height: "18px",
-  padding: 0,
-  border: "none",
-  borderRadius: "var(--radius-circle)",
-  background: "transparent",
-  color: "var(--color-text-faint)",
-  cursor: "pointer",
-} as const;
 
 // Not a Box: a surface floating over arbitrary content needs the strong border and the surface inset.
 const POPOVER_PANEL_STYLE = {

@@ -16,7 +16,7 @@ import {
 } from "@ksp-gonogo/sitrep-client";
 import { stillTrue } from "@ksp-gonogo/sitrep-sdk";
 import { Panel, Select } from "@ksp-gonogo/ui";
-import { FramedDisplay, Section, Text } from "@ksp-gonogo/ui-kit";
+import { FieldLabel, FramedDisplay, Section, Text } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 import { useMemo, useState } from "react";
 import { quantiseUt } from "../MapView/predictionThrottle";
@@ -188,9 +188,7 @@ export function LibrationPointsComponent({
       panelToolbar={
         <div style={PAIR_LABEL}>
           {/* Scoped to the instance so two of these widgets never share a control id. */}
-          <label htmlFor={`${id}-libration-pair`} style={PAIR_LABEL_TEXT}>
-            Pair
-          </label>
+          <FieldLabel htmlFor={`${id}-libration-pair`}>Pair</FieldLabel>
           <Select
             id={`${id}-libration-pair`}
             value={chosen}
@@ -267,12 +265,6 @@ const PAIR_LABEL: CSSProperties = {
   display: "flex",
   alignItems: "center",
   gap: "var(--gap-related)",
-};
-
-const PAIR_LABEL_TEXT: CSSProperties = {
-  fontSize: "var(--font-size-caption)",
-  color: "var(--color-text-muted)",
-  letterSpacing: "0.05em",
 };
 
 const DIAGRAM_FRAME: CSSProperties = { flex: 1, minWidth: 0, minHeight: 0 };

@@ -122,8 +122,6 @@ export const CONTRIB_LIST: CSSProperties = {
   padding: 0,
 };
 
-export const IDLE_LIST: CSSProperties = { ...CONTRIB_LIST, opacity: 0.55 };
-
 export const ROW_EFF: CSSProperties = {
   fontSize: "var(--font-size-compact)",
   color: "var(--color-text-faint)",

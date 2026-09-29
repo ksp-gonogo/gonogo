@@ -1,6 +1,7 @@
 import type { ElementType, HTMLAttributes, ReactNode } from "react";
 import styled from "styled-components";
 import { SubjectHeading } from "./SubjectHeading";
+import type { StaticElement } from "./staticElement";
 
 /**
  * A record's anatomy, as props: a name, badges on the name's line, a body of
@@ -15,7 +16,7 @@ export interface BlockAnatomyProps {
    */
   title?: ReactNode;
   /** Tag for `title`. Defaults to `div`; pass a heading where the outline wants one. */
-  titleAs?: ElementType;
+  titleAs?: StaticElement;
   /**
    * Drawn BEFORE the title, on the title's own line: a marker, a rank pip, an
    * index. Not a status, which reads after the thing it is a status of.
@@ -50,7 +51,7 @@ export interface BlockProps
    * Rendered tag. Defaults to `div`. A record in a list wants `li`; `Strategies`
    * wants `article`; a banner wants `section`.
    */
-  as?: ElementType;
+  as?: StaticElement;
 }
 
 /** The name, sized as one. Type belongs to the arrangement, so `Card.Title` is this same object. */

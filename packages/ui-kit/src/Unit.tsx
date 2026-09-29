@@ -40,8 +40,6 @@ const Unit__Span = styled.span<{ $attached: boolean; $icon: boolean }>`
   /* Relative to the parent's font size with a floor; attached symbols keep full size, and icons take 0.9em so a thin stroke stays legible. */
   font-size: ${({ $attached, $icon }) =>
     $attached ? "1em" : $icon ? "0.9em" : "max(0.72em, 10px)"};
-  /* Dims the inherited colour so the symbol keeps the value's tone; attached symbols and icons are exempt. */
-  opacity: ${({ $attached, $icon }) => ($attached || $icon ? "1" : "0.72")};
   /* No margin: the number-unit gap is a thin space character in the markup, so it survives copying. */
   /* "m/s" and "kg/m³" must never wrap mid-symbol. */
   white-space: nowrap;
@@ -251,7 +249,7 @@ function UnitSymbol({
  *
  * A held reading whose model publishes an {@link UncertaintyBand} also shows the interval (`1 km ± 0.025 km`, `1 km (0.97 to 1.03 km)`, `1 km (~1.2 km)`). A current reading shows none, and a band in another unit draws nothing.
  *
- * The symbol is sized and dimmed relative to the text around it (floored at 10px, dimmed no further than 0.72 opacity) so it needs no size or tone prop and keeps the value's tone. Plane angles attach to the number and keep full size. Every symbol is replaced in the accessibility tree by its spoken word.
+ * The symbol is sized relative to the text around it (floored at 10px) and takes its colour, so it needs no size or tone prop and keeps the value's tone at the value's contrast. Plane angles attach to the number and keep full size. Every symbol is replaced in the accessibility tree by its spoken word.
  */
 export function Unit<UnitSymbol extends string = string>({
   value,

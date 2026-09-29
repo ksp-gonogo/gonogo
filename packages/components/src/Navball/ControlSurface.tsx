@@ -6,6 +6,7 @@ import {
   Countdown,
   MARKER_ICONS,
   NULL_DISPLAY,
+  Slider,
   StatusIndicator,
   ToggleButton,
   Unit,
@@ -119,8 +120,7 @@ export function ControlSurface({
       <div style={GROUP}>
         <div style={GROUP_LABEL}>Throttle</div>
         <div style={SLIDER_ROW}>
-          <input
-            type="range"
+          <Slider
             min={0}
             max={1}
             step={0.01}

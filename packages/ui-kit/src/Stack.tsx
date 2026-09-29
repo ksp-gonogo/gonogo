@@ -1,6 +1,7 @@
-import type { ElementType, HTMLAttributes, ReactNode } from "react";
+import type { HTMLAttributes, ReactNode } from "react";
 import styled from "styled-components";
 import { GAP_VAR, type GapToken } from "./scales";
+import type { StaticElement } from "./staticElement";
 
 export interface StackProps extends HTMLAttributes<HTMLDivElement> {
   /**
@@ -11,7 +12,7 @@ export interface StackProps extends HTMLAttributes<HTMLDivElement> {
    */
   gap?: GapToken;
   /** Rendered tag. Defaults to `div`. */
-  as?: ElementType;
+  as?: StaticElement;
   /**
    * Take the remaining space in a flex parent, and allow shrinking below the
    * content's natural height. That pair is what lets a scroller nested inside

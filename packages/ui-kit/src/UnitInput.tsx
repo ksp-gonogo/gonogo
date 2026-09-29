@@ -11,6 +11,7 @@ import { HeldFigure } from "./HeldMark";
 import { JogWheel } from "./JogWheel";
 import { MissionDateField, partsOfUt } from "./MissionDateField";
 import { resolveCurrency, type UnitValue } from "./readingCurrency";
+import { Slider } from "./Slider";
 import { Stack } from "./Stack";
 import { Text } from "./Text";
 import type { FormatsFor } from "./units";
@@ -239,7 +240,6 @@ export function UnitInput<Unit extends string>({
       </ValueRow>
       {bounds ? (
         <Slider
-          type="range"
           disabled={disabled}
           aria-label={`${label} slider`}
           min={bounds.min}
@@ -366,9 +366,4 @@ const RungCell = styled.div`
 
 const RungField = styled(SingleField)`
   width: 4.5em;
-`;
-
-const Slider = styled.input`
-  width: 100%;
-  accent-color: var(--color-accent-fg);
 `;

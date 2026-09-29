@@ -31,14 +31,14 @@ describe("Unit: presentation", () => {
     expect(css).toContain("10px");
   });
 
-  it("dims by opacity, not by a colour token, so it keeps the value's tone", () => {
-    // Opacity dims whatever colour it inherits, so the symbol keeps the value's tone and must set no colour of its own.
+  it("keeps the value's colour at full strength, so the symbol reads at the value's contrast", () => {
     const { container } = render(<Unit>m/s</Unit>);
-    expect(getComputedStyle(unitEl(container)).opacity).toBe("0.72");
+    expect(getComputedStyle(unitEl(container)).opacity).not.toBe("0.72");
     const css = Array.from(document.querySelectorAll("style"))
       .map((el) => el.textContent ?? "")
       .join("");
     expect(css).not.toContain("--color-text-muted");
+    expect(css).not.toMatch(/opacity:0\.\d/);
   });
 
   it("resists a parent that uppercases", () => {

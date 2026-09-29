@@ -10,14 +10,22 @@
  * A ui-kit story must also show its component doing something: one that draws
  * nothing, or whose whole text is the component's own name, fails.
  *
+ * Every story is also held to WCAG AA text contrast in the real browser, by
+ * axe's `color-contrast` rule over what it actually painted: a backstop for
+ * text the design system's own rules missed, such as a control whose words
+ * came from a browser default.
+ *
  * Before it trusts a clean run it mounts the planted stories (`Smoke plant`),
  * which fail on purpose, and fails as BLIND if either is reported clean: a
  * checker that cannot see a failure reports every story clean.
  */
-import { existsSync } from "node:fs";
+
+import { existsSync, readFileSync } from "node:fs";
 import type { Server } from "node:http";
+import { createRequire } from "node:module";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import type AxeCore from "axe-core";
 import { type Browser, chromium, type Page } from "playwright";
 import { PNG } from "pngjs";
 import { serve, storyEntries } from "./built";
@@ -33,9 +41,40 @@ const PLANTS: Record<string, string> = {
   "smoke-plant--shared-probe-slot": "twr standard-launch-ok drew nothing",
   "smoke-plant--draws-nothing": "draws nothing",
   "smoke-plant--renders-its-name": "renders only its own name",
+  "smoke-plant--unreadable-text": "contrast: #planted-unreadable",
 };
 const PLANT_IDS = Object.keys(PLANTS);
 const STORY_TIMEOUT_MS = 30_000;
+
+declare global {
+  interface Window {
+    axe?: typeof AxeCore;
+  }
+}
+
+const AXE_SOURCE = readFileSync(
+  createRequire(import.meta.url).resolve("axe-core/axe.min.js"),
+  "utf8",
+);
+
+/** Text below its WCAG AA contrast floor against what the browser painted behind it, one line per element. */
+async function contrastFailures(page: Page): Promise<string[]> {
+  await page.addScriptTag({ content: AXE_SOURCE });
+  return page.evaluate(async () => {
+    const axe = window.axe;
+    if (axe === undefined) throw new Error("smoke: axe did not load");
+    const result = await axe.run("#storybook-root", {
+      runOnly: { type: "rule", values: ["color-contrast"] },
+      resultTypes: ["violations"],
+    });
+    return result.violations.flatMap((v) =>
+      v.nodes.map(
+        (n) =>
+          `contrast: ${n.target.join(" ")}: ${n.any[0]?.message ?? "below the WCAG AA floor"}`,
+      ),
+    );
+  });
+}
 const WORKERS = 4;
 
 /** Below this many stories the run is not a smoke check of the set. */
@@ -138,6 +177,7 @@ async function mountStory(
     for (const fault of faults) {
       errors.push(`independence check failed: ${fault}`);
     }
+    if (errors.length === 0) errors.push(...(await contrastFailures(page)));
   } catch (err) {
     errors.push(
       `did not settle: ${err instanceof Error ? err.message.split("\n")[0] : String(err)}`,

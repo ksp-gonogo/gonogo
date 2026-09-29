@@ -129,6 +129,9 @@ const Row__Root = styled.li<{
       ? `
   background: var(--color-go-status);
   color: var(--color-go-on-status);
+  /* Secondary words inside the row sit on the go fill too, so they take its text rather than a grey made for the panel. */
+  --color-text-muted: var(--color-go-on-status);
+  --color-text-faint: var(--color-go-on-status);
 
   &:hover {
     background: var(--color-go-status);

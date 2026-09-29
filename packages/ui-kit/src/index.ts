@@ -491,6 +491,7 @@ export {
   SelectableRow,
   type SelectableRowProps,
 } from "./SelectableRow";
+export { Slider, type SliderProps } from "./Slider";
 export { Spinner, type SpinnerProps } from "./Spinner";
 export { Stack, type StackProps } from "./Stack";
 export { Stat, type StatProps, StatStrip } from "./Stat";
@@ -521,6 +522,7 @@ export {
   writtenAs,
   writtenQuantity,
 } from "./standsApart";
+export type { StaticElement } from "./staticElement";
 export {
   type PanelStatusStore,
   PanelStatusStoreProvider,
