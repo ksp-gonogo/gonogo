@@ -1,6 +1,6 @@
 import { useCommand } from "@ksp-gonogo/sitrep-client";
 import type { TopicPayload } from "@ksp-gonogo/sitrep-sdk";
-import { commandFailures } from "@ksp-gonogo/ui-kit";
+import { commandOutcomes } from "@ksp-gonogo/ui-kit";
 import { SAS_MODES, type SasMode, sasModeOrdinal } from "./sasModes";
 
 /** The SAS and RCS arm toggles and the SAS mode command, off the last confirmed control state. */
@@ -34,15 +34,15 @@ export function useSasControls(
   };
 
   /*
-   * A failed mode command is echoed on the button that issued it, matched back
-   * by the label `setSasMode` stamps; dismissing there or in the Panel queue
-   * clears both.
+   * A mode command with no reply is echoed on the button that issued it,
+   * matched back by the label `setSasMode` stamps; dismissing there or in the
+   * Panel queue clears both.
    */
-  const sasFailures = commandFailures(sasModeCmd);
-  const failedSasModes = new Map<SasMode, string>();
-  for (const f of sasFailures.failed) {
+  const sasOutcomes = commandOutcomes(sasModeCmd);
+  const unconfirmedSasModes = new Map<SasMode, string>();
+  for (const f of sasOutcomes.unconfirmed) {
     const mode = SAS_MODES.find((m) => f.label === `SAS mode: ${m}`);
-    if (mode) failedSasModes.set(mode, f.id);
+    if (mode) unconfirmedSasModes.set(mode, f.id);
   }
 
   return {
@@ -52,7 +52,7 @@ export function useSasControls(
     engageSas,
     toggleRcs,
     setSasMode,
-    failedSasModes,
-    dismissSasFailure: sasFailures.dismiss,
+    unconfirmedSasModes,
+    dismissSasUnconfirmed: sasOutcomes.dismiss,
   };
 }

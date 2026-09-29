@@ -78,14 +78,14 @@ const DEFAULT_LABEL: Record<CommandListKind, string> = {
   refused: "Refused commands",
   lost: "Commands with no reply",
   undelivered: "Commands that were never sent",
-  found: "Lost commands that answered",
+  found: "Unconfirmed commands that answered",
   failed: "Commands that failed",
 };
 
 /** What the clear control names when a dispatch has no subject to name. */
 const FALLBACK_DISMISS: Record<CommandListKind, string> = {
   refused: "refusal",
-  lost: "loss",
+  lost: "unconfirmed command",
   undelivered: "unsent command",
   found: "found command",
   failed: "failed command",

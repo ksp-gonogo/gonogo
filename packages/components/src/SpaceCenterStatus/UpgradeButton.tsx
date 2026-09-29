@@ -36,6 +36,7 @@ export function UpgradeButton({
     isRefused,
     isLost,
     refusalText,
+    hasUnconfirmed,
     hasFailure,
     press,
   } = useCommandButton({
@@ -109,6 +110,7 @@ export function UpgradeButton({
   return (
     <UpgradeButtonStyled
       disabled={!enabled}
+      data-unconfirmed={hasUnconfirmed ? "true" : undefined}
       data-failed={hasFailure ? "true" : undefined}
       onClick={() => press(true)}
       title={titleOverride}

@@ -5,6 +5,7 @@ import { Button } from "@ksp-gonogo/ui";
 import {
   ContainerBreak,
   Countdown,
+  Notice,
   SectionTitle,
   SignalDelayBadge,
   Unit,
@@ -103,7 +104,7 @@ export function ManeuverPreview(props: ManeuverPreviewProps) {
         requiredDeltaV={props.requiredDeltaV}
         availableDeltaV={props.availableDeltaV}
       />
-      {props.error && <ErrorLine>{props.error}</ErrorLine>}
+      {props.error && <Notice tone="warn">{props.error}</Notice>}
       <TriggerEditor
         open={props.triggerEditorOpen}
         numericKeys={props.numericKeys}
@@ -213,19 +214,6 @@ const NOTE_STYLE: CSSProperties = {
   fontSize: "var(--font-size-compact)",
   color: "var(--color-text-dim)",
   fontStyle: "italic",
-};
-
-function ErrorLine({ children }: Readonly<{ children?: ReactNode }>) {
-  return <div style={ERROR_LINE_STYLE}>{children}</div>;
-}
-
-const ERROR_LINE_STYLE: CSSProperties = {
-  fontSize: "var(--font-size-compact)",
-  color: "var(--color-nogo-text)",
-  background: "var(--color-tag-dark-brown-bg)",
-  border: "1px solid var(--color-border-strong)",
-  padding: "var(--inset-surface)",
-  borderRadius: "var(--radius-regular)",
 };
 
 function CommitRow({ children }: Readonly<{ children?: ReactNode }>) {

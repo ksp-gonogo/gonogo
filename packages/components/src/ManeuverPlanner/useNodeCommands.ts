@@ -4,7 +4,10 @@ import type { Reading, Value } from "@ksp-gonogo/sitrep-sdk";
 import { useCallback, useState } from "react";
 import { useBurnCompletionTracker } from "./BurnCompletionTracker";
 import type { NodeEditPatch } from "./NodeRow";
-import { describePartialDispatch } from "./partialDispatch";
+import {
+  describeNodeRejection,
+  describePartialDispatch,
+} from "./partialDispatch";
 import { isSequence, type PlanResult } from "./planning";
 
 /** The one-way light time a sent node crosses, and the reading it arrived in; `null` seconds where there is none to state. */
@@ -12,6 +15,10 @@ export interface SendDelay {
   oneWaySeconds: number | null;
   reading: Reading<Value<"s">> | null;
 }
+
+const ADD_NODE = "vessel.maneuver.add";
+const UPDATE_NODE = "vessel.maneuver.update";
+const REMOVE_NODE = "vessel.maneuver.remove";
 
 // An id-less node is off-contract; its array position is not an address the actuator resolves.
 const UNADDRESSABLE =
@@ -26,9 +33,9 @@ export function useNodeCommands(
   const [error, setError] = useState<string | null>(null);
 
   // Node commands actuate the flight plan, so each is subject to signal delay.
-  const addNodeCmd = useCommand("vessel.maneuver.add");
-  const updateNodeCmd = useCommand("vessel.maneuver.update");
-  const removeNodeCmd = useCommand("vessel.maneuver.remove");
+  const addNodeCmd = useCommand(ADD_NODE);
+  const updateNodeCmd = useCommand(UPDATE_NODE);
+  const removeNodeCmd = useCommand(REMOVE_NODE);
 
   // Must stay referentially stable: the tracker's hold timers depend on it and would reset every sample.
   const removeNode = useCallback(
@@ -47,29 +54,29 @@ export function useNodeCommands(
 
   async function dispatchPlanBurns(toDispatch: PlanResult): Promise<void> {
     const burns = isSequence(toDispatch) ? toDispatch.burns : [toDispatch];
-    let dispatched = 0;
+    let confirmed = 0;
     for (const b of burns) {
+      const args = {
+        ut: b.ut,
+        radialOut: b.radial,
+        normal: b.normal,
+        prograde: b.prograde,
+      };
+      const label = "Add maneuver node";
       try {
-        await addNodeCmd.send(
-          {
-            ut: b.ut,
-            radialOut: b.radial,
-            normal: b.normal,
-            prograde: b.prograde,
-          },
-          { label: "Add maneuver node" },
-        );
+        await addNodeCmd.send(args, { label });
       } catch (err) {
-        // Only here are both counts known: what landed in KSP and what the plan asked for.
+        // Only here are both counts known: what KSP confirmed and what the plan asked for.
         throw new Error(
           describePartialDispatch({
-            dispatched,
+            confirmed,
             total: burns.length,
-            reason: err instanceof Error ? err.message : String(err),
+            err,
+            dispatch: { command: ADD_NODE, args, label },
           }),
         );
       }
-      dispatched += 1;
+      confirmed += 1;
     }
   }
 
@@ -91,10 +98,17 @@ export function useNodeCommands(
       setError(UNADDRESSABLE);
       return;
     }
+    const label = "Remove maneuver node";
     try {
-      await removeNodeCmd.send({ nodeId }, { label: "Remove maneuver node" });
+      await removeNodeCmd.send({ nodeId }, { label });
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(
+        describeNodeRejection(err, {
+          command: REMOVE_NODE,
+          args: { nodeId },
+          label,
+        }),
+      );
     }
   }
 
@@ -103,20 +117,21 @@ export function useNodeCommands(
       setError(UNADDRESSABLE);
       return;
     }
+    const args = {
+      nodeId,
+      ut: patch.ut,
+      radialOut: patch.radial,
+      normal: patch.normal,
+      prograde: patch.prograde,
+    };
+    const label = "Update maneuver node";
     try {
-      await updateNodeCmd.send(
-        {
-          nodeId,
-          ut: patch.ut,
-          radialOut: patch.radial,
-          normal: patch.normal,
-          prograde: patch.prograde,
-        },
-        { label: "Update maneuver node" },
-      );
+      await updateNodeCmd.send(args, { label });
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(
+        describeNodeRejection(err, { command: UPDATE_NODE, args, label }),
+      );
       throw err;
     }
   }

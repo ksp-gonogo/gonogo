@@ -1,11 +1,11 @@
 #!/usr/bin/env tsx
 /**
  * Ext-1 render: the Navball SAS-mode grid as the reference control for the
- * `data-failed` styling convention. Renders the exact primitive Navball emits
- * (ui-kit `ToggleButton`) in three states, so the operator can review the
- * failure tint in context without the full delay pipeline: a normal grid, the
- * same grid with one active mode, and the grid with a FAILED mode (amber
- * `data-failed` tint, its accessible name switched to "activate to dismiss").
+ * `data-unconfirmed` styling convention. Renders the exact primitive Navball
+ * emits (ui-kit `ToggleButton`) in three states, so the operator can review the
+ * tint in context without the full delay pipeline: a normal grid, the same grid
+ * with one active mode, and the grid with an UNCONFIRMED mode (warning-tone
+ * `data-unconfirmed` tint, its accessible name switched to "activate to dismiss").
  * Same esbuild -> injected HTML -> playwright pipeline as render-delay-rail.ts.
  * Output → local_docs/renders/delay-ux-v3/.
  */
@@ -53,8 +53,8 @@ function Grid({ activeIndex, failedIndex }) {
             type="button"
             size="sm"
             active={i === activeIndex}
-            data-failed={isFailed ? "true" : undefined}
-            aria-label={isFailed ? \`SAS \${m} command failed, activate to dismiss\` : undefined}
+            data-unconfirmed={isFailed ? "true" : undefined}
+            aria-label={isFailed ? \`SAS \${m} command unconfirmed, may have run, activate to dismiss\` : undefined}
           >
             {m}
           </ToggleButton>
@@ -72,7 +72,7 @@ function App() {
         <Grid activeIndex={1} failedIndex={-1} />
       </div>
       <div>
-        <div style={LABEL}>SAS Mode · Retrograde command lost</div>
+        <div style={LABEL}>SAS Mode · Retrograde command unconfirmed</div>
         <Grid activeIndex={1} failedIndex={2} />
       </div>
     </div>

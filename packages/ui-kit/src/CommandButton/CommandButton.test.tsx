@@ -698,8 +698,8 @@ describe("CommandButton: representing state as well as acting", () => {
   });
 });
 
-describe("CommandButton: a dead command echoes on the control that issued it", () => {
-  it("carries data-failed while the handle holds an overdue dispatch", () => {
+describe("CommandButton: an unanswered or unsent command echoes on the control that issued it", () => {
+  it("carries data-unconfirmed, never data-failed, while the handle holds an overdue dispatch", () => {
     render(
       <CommandButton
         handle={makeHandle(() => Promise.resolve(OK), {
@@ -714,10 +714,23 @@ describe("CommandButton: a dead command echoes on the control that issued it", (
         label="Hire"
       />,
     );
-    expect(screen.getByRole("button", { name: "Hire" })).toHaveAttribute(
-      "data-failed",
-      "true",
+    const button = screen.getByRole("button", { name: "Hire" });
+    expect(button).toHaveAttribute("data-unconfirmed", "true");
+    expect(button).not.toHaveAttribute("data-failed");
+  });
+
+  it("carries data-failed while the handle holds a dispatch that never left", () => {
+    render(
+      <CommandButton
+        handle={makeHandle(() => Promise.resolve(OK), {
+          undelivered: [{ id: "u1", command: "career.crew.hire", label: "" }],
+        })}
+        label="Hire"
+      />,
     );
+    const button = screen.getByRole("button", { name: "Hire" });
+    expect(button).toHaveAttribute("data-failed", "true");
+    expect(button).not.toHaveAttribute("data-unconfirmed");
   });
 });
 
@@ -1109,7 +1122,7 @@ describe("CommandButton: a lost command that answered after all", () => {
 });
 
 describe("CommandButton warning text", () => {
-  it("draws a failed control's label and a blocked control's hover in the warning colour made for a dark ground", () => {
+  it("draws an unconfirmed or failed control's label and a blocked control's hover in the warning colour made for a dark ground", () => {
     render(
       <CommandButton
         handle={makeHandle(() => Promise.resolve(OK), {
@@ -1123,7 +1136,11 @@ describe("CommandButton warning text", () => {
       />,
     );
     const button = screen.getByRole("button");
-    for (const selector of ['[data-failed="true"]', ":hover:not(:disabled)"]) {
+    for (const selector of [
+      '[data-unconfirmed="true"]',
+      '[data-failed="true"]',
+      ":hover:not(:disabled)",
+    ]) {
       const rule = emittedStateRuleFor(button, selector);
       expect(rule, selector).toContain("var(--color-warn-text)");
     }

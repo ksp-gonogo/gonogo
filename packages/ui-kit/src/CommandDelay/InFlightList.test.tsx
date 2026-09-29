@@ -31,11 +31,28 @@ describe("InFlightList", () => {
     expect(list).toHaveTextContent("4s");
   });
 
-  it("shows the bare phase word when etaSeconds is null (no ETA to count)", () => {
+  it("shows the phase word when etaSeconds is null (no ETA to count)", () => {
     render(<InFlightList items={ITEMS} />);
     expect(screen.getByLabelText("In-flight commands")).toHaveTextContent(
-      "lost",
+      "unconfirmed",
     );
+  });
+
+  it("draws a lost entry as unconfirmed in the warning tone, never as a failure", () => {
+    render(
+      <InFlightList
+        density="compact"
+        items={[
+          { id: "l", label: "run abort.ks", etaSeconds: null, phase: "lost" },
+        ]}
+      />,
+    );
+    const row = screen.getByRole("listitem", {
+      name: "run abort.ks, unconfirmed",
+    });
+    expect(row).not.toHaveTextContent("lost");
+    expect(row).not.toHaveTextContent("✕");
+    expect(emittedRuleFor(row)).toContain("color:var(--color-warn-text)");
   });
 
   it("accepts a custom aria-label", () => {

@@ -4,12 +4,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import styled, { css, keyframes } from "styled-components";
 import { Button__Body, type ButtonTone } from "../Button";
 import type { CommandDelayHandle } from "../CommandDelay/CommandDelay";
-import { commandFailures } from "../CommandDelay/commandFailures";
 import {
   type CommandFoundLike,
   commandFoundSentence,
 } from "../CommandDelay/commandFoundSentence";
 import { commandLossSentence } from "../CommandDelay/commandLossSentence";
+import { commandOutcomes } from "../CommandDelay/commandOutcomes";
 import {
   type CommandRefusalLike,
   commandGateSentence,
@@ -169,7 +169,9 @@ export interface CommandButtonState {
    * outside the `lost` phase: the sentence `CommandButton` speaks for it.
    */
   lossText: string | null;
-  /** This handle has a dead (overdue/lost) dispatch, for the `data-failed` tint. */
+  /** This handle has a dispatch with no reply (overdue or lost), for the `data-unconfirmed` tint. */
+  hasUnconfirmed: boolean;
+  /** This handle has a dispatch that never left, for the `data-failed` tint. */
   hasFailure: boolean;
   /**
    * The control was pressed. Advances the machine: arm, then dispatch; a press
@@ -297,7 +299,7 @@ export function useCommandButton<Result = CommandReplyLike, Args = unknown>({
           return;
         }
         if (rejection.kind !== "refused") {
-          // A machinery failure is the rail's to report; here it is only the `data-failed` tint.
+          // A machinery failure is the rail's to report, not this control's.
           settle("idle", null);
           return;
         }
@@ -315,8 +317,8 @@ export function useCommandButton<Result = CommandReplyLike, Args = unknown>({
     );
   }, [handle, args, commandLabel, onConfirmed]);
 
-  // The rail is the primary failure surface; this tint only says WHICH control issued the command that died.
-  const { hasFailure } = commandFailures(handle);
+  // The rail is the primary outcome surface; these tints only say WHICH control issued the command.
+  const { hasUnconfirmed, hasFailure } = commandOutcomes(handle);
 
   const press = useCallback(
     (armable: boolean) => {
@@ -377,6 +379,7 @@ export function useCommandButton<Result = CommandReplyLike, Args = unknown>({
       effectivePhase === "lost"
         ? commandLossSentence({ args, label: commandLabel })
         : null,
+    hasUnconfirmed,
     hasFailure,
     press,
   };
@@ -518,6 +521,7 @@ export function CommandButton<Result = CommandReplyLike, Args = unknown>({
     refusalText,
     foundText,
     lossText,
+    hasUnconfirmed,
     hasFailure,
     press,
   } = useCommandButton({ handle, args, commandLabel, onConfirmed });
@@ -586,6 +590,7 @@ export function CommandButton<Result = CommandReplyLike, Args = unknown>({
         // aria-disabled, not disabled, so the control keeps focus while the outcome lands on it.
         aria-disabled={isBlocked || isPending || undefined}
         disabled={disabled}
+        data-unconfirmed={hasUnconfirmed ? "true" : undefined}
         data-failed={hasFailure ? "true" : undefined}
         data-command-phase={phase}
         // A diagnostic hook only: an undetermined gate renders as an ordinary control.

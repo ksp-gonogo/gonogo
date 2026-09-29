@@ -9,6 +9,7 @@ import {
 } from "react";
 import styled, { css } from "styled-components";
 import { Countdown } from "../Countdown";
+import { TONE_MARK, TONE_TEXT } from "../tone";
 import { writeQuantity } from "../units";
 import { useElementSize } from "../useElementSize";
 import { deriveGlyph, PHASE_PROGRESS } from "./toInFlightListItems";
@@ -123,8 +124,8 @@ export interface InFlightListProps {
    */
   variant?: "inline" | "rail" | "expanded";
   /**
-   * Clear a dead command (`overdue`/`lost`) from the shared delay queue. When
-   * given, the `"expanded"` queue's failed squares become real clear buttons.
+   * Clear an unanswered command (`overdue`/`lost`) from the shared delay queue.
+   * When given, the `"expanded"` queue's unanswered squares become real clear buttons.
    * Applies to `"expanded"` only.
    */
   onDismiss?: (id: string) => void;
@@ -135,7 +136,19 @@ const PHASE_ARROW: Record<InFlightListItem["phase"], string> = {
   "awaiting-reply": "↓",
   due: "↓",
   overdue: "!",
-  lost: "✕",
+  lost: "?",
+};
+
+/**
+ * The word an entry with no countdown shows and speaks. A `lost` command got no
+ * reply and may still have run, so it reads as unconfirmed, never as failed.
+ */
+const PHASE_WORD: Record<InFlightListItem["phase"], string> = {
+  "in-transit": "in transit",
+  "awaiting-reply": "awaiting reply",
+  due: "due",
+  overdue: "overdue",
+  lost: "unconfirmed",
 };
 
 /** An inbound entry in transit is coming down, whatever the phase table says a command does. */
@@ -314,13 +327,10 @@ function InFlightRailStrip({
     >
       <defs>
         {items.map((item, i) => {
-          // A failed command's glow goes amber (overdue) or red (lost), so a failure is never invisible here.
-          const colour =
-            item.phase === "lost"
-              ? "var(--color-nogo-mark)"
-              : item.phase === "overdue"
-                ? "var(--color-warn-mark)"
-                : "var(--color-accent-fg)";
+          // An unanswered command's glow goes to the warning tone, so it is never invisible here.
+          const colour = ERROR_PHASES.has(item.phase)
+            ? TONE_MARK.warn
+            : "var(--color-accent-fg)";
           const progress = Math.max(
             0,
             Math.min(1, item.progress ?? PHASE_PROGRESS[item.phase]),
@@ -418,7 +428,7 @@ function InFlightRow({
   const isError = ERROR_PHASES.has(item.phase);
   const spoken =
     countdown === null
-      ? `${item.label}, ${item.phase}`
+      ? `${item.label}, ${PHASE_WORD[item.phase]}`
       : `${item.label}, ${clampedCountdown(countdown)}`;
   return (
     // Compact drops the visible label, so the row carries it as its accessible name; `title` is only a convenience.
@@ -427,13 +437,17 @@ function InFlightRow({
       role="listitem"
       {...($compact ? { "aria-label": spoken, title: spoken } : {})}
     >
-      <InFlightList__Arrow aria-hidden="true" $pulse={!isError}>
+      <InFlightList__Arrow
+        aria-hidden="true"
+        $pulse={!isError}
+        $inherit={isError}
+      >
         {arrowOf(item)}
       </InFlightList__Arrow>
       {!$compact && <InFlightList__Label>{item.label}</InFlightList__Label>}
       <InFlightList__Phase>
         {countdown === null ? (
-          item.phase
+          PHASE_WORD[item.phase]
         ) : (
           <Countdown value={Math.max(0, countdown)} />
         )}
@@ -452,8 +466,8 @@ const InFlightRailStrip__Svg = styled.svg`
  * The expanded command queue: a SQUARE per command showing its own glyph,
  * never a status icon. Phase is colour, progress a thin bar. A fixed box that
  * never grows the widget: overflow becomes a `+N` count, never a scroll. A row
- * in a wide box, a column in a narrow one. A lost or overdue square is a clear
- * button.
+ * in a wide box, a column in a narrow one. An unanswered (lost or overdue)
+ * square is a clear button.
  */
 const QUEUE_THICK = 54; // px
 const QUEUE_BAR = 5;
@@ -465,8 +479,8 @@ const QUEUE_COLOUR: Record<InFlightListItem["phase"], string> = {
   "in-transit": "var(--color-accent-fg)",
   "awaiting-reply": "var(--color-accent-fg)",
   due: "var(--color-accent-fg)",
-  overdue: "var(--color-warn-mark)",
-  lost: "var(--color-nogo-mark)",
+  overdue: TONE_MARK.warn,
+  lost: TONE_MARK.warn,
 };
 
 function InFlightQueue({
@@ -521,9 +535,8 @@ function InFlightQueueCmd({
     0,
     Math.min(1, item.progress ?? PHASE_PROGRESS[item.phase]),
   );
-  const failed = item.phase === "overdue" || item.phase === "lost";
-  const dismissable = failed && !!onDismiss;
-  const spoken = `${item.label}, ${item.phase}`;
+  const dismissable = ERROR_PHASES.has(item.phase) && !!onDismiss;
+  const spoken = `${item.label}, ${PHASE_WORD[item.phase]}`;
   return (
     <InFlightQueue__Cmd
       role="listitem"
@@ -744,10 +757,10 @@ const PHASE_ROW_STYLES: Record<
     color: var(--color-text-muted);
   `,
   overdue: css`
-    color: var(--color-warn-text);
+    color: ${TONE_TEXT.warn};
   `,
   lost: css`
-    color: var(--color-nogo-text);
+    color: ${TONE_TEXT.warn};
   `,
 };
 
@@ -759,9 +772,13 @@ const InFlightList__Row = styled.div<{ $phase: InFlightListItem["phase"] }>`
   ${({ $phase }) => PHASE_ROW_STYLES[$phase]}
 `;
 
-const InFlightList__Arrow = styled.span<{ $pulse: boolean }>`
+/** `$inherit` draws the glyph in its row's colour, so an unanswered entry's mark carries its tone. */
+const InFlightList__Arrow = styled.span<{
+  $pulse: boolean;
+  $inherit?: boolean;
+}>`
   flex: 0 0 auto;
-  color: var(--color-accent-fg);
+  color: ${({ $inherit }) => ($inherit ? "inherit" : "var(--color-accent-fg)")};
 
   ${({ $pulse }) =>
     $pulse &&

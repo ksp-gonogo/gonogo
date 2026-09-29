@@ -1,7 +1,7 @@
 import { railTagsForCommand } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it, vi } from "vitest";
 import type { CommandDelayHandle } from "./CommandDelay";
-import { commandFailures } from "./commandFailures";
+import { commandOutcomes } from "./commandOutcomes";
 import type { InFlightCommandLike } from "./toInFlightListItems";
 
 // The rail axes come from the production derivations, so the fixtures follow them rather than asserting stale literals.
@@ -33,9 +33,9 @@ function handle(
   };
 }
 
-describe("commandFailures", () => {
-  it("selects only overdue and lost commands as failed", () => {
-    const { failed, hasFailure } = commandFailures(
+describe("commandOutcomes", () => {
+  it("selects overdue and lost commands as unconfirmed, never as failed", () => {
+    const { unconfirmed, hasUnconfirmed, hasFailure } = commandOutcomes(
       handle([
         cmd("a", "in-transit"),
         cmd("b", "overdue"),
@@ -43,39 +43,51 @@ describe("commandFailures", () => {
         cmd("d", "awaiting-reply"),
       ]),
     );
-    expect(failed.map((f) => f.id)).toEqual(["b", "c"]);
-    expect(hasFailure).toBe(true);
-  });
-
-  it("reports no failure when nothing is overdue/lost", () => {
-    const { failed, hasFailure } = commandFailures(
-      handle([cmd("a", "in-transit")]),
-    );
-    expect(failed).toHaveLength(0);
+    expect(unconfirmed.map((f) => f.id)).toEqual(["b", "c"]);
+    expect(hasUnconfirmed).toBe(true);
     expect(hasFailure).toBe(false);
   });
 
-  it("keeps the failed tint when a loss is promoted to undelivered", () => {
-    // The promotion MOVES the entry out of `losses`, and the flag must stay up.
+  it("reports nothing when nothing is overdue, lost or undelivered", () => {
+    const { unconfirmed, hasUnconfirmed, hasFailure } = commandOutcomes(
+      handle([cmd("a", "in-transit")]),
+    );
+    expect(unconfirmed).toHaveLength(0);
+    expect(hasUnconfirmed).toBe(false);
+    expect(hasFailure).toBe(false);
+  });
+
+  it("counts a relayed loss with no row as unconfirmed", () => {
+    const relayed: CommandDelayHandle = {
+      ...handle([]),
+      losses: [{ id: "l0", command: "vessel.control.setSas", label: "" }],
+    };
+    expect(commandOutcomes(relayed).hasUnconfirmed).toBe(true);
+    expect(commandOutcomes(relayed).hasFailure).toBe(false);
+  });
+
+  it("moves the tint from unconfirmed to failed when a loss is promoted to undelivered", () => {
+    // The promotion MOVES the entry out of `losses`: it is now known never to have left.
     const promoted: CommandDelayHandle = {
       ...handle([]),
       losses: [],
       undelivered: [{ id: "u0", command: "vessel.control.setSas", label: "" }],
     };
-    expect(commandFailures(promoted).hasFailure).toBe(true);
+    expect(commandOutcomes(promoted).hasFailure).toBe(true);
+    expect(commandOutcomes(promoted).hasUnconfirmed).toBe(false);
     // An undelivered dispatch has no in-flight row, like a loss.
-    expect(commandFailures(promoted).failed).toHaveLength(0);
+    expect(commandOutcomes(promoted).unconfirmed).toHaveLength(0);
   });
 
   it("passes the handle's dismiss straight through", () => {
     const dismiss = vi.fn();
-    const result = commandFailures(handle([cmd("b", "lost")], dismiss));
+    const result = commandOutcomes(handle([cmd("b", "lost")], dismiss));
     result.dismiss("b");
     expect(dismiss).toHaveBeenCalledWith("b");
   });
 
   it("returns a safe no-op dismiss when the handle carries none", () => {
-    const { dismiss } = commandFailures(handle([cmd("b", "overdue")]));
+    const { dismiss } = commandOutcomes(handle([cmd("b", "overdue")]));
     expect(() => dismiss("b")).not.toThrow();
   });
 });

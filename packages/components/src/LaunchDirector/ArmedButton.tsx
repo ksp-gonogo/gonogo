@@ -40,6 +40,7 @@ export function ArmedButton({
     isBlocked,
     isShowingReason,
     refusalText,
+    hasUnconfirmed,
     hasFailure,
     press,
   } = useCommandButton({ handle, args, commandLabel });
@@ -124,6 +125,7 @@ export function ArmedButton({
       type="button"
       onClick={() => press(true)}
       $kind={kind}
+      data-unconfirmed={hasUnconfirmed ? "true" : undefined}
       data-failed={hasFailure ? "true" : undefined}
       data-launch-action={`arm-${kind}`}
     >

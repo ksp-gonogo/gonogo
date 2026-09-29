@@ -113,8 +113,8 @@ function NavballComponent({
     engageSas,
     toggleRcs,
     setSasMode,
-    failedSasModes,
-    dismissSasFailure,
+    unconfirmedSasModes,
+    dismissSasUnconfirmed,
   } = useSasControls(control);
   const identity = stillTrue(topics.useTelemetry("vessel.identity"), undefined);
   const { fbwState, armFbw, disarmFbw } = useFlyByWire(identity?.vesselId);
@@ -233,8 +233,8 @@ function NavballComponent({
               onArmFbw={armFbw}
               onDisarmFbw={disarmFbw}
               onSetSasMode={setSasMode}
-              failedSasModes={failedSasModes}
-              onDismissSasFailure={dismissSasFailure}
+              unconfirmedSasModes={unconfirmedSasModes}
+              onDismissSasUnconfirmed={dismissSasUnconfirmed}
               showFbwDelayWarning={showFbwDelayWarning}
               delaySeconds={delaySeconds}
               oneWayDelay={oneWayDelay}

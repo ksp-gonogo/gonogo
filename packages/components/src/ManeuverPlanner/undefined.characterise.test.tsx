@@ -264,7 +264,9 @@ describe("ManeuverPlanner: an absent node id refuses instead of guessing", () =>
       deleteBtn.click();
     });
     await waitFor(() =>
-      expect(screen.getByText(/arrived without an id/i)).toBeInTheDocument(),
+      expect(screen.getByRole("note")).toHaveTextContent(
+        /arrived without an id/i,
+      ),
     );
     expect(dispatched).toEqual([]);
   });

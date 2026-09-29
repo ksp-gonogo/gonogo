@@ -401,7 +401,6 @@
     ".:bandClaim",
     ".:clearAugments",
     ".:commandFailedSentence",
-    ".:commandFailures",
     ".:commandFoundSentence",
     ".:commandGateSentence",
     ".:commandLossSentence",

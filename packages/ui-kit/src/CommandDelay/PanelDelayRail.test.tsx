@@ -550,7 +550,7 @@ describe("PanelDelayRail", () => {
       expect(screen.queryByText(/refused/)).toBeNull();
       // It IS still shown, as what it is.
       expect(
-        screen.getByRole("listitem", { name: /Launch, lost/ }),
+        screen.getByRole("listitem", { name: /Launch, unconfirmed/ }),
       ).toBeTruthy();
     });
   });
@@ -584,12 +584,22 @@ describe("PanelDelayRail", () => {
       expect(container.querySelector("[data-panel-rail]")).not.toBeNull();
     });
 
-    it("counts a loss in the collapsed strip alongside a refusal", () => {
+    it("counts a loss in the collapsed strip as unconfirmed, apart from a refusal", () => {
       const store = createDelayRailStore();
       store.register(droppedHandle("dropped", 1));
       store.register(refusedHandle("refused", 1));
       inPanel(<PanelDelayRail />, store);
-      expect(screen.getByText("2 commands failed")).toBeTruthy();
+      expect(screen.getByText("1 command failed")).toBeTruthy();
+      expect(screen.getByText("1 command unconfirmed")).toBeTruthy();
+    });
+
+    it("never counts a loss as failed, and draws its count in the warning colour", () => {
+      const store = createDelayRailStore();
+      store.register(droppedHandle("dropped", 2));
+      inPanel(<PanelDelayRail />, store);
+      expect(screen.queryByText(/command(s)? failed/)).toBeNull();
+      const rule = emittedRuleFor(screen.getByText("2 commands unconfirmed"));
+      expect(rule).toContain("var(--color-warn-text)");
     });
 
     it("says the command got no reply once expanded, and never that it worked", async () => {
@@ -669,7 +679,7 @@ describe("PanelDelayRail", () => {
     });
 
     it("counts a found APART from the failures, in its own words", () => {
-      // A found reverses a failure, so it never joins the failure count.
+      // A found answers an unconfirmed command, so it never joins that count.
       const store = createDelayRailStore();
       store.register(foundHandle("found", "ran"));
       store.register({
@@ -687,8 +697,8 @@ describe("PanelDelayRail", () => {
         ],
       });
       inPanel(<PanelDelayRail />, store);
-      expect(screen.getByText("1 command failed")).toBeTruthy();
-      expect(screen.getByText("1 lost command found")).toBeTruthy();
+      expect(screen.getByText("1 command unconfirmed")).toBeTruthy();
+      expect(screen.getByText("1 unconfirmed command answered")).toBeTruthy();
     });
 
     it("announces a found politely, never assertively", () => {

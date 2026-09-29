@@ -2,6 +2,7 @@ import { useId, useState } from "react";
 import styled, { css } from "styled-components";
 import { focusRingInset } from "../focusRing";
 import { LiveRegion } from "../LiveRegion";
+import { TONE_TEXT } from "../tone";
 import { CommandDelay } from "./CommandDelay";
 import { CommandList } from "./CommandList";
 import { STREAM_MIN_DELAY_SECONDS } from "./ControlDelayStream";
@@ -69,7 +70,7 @@ export function PanelDelayRail() {
   const losses: RailLoss[] = handles.flatMap((h) =>
     (h.losses ?? []).map((l) => ({ ...l, tags: h.tags })),
   );
-  // A found reverses a failure, so it is never counted with the dead dispatches.
+  // A found answers an unconfirmed command, so it is never counted with the failures.
   const founds: RailFound[] = handles.flatMap((h) =>
     (h.founds ?? []).map((f) => ({ ...f, tags: h.tags })),
   );
@@ -77,8 +78,13 @@ export function PanelDelayRail() {
   const undelivered: RailUndelivered[] = handles.flatMap((h) =>
     (h.undelivered ?? []).map((u) => ({ ...u, tags: h.tags })),
   );
-  const deadCount = refusals.length + losses.length + undelivered.length;
-  const hasContent = visible.length > 0 || deadCount > 0 || founds.length > 0;
+  // A loss may still have run, so it is counted as unconfirmed and never as failed.
+  const failedCount = refusals.length + undelivered.length;
+  const hasContent =
+    visible.length > 0 ||
+    failedCount > 0 ||
+    losses.length > 0 ||
+    founds.length > 0;
   const [pinned, setPinned] = useState(false);
   // Hover preview is React state, not CSS `:hover`, so one flag decides both the height and which view each command draws.
   const [previewing, setPreviewing] = useState(false);
@@ -206,25 +212,33 @@ export function PanelDelayRail() {
                 ariaLabel={h.ariaLabel ?? (grown ? "Delay detail" : undefined)}
               />
             ))}
-            {!grown && (deadCount > 0 || founds.length > 0) && (
-              // One run for both counts, since they share the band's single grid cell.
-              <PanelDelayRail__Summaries>
-                {deadCount > 0 && (
-                  <PanelDelayRail__FailureSummary>
-                    {deadCount === 1
-                      ? "1 command failed"
-                      : `${deadCount} commands failed`}
-                  </PanelDelayRail__FailureSummary>
-                )}
-                {founds.length > 0 && (
-                  <PanelDelayRail__FoundSummary>
-                    {founds.length === 1
-                      ? "1 lost command found"
-                      : `${founds.length} lost commands found`}
-                  </PanelDelayRail__FoundSummary>
-                )}
-              </PanelDelayRail__Summaries>
-            )}
+            {!grown &&
+              (failedCount > 0 || losses.length > 0 || founds.length > 0) && (
+                // One run for every count, since they share the band's single grid cell.
+                <PanelDelayRail__Summaries>
+                  {failedCount > 0 && (
+                    <PanelDelayRail__WarnSummary>
+                      {failedCount === 1
+                        ? "1 command failed"
+                        : `${failedCount} commands failed`}
+                    </PanelDelayRail__WarnSummary>
+                  )}
+                  {losses.length > 0 && (
+                    <PanelDelayRail__WarnSummary>
+                      {losses.length === 1
+                        ? "1 command unconfirmed"
+                        : `${losses.length} commands unconfirmed`}
+                    </PanelDelayRail__WarnSummary>
+                  )}
+                  {founds.length > 0 && (
+                    <PanelDelayRail__FoundSummary>
+                      {founds.length === 1
+                        ? "1 unconfirmed command answered"
+                        : `${founds.length} unconfirmed commands answered`}
+                    </PanelDelayRail__FoundSummary>
+                  )}
+                </PanelDelayRail__Summaries>
+              )}
           </PanelDelayRail__Detail>
         </PanelDelayRail__Rail>
       )}
@@ -374,8 +388,8 @@ const PanelDelayRail__Detail = styled.div`
  * The collapsed strip's failure count: only the count, since a sentence cannot
  * fit the band. Not a live region; the rail's own announcer reads each outcome.
  */
-const PanelDelayRail__FailureSummary = styled.span`
-  color: var(--color-warn-text);
+const PanelDelayRail__WarnSummary = styled.span`
+  color: ${TONE_TEXT.warn};
 `;
 
 /** The end-aligned run both collapsed-strip counts sit in. */

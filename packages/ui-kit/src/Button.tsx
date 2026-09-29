@@ -199,6 +199,8 @@ export const Button__Body = styled.button<{
     cursor: not-allowed;
   }
 
+  /* An unconfirmed command may still run and a failed one never left; both read in the warning tone. */
+  &[data-unconfirmed="true"],
   &[data-failed="true"] {
     border-color: var(--color-warn-mark);
     color: var(--color-warn-text);

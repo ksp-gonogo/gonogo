@@ -156,7 +156,6 @@ export {
   commandFailedSentence,
   type RailFailed,
 } from "./CommandDelay/commandFailedSentence";
-export { commandFailures } from "./CommandDelay/commandFailures";
 export {
   type CommandFoundEntry,
   type CommandFoundLike,
@@ -169,6 +168,10 @@ export {
   commandLossSentence,
   type RailLoss,
 } from "./CommandDelay/commandLossSentence";
+export {
+  type CommandOutcomes,
+  commandOutcomes,
+} from "./CommandDelay/commandOutcomes";
 export {
   type CommandRefusalEntry,
   type CommandRefusalLike,

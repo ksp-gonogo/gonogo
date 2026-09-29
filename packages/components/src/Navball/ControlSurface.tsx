@@ -35,8 +35,8 @@ interface ControlSurfaceProps {
   onDisarmFbw: () => void;
   onSetSasMode: (mode: SasMode) => void;
   /** SAS modes whose command is overdue or lost, mapped to that command's id so the button can dismiss it. */
-  failedSasModes: Map<SasMode, string>;
-  onDismissSasFailure: (id: string) => void;
+  unconfirmedSasModes: Map<SasMode, string>;
+  onDismissSasUnconfirmed: (id: string) => void;
   showFbwDelayWarning: boolean;
   delaySeconds: number | null;
   /** The one-way delay as read, so a held figure is marked. */
@@ -74,8 +74,8 @@ export function ControlSurface({
   onArmFbw,
   onDisarmFbw,
   onSetSasMode,
-  failedSasModes,
-  onDismissSasFailure,
+  unconfirmedSasModes,
+  onDismissSasUnconfirmed,
   showFbwDelayWarning,
   delaySeconds,
   oneWayDelay,
@@ -86,21 +86,23 @@ export function ControlSurface({
         <div style={GROUP_LABEL}>SAS Mode</div>
         <div style={BUTTON_GRID}>
           {SAS_MODES.map((mode) => {
-            const failedId = failedSasModes.get(mode);
-            const isFailed = failedId !== undefined;
+            const unconfirmedId = unconfirmedSasModes.get(mode);
+            const isUnconfirmed = unconfirmedId !== undefined;
             return (
               <ToggleButton
                 key={mode}
                 type="button"
                 active={sasMode === mode}
-                data-failed={isFailed ? "true" : undefined}
+                data-unconfirmed={isUnconfirmed ? "true" : undefined}
                 aria-label={
-                  isFailed
-                    ? `SAS ${mode} command failed, activate to dismiss`
+                  isUnconfirmed
+                    ? `SAS ${mode} command unconfirmed, may have run, activate to dismiss`
                     : undefined
                 }
                 onClick={() =>
-                  isFailed ? onDismissSasFailure(failedId) : onSetSasMode(mode)
+                  isUnconfirmed
+                    ? onDismissSasUnconfirmed(unconfirmedId)
+                    : onSetSasMode(mode)
                 }
                 disabled={disabled}
               >

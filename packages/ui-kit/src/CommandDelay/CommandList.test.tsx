@@ -58,7 +58,7 @@ describe("CommandList", () => {
       "Refused commands",
       "Commands with no reply",
       "Commands that were never sent",
-      "Lost commands that answered",
+      "Unconfirmed commands that answered",
       "Commands that failed",
     ]) {
       expect(screen.getByRole("status", { name })).toBeTruthy();
@@ -85,7 +85,9 @@ describe("CommandList", () => {
       screen.getByRole("status", { name: "Commands that were never sent" }),
     ).toHaveTextContent("Set Sas: never sent. Safe to re-send.");
     expect(
-      screen.getByRole("status", { name: "Lost commands that answered" }),
+      screen.getByRole("status", {
+        name: "Unconfirmed commands that answered",
+      }),
     ).toHaveTextContent("Set Sas: found executed.");
     expect(
       screen.getByRole("status", { name: "Commands that failed" }),
@@ -193,7 +195,7 @@ describe("CommandList", () => {
     );
     for (const name of [
       "Dismiss refusal",
-      "Dismiss loss",
+      "Dismiss unconfirmed command",
       "Dismiss unsent command",
       "Dismiss found command",
     ]) {

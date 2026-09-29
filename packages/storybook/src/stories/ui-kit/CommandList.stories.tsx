@@ -173,7 +173,7 @@ export const Undelivered: Story = {
   args: { kind: "undelivered", entries: UNDELIVERED },
 };
 
-/** Lost commands that answered after all, drawn in the notice tone. */
+/** Unconfirmed commands that answered after all, drawn in the notice tone. */
 export const Found: Story = {
   args: { kind: "found", entries: FOUND },
 };
