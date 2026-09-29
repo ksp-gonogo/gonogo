@@ -2,6 +2,7 @@ import { registerComponent } from "@ksp-gonogo/core";
 import { ContractManagerComponent } from "./ContractManagerView";
 import type { ContractManagerConfig } from "./config";
 import { contractManagerTopics } from "./topics";
+import { useContractEssentials } from "./useContractEssentials";
 
 export {
   type ContractEntry,
@@ -18,8 +19,13 @@ registerComponent<ContractManagerConfig>({
     "Career contracts with their terms, deadlines, and rewards. Accept new contracts from the offered list, decline ones you don't want, and cancel active ones (with a confirmation step). Live objective progress and completion alarms are in Objectives.",
   tags: ["career", "contracts"],
   defaultSize: { w: 6, h: 8 },
-  minSize: { w: 4, h: 5 },
+  minSize: { w: 3, h: 4 },
   component: ContractManagerComponent,
+  tiny: {
+    title: "CONTRACT",
+    bodyMinSize: { w: 4, h: 5 },
+    useEssentials: useContractEssentials,
+  },
   channels: contractManagerTopics.channels,
   fields: contractManagerTopics.fields,
   defaultConfig: {},

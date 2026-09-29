@@ -601,6 +601,10 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "ContractManager/__fixtures__",
     outPath: "renders/contract-manager-widget",
     modes: [
+      // minSize: the kit's tiny form, the active count and the nearest deadline.
+      { name: "tiny-3x4", w: 3, h: 4 },
+      // One row taller, the offered count joins them.
+      { name: "tiny-3x5", w: 3, h: 5 },
       // Compact: title + subtitle; contract cards start rendering.
       { name: "compact-4x5", w: 4, h: 5 },
       // Default registered size: subtitle + full card list + scroll.
