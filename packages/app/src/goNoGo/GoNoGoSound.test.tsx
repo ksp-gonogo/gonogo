@@ -1,8 +1,7 @@
 import { DashboardItemContext, ScreenProvider } from "@ksp-gonogo/core";
 import { act, render } from "@ksp-gonogo/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { PeerClientProvider } from "../peer/PeerClientContext";
-import type { PeerClientService } from "../peer/PeerClientService";
+import { type PeerClient, PeerClientProvider } from "../peer/PeerClientContext";
 import type { SettingsService } from "../settings";
 import { __resetSharedAudioContextForTests } from "../sound/audio";
 import {
@@ -14,17 +13,17 @@ import {
   installFakeAudio,
   makeSoundService,
 } from "../test/fakeAudio";
+import { idlePeerClient } from "../test/peerFakes";
 import { CountdownTone, GoNoGoComponent } from "./GoNoGoComponent";
 
 /**
- * Minimal PeerClient stand-in: only the methods StationView calls. The
- * countdown-start emitter lets us drive a station-side countdown without a
- * real peer connection.
+ * A station link whose countdown-start emitter the test drives, so a
+ * station-side countdown runs without a real peer connection.
  */
 function makeFakeClient() {
   let startCb: ((t0Ms: number) => void) | null = null;
-  const noop = () => () => {};
-  const client = {
+  const client: PeerClient = {
+    ...idlePeerClient(),
     sendGonogoVote: vi.fn(),
     sendGonogoAbort: vi.fn(),
     onGonogoCountdownStart: (cb: (t0Ms: number) => void) => {
@@ -33,11 +32,7 @@ function makeFakeClient() {
         startCb = null;
       };
     },
-    onGonogoCountdownCancel: noop,
-    onGonogoAbortNotify: noop,
-    onHostHello: noop,
-    onHostRestart: noop,
-  } as unknown as PeerClientService;
+  };
   return { client, startCountdown: (t0Ms: number) => startCb?.(t0Ms) };
 }
 

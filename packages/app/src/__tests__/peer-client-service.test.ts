@@ -27,6 +27,7 @@ const { FakePeer } = vi.hoisted(() => {
 
     _lastConn: FakeDataConnection | null = null;
     _lastConnectTarget: string | null = null;
+    _options: { config?: { iceServers: RTCIceServer[] } } = {};
 
     constructor() {
       FakePeer.instances.push(this);
@@ -80,32 +81,36 @@ function makeMeta(overrides: Partial<Meta> = {}): Meta {
   };
 }
 
-/**
- * The service's private message intake, which these tests drive directly: they
- * verify the observable contract (listeners fire with the right payload) rather
- * than the internal shape.
- *
- * One erasure, here, rather than at each call: `handleMessage` is private, so
- * no amount of narrowing reaches it and the compiler has nothing to check.
- */
-interface PeerClientServiceInternal {
-  handleMessage(msg: PeerMessage): void;
+type FakeConnection = NonNullable<InstanceType<typeof FakePeer>["_lastConn"]>;
+
+const hostLinks = new WeakMap<PeerClientService, FakeConnection>();
+
+/** Connect `svc` to a fake host, finishing both halves of the handshake. */
+function connectToFakeHost(svc: PeerClientService) {
+  svc.connect("HOST");
+  const peer = FakePeer.instances[FakePeer.instances.length - 1];
+  peer.emit("open");
+  const conn = peer._lastConn;
+  if (!conn) throw new Error("expected an active peer connection");
+  conn.emit("open");
+  hostLinks.set(svc, conn);
+  return { peer, conn };
 }
 
-function intake(svc: PeerClientService): PeerClientServiceInternal {
-  return svc as unknown as PeerClientServiceInternal;
+function connectedSvc() {
+  const svc = new PeerClientService();
+  const { peer } = connectToFakeHost(svc);
+  return { svc, peer };
 }
 
 /**
- * The service's live `peer`, for a test that injects one with the `_options`
- * shape PeerJS exposes internally.
+ * The host's end of the station's data channel. A message sent here reaches
+ * the service the way a live one does, connecting the station first when the
+ * test has not.
  */
-function peerOf(svc: PeerClientService): {
-  peer: { _options: { config?: { iceServers: RTCIceServer[] } } };
-} {
-  return svc as unknown as {
-    peer: { _options: { config?: { iceServers: RTCIceServer[] } } };
-  };
+function fromHost(svc: PeerClientService): { send(msg: PeerMessage): void } {
+  const conn = hostLinks.get(svc) ?? connectToFakeHost(svc).conn;
+  return { send: (msg) => conn.emit("data", msg) };
 }
 
 describe("PeerClientService", () => {
@@ -121,7 +126,7 @@ describe("PeerClientService", () => {
     expect(svc._listenerCounts().schema).toBe(0);
 
     // After unsub, a schema message should not reach the callback
-    intake(svc).handleMessage({
+    fromHost(svc).send({
       type: "schema",
       sources: [
         {
@@ -141,7 +146,7 @@ describe("PeerClientService", () => {
       hits.push([sourceId, key, value]);
     });
 
-    intake(svc).handleMessage({
+    fromHost(svc).send({
       type: "data",
       sourceId: "telemetry",
       key: "v.altitude",
@@ -150,7 +155,7 @@ describe("PeerClientService", () => {
     expect(hits).toEqual([["telemetry", "v.altitude", 42]]);
 
     unsub();
-    intake(svc).handleMessage({
+    fromHost(svc).send({
       type: "data",
       sourceId: "telemetry",
       key: "v.altitude",
@@ -166,15 +171,15 @@ describe("PeerClientService", () => {
     svc.onSourceStatus(() => calls.push("source-status"));
     svc.onSchema(() => calls.push("schema"));
 
-    const inner = intake(svc);
-    inner.handleMessage({
+    const host = fromHost(svc);
+    host.send({
       type: "data",
       sourceId: "s",
       key: "k",
       value: 1,
     });
-    inner.handleMessage({ type: "status", sourceId: "s", status: "connected" });
-    inner.handleMessage({ type: "schema", sources: [] });
+    host.send({ type: "status", sourceId: "s", status: "connected" });
+    host.send({ type: "schema", sources: [] });
 
     expect(calls).toEqual(["data", "source-status", "schema"]);
   });
@@ -186,7 +191,7 @@ describe("PeerClientService", () => {
 
     expect(svc.getHostVersion()).toBeNull();
 
-    intake(svc).handleMessage({
+    fromHost(svc).send({
       type: "hello",
       version: "1.2.3",
       buildTime: "2026-04-25T00:00:00.000Z",
@@ -204,7 +209,7 @@ describe("PeerClientService", () => {
 
   it("fires onHostRestart only when the host's sessionToken changes between hellos", () => {
     const svc = new PeerClientService();
-    const inner = intake(svc);
+    const host = fromHost(svc);
     const restarts: number[] = [];
     let restartCount = 0;
     svc.onHostRestart(() => {
@@ -214,7 +219,7 @@ describe("PeerClientService", () => {
 
     // First hello: establishes the baseline token. Should NOT fire
     // restart (there's nothing to compare against).
-    inner.handleMessage({
+    host.send({
       type: "hello",
       version: "1.0.0",
       buildTime: "2026-05-08T00:00:00.000Z",
@@ -223,7 +228,7 @@ describe("PeerClientService", () => {
     expect(restarts).toEqual([]);
 
     // Same token again (transient broker reconnect to the same host process): must NOT fire restart.
-    inner.handleMessage({
+    host.send({
       type: "hello",
       version: "1.0.0",
       buildTime: "2026-05-08T00:00:00.000Z",
@@ -232,7 +237,7 @@ describe("PeerClientService", () => {
     expect(restarts).toEqual([]);
 
     // Fresh token (host was refreshed), restart fires.
-    inner.handleMessage({
+    host.send({
       type: "hello",
       version: "1.0.0",
       buildTime: "2026-05-08T00:00:00.000Z",
@@ -471,15 +476,6 @@ describe("PeerClientService.sendQueryRange", () => {
     FakePeer.instances = [];
   });
 
-  function connectedSvc() {
-    const svc = new PeerClientService();
-    svc.connect("HOST");
-    const peer = FakePeer.instances[0];
-    peer.emit("open");
-    peer._lastConn?.emit("open");
-    return { svc, peer };
-  }
-
   it("rejects if called before the conn is open", async () => {
     const svc = new PeerClientService();
     await expect(
@@ -502,7 +498,7 @@ describe("PeerClientService.sendQueryRange", () => {
       throw new Error("expected query-range-request");
     }
 
-    intake(svc).handleMessage({
+    fromHost(svc).send({
       type: "query-range-response",
       requestId: first.requestId,
       t: [100, 200],
@@ -527,7 +523,7 @@ describe("PeerClientService.sendQueryRange", () => {
       throw new Error("expected query-range-request");
     }
 
-    intake(svc).handleMessage({
+    fromHost(svc).send({
       type: "query-range-response",
       requestId: first.requestId,
       t: [],
@@ -595,15 +591,6 @@ describe("PeerClientService.sendUplinkRelay", () => {
     FakePeer.instances = [];
   });
 
-  function connectedSvc() {
-    const svc = new PeerClientService();
-    svc.connect("HOST");
-    const peer = FakePeer.instances[0];
-    peer.emit("open");
-    peer._lastConn?.emit("open");
-    return { svc, peer };
-  }
-
   const ARGS = { foo: "bar", n: 42 };
 
   it("rejects if called before the conn is open", async () => {
@@ -631,7 +618,7 @@ describe("PeerClientService.sendUplinkRelay", () => {
     expect(first.method).toBe("doThing");
     expect(first.args).toEqual(ARGS);
 
-    intake(svc).handleMessage({
+    fromHost(svc).send({
       type: "uplink-relay-response",
       requestId: first.requestId,
       result: { ok: true },
@@ -655,7 +642,7 @@ describe("PeerClientService.sendUplinkRelay", () => {
       throw new Error("expected uplink-relay-request");
     }
 
-    intake(svc).handleMessage({
+    fromHost(svc).send({
       type: "uplink-relay-response",
       requestId: first.requestId,
       error: "handle unavailable on host",
@@ -720,15 +707,6 @@ describe("PeerClientService.sendBundleFetch", () => {
     FakePeer.instances = [];
   });
 
-  function connectedSvc() {
-    const svc = new PeerClientService();
-    svc.connect("HOST");
-    const peer = FakePeer.instances[0];
-    peer.emit("open");
-    peer._lastConn?.emit("open");
-    return { svc, peer };
-  }
-
   const BUNDLE_URL = "https://example.test/bundle.js";
   const EXPECTED_HASH = "sha256-deadbeef";
 
@@ -757,7 +735,7 @@ describe("PeerClientService.sendBundleFetch", () => {
     expect(first.expectedHash).toBe(EXPECTED_HASH);
 
     const wireBytes = new Uint8Array([1, 2, 3, 4, 5]);
-    intake(svc).handleMessage({
+    fromHost(svc).send({
       type: "uplink-bundle-response",
       requestId: first.requestId,
       bytes: wireBytes,
@@ -783,7 +761,7 @@ describe("PeerClientService.sendBundleFetch", () => {
       throw new Error("expected uplink-bundle-request");
     }
 
-    intake(svc).handleMessage({
+    fromHost(svc).send({
       type: "uplink-bundle-response",
       requestId: first.requestId,
       error: "bundle hash sha256-actual != expected sha256-deadbeef",
@@ -842,15 +820,6 @@ describe("PeerClientService.sendFlightRpc", () => {
     FakePeer.instances = [];
   });
 
-  function connectedSvc() {
-    const svc = new PeerClientService();
-    svc.connect("HOST");
-    const peer = FakePeer.instances[0];
-    peer.emit("open");
-    peer._lastConn?.emit("open");
-    return { svc, peer };
-  }
-
   it("resolves with the host's result on a matching response", async () => {
     const { svc, peer } = connectedSvc();
     if (!peer._lastConn) throw new Error("expected an active peer connection");
@@ -867,7 +836,7 @@ describe("PeerClientService.sendFlightRpc", () => {
     }
 
     const result = [{ id: "f1", vesselName: "Hopper" }];
-    intake(svc).handleMessage({
+    fromHost(svc).send({
       type: "flight-rpc-response",
       requestId: first.requestId,
       result,
@@ -891,7 +860,7 @@ describe("PeerClientService.sendFlightRpc", () => {
       throw new Error("expected flight-rpc-request");
     }
 
-    intake(svc).handleMessage({
+    fromHost(svc).send({
       type: "flight-rpc-response",
       requestId: first.requestId,
       error: "buffered data source not registered",
@@ -939,11 +908,11 @@ describe("PeerClientService.sendFlightRpc", () => {
       throw new Error("expected flight-rpc-request after connect");
     }
 
-    intake(svc).handleMessage({
+    peer._lastConn.emit("data", {
       type: "flight-rpc-response",
       requestId: req.requestId,
       result: [],
-    });
+    } satisfies PeerMessage);
 
     await expect(pending).resolves.toEqual([]);
   });
@@ -962,7 +931,7 @@ describe("PeerClientService.sendFlightRpc", () => {
       lastMissionTime: 0,
       sampleCount: 1,
     };
-    intake(svc).handleMessage({
+    fromHost(svc).send({
       type: "flight-change",
       flight,
     });
@@ -990,7 +959,7 @@ describe("PeerClientService: relay-peer-id iceServers application", () => {
       received.push(peerId);
     });
 
-    intake(svc).handleMessage({
+    fromHost(svc).send({
       type: "relay-peer-id",
       peerId: "relay-abc",
       iceServers: [
@@ -1001,14 +970,7 @@ describe("PeerClientService: relay-peer-id iceServers application", () => {
   });
 
   it("mutates the Peer's _options.config.iceServers when the message carries them", () => {
-    const svc = new PeerClientService();
-    // Inject a fake Peer with the same _options shape PeerJS exposes
-    // internally. Skipping the real openPeer() / broker handshake keeps
-    // the test focused on the apply path; the listener test above
-    // covers the dispatch entry.
-    const fakeOptions: { config?: { iceServers: RTCIceServer[] } } = {};
-    const fakePeer = { _options: fakeOptions };
-    peerOf(svc).peer = fakePeer;
+    const { svc, peer } = connectedSvc();
 
     const turn: RTCIceServer[] = [
       {
@@ -1018,50 +980,47 @@ describe("PeerClientService: relay-peer-id iceServers application", () => {
       },
     ];
 
-    intake(svc).handleMessage({
+    fromHost(svc).send({
       type: "relay-peer-id",
       peerId: "relay-abc",
       iceServers: turn,
     });
 
-    expect(fakeOptions.config).toBeDefined();
-    expect(fakeOptions.config?.iceServers).toEqual(turn);
+    expect(peer._options.config).toBeDefined();
+    expect(peer._options.config?.iceServers).toEqual(turn);
   });
 
   it("does not touch the Peer when iceServers is absent (older host bundle)", () => {
-    const svc = new PeerClientService();
-    const fakeOptions: { config?: { iceServers: RTCIceServer[] } } = {
-      // Pre-existing config: if our code mistakenly overwrote with an
-      // empty array, the station would lose any local TURN config it
-      // had set elsewhere. Assert we leave it alone.
-      config: {
-        iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
-      },
+    const { svc, peer } = connectedSvc();
+    // Pre-existing config: if our code mistakenly overwrote with an empty array, the station would lose any local TURN config it had set elsewhere.
+    peer._options.config = {
+      iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
     };
-    const fakePeer = { _options: fakeOptions };
-    peerOf(svc).peer = fakePeer;
 
-    intake(svc).handleMessage({
+    fromHost(svc).send({
       type: "relay-peer-id",
       peerId: "relay-abc",
       // iceServers omitted: older host bundle that doesn't ship this.
     });
 
-    expect(fakeOptions.config?.iceServers).toEqual([
+    expect(peer._options.config?.iceServers).toEqual([
       { urls: "stun:stun.l.google.com:19302" },
     ]);
   });
 
-  it("does not throw when iceServers arrives before the station's Peer is constructed", () => {
-    const svc = new PeerClientService();
-    // No peer assigned: applyRelayIceServers should silently no-op.
+  it("does not throw when iceServers arrives after the station's Peer is torn down", () => {
+    const { svc } = connectedSvc();
+    const host = fromHost(svc);
+    svc.disconnect();
+
     expect(() =>
-      intake(svc).handleMessage({
+      host.send({
         type: "relay-peer-id",
         peerId: "relay-abc",
         iceServers: [{ urls: "turn:r" }],
       }),
     ).not.toThrow();
+    expect(svc.getRelayIceServers()).toEqual([{ urls: "turn:r" }]);
   });
 
   describe("countdown sticky replay", () => {
@@ -1069,7 +1028,7 @@ describe("PeerClientService: relay-peer-id iceServers application", () => {
     it("replays a running countdown to a late subscriber", async () => {
       const svc = new PeerClientService();
       const t0Ms = Date.now() + 8_000;
-      intake(svc).handleMessage({
+      fromHost(svc).send({
         type: "gonogo-countdown-start",
         t0Ms,
       });
@@ -1083,11 +1042,11 @@ describe("PeerClientService: relay-peer-id iceServers application", () => {
 
     it("does not replay after the countdown was cancelled", async () => {
       const svc = new PeerClientService();
-      intake(svc).handleMessage({
+      fromHost(svc).send({
         type: "gonogo-countdown-start",
         t0Ms: Date.now() + 8_000,
       });
-      intake(svc).handleMessage({
+      fromHost(svc).send({
         type: "gonogo-countdown-cancel",
         reason: "no-go",
       });
@@ -1100,7 +1059,7 @@ describe("PeerClientService: relay-peer-id iceServers application", () => {
 
     it("does not replay a countdown whose t0 already passed", async () => {
       const svc = new PeerClientService();
-      intake(svc).handleMessage({
+      fromHost(svc).send({
         type: "gonogo-countdown-start",
         t0Ms: Date.now() - 1_000,
       });
@@ -1117,7 +1076,7 @@ describe("PeerClientService: relay-peer-id iceServers application", () => {
       svc.onGonogoCountdownStart((t) => received.push(t));
 
       const t0Ms = Date.now() + 8_000;
-      intake(svc).handleMessage({
+      fromHost(svc).send({
         type: "gonogo-countdown-start",
         t0Ms,
       });
@@ -1146,7 +1105,7 @@ describe("PeerClientService: sitrep frame/command dispatcher wiring", () => {
       payload: { apoapsis: 1 },
       meta: makeMeta(),
     };
-    intake(svc).handleMessage({
+    fromHost(svc).send({
       type: "sitrep-frame",
       message,
     });
@@ -1162,7 +1121,7 @@ describe("PeerClientService: sitrep frame/command dispatcher wiring", () => {
     );
 
     const meta = makeMeta();
-    intake(svc).handleMessage({
+    fromHost(svc).send({
       type: "sitrep-command-response",
       requestId: "c0",
       result: { ok: true },
@@ -1179,7 +1138,7 @@ describe("PeerClientService: sitrep frame/command dispatcher wiring", () => {
       received.push([requestId, code, message]),
     );
 
-    intake(svc).handleMessage({
+    fromHost(svc).send({
       type: "sitrep-command-error",
       requestId: "c0",
       code: "E_LOST",

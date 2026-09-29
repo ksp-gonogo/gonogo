@@ -1,5 +1,6 @@
 import type { ws } from "msw";
 import type { DataConnection } from "peerjs";
+import type { PeerClient } from "../peer/PeerClientContext";
 import type { PeerClientService } from "../peer/PeerClientService";
 import type { PeerHostService } from "../peer/PeerHostService";
 
@@ -23,6 +24,39 @@ export type LinkClient = Parameters<
  */
 export function asHostService(fake: unknown): PeerHostService {
   return fake as PeerHostService;
+}
+
+/**
+ * A station peer link that is connected and hears nothing: every listener is
+ * accepted and never called, every send goes nowhere. Spread it and override
+ * the members a test drives.
+ */
+export function idlePeerClient(): PeerClient {
+  const unsubscribe = () => {};
+  return {
+    getConnStatus: () => "connected",
+    onConnectionStatus: () => unsubscribe,
+    onHostHello: () => unsubscribe,
+    onHostRestart: () => unsubscribe,
+    getHostCommandCentre: () => null,
+    onHostCommandCentreChange: () => unsubscribe,
+    getRelayIceServers: () => [],
+    onRelayIceServersChange: () => unsubscribe,
+    sendGonogoVote: () => {},
+    sendGonogoAbort: () => {},
+    onGonogoCountdownStart: () => unsubscribe,
+    onGonogoCountdownCancel: () => unsubscribe,
+    onGonogoAbortNotify: () => unsubscribe,
+    sendWidgetPush: () => {},
+    sendWidgetRecall: () => {},
+    onNotesSnapshot: () => unsubscribe,
+    sendNoteAdd: () => {},
+    sendNoteUpdate: () => {},
+    sendNoteDelete: () => {},
+    sendNoteReorder: () => {},
+    sendUplinkRelay: () => new Promise(() => {}),
+    sendBundleFetch: () => new Promise(() => {}),
+  };
 }
 
 /** A fake as the client service under test; see {@link asHostService}. */

@@ -1,4 +1,4 @@
-import type { PeerClientService } from "../peer/PeerClientService";
+import type { PeerClient } from "../peer/PeerClientContext";
 import { EMPTY_NOTES_SNAPSHOT, type NotesSnapshot } from "./types";
 
 type Listener = (snap: NotesSnapshot) => void;
@@ -13,7 +13,7 @@ export class NotesClientService {
   private current: NotesSnapshot = EMPTY_NOTES_SNAPSHOT;
   private listeners = new Set<Listener>();
 
-  constructor(private readonly client: PeerClientService) {
+  constructor(private readonly client: PeerClient) {
     this.client.onNotesSnapshot((snap) => {
       this.current = snap;
       for (const cb of this.listeners) cb(snap);

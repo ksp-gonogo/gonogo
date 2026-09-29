@@ -3,7 +3,7 @@
 // overwrites them, and the gate grades this file against the ratchet base ref.
 /**
  * Assertions that escape `unknown`, per named erasure point. The tree carries
- * 53 of them at 50 points across 38 files.
+ * 50 of them at 47 points across 36 files.
  *
  * `unknown` is the correct return for a genuine boundary: a wire payload, a
  * `JSON.parse`, a DOM event, a value crossing a peer connection. It forces the
@@ -35,7 +35,7 @@
  * type guard over the field, so a producer that renames the field breaks the
  * build instead of returning `undefined` forever.
  *
- * **A test fixture minted through an assertion.** 22 of the 53 are
+ * **A test fixture minted through an assertion.** 19 of the 50 are
  * in test files, which is not a lesser problem: the fixture carrying the same
  * wrong shape as the code is precisely how the Principia defect stayed green.
  * REMOVED BY minting the value through the generated contract type or a real
@@ -50,7 +50,7 @@
  * In that order. The wire reads come first because they are the category the
  * defect came from and the only one that can be wrong SILENTLY at runtime; the
  * DOM boundaries come last because a wrong one throws immediately and loudly.
- * 29 of the 53 are `as unknown as`, and those are worth taking
+ * 26 of the 50 are `as unknown as`, and those are worth taking
  * out of whichever category they sit in first: the double exists only because
  * the compiler already refused the conversion once.
  *
@@ -70,7 +70,7 @@
  *
  * The reason for a point lives above the place itself, in the code, where the
  * next reader of the assertion finds it. There is deliberately no sentence per
- * entry here: a list of 50 reasons written away from the sites is
+ * entry here: a list of 47 reasons written away from the sites is
  * archaeology on the day it lands. What makes an entry actionable is that it
  * names a place and a number, and that `--update` removes it the moment the
  * place is clean.
@@ -88,19 +88,16 @@
  * <substring>` in the same commit as the narrow you wrote.
  */
 export const UNKNOWN_CAST_DEBT: Record<string, number> = {
-  // packages/app: 19 at 19 points in 13 files (1 out of `any`, 14 in tests), walked 413 files
+  // packages/app: 16 at 16 points in 11 files (1 out of `any`, 11 in tests), walked 427 files
   "packages/app/src/__tests__/analytics-consent-peer.test.ts :: intake": 1,
   "packages/app/src/__tests__/component-overlay-add.test.tsx :: registerTrivial": 1,
   "packages/app/src/__tests__/coverage-sync-host-service.test.ts :: asStore": 1,
   "packages/app/src/__tests__/peer-client-data-source.test.ts :: sendFlightRpc": 1,
-  "packages/app/src/__tests__/peer-client-service.test.ts :: intake": 1,
-  "packages/app/src/__tests__/peer-client-service.test.ts :: peerOf": 1,
   'packages/app/src/__tests__/pushed-dashboard-overlay.test.tsx :: it("provides DashboardItemContext so pushed widgets can call useActionInput without crashing")': 1,
   "packages/app/src/__tests__/pushed-dashboard-overlay.test.tsx :: makeFakeHost": 1,
   "packages/app/src/__tests__/pushed-dashboard-overlay.test.tsx :: registerMini": 1,
   "packages/app/src/alarms/AlarmsModal.test.tsx :: makeWireNode": 1,
   "packages/app/src/alarms/AlarmStatusBridge.test.tsx :: fakeHost": 1,
-  "packages/app/src/goNoGo/GoNoGoSound.test.tsx :: client": 1,
   "packages/app/src/telemetry/StationParity.characterise.test.tsx :: connectionsOf": 1,
   "packages/app/src/test/peerFakes.ts :: asClientService": 1,
   "packages/app/src/test/peerFakes.ts :: asDataConnection": 1,
@@ -108,13 +105,13 @@ export const UNKNOWN_CAST_DEBT: Record<string, number> = {
   "packages/app/src/uplinks/externals/runtimeLink.test.ts :: loadEsbuild": 1,
   "packages/app/src/uplinks/host.ts :: registerAugment": 1,
   "packages/app/src/uplinks/host.ts :: useRouteCommands": 1,
-  // packages/components: 5 at 5 points in 4 files (0 out of `any`, 5 in tests), walked 1022 files
+  // packages/components: 5 at 5 points in 4 files (0 out of `any`, 5 in tests), walked 1025 files
   "packages/components/src/MapView/paintBaseSurface.test.ts :: namedSource": 1,
   "packages/components/src/MapView/useCamera.test.tsx :: el": 1,
   "packages/components/src/MapView/useWorldCanvas.test.ts :: fakeCtx": 1,
   "packages/components/src/MapView/useWorldCanvas.test.ts :: stubGetContext": 1,
   "packages/components/src/ShipMap/partMetersContribution.test.ts :: part": 1,
-  // packages/core: 1 at 1 points in 1 files (0 out of `any`, 0 in tests), walked 255 files
+  // packages/core: 1 at 1 points in 1 files (0 out of `any`, 0 in tests), walked 257 files
   "packages/core/src/hooks/defineTopicManifest.ts :: boundHook": 1,
   // packages/data: 1 at 1 points in 1 files (0 out of `any`, 0 in tests), walked 51 files
   "packages/data/src/hooks/useOptionalStreamEvent.ts :: unsubscribe": 1,
@@ -123,16 +120,16 @@ export const UNKNOWN_CAST_DEBT: Record<string, number> = {
   "packages/serial/src/typedListeners.ts :: TypedListeners.emit": 1,
   // packages/sitrep-client: 1 at 1 points in 1 files (0 out of `any`, 1 in tests), walked 157 files
   "packages/sitrep-client/src/websocket-transport.test.ts :: ctor": 1,
-  // packages/ui-kit: 3 at 3 points in 3 files (1 out of `any`, 1 in tests), walked 311 files
+  // packages/ui-kit: 3 at 3 points in 3 files (1 out of `any`, 1 in tests), walked 335 files
   "packages/ui-kit/src/augments.second-copy.test.ts :: secondCopy": 1,
   "packages/ui-kit/src/augments.ts :: def": 1,
   "packages/ui-kit/src/WidgetScope.tsx :: useWidgetScope": 1,
-  // packages/uplink-tools: 1 at 1 points in 1 files (0 out of `any`, 0 in tests), walked 37 files
+  // packages/uplink-tools: 1 at 1 points in 1 files (0 out of `any`, 0 in tests), walked 38 files
   "packages/uplink-tools/src/render-probe.tsx :: Slot": 1,
   // mod/sitrep-kernel: 2 at 2 points in 1 files (0 out of `any`, 0 in tests), walked 15 files
   "mod/sitrep-kernel/src/registry.ts :: Kernel.query": 1,
   "mod/sitrep-kernel/src/registry.ts :: vanilla": 1,
-  // mod/sitrep-sdk: 18 at 15 points in 12 files (1 out of `any`, 1 in tests), walked 332 files
+  // mod/sitrep-sdk: 18 at 15 points in 12 files (1 out of `any`, 1 in tests), walked 336 files
   "mod/sitrep-sdk/src/api/localStorageStore.ts :: LocalStorageStore.get": 1,
   "mod/sitrep-sdk/src/api/settings/SettingsService.ts :: SettingsService.get": 1,
   "mod/sitrep-sdk/src/api/uplink-handles.ts :: getUplinkHandle": 1,
@@ -160,39 +157,36 @@ export const UNKNOWN_CAST_DEBT: Record<string, number> = {
  * refusing it is the compiler being right.
  */
 export const DOUBLE_ASSERTION_DEBT: Record<string, number> = {
-  // packages/app: 14 at 14 points in 10 files (0 out of `any`, 12 in tests), walked 413 files
+  // packages/app: 11 at 11 points in 8 files (0 out of `any`, 9 in tests), walked 427 files
   "packages/app/src/__tests__/analytics-consent-peer.test.ts :: intake": 1,
   "packages/app/src/__tests__/component-overlay-add.test.tsx :: registerTrivial": 1,
   "packages/app/src/__tests__/coverage-sync-host-service.test.ts :: asStore": 1,
-  "packages/app/src/__tests__/peer-client-service.test.ts :: intake": 1,
-  "packages/app/src/__tests__/peer-client-service.test.ts :: peerOf": 1,
   'packages/app/src/__tests__/pushed-dashboard-overlay.test.tsx :: it("provides DashboardItemContext so pushed widgets can call useActionInput without crashing")': 1,
   "packages/app/src/__tests__/pushed-dashboard-overlay.test.tsx :: makeFakeHost": 1,
   "packages/app/src/__tests__/pushed-dashboard-overlay.test.tsx :: registerMini": 1,
   "packages/app/src/alarms/AlarmsModal.test.tsx :: makeWireNode": 1,
   "packages/app/src/alarms/AlarmStatusBridge.test.tsx :: fakeHost": 1,
-  "packages/app/src/goNoGo/GoNoGoSound.test.tsx :: client": 1,
   "packages/app/src/telemetry/StationParity.characterise.test.tsx :: connectionsOf": 1,
   "packages/app/src/uplinks/host.ts :: registerAugment": 1,
   "packages/app/src/uplinks/host.ts :: useRouteCommands": 1,
-  // packages/components: 5 at 5 points in 4 files (0 out of `any`, 5 in tests), walked 1022 files
+  // packages/components: 5 at 5 points in 4 files (0 out of `any`, 5 in tests), walked 1025 files
   "packages/components/src/MapView/paintBaseSurface.test.ts :: namedSource": 1,
   "packages/components/src/MapView/useCamera.test.tsx :: el": 1,
   "packages/components/src/MapView/useWorldCanvas.test.ts :: fakeCtx": 1,
   "packages/components/src/MapView/useWorldCanvas.test.ts :: stubGetContext": 1,
   "packages/components/src/ShipMap/partMetersContribution.test.ts :: part": 1,
-  // packages/core: 1 at 1 points in 1 files (0 out of `any`, 0 in tests), walked 255 files
+  // packages/core: 1 at 1 points in 1 files (0 out of `any`, 0 in tests), walked 257 files
   "packages/core/src/hooks/defineTopicManifest.ts :: boundHook": 1,
   // packages/serial: 2 at 2 points in 1 files (0 out of `any`, 0 in tests), walked 72 files
   "packages/serial/src/typedListeners.ts :: stored": 1,
   "packages/serial/src/typedListeners.ts :: TypedListeners.emit": 1,
   // packages/sitrep-client: 1 at 1 points in 1 files (0 out of `any`, 1 in tests), walked 157 files
   "packages/sitrep-client/src/websocket-transport.test.ts :: ctor": 1,
-  // packages/ui-kit: 1 at 1 points in 1 files (0 out of `any`, 0 in tests), walked 311 files
+  // packages/ui-kit: 1 at 1 points in 1 files (0 out of `any`, 0 in tests), walked 335 files
   "packages/ui-kit/src/augments.ts :: def": 1,
-  // packages/uplink-tools: 1 at 1 points in 1 files (0 out of `any`, 0 in tests), walked 37 files
+  // packages/uplink-tools: 1 at 1 points in 1 files (0 out of `any`, 0 in tests), walked 38 files
   "packages/uplink-tools/src/render-probe.tsx :: Slot": 1,
-  // mod/sitrep-sdk: 4 at 4 points in 3 files (0 out of `any`, 1 in tests), walked 332 files
+  // mod/sitrep-sdk: 4 at 4 points in 3 files (0 out of `any`, 1 in tests), walked 336 files
   "mod/sitrep-sdk/src/flight/storage/LocalStorageStore.test.ts :: logger": 1,
   "mod/sitrep-sdk/src/spine/contributions.ts :: def": 1,
   "mod/sitrep-sdk/src/spine/contributions.ts :: registerContribution": 1,
