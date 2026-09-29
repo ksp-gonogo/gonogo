@@ -7,7 +7,7 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { NULL_DISPLAY } from "./NullValue";
 import {
   showsTiny,
@@ -157,5 +157,59 @@ describe("TinyEssentials", () => {
     expect(
       screen.getByRole("img", { name: "Signal 3 of 4" }),
     ).toBeInTheDocument();
+  });
+
+  describe("in a tile too short for every row", () => {
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    /** Each drawn essential is 20px tall, stacked, in a fit box `room` px tall. */
+    function stubLayout(room: number) {
+      vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockImplementation(
+        function (this: HTMLElement) {
+          return this.hasAttribute("data-panel-fit-body") ? room : 0;
+        },
+      );
+      vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(
+        function (this: Element) {
+          const drawn = Array.from(
+            document.querySelectorAll("[data-tiny-essential]"),
+          );
+          const top = Math.max(0, drawn.indexOf(this)) * 20;
+          return DOMRect.fromRect({ x: 0, y: top, width: 80, height: 20 });
+        },
+      );
+    }
+
+    const THREE: readonly TinyEssential[] = [
+      { label: "Alt", value: value("m", 1200) },
+      { label: "V/S", value: value("m/s", -12) },
+      { label: "Hdg", value: value("deg", 90) },
+    ];
+
+    it("draws the rows that fit, in order, and drops the rest", async () => {
+      stubLayout(45);
+      const { container } = render(
+        <TinyEssentials title="LANDING" essentials={THREE} />,
+      );
+      expect(
+        [...container.querySelectorAll("[data-tiny-essential]")].map(
+          (e) => e.querySelector("dt")?.textContent,
+        ),
+      ).toEqual(["Alt", "V/S"]);
+      expect(screen.queryByText("Hdg")).toBeNull();
+      await expectNoA11yViolations(container);
+    });
+
+    it("draws every row when they all fit", () => {
+      stubLayout(60);
+      const { container } = render(
+        <TinyEssentials title="LANDING" essentials={THREE} />,
+      );
+      expect(container.querySelectorAll("[data-tiny-essential]")).toHaveLength(
+        3,
+      );
+    });
   });
 });

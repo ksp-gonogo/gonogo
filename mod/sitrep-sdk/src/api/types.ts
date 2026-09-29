@@ -179,7 +179,8 @@ export interface TinyMode<Config = Record<string, unknown>> {
   bodyMinSize?: { w: number; h: number };
   /**
    * A hook returning the essential values, most important first: the first is
-   * drawn largest. Called in place of the widget's component, with its props.
+   * drawn largest, and a tile too short for them all drops the rest from the
+   * end. Called in place of the widget's component, with its props.
    */
   useEssentials: (props: ComponentProps<Config>) => readonly TinyEssential[];
 }

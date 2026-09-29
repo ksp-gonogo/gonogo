@@ -1164,13 +1164,7 @@ async function proveOverlapDetectorWorks(page: Page): Promise<void> {
  * longer exists protects nothing and the gate stays strict for every real id,
  * which is the safe direction to be wrong in.
  */
-const CLIPPED_CONTENT_DEBT = new Set([
-  "crew-status",
-  "map-view",
-  "power-systems",
-  "strategies",
-  "twr",
-]);
+const CLIPPED_CONTENT_DEBT = new Set<string>([]);
 
 async function findClippedContent(page: Page): Promise<string[]> {
   return page.evaluate(

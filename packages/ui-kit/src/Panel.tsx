@@ -585,9 +585,10 @@ const PanelSections__Grid = styled.div<{ $min: string; $columns: number }>`
 `;
 
 /**
- * The tiny-tile layout: fills the space left under the header and centres the
- * widget's content in it, but only while measurement says the content fits.
- * Wraps the children alone, so the header is neither centred nor measured.
+ * The tiny-tile layout: fills every pixel between the header's foot and the
+ * panel's clip edge and centres the widget's content in it, but only while
+ * measurement says the content fits. Wraps the children alone, so the header
+ * is neither centred nor measured.
  */
 function PanelFitBody({ children }: { children?: ReactNode }) {
   const outerRef = useRef<HTMLDivElement | null>(null);
@@ -605,9 +606,12 @@ function PanelFitBody({ children }: { children?: ReactNode }) {
 const PanelBody__FitOuter = styled.div<{ $fits?: boolean }>`
   flex: 1;
   min-height: 0;
+  /* Takes back the body's gap above and its bottom inset, so the box is all the room a tiny tile has and centring is measured against it. */
+  margin-top: calc(-1 * var(--gap-related));
+  margin-bottom: calc(-1 * var(--inset-panel-bottom));
   display: flex;
   flex-direction: column;
-  /* Neither clips nor insets: a tiny tile's readout may overflow into the body's gap, and the body owns the real boundary. */
+  /* Never clips: the body owns the real boundary. */
   ${({ $fits }) =>
     $fits ? "justify-content: center;" : "justify-content: flex-start;"}
 `;
@@ -626,14 +630,10 @@ const PanelBody__FitContent = styled.div<{ $fits?: boolean }>`
 `;
 
 /**
- * Whether the content currently fits its box, so a tiny tile can centre only
- * when centring cannot push the first line out of reach. Measured because
- * Firefox clips `safe center` in practice.
- *
- * Centred overflow splits evenly above and below; the part above may use only
- * `roomAbove` before it becomes unscrollable, so content fits while it is no
- * taller than the box plus twice that room. True when there is nothing to
- * measure.
+ * Whether the content currently fits its box, so a tiny tile centres only
+ * when centring cannot push the first line up under the header. Measured
+ * because Firefox clips `safe center` in practice. True when there is nothing
+ * to measure.
  */
 function useContentFits(
   boxRef: { current: HTMLElement | null },
@@ -645,13 +645,7 @@ function useContentFits(
     const content = contentRef.current;
     if (!box || !content) return;
     const measure = () => {
-      setFits(
-        contentFitsCentred(
-          contentExtent(content),
-          box.clientHeight,
-          roomAbove(box),
-        ),
-      );
+      setFits(contentFits(contentExtent(content), box.clientHeight));
     };
     measure();
     if (typeof ResizeObserver === "undefined") return;
@@ -697,34 +691,12 @@ function contentExtent(content: HTMLElement): number {
 }
 
 /**
- * The room centred content may overflow into above its box. Under the header,
- * that is the body's gap plus the empty inset at the foot of the title, which
- * the transparent header draws nothing in. As the body's first child, it is
- * the body's top padding.
+ * Whether content of `content` height, centred in a box `box` tall, stays
+ * inside it. The box already runs from the header's foot to the clip edge, so
+ * there is no room past either end to overflow into.
  */
-function roomAbove(box: HTMLElement): number {
-  const body = box.parentElement;
-  if (!body) return 0;
-  const style = getComputedStyle(body);
-  const above = box.previousElementSibling;
-  if (above === null) return Number.parseFloat(style.paddingTop) || 0;
-  const title = above.querySelector("[data-panel-header] h3");
-  const titleFoot = title ? getComputedStyle(title).paddingBottom : "0";
-  return (
-    (Number.parseFloat(style.rowGap) || 0) + (Number.parseFloat(titleFoot) || 0)
-  );
-}
-
-/**
- * Whether content of `content` height, centred in a box `box` tall, keeps its
- * top edge within `room` of the box's top.
- */
-export function contentFitsCentred(
-  content: number,
-  box: number,
-  room: number,
-): boolean {
-  return content <= box + 2 * room;
+export function contentFits(content: number, box: number): boolean {
+  return content <= box;
 }
 
 const ScrollAreaRoot = styled.div`

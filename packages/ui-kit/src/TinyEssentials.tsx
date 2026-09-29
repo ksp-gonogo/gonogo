@@ -5,6 +5,7 @@ import type {
   TinyMode,
   Tone,
 } from "@ksp-gonogo/sitrep-sdk";
+import { useLayoutEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import { LevelBars } from "./LevelBars";
 import { Panel } from "./Panel";
@@ -29,10 +30,14 @@ export interface TinyEssentialsProps {
  * heading over its essential values, the first drawn large and the rest as
  * label and figure rows under it.
  *
+ * Rows are drawn in order while they fit the tile and the ones that do not
+ * are dropped from the end, so every figure the tile shows is whole.
+ *
  * @category Tiny mode
  */
 export function TinyEssentials({ title, essentials }: TinyEssentialsProps) {
   const [hero, ...rest] = essentials;
+  const { rowsRef, drawn } = useRowsThatFit(rest);
   // A lone figure named like the tile already has its caption in the heading.
   const heroNamedByTitle =
     hero !== undefined &&
@@ -57,8 +62,8 @@ export function TinyEssentials({ title, essentials }: TinyEssentialsProps) {
             </TinyEssentials__Hero>
           )}
           {rest.length > 0 && (
-            <TinyEssentials__Rows>
-              {rest.map((essential) => (
+            <TinyEssentials__Rows ref={rowsRef}>
+              {rest.slice(0, drawn).map((essential) => (
                 <TinyEssentials__Row
                   key={essential.label}
                   data-tiny-essential=""
@@ -79,6 +84,72 @@ export function TinyEssentials({ title, essentials }: TinyEssentialsProps) {
       }
     />
   );
+}
+
+/**
+ * How many of the rows are drawn: every one that fits the fit body's box under
+ * the hero, in order. Starts from all of them whenever the box resizes or a
+ * figure changes, and drops one per layout pass until the content fits, so a
+ * tile that grows gets its rows back.
+ */
+function useRowsThatFit(rows: readonly TinyEssential[]) {
+  const rowsRef = useRef<HTMLDListElement | null>(null);
+  const [drawn, setDrawn] = useState(rows.length);
+  const [pass, setPass] = useState(0);
+  const figures = rows
+    .map((row) => `${row.label}\u0000${figureKey(row.value)}`)
+    .join("\u0001");
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a new figure or a resized box starts the count again.
+  useLayoutEffect(() => {
+    setDrawn(rows.length);
+  }, [figures, pass, rows.length]);
+
+  useLayoutEffect(() => {
+    const box = rowsRef.current?.closest("[data-panel-fit-body]");
+    const content = box?.firstElementChild;
+    if (!box || !content || drawn === 0) return;
+    if (extentOf(content) > box.clientHeight) setDrawn(drawn - 1);
+  });
+
+  useLayoutEffect(() => {
+    const box = rowsRef.current?.closest("[data-panel-fit-body]");
+    if (!box || typeof ResizeObserver === "undefined") return;
+    let seen = box.clientHeight;
+    const observer = new ResizeObserver(() => {
+      if (box.clientHeight === seen) return;
+      seen = box.clientHeight;
+      setPass((n) => n + 1);
+    });
+    observer.observe(box);
+    return () => observer.disconnect();
+  }, []);
+
+  return { rowsRef, drawn };
+}
+
+/** Enough of a figure to tell when it changed, whatever shape it came in. */
+function figureKey(value: TinyEssential["value"]): string {
+  try {
+    return JSON.stringify(value) ?? "";
+  } catch {
+    return String(value);
+  }
+}
+
+/** From the top of the content's first drawn child to the bottom of its last, descending into the section it is wrapped in. */
+function extentOf(content: Element): number {
+  const tops: number[] = [];
+  const bottoms: number[] = [];
+  for (const el of Array.from(
+    content.querySelectorAll("[data-tiny-essential]"),
+  )) {
+    const r = el.getBoundingClientRect();
+    tops.push(r.top);
+    bottoms.push(r.bottom);
+  }
+  if (tops.length === 0) return 0;
+  return Math.max(...bottoms) - Math.min(...tops);
 }
 
 function EssentialFigure({ essential }: { essential: TinyEssential }) {

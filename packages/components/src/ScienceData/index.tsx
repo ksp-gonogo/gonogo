@@ -150,6 +150,7 @@ function ScienceDataComponent({
   return (
     <Panel
       panelTitle="SCIENCE DATA"
+      compactTitle={["SCI DATA", "SCI"]}
       panelStatus={breakdownStreamStatus}
       /* The balance sits in the body, not the aside, which folds away at narrow widths. */
       sections={
