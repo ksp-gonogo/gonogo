@@ -122,7 +122,7 @@ export const EXTENSION_SCENES: readonly ExtensionScene[] = [
     id: "core:touchdown-reticle",
     widgetId: "landing-status",
     fixture: `${COMPONENTS}/LandingStatus/__render__/descent-final.json`,
-    w: 12,
+    w: 20,
     h: 16,
   },
   {
