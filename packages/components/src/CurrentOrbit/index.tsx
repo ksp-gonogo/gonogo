@@ -20,6 +20,7 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import { Panel, ReadoutCaption, Section, Stack } from "@ksp-gonogo/ui-kit";
 import { useRef } from "react";
+import { declinedState } from "../shared/declinedState";
 import { OrbitDiagram } from "../shared/OrbitDiagram";
 import { solveCountdown } from "../shared/solveCountdown";
 import { TrajectoryFrameCaption } from "../shared/trajectoryFrame";
@@ -32,7 +33,6 @@ import {
   type CurrentOrbitConfig,
   currentOrbitActions,
 } from "./config";
-import { declinedState } from "./modelState";
 import { FrameCaveat } from "./OrbitCells";
 import { OrbitReadoutGrid } from "./OrbitReadouts";
 import { useIsLandscape } from "./useIsLandscape";

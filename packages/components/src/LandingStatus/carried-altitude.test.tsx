@@ -162,12 +162,14 @@ describe("the carried ASL altitude reaches the operator", () => {
     expect(drawnInterval(tree)).toBeNull();
   });
 
-  it("says why the model withdrew, where it withdrew", async () => {
+  it("says CANNOT MODEL where the model withdrew, with the model's own note on hover", async () => {
     // Peak deceleration closes the rate integration's horizon, so there is no carried altitude.
     const tree = await mount(
       loadHandoverFixture("06-peak-deceleration-30km.json"),
     );
-    expect(readoutText(tree)).toMatch(
+    const caption = tree.getByText("CANNOT MODEL");
+    expect(readoutText(tree)).not.toMatch(/honest for about/);
+    expect(caption.getAttribute("title")).toMatch(
       /honest for about 2\.5 seconds at the sensed deceleration/,
     );
     expect(drawnInterval(tree)).toBeNull();

@@ -10,6 +10,7 @@ import {
   Text,
   Unit,
 } from "@ksp-gonogo/ui-kit";
+import { declinedState } from "../shared/declinedState";
 import { altitudeDecimals, GridCellPair } from "./readouts";
 
 /** The reading `vessel.flight` arrives as, spelled once so the readout and the widget body agree on the reckonable fields. */
@@ -44,6 +45,7 @@ export function CarriedAltitude({ reading }: { reading: FlightReading }) {
     reading.state === "held" && reading.reckoning.status === "declined"
       ? reading.reckoning.declined
       : undefined;
+  const modelState = declined ? declinedState(declined) : null;
   return (
     <Section title="Altitude ASL">
       <Grid cols="auto 1fr" gap="readout-row">
@@ -75,8 +77,8 @@ export function CarriedAltitude({ reading }: { reading: FlightReading }) {
         <ReadoutCaption>
           {bandClaim(band.kind, "the carried altitude is inside that interval")}
         </ReadoutCaption>
-      ) : declined ? (
-        <ReadoutCaption>{declined.note ?? declined.reason}</ReadoutCaption>
+      ) : modelState !== null ? (
+        <ReadoutCaption title={declined?.note}>{modelState}</ReadoutCaption>
       ) : carried !== null ? (
         <ReadoutCaption>
           carried with no interval: this model bounds nothing
