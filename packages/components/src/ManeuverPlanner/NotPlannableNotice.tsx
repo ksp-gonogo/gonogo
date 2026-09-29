@@ -32,5 +32,5 @@ export function NotPlannableNotice({
       </WaitingPanel>
     );
   }
-  return <EmptyState>Awaiting orbit telemetry.</EmptyState>;
+  return <EmptyState>Awaiting orbit telemetry</EmptyState>;
 }

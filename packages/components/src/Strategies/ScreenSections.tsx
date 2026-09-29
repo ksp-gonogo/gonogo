@@ -110,7 +110,7 @@ export function ScreenSections({
             gap="related-comfortable"
           >
             {active.length === 0 ? (
-              <Empty>No active strategies.</Empty>
+              <Empty>No active strategies</Empty>
             ) : (
               active.map((s) => (
                 <StrategyCard
@@ -166,7 +166,7 @@ export function ScreenSections({
             gap="related-comfortable"
           >
             {available.length === 0 && softBlocked.length === 0 ? (
-              <Empty>No strategies available right now.</Empty>
+              <Empty>No strategies available right now</Empty>
             ) : (
               <>
                 {available.map((s) => strategyRow(s))}

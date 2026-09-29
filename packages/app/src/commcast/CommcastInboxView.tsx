@@ -102,8 +102,8 @@ export function CommcastInboxView({
             {threads.length === 0 && (
               <EmptyState>
                 {canCompose
-                  ? "No conversations."
-                  : "No conversations, and no correspondents."}
+                  ? "No conversations"
+                  : "No conversations, and no correspondents"}
               </EmptyState>
             )}
             {threads.map((thread) => (

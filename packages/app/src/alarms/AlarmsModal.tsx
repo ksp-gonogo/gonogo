@@ -578,7 +578,7 @@ export function AlarmsModal({
       <Stack as="section" gap="related-comfortable">
         <SectionTitle as="h3">Scheduled ({sorted.length})</SectionTitle>
         {sorted.length === 0 ? (
-          <Empty>No alarms set.</Empty>
+          <Empty>No alarms set</Empty>
         ) : (
           <List>
             {sorted.map((a) => {

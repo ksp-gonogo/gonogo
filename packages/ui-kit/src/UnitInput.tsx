@@ -7,14 +7,13 @@ import {
 import { useId, useState } from "react";
 import styled from "styled-components";
 import { focusRing } from "./focusRing";
-import { HeldHost, HeldMark } from "./HeldMark";
+import { HeldFigure } from "./HeldMark";
 import { JogWheel } from "./JogWheel";
 import { MissionDateField, partsOfUt } from "./MissionDateField";
 import { resolveCurrency, type UnitValue } from "./readingCurrency";
 import { Stack } from "./Stack";
 import { Text } from "./Text";
 import type { FormatsFor } from "./units";
-import { VisuallyHidden } from "./VisuallyHidden";
 
 /**
  * Bounds for a POSITION slider, refused on a point-like unit: an instant can be
@@ -114,11 +113,7 @@ export function UnitInput<Unit extends string>({
   const id = useId();
   const { shown: current, held, caption } = resolveCurrency<Unit>(input);
   const name = held ? (
-    <HeldHost title={caption ?? undefined}>
-      {label}
-      <HeldMark aria-hidden="true" data-held-mark="" />
-      <VisuallyHidden data-unit-currency="">, {caption}</VisuallyHidden>
-    </HeldHost>
+    <HeldFigure caption={caption}>{label}</HeldFigure>
   ) : (
     label
   );

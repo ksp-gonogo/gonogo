@@ -623,6 +623,8 @@ textarea {
   --inset-status-box: var(--space-4) var(--space-8);
   /* A popover's content. */
   --inset-popover: var(--space-8);
+  /* A tooltip's content. */
+  --inset-tooltip: var(--space-4) var(--space-8);
   /* The drop between an anchor and the popover it opens. */
   --offset-popover: var(--space-4);
   /* A popover shadow's offset and blur. */
@@ -696,6 +698,8 @@ textarea {
   --inset-field: var(--space-6) var(--space-8);
   --inset-field-compact: var(--space-4) var(--space-6);
   --inset-field-touch: var(--space-10) var(--space-12);
+  /* The trailing room a search field keeps for its clear control. */
+  --inset-field-clearable-end: calc(var(--icon-size-control) + var(--space-12));
   /* A boxed form's surface. */
   --inset-form-box: var(--space-8) var(--space-10);
   /* A search input flush in its band. */

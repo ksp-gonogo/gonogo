@@ -119,6 +119,10 @@ export {
   useCommandButton,
 } from "./CommandButton/CommandButton";
 export {
+  InFlightFace,
+  type InFlightFaceProps,
+} from "./CommandButton/InFlightFace";
+export {
   CommandDelay,
   type CommandDelayHandle,
   type CommandDelayProps,
@@ -303,6 +307,7 @@ export {
   gridToPixels,
   ROW_HEIGHT,
 } from "./gridUnits";
+export { HeldFigure, type HeldFigureProps } from "./HeldMark";
 export {
   ArrowDownIcon,
   ArrowLeftIcon,
@@ -473,6 +478,7 @@ export {
   resolveCurrency,
 } from "./readingCurrency";
 export { resourceColor } from "./resourceColor";
+export { SearchBox, type SearchBoxProps } from "./SearchBox";
 export { Section, type SectionProps, SectionTitle } from "./Section";
 export {
   SelectableRow,
@@ -564,6 +570,11 @@ export {
   type ToggleButtonSize,
   type ToggleButtonTone,
 } from "./ToggleButton";
+export {
+  type Tooltip,
+  type TooltipAnchorProps,
+  useTooltip,
+} from "./Tooltip";
 export { Truncate } from "./Truncate";
 // `UnitValue` is the widened prop: a quantity, or a whole `Reading` of one.
 export { Unit, type UnitProps, type UnitValue } from "./Unit";

@@ -57,7 +57,7 @@ export function NotesView({
       sections={
         <Section full gap="section-compact">
           {ordered.length === 0 ? (
-            <Empty>No notes yet. Type {"{{"} for live data.</Empty>
+            <Empty>No notes yet. Type {"{{"} for live data</Empty>
           ) : (
             ordered.map((note, idx) => (
               <NoteRow

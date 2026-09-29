@@ -213,6 +213,6 @@ describe("Experiments: the experiments.instruments contribution slot", () => {
 
     await waitFor(() => expect(screen.queryByText("Mystery Goo")).toBeNull());
     expect(screen.getByText("SAR Altimetry Sensor")).toBeTruthy();
-    expect(screen.queryByText("No instrument matches the filter.")).toBeNull();
+    expect(screen.queryByText("No instrument matches the filter")).toBeNull();
   });
 });

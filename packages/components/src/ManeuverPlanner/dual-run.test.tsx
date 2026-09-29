@@ -65,7 +65,7 @@ describe("ManeuverPlanner: full node render off the stream", () => {
 
     const text = visibleText(container);
     expect(text).toContain("Planned nodes");
-    expect(text).not.toContain("No maneuver nodes planned.");
+    expect(text).not.toContain("No maneuver nodes planned");
     expect(text).toContain("300 m/s");
     expect(text).toContain(`burn in ${SECONDS_TO_BURN}s`);
     expect(container.querySelectorAll("li[data-burn-instant-row]").length).toBe(

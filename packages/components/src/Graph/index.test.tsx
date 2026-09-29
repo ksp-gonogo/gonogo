@@ -73,9 +73,7 @@ describe("GraphComponent", () => {
     const { getByText } = renderOnStream(
       <GraphComponent config={config} id="graph-test" />,
     );
-    expect(
-      getByText("Configure series to begin graphing."),
-    ).toBeInTheDocument();
+    expect(getByText("Configure series to begin graphing")).toBeInTheDocument();
   });
 
   it("plots series with no axis field inside the chart bounds (defaults to auto)", async () => {

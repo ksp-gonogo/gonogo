@@ -12,7 +12,7 @@ import {
 } from "react";
 import styled, { css } from "styled-components";
 import { bandClaim } from "./bandClaim";
-import { HeldHost, HeldMark } from "./HeldMark";
+import { HeldFigure, HeldHost, HeldMark } from "./HeldMark";
 import { magnitudeOr } from "./magnitude";
 import { NullValue } from "./NullValue";
 import { resolveCurrency, type UnitValue } from "./readingCurrency";
@@ -26,7 +26,6 @@ import {
   type FormatsFor,
   speakQuantity,
 } from "./units";
-import { VisuallyHidden } from "./VisuallyHidden";
 
 /**
  * Where a meter's label and figure sit relative to its bar.
@@ -273,13 +272,7 @@ function HeldLabel({
   children: ReactNode;
 }) {
   if (caption === null) return <>{children}</>;
-  return (
-    <HeldHost title={caption}>
-      {children}
-      <HeldMark aria-hidden="true" data-held-mark="" />
-      <VisuallyHidden data-unit-currency="">, {caption}</VisuallyHidden>
-    </HeldHost>
-  );
+  return <HeldFigure caption={caption}>{children}</HeldFigure>;
 }
 
 /** One half of a meter, split into the figure and the reading it came in. */

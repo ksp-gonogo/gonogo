@@ -16,7 +16,7 @@ import {
 } from "../CommandDelay/commandRefusalSentence";
 import { focusRing } from "../focusRing";
 import { LiveRegion } from "../LiveRegion";
-import { Spinner } from "../Spinner";
+import { InFlightFace } from "./InFlightFace";
 
 /** How long an armed control stays armed before it quietly disarms. The ONE definition. */
 export const ARM_TIMEOUT_MS = 4000;
@@ -415,8 +415,12 @@ export interface CommandButtonProps<Result = CommandReplyLike, Args = unknown>
    * Arm anything irreversible, and anything that spends career funds.
    */
   confirmLabel?: ReactNode;
-  /** The in-flight label. Defaults to "Working...". */
-  pendingLabel?: ReactNode;
+  /**
+   * The in-flight wording, spoken and shown on hover. The control itself draws
+   * only a spinner while in flight, at its resting width. Defaults to
+   * "Working...".
+   */
+  pendingLabel?: string;
   /** The refused label. Defaults to "Refused". */
   refusedLabel?: ReactNode;
   /**
@@ -444,7 +448,7 @@ export interface CommandButtonProps<Result = CommandReplyLike, Args = unknown>
    * different.
    */
   confirmAriaLabel?: string;
-  /** The in-flight phase's accessible name. Same rule as `confirmAriaLabel`. */
+  /** The in-flight phase's accessible name, for a control whose resting name says more than `pendingLabel`. Defaults to `pendingLabel`. */
   pendingAriaLabel?: string;
   /**
    * Whether this control's command is CURRENTLY IN EFFECT, for a control that
@@ -521,9 +525,11 @@ export function CommandButton<Result = CommandReplyLike, Args = unknown>({
   const resolveBody = (): ReactNode => {
     if (isPending)
       return (
-        <>
-          <Spinner size={size === "sm" ? 10 : 12} /> {pendingLabel}
-        </>
+        <InFlightFace
+          holds={label}
+          label={pendingLabel}
+          spinnerSize={size === "sm" ? 10 : 12}
+        />
       );
     if (isRefused) return refusedLabel;
     if (isLost) return lostLabel;
@@ -591,12 +597,12 @@ export function CommandButton<Result = CommandReplyLike, Args = unknown>({
                 : isBlocked
                   ? (blockedAriaLabel ?? refusalText ?? ariaLabel)
                   : isPending
-                    ? pendingAriaLabel
+                    ? (pendingAriaLabel ?? pendingLabel)
                     : isArmed
                       ? confirmAriaLabel
                       : ariaLabel
         }
-        title={foundText ?? refusalText ?? title}
+        title={foundText ?? refusalText ?? (isPending ? pendingLabel : title)}
         onClick={() => press(confirmLabel !== undefined)}
         {...rest}
       >

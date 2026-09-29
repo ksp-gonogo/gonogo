@@ -124,7 +124,7 @@ export function RosterTable({
   if (vessels.length === 0) {
     return (
       <EmptyState>
-        {known ? "No vessels tracked." : "Fleet data not available yet."}
+        {known ? "No vessels tracked" : "Fleet data not available yet"}
       </EmptyState>
     );
   }

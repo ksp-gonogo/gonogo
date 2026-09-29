@@ -124,8 +124,8 @@ function InputTesterComponent({
       <Section key="none" full>
         <EmptyState>
           {devices.length === 0
-            ? "No devices registered. Add one via the joystick FAB."
-            : "Select a device to see its inputs."}
+            ? "No devices registered. Add one via the joystick FAB"
+            : "Select a device to see its inputs"}
         </EmptyState>
       </Section>,
     );
@@ -149,7 +149,7 @@ function InputTesterComponent({
         <Section key="no-inputs" full>
           <EmptyState>
             This device type has no inputs declared. Edit the type via the
-            joystick FAB → Devices.
+            joystick FAB → Devices
           </EmptyState>
         </Section>,
       );

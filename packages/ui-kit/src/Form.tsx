@@ -71,6 +71,11 @@ const inputBase = css`
 
   ${focusRing}
 
+  /* The browser's own clear control ignores the theme; SearchBox draws the kit's. */
+  &::-webkit-search-cancel-button {
+    appearance: none;
+  }
+
   @media (pointer: coarse) {
     min-height: 44px;
     padding: var(--inset-field-touch);

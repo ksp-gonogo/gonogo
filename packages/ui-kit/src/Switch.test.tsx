@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { describe, expect, it } from "vitest";
 import { Switch } from "./Switch";
-import { emittedStateRuleFor } from "./test/emittedRule";
+import { emittedRuleFor, emittedStateRuleFor } from "./test/emittedRule";
 
 function Controlled() {
   const [on, setOn] = useState(false);
@@ -28,6 +28,18 @@ describe("Switch", () => {
     expect(emittedStateRuleFor(input, ":focus-visible+")).toContain(
       "outline:2px solid var(--color-focus)",
     );
+  });
+
+  it("centres the thumb inside the track's border at either end", () => {
+    const { container } = render(
+      <>
+        <Switch checked={false} onChange={() => {}} label="Off" />
+        <Switch checked onChange={() => {}} label="On" />
+      </>,
+    );
+    const [off, on] = [...container.querySelectorAll("label > div > div")];
+    expect(emittedRuleFor(off as HTMLElement)).toMatch(/top:2px;left:2px;/);
+    expect(emittedRuleFor(on as HTMLElement)).toMatch(/top:2px;left:16px;/);
   });
 
   it("has no axe violations labelled visibly or by aria-label", async () => {

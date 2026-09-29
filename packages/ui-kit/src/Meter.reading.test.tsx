@@ -331,7 +331,7 @@ describe("Meter, given a reading of a fraction", () => {
     expect(mark?.getAttribute("aria-hidden")).toBe("true");
 
     // Anchored to the marked quantity, since `Unit` also titles the unit symbol.
-    const hover = mark?.closest("[title]")?.getAttribute("title");
+    const hover = mark?.closest("[data-tooltip]")?.getAttribute("data-tooltip");
     expect(hover).toMatch(/STALE/i);
     expect(hover).toContain(at);
   });

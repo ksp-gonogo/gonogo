@@ -81,7 +81,7 @@ describe("ManeuverPlanner: nothing has arrived at all", () => {
     const { view } = setup();
     // Meaning 1: no orbit yet, so wait.
     expect(
-      await screen.findByText("Awaiting orbit telemetry."),
+      await screen.findByText("Awaiting orbit telemetry"),
     ).toBeInTheDocument();
 
     // Named absences, so a widget that renders nothing cannot pass.
@@ -95,7 +95,7 @@ describe("ManeuverPlanner: nothing has arrived at all", () => {
 
     expect(screen.getByText("Planned nodes")).toBeInTheDocument();
     expect(screen.getByText("New maneuver")).toBeInTheDocument();
-    expect(screen.getByText("No maneuver nodes planned.")).toBeInTheDocument();
+    expect(screen.getByText("No maneuver nodes planned")).toBeInTheDocument();
 
     // An absent ecc does not take the hyperbolic branch.
     expect(screen.queryByText("Hyperbolic trajectory")).not.toBeInTheDocument();
@@ -104,7 +104,7 @@ describe("ManeuverPlanner: nothing has arrived at all", () => {
 
   it("omits the reference-body caption entirely: the gate is `refBody !== undefined`", async () => {
     const { view } = setup();
-    await screen.findByText("Awaiting orbit telemetry.");
+    await screen.findByText("Awaiting orbit telemetry");
     expect(refBodyCaption(view.container)).toBeNull();
   });
 });
@@ -163,7 +163,7 @@ describe("ManeuverPlanner: the absence gates fire today", () => {
   it("renders an EMPTY reference-body caption when system.bodies is a confirmed tombstone", async () => {
     // A tombstoned roster resolves to null, which passes the caption's `!== undefined` gate.
     const { fixture, view } = setup();
-    await screen.findByText("Awaiting orbit telemetry.");
+    await screen.findByText("Awaiting orbit telemetry");
     act(() => {
       emitOrbitReady(fixture);
       fixture.emit("system.bodies", null);
@@ -178,7 +178,7 @@ describe("ManeuverPlanner: the absence gates fire today", () => {
 describe("ManeuverPlanner: the reference-body caption's three states", () => {
   it("renders the body name once system.bodies resolves the index", async () => {
     const { fixture, view } = setup();
-    await screen.findByText("Awaiting orbit telemetry.");
+    await screen.findByText("Awaiting orbit telemetry");
     act(() => {
       emitOrbitReady(fixture);
       fixture.emit("system.bodies", {
@@ -202,17 +202,17 @@ describe("ManeuverPlanner: a partial vessel.orbit payload", () => {
   it("stays on the awaiting-orbit empty state when the record arrived but ecc did not", async () => {
     // Any one missing field reads as no telemetry at all.
     const { fixture } = setup();
-    await screen.findByText("Awaiting orbit telemetry.");
+    await screen.findByText("Awaiting orbit telemetry");
     act(() => {
       emitOrbitReady(fixture, { ecc: undefined });
     });
-    expect(screen.getByText("Awaiting orbit telemetry.")).toBeInTheDocument();
+    expect(screen.getByText("Awaiting orbit telemetry")).toBeInTheDocument();
     expect(screen.queryByText("Preview")).not.toBeInTheDocument();
   });
 
   it("shows the hyperbolic notice instead when ecc IS present and >= 1", async () => {
     const { fixture } = setup();
-    await screen.findByText("Awaiting orbit telemetry.");
+    await screen.findByText("Awaiting orbit telemetry");
     act(() => {
       emitOrbitReady(fixture, { ecc: 1.5 });
     });
@@ -220,7 +220,7 @@ describe("ManeuverPlanner: a partial vessel.orbit payload", () => {
       await screen.findByText("Hyperbolic trajectory"),
     ).toBeInTheDocument();
     expect(
-      screen.queryByText("Awaiting orbit telemetry."),
+      screen.queryByText("Awaiting orbit telemetry"),
     ).not.toBeInTheDocument();
   });
 });

@@ -6,7 +6,8 @@ import type {
 } from "./contributions";
 import { useContributions } from "./contributionsRead";
 import { FilterChip } from "./FilterChip";
-import { Field, FieldLabel, Input } from "./Form";
+import { Field, FieldLabel } from "./Form";
+import { SearchBox } from "./SearchBox";
 import { Stack } from "./Stack";
 
 export interface RowFilter {
@@ -102,12 +103,11 @@ export function useRowFilter({
       )}
       <Field>
         <FieldLabel htmlFor={searchId}>{label}</FieldLabel>
-        <Input
+        <SearchBox
           id={searchId}
-          type="search"
           value={typed}
           placeholder={placeholder}
-          onChange={(event) => setTyped(event.target.value)}
+          onChange={setTyped}
         />
       </Field>
     </Stack>

@@ -80,12 +80,12 @@ export function ArchiveTab({ archive, groups }: Readonly<ArchiveTabProps>) {
   if (archive === null) {
     return (
       <EmptyState>
-        No R&D archive in this save, Sandbox mode banks no career science.
+        No R&D archive in this save, Sandbox mode banks no career science
       </EmptyState>
     );
   }
   if (archive.length === 0) {
-    return <EmptyState>No science collected yet this career.</EmptyState>;
+    return <EmptyState>No science collected yet this career</EmptyState>;
   }
 
   return (

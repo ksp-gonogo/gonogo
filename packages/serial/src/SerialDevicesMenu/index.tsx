@@ -141,7 +141,7 @@ function DevicesTab() {
           </Button>
         </ToolbarButtons>
       </Toolbar>
-      {devices.length === 0 && <Empty>No devices yet.</Empty>}
+      {devices.length === 0 && <Empty>No devices yet</Empty>}
       {devices.map((device) => (
         <DeviceRow
           key={device.id}
@@ -365,7 +365,7 @@ function TypesTab() {
           + add type
         </Button>
       </Toolbar>
-      {editableTypes.length === 0 && <Empty>No device types yet.</Empty>}
+      {editableTypes.length === 0 && <Empty>No device types yet</Empty>}
       {editableTypes.map((type) => (
         <DeviceCard key={type.id} title={type.name}>
           <RowMeta>

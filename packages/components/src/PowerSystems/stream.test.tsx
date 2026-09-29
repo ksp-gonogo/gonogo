@@ -189,7 +189,7 @@ describe("PowerSystems: genuinely runs off the stream", () => {
       expect(screen.getByText("Advanced Reaction Wheel")).toBeTruthy();
     });
 
-    expect(screen.queryByText("Nothing consuming.")).toBeNull();
+    expect(screen.queryByText("Nothing consuming")).toBeNull();
     // "-1.80" appears twice: the CONS totals cell and the single Consumers row.
     expect(visibleText()).toContain("+3.20/s");
     expect(screen.getAllByText("-1.80")).toHaveLength(2);

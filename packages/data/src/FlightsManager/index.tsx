@@ -309,7 +309,7 @@ export function FlightsManager({
         />
       )}
       {flights.length === 0 ? (
-        <EmptyState>No flight history recorded yet.</EmptyState>
+        <EmptyState>No flight history recorded yet</EmptyState>
       ) : (
         <>
           <Table>

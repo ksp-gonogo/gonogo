@@ -95,7 +95,7 @@ describe("AtmosphereProfile: what undefined means today", () => {
 
     await waitFor(() =>
       expect(visibleText(container)).toContain(
-        "No atmosphere on Definitely-Not-A-Body.",
+        "No atmosphere on Definitely-Not-A-Body",
       ),
     );
     expect(visibleText(container)).not.toContain("Unknown body");

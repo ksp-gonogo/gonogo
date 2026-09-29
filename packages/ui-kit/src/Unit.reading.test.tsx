@@ -195,7 +195,7 @@ describe("Unit: a reading that is held", () => {
   ] as const)("says %s as %s, and shows it on hover", (grade, caption) => {
     // One visible treatment for all four grades, with the grade spoken in `formatStreamStatus`'s own words.
     const { container } = render(<Unit value={stale(12_400, grade)} />);
-    expect(quantity(container).getAttribute("title")).toBe(
+    expect(quantity(container).getAttribute("data-tooltip")).toBe(
       `${caption}, as of ${AT_DATE}`,
     );
     expect(container.textContent).toContain(caption);
@@ -225,7 +225,7 @@ describe("Unit: when the reading was last valid", () => {
   // The hover and caption say how stale, from `asOfUt` on the game's calendar, so a held number and a `<MissionDate>` beside it print one spelling of one instant.
   it("puts the date on the hover, beside the grade", () => {
     const { container } = render(<Unit value={stale(12_400, "held-stale")} />);
-    expect(quantity(container).getAttribute("title")).toBe(
+    expect(quantity(container).getAttribute("data-tooltip")).toBe(
       `STALE, as of ${AT_DATE}`,
     );
   });
@@ -247,8 +247,12 @@ describe("Unit: when the reading was last valid", () => {
   it("reads the instant on the game's calendar, not as a bare number", () => {
     // The date goes through `formatQuantity`, never as "1,000.00 ut".
     const { container } = render(<Unit value={stale(12_400, "held-stale")} />);
-    expect(quantity(container).getAttribute("title")).not.toMatch(/\but\b/);
-    expect(quantity(container).getAttribute("title")).toMatch(/Y\d+ D\d+/);
+    expect(quantity(container).getAttribute("data-tooltip")).not.toMatch(
+      /\but\b/,
+    );
+    expect(quantity(container).getAttribute("data-tooltip")).toMatch(
+      /Y\d+ D\d+/,
+    );
   });
 
   it("never draws a silent mark: a held reading naming no grade still speaks", () => {
@@ -263,7 +267,7 @@ describe("Unit: when the reading was last valid", () => {
         }}
       />,
     );
-    expect(quantity(container).getAttribute("title")).toBe(
+    expect(quantity(container).getAttribute("data-tooltip")).toBe(
       `HELD, as of ${AT_DATE}`,
     );
     const said = container.querySelectorAll("[data-unit-currency]");
@@ -284,7 +288,7 @@ describe("Unit: when the reading was last valid", () => {
         }}
       />,
     );
-    expect(quantity(container).getAttribute("title")).toBe("STALE");
+    expect(quantity(container).getAttribute("data-tooltip")).toBe("STALE");
   });
 });
 
@@ -304,7 +308,7 @@ describe("Unit: the staleness slot is announced", () => {
     const dot = container.querySelector<HTMLElement>("[data-held-mark]");
     expect(dot?.getAttribute("aria-hidden")).toBe("true");
     expect(dot?.textContent).toBe("");
-    expect(quantity(container).getAttribute("title")).toContain("STALE");
+    expect(quantity(container).getAttribute("data-tooltip")).toContain("STALE");
 
     const { container: live } = render(<Unit value={observed(12_400)} />);
     expect(live.querySelector("[data-held-mark]")).toBeNull();
@@ -371,7 +375,7 @@ describe("Unit: how well the number is known", () => {
     );
     expect(visibleText(container)).toBe("1.000 km");
     expect(container.querySelector("[data-unit-band]")).toBeNull();
-    expect(quantity(container).getAttribute("title")).toBeNull();
+    expect(quantity(container).getAttribute("data-tooltip")).toBeNull();
   });
 
   it("draws ends that print as the same text as one approximate figure, the way Band does", () => {
@@ -482,7 +486,7 @@ describe("Unit: how well the number is known", () => {
         decimals={3}
       />,
     );
-    expect(quantity(container).getAttribute("title")).toMatch(
+    expect(quantity(container).getAttribute("data-tooltip")).toMatch(
       /, with bands at 0\.975 kilometres and 1\.025 kilometres$/,
     );
   });
@@ -499,7 +503,7 @@ describe("Unit: how well the number is known", () => {
         decimals={3}
       />,
     );
-    expect(quantity(container).getAttribute("title")).toMatch(
+    expect(quantity(container).getAttribute("data-tooltip")).toMatch(
       /, with bands at 0\.975 kilometres and 1\.025 kilometres$/,
     );
   });
@@ -510,7 +514,7 @@ describe("Unit: how well the number is known", () => {
         value={banded(1000, { lo: 1180, value: 1200, hi: 1220 }, "stale")}
       />,
     );
-    const title = quantity(container).getAttribute("title") ?? "";
+    const title = quantity(container).getAttribute("data-tooltip") ?? "";
     expect(title).toContain("STALE");
     expect(title).toContain("with bands at");
   });

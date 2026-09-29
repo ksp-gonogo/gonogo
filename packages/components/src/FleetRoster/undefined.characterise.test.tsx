@@ -69,9 +69,9 @@ describe("FleetRoster: nothing has arrived at all", () => {
 
     // `known === false` is the only reason this copy differs from the confirmed-empty copy below.
     expect(
-      screen.getByText("Fleet data not available yet."),
+      screen.getByText("Fleet data not available yet"),
     ).toBeInTheDocument();
-    expect(screen.queryByText("No vessels tracked.")).toBeNull();
+    expect(screen.queryByText("No vessels tracked")).toBeNull();
 
     // `total === 0` sheds the whole table, column header row included.
     expect(screen.queryByText("Vessel")).toBeNull();
@@ -105,7 +105,7 @@ describe("FleetRoster: nothing has arrived at all", () => {
     unmounts.push(unmount);
 
     expect(
-      screen.getByText("Fleet data not available yet."),
+      screen.getByText("Fleet data not available yet"),
     ).toBeInTheDocument();
     expect(screen.getByText(/viewing from:\s*unknown/i)).toBeInTheDocument();
     // No stream is a pending coverage reading, drawn in the absent form.
@@ -119,7 +119,7 @@ describe("FleetRoster: the `system !== undefined` absence gate", () => {
     renderRoster(fixture);
 
     expect(
-      screen.getByText("Fleet data not available yet."),
+      screen.getByText("Fleet data not available yet"),
     ).toBeInTheDocument();
 
     act(() => {
@@ -128,9 +128,9 @@ describe("FleetRoster: the `system !== undefined` absence gate", () => {
 
     // The gate's whole purpose: an arrived empty roster is a different sentence from a roster that has never arrived.
     await waitFor(() =>
-      expect(screen.getByText("No vessels tracked.")).toBeInTheDocument(),
+      expect(screen.getByText("No vessels tracked")).toBeInTheDocument(),
     );
-    expect(screen.queryByText("Fleet data not available yet.")).toBeNull();
+    expect(screen.queryByText("Fleet data not available yet")).toBeNull();
   });
 
   it("treats a whole-topic tombstone as a CONFIRMED empty fleet, not as waiting", async () => {
@@ -151,9 +151,9 @@ describe("FleetRoster: the `system !== undefined` absence gate", () => {
 
     // This is the null-vs-undefined site, and the widget DOES distinguish them: a tombstone reads as "no vessels tracked", never as pending.
     await waitFor(() =>
-      expect(screen.getByText("No vessels tracked.")).toBeInTheDocument(),
+      expect(screen.getByText("No vessels tracked")).toBeInTheDocument(),
     );
-    expect(screen.queryByText("Fleet data not available yet.")).toBeNull();
+    expect(screen.queryByText("Fleet data not available yet")).toBeNull();
     expect(screen.queryByText("Explorer")).toBeNull();
   });
 
@@ -167,9 +167,9 @@ describe("FleetRoster: the `system !== undefined` absence gate", () => {
     });
 
     await waitFor(() =>
-      expect(screen.getByText("No vessels tracked.")).toBeInTheDocument(),
+      expect(screen.getByText("No vessels tracked")).toBeInTheDocument(),
     );
-    expect(screen.queryByText("Fleet data not available yet.")).toBeNull();
+    expect(screen.queryByText("Fleet data not available yet")).toBeNull();
   });
 });
 

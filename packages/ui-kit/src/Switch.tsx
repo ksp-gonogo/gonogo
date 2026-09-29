@@ -88,9 +88,9 @@ const SwitchInput = styled.input`
 
 const SwitchThumb = styled.div<{ $checked: boolean; $disabled?: boolean }>`
   position: absolute;
-  /* Off the spacing ladder: 3px centres the 8px thumb in the 14px track and 16px is its travel, matching the JS ternary below. */
-  top: 3px;
-  left: ${({ $checked }) => ($checked ? "16px" : "3px")};
+  /* Measured inside the border: the track is border-box, so its 1px border leaves a 26 by 12 box, and 2px on every side centres the 8px thumb at either end. */
+  top: 2px;
+  left: ${({ $checked }) => ($checked ? "16px" : "2px")};
   width: 8px;
   height: 8px;
   border-radius: var(--radius-circle);

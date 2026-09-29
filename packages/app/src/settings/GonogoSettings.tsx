@@ -89,10 +89,10 @@ export function GonogoSettings({ owner = CORE_OWNER }: { owner?: string }) {
     return (
       <Empty role="status">
         {stationOnly
-          ? "Waiting for the main screen to share KSP's settings."
+          ? "Waiting for the main screen to share KSP's settings"
           : hostDown
-            ? `${NO_TELEMETRY_HOST_MESSAGE}. These settings live in KSP's own settings file, so they can be read and changed only while KSP is connected.`
-            : "Waiting for KSP to report its settings."}
+            ? `${NO_TELEMETRY_HOST_MESSAGE}. These settings live in KSP's own settings file, so they can be read and changed only while KSP is connected`
+            : "Waiting for KSP to report its settings"}
       </Empty>
     );
   }

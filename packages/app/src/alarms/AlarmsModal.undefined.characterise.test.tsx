@@ -168,7 +168,7 @@ describe("AlarmsModal: nothing has arrived at all", () => {
     expect(screen.getByRole("button", { name: "Add alarm" })).toBeTruthy();
     expect(screen.getByLabelText("Name")).toBeTruthy();
     expect(screen.getByText("Scheduled (0)")).toBeTruthy();
-    expect(screen.getByText("No alarms set.")).toBeTruthy();
+    expect(screen.getByText("No alarms set")).toBeTruthy();
 
     // `RecommendedPresets` returns null when nothing is offerable, so the
     // DISCLOSURE goes too: an operator sees no hint that presets exist, rather

@@ -1,11 +1,10 @@
 import type { Reading, Value } from "@ksp-gonogo/sitrep-sdk";
 import type { ReactNode } from "react";
 import styled from "styled-components";
-import { HeldHost, HeldMark } from "./HeldMark";
+import { HeldFigure } from "./HeldMark";
 import { MODELLED_TO_SCET, modelledBeyondReceived } from "./readingCurrency";
 import { standsApart, writtenAs, writtenQuantity } from "./standsApart";
 import { Unit } from "./Unit";
-import { VisuallyHidden } from "./VisuallyHidden";
 
 const ModelledAlongside__Figure = styled.span`
   margin-left: 0.6em;
@@ -71,13 +70,9 @@ export function ModelledAlongside({
 function ModelledMark({ children }: { children: ReactNode }) {
   return (
     <ModelledAlongside__Figure data-modelled-alongside="">
-      <HeldHost data-held="" title={MODELLED_TO_SCET}>
+      <HeldFigure data-held="" caption={MODELLED_TO_SCET}>
         {children}
-        <HeldMark aria-hidden="true" data-held-mark="" />
-      </HeldHost>
-      <VisuallyHidden data-unit-currency="">
-        , {MODELLED_TO_SCET}
-      </VisuallyHidden>
+      </HeldFigure>
     </ModelledAlongside__Figure>
   );
 }

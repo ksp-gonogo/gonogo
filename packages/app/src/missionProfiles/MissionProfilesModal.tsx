@@ -254,7 +254,7 @@ export function MissionProfilesModal({
           Saved layouts
         </SectionTitle>
         {profiles.length === 0 ? (
-          <Empty>No saved layouts yet for this screen.</Empty>
+          <Empty>No saved layouts yet for this screen</Empty>
         ) : (
           <List>
             {profiles.map((p) => (

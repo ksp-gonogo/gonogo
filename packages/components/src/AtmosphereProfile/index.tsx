@@ -136,7 +136,7 @@ function AtmosphereProfileComponent({
           title={title}
           emptyState={
             body
-              ? `No atmosphere on ${body.name}.`
+              ? `No atmosphere on ${body.name}`
               : "Waiting for body telemetry..."
           }
         />

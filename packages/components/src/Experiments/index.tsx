@@ -235,7 +235,7 @@ function ExperimentsComponent({
         ),
         sectionNodes.length === 0 && contributedNodes.length === 0 ? (
           <Section key="unmatched" full>
-            <EmptyState>No instrument matches the filter.</EmptyState>
+            <EmptyState>No instrument matches the filter</EmptyState>
           </Section>
         ) : (
           sectionNodes

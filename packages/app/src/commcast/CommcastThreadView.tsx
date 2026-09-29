@@ -123,7 +123,7 @@ export function CommcastThreadView({
         <Commcast__Scroll>
           <Commcast__List>
             {thread.entries.length === 0 && thread.outbound.length === 0 && (
-              <EmptyState>No messages.</EmptyState>
+              <EmptyState>No messages</EmptyState>
             )}
             {thread.entries.map((entry) => (
               <CommcastMessageRow

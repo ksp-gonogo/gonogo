@@ -193,6 +193,32 @@ describe("CommandButton: the in-flight window", () => {
     expect(screen.getByRole("button", { name: "Go" })).toBeInTheDocument();
   });
 
+  it("draws only a spinner in flight, over the resting label held invisible for its width", async () => {
+    const user = userEvent.setup();
+    const d = deferred();
+    render(
+      <CommandButton
+        handle={makeHandle(() => d.promise)}
+        label="Launch vessel"
+        pendingLabel="Launching..."
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Launch vessel" }));
+
+    const pending = await screen.findByRole("button", { name: "Launching..." });
+    expect(pending).toHaveAttribute("title", "Launching...");
+    expect(pending).not.toHaveTextContent("Launching...");
+    const hold = [...pending.querySelectorAll("[aria-hidden='true']")].find(
+      (el) => el.textContent === "Launch vessel",
+    );
+    expect(hold).toBeDefined();
+    expect(getComputedStyle(hold as Element).visibility).toBe("hidden");
+    await act(async () => {
+      d.resolve(OK);
+    });
+  });
+
   it("refuses a second dispatch while one is in flight", async () => {
     const user = userEvent.setup();
     const d = deferred();

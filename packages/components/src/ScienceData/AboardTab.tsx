@@ -136,7 +136,7 @@ function AboardLedger({
       />
     );
   }
-  return <EmptyState>No science data aboard.</EmptyState>;
+  return <EmptyState>No science data aboard</EmptyState>;
 }
 
 /** The active vessel's onboard ledger, with the situation line it was taken in. */

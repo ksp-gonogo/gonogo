@@ -190,7 +190,7 @@ export function SettingsModal({ initialTabId }: SettingsModalProps = {}) {
   );
 
   if (tabs.length === 0) {
-    return <Empty>No settings yet on the {screen} screen.</Empty>;
+    return <Empty>No settings yet on the {screen} screen</Empty>;
   }
 
   return (

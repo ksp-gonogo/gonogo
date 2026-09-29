@@ -185,7 +185,7 @@ describe("ManeuverPlannerComponent", () => {
     expect(screen.queryByText(/Waiting for telemetry/i)).toBeNull();
     // "Planned nodes" section is always present in the ready state.
     expect(screen.getByText("Planned nodes")).toBeInTheDocument();
-    expect(screen.getByText("No maneuver nodes planned.")).toBeInTheDocument();
+    expect(screen.getByText("No maneuver nodes planned")).toBeInTheDocument();
   });
 
   it("lists planned maneuver nodes when o.maneuverNodes arrives", async () => {
@@ -200,7 +200,7 @@ describe("ManeuverPlannerComponent", () => {
     });
     // The node list recomputes on a frame tick, and the shared store otherwise holds the prior test's frame.
     await flushViewUt();
-    expect(screen.queryByText("No maneuver nodes planned.")).toBeNull();
+    expect(screen.queryByText("No maneuver nodes planned")).toBeNull();
     expect(screen.getByRole("button", { name: /delete/i })).toBeInTheDocument();
   });
 

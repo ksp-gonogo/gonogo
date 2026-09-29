@@ -1,7 +1,7 @@
 import type { Reading, Value } from "@ksp-gonogo/sitrep-sdk";
 import styled from "styled-components";
 import { formatKspDate } from "./formatKspDate";
-import { HeldHost, HeldMark } from "./HeldMark";
+import { HeldFigure } from "./HeldMark";
 import { resolveCurrency } from "./readingCurrency";
 import { VisuallyHidden } from "./VisuallyHidden";
 
@@ -110,13 +110,9 @@ export function MissionDate({ value, context }: MissionDateProps) {
     <>
       {held ? (
         /* The component otherwise renders bare text, so the mark needs a box to hang off. */
-        <HeldHost data-held="" title={caption ?? undefined}>
+        <HeldFigure data-held="" caption={caption}>
           {date}
-          <HeldMark aria-hidden="true" data-held-mark="" />
-          {caption !== null && (
-            <VisuallyHidden data-unit-currency="">, {caption}</VisuallyHidden>
-          )}
-        </HeldHost>
+        </HeldFigure>
       ) : (
         date
       )}

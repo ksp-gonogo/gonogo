@@ -144,7 +144,7 @@ describe("Countdown under signal delay", () => {
     expect(alongside?.textContent).not.toContain("1min 30s");
     expect(alongside?.querySelector("[data-held-mark]")).not.toBeNull();
     expect(
-      alongside?.querySelector("[data-held]")?.getAttribute("title"),
+      alongside?.querySelector("[data-held]")?.getAttribute("data-tooltip"),
     ).toBeTruthy();
   });
 
@@ -203,7 +203,7 @@ describe("Countdown's held caption", () => {
   it("reaches the accessibility tree, not only the hover", () => {
     const { container } = render(<Countdown value={frozen(value("s", 90))} />);
     const host = container.querySelector("[data-held]");
-    const caption = host?.getAttribute("title");
+    const caption = host?.getAttribute("data-tooltip");
     expect(caption).toBeTruthy();
     expect(container.textContent).toContain(`, ${caption}`);
   });

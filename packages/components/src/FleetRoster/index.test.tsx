@@ -372,7 +372,7 @@ describe("FleetRosterComponent", () => {
       fixture.emit("system.vessels", { vessels: [] });
     });
     await waitFor(() => {
-      expect(screen.getByText("No vessels tracked.")).toBeInTheDocument();
+      expect(screen.getByText("No vessels tracked")).toBeInTheDocument();
     });
   });
 
@@ -380,9 +380,9 @@ describe("FleetRosterComponent", () => {
     const fixture = newFixture();
     renderRoster(fixture);
     expect(
-      screen.getByText("Fleet data not available yet."),
+      screen.getByText("Fleet data not available yet"),
     ).toBeInTheDocument();
-    expect(screen.queryByText("No vessels tracked.")).not.toBeInTheDocument();
+    expect(screen.queryByText("No vessels tracked")).not.toBeInTheDocument();
   });
 
   it("has no axe violations", async () => {

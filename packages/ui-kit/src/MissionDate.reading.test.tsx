@@ -52,7 +52,7 @@ describe("MissionDate, handed a Reading", () => {
   it("says the grade and the last-valid instant on hover", () => {
     const { container } = render(<MissionDate value={held(AT)} />);
     expect(
-      container.querySelector("[data-held]")?.getAttribute("title"),
+      container.querySelector("[data-held]")?.getAttribute("data-tooltip"),
     ).toMatch(/^STALE/);
   });
 
@@ -82,7 +82,7 @@ describe("MissionDate's held caption", () => {
     const { container } = render(<MissionDate value={held(AT)} />);
     const caption = container
       .querySelector("[data-held]")
-      ?.getAttribute("title");
+      ?.getAttribute("data-tooltip");
     expect(caption).toBeTruthy();
     expect(container.textContent).toContain(`, ${caption}`);
   });

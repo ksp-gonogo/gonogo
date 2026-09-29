@@ -54,7 +54,7 @@ export function ManeuverNodeList({
   return (
     <>
       {displayedNodes.length === 0 ? (
-        <EmptyState>No maneuver nodes planned.</EmptyState>
+        <EmptyState>No maneuver nodes planned</EmptyState>
       ) : (
         <Stack as="ul" style={NODE_LIST_STYLE}>
           {displayedNodes.map((d) => (

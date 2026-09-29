@@ -81,7 +81,7 @@ export function GraphView({
   config,
   referenceCurves,
   title,
-  emptyState = "Configure series to begin graphing.",
+  emptyState = "Configure series to begin graphing",
   headerActions,
   layers: ownLayers,
   computedSeries,

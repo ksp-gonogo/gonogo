@@ -60,7 +60,7 @@ export function renderRoster({
   }
 
   if (crewCount === 0) {
-    return <EmptyState>Unmanned, no kerbals aboard.</EmptyState>;
+    return <EmptyState>Unmanned, no kerbals aboard</EmptyState>;
   }
 
   const rosterListStyle = {
@@ -76,7 +76,7 @@ export function renderRoster({
       <Stack as="ul" style={rosterListStyle}>
         <EmptyState>
           {crewCount} aboard, names unavailable. Crew names can be withheld when
-          the vessel is out of CommNet range.
+          the vessel is out of CommNet range
         </EmptyState>
       </Stack>
     );

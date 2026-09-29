@@ -191,7 +191,7 @@ export function InputMappingTab({
   if (actions.length === 0) {
     return (
       <Empty>
-        This component does not expose any actions, so there is nothing to bind.
+        This component does not expose any actions, so there is nothing to bind
       </Empty>
     );
   }

@@ -1,7 +1,6 @@
 import {
   type BandKind,
   bandIn,
-  value as quantity,
   type Reading,
   type UncertaintyBand,
   type Value,
@@ -13,7 +12,7 @@ import { HeldMark } from "./HeldMark";
 import { MicroscopeIcon, StarIcon } from "./Icons";
 import { resolveCurrency, type UnitValue } from "./readingCurrency";
 import { standsApart, writtenAs } from "./standsApart";
-import { severityDotColor } from "./status/severityDotColor";
+import { useTooltip } from "./Tooltip";
 import { useInSharedFormat, useSharedFormat } from "./UnitSharedFormat";
 import {
   ATTACHED_SYMBOLS,
@@ -273,25 +272,27 @@ export function Unit<UnitSymbol extends string = string>({
   const inGroup = useInSharedFormat();
   const hideSymbol = hideUnitInGroup === true && inGroup;
 
+  /*
+   * The group's answer goes under this call site's own props, so a caller's pin wins.
+   * Render `formatted.symbol`, never `formatted.rung`: a duration interleaves its parts into the value ("2h 14m") with an empty symbol while its rung is still "s".
+   */
+  const resolved = shared === undefined ? opts : { ...shared, ...opts };
+  const formatted = formatQuantity(shown?.magnitude, shown?.unit, resolved);
+  // Narrowed to the shown value's unit, never assumed: a band arrives keyed by a runtime path, and `bandIn` answers nothing rather than converting.
+  const interval =
+    shown == null || band === null || !held
+      ? null
+      : toInterval(shown, bandIn(band, shown.unit), resolved, formatted.rung);
+  // The hover says in words what the dot says in shape, plus the instant and the band's claim.
+  const { anchor, tip } = useTooltip(hover(caption, interval));
+
   if (value !== undefined || children === undefined) {
-    /*
-     * The group's answer goes under this call site's own props, so a caller's pin wins.
-     * Render `formatted.symbol`, never `formatted.rung`: a duration interleaves its parts into the value ("2h 14m") with an empty symbol while its rung is still "s".
-     */
-    const resolved = shared === undefined ? opts : { ...shared, ...opts };
-    const formatted = formatQuantity(shown?.magnitude, shown?.unit, resolved);
-    // Narrowed to the shown value's unit, never assumed: a band arrives keyed by a runtime path, and `bandIn` answers nothing rather than converting.
-    const interval =
-      shown == null || band === null || !held
-        ? null
-        : toInterval(shown, bandIn(band, shown.unit), resolved, formatted.rung);
     return (
       <Unit__Quantity
         className={className}
         $held={held}
         data-held={held ? "" : undefined}
-        // The hover says in words what the dot says in shape, plus the instant and the band's claim; the symbol keeps its own title.
-        title={hover(caption, interval) ?? undefined}
+        {...anchor}
       >
         {formatted.value}
         {!hideSymbol && <UnitSymbol token={formatted.symbol} spaced />}
@@ -320,6 +321,7 @@ export function Unit<UnitSymbol extends string = string>({
         {caption !== null && (
           <Unit__Currency data-unit-currency="">, {caption}</Unit__Currency>
         )}
+        {tip}
       </Unit__Quantity>
     );
   }

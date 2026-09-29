@@ -1,10 +1,9 @@
 import type { Reading, Value } from "@ksp-gonogo/sitrep-sdk";
 import { formatDuration } from "./formatDuration";
-import { HeldHost, HeldMark } from "./HeldMark";
+import { HeldFigure } from "./HeldMark";
 import { ModelledAlongside } from "./ModelledAlongside";
 import { NULL_DISPLAY } from "./NullValue";
 import { modelledBeyondReceived, resolveCurrency } from "./readingCurrency";
-import { VisuallyHidden } from "./VisuallyHidden";
 
 /**
  * A duration read as a CLOCK: `1m 20s`, or `T−1m 20s` on a launch clock.
@@ -83,12 +82,8 @@ export function Countdown({
   const text = format(drawn);
   if (!held) return <>{text}</>;
   return (
-    <HeldHost data-held="" title={caption ?? undefined}>
+    <HeldFigure data-held="" caption={caption}>
       {text}
-      <HeldMark aria-hidden="true" data-held-mark="" />
-      {caption !== null && (
-        <VisuallyHidden data-unit-currency="">, {caption}</VisuallyHidden>
-      )}
-    </HeldHost>
+    </HeldFigure>
   );
 }

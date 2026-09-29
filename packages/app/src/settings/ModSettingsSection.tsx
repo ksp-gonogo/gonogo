@@ -88,8 +88,8 @@ export function ModSettingsSection({
     return (
       <Empty role="status">
         {hostDown
-          ? `${NO_TELEMETRY_HOST_MESSAGE}.`
-          : `Waiting for KSP to report ${name}'s settings.`}
+          ? NO_TELEMETRY_HOST_MESSAGE
+          : `Waiting for KSP to report ${name}'s settings`}
       </Empty>
     );
   }
@@ -103,7 +103,7 @@ export function ModSettingsSection({
   }
 
   if (model.settings.length === 0) {
-    return <Empty>{name} lists no settings.</Empty>;
+    return <Empty>{name} lists no settings</Empty>;
   }
 
   const canWrite = !stationOnly && !hostDown;

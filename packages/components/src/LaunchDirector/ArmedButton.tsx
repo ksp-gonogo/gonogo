@@ -1,7 +1,7 @@
 import {
   type CommandButtonHandle,
   commandLossSentence,
-  Spinner,
+  InFlightFace,
   useCommandButton,
 } from "@ksp-gonogo/ui-kit";
 import { type LaunchDirectorActionId, useBindPress } from "./actions";
@@ -46,9 +46,17 @@ export function ArmedButton({
   useBindPress(bindAs, press, !isPending);
 
   if (isPending) {
+    const wording = pendingLabel ?? "Working...";
     return (
-      <ConfirmButton type="button" $kind={kind} disabled aria-busy="true">
-        <Spinner size={12} /> {pendingLabel ?? "Working..."}
+      <ConfirmButton
+        type="button"
+        $kind={kind}
+        disabled
+        aria-busy="true"
+        aria-label={wording}
+        title={wording}
+      >
+        <InFlightFace holds={confirmLabel} label={wording} />
       </ConfirmButton>
     );
   }

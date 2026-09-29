@@ -250,7 +250,7 @@ export function PowerSystemsComponent({
               <ContributionSection
                 title="Producers"
                 rows={producers}
-                emptyText="Nothing producing."
+                emptyText="Nothing producing"
                 listStyle={CONTRIB_LIST}
                 landscape={isLandscape}
                 currency={partsReading}
@@ -258,7 +258,7 @@ export function PowerSystemsComponent({
               <ContributionSection
                 title="Consumers"
                 rows={consumers}
-                emptyText="Nothing consuming."
+                emptyText="Nothing consuming"
                 listStyle={CONTRIB_LIST}
                 landscape={isLandscape}
                 currency={partsReading}

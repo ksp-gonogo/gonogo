@@ -70,7 +70,7 @@ describe("ScienceData with nothing on the stream", () => {
     expect(
       screen.getByText("Awaiting situation telemetry"),
     ).toBeInTheDocument();
-    expect(screen.getByText("No science data aboard.")).toBeInTheDocument();
+    expect(screen.getByText("No science data aboard")).toBeInTheDocument();
     expect(
       screen.queryByRole("columnheader", { name: "Subject" }),
     ).not.toBeInTheDocument();
@@ -86,7 +86,7 @@ describe("ScienceData with nothing on the stream", () => {
     feed(fixture, "science.experiments", []);
     // The contrast: a confirmed empty list is a zero, and says so.
     expect(screen.getByText(/0 records/)).toBeInTheDocument();
-    expect(screen.getByText("No science data aboard.")).toBeInTheDocument();
+    expect(screen.getByText("No science data aboard")).toBeInTheDocument();
   });
 
   it("leaves the vessel-scoped Aboard tab selectable, because absent scene telemetry reads as no game signal", () => {
@@ -116,7 +116,7 @@ describe("ScienceData's Archive tab reads an absent archive as Sandbox mode", ()
     // A cold topic and a genuine Sandbox save are indistinguishable on screen.
     expect(
       screen.getByText(
-        "No R&D archive in this save, Sandbox mode banks no career science.",
+        "No R&D archive in this save, Sandbox mode banks no career science",
       ),
     ).toBeInTheDocument();
   });
@@ -127,7 +127,7 @@ describe("ScienceData's Archive tab reads an absent archive as Sandbox mode", ()
     await userEvent.click(screen.getByRole("tab", { name: "Archive" }));
     expect(
       screen.getByText(
-        "No R&D archive in this save, Sandbox mode banks no career science.",
+        "No R&D archive in this save, Sandbox mode banks no career science",
       ),
     ).toBeInTheDocument();
   });
@@ -138,7 +138,7 @@ describe("ScienceData's Archive tab reads an absent archive as Sandbox mode", ()
     await userEvent.click(screen.getByRole("tab", { name: "Archive" }));
     // An empty array is a fresh career, not a Sandbox save.
     expect(
-      screen.getByText("No science collected yet this career."),
+      screen.getByText("No science collected yet this career"),
     ).toBeInTheDocument();
     expect(
       screen.queryByText(/No R&D archive in this save/),
