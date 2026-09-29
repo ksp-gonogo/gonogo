@@ -12,11 +12,16 @@
  *   - Key is known but value not arrived yet → `...`
  *   - Value is null/NaN                     → the null-display placeholder
  *
+ * A quantity tag resolves to a `Value`, which prints through `writeQuantity`,
+ * the same Unit formatting every other readout uses, rather than its
+ * `{magnitude, unit}` wire shape.
+ *
  * Tags must be `[a-zA-Z0-9._\[\]-]+`, covers the legacy key shapes
  * including bracketed resource keys like `r.resource[Oxidizer]`.
  */
 
-import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+import { isValue } from "@ksp-gonogo/sitrep-sdk";
+import { NULL_DISPLAY, writeQuantity } from "@ksp-gonogo/ui-kit";
 
 const TAG_RE = /\{\{\s*([a-zA-Z0-9._[\]-]+)\s*\}\}/g;
 
@@ -64,6 +69,7 @@ export function renderTemplate(
 function formatValue(value: unknown): string {
   if (value === undefined) return "...";
   if (value === null) return NULL_DISPLAY;
+  if (isValue(value)) return writeQuantity(value);
   if (typeof value === "number") {
     if (!Number.isFinite(value)) return NULL_DISPLAY;
     if (Number.isInteger(value)) return String(value);

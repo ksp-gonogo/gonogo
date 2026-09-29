@@ -35,3 +35,15 @@ describe("a note tag naming an enum", () => {
     expect(await screen.findByText("Cover Partial")).toBeTruthy();
   });
 });
+
+describe("a note tag naming a quantity", () => {
+  it("prints a Value through the same Unit formatting every other readout uses, not its JSON shape", async () => {
+    const transport = new StubTransport();
+    renderNote("Throttle {{vessel.control.throttle}}", transport);
+
+    act(() => transport.emit("vessel.control", { throttle: 0.75 }));
+
+    expect(await screen.findByText("Throttle 75 %")).toBeTruthy();
+    expect(screen.queryByText(/magnitude/)).toBeNull();
+  });
+});
