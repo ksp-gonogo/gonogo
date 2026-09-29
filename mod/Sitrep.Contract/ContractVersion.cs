@@ -609,7 +609,7 @@ namespace Sitrep.Contract
         /// <c>.superpowers/sdd/f1-hardening-report.md</c>.</para>
         ///
         /// <para>Major-2 history, Bumped 0 -&gt; 1: additive-only Minor adding the
-        /// <see cref="CommandErrorCode.Timeout"/> member (the F2-fix pause/
+        /// <c>CommandErrorCode.Timeout</c> member (the F2-fix pause/
         /// scene-load backstop failure code). A new enum member cannot break an
         /// Uplink built against an older Minor: see
         /// <c>.superpowers/sdd/f2-fix-brief.md</c>.</para>
@@ -1463,7 +1463,7 @@ namespace Sitrep.Contract
         /// interface, which Uplinks consume rather than implement, so nothing
         /// built against 13.1 has anything to add; and a new member appended to a
         /// wire enum that already declares
-        /// <see cref="CommandErrorCode.Unknown"/> as the forward-compat fallback
+        /// <c>CommandErrorCode.Unknown</c> as the forward-compat fallback
         /// for exactly this, so a consumer that has not heard of NotReady reads it
         /// as an unrecognised refusal rather than as the wrong one. No existing
         /// member is removed, renamed or renumbered, so the frozen Major-13 floor
@@ -1862,7 +1862,7 @@ namespace Sitrep.Contract
         /// <para><b>Major-17 line, Bumped 1 -&gt; 2: a launch is held to the centre it
         /// was ordered from.</b> <see cref="CommandErrorCode"/> gains
         /// <see cref="CommandErrorCode.OutOfReach"/> (code 24), appended to a wire enum that
-        /// already declares <see cref="CommandErrorCode.Unknown"/> as the
+        /// already declares <c>CommandErrorCode.Unknown</c> as the
         /// forward-compat fallback, so a consumer that has not heard of it reads an
         /// unrecognised refusal rather than the wrong one. Nothing removed, renamed or
         /// renumbered, so an Uplink built against 17.0 is unaffected and the frozen

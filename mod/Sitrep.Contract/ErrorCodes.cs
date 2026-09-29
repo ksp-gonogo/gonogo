@@ -81,8 +81,9 @@ public sealed class RefusalCode : IEquatable<RefusalCode>
 
     /// <summary>
     /// The code for an id read off the wire: a known core code when there is
-    /// one, otherwise an undeclared code carrying the id, under
-    /// <paramref name="root"/> when the id is a refinement.
+    /// one, otherwise an undeclared code carrying the id, under the root
+    /// <paramref name="rootId"/> names when <paramref name="reason"/> is a
+    /// refinement.
     /// </summary>
     public static RefusalCode FromWire(string rootId, string? reason)
     {
