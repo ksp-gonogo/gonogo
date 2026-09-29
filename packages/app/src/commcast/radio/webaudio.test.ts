@@ -7,7 +7,7 @@
  * an uncaught error whatever it was built on.
  */
 import { describe, expect, it } from "vitest";
-import { WebAudioRadioReceiver } from "./webaudio";
+import { WebAudioRadioReceiver, WebCodecsRadioDecoder } from "./webaudio";
 
 /** A context that opens its worklet a turn late, the way a real one does. */
 class StubAudioContext {
@@ -114,4 +114,47 @@ describe("the web-audio sink", () => {
    * playout worklet source directly, including that a lane is forgotten once
    * closed and drained and that a late write is ignored.
    */
+});
+
+/**
+ * A decoder that fails the way WebCodecs does: an error closes the codec, and
+ * closing a closed codec throws.
+ */
+class FailingAudioDecoder {
+  static last: FailingAudioDecoder | undefined;
+  state = "unconfigured";
+  private readonly onError: (e: Error) => void;
+  constructor(init: { error: (e: Error) => void }) {
+    this.onError = init.error;
+    FailingAudioDecoder.last = this;
+  }
+  configure(): void {
+    this.state = "configured";
+  }
+  decode(): void {}
+  close(): void {
+    if (this.state === "closed") {
+      throw new Error("Cannot call 'close' on a closed codec.");
+    }
+    this.state = "closed";
+  }
+  fail(): void {
+    this.state = "closed";
+    this.onError(new Error("undecodable packet"));
+  }
+}
+
+describe("the decode lane", () => {
+  it("survives a decode error and the close that follows it", () => {
+    stubGlobal("AudioDecoder", FailingAudioDecoder);
+    stubGlobal("EncodedAudioChunk", class {});
+    const decoder = new WebCodecsRadioDecoder({
+      play: () => {},
+      close: () => {},
+    });
+    decoder.decode(new Uint8Array([1]), 0);
+
+    expect(() => FailingAudioDecoder.last?.fail()).not.toThrow();
+    expect(() => decoder.close()).not.toThrow();
+  });
 });

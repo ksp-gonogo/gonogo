@@ -129,7 +129,8 @@ test.describe("commcast radio: a screen joining mid-transmission @chromium-only"
       expect(spokenAt).toBeGreaterThan(
         joiningFrom - FAR_SECONDS * 1000 - 1_000,
       );
-      expect(spokenAt).toBeLessThan(joinedBy - FAR_SECONDS * 1000 + 2_000);
+      // The screen's own codec is swapped in as it finishes opening, so whatever it decodes first was spoken by then.
+      expect(spokenAt).toBeLessThan(joinedBy + 2_000);
       expect(farHeard.decoded).toEqual(
         Array.from({ length: CHUNKS - firstIndex }, (_, i) => firstIndex + i),
       );

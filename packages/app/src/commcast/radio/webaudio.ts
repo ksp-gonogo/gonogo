@@ -424,14 +424,14 @@ export class WebCodecsRadioDecoder implements RadioDecoderLike {
   }
 
   reset(): void {
-    this.decoder?.close();
+    closeCodec(this.decoder);
     this.decoder = null;
   }
 
   close(): void {
     if (this.closed) return;
     this.closed = true;
-    this.decoder?.close();
+    closeCodec(this.decoder);
     this.decoder = null;
     this.sink.close();
   }
@@ -451,4 +451,9 @@ export class WebCodecsRadioDecoder implements RadioDecoderLike {
     this.decoder = decoder;
     return decoder;
   }
+}
+
+/** A decode error has already closed the codec, and closing it again throws. */
+function closeCodec(decoder: AudioDecoder | null): void {
+  if (decoder && decoder.state !== "closed") decoder.close();
 }
