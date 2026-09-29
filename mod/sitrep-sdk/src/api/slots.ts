@@ -62,14 +62,24 @@
 
 // --- Targeting (packages/components/src/Targeting) -----------
 
-/** Mirrors `TargetingHudContext` (Targeting/index.tsx). */
+/**
+ * Props passed to every `targeting.overlay` and `targeting.camera` augment.
+ *
+ * Both slots are drawn only in the docking HUD view, which the Targeting widget
+ * switches to while docking alignment is reported and the target is close. The
+ * overlay sits over the reticle box and the camera slot behind it, as the video
+ * backdrop. Positions are measured in pixels from the centre of the HUD's
+ * frame.
+ *
+ * @category Widget slots
+ */
 export interface TargetingHudContext {
-  /** Half-range in degrees the reticle box maps to; the reticle clamps at the edge. */
+  /** Alignment angle in degrees that reaches the edge of the reticle box. The reticle stops at the edge past it. Currently 8. */
   maxDeg: number;
   /**
-   * Reticle-centre offset from HUD centre, each component in −1..1 (clamped
-   * alignment angle ÷ `maxDeg`; `y` already flipped for screen coords so
-   * positive is downward).
+   * The reticle's offset from the box centre, each axis from -1 to 1: the
+   * alignment angle limited to `maxDeg` and divided by it. Positive `x` is
+   * right and positive `y` is down, so a nose-up error reads as negative `y`.
    */
   reticleOffset: { x: number; y: number };
   /**
@@ -89,14 +99,16 @@ export interface TargetingHudContext {
   reportPictureAspect: (aspect: number | null) => void;
   /** True while the two ports are within docking-alignment tolerance. */
   aligned: boolean;
-  /** Raw docking alignment angles in degrees; undefined outside a docking scenario. */
+  /** Horizontal docking alignment angle in degrees, before any limit is applied. `undefined` while the angle is not reported. */
   ax: number | undefined;
+  /** Vertical docking alignment angle in degrees, before any limit is applied. Positive is nose up. `undefined` while the angle is not reported. */
   ay: number | undefined;
-  /** Range to the target in metres; undefined until the stream reports position. */
+  /** Distance to the target port in metres. `undefined` until the position is reported. */
   distance: number | undefined;
   /**
-   * Camera id the operator pinned for the backdrop, or unset to let the
-   * augment choose. Opaque to this widget: the filling augment interprets it.
+   * The camera the operator chose for the video backdrop in the widget's
+   * settings, as a part flight id. `null` or `undefined` when none is chosen,
+   * so the augment picks its own. The widget passes it through unread.
    */
   cameraFlightId: number | null | undefined;
 }
@@ -107,9 +119,14 @@ export interface TargetingHudContext {
 
 // --- ShipMap (packages/components/src/ShipMap) -----------------------------
 
-/** Mirrors `PartStateModule` (`packages/core/src/schemas/vessel-parts.ts`): the
- * only core-owned nested type `ShipMapPart` actually references. */
+/**
+ * The deploy or activation state of one part module, as the ship map carries it
+ * on {@link ShipMapPart.partState}.
+ *
+ * @category Widget slots
+ */
 export interface ShipMapPartStateModule {
+  /** Which kind of module this is. */
   type:
     | "solarPanel"
     | "radiator"
@@ -119,12 +136,25 @@ export interface ShipMapPartStateModule {
     | "drill"
     | "cargoBay"
     | "landingGear";
+  /**
+   * The module's state. Parts that deploy report `"extended"`, `"retracted"`,
+   * `"deploying"` or `"retracting"`. Parachutes report `"stowed"`, `"armed"`,
+   * `"extended"` or `"broken"`. Engines and drills report `"active"` or
+   * `"inactive"`. `"unknown"` when KSP's own state does not map to one of these.
+   */
   state: string;
+  /** Solar panels only: true while the panel is turning to follow the sun. */
   tracking?: boolean;
+  /** Engines only: present and true while the engine has flamed out. */
   flameout?: boolean;
 }
 
-/** Mirrors `PartType` (ShipMap/shipTopology.ts). */
+/**
+ * The shape the ship map draws a part as. Every part that is none of the named
+ * kinds is `"other"`.
+ *
+ * @category Widget slots
+ */
 export type ShipMapPartType =
   | "engine"
   | "booster"
@@ -140,195 +170,295 @@ export type ShipMapPartType =
   | "fuel-line"
   | "other";
 
-/** Mirrors `ShipMapPart` (ShipMap/shipTopology.ts). */
+/**
+ * One part of the active vessel as the ship map lays it out: the vessel's
+ * structure plus whatever live readings have arrived for the part.
+ *
+ * The diagram is a side view. `lat` runs across the screen and `axial` runs up
+ * it along the vessel's long axis, both in metres from the vessel's own origin.
+ * The optional fields are live readings and are absent until they arrive.
+ *
+ * @category Widget slots
+ */
 export interface ShipMapPart {
+  /** KSP's flight id for the part, unique within the vessel. */
   flightId: number;
+  /** The flight id of the part this one is attached to. `null` for the root part. */
   parentFlightId: number | null;
+  /** KSP's internal part name, such as `"liquidEngine"`. */
   name: string;
+  /** The part's display title, such as `"LV-T45 \"Swivel\" Liquid Fuel Engine"`. */
   title: string;
+  /** The shape the diagram draws this part as. */
   type: ShipMapPartType;
+  /** Position across the diagram, in metres. */
   lat: number;
+  /** Position along the vessel's long axis, in metres. Positive is up the screen. */
   axial: number;
+  /** Position on the axis the side view flattens, in metres. Not drawn; parts are painted back to front by it. */
   depth: number;
+  /** The part's rotation on screen, in radians counter-clockwise. 0 when KSP reports no orientation. */
   rotationRad: number;
+  /** The part's bounding box size in metres, on the part's own three axes. */
   size: { x: number; y: number; z: number };
+  /** Half the part's extent across the diagram, in metres. */
   latHalfExtent: number;
+  /** Half the part's extent along the long axis, in metres. */
   axialHalfExtent: number;
+  /** The part's dry mass in tonnes, without resources. */
   dryMass: number;
+  /** The stage the part activates in, as KSP numbers stages (`Part.inverseStage`). */
   stage: number;
+  /** The part's maximum internal temperature in kelvin, from its configuration. */
   maxTemp: number;
+  /** Current internal temperature in kelvin. Absent until thermal readings arrive. */
   temperatureK?: number;
+  /** Current maximum internal temperature in kelvin. Absent until thermal readings arrive. */
   maxTemperatureK?: number;
+  /** Resources the part holds, one entry each: the resource name, then the amount held, then the capacity, in the resource's own units. */
   resources?: { n: string; a: number; c: number }[];
+  /** Whether the part produces or consumes electric charge. `null` when it has no electric charge flow. */
   ecFlowSign?: "producer" | "consumer" | null;
+  /** For a fuel line, the flight id of the part it feeds. */
   fuelLineTarget?: number | null;
+  /**
+   * The state of each module that deploys or activates. Empty when the part has
+   * none. Absent before part states arrive, which means unknown rather than all
+   * retracted.
+   */
   partState?: ShipMapPartStateModule[];
 }
 
-/** Mirrors `ShipBounds` (ShipMap/ShipDiagramSvg.tsx). */
+/**
+ * The area the vessel covers in the ship map's metre space, which the diagram
+ * fits to its canvas.
+ *
+ * @category Widget slots
+ */
 export interface ShipMapBounds {
+  /** Centre across the diagram, in metres, on the same axis as {@link ShipMapPart.lat}. */
   cx: number;
+  /** Centre along the long axis, in metres, on the same axis as {@link ShipMapPart.axial}. */
   cy: number;
+  /** Width across the diagram, in metres. */
   w: number;
+  /** Height along the long axis, in metres. */
   h: number;
 }
 
-/** Mirrors `ShipMapOverlayContext` (ShipMap/index.tsx). */
+/**
+ * Props passed to every `ship-map.overlay` augment: a layer over the ship
+ * map's part diagram, with the parts and the projection the diagram fits them
+ * with.
+ *
+ * Project a part at metre position `(lat, axial)` to overlay pixels with
+ * `x = width / 2 + (lat - bounds.cx) * baseScale` and
+ * `y = height / 2 - (axial - bounds.cy) * baseScale`. This is the diagram before
+ * the operator zooms or pans it; the overlay does not follow the live zoom or
+ * pan. The slot is not drawn until the vessel has parts.
+ *
+ * @category Widget slots
+ */
 export interface ShipMapOverlayContext {
-  /** The projected parts (per-part `lat`/`axial`/`flightId`/geometry). */
+  /** Every part of the active vessel, laid out in metres. */
   parts: readonly ShipMapPart[];
-  /** Overlay layer width in px (matches the diagram canvas). */
+  /** Overlay width in pixels, the same as the diagram canvas. */
   width: number;
-  /** Overlay layer height in px (matches the diagram canvas). */
+  /** Overlay height in pixels, the same as the diagram canvas. */
   height: number;
-  /** Metre-space fit bounds of the projected vessel. */
+  /** The area the vessel covers, in metres. */
   bounds: ShipMapBounds;
-  /** Base (identity-camera) metres→px scale. */
+  /** Pixels per metre at which the whole vessel fits the canvas. */
   baseScale: number;
-  /** Screen-space margin (px) reserved around the fit-scaled diagram. */
+  /** Margin in pixels the diagram leaves around the fitted vessel. */
   padding: number;
 }
 
 // --- CrewStatus (packages/components/src/CrewStatus) -------------------
 
 /**
- * Props passed to every `crew-status.row-badges` augment, once per crew row.
+ * Props passed to every `crew-status.row-badges` augment, once for each kerbal
+ * aboard the active vessel. The augment draws inline badges at the end of that
+ * kerbal's row.
  *
- * @category Extensions
+ * @category Widget slots
  */
 export interface CrewBadgeContext {
-  /** The crew member this badge row belongs to, its identity for the augment. */
+  /** The kerbal's name, as KSP's crew roster writes it. */
   crewName: string;
-  /** Position in the roster; disambiguates duplicate names. */
+  /** The kerbal's position in the vessel's crew list, from 0. Tells two kerbals with the same name apart. */
   crewIndex: number;
 }
 
 /**
- * Props passed to every `crew-status.avatar` augment, once per crew row.
+ * Props passed to every `crew-status.avatar` augment, once for each kerbal
+ * aboard the active vessel. The augment fills a square cell at the start of
+ * that kerbal's row. The cell is reserved only while an augment is bound, and
+ * stays blank when the augment draws nothing.
  *
- * @category Extensions
+ * @category Widget slots
  */
 export interface CrewAvatarContext {
-  /** The crew member this avatar belongs to, its identity for the augment. */
+  /** The kerbal's name, as KSP's crew roster writes it. */
   crewName: string;
-  /** Position in the roster; disambiguates duplicate names. */
+  /** The kerbal's position in the vessel's crew list, from 0. Tells two kerbals with the same name apart. */
   crewIndex: number;
 }
 
 // --- AstronautComplex (packages/components/src/AstronautComplex) -----------
 
-/** Mirrors `AstronautComplexCrewContext` (AstronautComplex/index.tsx). */
+/**
+ * Props passed to every `astronaut-complex.crew` and
+ * `astronaut-complex.crew-badge` augment, once for each kerbal card in the
+ * Astronaut Complex's Applicants and Active lists.
+ *
+ * `astronaut-complex.crew` draws under the kerbal's name, for detail such as a
+ * retirement date or a training course's finish. `astronaut-complex.crew-badge`
+ * draws in the card's top-right corner, for a short mark read with the name.
+ *
+ * @category Widget slots
+ */
 export interface AstronautComplexCrewContext {
-  /** `ProtoCrewMember.name`: the join key to the augment's own crew channel. */
+  /** The kerbal's name, as KSP's crew roster writes it. Join your own crew data on it. */
   kerbalName: string;
-  /** `CrewStanding`, or null when the producer sent none. */
+  /** The kerbal's standing, a `CrewStanding` value. `CrewStanding.Applicant` for an applicant. `null` when the roster did not report one. */
   standing: number | null;
-  /** Whether this row is a hireable candidate rather than owned crew. */
+  /** True for a candidate in the Applicants list, false for a kerbal already on the roster. */
   isApplicant: boolean;
 }
 
 // --- LaunchDirector (packages/components/src/LaunchDirector) ---------------
 
-/** Mirrors `LaunchDirectorSlotContext` (LaunchDirector/index.tsx). */
+/**
+ * Props passed to every `launch-director.preflight` augment: the launch the
+ * operator is setting up in the Launch Director. The slot draws once, below
+ * the list of pads.
+ *
+ * @category Widget slots
+ */
 export interface LaunchDirectorSlotContext {
-  /**
-   * Current KSP scene ("Flight", "Editor", ...), undefined until telemetry
-   * arrives and while the mod cannot name the scene it is in.
-   */
+  /** The current KSP scene, such as `"Flight"` or `"SpaceCenter"`. `undefined` until the scene is reported. */
   scene: string | undefined;
-  /** True while a vessel is in flight (scene === "Flight"). */
+  /** True while the scene is `"Flight"`. */
   inFlight: boolean;
-  /** The saved craft selected in the pre-launch picker, or null when none. */
+  /** The name of the saved craft the operator has picked. `null` when none is picked. */
   selectedShip: string | null;
-  /** The chosen launch-site name (e.g. "LaunchPad"). */
+  /** The internal name of the launch site the operator has open, such as `"LaunchPad"`. An empty string when no sites are reported. */
   selectedSite: string;
-  /** Crew names the operator has selected for the launch. */
+  /** The names of the kerbals the operator has picked to fly. */
   selectedCrew: string[];
-  /** Career funds balance; undefined in sandbox/science or before telemetry. */
+  /** The career's funds. `undefined` when the save has no funds or they are not yet reported. */
   funds: number | undefined;
 }
 
-/** Mirrors `LaunchDirectorPadContext` (LaunchDirector/index.tsx). */
+/**
+ * Props passed to every `launch-director.pad` augment, once for each launch
+ * site in the Launch Director's pad list. Use it to say something about one
+ * pad from its own row, such as that a launch complex your Uplink tracks is
+ * busy.
+ *
+ * @category Widget slots
+ */
 export interface LaunchDirectorPadContext {
-  /** The site's internal `LaunchSite.name`: the stable key an Uplink joins on. */
+  /** KSP's internal name for the site, such as `"LaunchPad"`. Stable; join your own pad data on it. */
   siteName: string;
-  /** The site's human-facing name, as the row shows it. */
+  /** The site's display name, as the row shows it. */
   displayName: string;
-  /** KSP's `EditorFacility` name for this site: a `VAB` site is a pad, an `SPH` site a runway. */
+  /** The editor that builds for this site: `"VAB"` for a launch pad, `"SPH"` for a runway. */
   editorFacility: string;
-  /** Whether a vessel is standing on this pad; `null` when this site reports no occupancy. */
+  /** Whether a vessel is standing on the site. `null` when the site does not report it. */
   occupied: boolean | null;
-  /** The occupying vessel's name, `null` when none is reported. */
+  /** The name of the vessel standing on the site. `null` when none is reported. */
   occupantName: string | null;
-  /** Whether this is the pad the operator has opened, so an augment can spend more room on it. */
+  /** True for the site the operator has open, so an augment can draw more for it. */
   expanded: boolean;
-  /** Career funds balance; undefined in sandbox/science or before telemetry. */
+  /** The career's funds. `undefined` when the save has no funds or they are not yet reported. */
   funds: number | undefined;
 }
 
 // --- Objectives (packages/components/src/Objectives) -----------------------
 
-/** Mirrors `ObjectiveState` (Objectives/index.tsx). */
+/**
+ * Where an objective stands. The Objectives widget draws each with its own
+ * mark: `"pending"` is not yet met, `"active"` is under way, `"reached"` is met
+ * and `"failed"` can no longer be met.
+ *
+ * @category Widget slots
+ */
 export type ObjectiveSlotState = "pending" | "active" | "reached" | "failed";
 
-/** Mirrors `ObjectiveItem` (Objectives/index.tsx). */
+/**
+ * One objective, as an `objectives.source` augment passes it to the
+ * Objectives widget's `Section`.
+ *
+ * @category Widget slots
+ */
 export interface ObjectiveSlotItem {
+  /** Unique across every source; the row's key. */
   id: string;
+  /** What the objective asks for, drawn as the row's title. */
   title: string;
+  /** Further detail, drawn under the title when present. */
   description?: string;
+  /** Where the objective stands. */
   state: ObjectiveSlotState;
-  /** Parent label: the mission or contract this objective belongs to. */
+  /** The mission or contract the objective belongs to, drawn beside the title. */
   source: string;
+  /** True for an objective that is not required. The widget marks it "(optional)". */
   optional?: boolean;
-  /** Set for contract parameters: enables the "alarm on completion" toggle. */
+  /** The id of the contract this objective is part of, when it is one. The widget draws nothing from it; your own `renderAlarm` can read it. */
   contractId?: string;
 }
 
-/** Mirrors `ObjectiveSection` (Objectives/index.tsx). */
+/**
+ * The props of the `Section` an `objectives.source` augment renders: one
+ * source's objectives. The widget draws nothing for a section with no items.
+ *
+ * @category Widget slots
+ */
 export interface ObjectiveSlotSection {
-  /** The source's objectives. */
+  /** The source's objectives, in the order they are drawn. */
   items: ObjectiveSlotItem[];
-  /**
-   * Optional per-item alarm affordance a source may offer. Returns a
-   * control for an item, or `null` for items that cannot be alarmed.
-   *
-   * `ReactNode`, not `unknown`. It was `unknown`, and that was the one mirrored
-   * field in this file that a merged `SlotRegistry` proved inaccurate: this type
-   * reaches the registry inside a `ComponentType<...>`, which is CONTRAVARIANT in
-   * its props, so the mirror has to be assignable to the real type as well as the
-   * other way round. `(item) => ReactNode` widens to `(item) => unknown` happily;
-   * nothing narrows back. Every other field in this file compares as identical.
-   */
+  /** Draws a control at the end of an item's row, such as a button that sets an alarm for it. Return `null` for an item that has none. */
   renderAlarm?: (item: ObjectiveSlotItem) => import("react").ReactNode;
 }
 
-/** Mirrors `ObjectiveSourceContext` (Objectives/index.tsx). `ComponentType` is
- * the same react type used throughout this leaf's other slot/component types. */
+/**
+ * Props passed to every `objectives.source` augment. The Objectives widget has
+ * no objectives of its own: every source, the built-in contract parameters
+ * included, is an augment that renders `<Section items={...} />` with its
+ * objectives, and the widget draws them all the same way.
+ *
+ * @category Widget slots
+ */
 export interface ObjectiveSourceContext {
+  /** The component to render your objectives through. */
   Section: import("react").ComponentType<ObjectiveSlotSection>;
 }
 
 // --- Strategies (packages/components/src/Strategies) -----------------------
 
 /**
- * The BODY of one Administration Building screen, below whatever strategy cards
- * the screen's own departments put there.
+ * Props passed to every `strategies.screen-body` augment: the body of one
+ * Administration Building screen, drawn below the strategy cards the screen
+ * lists. Screens come from the `strategies.screens` contribution slot, and the
+ * slot is drawn only on a screen that is open for use.
  *
- * <para>The sibling of the `strategies.screens` contribution slot in
- * `./contribution-slots.ts`, and the division of labour between them is the
- * point: a contribution says which screens the building has, an augment draws
- * what one of them contains beyond its department listing, and the host owns
- * the tab strip so nothing else has to.</para>
+ * @category Widget slots
  */
 export interface StrategiesScreenBodyContext {
-  /** Which screen is being drawn. An augment bound for more than one branches on it. */
+  /** The `id` of the screen being drawn, as its `strategies.screens` entry gave it. An augment bound to more than one screen branches on it. */
   screenId: string;
 }
 
 // --- ActionGroup (packages/components/src/ActionGroup) ---------------------
 
-/** Mirrors `ActionGroupId` (`packages/core/src/actionGroups.ts`): the eight
- * known stock names, widened to admit an arbitrary custom (AGX) id. */
+/**
+ * The name of an action group: one of the eight stock names, or any other
+ * string for a custom group.
+ *
+ * @category Widget slots
+ */
 export type ActionGroupSlotId =
   | "SAS"
   | "RCS"
@@ -340,36 +470,56 @@ export type ActionGroupSlotId =
   | "Stage"
   | (string & {});
 
-/** Mirrors `ActionGroupSlotContext` (ActionGroup/index.tsx). */
+/**
+ * Props passed to every `action-group.subsystem` augment: the one action group
+ * an Action Group widget controls, and its current state. The slot draws below
+ * the group's toggle.
+ *
+ * @category Widget slots
+ */
 export interface ActionGroupSlotContext {
-  /** The KSP action group this instance controls (e.g. "AG1", "SAS", "Gear"). */
+  /**
+   * The group's name: one of the stock names such as `"SAS"` or `"Gear"`, or
+   * for a custom group the name the mod reports for it, `"AG1"` to `"AG10"`
+   * when it reports none. Two custom groups can share a name.
+   */
   groupId: ActionGroupSlotId;
-  /** The display label: custom override or the official group name. */
+  /** The label the widget shows: the operator's own label when set, otherwise the group's name. */
   label: string;
-  /** The group's current Value (boolean or numeric readout); `undefined` if unknown. */
+  /**
+   * The group's state: `true` or `false` for a group that toggles, a number for
+   * a group that reports one, such as Stage. `null` when the state is reported
+   * but cannot be read, `undefined` before it arrives.
+   */
   value: unknown;
-  /** Rendered state readout: "ON", "OFF", a numeric string, or the null-display placeholder. */
+  /** The state as the widget writes it: `"ON"`, `"OFF"`, the number as text, or the null placeholder while `value` is `null` or `undefined`. */
   stateLabel: string;
 }
 
 // --- SystemView (packages/components/src/SystemView) -----------------------
 
 /**
- * Mirrors `SystemOverlayContext` (SystemView/index.tsx). Draw in a `width` by
- * `height` origin-centred viewBox: `d` metres from the parent body is
- * `d * plotScale` user units from `center`. Both follow the diagram's pan and
- * zoom, so an overlay drawn this way moves with it.
+ * Props passed to every `system-view.overlay` augment: a layer over the System
+ * View diagram, with the scale the diagram draws at.
+ *
+ * Draw in a `width` by `height` origin-centred viewBox: `d` metres from the
+ * body the diagram is centred on is `d * plotScale` SVG units from `center`.
+ * Both follow the diagram's pan and zoom, so an overlay drawn this way moves
+ * with it. The layer passes pointer events through to the diagram, so an
+ * element that needs clicks turns them back on itself.
+ *
+ * @category Widget slots
  */
 export interface SystemOverlayContext {
-  /** Name of the parent body the diagram is centred on. */
+  /** The name of the body the diagram is centred on. */
   parentName: string;
-  /** Diagram pixel width (origin-centred SVG frame). */
+  /** Diagram width in pixels. The SVG runs from `-width / 2` to `width / 2`. */
   width: number;
-  /** Diagram pixel height. */
+  /** Diagram height in pixels. The SVG runs from `-height / 2` to `height / 2`. */
   height: number;
-  /** Metres → SVG-user-unit plot scale at the diagram's current zoom. */
+  /** SVG units per metre, at the diagram's current zoom. */
   plotScale: number;
-  /** Where the parent body is drawn, after the diagram's pan: the origin until it is panned. */
+  /** Where the centre body is drawn, in SVG units, after the diagram's pan: the origin until it is panned. */
   center: { x: number; y: number };
 }
 
@@ -377,29 +527,39 @@ export interface SystemOverlayContext {
 
 // --- MapView (packages/components/src/MapView) ------------------------------
 
-/** Mirrors `MapOverlayContext` (MapView/index.tsx). */
+/**
+ * Props passed to every `map-view.overlay` augment: a layer over the Map View's
+ * canvases, with the projection the map draws with.
+ *
+ * The map is an equirectangular world image, `worldW` by `worldH` pixels, seen
+ * through a camera the operator can pan and zoom. The project function applies
+ * the whole chain; the camera and world size are there for an augment building
+ * its own transform. A world point `(wx, wy)` lands at
+ * `x = (wx - camera.panX) * camera.zoom + width / 2` and
+ * `y = (wy - camera.panY) * camera.zoom + height / 2`.
+ *
+ * @category Widget slots
+ */
 export interface MapOverlayContext {
-  /** Pixel width of the overlay layer (== the map canvas container). */
+  /** Overlay width in pixels, the same as the map area. */
   width: number;
-  /** Pixel height of the overlay layer. */
+  /** Overlay height in pixels, the same as the map area. */
   height: number;
-  /** Live pan/zoom camera driving the equirectangular projection. */
+  /** The live camera: `zoom` is screen pixels per world pixel, and `panX` and `panY` are the world point at the centre of the map area. */
   camera: { zoom: number; panX: number; panY: number };
-  /** Equirectangular world-canvas width the camera maps from. */
+  /** Width of the world image in world pixels, spanning 360 degrees of longitude. */
   worldW: number;
-  /** Equirectangular world-canvas height the camera maps from. */
+  /** Height of the world image in world pixels, spanning 180 degrees of latitude. */
   worldH: number;
-  /** The mapped body (may diverge from the active vessel under a pin). */
+  /** The body the map shows. It can differ from the active vessel's body when the operator picks another. `undefined` while none is known. */
   bodyName: string | undefined;
-  /** Mapped body physical radius, metres, when known. */
+  /** The mapped body's radius in metres. `undefined` while it is not known. */
   bodyRadius: number | undefined;
-  /**
-   * Project geographic lat/lon (degrees) to a pixel coordinate in the
-   * overlay layer's own space.
-   */
+  /** Returns the overlay pixel for a latitude and longitude in degrees, through the same projection the map is drawn with. */
   project: (lat: number, lon: number) => { x: number; y: number };
-  /** The active vessel's RAW (unadjusted) lat/lon; undefined with no fix. */
+  /** The active vessel's latitude in degrees. `undefined` without a position, or when the map shows another body. */
   vesselLat: number | undefined;
+  /** The active vessel's longitude in degrees. `undefined` without a position, or when the map shows another body. */
   vesselLon: number | undefined;
 }
 
@@ -410,33 +570,55 @@ export interface MapViewScope {
   bodyName: string | undefined;
 }
 
-/** Mirrors `CoverageGate` (MapView/useCoverageGate.ts). */
+/**
+ * How much of the mapped body's surface is revealed, combined from every
+ * registered coverage source, such as scanner coverage. A `map-view.base`
+ * augment reads it to paint only what has been revealed.
+ *
+ * @category Widget slots
+ */
 export interface MapCoverageGate {
-  /** Composite reveal intensity, one byte per cell, row-major. */
+  /** One byte per cell, row by row, `width` by `height`: 0 is hidden and 255 fully revealed. `null` until coverage has been read. */
   data: Uint8Array | null;
+  /** Goes up by one each time `data` changes. */
   version: number;
+  /** Cells across `data`, spanning 360 degrees of longitude. */
   width: number;
+  /** Cells down `data`, spanning 180 degrees of latitude. */
   height: number;
-  /** True when at least one coverage source is registered AND a
-   *  `CoverageMaskCacheProvider` is mounted to actually resolve its masks. */
+  /** True when a coverage source is registered and its coverage can be read. False means paint everything, not nothing. */
   hasAnySource: boolean;
 }
 
-/** Mirrors `MapBaseLayerContext` (MapView/index.tsx). Stackable: any number
- *  of registered augments may fill this slot at once. */
+/**
+ * Props passed to every `map-view.base` augment: the base surface of the Map
+ * View, under every other layer.
+ *
+ * Any number of augments can fill this slot at once. Each hands back a canvas
+ * through `onLayer`, and the map stretches it over the whole world image, so
+ * the canvas is an equirectangular picture of the whole body. Canvases are
+ * drawn in order over the stock texture, and transparent pixels show what is
+ * beneath. An augment that declares `suppressesVanillaBase` removes the stock
+ * texture.
+ *
+ * @category Widget slots
+ */
 export interface MapBaseLayerContext {
-  /** The mapped body (may diverge from the active vessel under a pin). */
+  /** The body the map shows. It can differ from the active vessel's body when the operator picks another. `undefined` while none is known. */
   bodyId: string | undefined;
+  /** Width of the map area in pixels. */
   width: number;
+  /** Height of the map area in pixels. */
   height: number;
-  /** Per-namespace augment settings, keyed by augment id. Read straight off
-   *  the host widget instance's saved config. */
+  /** Each augment's settings on this widget, keyed by augment id. Read your own with `augmentSettings[yourId]`; its `show` is `false` when the operator hid your layer. */
   augmentSettings: Record<string, Record<string, unknown>> | undefined;
-  /** The paint-gate (T4) for this body. */
+  /** How much of the body is revealed. */
   coverageGate: MapCoverageGate;
-  /** Called by the augment whenever it has a fresh canvas to contribute (or
-   *  `null` to withdraw one): MUST pass the augment's OWN id first, since
-   *  more than one augment may hold a canvas at once. */
+  /**
+   * Hands the map a new canvas, or `null` to withdraw yours. Pass your
+   * augment's own id first, since several augments can each hold a canvas.
+   * Call it again with a higher `version` whenever the canvas changes.
+   */
   onLayer: (
     id: string,
     canvas: HTMLCanvasElement | null,
@@ -472,11 +654,16 @@ export interface TechSlotNode {
 
 // --- ScienceData (packages/components/src/ScienceData) ----------------------
 
-/** Mirrors `ScienceDataAboardRowContext` (ScienceData/index.tsx). */
+/**
+ * Props passed to every `science-data.aboard-row` augment, once for each
+ * science subject on the Science Data widget's Aboard tab. The augment draws
+ * under that subject's row, and reads its own data for it. A subject can have a
+ * data file and a sample aboard at once.
+ *
+ * @category Widget slots
+ */
 export interface ScienceDataAboardRowContext {
-  /** The subject this Aboard row represents; an augment joins its own
-   *  `science.experiments` read against this id to find the file and/or
-   *  sample backing it. */
+  /** KSP's science subject id, such as `"crewReport@KerbinSrfLandedLaunchPad"`. Join your own science data on it. */
   subjectId: string;
 }
 
@@ -494,28 +681,35 @@ export interface ScienceDataAboardRowContext {
 
 // --- OrbitView (packages/components/src/OrbitView) --------------------------
 
-/** Mirrors `OrbitOverlayContext` (OrbitView/index.tsx). */
+/**
+ * Props passed to every `orbit-view.overlay` augment: a layer over the Orbit
+ * View diagram, with the active vessel's orbit.
+ *
+ * The diagram is centred on the body the vessel orbits. Distances are metres
+ * from the body's centre. Before rotating by `argPe`, positive x runs along the
+ * line of apsides towards periapsis and positive y is up. The slot is drawn only
+ * while there is an orbit.
+ *
+ * @category Widget slots
+ */
 export interface OrbitOverlayContext {
-  /** Semi-major axis, distance units (metres from body centre). */
+  /** Semi-major axis in metres. */
   sma: number;
-  /** Eccentricity. */
+  /** Eccentricity. 1 or more on an escape trajectory. */
   ecc: number;
-  /**
-   * Apoapsis radius from body centre, same units. `undefined` on a hyperbolic
-   * orbit (`ecc >= 1`): there is no apoapsis to report.
-   */
+  /** Apoapsis distance from the body's centre, in metres. `undefined` on an escape trajectory, which has none. */
   apoapsis?: number;
-  /** Periapsis radius from body centre, same units. */
+  /** Periapsis distance from the body's centre, in metres. */
   periapsis: number;
-  /** Argument of periapsis, degrees (rotates the ellipse in-plane). */
+  /** Argument of periapsis in degrees, which turns the orbit in its plane. 0 when not reported. */
   argPe: number;
-  /** Current vessel true anomaly, degrees. */
+  /** The vessel's true anomaly in degrees. 0 when not reported. */
   trueAnomaly: number;
-  /** Parent body physical radius, same units, when known. */
+  /** The body's radius in metres. Absent while it is not known. */
   bodyRadius?: number;
-  /** The body's position in the diagram's SVG frame (its origin). */
+  /** Where the body is drawn. Always the origin. */
   center: { x: number; y: number };
-  /** Visible half-extent of the frame, distance units (apoapsis-driven). */
+  /** The distance from the centre to the edge of the visible diagram, in metres: the apoapsis, or a multiple of the periapsis on an escape trajectory. */
   scale: number;
 }
 
@@ -525,51 +719,85 @@ export interface OrbitOverlayContext {
 
 // --- Experiments (packages/components/src/Experiments) ---------------
 
-/** Mirrors `Instrument` (Experiments/index.tsx). */
+/**
+ * One stock science instrument aboard the active vessel, as the Experiments
+ * widget draws its row.
+ *
+ * @category Widget slots
+ */
 export interface ExperimentsInstrument {
+  /** The part's flight id as a string. The Deploy and Transmit commands take it. */
   partId: string;
+  /** The part's display title, such as `"2HOT Thermometer"`. */
   partTitle: string;
+  /** KSP's experiment id, such as `"temperatureScan"`. The widget groups rows by it. */
   expId: string;
+  /** True once the experiment has been run. */
   deployed: boolean;
+  /** True while the instrument holds data that can be collected. */
   hasData: boolean;
+  /** True when the experiment can be run again without being reset. */
   rerunnable: boolean;
+  /** True when the instrument cannot run again until it is reset. */
   inoperable: boolean;
 }
 
-/** Mirrors `ExperimentsInstrumentSlotContext` (Experiments/index.tsx). */
+/**
+ * Props passed to every `experiments.instrument` augment, once for each stock
+ * instrument row in the Experiments widget. The augment draws directly after
+ * the row inside a list, so render a list item. Instruments that come from the
+ * `experiments.instruments` contribution slot get no augment.
+ *
+ * @category Widget slots
+ */
 export interface ExperimentsInstrumentSlotContext {
-  /** The instrument the augmented row is rendering. */
+  /** The instrument whose row this follows. */
   instrument: ExperimentsInstrument;
 }
 
 // --- DeployedScience (mod/GonogoBreakingGroundUplink/client/src/DeployedScience) ---
 
 /**
- * Mirrors `DeployedExperiment` (DeployedScience/index.tsx).
+ * One Breaking Ground deployed experiment, as the Deployed Science widget draws
+ * its card.
  *
- * The science figures and the `collecting` verdict are nullable because the mod
- * withholds each of them rather than substituting a zero, and a zero here is a
- * reading: a freshly planted experiment reports 0%. An augment rendering into
- * this slot has to branch on the null rather than draw it, the same as the
- * widget's own card does.
+ * Each science figure is `null` when the mod does not report it, rather than
+ * 0, because 0 is a real reading: a newly placed experiment reports 0%. Branch
+ * on the `null` rather than drawing it.
+ *
+ * @category Widget slots
  */
 export interface DeployedScienceExperiment {
+  /** The experiment's position in its base's list. Only for use as a key. */
   partId: number;
+  /** KSP's experiment id, or a made-up id unique within the base when the mod reports none. */
   id: string;
+  /** The part's name, or the experiment id when there is none. */
   name: string;
+  /** The science the experiment is worth in total. `null` when not reported. */
   total: number | null;
+  /** The most science the experiment can collect. `null` when not reported. */
   limit: number | null;
+  /** How far collection has got, from 0 to 1. `null` when not reported. */
   progress: number | null;
+  /** Science collected but not yet transmitted. `null` when either figure it comes from is not reported. */
   stored: number | null;
+  /** Science already transmitted. `null` when either figure it comes from is not reported. */
   transmitted: number | null;
+  /** True while collection is under 100%. `null` when progress is not reported. */
   collecting: boolean | null;
 }
 
-/** Mirrors `DeployedExperimentContext` (DeployedScience/index.tsx). */
+/**
+ * Props passed to every `deployed-science.experiment` augment, once for each
+ * experiment card in the Deployed Science widget.
+ *
+ * @category Widget slots
+ */
 export interface DeployedExperimentContext {
-  /** The deployed experiment this card renders, the augment's datum. */
+  /** The experiment this card shows. */
   experiment: DeployedScienceExperiment;
-  /** The body the parent base sits on, for context. */
+  /** The name of the body the experiment's base stands on. An empty string when not reported. */
   body: string;
 }
 
@@ -595,19 +823,21 @@ export interface PowerSystemsScope {
 // --- FleetRoster (packages/components/src/FleetRoster) ---------------------
 
 /**
- * Mirrors the props `FleetRoster` hands its per-vessel update line: which craft
- * this row is, and how much room the augment has.
+ * Props passed to every `fleet-roster.updates` augment, once for each craft in
+ * the Fleet Roster. The augment draws a line under the craft's name, for
+ * something such as a health or alarm note, and the line takes no room when it
+ * draws nothing.
+ *
+ * @category Widget slots
  */
 export interface FleetRosterUpdatesContext {
-  /** The craft this row is about, so an active-vessel-scoped augment can bind to it. */
+  /** The craft's vessel id, as `system.vessels` carries it. */
   vesselId: string;
+  /** The craft's name. */
   vesselName: string;
-  /** The body the craft is at; empty when the roster does not know. */
+  /** The name of the body the craft is at. An empty string when not known. */
   body: string;
-  /**
-   * The roster is too narrow for a per-row detail line, so an augment renders a
-   * BADGE and nothing else.
-   */
+  /** True when the roster is too narrow for a detail line, so the augment should draw a badge and nothing more. */
   compact: boolean;
 }
 

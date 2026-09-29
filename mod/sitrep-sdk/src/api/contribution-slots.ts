@@ -51,116 +51,191 @@ import type { Value } from "../unit-system/value";
 import type { AlertTone, Tone } from "./tone";
 import type { MeterEntry, StatEntry } from "./types";
 
-/** Mirrors `ShipMapPartMeterEntry` (`ShipMap/shipTopology.ts`). */
+/**
+ * One resource meter on a part of the Ship Map, contributed to
+ * `ship-map.part-meters`.
+ *
+ * The Ship Map draws each entry as a fill bar on the part and as a meter in the
+ * part's tooltip. The fill colour is the resource's own colour, chosen by the
+ * widget from `resource`; `status` is the only signal a contributor adds to it.
+ * The first entry for a given `partId` and `resource` is drawn and any later one
+ * is ignored.
+ *
+ * @category Widget slots
+ */
 export interface ShipMapPartMeterEntry {
+  /** The part's `flightId`, as a decimal string. */
   partId: string;
+  /** The resource name as KSP spells it, such as `"LiquidFuel"`. Picks the fill colour. */
   resource: string;
+  /** The meter's label in the tooltip. */
   displayName: string;
   /**
-   * Current stored amount, as a quantity or the whole {@link Reading} of one.
-   *
-   * A `Reading` is how a contributed meter says more than where the bar is.
-   * The host's `Meter` draws the figure the same either way; what the reading
-   * adds is whether it is a reading of NOW, and the band, which it draws as one
-   * mark per bound on the bar's own track. That lookup belongs to the
-   * primitive and never to the contributor, which is what keeps one visual
-   * language across every Uplink filling this slot.
+   * The amount stored, as a quantity or as the whole {@link Reading} of one.
+   * Passing the reading lets the meter show when the figure is held rather than
+   * current, and mark the reading's band on the bar.
    */
   amount: Value<"units"> | Reading<Value<"units">>;
   /**
-   * Max storage capacity, same terms as {@link ShipMapPartMeterEntry.amount}.
-   * A renderer drops any entry whose capacity is not positive: nothing to fill.
-   *
-   * A capacity carries currency too, because a tank's size is read off the
-   * craft like anything else, and a meter marks the TRACK rather than the fill
-   * when it is the axis that has aged.
+   * The part's capacity for this resource, in the same terms as `amount`. An
+   * entry whose capacity is not positive is not drawn.
    */
   capacity: Value<"units"> | Reading<Value<"units">>;
+  /**
+   * A level warning drawn as a tint on the bar's outline: `"low"` or
+   * `"critical"`. Null or absent means the level is fine. The contributor picks
+   * its own thresholds.
+   */
   status?: "low" | "critical" | null;
 }
 
-/** Mirrors `ShipMapPartMetaEntry` (`ShipMap/shipTopology.ts`). */
+/**
+ * One status row on a part of the Ship Map that is not a stored resource, such
+ * as a converter's efficiency or a habitat's pressure, contributed to
+ * `ship-map.part-meta`.
+ *
+ * Drawn in the part's tooltip, after its resource meters. The first entry for a
+ * given `partId` and `label` is drawn and any later one is ignored.
+ *
+ * @category Widget slots
+ */
 export interface ShipMapPartMetaEntry {
+  /** The part's `flightId`, as a decimal string. */
   partId: string;
+  /** The row's label, such as `"Water Recycler"`. */
   label: string;
+  /** The status colour of a `"ratio"` row's meter. */
   tone: Tone;
+  /** `"ratio"` draws `value` as a meter; `"text"` draws `text` beside the label. */
   kind: "ratio" | "text";
+  /** A fraction from 0 to 1, read when `kind` is `"ratio"`. Absent draws an empty meter. */
   value?: number;
+  /** Free text, read when `kind` is `"text"`. */
   text?: string;
 }
 
 /**
- * One `comm-signal.hop-rates` entry: a single hop's forward band rate, keyed by
- * the SAME node ids `comms.path` carries (`fromNodeId`/`toNodeId`), so
- * CommSignal's route schedule can join a rate onto the hop it already renders
- * WITHOUT importing any backend-aware code or naming a provider. The join key is
- * derived once, in `CommSignal/commsRoute.ts`; a contributor relays the node ids
- * verbatim off its own Topic. `bitsPerSec` is a plain magnitude (bits/sec); the
- * schedule wraps it in `<Unit>` for display and compares magnitudes to flag the
- * bottleneck (minimum-rate) hop. Owned by `packages/components/src/CommSignal`;
- * the built-in RealAntennas contribution fills it off `realantennas.hopRates`.
+ * The bitrate of one hop on the comms route, contributed to
+ * `comm-signal.hop-rates`.
+ *
+ * Comm Signal joins each entry onto the hop of the `comms.path` route with the
+ * same `fromNodeId` and `toNodeId`, shows the rate beside it, and marks the
+ * slowest hop once at least two hops carry a rate. An entry naming a hop that
+ * is not on the route is not drawn.
+ *
+ * @category Widget slots
  */
 export interface CommSignalHopRateEntry {
+  /** The hop's sending node id, exactly as `comms.path` names it. */
   fromNodeId: string;
+  /** The hop's receiving node id, exactly as `comms.path` names it. */
   toNodeId: string;
+  /** The hop's forward data rate in bits per second. */
   bitsPerSec: number;
 }
 
-// SystemView (packages/components/src/SystemView)
-//
-// `system-view.entities` (the shape-contribution foundation: vessel orbits,
-// the CommNet graph, selection, a future CME front all ride this one slot).
-// Mirrors `SystemEntity` and its position/shape unions from
-// `SystemView/systemEntities.ts`.
-
+/**
+ * How strongly a System View entity is drawn when its style names no tone
+ * or colour: `"faint"` is dim, `"normal"` is the default, `"bright"` stands out.
+ *
+ * @category Widget slots
+ */
 export type SystemEntityEmphasis = "faint" | "normal" | "bright";
 
-/** Mirrors `SystemEntityStyle`. A contribution names `emphasis` and
- *  `tone`; `colour` is the host's own decoration channel. */
+/**
+ * How a System View entity is drawn. Every field is optional.
+ *
+ * @category Widget slots
+ */
 export interface SystemEntityStyle {
+  /** Brightness and opacity; `"normal"` when absent. Sets the colour too when `tone` is absent. */
   emphasis?: SystemEntityEmphasis;
+  /** Colours the entity by meaning, so the theme reaches it. Takes precedence over `emphasis` for colour. */
   tone?: AlertTone;
+  /**
+   * A CSS colour that overrides both of the above. Set by the widget itself,
+   * for instance to show a selection; a contribution names `tone` instead.
+   */
   colour?: string;
 }
 
-/** Mirrors `SystemEntityMeta`. */
+/**
+ * Label and value rows for a System View entity, keyed by label. They are the
+ * entity's accessible name, joined as `label: value`, and fall back to its `id`
+ * when empty.
+ *
+ * @category Widget slots
+ */
 export type SystemEntityMeta = Readonly<
   Record<string, string | number | boolean>
 >;
 
-/** Mirrors `SystemEntityOrbitPosition`. Both `inclination` and the fixed
- *  position's `zMetres` are REQUIRED: SystemView's arithmetic is
- *  three-dimensional and the frame it draws in is a rotation about an arbitrary
- *  axis, so a two-component position is not a position it can turn. An orbit
- *  that really is equatorial says `0`. */
+/**
+ * A place on a Keplerian orbit around a named body. `trueAnomaly` picks the
+ * point on it; a shape that draws the whole orbit ignores it.
+ *
+ * @category Widget slots
+ */
 export interface SystemEntityOrbitPosition {
   kind: "orbit";
+  /** The body orbited. Matched without regard to case or surrounding space; the entity is not drawn unless this is the body the diagram is centred on. */
   parentName: string;
+  /** Semi-major axis, in metres. Not drawn unless positive and finite. */
   sma: number;
+  /** Eccentricity. */
   ecc: number;
+  /** Longitude of the ascending node, in degrees. */
   lan: number;
+  /** Argument of periapsis, in degrees. */
   argPe: number;
-  /** Inclination to the parent's reference plane, degrees. */
+  /** Inclination to the parent's reference plane, in degrees. Required: an equatorial orbit says `0`. */
   inclination: number;
+  /** True anomaly, in degrees. */
   trueAnomaly: number;
 }
 
-/** Mirrors `SystemEntityFixedPosition`. */
+/**
+ * A place given as an offset from a named body's centre, for anything that is
+ * not on an orbit.
+ *
+ * @category Widget slots
+ */
 export interface SystemEntityFixedPosition {
   kind: "fixed";
+  /** The body the offset is measured from. Matched as for {@link SystemEntityOrbitPosition.parentName}. */
   parentName: string;
+  /** Offset along the parent's reference plane, in metres. */
   xMetres: number;
+  /** Offset along the parent's reference plane, at right angles to `xMetres`, in metres. */
   yMetres: number;
-  /** Out of the parent's reference plane, metres. */
+  /** Offset out of the parent's reference plane, in metres. Required: a point in the plane says `0`. */
   zMetres: number;
 }
 
-/** Mirrors `SystemEntityPosition`. */
+/**
+ * Where a System View entity is: on an orbit, or at a fixed offset from a body.
+ * An entity whose position holds a non-finite number is not drawn.
+ *
+ * @category Widget slots
+ */
 export type SystemEntityPosition =
   | SystemEntityOrbitPosition
   | SystemEntityFixedPosition;
 
-/** Mirrors `SystemEntityShape`. */
+/**
+ * What a System View entity looks like, by `kind`:
+ *
+ * - `"point"`: a marker of `radiusPx` screen pixels, 4 when absent
+ * - `"orbit-path"`: the whole ellipse of the entity's `position`, which must be an orbit
+ * - `"connection-line"`: a line from the entity's `position` to `to`
+ * - `"blob"`: a disc of `radiusMetres`, which grows and shrinks with zoom
+ * - `"travelling-pulse"`: a segment `segmentLengthMetres` long moving once from `position` toward `to`, its leading edge reaching `to` at UT `arriveUt` and its trailing edge clearing it at UT `clearUt`, in seconds
+ *
+ * Drawn back to front as orbit paths, then blobs and pulses, then lines, then
+ * points, unless the entity sets `zHint`.
+ *
+ * @category Widget slots
+ */
 export type SystemEntityShape =
   | { kind: "point"; radiusPx?: number }
   | { kind: "orbit-path" }
@@ -170,119 +245,140 @@ export type SystemEntityShape =
       kind: "travelling-pulse";
       to: SystemEntityPosition;
       segmentLengthMetres: number;
-      /** UT the leading edge reaches `to`. */
+      /** UT the leading edge reaches `to`, in seconds. */
       arriveUt: number;
-      /** UT the trailing edge fully clears `to`. */
+      /** UT the trailing edge fully clears `to`, in seconds. */
       clearUt: number;
     };
 
-/** Mirrors `SystemEntity`. */
+/**
+ * One thing drawn on the System View diagram, contributed to
+ * `system-view.entities`: a vessel's orbit, a link, a marker, a travelling
+ * front.
+ *
+ * A contribution returns plain positions and shapes; the widget projects them
+ * into the frame it is drawing, at its own pan and zoom. An entity whose parent
+ * is not the body the diagram is centred on is not drawn.
+ *
+ * @category Widget slots
+ */
 export interface SystemEntity {
+  /** Stable id, unique across every contributor. Selection and the info panel key off it. */
   id: string;
+  /** Where the entity is. */
   position: SystemEntityPosition;
+  /** What is drawn there. */
   shape: SystemEntityShape;
+  /** How it is drawn; `"normal"` emphasis when absent. */
   style?: SystemEntityStyle;
+  /** Rows describing the entity, shown when it is selected. */
   meta?: SystemEntityMeta;
+  /** The `vesselId` from `system.vessels` when the entity is a vessel, so the widget matches it to the vessel by identity. */
   vesselId?: string;
+  /** Stacking order that overrides the shape's default layer; higher is in front. Ties keep contribution order. */
   zHint?: number;
 }
 
-/** Mirrors `SystemViewVesselStatusEntry` (SystemView/vesselStatusContribution.ts). */
+/**
+ * A contact status for one vessel on the System View diagram, contributed to
+ * `system-view.vessel-status`.
+ *
+ * The widget reads the entry whose `target` is the vessel it is plotting. It
+ * restyles that vessel's marker and captions the diagram with the vessel's name
+ * followed by `label`, lower-cased. A `"nogo"` caption is announced to
+ * screen readers at once, a `"warn"` one politely, and an `"info"` one not
+ * at all.
+ *
+ * @category Widget slots
+ */
 export interface SystemViewVesselStatusEntry {
-  /** The vessel this entry decorates: `vessel.identity`'s `vesselId`. */
+  /** The vessel this entry is about: its `vesselId` from `vessel.identity`. */
   target: string;
+  /** `"info"` draws the marker as predicted, `"warn"` as overdue, `"nogo"` as lost. */
   tone: AlertTone;
-  /** Every entry from this contribution is a model's opinion, never a direct observation. */
+  /** `"observed"` for a status seen directly, which keeps the plain marker; `"reckoned"` for one inferred by a model, which applies `tone`. */
   emphasis: "observed" | "reckoned";
+  /** The caption text after the vessel's name, such as `"Officially lost"`. */
   label: string;
+  /** Longer detail about the status. The widget does not draw it. */
   tooltip?: string;
 }
 
-/** Mirrors `SystemProjectionExtent` (SystemView/projection.ts). */
+/**
+ * How big a System View projection draws, by `kind`: `"auto-fit-metres"` fits
+ * the drawn orbits about the frame body, for coordinates in metres centred on
+ * it; `"fixed-units"` holds a half-extent of `units` in the projection's own
+ * coordinates.
+ *
+ * @category Widget slots
+ */
 export type SystemProjectionExtent =
   | { kind: "auto-fit-metres" }
   | { kind: "fixed-units"; units: number };
 
-/** Mirrors `SystemViewProjection` (SystemView/projection.ts): one frame SystemView draws its whole picture in. */
+/**
+ * One reference frame the System View can draw its whole picture in,
+ * contributed to `system-view.projection`. The operator picks among the entries
+ * offered for the body the diagram is centred on.
+ *
+ * @category Widget slots
+ */
 export interface SystemViewProjection {
-  /** Stable id. The operator's pinned choice is stored as this. */
+  /** Stable id. The operator's pinned choice is saved as this. */
   id: string;
-  /** What an operator calls it. */
+  /** What the operator reads in the frame picker. */
   label: string;
-  /** The frame, for the host to resolve at the instant it is drawing. */
+  /** The frame, resolved by the widget at the instant it draws. */
   choice: ReadFrameChoice;
+  /** How big the picture is in this frame. */
   extent: SystemProjectionExtent;
-  /** The body the diagram must be centred on for this projection to be one it can draw. */
+  /** The `system.bodies` index of the body the diagram must be centred on for this projection to be offered. */
   frameBodyIndex: number;
 }
 
 /**
- * One entry of a `crew-status.row-tone` contribution: how alarming one kerbal's
- * situation is.
+ * How alarming one kerbal's situation is, contributed to `crew-status.row-tone`.
+ * Crew Status tints that kerbal's whole row by `tone`, and the first entry
+ * for a name is the one drawn. Contribute nothing for a kerbal with nothing to
+ * report, rather than an `"info"` entry.
  *
- * A contributor names the tone and nothing else; the widget owns the
- * palette. Omit a kerbal entirely for nothing to report, rather than
- * contributing an `info` entry.
- *
- * @category Extensions
+ * @category Widget slots
  */
 export interface CrewRowToneEntry {
-  /** The crew member this entry is about; matched to a roster row by name. */
+  /** The kerbal's name, matched to a roster row. */
   crewName: string;
-  /** How alarming the situation is. The widget decides what that looks like. */
+  /** How alarming the situation is. The widget picks the colour. */
   tone: AlertTone;
 }
 
-// The plot SUBJECTS `packages/components` draws, declared so a contributor
-// enriching one gets it as a completion and a typo fails to compile rather than
-// quietly making a second plot. Same reasoning as the slot ids below, one
-// registry per declaration-merge seam.
 /**
- * One SCREEN the Administration Building offers, on `strategies.screens`.
- * Mirrors `StrategiesScreenEntry` (`Strategies/screens.ts`).
+ * One screen of the Administration Building, contributed to
+ * `strategies.screens`: a tab that lists some strategy departments.
  *
- * <para>The widget draws a FACILITY, and which screens a facility owns is a
- * property of the elected career model rather than of the widget: RP-1's
- * building has Programs and Leaders where a stock one has neither. So the
- * contributor owns which screens exist, what each is called, where it sits and
- * what it lists, and the host owns the tab strip's behaviour, because no Uplink
- * should have to reimplement a tablist.</para>
+ * With no entries, the widget draws every strategy in one list. With entries,
+ * it draws one tab per screen, sorted by `order`, and adds an "Other" tab for
+ * any strategy whose department no screen lists. The first entry for an `id` is
+ * the one drawn. What a screen contains beyond its strategy cards is drawn by
+ * augments on `strategies.screen-body`, which receive the screen's `id`.
  *
- * <para>There is deliberately no COUNT in this shape, and no way to express one.
- * A count cannot be ordered, cannot be labelled, and cannot be locked, and those
- * are the three things a screen has to be able to say about itself.</para>
+ * @category Widget slots
  */
 export interface StrategiesScreenEntry {
-  /** Stable id, unique within the contributing client. */
+  /** Stable id, passed to `strategies.screen-body` augments as `screenId`. */
   id: string;
-  /** What the operator reads on the tab, e.g. RP-1's "Programs". */
+  /** The tab's label, such as `"Programs"`. */
   label: string;
-  /**
-   * Ascending, ties keeping contribution order; a screen without one sorts
-   * after every screen that has one. Stated rather than derived, because the
-   * order a career model wants its screens in is not on the wire: RP-1 declares
-   * its departments in a config file and the file's order does not travel.
-   */
+  /** Sort position, ascending; ties keep contribution order. A screen without one sorts after every screen that has one. */
   order?: number;
-  /**
-   * The strategy DEPARTMENTS this screen lists, matched against `department` on
-   * each entry of `career.status`'s strategy list. The host draws its own
-   * strategy cards for whatever matches, so a contributor never reimplements
-   * one. A screen naming none lists nothing and is chrome for its augments.
-   */
+  /** The department names whose strategies this screen lists, matched against each strategy's department in `career.status`. None lists nothing, leaving the screen to its augments. */
   departments?: readonly string[];
   /**
-   * False for a screen that exists but cannot be opened yet.
-   *
-   * <para>The tab is still drawn AND still selectable, because `disabledReason`
-   * is then the only thing on that screen worth reading and a tab that cannot be
-   * reached cannot deliver it. This is the whole reason a screen is contributed
-   * rather than inferred from whoever happens to have registered a body: an
-   * unavailable screen that is simply ABSENT tells the operator nothing, and
-   * absence is indistinguishable from a bundle that failed to load.</para>
+   * `false` for a screen that exists but cannot be used yet. Its tab is still
+   * drawn and can still be opened, and shows `disabledReason` instead of its
+   * contents. Absent or `true` means the screen is usable.
    */
   enabled?: boolean;
-  /** Why `enabled` is false, in the operator's own terms. */
+  /** Why the screen cannot be used, in the operator's terms. `"Not available yet"` when absent. */
   disabledReason?: string;
   /**
    * True when the screen's own `strategies.screen-body` already carries the
@@ -341,91 +437,85 @@ export interface MissionLogEventEntry {
 }
 
 /**
- * One `experiments.instruments` entry: a science instrument aboard the active
- * vessel that Experiments cannot observe for itself.
+ * One science instrument aboard the active vessel that the Experiments widget
+ * cannot see on the stock `science.instruments` list, contributed to
+ * `experiments.instruments`. This is how a mod whose parts run their own
+ * science module, rather than the stock one, gets its instruments listed.
  *
- * <para>The widget reads `science.instruments`, which is the STOCK experiment
- * list. A mod that runs its own experiment parts through its own science module
- * rather than the stock one never appears there, so without this slot those
- * instruments are invisible to the one widget whose whole subject is "what
- * science hardware is aboard".</para>
+ * The widget groups contributed instruments under a heading naming the
+ * contributing Uplink, then by `expId`, and counts them in the vessel's totals.
+ * It draws a badge per flag: DATA, DEPLOYED, ONE-SHOT when not `rerunnable`,
+ * and INOPERABLE. Contributed rows are read-only, with no Deploy or Transmit
+ * control, because those commands reach only stock science parts, and they
+ * get no `experiments.instrument` augment. An entry whose `partId` is already on
+ * the stock list, or already contributed, is dropped.
  *
- * <para>Already normalised, and deliberately so: plain booleans rather than the
- * wire's optionals, because a contributor has already parsed its own Topic and
- * the host must not have to guess what a missing flag meant. `partId` is a
- * string for the same reason it is one on the widget's own parsed shape: every
- * consumer interpolates it into a key and none compares it numerically.</para>
+ * All four flags are required. An instrument with no such lifecycle states it
+ * plainly: a scanner that can be neither deployed nor made inoperable says
+ * `false` to both and `true` to `rerunnable`.
  *
- * <para>The four booleans are the instrument's LIFECYCLE, and a contributor
- * whose domain has no such lifecycle says so plainly rather than omitting them:
- * a survey scanner that can be neither deployed nor made inoperable says
- * `false` to both and `true` to `rerunnable`. There is no field for "this
- * instrument's state is unknown", because the host draws a badge per flag and a
- * third state would be a badge that means nothing.</para>
- *
- * <para>Contributed instruments render READ-ONLY. The host's Deploy and
- * Transmit controls dispatch `science.experiment.deploy`/`.transmit`, which
- * reach a part through the stock science module; a part the stock list never
- * mentioned is not one those commands can act on, so the host renders no
- * control rather than one that would arm and do nothing. A contributor wanting
- * commands of its own has `experiments.instrument`, the per-instrument AUGMENT
- * slot, which is a different mechanism for a different job: an augment renders,
- * a contribution supplies.</para>
- *
- * Mirrors `ExperimentsInstrumentEntry` (`packages/components/src/Experiments/index.tsx`).
+ * @category Widget slots
  */
 export interface ExperimentsInstrumentEntry {
-  /** Stable within the contributing client; the row's React key. */
+  /** The part's flight id as a string, the same form the stock list uses. Unique across the vessel's instruments. */
   partId: string;
-  /** What the operator reads on the row, e.g. "2HOT Thermometer". */
+  /** The row's label, such as `"2HOT Thermometer"`. */
   partTitle: string;
-  /** KSP experiment id, e.g. `"temperatureScan"`. Groups the rows. */
+  /** KSP experiment id, such as `"temperatureScan"`. Rows with the same id are grouped. */
   expId: string;
+  /** The instrument has been deployed. */
   deployed: boolean;
-  /** The instrument currently holds collectable data. */
+  /** The instrument holds data that can be collected. */
   hasData: boolean;
+  /** The instrument can be run again after it has run once. */
   rerunnable: boolean;
+  /** The instrument cannot be used. */
   inoperable: boolean;
 }
 
 /**
- * One building of the space centre, on `space-center-status.facilities`.
+ * One building of the space centre and its upgrade tiers, contributed to
+ * `space-center-status.facilities`.
  *
- * <para>Every tier here is KSP's own zero-based facility level, the same index
- * `career.status.facilities` carries: `maxTier` is the TOP tier's own index, so
- * a three-tier building says 2. The host adds one for display, because operators
- * count from one and so does KSP's own R&amp;D dialog, which calls a fully
- * upgraded VAB "Level 3". A contributor passes the index straight through and
- * converts nothing.</para>
+ * Tiers are KSP's own zero-based facility levels, the same index
+ * `career.status.facilities` carries. The widget adds one for display, so a
+ * contributor passes the index through unchanged. Both tiers are required: a
+ * building whose tier could not be read is left out, never sent at tier 0. The
+ * first entry for a `facility` is the one drawn.
  *
- * <para>Both tiers are REQUIRED, and that is the shape of the rule rather than
- * an oversight: absent and zero are different readings, tier 0 is where every
- * career starts, and a building whose tier could not be read is not a building
- * at tier 0. A contributor that cannot read one omits the building.</para>
+ * @category Widget slots
  */
 export interface SpaceCenterFacilityEntry {
-  /** KSP's `SpaceCenterFacility` enum name, e.g. `"VehicleAssemblyBuilding"`. */
+  /**
+   * KSP's `SpaceCenterFacility` name: `"LaunchPad"`, `"Runway"`,
+   * `"VehicleAssemblyBuilding"`, `"SpaceplaneHangar"`, `"MissionControl"`,
+   * `"TrackingStation"`, `"Administration"`, `"ResearchAndDevelopment"` or
+   * `"AstronautComplex"`. Any other name is not drawn.
+   */
   facility: string;
-  /** The tier it is at, zero-based. */
+  /** The tier the building is at, zero-based. */
   currentTier: number;
   /** The top tier's own index, so a three-tier building says 2. */
   maxTier: number;
   /**
-   * What the next tier costs in funds. Absent at the ceiling, and absent when
-   * the price is not readable, which the host draws the same way: no price
-   * beside the control rather than a zero that would read as free.
+   * The next tier's price, in funds. Absent at the top tier and when the price
+   * cannot be read; either way the widget shows no price and no upgrade control.
    */
   upgradeCost?: number;
   /**
-   * KSP's own description of the tier the building is at, as its upgrade dialog
-   * writes it: newline-separated `* Property: setting` lines. The host parses it
-   * into a list; anything it cannot read as a property stays a plain line.
+   * KSP's description of the current tier as its upgrade dialog writes it:
+   * newline-separated `* Property: setting` lines. The widget lists each
+   * property; a line it cannot read as one is shown as written.
    */
   currentTierText?: string;
   /** The same, for the tier an upgrade would buy. */
   nextTierText?: string;
 }
 
+// The plot SUBJECTS `packages/components` draws, declared so a contributor
+// enriching one gets it as a completion and a typo fails to compile rather than
+// quietly making a second plot. Same reasoning as the slot ids below, one
+// registry per declaration-merge seam.
 declare module "./plots" {
   interface PlotSubjectRegistry {
     /** LandingStatus's velocity-height descent corridor: speed across, height
@@ -513,8 +603,8 @@ declare module "./types" {
      * `GetLevelCount()` returns -1 there, and that level is NORMALISED: without
      * a tier count it cannot be turned back into a tier. A career overhaul that
      * carries its own tier counts (RP-1 parses the CustomBarnKit upgrade lists
-     * at load and bills the career off them in all four scenes) can answer
-     * wherever the operator is standing.</para>
+     * at load and bills the career off them in all four scenes) can report
+     * tiers wherever the operator is standing.</para>
      */
     "space-center-status.facilities": {
       entry: SpaceCenterFacilityEntry;

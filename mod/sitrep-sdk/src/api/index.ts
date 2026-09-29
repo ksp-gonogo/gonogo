@@ -87,7 +87,26 @@ export type {
   UplinkAlarmVantage,
 } from "./alarm-request";
 export { useAlarmRequest } from "./alarm-request";
-export type { CrewRowToneEntry } from "./contribution-slots";
+export type {
+  CommSignalHopRateEntry,
+  CrewRowToneEntry,
+  ExperimentsInstrumentEntry,
+  ShipMapPartMetaEntry,
+  ShipMapPartMeterEntry,
+  SpaceCenterFacilityEntry,
+  StrategiesScreenEntry,
+  SystemEntity,
+  SystemEntityEmphasis,
+  SystemEntityFixedPosition,
+  SystemEntityMeta,
+  SystemEntityOrbitPosition,
+  SystemEntityPosition,
+  SystemEntityShape,
+  SystemEntityStyle,
+  SystemProjectionExtent,
+  SystemViewProjection,
+  SystemViewVesselStatusEntry,
+} from "./contribution-slots";
 export type { GonogoHost } from "./host";
 export { GONOGO_HOST_KEY, hasHost } from "./host";
 export type { LogContext, Logger, TaggedLogger } from "./logger-contract";
@@ -115,7 +134,37 @@ export type {
   PlotSubject,
   PlotSubjectRegistry,
 } from "./plots";
-export type { CrewAvatarContext, CrewBadgeContext } from "./slots";
+export type {
+  ActionGroupSlotContext,
+  ActionGroupSlotId,
+  AstronautComplexCrewContext,
+  CrewAvatarContext,
+  CrewBadgeContext,
+  DeployedExperimentContext,
+  DeployedScienceExperiment,
+  ExperimentsInstrument,
+  ExperimentsInstrumentSlotContext,
+  FleetRosterUpdatesContext,
+  LaunchDirectorPadContext,
+  LaunchDirectorSlotContext,
+  MapBaseLayerContext,
+  MapCoverageGate,
+  MapOverlayContext,
+  ObjectiveSlotItem,
+  ObjectiveSlotSection,
+  ObjectiveSlotState,
+  ObjectiveSourceContext,
+  OrbitOverlayContext,
+  ScienceDataAboardRowContext,
+  ShipMapBounds,
+  ShipMapOverlayContext,
+  ShipMapPart,
+  ShipMapPartStateModule,
+  ShipMapPartType,
+  StrategiesScreenBodyContext,
+  SystemOverlayContext,
+  TargetingHudContext,
+} from "./slots";
 export { type AlertTone, TONES, type Tone } from "./tone";
 // The message-pipe contract. Defined entirely in terms of this package's own
 // wire messages, so it belongs here rather than in `sitrep-client`, and living
