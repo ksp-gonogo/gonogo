@@ -33,7 +33,7 @@ const STORAGE_KEY = "gonogo.scene-banner.lastSeen";
 function SceneProbe() {
   const reading = useTelemetry("spaceCenter.scene");
   const detail =
-    reading.state === "observed" || reading.state === "stale"
+    reading.state === "observed" || reading.state === "held"
       ? JSON.stringify(reading.value)
       : "";
   return <p>{`scene:${reading.state}${detail}`}</p>;

@@ -25,7 +25,7 @@ function quantityOf(
   figure: Value<"units"> | Reading<Value<"units">>,
 ): Value<"units"> | undefined {
   if (!("state" in figure)) return figure;
-  return figure.state === "observed" || figure.state === "stale"
+  return figure.state === "observed" || figure.state === "held"
     ? figure.value
     : undefined;
 }
@@ -36,7 +36,7 @@ function quantityOf(
  * claims nothing about when it was read.
  */
 function isHeld(row: ShipMapPartMeterEntry): boolean {
-  return "state" in row.amount && row.amount.state === "stale";
+  return "state" in row.amount && row.amount.state === "held";
 }
 
 /**

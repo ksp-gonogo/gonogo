@@ -53,7 +53,7 @@ function RoboticsConsoleComponent({
   const lockCmd = useCommand("robotics.servo.setLock");
 
   const servos =
-    roboticsReading.state === "stale"
+    roboticsReading.state === "held"
       ? withholdVerdicts(parseServos(roboticsRaw))
       : parseServos(roboticsRaw);
   const positionReadings = (s: ServoInfo) => {
@@ -125,7 +125,7 @@ function RoboticsConsoleComponent({
                 breakingGround,
                 available,
                 roboticsReading.state === "observed" ||
-                  roboticsReading.state === "stale",
+                  roboticsReading.state === "held",
                 "robotic parts",
               )}
             </EmptyState>

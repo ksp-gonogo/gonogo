@@ -51,9 +51,9 @@ describe("ReckonedUnit", () => {
       <ReckonedUnit
         value={{
           ...phase(true),
-          state: "stale",
+          state: "held",
           asOfUt: value("ut", 1_000),
-          grade: "held-stale",
+          grade: "held",
         }}
       />,
     );

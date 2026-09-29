@@ -28,7 +28,7 @@ function RosterProbe() {
   // Reads the ARM: `pending` and `absent` distinguish a cold start from a confirmed tombstone.
   const reading = useTelemetry("commandCentre.roster");
   const detail =
-    reading.state === "observed" || reading.state === "stale"
+    reading.state === "observed" || reading.state === "held"
       ? JSON.stringify(reading.value)
       : "";
   return <p>{`roster:${reading.state}${detail}`}</p>;

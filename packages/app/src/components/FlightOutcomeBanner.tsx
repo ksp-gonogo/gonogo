@@ -97,10 +97,10 @@ export function FlightOutcomeBanner() {
   const crashFlag = useStream<boolean>("crash.hasRecent");
   /* Held like the records they gate: an event does not un-happen down a quiet link. */
   const recoveryHasRecent =
-    (recoveryFlag.state === "observed" || recoveryFlag.state === "stale") &&
+    (recoveryFlag.state === "observed" || recoveryFlag.state === "held") &&
     recoveryFlag.value === true;
   const crashHasRecent =
-    (crashFlag.state === "observed" || crashFlag.state === "stale") &&
+    (crashFlag.state === "observed" || crashFlag.state === "held") &&
     crashFlag.value === true;
   const crashReading = useTelemetry("crash.lastCrash");
   /**

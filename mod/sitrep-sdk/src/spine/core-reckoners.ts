@@ -741,7 +741,7 @@ function registerOrbitTruthReckoner(): void {
  * an absent one as no floor to have crossed. A bare Topic dep would decline
  * `input-absent` before that posture was ever asked, withdrawing every
  * propagated orbit for the frames before the body channel first lands. A body
- * catalogue is a fact, so a stale one is still the catalogue and is used as-is.
+ * catalogue is a fact, so a held one is still the catalogue and is used as-is.
  */
 function registerOrbitReckoner(): void {
   registerReckoner("vessel.orbit", CORE_RECKONER_OWNER, {
@@ -749,7 +749,7 @@ function registerOrbitReckoner(): void {
     reckon(point, [roster], { reckonUt }) {
       const admissible = keplerAdmissibility(
         point,
-        roster.state === "observed" || roster.state === "stale"
+        roster.state === "observed" || roster.state === "held"
           ? roster.value
           : undefined,
         reckonUt,

@@ -492,7 +492,7 @@ export {
  * Subscribes to a Topic and returns its latest {@link TopicReading}: the
  * payload together with how current it is.
  *
- * The payload is only there when `state` is `"observed"`, or `"stale"` for a
+ * The payload is only there when `state` is `"observed"`, or `"held"` for a
  * held value, so check `state` before reading it. Every payload field is also a
  * {@link Reading} of its own, so a single field can be passed on without
  * checking the whole reading first.
@@ -798,7 +798,7 @@ export function useRouteCommands(topic: string): UseRouteCommandsResult {
  * Reactively read `topic`, raw wire Topic or client-side derived channel alike,
  * as a {@link TopicReading} sampled at the current view instant: the latest
  * payload and how current it is. `pending` with no stream mounted and before
- * the first sample, `unowned` for a topic nothing publishes, and `stale` once a
+ * the first sample, `unowned` for a topic nothing publishes, and `held` once a
  * topic that was arriving stops, carrying the last real observation.
  *
  * `topic` is a `string` rather than a {@link TopicId} because the ids this

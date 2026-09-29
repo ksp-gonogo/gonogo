@@ -499,7 +499,7 @@ describe("DELTA_V_BUDGET", () => {
     const budget = derived<DeltaVBudget>(DELTA_V_BUDGET.id);
     // Carried, never withheld: a number that only falls by burning is still the number, and blanking it is what re-enabled ManeuverPlanner's commit.
     expect(budget?.totalVac).toEqual(value("m/s", 3500));
-    expect(budget?.budget.state).toBe("stale");
+    expect(budget?.budget.state).toBe("held");
     expect(budget?.budget.asOfUt).toEqual(value("ut", 0));
     expect(budget?.budget.ageSec).toBeGreaterThanOrEqual(0);
 

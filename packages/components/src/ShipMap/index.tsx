@@ -62,21 +62,21 @@ function ShipMapComponent(_props: Readonly<ComponentProps<ShipMapConfig>>) {
    */
   const thermalReading = topics.useTelemetry("vessel.thermal");
   const hottestPart =
-    thermalReading.state === "observed" || thermalReading.state === "stale"
+    thermalReading.state === "observed" || thermalReading.state === "held"
       ? thermalReading.value.hottestPart
       : undefined;
   const hottestTemp = thermalReading.hottestPart.internalTemp;
   // Ambient skin temperature tints the diagram background; a dated number, so the last observation is used.
   const flightReading = topics.useTelemetry("vessel.flight");
   const externalTemperature = magnitudeOf(
-    flightReading.state === "observed" || flightReading.state === "stale"
+    flightReading.state === "observed" || flightReading.state === "held"
       ? flightReading.value.externalTemperature
       : undefined,
   );
   // Throttle gates the engine flame: the last confirmed throttle, zero on a cold start.
   const controlReading = topics.useTelemetry("vessel.control");
   const throttle = magnitudeOr(
-    controlReading.state === "observed" || controlReading.state === "stale"
+    controlReading.state === "observed" || controlReading.state === "held"
       ? controlReading.value.throttle
       : undefined,
     0,

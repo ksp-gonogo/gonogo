@@ -83,7 +83,7 @@ describe("Targeting: the dock channel alone stops being current", () => {
     expect(visibleText()).not.toMatch(/withheld/i);
 
     act(() => {
-      // Same geometry, now held-stale; the target keeps arriving.
+      // Same geometry, now held; the target keeps arriving.
       fixture.emit(
         "vessel.dock",
         {

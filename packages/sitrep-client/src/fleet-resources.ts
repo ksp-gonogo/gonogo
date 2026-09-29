@@ -64,7 +64,7 @@ export function useFleetVesselResources(
     resources?: Record<string, WireAmount> | null;
   }>(`fleet.${guid}.resources`);
   const raw =
-    reading.state === "observed" || reading.state === "stale"
+    reading.state === "observed" || reading.state === "held"
       ? reading.value
       : undefined;
   return useMemo(() => (raw ? fleetVesselResourceList(raw) : undefined), [raw]);

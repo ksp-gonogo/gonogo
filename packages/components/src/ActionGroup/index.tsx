@@ -34,7 +34,7 @@ function ActionGroupComponent(
     return <StageActionGroup {...props} group={group} />;
   }
   // Whether a group is ON is never held: the toggle inverts it to build its args, so a held value would command the wrong way.
-  const valueHeld = controlReading.state === "stale";
+  const valueHeld = controlReading.state === "held";
   const observed =
     controlReading.state === "observed" ? controlReading.value : undefined;
   const value = resolveGroupValue(group, observed);

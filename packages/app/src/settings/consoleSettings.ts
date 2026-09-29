@@ -73,7 +73,7 @@ export function ConsoleSettingsFromHost({
 }) {
   const reading = useTelemetry("settings.gonogo");
   const model =
-    reading.state === "observed" || reading.state === "stale"
+    reading.state === "observed" || reading.state === "held"
       ? reading.value
       : undefined;
   useEffect(() => {

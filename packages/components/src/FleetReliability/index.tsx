@@ -62,8 +62,7 @@ export function FleetReliabilityUpdates({ vesselId, compact }: UpdatesProps) {
       : undefined) ?? [];
   const costOf = repairCostResolver(crew, stores);
   // Either channel being old replaces the whole row with a notice.
-  const held =
-    partsReading.state === "stale" || summaryReading.state === "stale";
+  const held = partsReading.state === "held" || summaryReading.state === "held";
 
   // reliability.* is active-vessel-only.
   if (!identity || identity.vesselId !== vesselId) return null;

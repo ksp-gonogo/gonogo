@@ -49,7 +49,7 @@ export const unnarrowed = reading.reckoning.value;
  * a value is not thereby entitled to a model.
  */
 export function narrowingStateAloneIsNotEnough(r: TopicReading<number>) {
-  if (r.state === "stale") {
+  if (r.state === "held") {
     // @ts-expect-error a value-bearing state does not imply a model.
     return r.reckoning.value;
   }
@@ -87,14 +87,14 @@ export function reckoningSurvivesLive(
 export function staleWithoutAModelStillHasItsValue(
   r: TopicReading<number>,
 ): number {
-  if (r.state === "stale" && r.reckoning.status === "none") return r.value;
+  if (r.state === "held" && r.reckoning.status === "none") return r.value;
   return 0;
 }
 
 /*
  * `UnmodelledReading` is the type a topic in `NEVER_RECKONABLE` reads as, and
  * the return of `withoutReckoning`. It keeps every state, so the judgement
- * `stale` demands is undiminished, and it can never carry a model.
+ * `held` demands is undiminished, and it can never carry a model.
  */
 declare const unmodelled: UnmodelledReading<number>;
 
@@ -106,7 +106,7 @@ export const unmodelledKeepsItsStates:
   | "unowned"
   | "absent"
   | "observed"
-  | "stale" = unmodelled.state;
+  | "held" = unmodelled.state;
 
 /*
  * A `Reading` is assignable FROM an unmodelled one and not the other way, which
@@ -192,7 +192,7 @@ export function aDeclineIsReachableAndSaysWhy(
 ): ReckoningDecline["reason"] | null {
   if (r.state === "observed" && r.reckoning.status === "declined")
     return r.reckoning.declined.reason;
-  if (r.state === "stale" && r.reckoning.status === "declined")
+  if (r.state === "held" && r.reckoning.status === "declined")
     return r.reckoning.declined.reason;
   return null;
 }

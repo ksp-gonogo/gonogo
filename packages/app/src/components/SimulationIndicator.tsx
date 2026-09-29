@@ -34,7 +34,7 @@ export function SimulationIndicator() {
    */
   const reading = useTelemetry("flight.simulation");
   const payload =
-    reading.state === "observed" || reading.state === "stale"
+    reading.state === "observed" || reading.state === "held"
       ? reading.value
       : undefined;
 

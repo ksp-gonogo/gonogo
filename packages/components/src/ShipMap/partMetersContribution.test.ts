@@ -130,14 +130,14 @@ describe("builtinPartMeterReadings", () => {
 
   it("dates each amount by the parts reading, so a held level is marked", () => {
     const [entry] = builtinPartMeterReadings({
-      state: "stale",
+      state: "held",
       value: tank,
       asOfUt: value("ut", 500),
       grade: "disconnected",
       reckoning: { status: "none" },
     });
     expect(entry?.amount).toEqual({
-      state: "stale",
+      state: "held",
       value: value("units", 90),
       asOfUt: value("ut", 500),
       grade: "disconnected",

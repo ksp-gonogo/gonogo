@@ -1,4 +1,4 @@
-import type { StaleGrade } from "@ksp-gonogo/sitrep-client";
+import type { HeldGrade } from "@ksp-gonogo/sitrep-client";
 import {
   Badge,
   Cluster,
@@ -29,7 +29,7 @@ export function LabSection({
 }: {
   labs: LabStatus[] | null;
   /** `science.lab` stopped arriving: every badge and count below is held. */
-  heldGrade: StaleGrade | undefined;
+  heldGrade: HeldGrade | undefined;
 }) {
   if (labs === null || labs.length === 0) return null;
   return (

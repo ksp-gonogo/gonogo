@@ -10,6 +10,6 @@ export function withDelayCurrency(
   figure: Value<"s">,
   delay: Reading<Value<"s">> | null | undefined,
 ): UnitValue<"s"> {
-  if (delay?.state !== "stale") return figure;
+  if (delay?.state !== "held") return figure;
   return { ...delay, value: figure };
 }

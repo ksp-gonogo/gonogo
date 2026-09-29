@@ -70,7 +70,7 @@ export function useLandingModel(): LandingModel {
     "vessel.target",
   );
   const targetStream =
-    targetReading.state === "observed" || targetReading.state === "stale"
+    targetReading.state === "observed" || targetReading.state === "held"
       ? targetReading.value
       : undefined;
   const targetRange = targetStream?.relativePosition
@@ -95,7 +95,7 @@ export function useLandingModel(): LandingModel {
   const describe = <Payload>(r: TopicReading<Payload>): Payload | undefined =>
     r.reckoning.status === "available"
       ? r.reckoning.value
-      : r.state === "observed" || r.state === "stale"
+      : r.state === "observed" || r.state === "held"
         ? r.value
         : undefined;
 
@@ -104,7 +104,7 @@ export function useLandingModel(): LandingModel {
     r: ReckonableReading<Payload, ReckonableKey>,
   ): Payload | undefined => {
     // `reckoning.status` narrows the reckoning, not the arm carrying it.
-    if (r.state !== "observed" && r.state !== "stale") return undefined;
+    if (r.state !== "observed" && r.state !== "held") return undefined;
     return r.reckoning.status === "available"
       ? { ...r.value, ...r.reckoning.value }
       : r.value;
@@ -125,7 +125,7 @@ export function useLandingModel(): LandingModel {
   // A dated budget is still the best figure, and every readout from it is a figure rather than a control.
   const budgetReading = useProcessor(DELTA_V_BUDGET);
   const budget =
-    budgetReading?.state === "observed" || budgetReading?.state === "stale"
+    budgetReading?.state === "observed" || budgetReading?.state === "held"
       ? budgetReading.value
       : undefined;
   const commsDelayReading = useTelemetry("comms.delay");
@@ -133,7 +133,7 @@ export function useLandingModel(): LandingModel {
   const commsDelay = describeReckonable(commsDelayReading);
 
   // Whether the board is describing rather than reporting, and which readings put it there; it drives a caption, never a blank.
-  const isDated = (r: { state: ReadingState }): boolean => r.state === "stale";
+  const isDated = (r: { state: ReadingState }): boolean => r.state === "held";
   const datedInputs = [
     isDated(flightReading) ? "flight" : null,
     isDated(surfaceReading) ? "surface" : null,

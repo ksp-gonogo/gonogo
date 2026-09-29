@@ -32,7 +32,7 @@ function dateableReckonable<Payload, ReckonableKey extends keyof Payload>(
 } {
   // The state is asked first: `reckoning.status` narrows the reckoning, not the arm carrying it.
   if (
-    (reading.state === "observed" || reading.state === "stale") &&
+    (reading.state === "observed" || reading.state === "held") &&
     reading.reckoning.status === "available"
   )
     return {
@@ -41,7 +41,7 @@ function dateableReckonable<Payload, ReckonableKey extends keyof Payload>(
     };
   if (reading.state === "observed")
     return { value: reading.value, needsDating: false };
-  if (reading.state === "stale")
+  if (reading.state === "held")
     return { value: reading.value, needsDating: true };
   return { value: undefined, needsDating: false };
 }
@@ -125,7 +125,7 @@ export function usePlannerTelemetry() {
    */
   const budgetReading = useProcessor(DELTA_V_BUDGET);
   const availableDeltaV = magnitudeOf(
-    budgetReading?.state === "observed" || budgetReading?.state === "stale"
+    budgetReading?.state === "observed" || budgetReading?.state === "held"
       ? budgetReading.value?.totalVac
       : undefined,
   );

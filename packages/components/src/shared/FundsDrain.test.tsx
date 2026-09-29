@@ -82,14 +82,14 @@ describe("netFundsPerDayReading", () => {
 
   it("is stale when either half is, so the figure can be drawn as held", () => {
     const held: Reading<Value<"f/day">> = {
-      state: "stale",
+      state: "held",
       value: value("f/day", 1200),
       asOfUt: value("ut", 900),
       grade: "disconnected",
       reckoning: { status: "none" },
     };
     const reading = netFundsPerDayReading(held, observed(value("f/day", 2180)));
-    expect(reading.state).toBe("stale");
+    expect(reading.state).toBe("held");
     expect(reading.value?.magnitude).toBe(-980);
   });
 });

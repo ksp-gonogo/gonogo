@@ -5,10 +5,10 @@ import { resolveCurrency } from "./readingCurrency";
 describe("resolveCurrency", () => {
   it("has nothing to say about a held reading that carries no number", () => {
     const resolved = resolveCurrency({
-      state: "stale",
+      state: "held",
       reckoning: { status: "none" },
       asOfUt: value("ut", 1_000),
-      grade: "held-stale",
+      grade: "held",
     });
     expect(resolved.held).toBe(false);
     expect(resolved.caption).toBeNull();
@@ -16,14 +16,14 @@ describe("resolveCurrency", () => {
 
   it("marks and captions a held reading that carries one", () => {
     const resolved = resolveCurrency({
-      state: "stale",
+      state: "held",
       reckoning: { status: "none" },
       value: value("m", 12),
       asOfUt: value("ut", 1_000),
-      grade: "held-stale",
+      grade: "held",
     });
     expect(resolved.held).toBe(true);
-    expect(resolved.caption).toMatch(/^STALE/);
+    expect(resolved.caption).toMatch(/^HELD/);
   });
 });
 
@@ -71,16 +71,16 @@ describe("resolveCurrency for a consumer that draws the reckoning", () => {
   it("draws the model's figure on a held reading, under the held mark", () => {
     const resolved = resolveCurrency(
       {
-        state: "stale",
+        state: "held",
         value: value("m", 12),
         asOfUt: value("ut", 1_000),
-        grade: "held-stale",
+        grade: "held",
         reckoning: modelled(true),
       },
       drawsReckoning,
     );
     expect(resolved.shown).toEqual(value("m", 20));
-    expect(resolved.caption).toMatch(/^STALE/);
+    expect(resolved.caption).toMatch(/^HELD/);
   });
 
   it("draws nothing for a reading with no observation, whatever is on offer", () => {

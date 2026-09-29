@@ -88,7 +88,7 @@ function TransferWindowComponent({
   const orbitReading = topics.useTelemetry("vessel.orbit");
   // The observation overlaid with what the conic moved; a `ReckonableReading` cannot go through `stillTrue`.
   const observedOrbit =
-    orbitReading.state === "observed" || orbitReading.state === "stale"
+    orbitReading.state === "observed" || orbitReading.state === "held"
       ? orbitReading.value
       : undefined;
   const orbit =
@@ -96,14 +96,14 @@ function TransferWindowComponent({
       ? { ...observedOrbit, ...orbitReading.reckoning.value }
       : observedOrbit;
   const orbitHeldSince: HeldSince =
-    orbitReading.state === "stale"
+    orbitReading.state === "held"
       ? { asOfUt: orbitReading.asOfUt, grade: orbitReading.grade }
       : null;
   const orbitConfirmedAbsent = orbitReading.state === "absent";
   // A catalogue only changes when the game does, so a held one is still the catalogue.
   const factsReading = useProcessor(CELESTIAL_FACTS);
   const facts =
-    factsReading?.state === "observed" || factsReading?.state === "stale"
+    factsReading?.state === "observed" || factsReading?.state === "held"
       ? factsReading.value
       : undefined;
   const bodies = facts?.bodies ?? NO_BODIES;
@@ -117,11 +117,11 @@ function TransferWindowComponent({
    */
   const budgetReading = useProcessor(DELTA_V_BUDGET);
   const budget =
-    budgetReading?.state === "observed" || budgetReading?.state === "stale"
+    budgetReading?.state === "observed" || budgetReading?.state === "held"
       ? budgetReading.value
       : undefined;
   const budgetDeltaV = magnitudeOf(budget?.totalVac);
-  const budgetHeld = budget?.budget.state === "stale";
+  const budgetHeld = budget?.budget.state === "held";
   const budgetHeldSince: HeldSince = budgetHeld
     ? { asOfUt: budget?.budget.asOfUt }
     : null;

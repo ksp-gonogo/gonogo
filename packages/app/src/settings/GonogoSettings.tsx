@@ -53,7 +53,7 @@ export function GonogoSettings({ owner = CORE_OWNER }: { owner?: string }) {
    */
   const reading = useTelemetry("settings.gonogo");
   const model: SettingsModel | undefined =
-    reading.state === "observed" || reading.state === "stale"
+    reading.state === "observed" || reading.state === "held"
       ? reading.value
       : undefined;
   // Off the rail: the settings modal has none, and this form states the outcome itself.

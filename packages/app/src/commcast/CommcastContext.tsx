@@ -119,7 +119,7 @@ export function useSeparationMatrix(): SeparationMatrix | undefined {
   const pairs =
     reading.state === "observed"
       ? reading.value.pairs
-      : reading.state === "stale"
+      : reading.state === "held"
         ? reading.value.pairs
         : undefined;
   return useMemo(() => {
@@ -158,7 +158,7 @@ export function useRecipients(me: Vantage): readonly CommsRecipient[] {
   const entries: readonly CommandCentreEntry[] =
     reading.state === "observed"
       ? reading.value
-      : reading.state === "stale"
+      : reading.state === "held"
         ? reading.value
         : [];
   return useMemo(

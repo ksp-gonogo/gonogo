@@ -42,7 +42,7 @@ export function isOwnCraftVantage(
  * subject is unknown.
  */
 function subjectOf(reading: TopicReading<VesselOrbit>): string | undefined {
-  return reading.state === "observed" || reading.state === "stale"
+  return reading.state === "observed" || reading.state === "held"
     ? reading.value.meta?.source
     : undefined;
 }

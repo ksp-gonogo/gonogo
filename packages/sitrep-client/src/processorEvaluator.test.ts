@@ -843,10 +843,10 @@ describe("a reading-shaped dep", () => {
     wall.advanceBy(60);
     store.setTransportConnected(false);
     store.beginFrame();
-    expect(derived<string>(proc.id)).toBe("stale");
+    expect(derived<string>(proc.id)).toBe("held");
 
     expect(seen).toContain("observed");
-    expect(seen).toContain("stale");
+    expect(seen).toContain("held");
     deactivate();
   });
 

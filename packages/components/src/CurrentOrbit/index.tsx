@@ -61,7 +61,7 @@ type OrbitReading = ReturnType<typeof useTelemetry<"vessel.orbit">>;
  */
 function drawableOrbit(reading: OrbitReading) {
   const last =
-    reading.state === "observed" || reading.state === "stale"
+    reading.state === "observed" || reading.state === "held"
       ? reading.value
       : undefined;
   if (last !== undefined && reading.reckoning.status === "available") {
@@ -95,20 +95,20 @@ function CurrentOrbitComponent({
   const frameReading = useStream<ControlFrame>("system.frame");
   // The selected frame is a setting, which a quiet link does not change.
   const controlFrame =
-    frameReading.state === "observed" || frameReading.state === "stale"
+    frameReading.state === "observed" || frameReading.state === "held"
       ? frameReading.value
       : undefined;
   const apsides = apsidesExist(controlFrame);
   const noApsidesHere = apsides === "invalid";
   const orbitReading = useTelemetry("vessel.orbit");
   const observedOrbit =
-    orbitReading.state === "observed" || orbitReading.state === "stale"
+    orbitReading.state === "observed" || orbitReading.state === "held"
       ? orbitReading.value
       : undefined;
   const orbit = drawableOrbit(orbitReading);
   // A held orbit no model carries says nothing of where the craft is now, so it is drawn with no craft on it.
   const orbitHeld =
-    orbitReading.state === "stale" &&
+    orbitReading.state === "held" &&
     orbitReading.reckoning.status !== "available";
   const sma = orbit?.sma;
   const eccentricity = orbit?.ecc;
@@ -165,7 +165,7 @@ function CurrentOrbitComponent({
   return (
     <Panel
       panelTitle="ORBIT"
-      panelStatus={orbitHeld && canDrawDiagram ? "held-stale" : undefined}
+      panelStatus={orbitHeld && canDrawDiagram ? "held" : undefined}
       sections={[
         /* One section: the widget measures its own tile to place the diagram beside or under the readouts, through a plain div because ui-kit layout primitives don't forward refs. */
         <Section key="orbit" fill>

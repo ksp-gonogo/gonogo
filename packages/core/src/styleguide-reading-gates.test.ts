@@ -144,7 +144,7 @@ describe("styleguide: a Reading is never a gate", () => {
       .filter((at) => !READING_GATE_DEBT.includes(at))
       .sort();
     // Each of these is a gate that no longer gates. Branch on `state` instead:
-    // `pending` is nothing-yet, `absent` is a confirmed nothing, and `stale` is
+    // `pending` is nothing-yet, `absent` is a confirmed nothing, and `held` is
     // usually still true of the world for a presence or identity read.
     expect(unlisted).toEqual([]);
   });

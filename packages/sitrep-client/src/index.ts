@@ -345,13 +345,13 @@ export {
 } from "./processors";
 export { orbitalPeriod, STANDARD_GRAVITY } from "./propagation";
 export type {
+  HeldGrade,
   ReadingState,
   ReckonableReading,
   ReckonerFor,
   Reckoning,
   ReckoningBasis,
   ReckoningDecline,
-  StaleGrade,
   TopicReading,
   UnmodelledReading,
 } from "./reading";
@@ -368,7 +368,7 @@ export type {
  *
  * `observedValue` is one of those and not a return of the verdict accessor: it names
  * an ARM rather than a policy, and a widget that wants the last-known figure still
- * branches on `stale` itself and captions it.
+ * branches on `held` itself and captions it.
  */
 export {
   bandIn,

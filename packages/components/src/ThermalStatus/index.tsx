@@ -28,10 +28,10 @@ function ThermalStatusComponent({
   // Temperatures are measurements and survive a stale record, dated; the bands are judgements about now and drop to `unknown`.
   const thermalReading = topics.useTelemetry("vessel.thermal");
   const thermal =
-    thermalReading.state === "observed" || thermalReading.state === "stale"
+    thermalReading.state === "observed" || thermalReading.state === "held"
       ? thermalReading.value
       : undefined;
-  const thermalHeld = thermalReading.state === "stale";
+  const thermalHeld = thermalReading.state === "held";
   const rawHottestName = thermal?.hottestPart?.name;
   const rawHottestTempK = thermal?.hottestPart?.skinTemp;
   const rawHottestMaxK = thermal?.hottestPart?.skinMaxTemp;

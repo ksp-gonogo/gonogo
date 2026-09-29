@@ -29,7 +29,7 @@ export function usePartActions(flightId: number): PartActionsRead {
   const reading = useStream<PartActions>(partActionsTopic(flightId));
   // What a part offers changes only when an action fires, so the list holds.
   const payload =
-    reading.state === "observed" || reading.state === "stale"
+    reading.state === "observed" || reading.state === "held"
       ? reading.value
       : undefined;
 

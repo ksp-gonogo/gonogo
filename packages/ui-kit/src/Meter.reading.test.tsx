@@ -225,11 +225,11 @@ describe("Meter, given a reading of a fraction", () => {
       <Meter
         label="Dose"
         value={{
-          state: "stale",
+          state: "held",
           reckoning: { status: "none" },
           value: value("ratio", 0.39),
           asOfUt: AT,
-          grade: "held-stale",
+          grade: "held",
         }}
       />,
     );
@@ -241,11 +241,11 @@ describe("Meter, given a reading of a fraction", () => {
       <Meter
         label="Dose"
         value={{
-          state: "stale",
+          state: "held",
           reckoning: { status: "none" },
           value: value("ratio", 0.39),
           asOfUt: AT,
-          grade: "held-stale",
+          grade: "held",
         }}
       />,
     );
@@ -257,7 +257,7 @@ describe("Meter, given a reading of a fraction", () => {
       <Meter
         label="Dose"
         value={{
-          state: "stale",
+          state: "held",
           reckoning: { status: "none" },
           value: value("ratio", 0.39),
           asOfUt: AT,
@@ -274,7 +274,7 @@ describe("Meter, given a reading of a fraction", () => {
       <Meter
         label="Dose"
         value={{
-          state: "stale",
+          state: "held",
           reckoning: { status: "none" },
           value: value("ratio", 0.39),
           asOfUt: AT,
@@ -282,14 +282,14 @@ describe("Meter, given a reading of a fraction", () => {
       />,
     );
 
-    // A stale figure with no named grade still fires all three signals, with grade-neutral words.
+    // A held figure with no named grade still fires all three signals, and says HELD.
     expect(container.querySelector("[data-fill-held]")).not.toBeNull();
     expect(container.querySelector("[data-held-mark]")).not.toBeNull();
 
     const at = formatQuantity(AT.magnitude, AT.unit).value;
     const caption = container.querySelector("[data-unit-currency]");
-    expect(caption?.textContent).toMatch(/HELD/i);
-    expect(caption?.textContent).not.toMatch(/STALE|BLACKOUT|RECORDED/i);
+    expect(caption?.textContent).toMatch(/HELD/);
+    expect(caption?.textContent).not.toMatch(/OFFLINE|BLACKOUT|RECORDED/);
     expect(caption?.textContent).toContain(at);
   });
 
@@ -306,11 +306,11 @@ describe("Meter, given a reading of a fraction", () => {
       <Meter
         label="Dose"
         value={{
-          state: "stale",
+          state: "held",
           reckoning: { status: "none" },
           value: value("ratio", 0.39),
           asOfUt: AT,
-          grade: "held-stale",
+          grade: "held",
         }}
       />,
     );
@@ -323,7 +323,7 @@ describe("Meter, given a reading of a fraction", () => {
     expect(at).not.toBe(NULL_DISPLAY);
 
     const caption = container.querySelector("[data-unit-currency]");
-    expect(caption?.textContent).toMatch(/STALE/i);
+    expect(caption?.textContent).toMatch(/HELD/);
     expect(caption?.textContent).toContain(at);
 
     // Silent by design: the words beside it are what speak.
@@ -332,7 +332,7 @@ describe("Meter, given a reading of a fraction", () => {
 
     // Anchored to the marked quantity, since `Unit` also titles the unit symbol.
     const hover = mark?.closest("[data-tooltip]")?.getAttribute("data-tooltip");
-    expect(hover).toMatch(/STALE/i);
+    expect(hover).toMatch(/HELD/);
     expect(hover).toContain(at);
   });
 
@@ -342,11 +342,11 @@ describe("Meter, given a reading of a fraction", () => {
         label="Dose"
         valueLabel="39%"
         value={{
-          state: "stale",
+          state: "held",
           reckoning: { status: "none" },
           value: value("ratio", 0.39),
           asOfUt: AT,
-          grade: "held-stale",
+          grade: "held",
         }}
       />,
     );
@@ -355,13 +355,13 @@ describe("Meter, given a reading of a fraction", () => {
     const mark = container.querySelector("[data-held-mark]");
     expect(mark?.getAttribute("aria-hidden")).toBe("true");
     const caption = container.querySelector("[data-unit-currency]");
-    expect(caption?.textContent).toMatch(/STALE/i);
+    expect(caption?.textContent).toMatch(/HELD/);
     expect(container.textContent).toContain("39%");
     expect(
       screen
         .getByRole("meter", { name: "Dose" })
         .getAttribute("aria-valuetext"),
-    ).toMatch(/^39%, .*STALE/i);
+    ).toMatch(/^39%, .*HELD/);
   });
 
   it("says a held capacity after a caller's own valueLabel", () => {
@@ -371,18 +371,18 @@ describe("Meter, given a reading of a fraction", () => {
         valueLabel="half"
         value={value("t", 1)}
         capacity={{
-          state: "stale",
+          state: "held",
           reckoning: { status: "none" },
           value: value("t", 2),
           asOfUt: AT,
-          grade: "held-stale",
+          grade: "held",
         }}
       />,
     );
     expect(container.querySelector("[data-held-mark]")).not.toBeNull();
     expect(
       container.querySelector("[data-unit-currency]")?.textContent,
-    ).toMatch(/STALE/i);
+    ).toMatch(/HELD/);
   });
 
   it("draws a caller's valueLabelNode as given, since its own Units mark themselves", () => {
@@ -392,11 +392,11 @@ describe("Meter, given a reading of a fraction", () => {
         valueLabel="39%"
         valueLabelNode={<span>39 percent</span>}
         value={{
-          state: "stale",
+          state: "held",
           reckoning: { status: "none" },
           value: value("ratio", 0.39),
           asOfUt: AT,
-          grade: "held-stale",
+          grade: "held",
         }}
       />,
     );
@@ -405,7 +405,7 @@ describe("Meter, given a reading of a fraction", () => {
       screen
         .getByRole("meter", { name: "Dose" })
         .getAttribute("aria-valuetext"),
-    ).toMatch(/^39%, .*STALE/i);
+    ).toMatch(/^39%, .*HELD/);
   });
 
   it("adds nothing to a caller's valueLabel while the reading is current", () => {
@@ -421,7 +421,7 @@ describe("Meter, given a reading of a fraction", () => {
       <Meter
         label="Dose"
         value={{
-          state: "stale",
+          state: "held",
           reckoning: {
             status: "available",
             atUt: value("ut", 0),
@@ -432,7 +432,7 @@ describe("Meter, given a reading of a fraction", () => {
           },
           value: value("ratio", 0.39),
           asOfUt: AT,
-          grade: "held-stale",
+          grade: "held",
         }}
       />,
     );
@@ -552,11 +552,11 @@ describe("Meter, given a capacity that is itself a reading", () => {
         label="LiquidFuel"
         value={value("units", 232)}
         capacity={{
-          state: "stale",
+          state: "held",
           reckoning: { status: "none" },
           value: value("units", 400),
           asOfUt: AT,
-          grade: "held-stale",
+          grade: "held",
         }}
       />,
     );
@@ -569,11 +569,11 @@ describe("Meter, given a capacity that is itself a reading", () => {
         label="LiquidFuel"
         value={value("units", 232)}
         capacity={{
-          state: "stale",
+          state: "held",
           reckoning: { status: "none" },
           value: value("units", 400),
           asOfUt: AT,
-          grade: "held-stale",
+          grade: "held",
         }}
       />,
     );

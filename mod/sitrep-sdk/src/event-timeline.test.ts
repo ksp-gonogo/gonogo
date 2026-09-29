@@ -77,7 +77,7 @@ describe("EventTimeline", () => {
     it("discards a stale-epoch straggler", () => {
       const t = new EventTimeline();
       t.append(occ(10, "a", null, 1));
-      t.append(occ(5, "stale", null, 0));
+      t.append(occ(5, "straggler", null, 0));
       expect(t.epoch).toBe(1);
       expect(t.all().map((o) => o.kind)).toEqual(["a"]);
     });

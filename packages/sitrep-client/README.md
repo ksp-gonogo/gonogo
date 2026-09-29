@@ -57,7 +57,7 @@ Wraps a `Transport` and provides:
 - **`useStream<Payload>(topic: string): TopicReading<Payload>`**: reactively reads a
   topic, raw or derived, as a reading (`useSyncExternalStore` over the
   client's ref-counted subscription). `pending` until the first sample
-  arrives, `observed` while samples keep arriving, and `stale`, carrying the
+  arrives, `observed` while samples keep arriving, and `held`, carrying the
   last real observation, once they stop. Unmounting releases the
   subscription; when the last subscriber for a topic goes away, the client
   sends `unsubscribe` to the transport.
@@ -81,14 +81,14 @@ function MissionPanel() {
   const altitude = useStream<number>("v.alt");
   const { send, status } = useCommand("stage");
   const shown =
-    altitude.state === "observed" || altitude.state === "stale"
+    altitude.state === "observed" || altitude.state === "held"
       ? altitude.value
       : "n/a";
   return (
     <div>
       <span>
         altitude: {shown}
-        {altitude.state === "stale" && " (last known)"}
+        {altitude.state === "held" && " (last known)"}
       </span>
       <button onClick={() => send()} disabled={status.phase === "in-flight"}>
         stage

@@ -17,7 +17,7 @@ export function useCelestialBodies(): CelestialBody[] {
   // A held catalogue is still the catalogue.
   const reading = useProcessor(CELESTIAL_FACTS);
   const facts =
-    reading?.state === "observed" || reading?.state === "stale"
+    reading?.state === "observed" || reading?.state === "held"
       ? reading.value
       : undefined;
   return facts?.bodies ?? NO_BODIES;

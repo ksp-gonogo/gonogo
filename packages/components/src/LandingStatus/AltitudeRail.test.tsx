@@ -75,16 +75,16 @@ describe("AltitudeRail", () => {
       <AltitudeRail
         {...descending}
         agl={{
-          state: "stale",
+          state: "held",
           value: value("m", 1200),
           asOfUt: AT,
-          grade: "held-stale",
+          grade: "held",
           reckoning: { status: "none" },
         }}
       />,
     );
     const ladder = screen.getByRole("meter", {
-      name: /altitude above terrain.*stale/i,
+      name: /^Altitude above terrain, HELD/,
     });
     expect(ladder).toHaveAttribute("aria-valuenow", "1200");
   });

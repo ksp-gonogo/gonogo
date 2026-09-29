@@ -21,7 +21,7 @@ import { AlarmHostService } from "./AlarmHostService";
  * after that and the alarm's "toggle gear" sends the state it is already in.
  *
  * The reading now carries its own currency, so the dispatch can see that the
- * value is `stale` and refuse instead of inverting it. Both answers are pinned
+ * value is `held` and refuse instead of inverting it. Both answers are pinned
  * here over one real provider and one real socket, separated by nothing but
  * whether `vessel.control` kept arriving.
  */
@@ -211,7 +211,7 @@ describe("an alarm's onFire action group and the currency of what it inverts", (
     );
     await act(async () => {});
     expect(actionGroupCommands(received)).toHaveLength(0);
-    expect(svc.snapshot().onFireRefusals?.[alarmId]).toContain("stale");
+    expect(svc.snapshot().onFireRefusals?.[alarmId]).toContain("held");
 
     svc.dispose();
     view.unmount();

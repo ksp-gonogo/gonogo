@@ -57,7 +57,7 @@ function StrategiesComponent({
   const reputation = economy?.reputation;
   const science = economy?.science;
   // Stale balances and a never-arrived economy both refuse Activate, but only one is about the link.
-  const balancesHeld = careerReading.state === "stale";
+  const balancesHeld = careerReading.state === "held";
   // The balances as the rail draws them: held ones stay on screen and Unit marks them.
   const shownBalances = {
     funds: readingOf(careerReading, (c) => c.economy?.funds ?? undefined),

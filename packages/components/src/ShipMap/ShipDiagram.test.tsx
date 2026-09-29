@@ -155,7 +155,7 @@ describe("ShipDiagram", () => {
             resource: "LiquidFuel",
             displayName: "LiquidFuel",
             amount: {
-              state: "stale" as const,
+              state: "held" as const,
               value: value("units", 90),
               asOfUt: value("ut", 500),
               grade: "disconnected" as const,

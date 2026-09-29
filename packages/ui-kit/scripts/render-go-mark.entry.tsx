@@ -28,10 +28,10 @@ function live<Unit extends string>(v: Value<Unit>): Reading<Value<Unit>> {
 
 function held<Unit extends string>(v: Value<Unit>): Reading<Value<Unit>> {
   return {
-    state: "stale",
+    state: "held",
     value: v,
     asOfUt: AT,
-    grade: "held-stale",
+    grade: "held",
     reckoning: { status: "none" },
   };
 }

@@ -26,11 +26,11 @@ function StreamProbe() {
 
 /**
  * Renders how current the reading is, and the value with it: a held
- * scene must arrive as `stale` and still carry the figure.
+ * scene must arrive as `held` and still carry the figure.
  */
 function CurrencyProbe() {
   const reading = useTelemetry("vessel.control");
-  if (reading.state !== "observed" && reading.state !== "stale") {
+  if (reading.state !== "observed" && reading.state !== "held") {
     return <span>{`state=${reading.state}`}</span>;
   }
   return (
@@ -141,7 +141,7 @@ describe("widget DOM harness feeds the widget", () => {
       fixture: STOPPED_ARRIVING_FIXTURE,
       mode: MODE,
     });
-    expect(html).toContain("state=stale sas=true");
+    expect(html).toContain("state=held sas=true");
   });
 
   it("stages a held scene on the live-render path too", async () => {
@@ -151,7 +151,7 @@ describe("widget DOM harness feeds the widget", () => {
       mode: MODE,
     });
     try {
-      expect(container.textContent).toContain("state=stale sas=true");
+      expect(container.textContent).toContain("state=held sas=true");
     } finally {
       teardown();
     }

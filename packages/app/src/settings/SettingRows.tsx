@@ -112,7 +112,7 @@ function StreamBackedRow({ def }: { def: StreamBackedSetting }) {
   const reading = useStream<unknown>(def.topic);
   // A setting the mod reported holds until it reports another.
   const payload =
-    reading.state === "observed" || reading.state === "stale"
+    reading.state === "observed" || reading.state === "held"
       ? reading.value
       : reading.state === "absent"
         ? null

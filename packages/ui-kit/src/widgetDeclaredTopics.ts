@@ -16,7 +16,7 @@ export interface WidgetTopicDeclaration {
  *
  * The lists are unioned, since a widget can split its topics across both and
  * preferring either would silently drop the other half from the blackout badge.
- * Optional channels are included because a stale one is worth badging; an
+ * Optional channels are included because a held one is worth badging; an
  * absent one resolves to nothing downstream.
  */
 export function widgetDeclaredTopics(

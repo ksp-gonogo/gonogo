@@ -61,7 +61,7 @@ export function useManeuverFeasibility(): ManeuverFeasibility {
    */
   const reading = useProcessor(DELTA_V_BUDGET);
   const budget =
-    reading?.state === "observed" || reading?.state === "stale"
+    reading?.state === "observed" || reading?.state === "held"
       ? reading.value?.totalVac
       : undefined;
   const available =

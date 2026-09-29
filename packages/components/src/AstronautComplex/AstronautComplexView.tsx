@@ -173,7 +173,7 @@ export function AstronautComplexComponent(
   const fundsStat = (
     <Stat label="Funds" detail={fundsDetail}>
       {hasFunds ? (
-        <span title={fundsTitle(fundsReading.state === "stale", careerFunds)}>
+        <span title={fundsTitle(fundsReading.state === "held", careerFunds)}>
           <Unit value={fundsReading.economy.funds} />
         </span>
       ) : (

@@ -29,7 +29,7 @@ export function usePhaseAngles(
   const orbitReading = useTelemetry("vessel.orbit");
   // The observation overlaid by what the conic moved (the phase); `reckoning.value` alone is not an orbit.
   const orbitObserved =
-    orbitReading.state === "observed" || orbitReading.state === "stale"
+    orbitReading.state === "observed" || orbitReading.state === "held"
       ? orbitReading.value
       : undefined;
   const orbit =

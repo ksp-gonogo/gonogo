@@ -206,8 +206,8 @@ describe("a field property's currency is its topic's", () => {
     store.beginFrame();
 
     const reading = store.sampleReading<Flight>("vessel.flight");
-    if (reading.state !== "stale") throw new Error("expected a stale topic");
-    expect(reading.altitudeAsl.state).toBe("stale");
+    if (reading.state !== "held") throw new Error("expected a stale topic");
+    expect(reading.altitudeAsl.state).toBe("held");
     expect(reading.altitudeAsl.grade).toBe(reading.grade);
     expect(reading.altitudeAsl.asOfUt?.magnitude).toBe(10);
   });

@@ -26,6 +26,7 @@ import { VISIBLE_GAP_SECONDS } from "./view-clock";
 export type {
   BandKind,
   DeclaredTopicReckoning,
+  HeldGrade,
   ModelledField,
   Reading,
   ReadingReckoning,
@@ -40,7 +41,6 @@ export type {
   ReckoningBasis,
   ReckoningDecline,
   ReservedReadingKey,
-  StaleGrade,
   TopicCurrency,
   TopicFields,
   TopicModel,
@@ -226,7 +226,7 @@ export function readingFrom<Payload>(
     });
   }
   return topicReading({
-    state: "stale",
+    state: "held",
     reckoning,
     value: point.payload,
     asOfUt: value("ut", point.validAt),

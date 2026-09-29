@@ -25,7 +25,7 @@ function LiquidFuel() {
     "dv.currentStageResource.LiquidFuel",
   );
   const fuel =
-    fuelReading.state === "observed" || fuelReading.state === "stale"
+    fuelReading.state === "observed" || fuelReading.state === "held"
       ? fuelReading.value.magnitude
       : undefined;
   return <div>fuel:{fuel === undefined ? NULL_DISPLAY : String(fuel)}</div>;
@@ -79,7 +79,7 @@ describe("TelemetryProvider bridges client -> TimelineStore -> useStream for der
     function Raw() {
       const vReading = useStream<number>("v.raw");
       const v =
-        vReading.state === "observed" || vReading.state === "stale"
+        vReading.state === "observed" || vReading.state === "held"
           ? vReading.value
           : undefined;
       return <div>raw:{v ?? NULL_DISPLAY}</div>;

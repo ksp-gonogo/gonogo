@@ -9,11 +9,11 @@ describe("PanelStatusStore", () => {
 
   it("summarises a single contribution as itself", () => {
     const store = createPanelStatusStore();
-    store.register({ id: "a", severity: "warning", label: "STALE" });
+    store.register({ id: "a", severity: "warning", label: "HELD" });
     expect(store.getSummary()).toEqual({
       id: "a",
       severity: "warning",
-      label: "STALE",
+      label: "HELD",
     });
   });
 
@@ -36,11 +36,11 @@ describe("PanelStatusStore", () => {
     // One topic reads fine, a second goes stale, and the panel must reflect the worst.
     const store = createPanelStatusStore();
     store.register({ id: "topic-1", severity: "nominal", label: "" });
-    store.register({ id: "topic-2", severity: "warning", label: "STALE" });
+    store.register({ id: "topic-2", severity: "warning", label: "HELD" });
     expect(store.getSummary()).toEqual({
       id: "topic-2",
       severity: "warning",
-      label: "STALE",
+      label: "HELD",
     });
   });
 
@@ -94,18 +94,18 @@ describe("PanelStatusStore", () => {
   it("getSummary() is referentially stable while the result is unchanged", () => {
     // An identical snapshot must be the same object, or useSyncExternalStore loops.
     const store = createPanelStatusStore();
-    store.register({ id: "a", severity: "warning", label: "STALE" });
+    store.register({ id: "a", severity: "warning", label: "HELD" });
     const first = store.getSummary();
     const second = store.getSummary();
     expect(second).toBe(first);
     // A no-op update to the same values keeps identity too.
-    store.update("a", { severity: "warning", label: "STALE" });
+    store.update("a", { severity: "warning", label: "HELD" });
     expect(store.getSummary()).toBe(first);
   });
 
   it("returns a fresh object only when the merged result actually changes", () => {
     const store = createPanelStatusStore();
-    store.register({ id: "a", severity: "warning", label: "STALE" });
+    store.register({ id: "a", severity: "warning", label: "HELD" });
     const first = store.getSummary();
     store.update("a", { severity: "critical", label: "GONE" });
     const next = store.getSummary();
@@ -118,7 +118,7 @@ describe("PanelStatusStore", () => {
     const onChange = vi.fn();
     const unsub = store.subscribe(onChange);
     const drop = store.register({ id: "a", severity: "info", label: "NOTE" });
-    store.update("a", { severity: "warning", label: "STALE" });
+    store.update("a", { severity: "warning", label: "HELD" });
     drop();
     expect(onChange).toHaveBeenCalledTimes(3);
     unsub();

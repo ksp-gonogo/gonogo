@@ -131,7 +131,7 @@ export function TrajectoryCurrencyBridge({
  *
  * A `pending` or `absent` reading contributes nothing: "no trajectory has
  * arrived" is the stream badge's sentence, and saying it twice in two
- * vocabularies would make the panel less clear, not more. A `stale` reading is
+ * vocabularies would make the panel less clear, not more. A `held` reading is
  * likewise the stream badge's judgement. This bridge speaks only about a
  * trajectory it actually has, and a reading carrying a reckoning counts as
  * having one: a reckoned value is still elements with a horizon attached, and
@@ -153,7 +153,7 @@ function TrajectoryCurrencyContribution() {
    * gets the moved fields and nothing else, which is not an orbit.
    */
   const observedOrbit =
-    reading.state === "observed" || reading.state === "stale"
+    reading.state === "observed" || reading.state === "held"
       ? reading.value
       : undefined;
   const orbit =

@@ -227,7 +227,7 @@ afterEach(() => {
 function Probe({ testId, topic }: { testId: string; topic: string }) {
   const valueReading = useStream<Record<string, unknown>>(topic);
   const value =
-    valueReading.state === "observed" || valueReading.state === "stale"
+    valueReading.state === "observed" || valueReading.state === "held"
       ? valueReading.value
       : undefined;
   const store = useTelemetryStore();
@@ -298,7 +298,7 @@ function ChainProbe() {
     `${UPLINK_DOMAIN}.devices`,
   );
   const devices =
-    devicesReading.state === "observed" || devicesReading.state === "stale"
+    devicesReading.state === "observed" || devicesReading.state === "held"
       ? devicesReading.value
       : [];
   const id = devices[0]?.id;

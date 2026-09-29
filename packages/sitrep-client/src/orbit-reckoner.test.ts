@@ -159,13 +159,13 @@ describe("the vessel.orbit reckoner", () => {
      * read is a quarter period after the sample; what matters here is that the
      * elements are still there to read.
      */
-    expect(reading.state).toBe("stale");
+    expect(reading.state).toBe("held");
     /*
      * Narrowed rather than optional-chained: now that `vessel.orbit` carries a
      * mark, `value` is only on the value-bearing arms, which is the whole point
      * of the union and is exactly the branch a consumer has to write.
      */
-    if (reading.state !== "stale") throw new Error("unreachable");
+    if (reading.state !== "held") throw new Error("unreachable");
     expect(reading.value.ecc?.magnitude).toBe(0);
   });
 });

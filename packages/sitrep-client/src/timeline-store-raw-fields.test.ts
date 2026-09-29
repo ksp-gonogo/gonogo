@@ -211,11 +211,9 @@ describe("TimelineStore: raw record field-subtopic resolution", () => {
     store.ingest("pacer.tick", pacer(160));
     const token = store.beginFrame();
 
-    expect(store.sampleStatus("time.warp", token)).toBe("held-stale");
-    expect(store.sampleStatus("time.warp.warpRate", token)).toBe("held-stale");
-    expect(store.sampleReading("time.warp.warpRate", token).state).toBe(
-      "stale",
-    );
+    expect(store.sampleStatus("time.warp", token)).toBe("held");
+    expect(store.sampleStatus("time.warp.warpRate", token)).toBe("held");
+    expect(store.sampleReading("time.warp.warpRate", token).state).toBe("held");
   });
 
   it("a genuinely 2-segment raw topic (no field to split) is unaffected; reads its own literal timeline exactly as before", () => {

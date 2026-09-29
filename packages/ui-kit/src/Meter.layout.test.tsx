@@ -10,10 +10,10 @@ const AT = value("ut", 12_000);
 
 function held<Unit extends string>(figure: Value<Unit>): Reading<Value<Unit>> {
   return {
-    state: "stale",
+    state: "held",
     value: figure,
     asOfUt: AT,
-    grade: "held-stale",
+    grade: "held",
     reckoning: { status: "none" },
   };
 }

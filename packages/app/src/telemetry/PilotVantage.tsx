@@ -32,13 +32,13 @@ function usePilotCraftVantageId(): string | undefined {
   // The craft the samples are about, which a quiet link does not change.
   const orbitReading = useTelemetry("vessel.orbit");
   const subjectId =
-    orbitReading.state === "observed" || orbitReading.state === "stale"
+    orbitReading.state === "observed" || orbitReading.state === "held"
       ? orbitReading.value.meta?.source
       : undefined;
   // Same read as `VantageControl`'s `useActiveCentres`, minus the home-centre question this has no use for: a stale roster is still the roster, and only never-arrived is empty.
   const rosterReading = useTelemetry("commandCentre.roster");
   const roster =
-    rosterReading.state === "observed" || rosterReading.state === "stale"
+    rosterReading.state === "observed" || rosterReading.state === "held"
       ? rosterReading.value
       : undefined;
   const isActiveCentre = (roster ?? []).some(

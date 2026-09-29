@@ -57,10 +57,10 @@ export function held<Unit extends string>(
 ): Reading<Value<Unit>> {
   const drawn = value(unit, magnitude);
   return {
-    state: "stale",
+    state: "held",
     value: drawn,
     asOfUt: AT,
-    grade: "held-stale",
+    grade: "held",
     reckoning: reckoningOf(drawn, band),
   };
 }

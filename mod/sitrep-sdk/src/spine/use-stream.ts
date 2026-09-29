@@ -16,7 +16,7 @@ import { subscribeTopicRead } from "./subscribe-read";
  * data: the store keeps the last sample after a topic stops arriving, so a bare
  * read goes on handing a widget a confident figure the link has stopped
  * vouching for. The reading makes the caller branch first, exactly as
- * `useTelemetry` does for a typed Topic: `observed` is current, `stale` is the
+ * `useTelemetry` does for a typed Topic: `observed` is current, `held` is the
  * last real observation held (with its instant and grade), and `pending`,
  * `unowned` and `absent` carry no value at all. A derived channel computes its
  * own currency from its inputs, so its reading is as honest as a raw one.

@@ -10,10 +10,10 @@ import { CORE_UPLINK_CLIENT } from "./uplink-clients";
 // Four widgets asked it and got three different answers, and the answers could disagree about the same craft in flight:
 //
 //   FuelStatus        `parseStages` for the rows, `dv.summary.totalDv*` for the
-//                     total, the observed arm only (withholds when stale)
+//                     total, the observed arm only (withholds when held)
 //   ManeuverPlanner   `useProcessor(DELTA_V_BUDGET)` (this processor), which
 //                     SUMS `dv.stages` client-side for the total, spells an
-//                     absent per-stage field `0`, and also withholds when stale
+//                     absent per-stage field `0`, and also withholds when held
 //   TransferWindow    `dv.summary.totalDvVac` raw, carried and dated
 //   LandingStatus     the active `dv.stages` row for the rocket-equation solve,
 //                     `dv.summary` as the whole-vessel fallback
@@ -248,7 +248,7 @@ export function deriveDeltaVBudget(
   // Carried, not withheld: every arm that has a value gives one up. See this
   // file's header for why the alternative is the dangerous direction.
   const summary =
-    summaryReading.state === "observed" || summaryReading.state === "stale"
+    summaryReading.state === "observed" || summaryReading.state === "held"
       ? summaryReading.value
       : undefined;
   const observedAtUt = observedAt(summaryReading);

@@ -55,7 +55,7 @@ export function ModSettingsSection({
   const hostDown = useTelemetryHostDown();
   const reading = useModSettings(uplinkId);
   const model =
-    reading.state === "observed" || reading.state === "stale"
+    reading.state === "observed" || reading.state === "held"
       ? reading.value
       : undefined;
   // Off the rail: the settings modal has none, and this section states a refused write itself.

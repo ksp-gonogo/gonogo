@@ -115,8 +115,8 @@ function toggleRefusal(
   groupName: string,
   state: TopicReading<VesselControl>["state"],
 ): string {
-  if (state === "stale") {
-    return `"${groupName}": the vessel.control reading is stale, and a toggle needs a current state to invert`;
+  if (state === "held") {
+    return `"${groupName}": the vessel.control reading is held, and a toggle needs a current state to invert`;
   }
   if (state === "observed") {
     return `"${groupName}": the vessel reports no state for this group`;
@@ -149,7 +149,7 @@ function toggleRefusal(
 function dispatchActionGroup(actionGroupId: string): ActionGroupDispatch {
   const reading = sampleActiveReading<VesselControl>("vessel.control");
   const named =
-    reading.state === "observed" || reading.state === "stale"
+    reading.state === "observed" || reading.state === "held"
       ? reading.value
       : undefined;
   const group = actionGroupsFrom(named?.actionGroups).find(

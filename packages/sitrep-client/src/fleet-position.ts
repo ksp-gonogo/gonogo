@@ -39,7 +39,7 @@ export function useFleetVesselPosition(guid: string): StateVector | null {
   );
   // Held elements are what dead reckoning propagates from.
   const raw =
-    orbitReading.state === "observed" || orbitReading.state === "stale"
+    orbitReading.state === "observed" || orbitReading.state === "held"
       ? orbitReading.value
       : undefined;
   const viewUt = useViewUt();

@@ -49,16 +49,12 @@ describe("Panel stream status", () => {
 
   it("puts widget badges beside the status badge, not instead of it", () => {
     render(
-      <Panel
-        panelTitle="FUEL"
-        panelStatus="held-stale"
-        panelAside={<span>LOW</span>}
-      >
+      <Panel panelTitle="FUEL" panelStatus="held" panelAside={<span>LOW</span>}>
         body
       </Panel>,
     );
     expect(screen.getByText("LOW")).toBeInTheDocument();
-    expect(announcer()).toHaveTextContent("STALE");
+    expect(announcer()).toHaveTextContent("HELD");
   });
 
   it("announces the first degradation in a region that was mounted, empty, with the header", () => {
@@ -68,10 +64,10 @@ describe("Panel stream status", () => {
     const region = announcer();
     expect(region).toBeEmptyDOMElement();
 
-    rerender(<Panel panelTitle="ORBIT" panelStatus="held-stale" />);
+    rerender(<Panel panelTitle="ORBIT" panelStatus="held" />);
 
     expect(announcer()).toBe(region);
-    expect(region).toHaveTextContent("ORBIT: STALE");
+    expect(region).toHaveTextContent("ORBIT: HELD");
     expect(region).toHaveAttribute("aria-live", "polite");
   });
 

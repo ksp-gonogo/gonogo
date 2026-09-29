@@ -71,7 +71,7 @@ function FuelStatusComponent({
    */
   const budgetReading = useProcessor(DELTA_V_BUDGET);
   const budget =
-    budgetReading?.state === "observed" || budgetReading?.state === "stale"
+    budgetReading?.state === "observed" || budgetReading?.state === "held"
       ? budgetReading.value
       : undefined;
   // Gated on the sim having answered: a craft with no engines answers `null` for every total, and the row draws its labelled pair of dashes.

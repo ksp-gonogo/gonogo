@@ -63,10 +63,10 @@ function figureOf(c: InstrumentCase): Value<string> | Reading<Value<string>> {
   if (c.empty) return { state: "pending", reckoning: { status: "none" } };
   return c.stale
     ? {
-        state: "stale",
+        state: "held",
         value: drawn,
         asOfUt: AT,
-        grade: "held-stale",
+        grade: "held",
         reckoning,
       }
     : { state: "observed", value: drawn, atUt: AT, reckoning };

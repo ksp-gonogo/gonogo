@@ -215,7 +215,7 @@ describe("ActionGroup: what a stale link does NOT take away", () => {
     // Stage's render does not change, so prove the reading did go stale.
     await waitFor(() =>
       expect(fixture.store.sampleReading("vessel.structure").state).toBe(
-        "stale",
+        "held",
       ),
     );
     expect(toggle().textContent).toBe("4");

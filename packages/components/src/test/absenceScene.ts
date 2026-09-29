@@ -1,7 +1,7 @@
 /**
  * A scene staged with one input missing: subscribed, never published.
  *
- * Not `stopsArriving`, which holds a real observation as `stale` with an age.
+ * Not `stopsArriving`, which holds a real observation as `held` with an age.
  * This never emits the topic, so the read is `pending`: nothing to hold and
  * no age to caption, staging a healthy Uplink that has not published.
  *

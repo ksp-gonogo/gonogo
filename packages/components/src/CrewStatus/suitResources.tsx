@@ -12,7 +12,7 @@ export function suitTank(
   name: string,
 ): SuitTank | undefined {
   const carried =
-    reading.state === "observed" || reading.state === "stale"
+    reading.state === "observed" || reading.state === "held"
       ? reading.value?.resources?.[name]
       : undefined;
   if (!carried) return undefined;

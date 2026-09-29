@@ -48,10 +48,10 @@ export function FleetSignalCell({
   // One read of reachability, so the Link term and the Delay label cannot disagree.
   const reachable = contact == null ? null : contact.connected === true;
   // A reachability that has stopped arriving is the last one known, and says so.
-  const contactHeld = contactReading.state === "stale";
+  const contactHeld = contactReading.state === "held";
   // A light-time from before the link dropped, or one that stopped arriving, is still worth showing but is not a present reading.
   const heldOver =
-    reachable === false || contactHeld || linkReading.state === "stale";
+    reachable === false || contactHeld || linkReading.state === "held";
   // The row draws only once `oneWay` is known, so the zero fallback is never on screen.
   const oneWayReading = readingOf(linkReading, (l) =>
     value("s", l.oneWaySeconds ?? 0),

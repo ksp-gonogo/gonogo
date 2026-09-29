@@ -22,7 +22,7 @@ export function useTopology(): VesselTopology | undefined {
   // is the topology, so it is derived from the last observed record; only a
   // never-arrived one yields undefined.
   const wire =
-    reading.state === "observed" || reading.state === "stale"
+    reading.state === "observed" || reading.state === "held"
       ? reading.value
       : undefined;
   return useMemo(

@@ -1,4 +1,4 @@
-import type { StaleGrade, TopicReading } from "@ksp-gonogo/sitrep-client";
+import type { HeldGrade, TopicReading } from "@ksp-gonogo/sitrep-client";
 
 /**
  * The stale grade of a held reading, for a figure drawn without `<Unit>`. A
@@ -7,6 +7,6 @@ import type { StaleGrade, TopicReading } from "@ksp-gonogo/sitrep-client";
  */
 export function heldGrade<Payload>(
   reading: TopicReading<Payload>,
-): StaleGrade | undefined {
-  return reading.state === "stale" ? reading.grade : undefined;
+): HeldGrade | undefined {
+  return reading.state === "held" ? reading.grade : undefined;
 }

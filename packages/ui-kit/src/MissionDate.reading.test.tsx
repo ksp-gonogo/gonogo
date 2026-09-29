@@ -12,11 +12,11 @@ const AT = value("ut", 9_201_600);
 
 function held(instant: Value<"ut">): Reading<Value<"ut">> {
   return {
-    state: "stale",
+    state: "held",
     reckoning: { status: "none" },
     value: instant,
     asOfUt: AT,
-    grade: "held-stale",
+    grade: "held",
   };
 }
 
@@ -53,7 +53,7 @@ describe("MissionDate, handed a Reading", () => {
     const { container } = render(<MissionDate value={held(AT)} />);
     expect(
       container.querySelector("[data-held]")?.getAttribute("data-tooltip"),
-    ).toMatch(/^STALE/);
+    ).toMatch(/^HELD/);
   });
 
   it("adds no mark at all while the instant is a reading of now", () => {

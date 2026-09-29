@@ -85,7 +85,7 @@ function Probe({ topic = TOPIC }: { topic?: string }) {
     getRuntimeRegisteredTopicIds,
   ).includes(topic);
   const depth =
-    reading.state === "observed" || reading.state === "stale"
+    reading.state === "observed" || reading.state === "held"
       ? reading.value.depth
       : undefined;
   return (

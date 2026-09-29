@@ -47,7 +47,7 @@ const LATE_CHANNEL: DerivedChannelDefinition<number> = {
 function Probe() {
   const valueReading = useStream<number>(DERIVED_TOPIC);
   const value =
-    valueReading.state === "observed" || valueReading.state === "stale"
+    valueReading.state === "observed" || valueReading.state === "held"
       ? valueReading.value
       : undefined;
   return (

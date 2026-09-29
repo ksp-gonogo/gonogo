@@ -84,7 +84,7 @@ function StationView(_props: { w: number | undefined; h: number | undefined }) {
   // release, `launchUt` being null until then.
   const identity = useTelemetry("vessel.identity");
   const launchUt =
-    identity.state === "observed" || identity.state === "stale"
+    identity.state === "observed" || identity.state === "held"
       ? identity.value.launchUt
       : undefined;
   const viewUt = useViewUt();

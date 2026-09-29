@@ -27,7 +27,7 @@ function FleetRosterComponent({
   // Centres do not move, so a stale list is still the list.
   const centresReading = fleetRosterTopics.useTelemetry("commandCentre.roster");
   const centres =
-    centresReading.state === "observed" || centresReading.state === "stale"
+    centresReading.state === "observed" || centresReading.state === "held"
       ? centresReading.value
       : undefined;
   const vantageName =

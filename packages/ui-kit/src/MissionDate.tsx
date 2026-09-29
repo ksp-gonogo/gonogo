@@ -100,7 +100,7 @@ export interface MissionDateProps {
  * `NULL_DISPLAY`, not the epoch.
  */
 export function MissionDate({ value, context }: MissionDateProps) {
-  // A stale instant stays true, so a held reading adds only the mark, its grade and its last-valid instant.
+  // A held instant stays true, so a held reading adds only the mark, its grade and its last-valid instant.
   const carried = typeof value === "number" ? undefined : value;
   const { shown, held, caption } = resolveCurrency(carried);
   const ut = typeof value === "number" ? value : shown?.magnitude;

@@ -110,7 +110,7 @@ function emitParked(fixture: ReturnType<typeof setupStreamFixture>) {
   });
 }
 
-/** Drop the transport, so every carried topic's reading goes `stale`. */
+/** Drop the transport, so every carried topic's reading goes `held`. */
 function loseTheLink(fixture: ReturnType<typeof setupStreamFixture>) {
   act(() => {
     fixture.store.setTransportConnected(false);

@@ -108,7 +108,7 @@ export type SeriesTimeBasis = "ut-seconds" | "wall-ms";
  * all-live case (very nearly all of them) costs one empty array rather than one
  * string per sample.
  *
- * Only server-stamped grades appear here. `held-stale` and `disconnected`
+ * Only server-stamped grades appear here. `held` and `disconnected`
  * describe the topic now, not a recorded sample, so they have no per-sample
  * extent.
  *

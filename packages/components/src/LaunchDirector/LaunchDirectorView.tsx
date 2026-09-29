@@ -77,7 +77,7 @@ export function LaunchDirectorComponent({
   // Drawn as the whole field reading, so a held balance stays on screen with the Unit's own mark.
   const fundsReading = careerReading.economy.funds;
   const hasFunds = stillTrue(careerReading, undefined)?.economy?.funds != null;
-  const fundsHeld = careerReading.state === "stale";
+  const fundsHeld = careerReading.state === "held";
   // The standing rate the elected money model reports, beside the balance rather than folded into the gate; stock reports none.
   const netFunds = netFundsPerDay(careerEconomy);
   const { chargesFunds } = useGameContext();

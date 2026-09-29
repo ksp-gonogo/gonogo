@@ -102,20 +102,20 @@ describe("deriveReading", () => {
   it("keeps a held reading's grade and instant", () => {
     const derived = deriveReading<Orbit, number>(
       {
-        state: "stale",
+        state: "held",
         value: { epoch: 1_000, phase: 10 },
         asOfUt: OBSERVED_AT,
-        grade: "held-stale",
+        grade: "held",
         reckoning: carried,
       },
       (orbit) => orbit.phase,
       (orbit) => orbit.phase,
     );
     expect(derived).toMatchObject({
-      state: "stale",
+      state: "held",
       value: 10,
       asOfUt: OBSERVED_AT,
-      grade: "held-stale",
+      grade: "held",
     });
   });
 

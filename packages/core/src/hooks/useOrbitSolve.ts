@@ -58,7 +58,7 @@ export function useOrbitSolve(): OrbitalSolve | null {
   const bodiesReading = useStream<BodyRadiusTable>("system.bodies");
   // The roster does not decay, and a tombstone is the one null it answers.
   const bodies =
-    bodiesReading.state === "observed" || bodiesReading.state === "stale"
+    bodiesReading.state === "observed" || bodiesReading.state === "held"
       ? bodiesReading.value
       : bodiesReading.state === "absent"
         ? null
@@ -72,7 +72,7 @@ export function useOrbitSolve(): OrbitalSolve | null {
    * answer, which `solveSelfOrbit` asks.
    */
   const elements =
-    reading.state === "observed" || reading.state === "stale"
+    reading.state === "observed" || reading.state === "held"
       ? reading.value
       : undefined;
 
@@ -96,7 +96,7 @@ export function useOrbitSolveReading(): Reading<OrbitalSolve> {
   const reading = useTelemetry("vessel.orbit");
   const bodiesReading = useStream<BodyRadiusTable>("system.bodies");
   const bodies =
-    bodiesReading.state === "observed" || bodiesReading.state === "stale"
+    bodiesReading.state === "observed" || bodiesReading.state === "held"
       ? bodiesReading.value
       : bodiesReading.state === "absent"
         ? null

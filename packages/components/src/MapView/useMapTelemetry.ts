@@ -67,7 +67,7 @@ export function useMapTelemetry(
   const flightReading = useTelemetry("vessel.flight");
   // The HUD readouts show the last observed numbers, captioned with their age.
   const flight =
-    flightReading.state === "observed" || flightReading.state === "stale"
+    flightReading.state === "observed" || flightReading.state === "held"
       ? flightReading.value
       : undefined;
   /* The marker is a claim about where the craft is now, so it comes from a current reading or a model, never a held one. The conic does not move lat/lon (the body-fixed mapping is not on the wire), so the dot still draws from the last observed pair under a model. */
@@ -79,18 +79,18 @@ export function useMapTelemetry(
         : undefined;
   // True exactly when no marker is drawn: a stale reading with a model still draws.
   const positionStale =
-    flightReading.state === "stale" &&
+    flightReading.state === "held" &&
     flightReading.reckoning.status !== "available";
   const lat = positioned?.latitude;
   const lon = positioned?.longitude;
   const positionHeld =
     positioned !== undefined &&
     flightReading.latitude.reckoning.status !== "available" &&
-    flightReading.state === "stale";
+    flightReading.state === "held";
   /* `altitudeReading` feeds the readout, which marks its own currency. `altSea` is the last observed magnitude and feeds the flown trail, where a modelled altitude does not belong. */
   const altitudeReading = flightReading.altitudeAsl;
   const altSea =
-    (altitudeReading.state === "observed" || altitudeReading.state === "stale"
+    (altitudeReading.state === "observed" || altitudeReading.state === "held"
       ? magnitudeOf(altitudeReading.value)
       : undefined) ?? undefined;
   // The imaging verdict is about now: modelled altitude if on offer, else a current observation.
@@ -107,7 +107,7 @@ export function useMapTelemetry(
   const orbitReading = useTelemetry("vessel.orbit");
   /* The observation overlaid by what the conic moved (the phase). `reckoning.value` alone is not an orbit. */
   const orbitSampleObserved =
-    orbitReading.state === "observed" || orbitReading.state === "stale"
+    orbitReading.state === "observed" || orbitReading.state === "held"
       ? orbitReading.value
       : undefined;
   const orbitSample =
@@ -138,7 +138,7 @@ export function useMapTelemetry(
   const hasPatchChain = (orbitPatches?.length ?? 0) > 0;
   const planReading = useStream<VesselManeuver>("vessel.maneuver");
   const maneuverNodes =
-    planReading.state === "observed" || planReading.state === "stale"
+    planReading.state === "observed" || planReading.state === "held"
       ? planReading.value.nodes
       : undefined;
   const universalTime = useViewUt()?.magnitude;
@@ -149,7 +149,7 @@ export function useMapTelemetry(
   const bodiesReading = useTelemetry("system.bodies");
   /* A body's radius does not decay, so a stale roster is the right read. */
   const bodies =
-    bodiesReading.state === "observed" || bodiesReading.state === "stale"
+    bodiesReading.state === "observed" || bodiesReading.state === "held"
       ? bodiesReading.value
       : undefined;
   /* Memoised: an unmemoised merge would re-solve Kepler every render and defeat the `utBucket` throttle. */

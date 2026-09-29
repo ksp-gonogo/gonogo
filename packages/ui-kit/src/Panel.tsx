@@ -25,13 +25,13 @@ import { focusRing, focusRingInset } from "./focusRing";
 import { LiveRegion } from "./LiveRegion";
 import { type BadgeEntry, usePanelBadgesContext } from "./PanelBadges";
 import { SECTION_FILL_ATTR, SECTION_FULL_ATTR, Section } from "./Section";
-import { formatStreamStatus } from "./StreamStatusBadge";
 import { PanelStatusDot } from "./status/PanelStatusDot";
 import type { StatusSummary } from "./status/PanelStatusStore";
 import {
   severityFromBadgeEntryTone,
   severityFromStreamStatus,
 } from "./status/severity";
+import { formatStreamStatus } from "./status/streamStatusWord";
 import { useStatusBreakdown } from "./status/useStatusBreakdown";
 import { useStatusContribution } from "./status/useStatusContribution";
 import { useStatusSummary } from "./status/useStatusSummary";

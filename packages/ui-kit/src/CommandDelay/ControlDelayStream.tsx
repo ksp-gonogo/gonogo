@@ -553,7 +553,7 @@ export function ControlDelayStream({
     return null;
 
   const span = 3 * oneWay;
-  const delayHeld = delayReading?.state === "stale";
+  const delayHeld = delayReading?.state === "held";
   // Computed once and shared by the dividers and the line clips, so a line changes appearance only on a divider.
   const oneT = oneWay;
   const twoT = 2 * oneWay;

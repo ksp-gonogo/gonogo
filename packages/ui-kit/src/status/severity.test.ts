@@ -71,8 +71,8 @@ describe("severityFromStreamStatus (mapping table)", () => {
   it("resyncing -> caution", () => {
     expect(severityFromStreamStatus("resyncing")).toBe("caution");
   });
-  it("held-stale -> warning", () => {
-    expect(severityFromStreamStatus("held-stale")).toBe("warning");
+  it("held -> warning", () => {
+    expect(severityFromStreamStatus("held")).toBe("warning");
   });
   it("last-before-blackout -> warning", () => {
     expect(severityFromStreamStatus("last-before-blackout")).toBe("warning");

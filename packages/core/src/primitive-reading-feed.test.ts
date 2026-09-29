@@ -102,7 +102,7 @@ const WORLD = `
 
   export interface Value<U extends string> { magnitude: number; unit: U }
   export interface Reading<V> {
-    state: "observed" | "stale" | "absent";
+    state: "observed" | "held" | "absent";
     value?: V;
     reckoning: { status: "none" };
   }

@@ -102,7 +102,7 @@ function useObservedVantageName(): string | undefined {
   const rosterReading = useTelemetry("commandCentre.roster");
   if (observed === undefined) return undefined;
   const roster =
-    rosterReading.state === "observed" || rosterReading.state === "stale"
+    rosterReading.state === "observed" || rosterReading.state === "held"
       ? rosterReading.value
       : undefined;
   return roster?.find((c) => c.id === observed)?.displayName ?? observed;

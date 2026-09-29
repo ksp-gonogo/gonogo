@@ -26,11 +26,11 @@ function held<Unit extends string>(
   quantity: Value<Unit>,
 ): Reading<Value<Unit>> {
   return {
-    state: "stale",
+    state: "held",
     reckoning: { status: "none" },
     value: quantity,
     asOfUt: AT,
-    grade: "held-stale",
+    grade: "held",
   };
 }
 

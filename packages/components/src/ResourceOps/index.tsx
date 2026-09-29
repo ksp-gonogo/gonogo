@@ -66,8 +66,8 @@ function ResourceOpsComponent(
   // Each channel carries its own currency: a stale drill channel says nothing about the converters.
   const drillsReading = topics.useTelemetry("isru.drills");
   const convertersReading = topics.useTelemetry("isru.converters");
-  const drillsHeld = drillsReading.state === "stale";
-  const convertersHeld = convertersReading.state === "stale";
+  const drillsHeld = drillsReading.state === "held";
+  const convertersHeld = convertersReading.state === "held";
 
   const allDrills = useMemo(
     () => stillTrue(drillsReading, EMPTY_LIST) ?? EMPTY_LIST,

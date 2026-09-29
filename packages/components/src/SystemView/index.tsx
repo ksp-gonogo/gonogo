@@ -74,14 +74,14 @@ function SystemViewComponent({
   // The whole catalogue, for the read frame's index lookups; a held catalogue is still the catalogue.
   const factsReading = useProcessor(CELESTIAL_FACTS);
   const facts =
-    factsReading?.state === "observed" || factsReading?.state === "stale"
+    factsReading?.state === "observed" || factsReading?.state === "held"
       ? factsReading.value
       : undefined;
   // The dot and orbit are markers, claims about now, so the elements come from a current reading or a model, and otherwise nothing is drawn.
   const orbitReading = topics.useTelemetry("vessel.orbit");
   // The observation overlaid by what the conic moved (the phase); `reckoning.value` alone is not an orbit.
   const orbitObserved =
-    orbitReading.state === "observed" || orbitReading.state === "stale"
+    orbitReading.state === "observed" || orbitReading.state === "held"
       ? orbitReading.value
       : undefined;
   const orbit =
@@ -91,7 +91,7 @@ function SystemViewComponent({
   // An identity does not decay: a stale SOI index is still which body this craft is around, and it only decides which FRAME the dot belongs in.
   const identityReading = topics.useTelemetry("vessel.identity");
   const identity =
-    identityReading.state === "observed" || identityReading.state === "stale"
+    identityReading.state === "observed" || identityReading.state === "held"
       ? identityReading.value
       : undefined;
 
@@ -110,19 +110,19 @@ function SystemViewComponent({
   // A catalogue and a name, neither of which decays.
   const bodiesReading = topics.useTelemetry("system.bodies");
   const systemBodies =
-    bodiesReading.state === "observed" || bodiesReading.state === "stale"
+    bodiesReading.state === "observed" || bodiesReading.state === "held"
       ? bodiesReading.value
       : undefined;
   const targetReading = topics.useTelemetry("vessel.target");
   const targetName =
-    targetReading.state === "observed" || targetReading.state === "stale"
+    targetReading.state === "observed" || targetReading.state === "held"
       ? targetReading.value.name
       : undefined;
   // Read directly for the host-side selection path; a stale relay graph still says what the topology last was.
   const commsNetworkReading = topics.useTelemetry("comms.network");
   const commsNetwork =
     commsNetworkReading.state === "observed" ||
-    commsNetworkReading.state === "stale"
+    commsNetworkReading.state === "held"
       ? commsNetworkReading.value
       : undefined;
   // Unwrapped at the read: the finiteness guards below answer no for a wrapped value and would silently stop drawing the arc.
@@ -443,7 +443,7 @@ function SystemViewComponent({
                     vessel={vesselOrbit}
                     vesselTrajectory={vesselTrajectory}
                     vesselPlotState={vesselPlotState}
-                    vesselPositionHeld={orbitReading.state === "stale"}
+                    vesselPositionHeld={orbitReading.state === "held"}
                     phaseAngles={phaseAngles}
                     transferStatuses={transferStatuses}
                     onFocusBodyChange={setFocusedBody}

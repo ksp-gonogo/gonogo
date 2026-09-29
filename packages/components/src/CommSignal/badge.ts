@@ -5,7 +5,7 @@ const COMM_SIGNAL_HELD = CORE_UPLINK_CLIENT.registerProcessor({
   id: "comm-signal-held",
   deps: [{ reading: "comms.link" }, { reading: "vessel.comms" }] as const,
   compute: ([linkReading, commsReading]): boolean =>
-    linkReading.state === "stale" || commsReading.state === "stale",
+    linkReading.state === "held" || commsReading.state === "held",
 });
 
 export function commSignalNoSignalBadge(noSignal: boolean): BadgeEntry[] {
@@ -22,7 +22,7 @@ CORE_UPLINK_CLIENT.registerContribution({
   compute: (topics) => {
     const reading = topics[COMM_SIGNAL_HELD.id];
     return commSignalNoSignalBadge(
-      (reading?.state === "observed" || reading?.state === "stale"
+      (reading?.state === "observed" || reading?.state === "held"
         ? reading.value
         : undefined) ?? false,
     );

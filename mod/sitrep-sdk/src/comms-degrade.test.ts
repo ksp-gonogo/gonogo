@@ -131,7 +131,7 @@ describe("degradeRating: the reading read", () => {
     // dropping it leaves a feed with no quality at exactly the moment quality
     // matters. What says the link is DOWN is comms.link, not this.
     const reading: TopicCurrency<CommsDegrade> = {
-      state: "stale",
+      state: "held",
       reckoning: { status: "none" },
       value: graded,
       asOfUt: value("ut", 100),

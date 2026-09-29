@@ -101,17 +101,17 @@ describe("ReadOnlyField over a Reading", () => {
       <ReadOnlyField
         label="Apoapsis"
         value={{
-          state: "stale",
+          state: "held",
           reckoning: { status: "none" },
           value: value("m", 84_000),
           asOfUt: value("ut", 12_000),
-          grade: "held-stale",
+          grade: "held",
         }}
       />,
     );
     expect(container.querySelector("[data-held-mark]")).not.toBeNull();
     expect(
       container.querySelector("[data-unit-currency]")?.textContent,
-    ).toMatch(/STALE/i);
+    ).toMatch(/HELD/);
   });
 });

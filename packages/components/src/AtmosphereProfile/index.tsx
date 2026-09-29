@@ -36,7 +36,7 @@ function AtmosphereProfileComponent({
   const flightReading = topics.useTelemetry("vessel.flight");
   /* The conic moves only altitude and orbital speed, not the three atmospheric numbers; the spread overlays the modelled fields on the observation. */
   const flightObserved =
-    flightReading.state === "observed" || flightReading.state === "stale"
+    flightReading.state === "observed" || flightReading.state === "held"
       ? flightReading.value
       : undefined;
   const flight = (() => {

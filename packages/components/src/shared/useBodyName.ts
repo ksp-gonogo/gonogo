@@ -15,7 +15,7 @@ export function useBodyName(
   if (index == null) return undefined;
   if (bodies.state === "absent") return null;
   if (reading === undefined) return undefined;
-  if (reading.state !== "observed" && reading.state !== "stale") {
+  if (reading.state !== "observed" && reading.state !== "held") {
     return undefined;
   }
   return reading.value?.nameByIndex[index];
@@ -24,7 +24,7 @@ export function useBodyName(
 /** The active craft's parent body index, held through a quiet link like every figure it labels. */
 export function useParentBodyIndex(): number | null | undefined {
   const identity = useTelemetry("vessel.identity");
-  return identity.state === "observed" || identity.state === "stale"
+  return identity.state === "observed" || identity.state === "held"
     ? identity.value.parentBodyIndex
     : undefined;
 }

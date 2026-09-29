@@ -18,7 +18,7 @@ export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
   /**
    * Announce this badge as a screen-reader live region (`role="status"`). Use
    * for state that changes and the operator benefits from being told (a stream
-   * going stale, an alarm firing). Decorative badges leave it off so they do not
+   * going held, an alarm firing). Decorative badges leave it off so they do not
    * flood the accessibility tree.
    */
   live?: boolean;

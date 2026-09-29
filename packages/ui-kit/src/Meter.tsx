@@ -185,9 +185,9 @@ export function Meter<UnitSymbol extends string = string>({
     pct: Math.round(clamped * 100),
     tone,
     fillColor,
-    // A stale capacity marks the track: the axis aged, not the reading on it.
-    trackHeld: held.reading?.state === "stale",
-    fillHeld: shown.reading?.state === "stale",
+    // A held capacity marks the track: the axis aged, not the reading on it.
+    trackHeld: held.reading?.state === "held",
+    fillHeld: shown.reading?.state === "held",
     ...rest,
   };
   const endBounds = apartFrom(

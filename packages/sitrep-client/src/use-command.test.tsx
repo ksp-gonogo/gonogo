@@ -1531,7 +1531,7 @@ describe("useCommand delay reading", () => {
       );
     });
     await waitFor(() => {
-      expect(screen.getByText("reading:stale")).toBeTruthy();
+      expect(screen.getByText("reading:held")).toBeTruthy();
     });
   });
 

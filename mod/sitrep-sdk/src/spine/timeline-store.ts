@@ -13,10 +13,10 @@ import type {
   AnyReckonerDefinition,
   BandKind,
   DepWindow,
+  HeldGrade,
   ReckonerWindow,
   ReckoningBasis,
   ReckoningDecline,
-  StaleGrade,
   TopicModel,
   UncertaintyBand,
 } from "../reading";
@@ -864,7 +864,7 @@ export class TimelineStore {
    */
   private readonly enforcingInputRules = new Set<string>();
 
-  /** Missed-keyframe-heartbeat tracker backing `sampleStatus`'s client-inferred `"held-stale"`. */
+  /** Missed-keyframe-heartbeat tracker backing `sampleStatus`'s client-inferred `"held"`. */
   readonly heartbeats: HeartbeatTracker;
 
   /**
@@ -901,7 +901,7 @@ export class TimelineStore {
    * Set whole-transport connectivity.
    * While `false`, `sampleStatus` short-circuits every topic that has
    * confirmed data to `"disconnected"` immediately, instead of letting each
-   * one independently drift into `"held-stale"` on its own heartbeat margin;
+   * one independently drift into `"held"` on its own heartbeat margin;
    * see `sampleRawStatus` for the full precedence against server-stamped
    * staleness and a confirmed `"absent"` tombstone, both of which still win
    * outright over this.
@@ -1099,7 +1099,7 @@ export class TimelineStore {
    * value/status read for the same topic and frame, never inside either
    * (`sample()` for the value, `sampleStatus()` for staleness and absence, this
    * for certainty), and the three compose freely: a topic can be `"predicted"`
-   * and `"resyncing"` at once, or `"confirmed"` and `"held-stale"`. Mirrors
+   * and `"resyncing"` at once, or `"confirmed"` and `"held"`. Mirrors
    * `sample()`/`sampleStatus()`'s stale-token fallback.
    */
   sampleCertainty(
@@ -1736,7 +1736,7 @@ export class TimelineStore {
     const from = after.validAt - span;
     const anchor: TimelinePoint<unknown> = { ...held, validAt: from };
     const answerAt = (at: number) => {
-      const model = reckoner(anchor, "held-stale", at);
+      const model = reckoner(anchor, "held", at);
       const moved = model?.modelled.find((entry) =>
         coversPath(entry.path, fieldPath),
       );
@@ -2245,7 +2245,7 @@ export class TimelineStore {
     topic: string,
     token: FrameToken,
     point: TimelinePoint<Payload> | undefined,
-    grade: StaleGrade | undefined,
+    grade: HeldGrade | undefined,
     reckonUt: number,
   ):
     | { readonly owner: string; readonly model: TopicModel<Payload, unknown> }
@@ -2436,7 +2436,7 @@ export class TimelineStore {
    * Only an input that HAS a model can have run out. An input nobody models is
    * held-last and makes no claim about how far it reaches, so declining on one
    * would refuse every model in the tree: `system.bodies` changes once a session
-   * and is permanently stale, and a hold-last is exactly the right reading of
+   * and is permanently held, and a hold-last is exactly the right reading of
    * it.
    *
    * Asked AFTER the deps resolve, so an input that never arrived is reported as
@@ -2521,7 +2521,7 @@ export class TimelineStore {
         depTopic,
         token,
         this.sample<unknown>(depTopic, token),
-        status === "live" ? undefined : (status as StaleGrade),
+        status === "live" ? undefined : (status as HeldGrade),
         this.viewUtFor(token, this.laneForTopic(depTopic)) + shift,
       ),
     );
@@ -2861,7 +2861,7 @@ export class TimelineStore {
                 topic,
                 effectiveToken,
                 point,
-                status === "live" ? undefined : (status as StaleGrade),
+                status === "live" ? undefined : (status as HeldGrade),
                 reckonUt,
               );
         const reckonedModel =
@@ -3017,7 +3017,7 @@ export class TimelineStore {
      * `sample()`, which already walks the field out of the parent: it finds a
      * point, and the heartbeat tracker is then asked about a topic string no
      * frame ever carried and answers "not overdue", so the field would read
-     * `live` off a parent that has gone stale.
+     * `live` off a parent that is held.
      */
     const rawFieldParent = this.resolveRawFieldSubtopic(topic);
     if (rawFieldParent && !this.hasLiteralPoint(topic, effectiveToken)) {
@@ -3070,7 +3070,7 @@ export class TimelineStore {
    *    `"disconnected"` immediately: not each independently waiting out its
    *    own heartbeat margin to notice the same one dead pipe.
    * 5. Otherwise the `HeartbeatTracker` (missed-keyframe inference, never
-   *    `validAt` age) decides live vs. held-stale.
+   *    `validAt` age) decides live vs. held.
    *
    * `isOverdue` is keyed off `clock.certaintyHorizonUt()`, never the frame's
    * SCET: overdue is a gap in CONFIRMED arrivals, and SCET runs ahead of
@@ -3085,7 +3085,7 @@ export class TimelineStore {
       return "last-before-blackout";
     }
     if (point.meta.staleness === Staleness.Recorded) return "recorded";
-    if (point.meta.staleness === Staleness.HeldStale) return "held-stale";
+    if (point.meta.staleness === Staleness.HeldStale) return "held";
     if (!this.transportConnected) return "disconnected";
     return this.heartbeats.isOverdue(
       topic,
@@ -3093,7 +3093,7 @@ export class TimelineStore {
       this.clock.confidence(),
       this.keyframeFloorGapUt(token),
     )
-      ? "held-stale"
+      ? "held"
       : "live";
   }
 

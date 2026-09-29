@@ -38,7 +38,7 @@ function SemiMajorAxisComponent({
   // A propagated orbit conserves SMA, so a modelled figure would be the observed number dressed as fresh.
   const orbitReading = withoutReckoning(topics.useTelemetry("vessel.orbit"));
   const sma = stillTrue(orbitReading, undefined)?.sma;
-  const smaHeld = orbitReading.state === "stale";
+  const smaHeld = orbitReading.state === "held";
   const frameReading = useStream<ControlFrame>("system.frame");
   // The selected frame is a setting, which a quiet link does not change.
   const controlFrame = stillTrue(frameReading, undefined);

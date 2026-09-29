@@ -57,7 +57,7 @@ export function severityFromStreamStatus(status: StreamStatusValue): Severity {
       return "caution";
     case "recorded":
       return "info";
-    case "held-stale":
+    case "held":
     case "last-before-blackout":
       return "warning";
     case "disconnected":

@@ -32,7 +32,7 @@ import { namesOf } from "./enum-names";
  * is exactly the intuition that put that defect in.
  *
  * What does NOT belong here is the channel-presence question. Whether a read
- * has arrived, is stale, or is a confirmed tombstone is a property of the READ
+ * has arrived, is held, or is a confirmed tombstone is a property of the READ
  * and differs per call site; {@link enumNameOf} takes an ordinal a caller has
  * already got in hand and answers only about the ordinal.
  */

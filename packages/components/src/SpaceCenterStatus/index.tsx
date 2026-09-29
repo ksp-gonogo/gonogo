@@ -54,7 +54,7 @@ function SpaceCenterStatusComponent({
       ? careerReading.value.economy
       : undefined;
   const careerFunds = magnitudeOf(careerEconomy?.funds);
-  const fundsHeld = careerReading.state === "stale";
+  const fundsHeld = careerReading.state === "held";
   // The standing per-day cost against a subsidy, from whichever money model won the `economy` capability; stock reports none.
   const netFunds = netFundsPerDay(careerEconomy);
   // "Held" only when a balance actually arrived and is being refused.
@@ -93,7 +93,7 @@ function SpaceCenterStatusComponent({
   ).some((def) => def.id === STOCK_FACILITY_CONTRIBUTION_ID);
   // Marked only while the stock contribution holds the winning band, so a live contributor's grid is never marked by the stock channel's staleness.
   const tiersHeldSince =
-    stockHoldsTheGrid && facilitiesReading.state === "stale"
+    stockHoldsTheGrid && facilitiesReading.state === "held"
       ? { asOfUt: facilitiesReading.asOfUt, grade: facilitiesReading.grade }
       : null;
 

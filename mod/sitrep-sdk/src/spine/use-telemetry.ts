@@ -46,7 +46,7 @@ const NO_PROVIDER = topicReading<never>({
  * which drops every `reckoning: "available"` member, so a caller cannot write a
  * branch for a case that can never occur. Reckonability is a SECOND
  * discriminant rather than an arm of `state`, so nothing is dropped from
- * `state` itself: `stale` remains, and remains the judgement.
+ * `state` itself: `held` remains, and remains the judgement.
  *
  * ## The three-way narrowing, and why the marked arm is not simply `Reading`
  *

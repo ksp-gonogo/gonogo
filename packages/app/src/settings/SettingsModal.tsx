@@ -72,7 +72,7 @@ export function SettingsModal({ initialTabId }: SettingsModalProps = {}) {
   // could not be read. A first run with no file yet is not a problem.
   const gonogoSettings = useTelemetry("settings.gonogo");
   const gonogoIssue =
-    gonogoSettings.state === "observed" || gonogoSettings.state === "stale"
+    gonogoSettings.state === "observed" || gonogoSettings.state === "held"
       ? gonogoSettings.value.persistence.state !==
           SettingsPersistenceState.Saved &&
         gonogoSettings.value.persistence.state !==

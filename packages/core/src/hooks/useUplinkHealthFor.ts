@@ -75,7 +75,7 @@ export function useUplinkHealthFor(
   const healthReading = useStream<SystemUplinkHealth>("system.uplinkHealth");
   // Ownership is a roster, which a quiet link does not change.
   const uplinkHealth =
-    healthReading.state === "observed" || healthReading.state === "stale"
+    healthReading.state === "observed" || healthReading.state === "held"
       ? healthReading.value
       : undefined;
 

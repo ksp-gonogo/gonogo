@@ -32,7 +32,7 @@ CORE_UPLINK_CLIENT.registerContribution({
   compute: (topics) => {
     const reading = topics[COMMS_LINK.id];
     return commsLinkBadge(
-      reading?.state === "observed" || reading?.state === "stale"
+      reading?.state === "observed" || reading?.state === "held"
         ? reading.value
         : undefined,
     );

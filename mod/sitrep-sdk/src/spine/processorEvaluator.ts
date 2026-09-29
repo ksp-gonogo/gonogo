@@ -643,7 +643,7 @@ export class ProcessorRuntime {
         {
           state: reading.state,
           instant: observedAt(reading),
-          grade: reading.state === "stale" ? reading.grade : undefined,
+          grade: reading.state === "held" ? reading.grade : undefined,
         },
       ];
     });

@@ -63,14 +63,14 @@ export interface UplinkPage {
 export function useUplinkPages(screen: Screen): UplinkPage[] {
   const health = useStream<SystemUplinkHealth>("system.uplinkHealth");
   const gonogo = useTelemetry("settings.gonogo");
-  const rosterKnown = health.state === "observed" || health.state === "stale";
+  const rosterKnown = health.state === "observed" || health.state === "held";
   const roster = rosterKnown ? health.value.uplinks : [];
   const outcomes = useSyncExternalStore(
     subscribeUplinkOutcomes,
     getUplinkOutcomes,
   );
   const model =
-    gonogo.state === "observed" || gonogo.state === "stale"
+    gonogo.state === "observed" || gonogo.state === "held"
       ? gonogo.value
       : undefined;
   const rows = getSettingsForScreen(screen).filter(

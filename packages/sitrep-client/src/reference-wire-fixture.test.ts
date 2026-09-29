@@ -352,7 +352,7 @@ describe.skipIf(!fixtureExists)(
           // Fresh: a tombstone always reads "absent"; a live delivery of
           // this exact topic always reads "live" immediately after ingest
           // (never "resyncing": this topic just got a point; never
-          // "held-stale"/"disconnected": nothing has gone quiet or dropped).
+          // "held"/"disconnected": nothing has gone quiet or dropped).
           const status = store.sampleStatus(topic, token);
           if (message.payload === null) {
             expect(status).toBe("absent");

@@ -7,11 +7,11 @@ import { describe, expect, it } from "vitest";
 import { announcesHeld, describeElements } from "./probe-global";
 
 const HELD: Reading<Value<"rpm">> = {
-  state: "stale",
+  state: "held",
   reckoning: { status: "none" },
   value: value("rpm", 240),
   asOfUt: value("ut", 12_000),
-  grade: "held-stale",
+  grade: "held",
 };
 
 const SCALE = { min: value("rpm", 0), max: value("rpm", 460) } as const;

@@ -1018,7 +1018,7 @@ export function useCommand(
 function oneWayReading(
   reading: TopicReading<CommsDelayLike>,
 ): Reading<Value<"s">> | null {
-  if (reading.state !== "observed" && reading.state !== "stale") return null;
+  if (reading.state !== "observed" && reading.state !== "held") return null;
   const oneWay = reading.value?.oneWaySeconds;
   if (!oneWay?.isFinite()) return null;
   return readingOf(reading, () => oneWay.max(0));

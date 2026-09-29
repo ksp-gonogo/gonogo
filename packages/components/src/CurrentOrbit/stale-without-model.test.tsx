@@ -57,7 +57,7 @@ describe("CurrentOrbit: a stale orbit with no model", () => {
     const reading = () => fixture.store.sampleReading("vessel.orbit");
 
     // Both halves of the premise: the stream stopped, and no model answered.
-    await waitFor(() => expect(reading().state).toBe("stale"));
+    await waitFor(() => expect(reading().state).toBe("held"));
     expect(reading().reckoning.status).not.toBe("available");
 
     // The elements are still drawn, each marked held.
@@ -111,7 +111,7 @@ describe("CurrentOrbit: a stale orbit with no model", () => {
     });
 
     await waitFor(() => expect(vesselDot(container)).not.toBeNull());
-    expect(screen.queryByText("STALE")).toBeNull();
+    expect(screen.queryByText("HELD")).toBeNull();
 
     act(() => {
       fixture.store.setTransportConnected(false);
@@ -119,12 +119,12 @@ describe("CurrentOrbit: a stale orbit with no model", () => {
     });
 
     const reading = () => fixture.store.sampleReading("vessel.orbit");
-    await waitFor(() => expect(reading().state).toBe("stale"));
+    await waitFor(() => expect(reading().state).toBe("held"));
     expect(reading().reckoning.status).not.toBe("available");
 
     expect(screen.getByRole("img", { name: "Orbital diagram" })).toBeVisible();
     expect(vesselDot(container)).toBeNull();
-    expect(screen.getByText("STALE")).toBeInTheDocument();
+    expect(screen.getByText("HELD")).toBeInTheDocument();
   });
 });
 

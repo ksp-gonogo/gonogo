@@ -47,7 +47,7 @@ export function HomeFallbackNotice() {
   // Ground-side and declared unmodellable, as VantageControl reads it: a stale roster is still the roster.
   const rosterReading = useTelemetry("commandCentre.roster");
   const roster =
-    rosterReading.state === "observed" || rosterReading.state === "stale"
+    rosterReading.state === "observed" || rosterReading.state === "held"
       ? rosterReading.value
       : undefined;
   const standIn = (roster ?? []).find(

@@ -179,11 +179,11 @@ describe("Console's delay chip over a held comms.delay", () => {
         oneWaySeconds={8}
         alwaysBadge
         delayReading={{
-          state: "stale" as const,
+          state: "held" as const,
           reckoning: { status: "none" as const },
           value: value("s", 8),
           asOfUt: value("ut", 12_000),
-          grade: "held-stale" as const,
+          grade: "held" as const,
         }}
       />,
     );

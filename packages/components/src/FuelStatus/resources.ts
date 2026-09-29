@@ -83,6 +83,6 @@ export function useResourceRows(): ResourceRow[] {
 
 /** Whether the craft carries this resource: a reported capacity, current or held, above zero. A held tank size still says the tank is there. */
 export function carries(capacity: Reading<Value<"units">>): boolean {
-  if (capacity.state !== "observed" && capacity.state !== "stale") return false;
+  if (capacity.state !== "observed" && capacity.state !== "held") return false;
   return capacity.value?.isPositive() ?? false;
 }

@@ -31,7 +31,7 @@ export function TrajectoryFrameCaption({
   // A held catalogue is still the catalogue: a quiet link does not change it.
   const factsReading = useProcessor(CELESTIAL_FACTS);
   const facts =
-    factsReading?.state === "observed" || factsReading?.state === "stale"
+    factsReading?.state === "observed" || factsReading?.state === "held"
       ? factsReading.value
       : undefined;
   const named =

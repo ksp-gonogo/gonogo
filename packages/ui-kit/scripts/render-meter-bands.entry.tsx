@@ -56,12 +56,12 @@ function readingOfCase<Unit extends string>(
   if (!c.stale) return { state: "observed", value: drawn, atUt: AT, reckoning };
   // A gradeless stale reading omits `grade` rather than carrying a falsy one
   return c.gradeless
-    ? { state: "stale", value: drawn, asOfUt: AT, reckoning }
+    ? { state: "held", value: drawn, asOfUt: AT, reckoning }
     : {
-        state: "stale",
+        state: "held",
         value: drawn,
         asOfUt: AT,
-        grade: "held-stale",
+        grade: "held",
         reckoning,
       };
 }

@@ -184,11 +184,11 @@ describe("DataTable row headers and readings", () => {
     {
       name: "Mun Lander",
       apoapsis: {
-        state: "stale",
+        state: "held",
         reckoning: { status: "none" },
         value: value("m", 12_000),
         asOfUt: value("ut", 12_000),
-        grade: "held-stale",
+        grade: "held",
       },
     },
   ];
@@ -222,7 +222,7 @@ describe("DataTable row headers and readings", () => {
     expect(container.querySelectorAll("[data-held-mark]")).toHaveLength(1);
     expect(
       container.querySelector("[data-unit-currency]")?.textContent,
-    ).toMatch(/STALE/i);
+    ).toMatch(/HELD/);
   });
 
   it("has no axe violations with a row-header column", async () => {

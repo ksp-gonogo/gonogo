@@ -507,7 +507,6 @@ export {
 // Numeric input over a small closed set, beside `UnitInput` (a free quantity) and `JogWheel` (tuned by feel).
 export { Stepper, type StepperProps } from "./Stepper";
 export {
-  formatStreamStatus,
   StreamStatusBadge,
   type StreamStatusBadgeProps,
 } from "./StreamStatusBadge";
@@ -540,6 +539,7 @@ export {
   worstSeverity,
 } from "./status/severity";
 export { severityDotColor } from "./status/severityDotColor";
+export { formatStreamStatus, heldWord } from "./status/streamStatusWord";
 export { useStatusBreakdown } from "./status/useStatusBreakdown";
 export { useStatusContribution } from "./status/useStatusContribution";
 export { useStatusSummary } from "./status/useStatusSummary";

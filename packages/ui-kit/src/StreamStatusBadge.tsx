@@ -2,37 +2,11 @@ import type { StreamStatusValue } from "@ksp-gonogo/sitrep-sdk";
 import { Badge } from "./Badge";
 import { LiveRegion } from "./LiveRegion";
 import { severityFromStreamStatus } from "./status/severity";
+import { formatStreamStatus } from "./status/streamStatusWord";
 
 export interface StreamStatusBadgeProps {
   /** Current stream/connectivity status for the widget's representative key. */
   status: StreamStatusValue;
-}
-
-/**
- * `StreamStatusValue` -> a short badge caption, or `null` for `"live"`.
- *
- * A healthy stream shows nothing: a pill present in the normal case teaches
- * the operator to stop seeing it.
- */
-export function formatStreamStatus(status: StreamStatusValue): string | null {
-  switch (status) {
-    case "live":
-      return null;
-    case "held-stale":
-      return "STALE";
-    case "last-before-blackout":
-      // Not "STALE": stale is something to go and check, a blackout is only something to wait out.
-      return "BLACKOUT";
-    case "recorded":
-      // Not "STALE": a recorded reading is exact for the instant it names.
-      return "RECORDED";
-    case "disconnected":
-      return "OFFLINE";
-    case "resyncing":
-      return "SYNCING";
-    case "absent":
-      return "NO DATA";
-  }
 }
 
 /**

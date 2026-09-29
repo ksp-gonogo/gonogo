@@ -52,11 +52,11 @@ function held<Unit extends string>(
   quantity: Value<Unit>,
 ): Reading<Value<Unit>> {
   return {
-    state: "stale",
+    state: "held",
     reckoning: { status: "none" },
     value: quantity,
     asOfUt: AT,
-    grade: "held-stale",
+    grade: "held",
   };
 }
 
@@ -140,7 +140,7 @@ describe("Dial, handed a Reading", () => {
       <Dial
         {...AXIS}
         value={{
-          state: "stale",
+          state: "held",
           reckoning: {
             status: "available",
             atUt: value("ut", 0),
@@ -151,7 +151,7 @@ describe("Dial, handed a Reading", () => {
           },
           value: value("deg", 90),
           asOfUt: AT,
-          grade: "held-stale",
+          grade: "held",
         }}
         ariaLabel="Heading"
       />,

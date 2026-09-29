@@ -466,11 +466,11 @@ describe("UnitInput", () => {
 
 describe("UnitInput over a Reading", () => {
   const held = {
-    state: "stale" as const,
+    state: "held" as const,
     reckoning: { status: "none" as const },
     value: value("m/s", 12),
     asOfUt: value("ut", 12_000),
-    grade: "held-stale" as const,
+    grade: "held" as const,
   };
 
   it("edits the reading's value and marks its name held, in words too", () => {
@@ -478,7 +478,7 @@ describe("UnitInput over a Reading", () => {
       <UnitInput label="Tangent" unit="m/s" value={held} onChange={() => {}} />,
     );
     const field = screen.getByRole("spinbutton", {
-      name: /^Tangent, .*STALE/i,
+      name: /^Tangent, .*HELD/,
     });
     expect(field).toHaveValue(12);
     expect(container.querySelector("[data-held-mark]")).not.toBeNull();

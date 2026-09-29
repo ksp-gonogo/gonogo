@@ -61,7 +61,7 @@ export function SceneChangeBanner() {
   // transition that did not happen.
   const sceneReading = useTelemetry("spaceCenter.scene");
   const sceneRaw =
-    sceneReading.state === "observed" || sceneReading.state === "stale"
+    sceneReading.state === "observed" || sceneReading.state === "held"
       ? sceneReading.value.scene
       : undefined;
   const scene = typeof sceneRaw === "string" ? sceneRaw : null;

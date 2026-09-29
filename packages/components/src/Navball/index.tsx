@@ -131,7 +131,7 @@ function NavballComponent({
    */
   const oneWayDelay = useTelemetry("comms.delay").oneWaySeconds;
   const delaySeconds = magnitudeOf(
-    oneWayDelay.state === "observed" || oneWayDelay.state === "stale"
+    oneWayDelay.state === "observed" || oneWayDelay.state === "held"
       ? oneWayDelay.value
       : undefined,
   );

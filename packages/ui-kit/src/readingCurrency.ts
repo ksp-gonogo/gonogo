@@ -6,8 +6,7 @@
  */
 import type { Reading, UncertaintyBand, Value } from "@ksp-gonogo/sitrep-sdk";
 import { NULL_DISPLAY } from "./NullValue";
-// `StaleGrade` is a subset of `StreamStatusValue`, so a figure uses the same word as its panel's badge.
-import { formatStreamStatus } from "./StreamStatusBadge";
+import { heldWord } from "./status/streamStatusWord";
 import { formatQuantity } from "./units";
 
 /**
@@ -55,23 +54,11 @@ function lastValidAt(asOfUt: Value<"ut"> | undefined): string | null {
 }
 
 /**
- * The word for a held reading with no single grade. Outside
- * `formatStreamStatus`'s vocabulary, since each of its grades names a different
- * kind of missed update and nobody reported one.
- */
-const HELD_WITHOUT_GRADE = "HELD";
-
-/**
  * What the mark says in words: the grade, and how far back the number is from.
  * The dot answers at a glance; this answers the follow-up in the hover and the
  * accessibility tree.
  */
-
-function sayCurrency(
-  caption: string | null,
-  asOfUt: Value<"ut"> | undefined,
-): string | null {
-  if (caption === null) return null;
+function sayCurrency(caption: string, asOfUt: Value<"ut"> | undefined): string {
   const at = lastValidAt(asOfUt);
   return at === null ? caption : `${caption}, as of ${at}`;
 }
@@ -120,12 +107,7 @@ function heldCurrency<Unit extends string>(
     caption:
       input.value === undefined
         ? null
-        : sayCurrency(
-            input.grade === undefined
-              ? HELD_WITHOUT_GRADE
-              : formatStreamStatus(input.grade),
-            input.asOfUt,
-          ),
+        : sayCurrency(heldWord(input.grade), input.asOfUt),
   };
 }
 
@@ -133,7 +115,7 @@ function heldCurrency<Unit extends string>(
  * Split what was handed in into the number and the statement about it.
  *
  * A bare `Value` (and `null`, and nothing at all) is current by construction.
- * The mark comes off the state rather than the caption, so a stale number can
+ * The mark comes off the state rather than the caption, so a held number can
  * never go unmarked.
  */
 export function resolveCurrency<Unit extends string>(
@@ -152,10 +134,10 @@ export function resolveCurrency<Unit extends string>(
   if (
     options.drawsReckoning &&
     input.reckoning.status === "available" &&
-    (input.state === "observed" || input.state === "stale")
+    (input.state === "observed" || input.state === "held")
   ) {
     const shown = input.reckoning.modelled;
-    if (input.state === "stale") {
+    if (input.state === "held") {
       return { ...heldCurrency(input), shown, band };
     }
     const carried = input.reckoning.beyondReceived;
@@ -169,7 +151,7 @@ export function resolveCurrency<Unit extends string>(
   if (input.state === "observed") {
     return { shown: input.value, held: false, caption: null, band };
   }
-  if (input.state === "stale") return { ...heldCurrency(input), band };
+  if (input.state === "held") return { ...heldCurrency(input), band };
   // `null` rather than `undefined`, so the caller renders the null token rather than the symbol form.
   return { shown: null, held: false, caption: null, band: null };
 }

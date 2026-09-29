@@ -19,7 +19,7 @@ import { useCallback, useMemo, useSyncExternalStore } from "react";
  * `Panel`'s own comment refuses a host-derived worst-of across a widget's
  * channels, and is right about the grades it is refusing: `absent` means
  * opposite things per topic (an empty `vessel.maneuvers` is normal, an absent
- * `vessel.orbit` is not), and a `held-stale` heartbeat miss is one producer's.
+ * `vessel.orbit` is not), and a `held` heartbeat miss is one producer's.
  * One pill for five topics could not say which, so the pill would be a
  * lossy summary that reads as a fault when there is none.
  *

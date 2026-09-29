@@ -265,7 +265,7 @@ export type ReckonedBands = {
  * Coverage sits OUTSIDE the thunk because the store has to know what a model
  * covers before deciding which reading to build, and running the model to find
  * out would defeat the pull. A model that does not cover the payload root
- * cannot cover a whole-topic read, so that read stays `stale` (held).
+ * cannot cover a whole-topic read, so that read stays `held`.
  *
  * `Projection` is what the pull RETURNS, and it defaults to the whole payload
  * because that is what a whole-topic model produces. A model declared per VALUE
@@ -394,11 +394,11 @@ export type ReckonerAnswer<Payload, Projection = Payload> =
  * nothing | | `"unowned"` | Nothing will ever publish this Topic: no installed
  * Uplink declares it | nothing | | `"absent"` | The game confirmed there is no
  * value, such as no target set | `atUt` | | `"observed"` | The newest value
- * that could have reached us | `value`, `atUt` | | `"stale"` | Held: updates
+ * that could have reached us | `value`, `atUt` | | `"held"` | Updates
  * stopped arriving, so this is the last value received | `value`, `asOfUt`,
  * `grade` |
  *
- * A held value is shown as held, never as current. {@link StaleGrade} says why
+ * A held value is shown as held, never as current. {@link HeldGrade} says why
  * updates stopped. There is no zero standing in for a missing value: the
  * first three states carry no payload at all.
  *
@@ -461,12 +461,12 @@ export type TopicCurrency<Payload, ReckoningShape = unknown> =
       reckoning: ReckoningShape;
     }
   | {
-      state: "stale";
+      state: "held";
       /** The last REAL observation. Never a modelled value. */
       value: Payload;
       /** The UT that observation was made at. */
       asOfUt: Value<"ut">;
-      grade: StaleGrade;
+      grade: HeldGrade;
       reckoning: ReckoningShape;
     };
 
@@ -567,7 +567,7 @@ export type Reckoning<Payload> =
  * {@link TopicReading} is.
  *
  * `state` has the same meanings as on a {@link TopicReading}. `value` is set
- * only when `state` is `"observed"` or `"stale"` (held).
+ * only when `state` is `"observed"` or `"held"`.
  *
  * @typeParam Payload - The type of the value: a `Value` for a quantity, such as
  * `Value<"m">`, or a field's own type for anything else.
@@ -577,14 +577,14 @@ export type Reckoning<Payload> =
 export interface Reading<Payload> {
   /** What the reading holds. See {@link TopicReading} for each state. */
   readonly state: ReadingState;
-  /** The last value observed, when `state` is `"observed"` or `"stale"`. Never a modelled value. */
+  /** The last value observed, when `state` is `"observed"` or `"held"`. Never a modelled value. */
   readonly value?: Payload;
   /** When the value was observed, or confirmed absent. */
   readonly atUt?: Value<"ut">;
   /** When a held value was observed. */
   readonly asOfUt?: Value<"ut">;
   /** Why a held value stopped updating. */
-  readonly grade?: StaleGrade;
+  readonly grade?: HeldGrade;
   /** What a forward model says the value is now. */
   readonly reckoning: Reckoning<Payload>;
 }
@@ -617,9 +617,9 @@ export type ReckonableReading<
   TopicFields<Payload>;
 
 /**
- * Why a held value (`state: "stale"`) stopped updating.
+ * Why a held reading (`state: "held"`) stopped updating.
  *
- * - `held-stale`: this Topic's updates stopped arriving on schedule
+ * - `held`: this Topic's own updates stopped arriving on schedule
  * - `disconnected`: the connection to the game is down, which affects every
  *   Topic at once
  * - `last-before-blackout`: the last value sent before a known loss of signal
@@ -632,15 +632,15 @@ export type ReckonableReading<
  *
  * @category Reading telemetry
  */
-export type StaleGrade =
-  | "held-stale"
+export type HeldGrade =
+  | "held"
   | "disconnected"
   | "last-before-blackout"
   | "recorded";
 
 /**
  * The values `state` can take on a reading: `"pending"`, `"unowned"`,
- * `"absent"`, `"observed"` and `"stale"` (held).
+ * `"absent"`, `"observed"` and `"held"`.
  *
  * @category Reading telemetry
  */
@@ -707,7 +707,7 @@ export function withoutReckoning<Payload>(
     });
   }
   return topicReading({
-    state: "stale",
+    state: "held",
     reckoning: { status: "none" },
     value: reading.value,
     asOfUt: reading.asOfUt,
@@ -737,7 +737,7 @@ export type UnmodelledReading<Payload> = TopicCurrency<
  *
  * Use it where a value only means something while it is current: a verdict, a
  * status, whether a control can be pressed. To show a held value, check for
- * `state === "stale"` and date it with {@link observedAt}. It never uses a
+ * `state === "held"` and date it with {@link observedAt}. It never uses a
  * forward model.
  *
  * @example
@@ -774,7 +774,7 @@ export function stillTrue<Payload, Fallback>(
   whenConfirmedNothing: Fallback,
 ): Payload | Fallback | undefined {
   if (reading.state === "observed") return reading.value;
-  if (reading.state === "stale") return reading.value;
+  if (reading.state === "held") return reading.value;
   if (reading.state === "absent") return whenConfirmedNothing;
   return undefined;
 }
@@ -786,7 +786,7 @@ export function stillTrue<Payload, Fallback>(
  *
  * `<Unit>` takes a `Reading<Value<Unit>>`, and a widget holds a
  * `Reading<VesselOrbit>`. This reaches the first from the second without a
- * switch over the states at every call site, and keeps the `stale` (held) state
+ * switch over the states at every call site, and keeps the `held` state
  * that a hand-written switch most often drops.
  *
  * `select` runs only on the states that HAVE a payload. The other three carry
@@ -834,9 +834,9 @@ export function readingOf<Payload, Selected>(
       atUt: reading.atUt,
     });
   }
-  if (reading.state === "stale") {
+  if (reading.state === "held") {
     return topicReading({
-      state: "stale",
+      state: "held",
       reckoning: { status: "none" },
       value: select(reading.value),
       asOfUt: reading.asOfUt,
@@ -914,7 +914,7 @@ export function deriveReading<Payload, Derived>(
     };
   }
   return {
-    state: "stale",
+    state: "held",
     value: observed(source.value),
     asOfUt: source.asOfUt,
     grade: source.grade,
@@ -1061,9 +1061,9 @@ function projectField(
         atUt: currency.atUt,
         reckoning,
       };
-    case "stale":
+    case "held":
       return {
-        state: "stale",
+        state: "held",
         value: walkField(currency.value, path),
         asOfUt: currency.asOfUt,
         grade: currency.grade,
@@ -1286,8 +1286,8 @@ export function bandSide<Unit extends string>(
  * reported when it is the strongest evidence that no producer exists.
  *
  * `absent` is deliberately TRUE: a producer saying "there is no value" is still
- * a producer, and a tombstone is data. `stale` (held) likewise, since a domain
- * that reported and went quiet is still installed.
+ * a producer, and a tombstone is data. `held` likewise, since a domain that
+ * reported and went quiet is still installed.
  *
  * The two falses are NOT interchangeable even though this collapses them, and a
  * caller that renders something for the user should branch on `state` rather
@@ -1311,7 +1311,7 @@ export function hasAnswered(reading: {
       return false;
     case "absent":
     case "observed":
-    case "stale":
+    case "held":
       return true;
   }
 }
@@ -1339,7 +1339,7 @@ export function observedAt<Payload>(
     case "absent":
     case "observed":
       return reading.atUt;
-    case "stale":
+    case "held":
       return reading.asOfUt;
   }
 }
@@ -1371,7 +1371,7 @@ export function observedAt<Payload>(
  */
 export type ReckonerFor<Payload> = (
   point: TimelinePoint<Payload>,
-  grade: StaleGrade | undefined,
+  grade: HeldGrade | undefined,
   reckonUt: number,
 ) => TopicModel<Payload> | undefined;
 
@@ -1551,7 +1551,7 @@ export type ResolvedReckonerDeps<
  */
 export interface ReckonerFrame<Payload = unknown> {
   /** `undefined` when the reading is LIVE; see {@link ReckonerFor}. */
-  readonly grade: StaleGrade | undefined;
+  readonly grade: HeldGrade | undefined;
   /** The instant the model is being asked to reach: the frame's SCET. */
   readonly reckonUt: number;
   /**

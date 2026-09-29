@@ -352,12 +352,12 @@ export const CELESTIAL_FACTS = CORE_UPLINK_CLIENT.registerProcessor({
   // A READING rather than the bare payload, so the derivation can tell a
   // catalogue that has arrived from one that has not. A body catalogue is a
   // FACT: it changes when the game changes, and nothing changes it down a link
-  // that is not delivering, so a stale one is still the catalogue and is used
+  // that is not delivering, so a held one is still the catalogue and is used
   // as-is. `pending` and `absent` both mean there is nothing to enrich.
   deps: [{ reading: "system.bodies" }] as const,
   compute: ([reading], frame): CelestialFacts => {
     const known =
-      reading.state === "observed" || reading.state === "stale"
+      reading.state === "observed" || reading.state === "held"
         ? reading.value
         : undefined;
     // The frame's own frozen view time, which is what puts every body on the

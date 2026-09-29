@@ -938,7 +938,7 @@ const NO_PROVIDER_READING = topicReading<never>({
  * unmount is not an event the caller sees.
  *
  * So anything acting on a reading rather than drawing it reads here, branches
- * on `state`, and treats `stale` as a reason to stop. One store call, the same
+ * on `state`, and treats `held` as a reason to stop. One store call, the same
  * `sampleReading` the hook path uses, so the two cannot drift.
  *
  * Answers `pending` when no provider has ever mounted, matching what
@@ -1009,11 +1009,11 @@ export function getOrbitSolve(): OrbitalSolve | null {
   if (!activeTimelineStore) return null;
   const reading =
     activeTimelineStore.sampleReading<VesselOrbit>("vessel.orbit");
-  /* Stale carries its elements too: see `solveSelfOrbit` for why that is as
+  /* Held carries its elements too: see `solveSelfOrbit` for why that is as
      good a starting point as an observed one, and for what decides whether
      they may be advanced. */
   const elements =
-    reading.state === "observed" || reading.state === "stale"
+    reading.state === "observed" || reading.state === "held"
       ? reading.value
       : undefined;
   return solveSelfOrbit(

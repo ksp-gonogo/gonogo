@@ -35,7 +35,7 @@ function bandOf<Unit extends string>(
 }
 
 function reading<Unit extends string>(
-  state: "observed" | "stale",
+  state: "observed" | "held",
   quantity: Value<Unit>,
   band: UncertaintyBand<Unit>,
 ): Reading<Value<Unit>> {
@@ -49,7 +49,7 @@ function reading<Unit extends string>(
   } as const;
   return state === "observed"
     ? { state, value: quantity, atUt: AT, reckoning }
-    : { state, value: quantity, asOfUt: AT, grade: "held-stale", reckoning };
+    : { state, value: quantity, asOfUt: AT, grade: "held", reckoning };
 }
 
 /** Bounds 0.4 % either side of 50, inside a one-percent tolerance, and 3 % and 5 % above it, well outside it. */
@@ -93,7 +93,7 @@ const cases = [
 ] as const;
 
 describe.each(cases)("$name's band marks", ({ draw }) => {
-  for (const state of ["observed", "stale"] as const) {
+  for (const state of ["observed", "held"] as const) {
     it(`hides them on a${state === "observed" ? " live" : " held"} reading the model agrees with`, () => {
       const [lo, hi] = WITHIN;
       const { container } = render(

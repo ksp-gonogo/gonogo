@@ -13,7 +13,7 @@ export function useStreamBody(
   const reading = useTelemetry("system.bodies");
   // A body roster does not decay, so a stale one still answers.
   const bodies =
-    reading.state === "observed" || reading.state === "stale"
+    reading.state === "observed" || reading.state === "held"
       ? (reading.value as StreamBodies | undefined)
       : undefined;
   return useMemo(

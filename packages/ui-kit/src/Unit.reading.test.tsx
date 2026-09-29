@@ -26,10 +26,10 @@ function observed(magnitude: number): Reading<Value<"m">> {
 
 function stale(
   magnitude: number,
-  grade: "held-stale" | "disconnected" | "last-before-blackout" | "recorded",
+  grade: "held" | "disconnected" | "last-before-blackout" | "recorded",
 ): Reading<Value<"m">> {
   return {
-    state: "stale",
+    state: "held",
     reckoning: { status: "none" },
     value: metres(magnitude),
     asOfUt: AT,
@@ -78,7 +78,7 @@ describe("Unit: a reading that is current", () => {
     // A mark present in the normal case is one the operator stops seeing.
     const { container } = render(<Unit value={observed(12_400)} />);
     expect(container.querySelector("[data-unit-currency]")).toBeNull();
-    expect(container.textContent).not.toMatch(/STALE|BLACKOUT|RECORDED/);
+    expect(container.textContent).not.toMatch(/HELD|BLACKOUT|RECORDED/);
   });
 
   it("treats a reading with a model on offer as current, and never draws it", () => {
@@ -146,13 +146,13 @@ describe("Unit: a reading with no number", () => {
 describe("Unit: a reading that is held", () => {
   it("draws the last observation in full, and marks it", () => {
     // Still the best number available, so it is drawn and not withheld.
-    const { container } = render(<Unit value={stale(12_400, "held-stale")} />);
+    const { container } = render(<Unit value={stale(12_400, "held")} />);
     expect(visibleText(container)).toBe("12.4 km");
     expect(quantity(container).hasAttribute("data-held")).toBe(true);
   });
 
   it("marks with a superscript dot, and draws no underline under the value", () => {
-    const { container } = render(<Unit value={stale(12_400, "held-stale")} />);
+    const { container } = render(<Unit value={stale(12_400, "held")} />);
     expect(container.querySelector("[data-held-mark]")).not.toBeNull();
     const css = emittedCss();
     expect(css).not.toContain("text-decoration-style:dotted");
@@ -161,21 +161,21 @@ describe("Unit: a reading that is held", () => {
 
   it("takes the dot's hue from the same token the panel badge paints", () => {
     // One fact, one colour: the mark and the badge above it are the same `warning` severity.
-    render(<Unit value={stale(12_400, "held-stale")} />);
+    render(<Unit value={stale(12_400, "held")} />);
     const css = emittedCss();
     expect(css).toContain(severityDotColor("warning"));
   });
 
   it("paints the dot from a token and never from a literal hue", () => {
     // A hex typed in here is a hue the theme cannot restyle.
-    const { container } = render(<Unit value={stale(12_400, "held-stale")} />);
+    const { container } = render(<Unit value={stale(12_400, "held")} />);
     expect(markRule(container)).not.toMatch(/#[0-9a-f]{3,8}\b/i);
   });
 
   it("does not change what the readout occupies", () => {
     // A glyph in the flow would reflow a table column every time a channel went quiet.
     const { container: marked } = render(
-      <Unit value={stale(12_400, "held-stale")} />,
+      <Unit value={stale(12_400, "held")} />,
     );
     const { container: plain } = render(<Unit value={metres(12_400)} />);
     expect(visibleText(marked)).toBe(visibleText(plain));
@@ -183,12 +183,12 @@ describe("Unit: a reading that is held", () => {
 
   it("takes the dot out of the inline flow, so no column can reflow", () => {
     // jsdom has no layout, so assert the rule that makes the mark zero-width: it is absolutely positioned.
-    const { container } = render(<Unit value={stale(12_400, "held-stale")} />);
+    const { container } = render(<Unit value={stale(12_400, "held")} />);
     expect(markRule(container)).toContain("position:absolute");
   });
 
   it.each([
-    ["held-stale", "STALE"],
+    ["held", "HELD"],
     ["disconnected", "OFFLINE"],
     ["last-before-blackout", "BLACKOUT"],
     ["recorded", "RECORDED"],
@@ -213,7 +213,7 @@ describe("Unit: a reading that is held", () => {
     // A stale member still reports, so a column's rung does not move when one cell stops updating.
     const { container } = render(
       <UnitSharedFormat>
-        <Unit value={stale(999, "held-stale")} />
+        <Unit value={stale(999, "held")} />
         <Unit value={metres(4_000)} />
       </UnitSharedFormat>,
     );
@@ -224,9 +224,9 @@ describe("Unit: a reading that is held", () => {
 describe("Unit: when the reading was last valid", () => {
   // The hover and caption say how stale, from `asOfUt` on the game's calendar, so a held number and a `<MissionDate>` beside it print one spelling of one instant.
   it("puts the date on the hover, beside the grade", () => {
-    const { container } = render(<Unit value={stale(12_400, "held-stale")} />);
+    const { container } = render(<Unit value={stale(12_400, "held")} />);
     expect(quantity(container).getAttribute("data-tooltip")).toBe(
-      `STALE, as of ${AT_DATE}`,
+      `HELD, as of ${AT_DATE}`,
     );
   });
 
@@ -240,13 +240,13 @@ describe("Unit: when the reading was last valid", () => {
 
   it("keeps the date off the screen and off the clipboard", () => {
     // It is a reading of the mark beside it, so copying a readout must not pick it up.
-    const { container } = render(<Unit value={stale(12_400, "held-stale")} />);
+    const { container } = render(<Unit value={stale(12_400, "held")} />);
     expect(visibleText(container)).toBe("12.4 km");
   });
 
   it("reads the instant on the game's calendar, not as a bare number", () => {
     // The date goes through `formatQuantity`, never as "1,000.00 ut".
-    const { container } = render(<Unit value={stale(12_400, "held-stale")} />);
+    const { container } = render(<Unit value={stale(12_400, "held")} />);
     expect(quantity(container).getAttribute("data-tooltip")).not.toMatch(
       /\but\b/,
     );
@@ -260,7 +260,7 @@ describe("Unit: when the reading was last valid", () => {
     const { container } = render(
       <Unit
         value={{
-          state: "stale",
+          state: "held",
           reckoning: { status: "none" },
           value: metres(12_400),
           asOfUt: AT,
@@ -280,15 +280,15 @@ describe("Unit: when the reading was last valid", () => {
     const { container } = render(
       <Unit
         value={{
-          state: "stale",
+          state: "held",
           reckoning: { status: "none" },
           value: metres(12_400),
           asOfUt: value("ut", Number.NaN),
-          grade: "held-stale",
+          grade: "held",
         }}
       />,
     );
-    expect(quantity(container).getAttribute("data-tooltip")).toBe("STALE");
+    expect(quantity(container).getAttribute("data-tooltip")).toBe("HELD");
   });
 });
 
@@ -304,11 +304,11 @@ describe("Unit: the staleness slot is announced", () => {
 
   it("carries the meaning without the hue, and draws no dot on a current one", () => {
     // WCAG 1.4.1: the mark is a shape, silent itself, with the meaning said in words by the hover and caption.
-    const { container } = render(<Unit value={stale(12_400, "held-stale")} />);
+    const { container } = render(<Unit value={stale(12_400, "held")} />);
     const dot = container.querySelector<HTMLElement>("[data-held-mark]");
     expect(dot?.getAttribute("aria-hidden")).toBe("true");
     expect(dot?.textContent).toBe("");
-    expect(quantity(container).getAttribute("data-tooltip")).toContain("STALE");
+    expect(quantity(container).getAttribute("data-tooltip")).toContain("HELD");
 
     const { container: live } = render(<Unit value={observed(12_400)} />);
     expect(live.querySelector("[data-held-mark]")).toBeNull();
@@ -317,7 +317,7 @@ describe("Unit: the staleness slot is announced", () => {
   it("raises no a11y violation on either treatment", async () => {
     const { container } = render(
       <div>
-        <Unit value={stale(12_400, "held-stale")} />
+        <Unit value={stale(12_400, "held")} />
         <Unit value={observed(12_400)} />
         <Unit
           value={{
@@ -339,7 +339,7 @@ describe("Unit: the staleness slot is announced", () => {
 function banded(
   magnitude: number,
   band: { lo: number; value: number; hi: number; kind?: "bound" | "sigma1" },
-  state: "observed" | "stale" = "stale",
+  state: "observed" | "held" = "held",
 ): Reading<Value<"m">> {
   const reckoning = {
     status: "available",
@@ -354,12 +354,12 @@ function banded(
       kind: band.kind ?? "sigma1",
     },
   } as const;
-  return state === "stale"
+  return state === "held"
     ? {
-        state: "stale",
+        state: "held",
         value: metres(magnitude),
         asOfUt: AT,
-        grade: "held-stale",
+        grade: "held",
         reckoning,
       }
     : { state: "observed", value: metres(magnitude), atUt: AT, reckoning };
@@ -437,7 +437,7 @@ describe("Unit: how well the number is known", () => {
     // Symmetric about where the model says the value is now, not the observation on screen, so `±` would bracket the wrong figure.
     const { container } = render(
       <Unit
-        value={banded(1000, { lo: 1180, value: 1200, hi: 1220 }, "stale")}
+        value={banded(1000, { lo: 1180, value: 1200, hi: 1220 }, "held")}
         decimals={3}
       />,
     );
@@ -455,10 +455,10 @@ describe("Unit: how well the number is known", () => {
     const { container } = render(
       <Unit
         value={{
-          state: "stale",
+          state: "held",
           value: metres(1000),
           asOfUt: AT,
-          grade: "held-stale",
+          grade: "held",
           reckoning: {
             status: "available",
             atUt: value("ut", 0),
@@ -511,11 +511,11 @@ describe("Unit: how well the number is known", () => {
   it("keeps the staleness sentence when both have something to say", () => {
     const { container } = render(
       <Unit
-        value={banded(1000, { lo: 1180, value: 1200, hi: 1220 }, "stale")}
+        value={banded(1000, { lo: 1180, value: 1200, hi: 1220 }, "held")}
       />,
     );
     const title = quantity(container).getAttribute("data-tooltip") ?? "";
-    expect(title).toContain("STALE");
+    expect(title).toContain("HELD");
     expect(title).toContain("with bands at");
   });
 

@@ -142,7 +142,7 @@ describe("Panel header aside expand box", () => {
     // The store the dashboard puts round every widget, which the summary badge and the dots both read.
     render(
       <PanelStatusStoreProvider>
-        <Panel panelTitle="ORBIT" panelStatus="held-stale">
+        <Panel panelTitle="ORBIT" panelStatus="held">
           body
         </Panel>
       </PanelStatusStoreProvider>,
@@ -252,7 +252,7 @@ describe("Panel header aside expand box", () => {
   });
 
   it("does not re-measure the header when the panel re-renders with the same title and aside", () => {
-    const panel = (body: string, badge = "STALE") => (
+    const panel = (body: string, badge = "HELD") => (
       <Panel panelTitle="MAP" panelAside={<Badge>{badge}</Badge>}>
         {body}
       </Panel>
@@ -301,7 +301,7 @@ describe("Panel header aside expand box, accessibility", () => {
       <PanelStatusStoreProvider>
         <Panel
           panelTitle="LANDING"
-          panelStatus="held-stale"
+          panelStatus="held"
           panelAside={<button type="button">Recenter</button>}
         >
           <p>content</p>

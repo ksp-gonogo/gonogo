@@ -29,7 +29,7 @@ export function useTargetingReading() {
   // `vessel.dock` is reckonable: the modelled separation overlays the observation, while relative velocity and `forwardDot` do not move.
   // The observation first: `reckoning.status` narrows the reckoning, not the arm carrying it.
   const dockObserved =
-    dockReading.state === "observed" || dockReading.state === "stale"
+    dockReading.state === "observed" || dockReading.state === "held"
       ? dockReading.value
       : undefined;
   // A current reading draws its observation; a model reaching past the received edge never replaces it.
@@ -119,18 +119,17 @@ export function useTargetingReading() {
    * own caption, and never with neither.
    */
   const alignmentWithheld =
-    dockReading.state === "stale" &&
+    dockReading.state === "held" &&
     dockReading.reckoning.status !== "available" &&
     dockPairing?.relativePosition !== undefined;
   // The separation is being carried forward from a held observation, so the HUD says its geometry is modelled.
   const modelledAlignment =
-    dockReading.reckoning.status === "available" &&
-    dockReading.state === "stale"
+    dockReading.reckoning.status === "available" && dockReading.state === "held"
       ? dockReading.reckoning.basis
       : undefined;
 
   // Out of contact the headline is an observation, not a reading of now.
-  const outOfContact = targetReading.state === "stale";
+  const outOfContact = targetReading.state === "held";
   // Pulled here so a modelled number reaches the screen only through code that says it is modelling.
   const reckoned =
     targetReading.reckoning.status === "available"

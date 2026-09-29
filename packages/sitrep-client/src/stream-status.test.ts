@@ -10,7 +10,7 @@ describe("worstStatus", () => {
   it("a single status passes through unchanged", () => {
     const values: StreamStatusValue[] = [
       "live",
-      "held-stale",
+      "held",
       "disconnected",
       "last-before-blackout",
       "absent",
@@ -21,9 +21,9 @@ describe("worstStatus", () => {
     }
   });
 
-  it("full severity ordering: live < held-stale < disconnected < last-before-blackout < absent < resyncing", () => {
-    expect(worstStatus(["live", "held-stale"])).toBe("held-stale");
-    expect(worstStatus(["held-stale", "disconnected"])).toBe("disconnected");
+  it("full severity ordering: live < held < disconnected < last-before-blackout < absent < resyncing", () => {
+    expect(worstStatus(["live", "held"])).toBe("held");
+    expect(worstStatus(["held", "disconnected"])).toBe("disconnected");
     expect(worstStatus(["disconnected", "last-before-blackout"])).toBe(
       "last-before-blackout",
     );
@@ -32,12 +32,12 @@ describe("worstStatus", () => {
   });
 
   it("order of the input list doesn't matter", () => {
-    expect(worstStatus(["resyncing", "live", "held-stale"])).toBe("resyncing");
-    expect(worstStatus(["held-stale", "live", "resyncing"])).toBe("resyncing");
+    expect(worstStatus(["resyncing", "live", "held"])).toBe("resyncing");
+    expect(worstStatus(["held", "live", "resyncing"])).toBe("resyncing");
   });
 
   it("ties resolve to the tied value", () => {
-    expect(worstStatus(["held-stale", "held-stale"])).toBe("held-stale");
+    expect(worstStatus(["held", "held"])).toBe("held");
   });
 
   it("a single 'live' among many worse statuses does not win", () => {

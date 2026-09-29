@@ -111,7 +111,7 @@ describe("a11y smoke (jest-axe)", () => {
 
   it("Panel (degraded status, ghost dot present) has no axe violations", async () => {
     const { container } = render(
-      <Panel panelTitle="Fuel" panelStatus="held-stale">
+      <Panel panelTitle="Fuel" panelStatus="held">
         <p>content</p>
       </Panel>,
     );

@@ -29,7 +29,7 @@ export function AlarmBanner() {
   const delay = useTelemetry("comms.delay");
   // A reading of NO path, which is a different fact from a delay that merely has not arrived.
   const noPath =
-    (delay.state === "observed" || delay.state === "stale") &&
+    (delay.state === "observed" || delay.state === "held") &&
     delay.value.oneWaySeconds == null;
 
   // Force a re-render each second so T-minus counts down even without upstream telemetry ticks.

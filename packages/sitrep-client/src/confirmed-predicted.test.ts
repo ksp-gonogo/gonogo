@@ -18,7 +18,7 @@ import { VISIBLE_GAP_SECONDS, ViewClock } from "./view-clock";
  * `TimelineStore`-level integration: real interpolation filling the
  * `ClientTimeline.straddle` seam, real propagation of `vessel.orbit` past
  * the horizon, and the composition of `certainty` alongside
- * `StreamStatusValue`'s held-stale status and plain undefined/null absence.
+ * `StreamStatusValue`'s held status and plain undefined/null absence.
  */
 
 /**
@@ -420,7 +420,7 @@ describe("certainty composes with T4 status + T3 undefined/null", () => {
     expect(store.currentFrame().certainty).toBe("confirmed");
   });
 
-  it("a frame reckoning far past the horizon CAN read held-stale (T4) alongside a genuine arrival gap, the two channels don't fight", () => {
+  it("a frame reckoning far past the horizon CAN read held (T4) alongside a genuine arrival gap, the two channels don't fight", () => {
     const wall = fakeWall();
     const clock = new ViewClock({
       nowWall: wall.now,
@@ -442,7 +442,7 @@ describe("certainty composes with T4 status + T3 undefined/null", () => {
     // A genuine arrival gap: other traffic advances the confirmed horizon (real confirmed UT elapses) while "c" itself stays silent.
     store.ingest("other", numberPoint(500, 1, { deliveredAt: 510 }));
     store.beginFrame();
-    expect(store.sampleStatus("c")).toBe("held-stale");
+    expect(store.sampleStatus("c")).toBe("held");
     // The stale value is still served (hold-last past the horizon), just labeled by both independent channels.
     expect(store.sample<number>("c")?.payload).toBe(1);
   });

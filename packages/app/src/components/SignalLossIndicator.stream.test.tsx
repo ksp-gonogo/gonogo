@@ -46,11 +46,11 @@ function CommsProbe() {
   const commsReading = useTelemetry("vessel.comms");
   const linkReading = useTelemetry("comms.link");
   const comms =
-    commsReading.state === "observed" || commsReading.state === "stale"
+    commsReading.state === "observed" || commsReading.state === "held"
       ? commsReading.value
       : undefined;
   const link =
-    linkReading.state === "observed" || linkReading.state === "stale"
+    linkReading.state === "observed" || linkReading.state === "held"
       ? linkReading.value
       : undefined;
   return (

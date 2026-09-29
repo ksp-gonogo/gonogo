@@ -70,7 +70,7 @@ async function replay(
 function InstallReadout() {
   const healthReading = useStream<SystemUplinkHealth>("system.uplinkHealth");
   const health =
-    healthReading.state === "observed" || healthReading.state === "stale"
+    healthReading.state === "observed" || healthReading.state === "held"
       ? healthReading.value
       : undefined;
   if (!health) return <p>roster: pending</p>;

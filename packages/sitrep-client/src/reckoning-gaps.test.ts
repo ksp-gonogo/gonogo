@@ -101,7 +101,7 @@ describe("a derived reading must not claim the frame's own SCET as its observati
     expect(scetUt).toBe(1310);
 
     const reading = store.sampleReading<unknown>("system.state");
-    expect(reading.state).toBe("stale");
+    expect(reading.state).toBe("held");
     // The age at the craft's present, as the subtraction it is: twenty minutes and a light-time since the bodies were observed, not zero because the derived channel was recomputed this frame.
     expect(
       value("ut", scetUt).minus(observedAt(reading) as Value<"ut">),
@@ -202,7 +202,7 @@ describe("a reckoning withdraws when its model stops being offered", () => {
     store.beginFrame();
     const expired = store.sampleReading<number>("test.temperature");
     expect(expired.reckoning.status).toBe("none");
-    expect(expired.state).toBe("stale");
+    expect(expired.state).toBe("held");
   });
 
   it("keeps a STALE reading's identity across frames in which nothing arrived", () => {
@@ -218,7 +218,7 @@ describe("a reckoning withdraws when its model stops being offered", () => {
     store.setTransportConnected(false);
     store.beginFrame();
     const first = store.sampleReading<number>("test.temperature");
-    expect(first.state).toBe("stale");
+    expect(first.state).toBe("held");
 
     for (let i = 0; i < 10; i++) {
       wall.advanceBy(1);
@@ -269,7 +269,7 @@ describe("a reckoning says which fields it actually modelled", () => {
      */
     const reading = store.sampleReading<Target>("test.contact");
     expect(reading.reckoning.status).toBe("none");
-    expect(reading.state).toBe("stale");
+    expect(reading.state).toBe("held");
   });
 });
 

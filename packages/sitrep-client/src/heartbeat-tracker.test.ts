@@ -123,7 +123,7 @@ describe("HeartbeatTracker", () => {
       expect(tracker.intervalFor("slow.topic")).toBe(30);
     });
 
-    it("each learned interval drives its OWN overdue threshold: the 5 UT topic flips held-stale sooner after silence than the 30 UT topic, even though both went silent at the same UT", () => {
+    it("each learned interval drives its OWN overdue threshold: the 5 UT topic flips held sooner after silence than the 30 UT topic, even though both went silent at the same UT", () => {
       const tracker = new HeartbeatTracker({
         marginMultiplier: 1,
         jitterAllowanceUt: 0,

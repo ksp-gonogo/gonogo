@@ -45,7 +45,7 @@ export function KspCalendarObserver() {
   // leaves the kit on its defaults.
   const calendarReading = useTelemetry("time.calendar");
   const calendar =
-    calendarReading.state === "observed" || calendarReading.state === "stale"
+    calendarReading.state === "observed" || calendarReading.state === "held"
       ? calendarReading.value
       : undefined;
 

@@ -1,4 +1,4 @@
-import type { Reading, ReadingState, Reckoning, StaleGrade } from "./reading";
+import type { HeldGrade, Reading, ReadingState, Reckoning } from "./reading";
 import type { Value } from "./unit-system/value";
 
 /**
@@ -29,14 +29,14 @@ import type { Value } from "./unit-system/value";
  * - every input `observed` gives `observed`, stamped at the **oldest** `atUt`.
  *   A result cannot be more current than the least current thing it was
  *   computed from
- * - any input `stale` gives `stale`, as of the **oldest instant any input
+ * - any input `held` gives `held`, as of the **oldest instant any input
  *   speaks for**
  * - any input `absent`, `pending` or `unowned` gives that state with no value,
  *   taking the **first such input in argument order**. There is no meaningful
  *   ranking between those three, so the rule is positional and written down
  *   rather than invented per call
  * - an input carrying **no value** gives its own state with no value, by the
- *   same positional rule, even where that state is `observed` or `stale`. A
+ *   same positional rule, even where that state is `observed` or `held`. A
  *   field reading projected off an OPTIONAL payload field the wire did not
  *   carry is `observed` with no value: the topic WAS observed and the field was
  *   simply not in it, so the state is right and there is still nothing to
@@ -96,18 +96,18 @@ export function combineReadings<
     return { state: missing.state, reckoning: { status: "none" } };
   }
 
-  // Past the guard every input is `observed` or `stale` AND carries a value, so
+  // Past the guard every input is `observed` or `held` AND carries a value, so
   // each has one and an instant. The cast is that fact, not an assumption about
   // the caller.
   const values = inputs.map((input) => input.value) as ReadingValues<Inputs>;
   const oldest = oldestSpoken(inputs);
-  const stale = inputs.some((input) => input.state === "stale");
+  const held = inputs.some((input) => input.state === "held");
 
   return {
-    state: stale ? "stale" : "observed",
+    state: held ? "held" : "observed",
     value: compute(...values),
-    ...(stale ? { asOfUt: oldest.instant } : { atUt: oldest.instant }),
-    ...(stale && oldest.grade !== undefined ? { grade: oldest.grade } : {}),
+    ...(held ? { asOfUt: oldest.instant } : { atUt: oldest.instant }),
+    ...(held && oldest.grade !== undefined ? { grade: oldest.grade } : {}),
     reckoning: combineReckonings(inputs, compute),
   };
 }
@@ -121,7 +121,7 @@ export interface CarriedCurrency {
   readonly state: ReadingState;
   /** When the observation behind it was made, where it has one. */
   readonly instant: Value<"ut"> | undefined;
-  readonly grade?: StaleGrade | undefined;
+  readonly grade?: HeldGrade | undefined;
 }
 
 /**
@@ -145,7 +145,7 @@ export interface CarriedCurrency {
  * ## What the state means, and what it does NOT
  *
  * It says "how current is what this was derived from", not "did everything
- * arrive". `stale` (held) when any value-bearing input is `stale`, `observed`
+ * arrive". `held` when any value-bearing input is `held`, `observed`
  * otherwise, and the instant is the oldest one spoken, so the result is never
  * dated newer than the oldest thing behind it.
  *
@@ -170,11 +170,11 @@ export function datedFrom<Derived>(
   value: Derived,
 ): Reading<Derived> {
   let instant: Value<"ut"> | undefined;
-  let grade: StaleGrade | undefined;
-  let stale = false;
+  let grade: HeldGrade | undefined;
+  let held = false;
   for (const carrier of carriers) {
     if (!CARRIES_VALUE.has(carrier.state)) continue;
-    if (carrier.state === "stale") stale = true;
+    if (carrier.state === "held") held = true;
     const spoken = carrier.instant;
     if (spoken === undefined) continue;
     if (instant === undefined || spoken.lessThan(instant)) {
@@ -183,10 +183,10 @@ export function datedFrom<Derived>(
     }
   }
   return {
-    state: stale ? "stale" : "observed",
+    state: held ? "held" : "observed",
     value,
-    ...(stale ? { asOfUt: instant } : { atUt: instant }),
-    ...(stale && grade !== undefined ? { grade } : {}),
+    ...(held ? { asOfUt: instant } : { atUt: instant }),
+    ...(held && grade !== undefined ? { grade } : {}),
     reckoning: { status: "none" },
   };
 }
@@ -205,14 +205,14 @@ export type ReadingValues<Inputs extends readonly Reading<unknown>[]> = {
 /** The two states on which a reading carries a value. */
 const CARRIES_VALUE: ReadonlySet<ReadingState> = new Set<ReadingState>([
   "observed",
-  "stale",
+  "held",
 ]);
 
 /**
  * The oldest instant any input speaks for, and the grade that explains it.
  *
  * The grade travels WITH the instant rather than being ranked across inputs,
- * because `StaleGrade` is not a severity ladder: its own doc calls the four
+ * because `HeldGrade` is not a severity ladder: its own doc calls the four
  * different KINDS of missed update, and singles out `recorded` as exact for its
  * own `asOfUt`. There is no defensible "worse" between a dead transport and an
  * exact value taken out of contact, so nothing here invents one. The result is
@@ -225,10 +225,10 @@ const CARRIES_VALUE: ReadonlySet<ReadingState> = new Set<ReadingState>([
  */
 function oldestSpoken(inputs: readonly Reading<unknown>[]): {
   instant: Value<"ut"> | undefined;
-  grade: StaleGrade | undefined;
+  grade: HeldGrade | undefined;
 } {
   let instant: Value<"ut"> | undefined;
-  let grade: StaleGrade | undefined;
+  let grade: HeldGrade | undefined;
   let tied = false;
 
   for (const input of inputs) {

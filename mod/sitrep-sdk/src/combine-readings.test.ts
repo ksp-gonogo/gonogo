@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { combineReadings } from "./combine-readings";
-import type { Reading, StaleGrade } from "./reading";
+import type { HeldGrade, Reading } from "./reading";
 import { value } from "./unit-system/value";
 
 /**
  * The combinator's currency rule, one test per clause of it.
  *
  * Two of the clauses exist BECAUSE the obvious reading was unavailable:
- * `StaleGrade` has no severity order and the three non-value states have no
+ * `HeldGrade` has no severity order and the three non-value states have no
  * precedence, so the rules are positional and tied to the instant rather
  * than ranked. Each is
  * asserted here so a later "tidy-up" that invents a ranking fails.
@@ -27,10 +27,10 @@ function observed<Payload>(v: Payload, ut: number): Reading<Payload> {
 function stale<Payload>(
   v: Payload,
   ut: number,
-  grade: StaleGrade,
+  grade: HeldGrade,
 ): Reading<Payload> {
   return {
-    state: "stale",
+    state: "held",
     value: v,
     asOfUt: at(ut),
     grade,
@@ -51,10 +51,10 @@ describe("combineReadings currency", () => {
 
   it("is stale as of the oldest instant when any input is stale", () => {
     const r = combineReadings(
-      [observed(3, 100), stale(4, 60, "held-stale")],
+      [observed(3, 100), stale(4, 60, "held")],
       (a, b) => a + b,
     );
-    expect(r.state).toBe("stale");
+    expect(r.state).toBe("held");
     expect(r.value).toBe(7);
     expect(r.asOfUt?.magnitude).toBe(60);
     expect(r.atUt).toBeUndefined();
@@ -157,7 +157,7 @@ describe("combineReadings on an input with no value", () => {
 
   it("does the same for a stale input that carries no value", () => {
     const heldNotCarried: Reading<number> = {
-      state: "stale",
+      state: "held",
       asOfUt: at(90),
       grade: "disconnected",
       reckoning: { status: "none" },
@@ -166,7 +166,7 @@ describe("combineReadings on an input with no value", () => {
       [observed(3, 100), heldNotCarried],
       (a, b) => a + b,
     );
-    expect(r.state).toBe("stale");
+    expect(r.state).toBe("held");
     expect(r.value).toBeUndefined();
   });
 
@@ -254,10 +254,10 @@ describe("combineReadings when the arithmetic has no answer", () => {
 
   it("is stale with no value where an input was stale", () => {
     const r = combineReadings(
-      [observed(3, 100), stale(0, 60, "held-stale")],
+      [observed(3, 100), stale(0, 60, "held")],
       (a, b) => (b === 0 ? undefined : a / b),
     );
-    expect(r.state).toBe("stale");
+    expect(r.state).toBe("held");
     expect(r.value).toBeUndefined();
     expect(r.asOfUt?.magnitude).toBe(60);
   });

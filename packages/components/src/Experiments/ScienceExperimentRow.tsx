@@ -1,4 +1,4 @@
-import type { StaleGrade } from "@ksp-gonogo/sitrep-client";
+import type { HeldGrade } from "@ksp-gonogo/sitrep-client";
 import type { CommandReply, ScienceTransmission } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
@@ -28,7 +28,7 @@ export interface ScienceExperimentRowProps {
    * while it is. It disables the controls as well as marking the badges: a
    * Transmit against a held row can spend a one-shot on an instrument already emptied.
    */
-  heldGrade?: StaleGrade;
+  heldGrade?: HeldGrade;
 }
 
 /**

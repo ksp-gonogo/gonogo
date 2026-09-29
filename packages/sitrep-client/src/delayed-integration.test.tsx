@@ -36,7 +36,7 @@ import { useStream } from "./use-stream";
 function MissionPanel() {
   const altitudeReading = useStream<number>("alt");
   const altitude =
-    altitudeReading.state === "observed" || altitudeReading.state === "stale"
+    altitudeReading.state === "observed" || altitudeReading.state === "held"
       ? altitudeReading.value
       : undefined;
   const cmd = useCommand("deploy");

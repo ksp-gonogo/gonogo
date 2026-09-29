@@ -96,7 +96,7 @@ export function useManeuverNodes(): readonly ParsedManeuverNode[] {
   // The plan as last reported, held: a plan stands until someone changes it.
   const plan = useStream<VesselManeuver>("vessel.maneuver");
   const nodes =
-    plan.state === "observed" || plan.state === "stale"
+    plan.state === "observed" || plan.state === "held"
       ? plan.value.nodes
       : undefined;
   return useMemo(() => {

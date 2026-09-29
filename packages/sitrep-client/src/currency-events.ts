@@ -47,7 +47,7 @@ export function scienceCreditTopic(guid: string): string {
 export function useScienceCredit(guid: string): ScienceCreditEvent | undefined {
   // An event, so it holds: a credit does not un-happen down a quiet link.
   const reading = useStream<ScienceCreditEvent>(scienceCreditTopic(guid));
-  return reading.state === "observed" || reading.state === "stale"
+  return reading.state === "observed" || reading.state === "held"
     ? reading.value
     : undefined;
 }

@@ -77,12 +77,12 @@ describe("readingFrom", () => {
   });
 
   it.each([
-    "held-stale",
+    "held",
     "disconnected",
     "last-before-blackout",
   ] as const)("reports %s as stale with no reckoner, keeping the last real value", (status) => {
     expect(readingFrom(point(10, 5), status, AT)).toEqual({
-      state: "stale",
+      state: "held",
       reckoning: { status: "none" },
       grade: status,
       value: 5,
@@ -95,10 +95,10 @@ describe("readingFrom", () => {
     // no reckoner at all must be indistinguishable to a widget, so that
     // "nothing trustworthy can be said" has exactly one rendering.
     const declines: ReckonerFor<number> = () => undefined;
-    expect(readingFrom(point(10, 5), "held-stale", AT, declines)).toEqual({
-      state: "stale",
+    expect(readingFrom(point(10, 5), "held", AT, declines)).toEqual({
+      state: "held",
       reckoning: { status: "none" },
-      grade: "held-stale",
+      grade: "held",
       value: 5,
       asOfUt: value("ut", 10),
     });
@@ -113,9 +113,9 @@ describe("readingFrom", () => {
     );
     // The two axes say separate things about the same reading: we have missed
     // updates AND a model is on offer. Neither implies the other.
-    expect(reading.state).toBe("stale");
+    expect(reading.state).toBe("held");
     expect(reading.reckoning.status).toBe("available");
-    if (reading.state !== "stale") return;
+    if (reading.state !== "held") return;
     // The last REAL value, not the modelled one. A widget that wants "10% at
     // last contact" reads this; a widget that wants the propagated figure reads
     // `reckoned`. Neither is a substitute for the other.
@@ -163,8 +163,8 @@ describe("readingFrom", () => {
       };
     };
     readingFrom(point(10, 5), "live", AT, recording);
-    readingFrom(point(10, 5), "held-stale", AT, recording);
-    expect(grades).toEqual([undefined, "held-stale"]);
+    readingFrom(point(10, 5), "held", AT, recording);
+    expect(grades).toEqual([undefined, "held"]);
   });
 
   it("runs the model once per arm build, not once per read", () => {
@@ -181,7 +181,7 @@ describe("readingFrom", () => {
       },
     });
 
-    const reading = readingFrom(point(10, 5), "held-stale", AT, counting);
+    const reading = readingFrom(point(10, 5), "held", AT, counting);
     if (reading.reckoning.status !== "available")
       throw new Error("expected a reckoning on offer");
     expect(runs).toBe(1);
@@ -191,10 +191,10 @@ describe("readingFrom", () => {
   });
 
   it("reckons a value FOR a later UT than the observation it came from", () => {
-    const reading = readingFrom(point(10, 5), "held-stale", AT, alwaysReckons);
+    const reading = readingFrom(point(10, 5), "held", AT, alwaysReckons);
     if (reading.reckoning.status !== "available")
       throw new Error("expected a reckoning on offer");
-    if (reading.state !== "stale") throw new Error("expected stale");
+    if (reading.state !== "held") throw new Error("expected stale");
     const reckoned = reading.reckoning;
     expect(reckoned).toEqual({
       status: "available",
@@ -217,9 +217,7 @@ describe("readingFrom", () => {
     // there is no observed VALUE to carry, so neither stale arm can represent
     // it: `sampleRawStatus` already ranks `absent` above every staleness grade
     // for the same reason.
-    expect(
-      readingFrom(point(10, null), "held-stale", AT, alwaysReckons),
-    ).toEqual({
+    expect(readingFrom(point(10, null), "held", AT, alwaysReckons)).toEqual({
       state: "absent",
       reckoning: { status: "none" },
       atUt: value("ut", 10),
@@ -229,11 +227,11 @@ describe("readingFrom", () => {
 
 describe("withoutReckoning", () => {
   it("drops the model from a stale reading and leaves the grade alone", () => {
-    const reading = readingFrom(point(10, 5), "held-stale", AT, alwaysReckons);
+    const reading = readingFrom(point(10, 5), "held", AT, alwaysReckons);
     expect(withoutReckoning(reading)).toEqual({
-      state: "stale",
+      state: "held",
       reckoning: { status: "none" },
-      grade: "held-stale",
+      grade: "held",
       value: 5,
       asOfUt: value("ut", 10),
     });
@@ -242,7 +240,7 @@ describe("withoutReckoning", () => {
   /**
    * Only `reckoning` moves. Declining a model is not an admission that updates
    * were missed, and while reckonability rode the staleness discriminant this
-   * call could not say so: it collapsed the reading to `stale` and told the
+   * call could not say so: it collapsed the reading to `held` and told the
    * operator contact had been lost when it had not.
    */
   it("leaves a LIVE reading observed when it declines the model", () => {
@@ -260,7 +258,7 @@ describe("withoutReckoning", () => {
       readingFrom(undefined, "resyncing", AT),
       readingFrom(point(10, null), "absent", AT),
       readingFrom(point(10, 5), "live", AT),
-      readingFrom(point(10, 5), "held-stale", AT),
+      readingFrom(point(10, 5), "held", AT),
     ]) {
       // Same object, not merely an equal one: a widget calling this on a live reading must not pay a new identity for it.
       expect(withoutReckoning(reading)).toBe(reading);
@@ -285,13 +283,13 @@ describe("readingOf", () => {
    * hand it a number with nothing said about it.
    */
   it("carries the staleness across, grade and all", () => {
-    const reading = readingFrom(point(10, 5), "held-stale", AT);
+    const reading = readingFrom(point(10, 5), "held", AT);
     expect(readingOf(reading, (n) => n * 2)).toEqual({
-      state: "stale",
+      state: "held",
       reckoning: { status: "none" },
       value: 10,
       asOfUt: value("ut", 10),
-      grade: "held-stale",
+      grade: "held",
     });
   });
 
@@ -350,8 +348,8 @@ describe("observedValue", () => {
    */
   it("withholds a stale value, model or no model", () => {
     for (const reading of [
-      readingFrom(point(10, 5), "held-stale", AT),
-      readingFrom(point(10, 5), "held-stale", AT, alwaysReckons),
+      readingFrom(point(10, 5), "held", AT),
+      readingFrom(point(10, 5), "held", AT, alwaysReckons),
       readingFrom(point(10, 5), "disconnected", AT),
     ]) {
       expect(observedValue(reading)).toBeUndefined();
@@ -410,9 +408,9 @@ describe("Reading, as a type", () => {
    */
   it("cannot be read for a reckoning without writing the discriminant", () => {
     const reading: TopicCurrency<number, { readonly status: "none" }> = {
-      state: "stale",
+      state: "held",
       reckoning: { status: "none" },
-      grade: "held-stale",
+      grade: "held",
       value: 5,
       asOfUt: value("ut", 10),
     };
@@ -437,9 +435,9 @@ describe("observedAt", () => {
    */
   it("answers with the OBSERVATION's instant for a stale reading", () => {
     const stale: TopicReading<number> = {
-      state: "stale",
+      state: "held",
       reckoning: { status: "none" },
-      grade: "held-stale",
+      grade: "held",
       value: 5,
       asOfUt: value("ut", 10),
     };
@@ -451,8 +449,8 @@ describe("observedAt", () => {
 
   it("answers by the OBSERVATION for a reading with a model, not by its model", () => {
     const reading: TopicReading<number> = {
-      state: "stale",
-      grade: "held-stale",
+      state: "held",
+      grade: "held",
       value: 5,
       asOfUt: value("ut", 10),
       reckoning: {
@@ -592,14 +590,14 @@ describe("hasAnswered", () => {
     atUt,
   };
   const stale: TopicReading<number> = {
-    state: "stale",
+    state: "held",
     reckoning: { status: "none" },
     value: 1,
     asOfUt: atUt,
-    grade: "held-stale",
+    grade: "held",
   };
   const staleWithModel: TopicReading<number> = {
-    state: "stale",
+    state: "held",
     value: 1,
     asOfUt: atUt,
     grade: "last-before-blackout",

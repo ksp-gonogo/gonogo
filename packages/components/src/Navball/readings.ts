@@ -7,7 +7,7 @@ export function lastObserved<Payload>(
 ): Payload | undefined {
   switch (reading.state) {
     case "observed":
-    case "stale":
+    case "held":
       return reading.value;
     default:
       return undefined;

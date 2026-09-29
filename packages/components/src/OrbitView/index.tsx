@@ -67,7 +67,7 @@ function OrbitViewComponent({
   const orbitReading = useTelemetry("vessel.orbit");
   // `reckoning.value` alone holds only the moved phase fields, which is not an orbit.
   const orbitObserved =
-    orbitReading.state === "observed" || orbitReading.state === "stale"
+    orbitReading.state === "observed" || orbitReading.state === "held"
       ? orbitReading.value
       : undefined;
   const orbit =

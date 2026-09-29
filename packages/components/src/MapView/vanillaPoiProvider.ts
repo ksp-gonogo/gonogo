@@ -23,7 +23,7 @@ function useBodyNameByIndex(): Map<number, string> {
   // A body catalogue changes only when the game does, so a stale one is still the catalogue.
   const bodiesReading = useTelemetry("system.bodies");
   const systemBodies =
-    bodiesReading.state === "observed" || bodiesReading.state === "stale"
+    bodiesReading.state === "observed" || bodiesReading.state === "held"
       ? bodiesReading.value
       : undefined;
   return useMemo(() => {

@@ -60,7 +60,7 @@ describe("TimelineStore.sampleStatus (M2 T4: staleness/absence surface)", () => 
     expect(store.sampleStatus("vessel.target")).toBe("resyncing");
   });
 
-  it("a tombstone (payload: null) -> 'absent', confidently, not 'held-stale'", () => {
+  it("a tombstone (payload: null) -> 'absent', confidently, not 'held'", () => {
     const clock = new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
     const store = new TimelineStore(clock);
 
@@ -71,7 +71,7 @@ describe("TimelineStore.sampleStatus (M2 T4: staleness/absence surface)", () => 
   });
 
   describe("server-stamped meta.staleness wins outright", () => {
-    it("Staleness.HeldStale on the latest point -> 'held-stale' even with on-time heartbeats", () => {
+    it("Staleness.HeldStale on the latest point -> 'held' even with on-time heartbeats", () => {
       const clock = new ViewClock({
         delaySeconds: () => 0,
         warpRate: () => 1,
@@ -84,7 +84,7 @@ describe("TimelineStore.sampleStatus (M2 T4: staleness/absence surface)", () => 
       );
       store.beginFrame();
 
-      expect(store.sampleStatus("vessel.target")).toBe("held-stale");
+      expect(store.sampleStatus("vessel.target")).toBe("held");
     });
 
     it("Staleness.LastBeforeBlackout on the latest point -> 'last-before-blackout'", () => {
@@ -124,7 +124,7 @@ describe("TimelineStore.sampleStatus (M2 T4: staleness/absence surface)", () => 
   });
 
   describe("cold-start / post-reset resynchronizing", () => {
-    it("a topic that hasn't re-sampled since a rewind reads 'resyncing', not a carried-over 'held-stale'", () => {
+    it("a topic that hasn't re-sampled since a rewind reads 'resyncing', not a carried-over 'held'", () => {
       const clock = new ViewClock({
         delaySeconds: () => 0,
         warpRate: () => 1,
@@ -189,8 +189,8 @@ describe("TimelineStore.sampleStatus (M2 T4: staleness/absence surface)", () => 
     });
   });
 
-  describe("heartbeat miss -> held-stale", () => {
-    it("stops confirming after its last heartbeat and flips to 'held-stale' once the view UT passes the expected next heartbeat + margin", () => {
+  describe("heartbeat miss -> held", () => {
+    it("stops confirming after its last heartbeat and flips to 'held' once the view UT passes the expected next heartbeat + margin", () => {
       const clock = new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
       const store = new TimelineStore(clock, {
         heartbeatOptions: {
@@ -219,12 +219,12 @@ describe("TimelineStore.sampleStatus (M2 T4: staleness/absence surface)", () => 
       store.ingest("pacer.tick", point(160, 1, { deliveredAt: 160 }));
       store.beginFrame();
 
-      expect(store.sampleStatus("vessel.target")).toBe("held-stale"); // 160 > 150
+      expect(store.sampleStatus("vessel.target")).toBe("held"); // 160 > 150
     });
   });
 
   describe("confidence-scaled margin, driven by a real (injected) clock", () => {
-    it("a 'coasting' estimate (silence past coastingAfterSeconds) keeps a topic 'live' at a view UT that WOULD already be held-stale under 'locked' confidence", () => {
+    it("a 'coasting' estimate (silence past coastingAfterSeconds) keeps a topic 'live' at a view UT that WOULD already be held under 'locked' confidence", () => {
       const wall = fakeWall();
       const clock = new ViewClock({
         nowWall: wall.now,
@@ -265,7 +265,7 @@ describe("TimelineStore.sampleStatus (M2 T4: staleness/absence surface)", () => 
       // Push further out, past even the widened coasting threshold.
       wall.advanceBy(3); // UT = 100 + 130 = 230
       store.beginFrame();
-      expect(store.sampleStatus("vessel.target")).toBe("held-stale");
+      expect(store.sampleStatus("vessel.target")).toBe("held");
     });
   });
 
@@ -384,13 +384,13 @@ describe("a derived channel's default status: worst of its declared inputs, thro
     return store;
   }
 
-  it("carries its input's held-stale status, on the channel and on its field subtopic", () => {
+  it("carries its input's held status, on the channel and on its field subtopic", () => {
     const store = systemStore();
     store.ingest("system.bodies", recordPoint(10, BODIES, Staleness.HeldStale));
     store.beginFrame();
 
-    expect(store.sampleStatus("system.state")).toBe("held-stale");
-    expect(store.sampleStatus("system.state.bodyCount")).toBe("held-stale");
+    expect(store.sampleStatus("system.state")).toBe("held");
+    expect(store.sampleStatus("system.state.bodyCount")).toBe("held");
   });
 
   it("reads 'absent' when its input is tombstoned", () => {
@@ -428,7 +428,7 @@ describe("a derived channel's default status: worst of its declared inputs, thro
     );
     store.beginFrame();
 
-    expect(store.sampleStatus("dv.currentStageResource")).toBe("held-stale");
+    expect(store.sampleStatus("dv.currentStageResource")).toBe("held");
   });
 });
 
@@ -479,12 +479,12 @@ describe("TimelineStore.sampleStatus across a warp step-up", () => {
 
   it("reads stale on the same gap with no warp state to widen it", () => {
     // The control, and the behaviour before the floor was published.
-    expect(quietChannelThenWarp(null, 60_000)).toBe("held-stale");
+    expect(quietChannelThenWarp(null, 60_000)).toBe("held");
   });
 
   it("still goes stale once the gap passes even the widened window", () => {
     expect(
       quietChannelThenWarp({ warpRate: 100_000, keyframeFloorSec: 1 }, 250_000),
-    ).toBe("held-stale");
+    ).toBe("held");
   });
 });

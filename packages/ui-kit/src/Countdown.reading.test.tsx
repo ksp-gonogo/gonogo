@@ -35,10 +35,10 @@ function reckoned(
 /** Held, and nothing is carrying it. */
 function frozen(observed: Value<"s">): Reading<Value<"s">> {
   return {
-    state: "stale",
+    state: "held",
     value: observed,
     asOfUt: AT,
-    grade: "held-stale",
+    grade: "held",
     reckoning: { status: "none" },
   };
 }
@@ -82,9 +82,9 @@ describe("Countdown, handed a Reading", () => {
       <Countdown
         value={{
           ...reckoned(value("s", 90), value("s", 42)),
-          state: "stale",
+          state: "held",
           asOfUt: AT,
-          grade: "held-stale",
+          grade: "held",
         }}
       />,
     );

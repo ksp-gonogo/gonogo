@@ -37,7 +37,7 @@ function tierFigure(level: number, heldSince: HeldSince): UnitValue<"count"> {
   const figure = value("count", level);
   if (heldSince === null) return figure;
   return {
-    state: "stale",
+    state: "held",
     value: figure,
     asOfUt: heldSince.asOfUt,
     grade: heldSince.grade,

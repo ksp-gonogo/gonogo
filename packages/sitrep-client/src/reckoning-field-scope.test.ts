@@ -123,7 +123,7 @@ describe("a per-topic model, expressed per field", () => {
     // so, both fields being equally stale.
     const name = store.sampleReading<string>("test.target.name");
     expect(name.reckoning.status).toBe("none");
-    expect(name.state).toBe("stale");
+    expect(name.state).toBe("held");
   });
 
   it("still declines the whole-topic read, because the model does not cover the payload", () => {
@@ -160,7 +160,7 @@ describe("a per-topic model, expressed per field", () => {
     );
     if (position.reckoning.status !== "available")
       throw new Error("expected a reckoning on offer");
-    if (position.state !== "stale") throw new Error("expected stale");
+    if (position.state !== "held") throw new Error("expected stale");
     expect(position.value).toEqual({ x: 1000 });
     expect(position.asOfUt).toEqual(value("ut", 100));
   });
@@ -257,7 +257,7 @@ describe("a topic two owners both model is served with neither", () => {
 
     const reading = store.sampleReading<Target>("test.target");
     expect(reading.reckoning.status).toBe("none");
-    expect(reading.state).toBe("stale");
+    expect(reading.state).toBe("held");
     expect(getReckonerConflicts()).toEqual([
       { topic: "test.target", owners: ["n-body-model", "two-body-model"] },
     ]);

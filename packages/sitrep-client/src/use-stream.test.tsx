@@ -36,13 +36,13 @@ function setupFixture() {
 function DoubledAlt() {
   const alt = useStream<number>("v.alt");
   const figure =
-    alt.state === "observed" || alt.state === "stale"
+    alt.state === "observed" || alt.state === "held"
       ? alt.value * 2
       : undefined;
   return (
     <div>
       alt:{figure ?? NULL_DISPLAY}
-      {alt.state === "stale" && " held"}
+      {alt.state === "held" && " held"}
     </div>
   );
 }

@@ -1268,7 +1268,7 @@ function useActionGroupBindings(): AgBinding[] | null {
   // craft is built or docked, so a stale set is still the set, and a label is
   // better than a bare "(f.ag1)" fallback even on an old frame.
   const parts =
-    partsReading.state === "observed" || partsReading.state === "stale"
+    partsReading.state === "observed" || partsReading.state === "held"
       ? partsReading.value
       : undefined;
   return useMemo(() => {

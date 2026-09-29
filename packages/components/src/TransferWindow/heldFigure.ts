@@ -11,7 +11,7 @@ export function heldFigure<Unit extends string>(
 ): UnitValue<Unit> {
   if (heldSince === null) return figure;
   return {
-    state: "stale",
+    state: "held",
     value: figure,
     asOfUt: heldSince.asOfUt,
     grade: heldSince.grade,

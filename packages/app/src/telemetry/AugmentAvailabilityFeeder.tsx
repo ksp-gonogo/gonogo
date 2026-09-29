@@ -67,7 +67,7 @@ function DomainAvailabilityWatch({
    *
    * Two answers mean "no Uplink here": `pending`, and `unowned` which says so
    * outright. Everything else is the producer speaking: `observed` obviously,
-   * `stale` because a domain that reported and went quiet is still installed,
+   * `held` because a domain that reported and went quiet is still installed,
    * and `absent` because a producer saying "there is no value" is still a
    * producer. That last one is why the pre-migration `value !== undefined`
    * accidentally got the tombstone case RIGHT while getting everything else

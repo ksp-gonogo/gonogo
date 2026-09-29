@@ -140,7 +140,7 @@ describe("ShipMap when the thermal reading is held", () => {
     loseTheLink(fixture);
 
     await waitFor(() =>
-      expect(fixture.store.sampleReading("vessel.thermal").state).toBe("stale"),
+      expect(fixture.store.sampleReading("vessel.thermal").state).toBe("held"),
     );
     expect(screen.queryByText(/hot:/)).toBeNull();
     expect(screen.queryByText(CAPTION)).toBeNull();

@@ -53,11 +53,11 @@ function held<UnitSymbol extends string>(
   v: Value<UnitSymbol>,
 ): Reading<Value<UnitSymbol>> {
   return {
-    state: "stale",
+    state: "held",
     reckoning: { status: "none" },
     value: v,
     asOfUt: AT,
-    grade: "held-stale",
+    grade: "held",
   };
 }
 
@@ -68,7 +68,7 @@ interface Craft {
   speed: Value<"m/s">;
   temp: Value<"K">;
   /** Which of the three numeric columns are no longer readings of now. */
-  stale: ReadonlyArray<"altitude" | "speed" | "temp">;
+  held: ReadonlyArray<"altitude" | "speed" | "temp">;
 }
 
 /**
@@ -76,7 +76,7 @@ interface Craft {
  * traffic or fleet table actually runs at. The magnitudes are deliberately
  * spread across the ladder so the columns are the widths a real one has.
  */
-const FLEET: readonly Omit<Craft, "stale">[] = [
+const FLEET: readonly Omit<Craft, "held">[] = [
   {
     id: "a",
     name: "Kerbal-1",
@@ -143,12 +143,12 @@ function v<UnitSymbol extends string>(
 }
 
 /** Which cells are held, per scene. Indexed by row, then column. */
-type StaleMap = ReadonlyArray<Craft["stale"]>;
+type HeldMap = ReadonlyArray<Craft["held"]>;
 
-const NONE_STALE: StaleMap = FLEET.map(() => []);
+const NONE_HELD: HeldMap = FLEET.map(() => []);
 
 /** Nine of the 24 numeric cells, spread so no column is wholly one thing. */
-const SOME_STALE: StaleMap = [
+const SOME_HELD: HeldMap = [
   ["speed"],
   [],
   ["altitude", "speed", "temp"],
@@ -160,7 +160,7 @@ const SOME_STALE: StaleMap = [
 ];
 
 /** Nearly all of them: the "does a wall of dots read as noise" question. */
-const MOST_STALE: StaleMap = [
+const MOST_HELD: HeldMap = [
   ["altitude", "speed", "temp"],
   ["altitude", "speed"],
   ["altitude", "speed", "temp"],
@@ -171,8 +171,8 @@ const MOST_STALE: StaleMap = [
   ["altitude", "speed", "temp"],
 ];
 
-function rowsWith(map: StaleMap): Craft[] {
-  return FLEET.map((c, i) => ({ ...c, stale: map[i] ?? [] }));
+function rowsWith(map: HeldMap): Craft[] {
+  return FLEET.map((c, i) => ({ ...c, held: map[i] ?? [] }));
 }
 
 /**
@@ -220,19 +220,19 @@ function columnsFor(control: boolean): DataTableColumn<Craft>[] {
       key: "altitude",
       header: "Altitude",
       align: "end",
-      render: (r) => cell(r.altitude, r.stale.includes("altitude"), control),
+      render: (r) => cell(r.altitude, r.held.includes("altitude"), control),
     },
     {
       key: "speed",
       header: "Speed",
       align: "end",
-      render: (r) => cell(r.speed, r.stale.includes("speed"), control),
+      render: (r) => cell(r.speed, r.held.includes("speed"), control),
     },
     {
       key: "temp",
       header: "Skin temp",
       align: "end",
-      render: (r) => cell(r.temp, r.stale.includes("temp"), control),
+      render: (r) => cell(r.temp, r.held.includes("temp"), control),
     },
   ];
 }
@@ -242,7 +242,7 @@ function FleetTable({
   control = false,
   className,
 }: {
-  map: StaleMap;
+  map: HeldMap;
   control?: boolean;
   className?: string;
 }) {
@@ -301,19 +301,19 @@ const RULER_VARIANTS = [
   {
     id: "none",
     title: "Every value current, nothing marked",
-    map: NONE_STALE,
+    map: NONE_HELD,
     control: false,
   },
   {
     id: "marked",
     title: "Nine of 24 held, marked with the out-of-flow dot",
-    map: SOME_STALE,
+    map: SOME_HELD,
     control: false,
   },
   {
     id: "marked+in-flow-control",
     title: "The same nine, plus a deliberate IN-FLOW dot (the ruler's control)",
-    map: SOME_STALE,
+    map: SOME_HELD,
     control: true,
   },
 ] as const;
@@ -517,9 +517,9 @@ function Countdowns() {
   };
   const carriedAndHeld: Reading<Value<"s">> = {
     ...carried,
-    state: "stale",
+    state: "held",
     asOfUt: AT,
-    grade: "held-stale",
+    grade: "held",
   };
   const rows: ReadonlyArray<readonly [string, string, React.ReactNode]> = [
     [
@@ -680,9 +680,9 @@ function ModelledFigures() {
 }
 
 const SHEETS = [
-  { id: "table-current", width: 560, node: <FleetTable map={NONE_STALE} /> },
-  { id: "table-some-held", width: 560, node: <FleetTable map={SOME_STALE} /> },
-  { id: "table-most-held", width: 560, node: <FleetTable map={MOST_STALE} /> },
+  { id: "table-current", width: 560, node: <FleetTable map={NONE_HELD} /> },
+  { id: "table-some-held", width: 560, node: <FleetTable map={SOME_HELD} /> },
+  { id: "table-most-held", width: 560, node: <FleetTable map={MOST_HELD} /> },
   { id: "ruler", width: 640, node: <Ruler /> },
   { id: "sizes", width: 340, node: <Sizes /> },
   { id: "dates", width: 420, node: <Dates /> },

@@ -1567,7 +1567,7 @@ export interface UseRouteCommandsResult {
  */
 export type StreamStatusValue =
   | "live"
-  | "held-stale"
+  | "held"
   | "disconnected"
   | "last-before-blackout"
   | "recorded"

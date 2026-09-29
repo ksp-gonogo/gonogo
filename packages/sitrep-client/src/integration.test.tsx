@@ -22,7 +22,7 @@ import { useStream } from "./use-stream";
 function MissionPanel() {
   const altitudeReading = useStream<number>("v.alt");
   const altitude =
-    altitudeReading.state === "observed" || altitudeReading.state === "stale"
+    altitudeReading.state === "observed" || altitudeReading.state === "held"
       ? altitudeReading.value
       : undefined;
   const cmd = useCommand("stage");
@@ -97,7 +97,7 @@ describe("sitrep-client end-to-end spine", () => {
     function BodyCountProbe() {
       const countReading = useStream<number>("system.state.bodyCount");
       const count =
-        countReading.state === "observed" || countReading.state === "stale"
+        countReading.state === "observed" || countReading.state === "held"
           ? countReading.value
           : undefined;
       return <span>bodies:{count ?? NULL_DISPLAY}</span>;

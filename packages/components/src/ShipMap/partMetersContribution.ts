@@ -85,9 +85,9 @@ function amountReading(
       reckoning: { status: "none" },
     };
   }
-  if (parts.state === "stale") {
+  if (parts.state === "held") {
     return {
-      state: "stale",
+      state: "held",
       value: amount,
       asOfUt: parts.asOfUt,
       grade: parts.grade,
@@ -104,7 +104,7 @@ function amountReading(
 export function builtinPartMeterReadings(
   parts: Reading<VesselParts | undefined> | undefined,
 ): readonly ShipMapPartMeterEntry[] {
-  if (parts?.state !== "observed" && parts?.state !== "stale") return [];
+  if (parts?.state !== "observed" && parts?.state !== "held") return [];
   return computeBuiltinPartMeters(parts.value).map((entry) => ({
     ...entry,
     amount: amountReading(parts, entry.amount),
@@ -121,7 +121,7 @@ const VESSEL_PARTS_READING = CORE_UPLINK_CLIENT.registerProcessor({
   compute: ([parts]: readonly [TopicReading<VesselParts>]):
     | VesselParts
     | undefined =>
-    parts.state === "observed" || parts.state === "stale"
+    parts.state === "observed" || parts.state === "held"
       ? parts.value
       : undefined,
 });

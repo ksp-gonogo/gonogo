@@ -53,7 +53,7 @@ export function useActiveCentres(): {
   // stale roster is still the roster and only never-arrived is empty.
   const rosterReading = useTelemetry("commandCentre.roster");
   const roster =
-    rosterReading.state === "observed" || rosterReading.state === "stale"
+    rosterReading.state === "observed" || rosterReading.state === "held"
       ? rosterReading.value
       : undefined;
   const active = (roster ?? []).filter(

@@ -659,7 +659,7 @@ describe("styleguide: a Reading is never handed on whole", () => {
       ],
       [
         "currency.tsx",
-        'const held = useStream<number>("v.alt").state === "stale";',
+        'const held = useStream<number>("v.alt").state === "held";',
       ],
     ]);
     expect(fieldsOffStreamCall(tree)).toEqual([

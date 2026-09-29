@@ -11,7 +11,7 @@ import { ModalTelemetryBridge } from "./ModalTelemetryBridge";
 function AltitudeReader() {
   const valueReading = useStream<number>("v.alt");
   const value =
-    valueReading.state === "observed" || valueReading.state === "stale"
+    valueReading.state === "observed" || valueReading.state === "held"
       ? valueReading.value
       : undefined;
   return (

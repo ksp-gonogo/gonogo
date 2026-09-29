@@ -149,7 +149,7 @@ function RotorTachometerComponent({
                 breakingGround,
                 available,
                 roboticsReading.state === "observed" ||
-                  roboticsReading.state === "stale",
+                  roboticsReading.state === "held",
                 "rotors",
               )}
             </EmptyState>

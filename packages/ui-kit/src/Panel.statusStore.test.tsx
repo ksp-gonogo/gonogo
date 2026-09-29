@@ -71,7 +71,7 @@ describe("Panel header summary (store-backed)", () => {
   it("lets a firing-style critical report outrank a merely stale stream", () => {
     render(
       inStore(
-        <Panel panelTitle="DESCENT" panelStatus="held-stale">
+        <Panel panelTitle="DESCENT" panelStatus="held">
           <Badge
             severity="critical"
             report={{ id: "alarm", label: "NO BURN VECTOR" }}
@@ -81,7 +81,7 @@ describe("Panel header summary (store-backed)", () => {
         </Panel>,
       ),
     );
-    // stream held-stale -> warning, the report -> critical, so the alarm wins.
+    // stream held -> warning, the report -> critical, so the alarm wins.
     expect(announcer()).toHaveTextContent("NO BURN VECTOR");
   });
 

@@ -88,7 +88,7 @@ describe("reading identity is keyed on the data, not the frame", () => {
 
     const second = s.sampleReading("vessel.target");
     expect(second).not.toBe(first);
-    expect(second.state).toBe("stale");
+    expect(second.state).toBe("held");
   });
 
   it("is pending with one identity for a topic that never reports", () => {

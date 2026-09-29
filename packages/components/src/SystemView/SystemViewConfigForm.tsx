@@ -21,7 +21,7 @@ export function SystemViewConfigForm({
   // A held catalogue is still the catalogue.
   const factsReading = useProcessor(CELESTIAL_FACTS);
   const facts =
-    factsReading?.state === "observed" || factsReading?.state === "stale"
+    factsReading?.state === "observed" || factsReading?.state === "held"
       ? factsReading.value
       : undefined;
   const [frame, setFrame] = useState(config?.frame ?? "auto");

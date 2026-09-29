@@ -245,7 +245,7 @@ export function useFleetVesselSilence(
    */
   const silenceReading = useStream<FleetVesselSilence>(`silence.${guid}.state`);
   const silence =
-    silenceReading.state === "observed" || silenceReading.state === "stale"
+    silenceReading.state === "observed" || silenceReading.state === "held"
       ? silenceReading.value
       : undefined;
   // Mirrored synchronously during RENDER, not inside a useEffect: every

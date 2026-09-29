@@ -202,7 +202,7 @@ const LOCAL_FORMATTER_DEBT: Record<string, { count: number; why: string }> = {
     count: 1,
     why: "not a quantity: ON/OFF and raw values into a fixed 21x8 hardware text buffer",
   },
-  "packages/ui-kit/src/StreamStatusBadge.tsx": {
+  "packages/ui-kit/src/status/streamStatusWord.ts": {
     count: 1,
     why: "not a quantity: maps a stream status enum to a word",
   },

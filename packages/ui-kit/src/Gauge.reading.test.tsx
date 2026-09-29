@@ -87,11 +87,11 @@ describe("Gauge, handed a Reading", () => {
       <Gauge
         {...SIZE}
         value={{
-          state: "stale",
+          state: "held",
           reckoning: { status: "none" },
           value: value("1", 1.84),
           asOfUt: AT,
-          grade: "held-stale",
+          grade: "held",
         }}
         min={value("1", 0)}
         max={value("1", 3)}
@@ -106,11 +106,11 @@ describe("Gauge, handed a Reading", () => {
       <Gauge
         {...SIZE}
         value={{
-          state: "stale",
+          state: "held",
           reckoning: { status: "none" },
           value: value("1", 1.84),
           asOfUt: AT,
-          grade: "held-stale",
+          grade: "held",
         }}
         min={value("1", 0)}
         max={value("1", 3)}
@@ -208,7 +208,7 @@ describe("Gauge, handed a Reading", () => {
       <Gauge
         {...SIZE}
         value={{
-          state: "stale",
+          state: "held",
           reckoning: {
             status: "available",
             atUt: value("ut", 0),
@@ -219,7 +219,7 @@ describe("Gauge, handed a Reading", () => {
           },
           value: value("1", 1.5),
           asOfUt: AT,
-          grade: "held-stale",
+          grade: "held",
         }}
         min={value("1", 0)}
         max={value("1", 3)}

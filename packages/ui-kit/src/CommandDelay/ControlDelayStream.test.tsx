@@ -740,11 +740,11 @@ describe("an entry nothing can draw", () => {
 
 describe("ControlDelayStream delay figures carry the delay's currency", () => {
   const held = {
-    state: "stale" as const,
+    state: "held" as const,
     reckoning: { status: "none" as const },
     value: value("s", 8),
     asOfUt: value("ut", 12_000),
-    grade: "held-stale" as const,
+    grade: "held" as const,
   };
 
   it("draws the T and 2T figures held while comms.delay is quiet", () => {

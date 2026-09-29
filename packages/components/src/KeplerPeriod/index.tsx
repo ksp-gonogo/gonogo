@@ -90,7 +90,7 @@ function KeplerPeriodComponent({
   const bodyName = useBodyName(useParentBodyIndex());
   const orbitReading = useStream<VesselOrbit>("vessel.orbit");
   const referenceBody = useBodyName(
-    orbitReading.state === "observed" || orbitReading.state === "stale"
+    orbitReading.state === "observed" || orbitReading.state === "held"
       ? orbitReading.value.referenceBodyIndex
       : undefined,
   );

@@ -127,7 +127,7 @@ export function useGameContext(): GameContext {
   // through to "Unknown", which is the honest answer to not knowing yet.
   const sceneReading = useTelemetry("spaceCenter.scene");
   const sceneRaw =
-    sceneReading.state === "observed" || sceneReading.state === "stale"
+    sceneReading.state === "observed" || sceneReading.state === "held"
       ? sceneReading.value.scene
       : undefined;
   // `null` (the list carried no occupancy) and `undefined` (no derived state
@@ -135,13 +135,12 @@ export function useGameContext(): GameContext {
   // Held on the same terms as the scene above.
   const padReading = useStream<SpaceCenterState>("spaceCenter.state");
   const padOccupiedRaw =
-    padReading.state === "observed" || padReading.state === "stale"
+    padReading.state === "observed" || padReading.state === "held"
       ? (padReading.value.padOccupied ?? undefined)
       : undefined;
   const careerModeReading = useTelemetry("career.mode");
   const careerModeRaw =
-    careerModeReading.state === "observed" ||
-    careerModeReading.state === "stale"
+    careerModeReading.state === "observed" || careerModeReading.state === "held"
       ? careerModeReading.value.mode
       : undefined;
 

@@ -166,7 +166,7 @@ export function useUplinkReadiness(): UseUplinkReadinessResult {
   const reading = useStream<SystemUplinkHealth>("system.uplinkHealth");
   // A held roster is still the roster: uplinks do not come and go with the link.
   const roster =
-    reading.state === "observed" || reading.state === "stale"
+    reading.state === "observed" || reading.state === "held"
       ? reading.value
       : reading.state === "absent"
         ? null

@@ -30,7 +30,7 @@ export function CarriedAltitude({ reading }: { reading: FlightReading }) {
   // The field reading, which carries its own band and carried figure.
   const altitude = reading.altitudeAsl;
   const carrying =
-    reading.state === "stale" ||
+    reading.state === "held" ||
     (altitude.reckoning.status === "available" &&
       altitude.reckoning.beyondReceived);
   const modelled =
@@ -41,7 +41,7 @@ export function CarriedAltitude({ reading }: { reading: FlightReading }) {
   const band = bandIn(modelled?.band, "m");
   // Only while the reading is held; a current one the model declines to carry stands as the observation.
   const declined =
-    reading.state === "stale" && reading.reckoning.status === "declined"
+    reading.state === "held" && reading.reckoning.status === "declined"
       ? reading.reckoning.declined
       : undefined;
   return (

@@ -535,10 +535,10 @@ describe("LineChart threshold currency", () => {
     reckoning: { status: "none" },
   };
   const held: Reading<Value<"m">> = {
-    state: "stale",
+    state: "held",
     value: altitude,
     asOfUt: AT,
-    grade: "held-stale",
+    grade: "held",
     reckoning: { status: "none" },
   };
 

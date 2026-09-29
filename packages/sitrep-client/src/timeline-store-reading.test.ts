@@ -118,7 +118,7 @@ describe("TimelineStore.sampleReading", () => {
     s.setTransportConnected(false);
     s.beginFrame();
     expect(s.sampleReading("system.bodies")).toEqual({
-      state: "stale",
+      state: "held",
       reckoning: { status: "none" },
       grade: "disconnected",
       value: 5,

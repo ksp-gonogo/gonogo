@@ -240,7 +240,7 @@ export type SelfOrbitElements = WireOrbitElements &
  * The SELF vessel's solve, or `null` where a caller is not entitled to one.
  *
  * `elements` are whatever the caller's own reading is carrying, and `observed`
- * and `stale` both carry them: `sma`, `ecc` and the rest are constants of the
+ * and `held` both carry them: `sma`, `ecc` and the rest are constants of the
  * orbit rather than figures that go out of date, so a model that moves the
  * phase makes the whole thing current again. That branch is written at each
  * read, where a reading has to be narrowed anyway.
@@ -272,7 +272,7 @@ export type SelfOrbitElements = WireOrbitElements &
  * neither leaves both, and the next apsis, `null`.
  *
  * `observedAtUt` is present only for a CURRENT reading, and is when it was
- * observed. A stale reading answers nothing under physics: under thrust the
+ * observed. A held reading answers nothing under physics: under thrust the
  * elements are not constants of the orbit, so old ones say nothing about the
  * one the craft is on. That is where the refusal still bites.
  */

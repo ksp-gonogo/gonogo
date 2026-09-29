@@ -145,7 +145,7 @@ export function useActionGroups(): ActionGroup[] {
   // `vessel.control` is declared unmodellable, so its reckoning is always
   // `"none"` and there is no model to consider here.
   const named =
-    control.state === "observed" || control.state === "stale"
+    control.state === "observed" || control.state === "held"
       ? control.value
       : undefined;
   return useActionGroupsFrom(named);

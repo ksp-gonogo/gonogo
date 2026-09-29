@@ -72,7 +72,7 @@ describe("the handover render set reaches the models it says it does", () => {
       it(`${scenario}: no model is offered, and it withdraws on ${decline?.input}`, () => {
         // The reason is asserted, not just an absent model, since every withdrawal looks alike from here: this set holds the rate integration's horizon closing under sensed deceleration.
         const reading = readFlight(fixture);
-        expect(reading.state).toBe("stale");
+        expect(reading.state).toBe("held");
         if (reading.reckoning.status !== "declined") {
           throw new Error(
             "a declared-reckonable topic must say why it declined",
@@ -91,7 +91,7 @@ describe("the handover render set reaches the models it says it does", () => {
           `expected a model, got reckoning "${reading.reckoning.status}" (state "${reading.state}")`,
         );
       }
-      if (reading.state !== "observed" && reading.state !== "stale") {
+      if (reading.state !== "observed" && reading.state !== "held") {
         throw new Error(`expected an observation, got "${reading.state}"`);
       }
       // The root entry answers a whole-topic read, and the field entry says the altitude was moved; the conic moves both marked fields while the rate integration copies `orbitalSpeed`, so the pair tells the branches apart.

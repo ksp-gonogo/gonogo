@@ -61,7 +61,7 @@ export function usePartsLive(
   // the currency to caption it with. Putting the caption here would give every
   // consumer one answer about a question only the renderer can ask well.
   const vesselParts =
-    partsReading.state === "observed" || partsReading.state === "stale"
+    partsReading.state === "observed" || partsReading.state === "held"
       ? partsReading.value
       : undefined;
 

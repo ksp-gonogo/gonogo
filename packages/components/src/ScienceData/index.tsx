@@ -78,7 +78,7 @@ function ScienceDataComponent({
   const surfaceReading = useTelemetry("vessel.surface");
   const surface =
     surfaceReading.state === "observed" ? surfaceReading.value : undefined;
-  const surfaceHeld = surfaceReading.state === "stale";
+  const surfaceHeld = surfaceReading.state === "held";
   const landedAt = surface?.landedAt;
   // `biome` is populated in flight and in space; `landedAt` only on the surface.
   const liveBiome = surface?.biome;

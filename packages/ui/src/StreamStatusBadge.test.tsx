@@ -6,10 +6,8 @@ import { formatStreamStatus, StreamStatusBadge } from "./StreamStatusBadge";
 
 const STATUS_TO_LABEL: Record<StreamStatusValue, string | null> = {
   live: null,
-  "held-stale": "STALE",
-  // Stale asks the operator to check the producer; blackout asks them to wait and stop reading the panel as current.
+  held: "HELD",
   "last-before-blackout": "BLACKOUT",
-  // A replayed recording is exact for its instant, so "STALE" would claim uncertainty it does not have.
   recorded: "RECORDED",
   disconnected: "OFFLINE",
   resyncing: "SYNCING",
@@ -18,7 +16,7 @@ const STATUS_TO_LABEL: Record<StreamStatusValue, string | null> = {
 
 describe("formatStreamStatus", () => {
   it("does not collapse the two blackout grades onto one caption", () => {
-    expect(formatStreamStatus("held-stale")).not.toBe(
+    expect(formatStreamStatus("held")).not.toBe(
       formatStreamStatus("last-before-blackout"),
     );
   });
@@ -49,7 +47,7 @@ describe("StreamStatusBadge", () => {
   it("has no axe violations across every non-live status", async () => {
     const { container } = render(
       <>
-        <StreamStatusBadge status="held-stale" />
+        <StreamStatusBadge status="held" />
         <StreamStatusBadge status="last-before-blackout" />
         <StreamStatusBadge status="disconnected" />
         <StreamStatusBadge status="resyncing" />

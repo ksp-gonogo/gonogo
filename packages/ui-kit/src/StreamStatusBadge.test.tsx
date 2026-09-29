@@ -9,10 +9,10 @@ describe("StreamStatusBadge", () => {
     const region = screen.getByRole("status");
     expect(region).toBeEmptyDOMElement();
 
-    rerender(<StreamStatusBadge status="held-stale" />);
+    rerender(<StreamStatusBadge status="held" />);
 
     expect(screen.getByRole("status")).toBe(region);
-    expect(region).toHaveTextContent("STALE");
+    expect(region).toHaveTextContent("HELD");
     expect(region).toHaveAttribute("aria-live", "polite");
   });
 
