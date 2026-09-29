@@ -40,7 +40,7 @@
 # one core of the dev box, and it is the WEAKER of the two: this hook cannot run
 # the steps of the `mod` job that need CI's secrets, the three-browser e2e
 # matrix, the visual gate or the act-warning ratchet, and CI runs all of them. So
-# a ci-dev push keeps lint and skips the suite. Pushes to staging and main are unchanged, because nothing downstream
+# a ci-dev push keeps lint and skips the suite, the mod-job gate and e2e. Pushes to staging and main are unchanged, because nothing downstream
 # re-validates those.
 #
 # Starts at 0 so that reading NO refs leaves the gate ON: an empty stdin means
@@ -127,6 +127,8 @@ fi
 # Playwright's webServer startup when no e2e file changed at all.
 if [ "$SKIP_E2E" = "1" ]; then
   echo "pre-push: SKIP_E2E=1 set, skipping Playwright e2e (CI will still run it)."
+elif [ "$GONOGO_CI_DEV_ONLY" = "1" ]; then
+  echo "pre-push: ci-dev push, skipping e2e (CI runs the full matrix, then forwards staging)."
 else
   # Base = the branch's MERGE TARGET, which is `staging` for everything except a
   # direct push to main. It was `origin/main` unconditionally, from when branches

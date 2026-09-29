@@ -126,6 +126,9 @@ jobs:
 
       - run: pnpm test
 
+      # The repo-wide scans live under their own vitest config, so `pnpm test` never runs them.
+      - run: pnpm --filter @ksp-gonogo/core test:scans
+
       # Un-fed snapshot gate: re-runs the DOM snapshot specs with every stream
       # emit suppressed and fails on any that still pass, because such a test is
       # capturing a render containing none of its fixture's data.
