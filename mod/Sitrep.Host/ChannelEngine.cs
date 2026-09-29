@@ -36,7 +36,7 @@ namespace Sitrep.Host
     /// only ever touches primitives, registered mapper delegates, and the
     /// explicit job queue.
     /// </summary>
-    public sealed class ChannelEngine : IUplinkHost, IVesselJourneyWriter, CommandCentres.IHomeCommandReachWriter, CommandCentres.ICentreRouteWriter, Commcast.IAddressedStreamHost, IDisposable
+    public sealed class ChannelEngine : IUplinkHost, IVesselJourneyWriter, CommandCentres.ICommandReachWriter, CommandCentres.ICentreRouteWriter, Commcast.IAddressedStreamHost, IDisposable
     {
         public const string NodeId = "system";
 
@@ -2737,15 +2737,51 @@ namespace Sitrep.Host
         }
 
         /*
-         * The centres whose route reaches no ground station, as of the last
-         * SetOffTheGroundNetwork. Courier-thread-only, like every ledger write,
-         * and read by ProcessDispatchCommand on the same thread.
+         * The (centre, fleet node) rows as of the last SetAuthorityDelays, so the
+         * next call can remove the ones it no longer names. Courier-thread-only,
+         * like every ledger write.
          */
-        private HashSet<string> _offTheGroundNetwork = new HashSet<string>();
+        private readonly HashSet<(string Vantage, string Node)> _authorityRows = new HashSet<(string, string)>();
 
-        public void SetOffTheGroundNetwork(IReadOnlyCollection<string> centreIds)
+        public void SetAuthorityDelays(IReadOnlyCollection<(string CentreId, string VesselId, double OneWaySeconds)> rows)
         {
-            _offTheGroundNetwork = new HashSet<string>(centreIds);
+            var next = new HashSet<(string Vantage, string Node)>();
+            foreach (var row in rows)
+            {
+                next.Add((row.CentreId, FleetNodePrefix + row.VesselId));
+            }
+
+            foreach (var pair in _authorityRows.ToList())
+            {
+                if (!next.Contains(pair))
+                {
+                    _network.ClearDelay(pair.Vantage, pair.Node);
+                    _authorityRows.Remove(pair);
+                }
+            }
+
+            foreach (var row in rows)
+            {
+                SetAuthorityDelay(row.CentreId, row.VesselId, row.OneWaySeconds);
+                _authorityRows.Add((row.CentreId, FleetNodePrefix + row.VesselId));
+            }
+        }
+
+        /*
+         * The subject nodes each centre has no route to, as of the last
+         * SetUnroutable. Courier-thread-only, like every ledger write, and read
+         * by ProcessDispatchCommand on the same thread.
+         */
+        private Dictionary<string, HashSet<string>> _unroutable = new Dictionary<string, HashSet<string>>();
+
+        public void SetUnroutable(IReadOnlyDictionary<string, IReadOnlyCollection<string>> nodesByCentre)
+        {
+            var next = new Dictionary<string, HashSet<string>>();
+            foreach (var row in nodesByCentre)
+            {
+                next[row.Key] = new HashSet<string>(row.Value, StringComparer.Ordinal);
+            }
+            _unroutable = next;
         }
 
         /*
@@ -2760,6 +2796,19 @@ namespace Sitrep.Host
             foreach (var row in routes)
             {
                 next[row.Key] = new HashSet<string>(row.Value, StringComparer.Ordinal);
+            }
+
+            // A pair that lost its route loses its delay row with it.
+            foreach (var row in _centreRoutes)
+            {
+                next.TryGetValue(row.Key, out var still);
+                foreach (var destination in row.Value)
+                {
+                    if (still == null || !still.Contains(destination))
+                    {
+                        _network.ClearDelay(row.Key, CentreNodePrefix + destination);
+                    }
+                }
             }
             _centreRoutes = next;
         }
@@ -6171,6 +6220,20 @@ namespace Sitrep.Host
             !_subjectConnected.TryGetValue(node, out var c) || c;
 
         /// <summary>
+        /// Whether a delayed command from <paramref name="vantage"/> to
+        /// <paramref name="node"/> may be sent. Every command path answers this one
+        /// rule: a sender that knows it has no route to the subject is refused,
+        /// never quoted a delay. There is no route when the subject's own link is
+        /// down, or when the sending centre's pass found no path from it to the
+        /// subject, whatever the subject's link home reads. The home command's
+        /// ledger is never out of contact with itself, so for it only the second
+        /// half can be down. Courier-thread-only.
+        /// </summary>
+        private bool CanSend(string vantage, string node) =>
+            SubjectConnected(node)
+            && !(_unroutable.TryGetValue(vantage, out var unroutable) && unroutable.Contains(node));
+
+        /// <summary>
         /// Rewrite the delay ledger for this tick, AFTER
         /// <see cref="RefreshConnectivityFromCapability"/> has settled the
         /// tick's connectivity and BEFORE the clock advance fires any delivery.
@@ -7312,12 +7375,7 @@ namespace Sitrep.Host
             // the CPU during signal loss. _commsConnected is Courier-thread
             // state (set by the tick job in ApplyConnectivity), read here on
             // that same thread.
-            //
-            // The home command's ledger is the exception to asking about the
-            // subject's link: it is never out of contact with itself, so what
-            // can be down is the SENDER's route to the ground network.
-            if (!SubjectConnected(node)
-                || (node == HomeCommandNode && _offTheGroundNetwork.Contains(job.Vantage)))
+            if (!CanSend(job.Vantage, node))
             {
                 job.Done?.Set();
                 return;

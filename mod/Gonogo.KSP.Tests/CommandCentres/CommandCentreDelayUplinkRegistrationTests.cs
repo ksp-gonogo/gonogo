@@ -126,7 +126,33 @@ namespace Gonogo.KSP.Tests.CommandCentres
                 new Dictionary<string, double> { ["vessel:G"] = 0.0, ["ground:gs1"] = 3.0 },
                 host.ActiveVesselDelays[0]);
             Assert.Empty(host.ActiveVesselDelays[1]);
-            Assert.Equal(new[] { ("ground:gs1", "G", 3.0) }, host.AuthorityDelays);
+            Assert.Equal(2, host.AuthorityDelays.Count);
+            Assert.Equal(new[] { ("ground:gs1", "G", 3.0) }, host.AuthorityDelays[0]);
+            Assert.Empty(host.AuthorityDelays[1]);
+        }
+
+        /// <summary>
+        /// The pairs a pass found no route for reach the engine as one set every pass,
+        /// empty included, so a centre that regains its route is no longer refused.
+        /// </summary>
+        [Fact]
+        public void TheUnroutablePairsAreHandedOverAsOneSetEveryPass()
+        {
+            var host = new RecordingUplinkHost();
+            var uplink = new CommandCentreDelayUplink(new CommandCentreRegistry());
+            uplink.Register(host);
+
+            var capture = Capture();
+            capture.Unroutable = new Dictionary<string, IReadOnlyCollection<string>>
+            {
+                ["vessel:F"] = new[] { AuthorityMatrixPass.FleetNode("G") },
+            };
+            uplink.ApplyLedgerOnCourier(capture);
+            uplink.ApplyLedgerOnCourier(Capture());
+
+            Assert.Equal(2, host.Unroutable.Count);
+            Assert.Equal(new[] { AuthorityMatrixPass.FleetNode("G") }, host.Unroutable[0]["vessel:F"]);
+            Assert.Empty(host.Unroutable[1]);
         }
 
         /// <summary>
@@ -185,7 +211,7 @@ namespace Gonogo.KSP.Tests.CommandCentres
         /// throws, so a registration that starts depending on one is a loud
         /// failure rather than a silently-guessed default.
         /// </summary>
-        private sealed class RecordingUplinkHost : IUplinkHost
+        private sealed class RecordingUplinkHost : IUplinkHost, ICommandReachWriter
         {
 
         public void SetPathBreakSource(Func<KspSnapshot?, double, IReadOnlyList<PathBreak>?> computeOnMainThread) { }
@@ -216,11 +242,16 @@ namespace Gonogo.KSP.Tests.CommandCentres
             public void AddCommandRequirement(string command, CommandRequirement requirement) => throw new NotSupportedException();
             public void SetSignalDelaySource(Func<KspSnapshot?, CommsDelay?> computeOnMainThread) => throw new NotSupportedException();
             public void SetVesselDelay(string vesselId, double oneWaySeconds) => throw new NotSupportedException();
-            public List<(string, string, double)> AuthorityDelays { get; } = new List<(string, string, double)>();
+            public List<List<(string, string, double)>> AuthorityDelays { get; } = new List<List<(string, string, double)>>();
+            public List<IReadOnlyDictionary<string, IReadOnlyCollection<string>>> Unroutable { get; } =
+                new List<IReadOnlyDictionary<string, IReadOnlyCollection<string>>>();
             public List<Dictionary<string, double>> ActiveVesselDelays { get; } = new List<Dictionary<string, double>>();
 
-            public void SetAuthorityDelay(string centreId, string vesselId, double oneWaySeconds) =>
-                AuthorityDelays.Add((centreId, vesselId, oneWaySeconds));
+            public void SetAuthorityDelay(string centreId, string vesselId, double oneWaySeconds) => throw new NotSupportedException();
+            public void SetAuthorityDelays(IReadOnlyCollection<(string CentreId, string VesselId, double OneWaySeconds)> rows) =>
+                AuthorityDelays.Add(rows.Select(r => (r.CentreId, r.VesselId, r.OneWaySeconds)).ToList());
+            public void SetUnroutable(IReadOnlyDictionary<string, IReadOnlyCollection<string>> nodesByCentre) =>
+                Unroutable.Add(nodesByCentre);
             public void SetCentreDelay(string fromCentreId, string toCentreId, double oneWaySeconds) => throw new NotSupportedException();
             public void SetHomeCommandDelay(string centreId, double oneWaySeconds) => throw new NotSupportedException();
             public void SetActiveVesselDelays(IReadOnlyDictionary<string, double> oneWaySecondsByCentre) =>

@@ -127,7 +127,7 @@ namespace Gonogo.KSP.CommandCentres
                     // circularity this used to claim does not exist. What gates
                     // one vantage's traffic to another is the LEDGER: the rows
                     // CaptureLedgerOnMain writes go straight into the engine
-                    // through SetCentreDelay/SetAuthorityDelay, which never read
+                    // through SetCentreDelay/SetAuthorityDelays, which never read
                     // a topic. This channel is a READOUT built from the same
                     // rows, so delaying it changes what an operator is shown and
                     // nothing about what carries it. The number they are shown is
@@ -236,14 +236,12 @@ namespace Gonogo.KSP.CommandCentres
             }
 
             var pass = new AuthorityMatrixPass();
-            pass.Populate(
-                centres,
-                vessels.Where(v => v != null).Select(v => v.id.ToString()).ToList(),
-                Routed,
-                Row);
+            var subjectGuids = vessels.Where(v => v != null).Select(v => v.id.ToString()).ToList();
+            var activeGuid = ActiveVesselGuid(snapshot);
+            pass.Populate(centres, subjectGuids, Routed, Row);
             pass.PopulateActiveVessel(
                 centres,
-                ActiveVesselGuid(snapshot),
+                activeGuid,
                 homeId,
                 Routed,
                 (vantage, seconds) => Row(vantage, ChannelEngine.NodeId, seconds));
@@ -257,9 +255,12 @@ namespace Gonogo.KSP.CommandCentres
                 centre => SecondsToHome(centre, config),
                 (vantage, seconds) => Row(vantage, ChannelEngine.HomeCommandNode, seconds));
 
-            var offTheGround = pass.OffTheGroundNetwork(
+            var unroutable = pass.Unroutable(
                 centres,
                 HomeCentreId(centres, _home()),
+                subjectGuids,
+                activeGuid,
+                Routed,
                 centre => ReachesGround(centre, vessels, config));
 
             PathSolveBudget.Record(solves.Count, snapshot != null ? snapshot.Ut : 0.0);
@@ -267,7 +268,7 @@ namespace Gonogo.KSP.CommandCentres
             return new LedgerCapture
             {
                 Rows = rows,
-                OffTheGround = offTheGround,
+                Unroutable = unroutable,
                 Ut = snapshot != null ? snapshot.Ut : 0.0,
             };
         }
@@ -280,9 +281,10 @@ namespace Gonogo.KSP.CommandCentres
                 return;
             }
 
-            // Handed over as one set on every pass, empty included, so a centre that
-            // stopped being the active craft or lost its route to it loses its row.
+            // Handed over as sets on every pass, empty included, so a centre that
+            // stopped being the active craft or lost its route to a craft loses its row.
             var activeVesselRows = new Dictionary<string, double>();
+            var fleetRows = new List<(string CentreId, string VesselId, double OneWaySeconds)>();
             var centreRoutes = new Dictionary<string, List<string>>();
             foreach (var row in cap.Rows)
             {
@@ -317,11 +319,13 @@ namespace Gonogo.KSP.CommandCentres
                 var guid = row.Node.StartsWith(ChannelEngine.FleetNodePrefix)
                     ? row.Node.Substring(ChannelEngine.FleetNodePrefix.Length)
                     : row.Node;
-                _host?.SetAuthorityDelay(row.Vantage, guid, row.Seconds);
+                fleetRows.Add((row.Vantage, guid, row.Seconds));
             }
 
             _host?.SetActiveVesselDelays(activeVesselRows);
-            (_host as IHomeCommandReachWriter)?.SetOffTheGroundNetwork(cap.OffTheGround);
+            var reach = _host as ICommandReachWriter;
+            reach?.SetAuthorityDelays(fleetRows);
+            reach?.SetUnroutable(cap.Unroutable);
             (_host as ICentreRouteWriter)?.SetCentreRoutes(
                 centreRoutes.ToDictionary(r => r.Key, r => (IReadOnlyCollection<string>)r.Value));
 
@@ -602,7 +606,8 @@ namespace Gonogo.KSP.CommandCentres
         internal sealed class LedgerCapture
         {
             public List<AuthorityRow> Rows = new List<AuthorityRow>();
-            public IReadOnlyList<string> OffTheGround = new List<string>();
+            public IReadOnlyDictionary<string, IReadOnlyCollection<string>> Unroutable =
+                new Dictionary<string, IReadOnlyCollection<string>>();
             public double Ut;
         }
 

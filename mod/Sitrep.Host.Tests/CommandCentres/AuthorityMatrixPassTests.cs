@@ -80,6 +80,49 @@ namespace Sitrep.Host.Tests.CommandCentres
             Assert.Equal(2, calls.Count);
         }
 
+        /// <summary>
+        /// A forward crewed centre with no route to a craft is listed against that craft
+        /// and against the active craft, while home, a ground station and a crewed centre's
+        /// own craft are never listed, whatever the routing callback answers.
+        /// </summary>
+        [Fact]
+        public void Unroutable_ListsOnlyACentreWithItsOwnRouteThatHasNone()
+        {
+            var centres = new ICommandCentre[]
+            {
+                new FakeCommandCentre("ksc"),
+                new FakeCommandCentre("ground:gs1"),
+                new FakeCommandCentre("vessel:F", CommandCentreKind.CrewedVessel),
+                new FakeCommandCentre("vessel:G", CommandCentreKind.CrewedVessel),
+            };
+
+            var unroutable = new AuthorityMatrixPass().Unroutable(
+                centres,
+                "ksc",
+                new[] { "G", "H" },
+                "G",
+                (centre, guid) => centre.Id == "vessel:F" && guid == "H" ? 6.0 : (double?)null,
+                _ => true);
+
+            Assert.Equal(new[] { "vessel:F", "vessel:G" }, unroutable.Keys.OrderBy(k => k));
+            Assert.Equal(new[] { "fleet.G", ChannelEngine.NodeId }, unroutable["vessel:F"]);
+            Assert.Equal(new[] { "fleet.H" }, unroutable["vessel:G"]);
+        }
+
+        [Fact]
+        public void Unroutable_ListsTheHomeLedgerForACentreOffTheGroundNetwork()
+        {
+            var unroutable = new AuthorityMatrixPass().Unroutable(
+                new ICommandCentre[] { new FakeCommandCentre("vessel:F", CommandCentreKind.CrewedVessel) },
+                "ksc",
+                new string[0],
+                null,
+                (_, __) => 1.0,
+                _ => false);
+
+            Assert.Equal(new[] { ChannelEngine.HomeCommandNode }, unroutable["vessel:F"]);
+        }
+
         [Fact]
         public void Populate_SkipsUnreachablePairs()
         {

@@ -5,30 +5,33 @@ using Sitrep.Contract;
 namespace Sitrep.Host.CommandCentres
 {
     /// <summary>
-    /// Populates the per-(authority, subject) command-delay matrix: for every
-    /// active command centre x every fleet subject, write the explicit
-    /// (vantage = centre.Id, node = fleet.&lt;guid&gt;) delay pair. This is the
-    /// EXPLICIT-PAIR tier of <c>StubNetwork.DelayTo</c>'s 3-tier lookup, so it
-    /// overrides the <c>SetNodeDelay</c> node-default for the selected vantage
-    /// while leaving the KSC-uniform node-default underneath for any unselected
-    /// vantage.
+    /// Populates the per-(authority, subject) delay matrix: for every active
+    /// command centre x every fleet subject, the explicit (vantage = centre.Id,
+    /// node = fleet.&lt;guid&gt;) delay pair. This is the EXPLICIT-PAIR tier of
+    /// <c>StubNetwork.DelayTo</c>'s 3-tier lookup, so it overrides the
+    /// <c>SetNodeDelay</c> node-default for the selected vantage while leaving
+    /// the KSC-uniform node-default underneath for any unselected vantage.
     ///
-    /// <para>Two subject namespaces, same tier: <see cref="Populate"/> writes the
-    /// centre-to-VESSEL rows, <see cref="PopulateCentrePairs"/> the
-    /// centre-to-CENTRE ones. <see cref="PopulateActiveVessel"/> and
-    /// <see cref="PopulateHomeCommand"/> each write one more node, the active craft's
-    /// and the career ledger's. The second is what makes a centre addressable as a
-    /// SUBJECT and not only as a vantage; without it an act aimed at another
-    /// centre (a currency spend routed to the program's home) has no delay row
-    /// to read.</para>
+    /// <para>Four subject namespaces, same tier. <see cref="Populate"/> writes the
+    /// centre-to-VESSEL rows a command to a named craft is timed by,
+    /// <see cref="PopulateActiveVessel"/> the rows against the active craft every
+    /// ordinary channel and command rides, and <see cref="PopulateHomeCommand"/>
+    /// the rows against the career ledger. <see cref="PopulateCentrePairs"/> writes
+    /// the centre-to-CENTRE rows, which no command is addressed to: they time the
+    /// addressed streams one centre sends another.</para>
+    ///
+    /// <para>A pair with no route writes no row, so a row being on file is not
+    /// evidence of a route. <see cref="Unroutable"/> names those pairs, and a
+    /// command from a centre to a subject it cannot reach is refused rather than
+    /// quoted a delay.</para>
     ///
     /// <para>KSP-free by construction: the routing (a centre's CommNet
-    /// <c>ControlPath</c> to a subject, straight-line from a position) is injected
-    /// as <c>routeDelay</c> by the KSP layer, which owns the KSP types. The two
-    /// policy rules this class enforces are both KSP-free:</para>
+    /// <c>ControlPath</c> to a subject) is injected as <c>routeDelay</c> by the
+    /// KSP layer, which owns the KSP types. The two policy rules this class
+    /// enforces are both KSP-free:</para>
     /// <list type="bullet">
     /// <item>No min-over-authorities: each authority writes its OWN row; the
-    /// dispatched delay is the selected vantage's row, never a min collapse.</item>
+    /// dispatched delay is the selected vantage's row, never a min collapse</item>
     /// <item>Self-at-zero: a <see cref="CommandCentreKind.CrewedVessel"/> centre is
     /// authoritative about its OWN subject row, written as an explicit zero exactly as
     /// <see cref="PopulateCentrePairs"/> writes a centre's row against itself. A vantage
@@ -37,13 +40,6 @@ namespace Sitrep.Host.CommandCentres
     /// reachable only from that craft's own vantage, because the no-min rule above is
     /// what keeps it there</item>
     /// </list>
-    ///
-    /// <para>The self row used to be EXCLUDED instead, citing delay-spec red-team
-    /// BLOCKER-2. That defect was the min-over-authorities collapse: with a min, the
-    /// subject's own onboard control contributed a 0 that every other operator's number
-    /// collapsed onto. The no-min rule is the guard against it, and the exclusion was a
-    /// second defence against a collapse this pass does not perform, paid for by a
-    /// pinned pilot reading their own craft at the ground's light-time.</para>
     /// </summary>
     public sealed class AuthorityMatrixPass
     {
@@ -57,8 +53,8 @@ namespace Sitrep.Host.CommandCentres
         /// <param name="subjectGuids">The fleet subject vessel guids (same set Plan 2's fleet pass walks).</param>
         /// <param name="routeDelay">
         /// KSP-layer routing: one-way seconds from a centre to a subject guid, or null when
-        /// unreachable / not applicable (the pair is then left unset and falls through to the
-        /// node-default). Provided by the caller so this class needs no KSP reference.
+        /// unreachable (the pair then gets no row, and <see cref="Unroutable"/> names it).
+        /// Provided by the caller so this class needs no KSP reference.
         /// </param>
         /// <param name="setDelay">
         /// Writes an explicit (vantage, node, seconds) pair (in production, <c>StubNetwork.SetDelay</c>).
@@ -90,7 +86,6 @@ namespace Sitrep.Host.CommandCentres
                     var seconds = routeDelay(centre, guid);
                     if (seconds == null)
                     {
-                        // Unreachable: leave the (vantage, node) pair unset.
                         continue;
                     }
 
@@ -244,19 +239,93 @@ namespace Sitrep.Host.CommandCentres
         }
 
         /// <summary>
+        /// Every subject node each active centre knows it has no route to, the
+        /// complete set for this pass: a command from a listed centre to a listed
+        /// node is refused at dispatch rather than quoted a delay.
+        ///
+        /// <para>Only a centre with a route of its own is ever listed. The home
+        /// centre's reach to a craft is that craft's own link home, which the
+        /// engine already holds, and a ground station reaches whatever the ground
+        /// network reaches, so neither is listed against a craft. A crewed centre
+        /// always reaches its own craft. The home command's ledger is listed for
+        /// a centre <see cref="OffTheGroundNetwork"/> names.</para>
+        /// </summary>
+        /// <param name="activeCentres">The registry's currently-active centres.</param>
+        /// <param name="homeCentreId">The centre the roster marks home, or null.</param>
+        /// <param name="subjectGuids">The fleet subject vessel guids <see cref="Populate"/> walks.</param>
+        /// <param name="activeGuid">The active craft's guid, or null when nothing is active.</param>
+        /// <param name="routeDelay">The same routing callback <see cref="Populate"/> takes.</param>
+        /// <param name="reachesGround">The same reach callback <see cref="OffTheGroundNetwork"/> takes.</param>
+        public IReadOnlyDictionary<string, IReadOnlyCollection<string>> Unroutable(
+            IReadOnlyList<ICommandCentre> activeCentres,
+            string? homeCentreId,
+            IReadOnlyList<string> subjectGuids,
+            string? activeGuid,
+            Func<ICommandCentre, string, double?> routeDelay,
+            Func<ICommandCentre, bool?> reachesGround)
+        {
+            var unroutable = new Dictionary<string, List<string>>();
+            void Add(string centreId, string node)
+            {
+                if (!unroutable.TryGetValue(centreId, out var nodes))
+                {
+                    nodes = new List<string>();
+                    unroutable[centreId] = nodes;
+                }
+                nodes.Add(node);
+            }
+
+            foreach (var centre in activeCentres)
+            {
+                if (centre.Id == homeCentreId || centre.Kind == CommandCentreKind.GroundStation)
+                {
+                    continue;
+                }
+
+                foreach (var guid in subjectGuids)
+                {
+                    if (IsOwnCraft(centre, guid) || routeDelay(centre, guid) != null)
+                    {
+                        continue;
+                    }
+                    Add(centre.Id, FleetNode(guid));
+                }
+
+                if (activeGuid != null && !IsOwnCraft(centre, activeGuid) && routeDelay(centre, activeGuid) == null)
+                {
+                    Add(centre.Id, ChannelEngine.NodeId);
+                }
+            }
+
+            foreach (var centreId in OffTheGroundNetwork(activeCentres, homeCentreId, reachesGround))
+            {
+                Add(centreId, ChannelEngine.HomeCommandNode);
+            }
+
+            var result = new Dictionary<string, IReadOnlyCollection<string>>();
+            foreach (var row in unroutable)
+            {
+                result[row.Key] = row.Value;
+            }
+            return result;
+        }
+
+        private static bool IsOwnCraft(ICommandCentre centre, string guid) =>
+            centre.Kind == CommandCentreKind.CrewedVessel && centre.Id == "vessel:" + guid;
+
+        /// <summary>
         /// Populates the CENTRE-to-CENTRE half of the same matrix: for every
         /// ordered pair of active centres, the delay from the first (as a
         /// vantage) to the second (as a destination <see cref="CentreNode"/>).
-        /// This is what makes an act aimed at another centre, rather than at a
-        /// craft, expressible at all.
+        /// These time the addressed streams one centre sends another; no command
+        /// is addressed to a centre.
         ///
         /// <para>A centre's row against ITSELF is written as an explicit zero,
         /// and it is the one zero in this file that is not a guess: a node is
         /// exactly no distance from itself. Without it the pair would fall
-        /// through to the whole-network default delay, so an operator at the
-        /// home centre commanding the home centre would inherit whatever
-        /// light-time the active craft happens to be at, which is the wrong
-        /// number and silently so. The routing callback still reports
+        /// through to the whole-network default delay, so a centre hearing its
+        /// own stream would inherit whatever light-time the active craft happens
+        /// to be at, which is the wrong number and silently so. The routing callback still reports
         /// <c>null</c> for a self-path, because "route from a node to itself" is
         /// not a route; the zero is this pass's own statement, not a measurement.</para>
         /// </summary>

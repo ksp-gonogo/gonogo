@@ -36,7 +36,7 @@ namespace Sitrep.Host.IntegrationTests
             try
             {
                 engine.SetHomeCommandDelay(Vessel, 3.0);
-                engine.SetOffTheGroundNetwork(new[] { Vessel });
+                engine.SetUnroutable(new Dictionary<string, IReadOnlyCollection<string>> { [Vessel] = new[] { ChannelEngine.HomeCommandNode } });
                 engine.TickAndWait(0.0, HomeLedgerTestUplink.Snapshot(0.0, ledger: 10.0, delay: ActiveVesselDelay), Timeout);
 
                 var resolved = false;
@@ -77,8 +77,8 @@ namespace Sitrep.Host.IntegrationTests
             try
             {
                 engine.SetHomeCommandDelay(Vessel, 3.0);
-                engine.SetOffTheGroundNetwork(new[] { Vessel });
-                engine.SetOffTheGroundNetwork(Array.Empty<string>());
+                engine.SetUnroutable(new Dictionary<string, IReadOnlyCollection<string>> { [Vessel] = new[] { ChannelEngine.HomeCommandNode } });
+                engine.SetUnroutable(new Dictionary<string, IReadOnlyCollection<string>>());
                 engine.TickAndWait(0.0, HomeLedgerTestUplink.Snapshot(0.0, ledger: 10.0, delay: ActiveVesselDelay), Timeout);
 
                 engine.DispatchCommandAndWait(HomeSpendTestUplink.Command, "funds", Vessel, _ => { }, TestBudgets.Op);
@@ -106,7 +106,7 @@ namespace Sitrep.Host.IntegrationTests
             engine.Start();
             try
             {
-                engine.SetOffTheGroundNetwork(new[] { Vessel });
+                engine.SetUnroutable(new Dictionary<string, IReadOnlyCollection<string>> { [Vessel] = new[] { ChannelEngine.HomeCommandNode } });
                 engine.TickAndWait(0.0, HomeLedgerTestUplink.Snapshot(0.0, ledger: 10.0, delay: 0.0), Timeout);
 
                 engine.DispatchCommandAndWait(HomeSpendTestUplink.CraftCommand, "x", Vessel, _ => { }, TestBudgets.Op);
