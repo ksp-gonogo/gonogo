@@ -1341,7 +1341,7 @@ namespace Sitrep.Host
             //
             // So the whole-network default is the ACTIVE carrier of signal delay for
             // the primary node, not a leftover: `NodeId` is "system", nothing writes
-            // a node-level default for it, and SetVesselDelay/SetAuthorityDelay only
+            // a node-level default for it, and SetVesselDelay/SetAuthorityDelays only
             // ever write `fleet.*` nodes and command-centre pairs. SetActiveVesselDelays
             // does write rows against it, but only for a centre with a route of its
             // own, so the home centre and every unrouted vantage still resolve here.
@@ -2717,20 +2717,10 @@ namespace Sitrep.Host
             _network.SetNodeJourney(FleetNodePrefix + vesselId, journey);
         }
 
-        public void SetAuthorityDelay(string centreId, string vesselId, double oneWaySeconds)
-        {
-            // Per-(authority, subject) command delay (Plan 3): the explicit
-            // (vantage = centreId, node = fleet.<vesselId>) pair overrides the
-            // SetVesselDelay node-default for an operator whose session vantage is
-            // this centre. DelayTo's 3-tier lookup keeps the node-default beneath
-            // it for any unselected vantage, so KSC-only behaviour is unchanged.
-            _network.SetDelay(centreId, FleetNodePrefix + vesselId, oneWaySeconds);
-        }
-
         public void SetCentreDelay(string fromCentreId, string toCentreId, double oneWaySeconds)
         {
             // Centre-to-centre command delay: the same explicit (vantage, node)
-            // tier as SetAuthorityDelay, with a centre on BOTH sides. Writing it
+            // tier as SetAuthorityDelays, with a centre on BOTH sides. Writing it
             // is what makes "send this from a deep-space centre to the home
             // centre" a lookup rather than a missing number.
             _network.SetDelay(fromCentreId, CentreNodePrefix + toCentreId, oneWaySeconds);
@@ -2760,10 +2750,14 @@ namespace Sitrep.Host
                 }
             }
 
+            // Each explicit (centre, fleet node) pair overrides the SetVesselDelay
+            // node-default for that vantage only; every other vantage still reads
+            // the node-default beneath it.
             foreach (var row in rows)
             {
-                SetAuthorityDelay(row.CentreId, row.VesselId, row.OneWaySeconds);
-                _authorityRows.Add((row.CentreId, FleetNodePrefix + row.VesselId));
+                var node = FleetNodePrefix + row.VesselId;
+                _network.SetDelay(row.CentreId, node, row.OneWaySeconds);
+                _authorityRows.Add((row.CentreId, node));
             }
         }
 

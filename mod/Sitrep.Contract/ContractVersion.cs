@@ -546,11 +546,18 @@ namespace Sitrep.Contract
         /// server's grade and the client's held reading share one word.</para>
         ///
         /// <para>Sanctioned on the same standing grounds as every Major above.</para>
+        ///
+        /// <para><b>Bumped 19 -&gt; 20: a C# seam break the wire shape cannot see.</b>
+        /// <c>IUplinkHost.SetAuthorityDelay</c> is removed. A centre's delay to
+        /// each fleet craft is written by gonogo's own command-centre pass as one
+        /// complete set per pass, so a (centre, craft) pair that loses its route
+        /// loses its row; a per-row setter cannot remove a row, and no Uplink
+        /// called it. Declared in the ledger's <c>SeamBreaks</c>.</para>
         /// </remarks>
-        public const int Major = 19;
+        public const int Major = 20;
 
         /// <summary>
-        /// Reset to 0 alongside the Major 18 -&gt; 19 bump (see <see cref="Major"/>).
+        /// Reset to 0 alongside the Major 19 -&gt; 20 bump (see <see cref="Major"/>).
         /// The Minor history below belongs to the earlier Major lines and is
         /// retained for provenance; every one of those additive changes is
         /// carried forward.
@@ -2000,6 +2007,6 @@ namespace Sitrep.Contract
         /// transmissions detectable at a vantage. Additive, so an Uplink built against
         /// 19.1 is unaffected.</para>
         /// </remarks>
-        public const int Minor = 2;
+        public const int Minor = 0;
     }
 }

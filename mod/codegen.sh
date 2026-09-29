@@ -27,7 +27,7 @@ RECKONABILITY_OUT="$ROOT/mod/sitrep-sdk/src/__generated__/reckonability.ts"
 # RtConfig.EmitErrorCodeMap.
 ERRORCODES_OUT="$ROOT/mod/sitrep-sdk/src/__generated__/error-codes.ts"
 RT_VER="1.6.7"
-RT_PKG="$HOME/.nuget/packages/reinforced.typings/$RT_VER"
+RT_PKG="${NUGET_PACKAGES:-$HOME/.nuget/packages}/reinforced.typings/$RT_VER"
 RTCLI="$RT_PKG/tools/net5.0/rtcli.dll"
 
 # No Reinforced.Typings.dll is staged or cleaned up here any more, because none

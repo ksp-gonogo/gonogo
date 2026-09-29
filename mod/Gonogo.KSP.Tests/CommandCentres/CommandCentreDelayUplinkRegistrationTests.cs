@@ -247,7 +247,6 @@ namespace Gonogo.KSP.Tests.CommandCentres
                 new List<IReadOnlyDictionary<string, IReadOnlyCollection<string>>>();
             public List<Dictionary<string, double>> ActiveVesselDelays { get; } = new List<Dictionary<string, double>>();
 
-            public void SetAuthorityDelay(string centreId, string vesselId, double oneWaySeconds) => throw new NotSupportedException();
             public void SetAuthorityDelays(IReadOnlyCollection<(string CentreId, string VesselId, double OneWaySeconds)> rows) =>
                 AuthorityDelays.Add(rows.Select(r => (r.CentreId, r.VesselId, r.OneWaySeconds)).ToList());
             public void SetUnroutable(IReadOnlyDictionary<string, IReadOnlyCollection<string>> nodesByCentre) =>

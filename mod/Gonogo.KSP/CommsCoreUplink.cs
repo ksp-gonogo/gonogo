@@ -406,7 +406,7 @@ namespace Gonogo.KSP
                 // it rather than ahead of it. Nothing depends on this channel to
                 // decide a delay: the routed light-times are written into the
                 // ledger by the capture pass (ChannelEngine.SetVesselDelay /
-                // SetAuthorityDelay / SetCentreDelay), which never reads a topic.
+                // SetAuthorityDelays / SetCentreDelay), which never reads a topic.
                 Delayed(PathTopic),
                 // comms.delay: DELAYED, and this is not circular. The reveal
                 // gate and the command scheduler read the LEDGER

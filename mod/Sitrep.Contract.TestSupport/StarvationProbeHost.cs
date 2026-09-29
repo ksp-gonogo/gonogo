@@ -245,10 +245,6 @@ namespace Sitrep.Contract.TestSupport
         {
         }
 
-        public void SetAuthorityDelay(string centreId, string vesselId, double oneWaySeconds)
-        {
-        }
-
         public void SetCentreDelay(string fromCentreId, string toCentreId, double oneWaySeconds)
         {
         }

@@ -172,7 +172,7 @@ public class CentreSeparationEntry
 /// Delaying it does NOT make the gate depend on itself, whatever an earlier
 /// version of this comment said. What schedules traffic between vantages is the
 /// engine's delay LEDGER, written directly by
-/// <c>ChannelEngine.SetCentreDelay</c>/<c>SetAuthorityDelay</c> from the rows
+/// <c>ChannelEngine.SetCentreDelay</c>/<c>SetAuthorityDelays</c> from the rows
 /// below; those writes never read a topic. This channel is a readout off the
 /// same rows, so the two are separate paths out of one source.
 ///

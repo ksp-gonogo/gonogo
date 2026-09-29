@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using Sitrep.Contract;
 using Sitrep.Host;
+using Sitrep.Host.CommandCentres;
 using Xunit;
 
 namespace Sitrep.Host.Tests
@@ -247,7 +248,7 @@ namespace Sitrep.Host.Tests
 
             private void Apply(object? captured)
             {
-                _host?.SetAuthorityDelay(Centre, Vessel, VesselSeconds);
+                (_host as ICommandReachWriter)?.SetAuthorityDelays(new[] { (Centre, Vessel, VesselSeconds) });
                 _host?.SetCentreDelay(Centre, OtherCentre, CentreSeconds);
             }
         }

@@ -84,11 +84,13 @@ namespace Sitrep.Host.IntegrationTests
             try
             {
                 engine.SetVesselDelay(H, 55.0);
+                var fleetRows = new List<(string, string, double)>();
                 new AuthorityMatrixPass().Populate(
                     Centres,
                     new[] { G, H },
                     Route,
-                    (vantage, node, seconds) => engine.SetAuthorityDelay(vantage, node.Substring(ChannelEngine.FleetNodePrefix.Length), seconds));
+                    (vantage, node, seconds) => fleetRows.Add((vantage, node.Substring(ChannelEngine.FleetNodePrefix.Length), seconds)));
+                engine.SetAuthorityDelays(fleetRows);
                 WriteRows(engine, G);
                 Tick(engine, 1.0, craft: 1.0);
 

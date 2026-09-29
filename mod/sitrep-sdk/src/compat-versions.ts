@@ -33,7 +33,7 @@ export const EXTENSION_API_VERSION = "6.0.0";
  *
  * @category Host and runtime
  */
-export const CONTRACT_MAJOR = 19;
+export const CONTRACT_MAJOR = 20;
 
 /**
  * The wire contract's minor, mirroring `ContractVersion.Minor`. An Uplink built
@@ -42,4 +42,4 @@ export const CONTRACT_MAJOR = 19;
  *
  * @category Host and runtime
  */
-export const CONTRACT_MINOR = 2;
+export const CONTRACT_MINOR = 0;

@@ -38,7 +38,7 @@ namespace Sitrep.Host.Tests.CommandCentres
             net.SetNodeDelay(FleetNode("G"), 5.0); // Plan 2 node-default
 
             // The authority pass writes an explicit (ksc, fleet.G) pair via the
-            // same host-hook path (SetAuthorityDelay -> SetDelay).
+            // same ledger path (SetAuthorityDelays -> SetDelay).
             new AuthorityMatrixPass().Populate(
                 new ICommandCentre[] { new FakeCommandCentre("ksc") },
                 new[] { "G" },

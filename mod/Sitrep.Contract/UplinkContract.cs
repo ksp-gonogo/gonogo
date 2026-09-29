@@ -1163,25 +1163,13 @@ namespace Sitrep.Contract
         /// </summary>
         void SetVesselDelay(string vesselId, double oneWaySeconds);
 
-        /// <summary> Set the per-(authority, subject) command delay (Plan 3):
-        /// the one-way light-time from a command centre (<paramref
-        /// name="centreId"/>, an authority/vantage) to a fleet subject. Writes
-        /// the EXPLICIT (vantage, node) pair tier, which overrides the <see
-        /// cref="SetVesselDelay"/> node-default for that observer; the
-        /// node-default stays underneath for any unselected vantage. Populated
-        /// per capture pass, one row per active centre x subject, INCLUDING a
-        /// crewed centre's row against its own craft, which is an explicit
-        /// zero.
-        /// </summary>
-        void SetAuthorityDelay(string centreId, string vesselId, double oneWaySeconds);
-
         /// <summary>
         /// Set the one-way light-time BETWEEN two command centres: the delay a
         /// command takes travelling from <paramref name="fromCentreId"/> (a
         /// vantage) to <paramref name="toCentreId"/> addressed as a destination
-        /// node. Same explicit (vantage, node) tier as
-        /// <see cref="SetAuthorityDelay"/>; the difference is that the subject is
-        /// a centre rather than a craft, which is what an act aimed at the
+        /// node. Same explicit (vantage, node) tier a
+        /// centre's delay to a fleet craft is written at; the difference is that
+        /// the subject is a centre rather than a craft, which is what an act aimed at the
         /// program's home centre (a currency spend) needs in order to be delayed
         /// at all. Populated per capture pass, one row per ordered pair of active
         /// centres that are routable to each other.
