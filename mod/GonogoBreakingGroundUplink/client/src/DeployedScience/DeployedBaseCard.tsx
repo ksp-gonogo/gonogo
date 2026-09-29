@@ -1,11 +1,11 @@
 import type { Reading, Value } from "@ksp-gonogo/sitrep-sdk";
 import { AugmentSlot, combineReadings, value } from "@ksp-gonogo/sitrep-sdk";
 import {
+  Badge,
   Box,
   Cluster,
   Meter,
   Stack,
-  StatusIndicator,
   Text,
   Unit,
 } from "@ksp-gonogo/ui-kit";
@@ -53,9 +53,9 @@ export function DeployedBaseCard({
           <Text size="sm" style={{ fontWeight: 600 }}>
             {base.body || "Surface base"}
           </Text>
-          <StatusIndicator tone={POWER_TONE[state]} live>
+          <Badge tone={POWER_TONE[state]} data-tone={POWER_TONE[state]} live>
             {POWER_LABEL[state]}
-          </StatusIndicator>
+          </Badge>
         </Cluster>
         <Text level="muted" style={XS2_STYLE}>
           {/* Breaking Ground power units, not electric charge. */}
