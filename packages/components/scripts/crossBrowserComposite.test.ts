@@ -1,9 +1,20 @@
-import { readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { PNG } from "pngjs";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { diffRatio, stitch3up, writeDiff } from "./crossBrowserComposite";
+
+// A shared tmpdir() filename collides across concurrent runs of this suite, so each run gets its own directory.
+let dir: string;
+
+beforeAll(async () => {
+  dir = await mkdtemp(join(tmpdir(), "cbc-"));
+});
+
+afterAll(async () => {
+  await rm(dir, { recursive: true, force: true });
+});
 
 const made: string[] = [];
 async function solidPng(
@@ -15,7 +26,7 @@ async function solidPng(
   for (let i = 0; i < png.data.length; i += 4) {
     [png.data[i], png.data[i + 1], png.data[i + 2], png.data[i + 3]] = rgba;
   }
-  const p = join(tmpdir(), `cbc-${made.length}-${w}x${h}.png`);
+  const p = join(dir, `cbc-${made.length}-${w}x${h}.png`);
   await writeFile(p, PNG.sync.write(png));
   made.push(p);
   return p;
@@ -37,7 +48,7 @@ describe("crossBrowserComposite", () => {
 
   it("stitch3up writes an image 3x the width of one input", async () => {
     const a = await solidPng(10, 8, [255, 0, 0, 255]);
-    const out = join(tmpdir(), `cbc-out-${made.length}.png`);
+    const out = join(dir, `cbc-out-${made.length}.png`);
     made.push(out);
     await stitch3up([a, a, a], out);
     const png = PNG.sync.read(await readFile(out));
@@ -48,7 +59,7 @@ describe("crossBrowserComposite", () => {
   it("writeDiff writes a same-size diff image and returns the mismatch ratio", async () => {
     const black = await solidPng(4, 4, [0, 0, 0, 255]);
     const white = await solidPng(4, 4, [255, 255, 255, 255]);
-    const out = join(tmpdir(), `cbc-diff-${made.length}.png`);
+    const out = join(dir, `cbc-diff-${made.length}.png`);
     made.push(out);
 
     const ratio = await writeDiff(black, white, out);
@@ -59,7 +70,7 @@ describe("crossBrowserComposite", () => {
 
     // Identical inputs → zero mismatch.
     const black2 = await solidPng(4, 4, [0, 0, 0, 255]);
-    const zeroOut = join(tmpdir(), `cbc-diff-zero-${made.length}.png`);
+    const zeroOut = join(dir, `cbc-diff-zero-${made.length}.png`);
     made.push(zeroOut);
     expect(await writeDiff(black, black2, zeroOut)).toBe(0);
   });
