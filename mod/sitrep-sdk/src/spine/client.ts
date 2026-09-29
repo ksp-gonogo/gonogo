@@ -401,13 +401,6 @@ export class TelemetryClient {
   }
 
   /**
-   * Subscribe to a topic. On the first subscriber for a topic, sends a
-   * `subscribe` message to the transport. If a sticky last value already
-   * exists for the topic, `cb` is invoked with it synchronously before
-   * returning. Returns an unsubscribe function; when the last subscriber for
-   * the topic unsubscribes, sends `unsubscribe` and clears local state.
-   */
-  /**
    * The command centre this client asked to command from and observe at (Plan 3),
    * or `undefined` until {@link setVantage} asks for one.
    *
@@ -498,7 +491,21 @@ export class TelemetryClient {
     }
   }
 
+  /**
+   * Subscribe to a topic. On the first subscriber for a topic, sends a
+   * `subscribe` message to the transport. If a sticky last value already
+   * exists for the topic, `cb` is invoked with it synchronously before
+   * returning. Returns an unsubscribe function; when the last subscriber for
+   * the topic unsubscribes, sends `unsubscribe` and clears local state.
+   *
+   * An empty topic names nothing the mod can serve, so it never reaches the
+   * wire: the call warns once and returns a no-op unsubscribe.
+   */
   subscribe(topic: string, cb: Callback): () => void {
+    if (topic === "") {
+      this.warnEmptyTopicOnce();
+      return () => {};
+    }
     let subs = this.subscribers.get(topic);
     if (!subs) {
       subs = new Set();
@@ -618,6 +625,7 @@ export class TelemetryClient {
   private delaySource: (() => number) | undefined;
 
   private warnedNoLossDeadline = false;
+  private warnedEmptyTopic = false;
 
   /**
    * Hand the client the authoritative one-way delay so it can settle a dispatch that
@@ -645,6 +653,15 @@ export class TelemetryClient {
    * transport still cannot settle an unanswered promise, and that has to be audible
    * rather than inferred from an absence months later.
    */
+  private warnEmptyTopicOnce(): void {
+    if (this.warnedEmptyTopic) return;
+    this.warnedEmptyTopic = true;
+    console.warn(
+      "[sitrep] subscribe was called with an empty topic; it was not sent. " +
+        "A caller built a topic id from a value it does not have.",
+    );
+  }
+
   private warnNoLossDeadlineOnce(): void {
     if (this.warnedNoLossDeadline) return;
     this.warnedNoLossDeadline = true;

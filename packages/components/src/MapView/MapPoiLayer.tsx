@@ -61,16 +61,28 @@ export function MapPoiLayer({
 
   return (
     <PoiLayerRoot ref={layerRef}>
-      {providers.map((provider) => (
-        <PoiProviderGate
-          key={provider.id}
-          provider={provider}
-          bodyId={bodyId}
-          project={project}
-          hoveredId={hoveredPoi?.id}
-          onHover={setHoveredPoi}
-        />
-      ))}
+      {providers.map((provider) =>
+        provider.requires ? (
+          <PoiProviderGate
+            key={provider.id}
+            requires={provider.requires}
+            provider={provider}
+            bodyId={bodyId}
+            project={project}
+            hoveredId={hoveredPoi?.id}
+            onHover={setHoveredPoi}
+          />
+        ) : (
+          <PoiProviderMarkers
+            key={provider.id}
+            provider={provider}
+            bodyId={bodyId}
+            project={project}
+            hoveredId={hoveredPoi?.id}
+            onHover={setHoveredPoi}
+          />
+        ),
+      )}
       {hoveredPoi && (
         <PoiHoverCardView
           poi={hoveredPoi}
@@ -83,32 +95,26 @@ export function MapPoiLayer({
   );
 }
 
-/** Applies one provider's Domain presence gate, one component per provider so the gate hook keeps a stable position. */
+/** Applies a gated provider's Domain presence gate; an ungated provider mounts its markers directly and reads no availability topic. */
 function PoiProviderGate({
+  requires,
   provider,
   bodyId,
   project,
   hoveredId,
   onHover,
 }: {
+  requires: string;
   provider: MapPoiProviderDefinition;
   bodyId: string | undefined;
   project: MapPoiLayerProps["project"];
   hoveredId: string | undefined;
   onHover: (poi: MapPoi | null) => void;
 }): ReactElement | null {
-  // Always called for stable hook order; the dummy topic for an ungated provider is never consulted.
-  const availabilityTopic = (
-    provider.requires ? `${provider.requires}.available` : ""
-  ) as TopicId;
-  const available = useTelemetry(availabilityTopic);
+  const available = useTelemetry(`${requires}.available` as TopicId);
 
   // A `.available` topic is a presence gate: held and absent both mean installed, and only pending or unowned hides the provider.
-  const domainReported = hasAnswered(available);
-
-  if (provider.requires && !domainReported) {
-    return null;
-  }
+  if (!hasAnswered(available)) return null;
 
   return (
     <PoiProviderMarkers

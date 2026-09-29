@@ -9,6 +9,7 @@ import {
   visibleText,
 } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { setupStreamFixture } from "../test/setupStreamFixture";
 import { MapPoiLayer } from "./MapPoiLayer";
 
 // Unmount each tree before clearMapPoiProviders(), which would re-render a mounted layer outside act(); RTL's auto-cleanup runs too late.
@@ -57,6 +58,31 @@ describe("MapPoiLayer", () => {
     expect(
       screen.getByRole("button", { name: "Ungated POI" }),
     ).toBeInTheDocument();
+  });
+
+  it("subscribes a gated provider's availability topic and nothing for an ungated one", () => {
+    registerMapPoiProvider({
+      id: "gated",
+      requires: "fake-domain",
+      usePois: () => [],
+    });
+    registerMapPoiProvider({
+      id: "ungated",
+      usePois: () => [],
+    });
+    const fixture = setupStreamFixture({ pinnedUt: 0, suspendFrames: true });
+    const subscribe = vi.spyOn(fixture.client, "subscribe");
+
+    const view = render(
+      <fixture.Provider>
+        <MapPoiLayer bodyId="Kerbin" project={project} />
+      </fixture.Provider>,
+    );
+    renderedTrees.push(view.unmount);
+
+    const topics = subscribe.mock.calls.map(([topic]) => topic);
+    expect(topics).toContain("fake-domain.available");
+    expect(topics).not.toContain("");
   });
 
   it("shows label, detail and formatted coordinates in a hover card on marker hover", () => {
