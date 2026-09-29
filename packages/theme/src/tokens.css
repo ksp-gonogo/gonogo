@@ -566,6 +566,11 @@ textarea {
   /* A panel's horizontal gutter, shared by its title, toolbar, body, sidebar
      and footer so their content lines up down one column. */
   --gutter-panel: var(--space-16);
+  /* How far a horizontal strip (a tab bar, a wide table) may reach past its
+     box to the panel's edge. A context name: a panel body steps it to its
+     gutter, and a bordered block inside resets it, so nothing bleeds out of a
+     card. */
+  --bleed-inline: 0px;
   --inset-panel-top: var(--space-8);
   --inset-panel-bottom: var(--space-12);
   --inset-panel-body: var(--inset-panel-top) var(--gutter-panel)

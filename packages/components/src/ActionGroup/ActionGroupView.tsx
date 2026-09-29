@@ -17,7 +17,6 @@ import {
   ToggleButton,
 } from "@ksp-gonogo/ui";
 import {
-  Badge,
   Cluster,
   getSizeBucket,
   IconButton,
@@ -166,6 +165,20 @@ export function ActionGroupView({
     <Panel
       panelTitle="ACTION GROUP"
       compactTitle={["ACTIONS", "AG"]}
+      panelBadges={
+        unavailableReason &&
+        unavailableReason !== HELD_STATE &&
+        getSizeBucket(w, h) !== "tiny"
+          ? [
+              {
+                id: "unavailable",
+                label: unavailableReason,
+                tone: "warn",
+                title: unavailableTitle,
+              },
+            ]
+          : undefined
+      }
       sections={[
         <Section key="control" full>
           <Cluster justify="between" align="start" wrap>
@@ -241,21 +254,6 @@ export function ActionGroupView({
             </Inline>
           </Cluster>
         </Section>,
-        unavailableReason &&
-          unavailableReason !== HELD_STATE &&
-          getSizeBucket(w, h) !== "tiny" && (
-            <Section key="unavailable" full>
-              <Badge
-                severity="warning"
-                size="sm"
-                role="status"
-                aria-live="polite"
-                title={unavailableTitle}
-              >
-                {unavailableReason}
-              </Badge>
-            </Section>
-          ),
         <AugmentSlot
           key="subsystem"
           name="action-group.subsystem"

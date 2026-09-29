@@ -223,7 +223,7 @@ describe("ShipDiagram", () => {
         ],
       ],
     ]);
-    const { container } = render(
+    render(
       <ShipDiagram
         parts={PARTS}
         width={400}
@@ -241,10 +241,11 @@ describe("ShipDiagram", () => {
     expect(fuel.getAttribute("aria-valuetext")).toBe(
       "90.0 units of 180.0 units",
     );
-    expect(visibleText(container)).toContain("90.0 units / 180.0 units");
+    // The tooltip is portalled to the body, outside the widget's container.
+    expect(visibleText(document.body)).toContain("90.0 units / 180.0 units");
     // No contributed meter for Oxidizer, so the plain raw row, through `Unit` at whole units.
     expect(screen.getByText("Oxidizer")).toBeTruthy();
-    expect(visibleText(container)).toContain("100 units / 220 units");
+    expect(visibleText(document.body)).toContain("100 units / 220 units");
     // The part-meta row: a "text"-kind entry, not a Meter.
     expect(screen.getByText("Water Recycler")).toBeTruthy();
     expect(screen.getByText("running")).toBeTruthy();

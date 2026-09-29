@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { EmptyState } from "./EmptyState";
 import { Stack } from "./Stack";
-import { type TermSegment, useRowFilter } from "./useRowFilter";
+import { FilterRegion, type TermSegment, useRowFilter } from "./useRowFilter";
 
 /*
  * A filterable list over pre-processed rows: each carries the text it is
@@ -39,7 +39,7 @@ export function FilterList({
   const shown = rows.filter((row) => filter.matches(row.searchText));
 
   return (
-    <Stack gap="related-dense">
+    <FilterRegion filter={filter}>
       {shown.length > 0 ? (
         <Stack gap="rows">
           {shown.map((row) => (
@@ -49,8 +49,6 @@ export function FilterList({
       ) : (
         <EmptyState>{emptyLabel}</EmptyState>
       )}
-
-      {filter.control}
-    </Stack>
+    </FilterRegion>
   );
 }

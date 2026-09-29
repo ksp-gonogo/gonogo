@@ -53,10 +53,10 @@ async function mountLinked() {
     });
   });
   act(() => {
-    trigger.click();
+    trigger.focus();
   });
   const panel = document.getElementById(
-    trigger.getAttribute("aria-controls") ?? "",
+    trigger.getAttribute("aria-describedby") ?? "",
   ) as HTMLElement;
   return { fixture, panel };
 }

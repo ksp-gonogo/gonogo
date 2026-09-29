@@ -68,6 +68,7 @@ const Card__Root = styled(Block__Root)<{
 }>`
   --gap-related: var(--gap-related-compact);
   --gap-section: var(--gap-section-compact);
+  --bleed-inline: 0px;
 
   position: relative;
   background: var(--color-surface-sunken);

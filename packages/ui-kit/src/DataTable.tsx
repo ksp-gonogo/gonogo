@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
-import { Fragment } from "react";
+import { Fragment, useState } from "react";
 import styled from "styled-components";
+import { InlineOverflowGlow, useInlineOverflow } from "./inlineOverflow";
 import type { UnitValue } from "./readingCurrency";
 import { Unit } from "./Unit";
 
@@ -102,92 +103,115 @@ export function DataTable<Row>({
   const groups: ReadonlyArray<DataTableSection<Row>> =
     sections ?? (rows ? [{ id: "", title: null, rows: [...rows] }] : []);
   const total = groups.reduce((n, g) => n + g.rows.length, 0);
+  const [scroller, setScroller] = useState<HTMLDivElement | null>(null);
+  const overflow = useInlineOverflow(scroller);
 
   return (
-    <DataTable__Scroller className={className}>
-      <DataTable__Table>
-        <DataTable__Caption>{caption}</DataTable__Caption>
-        <thead>
-          <tr>
-            {columns.map((col) => (
-              <DataTable__HeaderCell
-                key={col.key}
-                scope="col"
-                $align={col.align ?? "start"}
-                style={{
-                  width: col.width,
-                  minWidth: col.minWidth,
-                }}
-              >
-                {col.header}
-              </DataTable__HeaderCell>
-            ))}
-          </tr>
-        </thead>
-        {total === 0 && empty !== undefined && (
-          <tbody>
+    <DataTable__Shell className={className}>
+      <DataTable__Scroller ref={setScroller}>
+        <DataTable__Table>
+          <DataTable__Caption>{caption}</DataTable__Caption>
+          <thead>
             <tr>
-              <DataTable__EmptyCell colSpan={columns.length}>
-                {empty}
-              </DataTable__EmptyCell>
-            </tr>
-          </tbody>
-        )}
-        {groups.map((group) => (
-          <tbody key={group.id}>
-            {group.title !== null && group.title !== undefined && (
-              <tr>
-                <DataTable__SectionCell
-                  scope="rowgroup"
-                  colSpan={columns.length}
+              {columns.map((col) => (
+                <DataTable__HeaderCell
+                  key={col.key}
+                  scope="col"
+                  $align={col.align ?? "start"}
+                  style={{
+                    width: col.width,
+                    minWidth: col.minWidth,
+                  }}
                 >
-                  {group.title}
-                </DataTable__SectionCell>
+                  {col.header}
+                </DataTable__HeaderCell>
+              ))}
+            </tr>
+          </thead>
+          {total === 0 && empty !== undefined && (
+            <tbody>
+              <tr>
+                <DataTable__EmptyCell colSpan={columns.length}>
+                  {empty}
+                </DataTable__EmptyCell>
               </tr>
-            )}
-            {group.rows.map((row) => {
-              const key = rowKey(row);
-              const detail = rowDetail?.(row);
-              const hasDetail =
-                detail !== null &&
-                detail !== undefined &&
-                detail !== false &&
-                detail !== "";
-              return (
-                <Fragment key={key}>
-                  <DataTable__Row $hasDetail={hasDetail}>
-                    {columns.map((col) => (
-                      <DataTable__Cell
-                        key={col.key}
-                        as={col.rowHeader ? "th" : undefined}
-                        scope={col.rowHeader ? "row" : undefined}
-                        $align={col.align ?? "start"}
-                      >
-                        {cellContent(col, row)}
-                      </DataTable__Cell>
-                    ))}
-                  </DataTable__Row>
-                  {hasDetail ? (
-                    <tr>
-                      <DataTable__DetailCell colSpan={columns.length}>
-                        {detail}
-                      </DataTable__DetailCell>
-                    </tr>
-                  ) : null}
-                </Fragment>
-              );
-            })}
-          </tbody>
-        ))}
-      </DataTable__Table>
-    </DataTable__Scroller>
+            </tbody>
+          )}
+          {groups.map((group) => (
+            <tbody key={group.id}>
+              {group.title !== null && group.title !== undefined && (
+                <tr>
+                  <DataTable__SectionCell
+                    scope="rowgroup"
+                    colSpan={columns.length}
+                  >
+                    {group.title}
+                  </DataTable__SectionCell>
+                </tr>
+              )}
+              {group.rows.map((row) => {
+                const key = rowKey(row);
+                const detail = rowDetail?.(row);
+                const hasDetail =
+                  detail !== null &&
+                  detail !== undefined &&
+                  detail !== false &&
+                  detail !== "";
+                return (
+                  <Fragment key={key}>
+                    <DataTable__Row $hasDetail={hasDetail}>
+                      {columns.map((col) => (
+                        <DataTable__Cell
+                          key={col.key}
+                          as={col.rowHeader ? "th" : undefined}
+                          scope={col.rowHeader ? "row" : undefined}
+                          $align={col.align ?? "start"}
+                        >
+                          {cellContent(col, row)}
+                        </DataTable__Cell>
+                      ))}
+                    </DataTable__Row>
+                    {hasDetail ? (
+                      <tr>
+                        <DataTable__DetailCell colSpan={columns.length}>
+                          {detail}
+                        </DataTable__DetailCell>
+                      </tr>
+                    ) : null}
+                  </Fragment>
+                );
+              })}
+            </tbody>
+          ))}
+        </DataTable__Table>
+      </DataTable__Scroller>
+      <InlineOverflowGlow $position="left" $visible={overflow.left} />
+      <InlineOverflowGlow $position="right" $visible={overflow.right} />
+    </DataTable__Shell>
   );
 }
 
-/* Wide content scrolls inside the table rather than pushing the widget's layout sideways. */
+/* Reaches out to the panel's edges, so a table scrolled sideways passes under a glow in the gutter rather than stopping at the padding. */
+const DataTable__Shell = styled.div`
+  position: relative;
+  min-width: 0;
+  margin-inline: calc(-1 * var(--bleed-inline));
+`;
+
+/*
+ * Wide content scrolls inside the table rather than pushing the widget's
+ * layout sideways. A flex box, so the end padding is part of what scrolls and
+ * the last column comes to rest on the content column too.
+ */
 const DataTable__Scroller = styled.div`
+  display: flex;
+  padding-inline: var(--bleed-inline);
   overflow-x: auto;
   min-width: 0;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
 `;
 
 const DataTable__Table = styled.table`

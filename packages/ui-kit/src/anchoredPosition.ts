@@ -1,4 +1,8 @@
-/** A point in viewport (client) coordinates. */
+/**
+ * A point in viewport (client) coordinates.
+ *
+ * @category Floating
+ */
 export interface AnchorPoint {
   x: number;
   y: number;
@@ -10,31 +14,38 @@ export interface BoxSize {
   h: number;
 }
 
-export interface AnchoredMenuPosition {
+/**
+ * Where an anchored layer's top-left corner goes, in viewport coordinates.
+ *
+ * @category Floating
+ */
+export interface AnchoredPosition {
   left: number;
   top: number;
 }
 
-/** Distance from the anchor point to the menu's near corner. */
+/** Distance from the anchor point to the layer's near corner. */
 const GAP = 12;
-/** Minimum distance kept between the menu and the viewport edge. */
+/** Minimum distance kept between the layer and the viewport edge. */
 const EDGE = 8;
 
 /**
- * Place an anchored menu against the viewport, the only bound left once the
- * menu is portalled out of its clipping widget. Below-right of the anchor by
+ * Place an anchored layer against the viewport, the only bound left once the
+ * layer is portalled out of its clipping widget. Below-right of the anchor by
  * preference; across an edge it flips to the anchor's other side rather than
  * sliding, so it still reads as attached. If neither side fits, it clamps on
  * screen and its own scroll box carries the rest.
+ *
+ * @category Floating
  */
-export function anchoredMenuPosition(
+export function anchoredPosition(
   anchor: AnchorPoint,
-  menu: BoxSize,
+  layer: BoxSize,
   viewport: BoxSize,
-): AnchoredMenuPosition {
+): AnchoredPosition {
   return {
-    left: place(anchor.x, menu.w, viewport.w),
-    top: place(anchor.y, menu.h, viewport.h),
+    left: place(anchor.x, layer.w, viewport.w),
+    top: place(anchor.y, layer.h, viewport.h),
   };
 }
 

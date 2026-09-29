@@ -9,7 +9,7 @@ import {
   type TabDescriptor,
   Tabs,
 } from "@ksp-gonogo/ui-kit";
-import { KerbalStats } from "../shared/KerbalStats";
+import { KerbalBadges, KerbalStats } from "../shared/KerbalStats";
 import { FireButton } from "./CrewButtons";
 import {
   type CrewRosterRow,
@@ -61,61 +61,65 @@ export function ActivePanel({
         label: `${label} (${members.length})`,
         content: (
           <Stack as="ul" style={LIST_STYLE}>
-            {members.map((m, i) => (
-              <Card
-                as="li"
-                key={keys[i]}
-                aria-current={
-                  fireable && m.name === highlightedName ? "true" : undefined
-                }
-              >
-                {/* The sack control sits at the END of the identity line: firing is rare, and a column of its own would take width off the schedule. The corner is where a career model's mark is read WITH the name. */}
-                <Card.TitleRow
-                  right={
-                    <Cluster align="center">
-                      <AugmentSlot
-                        name={ASTRONAUT_COMPLEX_CREW_BADGE_SLOT}
-                        props={{
-                          kerbalName: m.name,
-                          standing: m.standing,
-                          isApplicant: false,
-                        }}
-                      />
-                      {fireable && m.name === highlightedName && (
-                        <Badge
-                          severity={armed ? "critical" : undefined}
-                          size="sm"
-                        >
-                          {armed ? "ARMED" : "SELECTED"}
-                        </Badge>
-                      )}
-                      {fireable && (
-                        <FireButton kerbalName={m.name} fireCmd={fireCmd} />
-                      )}
-                    </Cluster>
+            {members.map((m, i) => {
+              const stats = crewRowStats(m);
+              return (
+                <Card
+                  as="li"
+                  key={keys[i]}
+                  aria-current={
+                    fireable && m.name === highlightedName ? "true" : undefined
                   }
                 >
-                  <Stack style={WHO_STYLE}>
-                    <KerbalStats
-                      kerbal={crewRowStats(m)}
-                      showRank
-                      showTraits
-                      showExperienceProgress
-                      showInfo
-                    />
-                  </Stack>
-                </Card.TitleRow>
-                {/* This kerbal's schedule from whichever Uplink manages their career; nothing under stock. */}
-                <AugmentSlot
-                  name="astronaut-complex.crew"
-                  props={{
-                    kerbalName: m.name,
-                    standing: m.standing,
-                    isApplicant: false,
-                  }}
-                />
-              </Card>
-            ))}
+                  {/* The sack control sits at the END of the identity line: firing is rare, and a column of its own would take width off the schedule. The corner is where a career model's mark is read WITH the name. */}
+                  <Card.TitleRow
+                    right={
+                      <Cluster align="center">
+                        <KerbalBadges kerbal={stats} />
+                        <AugmentSlot
+                          name={ASTRONAUT_COMPLEX_CREW_BADGE_SLOT}
+                          props={{
+                            kerbalName: m.name,
+                            standing: m.standing,
+                            isApplicant: false,
+                          }}
+                        />
+                        {fireable && m.name === highlightedName && (
+                          <Badge
+                            severity={armed ? "critical" : undefined}
+                            size="sm"
+                          >
+                            {armed ? "ARMED" : "SELECTED"}
+                          </Badge>
+                        )}
+                        {fireable && (
+                          <FireButton kerbalName={m.name} fireCmd={fireCmd} />
+                        )}
+                      </Cluster>
+                    }
+                  >
+                    <Stack style={WHO_STYLE}>
+                      <KerbalStats
+                        kerbal={stats}
+                        showRank
+                        showTraits
+                        showExperienceProgress
+                        showInfo
+                      />
+                    </Stack>
+                  </Card.TitleRow>
+                  {/* This kerbal's schedule from whichever Uplink manages their career; nothing under stock. */}
+                  <AugmentSlot
+                    name="astronaut-complex.crew"
+                    props={{
+                      kerbalName: m.name,
+                      standing: m.standing,
+                      isApplicant: false,
+                    }}
+                  />
+                </Card>
+              );
+            })}
           </Stack>
         ),
       };

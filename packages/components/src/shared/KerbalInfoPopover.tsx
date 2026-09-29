@@ -1,14 +1,5 @@
-import { InfoIcon, Stack } from "@ksp-gonogo/ui-kit";
-import {
-  useCallback,
-  useEffect,
-  useId,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
-import { createPortal } from "react-dom";
-import { anchoredMenuPosition } from "../ShipMap/anchoredMenuPosition";
+import { Floating, InfoIcon, Stack } from "@ksp-gonogo/ui-kit";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 
 /**
  * A per-kerbal toggle revealing the stock trait text in a popover, portalled to
@@ -24,62 +15,33 @@ export function KerbalInfoPopover({
   descriptionEffects?: string;
 }>) {
   const [open, setOpen] = useState(false);
-  const [host, setHost] = useState<HTMLDivElement | null>(null);
-  const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelId = useId();
 
   const dismiss = useCallback(() => {
     setOpen(false);
-    setPos(null);
     triggerRef.current?.focus();
   }, []);
 
-  /* A layout effect so the first painted position is the corrected one. Scroll
-     is captured because the dashboard scrolls an inner container, whose scroll
-     events do not bubble. */
-  useLayoutEffect(() => {
-    if (!open || !host) return;
-    const place = () => {
-      const trigger = triggerRef.current;
-      if (!trigger) return;
-      const anchorRect = trigger.getBoundingClientRect();
-      const hostRect = host.getBoundingClientRect();
-      const next = anchoredMenuPosition(
-        { x: anchorRect.left, y: anchorRect.bottom },
-        { w: hostRect.width, h: hostRect.height },
-        { w: window.innerWidth, h: window.innerHeight },
-      );
-      setPos((prev) =>
-        prev && prev.left === next.left && prev.top === next.top ? prev : next,
-      );
-    };
-    place();
-    const observer =
-      typeof ResizeObserver === "undefined" ? null : new ResizeObserver(place);
-    observer?.observe(host);
-    window.addEventListener("resize", place);
-    window.addEventListener("scroll", place, true);
-    return () => {
-      observer?.disconnect();
-      window.removeEventListener("resize", place);
-      window.removeEventListener("scroll", place, true);
-    };
-  }, [open, host]);
+  const anchor = () => {
+    const rect = triggerRef.current?.getBoundingClientRect();
+    return rect ? { x: rect.left, y: rect.bottom } : null;
+  };
 
   useEffect(() => {
     if (!open) return;
     const onPointerDown = (e: PointerEvent) => {
       const target = e.target;
       if (!(target instanceof Node)) return;
-      if (host?.contains(target) || triggerRef.current?.contains(target)) {
+      const panel = document.getElementById(panelId);
+      if (panel?.contains(target) || triggerRef.current?.contains(target)) {
         return;
       }
       dismiss();
     };
     document.addEventListener("pointerdown", onPointerDown);
     return () => document.removeEventListener("pointerdown", onPointerDown);
-  }, [open, host, dismiss]);
+  }, [open, panelId, dismiss]);
 
   const label = `Role info for ${name || "kerbal"}`;
   const hasContent = Boolean(roleDescription) || Boolean(descriptionEffects);
@@ -104,44 +66,35 @@ export function KerbalInfoPopover({
       >
         <InfoIcon size={13} />
       </button>
-      {open &&
-        createPortal(
-          <div
-            ref={setHost}
-            style={{
-              ...POPOVER_HOST_STYLE,
-              left: pos?.left ?? 0,
-              top: pos?.top ?? 0,
+      {open && (
+        <Floating anchor={anchor}>
+          <Stack
+            id={panelId}
+            role="group"
+            aria-label={label}
+            style={POPOVER_PANEL_STYLE}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                e.stopPropagation();
+                dismiss();
+              }
             }}
           >
-            <Stack
-              id={panelId}
-              role="group"
-              aria-label={label}
-              style={POPOVER_PANEL_STYLE}
-              onKeyDown={(e) => {
-                if (e.key === "Escape") {
-                  e.stopPropagation();
-                  dismiss();
-                }
-              }}
-            >
-              {hasContent ? (
-                <>
-                  {roleDescription && (
-                    <p style={POPOVER_TEXT_STYLE}>{roleDescription}</p>
-                  )}
-                  {descriptionEffects && (
-                    <p style={POPOVER_TEXT_STYLE}>{descriptionEffects}</p>
-                  )}
-                </>
-              ) : (
-                <p style={POPOVER_TEXT_STYLE}>No description available</p>
-              )}
-            </Stack>
-          </div>,
-          document.body,
-        )}
+            {hasContent ? (
+              <>
+                {roleDescription && (
+                  <p style={POPOVER_TEXT_STYLE}>{roleDescription}</p>
+                )}
+                {descriptionEffects && (
+                  <p style={POPOVER_TEXT_STYLE}>{descriptionEffects}</p>
+                )}
+              </>
+            ) : (
+              <p style={POPOVER_TEXT_STYLE}>No description available</p>
+            )}
+          </Stack>
+        </Floating>
+      )}
     </>
   );
 }
@@ -159,12 +112,6 @@ const INFO_TRIGGER_STYLE = {
   background: "transparent",
   color: "var(--color-text-faint)",
   cursor: "pointer",
-} as const;
-
-// A fixed element is its own stacking context, so the z rung must sit here and not on the panel inside it.
-const POPOVER_HOST_STYLE = {
-  position: "fixed",
-  zIndex: "var(--z-dropdown)",
 } as const;
 
 // Not a Box: a surface floating over arbitrary content needs the strong border and the surface inset.

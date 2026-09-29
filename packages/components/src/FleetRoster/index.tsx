@@ -5,13 +5,7 @@ import {
   useSelectedVantage,
 } from "@ksp-gonogo/sitrep-client";
 import { Meter } from "@ksp-gonogo/ui";
-import {
-  Badge,
-  Panel,
-  ReadoutCaption,
-  Section,
-  severityFromBadgeEntryTone,
-} from "@ksp-gonogo/ui-kit";
+import { Panel, ReadoutCaption, Section } from "@ksp-gonogo/ui-kit";
 import { commsRollup } from "./comms";
 import { useFleet } from "./fleet";
 import { RosterTable } from "./RosterTable";
@@ -42,11 +36,9 @@ function FleetRosterComponent({
   return (
     <Panel
       panelTitle="Fleet"
-      panelAside={
-        <Badge severity={severityFromBadgeEntryTone(rollup.tone)}>
-          {rollup.badgeLabel}
-        </Badge>
-      }
+      panelBadges={[
+        { id: "rollup", label: rollup.badgeLabel, tone: rollup.tone },
+      ]}
       panelFooter={
         <Meter
           label="Comms coverage"

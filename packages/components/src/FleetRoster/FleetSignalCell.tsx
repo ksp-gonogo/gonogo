@@ -4,7 +4,7 @@ import {
   useFleetVesselLink,
 } from "@ksp-gonogo/sitrep-client";
 import { stillTrue, value } from "@ksp-gonogo/sitrep-sdk";
-import { Disclosure, Unit } from "@ksp-gonogo/ui-kit";
+import { HoverCard, Unit } from "@ksp-gonogo/ui-kit";
 import type { Tone } from "./comms";
 import { CommsTag } from "./RosterCells";
 
@@ -26,7 +26,7 @@ const DEFINITION_STYLE = {
 } as const;
 
 /**
- * The per-row Link cell: the connectivity glyph triggers a Disclosure with this vessel's reachability and signal delay.
+ * The per-row Link cell: hovering or focusing the connectivity tag shows this vessel's reachability and signal delay.
  * Reachability comes only off freeze-exempt `.contact`: the last `.delay` payload before a blackout still says `connected: true`, so its `connected` is never read.
  */
 export function FleetSignalCell({
@@ -60,9 +60,9 @@ export function FleetSignalCell({
     value("s", 2 * (l.oneWaySeconds ?? 0)),
   );
   return (
-    <Disclosure
+    <HoverCard
       ariaLabel={`${vesselName} signal`}
-      label={<CommsTag tone={tone}>{label}</CommsTag>}
+      trigger={<CommsTag tone={tone}>{label}</CommsTag>}
     >
       <dl
         style={{
@@ -92,6 +92,6 @@ export function FleetSignalCell({
           </div>
         )}
       </dl>
-    </Disclosure>
+    </HoverCard>
   );
 }

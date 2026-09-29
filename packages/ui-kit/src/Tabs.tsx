@@ -1,7 +1,6 @@
 import type { KeyboardEvent, ReactNode } from "react";
 import {
   useCallback,
-  useEffect,
   useId,
   useLayoutEffect,
   useMemo,
@@ -11,6 +10,7 @@ import {
 import styled from "styled-components";
 import { focusRingInset } from "./focusRing";
 import { Grid } from "./Grid";
+import { InlineOverflowGlow, useInlineOverflow } from "./inlineOverflow";
 import { Section, SectionTitle } from "./Section";
 import { useElementSize } from "./useElementSize";
 import { VisuallyHidden } from "./VisuallyHidden";
@@ -115,7 +115,7 @@ export function Tabs({
     expandWhenRoomy && shouldExpandTabs(size.w, selectable.length);
 
   const buttonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
-  const barRef = useRef<HTMLDivElement>(null);
+  const barRef = useRef<HTMLDivElement | null>(null);
   /*
    * Tighter padding and tracking once the tabs stop fitting, decided against the
    * row's uncompacted width. It is cached, and only written while uncompacted,
@@ -123,52 +123,13 @@ export function Tabs({
    */
   const naturalWidthRef = useRef<number | null>(null);
   const [compact, setCompact] = useState(false);
-  const [overflow, setOverflow] = useState({ left: false, right: false });
-  // React's same-value bailout is not guaranteed with other work queued, so an unchanged measurement is filtered here.
-  const overflowRef = useRef(overflow);
+  // State as well as a ref: `expanded` swaps the strip in and out of the tree, and the overflow watch must follow it.
+  const [scroller, setScroller] = useState<HTMLDivElement | null>(null);
+  const overflow = useInlineOverflow(scroller);
   // Measured, since labels differ in width and the blob must land exactly on the active one.
   const [blob, setBlob] = useState<{ left: number; width: number } | null>(
     null,
   );
-
-  // `expanded` swaps the bar in and out of the tree, so the effect re-runs to attach to the fresh bar.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: expanded is an intentional recompute trigger, see the comment above.
-  useEffect(() => {
-    const el = barRef.current;
-    if (!el) return;
-
-    const update = () => {
-      const left = el.scrollLeft > 1;
-      const right = el.scrollLeft + el.clientWidth < el.scrollWidth - 1;
-      const prev = overflowRef.current;
-      if (prev.left === left && prev.right === right) return;
-      overflowRef.current = { left, right };
-      setOverflow(overflowRef.current);
-    };
-
-    update();
-    el.addEventListener("scroll", update, { passive: true });
-
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    for (const child of Array.from(el.children)) {
-      ro.observe(child);
-    }
-
-    const mo = new MutationObserver(() => {
-      for (const child of Array.from(el.children)) {
-        ro.observe(child);
-      }
-      update();
-    });
-    mo.observe(el, { childList: true });
-
-    return () => {
-      el.removeEventListener("scroll", update);
-      ro.disconnect();
-      mo.disconnect();
-    };
-  }, [expanded]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: re-measure when the tab SET changes, since that is what changes the natural width.
   useLayoutEffect(() => {
@@ -199,7 +160,7 @@ export function Tabs({
     const measure = () => {
       const el = buttonRefs.current.get(active?.id ?? "");
       if (!el) return;
-      // offsetLeft is relative to the scrolling bar's content box, so the blob scrolls with the tabs.
+      // offsetLeft is relative to the track, which scrolls with the tabs, so the blob does too.
       setBlob((prev) =>
         prev && prev.left === el.offsetLeft && prev.width === el.offsetWidth
           ? prev
@@ -291,58 +252,64 @@ export function Tabs({
   return (
     <Tabs__Root ref={sizeRef} data-tabs-root="" className={className}>
       <Tabs__BarShell>
-        <Tabs__Bar
-          ref={barRef}
-          role="tablist"
-          aria-label={ariaLabel}
-          aria-labelledby={ariaLabelledBy}
+        <Tabs__Scroller
+          ref={(el) => {
+            barRef.current = el;
+            setScroller(el);
+          }}
         >
-          {blob && (
-            <Tabs__Blob
-              aria-hidden="true"
-              style={{ left: blob.left, width: blob.width }}
-            />
-          )}
-          {resolved.map((tab) => {
-            const isActive = tab.id === active?.id;
-            return (
-              <Tabs__Button
-                key={tab.id}
-                ref={(el) => {
-                  if (el) buttonRefs.current.set(tab.id, el);
-                  else buttonRefs.current.delete(tab.id);
-                }}
-                role="tab"
-                type="button"
-                id={`${uid}${tab.id}-tab`}
-                aria-selected={isActive}
-                aria-controls={`${uid}${tab.id}-panel`}
-                aria-describedby={
-                  tab.indicator ? `${uid}${tab.id}-attention` : undefined
-                }
-                tabIndex={isActive ? 0 : -1}
-                disabled={tab.disabled}
-                $active={isActive}
-                onClick={() => select(tab.id)}
-                onKeyDown={handleKeyDown}
-                title={tab.label}
-                $compact={compact}
-              >
-                {tab.label}
-                {tab.indicator && (
-                  <>
-                    <Tabs__Dot aria-hidden="true" />
-                    <span id={`${uid}${tab.id}-attention`} hidden>
-                      Needs attention
-                    </span>
-                  </>
-                )}
-              </Tabs__Button>
-            );
-          })}
-        </Tabs__Bar>
-        <Tabs__OverflowGlow $position="left" $visible={overflow.left} />
-        <Tabs__OverflowGlow $position="right" $visible={overflow.right} />
+          <Tabs__Bar
+            role="tablist"
+            aria-label={ariaLabel}
+            aria-labelledby={ariaLabelledBy}
+          >
+            {blob && (
+              <Tabs__Blob
+                aria-hidden="true"
+                style={{ left: blob.left, width: blob.width }}
+              />
+            )}
+            {resolved.map((tab) => {
+              const isActive = tab.id === active?.id;
+              return (
+                <Tabs__Button
+                  key={tab.id}
+                  ref={(el) => {
+                    if (el) buttonRefs.current.set(tab.id, el);
+                    else buttonRefs.current.delete(tab.id);
+                  }}
+                  role="tab"
+                  type="button"
+                  id={`${uid}${tab.id}-tab`}
+                  aria-selected={isActive}
+                  aria-controls={`${uid}${tab.id}-panel`}
+                  aria-describedby={
+                    tab.indicator ? `${uid}${tab.id}-attention` : undefined
+                  }
+                  tabIndex={isActive ? 0 : -1}
+                  disabled={tab.disabled}
+                  $active={isActive}
+                  onClick={() => select(tab.id)}
+                  onKeyDown={handleKeyDown}
+                  title={tab.label}
+                  $compact={compact}
+                >
+                  {tab.label}
+                  {tab.indicator && (
+                    <>
+                      <Tabs__Dot aria-hidden="true" />
+                      <span id={`${uid}${tab.id}-attention`} hidden>
+                        Needs attention
+                      </span>
+                    </>
+                  )}
+                </Tabs__Button>
+              );
+            })}
+          </Tabs__Bar>
+        </Tabs__Scroller>
+        <InlineOverflowGlow $position="left" $visible={overflow.left} />
+        <InlineOverflowGlow $position="right" $visible={overflow.right} />
       </Tabs__BarShell>
       {active && (
         <Tabs__Panel
@@ -366,20 +333,20 @@ const Tabs__Root = styled.div`
   min-height: 0;
 `;
 
-// Positioned wrapper so the overflow glows can sit over the bar's edges.
+/*
+ * Positioned wrapper so the overflow glows can sit over the strip's edges. It
+ * reaches out to the panel's edges, so tabs scrolled out of view pass under a
+ * glow sitting in the panel's gutter rather than being cut off at its padding.
+ */
 const Tabs__BarShell = styled.div`
   position: relative;
+  margin-inline: calc(-1 * var(--bleed-inline));
 `;
 
-// The track holding every tab; the blob measures and travels inside it.
-const Tabs__Bar = styled.div`
-  position: relative;
+/* The scrolling strip. Its inline padding puts the track back on the content column while it rests. */
+const Tabs__Scroller = styled.div`
   display: flex;
-  gap: var(--gap-tab);
-  background: var(--color-surface-sunken);
-  border-radius: var(--radius-pill);
-  padding: var(--inset-tab-track);
-  flex-wrap: nowrap;
+  padding-inline: var(--bleed-inline);
   overflow-x: auto;
   overflow-y: hidden;
   /* Native scrollbar hidden: the edge glows show scroll state. */
@@ -392,29 +359,16 @@ const Tabs__Bar = styled.div`
   }
 `;
 
-const Tabs__OverflowGlow = styled.div<{
-  $position: "left" | "right";
-  $visible: boolean;
-}>`
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  ${({ $position }) => ($position === "left" ? "left: 0;" : "right: 0;")}
-  width: 28px;
-  pointer-events: none;
-  opacity: ${({ $visible }) => ($visible ? 1 : 0)};
-  transition: opacity var(--duration-base) var(--ease-standard);
-  background: linear-gradient(
-    to ${({ $position }) => ($position === "left" ? "right" : "left")},
-    rgba(255, 255, 255, 0.12),
-    rgba(255, 255, 255, 0) 100%
-  );
-  /* Local sibling ordering inside Tabs__BarShell only, off the app z ladder. */
-  z-index: 1;
-
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-  }
+// The track holding every tab; the blob measures and travels inside it.
+const Tabs__Bar = styled.div`
+  position: relative;
+  flex: 1 0 auto;
+  display: flex;
+  gap: var(--gap-tab);
+  background: var(--color-surface-sunken);
+  border-radius: var(--radius-pill);
+  padding: var(--inset-tab-track);
+  flex-wrap: nowrap;
 `;
 
 // The selection blob. The buttons are `position: relative`, so DOM order alone puts the labels over it.

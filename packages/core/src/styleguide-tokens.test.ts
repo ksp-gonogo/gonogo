@@ -232,8 +232,6 @@ const BASELINES: Record<Family, Record<string, number>> = {
   zIndex: {
     "packages/app/src/components/Dashboard/GridItemContent.tsx": 1,
     "packages/components/src/AtmosphereProfile/LiveAirChip.tsx": 1,
-    "packages/components/src/MapView/MapPoiLayer.styles.ts": 1,
-    "packages/components/src/ShipMap/PartTooltip.tsx": 1,
     "packages/components/src/ShipMap/ShipDiagram.tsx": 1,
     "packages/components/src/ShipMap/ShipMapBody.tsx": 2,
     "packages/components/src/SystemView/SystemDiagram.tsx": 1,
@@ -275,7 +273,6 @@ const BASELINES: Record<Family, Record<string, number>> = {
     // The scroll-shadow edge fade over the tab bar, local sibling ordering
     // inside the tab bar's own stacking context. Not app-global chrome, so
     // no named z rung.
-    "packages/ui-kit/src/Tabs.tsx": 1,
     "packages/ui/src/BannerStack.tsx": 1,
     "packages/ui/src/DimmedOverlay.tsx": 1,
   },

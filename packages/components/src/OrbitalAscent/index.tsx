@@ -4,7 +4,6 @@ import {
   defineTopicManifest,
   registerComponent,
 } from "@ksp-gonogo/core";
-import { Fill, GraphNotice } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
 import {
   type ComputedSeries,
@@ -139,25 +138,21 @@ function OrbitalAscentComponent({
   const showNoGmNotice = body !== undefined && body.gm === undefined;
   const showNoBodyNotice = bodyName !== undefined && body === undefined;
 
+  const notice =
+    (showNoGmNotice &&
+      body &&
+      `No reference data for ${body.name}: plotting trace only.`) ||
+    (showNoBodyNotice && `Unknown body “${bodyName}”: plotting trace only.`) ||
+    undefined;
+
   return (
-    <Fill>
-      <GraphView
-        config={graphConfig}
-        computedSeries={computedSeries}
-        referenceCurves={referenceCurve ? [referenceCurve] : undefined}
-        title="ORBITAL ASCENT"
-      />
-      {showNoGmNotice && body && (
-        <GraphNotice placement="overlay">
-          No reference data for {body.name}: plotting trace only.
-        </GraphNotice>
-      )}
-      {showNoBodyNotice && (
-        <GraphNotice placement="overlay">
-          Unknown body “{bodyName}”: plotting trace only.
-        </GraphNotice>
-      )}
-    </Fill>
+    <GraphView
+      config={graphConfig}
+      computedSeries={computedSeries}
+      referenceCurves={referenceCurve ? [referenceCurve] : undefined}
+      title="ORBITAL ASCENT"
+      notice={notice}
+    />
   );
 }
 

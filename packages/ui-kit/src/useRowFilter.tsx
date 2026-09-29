@@ -10,12 +10,12 @@ import { Field, FieldLabel } from "./Form";
 import { SearchBox } from "./SearchBox";
 import { Stack } from "./Stack";
 
+/**
+ * A filter over a host's own rows. Its control (contributed toggles, then a
+ * search box) is not handed to the host: it renders only above the list it
+ * narrows, through `FilterRegion` or `Panel`'s `panelFilter`.
+ */
 export interface RowFilter {
-  /**
-   * The filter control: contributed toggles, then a search box. Render it
-   * wherever it belongs in the host's layout.
-   */
-  control: ReactNode;
   /** True when the row's searchable text passes every active needle. */
   matches: (searchText: string) => boolean;
   /** Whether anything is narrowing the list right now, for empty-state copy. */
@@ -113,12 +113,52 @@ export function useRowFilter({
     </Stack>
   );
 
-  return {
-    control,
+  const filter: RowFilter = {
     matches: (searchText: string) => {
       const haystack = searchText.toLowerCase();
       return needles.every((needle) => haystack.includes(needle));
     },
     active: needles.length > 0,
   };
+  CONTROLS.set(filter, control);
+  return filter;
+}
+
+const CONTROLS = new WeakMap<RowFilter, ReactNode>();
+
+/** The control of a filter made by `useRowFilter`. Kit-internal: hosts place it through `FilterRegion` or `panelFilter`. */
+export function filterControlOf(filter: RowFilter): ReactNode {
+  return CONTROLS.get(filter) ?? null;
+}
+
+/**
+ * The props of {@link FilterRegion}.
+ *
+ * @category FilterList
+ */
+export interface FilterRegionProps {
+  filter: RowFilter;
+  /** The list the filter narrows, drawn under its control. */
+  children?: ReactNode;
+  /** Take the remaining height, for a region whose list scrolls. */
+  fill?: boolean;
+}
+
+/**
+ * A filtered list with its filter control above it: the one place a
+ * `useRowFilter` control renders inside a body.
+ *
+ * @category FilterList
+ */
+export function FilterRegion({
+  filter,
+  children,
+  fill = false,
+}: FilterRegionProps) {
+  return (
+    <Stack gap="related-dense" fill={fill}>
+      {filterControlOf(filter)}
+      {children}
+    </Stack>
+  );
 }

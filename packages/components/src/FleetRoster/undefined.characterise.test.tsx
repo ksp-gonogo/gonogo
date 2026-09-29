@@ -332,14 +332,14 @@ describe("FleetRoster: partial vessel records", () => {
   });
 });
 
-/** Open a row's signal Disclosure and return its panel element. */
+/** Focus a row's signal trigger and return the card it shows. */
 async function openSignalPanel(name: RegExp): Promise<HTMLElement> {
   const trigger = await screen.findByRole("button", { name });
   act(() => {
-    trigger.click();
+    trigger.focus();
   });
   const panel = document.getElementById(
-    trigger.getAttribute("aria-controls") ?? "",
+    trigger.getAttribute("aria-describedby") ?? "",
   );
   expect(panel).not.toBeNull();
   return panel as HTMLElement;

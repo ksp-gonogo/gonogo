@@ -11,9 +11,9 @@ import {
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import { Button } from "@ksp-gonogo/ui";
-import { Unit, writeQuantity } from "@ksp-gonogo/ui-kit";
-import type { CSSProperties, ReactElement } from "react";
-import { useState, useSyncExternalStore } from "react";
+import { Floating, Unit, writeQuantity } from "@ksp-gonogo/ui-kit";
+import type { CSSProperties, ReactElement, RefObject } from "react";
+import { useRef, useState, useSyncExternalStore } from "react";
 import {
   markerStyleFor,
   PoiHoverActions,
@@ -35,8 +35,6 @@ export interface MapPoiLayerProps {
   bodyId: string | undefined;
   /** The same `MapOverlayContext.project` a `map-view.overlay` augment draws with. */
   project: (lat: number, lon: number) => { x: number; y: number };
-  width: number;
-  height: number;
 }
 
 // A stable snapshot, since getMapPoiProviders() allocates per call and would loop useSyncExternalStore. Refreshed by a module-load subscription so a provider registered before any layer mounts is not missed.
@@ -51,8 +49,6 @@ function getProvidersSnapshot(): MapPoiProviderDefinition[] {
 export function MapPoiLayer({
   bodyId,
   project,
-  width,
-  height,
 }: Readonly<MapPoiLayerProps>): ReactElement {
   // Re-render when providers register, so a layer mounted before a provider loads picks it up.
   const providers = useSyncExternalStore(
@@ -61,9 +57,10 @@ export function MapPoiLayer({
     getProvidersSnapshot,
   );
   const [hoveredPoi, setHoveredPoi] = useState<MapPoi | null>(null);
+  const layerRef = useRef<HTMLDivElement>(null);
 
   return (
-    <PoiLayerRoot>
+    <PoiLayerRoot ref={layerRef}>
       {providers.map((provider) => (
         <PoiProviderGate
           key={provider.id}
@@ -78,8 +75,7 @@ export function MapPoiLayer({
         <PoiHoverCardView
           poi={hoveredPoi}
           project={project}
-          width={width}
-          height={height}
+          layerRef={layerRef}
           onDismiss={() => setHoveredPoi(null)}
         />
       )}
@@ -193,26 +189,20 @@ function PoiMarker({
 function PoiHoverCardView({
   poi,
   project,
-  width,
-  height,
+  layerRef,
   onDismiss,
 }: {
   poi: MapPoi;
   project: MapPoiLayerProps["project"];
-  width: number;
-  height: number;
+  layerRef: RefObject<HTMLDivElement | null>;
   onDismiss: () => void;
 }): ReactElement {
-  const { x, y } = project(poi.lat, poi.lon);
-  // Flip the card to the marker's other side when it would overflow the map edge.
-  const openLeft = x > width - 200;
-  const openUp = y > height - 120;
-  const style: CSSProperties = {
-    left: x,
-    top: y,
-    transform: `translate(${openLeft ? "calc(-100% - 8px)" : "8px"}, ${
-      openUp ? "calc(-100% - 8px)" : "8px"
-    })`,
+  // Drawn over the page rather than the map, so a card near the map's edge is never cut off by it.
+  const anchor = () => {
+    const rect = layerRef.current?.getBoundingClientRect();
+    if (!rect) return null;
+    const { x, y } = project(poi.lat, poi.lon);
+    return { x: rect.left + x, y: rect.top + y };
   };
 
   const metaEntries = poi.meta
@@ -220,42 +210,40 @@ function PoiHoverCardView({
     : [];
 
   return (
-    <PoiHoverCard
-      role="group"
-      aria-label={`${poi.label} details`}
-      style={style}
-      onMouseEnter={() => {}}
-      onMouseLeave={onDismiss}
-    >
-      <PoiHoverLabel>{poi.label}</PoiHoverLabel>
-      {poi.detail && <PoiHoverDetail>{poi.detail}</PoiHoverDetail>}
-      <PoiHoverCoords>{`${writeQuantity(value("°", poi.lat), { decimals: 2 })}, ${writeQuantity(value("°", poi.lon), { decimals: 2 })}`}</PoiHoverCoords>
-      {metaEntries.map(([key, value]) => (
-        <PoiHoverMetaRow key={key}>
-          <span>{key}</span>
-          {/* `meta` is an open bag: a quantity gets the standard readout, anything else prints as written. */}
-          <span>{isValue(value) ? <Unit value={value} /> : String(value)}</span>
-        </PoiHoverMetaRow>
-      ))}
-      {poi.actions && poi.actions.length > 0 && (
-        <PoiHoverActions>
-          {poi.actions.map((action) => (
-            <Button
-              key={action.id}
-              type="button"
-              disabled={action.disabled}
-              title={
-                action.disabled && action.disabledReason
-                  ? action.disabledReason
-                  : undefined
-              }
-              onClick={() => void action.run()}
-            >
-              {action.label}
-            </Button>
-          ))}
-        </PoiHoverActions>
-      )}
-    </PoiHoverCard>
+    <Floating anchor={anchor} onMouseLeave={onDismiss}>
+      <PoiHoverCard role="group" aria-label={`${poi.label} details`}>
+        <PoiHoverLabel>{poi.label}</PoiHoverLabel>
+        {poi.detail && <PoiHoverDetail>{poi.detail}</PoiHoverDetail>}
+        <PoiHoverCoords>{`${writeQuantity(value("°", poi.lat), { decimals: 2 })}, ${writeQuantity(value("°", poi.lon), { decimals: 2 })}`}</PoiHoverCoords>
+        {metaEntries.map(([key, value]) => (
+          <PoiHoverMetaRow key={key}>
+            <span>{key}</span>
+            {/* `meta` is an open bag: a quantity gets the standard readout, anything else prints as written. */}
+            <span>
+              {isValue(value) ? <Unit value={value} /> : String(value)}
+            </span>
+          </PoiHoverMetaRow>
+        ))}
+        {poi.actions && poi.actions.length > 0 && (
+          <PoiHoverActions>
+            {poi.actions.map((action) => (
+              <Button
+                key={action.id}
+                type="button"
+                disabled={action.disabled}
+                title={
+                  action.disabled && action.disabledReason
+                    ? action.disabledReason
+                    : undefined
+                }
+                onClick={() => void action.run()}
+              >
+                {action.label}
+              </Button>
+            ))}
+          </PoiHoverActions>
+        )}
+      </PoiHoverCard>
+    </Floating>
   );
 }

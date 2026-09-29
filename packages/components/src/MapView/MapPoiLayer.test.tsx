@@ -22,9 +22,7 @@ afterEach(() => {
 const project = (lat: number, lon: number) => ({ x: lat, y: lon });
 
 function renderLayer() {
-  const view = render(
-    <MapPoiLayer bodyId="Kerbin" project={project} width={400} height={200} />,
-  );
+  const view = render(<MapPoiLayer bodyId="Kerbin" project={project} />);
   renderedTrees.push(view.unmount);
   return view;
 }

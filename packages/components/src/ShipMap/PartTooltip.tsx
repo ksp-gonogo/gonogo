@@ -1,5 +1,5 @@
 import { value } from "@ksp-gonogo/sitrep-sdk";
-import { Meter, resourceColor, Unit } from "@ksp-gonogo/ui-kit";
+import { Floating, Meter, resourceColor, Unit } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 import { PartActionCount } from "./PartActionMenu";
 import { METER_STATUS_COLOR } from "./partMeters";
@@ -14,31 +14,22 @@ export function PartTooltip({
   hovered,
   meters,
   meta,
-  mouse,
-  width,
-  height,
+  pointer,
   showActionCount,
 }: {
   hovered: ShipMapPart;
   /** The same `partMeters` list the in-body bars read, rendered through ui-kit's `<Meter>`. */
   meters: readonly ShipMapPartMeterEntry[];
   meta: readonly ShipMapPartMetaEntry[];
-  mouse: { x: number; y: number };
-  width: number;
-  height: number;
+  /** The viewport point the card attaches to: the pointer, or the focused part's centre. */
+  pointer: { x: number; y: number };
   showActionCount: boolean;
 }) {
   const meteredResourceNames = new Set(meters.map((m) => m.resource));
   const otherResources =
     hovered.resources?.filter((r) => !meteredResourceNames.has(r.n)) ?? [];
   return (
-    <div
-      style={{
-        ...TOOLTIP,
-        left: Math.min(mouse.x + 12, Math.max(0, width - 180)),
-        top: Math.min(mouse.y + 12, Math.max(0, height - 80)),
-      }}
-    >
+    <Floating anchor={pointer} style={TOOLTIP}>
       <div style={TOOLTIP_TITLE}>{hovered.title || hovered.name}</div>
       <div style={TOOLTIP_ROW}>
         <span>type</span>
@@ -109,12 +100,11 @@ export function PartTooltip({
           </div>
         ),
       )}
-    </div>
+    </Floating>
   );
 }
 
 const TOOLTIP: CSSProperties = {
-  position: "absolute",
   background: "var(--color-surface-sunken)",
   color: "var(--color-text-primary)",
   fontSize: "var(--font-size-compact)",
@@ -123,8 +113,6 @@ const TOOLTIP: CSSProperties = {
   borderRadius: "var(--radius-regular)",
   pointerEvents: "none",
   minWidth: "140px",
-  // Local pair with ResetButton, both inside Root.
-  zIndex: 20,
 };
 
 const TOOLTIP_TITLE: CSSProperties = {

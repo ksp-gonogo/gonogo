@@ -9,6 +9,7 @@ import type { ChartSeries, ThresholdRule } from "@ksp-gonogo/ui";
 import { LineChart, utXTickFormat } from "@ksp-gonogo/ui";
 import {
   FramedDisplay,
+  GraphNotice,
   getSizeBucket,
   Panel,
   Section,
@@ -72,6 +73,8 @@ export interface GraphViewProps {
   /** Widget grid size, which resolves the `"auto"` display variant. */
   w?: number;
   h?: number;
+  /** A caption on what the chart can show ("plotting trace only"), drawn in the body under the plot. */
+  notice?: ReactNode;
 }
 
 /** Referentially stable, so an unlayered chart does not remount its layer renderer every render. */
@@ -89,6 +92,7 @@ export function GraphView({
   ariaLabel,
   w,
   h,
+  notice,
 }: GraphViewProps) {
   const series = useMemo(
     () => (config?.series ?? []).map(withDefaults),
@@ -313,6 +317,7 @@ export function GraphView({
             )}
         </div>
       </FramedDisplay>
+      {notice && <GraphNotice placement="inline">{notice}</GraphNotice>}
       <GraphFetchers
         series={series.filter((cfg) => !computedKeys.has(cfg.key))}
         extraFetchKeys={extraFetchKeys}

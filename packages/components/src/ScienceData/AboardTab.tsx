@@ -4,6 +4,7 @@ import {
   DataTable,
   type DataTableColumn,
   EmptyState,
+  FilterRegion,
   NULL_DISPLAY,
   ScrollArea,
   Stack,
@@ -164,6 +165,16 @@ export function AboardTab({
   const hasBreakdown = breakdown !== null && breakdown.length > 0;
   const hasExperiments = experiments !== null && experiments.length > 0;
 
+  const ledger = (
+    <ScrollArea>
+      <AboardLedger
+        breakdown={hasBreakdown ? shownBreakdown : null}
+        experiments={hasExperiments ? shownExperiments : null}
+        slotFilled={slotFilled}
+      />
+    </ScrollArea>
+  );
+
   return (
     <Stack fill>
       <Text
@@ -188,14 +199,13 @@ export function AboardTab({
           )}
         </Text>
       )}
-      <ScrollArea>
-        <AboardLedger
-          breakdown={hasBreakdown ? shownBreakdown : null}
-          experiments={hasExperiments ? shownExperiments : null}
-          slotFilled={slotFilled}
-        />
-      </ScrollArea>
-      {(hasBreakdown || hasExperiments) && filter.control}
+      {hasBreakdown || hasExperiments ? (
+        <FilterRegion filter={filter} fill>
+          {ledger}
+        </FilterRegion>
+      ) : (
+        ledger
+      )}
     </Stack>
   );
 }

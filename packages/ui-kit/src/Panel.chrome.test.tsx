@@ -132,7 +132,7 @@ describe("Panel panelBadges", () => {
     expect(screen.getByText("NOMINAL")).toBeTruthy();
   });
 
-  it("an explicit panelBadges prop overrides the ambient context rather than merging with it", () => {
+  it("draws the widget's own badges ahead of the contributed ones", () => {
     render(
       <PanelBadgesProvider badges={[{ id: "ctx", label: "FROM-CONTEXT" }]}>
         <Panel
@@ -141,8 +141,37 @@ describe("Panel panelBadges", () => {
         />
       </PanelBadgesProvider>,
     );
-    expect(screen.getByText("FROM-PROP")).toBeTruthy();
-    expect(screen.queryByText("FROM-CONTEXT")).toBeNull();
+    const own = screen.getByText("FROM-PROP");
+    const contributed = screen.getByText("FROM-CONTEXT");
+    expect(
+      own.compareDocumentPosition(contributed) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it("drops a contributed badge whose id the widget's own badge already uses", () => {
+    render(
+      <PanelBadgesProvider badges={[{ id: "paused", label: "CONTRIBUTED" }]}>
+        <Panel
+          panelTitle="Fixture"
+          panelBadges={[{ id: "paused", label: "OWN" }]}
+        />
+      </PanelBadgesProvider>,
+    );
+    expect(screen.getByText("OWN")).toBeTruthy();
+    expect(screen.queryByText("CONTRIBUTED")).toBeNull();
+  });
+
+  it("carries a widget badge's title onto its pill", () => {
+    render(
+      <Panel
+        panelTitle="Fixture"
+        panelBadges={[{ id: "b1", label: "PAUSED", title: "Game is paused" }]}
+      />,
+    );
+    expect(
+      screen.getByText("PAUSED").closest("[title]")?.getAttribute("title"),
+    ).toBe("Game is paused");
   });
 
   it("still renders custom panelAside content alongside badges (the escape hatch stays open)", () => {

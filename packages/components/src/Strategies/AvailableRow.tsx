@@ -3,6 +3,7 @@ import {
   CommandButton,
   type CommandButtonHandle,
   ExpandableText,
+  Notice,
   Unit,
   writeQuantity,
 } from "@ksp-gonogo/ui-kit";
@@ -105,6 +106,10 @@ export function AvailableRow({
   const factorScale =
     s.factorSliderDefault > 0 ? factor / s.factorSliderDefault : 1;
   const scaledFunds = s.initialCostFunds * factorScale;
+  const noListedCost =
+    s.initialCostFunds === 0 &&
+    s.initialCostScience === 0 &&
+    s.initialCostReputation === 0;
   const scaledScience = s.initialCostScience * factorScale;
   const scaledRep = s.effectiveCostReputation * factorScale;
 
@@ -172,39 +177,41 @@ export function AvailableRow({
         </EffectList>
       )}
       {note && <BlockedNote>{note}</BlockedNote>}
-      <CostRow>
-        {s.initialCostFunds > 0 && (
-          <CostChip
-            $insufficient={affordVerdict(scaledFunds, funds) === "no"}
-            data-afford={affordVerdict(scaledFunds, funds)}
-          >
-            <Unit value={value("funds", scaledFunds)} />
-          </CostChip>
-        )}
-        {s.initialCostScience > 0 && (
-          <CostChip
-            $insufficient={affordVerdict(scaledScience, science) === "no"}
-            data-afford={affordVerdict(scaledScience, science)}
-          >
-            <Unit value={value("science", scaledScience)} />
-          </CostChip>
-        )}
-        {s.initialCostReputation > 0 && (
-          <CostChip
-            $insufficient={affordVerdict(scaledRep, reputation) === "no"}
-            data-afford={affordVerdict(scaledRep, reputation)}
-            title={`Nominal ${writeQuantity(value("rep", s.initialCostReputation * factorScale))}; the rep curve bumps the real charge to ${writeQuantity(value("rep", scaledRep))}.`}
-          >
-            <Unit value={value("rep", scaledRep)} />
-          </CostChip>
-        )}
-        {s.initialCostFunds === 0 &&
-          s.initialCostScience === 0 &&
-          s.initialCostReputation === 0 && (
-            // Three zeros say nothing about a currency this record has no field for, such as RP-1's Confidence.
-            <CostChip>No funds, science or rep cost on this record</CostChip>
+      {!noListedCost && (
+        <CostRow>
+          {s.initialCostFunds > 0 && (
+            <CostChip
+              $insufficient={affordVerdict(scaledFunds, funds) === "no"}
+              data-afford={affordVerdict(scaledFunds, funds)}
+            >
+              <Unit value={value("funds", scaledFunds)} />
+            </CostChip>
           )}
-      </CostRow>
+          {s.initialCostScience > 0 && (
+            <CostChip
+              $insufficient={affordVerdict(scaledScience, science) === "no"}
+              data-afford={affordVerdict(scaledScience, science)}
+            >
+              <Unit value={value("science", scaledScience)} />
+            </CostChip>
+          )}
+          {s.initialCostReputation > 0 && (
+            <CostChip
+              $insufficient={affordVerdict(scaledRep, reputation) === "no"}
+              data-afford={affordVerdict(scaledRep, reputation)}
+              title={`Nominal ${writeQuantity(value("rep", s.initialCostReputation * factorScale))}; the rep curve bumps the real charge to ${writeQuantity(value("rep", scaledRep))}.`}
+            >
+              <Unit value={value("rep", scaledRep)} />
+            </CostChip>
+          )}
+        </CostRow>
+      )}
+      {noListedCost && (
+        // Three zeros say nothing about a currency this record has no field for, such as RP-1's Confidence. A plain note, so a list of them is not announced.
+        <Notice tone="default" role="note">
+          No funds, science or rep cost on this record
+        </Notice>
+      )}
       {s.hasFactorSlider && (
         <FactorRow>
           <FactorLabel>Factor</FactorLabel>

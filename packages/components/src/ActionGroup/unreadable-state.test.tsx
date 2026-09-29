@@ -107,10 +107,9 @@ describe("ActionGroup when the backend could not read the group", () => {
       screen.getByRole("button", { name: "Toggle Radiators" });
     await waitFor(() => expect(toggle().textContent).toBe(NULL_DISPLAY));
 
-    // The empty pill is also the cold and stale render, so the reason must say which.
-    const reason = screen.getByRole("status");
-    expect(reason.textContent).toBe("State unreadable");
-    expect(reason.getAttribute("title")).toBe(
+    // The empty pill is also the cold and stale render, so the header badge must say which.
+    const reason = screen.getByText("State unreadable");
+    expect(reason.closest("[title]")?.getAttribute("title")).toBe(
       "The backend reported this group but could not read whether it is engaged, so the toggle is held",
     );
   });
@@ -170,11 +169,12 @@ describe("ActionGroup when the backend could not read the group", () => {
     });
 
     await waitFor(() =>
-      expect(screen.getByRole("status").textContent).toBe("State unreadable"),
+      expect(screen.getByText("State unreadable")).toBeInTheDocument(),
     );
+    expect(screen.queryByText("Paused")).toBeNull();
   });
 
-  it("leaves a group nobody reported on its own reason line", async () => {
+  it("badges a group nobody reported with its own reason", async () => {
     // An `assumed` group also leaves the pill empty, so only the sentence separates the two.
     const { fixture } = mount("Radiators", "ag-unreadable-assumed");
     act(() => {
@@ -185,7 +185,7 @@ describe("ActionGroup when the backend could not read the group", () => {
     });
 
     await waitFor(() =>
-      expect(screen.getByRole("status").textContent).toBe("Not reported"),
+      expect(screen.getByText("Not reported")).toBeInTheDocument(),
     );
   });
 });

@@ -109,6 +109,16 @@ describe("FilterList", () => {
     expect(screen.getByLabelText("Search")).toBeInTheDocument();
   });
 
+  it("draws the filter above the rows it narrows", async () => {
+    mountInWidget();
+    const search = screen.getByLabelText("Search");
+    const firstRow = screen.getByText("Scrubber unit");
+    expect(
+      search.compareDocumentPosition(firstRow) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
   it("has no accessibility violations", async () => {
     const { container } = mountInWidget();
     await screen.findByRole("button", { name: "Scrubber" });

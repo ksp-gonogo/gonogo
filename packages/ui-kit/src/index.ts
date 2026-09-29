@@ -52,6 +52,11 @@ export {
   type AutoEmptyStateProps,
 } from "./AutoEmptyState";
 export {
+  type AnchoredPosition,
+  type AnchorPoint,
+  anchoredPosition,
+} from "./anchoredPosition";
+export {
   type AudioCaptureSupport,
   type AudioCaptureUnsupportedReason,
   audioCaptureSupport,
@@ -277,6 +282,7 @@ export {
   FitLabelButton,
   type FitLabelButtonProps,
 } from "./FitLabelButton";
+export { Floating, type FloatingProps } from "./Floating";
 export {
   ConfigForm,
   Field,
@@ -308,6 +314,7 @@ export {
   ROW_HEIGHT,
 } from "./gridUnits";
 export { HeldFigure, type HeldFigureProps } from "./HeldMark";
+export { HoverCard, type HoverCardProps } from "./HoverCard";
 export {
   ArrowDownIcon,
   ArrowLeftIcon,
@@ -445,6 +452,7 @@ export { NULL_DISPLAY, NullValue } from "./NullValue";
 export {
   FRAMEWORK_AUGMENT_SEGMENTS,
   Panel,
+  type PanelBadge,
   type PanelProps,
   type PanelSidebarSide,
   type PanelSplitProps,
@@ -641,6 +649,8 @@ export {
 } from "./usePanelAsideSize";
 export { usePrefersReducedMotion } from "./usePrefersReducedMotion";
 export {
+  FilterRegion,
+  type FilterRegionProps,
   type RowFilter,
   type UseRowFilterOptions,
   useRowFilter,

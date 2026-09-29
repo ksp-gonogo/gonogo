@@ -476,7 +476,7 @@ describe("FleetRosterComponent", () => {
     expect(screen.queryByText(/reacquire/i)).toBeNull();
   });
 
-  it("shows a per-vessel signal disclosure with the round-trip delay", async () => {
+  it("shows a per-vessel signal card with the round-trip delay on focus", async () => {
     const fixture = setupStreamFixture({
       suspendFrames: true,
     });
@@ -488,7 +488,7 @@ describe("FleetRosterComponent", () => {
     const trigger = await screen.findByRole("button", {
       name: /Explorer signal/i,
     });
-    expect(trigger).toHaveAttribute("aria-expanded", "false");
+    expect(trigger).not.toHaveAttribute("aria-describedby");
 
     act(() => {
       fixture.emit("fleet.v-probe.delay", {
@@ -497,12 +497,12 @@ describe("FleetRosterComponent", () => {
       });
     });
     act(() => {
-      trigger.click();
+      trigger.focus();
     });
-    // A bare getByRole("group") is ambiguous (the panel header nests a `<details>`), so scope via the trigger's aria-controls.
+    // The card is portalled to the body, so it is found through the trigger it describes.
     await waitFor(() => {
       const panel = document.getElementById(
-        trigger.getAttribute("aria-controls") ?? "",
+        trigger.getAttribute("aria-describedby") ?? "",
       );
       expect(panel).not.toBeNull();
       expect(visibleText(panel as HTMLElement)).toMatch(
@@ -522,15 +522,15 @@ describe("FleetRosterComponent", () => {
     ],
   };
 
-  function openSignalDisclosure(trigger: HTMLElement): HTMLElement {
+  function openSignalCard(trigger: HTMLElement): HTMLElement {
     const panel = document.getElementById(
-      trigger.getAttribute("aria-controls") ?? "",
+      trigger.getAttribute("aria-describedby") ?? "",
     );
     expect(panel).not.toBeNull();
     return panel as HTMLElement;
   }
 
-  /** One term's value in the signal disclosure, asked of the `<dd>` beside a named `<dt>`: the panel's concatenated text has no word boundaries to anchor a regex. */
+  /** One term's value in the signal card, asked of the `<dd>` beside a named `<dt>`: the panel's concatenated text has no word boundaries to anchor a regex. */
   function definitionFor(panel: HTMLElement, term: RegExp): string {
     const dt = Array.from(panel.querySelectorAll("dt")).find((el) =>
       term.test(el.textContent ?? ""),
@@ -565,9 +565,9 @@ describe("FleetRosterComponent", () => {
       });
     });
     act(() => {
-      trigger.click();
+      trigger.focus();
     });
-    await waitFor(() => expect(openSignalDisclosure(trigger)).not.toBeNull());
+    await waitFor(() => expect(openSignalCard(trigger)).not.toBeNull());
     return { fixture, trigger };
   }
 
@@ -577,11 +577,11 @@ describe("FleetRosterComponent", () => {
     // The row's own chip already reads NONE off live `system.vessels`; the cell must not contradict it one line below.
     expect(screen.getByText("NONE")).toBeInTheDocument();
     await waitFor(() => {
-      expect(definitionFor(openSignalDisclosure(trigger), /^Link$/)).toMatch(
+      expect(definitionFor(openSignalCard(trigger), /^Link$/)).toMatch(
         /no path/i,
       );
     });
-    expect(definitionFor(openSignalDisclosure(trigger), /^Link$/)).not.toMatch(
+    expect(definitionFor(openSignalCard(trigger), /^Link$/)).not.toMatch(
       /connected/i,
     );
   });
@@ -591,9 +591,9 @@ describe("FleetRosterComponent", () => {
 
     // The last measured light-time is still worth showing, but must not read as a live measurement of a link that is down.
     await waitFor(() => {
-      expect(visibleText(openSignalDisclosure(trigger))).toMatch(/last known/i);
+      expect(visibleText(openSignalCard(trigger))).toMatch(/last known/i);
     });
-    expect(visibleText(openSignalDisclosure(trigger))).toMatch(
+    expect(visibleText(openSignalCard(trigger))).toMatch(
       /round-trip[\s~]*9\s*s/i,
     );
   });
@@ -617,18 +617,16 @@ describe("FleetRosterComponent", () => {
       });
     });
     act(() => {
-      trigger.click();
+      trigger.focus();
     });
     await waitFor(() => {
-      expect(visibleText(openSignalDisclosure(trigger))).toMatch(/round-trip/i);
+      expect(visibleText(openSignalCard(trigger))).toMatch(/round-trip/i);
     });
     // `.delay`'s own `connected` is the field the freeze makes unreliable, so it is never the source of the Link row, not even as a fallback.
-    expect(definitionFor(openSignalDisclosure(trigger), /^Link$/)).toBe(
-      "unknown",
-    );
+    expect(definitionFor(openSignalCard(trigger), /^Link$/)).toBe("unknown");
   });
 
-  it("has no accessible violations with a delay disclosure open", async () => {
+  it("has no accessible violations with a delay card open", async () => {
     const fixture = setupStreamFixture({
       suspendFrames: true,
     });
@@ -646,19 +644,21 @@ describe("FleetRosterComponent", () => {
       });
     });
     act(() => {
-      trigger.click();
+      trigger.focus();
     });
-    // A bare getByRole("group") is ambiguous (the panel header nests a `<details>`), so scope via the trigger's aria-controls.
+    // The card is portalled to the body, so it is found through the trigger it describes.
     await waitFor(() => {
       const panel = document.getElementById(
-        trigger.getAttribute("aria-controls") ?? "",
+        trigger.getAttribute("aria-describedby") ?? "",
       );
       expect(panel).not.toBeNull();
       expect(visibleText(panel as HTMLElement)).toMatch(
         /round-trip[\s~]*9\s*s/i,
       );
     });
+    // Checked apart, since the open card is portalled outside the widget's container.
     await expectNoA11yViolations(container);
+    await expectNoA11yViolations(screen.getByRole("tooltip"));
   });
 
   it("reflects the selected command-source vantage in the header", async () => {

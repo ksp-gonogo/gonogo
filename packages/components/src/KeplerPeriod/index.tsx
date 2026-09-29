@@ -6,7 +6,6 @@ import {
 } from "@ksp-gonogo/core";
 import { useStream } from "@ksp-gonogo/sitrep-client";
 import type { VesselOrbit } from "@ksp-gonogo/sitrep-sdk";
-import { Fill, GraphNotice } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
 import {
   type ComputedSeries,
@@ -144,27 +143,21 @@ function KeplerPeriodComponent({
   const showNoGmNotice = body !== undefined && body.gm === undefined;
   const showNoBodyNotice = bodyName !== undefined && body === undefined;
 
+  const notice =
+    (showNoGmNotice &&
+      body &&
+      `No reference data for ${body.name}: plotting trace only.`) ||
+    (showNoBodyNotice && `Unknown body “${bodyName}”: plotting trace only.`) ||
+    undefined;
+
   return (
-    <Fill>
-      <Fill grow>
-        <GraphView
-          config={graphConfig}
-          computedSeries={computedSeries}
-          referenceCurves={referenceCurve ? [referenceCurve] : undefined}
-          title="KEPLER PERIOD"
-        />
-      </Fill>
-      {showNoGmNotice && body && (
-        <GraphNotice placement="inline">
-          No reference data for {body.name}: plotting trace only.
-        </GraphNotice>
-      )}
-      {showNoBodyNotice && (
-        <GraphNotice placement="inline">
-          Unknown body “{bodyName}”: plotting trace only.
-        </GraphNotice>
-      )}
-    </Fill>
+    <GraphView
+      config={graphConfig}
+      computedSeries={computedSeries}
+      referenceCurves={referenceCurve ? [referenceCurve] : undefined}
+      title="KEPLER PERIOD"
+      notice={notice}
+    />
   );
 }
 

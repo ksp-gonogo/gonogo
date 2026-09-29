@@ -442,8 +442,6 @@ function MapViewComponent({
                       <MapPoiLayer
                         bodyId={targetBodyId}
                         project={overlayContext.project}
-                        width={overlayContext.width}
-                        height={overlayContext.height}
                       />
                     )}
                   </CanvasContainer>

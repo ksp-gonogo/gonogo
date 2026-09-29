@@ -4,9 +4,9 @@ import {
   type DataTableColumn,
   type DataTableSection,
   EmptyState,
+  FilterRegion,
   NULL_DISPLAY,
   ScrollArea,
-  Stack,
   Text,
   Unit,
   useRowFilter,
@@ -89,7 +89,7 @@ export function ArchiveTab({ archive, groups }: Readonly<ArchiveTabProps>) {
   }
 
   return (
-    <Stack fill>
+    <FilterRegion filter={filter} fill>
       <ScrollArea>
         <DataTable
           caption="Career science archive, by body and experiment"
@@ -99,7 +99,6 @@ export function ArchiveTab({ archive, groups }: Readonly<ArchiveTabProps>) {
           empty="No subject matches the filter."
         />
       </ScrollArea>
-      {filter.control}
-    </Stack>
+    </FilterRegion>
   );
 }

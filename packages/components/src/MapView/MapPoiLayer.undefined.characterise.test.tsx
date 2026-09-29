@@ -40,9 +40,7 @@ function makePoi(overrides: Partial<MapPoi> = {}): MapPoi {
 
 /** Bare layer, no stream provider, for the gates that are not about telemetry. */
 function renderLayer() {
-  const view = render(
-    <MapPoiLayer bodyId="Kerbin" project={project} width={400} height={200} />,
-  );
+  const view = render(<MapPoiLayer bodyId="Kerbin" project={project} />);
   renderedTrees.push(view.unmount);
   return view;
 }
@@ -52,7 +50,7 @@ function renderLayerOnStream() {
   const fixture = setupStreamFixture({ suspendFrames: true });
   const view = render(
     <fixture.Provider>
-      <MapPoiLayer bodyId="Kerbin" project={project} width={400} height={200} />
+      <MapPoiLayer bodyId="Kerbin" project={project} />
     </fixture.Provider>,
   );
   renderedTrees.push(view.unmount);
@@ -166,15 +164,15 @@ describe("MapPoiLayer: what undefined telemetry means today", () => {
       ],
     });
 
-    const { container } = renderLayer();
+    renderLayer();
     fireEvent.mouseEnter(
       screen.getByRole("button", { name: "Recover the flag" }),
     );
 
     // An absent contract term is filtered out, so no agent and an agent not yet arrived look alike.
     expect(screen.queryByText("agent")).toBeNull();
-    // A null term is not filtered, and `String(null)` reaches the card.
-    expect(visibleText(container)).toContain("deadlinenull");
+    // A null term is not filtered, and `String(null)` reaches the card, which is portalled to the body.
+    expect(visibleText(document.body)).toContain("deadlinenull");
     expect(screen.getByText("fundsAdvance")).toBeInTheDocument();
   });
 
@@ -204,14 +202,7 @@ describe("MapPoiLayer: what undefined telemetry means today", () => {
       },
     });
 
-    const view = render(
-      <MapPoiLayer
-        bodyId={undefined}
-        project={project}
-        width={400}
-        height={200}
-      />,
-    );
+    const view = render(<MapPoiLayer bodyId={undefined} project={project} />);
     renderedTrees.push(view.unmount);
 
     // The layer forwards the absence and leaves each provider to decide.

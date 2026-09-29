@@ -4,7 +4,6 @@ import {
   escapeVelocity,
   registerComponent,
 } from "@ksp-gonogo/core";
-import { Fill, GraphNotice } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
 import { type GraphConfig, GraphView, type ReferenceCurve } from "../Graph";
 import { useBodyName, useParentBodyIndex } from "../shared/useBodyName";
@@ -96,26 +95,20 @@ function EscapeProfileComponent({
   const showNoGmNotice = body !== undefined && body.gm === undefined;
   const showNoBodyNotice = bodyName !== undefined && body === undefined;
 
+  const notice =
+    (showNoGmNotice &&
+      body &&
+      `No reference data for ${body.name}: plotting trace only.`) ||
+    (showNoBodyNotice && `Unknown body “${bodyName}”: plotting trace only.`) ||
+    undefined;
+
   return (
-    <Fill>
-      <Fill grow>
-        <GraphView
-          config={graphConfig}
-          referenceCurves={referenceCurve ? [referenceCurve] : undefined}
-          title="ESCAPE PROFILE"
-        />
-      </Fill>
-      {showNoGmNotice && body && (
-        <GraphNotice placement="inline">
-          No reference data for {body.name}: plotting trace only.
-        </GraphNotice>
-      )}
-      {showNoBodyNotice && (
-        <GraphNotice placement="inline">
-          Unknown body “{bodyName}”: plotting trace only.
-        </GraphNotice>
-      )}
-    </Fill>
+    <GraphView
+      config={graphConfig}
+      referenceCurves={referenceCurve ? [referenceCurve] : undefined}
+      title="ESCAPE PROFILE"
+      notice={notice}
+    />
   );
 }
 

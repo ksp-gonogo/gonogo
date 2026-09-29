@@ -39,6 +39,7 @@ import { titleText } from "./titleText";
 import { useElementSize } from "./useElementSize";
 import { useFittedTitle } from "./useFittedTitle";
 import { PanelAsideSizeProvider, useHeaderAsideFit } from "./usePanelAsideSize";
+import { filterControlOf, type RowFilter } from "./useRowFilter";
 import { useKeyboardScrollable, useScrollerMetric } from "./useScrollerMetric";
 
 interface PanelContextValue {
@@ -470,6 +471,7 @@ export const PanelToolbar = styled.div<{ $overlay?: boolean }>`
 const PanelBody__Box = styled.div<{ $fitToSize?: boolean; $bleed?: boolean }>`
   --gap-related: var(--gap-related-comfortable);
   --gap-section: var(--gap-section-comfortable);
+  --bleed-inline: var(--gutter-panel);
 
   flex: 1;
   min-height: 0;
@@ -492,7 +494,9 @@ const PanelBody__Box = styled.div<{ $fitToSize?: boolean; $bleed?: boolean }>`
   ${({ $fitToSize }) => ($fitToSize ? "flex: 1; overflow: hidden;" : "")}
   /* Bleed reaches the chrome on every side and never scrolls. Only floatingHeader sets it; a mixed widget puts its drawing in a FramedDisplay instead. */
   ${({ $bleed }) =>
-    $bleed ? "flex: 1; overflow: hidden; padding: 0; gap: 0;" : ""}
+    $bleed
+      ? "flex: 1; overflow: hidden; padding: 0; gap: 0; --bleed-inline: 0px;"
+      : ""}
   ${SECTION_FILL_RULE}
 `;
 
@@ -723,6 +727,8 @@ const ScrollAreaRoot = styled.div`
   /* Fills the flex-column parent so the inner scroller engages rather than spilling past the panel edge. */
   flex: 1;
   min-height: 0;
+  /* Out to the panel's edges, its content back on the column, so a strip inside that bleeds is not clipped by this scroller. */
+  margin-inline: calc(-1 * var(--bleed-inline));
 `;
 
 /**
@@ -733,6 +739,7 @@ const ScrollAreaInner = styled.div`
   flex: 1;
   min-height: 0;
   overflow: auto;
+  padding-inline: var(--bleed-inline);
   ${focusRingInset}
   /* The glow indicators show scroll state, so the native bar is hidden. */
   scrollbar-width: none;
@@ -1143,12 +1150,12 @@ export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
    */
   panelAside?: ReactNode;
   /**
-   * Standard badge pills rendered in the header aside, sourced from the
-   * widget's automatic `<id>.badges` contribution slot unless set here. An
-   * explicit value replaces the ambient one rather than merging with it. Badges
-   * render alongside whatever `panelAside` supplies.
+   * The widget's own state badges (paused, no signal, full), drawn as standard
+   * pills in the header aside ahead of the badges contributed to the widget's
+   * `<id>.badges` slot. A contributed badge sharing an id with one of these is
+   * dropped. Badges render alongside whatever `panelAside` supplies.
    */
-  panelBadges?: readonly BadgeEntry[];
+  panelBadges?: readonly PanelBadge[];
   /**
    * This panel's own stream status, for the grades the host does not derive.
    *
@@ -1166,6 +1173,13 @@ export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
    * belongs in `panelAside` instead. See `Panel.Toolbar`.
    */
   panelToolbar?: ReactNode;
+  /**
+   * A `useRowFilter` filter over the whole body, its control pinned in the
+   * toolbar row under the header so it stays above the list it narrows while
+   * the body scrolls. A filter over one list among others belongs in a
+   * `FilterRegion` around that list instead.
+   */
+  panelFilter?: RowFilter;
   /**
    * The header floats over the content rather than reserving a row above it,
    * and the body bleeds to the panel chrome and stops scrolling.
@@ -1224,6 +1238,27 @@ export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
    * render every bound augment twice.
    */
   panelSections?: boolean;
+}
+
+/**
+ * A widget's own header badge: a standard badge entry, optionally with a
+ * tooltip saying why it shows.
+ *
+ * @category Panel
+ */
+export interface PanelBadge extends BadgeEntry {
+  title?: string;
+}
+
+/** The widget's own badges first, then the contributed ones whose ids it does not already use. */
+function mergeBadges(
+  own: readonly PanelBadge[] | undefined,
+  contributed: readonly BadgeEntry[] | null,
+): readonly PanelBadge[] {
+  if (own === undefined || own.length === 0) return contributed ?? [];
+  if (contributed === null || contributed.length === 0) return own;
+  const taken = new Set(own.map((b) => b.id));
+  return [...own, ...contributed.filter((b) => !taken.has(b.id))];
 }
 
 /** The augment segments `Panel` mounts for every widget. */
@@ -1340,6 +1375,12 @@ const PanelStickyTop = styled.div`
   }
 `;
 
+/* A filter control takes the toolbar row's whole width, so its search box is not squeezed beside other controls. */
+const PanelFilterSlot = styled.div`
+  flex: 1 1 100%;
+  min-width: 0;
+`;
+
 /* The standard header inside the sticky unit. The unit's negative margins cancel the body's inset for the header alone. */
 const PanelStickyHeader = styled(PanelHeader)`
   /* Transparent: the panel glow under it is its backing. */
@@ -1362,6 +1403,7 @@ function PanelRoot({
   panelBadges,
   panelStatus,
   panelToolbar,
+  panelFilter,
   panelFooter,
   floatingHeader,
   fitToSize,
@@ -1377,12 +1419,12 @@ function PanelRoot({
   /*
    * A status change never gives a headerless panel a header: that would
    * restructure the widget on a data transition. Badges alone do, so they are
-   * resolved first: an explicit `panelBadges` wins, else the ambient provider.
+   * resolved first.
    */
   const contextBadges = usePanelBadgesContext();
   // Asked as a boolean first, because an aside that exists at all is a padded box.
   const hasActionAugments = useWidgetSegmentBound("actions");
-  const badges = panelBadges ?? contextBadges ?? [];
+  const badges = mergeBadges(panelBadges, contextBadges);
   const badgePills =
     badges.length === 0
       ? null
@@ -1396,6 +1438,7 @@ function PanelRoot({
             <Badge
               key={b.id}
               severity={severity}
+              title={b.title}
               /* A decorative chip stays out of the collapsed header's dot summary. */
               report={severity === undefined ? undefined : { id: b.id }}
             >
@@ -1403,10 +1446,19 @@ function PanelRoot({
             </Badge>
           );
         });
+  const toolbar =
+    panelFilter === undefined ? (
+      panelToolbar
+    ) : (
+      <>
+        {panelToolbar}
+        <PanelFilterSlot>{filterControlOf(panelFilter)}</PanelFilterSlot>
+      </>
+    );
   const hasHeader =
     panelTitle !== undefined ||
     panelAside !== undefined ||
-    panelToolbar !== undefined ||
+    toolbar !== undefined ||
     badgePills !== null ||
     hasActionAugments;
 
@@ -1565,7 +1617,7 @@ function PanelRoot({
       title={panelTitle}
       compactTitle={compactTitle}
       aside={aside}
-      toolbar={panelToolbar}
+      toolbar={toolbar}
       overlay
     />
   ) : (
@@ -1573,7 +1625,7 @@ function PanelRoot({
       title={panelTitle}
       compactTitle={compactTitle}
       aside={aside}
-      toolbar={panelToolbar}
+      toolbar={toolbar}
     />
   );
 

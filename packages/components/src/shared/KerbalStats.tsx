@@ -179,45 +179,6 @@ export function KerbalStats({
               reading={kerbal.experienceLevelDelta}
             />
           ))}
-        {kerbal.veteran && (
-          <Badge
-            severity="nominal"
-            size="sm"
-            aria-label="veteran"
-            title="Veteran: has flown a notable mission"
-          >
-            ★
-          </Badge>
-        )}
-        {kerbal.isBadass && (
-          <Badge
-            severity="warning"
-            size="sm"
-            aria-label="badass"
-            title="Badass: KSP's brave trait; rarely panics"
-          >
-            BA
-          </Badge>
-        )}
-        {kerbal.careerFlights > 0 && (
-          <Badge
-            size="sm"
-            aria-label={`${kerbal.careerFlights} flights`}
-            title={`${kerbal.careerFlights} career flight${kerbal.careerFlights === 1 ? "" : "s"} completed`}
-          >
-            {kerbal.careerFlights}F
-          </Badge>
-        )}
-        {/* One badge for every way a kerbal cannot fly; a new axis needs no badge of its own. */}
-        {!kerbal.available && (
-          <Badge
-            severity={unavailableSeverity(kerbal.standing)}
-            size="sm"
-            title={unavailableTitle(kerbal)}
-          >
-            {kerbal.unavailableReason || "Unavailable"}
-          </Badge>
-        )}
         {showInfo && (
           <KerbalInfoPopover
             name={kerbal.name}
@@ -227,6 +188,57 @@ export function KerbalStats({
         )}
         {children}
       </span>
+    </>
+  );
+}
+
+/**
+ * A kerbal's standing marks (veteran, badass, flights flown, and the one reason
+ * they cannot fly), drawn at the top right of the kerbal's card beside the
+ * card's other badges rather than in the stats row.
+ */
+export function KerbalBadges({ kerbal }: { kerbal: KerbalStatFields }) {
+  return (
+    <>
+      {kerbal.veteran && (
+        <Badge
+          severity="nominal"
+          size="sm"
+          aria-label="veteran"
+          title="Veteran: has flown a notable mission"
+        >
+          ★
+        </Badge>
+      )}
+      {kerbal.isBadass && (
+        <Badge
+          severity="warning"
+          size="sm"
+          aria-label="badass"
+          title="Badass: KSP's brave trait; rarely panics"
+        >
+          BA
+        </Badge>
+      )}
+      {kerbal.careerFlights > 0 && (
+        <Badge
+          size="sm"
+          aria-label={`${kerbal.careerFlights} flights`}
+          title={`${kerbal.careerFlights} career flight${kerbal.careerFlights === 1 ? "" : "s"} completed`}
+        >
+          {kerbal.careerFlights}F
+        </Badge>
+      )}
+      {/* One badge for every way a kerbal cannot fly; a new axis needs no badge of its own. */}
+      {!kerbal.available && (
+        <Badge
+          severity={unavailableSeverity(kerbal.standing)}
+          size="sm"
+          title={unavailableTitle(kerbal)}
+        >
+          {kerbal.unavailableReason || "Unavailable"}
+        </Badge>
+      )}
     </>
   );
 }

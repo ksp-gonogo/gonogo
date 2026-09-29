@@ -203,8 +203,7 @@ function ExperimentsComponent({
     <Panel
       panelTitle="EXPERIMENTS"
       compactTitle={["EXPTS"]}
-      // The footer is pinned outside the scrolling body, so the filter stays in view.
-      panelFooter={filter.control}
+      panelFilter={filter}
       sections={[
         showSubtitle && (
           <Section key="totals" full>

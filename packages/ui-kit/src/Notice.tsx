@@ -23,6 +23,7 @@ export interface NoticeProps extends BlockProps {
 
 const Notice__Root = styled(Block__Root)<{ $tone: ReadoutTone }>`
   --gap-related: var(--gap-related-comfortable);
+  --bleed-inline: 0px;
 
   background: var(--color-surface-sunken);
   border: 1px solid ${({ $tone }) => TONE_COLOR[$tone]};

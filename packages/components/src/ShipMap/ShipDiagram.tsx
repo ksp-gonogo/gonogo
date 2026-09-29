@@ -1,10 +1,8 @@
-import { TextButton } from "@ksp-gonogo/ui-kit";
+import { Floating, TextButton } from "@ksp-gonogo/ui-kit";
 import type React from "react";
 import type { CSSProperties } from "react";
-import { useLayoutEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { useRef, useState } from "react";
 import { useZoomPan } from "../shared/useZoomPan";
-import { anchoredMenuPosition } from "./anchoredMenuPosition";
 import { PartActionMenu } from "./PartActionMenu";
 import { PartTooltip } from "./PartTooltip";
 import { NO_METERS } from "./partMeters";
@@ -55,25 +53,18 @@ export function ShipDiagram({
   onInvokePartAction,
 }: Readonly<Props>) {
   const [hovered, setHovered] = useState<ShipMapPart | null>(null);
-  const [mouse, setMouse] = useState({ x: 0, y: 0 });
-  // The open part and its anchor, held together so the menu never renders without a position. Canvas-local for re-placement, viewport for the portalled menu's first paint.
+  // In viewport coordinates, where the portalled tooltip is placed.
+  const [pointer, setPointer] = useState({ x: 0, y: 0 });
+  // The open part and its canvas-local anchor, re-read against the canvas on every re-place so the menu follows a scrolled part.
   const [openPart, setOpenPart] = useState<{
     part: ShipMapPart;
     anchor: { x: number; y: number };
-    viewportAnchor: { x: number; y: number };
-  } | null>(null);
-  // Measured before paint and again when the menu resizes: the action list arrives a light-time after it opens.
-  const [menuHost, setMenuHost] = useState<HTMLDivElement | null>(null);
-  const [menuPos, setMenuPos] = useState<{
-    left: number;
-    top: number;
   } | null>(null);
   // Restored on dismiss so Escape returns focus to the part.
   const triggerRef = useRef<Element | null>(null);
 
   const dismissMenu = () => {
     setOpenPart(null);
-    setMenuPos(null);
     const trigger = triggerRef.current;
     triggerRef.current = null;
     if (trigger instanceof HTMLElement || trigger instanceof SVGElement) {
@@ -88,44 +79,17 @@ export function ShipDiagram({
     pointerHandlers,
   } = useZoomPan<HTMLDivElement>();
 
-  // A layout effect so the measured position is the first on screen, not a visible jump.
-  useLayoutEffect(() => {
-    if (!openPart || !menuHost) return;
-    const place = () => {
-      const wrapper = wrapperRef.current;
-      if (!wrapper) return;
-      const wrapperRect = wrapper.getBoundingClientRect();
-      const menuRect = menuHost.getBoundingClientRect();
-      const next = anchoredMenuPosition(
-        {
-          x: wrapperRect.left + openPart.anchor.x,
-          y: wrapperRect.top + openPart.anchor.y,
-        },
-        { w: menuRect.width, h: menuRect.height },
-        { w: window.innerWidth, h: window.innerHeight },
-      );
-      setMenuPos((prev) =>
-        prev && prev.left === next.left && prev.top === next.top ? prev : next,
-      );
+  const menuAnchor = () => {
+    const rect = wrapperRef.current?.getBoundingClientRect();
+    if (!rect || !openPart) return null;
+    return {
+      x: rect.left + openPart.anchor.x,
+      y: rect.top + openPart.anchor.y,
     };
-    place();
-    // The menu grows when its actions land, and the window and dashboard both scroll the part away: all three re-place.
-    const observer =
-      typeof ResizeObserver === "undefined" ? null : new ResizeObserver(place);
-    observer?.observe(menuHost);
-    window.addEventListener("resize", place);
-    // Capture phase: the dashboard scrolls an inner container, not the window, and scroll events from those do not bubble.
-    window.addEventListener("scroll", place, true);
-    return () => {
-      observer?.disconnect();
-      window.removeEventListener("resize", place);
-      window.removeEventListener("scroll", place, true);
-    };
-  }, [openPart, menuHost, wrapperRef]);
+  };
 
   const onWrapperMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    setMouse({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+    setPointer({ x: e.clientX, y: e.clientY });
   };
 
   // The same `partMeters` list the in-body bars read, rendered through ui-kit's `<Meter>` like every other meter-bearing widget.
@@ -165,22 +129,19 @@ export function ShipDiagram({
         cam={cam}
         throttle={throttle}
         onPartHover={setHovered}
-        onPartFocus={(_, center) => setMouse(center)}
+        onPartFocus={(_, center) => {
+          const rect = wrapperRef.current?.getBoundingClientRect();
+          setPointer({
+            x: (rect?.left ?? 0) + center.x,
+            y: (rect?.top ?? 0) + center.y,
+          });
+        }}
         // Only with a command surface; a static render passes none.
         onPartActivate={
           onInvokePartAction
             ? (part, anchor) => {
                 triggerRef.current = document.activeElement;
-                const rect = wrapperRef.current?.getBoundingClientRect();
-                setMenuPos(null);
-                setOpenPart({
-                  part,
-                  anchor,
-                  viewportAnchor: {
-                    x: (rect?.left ?? 0) + anchor.x,
-                    y: (rect?.top ?? 0) + anchor.y,
-                  },
-                });
+                setOpenPart({ part, anchor });
               }
             : undefined
         }
@@ -192,44 +153,30 @@ export function ShipDiagram({
           hovered={hovered}
           meters={hoveredMeters}
           meta={hoveredMeta}
-          mouse={mouse}
-          width={width}
-          height={height}
+          pointer={pointer}
           showActionCount={Boolean(onInvokePartAction)}
         />
       )}
 
-      {openPart && onInvokePartAction
-        ? // Portalled to the body because the Panel clips with overflow hidden, at the popover rung of the z-index ladder.
-          createPortal(
-            <div
-              ref={setMenuHost}
-              style={{
-                ...MENU_HOST,
-                // The unmeasured first guess, replaced by the measured, clamped position before paint.
-                left: menuPos?.left ?? openPart.viewportAnchor.x + 12,
-                top: menuPos?.top ?? openPart.viewportAnchor.y + 12,
-              }}
-            >
-              <PartActionMenu
-                flightId={openPart.part.flightId}
-                partTitle={openPart.part.title || openPart.part.name}
-                onInvoke={(eventName, actionLabel) =>
-                  onInvokePartAction(
-                    openPart.part.flightId,
-                    eventName,
-                    actionLabel,
-                    openPart.part.title || openPart.part.name,
-                  )
-                }
-                onDismiss={dismissMenu}
-                // The host box positions; the menu goes back in flow so the host can be measured.
-                style={MENU_IN_HOST}
-              />
-            </div>,
-            document.body,
-          )
-        : null}
+      {openPart && onInvokePartAction && (
+        <Floating anchor={menuAnchor}>
+          <PartActionMenu
+            flightId={openPart.part.flightId}
+            partTitle={openPart.part.title || openPart.part.name}
+            onInvoke={(eventName, actionLabel) =>
+              onInvokePartAction(
+                openPart.part.flightId,
+                eventName,
+                actionLabel,
+                openPart.part.title || openPart.part.name,
+              )
+            }
+            onDismiss={dismissMenu}
+            // The floating layer positions; the menu goes back in flow so the layer can be measured.
+            style={MENU_IN_LAYER}
+          />
+        </Floating>
+      )}
     </div>
   );
 }
@@ -247,7 +194,7 @@ const RESET_BUTTON: CSSProperties = {
   position: "absolute",
   top: "6px",
   left: "6px",
-  // Local ordering inside Root, below the Tooltip's 20.
+  // Local ordering inside Root, above the diagram svg.
   zIndex: 10,
   fontSize: "var(--font-size-compact)",
   padding: "var(--inset-control)",
@@ -258,12 +205,5 @@ const RESET_BUTTON: CSSProperties = {
   textDecoration: "none",
 };
 
-// Fixed to the viewport, since the coordinates come from `getBoundingClientRect`.
-const MENU_HOST: CSSProperties = {
-  position: "fixed",
-  // `position: fixed` makes this host its own stacking context, so the rung must sit here or the diagram svg's local z-index paints over the menu.
-  zIndex: "var(--z-dropdown)",
-};
-
-// Static, not the menu's own absolute, so it stays in the host's flow and the host can be measured.
-const MENU_IN_HOST: CSSProperties = { position: "static" };
+// Static, not the menu's own absolute, so it stays in the layer's flow and the layer can be measured.
+const MENU_IN_LAYER: CSSProperties = { position: "static" };

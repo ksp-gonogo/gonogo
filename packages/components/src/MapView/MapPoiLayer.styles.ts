@@ -83,8 +83,6 @@ export const PoiMarkerButton = styled.button<{ $style: PoiKindStyle }>`
 `;
 
 export const PoiHoverCard = styled.div`
-  position: absolute;
-  pointer-events: auto;
   min-width: 160px;
   max-width: 240px;
   padding: var(--inset-surface);
@@ -93,8 +91,6 @@ export const PoiHoverCard = styled.div`
   background: var(--color-surface-raised);
   color: var(--color-text-primary);
   font-size: var(--font-size-compact);
-  /* Off the z-index ladder: it only has to sit above the markers. */
-  z-index: 1;
 `;
 
 export const PoiHoverLabel = styled.div`
