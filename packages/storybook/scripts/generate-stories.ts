@@ -25,7 +25,13 @@ import {
   resolveUplinkPackage,
 } from "../../uplink-tools/src/render/context";
 import { UI_KIT_PRESETS } from "../src/uiKitPresets";
-import { EXTENSION_SCENES, EXTRA_SCENES, UNFIXTURED_WIDGETS } from "./coverage";
+import {
+  EXTENSION_SCENES,
+  EXTRA_SCENES,
+  type ExtensionScene as ExtensionSceneEntry,
+  UNFIXTURED_WIDGETS,
+} from "./coverage";
+import { SLOT_SCENES } from "./slot-scenes";
 import { writeUiKitStories } from "./uikit-stories";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -318,9 +324,23 @@ function firstInstall(fixture: string): string {
 }
 
 const EXTENSIONS_TITLE = "Extensions";
+const SLOTS_TITLE = "Extensions/Slots";
 
-async function writeExtensionsFile(): Promise<number> {
-  const file = resolve(OUT, "extensions", "extensions.stories.tsx");
+/** The id prefix of a planted slot stub, whose scene announces the planted-slots Domain. */
+const SLOT_STUB_PREFIX = "planted-slot:";
+
+/**
+ * Writes one story per extension scene into `file` under `title`. `registers`
+ * are modules the stories load before any scene mounts, beyond what the
+ * render probe itself registers.
+ */
+async function writeExtensionScenes(opts: {
+  file: string;
+  title: string;
+  scenes: readonly ExtensionSceneEntry[];
+  registers?: readonly string[];
+}): Promise<number> {
+  const file = resolve(OUT, "extensions", opts.file);
   const dir = dirname(file);
   const taken = new Set<string>();
   const fixtures = new Map<string, string>();
@@ -335,20 +355,27 @@ async function writeExtensionsFile(): Promise<number> {
     );
     return name;
   };
-  const stories = EXTENSION_SCENES.map((e) => {
+  const stories = opts.scenes.map((e) => {
     const name = exportName(e.id, taken);
-    target("extension", e.id, EXTENSIONS_TITLE, name);
+    target("extension", e.id, opts.title, name);
+    const fixture = e.id.startsWith(SLOT_STUB_PREFIX)
+      ? `withPlantedSlots(${fixtureVar(e.fixture)})`
+      : fixtureVar(e.fixture);
+    const mode = {
+      ...(e.config ? { config: e.config } : {}),
+      ...(e.clicks ? { clicks: e.clicks } : {}),
+    };
     return `
 /** \`${e.id}\` switched on in \`${e.widgetId}\`. Untick \`enabled\` to see the host without it. */
 export const ${name}: ExtensionStory = {
   name: ${JSON.stringify(e.id)},
   args: {
     widgetId: ${JSON.stringify(e.widgetId)},
-    fixture: ${fixtureVar(e.fixture)},
+    fixture: ${fixture},
     w: ${e.w},
     h: ${e.h},
     extension: ${JSON.stringify(e.id)},
-    enabled: true,${e.config ? `\n    mode: { config: ${JSON.stringify(e.config)} },` : ""}${e.underInstall ? `\n    profile: ${JSON.stringify(firstInstall(e.fixture))},` : ""}
+    enabled: true,${Object.keys(mode).length > 0 ? `\n    mode: ${JSON.stringify(mode)},` : ""}${e.underInstall ? `\n    profile: ${JSON.stringify(firstInstall(e.fixture))},` : ""}
   },
 };
 `;
@@ -357,11 +384,13 @@ export const ${name}: ExtensionStory = {
     HEADER,
     `import type { Meta, StoryObj } from "@storybook/react-vite";`,
     `import { ExtensionScene } from ${JSON.stringify(importPath(dir, resolve(SRC, "ExtensionScene")))};`,
+    ...(opts.registers ?? []).map((m) => `import ${JSON.stringify(m)};`),
+    `import { withPlantedSlots } from ${JSON.stringify(importPath(dir, resolve(SRC, "plantedSlots")))};`,
     `import { withGonogoFrame } from ${JSON.stringify(importPath(dir, resolve(SRC, "frame")))};`,
     ...imports,
     "",
     `const meta = {
-  title: ${JSON.stringify(EXTENSIONS_TITLE)},
+  title: ${JSON.stringify(opts.title)},
   component: ExtensionScene,
   decorators: [withGonogoFrame],
   parameters: { layout: "fullscreen" },
@@ -381,6 +410,27 @@ type ExtensionStory = StoryObj<typeof meta>;
   ].join("\n");
   await writeFile(file, body);
   return stories.length;
+}
+
+/**
+ * The extension stories: the planted slot stubs on a page of their own, which
+ * alone loads them, because a host that counts what is bound to a slot
+ * reserves room for a stub even while its Domain is absent.
+ */
+async function writeExtensionsFiles(): Promise<number> {
+  const slots = new Set(SLOT_SCENES);
+  const shown = await writeExtensionScenes({
+    file: "extensions.stories.tsx",
+    title: EXTENSIONS_TITLE,
+    scenes: EXTENSION_SCENES.filter((e) => !slots.has(e)),
+  });
+  const stubs = await writeExtensionScenes({
+    file: "slots.stories.tsx",
+    title: SLOTS_TITLE,
+    scenes: SLOT_SCENES,
+    registers: ["../registrations"],
+  });
+  return shown + stubs;
 }
 
 /** A scene's target, read off its `_scene` block. */
@@ -525,7 +575,7 @@ async function main(): Promise<void> {
     TARGETS.widget[widgetId] = [...(TARGETS.widget[widgetId] ?? []), ...ids];
     covered.add(widgetId);
   }
-  const extensions = await writeExtensionsFile();
+  const extensions = await writeExtensionsFiles();
   const extensionIds = new Set(EXTENSION_SCENES.map((e) => e.id));
   const uplinkStories = await writeUplinkFiles(covered, extensionIds);
 
@@ -549,6 +599,7 @@ async function main(): Promise<void> {
   const registerModules = [
     // The render probe's planted Uplink, whose contributions the extension stories show.
     "packages/components/scripts/probe/plantedUplink.ts",
+    "packages/components/scripts/probe/slot-stubs/index.ts",
     ...new Set([
       // The app's own widgets, which the hand-written stories cover.
       "packages/storybook/src/appWidgets.tsx",

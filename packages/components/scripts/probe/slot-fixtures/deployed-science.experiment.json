@@ -1,0 +1,39 @@
+{
+  "_meta": {
+    "synthetic": true,
+    "notes": "SYNTHETIC, in the WidgetScene probe's plain channel/value stream shape, not the wire topic/payload shape the Breaking Ground Uplink's own __fixtures__ carry (those feed the Uplink render probe's scenes, and are swept up by the Uplink docs generator, which requires a _scene block this fixture deliberately has none of). One Mun base with one collecting experiment, just enough for the deployed-science.experiment slot to mount."
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "channel": "game.dlc",
+        "value": { "breakingGround": true, "makingHistory": true }
+      },
+      {
+        "channel": "deployed.bases",
+        "value": [
+          {
+            "vesselName": "Mun Deployed Base",
+            "partName": "Seismometer",
+            "body": "Mun",
+            "situation": "LANDED",
+            "biome": "Highlands",
+            "experimentId": "seismic",
+            "scienceCompletedPercentage": 75,
+            "scienceTransmittedPercentage": 87,
+            "scienceValue": 45,
+            "scienceLimit": 60,
+            "powerState": "Powered",
+            "connectionState": "Connected",
+            "power": 0,
+            "controllerConnected": true,
+            "powerAvailable": 6,
+            "powerRequired": 4,
+            "deployedOnGround": true
+          }
+        ]
+      }
+    ]
+  }
+}

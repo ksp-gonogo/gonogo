@@ -7,6 +7,8 @@
  * check.
  */
 
+import { SLOT_SCENES } from "./slot-scenes";
+
 /** A registered widget with no fixture, mounted unfed at a tile it accepts. */
 export interface UnfixturedWidget {
   widgetId: string;
@@ -51,6 +53,8 @@ export interface ExtensionScene {
   config?: Record<string, unknown>;
   /** It only shows under an install, so the scene renders under the first one it declares. */
   underInstall?: boolean;
+  /** Clicks that open the part of the host the extension draws in, as a render mode's `clicks`. */
+  clicks?: readonly { selector: string; awaitMs?: number }[];
 }
 
 const COMPONENTS = "packages/components/src";
@@ -185,6 +189,7 @@ export const EXTENSION_SCENES: readonly ExtensionScene[] = [
     w: 9,
     h: 10,
   },
+  ...SLOT_SCENES,
 ];
 
 /**

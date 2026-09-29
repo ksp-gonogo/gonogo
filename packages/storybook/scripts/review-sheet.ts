@@ -9,7 +9,9 @@
  * exports from the generator's own reading of `index.ts`, and the story ids
  * from the generator's `review-targets.json`, each checked against the built
  * `index.json`. Fails, writing nothing, when a listing has no story or names
- * one the index does not hold.
+ * one the index does not hold, or when a slot the sdk declares has no augment
+ * row: every run first drops one slot's rows and fails as BLIND if that check
+ * does not report it.
  *
  * `--storybook-url <url>` is where the links point (default
  * http://localhost:6006), `--only <id,id>` narrows the page, `--out <dir>`
@@ -20,6 +22,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
+import { Project, SyntaxKind } from "ts-morph";
 import type { Registered } from "../src/stories/Coverage.stories";
 import { serve, storyIds } from "./built";
 import type { TargetKind } from "./generate-stories";
@@ -31,6 +34,7 @@ const STORIES = join(DIST, "stories");
 const TEMPLATE = join(HERE, "review-sheet.html");
 const REGISTRY_STORY = "coverage--registry";
 const KINDS: readonly TargetKind[] = ["widget", "extension", "primitive"];
+const SLOTS = resolve(HERE, "../../../mod/sitrep-sdk/src/api/slots.ts");
 
 type Targets = Record<TargetKind, Record<string, string[]>>;
 
@@ -39,6 +43,8 @@ interface Listing {
   id: string;
   title: string;
   subtitle: string;
+  /** The slot an augment row fills. */
+  slot?: string;
   stories: string[];
 }
 
@@ -129,6 +135,7 @@ function listings(
       id: r.id,
       title: r.name ?? r.id,
       subtitle: r.kind === "widget" ? r.id : `${r.kind} in ${r.slot}`,
+      slot: r.kind === "augment" ? r.slot : undefined,
       stories: targets[kind][r.id] ?? [],
     });
   }
@@ -163,6 +170,28 @@ function faults(all: Listing[], indexed: Set<string>): string[] {
   return out;
 }
 
+/** Every slot id the sdk's `SlotRegistry` declares. */
+function declaredSlots(): string[] {
+  const file = new Project({
+    skipAddingFilesFromTsConfig: true,
+  }).addSourceFileAtPath(SLOTS);
+  const registry = file
+    .getDescendantsOfKind(SyntaxKind.InterfaceDeclaration)
+    .find((i) => i.getName() === "SlotRegistry");
+  if (!registry) throw new Error(`${SLOTS} declares no SlotRegistry`);
+  const slots = registry
+    .getProperties()
+    .map((p) => p.getName().replace(/^"|"$/g, ""));
+  if (slots.length === 0) throw new Error(`${SLOTS} declares no slots`);
+  return slots;
+}
+
+/** Each declared slot no augment row fills. */
+function unlistedSlots(all: Listing[], declared: string[]): string[] {
+  const listed = new Set(all.flatMap((l) => (l.slot ? [l.slot] : [])));
+  return declared.filter((slot) => !listed.has(slot));
+}
+
 async function main(): Promise<void> {
   const argv = process.argv.slice(2);
   const storybookUrl = (
@@ -191,7 +220,20 @@ async function main(): Promise<void> {
   }
 
   const all = listings(registered, primitives, targets);
-  const found = faults(all, indexed);
+  const declared = declaredSlots();
+  const [plant] = declared;
+  const planted = all.filter((l) => l.slot !== plant);
+  if (!unlistedSlots(planted, declared).includes(plant)) {
+    throw new Error(
+      `BLIND: with every row for slot ${plant} dropped, the slot check did not report it, so a clean run means nothing.`,
+    );
+  }
+  const found = [
+    ...faults(all, indexed),
+    ...unlistedSlots(all, declared).map(
+      (slot) => `slot ${slot} is declared and no augment row fills it`,
+    ),
+  ];
   if (found.length > 0) {
     for (const f of found) console.error(`review-sheet: ${f}`);
     console.error(
@@ -224,6 +266,9 @@ async function main(): Promise<void> {
     items.filter((i) => i.kind === kind).length;
   console.log(
     `review-sheet: ${count("widget")} widgets, ${count("extension")} extensions, ${count("primitive")} ui-kit components, every one linked to a story in the built index`,
+  );
+  console.log(
+    `review-sheet: all ${declared.length} declared slots have an augment row (plant: slot ${plant} dropped, reported)`,
   );
   console.log(`review-sheet: links point at ${storybookUrl}`);
   console.log(`review-sheet: file://${page}`);

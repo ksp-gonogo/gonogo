@@ -14,5 +14,9 @@ export function ExtensionScene({
   enabled,
   ...scene
 }: ExtensionSceneProps) {
-  return <WidgetScene {...scene} withhold={enabled ? [] : [extension]} />;
+  // A click that reveals the extension's own mount (a tab, a panel) has nothing to find once the extension is withheld, so it runs only while the scene is on.
+  const mode = enabled ? scene.mode : { ...scene.mode, clicks: undefined };
+  return (
+    <WidgetScene {...scene} mode={mode} withhold={enabled ? [] : [extension]} />
+  );
 }

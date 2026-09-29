@@ -148,8 +148,8 @@ async function mountStory(
   return { id, errors };
 }
 
-/** Extension stories draw their host with one extension switchable by an `enabled` arg. */
-const EXTENSION_PREFIX = "extensions--";
+/** Extension stories, slot stubs included, draw their host with one extension switchable by an `enabled` arg. */
+const EXTENSION_PREFIX = "extensions-";
 
 /**
  * Whether switching the story's extension off changes what its host draws.

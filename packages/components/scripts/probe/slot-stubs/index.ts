@@ -1,0 +1,23 @@
+// Every host widget's slot stubs, registered for the render probes and the stories.
+import "./action-group";
+import "./astronaut-complex";
+import "./comm-signal";
+import "./crew-status";
+import "./deployed-science";
+import "./experiments";
+import "./fuel-status";
+import "./landing-status";
+import "./launch-director";
+import "./maneuver-planner";
+import "./map-view";
+import "./orbit-view";
+import "./power-systems";
+import "./science-data";
+import "./ship-map";
+import "./space-center-status";
+import "./strategies";
+import "./system-view";
+import "./target-picker";
+import "./targeting";
+import "./tech-tree";
+import "./warp-control";
