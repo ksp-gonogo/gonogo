@@ -20,9 +20,15 @@ export interface UiKitCoverage {
   handwritten: string[];
   /** Exports with no story, and why. */
   uncovered: { name: string; reason: string }[];
+  /** Context providers, which draw nothing of their own and are left out of the list. */
+  omitted: string[];
   /** Each covered export's story ids, the one to open first leading. */
   stories: Record<string, string[]>;
 }
+
+/** What a synthesised `children` holds: content of the kind a widget puts there. */
+const SAMPLE_TEXT =
+  "Kerbin orbit reached; circularisation burn complete with 212 m/s to spare.";
 
 /** Whether `type` is one of React's renderable-node types. */
 function isNodeType(type: Type): boolean {
@@ -37,10 +43,8 @@ function isNodeType(type: Type): boolean {
  */
 function synthesise(name: string, type: Type): string | undefined {
   const title = name[0].toUpperCase() + name.slice(1);
-  if (name === "children" && type.isString()) {
-    return JSON.stringify(
-      "Kerbin orbit reached; circularisation burn complete with 212 m/s to spare.",
-    );
+  if (name === "children" && (type.isString() || isNodeType(type))) {
+    return JSON.stringify(SAMPLE_TEXT);
   }
   if (isNodeType(type)) return JSON.stringify(title);
   if (type.isString()) return JSON.stringify(title);
@@ -125,7 +129,7 @@ function planFor(
         isNodeType(type) &&
         declaredByTheKit(prop)
       ) {
-        args.children = JSON.stringify(name);
+        args.children = JSON.stringify(SAMPLE_TEXT);
       }
       continue;
     }
@@ -165,6 +169,7 @@ export async function writeUiKitStories(opts: {
     presets: [],
     handwritten: [],
     uncovered: [],
+    omitted: [],
     stories: {},
   };
   const dir = opts.out;
@@ -177,6 +182,10 @@ export async function writeUiKitStories(opts: {
     const type = decl.getType();
     const signatures = type.getCallSignatures();
     if (signatures.length === 0) continue;
+    if (name.endsWith("Provider")) {
+      coverage.omitted.push(name);
+      continue;
+    }
     const handwritten = resolve(
       opts.src,
       "stories/ui-kit",
@@ -271,14 +280,11 @@ export const Default: Story = {};
           ?.getText() ?? "";
       const tag = styledTag(initializer);
       if (!tag || !VOID_TAGS.has(tag))
-        plan.args.children = JSON.stringify(name);
+        plan.args.children = JSON.stringify(SAMPLE_TEXT);
     }
     if ("reason" in plan) {
       coverage.uncovered.push({ name, reason: plan.reason });
       continue;
-    }
-    if (name.endsWith("Provider") && !("children" in plan.args)) {
-      plan.args.children = JSON.stringify(name);
     }
     lines.push(metaFor(plan.args), "export const Default: Story = {};\n");
     coverage.defaults.push(name);

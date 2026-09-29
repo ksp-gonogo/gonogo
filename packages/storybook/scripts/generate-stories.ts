@@ -12,6 +12,7 @@ import { mkdir, rm, writeFile } from "node:fs/promises";
 import { basename, dirname, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { storyNameFromExport, toId } from "storybook/internal/csf";
+import { loadCsf } from "storybook/internal/csf-tools";
 import type {
   SizeMode,
   WidgetRenderConfig,
@@ -227,6 +228,31 @@ async function writeWidgetFile(
   ].join("\n");
   await writeFile(file, body);
   return { file, stories: stories.length };
+}
+
+/** Where a widget's hand-written stories live, one file per widget named by its id. */
+const HANDWRITTEN_WIDGETS = resolve(SRC, "stories/widgets");
+
+/**
+ * The widgets whose stories are written by hand rather than generated, chiefly
+ * app widgets whose states come from a host service rather than a fixture:
+ * each file's stories, as Storybook's own indexer names them.
+ */
+function handwrittenWidgetStories(): Map<string, string[]> {
+  const out = new Map<string, string[]>();
+  if (!existsSync(HANDWRITTEN_WIDGETS)) return out;
+  for (const entry of readdirSync(HANDWRITTEN_WIDGETS).sort()) {
+    if (!entry.endsWith(".stories.tsx")) continue;
+    const file = resolve(HANDWRITTEN_WIDGETS, entry);
+    const ids = loadCsf(readFileSync(file, "utf8"), {
+      fileName: file,
+      makeTitle: (title) => title,
+    })
+      .parse()
+      .stories.map((story) => story.id);
+    out.set(entry.replace(/\.stories\.tsx$/, ""), ids);
+  }
+  return out;
 }
 
 const UNFIXTURED_TITLE = "Widgets/(unfixtured)";
@@ -494,6 +520,11 @@ async function main(): Promise<void> {
   }
   const unfixtured = await writeUnfixturedFile();
   for (const w of UNFIXTURED_WIDGETS) covered.add(w.widgetId);
+  const handwritten = handwrittenWidgetStories();
+  for (const [widgetId, ids] of handwritten) {
+    TARGETS.widget[widgetId] = [...(TARGETS.widget[widgetId] ?? []), ...ids];
+    covered.add(widgetId);
+  }
   const extensions = await writeExtensionsFile();
   const extensionIds = new Set(EXTENSION_SCENES.map((e) => e.id));
   const uplinkStories = await writeUplinkFiles(covered, extensionIds);
@@ -518,7 +549,11 @@ async function main(): Promise<void> {
   const registerModules = [
     // The render probe's planted Uplink, whose contributions the extension stories show.
     "packages/components/scripts/probe/plantedUplink.ts",
-    ...new Set(UNFIXTURED_WIDGETS.flatMap((w) => w.registers ?? [])),
+    ...new Set([
+      // The app's own widgets, which the hand-written stories cover.
+      "packages/storybook/src/appWidgets.tsx",
+      ...UNFIXTURED_WIDGETS.flatMap((w) => w.registers ?? []),
+    ]),
   ].map((m) => resolve(REPO, m));
   await writeFile(
     resolve(OUT, "registrations.ts"),
@@ -541,10 +576,10 @@ async function main(): Promise<void> {
     `${JSON.stringify(TARGETS, null, 2)}\n`,
   );
   console.log(
-    `generate-stories: ${configs.length} render configs -> ${widgetStories} widget stories, ${unfixtured} unfixtured, ${extensions} extension stories, ${uplinkStories} Uplink scene stories; ${covered.size} widgets covered`,
+    `generate-stories: ${configs.length} render configs -> ${widgetStories} widget stories, ${[...handwritten.values()].flat().length} hand-written, ${unfixtured} unfixtured, ${extensions} extension stories, ${uplinkStories} Uplink scene stories; ${covered.size} widgets covered`,
   );
   console.log(
-    `generate-stories: ui-kit ${uiKit.defaults.length} defaults, ${uiKit.presets.length} preset sets, ${uiKit.handwritten.length} hand-written, ${uiKit.uncovered.length} uncovered`,
+    `generate-stories: ui-kit ${uiKit.defaults.length} defaults, ${uiKit.presets.length} preset sets, ${uiKit.handwritten.length} hand-written, ${uiKit.uncovered.length} uncovered, ${uiKit.omitted.length} providers omitted`,
   );
 }
 

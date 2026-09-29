@@ -1,9 +1,10 @@
 /**
  * What the generator cannot derive from the render configs: the widgets with
- * no fixture at all, and which scene shows each registered augment or
- * contribution switched on in its host. The `Coverage` story holds both lists
- * to the live registries, so a widget or extension registered later and named
- * nowhere here fails the smoke check.
+ * no fixture and no hand-written stories under `src/stories/widgets`, and
+ * which scene shows each registered augment or contribution switched on in
+ * its host. The `Coverage` story holds both lists to the live registries, so a
+ * widget or extension registered later and named nowhere here fails the smoke
+ * check.
  */
 
 /** A registered widget with no fixture, mounted unfed at a tile it accepts. */
@@ -22,31 +23,10 @@ const APP_WIDGETS = "packages/storybook/src/appWidgets.tsx";
 
 export const UNFIXTURED_WIDGETS: readonly UnfixturedWidget[] = [
   {
-    widgetId: "libration-points",
-    w: 8,
-    h: 10,
-    reason: "Its catalogue scenes live in an integration test, not a fixture.",
-  },
-  {
     widgetId: "perf-budgets",
     w: 6,
     h: 8,
     reason: "It reads the page's own PerfBudget registry, not telemetry.",
-  },
-  {
-    widgetId: "commcast",
-    w: 6,
-    h: 8,
-    reason: "An app widget: its scenes live in the app's own commcast probe.",
-    registers: APP_WIDGETS,
-  },
-  {
-    widgetId: "gonogo",
-    w: 4,
-    h: 4,
-    reason:
-      "An app widget fed by the PeerJS vote host, which no fixture models.",
-    registers: APP_WIDGETS,
   },
   {
     widgetId: "notes",

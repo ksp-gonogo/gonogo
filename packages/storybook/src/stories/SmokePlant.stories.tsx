@@ -16,7 +16,8 @@ import { WidgetScene, type WidgetSceneProps } from "../WidgetScene";
  * Deliberate failures for the smoke check to catch, one per way a story can
  * fail: a component that throws as it renders, a widget scene whose mount
  * rejects after the first render, and an extension story whose scene never
- * draws its extension, and a set of scenes sharing the page's one probe slot.
+ * draws its extension, a set of scenes sharing the page's one probe slot, and
+ * a story that draws nothing or only its own title's name.
  * `scripts/smoke.ts` fails as BLIND if any is reported clean.
  */
 function Throws(): never {
@@ -32,6 +33,14 @@ export default meta;
 
 export const RenderThrows: StoryObj = {
   render: () => <Throws />,
+};
+
+export const DrawsNothing: StoryObj = {
+  render: () => <div />,
+};
+
+export const RendersItsName: StoryObj = {
+  render: () => <span>Smoke plant</span>,
 };
 
 export const MountRejects: StoryObj = {

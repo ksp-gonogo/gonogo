@@ -42,8 +42,10 @@ export function serve(dir: string): Promise<{ server: Server; url: string }> {
   });
 }
 
-/** The ids of every story in a Storybook's index, refusing an index of any other shape. */
-export async function storyIds(base: string): Promise<string[]> {
+/** Every story in a Storybook's index with its title, refusing an index of any other shape. */
+export async function storyEntries(
+  base: string,
+): Promise<{ id: string; title: string }[]> {
   const res = await fetch(`${base}/index.json`);
   const index: unknown = await res.json();
   const entries =
@@ -53,11 +55,19 @@ export async function storyIds(base: string): Promise<string[]> {
   if (typeof entries !== "object" || entries === null) {
     throw new Error(`${base}/index.json holds no story entries.`);
   }
-  const ids: string[] = [];
+  const out: { id: string; title: string }[] = [];
   for (const entry of Object.values(entries)) {
     if (typeof entry !== "object" || entry === null) continue;
     if (!("type" in entry) || entry.type !== "story") continue;
-    if ("id" in entry && typeof entry.id === "string") ids.push(entry.id);
+    if (!("id" in entry) || typeof entry.id !== "string") continue;
+    const title =
+      "title" in entry && typeof entry.title === "string" ? entry.title : "";
+    out.push({ id: entry.id, title });
   }
-  return ids;
+  return out;
+}
+
+/** The ids of every story in a Storybook's index. */
+export async function storyIds(base: string): Promise<string[]> {
+  return (await storyEntries(base)).map((entry) => entry.id);
 }

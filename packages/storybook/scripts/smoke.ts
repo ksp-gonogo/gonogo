@@ -7,6 +7,9 @@
  * Serves the built `dist/static` itself, or checks a running Storybook when
  * `--url` is given. `--only <substring>` narrows the run to matching story ids.
  *
+ * A ui-kit story must also show its component doing something: one that draws
+ * nothing, or whose whole text is the component's own name, fails.
+ *
  * Before it trusts a clean run it mounts the planted stories (`Smoke plant`),
  * which fail on purpose, and fails as BLIND if either is reported clean: a
  * checker that cannot see a failure reports every story clean.
@@ -16,7 +19,8 @@ import type { Server } from "node:http";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { type Browser, chromium, type Page } from "playwright";
-import { serve, storyIds } from "./built";
+import { PNG } from "pngjs";
+import { serve, storyEntries } from "./built";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const STATIC = resolve(HERE, "../dist/static");
@@ -27,6 +31,8 @@ const PLANTS: Record<string, string> = {
     'widget "planted-not-registered" not registered',
   "smoke-plant--extension-unexercised": "does not exercise it",
   "smoke-plant--shared-probe-slot": "twr standard-launch-ok drew nothing",
+  "smoke-plant--draws-nothing": "draws nothing",
+  "smoke-plant--renders-its-name": "renders only its own name",
 };
 const PLANT_IDS = Object.keys(PLANTS);
 const STORY_TIMEOUT_MS = 30_000;
@@ -166,10 +172,39 @@ async function extensionShows(
   ];
 }
 
+/** Stories held to showing their component at work, beyond mounting clean. */
+const UI_KIT_PREFIX = "ui-kit-";
+const SHOWS_PLANTS = [
+  "smoke-plant--draws-nothing",
+  "smoke-plant--renders-its-name",
+];
+
+/**
+ * Whether a story shows more than an empty frame or its component's own name,
+ * the two things a story generated from props alone falls back to. `name` is
+ * the last segment of the story's title.
+ */
+async function storyShows(page: Page, name: string): Promise<string[]> {
+  const root = page.locator("#storybook-root");
+  const text = (await root.innerText()).replace(/\s+/g, " ").trim();
+  if (text.toLowerCase() === name.toLowerCase()) {
+    return [`renders only its own name, "${text}"`];
+  }
+  const box = await root.boundingBox();
+  if (!box || box.width < 1 || box.height < 1) return ["draws nothing"];
+  const { data } = PNG.sync.read(await root.screenshot());
+  const first = data.readUInt32LE(0);
+  for (let i = 4; i < data.length; i += 4) {
+    if (data.readUInt32LE(i) !== first) return [];
+  }
+  return ["draws nothing: every pixel of the story is its background"];
+}
+
 async function runAll(
   browser: Browser,
   base: string,
   ids: string[],
+  titles: Map<string, string>,
   quiet = false,
 ): Promise<Outcome[]> {
   const queue = [...ids];
@@ -189,6 +224,12 @@ async function runAll(
           id === "smoke-plant--extension-unexercised";
         if (outcome.errors.length === 0 && isExtension) {
           outcome.errors.push(...(await extensionShows(page, base, id)));
+        }
+        const heldToShow =
+          id.startsWith(UI_KIT_PREFIX) || SHOWS_PLANTS.includes(id);
+        if (outcome.errors.length === 0 && heldToShow) {
+          const name = (titles.get(id) ?? "").split("/").pop() ?? "";
+          outcome.errors.push(...(await storyShows(page, name)));
         }
         outcomes.push(outcome);
         if (quiet) continue;
@@ -219,14 +260,16 @@ async function main(): Promise<void> {
 
   const browser = await chromium.launch();
   try {
-    const all = await storyIds(base);
+    const entries = await storyEntries(base);
+    const all = entries.map((entry) => entry.id);
+    const titles = new Map(entries.map((entry) => [entry.id, entry.title]));
     const missing = PLANT_IDS.filter((id) => !all.includes(id));
     if (missing.length > 0) {
       throw new Error(
         `BLIND: the planted stories ${missing.join(", ")} are not in the index.`,
       );
     }
-    for (const plant of await runAll(browser, base, PLANT_IDS, true)) {
+    for (const plant of await runAll(browser, base, PLANT_IDS, titles, true)) {
       if (!plant.errors.some((e) => e.includes(PLANTS[plant.id]))) {
         throw new Error(
           `BLIND: the planted story ${plant.id} fails on purpose and was not reported with its own failure (${plant.errors.join("; ") || "reported clean"}), so a clean run means nothing.`,
@@ -243,7 +286,7 @@ async function main(): Promise<void> {
         `smoke: only ${ids.length} stories in the index, below the floor of ${MIN_STORIES}.`,
       );
     }
-    const outcomes = await runAll(browser, base, ids);
+    const outcomes = await runAll(browser, base, ids, titles);
     const failed = outcomes.filter((o) => o.errors.length > 0);
     for (const f of failed) {
       console.error(`\nFAIL ${f.id}`);

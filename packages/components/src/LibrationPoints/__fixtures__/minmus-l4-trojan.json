@@ -1,0 +1,119 @@
+{
+  "_meta": {
+    "capturedAt": "2026-09-29",
+    "vessel": "Minmus Trojan Probe",
+    "body": "Kerbin",
+    "situation": "A probe sharing Minmus's orbit 60 degrees ahead of it, at the Kerbin-Minmus L4 point",
+    "notes": "The craft's elements are Minmus's own with the mean anomaly advanced by a sixth of a turn, so it sits on the leading triangular point and stays there."
+  },
+  "_stream": {
+    "pinnedUt": 0,
+    "emits": [
+      {
+        "channel": "system.bodies",
+        "value": {
+          "bodies": [
+            {
+              "index": 0,
+              "name": "Kerbol",
+              "parentIndex": null,
+              "radius": 261600000,
+              "gravParameter": 1.1723328e18,
+              "sphereOfInfluence": null,
+              "orbit": null
+            },
+            {
+              "index": 1,
+              "name": "Kerbin",
+              "parentIndex": 0,
+              "radius": 600000,
+              "gravParameter": 3531600000000.0,
+              "sphereOfInfluence": 84159286,
+              "isHome": true,
+              "hasOcean": true,
+              "atmosphere": {
+                "depth": 70000,
+                "hasOxygen": true,
+                "seaLevelPressure": 101.325
+              },
+              "orbit": {
+                "sma": 13599840256,
+                "ecc": 0,
+                "inc": 0,
+                "lan": 0,
+                "argPe": 0,
+                "meanAnomalyAtEpoch": 3.14,
+                "epoch": 0
+              }
+            },
+            {
+              "index": 2,
+              "name": "Mun",
+              "parentIndex": 1,
+              "radius": 200000,
+              "gravParameter": 65138398000,
+              "sphereOfInfluence": 2429559,
+              "tidallyLocked": true,
+              "orbit": {
+                "sma": 12000000,
+                "ecc": 0,
+                "inc": 0,
+                "lan": 0,
+                "argPe": 0,
+                "meanAnomalyAtEpoch": 1.7,
+                "epoch": 0
+              }
+            },
+            {
+              "index": 3,
+              "name": "Minmus",
+              "parentIndex": 1,
+              "radius": 60000,
+              "gravParameter": 1765800000,
+              "sphereOfInfluence": 2247428,
+              "tidallyLocked": false,
+              "orbit": {
+                "sma": 47000000,
+                "ecc": 0,
+                "inc": 6.0,
+                "lan": 78,
+                "argPe": 38,
+                "meanAnomalyAtEpoch": 0.9,
+                "epoch": 0
+              }
+            }
+          ]
+        }
+      },
+      {
+        "channel": "vessel.identity",
+        "value": {
+          "vesselId": "Minmus Trojan Probe",
+          "name": "Minmus Trojan Probe",
+          "vesselType": 0,
+          "situation": 3,
+          "parentBodyIndex": 1,
+          "launchUt": null
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 47000000,
+          "ecc": 0,
+          "inc": 6.0,
+          "lan": 78,
+          "argPe": 38,
+          "meanAnomalyAtEpoch": 1.9471975511965978,
+          "epoch": 0,
+          "mu": 3531600000000.0,
+          "horizon": {
+            "kind": 1,
+            "trajectoryKind": 1
+          }
+        }
+      }
+    ]
+  }
+}

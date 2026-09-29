@@ -1,0 +1,116 @@
+import {
+  Badge,
+  Button,
+  Cluster,
+  GhostButton,
+  Inline,
+  Stack,
+  Text,
+  Truncate,
+} from "@ksp-gonogo/ui-kit";
+import type { Meta, StoryObj } from "@storybook/react-vite";
+import type { ReactNode } from "react";
+import { withGonogoFrame } from "../../frame";
+
+function Column({ children }: { children: ReactNode }) {
+  return <div style={{ width: 360 }}>{children}</div>;
+}
+
+const meta = {
+  title: "ui-kit/Inline",
+  component: Inline,
+  decorators: [
+    (Story) => (
+      <Column>
+        <Story />
+      </Column>
+    ),
+    withGonogoFrame,
+  ],
+} satisfies Meta<typeof Inline>;
+
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+/** A vessel's status badges held together as one run that never yields width to the name beside it. */
+export const BesideTruncatingName: Story = {
+  render: () => (
+    <Cluster>
+      <Truncate>Mun Orbital Science Platform Mk II</Truncate>
+      <Inline>
+        <Badge severity="nominal">Orbiting</Badge>
+        <Badge severity="caution">Low EC</Badge>
+        <Badge>3 crew</Badge>
+      </Inline>
+    </Cluster>
+  ),
+};
+
+/** A badge run followed by an action run, set apart by `inset`. */
+export const Inset: Story = {
+  render: () => (
+    <Cluster>
+      <Text weight="semibold">Kerbal X</Text>
+      <span>
+        <Inline>
+          <Badge severity="warning">Burn in 2 min</Badge>
+        </Inline>
+        <Inline inset>
+          <GhostButton type="button" onClick={() => {}}>
+            Warp
+          </GhostButton>
+          <Button type="button" onClick={() => {}}>
+            Focus
+          </Button>
+        </Inline>
+      </span>
+    </Cluster>
+  ),
+};
+
+const BODIES = ["Kerbin", "Mun", "Minmus", "Duna", "Ike", "Eve", "Jool"];
+
+/** A data-driven run that wraps, so a long list breaks inside a narrow column. */
+export const Wrap: Story = {
+  decorators: [
+    (Story) => (
+      <div
+        style={{ width: 200, border: "1px dashed var(--color-border-subtle)" }}
+      >
+        <Story />
+      </div>
+    ),
+  ],
+  args: {
+    wrap: true,
+    children: BODIES.map((body) => <Badge key={body}>{body}</Badge>),
+  },
+};
+
+/** The same run without `wrap`: one unbreakable line that runs past the column. */
+export const NoWrap: Story = {
+  decorators: Wrap.decorators,
+  args: { ...Wrap.args, wrap: false },
+};
+
+/** Gap jobs on the same run of badges. */
+export const Gaps: Story = {
+  render: () => (
+    <Stack gap="section">
+      {(["related-packed", "related-dense", "related", "section"] as const).map(
+        (gap) => (
+          <Stack key={gap} gap="caption">
+            <Text size="xs" tone="faint">
+              gap={gap}
+            </Text>
+            <Inline gap={gap}>
+              <Badge severity="nominal">GO</Badge>
+              <Badge severity="caution">HOLD</Badge>
+              <Badge severity="critical">NO-GO</Badge>
+            </Inline>
+          </Stack>
+        ),
+      )}
+    </Stack>
+  ),
+};

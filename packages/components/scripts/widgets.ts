@@ -1957,6 +1957,57 @@ const WIDGETS: WidgetRenderConfig[] = [
       { name: "compact-4x7", w: 4, h: 7 },
     ],
   },
+  {
+    /*
+     * The pair is the widget's one control and Auto follows the craft, so each
+     * scene's default mode saves the pair it is about, at a size where the
+     * diagram is readable. The unscoped modes run every scene on Auto, which is
+     * what a freshly placed tile shows.
+     */
+    widgetId: "libration-points",
+    fixturesPath: "LibrationPoints/__fixtures__",
+    outPath: "renders/libration-points-widget",
+    modes: [
+      {
+        name: "default-mun-10x14",
+        w: 10,
+        h: 14,
+        config: { pair: "Mun" },
+        forFixtures: [
+          "mun-l1-holding-station",
+          "mun-l2-drifting",
+          "mun-l2-path-withheld",
+          "kerbin-mun-no-craft",
+        ],
+      },
+      {
+        name: "default-minmus-10x14",
+        w: 10,
+        h: 14,
+        config: { pair: "Minmus" },
+        forFixtures: ["minmus-l4-trojan"],
+      },
+      {
+        name: "default-auto-10x14",
+        w: 10,
+        h: 14,
+        forFixtures: ["low-kerbin-orbit"],
+      },
+      {
+        name: "default-kerbol-10x14",
+        w: 10,
+        h: 14,
+        config: { pair: "Kerbol" },
+        forFixtures: ["kerbol-orbits-nothing"],
+      },
+      // The registered default size, where the readout labels are at their tightest.
+      { name: "registered-6x10", w: 6, h: 10 },
+      { name: "wide-14x10", w: 14, h: 10 },
+      { name: "min-4x7", w: 4, h: 7 },
+      // The wide-short extreme at this widget's minSize height, where the shared 18x5 falls below it.
+      { name: "landscape-18x7", w: 18, h: 7 },
+    ],
+  },
 ];
 
 /**

@@ -1,22 +1,18 @@
 import { railTagsForCommand, value } from "@ksp-gonogo/sitrep-sdk";
 import type {
-  AugmentSlot,
   CommandButton,
   CommandButtonHandle,
   CommandGroup,
   Countdown,
   Dial,
-  DivergingBar,
   Gauge,
   LineGraph,
   MissionDate,
-  ModelledAlongside,
   ReadOnlyField,
   ReckonedUnit,
   Stepper,
   Tape,
   UnitInput,
-  WidgetScopeProvider,
 } from "@ksp-gonogo/ui-kit";
 import type { ComponentProps } from "react";
 import { absent, held, live, pending } from "./readings";
@@ -116,20 +112,6 @@ export const UI_KIT_PRESETS = {
       },
     },
   ] satisfies Presets<ComponentProps<typeof Tape>>,
-  DivergingBar: [
-    {
-      name: "Positive",
-      args: { value: live("m/s", 4.2), maxAbs: value("m/s", 10) },
-    },
-    {
-      name: "Negative",
-      args: { value: live("m/s", -6.8), maxAbs: value("m/s", 10) },
-    },
-    {
-      name: "Held",
-      args: { value: held("m/s", 4.2), maxAbs: value("m/s", 10) },
-    },
-  ] satisfies Presets<ComponentProps<typeof DivergingBar>>,
   Countdown: [
     { name: "Live", args: { value: live("s", 754), clock: true } },
     { name: "Held", args: { value: held("s", 754), clock: true } },
@@ -149,12 +131,6 @@ export const UI_KIT_PRESETS = {
     },
     { name: "Held", args: { value: held("m", 71_420) } },
   ] satisfies Presets<ComponentProps<typeof ReckonedUnit>>,
-  ModelledAlongside: [
-    {
-      name: "Apart",
-      args: { observed: 20, modelled: 17, write: (figure) => String(figure) },
-    },
-  ] satisfies Presets<ComponentProps<typeof ModelledAlongside>>,
   LineGraph: [
     {
       name: "Two series",
@@ -236,23 +212,6 @@ export const UI_KIT_PRESETS = {
       },
     },
   ] satisfies Presets<ComponentProps<typeof CommandButton>>,
-  WidgetScopeProvider: [
-    {
-      name: "Scoped",
-      args: {
-        widget: "resource-ops",
-        scope: {},
-        children: "WidgetScopeProvider",
-      },
-    },
-  ] satisfies Presets<ComponentProps<typeof WidgetScopeProvider>>,
-  AugmentSlot: [
-    {
-      name: "Empty slot",
-      // The props type is per slot, and a story typed against every slot at once reads it as never.
-      args: { name: "resource-ops.sections", props: {} as never },
-    },
-  ] satisfies Presets<ComponentProps<typeof AugmentSlot>>,
 };
 
 export type PresetName = keyof typeof UI_KIT_PRESETS;

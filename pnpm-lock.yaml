@@ -682,6 +682,9 @@ importers:
       '@storybook/react-vite':
         specifier: 10.6.0
         version: 10.6.0(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(rollup@4.60.1)(storybook@10.6.0(@types/react@18.3.28)(react@18.3.1))(typescript@5.9.3)(vite@6.4.2(@types/node@22.19.17)(tsx@4.21.0)(yaml@2.9.0))
+      '@types/pngjs':
+        specifier: ^6.0.5
+        version: 6.0.5
       '@types/react':
         specifier: ^18.3.28
         version: 18.3.28
@@ -694,6 +697,9 @@ importers:
       playwright:
         specifier: ^1.60.0
         version: 1.60.0
+      pngjs:
+        specifier: ^7.0.0
+        version: 7.0.0
       storybook:
         specifier: 10.6.0
         version: 10.6.0(@types/react@18.3.28)(react@18.3.1)
