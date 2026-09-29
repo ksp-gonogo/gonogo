@@ -7,10 +7,8 @@ import {
   GoNoGoHostService,
   type Vote,
 } from "../../app/src/goNoGo/GoNoGoHostService";
-import { PeerClientProvider } from "../../app/src/peer/PeerClientContext";
-import type { PeerClientService } from "../../app/src/peer/PeerClientService";
 import { initSoundSettings } from "../../app/src/sound/soundSettings";
-import { AppWidgetScene, type ScenePress } from "./AppWidgetScene";
+import { AppWidgetScene } from "./AppWidgetScene";
 
 /*
  * Silenced for every story: the countdown blips each second and an abort
@@ -166,82 +164,11 @@ export function GoNoGoMainScene(props: GoNoGoMainSceneProps) {
   );
 }
 
-/** The part of the peer client a station's button uses, driven by the scene. */
-class ScenePeerClient {
-  private abortNotify = new Set<(stationName: string, at: number) => void>();
-
-  constructor(private readonly countdownFor: number | undefined) {}
-
-  sendGonogoVote = () => {};
-  sendGonogoAbort = () => {};
-  onHostHello = () => () => {};
-  onHostRestart = () => () => {};
-  onGonogoCountdownCancel = () => () => {};
-
-  onGonogoCountdownStart = (cb: (t0Ms: number) => void) => {
-    if (this.countdownFor !== undefined)
-      cb(Date.now() + this.countdownFor * 1000);
-    return () => {};
-  };
-
-  onGonogoAbortNotify = (cb: (stationName: string, at: number) => void) => {
-    this.abortNotify.add(cb);
-    return () => this.abortNotify.delete(cb);
-  };
-
-  /** The host relaying who aborted, as it does to every station. */
-  notifyAbort(stationName: string): void {
-    for (const cb of this.abortNotify) cb(stationName, Date.now());
-  }
-}
-
-export interface GoNoGoStationSceneProps {
-  /** Past liftoff, so the button has become ABORT. */
-  launched?: boolean;
-  /** Seconds left on a countdown the host has started. */
-  countdownFrom?: number;
-  /** The station the host says aborted, once launched. */
-  abortedBy?: string;
-  /** Controls pressed once mounted, such as the vote itself. */
-  presses?: readonly ScenePress[];
-  w: number;
-  h: number;
-}
-
-/** A station's button, connected to a host that relays countdowns and aborts. */
-export function GoNoGoStationScene(props: GoNoGoStationSceneProps) {
-  const { launched = false, countdownFrom, abortedBy, presses, w, h } = props;
-  const scene = useMemo(() => {
-    const client = new ScenePeerClient(countdownFrom);
-    const wrap = (tree: ReactNode) => (
-      <ScreenProvider value="station">
-        <PeerClientProvider client={client as unknown as PeerClientService}>
-          {tree}
-        </PeerClientProvider>
-      </ScreenProvider>
-    );
-    return { client, wrap };
-  }, [countdownFrom]);
-  const fixture = useMemo(() => vesselStream(launched), [launched]);
-
-  // A station drops an abort notice while it is still on the pad, so the relay waits for the button to become ABORT.
-  const onDriven = async (_mount: unknown, root: HTMLElement) => {
-    if (abortedBy === undefined) return;
-    const deadline = Date.now() + 3_000;
-    while (!root.textContent?.includes("ABORT") && Date.now() < deadline) {
-      await new Promise((resolve) => requestAnimationFrame(resolve));
-    }
-    scene.client.notifyAbort(abortedBy);
-  };
-  return (
-    <AppWidgetScene
-      widgetId="gonogo"
-      fixture={fixture}
-      w={w}
-      h={h}
-      wrap={scene.wrap}
-      presses={presses}
-      onDriven={onDriven}
-    />
-  );
-}
+/*
+ * The station-side scene (GoNoGoStationScene) is deliberately absent: its
+ * fixture needed `PeerClientService`, a 33-private-field concrete class, and
+ * the only way to stand a fixture in for it was `as unknown as`, a new
+ * zero-ceiling unknown-cast violation with no contained fix. It returns once
+ * `usePeerClient()`/`PeerClientProvider` are typed against a narrow
+ * interface instead of the concrete class.
+ */

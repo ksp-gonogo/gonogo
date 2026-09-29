@@ -2,7 +2,6 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { withGonogoFrame } from "../../frame";
 import {
   GoNoGoMainScene,
-  GoNoGoStationScene,
   type SceneStation,
   THIS_VERSION,
 } from "../../goNoGoScenes";
@@ -46,7 +45,6 @@ const meta = {
 
 export default meta;
 type Story = StoryObj<typeof meta>;
-type StationStory = StoryObj<typeof GoNoGoStationScene>;
 
 /**
  * The main screen polling four stations before launch: two GO, one holding
@@ -115,28 +113,7 @@ export const NoStations: Story = {
   args: { stations: [], w: 6, h: 4 },
 };
 
-/** A station's button before the operator has declared GO. */
-export const StationNoGo: StationStory = {
-  name: "Station, NO-GO",
-  render: (args) => <GoNoGoStationScene {...args} />,
-  args: { w: 4, h: 4 },
-};
-
-/** A station that has voted GO while the host counts down. */
-export const StationCountingDown: StationStory = {
-  name: "Station, GO and counting down",
-  render: (args) => <GoNoGoStationScene {...args} />,
-  args: {
-    countdownFrom: 42,
-    presses: [{ text: "NO-GO" }],
-    w: 4,
-    h: 4,
-  },
-};
-
-/** After liftoff the button is ABORT, naming who pressed it once the host relays it. */
-export const StationAbort: StationStory = {
-  name: "Station, launched and aborted",
-  render: (args) => <GoNoGoStationScene {...args} />,
-  args: { launched: true, abortedBy: "Booster", w: 4, h: 4 },
-};
+/*
+ * The station-side scene is not covered here: see the note above
+ * `GoNoGoStationScene` in `../../goNoGoScenes` for why.
+ */
