@@ -544,7 +544,7 @@ namespace Sitrep.Host.Tests
             {
                 Enums = new Dictionary<string, string[]>
                 {
-                    ["Staleness"] = new[] { "Fresh:0", "HeldStale:1", "LastBeforeBlackout:2" },
+                    ["Staleness"] = new[] { "Fresh:0", "Held:1", "LastBeforeBlackout:2" },
                 },
             };
 
@@ -553,22 +553,22 @@ namespace Sitrep.Host.Tests
             {
                 Enums = new Dictionary<string, string[]>
                 {
-                    ["Staleness"] = new[] { "Current:0", "HeldStale:1", "LastBeforeBlackout:2" },
+                    ["Staleness"] = new[] { "Current:0", "Held:1", "LastBeforeBlackout:2" },
                 },
             };
             Assert.Equal(new[] { "enum-member-removed:Staleness.Fresh:0" }, ComputeRemovals(floor, renamed));
 
             // Renumbered: "Fresh" keeps its name but swaps value with
-            // "HeldStale": a wire break even though no name changed.
+            // "Held": a wire break even though no name changed.
             var renumbered = new Shape
             {
                 Enums = new Dictionary<string, string[]>
                 {
-                    ["Staleness"] = new[] { "Fresh:1", "HeldStale:0", "LastBeforeBlackout:2" },
+                    ["Staleness"] = new[] { "Fresh:1", "Held:0", "LastBeforeBlackout:2" },
                 },
             };
             Assert.Equal(
-                new[] { "enum-member-removed:Staleness.Fresh:0", "enum-member-removed:Staleness.HeldStale:1" },
+                new[] { "enum-member-removed:Staleness.Fresh:0", "enum-member-removed:Staleness.Held:1" },
                 ComputeRemovals(floor, renumbered));
 
             // Whole enum removed.
@@ -579,7 +579,7 @@ namespace Sitrep.Host.Tests
             {
                 Enums = new Dictionary<string, string[]>
                 {
-                    ["Staleness"] = new[] { "Fresh:0", "HeldStale:1", "LastBeforeBlackout:2", "Quarantined:3" },
+                    ["Staleness"] = new[] { "Fresh:0", "Held:1", "LastBeforeBlackout:2", "Quarantined:3" },
                     ["BrandNewEnum"] = new[] { "Only:0" },
                 },
             };

@@ -105,11 +105,11 @@ namespace Sitrep.Contract
         /// channel simply goes quiet.
         ///
         /// <para>Silence is what the client's staleness machinery is built to
-        /// read. Missed keyframes take the topic to the <c>stale</c> arm of
+        /// read. Missed keyframes take the topic to the <c>held</c> arm of
         /// <c>Reading</c>, carrying the last real observation and the UT it was
         /// made at, and a subscriber that connects during the silence is served
         /// the same last sample out of the archive stamped
-        /// <see cref="Staleness.HeldStale"/>. A tombstone would instead assert
+        /// <see cref="Staleness.Held"/>. A tombstone would instead assert
         /// that the subject has no value, which for <c>career.facilities</c>
         /// means telling an operator in orbit that the space centre they built
         /// has no buildings.</para>

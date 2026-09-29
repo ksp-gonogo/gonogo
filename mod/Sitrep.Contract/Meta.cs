@@ -27,7 +27,7 @@ public enum Quality
 /// the rest from its own heartbeat tracking).
 ///
 /// <para><see cref="Fresh"/> is a sample delivered on its own schedule.
-/// <see cref="HeldStale"/> and <see cref="LastBeforeBlackout"/> are catch-up
+/// <see cref="Held"/> and <see cref="LastBeforeBlackout"/> are catch-up
 /// grades for a late or reconnecting subscriber.
 /// <see cref="Recorded"/> is different in kind from all three: the sample is
 /// EXACT as of its own <see cref="Meta.ValidAt"/>, it simply did not travel at
@@ -52,7 +52,7 @@ public enum Staleness
     /// Sent to a subscriber that joined while contact was lost, and taken after contact
     /// was lost.
     /// </summary>
-    HeldStale,
+    Held,
     /// <summary>
     /// Sent to a subscriber that joined while contact was lost: the last sample that
     /// got out before contact was lost.

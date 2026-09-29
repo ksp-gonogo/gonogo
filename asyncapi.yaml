@@ -18436,13 +18436,13 @@ components:
         the rest from its own heartbeat tracking).
 
         `Staleness.Fresh` is a sample delivered on its own schedule.
-        `Staleness.HeldStale` and `Staleness.LastBeforeBlackout` are catch-up grades
-        for a late or reconnecting subscriber. `Staleness.Recorded` is different in
-        kind from all three: the sample is EXACT as of its own `Meta.validAt`, it
-        simply did not travel at the time it was taken. It was held aboard through a
-        loss of signal and dumped on acquisition, so it arrives long after the
-        instant it describes, and its `Meta.deliveredAt` is the real arrival, not
-        `validAt + light-time`.
+        `Staleness.Held` and `Staleness.LastBeforeBlackout` are catch-up grades for
+        a late or reconnecting subscriber. `Staleness.Recorded` is different in kind
+        from all three: the sample is EXACT as of its own `Meta.validAt`, it simply
+        did not travel at the time it was taken. It was held aboard through a loss
+        of signal and dumped on acquisition, so it arrives long after the instant it
+        describes, and its `Meta.deliveredAt` is the real arrival, not `validAt +
+        light-time`.
       x-sitrep-enum-kind: ordinal
       oneOf:
         - const: 0
@@ -18451,7 +18451,7 @@ components:
             Delivered on its own schedule. An old `validAt` on a Topic that sends only
             on change is still fresh.
         - const: 1
-          title: HeldStale
+          title: Held
           description: |-
             Sent to a subscriber that joined while contact was lost, and taken after
             contact was lost.

@@ -959,7 +959,7 @@ export class TimelineStore {
     if (point.epoch > priorEpoch) {
       // Rewind confirmed by THIS point: clear heartbeat history BEFORE
       // recording its own arrival below, so a pre-reset expectation can
-      // never wrongly flag (or wrongly clear) a HeldStale during the
+      // never wrongly flag (or wrongly clear) a Held grade during the
       // resynchronizing period that follows. This point's own arrival still
       // counts as a fresh heartbeat for its topic once the clear has run.
       this.heartbeats.reset();
@@ -3085,7 +3085,7 @@ export class TimelineStore {
       return "last-before-blackout";
     }
     if (point.meta.staleness === Staleness.Recorded) return "recorded";
-    if (point.meta.staleness === Staleness.HeldStale) return "held";
+    if (point.meta.staleness === Staleness.Held) return "held";
     if (!this.transportConnected) return "disconnected";
     return this.heartbeats.isOverdue(
       topic,

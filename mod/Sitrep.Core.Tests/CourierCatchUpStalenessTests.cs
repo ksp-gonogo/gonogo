@@ -82,7 +82,7 @@ namespace Sitrep.Core.Tests
         }
 
         [Fact]
-        public void CatchUpServedWhileLinkIsMarkedDownIsHeldStaleWhenTheServedSampleIsAfterTheKnownBlackoutStart()
+        public void CatchUpServedWhileLinkIsMarkedDownIsHeldWhenTheServedSampleIsAfterTheKnownBlackoutStart()
         {
             var clock = new ManualClock();
             var network = new StubNetwork();
@@ -102,7 +102,7 @@ namespace Sitrep.Core.Tests
             courier.SubscribeStream("system", "bodies", "MissionControl", lateJoiner.Add);
 
             Assert.Single(lateJoiner);
-            Assert.Equal(Staleness.HeldStale, lateJoiner[0].Meta.Staleness);
+            Assert.Equal(Staleness.Held, lateJoiner[0].Meta.Staleness);
         }
 
         [Fact]

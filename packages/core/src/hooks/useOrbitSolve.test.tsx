@@ -234,7 +234,7 @@ describe("useOrbitSolve", () => {
         {
           quality: Quality.Loaded,
           source: "vessel:1",
-          staleness: Staleness.HeldStale,
+          staleness: Staleness.Held,
         },
       );
     });

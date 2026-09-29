@@ -15,7 +15,7 @@ import { ResourceOpsComponent } from "./index";
  * When an `isru.*` channel goes stale the rigs stay drawn and every figure on
  * them is withheld, and each case pairs "the figure is gone" with "the reason
  * is on screen". A single-channel staleness is server-stamped, so that case
- * emits `Staleness.HeldStale` on `isru.drills` rather than dropping the transport.
+ * emits `Staleness.Held` on `isru.drills` rather than dropping the transport.
  */
 
 const DRILLS = [
@@ -196,7 +196,7 @@ describe("ResourceOps when an isru channel is held", () => {
     expect(await screen.findByText("Drill-O-Matic")).toBeInTheDocument();
 
     act(() => {
-      fixture.emit("isru.drills", DRILLS, { staleness: Staleness.HeldStale });
+      fixture.emit("isru.drills", DRILLS, { staleness: Staleness.Held });
       fixture.emit("isru.converters", CONVERTERS);
     });
 

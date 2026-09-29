@@ -26,6 +26,7 @@ const OLD_WORD = ["ST", "ALE"].join("");
 const OLD_STATE = ["st", "ale"].join("");
 const OLD_GRADE = ["held", OLD_STATE].join("-");
 const OLD_TYPE = ["Stale", "Grade"].join("");
+const OLD_MEMBER = ["Held", "Stale"].join("");
 
 const RESULT = scanHeldVocabulary();
 
@@ -82,6 +83,7 @@ describe("design-system: held vocabulary", () => {
       [
         `expect(label).toBe("${WORD}");`,
         `const grade: ${OLD_TYPE} = "${OLD_GRADE}";`,
+        `const meta = { staleness: Staleness.${OLD_MEMBER} };`,
       ].join("\n"),
     );
     plant("packages/components/src/Planted/clean.ts", "export const y = 1;\n");
@@ -109,6 +111,9 @@ describe("design-system: held vocabulary", () => {
     );
     expect(verdict).toContain(
       "[state] packages/components/src/Planted/index.test.tsx:2",
+    );
+    expect(verdict).toContain(
+      "[state] packages/components/src/Planted/index.test.tsx:3",
     );
     // A test asserting the word the kit prints is not writing a label.
     expect(verdict).not.toContain(

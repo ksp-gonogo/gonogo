@@ -376,7 +376,7 @@ function flightEmit(frame: Frame, offset: number, newest: boolean): Emit {
       deliveredAt: validAt,
       /*
        * Only the NEWEST point's staleness is read, and it has to say
-       * `HeldStale` (1): `atmosphericAdmissibility`'s first withdrawal is "the
+       * `Held` (1): `atmosphericAdmissibility`'s first withdrawal is "the
        * observation is current, so there is no gap to carry it across", so a
        * Fresh anchor gets no model at all and the whole set would render as six
        * live boards.

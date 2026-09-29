@@ -121,7 +121,7 @@ describe("useWidgetStreamStatus", () => {
       transport.emit(
         "vessel.orbit",
         { sma: 680_000 },
-        { staleness: Staleness.HeldStale },
+        { staleness: Staleness.Held },
       );
     });
     await screen.findByText("vessel.orbit:held");

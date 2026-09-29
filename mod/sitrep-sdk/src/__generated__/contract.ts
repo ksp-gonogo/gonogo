@@ -3512,13 +3512,13 @@ export enum Quality {
 * the rest from its own heartbeat tracking).
 *
 * `Staleness.Fresh` is a sample delivered on its own schedule.
-* `Staleness.HeldStale` and `Staleness.LastBeforeBlackout` are catch-up grades
-* for a late or reconnecting subscriber. `Staleness.Recorded` is different in
-* kind from all three: the sample is EXACT as of its own `Meta.validAt`, it
-* simply did not travel at the time it was taken. It was held aboard through a
-* loss of signal and dumped on acquisition, so it arrives long after the
-* instant it describes, and its `Meta.deliveredAt` is the real arrival, not
-* `validAt + light-time`.
+* `Staleness.Held` and `Staleness.LastBeforeBlackout` are catch-up grades for
+* a late or reconnecting subscriber. `Staleness.Recorded` is different in kind
+* from all three: the sample is EXACT as of its own `Meta.validAt`, it simply
+* did not travel at the time it was taken. It was held aboard through a loss
+* of signal and dumped on acquisition, so it arrives long after the instant it
+* describes, and its `Meta.deliveredAt` is the real arrival, not `validAt +
+* light-time`.
 *
 * @category Stream messages
 */
@@ -3532,7 +3532,7 @@ export enum Staleness {
 	* Sent to a subscriber that joined while contact was lost, and taken after
 	* contact was lost.
 	*/
-	HeldStale = 1,
+	Held = 1,
 	/**
 	* Sent to a subscriber that joined while contact was lost: the last sample
 	* that got out before contact was lost.

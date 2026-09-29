@@ -11,7 +11,7 @@ import { TargetingComponent } from "./index";
  * arriving. With a model the reticle draws from reckoned geometry under a
  * caption naming the basis; without one it is withheld and says so. The
  * assertions are on the stated reason in both cases, never on the absence. Emits stamp
- * `Staleness.HeldStale` on the dock point, the wire shape for one channel not
+ * `Staleness.Held` on the dock point, the wire shape for one channel not
  * being current.
  */
 afterEach(() => {
@@ -92,7 +92,7 @@ describe("Targeting: the dock channel alone stops being current", () => {
           distance: 62,
           forwardDot: 0.9999,
         },
-        { validAt: PINNED_UT - 8, staleness: Staleness.HeldStale },
+        { validAt: PINNED_UT - 8, staleness: Staleness.Held },
       );
       emitTarget(PINNED_UT);
     });
@@ -128,7 +128,7 @@ describe("Targeting: the dock channel alone stops being current", () => {
           distance: 62,
           forwardDot: 0.9999,
         },
-        { validAt: PINNED_UT - 8, staleness: Staleness.HeldStale },
+        { validAt: PINNED_UT - 8, staleness: Staleness.Held },
       );
       emitTarget(PINNED_UT);
     });

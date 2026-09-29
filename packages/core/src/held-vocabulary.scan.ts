@@ -14,7 +14,7 @@ import { trackedSources } from "./else-if.scan";
  *   product source. A widget draws the grade through that mapping, so the word
  *   cannot drift from the badge on the panel it sits in
  * - a `state`: the retired spellings of the Reading state and its grade
- *   (`"stale"`, `"held-stale"`, `StaleGrade`) anywhere in the tree, tests
+ *   (`"stale"`, `"held-stale"`, `StaleGrade`, `Staleness.HeldStale`) anywhere in the tree, tests
  *   included, where a string would still compile against a loosely typed
  *   fixture
  *
@@ -31,7 +31,7 @@ const OPERATOR_WORD = /\b(HELD|STALE)\b/;
 /** Assembled, so the scan's own source is not a hit on itself. */
 const OLD_STATE = ["st", "ale"].join("");
 const RETIRED_LITERALS = new Set([OLD_STATE, `held-${OLD_STATE}`]);
-const RETIRED_IDENTIFIERS = new Set(["Stale" + "Grade"]);
+const RETIRED_IDENTIFIERS = new Set(["Stale" + "Grade", "Held" + "Stale"]);
 
 export type HeldVocabularyKind = "label" | "state";
 

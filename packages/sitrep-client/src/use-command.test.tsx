@@ -1527,7 +1527,7 @@ describe("useCommand delay reading", () => {
       fixture.transport.emit(
         "comms.delay",
         { source: 1, oneWaySeconds: 240 },
-        { validAt: 0, deliveredAt: 0, staleness: Staleness.HeldStale },
+        { validAt: 0, deliveredAt: 0, staleness: Staleness.Held },
       );
     });
     await waitFor(() => {

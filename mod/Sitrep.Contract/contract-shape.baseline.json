@@ -23089,8 +23089,9 @@
     },
     {
       "Major": 19,
-      "Note": "One error vocabulary with string ids. CommandErrorCode stops being an integer enum and becomes the closed set of root refusal codes, which a producer can refine and an Uplink can extend under its own id; errorCode on CommandResult and GateVerdict is the root's id and is omitted on success, with a refinement's id beside it as reason. None and Unknown are gone and Timeout is now the mainThreadTimeout fault, since nothing was decided. ErrorMsg.code is a declared FaultCode with camelCase values, and RepairOutcome.Refusal gives way to the repair.* refinements on reason. Also C# seam breaks, declared in SeamBreaks. And a host mod's own settings leave Gonogo's settings model: SettingsModel.ModSettings and ModSettingState, added on the 18 line after its floor was frozen, are removed, replaced by one settings.<uplink> topic per Uplink that lists them (ModSettingsModel) and the settings.mod.write command.",
+      "Note": "One error vocabulary with string ids. CommandErrorCode stops being an integer enum and becomes the closed set of root refusal codes, which a producer can refine and an Uplink can extend under its own id; errorCode on CommandResult and GateVerdict is the root's id and is omitted on success, with a refinement's id beside it as reason. None and Unknown are gone and Timeout is now the mainThreadTimeout fault, since nothing was decided. ErrorMsg.code is a declared FaultCode with camelCase values, and RepairOutcome.Refusal gives way to the repair.* refinements on reason. Also C# seam breaks, declared in SeamBreaks. And a host mod's own settings leave Gonogo's settings model: SettingsModel.ModSettings and ModSettingState, added on the 18 line after its floor was frozen, are removed, replaced by one settings.<uplink> topic per Uplink that lists them (ModSettingsModel) and the settings.mod.write command. And Staleness.HeldStale is Staleness.Held, the grade a client reads as held, on the same wire value.",
       "Breaks": [
+        "enum-member-removed:Sitrep.Contract.Staleness.HeldStale:1",
         "enum-removed:Sitrep.Contract.CommandErrorCode",
         "member-removed:Sitrep.Contract.CommandResult.ErrorCode:Sitrep.Contract.CommandErrorCode",
         "member-removed:Sitrep.Contract.ErrorMsg.Code:System.String",
@@ -25007,7 +25008,7 @@
           ],
           "Sitrep.Contract.Staleness": [
             "Fresh:0",
-            "HeldStale:1",
+            "Held:1",
             "LastBeforeBlackout:2",
             "Recorded:3"
           ],

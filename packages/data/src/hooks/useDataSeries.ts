@@ -48,7 +48,7 @@ function stalenessToStreamStatus(
 /**
  * Contiguous runs of stamped, non-live samples, as inclusive index ranges.
  *
- * `Staleness.HeldStale` is deliberately not among them: it is a claim about
+ * `Staleness.Held` is deliberately not among them: it is a claim about
  * the newest reading's currency, not about the provenance of a span of
  * history, so a run named with it would state something the wire never did.
  * `recorded` and `last-before-blackout` are per-sample facts about where the

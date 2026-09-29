@@ -59,7 +59,7 @@ import { WebSocketServer } from "ws";
 
 const PORT = Number.parseInt(process.env.SITREP_REPLAY_PORT ?? "8090", 10);
 
-// Quality: OnRails=0, Loaded=1. Staleness: Fresh=0, HeldStale=1, LastBeforeBlackout=2.
+// Quality: OnRails=0, Loaded=1. Staleness: Fresh=0, Held=1, LastBeforeBlackout=2.
 // PayloadMeta (inner, per-record) is a subset: { source, quality }.
 //
 // Quality is OnRails, not Loaded: the orbit solve behind the apsis, period

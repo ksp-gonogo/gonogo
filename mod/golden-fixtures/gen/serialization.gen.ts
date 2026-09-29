@@ -109,7 +109,7 @@ const metaNormal: Meta = {
   timelineEpoch: 0,
 };
 
-// A second Meta shape with the non-default enum values (Loaded / HeldStale)
+// A second Meta shape with the non-default enum values (Loaded / Held)
 // and a non-zero timelineEpoch, so the fixtures exercise more than one point
 // in each field's range. Meta carries no optional fields, so every field is
 // always present on the wire.
@@ -121,7 +121,7 @@ const metaLoaded: Meta = {
   vantage: "KSC",
   quality: Quality.Loaded,
   active: false,
-  staleness: Staleness.HeldStale,
+  staleness: Staleness.Held,
   timelineEpoch: 3,
 };
 

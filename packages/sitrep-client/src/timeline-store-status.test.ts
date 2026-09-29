@@ -71,7 +71,7 @@ describe("TimelineStore.sampleStatus (M2 T4: staleness/absence surface)", () => 
   });
 
   describe("server-stamped meta.staleness wins outright", () => {
-    it("Staleness.HeldStale on the latest point -> 'held' even with on-time heartbeats", () => {
+    it("Staleness.Held on the latest point -> 'held' even with on-time heartbeats", () => {
       const clock = new ViewClock({
         delaySeconds: () => 0,
         warpRate: () => 1,
@@ -80,7 +80,7 @@ describe("TimelineStore.sampleStatus (M2 T4: staleness/absence surface)", () => 
 
       store.ingest(
         "vessel.target",
-        point(10, 1, { staleness: Staleness.HeldStale }),
+        point(10, 1, { staleness: Staleness.Held }),
       );
       store.beginFrame();
 
@@ -144,7 +144,7 @@ describe("TimelineStore.sampleStatus (M2 T4: staleness/absence surface)", () => 
     });
   });
 
-  describe("the trap: heartbeat-inferred HeldStale, never validAt age", () => {
+  describe("the trap: heartbeat-inferred Held, never validAt age", () => {
     it("a change-gated topic whose value never changes (frozen validAt) stays 'live' as long as keyframe heartbeats (deliveredAt) keep arriving on cadence", () => {
       const clock = new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
       const store = new TimelineStore(clock, {
@@ -386,7 +386,7 @@ describe("a derived channel's default status: worst of its declared inputs, thro
 
   it("carries its input's held status, on the channel and on its field subtopic", () => {
     const store = systemStore();
-    store.ingest("system.bodies", recordPoint(10, BODIES, Staleness.HeldStale));
+    store.ingest("system.bodies", recordPoint(10, BODIES, Staleness.Held));
     store.beginFrame();
 
     expect(store.sampleStatus("system.state")).toBe("held");
@@ -424,7 +424,7 @@ describe("a derived channel's default status: worst of its declared inputs, thro
     store.ingest("dv.stages", recordPoint(10, [{ stage: 0, resources: {} }]));
     store.ingest(
       "vessel.structure",
-      recordPoint(10, { currentStage: 0 }, Staleness.HeldStale),
+      recordPoint(10, { currentStage: 0 }, Staleness.Held),
     );
     store.beginFrame();
 

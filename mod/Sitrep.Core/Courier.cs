@@ -1156,14 +1156,14 @@ namespace Sitrep.Core
         /// The defensive fallback (link down but the served sample's
         /// <c>ValidAt</c> is somehow AFTER the known blackout start, should
         /// not happen if the link genuinely dropped every delivery, but
-        /// costs nothing to guard) is <see cref="Staleness.HeldStale"/>.
+        /// costs nothing to guard) is <see cref="Staleness.Held"/>.
         /// </summary>
         private Staleness ResolveStaleness(string node, string vantage, ArchiveSample sample)
         {
             if ((_linkDownSince.TryGetValue(node, out var byVantage) && byVantage.TryGetValue(vantage, out var sinceUt))
                 || _subjectLinkDownSince.TryGetValue(node, out sinceUt))
             {
-                return sample.ValidAt <= sinceUt ? Staleness.LastBeforeBlackout : Staleness.HeldStale;
+                return sample.ValidAt <= sinceUt ? Staleness.LastBeforeBlackout : Staleness.Held;
             }
             return Staleness.Fresh;
         }

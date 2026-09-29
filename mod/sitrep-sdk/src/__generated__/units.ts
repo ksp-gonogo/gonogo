@@ -3295,7 +3295,7 @@ export const GENERATED_ENUM_MEMBERS: Readonly<Record<string, Readonly<Record<num
   },
   "Staleness": {
     0: "Fresh",
-    1: "HeldStale",
+    1: "Held",
     2: "LastBeforeBlackout",
     3: "Recorded",
   },

@@ -64,7 +64,7 @@ type FrameTickHandle =
  * `confirmedEdgeUt()` is clamped to the max `validAt` actually observed via
  * `observeSample`. A wrong or fast-running estimate can therefore only ever
  * make `confirmedEdgeUt()` LOWER than the raw estimate (display latency, or
- * a too-early `HeldStale` later on): never higher than what's actually been
+ * a too-early `Held` later on): never higher than what's actually been
  * delivered. That is the one invariant every other feature (staleness,
  * media release, reckoning to SCET) is built to never violate.
  *

@@ -52,7 +52,7 @@ export interface HeartbeatTrackerOptions {
 }
 
 /**
- * Client-side `HeldStale` inference: the keyframe cadence
+ * Client-side `Held` inference: the keyframe cadence
  * IS the heartbeat. Tracks, per topic, the UT at which the last sample
  * actually ARRIVED (`meta.deliveredAt`: the post-delay, vantage-read UT,
  * per the design's own definition: "`meta.deliveredAt` is the UT it arrived

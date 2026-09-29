@@ -541,6 +541,10 @@ namespace Sitrep.Contract
         /// <c>settings.mod.write</c> (<see cref="WriteModSettingArgs"/>) writes
         /// one.</para>
         ///
+        /// <para><b>Also in 19: the catch-up grade is <see cref="Staleness.Held"/>.</b>
+        /// <c>Staleness.HeldStale</c> is renamed on the same wire value, so the
+        /// server's grade and the client's held reading share one word.</para>
+        ///
         /// <para>Sanctioned on the same standing grounds as every Major above.</para>
         /// </remarks>
         public const int Major = 19;
