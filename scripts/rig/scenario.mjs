@@ -148,6 +148,15 @@ async function main() {
       "pageerror",
       (error) => void log({ appPageError: String(error).slice(0, 600) }),
     );
+    // What the app asks the mod for, so a subscription it should or should not make is on the record.
+    page.on("websocket", (socket) => {
+      socket.on("framesent", (frame) => {
+        void appendFile(
+          join(out, "app-ws-sent.jsonl"),
+          `${JSON.stringify({ at: new Date().toISOString(), frame: String(frame.payload) })}\n`,
+        );
+      });
+    });
     await page.goto(appUrl);
   }
   const sheet = browser ? await browser.newPage() : null;
