@@ -288,45 +288,22 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// Tuning in is adding yourself, allowed once the transmission has reached
-        /// you. The speaker addresses you from when word of that reaches it, so the
-        /// audio starts one round trip after you asked.
+        /// A group is joined by invitation only. Detecting a transmission, even
+        /// once it has reached this vantage, grants no right to add yourself.
         /// </summary>
         [Fact]
-        public async Task AVantageTheTransmissionHasReachedCanTuneInAndHearsFromOneRoundTripLater()
+        public async Task AVantageTheTransmissionHasReachedCannotAddItself()
         {
             await using var scene = await Scene.StartAsync(discovery: true);
             await scene.CommandAsync(scene.A, CommcastUplink.OpenCommand, Open("g1", B));
             await scene.CommandAsync(scene.A, CommcastUplink.TransmitCommand, Transmit("t1", "g1", 0, OneChunk));
-            var tuneIn = new Dictionary<string, object?> { ["groupId"] = "g1", ["added"] = new List<object?> { C } };
-
-            scene.Tick(19);
-            Assert.False((await scene.CommandAsync(scene.C, CommcastUplink.AddCommand, tuneIn)).Success);
+            var selfAdd = new Dictionary<string, object?> { ["groupId"] = "g1", ["added"] = new List<object?> { C } };
 
             scene.Tick(20);
-            Assert.True((await scene.CommandAsync(scene.C, CommcastUplink.AddCommand, tuneIn)).Success);
-
-            scene.Tick(39);
-            await scene.CommandAsync(scene.A, CommcastUplink.TransmitCommand, Transmit("t1", "g1", 100, OneChunk));
-            scene.Tick(40);
-            await scene.CommandAsync(scene.A, CommcastUplink.TransmitCommand, Transmit("t1", "g1", 200, OneChunk));
+            Assert.False((await scene.CommandAsync(scene.C, CommcastUplink.AddCommand, selfAdd)).Success);
 
             scene.Tick(100);
-            var (_, batch, _) = await NextRadioAsync(scene.C);
-            Assert.Equal(200, batch.GetProperty("seq").GetInt32());
             await scene.C.AssertNoBinaryFrameArrivesAsync(Quiet);
-        }
-
-        [Fact]
-        public async Task TuningInAddsNobodyElse()
-        {
-            await using var scene = await Scene.StartAsync(discovery: true);
-            await scene.CommandAsync(scene.A, CommcastUplink.OpenCommand, Open("g1", B));
-            await scene.CommandAsync(scene.A, CommcastUplink.TransmitCommand, Transmit("t1", "g1", 0, OneChunk));
-            scene.Tick(20);
-
-            var both = new Dictionary<string, object?> { ["groupId"] = "g1", ["added"] = new List<object?> { C, "ground:d" } };
-            Assert.False((await scene.CommandAsync(scene.C, CommcastUplink.AddCommand, both)).Success);
         }
 
         private static async Task<StreamData<object?>> NextOnAsync(TestClient client, string topic)

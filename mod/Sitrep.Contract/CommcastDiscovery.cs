@@ -7,7 +7,7 @@ namespace Sitrep.Contract;
 
 /// <summary>
 /// One row of <c>commcast.transmissions</c>: a radio transmission this vantage
-/// can detect, and how to hear it.
+/// can detect.
 ///
 /// <para><b>Detectable</b> means a signal from the speaker has a routed path
 /// to this vantage, the same path its audio would take. The row reaches a
@@ -19,12 +19,10 @@ namespace Sitrep.Contract;
 /// through learns of it), and once when it ends. Nothing is replayed to a
 /// connection that subscribes after a row reached it.</para>
 ///
-/// <para><b>Tuning in.</b> A transmission's audio on <see cref="Topic"/> is
-/// addressed to the members of its group only. To hear it, send
-/// <c>commcast.group.add</c> naming this vantage alone in
-/// <see cref="CommcastGroupAddArgs.Added"/>: the mod accepts that from a
-/// vantage the transmission has reached. Joining is itself a change that
-/// crosses to the speaker, so the audio starts one round trip later.</para>
+/// <para><b>Detection only.</b> A transmission's audio on <see cref="Topic"/>
+/// is addressed to the members of its group only, and this row grants no
+/// access to it: a group is joined by invitation, never by a vantage adding
+/// itself, whatever it can detect.</para>
 /// </summary>
 /// <category>Comms</category>
 [SitrepContract]

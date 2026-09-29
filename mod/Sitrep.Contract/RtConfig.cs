@@ -405,7 +405,7 @@ public static class RtConfig
                 typeof(CommcastTraffic),
                 typeof(CommcastAuthor),
                 typeof(CommcastRadioBatch),
-                // commcast.transmissions: what a vantage can detect and tune into
+                // commcast.transmissions: what a vantage can detect
                 typeof(CommcastTransmissionRow),
                 // dv.stages / dv.summary (P1b)
                 typeof(StageDeltaVEntry),

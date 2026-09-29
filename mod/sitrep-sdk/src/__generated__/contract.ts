@@ -1413,7 +1413,7 @@ export interface CommcastRadioBatch
 }
 /**
 * One row of `commcast.transmissions`: a radio transmission this vantage can
-* detect, and how to hear it.
+* detect.
 *
 * **Detectable** means a signal from the speaker has a routed path to this
 * vantage, the same path its audio would take. The row reaches a vantage at
@@ -1425,12 +1425,10 @@ export interface CommcastRadioBatch
 * of it), and once when it ends. Nothing is replayed to a connection that
 * subscribes after a row reached it.
 *
-* **Tuning in.** A transmission's audio on `CommcastTransmissionRow.topic` is
-* addressed to the members of its group only. To hear it, send
-* `commcast.group.add` naming this vantage alone in
-* `CommcastGroupAddArgs.added`: the mod accepts that from a vantage the
-* transmission has reached. Joining is itself a change that crosses to the
-* speaker, so the audio starts one round trip later.
+* **Detection only.** A transmission's audio on
+* `CommcastTransmissionRow.topic` is addressed to the members of its group
+* only, and this row grants no access to it: a group is joined by invitation,
+* never by a vantage adding itself, whatever it can detect.
 *
 * @category Comms
 */

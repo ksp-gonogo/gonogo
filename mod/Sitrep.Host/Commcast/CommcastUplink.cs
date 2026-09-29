@@ -24,8 +24,8 @@ namespace Sitrep.Host.Commcast
     ///
     /// <para>Radio is also LISTED, on <c>commcast.transmissions</c>, at every centre
     /// the speaker's signal reaches, member or not: addressing is who hears the
-    /// audio, not a secret. A centre a transmission has reached may add itself to
-    /// its group, which is how a listener tunes in.</para>
+    /// audio, not a secret. Listing is detection only; a group is joined by
+    /// invitation, never by a centre adding itself.</para>
     /// </summary>
     public sealed class CommcastUplink : ISitrepUplink
     {
@@ -215,7 +215,7 @@ namespace Sitrep.Host.Commcast
             }
             var now = Now();
             var refusal = RefuseNonMember(args.GroupId, from, now, out var known);
-            if (refusal != null && !TunesIn(args, from, now, ref known))
+            if (refusal != null)
             {
                 return refusal;
             }
@@ -367,34 +367,6 @@ namespace Sitrep.Host.Commcast
             _streams!.PublishAddressed(RadioTopic, segments, now, from, to);
             PublishRow(args.TransmissionId, transmission, args.Author, to, args.End, now);
             return CommandResult.Ok();
-        }
-
-        /// <summary>
-        /// A vantage adding itself alone to a group it is not in, which it may do
-        /// once a transmission to that group has reached it: tuning in. The group's
-        /// members are then taken as that transmission's speaker knows them, since
-        /// the one tuning in has never been told.
-        /// </summary>
-        private bool TunesIn(CommcastGroupAddArgs args, string from, double now, ref List<string> known)
-        {
-            if (args.Added.Count != 1 || args.Added[0] != from || !_groups.TryGetValue(args.GroupId, out var changes))
-            {
-                return false;
-            }
-            foreach (var transmission in _transmissions.Values)
-            {
-                if (transmission.GroupId != args.GroupId || transmission.Ended || !_streams!.HasRoute(transmission.From, from))
-                {
-                    continue;
-                }
-                if (transmission.StartedUt + _streams.StampFrom(transmission.From).For(from) > now)
-                {
-                    continue;
-                }
-                known = MembersKnownAt(changes, transmission.From, now);
-                return true;
-            }
-            return false;
         }
 
         /// <summary>

@@ -2828,6 +2828,12 @@ export const GENERATED_TYPE_ENUMS: Readonly<Record<string, EnumsByField>> = {
   "CareerMode": {
     mode: "GameMode",
   },
+  "CommcastTraffic": {
+    kind: null,
+  },
+  "CommcastTransmissionRow": {
+    phase: null,
+  },
   "CommsConnectivity": {
     controlSource: "CommsControlSource",
   },
@@ -2989,6 +2995,12 @@ export const GENERATED_TOPIC_ENUMS: Readonly<Record<string, EnumsByField>> = {
   },
   "career.mode": {
     mode: "GameMode",
+  },
+  "commcast.traffic": {
+    kind: null,
+  },
+  "commcast.transmissions": {
+    phase: null,
   },
   "comms.connectivity": {
     controlSource: "CommsControlSource",
