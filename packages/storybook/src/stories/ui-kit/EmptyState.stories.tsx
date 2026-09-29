@@ -28,9 +28,10 @@ type Story = StoryObj<typeof meta>;
 export const FillsAPanel: Story = {
   render: () => (
     <div style={{ height: 240 }}>
-      <Panel panelTitle="Target">
-        <EmptyState layout="fill">No target selected</EmptyState>
-      </Panel>
+      <Panel
+        panelTitle="Target"
+        sections={<EmptyState layout="fill">No target selected</EmptyState>}
+      />
     </div>
   ),
 };

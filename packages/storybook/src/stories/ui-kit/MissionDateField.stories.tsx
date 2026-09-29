@@ -2,6 +2,7 @@ import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   ConfigForm,
   FieldHint,
+  kspCalendar,
   MissionDate,
   MissionDateField,
   type MissionDateFieldProps,
@@ -104,7 +105,7 @@ export const Window: Story = {
       <Controlled label="Window opens" initial={IGNITION_UT} steps={[]} />
       <Controlled
         label="Window closes"
-        initial={IGNITION_UT + 3 * 21_600 + 7_200}
+        initial={IGNITION_UT + 3 * kspCalendar().day + 2 * kspCalendar().hour}
         steps={[]}
       />
     </ConfigForm>

@@ -80,7 +80,7 @@ export const WithReading: Story = {
   ),
 };
 
-/** A hint carrying a held reading: the figure is marked as no longer current. */
+/** A hint carrying a held reading: the figure is marked held rather than live. */
 export const WithHeldReading: Story = {
   render: () => (
     <Field>

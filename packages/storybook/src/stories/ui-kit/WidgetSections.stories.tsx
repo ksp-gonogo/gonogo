@@ -117,16 +117,20 @@ type Story = StoryObj<typeof meta>;
 /** The seam placed inside a tab: the Uplinks' sections render there and nowhere else in the panel. */
 export const InsideATab: Story = {
   render: () => (
-    <Panel panelTitle="Crew roster" panelSections={false}>
-      <Tabs
-        aria-label="Roster views"
-        tabs={[
-          { id: "crew", label: "Crew", content: CREW },
-          { id: "systems", label: "Systems", content: <WidgetSections /> },
-        ]}
-        activeId="systems"
-      />
-    </Panel>
+    <Panel
+      panelTitle="Crew roster"
+      panelSections={false}
+      sections={
+        <Tabs
+          aria-label="Roster views"
+          tabs={[
+            { id: "crew", label: "Crew", content: CREW },
+            { id: "systems", label: "Systems", content: <WidgetSections /> },
+          ]}
+          activeId="systems"
+        />
+      }
+    />
   ),
 };
 
@@ -134,10 +138,11 @@ export const InsideATab: Story = {
 export const AllDomainsPresent: Story = {
   render: () => (
     <RadiationPresent>
-      <Panel panelTitle="Crew roster" panelSections={false}>
-        {CREW}
-        <WidgetSections />
-      </Panel>
+      <Panel
+        panelTitle="Crew roster"
+        panelSections={false}
+        sections={[CREW, <WidgetSections key="sections" />]}
+      />
     </RadiationPresent>
   ),
 };
@@ -145,10 +150,11 @@ export const AllDomainsPresent: Story = {
 /** No host has announced radiation: the augment that requires it stays out and the other still renders. */
 export const DomainAbsent: Story = {
   render: () => (
-    <Panel panelTitle="Crew roster" panelSections={false}>
-      {CREW}
-      <WidgetSections />
-    </Panel>
+    <Panel
+      panelTitle="Crew roster"
+      panelSections={false}
+      sections={[CREW, <WidgetSections key="sections" />]}
+    />
   ),
 };
 
@@ -162,9 +168,10 @@ export const OutsideAWidget: Story = {
     ),
   ],
   render: () => (
-    <Panel panelTitle="Crew roster" panelSections={false}>
-      {CREW}
-      <WidgetSections />
-    </Panel>
+    <Panel
+      panelTitle="Crew roster"
+      panelSections={false}
+      sections={[CREW, <WidgetSections key="sections" />]}
+    />
   ),
 };
