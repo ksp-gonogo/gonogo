@@ -9,8 +9,6 @@ import {
 } from "../../app/src/goNoGo/GoNoGoHostService";
 import { PeerClientProvider } from "../../app/src/peer/PeerClientContext";
 import type { PeerClientService } from "../../app/src/peer/PeerClientService";
-import type { PeerHostService } from "../../app/src/peer/PeerHostService";
-import type { SettingsService } from "../../app/src/settings";
 import { initSoundSettings } from "../../app/src/sound/soundSettings";
 import { AppWidgetScene, type ScenePress } from "./AppWidgetScene";
 
@@ -21,7 +19,7 @@ import { AppWidgetScene, type ScenePress } from "./AppWidgetScene";
 initSoundSettings({
   get: () => false,
   subscribe: () => () => {},
-} as unknown as SettingsService);
+});
 
 /** The instant the view clock is pinned at, and the liftoff a launched scene is past. */
 const VIEW_UT = 5_000_000;
@@ -110,7 +108,7 @@ export function GoNoGoMainScene(props: GoNoGoMainSceneProps) {
   const countdownSeconds = props.countdownSeconds ?? 60;
   const scene = useMemo(() => {
     const peers = new ScenePeerHost();
-    const service = new GoNoGoHostService(peers as unknown as PeerHostService);
+    const service = new GoNoGoHostService(peers);
     service.setConfig({ countdownLengthMs: countdownSeconds * 1000 });
     for (const s of stations) {
       peers.fire("connect", s.peerId);

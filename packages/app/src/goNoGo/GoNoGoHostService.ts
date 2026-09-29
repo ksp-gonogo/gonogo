@@ -23,6 +23,17 @@ import { magnitudeOf, Situation } from "@ksp-gonogo/sitrep-sdk";
 import type { PeerHostService } from "../peer/PeerHostService";
 import { playAbortTone, playCountdownTone } from "../sound";
 
+/** The slice of the peer host this aggregator reads: five lifecycle subscriptions plus the broadcast it sends on. */
+type GoNoGoHost = Pick<
+  PeerHostService,
+  | "onPeerConnect"
+  | "onPeerDisconnect"
+  | "onStationInfo"
+  | "onGonogoVote"
+  | "onGonogoAbort"
+  | "broadcast"
+>;
+
 /**
  * Seconds since liftoff on the view clock, or `null` before the clamps release
  * and whenever no stream has produced a liftoff instant yet.
@@ -88,7 +99,7 @@ export class GoNoGoHostService {
   private listeners = new Set<Listener>();
   private unsubs: Array<() => void> = [];
 
-  constructor(private host: PeerHostService) {
+  constructor(private host: GoNoGoHost) {
     this.unsubs.push(
       host.onPeerConnect((peerId) => {
         this.connectedPeers.add(peerId);

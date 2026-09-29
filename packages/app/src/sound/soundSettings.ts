@@ -1,4 +1,3 @@
-import type { SettingsService } from "../settings";
 import { getSharedAudioContext, pulse } from "./audio";
 
 /**
@@ -34,9 +33,12 @@ export function isSoundEnabled(): boolean {
  * subscription (StrictMode cleanup). MAIN-ONLY by where it's wired; never
  * call this from StationScreen.
  */
-export function initSoundSettings(service: SettingsService): () => void {
-  soundEnabled = service.get<boolean>(SOUND_ENABLED_SETTING, true);
-  return service.subscribe<boolean>(SOUND_ENABLED_SETTING, (value) => {
+export function initSoundSettings(service: {
+  get(key: string, fallback: boolean): boolean;
+  subscribe(key: string, cb: (value: boolean) => void): () => void;
+}): () => void {
+  soundEnabled = service.get(SOUND_ENABLED_SETTING, true);
+  return service.subscribe(SOUND_ENABLED_SETTING, (value) => {
     soundEnabled = value;
   });
 }
