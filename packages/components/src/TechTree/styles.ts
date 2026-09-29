@@ -1,16 +1,11 @@
+import { faintText } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 import {
   type DisplayState,
   dsBorder,
   graphCardBg,
-  graphCardOpacity,
+  graphCardBorder,
 } from "./graph-layout";
-
-function nodeOpacity(display: DisplayState, unaffordable?: boolean): number {
-  if (display === "locked") return 0.65;
-  if (unaffordable) return 0.7;
-  return 1;
-}
 
 function badgeToneColor(tone: "go" | "accent" | "muted"): string {
   if (tone === "go") return "var(--color-go-text)";
@@ -77,7 +72,7 @@ export const NodeRowWrap = styled.li<{
   border-left: 2px solid
     ${(p) => (p.$unaffordable ? "var(--color-text-faint)" : dsBorder(p.$display))};
   border-radius: var(--radius-regular);
-  opacity: ${(p) => nodeOpacity(p.$display, p.$unaffordable)};
+  ${(p) => (p.$display === "locked" || p.$unaffordable ? faintText() : "")}
 `;
 
 export const NodeHeader = styled.button`
@@ -145,10 +140,18 @@ export const NodeMeta = styled.span`
   flex-shrink: 0;
 `;
 
-export const Cost = styled.span<{ $insufficient?: boolean }>`
+function costColor(display?: DisplayState, insufficient?: boolean): string {
+  if (insufficient) return "var(--color-nogo-text)";
+  if (display === "locked") return "var(--color-text-faint)";
+  return "var(--color-accent-fg)";
+}
+
+export const Cost = styled.span<{
+  $display?: DisplayState;
+  $insufficient?: boolean;
+}>`
   font-size: var(--font-size-compact);
-  color: ${(p) =>
-    p.$insufficient ? "var(--color-nogo-text)" : "var(--color-accent-fg)"};
+  color: ${(p) => costColor(p.$display, p.$insufficient)};
   font-variant-numeric: tabular-nums;
 `;
 
@@ -237,7 +240,7 @@ export const PartRow = styled.li<{ $purchased: boolean }>`
   gap: var(--gap-related);
   font-size: var(--font-size-compact);
   padding: var(--inset-part-row);
-  opacity: ${(p) => (p.$purchased ? 0.7 : 1)};
+  ${(p) => (p.$purchased ? faintText() : "")}
 `;
 
 export const PartTitle = styled.span`
@@ -370,13 +373,15 @@ export const GraphCard = styled.button<{
   font-family: inherit;
   cursor: pointer;
   border-radius: var(--radius-regular);
-  border: 1px solid ${(p) => dsBorder(p.$ds)};
+  border: 1px solid ${(p) => graphCardBorder(p.$ds, p.$dimmed)};
   border-left-width: 3px;
-  background: ${(p) => graphCardBg(p.$ds)};
-  opacity: ${(p) => graphCardOpacity(p.$ds, p.$dimmed)};
+  background: ${(p) => graphCardBg(p.$ds, p.$dimmed)};
+  ${(p) => (p.$ds === "locked" || p.$dimmed ? faintText() : "")}
   box-shadow: ${(p) =>
     p.$selected ? "0 0 0 2px var(--color-accent-fg)" : "none"};
-  transition: opacity var(--duration-fast) var(--ease-standard);
+  transition:
+    background var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard);
 
   &:hover {
     filter: brightness(1.12);
@@ -406,20 +411,21 @@ export const GraphCardMeta = styled.span`
   align-items: baseline;
 `;
 
-export const GraphCost = styled.span<{ $ds: DisplayState }>`
+export const GraphCost = styled.span<{ $ds: DisplayState; $dimmed: boolean }>`
   /* Off the type scale: the same CARD_H budget as GraphCardTitle. */
   font-size: 10px;
   font-variant-numeric: tabular-nums;
   color: ${(p) =>
-    p.$ds === "researchable"
+    p.$ds === "researchable" && !p.$dimmed
       ? "var(--color-accent-fg)"
       : "var(--color-text-muted)"};
 `;
 
-export const GraphOwned = styled.span`
+export const GraphOwned = styled.span<{ $dimmed: boolean }>`
   /* Off the type scale: the same CARD_H budget as GraphCardTitle. */
   font-size: 10px;
-  color: var(--color-go-text);
+  color: ${(p) =>
+    p.$dimmed ? "var(--color-text-faint)" : "var(--color-go-text)"};
   letter-spacing: 0.04em;
 `;
 

@@ -97,6 +97,7 @@ export function NodeRow({
         <NodeMeta>
           {display !== "owned" && (
             <Cost
+              $display={display}
               $insufficient={unaffordable}
               // Exposed so the verdict can be asserted rather than read off a colour; absent where money decides nothing.
               data-afford={affordDataAttr(display, moneyDecides, canAfford)}

@@ -124,9 +124,9 @@ export function TechGraph({
               <GraphCardTitle>{p.node.title}</GraphCardTitle>
               <GraphCardMeta>
                 {ds === "owned" ? (
-                  <GraphOwned>✓ owned</GraphOwned>
+                  <GraphOwned $dimmed={dimmed}>✓ owned</GraphOwned>
                 ) : (
-                  <GraphCost $ds={ds}>
+                  <GraphCost $ds={ds} $dimmed={dimmed}>
                     {p.node.scienceCost ?? NULL_DISPLAY}
                     <Unit>science</Unit>
                   </GraphCost>

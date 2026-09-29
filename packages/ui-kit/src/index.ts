@@ -582,6 +582,8 @@ export {
 } from "./Tooltip";
 export { Truncate } from "./Truncate";
 export {
+  FAINT_TEXT_STYLE,
+  faintText,
   TONE_LABEL,
   TONE_MARK,
   TONE_MUTED,

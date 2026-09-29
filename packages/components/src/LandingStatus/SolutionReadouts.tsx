@@ -2,6 +2,7 @@ import { Sparkline } from "@ksp-gonogo/ui";
 import {
   Badge,
   Countdown,
+  FAINT_TEXT_STYLE,
   Grid,
   NULL_DISPLAY,
   ReadoutCaption,
@@ -61,8 +62,8 @@ export function SolutionReadouts({
   if (board !== "vacuum-solved") return null;
 
   return (
-    // Under NO LANDING VECTOR every number here is moot, so the grid dims rather than reading as reassurance against the ABORT.
-    <div style={noLandingVector ? { opacity: 0.5 } : undefined}>
+    // Under NO LANDING VECTOR every number here is moot, so the grid recedes rather than reading as reassurance against the ABORT.
+    <div style={noLandingVector ? FAINT_TEXT_STYLE : undefined}>
       <Grid minColWidth="130px" gap="related-dense">
         <StackedField label="Burn dV">{<Dv v={requiredDv} />}</StackedField>
         <StackedField label="Burn duration">
@@ -111,12 +112,15 @@ export function SolutionReadouts({
           </StackedField>
         )}
         {showTrend && descentHistory.length >= 2 && (
-          <Sparkline
-            values={descentHistory}
-            width={120}
-            height={24}
-            ariaLabel="Descent-rate trend"
-          />
+          // The trend carries no words, so it is the one mark a moot grid may dim by opacity.
+          <div style={noLandingVector ? { opacity: 0.5 } : undefined}>
+            <Sparkline
+              values={descentHistory}
+              width={120}
+              height={24}
+              ariaLabel="Descent-rate trend"
+            />
+          </div>
         )}
       </Grid>
     </div>

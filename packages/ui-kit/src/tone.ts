@@ -123,3 +123,31 @@ export function statusFill(tone: Tone): string {
   --color-text-faint: ${on};
 `;
 }
+
+/**
+ * Recedes every neutral word inside a box to the faint text level, which still
+ * clears AA on the panel. The way to quiet a block of words: opacity drops them
+ * below contrast, so it is kept for marks that carry no text. A word in a tone
+ * keeps its tone, since a state is never dimmed away. The same declarations as
+ * {@link faintText}, for a `style` prop.
+ *
+ * @category Text
+ */
+export const FAINT_TEXT_STYLE: Readonly<Record<string, string>> = {
+  color: "var(--color-text-faint)",
+  "--color-neutral-text": "var(--color-text-faint)",
+  "--color-text-primary": "var(--color-text-faint)",
+  "--color-text-muted": "var(--color-text-faint)",
+  "--color-text-dim": "var(--color-text-faint)",
+};
+
+/**
+ * {@link FAINT_TEXT_STYLE} as declarations for a styled-components rule.
+ *
+ * @category Text
+ */
+export function faintText(): string {
+  return Object.entries(FAINT_TEXT_STYLE)
+    .map(([property, value]) => `${property}: ${value};`)
+    .join("\n");
+}

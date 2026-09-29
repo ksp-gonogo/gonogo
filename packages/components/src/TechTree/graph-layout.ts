@@ -28,16 +28,17 @@ export function dsBorder(ds: DisplayState): string {
   return "var(--color-text-faint)";
 }
 
-export function graphCardBg(ds: DisplayState): string {
+// A card the search filtered out drops its state's fill and edge, so the matches are the only cards still drawn in a state.
+export function graphCardBg(ds: DisplayState, dimmed: boolean): string {
+  if (dimmed) return "var(--color-surface-panel)";
   if (ds === "owned") return "var(--color-go-status)";
   if (ds === "researchable") return "var(--color-surface-raised)";
   return "var(--color-surface-panel)";
 }
 
-export function graphCardOpacity(ds: DisplayState, dimmed: boolean): number {
-  if (dimmed) return 0.3;
-  if (ds === "locked") return 0.7;
-  return 1;
+export function graphCardBorder(ds: DisplayState, dimmed: boolean): string {
+  if (dimmed) return "var(--color-border-subtle)";
+  return dsBorder(ds);
 }
 
 /**

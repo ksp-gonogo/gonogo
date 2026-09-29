@@ -1,3 +1,5 @@
+import { FAINT_TEXT_STYLE } from "@ksp-gonogo/ui-kit";
+
 export const BALANCES_STYLE = {
   display: "flex",
   gap: "1.2rem",
@@ -14,7 +16,7 @@ export const BALANCE_LABEL_STYLE = {
   fontSize: "0.7rem",
   letterSpacing: "0.06em",
   textTransform: "uppercase",
-  opacity: 0.7,
+  ...FAINT_TEXT_STYLE,
 } as const;
 
 export const BALANCE_VALUE_STYLE = {
@@ -25,7 +27,7 @@ export const BALANCE_VALUE_STYLE = {
 export const CAPTION_STYLE = {
   margin: 0,
   fontSize: "0.8rem",
-  opacity: 0.8,
+  ...FAINT_TEXT_STYLE,
 } as const;
 
 export const RATES_STYLE = {
@@ -62,7 +64,7 @@ export const RATE_VALUE_STYLE = { flex: "0 0 auto" } as const;
 export const RATE_RANGE_STYLE = {
   flexBasis: "100%",
   fontSize: "0.75rem",
-  opacity: 0.7,
+  ...FAINT_TEXT_STYLE,
 } as const;
 
 export const BREAKDOWN_LIST_STYLE = {
@@ -82,7 +84,7 @@ export const BREAKDOWN_ROW_STYLE = {
 export const BREAKDOWN_TERM_STYLE = {
   flex: "1 1 auto",
   minWidth: 0,
-  opacity: 0.8,
+  ...FAINT_TEXT_STYLE,
 } as const;
 
 export const BREAKDOWN_VALUE_STYLE = { margin: 0, flex: "0 0 auto" } as const;
@@ -90,5 +92,5 @@ export const BREAKDOWN_VALUE_STYLE = { margin: 0, flex: "0 0 auto" } as const;
 export const MODEL_STYLE = {
   margin: 0,
   fontSize: "0.7rem",
-  opacity: 0.6,
+  ...FAINT_TEXT_STYLE,
 } as const;

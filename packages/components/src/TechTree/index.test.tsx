@@ -119,6 +119,27 @@ describe("TechTreeComponent", () => {
     expect(screen.getByText("Advanced Rocketry")).toBeInTheDocument();
   });
 
+  it("draws a locked node's words at the faint text level rather than through opacity", async () => {
+    const fixture = setupStreamFixture({
+      pinnedUt: 10,
+      suspendFrames: true,
+    });
+    renderTree(fixture);
+    act(() => {
+      fixture.emit("career.status", careerStatusFrom(SAMPLE_NODES, 100));
+    });
+    await waitFor(() =>
+      expect(screen.getByText("Advanced Rocketry")).toBeInTheDocument(),
+    );
+    const locked = screen.getByText("Advanced Rocketry").closest("li");
+    if (locked === null) throw new Error("the locked node has no row");
+    const style = getComputedStyle(locked);
+    expect(["", "1"]).toContain(style.opacity);
+    expect(style.getPropertyValue("--color-text-primary").trim()).toBe(
+      "var(--color-text-faint)",
+    );
+  });
+
   it("filters to Researchable on demand", async () => {
     const user = userEvent.setup();
     const fixture = setupStreamFixture({
