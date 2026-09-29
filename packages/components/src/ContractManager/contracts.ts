@@ -16,13 +16,7 @@ export type ContractParameterState =
 export interface ContractParameter {
   title: string;
   state: ContractParameterState;
-  /** KSP's own word for the state, shown when {@link state} is `"Unknown"`; empty when none was sent. */
-  stateLabel: string;
   optional: boolean;
-  /** Lower bound of the altitude band the objective requires, metres. */
-  minAltitude?: number;
-  /** Upper bound of the altitude band the objective requires, metres. */
-  maxAltitude?: number;
   /** ReachDestination body name (matches v.body). */
   body?: string;
   /** ReachSituation / PartTest situation name (Landed, Flying, etc.). */
@@ -131,29 +125,13 @@ function parseParameters(raw: unknown): ContractParameter[] {
     out.push({
       title: typeof e.title === "string" ? e.title : "(unnamed)",
       state: paramState(e.stateOrdinal),
-      stateLabel: typeof e.state === "string" ? e.state : "",
       optional: e.optional === true,
-      minAltitude: magnitudeOf(asQuantityish(e.minAltitude)) ?? undefined,
-      maxAltitude: magnitudeOf(asQuantityish(e.maxAltitude)) ?? undefined,
       body: typeof e.body === "string" ? e.body : undefined,
       situation: typeof e.situation === "string" ? e.situation : undefined,
       partName: typeof e.partName === "string" ? e.partName : undefined,
     });
   }
   return out;
-}
-
-/**
- * A contract id as a JS number when it fits the safe-integer range, else null.
- * Gates features that depend on the alarm system's `contractId: number`.
- */
-export function contractIdToSafeNumber(id: string): number | null {
-  // Negative ids are valid; scientific notation would already be lossy.
-  if (!/^-?\d+$/.test(id)) return null;
-  const n = Number(id);
-  if (!Number.isFinite(n)) return null;
-  if (!Number.isSafeInteger(n)) return null;
-  return n;
 }
 
 /**

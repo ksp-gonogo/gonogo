@@ -4,9 +4,7 @@ import { BellIcon } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties, ReactNode } from "react";
 import {
   type ContractEntry,
-  type ContractParameterAlarmTrigger,
   type ContractParameterState,
-  contractIdToSafeNumber,
   parseContracts,
 } from "../ContractManager";
 import { useAlarmCreator, useAlarmManager } from "../shared/AlarmsLauncher";
@@ -20,6 +18,31 @@ export const contractsTopics = defineTopicManifest({
   channels: ["career.status"],
   fields: ["career.status.contracts.active"],
 });
+
+/**
+ * Trigger shape for the parameter bells. Mirrors the app's
+ * `ContractParameterTrigger`, which this package cannot import.
+ */
+interface ContractParameterAlarmTrigger {
+  kind: "contract-parameter";
+  contractId: number;
+  parameterTitle: string;
+  targetState: "Complete" | "Failed";
+  sustainSeconds: number;
+}
+
+/**
+ * A contract id as a JS number when it fits the safe-integer range, else null.
+ * Gates features that depend on the alarm system's `contractId: number`.
+ */
+function contractIdToSafeNumber(id: string): number | null {
+  // Negative ids are valid; scientific notation would already be lossy.
+  if (!/^-?\d+$/.test(id)) return null;
+  const n = Number(id);
+  if (!Number.isFinite(n)) return null;
+  if (!Number.isSafeInteger(n)) return null;
+  return n;
+}
 
 /** `"Unknown"` reads as pending: it is never claimed as reached or failed. */
 function contractParamState(state: ContractParameterState): ObjectiveState {

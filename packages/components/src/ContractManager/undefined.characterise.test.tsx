@@ -1,6 +1,5 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
-import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { ReadingProbe } from "../test/ReadingProbe";
@@ -12,8 +11,7 @@ import { ContractManagerComponent } from "./index";
 
 /**
  * Pins what ContractManager renders when its reads are absent: `parseContracts`
- * maps both `undefined` and `null` to `null`, and the altitude meter draws its
- * absent form until an altitude arrives. Observations, not endorsements.
+ * maps both `undefined` and `null` to `null`. Observations, not endorsements.
  */
 
 function newFixture() {
@@ -43,8 +41,8 @@ function renderManager(
   );
 }
 
-/** An altitude-banded parameter, as `career.status` carries it: the one thing that reads the altitude. */
-const ALTITUDE_CONTRACT = {
+/** One active contract with a single objective, as `career.status` carries it. */
+const CONTRACT = {
   id: "7001",
   title: "Fly above 5000m",
   agency: "Kerbin Aviation",
@@ -54,24 +52,9 @@ const ALTITUDE_CONTRACT = {
   repCompletion: 0,
   deadlineUt: 0,
   parameters: [
-    {
-      title: "Altitude band",
-      state: "Incomplete",
-      stateOrdinal: 0,
-      minAltitude: 5000,
-      maxAltitude: 10000,
-    },
+    { title: "Altitude band", state: "Incomplete", stateOrdinal: 0 },
   ],
 };
-
-function emitAltitude(fixture: StreamFixture, altitudeAsl: number) {
-  fixture.emit("vessel.flight", {
-    altitudeAsl,
-    verticalSpeed: 0,
-    surfaceSpeed: 0,
-    orbitalSpeed: 0,
-  });
-}
 
 describe("ContractManager: nothing has arrived at all", () => {
   it("renders the awaiting placeholder and none of the loaded chrome", () => {
@@ -167,7 +150,7 @@ describe("ContractManager: partial payloads inside an arrived record", () => {
     act(() => {
       // Only `active` present: two never-arrived arrays coerce to a confident 0.
       fixture.emit("career.status", {
-        contracts: { active: [ALTITUDE_CONTRACT] },
+        contracts: { active: [CONTRACT] },
       });
     });
 
@@ -196,107 +179,5 @@ describe("ContractManager: partial payloads inside an arrived record", () => {
       expect(screen.getByText("Undated job")).toBeInTheDocument(),
     );
     expect(visibleText()).toContain("no deadline");
-  });
-});
-
-describe("ContractManager: the altitude-band meter before an altitude arrives", () => {
-  it("draws no meter for a parameter the wire sends without a band", async () => {
-    const fixture = newFixture();
-    renderManager(fixture);
-
-    act(() => {
-      fixture.emit("career.status", {
-        contracts: {
-          active: [
-            {
-              ...ALTITUDE_CONTRACT,
-              parameters: [
-                {
-                  title: "Altitude band",
-                  state: "Incomplete",
-                  stateOrdinal: 0,
-                  minAltitude: null,
-                  maxAltitude: null,
-                },
-              ],
-            },
-          ],
-        },
-      });
-      emitAltitude(fixture, 7000);
-    });
-
-    await waitFor(() =>
-      expect(screen.getByText("Altitude band")).toBeInTheDocument(),
-    );
-    expect(screen.queryByText("Altitude")).toBeNull();
-    expect(screen.queryByText("in band")).toBeNull();
-  });
-
-  it("draws the meter's absent form while no altitude has arrived", async () => {
-    const fixture = newFixture();
-    renderManager(fixture);
-
-    act(() => {
-      fixture.emit("career.status", {
-        contracts: { active: [ALTITUDE_CONTRACT] },
-      });
-    });
-
-    await waitFor(() =>
-      expect(screen.getByText("Altitude band")).toBeInTheDocument(),
-    );
-    // The meter's absent form: label and null token, with no fill, band label or distance figure.
-    expect(screen.getByText("Altitude")).toBeInTheDocument();
-    expect(screen.queryByRole("meter", { name: "Altitude" })).toBeNull();
-    expect(visibleText()).toContain(NULL_DISPLAY);
-    expect(screen.queryByText("in band")).toBeNull();
-    expect(visibleText()).not.toContain("in band");
-    expect(visibleText()).not.toContain("−");
-    expect(visibleText()).not.toContain("+");
-  });
-
-  it("renders the band label once vessel.flight carries an altitude", async () => {
-    const fixture = newFixture();
-    renderManager(fixture);
-
-    act(() => {
-      fixture.emit("career.status", {
-        contracts: { active: [ALTITUDE_CONTRACT] },
-      });
-      emitAltitude(fixture, 7000);
-    });
-
-    // The other side of the gate, so the test above proves an absence rather than a missing feature.
-    await waitFor(() =>
-      expect(screen.getByText("in band")).toBeInTheDocument(),
-    );
-  });
-
-  it("holds the meter, fill dimmed and distance marked, once the altitude stops arriving", async () => {
-    const fixture = newFixture();
-    renderManager(fixture);
-
-    act(() => {
-      fixture.emit("career.status", {
-        contracts: { active: [ALTITUDE_CONTRACT] },
-      });
-      emitAltitude(fixture, 2000);
-    });
-
-    const meter = await screen.findByRole("meter", { name: "Altitude" });
-    const root = () => meter.parentElement?.parentElement;
-    expect(root()?.querySelector("[data-fill-held]")).toBeNull();
-    expect(root()?.querySelector("[data-held-mark]")).toBeNull();
-
-    act(() => {
-      fixture.store.setTransportConnected(false);
-      fixture.store.beginFrame();
-    });
-
-    await waitFor(() =>
-      expect(root()?.querySelector("[data-fill-held]")).not.toBeNull(),
-    );
-    expect(root()?.querySelector("[data-held-mark]")).not.toBeNull();
   });
 });

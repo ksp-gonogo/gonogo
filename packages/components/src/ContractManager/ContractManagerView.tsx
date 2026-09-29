@@ -9,13 +9,11 @@ import {
   Panel,
   Section,
 } from "@ksp-gonogo/ui-kit";
-import { useAlarmCreator, useAlarmManager } from "../shared/AlarmsLauncher";
 import { heldGrade } from "../shared/heldGrade";
 import { ContractDeadline, ContractRewards } from "./ContractCardParts";
-import { ContractParameters } from "./ContractParameters";
+import { ContractTerms } from "./ContractTerms";
 import type { ContractManagerConfig } from "./config";
 import { parseContracts } from "./contracts";
-import type { ContractParameterAlarmTrigger } from "./ParameterAlarm";
 import {
   ACTIVE_ACTIONS_STYLE,
   AGENCY_STYLE,
@@ -25,7 +23,6 @@ import {
   SECTION_LABEL_STYLE,
   SUMMARY_STYLE,
 } from "./styles";
-import { contractManagerTopics } from "./topics";
 
 /**
  * A contract as a grouping rather than a box: the panel is already a surface,
@@ -51,9 +48,6 @@ export function ContractManagerComponent({
   const offeredRaw = contracts?.offered;
   const recentRaw = contracts?.completedRecent;
   const universalTime = useViewUt()?.magnitude ?? 0;
-  // The field reading, not a derived copy, so the bar survives the craft going on rails.
-  const altitudeReading =
-    contractManagerTopics.useTelemetry("vessel.flight").altitudeAsl;
   // Career actions dispatch at the meta-vantage, with no vessel signal delay.
   const acceptCmd = useCommand("career.contract.accept", {
     vantage: META_VANTAGE,
@@ -64,9 +58,6 @@ export function ContractManagerComponent({
   const cancelCmd = useCommand("career.contract.cancel", {
     vantage: META_VANTAGE,
   });
-  const createAlarm = useAlarmCreator<ContractParameterAlarmTrigger>();
-  const alarmManager = useAlarmManager();
-
   const active = parseContracts(activeRaw);
   const offered = parseContracts(offeredRaw);
   const recent = parseContracts(recentRaw);
@@ -130,12 +121,7 @@ export function ContractManagerComponent({
               >
                 {c.agency && <div style={AGENCY_STYLE}>{c.agency}</div>}
                 <ContractRewards contract={c} />
-                <ContractParameters
-                  contract={c}
-                  altitudeReading={altitudeReading}
-                  createAlarm={createAlarm}
-                  alarmManager={alarmManager}
-                />
+                <ContractTerms contract={c} />
                 <div style={ACTIVE_ACTIONS_STYLE}>
                   <CommandButton
                     handle={cancelCmd}

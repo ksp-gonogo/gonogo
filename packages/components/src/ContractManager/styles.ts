@@ -1,5 +1,3 @@
-import type { ContractParameterState } from "./contracts";
-
 export const EMPTY_STYLE = {
   color: "var(--color-text-faint)",
   fontSize: "var(--font-size-compact)",
@@ -57,11 +55,6 @@ export const ACTIVE_ACTIONS_STYLE = {
   marginTop: "var(--gap-actions)",
 } as const;
 
-/**
- * A contract as a grouping rather than a box: the panel is already a surface,
- * so the separation is the list gap and the title's weight.
- */
-
 export const DEADLINE_STYLE = {
   color: "var(--color-text-faint)",
   fontSize: "var(--font-size-compact)",
@@ -110,53 +103,12 @@ export const PARAMETERS_STYLE = {
   gap: "var(--gap-related)",
 } as const;
 
-/** A completed objective is struck through and stood down to muted. */
-export function parameterStyle(state: ContractParameterState) {
-  return {
-    display: "flex",
-    alignItems: "baseline",
-    gap: "var(--gap-related)",
-    fontSize: "var(--font-size-compact)",
-    color: parameterColour(state),
-    textDecoration: state === "Complete" ? "line-through" : "none",
-  } as const;
-}
-
-/** The fixed-width column the tick, cross, question mark or ring sits in. */
-export function parameterMarkStyle(state: ContractParameterState) {
-  return {
-    fontFamily: "var(--font-family-mono)",
-    width: "10px",
-    textAlign: "center",
-    color: parameterMarkColour(state),
-  } as const;
-}
-
-export const PARAMETER_TITLE_STYLE = { flex: 1, minWidth: 0 } as const;
-
-export const ALT_METER_STYLE = { marginTop: "var(--gap-caption)" } as const;
-
-export function altLabelStyle(inBand: boolean) {
-  return {
-    fontSize: "var(--font-size-compact)",
-    fontVariantNumeric: "tabular-nums",
-    color: inBand ? "var(--color-status-go-fg)" : "var(--color-text-muted)",
-  } as const;
-}
+export const PARAMETER_STYLE = {
+  fontSize: "var(--font-size-compact)",
+  color: "var(--color-text-primary)",
+} as const;
 
 export const OPTIONAL_STYLE = {
   color: "var(--color-text-faint)",
   fontStyle: "italic",
 } as const;
-
-function parameterColour(state: ContractParameterState): string {
-  if (state === "Complete") return "var(--color-text-muted)";
-  if (state === "Failed") return "var(--color-status-nogo-fg)";
-  return "var(--color-text-primary)";
-}
-
-function parameterMarkColour(state: ContractParameterState): string {
-  if (state === "Complete") return "var(--color-status-go-fg)";
-  if (state === "Failed") return "var(--color-status-nogo-fg)";
-  return "var(--color-text-faint)";
-}

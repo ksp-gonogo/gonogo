@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "multiple-active-contracts-stopped-arriving",
-    "notes": "Three active contracts simultaneously: tests the ScrollArea / overflow behaviour and verifies the section labels render correctly. Includes a big-string contract ID (exceeds JS safe-integer range) to exercise the contractIdToSafeNumber null path. No offered contracts. Deadline formats: days+hours, hours, no-deadline. Then the link drops: the transport disconnects after the scene is staged, so every reading this widget draws is held rather than current."
+    "notes": "Three active contracts simultaneously: tests the ScrollArea / overflow behaviour and verifies the section labels render correctly. Includes a big-string contract ID (exceeds JS safe-integer range). No offered contracts. Deadline formats: days+hours, hours, no-deadline. Then the link drops: the transport disconnects after the scene is staged, so every reading this widget draws is held rather than current."
   },
   "contracts.active": [
     {
@@ -70,9 +70,7 @@
           "state": "Incomplete",
           "stateOrdinal": 0,
           "optional": false,
-          "parameterType": "ReachAltitudeEnvelope",
-          "minAltitude": 18000,
-          "maxAltitude": 70000
+          "parameterType": "ReachAltitudeEnvelope"
         }
       ]
     }
@@ -93,7 +91,6 @@
     }
   ],
   "t.universalTime": 125340,
-  "v.altitude": 25000,
   "_stream": {
     "emits": [
       {
@@ -187,24 +184,6 @@
           },
           "strategies": null,
           "tech": null
-        }
-      },
-      {
-        "channel": "vessel.flight",
-        "value": {
-          "latitude": 0,
-          "longitude": 0,
-          "altitudeAsl": 25000,
-          "altitudeTerrain": 25000,
-          "verticalSpeed": 0,
-          "surfaceSpeed": 0,
-          "orbitalSpeed": 0,
-          "gForce": 1,
-          "dynamicPressureKPa": 0,
-          "mach": 0,
-          "atmDensity": 0,
-          "externalTemperature": 213.0,
-          "atmosphericTemperature": 210.0
         }
       }
     ],

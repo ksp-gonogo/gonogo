@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "active-mission-partial",
-    "notes": "One active contract (Mun flag plant) with three parameters: first complete, two incomplete. One parameter is ReachAltitudeEnvelope with an in-progress altitude bar (vessel currently at 45,000m, band is 70,000\u2013100,000m so still below). Deadline 5 stock days remaining. Also one offered contract visible in the offered section."
+    "notes": "One active contract (Mun flag plant) with three objectives listed as its terms, one of them optional. Deadline 5 stock days remaining. Also one offered contract visible in the offered section."
   },
   "contracts.active": [
     {
@@ -28,9 +28,7 @@
           "state": "Incomplete",
           "stateOrdinal": 0,
           "optional": false,
-          "parameterType": "ReachAltitudeEnvelope",
-          "minAltitude": 70000,
-          "maxAltitude": 100000
+          "parameterType": "ReachAltitudeEnvelope"
         },
         {
           "title": "Return to Kerbin",
@@ -64,7 +62,6 @@
   ],
   "contracts.completedRecent": [],
   "t.universalTime": 125340,
-  "v.altitude": 45000,
   "_stream": {
     "emits": [
       {
@@ -128,24 +125,6 @@
           },
           "strategies": null,
           "tech": null
-        }
-      },
-      {
-        "channel": "vessel.flight",
-        "value": {
-          "latitude": 0,
-          "longitude": 0,
-          "altitudeAsl": 45000,
-          "altitudeTerrain": 45000,
-          "verticalSpeed": 0,
-          "surfaceSpeed": 0,
-          "orbitalSpeed": 0,
-          "gForce": 1,
-          "dynamicPressureKPa": 0,
-          "mach": 0,
-          "atmDensity": 0,
-          "externalTemperature": 213.0,
-          "atmosphericTemperature": 210.0
         }
       }
     ],

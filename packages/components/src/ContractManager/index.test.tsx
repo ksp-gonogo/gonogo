@@ -290,8 +290,6 @@ describe("parseContracts", () => {
       "Unknown",
       "Complete",
     ]);
-    // The game's own word survives as a label.
-    expect(parsed?.[0]?.parameters[0]?.stateLabel).toBe("Waived");
   });
 });
 
