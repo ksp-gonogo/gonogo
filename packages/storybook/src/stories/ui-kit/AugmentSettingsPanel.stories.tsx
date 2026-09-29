@@ -16,8 +16,8 @@ function Column({ children }: { children: ReactNode }) {
 /** Two Uplinks bound to Crew Status, each contributing its own block of settings. */
 const CREW_STATUS_SETTINGS: NamespacedAugmentSettings[] = [
   {
-    augmentId: "kerbalism-crew-meters",
-    namespace: "kerbalism-crew-meters",
+    augmentId: "crew-radiation-meter",
+    namespace: "crew-radiation-meter",
     fields: [
       {
         key: "showRadiation",
@@ -116,7 +116,7 @@ export const SavedValues: Story = {
     <Editable
       settings={args.settings}
       initial={{
-        "kerbalism-crew-meters": { showStress: true, warnAt: 40 },
+        "crew-radiation-meter": { showStress: true, warnAt: 40 },
         "portrait-overlay": { caption: "Mun lander crew" },
       }}
     />
@@ -129,13 +129,13 @@ export const SameKeyTwoAugments: Story = {
     <Editable
       settings={[
         {
-          augmentId: "scansat-overlay",
-          namespace: "scansat-overlay",
+          augmentId: "coverage-overlay",
+          namespace: "coverage-overlay",
           fields: [
             {
               key: "enabled",
               type: "boolean",
-              label: "SCANsat coverage overlay",
+              label: "Coverage overlay",
               default: true,
             },
           ],
@@ -163,8 +163,8 @@ export const UnlabelledField: Story = {
     <Editable
       settings={[
         {
-          augmentId: "kerbalism-crew-meters",
-          namespace: "kerbalism-crew-meters",
+          augmentId: "crew-radiation-meter",
+          namespace: "crew-radiation-meter",
           fields: [{ key: "showRadiation", type: "boolean", default: true }],
         },
       ]}

@@ -20,12 +20,12 @@ const SLOT = `${WIDGET_ID}.sections`;
 const NO_PROPS: Record<string, never> = {};
 
 registerAugment({
-  id: "storybook-scansat-experiment",
+  id: "storybook-survey-experiment",
   augments: SLOT,
-  requires: "scansat",
+  requires: "surveymod",
   component: () => (
     <Row as="div">
-      <Row.Name>SCANsat altimetry: Mun, 62% mapped</Row.Name>
+      <Row.Name>Survey mod altimetry: Mun, 62% mapped</Row.Name>
     </Row>
   ),
 });
@@ -88,7 +88,7 @@ type Story = StoryObj<typeof meta>;
 /** Two Uplinks bound and both running: their rows render and the fallback hides itself. */
 export const AugmentsRendered: Story = {
   render: (args) => (
-    <Present domains={["scansat", "dmagic"]}>
+    <Present domains={["surveymod", "dmagic"]}>
       <Panel panelTitle="Science archive" panelSections={false}>
         <AutoEmptyState {...args}>
           <AugmentSlot segment="sections" props={NO_PROPS} />
@@ -114,7 +114,7 @@ export const EveryAugmentEmpty: Story = {
 /** Only one mod running: its row alone, still no fallback. */
 export const OneOfTwo: Story = {
   render: (args) => (
-    <Present domains={["scansat"]}>
+    <Present domains={["surveymod"]}>
       <Panel panelTitle="Science archive" panelSections={false}>
         <AutoEmptyState {...args}>
           <AugmentSlot segment="sections" props={NO_PROPS} />

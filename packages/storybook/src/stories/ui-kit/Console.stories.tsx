@@ -15,7 +15,7 @@ function Tile({ children }: { children: ReactNode }) {
 }
 
 const SCROLLBACK = [
-  "kOS Operating System v1.4",
+  "Script Terminal v1.4",
   "KerboScript v1.4.0.0",
   "Proceed.",
   "> run launch.ks.",
@@ -67,7 +67,7 @@ function LiveConsole({
           sendDisabled={blocked || draft.trim() === ""}
         >
           <input
-            aria-label="kOS command"
+            aria-label="Script command"
             placeholder="print ship:altitude."
             value={draft}
             disabled={blocked}
@@ -133,7 +133,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** A kOS terminal in low Kerbin orbit: scrollback, a composer that sends, and a standing chip for the sub-second delay. */
+/** A scripting terminal in low Kerbin orbit: scrollback, a composer that sends, and a standing chip for the sub-second delay. */
 export const NearbyCraft: Story = {
   render: () => <LiveConsole oneWaySeconds={0.4} />,
 };

@@ -129,7 +129,7 @@ export const Retired: Story = {
   render: () => (
     <Controlled
       keys={KEYS}
-      initial="scansat.coverage.Mun.biome"
+      initial="survey.coverage.Mun.biome"
       clearable
       subjectNoun="plotted value"
       hint={false}
