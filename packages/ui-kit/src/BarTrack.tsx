@@ -1,4 +1,5 @@
 import type { Tone } from "@ksp-gonogo/sitrep-sdk";
+import type { HTMLAttributes } from "react";
 import styled from "styled-components";
 import { TONE_MARK } from "./tone";
 
@@ -9,16 +10,54 @@ import { TONE_MARK } from "./tone";
  */
 const TRACK_HEIGHT = "8px";
 
+export interface BarTrackProps extends HTMLAttributes<HTMLDivElement> {
+  /** The filled share, 0-100, already clamped; `null` draws the empty track alone. */
+  percent: number | null;
+  tone: Tone;
+  /** An arbitrary CSS colour that wins outright over the tone fill. */
+  fillColor?: string;
+  /** The capacity has stopped being current: the track's edge dashes. */
+  trackHeld?: boolean;
+  /** The reading has stopped being current: the fill dims. */
+  fillHeld?: boolean;
+}
+
 /**
- * The track `Meter` and `ProgressBar` both draw their fill in. The two differ
- * in role (`meter` against `progressbar`) and in what they take, never in
- * how the bar looks.
- *
- * A held capacity dashes the track's edge in the held mark's hue, which clears
- * 3:1 against the panel where the subtle border does not: colour already means
- * the fill's status.
+ * The track and fill `Meter` and `ProgressBar` both draw. The two differ in
+ * role (`meter` against `progressbar`) and in what they take, never in how the
+ * bar looks, so the role and its aria attributes arrive through `rest`.
  */
-export const BarTrack = styled.div<{ $held?: boolean }>`
+export function BarTrack({
+  percent,
+  tone,
+  fillColor,
+  trackHeld = false,
+  fillHeld = false,
+  children,
+  ...rest
+}: BarTrackProps) {
+  return (
+    <BarTrack__Track
+      $held={trackHeld}
+      data-track-held={trackHeld ? "" : undefined}
+      {...rest}
+    >
+      {percent !== null && (
+        <BarTrack__Fill
+          $tone={tone}
+          $fillColor={fillColor}
+          $held={fillHeld}
+          data-fill-held={fillHeld ? "" : undefined}
+          style={{ width: `${percent}%` }}
+        />
+      )}
+      {children}
+    </BarTrack__Track>
+  );
+}
+
+/* A held capacity dashes the track's edge in the held mark's hue, which clears 3:1 against the panel where the subtle border does not: colour already means the fill's status. */
+const BarTrack__Track = styled.div<{ $held: boolean }>`
   width: 100%;
   border-radius: var(--radius-pill);
   background: var(--color-surface-raised);
@@ -31,18 +70,16 @@ export const BarTrack = styled.div<{ $held?: boolean }>`
   height: ${TRACK_HEIGHT};
 `;
 
-/** The filled share of a {@link BarTrack}; its width is set inline by the caller. */
-export const BarFill = styled.div<{
+const BarTrack__Fill = styled.div<{
   $tone: Tone;
   $fillColor?: string;
-  $held?: boolean;
+  $held: boolean;
 }>`
   height: 100%;
   border-radius: var(--radius-pill);
   transition: width var(--duration-slow) var(--ease-standard);
   /* A held reading dims the fill, not the hue and not the whole bar, so a label beside it stays readable. */
   ${({ $held }) => ($held ? "opacity: 0.55;" : "")}
-  /* $fillColor is an arbitrary CSS colour and wins outright over the tone fill. */
   background: ${({ $tone, $fillColor }) => $fillColor ?? TONE_MARK[$tone]};
 
   @media (prefers-reduced-motion: reduce) {

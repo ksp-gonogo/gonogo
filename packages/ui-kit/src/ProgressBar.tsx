@@ -1,5 +1,5 @@
 import type { HTMLAttributes } from "react";
-import { BarFill, BarTrack } from "./BarTrack";
+import { BarTrack } from "./BarTrack";
 import { type FillQuantity, fillFraction } from "./fillQuantity";
 import { speakQuantity } from "./units";
 
@@ -78,6 +78,9 @@ export function ProgressBar<Unit extends string = string>({
 
   return (
     <BarTrack
+      percent={clamped}
+      tone="neutral"
+      fillColor={fillColor ?? "var(--color-accent-fg)"}
       role="progressbar"
       aria-label={ariaLabel}
       aria-valuenow={clamped}
@@ -85,13 +88,7 @@ export function ProgressBar<Unit extends string = string>({
       aria-valuemax={100}
       aria-valuetext={quantity ? bothHalves(quantity) : undefined}
       {...rest}
-    >
-      <BarFill
-        $tone="neutral"
-        $fillColor={fillColor ?? "var(--color-accent-fg)"}
-        style={{ width: `${clamped}%` }}
-      />
-    </BarTrack>
+    />
   );
 }
 

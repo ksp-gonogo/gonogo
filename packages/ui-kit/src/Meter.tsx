@@ -12,7 +12,7 @@ import {
   useRef,
 } from "react";
 import styled, { css } from "styled-components";
-import { BarFill, BarTrack } from "./BarTrack";
+import { BarTrack } from "./BarTrack";
 import { bandClaim } from "./bandClaim";
 import { HeldFigure, HeldHost, HeldMark } from "./HeldMark";
 import { magnitudeOr } from "./magnitude";
@@ -174,7 +174,7 @@ export function Meter<UnitSymbol extends string = string>({
         {...rest}
       >
         {/* Decorative: the label and placeholder are the whole accessible content. */}
-        <BarTrack $held={false} aria-hidden="true" />
+        <BarTrack percent={null} tone={tone} aria-hidden="true" />
       </MeterFrame>
     );
   }
@@ -460,23 +460,18 @@ function MeterBar({
   return (
     <MeterFrame layout={layout} label={label} display={display} {...rest}>
       <BarTrack
-        $held={trackHeld}
-        data-track-held={trackHeld ? "" : undefined}
+        percent={pct}
+        tone={tone}
+        fillColor={fillColor}
+        trackHeld={trackHeld}
+        fillHeld={fillHeld}
         role="meter"
         aria-label={label}
         aria-valuenow={pct}
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuetext={spoken}
-      >
-        <BarFill
-          $tone={tone}
-          $fillColor={fillColor}
-          $held={fillHeld}
-          data-fill-held={fillHeld ? "" : undefined}
-          style={{ width: `${pct}%` }}
-        />
-      </BarTrack>
+      />
       {/* Decorative: what the marks say is already in `aria-valuetext`. */}
       {(bounds !== null || endBounds !== null) && (
         <Meter__Marks aria-hidden="true">
