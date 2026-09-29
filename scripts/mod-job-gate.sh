@@ -59,8 +59,8 @@ if [ "${GONOGO_SKIP_MOD_SUITES:-}" = "1" ]; then
   exit 0
 fi
 
-LOG="$(mktemp -t gonogo-modgate)"
-WORK="$(mktemp -d -t gonogo-modgate-work)"
+LOG="$(mktemp "${TMPDIR:-/tmp}/gonogo-modgate.XXXXXX")"
+WORK="$(mktemp -d "${TMPDIR:-/tmp}/gonogo-modgate-work.XXXXXX")"
 trap 'rm -rf "$LOG" "$WORK"' EXIT
 
 # Runs a command with its output held back, and prints that output only when it

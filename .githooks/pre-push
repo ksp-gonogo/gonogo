@@ -68,7 +68,7 @@ echo "pre-push: lint + affected test gate (CI runs the full matrix)..."
 # non-pushes came from that on 2026-08-28 alone: the hook reported "all checks
 # passed", the command exited 0, and nothing reached the remote. Quiet on
 # success is what removes the reason to pipe.
-GONOGO_HOOK_LOG="$(mktemp -t gonogo-prepush)"
+GONOGO_HOOK_LOG="$(mktemp "${TMPDIR:-/tmp}/gonogo-prepush.XXXXXX")"
 trap 'rm -f "$GONOGO_HOOK_LOG"' EXIT
 
 if ! pnpm exec biome check . > "$GONOGO_HOOK_LOG" 2>&1; then
