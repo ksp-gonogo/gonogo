@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import styled from "styled-components";
 import { EmptyState } from "./EmptyState";
+import { statusFill } from "./tone";
 
 /*
  * The combobox/listbox primitive. The pure filter/group/navigate functions and
@@ -212,23 +213,25 @@ const GroupHeader = styled.div`
   background: var(--color-surface-raised);
 `;
 
+/** The option under the keyboard or pointer sits on the panel ground beside the focus bar; the committed option, when not highlighted, sits on the go status fill. */
+function optionFill(active: boolean, selected: boolean): string {
+  if (active) return "background: var(--color-surface-panel);";
+  if (selected) return statusFill("go");
+  return "background: transparent;";
+}
+
 const DropdownItem = styled.div<{ $active: boolean; $selected: boolean }>`
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: var(--inset-menu-item);
   cursor: pointer;
-  background: ${({ $active, $selected }) =>
-    $active
-      ? "var(--color-border-subtle)"
-      : $selected
-        ? "var(--color-go-mark)"
-        : "transparent"};
+  ${({ $active, $selected }) => optionFill($active, $selected)}
   /* Focus stays on the input, so the highlighted option carries the focus colour as an inset bar. */
   box-shadow: ${({ $active }) =>
     $active ? "inset 3px 0 0 var(--color-focus)" : "none"};
 
   &:hover {
-    background: var(--color-border-subtle);
+    background: var(--color-surface-panel);
   }
 `;

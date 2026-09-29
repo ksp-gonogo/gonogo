@@ -2,6 +2,7 @@ import type { ButtonHTMLAttributes, ReactNode } from "react";
 import styled from "styled-components";
 import { focusRing } from "./focusRing";
 import { GAP_VAR, type GapToken, RADIUS_VAR } from "./scales";
+import { statusFill } from "./tone";
 
 export interface SelectableRowProps
   extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "type"> {
@@ -59,10 +60,8 @@ const SelectableRow__Root = styled.button<{
   border: 1px solid
     ${({ $selected }) =>
       $selected ? "transparent" : "var(--color-border-subtle)"};
-  background: ${({ $selected }) =>
-    $selected ? "var(--color-go-status)" : "transparent"};
-  color: ${({ $selected }) =>
-    $selected ? "var(--color-go-on-status)" : "inherit"};
+  ${({ $selected }) =>
+    $selected ? statusFill("go") : "background: transparent; color: inherit;"}
   cursor: pointer;
 
   ${focusRing}

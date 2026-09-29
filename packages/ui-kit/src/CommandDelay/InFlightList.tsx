@@ -788,6 +788,4 @@ const InFlightList__Label = styled.span`
 
 const InFlightList__Phase = styled.span`
   flex: 0 0 auto;
-  color: inherit;
-  opacity: 0.85;
 `;

@@ -10,7 +10,7 @@ const OPTIONS: ComboboxOption[] = [
   { key: "pe", label: "Periapsis", group: "Orbit" },
 ];
 
-function renderListbox(activeIndex = 1) {
+function renderListbox(activeIndex = 1, selectedKey?: string) {
   return render(
     <div>
       <input
@@ -27,6 +27,7 @@ function renderListbox(activeIndex = 1) {
         ]}
         flatOptions={OPTIONS}
         activeIndex={activeIndex}
+        selectedKey={selectedKey}
         getOptionId={(k) => `opt-${k}`}
         onHoverIndex={() => {}}
         onSelectKey={() => {}}
@@ -48,6 +49,23 @@ describe("ComboboxListbox", () => {
     renderListbox(1);
     const active = screen.getByRole("option", { name: "Apoapsis" });
     expect(emittedRuleFor(active)).toContain("var(--color-focus)");
+  });
+
+  it("draws the committed option on the go status fill with every text level in its on-status text", () => {
+    renderListbox(0, "pe");
+    const rule = emittedRuleFor(
+      screen.getByRole("option", { name: "Periapsis" }),
+    );
+    expect(rule).toContain("background:var(--color-go-status)");
+    for (const level of [
+      "neutral-text",
+      "text-primary",
+      "text-muted",
+      "text-dim",
+      "text-faint",
+    ]) {
+      expect(rule).toContain(`--color-${level}:var(--color-go-on-status)`);
+    }
   });
 
   it("has no axe violations", async () => {

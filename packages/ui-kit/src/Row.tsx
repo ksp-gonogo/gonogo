@@ -1,6 +1,7 @@
 import type { ElementType, HTMLAttributes, ReactNode } from "react";
 import styled, { css } from "styled-components";
 import { focusRingInset } from "./focusRing";
+import { statusFill } from "./tone";
 
 export interface RowProps extends HTMLAttributes<HTMLElement> {
   /** Rendered tag. Defaults to `li` (a `Row` typically sits in a plain `<ul>`). */
@@ -127,11 +128,7 @@ const Row__Root = styled.li<{
   ${({ $interactive, $selected }) =>
     $interactive && $selected
       ? `
-  background: var(--color-go-status);
-  color: var(--color-go-on-status);
-  /* Secondary words inside the row sit on the go fill too, so they take its text rather than a grey made for the panel. */
-  --color-text-muted: var(--color-go-on-status);
-  --color-text-faint: var(--color-go-on-status);
+  ${statusFill("go")}
 
   &:hover {
     background: var(--color-go-status);

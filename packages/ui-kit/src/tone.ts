@@ -104,3 +104,22 @@ export const TONE_LABEL: Readonly<Record<Tone, string>> = {
 export function toneEdge(tone: Tone): string {
   return tone === "neutral" ? "var(--color-border-subtle)" : TONE_MARK[tone];
 }
+
+/**
+ * A box filled with a tone's status colour: the fill, its on-status text, and
+ * the neutral text and every text level inside it redeclared to that on-status
+ * text, so a word a child draws reads on the fill rather than in a grey made
+ * for the panel.
+ */
+export function statusFill(tone: Tone): string {
+  const on = TONE_ON_STATUS[tone];
+  return `
+  background: ${TONE_STATUS[tone]};
+  color: ${on};
+  --color-neutral-text: ${on};
+  --color-text-primary: ${on};
+  --color-text-muted: ${on};
+  --color-text-dim: ${on};
+  --color-text-faint: ${on};
+`;
+}
