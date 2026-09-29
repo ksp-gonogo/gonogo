@@ -111,6 +111,10 @@
          in KspFlightOpsActuator, which needs a scene and is not compiled here.
          Sitrep.Contract only, no KSP type. -->
     <Compile Include="..\Gonogo.KSP\SceneExitRule.cs" />
+    <!-- Whether a craft the install cannot build is refused, and whether a save
+         that throws inside StartWithNewLaunch refuses the call rather than
+         escaping. Sitrep.Contract only, no KSP type. -->
+    <Compile Include="..\Gonogo.KSP\LaunchRule.cs" />
     <Compile Include="..\Gonogo.KSP\StrategyEligibility.cs" />
     <Compile Include="..\Gonogo.KSP\StrategyActivationRule.cs" />
     <Compile Include="..\Gonogo.KSP\StrategyAvailabilityRules.cs" />

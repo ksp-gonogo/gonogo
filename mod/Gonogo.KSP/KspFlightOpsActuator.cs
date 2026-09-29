@@ -391,6 +391,11 @@ namespace Gonogo.KSP
         /// (<c>Funding.onVesselRollout</c>, with no floor at zero), so the
         /// console could put a craft on the pad the game's own button refuses
         /// and take the money for it.</para>
+        ///
+        /// <para>A craft whose parts do not resolve, or whose root KSP cannot
+        /// locate, is refused before any of that, and a throw out of the save
+        /// <c>StartWithNewLaunch</c> makes refuses this call only; see
+        /// <see cref="LaunchRule"/>.</para>
         /// </summary>
         public CommandResult Launch(string shipName, EditorFacilityKind facility, string site, IReadOnlyList<string> crew)
         {
@@ -445,6 +450,7 @@ namespace Gonogo.KSP
 
             VesselCrewManifest manifest;
             ShipTemplate template;
+            List<string> missingParts;
             try
             {
                 var craftNode = ConfigNode.Load(craftPath);
@@ -463,6 +469,15 @@ namespace Gonogo.KSP
                 // measure, and it needs no editor scene to compute them.
                 template = new ShipTemplate();
                 template.LoadShip(craftNode);
+                missingParts = new List<string>();
+                foreach (var partNode in craftNode.GetNodes("PART"))
+                {
+                    var name = CraftCatalogueBackend.PartNameFrom(partNode);
+                    if (!string.IsNullOrEmpty(name) && PartLoader.getPartInfoByName(name) == null)
+                    {
+                        missingParts.Add(name);
+                    }
+                }
             }
             catch (Exception)
             {
@@ -474,6 +489,12 @@ namespace Gonogo.KSP
                 // precheck, so ModeUnavailable means what it says only here.
                 return CommandResult.Fail(
                     CommandErrorCode.ModeUnavailable, "the craft file could not be read");
+            }
+
+            var unresolved = LaunchRule.UnresolvedCraft(missingParts, template.rootPartNode != null);
+            if (unresolved != null)
+            {
+                return unresolved;
             }
 
             // KSP's own launch tests, run before the craft is placed and before
@@ -492,8 +513,7 @@ namespace Gonogo.KSP
 
             var flagUrl = HighLogic.CurrentGame?.flagURL ?? "Squad/Flags/default";
 
-            FlightDriver.StartWithNewLaunch(craftPath, flagUrl, site, manifest);
-            return CommandResult.Ok();
+            return LaunchRule.Place(() => FlightDriver.StartWithNewLaunch(craftPath, flagUrl, site, manifest));
         }
 
         /// <summary>

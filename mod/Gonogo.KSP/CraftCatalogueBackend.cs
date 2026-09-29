@@ -363,7 +363,7 @@ namespace Gonogo.KSP
         /// taken whole rather than thrown over: an unparsable name reads as a part
         /// the install does not have, which is the safe direction.
         /// </summary>
-        private static string PartNameFrom(ConfigNode partNode)
+        internal static string PartNameFrom(ConfigNode partNode)
         {
             var value = partNode.GetValue("part");
             if (string.IsNullOrEmpty(value))
