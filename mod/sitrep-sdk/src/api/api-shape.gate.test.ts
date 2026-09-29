@@ -62,6 +62,7 @@ const EXPECTED_BARREL_VALUE_EXPORTS = [
   "clearContributions",
   "clearMapPoiProviders",
   "clearUplinkHandles",
+  "clearStationBrokers",
   "clearRootProviders",
   "clearRevealedEventSources",
   "getRevealedEventSources",
@@ -112,6 +113,7 @@ const EXPECTED_BARREL_VALUE_EXPORTS = [
   "registerTheme",
   "resetSettingsForTests",
   "registerUplinkHandle",
+  "registerStationBroker",
   "safeRandomUuid",
   "seedSetting",
   "setSetting",
@@ -122,6 +124,7 @@ const EXPECTED_BARREL_VALUE_EXPORTS = [
   "unregisterCoverageSource",
   "refusalFromError",
   "unregisterUplinkHandle",
+  "unregisterStationBroker",
   "useActionInput",
   "useAlarmRequest",
   "apsidesExist",
@@ -232,6 +235,9 @@ describe("sitrep-sdk author-facing barrel: shape gate", () => {
     expect(barrel.getUplinkHandle("gate")).toEqual({ live: true });
     barrel.clearUplinkHandles();
     expect(barrel.getUplinkHandle("gate")).toBeUndefined();
+
+    expect(() => barrel.registerStationBroker("gate", () => {})).not.toThrow();
+    barrel.clearStationBrokers();
 
     // The component registry, which is the one that matters most: a widget calls
     // `registerComponent` at MODULE LOAD, which can run before the app installs

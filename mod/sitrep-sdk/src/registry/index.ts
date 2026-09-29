@@ -28,3 +28,9 @@ export {
   getThemes,
   type ReplacementConflict,
 } from "../api/registry";
+
+/**
+ * The station screen's half of `registerStationBroker`: the orchestration read
+ * that hands each registration a broker, for the same reason as the reads above.
+ */
+export { watchStationBrokers } from "../api/station-brokers";

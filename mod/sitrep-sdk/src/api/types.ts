@@ -1550,6 +1550,30 @@ export interface HostIceServers {
 }
 
 /**
+ * What a station hands an Uplink's non-React code: the same two routes
+ * `useUplinkRelay` and `useHostIceServers` give a widget, bound to that Uplink.
+ *
+ * `relay` reaches the Uplink's registered handle on the main screen, which is
+ * the only thing a station talks to. `iceServers` carries the TURN credentials
+ * the main screen broadcasts, for a media connection the Uplink opens from the
+ * station itself.
+ *
+ * @category Host and runtime
+ */
+export interface StationBroker {
+  relay: UplinkRelay;
+  iceServers: HostIceServers;
+}
+
+/**
+ * Called on a station for the Uplink that registered it, once per station
+ * screen that comes up.
+ *
+ * @category Host and runtime
+ */
+export type StationBrokerAttach = (broker: StationBroker) => void;
+
+/**
  * What {@link useRouteCommands} returns: the queue for one topic, and the delay
  * mode it is under.
  *

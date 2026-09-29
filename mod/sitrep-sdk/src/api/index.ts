@@ -238,6 +238,8 @@ export type {
   SlotProps,
   SlotRegistry,
   StatEntry,
+  StationBroker,
+  StationBrokerAttach,
   StreamBackedSetting,
   StreamBackedSettingOf,
   StreamStatusValue,
@@ -443,6 +445,11 @@ export {
   setSetting,
   subscribeSetting,
 } from "./settings/store";
+export {
+  clearStationBrokers,
+  registerStationBroker,
+  unregisterStationBroker,
+} from "./station-brokers";
 export { registerStockBodies } from "./stock-bodies";
 export {
   clearUplinkHandles,

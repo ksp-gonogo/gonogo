@@ -2,11 +2,7 @@ import {
   ManeuverTriggerProvider,
   StationConnectView,
 } from "@ksp-gonogo/components";
-import {
-  getUplinkHandle,
-  registerDataSource,
-  ScreenProvider,
-} from "@ksp-gonogo/core";
+import { registerDataSource, ScreenProvider } from "@ksp-gonogo/core";
 import {
   CoverageMaskCacheProvider,
   CoverageMaskStore,
@@ -76,6 +72,7 @@ import { AugmentAvailabilityFeeder } from "../telemetry/AugmentAvailabilityFeede
 import { PeerTransport } from "../telemetry/PeerTransport";
 import { SitrepTelemetryProvider } from "../telemetry/SitrepTelemetryProvider";
 import { StationUplinkLoader } from "../uplinks/StationUplinkLoader";
+import { attachStationBrokers } from "../uplinks/stationBrokers";
 import { UplinkIntegrityBanner } from "../uplinks/UplinkIntegrityBanner";
 
 const HOST_ID_KEY = "gonogo-station-host-id";
@@ -84,20 +81,6 @@ const DEFAULT_CONFIG: DashboardConfig = {
   items: [],
   layouts: {},
 };
-
-/**
- * The one member of the camera Uplink's handle a station drives. Declared here,
- * structurally, rather than imported: the Uplink that registers the handle is a
- * third-party package this app must not depend on, and a station calls it
- * through `getUplinkHandle` precisely because the id is all it knows.
- */
-interface BrokeredCameraHandle {
-  attachBroker(broker: {
-    negotiate: (offer: unknown) => Promise<{ sdp: string; cameras: number[] }>;
-    iceServers: () => unknown;
-    onIceServersChange: (cb: (servers: unknown) => void) => unknown;
-  }): void;
-}
 
 export function StationScreen() {
   useEffect(() => {
@@ -221,24 +204,8 @@ export function StationScreen() {
     };
   }, [client]);
 
-  // Switch the globally-registered kerbcast source into brokered (station) mode:
-  // its WebRTC handshake relays through the host (no sidecar address) and its
-  // TURN creds come from the host's relay broadcast. Wired here once, it stays
-  // disconnected until a camera widget asks for a stream (lazy connect), and
-  // the broker's negotiate just retries until the host link is up. Media flows
-  // station↔sidecar directly off the answer's ICE candidates, never via PeerJS.
-  useEffect(() => {
-    const kerbcast = getUplinkHandle<BrokeredCameraHandle>("kerbcast");
-    kerbcast?.attachBroker({
-      negotiate: (offer) =>
-        client.sendUplinkRelay("kerbcast", "negotiate", offer) as Promise<{
-          sdp: string;
-          cameras: number[];
-        }>,
-      iceServers: () => client.getRelayIceServers(),
-      onIceServersChange: (cb) => client.onRelayIceServersChange(cb),
-    });
-  }, [client]);
+  // Each Uplink that registered a station broker gets one relaying through this station's link; a registration arriving later, as a bundle loads, is attached then.
+  useEffect(() => attachStationBrokers(client), [client]);
 
   function attemptConnect(hostId: string) {
     const trimmed = hostId.trim().toUpperCase();

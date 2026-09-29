@@ -154,15 +154,11 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
   kerbcast: {
     domainDebt: [
       /*
-       * The station's brokered-camera wiring. The `import type` went when this
-       * Uplink left the repo, and the coupling did not: `StationScreen` still
-       * names one id to `getUplinkHandle` and `client.sendUplinkRelay`, so one
-       * Uplink can have its WebRTC handshake relayed through the host and no
-       * other can ask for the same. Clears when attaching a broker becomes
-       * something an Uplink DECLARES; see `noBakedUplinkIds.test.ts`, whose own
-       * debt list records the same gap from the import side.
+       * packages/app/src/screens/StationScreen.tsx was here: it named this
+       * Uplink to `getUplinkHandle` and `client.sendUplinkRelay` to relay one
+       * camera handshake through the host. A station now hands a broker to
+       * whichever Uplink called `registerStationBroker`, and names none.
        */
-      "packages/app/src/screens/StationScreen.tsx",
       /*
        * packages/components/src/Targeting/index.tsx was here: its built-in
        * HudCamera imported @ksp-gonogo/gonogo-kerbcast-uplink directly. That backdrop is
@@ -1736,7 +1732,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
   kerbcast: [
     "mod/Sitrep.Core.Tests/UplinkContractOwnershipTests.cs",
     "packages/app/src/alarms/AlarmHostService.test.ts",
-    "packages/app/src/screens/StationScreen.tsx",
     "packages/core/src/uplink-isolation.allowlist.ts",
   ],
   kos: [
