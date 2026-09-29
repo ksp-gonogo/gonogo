@@ -53,15 +53,11 @@ public class VesselOrbit
     [SitrepUnit(Units.Degrees)]
     public double Inc { get; set; }
 
-    /// <summary>Null = undefined ascending node (KSP's own LAN is NaN for a
-    /// near-equatorial orbit, inc ~ 0 -- a routine case, not an error). Never
-    /// NaN, never 0 as a stand-in (R1/F-1).</summary>
+    /// <summary>Longitude of ascending node, degrees; <c>null</c> only when absent, never NaN and never 0 as a stand-in. An equatorial orbit still has one.</summary>
     [SitrepUnit(Units.Degrees)]
     public double? Lan { get; set; }
 
-    /// <summary>Null = undefined periapsis (KSP's own argumentOfPeriapsis is
-    /// NaN for a near-circular orbit, ecc ~ 0 -- a routine case, not an error).
-    /// Never NaN, never 0 as a stand-in (R1/F-1).</summary>
+    /// <summary>Argument of periapsis, degrees; <c>null</c> only when absent, never NaN and never 0 as a stand-in. A circular orbit still has one.</summary>
     [SitrepUnit(Units.Degrees)]
     public double? ArgPe { get; set; }
 

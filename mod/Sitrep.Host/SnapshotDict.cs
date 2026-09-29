@@ -16,15 +16,8 @@ namespace Sitrep.Host
     /// <para><b>R1/F-1 -- non-finite numbers are ABSENT, not present:</b>
     /// <see cref="GetDouble"/> and <see cref="GetVec3"/> both treat a
     /// <c>NaN</c>/<c>Infinity</c> raw value as though the key were missing
-    /// entirely, returning <c>null</c> rather than the non-finite value.
-    /// This is not a hypothetical: KSP's own <c>Orbit.LAN</c> is <c>NaN</c>
-    /// for a near-equatorial orbit (inc ~ 0) and <c>argumentOfPeriapsis</c>
-    /// is <c>NaN</c> for a near-circular orbit (ecc ~ 0) -- both ROUTINE
-    /// flight states, not edge cases -- and the legacy-API issue catalogue's
-    /// F-1 records the old fork stringifying exactly these
-    /// values onto the wire as <c>"NaN"</c>. <c>m1-provider-taxonomy-design.md</c>
-    /// R1 is explicit: "numbers are always finite -- a non-finite in the
-    /// mapper is a bug, not a wire value." A caller that requires a field
+    /// entirely, returning <c>null</c> rather than the non-finite value,
+    /// because a non-finite number is never a wire value. A caller that requires a field
     /// (see each provider's own "all required" guards) sees a non-finite
     /// input the same way it sees a missing one: the field maps to
     /// <c>null</c>, and it is the CALLER's job to decide whether that

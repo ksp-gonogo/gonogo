@@ -27,18 +27,10 @@ namespace Sitrep.Contract;
 /// <see cref="Mu"/> completes the same thought: a patch carries everything
 /// needed to propagate it, with no <c>system.bodies</c> join.
 ///
-/// <see cref="Lan"/>/<see cref="ArgPe"/> are plain (non-nullable) doubles here,
-/// UNLIKE <see cref="VesselOrbit.Lan"/>/<see cref="VesselOrbit.ArgPe"/>: a
-/// deliberate, narrower exception to this codebase's usual R1 "never NaN,
-/// never a fake 0" rule: the propagation math that consumes a patch already
-/// hard-assumes a finite
-/// number for both (no null-handling branch), matching the historical
-/// behaviour for a near-circular/near-equatorial patch. Capturing
-/// them nullable here would silently break every consumer without a matching
-/// client-side rewrite: out of scope for this Topic. See
-/// <c>Gonogo.KSP.KspHost.BuildOrbitPatchChain</c>'s doc comment for how a
-/// NaN is substituted with 0 at capture time, preserving that pre-existing
-/// (imperfect but non-breaking) behaviour.
+/// Every element is a plain (non-nullable) double, unlike
+/// <see cref="VesselOrbit.Lan"/>/<see cref="VesselOrbit.ArgPe"/>: a patch
+/// is propagated, and a patch missing any element needed to propagate it is
+/// not sent at all rather than sent with a stand-in.
 /// </summary>
 /// <category>Orbits and trajectories</category>
 [SitrepContract]

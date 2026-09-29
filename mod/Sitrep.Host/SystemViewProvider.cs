@@ -578,11 +578,7 @@ namespace Sitrep.Host
             };
         }
 
-        // Scalar readers live in the shared SnapshotDict; see that class's
-        // doc comment for the R1/F-1 non-finite-is-absent rule GetDouble
-        // applies (this is also why a body with a near-equatorial/
-        // near-circular orbit gets a null lan/argPe here rather than a
-        // NaN-carrying wire value, same as vessel.orbit).
+        // Scalar readers live in the shared SnapshotDict, whose GetDouble maps a non-finite value to null.
         private static string? GetString(IDictionary<string, object?> raw, string key) => SnapshotDict.GetString(raw, key);
         private static int? GetInt(IDictionary<string, object?> raw, string key) => SnapshotDict.GetInt(raw, key);
         private static double? GetDouble(IDictionary<string, object?> raw, string key) => SnapshotDict.GetDouble(raw, key);

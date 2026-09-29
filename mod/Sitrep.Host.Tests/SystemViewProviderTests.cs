@@ -166,14 +166,7 @@ namespace Sitrep.Host.Tests
         [Fact]
         public void BuildSystemBodiesTreatsNonFiniteOrbitElementsAsAbsentNotAsNaNOnTheWire()
         {
-            // Same R1/F-1 rule as vessel.orbit (VesselViewProviderTests'
-            // BuildOrbitTreatsNonFiniteLanAndArgPeAsAbsentNotAsNaNOnTheWire):
-            // a body with a near-equatorial/near-circular orbit can
-            // genuinely have NaN lan/argPe from KSP -- this must map to
-            // null, never a NaN/Infinity token on the wire, and (via the
-            // shared SnapshotDict.GetDouble) it does so without needing any
-            // "all required" gating here since BuildOrbit maps each element
-            // independently.
+            // A non-finite element maps to null, never a NaN/Infinity token on the wire, and nulls only itself because BuildOrbit maps each element independently.
             var snapshot = new KspSnapshot
             {
                 Ut = 0.0,

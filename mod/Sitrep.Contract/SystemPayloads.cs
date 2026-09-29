@@ -309,13 +309,18 @@ public class AtmosphereEntry
 }
 
 /// <summary>
-/// A body's Keplerian orbital elements, as emitted by
-/// <c>SystemViewProvider.BuildOrbit</c> (present on every
-/// <see cref="BodyEntry"/> except the root star). Each element is
-/// independently nullable: KSP's own <c>lan</c>/<c>argPe</c> are NaN for a
-/// near-equatorial/near-circular orbit (a routine case) and the provider
-/// maps that (and any genuinely-absent value) to null via the shared
-/// non-finite-is-absent rule, never a NaN token on the wire.
+/// A body's Keplerian orbital elements, present on every
+/// <see cref="BodyEntry"/> except the root star. Each element is
+/// independently <c>null</c> when its value is absent or non-finite, never a
+/// NaN token on the wire. Every orbit has a defined node and periapsis, an
+/// equatorial or circular one included, so a <c>null</c> <see cref="Lan"/> or
+/// <see cref="ArgPe"/> is a genuine absence and never stands for either shape.
+/// <internal>
+/// Emitted by SystemViewProvider.BuildOrbit through the shared
+/// non-finite-is-absent rule. KSP's Orbit takes Vector3d.right as an
+/// equatorial orbit's node and sets argumentOfPeriapsis to 0 for a circular
+/// one, so neither element is NaN for either shape.
+/// </internal>
 ///
 /// <para>Units mirror the KSP-native inconsistency deliberately KEPT
 /// upstream: <see cref="Sma"/> in metres; <see cref="Inc"/>/<see cref="Lan"/>/
@@ -342,11 +347,11 @@ public class OrbitEntry
     [SitrepUnit(Units.Degrees)]
     public double? Inc { get; set; }
 
-    /// <summary>Longitude of ascending node, degrees; null for an undefined node (near-equatorial orbit).</summary>
+    /// <summary>Longitude of ascending node, degrees.</summary>
     [SitrepUnit(Units.Degrees)]
     public double? Lan { get; set; }
 
-    /// <summary>Argument of periapsis, degrees; null for an undefined periapsis (near-circular orbit).</summary>
+    /// <summary>Argument of periapsis, degrees.</summary>
     [SitrepUnit(Units.Degrees)]
     public double? ArgPe { get; set; }
 

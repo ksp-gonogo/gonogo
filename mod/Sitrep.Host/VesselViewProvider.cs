@@ -217,16 +217,7 @@ namespace Sitrep.Host
             var sma = GetDouble(orbit, "sma");
             var ecc = GetDouble(orbit, "ecc");
             var inc = GetDouble(orbit, "inc");
-            // lan/argPe are DELIBERATELY excluded from the "all required"
-            // guard below: KSP's own Orbit.LAN is NaN for a near-equatorial
-            // orbit (inc ~ 0) and argumentOfPeriapsis is NaN for a
-            // near-circular orbit (ecc ~ 0) -- both routine, common orbit
-            // shapes, not error states. GetDouble already maps that non-finite
-            // input to null (R1/F-1); gating the WHOLE record on them being
-            // present would silently drop vessel.orbit for every equatorial/
-            // circular orbit, which is worse than the wart this channel
-            // exists to kill. VesselOrbit.Lan/ArgPe are individually nullable
-            // for exactly this reason -- see their doc comments.
+            // lan/argPe are outside the "all required" guard below: each is individually nullable, so an absent one nulls only itself.
             var lan = GetDouble(orbit, "lan");
             var argPe = GetDouble(orbit, "argPe");
             var maae = GetDouble(orbit, "meanAnomalyAtEpoch");
@@ -541,7 +532,8 @@ namespace Sitrep.Host
             var semiMinorAxis = GetDouble(patch, "semiMinorAxis");
             var referenceBody = GetString(patch, "referenceBody");
 
-            if (!sma.HasValue || !ecc.HasValue || !inc.HasValue || !epoch.HasValue ||
+            if (!sma.HasValue || !ecc.HasValue || !inc.HasValue || !lan.HasValue ||
+                !argPe.HasValue || !maae.HasValue || !epoch.HasValue ||
                 !period.HasValue || !startUt.HasValue || !endUt.HasValue ||
                 !peA.HasValue || !apA.HasValue || !semiLatusRectum.HasValue ||
                 !semiMinorAxis.HasValue || referenceBody == null)
@@ -554,13 +546,9 @@ namespace Sitrep.Host
                 Sma = sma.Value,
                 Ecc = ecc.Value,
                 Inc = inc.Value,
-                // lan/argPe: see OrbitPatch.cs's doc comment -- non-nullable
-                // by design, 0 substituted for the routine near-circular/
-                // near-equatorial NaN case (GetDouble already maps that to
-                // null via R1/F-1).
-                Lan = lan ?? 0,
-                ArgPe = argPe ?? 0,
-                MeanAnomalyAtEpoch = maae ?? 0,
+                Lan = lan.Value,
+                ArgPe = argPe.Value,
+                MeanAnomalyAtEpoch = maae.Value,
                 Epoch = epoch.Value,
                 Period = period.Value,
                 StartUt = startUt.Value,

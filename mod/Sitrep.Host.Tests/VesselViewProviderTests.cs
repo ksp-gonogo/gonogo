@@ -566,13 +566,7 @@ namespace Sitrep.Host.Tests
         [Fact]
         public void BuildOrbitTreatsNonFiniteLanAndArgPeAsAbsentNotAsNaNOnTheWire()
         {
-            // Routine, not edge: KSP's Orbit.LAN is NaN for a near-equatorial
-            // orbit (inc ~ 0) and argumentOfPeriapsis is NaN for a
-            // near-circular orbit (ecc ~ 0) -- both happen on ordinary
-            // launches. R1/F-1: a non-finite value in the mapper is a bug,
-            // never a wire value -- it must surface as an absent (null)
-            // field, NOT gate the whole vessel.orbit record to null (an
-            // equatorial-circular orbit is still a perfectly valid orbit).
+            // A non-finite value is never a wire value: it surfaces as an absent (null) field and does not gate the whole vessel.orbit record to null.
             var snapshot = SnapshotWith(
                 identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
                 orbit: new Dictionary<string, object?>
@@ -592,8 +586,8 @@ namespace Sitrep.Host.Tests
             var orbit = VesselViewProvider.BuildOrbit(snapshot);
 
             Assert.NotNull(orbit); // NOT gated to null just because lan/argPe are undefined
-            Assert.Null(orbit!.Lan); // undefined ascending node -> null, never NaN or 0
-            Assert.Null(orbit.ArgPe); // undefined periapsis -> null, never NaN or 0
+            Assert.Null(orbit!.Lan); // non-finite -> null, never NaN or 0
+            Assert.Null(orbit.ArgPe); // non-finite -> null, never NaN or 0
             Assert.Equal(700_000.0, orbit.Sma); // the rest of the record is unaffected
 
             // Prove it holds through the REAL wire-serialization path too --
@@ -1519,6 +1513,33 @@ namespace Sitrep.Host.Tests
             // loses nothing by not carrying them.
             Assert.Equal(800_000.0, patch.Sma);
             Assert.Equal("Kerbin", patch.ReferenceBody);
+        }
+
+        /// <summary>
+        /// A patch missing an element it is propagated from is not sent, rather
+        /// than sent with 0 standing in for it: every orbit has a node, a
+        /// periapsis and a mean anomaly, so an absent one is a gap in the reading.
+        /// </summary>
+        [Theory]
+        [InlineData("lan")]
+        [InlineData("argPe")]
+        [InlineData("meanAnomalyAtEpoch")]
+        public void BuildManeuverDropsAPatchMissingAnElementRatherThanZeroFillingIt(string missing)
+        {
+            var raw = PatchRaw(mu: 3.5316e12, bodyIndex: 1, encounterIndex: 2);
+            raw.Remove(missing);
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                maneuverNodes: new List<object?>
+                {
+                    new Dictionary<string, object?>
+                    {
+                        ["ut"] = 12345.0,
+                        ["patches"] = new List<object?> { raw },
+                    },
+                });
+
+            Assert.Empty(Assert.Single(VesselViewProvider.BuildManeuver(snapshot)!.Nodes).Patches);
         }
 
         /// <summary>

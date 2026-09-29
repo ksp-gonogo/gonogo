@@ -3778,16 +3778,10 @@ export interface NoCommandArgs
 * purpose: propagating a patch needs its body resolved, and a display name is
 * the wrong key for that. `OrbitPatch.mu` completes the same thought: a patch
 * carries everything needed to propagate it, with no `system.bodies` join.
-* `OrbitPatch.lan`/`OrbitPatch.argPe` are plain (non-nullable) doubles here,
-* UNLIKE `VesselOrbit.lan`/`VesselOrbit.argPe`: a deliberate, narrower
-* exception to this codebase's usual R1 "never NaN, never a fake 0" rule: the
-* propagation math that consumes a patch already hard-assumes a finite number
-* for both (no null-handling branch), matching the historical behaviour for a
-* near-circular/near-equatorial patch. Capturing them nullable here would
-* silently break every consumer without a matching client-side rewrite: out of
-* scope for this Topic. See `Gonogo.KSP.KspHost.BuildOrbitPatchChain`'s doc
-* comment for how a NaN is substituted with 0 at capture time, preserving that
-* pre-existing (imperfect but non-breaking) behaviour.
+* Every element is a plain (non-nullable) double, unlike
+* `VesselOrbit.lan`/`VesselOrbit.argPe`: a patch is propagated, and a patch
+* missing any element needed to propagate it is not sent at all rather than
+* sent with a stand-in.
 *
 * @category Orbits and trajectories
 */
@@ -6705,12 +6699,12 @@ export interface AtmosphereEntry
 	pressures?: Value<"kPa">[] | null;
 }
 /**
-* A body's Keplerian orbital elements, as emitted by
-* `SystemViewProvider.BuildOrbit` (present on every `BodyEntry` except the
-* root star). Each element is independently nullable: KSP's own `lan`/`argPe`
-* are NaN for a near-equatorial/near-circular orbit (a routine case) and the
-* provider maps that (and any genuinely-absent value) to null via the shared
-* non-finite-is-absent rule, never a NaN token on the wire.
+* A body's Keplerian orbital elements, present on every `BodyEntry` except the
+* root star. Each element is independently `null` when its value is absent or
+* non-finite, never a NaN token on the wire. Every orbit has a defined node
+* and periapsis, an equatorial or circular one included, so a `null`
+* `OrbitEntry.lan` or `OrbitEntry.argPe` is a genuine absence and never stands
+* for either shape.
 *
 * Units mirror the KSP-native inconsistency deliberately KEPT upstream:
 * `OrbitEntry.sma` in metres; `OrbitEntry.inc`/`OrbitEntry.lan`/
@@ -6728,15 +6722,9 @@ export interface OrbitEntry
 	ecc?: Value<"1"> | null;
 	/** Inclination, degrees. */
 	inc?: Value<"°"> | null;
-	/**
-	* Longitude of ascending node, degrees; null for an undefined node
-	* (near-equatorial orbit).
-	*/
+	/** Longitude of ascending node, degrees. */
 	lan?: Value<"°"> | null;
-	/**
-	* Argument of periapsis, degrees; null for an undefined periapsis
-	* (near-circular orbit).
-	*/
+	/** Argument of periapsis, degrees. */
 	argPe?: Value<"°"> | null;
 	/** Mean anomaly at epoch, radians. */
 	meanAnomalyAtEpoch?: Value<"rad"> | null;
@@ -8814,15 +8802,13 @@ export interface VesselOrbit
 	ecc: Value<"1">;
 	inc: Value<"°">;
 	/**
-	* Null = undefined ascending node (KSP's own LAN is NaN for a near-equatorial
-	* orbit, inc ~ 0 -- a routine case, not an error). Never NaN, never 0 as a
-	* stand-in (R1/F-1).
+	* Longitude of ascending node, degrees; `null` only when absent, never NaN and
+	* never 0 as a stand-in. An equatorial orbit still has one.
 	*/
 	lan?: Value<"°"> | null;
 	/**
-	* Null = undefined periapsis (KSP's own argumentOfPeriapsis is NaN for a
-	* near-circular orbit, ecc ~ 0 -- a routine case, not an error). Never NaN,
-	* never 0 as a stand-in (R1/F-1).
+	* Argument of periapsis, degrees; `null` only when absent, never NaN and never
+	* 0 as a stand-in. A circular orbit still has one.
 	*/
 	argPe?: Value<"°"> | null;
 	/**
