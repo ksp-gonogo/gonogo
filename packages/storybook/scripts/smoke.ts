@@ -13,7 +13,9 @@
  * Every story is also held to WCAG AA text contrast in the real browser, by
  * axe's `color-contrast` rule over what it actually painted: a backstop for
  * text the design system's own rules missed, such as a control whose words
- * came from a browser default.
+ * came from a browser default. Words drawn through opacity fail on their own,
+ * since axe passes some of them that read below contrast; a disabled control
+ * is exempt, as WCAG exempts inactive components.
  *
  * Before it trusts a clean run it mounts the planted stories (`Smoke plant`),
  * which fail on purpose, and fails as BLIND if either is reported clean: a
@@ -42,6 +44,7 @@ const PLANTS: Record<string, string> = {
   "smoke-plant--draws-nothing": "draws nothing",
   "smoke-plant--renders-its-name": "renders only its own name",
   "smoke-plant--unreadable-text": "contrast: #planted-unreadable",
+  "smoke-plant--dimmed-words": "opacity: #planted-dimmed",
 };
 const PLANT_IDS = Object.keys(PLANTS);
 const STORY_TIMEOUT_MS = 30_000;
@@ -73,6 +76,43 @@ async function contrastFailures(page: Page): Promise<string[]> {
           `contrast: ${n.target.join(" ")}: ${n.any[0]?.message ?? "below the WCAG AA floor"}`,
       ),
     );
+  });
+}
+
+/**
+ * Words painted through an opacity below one, on themselves or an ancestor,
+ * one line per element. Opacity zero is not drawn at all, so it is not dimmed.
+ */
+async function dimmedWords(page: Page): Promise<string[]> {
+  return page.evaluate(() => {
+    const root = document.querySelector("#storybook-root");
+    if (root === null) return [];
+    const found: string[] = [];
+    const checked = new Set<Element>();
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      const text = node.textContent?.trim() ?? "";
+      const el = node.parentElement;
+      if (text === "" || el === null || checked.has(el)) continue;
+      checked.add(el);
+      if (el.closest(":disabled, [aria-disabled='true']")) continue;
+      if (el.getClientRects().length === 0) continue;
+      if (getComputedStyle(el).visibility !== "visible") continue;
+      let alpha = 1;
+      for (let at: Element | null = el; at !== null; at = at.parentElement) {
+        alpha *= Number(getComputedStyle(at).opacity);
+      }
+      if (alpha === 0 || alpha > 0.999) continue;
+      // Inline rather than a helper: a named function picks up a transpiler helper the page lacks.
+      const cls = el.getAttribute("class")?.split(/\s+/)[0];
+      const tag = el.tagName.toLowerCase();
+      let where = cls ? `${tag}.${cls}` : tag;
+      if (el.id) where = `#${el.id}`;
+      found.push(
+        `opacity: ${where} draws "${text.slice(0, 40)}" at ${alpha.toFixed(2)}`,
+      );
+    }
+    return found;
   });
 }
 const WORKERS = 4;
@@ -177,7 +217,10 @@ async function mountStory(
     for (const fault of faults) {
       errors.push(`independence check failed: ${fault}`);
     }
-    if (errors.length === 0) errors.push(...(await contrastFailures(page)));
+    if (errors.length === 0) {
+      errors.push(...(await contrastFailures(page)));
+      errors.push(...(await dimmedWords(page)));
+    }
   } catch (err) {
     errors.push(
       `did not settle: ${err instanceof Error ? err.message.split("\n")[0] : String(err)}`,

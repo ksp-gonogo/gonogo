@@ -17,8 +17,9 @@ import { WidgetScene, type WidgetSceneProps } from "../WidgetScene";
  * fail: a component that throws as it renders, a widget scene whose mount
  * rejects after the first render, and an extension story whose scene never
  * draws its extension, a set of scenes sharing the page's one probe slot, a
- * story that draws nothing or only its own title's name, and words drawn in a
- * browser's default button colour on the dark panel.
+ * story that draws nothing or only its own title's name, words drawn in a
+ * browser's default button colour on the dark panel, and words dimmed by
+ * opacity.
  * `scripts/smoke.ts` fails as BLIND if any is reported clean.
  */
 function Throws(): never {
@@ -113,6 +114,15 @@ export const UnreadableText: StoryObj = {
       >
         Chutes
       </button>
+    </div>
+  ),
+};
+
+/** Readable words faded by their container's opacity, which axe passes. */
+export const DimmedWords: StoryObj = {
+  render: () => (
+    <div style={{ opacity: 0.5 }}>
+      <span id="planted-dimmed">Burn duration</span>
     </div>
   ),
 };
