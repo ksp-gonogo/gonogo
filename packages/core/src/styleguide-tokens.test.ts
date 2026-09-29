@@ -148,7 +148,6 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/components/src/Navball/index.tsx": 1,
     "packages/components/src/StationConnectView/StationConnectView.styles.ts": 19,
     "packages/components/src/Strategies/styles.ts": 1,
-    "packages/components/src/ThermalStatus/styles.ts": 2,
     "packages/components/src/Twr/index.tsx": 1,
     "packages/data/src/FlightsManager/index.tsx": 2,
     "packages/serial/src/SerialDevicesMenu/ProtocolReferenceModal.tsx": 1,
