@@ -90,7 +90,7 @@ Both images also carry a `sha-<commit>` tag in both channels. `gonogo` and `gono
 
 - it does nothing when `rc-<shortsha>` already exists. That tag is the record of the last RC: it is written only after Pages, images and mod zips all finished, so a failed RC leaves none and the next night retries. The `force` input rebuilds a sha that already has a tag
 - it does nothing when the head is a release commit (a `v*` tag points at it)
-- it refuses a sha unless every CI run of it passed. CI does not run on `staging` (`ci-dev-forward.yml` pushes there with `GITHUB_TOKEN`, which starts no workflow); it runs on `ci-dev` at the same sha. `scripts/ci-dev-forward-verdict.sh` reads the runs of that sha across every branch, the same rule the forwarder applies. `force` does not bypass it
+- it runs CI itself on that sha: `ci.yml` is callable (`workflow_call` with a `ref` input, every checkout takes it, because a scheduled caller's own context is `main`), and Pages, images and mod zips all `need` it, so nothing publishes unless it passes. `staging` gets no CI from the forwarder (a `GITHUB_TOKEN` push starts no workflow), so this is where its head is validated as `staging`. `force` does not bypass it. `ci-dev`'s CI and `ci-dev-forward.yml` are unchanged, and agents still land through them. One known softness: a `schedule` or `workflow_dispatch` run has no push `before`, so the shrink-only ratchets grade against the merge base with `origin/staging`, which on staging's head falls back to `HEAD^` (the last commit only). Each landing was already graded in full on `ci-dev`
 - it calls `deploy.yml`, `publish-images.yml` and `publish-mods.yml` at `@staging` with that sha
 
 ```bash
@@ -98,7 +98,7 @@ gh workflow run rc.yml --ref staging              # build the RC now
 gh workflow run rc.yml --ref staging -f force=true
 ```
 
-**Why `rc.yml` names `@staging`.** `schedule` runs the copy of the workflow on the default branch, `main`, which moves only at a release. A `./` call would resolve to main's copies of the publishers. Naming `@staging` means only `rc.yml` itself has to be on `main` for the nightly to start.
+**Why `rc.yml` names `@staging`.** `schedule` runs the copy of the workflow on the default branch, `main`, which moves only at a release. A `./` call would resolve to main's copies of `ci.yml` and the publishers. Naming `@staging` means only `rc.yml` itself has to be on `main` for the nightly to start.
 
 **Cutting a release.** One dispatch, on `staging`:
 

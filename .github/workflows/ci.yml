@@ -22,6 +22,16 @@ on:
   # does NOT trigger a workflow run, so the regenerated-baseline tip would
   # otherwise never get a CI run to prove the visual gate is green.
   workflow_dispatch:
+  # rc.yml runs the whole of this against the staging sha before it publishes.
+  # `schedule` and `workflow_dispatch` callers carry THEIR ref's context, which
+  # for the nightly is `main`, so every checkout below takes `inputs.ref` and
+  # falls back to the triggering sha when this is not a call.
+  workflow_call:
+    inputs:
+      ref:
+        description: "Commit to validate (default: the triggering sha)"
+        required: false
+        type: string
 
 # GitHub can deliver one push to Actions twice: two check suites with the same
 # `before` and `after`, created in the same second, each starting a run. Two runs
@@ -31,7 +41,7 @@ on:
 # Successive commits never share a group, so each commit on staging and main
 # still runs to completion.
 concurrency:
-  group: ci-${{ github.event_name }}-${{ github.ref }}-${{ github.sha }}
+  group: ci-${{ github.event_name }}-${{ github.ref }}-${{ inputs.ref || github.sha }}
   cancel-in-progress: true
 
 permissions:
@@ -50,6 +60,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref || github.sha }}
 
       - uses: actions/setup-node@v6
         with:
@@ -167,6 +179,7 @@ jobs:
       # having never once compared anything.
       - uses: actions/checkout@v5
         with:
+          ref: ${{ inputs.ref || github.sha }}
           fetch-depth: 0
 
       # Which revision that is depends on the trigger, and on a push it is NOT
@@ -285,6 +298,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref || github.sha }}
 
       - uses: actions/setup-node@v6
         with:
@@ -394,6 +409,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref || github.sha }}
 
       - uses: actions/setup-node@v6
         with:
@@ -466,6 +483,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref || github.sha }}
 
       - uses: actions/setup-node@v6
         with:
@@ -532,6 +551,7 @@ jobs:
       # count down with them.
       - uses: actions/checkout@v5
         with:
+          ref: ${{ inputs.ref || github.sha }}
           fetch-depth: 0
 
       - name: Resolve the ratchets' base revision
@@ -604,6 +624,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref || github.sha }}
 
       - uses: actions/setup-dotnet@v5
         with:
@@ -970,6 +992,8 @@ jobs:
         browser: [chromium, firefox, webkit]
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref || github.sha }}
 
       - uses: actions/setup-node@v6
         with:
@@ -1050,6 +1074,8 @@ jobs:
         browser: [chromium, firefox, webkit]
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref || github.sha }}
 
       - uses: actions/setup-node@v6
         with:

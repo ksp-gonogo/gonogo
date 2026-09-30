@@ -18,11 +18,11 @@ name: RC
 #      is durable, needs no API to read back, shows on the repo page, and a failed
 #      RC leaves no tag so the next night retries. `force` rebuilds a sha that
 #      already has one (the tag is then left alone).
-#   2. It builds only a sha every CI run of which passed. CI never runs on
-#      `staging` (ci-dev-forward.yml pushes there with GITHUB_TOKEN, and a token
-#      push starts no workflow); it runs on `ci-dev` at the same sha, so the
-#      verdict is read by sha, across branches, by the same script the forwarder
-#      uses. `force` does not bypass this.
+#   2. It runs CI itself, against that sha, before anything publishes: ci.yml is
+#      callable, and every publisher `needs` it. `staging` gets no CI of its own
+#      from the forwarder (a GITHUB_TOKEN push starts no workflow), so the RC is
+#      where staging's head is first validated as staging. `force` does not
+#      bypass it. ci-dev's own CI and ci-dev-forward.yml are unchanged.
 #   3. `schedule` runs the copy of this file on the DEFAULT branch (`main`), and
 #      main moves only at a release. So this file checks out `staging`
 #      explicitly and calls the publishers at `@staging` instead of `./`, which
@@ -36,7 +36,7 @@ on:
   workflow_dispatch:
     inputs:
       force:
-        description: "Rebuild even when staging's head already has an RC (CI must still be green)"
+        description: "Rebuild even when staging's head already has an RC (CI still runs and must pass)"
         required: false
         default: false
         type: boolean
@@ -51,9 +51,6 @@ concurrency:
 jobs:
   gate:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      actions: read
     outputs:
       build: ${{ steps.decide.outputs.build }}
       sha: ${{ steps.decide.outputs.sha }}
@@ -66,7 +63,6 @@ jobs:
 
       - id: decide
         env:
-          GH_TOKEN: ${{ github.token }}
           FORCE: ${{ inputs.force }}
         run: |
           set -euo pipefail
@@ -87,14 +83,20 @@ jobs:
             exit 0
           fi
 
-          if ! bash scripts/ci-dev-forward-verdict.sh "$GITHUB_REPOSITORY" "$sha"; then
-            echo "::error::no RC for $short: not every CI run of it is green (CI runs on ci-dev, not staging)."
-            exit 1
-          fi
           echo "build=true" >> "$GITHUB_OUTPUT"
 
-  pages:
+  ci:
     needs: gate
+    if: needs.gate.outputs.build == 'true'
+    permissions:
+      contents: read
+    uses: ksp-gonogo/gonogo/.github/workflows/ci.yml@staging
+    with:
+      ref: ${{ needs.gate.outputs.sha }}
+    secrets: inherit
+
+  pages:
+    needs: [gate, ci]
     if: needs.gate.outputs.build == 'true'
     permissions:
       contents: read
@@ -106,7 +108,7 @@ jobs:
     secrets: inherit
 
   images:
-    needs: gate
+    needs: [gate, ci]
     if: needs.gate.outputs.build == 'true'
     permissions:
       contents: read
@@ -118,7 +120,7 @@ jobs:
     secrets: inherit
 
   mods:
-    needs: gate
+    needs: [gate, ci]
     if: needs.gate.outputs.build == 'true'
     permissions:
       contents: read
@@ -129,7 +131,7 @@ jobs:
     secrets: inherit
 
   record:
-    needs: [gate, pages, images, mods]
+    needs: [gate, ci, pages, images, mods]
     if: needs.gate.outputs.build == 'true'
     runs-on: ubuntu-latest
     permissions:
