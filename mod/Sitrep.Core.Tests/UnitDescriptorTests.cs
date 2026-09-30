@@ -124,7 +124,7 @@ namespace Sitrep.Core.Tests
                 Assert.Equal(member.ToString(), maps.EnumMembers["Situation"][(long)member]);
             }
 
-            Assert.Null(maps.EnumsByType["ReliabilitySummary"]["coverage"]);
+            Assert.Null(maps.EnumsByType["CommcastTraffic"]["kind"]);
             Assert.False(maps.EnumsByType.TryGetValue("ActionBinding", out var binding) && binding.ContainsKey("groupsMask"));
         }
 

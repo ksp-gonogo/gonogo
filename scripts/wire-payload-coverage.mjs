@@ -5,7 +5,7 @@
 // catches that and fail-softs, so the frame is dropped and the client sits on
 // "subscribed" forever with nothing red anywhere. It has now happened five
 // times: `CommandResult`, `CommsDelay`, an uplink's own boxed enum,
-// `commandCentre.roster`'s entry, and `vessel.repair`'s reply payload.
+// `commandCentre.roster`'s entry, and a command's typed reply payload.
 //
 // ## Why this is not the C# gate that already exists
 //

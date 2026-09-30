@@ -157,17 +157,6 @@ namespace Sitrep.Host.IntegrationTests
                     + "display it, so the gate and the demand are one subscription. An "
                     + "Uplink registering a provider makes this line stale and fails."),
             new Entry(
-                "reliability",
-                "Sitrep.Host/Reliability/ReliabilityElection.cs",
-                FedByGatedCapture: false,
-                Excuse: Excuse.NoUplinkProvider,
-                WhyNoBehaviouralCase: "No Uplink in this repo registers a provider, so "
-                    + "NoneReliabilityBackend, the capability's Vanilla, is the only one "
-                    + "and answers Unmodeled. ReliabilityCoreUplink reads the elected "
-                    + "backend from its own capture gated on the two reliability topics "
-                    + "that display it, the same shape as isru. An Uplink registering a "
-                    + "provider makes this line stale and fails."),
-            new Entry(
                 "comms",
                 "Sitrep.Host/Comms/CommsElection.cs",
                 FedByGatedCapture: false,

@@ -69,14 +69,6 @@ export const EXTENSION_SCENES: readonly ExtensionScene[] = [
     h: 12,
   },
   {
-    id: "fleet-reliability-updates",
-    widgetId: "fleet-roster",
-    fixture: `${COMPONENTS}/FleetReliability/__fixtures__/broken-reaction-wheel.json`,
-    w: 8,
-    h: 10,
-    underInstall: true,
-  },
-  {
     id: "objectives-contracts",
     widgetId: "objectives",
     fixture: `${COMPONENTS}/Objectives/__fixtures__/contracts-only.json`,

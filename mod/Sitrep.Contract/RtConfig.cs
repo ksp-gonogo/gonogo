@@ -344,8 +344,6 @@ public static class RtConfig
                 // vessel.inventory channel payload + nested value shapes: stock
                 // cargo carried on parts AND on kerbals, which share one KSP
                 // module and so share one channel.
-                typeof(RepairPartArgs),
-                typeof(RepairOutcome),
                 typeof(VesselInventory),
                 typeof(InventoryStore),
                 typeof(InventoryItem),
@@ -418,11 +416,6 @@ public static class RtConfig
                 typeof(FlightVesselChanged),
                 // One named custom action group on vessel.control.actionGroups
                 typeof(ActionGroupState),
-                // reliability.* capability channels (Domain-neutral; see Reliability.cs)
-                typeof(ReliabilitySummary),
-                typeof(ReliabilityPartEntry),
-                typeof(ReliabilityBudget),
-                typeof(RepairCostItem),
                 // isru.* capability channels (Domain-neutral; see Isru.cs) + the
                 // nested recipe-flow shape both converter sides are lists of
                 typeof(IsruDrillEntry),

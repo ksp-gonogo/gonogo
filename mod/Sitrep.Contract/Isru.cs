@@ -6,8 +6,8 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /*
- * isru.* is a Domain-neutral capability namespace, the same shape as reliability.*: more than
- * one mod models in-situ resource extraction (stock's ModuleResourceHarvester and
+ * isru.* is a Domain-neutral capability namespace, the same shape as comms.*: more than one
+ * mod models in-situ resource extraction (stock's ModuleResourceHarvester and
  * ModuleResourceConverter, and mods that replace both), so one exclusive "isru" capability is
  * elected in the Kernel and its active instance is an IIsruBackend. A core registrar owns the
  * capability, supplies the stock backend as its Vanilla factory and declares both isru.*
@@ -36,7 +36,7 @@ namespace Sitrep.Contract;
 [SitrepTopic("isru.drills", isArray: true)]
 public class IsruDrillEntry
 {
-    /// <summary>Part.flightID stringified: the same join key vessel.parts/parts.power/reliability.parts use.</summary>
+    /// <summary>Part.flightID stringified: the same join key vessel.parts/parts.power use.</summary>
     [SitrepUnit(Units.Id)]
     public string? PartId { get; set; }
 
@@ -172,7 +172,7 @@ public class IsruConverterEntry
 
 /// <summary>
 /// The "isru" capability's active-instance interface (parallel to
-/// <see cref="IReliabilityBackend"/>). An Uplink that models ISRU implements it
+/// <see cref="IScienceBackend"/>). An Uplink that models ISRU implements it
 /// and registers it as a Kernel provider; the elected one's readouts are
 /// published on <c>isru.drills</c> and <c>isru.converters</c>. Parameterless and
 /// KSP-free: an implementation reads the active vessel itself.

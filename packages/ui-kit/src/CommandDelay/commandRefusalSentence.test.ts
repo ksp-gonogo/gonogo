@@ -1,7 +1,6 @@
 import {
   CommandErrorCode,
   noteRosterErrorCodes,
-  RepairRefusal,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
@@ -154,16 +153,6 @@ describe("what an operator reads when the game says no", () => {
         command: "vessel.control.stage",
       }),
     ).toBe("Stage refused: aRootFromALaterMod.");
-  });
-
-  it("reads a refinement's own sentence ahead of its root's", () => {
-    expect(
-      commandRefusalSentence({
-        errorCode: CommandErrorCode.InsufficientResource,
-        reason: RepairRefusal.NoKits,
-        command: "vessel.repair",
-      }),
-    ).toBe("Repair refused: there are not enough repair kits aboard.");
   });
 
   it("falls back to the root's sentence for a refinement nothing declares", () => {

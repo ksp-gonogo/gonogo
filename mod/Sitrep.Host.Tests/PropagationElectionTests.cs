@@ -11,8 +11,7 @@ namespace Sitrep.Host.Tests
     /// The propagation election: stock two-body vanilla always present, any provider
     /// elected over it generically.
     ///
-    /// <para>Deliberately mirrors ReliabilityElection rather than CommsElection,
-    /// which carries a mod-named public triple (<c>XProviderId</c>,
+    /// <para>Deliberately NOT shaped like CommsElection, which carries a mod-named public triple (<c>XProviderId</c>,
     /// <c>XPriority</c>, <c>RegisterXProvider</c>), the thing core is not supposed
     /// to do: a provider announces itself through
     /// <see cref="IPropagationProvider.ProviderId"/> and registers through the

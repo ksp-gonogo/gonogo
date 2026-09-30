@@ -1924,35 +1924,6 @@ const WIDGETS: WidgetRenderConfig[] = [
   },
   {
     /*
-     * The SAME widget as the entry above, rendered against the reliability
-     * augment's own scene so the augment is actually visible.
-     *
-     * It is a second render SCENARIO of `fleet-roster`, not a second widget,
-     * for the reason the four `landing-status/*` entries are: the interesting
-     * thing is a state the base fixtures cannot reach.
-     *
-     * None of `FleetRoster/__fixtures__` carries a `reliability.*` channel, so
-     * every shot of the entry above renders the `fleet-roster.updates` slot
-     * EMPTY and the augment contributes nothing to any of them. The augment has
-     * therefore never appeared in a render, which is why "is this the right
-     * shape for it" could not be answered by looking. This scene carries
-     * `reliability.summary` and `reliability.parts` and answers it.
-     */
-    widgetId: "fleet-roster",
-    label: "fleet-roster/reliability",
-    fixturesPath: "FleetReliability/__fixtures__",
-    outPath: "renders/fleet-roster-reliability",
-    modes: [
-      // Registered default: the slot at the size an operator normally sees it.
-      { name: "default-8x10", w: 8, h: 10 },
-      // Wide: whether a per-vessel update line has room beside the table.
-      { name: "wide-11x10", w: 11, h: 10 },
-      // Compact: the size at which the base entry sheds update lines entirely, so this is where the augment either degrades or is dropped.
-      { name: "compact-5x7", w: 5, h: 7 },
-    ],
-  },
-  {
-    /*
      * The pair is the widget's one control and Auto follows the craft, so each
      * scene's default mode saves the pair it is about, at a size where the
      * diagram is readable. The unscoped modes run every scene on Auto, which is

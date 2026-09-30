@@ -142,21 +142,6 @@
     "reason": "A CAPACITY, not a level. The rule proposes draining the tank itself: the flow beside it is the rate of the amount, never of the amount the tank can hold.",
     "verdict": "coincidence"
   },
-  "ReliabilityBudget.limitSeconds": {
-    "rates": ["consumed"],
-    "reason": "The same dimensional degeneracy, and the fraction genuinely IS used over limit, so it is derived FROM this pair rather than being its rate: integrating `consumed` to get seconds would recompute an input from an output. There is no clock here either. A budget's seconds are consumed by OPERATION (thrust-weighted, for a rated burn), not by time passing, so nothing advances between frames for a reckoner to integrate.",
-    "verdict": "coincidence"
-  },
-  "ReliabilityBudget.usedSeconds": {
-    "rates": ["consumed"],
-    "reason": "The same dimensional degeneracy, and the fraction genuinely IS used over limit, so it is derived FROM this pair rather than being its rate: integrating `consumed` to get seconds would recompute an input from an output. There is no clock here either. A budget's seconds are consumed by OPERATION (thrust-weighted, for a rated burn), not by time passing, so nothing advances between frames for a reckoner to integrate.",
-    "verdict": "coincidence"
-  },
-  "ReliabilityPartEntry.survivalHorizonSeconds": {
-    "rates": ["survival"],
-    "reason": "Dimensional degeneracy plus a category error. `divide({s:1},{s:1})` is `{}`, so every dimensionless field is the dimensional rate of every time field in its own type, and that is the whole of this pairing. A survival PROBABILITY is not the rate at which its own horizon elapses: the horizon is a parameter OF the probability (P(survive t seconds of operation)), which is why the contract makes it mandatory whenever the fraction is set. Integrating one against the other would produce a number with no referent.",
-    "verdict": "coincidence"
-  },
   "ServoEntry.currentAngle": {
     "rates": ["currentRPM", "rpmLimit"],
     "reason": "An RPM is an angular rate and this angle is what it turns, so the pairing is real. It is also a COMMANDED quantity: a servo travels toward `targetAngle` and stops, so integrating `currentAngle` past its target invents motion that ended.",
@@ -305,11 +290,6 @@
   "dv.stages.burnTime": {
     "rates": ["twrActual", "twrAsl", "twrVac"],
     "reason": "A TWR is not the rate of a burn time. Both fall out of the same stage figures, which is why they sit together.",
-    "verdict": "coincidence"
-  },
-  "reliability.parts.survivalHorizonSeconds": {
-    "rates": ["survival"],
-    "reason": "Dimensional degeneracy plus a category error. `divide({s:1},{s:1})` is `{}`, so every dimensionless field is the dimensional rate of every time field in its own type, and that is the whole of this pairing. A survival PROBABILITY is not the rate at which its own horizon elapses: the horizon is a parameter OF the probability (P(survive t seconds of operation)), which is why the contract makes it mandatory whenever the fraction is set. Integrating one against the other would produce a number with no referent.",
     "verdict": "coincidence"
   },
   "robotics.servos.currentAngle": {

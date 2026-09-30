@@ -194,21 +194,4 @@ describe("typed Topic registry", () => {
       for (const id of TOPIC_IDS) expect(all.has(id)).toBe(true);
     });
   });
-
-  // The kerbalism.* half of this block moved out with its payload types
-  // (uplink-types-out-of-core plan): those five Topics are no longer this
-  // assembly's codegen output, so asserting them here would be asserting
-  // something core is deliberately no longer responsible for. Their
-  // "codegen emits this Topic id" proof lives in the owning Uplink's own
-  // topics.test.ts, alongside the C#-constant cross-check that this leaf could
-  // never do. reliability.* stays: it is a DOMAIN-NEUTRAL capability channel
-  // (see Reliability.cs), served by whichever backend wins election, so it is
-  // core's own contract and not any one mod's.
-  describe("reliability capability topics", () => {
-    it("codegen emits every reliability.* topic id", () => {
-      for (const id of ["reliability.summary", "reliability.parts"]) {
-        expect(GENERATED_TOPIC_IDS).toContain(id);
-      }
-    });
-  });
 });

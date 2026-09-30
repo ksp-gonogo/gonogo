@@ -1,10 +1,10 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 22.0.0
+  version: 23.0.0
   description: |-
-    The wire contract of the Gonogo mod's telemetry socket: 80 telemetry
-    channels a client subscribes to, and 60 commands it dispatches, with the payload
+    The wire contract of the Gonogo mod's telemetry socket: 78 telemetry
+    channels a client subscribes to, and 59 commands it dispatches, with the payload
     schema and the contract's own prose for each.
 
     **Generated.** Emitted by `scripts/asyncapi-doc.mjs` from the committed
@@ -181,8 +181,6 @@ info:
       description: 1 telemetry channel, 0 commands
     - name: recovery
       description: 1 telemetry channel, 0 commands
-    - name: reliability
-      description: 2 telemetry channels, 0 commands
     - name: robotics
       description: 2 telemetry channels, 9 commands
     - name: science
@@ -198,7 +196,7 @@ info:
     - name: time
       description: 2 telemetry channels, 2 commands
     - name: vessel
-      description: 20 telemetry channels, 21 commands
+      description: 20 telemetry channels, 20 commands
   externalDocs:
     description: "Writing an Uplink: the plugin half and the client half"
     url: https://ksp-gonogo.github.io/uplink-dev-docs/
@@ -1647,46 +1645,6 @@ channels:
     messages:
       streamData:
         $ref: "#/components/messages/streamData.recovery.lastSummary"
-      event:
-        $ref: "#/components/messages/event"
-  reliability.parts:
-    address: reliability.parts
-    description: |-
-      Carries an array of `ReliabilityPartEntry`.
-
-      Per-part reliability, in the terms a reliability model actually has: a
-      condition, the provider's own word for it, an optional forward survival
-      probability with its horizon, and any number of consumed budgets.
-    servers:
-      - $ref: "#/servers/mod"
-    x-sitrep-delivery: lossy-latest
-    x-sitrep-delay-role: delayed
-    x-sitrep-keyframe-interval-ut: 30
-    messages:
-      streamData:
-        $ref: "#/components/messages/streamData.reliability.parts"
-      event:
-        $ref: "#/components/messages/event"
-  reliability.summary:
-    address: reliability.summary
-    description: |-
-      Carries a `ReliabilitySummary`.
-
-      Vessel-level reliability summary. Two facts and a bag, and deliberately no
-      judgements: who is modelling, and whether they are modelling at all.
-
-      There are no roll-ups here. A malfunction/critical count over the same part
-      list published from the same capture at the same UT is a second authority
-      for a derivable quantity, and a second authority is how two adjacent numbers
-      come to disagree. The client derives what it needs from `reliability.parts`.
-    servers:
-      - $ref: "#/servers/mod"
-    x-sitrep-delivery: lossy-latest
-    x-sitrep-delay-role: delayed
-    x-sitrep-keyframe-interval-ut: 30
-    messages:
-      streamData:
-        $ref: "#/components/messages/streamData.reliability.summary"
       event:
         $ref: "#/components/messages/event"
   robotics.available:
@@ -3458,22 +3416,6 @@ channels:
         $ref: "#/components/messages/streamData.vessel.propulsion"
       event:
         $ref: "#/components/messages/event"
-  vessel.repair:
-    address: vessel.repair
-    description: |-
-      Takes `RepairPartArgs`.
-
-      **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
-
-      `vessel.repair`'s args: which part, and which crew member does it.
-    servers:
-      - $ref: "#/servers/mod"
-    x-sitrep-delayed: true
-    messages:
-      commandRequest:
-        $ref: "#/components/messages/commandRequest.vessel.repair"
-      commandResponse:
-        $ref: "#/components/messages/commandResponse.vessel.repair"
   vessel.resources:
     address: vessel.resources
     description: |-
@@ -4463,20 +4405,6 @@ operations:
         $ref: "#/channels/vessel.maneuver.update"
       messages:
         - $ref: "#/channels/vessel.maneuver.update/messages/commandResponse"
-  dispatch:vessel.repair:
-    action: send
-    channel:
-      $ref: "#/channels/vessel.repair"
-    title: Dispatch vessel.repair
-    tags:
-      - name: vessel
-    messages:
-      - $ref: "#/channels/vessel.repair/messages/commandRequest"
-    reply:
-      channel:
-        $ref: "#/channels/vessel.repair"
-      messages:
-        - $ref: "#/channels/vessel.repair/messages/commandResponse"
   dispatch:vessel.target.clear:
     action: send
     channel:
@@ -4915,28 +4843,6 @@ operations:
     messages:
       - $ref: "#/channels/recovery.lastSummary/messages/streamData"
       - $ref: "#/channels/recovery.lastSummary/messages/event"
-  read:reliability.parts:
-    action: receive
-    channel:
-      $ref: "#/channels/reliability.parts"
-    title: Read reliability.parts
-    description: Delivered only after `subscribe` names `reliability.parts` on the session channel, which the mod answers here with an `event` named `subscribed`.
-    tags:
-      - name: reliability
-    messages:
-      - $ref: "#/channels/reliability.parts/messages/streamData"
-      - $ref: "#/channels/reliability.parts/messages/event"
-  read:reliability.summary:
-    action: receive
-    channel:
-      $ref: "#/channels/reliability.summary"
-    title: Read reliability.summary
-    description: Delivered only after `subscribe` names `reliability.summary` on the session channel, which the mod answers here with an `event` named `subscribed`.
-    tags:
-      - name: reliability
-    messages:
-      - $ref: "#/channels/reliability.summary/messages/streamData"
-      - $ref: "#/channels/reliability.summary/messages/event"
   read:robotics.available:
     action: receive
     channel:
@@ -6266,21 +6172,6 @@ components:
                 const: vessel.maneuver.update
               args:
                 $ref: "#/components/schemas/UpdateManeuverNodeArgs"
-    commandRequest.vessel.repair:
-      name: command-request
-      title: Dispatch vessel.repair
-      contentType: application/json
-      correlationId:
-        $ref: "#/components/correlationIds/requestId"
-      payload:
-        description: The `command-request` envelope for `vessel.repair`, with its typed `args`.
-        allOf:
-          - $ref: "#/components/schemas/CommandRequest"
-          - properties:
-              command:
-                const: vessel.repair
-              args:
-                $ref: "#/components/schemas/RepairPartArgs"
     commandRequest.vessel.target.clear:
       name: command-request
       title: Dispatch vessel.target.clear
@@ -7093,32 +6984,6 @@ components:
           - properties:
               result:
                 $ref: "#/components/schemas/CommandResult"
-    commandResponse.vessel.repair:
-      name: command-response
-      title: Reply to vessel.repair
-      contentType: application/json
-      correlationId:
-        $ref: "#/components/correlationIds/requestId"
-      payload:
-        description: The `command-response` envelope for `vessel.repair`, with its typed `result`.
-        allOf:
-          - $ref: "#/components/schemas/CommandResponse"
-          - properties:
-              result:
-                description: |-
-                  A `CommandResult` that also returns a value in `payload`:
-                  `vessel.control.stage` returns the new current stage index, and
-                  `vessel.maneuver.add` returns the created node's id. `payload` is absent
-                  when `CommandResult.success` is false.
-                allOf:
-                  - $ref: "#/components/schemas/CommandResult"
-                  - type: object
-                    properties:
-                      payload:
-                        description: The value the command returns; absent on a refusal.
-                        anyOf:
-                          - $ref: "#/components/schemas/RepairOutcome"
-                          - type: "null"
     commandResponse.vessel.target.clear:
       name: command-response
       title: Reply to vessel.target.clear
@@ -7656,34 +7521,6 @@ components:
                 const: recovery.lastSummary
               payload:
                 $ref: "#/components/schemas/RecoveryReport"
-    streamData.reliability.parts:
-      name: stream-data
-      title: A frame on reliability.parts
-      contentType: application/json
-      payload:
-        description: The `stream-data` envelope carrying `reliability.parts`.
-        allOf:
-          - $ref: "#/components/schemas/StreamData"
-          - properties:
-              topic:
-                const: reliability.parts
-              payload:
-                type: array
-                items:
-                  $ref: "#/components/schemas/ReliabilityPartEntry"
-    streamData.reliability.summary:
-      name: stream-data
-      title: A frame on reliability.summary
-      contentType: application/json
-      payload:
-        description: The `stream-data` envelope carrying `reliability.summary`.
-        allOf:
-          - $ref: "#/components/schemas/StreamData"
-          - properties:
-              topic:
-                const: reliability.summary
-              payload:
-                $ref: "#/components/schemas/ReliabilitySummary"
     streamData.robotics.available:
       name: stream-data
       title: A frame on robotics.available
@@ -10221,12 +10058,12 @@ components:
           title: InsufficientResource
           description: |-
             The command consumes a countable ITEM and there are not enough of them
-            aboard: an EVA repair kit for a repair, on a provider that charges one.
+            aboard.
 
-            Authority: the provider's own charge, the same one it states on
-            `ReliabilityPartEntry.repairCost`, so the cost shown and the cost taken
-            agree. The item is the provider's to name: this code says only that there
-            were too few, never which item.
+            Authority: the provider's own charge, which it should also state wherever it
+            shows the cost, so the cost shown and the cost taken agree. The item is the
+            provider's to name: this code says only that there were too few, never which
+            item.
 
             Separate from `CommandErrorCode.InsufficientFunds` and
             `CommandErrorCode.InsufficientScience`: a physical item cannot be bought.
@@ -14066,9 +13903,7 @@ components:
             - string
             - "null"
           x-sitrep-unit: id
-          description: |-
-            Part.flightID stringified: the same join key
-            vessel.parts/parts.power/reliability.parts use.
+          description: "Part.flightID stringified: the same join key vessel.parts/parts.power use."
         partTitle:
           type:
             - string
@@ -15944,264 +15779,6 @@ components:
           type: number
           x-sitrep-unit: science
           description: Science earned for this subject by this recovery.
-    ReliabilityBudget:
-      type: object
-      description: |-
-        One consumed dimension of a part's rated life: the open-ended member of the
-        per-part shape. A provider declares a dimension the shared shape has never
-        heard of without a change to this contract, and any renderer can draw it
-        from `ReliabilityBudget.label` and the numbers (an extension bag entry, by
-        contrast, is readable only by a widget that already knows the provider id).
-
-        A budget is BACKWARD-looking: how much of a rated allowance has been used.
-        It is not a forecast; that is `ReliabilityPartEntry.survival`.
-      properties:
-        id:
-          type:
-            - string
-            - "null"
-          x-sitrep-unit: id
-          description: |-
-            Provider-chosen dimension id, stable across frames. Reserved ids with fixed
-            meanings: "service" (scheduled maintenance clock), "burn.continuous",
-            "burn.cumulative" (rated firing time, per RatingScope), "ignitions",
-            "cycles". A provider with a dimension not listed here invents an id; the
-            client renders it from Label and the numbers, never from the id.
-        label:
-          type:
-            - string
-            - "null"
-          x-sitrep-unit: text
-          description: |-
-            Display-ready lower-case noun phrase, rendered verbatim in the operator's
-            sentence: "continuous rated burn", "service". Max 40 chars; the producer
-            clamps.
-        kind:
-          type:
-            - string
-            - "null"
-          x-sitrep-unit: enum
-          description: |-
-            What crossing the limit means, and therefore which verb the client uses:
-            "schedule" (a maintenance date falls due; nothing fails at the line),
-            "risk-ramp" (failure probability begins climbing past the line, nothing is
-            guaranteed), "hard-limit" (the part stops at the line), "advisory" (the
-            provider models the count but not what the limit means). A provider that
-            does not know writes "advisory"; NEVER null-by-ignorance, because the
-            client's threshold table is keyed on this.
-        consumed:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: ratio
-          description: |-
-            Used/Limit as a fraction, 0..1+ (may exceed 1). Null when the provider has
-            no denominator. This is the field the client thresholds on.
-        usedSeconds:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: s
-          description: |-
-            Seconds of the allowance used. RATED seconds, not wall-clock: TestFlight
-            consumes engine life thrust-weighted, so remaining rated seconds are not
-            seconds of burn at partial throttle. Say "rated" when rendering it, and do
-            not convert it to wall-clock time: the future throttle profile is unknown.
-        limitSeconds:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: s
-          description: |-
-            The rated allowance in the same seconds `ReliabilityBudget.usedSeconds`
-            counts. Null when the provider has no denominator.
-        usedCount:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: count
-          description: Countable events used (ignitions, cycles). Exclusive with the seconds pair.
-        limitCount:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: count
-          description: The countable allowance. Null when the provider has no denominator.
-    ReliabilityPartEntry:
-      type: object
-      description: |-
-        Per-part reliability, in the terms a reliability model actually has: a
-        condition, the provider's own word for it, an optional forward survival
-        probability with its horizon, and any number of consumed budgets.
-      properties:
-        partId:
-          type:
-            - string
-            - "null"
-          x-sitrep-unit: id
-          description: |-
-            UNIQUE within one reliability.parts payload. Producers MUST enforce this; it
-            is not a KSP flightID and must not be treated as one. It is the id
-            `RepairPartArgs.partId` takes.
-        repairTrait:
-          type:
-            - string
-            - "null"
-          x-sitrep-unit: text
-          description: |-
-            Which crew trait may act on this part, as the provider states it: a single
-            name, or several comma-separated, or empty meaning anyone.
-
-            Carried so a console can offer only the crew who could actually do it,
-            rather than listing everyone aboard and letting the operator spend a round
-            trip discovering that the pilot cannot. This is the PROVIDER's own
-            requirement read back, never a guess at one.
-
-            Already ELEVATED where the provider elevates it. Kerbalism asks more of a
-            critical failure than an ordinary one, so this is the requirement for THIS
-            part in THIS condition, not the part's baseline.
-        repairLevel:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: count
-          description: |-
-            Minimum experience level the trait must hold, elevated with
-            `ReliabilityPartEntry.repairTrait`. Null when the provider states none.
-        title:
-          type:
-            - string
-            - "null"
-          x-sitrep-unit: text
-          description: The part's display title, as the provider reports it.
-        condition:
-          type:
-            - string
-            - "null"
-          x-sitrep-unit: enum
-          description: |-
-            One of: "nominal", "service-due", "failed", "failed-critical", "unknown".
-            The provider's WORST condition for this part.
-
-            "failed-critical" means the provider grades this failure as its more severe
-            / more costly class. It does NOT mean unrecoverable: Kerbalism's critical IS
-            repairable (2 evaRepairKits, and ElevatedForCritical() raises the crew
-            requirement by one level before Repair() clears it). Nothing in this
-            contract asserts that a part cannot be recovered, because repairability is a
-            function of the part AND the crew, kits and difficulty flags aboard, which
-            no per-part field can settle.
-
-            "unknown" means the provider could not read this part's condition. It is a
-            first-class value and the client renders it; it must never be substituted
-            with "nominal".
-
-            There is no "wear" value: wear is a threshold on a number, the numbers are
-            in `ReliabilityPartEntry.budgets` and `ReliabilityPartEntry.survival`, and
-            the thresholds live client-side.
-        conditionDetail:
-          type:
-            - string
-            - "null"
-          x-sitrep-unit: text
-          description: |-
-            The provider's OWN word(s) for this condition, rendered verbatim as the
-            row's detail clause: "busted", "needs service", "turbopump failure". Max 120
-            chars; producer clamps. This is how a third mod's native vocabulary reaches
-            the screen without a contract change.
-        survival:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: ratio
-          description: |-
-            P(this part survives the next `ReliabilityPartEntry.survivalHorizonSeconds`
-            seconds of OPERATION), 0..1. Null when the provider models no forward
-            probability. MUST be null whenever the horizon is null.
-        survivalHorizonSeconds:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: s
-          description: |-
-            The horizon the fraction is over, in seconds of operation. MANDATORY
-            whenever `ReliabilityPartEntry.survival` is set: exp(-rate*t) is
-            uninterpretable without t, and two parts' fractions are not comparable
-            unless both horizons are on screen.
-        budgets:
-          type:
-            - array
-            - "null"
-          items:
-            $ref: "#/components/schemas/ReliabilityBudget"
-          description: |-
-            Consumed dimensions. Null or empty when the provider models none. Order is
-            producer-chosen and not significant.
-        repairCost:
-          type:
-            - array
-            - "null"
-          items:
-            $ref: "#/components/schemas/RepairCostItem"
-          description: |-
-            What repairing THIS part in THIS condition consumes, as the provider states
-            it. Null or empty means the provider models no consumable cost: that is not
-            the same claim as a cost of zero, and a console must render it as "nothing
-            is consumed" rather than as "needs 0".
-
-            A consumable cost is the PROVIDER's arithmetic and nothing else can derive
-            it. Kerbalism charges two EVA repair kits for its critical class and one for
-            an ordinary failure, and nothing for a service; TestFlight has no consumable
-            in its model at all. Do not derive a cost from
-            `ReliabilityPartEntry.condition`: that applies one backend's rule to every
-            install.
-
-            Already ELEVATED where the provider elevates it, on the same rule as
-            `ReliabilityPartEntry.repairTrait`: this is the cost for this part in this
-            condition, not the part's baseline.
-        extensions:
-          type:
-            - object
-            - "null"
-          description: |-
-            The provider-namespaced extension bag, per-part half. Same mechanism and
-            same rule as `ReliabilitySummary.extensions`.
-          additionalProperties: true
-    ReliabilitySummary:
-      type: object
-      description: |-
-        Vessel-level reliability summary. Two facts and a bag, and deliberately no
-        judgements: who is modelling, and whether they are modelling at all.
-
-        There are no roll-ups here. A malfunction/critical count over the same part
-        list published from the same capture at the same UT is a second authority
-        for a derivable quantity, and a second authority is how two adjacent numbers
-        come to disagree. The client derives what it needs from `reliability.parts`.
-      properties:
-        source:
-          type:
-            - string
-            - "null"
-          x-sitrep-unit: id
-          description: |-
-            Which backend produced this: "kerbalism" | "testflight" | "none", or a
-            third-party provider id.
-        coverage:
-          type:
-            - string
-            - "null"
-          x-sitrep-unit: enum
-          description: |-
-            One of ReliabilityCoverage. Null only if a producer failed to set it; the
-            client treats null and an unrecognised value identically.
-        extensions:
-          type:
-            - object
-            - "null"
-          description: |-
-            The provider-namespaced extension bag: how a reliability backend carries a
-            field this shared shape does not declare, WITHOUT a PR against this file.
-            See ProviderExtensionBagAttribute for the whole mechanism.
-          additionalProperties: true
     RemoveManeuverNodeArgs:
       type: object
       description: "`vessel.maneuver.remove`'s arguments: the manoeuvre node to delete."
@@ -16212,78 +15789,6 @@ components:
           type: string
           x-sitrep-unit: id
           description: "The node to delete: a `ManeuverNode.id` from `vessel.maneuver`."
-    RepairCostItem:
-      type: object
-      description: |-
-        One kind of thing a repair consumes, and how many of it. Deliberately shaped
-        as `InventoryItem`'s name/quantity pair so a console can join the two
-        directly rather than guessing which inventory line a cost refers to.
-      required:
-        - name
-        - quantity
-      properties:
-        name:
-          type: string
-          x-sitrep-unit: id
-          description: |-
-            `AvailablePart.name`, the config id (e.g. `"evaRepairKit"`), matching
-            `InventoryItem.name`. The provider names the item so no consumer has to know
-            which one a backend uses.
-        quantity:
-          type: number
-          x-sitrep-unit: count
-          description: |-
-            How many of this kind one repair consumes. An entry exists only where
-            something IS consumed, so this is never a meaningful zero.
-    RepairOutcome:
-      type: object
-      description: |-
-        What a repair attempt did, or why it did nothing.
-
-        Carries where the kit came from because that changes what the operator has
-        left, and under delay they will not get to ask again cheaply.
-      required:
-        - repaired
-        - kitsUsed
-      properties:
-        repaired:
-          type: boolean
-          x-sitrep-unit: flag
-          description: Whether the part was actually repaired.
-        kitsUsed:
-          type: number
-          x-sitrep-unit: count
-          description: |-
-            Kits consumed. Kerbalism charges two for a critical failure and one
-            otherwise.
-        kitsFrom:
-          type:
-            - string
-            - "null"
-          x-sitrep-unit: id
-          description: |-
-            Where the kit came from: `carried` when the kerbal already held it,
-            otherwise the part id of the store it was taken from, so the operator can
-            see which locker just got lighter.
-    RepairPartArgs:
-      type: object
-      description: "`vessel.repair`'s args: which part, and which crew member does it."
-      required:
-        - partId
-        - crewName
-      properties:
-        partId:
-          type: string
-          x-sitrep-unit: id
-          description: |-
-            The failed part, by the id `reliability.parts` gives it
-            (`ReliabilityPartEntry.partId`).
-        crewName:
-          type: string
-          x-sitrep-unit: text
-          description: |-
-            Who performs it. A NAME, because that is KSP's own stable identifier for a
-            kerbal and what `vessel.crew` is keyed by.
     ResourceAmount:
       type: object
       description: |-

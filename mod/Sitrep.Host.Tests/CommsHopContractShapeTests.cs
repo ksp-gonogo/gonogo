@@ -9,7 +9,7 @@ namespace Sitrep.Host.Tests
     /// <summary>
     /// The anti-pattern ratchet for <see cref="CommsHop"/>, the same guard
     /// <see cref="IsruContractShapeTests"/> and
-    /// <c>ReliabilityContractShapeTests</c> hold for their own elected payloads: a
+    /// <see cref="ScienceProviderExtensionRatchetTests"/> hold for their own elected payloads: a
     /// NEW provider-specific per-hop field lands in the extension bag, not as
     /// another hand-listed member on the shared hop.
     ///

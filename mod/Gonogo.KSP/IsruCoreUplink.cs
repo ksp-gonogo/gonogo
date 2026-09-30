@@ -7,14 +7,14 @@ namespace Gonogo.KSP
 {
     /// <summary>
     /// The bundled CORE ISRU registration: the resource-ops analogue of
-    /// <see cref="ReliabilityCoreUplink"/>. It OWNS the exclusive <c>"isru"</c>
+    /// <see cref="ScienceCoreUplink"/>. It OWNS the exclusive <c>"isru"</c>
     /// capability (registering <see cref="StockIsruBackend"/> as the always-present
     /// Vanilla factory), declares the two <c>isru.*</c> channels ONCE, and sources
     /// them from whichever backend the election picked: resolved at capture time
     /// via <c>host.Kernel.Query&lt;IIsruBackend&gt;("isru")</c>. A modelling mod
     /// registers a provider from its OWN uplink's Register and declares neither
     /// channel itself; that is the shared-namespace-single-declaration rule
-    /// comms.*/reliability.*/science.* all follow.
+    /// comms.*/science.* both follow.
     ///
     /// <para>The capture/handle split is load-bearing, not ceremony. Both backend
     /// readers walk live PartModules, which is only legal on the main thread, while
@@ -55,7 +55,7 @@ namespace Gonogo.KSP
 
         /// <summary>
         /// Declared HERE in the pre-Register capability pass (same two-pass fix as
-        /// CommsCoreUplink/ReliabilityCoreUplink), so the capability exists before
+        /// CommsCoreUplink/ScienceCoreUplink), so the capability exists before
         /// any provider uplink's Register runs: a provider registration can never
         /// race ahead of this declaration regardless of assembly-scan order.
         /// </summary>

@@ -11,10 +11,10 @@ namespace Gonogo.KSP
     /// capability's <c>Vanilla</c> factory by
     /// <see cref="IsruCoreUplink.DeclareCapabilities"/>.
     ///
-    /// <para>Unlike reliability's vanilla backend, this one is a REAL reader:
-    /// stock KSP models ISRU with two part modules and this walks both. An empty
-    /// list means the active vessel carries no drills or converters, which is a
-    /// fact about the vessel, not a gap in the backend.</para>
+    /// <para>This is a REAL reader: stock KSP models ISRU with two part modules
+    /// and this walks both. An empty list means the active vessel carries no
+    /// drills or converters, which is a fact about the vessel, not a gap in the
+    /// backend.</para>
     ///
     /// <para><b>Main thread only</b>: every method reads live KSP
     /// (<see cref="ActiveVesselScope.Current"/> and its PartModules). See

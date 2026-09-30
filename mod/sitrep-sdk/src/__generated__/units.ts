@@ -29,7 +29,6 @@ export type KnownSitrepUnit =
   | "flag"
   | "funds"
   | "g"
-  | "h"
   | "id"
   | "isp"
   | "kN"
@@ -963,45 +962,8 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     subjectId: "id",
     subjectTitle: "text",
   },
-  "ReliabilityBudget": {
-    consumed: "ratio",
-    id: "id",
-    kind: "enum",
-    label: "text",
-    limitCount: "count",
-    limitSeconds: "s",
-    usedCount: "count",
-    usedSeconds: "s",
-  },
-  "ReliabilityPartEntry": {
-    condition: "enum",
-    conditionDetail: "text",
-    partId: "id",
-    repairLevel: "count",
-    repairTrait: "text",
-    survival: "ratio",
-    survivalHorizonSeconds: "s",
-    title: "text",
-  },
-  "ReliabilitySummary": {
-    coverage: "enum",
-    source: "id",
-  },
   "RemoveManeuverNodeArgs": {
     nodeId: "id",
-  },
-  "RepairCostItem": {
-    name: "id",
-    quantity: "count",
-  },
-  "RepairOutcome": {
-    kitsFrom: "id",
-    kitsUsed: "count",
-    repaired: "flag",
-  },
-  "RepairPartArgs": {
-    crewName: "text",
-    partId: "id",
   },
   "ReputationLossEvent": {
     cause: "enum",
@@ -1796,20 +1758,6 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     totalScience: "science",
     vesselName: "text",
   },
-  "reliability.parts": {
-    condition: "enum",
-    conditionDetail: "text",
-    partId: "id",
-    repairLevel: "count",
-    repairTrait: "text",
-    survival: "ratio",
-    survivalHorizonSeconds: "s",
-    title: "text",
-  },
-  "reliability.summary": {
-    coverage: "enum",
-    source: "id",
-  },
   "robotics.available": {
     available: "flag",
   },
@@ -2416,10 +2364,6 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
     resourceBreakdown: "RecoveryResourceEntry[]",
     scienceBreakdown: "RecoveryScienceEntry[]",
   },
-  "ReliabilityPartEntry": {
-    budgets: "ReliabilityBudget[]",
-    repairCost: "RepairCostItem[]",
-  },
   "ResolveResult": {
     notices: "ResolutionNotice[]",
   },
@@ -2662,10 +2606,6 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
     resourceBreakdown: "RecoveryResourceEntry[]",
     scienceBreakdown: "RecoveryScienceEntry[]",
   },
-  "reliability.parts": {
-    budgets: "ReliabilityBudget[]",
-    repairCost: "RepairCostItem[]",
-  },
   "settings.gonogo": {
     meta: "PayloadMeta",
     persistence: "SettingsPersistence",
@@ -2862,15 +2802,6 @@ export const GENERATED_TYPE_ENUMS: Readonly<Record<string, EnumsByField>> = {
     kind: "PropagationHorizonKind",
     trajectoryKind: "TrajectoryKind",
   },
-  "ReliabilityBudget": {
-    kind: null,
-  },
-  "ReliabilityPartEntry": {
-    condition: null,
-  },
-  "ReliabilitySummary": {
-    coverage: null,
-  },
   "ReputationLossEvent": {
     cause: null,
   },
@@ -2977,12 +2908,6 @@ export const GENERATED_TOPIC_ENUMS: Readonly<Record<string, EnumsByField>> = {
   },
   "flight.ended": {
     reason: "FlightEndReason",
-  },
-  "reliability.parts": {
-    condition: null,
-  },
-  "reliability.summary": {
-    coverage: null,
   },
   "spaceCenter.crewRoster": {
     situationOrdinal: "KspRosterStatus",

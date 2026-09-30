@@ -26,7 +26,7 @@ import { COINCIDENTAL, RENDER_GAP } from "./render-fixture-coverage.debt";
  * fields, unit tests cover them, and every fixture keeps the old shape, so the
  * one artefact a human actually looks at, the render, shows the behaviour that
  * was there before. Nothing goes red. Three instances landed in one week:
- * `reliability.summary.coverage`'s unreadable-part states, six Principia
+ * a coverage field's unreadable-part states, six Principia
  * ground-track rows that stopped every render at LOWEST until commit
  * `a718dd36a` gave them a fixture, and a ThermalStatus characterisation that
  * was green because it read the frame before its own emit.</p>

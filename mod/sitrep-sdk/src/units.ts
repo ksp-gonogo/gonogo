@@ -204,7 +204,7 @@ export function registerTypeUnits(
  *   • `registerTopicUnits` is dead on arrival for an elected capability's Topic.
  *     `unitsForTopic`/`shapesForTopic` return the GENERATED entry FIRST and only
  *     fall back to the registered one, so a provider registering against
- *     `reliability.summary` (a core-generated Topic) is silently ignored. Were the
+ *     `isru.drills` (a core-generated Topic) is silently ignored. Were the
  *     precedence the other way round it would be worse: the maps are whole-Topic,
  *     so last-write-wins between two installed providers would clobber core's own
  *     units for that Topic.
@@ -216,9 +216,9 @@ export function registerTypeUnits(
  * shape). Two providers extending the same payload write two entries and never
  * collide, which is exactly the property the bag exists for.
  *
- * GENERAL, not reliability-specific: `owner` is any Topic or type carrying a
- * `[ProviderExtensionBag]` property, so the science-subsume step registers its own
- * namespaces the same way with no further core change.
+ * GENERAL: `owner` is any Topic or type carrying a `[ProviderExtensionBag]`
+ * property, so every elected capability's providers register their namespaces
+ * the same way with no further core change.
  */
 const registeredExtensionShapes = new Map<string, Map<string, string>>();
 
@@ -228,7 +228,7 @@ const registeredExtensionShapes = new Map<string, Map<string, string>>();
  * package, alongside its `registerTypeUnits` loop (that loop is what makes the
  * named type resolvable; this is what points the bag at it).
  *
- * @param owner Topic id (`"reliability.summary"`) or generated type name.
+ * @param owner Topic id (`"isru.drills"`) or generated type name.
  * @param providerId The Kernel provider id keying the namespace, the same string
  *   the provider registers with the Kernel and tags its payloads with.
  * @param typeName The provider's own generated interface name for that namespace.

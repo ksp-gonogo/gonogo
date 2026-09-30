@@ -5,8 +5,7 @@ namespace Sitrep.Host.Science
 {
     /// <summary>
     /// The science-backend election, expressed entirely in terms of the existing
-    /// <see cref="Kernel"/>: the same shape as
-    /// <see cref="Reliability.ReliabilityElection"/> and CommsElection
+    /// <see cref="Kernel"/>: the same shape as CommsElection
     /// (mod/Sitrep.Host/Comms/CommsElection.cs). ONE EXCLUSIVE capability
     /// <c>"science"</c> whose active instance is an <see cref="IScienceBackend"/>:
     ///

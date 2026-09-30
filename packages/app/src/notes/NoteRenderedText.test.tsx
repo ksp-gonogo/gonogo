@@ -28,11 +28,11 @@ describe("a note tag naming an enum", () => {
 
   it("prints an enum the wire carries by name as that name", async () => {
     const transport = new StubTransport();
-    renderNote("Cover {{reliability.summary.coverage}}", transport);
+    renderNote("Last {{commcast.traffic.kind}}", transport);
 
-    act(() => transport.emit("reliability.summary", { coverage: "Partial" }));
+    act(() => transport.emit("commcast.traffic", { kind: "text" }));
 
-    expect(await screen.findByText("Cover Partial")).toBeTruthy();
+    expect(await screen.findByText("Last text")).toBeTruthy();
   });
 });
 

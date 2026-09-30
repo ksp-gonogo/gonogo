@@ -6,14 +6,13 @@ namespace Sitrep.Host.Isru
     /// <summary>
     /// The ISRU-backend election, expressed entirely in terms of the existing
     /// <see cref="Kernel"/>: the same shape as
-    /// <see cref="Reliability.ReliabilityElection"/> and
     /// <see cref="Science.ScienceElection"/>. ONE EXCLUSIVE capability
     /// <c>"isru"</c> whose active instance is an <see cref="IIsruBackend"/>:
     ///
     /// <list type="bullet">
     /// <item><b>The stock backend is the capability's Vanilla factory</b>: stock
-    /// KSP genuinely models ISRU, so this is a real reader rather than the
-    /// no-op fallback reliability needs. It activates whenever no modelling mod
+    /// KSP genuinely models ISRU, so this is a real reader rather than a no-op
+    /// fallback. It activates whenever no modelling mod
     /// registered a provider, which is every stock install.</item>
     /// <item><b>A modelling mod registers as a provider</b> from its own uplink's
     /// Register (host.Kernel.RegisterProvider), ONLY when its reflection probe

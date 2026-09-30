@@ -8,7 +8,7 @@ namespace Gonogo.KSP
 {
     /// <summary>
     /// The bundled CORE science registration: the science analogue of
-    /// <see cref="CommsCoreUplink"/> / <see cref="ReliabilityCoreUplink"/>. It
+    /// <see cref="CommsCoreUplink"/>. It
     /// OWNS the exclusive <c>"science"</c> capability (registering
     /// <see cref="StockScienceBackend"/> as the always-present Vanilla factory),
     /// declares the five <c>science.*</c> channels and the two
@@ -17,7 +17,7 @@ namespace Gonogo.KSP
     /// <c>host.Kernel.Query&lt;IScienceBackend&gt;("science")</c>. A
     /// science-modelling mod registers a provider from its OWN
     /// uplink's Register and declares none of these channels itself: that is the
-    /// shared-namespace-single-declaration rule comms.*/reliability.* follow.
+    /// shared-namespace-single-declaration rule comms.* follows.
     ///
     /// <para>Before the election existed this class wired
     /// <see cref="ScienceViewProvider"/>'s builders straight into
@@ -59,10 +59,8 @@ namespace Gonogo.KSP
         /// The vanilla backend this uplink falls back to when the Kernel has not
         /// resolved (or never registered) the capability: stock science, the
         /// same instance shape <see cref="ScienceElection"/>'s Vanilla factory
-        /// builds. <see cref="ReliabilityCoreUplink"/> publishes nothing in that
-        /// window instead, which it can afford because it has no pre-election
-        /// behaviour to preserve; science does, so it keeps serving stock rather
-        /// than going silent on a channel a client is already subscribed to.
+        /// builds. It keeps serving stock in that window rather than going silent
+        /// on a channel a client is already subscribed to.
         /// </summary>
         private readonly IScienceBackend _vanilla;
 
@@ -161,7 +159,7 @@ namespace Gonogo.KSP
 
         /// <summary>
         /// Declared HERE in the pre-Register capability pass (two-pass fix, same
-        /// as CommsCoreUplink/ReliabilityCoreUplink), so the capability exists
+        /// as CommsCoreUplink), so the capability exists
         /// before any provider uplink's Register runs: a provider's
         /// registration can never race ahead of this declaration regardless of
         /// assembly-scan order.
@@ -169,9 +167,8 @@ namespace Gonogo.KSP
         public void DeclareCapabilities(Kernel kernel) => ScienceElection.RegisterCapability(kernel, _actuator);
 
         /// <summary>Mandatory health self-report (see <see cref="ISitrepUplink.Health"/>): a plain
-        /// channel uplink is Healthy once it has registered without error. Unlike
-        /// <see cref="ReliabilityCoreUplink"/> this never reports Unavailable on an
-        /// unresolved capability, because it always has a backend to serve from
+        /// channel uplink is Healthy once it has registered without error. It never
+        /// reports Unavailable on an unresolved capability, because it always has a backend to serve from
         /// (see <see cref="_vanilla"/>).</summary>
         public UplinkHealth Health() => UplinkHealth.Healthy;
 

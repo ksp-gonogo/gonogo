@@ -196,8 +196,8 @@ namespace Sitrep.Host.Tests
 
             // The provider extension bag is the one member that must NOT mirror:
             // it is omitted from the wire entirely unless a provider filled it
-            // (see Sitrep.Contract/ProviderExtensions.cs, and
-            // ReliabilityExtensionWireTests, which pins that omission as bytes),
+            // (see Sitrep.Contract/ProviderExtensions.cs, and each providing
+            // Uplink's extension wire test, which pins that omission as bytes),
             // so the stock backend never emits the key. Excluded by ATTRIBUTE
             // rather than by name so the exemption cannot quietly widen to a
             // hand-added field.

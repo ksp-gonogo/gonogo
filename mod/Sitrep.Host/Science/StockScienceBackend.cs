@@ -5,11 +5,8 @@ namespace Sitrep.Host.Science
     /// <summary>
     /// The always-present Vanilla science backend: stock KSP science, which is
     /// what a plain install (and any install whose science mod ships no
-    /// provider) resolves to. The reliability analogue is
-    /// <see cref="Reliability.NoneReliabilityBackend"/>, with one difference
-    /// worth stating: reliability's vanilla is a "not modelled" stub because
-    /// stock KSP has no reliability model at all, whereas stock KSP DOES model
-    /// science, so science's vanilla is the real thing.
+    /// provider) resolves to. Stock KSP models science, so science's vanilla is
+    /// the real thing rather than a "not modelled" stub.
     ///
     /// <para>Every method here is a straight delegation to the code that
     /// already served these channels before the capability existed

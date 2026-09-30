@@ -79,7 +79,6 @@ namespace Sitrep.Contract.Tests
                 typeof(IPropagationProvider),
                 typeof(IManeuverPlanSource),
                 typeof(IScienceBackend),
-                typeof(IReliabilityBackend),
                 typeof(IIsruBackend),
                 typeof(IDelayedScienceSink),
                 typeof(ICommandCentreSource),

@@ -15,7 +15,6 @@
     "flag",
     "funds",
     "g",
-    "h",
     "id",
     "isp",
     "kN",
@@ -923,45 +922,8 @@
       "subjectId": "id",
       "subjectTitle": "text"
     },
-    "ReliabilityBudget": {
-      "consumed": "ratio",
-      "id": "id",
-      "kind": "enum",
-      "label": "text",
-      "limitCount": "count",
-      "limitSeconds": "s",
-      "usedCount": "count",
-      "usedSeconds": "s"
-    },
-    "ReliabilityPartEntry": {
-      "condition": "enum",
-      "conditionDetail": "text",
-      "partId": "id",
-      "repairLevel": "count",
-      "repairTrait": "text",
-      "survival": "ratio",
-      "survivalHorizonSeconds": "s",
-      "title": "text"
-    },
-    "ReliabilitySummary": {
-      "coverage": "enum",
-      "source": "id"
-    },
     "RemoveManeuverNodeArgs": {
       "nodeId": "id"
-    },
-    "RepairCostItem": {
-      "name": "id",
-      "quantity": "count"
-    },
-    "RepairOutcome": {
-      "kitsFrom": "id",
-      "kitsUsed": "count",
-      "repaired": "flag"
-    },
-    "RepairPartArgs": {
-      "crewName": "text",
-      "partId": "id"
     },
     "ReputationLossEvent": {
       "cause": "enum",
@@ -1751,20 +1713,6 @@
       "totalScience": "science",
       "vesselName": "text"
     },
-    "reliability.parts": {
-      "condition": "enum",
-      "conditionDetail": "text",
-      "partId": "id",
-      "repairLevel": "count",
-      "repairTrait": "text",
-      "survival": "ratio",
-      "survivalHorizonSeconds": "s",
-      "title": "text"
-    },
-    "reliability.summary": {
-      "coverage": "enum",
-      "source": "id"
-    },
     "robotics.available": {
       "available": "flag"
     },
@@ -2342,10 +2290,6 @@
       "resourceBreakdown": "RecoveryResourceEntry[]",
       "scienceBreakdown": "RecoveryScienceEntry[]"
     },
-    "ReliabilityPartEntry": {
-      "budgets": "ReliabilityBudget[]",
-      "repairCost": "RepairCostItem[]"
-    },
     "ResolveResult": {
       "notices": "ResolutionNotice[]"
     },
@@ -2585,10 +2529,6 @@
       "partBreakdown": "RecoveryPartEntry[]",
       "resourceBreakdown": "RecoveryResourceEntry[]",
       "scienceBreakdown": "RecoveryScienceEntry[]"
-    },
-    "reliability.parts": {
-      "budgets": "ReliabilityBudget[]",
-      "repairCost": "RepairCostItem[]"
     },
     "settings.gonogo": {
       "meta": "PayloadMeta",

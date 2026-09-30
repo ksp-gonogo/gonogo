@@ -2,7 +2,7 @@ namespace Sitrep.Contract
 {
     /// <summary>
     /// The member every swappable provider in this contract shares: its own id.
-    /// A comms, science, reliability, ISRU, propagation, maneuver-plan or
+    /// A comms, science, ISRU, propagation, maneuver-plan or
     /// command-centre provider implements this, so each one names itself the
     /// same way.
     ///

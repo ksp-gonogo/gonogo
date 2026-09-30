@@ -8,17 +8,13 @@ namespace Sitrep.Host.Tests
 {
     /// <summary>
     /// The anti-pattern ratchet for <c>isru.*</c>, the same guard
-    /// <see cref="ReliabilityContractShapeTests"/> and
-    /// <c>ScienceProviderExtensionRatchetTests</c> hold for their own elected
+    /// <see cref="ScienceProviderExtensionRatchetTests"/> holds for its own elected
     /// payloads: a NEW provider-specific ISRU field lands in the extension bag, not
     /// as another hand-listed member on <see cref="IsruDrillEntry"/> or
     /// <see cref="IsruConverterEntry"/>.
     ///
-    /// <para>ISRU starts in a better place than reliability did. Reliability's
-    /// frozen list records a hand-curated superset that predates the bag and is
-    /// recorded rather than condemned. Here the bag existed from the first commit,
-    /// so the frozen set below is the literal intersection of what stock and a
-    /// modelling mod both have: every member is source-agnostic by construction.
+    /// <para>The bag existed from ISRU's first commit, so the frozen set below is
+    /// the literal intersection of what stock and a modelling mod both have: every member is source-agnostic by construction.
     /// That makes the rule stricter in practice, because there is no legacy
     /// provider-specific member to point at as precedent.</para>
     ///

@@ -86,10 +86,10 @@ describe("usePrintableFields", () => {
   });
 
   it("offers an enum the wire already carries by name", () => {
-    const coverage = capture(usePrintableFields).find(
-      (f) => f.key === "reliability.summary.coverage",
+    const kind = capture(usePrintableFields).find(
+      (f) => f.key === "commcast.traffic.kind",
     );
-    expect(coverage?.enumEncoding).toEqual({ by: "name" });
+    expect(kind?.enumEncoding).toEqual({ by: "name" });
   });
 
   it("offers no enum it cannot name", () => {

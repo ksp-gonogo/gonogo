@@ -247,12 +247,12 @@ namespace Sitrep.Core.Tests
         }
 
         /// <summary>
-        /// <c>CommandCentreEntry</c> and <c>RepairOutcome</c>, in the shapes their
-        /// producers actually publish rather than as bare default instances.
+        /// <c>CommandCentreEntry</c> and <c>ScienceTransmission</c>, in the shapes
+        /// their producers actually publish rather than as bare default instances.
         ///
         /// <para>Neither is hand-flattened by its producer: the roster's entry is
         /// built as a POCO by <c>CommandCentreDelayUplink.ToRosterEntry</c> and the
-        /// publisher hands the list straight over, and the repair outcome rides
+        /// publisher hands the list straight over, and the transmission rides
         /// back through <see cref="JsonWriter.AppendValue"/> inside
         /// <c>CommandResult&lt;T&gt;.Payload</c>, not flattened. An allowlist entry
         /// is a human claim, and the sweep above cannot grade one; these two are
@@ -265,9 +265,9 @@ namespace Sitrep.Core.Tests
         /// read healthy.</para>
         /// </summary>
         [Fact]
-        public void CommandCentreRosterAndRepairOutcomeAreCovered_NotAllowlisted()
+        public void CommandCentreRosterAndCommandReplyPayloadAreCovered_NotAllowlisted()
         {
-            foreach (var type in new[] { typeof(CommandCentreEntry), typeof(RepairOutcome) })
+            foreach (var type in new[] { typeof(CommandCentreEntry), typeof(ScienceTransmission) })
             {
                 // Excused rather than the hand list alone: an entry is no longer
                 // the only way a type can be let off, so asserting only against
@@ -293,9 +293,7 @@ namespace Sitrep.Core.Tests
             });
 
             SerializeThroughWire(
-                CommandResult<RepairOutcome>.Ok(new RepairOutcome { Repaired = true, KitsUsed = 1, KitsFrom = "carried" }));
-            SerializeThroughWire(
-                CommandResult<RepairOutcome>.Fail(RepairRefusal.NoKits));
+                CommandResult<ScienceTransmission>.Fail(CommandErrorCode.InsufficientResource.Refine("planted.tooFew", "there are too few aboard")));
             SerializeThroughWire(
                 CommandResult<ScienceTransmission>.Ok(new ScienceTransmission { SubjectId = "crewReport@KerbinSrfLandedShores", StartedAt = 1000, StreamSeconds = 1.05, DataAmount = 5 }));
         }

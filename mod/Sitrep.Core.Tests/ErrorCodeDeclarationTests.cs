@@ -19,17 +19,16 @@ namespace Sitrep.Core.Tests
     /// </summary>
     public class ErrorCodeDeclarationTests
     {
-        /// <summary>The core domains a core refinement may be owned by; an Uplink's are owned by its own id.</summary>
-        private static readonly string[] CoreDomains = { "repair" };
+        private static readonly Type[] Holders = { typeof(CommandErrorCode), typeof(FaultCode) };
 
-        private static readonly Type[] Holders = { typeof(CommandErrorCode), typeof(FaultCode), typeof(RepairRefusal) };
+        private static readonly RefusalCode TooFew =
+            CommandErrorCode.InsufficientResource.Refine("planted.tooFew", "there are too few aboard");
 
         [Fact]
         public void TheCatalogSeesEveryHolder()
         {
             Assert.True(ErrorCodeCatalog.Of(typeof(CommandErrorCode)).Count >= 20, "BLIND: the roots were not found");
             Assert.True(ErrorCodeCatalog.FaultsOf(typeof(FaultCode)).Count >= 10, "BLIND: the faults were not found");
-            Assert.NotEmpty(CommandErrorCode.CoreRefinements);
         }
 
         [Fact]
@@ -57,7 +56,6 @@ namespace Sitrep.Core.Tests
         public void NoIdIsDeclaredTwice()
         {
             var ids = CommandErrorCode.Roots.Select(c => c.Id)
-                .Concat(CommandErrorCode.CoreRefinements.Select(c => c.Id))
                 .Concat(FaultCode.All.Select(c => c.Id))
                 .ToList();
             var twice = ids.GroupBy(id => id).Where(g => g.Count() > 1).Select(g => g.Key).ToList();
@@ -65,21 +63,15 @@ namespace Sitrep.Core.Tests
         }
 
         [Fact]
-        public void RootsAreRootsAndCoreRefinementsBelongToACoreDomain()
+        public void EveryRootIsARoot()
         {
             Assert.All(CommandErrorCode.Roots, root => Assert.True(root.IsRoot, root.Id));
-            Assert.All(CommandErrorCode.CoreRefinements, code =>
-            {
-                Assert.False(code.IsRoot, code.Id);
-                Assert.Contains(code.Owner, CoreDomains);
-                Assert.Contains(code.Root, CommandErrorCode.Roots);
-            });
         }
 
         [Fact]
         public void ARefinementCannotBeRefinedAndIdsAreShaped()
         {
-            Assert.Throws<InvalidOperationException>(() => RepairRefusal.NoKits.Refine("repair.fewer", "fewer"));
+            Assert.Throws<InvalidOperationException>(() => TooFew.Refine("planted.fewer", "fewer"));
             Assert.Throws<ArgumentException>(() => CommandErrorCode.NotFound.Refine("noDot", "no owner"));
             Assert.Throws<ArgumentException>(() => CommandErrorCode.NotFound.Refine("probe.Upper", "upper case name"));
             Assert.Throws<ArgumentException>(() => CommandErrorCode.NotFound.Refine("probe.silent", " "));
@@ -88,7 +80,9 @@ namespace Sitrep.Core.Tests
         [Fact]
         public void AnIdReadOffTheWireKeepsItsRootWhetherOrNotItIsKnown()
         {
-            Assert.Same(RepairRefusal.NoKits, RefusalCode.FromWire("insufficientResource", "repair.noKits"));
+            var refined = RefusalCode.FromWire("insufficientResource", "planted.tooFew");
+            Assert.Equal(TooFew, refined);
+            Assert.Same(CommandErrorCode.InsufficientResource, refined.Root);
             var unknown = RefusalCode.FromWire("careerModeRequired", "someUplink.notManaging");
             Assert.Equal("someUplink.notManaging", unknown.Id);
             Assert.Equal(CommandErrorCode.CareerModeRequired, unknown.Root);

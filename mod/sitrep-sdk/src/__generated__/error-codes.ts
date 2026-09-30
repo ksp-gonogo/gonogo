@@ -228,12 +228,12 @@ export const CommandErrorCode = {
   NotReady: "notReady",
   /**
    * The command consumes a countable ITEM and there are not enough of them
-   * aboard: an EVA repair kit for a repair, on a provider that charges one.
+   * aboard.
    *
-   * Authority: the provider's own charge, the same one it states on
-   * `ReliabilityPartEntry.repairCost`, so the cost shown and the cost taken
-   * agree. The item is the provider's to name: this code says only that there
-   * were too few, never which item.
+   * Authority: the provider's own charge, which it should also state wherever it
+   * shows the cost, so the cost shown and the cost taken agree. The item is the
+   * provider's to name: this code says only that there were too few, never which
+   * item.
    *
    * Separate from `CommandErrorCode.InsufficientFunds` and
    * `CommandErrorCode.InsufficientScience`: a physical item cannot be bought.
@@ -370,57 +370,6 @@ export const FaultCode = {
   Unclassified: "unclassified",
 } as const;
 export type FaultCode = (typeof FaultCode)[keyof typeof FaultCode];
-
-/**
- * Why a repair was refused, finer than its root: a part that does not resolve
- * and a crew member who does not are both `notFound`, and only the refinement
- * says which.
- *
- * A backend states WHY in this vocabulary, or with a bare root when none of
- * these fits. It does not write a sentence of its own: each code here carries
- * the one an operator reads.
- *
- * @category Error codes
- */
-export const RepairRefusal = {
-  /**
-   * No crew member aboard has the requested name.
-   */
-  NoSuchCrew: "repair.noSuchCrew",
-  /**
-   * The named kerbal is aboard but does not satisfy the provider's own
-   * (elevated, for a critical failure) crew requirement.
-   */
-  CrewNotQualified: "repair.crewNotQualified",
-  /**
-   * The kerbal could not have got out: the hatch is inside a fairing. Resolves
-   * by waiting, since the fairing is jettisoned later in the same flight.
-   */
-  EvaImpossible: "repair.evaImpossible",
-  /**
-   * Fewer consumables aboard than the provider charges for this repair.
-   */
-  NoKits: "repair.noKits",
-  /**
-   * Nothing on this install models reliability, so there is nothing to repair.
-   */
-  NotModelled: "repair.notModelled",
-  /**
-   * No part on the vessel carries that id, or it carries nothing repairable.
-   */
-  NoSuchPart: "repair.noSuchPart",
-  /**
-   * The provider models this failure and states that it cannot be repaired at
-   * all: TestFlight's `ITestFlightFailure.CanAttemptRepair()` is false for an
-   * exploded part, a fired docking clamp and a snapped solar mechanism, whatever
-   * crew are aboard and whatever they carry.
-   *
-   * Not `RepairRefusal.NotModelled`: the model is present and working, and this
-   * is its verdict.
-   */
-  Unrepairable: "repair.unrepairable",
-} as const;
-export type RepairRefusal = (typeof RepairRefusal)[keyof typeof RepairRefusal];
 
 /**
  * Every code declared here, with the sentence an operator reads for it.
@@ -586,7 +535,7 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     refines: null,
     origin: null,
     sentence: "there are not enough of what it uses aboard",
-    meaning: "The command consumes a countable ITEM and there are not enough of them aboard: an EVA repair kit for a repair, on a provider that charges one.\n\nAuthority: the provider's own charge, the same one it states on `ReliabilityPartEntry.repairCost`, so the cost shown and the cost taken agree. The item is the provider's to name: this code says only that there were too few, never which item.\n\nSeparate from `CommandErrorCode.InsufficientFunds` and `CommandErrorCode.InsufficientScience`: a physical item cannot be bought.\n\nNot `CommandErrorCode.LimitReached`, which is a capacity that is full. This is a store that is empty.",
+    meaning: "The command consumes a countable ITEM and there are not enough of them aboard.\n\nAuthority: the provider's own charge, which it should also state wherever it shows the cost, so the cost shown and the cost taken agree. The item is the provider's to name: this code says only that there were too few, never which item.\n\nSeparate from `CommandErrorCode.InsufficientFunds` and `CommandErrorCode.InsufficientScience`: a physical item cannot be bought.\n\nNot `CommandErrorCode.LimitReached`, which is a capacity that is full. This is a store that is empty.",
   },
   {
     id: "unreadable",
@@ -731,61 +680,5 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     origin: "client",
     sentence: "something went wrong",
     meaning: "A rejection that carried no code a client could read, such as a throw from inside a handler on the client.",
-  },
-  {
-    id: "repair.noSuchCrew",
-    kind: "refusal",
-    refines: "notFound",
-    origin: null,
-    sentence: "no crew member aboard has that name",
-    meaning: "No crew member aboard has the requested name.",
-  },
-  {
-    id: "repair.crewNotQualified",
-    kind: "refusal",
-    refines: "capabilityMismatch",
-    origin: null,
-    sentence: "that crew member is not qualified to repair it",
-    meaning: "The named kerbal is aboard but does not satisfy the provider's own (elevated, for a critical failure) crew requirement.",
-  },
-  {
-    id: "repair.evaImpossible",
-    kind: "refusal",
-    refines: "notClearToProceed",
-    origin: null,
-    sentence: "the crew cannot get out to it yet",
-    meaning: "The kerbal could not have got out: the hatch is inside a fairing. Resolves by waiting, since the fairing is jettisoned later in the same flight.",
-  },
-  {
-    id: "repair.noKits",
-    kind: "refusal",
-    refines: "insufficientResource",
-    origin: null,
-    sentence: "there are not enough repair kits aboard",
-    meaning: "Fewer consumables aboard than the provider charges for this repair.",
-  },
-  {
-    id: "repair.notModelled",
-    kind: "refusal",
-    refines: "modeUnavailable",
-    origin: null,
-    sentence: "nothing on this install models part failures",
-    meaning: "Nothing on this install models reliability, so there is nothing to repair.",
-  },
-  {
-    id: "repair.noSuchPart",
-    kind: "refusal",
-    refines: "notFound",
-    origin: null,
-    sentence: "no part aboard needs that repair",
-    meaning: "No part on the vessel carries that id, or it carries nothing repairable.",
-  },
-  {
-    id: "repair.unrepairable",
-    kind: "refusal",
-    refines: "capabilityMismatch",
-    origin: null,
-    sentence: "that failure cannot be repaired",
-    meaning: "The provider models this failure and states that it cannot be repaired at all: TestFlight's `ITestFlightFailure.CanAttemptRepair()` is false for an exploded part, a fired docking clamp and a snapped solar mechanism, whatever crew are aboard and whatever they carry.\n\nNot `RepairRefusal.NotModelled`: the model is present and working, and this is its verdict.",
   },
 ];

@@ -143,10 +143,9 @@ function readConstants(root, dirs) {
  *
  * The order is the whole of the correctness here. A bare identifier is resolved
  * inside its OWN FILE first, because that is where a declaration site's const
- * almost always lives and because the same simple name is declared in several
- * classes: `SummaryTopic` is `reliability.summary` in one file and `dv.summary`
- * in another, and a global-first lookup gave one of them the other's
- * disposition. A qualified `Class.Member` is next, an unambiguous simple name
+ * almost always lives and because the same simple name can be declared in
+ * several classes: a global-first lookup once gave one of two `SummaryTopic`
+ * constants the other's disposition. A qualified `Class.Member` is next, an unambiguous simple name
  * last, and an ambiguous one resolves to NOTHING so the cross-check reports it.
  */
 function makeResolver({ qualified, bySimple, byFile }, path) {

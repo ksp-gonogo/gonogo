@@ -80,17 +80,15 @@ public sealed class RefusalCode : IEquatable<RefusalCode>
     }
 
     /// <summary>
-    /// The code for an id read off the wire: a known core code when there is
-    /// one, otherwise an undeclared code carrying the id, under the root
-    /// <paramref name="rootId"/> names when <paramref name="reason"/> is a
-    /// refinement.
+    /// The code for an id read off the wire: the known root when there is one,
+    /// otherwise an undeclared code carrying the id, and when
+    /// <paramref name="reason"/> is a refinement, a code carrying that id under
+    /// the root <paramref name="rootId"/> names.
     /// </summary>
     public static RefusalCode FromWire(string rootId, string? reason)
     {
         var root = CommandErrorCode.Find(rootId) ?? new RefusalCode(rootId, null, "");
         if (string.IsNullOrEmpty(reason)) return root;
-        var known = CommandErrorCode.Find(reason!);
-        if (known != null && known.Root == root) return known;
         return new RefusalCode(reason!, root, "");
     }
 

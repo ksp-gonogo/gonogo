@@ -340,11 +340,10 @@ const SCENARIOS: ReadonlyArray<{
           },
           {
             id: "r1",
-            command: "vessel.repair",
+            command: "science.experiment.transmit",
             args: { partId: "4011229875" },
             label: "",
             errorCode: CommandErrorCode.CapabilityMismatch,
-            reason: "repair.crewNotQualified",
           },
         ],
         losses: [

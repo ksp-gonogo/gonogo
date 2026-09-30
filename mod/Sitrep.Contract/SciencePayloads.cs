@@ -18,8 +18,7 @@ namespace Sitrep.Contract;
 /// may be a flat rate times remaining data. Nothing in a field's name or unit
 /// says which, so a widget that compares one provider's
 /// <c>scienceValueRatio</c> with another's is silently wrong. The tag says
-/// which model produced the numbers, as <see cref="ReliabilitySummary.Source"/>
-/// does for reliability.</para>
+/// which model produced the numbers.</para>
 ///
 /// <para>The vocabulary is open: the tag is a plain string on the wire, and a
 /// third-party science provider may emit a token not listed here. Treat an

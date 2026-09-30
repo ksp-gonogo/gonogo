@@ -11,7 +11,7 @@
 import type {
   CommandResult,
   CommandResultOf,
-  RepairOutcome,
+  ScienceTransmission,
   SetEnabledArgs,
   SetThrottleArgs,
   VantagePlanReply,
@@ -55,7 +55,10 @@ export type _PayloadReply = AssertTrue<
   Equal<CommandReply<"vessel.control.stage">, CommandResultOf<number>>
 >;
 export type _TypedPayloadReply = AssertTrue<
-  Equal<CommandReply<"vessel.repair">, CommandResultOf<RepairOutcome>>
+  Equal<
+    CommandReply<"science.experiment.transmit">,
+    CommandResultOf<ScienceTransmission>
+  >
 >;
 export type _NonResultReply = AssertTrue<
   Equal<CommandReply<"vessel.trajectory.forVantage">, VantagePlanReply>

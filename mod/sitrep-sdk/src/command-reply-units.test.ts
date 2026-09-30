@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { GENERATED_COMMAND_REPLY_TYPES } from "./__generated__/command-map";
 import type {
   CommandResultOf,
-  RepairOutcome,
+  ScienceTransmission,
   VantagePlanReply,
 } from "./__generated__/contract";
 import { wrapCommandReply } from "./command-reply-units";
@@ -84,11 +84,19 @@ describe("wrapCommandReply", () => {
 
   it("reaches into a CommandResultOf envelope's payload", () => {
     const reply = wrapCommandReply<
-      Pick<CommandResultOf<RepairOutcome>, "payload">
-    >("vessel.repair", { payload: { repaired: true, kitsUsed: 3 } });
-    expect(reply.payload?.kitsUsed).toMatchObject({
+      Pick<CommandResultOf<ScienceTransmission>, "payload">
+    >("science.experiment.transmit", {
+      payload: {
+        subjectId: "crewReport@KerbinSrfLandedShores",
+        title: "Crew Report",
+        startedAt: 3,
+        streamSeconds: 1,
+        dataAmount: 5,
+      },
+    });
+    expect(reply.payload?.startedAt).toMatchObject({
       magnitude: 3,
-      unit: "count",
+      unit: "ut",
     });
   });
 

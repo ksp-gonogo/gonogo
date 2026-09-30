@@ -71,8 +71,6 @@ import type {
   LaunchArgs,
   NoCommandArgs,
   RemoveManeuverNodeArgs,
-  RepairOutcome,
-  RepairPartArgs,
   RevertToEditorArgs,
   RotorReverseArgs,
   RotorSetValueArgs,
@@ -159,7 +157,6 @@ export interface GeneratedCommandArgsMap {
   "vessel.maneuver.plan.send": SendManeuverPlanArgs;
   "vessel.maneuver.remove": RemoveManeuverNodeArgs;
   "vessel.maneuver.update": UpdateManeuverNodeArgs;
-  "vessel.repair": RepairPartArgs;
   "vessel.target.clear": NoCommandArgs;
   "vessel.target.set": SetTargetArgs;
   "vessel.trajectory.forVantage": VantagePlanRequest;
@@ -222,7 +219,6 @@ export interface GeneratedCommandReplyMap {
   "vessel.maneuver.plan.send": CommandResult;
   "vessel.maneuver.remove": CommandResult;
   "vessel.maneuver.update": CommandResult;
-  "vessel.repair": CommandResultOf<RepairOutcome>;
   "vessel.target.clear": CommandResult;
   "vessel.target.set": CommandResult;
   "vessel.trajectory.forVantage": VantagePlanReply;
@@ -295,7 +291,6 @@ export const GENERATED_COMMAND_REPLY_TYPES = {
   "vessel.maneuver.plan.send": "CommandResult",
   "vessel.maneuver.remove": "CommandResult",
   "vessel.maneuver.update": "CommandResult",
-  "vessel.repair": "CommandResultOf<RepairOutcome>",
   "vessel.target.clear": "CommandResult",
   "vessel.target.set": "CommandResult",
   "vessel.trajectory.forVantage": "VantagePlanReply",
@@ -396,7 +391,6 @@ export const GENERATED_COMMAND_RAIL = {
   "vessel.maneuver.plan.send": { replies: true, delayed: true },
   "vessel.maneuver.remove": { replies: true, delayed: true },
   "vessel.maneuver.update": { replies: true, delayed: true, arriveBefore: "ut" },
-  "vessel.repair": { replies: true, delayed: true },
   "vessel.target.clear": { replies: true, delayed: true },
   "vessel.target.set": { replies: true, delayed: true },
   "vessel.trajectory.forVantage": { replies: true, delayed: false },
@@ -459,7 +453,6 @@ export const GENERATED_COMMAND_IDS = [
   "vessel.maneuver.plan.send",
   "vessel.maneuver.remove",
   "vessel.maneuver.update",
-  "vessel.repair",
   "vessel.target.clear",
   "vessel.target.set",
   "vessel.trajectory.forVantage",

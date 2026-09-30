@@ -103,18 +103,6 @@ namespace Sitrep.Contract
         public const string SpecificImpulse = "isp";
 
         /// <summary>
-        /// Hours. The one non-second duration on this wire, for a value a mod
-        /// genuinely reports in hours (TestFlight's MTBF). Every other duration
-        /// is <see cref="Seconds"/>.
-        /// <internal>
-        /// Exists for ReliabilityPartEntry.MtbfHours. That field is a rename
-        /// candidate: once it is Mtbf in seconds, this token has no remaining
-        /// user and should go with it.
-        /// </internal>
-        /// </summary>
-        public const string Hours = "h";
-
-        /// <summary>
         /// Revolutions per minute, KSP's own rotor unit
         /// (<c>ModuleRoboticServoRotor.rpmLimit</c> and the live rotor speed
         /// beside it). The contract states the unit KSP reports rather than

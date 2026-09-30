@@ -237,12 +237,12 @@ public static class CommandErrorCode
 
     /// <summary>
     /// The command consumes a countable ITEM and there are not enough of them
-    /// aboard: an EVA repair kit for a repair, on a provider that charges one.
+    /// aboard.
     ///
-    /// <para>Authority: the provider's own charge, the same one it states on
-    /// <see cref="ReliabilityPartEntry.RepairCost"/>, so the cost shown and the
-    /// cost taken agree. The item is the provider's to name: this code says only
-    /// that there were too few, never which item.</para>
+    /// <para>Authority: the provider's own charge, which it should also state
+    /// wherever it shows the cost, so the cost shown and the cost taken agree.
+    /// The item is the provider's to name: this code says only that there were
+    /// too few, never which item.</para>
     ///
     /// <para>Separate from <see cref="InsufficientFunds"/> and
     /// <see cref="InsufficientScience"/>: a physical item cannot be bought.</para>
@@ -294,18 +294,15 @@ public static class CommandErrorCode
     /// </summary>
     public static readonly RefusalCode OutOfReach = RefusalCode.DeclareRoot("outOfReach", "this command centre has no authority over that place");
 
-    // Built on first use rather than in the static initialiser: a core
-    // refinement's holder reads these roots from its own initialiser, so an
+    // Built on first use rather than in the static initialiser: an Uplink's
+    // refinement holder reads these roots from its own initialiser, so an
     // eager index could run while that holder's fields are still null.
     private static Dictionary<string, RefusalCode>? _byId;
 
     /// <summary>Every root, in declaration order.</summary>
     public static IReadOnlyList<RefusalCode> Roots => ErrorCodeCatalog.Of(typeof(CommandErrorCode));
 
-    /// <summary>Every refinement core itself declares, in declaration order.</summary>
-    public static IReadOnlyList<RefusalCode> CoreRefinements => ErrorCodeCatalog.Of(typeof(RepairRefusal));
-
-    /// <summary>The core-declared code (a root or a core refinement) with this id, or null.</summary>
+    /// <summary>The root with this id, or null.</summary>
     public static RefusalCode? Find(string id) =>
         id != null && (_byId ??= IndexById()).TryGetValue(id, out var code) ? code : null;
 
@@ -313,7 +310,6 @@ public static class CommandErrorCode
     {
         var byId = new Dictionary<string, RefusalCode>(StringComparer.Ordinal);
         foreach (var code in Roots) byId[code.Id] = code;
-        foreach (var code in CoreRefinements) byId[code.Id] = code;
         return byId;
     }
 }

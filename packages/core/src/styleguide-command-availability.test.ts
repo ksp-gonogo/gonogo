@@ -72,8 +72,6 @@ const AVAILABILITY_DEBT: Record<string, string> = {
     "A held contract board: the offer the arguments name may be gone, which no argument-free verdict can say",
   "packages/components/src/Experiments/ScienceExperimentRow.tsx :: CommandButton":
     "A held instrument list: the part the arguments name may have changed, argument-dependent",
-  "packages/components/src/FleetReliability/RepairControl.tsx :: CommandButton":
-    "Per-part crew skill and spares, from a reliability backend that declares no gates",
   "packages/components/src/Navball/index.tsx :: ControlSurface":
     "Controllability is argument-free but rides control streams as well as buttons; the vessel Uplink declares no gate and the stream path does not read one",
 };

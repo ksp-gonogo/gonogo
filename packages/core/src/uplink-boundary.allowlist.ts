@@ -1238,12 +1238,11 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       /*
        * -- CARRIED CONTRACT PROSE: the generated contract now
        * carries the C# doc comments it is generated from, and a wire type
-       * describes what an ELECTED backend puts in it. Here,
-       * `ReliabilityReading`'s backend field is literally the string
-       * "kerbalism" | "testflight" | "none". Text only, in a generated file,
-       * and naming the backend IS the fact being stated rather than a
-       * dependency on it, so this is the same class as the doc-mention
-       * citations already here.
+       * explains why a type is core's. Here the science-credit event names
+       * Kerbalism's continuous accrual beside stock's lump credit, and a stock
+       * enum's doc names the Kerbalism channel its ordinal rides. Text only, in
+       * a generated file, the same class as the doc-mention citations already
+       * here.
        */
       "mod/sitrep-sdk/src/__generated__/contract.ts",
       /*
@@ -1299,40 +1298,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "packages/core/src/uplink-isolation.allowlist.ts",
       /*
-       * FleetReliability's characterisation test emits `reliability.summary`
-       * payloads carrying real `source` values. A wire-value reference: the widget
-       * only branches on `source === "none"`, never on the vendor.
-       */
-      "packages/components/src/FleetReliability/undefined.characterise.test.tsx",
-      /*
-       * The install-profile harness names Kerbalism as a roster entry and as the
-       * `reliability.summary.source` its backend produces, both wire values. See
-       * the matching entries under `testflight` for the whole rationale.
-       */
-      "packages/components/src/test/installProfile.test.ts",
-      "packages/components/src/FleetReliability/install-profiles.test.tsx",
-      /*
-       * The profile REGISTRY, for the same reason as the harness above: it
-       * imports each declared install by file name, and one of the installs is
-       * "Kerbalism modelling reliability". A profile id and a roster entry are
-       * wire values, and this file knows nothing else about the mod.
-       */
-      "packages/components/src/test/installProfile.ts",
-      /*
-       * The wire-side distinctness instrument, which names every reliability
-       * situation the mod can produce, both backends included, because the whole
-       * assertion is that no two of them serialise to the same bytes. Wire values
-       * in a ratchet; it imports only the contract and the vanilla backend.
-       */
-      "mod/Sitrep.Host.Tests/ReliabilityStateWireTests.cs",
-      /*
-       * The coverage-state distinctness matrix hands the augment a
-       * `reliability.summary.source` per case, and the vendor strings are the
-       * point: two installs whose backends differ must not render alike. A wire
-       * value, and the widget branches on `coverage`, never on who is speaking.
-       */
-      "packages/components/src/FleetReliability/coverage-matrix.test.tsx",
-      /*
        * -- ratchet inventory --
        * The rate-integration candidate scan reads EVERY generated unit
        * descriptor, core's and each Uplink's, because a rate-bearing field
@@ -1366,15 +1331,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/Gonogo.KSP/CurrencyEventUplink.cs",
       "mod/Sitrep.Contract/CurrencyEventPayloads.cs",
       /*
-       * Reliability.cs: the DOMAIN-NEUTRAL reliability capability contract. It
-       * names Kerbalism as one of the two backends that can serve the channel
-       * (the other being TestFlight) because the whole point of the shape is
-       * that it is a source-agnostic superset: several fields are documented as
-       * "TestFlight fills it; null for Kerbalism" and vice versa. Naming both is
-       * the contract's job.
-       */
-      "mod/Sitrep.Contract/Reliability.cs",
-      /*
        * wrap-units.ts (the hand-written decoder, not a generated map): its
        * name-keyed-map branch cites kerbalism.lifesupport.rates as the case that
        * forced it, since every earlier name-keyed channel used a nested SHAPE as
@@ -1405,18 +1361,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
 
       /*
-       * -- sibling Uplinks + core mod: prose only --
-       * ReliabilityCoreUplink.cs / ReliabilityElection.cs /
-       * NoneReliabilityBackend.cs: the reliability capability's ELECTION, which
-       * by design enumerates its candidate backends by name and priority. Naming
-       * them is the mechanism, and the whole point is that core declares the
-       * channels so neither backend has to.
-       */
-      "mod/Gonogo.KSP/ReliabilityCoreUplink.cs",
-      "mod/Sitrep.Host/Reliability/ReliabilityElection.cs",
-      "mod/Sitrep.Host/Reliability/NoneReliabilityBackend.cs",
-
-      /*
        * -- TEST-only --
        * UplinkContractOwnershipTests.cs / WirePayloadCoverageTests.cs: the
        * mod-side relocation-ownership ratchet and the wire-payload coverage
@@ -1428,31 +1372,20 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/Sitrep.Core.Tests/UplinkContractOwnershipTests.cs",
 
       /*
-       * sitrep-sdk's topic test: its comment explains which Topic ids core's
-       * generated surface does not carry. What matches is the explanation of an
-       * absence.
-       */
-      "mod/sitrep-sdk/src/topics.test.ts",
-      /*
        * Base-library and core tests using "kerbalism" as a generic EXAMPLE
        * provider/augment/component id ("kerbalism-ec", "kerbalism-power-systems",
        * requires: "kerbalism"), asserting a base widget does NOT couple to it
-       * (CrewStatus asserts it never subscribes to kerbalism.crew), or naming it
-       * in prose as one possible reliability source. FleetReliability emits
-       * `source: "kerbalism"` on the source-AGNOSTIC reliability.summary Topic,
-       * which is the field's whole point.
+       * (CrewStatus asserts it never subscribes to kerbalism.crew).
        */
       "packages/core/src/contributionsRuntime.test.tsx",
       "packages/core/src/registry.replacement.test.ts",
       "packages/components/src/CrewStatus/index.test.tsx",
-      "packages/components/src/FleetReliability/index.test.tsx",
     ],
   },
   /*
    * === testflight: owning dir mod/GonogoTestFlightUplink/. Had an owning
-   * Uplink and no token at all until now, so nothing was checking it. Its
-   * provider registers generically into the "reliability" capability, so core
-   * never names it.
+   * Uplink and no token at all until now, so nothing was checking it. It
+   * publishes reliability on its own Topics, so core never names it.
    *
    * The Uplink moved to the gonogo-uplinks repo, so those
    * owning dirs no longer exist and every mention below is held by this
@@ -1464,23 +1397,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
     domainDebt: [],
     permanent: [
       /*
-       * -- CARRIED CONTRACT PROSE: the generated contract now
-       * carries the C# doc comments it is generated from, and a wire type
-       * describes what an ELECTED backend puts in it. Here,
-       * `ReliabilityReading`'s backend field is literally the string
-       * "kerbalism" | "testflight" | "none", and the rated-seconds field says
-       * whose seconds they are. Text only, in a generated file, and naming the
-       * backend IS the fact being stated rather than a dependency on it, so
-       * this is the same class as the doc-mention citations already here.
-       */
-      "mod/sitrep-sdk/src/__generated__/contract.ts",
-      /*
-       * The same carried prose in the generated error-code table: the
-       * `repair.unrepairable` refusal names TestFlight's own repair check as
-       * the authority for it. Text only, in a generated file.
-       */
-      "mod/sitrep-sdk/src/__generated__/error-codes.ts",
-      /*
        * -- CI gating ratchet: names the four Uplink test
        * projects that were in mod/Gonogo.sln and in no CI job, which is the
        * finding itself: "four projects drifted" without saying which is not
@@ -1489,78 +1405,10 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "packages/core/src/ci-test-project-coverage.test.ts",
       /*
-       * FleetReliability's characterisation test emits `reliability.summary`
-       * payloads carrying real `source` values, which is what the wire carries.
-       * A wire-value reference, the case this bucket exists for: the widget only
-       * branches on `source === "none"` and never on the vendor, so the strings
-       * are fixture realism rather than coupling.
+       * Not the mod: a flight-lifecycle test's own planted Uplink is named
+       * `TestFlightUplink`, a test flight rather than TestFlight.
        */
-      "packages/components/src/FleetReliability/undefined.characterise.test.tsx",
-      // Same wire-value reference in the widget's stale-branch test.
-      "packages/components/src/FleetReliability/stale.test.tsx",
-      /*
-       * The install-profile harness: a checked-in declaration of which Uplinks a
-       * machine has, so a widget can be rendered under an install other than the
-       * one every fixture in this repo was captured on. The names it carries are
-       * Uplink ids off the `system.uplinks` roster and `source` values off
-       * `reliability.summary`, both already on the wire, and it is where the
-       * TestFlight-versus-Kerbalism election is stated as data. It imports and
-       * derives from nothing in the owning dir; the reference is a wire value and
-       * a file name, which is the case this bucket exists for.
-       */
-      "packages/components/src/test/installProfile.ts",
-      "packages/components/src/test/installProfile.test.ts",
-      "packages/components/src/FleetReliability/install-profiles.test.tsx",
-      /*
-       * The coverage-state distinctness matrix hands the augment a
-       * `reliability.summary.source` per case, and the vendor strings are the
-       * point: two installs whose backends differ must not render alike. A wire
-       * value, and the widget branches on `coverage`, never on who is speaking.
-       */
-      "packages/components/src/FleetReliability/coverage-matrix.test.tsx",
-      /*
-       * Every entry is a doc-mention naming TestFlight as the OTHER backend that
-       * competes for the shared "reliability" capability, which is how the
-       * election and the wire shape are explained. None imports, references or
-       * derives from anything in the owning dir.
-       *
-       * Kerbalism's half of that shared capability: its map and its uplink
-       * registration name TestFlight to say who outranks whom in the election.
-       * The list was four files until the reliability reshape: the payloads no
-       * longer carry a per-provider field, so a doc comment saying "TestFlight
-       * fills this one, Kerbalism leaves it null" no longer has anything to
-       * describe, and three entries left with the sentences.
-       */
-      /*
-       * The core uplink that declares the reliability channels names both
-       * backends in the same breath, for the same reason.
-       */
-      "mod/Gonogo.KSP/ReliabilityCoreUplink.cs",
-      /*
-       * The reliability wire contract and its election, which name both
-       * competing backends to explain the shape and the precedence. Contract
-       * and election layer, doc-mention only.
-       */
-      "mod/Sitrep.Contract/Reliability.cs",
-      "mod/Sitrep.Contract/SitrepUnitAttribute.cs",
-      "mod/Sitrep.Host/Reliability/ReliabilityElection.cs",
-      "mod/Sitrep.Host/Reliability/NoneReliabilityBackend.cs",
       "mod/Sitrep.Host.IntegrationTests/FlightEndToEndTests.cs",
-      /*
-       * The wire-side distinctness instrument. It names every reliability
-       * situation the mod can produce, both backends included, because the
-       * whole assertion is that no two of them serialise to the same bytes: a
-       * sweep that could not name them could not report which pair collapsed.
-       * Wire values in a ratchet, and it imports only the contract and the
-       * vanilla backend.
-       */
-      "mod/Sitrep.Host.Tests/ReliabilityStateWireTests.cs",
-      /*
-       * Widgets that render the reliability domain and name TestFlight in prose
-       * to explain which source a field came from.
-       */
-      "packages/components/src/FleetReliability/index.test.tsx",
-      "packages/components/src/FleetReliability/composition.test.tsx",
     ],
   },
 
@@ -1785,14 +1633,7 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/components/scripts/widgets.ts",
     "packages/core/src/uplink-permanent-code.test.ts",
     "mod/Sitrep.Core.Tests/UplinkContractOwnershipTests.cs",
-    "mod/Sitrep.Host.Tests/ReliabilityStateWireTests.cs",
     "packages/components/src/CrewStatus/index.test.tsx",
-    "packages/components/src/FleetReliability/coverage-matrix.test.tsx",
-    "packages/components/src/FleetReliability/index.test.tsx",
-    "packages/components/src/FleetReliability/install-profiles.test.tsx",
-    "packages/components/src/FleetReliability/undefined.characterise.test.tsx",
-    "packages/components/src/test/installProfile.test.ts",
-    "packages/components/src/test/installProfile.ts",
     "packages/core/src/contributionsRuntime.test.tsx",
     "packages/core/src/registry.replacement.test.ts",
     "packages/core/src/uplink-isolation.allowlist.ts",
@@ -1829,20 +1670,5 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/sitrep-client/src/map-topic.test.ts",
     "packages/sitrep-client/src/use-late-telemetry-subscribe.test.tsx",
   ],
-  testflight: [
-    // The generated error-code table carries each code's doc comment as a
-    // `meaning` string, and `repair.unrepairable`'s names TestFlight's repair
-    // check. The name as DATA in a generated file.
-    "mod/sitrep-sdk/src/__generated__/error-codes.ts",
-    "mod/Sitrep.Host.IntegrationTests/FlightEndToEndTests.cs",
-    "mod/Sitrep.Host.Tests/ReliabilityStateWireTests.cs",
-    "packages/components/src/FleetReliability/composition.test.tsx",
-    "packages/components/src/FleetReliability/coverage-matrix.test.tsx",
-    "packages/components/src/FleetReliability/index.test.tsx",
-    "packages/components/src/FleetReliability/install-profiles.test.tsx",
-    "packages/components/src/FleetReliability/stale.test.tsx",
-    "packages/components/src/FleetReliability/undefined.characterise.test.tsx",
-    "packages/components/src/test/installProfile.test.ts",
-    "packages/components/src/test/installProfile.ts",
-  ],
+  testflight: ["mod/Sitrep.Host.IntegrationTests/FlightEndToEndTests.cs"],
 };

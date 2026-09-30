@@ -348,7 +348,7 @@ namespace Sitrep.Contract
         /// <para><b>Bumped 13 -&gt; 14 (Minor reset to 0): reliability.* becomes
         /// model-first.</b> The two elected reliability payloads shrink, the summary
         /// from six members to three and the part entry from twelve to nine, and one
-        /// new nested type (<see cref="ReliabilityBudget"/>) is added. Removed:
+        /// new nested type (<c>ReliabilityBudget</c>) is added. Removed:
         /// <c>ReliabilitySummary.Unmodeled</c> / <c>Malfunction</c> / <c>Critical</c>
         /// / <c>WorstReliabilityFraction</c>, and
         /// <c>ReliabilityPartEntry.Group</c> / <c>Broken</c> / <c>Critical</c> /
@@ -370,7 +370,7 @@ namespace Sitrep.Contract
         /// one and the literal "engine" in the other, so neither could be rendered
         /// without knowing who wrote it. THIRD, the boolean <c>Unmodeled</c>
         /// structurally could not say "I could not tell", so it said the reassuring
-        /// thing; <see cref="ReliabilityCoverage"/> replaces it with five states an
+        /// thing; <c>ReliabilityCoverage</c> replaces it with five states an
         /// operator responds to differently.</para>
         ///
         /// <para>What replaces them is smaller and open where it needs to be: one
@@ -524,11 +524,11 @@ namespace Sitrep.Contract
         /// <see cref="ErrorMsg.Code"/> is a declared <see cref="FaultCode"/>, and
         /// its values are renamed to camelCase (<c>E_UNAVAILABLE</c> is
         /// <c>commandUnavailable</c>). <c>RepairOutcome.Refusal</c> is removed in
-        /// favour of the <see cref="RepairRefusal"/> refinements on
+        /// favour of the <c>RepairRefusal</c> refinements on
         /// <c>reason</c>.</para>
         ///
         /// <para><b>Also in 19, C# seam breaks the wire shape cannot see:</b>
-        /// <see cref="IReliabilityBackend.Repair"/> returns the
+        /// <c>IReliabilityBackend.Repair</c> returns the
         /// <see cref="CommandResult{T}"/> itself, and every <c>Fail</c> factory on
         /// <see cref="CommandResult"/>, <see cref="CommandResult{T}"/> and
         /// <see cref="GateVerdict"/> takes a <see cref="RefusalCode"/>. Declared in
@@ -584,9 +584,20 @@ namespace Sitrep.Contract
         /// compiles. It is how an Uplink scales or switches off signal delay
         /// without core knowing why. Declared in the ledger's
         /// <c>SeamBreaks</c>.</para>
+        ///
+        /// <para><b>Bumped 22 -&gt; 23: core carries no reliability model.</b>
+        /// The <c>reliability.summary</c> and <c>reliability.parts</c> Topics and
+        /// their <c>ReliabilitySummary</c>, <c>ReliabilityPartEntry</c>,
+        /// <c>ReliabilityBudget</c> and <c>RepairCostItem</c> payloads, the
+        /// <c>vessel.repair</c> command with <c>RepairPartArgs</c> and
+        /// <c>RepairOutcome</c>, the <c>repair.*</c> refusal refinements, the
+        /// <c>h</c> unit that existed for one of them, and the exclusive
+        /// <c>reliability</c> capability's <c>IReliabilityBackend</c> are
+        /// removed. Stock has no part-reliability model; each mod that has one
+        /// publishes it on its own Topics and owns its own repair.</para>
         /// </internal>
         /// </summary>
-        public const int Major = 22;
+        public const int Major = 23;
 
         /// <summary>
         /// The contract's minor version within the current <see cref="Major"/>. It
@@ -744,7 +755,7 @@ namespace Sitrep.Contract
         /// <c>KerbalismLifeSupport</c>, <c>KerbalismCrewEntry</c>,
         /// <c>KerbalismFeatures</c> + nested value shapes) and the
         /// Domain-neutral <c>reliability.summary</c>/<c>reliability.parts</c>
-        /// (<see cref="ReliabilitySummary"/>, <see cref="ReliabilityPartEntry"/>,
+        /// (<c>ReliabilitySummary</c>, <c>ReliabilityPartEntry</c>,
         /// elected via the <c>reliability</c> Kernel capability, see Reliability.cs).
         /// All brand-new Topics + value shapes, nothing removed or retyped, so it
         /// cannot break an Uplink built against an older Minor. See
@@ -941,8 +952,8 @@ namespace Sitrep.Contract
         /// Major-9 line above is carried forward into Major 10.</para>
         ///
         /// <para><b>Major-12 line, Bumped 0 -&gt; 1: the provider extension
-        /// bag.</b> <see cref="ReliabilitySummary"/> and
-        /// <see cref="ReliabilityPartEntry"/> each gain one nullable
+        /// bag.</b> <c>ReliabilitySummary</c> and
+        /// <c>ReliabilityPartEntry</c> each gain one nullable
         /// <c>Extensions</c> member, the permanent provider-namespaced hole that
         /// lets a reliability backend carry a field this assembly does not declare
         /// without a PR against it (see

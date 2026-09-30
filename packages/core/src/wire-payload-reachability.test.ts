@@ -24,9 +24,9 @@ import { beforeAll, describe, expect, it } from "vitest";
  * reflection and missed two of the five, because both sat on its
  * `FlattenedByProducer` allowlist. An entry there is a human CLAIM about what a
  * producer does, and reflection cannot grade a claim: the roster's entry was
- * recorded as hand-flattened when nothing flattens it, and `RepairOutcome` as
- * riding out inside a flattened reply when `CommandResult<T>.Payload` goes
- * straight back through `AppendValue`. Both claims were also written into the
+ * recorded as hand-flattened when nothing flattens it, and a command's reply
+ * payload as riding out inside a flattened reply when `CommandResult<T>.Payload`
+ * goes straight back through `AppendValue`. Both claims were also written into the
  * contract's own doc comments, which is how one false premise ends up
  * corroborating itself.
  *
@@ -229,8 +229,8 @@ describe("wire payload reachability", () => {
     // `JsonWriter` is in `Sitrep.Core` and a core serializer may not reference
     // an Uplink assembly, so every case it has names `Sitrep.Contract.*` and
     // none can meet an Uplink-owned type however it is spelled. Without this
-    // distinction an Uplink declaring a `RepairOutcome` of its own would be
-    // waved through by the core `RepairOutcome` case, which is the false green
+    // distinction an Uplink declaring a `ScienceTransmission` of its own would be
+    // waved through by the core `ScienceTransmission` case, which is the false green
     // this whole gate exists to refuse.
     const writable = gate.writableTypes(
       "case Sitrep.Contract.Shared shared:\n",

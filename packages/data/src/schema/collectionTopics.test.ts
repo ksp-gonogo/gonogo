@@ -197,7 +197,6 @@ describe("collection Topics in the generated contract", () => {
       "dv.stages",
       "isru.converters",
       "isru.drills",
-      "reliability.parts",
       "robotics.servos",
       "science.archive",
       "science.experimentBreakdown",

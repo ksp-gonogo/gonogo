@@ -544,9 +544,9 @@ namespace Sitrep.Core.Tests
                              .GetProperties(BindingFlags.Public | BindingFlags.Instance)
                              .Where(p => p.CanRead)
                              // The provider extension bag is omitted from the wire
-                             // entirely unless a provider filled it, and
-                             // ReliabilityExtensionWireTests pins that omission as
-                             // bytes. Excluded by ATTRIBUTE, the same mechanism
+                             // entirely unless a provider filled it, and each
+                             // providing Uplink's extension wire test pins that
+                             // omission as bytes. Excluded by ATTRIBUTE, the same mechanism
                              // JsonWriterFlattenerParityTests uses, so the exemption
                              // cannot quietly widen to a hand-added field.
                              .Where(p => p.GetCustomAttribute<ProviderExtensionBagAttribute>() == null))

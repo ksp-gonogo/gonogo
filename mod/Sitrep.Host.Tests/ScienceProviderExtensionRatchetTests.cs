@@ -7,15 +7,12 @@ using Xunit;
 namespace Sitrep.Host.Tests
 {
     /// <summary>
-    /// The anti-pattern ratchet for the four elected <c>science.*</c> payloads, the
-    /// sibling <see cref="ReliabilityContractShapeTests"/> asked for by name when it
-    /// said "when <c>science</c> becomes Kernel-electable and takes the bag, it
-    /// should get a ratchet of its own in the same shape". Same rule, same reasons:
-    /// a NEW provider-specific science field belongs in the extension bag under the
+    /// The anti-pattern ratchet for the four elected <c>science.*</c> payloads: a
+    /// NEW provider-specific science field belongs in the extension bag under the
     /// provider's own id, not as another hand-listed nullable member here.
     ///
-    /// <para><b>Why science needs this more than reliability did.</b> The
-    /// stock-versus-modelled-science overlap survey found four whole concepts one provider
+    /// <para><b>Why science needs this.</b> The stock-versus-modelled-science
+    /// overlap survey found four whole concepts one provider
     /// models and the other has no word for (storage capacity, files vs samples,
     /// a 62-condition requirement gate, continuous transmission) on top of five
     /// more where one model is strictly richer. Adding that as core nullable

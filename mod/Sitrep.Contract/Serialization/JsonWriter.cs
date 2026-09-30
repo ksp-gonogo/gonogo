@@ -325,28 +325,6 @@ namespace Sitrep.Contract.Serialization
                 case Sitrep.Contract.ChannelEmissionEntry channelEmissionEntry:
                     AppendChannelEmissionEntry(sb, channelEmissionEntry);
                     break;
-                case Sitrep.Contract.ReliabilitySummary reliabilitySummary:
-                    AppendReliabilitySummary(sb, reliabilitySummary);
-                    break;
-                case Sitrep.Contract.ReliabilityPartEntry reliabilityPartEntry:
-                    AppendReliabilityPartEntry(sb, reliabilityPartEntry);
-                    break;
-                case Sitrep.Contract.ReliabilityBudget reliabilityBudget:
-                    // Reached element by element from a part's Budgets list through the IEnumerable case.
-                    AppendReliabilityBudget(sb, reliabilityBudget);
-                    break;
-                case Sitrep.Contract.RepairCostItem repairCostItem:
-                    // Reached element by element from a part's RepairCost list.
-                    AppendRepairCostItem(sb, repairCostItem);
-                    break;
-                case Sitrep.Contract.RepairOutcome repairOutcome:
-                    /*
-                     * vessel.repair's reply payload, inside CommandResult<RepairOutcome>.Payload, which
-                     * AppendCommandResult writes back through AppendValue. RepairRefusal.ResultFor sets
-                     * Payload on every outcome, success and refusal alike.
-                     */
-                    AppendRepairOutcome(sb, repairOutcome);
-                    break;
                 case Sitrep.Contract.ScienceTransmission scienceTransmission:
                     // science.experiment.transmit's reply payload, inside CommandResult<ScienceTransmission>.Payload.
                     AppendScienceTransmission(sb, scienceTransmission);
@@ -720,35 +698,13 @@ namespace Sitrep.Contract.Serialization
         }
 
         /// <summary>
-        /// Flattens a <see cref="Sitrep.Contract.ReliabilitySummary"/> to the wire
-        /// object <c>{ source, coverage }</c>, plus <c>extensions</c> when a provider
-        /// filled its namespace (omitted rather than null when empty; see
-        /// <see cref="AppendProviderExtensions"/>): camelCase keys, JSON null for
-        /// absent nullable fields, matching the generated SDK interface.
-        /// </summary>
-        private static void AppendReliabilitySummary(StringBuilder sb, Sitrep.Contract.ReliabilitySummary r)
-        {
-            sb.Append('{');
-            AppendString(sb, "source");
-            sb.Append(':');
-            AppendNullableString(sb, r.Source);
-            sb.Append(',');
-            AppendString(sb, "coverage");
-            sb.Append(':');
-            AppendNullableString(sb, r.Coverage);
-            AppendProviderExtensions(sb, r.Extensions);
-            sb.Append('}');
-        }
-
-        /// <summary>
         /// Appends the provider extension bag as <c>,"extensions":{ ... }</c>, or
         /// nothing at all when no provider filled one.
         ///
         /// <para>Omitted rather than written as null, unlike every other optional
         /// field in these flatteners. The bag is a mechanism, not a reading: a
         /// payload no provider extended is byte-for-byte the same as one from a
-        /// payload type with no bag. <c>ReliabilityExtensionWireTests</c> pins
-        /// it.</para>
+        /// payload type with no bag.</para>
         ///
         /// <para>The namespaces themselves go through <see cref="AppendValue"/>:
         /// they are the provider's own untyped value tree (a
@@ -769,166 +725,6 @@ namespace Sitrep.Contract.Serialization
             AppendString(sb, Sitrep.Contract.ProviderExtensions.WireField);
             sb.Append(':');
             AppendObject(sb, extensions);
-        }
-
-        /// <summary>
-        /// Flattens a <see cref="Sitrep.Contract.ReliabilityPartEntry"/> to the wire
-        /// object <c>{ partId, title, condition, conditionDetail, survival,
-        /// survivalHorizonSeconds, budgets }</c>, plus <c>extensions</c> when a
-        /// provider filled its namespace (see
-        /// <see cref="AppendProviderExtensions"/>): camelCase keys, JSON null for absent
-        /// nullable fields, matching the generated SDK interface. reliability.parts
-        /// publishes a <c>List&lt;ReliabilityPartEntry&gt;</c> raw, whose elements
-        /// route through here via <see cref="AppendValue"/>'s <c>IEnumerable</c> case.
-        ///
-        /// <para><c>budgets</c> is written as JSON <c>null</c> when the list is null
-        /// and <c>[]</c> when it is empty, not following the
-        /// omit-when-empty rule <c>extensions</c> uses: the bag is a mechanism, a
-        /// budget list is a reading, and "this provider models no dimensions" is
-        /// something a reader is entitled to see.</para>
-        /// </summary>
-        private static void AppendReliabilityPartEntry(StringBuilder sb, Sitrep.Contract.ReliabilityPartEntry p)
-        {
-            sb.Append('{');
-            AppendString(sb, "partId");
-            sb.Append(':');
-            AppendNullableString(sb, p.PartId);
-            sb.Append(',');
-            AppendString(sb, "title");
-            sb.Append(':');
-            AppendNullableString(sb, p.Title);
-            sb.Append(',');
-            AppendString(sb, "condition");
-            sb.Append(':');
-            AppendNullableString(sb, p.Condition);
-            sb.Append(',');
-            AppendString(sb, "repairTrait");
-            sb.Append(':');
-            AppendNullableString(sb, p.RepairTrait);
-            sb.Append(',');
-            AppendString(sb, "repairLevel");
-            sb.Append(':');
-            AppendNullableNumber(sb, p.RepairLevel);
-            sb.Append(',');
-            AppendString(sb, "conditionDetail");
-            sb.Append(':');
-            AppendNullableString(sb, p.ConditionDetail);
-            sb.Append(',');
-            AppendString(sb, "survival");
-            sb.Append(':');
-            AppendNullableNumber(sb, p.Survival);
-            sb.Append(',');
-            AppendString(sb, "survivalHorizonSeconds");
-            sb.Append(':');
-            AppendNullableNumber(sb, p.SurvivalHorizonSeconds);
-            sb.Append(',');
-            AppendString(sb, "budgets");
-            sb.Append(':');
-            if (p.Budgets == null)
-            {
-                AppendNull(sb);
-            }
-            else
-            {
-                sb.Append('[');
-                var first = true;
-                foreach (var budget in p.Budgets)
-                {
-                    if (!first) sb.Append(',');
-                    first = false;
-                    if (budget == null) AppendNull(sb); else AppendReliabilityBudget(sb, budget);
-                }
-                sb.Append(']');
-            }
-            sb.Append(',');
-            AppendString(sb, "repairCost");
-            sb.Append(':');
-            /*
-             * JSON null when the provider models no consumable cost, never an
-             * omitted key. A client's rule turns on telling an absent cost from a
-             * zero one, and a key that vanishes takes the distinction with it: an
-             * unbroken part and a free repair would arrive byte-identical.
-             */
-            if (p.RepairCost == null)
-            {
-                AppendNull(sb);
-            }
-            else
-            {
-                sb.Append('[');
-                var firstCost = true;
-                foreach (var item in p.RepairCost)
-                {
-                    if (!firstCost) sb.Append(',');
-                    firstCost = false;
-                    if (item == null) AppendNull(sb); else AppendRepairCostItem(sb, item);
-                }
-                sb.Append(']');
-            }
-            AppendProviderExtensions(sb, p.Extensions);
-            sb.Append('}');
-        }
-
-        /// <summary>
-        /// Flattens a <see cref="Sitrep.Contract.RepairCostItem"/> to the wire
-        /// object <c>{ name, quantity }</c>: camelCase keys in that order, matching
-        /// the generated SDK interface and <c>InventoryItem</c>'s own pair so a
-        /// client can join the two without translating.
-        /// </summary>
-        private static void AppendRepairCostItem(StringBuilder sb, Sitrep.Contract.RepairCostItem item)
-        {
-            sb.Append('{');
-            AppendString(sb, "name");
-            sb.Append(':');
-            AppendString(sb, item.Name);
-            sb.Append(',');
-            AppendString(sb, "quantity");
-            sb.Append(':');
-            sb.Append(item.Quantity);
-            sb.Append('}');
-        }
-
-        /// <summary>
-        /// Flattens a <see cref="Sitrep.Contract.ReliabilityBudget"/> to the wire
-        /// object <c>{ id, label, kind, consumed, usedSeconds, limitSeconds,
-        /// usedCount, limitCount }</c>: camelCase keys, JSON null for absent
-        /// nullable fields, in that order, matching the generated SDK interface.
-        /// </summary>
-        private static void AppendReliabilityBudget(StringBuilder sb, Sitrep.Contract.ReliabilityBudget b)
-        {
-            sb.Append('{');
-            AppendString(sb, "id");
-            sb.Append(':');
-            AppendNullableString(sb, b.Id);
-            sb.Append(',');
-            AppendString(sb, "label");
-            sb.Append(':');
-            AppendNullableString(sb, b.Label);
-            sb.Append(',');
-            AppendString(sb, "kind");
-            sb.Append(':');
-            AppendNullableString(sb, b.Kind);
-            sb.Append(',');
-            AppendString(sb, "consumed");
-            sb.Append(':');
-            AppendNullableNumber(sb, b.Consumed);
-            sb.Append(',');
-            AppendString(sb, "usedSeconds");
-            sb.Append(':');
-            AppendNullableNumber(sb, b.UsedSeconds);
-            sb.Append(',');
-            AppendString(sb, "limitSeconds");
-            sb.Append(':');
-            AppendNullableNumber(sb, b.LimitSeconds);
-            sb.Append(',');
-            AppendString(sb, "usedCount");
-            sb.Append(':');
-            AppendNullableNumber(sb, b.UsedCount);
-            sb.Append(',');
-            AppendString(sb, "limitCount");
-            sb.Append(':');
-            AppendNullableNumber(sb, b.LimitCount);
-            sb.Append('}');
         }
 
         /// <summary>
@@ -1766,28 +1562,6 @@ namespace Sitrep.Contract.Serialization
             AppendString(sb, "actionsWithheld");
             sb.Append(':');
             AppendBool(sb, f.ActionsWithheld);
-            sb.Append('}');
-        }
-
-        /// <summary>
-        /// A repair attempt's outcome as <c>{ repaired, kitsUsed, kitsFrom }</c>,
-        /// the payload half of <c>vessel.repair</c>'s reply.
-        /// </summary>
-        private static void AppendRepairOutcome(
-            StringBuilder sb, Sitrep.Contract.RepairOutcome o)
-        {
-            sb.Append('{');
-            AppendString(sb, "repaired");
-            sb.Append(':');
-            AppendBool(sb, o.Repaired);
-            sb.Append(',');
-            AppendString(sb, "kitsUsed");
-            sb.Append(':');
-            AppendInteger(sb, o.KitsUsed);
-            sb.Append(',');
-            AppendString(sb, "kitsFrom");
-            sb.Append(':');
-            AppendNullableString(sb, o.KitsFrom);
             sb.Append('}');
         }
 

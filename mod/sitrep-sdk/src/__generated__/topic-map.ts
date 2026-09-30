@@ -69,8 +69,6 @@ import type {
   LaunchSiteEntry,
   PartsPower,
   RecoveryReport,
-  ReliabilityPartEntry,
-  ReliabilitySummary,
   RevertAvailability,
   RoboticsAvailability,
   SavedShipEntry,
@@ -147,8 +145,6 @@ export interface GeneratedTopicPayloadMap {
   "ksp.revertAvailability": RevertAvailability;
   "parts.power": PartsPower;
   "recovery.lastSummary": RecoveryReport;
-  "reliability.parts": ReliabilityPartEntry[];
-  "reliability.summary": ReliabilitySummary;
   "robotics.available": RoboticsAvailability;
   "robotics.servos": ServoEntry[];
   "science.archive": ArchiveEntry[];
@@ -230,8 +226,6 @@ export const GENERATED_TOPIC_IDS = [
   "ksp.revertAvailability",
   "parts.power",
   "recovery.lastSummary",
-  "reliability.parts",
-  "reliability.summary",
   "robotics.available",
   "robotics.servos",
   "science.archive",
@@ -286,7 +280,6 @@ export const GENERATED_COLLECTION_TOPIC_IDS = [
   "dv.stages",
   "isru.converters",
   "isru.drills",
-  "reliability.parts",
   "robotics.servos",
   "science.archive",
   "science.experimentBreakdown",

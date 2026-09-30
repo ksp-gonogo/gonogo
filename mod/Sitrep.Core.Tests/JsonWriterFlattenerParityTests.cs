@@ -114,8 +114,8 @@ namespace Sitrep.Core.Tests
                 .Where(p => p.CanRead)
                 // The provider extension bag is the one member that must NOT
                 // mirror: it is omitted from the wire entirely unless a provider
-                // filled it, and ReliabilityExtensionWireTests pins that
-                // omission as bytes. Excluded by ATTRIBUTE rather than by name,
+                // filled it, and each providing Uplink's extension wire test
+                // pins that omission as bytes. Excluded by ATTRIBUTE rather than by name,
                 // so the exemption cannot quietly widen to a hand-added field
                 // (the same reasoning, and the same mechanism,
                 // ScienceContractShapeTests uses).
@@ -163,7 +163,6 @@ namespace Sitrep.Core.Tests
             foreach (var name in new[]
                      {
                          nameof(IsruDrillEntry), nameof(IsruConverterEntry), nameof(IsruResourceFlow),
-                         nameof(ReliabilitySummary), nameof(ReliabilityPartEntry),
                          nameof(CommsConnectivity), nameof(CommsPath), nameof(CommsNetwork),
                          nameof(FlightCurrent), nameof(PendingUplinkQueue),
                      })
@@ -240,7 +239,7 @@ namespace Sitrep.Core.Tests
                 // Left null on purpose: the bag's whole additive claim is that a
                 // payload no provider extended is byte-identical to one from
                 // before the mechanism existed, so filling it here would assert
-                // the opposite of what ReliabilityExtensionWireTests pins.
+                // the opposite of what a providing Uplink's wire test pins.
                 if (property.GetCustomAttribute<ProviderExtensionBagAttribute>() != null)
                 {
                     continue;
@@ -283,7 +282,7 @@ namespace Sitrep.Core.Tests
             // A refinement, so both the root's errorCode and the refinement's reason are written.
             if (type == typeof(RefusalCode))
             {
-                return RepairRefusal.NoKits;
+                return CommandErrorCode.InsufficientResource.Refine("planted.tooFew", "there are too few aboard");
             }
             if (type == typeof(FaultCode))
             {

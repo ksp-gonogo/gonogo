@@ -106,7 +106,7 @@ export interface MeterProps<UnitSymbol extends string = string>
 
 /**
  * A labelled bar showing how full something is: a dose, a resource level, a
- * reliability. The value is always written beside the bar, so colour never
+ * charge. The value is always written beside the bar, so colour never
  * carries meaning alone.
  *
  * Pass `value` alone when it is already a fraction, in `ratio`, or `value` and

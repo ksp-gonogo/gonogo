@@ -1,39 +1,23 @@
 {
   "id": "stock-career",
   "name": "Stock career",
-  "description": "Stock KSP career. The Kerbalism Uplink is installed and reports its target assembly missing, so its channels stay declared but never carry a value, and no TestFlight Uplink is installed at all. Reliability falls back to its vanilla, the None backend.",
+  "description": "Stock KSP career. A planted Uplink is installed and reports its target assembly missing, so its channels stay declared but never carry a value.",
   "uplinks": [
     {
-      "id": "reliability",
-      "available": true,
-      "ownedPrefixes": ["reliability.summary", "reliability.parts"],
-      "detail": "Reliability channels are live."
-    },
-    {
-      "id": "kerbalism",
+      "id": "planted",
       "available": false,
-      "reason": "Kerbalism assembly not loaded",
+      "reason": "Planted mod assembly not loaded",
       "ownedPrefixes": [
-        "kerbalism.available",
-        "kerbalism.features",
-        "kerbalism.spaceweather",
-        "kerbalism.lifesupport",
-        "kerbalism.crew",
-        "kerbalism.profile"
+        "planted.available",
+        "planted.pads",
+        "planted.complexes",
+        "planted.operations"
       ],
       "state": "unavailable",
-      "detail": "Kerbalism assembly not loaded"
+      "detail": "Planted mod assembly not loaded"
     }
   ],
-  "elections": {
-    "reliability": "none"
-  },
-  "wire": {
-    "reliability.summary": {
-      "source": "none",
-      "coverage": "none"
-    },
-    "reliability.parts": []
-  },
-  "absentChannels": ["kerbalism.available"]
+  "elections": {},
+  "wire": {},
+  "absentChannels": ["planted.available"]
 }

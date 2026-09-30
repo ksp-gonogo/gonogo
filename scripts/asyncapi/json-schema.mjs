@@ -391,7 +391,7 @@ export class SchemaBuilder {
    * A generic contract type with its parameters bound, inlined rather than
    * `$ref`ed.
    *
-   * `CommandResultOf<RepairOutcome>` and `CommandResultOf<number>` are two
+   * `CommandResultOf<ScienceTransmission>` and `CommandResultOf<number>` are two
    * different schemas off one declaration, so there is no single component to
    * point at. Inlining keeps the reply schema on the command that resolves it,
    * which is where a reader is standing when they ask.

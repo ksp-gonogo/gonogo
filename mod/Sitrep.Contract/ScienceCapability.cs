@@ -1,7 +1,7 @@
 namespace Sitrep.Contract;
 
 /*
- * Science is a Kernel-elected capability, the same shape comms.* and reliability.* use: one
+ * Science is a Kernel-elected capability, the same shape comms.* and isru.* use: one
  * exclusive "science" capability whose active instance is an IScienceBackend. A core registrar
  * owns the capability, ships the stock backend as its Vanilla factory, declares the five
  * science.* channels and two science.experiment.* commands once, and sources them from the
@@ -12,11 +12,11 @@ namespace Sitrep.Contract;
 
 /// <summary>
 /// The "science" capability's active-instance interface (parallel to
-/// <see cref="ICommsBackend"/> / <see cref="IReliabilityBackend"/>): the five
+/// <see cref="ICommsBackend"/> / <see cref="IIsruBackend"/>): the five
 /// science.* read surfaces plus the two experiment commands, which together are
 /// everything the science registrar publishes.
 ///
-/// <para>Unlike <see cref="IReliabilityBackend"/>'s parameterless typed reads,
+/// <para>Unlike <see cref="IIsruBackend"/>'s parameterless typed reads,
 /// each read takes a <see cref="KspSnapshot"/> and returns <c>object?</c>:</para>
 ///
 /// <list type="bullet">
