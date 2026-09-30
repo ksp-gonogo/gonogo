@@ -49,6 +49,22 @@ const MOD_CLIENT_SRC_SUFFIX = ["client", "src"];
 // MapView/MapPoiLayer.styles migrated onto ui-kit primitives and the new
 // ContainerBreak (a container-query breakpoint with no inline-style
 // equivalent), WarpControl/styles migrated onto the kit's Button.
+//
+// 14 is the FLOOR, not a waypoint (#163, closed 2026-10-01). Every remaining
+// import carries a biome-ignore giving its own reason, and biome.json holds
+// noRestrictedImports at `error` for widget code with no exemption list, so
+// those ignores are the only record of why each file is here. Seven are
+// permanent: SVG focus rings drawn as a stroke on a shape (OrbitDiagram,
+// ShipPartGroup, SystemEntitiesLayer) and the ServerStyleSheet that folds one
+// into the standalone SVG export (ShipMap/render), a ScrollArea-internals
+// selector (PowerSystems), an :empty collapse (FleetRoster/UpdatesRow), and a
+// page route that is not a widget (StationConnectView). The other seven hold
+// bespoke control states on hand-rolled buttons (LaunchDirector,
+// SpaceCenterStatus, Strategies, TargetPicker, TechTree, TransferWindow,
+// MapView); a kit primitive that took arbitrary state CSS through props was
+// refused (#428) as an escape hatch. Deleting an ignore to tidy the list
+// deletes a focus ring or a hover state, so do not lower this number without
+// migrating the file it names.
 const STYLED_COMPONENTS_IMPORT_BASELINE = 14;
 
 const STYLED_IMPORT_RE = /(?:from\s+|require\()\s*["']styled-components["']/;

@@ -1,4 +1,5 @@
 import { FramedDisplay } from "@ksp-gonogo/ui";
+// biome-ignore lint/style/noRestrictedImports: the canvas's :active grab cursor and the compact rows' :has([data-unit-band]) wrap, which no inline style or kit primitive expresses
 import styled from "styled-components";
 
 export const Header = styled.div`

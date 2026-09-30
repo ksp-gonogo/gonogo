@@ -8,6 +8,7 @@ import { value } from "@ksp-gonogo/sitrep-sdk";
 import { writeQuantity } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
+// biome-ignore lint/style/noRestrictedImports: SVG <circle> focus ring (a :focus-visible stroke on a shape), which neither an inline style nor a primitive can render
 import styled from "styled-components";
 
 export type OrbitDiagramVariant = "full" | "mini";

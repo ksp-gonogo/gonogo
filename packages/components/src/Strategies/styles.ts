@@ -1,4 +1,5 @@
 import { Badge, Block, Row } from "@ksp-gonogo/ui-kit";
+// biome-ignore lint/style/noRestrictedImports: the expand toggle's :focus-visible and the factor slider's range-track and thumb pseudo-elements, which no kit primitive carries
 import styled from "styled-components";
 
 /** `Panel`'s own column template; `auto-fit` collapses empty tracks, which `minColWidth` (auto-fill) would not. */

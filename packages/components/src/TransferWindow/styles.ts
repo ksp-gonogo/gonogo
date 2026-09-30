@@ -1,4 +1,5 @@
 import { Select } from "@ksp-gonogo/ui-kit";
+// biome-ignore lint/style/noRestrictedImports: hand-rolled window and reach-pick buttons carry bespoke :hover and :focus-visible states, and no kit primitive carries them
 import styled from "styled-components";
 
 // Body inline-size at which the chart moves from under the list to beside it.

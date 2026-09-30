@@ -1,4 +1,5 @@
 import { ScrollArea, SearchBox } from "@ksp-gonogo/ui-kit";
+// biome-ignore lint/style/noRestrictedImports: hand-rolled section and space-object toggles carry bespoke :hover and :focus-visible states, and no kit primitive carries them
 import styled from "styled-components";
 
 /** Collapses when there is no encounter or apsis data. */

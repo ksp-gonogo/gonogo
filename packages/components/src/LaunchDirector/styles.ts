@@ -1,4 +1,5 @@
 import { Disclosure } from "@ksp-gonogo/ui-kit";
+// biome-ignore lint/style/noRestrictedImports: hand-rolled pad, ship, crew and confirm buttons carry bespoke :hover, :focus-visible and :disabled states and an armed pulse, and no kit primitive carries them
 import styled from "styled-components";
 
 function occupancyColor(occupied: boolean | null): string {

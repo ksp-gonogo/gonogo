@@ -1,4 +1,5 @@
 import { FitLabelButton, Text } from "@ksp-gonogo/ui-kit";
+// biome-ignore lint/style/noRestrictedImports: the upgrade button's bespoke :hover and :disabled treatments and its confirm pulse, which no kit primitive carries
 import styled from "styled-components";
 
 export const Body = styled.div`

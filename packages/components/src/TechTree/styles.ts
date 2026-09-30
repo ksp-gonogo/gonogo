@@ -1,4 +1,5 @@
 import { faintText } from "@ksp-gonogo/ui-kit";
+// biome-ignore lint/style/noRestrictedImports: hand-rolled filter, node, graph-card and close buttons carry bespoke :hover and :focus-visible states, and no kit primitive carries them
 import styled from "styled-components";
 import {
   type DisplayState,

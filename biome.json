@@ -98,7 +98,7 @@
         "rules": {
           "style": {
             "noRestrictedImports": {
-              "level": "warn",
+              "level": "error",
               "options": {
                 "paths": {
                   "styled-components": {
