@@ -357,7 +357,12 @@ export function PanelHeader({
   const rowRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
   const asideFullRef = useRef<HTMLDivElement>(null);
-  const collapsed = useHeaderAsideFit(rowRef, titleRef, asideFullRef);
+  const collapsed = useHeaderAsideFit(
+    rowRef,
+    titleRef,
+    asideFullRef,
+    typeof title === "string" ? title : undefined,
+  );
 
   /**
    * The `<details>` is a disclosure only while collapsed. Inline it is forced

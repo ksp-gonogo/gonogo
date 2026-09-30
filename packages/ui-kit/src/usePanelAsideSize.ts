@@ -57,6 +57,13 @@ export function nextAsideCollapsed(
  * goes in beside the live element so it inherits the same font and contextual
  * selectors; `restyle` restates the aside's inline layout.
  *
+ * `text`, when given, replaces the clone's content before measuring. The title
+ * element's own live text can already be `useFittedTitle`'s compacted form
+ * (the two hooks share no state), and measuring that would ask "does the short
+ * form fit" instead of "does the aside need to give the FULL form room",
+ * so a title that had already been shortened would report itself small enough
+ * that the aside never collapsed to let it grow back.
+ *
  * Inserted and removed in one synchronous call so nothing observes the clone.
  * Returns `0`, which `nextAsideCollapsed` treats as unmeasured, where nothing
  * is laid out (jsdom).
@@ -64,10 +71,12 @@ export function nextAsideCollapsed(
 function measureNaturalElementWidth(
   el: HTMLElement | null,
   restyle: Partial<CSSStyleDeclaration> = {},
+  text?: string,
 ): number {
   const parent = el?.parentNode;
   if (!el || !parent) return 0;
   const clone = el.cloneNode(true) as HTMLElement;
+  if (text !== undefined) clone.textContent = text;
   Object.assign(clone.style, {
     position: "absolute",
     visibility: "hidden",
@@ -114,6 +123,14 @@ function px(value: string): number {
  * natural width, the row's gap, the aside box's horizontal padding, and the
  * aside's natural width.
  *
+ * `fullTitle`, when given, is measured in place of whatever text is currently
+ * live in `titleRef`. `Panel.Title` runs its own, separate fit (`useFittedTitle`)
+ * and may already be showing a compacted form; measuring that would ask
+ * whether the SHORT form fits rather than whether the aside must give way for
+ * the full one, and a title that had already shortened would then report
+ * itself small enough that the aside never collapsed, locking the short form
+ * in for good.
+ *
  * Content changes are read from a `MutationObserver`'s pending records after
  * each render rather than by comparing the `title` and `aside` nodes, which are
  * new on every render and would force a layout each time.
@@ -122,11 +139,14 @@ export function useHeaderAsideFit(
   rowRef: RefObject<HTMLElement | null>,
   titleRef: RefObject<HTMLElement | null>,
   asideRef: RefObject<HTMLElement | null>,
+  fullTitle?: string,
 ): boolean {
   const [collapsed, setCollapsed] = useState(false);
   const collapsedRef = useRef(collapsed);
   collapsedRef.current = collapsed;
   const neededRef = useRef<number | undefined>(undefined);
+  const fullTitleRef = useRef(fullTitle);
+  fullTitleRef.current = fullTitle;
 
   const recompute = useCallback(() => {
     const row = rowRef.current;
@@ -136,7 +156,11 @@ export function useHeaderAsideFit(
       row.getBoundingClientRect().width -
       px(rowStyle.paddingLeft) -
       px(rowStyle.paddingRight);
-    const title = measureNaturalElementWidth(titleRef.current);
+    const title = measureNaturalElementWidth(
+      titleRef.current,
+      {},
+      fullTitleRef.current,
+    );
     const aside = measureNaturalElementWidth(asideRef.current, ASIDE_INLINE);
     const asideBox = asideRef.current?.closest<HTMLElement>(
       "[data-panel-aside-expand]",
