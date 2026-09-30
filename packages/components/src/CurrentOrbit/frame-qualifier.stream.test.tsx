@@ -4,14 +4,27 @@ import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { describe, expect, it } from "vitest";
 import { ReadingProbe } from "../test/ReadingProbe";
 import { setupStreamFixture } from "../test/setupStreamFixture";
+import rotatingControlFrame from "./__fixtures__/rotating-control-frame.json";
+import type { CurrentOrbitConfig } from "./config";
 import { CurrentOrbitComponent } from "./index";
 
 /**
- * A readout the view frame invalidates says so instead of showing a number.
- * The null dash already means "absent on this trajectory"; showing the frame case the same way would tell an operator their orbit changed when only their frame did.
+ * An apsis needs a centre. Current Orbit follows the Control Frame while it
+ * has one, and otherwise reads the vessel's elements about its own reference
+ * body, naming that frame so the panel never claims to be in the game's.
  */
 
-function mount({ probe = false }: { probe?: boolean } = {}) {
+const KERBOL_SYSTEM = rotatingControlFrame._stream.emits.find(
+  (e) => e.channel === "system.bodies",
+)?.value;
+
+function mount({
+  probe = false,
+  config,
+}: {
+  probe?: boolean;
+  config?: CurrentOrbitConfig;
+} = {}) {
   const fixture = setupStreamFixture({
     pinnedUt: 10,
     suspendFrames: true,
@@ -20,7 +33,7 @@ function mount({ probe = false }: { probe?: boolean } = {}) {
     <fixture.Provider>
       {probe && <ReadingProbe topic="system.frame" />}
       <DashboardItemContext.Provider value={{ instanceId: "orbit-frame" }}>
-        <CurrentOrbitComponent id="orbit-frame" w={9} h={18} />
+        <CurrentOrbitComponent id="orbit-frame" w={9} h={18} config={config} />
       </DashboardItemContext.Provider>
     </fixture.Provider>,
   );
@@ -29,7 +42,9 @@ function mount({ probe = false }: { probe?: boolean } = {}) {
 
 function emitOrbit(fixture: ReturnType<typeof setupStreamFixture>) {
   act(() => {
+    fixture.emit("system.bodies", KERBOL_SYSTEM);
     fixture.emit("vessel.orbit", {
+      referenceBodyIndex: 1,
       sma: 682500,
       ecc: 0.00367,
       inc: 0.3,
@@ -41,23 +56,8 @@ function emitOrbit(fixture: ReturnType<typeof setupStreamFixture>) {
   });
 }
 
-describe("CurrentOrbit: what the view frame does to the apsis readouts", () => {
-  it("says the apsides do not exist here when the frame is defined by a pair", async () => {
-    const fixture = mount();
-    emitOrbit(fixture);
-    // RotatingPulsating: a pair rather than a centre, so no apsis is defined.
-    act(() => {
-      fixture.emit("system.frame", { kind: 4, centreBody: null });
-    });
-
-    await waitFor(() =>
-      expect(screen.getAllByText(/no Ap here/i).length).toBeGreaterThan(0),
-    );
-    expect(screen.getAllByText(/no Pe here/i).length).toBeGreaterThan(0);
-  });
-
-  it("still renders the numbers in a frame that has a centre", async () => {
-    // The contrast case, so the test above cannot pass by never rendering apsides.
+describe("CurrentOrbit: following the Control Frame while it has a centre", () => {
+  it("renders the numbers with no frame named in a frame centred on the vessel's body", async () => {
     const fixture = mount({ probe: true });
     emitOrbit(fixture);
     act(() => {
@@ -66,7 +66,19 @@ describe("CurrentOrbit: what the view frame does to the apsis readouts", () => {
 
     await screen.findByText("system.frame: observed");
     expect(screen.queryByText(/no Ap here/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/no Pe here/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Frame: /)).not.toBeInTheDocument();
+  });
+
+  it("follows a centred frame of another kind without naming it", async () => {
+    const fixture = mount({ probe: true });
+    emitOrbit(fixture);
+    act(() => {
+      fixture.emit("system.frame", { kind: 2, centreBody: "Kerbin" });
+    });
+
+    await screen.findByText("system.frame: observed");
+    expect(screen.queryByText(/no Ap here/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Frame: /)).not.toBeInTheDocument();
   });
 
   it("does not claim the apsides are missing before any frame has been reported", async () => {
@@ -81,54 +93,67 @@ describe("CurrentOrbit: what the view frame does to the apsis readouts", () => {
   });
 });
 
-describe("CurrentOrbit: naming the frame that took the numbers away", () => {
-  it("names the frame in force when it is why the apsides are gone", async () => {
-    // The caveat alone says a quantity is missing; the name says WHY, and the why is something the operator can act on by changing their view.
+describe("CurrentOrbit: a Control Frame with no centre", () => {
+  it("reads about the vessel's body under a rotating pair, and names that frame", async () => {
     const fixture = mount();
     emitOrbit(fixture);
     act(() => {
       fixture.emit("system.frame", {
         kind: 4,
-        primaryBody: "Kerbol",
-        secondaryBody: "Kerbin",
+        primaryBody: "Kerbin",
+        secondaryBody: "Mun",
       });
     });
 
-    await waitFor(() =>
-      expect(screen.getByText(/Kerbol-Kerbin Lagrange/)).toBeTruthy(),
-    );
+    await screen.findByText("Frame: Kerbin-Centred Inertial");
+    expect(screen.queryByText(/no Ap here/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/no Pe here/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Lagrange/)).not.toBeInTheDocument();
   });
 
-  it("does not caption a frame that takes nothing away", async () => {
-    // A frame caption on a panel whose readouts it does not touch is a line of text that explains nothing.
-    const fixture = mount({ probe: true });
+  it("does the same in the target frame, which reports no kind", async () => {
+    const fixture = mount();
+    emitOrbit(fixture);
+    act(() => {
+      fixture.emit("system.frame", { kind: 0, targetFrameSelected: true });
+    });
+
+    await screen.findByText("Frame: Kerbin-Centred Inertial");
+    expect(screen.queryByText(/no Ap here/i)).not.toBeInTheDocument();
+  });
+});
+
+describe("CurrentOrbit: a frame pinned in its config", () => {
+  const PINNED: CurrentOrbitConfig = {
+    frame: { kind: "body-centred-inertial" },
+  };
+
+  it("names nothing while the Control Frame is the same frame", async () => {
+    const fixture = mount({ probe: true, config: PINNED });
     emitOrbit(fixture);
     act(() => {
       fixture.emit("system.frame", { kind: 1, centreBody: "Kerbin" });
     });
 
     await screen.findByText("system.frame: observed");
-    expect(screen.queryByText(/no Ap here/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/^Frame: /)).not.toBeInTheDocument();
   });
-});
 
-describe("CurrentOrbit: the countdowns to an apsis the frame does not have", () => {
-  it("suppresses the time-to-apsis rows too, not just the apsis values", async () => {
-    // A countdown to an apsis that does not exist counts to an event that never happens; the progress rows need six rows or more.
-    const fixture = mount();
+  it("names the pinned frame when the Control Frame is a different one", async () => {
+    const fixture = mount({ config: PINNED });
     emitOrbit(fixture);
     act(() => {
-      fixture.emit("system.frame", {
-        kind: 4,
-        primaryBody: "Kerbol",
-        secondaryBody: "Kerbin",
-      });
+      fixture.emit("system.frame", { kind: 2, centreBody: "Kerbin" });
     });
 
-    await waitFor(() =>
-      expect(screen.getAllByText(/no Ap here/i).length).toBeGreaterThan(1),
-    );
-    expect(screen.getAllByText(/no Pe here/i).length).toBeGreaterThan(1);
+    await screen.findByText("Frame: Kerbin-Centred Inertial");
+  });
+
+  it("names the pinned frame before any Control Frame is reported", async () => {
+    // Nothing says the game's view is the same frame, so the panel does not imply it.
+    const fixture = mount({ config: PINNED });
+    emitOrbit(fixture);
+
+    await screen.findByText("Frame: Kerbin-Centred Inertial");
   });
 });

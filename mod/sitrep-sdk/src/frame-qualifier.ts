@@ -1,5 +1,22 @@
 import type { ControlFrame } from "./__generated__/contract";
 import { ControlFrameKind } from "./__generated__/contract";
+import type { ReadFrameChoice } from "./spine/reference-frame";
+
+/**
+ * A frame to qualify a quantity against: the live Control Frame as
+ * `system.frame` carries it, or a widget's own read frame.
+ *
+ * <p>A read frame is taken already resolved. `follow-control-frame` names no
+ * frame of its own, so it answers "unknown", the same as a Control Frame that
+ * has not been reported: resolve it with `resolveReadFrame` first.</p>
+ *
+ * @category Orbits and trajectories
+ */
+export type QualifiedFrame = ControlFrame | ReadFrameChoice;
+
+function isReadFrame(frame: QualifiedFrame): frame is ReadFrameChoice {
+  return typeof frame.kind === "string";
+}
 
 /**
  * Whether a quantity means anything in the frame currently in force.
@@ -27,9 +44,14 @@ export type FrameValidity = "valid" | "invalid" | "unknown";
  * @category Orbits and trajectories
  */
 export function lengthsAreLengths(
-  frame: ControlFrame | undefined,
+  frame: QualifiedFrame | null | undefined,
 ): FrameValidity {
-  if (frame === undefined || frame.kind === ControlFrameKind.Unspecified) {
+  if (frame == null) return "unknown";
+  if (isReadFrame(frame)) {
+    if (frame.kind === "follow-control-frame") return "unknown";
+    return frame.kind === "rotating-pulsating" ? "invalid" : "valid";
+  }
+  if (frame.kind === ControlFrameKind.Unspecified) {
     return "unknown";
   }
   return frame.kind === ControlFrameKind.RotatingPulsating
@@ -48,13 +70,20 @@ export function lengthsAreLengths(
  *
  * @category Orbits and trajectories
  */
-export function apsidesExist(frame: ControlFrame | undefined): FrameValidity {
-  if (frame === undefined || frame.kind === ControlFrameKind.Unspecified) {
-    return "unknown";
+export function apsidesExist(
+  frame: QualifiedFrame | null | undefined,
+): FrameValidity {
+  if (frame == null) return "unknown";
+  if (isReadFrame(frame)) {
+    if (frame.kind === "follow-control-frame") return "unknown";
+    return frame.kind === "rotating-pulsating" ? "invalid" : "valid";
   }
-  // Orthogonal to the kind rather than inside it, which is why it is checked first: a target frame can carry any kind and still have no apsides.
+  // Orthogonal to the kind rather than inside it, which is why it is checked first: a target frame can carry any kind, `Unspecified` included, and still have no apsides.
   if (frame.targetFrameSelected) {
     return "invalid";
+  }
+  if (frame.kind === ControlFrameKind.Unspecified) {
+    return "unknown";
   }
   switch (frame.kind) {
     case ControlFrameKind.BodyCentredInertial:

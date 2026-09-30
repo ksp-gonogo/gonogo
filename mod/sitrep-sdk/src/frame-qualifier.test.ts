@@ -73,6 +73,38 @@ describe("what the frame in force does to a readout", () => {
     ).toBe("invalid");
   });
 
+  it("has no apsides in the target frame, which reports no kind", () => {
+    // The shape the target frame actually arrives in: `Unspecified` with the
+    // flag set. An unstated kind must not hide the flag behind "unknown".
+    expect(apsidesExist(frame(ControlFrameKind.Unspecified, true))).toBe(
+      "invalid",
+    );
+  });
+
+  it("qualifies a widget's own read frame the same way", () => {
+    expect(apsidesExist({ kind: "body-centred-inertial", bodyIndex: 1 })).toBe(
+      "valid",
+    );
+    expect(apsidesExist({ kind: "parent-direction", bodyIndex: 2 })).toBe(
+      "valid",
+    );
+    expect(apsidesExist({ kind: "rotating-pulsating", bodyIndex: 2 })).toBe(
+      "invalid",
+    );
+    expect(
+      lengthsAreLengths({ kind: "body-centred-inertial", bodyIndex: 1 }),
+    ).toBe("valid");
+    expect(
+      lengthsAreLengths({ kind: "rotating-pulsating", bodyIndex: 2 }),
+    ).toBe("invalid");
+  });
+
+  it("will not qualify an unresolved follow-control-frame choice", () => {
+    // It names no frame of its own; answering for one would be a guess.
+    expect(apsidesExist({ kind: "follow-control-frame" })).toBe("unknown");
+    expect(lengthsAreLengths({ kind: "follow-control-frame" })).toBe("unknown");
+  });
+
   it("says unknown rather than guessing when no frame has been reported", () => {
     // Defaulting to valid quotes a length in a frame where lengths are not
     // lengths; defaulting to invalid blanks the boards for the moment before

@@ -8,16 +8,16 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/core";
 import {
+  CELESTIAL_FACTS,
+  CONTROL_FRAME_TOPIC,
   conicApsides,
+  controlFrameToReadFrameChoice,
   type OrbitTrajectory,
   useOrbitTrajectory,
+  useProcessor,
   useStream,
 } from "@ksp-gonogo/sitrep-client";
-import {
-  apsidesExist,
-  type ControlFrame,
-  controlFrameLabel,
-} from "@ksp-gonogo/sitrep-sdk";
+import { apsidesExist, type ControlFrame } from "@ksp-gonogo/sitrep-sdk";
 import { Panel, ReadoutCaption, Section, Stack } from "@ksp-gonogo/ui-kit";
 import { useRef } from "react";
 import { declinedState } from "../shared/declinedState";
@@ -28,13 +28,14 @@ import { TrajectoryWithheldNote } from "../shared/trajectoryWithheld";
 import { useBodyName, useParentBodyIndex } from "../shared/useBodyName";
 import { useIsOrbiting } from "../shared/useIsOrbiting";
 import { useStreamBody } from "../shared/useStreamBody";
+import { CurrentOrbitConfigForm } from "./CurrentOrbitConfigForm";
 import {
   type CurrentOrbitActions,
   type CurrentOrbitConfig,
   currentOrbitActions,
 } from "./config";
-import { FrameCaveat } from "./OrbitCells";
 import { OrbitReadoutGrid } from "./OrbitReadouts";
+import { currentOrbitFrame } from "./readFrame";
 import { useIsLandscape } from "./useIsLandscape";
 
 export type { CurrentOrbitActions } from "./config";
@@ -91,20 +92,37 @@ function CurrentOrbitComponent({
   const solve = useOrbitSolve();
   const solveReading = useOrbitSolveReading();
 
-  // An apsis needs a centre: in two-body and target-relative frames it does not exist, which is not the same as unmeasured.
-  const frameReading = useStream<ControlFrame>("system.frame");
+  const frameReading = useStream<ControlFrame>(CONTROL_FRAME_TOPIC);
   // The selected frame is a setting, which a quiet link does not change.
   const controlFrame =
     frameReading.state === "observed" || frameReading.state === "held"
       ? frameReading.value
       : undefined;
-  const apsides = apsidesExist(controlFrame);
-  const noApsidesHere = apsides === "invalid";
+  // A held catalogue is still the catalogue.
+  const factsReading = useProcessor(CELESTIAL_FACTS);
+  const facts =
+    factsReading?.state === "observed" || factsReading?.state === "held"
+      ? factsReading.value
+      : undefined;
   const orbitReading = useTelemetry("vessel.orbit");
   const observedOrbit =
     orbitReading.state === "observed" || orbitReading.state === "held"
       ? orbitReading.value
       : undefined;
+  // The body name is a label, so it holds off the last observation.
+  const refBody = useBodyName(observedOrbit?.referenceBodyIndex);
+  // An apsis needs a centre, so a centreless Control Frame is read about the vessel's own body instead.
+  const readFrame = currentOrbitFrame(
+    config?.frame,
+    controlFrame,
+    controlFrameToReadFrameChoice(controlFrame, facts),
+    {
+      index: observedOrbit?.referenceBodyIndex ?? undefined,
+      name: refBody ?? undefined,
+    },
+  );
+  const apsides = apsidesExist(readFrame.frame);
+  const noApsidesHere = apsides === "invalid";
   const orbit = drawableOrbit(orbitReading);
   // A held orbit no model carries says nothing of where the craft is now, so it is drawn with no craft on it.
   const orbitHeld =
@@ -116,8 +134,6 @@ function CurrentOrbitComponent({
   const orbitCurrent = orbitReading.state === "observed";
   const current = <Field,>(v: Field | null | undefined): Field | undefined =>
     orbitCurrent ? (v ?? undefined) : undefined;
-  // The body name is a label, so it holds off the last observation.
-  const refBody = useBodyName(observedOrbit?.referenceBodyIndex);
   const bodyName = useBodyName(useParentBodyIndex());
   // A trajectory refusal also takes the apsides, which are derived at view time; the measured elements still render.
   const trajectory: OrbitTrajectory | null = useOrbitTrajectory(orbit);
@@ -202,11 +218,10 @@ function CurrentOrbitComponent({
                   {modelState}
                 </ReadoutCaption>
               )}
-              {/* The game's own view frame, named only when it removes the apsides below. */}
-              {noApsidesHere &&
-                controlFrameLabel(controlFrame) !== undefined && (
-                  <FrameCaveat>{`Frame: ${controlFrameLabel(controlFrame)}`}</FrameCaveat>
-                )}
+              {/* Named only when the readouts are not in the game's own view frame. */}
+              {readFrame.ownFrameLabel !== undefined && (
+                <ReadoutCaption>{`Frame: ${readFrame.ownFrameLabel}`}</ReadoutCaption>
+              )}
               <OrbitReadoutGrid
                 // At minimum size a formatted distance wraps unless the label column and value font shrink.
                 tight={cols < 4 || rows < 5}
@@ -288,6 +303,7 @@ registerComponent<CurrentOrbitConfig>({
   defaultSize: { w: 9, h: 18 },
   minSize: { w: 3, h: 4 },
   component: CurrentOrbitComponent,
+  configComponent: CurrentOrbitConfigForm,
   // Per field so an alarm lands on the widget that draws that value; the solved apsides, countdowns and period ride the channel entry.
   channels: topics.channels,
   fields: topics.fields,

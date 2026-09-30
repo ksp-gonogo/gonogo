@@ -269,7 +269,7 @@ export {
 // wording choice, so it lives once here instead of in each widget that quotes a
 // length or an apsis, and it is on the author surface because a widget cannot
 // qualify its own numbers without it.
-export type { FrameValidity } from "../frame-qualifier";
+export type { FrameValidity, QualifiedFrame } from "../frame-qualifier";
 export {
   apsidesExist,
   controlFrameLabel,
