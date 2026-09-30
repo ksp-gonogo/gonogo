@@ -914,7 +914,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * added here (its two mentions were rewritten generic, since "a modded
        * ground network runs many stations" is the fact it actually needed).
        */
-      "mod/Sitrep.Contract/CommsReach.cs",
       /*
        * -- CommsDegrade.cs is the third file of that same set, and
        * the one whose naming is most load-bearing of any of them. Its whole

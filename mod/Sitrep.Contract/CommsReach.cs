@@ -15,11 +15,10 @@ namespace Sitrep.Contract;
  *     up to three power pairings in CommNetwork.TryConnect (both relay, a
  *     relays, b relays) and connected if any of them clears. GetMaximumRange
  *     is the same rule solved for distance.
- *   * RealAntennas gates on whether a link BUDGET closes in dB, from band,
- *     gain, transmit power, symbol rate, noise temperature and the encoder's
- *     required Eb/N0. It also zeroes both antenna power fields on every vessel
- *     unconditionally (RACommNetVessel.UpdateComm), so stock's rule applied on
- *     an RA install reports a maximum range of zero for every craft.
+ *   * A replacement backend may gate on something else entirely, such as
+ *     whether a link budget closes in dB, and may leave stock's antenna power
+ *     fields meaningless, so stock's rule applied under it can report a
+ *     maximum range of zero for every craft.
  *
  * So the elected backend declares its own rule (ICommsBackend.ReachModel) and
  * consumers read whatever it declared. The contract forces the SHAPE (one

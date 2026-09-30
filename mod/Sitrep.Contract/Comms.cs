@@ -7,10 +7,9 @@ namespace Sitrep.Contract;
 
 /*
  * The comms.* wire contract. Two axes govern every channel here: a PROVIDER
- * axis (the elected backend, stock CommNet or RealAntennas when present,
- * sources the shared channels; RealAntennas alone sources its private
- * link-budget channels) and a PRESENCE axis (always-present vs
- * provider-dependent).
+ * axis (the elected backend, stock CommNet or a replacement an Uplink
+ * provides, sources the shared channels; a replacement's own detail rides its
+ * own channels) and a PRESENCE axis (always-present vs provider-dependent).
  *
  * The DELAY classification splits this family rather than covering it: what
  * KSC can establish about the link from its own end (connectivity, signal
