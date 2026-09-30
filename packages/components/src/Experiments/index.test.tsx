@@ -35,6 +35,20 @@ function renderOfficer(fixture: ReturnType<typeof newFixture>) {
   renderedTrees.push(unmount);
 }
 
+/**
+ * Resolves once every queued microtask has run, inside `act`, so the stub
+ * transport's command answer and everything awaiting it have rendered. A
+ * macrotask cannot start before the microtask queue is empty, so this waits on
+ * that ordering rather than on the clock.
+ */
+async function drained(): Promise<void> {
+  await act(async () => {
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 0);
+    });
+  });
+}
+
 afterEach(() => {
   for (const unmount of renderedTrees) unmount();
   renderedTrees.length = 0;
@@ -246,14 +260,17 @@ describe("ExperimentsComponent", () => {
       ]);
     });
 
-    await user.click(await screen.findByText("Transmit"));
+    await drained();
+    await user.click(screen.getByText("Transmit"));
     await user.click(screen.getByText(/Confirm transmit/i));
+    await drained();
     await user.click(
-      await screen.findByRole("button", { name: "Signal-delay detail" }),
+      screen.getByRole("button", { name: "Signal-delay detail" }),
     );
+    await drained();
 
     expect(
-      await screen.findByRole("listitem", {
+      screen.getByRole("listitem", {
         name: "Temperature Scan from LaunchPad, in transit",
       }),
     ).toBeInTheDocument();
