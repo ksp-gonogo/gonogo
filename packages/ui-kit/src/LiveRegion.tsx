@@ -16,30 +16,37 @@ export interface LiveRegionProps {
    * should not repeat every entry before it.
    */
   additionsOnly?: boolean;
+  /**
+   * Interrupt rather than announce: `aria-live="assertive"`, and `role="alert"`
+   * where the region is on screen. For ABORT-class states and nothing softer.
+   */
+  assertive?: boolean;
   as?: "div" | "span";
   className?: string;
 }
 
 /**
- * A polite live region that is in the document before anything is said in it.
+ * A live region that is in the document before anything is said in it.
  *
  * Assistive tech announces changes to a region, so one inserted already holding
  * its message is often never announced. Mount this for as long as the thing it
  * reports on is on screen, and put the words in when there is something to say.
  *
- * Polite only. An interruption is `role="alert"`, which is ABORT's.
+ * Polite unless `assertive`, which interrupts and is kept for ABORT-class states.
  */
 export function LiveRegion({
   children,
   "aria-label": ariaLabel,
   visuallyHidden = false,
   additionsOnly = false,
+  assertive = false,
   as = "span",
   className,
 }: LiveRegionProps) {
+  const visibleRole = assertive ? "alert" : "status";
   const props = {
-    role: visuallyHidden ? undefined : "status",
-    "aria-live": "polite",
+    role: visuallyHidden ? undefined : visibleRole,
+    "aria-live": assertive ? "assertive" : "polite",
     "aria-atomic": additionsOnly ? "false" : "true",
     "aria-label": ariaLabel,
     className,

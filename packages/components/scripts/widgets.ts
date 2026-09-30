@@ -582,9 +582,10 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "ThermalStatus/__fixtures__",
     outPath: "renders/thermal-status-widget",
     modes: [
-      // Minimum size (3×4): pill only, no detail rows (rows<5 suppresses
-      // hottest-part row). Verifies the pill + EmptyState render cleanly.
-      { name: "pill-only-3x4", w: 3, h: 4 },
+      // minSize: the kit's tiny form, the worst band's word over the hottest part.
+      { name: "tiny-3x4", w: 3, h: 4 },
+      // One row taller, the hottest engine joins them.
+      { name: "tiny-3x5", w: 3, h: 5 },
       // 4×5: hottest-part row unlocks (rows>=5), engine still hidden.
       { name: "hottest-only-4x5", w: 4, h: 5 },
       // 5×6: engine row added (rows>=6). Just below the cols>=6 threshold

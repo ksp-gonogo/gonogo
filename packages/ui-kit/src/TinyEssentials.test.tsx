@@ -273,3 +273,122 @@ describe("TinyEssentials", () => {
     expect(speaking[0]?.getAttribute("aria-live")).toBe("polite");
   });
 });
+
+describe("an urgent state word", () => {
+  const thermal = (
+    word: string | undefined,
+    urgent: boolean,
+    engine = "COOL",
+  ): readonly TinyEssential[] => [
+    { label: "Thermal", word, urgent, tone: urgent ? "nogo" : "warn" },
+    { label: "Engine", word: engine },
+  ];
+
+  function regions(container: HTMLElement) {
+    const polite = container.querySelector("[aria-live=polite]");
+    const assertive = container.querySelector("[aria-live=assertive]");
+    if (polite === null || assertive === null) {
+      throw new Error("the tile is missing a live region");
+    }
+    return { polite, assertive };
+  }
+
+  /** Every node added under the region from here on, as the screen reader would be told of it. */
+  function watchAdditions(region: Element): () => string[] {
+    const added: string[] = [];
+    const read = (records: MutationRecord[]) => {
+      for (const record of records) {
+        for (const node of Array.from(record.addedNodes)) {
+          added.push(node.textContent ?? "");
+        }
+        if (record.type === "characterData") {
+          added.push(record.target.textContent ?? "");
+        }
+      }
+    };
+    const observer = new MutationObserver(read);
+    observer.observe(region, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+    });
+    return () => {
+      read(observer.takeRecords());
+      observer.disconnect();
+      return added;
+    };
+  }
+
+  it("is mounted empty and assertive before the word turns urgent, beside the polite region", async () => {
+    const { container } = render(
+      <TinyEssentials title="THERMAL" essentials={thermal("HOT", false)} />,
+    );
+    const { polite, assertive } = regions(container);
+    expect(assertive.textContent).toBe("");
+    expect(polite.textContent).toBe("Thermal HOT, Engine COOL");
+    await expectNoA11yViolations(container);
+  });
+
+  it("is said through the assertive region and nowhere politely, while ordinary words stay polite", async () => {
+    const { container, rerender } = render(
+      <TinyEssentials title="THERMAL" essentials={thermal("HOT", false)} />,
+    );
+    const { polite, assertive } = regions(container);
+    rerender(
+      <TinyEssentials title="THERMAL" essentials={thermal("CRITICAL", true)} />,
+    );
+    expect(assertive.textContent).toBe("Thermal CRITICAL. ");
+    expect(polite.textContent).toBe("Engine COOL");
+    expect(regions(container)).toEqual({ polite, assertive });
+    await expectNoA11yViolations(container);
+  });
+
+  it("is not said again while it stays urgent and unchanged, whatever else the tile says", () => {
+    const { container, rerender } = render(
+      <TinyEssentials title="THERMAL" essentials={thermal("CRITICAL", true)} />,
+    );
+    const { assertive } = regions(container);
+    const additions = watchAdditions(assertive);
+
+    rerender(
+      <TinyEssentials title="THERMAL" essentials={thermal("CRITICAL", true)} />,
+    );
+    rerender(
+      <TinyEssentials
+        title="THERMAL"
+        essentials={thermal("CRITICAL", true, "WARM")}
+      />,
+    );
+    expect(additions()).toEqual([]);
+    expect(assertive.textContent).toBe("Thermal CRITICAL. ");
+  });
+
+  it("is said once more when it changes while urgent, or turns urgent again", () => {
+    const { container, rerender } = render(
+      <TinyEssentials title="THERMAL" essentials={thermal("CRITICAL", true)} />,
+    );
+    const { assertive } = regions(container);
+    const additions = watchAdditions(assertive);
+
+    rerender(
+      <TinyEssentials title="THERMAL" essentials={thermal("MELTING", true)} />,
+    );
+    rerender(
+      <TinyEssentials title="THERMAL" essentials={thermal("HOT", false)} />,
+    );
+    rerender(
+      <TinyEssentials title="THERMAL" essentials={thermal("CRITICAL", true)} />,
+    );
+    expect(additions()).toEqual(["Thermal MELTING. ", "Thermal CRITICAL. "]);
+  });
+
+  it("has no assertive region on a tile where no essential declares one", () => {
+    const { container } = render(
+      <TinyEssentials
+        title="COMMNET"
+        essentials={[{ label: "Signal", word: "LOS", tone: "nogo" }]}
+      />,
+    );
+    expect(container.querySelector("[aria-live=assertive]")).toBeNull();
+  });
+});

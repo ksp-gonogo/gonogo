@@ -5,7 +5,7 @@ import type {
   TinyMode,
   Tone,
 } from "@ksp-gonogo/sitrep-sdk";
-import { useLayoutEffect, useRef, useState } from "react";
+import { Fragment, useLayoutEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import { LevelBars } from "./LevelBars";
 import { LiveRegion } from "./LiveRegion";
@@ -30,7 +30,8 @@ export interface TinyEssentialsProps {
  * The one form every widget with a tiny mode takes at the tiny size: its short
  * heading over its essential values, the first drawn large and the rest as
  * label and figure rows under it. A state word stands in a figure's place and
- * is announced through the tile's one polite live region.
+ * is announced through the tile's one polite live region, or, while its
+ * essential declares it urgent, through an assertive one that interrupts.
  *
  * Rows are drawn in order while they fit the tile and the ones that do not
  * are dropped from the end, so every figure the tile shows is whole.
@@ -40,6 +41,7 @@ export interface TinyEssentialsProps {
 export function TinyEssentials({ title, essentials }: TinyEssentialsProps) {
   const [hero, ...rest] = essentials;
   const { rowsRef, drawn } = useRowsThatFit(rest);
+  const mayInterrupt = essentials.some((e) => e.urgent !== undefined);
   // A lone figure named like the tile already has its caption in the heading.
   const heroNamedByTitle =
     hero !== undefined &&
@@ -51,7 +53,16 @@ export function TinyEssentials({ title, essentials }: TinyEssentialsProps) {
       fitToSize
       sections={
         <Section full>
-          <LiveRegion visuallyHidden>{spokenWords(essentials)}</LiveRegion>
+          <LiveRegion visuallyHidden>
+            {spokenWords(essentials.filter((e) => e.urgent !== true))}
+          </LiveRegion>
+          {mayInterrupt && (
+            <LiveRegion visuallyHidden assertive additionsOnly>
+              {urgentWords(essentials).map((said) => (
+                <Fragment key={said}>{`${said}. `}</Fragment>
+              ))}
+            </LiveRegion>
+          )}
           {hero !== undefined && (
             <TinyEssentials__Hero data-tiny-essential="">
               {heroNamedByTitle ? (
@@ -181,6 +192,18 @@ function spokenWords(essentials: readonly TinyEssential[]): string {
     .filter((e) => e.word !== undefined)
     .map((e) => `${e.label} ${e.word}`)
     .join(", ");
+}
+
+/**
+ * Each urgent word with its label, one text node apiece and no element, so the
+ * region is as hidden as the polite one. The assertive region reads only what
+ * is added to it, so a word is said when it turns urgent or changes while
+ * urgent, and an unchanged one is not said again on the next render.
+ */
+function urgentWords(essentials: readonly TinyEssential[]): string[] {
+  return essentials
+    .filter((e) => e.urgent === true && e.word !== undefined)
+    .map((e) => `${e.label} ${e.word}`);
 }
 
 /**

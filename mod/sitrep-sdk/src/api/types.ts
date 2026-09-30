@@ -142,10 +142,18 @@ export interface TinyEssential {
   value?: Value | Reading<Value> | null;
   /**
    * A short state word drawn in the figure's place and in its tone: `LOS`,
-   * `ACTIVE`. The kit announces it politely whenever it changes, which it never
-   * does for a figure. A level glyph is still drawn beside it.
+   * `ACTIVE`. The kit announces it politely whenever it changes, unless it is
+   * `urgent`, and never announces a figure. A level glyph is still drawn beside it.
    */
   word?: string;
+  /**
+   * Whether the word is urgent now, so the kit interrupts to say it rather than
+   * announcing it politely, once each time it becomes urgent or changes while
+   * urgent. For a state that must interrupt, as ABORT does, and nothing softer.
+   * Set it on every render, `false` while the word is ordinary, so the tile's
+   * interrupting region is in the document before the word it has to say.
+   */
+  urgent?: boolean;
   /** Decimal places, where the unit's own default says more than the figure means. */
   decimals?: number;
   /** How alarming the figure is. Defaults to `neutral`. */

@@ -1,4 +1,4 @@
-import type { Tone } from "@ksp-gonogo/sitrep-sdk";
+import type { TinyEssentialTone } from "@ksp-gonogo/sitrep-sdk";
 
 // Readings below 50 K are KSP's placeholder for an unfitted part, not a real temperature; the whole channel is Kelvin.
 const THERMAL_SENTINEL_K = 50;
@@ -41,7 +41,7 @@ export const BAND_LABEL: Record<Band, string> = {
   critical: "critical",
 };
 
-export const BAND_TONE: Record<Band, Tone> = {
+export const BAND_TONE: Record<Band, TinyEssentialTone> = {
   // Neutral, not `go`: a green pill would be the very claim this band exists to stop the widget making.
   unknown: "neutral",
   nominal: "go",
