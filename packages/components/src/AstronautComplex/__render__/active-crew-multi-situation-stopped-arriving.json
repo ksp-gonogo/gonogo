@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "notes": "Active tab, one sub-tab per CrewStanding present: five hired kerbals spanning every stock standing plus a career mod's retiree, and Bill standing down for post-flight R&R. Each row shows name/role/courage/stupidity/rank/experience-toward-next-rank via the shared crew-stat row; Bob Kerman (L5) is at max rank, so his chip reads MAX instead of a redundant 100%. GUS IS THE ROW THAT MATTERS, and this fixture used to get him wrong: it gave him no situationOrdinal at all, with a note saying a mod status has no stock ordinal. A career mod can append no RosterStatus and write stock's Dead, ordinal 2, and remembers the retiree in a private set of its own, which is why every such retiree used to reach the Dead tab wearing a red fatality badge. So he carries KSP's Dead ordinal AND a Retired standing attributed to the backend that corrected it, which is exactly what the wire carries on such a live career. Every row carries `standing` because the producer stamps it on every crew entry; the roster-status fallback for an older mod build is exercised by the unit tests, not here. Nedcas Kerman stands beside Ludrey in Available carrying no rank, courage, stupidity or progress at all, the shape a capture that read none of them sends: every one of those chips reads as a dash, so a reading nobody has cannot be mistaken for the rookie stats of an L0. Then the link drops: the transport disconnects after the scene is staged, so every reading this widget draws is held rather than current.",
+    "notes": "Active tab, one sub-tab per CrewStanding present: seven hired kerbals spanning every stock standing, with Bill standing down after a flight. Each row shows name/role/courage/stupidity/rank/experience-toward-next-rank via the shared crew-stat row; Bob Kerman (L5) is at max rank, so his chip reads MAX instead of a redundant 100%. Lodan sits in Available held back by a mod backend: his standing is the stock one, and available:false, the backend's own reason and a standingEndsAtUt the client formats are what keep him off a flight. Every row carries `standing` because the producer stamps it on every crew entry; the roster-status fallback for an older mod build is exercised by the unit tests, not here. Nedcas Kerman stands beside Ludrey in Available carrying no rank, courage, stupidity or progress at all, the shape a capture that read none of them sends: every one of those chips reads as a dash, so a reading nobody has cannot be mistaken for the rookie stats of an L0. Then the link drops: the transport disconnects after the scene is staged, so every reading this widget draws is held rather than current.",
     "scenario": "active-crew-multi-situation-stopped-arriving"
   },
   "_stream": {
@@ -71,7 +71,7 @@
             "experienceLevelDelta": 0.4,
             "roleDescription": "Engineers can repair the wheels and landing gear of a vessel, as well as fixing parts that have broken due to fatigue.",
             "descriptionEffects": "Level 2: Can repair broken parts and fix wheels/landing gear.",
-            "standing": 5,
+            "standing": 4,
             "inactive": true,
             "inactiveUntilUt": 8000000,
             "standingEndsAtUt": 8000000
@@ -93,15 +93,14 @@
             "name": "Lodan Kerman",
             "trait": "Pilot",
             "experienceLevel": 1,
-            "situation": "Training",
+            "situation": "Available",
             "situationOrdinal": 0,
             "available": false,
-            "unavailableReason": "In training",
+            "unavailableReason": "Held by planted",
             "courage": 0.6,
             "stupidity": 0.2,
             "experienceLevelDelta": 0.6,
-            "standing": 4,
-            "standingSource": "planted",
+            "standing": 2,
             "standingEndsAtUt": 9000000
           },
           {
@@ -115,7 +114,7 @@
             "courage": 0.6,
             "stupidity": 0.2,
             "experienceLevelDelta": 0.6,
-            "standing": 7
+            "standing": 5
           },
           {
             "name": "Bob Kerman",
@@ -128,26 +127,12 @@
             "courage": 0.7,
             "stupidity": 0.25,
             "experienceLevelDelta": 1,
-            "standing": 8
-          },
-          {
-            "name": "Gus Kerman",
-            "trait": "Pilot",
-            "experienceLevel": 4,
-            "situation": "Retired",
-            "situationOrdinal": 2,
-            "available": false,
-            "unavailableReason": "Retired",
-            "courage": 0.55,
-            "stupidity": 0.35,
-            "experienceLevelDelta": 0.9,
-            "standing": 6,
-            "standingSource": "planted"
+            "standing": 6
           }
         ]
       }
     ],
     "stopsArriving": true
   },
-  "notes": "Active tab, one sub-tab per CrewStanding present: six hired kerbals spanning every stock standing plus the two a career overhaul contributes, a career mod's retiree and a kerbal mid-course. Each row shows name/role/courage/stupidity/rank/experience-toward-next-rank via the shared crew-stat row; Bob Kerman (L5) is at max rank, so his chip reads MAX instead of a redundant 100%. GUS IS THE ROW THAT MATTERS, and this fixture used to get him wrong: it gave him no situationOrdinal at all, with a note saying a mod status has no stock ordinal. A career mod can append no RosterStatus and write stock's Dead, ordinal 2, and remembers the retiree in a private set of its own, which is why every such retiree used to reach the Dead tab wearing a red fatality badge. So he carries KSP's Dead ordinal AND a Retired standing attributed to the backend that corrected it. BILL AND LODAN ARE THE SECOND HALF OF THE SAME LESSON. Bill's roster status is Available and he is standing down after a flight; Lodan's is Available and he is part-way through a course. This fixture used to show Bill as Available and free to fly, because the flag reached the wire with nothing deriving from it. Both now carry a derived standing, available:false and a standingEndsAtUt the client formats, which is what a widget that has never heard of any career mod renders from. Every row carries `standing` because the producer stamps it on every crew entry; the roster-status fallback for an older mod build is exercised by the unit tests, not here."
+  "notes": "Active tab, one sub-tab per CrewStanding present: seven hired kerbals spanning every stock standing. Bill's roster status is Available and he is standing down after a flight: he carries a derived Resting standing, available:false and a standingEndsAtUt the client formats, which is what a widget renders from without knowing any mod exists. Lodan's roster status and standing are both Available, and a mod backend holds him back in its own words with a date: the widget branches on available, not on the standing. Every row carries `standing` because the producer stamps it on every crew entry; the roster-status fallback for an older mod build is exercised by the unit tests, not here."
 }

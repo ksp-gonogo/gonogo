@@ -48,8 +48,7 @@ namespace Sitrep.Host
     /// //   "initialCostFunds", "initialCostScience", "initialCostReputation",
     /// //   "hasFactorSlider", "factorSliderDefault", "factorSliderSteps",
     /// //   "canActivate", "activateBlockedReason", "activateVerdictSource",
-    /// //   "activateAvailableFromUt", "canDeactivate", "deactivateBlockedReason",
-    /// //   "effect" }
+    /// //   "canDeactivate", "deactivateBlockedReason", "effect" }
     /// // TechNodeEntry = { "id", "title", "scienceCost", "unlocked",
     /// //   "parents": [ string, ... ] }
     /// </code>
@@ -408,7 +407,6 @@ namespace Sitrep.Host
                     ["canActivate"] = GetBool(entry, "canActivate"),
                     ["activateBlockedReason"] = GetString(entry, "activateBlockedReason"),
                     ["activateVerdictSource"] = GetString(entry, "activateVerdictSource"),
-                    ["activateAvailableFromUt"] = GetDouble(entry, "activateAvailableFromUt"),
                     ["canDeactivate"] = GetBool(entry, "canDeactivate"),
                     ["deactivateBlockedReason"] = GetString(entry, "deactivateBlockedReason"),
                     ["effect"] = GetString(entry, "effect"),

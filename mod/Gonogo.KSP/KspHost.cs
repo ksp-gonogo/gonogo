@@ -134,8 +134,8 @@ namespace Gonogo.KSP
         /// install makes of a kerbal whose roster status alone is not the answer.
         /// Same late-bound install shape and the same reason as
         /// <see cref="_actionGroupsBackend"/>, and read on the same main-thread
-        /// sample, because a career overhaul's crew bookkeeping lives on its own
-        /// live scenario module.
+        /// sample, because a mod backend's crew bookkeeping lives in live game
+        /// state.
         ///
         /// <para>Null before the addon wires it, and in a bare-host unit test,
         /// which degrades to the stock mapping the view provider falls back to,
@@ -3307,16 +3307,12 @@ namespace Gonogo.KSP
         /// answer where it has one, otherwise the contract's own map of KSP's
         /// roster status.
         ///
-        /// <para>The elected capability is EXCLUSIVE, so under a career overhaul
-        /// the mod's backend is the only one reachable, and it is handed every
-        /// kerbal rather than only the ones it knows about. A backend that
-        /// declines (null, or a null standing) is not a failure: it is the
-        /// ordinary answer for the majority of a roster, and the default has to
-        /// stand for it here rather than leave a hole. The SOURCE follows the
-        /// answer rather than the election, so a kerbal RP-1 has nothing to say
-        /// about is attributed to <c>"stock"</c> and one it corrected is
-        /// attributed to <c>"rp1"</c>: which mod is making the claim is the
-        /// operator's question, not which mod won a vote.</para>
+        /// <para>The elected capability is EXCLUSIVE, so when a mod backend wins
+        /// it is the only one reachable, and it is handed every kerbal rather
+        /// than only the ones it knows about. A backend that declines (null, or
+        /// a null standing) is not a failure: it is the ordinary answer for the
+        /// majority of a roster, and the default has to stand for it here rather
+        /// than leave a hole.</para>
         ///
         /// <para>Fail-soft: a backend that throws costs this kerbal its
         /// correction and nothing else. A crew roster must not be able to take
@@ -3335,7 +3331,7 @@ namespace Gonogo.KSP
             }
             if (backend == null)
             {
-                return CrewStandings.Resolve(query, null, null);
+                return CrewStandings.Resolve(query, null);
             }
 
             CrewStandingReading? reading;
@@ -3349,7 +3345,7 @@ namespace Gonogo.KSP
                 reading = null;
             }
 
-            return CrewStandings.Resolve(query, reading, backend.ProviderId);
+            return CrewStandings.Resolve(query, reading);
         }
 
         private Dictionary<string, object?> BuildCrewEntry(ProtoCrewMember pcm, bool isApplicant, double ut)
@@ -3376,15 +3372,13 @@ namespace Gonogo.KSP
                 ["experienceLevel"] = pcm.experienceLevel,
                 ["rosterStatus"] = pcm.rosterStatus.ToString(),
                 // KSP's own answer, published beside the standing rather than
-                // instead of it: under a career overhaul the two disagree, and a
-                // retiree reads Dead here. See Sitrep.Contract/CrewStanding.cs.
+                // instead of it: the two disagree for a kerbal standing down. See
+                // Sitrep.Contract/CrewStanding.cs.
                 ["rosterStatusOrdinal"] = ordinal,
                 ["standing"] = (int)standing.Standing,
-                ["standingSource"] = standing.Source,
                 ["standingAvailable"] = standing.Available,
                 ["standingUnavailableReason"] = standing.UnavailableReason,
                 ["standingEndsAtUt"] = standing.StandingEndsAtUt,
-                ["retiresAtUt"] = standing.RetiresAtUt,
                 ["isApplicant"] = isApplicant,
                 ["inactive"] = pcm.inactive,
                 ["inactiveUntilUt"] = pcm.inactiveTimeEnd,
@@ -4164,9 +4158,7 @@ namespace Gonogo.KSP
             // it reads as intermittent, and neither is true.
             //
             // An active strategy is never put to the gate at all (see
-            // StrategyEligibility.Judge), and a career mod's own rule is asked
-            // before it, so a Leader RP-1 is holding in its re-hire cooldown reads
-            // as refused rather than as a question nobody could answer.
+            // StrategyEligibility.Judge).
             //
             // The try/catch stays. A throw from anywhere in the eligibility walk
             // must not propagate: BuildCareerStrategies would lose the ENTIRE
@@ -4177,7 +4169,6 @@ namespace Gonogo.KSP
             {
                 eligibility = StrategyEligibility.Judge(
                     strategy.IsActive,
-                    strategy.IsActive ? null : StrategyAvailabilityRules.Refusal(id),
                     () =>
                     {
                         if (Administration.Instance != null)
@@ -4223,7 +4214,6 @@ namespace Gonogo.KSP
                 ["canActivate"] = eligibility.CanActivate,
                 ["activateBlockedReason"] = eligibility.BlockedReason,
                 ["activateVerdictSource"] = eligibility.VerdictSource,
-                ["activateAvailableFromUt"] = eligibility.AvailableFromUt,
                 ["canDeactivate"] = canDeactivate,
                 ["deactivateBlockedReason"] = deactivateBlockedReason,
                 ["effect"] = strategy.Effect,

@@ -31,7 +31,7 @@ namespace Gonogo.KSP
     /// (see the command list below).</para>
     /// </summary>
     [SitrepUplink("career")]
-    public sealed class CareerUplink : ISitrepUplink, IUplinkCapabilityDeclarer
+    public sealed class CareerUplink : ISitrepUplink
     {
         private readonly ICareerActuator _actuator;
 
@@ -150,33 +150,8 @@ namespace Gonogo.KSP
         /// channel uplink is Healthy once it has registered without error.</summary>
         public UplinkHealth Health() => UplinkHealth.Healthy;
 
-        /// <summary>
-        /// Declares the shared <c>"strategyAvailability"</c> capability, through
-        /// which a career mod refuses a strategy on a rule KSP's own activation
-        /// gate cannot see.
-        ///
-        /// <para>Declared HERE, in the pre-Register capability pass, because a
-        /// provider uplink's <c>RegisterProvider</c> throws if the capability does
-        /// not exist yet, and assembly-scan discovery fixes no order between
-        /// uplinks. Owned by this Uplink because both places that consult it, the
-        /// strategy roster and <c>career.strategy.activate</c>, are this Uplink's.
-        /// No vanilla: a stock install holds no such rule.</para>
-        /// </summary>
-        public void DeclareCapabilities(Kernel kernel)
-        {
-            kernel.RegisterCapability(new CapabilityDescriptor
-            {
-                Id = StrategyAvailabilityCapability.CapabilityId,
-                Exclusive = false,
-                SpineCritical = false,
-            });
-        }
-
         public void Register(IUplinkHost host)
         {
-            StrategyAvailabilityRules.Report = message => UnityEngine.Debug.LogWarning(message);
-            StrategyAvailabilityRules.Bind(host.Kernel);
-
             host.AddChannelSource(CareerViewProvider.Topic, CareerViewProvider.BuildCareer);
             host.AddChannelSource(CareerViewProvider.ModeTopic, CareerViewProvider.BuildCareerMode);
             host.AddChannelSource(CareerViewProvider.FacilitiesTopic, CareerViewProvider.BuildFacilities);

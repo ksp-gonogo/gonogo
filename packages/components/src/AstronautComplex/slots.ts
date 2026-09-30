@@ -1,8 +1,7 @@
 /**
  * The `astronaut-complex.crew` slot contract: a per-kerbal cell under the name,
- * in both lists, for the schedule a career overhaul owns (retirement, a course
- * ETA, lapsing training) and stock has none of. Keyed by NAME, the join key on
- * `spaceCenter.crewRoster`.
+ * in both lists, for detail an Uplink holds about that kerbal and stock has
+ * none of. Keyed by NAME, the join key on `spaceCenter.crewRoster`.
  */
 export interface AstronautComplexCrewContext {
   /** `ProtoCrewMember.name`: the join key to the augment's own crew channel. */
@@ -25,9 +24,9 @@ declare module "@ksp-gonogo/core" {
 /**
  * The `astronaut-complex.crew-badge` slot: the top-right corner of a kerbal's
  * card, a mark read WITH the name while scanning, where the crew slot is a
- * block read once settled on a kerbal. Stock puts nothing here: a career
- * overhaul's states (a naut mid-course still reads `Available` to KSP) cannot
- * be derived by the host. Same props as the crew slot.
+ * block read once settled on a kerbal. Stock puts nothing here: it is for a
+ * state an Uplink holds about a kerbal that KSP's roster does not. Same props
+ * as the crew slot.
  */
 export const ASTRONAUT_COMPLEX_CREW_BADGE_SLOT = "astronaut-complex.crew-badge";
 

@@ -10,21 +10,19 @@ namespace Sitrep.Host.Crew
     ///
     /// <list type="bullet">
     /// <item><b>The stock backend is the capability's Vanilla</b>, and it is a
-    /// real reader: KSP's four roster statuses mapped onto the contract's
-    /// vocabulary. Every install has it.</item>
-    /// <item><b>A career-overhaul mod registers as a provider</b> from its own
-    /// uplink's Register, ONLY when its presence probe confirms the mod is
+    /// real reader: KSP's roster status, applicant-hood and stand-down flag
+    /// mapped onto the contract's vocabulary. Every install has it.</item>
+    /// <item><b>A mod that knows better registers as a provider</b> from its
+    /// own uplink's Register, ONLY when its presence probe confirms the mod is
     /// loaded: registering IS the gate.</item>
     /// </list>
     ///
     /// <para><b>Why elect rather than let a client join two channels.</b> A
-    /// client could read the roster from one channel and a mod's own retiree
-    /// list from another and correct it itself. Every consumer would then have
-    /// to learn one vendor's topic names, and a consumer that had not yet
-    /// learned them would keep reporting a fatality: the default of a
-    /// client-side join is the wrong answer, silently. Electing puts the
-    /// correction on the wire once, before any consumer sees it, so a widget
-    /// that has never heard of RP-1 is right anyway.</para>
+    /// correction a client had to join from a mod's own channel would reach
+    /// only the widgets that had learned that channel's name. Electing puts the
+    /// answer on the wire once, before any consumer sees it, so every widget
+    /// that reads <c>available</c> is right without knowing any mod
+    /// exists.</para>
     ///
     /// <para>No provider declares a channel of its own; the standing rides the
     /// <c>spaceCenter.crewRoster</c> entries the space-centre uplink already

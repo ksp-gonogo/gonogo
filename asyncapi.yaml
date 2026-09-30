@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 23.0.0
+  version: 24.0.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 78 telemetry
     channels a client subscribes to, and 59 commands it dispatches, with the payload
@@ -9450,8 +9450,7 @@ components:
             Which route produced `CareerStrategy.canActivate`: `"screened"` when KSP's
             own check ran, `"derived"` when the same rules were checked one at a time
             because the Administration Building was shut, or when the strategy is
-            already active or an installed career mod refused it on a rule of its own,
-            and `"none"` when there is no verdict to carry.
+            already active, and `"none"` when there is no verdict to carry.
 
             `"derived"` always accompanies a refusal and never a yes. The game stops at
             its first refusal, so a rule that refuses off-screen would have refused on
@@ -9465,15 +9464,6 @@ components:
             `career.strategy.activate` itself, which runs every check again at the
             moment it executes and refuses in the game's words or as unreadable rather
             than guessing.
-        activateAvailableFromUt:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: ut
-          description: |-
-            When a refusal that lapses on its own will lapse, such as a dismissed
-            Leader's re-hire cooldown under a career mod. `null` when the refusal does
-            not lapse with time, or when nothing refused.
         canDeactivate:
           type:
             - boolean
@@ -9722,9 +9712,7 @@ components:
             - string
             - "null"
           x-sitrep-unit: text
-          description: |-
-            One of `GroundStation`, `CrewedVessel`, `Colony` or `Custom`: the kind of
-            centre.
+          description: "One of `GroundStation`, `CrewedVessel` or `Custom`: the kind of centre."
         bodyIndex:
           type:
             - number
@@ -10032,28 +10020,6 @@ components:
             Authority: `PreFlightTests.FacilityOperational`, over
             `PSystemSetup.Instance.GetSpaceCenterFacility(name).GetFacilityDamage()`.
           x-sitrep-sentence: the building is out of action
-        - const: notReady
-          title: NotReady
-          description: |-
-            The vehicle is not a launchable article yet: an install's build and
-            logistics model has work outstanding on it. Nothing is over a limit and
-            nothing is broken, the thing simply has not been made ready.
-
-            Authority: whichever Uplink contributed the readiness requirement that
-            refused (see `IUplinkHost.AddCommandRequirement`), never a stock KSP read:
-            stock has no build step, so this code never arrives on a stock install.
-            Under a build model it may be a vehicle that was never integrated, one still
-            integrating, one finished but not rolled out, or one rolled out to a pad
-            still being reconditioned. `CommandResult.detail` says which.
-
-            Not `CommandErrorCode.LimitReached`, the launch refusal for a craft too
-            heavy or too large for the site, fixed by changing the craft or upgrading
-            the pad. This one is fixed by doing the outstanding work.
-
-            Not `CommandErrorCode.NotFound` either, which `ksp.launch` returns when no
-            craft file has the name. A craft that exists on disk and has never been
-            built is a different situation from one that does not exist.
-          x-sitrep-sentence: the vehicle is not ready to fly yet
         - const: insufficientResource
           title: InsufficientResource
           description: |-
@@ -10688,7 +10654,7 @@ components:
             - "null"
           x-sitrep-unit: text
           description: |-
-            One of `GroundStation`, `CrewedVessel`, `Colony` or `Custom`, same as
+            One of `GroundStation`, `CrewedVessel` or `Custom`, same as
             `CommandCentreEntry.kind`. Null when no remote centre resolved.
         bodyIndex:
           type:
@@ -11973,8 +11939,7 @@ components:
             derived from EVERY axis the derivation knows about, by CrewStandings.CanFly,
             which is a whitelist: only `Available` and `Applicant` are free, so a
             standing added to `CrewStanding` later reads as unavailable here without
-            anybody editing a consumer. A widget that has never heard of training
-            therefore still refuses to crew a kerbal who is mid-course.
+            anybody editing a consumer.
 
             A backend may override it outright.
         unavailableReason:
@@ -11983,74 +11948,40 @@ components:
             - "null"
           x-sitrep-unit: text
           description: |-
-            Why the kerbal can't fly, in prose: `Assigned` reads "On mission",
-            `Training` reads "In training", `Resting` reads "Standing down", and every
-            other blocking standing reads its own name, so a retiree reads "Retired" and
-            not "Dead". Empty string when `CrewRosterEntry.available` is true. A backend
-            may override the wording.
+            Why the kerbal can't fly, in prose: `Assigned` reads "On mission", `Resting`
+            reads "Standing down", and every other blocking standing reads its own name.
+            Empty string when `CrewRosterEntry.available` is true. A backend may
+            override the wording.
 
-            **No date, ever.** The when rides `CrewRosterEntry.standingEndsAtUt` and
-            `CrewRosterEntry.retiresAtUt` as `ut` values, because a date formatted here
-            would be formatted in the mod's idea of a calendar and an RSS save does not
-            count years the way a stock one does. This is the only string on the payload
-            a client could not re-render.
+            **No date, ever.** The when rides `CrewRosterEntry.standingEndsAtUt` as a
+            `ut` value, because a date formatted here would be formatted in the mod's
+            idea of a calendar, and the client owns the calendar. This is the only
+            string on the payload a client could not re-render.
         standing:
           description: |-
             The kerbal's standing, as the dashboard means it: the field to BRANCH on.
             The elected ICrewStandingBackend's reading where it has one, otherwise
-            derived from KSP's roster status by the stock backend.
+            derived by the stock backend from every axis KSP exposes.
 
-            This exists because the roster status alone is NOT enough under a career
-            overhaul. Such a mod can retire a kerbal by writing stock's `Dead` into the
-            roster status, so `CrewRosterEntry.situationOrdinal` below reads `Dead` for
-            a living retiree and no reading of it can recover the difference. See
-            `CrewStanding` for the whole account.
+            The roster status alone is not enough: an applicant has none, and a kerbal
+            standing down still reads `Available` there. See `CrewStanding`.
           anyOf:
             - $ref: "#/components/schemas/CrewStanding"
               x-sitrep-unit: enum
             - type: "null"
-        standingSource:
-          type:
-            - string
-            - "null"
-          x-sitrep-unit: id
-          description: |-
-            Which provider decided `CrewRosterEntry.standing`: the elected backend's
-            `ProviderId`, e.g. `"stock"` or an Uplink's id. Absent when no backend was
-            reachable at capture time.
-
-            Carried so a surface can attribute a correction rather than merely apply it.
-            A retiree shown as retired is a claim about a save that stock KSP would
-            report as a fatality, and an operator is entitled to see which mod is making
-            it.
         standingEndsAtUt:
           type:
             - number
             - "null"
           x-sitrep-unit: ut
           description: |-
-            When the CURRENT `CrewRosterEntry.standing` lapses, as universal time: the
-            course ETA for `Training`, the rest period's end for `Resting`. Absent for a
-            standing with no scheduled end, which is most of them.
+            When the kerbal's unavailability lapses, as universal time: the rest
+            period's end for `Resting`, or whatever end the elected backend quotes.
+            Absent when there is no scheduled end, which is most of the time.
 
             Read with `CrewRosterEntry.unavailableReason` to say why a kerbal cannot fly
             AND until when. The two are separate fields so the client formats the date
             in its own calendar.
-        retiresAtUt:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: ut
-          description: |-
-            When this kerbal is scheduled to become `Retired`, as universal time. Absent
-            under any backend that does not schedule retirements, stock included, and
-            absent rather than zero when a backend holds no date for this kerbal: a
-            career overhaul's own getter returns 0 for "no record", and 0 would retire
-            the whole roster at the epoch.
-
-            Live at the same time as `CrewRosterEntry.standingEndsAtUt` and not a
-            substitute for it: a kerbal is Available or Training for years while a
-            retirement date sits in the future.
         situation:
           type:
             - string
@@ -12067,9 +11998,9 @@ components:
 
             A truthful read of the game field and nothing more, kept because what KSP
             itself holds is worth knowing and because a command core dispatches is
-            arbitrated against this value. It is NOT the field to branch on: under a
-            career overhaul it can read `Dead` for a living retiree.
-            `CrewRosterEntry.standing` is the field to branch on.
+            arbitrated against this value. It is NOT the field to branch on: it reads
+            `Available` for a kerbal standing down. `CrewRosterEntry.standing` is the
+            field to branch on.
 
             `null` for an APPLICANT, and that is a real distinction rather than a
             missing value: an applicant is not in the roster, so it has no
@@ -12094,9 +12025,8 @@ components:
             standing down has roster status `Available`, and this flag is what turns
             that into `CrewStanding.Resting` with `CrewRosterEntry.available` false.
 
-            Stock leaves it false. A career overhaul's post-flight R&R is what actually
-            sets it, and it goes on the wire whether or not one is installed: the field
-            is KSP's, so reading it costs a stock install nothing.
+            The field is KSP's, so it goes on the wire on every install and reading it
+            costs nothing.
         inactiveUntilUt:
           type:
             - number
@@ -12202,33 +12132,17 @@ components:
           title: Assigned
           description: On the books and currently crewing a vessel.
         - const: 4
-          title: Training
-          description: |-
-            On the books, committed to a training course, and not assignable until it
-            finishes. CrewStandingReading.StandingEndsAtUt carries the course's own ETA.
-
-            Reachable only through a backend that models training. Stock has no courses,
-            so a stock install never reports it, and KSP's roster status for a kerbal
-            mid-course is `Available`, so the game field alone does not say it.
-        - const: 5
           title: Resting
           description: |-
             On the books, standing down after a flight, and not assignable until the
             rest period ends. CrewStandingReading.StandingEndsAtUt carries its end.
 
             Derived from KSP's own `ProtoCrewMember.inactive`, so the stock backend
-            reports it and every install gets it. Stock rarely sets the field; a career
-            overhaul's post-flight R&R is what usually does.
-        - const: 6
-          title: Retired
-          description: |-
-            Finished flying, alive, off the flight roster for good. Reachable only
-            through a backend that models a career ending well; stock has no such
-            concept and never reports it.
-        - const: 7
+            reports it and every install gets it.
+        - const: 5
           title: Dead
-          description: Killed.
-        - const: 8
+          description: "Killed: KSP's own `Dead` roster status."
+        - const: 6
           title: Missing
           description: |-
             Missing: KSP's own `Missing` roster status, kept separate from

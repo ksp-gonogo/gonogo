@@ -574,8 +574,8 @@ public class CareerStrategy
     /// Which route produced <see cref="CanActivate"/>: <c>"screened"</c> when
     /// KSP's own check ran, <c>"derived"</c> when the same rules were checked
     /// one at a time because the Administration Building was shut, or when the
-    /// strategy is already active or an installed career mod refused it on a
-    /// rule of its own, and <c>"none"</c> when there is no verdict to carry.
+    /// strategy is already active, and <c>"none"</c> when there is no verdict to
+    /// carry.
     ///
     /// <para><c>"derived"</c> always accompanies a refusal and never a yes. The
     /// game stops at its first refusal, so a rule that refuses off-screen would
@@ -604,18 +604,6 @@ public class CareerStrategy
     /// </summary>
     [SitrepUnit(Units.Text)]
     public string? ActivateVerdictSource { get; set; }
-
-    /// <summary>
-    /// When a refusal that lapses on its own will lapse, such as a dismissed
-    /// Leader's re-hire cooldown under a career mod. <c>null</c> when the refusal does
-    /// not lapse with time, or when nothing refused.
-    /// <internal>
-    /// Supplied by a career mod through IStrategyAvailability, the same answer
-    /// that wrote ActivateBlockedReason.
-    /// </internal>
-    /// </summary>
-    [SitrepUnit(Units.UniversalTime)]
-    public double? ActivateAvailableFromUt { get; set; }
 
     /// <summary>
     /// Whether KSP would allow this strategy to be ended right now,

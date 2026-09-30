@@ -108,11 +108,10 @@ namespace Gonogo.KSP
         /// Declares the exclusive <c>"crewStanding"</c> capability: what this
         /// install makes of a kerbal whose roster status alone is not the answer.
         ///
-        /// <para>Declared HERE, in the pre-Register capability pass, for the same
-        /// two-pass reason the economy capability is declared in
-        /// <see cref="CareerUplink"/>: a provider uplink's
-        /// <c>RegisterProvider</c> throws if the capability does not exist yet,
-        /// and assembly-scan discovery fixes no order between uplinks.</para>
+        /// <para>Declared HERE, in the pre-Register capability pass: a provider
+        /// uplink's <c>RegisterProvider</c> throws if the capability does not
+        /// exist yet, and assembly-scan discovery fixes no order between
+        /// uplinks.</para>
         ///
         /// <para>Owned by THIS uplink because it owns
         /// <c>spaceCenter.crewRoster</c>, whose entries carry the elected
@@ -128,8 +127,7 @@ namespace Gonogo.KSP
             // provider and there is no election to hold: a craft folder is a fact
             // about the save's directory rather than a model a mod could have a
             // rival opinion about. It is a capability all the same because that is
-            // the only route an Uplink has into core, and opening a craft file
-            // instantiates Unity parts, which an Uplink may not name.
+            // the only route an Uplink has into core.
             //
             // Declared beside the crew standing above for the same two-pass
             // reason, and NOT SpineCritical: an install without it publishes no

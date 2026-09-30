@@ -14,11 +14,6 @@
     "reason": "The velocity components ARE the derivative of the position components, so this pairing is real. Nothing should integrate it here: every state in a reply is SOLVED at an instant the caller named, by the elected propagation provider, so a reading taken between two of them is a straight line drawn across a conic. Asking for another instant costs one more entry in a list that is already batched, which is cheaper than the error.",
     "verdict": "real-but-unmodelled"
   },
-  "CareerStrategy.activateAvailableFromUt": {
-    "rates": ["factor", "factorSliderDefault"],
-    "reason": "Dimensional degeneracy, the same shape as CareerStrategy.dateActivated: an instant's dimensional rate is the dimensionless quantity, so the commitment factor qualifies. It is not the rate of the instant a career mod's refusal lapses, and that instant does not move: it is fixed when the strategy is dismissed and stays put until it passes.",
-    "verdict": "coincidence"
-  },
   "CareerStrategy.dateActivated": {
     "rates": ["factor", "factorSliderDefault"],
     "reason": "Dimensional degeneracy, not a pairing: `divide({s:1},{s:1})` is `{}` and `1`/`ratio`/`%` are all dimensionless, so EVERY dimensionless field is the dimensional rate of EVERY time field in its own type. `ecc` is not the rate of an epoch. This is what the algebra says and no vocabulary work fixes it; it is the single strongest argument against deriving a class from units.",
@@ -58,17 +53,6 @@
       "stupidity"
     ],
     "reason": "Dimensional degeneracy, the same shape as CareerStrategy.dateActivated: an instant's dimensional rate is the dimensionless quantity, so every ratio and count in the type qualifies. A kerbal's courage is not the rate of the instant their rest ends. The instant itself is also not integrable in any sense: it is set once when KSP puts the kerbal on stand-down and does not move until the next flight sets a new one.",
-    "verdict": "coincidence"
-  },
-  "CrewRosterEntry.retiresAtUt": {
-    "rates": [
-      "courage",
-      "experience",
-      "experienceLevel",
-      "experienceLevelDelta",
-      "stupidity"
-    ],
-    "reason": "Dimensional degeneracy, the same case as the standing's own end date beside it, with one difference worth stating: this one is not integrated from anything at all. A career overhaul reads a retirement date out of its own settings when the kerbal is hired and pushes it back in discrete steps as they fly, so there is no rate to find, let alone one of these. Courage and stupidity in particular are personality stats that never change.",
     "verdict": "coincidence"
   },
   "CrewRosterEntry.standingEndsAtUt": {
@@ -316,17 +300,6 @@
       "stupidity"
     ],
     "reason": "Dimensional degeneracy, the same shape as CareerStrategy.dateActivated: an instant's dimensional rate is the dimensionless quantity, so every ratio and count in the type qualifies. A kerbal's courage is not the rate of the instant their rest ends. The instant itself is also not integrable in any sense: it is set once when KSP puts the kerbal on stand-down and does not move until the next flight sets a new one.",
-    "verdict": "coincidence"
-  },
-  "spaceCenter.crewRoster.retiresAtUt": {
-    "rates": [
-      "courage",
-      "experience",
-      "experienceLevel",
-      "experienceLevelDelta",
-      "stupidity"
-    ],
-    "reason": "Dimensional degeneracy, the same case as the standing's own end date beside it, with one difference worth stating: this one is not integrated from anything at all. A career overhaul reads a retirement date out of its own settings when the kerbal is hired and pushes it back in discrete steps as they fly, so there is no rate to find, let alone one of these. Courage and stupidity in particular are personality stats that never change.",
     "verdict": "coincidence"
   },
   "spaceCenter.crewRoster.standingEndsAtUt": {

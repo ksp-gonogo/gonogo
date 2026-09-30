@@ -157,8 +157,7 @@ public class CrewRosterEntry
     /// <see cref="CrewStandings.CanFly"/>, which is a whitelist: only
     /// <c>Available</c> and <c>Applicant</c> are free, so a standing added to
     /// <see cref="CrewStanding"/> later reads as unavailable here without anybody
-    /// editing a consumer. A widget that has never heard of training therefore
-    /// still refuses to crew a kerbal who is mid-course.</para>
+    /// editing a consumer.</para>
     ///
     /// <para>A backend may override it outright.</para>
     /// </summary>
@@ -167,16 +166,14 @@ public class CrewRosterEntry
 
     /// <summary>
     /// Why the kerbal can't fly, in prose: <c>Assigned</c> reads "On mission",
-    /// <c>Training</c> reads "In training", <c>Resting</c> reads "Standing down",
-    /// and every other blocking standing reads its own name, so a retiree reads
-    /// "Retired" and not "Dead". Empty string when <see cref="Available"/> is
-    /// true. A backend may override the wording.
+    /// <c>Resting</c> reads "Standing down", and every other blocking standing
+    /// reads its own name. Empty string when <see cref="Available"/> is true. A
+    /// backend may override the wording.
     ///
     /// <para><b>No date, ever.</b> The when rides <see cref="StandingEndsAtUt"/>
-    /// and <see cref="RetiresAtUt"/> as <c>ut</c> values, because a date
-    /// formatted here would be formatted in the mod's idea of a calendar and an
-    /// RSS save does not count years the way a stock one does. This is the only
-    /// string on the payload a client could not re-render.</para>
+    /// as a <c>ut</c> value, because a date formatted here would be formatted in
+    /// the mod's idea of a calendar, and the client owns the calendar. This is
+    /// the only string on the payload a client could not re-render.</para>
     /// </summary>
     [SitrepUnit(Units.Text)]
     public string? UnavailableReason { get; set; }
@@ -184,34 +181,20 @@ public class CrewRosterEntry
     /// <summary>
     /// The kerbal's standing, as the dashboard means it: the field to BRANCH on.
     /// The elected <see cref="ICrewStandingBackend"/>'s reading where it has one,
-    /// otherwise derived from KSP's roster status by the stock backend.
+    /// otherwise derived by the stock backend from every axis KSP exposes.
     ///
-    /// <para>This exists because the roster status alone is NOT enough under
-    /// a career overhaul. Such a mod can retire a kerbal by writing stock's <c>Dead</c>
-    /// into the roster status, so <see cref="SituationOrdinal"/> below reads
-    /// <c>Dead</c> for a living retiree and no reading of it can recover the
-    /// difference. See <see cref="CrewStanding"/> for the whole account.</para>
+    /// <para>The roster status alone is not enough: an applicant has none, and
+    /// a kerbal standing down still reads <c>Available</c> there. See
+    /// <see cref="CrewStanding"/>.</para>
     /// </summary>
     [SitrepUnit(Units.Enumeration)]
     public CrewStanding? Standing { get; set; }
 
     /// <summary>
-    /// Which provider decided <see cref="Standing"/>: the elected backend's
-    /// <c>ProviderId</c>, e.g. <c>"stock"</c> or an Uplink's id. Absent when no
-    /// backend was reachable at capture time.
-    ///
-    /// <para>Carried so a surface can attribute a correction rather than merely
-    /// apply it. A retiree shown as retired is a claim about a save that stock
-    /// KSP would report as a fatality, and an operator is entitled to see which
-    /// mod is making it.</para>
-    /// </summary>
-    [SitrepUnit(Units.Id)]
-    public string? StandingSource { get; set; }
-
-    /// <summary>
-    /// When the CURRENT <see cref="Standing"/> lapses, as universal time: the
-    /// course ETA for <c>Training</c>, the rest period's end for <c>Resting</c>.
-    /// Absent for a standing with no scheduled end, which is most of them.
+    /// When the kerbal's unavailability lapses, as universal time: the rest
+    /// period's end for <c>Resting</c>, or whatever end the elected backend
+    /// quotes. Absent when there is no scheduled end, which is most of the
+    /// time.
     ///
     /// <para>Read with <see cref="UnavailableReason"/> to say why a kerbal cannot
     /// fly AND until when. The two are separate fields so the client formats the
@@ -219,20 +202,6 @@ public class CrewRosterEntry
     /// </summary>
     [SitrepUnit(Units.UniversalTime)]
     public double? StandingEndsAtUt { get; set; }
-
-    /// <summary>
-    /// When this kerbal is scheduled to become <c>Retired</c>, as universal time.
-    /// Absent under any backend that does not schedule retirements, stock
-    /// included, and absent rather than zero when a backend holds no date for
-    /// this kerbal: a career overhaul's own getter returns 0 for "no record", and
-    /// 0 would retire the whole roster at the epoch.
-    ///
-    /// <para>Live at the same time as <see cref="StandingEndsAtUt"/> and not a
-    /// substitute for it: a kerbal is Available or Training for years while a
-    /// retirement date sits in the future.</para>
-    /// </summary>
-    [SitrepUnit(Units.UniversalTime)]
-    public double? RetiresAtUt { get; set; }
 
     /// <summary>
     /// <see cref="Standing"/>'s display LABEL: its enum name, or
@@ -249,7 +218,7 @@ public class CrewRosterEntry
     /// <para>A truthful read of the game field and nothing more, kept because
     /// what KSP itself holds is worth knowing and because a command core
     /// dispatches is arbitrated against this value. It is NOT the field to
-    /// branch on: under a career overhaul it can read <c>Dead</c> for a living retiree.
+    /// branch on: it reads <c>Available</c> for a kerbal standing down.
     /// <see cref="Standing"/> is the field to branch on.</para>
     ///
     /// <para><c>null</c> for an APPLICANT, and that is a real distinction
@@ -272,10 +241,8 @@ public class CrewRosterEntry
     /// what turns that into <see cref="CrewStanding.Resting"/> with
     /// <see cref="Available"/> false.</para>
     ///
-    /// <para>Stock leaves it false. A career overhaul's post-flight R&amp;R is
-    /// what actually sets it, and it goes on the wire whether or not one is
-    /// installed: the field is KSP's, so reading it costs a stock install
-    /// nothing.</para>
+    /// <para>The field is KSP's, so it goes on the wire on every install and
+    /// reading it costs nothing.</para>
     /// </summary>
     [SitrepUnit(Units.Flag)]
     public bool? Inactive { get; set; }

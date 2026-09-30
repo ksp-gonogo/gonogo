@@ -23,10 +23,10 @@ namespace Sitrep.Contract
     ///
     /// <para>So two claimants that can be installed together must register at
     /// DISTINCT priorities, the one that should win strictly higher, and neither
-    /// may set <c>IsDefault</c>, which would override priority. A career-overhaul
-    /// claimant that knows which space centre holds the ledger outranks a comms
-    /// claimant that can only pick among ground stations: for example the comms
-    /// claimant at 10 and the career overhaul at 20. A claimant
+    /// may set <c>IsDefault</c>, which would override priority. Rank by how
+    /// directly a claimant knows where the ledger is: one that reads it straight
+    /// from the save outranks one that can only infer it from the ground
+    /// stations, for example the first at 20 and the second at 10. A claimant
     /// that cannot serve on this install should withdraw through
     /// <see cref="ProviderRegistration.CanServe"/>, which lets the runner-up win,
     /// rather than winning and returning <see cref="HomeCommand.NotIdentified"/>:

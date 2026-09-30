@@ -121,7 +121,7 @@ namespace Sitrep.Host.Tests.CommandCentres
         public void ACentreWithNoMeasurablePathHomeGetsNoRow()
         {
             var rows = Rows(
-                new ICommandCentre[] { new FakeCommandCentre("colony:X", CommandCentreKind.Colony) },
+                new ICommandCentre[] { new FakeCommandCentre("custom:X", CommandCentreKind.Custom) },
                 null,
                 _ => null);
 

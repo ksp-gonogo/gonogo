@@ -21,8 +21,6 @@ namespace Sitrep.Contract
         GroundStation,
         /// <summary>A crewed vessel acting as a command centre. <see cref="ICommandCentre.Id"/> is <c>"vessel:&lt;guid&gt;"</c>.</summary>
         CrewedVessel,
-        /// <summary>A colony or other off-world base.</summary>
-        Colony,
         /// <summary>Any other kind of centre an Uplink defines.</summary>
         Custom,
     }

@@ -69,7 +69,6 @@ namespace Sitrep.Host
     ///       "rosterStatus":    string  : RAW RosterStatus enum name (a DISPLAY LABEL only)
     ///       "rosterStatusOrdinal": int? : (int)RosterStatus, KSP's own answer
     ///       "standing":        int?    : (int)CrewStanding from the elected backend, what the provider BRANCHES on
-    ///       "standingSource":  string? : that backend's ProviderId
     ///       "standingAvailable": bool? : the backend's own free-to-fly override, null to derive
     ///       "standingUnavailableReason": string? : the backend's own wording, null to derive
     ///       "isApplicant":     bool?   : a hireable candidate rather than owned crew
@@ -241,12 +240,11 @@ namespace Sitrep.Host
         /// answer, stamped into the raw dict at capture time (the same
         /// capture→provider split <see cref="BuildScene"/> uses), and
         /// <c>situation</c> / <c>available</c> / <c>unavailableReason</c> are all
-        /// derived from it here. That is the point of the capability: KSP's own
-        /// roster status is NOT the answer under a career overhaul, so the
-        /// derivation has to hang off the corrected standing rather than off the
-        /// ordinal, or a retiree reaches the wire as a fatality. The raw ordinal
-        /// still goes out beside it as <c>situationOrdinal</c>, because what KSP
-        /// itself holds is worth knowing.</para>
+        /// derived from it here. KSP's own roster status is not the whole answer
+        /// (it reads <c>Available</c> for a kerbal standing down), so the
+        /// derivation hangs off the standing rather than off the ordinal. The raw
+        /// ordinal still goes out beside it as <c>situationOrdinal</c>, because
+        /// what KSP itself holds is worth knowing.</para>
         ///
         /// <para>The backend may override <c>available</c> and
         /// <c>unavailableReason</c> in its own words; absent an override the
@@ -268,9 +266,7 @@ namespace Sitrep.Host
                 ["available"] = resolution.Available,
                 ["unavailableReason"] = resolution.UnavailableReason,
                 ["standing"] = (int)resolution.Standing,
-                ["standingSource"] = resolution.Source,
                 ["standingEndsAtUt"] = resolution.StandingEndsAtUt,
-                ["retiresAtUt"] = resolution.RetiresAtUt,
                 ["situation"] = resolution.Standing.ToString(),
                 // An applicant is not in the roster, so it has no RosterStatus
                 // to report - a real distinction, not a missing value.
@@ -301,8 +297,7 @@ namespace Sitrep.Host
         /// re-deriving here is the point: the availability and the wording used to
         /// be computed in this file from the standing alone, so a kerbal standing
         /// down reached the wire free to fly. There is now one derivation and this
-        /// is a caller of it. What the fallback does NOT do is invent a
-        /// correction: without a backend there is no retiree set to consult.</para>
+        /// is a caller of it.</para>
         /// </summary>
         private static CrewStandingResolution ReadResolution(
             IDictionary<string, object?> raw,
@@ -321,13 +316,13 @@ namespace Sitrep.Host
             };
             if (stamped == null)
             {
-                return CrewStandings.Resolve(query, null, null);
+                return CrewStandings.Resolve(query, null);
             }
 
             // The capture already ran the derivation against a live backend, so
             // its answers are authoritative and are read as a reading rather than
-            // recomputed: recomputing would discard a backend's own wording and,
-            // for a Training standing, the course ETA this side cannot see.
+            // recomputed: recomputing would discard a backend's own wording and
+            // any scheduled end this side cannot see.
             return CrewStandings.Resolve(
                 query,
                 new CrewStandingReading
@@ -336,9 +331,7 @@ namespace Sitrep.Host
                     Available = SnapshotDict.GetBool(raw, "standingAvailable"),
                     UnavailableReason = SnapshotDict.GetString(raw, "standingUnavailableReason"),
                     StandingEndsAtUt = SnapshotDict.GetDouble(raw, "standingEndsAtUt"),
-                    RetiresAtUt = SnapshotDict.GetDouble(raw, "retiresAtUt"),
-                },
-                SnapshotDict.GetString(raw, "standingSource"));
+                });
         }
 
         /// <summary>

@@ -403,9 +403,9 @@ const WIDGETS: WidgetRenderConfig[] = [
       // derived from active-crew-multi-situation's roster. Ludrey and Nedcas
       // are the two kerbals free to fly, and Nedcas is the row whose readings
       // never arrived: rank, courage, stupidity and progress all read as a
-      // dash rather than as an L0 rookie's stats. Bill is standing down and
-      // Lodan is mid-course, and both sit in tabs of their own with a reason
-      // and a date.
+      // dash rather than as an L0 rookie's stats. Lodan sits beside them held
+      // back by a mod backend, with its reason and a date. Bill is standing
+      // down and sits in a tab of his own.
       {
         name: "active-tab-available-6x12",
         w: 6,
@@ -420,9 +420,9 @@ const WIDGETS: WidgetRenderConfig[] = [
       },
       // Same Available sub-tab, Fire armed: proves the arm-then-confirm
       // sequence flips the row's control to the go-toned Confirm state.
-      // Fire also renders on the Resting and Training tabs, because the roster
-      // accepts a sacking there and firing is not flying; it never renders on
-      // Assigned or on a kerbal off the books.
+      // Fire also renders on the Resting tab, because the roster accepts a
+      // sacking there and firing is not flying; it never renders on Assigned
+      // or on a kerbal off the books.
       {
         name: "active-tab-available-fire-armed-6x12",
         w: 6,
@@ -456,26 +456,6 @@ const WIDGETS: WidgetRenderConfig[] = [
           },
         ],
       },
-      // Active tab, Training sub-tab: the standing KSP has no field for at all.
-      // Lodan's roster status is Available throughout his course, so this tab
-      // exists only because the producer derives the standing, and the row shows
-      // the reason and a date the client formatted.
-      {
-        name: "active-tab-training-6x12",
-        w: 6,
-        h: 12,
-        forFixtures: ["active-crew-multi-situation"],
-        clicks: [
-          {
-            selector: 'button[aria-controls$="active-panel"]',
-            awaitMs: 100,
-          },
-          {
-            selector: 'button[aria-controls$="standing-4-panel"]',
-            awaitMs: 100,
-          },
-        ],
-      },
       // Active tab, Resting sub-tab: Bill after a flight. Available to KSP,
       // unavailable here, and STILL fireable, because the roster accepts a
       // sacking from a stand-down and firing is not flying.
@@ -490,15 +470,14 @@ const WIDGETS: WidgetRenderConfig[] = [
             awaitMs: 100,
           },
           {
-            selector: 'button[aria-controls$="standing-5-panel"]',
+            selector: 'button[aria-controls$="standing-4-panel"]',
             awaitMs: 100,
           },
         ],
       },
       /*
        * Active tab, Dead sub-tab: proves Dead/Missing get their own tabs rather
-       * than folding into a stock-style "Lost" tab, and that the career mod's retiree
-       * is NOT in here despite carrying KSP's Dead ordinal.
+       * than folding into a stock-style "Lost" tab.
        */
       {
         name: "active-tab-dead-6x12",
@@ -511,27 +490,7 @@ const WIDGETS: WidgetRenderConfig[] = [
             awaitMs: 100,
           },
           {
-            selector: 'button[aria-controls$="standing-7-panel"]',
-            awaitMs: 100,
-          },
-        ],
-      },
-      // Active tab, Retired sub-tab: THE render this widget exists to get right.
-      // Gus carries KSP's Dead ordinal because that is what the career mod wrote into it,
-      // and the standing is what puts him here instead, with a badge that is
-      // not the red one Val's fatality wears.
-      {
-        name: "active-tab-retired-6x12",
-        w: 6,
-        h: 12,
-        forFixtures: ["active-crew-multi-situation"],
-        clicks: [
-          {
-            selector: 'button[aria-controls$="active-panel"]',
-            awaitMs: 100,
-          },
-          {
-            selector: 'button[aria-controls$="standing-6-panel"]',
+            selector: 'button[aria-controls$="standing-5-panel"]',
             awaitMs: 100,
           },
         ],
@@ -548,7 +507,7 @@ const WIDGETS: WidgetRenderConfig[] = [
             awaitMs: 100,
           },
           {
-            selector: 'button[aria-controls$="standing-8-panel"]',
+            selector: 'button[aria-controls$="standing-6-panel"]',
             awaitMs: 100,
           },
         ],

@@ -89,12 +89,6 @@ namespace Gonogo.KSP
                 return CommandResult.Fail(CommandErrorCode.WrongState, "the strategy is already active");
             }
 
-            var careerRefusal = StrategyAvailabilityRules.Refusal(strategyId);
-            if (careerRefusal != null)
-            {
-                return CommandResult.Fail(CommandErrorCode.WrongState, careerRefusal.Reason);
-            }
-
             if (Administration.Instance == null)
             {
                 return StockStrategyActivation.Activate(strategy, system, factor);

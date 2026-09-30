@@ -425,13 +425,6 @@ namespace Sitrep.Host.Tests
         /// know that either, and it does not become the WORD "Unknown" in the
         /// reason field, because that reads as a diagnosis where the truth is
         /// silence. The raw ordinal reaches the client intact.
-        ///
-        /// <para>This case is NOT how a career mod's retirement arrives, and the
-        /// comment here used to say it was. Such a mod can append no member to
-        /// <c>RosterStatus</c>: it writes stock's <c>Dead</c>, ordinal 2, and a
-        /// retiree therefore arrives at the recognised-status path above looking
-        /// exactly like a fatality. That is what the crew-standing capability is
-        /// for; see <see cref="CrewStandingElectionTests"/>.</para>
         /// </summary>
         [Fact]
         public void BuildCrewRosterCarriesAnUnrecognisedStatusThroughRatherThanGuessing()
@@ -503,18 +496,14 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
-        /// THE defect, at the provider. A career mod's retiree arrives with stock's
-        /// <c>Dead</c> in the roster ordinal, because that is literally what the mod
-        /// wrote there, and the elected backend's corrected standing is what the
-        /// provider must derive every operator-facing field from.
-        ///
-        /// <para>The three fields that mattered: <c>situation</c>, which the
-        /// Astronaut Complex groups by, and <c>unavailableReason</c>, which
-        /// LaunchDirector shows in the tooltip of a greyed-out crew chip. Before
-        /// the capability both read "Dead" about a kerbal drawing a pension.</para>
+        /// The elected backend's stamped standing, not the roster ordinal beside
+        /// it, is what the provider derives every operator-facing field from:
+        /// <c>situation</c>, which the Astronaut Complex groups by, and
+        /// <c>unavailableReason</c>, which LaunchDirector shows in the tooltip of
+        /// a greyed-out crew chip.
         /// </summary>
         [Fact]
-        public void BuildCrewRosterPrefersTheStampedStandingOverKspsOwnDeadOrdinal()
+        public void BuildCrewRosterPrefersTheStampedStandingOverKspsOwnOrdinal()
         {
             var list = Assert.IsType<List<object?>>(SpaceCenterViewProvider.BuildCrewRoster(new KspSnapshot
             {
@@ -528,10 +517,9 @@ namespace Sitrep.Host.Tests
                             new Dictionary<string, object?>
                             {
                                 ["name"] = "Wernher Kerman",
-                                ["rosterStatus"] = "Dead",
-                                ["rosterStatusOrdinal"] = (int)KspRosterStatus.Dead,
-                                ["standing"] = (int)CrewStanding.Retired,
-                                ["standingSource"] = "planted",
+                                ["rosterStatus"] = "Available",
+                                ["rosterStatusOrdinal"] = (int)KspRosterStatus.Available,
+                                ["standing"] = (int)CrewStanding.Resting,
                             },
                         },
                     },
@@ -539,15 +527,14 @@ namespace Sitrep.Host.Tests
             }));
 
             var wernher = Assert.IsType<Dictionary<string, object?>>(list[0]);
-            Assert.Equal((int)CrewStanding.Retired, wernher["standing"]);
-            Assert.Equal("Retired", wernher["situation"]);
-            Assert.Equal("Retired", wernher["unavailableReason"]);
+            Assert.Equal((int)CrewStanding.Resting, wernher["standing"]);
+            Assert.Equal("Resting", wernher["situation"]);
+            Assert.Equal("Standing down", wernher["unavailableReason"]);
             Assert.Equal(false, wernher["available"]);
-            Assert.Equal("planted", wernher["standingSource"]);
 
             // And KSP's own answer is still on the wire, unfolded, because what
             // the game holds is worth knowing even when it is not the answer.
-            Assert.Equal((int)KspRosterStatus.Dead, wernher["situationOrdinal"]);
+            Assert.Equal((int)KspRosterStatus.Available, wernher["situationOrdinal"]);
         }
 
         /// <summary>
@@ -574,7 +561,7 @@ namespace Sitrep.Host.Tests
                                 ["rosterStatusOrdinal"] = (int)KspRosterStatus.Available,
                                 ["standing"] = (int)CrewStanding.Available,
                                 ["standingAvailable"] = false,
-                                ["standingUnavailableReason"] = "Grounded pending training",
+                                ["standingUnavailableReason"] = "Held by planted",
                             },
                         },
                     },
@@ -583,7 +570,7 @@ namespace Sitrep.Host.Tests
 
             var gus = Assert.IsType<Dictionary<string, object?>>(list[0]);
             Assert.Equal(false, gus["available"]);
-            Assert.Equal("Grounded pending training", gus["unavailableReason"]);
+            Assert.Equal("Held by planted", gus["unavailableReason"]);
             // The standing is untouched: the override is about flying today, not
             // about where the kerbal sits on the books.
             Assert.Equal((int)CrewStanding.Available, gus["standing"]);

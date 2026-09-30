@@ -584,8 +584,8 @@ public class CommsCommandCentre
     [SitrepUnit(Units.Text)]
     public string? DisplayName { get; set; }
     /// <summary>
-    /// One of <c>GroundStation</c>, <c>CrewedVessel</c>, <c>Colony</c> or
-    /// <c>Custom</c>, same as <see cref="CommandCentreEntry.Kind"/>. Null when
+    /// One of <c>GroundStation</c>, <c>CrewedVessel</c> or <c>Custom</c>, same
+    /// as <see cref="CommandCentreEntry.Kind"/>. Null when
     /// no remote centre resolved.
     /// </summary>
     [SitrepUnit(Units.Text)]

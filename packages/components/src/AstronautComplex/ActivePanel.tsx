@@ -24,8 +24,8 @@ import { EMPTY_STYLE, LIST_STYLE } from "./styles";
 /**
  * The Active tab, sub-tabbed by the `CrewStanding` values actually present, so
  * no tab is ever empty and a new standing gets a tab with no edit. Grouped by
- * STANDING, not KSP's roster status: a career mod can write `Dead` into the
- * roster status of a living retiree.
+ * STANDING, not KSP's roster status, which reads `Available` for a kerbal
+ * standing down.
  */
 export function ActivePanel({
   crew,
@@ -71,7 +71,7 @@ export function ActivePanel({
                     fireable && m.name === highlightedName ? "true" : undefined
                   }
                 >
-                  {/* The sack control sits at the END of the identity line: firing is rare, and a column of its own would take width off the schedule. The corner is where a career model's mark is read WITH the name. */}
+                  {/* The sack control sits at the END of the identity line: firing is rare, and a column of its own would take width off the schedule. The corner is where an Uplink's mark is read WITH the name. */}
                   <Card.TitleRow
                     right={
                       <Cluster align="center">
@@ -104,7 +104,7 @@ export function ActivePanel({
                     showExperienceProgress
                     showInfo
                   />
-                  {/* This kerbal's schedule from whichever Uplink manages their career; nothing under stock. */}
+                  {/* Whatever an Uplink has to say about this kerbal; nothing under stock. */}
                   <AugmentSlot
                     name="astronaut-complex.crew"
                     props={{

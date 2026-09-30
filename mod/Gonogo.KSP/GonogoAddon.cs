@@ -286,10 +286,9 @@ namespace Gonogo.KSP
                     () => PropagationElection.Elected(engine.Kernel));
 
                 // Same late-bound install for the crew standing: whatever crew
-                // model won the election decides whether a kerbal off the flight
-                // roster is dead or retired, and the capture stamps that answer
-                // onto the roster entries rather than deriving it from KSP's
-                // roster status, which a career overhaul overwrites.
+                // model won the election decides each kerbal's standing, and the
+                // capture stamps that answer onto the roster entries rather than
+                // deriving it from KSP's roster status alone.
                 _host.SetCrewStandingBackendSource(
                     () => CrewStandingElection.Elected(engine.Kernel));
 

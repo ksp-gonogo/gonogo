@@ -722,8 +722,7 @@ export interface CareerStrategy
 	* Which route produced `CareerStrategy.canActivate`: `"screened"` when KSP's
 	* own check ran, `"derived"` when the same rules were checked one at a time
 	* because the Administration Building was shut, or when the strategy is
-	* already active or an installed career mod refused it on a rule of its own,
-	* and `"none"` when there is no verdict to carry.
+	* already active, and `"none"` when there is no verdict to carry.
 	*
 	* `"derived"` always accompanies a refusal and never a yes. The game stops at
 	* its first refusal, so a rule that refuses off-screen would have refused on
@@ -739,12 +738,6 @@ export interface CareerStrategy
 	* than guessing.
 	*/
 	activateVerdictSource?: string | null;
-	/**
-	* When a refusal that lapses on its own will lapse, such as a dismissed
-	* Leader's re-hire cooldown under a career mod. `null` when the refusal does
-	* not lapse with time, or when nothing refused.
-	*/
-	activateAvailableFromUt?: Value<"ut"> | null;
 	/**
 	* Whether KSP would allow this strategy to be ended right now, KSP's
 	* Strategy.CanBeDeactivated. `false` with a reason beginning `"eligibility
@@ -960,10 +953,7 @@ export interface CommandCentreEntry
 	id?: string | null;
 	/** Human-facing name. */
 	displayName?: string | null;
-	/**
-	* One of `GroundStation`, `CrewedVessel`, `Colony` or `Custom`: the kind of
-	* centre.
-	*/
+	/** One of `GroundStation`, `CrewedVessel` or `Custom`: the kind of centre. */
 	kind?: string | null;
 	/**
 	* Index into `SystemBodies` of the body this centre sits on; null when unknown
@@ -1959,7 +1949,7 @@ export interface CommsCommandCentre
 	/** The centre's human-facing name. Null when no remote centre resolved. */
 	displayName?: string | null;
 	/**
-	* One of `GroundStation`, `CrewedVessel`, `Colony` or `Custom`, same as
+	* One of `GroundStation`, `CrewedVessel` or `Custom`, same as
 	* `CommandCentreEntry.kind`. Null when no remote centre resolved.
 	*/
 	kind?: string | null;
@@ -2484,36 +2474,20 @@ export enum CrewStanding {
 	/** On the books and currently crewing a vessel. */
 	Assigned = 3,
 	/**
-	* On the books, committed to a training course, and not assignable until it
-	* finishes. CrewStandingReading.StandingEndsAtUt carries the course's own ETA.
-	*
-	* Reachable only through a backend that models training. Stock has no courses,
-	* so a stock install never reports it, and KSP's roster status for a kerbal
-	* mid-course is `Available`, so the game field alone does not say it.
-	*/
-	Training = 4,
-	/**
 	* On the books, standing down after a flight, and not assignable until the
 	* rest period ends. CrewStandingReading.StandingEndsAtUt carries its end.
 	*
 	* Derived from KSP's own `ProtoCrewMember.inactive`, so the stock backend
-	* reports it and every install gets it. Stock rarely sets the field; a career
-	* overhaul's post-flight R&R is what usually does.
+	* reports it and every install gets it.
 	*/
-	Resting = 5,
-	/**
-	* Finished flying, alive, off the flight roster for good. Reachable only
-	* through a backend that models a career ending well; stock has no such
-	* concept and never reports it.
-	*/
-	Retired = 6,
-	/** Killed. */
-	Dead = 7,
+	Resting = 4,
+	/** Killed: KSP's own `Dead` roster status. */
+	Dead = 5,
 	/**
 	* Missing: KSP's own `Missing` roster status, kept separate from
 	* `CrewStanding.Dead`.
 	*/
-	Missing = 8
+	Missing = 6
 }
 /**
 * One science credit, attributed to the vessel that earned it.
@@ -6418,71 +6392,42 @@ export interface CrewRosterEntry
 	* derived from EVERY axis the derivation knows about, by CrewStandings.CanFly,
 	* which is a whitelist: only `Available` and `Applicant` are free, so a
 	* standing added to `CrewStanding` later reads as unavailable here without
-	* anybody editing a consumer. A widget that has never heard of training
-	* therefore still refuses to crew a kerbal who is mid-course.
+	* anybody editing a consumer.
 	*
 	* A backend may override it outright.
 	*/
 	available?: boolean | null;
 	/**
-	* Why the kerbal can't fly, in prose: `Assigned` reads "On mission",
-	* `Training` reads "In training", `Resting` reads "Standing down", and every
-	* other blocking standing reads its own name, so a retiree reads "Retired" and
-	* not "Dead". Empty string when `CrewRosterEntry.available` is true. A backend
-	* may override the wording.
+	* Why the kerbal can't fly, in prose: `Assigned` reads "On mission", `Resting`
+	* reads "Standing down", and every other blocking standing reads its own name.
+	* Empty string when `CrewRosterEntry.available` is true. A backend may
+	* override the wording.
 	*
-	* **No date, ever.** The when rides `CrewRosterEntry.standingEndsAtUt` and
-	* `CrewRosterEntry.retiresAtUt` as `ut` values, because a date formatted here
-	* would be formatted in the mod's idea of a calendar and an RSS save does not
-	* count years the way a stock one does. This is the only string on the payload
-	* a client could not re-render.
+	* **No date, ever.** The when rides `CrewRosterEntry.standingEndsAtUt` as a
+	* `ut` value, because a date formatted here would be formatted in the mod's
+	* idea of a calendar, and the client owns the calendar. This is the only
+	* string on the payload a client could not re-render.
 	*/
 	unavailableReason?: string | null;
 	/**
 	* The kerbal's standing, as the dashboard means it: the field to BRANCH on.
 	* The elected ICrewStandingBackend's reading where it has one, otherwise
-	* derived from KSP's roster status by the stock backend.
+	* derived by the stock backend from every axis KSP exposes.
 	*
-	* This exists because the roster status alone is NOT enough under a career
-	* overhaul. Such a mod can retire a kerbal by writing stock's `Dead` into the
-	* roster status, so `CrewRosterEntry.situationOrdinal` below reads `Dead` for
-	* a living retiree and no reading of it can recover the difference. See
-	* `CrewStanding` for the whole account.
+	* The roster status alone is not enough: an applicant has none, and a kerbal
+	* standing down still reads `Available` there. See `CrewStanding`.
 	*/
 	standing?: CrewStanding | null;
 	/**
-	* Which provider decided `CrewRosterEntry.standing`: the elected backend's
-	* `ProviderId`, e.g. `"stock"` or an Uplink's id. Absent when no backend was
-	* reachable at capture time.
-	*
-	* Carried so a surface can attribute a correction rather than merely apply it.
-	* A retiree shown as retired is a claim about a save that stock KSP would
-	* report as a fatality, and an operator is entitled to see which mod is making
-	* it.
-	*/
-	standingSource?: string | null;
-	/**
-	* When the CURRENT `CrewRosterEntry.standing` lapses, as universal time: the
-	* course ETA for `Training`, the rest period's end for `Resting`. Absent for a
-	* standing with no scheduled end, which is most of them.
+	* When the kerbal's unavailability lapses, as universal time: the rest
+	* period's end for `Resting`, or whatever end the elected backend quotes.
+	* Absent when there is no scheduled end, which is most of the time.
 	*
 	* Read with `CrewRosterEntry.unavailableReason` to say why a kerbal cannot fly
 	* AND until when. The two are separate fields so the client formats the date
 	* in its own calendar.
 	*/
 	standingEndsAtUt?: Value<"ut"> | null;
-	/**
-	* When this kerbal is scheduled to become `Retired`, as universal time. Absent
-	* under any backend that does not schedule retirements, stock included, and
-	* absent rather than zero when a backend holds no date for this kerbal: a
-	* career overhaul's own getter returns 0 for "no record", and 0 would retire
-	* the whole roster at the epoch.
-	*
-	* Live at the same time as `CrewRosterEntry.standingEndsAtUt` and not a
-	* substitute for it: a kerbal is Available or Training for years while a
-	* retirement date sits in the future.
-	*/
-	retiresAtUt?: Value<"ut"> | null;
 	/**
 	* `CrewRosterEntry.standing`'s display LABEL: its enum name, or `"Applicant"`
 	* for a hireable candidate. Text for an operator, never a branch: compare
@@ -6495,9 +6440,9 @@ export interface CrewRosterEntry
 	*
 	* A truthful read of the game field and nothing more, kept because what KSP
 	* itself holds is worth knowing and because a command core dispatches is
-	* arbitrated against this value. It is NOT the field to branch on: under a
-	* career overhaul it can read `Dead` for a living retiree.
-	* `CrewRosterEntry.standing` is the field to branch on.
+	* arbitrated against this value. It is NOT the field to branch on: it reads
+	* `Available` for a kerbal standing down. `CrewRosterEntry.standing` is the
+	* field to branch on.
 	*
 	* `null` for an APPLICANT, and that is a real distinction rather than a
 	* missing value: an applicant is not in the roster, so it has no
@@ -6515,9 +6460,8 @@ export interface CrewRosterEntry
 	* standing down has roster status `Available`, and this flag is what turns
 	* that into `CrewStanding.Resting` with `CrewRosterEntry.available` false.
 	*
-	* Stock leaves it false. A career overhaul's post-flight R&R is what actually
-	* sets it, and it goes on the wire whether or not one is installed: the field
-	* is KSP's, so reading it costs a stock install nothing.
+	* The field is KSP's, so it goes on the wire on every install and reading it
+	* costs nothing.
 	*/
 	inactive?: boolean | null;
 	/**

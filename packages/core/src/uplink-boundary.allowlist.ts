@@ -1545,8 +1545,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/Gonogo.KSP/LiveStrategyArms.cs",
       "mod/Gonogo.KSP/StockStrategyActivation.cs",
       "mod/Gonogo.KSP/StrategyActivationRule.cs",
-      "mod/Gonogo.KSP/StrategyEligibility.cs",
-      "mod/Sitrep.Host/Crew/CrewStandingElection.cs",
       "mod/Gonogo.KSP.Tests/CalendarEpochTests.cs",
       "mod/Gonogo.KSP.Tests/Career/CommandGateDeclarationTests.cs",
       "mod/Gonogo.KSP.Tests/Career/StrategyReleaseTests.cs",
@@ -1555,7 +1553,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/Gonogo.KSP.Tests/StrategyActivationRuleTests.cs",
       "mod/Gonogo.KSP.Tests/StrategyEligibilityTests.cs",
       "mod/Sitrep.Host.IntegrationTests/ContributedRequirementTests.cs",
-      "mod/Sitrep.Host.Tests/CrewStandingElectionTests.cs",
       /*
        * The Uplink wiring scan's doc comments cite the two declaration shapes
        * (command names in one `foreach` array) that the walk had to learn,

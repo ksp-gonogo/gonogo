@@ -52,17 +52,13 @@ export interface CrewRosterRow {
   situation: string;
   /** `CrewStanding`: the field every decision reads and the Active tab's grouping key; `null` when none was sent. */
   standing: number | null;
-  /** Which provider decided {@link standing}; shown on a corrected row so the operator sees which mod claims a retirement. */
-  standingSource: string | null;
-  /** KSP's own `RosterStatus` ordinal, carried and never branched on: a career mod can leave it reading `Dead` for a living retiree. */
+  /** KSP's own `RosterStatus` ordinal, carried and never branched on: it reads `Available` for a kerbal standing down. */
   situationOrdinal: number | null;
   /** `ProtoCrewMember.inactive`, an input to the producer's `Resting` standing; never branched on here. */
   inactive: boolean;
   inactiveUntilUt: number | null;
-  /** When {@link standing} lapses, as universal time; absent for a standing with no scheduled end. */
+  /** When the kerbal's unavailability lapses, as universal time; absent when there is no scheduled end. */
   standingEndsAtUt: number | null;
-  /** When this kerbal retires, as universal time; absent where no backend schedules retirements. */
-  retiresAtUt: number | null;
   /** Whether the row is a hireable candidate rather than owned crew. */
   isApplicant: boolean;
   available: boolean;
@@ -157,16 +153,11 @@ export function readCrewRoster(raw: unknown): CrewRosterRow[] {
       experienceLevel: magnitudeOf(asQuantityish(e.experienceLevel)),
       situation: typeof e.situation === "string" ? e.situation : "",
       standing: standingOf(e),
-      standingSource:
-        typeof e.standingSource === "string" && e.standingSource !== ""
-          ? e.standingSource
-          : null,
       situationOrdinal:
         typeof e.situationOrdinal === "number" ? e.situationOrdinal : null,
       inactive: e.inactive === true,
       inactiveUntilUt: magnitudeOf(asQuantityish(e.inactiveUntilUt)),
       standingEndsAtUt: magnitudeOf(asQuantityish(e.standingEndsAtUt)),
-      retiresAtUt: magnitudeOf(asQuantityish(e.retiresAtUt)),
       isApplicant: e.isApplicant === true,
       available: e.available === true,
       unavailableReason:

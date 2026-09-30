@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "crew-mixed-standings",
-    "notes": "SYNTHETIC. One pad, one affordable craft, and a roster carrying every state the crew chips can be in: two kerbals free to fly, three unavailable for the three reasons the contract words itself (Assigned reads 'On mission', Training reads 'In training', Resting reads 'Standing down'), a retiree whose reason is the standing's own name, and one kerbal nothing could read. That last row is standing Unknown, which the contract gives an EMPTY unavailableReason on purpose because 'Unknown' beside a dead control reads as a diagnosis: it is the row that must not render as a kerbal on a mission. Pair with the `craft-picked-*` mode, the crew grid only exists once a craft is selected."
+    "notes": "SYNTHETIC. One pad, one affordable craft, and a roster carrying every state the crew chips can be in: two kerbals free to fly, one unavailable for each reason the contract words itself (Assigned reads 'On mission', Resting reads 'Standing down'), one a mod backend holds back in its own words while the standing still reads Available, a fatality whose reason is the standing's own name, and one kerbal nothing could read. That last row is standing Unknown, which the contract gives an EMPTY unavailableReason on purpose because 'Unknown' beside a dead control reads as a diagnosis: it is the row that must not render as a kerbal on a mission. Pair with the `craft-picked-*` mode, the crew grid only exists once a craft is selected."
   },
   "_stream": {
     "pinnedUt": 10,
@@ -89,9 +89,9 @@
             "trait": "Scientist",
             "experienceLevel": 2,
             "available": false,
-            "unavailableReason": "In training",
-            "standing": 4,
-            "situation": "Training"
+            "unavailableReason": "Held by planted",
+            "standing": 2,
+            "situation": "Available"
           },
           {
             "name": "Gene Kerman",
@@ -99,7 +99,7 @@
             "experienceLevel": 1,
             "available": false,
             "unavailableReason": "Standing down",
-            "standing": 5,
+            "standing": 4,
             "situation": "Resting"
           },
           {
@@ -107,9 +107,9 @@
             "trait": "Scientist",
             "experienceLevel": 5,
             "available": false,
-            "unavailableReason": "Retired",
-            "standing": 6,
-            "situation": "Retired"
+            "unavailableReason": "Dead",
+            "standing": 5,
+            "situation": "Dead"
           },
           {
             "name": "Dodrey Kerman",

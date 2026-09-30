@@ -312,9 +312,10 @@ export interface CrewAvatarContext {
  * `astronaut-complex.crew-badge` augment, once for each kerbal card in the
  * Astronaut Complex's Applicants and Active lists.
  *
- * `astronaut-complex.crew` draws under the kerbal's name, for detail such as a
- * retirement date or a training course's finish. `astronaut-complex.crew-badge`
- * draws in the card's top-right corner, for a short mark read with the name.
+ * `astronaut-complex.crew` draws under the kerbal's name, for detail your
+ * Uplink holds about that kerbal, such as a date. `astronaut-complex.crew-badge`
+ * draws in the card's top-right corner, for a short mark read with the name,
+ * such as a state of your own that KSP's roster does not know.
  *
  * @category Widget slots
  */

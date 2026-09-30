@@ -26,11 +26,11 @@ export interface KerbalStatFields {
   unavailableReason: string;
   /** A display label only; {@link standing} is the field that decides anything. */
   situation: string;
-  /** `CrewStanding`, which tells a retiree from a fatality where KSP's roster ordinal cannot. */
+  /** `CrewStanding`: the field that decides, where KSP's roster ordinal is only carried. */
   standing?: number | null;
   /** KSP's own `RosterStatus` ordinal; nothing here branches on it. */
   situationOrdinal?: number | null;
-  /** UT the current {@link standing} lapses, formatted client-side in the live calendar. */
+  /** UT the kerbal's unavailability lapses, formatted client-side in the live calendar. */
   standingEndsAtUt?: number | null;
   currentVesselName: string;
   /** Ratio 0-1; always carried, so the chips are gated by `showTraits` rather than presence. */

@@ -42,7 +42,7 @@ public class CommandCentreEntry
     [SitrepUnit(Units.Text)]
     public string? DisplayName { get; set; }
 
-    /// <summary>One of <c>GroundStation</c>, <c>CrewedVessel</c>, <c>Colony</c> or <c>Custom</c>: the kind of centre.</summary>
+    /// <summary>One of <c>GroundStation</c>, <c>CrewedVessel</c> or <c>Custom</c>: the kind of centre.</summary>
     [SitrepUnit(Units.Text)]
     public string? Kind { get; set; }
 

@@ -595,9 +595,20 @@ namespace Sitrep.Contract
         /// <c>reliability</c> capability's <c>IReliabilityBackend</c> are
         /// removed. Stock has no part-reliability model; each mod that has one
         /// publishes it on its own Topics and owns its own repair.</para>
+        ///
+        /// <para><b>Bumped 23 -&gt; 24: core carries no career overhaul's crew,
+        /// craft or strategy model.</b> <c>CrewStanding.Training</c> and
+        /// <c>CrewStanding.Retired</c> are removed and the stock standings
+        /// renumbered, and <c>CrewRosterEntry.StandingSource</c> and
+        /// <c>RetiresAtUt</c> go with them. The <c>notReady</c> refusal root,
+        /// <c>CareerStrategy.ActivateAvailableFromUt</c> and the
+        /// <c>strategyAvailability</c> capability are removed, and so are
+        /// <c>ICraftCatalogue.Load</c>, <c>Release</c> and <c>CraftLoad</c>.
+        /// <c>CommandCentreKind.Colony</c>, which nothing produced, is gone.
+        /// Stock has none of these; the mod that does owns them.</para>
         /// </internal>
         /// </summary>
-        public const int Major = 23;
+        public const int Major = 24;
 
         /// <summary>
         /// The contract's minor version within the current <see cref="Major"/>. It
@@ -1512,7 +1523,7 @@ namespace Sitrep.Contract
         /// <para><b>Bumped 1 -&gt; 2: an installed mod can impose its own launch
         /// conditions.</b> <see cref="IUplinkHost.AddCommandRequirement"/> lets an
         /// Uplink contribute a <see cref="CommandRequirement"/> to a command it
-        /// does not own, and <see cref="CommandErrorCode.NotReady"/> is the arm
+        /// does not own, and <c>CommandErrorCode.NotReady</c> is the arm
         /// the first such condition refuses on: a vehicle a career overhaul has
         /// not finished making launchable.</para>
         ///
@@ -2054,10 +2065,10 @@ namespace Sitrep.Contract
         /// 19.1 is unaffected.</para>
         ///
         /// <para><b>Major-20 line, Bumped 0 -&gt; 1:</b> the shared
-        /// <c>strategyAvailability</c> capability (<see cref="IStrategyAvailability"/>,
-        /// <see cref="StrategyUnavailability"/>), through which a career mod refuses a
+        /// <c>strategyAvailability</c> capability (<c>IStrategyAvailability</c>,
+        /// <c>StrategyUnavailability</c>), through which a career mod refuses a
         /// strategy on a rule of its own, and
-        /// <see cref="CareerStrategy.ActivateAvailableFromUt"/>, when such a refusal
+        /// <c>CareerStrategy.ActivateAvailableFromUt</c>, when such a refusal
         /// lapses. Additive, so an Uplink built against 20.0 is unaffected.</para>
         /// </internal>
         /// </summary>

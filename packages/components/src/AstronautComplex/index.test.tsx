@@ -82,12 +82,10 @@ function emitCrewRoster(
     experienceLevel?: number;
     situation: string;
     standing?: number;
-    standingSource?: string;
     situationOrdinal?: number;
     inactive?: boolean;
     inactiveUntilUt?: number;
     standingEndsAtUt?: number;
-    retiresAtUt?: number;
     isApplicant?: boolean;
     available?: boolean;
     unavailableReason?: string;
@@ -145,12 +143,7 @@ const NEXT_HIRE_COST = 24000;
 // KSP's int.MaxValue: GetActiveCrewLimit's unlimited roster.
 const UNLIMITED_CREW_CAP = 2_147_483_647;
 
-/*
- * Spans every stock standing plus a career mod's retiree, so the Active tab must
- * derive its sub-tabs. Gus carries KSP's Dead ordinal AND a Retired standing
- * attributed to the backend that corrected it, exactly as a live career mod
- * sends it.
- */
+/* Spans four standings, so the Active tab must derive its sub-tabs. */
 const CREW_ROSTER = [
   {
     name: "Bill Kerman",
@@ -207,21 +200,6 @@ const CREW_ROSTER = [
     courage: 0.7,
     stupidity: 0.25,
     experienceLevelDelta: 1,
-  },
-  {
-    name: "Gus Kerman",
-    trait: "Pilot",
-    experienceLevel: 4,
-    // KSP's own ordinal is Dead, which is what the career mod writes.
-    situation: "Retired",
-    standing: CrewStanding.Retired,
-    standingSource: "planted",
-    situationOrdinal: 2,
-    available: false,
-    unavailableReason: "Retired",
-    courage: 0.55,
-    stupidity: 0.35,
-    experienceLevelDelta: 0.9,
   },
 ];
 
@@ -350,7 +328,7 @@ describe("AstronautComplexComponent", () => {
     expect(screen.getByText(/no active crew/i)).toBeInTheDocument();
   });
 
-  it("derives one Active sub-tab per CrewStanding present, retirees apart from fatalities, with per-tab counts and no hardcoded fold", async () => {
+  it("derives one Active sub-tab per CrewStanding present, with per-tab counts and no hardcoded fold", async () => {
     const user = userEvent.setup();
     renderWidget();
     act(() => {
@@ -367,11 +345,10 @@ describe("AstronautComplexComponent", () => {
 
     await user.click(screen.getByRole("tab", { name: "Active" }));
 
-    // Dead, Missing and Retired each get their own tab, and Gus must not land in Dead.
+    // Dead and Missing each get their own tab.
     for (const [standing, count] of [
       ["Available", 1],
       ["Assigned", 1],
-      ["Retired", 1],
       ["Dead", 1],
       ["Missing", 1],
     ] as const) {
@@ -503,7 +480,7 @@ describe("AstronautComplexComponent", () => {
     expect(
       await screen.findByRole("tab", { name: "Available (1)" }),
     ).toBeInTheDocument();
-    for (const situation of ["Assigned", "Dead", "Missing", "Retired"]) {
+    for (const situation of ["Assigned", "Dead", "Missing"]) {
       expect(
         screen.queryByRole("tab", { name: new RegExp(situation, "i") }),
       ).not.toBeInTheDocument();
@@ -811,58 +788,6 @@ describe("AstronautComplexComponent", () => {
     );
   });
 
-  /** A career mod can write stock's Dead into a retiree's roster status: Gus belongs in his own tab, never under a fatality badge. */
-  it("puts a career mod's retiree in a Retired tab and not in the Dead tab, with a badge that is not a fatality", async () => {
-    const user = userEvent.setup();
-    renderWidget();
-    act(() => {
-      emitFunds(fixture, 500000);
-      emitComplex(fixture, {
-        applicants: [],
-        activeCrew: CREW_ROSTER.length,
-        crewCapacity: 13,
-        nextHireCost: NEXT_HIRE_COST,
-      });
-      emitCrewRoster(fixture, CREW_ROSTER);
-    });
-    await user.click(await screen.findByRole("tab", { name: "Active" }));
-
-    await user.click(await screen.findByRole("tab", { name: "Dead (1)" }));
-    expect(await screen.findByText("Val Kerman")).toBeInTheDocument();
-    expect(screen.queryByText("Gus Kerman")).not.toBeInTheDocument();
-    const deadClass = (await screen.findByText("Dead")).className;
-
-    await user.click(await screen.findByRole("tab", { name: "Retired (1)" }));
-    expect(await screen.findByText("Gus Kerman")).toBeInTheDocument();
-    const retiredClass = (await screen.findByText("Retired")).className;
-
-    // Retiring is not dying, and the badge says so.
-    expect(retiredClass).not.toBe(deadClass);
-  });
-
-  /** The Fire control follows the standing, and firing a retiree is not an action any operator meant. */
-  it("offers no Fire control on a Retired row", async () => {
-    const user = userEvent.setup();
-    renderWidget();
-    act(() => {
-      emitFunds(fixture, 500000);
-      emitComplex(fixture, {
-        applicants: [],
-        activeCrew: CREW_ROSTER.length,
-        crewCapacity: 13,
-        nextHireCost: NEXT_HIRE_COST,
-      });
-      emitCrewRoster(fixture, CREW_ROSTER);
-    });
-    await user.click(await screen.findByRole("tab", { name: "Active" }));
-    await user.click(await screen.findByRole("tab", { name: "Retired (1)" }));
-    await screen.findByText("Gus Kerman");
-
-    expect(
-      screen.queryByRole("button", { name: /^Fire / }),
-    ).not.toBeInTheDocument();
-  });
-
   /** A kerbal standing down gets their own tab, is not offered for a flight, and IS still fireable. */
   it("gives a kerbal standing down their own tab and no flight, but still lets them be fired", async () => {
     const user = userEvent.setup();
@@ -909,11 +834,11 @@ describe("AstronautComplexComponent", () => {
   });
 
   /**
-   * A kerbal mid-course is refused for a flight with a reason, with no
-   * knowledge of training in this widget: the producer's derived `available`
-   * is a whitelist, so an unheard-of standing reads unavailable too.
+   * A kerbal a mod backend holds back is refused for a flight with the
+   * backend's own reason, though the standing still reads Available: the
+   * widget branches on the producer's `available`, not on the standing.
    */
-  it("refuses to fly a kerbal in training it knows nothing about, and says why", async () => {
+  it("refuses to fly a kerbal a backend holds back, and says why in its words", async () => {
     const user = userEvent.setup();
     renderWidget();
     act(() => {
@@ -927,13 +852,11 @@ describe("AstronautComplexComponent", () => {
       emitCrewRoster(fixture, [
         {
           ...CREW_ROSTER[0],
-          standing: CrewStanding.Training,
-          situation: "Training",
-          standingSource: "planted",
-          // KSP's own ordinal reads Available throughout a course.
+          standing: CrewStanding.Available,
+          situation: "Available",
           situationOrdinal: 0,
           available: false,
-          unavailableReason: "In training",
+          unavailableReason: "Held by planted",
           standingEndsAtUt: 9_000_000,
         },
       ]);
@@ -941,13 +864,13 @@ describe("AstronautComplexComponent", () => {
     await user.click(await screen.findByRole("tab", { name: "Active" }));
 
     expect(
-      await screen.findByRole("tab", { name: "Training (1)" }),
+      await screen.findByRole("tab", { name: "Available (1)" }),
     ).toBeInTheDocument();
     const row = (await screen.findByText("Bill Kerman")).closest(
       "li",
     ) as HTMLElement;
-    expect(within(row).getByText("In training")).toBeInTheDocument();
-    // An unavailable trainee is not an alarming state.
+    expect(within(row).getByText("Held by planted")).toBeInTheDocument();
+    // A kerbal held back is not an alarming state.
     expect(within(row).queryByText("Dead")).not.toBeInTheDocument();
   });
 
@@ -966,19 +889,21 @@ describe("AstronautComplexComponent", () => {
       emitCrewRoster(fixture, [
         {
           ...CREW_ROSTER[0],
-          standing: CrewStanding.Training,
-          situation: "Training",
+          standing: CrewStanding.Resting,
+          situation: "Resting",
           available: false,
-          unavailableReason: "In training",
+          unavailableReason: "Standing down",
+          inactive: true,
+          inactiveUntilUt: 9_000_000,
           standingEndsAtUt: 9_000_000,
         },
       ]);
     });
     await user.click(await screen.findByRole("tab", { name: "Active" }));
 
-    const badge = await screen.findByText("In training");
+    const badge = await screen.findByText("Standing down");
     const title = badge.getAttribute("title") ?? "";
-    expect(title).toContain("In training until ");
+    expect(title).toContain("Standing down until ");
     // A rendered date, not the raw UT.
     expect(title).not.toContain("9000000");
   });
@@ -1193,11 +1118,11 @@ describe("AstronautComplexComponent", () => {
     ).toBeInTheDocument();
 
     await user.click(await screen.findByRole("tab", { name: "Active" }));
-    await user.click(await screen.findByRole("tab", { name: "Retired (1)" }));
+    await user.click(await screen.findByRole("tab", { name: "Dead (1)" }));
 
-    // The augment gets the CORRECTED standing, not KSP's Dead ordinal.
+    // The augment gets the standing, not KSP's roster ordinal.
     expect(
-      await screen.findByText(`Gus Kerman:${CrewStanding.Retired}:crew`),
+      await screen.findByText(`Val Kerman:${CrewStanding.Dead}:crew`),
     ).toBeInTheDocument();
   });
 

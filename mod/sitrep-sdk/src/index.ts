@@ -109,7 +109,6 @@ export {
   crewStandingLabel,
   crewUnavailableSentence,
   isFatality,
-  isOffTheBooks,
 } from "./crew-standing";
 // Whether a Topic's value is entitled to be read as of TRUE NOW, or only as of
 // now minus the light-time to the craft. Published for the same reason

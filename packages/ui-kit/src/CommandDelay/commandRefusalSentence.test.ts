@@ -210,10 +210,10 @@ describe("what an operator reads when the game says no", () => {
     ).toBe("Launch refused: Launch Site Occupied.");
   });
 
-  it("quotes the mod's own reason when a vehicle is not ready to fly", () => {
+  it("quotes a contributed requirement's own reason", () => {
     expect(
       commandRefusalSentence({
-        errorCode: CommandErrorCode.NotReady,
+        errorCode: CommandErrorCode.WrongState,
         command: "ksp.launch",
         args: { shipName: "V-2" },
         detail:
@@ -248,17 +248,6 @@ describe("what an operator reads when the game says no", () => {
     ).toBe(
       "Launch Kerbal X refused: this command centre has no authority over that place.",
     );
-  });
-
-  // NotReady must not read as a limit: the vehicle has not been built yet.
-  it("says the general thing for a not-ready refusal that carried no reason", () => {
-    expect(
-      commandRefusalSentence({
-        errorCode: CommandErrorCode.NotReady,
-        command: "ksp.launch",
-        args: { shipName: "V-2" },
-      }),
-    ).toBe("Launch V-2 refused: the vehicle is not ready to fly yet.");
   });
 
   it("says the general thing for an arm the game gave no words for", () => {

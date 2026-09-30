@@ -226,7 +226,7 @@ export function AstronautComplexComponent(
                 </Badge>
               )}
             </Stat>
-            {/* Whatever the save's career model considers as core as the three above. */}
+            {/* Further cells an Uplink contributes, drawn like the three above. */}
             <StatContributions slot={ASTRONAUT_COMPLEX_READOUTS_SLOT} />
           </StatStrip>
         </Section>,

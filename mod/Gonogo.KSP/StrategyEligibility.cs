@@ -1,5 +1,4 @@
 using System;
-using Sitrep.Contract;
 
 namespace Gonogo.KSP
 {
@@ -25,8 +24,7 @@ namespace Gonogo.KSP
     /// <para>The unanswered case stays ABSENT and never false. A false with a
     /// reason beside it says the game judged this strategy and refused it, and an
     /// operator reads "eligibility check failed" as an intermittent fault in
-    /// something. Neither is true, and a live RP-1 career published exactly that
-    /// pair on every Program it had.</para>
+    /// something. Neither is true.</para>
     ///
     /// <para>A KSP-free rule so it can be pinned headless, the same shape as
     /// <see cref="StageRule"/> and the other decision types beside it. The live
@@ -60,43 +58,27 @@ namespace Gonogo.KSP
         public string VerdictSource { get; }
 
         /// <summary>
-        /// When a career mod's refusal lapses on its own, or <c>null</c> when
-        /// nothing refused on a clock.
-        /// </summary>
-        public double? AvailableFromUt { get; }
-
-        /// <summary>
         /// What an active strategy is told. Asking KSP's gate of one that is
-        /// already running answers with whichever rule it trips over itself, and
-        /// under RP-1 that is the department clash, reworded to talk about
-        /// Leaders even for a Program.
+        /// already running answers with whichever rule it trips over itself,
+        /// which need not be the one about being active.
         /// </summary>
         public const string AlreadyActiveReason = "Already active";
 
-        private StrategyEligibility(
-            bool? canActivate, string? blockedReason, string verdictSource, double? availableFromUt = null)
+        private StrategyEligibility(bool? canActivate, string? blockedReason, string verdictSource)
         {
             CanActivate = canActivate;
             BlockedReason = blockedReason;
             VerdictSource = verdictSource;
-            AvailableFromUt = availableFromUt;
         }
 
         /// <summary>
         /// The roster's verdict on one strategy. An active strategy is refused as
-        /// active without asking anything, a career mod's own rule refuses next in
-        /// its own words, and only then is KSP's gate put through
-        /// <paramref name="askGame"/>.
+        /// active without asking anything, and only then is KSP's gate put
+        /// through <paramref name="askGame"/>.
         /// </summary>
-        public static StrategyEligibility Judge(
-            bool isActive, StrategyUnavailability? careerRefusal, Func<StrategyEligibility> askGame)
+        public static StrategyEligibility Judge(bool isActive, Func<StrategyEligibility> askGame)
         {
             if (isActive) return Derived(false, AlreadyActiveReason);
-            if (careerRefusal != null)
-            {
-                return new StrategyEligibility(
-                    false, careerRefusal.Reason, DerivedSource, careerRefusal.AvailableFromUt);
-            }
             return askGame();
         }
 

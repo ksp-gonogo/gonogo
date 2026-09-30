@@ -212,30 +212,6 @@ public static class CommandErrorCode
     public static readonly RefusalCode FacilityDamaged = RefusalCode.DeclareRoot("facilityDamaged", "the building is out of action");
 
     /// <summary>
-    /// The vehicle is not a launchable article yet: an install's build and
-    /// logistics model has work outstanding on it. Nothing is over a limit and
-    /// nothing is broken, the thing simply has not been made ready.
-    ///
-    /// <para>Authority: whichever Uplink contributed the readiness requirement
-    /// that refused (see <see cref="IUplinkHost.AddCommandRequirement"/>), never
-    /// a stock KSP read: stock has no build step, so this code never arrives on
-    /// a stock install. Under a build model it may be a vehicle that was never
-    /// integrated, one still integrating, one finished but not rolled out, or one
-    /// rolled out to a pad still being reconditioned.
-    /// <see cref="Sitrep.Contract.CommandResult.Detail"/> says which.</para>
-    ///
-    /// <para>Not <see cref="LimitReached"/>, the launch refusal for a craft too
-    /// heavy or too large for the site, fixed by changing the craft or upgrading
-    /// the pad. This one is fixed by doing the outstanding work.</para>
-    ///
-    /// <para>Not <see cref="NotFound"/> either, which <c>ksp.launch</c> returns
-    /// when no craft file has the name. A craft that exists on disk and has
-    /// never been built is a different situation from one that does not
-    /// exist.</para>
-    /// </summary>
-    public static readonly RefusalCode NotReady = RefusalCode.DeclareRoot("notReady", "the vehicle is not ready to fly yet");
-
-    /// <summary>
     /// The command consumes a countable ITEM and there are not enough of them
     /// aboard.
     ///

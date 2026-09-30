@@ -484,8 +484,8 @@ public static class RtConfig
                 typeof(SettingsPersistenceState),
                 // A kerbal's standing (CrewStanding.cs). Sitrep's OWN
                 // vocabulary, so it sits above the mirrors rather than among
-                // them: it deliberately does not share KSP's numbering, and it
-                // grows when a mod models a standing KSP has no word for.
+                // them: it deliberately does not share KSP's numbering, because
+                // Applicant and Resting have no roster status of their own.
                 typeof(CrewStanding),
                 // KSP's own enums (KspEnums.cs), exported so the client's
                 // ordinal→name tables and closed unions are DERIVED from the

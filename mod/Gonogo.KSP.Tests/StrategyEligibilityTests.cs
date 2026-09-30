@@ -1,5 +1,6 @@
+using System;
 using Gonogo.KSP;
-using Sitrep.Contract;
+using Gonogo.KSP.Tests.CurrencyDelay;
 using Xunit;
 
 namespace Gonogo.KSP.Tests
@@ -94,12 +95,11 @@ namespace Gonogo.KSP.Tests
         [Fact]
         public void An_active_strategy_is_refused_as_active_without_asking_the_game()
         {
-            // Asking KSP's gate of a running strategy trips a rule over itself, and
-            // under RP-1 that rule's text talks about Leaders even for a Program.
+            // Asking KSP's gate of a running strategy trips a rule over itself,
+            // which need not be the one about being active.
             var asked = false;
             var eligibility = StrategyEligibility.Judge(
                 isActive: true,
-                careerRefusal: null,
                 askGame: () =>
                 {
                     asked = true;
@@ -112,41 +112,38 @@ namespace Gonogo.KSP.Tests
         }
 
         [Fact]
-        public void A_career_mods_own_rule_refuses_in_its_words_and_carries_when_it_lapses()
-        {
-            var asked = false;
-            var eligibility = StrategyEligibility.Judge(
-                isActive: false,
-                careerRefusal: new StrategyUnavailability
-                {
-                    Reason = "This Leader was dismissed and cannot be re-appointed yet.",
-                    AvailableFromUt = 12345.0,
-                },
-                askGame: () =>
-                {
-                    asked = true;
-                    return StrategyEligibility.Screened(true, "");
-                });
-
-            Assert.False(asked);
-            Assert.False(eligibility.CanActivate);
-            Assert.Equal("This Leader was dismissed and cannot be re-appointed yet.", eligibility.BlockedReason);
-            Assert.Equal(12345.0, eligibility.AvailableFromUt);
-            Assert.Equal(StrategyEligibility.DerivedSource, eligibility.VerdictSource);
-        }
-
-        [Fact]
         public void With_nothing_against_it_the_game_is_asked_and_its_answer_stands()
         {
             var eligibility = StrategyEligibility.Judge(
                 isActive: false,
-                careerRefusal: null,
                 askGame: () => StrategyEligibility.Screened(false, "This Program has unmet requirements."));
 
             Assert.False(eligibility.CanActivate);
             Assert.Equal("This Program has unmet requirements.", eligibility.BlockedReason);
             Assert.Equal(StrategyEligibility.ScreenedSource, eligibility.VerdictSource);
-            Assert.Null(eligibility.AvailableFromUt);
+        }
+
+        [Fact]
+        public void The_deactivate_command_puts_the_gate_before_deactivating_so_its_reason_survives()
+        {
+            var body = CurrencyDelaySourceText.MethodBody(
+                CurrencyDelaySourceText.ReadRelative("KspCareerActuator.cs"),
+                "public CommandResult DeactivateStrategy(");
+
+            var gate = body.IndexOf("CanBeDeactivated(out var reason)", StringComparison.Ordinal);
+            Assert.True(gate >= 0, "DeactivateStrategy never asks CanBeDeactivated for its reason");
+            Assert.True(gate < body.IndexOf("StrategyRelease.Deactivate(", StringComparison.Ordinal));
+            Assert.Contains("CareerRefusals.DeactivateRefusal(reason)", body, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void The_roster_judges_every_strategy_through_the_one_ordering()
+        {
+            var body = CurrencyDelaySourceText.MethodBody(
+                CurrencyDelaySourceText.ReadRelative("KspHost.cs"),
+                "private static Dictionary<string, object?> BuildStrategyEntry(");
+
+            Assert.Contains("StrategyEligibility.Judge(", body, StringComparison.Ordinal);
         }
     }
 }

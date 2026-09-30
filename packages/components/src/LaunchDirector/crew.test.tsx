@@ -128,9 +128,9 @@ describe("LaunchDirector crew selection", () => {
         }),
         kerbal("Bob", {
           available: false,
-          unavailableReason: "In training",
+          unavailableReason: "Standing down",
           standing: 4,
-          situation: "Training",
+          situation: "Resting",
         }),
       ]);
     });
@@ -143,7 +143,7 @@ describe("LaunchDirector crew selection", () => {
     expect(screen.getByText("Bob")).toBeInTheDocument();
     // The reason is rendered text, so it survives a device with no hover.
     expect(screen.getByText("On mission")).toBeInTheDocument();
-    expect(screen.getByText("In training")).toBeInTheDocument();
+    expect(screen.getByText("Standing down")).toBeInTheDocument();
     expect(screen.getByText(/Crew \(3\) · 2 unavailable/)).toBeInTheDocument();
   });
 
@@ -304,9 +304,9 @@ describe("LaunchDirector crew render scenes", () => {
 
     expect(text).toContain("Crew (7) · 4 unavailable · 1 no reading");
     expect(text).toContain("On mission");
-    expect(text).toContain("In training");
+    expect(text).toContain("Held by planted");
     expect(text).toContain("Standing down");
-    expect(text).toContain("Retired");
+    expect(text).toContain("Dead");
     expect(text).toContain("no reading");
     // Real buttons carrying aria-pressed for the selection and aria-disabled for the rest.
     await expectNoA11yViolations(rendered.container);

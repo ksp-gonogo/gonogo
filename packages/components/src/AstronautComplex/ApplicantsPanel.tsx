@@ -32,7 +32,7 @@ export function ApplicantsPanel({
         return (
           // Kerbal names are unique within the applicant pool, so the name is a stable key.
           <Card as="li" key={a.name}>
-            {/* Hand-composed so the KerbalStats block does not inherit the heading type; the corner holds the career model's mark, then the action. */}
+            {/* Hand-composed so the KerbalStats block does not inherit the heading type; the corner holds an Uplink's mark, then the action. */}
             <Card.TitleRow
               right={
                 <Cluster align="center">
@@ -56,7 +56,7 @@ export function ApplicantsPanel({
               <KerbalName name={a.name} />
             </Card.TitleRow>
             <KerbalStats kerbal={stats} showRank={false} showTraits showInfo />
-            {/* An applicant has a schedule too under a career overhaul, flagged so an augment knows which list it is in. */}
+            {/* The same cell as the Active list's, flagged so an augment knows which list it is in. */}
             <AugmentSlot
               name="astronaut-complex.crew"
               props={{

@@ -39,8 +39,8 @@ namespace Sitrep.Host.CommandCentres
     ///
     /// <para>Every home is <c>ground:&lt;nodeName&gt;</c>, the space centre
     /// included. Which of them is home is the elected home-command claimant's
-    /// answer, published beside the id, so stock and a career overhaul differ only
-    /// in which claimant answers and never in what a station is called.</para>
+    /// answer, published beside the id, so two installs differ only in which
+    /// claimant answers and never in what a station is called.</para>
     ///
     /// <para>Two homes whose names would mint the same id are told apart with a
     /// <c>#&lt;n&gt;</c> suffix from 2 upwards, handed out by position so the same

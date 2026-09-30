@@ -184,7 +184,7 @@ namespace Sitrep.Host.IntegrationTests
                 {
                     _owner.Asked.Add(requirement.Quantity);
                     return _owner.Refuse.Contains(requirement.Quantity)
-                        ? GateVerdict.Fail(CommandErrorCode.NotReady, requirement.Quantity + " is outstanding")
+                        ? GateVerdict.Fail(CommandErrorCode.WrongState, requirement.Quantity + " is outstanding")
                         : GateVerdict.Pass();
                 }
             }
@@ -209,7 +209,7 @@ namespace Sitrep.Host.IntegrationTests
                 var verdict = engine.EvaluateGates(OwnedCommand, Args.With("shipName", "V-2"));
 
                 Assert.Equal(GateOutcome.Fail, verdict.Outcome);
-                Assert.Equal(CommandErrorCode.NotReady, verdict.ErrorCode);
+                Assert.Equal(CommandErrorCode.WrongState, verdict.ErrorCode);
                 Assert.Equal("built is outstanding", verdict.Detail);
             }
             finally { engine.Stop(); }
@@ -297,7 +297,7 @@ namespace Sitrep.Host.IntegrationTests
             {
                 var verdict = engine.EvaluateGates(OwnedCommand, Args.With("shipName", "V-2"));
 
-                Assert.Equal(CommandErrorCode.NotReady, verdict.ErrorCode);
+                Assert.Equal(CommandErrorCode.WrongState, verdict.ErrorCode);
                 Assert.Equal(new[] { "built", "loaded", "rolledOut" }, contributor.Asked);
             }
             finally { engine.Stop(); }

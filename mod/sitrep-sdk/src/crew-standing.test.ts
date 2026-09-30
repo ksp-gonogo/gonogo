@@ -8,7 +8,6 @@ import {
   crewStandingLabel,
   crewUnavailableSentence,
   isFatality,
-  isOffTheBooks,
 } from "./crew-standing";
 
 describe("CREW_STANDING_ORDER", () => {
@@ -27,14 +26,9 @@ describe("CREW_STANDING_ORDER", () => {
     );
   });
 
-  /**
-   * The whole reason this list is derived rather than transcribed. The
-   * predecessor derived the same ordering from KSP's `RosterStatus` and carried
-   * a comment promising a mod's "Retired" a tab for free; it never got one,
-   * because a career mod can append no roster status.
-   */
-  it("carries Retired, which no KSP roster status supplies", () => {
-    expect(CREW_STANDING_ORDER).toContain(CrewStanding.Retired);
+  it("carries Applicant and Resting, which no KSP roster status supplies", () => {
+    expect(CREW_STANDING_ORDER).toContain(CrewStanding.Applicant);
+    expect(CREW_STANDING_ORDER).toContain(CrewStanding.Resting);
   });
 });
 
@@ -67,25 +61,6 @@ describe("crewStandingFromRosterStatus", () => {
       CrewStanding.Unknown,
     );
   });
-
-  /**
-   * The direction that matters. This exists for version skew against a mod
-   * build older than the crew-standing capability, and against such a build
-   * there is no retiree set to consult: such a retiree carries stock's Dead
-   * and reads as a fatality. That is the truth about that pairing, and
-   * inventing a retirement from the ordinal alone would be a guess the client
-   * has no grounds for.
-   */
-  it("never invents a retirement, because the ordinal cannot supply one", () => {
-    for (const ordinal of [-1, 0, 1, 2, 3, 4, 5, 6, 9, null, undefined]) {
-      expect(crewStandingFromRosterStatus(ordinal, false)).not.toBe(
-        CrewStanding.Retired,
-      );
-      expect(crewStandingFromRosterStatus(ordinal, true)).not.toBe(
-        CrewStanding.Retired,
-      );
-    }
-  });
 });
 
 describe("crewStandingLabel", () => {
@@ -103,20 +78,9 @@ describe("crewStandingLabel", () => {
   });
 });
 
-describe("isFatality / isOffTheBooks", () => {
-  /**
-   * THE distinction, in the one helper every badge severity reads. Retiring is
-   * not dying, and a badge that cannot tell them apart is what told operators
-   * their astronauts had been killed.
-   */
-  it("counts a retirement as off the books but not as a fatality", () => {
-    expect(isOffTheBooks(CrewStanding.Retired)).toBe(true);
-    expect(isFatality(CrewStanding.Retired)).toBe(false);
-  });
-
-  it("counts a death and a disappearance as both", () => {
+describe("isFatality", () => {
+  it("counts a death and a disappearance", () => {
     for (const standing of [CrewStanding.Dead, CrewStanding.Missing]) {
-      expect(isOffTheBooks(standing)).toBe(true);
       expect(isFatality(standing)).toBe(true);
     }
   });
@@ -125,12 +89,12 @@ describe("isFatality / isOffTheBooks", () => {
     for (const standing of [
       CrewStanding.Available,
       CrewStanding.Assigned,
+      CrewStanding.Resting,
       CrewStanding.Applicant,
       CrewStanding.Unknown,
       null,
       undefined,
     ]) {
-      expect(isOffTheBooks(standing)).toBe(false);
       expect(isFatality(standing)).toBe(false);
     }
   });
@@ -139,17 +103,13 @@ describe("isFatality / isOffTheBooks", () => {
 describe("canBeSacked", () => {
   /**
    * Firing is not flying, and this is the case that says why the two are
-   * separate questions. A kerbal standing down after a flight or part-way
-   * through a course cannot be assigned to a mission and can perfectly well be
-   * let go: KSP's own `SackAvailable` is gated on `rosterStatus == Available`,
-   * which is what the game holds for both of them.
+   * separate questions. A kerbal standing down after a flight cannot be
+   * assigned to a mission and can perfectly well be let go: KSP's own
+   * `SackAvailable` is gated on `rosterStatus == Available`, which is what the
+   * game holds for a resting kerbal.
    */
-  it("lets a resting or training kerbal be fired, the same as an idle one", () => {
-    for (const standing of [
-      CrewStanding.Available,
-      CrewStanding.Resting,
-      CrewStanding.Training,
-    ]) {
+  it("lets a resting kerbal be fired, the same as an idle one", () => {
+    for (const standing of [CrewStanding.Available, CrewStanding.Resting]) {
       expect(canBeSacked(standing)).toBe(true);
     }
   });
@@ -157,7 +117,6 @@ describe("canBeSacked", () => {
   it("refuses for a kerbal on a mission or off the books", () => {
     for (const standing of [
       CrewStanding.Assigned,
-      CrewStanding.Retired,
       CrewStanding.Dead,
       CrewStanding.Missing,
       CrewStanding.Applicant,
@@ -183,8 +142,8 @@ describe("canBeSacked", () => {
 describe("crewUnavailableSentence", () => {
   it("joins the reason to the when, formatted by the caller", () => {
     expect(
-      crewUnavailableSentence("In training", 9_000_000, () => "Y2 D14"),
-    ).toBe("In training until Y2 D14");
+      crewUnavailableSentence("Standing down", 9_000_000, () => "Y2 D14"),
+    ).toBe("Standing down until Y2 D14");
   });
 
   /**
@@ -193,10 +152,8 @@ describe("crewUnavailableSentence", () => {
    * scheduled end, still gets something true to show.
    */
   it("gives the reason alone with no when and with no formatter", () => {
-    expect(crewUnavailableSentence("Retired", null, () => "Y2 D14")).toBe(
-      "Retired",
-    );
-    expect(crewUnavailableSentence("Retired", 9_000_000)).toBe("Retired");
+    expect(crewUnavailableSentence("Dead", null, () => "Y2 D14")).toBe("Dead");
+    expect(crewUnavailableSentence("Dead", 9_000_000)).toBe("Dead");
   });
 
   /**
@@ -207,11 +164,11 @@ describe("crewUnavailableSentence", () => {
   it("refuses a non-finite when rather than rendering it", () => {
     expect(
       crewUnavailableSentence(
-        "In training",
+        "Standing down",
         Number.POSITIVE_INFINITY,
         () => "never",
       ),
-    ).toBe("In training");
+    ).toBe("Standing down");
   });
 
   it("says nothing at all for a kerbal who can fly", () => {

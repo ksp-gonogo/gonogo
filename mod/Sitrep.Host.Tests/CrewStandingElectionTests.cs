@@ -10,18 +10,11 @@ namespace Sitrep.Host.Tests
     /// The crew-standing election, driven through the REAL <see cref="Kernel"/>,
     /// and the mapping either answer produces.
     ///
-    /// <para>The case these exist for is a specific one, so it is worth stating
-    /// plainly. RP-1 retires a kerbal by writing stock's <c>Dead</c> into
-    /// <c>rosterStatus</c> and remembering the name in a private set of its own.
-    /// Every reading of the stock field therefore reported a living retiree as a
-    /// fatality, on a mission-control board, and no amount of care in reading the
-    /// field could have caught it: the difference is not in the field.</para>
-    ///
-    /// <para>So the interesting assertions below are not "does the election
-    /// work". They are: a backend that corrects ONE kerbal does not have to
-    /// answer for the rest of the roster; the default it declines into is the
-    /// stock map rather than a hole; and stock's own answer never invents a
-    /// retirement it has no concept of.</para>
+    /// <para>The interesting assertions below are not "does the election work".
+    /// They are: a backend that corrects ONE kerbal does not have to answer for
+    /// the rest of the roster; the default it declines into is the stock map
+    /// rather than a hole; and a backend that overrides one field leaves every
+    /// other field to the stock derivation.</para>
     /// </summary>
     public class CrewStandingElectionTests
     {
@@ -41,16 +34,16 @@ namespace Sitrep.Host.Tests
             })!.Standing!.Value;
 
         /// <summary>
-        /// A career overhaul's backend, standing in for RP-1: one named retiree,
-        /// silence about everyone else.
+        /// A planted mod backend: one named kerbal it stands down, silence about
+        /// everyone else.
         /// </summary>
-        private sealed class FakeOverhaulBackend : ICrewStandingBackend
+        private sealed class PlantedBackend : ICrewStandingBackend
         {
-            public string ProviderId => "fake-overhaul";
+            public string ProviderId => "planted";
 
             public CrewStandingReading? Read(CrewStandingQuery query) =>
                 query.KerbalName == "Wernher Kerman"
-                    ? new CrewStandingReading { Standing = CrewStanding.Retired }
+                    ? new CrewStandingReading { Standing = CrewStanding.Resting, StandingEndsAtUt = 1_000.0 }
                     : null;
         }
 
@@ -65,14 +58,14 @@ namespace Sitrep.Host.Tests
         private sealed class ProviderOnlyUplink : ISitrepUplink
         {
             public UplinkHealth Health() => UplinkHealth.Healthy;
-            public UplinkManifest Manifest { get; } = new UplinkManifest { Id = "fake-overhaul", Version = "1.0.0" };
+            public UplinkManifest Manifest { get; } = new UplinkManifest { Id = "planted", Version = "1.0.0" };
             public void Register(IUplinkHost host) =>
                 host.Kernel.RegisterProvider(new ProviderRegistration
                 {
                     Capability = CrewStandingElection.CapabilityId,
-                    Id = "fake-overhaul",
+                    Id = "planted",
                     Priority = ProviderPriority,
-                    Factory = _ => new FakeOverhaulBackend(),
+                    Factory = _ => new PlantedBackend(),
                 });
         }
 
@@ -85,9 +78,9 @@ namespace Sitrep.Host.Tests
                 kernel.RegisterProvider(new ProviderRegistration
                 {
                     Capability = CrewStandingElection.CapabilityId,
-                    Id = "fake-overhaul",
+                    Id = "planted",
                     Priority = ProviderPriority,
-                    Factory = _ => new FakeOverhaulBackend(),
+                    Factory = _ => new PlantedBackend(),
                 });
             }
             kernel.Resolve(new ResolveOptions { KernelVersion = "2.2.0" });
@@ -109,15 +102,14 @@ namespace Sitrep.Host.Tests
             var elected = CrewStandingElection.Elected(ResolvedKernel(providerPresent: true));
 
             Assert.NotNull(elected);
-            Assert.Equal("fake-overhaul", elected!.ProviderId);
+            Assert.Equal("planted", elected!.ProviderId);
         }
 
         /// <summary>
         /// The adversarial ordering a two-pass registration exists for: the
         /// provider uplink is discovered BEFORE the capability owner. Get this
-        /// wrong on an RP-1 install and the roster silently reverts to reporting
-        /// retirees as fatalities, which is the failure this whole capability was
-        /// added to end.
+        /// wrong and the roster silently reverts to the stock map on an install
+        /// whose mod backend knows better.
         /// </summary>
         [Fact]
         public void ProviderDiscoveredBeforeCapability_ProviderStillWins()
@@ -135,7 +127,7 @@ namespace Sitrep.Host.Tests
 
             var elected = CrewStandingElection.Elected(engine.Kernel);
             Assert.NotNull(elected);
-            Assert.Equal("fake-overhaul", elected!.ProviderId);
+            Assert.Equal("planted", elected!.ProviderId);
         }
 
         /// <summary>
@@ -154,19 +146,18 @@ namespace Sitrep.Host.Tests
 
         /// <summary>
         /// The elected backend answers for the ONE kerbal it knows about and
-        /// declines for the rest, which is the ordinary shape of a correction: a
-        /// mature RP-1 career has a handful of retirees and a roster of dozens.
-        /// A backend obliged to answer for everyone would have to reimplement the
+        /// declines for the rest, which is the ordinary shape of a correction. A
+        /// backend obliged to answer for everyone would have to reimplement the
         /// stock map, and a mod's copy of core's map is a copy that drifts.
         /// </summary>
         [Fact]
-        public void AnOverhaulCorrectsOnlyWhatItKnowsAndDeclinesForEveryoneElse()
+        public void ABackendCorrectsOnlyWhatItKnowsAndDeclinesForEveryoneElse()
         {
-            var backend = new FakeOverhaulBackend();
+            var backend = new PlantedBackend();
 
             Assert.Equal(
-                CrewStanding.Retired,
-                backend.Read(CrewStandingQueries.Crew("Wernher Kerman", KspRosterStatus.Dead))!.Standing);
+                CrewStanding.Resting,
+                backend.Read(CrewStandingQueries.Crew("Wernher Kerman", KspRosterStatus.Available))!.Standing);
             Assert.Null(backend.Read(CrewStandingQueries.Crew("Jebediah Kerman", KspRosterStatus.Available)));
         }
 
@@ -212,22 +203,6 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
-        /// Stock has no retirement and never reports one. This is the guard on
-        /// the other direction of the same defect: a correction that leaked into
-        /// the stock path would tell a stock player their dead astronauts had
-        /// retired, which is worse than the bug it fixed.
-        /// </summary>
-        [Fact]
-        public void StockNeverReportsARetirementItHasNoConceptOf()
-        {
-            for (var ordinal = -1; ordinal <= 6; ordinal++)
-            {
-                Assert.NotEqual(CrewStanding.Retired, StockStanding(ordinal, isApplicant: false));
-                Assert.NotEqual(CrewStanding.Retired, StockStanding(ordinal, isApplicant: true));
-            }
-        }
-
-        /// <summary>
         /// The stock backend and the contract's own default are ONE declaration,
         /// not two that agree today. The default is what the view provider falls
         /// back to with no Kernel wired, so a divergence would mean a bare host
@@ -257,8 +232,7 @@ namespace Sitrep.Host.Tests
         /// <see cref="CrewStandings.CanFly"/> is a whitelist, so a standing
         /// nobody has thought about yet fails closed. Written as a blocklist the
         /// same code would pass today and quietly hand a flight to whatever
-        /// committed-but-idle standing gets added next, which is exactly how a
-        /// kerbal mid-course reached the wire free to fly.
+        /// committed-but-idle standing gets added next.
         /// </remarks>
         [Fact]
         public void OnlyTheTwoFreeStandingsCanFly()
@@ -303,8 +277,7 @@ namespace Sitrep.Host.Tests
                     "Bill Kerman",
                     KspRosterStatus.Available,
                     inactive: true,
-                    inactiveUntilUt: 8_000_000.0)),
-                CrewStandings.StockSource);
+                    inactiveUntilUt: 8_000_000.0)));
 
             Assert.Equal(CrewStanding.Resting, resolution.Standing);
             Assert.False(resolution.Available);
@@ -328,69 +301,40 @@ namespace Sitrep.Host.Tests
                 inactiveUntilUt: 8_000_000.0);
 
             Assert.Equal(CrewStanding.Assigned, CrewStandings.FromQuery(query));
-            Assert.Null(CrewStandings.Resolve(query, null, null).StandingEndsAtUt);
+            Assert.Null(CrewStandings.Resolve(query, null).StandingEndsAtUt);
         }
 
         /// <summary>
-        /// A backend that answers ONLY a scheduled retirement leaves the standing
-        /// to the stock derivation and is not credited with it.
+        /// A backend that answers ONLY availability leaves the standing to the
+        /// stock derivation and still has its own wording and end carried.
         /// </summary>
         /// <remarks>
-        /// This is how a kerbal reads <c>Resting</c>, from stock's own reading of
-        /// stock's own field, while carrying a career overhaul's retirement date.
         /// A backend having something to add about one axis must not cost the
         /// others their answer, or a mod would have to restate core's whole map
-        /// to contribute one date.
+        /// to hold one kerbal back from a flight.
         /// </remarks>
         [Fact]
-        public void ADateWithNoStandingLeavesTheStandingAloneAndTheSourceStock()
-        {
-            var resolution = CrewStandings.Resolve(
-                CrewStandingQueries.Crew(
-                    "Bill Kerman",
-                    KspRosterStatus.Available,
-                    inactive: true,
-                    inactiveUntilUt: 8_000_000.0),
-                new CrewStandingReading { RetiresAtUt = 9_000_000.0 },
-                "fake-overhaul");
-
-            Assert.Equal(CrewStanding.Resting, resolution.Standing);
-            Assert.Equal(CrewStandings.StockSource, resolution.Source);
-            Assert.Equal(8_000_000.0, resolution.StandingEndsAtUt);
-            Assert.Equal(9_000_000.0, resolution.RetiresAtUt);
-        }
-
-        /// <summary>
-        /// The two whens are separate fields because they are live at once: a
-        /// kerbal is on a course that ends in a month and retires in a decade.
-        /// Folded together, an operator planning around a crew's remaining career
-        /// would read a course ETA as the end of it.
-        /// </summary>
-        [Fact]
-        public void ACourseEtaAndARetirementDateAreBothCarried()
+        public void AnAvailabilityOverrideLeavesTheStandingToStock()
         {
             var resolution = CrewStandings.Resolve(
                 CrewStandingQueries.Crew("Bill Kerman", KspRosterStatus.Available),
                 new CrewStandingReading
                 {
-                    Standing = CrewStanding.Training,
+                    Available = false,
+                    UnavailableReason = "Held by planted",
                     StandingEndsAtUt = 1_000.0,
-                    RetiresAtUt = 500_000.0,
-                },
-                "fake-overhaul");
+                });
 
-            Assert.Equal(CrewStanding.Training, resolution.Standing);
-            Assert.Equal("fake-overhaul", resolution.Source);
+            Assert.Equal(CrewStanding.Available, resolution.Standing);
             Assert.False(resolution.Available);
-            Assert.Equal("In training", resolution.UnavailableReason);
+            Assert.Equal("Held by planted", resolution.UnavailableReason);
             Assert.Equal(1_000.0, resolution.StandingEndsAtUt);
-            Assert.Equal(500_000.0, resolution.RetiresAtUt);
         }
 
         /// <summary>
         /// The standing does NOT mirror KSP's numbering, and that is deliberate:
         /// a mirror would tie growth here to Squad shipping a new roster status,
-        /// which is the assumption that let a retiree read as a fatality. Pinned
+        /// and Applicant and Resting have none. Pinned
         /// so a later tidy-up cannot quietly align the two and make an ordinal
         /// mix-up silent.
         /// </summary>

@@ -45,7 +45,7 @@ namespace Sitrep.Host.IntegrationTests
                 var result = Dispatch(engine, CodeProbeUplink.RefuseUndeclared);
 
                 Assert.False(result.Success);
-                Assert.Equal(CommandErrorCode.NotReady, result.ErrorCode);
+                Assert.Equal(CommandErrorCode.WrongState, result.ErrorCode);
                 Assert.Null(result.Reason);
             }
             finally { engine.Stop(); }
@@ -144,7 +144,7 @@ namespace Sitrep.Host.IntegrationTests
                 CommandErrorCode.CareerModeRequired.Refine("codeProbe.notManaging", "the probe is not managing this save");
 
             private static readonly RefusalCode NeverDeclared =
-                CommandErrorCode.NotReady.Refine("codeProbe.neverDeclared", "this was never declared");
+                CommandErrorCode.WrongState.Refine("codeProbe.neverDeclared", "this was never declared");
 
             public static readonly RefusalCode[] Declared = { NotManaging };
 
