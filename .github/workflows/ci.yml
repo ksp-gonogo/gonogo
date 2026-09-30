@@ -236,6 +236,15 @@ jobs:
       - name: pnpm build
         run: pnpm build
 
+      # `pnpm build` alone still leaves one gap: `@ksp-gonogo/storybook` has no
+      # `build` script at all, so `turbo build` has nothing to run for it.
+      # `dist/stories/coverage.json` is written by `generate-stories.ts`, which
+      # the old job also got for free, bundled into storybook's `typecheck`
+      # script (`pnpm generate && tsc --noEmit`). `unknown-cast.test.ts` reads
+      # that file directly, so generate it explicitly here too.
+      - name: Generate storybook stories
+        run: pnpm --filter @ksp-gonogo/storybook generate
+
       - run: pnpm test
 
       # The repo-wide scans live under their own vitest config, so `pnpm test` never runs them.
