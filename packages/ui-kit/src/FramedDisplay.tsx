@@ -14,7 +14,9 @@ export interface FramedDisplayProps extends ComponentPropsWithoutRef<"div"> {
    * itself instead of as a second body element beside it. A widget whose body
    * is otherwise nothing but this frame stays eligible for `Panel`'s
    * lone-frame inset rule, which a loose sibling caption breaks by giving the
-   * body a second section. Undefined renders nothing.
+   * body a second section. The caption sets its own type, the caption size
+   * on a muted colour, so pass bare text rather than a sized `Text`, which
+   * would override it. Undefined renders nothing.
    */
   caption?: ReactNode;
 }
@@ -68,10 +70,10 @@ const FramedDisplay__Box = styled.div<{ $padded?: boolean }>`
 `;
 
 /*
- * A scrim behind the text, not just a colour, so the label stays legible over
- * whatever the drawing puts beneath it; mirrors GraphNotice's own overlay
- * pill, corner for corner, but pinned to the frame's top-left rather than its
- * bottom-left.
+ * An opaque backing in the frame's own surface, not a translucent scrim:
+ * muted text over a scrim that lets a pale drawing through falls under 4.5:1.
+ * Padded like GraphNotice's overlay pill, but pinned to the
+ * frame's top-left rather than its bottom-left.
  *
  * Local sibling ordering inside this frame's own stacking context (the
  * caption over the drawing it labels), not app-global chrome, so the literal
@@ -84,6 +86,10 @@ const FramedDisplay__Caption = styled.div`
   z-index: 1;
   padding: var(--inset-notice-pill);
   border-radius: var(--radius-regular);
-  background: color-mix(in srgb, var(--color-surface-sunken), transparent 25%);
+  /* The smallest rung, flush, so the label covers as little of the drawing as it can. */
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-flush);
+  color: var(--color-text-muted);
+  background: var(--color-surface-sunken);
   pointer-events: none;
 `;

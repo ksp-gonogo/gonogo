@@ -4,7 +4,7 @@ import type { ReckoningDecline } from "@ksp-gonogo/sitrep-sdk";
 import { Badge, Panel } from "@ksp-gonogo/ui";
 import { FramedDisplay, Section, Text } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
-import { TrajectoryFrameCaption } from "../shared/trajectoryFrame";
+import { InlaidTrajectoryFrameCaption } from "../shared/trajectoryFrame";
 import type { WithheldTrajectory } from "../shared/trajectoryWithheld";
 import { noOrbitSentence, TrajectoryWithheld } from "./emptyStates";
 import type { OrbitPill } from "./orbitPill";
@@ -99,7 +99,7 @@ export function OrbitViewPanel({
     !drawingShown && showSubtitle && bodyName !== undefined;
   // An orbit that closes in one frame is a rosette in another, so a drawn diagram carries its frame's name inlaid on it.
   const frameCaption = drawingShown ? (
-    <TrajectoryFrameCaption
+    <InlaidTrajectoryFrameCaption
       trajectory={trajectory}
       centreBodyIndex={centreBodyIndex}
     />
