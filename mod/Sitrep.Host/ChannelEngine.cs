@@ -3637,54 +3637,31 @@ namespace Sitrep.Host
         /// channels it shares nothing with. Unlike
         /// <see cref="ValidateGateDeclarations"/>'s throw, a bad Subject is
         /// never a reason to fail the whole engine to start.</para>
+        ///
+        /// <para>Delegates the actual resolve-or-not question to
+        /// <see cref="CommandSubjectRule"/>, the same rule
+        /// <c>Sitrep.Contract.TestSupport</c>'s per-Uplink assertion calls, so
+        /// this engine's live registry and a devkit author's local check
+        /// cannot drift apart.</para>
         /// </summary>
         private void ValidateCommandSubjects()
         {
-            foreach (var pair in _commandDeclarations)
+            var violations = CommandSubjectRule.Violations(
+                _commandDeclarations.Values,
+                command => CommandDelayCatalog.TryGetDelay(command, out var declared) ? (DelayRole?)declared : null,
+                literal => _channelDeclarations.ContainsKey(literal),
+                literal => FindDynamicNamespaceForTopic(literal) != null);
+
+            foreach (var violation in violations)
             {
-                var command = pair.Key;
-                if (!ResolveCommandDelay(command))
-                {
-                    // TrueNow: no craft or ledger to address, so no Subject is
-                    // expected. See SitrepCommandAttribute.Delay's doc comment
-                    // for what earns TrueNow.
-                    continue;
-                }
-
-                if (SubjectResolvable(pair.Value.Subject))
-                {
-                    continue;
-                }
-
-                if (_commandOwner.TryGetValue(command, out var ownerId))
+                if (_commandOwner.TryGetValue(violation.Command, out var ownerId))
                 {
                     MarkUplinkUnavailable(ownerId,
-                        "command \"" + command + "\" declares no Subject topic that resolves to a channel or "
+                        "command \"" + violation.Command + "\" declares no Subject topic that resolves to a channel or "
                         + "dynamic namespace: never falls back to the active craft, declare "
                         + "CommandDeclaration.Subject as a topic some Uplink actually publishes");
                 }
             }
-        }
-
-        /// <summary>
-        /// Whether <paramref name="subject"/> names a real destination: either
-        /// a topic some Uplink declared as a static channel, or a topic under
-        /// a live <see cref="RegisterDynamicNamespace"/> prefix once its
-        /// <c>"{args.X}"</c> segment (if any) is stripped back to the literal
-        /// text before it. A concrete arg value cannot be known at
-        /// registration time, but the prefix in front of it is exactly what a
-        /// dynamic namespace is keyed by, so checking the prefix is checking
-        /// the real thing rather than approximating it.
-        /// </summary>
-        private bool SubjectResolvable(string subject)
-        {
-            if (string.IsNullOrEmpty(subject))
-            {
-                return false;
-            }
-            var brace = subject.IndexOf('{');
-            var literal = brace < 0 ? subject : subject.Substring(0, brace);
-            return _channelDeclarations.ContainsKey(literal) || FindDynamicNamespaceForTopic(literal) != null;
         }
 
         public void AddCommandHandler<TArgs, TResult>(string command, Func<TArgs, TResult> handler)
