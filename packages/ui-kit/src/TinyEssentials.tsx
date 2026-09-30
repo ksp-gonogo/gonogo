@@ -51,6 +51,7 @@ export function TinyEssentials({ title, essentials }: TinyEssentialsProps) {
     <Panel
       panelTitle={title}
       fitToSize
+      hoverTitle
       sections={
         <Section full>
           <LiveRegion visuallyHidden>

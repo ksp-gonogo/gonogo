@@ -271,8 +271,18 @@ function drawn(el: Element): boolean {
  * dots-and-chevron summary the collapse put in its place precisely so the header
  * would fit. Judging the hidden copy would have every widget with a header aside
  * answering for chrome that already did the right thing.
+ *
+ * The tiny tile's title is the same case again, clipped rather than hidden: a
+ * `clip: rect(0, 0, 0, 0)` subtree stays in the layout, on purpose, so a
+ * screen reader can still reach it, and reads as painted by `visibility`
+ * alone. Its shown form is the pill drawn on hover or focus, a second element
+ * with its own box the audit already sees; the clipped heading itself is
+ * never what an operator reads.
  */
 function painted(el: Element): boolean {
+  for (let at: Element | null = el; at; at = at.parentElement) {
+    if (getComputedStyle(at).clip === "rect(0px, 0px, 0px, 0px)") return false;
+  }
   return getComputedStyle(el).visibility === "visible";
 }
 

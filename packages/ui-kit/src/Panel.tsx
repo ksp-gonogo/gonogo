@@ -11,6 +11,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useId,
   useImperativeHandle,
   useLayoutEffect,
   useMemo,
@@ -42,6 +43,7 @@ import { useFittedTitle } from "./useFittedTitle";
 import { PanelAsideSizeProvider, useHeaderAsideFit } from "./usePanelAsideSize";
 import { filterControlOf, type RowFilter } from "./useRowFilter";
 import { useKeyboardScrollable, useScrollerMetric } from "./useScrollerMetric";
+import { VisuallyHidden } from "./VisuallyHidden";
 
 interface PanelContextValue {
   scroller: HTMLElement | null;
@@ -87,7 +89,10 @@ const SECTION_FILL_RULE = `
   }
 `;
 
-export const PanelContainer = styled.div<{ $railTravels?: boolean }>`
+export const PanelContainer = styled.div<{
+  $railTravels?: boolean;
+  $hoverTitle?: boolean;
+}>`
   /* Chrome only: border, surface and clip. The inset is Panel.Body's and the glow is Panel.Glow's. */
   background: var(--color-surface-panel);
   /* A size container, so the popped-open aside sizes itself in cqw against the panel's width. */
@@ -104,6 +109,9 @@ export const PanelContainer = styled.div<{ $railTravels?: boolean }>`
   flex-direction: column;
   gap: 0;
   overflow: hidden;
+  /* A hoverTitle panel is itself the tab stop, and the grid cell clips an outset ring, so the ring is drawn inside the edge. */
+  ${({ $hoverTitle }) => ($hoverTitle ? "position: relative;" : "")}
+  ${({ $hoverTitle }) => ($hoverTitle ? focusRingInset : "")}
   /* A hand-composed panel can put sections straight in here, so this box owns the leftover height. */
   ${SECTION_FILL_RULE}
 `;
@@ -463,6 +471,7 @@ export const PanelToolbar = styled.div`
 const PanelBody__Box = styled.div<{
   $fitToSize?: boolean;
   $loneFrame?: boolean;
+  $hoverTitle?: boolean;
 }>`
   --gap-related: var(--gap-related-comfortable);
   --gap-section: var(--gap-section-comfortable);
@@ -501,6 +510,14 @@ const PanelBody__Box = styled.div<{
            --panel-body-bottom: var(--inset-lone-frame);
          }`
       : ""}
+  /* The title row is out of flow entirely (see PanelHoverTop), so the body
+     takes the same thin inset a lone framed drawing gets under a narrow
+     container, unconditionally: a hoverTitle panel is always that narrow. */
+  ${({ $hoverTitle }) =>
+    $hoverTitle
+      ? `--panel-body-gutter: var(--inset-lone-frame);
+         --panel-body-bottom: var(--inset-lone-frame);`
+      : ""}
   ${SECTION_FILL_RULE}
 `;
 
@@ -519,11 +536,14 @@ export function PanelBody({
   children,
   fitToSize,
   loneFrame,
+  hoverTitle,
   ...rest
 }: ComponentPropsWithoutRef<"div"> & {
   fitToSize?: boolean;
   /** The body is one framed drawing and nothing else. See `Panel`'s `sections`. */
   loneFrame?: boolean;
+  /** The title row is out of flow; see `Panel`'s `hoverTitle`. */
+  hoverTitle?: boolean;
 }) {
   const ctx = useContext(PanelCtx);
   const register = ctx?.registerScroller;
@@ -545,6 +565,7 @@ export function PanelBody({
       $fitToSize={fitToSize}
       $loneFrame={loneFrame}
       data-panel-lone-frame={loneFrame ? "" : undefined}
+      $hoverTitle={hoverTitle}
       {...rest}
     >
       {children}
@@ -612,9 +633,9 @@ function PanelFitBody({ children }: { children?: ReactNode }) {
 const PanelBody__FitOuter = styled.div<{ $fits?: boolean }>`
   flex: 1;
   min-height: 0;
-  /* Takes back the body's gap above and its bottom inset, so the box is all the room a tiny tile has and centring is measured against it. */
+  /* Takes back the body's gap above and its bottom inset, so the box is all the room a tiny tile has and centring is measured against it. Reads the body's own custom property rather than the raw token, so a stepped-down bottom inset (loneFrame, hoverTitle) is taken back by exactly as much. */
   margin-top: calc(-1 * var(--gap-related));
-  margin-bottom: calc(-1 * var(--inset-panel-bottom));
+  margin-bottom: calc(-1 * var(--panel-body-bottom));
   display: flex;
   flex-direction: column;
   /* Never clips: the body owns the real boundary. */
@@ -1165,6 +1186,18 @@ export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
    */
   fitToSize?: boolean;
   /**
+   * The tiny tile's header: the title row leaves the flow entirely and the
+   * content centres on the whole panel instead of the room under a header.
+   * The title stays an accessible sr-only heading, drawn as a small pill
+   * hugging its text while the panel is hovered or focused, top-left. The
+   * panel itself becomes the tab stop, named by that heading through
+   * `aria-labelledby`; the header aside (badges, the status summary) stays
+   * drawn, pinned top-right. The delay rail band is unaffected: it keeps
+   * reserving its strip above the content exactly as it does outside tiny
+   * mode.
+   */
+  hoverTitle?: boolean;
+  /**
    * A pinned strip at the very bottom of the panel, OUTSIDE the scrolling
    * body: the one readout an operator must never have to scroll for (Ship
    * Systems' power meter, a mission clock). Renders after the glow region
@@ -1388,7 +1421,83 @@ const PanelStickyHeader = styled(PanelHeader)`
   }
 `;
 
-function PanelRoot({
+/**
+ * The tiny tile's title-and-aside strip, out of flow above the centred
+ * content: the title pill at the start, the aside pushed to the end. Empty
+ * itself, so the whole panel stays clickable under it; only its children
+ * re-enable pointer events.
+ */
+const PanelHoverTop = styled.div`
+  position: absolute;
+  top: var(--inset-lone-frame);
+  left: var(--inset-lone-frame);
+  right: var(--inset-lone-frame);
+  /* Above the panel's own content (PanelGlow, trend, footer), local sibling ordering inside this panel's own stacking context. Not app-global chrome, so no named z rung. */
+  z-index: 3;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--gap-panel-aside);
+  pointer-events: none;
+`;
+
+/**
+ * The tiny tile's title: an accessible heading at rest, sr-only through
+ * `VisuallyHidden`, drawn as a pill hugging its text on hover or focus. Keyed
+ * on `:focus` rather than `:focus-visible`, so a tap reveals it too.
+ */
+const PanelHoverTitlePill = styled(VisuallyHidden)`
+  margin: 0;
+  ${titleText}
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-flush);
+  max-width: 100%;
+  text-overflow: ellipsis;
+  ${PanelContainer}:hover &,
+  ${PanelContainer}:focus & {
+    position: static;
+    width: auto;
+    height: auto;
+    clip: auto;
+    background: var(--color-surface-raised);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-pill);
+    padding: var(--inset-chip);
+  }
+`;
+
+/** The tiny tile's aside, pinned top-right and always visible: unlike the pill it needs no reveal. */
+const PanelHoverAside = styled.div`
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--gap-panel-aside);
+  pointer-events: auto;
+`;
+
+/**
+ * `useId()`'s output is not scoped to the component that calls it: React
+ * allocates from one sequence across the whole render, so a call added here
+ * unconditionally shifts every OTHER widget's own `useId()`-derived strings
+ * downstream of it (Navball's SVG clip path is one, generated deep inside a
+ * widget that never sets `hoverTitle` at all). Two component identities,
+ * chosen by the stable `hoverTitle` prop before either renders, keep the
+ * call scoped to the panels that actually draw a tiny header; every other
+ * panel's own ids are untouched.
+ */
+function PanelRoot(props: PanelProps): ReactElement {
+  return props.hoverTitle ? (
+    <PanelRootWithHoverTitle {...props} />
+  ) : (
+    <PanelRootImpl {...props} hoverTitleId={undefined} />
+  );
+}
+
+function PanelRootWithHoverTitle(props: PanelProps): ReactElement {
+  const hoverTitleId = useId();
+  return <PanelRootImpl {...props} hoverTitleId={hoverTitleId} />;
+}
+
+function PanelRootImpl({
   panelTitle,
   compactTitle,
   panelAside,
@@ -1399,6 +1508,8 @@ function PanelRoot({
   panelFooter,
   panelTrend,
   fitToSize,
+  hoverTitle,
+  hoverTitleId,
   panelSidebar,
   sidebarSide,
   sidebarSize,
@@ -1407,7 +1518,7 @@ function PanelRoot({
   sectionMinWidth = DEFAULT_SECTION_MIN_WIDTH,
   children,
   ...rest
-}: PanelProps) {
+}: PanelProps & { hoverTitleId: string | undefined }): ReactElement {
   const contextBadges = usePanelBadgesContext();
   // Asked as a boolean first, because an aside that exists at all is a padded box.
   const hasActionAugments = useWidgetSegmentBound("actions");
@@ -1581,15 +1692,21 @@ function PanelRoot({
   );
 
   const body = (
-    <PanelBody fitToSize={fitToSize} loneFrame={loneFrame}>
+    <PanelBody
+      fitToSize={fitToSize}
+      loneFrame={loneFrame}
+      hoverTitle={hoverTitle}
+    >
       <PanelStickyTop data-panel-sticky-top="">
         <PanelDelayRail />
-        <PanelStickyHeader
-          title={panelTitle}
-          compactTitle={compactTitle}
-          aside={aside}
-          toolbar={toolbar}
-        />
+        {!hoverTitle && (
+          <PanelStickyHeader
+            title={panelTitle}
+            compactTitle={compactTitle}
+            aside={aside}
+            toolbar={toolbar}
+          />
+        )}
       </PanelStickyTop>
       {fitToSize ? <PanelFitBody>{content}</PanelFitBody> : content}
       {panelSections && !hasSections && <WidgetSections />}
@@ -1598,7 +1715,19 @@ function PanelRoot({
 
   return (
     <PanelProviders>
-      <PanelContainer $railTravels {...rest}>
+      <PanelContainer
+        $railTravels
+        $hoverTitle={hoverTitle}
+        {...(hoverTitle
+          ? {
+              tabIndex: 0,
+              role: "group",
+              "aria-labelledby": hoverTitleId,
+              "data-tiny-panel": "",
+            }
+          : {})}
+        {...rest}
+      >
         <PanelGlow railBandAbove>
           {panelSidebar === undefined ? (
             body
@@ -1612,6 +1741,14 @@ function PanelRoot({
         </PanelGlow>
         {panelTrend !== undefined && <PanelTrend render={panelTrend} />}
         {panelFooter !== undefined && <PanelFooter>{panelFooter}</PanelFooter>}
+        {hoverTitle && (
+          <PanelHoverTop data-panel-hover-title="">
+            <PanelHoverTitlePill as="h3" id={hoverTitleId}>
+              {panelTitle}
+            </PanelHoverTitlePill>
+            {aside !== undefined && <PanelHoverAside>{aside}</PanelHoverAside>}
+          </PanelHoverTop>
+        )}
         {/* Mounted empty, so the first status is a change to a region already watched; outside the aside, so collapsing does not unmount it. */}
         <LiveRegion visuallyHidden>{statusAnnouncement}</LiveRegion>
       </PanelContainer>

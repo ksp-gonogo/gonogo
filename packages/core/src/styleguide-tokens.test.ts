@@ -217,7 +217,7 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/ui-kit/src/Readout.tsx": 1,
   },
   /**
-   * 21 across 16 files. Every one is LOCAL sibling ordering inside a
+   * 22 across 16 files. Every one is LOCAL sibling ordering inside a
    * component's own stacking context (the 0/1/2, 5/6 and 10/20 families),
    * which the ladder in tokens.css explicitly declines to absorb: pulling
    * them onto app-global rungs would collapse independent contexts into
@@ -257,10 +257,11 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/ui-kit/src/Disclosure.tsx": 1,
     // Local sibling ordering inside the panel's own stacking context: the
     // scroll glow over the scrolling body, the sticky header over the content
-    // beneath it, and the popped aside-expand box over that header. None is
+    // beneath it, the popped aside-expand box over that header, and the tiny
+    // tile's hover-revealed title strip over its centred content. None is
     // app-global chrome, so a named rung would lift a widget-internal overlay
     // above the dashboard's.
-    "packages/ui-kit/src/Panel.tsx": 3,
+    "packages/ui-kit/src/Panel.tsx": 4,
     // The signal-delay rail's detail float, local sibling ordering inside the
     // panel's own stacking context: it must sit above the sticky header
     // (Panel.tsx's z-index 2) and the scrolling body it overlays. Not

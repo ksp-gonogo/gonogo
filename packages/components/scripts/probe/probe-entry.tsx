@@ -662,6 +662,24 @@ async function mountInto(
     }
   }
 
+  /*
+   * Focuses come after the hovers, so a mode can put both states on screen
+   * together (a hovered aside control beside a tabbed-to tile). `.focus()`,
+   * not a dispatched event: a synthetic `FocusEvent` is untrusted and a
+   * browser will not move real DOM focus for one, which is what real
+   * `:focus` CSS reads.
+   */
+  if (payload.focuses && payload.focuses.length > 0) {
+    for (const f of payload.focuses) {
+      const el = findIn(root, f.selector);
+      if (!el || !(el instanceof HTMLElement)) {
+        throw new Error(`Probe: focus selector "${f.selector}" not found`);
+      }
+      el.focus();
+      await settle(f.awaitMs ?? 100);
+    }
+  }
+
   // The drop goes LAST, after the clicks, because that is the order an operator
   // meets it: a panel is opened, a control is armed, and then the link goes. Run
   // before them instead and a click-driven mode would be reaching for controls a

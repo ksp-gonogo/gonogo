@@ -64,6 +64,15 @@ export interface ProbePayload {
    */
   hovers?: ReadonlyArray<{ selector: string; awaitMs?: number }>;
   /**
+   * Optional synthetic keyboard focus moves, dispatched after the hovers.
+   * Captures a state that keyboard focus reaches and a pointer does not: the
+   * tiny tile's hover-revealed title is one, and unlike a click's dispatched
+   * `MouseEvent` this calls `element.focus()` directly, which moves real DOM
+   * focus (and so real `:focus` CSS) whether or not the event would count as
+   * trusted. Missing selectors throw, the same as a click's.
+   */
+  focuses?: ReadonlyArray<{ selector: string; awaitMs?: number }>;
+  /**
    * Mount the widget as the dashboard does rather than as the committed
    * baselines were drawn: the badges contributed into its `<id>.badges` slot
    * reach its panel header beside the scene's own `_badges`. Off, only
@@ -96,6 +105,7 @@ export interface ProbeSize {
   config?: Record<string, unknown>;
   clicks?: ProbePayload["clicks"];
   hovers?: ProbePayload["hovers"];
+  focuses?: ProbePayload["focuses"];
 }
 
 /**
@@ -128,6 +138,7 @@ export function probePayload(opts: {
     series,
     clicks: size.clicks,
     hovers: size.hovers,
+    focuses: size.focuses,
     profile: opts.profile,
     asDashboard: opts.asDashboard,
   };

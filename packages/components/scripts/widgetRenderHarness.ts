@@ -146,6 +146,12 @@ export interface SizeMode {
    */
   hovers?: ReadonlyArray<{ selector: string; awaitMs?: number }>;
   /**
+   * Optional synthetic keyboard focus moves, dispatched after the hovers.
+   * Captures a state only focus reaches: the tiny tile's hover-revealed
+   * title, and its own inset focus ring. See `ProbePayload.focuses`.
+   */
+  focuses?: ReadonlyArray<{ selector: string; awaitMs?: number }>;
+  /**
    * Scroll the panel's body (`[data-panel-body]`) down by this many px after
    * mount + settle, before the screenshot. Captures scroll-position-only UI
    * that the at-rest probe never sees, chiefly the Panel title ghost, which

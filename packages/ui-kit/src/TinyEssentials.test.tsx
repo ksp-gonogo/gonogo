@@ -103,6 +103,14 @@ describe("TinyEssentials", () => {
     await expectNoA11yViolations(container);
   });
 
+  it("wires the D2 tiny header: a focusable group named by its own sr-only heading", () => {
+    render(<TinyEssentials title="LANDING" essentials={ESSENTIALS} />);
+    const panel = screen.getByRole("group", { name: "LANDING" });
+    expect(panel).toHaveAttribute("tabindex", "0");
+    const heading = screen.getByRole("heading", { level: 3, name: "LANDING" });
+    expect(panel.getAttribute("aria-labelledby")).toBe(heading.id);
+  });
+
   it("keeps a lone figure's caption for the ear only when the heading already names it", () => {
     const { container, unmount } = render(
       <TinyEssentials
