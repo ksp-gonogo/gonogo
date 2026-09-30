@@ -8,7 +8,7 @@
  * next time anything looks, with no committed copy to fall out of step.
  */
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, rename, rm, writeFile } from "node:fs/promises";
 import { basename, dirname, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { storyNameFromExport, toId } from "storybook/internal/csf";
@@ -35,7 +35,15 @@ import { SLOT_SCENES } from "./slot-scenes";
 import { writeUiKitStories } from "./uikit-stories";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const OUT = resolve(HERE, "../dist/stories");
+const STORIES = resolve(HERE, "../dist/stories");
+/**
+ * Where a run writes before it swaps into STORIES. A sibling at the same depth,
+ * so every relative import computed against it is also right from STORIES, and
+ * outside the `dist/stories/**` glob, so no Storybook indexes a half-written tree.
+ * Two runs overlap whenever `pnpm storybook` starts beside `review-sheet`, and a
+ * run that cleared STORIES in place emptied the other's index mid-build.
+ */
+const OUT = `${STORIES}.next-${process.pid}`;
 const SRC = resolve(HERE, "../src");
 const REPO = resolve(HERE, "../../..");
 
@@ -626,6 +634,11 @@ async function main(): Promise<void> {
     resolve(OUT, "review-targets.json"),
     `${JSON.stringify(TARGETS, null, 2)}\n`,
   );
+  const previous = `${STORIES}.old-${process.pid}`;
+  await rm(previous, { recursive: true, force: true });
+  if (existsSync(STORIES)) await rename(STORIES, previous);
+  await rename(OUT, STORIES);
+  await rm(previous, { recursive: true, force: true });
   console.log(
     `generate-stories: ${configs.length} render configs -> ${widgetStories} widget stories, ${[...handwritten.values()].flat().length} hand-written, ${unfixtured} unfixtured, ${extensions} extension stories, ${uplinkStories} Uplink scene stories; ${covered.size} widgets covered`,
   );
