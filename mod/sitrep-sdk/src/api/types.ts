@@ -159,6 +159,25 @@ export interface TinyEssential {
    * a signal strength. Null `lit` draws the glyph with nothing to judge by.
    */
   level?: { lit: number | null; of: number };
+  /**
+   * A thin gauge bar drawn under the hero figure: where `value` sits on the
+   * scale from `min` to `max`, over the scale's bands. A value past either
+   * end pins to it, a held value dims its fill, and no value draws the bands
+   * alone. Only the hero draws one; on a row it is ignored.
+   */
+  gauge?: TinyGauge;
+}
+
+/**
+ * The scale a tiny essential's compact gauge draws its value on.
+ *
+ * @category Registering
+ */
+export interface TinyGauge {
+  min: Value;
+  max: Value;
+  /** Stretches of the scale drawn in a tone of their own, in order, such as a band the value must stay out of. */
+  bands?: readonly { from: Value; to: Value; tone: TinyEssentialTone }[];
 }
 
 /**

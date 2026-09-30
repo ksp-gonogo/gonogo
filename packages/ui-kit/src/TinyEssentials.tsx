@@ -2,16 +2,20 @@ import type {
   ComponentDefinition,
   ComponentProps,
   TinyEssential,
+  TinyGauge,
   TinyMode,
   Tone,
+  Value,
 } from "@ksp-gonogo/sitrep-sdk";
 import { Fragment, useLayoutEffect, useRef, useState } from "react";
 import styled from "styled-components";
+import { fillFraction } from "./fillQuantity";
 import { LevelBars } from "./LevelBars";
 import { LiveRegion } from "./LiveRegion";
 import { Panel } from "./Panel";
+import { resolveCurrency } from "./readingCurrency";
 import { Section } from "./Section";
-import { TONE_TEXT } from "./tone";
+import { TONE_MARK, TONE_TEXT } from "./tone";
 import { Unit } from "./Unit";
 import { VisuallyHidden } from "./VisuallyHidden";
 import { TINY_BELOW } from "./widgetSize";
@@ -71,9 +75,18 @@ export function TinyEssentials({ title, essentials }: TinyEssentialsProps) {
               ) : (
                 <TinyEssentials__Label>{hero.label}</TinyEssentials__Label>
               )}
-              <TinyEssentials__HeroFigure $tone={hero.tone ?? "neutral"}>
-                <EssentialFigure essential={hero} />
-              </TinyEssentials__HeroFigure>
+              {hero.gauge === undefined ? (
+                <TinyEssentials__HeroFigure $tone={hero.tone ?? "neutral"}>
+                  <EssentialFigure essential={hero} />
+                </TinyEssentials__HeroFigure>
+              ) : (
+                <TinyEssentials__GaugedFigure $tone={hero.tone ?? "neutral"}>
+                  <TinyEssentials__FigureLine>
+                    <EssentialFigure essential={hero} />
+                  </TinyEssentials__FigureLine>
+                  <CompactGauge essential={hero} gauge={hero.gauge} />
+                </TinyEssentials__GaugedFigure>
+              )}
             </TinyEssentials__Hero>
           )}
           {rest.length > 0 && (
@@ -187,6 +200,62 @@ function EssentialFigure({ essential }: { essential: TinyEssential }) {
   );
 }
 
+/**
+ * A thin bar under the hero figure: the scale's bands as a dim track, and a
+ * fill over it from the foot of the scale to the value. The figure carries the
+ * number, so the drawing is hidden from the accessibility tree. A held
+ * reading dims the fill, as a held meter does; no value draws the bands
+ * alone.
+ */
+function CompactGauge({
+  essential,
+  gauge,
+}: {
+  essential: TinyEssential;
+  gauge: TinyGauge;
+}) {
+  const { shown, held } = resolveCurrency(essential.value);
+  // Clamped in the algebra, so a bound on another rung of the same kind converts before it compares.
+  const at = (q: Value): number =>
+    fillFraction({
+      amount: q.max(gauge.min).min(gauge.max).minus(gauge.min),
+      capacity: gauge.max.minus(gauge.min),
+    }) ?? 0;
+  const share = shown == null ? null : at(shown);
+  return (
+    <TinyEssentials__Gauge
+      aria-hidden="true"
+      data-tiny-gauge=""
+      data-held={held ? "" : undefined}
+      viewBox="0 0 100 1"
+      preserveAspectRatio="none"
+    >
+      {(gauge.bands ?? []).map((band) => (
+        <rect
+          key={`${at(band.from)}-${at(band.to)}`}
+          x={at(band.from) * 100}
+          y={0}
+          width={(at(band.to) - at(band.from)) * 100}
+          height={1}
+          fill={TONE_MARK[band.tone]}
+          opacity={0.35}
+        />
+      ))}
+      {share !== null && (
+        <rect
+          data-tiny-gauge-fill=""
+          x={0}
+          y={0}
+          width={share * 100}
+          height={1}
+          fill={TONE_MARK[essential.tone ?? "neutral"]}
+          opacity={held ? 0.55 : 1}
+        />
+      )}
+    </TinyEssentials__Gauge>
+  );
+}
+
 /** Every state word on the tile with its label, the only thing the tile says aloud. */
 function spokenWords(essentials: readonly TinyEssential[]): string {
   return essentials
@@ -289,6 +358,27 @@ const TinyEssentials__HeroFigure = styled.dd<{ $tone: Tone }>`
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   color: ${({ $tone }) => TONE_TEXT[$tone]};
+`;
+
+/* Flush, so the figure and the bar under it fit the tile's content box, which is shorter than one tight figure line plus a gap. */
+const TinyEssentials__GaugedFigure = styled(TinyEssentials__HeroFigure)`
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--gap-caption);
+  line-height: var(--line-height-flush);
+`;
+
+const TinyEssentials__FigureLine = styled.span`
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: var(--gap-figure-parts);
+`;
+
+const TinyEssentials__Gauge = styled.svg`
+  display: block;
+  width: 100%;
+  height: var(--size-tiny-gauge);
 `;
 
 const TinyEssentials__Label = styled.dt`

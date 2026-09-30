@@ -167,6 +167,74 @@ describe("TinyEssentials", () => {
     ).toBeInTheDocument();
   });
 
+  describe("a hero's gauge bar", () => {
+    const gauge = {
+      min: value("m", 0),
+      max: value("m", 2000),
+      bands: [
+        { from: value("m", 0), to: value("m", 500), tone: "nogo" as const },
+      ],
+    };
+    const fill = (container: HTMLElement) =>
+      container.querySelector("[data-tiny-gauge-fill]");
+
+    it("fills to the value's share of the scale, pinned at either end, hidden from the ear", async () => {
+      const { container, rerender } = render(
+        <TinyEssentials
+          title="T"
+          essentials={[{ label: "Alt", value: value("m", 1500), gauge }]}
+        />,
+      );
+      expect(container.querySelector("[data-tiny-gauge]")).toHaveAttribute(
+        "aria-hidden",
+        "true",
+      );
+      expect(fill(container)).toHaveAttribute("width", "75");
+      rerender(
+        <TinyEssentials
+          title="T"
+          essentials={[{ label: "Alt", value: value("m", 9000), gauge }]}
+        />,
+      );
+      expect(fill(container)).toHaveAttribute("width", "100");
+      await expectNoA11yViolations(container);
+    });
+
+    it("dims its fill once the reading stops arriving, and draws no fill with no value", () => {
+      const { container, rerender } = render(
+        <TinyEssentials
+          title="T"
+          essentials={[{ label: "Alt", value: held, gauge }]}
+        />,
+      );
+      expect(container.querySelector("[data-tiny-gauge]")).toHaveAttribute(
+        "data-held",
+      );
+      expect(fill(container)).toHaveAttribute("opacity", "0.55");
+      rerender(
+        <TinyEssentials
+          title="T"
+          essentials={[{ label: "Alt", value: null, gauge }]}
+        />,
+      );
+      expect(fill(container)).toBeNull();
+      expect(container.querySelector("[data-tiny-gauge] rect")).not.toBeNull();
+    });
+
+    it("is drawn by the hero alone", () => {
+      const { container } = render(
+        <TinyEssentials
+          title="T"
+          essentials={[
+            { label: "Alt", value: value("m", 1500) },
+            { label: "Apo", value: value("m", 1500), gauge },
+          ]}
+        />,
+      );
+      expect(container.querySelector("[data-tiny-gauge]")).toBeNull();
+    });
+  });
+
   describe("in a tile too short for every row", () => {
     afterEach(() => {
       vi.restoreAllMocks();

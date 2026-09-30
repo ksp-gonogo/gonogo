@@ -1,6 +1,7 @@
 import {
   STANDARD_GRAVITY,
   type TinyEssentialTone,
+  type TinyGauge,
   type Value,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
@@ -60,3 +61,14 @@ const ESSENTIAL_TONE: Record<Tone, TinyEssentialTone> = {
 export function essentialToneFor(twr: Value<"1">): TinyEssentialTone {
   return ESSENTIAL_TONE[toneFor(twr)];
 }
+
+/** The dial's scale and bands, drawn by the tiny form's gauge bar. */
+export const TINY_GAUGE: TinyGauge = {
+  min: GAUGE_MIN,
+  max: GAUGE_MAX,
+  bands: [
+    { from: value("1", 0), to: value("1", 1), tone: "nogo" },
+    { from: value("1", 1), to: value("1", 1.5), tone: "warn" },
+    { from: value("1", 1.5), to: value("1", 3), tone: "go" },
+  ],
+};

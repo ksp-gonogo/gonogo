@@ -196,8 +196,15 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "Twr/__fixtures__",
     outPath: "renders/twr-widget",
     modes: [
-      // The kit's tiny form: the ratio alone.
+      // The kit's tiny form: the ratio over its compact gauge.
       { name: "tiny-2x2", w: 2, h: 2 },
+      // Focus reveals the tiny tile's title pill over the same content.
+      {
+        name: "tiny-2x2-focused",
+        w: 2,
+        h: 2,
+        focuses: [{ selector: "[data-tiny-panel]" }],
+      },
       // Small: gauge only, no sparkline.
       { name: "small-3x3", w: 3, h: 3 },
       // Default: gauge + sparkline + subtitle.

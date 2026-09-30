@@ -20,6 +20,7 @@ import {
   essentialToneFor,
   GAUGE_MAX,
   GAUGE_MIN,
+  TINY_GAUGE,
   toneColorFor,
   twrOf,
   ZONES,
@@ -62,6 +63,7 @@ function useTwrEssentials(): readonly TinyEssential[] {
       value: twrReading,
       decimals: 1,
       tone: twr === undefined ? "neutral" : essentialToneFor(twr),
+      gauge: TINY_GAUGE,
     },
   ];
 }

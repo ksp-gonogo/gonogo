@@ -229,6 +229,7 @@ export type {
   ThemeDefinition,
   TinyEssential,
   TinyEssentialTone,
+  TinyGauge,
   TinyMode,
   UplinkClientHandle,
   UplinkClientIdentity,
