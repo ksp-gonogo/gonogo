@@ -117,7 +117,7 @@ namespace Gonogo.KSP.Tests.Comms
             var backend = new ForeignBackend(home);
 
             var centre = CommandCentreResolution.Resolve(
-                backend.ControlPathTerminus(null), RegistryNaming(home), new PayloadMeta());
+                backend.ControlPathTerminus(null), RegistryNaming(home));
 
             Assert.Equal(KourouId, centre.Id);
             Assert.Equal("Kourou", centre.DisplayName);
@@ -137,7 +137,7 @@ namespace Gonogo.KSP.Tests.Comms
             var (_, home) = DirectToHome();
 
             var centre = CommandCentreResolution.Resolve(
-                null, RegistryNaming(home), new PayloadMeta());
+                null, RegistryNaming(home));
 
             Assert.Null(centre.Id);
             Assert.Null(centre.DisplayName);
@@ -157,24 +157,9 @@ namespace Gonogo.KSP.Tests.Comms
             var (vessel, home) = DirectToHome();
 
             var centre = CommandCentreResolution.Resolve(
-                vessel, RegistryNaming(home), new PayloadMeta());
+                vessel, RegistryNaming(home));
 
             Assert.Null(centre.Id);
-        }
-
-        /// <summary>
-        /// The meta rides through untouched, because a payload that named no
-        /// centre still has to say which vessel and what quality it was read
-        /// at.
-        /// </summary>
-        [Fact]
-        public void TheCaptureMetaSurvivesAMissingCentre()
-        {
-            var meta = new PayloadMeta { Source = "vessel:abc", Quality = Quality.OnRails };
-
-            var centre = CommandCentreResolution.Resolve(null, null, meta);
-
-            Assert.Same(meta, centre.Meta);
         }
     }
 }

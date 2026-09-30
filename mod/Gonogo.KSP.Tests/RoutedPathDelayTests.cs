@@ -29,7 +29,7 @@ namespace Gonogo.KSP.Tests
         [Fact]
         public void NoPathAtAll_IsNull_NeverZero()
         {
-            Assert.Null(RoutedPathDelay.OneWaySeconds(null, Enabled(), Quality.Loaded));
+            Assert.Null(RoutedPathDelay.OneWaySeconds(null, Enabled()));
         }
 
         [Fact]
@@ -38,20 +38,20 @@ namespace Gonogo.KSP.Tests
             // Delay-disabled is a genuine zero for a link that EXISTS. An absent
             // route has nothing to zero, so the flag must not manufacture one.
             Assert.Null(RoutedPathDelay.OneWaySeconds(
-                null, SignalDelayConfig.Off(), Quality.Loaded));
+                null, SignalDelayConfig.Off()));
         }
 
         [Fact]
         public void PathWithNoHops_IsNull_NotZero()
         {
-            Assert.Null(RoutedPathDelay.OneWaySeconds(Hops(), Enabled(), Quality.Loaded));
+            Assert.Null(RoutedPathDelay.OneWaySeconds(Hops(), Enabled()));
         }
 
         [Fact]
         public void SingleHop_IsDistanceOverLightSpeed()
         {
             var seconds = RoutedPathDelay.OneWaySeconds(
-                Hops(SignalDelay.SpeedOfLightMetersPerSecond), Enabled(), Quality.Loaded);
+                Hops(SignalDelay.SpeedOfLightMetersPerSecond), Enabled());
 
             Assert.NotNull(seconds);
             Assert.Equal(1.0, seconds!.Value, 9);
@@ -66,7 +66,7 @@ namespace Gonogo.KSP.Tests
             // which is exactly what a straight line between the endpoints would
             // have understated.
             var seconds = RoutedPathDelay.OneWaySeconds(
-                Hops(c, 2 * c, 0.5 * c), Enabled(), Quality.Loaded);
+                Hops(c, 2 * c, 0.5 * c), Enabled());
 
             Assert.NotNull(seconds);
             Assert.Equal(3.5, seconds!.Value, 9);
@@ -76,7 +76,7 @@ namespace Gonogo.KSP.Tests
         public void LightSpeedScale_DividesTheDelay()
         {
             var seconds = RoutedPathDelay.OneWaySeconds(
-                Hops(SignalDelay.SpeedOfLightMetersPerSecond), Enabled(scale: 4.0), Quality.Loaded);
+                Hops(SignalDelay.SpeedOfLightMetersPerSecond), Enabled(scale: 4.0));
 
             Assert.NotNull(seconds);
             Assert.Equal(0.25, seconds!.Value, 9);
@@ -86,7 +86,7 @@ namespace Gonogo.KSP.Tests
         public void DelayDisabled_OverARealPath_IsAppliedZero()
         {
             var seconds = RoutedPathDelay.OneWaySeconds(
-                Hops(SignalDelay.SpeedOfLightMetersPerSecond), SignalDelayConfig.Off(), Quality.Loaded);
+                Hops(SignalDelay.SpeedOfLightMetersPerSecond), SignalDelayConfig.Off());
 
             Assert.Equal(0.0, seconds);
         }
@@ -100,7 +100,7 @@ namespace Gonogo.KSP.Tests
                 new CommsRouteHop(SignalDelay.SpeedOfLightMetersPerSecond, touchesHome: true),
             };
 
-            var seconds = RoutedPathDelay.OneWaySeconds(hops, Enabled(), Quality.Loaded);
+            var seconds = RoutedPathDelay.OneWaySeconds(hops, Enabled());
 
             Assert.NotNull(seconds);
             Assert.Equal(2.0, seconds!.Value, 9);
@@ -113,7 +113,7 @@ namespace Gonogo.KSP.Tests
             var hops = Hops(c, 2 * c, 0.5 * c);
             var config = Enabled();
 
-            var scalar = RoutedPathDelay.OneWaySeconds(hops, config, Quality.Loaded);
+            var scalar = RoutedPathDelay.OneWaySeconds(hops, config);
             var journey = RoutedPathDelay.JourneyFor(hops, config);
 
             Assert.NotNull(scalar);

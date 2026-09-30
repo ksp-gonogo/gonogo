@@ -222,6 +222,6 @@ public class VesselManeuver
     [SitrepUnit(Units.Id)]
     public string? Planner { get; set; }
 
-    /// <summary>The payload's provenance (<c>"vessel:&lt;guid&gt;"</c> or <c>"game"</c>) and quality.</summary>
+    /// <summary>The payload's provenance (<c>"vessel:&lt;guid&gt;"</c> or <c>"game"</c>).</summary>
     public PayloadMeta Meta { get; set; } = new();
 }

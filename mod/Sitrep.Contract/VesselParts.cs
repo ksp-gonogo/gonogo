@@ -36,7 +36,7 @@ public class VesselParts
     /// <c>null</c> payload, not an empty list.</summary>
     public List<VesselPart> Parts { get; set; } = new();
 
-    /// <summary>The payload's provenance, always <c>"vessel:&lt;guid&gt;"</c> for the active vessel, and quality.</summary>
+    /// <summary>The payload's provenance, always <c>"vessel:&lt;guid&gt;"</c> for the active vessel.</summary>
     public PayloadMeta Meta { get; set; } = new();
 }
 

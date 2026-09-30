@@ -641,9 +641,22 @@ namespace Sitrep.Contract
         /// craft. This is additive on the wire (nothing removed, nothing
         /// retyped) and a seam break only: an existing implementation of
         /// <c>ICraftCatalogue</c> no longer compiles.</para>
+        ///
+        /// <para><b>Bumped 26 -&gt; 27: a payload's <c>meta</c> says only what
+        /// something reads.</b> <c>PayloadMeta</c> is <c>{ source }</c>; its
+        /// <c>quality</c> is gone from every payload but <c>vessel.orbit</c>,
+        /// whose meta is now <c>OrbitPayloadMeta</c> because the conic reckoner
+        /// withdraws on it. The envelope's <c>quality</c> is nullable and
+        /// omitted where the payload stated none, rather than defaulted to
+        /// <c>OnRails</c>. <c>comms.commandCentre</c>, <c>comms.connectivity</c>,
+        /// <c>comms.control</c>, <c>comms.degrade</c>, <c>comms.occlusion</c>,
+        /// <c>comms.path</c>, <c>comms.signal</c>, <c>eva.crew</c>,
+        /// <c>settings.gonogo</c> and <c>vessel.inventory</c> carry no
+        /// <c>meta</c> at all. <c>CommsSubject</c> loses <c>Loaded</c>,
+        /// <c>CommsDegradeModels.ToPayload</c> its meta parameter.</para>
         /// </internal>
         /// </summary>
-        public const int Major = 26;
+        public const int Major = 27;
 
         /// <summary>
         /// The contract's minor version within the current <see cref="Major"/>. It
@@ -651,7 +664,7 @@ namespace Sitrep.Contract
         /// Minor of the same Major stays compatible. The value is inlined into an
         /// Uplink at compile time, so it records the Minor that Uplink was built against.
         /// <internal>
-        /// Reset to 0 alongside the Major 20 -&gt; 21 bump (see <see cref="Major"/>).
+        /// Reset to 0 alongside the Major 26 -&gt; 27 bump (see <see cref="Major"/>).
         /// The Minor history below belongs to the earlier Major lines and is
         /// retained for provenance; every one of those additive changes is
         /// carried forward.
@@ -2112,6 +2125,6 @@ namespace Sitrep.Contract
         /// is unaffected.</para>
         /// </internal>
         /// </summary>
-        public const int Minor = 1;
+        public const int Minor = 0;
     }
 }

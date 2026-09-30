@@ -61,10 +61,6 @@ namespace Sitrep.Host.Comms
                 ModelId = resolved.ModelId,
                 ModelName = resolved.ModelName,
                 Bodies = bodies,
-                // Not vessel-scoped: this describes the universe and the rule
-                // applied to it, so it carries the same "game" provenance the
-                // comms backends stamp when there is no active vessel.
-                Meta = new PayloadMeta { Source = "game", Quality = Quality.OnRails },
             };
         }
 

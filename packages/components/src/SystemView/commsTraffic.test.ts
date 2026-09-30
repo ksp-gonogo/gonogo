@@ -3,7 +3,6 @@ import {
   type CommsNetwork,
   type CommsNetworkEdge,
   type CommsNetworkNode,
-  Quality,
 } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import {
@@ -31,7 +30,7 @@ function network(
   nodes: CommsNetworkNode[],
   edges: CommsNetworkEdge[],
 ): CommsNetwork {
-  return { nodes, edges, meta: { source: "test", quality: Quality.Loaded } };
+  return { nodes, edges, meta: { source: "test" } };
 }
 
 describe("directTrafficHops", () => {

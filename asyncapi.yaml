@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 26.1.0
+  version: 27.0.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 78 telemetry
     channels a client subscribes to, and 57 commands it dispatches, with the payload
@@ -10067,7 +10067,6 @@ components:
             seq: 918
             deliveredAt: 1842006.5
             vantage: ground:Kerbal Space Center
-            quality: 1
             active: true
             staleness: 0
             timelineEpoch: 3
@@ -10494,8 +10493,6 @@ components:
         Every field is null when there is no live remote centre right now (no
         connection, or the last hop touches neither a ground station nor a crewed
         control source); `comms.link` already reports that case as no signal.
-      required:
-        - meta
       properties:
         id:
           type:
@@ -10527,10 +10524,6 @@ components:
           description: |-
             Index into `system.bodies` of the body this centre sits on. Null when
             unknown, not surface-anchored, or the centre is a moving vessel.
-        meta:
-          description: The payload's provenance (`"vessel:<guid>"` or `"game"`) and quality.
-          allOf:
-            - $ref: "#/components/schemas/PayloadMeta"
     CommsConnectivity:
       type: object
       description: |-
@@ -10541,7 +10534,6 @@ components:
         - connected
         - controlSource
         - hasLocalControl
-        - meta
       properties:
         connected:
           type: boolean
@@ -10564,10 +10556,6 @@ components:
             flown with no link home. Full control sets it too, including full control an
             uncrewed probe has over its link. False alongside
             `CommsControlSource.Unknown`.
-        meta:
-          description: The payload's provenance (`"vessel:<guid>"` or `"game"`) and quality.
-          allOf:
-            - $ref: "#/components/schemas/PayloadMeta"
     CommsControl:
       type: object
       description: |-
@@ -10576,7 +10564,6 @@ components:
         different question from whether it is connected.
       required:
         - level
-        - meta
       properties:
         level:
           description: |-
@@ -10594,10 +10581,6 @@ components:
             A human-readable annotation on the control state, or null for none (never an
             empty string). The shipped backends set `"no connection to a command
             source"` when the vessel has no link home, and null when it is connected.
-        meta:
-          description: The payload's provenance (`"vessel:<guid>"` or `"game"`) and quality.
-          allOf:
-            - $ref: "#/components/schemas/PayloadMeta"
     CommsControlSource:
       type: integer
       description: |-
@@ -10678,7 +10661,6 @@ components:
       required:
         - modelId
         - modelName
-        - meta
       properties:
         modelId:
           type: string
@@ -10699,10 +10681,6 @@ components:
             The rating: 0 pristine, 1 unusable, absent when unrated. Never outside that
             range, and never a NaN: an arithmetic that overshot is clamped to the end it
             overshot, and one that failed to resolve arrives absent.
-        meta:
-          description: The payload's provenance and quality.
-          allOf:
-            - $ref: "#/components/schemas/PayloadMeta"
     CommsDelay:
       type: object
       description: |-
@@ -10778,7 +10756,7 @@ components:
             - $ref: "#/components/schemas/CommsDelaySource"
               x-sitrep-unit: enum
         meta:
-          description: The payload's provenance (`"vessel:<guid>"` or `"game"`) and quality.
+          description: The payload's provenance (`"vessel:<guid>"` or `"game"`).
           allOf:
             - $ref: "#/components/schemas/PayloadMeta"
     CommsDelaySource:
@@ -10928,7 +10906,7 @@ components:
             True while the active vessel has a control link home, as of one light-time
             ago; false through a blackout.
         meta:
-          description: The payload's provenance (`"vessel:<guid>"` or `"game"`) and quality.
+          description: The payload's provenance (`"vessel:<guid>"` or `"game"`).
           allOf:
             - $ref: "#/components/schemas/PayloadMeta"
     CommsNetwork:
@@ -10954,7 +10932,7 @@ components:
             $ref: "#/components/schemas/CommsNetworkEdge"
           description: Every edge in the graph. Never null.
         meta:
-          description: The payload's provenance (`"vessel:<guid>"` or `"game"`) and quality.
+          description: The payload's provenance (`"vessel:<guid>"` or `"game"`).
           allOf:
             - $ref: "#/components/schemas/PayloadMeta"
     CommsNetworkEdge:
@@ -11031,7 +11009,6 @@ components:
         - modelId
         - modelName
         - bodies
-        - meta
       properties:
         modelId:
           type: string
@@ -11050,12 +11027,6 @@ components:
           description: |-
             Every known celestial body, with the model applied. Empty before the game
             has populated a body list, never null.
-        meta:
-          description: |-
-            Provenance, always `"game"` with quality `OnRails`: this describes the
-            universe and the rule applied to it, not any craft.
-          allOf:
-            - $ref: "#/components/schemas/PayloadMeta"
     CommsOcclusionBody:
       type: object
       description: |-
@@ -11120,7 +11091,6 @@ components:
         the topology as observed; nothing may extrapolate it forward.
       required:
         - hops
-        - meta
       properties:
         hops:
           type: array
@@ -11129,10 +11099,6 @@ components:
           description: |-
             The hops in order, the first starting at the active vessel and the last
             ending at home. Empty when there is no path home, never null.
-        meta:
-          description: The payload's provenance (`"vessel:<guid>"` or `"game"`) and quality.
-          allOf:
-            - $ref: "#/components/schemas/PayloadMeta"
     CommsSignal:
       type: object
       description: |-
@@ -11148,7 +11114,6 @@ components:
         discriminator for the whole family rather than a second one per field.
       required:
         - strength
-        - meta
       properties:
         strength:
           type: number
@@ -11157,10 +11122,6 @@ components:
             Link strength from 0 to 1, in the backend's own terms (see this type's
             summary), so compare values only within one install. 0 when no link state
             could be read.
-        meta:
-          description: The payload's provenance (`"vessel:<guid>"` or `"game"`) and quality.
-          allOf:
-            - $ref: "#/components/schemas/PayloadMeta"
     ContractActionArgs:
       type: object
       description: |-
@@ -12262,7 +12223,7 @@ components:
             facing head-on, +1 pointing the same way. Null only when either port's
             transform was unavailable this tick.
         meta:
-          description: The payload's provenance (`"vessel:<guid>"`) and quality.
+          description: The payload's provenance (`"vessel:<guid>"`).
           allOf:
             - $ref: "#/components/schemas/PayloadMeta"
     ErrorMsg:
@@ -12332,7 +12293,6 @@ components:
       required:
         - count
         - kerbals
-        - meta
       properties:
         count:
           type: number
@@ -12345,10 +12305,6 @@ components:
           items:
             $ref: "#/components/schemas/EvaKerbal"
           description: One entry per kerbal on EVA. Never null; empty when nobody is outside.
-        meta:
-          description: The payload's provenance (`"game"`) and quality.
-          allOf:
-            - $ref: "#/components/schemas/PayloadMeta"
     EvaKerbal:
       type: object
       description: |-
@@ -14403,7 +14359,6 @@ components:
         - seq
         - deliveredAt
         - vantage
-        - quality
         - active
         - staleness
         - timelineEpoch
@@ -14447,12 +14402,14 @@ components:
           description: |-
             Whether the payload's subject is under physics: `Quality.Loaded` while KSP
             simulates the craft, when its orbital elements are osculating rather than a
-            coast a conic may advance, and `Quality.OnRails` otherwise, including for a
-            payload that describes no craft. The payload's own `meta.quality`, carried
-            onto the envelope.
-          allOf:
+            coast a conic may advance, and `Quality.OnRails` while it coasts. Carried
+            from the payload's own `meta.quality`, which only `vessel.orbit` states, and
+            omitted from the wire on every other Topic rather than defaulted to a claim
+            nothing made.
+          anyOf:
             - $ref: "#/components/schemas/Quality"
               x-sitrep-unit: enum
+            - type: "null"
         active:
           type: boolean
           x-sitrep-unit: flag
@@ -14492,7 +14449,7 @@ components:
 
             A client draws it as a break rather than joining across it: a line
             interpolated through an outage looks like data. Omitted from the wire when
-            there is no gap, the only `Meta` field that is.
+            there is no gap, as `Meta.quality` is when unstated.
     NoCommandArgs:
       type: object
       description: |-
@@ -14770,6 +14727,25 @@ components:
             as `OrbitPatch.referenceBodyIndex`. Null when there is no encounter, and
             also null on a recording that does not carry it; read
             `OrbitPatch.closestEncounterBody` to tell the two apart.
+    OrbitPayloadMeta:
+      type: object
+      description: |-
+        `vessel.orbit`'s provenance stamp, which also says whether the craft is
+        under physics. The orbit is the one payload that states it, because a conic
+        can advance a coast and cannot advance osculating elements.
+      required:
+        - source
+        - quality
+      properties:
+        source:
+          type: string
+          x-sitrep-unit: id
+          description: "`\"vessel:<guid>\"` for the craft the orbit belongs to."
+        quality:
+          description: Whether the craft is on rails or loaded under physics.
+          allOf:
+            - $ref: "#/components/schemas/Quality"
+              x-sitrep-unit: enum
     PartBounds:
       type: object
       description: |-
@@ -14968,21 +14944,20 @@ components:
     PayloadMeta:
       type: object
       description: |-
-        The slim, payload-specific sibling of `Meta`, carried inside payloads such
-        as every `vessel.*` one and `time.warp` (`VesselOrbit.Meta`,
-        `VesselIdentity.Meta` and so on).
+        The provenance stamp carried inside a payload that describes one subject,
+        such as most `vessel.*` payloads and `time.warp` (`VesselIdentity.Meta` and
+        so on).
 
-        It says what the payload is about, and nothing about its delivery. `seq`,
+        It says what the payload is about, and nothing about its delivery: `seq`,
         `deliveredAt`, `vantage` and `validAt` are on the envelope `Meta`, one per
-        `stream-data` frame: read those there.
+        `stream-data` frame.
 
-        `PayloadMeta.source` is the subject's provenance, and takes one of two
-        forms: `"vessel:<guid>"` when the payload describes one craft, or `"game"`
-        when it describes the session. `PayloadMeta.quality` says whether that craft
-        is on rails or fully loaded. Those two are the whole of this type.
+        `PayloadMeta.source` takes one of two forms: `"vessel:<guid>"` when the
+        payload describes one craft, or `"game"` when it describes the session. A
+        SCET threshold alarm accepts a reading only from a payload whose source is
+        the alarm's own subject.
       required:
         - source
-        - quality
       properties:
         source:
           type: string
@@ -14990,19 +14965,15 @@ components:
           description: |-
             `"vessel:<guid>"` when the payload describes one craft, or `"game"` when it
             describes the session.
-        quality:
-          description: Whether the craft is on rails or loaded under physics.
-          allOf:
-            - $ref: "#/components/schemas/Quality"
-              x-sitrep-unit: enum
     PhysicsMode:
       type: integer
       description: |-
         The active vessel's physics-simulation regime, derived from KSP's own
         `Vessel.loaded` and `Vessel.packed` flags. It is a discrete enum in its own
-        right, NOT a quality band on `PayloadMeta.quality`. A widget that switches
-        propagation or dead-reckoning strategy reads it to know whether the craft is
-        on-rails conics, a packed cluster, or a fully physics-simulated vessel.
+        right, NOT a quality band on `OrbitPayloadMeta.quality`. A widget that
+        switches propagation or dead-reckoning strategy reads it to know whether the
+        craft is on-rails conics, a packed cluster, or a fully physics-simulated
+        vessel.
 
         Mapping:
 
@@ -17052,7 +17023,6 @@ components:
         - rows
         - persistence
         - undeclared
-        - meta
       properties:
         rows:
           type: array
@@ -17073,12 +17043,6 @@ components:
             Uplinks that are running but whose settings could not be declared this
             session. Their settings are at their defaults and are not listed in
             `SettingsModel.rows`; what the file holds for them is kept as it is.
-        meta:
-          description: |-
-            Payload provenance. `Source` is always `"game"` and `Quality` always
-            `Loaded`: settings describe the install, not a craft.
-          allOf:
-            - $ref: "#/components/schemas/PayloadMeta"
     SettingsPersistence:
       type: object
       description: Whether the settings file holds what is in force.
@@ -17704,7 +17668,6 @@ components:
             atmosphericTemperature: 228.9
             meta:
               source: vessel:8f2c1d40-97ab-4a2e-9c1f-6d0b3e5a7c11
-              quality: 1
           meta: *a5
     Subscribe:
       type: object
@@ -18274,7 +18237,7 @@ components:
           x-sitrep-unit: °
           description: As `VesselAttitude.roll`, measured at the root part. Degrees, -180 to 180.
         meta:
-          description: The payload's provenance (`"vessel:<guid>"`) and quality.
+          description: The payload's provenance (`"vessel:<guid>"`).
           allOf:
             - $ref: "#/components/schemas/PayloadMeta"
     VesselComms:
@@ -18313,7 +18276,7 @@ components:
             - $ref: "#/components/schemas/ControlState"
               x-sitrep-unit: enum
         meta:
-          description: The payload's provenance (`"vessel:<guid>"`) and quality.
+          description: The payload's provenance (`"vessel:<guid>"`).
           allOf:
             - $ref: "#/components/schemas/PayloadMeta"
     VesselControl:
@@ -18472,7 +18435,7 @@ components:
             rather than relying on array position: position does not carry identity
             here.
         meta:
-          description: The payload's provenance (`"vessel:<guid>"`) and quality.
+          description: The payload's provenance (`"vessel:<guid>"`).
           allOf:
             - $ref: "#/components/schemas/PayloadMeta"
     VesselCrew:
@@ -18603,7 +18566,7 @@ components:
             Ambient atmospheric temperature at the vessel's position, Kelvin
             (Vessel.atmosphericTemperature).
         meta:
-          description: The payload's provenance (`"vessel:<guid>"`) and quality.
+          description: The payload's provenance (`"vessel:<guid>"`).
           allOf:
             - $ref: "#/components/schemas/PayloadMeta"
     VesselIdentity:
@@ -18665,7 +18628,7 @@ components:
             liftoff. `null` while the vessel is in `PreLaunch` and whenever the clock is
             unknown, never the current time.
         meta:
-          description: The payload's provenance (`"vessel:<guid>"`) and quality.
+          description: The payload's provenance (`"vessel:<guid>"`).
           allOf:
             - $ref: "#/components/schemas/PayloadMeta"
     VesselInventory:
@@ -18691,7 +18654,6 @@ components:
         worth showing whether or not a modelling mod is installed.
       required:
         - stores
-        - meta
       properties:
         stores:
           type: array
@@ -18701,10 +18663,6 @@ components:
             Every part-hosted inventory on the active vessel this tick, in vessel
             part-list order. Always present (possibly empty); a vessel-less tick yields
             a `null` payload, not an empty list.
-        meta:
-          description: The payload's provenance (`"vessel:<guid>"` or `"game"`) and quality.
-          allOf:
-            - $ref: "#/components/schemas/PayloadMeta"
     VesselLanding:
       type: object
       description: |-
@@ -18932,7 +18890,7 @@ components:
             open or semi-deployed, so its drag is already in the measurement). Null
             outside an atmosphere.
         meta:
-          description: The payload's provenance (`"vessel:<guid>"`) and quality.
+          description: The payload's provenance (`"vessel:<guid>"`).
           allOf:
             - $ref: "#/components/schemas/PayloadMeta"
     VesselManeuver:
@@ -18979,7 +18937,7 @@ components:
             consumer can special-case one. Present-versus-null is the only part anything
             should test.
         meta:
-          description: The payload's provenance (`"vessel:<guid>"` or `"game"`) and quality.
+          description: The payload's provenance (`"vessel:<guid>"` or `"game"`).
           allOf:
             - $ref: "#/components/schemas/PayloadMeta"
     VesselOrbit:
@@ -19129,7 +19087,7 @@ components:
             Payload provenance. `Source` is `"vessel:<guid>"` for the active vessel;
             `Quality` is `Loaded` under physics and `OnRails` otherwise.
           allOf:
-            - $ref: "#/components/schemas/PayloadMeta"
+            - $ref: "#/components/schemas/OrbitPayloadMeta"
     VesselOrbitTruth:
       type: object
       description: |-
@@ -19196,7 +19154,7 @@ components:
             `VesselOrbitTruth.position` and `VesselOrbitTruth.velocity` are in a frame
             co-rotating with the body, false when they are in the fixed inertial frame.
         meta:
-          description: The payload's provenance (`"vessel:<guid>"`) and quality.
+          description: The payload's provenance (`"vessel:<guid>"`).
           allOf:
             - $ref: "#/components/schemas/PayloadMeta"
     VesselPart:
@@ -19428,9 +19386,7 @@ components:
             present (possibly empty); a tick with no vessel yields a `null` payload, not
             an empty list.
         meta:
-          description: |-
-            The payload's provenance, always `"vessel:<guid>"` for the active vessel,
-            and quality.
+          description: The payload's provenance, always `"vessel:<guid>"` for the active vessel.
           allOf:
             - $ref: "#/components/schemas/PayloadMeta"
     VesselPhysicsMode:
@@ -19450,7 +19406,7 @@ components:
             - $ref: "#/components/schemas/PhysicsMode"
               x-sitrep-unit: enum
         meta:
-          description: The payload's provenance (`"vessel:<guid>"`) and quality.
+          description: The payload's provenance (`"vessel:<guid>"`).
           allOf:
             - $ref: "#/components/schemas/PayloadMeta"
     VesselPropulsion:
@@ -19543,9 +19499,7 @@ components:
             happened yet. A consumer may report that thrust ceased with delta-v owed; it
             may not report a shortfall.
         meta:
-          description: |-
-            Payload provenance. `Source` is `"vessel:<guid>"` for the active vessel;
-            `Quality` is `Loaded` under physics and `OnRails` otherwise.
+          description: Payload provenance. `Source` is `"vessel:<guid>"` for the active vessel.
           allOf:
             - $ref: "#/components/schemas/PayloadMeta"
     VesselResources:
@@ -19722,7 +19676,7 @@ components:
             Number of parts on the vessel. Null when the vessel's part list could not be
             read this tick.
         meta:
-          description: The payload's provenance (`"vessel:<guid>"`) and quality.
+          description: The payload's provenance (`"vessel:<guid>"`).
           allOf:
             - $ref: "#/components/schemas/PayloadMeta"
     VesselSurface:
@@ -19769,9 +19723,7 @@ components:
             its terrain raycast found nothing below, or the vessel is packed or unloaded
             and KSP is holding an earlier value.
         meta:
-          description: |-
-            Payload provenance. `Source` is `"vessel:<guid>"` for the active vessel;
-            `Quality` is `Loaded` under physics and `OnRails` otherwise.
+          description: Payload provenance. `Source` is `"vessel:<guid>"` for the active vessel.
           allOf:
             - $ref: "#/components/schemas/PayloadMeta"
     VesselTarget:
@@ -19892,7 +19844,7 @@ components:
         meta:
           description: |-
             The payload's provenance, stamped with the active vessel
-            (`"vessel:<guid>"`), and quality.
+            (`"vessel:<guid>"`).
           allOf:
             - $ref: "#/components/schemas/PayloadMeta"
     VesselThermal:
@@ -19990,9 +19942,7 @@ components:
             null only alongside a null `VesselThermal.hottestEngineTempRatio`, when no
             engine part with a valid `maxTemp` was found this tick.
         meta:
-          description: |-
-            The payload's provenance, `"vessel:<guid>"` for the active vessel, and
-            quality.
+          description: The payload's provenance, `"vessel:<guid>"` for the active vessel.
           allOf:
             - $ref: "#/components/schemas/PayloadMeta"
     VesselType:
@@ -20178,7 +20128,7 @@ components:
             beyond this is one the sampling skipped because of warp, and a line across
             it that no model of the value carries asserts a path nothing observed.
         meta:
-          description: The payload's provenance (always `"game"`) and quality.
+          description: The payload's provenance (always `"game"`).
           allOf:
             - $ref: "#/components/schemas/PayloadMeta"
     WriteModSettingArgs:

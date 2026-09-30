@@ -41,7 +41,6 @@ namespace Sitrep.Host.Settings
                 ["meta"] = new Dictionary<string, object?>
                 {
                     ["source"] = "game",
-                    ["quality"] = Quality.Loaded,
                 },
             };
         }

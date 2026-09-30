@@ -81,7 +81,7 @@ namespace Gonogo.KSP
         /// <para>Built here rather than borrowed from a backend: the shared
         /// derivation moved onto <c>CommsBackendBase</c> as a PROTECTED instance
         /// member, which is right for a backend stamping its own payloads and
-        /// unreachable from a wrapper that is not one. Same two fields off the
+        /// unreachable from a wrapper that is not one. Same field off the
         /// same <see cref="ActiveVesselScope.Current"/> read, so the two cannot
         /// disagree about a craft.</para>
         /// </summary>
@@ -92,7 +92,6 @@ namespace Gonogo.KSP
             return new PayloadMeta
             {
                 Source = id != null ? "vessel:" + id : "game",
-                Quality = id != null && vessel!.loaded ? Quality.Loaded : Quality.OnRails,
             };
         }
     }

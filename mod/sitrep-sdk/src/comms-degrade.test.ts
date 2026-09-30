@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { type CommsDegrade, Quality } from "./__generated__/contract";
+import type { CommsDegrade } from "./__generated__/contract";
 import { degradeRating, degradeRatingOf } from "./comms-degrade";
 import type { TopicCurrency } from "./reading";
 import { value } from "./unit-system/value";
 
 /**
  * A payload built the way the wire hydrates one: a real `Value` on the rating,
- * a real `Quality` on the meta, and no assertion anywhere. The generated type is
+ * and no assertion anywhere. The generated type is
  * the whole shape, so anything this file can construct is something the mod can
  * actually send, and a field that changed shape would fail here at compile time
  * rather than being cast past.
@@ -18,7 +18,6 @@ const payloadOf = (
   modelId,
   modelName: "Some rule",
   level: level === undefined ? undefined : value("ratio", level),
-  meta: { source: "vessel:abc", quality: Quality.Loaded },
 });
 
 /**

@@ -38,9 +38,6 @@ public class VesselInventory
     /// vessel part-list order. Always present (possibly empty); a vessel-less
     /// tick yields a <c>null</c> payload, not an empty list.</summary>
     public List<InventoryStore> Stores { get; set; } = new();
-
-    /// <summary>The payload's provenance (<c>"vessel:&lt;guid&gt;"</c> or <c>"game"</c>) and quality.</summary>
-    public PayloadMeta Meta { get; set; } = new();
 }
 
 /// <summary>One part's <c>ModuleInventoryPart</c>: a cargo hold aboard.</summary>

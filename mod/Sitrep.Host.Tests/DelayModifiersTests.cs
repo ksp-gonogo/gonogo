@@ -37,8 +37,7 @@ namespace Sitrep.Host.Tests
             var delay = SignalDelay.Compute(
                 modifiers.Apply(On()),
                 PathOfOneHop(SignalDelay.SpeedOfLightMetersPerSecond * 10.0),
-                "vessel:x",
-                Quality.Loaded);
+                "vessel:x");
 
             Assert.Equal(15.0, delay.OneWaySeconds!.Value, 9);
             Assert.Equal(CommsDelaySource.SignalDelay, delay.Source);
@@ -69,7 +68,7 @@ namespace Sitrep.Host.Tests
             modifiers.Register(0.0, "a cut");
 
             var config = modifiers.Apply(On());
-            var delay = SignalDelay.Compute(config, PathOfOneHop(1.0e9), "vessel:x", Quality.Loaded);
+            var delay = SignalDelay.Compute(config, PathOfOneHop(1.0e9), "vessel:x");
 
             Assert.False(config.Enabled);
             Assert.Equal(3600.0, config.SilenceDeclarationSeconds);

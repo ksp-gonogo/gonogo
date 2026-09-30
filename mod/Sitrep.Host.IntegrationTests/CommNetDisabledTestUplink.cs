@@ -99,7 +99,7 @@ namespace Sitrep.Host.IntegrationTests
             _kernel != null ? CommsElection.Elected(_kernel) : null,
             _modelPresent,
             () => CommsControlSource.Full,
-            () => new PayloadMeta { Source = "vessel:x", Quality = Quality.Loaded });
+            () => new PayloadMeta { Source = "vessel:x" });
 
         private CommsDelay? Delay()
         {
@@ -109,7 +109,7 @@ namespace Sitrep.Host.IntegrationTests
                 return null;
             }
             var path = backend.Path(null);
-            return SignalDelay.Compute(Config(), path, path.Meta?.Source ?? "", path.Meta?.Quality ?? Quality.OnRails);
+            return SignalDelay.Compute(Config(), path, "vessel:x");
         }
 
         private bool? Connected() => Backend()?.Connectivity().Connected;
@@ -122,7 +122,7 @@ namespace Sitrep.Host.IntegrationTests
                 : new CommsLink
                 {
                     Connected = connected.Value,
-                    Meta = new PayloadMeta { Source = "vessel:x", Quality = Quality.Loaded },
+                    Meta = new PayloadMeta { Source = "vessel:x" },
                 };
         }
 
@@ -141,31 +141,27 @@ namespace Sitrep.Host.IntegrationTests
                 Connected = false,
                 ControlSource = CommsControlSource.None,
                 HasLocalControl = false,
-                Meta = new PayloadMeta { Source = "vessel:x", Quality = Quality.Loaded },
             };
 
             public CommsSignal SignalStrength() => new CommsSignal
             {
                 Strength = 0.0,
-                Meta = new PayloadMeta { Source = "vessel:x", Quality = Quality.Loaded },
             };
 
             public CommsControl ControlState() => new CommsControl
             {
                 Level = CommsControlStateKind.None,
                 Reason = "no connection to a command source",
-                Meta = new PayloadMeta { Source = "vessel:x", Quality = Quality.Loaded },
             };
 
             public CommsPath Path(object? vessel) => new CommsPath
             {
                 Hops = new List<CommsHop>(),
-                Meta = new PayloadMeta { Source = "vessel:x", Quality = Quality.Loaded },
             };
 
             public CommsNetwork Network(object? vessel) => new CommsNetwork
             {
-                Meta = new PayloadMeta { Source = "vessel:x", Quality = Quality.Loaded },
+                Meta = new PayloadMeta { Source = "vessel:x" },
             };
 
             public ICommsOcclusionModel OcclusionModel() => CommsOcclusionModels.Unknown;

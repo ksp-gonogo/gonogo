@@ -523,10 +523,10 @@ namespace Sitrep.Contract.Serialization
 
         /// <summary>
         /// Flattens a <see cref="Sitrep.Contract.CommsDelay"/> to the wire
-        /// object <c>{ oneWaySeconds, source, meta:{ source, quality } }</c>.
+        /// object <c>{ oneWaySeconds, source, meta:{ source } }</c>.
         /// <c>oneWaySeconds</c> is written as JSON <c>null</c> when there is no
         /// measurable path (see <see cref="Sitrep.Contract.CommsDelay.OneWaySeconds"/>),
-        /// never collapsed to 0. Enums (<c>source</c>, <c>meta.quality</c>) are
+        /// never collapsed to 0. Enums (<c>source</c>) are
         /// written as integer ordinals.
         /// </summary>
         private static void AppendCommsDelay(StringBuilder sb, Sitrep.Contract.CommsDelay delay)
@@ -555,10 +555,6 @@ namespace Sitrep.Contract.Serialization
             AppendString(sb, "source");
             sb.Append(':');
             AppendString(sb, delay.Meta?.Source ?? "");
-            sb.Append(',');
-            AppendString(sb, "quality");
-            sb.Append(':');
-            AppendInteger(sb, (long)(delay.Meta?.Quality ?? Sitrep.Contract.Quality.OnRails));
             sb.Append('}');
 
             sb.Append('}');
@@ -603,7 +599,7 @@ namespace Sitrep.Contract.Serialization
 
         /// <summary>
         /// Writes <c>vessel.inventory</c> as
-        /// <c>{ stores: [...], meta: { source, quality } }</c>.
+        /// <c>{ stores: [...] }</c>.
         ///
         /// <para>An empty <c>stores</c> is written, never omitted: "this vessel
         /// carries nothing" and "nobody looked" are different answers, and a
@@ -622,10 +618,6 @@ namespace Sitrep.Contract.Serialization
                 AppendInventoryStore(sb, inv.Stores[i]);
             }
             sb.Append(']');
-            sb.Append(',');
-            AppendString(sb, "meta");
-            sb.Append(':');
-            AppendPayloadMeta(sb, inv.Meta);
             sb.Append('}');
         }
 
@@ -1164,19 +1156,15 @@ namespace Sitrep.Contract.Serialization
             sb.Append('}');
         }
 
-        // The comms.* flatteners share AppendCommsDelay's rules: camelCase keys, enum ordinals, PayloadMeta as { source, quality }, JSON null for absent nullable fields.
+        // The comms.* flatteners share AppendCommsDelay's rules: camelCase keys, enum ordinals, PayloadMeta as { source }, JSON null for absent nullable fields.
 
-        /// <summary>Writes a <see cref="Sitrep.Contract.PayloadMeta"/> as <c>{ source, quality }</c> (quality as its integer ordinal). Null meta collapses to the defaults, matching <see cref="AppendCommsDelay"/>.</summary>
+        /// <summary>Writes a <see cref="Sitrep.Contract.PayloadMeta"/> as <c>{ source }</c>. Null meta collapses to the defaults, matching <see cref="AppendCommsDelay"/>.</summary>
         private static void AppendPayloadMeta(StringBuilder sb, Sitrep.Contract.PayloadMeta? meta)
         {
             sb.Append('{');
             AppendString(sb, "source");
             sb.Append(':');
             AppendString(sb, meta?.Source ?? "");
-            sb.Append(',');
-            AppendString(sb, "quality");
-            sb.Append(':');
-            AppendInteger(sb, (long)(meta?.Quality ?? Sitrep.Contract.Quality.OnRails));
             sb.Append('}');
         }
 
@@ -1218,10 +1206,6 @@ namespace Sitrep.Contract.Serialization
             {
                 AppendNull(sb);
             }
-            sb.Append(',');
-            AppendString(sb, "meta");
-            sb.Append(':');
-            AppendPayloadMeta(sb, c.Meta);
             sb.Append('}');
         }
 
@@ -1609,10 +1593,6 @@ namespace Sitrep.Contract.Serialization
             AppendString(sb, "hasLocalControl");
             sb.Append(':');
             AppendBool(sb, c.HasLocalControl);
-            sb.Append(',');
-            AppendString(sb, "meta");
-            sb.Append(':');
-            AppendPayloadMeta(sb, c.Meta);
             sb.Append('}');
         }
 
@@ -1622,10 +1602,6 @@ namespace Sitrep.Contract.Serialization
             AppendString(sb, "strength");
             sb.Append(':');
             AppendNumber(sb, s.Strength);
-            sb.Append(',');
-            AppendString(sb, "meta");
-            sb.Append(':');
-            AppendPayloadMeta(sb, s.Meta);
             sb.Append('}');
         }
 
@@ -1646,10 +1622,6 @@ namespace Sitrep.Contract.Serialization
             {
                 AppendString(sb, c.Reason);
             }
-            sb.Append(',');
-            AppendString(sb, "meta");
-            sb.Append(':');
-            AppendPayloadMeta(sb, c.Meta);
             sb.Append('}');
         }
 
@@ -1711,10 +1683,6 @@ namespace Sitrep.Contract.Serialization
                 }
             }
             sb.Append(']');
-            sb.Append(',');
-            AppendString(sb, "meta");
-            sb.Append(':');
-            AppendPayloadMeta(sb, p.Meta);
             sb.Append('}');
         }
 
@@ -1805,10 +1773,6 @@ namespace Sitrep.Contract.Serialization
                 }
             }
             sb.Append(']');
-            sb.Append(',');
-            AppendString(sb, "meta");
-            sb.Append(':');
-            AppendPayloadMeta(sb, o.Meta);
             sb.Append('}');
         }
 
@@ -1840,10 +1804,6 @@ namespace Sitrep.Contract.Serialization
             {
                 AppendNull(sb);
             }
-            sb.Append(',');
-            AppendString(sb, "meta");
-            sb.Append(':');
-            AppendPayloadMeta(sb, d.Meta);
             sb.Append('}');
         }
 

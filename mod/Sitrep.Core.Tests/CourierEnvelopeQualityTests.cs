@@ -55,10 +55,10 @@ namespace Sitrep.Core.Tests
         }
 
         [Fact]
-        public void A_payload_that_states_no_quality_is_on_rails()
+        public void A_payload_that_states_no_quality_arrives_in_an_envelope_that_states_none()
         {
-            Assert.Equal(Quality.OnRails, DeliverOne("v0")[0].Meta.Quality);
-            Assert.Equal(Quality.OnRails, DeliverOne(new Dictionary<string, object?> { ["sma"] = 1.0 })[0].Meta.Quality);
+            Assert.Null(DeliverOne("v0")[0].Meta.Quality);
+            Assert.Null(DeliverOne(new Dictionary<string, object?> { ["sma"] = 1.0 })[0].Meta.Quality);
         }
 
         [Fact]

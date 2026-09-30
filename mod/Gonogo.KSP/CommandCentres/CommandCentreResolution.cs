@@ -38,17 +38,12 @@ namespace Gonogo.KSP.CommandCentres
         /// centre claims. What it no longer means is "core declined to ask this
         /// backend", which was the state it could not be told apart
         /// from.</para>
-        ///
-        /// <para><paramref name="meta"/> rides through untouched, because a
-        /// payload that named no centre still has to say which craft and what
-        /// quality it was read at.</para>
         /// </summary>
         internal static CommsCommandCentre Resolve(
             object? terminus,
-            CommandCentreRegistry? registry,
-            PayloadMeta meta)
+            CommandCentreRegistry? registry)
         {
-            var unknown = new CommsCommandCentre { Meta = meta };
+            var unknown = new CommsCommandCentre();
             if (terminus is not CommNode node || registry == null)
             {
                 return unknown;
@@ -66,7 +61,6 @@ namespace Gonogo.KSP.CommandCentres
                             DisplayName = ksp.DisplayName,
                             Kind = ksp.Kind.ToString(),
                             BodyIndex = ksp.BodyIndex,
-                            Meta = meta,
                         };
                     }
                 }

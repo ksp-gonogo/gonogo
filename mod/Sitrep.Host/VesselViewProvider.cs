@@ -134,7 +134,7 @@ namespace Sitrep.Host
                 Situation = situation,
                 ParentBodyIndex = parentBodyIndex,
                 LaunchUt = ResolveLaunchUt(snapshot!, vessel, identity, situation),
-                Meta = BuildMeta(vessel, vesselId!),
+                Meta = BuildMeta(vesselId!),
             };
         }
 
@@ -305,7 +305,7 @@ namespace Sitrep.Host
                 Encounter = encounter,
                 Patches = patches,
                 Horizon = horizon,
-                Meta = new PayloadMeta { Source = "vessel:" + vesselId, Quality = quality },
+                Meta = new OrbitPayloadMeta { Source = "vessel:" + vesselId, Quality = quality },
             };
         }
 
@@ -531,7 +531,7 @@ namespace Sitrep.Host
                 Position = position,
                 Velocity = velocity,
                 FrameRotating = frameRotating.Value,
-                Meta = BuildMeta(vessel, vesselId),
+                Meta = BuildMeta(vesselId),
             };
         }
 
@@ -589,7 +589,7 @@ namespace Sitrep.Host
                 AtmDensity = atmDensity.Value,
                 ExternalTemperature = externalTemperature.Value,
                 AtmosphericTemperature = atmosphericTemperature.Value,
-                Meta = BuildMeta(vessel, vesselId),
+                Meta = BuildMeta(vesselId),
             };
         }
 
@@ -630,7 +630,7 @@ namespace Sitrep.Host
                 PitchRootFrame = pitchRootFrame.Value,
                 HeadingRootFrame = headingRootFrame.Value,
                 RollRootFrame = rollRootFrame.Value,
-                Meta = BuildMeta(vessel, vesselId),
+                Meta = BuildMeta(vesselId),
             };
         }
 
@@ -679,7 +679,7 @@ namespace Sitrep.Host
             return new VesselResources
             {
                 Resources = map,
-                Meta = BuildMeta(vessel, vesselId),
+                Meta = BuildMeta(vesselId),
             };
         }
 
@@ -733,7 +733,7 @@ namespace Sitrep.Host
                 HottestEngineMaxTemp = GetDouble(thermal, "hottestEngineMaxTemp"),
                 HottestEngineTempRatio = GetDouble(thermal, "hottestEngineTempRatio"),
                 AnyEnginesOverheating = GetBool(thermal, "anyEnginesOverheating"),
-                Meta = BuildMeta(vessel, vesselId),
+                Meta = BuildMeta(vesselId),
             };
         }
 
@@ -831,7 +831,7 @@ namespace Sitrep.Host
                 TranslationY = GetDouble(control, "translationY"),
                 TranslationZ = GetDouble(control, "translationZ"),
                 ActionGroups = actionGroups,
-                Meta = BuildMeta(vessel, vesselId),
+                Meta = BuildMeta(vesselId),
             };
         }
 
@@ -862,7 +862,7 @@ namespace Sitrep.Host
             return new VesselPhysicsMode
             {
                 Mode = ParsePhysicsMode(GetString(physics, "mode")),
-                Meta = BuildMeta(vessel, vesselId),
+                Meta = BuildMeta(vesselId),
             };
         }
 
@@ -894,7 +894,7 @@ namespace Sitrep.Host
                 Connected = connected.Value,
                 SignalStrength = signalStrength.Value,
                 ControlState = ParseControlState(GetString(comms, "controlState")),
-                Meta = BuildMeta(vessel, vesselId),
+                Meta = BuildMeta(vesselId),
             };
         }
 
@@ -932,7 +932,7 @@ namespace Sitrep.Host
                 AvailableThrust = availableThrust.Value,
                 ThrustStartedUt = GetDouble(propulsion, "thrustStartedUt"),
                 LastThrustEndUt = GetDouble(propulsion, "lastThrustEndUt"),
-                Meta = BuildMeta(vessel, vesselId),
+                Meta = BuildMeta(vesselId),
             };
         }
 
@@ -1003,7 +1003,7 @@ namespace Sitrep.Host
                 // Absent means no planner exists for this craft, which the
                 // empty Nodes list above cannot say on its own.
                 Planner = GetString(vessel, "maneuverPlanner"),
-                Meta = BuildMeta(vessel, vesselId),
+                Meta = BuildMeta(vesselId),
             };
         }
 
@@ -1090,7 +1090,7 @@ namespace Sitrep.Host
                 RelativeVelocity = relativeVelocity,
                 Orbit = orbit,
                 ClosestApproach = closestApproach,
-                Meta = BuildMeta(vessel, vesselId),
+                Meta = BuildMeta(vesselId),
             };
         }
 
@@ -1125,7 +1125,7 @@ namespace Sitrep.Host
                 RelativeVelocity = relativeVelocity,
                 Distance = distance.Value,
                 ForwardDot = GetDouble(dock, "forwardDot"),
-                Meta = BuildMeta(vessel, vesselId),
+                Meta = BuildMeta(vesselId),
             };
         }
 
@@ -1148,7 +1148,7 @@ namespace Sitrep.Host
                 Biome = GetString(surface, "biome"),
                 LandedAt = GetString(surface, "landedAt"),
                 HeightFromTerrain = GetDouble(surface, "heightFromTerrain"),
-                Meta = BuildMeta(vessel, vesselId),
+                Meta = BuildMeta(vesselId),
             };
         }
 
@@ -1189,7 +1189,7 @@ namespace Sitrep.Host
                 DescentRegime = GetString(landing, "descentRegime"),
                 DragToWeightRatio = GetDouble(landing, "dragToWeightRatio"),
                 ParachuteState = GetString(landing, "parachuteState"),
-                Meta = BuildMeta(vessel, vesselId),
+                Meta = BuildMeta(vesselId),
             };
         }
 
@@ -1215,7 +1215,7 @@ namespace Sitrep.Host
             var result = new VesselCrew
             {
                 Count = count.Value,
-                Meta = BuildMeta(vessel, vesselId),
+                Meta = BuildMeta(vesselId),
             };
 
             // Roster + capacity (G-13 additive growth). Optional group: absent
@@ -1258,7 +1258,7 @@ namespace Sitrep.Host
                 return null;
             }
 
-            var result = new EvaCrew { Meta = BuildGameMeta() };
+            var result = new EvaCrew();
             foreach (var rawEntry in entries)
             {
                 if (rawEntry is not IDictionary<string, object?> raw)
@@ -1378,7 +1378,7 @@ namespace Sitrep.Host
                 // never -1 or 0 masquerading as a real stage/part count.
                 StageCount = GetInt(misc, "stageCount"),
                 PartCount = GetInt(misc, "partCount"),
-                Meta = BuildMeta(vessel, vesselId),
+                Meta = BuildMeta(vesselId),
             };
         }
 
@@ -1914,7 +1914,6 @@ namespace Sitrep.Host
         {
             ["count"] = eva.Count,
             ["kerbals"] = eva.Kerbals.Select(ToWire).ToList<object?>(),
-            ["meta"] = ToWire(eva.Meta),
         };
 
         private static Dictionary<string, object?> ToWire(EvaKerbal kerbal) => new Dictionary<string, object?>
@@ -2002,16 +2001,20 @@ namespace Sitrep.Host
         private static Dictionary<string, object?> ToWire(PayloadMeta meta) => new Dictionary<string, object?>
         {
             ["source"] = meta.Source,
+        };
+
+        private static Dictionary<string, object?> ToWire(OrbitPayloadMeta meta) => new Dictionary<string, object?>
+        {
+            ["source"] = meta.Source,
             ["quality"] = (int)meta.Quality,
         };
 
 
-        private static PayloadMeta BuildMeta(IDictionary<string, object?> vessel, string vesselId)
+        private static PayloadMeta BuildMeta(string vesselId)
         {
             return new PayloadMeta
             {
                 Source = "vessel:" + vesselId,
-                Quality = QualityOf(vessel),
             };
         }
 
@@ -2046,7 +2049,6 @@ namespace Sitrep.Host
             return new PayloadMeta
             {
                 Source = "game",
-                Quality = Quality.OnRails,
             };
         }
 

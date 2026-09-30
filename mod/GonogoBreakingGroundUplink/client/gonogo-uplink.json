@@ -8,8 +8,8 @@
   "minAppVersion": "0.0.0",
   "apiVersion": "6.0.0",
   "uiKitVersion": "0.1.0",
-  "contractMajor": 26,
-  "contractMinor": 1,
+  "contractMajor": 27,
+  "contractMinor": 0,
   "bundleUrl": "breakingGround/breakingGround.client.js",
   "integrity": "",
   "sdkVersion": "0.0.1"

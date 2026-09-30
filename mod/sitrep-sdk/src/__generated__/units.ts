@@ -853,6 +853,10 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     sma: "m",
     startUt: "ut",
   },
+  "OrbitPayloadMeta": {
+    quality: "enum",
+    source: "id",
+  },
   "PartActionEntry": {
     active: "flag",
     advancedTweakable: "flag",
@@ -890,7 +894,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     totalProductionEc: "units/s",
   },
   "PayloadMeta": {
-    quality: "enum",
     source: "id",
   },
   "PendingUplink": {
@@ -2164,18 +2167,6 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "CommcastTransmissionRow": {
     author: "CommcastAuthor",
   },
-  "CommsCommandCentre": {
-    meta: "PayloadMeta",
-  },
-  "CommsConnectivity": {
-    meta: "PayloadMeta",
-  },
-  "CommsControl": {
-    meta: "PayloadMeta",
-  },
-  "CommsDegrade": {
-    meta: "PayloadMeta",
-  },
   "CommsDelay": {
     meta: "PayloadMeta",
   },
@@ -2196,14 +2187,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "CommsOcclusion": {
     bodies: "CommsOcclusionBody[]",
-    meta: "PayloadMeta",
   },
   "CommsPath": {
     hops: "CommsHop[]",
-    meta: "PayloadMeta",
-  },
-  "CommsSignal": {
-    meta: "PayloadMeta",
   },
   "ControlFrame": {
     settableFrames: "ControlFrameOption[]",
@@ -2229,7 +2215,6 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "EvaCrew": {
     kerbals: "EvaKerbal[]",
-    meta: "PayloadMeta",
   },
   "EventMsg": {
     meta: "Meta",
@@ -2312,7 +2297,6 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
     onFire: "ScetAlarmAction[]",
   },
   "SettingsModel": {
-    meta: "PayloadMeta",
     persistence: "SettingsPersistence",
     rows: "SettingsRowState[]",
     undeclared: "SettingsDeclarationFailure[]",
@@ -2367,7 +2351,6 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
     meta: "PayloadMeta",
   },
   "VesselInventory": {
-    meta: "PayloadMeta",
     stores: "InventoryStore[]",
   },
   "VesselLanding": {
@@ -2380,7 +2363,7 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "VesselOrbit": {
     encounter: "OrbitEncounter",
     horizon: "PropagationHorizon",
-    meta: "PayloadMeta",
+    meta: "OrbitPayloadMeta",
     patches: "OrbitPatch[]",
   },
   "VesselOrbitTruth": {
@@ -2457,18 +2440,6 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "commcast.transmissions": {
     author: "CommcastAuthor",
   },
-  "comms.commandCentre": {
-    meta: "PayloadMeta",
-  },
-  "comms.connectivity": {
-    meta: "PayloadMeta",
-  },
-  "comms.control": {
-    meta: "PayloadMeta",
-  },
-  "comms.degrade": {
-    meta: "PayloadMeta",
-  },
   "comms.delay": {
     meta: "PayloadMeta",
   },
@@ -2482,14 +2453,9 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "comms.occlusion": {
     bodies: "CommsOcclusionBody[]",
-    meta: "PayloadMeta",
   },
   "comms.path": {
     hops: "CommsHop[]",
-    meta: "PayloadMeta",
-  },
-  "comms.signal": {
-    meta: "PayloadMeta",
   },
   "crash.lastCrash": {
     flightStats: "CrashFlightStats",
@@ -2500,7 +2466,6 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "eva.crew": {
     kerbals: "EvaKerbal[]",
-    meta: "PayloadMeta",
   },
   "fleet.silence": {
     vessels: "FleetSilenceEntry[]",
@@ -2522,7 +2487,6 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
     scienceBreakdown: "RecoveryScienceEntry[]",
   },
   "settings.gonogo": {
-    meta: "PayloadMeta",
     persistence: "SettingsPersistence",
     rows: "SettingsRowState[]",
     undeclared: "SettingsDeclarationFailure[]",
@@ -2572,7 +2536,6 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
     meta: "PayloadMeta",
   },
   "vessel.inventory": {
-    meta: "PayloadMeta",
     stores: "InventoryStore[]",
   },
   "vessel.landing": {
@@ -2585,7 +2548,7 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "vessel.orbit": {
     encounter: "OrbitEncounter",
     horizon: "PropagationHorizon",
-    meta: "PayloadMeta",
+    meta: "OrbitPayloadMeta",
     patches: "OrbitPatch[]",
   },
   "vessel.orbit.truth": {
@@ -2711,7 +2674,7 @@ export const GENERATED_TYPE_ENUMS: Readonly<Record<string, EnumsByField>> = {
     patchEndTransition: "TransitionType",
     patchStartTransition: "TransitionType",
   },
-  "PayloadMeta": {
+  "OrbitPayloadMeta": {
     quality: "Quality",
   },
   "PropagationHorizon": {

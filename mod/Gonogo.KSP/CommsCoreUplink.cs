@@ -686,7 +686,8 @@ namespace Gonogo.KSP
             // instead leaves the LAST-KNOWN delay untouched and retries next
             // tick: the correct "never reveal earlier than the known horizon"
             // behaviour, symmetric with ComputeConnectedOnMain above.
-            var path = backend.Path(_activeVesselProbe());
+            var active = _activeVesselProbe();
+            var path = backend.Path(active);
             // The EFFECTIVE config, not the authored one: the reveal gate and
             // comms.delay itself must see every modifier the currency deadline
             // and the fleet's light-time see, or the gate holds telemetry for a
@@ -694,8 +695,7 @@ namespace Gonogo.KSP
             return SignalDelay.Compute(
                 SignalDelayConfig,
                 path,
-                path.Meta?.Source ?? "",
-                path.Meta?.Quality ?? Quality.OnRails);
+                SourceOf(active));
         }
 
         /*
@@ -810,8 +810,7 @@ namespace Gonogo.KSP
                 var delay = SignalDelay.Compute(
                     SignalDelayConfig,
                     path,
-                    path.Meta?.Source ?? "",
-                    path.Meta?.Quality ?? Quality.OnRails);
+                    SourceOf(active));
 
                 var connectivity = backend.Connectivity();
 
@@ -833,7 +832,6 @@ namespace Gonogo.KSP
                         Connected = devOverride.Value,
                         ControlSource = devOverride.Value ? connectivity.ControlSource : CommsControlSource.None,
                         HasLocalControl = connectivity.HasLocalControl,
-                        Meta = connectivity.Meta,
                     };
                 }
 
@@ -855,7 +853,7 @@ namespace Gonogo.KSP
                 // failed. That remains the right answer: a centre is where a
                 // control PATH terminates, and there are no paths.
                 var commandCentre = CommandCentreResolution.Resolve(
-                    backend.ControlPathTerminus(active), _commandCentreRegistry, connectivity.Meta);
+                    backend.ControlPathTerminus(active), _commandCentreRegistry);
 
                 return new CommsCapture
                 {
@@ -871,11 +869,8 @@ namespace Gonogo.KSP
                     // (the same one system.bodies reads), so no backend has to
                     // walk FlightGlobals itself.
                     Occlusion = OcclusionFor(backend, snapshot),
-                    // The backend declares the RULE and its own rating under it;
-                    // core only stamps the meta the rest of this capture
-                    // already carries, so the grading cannot describe a
-                    // different tick from the link state beside it.
-                    Degrade = DegradeFor(backend, connectivity.Meta),
+                    // The backend declares the RULE and its own rating under it.
+                    Degrade = DegradeFor(backend),
                     CommandCentre = commandCentre,
                 };
             }
@@ -911,7 +906,14 @@ namespace Gonogo.KSP
         /// optional readout freeze the board. It comes back UNRATED, which is the
         /// contract's own way of saying nobody graded this.</para>
         /// </summary>
-        private static CommsDegrade DegradeFor(ICommsBackend backend, PayloadMeta meta)
+        /// <summary>
+        /// The provenance a comms payload the uplink stamps itself carries: the
+        /// craft the capture routed from, or <c>"game"</c> with none.
+        /// </summary>
+        private static string SourceOf(Vessel? active) =>
+            active != null ? "vessel:" + active.id : "game";
+
+        private static CommsDegrade DegradeFor(ICommsBackend backend)
         {
             ICommsDegradeModel model;
             try
@@ -922,7 +924,7 @@ namespace Gonogo.KSP
             {
                 model = CommsDegradeModels.Unknown;
             }
-            return CommsDegradeModels.ToPayload(model, meta);
+            return CommsDegradeModels.ToPayload(model);
         }
 
         private CommsOcclusion OcclusionFor(ICommsBackend backend, KspSnapshot? snapshot)
@@ -959,7 +961,7 @@ namespace Gonogo.KSP
             _link?.Publish(new CommsLink
             {
                 Connected = capture.Connectivity.Connected,
-                Meta = capture.Connectivity.Meta,
+                Meta = new PayloadMeta { Source = capture.Delay?.Meta?.Source ?? "game" },
             }, capture.Ut);
             _commandCentre?.Publish(capture.CommandCentre, capture.Ut);
         }

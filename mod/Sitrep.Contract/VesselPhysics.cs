@@ -7,7 +7,7 @@ namespace Sitrep.Contract;
 /// <summary>
 /// The active vessel's physics-simulation regime, derived from KSP's own
 /// <c>Vessel.loaded</c> and <c>Vessel.packed</c> flags. It is a discrete enum in
-/// its own right, NOT a quality band on <see cref="PayloadMeta.Quality"/>. A
+/// its own right, NOT a quality band on <see cref="OrbitPayloadMeta.Quality"/>. A
 /// widget that switches propagation or dead-reckoning strategy reads it to know
 /// whether the craft is on-rails conics, a packed cluster, or a fully
 /// physics-simulated vessel.
@@ -69,6 +69,6 @@ public class VesselPhysicsMode
     [SitrepUnit(Units.Enumeration)]
     public PhysicsMode Mode { get; set; }
 
-    /// <summary>The payload's provenance (<c>"vessel:&lt;guid&gt;"</c>) and quality.</summary>
+    /// <summary>The payload's provenance (<c>"vessel:&lt;guid&gt;"</c>).</summary>
     public PayloadMeta Meta { get; set; } = new();
 }

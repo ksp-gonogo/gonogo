@@ -243,7 +243,6 @@ const EXAMPLE_META = {
   seq: 918,
   deliveredAt: 1_842_006.5,
   vantage: "ground:Kerbal Space Center",
-  quality: 1,
   active: true,
   staleness: 0,
   timelineEpoch: 3,
@@ -291,7 +290,7 @@ const EXAMPLE_STREAM_DATA = {
     atmDensity: 0.0000012,
     externalTemperature: 231.4,
     atmosphericTemperature: 228.9,
-    meta: { source: "vessel:8f2c1d40-97ab-4a2e-9c1f-6d0b3e5a7c11", quality: 1 },
+    meta: { source: "vessel:8f2c1d40-97ab-4a2e-9c1f-6d0b3e5a7c11" },
   },
   meta: EXAMPLE_META,
 };

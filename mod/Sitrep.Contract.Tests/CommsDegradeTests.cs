@@ -144,16 +144,13 @@ namespace Sitrep.Contract.Tests
         [Fact]
         public void ThePayloadCarriesTheRuleAndSurvivesAMissingModel()
         {
-            var meta = new PayloadMeta { Source = "vessel:abc", Quality = Quality.Loaded };
-
             var graded = CommsDegradeModels.ToPayload(
-                new RatedDegradeModel("some-rule", "Some rule", 0.25), meta);
+                new RatedDegradeModel("some-rule", "Some rule", 0.25));
             Assert.Equal("some-rule", graded.ModelId);
             Assert.Equal("Some rule", graded.ModelName);
             Assert.Equal(0.25, graded.Level);
-            Assert.Equal("vessel:abc", graded.Meta.Source);
 
-            var missing = CommsDegradeModels.ToPayload(null, meta);
+            var missing = CommsDegradeModels.ToPayload(null);
             Assert.Equal(CommsDegradeModels.UnknownModelId, missing.ModelId);
             Assert.Null(missing.Level);
         }

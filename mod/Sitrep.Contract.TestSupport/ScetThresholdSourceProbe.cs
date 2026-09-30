@@ -58,7 +58,6 @@ namespace Sitrep.Contract.TestSupport
                 ["meta"] = new Dictionary<string, object?>
                 {
                     ["source"] = _subject,
-                    ["quality"] = Quality.Loaded,
                 },
             };
         }

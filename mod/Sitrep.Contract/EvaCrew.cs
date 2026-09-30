@@ -141,7 +141,4 @@ public class EvaCrew
 
     /// <summary>One entry per kerbal on EVA. Never null; empty when nobody is outside.</summary>
     public List<EvaKerbal> Kerbals { get; set; } = new();
-
-    /// <summary>The payload's provenance (<c>"game"</c>) and quality.</summary>
-    public PayloadMeta Meta { get; set; } = new();
 }

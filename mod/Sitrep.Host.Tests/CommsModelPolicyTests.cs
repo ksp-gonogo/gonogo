@@ -79,7 +79,7 @@ namespace Sitrep.Host.Tests
             // The empty path a no-comms-model backend reports: on its own that
             // is the unmeasurable case, so this also proves the config cut is
             // what turns it into a known zero.
-            var delay = SignalDelay.Compute(config, new CommsPath(), "vessel:x", Quality.Loaded);
+            var delay = SignalDelay.Compute(config, new CommsPath(), "vessel:x");
 
             Assert.Equal(0.0, delay.OneWaySeconds);
             Assert.Equal(CommsDelaySource.NoCommsModel, delay.Source);
@@ -93,7 +93,7 @@ namespace Sitrep.Host.Tests
         [Fact]
         public void AGenuineBlackoutStillReportsAnUnmeasurableDelay()
         {
-            var delay = SignalDelay.Compute(On(), new CommsPath(), "vessel:x", Quality.Loaded);
+            var delay = SignalDelay.Compute(On(), new CommsPath(), "vessel:x");
 
             Assert.Null(delay.OneWaySeconds);
             Assert.Equal(CommsDelaySource.None, delay.Source);
@@ -111,7 +111,7 @@ namespace Sitrep.Host.Tests
             modifiers.Register(0.0, "a test cut");
 
             var config = CommsModelPolicy.Effective(modifiers.Apply(On()), modelPresent: false);
-            var delay = SignalDelay.Compute(config, new CommsPath(), "vessel:x", Quality.Loaded);
+            var delay = SignalDelay.Compute(config, new CommsPath(), "vessel:x");
 
             Assert.Equal(CommsDelaySource.NoCommsModel, delay.Source);
         }
@@ -312,7 +312,6 @@ namespace Sitrep.Host.Tests
                 Connected = _connected,
                 ControlSource = CommsControlSource.None,
                 HasLocalControl = false,
-                Meta = new PayloadMeta { Source = "vessel:x", Quality = Quality.Loaded },
             };
 
             public CommsSignal SignalStrength() => new CommsSignal { Strength = 0.0 };

@@ -169,11 +169,10 @@ public readonly struct CommsLinkView
 }
 
 /// <summary>
-/// The craft a comms backend is reporting for, and how well it can see it: the
-/// two facts every <see cref="PayloadMeta"/> in the comms family is built from.
-/// A subject with a craft becomes a source of <c>"vessel:&lt;guid&gt;"</c>, and
-/// one without becomes <c>"game"</c>; <see cref="Loaded"/> becomes a quality of
-/// <c>Loaded</c> or <c>OnRails</c>.
+/// The craft a comms backend is reporting for: the fact every
+/// <see cref="PayloadMeta"/> in the comms family is built from. A subject with a
+/// craft becomes a source of <c>"vessel:&lt;guid&gt;"</c>, and one without
+/// becomes <c>"game"</c>.
 /// <internal>
 /// Derived once in CommsBackendBase so two backends cannot drift on the meta
 /// vocabulary a client branches on.
@@ -187,18 +186,13 @@ public readonly struct CommsSubject
 
     /// <summary>A subject.</summary>
     /// <param name="vesselId">The craft's persistent id, or null when there is no craft.</param>
-    /// <param name="loaded">Whether the craft is loaded in the scene rather than on rails.</param>
-    public CommsSubject(string? vesselId, bool loaded)
+    public CommsSubject(string? vesselId)
     {
         VesselId = vesselId;
-        Loaded = loaded;
     }
 
     /// <summary>The craft's persistent id, or null when there is no craft.</summary>
     public string? VesselId { get; }
-
-    /// <summary>Whether the craft is loaded in the scene, as opposed to on rails.</summary>
-    public bool Loaded { get; }
 }
 
 /// <summary>

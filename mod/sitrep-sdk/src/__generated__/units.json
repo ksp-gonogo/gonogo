@@ -813,6 +813,10 @@
       "sma": "m",
       "startUt": "ut"
     },
+    "OrbitPayloadMeta": {
+      "quality": "enum",
+      "source": "id"
+    },
     "PartActionEntry": {
       "active": "flag",
       "advancedTweakable": "flag",
@@ -850,7 +854,6 @@
       "totalProductionEc": "units/s"
     },
     "PayloadMeta": {
-      "quality": "enum",
       "source": "id"
     },
     "PendingUplink": {
@@ -2090,18 +2093,6 @@
     "CommcastTransmissionRow": {
       "author": "CommcastAuthor"
     },
-    "CommsCommandCentre": {
-      "meta": "PayloadMeta"
-    },
-    "CommsConnectivity": {
-      "meta": "PayloadMeta"
-    },
-    "CommsControl": {
-      "meta": "PayloadMeta"
-    },
-    "CommsDegrade": {
-      "meta": "PayloadMeta"
-    },
     "CommsDelay": {
       "meta": "PayloadMeta"
     },
@@ -2121,15 +2112,10 @@
       "position": "Vector3d"
     },
     "CommsOcclusion": {
-      "bodies": "CommsOcclusionBody[]",
-      "meta": "PayloadMeta"
+      "bodies": "CommsOcclusionBody[]"
     },
     "CommsPath": {
-      "hops": "CommsHop[]",
-      "meta": "PayloadMeta"
-    },
-    "CommsSignal": {
-      "meta": "PayloadMeta"
+      "hops": "CommsHop[]"
     },
     "ControlFrame": {
       "settableFrames": "ControlFrameOption[]"
@@ -2154,8 +2140,7 @@
       "quantum": "EmissionQuantum"
     },
     "EvaCrew": {
-      "kerbals": "EvaKerbal[]",
-      "meta": "PayloadMeta"
+      "kerbals": "EvaKerbal[]"
     },
     "EventMsg": {
       "meta": "Meta"
@@ -2238,7 +2223,6 @@
       "onFire": "ScetAlarmAction[]"
     },
     "SettingsModel": {
-      "meta": "PayloadMeta",
       "persistence": "SettingsPersistence",
       "rows": "SettingsRowState[]",
       "undeclared": "SettingsDeclarationFailure[]"
@@ -2293,7 +2277,6 @@
       "meta": "PayloadMeta"
     },
     "VesselInventory": {
-      "meta": "PayloadMeta",
       "stores": "InventoryStore[]"
     },
     "VesselLanding": {
@@ -2306,7 +2289,7 @@
     "VesselOrbit": {
       "encounter": "OrbitEncounter",
       "horizon": "PropagationHorizon",
-      "meta": "PayloadMeta",
+      "meta": "OrbitPayloadMeta",
       "patches": "OrbitPatch[]"
     },
     "VesselOrbitTruth": {
@@ -2381,18 +2364,6 @@
     "commcast.transmissions": {
       "author": "CommcastAuthor"
     },
-    "comms.commandCentre": {
-      "meta": "PayloadMeta"
-    },
-    "comms.connectivity": {
-      "meta": "PayloadMeta"
-    },
-    "comms.control": {
-      "meta": "PayloadMeta"
-    },
-    "comms.degrade": {
-      "meta": "PayloadMeta"
-    },
     "comms.delay": {
       "meta": "PayloadMeta"
     },
@@ -2405,15 +2376,10 @@
       "nodes": "CommsNetworkNode[]"
     },
     "comms.occlusion": {
-      "bodies": "CommsOcclusionBody[]",
-      "meta": "PayloadMeta"
+      "bodies": "CommsOcclusionBody[]"
     },
     "comms.path": {
-      "hops": "CommsHop[]",
-      "meta": "PayloadMeta"
-    },
-    "comms.signal": {
-      "meta": "PayloadMeta"
+      "hops": "CommsHop[]"
     },
     "crash.lastCrash": {
       "flightStats": "CrashFlightStats",
@@ -2423,8 +2389,7 @@
       "resources": "*ResourceAmount"
     },
     "eva.crew": {
-      "kerbals": "EvaKerbal[]",
-      "meta": "PayloadMeta"
+      "kerbals": "EvaKerbal[]"
     },
     "fleet.silence": {
       "vessels": "FleetSilenceEntry[]"
@@ -2446,7 +2411,6 @@
       "scienceBreakdown": "RecoveryScienceEntry[]"
     },
     "settings.gonogo": {
-      "meta": "PayloadMeta",
       "persistence": "SettingsPersistence",
       "rows": "SettingsRowState[]",
       "undeclared": "SettingsDeclarationFailure[]"
@@ -2496,7 +2460,6 @@
       "meta": "PayloadMeta"
     },
     "vessel.inventory": {
-      "meta": "PayloadMeta",
       "stores": "InventoryStore[]"
     },
     "vessel.landing": {
@@ -2509,7 +2472,7 @@
     "vessel.orbit": {
       "encounter": "OrbitEncounter",
       "horizon": "PropagationHorizon",
-      "meta": "PayloadMeta",
+      "meta": "OrbitPayloadMeta",
       "patches": "OrbitPatch[]"
     },
     "vessel.orbit.truth": {

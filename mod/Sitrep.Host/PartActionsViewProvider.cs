@@ -256,7 +256,6 @@ namespace Sitrep.Host
         private static Dictionary<string, object?> ToWire(PayloadMeta meta) => new Dictionary<string, object?>
         {
             ["source"] = meta.Source,
-            ["quality"] = (int)meta.Quality,
         };
 
         /// <summary>
@@ -271,7 +270,6 @@ namespace Sitrep.Host
         private static PayloadMeta BuildMeta(string? vesselId) => new PayloadMeta
         {
             Source = vesselId != null ? "vessel:" + vesselId : "",
-            Quality = Quality.OnRails,
         };
     }
 }

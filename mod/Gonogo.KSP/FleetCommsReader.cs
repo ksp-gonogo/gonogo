@@ -65,8 +65,7 @@ namespace Gonogo.KSP
                 // to measure. That distinction is what the nullable hop list
                 // carries, and it is why this passes an empty list rather than
                 // null (which would mean "unroutable" and is a different claim).
-                var quality = vessel.loaded ? Quality.Loaded : Quality.OnRails;
-                var oneWay = RoutedPathDelay.OneWaySeconds(ToHops(conn.ControlPath), config, quality);
+                var oneWay = RoutedPathDelay.OneWaySeconds(ToHops(conn.ControlPath), config);
                 return (oneWay, conn.IsConnected);
             }
             catch (Exception ex)
@@ -261,9 +260,7 @@ namespace Gonogo.KSP
                     return null;
                 }
 
-                // Quality is meta-only and discarded here (see RoutedPathDelay):
-                // a node-to-node path has no on-rails/loaded state of its own.
-                return RoutedPathDelay.OneWaySeconds(backend.RouteBetween(from, to), config, Quality.Loaded);
+                return RoutedPathDelay.OneWaySeconds(backend.RouteBetween(from, to), config);
             }
             catch (Exception ex)
             {

@@ -59,13 +59,6 @@ namespace Sitrep.Host.Settings
                 ["rows"] = wireRows,
                 ["persistence"] = BuildPersistence(path, state, savedAtUt, reason),
                 ["undeclared"] = wireUndeclared,
-                // Settings are the game install's own configuration, about no
-                // vessel, and exact whenever they can be read at all.
-                ["meta"] = new Dictionary<string, object?>
-                {
-                    ["source"] = "game",
-                    ["quality"] = Quality.Loaded,
-                },
             };
         }
 

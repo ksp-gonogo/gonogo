@@ -133,8 +133,6 @@ public class PartActions
     /// <summary>
     /// Payload provenance. <c>Source</c> is <c>"vessel:&lt;guid&gt;"</c> for the
     /// active vessel, or <c>""</c> when no vessel id was known.
-    /// <c>Quality</c> is always <c>OnRails</c> on this payload and says nothing
-    /// about whether the part is loaded.
     /// </summary>
     public PayloadMeta Meta { get; set; } = new();
 }

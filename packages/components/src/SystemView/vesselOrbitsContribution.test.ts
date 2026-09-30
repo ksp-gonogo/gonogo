@@ -4,7 +4,6 @@ import {
   type CommsNetworkEdge,
   type CommsNetworkNode,
   PropagationHorizonKind,
-  Quality,
   RosterCommsControlSource,
   Situation,
   type SystemBodies,
@@ -292,7 +291,7 @@ function network(
   nodes: CommsNetworkNode[],
   edges: CommsNetworkEdge[],
 ): CommsNetwork {
-  return { nodes, edges, meta: { source: "test", quality: Quality.Loaded } };
+  return { nodes, edges, meta: { source: "test" } };
 }
 
 describe("computeCommsNetworkEntities", () => {

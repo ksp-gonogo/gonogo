@@ -86,8 +86,6 @@ public class CommsConnectivity
     /// </summary>
     [SitrepUnit(Units.Flag)]
     public bool HasLocalControl { get; set; }
-    /// <summary>The payload's provenance (<c>"vessel:&lt;guid&gt;"</c> or <c>"game"</c>) and quality.</summary>
-    public PayloadMeta Meta { get; set; } = new();
 }
 
 /// <summary>
@@ -128,8 +126,6 @@ public class CommsSignal
     /// </summary>
     [SitrepUnit(Units.Ratio)]
     public double Strength { get; set; }
-    /// <summary>The payload's provenance (<c>"vessel:&lt;guid&gt;"</c> or <c>"game"</c>) and quality.</summary>
-    public PayloadMeta Meta { get; set; } = new();
 }
 
 /// <summary>
@@ -181,8 +177,6 @@ public class CommsControl
     /// </summary>
     [SitrepUnit(Units.Text)]
     public string? Reason { get; set; }
-    /// <summary>The payload's provenance (<c>"vessel:&lt;guid&gt;"</c> or <c>"game"</c>) and quality.</summary>
-    public PayloadMeta Meta { get; set; } = new();
 }
 
 /// <summary>
@@ -299,8 +293,6 @@ public class CommsPath
 {
     /// <summary>The hops in order, the first starting at the active vessel and the last ending at home. Empty when there is no path home, never null.</summary>
     public IReadOnlyList<CommsHop> Hops { get; set; } = new List<CommsHop>();
-    /// <summary>The payload's provenance (<c>"vessel:&lt;guid&gt;"</c> or <c>"game"</c>) and quality.</summary>
-    public PayloadMeta Meta { get; set; } = new();
 }
 
 /// <summary>
@@ -372,7 +364,7 @@ public class CommsNetwork
     public IReadOnlyList<CommsNetworkNode> Nodes { get; set; } = new List<CommsNetworkNode>();
     /// <summary>Every edge in the graph. Never null.</summary>
     public IReadOnlyList<CommsNetworkEdge> Edges { get; set; } = new List<CommsNetworkEdge>();
-    /// <summary>The payload's provenance (<c>"vessel:&lt;guid&gt;"</c> or <c>"game"</c>) and quality.</summary>
+    /// <summary>The payload's provenance (<c>"vessel:&lt;guid&gt;"</c> or <c>"game"</c>).</summary>
     public PayloadMeta Meta { get; set; } = new();
 }
 
@@ -511,7 +503,7 @@ public class CommsDelay
     /// <summary>Why <see cref="OneWaySeconds"/> has the value it has; see <see cref="CommsDelaySource"/>.</summary>
     [SitrepUnit(Units.Enumeration)]
     public CommsDelaySource Source { get; set; }
-    /// <summary>The payload's provenance (<c>"vessel:&lt;guid&gt;"</c> or <c>"game"</c>) and quality.</summary>
+    /// <summary>The payload's provenance (<c>"vessel:&lt;guid&gt;"</c> or <c>"game"</c>).</summary>
     public PayloadMeta Meta { get; set; } = new();
 }
 
@@ -546,7 +538,7 @@ public class CommsLink
     /// <summary>True while the active vessel has a control link home, as of one light-time ago; false through a blackout.</summary>
     [SitrepUnit(Units.Flag)]
     public bool Connected { get; set; }
-    /// <summary>The payload's provenance (<c>"vessel:&lt;guid&gt;"</c> or <c>"game"</c>) and quality.</summary>
+    /// <summary>The payload's provenance (<c>"vessel:&lt;guid&gt;"</c> or <c>"game"</c>).</summary>
     public PayloadMeta Meta { get; set; } = new();
 }
 
@@ -596,8 +588,6 @@ public class CommsCommandCentre
     /// </summary>
     [SitrepUnit(Units.Id)]
     public int? BodyIndex { get; set; }
-    /// <summary>The payload's provenance (<c>"vessel:&lt;guid&gt;"</c> or <c>"game"</c>) and quality.</summary>
-    public PayloadMeta Meta { get; set; } = new();
 }
 
 /*

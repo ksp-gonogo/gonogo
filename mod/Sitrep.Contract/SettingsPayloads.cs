@@ -41,9 +41,6 @@ public class SettingsModel
     /// <see cref="Rows"/>; what the file holds for them is kept as it is.
     /// </summary>
     public List<SettingsDeclarationFailure> Undeclared { get; set; } = new();
-
-    /// <summary>Payload provenance. <c>Source</c> is always <c>"game"</c> and <c>Quality</c> always <c>Loaded</c>: settings describe the install, not a craft.</summary>
-    public PayloadMeta Meta { get; set; } = new();
 }
 
 /// <summary>One declared setting, described well enough for a client to draw its control.</summary>

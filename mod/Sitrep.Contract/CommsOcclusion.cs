@@ -241,10 +241,4 @@ public class CommsOcclusion
 
     /// <summary>Every known celestial body, with the model applied. Empty before the game has populated a body list, never null.</summary>
     public IReadOnlyList<CommsOcclusionBody> Bodies { get; set; } = new List<CommsOcclusionBody>();
-
-    /// <summary>
-    /// Provenance, always <c>"game"</c> with quality <c>OnRails</c>: this
-    /// describes the universe and the rule applied to it, not any craft.
-    /// </summary>
-    public PayloadMeta Meta { get; set; } = new();
 }

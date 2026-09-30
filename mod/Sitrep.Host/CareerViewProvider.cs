@@ -118,13 +118,10 @@ namespace Sitrep.Host
                 // cannot change which one is being read. The stamp is what lets a
                 // SCET threshold be armed against this channel at all, since the
                 // alarm accepts a reading only from a payload whose provenance
-                // matches the subject it was armed for. Loaded rather than
-                // OnRails: a balance is the game's own bookkeeping, exact
-                // whenever it is readable, never a conic prediction.
+                // matches the subject it was armed for.
                 ["meta"] = new Dictionary<string, object?>
                 {
                     ["source"] = "game",
-                    ["quality"] = Quality.Loaded,
                 },
             };
         }

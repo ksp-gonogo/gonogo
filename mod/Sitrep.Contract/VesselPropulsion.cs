@@ -87,6 +87,6 @@ public class VesselPropulsion
     [SitrepUnit(Units.UniversalTime)]
     public double? LastThrustEndUt { get; set; }
 
-    /// <summary>Payload provenance. <c>Source</c> is <c>"vessel:&lt;guid&gt;"</c> for the active vessel; <c>Quality</c> is <c>Loaded</c> under physics and <c>OnRails</c> otherwise.</summary>
+    /// <summary>Payload provenance. <c>Source</c> is <c>"vessel:&lt;guid&gt;"</c> for the active vessel.</summary>
     public PayloadMeta Meta { get; set; } = new();
 }

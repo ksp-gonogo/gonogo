@@ -73,7 +73,7 @@ public static class RtConfig
 
         // Everything else marked [SitrepContract]/[TsInterface] that crosses the wire:
         // vessel.* channel payloads, comms.* channels, command args, and the
-        // shared value shapes (Vec3, PayloadMeta, CommandResult).
+        // shared value shapes (Vec3, PayloadMeta, OrbitPayloadMeta, CommandResult).
         // Held in a local rather than passed inline because the unit-typing
         // pass below re-enters this set: only a type registered with rtcli may
         // have its properties retyped, so the two lists must not drift apart.
@@ -82,6 +82,7 @@ public static class RtConfig
                 // shared value shapes
                 typeof(Vec3),
                 typeof(PayloadMeta),
+                typeof(OrbitPayloadMeta),
                 typeof(CommandResult),
                 // eva.crew: the suit state of every kerbal currently outside
                 typeof(EvaCrew),

@@ -97,6 +97,6 @@ public class VesselThermal
     [SitrepUnit(Units.Flag)]
     public bool? AnyEnginesOverheating { get; set; }
 
-    /// <summary>The payload's provenance, <c>"vessel:&lt;guid&gt;"</c> for the active vessel, and quality.</summary>
+    /// <summary>The payload's provenance, <c>"vessel:&lt;guid&gt;"</c> for the active vessel.</summary>
     public PayloadMeta Meta { get; set; } = new();
 }

@@ -1,4 +1,4 @@
-import type { OrbitPatch, PayloadMeta } from "../__generated__/contract";
+import type { OrbitPatch, OrbitPayloadMeta } from "../__generated__/contract";
 import type { Quantityish } from "../magnitude";
 import type { Value } from "../value";
 import type { PropagationHorizonLike } from "./kepler";
@@ -62,7 +62,7 @@ export interface VesselOrbitPayload {
    * conformance fixtures, carry no payload meta; `subjectId` is then empty,
    * which every reader already treats as "unknown subject".
    */
-  meta?: PayloadMeta;
+  meta?: OrbitPayloadMeta;
   referenceBodyIndex: number;
   sma: Value<"m">;
   ecc: Value<"1">;

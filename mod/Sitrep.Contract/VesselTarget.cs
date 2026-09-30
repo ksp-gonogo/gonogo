@@ -168,6 +168,6 @@ public class VesselTarget
     /// <summary>Next closest approach, from the mod's elected propagation provider. Null when there is no encounter to report; see <see cref="Sitrep.Contract.ClosestApproach"/>.</summary>
     public ClosestApproach? ClosestApproach { get; set; }
 
-    /// <summary>The payload's provenance, stamped with the active vessel (<c>"vessel:&lt;guid&gt;"</c>), and quality.</summary>
+    /// <summary>The payload's provenance, stamped with the active vessel (<c>"vessel:&lt;guid&gt;"</c>).</summary>
     public PayloadMeta Meta { get; set; } = new();
 }

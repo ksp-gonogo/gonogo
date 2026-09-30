@@ -175,14 +175,12 @@ public static class CommsDegradeModels
     }
 
     /// <summary>
-    /// One model as the payload its channel carries, stamped with
-    /// <paramref name="meta"/> (a null <paramref name="meta"/> becomes an empty
-    /// one). A null model is published as <see cref="Unknown"/>, so a producer
+    /// One model as the payload its channel carries. A null model is published as <see cref="Unknown"/>, so a producer
     /// that could not resolve a backend still publishes "nobody graded this":
     /// the channel is always present, and a silent channel looks the same as a
     /// stalled one.
     /// </summary>
-    public static CommsDegrade ToPayload(ICommsDegradeModel? model, PayloadMeta? meta)
+    public static CommsDegrade ToPayload(ICommsDegradeModel? model)
     {
         var rule = model ?? Unknown;
         return new CommsDegrade
@@ -190,7 +188,6 @@ public static class CommsDegradeModels
             ModelId = rule.ModelId,
             ModelName = rule.ModelName,
             Level = rule.Level,
-            Meta = meta ?? new PayloadMeta(),
         };
     }
 }
@@ -245,7 +242,4 @@ public class CommsDegrade
     /// </summary>
     [SitrepUnit(Units.Ratio)]
     public double? Level { get; set; }
-
-    /// <summary>The payload's provenance and quality.</summary>
-    public PayloadMeta Meta { get; set; } = new();
 }

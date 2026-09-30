@@ -1115,9 +1115,9 @@ namespace Sitrep.Core
         /// <summary>
         /// The quality a payload states for its own subject (its <c>meta.quality</c>),
         /// carried onto the envelope, because the envelope is the one a client reads.
-        /// <see cref="Quality.OnRails"/> for a payload that states none.
+        /// Null for a payload that states none.
         /// </summary>
-        internal static Quality QualityOf(object? payload)
+        internal static Quality? QualityOf(object? payload)
         {
             if (payload is IDictionary<string, object?> fields
                 && fields.TryGetValue("meta", out var meta)
@@ -1132,7 +1132,7 @@ namespace Sitrep.Core
                         return (Quality)raw;
                 }
             }
-            return Quality.OnRails;
+            return null;
         }
 
         /// <summary>
@@ -1197,7 +1197,7 @@ namespace Sitrep.Core
             int epoch,
             Staleness staleness,
             double? gapSinceUt = null,
-            Quality quality = Quality.OnRails)
+            Quality? quality = null)
         {
             return new Meta
             {

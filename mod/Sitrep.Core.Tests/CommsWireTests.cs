@@ -53,22 +53,20 @@ namespace Sitrep.Core.Tests
                 Connected = true,
                 ControlSource = CommsControlSource.Full,
                 HasLocalControl = false,
-                Meta = new PayloadMeta { Source = "vessel:1", Quality = Quality.Loaded },
             });
 
             Assert.True(el.GetProperty("connected").GetBoolean());
             Assert.Equal((int)CommsControlSource.Full, el.GetProperty("controlSource").GetInt32());
             Assert.False(el.GetProperty("hasLocalControl").GetBoolean());
-            Assert.Equal("vessel:1", el.GetProperty("meta").GetProperty("source").GetString());
-            Assert.Equal((int)Quality.Loaded, el.GetProperty("meta").GetProperty("quality").GetInt32());
+            Assert.False(el.TryGetProperty("meta", out _));
         }
 
         [Fact]
         public void SignalSerializes()
         {
-            var el = Write(new CommsSignal { Strength = 0.75, Meta = new PayloadMeta() });
+            var el = Write(new CommsSignal { Strength = 0.75 });
             Assert.Equal(0.75, el.GetProperty("strength").GetDouble());
-            Assert.Equal(JsonValueKind.Object, el.GetProperty("meta").ValueKind);
+            Assert.False(el.TryGetProperty("meta", out _));
         }
 
         [Fact]
@@ -78,7 +76,6 @@ namespace Sitrep.Core.Tests
             {
                 Level = CommsControlStateKind.Full,
                 Reason = null,
-                Meta = new PayloadMeta(),
             });
             Assert.Equal((int)CommsControlStateKind.Full, el.GetProperty("level").GetInt32());
             Assert.Equal(JsonValueKind.Null, el.GetProperty("reason").ValueKind);
@@ -91,7 +88,6 @@ namespace Sitrep.Core.Tests
             {
                 Level = CommsControlStateKind.PartialManoeuvre,
                 Reason = "partial",
-                Meta = new PayloadMeta(),
             });
             Assert.Equal("partial", el.GetProperty("reason").GetString());
         }
@@ -114,7 +110,6 @@ namespace Sitrep.Core.Tests
                         DistanceMeters = null,
                     },
                 },
-                Meta = new PayloadMeta(),
             });
 
             var hops = el.GetProperty("hops");
@@ -135,7 +130,7 @@ namespace Sitrep.Core.Tests
         [Fact]
         public void EmptyPathSerializesAsEmptyArray()
         {
-            var el = Write(new CommsPath { Hops = new List<CommsHop>(), Meta = new PayloadMeta() });
+            var el = Write(new CommsPath { Hops = new List<CommsHop>() });
             Assert.Equal(0, el.GetProperty("hops").GetArrayLength());
         }
 
@@ -198,7 +193,7 @@ namespace Sitrep.Core.Tests
             {
                 OneWaySeconds = 3.8,
                 Source = CommsDelaySource.SignalDelay,
-                Meta = new PayloadMeta { Source = "vessel:1", Quality = Quality.Loaded },
+                Meta = new PayloadMeta { Source = "vessel:1" },
             });
 
             Assert.Equal(3.8, el.GetProperty("oneWaySeconds").GetDouble());
@@ -266,7 +261,7 @@ namespace Sitrep.Core.Tests
             // No live remote centre this tick (no connection, or the terminal
             // node matched neither a ground station nor a crewed control
             // source): every identity field is null, not an empty string.
-            var el = Write(new CommsCommandCentre { Meta = new PayloadMeta() });
+            var el = Write(new CommsCommandCentre());
 
             Assert.Equal(JsonValueKind.Null, el.GetProperty("id").ValueKind);
             Assert.Equal(JsonValueKind.Null, el.GetProperty("displayName").ValueKind);
@@ -283,7 +278,6 @@ namespace Sitrep.Core.Tests
                 DisplayName = "Kerbin Space Center",
                 Kind = "GroundStation",
                 BodyIndex = 1,
-                Meta = new PayloadMeta { Source = "vessel:1", Quality = Quality.Loaded },
             });
 
             Assert.Equal("ksc", el.GetProperty("id").GetString());
@@ -303,7 +297,6 @@ namespace Sitrep.Core.Tests
                 DisplayName = "Constant Companion",
                 Kind = "CrewedVessel",
                 BodyIndex = null,
-                Meta = new PayloadMeta(),
             });
 
             Assert.Equal("vessel:abc-123", el.GetProperty("id").GetString());

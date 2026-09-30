@@ -25,13 +25,12 @@ namespace Sitrep.Host.Tests
         [Fact]
         public void FlagOff_YieldsZeroDelayWithSourceNone()
         {
-            var result = SignalDelay.Compute(SignalDelayConfig.Off(), PathWith(1.0e9), "vessel:x", Quality.OnRails);
+            var result = SignalDelay.Compute(SignalDelayConfig.Off(), PathWith(1.0e9), "vessel:x");
 
             Assert.Equal(CommsDelaySource.None, result.Source);
             Assert.Equal(0.0, result.OneWaySeconds);
             // R7: meta rides every datum.
             Assert.Equal("vessel:x", result.Meta.Source);
-            Assert.Equal(Quality.OnRails, result.Meta.Quality);
         }
 
         [Fact]
@@ -41,12 +40,11 @@ namespace Sitrep.Host.Tests
             var oneLightSecond = SignalDelay.SpeedOfLightMetersPerSecond;
             var cfg = new SignalDelayConfig { Enabled = true, LightSpeedScale = 1.0 };
 
-            var result = SignalDelay.Compute(cfg, PathWith(oneLightSecond), "vessel:x", Quality.Loaded);
+            var result = SignalDelay.Compute(cfg, PathWith(oneLightSecond), "vessel:x");
 
             Assert.Equal(CommsDelaySource.SignalDelay, result.Source);
             Assert.NotNull(result.OneWaySeconds);
             Assert.Equal(1.0, result.OneWaySeconds!.Value, 9);
-            Assert.Equal(Quality.Loaded, result.Meta.Quality);
         }
 
         [Fact]
@@ -56,7 +54,7 @@ namespace Sitrep.Host.Tests
             var cfg = new SignalDelayConfig { Enabled = true, LightSpeedScale = 1.0 };
 
             // 0.5 + 0.25 + 0.25 light-seconds of distance => 1.0s one-way.
-            var result = SignalDelay.Compute(cfg, PathWith(0.5 * c, 0.25 * c, 0.25 * c), "s", Quality.OnRails);
+            var result = SignalDelay.Compute(cfg, PathWith(0.5 * c, 0.25 * c, 0.25 * c), "s");
 
             Assert.NotNull(result.OneWaySeconds);
             Assert.Equal(1.0, result.OneWaySeconds!.Value, 9);
@@ -69,7 +67,7 @@ namespace Sitrep.Host.Tests
             var cfg = new SignalDelayConfig { Enabled = true, LightSpeedScale = 2.0 };
 
             // Scale 2.0 => effective c doubled => half the delay.
-            var result = SignalDelay.Compute(cfg, PathWith(c), "s", Quality.OnRails);
+            var result = SignalDelay.Compute(cfg, PathWith(c), "s");
 
             Assert.NotNull(result.OneWaySeconds);
             Assert.Equal(0.5, result.OneWaySeconds!.Value, 9);
@@ -80,7 +78,7 @@ namespace Sitrep.Host.Tests
         {
             var cfg = new SignalDelayConfig { Enabled = true, LightSpeedScale = 1.0 };
 
-            var result = SignalDelay.Compute(cfg, new CommsPath { Hops = new List<CommsHop>() }, "s", Quality.OnRails);
+            var result = SignalDelay.Compute(cfg, new CommsPath { Hops = new List<CommsHop>() }, "s");
 
             // No measurable path ⇒ null, NOT 0, 0 is reserved for the
             // delay-feature-disabled-but-connected case (see FlagOff test
@@ -94,7 +92,7 @@ namespace Sitrep.Host.Tests
         {
             var cfg = new SignalDelayConfig { Enabled = true, LightSpeedScale = 1.0 };
 
-            var result = SignalDelay.Compute(cfg, null, "s", Quality.OnRails);
+            var result = SignalDelay.Compute(cfg, null, "s");
 
             Assert.Equal(CommsDelaySource.None, result.Source);
             Assert.Null(result.OneWaySeconds);
@@ -109,7 +107,7 @@ namespace Sitrep.Host.Tests
             // ⇒ cannot honestly total a light-time ⇒ null (NOT "just the one
             // known hop", NOT treating the missing hop as 0m, NOT the 0
             // reserved for delay-disabled).
-            var result = SignalDelay.Compute(cfg, PathWith(1.0e9, null), "s", Quality.OnRails);
+            var result = SignalDelay.Compute(cfg, PathWith(1.0e9, null), "s");
 
             Assert.Equal(CommsDelaySource.None, result.Source);
             Assert.Null(result.OneWaySeconds);
@@ -120,7 +118,7 @@ namespace Sitrep.Host.Tests
         {
             var cfg = new SignalDelayConfig { Enabled = true, LightSpeedScale = 0.0 };
 
-            var result = SignalDelay.Compute(cfg, PathWith(1.0e9), "s", Quality.OnRails);
+            var result = SignalDelay.Compute(cfg, PathWith(1.0e9), "s");
 
             Assert.Equal(CommsDelaySource.None, result.Source);
             Assert.Null(result.OneWaySeconds);

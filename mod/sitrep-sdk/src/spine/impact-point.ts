@@ -20,7 +20,7 @@
 
 import {
   type OrbitPatch,
-  type PayloadMeta,
+  type OrbitPayloadMeta,
   Quality,
 } from "../__generated__/contract";
 import { magnitudeOr, type Quantityish } from "../magnitude";
@@ -171,7 +171,7 @@ export interface ImpactPointInput {
   orbit: OrbitTrajectoryInput["orbit"] & {
     referenceBodyIndex?: number;
     patches?: readonly OrbitPatch[] | null;
-    meta?: PayloadMeta | null;
+    meta?: OrbitPayloadMeta | null;
   };
   /** The `vessel.flight` sample at the same instant. */
   flight: {

@@ -86,7 +86,7 @@ namespace Sitrep.Host.IntegrationTests
             return new CommsLink
             {
                 Connected = connected.Value,
-                Meta = new PayloadMeta { Source = "game", Quality = Quality.Loaded },
+                Meta = new PayloadMeta { Source = "game" },
             };
         }
 
@@ -101,7 +101,7 @@ namespace Sitrep.Host.IntegrationTests
             {
                 OneWaySeconds = Convert.ToDouble(raw),
                 Source = CommsDelaySource.SignalDelay,
-                Meta = new PayloadMeta { Source = "game", Quality = Quality.Loaded },
+                Meta = new PayloadMeta { Source = "game" },
             };
         }
 

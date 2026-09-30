@@ -60,7 +60,7 @@ import { WebSocketServer } from "ws";
 const PORT = Number.parseInt(process.env.SITREP_REPLAY_PORT ?? "8090", 10);
 
 // Quality: OnRails=0, Loaded=1. Staleness: Fresh=0, Held=1, LastBeforeBlackout=2.
-// PayloadMeta (inner, per-record) is a subset: { source, quality }.
+// PayloadMeta (inner, per-record) is { source }; vessel.orbit's also carries its quality.
 //
 // Quality is OnRails, not Loaded: the orbit solve behind the apsis, period
 // and anomaly figures SemiMajorAxis/CurrentOrbit/EscapeProfile/KeplerPeriod
@@ -82,7 +82,8 @@ function frameMeta(seq) {
   };
 }
 
-const payloadMeta = { source: "sitrep-stream-server", quality: 0 };
+const payloadMeta = { source: "sitrep-stream-server" };
+const orbitMeta = { source: "sitrep-stream-server", quality: 0 };
 
 // The snapshot below is a hand-authored Kerbin-orbiting "Mun Tester" with Bob Kerman aboard, in LOS.
 const KERBIN_INDEX = 1;
@@ -128,7 +129,7 @@ export const SNAPSHOT = {
     // ("NO HORIZON STATED") and every figure solved from it renders as a dash.
     horizon: { kind: 1, untilUt: null, trajectoryKind: 1 },
     patches: [],
-    meta: payloadMeta,
+    meta: orbitMeta,
   },
 
   "vessel.flight": {

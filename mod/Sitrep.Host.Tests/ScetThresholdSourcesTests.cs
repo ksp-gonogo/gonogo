@@ -165,14 +165,12 @@ namespace Sitrep.Host.Tests
         [Fact]
         public void ANestedPathResolves()
         {
-            var reader = new SnapshotScetStateReader(Snapshot(), ScetThresholdSources.CoreOnly);
+            var payload = new Dictionary<string, object?>
+            {
+                ["orbit"] = new Dictionary<string, object?> { ["sma"] = 700_000.0 },
+            };
 
-            // meta.quality is an enum, which reaches the wire as its integer:
-            // a threshold on one is a legitimate way to ask whether a reading's
-            // standing changed.
-            var reading = reader.Read(Subject, "vessel.flight", "meta.quality");
-
-            Assert.Equal(ScetReadingStatus.Observed, reading.Status);
+            Assert.Equal(700_000.0, ScetPayload.ReadNumber(payload, "orbit.sma"));
         }
 
         [Fact]

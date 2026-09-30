@@ -30,7 +30,7 @@ namespace Sitrep.Contract.Tests
 
             public override ICommsDegradeModel DegradeModel() => CommsDegradeModels.Unknown;
 
-            protected override CommsSubject Subject() => new CommsSubject("craft", true);
+            protected override CommsSubject Subject() => new CommsSubject("craft");
 
             protected override CommsLinkState? LinkState() => new CommsLinkState(true, _grade, 1.0);
 

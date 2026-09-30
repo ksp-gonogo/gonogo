@@ -34,7 +34,7 @@ const PORT = Number.parseInt(
   10,
 );
 
-const payloadMeta = { source: "sitrep-stream-server-topology", quality: 0 };
+const payloadMeta = { source: "sitrep-stream-server-topology" };
 
 function part({
   id,

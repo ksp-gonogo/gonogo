@@ -64,6 +64,6 @@ public class VesselOrbitTruth
     [SitrepUnit(Units.Flag)]
     public bool FrameRotating { get; set; }
 
-    /// <summary>The payload's provenance (<c>"vessel:&lt;guid&gt;"</c>) and quality.</summary>
+    /// <summary>The payload's provenance (<c>"vessel:&lt;guid&gt;"</c>).</summary>
     public PayloadMeta Meta { get; set; } = new();
 }

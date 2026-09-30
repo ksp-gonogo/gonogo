@@ -16,12 +16,10 @@
  * confirmed read by a `gonogo-uplinks` Uplink either (checked by hand against
  * that repo's tree before seeding, no hit).
  *
- * SHAPE OF THE DEBT: 36 of the 100 fields are one of two envelope members
- * (`meta.quality`, `meta.source`) that exist on nearly every payload; a widget
- * reads currency off the `Reading` wrapper (`.state`, `.reckoning`) rather
- * than off this payload-level duplicate, so the whole family is plausibly
- * DEAD rather than merely unwired, and worth a deliberate removal decision
- * rather than 36 individual widget builds. The other 64 are a mix of
+ * SHAPE OF THE DEBT: 8 entries are `meta.source` on a Topic a SCET
+ * threshold alarm can address, read by the MOD rather than by any client
+ * (`ScetPayload.ReadSource` checks it against the alarm's subject), which
+ * this scan cannot see because it walks TypeScript only. The rest are
  * genuinely-next control surfaces (`vessel.control.translationX/Y/Z/yaw`
  * carry a WRITE-side control-stream vocabulary with a coincidentally
  * identical spelling but no read-side consumer of the corresponding
@@ -69,66 +67,34 @@ export const CONTRACT_READER_DEBT: Record<string, string> = {
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
   "field:comms.commandCentre.kind":
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:comms.commandCentre.meta.quality":
-    "no reader found; payload-level duplicate of the Reading wrapper state/reckoning (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:comms.commandCentre.meta.source":
-    "no reader found; payload-level duplicate of the Reading wrapper state/reckoning (gonogo Saga task 727 seed, 2026-09-30)",
   "field:comms.connectivity.connected":
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
   "field:comms.connectivity.controlSource":
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
   "field:comms.connectivity.hasLocalControl":
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:comms.connectivity.meta.quality":
-    "no reader found; payload-level duplicate of the Reading wrapper state/reckoning (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:comms.connectivity.meta.source":
-    "no reader found; payload-level duplicate of the Reading wrapper state/reckoning (gonogo Saga task 727 seed, 2026-09-30)",
   "field:comms.control.level":
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:comms.control.meta.quality":
-    "no reader found; payload-level duplicate of the Reading wrapper state/reckoning (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:comms.control.meta.source":
-    "no reader found; payload-level duplicate of the Reading wrapper state/reckoning (gonogo Saga task 727 seed, 2026-09-30)",
   "field:comms.control.reason":
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
   "field:comms.degrade.level":
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:comms.degrade.meta.quality":
-    "no reader found; payload-level duplicate of the Reading wrapper state/reckoning (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:comms.degrade.meta.source":
-    "no reader found; payload-level duplicate of the Reading wrapper state/reckoning (gonogo Saga task 727 seed, 2026-09-30)",
   "field:comms.degrade.modelId":
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
   "field:comms.degrade.modelName":
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
   "field:comms.occlusion.bodies":
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:comms.occlusion.meta.quality":
-    "no reader found; payload-level duplicate of the Reading wrapper state/reckoning (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:comms.occlusion.meta.source":
-    "no reader found; payload-level duplicate of the Reading wrapper state/reckoning (gonogo Saga task 727 seed, 2026-09-30)",
   "field:comms.occlusion.modelId":
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
   "field:comms.occlusion.modelName":
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:comms.path.meta.quality":
-    "no reader found; payload-level duplicate of the Reading wrapper state/reckoning (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:comms.path.meta.source":
-    "no reader found; payload-level duplicate of the Reading wrapper state/reckoning (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:comms.signal.meta.quality":
-    "no reader found; payload-level duplicate of the Reading wrapper state/reckoning (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:comms.signal.meta.source":
-    "no reader found; payload-level duplicate of the Reading wrapper state/reckoning (gonogo Saga task 727 seed, 2026-09-30)",
   "field:comms.signal.strength":
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
   "field:eva.crew.count":
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
   "field:eva.crew.kerbals":
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:eva.crew.meta.quality":
-    "no reader found; payload-level duplicate of the Reading wrapper state/reckoning (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:eva.crew.meta.source":
-    "no reader found; payload-level duplicate of the Reading wrapper state/reckoning (gonogo Saga task 727 seed, 2026-09-30)",
   "field:fleet.silence.vessels":
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
   "field:flight.current.phase":
@@ -165,10 +131,6 @@ export const CONTRACT_READER_DEBT: Record<string, string> = {
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
   "field:science.sensors.type":
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:settings.gonogo.meta.quality":
-    "no reader found; payload-level duplicate of the Reading wrapper state/reckoning (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:settings.gonogo.meta.source":
-    "no reader found; payload-level duplicate of the Reading wrapper state/reckoning (gonogo Saga task 727 seed, 2026-09-30)",
   "field:spaceCenter.partsAvailable.count":
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
   "field:system.frame.primaryBodies":
@@ -179,20 +141,14 @@ export const CONTRACT_READER_DEBT: Record<string, string> = {
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
   "field:time.calendar.kerbinTime":
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:time.calendar.meta.quality":
-    "no reader found; payload-level duplicate of the Reading wrapper state/reckoning (gonogo Saga task 727 seed, 2026-09-30)",
   "field:time.calendar.meta.source":
-    "no reader found; payload-level duplicate of the Reading wrapper state/reckoning (gonogo Saga task 727 seed, 2026-09-30)",
+    "mod-read: ScetPayload.ReadSource refuses a SCET threshold reading whose source is not the alarm's subject; no TS client reads it",
   "field:time.warp.warpRates":
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:vessel.attitude.meta.quality":
-    "no reader found; payload-level duplicate of the Reading wrapper state/reckoning (gonogo Saga task 727 seed, 2026-09-30)",
   "field:vessel.attitude.meta.source":
-    "no reader found; payload-level duplicate of the Reading wrapper state/reckoning (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:vessel.comms.meta.quality":
-    "no reader found; payload-level duplicate of the Reading wrapper state/reckoning (gonogo Saga task 727 seed, 2026-09-30)",
+    "mod-read: ScetPayload.ReadSource refuses a SCET threshold reading whose source is not the alarm's subject; no TS client reads it",
   "field:vessel.comms.meta.source":
-    "no reader found; payload-level duplicate of the Reading wrapper state/reckoning (gonogo Saga task 727 seed, 2026-09-30)",
+    "mod-read: ScetPayload.ReadSource refuses a SCET threshold reading whose source is not the alarm's subject; no TS client reads it",
   "field:vessel.control.translationX":
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
   "field:vessel.control.translationY":
@@ -201,38 +157,24 @@ export const CONTRACT_READER_DEBT: Record<string, string> = {
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
   "field:vessel.control.yaw":
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:vessel.dock.meta.quality":
-    "no reader found; payload-level duplicate of the Reading wrapper state/reckoning (gonogo Saga task 727 seed, 2026-09-30)",
   "field:vessel.dock.meta.source":
-    "no reader found; payload-level duplicate of the Reading wrapper state/reckoning (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:vessel.inventory.meta.quality":
-    "no reader found; payload-level duplicate of the Reading wrapper state/reckoning (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:vessel.inventory.meta.source":
-    "no reader found; payload-level duplicate of the Reading wrapper state/reckoning (gonogo Saga task 727 seed, 2026-09-30)",
+    "mod-read: ScetPayload.ReadSource refuses a SCET threshold reading whose source is not the alarm's subject; no TS client reads it",
   "field:vessel.inventory.stores":
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:vessel.maneuver.meta.quality":
-    "no reader found; payload-level duplicate of the Reading wrapper state/reckoning (gonogo Saga task 727 seed, 2026-09-30)",
   "field:vessel.maneuver.meta.source":
-    "no reader found; payload-level duplicate of the Reading wrapper state/reckoning (gonogo Saga task 727 seed, 2026-09-30)",
+    "mod-read: ScetPayload.ReadSource refuses a SCET threshold reading whose source is not the alarm's subject; no TS client reads it",
   "field:vessel.maneuver.planner":
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:vessel.orbit.truth.meta.quality":
-    "no reader found; payload-level duplicate of the Reading wrapper state/reckoning (gonogo Saga task 727 seed, 2026-09-30)",
   "field:vessel.orbit.truth.meta.source":
-    "no reader found; payload-level duplicate of the Reading wrapper state/reckoning (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:vessel.physics.mode.meta.quality":
-    "no reader found; payload-level duplicate of the Reading wrapper state/reckoning (gonogo Saga task 727 seed, 2026-09-30)",
+    "mod-read: ScetPayload.ReadSource refuses a SCET threshold reading whose source is not the alarm's subject; no TS client reads it",
   "field:vessel.physics.mode.meta.source":
-    "no reader found; payload-level duplicate of the Reading wrapper state/reckoning (gonogo Saga task 727 seed, 2026-09-30)",
+    "mod-read: ScetPayload.ReadSource refuses a SCET threshold reading whose source is not the alarm's subject; no TS client reads it",
   "field:vessel.physics.mode.mode":
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
   "field:vessel.thermal.hottestPart.maxTemp":
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
   "field:vessel.thermal.maxSkinTempRatio":
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:vessel.thermal.meta.quality":
-    "no reader found; payload-level duplicate of the Reading wrapper state/reckoning (gonogo Saga task 727 seed, 2026-09-30)",
   "field:vessel.thermal.meta.source":
-    "no reader found; payload-level duplicate of the Reading wrapper state/reckoning (gonogo Saga task 727 seed, 2026-09-30)",
+    "mod-read: ScetPayload.ReadSource refuses a SCET threshold reading whose source is not the alarm's subject; no TS client reads it",
 };

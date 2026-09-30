@@ -87,7 +87,6 @@ namespace Sitrep.Host.Tests
             Assert.Equal(1, identity.ParentBodyIndex); // Kerbin resolved to its bodies-list index
             Assert.Equal(100.0, identity.LaunchUt); // sampleUt(140) - missionTime(40)
             Assert.Equal("vessel:" + VesselGuid, identity.Meta.Source);
-            Assert.Equal(Quality.OnRails, identity.Meta.Quality);
             // NOTE: no ValidAt assertion here (Fix C) -- PayloadMeta no
             // longer carries it at all; see the dedicated "payload meta is
             // slim" tests below for the positive/negative proof.
@@ -1233,7 +1232,7 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
-        /// A payload's quality is the craft's own: Loaded only while KSP simulates it
+        /// The orbit's quality is the craft's own: Loaded only while KSP simulates it
         /// (loaded and unpacked), when its elements are osculating rather than a coast.
         /// A loaded but packed craft, including a landed one whose orbit driver is idle,
         /// and a craft that is not loaded at all, are on rails.
@@ -1243,17 +1242,15 @@ namespace Sitrep.Host.Tests
         [InlineData("Packed", Quality.OnRails)]
         [InlineData("OnRails", Quality.OnRails)]
         [InlineData(null, Quality.OnRails)]
-        public void EveryPayloadCarriesTheCraftsOwnQuality(string? mode, Quality expected)
+        public void TheOrbitCarriesTheCraftsOwnQuality(string? mode, Quality expected)
         {
-            var snapshot = SnapshotWith(
-                identity: new Dictionary<string, object?> { ["id"] = VesselGuid, ["situation"] = "FLYING" },
-                physics: mode == null ? null : new Dictionary<string, object?> { ["mode"] = mode });
-
-            Assert.Equal(expected, VesselViewProvider.BuildIdentity(snapshot)!.Meta.Quality);
+            var vessel = new Dictionary<string, object?>();
             if (mode != null)
             {
-                Assert.Equal(expected, VesselViewProvider.BuildPhysicsMode(snapshot)!.Meta.Quality);
+                vessel["physics"] = new Dictionary<string, object?> { ["mode"] = mode };
             }
+
+            Assert.Equal(expected, VesselViewProvider.QualityOf(vessel));
         }
 
         [Fact]
@@ -2670,12 +2667,11 @@ namespace Sitrep.Host.Tests
         {
             // PayloadMeta (Fix C), not the full envelope Meta -- these are
             // PAYLOAD POCOs (VesselOrbit.Meta etc.), which only ever carry
-            // source+quality; seq/deliveredAt/vantage/validAt live solely on
+            // source (and quality on the orbit); seq/deliveredAt/vantage/validAt live solely on
             // the envelope Meta Sitrep.Core.Courier stamps.
             var meta = new PayloadMeta
             {
                 Source = "vessel:" + VesselGuid,
-                Quality = Quality.Loaded,
             };
 
             yield return new object[]
@@ -2706,7 +2702,7 @@ namespace Sitrep.Host.Tests
                     Epoch = 90.0,
                     Mu = 3.5316e12,
                     Encounter = new OrbitEncounter { TransitionType = TransitionType.Encounter, TransitionUt = 12345.0, BodyIndex = 2 },
-                    Meta = meta,
+                    Meta = new OrbitPayloadMeta { Source = meta.Source },
                 },
             };
 
@@ -2960,14 +2956,14 @@ namespace Sitrep.Host.Tests
         }
 
         // ----------------------------------------------------------------
-        // Fix C: payload meta is slim -- source/quality only, never a
+        // Fix C: payload meta is slim -- its source only, never a
         // fabricated duplicate of the ENVELOPE meta's real
         // seq/deliveredAt/vantage/validAt (those are stamped once, for
         // real, by Sitrep.Core.Courier.MakeMeta onto StreamData<T>.Meta).
         // ----------------------------------------------------------------
 
         [Fact]
-        public void PayloadMetaWireShapeCarriesOnlySourceAndQualityNeverEnvelopeDuplicateFields()
+        public void PayloadMetaWireShapeCarriesOnlySourceNeverEnvelopeDuplicateFields()
         {
             var snapshot = SnapshotWith(
                 identity: new Dictionary<string, object?> { ["id"] = VesselGuid, ["name"] = "Kerbal X", ["vesselType"] = "Ship", ["situation"] = "ORBITING" });
@@ -2978,7 +2974,7 @@ namespace Sitrep.Host.Tests
 
             Assert.True(metaDict.ContainsKey("source"));
             Assert.Equal("vessel:" + VesselGuid, metaDict["source"]);
-            Assert.True(metaDict.ContainsKey("quality"));
+            Assert.False(metaDict.ContainsKey("quality"));
 
             // Before Fix C these four were always present, fabricated as
             // 0/""/0/"" every time (dead duplicates of the real values the

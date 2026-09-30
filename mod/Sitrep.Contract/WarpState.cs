@@ -148,6 +148,6 @@ public class WarpState
     [SitrepUnit(Units.Seconds)]
     public double SampleIntervalUt { get; set; }
 
-    /// <summary>The payload's provenance (always <c>"game"</c>) and quality.</summary>
+    /// <summary>The payload's provenance (always <c>"game"</c>).</summary>
     public PayloadMeta Meta { get; set; } = new();
 }

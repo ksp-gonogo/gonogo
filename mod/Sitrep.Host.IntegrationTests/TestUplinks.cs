@@ -636,8 +636,7 @@ namespace Sitrep.Host.IntegrationTests
             return SignalDelay.Compute(
                 _config,
                 path,
-                path.Meta?.Source ?? "",
-                path.Meta?.Quality ?? Quality.OnRails);
+                "game");
         }
 
         /// <summary>
@@ -674,19 +673,16 @@ namespace Sitrep.Host.IntegrationTests
                 Connected = true,
                 ControlSource = CommsControlSource.Full,
                 HasLocalControl = true,
-                Meta = new PayloadMeta { Source = "game", Quality = Quality.Loaded },
             };
 
             public CommsSignal SignalStrength() => new CommsSignal
             {
                 Strength = 0.87,
-                Meta = new PayloadMeta { Source = "game", Quality = Quality.Loaded },
             };
 
             public CommsControl ControlState() => new CommsControl
             {
                 Level = CommsControlStateKind.Full,
-                Meta = new PayloadMeta { Source = "game", Quality = Quality.Loaded },
             };
 
             public CommsPath Path(object? vessel) => new CommsPath
@@ -701,12 +697,11 @@ namespace Sitrep.Host.IntegrationTests
                         DistanceMeters = _hopDistanceMeters,
                     },
                 },
-                Meta = new PayloadMeta { Source = "game", Quality = Quality.Loaded },
             };
 
             public CommsNetwork Network(object? vessel) => new CommsNetwork
             {
-                Meta = new PayloadMeta { Source = "game", Quality = Quality.Loaded },
+                Meta = new PayloadMeta { Source = "game" },
             };
 
             // Routes nowhere, for the same reason as the occlusion model below:
@@ -1023,7 +1018,7 @@ namespace Sitrep.Host.IntegrationTests
             return new CommsLink
             {
                 Connected = connected.Value,
-                Meta = new PayloadMeta { Source = "game", Quality = Quality.Loaded },
+                Meta = new PayloadMeta { Source = "game" },
             };
         }
 
@@ -1198,7 +1193,7 @@ namespace Sitrep.Host.IntegrationTests
             return new CommsLink
             {
                 Connected = connected.Value,
-                Meta = new PayloadMeta { Source = "game", Quality = Quality.Loaded },
+                Meta = new PayloadMeta { Source = "game" },
             };
         }
 

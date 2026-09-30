@@ -129,11 +129,13 @@ public class Meta
     /// Whether the payload's subject is under physics: <see cref="Quality.Loaded"/>
     /// while KSP simulates the craft, when its orbital elements are osculating
     /// rather than a coast a conic may advance, and <see cref="Quality.OnRails"/>
-    /// otherwise, including for a payload that describes no craft. The payload's
-    /// own <c>meta.quality</c>, carried onto the envelope.
+    /// while it coasts. Carried from the payload's own <c>meta.quality</c>, which
+    /// only <c>vessel.orbit</c> states, and omitted from the wire on every
+    /// other Topic rather than defaulted to a claim nothing made.
     /// </summary>
     [SitrepUnit(Units.Enumeration)]
-    public Quality Quality { get; set; }
+    [SitrepOmittedWhenNull]
+    public Quality? Quality { get; set; }
     /// <summary>Always true on a frame the mod sends.</summary>
     [SitrepUnit(Units.Flag)]
     public bool Active { get; set; }
@@ -170,34 +172,31 @@ public class Meta
     ///
     /// <para>A client draws it as a break rather than joining across it: a line
     /// interpolated through an outage looks like data. Omitted from the wire
-    /// when there is no gap, the only <see cref="Meta"/> field that is.</para>
+    /// when there is no gap, as <see cref="Quality"/> is when unstated.</para>
     /// </summary>
-    // EnvelopeCodec.AppendMeta omits the key on HasValue, alone among Meta's fields, so ordinary frames do not carry a null.
+    // EnvelopeCodec.AppendMeta omits the key on HasValue, so ordinary frames do not carry a null.
     [SitrepUnit(Units.UniversalTime)]
     [SitrepOmittedWhenNull]
     public double? GapSinceUt { get; set; }
 }
 
 /// <summary>
-/// The slim, payload-specific sibling of <see cref="Meta"/>, carried inside
-/// payloads such as every <c>vessel.*</c> one and <c>time.warp</c>
-/// (<c>VesselOrbit.Meta</c>, <c>VesselIdentity.Meta</c> and so on).
+/// The provenance stamp carried inside a payload that describes one subject,
+/// such as most <c>vessel.*</c> payloads and <c>time.warp</c>
+/// (<c>VesselIdentity.Meta</c> and so on).
 ///
-/// <para>It says what the payload is about, and nothing about its delivery.
+/// <para>It says what the payload is about, and nothing about its delivery:
 /// <c>seq</c>, <c>deliveredAt</c>, <c>vantage</c> and <c>validAt</c> are on the
-/// envelope <see cref="Meta"/>, one per <c>stream-data</c> frame: read those
-/// there.</para>
+/// envelope <see cref="Meta"/>, one per <c>stream-data</c> frame.</para>
 ///
-/// <para><see cref="Source"/> is the subject's provenance, and takes one of two
-/// forms: <c>"vessel:&lt;guid&gt;"</c> when the payload describes one craft, or
-/// <c>"game"</c> when it describes the session. <see cref="Quality"/> says
-/// whether that craft is on rails or fully loaded. Those two are the whole of
-/// this type.</para>
+/// <para><see cref="Source"/> takes one of two forms: <c>"vessel:&lt;guid&gt;"</c>
+/// when the payload describes one craft, or <c>"game"</c> when it describes
+/// the session. A SCET threshold alarm accepts a reading only from a payload
+/// whose source is the alarm's own subject.</para>
 ///
 /// <internal>
 /// Filled by each ViewProvider's payload mapper; the envelope <see cref="Meta"/>
-/// is stamped separately by <c>Sitrep.Core.Courier.MakeMeta</c>. Source and
-/// Quality are the only two fields a payload mapper produces itself.
+/// is stamped separately by <c>Sitrep.Core.Courier.MakeMeta</c>.
 /// </internal>
 /// </summary>
 /// <category>Stream messages</category>
@@ -210,6 +209,25 @@ public class PayloadMeta
     /// <summary>
     /// <c>"vessel:&lt;guid&gt;"</c> when the payload describes one craft, or
     /// <c>"game"</c> when it describes the session.
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string Source { get; set; } = "";
+}
+
+/// <summary>
+/// <c>vessel.orbit</c>'s provenance stamp, which also says whether the craft is
+/// under physics. The orbit is the one payload that states it, because a conic
+/// can advance a coast and cannot advance osculating elements.
+/// </summary>
+/// <category>Stream messages</category>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class OrbitPayloadMeta
+{
+    /// <summary>
+    /// <c>"vessel:&lt;guid&gt;"</c> for the craft the orbit belongs to.
     /// </summary>
     [SitrepUnit(Units.Id)]
     public string Source { get; set; } = "";

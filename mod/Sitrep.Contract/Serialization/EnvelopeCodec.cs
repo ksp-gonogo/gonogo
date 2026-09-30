@@ -87,8 +87,12 @@ namespace Sitrep.Contract.Serialization
             AppendField(sb, "vantage");
             JsonWriter.AppendString(sb, meta.Vantage);
 
-            AppendField(sb, "quality");
-            JsonWriter.AppendInteger(sb, (long)meta.Quality);
+            // Omitted when unstated, as gapSinceUt below is: only vessel.orbit's payload states a quality.
+            if (meta.Quality.HasValue)
+            {
+                AppendField(sb, "quality");
+                JsonWriter.AppendInteger(sb, (long)meta.Quality.Value);
+            }
 
             AppendField(sb, "active");
             JsonWriter.AppendBool(sb, meta.Active);
@@ -100,7 +104,7 @@ namespace Sitrep.Contract.Serialization
             JsonWriter.AppendInteger(sb, meta.TimelineEpoch);
 
             /*
-             * Omitted when null, unlike every field above it. The TS envelope
+             * Omitted when null, as quality is. The TS envelope
              * declares it optional (`gapSinceUt?: number`), so the TS output this
              * codec must match byte for byte leaves the key out rather than writing
              * null. A gap is also rare (one sample per known break), so absence is
@@ -124,7 +128,7 @@ namespace Sitrep.Contract.Serialization
                 Seq = (long)RequireDouble(raw, "seq"),
                 DeliveredAt = RequireDouble(raw, "deliveredAt"),
                 Vantage = RequireString(raw, "vantage"),
-                Quality = (Quality)(int)RequireDouble(raw, "quality"),
+                Quality = OptionalDouble(raw, "quality") is double quality ? (Quality)(int)quality : null,
                 Active = RequireBool(raw, "active"),
                 Staleness = (Staleness)(int)RequireDouble(raw, "staleness"),
                 TimelineEpoch = (int)RequireDouble(raw, "timelineEpoch"),

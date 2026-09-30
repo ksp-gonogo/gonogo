@@ -309,7 +309,6 @@ namespace Gonogo.KSP.Tests.Comms
                 Connected = false,
                 ControlSource = CommsControlSource.None,
                 HasLocalControl = false,
-                Meta = new PayloadMeta { Source = "vessel:x", Quality = Quality.Loaded },
             };
 
             public CommsSignal SignalStrength() => new CommsSignal { Strength = 0.0 };

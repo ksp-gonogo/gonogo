@@ -22,15 +22,9 @@ namespace Gonogo.KSP
     {
         /// <param name="hops">The walked path's hops, or null when no path exists at all.</param>
         /// <param name="config">The SignalDelay flag + light-speed scale.</param>
-        /// <param name="quality">
-        /// Carried through to the payload meta, which this method discards: only the
-        /// seconds are read. Callers still pass what they know so the value stays
-        /// honest if the meta is ever surfaced.
-        /// </param>
         internal static double? OneWaySeconds(
             IReadOnlyList<CommsRouteHop>? hops,
-            SignalDelayConfig? config,
-            Quality quality)
+            SignalDelayConfig? config)
         {
             if (hops == null)
             {
@@ -49,7 +43,7 @@ namespace Gonogo.KSP
                 });
             }
 
-            return SignalDelay.Compute(config, new CommsPath { Hops = commsHops }, string.Empty, quality).OneWaySeconds;
+            return SignalDelay.Compute(config, new CommsPath { Hops = commsHops }, string.Empty).OneWaySeconds;
         }
 
         /// <summary>

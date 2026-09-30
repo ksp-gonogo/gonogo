@@ -110,14 +110,12 @@ namespace Sitrep.Host.Comms
         /// <param name="config">The SignalDelay config flag + light-speed scale.</param>
         /// <param name="path">The elected backend's ordered hops to KSC (may be null/empty).</param>
         /// <param name="source">Provenance for the payload meta (e.g. the vessel/game source id).</param>
-        /// <param name="quality">On-rails vs loaded, carried through to the payload meta.</param>
         public static CommsDelay Compute(
             SignalDelayConfig? config,
             CommsPath? path,
-            string source,
-            Quality quality)
+            string source)
         {
-            var meta = new PayloadMeta { Source = source ?? "", Quality = quality };
+            var meta = new PayloadMeta { Source = source ?? "" };
             var effectiveC = EffectiveC(config);
 
             // Flag off ⇒ delay-DISABLED-but-connected: a genuine "zero delay

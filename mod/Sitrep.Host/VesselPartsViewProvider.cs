@@ -299,7 +299,6 @@ namespace Sitrep.Host
         private static Dictionary<string, object?> ToWire(PayloadMeta meta) => new Dictionary<string, object?>
         {
             ["source"] = meta.Source,
-            ["quality"] = (int)meta.Quality,
         };
 
         // Shared helpers: copied from VesselViewProvider (the per-provider duplication that class documents; matching that convention).
@@ -307,7 +306,6 @@ namespace Sitrep.Host
         private static PayloadMeta BuildMeta(string vesselId) => new PayloadMeta
         {
             Source = "vessel:" + vesselId,
-            Quality = Quality.OnRails,
         };
 
         private static bool TryGetSubjectId(IDictionary<string, object?> vessel, out string vesselId)

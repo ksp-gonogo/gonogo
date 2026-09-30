@@ -157,7 +157,6 @@ namespace Sitrep.Host.Comms
                 ControlSource = control,
                 // Every control source is local when no link mediates it.
                 HasLocalControl = control is CommsControlSource.Partial or CommsControlSource.Full,
-                Meta = Meta(),
             };
         }
 
@@ -177,7 +176,6 @@ namespace Sitrep.Host.Comms
         public CommsSignal SignalStrength() => new CommsSignal
         {
             Strength = 1.0,
-            Meta = Meta(),
         };
 
         /// <summary>
@@ -197,7 +195,6 @@ namespace Sitrep.Host.Comms
             {
                 Level = KindOf(control),
                 Reason = control == CommsControlSource.None ? "no command source aboard" : null,
-                Meta = Meta(),
             };
         }
 
@@ -212,7 +209,6 @@ namespace Sitrep.Host.Comms
         public CommsPath Path(object? vessel) => new CommsPath
         {
             Hops = new List<CommsHop>(),
-            Meta = Meta(),
         };
 
         /// <summary>Empty, for the same reason <see cref="Path"/> is.</summary>
@@ -341,9 +337,9 @@ namespace Sitrep.Host.Comms
         }
 
         /// <summary>
-        /// Which subject the reading is about and how current it is, fail-soft
-        /// to an empty meta for the same reason <see cref="LocalControl"/> is:
-        /// this reads live KSP on the capture path.
+        /// Which subject the reading is about, fail-soft to an empty meta for
+        /// the same reason <see cref="LocalControl"/> is: this reads live KSP on
+        /// the capture path.
         /// </summary>
         private PayloadMeta Meta()
         {

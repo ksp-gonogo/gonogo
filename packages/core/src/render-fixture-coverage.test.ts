@@ -115,11 +115,11 @@ interface UnitsDescriptor {
 /**
  * Envelope types every topic carries, which are not part of anyone's payload.
  *
- * `PayloadMeta` is `{ quality, source }` and appears in `topicShapes` for
- * nearly every topic. Left in, "source" became a phantom finding on any widget
- * with a `<img src>` or a named provider.
+ * `PayloadMeta` is `{ source }` and appears in `topicShapes` for nearly every
+ * topic, and `OrbitPayloadMeta` is `vessel.orbit`'s. Left in, "source" became a
+ * phantom finding on any widget with a `<img src>` or a named provider.
  */
-const ENVELOPE_TYPES = new Set(["PayloadMeta"]);
+const ENVELOPE_TYPES = new Set(["PayloadMeta", "OrbitPayloadMeta"]);
 
 const SKIP_DIRS = new Set([
   "node_modules",

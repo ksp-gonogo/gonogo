@@ -1566,8 +1566,6 @@ export interface CommsConnectivity
 	* `CommsControlSource.Unknown`.
 	*/
 	hasLocalControl: boolean;
-	/** The payload's provenance (`"vessel:<guid>"` or `"game"`) and quality. */
-	meta: PayloadMeta;
 }
 /**
 * The `comms.signal` payload: always present, sourced from the elected comms
@@ -1591,8 +1589,6 @@ export interface CommsSignal
 	* could be read.
 	*/
 	strength: Value<"ratio">;
-	/** The payload's provenance (`"vessel:<guid>"` or `"game"`) and quality. */
-	meta: PayloadMeta;
 }
 /**
 * What the active vessel can be commanded to do, for `CommsControl`. The
@@ -1637,8 +1633,6 @@ export interface CommsControl
 	* source"` when the vessel has no link home, and null when it is connected.
 	*/
 	reason?: string | null;
-	/** The payload's provenance (`"vessel:<guid>"` or `"game"`) and quality. */
-	meta: PayloadMeta;
 }
 /**
 * Whether a comms node is a ground station, or whether a hop touches one.
@@ -1736,8 +1730,6 @@ export interface CommsPath
 	* ending at home. Empty when there is no path home, never null.
 	*/
 	hops: CommsHop[];
-	/** The payload's provenance (`"vessel:<guid>"` or `"game"`) and quality. */
-	meta: PayloadMeta;
 }
 /**
 * One node in the `CommsNetwork` relay graph. `CommsNetworkNode.displayName`
@@ -1793,7 +1785,7 @@ export interface CommsNetwork
 	nodes: CommsNetworkNode[];
 	/** Every edge in the graph. Never null. */
 	edges: CommsNetworkEdge[];
-	/** The payload's provenance (`"vessel:<guid>"` or `"game"`) and quality. */
+	/** The payload's provenance (`"vessel:<guid>"` or `"game"`). */
 	meta: PayloadMeta;
 }
 /**
@@ -1892,7 +1884,7 @@ export interface CommsDelay
 	oneWaySeconds?: Value<"s"> | null;
 	/** Why `CommsDelay.oneWaySeconds` has the value it has; see `CommsDelaySource`. */
 	source: CommsDelaySource;
-	/** The payload's provenance (`"vessel:<guid>"` or `"game"`) and quality. */
+	/** The payload's provenance (`"vessel:<guid>"` or `"game"`). */
 	meta: PayloadMeta;
 }
 /**
@@ -1918,7 +1910,7 @@ export interface CommsLink
 	* ago; false through a blackout.
 	*/
 	connected: boolean;
-	/** The payload's provenance (`"vessel:<guid>"` or `"game"`) and quality. */
+	/** The payload's provenance (`"vessel:<guid>"` or `"game"`). */
 	meta: PayloadMeta;
 }
 /**
@@ -1956,8 +1948,6 @@ export interface CommsCommandCentre
 	* unknown, not surface-anchored, or the centre is a moving vessel.
 	*/
 	bodyIndex?: number | null;
-	/** The payload's provenance (`"vessel:<guid>"` or `"game"`) and quality. */
-	meta: PayloadMeta;
 }
 /**
 * The `comms.degrade` payload: how degraded the active vessel's link home is
@@ -2001,8 +1991,6 @@ export interface CommsDegrade
 	* overshot, and one that failed to resolve arrives absent.
 	*/
 	level?: Value<"ratio"> | null;
-	/** The payload's provenance and quality. */
-	meta: PayloadMeta;
 }
 /**
 * One body's occlusion geometry, as resolved by the elected model.
@@ -2075,11 +2063,6 @@ export interface CommsOcclusion
 	* has populated a body list, never null.
 	*/
 	bodies: CommsOcclusionBody[];
-	/**
-	* Provenance, always `"game"` with quality `OnRails`: this describes the
-	* universe and the rule applied to it, not any craft.
-	*/
-	meta: PayloadMeta;
 }
 /**
 * The frame the game's own navigation view is expressed in: what the player is
@@ -2856,8 +2839,6 @@ export interface EvaCrew
 	count: Value<"count">;
 	/** One entry per kerbal on EVA. Never null; empty when nobody is outside. */
 	kerbals: EvaKerbal[];
-	/** The payload's provenance (`"game"`) and quality. */
-	meta: PayloadMeta;
 }
 /**
 * Per-vessel link facts on `fleet.<guid>.delay`: the one-way light-time to
@@ -3819,11 +3800,12 @@ export interface Meta
 	/**
 	* Whether the payload's subject is under physics: `Quality.Loaded` while KSP
 	* simulates the craft, when its orbital elements are osculating rather than a
-	* coast a conic may advance, and `Quality.OnRails` otherwise, including for a
-	* payload that describes no craft. The payload's own `meta.quality`, carried
-	* onto the envelope.
+	* coast a conic may advance, and `Quality.OnRails` while it coasts. Carried
+	* from the payload's own `meta.quality`, which only `vessel.orbit` states, and
+	* omitted from the wire on every other Topic rather than defaulted to a claim
+	* nothing made.
 	*/
-	quality: Quality;
+	quality?: Quality;
 	/** Always true on a frame the mod sends. */
 	active: boolean;
 	/** How current the sample is. */
@@ -3852,23 +3834,23 @@ export interface Meta
 	*
 	* A client draws it as a break rather than joining across it: a line
 	* interpolated through an outage looks like data. Omitted from the wire when
-	* there is no gap, the only `Meta` field that is.
+	* there is no gap, as `Meta.quality` is when unstated.
 	*/
 	gapSinceUt?: number;
 }
 /**
-* The slim, payload-specific sibling of `Meta`, carried inside payloads such
-* as every `vessel.*` one and `time.warp` (`VesselOrbit.Meta`,
-* `VesselIdentity.Meta` and so on).
+* The provenance stamp carried inside a payload that describes one subject,
+* such as most `vessel.*` payloads and `time.warp` (`VesselIdentity.Meta` and
+* so on).
 *
-* It says what the payload is about, and nothing about its delivery. `seq`,
+* It says what the payload is about, and nothing about its delivery: `seq`,
 * `deliveredAt`, `vantage` and `validAt` are on the envelope `Meta`, one per
-* `stream-data` frame: read those there.
+* `stream-data` frame.
 *
-* `PayloadMeta.source` is the subject's provenance, and takes one of two
-* forms: `"vessel:<guid>"` when the payload describes one craft, or `"game"`
-* when it describes the session. `PayloadMeta.quality` says whether that craft
-* is on rails or fully loaded. Those two are the whole of this type.
+* `PayloadMeta.source` takes one of two forms: `"vessel:<guid>"` when the
+* payload describes one craft, or `"game"` when it describes the session. A
+* SCET threshold alarm accepts a reading only from a payload whose source is
+* the alarm's own subject.
 *
 * @category Stream messages
 */
@@ -3878,6 +3860,18 @@ export interface PayloadMeta
 	* `"vessel:<guid>"` when the payload describes one craft, or `"game"` when it
 	* describes the session.
 	*/
+	source: string;
+}
+/**
+* `vessel.orbit`'s provenance stamp, which also says whether the craft is
+* under physics. The orbit is the one payload that states it, because a conic
+* can advance a coast and cannot advance osculating elements.
+*
+* @category Stream messages
+*/
+export interface OrbitPayloadMeta
+{
+	/** `"vessel:<guid>"` for the craft the orbit belongs to. */
 	source: string;
 	/** Whether the craft is on rails or loaded under physics. */
 	quality: Quality;
@@ -4255,8 +4249,7 @@ export interface PartActions
 	actions: PartActionEntry[];
 	/**
 	* Payload provenance. `Source` is `"vessel:<guid>"` for the active vessel, or
-	* `""` when no vessel id was known. `Quality` is always `OnRails` on this
-	* payload and says nothing about whether the part is loaded.
+	* `""` when no vessel id was known.
 	*/
 	meta: PayloadMeta;
 }
@@ -6019,11 +6012,6 @@ export interface SettingsModel
 	* `SettingsModel.rows`; what the file holds for them is kept as it is.
 	*/
 	undeclared: SettingsDeclarationFailure[];
-	/**
-	* Payload provenance. `Source` is always `"game"` and `Quality` always
-	* `Loaded`: settings describe the install, not a craft.
-	*/
-	meta: PayloadMeta;
 }
 /**
 * One declared setting, described well enough for a client to draw its
@@ -7515,7 +7503,7 @@ export interface VesselAttitude
 	headingRootFrame: Value<"°">;
 	/** As `VesselAttitude.roll`, measured at the root part. Degrees, -180 to 180. */
 	rollRootFrame: Value<"°">;
-	/** The payload's provenance (`"vessel:<guid>"`) and quality. */
+	/** The payload's provenance (`"vessel:<guid>"`). */
 	meta: PayloadMeta;
 }
 /**
@@ -7785,7 +7773,7 @@ export interface VesselComms
 	* `vessel.connection.ControlState`.
 	*/
 	controlState: ControlState;
-	/** The payload's provenance (`"vessel:<guid>"`) and quality. */
+	/** The payload's provenance (`"vessel:<guid>"`). */
 	meta: PayloadMeta;
 }
 /**
@@ -7959,7 +7947,7 @@ export interface VesselControl
 	* here.
 	*/
 	actionGroups?: ActionGroupState[] | null;
-	/** The payload's provenance (`"vessel:<guid>"`) and quality. */
+	/** The payload's provenance (`"vessel:<guid>"`). */
 	meta: PayloadMeta;
 }
 /**
@@ -8074,7 +8062,7 @@ export interface DockAlignment
 	* transform was unavailable this tick.
 	*/
 	forwardDot?: Value<"1"> | null;
-	/** The payload's provenance (`"vessel:<guid>"`) and quality. */
+	/** The payload's provenance (`"vessel:<guid>"`). */
 	meta: PayloadMeta;
 }
 /**
@@ -8275,7 +8263,7 @@ export interface VesselFlight
 	* (Vessel.atmosphericTemperature).
 	*/
 	atmosphericTemperature: Value<"K">;
-	/** The payload's provenance (`"vessel:<guid>"`) and quality. */
+	/** The payload's provenance (`"vessel:<guid>"`). */
 	meta: PayloadMeta;
 }
 /**
@@ -8319,7 +8307,7 @@ export interface VesselIdentity
 	* unknown, never the current time.
 	*/
 	launchUt?: Value<"ut"> | null;
-	/** The payload's provenance (`"vessel:<guid>"`) and quality. */
+	/** The payload's provenance (`"vessel:<guid>"`). */
 	meta: PayloadMeta;
 }
 /**
@@ -8352,8 +8340,6 @@ export interface VesselInventory
 	* a `null` payload, not an empty list.
 	*/
 	stores: InventoryStore[];
-	/** The payload's provenance (`"vessel:<guid>"` or `"game"`) and quality. */
-	meta: PayloadMeta;
 }
 /**
 * One part's `ModuleInventoryPart`: a cargo hold aboard.
@@ -8578,7 +8564,7 @@ export interface VesselLanding
 	* outside an atmosphere.
 	*/
 	parachuteState?: string | null;
-	/** The payload's provenance (`"vessel:<guid>"`) and quality. */
+	/** The payload's provenance (`"vessel:<guid>"`). */
 	meta: PayloadMeta;
 }
 /**
@@ -8747,7 +8733,7 @@ export interface VesselManeuver
 	* should test.
 	*/
 	planner?: string | null;
-	/** The payload's provenance (`"vessel:<guid>"` or `"game"`) and quality. */
+	/** The payload's provenance (`"vessel:<guid>"` or `"game"`). */
 	meta: PayloadMeta;
 }
 /**
@@ -8860,7 +8846,7 @@ export interface VesselOrbit
 	* Payload provenance. `Source` is `"vessel:<guid>"` for the active vessel;
 	* `Quality` is `Loaded` under physics and `OnRails` otherwise.
 	*/
-	meta: PayloadMeta;
+	meta: OrbitPayloadMeta;
 }
 /**
 * The window over which an element set is authoritative, as stated by
@@ -9013,7 +8999,7 @@ export interface VesselOrbitTruth
 	* co-rotating with the body, false when they are in the fixed inertial frame.
 	*/
 	frameRotating: boolean;
-	/** The payload's provenance (`"vessel:<guid>"`) and quality. */
+	/** The payload's provenance (`"vessel:<guid>"`). */
 	meta: PayloadMeta;
 }
 /**
@@ -9037,10 +9023,7 @@ export interface VesselParts
 	* an empty list.
 	*/
 	parts: VesselPart[];
-	/**
-	* The payload's provenance, always `"vessel:<guid>"` for the active vessel,
-	* and quality.
-	*/
+	/** The payload's provenance, always `"vessel:<guid>"` for the active vessel. */
 	meta: PayloadMeta;
 }
 /**
@@ -9311,9 +9294,10 @@ export interface PartBounds
 /**
 * The active vessel's physics-simulation regime, derived from KSP's own
 * `Vessel.loaded` and `Vessel.packed` flags. It is a discrete enum in its own
-* right, NOT a quality band on `PayloadMeta.quality`. A widget that switches
-* propagation or dead-reckoning strategy reads it to know whether the craft is
-* on-rails conics, a packed cluster, or a fully physics-simulated vessel.
+* right, NOT a quality band on `OrbitPayloadMeta.quality`. A widget that
+* switches propagation or dead-reckoning strategy reads it to know whether the
+* craft is on-rails conics, a packed cluster, or a fully physics-simulated
+* vessel.
 *
 * Mapping:
 *
@@ -9355,7 +9339,7 @@ export interface VesselPhysicsMode
 {
 	/** The active vessel's physics regime. */
 	mode: PhysicsMode;
-	/** The payload's provenance (`"vessel:<guid>"`) and quality. */
+	/** The payload's provenance (`"vessel:<guid>"`). */
 	meta: PayloadMeta;
 }
 /**
@@ -9433,10 +9417,7 @@ export interface VesselPropulsion
 	* may not report a shortfall.
 	*/
 	lastThrustEndUt?: Value<"ut"> | null;
-	/**
-	* Payload provenance. `Source` is `"vessel:<guid>"` for the active vessel;
-	* `Quality` is `Loaded` under physics and `OnRails` otherwise.
-	*/
+	/** Payload provenance. `Source` is `"vessel:<guid>"` for the active vessel. */
 	meta: PayloadMeta;
 }
 /**
@@ -9535,7 +9516,7 @@ export interface VesselStructure
 	* read this tick.
 	*/
 	partCount?: Value<"count"> | null;
-	/** The payload's provenance (`"vessel:<guid>"`) and quality. */
+	/** The payload's provenance (`"vessel:<guid>"`). */
 	meta: PayloadMeta;
 }
 /**
@@ -9572,10 +9553,7 @@ export interface VesselSurface
 	* and KSP is holding an earlier value.
 	*/
 	heightFromTerrain?: Value<"m"> | null;
-	/**
-	* Payload provenance. `Source` is `"vessel:<guid>"` for the active vessel;
-	* `Quality` is `Loaded` under physics and `OnRails` otherwise.
-	*/
+	/** Payload provenance. `Source` is `"vessel:<guid>"` for the active vessel. */
 	meta: PayloadMeta;
 }
 /**
@@ -9717,7 +9695,7 @@ export interface VesselTarget
 	closestApproach?: ClosestApproach | null;
 	/**
 	* The payload's provenance, stamped with the active vessel
-	* (`"vessel:<guid>"`), and quality.
+	* (`"vessel:<guid>"`).
 	*/
 	meta: PayloadMeta;
 }
@@ -9829,10 +9807,7 @@ export interface VesselThermal
 	* engine part with a valid `maxTemp` was found this tick.
 	*/
 	anyEnginesOverheating?: boolean | null;
-	/**
-	* The payload's provenance, `"vessel:<guid>"` for the active vessel, and
-	* quality.
-	*/
+	/** The payload's provenance, `"vessel:<guid>"` for the active vessel. */
 	meta: PayloadMeta;
 }
 /**
@@ -9938,7 +9913,7 @@ export interface WarpState
 	* it that no model of the value carries asserts a path nothing observed.
 	*/
 	sampleIntervalUt: Value<"s">;
-	/** The payload's provenance (always `"game"`) and quality. */
+	/** The payload's provenance (always `"game"`). */
 	meta: PayloadMeta;
 }
 /**

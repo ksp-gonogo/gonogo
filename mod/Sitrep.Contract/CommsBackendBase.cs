@@ -150,11 +150,10 @@ public abstract class CommsBackendBase : ICommsBackend
     /// </summary>
     public CommsConnectivity Connectivity()
     {
-        var meta = Meta();
         var state = LinkState();
         if (state == null)
         {
-            return new CommsConnectivity { ControlSource = CommsControlSource.None, Meta = meta };
+            return new CommsConnectivity { ControlSource = CommsControlSource.None };
         }
         var grade = state.Value.Grade;
         return new CommsConnectivity
@@ -162,7 +161,6 @@ public abstract class CommsBackendBase : ICommsBackend
             Connected = state.Value.Connected,
             ControlSource = SourceOf(grade),
             HasLocalControl = grade == CommsControlGrade.PartialManned || grade == CommsControlGrade.Full,
-            Meta = meta,
         };
     }
 
@@ -174,7 +172,7 @@ public abstract class CommsBackendBase : ICommsBackend
     /// derivation one, so it is not smoothed over here.
     /// </summary>
     public CommsSignal SignalStrength() =>
-        new CommsSignal { Strength = LinkState()?.SignalStrength ?? 0.0, Meta = Meta() };
+        new CommsSignal { Strength = LinkState()?.SignalStrength ?? 0.0 };
 
     /// <inheritdoc cref="ICommsBackend.ControlState" />
     public CommsControl ControlState()
@@ -182,13 +180,12 @@ public abstract class CommsBackendBase : ICommsBackend
         var state = LinkState();
         if (state == null)
         {
-            return new CommsControl { Level = CommsControlStateKind.None, Meta = Meta() };
+            return new CommsControl { Level = CommsControlStateKind.None };
         }
         return new CommsControl
         {
             Level = KindOf(state.Value.Grade),
             Reason = state.Value.Connected ? null : DisconnectedReason,
-            Meta = Meta(),
         };
     }
 
@@ -226,7 +223,7 @@ public abstract class CommsBackendBase : ICommsBackend
                 });
             }
         }
-        return new CommsPath { Hops = hops, Meta = Meta() };
+        return new CommsPath { Hops = hops };
     }
 
     /*
@@ -396,7 +393,6 @@ public abstract class CommsBackendBase : ICommsBackend
         return new PayloadMeta
         {
             Source = subject.VesselId != null ? "vessel:" + subject.VesselId : "game",
-            Quality = subject.VesselId != null && subject.Loaded ? Quality.Loaded : Quality.OnRails,
         };
     }
 

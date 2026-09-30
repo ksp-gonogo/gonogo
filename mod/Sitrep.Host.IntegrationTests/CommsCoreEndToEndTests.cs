@@ -178,7 +178,7 @@ namespace Sitrep.Host.IntegrationTests
             // uplink's advertised expectation (and the wire value above).
             var delay = SignalDelay.Compute(
                 new SignalDelayConfig { Enabled = true, LightSpeedScale = 1.0 },
-                path, "game", Quality.Loaded);
+                path, "game");
             Assert.Equal(CommsDelaySource.SignalDelay, delay.Source);
             Assert.NotNull(delay.OneWaySeconds);
             Assert.Equal(uplink.ExpectedOneWaySeconds, delay.OneWaySeconds!.Value, precision: 6);
