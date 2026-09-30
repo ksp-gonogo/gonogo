@@ -110,6 +110,35 @@ function useAnyAvailable(augments: AnyAugment[]): boolean {
   );
 }
 
+/**
+ * The `label` of the first available augment bound to `name`, in render
+ * order, for a host affordance that needs a caption before it can draw the
+ * slot at all, such as a tab strip's own tab label. `undefined` while nothing
+ * is bound, nothing available passes the `requires` gate, or the augment that
+ * is available declared no label.
+ *
+ * Reads only the first available augment, matching what a slot with more than
+ * one bound augment already does for CONTENT: `<AugmentSlot>` renders every
+ * one of them together in render order, so a shared caption drawn from the
+ * first is the same "one thing, several fillers" shape as the content itself.
+ *
+ * @category Extensions
+ */
+export function useSlotLabel(name: string): string | undefined {
+  const augments = useAugmentsFor(name);
+  const store = useDomainAvailabilityStore();
+  const snapshot = (): string | undefined =>
+    augments.find(
+      (augment) =>
+        !augment.requires || store?.isAvailable(augment.requires) === true,
+    )?.label;
+  return useSyncExternalStore(
+    store ? store.subscribe : NO_SUBSCRIBE,
+    snapshot,
+    snapshot,
+  );
+}
+
 // useSyncExternalStore loops without a referentially stable snapshot, so each slot's list is memoised until the registry notifies.
 const slotCache = new Map<string, AnyAugment[]>();
 let cacheValid = false;

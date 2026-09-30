@@ -23,4 +23,4 @@ plantSlot("astronaut-complex.crew-badge", ({ kerbalName }) => (
   </span>
 ));
 
-plantSlot("astronaut-complex.training");
+plantSlot("astronaut-complex.tab", undefined, "Notes");

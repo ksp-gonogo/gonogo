@@ -14,19 +14,20 @@ import {
   Tabs,
   Unit,
   useSlotBound,
+  useSlotLabel,
 } from "@ksp-gonogo/ui-kit";
 import { useMemo, useState } from "react";
 import { magnitudeOf } from "../shared/magnitude";
 import { ActivePanel } from "./ActivePanel";
 import { ApplicantsPanel } from "./ApplicantsPanel";
+import { AugmentTab } from "./AugmentTab";
 import type { AstronautComplexActions, AstronautComplexConfig } from "./config";
 import { readApplicants, readCrewRoster } from "./roster";
 import {
   ASTRONAUT_COMPLEX_READOUTS_SLOT,
-  ASTRONAUT_COMPLEX_TRAINING_SLOT,
+  ASTRONAUT_COMPLEX_TAB_SLOT,
 } from "./slots";
 import { EMPTY_STYLE } from "./styles";
-import { TrainingTab } from "./TrainingTab";
 import { astronautComplexTopics } from "./topics";
 
 /** KSP's `int.MaxValue`, which `GameVariables.GetActiveCrewLimit` returns for an unlimited roster; every tiered cap sits far below it. */
@@ -91,8 +92,9 @@ export function AstronautComplexComponent(
     () => readCrewRoster(crewRosterRaw),
     [crewRosterRaw],
   );
-  // The training tab exists only while something claims its slot.
-  const trainingBound = useSlotBound(ASTRONAUT_COMPLEX_TRAINING_SLOT);
+  // The extra tab exists only while something claims its slot, and shows the label the claiming augment supplies.
+  const tabBound = useSlotBound(ASTRONAUT_COMPLEX_TAB_SLOT);
+  const tabLabel = useSlotLabel(ASTRONAUT_COMPLEX_TAB_SLOT);
 
   // A KSC ground action, dispatched at the meta-vantage; the handle still has to reach the delay rail.
   const hireCmd = useCommand("career.crew.hire", { vantage: META_VANTAGE });
@@ -258,12 +260,12 @@ export function AstronautComplexComponent(
                   />
                 ),
               },
-              ...(trainingBound
+              ...(tabBound
                 ? [
                     {
-                      id: "training",
-                      label: "Training",
-                      content: <TrainingTab />,
+                      id: "augment",
+                      label: tabLabel ?? "Extra",
+                      content: <AugmentTab />,
                     },
                   ]
                 : []),

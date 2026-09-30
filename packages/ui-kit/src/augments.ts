@@ -104,6 +104,7 @@ function registry(): AugmentRegistry {
 export const RETIRED_SLOT_IDS: Readonly<Record<string, string>> = {
   "distance-to-target.camera": "targeting.camera",
   "distance-to-target.overlay": "targeting.overlay",
+  "astronaut-complex.training": "astronaut-complex.tab",
 };
 
 /** Reports a retired slot id. Falls back to `console.error` without a host, because the sdk's `logger` throws when none is installed. */

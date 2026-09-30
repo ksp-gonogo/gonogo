@@ -908,8 +908,8 @@ describe("AstronautComplexComponent", () => {
     expect(title).not.toContain("9000000");
   });
 
-  /** With nothing claiming the training slot, the Training tab does not exist at all. */
-  it("grows no Training tab until something claims the slot", async () => {
+  /** With nothing claiming the tab slot, the augment tab does not exist at all. */
+  it("grows no augment tab until something claims the slot", async () => {
     renderWidget();
     act(() => {
       emitFunds(fixture, 500000);
@@ -925,16 +925,17 @@ describe("AstronautComplexComponent", () => {
     // Active proves the strip rendered, so the absence below is about the tab.
     expect(await screen.findByRole("tab", { name: "Active" })).toBeVisible();
     expect(
-      screen.queryByRole("tab", { name: "Training" }),
+      screen.queryByRole("tab", { name: "Notes" }),
     ).not.toBeInTheDocument();
   });
 
   /** A bundled client registers its augment whether or not its mod is running, so an absent Domain grows no tab. */
-  it("grows no Training tab for an augment whose Domain is not announced, and grows it once the Domain is", async () => {
+  it("grows no augment tab for an augment whose Domain is not announced, and grows it once the Domain is", async () => {
     registerAugment({
-      id: "test-training-tab-gated",
-      augments: "astronaut-complex.training",
-      requires: "absent-training-mod",
+      id: "test-augment-tab-gated",
+      augments: "astronaut-complex.tab",
+      requires: "absent-notes-mod",
+      label: "Notes",
       component: () => <span>Two courses running</span>,
     });
     const availability = createDomainAvailabilityStore();
@@ -968,19 +969,20 @@ describe("AstronautComplexComponent", () => {
 
     expect(await screen.findByRole("tab", { name: "Active" })).toBeVisible();
     expect(
-      screen.queryByRole("tab", { name: "Training" }),
+      screen.queryByRole("tab", { name: "Notes" }),
     ).not.toBeInTheDocument();
 
-    act(() => availability.setAvailable("absent-training-mod", true));
+    act(() => availability.setAvailable("absent-notes-mod", true));
 
-    expect(await screen.findByRole("tab", { name: "Training" })).toBeVisible();
+    expect(await screen.findByRole("tab", { name: "Notes" })).toBeVisible();
   });
 
-  /** Training is a whole TAB beside Applicants and Active, not nested under either. */
-  it("grows a Training tab an Uplink fills, beside Applicants and Active", async () => {
+  /** The tab is a whole TAB beside Applicants and Active, not nested under either, labelled by whatever claims it. */
+  it("grows a tab an Uplink fills, labelled by the augment, beside Applicants and Active", async () => {
     registerAugment({
-      id: "test-training-tab",
-      augments: "astronaut-complex.training",
+      id: "test-augment-tab",
+      augments: "astronaut-complex.tab",
+      label: "Notes",
       component: () => <span>Two courses running</span>,
     });
 
@@ -997,18 +999,42 @@ describe("AstronautComplexComponent", () => {
       emitCrewRoster(fixture, CREW_ROSTER);
     });
 
-    await user.click(await screen.findByRole("tab", { name: "Training" }));
+    await user.click(await screen.findByRole("tab", { name: "Notes" }));
     expect(await screen.findByText("Two courses running")).toBeInTheDocument();
     // The same strip, not a second one nested inside a tab.
     expect(screen.getByRole("tab", { name: "Applicants" })).toBeVisible();
     expect(screen.getByRole("tab", { name: "Active" })).toBeVisible();
   });
 
+  /** An augment that supplies no label still grows a tab, under a generic fallback name. */
+  it("falls back to a generic tab label when the augment supplies none", async () => {
+    registerAugment({
+      id: "test-augment-tab-unlabelled",
+      augments: "astronaut-complex.tab",
+      component: () => <span>Two courses running</span>,
+    });
+
+    renderWidget();
+    act(() => {
+      emitFunds(fixture, 500000);
+      emitComplex(fixture, {
+        applicants: APPLICANTS,
+        activeCrew: CREW_ROSTER.length,
+        crewCapacity: 13,
+        nextHireCost: NEXT_HIRE_COST,
+      });
+      emitCrewRoster(fixture, CREW_ROSTER);
+    });
+
+    expect(await screen.findByRole("tab", { name: "Extra" })).toBeVisible();
+  });
+
   /** A claimed slot whose augments all render nothing still says the tab is empty, as Applicants and Active do. */
   it("says the tab is empty rather than showing a blank rectangle", async () => {
     registerAugment({
-      id: "test-training-tab-silent",
-      augments: "astronaut-complex.training",
+      id: "test-augment-tab-silent",
+      augments: "astronaut-complex.tab",
+      label: "Notes",
       component: () => null,
     });
 
@@ -1025,8 +1051,8 @@ describe("AstronautComplexComponent", () => {
       emitCrewRoster(fixture, CREW_ROSTER);
     });
 
-    await user.click(await screen.findByRole("tab", { name: "Training" }));
-    expect(await screen.findByText("No training right now")).toBeVisible();
+    await user.click(await screen.findByRole("tab", { name: "Notes" }));
+    expect(await screen.findByText("Nothing here yet")).toBeVisible();
   });
 
   /** Nothing contributes under stock, so the strip stays three cells with no empty cell. */

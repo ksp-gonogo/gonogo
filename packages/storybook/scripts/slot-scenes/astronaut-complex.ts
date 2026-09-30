@@ -19,11 +19,11 @@ export const SCENES: readonly ExtensionScene[] = [
     h: 14,
   },
   {
-    id: "planted-slot:astronaut-complex.training",
+    id: "planted-slot:astronaut-complex.tab",
     widgetId: "astronaut-complex",
     fixture: FIXTURE,
     w: 12,
     h: 14,
-    clicks: [{ selector: 'button[aria-controls$="training-panel"]' }],
+    clicks: [{ selector: 'button[aria-controls$="augment-panel"]' }],
   },
 ];

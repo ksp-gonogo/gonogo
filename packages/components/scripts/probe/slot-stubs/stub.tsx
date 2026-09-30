@@ -50,17 +50,20 @@ export function SlotStub({
 /**
  * Registers the stand-in augment for one slot: `component` when the slot
  * needs a particular shape (an SVG overlay, a table row), a {@link SlotStub}
- * naming the slot otherwise.
+ * naming the slot otherwise. `label` is for a slot whose host reads the
+ * augment's own caption, such as a tab strip built from whatever is bound.
  */
 export function plantSlot<Slot extends string>(
   slot: Slot,
   component?: AugmentDefinition<Slot>["component"],
+  label?: string,
 ): void {
   registerAugment({
     id: slotStubId(slot),
     augments: slot,
     requires: PLANTED_SLOTS_DOMAIN,
     owner: PLANTED_UPLINK,
+    label,
     component:
       component ??
       ((() => <SlotStub slot={slot} />) as unknown as ComponentType<never>),

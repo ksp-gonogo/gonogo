@@ -12,12 +12,12 @@ export interface AstronautComplexCrewContext {
   isApplicant: boolean;
 }
 
-// Declaration-merge each slot id onto its props type in core's `SlotRegistry`; `astronaut-complex.training` is a whole tab and passes nothing.
+// Declaration-merge each slot id onto its props type in core's `SlotRegistry`; `astronaut-complex.tab` is a whole tab and passes nothing.
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "astronaut-complex.crew": AstronautComplexCrewContext;
     "astronaut-complex.crew-badge": AstronautComplexCrewContext;
-    "astronaut-complex.training": Record<string, never>;
+    "astronaut-complex.tab": Record<string, never>;
   }
 }
 
@@ -31,11 +31,16 @@ declare module "@ksp-gonogo/core" {
 export const ASTRONAUT_COMPLEX_CREW_BADGE_SLOT = "astronaut-complex.crew-badge";
 
 /**
- * The `astronaut-complex.training` slot: a whole TAB beside Applicants and
- * Active, absent until an Uplink claims it, since stock has no crew training.
- * A course is a thing in its own right that several kerbals share. No props.
+ * The `astronaut-complex.tab` slot: a whole TAB beside Applicants and Active,
+ * absent until an Uplink claims it. Generic on purpose: stock has no concept
+ * of what the tab is FOR, so nothing here names one. The augment that binds it
+ * supplies its own `label` (`AugmentDefinition.label`), which becomes the
+ * tab's label, and its own content, which becomes the tab's panel; the host
+ * draws neither. Renamed from `astronaut-complex.training` (Saga 722/697): the
+ * old id named a career-mod's crew-training concept, which stock does not
+ * have, and is listed in ui-kit's `RETIRED_SLOT_IDS`.
  */
-export const ASTRONAUT_COMPLEX_TRAINING_SLOT = "astronaut-complex.training";
+export const ASTRONAUT_COMPLEX_TAB_SLOT = "astronaut-complex.tab";
 
 /**
  * The `astronaut-complex.readouts` contribution slot: further cells in the
