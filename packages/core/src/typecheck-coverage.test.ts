@@ -26,6 +26,7 @@ import {
   sourceAtRatchetBase,
 } from "./ratchetBaseRef";
 import { TYPECHECK_COVERAGE_DEBT } from "./typecheck-coverage.allowlist";
+import { tsconfigsRunBy } from "./typecheckScriptConfigs";
 
 /**
  * Typecheck-coverage ratchet: a package's `typecheck` script must actually
@@ -151,21 +152,14 @@ function discoverPackages(): WorkspacePackage[] {
 }
 
 /**
- * The tsconfig paths a `typecheck` script actually runs, workspace-relative.
+ * The tsconfig paths a package's `typecheck` script actually runs.
  *
- * A bare `tsc --noEmit` resolves the nearest `tsconfig.json`, which for a
- * package script is its own; `tsc -p X` names one outright. A script may chain
- * several with `&&`, and every one of them counts, because a package is covered
- * if ANY config in its typecheck run pulls the tests in.
+ * A package is covered if ANY config in its typecheck run pulls the tests in,
+ * so every config named by the script counts. The parsing itself lives in
+ * `typecheckScriptConfigs.ts`, shared with the entry-point coverage gate.
  */
 function configsFor(pkg: WorkspacePackage): string[] {
-  if (pkg.typecheckScript === undefined) return [];
-  const configs: string[] = [];
-  for (const invocation of pkg.typecheckScript.matchAll(/tsc\s+([^&|;]*)/g)) {
-    const explicit = invocation[1]?.match(/-p\s+(\S+)/);
-    configs.push(`${pkg.dir}/${explicit ? explicit[1] : "tsconfig.json"}`);
-  }
-  return configs;
+  return tsconfigsRunBy(pkg.dir, pkg.typecheckScript);
 }
 
 /**
