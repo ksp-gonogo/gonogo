@@ -296,7 +296,7 @@ describe("each declared domain holds the paths its scan names", () => {
     );
     expect(packageDirs.get("@ksp-gonogo/sitrep-sdk")).toBe("mod/sitrep-sdk");
     expect(
-      strays("src/uplink-topic-segments.test.ts", [/^mod\/(?!sitrep-sdk\/)/]),
+      strays("src/contract-version-parity.test.ts", [/^mod\/(?!sitrep-sdk\/)/]),
       "a workspace package the scan imports is part of what it runs",
     ).toContain("@ksp-gonogo/sitrep-sdk (imported)");
   });

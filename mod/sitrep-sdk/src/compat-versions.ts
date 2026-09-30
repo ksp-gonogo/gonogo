@@ -24,7 +24,7 @@
  *
  * @category Host and runtime
  */
-export const EXTENSION_API_VERSION = "6.0.0";
+export const EXTENSION_API_VERSION = "6.1.0";
 
 /**
  * The wire contract's major, mirroring `ContractVersion.Major` in

@@ -292,6 +292,7 @@ export {
 // registers the way they already do and never calls these.
 export {
   getRuntimeRegisteredTopicIds,
+  registerDynamicTopicPrefix,
   subscribeRuntimeTopicRegistry,
 } from "./runtime-topic-registry";
 // THE AIR: the other half of an altitude, for the regime the conic hands over

@@ -284,14 +284,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
     ],
     permanent: [
       /*
-       * -- DYNAMIC-NAMESPACE ROUTING: `mapTopic` identity-maps the
-       * per-body scansat namespaces, which materialise their Topics per
-       * subject at runtime and so appear in no generated list. A pattern is the only thing that can vouch for such a
-       * key, and the pattern has to live where the routing does. Permanent: a
-       * dynamic namespace can never be enumerated into the SDK's generated map.
-       */
-      "mod/sitrep-sdk/src/spine/map-topic.ts",
-      /*
        * -- Uplink ISOLATION ratchet inventory: the inward guard's
        * debt list is keyed by file path, so it necessarily names every Uplink
        * directory. Ratchet-inventory file, the case this bucket documents.
@@ -368,7 +360,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "mod/Sitrep.Core.Tests/UplinkContractOwnershipTests.cs",
       "mod/Sitrep.Host.IntegrationTests/FoundationChannelsEndToEndTests.cs",
-      "packages/sitrep-client/src/map-topic.test.ts",
 
       // -- Cross-mod / doc-comment-only mentions --
       "mod/Gonogo.KSP/CommsCoreUplink.cs",
@@ -1659,11 +1650,9 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
   principia: [],
   scansat: [
     "mod/Sitrep.Core.Tests/UplinkContractOwnershipTests.cs",
-    "mod/sitrep-sdk/src/spine/map-topic.ts",
     "packages/app/src/__tests__/scansat-coverage-roundtrip.test.tsx",
     "packages/app/src/uplinks/loader.test.ts",
     "packages/core/src/uplink-isolation.allowlist.ts",
-    "packages/sitrep-client/src/map-topic.test.ts",
     "packages/sitrep-client/src/use-late-telemetry-subscribe.test.tsx",
   ],
   testflight: ["mod/Sitrep.Host.IntegrationTests/FlightEndToEndTests.cs"],

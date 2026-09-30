@@ -12,6 +12,7 @@
  * one would point a read at a Topic nothing publishes.
  */
 
+import { dynamicPrefixOf } from "../runtime-topic-registry";
 import {
   isPluralShape,
   shapesForTopic,
@@ -21,61 +22,10 @@ import {
   unitsForType,
 } from "../units";
 
-/**
- * Namespace PREFIXES (each ends in `.`) whose member topics are keyed by
- * something the contract never names up front: a body and a scan type, a
- * vessel guid, a part's flight id. `TimelineStore`'s `dynamicWholeTopicPrefixes`
- * resolves a topic under one of these to its IDENTITY, a whole raw wire topic,
- * rather than mis-splitting it into a `<domain.channel>.<fieldPath>` that is
- * never published.
- *
- * The SCANsat entries are exactly `ScanChannels.{Coverage,Mask,Height,Biome,
- * Anomalies}Prefix` in that Uplink's mod, and its `scansat-wire-contract` test
- * asserts the two lists stay equal. A real wire topic never ends in `.`, so a
- * prefix never collides with an exact topic id.
- *
- * @category Reading telemetry
- */
-export const DYNAMIC_WHOLE_TOPIC_PREFIXES: readonly string[] = [
-  "scansat.coverage.",
-  "scansat.mask.",
-  "scansat.height.",
-  "scansat.biome.",
-  "scansat.anomalies.",
-  // fleet.<guid>.orbit, fleet.<guid>.delay and fleet.<guid>.contact. One prefix
-  // carries the whole per-vessel namespace, so the store timelines each
-  // vessel's delayed elements, link and core-contact facts and useStream
-  // samples them into a dead-reckoned fleet position and FleetRoster's per-row
-  // delay.
-  "fleet.",
-  // silence.<guid>.state, the comms-owned SilenceTracker reckoning for one
-  // vessel. It gets a namespace of its own rather than joining fleet. above
-  // because the core fleet facts and the comms model's opinion of them are
-  // separately owned (see mod/Sitrep.Host/ChannelEngine.cs's
-  // SilenceEventPrefix).
-  "silence.",
-  // currency.<guid>.science (+ .reputation): source-attributed currency events,
-  // revealed at their source vessel's own light-time. One prefix covers the whole
-  // per-vessel namespace, same as fleet. above.
-  "currency.",
-  // vessel.partActions.<flightId>: the per-part PAW action lists (mod's
-  // PartActionsViewProvider.TopicPrefix). One prefix covers every part, which is
-  // the only workable form here: the keys are per-part and only ever computed at
-  // interaction time, so they cannot be enumerated up front. The mod only
-  // PRODUCES a part's channel while that part is subscribed, so covering the
-  // whole prefix costs nothing for parts nobody has open.
-  "vessel.partActions.",
-];
+export { DYNAMIC_WHOLE_TOPIC_PREFIXES } from "../runtime-topic-registry";
 
-/**
- * `scansat.coverage.<body>.<type>` / `scansat.mask.<body>.<type>` /
- * `scansat.height.<body>` / `scansat.biome.<body>` / `scansat.anomalies.<body>`:
- * the per-body namespaces `ScansatUplink.Sample` publishes.
- */
-const SCANSAT_DYNAMIC =
-  /^scansat\.(coverage|mask)\.\w+\.\d+$|^scansat\.(height|biome|anomalies)\.\w+$/;
-
-/** `vessel.partActions.<flightId>`: the per-part PAW namespace `VesselUplink` publishes. */
+/** `vessel.partActions.<flightId>`: the per-part PAW namespace `VesselUplink` publishes, keyed by a numeric flight id. */
+const PART_ACTIONS_PREFIX = "vessel.partActions.";
 const PART_ACTIONS_DYNAMIC = /^vessel\.partActions\.\d+$/;
 
 /**
@@ -87,15 +37,18 @@ const PART_ACTIONS_DYNAMIC = /^vessel\.partActions\.\d+$/;
  * wire topic in each case; what this decides is whether the key belongs to a
  * namespace the mod actually publishes.
  *
- * A dynamic key needs no translation and cannot be
- * enumerated, so a pattern is the only thing that can vouch for it.
+ * A dynamic key needs no translation and cannot be enumerated, so a registered
+ * prefix is what vouches for it (see `registerDynamicTopicPrefix`).
  *
  * @category Stream fixture
  */
 export function mapTopic(key: string): string | undefined {
-  if (SCANSAT_DYNAMIC.test(key)) return key;
-  if (PART_ACTIONS_DYNAMIC.test(key)) return key;
-  return undefined;
+  const prefix = dynamicPrefixOf(key);
+  if (prefix === undefined) return undefined;
+  if (prefix === PART_ACTIONS_PREFIX && !PART_ACTIONS_DYNAMIC.test(key)) {
+    return undefined;
+  }
+  return key;
 }
 
 /**

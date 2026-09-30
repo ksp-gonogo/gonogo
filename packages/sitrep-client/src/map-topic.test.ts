@@ -1,4 +1,6 @@
 // Imported for the module-load side effect as much as for the value: this is what registers `spaceCenter.state`'s hand-declared field metadata.
+
+import { registerDynamicTopicPrefix } from "@ksp-gonogo/sitrep-sdk";
 import { spaceCenterStateChannel } from "@ksp-gonogo/sitrep-sdk/spine";
 import { describe, expect, it } from "vitest";
 import { isKnownFieldPath, mapTopic } from "./map-topic";
@@ -44,30 +46,21 @@ describe("isKnownFieldPath", () => {
 });
 
 describe("mapTopic(key): the surviving dynamic-namespace routing", () => {
-  // Every entry left is an IDENTITY map over a namespace materialised per
-  // subject at runtime, so no generated list can enumerate it and a pattern is
-  // the only thing that can vouch for a key. The flat vocabulary this table used
-  // to translate is gone: a name for something the wire calls otherwise has
-  // nothing left to translate to.
+  // Every entry is an IDENTITY map over a namespace materialised per subject at runtime, so no generated list can enumerate it and a registered prefix is what vouches for a key.
 
-  describe("scansat: the per-body namespaces ScansatUplink.Sample publishes", () => {
-    it("identity-maps coverage, mask, height, biome and anomalies", () => {
-      expect(mapTopic("scansat.coverage.Kerbin.1")).toBe(
-        "scansat.coverage.Kerbin.1",
+  describe("a dynamic namespace a client package registers", () => {
+    it("identity-maps a key under the prefix once it is registered", () => {
+      expect(mapTopic("planted.survey.Kerbin.1")).toBeUndefined();
+      registerDynamicTopicPrefix("planted.survey.");
+      expect(mapTopic("planted.survey.Kerbin.1")).toBe(
+        "planted.survey.Kerbin.1",
       );
-      expect(mapTopic("scansat.mask.Kerbin.256")).toBe(
-        "scansat.mask.Kerbin.256",
-      );
-      expect(mapTopic("scansat.height.Kerbin")).toBe("scansat.height.Kerbin");
-      expect(mapTopic("scansat.biome.Kerbin")).toBe("scansat.biome.Kerbin");
-      expect(mapTopic("scansat.anomalies.Kerbin")).toBe(
-        "scansat.anomalies.Kerbin",
-      );
+      expect(mapTopic("planted.survey.Kerbin")).toBe("planted.survey.Kerbin");
     });
 
-    it("refuses a shape the namespace never publishes", () => {
-      // coverage/mask are per (body, type-BIT), so a bare body is not one.
-      expect(mapTopic("scansat.coverage.Kerbin")).toBeUndefined();
+    it("refuses the bare prefix, which names no member", () => {
+      registerDynamicTopicPrefix("planted.survey.");
+      expect(mapTopic("planted.survey.")).toBeUndefined();
     });
   });
 
