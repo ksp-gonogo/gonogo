@@ -66,7 +66,7 @@ export const MATCHER_REVISION = 2;
  * they were cleaned in the same commit rather than seeded, because it is the
  * published package and a third-party author reads it as the example.
  *
- * `packages/` went to zero on 2026-09-30 (Saga #697, first slice): its 14
+ * `packages/` went to zero on 2026-09-30 (Saga 697, first slice): its 14
  * entries are removed rather than lowered. Everything left here is `mod/`.
  */
 export const BANNER_COMMENT_DEBT: Record<string, number> = {
@@ -113,13 +113,13 @@ export const SECTIONED_CEILINGS = {
   /**
    * Files carrying `SCHEME_MIN` or more banners. 35 under revision 1, 61
    * under 2, 31 once `packages/`'s 14 sectioned files went to zero (Saga
-   * #697, first slice; `mod/` still carries the rest).
+   * 697, first slice; `mod/` still carries the rest).
    */
   files: 31,
   /**
    * Banner lines across those files. 277 under revision 1, 377 under 2,
    * 210 once `packages/`'s 62 sectioned-file banners went to zero (Saga
-   * #697, first slice).
+   * 697, first slice).
    */
   banners: 210,
 } as const;
@@ -137,8 +137,15 @@ export const SECTIONED_CEILINGS = {
 export const SCAN_FLOORS = {
   /** Hand-written source files walked. 2,784 at seed time, 3,335 on 2026-09-02. */
   files: 2000,
-  /** Files carrying at least one banner. 93 under revision 2, 69 once the Uplink rig tools left core. */
-  filesWithBanner: 65,
-  /** Banner lines found. 423 under revision 2. */
-  banners: 300,
+  /**
+   * Files carrying at least one banner. 93 under revision 2, 69 once the
+   * Uplink rig tools left core, 37 once `packages/`'s 28 went to zero
+   * (Saga 697, first slice).
+   */
+  filesWithBanner: 37,
+  /**
+   * Banner lines found. 423 under revision 2, 216 once `packages/`'s 84
+   * went to zero (Saga 697, first slice).
+   */
+  banners: 216,
 } as const;

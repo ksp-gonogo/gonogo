@@ -146,7 +146,6 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/app/src/backup/BackupManager.tsx": 1,
   "packages/app/src/commcast/radio/webaudio.ts": 3,
   "packages/app/src/components/Dashboard/MobileDashboard.tsx": 1,
-  "packages/app/src/components/Dashboard/shared.tsx": 1,
   "packages/app/src/components/FlightOutcomeBanner.tsx": 2,
   "packages/app/src/components/SceneChangeBanner.tsx": 1,
   "packages/app/src/components/SceneChangeBanner.undefined.characterise.test.tsx": 3,
@@ -381,5 +380,5 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
  * it exists to produce; the census is printed beside the verdict instead.
  */
 export const SCAN_FLOORS = {
-  files: 1455,
+  files: 1548,
 } as const;
