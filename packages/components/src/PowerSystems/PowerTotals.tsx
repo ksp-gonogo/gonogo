@@ -1,5 +1,4 @@
-import { HeldBadge, Text } from "@ksp-gonogo/ui-kit";
-import type { heldGrade } from "../shared/heldGrade";
+import { Text } from "@ksp-gonogo/ui-kit";
 import { formatUnits, type NetTone } from "./flow";
 import {
   CELL_LABEL,
@@ -12,7 +11,13 @@ import {
   TOTALS_CELL,
 } from "./styles";
 
-/** NET, PROD and CONS for the focused resource, the raw measurement where it disagrees, the held mark, and storage. */
+/**
+ * NET, PROD and CONS for the focused resource, the raw measurement where it
+ * disagrees, and storage. The held mark for the parts read behind these
+ * figures is a panel badge, not a cell here: a fifth cell pushed the grid to
+ * a third row and left the Producers/Consumers list no room at the widget's
+ * own minimum size.
+ */
 export function PowerTotals({
   net,
   netTone,
@@ -20,7 +25,6 @@ export function PowerTotals({
   totalConsumed,
   measuredTotalProduced,
   measuredDisagrees,
-  partsHeld,
   storage,
 }: Readonly<{
   net: number;
@@ -29,7 +33,6 @@ export function PowerTotals({
   totalConsumed: number;
   measuredTotalProduced: number | undefined;
   measuredDisagrees: boolean;
-  partsHeld: ReturnType<typeof heldGrade>;
   storage: { amount: number; maxAmount: number };
 }>) {
   return (
@@ -67,12 +70,6 @@ export function PowerTotals({
           {totalConsumed.toFixed(2)}
         </Text>
       </div>
-      {partsHeld !== undefined && (
-        <div style={TOTALS_CELL}>
-          <span style={CELL_LABEL}>READ</span>
-          <HeldBadge grade={partsHeld} />
-        </div>
-      )}
       {storage.maxAmount > 0 && (
         <div style={TOTALS_CELL}>
           <span style={CELL_LABEL}>STORED</span>

@@ -196,6 +196,11 @@ export function PowerSystemsComponent({
         panelTitle="POWER SYSTEMS"
         compactTitle={["POWER"]}
         panelSections={false}
+        panelBadges={
+          partsHeld === undefined
+            ? undefined
+            : [{ id: "read", label: "Reading", held: partsHeld }]
+        }
         panelAside={
           <Select
             style={RESOURCE_SELECT}
@@ -230,7 +235,6 @@ export function PowerSystemsComponent({
               totalConsumed={totalConsumed}
               measuredTotalProduced={measuredTotalProduced}
               measuredDisagrees={measuredDisagrees}
-              partsHeld={partsHeld}
               storage={storage}
             />
 
