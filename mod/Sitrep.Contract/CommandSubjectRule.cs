@@ -14,6 +14,7 @@ namespace Sitrep.Contract
         /// <summary>A human-readable description of the failure.</summary>
         public string Message { get; }
 
+        /// <summary>A violation of <paramref name="command"/>'s Subject, described by <paramref name="message"/>.</summary>
         public CommandSubjectViolation(string command, string message)
         {
             Command = command;
