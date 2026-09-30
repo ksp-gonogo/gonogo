@@ -582,6 +582,7 @@ jobs:
             Sitrep.Propagation.Tests
             Sitrep.CaptureAnalysis.Tests
             Sitrep.Skeleton.Tests
+            Sitrep.LoadProbe.Tests
             Sitrep.Host.Tests
             Sitrep.Host.IntegrationTests
             Gonogo.KSP.Tests

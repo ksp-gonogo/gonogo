@@ -224,6 +224,7 @@ export const CS_PRIVATE_ASSEMBLIES = [
   "Sitrep.Transport",
   "Sitrep.Propagation",
   "Sitrep.CaptureAnalysis",
+  "Sitrep.LoadProbe",
   "Sitrep.Skeleton",
   "Gonogo.KSP",
 ] as const;

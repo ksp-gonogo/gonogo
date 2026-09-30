@@ -78,7 +78,16 @@
 #   build gonogo
 #       Build the first-party Gonogo.KSP mod (mod/Gonogo.KSP/Gonogo.KSP.csproj)
 #       and copy Gonogo.dll + the net472-flavored Sitrep.*.dll deps into the
-#       synced kspdata GameData/Gonogo/Plugins/ directory.
+#       synced kspdata GameData/Gonogo/Plugins/ directory. Before copying,
+#       loads every GameData/Gonogo*/**.dll as it would stand after the deploy
+#       (mod/Sitrep.LoadProbe) and REFUSES, copying nothing, if any fails to
+#       load; a stale Uplink built against an older contract is the usual cause.
+#       GONOGO_DEPLOY_WITH=<dir> stages that folder's Gonogo* Uplink folders
+#       alongside core, checks them together and deploys them in the same step.
+#
+#   loadcheck
+#       The same load check over the synced kspdata GameData as it stands now,
+#       copying nothing. Exits non-zero naming each assembly that fails.
 #
 #   help
 #       Print this comment block.
@@ -706,6 +715,52 @@ fetch_kerbcast_sidecar() {
   rm -rf "$tmpdir"
 }
 
+# Loads every Gonogo* plugin assembly GameData would hold after a deploy and
+# asks each one for its types, the call a stale Uplink fails ("Method ... does
+# not have an implementation") once the contract beside it has moved. KSP
+# swallows that failure at load, and it surfaces later as another mod's
+# unguarded GetTypes() throwing on every save.
+#
+# <stage> is a GameData-shaped folder of what is about to be copied (empty for
+# an in-place check). A staged file replaces the installed file at the same
+# path, and dependencies resolve from <stage>, then <gamedata>, then KSP's
+# Managed/, so the probe sees the install as it will be rather than as it was.
+_deploy_load_check() {
+  local stage="$1"
+  local gamedata="$2"
+  local probe_proj="$ROOT/mod/Sitrep.LoadProbe/Sitrep.LoadProbe.csproj"
+  local probe_dll="$ROOT/mod/Sitrep.LoadProbe/bin/Release/net10.0/Sitrep.LoadProbe.dll"
+  perl -e 'alarm shift; exec @ARGV' "$BUILD_TIMEOUT_S" \
+    dotnet build "$probe_proj" -c Release --nologo -v quiet >/dev/null || {
+      echo "could not build the load probe ($probe_proj)"
+      return 6
+    }
+
+  local dlls=()
+  local resolve=()
+  local dll rel
+  if [ -n "$stage" ]; then
+    resolve+=(--resolve "$stage")
+    while IFS= read -r dll; do
+      dlls+=("$dll")
+    done < <(cd "$stage" && find . -path './Gonogo*' -name '*.dll' | sort | sed "s|^\./|$stage/|")
+  fi
+  while IFS= read -r rel; do
+    if [ -n "$stage" ] && [ -f "$stage/$rel" ]; then
+      continue
+    fi
+    dlls+=("$gamedata/$rel")
+  done < <(cd "$gamedata" && find . -path './Gonogo*' -name '*.dll' | sort | sed 's|^\./||')
+  resolve+=(--resolve "$gamedata" --resolve "$(dirname "$DLL")")
+  if [ "${#dlls[@]}" -eq 0 ]; then
+    echo "no Gonogo* assemblies under $gamedata${stage:+ or $stage}: nothing to load-check"
+    return 6
+  fi
+
+  echo "=== load-checking ${#dlls[@]} Gonogo assemblies against $gamedata ==="
+  dotnet "$probe_dll" "${resolve[@]}" "${dlls[@]}"
+}
+
 build_gonogo() {
   local proj="$ROOT/mod/Gonogo.KSP/Gonogo.KSP.csproj"
   local out_dir="$ROOT/mod/Gonogo.KSP/bin/Release"
@@ -725,17 +780,60 @@ build_gonogo() {
     echo "Gonogo.dll not produced (missing at $out_dir/Gonogo.dll)"
     return 4
   fi
-  mkdir -p "$install_dir"
   # Gonogo.dll + every net472-flavored Sitrep.*.dll dep copied alongside it
   # by CopyLocalLockFileAssemblies (Sitrep.Host/Core/Transport/Contract):
   # deploy the whole set, no ILRepack single-file merge yet.
-  local deployed=()
+  #
+  # Staged first and load-checked against the Uplinks already installed, so a
+  # contract move that strands an Uplink refuses the deploy before a byte is
+  # copied. Rebuilt Uplinks that go in alongside it are named by
+  # GONOGO_DEPLOY_WITH, a GameData-shaped folder whose Gonogo?* folders are
+  # staged, checked and copied in the same step; its own Gonogo/ is never read,
+  # because core comes from this build.
+  local gamedata="$DATA_ROOT/local_docs/syncthing/kspdata/GameData"
+  local stage
+  stage="$(mktemp -d)"
+  mkdir -p "$stage/Gonogo/Plugins"
   local dll
   for dll in "$out_dir"/Gonogo.dll "$out_dir"/Sitrep.*.dll; do
     [ -f "$dll" ] || continue
+    cp "$dll" "$stage/Gonogo/Plugins/"
+  done
+  local with_dir
+  local with=()
+  if [ -n "${GONOGO_DEPLOY_WITH:-}" ]; then
+    for with_dir in "$GONOGO_DEPLOY_WITH"/Gonogo?*/; do
+      [ -d "$with_dir" ] || continue
+      with_dir="${with_dir%/}"
+      cp -R "$with_dir" "$stage/"
+      with+=("$(basename "$with_dir")")
+    done
+    if [ "${#with[@]}" -eq 0 ]; then
+      echo "GONOGO_DEPLOY_WITH=$GONOGO_DEPLOY_WITH holds no Gonogo?* Uplink folder"
+      rm -rf "$stage"
+      return 6
+    fi
+  fi
+  if ! _deploy_load_check "$stage" "$gamedata"; then
+    rm -rf "$stage"
+    echo "deploy REFUSED, nothing was copied: an assembly above would not load beside this build."
+    echo "Rebuild each failing Uplink against this tree's Sitrep.Contract and deploy them together:"
+    echo "  GONOGO_DEPLOY_WITH=<folder holding GonogoXUplink/Plugins/...> $0 build gonogo"
+    echo "or move the failing Uplink's folder out of GameData."
+    return 6
+  fi
+  mkdir -p "$install_dir"
+  local deployed=()
+  for dll in "$stage"/Gonogo/Plugins/*.dll; do
     cp "$dll" "$install_dir/"
     deployed+=("$(basename "$dll")")
   done
+  for with_dir in ${with[@]+"${with[@]}"}; do
+    mkdir -p "$gamedata/$with_dir"
+    cp -R "$stage/$with_dir/." "$gamedata/$with_dir/"
+    deployed+=("$with_dir/")
+  done
+  rm -rf "$stage"
   # Same stamp every Uplink target writes, and written here BEFORE the
   # verification below rather than after it: the DLLs are already copied by this
   # point, so the file's job is to name the tree those bytes came from whatever
@@ -802,6 +900,12 @@ build_gonogo() {
   if [ "$contract_rc" -ne 0 ] || [ "$host_rc" -ne 0 ] || [ "$ksp_rc" -ne 0 ]; then
     echo "deployed DLLs failed verification (contract=$contract_rc host=$host_rc ksp=$ksp_rc)"
     return 5
+  fi
+  # The same load check over the bytes where they now sit, which is what KSP
+  # will actually read.
+  if ! _deploy_load_check "" "$gamedata"; then
+    echo "deployed assemblies failed the in-place load check"
+    return 6
   fi
 
   echo "=== deployed to $install_dir ==="
@@ -908,6 +1012,9 @@ case "${1:-help}" in
   body)
     shift
     body "$@"
+    ;;
+  loadcheck)
+    _deploy_load_check "" "$DATA_ROOT/local_docs/syncthing/kspdata/GameData"
     ;;
   build)
     shift

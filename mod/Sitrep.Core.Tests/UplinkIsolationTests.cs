@@ -79,6 +79,7 @@ namespace Sitrep.Core.Tests
             "Sitrep.Transport",
             "Sitrep.Propagation",
             "Sitrep.CaptureAnalysis",
+            "Sitrep.LoadProbe",
             "Sitrep.Skeleton",
             "Gonogo.KSP",
 
