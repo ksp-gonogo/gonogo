@@ -103,6 +103,17 @@ describe("TinyEssentials", () => {
     await expectNoA11yViolations(container);
   });
 
+  it("writes a balance too long for the tile in its compact form", () => {
+    render(
+      <TinyEssentials
+        title="KSC"
+        essentials={[{ label: "Funds", value: value("funds", 1_289_848) }]}
+      />,
+    );
+    expect(screen.getByText("1.29M")).toBeInTheDocument();
+    expect(screen.queryByText(/1,289,848/)).toBeNull();
+  });
+
   it("wires the D2 tiny header: a focusable group named by its own sr-only heading", () => {
     render(<TinyEssentials title="LANDING" essentials={ESSENTIALS} />);
     const panel = screen.getByRole("group", { name: "LANDING" });

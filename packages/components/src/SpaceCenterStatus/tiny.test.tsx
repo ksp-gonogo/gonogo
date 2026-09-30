@@ -38,7 +38,7 @@ describe("SpaceCenterStatus tiny mode", () => {
     emitCareer(fixture, false);
 
     await waitFor(() => expect(visibleText()).toContain("CLEAR"));
-    expect(visibleText()).toContain("78,401");
+    expect(visibleText()).toContain("78.4k");
     expect(document.querySelectorAll("[data-tiny-essential]")).toHaveLength(2);
     expect(spoken()).toEqual(["Pad CLEAR"]);
 
@@ -56,7 +56,7 @@ describe("SpaceCenterStatus tiny mode", () => {
       wrapper: fixture.Provider,
     });
     emitCareer(fixture, false);
-    await waitFor(() => expect(visibleText()).toContain("78,401"));
+    await waitFor(() => expect(visibleText()).toContain("78.4k"));
     expect(document.querySelector("[data-held]")).toBeNull();
 
     act(() => {
@@ -67,7 +67,7 @@ describe("SpaceCenterStatus tiny mode", () => {
     await waitFor(() =>
       expect(document.querySelector("[data-held]")).not.toBeNull(),
     );
-    expect(visibleText()).toContain("78,401");
+    expect(visibleText()).toContain("78.4k");
     await act(async () => {});
   });
 

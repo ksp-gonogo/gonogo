@@ -194,7 +194,11 @@ function EssentialFigure({ essential }: { essential: TinyEssential }) {
       {essential.word !== undefined ? (
         essential.word
       ) : (
-        <Unit value={essential.value} decimals={essential.decimals} />
+        <Unit
+          value={essential.value}
+          decimals={essential.decimals}
+          scale="compact"
+        />
       )}
     </>
   );

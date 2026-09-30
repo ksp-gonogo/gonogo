@@ -184,7 +184,7 @@ describe("Strategies when the career balances are held", () => {
       wrapper: fixture.Provider,
     });
     emitCareer(fixture);
-    await waitFor(() => expect(visibleText()).toContain("289,848"));
+    await waitFor(() => expect(visibleText()).toContain("290k"));
     expect(document.querySelector("[data-held]")).toBeNull();
 
     goStale(fixture);

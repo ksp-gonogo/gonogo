@@ -784,9 +784,12 @@ export interface FormatQuantityOptions {
    * `"auto"` climbs the kind's ladder (or uses the kind's default presentation,
    * such as scientific notation or a composite duration), `"never"` holds the
    * base unit and formats it as a plain number, `"scientific"` forces
-   * scientific notation. Defaults to auto.
+   * scientific notation. `"compact"` is auto, except that a kind counted like
+   * money writes ten thousand and over to three significant figures with a
+   * magnitude suffix (`1.29Mf`), for a tile with no room for every digit.
+   * Defaults to auto.
    */
-  scale?: "auto" | "never" | "scientific";
+  scale?: "auto" | "never" | "scientific" | "compact";
   /**
    * Show the value in a different unit OF THE SAME KIND: `as: "°C"` on a kelvin
    * field, `as: "g"` on an m/s² one. A cross-kind request is refused and the
@@ -861,6 +864,47 @@ function numberFormat(decimals: number, money: boolean): Intl.NumberFormat {
       locale,
       options as Intl.NumberFormatOptions,
     );
+    formatters.set(key, existing);
+  }
+  return existing;
+}
+
+/** The smallest magnitude `scale: "compact"` shortens; below it every digit fits. */
+const COMPACT_FROM = 1e4;
+
+/**
+ * The magnitude suffixes `scale: "compact"` writes, ascending. Spelled out
+ * rather than taken from `Intl`'s compact notation, whose suffixes vary by
+ * locale and include a lowercase `m` that reads as metres beside a unit.
+ */
+const COMPACT_SUFFIXES = ["", "k", "M", "G", "T"] as const;
+
+/** A money-like count to three significant figures with its magnitude suffix: `1.29M`, `12.5k`. */
+function compact(value: number): string {
+  let tier = Math.min(
+    Math.floor(Math.log10(Math.abs(value)) / 3),
+    COMPACT_SUFFIXES.length - 1,
+  );
+  const format = significantFormat();
+  let digits = format.format(value / 1000 ** tier);
+  // Three significant figures round 999,500 up to a fourth digit, so it is "1M", never "1,000k".
+  if (
+    tier < COMPACT_SUFFIXES.length - 1 &&
+    Math.abs(value / 1000 ** tier) >= 999.5
+  ) {
+    tier += 1;
+    digits = format.format(value / 1000 ** tier);
+  }
+  return `${digits}${COMPACT_SUFFIXES[tier]}`;
+}
+
+function significantFormat(): Intl.NumberFormat {
+  const key = `${locale ?? ""}|significant3`;
+  let existing = formatters.get(key);
+  if (existing === undefined) {
+    existing = new Intl.NumberFormat(locale, {
+      maximumSignificantDigits: 3,
+    });
     formatters.set(key, existing);
   }
   return existing;
@@ -989,6 +1033,19 @@ export function formatQuantity(
 
   const ladder = opts.scale === "never" ? undefined : ladderForUnit(unit);
   const decimals = opts.decimals ?? DECIMALS[kind] ?? 2;
+
+  if (
+    !ladder &&
+    opts.scale === "compact" &&
+    COUNTED_LIKE_MONEY.has(kind) &&
+    Math.abs(value) >= COMPACT_FROM
+  ) {
+    return {
+      value: compact(value),
+      symbol: displaySymbol(unit, kind),
+      rung: unit,
+    };
+  }
 
   if (!ladder) {
     return {

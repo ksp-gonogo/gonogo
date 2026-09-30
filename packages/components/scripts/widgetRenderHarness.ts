@@ -1724,7 +1724,7 @@ async function proveTinyFitAuditWorks(page: Page): Promise<void> {
   if (!fed.some((f) => f.axis.includes("x"))) {
     throw new Error(
       "The tiny fit audit is BLIND: the planted tiny widget was fed a " +
-        "fifteen-digit balance in a 2x3 tile and the audit did not report it " +
+        "balance too wide even compacted in a 2x3 tile and the audit did not report it " +
         "running out of width, so a clean run proves nothing about the " +
         `widgets. What it did report: ${fed.map(describeMisfit).join("; ") || "nothing"}`,
     );

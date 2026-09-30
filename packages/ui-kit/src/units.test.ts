@@ -704,6 +704,57 @@ describe("thousands", () => {
   });
 });
 
+describe("the compact scale", () => {
+  it("shortens money from ten thousand to three significant figures and a suffix", () => {
+    expect(formatQuantity(1_289_848, "funds", { scale: "compact" })).toEqual({
+      value: "1.29M",
+      symbol: "f",
+      rung: "funds",
+    });
+    expect(formatQuantity(12_500, "funds", { scale: "compact" }).value).toBe(
+      "12.5k",
+    );
+    expect(
+      formatQuantity(-4_200_000_000, "funds", { scale: "compact" }).value,
+    ).toBe("-4.2G");
+  });
+
+  it("writes every digit below ten thousand", () => {
+    expect(formatQuantity(9_999, "funds", { scale: "compact" }).value).toBe(
+      "9,999",
+    );
+  });
+
+  it("carries a rounded figure into the next suffix rather than writing four digits", () => {
+    expect(formatQuantity(999_600, "funds", { scale: "compact" }).value).toBe(
+      "1M",
+    );
+    expect(formatQuantity(999_400, "funds", { scale: "compact" }).value).toBe(
+      "999k",
+    );
+  });
+
+  it("is auto for a kind that is not counted like money", () => {
+    expect(formatQuantity(12_400, "m", { scale: "compact" })).toEqual(
+      formatQuantity(12_400, "m"),
+    );
+    expect(formatQuantity(123_456, "K", { scale: "compact" })).toEqual(
+      formatQuantity(123_456, "K"),
+    );
+  });
+
+  it("writes the digits in the locale while the suffix stays put", () => {
+    setQuantityLocale("de-DE");
+    try {
+      expect(
+        formatQuantity(1_289_848, "funds", { scale: "compact" }).value,
+      ).toBe("1,29M");
+    } finally {
+      setQuantityLocale("en-GB");
+    }
+  });
+});
+
 describe("the locale is named, not ambient", () => {
   it("groups by locale rather than by a hand-rolled comma", () => {
     setQuantityLocale("de-DE");
