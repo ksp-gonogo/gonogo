@@ -17,10 +17,15 @@
  * differently. These assertions are about the state the DOM CLAIMS, so they hold
  * in every engine.
  *
- * CrewStatus is the widget under test only because its headcount badge is a
- * stable, stream-driven aside value; the behaviour is generic `PanelHeader`.
+ * The behaviour is generic `PanelHeader`; the widgets are chosen for their
+ * asides. CrewStatus's headcount badge is a stable, stream-driven aside value,
+ * but a tile narrow enough to crowd it out is a tiny tile, where the kit draws
+ * CrewStatus's tiny form and a tiny form has no header row to collapse. The
+ * narrow case is PowerSystems instead: it has no tiny form, and its resource
+ * picker is a wide aside at its three-column floor.
  */
 import { test } from "@playwright/test";
+import { PORTS } from "../../../playwright.config";
 import { bootstrapPair, expect, teardownPair } from "../helpers";
 
 const HEADCOUNT = "1/1 aboard";
@@ -58,10 +63,9 @@ test.describe("panel header aside", () => {
   test("collapses the aside behind its summary on a tile too narrow for it", async ({
     browser,
   }) => {
-    // Two grid columns: narrower than the title plus the badge together, so
-    // the measured fit collapses. Verified in webkit and chromium alike.
+    // Four grid columns, the narrowest that still draws the body: narrower than the title plus the badge together, so the measured fit collapses.
     const pair = await bootstrapPair(browser, "crew-status", {
-      widget: { size: { w: 2, h: 6 } },
+      widget: { size: { w: 4, h: 6 } },
       waitForMain: async (page) => {
         await expect(page.getByText("CREW", { exact: true })).toBeVisible({
           timeout: 30_000,
@@ -81,6 +85,23 @@ test.describe("panel header aside", () => {
     await expect(pair.main.getByText(HEADCOUNT, { exact: true })).toBeVisible({
       timeout: 15_000,
     });
+
+    await teardownPair(pair);
+  });
+
+  test("offers no disclosure on a tiny tile, which draws the tiny form instead", async ({
+    browser,
+  }) => {
+    const pair = await bootstrapPair(browser, "crew-status", {
+      widget: { size: { w: 2, h: 6 } },
+      waitForMain: async (page) => {
+        await expect(page.locator("[data-tiny-panel]")).toBeVisible({
+          timeout: 30_000,
+        });
+      },
+    });
+
+    await expect(pair.main.locator("[data-panel-aside-expand]")).toHaveCount(0);
 
     await teardownPair(pair);
   });
