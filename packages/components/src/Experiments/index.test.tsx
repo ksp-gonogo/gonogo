@@ -254,7 +254,7 @@ describe("ExperimentsComponent", () => {
 
     expect(
       await screen.findByRole("listitem", {
-        name: "Temperature Scan from LaunchPad, in-transit",
+        name: "Temperature Scan from LaunchPad, in transit",
       }),
     ).toBeInTheDocument();
     await expectNoA11yViolations(container);
