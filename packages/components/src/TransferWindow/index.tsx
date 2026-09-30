@@ -25,6 +25,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useState } from "react";
 import { useAlarmCreator } from "../shared/AlarmsLauncher";
+import type { HeldSince } from "../shared/heldFigure";
 import { magnitudeOf, magnitudeOr } from "../shared/magnitude";
 import {
   type TimeTrigger,
@@ -32,7 +33,6 @@ import {
   type TransferWindowConfig,
   transferWindowActions,
 } from "./config";
-import type { HeldSince } from "./heldFigure";
 import { bodyLabel, STATUS_LABEL, STATUS_SEVERITY } from "./labels";
 import { PhaseDial } from "./PhaseDial";
 import { Porkchop } from "./Porkchop";

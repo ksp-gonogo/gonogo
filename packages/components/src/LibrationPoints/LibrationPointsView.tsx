@@ -20,6 +20,7 @@ import { FieldLabel, FramedDisplay, Section, Text } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 import { useMemo, useState } from "react";
 import { quantiseUt } from "../MapView/predictionThrottle";
+import type { HeldSince } from "../shared/heldFigure";
 import { TrajectoryFrameCaption } from "../shared/trajectoryFrame";
 import { TrajectoryWithheldNote } from "../shared/trajectoryWithheld";
 import {
@@ -40,14 +41,22 @@ type OrbitReading = ReturnType<
   typeof librationPointsTopics.useTelemetry<"vessel.orbit">
 >;
 
-/** The observation overlaid by what the conic moved (the phase). `reckoning.value` alone is not an orbit. */
-function orbitWithPhase(
-  observed: Extract<OrbitReading, { state: "observed" }>["value"] | undefined,
-  reckoning: OrbitReading["reckoning"],
-) {
-  if (observed === undefined) return undefined;
-  if (reckoning.status !== "available") return observed;
-  return { ...observed, ...reckoning.value };
+/**
+ * The craft's orbit as a claim about now: a current observation, or a held one
+ * overlaid by what the conic moved (the phase). A held orbit with no model is
+ * not an orbit of now, so there is no craft. `reckoning.value` alone is not an
+ * orbit.
+ */
+function orbitOfNow(reading: OrbitReading) {
+  if (reading.state === "observed") {
+    return reading.reckoning.status === "available"
+      ? { ...reading.value, ...reading.reckoning.value }
+      : reading.value;
+  }
+  if (reading.state === "held" && reading.reckoning.status === "available") {
+    return { ...reading.value, ...reading.reckoning.value };
+  }
+  return undefined;
 }
 
 /** The sentence a refusal shows instead of a diagram. */
@@ -69,12 +78,13 @@ export function LibrationPointsComponent({
     UT_BUCKET_SECONDS,
   );
 
-  // The craft's dot is a claim about now: a current reading or a model, else no craft.
   const orbitReading = librationPointsTopics.useTelemetry("vessel.orbit");
-  const orbit = orbitWithPhase(
-    stillTrue(orbitReading, undefined),
-    orbitReading.reckoning,
-  );
+  const orbit = orbitOfNow(orbitReading);
+  // Only a model carries a held orbit this far, so the craft's figures draw held.
+  const orbitHeldSince: HeldSince =
+    orbitReading.state === "held" && orbit !== undefined
+      ? { asOfUt: orbitReading.asOfUt, grade: orbitReading.grade }
+      : null;
   const identityReading = librationPointsTopics.useTelemetry("vessel.identity");
   const identity = stillTrue(identityReading, undefined);
 
@@ -253,7 +263,11 @@ export function LibrationPointsComponent({
         </Section>,
         drawn ? (
           <Section key="readouts" as="ul" gap="rows" style={READOUTS}>
-            <LibrationReadouts answer={answer} offset={offset} />
+            <LibrationReadouts
+              answer={answer}
+              offset={offset}
+              craftHeldSince={orbitHeldSince}
+            />
           </Section>
         ) : null,
       ]}

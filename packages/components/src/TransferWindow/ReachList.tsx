@@ -1,6 +1,6 @@
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { Badge, NULL_DISPLAY, Text, Unit } from "@ksp-gonogo/ui-kit";
-import { type HeldSince, heldFigure } from "./heldFigure";
+import { type HeldSince, heldFigure } from "../shared/heldFigure";
 import {
   bodyLabel,
   fmtCountdown,

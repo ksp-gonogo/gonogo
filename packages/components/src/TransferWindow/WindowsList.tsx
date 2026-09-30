@@ -1,7 +1,7 @@
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { Button, Unit } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
-import { type HeldSince, heldFigure } from "./heldFigure";
+import { type HeldSince, heldFigure } from "../shared/heldFigure";
 import { fmtCountdown, fmtDays } from "./labels";
 import {
   ColDv,

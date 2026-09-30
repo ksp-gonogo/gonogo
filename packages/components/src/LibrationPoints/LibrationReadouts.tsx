@@ -4,6 +4,7 @@ import type {
 } from "@ksp-gonogo/sitrep-client";
 import { type Tone, value } from "@ksp-gonogo/sitrep-sdk";
 import { Row, RowName, Text, Unit } from "@ksp-gonogo/ui-kit";
+import { type HeldSince, heldFigure } from "../shared/heldFigure";
 
 /** Not stationkeeping carries no state, so it recedes through the `muted` level the rows pass alongside. */
 const KEEPING_TONE: Record<LibrationOffset["keeping"], Tone> = {
@@ -22,7 +23,13 @@ const KEEPING_WORDS = {
 export function LibrationReadouts({
   answer,
   offset,
-}: Readonly<{ answer: LibrationAnswer; offset: LibrationOffset | null }>) {
+  craftHeldSince,
+}: Readonly<{
+  answer: LibrationAnswer;
+  offset: LibrationOffset | null;
+  /** When the craft's orbit was last observed, while only a model places it. */
+  craftHeldSince: HeldSince;
+}>) {
   return (
     <>
       <Row>
@@ -38,14 +45,15 @@ export function LibrationReadouts({
           <Unit value={value("%", answer.massRatio * 100)} decimals={3} />
         </Text>
       </Row>
-      <CraftOffsetRows offset={offset} />
+      <CraftOffsetRows offset={offset} heldSince={craftHeldSince} />
     </>
   );
 }
 
 function CraftOffsetRows({
   offset,
-}: Readonly<{ offset: LibrationOffset | null }>) {
+  heldSince,
+}: Readonly<{ offset: LibrationOffset | null; heldSince: HeldSince }>) {
   if (offset === null) {
     return (
       <Row>
@@ -65,7 +73,9 @@ function CraftOffsetRows({
       <Row>
         <RowName>Off station</RowName>
         <Text tone={KEEPING_TONE[offset.keeping]} level="muted">
-          <Unit value={value("m", offset.distanceMetres)} />
+          <Unit
+            value={heldFigure(value("m", offset.distanceMetres), heldSince)}
+          />
         </Text>
       </Row>
     </>
