@@ -10,6 +10,8 @@ const QUERY = "(prefers-reduced-motion: reduce)";
  *
  * Returns `false` when `matchMedia` is unavailable, so motion is suppressed
  * only on an explicit opt-out.
+ *
+ * @category Theme
  */
 export function usePrefersReducedMotion(): boolean {
   const [reduced, setReduced] = useState(() => {

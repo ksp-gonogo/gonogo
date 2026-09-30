@@ -2,11 +2,17 @@ import type { HTMLAttributes, ReactNode } from "react";
 import styled from "styled-components";
 import { GAP_VAR, type GapToken } from "./scales";
 
+/**
+ * Props for {@link AutoEmptyState}. Any other `div` attribute passes through
+ * to the content region.
+ *
+ * @category EmptyState
+ */
 export interface AutoEmptyStateProps extends HTMLAttributes<HTMLDivElement> {
   /**
-   * Shown when the content area renders no DOM nodes at all, e.g. every
-   * augment bound to a slot returned `null`. Hidden by a CSS sibling selector,
-   * so the caller never inspects what its children rendered.
+   * Shown while the content region renders no DOM nodes at all, for example
+   * when every augment bound to a slot returned `null`. The switch is pure
+   * CSS, so the caller never inspects what its children rendered.
    */
   fallback: ReactNode;
   /** Gap between rendered children. Defaults to `related-dense`. */
@@ -15,10 +21,22 @@ export interface AutoEmptyStateProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 /**
- * Pairs a content region with a fallback that auto-hides once the region has
- * rendered anything. For slot composition, where the frame owns the fallback
- * but its content comes from augments it cannot introspect. It never scrolls
- * on its own: the panel body it sits in is the one scroller.
+ * A content region (a vertical flex column) followed by a fallback that hides
+ * itself once the region has rendered anything. Use it where a frame owns the
+ * fallback but its content comes from augments or other children it cannot
+ * inspect. It never scrolls on its own; the panel body it sits in scrolls.
+ *
+ * @example
+ * ```tsx
+ * // Each SensorRow renders null for a sensor that is switched off.
+ * <AutoEmptyState fallback={<EmptyState>No sensors active</EmptyState>}>
+ *   {sensors.map((s) => (
+ *     <SensorRow key={s.id} sensor={s} />
+ *   ))}
+ * </AutoEmptyState>
+ * ```
+ *
+ * @category EmptyState
  */
 export function AutoEmptyState({
   fallback,

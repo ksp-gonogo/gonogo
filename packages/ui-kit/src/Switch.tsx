@@ -3,15 +3,19 @@ import styled from "styled-components";
 interface SwitchBaseProps {
   checked: boolean;
   onChange: (value: boolean) => void;
-  /** Renders dimmed and non-interactive; `onChange` never fires. For a toggle whose effective state is controlled elsewhere (e.g. a sub-setting inert while its parent setting is off). */
+  /** Renders dimmed and non-interactive; `onChange` never fires. For a toggle whose effective state is controlled elsewhere, such as a sub-setting inert while its parent setting is off. */
   disabled?: boolean;
   /** The checkbox's id, for a `<label htmlFor>` outside the switch. */
   id?: string;
 }
 
 /**
- * A switch always has a name: a visible `label` drawn beside it, or an
- * `aria-label` where the row it sits in shows its own label text.
+ * Props for {@link Switch}: `checked`, `onChange(next)`, optional `disabled`
+ * and `id`, and exactly one name. A switch always has a name: a visible `label`
+ * drawn beside it, or an `aria-label` where the row it sits in shows its own
+ * label text.
+ *
+ * @category Form
  */
 export type SwitchProps = SwitchBaseProps &
   (
@@ -19,6 +23,13 @@ export type SwitchProps = SwitchBaseProps &
     | { label?: never; "aria-label": string }
   );
 
+/**
+ * An on/off toggle for a setting that takes effect at once: a native checkbox
+ * drawn as a sliding track, keyboard-operable with Space and with the focus
+ * ring drawn on the track.
+ *
+ * @category Form
+ */
 export function Switch({
   checked,
   onChange,

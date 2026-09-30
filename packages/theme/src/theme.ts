@@ -1,25 +1,25 @@
-/**
- * Typed theme contract.
+/*
+ * Tokens are named by role so a palette change edits the value behind the role
+ * instead of forcing a sweep across every consumer. Values are CSS variable
+ * strings so the responsive overrides in tokens.css (coarse-pointer bumps,
+ * prefers-reduced-motion) keep working when a component reads the theme rather
+ * than the raw variable.
  *
- * Themes name the project's design tokens by role (`text.muted`, not
- * `gray.500`) so future palette tweaks change the value behind the role
- * instead of forcing a sweep across every consumer.
- *
- * Sizes and spacing are emitted as CSS-variable strings (e.g.
- * `var(--font-size-base)`) so the responsive overrides in `tokens.css`
- * (coarse-pointer bumps, `prefers-reduced-motion`, future
- * `prefers-color-scheme`) keep working when a styled-component switches from a
- * raw CSS var to `theme.typography...`.
- *
- * This file is the contract only, plain interfaces, no `styled-components`
- * augmentation. The `declare module "styled-components"` block that binds
- * `UiKitTheme` onto `DefaultTheme` lives in the package that needs it
- * (`@ksp-gonogo/ui-kit`, `src/styledComponentsTheme.ts`), because an
- * augmentation only applies where it is compiled from source; see that file
- * for why shipping one through a built `.d.ts` does not work.
+ * This file is the contract only. The styled-components DefaultTheme
+ * augmentation lives in ui-kit's src/styledComponentsTheme.ts, because an
+ * augmentation only applies where it is compiled from source.
  */
 
+/**
+ * The colour half of a {@link UiKitTheme}. Tokens are named by role
+ * (`text.muted`, `surface.raised`), not by hue, and each value is a CSS colour,
+ * in the default theme a CSS variable string such as
+ * `var(--color-text-muted)`.
+ *
+ * @category Theme
+ */
 export interface ThemeColors {
+  /** Foreground text, from `primary` (strongest) down to `faint`. */
   text: {
     primary: string;
     muted: string;
@@ -30,25 +30,37 @@ export interface ThemeColors {
      * use sparingly for non-essential content.
      */
     faint: string;
+    /** Text on an accent or light fill. */
     inverse: string;
   };
+  /** Backgrounds: `app` behind everything, `panel` for a widget, `raised` and `sunken` for areas within one. */
   surface: {
     app: string;
     panel: string;
     raised: string;
     sunken: string;
   };
+  /** Border colours. */
   border: {
     subtle: string;
     strong: string;
   };
+  /** The accent colour, as a foreground and as a background. */
   accent: {
     fg: string;
     bg: string;
   };
+  /** The focus ring colour. */
   focus: string;
 }
 
+/**
+ * The type half of a {@link UiKitTheme}: the font family, a size scale, weights
+ * and letter spacings. Sizes are CSS variable strings such as
+ * `var(--font-size-base)`; weights are numbers.
+ *
+ * @category Theme
+ */
 export interface ThemeTypography {
   family: {
     mono: string;
@@ -75,19 +87,27 @@ export interface ThemeTypography {
   };
 }
 
+/**
+ * Whole CSS `border` shorthands for a {@link UiKitTheme}, such as
+ * `1px solid var(--color-border-subtle)`.
+ *
+ * @category Theme
+ */
 export interface ThemeBorders {
   subtle: string;
   strong: string;
 }
 
 /**
- * What a theme supplies: colour, type and borders.
+ * What a theme supplies: colour, type and borders. This is the object a theme
+ * hands to styled-components' `ThemeProvider`, and what `theme` holds inside a
+ * styled-components template.
  *
- * Spacing and corner radii are not here. They are handles onto the ladders in
- * `tokens.css` rather than choices a theme makes, so the kit's layout
- * primitives carry their own and a theme that wants different geometry ships a
- * sheet redefining the rungs. A theme author therefore never has to name a
- * scale type to write one.
+ * Spacing and corner radii are not part of a theme. They are CSS variables the
+ * kit's layout primitives read directly, so a theme that wants different
+ * geometry ships a stylesheet redefining those variables.
+ *
+ * @category Theme
  */
 export interface UiKitTheme {
   colors: ThemeColors;

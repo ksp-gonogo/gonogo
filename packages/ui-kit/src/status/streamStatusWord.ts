@@ -22,23 +22,21 @@ const STREAM_STATUS_WORD: Readonly<Record<StreamStatusValue, string | null>> = {
 };
 
 /**
- * `StreamStatusValue` -> the short word a badge or a caption prints, or `null`
- * for `"live"`.
+ * The short uppercase word a badge or caption prints for a `StreamStatusValue`
+ * (HELD, OFFLINE, BLACKOUT, RECORDED, SYNCING, NO DATA), or `null` for `"live"`,
+ * which shows nothing.
  *
- * A healthy stream shows nothing: a pill present in the normal case teaches
- * the operator to stop seeing it.
- *
- * @category Stream status
+ * @category Badge
  */
 export function formatStreamStatus(status: StreamStatusValue): string | null {
   return STREAM_STATUS_WORD[status];
 }
 
 /**
- * The word for a held reading: its grade's, or HELD where the reading names no
- * grade, as a value combined from several readings does.
+ * The word for a held reading's grade (HELD, OFFLINE, BLACKOUT or RECORDED), or
+ * HELD when no grade is given, as for a value combined from several readings.
  *
- * @category Stream status
+ * @category Badge
  */
 export function heldWord(grade: HeldGrade | undefined): string {
   return HELD_GRADE_WORD[grade ?? "held"];

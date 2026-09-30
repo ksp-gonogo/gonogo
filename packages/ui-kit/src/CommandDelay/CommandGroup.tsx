@@ -4,6 +4,7 @@ import { focusRing } from "../focusRing";
 import { VisuallyHidden } from "../VisuallyHidden";
 
 interface CommandGroupOwnProps<GroupValue extends Record<string, unknown>> {
+  /** The group's current value, owned by the caller and written by the child inputs. */
   value: GroupValue;
   /** Fired exactly once, with the group's current `value`, on an explicit commit; never on a child input's own change. */
   onCommit: (v: GroupValue) => void;
@@ -48,6 +49,11 @@ type CommandGroupCommitNaming =
   | { commitLabel?: string; commitAriaLabel?: string }
   | { commitLabel: ReactNode; commitAriaLabel: string };
 
+/**
+ * Props for {@link CommandGroup}. A `commitLabel` that is not a string must come with a `commitAriaLabel`.
+ *
+ * @category CommandDelay
+ */
 export type CommandGroupProps<GroupValue extends Record<string, unknown>> =
   CommandGroupOwnProps<GroupValue> & CommandGroupCommitNaming;
 
@@ -57,6 +63,8 @@ export type CommandGroupProps<GroupValue extends Record<string, unknown>> =
  * fires `onCommit` once with the whole group's value. One delayed dispatch for
  * the group, not one per input. It has no data hooks and no dispatch of its
  * own.
+ *
+ * @category CommandDelay
  */
 export function CommandGroup<GroupValue extends Record<string, unknown>>({
   value,

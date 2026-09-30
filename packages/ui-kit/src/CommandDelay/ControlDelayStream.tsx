@@ -17,9 +17,9 @@ import {
 import { WAVE_VB_H, waveformExtentX, waveformPath } from "./waveformPath";
 
 /**
- * Display shapes declared locally, structurally compatible with the control
- * stream hook's return, so
- * `<ControlDelayStream streams={[useControlStream(...), ...]} />` type-checks.
+ * One sample on a control axis's trace in {@link ControlDelayStream}.
+ *
+ * @category CommandDelay
  */
 export interface ControlStreamSample {
   /** Seconds since issue: 0 = now (left), increasing rightward. */
@@ -28,12 +28,21 @@ export interface ControlStreamSample {
   value: number;
 }
 
+/**
+ * One control axis drawn by {@link ControlDelayStream}: what is still crossing
+ * to the craft, what has come back, and the value commanded now.
+ *
+ * @category CommandDelay
+ */
 export interface ControlStreamDatum {
   id: string;
+  /** The axis's name, e.g. "Throttle". */
   label: string;
   /** One-way delay seconds; the strip spans 3x this. null / near-zero => render nothing. */
   oneWaySeconds: number | null;
+  /** Commanded values still on their way to the craft. */
   inTransit: ControlStreamSample[];
+  /** Values the craft has confirmed back. */
   echo: ControlStreamSample[];
   /** `null` while nothing has been commanded on the axis. */
   current: number | null;
@@ -48,9 +57,11 @@ export interface ControlStreamDatum {
 
 /**
  * A continuous entry with amplitude history and no readback: the operator's
- * voice crossing the gap, drawn as the RIBBON mark in the outgoing zone. Apart
- * from `ControlStreamDatum` only because the data differs: loudness per chunk,
- * no value and no echo.
+ * voice crossing the gap, drawn as the RIBBON mark in the outgoing zone. It
+ * differs from {@link ControlStreamDatum} in its data: loudness per chunk, no
+ * value and no echo.
+ *
+ * @category CommandDelay
  */
 export interface ControlRibbonDatum {
   id: string;
@@ -77,8 +88,18 @@ export interface ControlRibbonDatum {
   tags: RailTags;
 }
 
+/**
+ * The three sizes of {@link ControlDelayStream}. See {@link ControlDelayStreamProps.variant}.
+ *
+ * @category CommandDelay
+ */
 export type ControlDelayStreamVariant = "inline" | "rail" | "expanded";
 
+/**
+ * Props for {@link ControlDelayStream}.
+ *
+ * @category CommandDelay
+ */
 export interface ControlDelayStreamProps {
   /** All of a widget's local control axes on ONE graph. */
   streams: ControlStreamDatum[];
@@ -103,9 +124,9 @@ export interface ControlDelayStreamProps {
 }
 
 /**
- * The rail's delay floor: under it nothing is drawn. Exported so the Panel rail
- * decides whether a handle has anything to draw from the same number, rather
- * than mounting an empty, zero-height rail button.
+ * The one-way delay, in seconds, under which {@link ControlDelayStream} draws nothing.
+ *
+ * @category CommandDelay
  */
 export const STREAM_MIN_DELAY_SECONDS = 0.05;
 const DEVIATION_EPSILON = 0.02;
@@ -136,9 +157,11 @@ const padXFor = (variant: ControlDelayStreamVariant): number =>
   variant === "inline" ? PAD_X : 0;
 
 /**
- * Where one light-time sits for a ribbon: the T divider, a third of the graph.
- * It never moves with delivery; delivery only decides whether anything is drawn
- * past it. Exported so a render harness reads the same number the drawing used.
+ * Where one light-time sits for a ribbon, in the graph's viewBox x units (100
+ * wide): the T divider, a third of the plot. It never moves with delivery;
+ * delivery only decides whether anything is drawn past it.
+ *
+ * @category CommandDelay
  */
 export function ribbonBoundaryX(
   variant: ControlDelayStreamVariant = "inline",
@@ -525,17 +548,18 @@ function RibbonMark({
 }
 
 /**
- * The continuous sibling of `InFlightList`: one three-zone sparkline for ALL of
- * a widget's control axes. Now on the left, age to the right; outgoing, echo
+ * The continuous sibling of {@link InFlightList}: one three-zone sparkline for
+ * ALL of a widget's control axes. Now on the left, age to the right; outgoing, echo
  * and confirmed zones split by dividers at T and 2T; a muted-to-clear
  * confidence ramp; deviation in the confirmed zone as the expected path dashed
  * plus the actual path in the warning token; zone and delay labels on hover.
  * Renders `null` when the one-way delay is near zero. Props-only.
  *
- * **This is the ONE rail.** A continuous entry with no readback (the
- * operator's voice) is drawn as a ribbon in the outgoing zone of the same
- * graph. Delivery only decides whether anything is drawn past the first
+ * A continuous entry with no readback (the operator's voice) is drawn as a
+ * ribbon in the outgoing zone of the same graph. Delivery only decides whether anything is drawn past the first
  * boundary; it never moves a boundary or picks a different picture.
+ *
+ * @category CommandDelay
  */
 export function ControlDelayStream({
   streams,

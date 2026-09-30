@@ -1,18 +1,3 @@
-/**
- * JogWheel: a fine-grain tape scrubber against a fixed centre caret, for
- * dialling a number by small increments by pointer drag along its axis or by
- * keyboard (Arrow +/- step, Home/End = min/max). A focusable `role="slider"`;
- * all emits are suppressed while `disabled`. Sized with `width`/`height` in CSS
- * px, as `Dial` and `Tape` are.
- *
- * Two known limits:
- *
- * - The caret label and `aria-valuetext` are the same string, so a screen
- *   reader cannot be given a fuller value description than the face shows
- * - The drag axis is viewport-relative, so a wheel rotated with a CSS
- *   transform cannot be dragged along its drawn axis. Do not rotate it
- */
-
 import type { KeyboardEvent, PointerEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
@@ -25,6 +10,8 @@ import { focusRing } from "./focusRing";
  * - `rate`: where the handle sits is the speed the value changes at, and it
  *   springs back to centre on release. Needs no bounds, for a value such as an
  *   instant years out
+ *
+ * @category Form
  */
 export type JogWheelMode = "offset" | "rate";
 
@@ -34,7 +21,7 @@ interface JogWheelCommon {
   /** Drag/keyboard axis. Default "horizontal". */
   orientation?: "horizontal" | "vertical";
   onChange: (next: number) => void;
-  /** Caret label formatter. Default `String(Math.round(v))`. */
+  /** Caret label formatter, also used as `aria-valuetext`. Default `String(Math.round(v))`; for a quantity, write it with {@link writeQuantity}. */
   format?: (v: number) => string;
   ariaLabel: string;
   disabled?: boolean;
@@ -50,6 +37,12 @@ interface JogWheelCommon {
   height?: number;
 }
 
+/**
+ * Props for {@link JogWheel}. In the default `offset` mode `min` and `max` are
+ * required; in `rate` mode they are optional.
+ *
+ * @category Form
+ */
 export type JogWheelProps =
   | (JogWheelCommon & {
       mode?: "offset";
@@ -85,6 +78,8 @@ const DEFAULT_STEPS_PER_SECOND = 30;
  * The floor either axis is clamped up to: WCAG 2.2 SC 2.5.8 (Target Size,
  * Minimum) at AA. Drag range is unaffected by the box, since the wheel captures
  * the pointer.
+ *
+ * @category Form
  */
 export const JOG_WHEEL_MIN_TARGET_PX = 24;
 
@@ -106,6 +101,8 @@ const DEFAULT_SHORT_PX = 40;
  * delta asked for and snaps to nothing: a grid measured from negative infinity
  * is NaN, and one from a substituted zero would make one press move by other
  * than one step.
+ *
+ * @category Form
  */
 export function applyDelta(
   value: number,
@@ -120,6 +117,34 @@ export function applyDelta(
   return Math.min(max, Math.max(min, snapped));
 }
 
+/**
+ * A fine-grain tape scrubber against a fixed centre caret, for dialling a
+ * number by small increments by pointer drag along its axis or by keyboard
+ * (arrow keys move one `step`, Home and End go to `min` and `max`). A
+ * focusable `role="slider"`; nothing is emitted while `disabled`. Sized with
+ * `width` and `height` in CSS px, as {@link Dial} and {@link Tape} are.
+ *
+ * Two limits:
+ *
+ * - The caret label and `aria-valuetext` are the same string, so a screen
+ *   reader cannot be given a fuller value description than the face shows
+ * - The drag axis is viewport-relative, so a wheel rotated with a CSS
+ *   transform cannot be dragged along its drawn axis. Do not rotate it
+ *
+ * @example
+ * ```tsx
+ * <JogWheel
+ *   ariaLabel="Gain"
+ *   value={gain}
+ *   min={0}
+ *   max={100}
+ *   step={1}
+ *   onChange={setGain}
+ * />
+ * ```
+ *
+ * @category Form
+ */
 export function JogWheel(props: JogWheelProps): JSX.Element {
   const {
     value,

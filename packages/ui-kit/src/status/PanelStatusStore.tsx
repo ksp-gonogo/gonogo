@@ -3,12 +3,15 @@ import { createStore } from "../store/createStore";
 import { type Severity, severityRank, worstSeverity } from "./severity";
 
 /**
- * One thing a contributor says about a panel's state. A `Badge` (via `report`),
- * the host-derived stream status, and the alarm bridge all publish this exact
- * shape, so state with completely different plumbing merges identically.
+ * One statement about a panel's state, as published to its
+ * {@link PanelStatusStore}. A {@link Badge} with `report`, the panel's stream
+ * status and the dashboard's alarms all publish this shape, and the panel
+ * summarises them together.
+ *
+ * @category Panel
  */
 export interface StatusContribution {
-  /** Stable per contributor for its lifetime (dedupe + clean deregister). */
+  /** Stable for the contributor's lifetime; a second contribution with the same id replaces the first. */
   id: string;
   severity: Severity;
   /** Shown when this contribution wins the summary. */
@@ -16,10 +19,12 @@ export interface StatusContribution {
 }
 
 /**
- * The winning contribution, or `null` when nothing is registered. `id` is the
- * winner's own contributor id, so a caller can tell whether the winner is
- * ALSO something it is about to render its own way (a badge pill) and skip
- * drawing it twice, rather than matching on `severity`/`label` text.
+ * The contribution that wins a panel's summary: the worst severity, and the
+ * earliest registered among equals. `id` is the winner's own contribution id,
+ * so a caller already drawing that contribution (as a badge pill, say) can
+ * skip drawing it twice.
+ *
+ * @category Panel
  */
 export interface StatusSummary {
   id: string;
@@ -28,9 +33,11 @@ export interface StatusSummary {
 }
 
 /**
- * One row of the per-severity breakdown: how many contributors sit at a given
- * severity. Severities are NEVER merged across tiers, so two cautions are one
- * `{ severity: "caution", count: 2 }` row, never folded into a warning.
+ * One row of a panel's per-severity breakdown: how many contributions sit at
+ * one severity. Two cautions are one `{ severity: "caution", count: 2 }` row;
+ * severities are never folded into a worse one.
+ *
+ * @category Panel
  */
 export interface StatusBreakdownEntry {
   severity: Severity;
@@ -38,25 +45,26 @@ export interface StatusBreakdownEntry {
 }
 
 /**
- * A per-grid-item, off-tree status store: register, update, subscribe and
- * snapshot, plus the derived views the panel shows.
+ * The store of {@link StatusContribution}s for one dashboard tile, from which
+ * the panel draws its summary badge and the collapsed header's status dots.
+ * Components publish with {@link useStatusContribution} and read with
+ * {@link useStatusSummary} and {@link useStatusBreakdown}; a change re-renders
+ * only those subscribers.
  *
- * The live status data lives in the store, never in a React context value, so
- * a contribution change re-renders only the summary subscribers.
+ * @category Panel
  */
 export interface PanelStatusStore {
-  /** Add a contribution. Returns its deregister function. */
+  /** Adds a contribution. Returns a function that removes it. */
   register(c: StatusContribution): () => void;
-  /** Change an already-registered contribution's severity/label in place. */
+  /** Changes a registered contribution's severity and label in place. */
   update(id: string, next: Omit<StatusContribution, "id">): void;
-  /** Subscribe to any change to the merged summary. Returns unsubscribe. */
+  /** Calls `onChange` on any change to the contributions. Returns a function that unsubscribes. */
   subscribe(onChange: () => void): () => void;
-  /** The max-merge summary, referentially stable while unchanged. */
+  /** The winning contribution (see {@link StatusSummary}), or `null` when there are none. The same object is returned while the result is unchanged. */
   getSummary(): StatusSummary | null;
   /**
-   * Per-severity counts, worst-first, referentially stable while unchanged.
-   * Each distinct severity is its own row with its own count; nothing is folded
-   * across tiers, unlike `getSummary`'s single max-merge winner.
+   * Per-severity counts, worst first, one row per severity present. The same
+   * array is returned while the counts are unchanged.
    */
   getBreakdown(): readonly StatusBreakdownEntry[];
 }
@@ -165,12 +173,17 @@ export const NO_STATUS_BREAKDOWN = EMPTY_BREAKDOWN;
 const StatusPanelStore = createPanelStore(createPanelStatusStore);
 
 /**
- * Provides one store for a dashboard grid item, so both the widget body and the
- * drag-bar chrome subscribe to the same off-tree store. The store is created
- * once and kept for the provider's whole life; the value never changes
- * identity, so mounting it re-renders nothing.
+ * Creates one {@link PanelStatusStore} and provides it for as long as it is
+ * mounted, so the widget body and the tile's chrome share it. The dashboard
+ * mounts one per tile.
+ *
+ * @category Panel
  */
 export const PanelStatusStoreProvider = StatusPanelStore.Provider;
 
-/** The nearest store, or `null` outside a dashboard grid item. */
+/**
+ * The nearest {@link PanelStatusStore}, or `null` outside a dashboard tile.
+ *
+ * @category Panel
+ */
 export const usePanelStatusStore = StatusPanelStore.useStore;

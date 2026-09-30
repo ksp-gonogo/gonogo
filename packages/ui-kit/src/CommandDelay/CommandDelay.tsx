@@ -25,9 +25,11 @@ import {
 } from "./toInFlightListItems";
 
 /**
- * The single delay-output handle every command widget hands to
- * `<CommandDelay>`. Declared structurally, with no dependency on the telemetry
- * spine; `useCommand`'s return value satisfies it.
+ * What {@link CommandDelay} and the Panel delay rail read from a command: its
+ * in-flight rows, its delay, and what became of its dispatches. Declared
+ * structurally; `useCommand`'s return value satisfies it.
+ *
+ * @category CommandDelay
  */
 export interface CommandDelayHandle {
   /**
@@ -86,7 +88,7 @@ export interface CommandDelayHandle {
    */
   losses?: CommandLossEntry[];
   /**
-   * Dispatches from this command that were called LOST and then answered after
+   * Dispatches from this command that were called LOST and then replied after
    * all, until dismissed. An entry here has left `losses`: the same dispatch at
    * a later moment, never two boxes at once.
    */
@@ -104,6 +106,11 @@ export interface CommandDelayHandle {
   dismiss?: (id: string) => void;
 }
 
+/**
+ * Props for {@link CommandDelay}. Pass `handle` or `handles`.
+ *
+ * @category CommandDelay
+ */
 export interface CommandDelayProps {
   /** A single command handle. Sugar for `handles={[handle]}`. */
   handle?: CommandDelayHandle;
@@ -121,7 +128,9 @@ export interface CommandDelayProps {
   ariaLabel?: string;
   /** Discrete-branch passthrough to `InFlightList`. Ignored for stream. */
   mode?: InFlightListMode;
+  /** Discrete-branch passthrough to `InFlightList`. Ignored for stream. */
   density?: InFlightListDensity;
+  /** Discrete-branch passthrough to `InFlightList`. Ignored for stream. */
   orientation?: "column" | "row";
   /**
    * `"inline"` (default) is the in-body rendering. `"rail"` (collapsed strip)
@@ -132,11 +141,24 @@ export interface CommandDelayProps {
 }
 
 /**
- * The one delay-output component every delayed command flows through. It draws
- * nothing at zero delay, the continuous `ControlDelayStream` for a single
- * stream command, or the discrete `InFlightList` (merged across handles)
- * otherwise. A widget renders `<CommandDelay handle={cmd} />` and gets the
- * right delay UX with no per-widget branching.
+ * Draws what a delayed command is doing on its way across the link. It draws
+ * nothing at zero or unknown delay, the continuous {@link ControlDelayStream}
+ * for a single stream command, or the discrete {@link InFlightList} (merged
+ * across handles) otherwise, so a widget gets the right delay display with no
+ * branching of its own.
+ *
+ * On the dashboard every `useCommand` handle already reaches its `Panel`'s
+ * delay rail; render this for the same display inside the widget body.
+ *
+ * @example
+ * ```tsx
+ * const setTarget = useCommand("vessel.target.set");
+ * const clearTarget = useCommand("vessel.target.clear");
+ *
+ * <CommandDelay handles={[setTarget, clearTarget]} orientation="row" />
+ * ```
+ *
+ * @category CommandDelay
  */
 export function CommandDelay({
   handle,

@@ -16,6 +16,8 @@
  * are single jobs: `rows` between stacked rows that carry their own inset,
  * `caption` under the line a caption belongs to, `readout-row` between the rows
  * of a label/value grid, and `label-value` between its columns.
+ *
+ * @category Layout
  */
 export type GapToken =
   | "related"
@@ -47,9 +49,13 @@ export const GAP_VAR = {
 } as const satisfies Record<GapToken, string>;
 
 /**
- * The surface insets `Box`'s `pad` prop accepts, each the name of an
- * `--inset-*` token without its prefix. The map holds the bare token name, and
- * `Box` reads it in the padding shorthand, the only place a pair belongs.
+ * The padding names {@link Box}'s `pad` prop accepts, each the name of an
+ * `--inset-*` token without its prefix: `chip`, `chip-roomy` and
+ * `chip-readout` for small pills, `pill` for a stadium, `surface` and
+ * `surface-standalone` for a block's own padding, `popover` for a floating
+ * card.
+ *
+ * @category Layout
  */
 export type InsetToken =
   | "chip"

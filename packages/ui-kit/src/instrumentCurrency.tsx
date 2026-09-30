@@ -15,6 +15,8 @@ import { TONE_MARK } from "./tone";
  * A superscript tspan in the readout's warning hue; a shape that is present or
  * absent, so nothing rests on telling amber from grey. Silent to a screen
  * reader: the instrument says it through {@link sayHeld}.
+ *
+ * @category Unit
  */
 export function InstrumentHeldMark({ size }: { size: number }) {
   return (
@@ -35,6 +37,8 @@ export function InstrumentHeldMark({ size }: { size: number }) {
  *
  * Two marks, never a shaded interval, as on `<Meter>`. The caller owns the
  * geometry; what is shared is how it looks.
+ *
+ * @category Unit
  */
 export function InstrumentBound({
   end,
@@ -68,6 +72,8 @@ export function InstrumentBound({
  * The accessible name, with the currency said after it.
  *
  * Nothing is appended when the figure is current.
+ *
+ * @category Unit
  */
 export function sayHeld(name: string, caption: string | null): string {
   return caption === null ? name : `${name}, ${caption}`;
@@ -77,6 +83,8 @@ export function sayHeld(name: string, caption: string | null): string {
  * The attribute that says the element's accessible name ends with a
  * {@link sayHeld} caption, which is how a render check tells an instrument that
  * announces its held mark from one that draws the mark silently.
+ *
+ * @category Unit
  */
 export function heldNameMarker(caption: string | null): {
   "data-currency-in-name"?: "";
@@ -90,6 +98,8 @@ export function heldNameMarker(caption: string | null): {
  *
  * A needle parked at the bottom of the scale would be a reading, so an
  * instrument with nothing to point at draws no pointer.
+ *
+ * @category Unit
  */
 export function InstrumentNoFigure({
   x,

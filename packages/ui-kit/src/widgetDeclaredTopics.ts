@@ -1,6 +1,9 @@
 /**
- * The declaration shape this module reads. Structural, because the app and the
- * SDK each hold their own copy of `ComponentDefinition`.
+ * The Topic-declaring fields of a widget definition that
+ * {@link widgetDeclaredTopics} and {@link widgetDrawnFields} read. Any
+ * `ComponentDefinition` satisfies it.
+ *
+ * @category Extensions
  */
 export interface WidgetTopicDeclaration {
   channels?: readonly string[];
@@ -10,14 +13,12 @@ export interface WidgetTopicDeclaration {
 }
 
 /**
- * Every CHANNEL a widget declares it mounts on, across both vocabularies:
- * the typed `channels` and `optionalChannels`, and the untyped
- * `dataRequirements`.
+ * Every channel a widget declares it mounts on: its `channels`,
+ * `optionalChannels` and `dataRequirements` joined, without duplicates. The
+ * dashboard derives a widget's blackout badge from these. Empty for an
+ * undefined definition.
  *
- * The lists are unioned, since a widget can split its topics across both and
- * preferring either would silently drop the other half from the blackout badge.
- * Optional channels are included because a held one is worth badging; an
- * absent one resolves to nothing downstream.
+ * @category Extensions
  */
 export function widgetDeclaredTopics(
   def: WidgetTopicDeclaration | undefined,
@@ -31,14 +32,12 @@ export function widgetDeclaredTopics(
 }
 
 /**
- * Every FIELD a widget declares it draws: what belongs on screen, as opposed to
- * what has to be live for the widget to render at all.
+ * Every field a widget declares it draws, as opposed to the channels it needs
+ * live to render at all: its `fields` without duplicates, or, when it
+ * declares none, its {@link widgetDeclaredTopics}. The dashboard matches alarms
+ * to widgets against this list.
  *
- * Alarm attribution matches by containment, so a widget answering with its
- * whole channel would claim every other widget's alarm on that channel.
- *
- * Falls back to the mounted channels when a widget declares no `fields`: a
- * widget that named only channels draws what it named.
+ * @category Extensions
  */
 export function widgetDrawnFields(
   def: WidgetTopicDeclaration | undefined,

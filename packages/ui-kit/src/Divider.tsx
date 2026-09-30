@@ -2,6 +2,11 @@ import type { HTMLAttributes } from "react";
 import styled from "styled-components";
 import { GAP_VAR, type GapToken } from "./scales";
 
+/**
+ * Props for {@link Divider}. Any other `hr` attribute passes through.
+ *
+ * @category Layout
+ */
 export interface DividerProps extends HTMLAttributes<HTMLHRElement> {
   /**
    * Vertical space above and below the rule, as a gap job.
@@ -11,8 +16,11 @@ export interface DividerProps extends HTMLAttributes<HTMLHRElement> {
 }
 
 /**
- * A full-width 1px horizontal rule on the subtle border colour: the one way to
- * separate stacked sections. A real `<hr>`, so it carries separator semantics.
+ * A full-width 1px horizontal rule in the subtle border colour, for separating
+ * stacked sections. It renders a real `<hr>`, so it carries separator
+ * semantics. Flush by default; `space` adds room above and below.
+ *
+ * @category Layout
  */
 export function Divider({ space, ...rest }: DividerProps) {
   return <Divider__Root $space={space} {...rest} />;

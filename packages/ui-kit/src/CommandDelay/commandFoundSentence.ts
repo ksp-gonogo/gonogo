@@ -7,9 +7,11 @@ import { commandRefusalSentence } from "./commandRefusalSentence";
 import type { RailTags } from "./railTags";
 
 /**
- * One dispatch that was called lost and then answered after all, as much of it
+ * One dispatch that was called lost and then replied after all, as much of it
  * as this text needs. Structurally the spine's `CommandFound`, so a hand-built
  * found can be rendered too. `outcome` is required: every sentence turns on it.
+ *
+ * @category CommandDelay
  */
 export interface CommandFoundLike {
   /**
@@ -35,19 +37,27 @@ export interface CommandFoundLike {
   error?: { code: string; message: string };
 }
 
-/** A found a surface can render: the text's inputs plus the dispatch's `requestId`, which keys the box and is what `dismiss` takes. */
+/**
+ * A found a surface can render: the text's inputs plus the dispatch's `requestId`, which keys the box and is what `dismiss` takes.
+ *
+ * @category CommandDelay
+ */
 export interface CommandFoundEntry extends CommandFoundLike {
   id: string;
 }
 
-/** One found dispatch as the rail renders it, plus its command's rail axes. */
+/**
+ * One found dispatch as the rail renders it, plus its command's rail axes.
+ *
+ * @category CommandDelay
+ */
 export interface RailFound extends CommandFoundEntry {
   tags: RailTags;
 }
 
 /**
  * What the operator is told about a command they were told was lost, which then
- * answered. Never "confirmed": the operator may already have re-sent it, and
+ * replied. Never "confirmed": the operator may already have re-sent it, and
  * "found" carries that reversal.
  *
  * - `ran`: it executed. If they re-sent it, it executed twice
@@ -55,6 +65,8 @@ export interface RailFound extends CommandFoundEntry {
  * - `errored`: it arrived and the machinery broke over there; a retry may work
  *
  * No imperative: the rail says what happened and lets the operator decide.
+ *
+ * @category CommandDelay
  */
 export function commandFoundSentence(found: CommandFoundLike): string {
   const subject = commandRefusalSubject(found);

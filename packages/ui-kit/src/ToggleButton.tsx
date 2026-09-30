@@ -3,36 +3,70 @@ import type { ButtonHTMLAttributes } from "react";
 import { forwardRef } from "react";
 import { Button } from "./Button";
 
+/**
+ * The fill an active {@link ToggleButton} takes: `go`, or `nogo` / `warn` when
+ * being on is destructive or needs attention.
+ *
+ * @category Button
+ */
 export type ToggleButtonTone = Extract<Tone, "go" | "nogo" | "warn">;
+
+/**
+ * {@link ToggleButton}'s size, the same steps as {@link ButtonSize}.
+ *
+ * @category Button
+ */
 export type ToggleButtonSize = "sm" | "md";
 
+/**
+ * Props for {@link ToggleButton}. Any other `button` attribute passes through.
+ *
+ * @category Button
+ */
 export interface ToggleButtonProps
   extends ButtonHTMLAttributes<HTMLButtonElement> {
+  /** Whether the toggle is on. Drives `aria-pressed` and the filled look. Defaults to `false`. */
   active?: boolean;
+  /** The fill while active. Defaults to `go`. */
   tone?: ToggleButtonTone;
+  /** Defaults to `md`. */
   size?: ToggleButtonSize;
 }
 
 /**
- * Two-state toggle button: a real `<button>` carrying `aria-pressed`, set
- * automatically, for controls that switch between an "on" and "off"
- * presentation (mode pickers, filter toggles, rate pickers).
+ * A two-state toggle: a real `<button>` whose `aria-pressed` follows `active`,
+ * for controls that switch between on and off (mode pickers, filter toggles,
+ * rate pickers). It draws as a {@link Button}, filled in `tone` while active
+ * and plain while not.
  *
- * ToggleButton or `Switch`? They are different ARIA patterns for different
- * jobs:
+ * ToggleButton or {@link Switch}? They are different ARIA patterns:
  *
- *   - ToggleButton is a BUTTON whose label IS the thing being chosen, and
- *     which is usually one of several peers: warp rates, a filter row, a
- *     view mode. Pressing it acts. `aria-pressed` says which peer is on.
- *   - `Switch` is a single boolean SETTING with a label beside it, rendered
- *     as a checkbox with a track and thumb. It configures rather than acts.
+ * - ToggleButton is a button whose label is the thing being chosen, usually
+ *   one of several peers (warp rates, a filter row, a view mode). Pressing it
+ *   acts, and `aria-pressed` says which peer is on
+ * - `Switch` is a single boolean setting with a label beside it, rendered as a
+ *   checkbox with a track and thumb. It configures rather than acts
  *
  * If the control sits in a row of alternatives, it is a ToggleButton. If it
  * sits in a settings list next to its own label, it is a Switch.
  *
- * It draws with the kit's `Button`, pressed while active, so a toggle and a
- * command in effect look alike. `tone` colours the active fill: `go` by
- * default, `nogo` or `warn` when being on is destructive or needs attention.
+ * @example
+ * ```tsx
+ * <Inline>
+ *   {RATES.map((rate) => (
+ *     <ToggleButton
+ *       key={rate}
+ *       size="sm"
+ *       active={rate === current}
+ *       onClick={() => setRate(rate)}
+ *     >
+ *       {rate}x
+ *     </ToggleButton>
+ *   ))}
+ * </Inline>
+ * ```
+ *
+ * @category Button
  */
 export const ToggleButton = forwardRef<HTMLButtonElement, ToggleButtonProps>(
   function ToggleButton(

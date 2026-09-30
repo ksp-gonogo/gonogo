@@ -6,8 +6,18 @@ import type { Severity } from "./status/severity";
 import { useStatusContribution } from "./status/useStatusContribution";
 import { TONE_MARK, TONE_TEXT } from "./tone";
 
+/**
+ * Badge text size: `sm` for dense rows and table cells, `md` (the default) elsewhere.
+ *
+ * @category Badge
+ */
 export type BadgeSize = "sm" | "md";
 
+/**
+ * Props for {@link Badge}. Any other `span` attribute (`title`, `aria-label`) passes through to the pill.
+ *
+ * @category Badge
+ */
 export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
   /**
    * The state the badge shows. Drives colour and, when it contributes, its
@@ -24,8 +34,8 @@ export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
    */
   live?: boolean;
   /**
-   * When set, this badge auto-registers itself into the nearest
-   * `PanelStatusStore` as a contribution `{ id, severity, label }`, so the panel
+   * When set, this badge registers itself into the nearest
+   * {@link PanelStatusStore} as a contribution `{ id, severity, label }`, so the panel
    * can summarise it. `id` must be stable for the badge's lifetime. `label`
    * defaults to the badge's text content when `children` is a plain string; pass
    * it explicitly otherwise. A floor (`go`) badge with `report` still
@@ -36,9 +46,20 @@ export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
 }
 
 /**
- * Compact label/state pill speaking the one `Tone` scale. This is the kit's
- * one badge: the single vocabulary every widget's state chips map onto, and
- * the renderer the panel summary and `StreamStatusBadge` compose.
+ * A compact uppercase pill that shows a label in one `Tone`. A stateful tone
+ * (`go` through `nogo`, and `offline`) draws an outlined pill in that tone's
+ * colour, with a glow that grows with severity; no tone, or `neutral`, draws
+ * a grey rounded chip for a kind tag or a count. The panel's summary badge and
+ * {@link StreamStatusBadge} are both drawn with it.
+ *
+ * @example
+ * ```tsx
+ * <Badge tone="warn" live report={{ id: "fuel-low" }}>
+ *   Fuel low
+ * </Badge>
+ * ```
+ *
+ * @category Badge
  */
 export function Badge({
   tone,

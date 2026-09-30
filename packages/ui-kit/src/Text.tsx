@@ -8,12 +8,32 @@ import { TONE_TEXT } from "./tone";
  * tier below it, for a readout that should recede rather than compete, like
  * the numeric echo beside an analog stick.
  *
- * @category Text
+ * @category Typography
  */
 export type TextLevel = "muted" | "faint";
+
+/**
+ * The type-scale steps {@link Text}'s `size` accepts, smallest to largest:
+ * `xs` for dense rows, `sm` for values, `base` for prose, `lg` for a headline
+ * figure.
+ *
+ * @category Typography
+ */
 export type TextSize = "xs" | "sm" | "base" | "lg";
+
+/**
+ * The font weights {@link Text}'s `weight` accepts: `regular` (400) and
+ * `semibold` (600).
+ *
+ * @category Typography
+ */
 export type TextWeight = "regular" | "semibold";
 
+/**
+ * Props for {@link Text}. Any other `span` attribute passes through.
+ *
+ * @category Typography
+ */
 export interface TextProps extends HTMLAttributes<HTMLSpanElement> {
   /** The state the text shows. Defaults to `neutral`, the primary text colour. */
   tone?: Tone;
@@ -43,13 +63,13 @@ const LEVEL_COLOR: Record<TextLevel, string> = {
 };
 
 /**
- * Recedes every neutral word inside a box to the faint text level, which still
- * clears AA on the panel. The way to quiet a block of words: opacity drops them
- * below contrast, so it is kept for marks that carry no text. A word in a tone
- * keeps its tone, since a state is never dimmed away. The same declarations as
- * {@link faintText}, for a `style` prop.
+ * Inline style declarations that recede every neutral word inside a box to the
+ * faint text level, which still meets WCAG AA contrast on a panel. Use it to
+ * quiet a block of words; opacity would drop them below contrast, so keep
+ * opacity for marks that carry no text. A word in a tone keeps its tone. The
+ * same declarations as {@link faintText}, for a `style` prop.
  *
- * @category Text
+ * @category Typography
  */
 export const FAINT_TEXT_STYLE: Readonly<Record<string, string>> = {
   color: LEVEL_COLOR.faint,
@@ -60,9 +80,10 @@ export const FAINT_TEXT_STYLE: Readonly<Record<string, string>> = {
 };
 
 /**
- * {@link FAINT_TEXT_STYLE} as declarations for a styled-components rule.
+ * {@link FAINT_TEXT_STYLE} as a CSS declaration string, for a styled-components
+ * rule.
  *
- * @category Text
+ * @category Typography
  */
 export function faintText(): string {
   return Object.entries(FAINT_TEXT_STYLE)
@@ -95,14 +116,25 @@ const SIZE_STYLES = {
 } as const;
 
 /**
- * Inline text: tone, size, weight, spacing. `font-variant-numeric: tabular-nums`
- * is baked in so widgets never forget it and digits don't jitter as they update.
- * It renders whatever it is given, with no magnitude, unit or formatting.
+ * An inline `span` with a tone, level, size and weight. Digits are always
+ * tabular (`font-variant-numeric: tabular-nums`), so a changing number does
+ * not jitter. It renders whatever it is given, with no magnitude, unit or
+ * formatting of its own.
  *
- * `Unit` renders a quantity and its symbol; this colours and sizes a span. They
- * compose, and that composition is the normal case:
+ * {@link Unit} renders a quantity and its symbol; `Text` colours and sizes the
+ * span around it. The two compose, and that is the normal case.
  *
- *     <Text tone="go"><Unit value={altitude} /></Text>
+ * @example
+ * ```tsx
+ * <Cluster>
+ *   <Text level="muted" size="xs">Altitude</Text>
+ *   <Text tone="go" weight="semibold">
+ *     <Unit value={altitude} />
+ *   </Text>
+ * </Cluster>
+ * ```
+ *
+ * @category Typography
  */
 export function Text({
   tone = "neutral",

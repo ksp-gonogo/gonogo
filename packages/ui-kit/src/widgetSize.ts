@@ -1,15 +1,14 @@
 /**
- * Size buckets for responsive widget rendering. Widgets read their `w`/`h`
- * grid units from `ComponentProps` and derive a bucket here so the boundaries
- * stay consistent across every widget.
+ * How much room a widget tile has, derived from its `w` and `h` grid units by
+ * {@link getSizeBucket} so every widget uses the same boundaries.
  *
- * - `tiny`  : single-glance status / one key readout
- * - `small` : essential numbers, minimal chrome
- * - `normal`: full widget UI
+ * - `tiny`: a single-glance status or one key readout
+ * - `small`: essential numbers, minimal chrome
+ * - `normal`: the full widget UI
  *
- * Boundaries chosen so the existing `defaultSize`s land in `normal`. A widget
- * that declares a tiny mode is drawn by the kit in `tiny`; every other bucket,
- * and every bucket of a widget without one, is the widget's own to lay out.
+ * A widget that declares a tiny mode is drawn by the kit in `tiny`; every other
+ * bucket, and every bucket of a widget without one, is the widget's own to lay
+ * out.
  *
  * @category Layout
  */
@@ -25,7 +24,9 @@ const SMALL_W = 8;
 const SMALL_H = 7;
 
 /**
- * The {@link SizeBucket} a `w` by `h` tile falls in.
+ * The {@link SizeBucket} a `w` by `h` tile falls in: `tiny` below
+ * {@link TINY_BELOW} on either axis, `small` below 8 wide or 7 tall, `normal`
+ * otherwise. Returns `normal` while either dimension is `undefined`.
  *
  * @category Layout
  */
@@ -41,18 +42,16 @@ export function getSizeBucket(
 }
 
 /**
- * Shape (orientation) of a widget, orthogonal to its size bucket. A widget can
- * be `tiny` and `landscape`, or `normal` and `portrait`, the two signals
- * answer different questions. `getSizeBucket` says *how much chrome* to show;
- * `getWidgetShape` says *which way to flow it*.
+ * The orientation of a widget tile, independent of its {@link SizeBucket}: a
+ * tile can be `tiny` and `landscape`, or `normal` and `portrait`. The bucket
+ * says how much chrome to show; the shape says which way to flow it.
  *
- * - `portrait` : tall + narrow: stack content in a single column; dock any
- *                 secondary panel/legend *below* the primary content.
- * - `landscape`: wide + short: flow content into multiple columns or place a
- *                 secondary panel *beside* the primary content, using the
- *                 width the size bucket alone can't see.
- * - `square`   : neither axis dominates; the default near-1:1 layout. Also the
- *                 neutral fallback before the grid has measured (see below).
+ * - `portrait`: tall and narrow. Stack content in one column and dock any
+ *   secondary panel or legend below the primary content
+ * - `landscape`: wide and short. Flow content into columns or place a
+ *   secondary panel beside the primary content
+ * - `square`: neither axis dominates; the default near-1:1 layout, and the
+ *   value before the grid has measured the tile
  *
  * @category Layout
  */
@@ -99,7 +98,10 @@ const LANDSCAPE_ASPECT = 1.6;
 const PORTRAIT_ASPECT = 1 / LANDSCAPE_ASPECT; // ≈ 0.625
 
 /**
- * The {@link WidgetShape} of a `w` by `h` tile.
+ * The {@link WidgetShape} of a `w` by `h` tile, with its aspect ratio.
+ * `landscape` from an aspect of 1.6 up, `portrait` at 1/1.6 (0.625) and below,
+ * `square` between. Returns `square` with aspect `1` while either dimension is
+ * `undefined` or `h` is 0.
  *
  * @category Layout
  */

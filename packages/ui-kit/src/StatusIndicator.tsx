@@ -3,6 +3,11 @@ import type { HTMLAttributes, ReactNode } from "react";
 import styled, { css, keyframes } from "styled-components";
 import { TONE_MARK, toneEdge } from "./tone";
 
+/**
+ * Props for {@link StatusIndicator}. Other `div` attributes pass through to the row.
+ *
+ * @category Badge
+ */
 export interface StatusIndicatorProps
   extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
   tone: Tone;
@@ -16,8 +21,8 @@ export interface StatusIndicatorProps
    */
   live?: boolean;
   /**
-   * Pulse the dot to signal an active, changing state (e.g. a live/connecting
-   * data source). `"slow"` (2s) reads as steady-live, `"fast"` (1s) as
+   * Pulse the dot to signal an active, changing state (a live or connecting
+   * data source, for example). `"slow"` (2s) reads as steady-live, `"fast"` (1s) as
    * working/reconnecting. Omit for a static dot. Guarded by
    * `prefers-reduced-motion` (the dot holds still when the user opts out).
    */
@@ -25,14 +30,20 @@ export interface StatusIndicatorProps
 }
 
 /**
- * Coloured dot + one-line status text: dot on the left, free-form label on
- * the right, optional live-region semantics. Use for
- * "connection status," "TURN reachability," "data source health"
- * surfaces: anywhere a single sentence describes a state and a glance
- * at the dot tells you whether to worry.
+ * A boxed row with a coloured dot on the left and a sentence of status text on
+ * the right, bordered in the tone's colour and one control high. Use it where
+ * a sentence describes a state (connection status, a data source's health) and
+ * the dot tells the operator at a glance whether to worry. For a compact
+ * uppercase pill use {@link Badge} instead.
  *
- * Sister primitive: `Badge`. Use `Badge` for compact uppercase pills,
- * `StatusIndicator` for sentence-length state with a leading dot.
+ * @example
+ * ```tsx
+ * <StatusIndicator tone="caution" pulse="fast" live>
+ *   Reconnecting to the relay
+ * </StatusIndicator>
+ * ```
+ *
+ * @category Badge
  */
 export function StatusIndicator({
   tone,

@@ -21,7 +21,7 @@
 /**
  * A pattern of square cells, `cols` wide and `rows` high. Either may be fractional.
  *
- * @category Framing checks
+ * @category Testing
  */
 export interface CheckerGrid {
   cols: number;
@@ -31,14 +31,14 @@ export interface CheckerGrid {
 /**
  * The `object-fit` values that scale a picture to its box.
  *
- * @category Framing checks
+ * @category Testing
  */
 export type CheckerFit = "fill" | "contain" | "cover";
 
 /**
  * How a {@link CheckerGrid} lands in a box under a given fit, in CSS px.
  *
- * @category Framing checks
+ * @category Testing
  */
 export interface CheckerPaint {
   /** The grid the source picture carries. */
@@ -59,7 +59,7 @@ export interface CheckerPaint {
  * off the box's edge; `field-of-view` keeps cells square and whole but shows a
  * different grid from the one intended.
  *
- * @category Framing checks
+ * @category Testing
  */
 export type FramingFault = "distortion" | "cropping" | "field-of-view";
 
@@ -68,7 +68,7 @@ export type FramingFault = "distortion" | "cropping" | "field-of-view";
  * feed's aspect sits a fraction of a percent off it, which is not a fault; a
  * real distortion is far larger.
  *
- * @category Framing checks
+ * @category Testing
  */
 export const CHECKER_TOLERANCE = 0.01;
 
@@ -77,7 +77,7 @@ export const CHECKER_TOLERANCE = 0.01;
  * The source's pixel size never matters: every supported fit scales it to the
  * box, so only its shape does, and that is the grid's.
  *
- * @category Framing checks
+ * @category Testing
  */
 export function paintChecker(
   grid: CheckerGrid,
@@ -117,7 +117,7 @@ export function paintChecker(
  * aspect, say); without it a field-of-view change cannot be told from a
  * faithful picture, so it is never reported.
  *
- * @category Framing checks
+ * @category Testing
  */
 export function framingFaults(
   paint: CheckerPaint,
@@ -144,14 +144,15 @@ export function framingFaults(
 }
 
 /**
- * The fit an element paints its picture with. An `<svg>` answers from its
+ * The fit an element paints its picture with. An `<svg>` takes it from its
  * `preserveAspectRatio` (`none` fills, `slice` covers, anything else
  * contains); every other element from its `object-fit`, which is `fill` unless
- * set, and `contain` on a `<video>`, whose user-agent style says so. Throws for an `<svg>` with no `viewBox`, which does not scale its
- * content at all, and for `none` or `scale-down`, which depend on a pixel size
- * the checker does not have.
+ * set, and `contain` on a `<video>`, whose user-agent style says so. Throws for
+ * an `<svg>` with no `viewBox`, which does not scale its content at all, and
+ * for `none` or `scale-down`, which depend on a pixel size the checker does not
+ * have.
  *
- * @category Framing checks
+ * @category Testing
  */
 export function fitOf(element: Element): CheckerFit {
   if (element.tagName.toLowerCase() === "svg") {

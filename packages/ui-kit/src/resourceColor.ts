@@ -220,9 +220,19 @@ export function hashHue(key: string): number {
 }
 
 /**
- * Resolve a resource name to a stable, legible fill colour. Curated names get
- * their family's hue plus a lightness that tells members apart; unrecognised
- * names get a hashed hue clear of every curated family.
+ * Resolve a resource name to a stable, legible fill colour, as an `hsl()`
+ * string. The same name always gets the same colour, case and surrounding
+ * whitespace ignored. Known resources share a hue per family (fuels, for
+ * instance) with a lightness that tells members apart; unrecognised names get
+ * a hashed hue clear of every known family. The colour is an identity, never
+ * a severity: use a tone for state.
+ *
+ * @example
+ * ```tsx
+ * <Meter label="LiquidFuel" fillColor={resourceColor("LiquidFuel")} value={amount} capacity={max} />
+ * ```
+ *
+ * @category Theme
  */
 export function resourceColor(name: string): string {
   const key = name.trim().toLowerCase();

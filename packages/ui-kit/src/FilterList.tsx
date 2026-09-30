@@ -13,6 +13,12 @@ import { FilterRegion, type TermSegment, useRowFilter } from "./useRowFilter";
  * filter model is `useRowFilter`, shared with hosts that render their own rows.
  */
 
+/**
+ * One row of a {@link FilterList}: its key, the text it is matched against,
+ * and the node to draw.
+ *
+ * @category FilterList
+ */
 export interface FilterRow {
   /** Stable React key for the row. */
   id: string;
@@ -22,14 +28,46 @@ export interface FilterRow {
   node: ReactNode;
 }
 
+/**
+ * Props for {@link FilterList}.
+ *
+ * @category FilterList
+ */
 export interface FilterListProps {
+  /** Every row, in display order; the list shows the ones that match. */
   rows: readonly FilterRow[];
   /** The contribution segment to pull toggle terms from. Defaults to the universal `filters`. */
   segment?: TermSegment;
-  /** Shown when a filter is active but matches nothing. */
+  /** Shown when no row matches. Defaults to "Nothing matches the filter". */
   emptyLabel?: ReactNode;
 }
 
+/**
+ * A filterable list of pre-rendered rows, with its filter control (toggle
+ * chips for contributed terms, then a search box) above it. Each row carries
+ * the text it is searchable by, so the list only matches strings: a row shows
+ * while its `searchText` contains every selected term and the typed text,
+ * case-insensitively.
+ *
+ * The toggle terms come from the `filters` contribution segment of the widget
+ * the list is mounted in; outside a widget there are none and only the search
+ * box shows. For rows the host renders itself (a table), use
+ * {@link useRowFilter} with {@link FilterRegion} instead.
+ *
+ * @example
+ * ```tsx
+ * <FilterList
+ *   rows={contracts.map((c) => ({
+ *     id: c.id,
+ *     searchText: `${c.title} ${c.agency}`,
+ *     node: <Card title={c.title}>{c.agency}</Card>,
+ *   }))}
+ *   emptyLabel="No contracts match"
+ * />
+ * ```
+ *
+ * @category FilterList
+ */
 export function FilterList({
   rows,
   segment = "filters",

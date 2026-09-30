@@ -1,20 +1,33 @@
 /**
- * The dashboard grid's cell geometry, in CSS pixels.
+ * The width of one dashboard grid column in CSS pixels, an approximation at
+ * the `lg` breakpoint (36 columns): on the dashboard a column's real width is a
+ * fraction of the container. Use it to lay a widget out outside the dashboard,
+ * such as in a test harness or a docs page.
  *
- * A widget's `defaultSize` / `minSize` are grid units; anything laying one out
- * outside the dashboard (a render harness, a docs page) converts with these.
- *
- * `COL_WIDTH` approximates the `lg` breakpoint (36 columns), since a column's
- * real width is a fraction of the container. `ROW_HEIGHT` and `GRID_MARGIN` are
- * the app's own values.
+ * @category Layout
  */
 export const COL_WIDTH = 32;
+
+/**
+ * The height of one dashboard grid row in CSS pixels.
+ *
+ * @category Layout
+ */
 export const ROW_HEIGHT = 25;
+
+/**
+ * The gap between adjacent dashboard grid cells in CSS pixels.
+ *
+ * @category Layout
+ */
 export const GRID_MARGIN = 8;
 
 /**
- * A tile's pixel box for a `w` x `h` span. The margin falls BETWEEN cells, so
- * `n` cells carry `n - 1` gaps and a single cell carries none.
+ * The pixel box of a `w` by `h` grid-unit tile, as `{ pxW, pxH }`. The margin
+ * falls between cells, so `n` cells carry `n - 1` gaps and a single cell
+ * carries none.
+ *
+ * @category Layout
  */
 export function gridToPixels(
   w: number,

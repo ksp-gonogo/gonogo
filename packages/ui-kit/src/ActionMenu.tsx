@@ -6,25 +6,14 @@ import { EmptyState } from "./EmptyState";
 import { focusRingInset } from "./focusRing";
 
 /**
- * An anchored menu of actions to fire: the APG `menu` pattern
- * (https://www.w3.org/WAI/ARIA/apg/patterns/menu/).
+ * One action in an {@link ActionMenu}.
  *
- * <p>Distinct from {@link ComboboxListbox}, a `listbox` for CHOOSING a value:
- * this is a `menu` for INVOKING a command, so its items are real `<button>`s,
- * it owns keyboard focus while open, and selecting one fires rather than
- * commits.</p>
- *
- * <p>Keyboard: ArrowDown/ArrowUp walk items, Home/End jump to the ends,
- * Enter/Space fire the focused item, Escape and Tab dismiss. A pointer press
- * outside dismisses. Focus moves to the first item on open and the caller
- * restores focus to the trigger on dismiss.</p>
- *
- * <p>A disabled item stays reachable by keyboard, so it reads as unavailable
- * rather than missing.</p>
+ * @category Floating
  */
 export interface ActionMenuItem {
   /** Stable id handed back to `onSelect`. */
   key: string;
+  /** The item's visible text, and its accessible name unless `ariaLabel` is set. */
   label: string;
   /** Optional grouping header; ungrouped items collapse into one flat list. */
   group?: string;
@@ -34,7 +23,13 @@ export interface ActionMenuItem {
   ariaLabel?: string;
 }
 
+/**
+ * Props for {@link ActionMenu}.
+ *
+ * @category Floating
+ */
 export interface ActionMenuProps {
+  /** The actions, in order. Items sharing a `group` are listed under that heading. */
   items: readonly ActionMenuItem[];
   /** Fired with the item's `key`. A disabled item never fires. */
   onSelect: (key: string) => void;
@@ -48,11 +43,53 @@ export interface ActionMenuProps {
   header?: ReactNode;
   /** Rendered below the items. */
   footer?: ReactNode;
+  /** Shown in place of the items when there are none. Defaults to "No actions". */
   emptyLabel?: string;
-  /** Bucket name for items with no `group`. */
+  /** Heading for items with no `group` when other items have one. Defaults to "Other". */
   otherLabel?: string;
 }
 
+/**
+ * A menu of actions to fire: the APG `menu` pattern
+ * (https://www.w3.org/WAI/ARIA/apg/patterns/menu/).
+ *
+ * It differs from {@link ComboboxListbox}, a `listbox` for choosing a value:
+ * this is a `menu` for invoking a command, so its items are real `<button>`s,
+ * it owns keyboard focus while open, and selecting an item fires it.
+ *
+ * Keyboard: ArrowDown and ArrowUp walk the items, Home and End jump to the
+ * ends, Enter or Space fires the focused item, and Escape or Tab dismisses. A
+ * pointer press outside the menu dismisses it. Focus moves to the first item
+ * on open; restore focus to the trigger in `onDismiss`. A disabled item stays
+ * reachable by keyboard, so it reads as unavailable rather than missing.
+ *
+ * The menu is absolutely positioned and draws its own raised surface; place
+ * it with `style`, or put it in a {@link Floating} with
+ * `style={{ position: "static" }}`. Render it only while open.
+ *
+ * @example
+ * ```tsx
+ * {menuAnchor && (
+ *   <Floating anchor={menuAnchor}>
+ *     <ActionMenu
+ *       items={[
+ *         { key: "deploy", label: "Deploy chute" },
+ *         { key: "cut", label: "Cut chute", disabled: !deployed },
+ *       ]}
+ *       ariaLabel="Parachute actions"
+ *       style={{ position: "static" }}
+ *       onSelect={(key) => {
+ *         fire(key);
+ *         close();
+ *       }}
+ *       onDismiss={close}
+ *     />
+ *   </Floating>
+ * )}
+ * ```
+ *
+ * @category Floating
+ */
 export function ActionMenu({
   items,
   onSelect,

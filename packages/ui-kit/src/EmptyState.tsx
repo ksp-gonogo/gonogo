@@ -1,20 +1,44 @@
 import type { HTMLAttributes, ReactNode } from "react";
 import styled, { css } from "styled-components";
 
+/**
+ * Where an {@link EmptyState} sits: `inline` where it is mounted, `fill`
+ * centred in the available space.
+ *
+ * @category EmptyState
+ */
 export type EmptyStateLayout = "inline" | "fill";
 
+/**
+ * Props for {@link EmptyState}. Any other `div` attribute passes through.
+ *
+ * @category EmptyState
+ */
 export interface EmptyStateProps extends HTMLAttributes<HTMLDivElement> {
+  /** The placeholder text. */
   children?: ReactNode;
+  /** Defaults to `inline`. */
   layout?: EmptyStateLayout;
 }
 
 /**
- * Muted placeholder text shown when a panel has nothing to render.
+ * Muted placeholder text shown when a panel or list has nothing to render.
  *
  * `inline` is the default: it adds no inset of its own and sits where it is
  * mounted, taking the padding of the body or section around it, so it lines up
  * with the content it stands in for. `fill` centres in the available space and
- * is appropriate as a panel's sole child.
+ * suits a panel's sole child.
+ *
+ * @example
+ * ```tsx
+ * {vessels.length === 0 ? (
+ *   <EmptyState layout="fill">No vessels in flight</EmptyState>
+ * ) : (
+ *   <VesselList vessels={vessels} />
+ * )}
+ * ```
+ *
+ * @category EmptyState
  */
 export function EmptyState({
   children,

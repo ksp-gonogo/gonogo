@@ -2,8 +2,18 @@ import type { HTMLAttributes, ReactNode } from "react";
 import styled from "styled-components";
 import { GAP_VAR, type GapToken } from "./scales";
 
+/**
+ * Vertical alignment of the cells in a {@link Grid} row.
+ *
+ * @category Layout
+ */
 export type GridAlign = "center" | "start" | "baseline";
 
+/**
+ * Props for {@link Grid}. Any other `div` attribute passes through.
+ *
+ * @category Layout
+ */
 export interface GridProps extends HTMLAttributes<HTMLDivElement> {
   /**
    * `align-items` shorthand. Defaults to `center`; `baseline` is what a
@@ -36,7 +46,13 @@ const ALIGN_ITEMS: Record<GridAlign, string> = {
   baseline: "baseline",
 };
 
-/** CSS grid wrapper for fixed-column rows and auto-fill card layouts. */
+/**
+ * A CSS grid, either with a fixed column template (`cols`) or with as many
+ * equal columns of at least `minColWidth` as fit. With neither it is a single
+ * column.
+ *
+ * @category Layout
+ */
 export function Grid({
   cols,
   minColWidth,

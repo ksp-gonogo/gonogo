@@ -20,6 +20,8 @@ import type { FormatsFor } from "./units";
  * Bounds for a POSITION slider, refused on a point-like unit: an instant can be
  * years out, and no range wide enough to reach it leaves useful precision. Use
  * {@link RateControl} for instants.
+ *
+ * @category Form
  */
 export type SlidableRange<Unit extends string> = Unit extends PointUnit
   ? never
@@ -29,6 +31,8 @@ export type SlidableRange<Unit extends string> = Unit extends PointUnit
  * A RATE wheel beside the field, on any unit. The handle's displacement is the
  * speed the value changes at, and it springs back to centre on release, so it
  * needs no bounds.
+ *
+ * @category Form
  */
 export interface RateControl {
   /** One notch, in the unit a value of this kind MOVES BY: seconds for an instant, the field's own unit otherwise. */
@@ -37,11 +41,16 @@ export interface RateControl {
   stepsPerSecond?: number;
 }
 
+/**
+ * Props for {@link UnitInput}.
+ *
+ * @category Form
+ */
 export interface UnitInputProps<Unit extends string = string> {
   /**
    * The quantity being edited, or the whole `Reading` it arrived in. It
-   * carries its own unit, exactly as `Unit`'s does; a held reading marks the
-   * field's name and says so in it.
+   * carries its own unit, exactly as {@link Unit}'s does; a held reading marks
+   * the field's name and says so in it. Null or undefined shows an empty box.
    */
   value: UnitValue<NoInfer<Unit>> | null | undefined;
   /** The unit an emitted value carries, needed because there may be no value yet. */
@@ -91,15 +100,52 @@ function splitAcross(total: number, sizes: readonly number[]): number[] {
 }
 
 /**
- * A quantity, typed.
+ * A quantity, typed: the input counterpart of {@link Unit}, built from the same
+ * `Value<Unit>`, {@link FormatsFor} and unit conversions. It emits a `Value`,
+ * never a number, so the unit stays attached from the keystroke to the wire
+ * boundary. An unfinished edit (an emptied box, a lone minus sign) is shown but
+ * never emitted.
  *
+ * - One number field in `unit` by default
+ * - `rungs` splits the value across several fields that add up
+ * - `range` adds a slider beside the field; `rate` adds a rate wheel
+ * - A point-like unit such as `ut` is entered as a game-calendar date through
+ *   {@link MissionDateField}, and `rungs` is ignored
+ *
+ * @example
  * ```tsx
- * <UnitInput label="Tangent" unit="m/s" value={dv} onChange={setDv} />
+ * import { value } from "@ksp-gonogo/sitrep-sdk";
+ * import { UnitInput } from "@ksp-gonogo/ui-kit";
+ *
+ * const [prograde, setPrograde] = useState(value("m/s", 0));
+ *
+ * <UnitInput
+ *   label="Prograde"
+ *   unit="m/s"
+ *   value={prograde}
+ *   onChange={setPrograde}
+ * />
+ *
+ * // A duration typed as hours, minutes and seconds, emitted in seconds.
+ * <UnitInput
+ *   label="Burn time"
+ *   unit="s"
+ *   rungs={["h", "min", "s"]}
+ *   value={burn}
+ *   onChange={setBurn}
+ * />
+ *
+ * // A node time on the game calendar, nudged with a rate wheel.
+ * <UnitInput
+ *   label="Node UT"
+ *   unit="ut"
+ *   value={nodeUt}
+ *   rate={{ step: 60 }}
+ *   onChange={setNodeUt}
+ * />
  * ```
  *
- * The inverse of `Unit`, built from the same `Value<Unit>`, `FormatsFor<Unit>` and
- * registry conversions. It emits a `Value`, never a number, so the unit stays
- * attached from the keystroke to the wire boundary.
+ * @category Form
  */
 export function UnitInput<Unit extends string>({
   value: input,

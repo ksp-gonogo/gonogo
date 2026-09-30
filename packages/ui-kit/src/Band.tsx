@@ -11,13 +11,19 @@ import {
 import { VisuallyHidden } from "./VisuallyHidden";
 
 /**
- * The ONE sanctioned en dash in the codebase: the separator between a band's
- * two ends, drawn `aria-hidden` because a screen reader is given the interval
- * in words. A caller asserting on the separator imports this rather than
- * writing the character again.
+ * The en dash {@link Band} draws between its two ends. It is `aria-hidden`,
+ * since a screen reader is given the interval in words. Import it to match or
+ * assert on the separator rather than writing the character again.
+ *
+ * @category Unit
  */
 export const INTERVAL_DASH = "–";
 
+/**
+ * Props for {@link Band}. `decimals`, `format` and `as` pin both ends at once.
+ *
+ * @category Unit
+ */
 export interface BandProps<UnitSymbol extends string = string>
   extends Pick<UnitProps<UnitSymbol>, "decimals" | "format" | "as"> {
   /** The low end of the interval. */
@@ -38,19 +44,17 @@ export interface BandProps<UnitSymbol extends string = string>
  * midpoint, since the width is often the point (a mean orbital element's width
  * says whether the orbit is stable).
  *
- * <p><b>A half-absent band is absent.</b> One end alone would read as a
- * scalar.</p>
+ * - A half-absent band is absent: with either end missing it draws the null
+ *   token, since one end alone would read as a scalar
+ * - The precision follows the width: digits widen until the ends read
+ *   differently, so 6 700 km to 6 710 km never prints as `6.7 Mm` twice
+ * - Both ends are one {@link UnitSharedFormat} group, which settles the rung
+ *   and digit count across the pair, so an interval is never written in two
+ *   units (`999 m` to `1.0 km`)
+ * - With `wrapsAt`, a band spanning half the turn or more renders as
+ *   precessing rather than as an interval like `0°` to `359°`
  *
- * <p><b>The precision follows the WIDTH.</b> Digits widen until the ends read
- * differently, so 6 700 km to 6 710 km never prints as `6.7 Mm` twice.</p>
- *
- * <p><b>Both ends are ONE `<UnitSharedFormat>` group</b>, which settles the
- * rung and digit count across the pair, so an interval is never written in two
- * units (`999 m - 1.0 km`). This component formats neither end itself.</p>
- *
- * <p><b>Modular quantities get a state of their own.</b> With `wrapsAt`, a band
- * spanning half the turn or more renders as precessing rather than as an
- * interval like `0° - 359°`.</p>
+ * @category Unit
  */
 export function Band<UnitSymbol extends string = string>({
   min,

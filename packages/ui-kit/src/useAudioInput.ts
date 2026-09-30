@@ -1,8 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { audioCaptureSupport } from "./audioCaptureSupport";
 
-/** One selectable capture device. */
+/**
+ * One selectable capture device.
+ *
+ * @category AudioInputPicker
+ */
 export interface AudioInputDevice {
+  /** The browser's id for the device, what {@link AudioInputControls.select} takes. */
   deviceId: string;
   /**
    * The browser's name for the device. EMPTY until capture access is granted:
@@ -14,18 +19,23 @@ export interface AudioInputDevice {
 }
 
 /**
- * Where the capture attempt stands. The four terminal-ish failures are kept
- * apart because they are four different facts:
+ * Where the capture attempt stands. Each failure is its own status because
+ * each has a different remedy:
  *
+ * - `unasked`: nothing has been requested yet, the starting status
+ * - `requesting`: a request is with the browser, which may be prompting
+ * - `ready`: a capture is open
  * - `insecure-origin` and `no-media-devices`: capture cannot be attempted, per
- *   `audioCaptureSupport()`
+ *   {@link audioCaptureSupport}
  * - `refused`: the operator (or a standing site setting) said no. The browser
- *   holds that answer for the origin, so asking again returns it without
+ *   holds that refusal for the origin, so asking again returns it without
  *   prompting
  * - `no-device`: access is not the problem, there is nothing to capture from
  * - `failed`: the device exists and is permitted, and opening it still did not
  *   work (in use elsewhere, hardware error). `failure.name` carries the
  *   browser's own word for it
+ *
+ * @category AudioInputPicker
  */
 export type AudioInputStatus =
   | "insecure-origin"
@@ -37,6 +47,11 @@ export type AudioInputStatus =
   | "failed"
   | "ready";
 
+/**
+ * An attempt to open an input that did not work.
+ *
+ * @category AudioInputPicker
+ */
 export interface AudioInputFailure {
   /** The `DOMException` name the browser reported, e.g. `NotReadableError`. */
   name: string;
@@ -44,7 +59,13 @@ export interface AudioInputFailure {
   deviceId: string | null;
 }
 
+/**
+ * Everything {@link useAudioInput} knows about capture at one moment.
+ *
+ * @category AudioInputPicker
+ */
 export interface AudioInputState {
+  /** Where the capture attempt stands. */
   status: AudioInputStatus;
   /**
    * Every audio input the browser will admit to. Populated before access is
@@ -64,6 +85,11 @@ export interface AudioInputState {
   failure: AudioInputFailure | null;
 }
 
+/**
+ * What {@link useAudioInput} returns: the current state and the three actions.
+ *
+ * @category AudioInputPicker
+ */
 export interface AudioInputControls extends AudioInputState {
   /** Open the default input, prompting for access the first time. */
   request(): Promise<void>;
@@ -73,17 +99,27 @@ export interface AudioInputControls extends AudioInputState {
   release(): void;
 }
 
+/**
+ * Options for {@link useAudioInput} and {@link AudioInputPicker}.
+ *
+ * @category AudioInputPicker
+ */
 export interface UseAudioInputOptions {
   /**
    * Track constraints merged into every request. A `deviceId` here is
-   * overwritten by the selection, which is the whole point of the picker.
+   * overwritten by the selected device.
    */
   constraints?: MediaTrackConstraints;
   /** Called with each stream as it opens, and with null as it closes. */
   onStream?: (stream: MediaStream | null) => void;
 }
 
-/** Option text for a device, honest about a name the browser withheld. */
+/**
+ * Option text for a device: its label, or `Input <n>, name withheld` (one-based)
+ * while the browser withholds the name.
+ *
+ * @category AudioInputPicker
+ */
 export function describeAudioInput(
   device: AudioInputDevice,
   index: number,
@@ -160,12 +196,26 @@ function initialState(): AudioInputState {
 
 /**
  * The permission-and-selection half of microphone capture, with no opinion
- * about how it is drawn. `AudioInputPicker` is the drawn form and the usual
- * entry point.
+ * about how it is drawn. {@link AudioInputPicker} is the drawn form and the
+ * usual entry point.
  *
- * Every outcome is a named status rather than a boolean plus an error: a
+ * Nothing is requested until `request()` or `select()` is called. Every outcome
+ * is a named {@link AudioInputStatus} rather than a boolean plus an error: a
  * refused permission, an absent device and an insecure origin all end with no
- * stream, and each needs a different fix.
+ * stream, and each needs a different fix. The device list follows the
+ * browser's device changes, a capture whose device disappears is closed, and
+ * any open stream is stopped on unmount.
+ *
+ * @example
+ * ```tsx
+ * const mic = useAudioInput({ onStream: setStream });
+ *
+ * if (mic.status === "unasked") {
+ *   return <Button onClick={() => void mic.request()}>Enable microphone</Button>;
+ * }
+ * ```
+ *
+ * @category AudioInputPicker
  */
 export function useAudioInput(
   options: UseAudioInputOptions = {},

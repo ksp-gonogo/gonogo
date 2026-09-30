@@ -6,6 +6,11 @@ import {
   type UnitValue,
 } from "./readingCurrency";
 
+/**
+ * Props for {@link DivergingBar}.
+ *
+ * @category Meter
+ */
 export interface DivergingBarProps<Unit extends string = string> {
   /**
    * The signed quantity, or the whole reading it arrived in. Its sign picks the
@@ -31,9 +36,10 @@ export interface DivergingBarProps<Unit extends string = string> {
  * A figure that is held fades the bar and nothing more; the
  * number beside it states the currency.
  *
- * Hides itself below `DIVERGING_BAR_MIN_CONTAINER` (a `@container` query
- * against the nearest `inline-size` container, such as `Panel`), where the
- * number alone is the reading that matters.
+ * Hides itself when the nearest `inline-size` container (such as `Panel`) is
+ * narrower than 300px, where the number alone is the reading that matters.
+ *
+ * @category Meter
  */
 export function DivergingBar<Unit extends string = string>({
   value,

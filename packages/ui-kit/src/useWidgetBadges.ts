@@ -3,10 +3,14 @@ import { useContributionsBySlotId } from "./contributionsRead";
 import { useWidgetMeta } from "./WidgetMetaContext";
 
 /**
- * The current widget's badges, from its automatic `<id>.badges` contribution
- * slot. The slot id is built at runtime from the widget's registered id, so it
- * cannot be a member of the declaration-merged registry the typed
- * `useContributions` overloads read.
+ * The entries contributed to the current widget's standard
+ * `${componentId}.badges` slot, each stamped with its contribution id and
+ * owner. Empty outside a widget or without a {@link ContributionsProvider}.
+ * The dashboard reads this for each widget and hands it to
+ * {@link PanelBadgesProvider}; a widget drawn in a {@link Panel} gets the
+ * badges without calling it.
+ *
+ * @category Panel
  */
 export function useWidgetBadges(): readonly Contributed<BadgeEntry>[] {
   const meta = useWidgetMeta();

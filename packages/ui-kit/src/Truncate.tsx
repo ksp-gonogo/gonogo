@@ -1,9 +1,12 @@
 import styled from "styled-components";
 
 /**
- * Single-line ellipsis truncation for a flex child. Standalone form of the
- * truncating behaviour baked into `RowName`: use this wherever a label
- * needs to truncate outside of a `Row` (grid cells, card titles).
+ * A `span` that truncates to one line with an ellipsis, as a flex child that
+ * fills the free width. The same behaviour as {@link RowName}, for a label
+ * outside a {@link Row} (a grid cell, a card title). Its text is the neutral
+ * text colour.
+ *
+ * @category Typography
  */
 export const Truncate = styled.span`
   /* Its own theme colour rather than whatever the nearest element gives it, so no ancestor's default can reach the words. */

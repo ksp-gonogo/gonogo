@@ -11,26 +11,13 @@ import { ConsoleFrame, type ConsoleTone } from "./ConsoleFrame";
 export type { ConsoleTone };
 
 /**
- * A console: a scrolling surface, what is still crossing on the link, the line
- * the operator is typing, and one reading of how far away the other end is.
- * Composes the way `Panel` composes its parts.
+ * Props for {@link Console}. Any other `div` attribute is passed to the frame.
  *
- * ## The delay reading is this component's decision, not the widget's
- *
- * A standing chip when the other end is close enough that a countdown would be
- * over before it could be read, a queue of what is crossing when it is not;
- * never both. Both sit at the FOOT, in one column. A widget says only how far
- * away the other end is (`oneWaySeconds`), whether it can queue (`canQueue`)
- * and what is queued (`inFlight`).
- *
- * ## What is still the widget's
- *
- * The composer and the scrollback, which have no common shape across
- * consoles. This owns where they go and what is drawn around them.
+ * @category Console
  */
 export interface ConsoleProps extends ComponentPropsWithoutRef<"div"> {
   /**
-   * Which accent this console answers in, declared once for the composer's
+   * Which accent this console is drawn in, declared once for the composer's
    * border, prompt glyph and focus ring.
    */
   tone?: ConsoleTone;
@@ -81,6 +68,22 @@ export interface ConsoleProps extends ComponentPropsWithoutRef<"div"> {
 /** Every console's queue name; not a prop, so an operator never hears two. */
 const QUEUE_LABEL = "Uplink queue";
 
+/**
+ * A console: a scrolling surface, what is still crossing on the link, the line
+ * the operator is typing, and one reading of how far away the other end is.
+ *
+ * The delay reading is chosen here, not by the widget: a standing
+ * {@link SignalDelayBadge} when the other end is close enough that a countdown
+ * would be over before it could be read, an {@link InFlightList} queue of what
+ * is crossing when it is not, never both. Both sit at the foot. A widget says
+ * only how far away the other end is (`oneWaySeconds`), whether it can queue
+ * (`canQueue`) and what is queued (`inFlight`).
+ *
+ * The composer (usually a {@link ComposerBar}) and the scrollback are the
+ * widget's; this places them and draws the frame around them.
+ *
+ * @category Console
+ */
 export function Console({
   tone,
   oneWaySeconds = null,

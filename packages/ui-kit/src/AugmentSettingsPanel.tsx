@@ -2,20 +2,46 @@ import type { NamespacedAugmentSettings } from "./augments";
 import { Field, FieldLabel, FieldRow, Input } from "./Form";
 import { Switch } from "./Switch";
 
+/**
+ * Props for {@link AugmentSettingsPanel}.
+ *
+ * @category Extensions
+ */
 export interface AugmentSettingsPanelProps {
-  /** Every augment's settings block for the host widget's slot(s); see `getAugmentSettings`/`getCoverageSourceSettings`. */
+  /** Every augment's settings block for the widget's slots, as {@link getAugmentSettings} returns them. */
   settings: readonly NamespacedAugmentSettings[];
-  /** The widget's persisted per-augment values, keyed `[namespace][key]`. `undefined` when nothing has been saved yet, falls back to each field's own `default`. */
+  /** The widget's persisted per-augment values, keyed `[namespace][key]`. `undefined` when nothing has been saved yet; each field then shows its own `default`. */
   values: Record<string, Record<string, unknown>> | undefined;
-  /** Fired on every field edit with the namespace (augment id), the field key, and the new value. */
+  /** Called on every field edit with the namespace (augment id), the field key, and the new value. An emptied number field passes `undefined`. */
   onChange: (namespace: string, key: string, value: unknown) => void;
 }
 
 /**
- * Renders augment-contributed settings, one control per field, namespaced by
- * augment id so two augments' identically named settings never collide. A host
- * widget merges its `getAugmentSettings(slotName)` results (one per slot) into
- * a single `settings` array.
+ * Draws the settings augments add to a widget, one control per field: a
+ * {@link Switch} for a `boolean` field, a text or number input otherwise.
+ * Fields are namespaced by augment id, so two augments' settings with the same
+ * key never collide. A widget with several slots joins the
+ * {@link getAugmentSettings} result for each into one `settings` array. Renders
+ * nothing when `settings` is empty.
+ *
+ * @example
+ * ```tsx
+ * <AugmentSettingsPanel
+ *   settings={getAugmentSettings("power-systems.sections")}
+ *   values={draft.augmentSettings}
+ *   onChange={(augmentId, key, value) =>
+ *     setDraft((d) => ({
+ *       ...d,
+ *       augmentSettings: {
+ *         ...d.augmentSettings,
+ *         [augmentId]: { ...d.augmentSettings?.[augmentId], [key]: value },
+ *       },
+ *     }))
+ *   }
+ * />
+ * ```
+ *
+ * @category Extensions
  */
 export function AugmentSettingsPanel({
   settings,

@@ -16,9 +16,17 @@ import { useWidgetMeta } from "./WidgetMetaContext";
  * telemetry) mounts this same `ContributionsPanelStore` and writes into it.
  */
 
+/**
+ * One slot's row in a widget's contribution store: the full slot id and the
+ * entries its contributions produced, in render order.
+ *
+ * @category Extensions
+ */
 export interface ContributionSlotEntry {
-  id: string; // the slot id
+  /** The full slot id, such as `"crew-status.badges"`. */
+  id: string;
   // A primitive contribution cannot carry a provenance stamp and is stored verbatim, hence the loose type.
+  /** The entries, each stamped with its contribution id and owner when it is an object. */
   entries: readonly unknown[];
 }
 
@@ -42,13 +50,45 @@ type _EverySegmentListed =
 const _everySegmentListed: _EverySegmentListed = true;
 void _everySegmentListed;
 
-/** The contribution segments the dashboard draws for every widget: its header badges. */
+/**
+ * The standard contribution segments every widget carries: `badges`. It
+ * completes to the slot id `${componentId}.badges` for each widget, so an
+ * Uplink can fill any widget's header badges with its handle's
+ * `registerContribution` without the widget declaring the slot. Each
+ * contribution's `compute` returns `BadgeEntry` items; the dashboard supplies
+ * them to the widget's {@link Panel}, which draws them after the widget's own
+ * `panelBadges` and drops any whose id the widget already uses.
+ *
+ * @example
+ * ```ts
+ * EXAMPLE.registerContribution({
+ *   id: "cadence-badge",
+ *   contributes: "space-center-status.badges",
+ *   deps: ["example.heartbeat"],
+ *   requires: "example",
+ *   compute: (topics) =>
+ *     topics["example.heartbeat"]
+ *       ? [{ id: "cadence", label: "Publishing", tone: "info" }]
+ *       : null,
+ * });
+ * ```
+ *
+ * @category Panel
+ */
 export const FRAMEWORK_CONTRIBUTION_SEGMENTS = [
   "badges",
 ] as const satisfies readonly ComponentSlotSegment[];
 
 const EMPTY_SLOT_ENTRIES: readonly ContributionSlotEntry[] = Object.freeze([]);
 
+/**
+ * The per-widget store of contribution entries, one {@link ContributionSlotEntry}
+ * per slot. {@link ContributionsProvider} mounts and fills it; the read hooks
+ * ({@link useContributions}, {@link useContributionsBySlotId}) read it. A
+ * widget reads through those hooks rather than the store.
+ *
+ * @category Extensions
+ */
 export const ContributionsPanelStore = createPanelStore<
   Store<ContributionSlotEntry>
 >(() => createStore<ContributionSlotEntry>());
@@ -68,20 +108,45 @@ function useAllContributionSlots(): readonly ContributionSlotEntry[] {
   return useSyncExternalStore(subscribe, getSnapshot);
 }
 
-/** An untyped read by slot string. */
+/**
+ * The entries contributed to the slot with the full id `slot`, untyped. Empty
+ * when nothing contributes or no contribution store is mounted. Prefer
+ * {@link useContributions}, which types the entries from the slot's
+ * declaration; use this for a slot id built at runtime.
+ *
+ * @category Extensions
+ */
 export function useContributionsBySlotId(slot: string): readonly unknown[] {
   const snapshot = useAllContributionSlots();
   return snapshot.find((e) => e.id === slot)?.entries ?? EMPTY_ENTRIES;
 }
 
 /**
- * Every contribution that won `slot`, typed against the slot's declared entry
- * via `ContributionRegistry`.
+ * The entries contributed to a slot, for a widget to draw. Three call shapes:
  *
- * <p><b>This returns nothing at all without a `WidgetMetaContext` AND a
- * `ContributionsProvider` above it</b>, silently. The dashboard and the render
- * harness supply both; a test rendering a widget bare must mount them too, or
- * a widget that reads its OWN data through a slot draws empty.</p>
+ * - a full slot id declared in `ContributionRegistry` (`"ship-map.part-meters"`):
+ *   its entries, typed and stamped with `contributionId` and `owner`
+ * - a component segment (`"badges"`, `"filters"`, `"meters"`): completed to
+ *   `${componentId}.<segment>` for the widget it is called in, typed from
+ *   `ComponentSlotRegistry`
+ * - an array of full slot ids: an object keyed by slot id
+ *
+ * Only the highest `priority` band of contributions to a slot is present.
+ * Without a {@link WidgetMetaContext} and a {@link ContributionsProvider}
+ * above the caller it returns empty lists. The dashboard and the test render
+ * helpers mount both; a test rendering a widget bare must mount them too.
+ *
+ * @example
+ * ```tsx
+ * const badges = useContributions("badges");
+ * return badges.map((b) => (
+ *   <Badge key={b.id} tone={b.tone}>
+ *     {b.label}
+ *   </Badge>
+ * ));
+ * ```
+ *
+ * @category Extensions
  */
 export function useContributions<Slot extends ContributionSlotId>(
   slot: Slot,

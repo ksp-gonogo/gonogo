@@ -7,7 +7,11 @@ import {
 import { writeQuantity } from "../units";
 import type { RailTags } from "./railTags";
 
-/** One refused dispatch, as much of it as this text needs. Structurally the spine's `CommandRefusal`, so a hand-built refusal works too. */
+/**
+ * One refused dispatch, as much of it as this text needs. Structurally the spine's `CommandRefusal`, so a hand-built refusal works too.
+ *
+ * @category CommandDelay
+ */
 export interface CommandRefusalLike {
   errorCode: CommandErrorCode;
   /** The refinement's id, when the refusal was more specific than its root `errorCode`. */
@@ -21,8 +25,8 @@ export interface CommandRefusalLike {
   /** The limit and the actual behind the reason, when the mod sent them. */
   breach?: LimitBreach;
   /**
-   * The refusal in the GAME's own words, when the game had any to give: the arm
-   * of `ClearToSaveStatus` it came back with, a strategy's own `CanBeActivated`
+   * The refusal in the GAME's own words, when the game had any to give: the
+   * `ClearToSaveStatus` value it came back with, a strategy's own `CanBeActivated`
    * reason, a pre-flight test's warning title, a `[Description]`-tagged state
    * member's name. Preferred over every sentence written here: it stays right
    * when KSP changes and arrives localised.
@@ -34,6 +38,8 @@ export interface CommandRefusalLike {
  * A refusal a surface can render: the text's inputs plus the dispatch's own
  * `requestId`, which keys the box and is what `dismiss` takes. The spine's
  * `CommandRefusal` satisfies it structurally.
+ *
+ * @category CommandDelay
  */
 export interface CommandRefusalEntry extends CommandRefusalLike {
   id: string;
@@ -43,6 +49,8 @@ export interface CommandRefusalEntry extends CommandRefusalLike {
  * One refused dispatch as the rail renders it: the refusal itself, plus the two
  * things only the registering handle knows, its stable id and the command's
  * rail axes.
+ *
+ * @category CommandDelay
  */
 export interface RailRefusal extends CommandRefusalEntry {
   /**
@@ -119,6 +127,8 @@ function said(detail: string | undefined): string | null {
  *
  * Names are user-supplied and unbounded, so whatever renders this must WRAP:
  * truncation eats the numbers off the end.
+ *
+ * @category CommandDelay
  */
 export function commandRefusalSentence(refusal: CommandRefusalLike): string {
   return sentence(refusal, "refused");
@@ -134,6 +144,8 @@ export function commandRefusalSentence(refusal: CommandRefusalLike): string {
  * The same clause as {@link commandRefusalSentence}, so a control never says
  * one thing before the press and another after. "Unavailable" because nothing
  * has been asked yet: a gate is a condition that holds.
+ *
+ * @category CommandDelay
  */
 export function commandGateSentence(gate: CommandRefusalLike): string {
   return sentence(gate, "unavailable");

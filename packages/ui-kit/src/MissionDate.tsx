@@ -14,6 +14,8 @@ import { VisuallyHidden } from "./VisuallyHidden";
  * have different light-times. Labels are `SCET` and `AT <vantage>`, never "RT",
  * which reads as the opposite of the delayed clock. A space-centre channel
  * describes no craft, so it takes no context.
+ *
+ * @category MissionDate
  */
 export type TimeContext =
   /** The craft's own clock: when the event happens, or happened, out there. */
@@ -66,6 +68,11 @@ const MissionDate__Context = styled.span`
   text-transform: none;
 `;
 
+/**
+ * Props for {@link MissionDate}.
+ *
+ * @category MissionDate
+ */
 export interface MissionDateProps {
   /**
    * Universal time: seconds since the game's epoch, not a duration. A plain
@@ -94,10 +101,25 @@ export interface MissionDateProps {
  * A universal time, rendered as a date on the calendar the game is running:
  * `Y1 D5 03:22:37` under stock, `14 Mar 1957 03:22:37` under a real calendar.
  *
- * Not `<Unit>`: a UT is an instant, an offset from the epoch, and 9,201,600 of
- * them is Year 2 Day 1, not "106 days". The calendar is the one the game
- * reports on `time.calendar`. A missing or non-finite value renders
- * `NULL_DISPLAY`, not the epoch.
+ * An instant rather than a quantity: {@link Unit} draws lengths of time, and
+ * this draws points in it, since 9,201,600 seconds after the epoch is Year 2
+ * Day 1, not "106 days". The calendar is the one the game reports on
+ * `time.calendar`. A missing or non-finite value renders {@link NULL_DISPLAY},
+ * not the epoch. A held `Reading` keeps its date and takes the held mark.
+ *
+ * @example
+ * ```tsx
+ * import { MissionDate } from "@ksp-gonogo/ui-kit";
+ *
+ * // A UT field off a payload, in seconds since the epoch.
+ * <MissionDate value={course.completesAtUt} />
+ *
+ * // An event time under signal delay, qualified with its clock.
+ * <MissionDate value={nodeUt} context={{ frame: "scet" }} />
+ * <MissionDate value={nodeUt} context={{ frame: "received", vantage: "KSC" }} />
+ * ```
+ *
+ * @category MissionDate
  */
 export function MissionDate({ value, context }: MissionDateProps) {
   // A held instant stays true, so a held reading adds only the mark, its grade and its last-valid instant.

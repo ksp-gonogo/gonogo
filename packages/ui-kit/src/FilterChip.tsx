@@ -2,13 +2,45 @@ import styled from "styled-components";
 import { fitBox } from "./fitBox";
 import { focusRing } from "./focusRing";
 
+/**
+ * Props for {@link FilterChip}.
+ *
+ * @category FilterList
+ */
 export interface FilterChipProps {
+  /** The chip's text, which is also its accessible name. */
   label: string;
+  /** Whether the filter is on. Drives `aria-pressed` and the filled look. */
   selected: boolean;
+  /** An optional count drawn after the label, such as how many rows the filter matches. */
   count?: number;
+  /** Called on press; flip `selected` here. */
   onToggle: () => void;
 }
 
+/**
+ * A pill-shaped toggle `button` for one filter term, with `aria-pressed`
+ * following `selected` and an optional count after the label. It is what
+ * {@link useRowFilter} draws for each contributed term; use it directly for a
+ * filter row of your own.
+ *
+ * @example
+ * ```tsx
+ * <Cluster justify="start" wrap role="group" aria-label="Filters">
+ *   {BODIES.map((body) => (
+ *     <FilterChip
+ *       key={body}
+ *       label={body}
+ *       selected={shown.has(body)}
+ *       count={countFor(body)}
+ *       onToggle={() => toggle(body)}
+ *     />
+ *   ))}
+ * </Cluster>
+ * ```
+ *
+ * @category FilterList
+ */
 export function FilterChip({
   label,
   selected,

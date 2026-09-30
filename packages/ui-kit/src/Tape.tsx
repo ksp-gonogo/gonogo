@@ -1,15 +1,3 @@
-/**
- * Tape: a vertical linear scale with a moving pointer, the altimeter/airspeed
- * strip instrument. A ruler of values with a pointer at the current `value`,
- * marked `zones` (e.g. an ignition band), point `markers` (e.g. a gear-deploy
- * altitude) and an optional `groundLine`. Purely presentational.
- *
- * Renders as a `role="meter"` on the current value (aria-valuenow clamped into
- * range, aria-valuetext carrying the formatted value). The SVG scale is
- * `aria-hidden`, so the consuming widget owns a text summary of any zones or
- * markers an operator needs to hear.
- */
-
 import { bandIn, type Value } from "@ksp-gonogo/sitrep-sdk";
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
@@ -29,6 +17,11 @@ import {
 import { placedOnScale, standsApart } from "./standsApart";
 import { type FormatsFor, quantityScale, speakQuantity } from "./units";
 
+/**
+ * A shaded band on a {@link Tape}'s scale, such as an ignition band.
+ *
+ * @category Gauge
+ */
 export interface TapeZone<Unit extends string = string> {
   /** Lower bound of the band. */
   from: Value<Unit>;
@@ -40,6 +33,11 @@ export interface TapeZone<Unit extends string = string> {
   label?: string;
 }
 
+/**
+ * A point marker on a {@link Tape}'s scale, such as a gear-deploy altitude.
+ *
+ * @category Gauge
+ */
 export interface TapeMarker<Unit extends string = string> {
   /** Value at which to draw the marker. */
   value: Value<Unit>;
@@ -49,6 +47,11 @@ export interface TapeMarker<Unit extends string = string> {
   label?: string;
 }
 
+/**
+ * Props for {@link Tape}.
+ *
+ * @category Gauge
+ */
 export interface TapeProps<Unit extends string = string> {
   /**
    * Which side of the track the scale labels sit on. Default "left" (track
@@ -62,7 +65,17 @@ export interface TapeProps<Unit extends string = string> {
   min: Value<Unit>;
   /** Top of the scale. */
   max: Value<Unit>;
+  /**
+   * Drawn width in pixels.
+   *
+   * @defaultValue `92`
+   */
   width?: number;
+  /**
+   * Drawn height in pixels.
+   *
+   * @defaultValue `220`
+   */
   height?: number;
   /**
    * Fill the parent's height instead of using a fixed `height`, as a
@@ -72,7 +85,9 @@ export interface TapeProps<Unit extends string = string> {
   fillHeight?: boolean;
   /** Interior tick spacing. Omit for no interior ticks. */
   tickStep?: Value<Unit>;
+  /** Shaded bands on the scale. */
   zones?: ReadonlyArray<TapeZone<Unit>>;
+  /** Point markers on the scale. */
   markers?: ReadonlyArray<TapeMarker<Unit>>;
   /** Draw a distinct ground line at this value (e.g. 0). */
   groundLine?: Value<Unit>;
@@ -82,7 +97,7 @@ export interface TapeProps<Unit extends string = string> {
    * strip never mixes "500 m" and "1.0 km".
    */
   format?: FormatsFor<Unit>;
-  /** Accessible label (e.g. "Altitude above terrain"). Required for a11y. */
+  /** Accessible label (e.g. "Altitude above terrain"). Defaults to `"Tape"`, so always pass one. */
   ariaLabel?: string;
 }
 
@@ -92,6 +107,22 @@ const PAD_BOTTOM = 12;
 const TRACK_X = 52;
 const TRACK_W = 10;
 
+/**
+ * A vertical linear scale with a moving pointer, the altimeter or airspeed
+ * strip instrument. A ruler of values with a pointer at the current `value`,
+ * marked `zones` (e.g. an ignition band), point `markers` (e.g. a gear-deploy
+ * altitude) and an optional `groundLine`.
+ *
+ * With no value it draws no pointer. Handed a whole `Reading`, a held figure
+ * is marked as held and a model's interval puts two bounds on the scale.
+ *
+ * Renders as a `role="meter"` on the current value (`aria-valuenow` clamped
+ * into range, `aria-valuetext` carrying the written value). The SVG scale is
+ * `aria-hidden`, so the widget using it provides a text summary of any zones or
+ * markers an operator needs to hear.
+ *
+ * @category Gauge
+ */
 export function Tape<Unit extends string = string>({
   labelSide = "left",
   value,

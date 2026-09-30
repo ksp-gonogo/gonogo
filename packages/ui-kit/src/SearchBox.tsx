@@ -7,7 +7,7 @@ import { CloseIcon } from "./Icons";
 /**
  * The props of {@link SearchBox}.
  *
- * @category Forms
+ * @category Form
  */
 export interface SearchBoxProps
   extends Omit<
@@ -24,7 +24,7 @@ export interface SearchBoxProps
  * A search box with the kit's own clear control, shown while there is text to
  * clear. Clearing hands focus back to the field.
  *
- * @category Forms
+ * @category Form
  */
 export function SearchBox({
   value,

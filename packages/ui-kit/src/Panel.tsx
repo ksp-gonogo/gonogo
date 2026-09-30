@@ -129,6 +129,11 @@ const PanelTitle__Box = styled.h3`
   text-overflow: ellipsis;
 `;
 
+/**
+ * Props for `Panel.Title`, the panel heading. Other `h3` attributes pass through.
+ *
+ * @category Panel
+ */
 export interface PanelTitleProps
   extends Omit<ComponentPropsWithoutRef<"h3">, "title"> {
   /**
@@ -834,11 +839,17 @@ const ScrollOverflowGlow = styled.div<{
 `;
 
 /**
- * Scrolling region with glow indicators at the top and bottom edges when there
- * is content to scroll to. A panel body already scrolls and glows; use this for
- * a second scrolling region inside a widget (a sidebar list, a terminal log).
+ * A scrolling region with a glow at the top and bottom edges while there is
+ * content to scroll to. A panel body already scrolls and glows; use this for a
+ * second scrolling region inside a widget (a sidebar list, a terminal log).
+ * Its native scrollbar is hidden, and it takes keyboard focus when its content
+ * overflows so it can be scrolled from the keyboard.
  *
- * Forwards its ref to the inner scroll element; `className` styles the root.
+ * The ref is forwarded to the inner scroll element; `className` and other
+ * `div` attributes go to the outer root. A `styled(ScrollArea)` can reach the
+ * inner element through its `data-scroll-area-inner` attribute.
+ *
+ * @category Panel
  */
 export const ScrollArea = forwardRef<
   HTMLDivElement,
@@ -877,10 +888,12 @@ export const ScrollArea = forwardRef<
 });
 
 /**
- * Where the sidebar sits relative to the body, in logical terms: `end` is the
- * right edge in LTR and the left in RTL, and the trailing edge when the sidebar
- * sits under the body. `end` is the default because a sidebar is secondary
- * content and should follow the body in reading order.
+ * Where a panel's sidebar sits relative to the body, in logical terms: `end` is
+ * the right edge in LTR and the left in RTL, and the bottom when the sidebar
+ * sits under the body. {@link Panel} defaults to `end`. The sidebar always
+ * follows the body in the DOM, whichever side it is drawn on.
+ *
+ * @category Panel
  */
 export type PanelSidebarSide = "start" | "end";
 
@@ -956,15 +969,22 @@ const PanelSplit__Box = styled.div<{
       : ""}
 `;
 
+/**
+ * Props for the grid that holds a panel's body and sidebar. {@link Panel}
+ * draws this grid itself when `panelSidebar` is set, taking `sidebarSide` and
+ * `sidebarSize` as `side` and `size`.
+ *
+ * @category Panel
+ */
 export interface PanelSplitProps extends ComponentPropsWithoutRef<"div"> {
-  /** See `PanelSidebarSide`. Defaults to `end`. */
+  /** Which edge the sidebar sits against. See {@link PanelSidebarSide}. Defaults to `end`. */
   side?: PanelSidebarSide;
   /**
    * Size of the sidebar track: a width on the inline axis, a height on the
    * block axis. Defaults to `14rem` and `40%` respectively.
    */
   size?: string;
-  /** The body track holds the delay rail's band inside its scroller, so give the sidebar a matching top inset. */
+  /** Gives the sidebar a top inset matching the delay rail's band, which the body track holds inside its scroller. */
   railBand?: boolean;
 }
 
@@ -1043,7 +1063,7 @@ const PanelSidebar__Box = styled.div`
  *
  * It carries its own `ScrollArea` and is never inside `Panel.Body`, so
  * scrolling it does not scroll the drawing it annotates. It carries the body's
- * inset too; inside a `Panel.Split` the edge facing the body gives its inset
+ * inset too; inside the split grid `panelSidebar` draws, the edge facing the body gives its inset
  * back, since the body already pays one there.
  */
 export function PanelSidebar({
@@ -1131,10 +1151,11 @@ export function PanelGlow({
   );
 }
 
-/*
- * `Panel` is exclusively a composition of the named subcomponents, with no
- * markup of its own, so a widget can reproduce any variant by hand. Title and
- * toolbar sit beside the scrolling body, so the header stays pinned.
+/**
+ * Props for {@link Panel}. Any other `div` attribute passes through to the
+ * panel's container.
+ *
+ * @category Panel
  */
 export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
   /**
@@ -1157,8 +1178,9 @@ export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
    */
   sections?: Exclude<ReactNode, boolean> | readonly ReactNode[];
   /**
-   * Narrowest a section column may be before the panel gives up on offering a
-   * second one. Defaults to `DEFAULT_SECTION_MIN_WIDTH`.
+   * Narrowest a section column may be before the panel stops offering a
+   * second one. Defaults to `13rem`, which gives two columns in a panel about
+   * 470px wide.
    *
    * Raise it for a widget whose sections carry long rows and read badly at the
    * default width; set it to `100%` for one that should never columnise at all.
@@ -1180,25 +1202,27 @@ export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
   /**
    * The widget's own state badges (paused, no signal, full), drawn as standard
    * pills in the header aside ahead of the badges contributed to the widget's
-   * `<id>.badges` slot. A contributed badge sharing an id with one of these is
-   * dropped. Badges render alongside whatever `panelAside` supplies.
+   * `${componentId}.badges` slot. A contributed badge sharing an id with one of
+   * these is dropped. Badges render alongside whatever `panelAside` supplies.
    */
   panelBadges?: readonly PanelBadge[];
   /**
-   * This panel's own stream status, for the grades the host does not derive.
+   * This panel's own stream status, shown as a badge in the header aside and
+   * announced when it changes. `live` shows nothing, and `"none"` suppresses
+   * the badge.
    *
-   * The host already contributes the blackout grades (`recorded`,
-   * `last-before-blackout`), which are stamped per subject. Every other grade is
-   * opt-in, because `absent` means opposite things per topic. Set this for a
-   * panel reading one specific topic, or to `"none"` to suppress the badge. It
-   * merges worst-first with the host's contribution.
+   * The dashboard already derives the blackout grades (`recorded`,
+   * `last-before-blackout`) across the widget's declared channels; every other
+   * grade shows only when set here, since `absent` means different things for
+   * different Topics. Set it for a panel reading one specific Topic. It merges,
+   * worst first, with the dashboard's own status and any `report` badges.
    */
   panelStatus?: StreamStatusValue | "none";
   /**
    * A full-width row of controls under the header, pinned outside the
    * scrolling body. For widgets whose controls are a row in their own right
    * (a map's layer pickers, a graph's series toggles); a single chip or select
-   * belongs in `panelAside` instead. See `Panel.Toolbar`.
+   * belongs in `panelAside` instead. Drawn in a `Panel.Toolbar`.
    */
   panelToolbar?: ReactNode;
   /**
@@ -1209,33 +1233,28 @@ export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
    */
   panelFilter?: RowFilter;
   /**
-   * Content is sized to fit and never scrolls. Forwarded to `Panel.Body`
-   * rather than handled here, so manual composition stays reproducible.
+   * Lays the content out for a small tile: centred in the room under the
+   * header while it fits, top-aligned when it does not.
    *
-   * Beats `fill` on a section: under this prop every section stays an ordinary
-   * grid item, since a filling section would eat the space the centring is
-   * measured against.
+   * It overrides `fill` on a section: with this set, every section stays an
+   * ordinary grid item.
    */
   fitToSize?: boolean;
   /**
-   * The tiny tile's header: the title row leaves the flow entirely and the
-   * content centres on the whole panel instead of the room under a header.
-   * The title stays an accessible sr-only heading, drawn as a small pill
-   * hugging its text while the panel is hovered or focused, top-left. The
-   * panel itself becomes the tab stop, named by that heading through
-   * `aria-labelledby`; the header aside (badges, the status summary) stays
-   * drawn, pinned top-right. The delay rail band is unaffected: it keeps
-   * reserving its strip above the content exactly as it does outside tiny
-   * mode.
+   * The tiny tile's header: the title row leaves the flow and the content
+   * centres on the whole panel. The title stays an accessible heading, hidden
+   * visually and drawn as a small pill top-left while the panel is hovered or
+   * focused. The panel itself becomes a tab stop, named by that heading. The
+   * header aside (badges, the status summary) stays drawn, pinned top-right,
+   * and the delay rail keeps its strip above the content.
    */
   hoverTitle?: boolean;
   /**
    * A pinned strip at the very bottom of the panel, OUTSIDE the scrolling
-   * body: the one readout an operator must never have to scroll for (Ship
-   * Systems' power meter, a mission clock). Renders after the glow region
-   * with its own top border, so body content scrolls behind the glow and
-   * the footer stays put. Keep it to a single row; anything taller belongs
-   * in the body or a sidebar.
+   * body: the one readout an operator must never have to scroll for (a power
+   * meter, a mission clock). It has its own top border and stays put while the
+   * body scrolls. Keep it to a single row; anything taller belongs in the body
+   * or a sidebar.
    */
   panelFooter?: ReactNode;
   /**
@@ -1254,7 +1273,7 @@ export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
    */
   panelSidebar?: ReactNode;
   /**
-   * Which edge the sidebar sits against, logically. See `PanelSidebarSide`.
+   * Which edge the sidebar sits against, logically. See {@link PanelSidebarSide}.
    * Defaults to `end`.
    */
   sidebarSide?: PanelSidebarSide;
@@ -1264,14 +1283,13 @@ export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
    */
   sidebarSize?: string;
   /**
-   * Whether this panel hosts the universal `sections` augment segment at the
-   * end of its body. Defaults to true, which is what makes the extension point
-   * universal: an author binds `${componentId}.sections` for any widget without
-   * that widget having declared, named, or positioned a slot.
+   * Whether this panel mounts the standard `${componentId}.sections` augment
+   * slot at the end of its body. Defaults to true, so an Uplink can add a
+   * section to any widget without the widget declaring a slot.
    *
-   * Set false only when the widget renders `<WidgetSections>` itself (inside a
-   * tab, a named section, a column of a split); both mounts would otherwise
-   * render every bound augment twice.
+   * Set false only when the widget renders {@link WidgetSections} itself
+   * (inside a tab, a named section, a column of a sidebar); with both mounted,
+   * every bound augment renders twice.
    */
   panelSections?: boolean;
 }
@@ -1297,18 +1315,55 @@ function mergeBadges(
   return [...own, ...contributed.filter((b) => !taken.has(b.id))];
 }
 
-/** The augment segments `Panel` mounts for every widget. */
+/**
+ * The standard augment segments {@link Panel} mounts for every widget:
+ * `sections` and `actions`. Each completes to the slot id
+ * `${componentId}.<segment>` for the widget the panel belongs to, so an Uplink
+ * can bind `"<widget-id>.sections"` or `"<widget-id>.actions"` with
+ * `registerAugment` for any widget, whether or not the widget declares slots of
+ * its own. Neither segment passes props (see {@link AugmentSegmentRegistry}).
+ *
+ * - `sections`: body content added after everything the widget draws. When the
+ *   widget passes `sections`, each bound augment is its own item in the last
+ *   section grid, so it flows into a column beside the widget's own sections.
+ *   A widget can move it with {@link WidgetSections}
+ * - `actions`: controls in the panel header's right-hand aside, after the
+ *   widget's own `panelAside` and before its badges. While nothing available
+ *   is bound, the header draws no aside for it
+ *
+ * @category Panel
+ */
 export const FRAMEWORK_AUGMENT_SEGMENTS = ["sections", "actions"] as const;
 
 const NO_SEGMENT_PROPS: Record<string, never> = Object.freeze({});
 
 /**
- * The universal `${componentId}.sections` augment slot: body sections an Uplink
- * appends below what the host widget renders, needing nothing from the host.
+ * Renders every augment bound to the current widget's standard
+ * `${componentId}.sections` slot, in priority order, skipping any whose
+ * `requires` Domain is not present. The augments get no props.
  *
- * `Panel` mounts one at the end of its body already, so a widget renders this
- * itself only to put the seam somewhere else, and must then pass
- * `panelSections={false}`. Outside a widget context it renders nothing.
+ * {@link Panel} already mounts this at the end of its body, so a widget
+ * renders it itself only to place the sections somewhere else (inside a tab,
+ * a named section), and must then pass `panelSections={false}` to its `Panel`.
+ * Outside a widget it renders nothing.
+ *
+ * @example
+ * ```tsx
+ * <Panel
+ *   panelTitle="Power"
+ *   panelSections={false}
+ *   sections={
+ *     <Tabs
+ *       tabs={[
+ *         { id: "bus", label: "Bus", content: <BusView /> },
+ *         { id: "more", label: "More", content: <WidgetSections /> },
+ *       ]}
+ *     />
+ *   }
+ * />
+ * ```
+ *
+ * @category Panel
  */
 export function WidgetSections(): ReactElement {
   return <AugmentSlot segment="sections" props={NO_SEGMENT_PROPS} />;
@@ -1814,6 +1869,137 @@ function holdsOnlyAFrame(section: ReactNode): boolean {
   }
 }
 
+/**
+ * The frame every widget draws in: a bordered surface with a pinned header
+ * (title plus a right-hand aside of controls and badges), a scrolling body
+ * with a glow at whichever edge has more to scroll to, and optional toolbar,
+ * sidebar, trend strip and footer. Give it content through `sections`: each
+ * entry is normally a `Section`, and the panel flows them down one column in
+ * a portrait tile and across two or three in a landscape one. A `Section fill`
+ * takes the height left over. The panel also reserves a strip above the
+ * header for the delay rail, which shows this widget's commands in flight.
+ *
+ * The header aside holds, in order, `panelAside`, the `actions` augments,
+ * the badges (the widget's own `panelBadges`, then contributed ones), and a
+ * status badge for the worst of the panel's reported states. When the title
+ * and aside no longer fit side by side, the aside collapses to one status dot
+ * per severity plus a toggle that opens it.
+ *
+ * ## Standard slots
+ *
+ * Every widget drawn in a `Panel` carries three extension slots without
+ * declaring them, each named `${componentId}.<segment>` after the widget's
+ * registered id (`"crew-status.badges"`, for example):
+ *
+ * - `${componentId}.sections`: an augment slot, bound with `registerAugment`.
+ *   Each augment renders after everything the widget draws in its body; when
+ *   the widget passes `sections`, each augment is its own item in the last
+ *   section grid, so returning a `Section` flows it into a column beside the
+ *   widget's own. Its component gets no props. A widget can move the slot with
+ *   {@link WidgetSections} and `panelSections={false}`
+ * - `${componentId}.actions`: an augment slot for controls in the header
+ *   aside, after `panelAside` and before the badges. Its component gets no
+ *   props. Nothing is reserved for it while nothing is bound
+ * - `${componentId}.badges`: a contribution slot, filled with an Uplink
+ *   handle's `registerContribution`, whose `compute` returns `BadgeEntry`
+ *   items (`id`, `label`, `tone`, and an optional `held` grade). The panel
+ *   draws them after the widget's own `panelBadges`, dropping any whose id the
+ *   widget already uses. A held entry shows its grade's word in place of its
+ *   label (see {@link badgeFace}), and any entry with a tone other than
+ *   `neutral` also feeds the panel's status summary
+ *
+ * An augment in `sections` or `actions` renders only while the Domain named in
+ * its `requires` is present, and a badge contribution computes only while its
+ * `requires` Domain is present, so an Uplink whose mod is not running leaves
+ * the widget unchanged. An augment reads its own Topics; for what the widget
+ * is focused on, it reads the widget's scope with `useWidgetScope`. The
+ * segment lists are {@link FRAMEWORK_AUGMENT_SEGMENTS} and
+ * {@link FRAMEWORK_CONTRIBUTION_SEGMENTS}.
+ *
+ * ## Parts
+ *
+ * `Panel` renders its parts and draws no markup of its own, so a widget can
+ * compose a variant by hand from `Panel.Container` (the bordered frame),
+ * `Panel.Context` (links the body's scroller to the glow), `Panel.Delay` (the
+ * delay rail), `Panel.Header`, `Panel.Title`, `Panel.Toolbar`, `Panel.Glow`,
+ * `Panel.Body` (the scrolling, inset content box), `Panel.Section`,
+ * `Panel.Sidebar` and `Panel.Footer`.
+ *
+ * @example
+ * A typical widget body:
+ * ```tsx
+ * <Panel
+ *   panelTitle="Fuel Status"
+ *   compactTitle="Fuel"
+ *   panelBadges={lowFuel ? [{ id: "low", label: "Low", tone: "warn" }] : undefined}
+ *   panelFooter={
+ *     <Text>
+ *       Total <Unit value={total} />
+ *     </Text>
+ *   }
+ *   sections={[
+ *     <Section key="stages" title="Stages">
+ *       <StageList stages={stages} />
+ *     </Section>,
+ *     <Section key="tanks" title="Tanks">
+ *       <TankList tanks={tanks} />
+ *     </Section>,
+ *   ]}
+ * />
+ * ```
+ *
+ * @example
+ * An Uplink adding a section and a header badge to another widget through its
+ * standard slots:
+ * ```tsx
+ * import {
+ *   defineUplinkClient,
+ *   registerAugment,
+ *   useTelemetry,
+ * } from "@ksp-gonogo/sitrep-sdk";
+ * import { Section, Text, Unit } from "@ksp-gonogo/ui-kit";
+ *
+ * export const EXAMPLE = defineUplinkClient({
+ *   id: "example",
+ *   version: "0.0.1",
+ *   name: "Example",
+ * });
+ *
+ * function CadenceSection() {
+ *   const heartbeat = useTelemetry("example.heartbeat");
+ *   if (heartbeat.state !== "observed") return null;
+ *   return (
+ *     <Section title="Example">
+ *       <Text>
+ *         Last beat at UT <Unit value={heartbeat.value.ut} />
+ *       </Text>
+ *     </Section>
+ *   );
+ * }
+ *
+ * registerAugment({
+ *   id: "example-cadence-section",
+ *   augments: "space-center-status.sections",
+ *   requires: "example",
+ *   channels: ["example.heartbeat"],
+ *   component: CadenceSection,
+ *   owner: EXAMPLE,
+ * });
+ *
+ * EXAMPLE.registerContribution({
+ *   id: "cadence-badge",
+ *   contributes: "space-center-status.badges",
+ *   deps: ["example.heartbeat"],
+ *   requires: "example",
+ *   compute: (topics) =>
+ *     topics["example.heartbeat"]
+ *       ? [{ id: "cadence", label: "Publishing", tone: "info" }]
+ *       : null,
+ * });
+ * ```
+ *
+ * @category Panel
+ */
 export const Panel = Object.assign(PanelRoot, {
   Context: PanelContextProvider,
   Delay: PanelDelayRail,

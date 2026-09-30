@@ -18,7 +18,11 @@ import {
 import { LiveRegion } from "../LiveRegion";
 import { InFlightFace } from "./InFlightFace";
 
-/** How long an armed control stays armed before it quietly disarms. The ONE definition. */
+/**
+ * How long, in milliseconds, an armed {@link CommandButton} waits for its confirming press before it returns to rest.
+ *
+ * @category CommandButton
+ */
 export const ARM_TIMEOUT_MS = 4000;
 
 /**
@@ -35,7 +39,11 @@ export const REFUSAL_TIMEOUT_MS = 8000;
  */
 export const PENDING_BACKSTOP_MS = 30_000;
 
-/** What the mod says about this command before it is pressed, declared structurally; `useCommand`'s `gate` satisfies it. */
+/**
+ * What the mod says about a command before it is pressed. Declared structurally; `useCommand`'s `gate` satisfies it.
+ *
+ * @category CommandButton
+ */
 export interface CommandGateLike extends CommandRefusalLike {
   /** The game EVALUATED this and said no. */
   blocked: boolean;
@@ -52,6 +60,8 @@ export interface CommandGateLike extends CommandRefusalLike {
  * it: the result envelope, carrying the command's own value on `payload`. The
  * default {@link CommandButtonHandle} reply, so a reader cannot treat the
  * envelope as the payload; `payload` stays `unknown` until narrowed.
+ *
+ * @category CommandButton
  */
 export interface CommandReplyLike {
   /** Whether the command ran. False pairs with the refusal the handle surfaces. */
@@ -61,11 +71,14 @@ export interface CommandReplyLike {
 }
 
 /**
- * The command handle this control dispatches on: the delay-rail handle plus a
+ * The command handle a {@link CommandButton} dispatches on: the delay-rail handle plus a
  * way to send. Declared structurally; `useCommand`'s return value satisfies it.
+ *
+ * @category CommandButton
  */
 export interface CommandButtonHandle<Result = CommandReplyLike, Args = unknown>
   extends CommandDelayHandle {
+  // A method rather than a function-valued property, so strictFunctionTypes does not check typed args contravariantly and reject every typed handle.
   /**
    * Dispatch. The promise resolves when the command is confirmed and rejects
    * when it is refused, lost, or the machinery failed, so the control clears its
@@ -74,9 +87,6 @@ export interface CommandButtonHandle<Result = CommandReplyLike, Args = unknown>
    * `Result` carries the reply's real type to
    * {@link CommandButtonProps.onConfirmed}; a handle from `useCommand("...")`
    * supplies it from the generated command map.
-   *
-   * A method rather than a function-valued property, so `strictFunctionTypes`
-   * does not check typed args contravariantly and reject every typed handle.
    */
   send(args?: Args, opts?: { label?: string; topic?: string }): Promise<Result>;
   /**
@@ -87,7 +97,7 @@ export interface CommandButtonHandle<Result = CommandReplyLike, Args = unknown>
 }
 
 /**
- * Where the control is in the one command lifecycle.
+ * Where a {@link CommandButton} is in the command lifecycle.
  *
  * - `idle`: at rest
  * - `armed`: the operator has asked, and is being asked to mean it. Only
@@ -98,12 +108,15 @@ export interface CommandButtonHandle<Result = CommandReplyLike, Args = unknown>
  * - `lost`: nothing came back. Not `idle`, which would look like a confirmed
  *   command, and not `refused`, because the game decided nothing and the
  *   command may have executed
- * - `found`: this control lost a command, and that command has since answered.
+ * - `found`: this control lost a command, and that command has since replied.
  *   Not a confirmation: the operator may already have re-sent it
  * - `blocked`: the game will refuse this, and said so before anyone pressed.
  *   The control is dark but NOT `disabled`: it carries `aria-disabled`, stays
- *   focusable, and answers a press by saying why. A gate verdict is advice,
- *   sampled and possibly a beat stale, and the dispatch re-evaluates anyway
+ *   focusable, and responds to a press by showing why. A gate verdict is
+ *   advice, sampled and possibly a beat behind, and the dispatch is evaluated
+ *   again by the game anyway
+ *
+ * @category CommandButton
  */
 export type CommandButtonPhase =
   | "idle"
@@ -114,22 +127,47 @@ export type CommandButtonPhase =
   | "found"
   | "blocked";
 
+/**
+ * The tones a {@link CommandButton} can draw in; the same set as a plain `Button`.
+ *
+ * @category CommandButton
+ */
 export type CommandButtonTone = ButtonTone;
+
+/**
+ * The two sizes of {@link CommandButton}.
+ *
+ * @category CommandButton
+ */
 export type CommandButtonSize = "sm" | "md";
 
+/**
+ * Options for {@link useCommandButton}.
+ *
+ * @category CommandButton
+ */
 export interface UseCommandButtonOptions<
   Result = CommandReplyLike,
   Args = unknown,
 > {
+  /** The command the control dispatches, usually the return of `useCommand`. */
   handle: CommandButtonHandle<Result, Args>;
-  /** See {@link CommandButtonProps.args}, including why this is `NoInfer`. */
+  /** Args for the dispatch. See {@link CommandButtonProps.args}. */
   args?: NoInfer<Args>;
+  /** The dispatch's operator-facing description, which a refusal or loss sentence is named after. */
   commandLabel?: string;
   /** Receives the dispatch's resolved result. See {@link CommandButtonProps.onConfirmed}. */
   onConfirmed?: (result: Result) => void;
 }
 
+/**
+ * What {@link useCommandButton} returns: the current phase, a flag per phase,
+ * the composed sentences to show, and `press`.
+ *
+ * @category CommandButton
+ */
 export interface CommandButtonState {
+  /** The current phase. `blocked` whenever the gate refuses and no outcome or dispatch is standing. */
   phase: CommandButtonPhase;
   /** Dispatched, nothing back. */
   isPending: boolean;
@@ -139,7 +177,7 @@ export interface CommandButtonState {
   isRefused: boolean;
   /** Nothing came back. Not a verdict, and not the same as at rest. */
   isLost: boolean;
-  /** A command this control lost has since answered. `foundText` says what it said. */
+  /** A command this control lost has since replied. `foundText` says what the reply was. */
   isFound: boolean;
   /**
    * The game will refuse this if it is pressed, and said so in advance.
@@ -184,10 +222,38 @@ export interface CommandButtonState {
 }
 
 /**
- * The command lifecycle with no rendering attached, for a control whose chrome
- * genuinely differs. The behaviour is never duplicated: a caller writes no
- * `useState`, no arm timeout and no reconciliation. `CommandButton` is this
- * hook plus the default rendering.
+ * The {@link CommandButton} lifecycle with no rendering attached, for a control
+ * whose chrome differs. The caller draws each phase and wires its own click to
+ * `press`; it writes no state, no arm timeout and no reply handling.
+ * `CommandButton` is this hook plus the default rendering.
+ *
+ * @example
+ * ```tsx
+ * function RecoverButton() {
+ *   const recover = useCommand("ksp.recover");
+ *   const { isArmed, isPending, isRefused, refusalText, press } =
+ *     useCommandButton({ handle: recover, commandLabel: "Recover" });
+ *   const word = isPending
+ *     ? "Recovering..."
+ *     : isRefused
+ *       ? "Refused"
+ *       : isArmed
+ *         ? "Confirm recover"
+ *         : "Recover";
+ *   return (
+ *     <button
+ *       type="button"
+ *       aria-busy={isPending || undefined}
+ *       title={refusalText ?? undefined}
+ *       onClick={() => press(true)}
+ *     >
+ *       {word}
+ *     </button>
+ *   );
+ * }
+ * ```
+ *
+ * @category CommandButton
  */
 export function useCommandButton<Result = CommandReplyLike, Args = unknown>({
   handle,
@@ -390,6 +456,11 @@ type NativeButtonProps = Omit<
   "onClick" | "type" | "children" | "aria-pressed" | "aria-busy"
 >;
 
+/**
+ * Props for {@link CommandButton}. Any other native button attribute is passed through.
+ *
+ * @category CommandButton
+ */
 export interface CommandButtonProps<Result = CommandReplyLike, Args = unknown>
   extends NativeButtonProps {
   /**
@@ -412,8 +483,9 @@ export interface CommandButtonProps<Result = CommandReplyLike, Args = unknown>
   label: ReactNode;
   /**
    * The armed label. Supplying it makes this an arm-then-confirm control: the
-   * first click arms, the second dispatches, and an arm left alone expires after
-   * {@link ARM_TIMEOUT_MS}. Omit it for a control that dispatches on one click.
+   * first click puts it in the armed phase, the second dispatches, and an armed
+   * control left alone returns to rest after {@link ARM_TIMEOUT_MS}. Omit it for
+   * a control that dispatches on one click.
    *
    * Arm anything irreversible, and anything that spends career funds.
    */
@@ -427,12 +499,12 @@ export interface CommandButtonProps<Result = CommandReplyLike, Args = unknown>
   /** The refused label. Defaults to "Refused". */
   refusedLabel?: ReactNode;
   /**
-   * The label for a dispatch nothing answered. Defaults to "No reply": not
+   * The label for a dispatch that got no reply. Defaults to "No reply": not
    * "failed" and not "refused", neither of which is known.
    */
   lostLabel?: ReactNode;
   /**
-   * The label for a command this control lost that has since answered.
+   * The label for a command this control lost that has since replied.
    * Defaults to "Found", with the whole sentence on the accessible name and
    * title. Not "Confirmed": the operator was told to give up on it.
    */
@@ -460,7 +532,9 @@ export interface CommandButtonProps<Result = CommandReplyLike, Args = unknown>
    * undefined for a control that only acts.
    */
   active?: boolean;
+  /** The tone of the fill while `active`. Defaults to `neutral`. */
   tone?: CommandButtonTone;
+  /** Defaults to `md`. */
   size?: CommandButtonSize;
   /** Tone for the armed phase. Defaults to `go`: confirm reads as commit. */
   confirmTone?: CommandButtonTone;
@@ -470,21 +544,39 @@ export interface CommandButtonProps<Result = CommandReplyLike, Args = unknown>
    *
    * Receives what the dispatch resolved with, typed off the handle. A confirmed
    * command did not necessarily do something: a mod that de-duplicates on
-   * request id answers a repeat with the receipt it stored the first time. The
+   * request id replies to a repeat with the receipt it stored the first time. The
    * value is the reply envelope; the command's own value is on `payload`.
    */
   onConfirmed?: (result: Result) => void;
 }
 
 /**
- * The one command control: arm, confirm, in-flight and refused as a single
- * state machine. The panel delay rail says something is in flight; this says
- * which control committed it.
+ * A button that dispatches a command and shows what became of it: at rest,
+ * armed (with a `confirmLabel`), in flight, refused, lost, found, or blocked by
+ * the mod's standing gate. The panel delay rail says something is in flight;
+ * this says which control committed it.
  *
- * Pending clears on `send()`'s own promise, not on a telemetry predicate, so it
- * is command-agnostic and settles even for a command with no observable
- * telemetry consequence. Pending is per RENDERED CONTROL, not per handle, so
- * one handle serving a list gives each row its own pending state.
+ * Pending clears on `send()`'s own promise, so it settles even for a command
+ * with no observable telemetry consequence. Pending is per RENDERED CONTROL, not
+ * per handle, so one handle serving a list gives each row its own pending
+ * state. Outcomes are announced through a polite live region.
+ *
+ * @example
+ * ```tsx
+ * const transmitCmd = useCommand("science.experiment.transmit");
+ *
+ * <CommandButton
+ *   size="sm"
+ *   handle={transmitCmd}
+ *   args={{ partId }}
+ *   commandLabel="Transmit experiment"
+ *   label="Transmit"
+ *   confirmLabel="Confirm transmit"
+ *   pendingLabel="Transmitting..."
+ * />
+ * ```
+ *
+ * @category CommandButton
  */
 export function CommandButton<Result = CommandReplyLike, Args = unknown>({
   handle,

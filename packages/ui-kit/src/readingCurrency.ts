@@ -20,15 +20,22 @@ import { formatQuantity } from "./units";
  *
  * One type across every primitive that draws a figure, so a call site holding
  * a reading can fill a readout, a bar and an instrument with the same thing.
+ *
+ * @category Unit
  */
 export type UnitValue<Unit extends string = string> =
   | Value<Unit>
   | Reading<Value<Unit>>;
 
-/** What {@link resolveCurrency} answers: the number to draw, and its currency. */
+/**
+ * What {@link resolveCurrency} returns: the number to draw, and whether it is current.
+ *
+ * @category Unit
+ */
 export interface Resolved<Unit extends string> {
+  /** The number to draw; null or undefined draws the null token. */
   shown: Value<Unit> | null | undefined;
-  /** Whether the number on screen is a reading of now. Drives the mark. */
+  /** True when the number on screen is not a reading of now, so it takes the held mark. */
   held: boolean;
   /**
    * Whether the number is a fact the contract declares static, which is never
@@ -43,8 +50,8 @@ export interface Resolved<Unit extends string> {
    */
   caption: string | null;
   /**
-   * How far the reading's model would defend its answer, as it arrived, left
-   * unnarrowed: the unit it must agree with is the shown value's.
+   * The uncertainty band the reading's model publishes, as it arrived and not
+   * yet narrowed to a unit; only a band in the shown value's unit applies.
    */
   band: UncertaintyBand | null;
 }
@@ -73,7 +80,11 @@ function sayCurrency(caption: string, asOfUt: Value<"ut"> | undefined): string {
   return at === null ? caption : `${caption}, as of ${at}`;
 }
 
-/** How a primitive reads a {@link Reading}. */
+/**
+ * How a primitive reads a {@link Reading}.
+ *
+ * @category Unit
+ */
 export interface CurrencyOptions {
   /**
    * The consumer draws the reading's reckoning, where one is on offer, rather
@@ -84,13 +95,19 @@ export interface CurrencyOptions {
   readonly drawsReckoning?: boolean;
 }
 
-/** The mark's words for a current reading whose figure the model carried across the light-time. */
+/**
+ * The mark's words for a current reading whose figure the model carried across the light-time.
+ *
+ * @category Unit
+ */
 export const MODELLED_TO_SCET = "modelled to SCET";
 
 /**
  * What the model says a current reading's figure is at the instant it reckoned
  * to, where that is past the received edge: the figure a widget draws beside
- * the observation with `ModelledAlongside`. `undefined` everywhere else.
+ * the observation with {@link ModelledAlongside}. `undefined` everywhere else.
+ *
+ * @category Unit
  */
 export function modelledBeyondReceived<Payload>(
   reading: Reading<Payload> | null | undefined,
@@ -129,8 +146,12 @@ function heldCurrency<Unit extends string>(
  * Split what was handed in into the number and the statement about it.
  *
  * A bare `Value` (and `null`, and nothing at all) is current by construction.
- * The mark comes off the state rather than the caption, so a held number can
- * never go unmarked.
+ * A `Reading` in `observed` state is current, one in `held` state with a value
+ * is marked held, and any other state yields `shown: null`. With
+ * `drawsReckoning`, the reading's modelled figure is shown in place of the
+ * observation where the model has one.
+ *
+ * @category Unit
  */
 export function resolveCurrency<Unit extends string>(
   input: UnitValue<Unit> | null | undefined,

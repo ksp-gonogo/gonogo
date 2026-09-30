@@ -31,6 +31,8 @@ import {
  * What a group settles, and what every member inside it is written at. The fields are the formatter's own, so applying one is a spread.
  *
  * An absent field is a group with no opinion: the member's own props fill it.
+ *
+ * @category Unit
  */
 export interface SharedFormat {
   /** The rung every member is written at. */
@@ -50,7 +52,11 @@ interface Report {
   readonly position?: LadderPosition;
 }
 
-/** What a scope pins for one group, typed by the unit it is addressed to: `of="m" as="kg"` is a compile error. */
+/**
+ * What a scope pins for one group, typed by the unit it is addressed to: `of="m" as="kg"` is a compile error.
+ *
+ * @category Unit
+ */
 export interface UnitPins<Unit extends string = string> {
   /** The rung every member of the group is written at. */
   format?: FormatsFor<Unit>;
@@ -60,7 +66,11 @@ export interface UnitPins<Unit extends string = string> {
   decimals?: number;
 }
 
-/** {@link UnitPins} addressed to a whole group, checked against what that group measures. */
+/**
+ * {@link UnitPins} addressed to a whole group, checked against what that group measures.
+ *
+ * @category Unit
+ */
 export interface UnitGroupPins<Group extends UnitGroupKey> {
   /** The rung every member of the group is written at. */
   format?: FormatsForKind<KindOfGroup<Group>>;
@@ -72,6 +82,8 @@ export interface UnitGroupPins<Group extends UnitGroupKey> {
 
 /**
  * What each named group of a mixed scope is pinned to. Every entry is optional and a key that is not a group is a compile error. An Uplink's units reach this type by merging into `UnitDeclarations`.
+ *
+ * @category Unit
  */
 export type UnitPinsByGroup = {
   [Group in UnitGroupKey]?: UnitGroupPins<Group>;
@@ -334,6 +346,8 @@ interface UnitSharedFormatBaseProps {
  * A scope that pins one kind. `of` names the unit the pins are addressed to and types them: `of="m"` makes `as` a length and `format` a rung on the length ladder, and `of={v.unit}` needs no annotation.
  *
  * Without `of` the pins are unaddressed: they reach every group and nothing checks them.
+ *
+ * @category Unit
  */
 export interface UnitSharedFormatProps<Unit extends string = string>
   extends UnitSharedFormatBaseProps,
@@ -343,13 +357,11 @@ export interface UnitSharedFormatProps<Unit extends string = string>
 }
 
 /**
- * A scope that pins several groups, each keyed by name, so a group is pinned at most once and one that needs nothing is simply absent.
- *
- * ```tsx
- * <UnitSharedFormat pins={{ length: { as: "km" }, mass: { as: "t" } }}>
- * ```
+ * A scope that pins several groups, each keyed by name, so a group is pinned at most once and one that needs nothing is simply absent: `pins={{ length: { as: "km" }, mass: { as: "t" } }}`.
  *
  * Each value is typed by its own key, so `{ length: { as: "kg" } }` is a compile error at that entry. A laddered kind is keyed by its kind; a unit that climbs nothing keys itself, so `s` and `min` stay separate groups. See {@link UnitGroupKey}.
+ *
+ * @category Unit
  */
 export interface UnitSharedFormatMixedProps extends UnitSharedFormatBaseProps {
   /** What each named group is pinned to, checked against what it measures. */
@@ -368,20 +380,36 @@ interface UnitSharedFormatAnyProps extends UnitSharedFormatBaseProps, UnitPins {
 /**
  * A group of quantities that settles one format per kind, so the whole group reads as one instrument. It renders nothing of its own, so it can wrap a row, a cell, a table or a widget body.
  *
- * ```tsx
- * <UnitSharedFormat separate>
- *   <Unit value={low} /> to <Unit value={high} />
- * </UnitSharedFormat>
- * ```
- *
- * Every `<Unit>` inside reports its reading and is given back the settled format; outside a scope each value answers for itself. The caller names no rung, unit or digit count.
+ * Every `<Unit>` inside reports its reading and is given back the settled format; outside a scope each value formats itself. The caller names no rung, unit or digit count.
  *
  * - The rung is the largest member's, since a group reads at the size of the thing it describes: `999 m` beside `1000 m` reads `1.0 km`, and a group that must tell its members apart says `separate`
  * - Grouping is per kind (per ladder family, else per unit), so metres settle with metres and kilograms with kilograms in one scope
  * - `format`, `as` and `decimals` pin what a group would otherwise settle. `of` addresses them to one group (`of="m" as="km"`), `pins` to several (`pins={{ length: { as: "km" }, mass: { as: "t" } }}`), and a pin that names no unit reaches every group unchecked
  * - Nested scopes compose: the rung comes from the outermost, the digit count from the nearest scope that asked for one. Two scopes side by side are two groups
  *
- * The first pass draws each member at its own ladder; reports land in layout effects and the settled format re-renders before paint. It settles in one extra pass because a member's report depends only on its own props, never on the format it was given back.
+ * The first pass draws each member at its own ladder; reports land in layout effects and the settled format re-renders before paint, so the reader never sees the unsettled pass.
+ *
+ * @example
+ * ```tsx
+ * // Current over limit, one rung, symbol drawn once: "1234/2000 rpm".
+ * <UnitSharedFormat>
+ *   <Unit value={currentRpm} decimals={0} hideUnitInGroup />
+ *   /
+ *   <Unit value={rpmLimit} decimals={0} />
+ * </UnitSharedFormat>
+ *
+ * // An interval whose ends must read apart.
+ * <UnitSharedFormat separate>
+ *   <Unit value={low} /> to <Unit value={high} />
+ * </UnitSharedFormat>
+ *
+ * // Every length in a table shown in km.
+ * <UnitSharedFormat of="m" as="km">
+ *   {rows}
+ * </UnitSharedFormat>
+ * ```
+ *
+ * @category Unit
  */
 export function UnitSharedFormat<Unit extends string = string>(
   props: UnitSharedFormatProps<Unit> | UnitSharedFormatMixedProps,

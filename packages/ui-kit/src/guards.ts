@@ -41,6 +41,8 @@ import { join, relative, sep } from "node:path";
  * ones that occur constantly in prose.
  *
  * Pass your own through `symbols` when your Uplink registers a unit of its own.
+ *
+ * @category Testing
  */
 export const HAND_TYPED_SYMBOLS: readonly string[] = [
   "m/s²",
@@ -99,7 +101,11 @@ export const HAND_TYPED_SYMBOLS: readonly string[] = [
 const CSS_PROPERTY =
   /(width|height|left|top|right|bottom|transform|translate|inset|margin|padding|gap|flex|stroke|offset|dasharray|dashoffset|hsl|hsla|rgb|rgba)\s*[:(={]/i;
 
-/** Somewhere a unit symbol was typed next to a number. */
+/**
+ * Somewhere a unit symbol was typed next to a number.
+ *
+ * @category Testing
+ */
 export interface HandTypedUnit {
   /** Path relative to the scanned directory, with `/` separators. */
   file: string;
@@ -111,6 +117,11 @@ export interface HandTypedUnit {
   symbol: string;
 }
 
+/**
+ * Options for {@link findHandTypedUnits} and {@link expectNoHandTypedUnits}.
+ *
+ * @category Testing
+ */
 export interface HandTypedUnitOptions {
   /** Directory to scan. Defaults to `src` under the current directory. */
   dir?: string;
@@ -118,8 +129,8 @@ export interface HandTypedUnitOptions {
   symbols?: readonly string[];
   /**
    * Per-file allowance, keyed by the path as it appears in a finding. A file
-   * at its entry passes and a file below it throws, so a stale allowance is
-   * reported rather than left open.
+   * at its entry passes, and a file below it throws, so an allowance left
+   * higher than needed is reported rather than left open.
    */
   baseline?: Readonly<Record<string, number>>;
   /**
@@ -211,6 +222,8 @@ function patternFor(symbols: readonly string[]): RegExp {
  *
  * Returns findings rather than throwing, so a caller can report them their own
  * way. {@link expectNoHandTypedUnits} is the assertion built on top.
+ *
+ * @category Testing
  */
 export function findHandTypedUnits(
   options: HandTypedUnitOptions = {},
@@ -244,7 +257,20 @@ export function findHandTypedUnits(
 /**
  * Throws when a unit symbol is typed next to a number, with the fix in the
  * message. Silent for a file at its `baseline` entry; a file below its entry
- * throws, so a stale allowance cannot let the symbol come back unnoticed.
+ * throws, so an allowance left higher than needed cannot let the symbol come
+ * back unnoticed.
+ *
+ * @example
+ * ```ts
+ * import { expectNoHandTypedUnits } from "@ksp-gonogo/ui-kit/guards";
+ * import { it } from "vitest";
+ *
+ * it("renders units through <Unit>, not by typing the symbol", () => {
+ *   expectNoHandTypedUnits({ dir: "src" });
+ * });
+ * ```
+ *
+ * @category Testing
  */
 export function expectNoHandTypedUnits(
   options: HandTypedUnitOptions = {},

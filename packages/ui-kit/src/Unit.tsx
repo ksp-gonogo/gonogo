@@ -157,6 +157,11 @@ function hover(
   return said === null ? caption : `${caption}, ${said}`;
 }
 
+/**
+ * Props for {@link Unit}. The formatter options it extends (`decimals`, `scale` and the rest) apply to the number drawn.
+ *
+ * @category Unit
+ */
 export interface UnitProps<UnitSymbol extends string = string>
   extends Omit<FormatQuantityOptions, "format" | "as"> {
   /**
@@ -188,7 +193,7 @@ export interface UnitProps<UnitSymbol extends string = string>
    * Honoured only inside a `<UnitSharedFormat>`; on a lone `<Unit>` it does nothing, since a number with no unit near it is not a readout. The member still reports, so its magnitude keeps its vote on the group's rung. The symbol is hidden from the accessibility tree as well as the screen.
    */
   hideUnitInGroup?: boolean;
-  /** Transitional: a bare unit token, rendered as a symbol with no number. New code passes a value. */
+  /** A bare unit token, rendered as a symbol with no number. Used only when `value` is not passed; prefer passing a value. */
   children?: ReactNode;
   className?: string;
 }
@@ -254,6 +259,23 @@ function UnitSymbol({
  * A held reading whose model publishes an {@link UncertaintyBand} also shows the interval (`1 km ± 0.025 km`, `1 km (0.97 to 1.03 km)`, `1 km (~1.2 km)`). A current reading shows none, and a band in another unit draws nothing.
  *
  * The symbol is sized relative to the text around it (floored at 10px) and takes its colour, so it needs no size or tone prop and keeps the value's tone at the value's contrast. Plane angles attach to the number and keep full size. Every symbol is replaced in the accessibility tree by its spoken word.
+ *
+ * `<Unit>` is the one way to put a quantity on screen. Hand it the value as it came off the wire (canonical SI, never pre-scaled) and let it pick the rung; pin one with `format` or convert with `as` only where convention calls for it.
+ *
+ * @example
+ * ```tsx
+ * import { value } from "@ksp-gonogo/sitrep-sdk";
+ * import { Unit } from "@ksp-gonogo/ui-kit";
+ *
+ * // A whole Reading: draws the held mark when the channel goes quiet.
+ * <Unit value={rangeReading} />
+ * // A bare number off a payload, wrapped with its SI unit.
+ * <Unit value={value("m", body.radius)} />
+ * <Unit value={value("m/s", closingSpeed)} decimals={1} />
+ * <Unit value={value("m/s", surfaceSpeed)} format="km/h" />
+ * ```
+ *
+ * @category Unit
  */
 export function Unit<UnitSymbol extends string = string>({
   value,

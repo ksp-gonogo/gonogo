@@ -8,6 +8,12 @@ import {
 } from "react";
 import styled from "styled-components";
 
+/**
+ * Props for {@link FitLabelButton}. Any other `button` attribute passes
+ * through; `children` is replaced by `label` and `icon`.
+ *
+ * @category Button
+ */
 export interface FitLabelButtonProps
   extends Omit<ComponentPropsWithoutRef<"button">, "children"> {
   /**
@@ -19,15 +25,21 @@ export interface FitLabelButtonProps
 }
 
 /**
- * A button that falls back to an icon when its label does not fit.
+ * A `button` that shows its label while the label fits and its icon when it
+ * does not. The switch is measured against the button's own width, not a
+ * breakpoint, and follows resizes. It is an unstyled native button
+ * (`type="button"` by default), so style it or wrap it as the layout needs.
  *
- * The switch is measured, not a breakpoint: a hidden ghost copy of the label is
- * compared against the button's width, since measuring the visible label would
- * oscillate.
+ * The accessible name is always `label`, carried in `aria-label` in both
+ * states. Put anything explaining a disabled state in `title`, since it is the
+ * only explanation left once the word is gone.
  *
- * The accessible name never changes: `aria-label` carries it in both states
- * and the visible text is `aria-hidden`. Anything explaining a disabled state
- * travels in `title`, the only explanation left once the word is gone.
+ * @example
+ * ```tsx
+ * <FitLabelButton label="Settings" icon={<SettingsIcon />} onClick={onOpen} />
+ * ```
+ *
+ * @category Button
  */
 export const FitLabelButton = forwardRef<
   HTMLButtonElement,

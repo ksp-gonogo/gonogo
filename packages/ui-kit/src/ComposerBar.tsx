@@ -4,18 +4,9 @@ import { Button } from "./Button";
 import { SendIcon } from "./Icons";
 
 /**
- * The input at the foot of a console: a bordered, non-growing row whose OWN
- * BORDER says whether input is being accepted. The accent lives here, not on
- * the surrounding `Console`, so what is outlined is what the operator types
- * into. The border takes `--console-tone-fg`, falling back to the primary
- * accent.
+ * Props for {@link ComposerBar}. Any other `div` attribute is passed to the row.
  *
- * The border turns error-toned when input is refused (no comms path), so the
- * operator sees it while typing rather than on pressing the key.
- *
- * It styles the row and nothing inside it except the send button (`onSend`)
- * and the prompt glyph (`prompt`); font and character pitch belong to the
- * caller. Whatever goes in sits FLUSH on the row, with no outline of its own.
+ * @category Console
  */
 export interface ComposerBarProps extends ComponentPropsWithoutRef<"div"> {
   /**
@@ -66,6 +57,21 @@ export interface ComposerBarProps extends ComponentPropsWithoutRef<"div"> {
   children?: ReactNode;
 }
 
+/**
+ * The input at the foot of a {@link Console}: a bordered, non-growing row whose
+ * own border says whether input is being accepted. The border takes the
+ * console's tone (`--console-tone-fg`), falling back to the primary accent, so
+ * what is outlined is what the operator types into.
+ *
+ * The border turns error-toned when `blocked` (for example, no comms path), so
+ * the operator sees it while typing rather than on pressing the key.
+ *
+ * It styles the row and nothing inside it except the send button (`onSend`)
+ * and the prompt glyph (`prompt`); font and character pitch belong to the
+ * caller. Whatever goes in sits flush on the row, with no outline of its own.
+ *
+ * @category Console
+ */
 export function ComposerBar({
   blocked = false,
   flag,

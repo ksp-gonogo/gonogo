@@ -17,7 +17,7 @@ interface Placement {
 /**
  * The pointer handlers and data attribute to spread onto the element the tip describes.
  *
- * @category Held figures
+ * @category Floating
  */
 export interface TooltipAnchorProps {
   onPointerEnter?: (event: { currentTarget: Element }) => void;
@@ -28,7 +28,7 @@ export interface TooltipAnchorProps {
 /**
  * What {@link useTooltip} returns: props for the anchor, and the tip to render beside it.
  *
- * @category Held figures
+ * @category Floating
  */
 export interface Tooltip {
   anchor: TooltipAnchorProps;
@@ -37,15 +37,31 @@ export interface Tooltip {
 }
 
 /**
- * The kit's hover tip: padded, rounded, drawn over everything, and placed
- * below its anchor inside the viewport, so a clipping or scrolling ancestor
- * never cuts it off.
+ * The kit's hover tip for `text`: padded, rounded, drawn over everything, and
+ * placed below its anchor inside the viewport, so a clipping or scrolling
+ * ancestor never cuts it off. It opens on pointer enter and closes on pointer
+ * leave, scroll or resize.
  *
- * It says in words what the anchor already says to a screen reader, so it is
- * hidden from the accessibility tree. `null` or empty text gives an inert
- * anchor and no tip.
+ * The tip is hidden from the accessibility tree, so the anchor must already
+ * say the same thing to a screen reader (in its text, an `aria-label` or a
+ * {@link VisuallyHidden}). `null` or empty text gives an inert anchor and no
+ * tip.
  *
- * @category Held figures
+ * @example
+ * ```tsx
+ * function Figure({ caption, children }: { caption: string | null; children: ReactNode }) {
+ *   const { anchor, tip } = useTooltip(caption);
+ *   return (
+ *     <span {...anchor}>
+ *       {children}
+ *       {caption && <VisuallyHidden>, {caption}</VisuallyHidden>}
+ *       {tip}
+ *     </span>
+ *   );
+ * }
+ * ```
+ *
+ * @category Floating
  */
 export function useTooltip(text: string | null | undefined): Tooltip {
   const [at, setAt] = useState<Placement | null>(null);

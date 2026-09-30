@@ -1,36 +1,39 @@
 import { forwardRef, type SVGProps } from "react";
 
-/**
- * Attitude and manoeuvre markers: an original rendering of the standard
- * spaceflight notation (a ring with a centre dot for prograde, and so on).
- * Nothing here is traced from the game's artwork; only the HUES follow KSP, via
- * the `--color-marker-*` tokens, so an operator who knows a marker by colour is
- * not retrained.
- *
- * Two rules the set is built on:
- *
- * Shape carries the meaning, hue only confirms it. Every "towards" marker
- * carries a centre dot and every "away" marker a centre cross (⊙ and ⊗), so the
- * two halves of a pair, which share a hue, survive greyscale. Across pairs the
- * outline differs: ring, triangle, ring with chevrons, diamond, square.
- *
- * The glyph is legible on either ground: each marker is drawn first as a wider
- * keyline in `currentColor`, which contrasts with the surface, then as the
- * coloured stroke on top.
- *
- * Authoring follows `Icons.tsx`: a 24-unit viewBox drawn at 20px by default,
- * `strokeWidth` 1.8, decorative unless named.
+/*
+ * An original rendering of the standard spaceflight notation, not traced from
+ * the game's artwork; only the hues follow KSP, through the --color-marker-*
+ * tokens.
  */
 
+/**
+ * Props for the navball marker icons ({@link ProgradeIcon} and the rest).
+ *
+ * The markers follow the standard spaceflight notation, with hues matching
+ * KSP's navball through the `--color-marker-*` tokens. Shape carries the
+ * meaning and hue only confirms it: every "towards" marker has a centre dot
+ * and every "away" marker a centre cross (⊙ and ⊗), so the two halves of a
+ * pair, which share a hue, stay distinct in greyscale. Each marker is drawn
+ * first as a wider keyline in `currentColor` (the text colour, which
+ * contrasts with the surface) and then as the coloured stroke on top. The
+ * drawing is on a 24-unit viewBox. Any other SVG attribute passes through, and
+ * the ref reaches the `svg` element.
+ *
+ * @category Icons
+ */
 export interface MarkerIconProps
   extends Omit<SVGProps<SVGSVGElement>, "children"> {
-  /** Rendered width and height. Defaults to the kit's 20px icon size. */
+  /**
+   * Rendered width and height, as pixels or any CSS length. Defaults to the
+   * kit's standalone icon size, which grows a step on a coarse pointer.
+   */
   size?: number | string;
-  /** Width of the coloured stroke, in viewBox units. */
+  /** Width of the coloured stroke, in viewBox units. Defaults to 1.8. */
   strokeWidth?: number;
   /**
-   * Naming the icon makes it meaningful: it renders as `role="img"` with this
-   * as its accessible name. Without one it is decorative and hidden.
+   * The icon's accessible name. With one, the icon renders as `role="img"`
+   * named by it; without one it is decorative and hidden from assistive
+   * technology.
    */
   label?: string;
 }
@@ -151,9 +154,22 @@ const SHAPES = {
   },
 } satisfies Record<string, MarkerShape>;
 
+/**
+ * The id of a navball marker: `prograde`, `retrograde`, `normal`,
+ * `antiNormal`, `radialOut`, `radialIn`, `maneuver`, `target`, `antiTarget`,
+ * `relativePlus`, `relativeMinus`, `parallelPlus` or `parallelMinus`. The
+ * rendered `svg` carries it as `data-marker`.
+ *
+ * @category Icons
+ */
 export type MarkerId = keyof typeof SHAPES;
 
-/** Every marker id, in the order a legend or contact sheet should show them. */
+/**
+ * Every {@link MarkerId}, in the order a legend or contact sheet should show
+ * them.
+ *
+ * @category Icons
+ */
 export const MARKER_IDS = Object.keys(SHAPES) as MarkerId[];
 
 function Layer({
@@ -243,37 +259,127 @@ function makeMarker(id: MarkerId, displayName: string) {
   return Marker;
 }
 
+/**
+ * The navball prograde marker: a ring with a centre dot and three ticks (top, left, right), in the prograde hue.
+ *
+ * @category Icons
+ */
 export const ProgradeIcon = makeMarker("prograde", "ProgradeIcon");
+/**
+ * The navball retrograde marker: a ring with a centre cross and three ticks (two diagonal above, one below), in the prograde hue.
+ *
+ * @category Icons
+ */
 export const RetrogradeIcon = makeMarker("retrograde", "RetrogradeIcon");
+/**
+ * The navball normal marker: an upward triangle with a centre dot, in the normal hue.
+ *
+ * @category Icons
+ */
 export const NormalIcon = makeMarker("normal", "NormalIcon");
+/**
+ * The navball anti-normal marker: a downward triangle with a centre cross, in the normal hue.
+ *
+ * @category Icons
+ */
 export const AntiNormalIcon = makeMarker("antiNormal", "AntiNormalIcon");
+/**
+ * The navball radial-out marker: a small ring with a centre dot and four chevrons pointing outward, in the radial hue.
+ *
+ * @category Icons
+ */
 export const RadialOutIcon = makeMarker("radialOut", "RadialOutIcon");
+/**
+ * The navball radial-in marker: a small ring with a centre cross and four chevrons pointing inward, in the radial hue.
+ *
+ * @category Icons
+ */
 export const RadialInIcon = makeMarker("radialIn", "RadialInIcon");
+/**
+ * The navball manoeuvre-node marker: a diamond with a centre dot and a tick at the top, in the manoeuvre hue.
+ *
+ * @category Icons
+ */
 export const ManeuverIcon = makeMarker("maneuver", "ManeuverIcon");
+/**
+ * The navball target marker: a square with corner rays and a centre dot, in the target hue.
+ *
+ * @category Icons
+ */
 export const TargetIcon = makeMarker("target", "TargetIcon");
+/**
+ * The navball anti-target marker: a square with corner rays and a centre cross, in the target hue.
+ *
+ * @category Icons
+ */
 export const AntiTargetIcon = makeMarker("antiTarget", "AntiTargetIcon");
+/**
+ * The relative-velocity prograde marker (prograde in the target's frame): a ring with diagonal corner rays and a centre dot, in the target hue.
+ *
+ * @category Icons
+ */
 export const RelativePlusIcon = makeMarker("relativePlus", "RelativePlusIcon");
+/**
+ * The relative-velocity retrograde marker (retrograde in the target's frame): a ring with diagonal corner rays and a centre cross, in the target hue.
+ *
+ * @category Icons
+ */
 export const RelativeMinusIcon = makeMarker(
   "relativeMinus",
   "RelativeMinusIcon",
 );
+/**
+ * The parallel marker (along the target's own facing): two vertical rails with a centre dot, in the target hue.
+ *
+ * @category Icons
+ */
 export const ParallelPlusIcon = makeMarker("parallelPlus", "ParallelPlusIcon");
+/**
+ * The anti-parallel marker (against the target's own facing): two vertical rails with a centre cross, in the target hue.
+ *
+ * @category Icons
+ */
 export const ParallelMinusIcon = makeMarker(
   "parallelMinus",
   "ParallelMinusIcon",
 );
 
 /**
- * The Frenet manoeuvring frame (tangent, normal, binormal) that n-body flight
- * plans are expressed in reuses three navball glyphs: tangent is prograde, the
- * Frenet normal points at the centre of curvature (radial-in), and the
- * binormal is the orbit normal.
+ * The tangent direction of the Frenet frame that n-body flight plans are
+ * expressed in. The same component as {@link ProgradeIcon}.
+ *
+ * @category Icons
  */
 export const TangentIcon = ProgradeIcon;
+
+/**
+ * The normal direction of the Frenet frame, pointing at the centre of
+ * curvature. The same component as {@link RadialInIcon}.
+ *
+ * @category Icons
+ */
 export const FrenetNormalIcon = RadialInIcon;
+
+/**
+ * The binormal direction of the Frenet frame, which is the orbit normal. The
+ * same component as {@link NormalIcon}.
+ *
+ * @category Icons
+ */
 export const BinormalIcon = NormalIcon;
 
-/** The component for a marker id, for callers driven by data rather than JSX. */
+/**
+ * The marker component for each {@link MarkerId}, for callers driven by data
+ * rather than JSX.
+ *
+ * @example
+ * ```tsx
+ * const Marker = MARKER_ICONS[id];
+ * return <Marker label={name} size={16} />;
+ * ```
+ *
+ * @category Icons
+ */
 export const MARKER_ICONS: Record<MarkerId, typeof ProgradeIcon> = {
   prograde: ProgradeIcon,
   retrograde: RetrogradeIcon,

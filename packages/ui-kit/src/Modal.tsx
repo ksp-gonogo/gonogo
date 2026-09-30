@@ -44,6 +44,20 @@ const ModalContext = createContext<ModalContextValue | null>(null);
 /** The id `open()` hands back is only ever compared against this module's own stack, so a counter is sufficient. */
 let modalSeq = 0;
 
+/**
+ * Holds the stack of open modal dialogs and renders them into `document.body`.
+ * The dashboard mounts one at its root, so a widget calls {@link useModal}
+ * without mounting its own.
+ *
+ * Each dialog has a title bar with a close button, a scrolling body, and an
+ * optional sticky footer set with {@link useModalSaveBar} or
+ * {@link useModalChrome}. Escape, the close button and a click on the backdrop
+ * close only the topmost dialog; when its content has reported unsaved
+ * changes, they show a "Discard unsaved changes?" prompt instead. Focus is
+ * trapped inside the dialog and returns to the opener when it closes.
+ *
+ * @category Modal
+ */
 export function ModalProvider({ children }: Readonly<{ children: ReactNode }>) {
   const [modals, setModals] = useState<ModalEntry[]>([]);
 
@@ -86,6 +100,23 @@ export function ModalProvider({ children }: Readonly<{ children: ReactNode }>) {
   );
 }
 
+/**
+ * Opens and closes modal dialogs. `open(content, options)` pushes a dialog
+ * showing `content` and returns its id; `options` takes a `title`, an
+ * `ariaLabel` for a dialog with no visible title, and a CSS `width` for the
+ * dialog's max-width (560px by default). `close(id)` removes that dialog.
+ * Throws when called outside a {@link ModalProvider}.
+ *
+ * @example
+ * ```tsx
+ * const { open } = useModal();
+ * <Button onClick={() => open(<FlightDetails />, { title: "Flight History" })}>
+ *   History
+ * </Button>
+ * ```
+ *
+ * @category Modal
+ */
 export function useModal(): ModalContextValue {
   const ctx = useContext(ModalContext);
   if (!ctx) throw new Error("useModal must be used inside <ModalProvider>");

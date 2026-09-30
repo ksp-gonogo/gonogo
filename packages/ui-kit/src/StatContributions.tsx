@@ -4,6 +4,11 @@ import { NullValue } from "./NullValue";
 import { Stat } from "./Stat";
 import { Unit } from "./Unit";
 
+/**
+ * Props for {@link StatContributions}.
+ *
+ * @category Readout
+ */
 export interface StatContributionsProps {
   /**
    * The widget-led slot the host declared, in full
@@ -15,9 +20,20 @@ export interface StatContributionsProps {
 /**
  * Every stat contributed to `slot`, drawn through the kit's own {@link Stat}.
  *
- * A fragment, not a wrapper: the cells land in the host's own `StatStrip` as
- * siblings of its built-in ones. Renders nothing when nothing is contributed,
- * so a host can place it unconditionally.
+ * A fragment, not a wrapper: the cells land in the host's own
+ * {@link StatStrip} as siblings of its built-in ones. Renders nothing when
+ * nothing is contributed, so a host can place it unconditionally. An entry's
+ * quantity is drawn through {@link Unit}, else its text, else the null token.
+ *
+ * @example
+ * ```tsx
+ * <StatStrip>
+ *   <Stat label="Funds"><Unit value={funds} /></Stat>
+ *   <StatContributions slot="astronaut-complex.readouts" />
+ * </StatStrip>
+ * ```
+ *
+ * @category Readout
  */
 export function StatContributions({ slot }: StatContributionsProps) {
   // The kit cannot name a host widget's slot id, so the entry type is asserted against the contract shape.

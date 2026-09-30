@@ -5,17 +5,22 @@ import { Block__Root, type BlockProps, renderBlockAnatomy } from "./Block";
 import { LiveRegion } from "./LiveRegion";
 import { toneEdge } from "./tone";
 
+/**
+ * Props for {@link Notice}: everything {@link BlockProps} takes, plus the
+ * banner's tone and how loudly it is announced.
+ *
+ * @category EmptyState
+ */
 export interface NoticeProps extends BlockProps {
   /**
-   * What kind of statement this is, drawn as the banner's whole border so the
-   * tone reaches the eye from the edge of the block.
+   * What kind of statement this is, drawn as the banner's whole border.
+   * Defaults to `warn`.
    */
   tone?: Tone;
   /**
-   * Interrupt rather than announce: `role="alert"` and `aria-live="assertive"`.
-   *
-   * For ABORT and nothing softer. Everything else takes the default
-   * `role="status" aria-live="polite"`, so the loud channel stays meaningful.
+   * Interrupt rather than announce politely: the banner becomes
+   * `role="alert"` with `aria-live="assertive"`. Keep it for an abort and
+   * nothing softer.
    */
   assertive?: boolean;
   children?: ReactNode;
@@ -33,16 +38,24 @@ const Notice__Root = styled(Block__Root)<{ $tone: Tone }>`
 `;
 
 /**
- * A statement about the widget rather than a record inside it: what is
- * limiting the ship, which Uplinks were quarantined before import.
+ * A banner stating something about the widget rather than a record inside it,
+ * such as what is limiting the ship. It takes {@link Block}'s anatomy (title,
+ * asides, footer) on a sunken surface bordered in its tone.
  *
- * Composed from `Block`'s parts, with its own surface. It differs from a toned
- * `Card` by being announced: a notice exists to be heard when it appears, where
- * announcing every record would flood a screen reader. A polite notice speaks
- * through a hidden live region mounted empty and filled once it is in the
- * document, since a region inserted already holding its words is often never
- * read. An assertive one is `role="alert"`, which is announced on insertion.
- * A caller's `role` replaces the kit's and brings no `aria-live` with it.
+ * Unlike a toned {@link Card}, a notice is announced to screen readers. By
+ * default it is `role="note"` and its text is read out politely when it
+ * appears and whenever its words change; with `assertive` it is
+ * `role="alert"` and interrupts. A `role` passed by the caller replaces the
+ * kit's and turns the announcement off.
+ *
+ * @example
+ * ```tsx
+ * <Notice tone="nogo" title="Thrust limited">
+ *   Two engines are flamed out; available thrust is 48%.
+ * </Notice>
+ * ```
+ *
+ * @category EmptyState
  */
 export function Notice({
   tone = "warn",

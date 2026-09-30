@@ -11,6 +11,8 @@ import { Unit } from "./Unit";
  * so a held reading keeps its held mark. Not a bare number, which has lost the
  * unit that says how to write it: hand over `value("m", 1)`,
  * `value("count", 3)`, or `value("1", x)` for a dimensionless reading.
+ *
+ * @category Form
  */
 export type ReadOnlyFieldValue =
   | boolean
@@ -19,6 +21,11 @@ export type ReadOnlyFieldValue =
   | null
   | undefined;
 
+/**
+ * Props for {@link ReadOnlyField}.
+ *
+ * @category Form
+ */
 export interface ReadOnlyFieldProps {
   /** What the value IS. Read first, and read every time. */
   label: ReactNode;
@@ -35,6 +42,8 @@ export interface ReadOnlyFieldProps {
  * Renders a description list, one `<dl>` per field so a lone field stays valid,
  * so a reader gets the label and value as one unit. A quantity goes through
  * {@link Unit}.
+ *
+ * @category Form
  */
 export function ReadOnlyField({
   label,
@@ -60,6 +69,8 @@ export function ReadOnlyField({
 /**
  * The value half on its own, for a caller that already owns its label, so the
  * three cases and the placeholder are decided in one place.
+ *
+ * @category Form
  */
 export function ReadOnlyFieldContent({
   value,

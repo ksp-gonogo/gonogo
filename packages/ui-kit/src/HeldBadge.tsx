@@ -6,7 +6,7 @@ import { heldWord } from "./status/streamStatusWord";
 /**
  * Props for {@link HeldBadge}.
  *
- * @category Stream status
+ * @category Badge
  */
 export interface HeldBadgeProps {
   /** Why the reading behind this part of the widget stopped updating. */
@@ -21,10 +21,10 @@ export interface HeldBadgeProps {
  * row, a card, a totals cell. It prints the grade's word and severity, so it
  * always agrees with the panel's own badge.
  *
- * Not a live region, unlike {@link StreamStatusBadge}: many rows going held at
- * once is one event, and the panel's badge already announces it.
+ * It is not a live region, unlike {@link StreamStatusBadge}: the panel's own
+ * badge announces the change once.
  *
- * @category Stream status
+ * @category Badge
  */
 export function HeldBadge({ grade, subject, size }: HeldBadgeProps) {
   const word = heldWord(grade);

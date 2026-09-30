@@ -18,6 +18,11 @@ import { WidgetBody } from "./TinyEssentials";
 import { useWidgetBadges } from "./useWidgetBadges";
 import { WidgetMetaContext } from "./WidgetMetaContext";
 
+/**
+ * Options for {@link renderWidget}.
+ *
+ * @category Testing
+ */
 export interface RenderWidgetOptions {
   /**
    * The dashboard instance id, what the widget sees as
@@ -28,6 +33,7 @@ export interface RenderWidgetOptions {
   config?: Record<string, unknown>;
   /** Grid units, the `w`/`h` props a responsive widget reads. */
   w?: number;
+  /** Grid units, the widget's `h` prop. */
   h?: number;
   /** The widget's `onConfigChange`. Defaults to a no-op. */
   onConfigChange?: (config: Record<string, unknown>) => void;
@@ -40,8 +46,10 @@ export interface RenderWidgetOptions {
 }
 
 /**
- * The provider stack `GridItemContent` puts around every widget, in the same
- * order. Everything here is CONTEXT: what the widget can see.
+ * The provider stack the dashboard puts around every widget, in the same
+ * order, for a registered widget id: the command rail, the panel status store,
+ * the widget's instance and metadata, augment settings and contributions.
+ * {@link renderWidget} uses it; use it directly to wrap a tree of your own.
  *
  * It omits three things the dashboard also wraps a widget in, because each
  * would make a test quieter rather than truer:
@@ -53,6 +61,8 @@ export interface RenderWidgetOptions {
  *   test the gate by asserting on `def.requires` directly
  * - the alarm-status bridge, which folds firing alarms into the status store.
  *   It needs an alarm host, which is app-side, and it renders nothing
+ *
+ * @category Testing
  */
 export function WidgetHost({
   widgetId,
@@ -74,8 +84,11 @@ export function WidgetHost({
 }
 
 /**
- * The same stack, given the definition rather than an id to look one up by:
- * for a harness previewing an augment against a synthetic host definition.
+ * The same stack as {@link WidgetHost}, given the component definition rather
+ * than an id to look one up by: for a harness previewing an augment against a
+ * synthetic host definition.
+ *
+ * @category Testing
  */
 export function WidgetHostFor({
   def,
@@ -159,11 +172,28 @@ const NOOP = () => {};
 
 /**
  * Render a widget the way the dashboard does: by its registered id, inside the
- * provider stack the dashboard puts around one. A bare `render` omits that
- * stack, so for instance a `Panel` status badge would never appear.
+ * provider stack the dashboard puts around one ({@link WidgetHost}). A bare
+ * `render` omits that stack, so for instance a `Panel` status badge would never
+ * appear. The widget must already be registered, so import its module first;
+ * an unknown id throws and lists the registered ones.
  *
- * The `RenderResult` it returns is named from `@ksp-gonogo/sitrep-sdk/testing`.
- * A widget with unusual needs drops to `render` and builds its own scaffolding.
+ * Returns the `RenderResult` of `@ksp-gonogo/sitrep-sdk/testing`'s `render`. A
+ * widget with unusual needs drops to `render` and builds its own scaffolding.
+ *
+ * @example
+ * ```tsx
+ * import { screen } from "@ksp-gonogo/sitrep-sdk/testing";
+ * import { renderWidget } from "@ksp-gonogo/ui-kit/testing";
+ * import { expect, it } from "vitest";
+ * import "./MyGauge"; // registers "my-gauge" on load
+ *
+ * it("shows its label", () => {
+ *   renderWidget("my-gauge", { config: { label: "Apoapsis" }, w: 4, h: 3 });
+ *   expect(screen.getByText("Apoapsis")).toBeTruthy();
+ * });
+ * ```
+ *
+ * @category Testing
  */
 export function renderWidget(
   widgetId: string,

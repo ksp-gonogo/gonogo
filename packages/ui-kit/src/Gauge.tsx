@@ -16,6 +16,11 @@ import {
 import { placedOnScale, standsApart } from "./standsApart";
 import { type FormatsFor, speakQuantity, writeQuantity } from "./units";
 
+/**
+ * A coloured range on a {@link Gauge}'s arc, in the gauge's own unit.
+ *
+ * @category Gauge
+ */
 export interface GaugeZone<Unit extends string = string> {
   /** Lower bound of the zone (inclusive). */
   from: Value<Unit>;
@@ -25,12 +30,21 @@ export interface GaugeZone<Unit extends string = string> {
   color: string;
 }
 
+/**
+ * Props for {@link Gauge}.
+ *
+ * @category Gauge
+ */
 export interface GaugeProps<Unit extends string = string> {
   /** The figure the needle points at, or the whole reading it arrived in. */
   value: UnitValue<Unit>;
+  /** The left end of the arc. A value below it pins the needle there. */
   min: Value<Unit>;
+  /** The right end of the arc. A value above it pins the needle there. */
   max: Value<Unit>;
+  /** Drawn width in pixels. The SVG scales down to a narrower slot rather than clipping. */
   width: number;
+  /** Drawn height in pixels. */
   height: number;
   /** Optional zones drawn as coloured arc segments. Order doesn't matter. */
   zones?: ReadonlyArray<GaugeZone<Unit>>;
@@ -90,7 +104,8 @@ function arcSegmentPath(
 
 /**
  * Half-circle gauge: a needle within a `min..max` arc, with zones colouring
- * ranges of it (e.g. red below 1 and green above 1.5 for TWR).
+ * ranges of it (e.g. red below 1 and green above 1.5 for TWR). For a heading
+ * that wraps, or an arc other than a half circle, use {@link Dial}.
  *
  * `value`, `min`, `max` and every zone bound share one unit, so a zone in
  * kilometres on a metre axis is a compile error, and the centre readout is
@@ -98,6 +113,26 @@ function arcSegmentPath(
  * the readout, a model's interval puts two bounds on the arc, and no number
  * shows no needle. The axis itself is the caller's chosen scale and carries no
  * currency.
+ *
+ * @example A rotor's rpm reading, green up to its commanded cap
+ * ```tsx
+ * import { value } from "@ksp-gonogo/sitrep-sdk";
+ *
+ * <Gauge
+ *   value={rpmReading}
+ *   min={value("rpm", 0)}
+ *   max={value("rpm", 460)}
+ *   zones={[
+ *     { from: value("rpm", 0), to: value("rpm", 300), color: "var(--color-go-status)" },
+ *     { from: value("rpm", 300), to: value("rpm", 460), color: "var(--color-surface-raised)" },
+ *   ]}
+ *   width={180}
+ *   height={104}
+ *   ariaLabel="Rotor 1 rpm"
+ * />
+ * ```
+ *
+ * @category Gauge
  */
 export function Gauge<Unit extends string = string>({
   value,

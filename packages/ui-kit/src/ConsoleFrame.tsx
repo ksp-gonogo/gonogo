@@ -1,7 +1,7 @@
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
 import styled, { css } from "styled-components";
 
-/**
+/*
  * The BOX a console is drawn in: a scrolling surface that takes the remaining
  * height of a panel body, with whatever the operator types into sitting INSIDE
  * it at the foot. Reached through `Console`, not exported bare.
@@ -29,6 +29,12 @@ import styled, { css } from "styled-components";
  * With no composer there is no border to straddle, so the chip becomes an
  * ordinary right-aligned child at the foot, costing a band of height rather
  * than sitting over the prose.
+ */
+/**
+ * Which accent a {@link Console} is drawn in: `accent` (the primary accent) for
+ * a terminal that dispatches to a craft, `info` for a message log.
+ *
+ * @category Console
  */
 export type ConsoleTone = "accent" | "info";
 

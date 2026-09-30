@@ -7,9 +7,10 @@ import type { Tone } from "@ksp-gonogo/sitrep-sdk";
  */
 
 /**
- * A tone's words on a surface, or on its own muted ground.
+ * A tone's text colour on a surface, or on its own muted ground. Each value is
+ * a CSS variable string, for use in a style or a styled-components template.
  *
- * @category Tone
+ * @category Theme
  */
 export const TONE_TEXT: Readonly<Record<Tone, string>> = {
   neutral: "var(--color-neutral-text)",
@@ -22,9 +23,10 @@ export const TONE_TEXT: Readonly<Record<Tone, string>> = {
 };
 
 /**
- * A tone standing alone: a dot, fill, edge or stroke with no text of its own.
+ * A tone standing alone: the colour of a dot, fill, edge or stroke with no
+ * text of its own.
  *
- * @category Tone
+ * @category Theme
  */
 export const TONE_MARK: Readonly<Record<Tone, string>> = {
   neutral: "var(--color-neutral-mark)",
@@ -37,9 +39,10 @@ export const TONE_MARK: Readonly<Record<Tone, string>> = {
 };
 
 /**
- * A fill that carries its own text, drawn in `TONE_ON_STATUS`.
+ * A tone as a fill that carries its own text, drawn in {@link TONE_ON_STATUS}.
+ * Each value is a CSS variable string.
  *
- * @category Tone
+ * @category Theme
  */
 export const TONE_STATUS: Readonly<Record<Tone, string>> = {
   neutral: "var(--color-neutral-status)",
@@ -52,9 +55,9 @@ export const TONE_STATUS: Readonly<Record<Tone, string>> = {
 };
 
 /**
- * The text on a `TONE_STATUS` fill.
+ * The text colour on a {@link TONE_STATUS} fill.
  *
- * @category Tone
+ * @category Theme
  */
 export const TONE_ON_STATUS: Readonly<Record<Tone, string>> = {
   neutral: "var(--color-neutral-on-status)",
@@ -69,7 +72,7 @@ export const TONE_ON_STATUS: Readonly<Record<Tone, string>> = {
 /**
  * The word a screen reader hears for a tone that is announced rather than seen.
  *
- * @category Tone
+ * @category Theme
  */
 export const TONE_LABEL: Readonly<Record<Tone, string>> = {
   neutral: "neutral",
@@ -84,7 +87,7 @@ export const TONE_LABEL: Readonly<Record<Tone, string>> = {
 /**
  * A box's edge in a tone: the tone's mark, except `neutral`, which has no state to edge with and takes the decorative border.
  *
- * @category Tone
+ * @category Theme
  */
 export function toneEdge(tone: Tone): string {
   return tone === "neutral" ? "var(--color-border-subtle)" : TONE_MARK[tone];

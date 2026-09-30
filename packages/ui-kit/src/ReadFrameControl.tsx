@@ -5,7 +5,7 @@ import {
 import { Field, FieldHint, FieldLabel, Select } from "./Form";
 
 /**
- * One frame a `ReadFrameControl` can offer, and what an operator calls it.
+ * One frame a {@link ReadFrameControl} can offer, and what an operator calls it.
  *
  * @category Form
  */
@@ -31,18 +31,16 @@ export interface ReadFrameControlProps {
 }
 
 /**
- * The one control every frame-dependent widget picks its read frame with,
- * rather than each widget building its own.
+ * The control a frame-dependent widget picks its read frame with: a labelled,
+ * keyboard-operable `<select>` over `options`, with an optional hint below.
+ * The selected option is found by frame equality with `value`
+ * (`readFrameChoicesEqual` from `@ksp-gonogo/sitrep-sdk/frames`), so options
+ * need no ids of their own.
  *
  * The caller decides what belongs on `options`: which named frames apply to
- * what it is drawing, and whether "follow the Control Frame" is one of them
- * (an operator ruling: only when the live Control Frame would draw something
- * `options`' other entries do not already draw, `readFrameChoicesEqual` from
- * the sdk is what a caller checks that with). This component has no opinion
- * on any of that, it is a labelled, keyboard-operable `<select>` over
- * whatever the caller decided, matching an option back to `value` by frame
- * equality rather than by a caller-assigned id, since a `ReadFrameChoice` is
- * already a value type with nothing else to key it by.
+ * what it is drawing, and whether "follow the Control Frame" is one of them.
+ * Offer that entry only when the live Control Frame would draw something the
+ * other entries do not already draw; `readFrameChoicesEqual` is the check.
  *
  * @category Form
  */

@@ -17,19 +17,35 @@ import {
 } from "./Combobox";
 import { focusRing } from "./focusRing";
 
+/**
+ * One key a {@link DataKeyPicker} offers.
+ *
+ * @category Form
+ */
 export interface KeyOption extends ComboboxOption {
+  /** A unit symbol drawn at the end of the option's row. */
   unit?: string;
 }
 
+/**
+ * Props for {@link DataKeyPicker}.
+ *
+ * @category Form
+ */
 export interface DataKeyPickerProps {
+  /** The keys on offer. An empty list is treated as not yet loaded, so no saved key is flagged as unavailable against it. */
   keys: KeyOption[];
+  /** The picked key, or null for none. */
   value: string | null;
+  /** Called with the picked key, or with null when cleared. */
   onChange: (key: string | null) => void;
+  /** Adds a clear control while a key is picked. Defaults to false. */
   clearable?: boolean;
+  /** Shown while no key is picked. Defaults to "Search...". */
   placeholder?: string;
   /**
    * What to call the thing the picked key names, for the message shown when a
-   * saved key is no longer on offer and for the clear control's name. Defaults
+   * saved key is not among `keys` and for the clear control's name. Defaults
    * to "value".
    */
   subjectNoun?: string;
@@ -45,6 +61,18 @@ export interface DataKeyPickerProps {
  */
 const RETIRED_MESSAGE = "no longer available";
 
+/**
+ * A searchable picker over a list of keys: a combobox input that filters as
+ * the operator types, with the options grouped under their `group` headings
+ * and each option's unit drawn beside it. Enter with nothing highlighted picks
+ * the first match; Escape or a click outside closes the list.
+ *
+ * A saved `value` that is not among a non-empty `keys` is flagged in place
+ * ("This value no longer available. Pick another.") rather than shown as a
+ * valid selection.
+ *
+ * @category Form
+ */
 export function DataKeyPicker({
   keys,
   value,

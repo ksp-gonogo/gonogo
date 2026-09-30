@@ -35,17 +35,25 @@ function jestAxe(): Promise<{ axe: typeof axeFn }> {
 }
 
 /**
- * The accessibility smoke assertion every widget test owes, with the `act`
- * wrapping done here so no caller has to know about it.
+ * The accessibility smoke assertion for a widget test: runs `axe` over
+ * `container` (an element or a selector) and fails on any violation.
  *
- * ```ts
- * await expectNoA11yViolations(container);
+ * The whole check runs inside `act`, so a widget with a clock or a
+ * subscription that keeps updating while `axe` walks the DOM raises no act
+ * warning. Call this rather than `axe` directly. Needs `jest-axe` installed as
+ * a dev dependency of your own; it is loaded on first use.
+ *
+ * @example
+ * ```tsx
+ * import { expectNoA11yViolations, renderWidget } from "@ksp-gonogo/ui-kit/testing";
+ *
+ * it("has no accessibility violations", async () => {
+ *   const { container } = renderWidget("my-gauge");
+ *   await expectNoA11yViolations(container);
+ * });
  * ```
  *
- * `axe` walks the DOM asynchronously and takes real time, so a widget with a
- * clock or a subscription keeps updating throughout; awaited bare, each update
- * lands outside `act`. Every await here, the lazy `jest-axe` import included,
- * is inside the `act` scope.
+ * @category Testing
  */
 export async function expectNoA11yViolations(
   container: Element | string,

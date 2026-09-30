@@ -3,6 +3,12 @@ import styled, { css } from "styled-components";
 import { focusRingInset } from "./focusRing";
 import { statusFill } from "./tone";
 
+/**
+ * Props for {@link Row}. Any other HTML attribute passes through to the
+ * rendered element.
+ *
+ * @category Layout
+ */
 export interface RowProps extends HTMLAttributes<HTMLElement> {
   /** Rendered tag. Defaults to `li` (a `Row` typically sits in a plain `<ul>`). */
   as?: ElementType;
@@ -66,7 +72,12 @@ function RowBase({
   );
 }
 
-/** Truncating name/label child for a `Row`: flexes to fill, ellipsises overflow. */
+/**
+ * The name inside a {@link Row}: fills the free width and truncates with an
+ * ellipsis. Also reachable as `Row.Name`.
+ *
+ * @category Layout
+ */
 export const RowName = styled.span`
   overflow: hidden;
   text-overflow: ellipsis;
@@ -139,4 +150,26 @@ const Row__Root = styled.li<{
   ${({ $nested }) => ($nested ? "padding-left: var(--indent-row);" : "")}
 `;
 
+/**
+ * One list row with its children spread between the edges: the name on the
+ * left in a {@link RowName}, badges and actions on the right. Renders an `li`
+ * by default, so it belongs in a plain `ul`. Set `interactive` with
+ * `as="button"` for a selectable row.
+ *
+ * @example
+ * ```tsx
+ * <ul>
+ *   {vessels.map((v) => (
+ *     <Row key={v.id}>
+ *       <Row.Name>{v.name}</Row.Name>
+ *       <Inline>
+ *         <Badge tone="go">{v.situation}</Badge>
+ *       </Inline>
+ *     </Row>
+ *   ))}
+ * </ul>
+ * ```
+ *
+ * @category Layout
+ */
 export const Row = Object.assign(RowBase, { Name: RowName });

@@ -3,6 +3,11 @@ import type { HTMLAttributes, ReactNode } from "react";
 import styled, { css } from "styled-components";
 import { TONE_TEXT } from "./tone";
 
+/**
+ * Props for {@link DataLine}.
+ *
+ * @category Readout
+ */
 export interface DataLineProps extends HTMLAttributes<HTMLDivElement> {
   /**
    * What the reading IS, in one or two words. Set in a quiet uppercase so the
@@ -11,19 +16,18 @@ export interface DataLineProps extends HTMLAttributes<HTMLDivElement> {
   label: ReactNode;
   /**
    * A chip qualifying the reading: a `Badge` saying which of two states it is in.
-   * Sits at the head of the reading rather than between it and the label, so an
-   * `aligned` line keeps the badge inside the reading's own column and the two
+   * Sits at the head of the reading, inside the reading's own column, so the two
    * wrap together.
    */
   lead?: ReactNode;
-  /** The reading. A quantity belongs in a `<Unit>`; nothing else formats one. */
+  /** The reading. Write a quantity through {@link Unit}. */
   children?: ReactNode;
   /** How alarming the reading is. Defaults to `neutral`. */
   tone?: Tone;
   /**
    * Give the label a fixed column so the readings on consecutive lines line up
    * down their left edge; a long reading wraps inside its own column. Off by
-   * default, since one long label would waste width on every other line.
+   * default.
    */
   aligned?: boolean;
 }
@@ -36,7 +40,9 @@ export interface DataLineProps extends HTMLAttributes<HTMLDivElement> {
  * colours the reading and never the label.
  *
  * For a settings row, where the value sits at the row's right edge, use
- * `ReadOnlyField` instead.
+ * {@link ReadOnlyField} instead.
+ *
+ * @category Readout
  */
 export function DataLine({
   label,

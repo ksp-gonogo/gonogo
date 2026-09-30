@@ -2,22 +2,37 @@ import { createContext, useContext } from "react";
 import type { ContributionSlotId } from "./contributions";
 
 /**
- * Identity and declared contribution slots for the widget instance the caller
- * is mounted inside, so ContributionsProvider knows which slots to aggregate.
- * Mounted by the dashboard orchestrator.
+ * The identity and declared contribution slots of the widget the caller is
+ * rendered inside. {@link ContributionsProvider} reads it to know which slots
+ * to serve, and segment slots complete to `${componentId}.<segment>` from it.
+ *
+ * @category Extensions
  */
 export interface WidgetMetaContextValue {
-  /** The registered ComponentDefinition.id of the mounted widget. */
+  /** The widget's registered component id. */
   componentId: string;
-  /** The widget's own declared ComponentDefinition.contributionSlots, or []. */
+  /** The contribution slots the widget declares in its `contributionSlots`, or an empty list. */
   contributionSlots: readonly ContributionSlotId[];
 }
 
+/**
+ * The context carrying {@link WidgetMetaContextValue} for the current widget,
+ * `null` outside one. The dashboard provides it for every widget; a test
+ * rendering a widget bare provides it to get the widget's slots working.
+ *
+ * @category Extensions
+ */
 export const WidgetMetaContext = createContext<WidgetMetaContextValue | null>(
   null,
 );
 
-/** Null outside a provider: a bare widget, a test, or a panel outside the dashboard. */
+/**
+ * The current widget's identity and declared contribution slots, or `null`
+ * outside a {@link WidgetMetaContext} provider (a widget rendered bare, a panel
+ * outside the dashboard).
+ *
+ * @category Extensions
+ */
 export function useWidgetMeta(): WidgetMetaContextValue | null {
   return useContext(WidgetMetaContext);
 }

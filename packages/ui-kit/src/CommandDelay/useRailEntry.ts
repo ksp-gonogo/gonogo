@@ -7,7 +7,7 @@ import { useDelayRailStore } from "./DelayRailContext";
  * ribbon. A command handle is registered by `useCommand` itself, so one passed
  * here is a type error rather than a second entry.
  *
- * @category Command delay
+ * @category CommandDelay
  */
 export type RailEntry = CommandDelayHandle & { send?: never };
 
@@ -16,7 +16,7 @@ export type RailEntry = CommandDelayHandle & { send?: never };
  * calling component, updating it in place as it changes. `null` contributes
  * nothing, so an entry can come and go; outside a rail it is a no-op.
  *
- * @category Command delay
+ * @category CommandDelay
  */
 export function useRailEntry(entry: RailEntry | null): void {
   const store = useDelayRailStore();

@@ -343,10 +343,15 @@ function reportContributionThrew(id: string, err: unknown): void {
 }
 
 /**
- * Aggregates contributions for the tree below it. Inside a widget it serves
- * the widget's declared slots and its framework segments; `slots` names the
- * slots to serve instead, for a host surface that is not a widget, such as the
- * screen header's `app.header-badges`.
+ * Runs the registered contributions for the tree below it and stores their
+ * entries for {@link useContributions} to read. Inside a widget it serves the
+ * widget's declared `contributionSlots` plus the component segments
+ * (`badges`, `filters`, `meters`) completed to `${componentId}.<segment>`.
+ * `slots` names the full slot ids to serve instead, for a surface that is not
+ * a widget, such as the screen header's `app.header-badges`. The dashboard
+ * mounts one per widget.
+ *
+ * @category Extensions
  */
 export function ContributionsProvider({
   slots,

@@ -2,16 +2,20 @@ import { useId } from "react";
 import { Field, FieldHint, FieldLabel, Input } from "./Form";
 import { Text } from "./Text";
 
+/**
+ * Props for {@link TextField}.
+ *
+ * @category Form
+ */
 export interface TextFieldProps {
   /** Shown above the field and tied to it, so the field is never unlabelled. */
   label: string;
   value: string;
   onChange: (next: string) => void;
   /**
-   * Refused by the control that owns the field, not by the field: naming a
-   * complex is refused for reasons only the caller knows (a duplicate at this
-   * centre, or a career mod's own naming rule), and a field that invented its own rule would
-   * disagree with the command.
+   * The message saying why the current text is refused, shown under the field;
+   * setting it marks the field invalid. The field validates nothing itself, so
+   * the caller decides what is refused (a duplicate name, a mod's naming rule).
    */
   invalid?: string;
   placeholder?: string;
@@ -23,19 +27,20 @@ export interface TextFieldProps {
 /**
  * A single line of free text: a name somebody types.
  *
- * `TextField`, `UnitInput` or `Stepper`? The quantity decides, as it does
- * between the other two:
+ * `TextField`, {@link UnitInput} or {@link Stepper}? The value decides:
  *
  *   - `TextField` holds text whose content is the point and which nothing can
- *     validate arithmetically. A name.
- *   - `UnitInput` holds a quantity with a unit, where any number in range is
- *     legal.
- *   - `Stepper` holds one member of a small closed set, where the set is the
- *     point.
+ *     validate arithmetically, such as a name
+ *   - {@link UnitInput} holds a quantity with a unit, where any number in range
+ *     is legal
+ *   - {@link Stepper} holds one member of a small closed set, where the set is
+ *     the point
  *
  * The invalid message is `aria-describedby`-linked and `aria-invalid` is set
  * with it, so a screen reader hears the refusal on the field rather than only
  * seeing it beside it.
+ *
+ * @category Form
  */
 export function TextField({
   label,

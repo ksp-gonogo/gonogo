@@ -30,11 +30,12 @@ const GAP = 12;
 const EDGE = 8;
 
 /**
- * Place an anchored layer against the viewport, the only bound left once the
- * layer is portalled out of its clipping widget. Below-right of the anchor by
- * preference; across an edge it flips to the anchor's other side rather than
- * sliding, so it still reads as attached. If neither side fits, it clamps on
- * screen and its own scroll box carries the rest.
+ * Where to put a `layer`-sized box anchored at `anchor` inside `viewport`, as
+ * the position {@link Floating} uses. It goes 12px below and right of the
+ * anchor by preference; on an axis where that runs past the edge it flips to
+ * the anchor's other side rather than sliding, so it still reads as attached.
+ * If neither side fits, it is clamped to stay 8px inside the viewport, and the
+ * layer's own scroll box must carry the rest.
  *
  * @category Floating
  */

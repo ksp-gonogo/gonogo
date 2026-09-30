@@ -15,6 +15,8 @@ import { VisuallyHidden } from "./VisuallyHidden";
  *
  * It needs a positioned container to hang off: use {@link HeldHost}, or
  * a container of your own that is `position: relative` and does not wrap.
+ *
+ * @category Unit
  */
 export const HeldMark = styled.span`
   position: absolute;
@@ -32,6 +34,8 @@ export const HeldMark = styled.span`
  * and so has no box of its own.
  *
  * `nowrap`, since a phrase broken across two lines has two right edges.
+ *
+ * @category Unit
  */
 export const HeldHost = styled.span`
   position: relative;
@@ -41,7 +45,7 @@ export const HeldHost = styled.span`
 /**
  * The props of {@link HeldFigure}.
  *
- * @category Held figures
+ * @category Unit
  */
 export interface HeldFigureProps extends HTMLAttributes<HTMLSpanElement> {
   /** What the mark means in words: spoken after the figure, and shown on hover. */
@@ -53,7 +57,7 @@ export interface HeldFigureProps extends HTMLAttributes<HTMLSpanElement> {
  * A figure marked held: the dot, the caption spoken after the figure, and the
  * same caption in the kit's hover tip.
  *
- * @category Held figures
+ * @category Unit
  */
 export function HeldFigure({ caption, children, ...rest }: HeldFigureProps) {
   const { anchor, tip } = useTooltip(caption);

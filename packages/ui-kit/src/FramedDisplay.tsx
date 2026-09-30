@@ -1,6 +1,11 @@
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
 import styled from "styled-components";
 
+/**
+ * Props for {@link FramedDisplay}. Any other `div` attribute passes through.
+ *
+ * @category Layout
+ */
 export interface FramedDisplayProps extends ComponentPropsWithoutRef<"div"> {
   children?: ReactNode;
   /**
@@ -9,14 +14,12 @@ export interface FramedDisplayProps extends ComponentPropsWithoutRef<"div"> {
    */
   padded?: boolean;
   /**
-   * A small label inlaid over the frame's own top-left corner, naming the
-   * visual (which frame a drawing is in, what a gauge reads) on the drawing
-   * itself instead of as a second body element beside it. A widget whose body
-   * is otherwise nothing but this frame stays eligible for `Panel`'s
-   * lone-frame inset rule, which a loose sibling caption breaks by giving the
-   * body a second section. The caption sets its own type, the caption size
-   * on a muted colour, so pass bare text rather than a sized `Text`, which
-   * would override it. Undefined renders nothing.
+   * A small label inlaid over the frame's top-left corner, naming the visual
+   * (which frame a drawing is in, what a gauge reads) on the drawing itself.
+   * Prefer it to a caption element beside the frame: a panel whose body is
+   * only this frame keeps its lone-frame inset. The caption sets its own type
+   * (caption size, muted colour), so pass bare text rather than a sized
+   * `Text`. Omitted, nothing is drawn.
    */
   caption?: ReactNode;
 }
@@ -24,12 +27,15 @@ export interface FramedDisplayProps extends ComponentPropsWithoutRef<"div"> {
 /**
  * A bordered, sunken box for visual content (SVG diagrams, canvases, maps,
  * gauges) inside an ordinary padded panel body, so readouts beside it keep the
- * standard inset and the diagram gets an edge that says where it ends.
+ * standard inset and the diagram has a visible edge. A direct `svg` or
+ * `canvas` child fills the frame.
  *
  * It does not scroll or size itself: the caller decides how much room the
- * visual gets. Sized with `flex: 1`, a tall flex sibling collapses it, so a
- * control belongs overlaid on the frame rather than beside it. The visual
- * fills to the rounded edge unless `padded`.
+ * visual gets. Sized with `flex: 1`, a tall flex sibling collapses it, so put
+ * a control overlaid on the frame rather than beside it. The visual fills to
+ * the rounded edge unless `padded`.
+ *
+ * @category Layout
  */
 export function FramedDisplay({
   children,

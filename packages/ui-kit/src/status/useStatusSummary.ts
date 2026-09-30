@@ -6,9 +6,11 @@ const NO_SUBSCRIBE = (): (() => void) => () => {};
 const NULL_SUMMARY = (): StatusSummary | null => null;
 
 /**
- * The panel's merged status summary, or `null` when the store is empty or there
- * is no store in the tree. A subscriber re-renders only when the winning
- * contribution changes.
+ * The panel's winning status contribution (see {@link StatusSummary}), or
+ * `null` when nothing has contributed or there is no {@link PanelStatusStore}
+ * above. Re-renders only when the winner changes.
+ *
+ * @category Panel
  */
 export function useStatusSummary(): StatusSummary | null {
   const store = usePanelStatusStore();

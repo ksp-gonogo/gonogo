@@ -23,7 +23,7 @@ import { TINY_BELOW } from "./widgetSize";
 /**
  * Props for {@link TinyEssentials}: a widget's tiny heading and its essentials.
  *
- * @category Tiny mode
+ * @category TinyEssentials
  */
 export interface TinyEssentialsProps {
   title: string;
@@ -31,8 +31,9 @@ export interface TinyEssentialsProps {
 }
 
 /**
- * The one form every widget with a tiny mode takes at the tiny size: its short
- * heading over its essential values, the first drawn large and the rest as
+ * The form every widget with a tiny mode takes at the tiny size, drawn in a
+ * {@link Panel} with `hoverTitle` and `fitToSize`: its short heading over its
+ * essential values, the first drawn large and the rest as
  * label and figure rows under it. A state word stands in a figure's place and
  * is announced through the tile's one polite live region, or, while its
  * essential declares it urgent, through an assertive one that interrupts.
@@ -40,7 +41,7 @@ export interface TinyEssentialsProps {
  * Rows are drawn in order while they fit the tile and the ones that do not
  * are dropped from the end, so every figure the tile shows is whole.
  *
- * @category Tiny mode
+ * @category TinyEssentials
  */
 export function TinyEssentials({ title, essentials }: TinyEssentialsProps) {
   const [hero, ...rest] = essentials;
@@ -287,7 +288,7 @@ function urgentWords(essentials: readonly TinyEssential[]): string[] {
  * on what a tiny tile shows. The phone column does not: its tiles are the
  * phone's width whatever grid units it reports.
  *
- * @category Tiny mode
+ * @category TinyEssentials
  */
 export function WidgetBody({
   def,
@@ -301,9 +302,12 @@ export function WidgetBody({
 }
 
 /**
- * Whether a widget with this tiny mode shows it in a `w` by `h` tile. Unmeasured dims show the body.
+ * Whether a widget with this tiny mode shows it in a `w` by `h` tile (in grid
+ * units): true when the tile is narrower or shorter than the mode's
+ * `bodyMinSize`, or {@link TINY_BELOW} when it sets none. False while either
+ * dimension is unmeasured, so the widget's own body shows.
  *
- * @category Tiny mode
+ * @category TinyEssentials
  */
 export function showsTiny(
   tiny: TinyMode,
@@ -316,9 +320,11 @@ export function showsTiny(
 }
 
 /**
- * The smallest tile that shows this tiny mode's widget its own body, never below `minSize`.
+ * The smallest tile, in grid units, in which a widget with this tiny mode
+ * shows its own body rather than the tiny form: the mode's `bodyMinSize` (or
+ * {@link TINY_BELOW}), raised to the widget's `minSize` where that is larger.
  *
- * @category Tiny mode
+ * @category TinyEssentials
  */
 export function smallestBodyTile(
   tiny: TinyMode,

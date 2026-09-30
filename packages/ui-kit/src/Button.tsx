@@ -23,7 +23,10 @@ export type ButtonVariant = "default" | "primary" | "ghost" | "text";
  */
 export type ButtonTone = Extract<Tone, "neutral" | "go" | "warn" | "nogo">;
 
-/** `sm` for dense rows; both sizes keep the kit's one control height. *
+/**
+ * `sm` for dense rows, `md` otherwise; both sizes keep the kit's one control
+ * height, and only the type and padding change.
+ *
  * @category Button
  */
 export type ButtonSize = "sm" | "md";
@@ -35,9 +38,11 @@ export type ButtonSize = "sm" | "md";
  * @category Button
  */
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  /** How prominent the button is. Defaults to `default`. */
   variant?: ButtonVariant;
   /** Defaults to `go` for a primary button and `neutral` otherwise. */
   tone?: ButtonTone;
+  /** Defaults to `md`. */
   size?: ButtonSize;
   /**
    * Makes the button a toggle: sets `aria-pressed` and, while true, draws the
@@ -49,13 +54,24 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 /**
  * The kit's button: one family whose `variant` says how prominent it is and
- * whose `tone` says what its action does. Sentence case, since uppercase is
- * reserved for headings and state tokens, so case tells an instrument from a
- * control; the label text is the caller's. It takes no alignment of its own:
- * where it sits in a row is the caller's layout.
+ * whose `tone` says what its action does. Write the label in sentence case;
+ * uppercase belongs to headings and state tokens. It takes no alignment of its
+ * own: where it sits in a row is the caller's layout. The ref reaches the
+ * `button` element.
  *
- * A flex row, so an icon beside the word (`<Button><PlusIcon />New
- * message</Button>`) centres rather than sitting on the text baseline.
+ * Its content is a centred flex row, so an icon beside the word centres on it
+ * rather than sitting on the text baseline.
+ *
+ * @example
+ * ```tsx
+ * <Cluster justify="end">
+ *   <Button variant="ghost" onClick={onCancel}>Cancel</Button>
+ *   <Button variant="primary" onClick={onSave}>
+ *     <CheckIcon />
+ *     Save
+ *   </Button>
+ * </Cluster>
+ * ```
  *
  * @category Button
  */
@@ -224,9 +240,11 @@ export const Button__Body = styled.button<{
 `;
 
 /**
- * Inline subtle link-style button for tertiary actions inside copy (e.g.
- * "Clear all" in a list row). For a paired Cancel / Confirm row, prefer
- * `<Button variant="ghost">` beside `<Button variant="primary">`.
+ * A subtle, underlined link-style `button` for a tertiary action inside copy
+ * (such as "Clear all" in a list row). For a paired Cancel and Confirm row,
+ * use a ghost {@link Button} beside a primary one.
+ *
+ * @category Button
  */
 export const TextButton = styled.button`
   background: none;
@@ -252,8 +270,19 @@ export const TextButton = styled.button`
 `;
 
 /**
- * Icon-only button: no chrome, just the glyph. As a toggle, with
- * `aria-pressed`, it takes the one pressed look while pressed.
+ * An icon-only `button` with no chrome, just the glyph. Give it an
+ * `aria-label`, since the icon inside is decorative. As a toggle, with
+ * `aria-pressed`, it takes the filled pressed look while pressed. Under a
+ * coarse pointer it grows to a 44px touch target.
+ *
+ * @example
+ * ```tsx
+ * <IconButton aria-label="Close" onClick={onClose}>
+ *   <CloseIcon />
+ * </IconButton>
+ * ```
+ *
+ * @category Button
  */
 export const IconButton = styled.button`
   background: none;

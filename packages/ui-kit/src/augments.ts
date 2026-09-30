@@ -24,22 +24,37 @@ export type {
 } from "@ksp-gonogo/sitrep-sdk";
 
 /**
- * Maps an augment SEGMENT to the props it passes down, for the component-led
- * `<AugmentSlot segment>` form, which completes `${componentId}.${segment}` from
- * `useWidgetMeta()`. The framework-universal segments are propless: a widget's
- * state reaches an augment through `WidgetScopeContext` instead.
+ * The standard augment segments every widget's {@link Panel} carries, each
+ * mapped to the props its augments receive. A segment completes to the slot id
+ * `${componentId}.<segment>` for the widget it is mounted in, as
+ * `<AugmentSlot segment="...">` does. Both segments pass no props
+ * (`Record<string, never>`): an augment reads its own Topics, and reads what
+ * the widget is focused on through `useWidgetScope`.
+ *
+ * @category Panel
  */
 export interface AugmentSegmentRegistry {
   /**
-   * A section below everything the widget draws. It passes no props: the
-   * augment reads its own Topics.
+   * Body content after everything the widget draws, as the slot
+   * `${componentId}.sections`. Inside a panel with `sections`, each augment is
+   * one item of the last section grid, so a returned `Section` takes a column.
    */
   sections: Record<string, never>;
-  /** Controls in the widget's panel header, beside its badges. */
+  /**
+   * Controls in the widget's panel header aside, as the slot
+   * `${componentId}.actions`: after the widget's own `panelAside`, before its
+   * badges.
+   */
   actions: Record<string, never>;
 }
 
-/** The props a component-led augment SEGMENT passes to its augments, resolved from {@link AugmentSegmentRegistry}. */
+/**
+ * The props an augment bound to a standard segment receives, looked up in
+ * {@link AugmentSegmentRegistry}: `Record<string, never>` for `sections` and
+ * `actions`, and `never` for a name that is not a standard segment.
+ *
+ * @category Panel
+ */
 export type AugmentSegmentProps<Segment extends string> =
   Segment extends keyof AugmentSegmentRegistry
     ? AugmentSegmentRegistry[Segment]
@@ -61,10 +76,13 @@ export type {
   NamespacedAugmentSettings,
 } from "@ksp-gonogo/sitrep-sdk";
 
-/*
- * The erased form the registry stores, so one map holds every slot's augments.
- * `SlotProps<string>` would resolve to `never` for an undeclared slot; `Slot` is
- * checked at the `registerAugment` call site instead.
+// `SlotProps<string>` would resolve to `never` for an undeclared slot, so the props are erased here and `Slot` is checked at the `registerAugment` call site instead.
+/**
+ * An augment as the registry holds it, whatever slot it binds: an
+ * `AugmentDefinition` whose component takes a loose props object. The lookup
+ * functions ({@link getAugmentsForSlot}, {@link getAugments}) return this.
+ *
+ * @category Extensions
  */
 export type AnyAugment = Omit<AugmentDefinition<string>, "component"> & {
   component: ComponentType<Record<string, unknown>>;
@@ -96,10 +114,12 @@ function registry(): AugmentRegistry {
 }
 
 /**
- * Retired slot ids, mapped to their replacements. An augment bound to a retired
- * id is stored but never rendered, so registration reports it. The retired id
- * is explained, never forwarded. Runtime cannot tell a real slot id from a typo,
- * only a retired one.
+ * Slot ids that no widget mounts any more, each mapped to the slot that
+ * replaced it. {@link registerAugment} logs an error naming the replacement
+ * when an augment binds one of these; the augment is stored but never renders.
+ * A misspelled slot id is not detected at runtime.
+ *
+ * @category Extensions
  */
 export const RETIRED_SLOT_IDS: Readonly<Record<string, string>> = {
   "distance-to-target.camera": "targeting.camera",
@@ -126,7 +146,12 @@ function notifyAugmentChange(): void {
   for (const cb of registry().listeners) cb();
 }
 
-/** Subscribe to augment registry mutations (register / clear). */
+/**
+ * Calls `cb` whenever an augment is registered or the registry is cleared.
+ * Returns a function that unsubscribes.
+ *
+ * @category Extensions
+ */
 export function onAugmentsChange(cb: () => void): () => void {
   registry().listeners.add(cb);
   return () => {
@@ -135,10 +160,16 @@ export function onAugmentsChange(cb: () => void): () => void {
 }
 
 /**
- * Register an augment into a widget's slot. Call at module load,
- * exactly like `registerComponent`. Multiple augments may target one slot; they
- * compose, ordered by `priority`. `component` is typed against the
- * target slot's props via the {@link SlotRegistry} declaration-merging seam.
+ * Registers an augment into a widget's slot. Call it at module load, like
+ * `registerComponent`. Several augments may bind one slot; they all render,
+ * ordered by `priority`. Registering an id again replaces the earlier augment.
+ * `component` is typed against the slot's props in {@link SlotRegistry}.
+ *
+ * An Uplink calls the `registerAugment` exported by `@ksp-gonogo/sitrep-sdk`,
+ * which reaches this registry through the host. For binding a widget's
+ * standard `sections` or `actions` slot, see {@link Panel}.
+ *
+ * @category Extensions
  */
 export function registerAugment<Slot extends string>(
   def: AugmentDefinition<Slot>,
@@ -154,9 +185,12 @@ export function registerAugment<Slot extends string>(
 }
 
 /**
- * Every augment bound to `slotName`, ordered for rendering: ascending
- * `priority` (default 0), ties in registration order. `requires` gating is
- * applied at render time by {@link AugmentSlot}, not here.
+ * Every augment bound to `slotName`, in render order: ascending `priority`
+ * (default 0), ties in registration order. It includes augments whose
+ * `requires` Domain is absent; {@link AugmentSlot} applies that gate when it
+ * renders.
+ *
+ * @category Extensions
  */
 export function getAugmentsForSlot(slotName: string): AnyAugment[] {
   return Array.from(registry().augments.values())
@@ -170,17 +204,23 @@ export function getAugmentsForSlot(slotName: string): AnyAugment[] {
     .map((entry) => entry.def);
 }
 
-/** Every registered augment, unordered. */
+/**
+ * Every registered augment, in no particular order.
+ *
+ * @category Extensions
+ */
 export function getAugments(): AnyAugment[] {
   return Array.from(registry().augments.values()).map((entry) => entry.def);
 }
 
 /**
- * The namespaced settings blocks contributed by every augment bound to
- * `slotName` that declares `settings`. The host widget's settings
- * panel composes these after its own stock settings; each block's `namespace`
- * (the augment id) scopes its fields in the per-instance config. Ordered the
- * same way the augments render. An absent Uplink contributes no block.
+ * One settings block for each augment bound to `slotName` that declares
+ * `settings`, in render order. The host widget's settings panel shows these
+ * after its own settings; each block's `namespace` (the augment id) scopes its
+ * fields in the widget instance's config. An Uplink that is not loaded adds no
+ * block.
+ *
+ * @category Extensions
  */
 export function getAugmentSettings(
   slotName: string,
@@ -194,7 +234,11 @@ export function getAugmentSettings(
     }));
 }
 
-/** For use in tests only, resets the augment registry to empty. */
+/**
+ * Empties the augment registry and notifies subscribers. For tests only.
+ *
+ * @category Extensions
+ */
 export function clearAugments(): void {
   const state = registry();
   state.augments.clear();

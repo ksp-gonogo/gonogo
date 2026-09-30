@@ -5,13 +5,14 @@ import { Spinner } from "../Spinner";
 /**
  * The props of {@link InFlightFace}.
  *
- * @category Command controls
+ * @category CommandButton
  */
 export interface InFlightFaceProps {
   /** The resting label, kept invisible so the control keeps its resting width. */
   holds: ReactNode;
   /** The in-flight wording, given to the spinner as its name. */
   label: string;
+  /** The spinner's size in px. Defaults to 12. */
   spinnerSize?: number;
 }
 
@@ -20,7 +21,7 @@ export interface InFlightFaceProps {
  * alone, centred over its resting label held invisible, so the control does not
  * change width. The wording belongs on the control's accessible name and title.
  *
- * @category Command controls
+ * @category CommandButton
  */
 export function InFlightFace({
   holds,

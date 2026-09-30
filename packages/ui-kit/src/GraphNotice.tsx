@@ -2,8 +2,19 @@ import type { HTMLAttributes, ReactNode } from "react";
 import styled, { css } from "styled-components";
 import { RADIUS_VAR } from "./scales";
 
+/**
+ * Where a {@link GraphNotice} sits: `"overlay"` over the graph's bottom-left
+ * corner, `"inline"` as a row below it.
+ *
+ * @category LineGraph
+ */
 export type GraphNoticePlacement = "overlay" | "inline";
 
+/**
+ * Props for {@link GraphNotice}.
+ *
+ * @category LineGraph
+ */
 export interface GraphNoticeProps extends HTMLAttributes<HTMLDivElement> {
   children?: ReactNode;
   /**
@@ -32,6 +43,18 @@ const PLACEMENT_STYLES = {
  * Faint degraded-state pill for a graph widget ("no reference data",
  * "unknown body"). `pointer-events: none`, so it never intercepts the graph's
  * clicks. `role="status"` by default; override via `role`.
+ *
+ * @example Over a graph in a {@link Fill}
+ * ```tsx
+ * <Fill>
+ *   <LineGraph series={series} ariaLabel="Altitude trend" />
+ *   {series.length === 0 && (
+ *     <GraphNotice placement="overlay">no reference data</GraphNotice>
+ *   )}
+ * </Fill>
+ * ```
+ *
+ * @category LineGraph
  */
 export function GraphNotice({
   placement,

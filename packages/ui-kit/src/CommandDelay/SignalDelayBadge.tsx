@@ -4,12 +4,9 @@ import { Unit } from "../Unit";
 import { withDelayCurrency } from "./delayCurrency";
 
 /**
- * How long it takes to REACH the other end, as one small chip.
+ * Props for {@link SignalDelayBadge}.
  *
- * ONE-WAY, because the operator's question is when their words land; the
- * round trip is what the strip draws for a message actually crossing. Drawn
- * beside a control that sends across the gap, so the light time is read before
- * the press rather than learned after it.
+ * @category CommandDelay
  */
 export interface SignalDelayBadgeProps {
   /** One-way separation in seconds. Rendered as-is; the caller decides IF. */
@@ -20,6 +17,16 @@ export interface SignalDelayBadgeProps {
   className?: string;
 }
 
+/**
+ * How long it takes to REACH the other end, as one small chip ("one-way ~4.2 s").
+ *
+ * One-way, because the operator's question is when their words land. Draw it
+ * beside a control that sends across the gap, so the light time is read before
+ * the press rather than learned after it. Under a minute the figure keeps one
+ * decimal.
+ *
+ * @category CommandDelay
+ */
 export function SignalDelayBadge({
   oneWaySeconds,
   delayReading,

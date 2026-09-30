@@ -2,9 +2,28 @@ import { forwardRef, type HTMLAttributes, type ReactNode } from "react";
 import styled from "styled-components";
 import { GAP_VAR, type GapToken } from "./scales";
 
+/**
+ * Horizontal distribution for {@link Cluster}: `between` pushes the first and
+ * last children to the edges, the others pack children to one side or the
+ * middle.
+ *
+ * @category Layout
+ */
 export type ClusterJustify = "between" | "start" | "center" | "end";
+
+/**
+ * Vertical alignment of {@link Cluster}'s children.
+ *
+ * @category Layout
+ */
 export type ClusterAlign = "center" | "start" | "baseline";
 
+/**
+ * Props for {@link Cluster}. Any other `div` attribute passes through, and the
+ * ref reaches the root `div`.
+ *
+ * @category Layout
+ */
 export interface ClusterProps extends HTMLAttributes<HTMLDivElement> {
   /** `justify-content` shorthand. Defaults to `between`. */
   justify?: ClusterJustify;
@@ -42,8 +61,12 @@ const ALIGN_ITEMS: Record<ClusterAlign, string> = {
 };
 
 /**
- * A horizontal row with centred items, spread-out justification, and
- * `min-width: 0` so a truncating child truncates instead of overflowing.
+ * A horizontal flex row. By default its children are vertically centred and
+ * spread to both edges (`space-between`), and it carries `min-width: 0` so a
+ * truncating child truncates instead of overflowing. Children stay on one
+ * line unless `wrap` is set.
+ *
+ * @category Layout
  */
 export const Cluster = forwardRef<HTMLDivElement, ClusterProps>(
   function Cluster(

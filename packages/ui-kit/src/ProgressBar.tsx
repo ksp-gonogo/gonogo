@@ -13,24 +13,35 @@ interface ProgressBarCommonProps
   /**
    * CSS colour for the fill, overriding the default `--color-accent-fg`. For a
    * bar whose progress is itself a threat (a CME closing in), pass a status
-   * token such as `var(--color-nogo-mark)`, since the default green reads
-   * as reassuring.
+   * token such as `var(--color-nogo-mark)`: the default green reads as
+   * reassuring.
    */
   fillColor?: string;
 }
 
-/** The bar driven by a percentage already worked out. See {@link ProgressBarProps}. */
+/**
+ * The {@link ProgressBar} props for a percentage already worked out. See
+ * {@link ProgressBarProps}.
+ *
+ * @category Meter
+ */
 export interface ProgressBarPercentProps extends ProgressBarCommonProps {
   /**
-   * Current value, 0-100. Clamped into range before rendering; a non-finite
-   * value draws nothing, since an empty track would read as 0%. For a figure the source already derived as a percentage;
-   * where both halves are in hand as quantities, pass `quantity` instead.
+   * Current value, 0 to 100, for a figure the source already derived as a
+   * percentage. Clamped into range before rendering; a non-finite value draws
+   * nothing. Where both halves are in hand as quantities, pass `quantity`
+   * instead.
    */
   value: number;
   quantity?: never;
 }
 
-/** The bar driven by an amount and a capacity. See {@link ProgressBarProps}. */
+/**
+ * The {@link ProgressBar} props for an amount and a capacity. See
+ * {@link ProgressBarProps}.
+ *
+ * @category Meter
+ */
 export interface ProgressBarQuantityProps<Unit extends string = string>
   extends ProgressBarCommonProps {
   /**
@@ -38,8 +49,8 @@ export interface ProgressBarQuantityProps<Unit extends string = string>
    * spoken `aria-valuetext` from them.
    *
    * `null`, or a capacity of zero, draws nothing: no track and no
-   * `role="progressbar"`, since an empty track is indistinguishable from 0%. A
-   * call site needs no absence gate of its own.
+   * `role="progressbar"`. There is no need to check for a missing value
+   * first.
    */
   quantity: FillQuantity<Unit> | null;
   value?: never;
@@ -49,6 +60,8 @@ export interface ProgressBarQuantityProps<Unit extends string = string>
  * Everything the bar needs, in one of two mutually exclusive spellings: a
  * `quantity` pair the bar divides itself, or a `value` percentage already
  * divided. Passing both is a type error.
+ *
+ * @category Meter
  */
 export type ProgressBarProps<Unit extends string = string> =
   | ProgressBarPercentProps
@@ -56,10 +69,14 @@ export type ProgressBarProps<Unit extends string = string> =
 
 /**
  * A task's progress toward done, a native `role="progressbar"`, drawn on the
- * same track and fill as `Meter`. Reach for `Meter` instead when the bar is a
- * level within a range (a tank, a load) rather than work advancing to an end.
- * Handed a `quantity` pair it also speaks both halves ("120 of 400 build
- * points"), not only the percentage.
+ * same track and fill as {@link Meter}. Reach for {@link Meter} instead when
+ * the bar is a level within a range (a tank, a load) rather than work
+ * advancing to an end. Handed a `quantity` pair it also speaks both halves
+ * ("120 of 400 build points"), not only the percentage.
+ *
+ * Renders nothing when there is no finite fraction to draw.
+ *
+ * @category Meter
  */
 export function ProgressBar<Unit extends string = string>({
   value,

@@ -11,9 +11,11 @@ const EMPTY_BREAKDOWN_SNAPSHOT = (): readonly StatusBreakdownEntry[] =>
   NO_STATUS_BREAKDOWN;
 
 /**
- * The panel's per-severity status breakdown, worst-first, or `[]` when the store
- * is empty or there is no store in the tree. One row per severity, never merged
- * across tiers, so the collapsed header can paint one dot per active severity.
+ * The panel's per-severity status counts, worst first, one row per severity
+ * present, or an empty list when nothing has contributed or there is no
+ * {@link PanelStatusStore} above. The collapsed header draws one dot per row.
+ *
+ * @category Panel
  */
 export function useStatusBreakdown(): readonly StatusBreakdownEntry[] {
   const store = usePanelStatusStore();

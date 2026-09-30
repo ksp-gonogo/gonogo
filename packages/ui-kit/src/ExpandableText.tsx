@@ -20,6 +20,11 @@ const WORTH_CUTTING = 24;
  */
 const CUT_MARK = "...";
 
+/**
+ * Props for {@link ExpandableText}.
+ *
+ * @category Typography
+ */
 export interface ExpandableTextProps {
   /** The authored text, rendered verbatim whether cut or whole. */
   children: string;
@@ -34,13 +39,15 @@ export interface ExpandableTextProps {
 }
 
 /**
- * Game-authored prose, cut to a readable length with the rest a button press
- * away.
+ * Game-authored prose, cut to a readable length with the rest behind a
+ * "Show more" button.
  *
- * The cut is a prefix of the authored string ending on a whole word, never a
- * summary. It is on a character count rather than a CSS line clamp, because
- * the control has to know whether there is more to show before layout. The
- * reveal is instantaneous.
+ * The cut is a prefix of the string ending on a whole word, followed by
+ * `...`; text with no space before `limit` is cut hard at `limit`. It is a character count, not
+ * a CSS line clamp. Text no more than 24 characters past `limit` is shown
+ * whole with no button, as a bare text node. The reveal is instantaneous.
+ *
+ * @category Typography
  */
 export function ExpandableText({
   children,

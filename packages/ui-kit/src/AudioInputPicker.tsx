@@ -12,6 +12,11 @@ import {
   useAudioInput,
 } from "./useAudioInput";
 
+/**
+ * Props for {@link AudioInputPicker}: the {@link UseAudioInputOptions} plus a label.
+ *
+ * @category AudioInputPicker
+ */
 export interface AudioInputPickerProps extends UseAudioInputOptions {
   /** Visible name for the device picker. Defaults to `Audio input`. */
   label?: string;
@@ -21,12 +26,24 @@ export interface AudioInputPickerProps extends UseAudioInputOptions {
  * Microphone access and device choice, as one control: it asks for permission,
  * lists what the browser will admit to, opens the chosen input and hands the
  * stream back through `onStream`. It knows nothing about what the stream is for.
+ * Built on {@link useAudioInput}; use the hook directly to draw your own.
  *
- * <b>Every state it can be in is a distinguishable sentence.</b> An insecure
- * origin, a refused permission and an absent device all end with no stream, but
- * each has a different remedy. A refusal offers no retry button, because the
- * browser returns the same answer without prompting while the site setting
- * stands.
+ * Every state it can be in is a distinguishable sentence in a live status line.
+ * An insecure origin, a refused permission and an absent device all end with no
+ * stream, but each has a different remedy. A refusal offers no retry button,
+ * because the browser returns the same refusal without prompting while the site
+ * setting stands. The stream is stopped when the picker unmounts.
+ *
+ * @example
+ * ```tsx
+ * <AudioInputPicker
+ *   label="Voice loop input"
+ *   constraints={{ echoCancellation: true }}
+ *   onStream={(stream) => setStream(stream)}
+ * />
+ * ```
+ *
+ * @category AudioInputPicker
  */
 export function AudioInputPicker({
   label = "Audio input",

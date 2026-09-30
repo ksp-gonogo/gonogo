@@ -1,22 +1,34 @@
 import { type RefObject, useEffect, useRef, useState } from "react";
 
-/** Pixel dimensions of an observed element, `Math.floor`-rounded. */
+/**
+ * Pixel dimensions of an observed element, rounded down to whole pixels.
+ *
+ * @category Layout
+ */
 export interface ElementSize {
   w: number;
   h: number;
 }
 
 /**
- * Observe an element's content-box and track its `{ w, h }` size.
+ * Observe an element's content box and track its `{ w, h }` size.
  *
  * Attach `ref` to the element to measure. Zero-size measurements are ignored
- * and the result is `Math.floor`-rounded. The element may come and go, or be
- * swapped for another: whichever one `ref` holds after a render is the one
- * observed. Where there is no `ResizeObserver` (jsdom) this is a no-op and the
- * size stays at `initial`.
+ * and the result is rounded down to whole pixels. The element may come and go,
+ * or be swapped for another: whichever one `ref` holds after a render is the
+ * one observed. Where there is no `ResizeObserver` (jsdom) the size stays at
+ * `initial`.
  *
- * @param initial seed size used until the first non-zero measurement.
- * @returns `{ ref, size }`: attach `ref` to the element to measure.
+ * @param initial - Seed size used until the first non-zero measurement
+ * @returns `{ ref, size }`: attach `ref` to the element to measure
+ *
+ * @example
+ * ```tsx
+ * const { ref, size } = useElementSize({ w: 200, h: 120 });
+ * return <div ref={ref}>{size.w > 300 ? <Wide /> : <Narrow />}</div>;
+ * ```
+ *
+ * @category Layout
  */
 export function useElementSize<
   MeasuredElement extends HTMLElement = HTMLDivElement,

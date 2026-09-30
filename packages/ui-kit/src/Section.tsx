@@ -10,7 +10,12 @@ export const SECTION_FULL_ATTR = "data-section-full";
 /** Marks a section that takes the panel body's leftover height; the rule acting on it lives on the body (see `Panel`). */
 export const SECTION_FILL_ATTR = "data-section-fill";
 
-/** `title` is omitted from the div's attributes so the section's heading can take the name. */
+/**
+ * Props for {@link Section}. Any other `div` attribute passes through, except
+ * the HTML `title`, whose name is taken by the heading.
+ *
+ * @category Layout
+ */
 export interface SectionProps
   extends Omit<HTMLAttributes<HTMLDivElement>, "title"> {
   /** Rendered tag. Defaults to `div`. */
@@ -40,7 +45,14 @@ export interface SectionProps
   children?: ReactNode;
 }
 
-/** A named group of rows within a panel, a `Stack` at the tightest gap. */
+/**
+ * A named group of rows inside a panel: a {@link Stack} at the `rows` gap,
+ * headed by a {@link SectionTitle} when `title` is set. Inside a panel body,
+ * `full` spans every column of the section grid and `fill` takes the body's
+ * leftover height.
+ *
+ * @category Layout
+ */
 export function Section({
   children,
   gap = "rows",
@@ -69,8 +81,11 @@ export function Section({
 }
 
 /**
- * Uppercase, tracked-out label for a `Section`. Use `as="h3"` for a real
- * heading; `$rule` draws a hairline under it.
+ * The uppercase, tracked-out heading {@link Section} draws for its `title`,
+ * usable on its own. Use `as="h3"` (or another heading tag) for a real heading;
+ * `$rule` draws a hairline under it.
+ *
+ * @category Layout
  */
 export const SectionTitle = styled.div<{ $rule?: boolean }>`
   margin: 0;

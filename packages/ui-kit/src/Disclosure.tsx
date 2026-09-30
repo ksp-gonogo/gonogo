@@ -5,18 +5,23 @@ import { focusRing, focusRingInset } from "./focusRing";
 import { ChevronRightIcon } from "./Icons";
 import { useKeyboardScrollable } from "./useScrollerMetric";
 
+/**
+ * Props for {@link Disclosure}.
+ *
+ * @category Disclosure
+ */
 export interface DisclosureProps {
   /**
    * The always-visible trigger content (text, a glyph, a badge). Pass a
    * function of `open` when the label itself should read differently once
-   * expanded (e.g. "Show detail" → "Hide detail").
+   * expanded ("Show detail" to "Hide detail", for example).
    */
   label: ReactNode | ((open: boolean) => ReactNode);
   /** The panel content, revealed when open. */
   children: ReactNode;
   /**
    * Accessible name for the trigger. Required when `label` is a non-text node
-   * (an icon/glyph) so the button is not unlabelled to a screen reader.
+   * (an icon or glyph) so the button is not unlabelled to a screen reader.
    */
   ariaLabel?: string;
   className?: string;
@@ -35,8 +40,8 @@ export interface DisclosureProps {
   panelHeight?: "cap" | "auto";
   /**
    * Whether the rotating chevron renders for `variant="inline"`. Defaults to
-   * `true`. Set `false` when `label` already reads as the affordance (e.g.
-   * "Show detail"); the label then right-aligns where the chevron would sit.
+   * `true`. Set `false` when `label` already reads as the affordance, such as
+   * "Show detail"; the label then right-aligns where the chevron would sit.
    */
   chevron?: boolean;
   /**
@@ -51,21 +56,35 @@ export interface DisclosureProps {
    */
   buttonSize?: ButtonSize;
   /**
-   * Whether the panel starts expanded. Defaults to `false`, the disclosure's
-   * ordinary shape: detail on demand.
+   * Whether the panel starts expanded. Defaults to `false`.
    *
-   * Pass `true` where the panel is the primary content and the trigger exists
-   * so it can be folded away in a short tile. Read once, at mount; to re-seat
-   * it, give the Disclosure a React key that changes with the condition.
+   * Pass `true` where the panel is the primary content and the trigger lets it
+   * be folded away in a short tile. It is read once, at mount; to reset it,
+   * give the Disclosure a React key that changes with the condition.
    */
   defaultOpen?: boolean;
 }
 
 /**
- * A minimal accessible disclosure: a real `<button aria-expanded>` that toggles
- * a panel, reachable by keyboard and pointer (Enter / Space to open, Escape to
- * close and return focus). The kit's general-purpose detail-on-demand surface,
- * for when a hover-only reveal would be unreachable without a mouse.
+ * A button that shows and hides a panel of detail. The trigger is a real
+ * `<button aria-expanded>`, so Enter and Space toggle it, and Escape closes
+ * the panel and returns focus to the trigger. Use it for detail on demand
+ * wherever a hover-only reveal would be unreachable without a mouse. By
+ * default the panel pops over what follows; `variant="inline"` expands it in
+ * flow as an accordion.
+ *
+ * @example
+ * ```tsx
+ * <Disclosure
+ *   variant="inline"
+ *   chevron={false}
+ *   label={(open) => (open ? "Hide detail" : "Show detail")}
+ * >
+ *   <StageBreakdown stages={stages} />
+ * </Disclosure>
+ * ```
+ *
+ * @category Disclosure
  */
 export function Disclosure({
   label,

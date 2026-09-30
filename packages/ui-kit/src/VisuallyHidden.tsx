@@ -2,14 +2,23 @@ import styled from "styled-components";
 
 /**
  * Screen-reader-only content: visually removed but kept in the accessibility
- * tree. Use for announcements a sighted user reads from another channel
- * (colour, a ticking number) that an assistive-tech user would otherwise miss,
- * e.g. a discrete power-state word next to a colour-coded net-rate readout,
- * or the WORD a currency icon replaces.
+ * tree. Use it for what a sighted user reads from another channel (colour, a
+ * ticking number) that an assistive-technology user would otherwise miss, such
+ * as a discrete power-state word beside a colour-coded net-rate readout, or the
+ * word a currency icon stands for.
  *
- * Pair with `role="status" aria-live="polite"` to announce a discrete state
- * CHANGE; keep the streaming value itself OUT of the live region so it doesn't
- * flood the screen reader every tick.
+ * Pair it with `role="status" aria-live="polite"` to announce a discrete state
+ * change; keep a streaming value out of the live region so it does not flood
+ * the screen reader every tick.
+ *
+ * @example
+ * ```tsx
+ * <span role="status" aria-live="polite">
+ *   <VisuallyHidden>{netRate < 0 ? "Draining" : "Charging"}</VisuallyHidden>
+ * </span>
+ * ```
+ *
+ * @category Typography
  */
 export const VisuallyHidden = styled.span`
   position: absolute;

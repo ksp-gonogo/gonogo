@@ -10,13 +10,9 @@ import {
 } from "./readingCurrency";
 
 /**
- * A duration read as a CLOCK: `1m 20s`, or `T−1m 20s` on a launch clock.
- * Which component renders a `Value<"s">` depends on what it MEANS:
+ * Props for {@link Countdown}.
  *
- * - `<Unit>` for a magnitude: a burn lasting 90 seconds
- * - `<Countdown>` for a clock, with the opt-in `T−` / `T+` prefix and
- *   sub-second precision for a cue that would otherwise sit at `0s`
- * - `<MissionDate>` for an instant: a UT is not a length of time
+ * @category MissionDate
  */
 export interface CountdownProps {
   /**
@@ -41,13 +37,23 @@ export interface CountdownProps {
 }
 
 /**
- * A clock ADVANCES only where a model is carrying it and FREEZES on the last
- * observation otherwise, so it draws the reckoning. Unlike `<Unit>`, which never
- * substitutes a modelled figure, a countdown is a claim about a future instant
- * and is wrong frozen.
+ * A duration read as a CLOCK: `1m 20s`, or `T−1m 20s` on a launch clock.
+ * Which component renders a `Value<"s">` depends on what it MEANS:
  *
- * A current reading whose model reaches past the received edge draws its
- * observation, and the model's figure beside it with the modelled mark.
+ * - {@link Unit} for a magnitude: a burn lasting 90 seconds
+ * - `Countdown` for a clock, with the opt-in `T−` / `T+` prefix and
+ *   sub-second precision for a cue that would otherwise sit at `0s`
+ * - {@link MissionDate} for an instant: a UT is not a length of time
+ *
+ * Handed a `Reading`, a countdown draws the model's reckoning where there is
+ * one, so it keeps advancing while a model carries it, and freezes on the last
+ * observation, with the held mark, otherwise. This differs from {@link Unit},
+ * which never substitutes a modelled figure. A current reading whose model
+ * reaches past the received edge draws its observation, and the model's figure
+ * beside it with the modelled mark. An absent value renders
+ * {@link NULL_DISPLAY}.
+ *
+ * @category MissionDate
  */
 export function Countdown({
   value,

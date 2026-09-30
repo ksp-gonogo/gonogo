@@ -5,13 +5,18 @@ import { TONE_MARK } from "./tone";
 /**
  * Props for {@link LevelBars}.
  *
- * @category Readouts
+ * @category Meter
  */
 export interface LevelBarsProps {
   /** How many bars are lit, or null when there is nothing to judge by. Zero is a verdict and draws every bar unlit. */
   lit: number | null;
   /** How many bars the glyph has. */
   of: number;
+  /**
+   * Colour of the lit bars.
+   *
+   * @defaultValue `"neutral"`
+   */
   tone?: Tone;
   /** What the glyph measures, spoken before the count: "Signal" reads "Signal 3 of 4". */
   label?: string;
@@ -22,7 +27,7 @@ export interface LevelBarsProps {
  * a signal-strength indicator. Sized in em, so it scales with the figure it
  * stands beside.
  *
- * @category Readouts
+ * @category Meter
  */
 export function LevelBars({
   lit,

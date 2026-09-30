@@ -2,6 +2,11 @@ import type { HTMLAttributes, ReactNode } from "react";
 import styled from "styled-components";
 import { GAP_VAR, type GapToken } from "./scales";
 
+/**
+ * Props for {@link Inline}. Any other `span` attribute passes through.
+ *
+ * @category Layout
+ */
 export interface InlineProps extends HTMLAttributes<HTMLSpanElement> {
   /**
    * Gap between children, as a gap job. Omitted, it is `--gap-related`,
@@ -27,8 +32,11 @@ export interface InlineProps extends HTMLAttributes<HTMLSpanElement> {
 }
 
 /**
- * Compact inline cluster for badges and action buttons that must not grow,
- * `flex-shrink: 0` so it never yields space to a truncating sibling.
+ * A compact inline-flex `span` for a run of badges or action buttons. It does
+ * not shrink (`flex-shrink: 0`), so a truncating sibling gives up space before
+ * it does; set `wrap` when the number of children depends on data.
+ *
+ * @category Layout
  */
 export function Inline({
   gap,

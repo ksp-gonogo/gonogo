@@ -4,6 +4,12 @@ import { focusRing } from "./focusRing";
 import { GAP_VAR, type GapToken, RADIUS_VAR } from "./scales";
 import { statusFill } from "./tone";
 
+/**
+ * Props for {@link SelectableRow}. Any other `button` attribute passes
+ * through, except `type`, which is always `button`.
+ *
+ * @category FilterList
+ */
 export interface SelectableRowProps
   extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "type"> {
   /**
@@ -21,11 +27,29 @@ export interface SelectableRowProps
 }
 
 /**
- * A real `<button>` styled as a full-width, left-aligned, two-line list row
- * that doubles as the active selection in a pick-one list. Stacks its children
- * vertically and go-tones its background/border when `selected`; text inherits
- * the row's own colour so children stay unstyled spans that pick up the
- * selected tint. Sets `aria-pressed` from `selected` automatically.
+ * A real `<button>` drawn as a full-width, left-aligned list row, for one
+ * option in a pick-one list. It stacks its children vertically (typically a
+ * name line over a muted meta line) and fills in the go tone while
+ * `selected`. Text inherits the row's colour, so plain spans inside pick up
+ * the selected tint. `aria-pressed` follows `selected`.
+ *
+ * @example
+ * ```tsx
+ * <Stack gap="rows">
+ *   {servos.map((s) => (
+ *     <SelectableRow
+ *       key={s.id}
+ *       selected={s.id === selectedId}
+ *       onClick={() => select(s.id)}
+ *     >
+ *       <span>{s.name}</span>
+ *       <Text level="muted" size="xs">{s.group}</Text>
+ *     </SelectableRow>
+ *   ))}
+ * </Stack>
+ * ```
+ *
+ * @category FilterList
  */
 export function SelectableRow({
   selected,

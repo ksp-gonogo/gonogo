@@ -5,7 +5,7 @@ import { heldWord } from "./status/streamStatusWord";
 /**
  * What a badge entry draws: its words, its tone and its tooltip.
  *
- * @category Panel
+ * @category Badge
  */
 export interface BadgeFace {
   label: string;
@@ -14,14 +14,13 @@ export interface BadgeFace {
 }
 
 /**
- * How a badge entry reads once its `held` grade is taken into account. Live,
- * that is its own `label` and `tone`; held, the grade's own word and severity
- * replace the verdict computed from it, since a reading that stopped arriving
- * cannot still be asserted as current, and the tooltip keeps the verdict it
- * replaced. Every surface that draws a `BadgeEntry` goes through this, so a
- * held badge reads the same in a panel header as in the screen header.
+ * How a `BadgeEntry` reads once its `held` grade is taken into account. With
+ * no held grade it returns the entry's own `label`, `tone` and `title`. With
+ * one, the grade's word and severity replace the label and tone, and the
+ * title keeps the replaced label (`"<label>: <word>"`) unless the entry set
+ * its own. Use it to draw a `BadgeEntry` the same way the panel header does.
  *
- * @category Panel
+ * @category Badge
  */
 export function badgeFace(entry: BadgeEntry & { title?: string }): BadgeFace {
   const grade = heldGradeOf(entry);

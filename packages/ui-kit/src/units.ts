@@ -63,6 +63,8 @@ type ConversionTargetsOfKind<Kind> = {
  *
  * A literal symbol nothing declares accepts no format at all, since there is no
  * kind to check the request against. Only a wide `string` accepts any string.
+ *
+ * @category Unit
  */
 export type FormatsFor<Unit extends string> = string extends Unit
   ? string
@@ -71,6 +73,8 @@ export type FormatsFor<Unit extends string> = string extends Unit
 /**
  * {@link FormatsFor}, asked of the KIND rather than of one of its units, for a
  * pin addressed to a whole group that has no single unit to check against.
+ *
+ * @category Unit
  */
 export type FormatsForKind<Kind> = SymbolsOfKind<Kind>;
 
@@ -81,12 +85,18 @@ export type FormatsForKind<Kind> = SymbolsOfKind<Kind>;
  * Wider than {@link FormatsFor} by exactly the symbols that are not on the
  * wire: `format` pins a rung, `as` re-expresses, so `°C` belongs only to `as`.
  * Both refuse a cross-kind request: `as="kg"` on a length is an error.
+ *
+ * @category Unit
  */
 export type PresentableAs<Unit extends string> = string extends Unit
   ? string
   : PresentableAsKind<KindOfSymbol<Unit>>;
 
-/** {@link PresentableAs}, asked of the KIND. See {@link FormatsForKind}. */
+/**
+ * {@link PresentableAs}, asked of the KIND. See {@link FormatsForKind}.
+ *
+ * @category Unit
+ */
 export type PresentableAsKind<Kind> =
   | SymbolsOfKind<Kind>
   | ConversionTargetsOfKind<Kind>;
@@ -124,6 +134,8 @@ import { NULL_DISPLAY } from "./NullValue";
  * What a unit measures. The kind is what makes the system checkable: it says
  * `m` and `km` are interchangeable and `m` and `m/s` are not, and it selects
  * the ladder and the precision rule.
+ *
+ * @category Unit
  */
 export type KnownQuantityKind =
   | "length"
@@ -183,12 +195,18 @@ export type KnownQuantityKind =
 /**
  * A quantity kind, OPEN to kinds this package has never heard of.
  *
- * The `string & {}` arm lets a third-party Uplink introduce its own dimension
+ * The `string & {}` member lets a third-party Uplink introduce its own dimension
  * while the known kinds still autocomplete.
+ *
+ * @category Unit
  */
 export type QuantityKind = KnownQuantityKind | (string & {});
 
-/** One rung of a scaling ladder: a threshold in base units and its symbol. */
+/**
+ * One rung of a scaling ladder: a threshold in base units and its symbol.
+ *
+ * @category Unit
+ */
 export type Rung = UnitRung;
 
 /**
@@ -286,6 +304,8 @@ const laddersByName: Record<string, readonly Rung[]> = { ...LADDERS };
  * Every ladder a declared unit names, and therefore every group that settles
  * one rung together. A unit on none of them is a group of its own: `m`, `km`
  * and `Mm` are one group and `s` and `min` are two.
+ *
+ * @category Unit
  */
 export type LadderName = {
   [Unit in DeclaredUnit]: LadderOfSymbol<Unit>;
@@ -299,6 +319,8 @@ export type LadderName = {
  * by the unit, because nothing interconverts it with its siblings and a pin on
  * `s` says nothing about `min`. Keyed this way, a group is pinned at most once
  * by construction.
+ *
+ * @category Unit
  */
 export type UnitGroupKey =
   | LadderName
@@ -313,6 +335,8 @@ export type UnitGroupKey =
  *
  * A ladder key measures whatever its units do; a unit key resolves through the
  * declarations the same way a lone `<Unit>` does.
+ *
+ * @category Unit
  */
 export type KindOfGroup<Group extends UnitGroupKey> = Group extends LadderName
   ? {
@@ -632,8 +656,10 @@ function formatWhole(
  *
  * For the places that cannot take a node (`aria-label`, `title`, an SVG
  * `aria-valuetext`), so an accessible name reads "250.0 kilometres" rather
- * than "kay em". If the result is going to be rendered, use `<Unit>` or
- * `writeQuantity`. Falls back to the symbol for a unit with no word.
+ * than "kay em". If the result is going to be rendered, use {@link Unit} or
+ * {@link writeQuantity}. Falls back to the symbol for a unit with no word.
+ *
+ * @category Unit
  */
 export function speakQuantity(
   quantity: { magnitude: number; unit: string } | null | undefined,
@@ -664,10 +690,12 @@ export const ATTACHED_SYMBOLS: ReadonlySet<string> = new Set([
  *
  * For visible text that cannot take a node: an SVG `<text>`, a canvas label, a
  * chart annotation measured before it is drawn. Anywhere a node fits, use
- * `<Unit>`; for an accessible name, `speakQuantity`.
+ * {@link Unit}; for an accessible name, {@link speakQuantity}.
  *
  * An ordinary space, not the thin space `<Unit>` sets, since a U+2009 is at
  * the mercy of the SVG or canvas renderer.
+ *
+ * @category Unit
  */
 export function writeQuantity(
   quantity: { magnitude: number; unit: string } | null | undefined,
@@ -841,6 +869,8 @@ let locale: string | undefined;
 /**
  * Pin the locale every quantity is written in, or pass `undefined` to go back
  * to the reader's own. One call changes every readout at once.
+ *
+ * @category Unit
  */
 export function setQuantityLocale(next: string | undefined): void {
   locale = next;
@@ -1110,8 +1140,10 @@ export function formatQuantity(
  * on the rung settled from the value that defines the scale, so a strip never
  * reads "500 m" three marks below "1.0 km".
  *
- * Not a general string formatter ({@link writeQuantity}, `<Unit>`), and not
- * for aligning a group of readouts with no known bound (`<UnitSharedFormat>`).
+ * Not a general string formatter ({@link writeQuantity}, {@link Unit}), and not
+ * for aligning a group of readouts with no known bound ({@link UnitSharedFormat}).
+ *
+ * @category Unit
  */
 export interface QuantityScale {
   /** The unit every mark is printed in. */
@@ -1131,6 +1163,8 @@ export interface QuantityScale {
  * `reference` is the value that DEFINES the scale rather than a value on it:
  * the top of an altimeter strip, an axis maximum. `opts.format` pins the rung
  * outright.
+ *
+ * @category Unit
  */
 export function quantityScale(
   reference: { magnitude: number; unit: string } | null | undefined,

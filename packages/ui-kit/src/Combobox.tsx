@@ -10,16 +10,25 @@ import { statusFill } from "./tone";
  * keystrokes.
  */
 
-/** A single selectable item in a combobox/listbox dropdown. */
+/**
+ * A single selectable item in a combobox or listbox dropdown. Extend it to carry more per option.
+ *
+ * @category Form
+ */
 export interface ComboboxOption {
+  /** Unique within the list; what a selection reports. */
   key: string;
+  /** What the operator reads. Defaults to the option's key. */
   label?: string;
+  /** The heading the option is listed under. Options with none share one bucket. */
   group?: string;
 }
 
 /**
  * Case-insensitive substring match against an option's label (falling back
  * to its key): the default filter every combobox consumer starts from.
+ *
+ * @category Form
  */
 export function comboboxOptionMatches(
   option: ComboboxOption,
@@ -33,7 +42,11 @@ export function comboboxOptionMatches(
   );
 }
 
-/** Filters `options` against `query` using `matches`, by default a case-insensitive substring match on the label or key. */
+/**
+ * Filters `options` against `query` using `matches`, by default a case-insensitive substring match on the label or key.
+ *
+ * @category Form
+ */
 export function filterComboboxOptions<Option extends ComboboxOption>(
   options: readonly Option[],
   query: string,
@@ -47,6 +60,8 @@ export function filterComboboxOptions<Option extends ComboboxOption>(
  * group name: the grouped-listbox shape combobox consumers render from.
  * Ungrouped callers (every option has no `group`) collapse to a single
  * `otherLabel` bucket, which renders as one flat list.
+ *
+ * @category Form
  */
 export function groupComboboxOptions<Option extends ComboboxOption>(
   options: readonly Option[],
@@ -65,7 +80,11 @@ export function groupComboboxOptions<Option extends ComboboxOption>(
   return [...groups.entries()].sort(([a], [b]) => a.localeCompare(b));
 }
 
-/** Flattens grouped options back into render/navigation order, the order ArrowUp/ArrowDown walk and Enter indexes into. */
+/**
+ * Flattens grouped options back into render and navigation order: the order ArrowUp and ArrowDown walk, and what `activeIndex` indexes into.
+ *
+ * @category Form
+ */
 export function flattenComboboxGroups<Option extends ComboboxOption>(
   groups: ReadonlyArray<[string, Option[]]>,
 ): Option[] {
@@ -76,6 +95,8 @@ export function flattenComboboxGroups<Option extends ComboboxOption>(
  * Steps the active (highlighted) index by `delta` for one ArrowUp/ArrowDown
  * keypress, clamped to `[0, length - 1]`; never wraps, never goes negative.
  * Returns `-1` when there is nothing to select (`length === 0`).
+ *
+ * @category Form
  */
 export function moveComboboxActiveIndex(
   current: number,
@@ -86,25 +107,36 @@ export function moveComboboxActiveIndex(
   return Math.max(0, Math.min(current + delta, length - 1));
 }
 
+/**
+ * Props for {@link ComboboxListbox}.
+ *
+ * @category Form
+ */
 export interface ComboboxListboxProps<Option extends ComboboxOption> {
   /** DOM id for the listbox element: pair with the owning input's `aria-controls`. */
   id: string;
+  /** The options to show, bucketed by {@link groupComboboxOptions}. */
   groups: ReadonlyArray<[string, Option[]]>;
+  /** The same options in navigation order, from {@link flattenComboboxGroups}. */
   flatOptions: readonly Option[];
   /** Index into `flatOptions` of the currently highlighted item, or `-1` for none. */
   activeIndex: number;
   /** The currently committed value (distinct from `activeIndex`'s in-progress highlight), if any. */
   selectedKey?: string | null;
+  /** The DOM id of an option, for the owning input's `aria-activedescendant`. */
   getOptionId: (key: string) => string;
+  /** Called with a `flatOptions` index when the pointer moves over an option. */
   onHoverIndex: (index: number) => void;
+  /** Called with an option's key when it is clicked or tapped. */
   onSelectKey: (key: string) => void;
-  /** Custom item body (e.g. label + trailing unit). Defaults to `option.label ?? option.key`. */
+  /** Custom item body, such as a label with a trailing unit. Defaults to the option's label, or its key when it has none. */
   renderItem?: (option: Option) => ReactNode;
+  /** Shown when `flatOptions` is empty. Defaults to "No matches". */
   emptyLabel?: string;
   /**
-   * Accessible name for the listbox itself. Required in practice for any
-   * caller whose input is not a literal `<input role="combobox">`, since an
-   * unnamed `role="listbox"` fails axe.
+   * Accessible name for the listbox itself. Pass one whenever the owning
+   * control is not a literal `<input role="combobox">`, since an unnamed
+   * `role="listbox"` is an accessibility violation.
    */
   ariaLabel?: string;
   /**
@@ -119,7 +151,60 @@ export interface ComboboxListboxProps<Option extends ComboboxOption> {
  * The presentational half of the combobox pattern: a `role="listbox"`
  * dropdown of grouped, keyboard-navigable options. Owns no state:
  * `activeIndex`, `onHoverIndex` and `onSelectKey` are fully controlled by the
- * caller.
+ * caller, who drives them with {@link filterComboboxOptions},
+ * {@link groupComboboxOptions}, {@link flattenComboboxGroups} and
+ * {@link moveComboboxActiveIndex}. The list is absolutely positioned, so put it
+ * in a `position: relative` container beside the input. Pressing an option
+ * does not take focus from the input.
+ *
+ * @example
+ * ```tsx
+ * const [query, setQuery] = useState("");
+ * const [open, setOpen] = useState(false);
+ * const [active, setActive] = useState(-1);
+ * const listId = useId();
+ * const optionId = (key: string) => `${listId}-${key}`;
+ * const groups = groupComboboxOptions(filterComboboxOptions(options, query));
+ * const flat = flattenComboboxGroups(groups);
+ *
+ * <div style={{ position: "relative" }}>
+ *   <Input
+ *     role="combobox"
+ *     aria-label="Body"
+ *     aria-expanded={open}
+ *     aria-controls={listId}
+ *     aria-autocomplete="list"
+ *     aria-activedescendant={active >= 0 ? optionId(flat[active].key) : undefined}
+ *     value={query}
+ *     onFocus={() => setOpen(true)}
+ *     onBlur={() => setOpen(false)}
+ *     onChange={(e) => {
+ *       setQuery(e.target.value);
+ *       setActive(-1);
+ *     }}
+ *     onKeyDown={(e) => {
+ *       if (e.key === "ArrowDown") setActive((i) => moveComboboxActiveIndex(i, 1, flat.length));
+ *       if (e.key === "ArrowUp") setActive((i) => moveComboboxActiveIndex(i, -1, flat.length));
+ *       if (e.key === "Enter" && flat[active]) onPick(flat[active].key);
+ *       if (e.key === "Escape") setOpen(false);
+ *     }}
+ *   />
+ *   {open && (
+ *     <ComboboxListbox
+ *       id={listId}
+ *       groups={groups}
+ *       flatOptions={flat}
+ *       activeIndex={active}
+ *       selectedKey={selected}
+ *       getOptionId={optionId}
+ *       onHoverIndex={setActive}
+ *       onSelectKey={onPick}
+ *     />
+ *   )}
+ * </div>
+ * ```
+ *
+ * @category Form
  */
 export function ComboboxListbox<Option extends ComboboxOption>({
   id,

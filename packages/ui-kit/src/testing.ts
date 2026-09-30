@@ -27,6 +27,8 @@ import { writeQuantity } from "./units";
  *
  * Defaults to `document.body`. The thin space between a number and its symbol
  * is normalised to an ordinary space.
+ *
+ * @category Testing
  */
 export function visibleText(container: HTMLElement = document.body): string {
   const clone = container.cloneNode(true) as HTMLElement;
@@ -65,6 +67,8 @@ interface MatcherResult {
  * import { unitMatchers } from "@ksp-gonogo/ui-kit/testing";
  * expect.extend(unitMatchers);
  * ```
+ *
+ * @category Testing
  */
 export const unitMatchers = {
   toShowQuantity(
@@ -96,6 +100,8 @@ export const unitMatchers = {
  *   interface Assertion<T> extends UnitMatchers<T> {}
  * }
  * ```
+ *
+ * @category Testing
  */
 export interface UnitMatchers<Result = unknown> {
   toShowQuantity(
@@ -127,6 +133,8 @@ export {
  * One observation of `target` at the given size, as a complete
  * `ResizeObserverEntry` with every box filled. jsdom lays nothing out, so a
  * self-sizing component otherwise renders at zero.
+ *
+ * @category Testing
  */
 export function resizeObservation(
   target: Element,
@@ -185,9 +193,15 @@ function releaseResizeObserver(): void {
 
 /**
  * Install a `ResizeObserver` that reports one fixed size to everything observed,
- * and return the uninstall (the only one: see {@link resizeObserverHolder}).
- * `deliver` fires the callback during `observe` (`"sync"`), or on a macrotask
- * for a component that must not see a size during its own mount.
+ * and return the uninstall. `deliver` fires the callback during `observe`
+ * (`"sync"`, the default), or on a macrotask for a component that must not see
+ * a size during its own mount.
+ *
+ * The returned function is the only way to uninstall: `vi.unstubAllGlobals()`
+ * does not undo it, and installing either observer while one is live throws.
+ * Installing once at module scope and never restoring is fine.
+ *
+ * @category Testing
  */
 export function installFixedSizeResizeObserver(options: {
   width: number;
@@ -220,10 +234,15 @@ export function installFixedSizeResizeObserver(options: {
   };
 }
 
-/** A `ResizeObserver` a test drives by hand: see {@link installDrivableResizeObserver}. */
+/**
+ * A `ResizeObserver` a test drives by hand: see {@link installDrivableResizeObserver}.
+ *
+ * @category Testing
+ */
 export interface DrivableResizeObservers {
   /** Deliver one observation of `target` at `size` to every observer watching it. */
   resize(target: Element, size: { width: number; height: number }): void;
+  /** Restore the previous `ResizeObserver`. The only way to uninstall. */
   uninstall(): void;
 }
 
@@ -231,7 +250,10 @@ export interface DrivableResizeObservers {
  * Install a `ResizeObserver` whose observations a test delivers itself, for a
  * component whose behaviour is the response to a size change. `resize` reaches
  * only observers watching the element, so a component that never subscribed
- * cannot pass.
+ * cannot pass. Installing either observer while one is live throws; call
+ * `uninstall` when done, or install once at module scope.
+ *
+ * @category Testing
  */
 export function installDrivableResizeObserver(): DrivableResizeObservers {
   claimResizeObserver("installDrivableResizeObserver");

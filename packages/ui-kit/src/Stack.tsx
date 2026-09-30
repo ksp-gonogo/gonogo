@@ -3,6 +3,11 @@ import styled from "styled-components";
 import { GAP_VAR, type GapToken } from "./scales";
 import type { StaticElement } from "./staticElement";
 
+/**
+ * Props for {@link Stack}. Any other `div` attribute passes through.
+ *
+ * @category Layout
+ */
 export interface StackProps extends HTMLAttributes<HTMLDivElement> {
   /**
    * Gap between children, as a gap job. Omit it and the gap is
@@ -22,7 +27,39 @@ export interface StackProps extends HTMLAttributes<HTMLDivElement> {
   children?: ReactNode;
 }
 
-/** Vertical flex list: the most common container shape in the dashboard. */
+/**
+ * A vertical flex column, the most common container shape in a widget body.
+ * Children sit one above the other with the container's related gap between
+ * them unless `gap` names another.
+ *
+ * The layout primitives compose: a {@link Stack} of sections, a
+ * {@link Cluster} for a label beside its controls, a {@link Grid} for a
+ * label/value table, and a {@link Box} for an inset well.
+ *
+ * @example
+ * ```tsx
+ * <Stack gap="section">
+ *   <Cluster>
+ *     <Text>Target</Text>
+ *     <Inline>
+ *       <Button onClick={onSet}>Set</Button>
+ *       <Button onClick={onClear}>Clear</Button>
+ *     </Inline>
+ *   </Cluster>
+ *   <Grid cols="auto 1fr" gap="label-value" rowGap="readout-row" align="baseline">
+ *     <Text level="muted">Apoapsis</Text>
+ *     <Text>{apoapsis}</Text>
+ *     <Text level="muted">Periapsis</Text>
+ *     <Text>{periapsis}</Text>
+ *   </Grid>
+ *   <Box surface="sunken" pad="surface" radius="regular">
+ *     {notes}
+ *   </Box>
+ * </Stack>
+ * ```
+ *
+ * @category Layout
+ */
 export function Stack({ gap, fill = false, children, ...rest }: StackProps) {
   return (
     <Stack__Root $gap={gap} $fill={fill} {...rest}>

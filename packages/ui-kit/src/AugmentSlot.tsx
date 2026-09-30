@@ -13,26 +13,31 @@ import {
 import { useWidgetMeta } from "./WidgetMetaContext";
 
 /**
- * Renders every augment bound to a slot, ordered by priority. A base widget
- * drops an `<AugmentSlot>` where Uplinks may contribute and never references
- * any augmenting Uplink.
+ * Renders every augment bound to a slot, in priority order, as siblings in a
+ * fragment. A widget places an `<AugmentSlot>` where Uplinks may add content
+ * and never names the Uplinks that fill it. Augments registered after the slot
+ * mounts appear when they register.
  *
- * `props` is REQUIRED and passed to every augment, typed against the slot's
- * {@link SlotProps} entry: an overlay slot passes its parent's projection, a
- * typed-contract slot passes the interface an augment must satisfy. Pass `{}`
- * for a slot with no props.
+ * `props` is required and passed to every augment, typed against the slot's
+ * {@link SlotProps} entry: an overlay slot passes its parent's projection, for
+ * example. Pass `{}` for a slot with no props.
  *
  * An augment declaring `requires: "<domain>"` renders only while the host
- * reports that Domain present, the same presence a contribution's `requires`
- * reads; a held `<domain>.available` counts as present.
+ * reports that Domain present; a held `<domain>.available` counts as present.
  *
- * Two mutually exclusive forms:
- *  - `name`: the full slot literal (`"power-systems.sections"`), props typed
- *    via {@link SlotRegistry}
- *  - `segment`: a reusable component writes only the segment (`"overlay"`) and
- *    this completes `${componentId}.${segment}` from `useWidgetMeta()`, props
- *    typed via {@link AugmentSegmentProps}. Outside a widget context it renders
- *    nothing
+ * Two forms, of which a call uses one:
+ *  - `name`: the full slot id (`"power-systems.sections"`), props typed
+ *    through {@link SlotRegistry}
+ *  - `segment`: only the segment (`"overlay"`), completed to
+ *    `${componentId}.<segment>` for the widget it renders in, props typed
+ *    through {@link AugmentSegmentProps}. Outside a widget it renders nothing
+ *
+ * @example
+ * ```tsx
+ * <AugmentSlot name="crew-status.row-badges" props={{ crewName: kerbal.name }} />
+ * ```
+ *
+ * @category Extensions
  */
 export function AugmentSlot<Slot extends string>(
   args:
@@ -71,10 +76,13 @@ function useAugmentsFor(slotName: string | undefined): AnyAugment[] {
 }
 
 /**
- * Whether anything would render in the mounting widget's
- * `${componentId}.${segment}` slot, for a host deciding whether to draw chrome
- * around it. Counts only augments that pass the `requires` gate, so an Uplink
- * whose mod half is absent changes no layout.
+ * Whether anything would render in the current widget's
+ * `${componentId}.<segment>` slot, for a widget deciding whether to draw
+ * chrome around it. Counts only augments whose `requires` Domain is present,
+ * so an Uplink whose mod is not running changes no layout. False outside a
+ * widget.
+ *
+ * @category Extensions
  */
 export function useWidgetSegmentBound(segment: string): boolean {
   const meta = useWidgetMeta();
@@ -83,11 +91,13 @@ export function useWidgetSegmentBound(segment: string): boolean {
 }
 
 /**
- * Whether anything would render in a slot named in full, for a host
- * affordance (such as a tab or a reserved cell) that must not exist unless
- * something can fill it. Unlike the segment form it does not depend on
- * `useWidgetMeta()`. Counts only augments that pass the `requires` gate, so an
- * Uplink whose mod half is absent changes no layout.
+ * Whether anything would render in the slot with the full id `name`, for a
+ * widget affordance (a tab, a reserved cell) that should exist only when
+ * something can fill it. Counts only augments whose `requires` Domain is
+ * present, so an Uplink whose mod is not running changes no layout. Unlike
+ * {@link useWidgetSegmentBound} it works outside a widget.
+ *
+ * @category Extensions
  */
 export function useSlotBound(name: string): boolean {
   return useAnyAvailable(useAugmentsFor(name));
@@ -111,16 +121,12 @@ function useAnyAvailable(augments: AnyAugment[]): boolean {
 }
 
 /**
- * The `label` of the first available augment bound to `name`, in render
- * order, for a host affordance that needs a caption before it can draw the
- * slot at all, such as a tab strip's own tab label. `undefined` while nothing
- * is bound, nothing available passes the `requires` gate, or the augment that
- * is available declared no label.
- *
- * Reads only the first available augment, matching what a slot with more than
- * one bound augment already does for CONTENT: `<AugmentSlot>` renders every
- * one of them together in render order, so a shared caption drawn from the
- * first is the same "one thing, several fillers" shape as the content itself.
+ * The `label` of the first available augment bound to the slot `name`, in
+ * render order, for a widget that needs a caption before it draws the slot,
+ * such as a tab's label. `undefined` while nothing is bound, nothing bound has
+ * its `requires` Domain present, or the first available augment declares no
+ * label. With several augments bound, only the first one's label is used,
+ * while {@link AugmentSlot} renders them all together.
  *
  * @category Extensions
  */
@@ -160,10 +166,12 @@ function getAugmentsForSlotCached(name: string): AnyAugment[] {
 }
 
 /**
- * Domain presence gate: true when `augment` declares no `requires`, or the host
- * reports its Domain present. A host uses it to ask the same
- * question rendering asks without rendering the augment, since a bundled
+ * True when `augment` declares no `requires`, or the host reports its Domain
+ * present: the same check {@link AugmentSlot} makes before rendering it. Use
+ * it to ask that question without rendering the augment, since an Uplink
  * client registers its augments whether or not its mod is running.
+ *
+ * @category Extensions
  */
 export function useAugmentAvailable(augment: AnyAugment): boolean {
   // Called unconditionally for a stable hook order.

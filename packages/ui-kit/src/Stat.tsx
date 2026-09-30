@@ -3,11 +3,16 @@ import type { HTMLAttributes, ReactNode } from "react";
 import styled from "styled-components";
 import { TONE_TEXT } from "./tone";
 
+/**
+ * Props for {@link Stat}.
+ *
+ * @category Readout
+ */
 export interface StatProps
   extends Omit<HTMLAttributes<HTMLDListElement>, "title"> {
   /** The heading over the figure. Also the figure's accessible label. */
   label: ReactNode;
-  /** The figure. A quantity belongs in a `<Unit>`; nothing else formats one. */
+  /** The figure. Write a quantity through {@link Unit}. */
   children?: ReactNode;
   /** One line under the figure, qualifying it: a rate, a horizon, a count. */
   detail?: ReactNode;
@@ -19,6 +24,15 @@ export interface StatProps
  * One cell of a core-stat strip: a label, a figure, and at most one line under
  * it. A `<dl>` per cell, so the label is associated with the figure
  * programmatically and a cell stays valid wherever it is dropped.
+ *
+ * @example
+ * ```tsx
+ * <Stat label="Next hire" tone={affordable ? "neutral" : "nogo"}>
+ *   <Unit value={complex.nextHireCost} />
+ * </Stat>
+ * ```
+ *
+ * @category Readout
  */
 export function Stat({
   label,
@@ -43,8 +57,23 @@ export function Stat({
  * cells, so every stat gets the same room and the row reflows to fewer columns
  * as the tile narrows.
  *
- * The caller owns the live region: figures that move every frame would flood a
- * screen reader.
+ * The strip is not a live region. Add `role="status"` yourself only when its
+ * figures change rarely: figures that move every frame would flood a screen
+ * reader.
+ *
+ * @example
+ * ```tsx
+ * <StatStrip>
+ *   <Stat label="Funds">
+ *     <Unit value={career.funds} />
+ *   </Stat>
+ *   <Stat label="Science" detail="this flight">
+ *     <Unit value={career.science} />
+ *   </Stat>
+ * </StatStrip>
+ * ```
+ *
+ * @category Readout
  */
 export const StatStrip = styled.div`
   display: grid;

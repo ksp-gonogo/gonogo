@@ -1,8 +1,7 @@
 /**
- * The elements a layout or text primitive may render as: every one of them
- * holds content and none of them is a control. A primitive that could become
- * a `button`, a link or a form field would be a control drawn outside the
- * `Button` family, with none of its colour, focus or states.
+ * The tags a layout or text primitive's `as` prop accepts: every one holds
+ * content and none is a control. For a button or link, use the
+ * {@link Button} family.
  *
  * @category Layout
  */

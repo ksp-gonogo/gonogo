@@ -44,9 +44,13 @@ function withRail(Extra?: Wrapper): Wrapper {
 }
 
 /**
- * The sdk's themed `render`, with a command rail mounted above it.
+ * The sdk's themed `render` (from `@ksp-gonogo/sitrep-sdk/testing`), with a
+ * command rail mounted above it, for a component under test that dispatches
+ * through `useCommand` but is not a registered widget. A dev build throws on a
+ * dispatch with no rail mounted. A caller's own `wrapper` nests inside the
+ * rail. For a registered widget use {@link renderWidget}, which carries one.
  *
- * @category Rendering
+ * @category Testing
  */
 export function renderWithRail(
   ui: ReactElement,
@@ -56,9 +60,10 @@ export function renderWithRail(
 }
 
 /**
- * `renderHook`, with the same rail as {@link renderWithRail}.
+ * The sdk's `renderHook`, with the same command rail as {@link renderWithRail},
+ * for a hook under test that calls `useCommand`.
  *
- * @category Rendering
+ * @category Testing
  */
 export function renderHookWithRail<Result, Props>(
   callback: (initialProps: Props) => Result,

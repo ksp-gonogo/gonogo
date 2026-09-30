@@ -1,8 +1,11 @@
 import type { StreamStatusValue, Tone } from "@ksp-gonogo/sitrep-sdk";
 
 /**
- * The tones that take part in a panel's summary: every {@link Tone} but
- * `neutral`, which carries no state and so has no rank.
+ * The tones that take part in a panel's summary: every `Tone` but `neutral`,
+ * which carries no state. From best to worst: `go`, `info`, `caution`, `warn`,
+ * `nogo`, `offline`.
+ *
+ * @category Panel
  */
 export type Severity = Exclude<Tone, "neutral">;
 
@@ -26,7 +29,12 @@ export function severityRank(s: Severity): number {
   return RANK[s];
 }
 
-/** The worst (highest-rank) severity among a set. Empty is the floor, `go`. */
+/**
+ * The worst severity among `severities`, in the order `go`, `info`, `caution`,
+ * `warn`, `nogo`, `offline` (worst). `go` for an empty list.
+ *
+ * @category Panel
+ */
 export function worstSeverity(severities: readonly Severity[]): Severity {
   let worst: Severity = "go";
   for (const s of severities) {
@@ -36,11 +44,12 @@ export function worstSeverity(severities: readonly Severity[]): Severity {
 }
 
 /**
- * `StreamStatusValue` -> `Severity`.
+ * The {@link Severity} a stream status reads as: `live` is `go`, `resyncing`
+ * is `caution`, `recorded` is `info` (the reading is exact, for an earlier
+ * instant), `held` and `last-before-blackout` are `warn`, and `disconnected`
+ * and `absent` are `offline`.
  *
- * `recorded` is `info`, the only status that is not a degradation: the reading
- * is exact, it just describes an earlier instant held aboard through a loss of
- * signal.
+ * @category Panel
  */
 export function severityFromStreamStatus(status: StreamStatusValue): Severity {
   switch (status) {

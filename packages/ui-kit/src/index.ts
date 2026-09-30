@@ -453,10 +453,10 @@ export {
 export { Notice, type NoticeProps } from "./Notice";
 export { NULL_DISPLAY, NullValue } from "./NullValue";
 /*
- * `Panel` is the only door to its parts (`Panel.Container`, `.Header`,
- * `.Toolbar`, `.Footer`, `.Title`, `.Glow`, `.Body`, `.Split`, `.Sidebar`,
- * `.StatusDot`, `.Delay`, `.Context`, `.Providers`), so a widget needing a
- * variant hand-composes from there.
+ * `Panel` is the only door to its parts (`Panel.Context`, `.Delay`,
+ * `.Container`, `.Header`, `.Toolbar`, `.Footer`, `.Title`, `.Glow`, `.Body`,
+ * `.Section`, `.Sidebar`), so a widget needing a variant hand-composes from
+ * there.
  */
 export {
   FRAMEWORK_AUGMENT_SEGMENTS,

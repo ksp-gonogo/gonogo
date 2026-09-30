@@ -65,6 +65,8 @@ export function signalDelayPresentation({
  * Display shape for one delayed command, declared locally. `etaSeconds` is the
  * caller's choice of clock (reach or reply); `null` renders as "no ETA" (an
  * `overdue` or `lost` entry, or `no-path` mode).
+ *
+ * @category CommandDelay
  */
 export interface InFlightListItem {
   id: string;
@@ -87,6 +89,14 @@ export interface InFlightListItem {
   flow?: "outbound" | "inbound";
 }
 
+/**
+ * What the link is doing, as `useCommand`'s `delayMode` reports it: `live`
+ * under the staged threshold, `staged` above it, `no-path` when nothing is
+ * measurable.
+ * {@link InFlightList} writes it to its root's `data-mode` attribute.
+ *
+ * @category CommandDelay
+ */
 export type InFlightListMode = "live" | "staged" | "no-path";
 
 /**
@@ -100,12 +110,22 @@ export type InFlightListMode = "live" | "staged" | "no-path";
  *   - `badge`   one chip for the whole set: count plus the nearest arrival
  *
  * `auto` (the default) measures the rendered width and picks.
+ *
+ * @category CommandDelay
  */
 export type InFlightListDensity = "auto" | "full" | "compact" | "badge";
 
+/**
+ * Props for {@link InFlightList}.
+ *
+ * @category CommandDelay
+ */
 export interface InFlightListProps {
+  /** The commands in flight; `toInFlightListItems(handle.inFlight)` builds them. */
   items: InFlightListItem[];
+  /** The link's mode, written to `data-mode`. */
   mode?: InFlightListMode;
+  /** Defaults to `auto`. */
   density?: InFlightListDensity;
   /**
    * `column` stacks the entries, `row` flows them. A queue under a button
@@ -223,9 +243,11 @@ export function useCountdown(etaSeconds: number | null): number | null {
 }
 
 /**
- * Presentational set-renderer for in-flight commands: rows with per-entry
- * countdowns and phase styling. Renders nothing for an empty set. No data
- * hooks; a widget feeds it `useCommand().inFlight` directly.
+ * A list of in-flight commands: rows with per-entry countdowns and phase
+ * styling. Renders nothing for an empty set. It has no data hooks; build its
+ * items from `useCommand().inFlight` with {@link toInFlightListItems}.
+ *
+ * @category CommandDelay
  */
 export function InFlightList({
   items,

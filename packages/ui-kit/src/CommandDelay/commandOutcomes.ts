@@ -4,7 +4,7 @@ import type { InFlightCommandLike } from "./toInFlightListItems";
 /**
  * What became of a handle's dispatches, as the control that issued them echoes it.
  *
- * @category Command controls
+ * @category CommandButton
  */
 export interface CommandOutcomes {
   /**
@@ -29,7 +29,7 @@ export interface CommandOutcomes {
  * Panel rail stays the primary surface. An unanswered command may still run,
  * so it is unconfirmed and never counted as a failure.
  *
- * @category Command controls
+ * @category CommandButton
  */
 export function commandOutcomes(handle: CommandDelayHandle): CommandOutcomes {
   const unconfirmed = handle.inFlight.filter(

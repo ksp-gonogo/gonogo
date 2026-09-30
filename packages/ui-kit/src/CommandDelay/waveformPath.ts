@@ -6,8 +6,17 @@
 
 /** The mark's own coordinate box: 100 wide by 16 tall, scaled by the caller into whatever band it has. */
 export const WAVE_VB_H = 16;
+/**
+ * The centre line of the ribbon mark's box, in box units.
+ *
+ * @category CommandDelay
+ */
 export const WAVE_MID_Y = WAVE_VB_H / 2;
-/** How far a full-scale sample reaches either side of the centre line, in box units. Short: the rail is a band, not a meter. */
+/**
+ * How far a full-scale sample reaches either side of the centre line, in box units. Short: the rail is a band, not a meter.
+ *
+ * @category CommandDelay
+ */
 export const WAVE_HALF_H = 5.5;
 /**
  * The NOMINAL distance between turning points (half a period), in box units.
@@ -64,6 +73,8 @@ function waveformSteps(
  * so a short history draws a trace that stops short of the boundary. The fix
  * for a short trace is a longer ring at the caller, never spreading what was
  * kept.
+ *
+ * @category CommandDelay
  */
 export function waveformPath(
   amplitudes: readonly number[],

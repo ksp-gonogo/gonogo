@@ -72,6 +72,11 @@ const DELIVERIES: readonly RailDelivery[] = ["acked", "fire-and-forget"];
 /** One combination, spelled as the table's key; a template-literal type, so the table cannot hold a typo. */
 export type RailTagKey = `${RailDirection}/${RailContinuity}/${RailDelivery}`;
 
+/**
+ * A handle's three rail axes as one `direction/continuity/delivery` string, e.g. `command/discrete/acked`.
+ *
+ * @category CommandDelay
+ */
 export function railTagKey(tags: RailTags): RailTagKey {
   return `${tags.direction}/${tags.continuity}/${tags.delivery}`;
 }

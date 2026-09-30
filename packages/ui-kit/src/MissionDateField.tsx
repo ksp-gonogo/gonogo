@@ -10,16 +10,9 @@ import { Text } from "./Text";
 import { writeQuantity } from "./units";
 
 /**
- * A universal time ENTERED as a calendar instant: year, day, hour, minute,
- * second, each its own field, plus coarse steps. The fields are for an instant
- * you know; the steps are the tuning loop for one you are looking for.
+ * Props for {@link MissionDateField}.
  *
- * Calendar lengths are read per render from `kspCalendar()`, so day 300 means
- * what the game's own clock calls day 300. Edits round to the second, so the
- * field never shows one instant and holds another.
- *
- * An instant nobody stated is not the epoch: `null` comes up empty with the
- * absent token, and nothing is committed until a component is typed.
+ * @category Form
  */
 export interface MissionDateFieldProps {
   /**
@@ -30,6 +23,7 @@ export interface MissionDateFieldProps {
    */
   value: number | null;
 
+  /** Called with the new instant, in whole seconds since the game's epoch. */
   onChange: (ut: number) => void;
 
   /** Names the whole group for a screen reader: "Ignition", "Plan end". */
@@ -48,7 +42,11 @@ export interface MissionDateFieldProps {
   steps?: number[];
 }
 
-/** The five components of an instant on the game's own calendar. */
+/**
+ * The five components of an instant on the game's own calendar.
+ *
+ * @category Form
+ */
 export interface MissionDateParts {
   year: number;
   day: number;
@@ -58,11 +56,13 @@ export interface MissionDateParts {
 }
 
 /**
- * Splits a UT into calendar components, with years and days ONE-BASED to match
+ * Splits a UT (seconds since the game's epoch) into calendar components, with years and days ONE-BASED to match
  * every other date this kit renders: UT zero is Year 1 Day 1, not Year 0 Day 0.
  *
  * A non-finite or negative UT lands on the epoch, as a floor under arithmetic;
  * it is never a way to render an absent instant, which never reaches here.
+ *
+ * @category Form
  */
 export function partsOfUt(ut: number): MissionDateParts {
   const { year: YEAR, day: DAY, hour: HOUR, minute: MINUTE } = kspCalendar();
@@ -96,6 +96,8 @@ const EPOCH_PARTS: MissionDateParts = {
  *
  * Does not clamp an out-of-range component: an hour of 30 rolls into the next
  * day, so the operator never does the carry.
+ *
+ * @category Form
  */
 export function utOfParts(parts: MissionDateParts): number {
   const { year: YEAR, day: DAY, hour: HOUR, minute: MINUTE } = kspCalendar();
@@ -116,6 +118,23 @@ function stepLabel(seconds: number): string {
   return writeQuantity(value("s", seconds));
 }
 
+/**
+ * A universal time ENTERED as a calendar instant: year, day, hour, minute,
+ * second, each its own field, plus coarse steps. The fields are for an instant
+ * you know; the steps are the tuning loop for one you are looking for.
+ *
+ * Calendar lengths come from the running game's calendar, so day 300 means
+ * what the game's own clock calls day 300. Edits round to the second, so the
+ * field never shows one instant and holds another.
+ *
+ * An instant nobody stated is not the epoch: `null` comes up empty with the
+ * absent token, and nothing is committed until a component is typed.
+ *
+ * {@link UnitInput} with a `ut` unit renders this for you and emits a `Value`;
+ * use this directly when you hold the instant as a bare number of seconds.
+ *
+ * @category Form
+ */
 export function MissionDateField({
   value,
   onChange,

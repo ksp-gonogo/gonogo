@@ -5,15 +5,24 @@ import {
 } from "./PanelStatusStore";
 
 /**
- * Publish a contribution into the nearest `PanelStatusStore` for the life of
- * the calling component.
+ * Publishes a contribution into the nearest {@link PanelStatusStore} for as
+ * long as the calling component is mounted, so it counts toward the panel's
+ * summary badge and status dots.
  *
- * - a no-op when there is no store in the tree (a bare badge outside a
- *   dashboard)
- * - keyed on `c.id`: a changing severity or label updates in place rather than
- *   re-registering
- * - `null` contributes nothing, so a caller can pass the contribution
- *   conditionally without branching around the hook
+ * - does nothing when there is no store above (a widget outside the dashboard)
+ * - keyed on `c.id`: a changed severity or label updates the contribution in
+ *   place
+ * - `null` contributes nothing, so the contribution can be passed
+ *   conditionally
+ *
+ * @example
+ * ```tsx
+ * useStatusContribution(
+ *   overheating ? { id: "thermal", severity: "warn", label: "Overheating" } : null,
+ * );
+ * ```
+ *
+ * @category Panel
  */
 export function useStatusContribution(c: StatusContribution | null): void {
   const store = usePanelStatusStore();

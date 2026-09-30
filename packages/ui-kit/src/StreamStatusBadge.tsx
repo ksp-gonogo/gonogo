@@ -4,22 +4,29 @@ import { LiveRegion } from "./LiveRegion";
 import { severityFromStreamStatus } from "./status/severity";
 import { formatStreamStatus } from "./status/streamStatusWord";
 
+/**
+ * Props for {@link StreamStatusBadge}.
+ *
+ * @category Badge
+ */
 export interface StreamStatusBadgeProps {
   /** Current stream/connectivity status for the widget's representative key. */
   status: StreamStatusValue;
 }
 
 /**
- * Small connectivity badge for a widget's title row: maps a
- * `StreamStatusValue` onto a `Severity` and draws the pill, or nothing while
- * `live`. It announces as a polite live region, which stays mounted while
- * empty so the first degradation is announced.
+ * A small `sm` {@link Badge} for a stream status: the status's word (HELD,
+ * OFFLINE, BLACKOUT, RECORDED, SYNCING, NO DATA) in its severity, or nothing
+ * while the status is `live`. It sits inside a polite live region that stays
+ * mounted while empty, so the first change away from `live` is announced.
  *
- * A widget does not render this by hand for a blackout: the dashboard host
- * derives `recorded` and `last-before-blackout` across the widget's declared
- * channels and puts the badge in the panel header. Reach for this directly for
- * a status that is not the panel's own (a sub-region reading a different
- * topic), or for a grade the host does not derive; see `Panel`'s `panelStatus`.
+ * The dashboard already derives `recorded` and `last-before-blackout` across
+ * a widget's declared channels and shows the badge in the panel header, so a
+ * widget does not draw this for those. Use it for a status that is not the
+ * panel's own (a sub-region reading a different Topic), or pass a status to
+ * {@link Panel}'s `panelStatus` prop.
+ *
+ * @category Badge
  */
 export function StreamStatusBadge({ status }: StreamStatusBadgeProps) {
   const label = formatStreamStatus(status);

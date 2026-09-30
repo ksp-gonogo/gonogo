@@ -44,12 +44,19 @@ export interface BlockAnatomyProps {
   children?: ReactNode;
 }
 
+/**
+ * Props for {@link Block}: the record anatomy (`title`, `titleLeft`,
+ * `titleRight`, `left`, `right`, `top`, `bottom`, `footer`) plus any `div`
+ * attribute.
+ *
+ * @category Layout
+ */
 export interface BlockProps
   extends Omit<HTMLAttributes<HTMLDivElement>, "title">,
     BlockAnatomyProps {
   /**
-   * Rendered tag. Defaults to `div`. A record in a list wants `li`; `Strategies`
-   * wants `article`; a banner wants `section`.
+   * Rendered tag. Defaults to `div`. A record in a list wants `li`, a
+   * self-contained record `article`, a banner `section`.
    */
   as?: StaticElement;
 }
@@ -75,6 +82,12 @@ const Block__TitleLead = styled.div`
   min-width: 0;
 `;
 
+/**
+ * Props for `Block.TitleRow` (and `Card.TitleRow`): `left` is drawn before the
+ * name, `right` is pushed to the end of the name's line.
+ *
+ * @category Layout
+ */
 export interface BlockTitleRowProps {
   left?: ReactNode;
   right?: ReactNode;
@@ -210,11 +223,28 @@ function BlockRoot({ ...props }: BlockProps): ReactNode {
 }
 
 /**
- * The arrangement of a record, and nothing else: a name sized as a name, a body
- * under it, asides on any of four sides, a footer. `Card` is this plus a
- * sunken surface.
+ * The arrangement of a record with no surface: a name sized as a heading, a
+ * body under it, asides on any of four sides, and a footer. {@link Card} is the
+ * same arrangement on a sunken surface.
  *
- * `titleRight` is NOT `right`: badges on the name's line and content beside
- * the body collapse differently.
+ * `titleRight` is not `right`: `titleRight` holds badges on the name's line and
+ * wraps under the name when narrow, while `right` sits beside the whole body
+ * and drops below it when narrow. The parts (`Block.Title`, `Block.TitleRow`,
+ * `Block.Body`, `Block.Aside`, `Block.Footer`) are there for a record that
+ * needs its own composition but the same type and spacing.
+ *
+ * @example
+ * ```tsx
+ * <Block
+ *   as="li"
+ *   title={contract.title}
+ *   titleRight={<Badge tone="warn">Expires soon</Badge>}
+ *   footer={<Button onClick={onAccept}>Accept</Button>}
+ * >
+ *   <Text level="muted">{contract.synopsis}</Text>
+ * </Block>
+ * ```
+ *
+ * @category Layout
  */
 export const Block = Object.assign(BlockRoot, BLOCK_PARTS);

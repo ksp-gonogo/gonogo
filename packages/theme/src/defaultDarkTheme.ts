@@ -1,17 +1,12 @@
 import type { UiKitTheme } from "./theme";
 
 /**
- * `default-dark`: the built-in mission-control theme.
+ * `default-dark`: the built-in mission-control theme, and the one the app
+ * mounts. Every colour and size is a CSS variable string (such as
+ * `var(--color-text-primary)`), so responsive overrides such as larger type on
+ * a touch screen still apply when a component reads the theme.
  *
- * Token values name what is *currently* in the codebase, so the migration
- * from raw hex constants to `theme.*` tokens is mechanical. Palette
- * rationalisation (consolidating near-duplicate greys, retiring unused
- * shades) is deliberately deferred to a later commit so a structural sweep
- * can be a pure refactor with no visual diff.
- *
- * Typography sizes are emitted as CSS-variable strings so the responsive
- * overrides in `tokens.css` (coarse-pointer bumps etc.) keep working when
- * consumers read from the theme instead of the raw variable.
+ * @category Theme
  */
 export const defaultDarkTheme: UiKitTheme = {
   colors: {

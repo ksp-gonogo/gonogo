@@ -1,19 +1,3 @@
-/**
- * Dial: a round instrument whose needle sweeps a configurable arc (default a
- * full 360° compass), so it can show a heading that wraps as well as a bounded
- * value. The half-circle sibling is `Gauge`.
- *
- * Angles are degrees clockwise from 12 o'clock (up = 0°), matching a compass.
- * `startAngle` places `min`; `sweep` is the span from `min` to `max`.
- *
- * Semantics: `role="meter"` on a styled wrapper (aria-valuenow / valuetext); the
- * SVG face is `aria-hidden`.
- *
- * The whole axis is one kind: `value`, `min`, `max`, every zone bound and every
- * tick are `Value<Unit>` of the same unit, and the centre readout writes that unit
- * itself.
- */
-
 import { bandIn, type Value } from "@ksp-gonogo/sitrep-sdk";
 import styled from "styled-components";
 import {
@@ -31,6 +15,11 @@ import {
 import { placedOnScale, standsApart } from "./standsApart";
 import { type FormatsFor, speakQuantity, writeQuantity } from "./units";
 
+/**
+ * A coloured segment of a {@link Dial}'s arc, in the dial's own unit.
+ *
+ * @category Gauge
+ */
 export interface DialZone<Unit extends string = string> {
   /** Lower bound of the coloured arc segment. */
   from: Value<Unit>;
@@ -40,6 +29,11 @@ export interface DialZone<Unit extends string = string> {
   color: string;
 }
 
+/**
+ * A tick mark on a {@link Dial}'s face, with an optional label beside it.
+ *
+ * @category Gauge
+ */
 export interface DialTick<Unit extends string = string> {
   /** Value at which to draw the tick. */
   value: Value<Unit>;
@@ -47,20 +41,43 @@ export interface DialTick<Unit extends string = string> {
   label?: string;
 }
 
+/**
+ * Props for {@link Dial}.
+ *
+ * @category Gauge
+ */
 export interface DialProps<Unit extends string = string> {
   /** Current value: the needle position, or the whole reading it arrived in. */
   value: UnitValue<Unit>;
+  /** The value at `startAngle`. */
   min: Value<Unit>;
+  /** The value at `startAngle + sweep`. */
   max: Value<Unit>;
+  /**
+   * Drawn width in pixels. The SVG scales down to a narrower slot rather than
+   * clipping.
+   *
+   * @defaultValue `120`
+   */
   width?: number;
+  /**
+   * Drawn height in pixels.
+   *
+   * @defaultValue `120`
+   */
   height?: number;
   /** Degrees clockwise from up where `min` sits. Default 0 (top). */
   startAngle?: number;
   /** Degrees swept from `min` to `max`. Default 360 (full compass). */
   sweep?: number;
-  /** Treat the value as wrapping (compass): value is taken modulo the range. */
+  /**
+   * Treat the value as wrapping (compass): value is taken modulo the range.
+   * Without it a value outside `min..max` pins the needle at the nearer end.
+   */
   wrap?: boolean;
+  /** Coloured arc segments. */
   zones?: ReadonlyArray<DialZone<Unit>>;
+  /** Tick marks around the face. */
   ticks?: ReadonlyArray<DialTick<Unit>>;
   /**
    * Pin the rung the centre readout is written at, for the cases where
@@ -69,8 +86,11 @@ export interface DialProps<Unit extends string = string> {
   format?: FormatsFor<Unit>;
   /** Centre label override. Defaults to the value, written with its unit. */
   valueLabel?: string;
+  /** Needle colour. Defaults to `var(--color-text-primary)`. */
   needleColor?: string;
+  /** Arc track colour. Defaults to `var(--color-border-subtle)`. */
   trackColor?: string;
+  /** Accessible name. Defaults to `"Dial"`; the value is spoken as `aria-valuetext`. */
   ariaLabel?: string;
 }
 
@@ -103,6 +123,44 @@ function arcPath(
   return `M ${p0.x.toFixed(2)} ${p0.y.toFixed(2)} A ${r} ${r} 0 ${largeArc} ${sweepFlag} ${p1.x.toFixed(2)} ${p1.y.toFixed(2)}`;
 }
 
+/**
+ * A round instrument whose needle sweeps a configurable arc (by default a full
+ * 360° compass), so it can show a heading that wraps as well as a bounded
+ * value. The half-circle sibling is {@link Gauge}.
+ *
+ * Angles are degrees clockwise from 12 o'clock (up is 0°), as on a compass.
+ * `startAngle` places `min`; `sweep` is the span from `min` to `max`.
+ *
+ * The whole axis is one kind: `value`, `min`, `max`, every zone bound and
+ * every tick are `Value<Unit>` of the same unit, and the centre readout writes
+ * that unit itself. Handed a whole `Reading`, a held figure is marked as held
+ * and a model's interval puts two bounds on the arc.
+ *
+ * The dial is a `role="meter"` with the value as `aria-valuetext`. With no
+ * value it draws no needle and is announced as an image naming the missing
+ * value.
+ *
+ * @example A heading compass
+ * ```tsx
+ * import { value } from "@ksp-gonogo/sitrep-sdk";
+ *
+ * <Dial
+ *   value={headingReading}
+ *   min={value("°", 0)}
+ *   max={value("°", 360)}
+ *   wrap
+ *   ticks={[
+ *     { value: value("°", 0), label: "N" },
+ *     { value: value("°", 90), label: "E" },
+ *     { value: value("°", 180), label: "S" },
+ *     { value: value("°", 270), label: "W" },
+ *   ]}
+ *   ariaLabel="Heading"
+ * />
+ * ```
+ *
+ * @category Gauge
+ */
 export function Dial<Unit extends string = string>({
   value,
   min,

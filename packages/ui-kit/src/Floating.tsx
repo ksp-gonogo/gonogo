@@ -32,11 +32,35 @@ export interface FloatingProps extends HTMLAttributes<HTMLDivElement> {
 /**
  * A layer drawn over the whole page rather than inside its widget: a hover
  * card, a tooltip, an anchored menu. It is portalled to the document body, so
- * no Panel or scroll box clips it, and placed against the viewport by
- * `anchoredPosition`, measured before paint and again when it resizes.
+ * no panel or scroll box clips it, and placed against the viewport by
+ * {@link anchoredPosition}. It is measured before paint (and stays hidden
+ * until then), and re-placed on every render, on resize and on any scroll.
+ * The layer has no surface of its own: style what you put inside it. Any
+ * other `div` attribute passes through to the layer.
  *
  * React events still bubble through the component tree, not the DOM, so a
  * pointer handler on an ancestor sees events from inside the layer.
+ *
+ * @example
+ * ```tsx
+ * function PartMenu({ details }: { details: ReactNode }) {
+ *   const [anchor, setAnchor] = useState<AnchorPoint | null>(null);
+ *   return (
+ *     <>
+ *       <Button onClick={(e) => setAnchor({ x: e.clientX, y: e.clientY })}>
+ *         Details
+ *       </Button>
+ *       {anchor && (
+ *         <Floating anchor={anchor} onMouseLeave={() => setAnchor(null)}>
+ *           <Box surface="raised" pad="popover" radius="floating" bordered>
+ *             {details}
+ *           </Box>
+ *         </Floating>
+ *       )}
+ *     </>
+ *   );
+ * }
+ * ```
  *
  * @category Floating
  */

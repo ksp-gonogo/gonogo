@@ -8,6 +8,7 @@ import { Unit } from "./Unit";
 interface DataTableColumnBase {
   /** Stable identity for the column, and its React key. */
   key: string;
+  /** The column's heading, in the table head. */
   header: ReactNode;
   /**
    * This column names its row: its cells are row headers
@@ -34,9 +35,12 @@ interface DataTableColumnBase {
 }
 
 /**
- * One column: what each cell draws, from a `render` of the caller's own, or
- * from a `value` the table draws through `<Unit>`, which takes a whole
- * `Reading` so a held figure keeps its mark.
+ * One column of a {@link DataTable}: what each cell draws, from a `render` of
+ * the caller's own, or from a `value` the table draws through {@link Unit}.
+ * `value` takes a whole `Reading`, so a held figure keeps its mark, and a
+ * `null` or `undefined` draws the null token.
+ *
+ * @category DataTable
  */
 export type DataTableColumn<Row> = DataTableColumnBase &
   (
@@ -53,23 +57,35 @@ function cellContent<Row>(col: DataTableColumn<Row>, row: Row): ReactNode {
 /**
  * A run of rows under a heading, for a table whose rows arrive already
  * grouped (by body, by vessel, by stage).
+ *
+ * @category DataTable
  */
 export interface DataTableSection<Row> {
+  /** Unique within the table; the section's React key. */
   id: string;
+  /** The heading drawn across the table above the section's rows. */
   title: ReactNode;
+  /** The rows under this heading. */
   rows: Row[];
 }
 
+/**
+ * Props for {@link DataTable}.
+ *
+ * @category DataTable
+ */
 export interface DataTableProps<Row> {
+  /** The columns, left to right. */
   columns: ReadonlyArray<DataTableColumn<Row>>;
   /** Flat rows. Ignored when `sections` is given. */
   rows?: ReadonlyArray<Row>;
   /** Grouped rows. Takes precedence over `rows`. */
   sections?: ReadonlyArray<DataTableSection<Row>>;
+  /** A stable, unique key for each row. */
   rowKey: (row: Row) => string;
   /**
-   * Describes the table to a screen reader. Required, since a table of numbers
-   * with no caption is a wall of digits.
+   * Describes the table to a screen reader. It is not shown: the visible
+   * heading is the widget's own.
    */
   caption: string;
   /** Shown in place of the body when there is nothing to list. */
@@ -88,7 +104,27 @@ export interface DataTableProps<Row> {
  *
  * Semantic `<table>` throughout. Each section is a `<tbody>` of its own,
  * headed by a `<th scope="rowgroup">` spanning the width, and a `rowHeader`
- * column makes each row's naming cell a `<th scope="row">`.
+ * column makes each row's naming cell a `<th scope="row">`. A table wider than
+ * its slot scrolls sideways.
+ *
+ * @example
+ * ```tsx
+ * const columns: ReadonlyArray<DataTableColumn<Subject>> = [
+ *   { key: "subject", header: "Subject", rowHeader: true, width: "1fr", minWidth: "22ch", render: (s) => s.title },
+ *   { key: "data", header: "Data", align: "end", width: "9ch", value: (s) => value("Mit", s.dataMits) },
+ *   { key: "remaining", header: "Remaining", align: "end", width: "10ch", value: (s) => value("science", s.remaining) },
+ * ];
+ *
+ * <DataTable
+ *   caption="Science aboard the active vessel, by subject"
+ *   columns={columns}
+ *   rows={subjects}
+ *   rowKey={(s) => s.subjectId}
+ *   empty="No subject matches the filter."
+ * />
+ * ```
+ *
+ * @category DataTable
  */
 export function DataTable<Row>({
   columns,

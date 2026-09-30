@@ -5,13 +5,25 @@ import type {
   RailLoss,
 } from "./commandLossSentence";
 
-/** One dispatch that never left this machine: the same dispatch as a loss, at a later moment, so aliased onto the loss shape. */
+/**
+ * One dispatch that never left this machine: the same dispatch as a loss, at a later moment, so aliased onto the loss shape.
+ *
+ * @category CommandDelay
+ */
 export type CommandUndeliveredLike = CommandLossLike;
 
-/** An undelivered dispatch a surface can render: the text's inputs plus the dispatch's `requestId`, which keys the box and is what `dismiss` takes. */
+/**
+ * An undelivered dispatch a surface can render: the text's inputs plus the dispatch's `requestId`, which keys the box and is what `dismiss` takes.
+ *
+ * @category CommandDelay
+ */
 export type CommandUndeliveredEntry = CommandLossEntry;
 
-/** One undelivered dispatch as the rail renders it, plus its command's rail axes. */
+/**
+ * One undelivered dispatch as the rail renders it, plus its command's rail axes.
+ *
+ * @category CommandDelay
+ */
 export type RailUndelivered = RailLoss;
 
 /**
@@ -23,6 +35,8 @@ export type RailUndelivered = RailLoss;
  * The transport's `reason` is not quoted: the phase has one cause, and which
  * connection gave up changes nothing the operator does. Never "lost", which
  * carries the opposite advice.
+ *
+ * @category CommandDelay
  */
 export function commandUndeliveredSentence(
   undelivered: CommandUndeliveredLike,

@@ -1,13 +1,15 @@
 /**
- * Value-equality for widget config objects, used to decide whether a config
- * modal's draft differs from the persisted config.
+ * Value equality for widget config objects, as {@link useModalSaveBar} uses
+ * it to decide whether a draft differs from the saved config.
  *
  * - `undefined` and a missing key are treated the same
- * - object key order is irrelevant
+ * - object key order is ignored
  * - arrays compare by index
  *
- * Not a general deep-equal: config values are plain JSON-like data, so
- * Map/Set/Date are not handled.
+ * It handles plain JSON-like data only; Map, Set and Date values are not
+ * compared by content.
+ *
+ * @category Modal
  */
 export function configEqual(a: unknown, b: unknown): boolean {
   if (a === b) return true;

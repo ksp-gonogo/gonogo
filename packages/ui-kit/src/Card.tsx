@@ -9,6 +9,12 @@ import {
 } from "./Block";
 import { toneEdge } from "./tone";
 
+/**
+ * Props for {@link Card}: everything {@link BlockProps} takes, plus the
+ * surface's own marks.
+ *
+ * @category Layout
+ */
 export interface CardProps extends BlockProps {
   /**
    * How this record is DOING, drawn as a 2px accent rule down the leading edge.
@@ -32,10 +38,9 @@ export interface CardProps extends BlockProps {
    */
   identityColor?: string;
   /**
-   * The roomier inset for a card that IS its screen rather than one record in a
-   * list, such as a panel of device cards each holding its own controls. A prop
-   * rather than a density tier, because it describes this card's role, not its
-   * descendants.
+   * The roomier inset for a card that is its screen rather than one record in a
+   * list, such as a panel of device cards each holding its own controls. Only
+   * this card's padding changes, not the spacing of what it holds.
    */
   standalone?: boolean;
   children?: ReactNode;
@@ -118,8 +123,27 @@ function CardRoot({
 }
 
 /**
- * A record on a sunken surface: `Block`'s arrangement inside a bordered, inset
- * box. Its parts are `Block`'s own objects (`Card.Title === Block.Title`). A
- * widget that wants the grouping without the box writes `Block`.
+ * A record on a sunken surface: {@link Block}'s arrangement inside a bordered,
+ * padded box. Its parts are `Block`'s own (`Card.Title === Block.Title`); use
+ * `Block` for the grouping without the box.
+ *
+ * A card is a tighter density tier: the `related` and `section` gaps step one
+ * rung down inside it, so a {@link Stack} or {@link Cluster} with no `gap` of
+ * its own tightens automatically. Insets do not change.
+ *
+ * @example
+ * ```tsx
+ * <Card
+ *   title={tank.resource}
+ *   titleRight={tank.low && <Badge tone="warn">Low</Badge>}
+ *   tone={tank.low ? "warn" : undefined}
+ *   dimmed={tank.locked}
+ *   identityColor={resourceColor(tank.resource)}
+ * >
+ *   <Unit value={tank.amount} />
+ * </Card>
+ * ```
+ *
+ * @category Layout
  */
 export const Card = Object.assign(CardRoot, BLOCK_PARTS);

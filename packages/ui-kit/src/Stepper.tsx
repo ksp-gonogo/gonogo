@@ -2,6 +2,11 @@ import { useCallback, useId } from "react";
 import styled from "styled-components";
 import { focusRing } from "./focusRing";
 
+/**
+ * Props for {@link Stepper}.
+ *
+ * @category Form
+ */
 export interface StepperProps<Option> {
   /**
    * The values this control may hold, in the order it steps through them.
@@ -16,8 +21,8 @@ export interface StepperProps<Option> {
   /** Names the quantity for a screen reader, and both step controls take their
    * own names from it. */
   label: string;
-  /** How a value reads. Defaults to `String`, which is right for a plain
-   * integer and wrong for anything carrying a unit. */
+  /** How a value reads. Defaults to `String`, which suits a plain integer; for
+   * a member carrying a unit, write it with {@link writeQuantity}. */
   format?: (value: Option) => string;
   disabled?: boolean;
   /** Sits under the value, for the sentence that explains what the setting
@@ -28,14 +33,16 @@ export interface StepperProps<Option> {
 
 /**
  * A stepper over a FIXED ORDERED SET: eight step counts, four tolerances, five
- * quality levels. For a free quantity with a unit use `UnitInput`; for one
- * tuned by feel use `JogWheel`.
+ * quality levels. For a free quantity with a unit use {@link UnitInput}; for
+ * one tuned by feel use {@link JogWheel}.
  *
  * Rendered as the ARIA spinbutton pattern. `aria-valuenow` carries the INDEX
  * rather than the value, because the members need not be evenly spaced;
  * `aria-valuetext` carries the formatted member, which is what gets announced.
  * Up and right step forward, down and left step back, Home and End go to the
  * ends.
+ *
+ * @category Form
  */
 export function Stepper<Option>({
   options,

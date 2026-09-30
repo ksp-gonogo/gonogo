@@ -21,13 +21,15 @@ import { railMark } from "./railTags";
 import { deriveGlyph } from "./toInFlightListItems";
 
 /**
- * What became of the dispatches a `CommandList` draws:
+ * What became of the dispatches a {@link CommandList} draws:
  *
  * - `refused`: the game said no, and why
- * - `lost`: nothing answered, so the command may have run
+ * - `lost`: no reply came, so the command may have run
  * - `undelivered`: it never left this machine, so a re-send repeats nothing
- * - `found`: a lost dispatch answered after all
+ * - `found`: a lost dispatch replied after all
  * - `failed`: the machinery broke, so there is no verdict either way
+ *
+ * @category CommandDelay
  */
 export type CommandListKind =
   | "refused"
@@ -51,10 +53,12 @@ interface CommandListCommonProps {
 }
 
 /**
- * The entries a `CommandList` draws, keyed by what became of them. Each entry
+ * Props for {@link CommandList}: the entries it draws, keyed by what became of them. Each entry
  * carries its dispatch's `requestId` as `id` and its command's rail axes as
  * `tags`; only the axes' mark is read, so a discrete command gets its
  * in-flight glyph tile and a continuous one its name in words.
+ *
+ * @category CommandDelay
  */
 export type CommandListProps = CommandListCommonProps &
   (
@@ -118,15 +122,32 @@ function boxesOf(props: CommandListProps): CommandListBox[] {
 }
 
 /**
- * The outcome boxes under the delay rail's two queues: one per dispatch, with
- * the command's identity and the whole sentence of what became of it. The
- * sentence wraps and is never truncated, since names are unbounded and the
- * numbers sit at the end. A `found` is drawn in the notice tone, every other
- * kind in the warning tone, because a found reports something that happened.
+ * Outcome boxes for dispatches of one {@link CommandListKind}: one box per
+ * dispatch, with the command's identity and the whole sentence of what became
+ * of it. The Panel delay rail draws these under its queues; a widget draws one
+ * wherever it reports the same outcomes itself. The sentence wraps and is never
+ * truncated, since names are unbounded and the numbers sit at the end. A
+ * `found` is drawn in the notice tone, every other kind in the warning tone.
  *
- * The sentences are the kit's `commandRefusalSentence`, `commandLossSentence`,
- * `commandUndeliveredSentence`, `commandFoundSentence` and `commandFailedSentence`, exported so a
- * surface that draws the same outcome elsewhere says it in the same words.
+ * The sentences are {@link commandRefusalSentence},
+ * {@link commandLossSentence}, {@link commandUndeliveredSentence},
+ * {@link commandFoundSentence} and {@link commandFailedSentence}, so a surface
+ * that states the same outcome elsewhere can say it in the same words.
+ *
+ * @example
+ * ```tsx
+ * <CommandList
+ *   kind="lost"
+ *   live={false}
+ *   entries={losses.map((loss) => ({
+ *     ...loss,
+ *     tags: railTagsForCommand(loss.command ?? ""),
+ *   }))}
+ *   onDismiss={(id) => setLosses((all) => all.filter((l) => l.id !== id))}
+ * />
+ * ```
+ *
+ * @category CommandDelay
  */
 export function CommandList(props: Readonly<CommandListProps>) {
   const { kind, onDismiss, live = true } = props;

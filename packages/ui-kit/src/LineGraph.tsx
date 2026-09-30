@@ -1,8 +1,14 @@
 import styled from "styled-components";
 
+/**
+ * One line on a {@link LineGraph}.
+ *
+ * @category LineGraph
+ */
 export interface LineGraphSeries {
+  /** Unique within the graph; used as the line's React key. */
   id: string;
-  /** Accessible name for this line, used in the chart's summary; not rendered on screen. */
+  /** Name of this line. Not rendered; the chart's accessible name is the graph's `ariaLabel`. */
   label: string;
   /** CSS colour for the stroke, e.g. `var(--color-nogo-mark)`. */
   color: string;
@@ -12,14 +18,22 @@ export interface LineGraphSeries {
    * Indices into `points` that open a known hole: no data between the previous
    * point and that one (a comms blackout, a recording that overran). The stroke
    * and the sparkline fill break there, since a line through a span with no
-   * readings is indistinguishable from data.
+   * readings would look like data.
    */
   breaks?: readonly number[];
 }
 
+/**
+ * A horizontal reference level on a {@link LineGraph}, such as a safe limit.
+ *
+ * @category LineGraph
+ */
 export interface LineGraphThreshold {
+  /** Unique within the graph; used as the threshold's React key. */
   id: string;
+  /** Name of the level. Not rendered. */
   label: string;
+  /** The y value the threshold is drawn at, in the same terms as the series' `y`. */
   value: number;
   /** Defaults to a muted warning colour, distinct from the data series. */
   color?: string;
@@ -31,10 +45,23 @@ export interface LineGraphThreshold {
   valueText?: string;
 }
 
+/**
+ * How a {@link LineGraph} draws its thresholds: `"full"` is a dashed rule
+ * across the frame, `"marker"` a short tick at the left edge.
+ *
+ * @category LineGraph
+ */
 export type LineGraphThresholdStyle = "full" | "marker";
 
+/**
+ * Props for {@link LineGraph}.
+ *
+ * @category LineGraph
+ */
 export interface LineGraphProps {
+  /** The lines to draw, all against one shared x and y domain. */
   series: readonly LineGraphSeries[];
+  /** Horizontal reference levels. */
   thresholds?: readonly LineGraphThreshold[];
   /** Pins the Y domain; otherwise derived from every series' + threshold's values. */
   yDomain?: readonly [number, number];
@@ -141,12 +168,33 @@ function computeXDomain(series: readonly LineGraphSeries[]): [number, number] {
 /**
  * A minimal multi-series time-trend chart: coloured lines against a shared
  * domain, plus optional reference lines. For readings that need a trend rather
- * than a precise value, which the adjacent `<Unit>` readout is for.
+ * than a precise value; pair it with a {@link Unit} readout for the value.
  *
- * No axis ticks, no legend, no interaction. Gridlines are fixed quarter-marks,
- * since nothing here knows the quantity's kind well enough to pick round ticks.
- * `vector-effect="non-scaling-stroke"` keeps strokes a constant width however
- * the `viewBox` is stretched.
+ * No axis ticks, no legend, no interaction. Gridlines are fixed quarter-marks.
+ * Width fills the parent and strokes keep a constant width however the chart
+ * is stretched. The y domain is derived from every series and threshold, with
+ * headroom, unless `yDomain` pins it.
+ *
+ * @example A compact dose-rate trend with a safe limit marked
+ * ```tsx
+ * <LineGraph
+ *   variant="sparkline"
+ *   height={96}
+ *   ariaLabel="Radiation dose rate, last 10 minutes"
+ *   series={[
+ *     {
+ *       id: "ambient",
+ *       label: "Ambient",
+ *       color: "var(--color-nogo-mark)",
+ *       points: samples.map((s) => ({ x: s.ut, y: s.radPerHour })),
+ *     },
+ *   ]}
+ *   thresholds={[{ id: "safe", label: "Safe threshold", value: 0.5 }]}
+ *   thresholdStyle="marker"
+ * />
+ * ```
+ *
+ * @category LineGraph
  */
 export function LineGraph({
   series,

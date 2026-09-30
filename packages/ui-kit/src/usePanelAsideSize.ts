@@ -9,7 +9,12 @@ import {
   useState,
 } from "react";
 
-/** The render bucket an aside is in: `full` inline beside the title, or `collapsed` behind the dots and expand box. */
+/**
+ * How a panel header's aside is currently drawn: `full`, inline beside the
+ * title, or `collapsed`, behind the status dots and the toggle that opens it.
+ *
+ * @category Panel
+ */
 export type PanelAsideSize = "full" | "collapsed";
 
 /**
@@ -252,9 +257,12 @@ const PanelAsideSizeContext = createContext<PanelAsideSize>("full");
 export const PanelAsideSizeProvider = PanelAsideSizeContext.Provider;
 
 /**
- * The aside's current render bucket, for content that must compute it rather
- * than author full and collapsed markup and let the chrome pick. Defaults to
- * `full` outside a `Panel.Header`.
+ * Whether the panel header's aside is drawn `full` or `collapsed`, for content
+ * inside `panelAside` that draws differently in each. The header decides and
+ * this reads that decision, so the content always agrees with it. `full`
+ * outside a `Panel.Header`.
+ *
+ * @category Panel
  */
 export function usePanelAsideSize(): PanelAsideSize {
   return useContext(PanelAsideSizeContext);

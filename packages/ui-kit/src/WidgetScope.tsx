@@ -11,14 +11,15 @@ const WidgetScopeContext = createContext<{
 
 /**
  * Publishes what this widget instance is currently focused on (the selected
- * resource, the followed body), for augments bound to any of its slots to read.
- * One scope, not a bag: several unrelated fields belong in a widget-authored
- * slot's own props type.
+ * resource, the followed body) to augments rendered in any of its slots, which
+ * read it with {@link useWidgetScope}. It carries one scope value; several
+ * unrelated fields belong in a slot's own props type instead.
  *
- * `widget` is the publishing widget's registered component id. It types `scope`
- * against that widget's registry entry, and it is what a reader matches
- * against, so an augment can never be handed a different widget's scope through
- * a provider it happens to sit under.
+ * `widget` is the publishing widget's registered component id. It types
+ * `scope` against that widget's `WidgetScopeRegistry` entry, and a reader only
+ * receives the scope when it names the same widget.
+ *
+ * @category Extensions
  */
 export function WidgetScopeProvider<Widget extends string>({
   widget,
@@ -38,10 +39,21 @@ export function WidgetScopeProvider<Widget extends string>({
 }
 
 /**
- * The host widget's current scope, typed by naming the widget being augmented.
- * `undefined` when that widget publishes none, or when the augment is rendered
- * outside one (a test, a probe): an augment must handle that, exactly as it
- * already handles a scope key the host has not resolved yet.
+ * The current scope of the widget named by `componentId`, typed from its
+ * `WidgetScopeRegistry` entry. `undefined` when that widget publishes none, or
+ * when the augment is rendered outside it (in a test, say), so an augment must
+ * handle `undefined`.
+ *
+ * @example
+ * ```tsx
+ * function StorageSection() {
+ *   const scope = useWidgetScope("power-systems");
+ *   if (scope === undefined) return null;
+ *   return <ResourceDetail resource={scope.resource} />;
+ * }
+ * ```
+ *
+ * @category Extensions
  */
 export function useWidgetScope<Widget extends string>(
   componentId: Widget,

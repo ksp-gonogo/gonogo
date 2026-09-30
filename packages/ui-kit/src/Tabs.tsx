@@ -15,6 +15,11 @@ import { Section, SectionTitle } from "./Section";
 import { useElementSize } from "./useElementSize";
 import { VisuallyHidden } from "./VisuallyHidden";
 
+/**
+ * One tab passed to {@link Tabs}: its label and the content shown when it is selected.
+ *
+ * @category Tabs
+ */
 export interface TabDescriptor {
   /** Stable identity for the tab. Falls back to the tab's position in the array. */
   id?: string;
@@ -31,9 +36,14 @@ export interface TabDescriptor {
   disabled?: boolean;
 }
 
+/**
+ * Props for {@link Tabs}.
+ *
+ * @category Tabs
+ */
 export interface TabsProps {
   tabs: TabDescriptor[];
-  /** Controlled selection. Omit with `onChange` for internal selection starting on the first tab. */
+  /** The selected tab's id, for controlled selection. Omit it to let the component hold the selection, starting on the first tab. */
   activeId?: string;
   onChange?: (id: string) => void;
   /**
@@ -52,13 +62,21 @@ export interface TabsProps {
   className?: string;
 }
 
-/** Minimum width a side-by-side panel needs to stay legible. */
+/**
+ * The minimum width in pixels each panel needs before {@link Tabs} with `expandWhenRoomy` lays them side by side.
+ *
+ * @category Tabs
+ */
 export const TABS_PANEL_MIN_WIDTH = 240;
 
 /** Gap between side-by-side panels: `Grid`'s `md` token as a literal, so the width check needs no theme. */
 const TABS_PANEL_GAP = 8;
 
-/** True once the container fits every panel side by side at its minimum legible width. A single tab never expands. */
+/**
+ * True when a container `containerWidth` pixels wide fits `panelCount` panels side by side at {@link TABS_PANEL_MIN_WIDTH} each, with the gaps between them. Always false for fewer than two panels.
+ *
+ * @category Tabs
+ */
 export function shouldExpandTabs(
   containerWidth: number,
   panelCount: number,
@@ -69,6 +87,28 @@ export function shouldExpandTabs(
   return containerWidth >= needed;
 }
 
+/**
+ * A tab strip with one panel shown below it, following the APG tabs pattern:
+ * arrow keys move between tabs, Home and End jump to the ends, and disabled
+ * tabs are skipped. The strip tightens its spacing, then scrolls, when the
+ * labels do not fit. With `expandWhenRoomy`, a container wide enough for every
+ * enabled tab drops the strip and shows each panel side by side under its own
+ * heading.
+ *
+ * @example
+ * ```tsx
+ * <Tabs
+ *   aria-label="Vessel systems"
+ *   tabs={[
+ *     { id: "power", label: "Power", content: <PowerView /> },
+ *     { id: "comms", label: "Comms", content: <CommsView />, indicator: commsAlarm },
+ *     { id: "target", label: "Target", content: <TargetView />, disabled: !hasTarget },
+ *   ]}
+ * />
+ * ```
+ *
+ * @category Tabs
+ */
 export function Tabs({
   tabs,
   activeId,

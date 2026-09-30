@@ -2,8 +2,13 @@ import type { ReactNode } from "react";
 import { Cluster, type ClusterAlign } from "./Cluster";
 import type { GapToken } from "./scales";
 
+/**
+ * Props for {@link SubjectHeading}.
+ *
+ * @category Typography
+ */
 export interface SubjectHeadingProps {
-  /** What the line is ABOUT: a Program's title, a course's name, a vessel. */
+  /** What the line is about: a program's title, a course's name, a vessel. */
   children: ReactNode;
   /**
    * That subject's state, as a `Badge` or a short run of them. Drawn AFTER the
@@ -23,12 +28,25 @@ export interface SubjectHeadingProps {
 }
 
 /**
- * A subject and its state on one line, in that order, which is not a knob: a
- * badge drawn before the thing it is a status of reads as the state arriving
- * before its subject, to an eye and to a screen reader.
+ * A subject and its state on one line, subject first and the state pushed to
+ * the end. The order is fixed, so the state always reads after the thing it
+ * describes, to an eye and to a screen reader.
  *
  * The line wraps: a long subject drops its badge onto a second line rather
  * than squeezing the name.
+ *
+ * @example
+ * ```tsx
+ * <SubjectHeading
+ *   status={
+ *     <Badge tone="go">Active</Badge>
+ *   }
+ * >
+ *   <Text weight="semibold">{program.title}</Text>
+ * </SubjectHeading>
+ * ```
+ *
+ * @category Typography
  */
 export function SubjectHeading({
   children,

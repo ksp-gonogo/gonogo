@@ -11,7 +11,11 @@ const ModelledAlongside__Figure = styled.span`
   color: var(--color-text-muted);
 `;
 
-/** A modelled quantity beside the quantity observed, drawn through `<Unit>`. */
+/**
+ * Props for {@link ModelledAlongside} with a `Value` pair: a modelled quantity beside the quantity observed, drawn through {@link Unit}.
+ *
+ * @category Unit
+ */
 export interface ModelledQuantityAlongsideProps<UnitSymbol extends string> {
   /** The observation the caller has drawn just before this. */
   observed: Value<UnitSymbol> | null | undefined;
@@ -20,7 +24,11 @@ export interface ModelledQuantityAlongsideProps<UnitSymbol extends string> {
   write?: undefined;
 }
 
-/** A modelled figure beside the figure observed, both written by `write`. */
+/**
+ * Props for {@link ModelledAlongside} with any other figure: a modelled figure beside the figure observed, both written by `write`.
+ *
+ * @category Unit
+ */
 export interface ModelledFigureAlongsideProps<Figure> {
   /** The observation the caller has drawn just before this, written by `write`. */
   observed: Figure | null | undefined;
@@ -35,9 +43,11 @@ export interface ModelledFigureAlongsideProps<Figure> {
  * its place, with the modelled mark. The caller draws the observation first.
  *
  * Drawn only where the figure stands apart from the observation at the
- * precision both are drawn (see `standsApart`), so a model that agrees with
- * what was received to the last place drawn is not repeated. A `Value` pair
- * is drawn through `<Unit>`; anything else goes through `write`.
+ * precision both are drawn (see {@link standsApart}), so a model that agrees
+ * with what was received to the last place drawn is not repeated. A `Value`
+ * pair is drawn through {@link Unit}; anything else goes through `write`.
+ *
+ * @category Unit
  */
 export function ModelledAlongside<UnitSymbol extends string>(
   props: ModelledQuantityAlongsideProps<UnitSymbol>,
@@ -78,9 +88,12 @@ function ModelledMark({ children }: { children: ReactNode }) {
 }
 
 /**
- * A reading's observation through `<Unit>`, and where its model reaches past
- * the received edge to a figure that reads apart from it, the model's figure
- * beside it with the modelled mark.
+ * A reading's observation through {@link Unit}, followed by the model's figure
+ * with the modelled mark where the model reaches past the received edge to a
+ * figure that reads apart from it. Shorthand for a {@link Unit} followed by a
+ * {@link ModelledAlongside} fed from {@link modelledBeyondReceived}.
+ *
+ * @category Unit
  */
 export function ReckonedUnit<UnitSymbol extends string>({
   value,

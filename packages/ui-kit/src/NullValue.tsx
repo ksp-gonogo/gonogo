@@ -1,22 +1,24 @@
 import type { ReactNode } from "react";
 import { Text } from "./Text";
 
+// styleguide-emdash.test.ts allows the em dash here and nowhere else.
 /**
- * The one sanctioned em dash in the codebase: the UI convention for "no data
- * yet". Every other call site routes through one of the two exports here, and
- * `styleguide-emdash.test.ts` fails the build on any other occurrence.
+ * The null token, the dash that means "no data yet". Use it anywhere only a
+ * string fits: a formatter's return value, a template fallback, an attribute
+ * value. For a bare JSX node use {@link NullValue}. {@link Unit} already draws
+ * it for an absent value.
  *
- *  - `NULL_DISPLAY`, a plain string, for anywhere a string is the only option:
- *    a formatter's return value, a template fallback, an attribute value
- *  - `NullValue`, a component, for a bare JSX node with no wrapper already
- *    carrying a placeholder look; where one exists, interpolate `NULL_DISPLAY`
- *    into it instead
+ * @category Unit
  */
 export const NULL_DISPLAY = "—";
 
 /**
- * Renders `NULL_DISPLAY` through `Text level="muted"`, so a bare placeholder
- * reads as intentionally empty rather than as ordinary body text.
+ * Renders {@link NULL_DISPLAY} as muted text, so a bare placeholder reads as
+ * intentionally empty rather than as ordinary body text. Where a wrapper
+ * already carries a placeholder look, interpolate {@link NULL_DISPLAY} into it
+ * instead.
+ *
+ * @category Unit
  */
 export function NullValue(): ReactNode {
   return <Text level="muted">{NULL_DISPLAY}</Text>;
