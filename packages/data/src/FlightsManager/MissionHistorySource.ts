@@ -71,7 +71,6 @@ export class MissionHistorySource implements DataSource {
 
   constructor(private readonly missionStore: MissionStore) {}
 
-  // --- DataSource ----------------------------------------------------------
   // No live connection: this source only ever reads IndexedDB. Always
   // "connected": there's nothing to reconnect or fail.
 
@@ -104,8 +103,6 @@ export class MissionHistorySource implements DataSource {
   getConfig(): Record<string, unknown> {
     return {};
   }
-
-  // --- Flight-history surface ----------------------------------------------
 
   async queryRange(
     key: string,
@@ -259,8 +256,6 @@ export class MissionHistorySource implements DataSource {
     if (missionId) this.historyCache.delete(missionId);
     else this.historyCache.clear();
   }
-
-  // --- Internal --------------------------------------------------------
 
   private async getFullHistoryStore(
     missionId: string,

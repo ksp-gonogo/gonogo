@@ -45,8 +45,7 @@ function repoRoot(startDir: string): string {
 
 const root = repoRoot(dirname(fileURLToPath(import.meta.url)));
 
-// --- Invariant 1: the legacy bridge stays deleted -------------------------
-
+// Invariant 1: the legacy bridge stays deleted
 const DELETED_BRIDGE = "packages/core/src/hooks/useCommand.ts";
 const CORE_BARREL = "packages/core/src/index.ts";
 
@@ -61,7 +60,7 @@ describe('delay-ux: the legacy useCommand("data") bridge stays deleted', () => {
   });
 });
 
-// --- Invariant 2: useExecuteAction stays deleted --------------------------
+// Invariant 2: useExecuteAction stays deleted
 
 /** The hook's definition sites, both removed when its last two callers migrated. */
 const DELETED_HOOK_FILES = [
@@ -143,8 +142,7 @@ describe("delay-ux: useExecuteAction stays deleted", () => {
   });
 });
 
-// --- Invariant 3: the arm-then-confirm behaviour has ONE definition ---------
-
+// Invariant 3: the arm-then-confirm behaviour has ONE definition
 /**
  * The arm window was written out independently in eight widgets, all four
  * seconds, none of them sharing a line. That is one behaviour spelled eight

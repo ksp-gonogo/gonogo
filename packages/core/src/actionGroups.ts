@@ -9,13 +9,11 @@ import type { ActionGroup } from "./types";
  * had, each with its own first-class `vessel.control` field and its own
  * dedicated command (`vessel.control.setGear`, ...).
  *
- * ---------------------------------------------------------------------------
- * WHY THIS IS STILL A LITERAL, AND MUST STAY ONE
- * ---------------------------------------------------------------------------
- * The registry is deliberately HYBRID: static stock singletons (this array) +
- * telemetry-derived customs (`useActionGroups` below). Do NOT "simplify" it
- * into a single fully-derived list, that would be a regression, not a
- * cleanup, because the two halves are different kinds of thing:
+ * This is still a literal, and must stay one: the registry is deliberately
+ * HYBRID, static stock singletons (this array) + telemetry-derived customs
+ * (`useActionGroups` below). Do NOT "simplify" it into a single
+ * fully-derived list, that would be a regression, not a cleanup, because the
+ * two halves are different kinds of thing:
  *
  *  - These eight are FIXED stock concepts. No mod extends them: Action Groups
  *    Extended adds CUSTOM groups; it does not add a second SAS. Each already
@@ -29,7 +27,6 @@ import type { ActionGroup } from "./types";
  * Precision Control and Stage are in here too, neither is strictly an action
  * group (one is a flight-input mode, one is a staging command), but both are
  * toggle-shaped and the widget has always offered them.
- * ---------------------------------------------------------------------------
  */
 export const STOCK_ACTION_GROUPS = [
   {

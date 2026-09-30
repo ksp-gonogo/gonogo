@@ -28,10 +28,6 @@ import { VERSION } from "../version";
 import { useGoNoGoHost, useGoNoGoSnapshot } from "./GoNoGoHostContext";
 import { DEFAULT_GONOGO_CONFIG } from "./GoNoGoHostService";
 
-// ---------------------------------------------------------------------------
-// Shared types
-// ---------------------------------------------------------------------------
-
 interface GoNoGoWidgetConfig {
   /** Main-screen only: countdown length in seconds. Default 10. */
   countdownSeconds?: number;
@@ -56,10 +52,7 @@ const actions = [
 
 type GoNoGoActions = typeof actions;
 
-// ---------------------------------------------------------------------------
-// Component entry: branches on screen context
-// ---------------------------------------------------------------------------
-
+// Component entry: branches on screen context.
 function GoNoGoComponent({
   config,
   w,
@@ -72,10 +65,6 @@ function GoNoGoComponent({
   if (screen !== "main") return <StationView w={w} h={h} />;
   return <MainView config={config} w={w} h={h} />;
 }
-
-// ---------------------------------------------------------------------------
-// Station view
-// ---------------------------------------------------------------------------
 
 function StationView(_props: { w: number | undefined; h: number | undefined }) {
   const client = usePeerClient();
@@ -322,10 +311,6 @@ export function CountdownTone({
   return null;
 }
 
-// ---------------------------------------------------------------------------
-// Main view
-// ---------------------------------------------------------------------------
-
 function MainView({
   config,
   w,
@@ -473,10 +458,7 @@ function cellLabel(state: CellState): string {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Config component (main-screen only)
-// ---------------------------------------------------------------------------
-
+// Config component: main-screen only.
 function GoNoGoConfigComponent({
   config,
   onSave,
@@ -532,10 +514,6 @@ function GoNoGoConfigComponent({
     </ConfigWrap>
   );
 }
-
-// ---------------------------------------------------------------------------
-// Styles
-// ---------------------------------------------------------------------------
 
 type BigButtonVariant = "go" | "nogo" | "abort";
 
@@ -785,10 +763,6 @@ const ConfigWrap = styled.div`
   flex-direction: column;
   gap: var(--gap-related);
 `;
-
-// ---------------------------------------------------------------------------
-// Registration
-// ---------------------------------------------------------------------------
 
 registerComponent<GoNoGoWidgetConfig>({
   id: "gonogo",

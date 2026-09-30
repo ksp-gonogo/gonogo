@@ -5,10 +5,8 @@ import { usePushClient } from "../../pushToMain/PushClientContext";
 import type { DashboardItem } from "./index";
 import { handleMouseDown } from "./mouseHandlers";
 
-// ---------------------------------------------------------------------------
-// Remove button: two-click confirm pattern so a stray click in the drag header doesn't vaporise the widget.
-// ---------------------------------------------------------------------------
-
+// Two-click confirm pattern so a stray click in the drag header doesn't
+// vaporise the widget.
 const CONFIRM_WINDOW_MS = 3_000;
 
 export function RemoveButton({ onRemove }: Readonly<{ onRemove: () => void }>) {
@@ -51,12 +49,9 @@ export function RemoveButton({ onRemove }: Readonly<{ onRemove: () => void }>) {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Push-to-main toggle: only shown on stations (usePushClient() returns
-// non-null when the PushClientProvider is mounted) and only for components
-// that declared pushable: true at registration time.
-// ---------------------------------------------------------------------------
-
+// Only shown on stations (usePushClient() returns non-null when the
+// PushClientProvider is mounted) and only for components that declared
+// pushable: true at registration time.
 export function PushButton({
   item,
   pushable,
@@ -99,10 +94,8 @@ export function PushButton({
   );
 }
 
-// ---------------------------------------------------------------------------
-// Widget error fallback: rendered in place of a crashed widget so the rest of the dashboard keeps working and the failure is visible instead of silent.
-// ---------------------------------------------------------------------------
-
+// Rendered in place of a crashed widget so the rest of the dashboard keeps
+// working and the failure is visible instead of silent.
 export function WidgetError({
   componentName,
   error,
@@ -121,10 +114,6 @@ export function WidgetError({
     </WidgetErrorPanel>
   );
 }
-
-// ---------------------------------------------------------------------------
-// Shared styles: used across Grid and Mobile branches.
-// ---------------------------------------------------------------------------
 
 const highlightPulse = keyframes`
   0% {

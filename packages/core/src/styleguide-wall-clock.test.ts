@@ -62,11 +62,9 @@ const SKIP_DIRS = new Set([
 // Tests, snapshots and probe harnesses pin or fake time on purpose.
 const SKIP_FILE = /\.(test|test-d)\.tsx?$/;
 
-// ---------------------------------------------------------------------
-// Seeded allowlist: one entry per production file under
-// packages/components/src that legitimately reads a wall clock, with the
-// count and the reason. A file scoring 0 has no entry.
-// ---------------------------------------------------------------------
+// Seeded allowlist: one entry per production file under packages/components/src
+// that legitimately reads a wall clock, with the count and the reason. A file
+// scoring 0 has no entry.
 const ALLOWED_WALL_CLOCK: Record<string, number> = {
   // A UI dwell: `completedAt` holds the "burn complete" marker on screen for
   // COMPLETED_HOLD_MS after the fact, and the remaining hold is wall-time

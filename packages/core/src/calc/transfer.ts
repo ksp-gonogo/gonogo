@@ -21,11 +21,9 @@
 
 import type { Severity } from "@ksp-gonogo/ui-kit";
 
-// ---------------------------------------------------------------------------
-// Phase-angle core (moved here from packages/components SystemView so both the
+// Phase-angle core, moved here from packages/components SystemView so both the
 // SystemView diagram and the Transfer Window widget share ONE implementation;
-// SystemView/transferWindow.ts now re-exports these).
-// ---------------------------------------------------------------------------
+// SystemView/transferWindow.ts now re-exports these.
 
 /**
  * Ideal coplanar Hohmann departure phase angle (degrees) for a transfer from
@@ -91,10 +89,6 @@ export function transferSeverity(status: TransferStatus): Severity {
       return "nogo";
   }
 }
-
-// ---------------------------------------------------------------------------
-// Net-new transfer math
-// ---------------------------------------------------------------------------
 
 /**
  * Synodic period (seconds): how often the same relative geometry, and thus

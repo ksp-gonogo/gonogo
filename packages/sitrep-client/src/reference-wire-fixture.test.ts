@@ -190,8 +190,6 @@ describe.skipIf(!fixtureExists)(
           client.subscribe(topic, () => {});
         }
 
-        // ---- Bookkeeping ----
-
         // Ghost check (mirrors WireFixtureGeneratorTests.cs's own C#
         // watermark/awaitingGhostCheck technique, re-implemented client-side):
         // the highest validAt seen for a topic BEFORE its most recent
@@ -363,7 +361,7 @@ describe.skipIf(!fixtureExists)(
 
         transport.onMessage(handleMessage);
 
-        // ---- Drive the whole fixture, in fixture (arrival) order ----
+        // Drive the whole fixture, in fixture (arrival) order.
         for (const raw of fixture.frames) {
           const parsed: unknown = JSON.parse(raw);
           if (typeof parsed !== "object" || parsed === null) continue;
@@ -398,11 +396,11 @@ describe.skipIf(!fixtureExists)(
           transport.deliver(message);
         }
 
-        // ================= 1. TelemetryClient genuinely in the loop =================
+        // 1. TelemetryClient genuinely in the loop.
         expect(client.getValue("vessel.orbit")).toBeDefined();
         expect(client.getValue("time.warp")).toBeDefined();
 
-        // ================= 2. a REAL orbit payload solves where the hand mirror does =================
+        // 2. A REAL orbit payload solves where the hand mirror does.
         // Deliberately an ISOLATED store/clock (not the shared one the main
         // drive loop just ran to epoch 3), the shared store's
         // "vessel.orbit" ClientTimeline has long since been swept by the
@@ -467,7 +465,7 @@ describe.skipIf(!fixtureExists)(
         // Moves along the orbit as viewUt advances, not a frozen/repeated value.
         expect(pos1).not.toEqual(pos2);
 
-        // ================= 3. 3 rewinds -> epoch bumps -> NO client ghost =================
+        // 3. 3 rewinds -> epoch bumps -> NO client ghost.
         expect(ghostViolations).toEqual([]);
         expect(postBumpOrbitObservations.length).toBe(3);
         // Stable invariant (holds for ANY reference recording, not just this
@@ -487,7 +485,7 @@ describe.skipIf(!fixtureExists)(
           }
         }
 
-        // ================= 4. Staleness/certainty sane across the session =================
+        // 4. Staleness/certainty sane across the session.
         // (Per-frame "live"/"absent" assertions already ran inside
         // handleMessage for every one of the fixture's frames.) Certainty
         // flips at the horizon: well behind the last confirmed sample of the
@@ -508,7 +506,7 @@ describe.skipIf(!fixtureExists)(
 
         clock.scrubTo(null);
 
-        // ================= 5. ViewClock estimator: sample-clamped & monotonic =================
+        // 5. ViewClock estimator: sample-clamped & monotonic.
         // (The sample-clamp and within-epoch monotonic assertions already
         // ran inline for every ingest and every mid-gap probe across the
         // whole 4800+ frame replay: see handleMessage and the driver loop

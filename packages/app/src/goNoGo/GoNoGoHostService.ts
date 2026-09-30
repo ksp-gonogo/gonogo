@@ -236,10 +236,6 @@ export class GoNoGoHostService {
     if (outcome.routed) void outcome.settled;
   }
 
-  // ───────────────────────────────────────────────────────────────────────
-  // Public API
-  // ───────────────────────────────────────────────────────────────────────
-
   getSnapshot(): GoNoGoSnapshot {
     const stations: StationSnapshot[] = [];
     for (const peerId of this.connectedPeers) {
@@ -285,10 +281,6 @@ export class GoNoGoHostService {
     this.unsubs = [];
     this.listeners.clear();
   }
-
-  // ───────────────────────────────────────────────────────────────────────
-  // Internals
-  // ───────────────────────────────────────────────────────────────────────
 
   private maybeStartCountdown(): void {
     if (this.launched) return;

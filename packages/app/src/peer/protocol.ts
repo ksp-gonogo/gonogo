@@ -162,9 +162,6 @@ export type PeerMessage =
         data: Uint8Array;
       }>;
     }
-  // ──────────────────────────────────────────────────────────────────────
-  // GO/NO-GO and launch coordination
-  // ──────────────────────────────────────────────────────────────────────
   // Station → host on connect and whenever the user renames the station.
   // Host keys peer id → name for grid attribution and abort reporting.
   // `version` + `buildTime` are optional so a pre-versioned station still
@@ -202,14 +199,12 @@ export type PeerMessage =
   // Host → stations: someone triggered the abort. Carries the name so all
   // screens can show who did it.
   | { type: "gonogo-abort-notify"; stationName: string; t: number }
-  // ──────────────────────────────────────────────────────────────────────
   // Push-to-main: a station mirrors one of its widgets onto the main
   // screen's modal dashboard. Config is passed through to the main's
   // registered component; input mappings stay station-local. `width` and
   // `height` are the station's grid units on its `lg` layout, the main
   // modal uses them as the ideal size and scales uniformly if it can't
   // fit everything without scrolling.
-  // ──────────────────────────────────────────────────────────────────────
   | {
       type: "widget-push";
       widgetInstanceId: string;
@@ -219,11 +214,9 @@ export type PeerMessage =
       height: number;
     }
   | { type: "widget-recall"; widgetInstanceId: string }
-  // ──────────────────────────────────────────────────────────────────────
   // Internal mission alarms. The main screen owns the canonical list and
   // warp-step ladder; stations get a live snapshot and can add/update/
   // delete entries.
-  // ──────────────────────────────────────────────────────────────────────
   // Host → stations: full snapshot on every change (alarms list, observed
   // warp state, unscheduled-warp flag). Not incremental: the list is
   // small and the round-trips are rare.

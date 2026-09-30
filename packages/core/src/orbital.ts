@@ -12,10 +12,6 @@
 import type { BodyDefinition } from "./bodies";
 import { degToRad } from "./utils/math";
 
-// ---------------------------------------------------------------------------
-// Gravity / circular-orbit reference curves
-// ---------------------------------------------------------------------------
-
 /**
  * Speed required for a circular orbit at the given altitude above sea level.
  * `sqrt(GM / (R + h))`. Returns `undefined` when the body has no `gm`
@@ -165,10 +161,6 @@ export function pressureAtAltitude(
   );
 }
 
-// ---------------------------------------------------------------------------
-// Keplerian orbit geometry
-// ---------------------------------------------------------------------------
-
 /**
  * Compute the orbital radius at a given true anomaly.
  *
@@ -228,10 +220,6 @@ export function generateOrbitPoints(
   return points;
 }
 
-// ---------------------------------------------------------------------------
-// Map projection
-// ---------------------------------------------------------------------------
-
 /**
  * Map a latitude/longitude to pixel coordinates on an equirectangular texture.
  *
@@ -251,10 +239,6 @@ export function latLonToMap(
     y: ((90 - lat) / 180) * height,
   };
 }
-
-// ---------------------------------------------------------------------------
-// Display formatting
-// ---------------------------------------------------------------------------
 
 // No duration/distance string formatters live here, deliberately. A quantity is
 // shown with `<Unit value={...} />`, and a wrapper whose only job is to turn a

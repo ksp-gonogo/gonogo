@@ -88,10 +88,6 @@ function GamepadArtCredit() {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Devices tab
-// ---------------------------------------------------------------------------
-
 function DevicesTab() {
   const svc = useSerialDeviceService();
   const devices = useSerialDevices();
@@ -334,10 +330,6 @@ function DeviceRow({
   );
 }
 
-// ---------------------------------------------------------------------------
-// Device Types tab
-// ---------------------------------------------------------------------------
-
 function TypesTab() {
   const svc = useSerialDeviceService();
   const types = useSerialDeviceTypes();
@@ -396,10 +388,6 @@ function TypesTab() {
     </List>
   );
 }
-
-// ---------------------------------------------------------------------------
-// Styles
-// ---------------------------------------------------------------------------
 
 const Wrap = styled.div`
   display: flex;

@@ -105,12 +105,11 @@ export interface DataSource<
 
 export type ComponentBehavior = "gonogo-participant";
 
-// ---------------------------------------------------------------------------
-// Action inputs: wiring for physical/virtual controls to trigger component
-// functionality. Components declare their available actions at registration;
-// users later map device inputs to them via the input mapping UI.
-// ---------------------------------------------------------------------------
-
+/**
+ * Action inputs: wiring for physical/virtual controls to trigger component
+ * functionality. Components declare their available actions at registration;
+ * users later map device inputs to them via the input mapping UI.
+ */
 export type ActionInputKind = "button" | "analog";
 
 export interface ActionInputPayload {

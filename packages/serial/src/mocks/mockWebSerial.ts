@@ -12,10 +12,6 @@
  * installed. `restore()` puts the original back.
  */
 
-// ---------------------------------------------------------------------------
-// Port
-// ---------------------------------------------------------------------------
-
 interface MockPortOptions {
   /** Returned by `getInfo()`. Defaults to `{}`. */
   info?: SerialPortInfo;
@@ -91,10 +87,6 @@ export class MockSerialPort extends EventTarget implements SerialPort {
     }
   }
 }
-
-// ---------------------------------------------------------------------------
-// Serial
-// ---------------------------------------------------------------------------
 
 interface InstallOptions {
   /** Replace an existing navigator.serial if one is present. Default true. */

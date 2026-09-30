@@ -1645,11 +1645,8 @@ export class PeerHostService {
     this.dispatcher.dispatch(msg, conn);
   }
 
-  // ───────────────────────────────────────────────────────────────────────
   // GO/NO-GO + peer lifecycle subscriptions. Kept as plain pub/sub so the
   // GoNoGoHostService can aggregate without this class knowing the semantics.
-  // ───────────────────────────────────────────────────────────────────────
-
   onStationInfo(cb: StationInfoListener): () => void {
     return this.events.on("stationInfo", cb);
   }

@@ -69,8 +69,6 @@ export class IndexedDbStore implements FlightStore {
     this.flushIntervalMs = opts.flushIntervalMs ?? DEFAULT_FLUSH_INTERVAL_MS;
   }
 
-  // --- Flights -----------------------------------------------------------
-
   async upsertFlight(record: FlightRecord): Promise<void> {
     await this.runTx(FLIGHTS_STORE, "readwrite", (tx) => {
       tx.objectStore(FLIGHTS_STORE).put(record);
@@ -143,8 +141,6 @@ export class IndexedDbStore implements FlightStore {
     });
   }
 
-  // --- Samples -----------------------------------------------------------
-
   async appendSample(
     flightId: string,
     key: string,
@@ -208,8 +204,6 @@ export class IndexedDbStore implements FlightStore {
     });
     return this.flushInFlight;
   }
-
-  // --- Internal ----------------------------------------------------------
 
   private scheduleFlush(): void {
     if (this.flushTimer !== null) return;

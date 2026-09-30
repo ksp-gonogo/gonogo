@@ -33,10 +33,7 @@ import {
 import styled from "styled-components";
 import type { DashboardItem } from "./Dashboard";
 
-// ---------------------------------------------------------------------------
-// Context: lets the overlay call addItem without prop-drilling
-// ---------------------------------------------------------------------------
-
+// Context: lets the overlay call addItem without prop-drilling.
 interface OverlayContextValue {
   addItem: (
     item: DashboardItem,
@@ -73,10 +70,6 @@ function useOverlay(): OverlayContextValue {
   if (!ctx) throw new Error("useOverlay must be used inside <OverlayProvider>");
   return ctx;
 }
-
-// ---------------------------------------------------------------------------
-// FAB + Overlay
-// ---------------------------------------------------------------------------
 
 interface ComponentOverlayProps {
   /** Current items so we can compute the next free y position. */
@@ -401,10 +394,6 @@ export function ComponentOverlay({
 }
 
 export { useOverlay };
-
-// ---------------------------------------------------------------------------
-// Styles
-// ---------------------------------------------------------------------------
 
 const FAB = styled.button`
   position: fixed;

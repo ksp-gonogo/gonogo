@@ -261,10 +261,7 @@ describe("PeerClientService", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
 // Reconnect loop: drives lifecycle via the hoisted FakePeer / FakeDataConnection.
-// ---------------------------------------------------------------------------
-
 describe("PeerClientService reconnect loop", () => {
   beforeEach(() => {
     FakePeer.instances = [];
@@ -467,10 +464,7 @@ describe("PeerClientService reconnect loop", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// queryRange: request/response round-trip + lifetime cleanup
-// ---------------------------------------------------------------------------
-
+// queryRange: request/response round-trip + lifetime cleanup.
 describe("PeerClientService.sendQueryRange", () => {
   beforeEach(() => {
     FakePeer.instances = [];

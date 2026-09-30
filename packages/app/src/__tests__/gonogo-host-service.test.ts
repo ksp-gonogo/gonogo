@@ -33,10 +33,7 @@ import {
 import { installFakeAudio, makeSoundService } from "../test/fakeAudio";
 import { asHostService } from "../test/peerFakes";
 
-// ---------------------------------------------------------------------------
-// Fakes: small stand-ins so we can drive events deterministically
-// ---------------------------------------------------------------------------
-
+// Fakes: small stand-ins so we can drive events deterministically.
 class FakeHost {
   broadcasts: PeerMessage[] = [];
   private listeners = {
@@ -174,10 +171,6 @@ class FakeTimelineStore {
     for (const cb of [...this.frameListeners]) cb();
   }
 }
-
-// ---------------------------------------------------------------------------
-// Tests
-// ---------------------------------------------------------------------------
 
 /**
  * `TelemetryClient.dispatch` hands the command to the transport across a

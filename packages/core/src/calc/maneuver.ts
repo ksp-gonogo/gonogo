@@ -86,10 +86,6 @@ export interface ManeuverSequence {
 
 export type Apsis = "apo" | "peri";
 
-// ---------------------------------------------------------------------------
-// Vis-viva helpers
-// ---------------------------------------------------------------------------
-
 /**
  * Gravitational parameter μ (m³/s²) derived from a single point on an orbit.
  * Uses vis-viva rearranged: `μ = v²·a·r / (2a − r)`. Any point works; the
@@ -230,10 +226,6 @@ export function stateAtUT(
     trueAnomalyDeg: (radToDeg(nu) + 360) % 360,
   };
 }
-
-// ---------------------------------------------------------------------------
-// Presets
-// ---------------------------------------------------------------------------
 
 /**
  * Circularise the orbit at apoapsis. Pure prograde burn; ΔV is the
@@ -379,10 +371,6 @@ export function customAtUT(
     projected,
   };
 }
-
-// ---------------------------------------------------------------------------
-// Plane-change presets
-// ---------------------------------------------------------------------------
 
 /**
  * True anomaly of the ascending / descending node for the current orbit,

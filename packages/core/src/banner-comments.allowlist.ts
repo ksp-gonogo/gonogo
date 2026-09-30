@@ -65,6 +65,9 @@ export const MATCHER_REVISION = 2;
  * the list did not grow, the instrument did. `ui-kit` had five such files and
  * they were cleaned in the same commit rather than seeded, because it is the
  * published package and a third-party author reads it as the example.
+ *
+ * `packages/` went to zero on 2026-09-30 (Saga #697, first slice): its 14
+ * entries are removed rather than lowered. Everything left here is `mod/`.
  */
 export const BANNER_COMMENT_DEBT: Record<string, number> = {
   "mod/Sitrep.Contract.TestSupport/UnitCoverageAssertion.cs": 1,
@@ -76,20 +79,6 @@ export const BANNER_COMMENT_DEBT: Record<string, number> = {
   "mod/sitrep-sdk/src/flight/BufferedDataSource.test.ts": 1,
   "mod/sitrep-sdk/src/flight/types.ts": 1,
   "mod/sitrep-sdk/src/spine/orbit-trajectory.test.ts": 1,
-  "packages/app/src/__tests__/gonogo-host-service.test.ts": 2,
-  "packages/app/src/__tests__/peer-client-service.test.ts": 2,
-  "packages/app/src/__tests__/peer-roundtrip.test.ts": 2,
-  "packages/app/src/components/Dashboard/index.tsx": 2,
-  "packages/app/src/goNoGo/GoNoGoHostService.ts": 2,
-  "packages/app/src/peer/PeerHostService.ts": 1,
-  "packages/app/src/peer/protocol.ts": 2,
-  "packages/app/src/screens/MainScreen.tsx": 1,
-  "packages/core/src/actionGroups.ts": 1,
-  "packages/core/src/calc/transfer.ts": 2,
-  "packages/core/src/styleguide-wall-clock.test.ts": 1,
-  "packages/core/src/types.ts": 1,
-  "packages/serial/src/mocks/mockWebSerial.ts": 2,
-  "packages/serial/src/types.ts": 1,
 };
 
 /**
@@ -121,10 +110,18 @@ export const SCHEME_MIN = 3;
  * two banners left behind are exactly the shape the rule forbids.
  */
 export const SECTIONED_CEILINGS = {
-  /** Files carrying `SCHEME_MIN` or more banners. 35 under revision 1, 61 under 2. */
-  files: 59,
-  /** Banner lines across those files. 277 under revision 1, 377 under 2. */
-  banners: 369,
+  /**
+   * Files carrying `SCHEME_MIN` or more banners. 35 under revision 1, 61
+   * under 2, 31 once `packages/`'s 14 sectioned files went to zero (Saga
+   * #697, first slice; `mod/` still carries the rest).
+   */
+  files: 31,
+  /**
+   * Banner lines across those files. 277 under revision 1, 377 under 2,
+   * 210 once `packages/`'s 62 sectioned-file banners went to zero (Saga
+   * #697, first slice).
+   */
+  banners: 210,
 } as const;
 
 /**

@@ -430,10 +430,6 @@ export class SerialDeviceService {
     }
   }
 
-  // -------------------------------------------------------------------------
-  // Seeding
-  // -------------------------------------------------------------------------
-
   private seedDefaultsIfEmpty(): void {
     if (this.deviceTypes.size === 0) {
       this.deviceTypes.set(VIRTUAL_CONTROLLER_TYPE.id, VIRTUAL_CONTROLLER_TYPE);
@@ -449,10 +445,7 @@ export class SerialDeviceService {
     }
   }
 
-  // -------------------------------------------------------------------------
-  // Device types (shared across screens on the same browser)
-  // -------------------------------------------------------------------------
-
+  // Device types are shared across every screen on the same browser.
   getDeviceTypes(): DeviceType[] {
     return Array.from(this.deviceTypes.values());
   }
@@ -484,10 +477,7 @@ export class SerialDeviceService {
     return this.events.on("deviceTypes", cb);
   }
 
-  // -------------------------------------------------------------------------
-  // Device instances (per-screen)
-  // -------------------------------------------------------------------------
-
+  // Device instances, unlike device types, are per-screen.
   getDevices(): DeviceInstance[] {
     return Array.from(this.managed.values()).map((m) => m.instance);
   }
@@ -568,10 +558,6 @@ export class SerialDeviceService {
   onDevicesChange(cb: () => void): () => void {
     return this.events.on("devices", cb);
   }
-
-  // -------------------------------------------------------------------------
-  // Transport control
-  // -------------------------------------------------------------------------
 
   /**
    * Connect a device. If a port is supplied (e.g. from a wizard that already
@@ -674,11 +660,10 @@ export class SerialDeviceService {
     }
   }
 
-  // -------------------------------------------------------------------------
-  // Pending-choice resolution (ambiguous autoReconnect matches)
-  // -------------------------------------------------------------------------
-
-  /** Snapshot of saved devices that need the user to disambiguate ports. */
+  /**
+   * Snapshot of saved devices that need the user to disambiguate ports: the
+   * ambiguous matches autoReconnect couldn't pick between on its own.
+   */
   getPendingChoices(): ReadonlyMap<string, readonly SerialPort[]> {
     return this.pendingChoices;
   }
@@ -787,14 +772,11 @@ export class SerialDeviceService {
     return this.events.on("status", cb);
   }
 
-  // -------------------------------------------------------------------------
-  // Action return values → debounced render → transport.write()
-  // -------------------------------------------------------------------------
-
   /**
    * Called by the InputDispatcher whenever an action handler returns a value
    * for a given device. The latest value per-key is merged into the device's
-   * frame state and a render is scheduled.
+   * frame state, and a render is scheduled: debounced, then written out via
+   * transport.write().
    */
   recordActionReturn(deviceId: string, returned: unknown): void {
     if (returned === null || returned === undefined) return;
@@ -815,10 +797,6 @@ export class SerialDeviceService {
     }
     this.renderNow(managed);
   }
-
-  // -------------------------------------------------------------------------
-  // Teardown
-  // -------------------------------------------------------------------------
 
   /**
    * Release ports + detach navigator listeners. Used by the screen
@@ -853,10 +831,6 @@ export class SerialDeviceService {
       }
     }
   }
-
-  // -------------------------------------------------------------------------
-  // Internal
-  // -------------------------------------------------------------------------
 
   private register(instance: DeviceInstance, deviceType: DeviceType): void {
     const transport = this.transportFactory(instance, deviceType);
@@ -1008,10 +982,6 @@ export class SerialDeviceService {
       );
     }
   }
-
-  // -------------------------------------------------------------------------
-  // Persistence
-  // -------------------------------------------------------------------------
 
   private devicesKey(): string {
     return `gonogo.serial.devices.${this.screenKey}`;

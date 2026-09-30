@@ -28,10 +28,6 @@ import { PeerBroadcastingDataSource } from "../peer/PeerBroadcastingDataSource";
 import { PeerClientDataSource } from "../peer/PeerClientDataSource";
 import type { PeerMessage } from "../peer/protocol";
 
-// ---------------------------------------------------------------------------
-// Fakes
-// ---------------------------------------------------------------------------
-
 // Minimal telemetry-shaped fake: built from the shared MockDataSource
 // fixture. `affectedBySignalLoss: true` mirrors the now-deleted legacy
 // WS DataSource so BufferedDataSource's signal-loss gate is
@@ -100,10 +96,6 @@ function makeFakeClient() {
     },
   };
 }
-
-// ---------------------------------------------------------------------------
-// Test scaffolding
-// ---------------------------------------------------------------------------
 
 const TELEMETRY_KEYS: DataKey[] = [
   { key: "v.name" },

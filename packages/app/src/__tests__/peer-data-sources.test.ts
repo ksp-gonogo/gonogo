@@ -4,10 +4,7 @@ import { PeerBroadcastingDataSource } from "../peer/PeerBroadcastingDataSource";
 import { PeerClientDataSource } from "../peer/PeerClientDataSource";
 import type { PeerMessage } from "../peer/protocol";
 
-// ---------------------------------------------------------------------------
-// Minimal fake DataSource for PeerBroadcastingDataSource tests
-// ---------------------------------------------------------------------------
-
+// Minimal fake DataSource for PeerBroadcastingDataSource tests.
 function makeRealSource(
   id = "test-source",
   schemaKeys: string[] = [],
@@ -51,10 +48,7 @@ function makeRealSource(
   };
 }
 
-// ---------------------------------------------------------------------------
-// Minimal fake PeerHostService
-// ---------------------------------------------------------------------------
-
+// Minimal fake PeerHostService.
 function makeFakeHost() {
   const broadcasts: PeerMessage[] = [];
   return {
@@ -63,10 +57,7 @@ function makeFakeHost() {
   };
 }
 
-// ---------------------------------------------------------------------------
-// Minimal fake PeerClientService
-// ---------------------------------------------------------------------------
-
+// Minimal fake PeerClientService.
 function makeFakeClient() {
   const dataListeners = new Set<
     (sourceId: string, key: string, value: unknown) => void
@@ -98,10 +89,6 @@ function makeFakeClient() {
     },
   };
 }
-
-// ---------------------------------------------------------------------------
-// PeerBroadcastingDataSource
-// ---------------------------------------------------------------------------
 
 describe("PeerBroadcastingDataSource", () => {
   it("broadcasts schema keys independently of UI subscriptions", () => {
@@ -267,10 +254,6 @@ describe("PeerBroadcastingDataSource", () => {
     expect(range).toEqual({ t: [], v: [] });
   });
 });
-
-// ---------------------------------------------------------------------------
-// PeerClientDataSource
-// ---------------------------------------------------------------------------
 
 describe("PeerClientDataSource", () => {
   let client: ReturnType<typeof makeFakeClient>;

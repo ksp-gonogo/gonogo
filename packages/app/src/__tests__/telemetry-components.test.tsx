@@ -69,7 +69,6 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-// ---------------------------------------------------------------------------
 // Helper: mount a real TelemetryProvider (TelemetryClient + TimelineStore
 // over a StubTransport) for widgets that read via the canonical `useTelemetry`
 // stream path post-P1 vocabulary migration. Mirrors
@@ -77,7 +76,6 @@ afterEach(() => {
 // Targeting's and OrbitView's own dedicated stream tests), duplicated
 // here in miniature rather than imported, since `@ksp-gonogo/components`'s test
 // helpers aren't part of its published surface.
-// ---------------------------------------------------------------------------
 function setupTelemetryStream() {
   const wall = createFakeWallClock();
   const transport = new StubTransport();
@@ -105,9 +103,6 @@ function setupTelemetryStream() {
   };
 }
 
-// ---------------------------------------------------------------------------
-// CurrentOrbit
-// ---------------------------------------------------------------------------
 describe("CurrentOrbitComponent", () => {
   it("renders ORBIT heading", () => {
     renderWidget(<CurrentOrbitComponent id="t" />);
@@ -189,9 +184,6 @@ describe("CurrentOrbitComponent", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// Targeting
-// ---------------------------------------------------------------------------
 describe("TargetingComponent", () => {
   it("waits for telemetry rather than claiming no target is set, before anything is received", () => {
     // The old assertion (and this test's own old title) had it backwards: "not
@@ -260,9 +252,6 @@ describe("TargetingComponent", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// OrbitView
-// ---------------------------------------------------------------------------
 describe("OrbitViewComponent", () => {
   it("renders ORBIT VIEW heading", () => {
     renderWidget(<OrbitViewComponent id="t" />);
@@ -312,9 +301,6 @@ describe("OrbitViewComponent", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// MapView
-// ---------------------------------------------------------------------------
 describe("MapViewComponent", () => {
   // MapView reads position off `vessel.flight.latitude`/`.longitude`, and names the header body from `vessel.identity.parentBodyIndex` through `system.bodies`.
   function emitKerbin(stream: ReturnType<typeof setupTelemetryStream>) {

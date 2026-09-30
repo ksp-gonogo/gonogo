@@ -152,11 +152,8 @@ export interface DeviceRenderStyle {
   ): string | Uint8Array;
 }
 
-// ---------------------------------------------------------------------------
 // Minimal Web Serial shims: avoid pulling a full `dom-serial` dep for a
 // single interface. These match the Web Serial spec subset we actually need.
-// ---------------------------------------------------------------------------
-
 export interface SerialPortFilter {
   usbVendorId?: number;
   usbProductId?: number;

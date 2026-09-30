@@ -98,10 +98,6 @@ import { SitrepVantageSessions } from "../telemetry/SitrepVantageSessions";
 import { UplinkIntegrityBanner } from "../uplinks/UplinkIntegrityBanner";
 import { DEMO_CONFIG } from "./demoConfig";
 
-// ---------------------------------------------------------------------------
-// Screen
-// ---------------------------------------------------------------------------
-
 /**
  * Per-scene working layouts: each of the four "real" KSP scenes gets its own
  * auto-persisted dashboard slot, so edits made in one scene survive switching

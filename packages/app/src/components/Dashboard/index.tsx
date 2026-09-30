@@ -4,10 +4,6 @@ import type { Layout, Layouts } from "react-grid-layout";
 import { GridDashboard } from "./GridDashboard";
 import { MobileDashboard } from "./MobileDashboard";
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
 export interface DashboardItem {
   /** Unique instance ID: used as the react-grid-layout key. */
   i: string;
@@ -46,12 +42,6 @@ export interface DashboardConfig {
   layouts: Layouts;
 }
 
-// ---------------------------------------------------------------------------
-// Dashboard: fully controlled. State lives in `useDashboardState` (called
-// by the owning screen) so external consumers like the Phase 4 InputDispatcher
-// can subscribe to item changes without reaching into Dashboard internals.
-// ---------------------------------------------------------------------------
-
 export interface DashboardProps {
   items: DashboardItem[];
   layouts: Layouts;
@@ -75,6 +65,9 @@ export interface DashboardProps {
   clearLastAdded?: (id: string) => void;
 }
 
+// Fully controlled. State lives in `useDashboardState` (called by the
+// owning screen) so external consumers like the Phase 4 InputDispatcher can
+// subscribe to item changes without reaching into Dashboard internals.
 export function Dashboard(props: Readonly<DashboardProps>) {
   // Touch devices can't realistically use react-grid-layout's drag handle.
   // Render a linear list with up/down reorder buttons instead, the desktop

@@ -19,8 +19,6 @@ import { LocalStorageStore } from "@ksp-gonogo/data";
  * no data path of its own: see that file's doc comment).
  */
 
-// --- Host + port config ------------------------------------------------
-
 export interface SitrepHostConfig extends Record<string, unknown> {
   host: string;
   port: number;
@@ -84,8 +82,6 @@ export function subscribeSitrepHostConfig(cb: () => void): () => void {
   return () => hostConfigListeners.delete(cb);
 }
 
-// --- Live transport status ---------------------------------------------
-
 let transportStatus: DataSourceStatus = "disconnected";
 const statusListeners = new Set<(status: DataSourceStatus) => void>();
 
@@ -106,8 +102,6 @@ export function onSitrepTransportStatusChange(
   statusListeners.add(cb);
   return () => statusListeners.delete(cb);
 }
-
-// --- Manual reconnect ----------------------------------------------------
 
 let reconnectNonce = 0;
 const nonceListeners = new Set<() => void>();
@@ -131,8 +125,6 @@ export function subscribeSitrepReconnectNonce(cb: () => void): () => void {
   nonceListeners.add(cb);
   return () => nonceListeners.delete(cb);
 }
-
-// --- Test-only reset -------------------------------------------------------
 
 /**
  * Clears the local port store, status and nonce back to build defaults. This
