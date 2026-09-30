@@ -215,21 +215,26 @@ jobs:
       - name: pnpm install
         run: pnpm install --frozen-lockfile
 
-      # `sitrep-sdk`'s own `turbo.json` makes its `test` task depend only on
-      # `^build` (its dependencies), not on its own `build`, because nothing
-      # else in the graph declares that edge: `src/cli/index.test.ts` shells
-      # out to the built `bin/gonogo-uplink.mjs`, which is a real subprocess
-      # boundary turbo cannot see into. In the old single job this race was
-      # masked for free: `pnpm typecheck` ran first and its own `^build` fan-out
-      # (every package that imports the sdk needs it built) finished sitrep-sdk's
-      # build on disk before `pnpm test` ever started. Split into this job alone
-      # with no typecheck step ahead of it, the same `turbo test` run schedules
-      # `sitrep-sdk:test` and `sitrep-sdk:build` with no ordering between them,
-      # and the build can still be writing `dist/cli/index.js` when the CLI test
-      # tries to run it. Building the sdk explicitly first removes the race
-      # rather than relying on a side effect of step order.
-      - name: Build sitrep-sdk
-        run: pnpm --filter @ksp-gonogo/sitrep-sdk build
+      # `pnpm test` (`turbo test test:scans`) only orders a package's `test`
+      # task behind `^build`, its OWN dependencies. Two things in this job reach
+      # further than that graph: `sitrep-sdk`'s `src/cli/index.test.ts` shells
+      # out to the built `bin/gonogo-uplink.mjs`, and core's `unknown-cast.test.ts`
+      # walks every package's SOURCE tree with the TypeScript compiler API to
+      # resolve imports repo-wide, which needs app/components/storybook/the
+      # Uplink client and everything THEY depend on built too, none of which
+      # `core`'s own `^build` graph reaches since core is upstream of them, not
+      # downstream. Both are real filesystem/subprocess boundaries turbo cannot
+      # see into. In the old single job this was masked for free: `pnpm
+      # typecheck` ran first, unfiltered across every package, and its own
+      # `^build` fan-out finished building the whole workspace to disk before
+      # `pnpm test` ever started. Split into this job alone with no typecheck
+      # step ahead of it, nothing built the rest of the workspace first. A full
+      # `pnpm build` here is the same fix `act-warnings` already uses for the
+      # identical reason (see its "Build workspace" step): it costs a couple of
+      # minutes once, in exchange for not chasing every cross-package script
+      # that reaches outside turbo's declared graph one at a time.
+      - name: pnpm build
+        run: pnpm build
 
       - run: pnpm test
 
