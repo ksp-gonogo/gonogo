@@ -18,17 +18,21 @@ name: RC
 #      is durable, needs no API to read back, shows on the repo page, and a failed
 #      RC leaves no tag so the next night retries. `force` rebuilds a sha that
 #      already has one (the tag is then left alone).
-#   2. It runs CI itself, against that sha, before anything publishes: ci.yml is
-#      callable, and every publisher `needs` it. `staging` gets no CI of its own
-#      from the forwarder (a GITHUB_TOKEN push starts no workflow), so the RC is
-#      where staging's head is first validated as staging. `force` does not
-#      bypass it. ci-dev's own CI and ci-dev-forward.yml are unchanged.
-#   3. `schedule` runs the copy of this file on the DEFAULT branch (`main`), and
-#      main moves only at a release. So this file checks out `staging`
-#      explicitly and calls the publishers at `@staging` instead of `./`, which
-#      would resolve to main's (older) copies. Only THIS file has to reach main
-#      for the nightly to start. A manual `--ref staging` dispatch runs staging's
-#      copy and needs none of that.
+#   2. It validates the sha before anything publishes. If every CI run of it on
+#      ci-dev is green (scripts/ci-dev-forward-verdict.sh, the forwarder's own
+#      rule) the tests are not repeated and the gate passes. Otherwise (no
+#      ci-dev run, one pending or red, the run list unreadable) it calls ci.yml
+#      against the sha and publishes only if that passes. `staging` gets no CI of
+#      its own from the forwarder (a GITHUB_TOKEN push starts no workflow), which
+#      is why the ci-dev run is the usual evidence. `force` bypasses neither.
+#   3. `schedule` always runs the copy of this file on the DEFAULT branch
+#      (`main`), which moves only at a release. So this one file is the same on
+#      both branches and behaves by where it runs: a scheduled run is a trampoline
+#      that only dispatches rc.yml with `--ref staging` and exits; every real job
+#      runs only when github.ref is refs/heads/staging. The trampoline needs
+#      nothing but this file (the `gh` CLI and GITHUB_TOKEN), and the real run
+#      uses staging's ci.yml and publishers via `./`, so rc.yml alone has to
+#      reach main for the nightly to start.
 
 on:
   schedule:
@@ -45,14 +49,30 @@ permissions:
   contents: read
 
 concurrency:
-  group: rc
+  group: rc-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
+  trampoline:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Dispatch this workflow on staging
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run rc.yml --repo "$GITHUB_REPOSITORY" --ref staging
+
   gate:
+    if: github.event_name != 'schedule' && github.ref == 'refs/heads/staging'
+    permissions:
+      contents: read
+      actions: read
     runs-on: ubuntu-latest
     outputs:
       build: ${{ steps.decide.outputs.build }}
+      ci: ${{ steps.decide.outputs.ci }}
       sha: ${{ steps.decide.outputs.sha }}
       short: ${{ steps.decide.outputs.short }}
     steps:
@@ -63,6 +83,7 @@ jobs:
 
       - id: decide
         env:
+          GH_TOKEN: ${{ github.token }}
           FORCE: ${{ inputs.force }}
         run: |
           set -euo pipefail
@@ -85,35 +106,43 @@ jobs:
 
           echo "build=true" >> "$GITHUB_OUTPUT"
 
+          if bash scripts/ci-dev-forward-verdict.sh "$GITHUB_REPOSITORY" "$sha"; then
+            echo "ci=reuse" >> "$GITHUB_OUTPUT"
+            echo "::notice::every ci-dev CI run of $short is green, the tests are not repeated."
+          else
+            echo "ci=run" >> "$GITHUB_OUTPUT"
+            echo "::notice::no green ci-dev verdict for $short, running ci.yml against it."
+          fi
+
   ci:
     needs: gate
-    if: needs.gate.outputs.build == 'true'
+    if: needs.gate.outputs.build == 'true' && needs.gate.outputs.ci == 'run'
     permissions:
       contents: read
-    uses: ksp-gonogo/gonogo/.github/workflows/ci.yml@staging
+    uses: ./.github/workflows/ci.yml
     with:
       ref: ${{ needs.gate.outputs.sha }}
     secrets: inherit
 
   pages:
     needs: [gate, ci]
-    if: needs.gate.outputs.build == 'true'
+    if: ${{ !cancelled() && needs.gate.outputs.build == 'true' && needs.ci.result != 'failure' && needs.ci.result != 'cancelled' }}
     permissions:
       contents: read
       pages: write
       id-token: write
-    uses: ksp-gonogo/gonogo/.github/workflows/deploy.yml@staging
+    uses: ./.github/workflows/deploy.yml
     with:
       ref: ${{ needs.gate.outputs.sha }}
     secrets: inherit
 
   images:
     needs: [gate, ci]
-    if: needs.gate.outputs.build == 'true'
+    if: ${{ !cancelled() && needs.gate.outputs.build == 'true' && needs.ci.result != 'failure' && needs.ci.result != 'cancelled' }}
     permissions:
       contents: read
       packages: write
-    uses: ksp-gonogo/gonogo/.github/workflows/publish-images.yml@staging
+    uses: ./.github/workflows/publish-images.yml
     with:
       channel: rc
       ref: ${{ needs.gate.outputs.sha }}
@@ -121,10 +150,10 @@ jobs:
 
   mods:
     needs: [gate, ci]
-    if: needs.gate.outputs.build == 'true'
+    if: ${{ !cancelled() && needs.gate.outputs.build == 'true' && needs.ci.result != 'failure' && needs.ci.result != 'cancelled' }}
     permissions:
       contents: read
-    uses: ksp-gonogo/gonogo/.github/workflows/publish-mods.yml@staging
+    uses: ./.github/workflows/publish-mods.yml
     with:
       channel: rc
       ref: ${{ needs.gate.outputs.sha }}
@@ -132,7 +161,7 @@ jobs:
 
   record:
     needs: [gate, ci, pages, images, mods]
-    if: needs.gate.outputs.build == 'true'
+    if: ${{ !cancelled() && needs.pages.result == 'success' && needs.images.result == 'success' && needs.mods.result == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write

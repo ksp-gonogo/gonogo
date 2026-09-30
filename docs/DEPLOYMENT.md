@@ -90,15 +90,15 @@ Both images also carry a `sha-<commit>` tag in both channels. `gonogo` and `gono
 
 - it does nothing when `rc-<shortsha>` already exists. That tag is the record of the last RC: it is written only after Pages, images and mod zips all finished, so a failed RC leaves none and the next night retries. The `force` input rebuilds a sha that already has a tag
 - it does nothing when the head is a release commit (a `v*` tag points at it)
-- it runs CI itself on that sha: `ci.yml` is callable (`workflow_call` with a `ref` input, every checkout takes it, because a scheduled caller's own context is `main`), and Pages, images and mod zips all `need` it, so nothing publishes unless it passes. `staging` gets no CI from the forwarder (a `GITHUB_TOKEN` push starts no workflow), so this is where its head is validated as `staging`. `force` does not bypass it. `ci-dev`'s CI and `ci-dev-forward.yml` are unchanged, and agents still land through them. One known softness: a `schedule` or `workflow_dispatch` run has no push `before`, so the shrink-only ratchets grade against the merge base with `origin/staging`, which on staging's head falls back to `HEAD^` (the last commit only). Each landing was already graded in full on `ci-dev`
-- it calls `deploy.yml`, `publish-images.yml` and `publish-mods.yml` at `@staging` with that sha
+- it validates the sha before anything publishes. If every CI run of it on `ci-dev` is green (`scripts/ci-dev-forward-verdict.sh`, the forwarder's own rule) the tests are not repeated and the gate passes. Otherwise (no `ci-dev` run, one pending or red, the list unreadable) it calls `ci.yml` against the sha and publishes only if that passes. `ci.yml` is callable (`workflow_call`, `ref` input, every checkout takes it). `staging` gets no CI of its own from the forwarder (a `GITHUB_TOKEN` push starts no workflow), which is why the `ci-dev` run is the usual evidence. `force` bypasses neither. On the called path, a `schedule` or `workflow_dispatch` run has no push `before`, so the shrink-only ratchets grade against `HEAD^` (the last commit only)
+- it calls `deploy.yml`, `publish-images.yml` and `publish-mods.yml` with that sha
 
 ```bash
 gh workflow run rc.yml --ref staging              # build the RC now
 gh workflow run rc.yml --ref staging -f force=true
 ```
 
-**Why `rc.yml` names `@staging`.** `schedule` runs the copy of the workflow on the default branch, `main`, which moves only at a release. A `./` call would resolve to main's copies of `ci.yml` and the publishers. Naming `@staging` means only `rc.yml` itself has to be on `main` for the nightly to start.
+**Why `rc.yml` is one self-contained file.** `schedule` runs the copy of a workflow on the default branch, `main`, which moves only at a release. So `rc.yml` is the same file on both branches and behaves by where it runs: a scheduled run is a trampoline that only dispatches `rc.yml` with `--ref staging` and exits, and every real job runs only when `github.ref` is `refs/heads/staging`, using staging's own `ci.yml` and publishers. Only `rc.yml` has to reach `main` for the nightly to start.
 
 **Cutting a release.** One dispatch, on `staging`:
 
