@@ -35,6 +35,7 @@ import { type Meta, splitRawFieldSubtopic } from "@ksp-gonogo/sitrep-sdk";
 import { MockDataSource } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
   type BadgeEntry,
+  DelayRailProvider,
   DomainAvailabilityProvider,
   defaultDarkTheme,
   PanelBadgesProvider,
@@ -535,8 +536,15 @@ async function mountInto(
      * empty, so no existing render moves.
      */
     const badges = sceneBadges(payload);
-    if (payload.asDashboard || badges.length === 0) return tree;
-    return createElement(PanelBadgesProvider, { badges }, tree);
+    /**
+     * The command rail the dashboard mounts around every widget
+     * (GridItemContent). Without it a widget's first command throws from
+     * `useCommand`, and with no error boundary above it the whole story goes
+     * blank on a button press. It draws nothing until a command is sent.
+     */
+    const railed = createElement(DelayRailProvider, null, tree);
+    if (payload.asDashboard || badges.length === 0) return railed;
+    return createElement(PanelBadgesProvider, { badges }, railed);
   };
 
   const wrapped = (): React.ReactNode =>
