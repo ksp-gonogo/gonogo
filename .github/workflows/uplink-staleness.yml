@@ -17,10 +17,10 @@ name: Uplink page staleness
 # gate whose only fix is a manual dispatch blocks more than it protects.
 #
 # What moved is WHERE the finding lands, not whether it is made. Same script,
-# same build filter, same triggers as `test`, and this job still goes RED on a
-# stale page: a check that exits 0 with a warning is a check nobody reads. What
-# it no longer does is fail the `CI` workflow, so it no longer holds up a merge
-# or the dev-channel deploy that gates on CI's conclusion.
+# same build filter, same triggers as `ci.yml`, and this job still goes RED on
+# a stale page: a check that exits 0 with a warning is a check nobody reads.
+# What it no longer does is fail the `CI` workflow, so it no longer holds up a
+# merge or the dev-channel deploy that gates on CI's conclusion.
 #
 # ## Why not fold it into `uplink.yml`, which already asks this
 #
@@ -33,9 +33,10 @@ name: Uplink page staleness
 # story); this one is the whole set, and its conclusion is unambiguous.
 #
 # The duplication is paid in runner time, and it is worth naming: this job repeats
-# an install, the ui-kit + components build and a chromium download that the
-# `test` job also does. Against that, `test` no longer renders ten Uplinks, so the
-# net is roughly a wash, and the two run in parallel.
+# an install, the ui-kit + components build and a chromium download that
+# `ci.yml`'s `overlap-gate` and `font-gate` jobs also do. Against that, `ci.yml`
+# no longer renders ten Uplinks, so the net is roughly a wash, and they all run
+# in parallel.
 #
 # ## What the check asks that nothing else can
 #

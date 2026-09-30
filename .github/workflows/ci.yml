@@ -41,17 +41,135 @@ permissions:
   contents: read
 
 jobs:
-  test:
+  # Fast static checks: linting, typechecking and the small filesystem/document
+  # gates that need no test run, no render and no build. Split out of the old
+  # single `test` job so a broken lint or type error reports in minutes rather
+  # than behind everything else that job used to run first.
+  #
+  # None of these read a shrink-only debt list at a base git ref (checked: no
+  # `RATCHET_BASE_REF`/`ratchetBaseRef` reference in any script this job runs),
+  # so the checkout stays at the default depth, unlike `unit-test` below.
+  lint-typecheck:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v6
         with:
-          # The shrink-only ratchets read their debt lists at a BASE revision
-          # (`git show <ref>:<path>`) and diff them. At the default depth of 1
-          # there is no other revision in the clone at all, so that read failed
-          # on every CI run since those gates landed, and each of them caught the
-          # failure and returned early. Five gates, green in CI throughout,
-          # having never once compared anything.
+          node-version: '24'
+
+      - uses: pnpm/action-setup@v6
+        with:
+          run_install: false
+
+      - name: Get pnpm store path
+        id: pnpm-cache
+        run: echo "store=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - uses: actions/cache@v5
+        with:
+          path: ${{ steps.pnpm-cache.outputs.store }}
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-
+
+      # Turbo's own content hashing decides whether a task result is replayed,
+      # not this cache key: this only seeds `.turbo/cache` with the nearest
+      # ancestor run's entries so a commit that leaves most packages untouched
+      # skips their build/typecheck work instead of redoing it cold.
+      - name: Turbo cache
+        uses: actions/cache@v5
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: ${{ runner.os }}-turbo-
+
+      - name: pnpm install
+        run: pnpm install --frozen-lockfile
+
+      # `lint:ci`, not `lint`: the latter is `biome check --write .`, which FIXES
+      # what it finds and then exits 0, so this step could not fail on anything
+      # biome can auto-fix. Measured on one file: `biome check` exits 1 where
+      # `biome check --write` exits 0 having repaired it, and in CI the repair is
+      # discarded with the runner. `lint` stays a fixer because that is what a
+      # human wants from it; `biome ci` never writes.
+      #
+      # The local pre-commit hook already runs the verify-only form, so a
+      # hand-written commit was covered. What was not: a commit that bypasses
+      # hooks, which includes every GITHUB_TOKEN push a workflow makes.
+      - run: pnpm lint:ci
+
+      # `pnpm typecheck` is the ONLY thing that runs the workspace's
+      # `*.test-d.ts` type-level assertions: vitest goes through esbuild and
+      # never typechecks, and each package's main tsconfig excludes the
+      # `.test-d.ts` glob, so they are compiled solely by the per-package
+      # `tsconfig.test-d.json` pass inside this script. Before it was added
+      # here the local pre-commit hook was their only gate, which a
+      # `--no-verify` commit or a CI-only edit walked straight past.
+      #
+      # A step of this job rather than its own: `staging` has no branch
+      # protection configured (`gh api .../branches/staging/protection` 404s),
+      # and every downstream workflow (`ci-dev-forward`, `deploy`,
+      # `publish-mods`, `publish-images`) gates on this whole workflow's
+      # `conclusion`, not on a named required job, so a new job here is already
+      # blocking without anyone marking it required.
+      - run: pnpm typecheck
+
+      # `asyncapi.yaml`, the core contract's wire surface, regenerated and
+      # diffed against the committed file. Beside the README because it is the
+      # answer to "what does this thing publish and what can I send it", and it
+      # is generated because the alternative is a second copy of the contract
+      # that goes stale, which this repo has watched happen every time it kept
+      # one.
+      #
+      # It needs no browser, no built workspace and no dotnet: it reads the
+      # committed contract slice under `mod/sitrep-sdk/src/__generated__/` and
+      # the C# declaration sites. The document VALIDATES against the AsyncAPI
+      # spec here as well as regenerating, and the generator refuses on three
+      # counts besides a stale diff: a topic or command the generated maps name
+      # and the document does not carry, a channel whose `Delivery`/`Delay`
+      # scan half-matched, and a description count below its floor. The last
+      # one is the point of the document: the contract's own prose is what
+      # makes it more than a list of names, and a carrier that stopped carrying
+      # it would still emit a valid file.
+      - name: The AsyncAPI document is valid and current
+        run: pnpm asyncapi:check
+
+      # Does every client-bearing Uplink HAVE a generated page. A second's worth
+      # of filesystem, and it precedes the drift check below because the two
+      # answer different questions and the cheap one answers first: a missing
+      # page is not a stale page, and until this landed nine of ten Uplinks had
+      # no page at all while the drift check reported green for the tenth.
+      #
+      # It plants three trees and proves it can see a missing page before
+      # reporting on the real ten, and refuses if discovery hands it nothing.
+      - name: Every Uplink has a generated page
+        run: node scripts/uplink-docs-gate.mjs
+
+      # How many committed assets have no recorded shape, and is it growing. The
+      # step above can only ask its question of an asset that has one, so this is
+      # the count of pictures it is structurally unable to look at. No browser and
+      # no render: whether a file has an entry in the JSON beside it is a
+      # filesystem question. It plants an unrecorded asset and a recorded one and
+      # fails as BLIND if it miscounts either, before reporting on the real set.
+      - name: No new unverifiable Uplink assets
+        run: pnpm uplink-shape-gate
+
+  # The vitest suites: `pnpm test`, the repo-wide scans and the two DOM-snapshot
+  # gates that need the same build `pnpm test` already produces as a side
+  # effect (turbo builds every package's `^build` dependency before running its
+  # `test` task). This is the single biggest remaining job; see `ci-speed-plan`
+  # for why it was not sharded further in this pass.
+  unit-test:
+    runs-on: ubuntu-latest
+    steps:
+      # The shrink-only ratchets read their debt lists at a BASE revision
+      # (`git show <ref>:<path>`) and diff them. At the default depth of 1
+      # there is no other revision in the clone at all, so that read failed
+      # on every CI run since those gates landed, and each of them caught the
+      # failure and returned early. Five gates, green in CI throughout,
+      # having never once compared anything.
+      - uses: actions/checkout@v5
+        with:
           fetch-depth: 0
 
       # Which revision that is depends on the trigger, and on a push it is NOT
@@ -87,34 +205,15 @@ jobs:
           key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: ${{ runner.os }}-pnpm-
 
+      - name: Turbo cache
+        uses: actions/cache@v5
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: ${{ runner.os }}-turbo-
+
       - name: pnpm install
         run: pnpm install --frozen-lockfile
-
-      # `lint:ci`, not `lint`: the latter is `biome check --write .`, which FIXES
-      # what it finds and then exits 0, so this step could not fail on anything
-      # biome can auto-fix. Measured on one file: `biome check` exits 1 where
-      # `biome check --write` exits 0 having repaired it, and in CI the repair is
-      # discarded with the runner. `lint` stays a fixer because that is what a
-      # human wants from it; `biome ci` never writes.
-      #
-      # The local pre-commit hook already runs the verify-only form, so a
-      # hand-written commit was covered. What was not: a commit that bypasses
-      # hooks, which includes every GITHUB_TOKEN push a workflow makes.
-      - run: pnpm lint:ci
-
-      # `pnpm typecheck` is the ONLY thing that runs the workspace's
-      # `*.test-d.ts` type-level assertions: vitest goes through esbuild and
-      # never typechecks, and each package's main tsconfig excludes the
-      # `.test-d.ts` glob, so they are compiled solely by the per-package
-      # `tsconfig.test-d.json` pass inside this script. Before it was added
-      # here the local pre-commit hook was their only gate, which a
-      # `--no-verify` commit or a CI-only edit walked straight past.
-      #
-      # It lives as a step of `test` rather than as its own job on purpose: a
-      # new job has to be marked required in branch protection to gate
-      # anything, and one nobody remembers to mark is the same silent pass in
-      # a new place. A step in an already-required job cannot be skipped.
-      - run: pnpm typecheck
 
       - run: pnpm test
 
@@ -125,7 +224,7 @@ jobs:
       # emit suppressed and fails on any that still pass, because such a test is
       # capturing a render containing none of its fixture's data.
       #
-      # In the `test` job rather than `visual` deliberately: `visual` is red on
+      # In this job rather than `visual` deliberately: `visual` is red on
       # purpose until the end-of-run re-baseline, so a finding placed there would
       # be invisible.
       #
@@ -134,7 +233,6 @@ jobs:
       # and enforced from both sides. Keeping this step green is the point: a step
       # that is permanently red hides the next unrelated failure behind it, which is
       # what happened to `visual`.
-
       - run: pnpm --filter @ksp-gonogo/components unfed-snapshot-gate
 
       # Says out loud which suites did not run. Three of them are gated on a
@@ -152,19 +250,63 @@ jobs:
       - name: Which suites did not run, and what that costs
         run: pnpm fixture-gated-report
 
+  # Stacked-overlap gate plus the two lighter checks that share its render
+  # harness and its chromium install: the probe smoke check and the aspect
+  # gate. Split from `font-gate` below so the two heaviest render passes run
+  # concurrently instead of one after the other in the same job.
+  overlap-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - uses: pnpm/action-setup@v6
+        with:
+          run_install: false
+
+      - name: Get pnpm store path
+        id: pnpm-cache
+        run: echo "store=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - uses: actions/cache@v5
+        with:
+          path: ${{ steps.pnpm-cache.outputs.store }}
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-
+
+      - name: Turbo cache
+        uses: actions/cache@v5
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: ${{ runner.os }}-turbo-
+
+      - name: pnpm install
+        run: pnpm install --frozen-lockfile
+
+      # The render harness esbuild-bundles component source, which imports the
+      # workspace packages from their built dists: build components and its
+      # dependency graph (lighter than a full `pnpm build`, same command the
+      # `visual` job uses below).
+      - name: Build render dependencies
+        run: pnpm --filter "@ksp-gonogo/components..." build
+
       # Probe-harness smoke check: opens each probe page in Chromium and asserts
       # the bundle installs the global its driver calls. Chromium only, since the
       # question is "does the bundle evaluate", which is engine-independent.
       #
-      # In the `test` job for the same reason as the un-fed gate above, and the
-      # reason is now load-bearing rather than tidy: a module-scope
-      # `process.env` read reached staging in 8bd2b4e8 and the probe bundle threw
-      # before installing `window.__renderProbe`, so all 42 widgets and 1442
-      # baselines silently stopped being compared. `visual` was the only job that
-      # could see it, and `visual` is red on purpose, so it showed the colour it
-      # always shows for a day. This step asks a question `visual` cannot:
-      # not "did the pixels drift" but "did the harness render anything at all".
-      - name: Install Playwright browser (probe smoke)
+      # In an expected-green job for the same reason as the un-fed gate: a
+      # module-scope `process.env` read reached staging in 8bd2b4e8 and the
+      # probe bundle threw before installing `window.__renderProbe`, so all 42
+      # widgets and 1442 baselines silently stopped being compared. `visual`
+      # was the only job that could see it, and `visual` is red on purpose, so
+      # it showed the colour it always shows for a day. This step asks a
+      # question `visual` cannot: not "did the pixels drift" but "did the
+      # harness render anything at all".
+      - name: Install Playwright browser
         run: pnpm exec playwright install --with-deps chromium
 
       - run: pnpm --filter @ksp-gonogo/components probe-render-smoke
@@ -178,21 +320,20 @@ jobs:
       # typing `render-widget`. A finding that lands nowhere anyone reads is the
       # same shape as the probe bundle that silently stopped rendering for a day.
       #
-      # 1edb08f74 registered the script and deliberately did NOT wire it here,
-      # because CommSignal was printing its signal block over the link-budget
-      # section and a permanently-red step hides the next unrelated failure
-      # behind it. That reasoning was right and it is why this step is only
-      # landing now: CommSignal's landscape branch is gone (it passes `sections`
-      # and lets Panel own the flow), and a sweep of all 45 configured widgets
-      # comes back with nothing.
+      # 1edb08f74 registered the script and deliberately did NOT wire it in at
+      # first, because CommSignal was printing its signal block over the
+      # link-budget section and a permanently-red step hides the next unrelated
+      # failure behind it. That reasoning was right and it is why this step
+      # landed only once CommSignal's landscape branch was gone (it passes
+      # `sections` and lets Panel own the flow), and a sweep of all 45
+      # configured widgets came back with nothing.
       #
       # GREEN on landing, and it must stay that way, same contract as the un-fed
       # gate above.
       #
       # Chromium only, and that is a real limit rather than a shrug: geometry is
       # exactly where engines disagree, so this says nothing about firefox or
-      # webkit. It reuses the browser the probe smoke step above already
-      # installed. It renders at the FIXED tile size, never the review path's
+      # webkit. It renders at the FIXED tile size, never the review path's
       # full-content growth, which would hand a squeezed flex item the room it
       # was missing and make the overlap disappear.
       #
@@ -207,88 +348,129 @@ jobs:
       # or the run fails as blind.
       - run: pnpm --filter @ksp-gonogo/components overlap-gate
 
-      # Font-fallback gate: does any widget draw a glyph in something other
-      # than JetBrains Mono? The detector lives in the harness and runs on
-      # every chromium render; this step is what makes a finding blocking.
-      # Chromium only, same MIN_WIDGETS refusal as the overlap gate, and the
-      # detector plants a deliberately wrong font-family on every run and
-      # throws if it does not catch it.
-      - run: pnpm --filter @ksp-gonogo/components font-gate
-
       # Checkered-flag aspect gate: a checkerboard of square cells painted into
       # a FramedDisplay with object-fit cover, at landscape, portrait and square
       # tiles. A cell must render as wide as it is tall and the visible count
       # must be the one cover predicts, which separates distortion, cropping
       # and a reshaped field of view. Ratios, not a baseline, so it needs no
       # per-engine images; a planted stretched picture must read as distorted
-      # or the gate fails as blind.
+      # or the gate fails as blind. Folded into this job rather than given its
+      # own, since it costs about a second on top of a browser this job already
+      # installs.
       - run: pnpm --filter @ksp-gonogo/components aspect-gate
 
-      # `asyncapi.yaml`, the core contract's wire surface, regenerated and
-      # diffed against the committed file. Beside the README because it is the
-      # answer to "what does this thing publish and what can I send it", and it
-      # is generated because the alternative is a second copy of the contract
-      # that goes stale, which this repo has watched happen every time it kept
-      # one.
-      #
-      # It needs no browser, no built workspace and no dotnet: it reads the
-      # committed contract slice under `mod/sitrep-sdk/src/__generated__/` and
-      # the C# declaration sites, so it runs before the steps that need a build.
-      # The document VALIDATES against the AsyncAPI spec here as well as
-      # regenerating, and the generator refuses on three counts besides a stale
-      # diff: a topic or command the generated maps name and the document does
-      # not carry, a channel whose `Delivery`/`Delay` scan half-matched, and a
-      # description count below its floor. The last one is the point of the
-      # document: the contract's own prose is what makes it more than a list of
-      # names, and a carrier that stopped carrying it would still emit a valid
-      # file.
-      - name: The AsyncAPI document is valid and current
-        run: pnpm asyncapi:check
+  # Font-fallback gate, its own job so it runs concurrently with overlap-gate
+  # above instead of after it: the two are independent findings over the same
+  # render pass and used to run one after the other in the same job for no
+  # dependency reason.
+  font-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
 
-      # Does every client-bearing Uplink HAVE a generated page. A second's worth
-      # of filesystem, and it precedes the drift check below because the two
-      # answer different questions and the cheap one answers first: a missing
-      # page is not a stale page, and until this landed nine of ten Uplinks had
-      # no page at all while the drift check reported green for the tenth.
-      #
-      # It plants three trees and proves it can see a missing page before
-      # reporting on the real ten, and refuses if discovery hands it nothing.
-      - name: Every Uplink has a generated page
-        run: node scripts/uplink-docs-gate.mjs
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
 
-      # How many committed assets have no recorded shape, and is it growing. The
-      # step above can only ask its question of an asset that has one, so this is
-      # the count of pictures it is structurally unable to look at. No browser and
-      # no render: whether a file has an entry in the JSON beside it is a
-      # filesystem question. It plants an unrecorded asset and a recorded one and
-      # fails as BLIND if it miscounts either, before reporting on the real set.
-      - name: No new unverifiable Uplink assets
-        run: pnpm uplink-shape-gate
+      - uses: pnpm/action-setup@v6
+        with:
+          run_install: false
 
-      # Min-size gate: mounts EVERY registered widget at the `minSize` it itself
-      # declares and fails when its title ellipsises, its content is clipped with
-      # nothing to scroll, or text paints outside the tile.
-      #
-      # A `minSize` is a promise: react-grid-layout refuses to drag a tile below
-      # it and clamps a smaller saved layout up, so it is the smallest shape an
-      # operator can ever put the widget in, and the shipped default layout
-      # places six widgets AT theirs. Nothing checked the promise, and the first
-      # sweep found 19 of 55 failing it, the worst two Uplink-authored.
-      #
-      # In `test` for the same reason as the three steps above, and it asks a
-      # question none of them can: not whether the pixels drifted or whether the
-      # harness rendered anything, but whether the widget is usable at the size
-      # it says it can live at. Every widget in the app is in the bundle, which
-      # is why it runs from `packages/app`: it is the one package that depends on
-      # the component library, the serial platform and all ten Uplink clients.
-      #
-      # It refuses rather than passing when it can see nothing: a canary widget
-      # broken in all three ways is mounted first, and a run where the audit does
-      # not report it fails as BLIND.
-      #
-      # GREEN on landing and it must stay that way. The 19 already failing are
-      # recorded in `packages/app/scripts/minsize-debt.ts`, which is shrink-only
-      # and enforced from both sides.
+      - name: Get pnpm store path
+        id: pnpm-cache
+        run: echo "store=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - uses: actions/cache@v5
+        with:
+          path: ${{ steps.pnpm-cache.outputs.store }}
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-
+
+      - name: Turbo cache
+        uses: actions/cache@v5
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: ${{ runner.os }}-turbo-
+
+      - name: pnpm install
+        run: pnpm install --frozen-lockfile
+
+      - name: Build render dependencies
+        run: pnpm --filter "@ksp-gonogo/components..." build
+
+      - name: Install Playwright browser
+        run: pnpm exec playwright install --with-deps chromium
+
+      # Does any widget draw a glyph in something other than JetBrains Mono?
+      # The detector lives in the harness and runs on every chromium render;
+      # this step is what makes a finding blocking. Chromium only, same
+      # MIN_WIDGETS refusal as the overlap gate, and the detector plants a
+      # deliberately wrong font-family on every run and throws if it does not
+      # catch it.
+      - run: pnpm --filter @ksp-gonogo/components font-gate
+
+  # Min-size gate: mounts EVERY registered widget at the `minSize` it itself
+  # declares and fails when its title ellipsises, its content is clipped with
+  # nothing to scroll, or text paints outside the tile.
+  #
+  # A `minSize` is a promise: react-grid-layout refuses to drag a tile below
+  # it and clamps a smaller saved layout up, so it is the smallest shape an
+  # operator can ever put the widget in, and the shipped default layout
+  # places six widgets AT theirs. Nothing checked the promise until this
+  # landed, and the first sweep found 19 of 55 failing it, the worst two
+  # Uplink-authored.
+  #
+  # Its own job for the same reason as the render gates above: not whether the
+  # pixels drifted or whether the harness rendered anything, but whether the
+  # widget is usable at the size it says it can live at. Every widget in the
+  # app is in the bundle, which is why it runs from `packages/app`: it is the
+  # one package that depends on the component library, the serial platform and
+  # all ten Uplink clients.
+  #
+  # It refuses rather than passing when it can see nothing: a canary widget
+  # broken in all three ways is mounted first, and a run where the audit does
+  # not report it fails as BLIND.
+  #
+  # GREEN on landing and it must stay that way. The 19 already failing are
+  # recorded in `packages/app/scripts/minsize-debt.ts`, which is shrink-only
+  # and enforced from both sides.
+  minsize-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - uses: pnpm/action-setup@v6
+        with:
+          run_install: false
+
+      - name: Get pnpm store path
+        id: pnpm-cache
+        run: echo "store=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - uses: actions/cache@v5
+        with:
+          path: ${{ steps.pnpm-cache.outputs.store }}
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-
+
+      - name: Turbo cache
+        uses: actions/cache@v5
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: ${{ runner.os }}-turbo-
+
+      - name: pnpm install
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browser
+        run: pnpm exec playwright install --with-deps chromium
+
       - name: Widgets fit the minSize they declare
         run: |
           pnpm --filter "@ksp-gonogo/app^..." build
@@ -316,10 +498,11 @@ jobs:
   act-warnings:
     runs-on: ubuntu-latest
     steps:
-      # Same checkout depth and base ref as `test`, because this job re-runs
-      # every suite (the ratchets included) and treats a non-zero vitest exit as
-      # its own failure. Without them the shrink-only gates would throw here on
-      # an unreachable base and take this job's warning count down with them.
+      # Same checkout depth and base ref as `unit-test`, because this job
+      # re-runs every suite (the ratchets included) and treats a non-zero
+      # vitest exit as its own failure. Without them the shrink-only gates
+      # would throw here on an unreachable base and take this job's warning
+      # count down with them.
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
@@ -350,6 +533,13 @@ jobs:
           path: ${{ steps.pnpm-cache.outputs.store }}
           key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: ${{ runner.os }}-pnpm-
+
+      - name: Turbo cache
+        uses: actions/cache@v5
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: ${{ runner.os }}-turbo-
 
       - name: pnpm install
         env:
@@ -439,9 +629,9 @@ jobs:
       # bundle check to two-way while the author docs promise a check that fires.
       # Shrink-only: the eight still-unarmed Uplinks are grandfathered, a new
       # one is held to armed. The two armed ones are separately held CURRENT by
-      # `bakedClientHash.test.ts` in the `test` job, which rebuilds their bundles
-      # and compares; a hash here is only worth having if it still describes the
-      # bytes the app serves.
+      # `bakedClientHash.test.ts` in the `unit-test` job, which rebuilds their
+      # bundles and compares; a hash here is only worth having if it still
+      # describes the bytes the app serves.
       - name: Uplink client hashes are armed
         run: node scripts/client-hash-armed.mjs
 

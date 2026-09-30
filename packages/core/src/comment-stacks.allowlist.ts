@@ -237,7 +237,6 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/core/src/styleguide-magnitude-canonical.test.ts": 1,
   "packages/core/src/styleguide-styled-components.test.ts": 3,
   "packages/core/src/styleguide-token-refs.test.ts": 1,
-  "packages/core/src/styleguide-type-tests-gated.test.ts": 1,
   "packages/core/src/styleguide.test.ts": 1,
   "packages/core/src/test/helpers.ts": 1,
   "packages/core/src/typecheck-coverage.test.ts": 1,

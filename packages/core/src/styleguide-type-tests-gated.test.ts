@@ -166,16 +166,23 @@ describe("type-level tests are actually gated", () => {
     ).toEqual([]);
   });
 
-  it("runs pnpm typecheck inside CI's test job", () => {
+  it("runs pnpm typecheck inside a blocking CI job", () => {
     const workflow = readFileSync(
       join(ROOT, ".github/workflows/ci.yml"),
       "utf8",
     );
-    // Slice out the `test:` job body, from its key to the next job key at the
-    // same indent, so the assertion cannot be satisfied by a `pnpm typecheck`
-    // sitting in some other job that branch protection does not require.
-    const start = /^ {2}test:$/m.exec(workflow);
-    expect(start, "ci.yml has no `test:` job").not.toBeNull();
+    /*
+     * Slice out the `lint-typecheck:` job body, from its key to the next job key
+     * at the same indent, so the assertion cannot be satisfied by a `pnpm
+     * typecheck` sitting in a job CI's own conclusion does not depend on.
+     * `staging` carries no branch protection (checked: `gh api
+     * .../branches/staging/protection` 404s) and every downstream workflow gates
+     * on CI's whole-workflow `conclusion`, so every job here is already blocking
+     * unless it opts out with `if:`/`continue-on-error`, which `lint-typecheck`
+     * does not.
+     */
+    const start = /^ {2}lint-typecheck:$/m.exec(workflow);
+    expect(start, "ci.yml has no `lint-typecheck:` job").not.toBeNull();
     const bodyFrom = (start?.index ?? 0) + (start?.[0].length ?? 0);
     const next = /^ {2}\S/m.exec(workflow.slice(bodyFrom));
     const job = workflow.slice(
@@ -184,9 +191,9 @@ describe("type-level tests are actually gated", () => {
     );
     expect(
       /^\s*-\s*run: pnpm typecheck\s*$/m.test(job),
-      `ci.yml's test job no longer runs "pnpm typecheck". Without it nothing ` +
-        `in CI compiles the *.test-d.ts assertions, and they pass by never ` +
-        `being read.`,
+      `ci.yml's lint-typecheck job no longer runs "pnpm typecheck". Without ` +
+        `it nothing in CI compiles the *.test-d.ts assertions, and they pass ` +
+        `by never being read.`,
     ).toBe(true);
   });
 });
