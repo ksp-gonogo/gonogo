@@ -171,9 +171,9 @@ describe("Panel hoverTitle: the tiny tile's header out of flow", () => {
     ) as HTMLElement;
     const fitContent = fitOuter.firstElementChild as HTMLElement;
     const rule = emittedRuleFor(fitContent);
-    // The band is reserved above the box this centres within, so centring
-    // within that box alone reads as low by half the band's height; this
-    // rule is what pulls it back up onto the panel's own midline.
+    /* The band is reserved above the box this centres within, so centring
+       within that box alone reads as low by half the band's height; this
+       rule is what pulls it back up onto the panel's own midline. */
     expect(rule).toContain("margin-top:calc(-1 * var(--panel-rail-band))");
   });
 

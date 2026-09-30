@@ -688,6 +688,9 @@ textarea {
   --offset-graph-notice-bottom: var(--space-4);
   --offset-graph-notice-left: var(--space-8);
   --inset-notice-pill: var(--space-2) var(--space-4);
+  /* A caption inlaid on a FramedDisplay's own top-left corner. */
+  --offset-frame-caption-top: var(--space-6);
+  --offset-frame-caption-left: var(--space-8);
 
   /* Controls. */
   /* A box you press or type into, on the --control-height floor. */

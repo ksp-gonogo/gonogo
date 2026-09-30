@@ -9,13 +9,12 @@ export interface FramedDisplayProps extends ComponentPropsWithoutRef<"div"> {
    */
   padded?: boolean;
   /**
-   * A small label inlaid over the frame's own top-left corner: what a
-   * `TrajectoryFrameCaption` or similar caption names (which frame a drawing
-   * is in), drawn on the visual instead of as a second body element beside
-   * it. A widget whose body is otherwise nothing but this frame stays
-   * eligible for `Panel`'s lone-frame inset rule, which a loose sibling
-   * caption breaks by giving the body a second section. Undefined renders
-   * nothing.
+   * A small label inlaid over the frame's own top-left corner, naming the
+   * visual (which frame a drawing is in, what a gauge reads) on the drawing
+   * itself instead of as a second body element beside it. A widget whose body
+   * is otherwise nothing but this frame stays eligible for `Panel`'s
+   * lone-frame inset rule, which a loose sibling caption breaks by giving the
+   * body a second section. Undefined renders nothing.
    */
   caption?: ReactNode;
 }
@@ -68,18 +67,23 @@ const FramedDisplay__Box = styled.div<{ $padded?: boolean }>`
   }
 `;
 
-/* A scrim behind the text, not just a colour, so the label stays legible over whatever the drawing puts beneath it. */
+/*
+ * A scrim behind the text, not just a colour, so the label stays legible over
+ * whatever the drawing puts beneath it; mirrors GraphNotice's own overlay
+ * pill, corner for corner, but pinned to the frame's top-left rather than its
+ * bottom-left.
+ *
+ * Local sibling ordering inside this frame's own stacking context (the
+ * caption over the drawing it labels), not app-global chrome, so the literal
+ * z-index stays off the app's named rungs.
+ */
 const FramedDisplay__Caption = styled.div`
   position: absolute;
-  top: var(--space-6);
-  left: var(--space-8);
+  top: var(--offset-frame-caption-top);
+  left: var(--offset-frame-caption-left);
   z-index: 1;
-  max-width: calc(100% - var(--space-16));
-  padding: 0 var(--space-4);
+  padding: var(--inset-notice-pill);
   border-radius: var(--radius-regular);
   background: color-mix(in srgb, var(--color-surface-sunken), transparent 25%);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   pointer-events: none;
 `;
