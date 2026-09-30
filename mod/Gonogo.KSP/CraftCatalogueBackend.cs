@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.CompilerServices;
 using KSP.UI.Screens;
 using Sitrep.Contract;
 using UnityEngine;
@@ -53,6 +54,14 @@ namespace Gonogo.KSP
 
         /// <summary>KSP's own extension for a craft file, without which nothing here is a craft.</summary>
         private const string CraftExtension = "*.craft";
+
+        /// <summary>
+        /// Every ship <see cref="Load"/> has handed out and nobody has released,
+        /// so <see cref="Release"/> can tell one from a foreign object without
+        /// naming <c>ShipConstruct</c>. Weak, so a ship its consumer dropped
+        /// unreleased is not also kept alive here.
+        /// </summary>
+        private readonly ConditionalWeakTable<object, object> _handedOut = new ConditionalWeakTable<object, object>();
 
         private List<CraftFileRecord>? _cached;
 
@@ -118,10 +127,25 @@ namespace Gonogo.KSP
                 return CraftLoad.Failed("no game is loaded, so there are no craft files to open");
             }
 
+            return LoadFrom(save, file!, facility.Value);
+        }
+
+        /// <summary>
+        /// The half of <see cref="Load"/> that names stock's ship types, kept out
+        /// of it so the refusals above are compiled without resolving them.
+        ///
+        /// <para>The JIT resolves every type a method names before its first line
+        /// runs, and <c>ShipConstruct</c> reaches into UnityEngine.UI, which a
+        /// reference set trimmed to what the plugin compiles against does not
+        /// carry.</para>
+        /// </summary>
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private CraftLoad LoadFrom(string save, string file, KspEditorFacility facility)
+        {
             string path;
             try
             {
-                var folder = ShipConstruction.GetShipsPathFor(save, (EditorFacility)(int)facility.Value);
+                var folder = ShipConstruction.GetShipsPathFor(save, (EditorFacility)(int)facility);
                 path = Path.Combine(folder ?? "", file + ".craft");
             }
             catch (Exception ex)
@@ -132,7 +156,7 @@ namespace Gonogo.KSP
             if (!File.Exists(path))
             {
                 return CraftLoad.Failed(
-                    "no craft file named \"" + file + "\" is saved in the " + facility.Value);
+                    "no craft file named \"" + file + "\" is saved in the " + facility);
             }
 
             ConfigNode? node;
@@ -160,18 +184,19 @@ namespace Gonogo.KSP
             {
                 // Half a craft may already be standing, so it goes back before the
                 // failure is reported.
-                Release(ship);
+                ReleaseParts(ship);
                 return CraftLoad.Failed("the craft could not be assembled: " + ex.Message);
             }
 
             if (!loaded)
             {
-                Release(ship);
+                ReleaseParts(ship);
                 return CraftLoad.Failed(
                     "KSP refused to load the craft, which usually means it was saved by a "
                     + "different version or references a part this install does not have");
             }
 
+            _handedOut.Add(ship, ship);
             return new CraftLoad
             {
                 Ship = ship,
@@ -185,9 +210,22 @@ namespace Gonogo.KSP
         /// <para>Anything that is not a ship this class handed out is ignored
         /// rather than thrown over: a consumer releasing in a <c>finally</c> has
         /// no way to know whether the load got far enough, and a throw there would
-        /// replace a result an operator can act on with one they cannot.</para>
+        /// replace a result an operator can act on with one they cannot. A ship
+        /// released once is no longer outstanding, so releasing it again is the
+        /// same no-op.</para>
         /// </summary>
         public void Release(object? ship)
+        {
+            if (ship == null || !_handedOut.Remove(ship))
+            {
+                return;
+            }
+            ReleaseParts(ship);
+        }
+
+        /// <summary>The half of <see cref="Release"/> that names stock's ship types, apart for the reason <see cref="LoadFrom"/> is.</summary>
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void ReleaseParts(object ship)
         {
             if (!(ship is ShipConstruct construct) || construct.parts == null)
             {
