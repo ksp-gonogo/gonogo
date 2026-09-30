@@ -5,6 +5,8 @@ import {
   frameInstantAt,
   fromFrame,
   type ReadFrameChoice,
+  readFrameChoicesEqual,
+  resolveReadFrame,
   type SystemInstant,
   systemInstantAt,
   TRAJECTORY_SCALE_CONVENTIONS,
@@ -74,6 +76,61 @@ export function parentDirectionProjectionId(frameBodyIndex: number): string {
   return `system-view.parent-direction.${frameBodyIndex}`;
 }
 
+/** The id of the entry that follows the live Control Frame. */
+export function followControlFrameProjectionId(frameBodyIndex: number): string {
+  return `system-view.follow-control-frame.${frameBodyIndex}`;
+}
+
+/**
+ * A pulsating frame's own coordinates are ratios of the pair's separation,
+ * order 1 by construction: this comfortably frames both bodies plus margin
+ * for whatever orbits around them, the same half-extent an author reaches for
+ * when contributing a rotating-pulsating entry by hand (`extent: {kind:
+ * "fixed-units", units: 1.4}` is exactly this on a Kerbin-Mun pair).
+ */
+const FOLLOW_PULSATING_EXTENT_UNITS = 1.4;
+
+/**
+ * The "follow the Control Frame" entry, or null when it has nothing to offer.
+ *
+ * Two operator rulings collapse into one check: hidden when there is no live
+ * Control Frame to follow (`controlFrameChoice` null, the ordinary case on a
+ * stream with no elector), and hidden when following it would draw exactly
+ * what an already-offered choice draws (stock's Control Frame is always
+ * body-centred-inertial about the diagram's own frame body, the same picture
+ * `projectionsForBody`'s own inertial entry already draws). `existingChoices`
+ * is every choice already on the picker, so this stays correct as more get
+ * contributed rather than special-casing the inertial one.
+ *
+ * The extent follows the resolved kind rather than defaulting to
+ * `auto-fit-metres`: a pulsating frame's coordinates are not metres, and
+ * auto-fitting them as if they were sizes the diagram by a quantity that
+ * is not on it (the same reason a hand-authored rotating-pulsating entry
+ * never uses that extent either).
+ */
+export function followControlFrameProjection(
+  frameBodyIndex: number,
+  existingChoices: readonly ReadFrameChoice[],
+  controlFrameChoice: ReadFrameChoice | null,
+): SystemViewProjection | null {
+  if (controlFrameChoice === null) return null;
+  if (
+    existingChoices.some((c) => readFrameChoicesEqual(c, controlFrameChoice))
+  ) {
+    return null;
+  }
+  return {
+    id: followControlFrameProjectionId(frameBodyIndex),
+    label: "Follow the in-game view",
+    choice: { kind: "follow-control-frame" },
+    extent:
+      controlFrameChoice.kind === "rotating-pulsating"
+        ? { kind: "fixed-units", units: FOLLOW_PULSATING_EXTENT_UNITS }
+        : { kind: "auto-fit-metres" },
+    frameBodyIndex,
+  };
+}
+
 /**
  * The projections the host offers for one body it might be centred on.
  *
@@ -138,12 +195,26 @@ export function inertialFrameFor(frameBodyIndex: number): TrajectoryFrame {
   };
 }
 
-/** The projection in force at `ut`, or null when the catalogue cannot form it (an uncarried body, the root star asked for a parent frame, a degenerate pair); the caller says so on screen. */
+/**
+ * The projection in force at `ut`, or null when the catalogue cannot form it
+ * (an uncarried body, the root star asked for a parent frame, a degenerate
+ * pair, or a `follow-control-frame` entry with nothing to follow right now);
+ * the caller says so on screen.
+ *
+ * `controlFrameChoice` is the live Control Frame, already mapped to a
+ * `ReadFrameChoice` by the caller (`controlFrameToReadFrameChoice`); this is
+ * the one place `resolveReadFrame` actually runs, so `entry.choice` reaching
+ * the arithmetic below is never itself `follow-control-frame`. Defaulted to
+ * null, which is also what a stream with no Control Frame reading resolves
+ * to, so an existing call site naming no fifth argument keeps its old
+ * behaviour exactly.
+ */
 export function resolveProjection(
   facts: CelestialFacts | undefined,
   frameBodyIndex: number | undefined,
   entry: SystemViewProjection | null,
   ut: number | null,
+  controlFrameChoice: ReadFrameChoice | null = null,
 ): ResolvedProjection | null {
   if (
     facts === undefined ||
@@ -154,6 +225,8 @@ export function resolveProjection(
   ) {
     return null;
   }
+  const resolvedChoice = resolveReadFrame(entry.choice, controlFrameChoice);
+  if (resolvedChoice === null) return null;
   const system: SystemInstant = systemInstantAt(facts, ut);
   // The diagram's own body-centred frame, which turns its positions into root-centred inertial coordinates the chosen frame accepts.
   const diagram = frameInstantAt(
@@ -162,9 +235,9 @@ export function resolveProjection(
     ut,
     system,
   );
-  const chosen = frameInstantAt(facts, entry.choice, ut, system);
+  const chosen = frameInstantAt(facts, resolvedChoice, ut, system);
   if (diagram === null || chosen === null) return null;
-  const sides = frameSidesOf(facts, entry.choice);
+  const sides = frameSidesOf(facts, resolvedChoice);
   return {
     id: entry.id,
     place: (parentCentred) => placeThrough(diagram, chosen, parentCentred),
@@ -173,8 +246,8 @@ export function resolveProjection(
     lengthsPulsate:
       chosen.scaleConvention !== TRAJECTORY_SCALE_CONVENTIONS.metres,
     frame: {
-      kind: trajectoryFrameKindFor(entry.choice.kind),
-      centreBodyIndex: entry.choice.bodyIndex ?? frameBodyIndex,
+      kind: trajectoryFrameKindFor(resolvedChoice.kind),
+      centreBodyIndex: resolvedChoice.bodyIndex ?? frameBodyIndex,
       lengthsPulsate:
         chosen.scaleConvention !== TRAJECTORY_SCALE_CONVENTIONS.metres,
       primaryBodyIndex: sides?.primary,

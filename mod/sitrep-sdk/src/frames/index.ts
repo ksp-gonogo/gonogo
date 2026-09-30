@@ -109,6 +109,11 @@ import type { Vector3 } from "../spine/kepler";
 import type { Vec3Of } from "../value";
 
 export {
+  CONTROL_FRAME_TOPIC,
+  controlFrameToReadFrameChoice,
+  readFrameChoicesEqual,
+} from "../spine/control-frame-to-read-frame";
+export {
   type BodyWithdrawal,
   type FrameCoordinates,
   type FrameInstant,

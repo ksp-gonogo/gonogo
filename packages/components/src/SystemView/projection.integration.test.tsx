@@ -12,6 +12,7 @@ import {
 } from "../test/setupStreamFixture";
 import { SystemViewComponent } from "./index";
 import {
+  followControlFrameProjectionId,
   parentDirectionProjectionId,
   type SystemViewProjection,
 } from "./projection";
@@ -286,5 +287,49 @@ describe("SystemView body placement", () => {
     // The frame's name, which the operator selected it by, carries that its lengths pulsate.
     expect(view.container.textContent).toContain("Lagrange");
     await expectNoA11yViolations(view.container);
+  });
+});
+
+describe("SystemView follow-control-frame", () => {
+  const followId = followControlFrameProjectionId(KERBIN_INDEX);
+
+  it("falls back to the default picture when the Control Frame draws the same thing (the option was hidden, a stale pinned id is a no-op)", async () => {
+    const { view, fixture } = mount({
+      config: { frame: "Kerbin", projection: followId },
+    });
+    act(() => {
+      // Same as the diagram's own default: Kerbin-centred inertial.
+      fixture.emit("system.frame", { kind: 1, centreBody: "Kerbin" });
+    });
+    const mun = await bodyAt(view, "Mun");
+    expect(Math.hypot(mun.x, mun.y)).toBeGreaterThan(1);
+    expect(wrapAngle(Math.atan2(mun.y, mun.x))).toBeCloseTo(
+      wrapAngle(MUN_MEAN_ANOMALY),
+      3,
+    );
+    await act(async () => {});
+  });
+
+  it("follows the Control Frame once it draws something new: a rotating-pulsating election puts the secondary on the first axis", async () => {
+    // Kerbin-Minmus, not Kerbin-Mun: this file already contributes a hand-authored "test.kerbin-mun" entry at module scope (above), and a Control Frame that coincided with an already-offered choice is the OTHER case, covered by the previous test.
+    const { view, fixture } = mount({
+      config: { frame: "Kerbin", projection: followId },
+    });
+    // Minmus is already drawn from the initial (pre-frame) picture, so the assertion itself has to be the thing `waitFor` retries, not just the element's presence: `bodyAt` would otherwise hand back that first, un-reframed render.
+    await bodyAt(view, "Minmus");
+    act(() => {
+      fixture.emit("system.frame", {
+        kind: 4,
+        primaryBody: "Kerbin",
+        secondaryBody: "Minmus",
+      });
+    });
+    // Same invariant `resolveProjection` already proves for a hand-authored rotating-pulsating contribution; here it is reached through resolveReadFrame instead.
+    await waitFor(() => {
+      const dot = view.container.querySelector('circle[data-body="Minmus"]');
+      expect(Math.abs(Number(dot?.getAttribute("cy")))).toBeLessThan(0.01);
+      expect(Number(dot?.getAttribute("cx"))).toBeGreaterThan(1);
+    });
+    await act(async () => {});
   });
 });

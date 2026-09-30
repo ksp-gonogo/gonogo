@@ -1,6 +1,14 @@
 import type { ConfigComponentProps } from "@ksp-gonogo/core";
 import { useContributions } from "@ksp-gonogo/core";
-import { CELESTIAL_FACTS, useProcessor } from "@ksp-gonogo/sitrep-client";
+import {
+  CELESTIAL_FACTS,
+  CONTROL_FRAME_TOPIC,
+  controlFrameToReadFrameChoice,
+  readFrameChoicesEqual,
+  useProcessor,
+  useStream,
+} from "@ksp-gonogo/sitrep-client";
+import type { ControlFrame } from "@ksp-gonogo/sitrep-sdk";
 import {
   ConfigForm,
   Field,
@@ -9,8 +17,10 @@ import {
   Select,
   useModalSaveBar,
 } from "@ksp-gonogo/ui";
+import { ReadFrameControl } from "@ksp-gonogo/ui-kit";
 import { useMemo, useState } from "react";
 import type { SystemViewConfig } from "./config";
+import { followControlFrameProjection } from "./projection";
 import { useCelestialBodies } from "./useCelestialBodies";
 
 export function SystemViewConfigForm({
@@ -24,6 +34,15 @@ export function SystemViewConfigForm({
     factsReading?.state === "observed" || factsReading?.state === "held"
       ? factsReading.value
       : undefined;
+  // For "Follow the in-game view", offered only when it would draw something the picker's other entries do not already draw.
+  const controlFrameReading = useStream<ControlFrame>(CONTROL_FRAME_TOPIC);
+  const controlFrame =
+    controlFrameReading.state === "observed" ||
+    controlFrameReading.state === "held"
+      ? controlFrameReading.value
+      : undefined;
+  const controlFrameChoice = controlFrameToReadFrameChoice(controlFrame, facts);
+
   const [frame, setFrame] = useState(config?.frame ?? "auto");
   const [projection, setProjection] = useState(config?.projection ?? "");
 
@@ -42,11 +61,37 @@ export function SystemViewConfigForm({
         : allProjections.filter((p) => p.frameBodyIndex === frameBodyIndex),
     [allProjections, frameBodyIndex],
   );
-
-  const candidate = useMemo<SystemViewConfig>(
-    () => (projection === "" ? { frame } : { frame, projection }),
-    [frame, projection],
+  const followEntry = useMemo(
+    () =>
+      frameBodyIndex === undefined
+        ? null
+        : followControlFrameProjection(
+            frameBodyIndex,
+            projectionOptions.map((p) => p.choice),
+            controlFrameChoice,
+          ),
+    [frameBodyIndex, projectionOptions, controlFrameChoice],
   );
+  const projectionEntries = useMemo(
+    () =>
+      followEntry === null
+        ? projectionOptions
+        : [...projectionOptions, followEntry],
+    [projectionOptions, followEntry],
+  );
+  // The host contributes the inertial entry first, so an absent or stale saved id lands on it, matching `index.tsx`'s own fallback.
+  const selectedProjection =
+    projectionEntries.find((p) => p.id === projection) ??
+    projectionEntries[0] ??
+    null;
+
+  const candidate = useMemo<SystemViewConfig>(() => {
+    const defaultId = projectionEntries[0]?.id;
+    const chosenId = selectedProjection?.id;
+    return chosenId === undefined || chosenId === defaultId
+      ? { frame }
+      : { frame, projection: chosenId };
+  }, [frame, selectedProjection, projectionEntries]);
 
   useModalSaveBar({
     onSave: () => onSave(candidate),
@@ -79,28 +124,31 @@ export function SystemViewConfigForm({
           you see the whole system. Pick a specific body to pin the frame.
         </FieldHint>
       </Field>
-      <Field>
-        <FieldLabel htmlFor="system-projection">Draw the picture in</FieldLabel>
-        <Select
-          id="system-projection"
-          value={projection}
-          onChange={(e) => setProjection(e.target.value)}
-        >
-          <option value="">Follow the frame (the ordinary view)</option>
-          {projectionOptions.map((option) => (
-            <option key={option.id} value={option.id}>
-              {option.label}
-            </option>
-          ))}
-        </Select>
-        <FieldHint>
-          This changes what the axes do, not which body is in the middle. The
+      <ReadFrameControl
+        id="system-projection"
+        label="Draw the picture in"
+        value={
+          selectedProjection?.choice ?? {
+            kind: "body-centred-inertial",
+            bodyIndex: frameBodyIndex ?? -1,
+          }
+        }
+        options={projectionEntries.map((entry) => ({
+          choice: entry.choice,
+          label: entry.label,
+        }))}
+        onChange={(choice) => {
+          const match = projectionEntries.find((entry) =>
+            readFrameChoicesEqual(entry.choice, choice),
+          );
+          if (match !== undefined) setProjection(match.id);
+        }}
+        hint="This changes what the axes do, not which body is in the middle. The
           bodies, their orbits and the craft all move together: holding the
           parent still is how a transfer window becomes a shape you can see, and
           the orbit stops looking closed because it is not. The panel says which
-          one you are looking at.
-        </FieldHint>
-      </Field>
+          one you are looking at."
+      />
     </ConfigForm>
   );
 }

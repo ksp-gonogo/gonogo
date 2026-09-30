@@ -477,6 +477,11 @@ export {
   type ProgressBarQuantityProps,
 } from "./ProgressBar";
 export {
+  ReadFrameControl,
+  type ReadFrameControlProps,
+  type ReadFrameOption,
+} from "./ReadFrameControl";
+export {
   ReadOnlyField,
   type ReadOnlyFieldProps,
   type ReadOnlyFieldValue,

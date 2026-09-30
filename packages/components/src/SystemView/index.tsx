@@ -9,13 +9,16 @@ import {
 } from "@ksp-gonogo/core";
 import {
   CELESTIAL_FACTS,
+  CONTROL_FRAME_TOPIC,
+  controlFrameToReadFrameChoice,
   type OrbitTrajectory,
   useFleetVesselSilence,
   useOrbitTrajectory,
   useProcessor,
+  useStream,
   useViewUt,
 } from "@ksp-gonogo/sitrep-client";
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import { type ControlFrame, value } from "@ksp-gonogo/sitrep-sdk";
 import { Panel, useElementSize } from "@ksp-gonogo/ui";
 import { FramedDisplay, NULL_DISPLAY, Section } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
@@ -32,7 +35,11 @@ import { frameCaption, resolveFrame } from "./frame";
 import { conicPatches } from "./orbitPatches";
 import { overlayGeometry, viewedGeometry } from "./overlayGeometry";
 import type { TrajectoryPatch } from "./predictedTrajectory";
-import { inertialFrameFor, resolveProjection } from "./projection";
+import {
+  followControlFrameProjection,
+  inertialFrameFor,
+  resolveProjection,
+} from "./projection";
 import { createUtBucketThrottle } from "./utBucketThrottle";
 // The host's own `system-view.projection` entries, so the picker and resolver run on a bare install.
 import "./projectionContribution";
@@ -77,6 +84,14 @@ function SystemViewComponent({
     factsReading?.state === "observed" || factsReading?.state === "held"
       ? factsReading.value
       : undefined;
+  // For a `follow-control-frame` entry on the picker; the selected frame is a setting, which a quiet link does not change.
+  const controlFrameReading = useStream<ControlFrame>(CONTROL_FRAME_TOPIC);
+  const controlFrame =
+    controlFrameReading.state === "observed" ||
+    controlFrameReading.state === "held"
+      ? controlFrameReading.value
+      : undefined;
+  const controlFrameChoice = controlFrameToReadFrameChoice(controlFrame, facts);
   // The dot and orbit are markers, claims about now, so the elements come from a current reading or a model, and otherwise nothing is drawn.
   const orbitReading = topics.useTelemetry("vessel.orbit");
   // The observation overlaid by what the conic moved (the phase); `reckoning.value` alone is not an orbit.
@@ -322,18 +337,51 @@ function SystemViewComponent({
         : projectionEntries.filter((p) => p.frameBodyIndex === frameBodyIndex),
     [projectionEntries, frameBodyIndex],
   );
+  // "Follow the in-game view", appended when it would draw something the entries above do not already draw.
+  const followEntry = useMemo(
+    () =>
+      frameBodyIndex === undefined
+        ? null
+        : followControlFrameProjection(
+            frameBodyIndex,
+            projectionOptions.map((p) => p.choice),
+            controlFrameChoice,
+          ),
+    [frameBodyIndex, projectionOptions, controlFrameChoice],
+  );
+  const allProjectionOptions = useMemo(
+    () =>
+      followEntry === null
+        ? projectionOptions
+        : [...projectionOptions, followEntry],
+    [projectionOptions, followEntry],
+  );
   const chosenProjectionEntry = useMemo(() => {
-    const pinned = projectionOptions.find((p) => p.id === config?.projection);
+    const pinned = allProjectionOptions.find(
+      (p) => p.id === config?.projection,
+    );
     if (pinned !== undefined) return pinned;
     // The host contributes the inertial entry first, so an absent or stale saved id lands on it.
-    return projectionOptions[0] ?? null;
-  }, [projectionOptions, config?.projection]);
+    return allProjectionOptions[0] ?? null;
+  }, [allProjectionOptions, config?.projection]);
 
   // Resolved on the one-second UT bucket, never per render: it solves every body's parent chain and the diagram places thousands of points through it.
   const projection = useMemo(
     () =>
-      resolveProjection(facts, frameBodyIndex, chosenProjectionEntry, utBucket),
-    [facts, frameBodyIndex, chosenProjectionEntry, utBucket],
+      resolveProjection(
+        facts,
+        frameBodyIndex,
+        chosenProjectionEntry,
+        utBucket,
+        controlFrameChoice,
+      ),
+    [
+      facts,
+      frameBodyIndex,
+      chosenProjectionEntry,
+      utBucket,
+      controlFrameChoice,
+    ],
   );
 
   // Owned here rather than by the diagram, so the entity layer and the overlay slot follow the same pan and zoom.

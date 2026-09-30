@@ -1045,6 +1045,21 @@ const WIDGETS: WidgetRenderConfig[] = [
       // The aspect extremes at this widget's minSize, where the shared 5x18 and 18x5 fall below it.
       { name: "portrait-6x18", w: 6, h: 18 },
       { name: "landscape-18x8", w: 18, h: 8 },
+      // gonogo Saga #728 slice 1: "Follow the in-game view", pinned against the one
+      // fixture whose system.frame elects a RotatingPulsating Control Frame no
+      // stock install ever reports. resolveReadFrame turns that into the same
+      // Kerbin-Mun pulsating picture a hand-authored contribution draws, so this
+      // is the render that proves the seam is reachable end to end.
+      {
+        name: "follow-control-frame-10x12",
+        w: 10,
+        h: 12,
+        forFixtures: ["kerbin-mun-follow-control-frame"],
+        config: {
+          frame: "Kerbin",
+          projection: "system-view.follow-control-frame.1",
+        },
+      },
     ],
   },
   {

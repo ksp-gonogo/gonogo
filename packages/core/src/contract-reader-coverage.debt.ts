@@ -172,17 +172,11 @@ export const CONTRACT_READER_DEBT: Record<string, string> = {
     "no reader found; payload-level duplicate of the Reading wrapper state/reckoning (gonogo Saga task 727 seed, 2026-09-30)",
   "field:spaceCenter.partsAvailable.count":
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:system.frame.centreBody":
-    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
   "field:system.frame.primaryBodies":
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
   "field:system.frame.primaryBody":
-    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
+    "no reader found: the read-frame model infers the primary from the secondary's own parent rather than naming it (gonogo Saga task 727 seed, 2026-09-30; #728 slice 1 cleared centreBody/secondaryBody/targetFrameSelected)",
   "field:system.frame.secondaryBodies":
-    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:system.frame.secondaryBody":
-    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:system.frame.targetFrameSelected":
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
   "field:system.frame.targetId":
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",

@@ -42,9 +42,17 @@
  * link a call that does not typecheck.
  */
 
-import { type Vec3Of, type Vector3, value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  type CelestialFacts,
+  type ControlFrame,
+  type Vec3Of,
+  type Vector3,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   type BodyWithdrawal,
+  CONTROL_FRAME_TOPIC,
+  controlFrameToReadFrameChoice,
   type FrameCoordinates,
   type FrameInstant,
   type Vector3 as FrameVector3,
@@ -54,6 +62,7 @@ import {
   READ_FRAME_KINDS,
   type ReadFrameChoice,
   type ReadFrameKind,
+  readFrameChoicesEqual,
   resolveReadFrame,
   type SystemInstant,
   systemInstantAt,
@@ -120,6 +129,28 @@ export function _readsTheScaleConvention(instant: FrameInstant): string {
 
 /** A frame control builds its options from the enumeration, not from literals. */
 export const _offersEveryKind: readonly ReadFrameKind[] = READ_FRAME_KINDS;
+
+/**
+ * The live Control Frame, mapped into a choice a widget can pass to
+ * {@link resolveReadFrame} as its second argument; and the topic it reads off,
+ * exported rather than repeated as a literal at every call site.
+ */
+export const _controlFrameTopic: "system.frame" = CONTROL_FRAME_TOPIC;
+
+export function _mapsTheControlFrame(
+  frame: ControlFrame | null,
+  facts: CelestialFacts | undefined,
+): ReadFrameChoice | null {
+  return controlFrameToReadFrameChoice(frame, facts);
+}
+
+/** A widget offering "follow the Control Frame" hides it against its own already-offered choices with this, not a hand-rolled comparison. */
+export function _comparesTwoChoices(
+  a: ReadFrameChoice | null,
+  b: ReadFrameChoice | null,
+): boolean {
+  return readFrameChoicesEqual(a, b);
+}
 
 /**
  * A body missing from the instant is two different states, and an author who

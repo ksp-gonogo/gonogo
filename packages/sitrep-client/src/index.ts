@@ -259,7 +259,9 @@ export type {
   Vector3,
 } from "./kepler";
 export {
+  CONTROL_FRAME_TOPIC,
   canPropagate,
+  controlFrameToReadFrameChoice,
   drawnFrame,
   frameCoordinatesArePulsating,
   frameInstantAt,
@@ -278,6 +280,7 @@ export {
   PropagationHorizonKindLike,
   pastTrack,
   READ_FRAME_KINDS,
+  readFrameChoicesEqual,
   resolveReadFrame,
   rotateInertialToPerifocal,
   solve,

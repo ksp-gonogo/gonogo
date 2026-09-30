@@ -65,6 +65,7 @@ export * from "./context";
 export * from "./contributed-channels";
 export * from "./contribution-scope";
 export * from "./contributions";
+export * from "./control-frame-to-read-frame";
 export * from "./core-reckoners";
 export * from "./dashboard-item";
 export * from "./delay-authority";
