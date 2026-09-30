@@ -1,0 +1,35 @@
+name: RC
+
+# The copy of rc.yml on `main`, which is only a trampoline.
+#
+# A schedule trigger always runs the file on the default branch, and `main` moves
+# only at a release, so the nightly RC fires from here and dispatches the real
+# rc.yml on `staging`, where the builders and publishers it calls live. At the
+# next release `main` fast-forwards to staging and this file is replaced by the
+# full one, which keeps the same trampoline job.
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Rebuild even when staging's head already has an RC (CI still runs and must pass)"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  trampoline:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Dispatch this workflow on staging
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run rc.yml --repo "$GITHUB_REPOSITORY" --ref staging
