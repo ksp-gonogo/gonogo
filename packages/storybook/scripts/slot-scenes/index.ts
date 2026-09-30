@@ -5,6 +5,7 @@ import { SCENES as commSignal } from "./comm-signal";
 import { SCENES as crewStatus } from "./crew-status";
 import { SCENES as deployedScience } from "./deployed-science";
 import { SCENES as experiments } from "./experiments";
+import { SCENES as fleetRoster } from "./fleet-roster";
 import { SCENES as fuelStatus } from "./fuel-status";
 import { SCENES as landingStatus } from "./landing-status";
 import { SCENES as launchDirector } from "./launch-director";
@@ -30,6 +31,7 @@ export const SLOT_SCENES: readonly ExtensionScene[] = [
   ...crewStatus,
   ...deployedScience,
   ...experiments,
+  ...fleetRoster,
   ...fuelStatus,
   ...landingStatus,
   ...launchDirector,
