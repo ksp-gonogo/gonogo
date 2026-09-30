@@ -44,7 +44,7 @@ on:
         type: string
         default: ""
       channel:
-        description: "dev or release"
+        description: "rc or release"
         required: true
         type: string
       ref:

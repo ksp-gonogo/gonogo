@@ -8,12 +8,13 @@ name: prepare-release
 # deploy surface: the Pages site, all three GHCR images, and the peer
 # hello handshake.
 #
-# Work lands on `staging` and only `main` deploys, so a release is two steps:
-#   git push origin origin/staging:main
-#   gh workflow run prepare-release.yml --ref main
-# (or the Actions tab: Actions -> prepare-release -> Run workflow). The first
-# step is not optional and not a convention: the guard below fails the run when
-# the dispatched ref is behind the integration branch.
+# One manual dispatch does the whole cut, run on `staging` where the work lands:
+#   gh workflow run prepare-release.yml --ref staging
+# (or the Actions tab: Actions -> prepare-release -> Run workflow, branch
+# staging). It fast-forwards `main` to `staging`, refusing a non-fast-forward,
+# commits the version bump on top, and pushes that to `main`. Dispatching any
+# other ref is refused, so a release cannot be cut from a tree that is not the
+# integration branch.
 #
 # The bump size states the wire-compatibility promise (see
 # docs/DEPLOYMENT.md): patch = compatible/silent, minor = advisory
@@ -41,28 +42,30 @@ jobs:
   prepare:
     runs-on: ubuntu-latest
     env:
-      # Where the work actually lands. Everything that deploys gates on `main`,
-      # but nothing develops there, so the two have to be reconciled before a
-      # release means anything.
+      # Where the work actually lands. main moves only here, at a release.
       INTEGRATION_BRANCH: staging
     steps:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
-      # A release cut from a `main` that has not been fast-forwarded ships the
-      # tree main happens to be sitting on and says nothing about it: the run is
-      # green, the tag is real, and none of the work anyone wanted is in it.
-      # Refuse that outright rather than leaving it to whoever reads the docs.
-      - name: The release ref must carry the integration branch
+      # The release is `staging`'s tree moved onto main. Pushing it is a
+      # fast-forward only when main has nothing staging lacks; a main that
+      # diverged (a hotfix, or a release commit not yet returned to staging)
+      # must be reconciled by hand rather than overwritten.
+      - name: Run on the integration branch, and main must fast-forward to it
         run: |
-          git fetch --no-tags origin "$INTEGRATION_BRANCH"
+          if [ "${GITHUB_REF_NAME}" != "${INTEGRATION_BRANCH}" ]; then
+            echo "::error::dispatch this on ${INTEGRATION_BRANCH}, not ${GITHUB_REF_NAME}: gh workflow run prepare-release.yml --ref ${INTEGRATION_BRANCH}"
+            exit 1
+          fi
+          git fetch --no-tags origin main
           if git merge-base --is-ancestor FETCH_HEAD HEAD; then
-            echo "${GITHUB_REF_NAME} carries every commit on ${INTEGRATION_BRANCH}."
+            echo "main is an ancestor of ${INTEGRATION_BRANCH}: the push below is a fast-forward."
             exit 0
           fi
-          BEHIND="$(git rev-list --count HEAD..FETCH_HEAD)"
-          echo "::error::${GITHUB_REF_NAME} is missing ${BEHIND} commit(s) that are on ${INTEGRATION_BRANCH}, so a release cut here would ship none of them. Fast-forward first: git push origin origin/${INTEGRATION_BRANCH}:main"
+          AHEAD="$(git rev-list --count HEAD..FETCH_HEAD)"
+          echo "::error::main has ${AHEAD} commit(s) that ${INTEGRATION_BRANCH} lacks, so it cannot be fast-forwarded. Merge main into ${INTEGRATION_BRANCH} and land that first."
           exit 1
 
       - name: Determine bump level
@@ -138,7 +141,7 @@ jobs:
 
       # Without this the release commit exists only on `main`, and `main` can
       # never be fast-forwarded from the integration branch again: it carries a
-      # commit that branch lacks, so the next release's first step is rejected.
+      # commit that branch lacks, so the next release's guard refuses.
       # Fail-soft, the release itself is already done and the branch may have
       # moved while this ran.
       - name: Return the release commit to the integration branch
@@ -146,7 +149,7 @@ jobs:
           if git push origin "HEAD:${INTEGRATION_BRANCH}"; then
             echo "Release commit is on ${INTEGRATION_BRANCH} too."
           else
-            echo "::warning::could not fast-forward ${INTEGRATION_BRANCH} onto the release commit, it has probably moved. Merge main into ${INTEGRATION_BRANCH} by hand, otherwise the next 'git push origin origin/${INTEGRATION_BRANCH}:main' is rejected."
+            echo "::warning::could not fast-forward ${INTEGRATION_BRANCH} onto the release commit, it has probably moved. Merge main into ${INTEGRATION_BRANCH} by hand, otherwise the next release is refused."
           fi
 
       - name: Trigger release workflow

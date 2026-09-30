@@ -5,22 +5,24 @@ name: Deploy to GitHub Pages
 #   /gonogo/        the latest RELEASE build: downloaded from the newest
 #                   GitHub Release's site asset (uploaded by release.yml).
 #                   End users and the README only ever see this.
-#   /gonogo/dev/    the dev channel: rebuilt fresh from main on every
-#                   CI-green push, version-suffixed `-dev.<shortsha>` so
-#                   stations and the hello handshake identify it.
+#   /gonogo/rc/     the release-candidate channel: rebuilt from the ref it is
+#                   given, version-suffixed `-rc.<shortsha>` so stations and
+#                   the hello handshake identify it.
 #
-# Until the first GitHub Release exists, the dev build is served at the
-# root too, which matches the pre-channel behaviour.
+# Until the first GitHub Release exists, the RC build is served at the root
+# too, which matches the pre-channel behaviour.
 #
-# release.yml dispatches this workflow right after uploading a new site
-# asset, so a release re-composes the root without waiting for the next
-# push to main.
+# Nothing triggers this on a push. rc.yml calls it for the nightly and on-demand
+# RC, and release.yml dispatches it right after uploading a new site asset, so a
+# release re-composes the root without waiting for the next RC.
 
 on:
-  workflow_run:
-    workflows: [CI]
-    types: [completed]
-    branches: [main]
+  workflow_call:
+    inputs:
+      ref:
+        description: "Commit to build the RC from (default: the calling ref)"
+        required: false
+        type: string
   workflow_dispatch:
 
 permissions:
@@ -34,7 +36,6 @@ concurrency:
 
 jobs:
   deploy:
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -42,11 +43,11 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          ref: ${{ inputs.ref || github.sha }}
 
       - id: sha
         run: |
-          SHA="${{ github.event.workflow_run.head_sha || github.sha }}"
+          SHA="${{ inputs.ref || github.sha }}"
           echo "short=${SHA:0:7}" >> "$GITHUB_OUTPUT"
 
       - uses: actions/setup-node@v6
@@ -84,11 +85,11 @@ jobs:
             echo "Axiom token MISSING: remote logging disabled for this deploy."
           fi
 
-      - name: Build dev-channel app
+      - name: Build RC-channel app
         run: pnpm turbo build --filter=@ksp-gonogo/app...
         env:
-          VITE_BASE_PATH: /gonogo/dev/
-          GONOGO_VERSION_SUFFIX: -dev.${{ steps.sha.outputs.short }}
+          VITE_BASE_PATH: /gonogo/rc/
+          GONOGO_VERSION_SUFFIX: -rc.${{ steps.sha.outputs.short }}
           # Axiom ingest. If the secret isn't set the logger silently
           # skips installing the Axiom transport, so dropping the secret
           # is a clean way to disable remote logging.
@@ -107,31 +108,31 @@ jobs:
             echo "Root will serve the latest release site asset."
           else
             echo "found=false" >> "$GITHUB_OUTPUT"
-            echo "No release site asset yet: dev build will serve the root too."
+            echo "No release site asset yet: RC build will serve the root too."
           fi
 
-      - name: Compose site (release at /, dev at /dev/)
+      - name: Compose site (release at /, RC at /rc/)
         run: |
-          mkdir -p site site/dev
-          cp -R packages/app/dist/. site/dev/
+          mkdir -p site site/rc
+          cp -R packages/app/dist/. site/rc/
           if [ "${{ steps.prod.outputs.found }}" = "true" ]; then
             cp -R prod-site/. site/
           else
-            # Bootstrap: no release exists yet, so the dev channel serves
-            # the root as well. The /dev/ copy above was built with base
-            # /gonogo/dev/; the root needs its own base.
+            # Bootstrap: no release exists yet, so the RC channel serves
+            # the root as well. The /rc/ copy above was built with base
+            # /gonogo/rc/; the root needs its own base.
             VITE_BASE_PATH=/gonogo/ \
-            GONOGO_VERSION_SUFFIX="-dev.${{ steps.sha.outputs.short }}" \
+            GONOGO_VERSION_SUFFIX="-rc.${{ steps.sha.outputs.short }}" \
             VITE_AXIOM_TOKEN="${{ secrets.VITE_AXIOM_TOKEN }}" \
               pnpm --filter @ksp-gonogo/app build
             cp -R packages/app/dist/. site/
           fi
           # Pages only serves the ROOT 404.html as the SPA fallback, and
           # after composition that's the release build: a deep link to
-          # /gonogo/dev/station would boot the wrong app. Materialise the
-          # dev SPA's routes as real files instead.
-          mkdir -p site/dev/station
-          cp site/dev/index.html site/dev/station/index.html
+          # /gonogo/rc/station would boot the wrong app. Materialise the
+          # RC SPA's routes as real files instead.
+          mkdir -p site/rc/station
+          cp site/rc/index.html site/rc/station/index.html
 
       - uses: actions/configure-pages@v5
 

@@ -1,6 +1,6 @@
 // The operator's recorded decision to load past a mod/index hash DECLARATION
 // disagreement (`UplinkIntegritySubject` "declaration"): channel skew, where a
-// dev-channel app and a release-channel mod each honestly describe a different
+// RC-channel app and a release-channel mod each honestly describe a different
 // build. It is the only integrity finding this file can record a decision for,
 // and `grantSkewOverride` refuses anything else rather than trusting its caller.
 //

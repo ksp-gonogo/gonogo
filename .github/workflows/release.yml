@@ -5,7 +5,7 @@ name: release
 # so the tag-push trigger below only matters for manually pushed tags).
 #
 # A release is the deliberate act that moves what users see; pushes to
-# main only ever move the dev channel (/gonogo/dev/ + `:dev` images).
+# rc.yml only ever moves the RC channel (/gonogo/rc/ + `:rc` images).
 # This workflow:
 #
 #   1. runs the full test suite at the tag (the release commit was pushed

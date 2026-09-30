@@ -1,0 +1,157 @@
+name: RC
+
+# Builds the release-candidate channel from the head of `staging`, every night
+# and on demand:
+#
+#   Pages app       /gonogo/rc/ (stations: /gonogo/rc/station)   deploy.yml
+#   images          ghcr.io/ksp-gonogo/gonogo{,-relay}:rc         publish-images.yml
+#   mod zips        build artifacts, version rc-<shortsha>        publish-mods.yml
+#   app version     X.Y.Z-rc.<shortsha>
+#
+# Nothing here touches `main`, a release tag, npm, nuget or SpaceDock. A release
+# is prepare-release.yml's job.
+#
+# THREE RULES, each one a trap that was hit on the way here:
+#
+#   1. It does nothing when staging's head already has an RC. The record is a
+#      tag `rc-<shortsha>`, written only after every publisher succeeded. A tag
+#      is durable, needs no API to read back, shows on the repo page, and a failed
+#      RC leaves no tag so the next night retries. `force` rebuilds a sha that
+#      already has one (the tag is then left alone).
+#   2. It builds only a sha every CI run of which passed. CI never runs on
+#      `staging` (ci-dev-forward.yml pushes there with GITHUB_TOKEN, and a token
+#      push starts no workflow); it runs on `ci-dev` at the same sha, so the
+#      verdict is read by sha, across branches, by the same script the forwarder
+#      uses. `force` does not bypass this.
+#   3. `schedule` runs the copy of this file on the DEFAULT branch (`main`), and
+#      main moves only at a release. So this file checks out `staging`
+#      explicitly and calls the publishers at `@staging` instead of `./`, which
+#      would resolve to main's (older) copies. Only THIS file has to reach main
+#      for the nightly to start. A manual `--ref staging` dispatch runs staging's
+#      copy and needs none of that.
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Rebuild even when staging's head already has an RC (CI must still be green)"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rc
+  cancel-in-progress: false
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      build: ${{ steps.decide.outputs.build }}
+      sha: ${{ steps.decide.outputs.sha }}
+      short: ${{ steps.decide.outputs.short }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: staging
+          fetch-depth: 0
+
+      - id: decide
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FORCE: ${{ inputs.force }}
+        run: |
+          set -euo pipefail
+          sha="$(git rev-parse HEAD)"
+          short="${sha:0:7}"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "short=$short" >> "$GITHUB_OUTPUT"
+          echo "build=false" >> "$GITHUB_OUTPUT"
+          echo "staging head: $sha"
+
+          if [ -n "$(git tag --points-at "$sha" 'v*')" ]; then
+            echo "::notice::staging's head is a release commit ($(git tag --points-at "$sha" 'v*' | head -1)), nothing to candidate."
+            exit 0
+          fi
+
+          if git rev-parse -q --verify "refs/tags/rc-$short" >/dev/null && [ "$FORCE" != "true" ]; then
+            echo "::notice::rc-$short already exists, staging has not moved since the last RC."
+            exit 0
+          fi
+
+          if ! bash scripts/ci-dev-forward-verdict.sh "$GITHUB_REPOSITORY" "$sha"; then
+            echo "::error::no RC for $short: not every CI run of it is green (CI runs on ci-dev, not staging)."
+            exit 1
+          fi
+          echo "build=true" >> "$GITHUB_OUTPUT"
+
+  pages:
+    needs: gate
+    if: needs.gate.outputs.build == 'true'
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ksp-gonogo/gonogo/.github/workflows/deploy.yml@staging
+    with:
+      ref: ${{ needs.gate.outputs.sha }}
+    secrets: inherit
+
+  images:
+    needs: gate
+    if: needs.gate.outputs.build == 'true'
+    permissions:
+      contents: read
+      packages: write
+    uses: ksp-gonogo/gonogo/.github/workflows/publish-images.yml@staging
+    with:
+      channel: rc
+      ref: ${{ needs.gate.outputs.sha }}
+    secrets: inherit
+
+  mods:
+    needs: gate
+    if: needs.gate.outputs.build == 'true'
+    permissions:
+      contents: read
+    uses: ksp-gonogo/gonogo/.github/workflows/publish-mods.yml@staging
+    with:
+      channel: rc
+      ref: ${{ needs.gate.outputs.sha }}
+    secrets: inherit
+
+  record:
+    needs: [gate, pages, images, mods]
+    if: needs.gate.outputs.build == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: staging
+          fetch-depth: 0
+
+      - name: Tag the sha every publisher finished
+        env:
+          SHA: ${{ needs.gate.outputs.sha }}
+          SHORT: ${{ needs.gate.outputs.short }}
+        run: |
+          set -euo pipefail
+          if git ls-remote --exit-code --tags origin "refs/tags/rc-$SHORT" >/dev/null; then
+            echo "rc-$SHORT already exists (forced rebuild), left as it is."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "rc-$SHORT" "$SHA"
+          git push origin "refs/tags/rc-$SHORT"
+          echo "### RC built: rc-$SHORT" >> "$GITHUB_STEP_SUMMARY"

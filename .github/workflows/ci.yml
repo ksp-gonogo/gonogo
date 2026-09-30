@@ -2,17 +2,14 @@ name: CI
 
 on:
   push:
-    # `ci-dev` is a throwaway iteration branch: push CI-config / flaky-test
-    # experiments here to get real CI runs without churning main (main pushes
-    # also fire the dev-channel deploy). Fast-forward main from ci-dev only
-    # once it's green.
+    # `ci-dev` is the integration-candidate branch: push here to get real CI
+    # runs, and ci-dev-forward.yml fast-forwards `staging` once they are green.
     #
-    # `staging` is the long-lived integration branch where large multi-task
-    # work accumulates before a squash to main. It MUST get CI, without it a
-    # whole feature branch runs unvalidated (test/e2e/visual never fire), which
-    # is exactly how a batch of e2e failures reached the branch unnoticed
-    # (2026-07-17). Only main pushes trigger the deploy (deploy.yml gates on
-    # main), so CI on staging validates without deploying.
+    # `staging` is the long-lived integration branch. A push to it gets CI too
+    # (a direct human push does; the forwarder's GITHUB_TOKEN push does not, so
+    # rc.yml reads the verdict of the same sha from its ci-dev run). Nothing
+    # deploys on a push to any branch: rc.yml builds the RC channel from staging
+    # nightly and on demand, and prepare-release.yml cuts a release.
     branches: [main, ci-dev, staging]
   pull_request:
     # `staging` here for the same reason it is in the push list one line up, and

@@ -13,9 +13,9 @@ name: Publish mod zips
 #
 # Two publish channels, mirroring publish-images.yml:
 #
-#   dev      every CI-green push to main (workflow_run). Builds each mod's
-#            GameData zip and upload-artifacts it: this validates the
-#            packaging pipeline on every push. No GitHub Release attach,
+#   rc       rc.yml, nightly and on demand, calls this with channel=rc. Builds
+#            each mod's GameData zip and upload-artifacts it: this validates
+#            the packaging pipeline on every RC. No GitHub Release attach,
 #            no SpaceDock.
 #   release  dispatched by release.yml on a v* tag, with channel=release.
 #            Builds each mod zip, attaches it to the GitHub Release
@@ -38,38 +38,43 @@ name: Publish mod zips
 # first-party matrix caller plus the cross-mod GitHub-Release aggregator.
 
 on:
-  workflow_run:
-    workflows: [CI]
-    types: [completed]
-    branches: [main]
+  workflow_call:
+    inputs:
+      channel:
+        description: "Publish channel"
+        required: false
+        default: rc
+        type: string
+      ref:
+        description: "Commit to build (default: the calling ref)"
+        required: false
+        type: string
   workflow_dispatch:
     inputs:
       channel:
         description: "Publish channel"
         required: false
-        default: dev
+        default: rc
         type: choice
         options:
-          - dev
+          - rc
           - release
 
 permissions:
   contents: read
 
 concurrency:
-  group: publish-mods-${{ inputs.channel || 'dev' }}
+  group: publish-mods-${{ inputs.channel || 'rc' }}
   cancel-in-progress: false
 
 env:
-  # workflow_run events have no inputs, they're always the dev channel.
-  CHANNEL: ${{ inputs.channel || 'dev' }}
+  CHANNEL: ${{ inputs.channel || 'rc' }}
 
 jobs:
   # Computed once and fanned out to every matrix leg below, rather than
   # each leg re-deriving it: the reusable workflow takes version as an
   # input instead of computing it itself.
   version:
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     outputs:
       value: ${{ steps.version.outputs.value }}
@@ -77,19 +82,15 @@ jobs:
       - name: Compute version string
         id: version
         run: |
-          if [ "$CHANNEL" = "dev" ]; then
-            SHA="${{ github.event.workflow_run.head_sha || github.sha }}"
-            echo "value=dev-${SHA:0:7}" >> "$GITHUB_OUTPUT"
+          if [ "$CHANNEL" = "rc" ]; then
+            SHA="${{ inputs.ref || github.sha }}"
+            echo "value=rc-${SHA:0:7}" >> "$GITHUB_OUTPUT"
           else
             echo "value=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
           fi
 
   build-mod:
     needs: version
-    # Only build when CI passed. workflow_dispatch skips the check.
-    # (Redundant with `needs: version` skip-propagation, kept explicit for
-    # parity with the pre-refactor condition.)
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     strategy:
       fail-fast: false
       matrix:
@@ -109,8 +110,8 @@ jobs:
       gamedata: ${{ matrix.gamedata }}
       extra_dlls: ${{ matrix.extra_dlls }}
       notice: ${{ matrix.notice }}
-      channel: ${{ inputs.channel || 'dev' }}
-      ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      channel: ${{ inputs.channel || 'rc' }}
+      ref: ${{ inputs.ref || github.sha }}
       version: ${{ needs.version.outputs.value }}
       spacedock_mod_id: ${{ vars[matrix.mod_id_var] }}
     secrets: inherit
