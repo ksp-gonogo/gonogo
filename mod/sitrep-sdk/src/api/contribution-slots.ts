@@ -386,6 +386,9 @@ export interface StrategiesScreenEntry {
    * Accept and Complete), so the host draws that screen's Active and
    * Available cards with no Activate or Deactivate button of its own, rather
    * than one that could only ever be refused.
+   * Nor does it draw a price or a commitment factor on them: the costs a
+   * strategy record carries are stock's activation charge, and the body's own
+   * verb decides what it charges, so it is the body that shows the cost.
    */
   drawsOwnActions?: boolean;
 }

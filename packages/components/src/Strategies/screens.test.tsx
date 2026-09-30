@@ -597,6 +597,61 @@ describe("Strategies: the screen contribution slot", () => {
     expect(screen.queryByRole("button", { name: /Activate/ })).toBeNull();
   });
 
+  it("draws no price, no-cost note or factor on a screen that draws its own actions, and both on one that does not", async () => {
+    registerContribution({
+      id: "test-priced-screens",
+      contributes: "strategies.screens",
+      compute: () => [
+        {
+          id: "surveys",
+          label: "Surveys",
+          departments: ["Surveys"],
+          drawsOwnActions: true,
+        },
+        { id: "leads", label: "Leads", departments: ["Engineering"] },
+      ],
+    });
+    const priced = {
+      initialCostReputation: 23.5,
+      effectiveCostReputation: 23.5,
+      hasFactorSlider: true,
+      factorSliderDefault: 0.05,
+      factorSliderSteps: 20,
+    };
+    const user = userEvent.setup();
+    const { stream } = renderWidget();
+    act(() => {
+      emitCareer(stream, [
+        strategy("SurveysPolarOrbit", "Surveys", {
+          title: "Polar Orbit Survey",
+          ...priced,
+        }),
+        strategy("SurveysMagnetosphere", "Surveys", {
+          title: "Magnetosphere Survey",
+        }),
+        strategy("EngineeringAster", "Engineering", {
+          title: "Chief Designer Aster",
+          ...priced,
+        }),
+      ]);
+    });
+    await screen.findByRole("tablist");
+
+    expect(screen.getByText("Polar Orbit Survey")).toBeTruthy();
+    expect(screen.queryByText(/23\.5/)).toBeNull();
+    expect(screen.queryByText(/No funds, science or rep cost/)).toBeNull();
+    expect(screen.queryByRole("slider")).toBeNull();
+
+    await user.click(screen.getByRole("tab", { name: "Leads" }));
+    expect(await screen.findByText(/23\.5/)).toBeTruthy();
+    expect(
+      screen.getByRole("slider", {
+        name: "Commitment factor for Chief Designer Aster",
+      }),
+    ).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Activate" })).toBeTruthy();
+  });
+
   it("has no axe violations with the tab strip up", async () => {
     registerContribution({
       id: "test-surveys-screen",

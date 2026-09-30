@@ -185,6 +185,35 @@ PLANTED_UPLINK.registerContribution({
   compute: () => [{ id: "planted-finances", label: "Finances", order: 90 }],
 });
 
+/**
+ * The Domain a fixture opts into for {@link PLANTED_UPLINK}'s screen that
+ * draws its own actions, kept apart from the planted Domain so the Finances
+ * screen render keeps its Finances strategies on the trailing screen.
+ */
+export const PLANTED_LEADS_AVAILABLE_TOPIC = "plantedleads.available";
+
+registerBarePrimitiveTopic(PLANTED_LEADS_AVAILABLE_TOPIC);
+
+/**
+ * A screen listing a department whose cards the Uplink's own body acts on,
+ * the shape of a screen whose verbs and costs are the Uplink's rather than
+ * the stock activation the host would otherwise offer.
+ */
+PLANTED_UPLINK.registerContribution({
+  id: "strategies-own-actions-screen",
+  contributes: "strategies.screens",
+  requires: "plantedleads",
+  compute: () => [
+    {
+      id: "planted-leads",
+      label: "Leads",
+      departments: ["Finances"],
+      order: 10,
+      drawsOwnActions: true,
+    },
+  ],
+});
+
 PLANTED_UPLINK.registerContribution({
   id: "crew-status-badge",
   contributes: "crew-status.badges",

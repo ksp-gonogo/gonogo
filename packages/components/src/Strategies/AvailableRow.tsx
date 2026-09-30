@@ -98,7 +98,12 @@ export function AvailableRow({
   onFactorChange: (v: number) => void;
   /** The shared activate handle; each row's `CommandButton` holds its own arm and in-flight state. */
   activateCmd: CommandButtonHandle;
-  /** True when the screen's own body carries the activate verb, so this card draws no Activate button. */
+  /**
+   * True when the screen's own body carries the activate verb, so this card
+   * draws no Activate button and none of what only that button spends: the
+   * price, the no-cost note and the factor slider. The figures on the record
+   * are stock's activation cost, which the body's own verb need not charge.
+   */
   drawsOwnActions?: boolean;
   expanded: boolean;
   onToggleExpanded: () => void;
@@ -191,7 +196,7 @@ export function AvailableRow({
         </EffectList>
       )}
       {note && <BlockedNote>{note}</BlockedNote>}
-      {!noListedCost && (
+      {!drawsOwnActions && !noListedCost && (
         <CostRow>
           {s.initialCostFunds > 0 && (
             <CostChip
@@ -223,13 +228,13 @@ export function AvailableRow({
           )}
         </CostRow>
       )}
-      {noListedCost && (
+      {!drawsOwnActions && noListedCost && (
         // Three zeros say nothing about a currency this record has no field for, such as a career mod's own currency. A plain note, so a list of them is not announced.
         <Notice tone="neutral" role="note">
           No funds, science or rep cost on this record
         </Notice>
       )}
-      {s.hasFactorSlider && (
+      {!drawsOwnActions && s.hasFactorSlider && (
         <FactorRow>
           <FactorLabel>Factor</FactorLabel>
           <Slider
