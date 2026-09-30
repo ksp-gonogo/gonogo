@@ -1933,7 +1933,7 @@ const WIDGETS: WidgetRenderConfig[] = [
         name: "default-auto-10x14",
         w: 10,
         h: 14,
-        forFixtures: ["low-kerbin-orbit"],
+        forFixtures: ["low-kerbin-orbit", "low-kerbin-orbit-mun-control-frame"],
       },
       {
         name: "default-kerbol-10x14",

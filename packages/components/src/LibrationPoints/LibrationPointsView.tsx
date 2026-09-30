@@ -2,6 +2,7 @@ import type { ComponentProps } from "@ksp-gonogo/core";
 import { useActionInput } from "@ksp-gonogo/core";
 import {
   buildElements,
+  CONTROL_FRAME_TOPIC,
   LIBRATION_REFUSALS,
   type LibrationAnswer,
   librationPairLabel,
@@ -12,9 +13,10 @@ import {
   TRAJECTORY_SCALE_CONVENTIONS,
   TrajectoryFrameKindLike,
   useOrbitTrajectory,
+  useStream,
   useViewUt,
 } from "@ksp-gonogo/sitrep-client";
-import { stillTrue } from "@ksp-gonogo/sitrep-sdk";
+import { type ControlFrame, stillTrue } from "@ksp-gonogo/sitrep-sdk";
 import { Panel, Select } from "@ksp-gonogo/ui";
 import { FieldLabel, FramedDisplay, Section, Text } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
@@ -90,6 +92,13 @@ export function LibrationPointsComponent({
 
   const candidates = useMemo(() => librationPairsOf(facts), [facts]);
 
+  const frameReading = useStream<ControlFrame>(CONTROL_FRAME_TOPIC);
+  // The selected frame is a setting, which a quiet link does not change.
+  const controlFrame =
+    frameReading.state === "observed" || frameReading.state === "held"
+      ? frameReading.value
+      : undefined;
+
   // The one control: the pair is the frame. Seeded from config, switchable live.
   const [chosen, setChosen] = useState<string>(config?.pair ?? AUTO_PAIR);
   const chosenIndex =
@@ -141,6 +150,7 @@ export function LibrationPointsComponent({
       system,
       vesselInertial,
       identity?.parentBodyIndex,
+      controlFrame,
     );
   }, [
     chosen,
@@ -151,6 +161,7 @@ export function LibrationPointsComponent({
     system,
     vesselInertial,
     identity?.parentBodyIndex,
+    controlFrame,
   ]);
 
   const { answer, offset } = useMemo(
@@ -266,6 +277,7 @@ export function LibrationPointsComponent({
             <LibrationReadouts
               answer={answer}
               offset={offset}
+              hasCraft={orbit !== undefined}
               craftHeldSince={orbitHeldSince}
             />
           </Section>

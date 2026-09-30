@@ -39,7 +39,9 @@ export function LibrationPointsConfigForm({
           value={pair}
           onChange={(e) => setPair(e.target.value)}
         >
-          <option value={AUTO_PAIR}>Auto (nearest to the craft)</option>
+          <option value={AUTO_PAIR}>
+            Auto (the in-game pair, else the nearest)
+          </option>
           {candidates.map((p) => (
             <option key={p.secondaryIndex} value={p.secondaryName ?? ""}>
               {librationPairLabel(p)}
@@ -50,8 +52,9 @@ export function LibrationPointsConfigForm({
           The pair is also the frame. Five libration points stand still only in
           the frame that turns with the two bodies they belong to, so choosing
           the pair is choosing what the picture holds still, and there is
-          nothing else to choose. "Auto" follows the craft to whichever pair it
-          is nearest to.
+          nothing else to choose. "Auto" follows the in-game view when it turns
+          with one of these pairs, and otherwise follows the craft to whichever
+          pair it is nearest to.
         </FieldHint>
       </Field>
     </ConfigForm>

@@ -1,10 +1,10 @@
 {
   "_meta": {
-    "capturedAt": "2026-09-29",
-    "vessel": null,
+    "capturedAt": "2026-09-30",
+    "vessel": "Kerbal X",
     "body": "Kerbin",
-    "situation": "The catalogue alone, with no active vessel",
-    "notes": "No vessel.orbit or vessel.identity at all, so the five points are drawn and there are no craft rows."
+    "situation": "The 100 km Kerbin parking orbit of low-kerbin-orbit, with a Kerbin-Mun RotatingPulsating Control Frame on system.frame, which no stock install reports",
+    "notes": "Proximity alone would pick Kerbol-Kerbin here, as low-kerbin-orbit shows. Under Auto the widget follows the Control Frame's pair instead, since Kerbin-Mun is one of the catalogue's pairs."
   },
   "_stream": {
     "pinnedUt": 0,
@@ -83,6 +83,43 @@
               }
             }
           ]
+        }
+      },
+      {
+        "channel": "vessel.identity",
+        "value": {
+          "vesselId": "Kerbal X",
+          "name": "Kerbal X",
+          "vesselType": 0,
+          "situation": 3,
+          "parentBodyIndex": 1,
+          "launchUt": null
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 700000,
+          "ecc": 0,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 0.4,
+          "epoch": 0,
+          "mu": 3531600000000.0,
+          "horizon": {
+            "kind": 1,
+            "trajectoryKind": 1
+          }
+        }
+      },
+      {
+        "channel": "system.frame",
+        "value": {
+          "kind": 4,
+          "primaryBody": "Kerbin",
+          "secondaryBody": "Mun"
         }
       }
     ]

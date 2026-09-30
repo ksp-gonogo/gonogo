@@ -23,10 +23,13 @@ const KEEPING_WORDS = {
 export function LibrationReadouts({
   answer,
   offset,
+  hasCraft,
   craftHeldSince,
 }: Readonly<{
   answer: LibrationAnswer;
   offset: LibrationOffset | null;
+  /** Whether there is a craft orbit of now at all, observed or modelled. */
+  hasCraft: boolean;
   /** When the craft's orbit was last observed, while only a model places it. */
   craftHeldSince: HeldSince;
 }>) {
@@ -45,7 +48,10 @@ export function LibrationReadouts({
           <Unit value={value("%", answer.massRatio * 100)} decimals={3} />
         </Text>
       </Row>
-      <CraftOffsetRows offset={offset} heldSince={craftHeldSince} />
+      {/* With no orbit of now there is no craft to place, so there is nothing to say about one. */}
+      {hasCraft && (
+        <CraftOffsetRows offset={offset} heldSince={craftHeldSince} />
+      )}
     </>
   );
 }

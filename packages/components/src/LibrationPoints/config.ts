@@ -3,8 +3,9 @@ import type { ActionDefinition } from "@ksp-gonogo/core";
 export interface LibrationPointsConfig {
   /**
    * Which pair, by the secondary body's name (`<parent>-<body>`). `"auto"`,
-   * or absent, follows the craft: the pair it is nearest to as a fraction of
-   * that pair's own separation.
+   * or absent, follows the Control Frame when it turns with one of the
+   * catalogue's pairs, and otherwise the craft: the pair it is nearest to as a
+   * fraction of that pair's own separation.
    */
   pair?: string;
 }
