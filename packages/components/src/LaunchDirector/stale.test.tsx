@@ -259,6 +259,29 @@ describe("LaunchDirector when its telemetry is held", () => {
     ).not.toBeDisabled();
   });
 
+  it("marks each vessel's range in the switch list as held, off the roster it came from", async () => {
+    // The range is a figure on the roster, so a held roster draws it held rather than as a range of now.
+    renderWidget();
+    emitInFlight();
+    await screen.findByText(/In flight: Mun Hopper I/i);
+    act(() => {
+      screen.getByRole("button", { name: /Switch to vessel/i }).click();
+    });
+    const range = () =>
+      screen
+        .getByRole("button", { name: /Relay Sat A/ })
+        .querySelector("[data-held]");
+    await screen.findByRole("button", { name: /Relay Sat A/ });
+    expect(range()).toBeNull();
+
+    goStale();
+
+    await waitFor(() => expect(range()).not.toBeNull());
+    expect(range()?.querySelector("[data-unit-currency]")?.textContent).toMatch(
+      /OFFLINE, as of /,
+    );
+  });
+
   it("keeps recovery available rather than reviving the crash block it was given to fix", async () => {
     // The crash record scopes the session-wide flag to the active vessel, so it is held.
     renderWidget();

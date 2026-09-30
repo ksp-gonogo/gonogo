@@ -188,6 +188,7 @@ export function LaunchDirectorComponent({
                 altitudeMeters={flight.altitudeMeters}
                 crashInProgress={flight.crashInProgress}
                 availableVessels={flight.availableVessels}
+                distanceOf={flight.distanceOf}
                 recoverCmd={recoverCmd}
                 revertLaunchCmd={revertLaunchCmd}
                 revertEditorCmd={revertEditorCmd}

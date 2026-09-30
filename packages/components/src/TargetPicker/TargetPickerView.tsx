@@ -3,7 +3,7 @@ import { useActionInput } from "@ksp-gonogo/core";
 import { useCommand, withoutReckoning } from "@ksp-gonogo/sitrep-client";
 import { stillTrue, type TargetListEntry } from "@ksp-gonogo/sitrep-sdk";
 import { Panel, Section, Unit } from "@ksp-gonogo/ui-kit";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   bare,
   closingRateReading,
@@ -13,6 +13,7 @@ import {
   vecMagnitude,
 } from "../shared/dockAngles";
 import { OrbitalEventChips } from "../shared/OrbitalEventChips";
+import { rosterDistance } from "../shared/rosterDistance";
 import { CategorySection } from "./CategorySection";
 import { CurrentTargetSummary } from "./CurrentTargetSummary";
 import type { TargetPickerActions, TargetPickerConfig } from "./config";
@@ -47,6 +48,10 @@ export function TargetPickerComponent({
   const availableReading = targetPickerTopics.useTelemetry("target.available");
   // A confirmed empty sky IS an empty roster; only `pending` renders the wait.
   const available = stillTrue(availableReading, EMPTY_ROSTER);
+  const distanceOf = useMemo(
+    () => rosterDistance(availableReading),
+    [availableReading],
+  );
   // The model is dropped: a picker offering a modelled range beside a name is the confident-wrong picture.
   const targetReading = targetPickerTopics.useTelemetry("vessel.target");
   const target = stillTrue(withoutReckoning(targetReading), undefined);
@@ -166,6 +171,7 @@ export function TargetPickerComponent({
     <TargetRow
       key={`${keyPrefix}:${entryId(entry)}`}
       entry={entry}
+      distance={distanceOf(entry)}
       isPending={pendingTarget?.id === entryId(entry)}
       onPick={dispatchTarget}
     />

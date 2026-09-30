@@ -13,6 +13,10 @@ import { WidgetBody } from "@ksp-gonogo/ui-kit";
 import { installFixedSizeResizeObserver } from "@ksp-gonogo/ui-kit/testing";
 import type React from "react";
 import { Fragment } from "react";
+import {
+  AlarmsLauncherProvider,
+  type PendingAlarmSummary,
+} from "../shared/AlarmsLauncher";
 import { applyInstallProfile, getInstallProfile } from "./installProfile";
 import {
   setupMockDataSource,
@@ -195,6 +199,47 @@ export function WidgetContributions({
     >
       <ContributionsProvider>{children}</ContributionsProvider>
     </WidgetMetaContext.Provider>
+  );
+}
+
+/** A scene's `_alarms`, or undefined where it names none or any entry is malformed. */
+function sceneAlarms(raw: unknown): PendingAlarmSummary[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  const entries: unknown[] = raw;
+  const alarms: PendingAlarmSummary[] = [];
+  for (const entry of entries) {
+    if (typeof entry !== "object" || entry === null) return undefined;
+    if (!("id" in entry) || !("name" in entry) || !("ut" in entry))
+      return undefined;
+    const { id, name, ut } = entry;
+    if (typeof id !== "string" || typeof name !== "string") return undefined;
+    if (ut !== null && typeof ut !== "number") return undefined;
+    alarms.push({ id, name, ut });
+  }
+  return alarms;
+}
+
+/**
+ * The probe's alarm stubs, so a widget that gates on the alarm pipeline draws
+ * here what it draws in a render. A scene's `_alarms` stands in for the
+ * pending list; absent means the tree has no pipeline to ask.
+ */
+function HarnessAlarms({
+  fixture,
+  children,
+}: {
+  fixture: Fixture;
+  children: React.ReactNode;
+}) {
+  return (
+    <AlarmsLauncherProvider
+      launcher={() => {}}
+      creator={() => {}}
+      manager={{ find: () => null, remove: () => {} }}
+      pending={sceneAlarms(fixture._alarms)}
+    >
+      {children}
+    </AlarmsLauncherProvider>
   );
 }
 
@@ -517,13 +562,15 @@ export async function snapshotWidgetMode<
       <Wrap>
         <DashboardItemContext.Provider value={{ instanceId }}>
           <WidgetContributions Widget={opts.Widget}>
-            <SnapshotBody
-              Widget={opts.Widget}
-              config={config}
-              id={instanceId}
-              w={opts.mode.w}
-              h={opts.mode.h}
-            />
+            <HarnessAlarms fixture={opts.fixture}>
+              <SnapshotBody
+                Widget={opts.Widget}
+                config={config}
+                id={instanceId}
+                w={opts.mode.w}
+                h={opts.mode.h}
+              />
+            </HarnessAlarms>
           </WidgetContributions>
         </DashboardItemContext.Provider>
       </Wrap>,
@@ -616,13 +663,15 @@ export async function renderWidgetMode<
       <Wrap>
         <DashboardItemContext.Provider value={{ instanceId }}>
           <WidgetContributions Widget={opts.Widget}>
-            <SnapshotBody
-              Widget={opts.Widget}
-              config={config}
-              id={instanceId}
-              w={opts.mode.w}
-              h={opts.mode.h}
-            />
+            <HarnessAlarms fixture={opts.fixture}>
+              <SnapshotBody
+                Widget={opts.Widget}
+                config={config}
+                id={instanceId}
+                w={opts.mode.w}
+                h={opts.mode.h}
+              />
+            </HarnessAlarms>
           </WidgetContributions>
         </DashboardItemContext.Provider>
       </Wrap>,

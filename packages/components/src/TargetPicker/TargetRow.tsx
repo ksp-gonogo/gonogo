@@ -1,4 +1,4 @@
-import type { TargetListEntry } from "@ksp-gonogo/sitrep-sdk";
+import type { Reading, TargetListEntry, Value } from "@ksp-gonogo/sitrep-sdk";
 import { NULL_DISPLAY, Row, Spinner, Unit } from "@ksp-gonogo/ui-kit";
 import { entrySubtitle } from "./entries";
 import { EntryName, RowDistance, RowMain, RowSubtitle, RowTag } from "./styles";
@@ -6,10 +6,13 @@ import { EntryName, RowDistance, RowMain, RowSubtitle, RowTag } from "./styles";
 /** One pickable roster row: name and subtitle, range, and a spinner while its set awaits the readback. */
 export function TargetRow({
   entry,
+  distance,
   isPending,
   onPick,
 }: Readonly<{
   entry: TargetListEntry;
+  /** The entry's range as a reading of the roster, so a held roster marks it. */
+  distance: Reading<Value<"m">> | undefined;
   isPending: boolean;
   onPick: (entry: TargetListEntry) => void;
 }>) {
@@ -30,7 +33,7 @@ export function TargetRow({
         {entry.distance === undefined ? (
           NULL_DISPLAY
         ) : (
-          <Unit value={entry.distance} />
+          <Unit value={distance} />
         )}
       </RowDistance>
       {isPending && <Spinner ariaLabel="Setting target" />}

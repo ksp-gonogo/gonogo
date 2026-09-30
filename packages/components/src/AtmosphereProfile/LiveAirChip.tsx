@@ -1,4 +1,3 @@
-import { value } from "@ksp-gonogo/sitrep-sdk";
 import { Unit } from "@ksp-gonogo/ui-kit";
 import type { ComponentProps } from "react";
 
@@ -11,8 +10,8 @@ export function LiveAirChip({
   skinTemp,
 }: {
   density: UnitValue;
-  airTemp: number | null;
-  skinTemp: number | null;
+  airTemp: UnitValue;
+  skinTemp: UnitValue;
 }) {
   return (
     <div role="status" aria-live="polite" style={LIVE_CHIP_STYLE}>
@@ -22,19 +21,19 @@ export function LiveAirChip({
           <Unit value={density} decimals={3} />
         </span>
       </div>
-      {airTemp !== null && (
+      {hasFigure(airTemp) && (
         <div style={CHIP_ROW_STYLE}>
           <span style={CHIP_LABEL_STYLE}>Air</span>
           <span style={CHIP_VALUE_STYLE}>
-            <TempC k={airTemp} />
+            <Unit value={airTemp} as="°C" />
           </span>
         </div>
       )}
-      {skinTemp !== null && (
+      {hasFigure(skinTemp) && (
         <div style={CHIP_ROW_STYLE}>
           <span style={CHIP_LABEL_STYLE}>Skin</span>
           <span style={CHIP_VALUE_STYLE}>
-            <TempC k={skinTemp} />
+            <Unit value={skinTemp} as="°C" />
           </span>
         </div>
       )}
@@ -42,9 +41,13 @@ export function LiveAirChip({
   );
 }
 
-// Kelvin on the wire, Celsius on screen.
-function TempC({ k }: { k: number }) {
-  return <Unit value={value("K", k)} as="°C" />;
+/** Whether a temperature arrived as a number: a reading is asked of its value, so a held one still draws, marked. */
+function hasFigure(input: UnitValue): boolean {
+  const figure =
+    input !== null && input !== undefined && "state" in input
+      ? input.value
+      : input;
+  return figure !== null && figure !== undefined;
 }
 
 /* A positioned HUD chip over the chart's tick band; no ui-kit primitive for it. */

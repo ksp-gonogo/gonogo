@@ -54,8 +54,6 @@ function AtmosphereProfileComponent({
     magnitudeOf((flight ?? flightObserved)?.altitudeAsl) ?? undefined;
   // Magnitudes: all three feed threshold checks and the chart's own number-taking readouts.
   const liveDensity = magnitudeOf(flight?.atmDensity);
-  const liveAirTemp = magnitudeOf(flight?.atmosphericTemperature);
-  const liveSkinTemp = magnitudeOf(flight?.externalTemperature);
 
   const cols = w ?? 8;
   const rows = h ?? 8;
@@ -155,8 +153,8 @@ function AtmosphereProfileComponent({
       {showLiveChip && (
         <LiveAirChip
           density={flightReading.atmDensity}
-          airTemp={liveAirTemp}
-          skinTemp={liveSkinTemp}
+          airTemp={flightReading.atmosphericTemperature}
+          skinTemp={flightReading.externalTemperature}
         />
       )}
     </Fill>

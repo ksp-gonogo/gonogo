@@ -1,7 +1,12 @@
-import { type TargetListEntry, VesselType } from "@ksp-gonogo/sitrep-sdk";
+import {
+  type Reading,
+  type TargetListEntry,
+  type Value,
+  VesselType,
+} from "@ksp-gonogo/sitrep-sdk";
+import { Unit } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
 import { magnitudeOf } from "../shared/magnitude";
-import { Altitude } from "./flightFigures";
 import {
   SpaceObjectToggle,
   VesselSwitchDistance,
@@ -16,11 +21,14 @@ import { VESSEL_TYPE_LABELS } from "./vesselTypeLabels";
 /** The other vessels in the save, nearest first; picking one sends the switch. */
 export function VesselSwitchList({
   vessels,
+  distanceOf,
   showSpaceObjects,
   onToggleSpaceObjects,
   onSwitch,
 }: {
   vessels: readonly TargetListEntry[];
+  /** Each vessel's range as a reading of the roster, so a held roster marks it. */
+  distanceOf: (entry: TargetListEntry) => Reading<Value<"m">> | undefined;
   /** Held by the caller, so the choice survives the list closing. */
   showSpaceObjects: boolean;
   onToggleSpaceObjects: () => void;
@@ -78,7 +86,7 @@ export function VesselSwitchList({
               </VesselSwitchMeta>
             </VesselSwitchName>
             <VesselSwitchDistance>
-              <Altitude m={magnitudeOf(entry.distance)} />
+              <Unit value={distanceOf(entry)} />
             </VesselSwitchDistance>
           </VesselSwitchRow>
         ))

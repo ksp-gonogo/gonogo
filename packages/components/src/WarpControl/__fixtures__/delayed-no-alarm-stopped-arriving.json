@@ -1,0 +1,56 @@
+{
+  "_meta": {
+    "scenario": "delayed-no-alarm-stopped-arriving",
+    "notes": "The same 12 light-minute craft as delayed-no-alarm, after the stream stops arriving. The alarm gate still holds on the last delay, and the one-way delay beside \"Set alarm to warp\" carries the held mark rather than reading as current."
+  },
+  "kc.scene": "Flight",
+  "kc.padOccupied": false,
+  "career.mode": "CAREER",
+  "t.currentRate": 1,
+  "t.timeWarp": 0,
+  "t.warpMode": "High",
+  "t.isPaused": false,
+  "_alarms": [],
+  "_stream": {
+    "emits": [
+      {
+        "channel": "time.warp",
+        "value": {
+          "warpRate": 1,
+          "warpRateIndex": 0,
+          "warpMode": 0,
+          "paused": false
+        }
+      },
+      {
+        "channel": "comms.delay",
+        "value": {
+          "oneWaySeconds": 742
+        }
+      },
+      {
+        "channel": "spaceCenter.scene",
+        "value": {
+          "scene": "Flight"
+        }
+      },
+      {
+        "channel": "spaceCenter.launchSites",
+        "value": [
+          {
+            "name": "__pad_occupancy__",
+            "padOccupied": false,
+            "padVesselTitle": null
+          }
+        ]
+      },
+      {
+        "channel": "career.mode",
+        "value": {
+          "mode": 1
+        }
+      }
+    ],
+    "stopsArriving": true
+  }
+}

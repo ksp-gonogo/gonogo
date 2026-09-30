@@ -1,7 +1,9 @@
 import { useTelemetry } from "@ksp-gonogo/core";
 import { useStream, useViewUt } from "@ksp-gonogo/sitrep-client";
 import { stillTrue, TargetKind } from "@ksp-gonogo/sitrep-sdk";
+import { useMemo } from "react";
 import { magnitudeOf } from "../shared/magnitude";
+import { rosterDistance } from "../shared/rosterDistance";
 
 /** What the in-flight panel shows, for the vessel currently flying. */
 export function useFlightState() {
@@ -35,9 +37,11 @@ export function useFlightState() {
    * `target.available` already excludes the active vessel; only Vessel-kind
    * entries are switch targets. The roster is a fact, so the last one stands.
    */
-  const targetAvailable = stillTrue(
-    useTelemetry("target.available"),
-    undefined,
+  const rosterReading = useTelemetry("target.available");
+  const targetAvailable = stillTrue(rosterReading, undefined);
+  const distanceOf = useMemo(
+    () => rosterDistance(rosterReading),
+    [rosterReading],
   );
   const availableVessels = targetAvailable?.entries?.filter(
     (e) => e.kind === TargetKind.Vessel,
@@ -69,5 +73,6 @@ export function useFlightState() {
     altitudeMeters: altitudeMeters ?? null,
     crashInProgress: activeVesselCrashed(),
     availableVessels,
+    distanceOf,
   };
 }

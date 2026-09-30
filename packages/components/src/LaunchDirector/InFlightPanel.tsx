@@ -1,4 +1,4 @@
-import type { TargetListEntry } from "@ksp-gonogo/sitrep-sdk";
+import type { Reading, TargetListEntry, Value } from "@ksp-gonogo/sitrep-sdk";
 import type { CommandButtonHandle } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import { ArmedButton } from "./ArmedButton";
@@ -21,6 +21,7 @@ export function InFlightPanel({
   altitudeMeters,
   crashInProgress,
   availableVessels,
+  distanceOf,
   recoverCmd,
   revertLaunchCmd,
   revertEditorCmd,
@@ -31,6 +32,7 @@ export function InFlightPanel({
   altitudeMeters: number | null;
   crashInProgress: boolean;
   availableVessels: TargetListEntry[] | undefined;
+  distanceOf: (entry: TargetListEntry) => Reading<Value<"m">> | undefined;
   /** The handles: each control holds its own arm and in-flight state off the one it is given. */
   recoverCmd: CommandButtonHandle;
   revertLaunchCmd: CommandButtonHandle;
@@ -104,6 +106,7 @@ export function InFlightPanel({
       {switchOpen && availableVessels && totalAvailable > 0 && (
         <VesselSwitchList
           vessels={availableVessels}
+          distanceOf={distanceOf}
           showSpaceObjects={showSpaceObjects}
           onToggleSpaceObjects={() => setShowSpaceObjects((v) => !v)}
           onSwitch={(vesselId) => {
