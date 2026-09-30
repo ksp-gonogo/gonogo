@@ -11,14 +11,31 @@ namespace Gonogo.KSP
     /// The save's craft folders, offered to any Uplink through the
     /// <c>craftCatalogue</c> capability.
     ///
+    /// <para><b>Why core owns this.</b> Listing craft is
+    /// <c>ShipConstruction.GetShipsPathFor</c> plus <c>ConfigNode.Load</c>;
+    /// OPENING one is <c>ShipConstruct.LoadShip</c>, which instantiates a Unity
+    /// part per PART node and leaves the GameObjects for somebody to destroy. An
+    /// Uplink may not reference KSP or Unity, so an Uplink that did this would be
+    /// managing Unity object lifetime through <c>MethodInfo.Invoke</c> from an
+    /// assembly that cannot name <c>UnityEngine.Object</c>. That is how a scene
+    /// ends up with a craft standing at the world origin, once per press.</para>
+    ///
     /// <para><b>Not the same thing as <c>spaceCenter.savedShips</c>.</b> That
     /// channel is a read for a widget listing what can be launched. This is a
-    /// capability, it carries the FILE name a command can address, and it
-    /// separates the parts an install lacks from the parts a career has not
-    /// researched from the parts it has not bought.</para>
+    /// capability, it carries the FILE name a command can address, it separates
+    /// the parts an install lacks from the parts a career has not researched from
+    /// the parts it has not bought, and it can hand back the loaded craft. The
+    /// two are kept apart rather than merged because a channel cannot open
+    /// anything and a capability has no business publishing.</para>
     ///
-    /// <para><b>Main thread only</b>, and the interface says so: the listing
-    /// reads part prefabs.</para>
+    /// <para>The load itself is deliberately thin: it hands back the stock
+    /// <c>ShipConstruct</c> and the craft's measurements, nothing more. Whatever
+    /// a career mod's own part modules have to say about their configuration is
+    /// a convention stock does not share, and walking it stays with whichever
+    /// mod asked for the craft.</para>
+    ///
+    /// <para><b>Main thread only</b>, both members, and the interface says so:
+    /// the listing reads part prefabs and the load instantiates them.</para>
     /// </summary>
     public sealed class CraftCatalogueBackend : ICraftCatalogue
     {
@@ -79,6 +96,118 @@ namespace Gonogo.KSP
             _scannedAt = now;
             _scannedSave = save;
             return records;
+        }
+
+        public CraftLoad Load(string? file, KspEditorFacility? facility)
+        {
+            if (string.IsNullOrEmpty(file))
+            {
+                return CraftLoad.Failed("no craft file was named");
+            }
+            if (facility == null || facility == KspEditorFacility.None)
+            {
+                // Never guessed. The VAB and SPH folders may each hold a file of
+                // this name, and picking one would open a craft nobody asked for.
+                return CraftLoad.Failed(
+                    "no editor was named, and the VAB and SPH each keep their own craft folder");
+            }
+
+            var save = HighLogic.SaveFolder;
+            if (string.IsNullOrEmpty(save))
+            {
+                return CraftLoad.Failed("no game is loaded, so there are no craft files to open");
+            }
+
+            string path;
+            try
+            {
+                var folder = ShipConstruction.GetShipsPathFor(save, (EditorFacility)(int)facility.Value);
+                path = Path.Combine(folder ?? "", file + ".craft");
+            }
+            catch (Exception ex)
+            {
+                return CraftLoad.Failed("the craft folder could not be found: " + ex.Message);
+            }
+
+            if (!File.Exists(path))
+            {
+                return CraftLoad.Failed(
+                    "no craft file named \"" + file + "\" is saved in the " + facility.Value);
+            }
+
+            ConfigNode? node;
+            try
+            {
+                node = ConfigNode.Load(path);
+            }
+            catch (Exception ex)
+            {
+                return CraftLoad.Failed("the craft file could not be read: " + ex.Message);
+            }
+
+            if (node == null)
+            {
+                return CraftLoad.Failed("the craft file could not be read");
+            }
+
+            var ship = new ShipConstruct();
+            bool loaded;
+            try
+            {
+                loaded = ship.LoadShip(node);
+            }
+            catch (Exception ex)
+            {
+                // Half a craft may already be standing, so it goes back before the
+                // failure is reported.
+                Release(ship);
+                return CraftLoad.Failed("the craft could not be assembled: " + ex.Message);
+            }
+
+            if (!loaded)
+            {
+                Release(ship);
+                return CraftLoad.Failed(
+                    "KSP refused to load the craft, which usually means it was saved by a "
+                    + "different version or references a part this install does not have");
+            }
+
+            return new CraftLoad
+            {
+                Ship = ship,
+                Measured = Measure(path) ?? new CraftFileRecord { File = file, Facility = facility },
+            };
+        }
+
+        /// <summary>
+        /// Destroys the parts a load instantiated.
+        ///
+        /// <para>Anything that is not a ship this class handed out is ignored
+        /// rather than thrown over: a consumer releasing in a <c>finally</c> has
+        /// no way to know whether the load got far enough, and a throw there would
+        /// replace a result an operator can act on with one they cannot.</para>
+        /// </summary>
+        public void Release(object? ship)
+        {
+            if (!(ship is ShipConstruct construct) || construct.parts == null)
+            {
+                return;
+            }
+            foreach (var part in construct.parts)
+            {
+                try
+                {
+                    if (part != null)
+                    {
+                        UnityEngine.Object.Destroy(part.gameObject);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogWarning("[Gonogo] releasing a loaded craft part failed: " + ex);
+                }
+            }
+            construct.parts.Clear();
         }
 
         /// <summary>Every <c>.craft</c> in one editor's folder, or nothing when the folder is not there.</summary>

@@ -259,6 +259,10 @@
     <Compile Remove="HarmonyPatchProbeMirrorTests.cs" />
     <Compile Remove="FacilityLivenessTests.cs" />
     <Compile Remove="IlSteps.cs" />
+    <!-- CraftCatalogueBackendTests.cs exercises the real CraftCatalogueBackend,
+         which reads HighLogic, ShipConstruction and ConfigNode straight from
+         Assembly-CSharp, so it is gated the same way. -->
+    <Compile Remove="CraftCatalogueBackendTests.cs" />
     <!-- ActiveVessel/ is otherwise unconditional (EvaParentageTests names no KSP
          type at all), so only its ConfigNode half needs dropping here; it is
          re-added under the gate below beside the other round-trip suites. -->
@@ -491,6 +495,13 @@
     <!-- The facility upgrade where no component is registered: the save write, the one debit, both events. -->
     <Compile Include="..\Gonogo.KSP\Career\FacilityLadder.cs" />
     <Compile Include="..\Gonogo.KSP\Career\OffSceneFacilityUpgrade.cs" />
+    <!-- CraftCatalogueBackend.cs reads HighLogic, ShipConstruction, ConfigNode
+         and KSP.UI.Screens.CraftProfileInfo straight from Assembly-CSharp, and
+         Load/Release instantiate and destroy a live ShipConstruct, so it sits
+         under this gate. Only the refusal branches and Release's null-safety
+         run headlessly; see CraftCatalogueBackendTests.cs's own doc comment. -->
+    <Compile Include="..\Gonogo.KSP\CraftCatalogueBackend.cs" />
+    <Compile Include="CraftCatalogueBackendTests.cs" />
     <!-- The maneuver WRITE-path ownership guard: KspVesselActuator + stock's own
          plan backend, so the refusal can be exercised against a real election.
          Gated because both touch KSP types. -->

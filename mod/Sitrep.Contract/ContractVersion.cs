@@ -628,9 +628,22 @@ namespace Sitrep.Contract
         /// its own, and publishes its own plan and its own curve. The propagation
         /// seam and its horizon stay, since they are how any client knows how far
         /// analytic reckoning is trustworthy.</para>
+        ///
+        /// <para><b>Bumped 25 -&gt; 26: <c>ICraftCatalogue</c> can load a craft
+        /// again.</b> <c>Load</c> and <c>Release</c> return to the interface,
+        /// and <c>CraftLoad</c> returns as their result type. Core already loads
+        /// a craft file itself, for the listing this capability publishes and
+        /// for a launch, so handing out the loaded stock <c>ShipConstruct</c> is
+        /// a stock capability rather than a career mod's. The load stays thin:
+        /// it carries the ship handle and a re-measurement, not a walk of what
+        /// the craft's own part modules say about their configuration, which
+        /// has no stock convention and stays with whichever mod asked for the
+        /// craft. This is additive on the wire (nothing removed, nothing
+        /// retyped) and a seam break only: an existing implementation of
+        /// <c>ICraftCatalogue</c> no longer compiles.</para>
         /// </internal>
         /// </summary>
-        public const int Major = 25;
+        public const int Major = 26;
 
         /// <summary>
         /// The contract's minor version within the current <see cref="Major"/>. It

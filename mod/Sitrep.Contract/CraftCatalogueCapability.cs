@@ -5,20 +5,30 @@ namespace Sitrep.Contract
 {
     /// <summary>
     /// The <c>craftCatalogue</c> capability: the save's <c>.craft</c> files,
-    /// listed and measured without being loaded. Resolve it through
+    /// listed, measured, and loaded into live parts for a consumer that needs
+    /// the craft itself rather than a description of it. Resolve it through
     /// <c>host.Kernel</c> as an <see cref="ICraftCatalogue"/>.
     ///
-    /// <para><c>spaceCenter.savedShips</c> is the listing a widget draws; this
-    /// capability carries the file name a command can address and separates the
-    /// parts an install lacks from the parts a career has not researched or
-    /// bought.</para>
+    /// <para><c>spaceCenter.savedShips</c> is the read-only listing a widget
+    /// draws; this capability is what a command acts on. The core mod does the
+    /// KSP half (loading a craft instantiates part prefabs that must later be
+    /// destroyed) and hands back an opaque handle, given back through
+    /// <see cref="ICraftCatalogue.Release"/> once the consumer is done with
+    /// it.</para>
     ///
     /// <para>There is one provider and no election: a craft folder is a fact
     /// about the save's directory, not a model mods hold rival opinions
     /// about.</para>
     /// <internal>
     /// Implemented by Gonogo.KSP.CraftCatalogueBackend and registered from
-    /// SpaceCenterUplink.
+    /// SpaceCenterUplink. It is a capability because that is the only route an
+    /// Uplink has into core; an Uplink may not reference KSP, and managing Unity
+    /// object lifetime by reflection from an assembly that cannot name
+    /// UnityEngine.Object leaves craft standing at the world origin. The load
+    /// stays thin on purpose: it hands back the stock ShipConstruct and
+    /// nothing else. Walking what a craft's own parts say about their
+    /// configuration needs a convention stock does not have, so it stays with
+    /// whichever mod asked for the craft.
     /// </internal>
     /// </summary>
     /// <category>Host and Kernel</category>
@@ -108,11 +118,58 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
-    /// The save's craft folders: what is in them.
+    /// A craft loaded into live parts, or the reason it was not.
     ///
-    /// <para><b>Main-thread only.</b> The listing walks the disk and reads part
-    /// prefabs, which is not legal from the stream thread, so a channel mapper
-    /// must not call it.</para>
+    /// <para>Two fields rather than a nullable handle, because "there is no such
+    /// craft" and "the file is corrupt" are different sentences to put in front
+    /// of an operator and a consumer cannot make either one up.</para>
+    /// </summary>
+    /// <category>Host and Kernel</category>
+    public sealed class CraftLoad
+    {
+        /// <summary>
+        /// The loaded craft, as an opaque handle. It is a KSP
+        /// <c>ShipConstruct</c>, which the consumer is expected to hand to its
+        /// own mod by reflection without naming the type.
+        ///
+        /// <para>It owns live Unity objects and MUST be given back to
+        /// <see cref="ICraftCatalogue.Release"/>, whether the consumer used it or
+        /// refused part-way.</para>
+        /// </summary>
+        public object? Ship { get; set; }
+
+        /// <summary>Why nothing was loaded, in words an operator can act on. Null on success.</summary>
+        public string? Failure { get; set; }
+
+        /// <summary>
+        /// The craft measured again from the parts that were just loaded, rather
+        /// than from the cached listing.
+        ///
+        /// <para>Both exist because they are asked at different moments and a
+        /// consumer needs to know which it is holding. <see cref="ICraftCatalogue.Craft"/>
+        /// serves a widget drawing a list and may be a rescan behind; this serves
+        /// a command about to spend money, where a part unlocked since the last
+        /// rescan has to count.</para>
+        /// </summary>
+        public CraftFileRecord? Measured { get; set; }
+
+        /// <summary>A successful load carrying the loaded craft.</summary>
+        /// <param name="ship">The KSP <c>ShipConstruct</c>, as an opaque handle.</param>
+        /// <returns>A load whose <see cref="Ship"/> is set and whose <see cref="Failure"/> is null.</returns>
+        public static CraftLoad Loaded(object ship) => new CraftLoad { Ship = ship };
+
+        /// <summary>A failed load carrying the reason.</summary>
+        /// <param name="reason">Why nothing was loaded, in words an operator can act on.</param>
+        /// <returns>A load whose <see cref="Failure"/> is set and whose <see cref="Ship"/> is null.</returns>
+        public static CraftLoad Failed(string reason) => new CraftLoad { Failure = reason };
+    }
+
+    /// <summary>
+    /// The save's craft folders: what is in them, and how to open one.
+    ///
+    /// <para><b>Every member is main-thread only.</b> The listing walks the disk
+    /// and reads part prefabs; the load instantiates them. Neither is legal from
+    /// the stream thread, so a channel mapper must not call either.</para>
     /// </summary>
     /// <category>Host and Kernel</category>
     public interface ICraftCatalogue : ISitrepProvider
@@ -126,5 +183,23 @@ namespace Sitrep.Contract
         /// listing may be a rescan behind.</para>
         /// </summary>
         IReadOnlyList<CraftFileRecord> Craft();
+
+        /// <summary>
+        /// Loads one craft into live parts, addressed by
+        /// <see cref="CraftFileRecord.File"/> and the facility whose folder holds
+        /// it.
+        ///
+        /// <para>The facility is required rather than searched for: the VAB and
+        /// SPH folders are separate and may hold a file of the same name, and a
+        /// loader that picked one would launch a spaceplane off a pad.</para>
+        /// </summary>
+        CraftLoad Load(string? file, KspEditorFacility? facility);
+
+        /// <summary>
+        /// Destroys the parts a <see cref="Load"/> instantiated. Safe to call
+        /// with null, and safe to call twice; a handle that was never loaded is
+        /// ignored rather than thrown over.
+        /// </summary>
+        void Release(object? ship);
     }
 }
