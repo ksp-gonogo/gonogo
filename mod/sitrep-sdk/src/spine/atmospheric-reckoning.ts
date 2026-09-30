@@ -594,7 +594,7 @@ export function atmosphericAdmissibility(
       declined: {
         reason: "beyond-horizon",
         input: "gForce",
-        note: `a descent integrated from its last observed rates is honest for about ${horizonSeconds.toFixed(1)} seconds at the sensed deceleration, and this is further`,
+        note: `cannot model more than ${horizonSeconds.toFixed(1)} seconds past the last observation`,
       },
     };
   }

@@ -144,13 +144,11 @@ describe("the carried ASL altitude reaches the operator", () => {
     ).toMatch(/the carried altitude is inside that interval/);
   });
 
-  /** A noiseless history gives the fit no sigma, so no interval is drawn, and the readout says so in words rather than drawing a zero-width band that would read as exact. */
-  it("draws no band at all through the handover set, and says so", async () => {
+  /** A noiseless history gives the fit no sigma, so no interval is drawn rather than a zero-width band that would read as exact, and no caption explains the absence. */
+  it("draws no band at all through the handover set, and says nothing about it", async () => {
     const tree = await mount(loadHandoverFixture("05-drag-biting-42km.json"));
     expect(drawnInterval(tree)).toBeNull();
-    expect(readoutText(tree)).toMatch(
-      /carried with no interval: this model bounds nothing/,
-    );
+    expect(readoutText(tree)).not.toMatch(/interval|bounds/i);
   });
 
   it("draws no interval where the conic carried the altitude, and invents none", async () => {
@@ -168,9 +166,9 @@ describe("the carried ASL altitude reaches the operator", () => {
       loadHandoverFixture("06-peak-deceleration-30km.json"),
     );
     const caption = tree.getByText("CANNOT MODEL");
-    expect(readoutText(tree)).not.toMatch(/honest for about/);
-    expect(caption.getAttribute("title")).toMatch(
-      /honest for about 2\.5 seconds at the sensed deceleration/,
+    expect(readoutText(tree)).not.toMatch(/past the last observation/);
+    expect(caption.getAttribute("title")).toBe(
+      "cannot model more than 2.5 seconds past the last observation",
     );
     expect(drawnInterval(tree)).toBeNull();
   });

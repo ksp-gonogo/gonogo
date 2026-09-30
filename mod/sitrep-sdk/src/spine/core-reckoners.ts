@@ -104,7 +104,7 @@ function elapsedOrDecline(
     return {
       reason: "beyond-horizon",
       input: "relativeVelocity",
-      note: `a relative position carried by its last velocity is honest for about ${LINEAR_HORIZON_SECONDS} seconds, and this is further`,
+      note: `cannot model more than ${LINEAR_HORIZON_SECONDS} seconds past the last observation`,
     };
   }
   return dt;

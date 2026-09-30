@@ -79,10 +79,6 @@ export function CarriedAltitude({ reading }: { reading: FlightReading }) {
         </ReadoutCaption>
       ) : modelState !== null ? (
         <ReadoutCaption title={declined?.note}>{modelState}</ReadoutCaption>
-      ) : carried !== null ? (
-        <ReadoutCaption>
-          carried with no interval: this model bounds nothing
-        </ReadoutCaption>
       ) : null}
     </Section>
   );

@@ -132,20 +132,18 @@ export function useLandingModel(): LandingModel {
   // `oneWaySeconds` is carriable, so the model's projection is overlaid rather than taken whole.
   const commsDelay = describeReckonable(commsDelayReading);
 
-  // Whether the board is describing rather than reporting, and which readings put it there; it drives a caption, never a blank.
   const isDated = (r: { state: ReadingState }): boolean => r.state === "held";
-  const datedInputs = [
-    isDated(flightReading) ? "flight" : null,
-    isDated(surfaceReading) ? "surface" : null,
-    isDated(propulsionReading) ? "propulsion" : null,
-    isDated(orbitReading) ? "orbit" : null,
-    isDated(landingReading) ? "landing" : null,
-  ].filter((name): name is string => name !== null);
   /**
    * The gate on the INSTRUCTION half: no input the burn solve rests on may be dated.
    * A never-arrived input does not refuse, since `solveSuicideBurn` already answers "not-descending" when it lacks data.
    */
-  const mayInstruct = datedInputs.length === 0;
+  const mayInstruct = ![
+    flightReading,
+    surfaceReading,
+    propulsionReading,
+    orbitReading,
+    landingReading,
+  ].some(isDated);
 
   const { exhaustVelocity, burnoutMass } = deriveActiveBurnParams(
     budget?.activeStage,
