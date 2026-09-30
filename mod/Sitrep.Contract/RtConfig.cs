@@ -79,14 +79,6 @@ public static class RtConfig
         // have its properties retyped, so the two lists must not drift apart.
         var wirePayloadTypes = new[]
             {
-                // vessel.trajectory.forVantage: the request a command centre sends
-                // and the reply it gets back. Registered so they generate under
-                // their own names; an unregistered wire type emits I-prefixed and a
-                // client cannot import it, which builds cleanly and fails only at
-                // the boundary.
-                typeof(VantagePlanRequest),
-                typeof(VantagePlanReply),
-                typeof(DelayedObservation),
                 // shared value shapes
                 typeof(Vec3),
                 typeof(PayloadMeta),
@@ -122,21 +114,10 @@ public static class RtConfig
                 // nested payload records
                 typeof(OrbitEncounter),
                 typeof(PropagationHorizon),
-                // The integrated path riding on vessel.orbit, and the three
-                // shapes that describe it. All four are here rather than only
-                // the root: a nested payload left out of this set generates
-                // bare numbers where its parent generates Value<>, in the same
-                // file, with nothing failing.
-                typeof(TrajectoryArc),
-                typeof(TrajectoryPoint),
-                typeof(TrajectoryFrameRef),
-                typeof(TrajectoryForceModel),
                 typeof(OrbitPatch),
                 typeof(ManeuverNode),
                 typeof(ControlFrame),
                 typeof(SetControlFrameArgs),
-                typeof(ComposedBurn),
-                typeof(SendManeuverPlanArgs),
                 typeof(DockAlignment),
                 typeof(ResourceAmount),
                 typeof(ThermalHottestPart),
@@ -469,10 +450,7 @@ public static class RtConfig
                 typeof(PropagationCertification),
                 typeof(PropagationHorizonKind),
                 typeof(TrajectoryKind),
-                typeof(TrajectoryFrameKind),
                 typeof(ControlFrameKind),
-                typeof(TrajectoryDerivation),
-                typeof(TrajectoryRefusal),
                 typeof(VesselType),
                 typeof(WarpMode),
                 typeof(GameMode),

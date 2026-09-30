@@ -4,9 +4,9 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { GENERATED_COMMAND_REPLY_TYPES } from "./__generated__/command-map";
 import type {
+  BodyStatesReply,
   CommandResultOf,
   ScienceTransmission,
-  VantagePlanReply,
 } from "./__generated__/contract";
 import { wrapCommandReply } from "./command-reply-units";
 import { isValue } from "./unit-system";
@@ -74,12 +74,12 @@ describe("wrapCommandReply", () => {
     // record's static factories as members, and a fixture cannot supply those.
     // The unit under test is the one field, and naming it is what makes this an
     // assertion about the declared type rather than about a literal.
-    const reply = wrapCommandReply<Pick<VantagePlanReply, "seededAtUt">>(
-      "vessel.trajectory.forVantage",
-      { seededAtUt: 4242 },
+    const reply = wrapCommandReply<Pick<BodyStatesReply, "states">>(
+      "system.bodies.statesAt",
+      { states: [{ ut: 4242, x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0 }] },
     );
-    expect(isValue(reply.seededAtUt)).toBe(true);
-    expect(reply.seededAtUt).toMatchObject({ magnitude: 4242, unit: "ut" });
+    expect(isValue(reply.states[0].ut)).toBe(true);
+    expect(reply.states[0].ut).toMatchObject({ magnitude: 4242, unit: "ut" });
   });
 
   it("reaches into a CommandResultOf envelope's payload", () => {

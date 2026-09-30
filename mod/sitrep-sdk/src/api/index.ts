@@ -15,12 +15,7 @@
 // modelling what an outside author can actually build.
 
 import type { ReactElement } from "react";
-import {
-  createElement,
-  useCallback,
-  useState,
-  useSyncExternalStore,
-} from "react";
+import { createElement } from "react";
 import type { ModSettingsModel } from "../__generated__/contract";
 import type {
   AnyCommandReply,
@@ -28,17 +23,6 @@ import type {
   CommandId,
   CommandReply,
 } from "../commands";
-import {
-  type ComposedPlan,
-  outcomeOfReply,
-  planSendArgs,
-  SEND_PLAN_COMMAND,
-  type SendPlanHandle,
-  type SendPlanOutcome,
-  sendRefusalFromError,
-  whyNotSendable,
-} from "../plan-composition";
-import { type PlanDraft, PlanDraftStore } from "../plan-drafts";
 import type { Reading, ReckonableReading, TopicReading } from "../reading";
 import type { ReckonableFields, ReckonableTopic } from "../reckonability";
 import type { TopicId, TopicPayload } from "../topics";
@@ -294,24 +278,6 @@ export {
   frameCaveat,
   lengthsAreLengths,
 } from "../frame-qualifier";
-// Composing a flight plan at a command centre and transmitting it. The types an
-// author states a plan in, plus `whyNotSendable` so a control greys itself out
-// on the SAME answer the send refuses on rather than a second opinion about it.
-export type {
-  ComposedPlan,
-  SendPlanHandle,
-  SendPlanOutcome,
-} from "../plan-composition";
-export {
-  SEND_PLAN_COMMAND,
-  sendRefusalFromError,
-  whyNotSendable,
-} from "../plan-composition";
-// The command centre's OWN plans, which the game never sees until one is sent.
-// `draftAsPlan` is the seam between the two: it is what stops a widget building
-// the send arguments by hand and getting the vantage stamp wrong privately.
-export type { PlanDraft } from "../plan-drafts";
-export { draftAsPlan, PlanDraftStore } from "../plan-drafts";
 
 // --- Registration shims (stateful → injected host) --------------------------
 
@@ -527,17 +493,6 @@ export function registerSetting(
  * said so.
  */
 export { isReadOnlySetting, settingTypeOf } from "../spine/settings-registry";
-export type { VantageTrajectory } from "../spine/use-vantage-trajectory";
-// Asking where a craft goes from THIS command centre's point of view. On the
-// author surface because an Uplink widget is exactly who asks: the question only
-// has an answer relative to a vantage, and a widget is where a vantage is being
-// looked at. The refusal mapper comes with it, so a caller can tell a message
-// that never left from a craft this vantage cannot see.
-export {
-  refusalFromError,
-  useVantageTrajectory,
-  VANTAGE_TRAJECTORY_COMMAND,
-} from "../spine/use-vantage-trajectory";
 
 // --- Hook shims (stateful → injected host) ----------------------------------
 
@@ -709,130 +664,6 @@ export function useUplinkRelay(uplinkId: string) {
  */
 export function useHostIceServers() {
   return getHost().useHostIceServers();
-}
-
-/**
- * Compose a flight plan at a command centre and transmit it to be instantiated
- * aboard.
- *
- * <p>Here rather than beside the raw command because getting the two instants
- * right is the whole difficulty, and every widget that hand-rolled it would get
- * to make the same mistake privately. This stamps when the operator decided, off
- * the view clock it already holds. The caller states how old the information it
- * decided on was, because only the caller knows which reading it planned
- * against.</p>
- *
- * <p>A plan built from a state later than the view it was composed at is
- * refused before it leaves. That is the delay model inverted, and catching it
- * here puts the complaint at the site that made the mistake rather than a
- * light-time away.</p>
- */
-/**
- * The command centre's own plans for this screen, and a live view of them.
- *
- * <p>One store per screen rather than one per widget, so a plan composed in one
- * panel is the same object another panel can review or send. Drafts are
- * command-centre objects and the game never sees one until it is sent, which is
- * what lets two operators work on different plans for the same craft without
- * either disturbing the other or the player at the keyboard.</p>
- *
- * @category Commands
- */
-export function usePlanDrafts(): {
-  store: PlanDraftStore;
-  drafts: readonly PlanDraft[];
-} {
-  const store = useSyncExternalStore(
-    PLAN_DRAFTS.subscribe.bind(PLAN_DRAFTS),
-    () => PLAN_DRAFTS,
-    () => PLAN_DRAFTS,
-  );
-  const drafts = useSyncExternalStore(
-    PLAN_DRAFTS.subscribe.bind(PLAN_DRAFTS),
-    () => PLAN_DRAFTS.list(),
-    () => PLAN_DRAFTS.list(),
-  );
-  return { store, drafts };
-}
-
-/**
- * The screen's draft store.
- *
- * <p>Module scope, like the component registry beside it: a store held in a
- * provider would make a plan composed in one panel invisible to the next, and
- * the whole point of a command centre's drafts is that they are the command
- * centre's rather than one widget's.</p>
- */
-const PLAN_DRAFTS = new PlanDraftStore();
-
-/**
- * Discards every draft on this screen.
- *
- * <p>Test-facing, and the sibling of `clearAugments` beside it: the store is
- * module scope by design, which means it OUTLIVES a rendered tree, so without
- * this a plan composed in one case is still there in the next and the two are
- * asserting against each other's drafts. Call it after unmounting rather than
- * before: clearing while a tree is still mounted notifies its subscribers
- * outside `act`.</p>
- *
- * @category Commands
- */
-export const clearPlanDrafts = (): void => {
-  for (const draft of PLAN_DRAFTS.list()) {
-    PLAN_DRAFTS.remove(draft.id);
-  }
-};
-
-/**
- * Transmit a composed manoeuvre plan, and track the one send in flight.
- *
- * Wraps {@link SEND_PLAN_COMMAND} with the checks a plan needs that an ordinary
- * command does not: {@link whyNotSendable} runs against the current view time
- * FIRST, so a plan whose burn has already passed resolves as a refusal without
- * a message leaving, and the returned {@link SendPlanOutcome} distinguishes
- * that from the game rejecting a plan it did receive. `send` never throws; a
- * transport failure arrives as a refusal too.
- *
- * @category Commands
- */
-export function useSendPlan(): SendPlanHandle {
-  const command = useCommand(SEND_PLAN_COMMAND);
-  const viewUt = useViewUt();
-  const [pending, setPending] = useState(false);
-  const [outcome, setOutcome] = useState<SendPlanOutcome | null>(null);
-
-  const send = useCallback(
-    async (plan: ComposedPlan): Promise<SendPlanOutcome> => {
-      const composedAtViewUt = viewUt?.magnitude;
-      const refusal = whyNotSendable(plan, composedAtViewUt);
-      if (refusal) {
-        const refused: SendPlanOutcome = { accepted: false, refusal };
-        setOutcome(refused);
-        return refused;
-      }
-
-      setPending(true);
-      try {
-        const reply = await command.send(
-          planSendArgs(plan, composedAtViewUt as number),
-        );
-        const next = outcomeOfReply(
-          reply as { success?: boolean; detail?: string } | undefined,
-        );
-        setOutcome(next);
-        return next;
-      } catch (error) {
-        const failed = sendRefusalFromError(error);
-        setOutcome(failed);
-        return failed;
-      } finally {
-        setPending(false);
-      }
-    },
-    [command, viewUt],
-  );
-
-  return { send, pending, outcome };
 }
 
 /**

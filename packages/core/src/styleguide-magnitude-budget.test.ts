@@ -99,10 +99,6 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // owns none, which is what stops it being a second clock beside the one the
   // app renders through.
   "mod/sitrep-sdk/src/burn-clock.ts": 6,
-  // 1: the view instant, read out to stamp when a composed plan was decided.
-  // The wire carries it as a plain UT because the receiving side records it on
-  // a receipt rather than doing algebra with it.
-  "mod/sitrep-sdk/src/api/index.ts": 1,
   // 3, all three in `frameVector`. The frame arithmetic
   // works in bare metres throughout (a rotation matrix has no unit to carry),
   // so SOMETHING has to unwrap a wire vector before `toFrame` sees it. The
@@ -123,13 +119,6 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // Having it here once is what lets every widget stop doing it: `UnitInput`
   // emits a `Value`, so a call site never sees a bare number at all.
   "packages/ui-kit/src/UnitInput.tsx": 1,
-  // This file is where the escape hatch belongs: its
-  // job IS the wire shape, and the receiving side binds every instant and every
-  // Δv component to a plain double. A `Value` reaching it is refused from inside
-  // the handler, which loses the whole plan and marks the vessel uplink
-  // unavailable for the session. Unwrapping once here is what stops every caller
-  // building that shape by hand and finding out the same way.
-  "mod/sitrep-sdk/src/plan-composition.ts": 8,
   // 2: `lerpFieldValue(key,
   // before.magnitude, after.magnitude, t)` spends two on one line. Both are a
   // boundary: the recursion re-enters itself on the plain-number branch and re-declares the
@@ -352,13 +341,6 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // or already unwrapped, so one read normalises the two. Not arithmetic: the
   // number is compared against a window and never computed with.
   "mod/sitrep-sdk/src/spine/kepler.ts": 1,
-  // The trajectory arc's points arrive either wrapped (as the wire delivers
-  // them) or already unwrapped (as a caller-built fixture has them), so one read
-  // normalises the two, exactly as `canPropagate`'s does above. Not arithmetic:
-  // the numbers go into a rotation matrix as raw metres, which is geometry in a
-  // single frame with a single unit and has no dimension for the algebra to
-  // check.
-  "mod/sitrep-sdk/src/spine/orbit-trajectory.ts": 1,
   /*
    * 10: each patch's elements and window, read as numbers once and only here.
    * The Kepler step and the perifocal rotation are trigonometry the algebra has

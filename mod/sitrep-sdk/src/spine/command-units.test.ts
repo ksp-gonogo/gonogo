@@ -1,12 +1,10 @@
 import { describe, expect, it } from "vitest";
-import type {
-  BodyStatesRequest,
-  VantagePlanRequest,
-} from "../__generated__/contract";
+import type { BodyStatesRequest } from "../__generated__/contract";
 import { PropagationCertification } from "../__generated__/contract";
 import { createTestTelemetryClient } from "../testing/create-test-telemetry-client";
 import { StubTransport } from "../testing/stub-transport";
 import { isValue, value } from "../unit-system";
+import { dehydrateArgs } from "../wrap-units";
 
 /**
  * The command boundary in both directions, asserted on the WIRE rather than on
@@ -40,20 +38,20 @@ function fieldOf(reply: unknown, field: string): unknown {
 }
 
 describe("a typed command's args reach the wire as bare numbers", () => {
-  it("dehydrates a scalar quantity by its declared unit", async () => {
-    const transport = new StubTransport();
-    transport.setCommandHandler(() => ({ solved: true }));
-    const client = createTestTelemetryClient(transport);
-    const request: VantagePlanRequest = {
-      topic: "vessel.orbit",
-      toUt: value("ut", 2000),
-      maxPoints: value("count", 128),
-    };
+  it("dehydrates a scalar quantity by its declared unit", () => {
+    // No core command's args carry a scalar quantity today, so the walk is asserted directly on a planted shape: a Value at a key, beside a plain field that must pass through untouched.
+    const wire = JSON.parse(
+      JSON.stringify(
+        dehydrateArgs({
+          topic: "planted.topic",
+          toUt: value("ut", 2000),
+          maxPoints: value("count", 128),
+        }),
+      ),
+    );
 
-    await client.dispatch("vessel.trajectory.forVantage", request).result;
-
-    expect(wireArgsOf(transport)).toEqual({
-      topic: "vessel.orbit",
+    expect(wire).toEqual({
+      topic: "planted.topic",
       toUt: 2000,
       maxPoints: 128,
     });
@@ -81,16 +79,18 @@ describe("a typed command's args reach the wire as bare numbers", () => {
     // a `Value` in a caller's state to a number would break whatever renders it
     // on the very next frame.
     const transport = new StubTransport();
-    transport.setCommandHandler(() => ({ solved: true }));
+    transport.setCommandHandler(() => ({ solved: true, states: [] }));
     const client = createTestTelemetryClient(transport);
-    const request: VantagePlanRequest = {
-      toUt: value("ut", 2000),
-      maxPoints: value("count", 128),
+    const request: BodyStatesRequest = {
+      bodyIndex: 1,
+      centreBodyIndex: 0,
+      uts: [value("ut", 100)],
+      certification: PropagationCertification.Unbounded,
     };
 
-    client.dispatch("vessel.trajectory.forVantage", request);
+    client.dispatch("system.bodies.statesAt", request);
 
-    expect(isValue(request.toUt)).toBe(true);
+    expect(isValue(request.uts[0])).toBe(true);
   });
 });
 
@@ -99,17 +99,22 @@ describe("a command reply's declared quantities arrive as Values", () => {
     const transport = new StubTransport();
     transport.setCommandHandler(() => ({
       solved: true,
-      seededAtUt: 4242,
-      vantage: "ksc",
+      states: [{ ut: 4242, x: 1, y: 2, z: 3, vx: 0, vy: 0, vz: 0 }],
     }));
     const client = createTestTelemetryClient(transport);
 
-    const reply = await client.dispatch("vessel.trajectory.forVantage", {})
-      .result;
+    const reply = await client.dispatch("system.bodies.statesAt", {
+      bodyIndex: 1,
+      centreBodyIndex: 0,
+      uts: [],
+      certification: PropagationCertification.Unbounded,
+    }).result;
 
-    const seededAtUt = fieldOf(reply, "seededAtUt");
-    expect(isValue(seededAtUt)).toBe(true);
-    expect(seededAtUt).toMatchObject({ magnitude: 4242, unit: "ut" });
+    const states = fieldOf(reply, "states");
+    const first = Array.isArray(states) ? states[0] : undefined;
+    const ut = fieldOf(first, "ut");
+    expect(isValue(ut)).toBe(true);
+    expect(ut).toMatchObject({ magnitude: 4242, unit: "ut" });
   });
 
   it("leaves a reply with no declared quantity untouched", async () => {

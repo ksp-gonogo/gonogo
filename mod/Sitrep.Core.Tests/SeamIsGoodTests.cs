@@ -21,8 +21,8 @@ namespace Sitrep.Core.Tests
     /// point for an Uplink nobody has written yet, and holding one to an
     /// in-repo implementer would block it the moment the Uplink holding it
     /// leaves this repo. <c>IDerivedCurrencyWithholder</c>, <c>IScetThresholdSources</c>,
-    /// <c>IGravityModelSource</c>, <c>IIntegratedTrajectorySource</c> and
-    /// <c>IBodyEphemerisHorizon</c> each have exactly one implementer and it is an
+    /// <c>IIntegratedTrajectorySource</c> and <c>IBodyEphemerisHorizon</c> each
+    /// have exactly one implementer and it is an
     /// Uplink that is on its way out. Which Uplinks is deliberately not written
     /// here: nothing in core names a mod.</para>
     ///
@@ -97,10 +97,8 @@ namespace Sitrep.Core.Tests
             ["IUplinkHost"] = "the registration-order rules a host must honour, and which calls are legal after startup",
             ["IUplinkCapabilityDeclarer"] = "that a declared capability id is one the Kernel can resolve, and what a duplicate declaration does",
             ["IIntegratedTrajectorySource"] = "what an integrated trajectory owes over a span: frame, epoch monotonicity, and the refusal shape when the span is not certified",
-            ["ISeededPropagationProvider"] = "that a seeded propagation agrees with the unseeded one at the seed instant",
             ["IBodyEphemerisHorizon"] = "the meaning of the horizon instant, and what is returned when the ephemeris does not reach that far",
             ["ICommandCentre"] = "the vantage id vocabulary and its stability across a save/load",
-            ["ITrajectoryArcSource"] = "arc continuity across a patch boundary, and the null rule when no arc can be produced",
         };
 
         // ── The public half: is the seam good ────────────────────────────────────

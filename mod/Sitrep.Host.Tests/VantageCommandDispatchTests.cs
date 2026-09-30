@@ -7,8 +7,8 @@ namespace Sitrep.Host.Tests
     /// A vantage-aware command has to survive the DISPATCH gate, not merely be
     /// registered.
     ///
-    /// <para>Written after the live game refused `vessel.trajectory.forVantage` with
-    /// the same sentence it gives a command that does not exist. Every unit test
+    /// <para>Written after the live game refused a vantage-aware command with the
+    /// same sentence it gives a command that does not exist. Every unit test
     /// asserted registration and every one passed: the gate reads a different store
     /// from the one the invoke reads, and nothing joined them.</para>
     /// </summary>
@@ -17,14 +17,14 @@ namespace Sitrep.Host.Tests
         [Fact]
         public void AVantageAwareCommandIsRecognisedByTheDispatcher()
         {
-            // The engine registers exactly one command into the vantage store, so
-            // nothing else in the tree would have exposed this.
+            // One the engine itself registers into the vantage store, so no Uplink
+            // has to be loaded to reach it.
             // Not started and not disposed: these read registration state only, and
             // Stop() joins a thread Start() never created.
             var engine = new ChannelEngine("ws://127.0.0.1:0");
 
             Assert.True(
-                engine.RecognisesCommandForTests(ChannelEngine.PlanForVantageCommand),
+                engine.RecognisesCommandForTests(ChannelEngine.BodyStatesAtCommand),
                 "the dispatcher must recognise a command registered into the "
                     + "vantage-aware store, or it refuses it as unknown before the "
                     + "handler is reached");

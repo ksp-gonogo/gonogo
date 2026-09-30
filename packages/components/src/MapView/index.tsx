@@ -84,7 +84,6 @@ const topics = defineTopicManifest({
     "vessel.orbit.encounter",
     "vessel.orbit.mu",
     "vessel.orbit.horizon",
-    "vessel.orbit.arc",
   ],
 });
 

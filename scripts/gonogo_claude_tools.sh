@@ -860,8 +860,6 @@ build_gonogo() {
   #   PropagationCapability        the capability id an Uplink and the election
   #                                have to agree on across a boundary neither
   #                                compiles across
-  #   NotAttempted                 the refusal enum's zero value; its old
-  #                                spelling reads as "nothing was refused"
   #   ElectedIntegrates            the election's own type check, in Sitrep.Host,
   #                                which defines it. NOT asked of Gonogo.dll:
   #                                the KSP layer's last call to it went in
@@ -883,8 +881,6 @@ build_gonogo() {
     --control mscorlib \
     --require IIntegratedTrajectorySource \
     --require PropagationCapability \
-    --require NotAttempted \
-    --require NotRefused \
     --absent Reinforced.Typings || contract_rc=$?
   python3 "$ROOT/scripts/verify_deployed_symbols.py" \
     "$install_dir/Sitrep.Host.dll" \

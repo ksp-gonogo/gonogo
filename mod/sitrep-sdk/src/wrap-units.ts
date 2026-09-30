@@ -291,7 +291,7 @@ function wrapScalarOrList(current: unknown, unit: string): unknown {
  *
  * Command args travel the opposite way to telemetry. The generated args types
  * declare quantities the same way a channel payload does
- * (`VantagePlanRequest.toUt: Value<"ut">`), so a typed caller builds a `Value`,
+ * (`BodyStatesRequest.uts: Value<"ut">[]`), so a typed caller builds a `Value`,
  * `JSON.stringify` reaches `Value.toJSON`, and `{"magnitude":80,"unit":"ut"}`
  * arrives at a host binding a `double`. That is not a field the mod ignores:
  * `ChannelEngine.BindCommandArgs` rejects an object bag for a numeric slot by

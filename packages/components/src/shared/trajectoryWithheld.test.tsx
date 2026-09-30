@@ -19,8 +19,6 @@ const EVERY_REASON = [
   "past-horizon",
   "shape-not-stated",
   "no-arc-available",
-  "beyond-budget",
-  "no-force-model",
 ] as const satisfies readonly Extract<
   OrbitTrajectory,
   { shape: "withheld" }
@@ -37,26 +35,6 @@ describe("trajectoryWithheldCopy", () => {
       (reason) => trajectoryWithheldCopy({ shape: "withheld", reason }).detail,
     );
     expect(new Set(details).size).toBe(EVERY_REASON.length);
-  });
-
-  it("tells the operator to shorten the window when the budget ran out", () => {
-    const { heading, detail } = trajectoryWithheldCopy({
-      shape: "withheld",
-      reason: "beyond-budget",
-    });
-    expect(heading).toBe("BEYOND BUDGET");
-    expect(detail).toMatch(/shorten the window/i);
-  });
-
-  it("names a missing force model as an install problem, with no wait in it", () => {
-    // No operator remedy: waiting would be waiting for a curve that never comes.
-    const { heading, detail } = trajectoryWithheldCopy({
-      shape: "withheld",
-      reason: "no-force-model",
-    });
-    expect(heading).toBe("NO FORCE MODEL");
-    expect(detail).toMatch(/install/i);
-    expect(detail).not.toMatch(/\bwait\b/i);
   });
 
   it("still separates an outrun integration from an outrun conic", () => {
@@ -78,20 +56,20 @@ describe("trajectoryWithheldCopy", () => {
 });
 
 describe("TrajectoryWithheldNote", () => {
-  it("puts the new refusals on screen where the drawing was", () => {
+  it("puts the refusal on screen where the drawing was", () => {
     const { container } = render(
       <TrajectoryWithheldNote
-        withheld={{ shape: "withheld", reason: "no-force-model" }}
+        withheld={{ shape: "withheld", reason: "shape-not-stated" }}
       />,
     );
-    expect(visibleText(container)).toContain("NO FORCE MODEL");
+    expect(visibleText(container)).toContain("SHAPE NOT STATED");
     expect(container.querySelector('[role="status"]')).not.toBeNull();
   });
 
   it("has no accessibility violations", async () => {
     const { container } = render(
       <TrajectoryWithheldNote
-        withheld={{ shape: "withheld", reason: "beyond-budget" }}
+        withheld={{ shape: "withheld", reason: "no-arc-available" }}
       />,
     );
     await expectNoA11yViolations(container);

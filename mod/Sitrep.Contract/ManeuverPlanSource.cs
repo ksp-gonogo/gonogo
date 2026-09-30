@@ -47,21 +47,6 @@ namespace Sitrep.Contract
         /// knows what a burn's stable identity is in its own model.</para>
         /// </summary>
         IList<ManeuverNode>? Plan();
-
-        /// <summary>
-        /// Install a plan composed at a command centre, whole or not at all.
-        ///
-        /// <para>On the same interface as <see cref="Plan"/>: whoever reports the
-        /// craft's plan is the only thing that can replace it, so an operator
-        /// never reads one plan and changes another.</para>
-        ///
-        /// <para>Refusing is a normal outcome. A planner with no way to accept a
-        /// whole plan says so, rather than accepting and installing part of
-        /// it.</para>
-        /// </summary>
-        /// <param name="plan">The plan to install, in full.</param>
-        /// <returns>Success once the whole plan is installed, or a refusal with nothing installed.</returns>
-        CommandResult SendPlan(SendManeuverPlanArgs plan);
     }
 
     /// <summary>

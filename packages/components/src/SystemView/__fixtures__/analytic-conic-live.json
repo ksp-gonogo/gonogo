@@ -5,7 +5,7 @@
     "body": "Kerbin",
     "situation": "A 250 km circular Kerbin orbit, captured live. Paired with analytic-conic-live, which is the same frame under the analytic solver",
     "provider": "stock-analytic",
-    "notes": "The captured payload with the three provider fields set to what VesselViewProvider.AnalyticHorizon publishes when no integrating provider is elected: kind=1 (Unbounded), trajectoryKind=1 (Analytic), arc null, arcRefusal=0 (NotAttempted). Every other field, and both other channels, are the capture untouched, so a difference against the Principia twin is the provider and not the scenario."
+    "notes": "The captured payload with the two provider fields set to what VesselViewProvider publishes when no integrating provider is elected: kind=1 (Unbounded), trajectoryKind=1 (Analytic). Every other field, and both other channels, are the capture untouched, so a difference against the Principia twin is the provider and not the scenario."
   },
   "_stream": {
     "pinnedUt": 315659.495086983,
@@ -531,9 +531,7 @@
           "horizon": {
             "kind": 1,
             "trajectoryKind": 1
-          },
-          "arc": null,
-          "arcRefusal": 0
+          }
         },
         "meta": {
           "quality": 1

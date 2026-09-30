@@ -42,7 +42,6 @@ export { clearActionHandlers } from "../api/action-dispatch";
 // the two happening to be the same object.
 export {
   clearAugments,
-  clearPlanDrafts,
   getAugmentsForSlot,
 } from "../api/index";
 export { clearMapPoiProviders } from "../api/map-poi";

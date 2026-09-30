@@ -313,10 +313,10 @@ namespace Sitrep.Core.Tests
         /// sibling of that name and each one is judged on its own.</para>
         ///
         /// <para>A call qualified by ANOTHER class is not followed, but when it
-        /// lands on a producer its types are delegated all the same:
-        /// <c>ChannelEngine.ToWire(VantagePlanReply)</c> hands its arc to
-        /// <c>VesselViewProvider.ToWire(TrajectoryArc)</c>, which grades the arc
-        /// where it is written.</para>
+        /// lands on a producer its types are delegated all the same: a reply
+        /// flattener that hands a nested payload to another class's
+        /// <c>ToWire</c> leaves that payload to be graded where it is
+        /// written.</para>
         ///
         /// <para>A producer the CLASS name speaks for (<c>FleetVesselResourcesBuilder.Build</c>)
         /// starts from every method of its class rather than from its own calls.

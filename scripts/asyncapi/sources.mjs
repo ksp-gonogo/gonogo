@@ -38,11 +38,10 @@ export const SOURCES = {
   /**
    * Where core channels and commands are declared.
    *
-   * Almost all of them are in the plugin assembly, on an `UplinkManifest`. One
-   * command is declared by the engine itself (`vessel.trajectory.forVantage`,
+   * Almost all of them are in the plugin assembly, on an `UplinkManifest`. A
+   * few commands are declared by the engine itself (`system.bodies.statesAt`,
    * registered straight into `ChannelEngine`'s own table), so the host is
-   * scanned too. Scanning the plugin alone found 50 of 51 commands, and the
-   * cross-check named the missing one.
+   * scanned too.
    */
   declarations: ["mod/Gonogo.KSP", "mod/Sitrep.Host"],
   /** Scanned for const topic/command strings the declarations point at. */

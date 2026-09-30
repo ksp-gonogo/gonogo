@@ -51,8 +51,8 @@ describe("enumerateTopicFields", () => {
 
   it("descends a singular nested shape but stops at a plural sibling", () => {
     const paths = enumerateTopicFields("vessel.orbit").map((f) => f.path);
-    // `arc` is one TrajectoryArc, so its own fields are reachable.
-    expect(paths.some((p) => p.startsWith("arc."))).toBe(true);
+    // `horizon` is one PropagationHorizon, so its own fields are reachable.
+    expect(paths.some((p) => p.startsWith("horizon."))).toBe(true);
     // `patches` is `OrbitPatch[]`, so the collection itself is the deepest thing a sample of `vessel.orbit` can reach.
     expect(paths).toContain("patches");
     expect(paths.some((p) => p.startsWith("patches."))).toBe(false);

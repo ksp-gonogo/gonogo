@@ -675,21 +675,6 @@ namespace Sitrep.Host
         /// <summary>Change one of a host mod's own settings; see <see cref="WriteModSettingArgs"/>.</summary>
         internal const string WriteModSettingCommand = "settings.mod.write";
 
-        /// <summary>
-        /// Ask where a craft goes, FROM THIS COMMAND CENTRE'S POINT OF VIEW.
-        ///
-        /// <para>Registered here rather than by an Uplink because it is not any one
-        /// mod's question. The physics comes from whichever seeded provider is
-        /// elected, and what makes the answer honest is the archive and the vantage,
-        /// both of which are core's.</para>
-        ///
-        /// <para>Undelayed, and that is the subtle part. This is not a command to a
-        /// craft, it is an operator asking their own command centre to work something
-        /// out from what it already knows. Delaying it would make a room full of
-        /// people wait a light-time for the result of their own arithmetic. The delay
-        /// lives where it belongs, in the STATE the answer is computed from.</para>
-        /// </summary>
-        internal const string PlanForVantageCommand = "vessel.trajectory.forVantage";
 
         /// <summary>
         /// <c>system.bodies.statesAt</c>: where a body is at instants the CALLER
@@ -1427,14 +1412,6 @@ namespace Sitrep.Host
                 Delay = DelayRole.TrueNow,
             };
             _channelSources[UplinksTopic] = BuildSystemUplinksPayload;
-
-            _commandDeclarations[PlanForVantageCommand] = new CommandDeclaration
-            {
-                Command = PlanForVantageCommand,
-            };
-            _vantageCommandHandlers[PlanForVantageCommand] =
-                (args, vantage) => PlanForVantage(args, vantage);
-            _commandArgTypes[PlanForVantageCommand] = typeof(VantagePlanRequest);
 
             _commandDeclarations[BodyStatesAtCommand] = new CommandDeclaration
             {
@@ -4309,22 +4286,6 @@ namespace Sitrep.Host
         }
 
         /// <summary>
-        /// The seeded propagator this engine plans with, or null when the install has
-        /// none. Settable so a host can supply one built from the elected physics,
-        /// and so the planning command refuses honestly rather than crashing when
-        /// nothing is configured.
-        /// </summary>
-        public ISeededPropagationProvider? SeededPropagation { get; set; }
-
-        /// <summary>
-        /// Answer where a craft goes, from a given command centre's point of view.
-        ///
-        /// <para>The whole delay model in one call: the state comes from what THIS
-        /// vantage has been told, the horizon comes from the operator, and the physics
-        /// comes from whichever seeded provider is elected. Nothing here can reach the
-        /// game's live state, which is the point.</para>
-        /// </summary>
-        /// <summary>
         /// Whether the dispatcher would recognise this command, reading the same
         /// stores its gate does.
         ///
@@ -4361,11 +4322,10 @@ namespace Sitrep.Host
         ///
         /// <para><b>COURIER THREAD ONLY.</b> The archive is the Courier's own
         /// state and nothing guards it, and neither does the delay ledger the
-        /// routing pins. The one existing main-thread reader
-        /// (<see cref="PlanForVantage"/>) is safe for a reason that does not
-        /// generalise: it runs inside <see cref="RunOnMainThread"/>, so the
-        /// Courier thread is parked waiting for it. A sampled source must
-        /// therefore ask this from its handle and never from its capture.</para>
+        /// routing pins. A main-thread caller is safe only inside
+        /// <see cref="RunOnMainThread"/>, where the Courier thread is parked
+        /// waiting for it. A sampled source must therefore ask this from its
+        /// handle and never from its capture.</para>
         /// </summary>
         public object? ReadTopicAtVantage(string topic, string vantage, double nowUt)
         {
@@ -4522,9 +4482,10 @@ namespace Sitrep.Host
         }
 
         /// <summary>
-        /// The body-states reply's wire shape. A named method taking the type, for
-        /// the reason <see cref="ToWire(VantagePlanReply)"/> is one: the coverage
-        /// gate can read this shape and cannot read an inline flatten.
+        /// The body-states reply's wire shape. A named method taking the type
+        /// because that is the shape the coverage gate can read: an inline
+        /// flatten inside an <c>object?</c>-returning handler is
+        /// indistinguishable from no flatten at all.
         /// </summary>
         private static Dictionary<string, object?> ToWire(BodyStatesReply reply) =>
             new Dictionary<string, object?>
@@ -4546,94 +4507,6 @@ namespace Sitrep.Host
                 ["vy"] = state.Vy,
                 ["vz"] = state.Vz,
             };
-
-        private object? PlanForVantage(object? args, string vantage)
-        {
-            var bound = BindCommandArgs(args, typeof(VantagePlanRequest)) as VantagePlanRequest;
-            if (bound == null || string.IsNullOrEmpty(bound.Topic))
-            {
-                return VantagePlanReply.Refused(
-                    "This request named no topic, so there is nothing to plan from.");
-            }
-
-            var node = NodeFor(bound.Topic!);
-            var nowUt = _clock.Now();
-            var answer = VantagePlanning.Solve(
-                _courier.ObserveAtVantage(node, bound.Topic!, vantage, nowUt, OrbitPayloadToState),
-                SeededPropagation,
-                bound.ToUt,
-                bound.MaxPoints);
-
-            // Flattened here rather than returned as a POCO, like every other command
-            // result on this engine: the wire writer takes dictionaries, and the
-            // reply type exists so a client has something to read it AS.
-            var reply = answer.Solved
-                ? VantagePlanReply.From(answer, vantage)
-                : VantagePlanReply.Refused(answer.Refusal ?? "No trajectory could be computed.");
-            return ToWire(reply);
-        }
-
-        /// <summary>
-        /// The planning reply's wire shape.
-        ///
-        /// <para>The arc goes through <see cref="VesselViewProvider.ToWire(TrajectoryArc)"/>,
-        /// the same flattener <c>vessel.orbit</c>'s own arc uses, rather than being
-        /// dropped into the dictionary as a POCO. It used to be: JsonWriter has no
-        /// case for a <see cref="TrajectoryArc"/>, so a SOLVED plan threw at the wire
-        /// boundary and was dropped, while every refusal (whose arc is null) went out
-        /// fine. A command that answers only when it has nothing to say.</para>
-        ///
-        /// <para>A named method taking the type, rather than the dictionary built
-        /// inline where it is returned, because that is the shape the coverage gate
-        /// can READ: an inline flatten inside an <c>object?</c>-returning handler is
-        /// indistinguishable from no flatten at all.</para>
-        /// </summary>
-        private static Dictionary<string, object?> ToWire(VantagePlanReply reply) =>
-            new Dictionary<string, object?>
-            {
-                ["solved"] = reply.Solved,
-                ["arc"] = reply.Arc == null ? null : VesselViewProvider.ToWire(reply.Arc),
-                ["seededAtUt"] = reply.SeededAtUt,
-                ["vantage"] = reply.Vantage,
-                ["refusal"] = reply.Refusal,
-            };
-
-        /// <summary>
-        /// Turn an archived orbit sample into a state a propagation can start from.
-        ///
-        /// <para>The wire carries ELEMENTS, so this is where they become a position
-        /// and a velocity, through the same two-body solve the analytic provider uses.
-        /// Converting them a second way here would let two parts of one program
-        /// disagree about where a craft is.</para>
-        /// </summary>
-        private static StateAboutBody? OrbitPayloadToState(object? payload)
-        {
-            if (payload is not VesselOrbit orbit)
-            {
-                return null;
-            }
-            // An orbit with no semi-major axis or a non-elliptical eccentricity is
-            // not something the two-body solve can turn into a state, and guessing
-            // one would seed an integrator with a craft that is not there.
-            if (!(orbit.Sma > 0) || orbit.Ecc < 0 || orbit.Ecc >= 1 || !(orbit.Mu > 0))
-            {
-                return null;
-            }
-
-            var elements = new OrbitElements
-            {
-                Sma = orbit.Sma,
-                Ecc = orbit.Ecc,
-                Inc = orbit.Inc,
-                Lan = orbit.Lan ?? 0.0,
-                ArgPe = orbit.ArgPe ?? 0.0,
-                MeanAnomalyAtEpoch = orbit.MeanAnomalyAtEpoch,
-                Epoch = orbit.Epoch,
-                Mu = orbit.Mu,
-            };
-            return new StateAboutBody(
-                KeplerProvider.StateFrom(elements, orbit.Epoch), orbit.ReferenceBodyIndex);
-        }
 
         /// <summary>
         /// The sole call site that invokes a registered command handler, shared by
@@ -4722,8 +4595,7 @@ namespace Sitrep.Host
         /// was queued for the next capture would land one snapshot cadence late,
         /// and under warp a cadence is thousands of seconds of game time, which
         /// is the precision the decision was made for. Parking the Courier for
-        /// one frame is the cheaper side of that trade, and it is what
-        /// <see cref="PlanForVantage"/> already does.</para>
+        /// one frame is the cheaper side of that trade.</para>
         ///
         /// <para>Swallows nothing: a throw from the main thread comes back here,
         /// and a shutdown in flight raises rather than blocking until the

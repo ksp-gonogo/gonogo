@@ -78,7 +78,6 @@ import type {
   ScetAlarmArmArgs,
   ScetAlarmDisarmArgs,
   ScienceTransmission,
-  SendManeuverPlanArgs,
   ServoSetEnabledArgs,
   ServoSetTargetArgs,
   SetActionGroupArgs,
@@ -95,8 +94,6 @@ import type {
   UnlockTechArgs,
   UpdateManeuverNodeArgs,
   UpgradeFacilityArgs,
-  VantagePlanReply,
-  VantagePlanRequest,
   WriteModSettingArgs,
 } from "./contract.js";
 
@@ -154,12 +151,10 @@ export interface GeneratedCommandArgsMap {
   "vessel.control.stage": NoCommandArgs;
   "vessel.invokePartAction": InvokePartActionArgs;
   "vessel.maneuver.add": AddManeuverNodeArgs;
-  "vessel.maneuver.plan.send": SendManeuverPlanArgs;
   "vessel.maneuver.remove": RemoveManeuverNodeArgs;
   "vessel.maneuver.update": UpdateManeuverNodeArgs;
   "vessel.target.clear": NoCommandArgs;
   "vessel.target.set": SetTargetArgs;
-  "vessel.trajectory.forVantage": VantagePlanRequest;
 }
 
 export interface GeneratedCommandReplyMap {
@@ -216,12 +211,10 @@ export interface GeneratedCommandReplyMap {
   "vessel.control.stage": CommandResultOf<number>;
   "vessel.invokePartAction": CommandResult;
   "vessel.maneuver.add": CommandResultOf<string>;
-  "vessel.maneuver.plan.send": CommandResult;
   "vessel.maneuver.remove": CommandResult;
   "vessel.maneuver.update": CommandResult;
   "vessel.target.clear": CommandResult;
   "vessel.target.set": CommandResult;
-  "vessel.trajectory.forVantage": VantagePlanReply;
 }
 
 /**
@@ -288,12 +281,10 @@ export const GENERATED_COMMAND_REPLY_TYPES = {
   "vessel.control.stage": "CommandResultOf<number>",
   "vessel.invokePartAction": "CommandResult",
   "vessel.maneuver.add": "CommandResultOf<string>",
-  "vessel.maneuver.plan.send": "CommandResult",
   "vessel.maneuver.remove": "CommandResult",
   "vessel.maneuver.update": "CommandResult",
   "vessel.target.clear": "CommandResult",
   "vessel.target.set": "CommandResult",
-  "vessel.trajectory.forVantage": "VantagePlanReply",
 } as const satisfies Record<string, string>;
 
 /**
@@ -388,12 +379,10 @@ export const GENERATED_COMMAND_RAIL = {
   "vessel.control.stage": { replies: true, delayed: true },
   "vessel.invokePartAction": { replies: true, delayed: true },
   "vessel.maneuver.add": { replies: true, delayed: true, arriveBefore: "ut" },
-  "vessel.maneuver.plan.send": { replies: true, delayed: true },
   "vessel.maneuver.remove": { replies: true, delayed: true },
   "vessel.maneuver.update": { replies: true, delayed: true, arriveBefore: "ut" },
   "vessel.target.clear": { replies: true, delayed: true },
   "vessel.target.set": { replies: true, delayed: true },
-  "vessel.trajectory.forVantage": { replies: true, delayed: false },
 } as const satisfies Record<string, GeneratedCommandRail>;
 
 export const GENERATED_COMMAND_IDS = [
@@ -450,10 +439,8 @@ export const GENERATED_COMMAND_IDS = [
   "vessel.control.stage",
   "vessel.invokePartAction",
   "vessel.maneuver.add",
-  "vessel.maneuver.plan.send",
   "vessel.maneuver.remove",
   "vessel.maneuver.update",
   "vessel.target.clear",
   "vessel.target.set",
-  "vessel.trajectory.forVantage",
 ] as const;

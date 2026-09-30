@@ -141,7 +141,7 @@ describe("command map to C# sync", () => {
   it("the C# scan finds the commands it is scanning for", () => {
     const found = declaredCommands();
     expect(found.size).toBeGreaterThan(0);
-    for (const core of ["vessel.trajectory.forVantage", "ksp.launch"]) {
+    for (const core of ["system.bodies.statesAt", "ksp.launch"]) {
       expect([...found], `the C# scan no longer sees ${core}`).toContain(core);
     }
   }, 30_000);

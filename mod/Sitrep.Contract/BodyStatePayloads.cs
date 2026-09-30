@@ -12,8 +12,7 @@ namespace Sitrep.Contract
     /// <para>A command rather than a channel because the instants are the
     /// caller's: a transfer search asks about departure and arrival times
     /// nobody has reached, and nothing publishes a position for an instant
-    /// nobody asked about. <c>vessel.trajectory.forVantage</c> is a query for
-    /// the same reason.</para>
+    /// nobody asked about.</para>
     ///
     /// <para>There is no vantage field: the vantage is resolved from the
     /// connection the command arrives on, so a client cannot name somebody
@@ -145,8 +144,8 @@ namespace Sitrep.Contract
     /// One body's position and velocity at one instant, relative to the request's
     /// centre body, in a non-rotating, Z-up inertial frame centred on that body.
     ///
-    /// <para>Flat keys rather than nested vectors, matching
-    /// <see cref="TrajectoryPoint"/>, because these arrive in bulk.</para>
+    /// <para>Flat keys rather than nested vectors, because these arrive in
+    /// bulk.</para>
     /// </summary>
     /// <category>Orbits and trajectories</category>
     [SitrepContract]

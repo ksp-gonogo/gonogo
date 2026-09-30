@@ -117,19 +117,16 @@ namespace Sitrep.Core.Tests
         }
 
         /// <summary>
-        /// The walk found what it is meant to be reading. A scan that silently
-        /// stopped finding seams would report no violations, and no violations reads
-        /// as success.
+        /// The walk read the tree it is meant to be reading. The shipped tree
+        /// currently declares no settable seam at all, so whether the scan can see
+        /// one is proved against a planted tree below, and this asks only that the
+        /// walk was not truncated: a scan that read a handful of files would report
+        /// no violations, and no violations reads as success.
         /// </summary>
         [Fact]
         public void ScanFindsItsSubjects()
         {
             var scan = Scan();
-
-            Assert.True(
-                scan.Seams.ContainsKey("ChannelEngine.SeededPropagation"),
-                "the scan did not find the seam this file was written for, so it is "
-                + "not reading the source it thinks it is");
 
             Assert.True(
                 scan.FilesScanned >= 350,

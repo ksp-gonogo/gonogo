@@ -28,13 +28,8 @@
  * the comment claims.
  */
 export const COINCIDENTAL: readonly string[] = [
-  // `slice.points`, the cross-section geometry the widget builds itself
-  "packages/components/src/LandingStatus#points",
   // `reading.state`, the SDK Reading discriminant, not a payload field
   "packages/components/src/LandingStatus#state",
-  // plot coordinates in crossSectionPlot.ts (`slice.points[0].x`)
-  "packages/components/src/LandingStatus#x",
-  "packages/components/src/LandingStatus#y",
   /*
    * `payload.kind === "button"` in the widget's `useActionInput` handler: a
    * SERIAL INPUT discriminant, not a telemetry field. It had no payload field
@@ -44,16 +39,6 @@ export const COINCIDENTAL: readonly string[] = [
    */
   "packages/components/src/ResourceOps#kind",
   /*
-   * The `s.z` read in useBodyStatePropagators.ts: a component of one
-   * `BodyState` off the `system.bodies.statesAt` COMMAND reply, which no
-   * channel publishes and no fixture can carry. It collides with the `z` a
-   * body's position field has on `system.bodies`, a topic this widget does
-   * subscribe to and never reads a `z` off.
-   */
-  "packages/components/src/TransferWindow#z",
-  // `ctx.arc(...)`, the canvas API
-  "packages/components/src/MapView#arc",
-  /*
    * `const timeToAp = solve?.timeToAp ?? undefined;` and its `timeToPe` twin:
    * the orbital SOLVE's countdowns out of `useOrbitSolve`, not a read of
    * `vessel.orbit`'s own fields of the same names. The widget never
@@ -61,9 +46,6 @@ export const COINCIDENTAL: readonly string[] = [
    */
   "packages/components/src/ManeuverPlanner#timeToAp",
   "packages/components/src/ManeuverPlanner#timeToPe",
-  // `const { x, y } = project(poi.lat, poi.lon)`, screen coordinates
-  "packages/components/src/MapView#x",
-  "packages/components/src/MapView#y",
   // `spec.id`, the local facility spec used as a React key
   "packages/components/src/SpaceCenterStatus#id",
   // `reading.state`
@@ -84,9 +66,6 @@ export const COINCIDENTAL: readonly string[] = [
    * `career.status` can carry the field this widget is looking for.
    */
   "packages/components/src/TechTree#state",
-  // `parts.state === "observed"`, the `vessel.parts` Reading's discriminant in `amountReading` `ideal.x` / `cur.x`, chart coordinates in the conformance drawing
-  "packages/components/src/TransferWindow#x",
-  "packages/components/src/TransferWindow#y",
   /*
    * `body.period` and `body.referenceBody` off `CelestialBody`, the sdk's
    * derived body record (`celestial-facts.ts`: `period` is `2π√(a³/μ_parent)`

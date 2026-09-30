@@ -439,16 +439,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "CommsSignal": {
     strength: "ratio",
   },
-  "ComposedBurn": {
-    dvNormal: "m/s",
-    dvPrograde: "m/s",
-    dvRadial: "m/s",
-    frame: "enum",
-    ignitionUt: "ut",
-    inertiallyFixed: "flag",
-    specificImpulse: "isp",
-    thrust: "kN",
-  },
   "ContractActionArgs": {
     contractId: "id",
   },
@@ -786,16 +776,9 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     dvPrograde: "m/s",
     dvRadial: "m/s",
     dvTotal: "m/s",
-    finalMass: "t",
     frame: "enum",
-    frameReference: "enum",
-    frameReferenceBodyIndex: "count",
     id: "id",
     ignitionUt: "ut",
-    inertiallyFixed: "flag",
-    initialMass: "t",
-    specificImpulse: "isp",
-    thrust: "kN",
     ut: "ut",
   },
   "Meta": {
@@ -1059,13 +1042,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     subjectId: "id",
     title: "text",
   },
-  "SendManeuverPlanArgs": {
-    composedAtViewUt: "ut",
-    desiredFinalTimeUt: "ut",
-    observedAtUt: "ut",
-    requestId: "id",
-    vesselId: "id",
-  },
   "SensorEntry": {
     active: "flag",
     partId: "id",
@@ -1272,35 +1248,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     minuteSeconds: "s",
     yearSeconds: "s",
   },
-  "TrajectoryArc": {
-    derivation: "enum",
-    fromUt: "ut",
-    sourcePointCount: "count",
-    toUt: "ut",
-  },
-  "TrajectoryForceModel": {
-    bodyEphemeris: "text",
-    geopotentialDegree: "count",
-    gravityModelFound: "flag",
-    integrator: "text",
-    missingTerm: "text",
-    perturbingBodyCount: "count",
-    stepCount: "count",
-    stepSeconds: "s",
-    thirdBodyDominance: "ratio",
-    vacuum: "flag",
-  },
-  "TrajectoryFrameRef": {
-    centreBodyIndex: "id",
-    kind: "enum",
-    lengthsPulsate: "flag",
-  },
-  "TrajectoryPoint": {
-    ut: "ut",
-    x: "m",
-    y: "m",
-    z: "m",
-  },
   "UnlockTechArgs": {
     techId: "id",
   },
@@ -1317,17 +1264,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "UpgradeFacilityArgs": {
     facilityId: "id",
-  },
-  "VantagePlanReply": {
-    refusal: "text",
-    seededAtUt: "ut",
-    solved: "flag",
-    vantage: "id",
-  },
-  "VantagePlanRequest": {
-    maxPoints: "count",
-    toUt: "ut",
-    topic: "id",
   },
   "Vec3": {
     x: "n/a",
@@ -1419,7 +1355,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     planner: "id",
   },
   "VesselOrbit": {
-    arcRefusal: "enum",
     argPe: "°",
     ecc: "1",
     epoch: "ut",
@@ -2035,7 +1970,6 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     planner: "id",
   },
   "vessel.orbit": {
-    arcRefusal: "enum",
     argPe: "°",
     ecc: "1",
     epoch: "ut",
@@ -2296,14 +2230,8 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "GateVerdict": {
     breach: "LimitBreach",
   },
-  "GravityModel": {
-    bodies: "GravityModelBody[]",
-  },
   "IControlFrameSource": {
     frame: "ControlFrame",
-  },
-  "IGravityModelSource": {
-    model: "GravityModel",
   },
   "ISitrepUplink": {
     manifest: "UplinkManifest",
@@ -2370,12 +2298,6 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
     condition: "ScetAlarmCondition",
     onFire: "ScetAlarmAction[]",
   },
-  "SeededTrajectory": {
-    arc: "TrajectoryArc",
-  },
-  "SendManeuverPlanArgs": {
-    burns: "ComposedBurn[]",
-  },
   "SettingsModel": {
     meta: "PayloadMeta",
     persistence: "SettingsPersistence",
@@ -2403,14 +2325,6 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "TimeCalendar": {
     meta: "PayloadMeta",
   },
-  "TrajectoryArc": {
-    forceModel: "TrajectoryForceModel",
-    frame: "TrajectoryFrameRef",
-    points: "TrajectoryPoint[]",
-  },
-  "TrajectoryArcAnswer": {
-    arc: "TrajectoryArc",
-  },
   "UplinkHealth": {
     facts: "UplinkHealthFact[]",
   },
@@ -2418,9 +2332,6 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
     channels: "ChannelDeclaration[]",
     clientSource: "UplinkClientSource",
     commands: "CommandDeclaration[]",
-  },
-  "VantagePlanReply": {
-    arc: "TrajectoryArc",
   },
   "VesselAttitude": {
     meta: "PayloadMeta",
@@ -2454,7 +2365,6 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
     nodes: "ManeuverNode[]",
   },
   "VesselOrbit": {
-    arc: "TrajectoryArc",
     encounter: "OrbitEncounter",
     horizon: "PropagationHorizon",
     meta: "PayloadMeta",
@@ -2657,7 +2567,6 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
     nodes: "ManeuverNode[]",
   },
   "vessel.orbit": {
-    arc: "TrajectoryArc",
     encounter: "OrbitEncounter",
     horizon: "PropagationHorizon",
     meta: "PayloadMeta",
@@ -2739,9 +2648,6 @@ export const GENERATED_TYPE_ENUMS: Readonly<Record<string, EnumsByField>> = {
   "CommsNetworkNode": {
     kind: "CommsHopKind",
   },
-  "ComposedBurn": {
-    frame: "ManeuverFrame",
-  },
   "ControlFrame": {
     kind: "ControlFrameKind",
   },
@@ -2771,7 +2677,6 @@ export const GENERATED_TYPE_ENUMS: Readonly<Record<string, EnumsByField>> = {
   },
   "ManeuverNode": {
     frame: "ManeuverFrame",
-    frameReference: "ManeuverFrameReference",
   },
   "Meta": {
     quality: "Quality",
@@ -2831,12 +2736,6 @@ export const GENERATED_TYPE_ENUMS: Readonly<Record<string, EnumsByField>> = {
     situation: "Situation",
     vesselType: "VesselType",
   },
-  "TrajectoryArc": {
-    derivation: "TrajectoryDerivation",
-  },
-  "TrajectoryFrameRef": {
-    kind: "TrajectoryFrameKind",
-  },
   "VesselComms": {
     controlState: "ControlState",
   },
@@ -2846,9 +2745,6 @@ export const GENERATED_TYPE_ENUMS: Readonly<Record<string, EnumsByField>> = {
   "VesselIdentity": {
     situation: "Situation",
     vesselType: "VesselType",
-  },
-  "VesselOrbit": {
-    arcRefusal: "TrajectoryRefusal",
   },
   "VesselPart": {
     categoryOrdinal: "KspPartCategory",
@@ -2923,9 +2819,6 @@ export const GENERATED_TOPIC_ENUMS: Readonly<Record<string, EnumsByField>> = {
   "vessel.identity": {
     situation: "Situation",
     vesselType: "VesselType",
-  },
-  "vessel.orbit": {
-    arcRefusal: "TrajectoryRefusal",
   },
   "vessel.physics.mode": {
     mode: "PhysicsMode",
@@ -3064,15 +2957,7 @@ export const GENERATED_ENUM_MEMBERS: Readonly<Record<string, Readonly<Record<num
   },
   "ManeuverFrame": {
     0: "RadialNormalPrograde",
-    1: "TangentNormalBinormal",
-    2: "Unknown",
-  },
-  "ManeuverFrameReference": {
-    0: "Unspecified",
-    1: "FollowControlFrame",
-    2: "BodyCentredInertial",
-    3: "ParentDirection",
-    4: "RotatingPulsating",
+    1: "Unknown",
   },
   "PhysicsMode": {
     0: "OnRails",
@@ -3178,31 +3063,10 @@ export const GENERATED_ENUM_MEMBERS: Readonly<Record<string, Readonly<Record<num
     3: "Position",
     4: "Part",
   },
-  "TrajectoryDerivation": {
-    0: "Unspecified",
-    1: "Foreign",
-    2: "OwnNBody",
-    3: "OwnNBodyDegraded",
-    4: "OwnClosedForm",
-  },
-  "TrajectoryFrameKind": {
-    0: "Unspecified",
-    1: "Perifocal",
-    2: "BodyCentredInertial",
-    3: "BodyCentredRotating",
-    4: "BodyCentredParentDirection",
-    5: "RotatingPulsating",
-  },
   "TrajectoryKind": {
     0: "Unspecified",
     1: "Analytic",
     2: "Integrated",
-  },
-  "TrajectoryRefusal": {
-    0: "NotAttempted",
-    1: "BeyondBudget",
-    2: "NoForceModel",
-    3: "NotRefused",
   },
   "TransitionType": {
     0: "Initial",

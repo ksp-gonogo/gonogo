@@ -48,7 +48,7 @@ export function NodeEditor({
       <EditHint>
         burn in <Countdown value={timeTo} />
       </EditHint>
-      {/* Labelled from the burn's own basis: stock and Frenet put different quantities in the same slots. */}
+      {/* Labelled from the burn's own basis, so an unstated one is not given stock's names. */}
       <UnitInput
         label={slot2}
         unit="m/s"

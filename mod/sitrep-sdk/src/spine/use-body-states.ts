@@ -41,9 +41,7 @@ export interface BodyStatesQuery {
 export function useBodyStates(): BodyStatesQuery {
   const command = useCommand(BODY_STATES_COMMAND);
 
-  // Keyed on `send`, which `useCommand` memoises, and NOT on the handle, which
-  // is a fresh object on every render because it carries the command's live
-  // status. See `useVantageTrajectory`, where the same shape looped an effect.
+  // Keyed on `send`, which `useCommand` memoises, and NOT on the handle, which is a fresh object on every render because it carries the command's live status, so a caller keying an effect on it loops.
   const { send } = command;
   const solve = useCallback(
     (request: BodyStatesRequest): Promise<BodyStatesReply> => send(request),

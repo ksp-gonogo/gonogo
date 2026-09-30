@@ -145,9 +145,9 @@ public enum TransitionType
 }
 
 /// <summary>
-/// The basis a planned burn's delta-v components are expressed in. The two
-/// bases are easy to mistake for each other and give different components, so
-/// read this before interpreting a burn vector.
+/// The basis a planned burn's delta-v components are expressed in. Read this
+/// before interpreting a burn vector: a basis this contract does not recognise
+/// gives components that cannot be labelled.
 /// </summary>
 /// <category>Orbits and trajectories</category>
 #if SITREP_CODEGEN
@@ -161,14 +161,6 @@ public enum ManeuverFrame
     /// against the patch the node sits on at its own UT.
     /// </summary>
     RadialNormalPrograde,
-
-    /// <summary>
-    /// The Frenet trihedron of the trajectory at the burn point: tangent,
-    /// normal, binormal. Not a renaming of
-    /// <see cref="RadialNormalPrograde"/>: the axes differ, and for an
-    /// eccentric orbit they differ by an amount that matters.
-    /// </summary>
-    TangentNormalBinormal,
 
     /// <summary>A frame this contract does not recognise.</summary>
     Unknown,

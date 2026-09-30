@@ -7,8 +7,7 @@ namespace Sitrep.Contract
     /// The capability id every <see cref="IPropagationProvider"/> competes for.
     ///
     /// <para>Declared here, beside the interface, because a registering Uplink
-    /// and the election that resolves it have to agree on this string, on the
-    /// same reasoning as <see cref="GravityModelCapability"/>. A provider
+    /// and the election that resolves it have to agree on this string. A provider
     /// registered under any other id is never resolved, and the only symptom is
     /// a trajectory that stays closed-form.</para>
     /// </summary>

@@ -9,12 +9,12 @@
 // that would have failed.
 
 import type {
+  BodyStatesReply,
   CommandResult,
   CommandResultOf,
   ScienceTransmission,
   SetEnabledArgs,
   SetThrottleArgs,
-  VantagePlanReply,
 } from "./__generated__/contract";
 import type {
   AnyCommandReply,
@@ -61,7 +61,7 @@ export type _TypedPayloadReply = AssertTrue<
   >
 >;
 export type _NonResultReply = AssertTrue<
-  Equal<CommandReply<"vessel.trajectory.forVantage">, VantagePlanReply>
+  Equal<CommandReply<"system.bodies.statesAt">, BodyStatesReply>
 >;
 
 // The union is closed over the generated ids, so a command that was never

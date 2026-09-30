@@ -154,29 +154,6 @@ public class VesselOrbit
     /// </summary>
     public PropagationHorizon Horizon { get; set; } = new();
 
-    /// <summary>
-    /// The path the craft actually flies, when the provider integrated one.
-    ///
-    /// <para>Null under an analytic provider, and that is not a gap: its
-    /// elements are the curve, so a client draws a conic from them. Null also
-    /// under an integrating provider that has nothing to publish this sample,
-    /// in which case <see cref="ArcRefusal"/> says why.</para>
-    ///
-    /// <para>It rides with the elements for the same reason as
-    /// <see cref="Horizon"/>: the arc, the elements and the horizon that bounds
-    /// both share one <c>validAt</c>.</para>
-    /// </summary>
-    public TrajectoryArc? Arc { get; set; }
-
-    /// <summary>
-    /// What became of the arc: why <see cref="Arc"/> is absent when a provider
-    /// tried to build one and stopped,
-    /// <see cref="TrajectoryRefusal.NotAttempted"/> when none was sought at all,
-    /// and <see cref="TrajectoryRefusal.NotRefused"/> beside one that was drawn.
-    /// </summary>
-    [SitrepUnit(Units.Enumeration)]
-    public TrajectoryRefusal ArcRefusal { get; set; }
-
     /// <summary>Payload provenance. <c>Source</c> is <c>"vessel:&lt;guid&gt;"</c> for the active vessel; <c>Quality</c> is <c>Loaded</c> under physics and <c>OnRails</c> otherwise.</summary>
     public PayloadMeta Meta { get; set; } = new();
 }

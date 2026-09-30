@@ -105,17 +105,6 @@ public class ManeuverNode
     /// defaulted value would assert the stock basis for components that might
     /// be in another one.
     /// </internal>
-    ///
-    /// <para><b>The three fields are POSITIONAL slots, and this names what they
-    /// hold.</b> They are the basis's first, second and third component in the
-    /// basis's own declared order:
-    /// <see cref="ManeuverFrame.RadialNormalPrograde"/> puts radial, normal and
-    /// prograde in them, and <see cref="ManeuverFrame.TangentNormalBinormal"/>
-    /// puts tangent, normal and binormal. So on a Frenet burn
-    /// <see cref="DvRadial"/> carries the TANGENT and <see cref="DvPrograde"/>
-    /// carries the BINORMAL, whatever the field names suggest. A reader that
-    /// ignores this silently rotates every burn an integrating planner
-    /// produces.</para>
     /// </summary>
     [SitrepUnit(Units.Enumeration)]
     public ManeuverFrame? Frame { get; set; }
@@ -149,100 +138,6 @@ public class ManeuverNode
     /// <see cref="DvRadial"/>.</summary>
     [SitrepUnit(Units.MetresPerSecond)]
     public double? DvTotal { get; set; }
-
-    /// <summary>
-    /// What <see cref="Frame"/>'s basis is measured RELATIVE TO.
-    ///
-    /// <para><see cref="ManeuverFrame"/> names a BASIS and not a frame, and for
-    /// stock that is enough because there is only ever one thing the basis can be
-    /// relative to. A planner that lets an operator choose the reference frame
-    /// breaks that assumption: the same tangent/normal/binormal triple means a
-    /// different burn depending on what it is tangent TO, and a client shown the
-    /// numbers without this is being shown a burn it cannot identify.</para>
-    ///
-    /// <para>A kind plus <see cref="FrameReferenceBodyIndex"/>, using the same
-    /// four kinds the read-frame side names.</para>
-    ///
-    /// <para>Null when the planner has only one frame, which is the stock case
-    /// and not a gap.</para>
-    /// </summary>
-    [SitrepUnit(Units.Enumeration)]
-    public ManeuverFrameReference? FrameReference { get; set; }
-
-    /// <summary>
-    /// The body <see cref="FrameReference"/> is about, as a <c>system.bodies</c>
-    /// index. Unused by a frame that needs no body.
-    /// </summary>
-    [SitrepUnit(Units.Count)]
-    public int? FrameReferenceBodyIndex { get; set; }
-
-    /// <summary>
-    /// What a burn's basis is measured relative to.
-    ///
-    /// <para>The same four the read-frame side names: a frame an operator
-    /// picked to READ a trajectory in and a frame a burn was PLANNED in are the
-    /// same kind of thing, so "is this burn in the frame I am looking at" needs
-    /// no translation.</para>
-    /// </summary>
-    /// <category>Orbits and trajectories</category>
-#if SITREP_CODEGEN
-    [TsEnum]
-#endif
-    [SitrepContract]
-    public enum ManeuverFrameReference
-    {
-        /// <summary>Not stated. Zero so a planner that says nothing is not read
-        /// as having claimed a frame.</summary>
-        Unspecified = 0,
-
-        /// <summary>Whatever the craft's own control frame currently
-        /// is.</summary>
-        FollowControlFrame = 1,
-
-        /// <summary>Non-rotating, centred on a body.</summary>
-        BodyCentredInertial = 2,
-
-        /// <summary>Aligned with the direction to a body's parent.</summary>
-        ParentDirection = 3,
-
-        /// <summary>Rotating with two primaries, with lengths that
-        /// pulsate.</summary>
-        RotatingPulsating = 4,
-    }
-
-    /// <summary>
-    /// Whether the craft holds a fixed inertial attitude through the burn rather
-    /// than following the frame as it rotates.
-    ///
-    /// <para>Not a nicety: over a long burn the two steer differently, so a
-    /// plan shown without it is a plan whose execution cannot be predicted from
-    /// what is on screen. Null when the planner has no such concept, which is
-    /// stock.</para>
-    /// </summary>
-    [SitrepUnit(Units.Flag)]
-    public bool? InertiallyFixed { get; set; }
-
-    /// <summary>
-    /// Thrust the plan was computed against. Null when the planner did not
-    /// state it; stock's impulsive model does not fill it.
-    /// </summary>
-    [SitrepUnit(Units.Kilonewtons)]
-    public double? Thrust { get; set; }
-
-    /// <summary>Specific impulse the plan was computed against. Null when the
-    /// planner did not state it.</summary>
-    [SitrepUnit(Units.SpecificImpulse)]
-    public double? SpecificImpulse { get; set; }
-
-    /// <summary>Craft mass at ignition, as the plan assumed it. Null when the
-    /// planner did not state it.</summary>
-    [SitrepUnit(Units.Tonnes)]
-    public double? InitialMass { get; set; }
-
-    /// <summary>Craft mass at cutoff, as the plan assumed it. Null when the
-    /// planner did not state it.</summary>
-    [SitrepUnit(Units.Tonnes)]
-    public double? FinalMass { get; set; }
 
     /// <summary>
     /// This node's post-burn future-orbit patch chain: element 0 is the

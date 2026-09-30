@@ -5,7 +5,7 @@
     "body": "Kerbin",
     "situation": "A 63.4-degree, 0.4-eccentricity Kerbin orbit reaching most of the way to Minmus. Paired with analytic-conic-wide, which is the same orbit under the analytic solver",
     "provider": "principia-nbody",
-    "notes": "RECONSTRUCTED, not captured. The live 250 km orbit is 1.8% of the diagram's auto-fit radius (Minmus's apoapsis sets the extent), so the live pair renders byte-identical and shows nothing. This pair puts the same provider question on kerbin-orbit-inclined's geometry, which is a visible fraction of that extent. The horizon is computed the way IntegratedHorizon.UntilUt computes it (sampleUt + 0.25 * characteristic cycle), and the arc is deliberately absent: no points are invented here, the spine's own documented fallback samples the osculating conic and bounds it at the horizon, which is what SystemView draws for an integrating provider whose arc did not arrive."
+    "notes": "RECONSTRUCTED, not captured. The live 250 km orbit is 1.8% of the diagram's auto-fit radius (Minmus's apoapsis sets the extent), so the live pair renders byte-identical and shows nothing. This pair puts the same provider question on kerbin-orbit-inclined's geometry, which is a visible fraction of that extent. The horizon is computed the way IntegratedHorizon.UntilUt computes it (sampleUt + 0.25 * characteristic cycle), and the spine samples the osculating conic and bounds it at that horizon, which is what SystemView draws for an integrating provider."
   },
   "_stream": {
     "pinnedUt": 0,
@@ -112,9 +112,7 @@
             "kind": 2,
             "trajectoryKind": 2,
             "untilUt": 137345.99661059192
-          },
-          "arc": null,
-          "arcRefusal": 0
+          }
         },
         "meta": {
           "quality": 1

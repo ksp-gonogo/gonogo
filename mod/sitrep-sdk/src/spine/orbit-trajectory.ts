@@ -38,7 +38,6 @@ import {
   horizonUtOf,
   type OrbitElements,
   type PropagationHorizonLike,
-  rotateInertialToPerifocal,
   rotatePerifocalToInertial,
   solveAnomalies,
   TrajectoryKindLike,
@@ -60,12 +59,12 @@ import {
  * A point on a drawable trajectory: where, and when.
  *
  * <b>Three dimensions and an instant, never a flat `{x, y}`.</b> A point in the
- * orbit's own plane with periapsis on +x is something an osculating conic
- * always has and an integrated path never does: an n-body curve leaves the
- * plane, and in a rotating frame it has no central body to be measured from at
- * all. `z` is the out-of-plane component and is zero exactly
- * when the curve came from a conic. `ut` is on the point because a reader
- * interpolating between two of them needs to know which side of a burn it is on.
+ * orbit's own plane with periapsis on +x is what a sampled conic has, and a
+ * curve re-expressed in a read frame leaves that plane: in a rotating frame it
+ * has no central body to be measured from at all. `z` is the out-of-plane
+ * component and is zero exactly while the curve is still in its own plane.
+ * `ut` is on the point because a reader interpolating between two of them needs
+ * to know which side of a burn it is on.
  *
  * `x`/`y` stay first and stay in the same units and orientation, so a diagram
  * that only knows how to draw a plane keeps working against it unedited.
@@ -77,7 +76,10 @@ export interface TrajectoryPoint {
   ut: number;
 }
 
-/** Which frame a set of points is expressed in. Mirrors `TrajectoryFrameKind` by value. */
+/**
+ * Which frame a set of points is expressed in. A client-side vocabulary: the
+ * points are sampled and re-expressed here, never read off the wire.
+ */
 export const TrajectoryFrameKindLike = {
   Unspecified: 0,
   Perifocal: 1,
@@ -88,33 +90,6 @@ export const TrajectoryFrameKindLike = {
 } as const;
 export type TrajectoryFrameKindLike =
   (typeof TrajectoryFrameKindLike)[keyof typeof TrajectoryFrameKindLike];
-
-/** Where a curve came from. Mirrors `TrajectoryDerivation` by value. */
-export const TrajectoryDerivationLike = {
-  Unspecified: 0,
-  Foreign: 1,
-  OwnNBody: 2,
-  OwnNBodyDegraded: 3,
-  OwnClosedForm: 4,
-} as const;
-export type TrajectoryDerivationLike =
-  (typeof TrajectoryDerivationLike)[keyof typeof TrajectoryDerivationLike];
-
-/**
- * What became of a producer's arc. Mirrors `TrajectoryRefusal` by value.
- *
- * `NotAttempted` at zero and `NotRefused` beside a drawn arc are deliberately
- * TWO values: collapsed into one, an install whose integrated path never runs
- * and one where it runs cleanly send the same number.
- */
-export const TrajectoryRefusalLike = {
-  NotAttempted: 0,
-  BeyondBudget: 1,
-  NoForceModel: 2,
-  NotRefused: 3,
-} as const;
-export type TrajectoryRefusalLike =
-  (typeof TrajectoryRefusalLike)[keyof typeof TrajectoryRefusalLike];
 
 /** The frame identity that travels with a drawn curve. */
 export interface TrajectoryFrame {
@@ -130,9 +105,9 @@ export interface TrajectoryFrame {
   primaryBodyIndex?: number;
   secondaryBodyIndex?: number;
   /**
-   * How to read a coordinate in this frame. Absent means metres, which is every
-   * frame the producers publish; only a pulsating read frame says otherwise, and
-   * it says so rather than leaving a reader to infer it from `lengthsPulsate`.
+   * How to read a coordinate in this frame. Absent means metres; only a
+   * pulsating read frame says otherwise, and it says so rather than leaving a
+   * reader to infer it from `lengthsPulsate`.
    */
   scaleConvention?: TrajectoryScaleConvention;
   /**
@@ -166,22 +141,8 @@ export type TrajectoryWithheldReason =
   | "past-horizon"
   /** The provider stated reach but not shape, so a conic is not known to be right. */
   | "shape-not-stated"
-  /** The provider integrates and these osculating elements cannot be sampled into an arc. */
+  /** These osculating elements cannot be sampled into an arc. */
   | "no-arc-available"
-  /**
-   * The integration hit its step budget before reaching the instant asked for.
-   * Distinct from `past-horizon`, which is a bound the provider NAMED and can
-   * be waited out at that vessel's own pace: this one the operator can act on
-   * by shortening the window, and it may also resolve on its own.
-   */
-  | "beyond-budget"
-  /**
-   * The force model's configuration was not found or could not be parsed, so
-   * there was nothing to integrate against. The only refusal here with no
-   * operator remedy at all: it is an install problem, and saying "past horizon"
-   * for it would have someone waiting for a curve that is never coming.
-   */
-  | "no-force-model"
   /**
    * There is a curve, and the frame asked for could not be formed from the
    * bodies the catalogue carries: a body it has not sent yet, a rotating frame
@@ -216,19 +177,6 @@ export type OrbitTrajectory =
       frame: TrajectoryFrame;
       /** What `toUt` is: see `ArcFarEnd`. */
       farEnd: ArcFarEnd;
-      /**
-       * Where the curve came from, travelling ON the curve rather than beside
-       * the widget. A substituted answer that only says so in a panel elsewhere
-       * is a substituted answer nobody reads as one.
-       */
-      derivation: TrajectoryDerivationLike;
-      /**
-       * How many points the propagation produced before decimation. Larger than
-       * `points.length` for a decimated curve, which resolves less than the
-       * propagation knew: a reader may not treat one of its points as an event
-       * instant.
-       */
-      sourcePointCount: number;
     }
   | {
       shape: "withheld";
@@ -245,25 +193,6 @@ export type OrbitTrajectory =
 /** The arc arm of {@link OrbitTrajectory}, named so the functions that only ever produce one can say so. */
 export type TrajectoryArcAnswer = Extract<OrbitTrajectory, { shape: "arc" }>;
 
-/** The arc as it arrives on the wire, in whatever frame the producer computed it in. */
-export interface WireTrajectoryArc {
-  frame?: {
-    kind?: TrajectoryFrameKindLike;
-    centreBodyIndex?: number | null;
-    lengthsPulsate?: boolean;
-  };
-  points?: readonly {
-    ut: { magnitude: number } | number;
-    x: { magnitude: number } | number;
-    y: { magnitude: number } | number;
-    z: { magnitude: number } | number;
-  }[];
-  fromUt?: { magnitude: number } | number;
-  toUt?: { magnitude: number } | number;
-  sourcePointCount?: { magnitude: number } | number;
-  derivation?: TrajectoryDerivationLike;
-}
-
 export interface OrbitTrajectoryInput {
   /**
    * The `vessel.orbit` reading, in wire units. Deliberately the whole sample
@@ -275,10 +204,6 @@ export interface OrbitTrajectoryInput {
   orbit: WireOrbitElements & {
     /** `undefined` only for a producer that dropped the field, which the gate refuses. */
     horizon?: PropagationHorizonLike;
-    /** The provider's own integrated points, when it computed some. */
-    arc?: WireTrajectoryArc | null;
-    /** Why there is no arc, when a provider tried to build one and stopped. */
-    arcRefusal?: TrajectoryRefusalLike;
     /**
      * The `system.bodies` index the elements are measured against. Needed only
      * to re-express the curve into a read frame, because that is the one thing
@@ -340,15 +265,6 @@ export function orbitTrajectory(input: OrbitTrajectoryInput): OrbitTrajectory {
   const horizon = orbit.horizon;
   const trajectoryKind = horizon?.trajectoryKind;
 
-  // The arc refusals come FIRST, ahead of the horizon gate. A producer that
-  // could not build a force model has not got as far as having a horizon
-  // opinion, and letting `no-horizon-stated` answer for it would name a
-  // producer bug where the truth is a missing install.
-  const refused = withheldFor(orbit.arcRefusal);
-  if (refused !== null) {
-    return { shape: "withheld", reason: refused, trajectoryKind };
-  }
-
   const refusal = canPropagate(horizon, viewUt, viewUt);
   if (!refusal.propagatable) {
     return { shape: "withheld", reason: refusal.reason, trajectoryKind };
@@ -380,14 +296,12 @@ export function orbitTrajectory(input: OrbitTrajectoryInput): OrbitTrajectory {
     return { shape: "withheld", reason: "shape-not-stated", trajectoryKind };
   }
 
+  // An integrating provider's elements are the conic the craft is tangent to
+  // at the sample instant, so what is drawn is that conic sampled forward and
+  // stopped at the provider's horizon: never a closed ellipse, which would
+  // claim a path the craft will not fly.
   const elements = buildElements(orbit);
-
-  // Real integrated points win over a sampled conic wherever they exist. This
-  // is the whole point of the arc riding on the wire: what `sampleArc` produces
-  // for an integrating provider is the ellipse the craft is tangent to, drawn
-  // under a label that says integrated.
-  const carried = arcFromReading(orbit.arc, elements, viewUt);
-  const arc = carried ?? sampleArc(elements, horizon, viewUt, input.samples);
+  const arc = sampleArc(elements, horizon, viewUt, input.samples);
   if (arc === null) {
     return { shape: "withheld", reason: "no-arc-available", trajectoryKind };
   }
@@ -452,9 +366,7 @@ function reframeArc(
 
   // The perifocal frame's own axes in inertial components, built once rather
   // than per point. The third is the orbit normal, which the two-dimensional
-  // rotation cannot give and which a carried arc's out-of-plane component needs:
-  // dropping it would flatten an n-body curve into the osculating plane and say
-  // nothing about it.
+  // rotation cannot give and which a point's out-of-plane component needs.
   const pHat = rotatePerifocalToInertial(
     1,
     0,
@@ -559,115 +471,6 @@ export function trajectoryFrameKindFor(
   }
 }
 
-/** The withheld reason a stated arc refusal maps to, or null when nothing was refused. */
-function withheldFor(
-  refusal: TrajectoryRefusalLike | undefined,
-): TrajectoryWithheldReason | null {
-  switch (refusal) {
-    case TrajectoryRefusalLike.BeyondBudget:
-      return "beyond-budget";
-    case TrajectoryRefusalLike.NoForceModel:
-      return "no-force-model";
-    default:
-      // `NotAttempted`, `NotRefused`, or absent entirely. None of the three is a
-      // refusal: the first is every sample from a provider that does not
-      // integrate, the second accompanies an arc that was drawn.
-      return null;
-  }
-}
-
-/**
- * The provider's own points as a drawable arc, or null when the reading carries
- * none worth drawing.
- *
- * Points arriving in a body-centred inertial frame are rotated into the
- * perifocal one, because that is the frame the body-centric diagrams draw in and
- * somewhere the two have to meet. It happens HERE, once, rather than in each
- * widget: the transform is about fifty flops a point and negligible per point,
- * and the regression that matters is a widget re-transforming on every render
- * rather than on new data.
- */
-function arcFromReading(
-  wire: WireTrajectoryArc | null | undefined,
-  elements: OrbitElements,
-  viewUt: number,
-): TrajectoryArcAnswer | null {
-  if (wire == null) return null;
-  const raw = wire.points;
-  if (raw === undefined || raw.length < 2) {
-    // Fewer than two points is not a path. A producer with nothing to say
-    // publishes no arc and a refusal beside it, so this is a malformed reading
-    // rather than a state, and falling through to the conic sample is the
-    // conservative read.
-    return null;
-  }
-
-  const frameKind = wire.frame?.kind ?? TrajectoryFrameKindLike.Unspecified;
-  if (frameKind === TrajectoryFrameKindLike.Unspecified) {
-    // An unnamed frame cannot be drawn: the same points are a different curve
-    // per frame, so guessing one would produce a plausible wrong shape rather
-    // than a visible failure.
-    return null;
-  }
-
-  const rotate = frameKind === TrajectoryFrameKindLike.BodyCentredInertial;
-  const points: TrajectoryPoint[] = [];
-  for (const p of raw) {
-    const x = mag(p.x);
-    const y = mag(p.y);
-    const z = mag(p.z);
-    const ut = mag(p.ut);
-    if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) {
-      continue;
-    }
-    TRAJECTORY_TRANSFORM_BUDGET.record();
-    if (rotate) {
-      const [px, py, pz] = rotateInertialToPerifocal(
-        [x, y, z],
-        elements.inc,
-        elements.lan,
-        elements.argPe,
-      );
-      points.push({ x: px, y: py, z: pz, ut });
-    } else {
-      points.push({ x, y, z, ut });
-    }
-  }
-  if (points.length < 2) return null;
-
-  const fromUt = wire.fromUt === undefined ? viewUt : mag(wire.fromUt);
-  const toUt =
-    wire.toUt === undefined ? points[points.length - 1].ut : mag(wire.toUt);
-  if (!Number.isFinite(fromUt) || !Number.isFinite(toUt)) return null;
-
-  return {
-    shape: "arc",
-    points,
-    fromUt,
-    toUt,
-    frame: {
-      // The rotation lands the points in the perifocal frame, so that is what
-      // the arc names. Reporting the wire's frame after transforming out of it
-      // would put the wrong caption on the right curve.
-      kind: rotate ? TrajectoryFrameKindLike.Perifocal : frameKind,
-      centreBodyIndex: wire.frame?.centreBodyIndex ?? undefined,
-      lengthsPulsate: wire.frame?.lengthsPulsate ?? false,
-    },
-    // A provider's own arc ends where its authority does. It has no revolution
-    // convention to stop at, because an integrated path does not retrace.
-    farEnd: "horizon",
-    derivation: wire.derivation ?? TrajectoryDerivationLike.Unspecified,
-    sourcePointCount:
-      wire.sourcePointCount === undefined
-        ? points.length
-        : mag(wire.sourcePointCount),
-  };
-}
-
-function mag(v: { magnitude: number } | number): number {
-  return typeof v === "number" ? v : v.magnitude;
-}
-
 /**
  * The osculating conic sampled forward from the view instant, stopping at
  * whichever comes first: the horizon the provider named, or one full revolution.
@@ -677,10 +480,8 @@ function mag(v: { magnitude: number } | number): number {
  * that is exactly what the osculating elements cannot promise. Where the
  * provider's horizon is shorter, the horizon wins, which is the point of it.
  *
- * This is the fallback, not the answer. A provider that integrates and carries
- * its real points has them drawn instead; what this produces for such a provider
- * is the ellipse the craft is tangent to right now, which is worth drawing only
- * while nothing better has arrived.
+ * For a provider that integrates, this is the ellipse the craft is tangent to
+ * right now, bounded by the horizon that provider named.
  */
 function sampleArc(
   elements: OrbitElements,
@@ -721,8 +522,6 @@ function sampleArc(
     toUt,
     frame: { kind: TrajectoryFrameKindLike.Perifocal, lengthsPulsate: false },
     farEnd: toUt < revolutionUt ? "horizon" : "revolution",
-    derivation: TrajectoryDerivationLike.OwnClosedForm,
-    sourcePointCount: points.length,
   };
 }
 

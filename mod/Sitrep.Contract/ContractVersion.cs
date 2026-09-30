@@ -606,9 +606,31 @@ namespace Sitrep.Contract
         /// <c>ICraftCatalogue.Load</c>, <c>Release</c> and <c>CraftLoad</c>.
         /// <c>CommandCentreKind.Colony</c>, which nothing produced, is gone.
         /// Stock has none of these; the mod that does owns them.</para>
+        ///
+        /// <para><b>Bumped 24 -&gt; 25: core carries no n-body physics.</b> The
+        /// exclusive <c>gravityModel</c> capability (<c>GravityModel</c>,
+        /// <c>GravityModelBody</c>, <c>IGravityModelSource</c>,
+        /// <c>GravityModelCapability</c>), <c>ITrajectoryArcSource</c> and
+        /// <c>ISeededPropagationProvider</c> are removed, and so are
+        /// <c>vessel.orbit</c>'s <c>arc</c> and <c>arcRefusal</c> with every type
+        /// only they used (<c>TrajectoryArc</c>, <c>TrajectoryPoint</c>,
+        /// <c>TrajectoryFrameRef</c>, <c>TrajectoryFrameKind</c>,
+        /// <c>TrajectoryDerivation</c>, <c>TrajectoryForceModel</c>,
+        /// <c>TrajectoryRefusal</c>) and the <c>vessel.trajectory.forVantage</c>
+        /// command with its <c>VantagePlanRequest</c> and <c>VantagePlanReply</c>.
+        /// A maneuver node keeps stock's shape: <c>FrameReference</c>,
+        /// <c>FrameReferenceBodyIndex</c>, <c>InertiallyFixed</c>,
+        /// <c>Thrust</c>, <c>SpecificImpulse</c>, <c>InitialMass</c>,
+        /// <c>FinalMass</c>, <c>ManeuverFrame.TangentNormalBinormal</c> and the
+        /// <c>vessel.maneuver.plan.send</c> command (<c>ComposedBurn</c>,
+        /// <c>SendManeuverPlanArgs</c>, <c>IManeuverPlanSource.SendPlan</c>) are
+        /// removed. Stock has no force model beyond two-body; a physics mod owns
+        /// its own, and publishes its own plan and its own curve. The propagation
+        /// seam and its horizon stay, since they are how any client knows how far
+        /// analytic reckoning is trustworthy.</para>
         /// </internal>
         /// </summary>
-        public const int Major = 24;
+        public const int Major = 25;
 
         /// <summary>
         /// The contract's minor version within the current <see cref="Major"/>. It

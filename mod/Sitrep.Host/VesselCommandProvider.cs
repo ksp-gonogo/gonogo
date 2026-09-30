@@ -63,14 +63,6 @@ namespace Sitrep.Host
         public const string ManeuverUpdateCommand = "vessel.maneuver.update";
         public const string ManeuverRemoveCommand = "vessel.maneuver.remove";
 
-        /// <summary>
-        /// A whole flight plan, composed at a command centre and transmitted to be
-        /// instantiated aboard. Delayed like every other maneuver write: it
-        /// actuates the craft's plan, so it rides light-time the same as the three
-        /// above.
-        /// </summary>
-        public const string ManeuverPlanSendCommand = "vessel.maneuver.plan.send";
-
         // ---- vessel.target.* -- DelayRole.Delayed: a designation rather than an
         // actuation, but it is still the craft's own target being set ----
         public const string TargetSetCommand = "vessel.target.set";

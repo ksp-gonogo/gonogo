@@ -36,8 +36,6 @@ const REFUSAL_HEADINGS = (
     { shape: "withheld", reason: "past-horizon" },
     { shape: "withheld", reason: "shape-not-stated" },
     { shape: "withheld", reason: "no-arc-available" },
-    { shape: "withheld", reason: "beyond-budget" },
-    { shape: "withheld", reason: "no-force-model" },
   ] as const
 ).map((w) => trajectoryWithheldCopy(w).heading);
 

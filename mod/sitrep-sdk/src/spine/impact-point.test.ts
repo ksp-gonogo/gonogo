@@ -8,10 +8,8 @@ import {
 } from "./impact-point";
 import {
   PropagationHorizonKindLike as Reach,
-  rotateInertialToPerifocal,
   TrajectoryKindLike as Shape,
 } from "./kepler";
-import { TrajectoryFrameKindLike as Frame } from "./orbit-trajectory";
 import type {
   SystemBodiesPayload,
   VesselFlightPayload,
@@ -40,12 +38,8 @@ const BODIES: SystemBodiesPayload = {
 };
 
 const ANALYTIC = { kind: Reach.Unbounded, trajectoryKind: Shape.Analytic };
-const INTEGRATED = { kind: Reach.Unbounded, trajectoryKind: Shape.Integrated };
 
-type WireOrbit = WireOf<VesselOrbitPayload> & {
-  arc?: unknown;
-  arcRefusal?: number;
-};
+type WireOrbit = WireOf<VesselOrbitPayload>;
 type WirePatch = WireOf<OrbitPatch>;
 
 const ORBIT: WireOrbit = {
@@ -131,33 +125,50 @@ function input(
 }
 
 /**
- * A straight-line fall along the inertial direction at `latDeg` latitude and
- * zero inertial longitude, from 200 m above the radius at 100 m/s: the point
- * crosses `RADIUS - 100` (the surface threshold) at t = 3 s.
+ * Elements whose own conic is on its way down through the surface threshold
+ * (`RADIUS - 100`), `metresAbove` it at the view instant, with the patch that
+ * describes the same conic. Descending at roughly 400 m/s there, so 50 m above
+ * crosses a fraction of a second out and 5 km above crosses past the ~9.27 s
+ * fall bound.
  */
-function fallingArc(
-  latDeg: number,
-  frame: { kind: number; centreBodyIndex?: number | null } = {
-    kind: Frame.BodyCentredInertial,
-    centreBodyIndex: 3,
-  },
-  fromUt = 0,
-) {
-  const lat = (latDeg * Math.PI) / 180;
-  const points = Array.from({ length: 21 }, (_, i) => {
-    const ut = fromUt + i;
-    const r = RADIUS + 200 - 100 * (ut - fromUt);
-    return { ut, x: r * Math.cos(lat), y: 0, z: r * Math.sin(lat) };
-  });
+function descending(metresAbove: number, tilt = { inc: 0, lan: 0, argPe: 0 }) {
+  const sma = 250_000;
+  const ecc = 0.6;
+  const r = RADIUS - 100 + metresAbove;
+  const nu =
+    2 * Math.PI - Math.acos((sma * (1 - ecc * ecc)) / r / ecc - 1 / ecc);
+  const eccentric =
+    2 *
+    Math.atan2(
+      Math.sqrt(1 - ecc) * Math.sin(nu / 2),
+      Math.sqrt(1 + ecc) * Math.cos(nu / 2),
+    );
+  const mean = eccentric - ecc * Math.sin(eccentric);
+  const meanAnomalyAtEpoch =
+    ((mean % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
   return {
-    frame: { ...frame, lengthsPulsate: false },
-    points,
-    fromUt,
-    toUt: fromUt + 20,
-    sourcePointCount: points.length,
-    derivation: 2,
+    sma,
+    ecc,
+    meanAnomalyAtEpoch,
+    ...tilt,
+    patches: [
+      syntheticPatch({
+        sma,
+        ecc,
+        meanAnomalyAtEpoch,
+        ...tilt,
+        period: 2 * Math.PI * Math.sqrt(sma ** 3 / 8e10),
+      }),
+    ],
   };
 }
+
+/** An integrating provider's horizon, 20 s out, so the sampled conic is dense. */
+const INTEGRATED_UNTIL = {
+  kind: Reach.Until,
+  untilUt: 20,
+  trajectoryKind: Shape.Integrated,
+};
 
 describe("predictImpactPoint: the descent it is solved for", () => {
   it("answers a point when the patch chain actually crosses the surface", () => {
@@ -285,98 +296,43 @@ describe("predictImpactPoint: a conic answer", () => {
 });
 
 describe("predictImpactPoint: an arc answer", () => {
-  it("is the surface crossing on the provider's own points", () => {
-    const impact = predictImpactPoint(
-      input({ horizon: INTEGRATED, arc: fallingArc(20) }),
+  it("crosses the surface where the patch walk over the same conic does", () => {
+    const orbit = descending(50);
+    const walked = predictImpactPoint(input({ ...orbit, horizon: ANALYTIC }));
+    const sampled = predictImpactPoint(
+      input({ ...orbit, horizon: INTEGRATED_UNTIL }),
     );
-    // Crossing at t = 3 s. The craft's inertial longitude at the view instant
-    // is 0 and it is observed at 10°, so the crossing is 10° less the 3 s of
-    // surface rotation under it.
-    expect(impact?.lat).toBeCloseTo(20, 9);
-    expect(impact?.lon).toBeCloseTo(10 - (360 / ROTATION) * 3, 9);
+    expect(walked).not.toBeNull();
+    // To a tenth of a degree: the walk steps a second at a time and the arc interpolates between samples, so the two agree to tens of metres, and a wrong lift misses by tens of degrees.
+    expect(sampled?.lat).toBeCloseTo(walked?.lat ?? Number.NaN, 1);
+    expect(sampled?.lon).toBeCloseTo(walked?.lon ?? Number.NaN, 1);
   });
 
-  it("lifts perifocal points back through the elements they were rotated by", () => {
-    // Inclined elements, so the perifocal frame is nowhere near the inertial one: the inertial answer comes back only if the lift undoes the rotation.
-    const tilted = { inc: 30, lan: 40, argPe: 50 };
-    const rad = (d: number) => (d * Math.PI) / 180;
-    const inertial = fallingArc(20);
-    const perifocal = {
-      ...inertial,
-      frame: { kind: Frame.Perifocal, lengthsPulsate: false },
-      points: inertial.points.map((p) => {
-        const [x, y, z] = rotateInertialToPerifocal(
-          [p.x, p.y, p.z],
-          rad(tilted.inc),
-          rad(tilted.lan),
-          rad(tilted.argPe),
-        );
-        return { ut: p.ut, x, y, z };
-      }),
-    };
-    const impact = predictImpactPoint(
-      input({ ...tilted, horizon: INTEGRATED, arc: perifocal }),
+  it("lifts the sampled points back through the elements they were drawn in", () => {
+    // Inclined elements, so the orbit's own plane is nowhere near the inertial one: the two answers agree only if the lift undoes the rotation.
+    const orbit = descending(50, { inc: 30, lan: 40, argPe: 50 });
+    const walked = predictImpactPoint(input({ ...orbit, horizon: ANALYTIC }));
+    const sampled = predictImpactPoint(
+      input({ ...orbit, horizon: INTEGRATED_UNTIL }),
     );
-    expect(impact?.lat).toBeCloseTo(20, 9);
-    expect(impact?.lon).toBeCloseTo(10 - (360 / ROTATION) * 3, 9);
+    expect(walked).not.toBeNull();
+    // To a tenth of a degree: the walk steps a second at a time and the arc interpolates between samples, so the two agree to tens of metres, and a wrong lift misses by tens of degrees.
+    expect(sampled?.lat).toBeCloseTo(walked?.lat ?? Number.NaN, 1);
+    expect(sampled?.lon).toBeCloseTo(walked?.lon ?? Number.NaN, 1);
   });
 
-  it("answers none for an arc whose crossing is past the fall bound", () => {
-    const raised = (metres: number) => {
-      const arc = fallingArc(0);
-      return {
-        ...arc,
-        points: arc.points.map((p) => ({ ...p, x: p.x + metres })),
-      };
-    };
-    // Crossing at t = 9.5 s, inside the sample that straddles the ~9.27 s bound.
+  it("answers none for a crossing past the fall bound", () => {
     expect(
-      predictImpactPoint(input({ horizon: INTEGRATED, arc: raised(650) })),
+      predictImpactPoint(
+        input({ ...descending(5_000), horizon: INTEGRATED_UNTIL }),
+      ),
     ).toBeNull();
-    // Crossing at t = 11 s, a whole sample past it.
+    // The control: the same conic nearer the surface crosses inside it.
     expect(
-      predictImpactPoint(input({ horizon: INTEGRATED, arc: raised(800) })),
-    ).toBeNull();
-    // The control: the same arc raised less crosses at t = 9 s, inside it.
-    expect(
-      predictImpactPoint(input({ horizon: INTEGRATED, arc: raised(600) })),
+      predictImpactPoint(
+        input({ ...descending(2_000), horizon: INTEGRATED_UNTIL }),
+      ),
     ).not.toBeNull();
-  });
-
-  it("answers none for an arc in a frame that cannot yield a latitude and longitude", () => {
-    expect(
-      predictImpactPoint(
-        input({
-          horizon: INTEGRATED,
-          arc: fallingArc(0, {
-            kind: Frame.BodyCentredRotating,
-            centreBodyIndex: 3,
-          }),
-        }),
-      ),
-    ).toBeNull();
-  });
-
-  it("answers none for an arc centred on another body", () => {
-    expect(
-      predictImpactPoint(
-        input({
-          horizon: INTEGRATED,
-          arc: fallingArc(0, {
-            kind: Frame.BodyCentredInertial,
-            centreBodyIndex: 7,
-          }),
-        }),
-      ),
-    ).toBeNull();
-  });
-
-  it("answers none for an arc that does not reach back to the view instant", () => {
-    expect(
-      predictImpactPoint(
-        input({ horizon: INTEGRATED, arc: fallingArc(0, undefined, 1) }),
-      ),
-    ).toBeNull();
   });
 });
 

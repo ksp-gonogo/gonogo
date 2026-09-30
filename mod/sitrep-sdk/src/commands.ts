@@ -76,8 +76,8 @@ export interface CommandReplyMap extends SdkOwnedCommandReplyMap {}
  * The default reply type of `useCommand` and `UseCommandResult`. Read the
  * command's own value from `payload`, never from the envelope itself.
  *
- * True of every command but `vessel.trajectory.forVantage`, which replies with a
- * `VantagePlanReply` rather than an envelope. Its handle is therefore not
+ * True of every command but `system.bodies.statesAt`, which replies with a
+ * `BodyStatesReply` rather than an envelope. Its handle is therefore not
  * assignable to a bare `UseCommandResult`.
  *
  * @category Commands

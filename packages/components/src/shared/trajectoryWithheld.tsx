@@ -40,18 +40,6 @@ export function trajectoryWithheldCopy(withheld: WithheldTrajectory): {
         heading: "SHAPE NOT STATED",
         detail: "Nothing has said whether this trajectory is a conic.",
       };
-    case "beyond-budget":
-      return {
-        heading: "BEYOND BUDGET",
-        detail:
-          "The integration ran out of steps before reaching this instant. Shorten the window, or wait.",
-      };
-    case "no-force-model":
-      return {
-        heading: "NO FORCE MODEL",
-        detail:
-          "The gravity model could not be read, so there is nothing to integrate against. Check the install.",
-      };
     case "frame-unavailable":
       return {
         heading: "FRAME UNAVAILABLE",

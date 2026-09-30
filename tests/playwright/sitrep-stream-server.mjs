@@ -127,7 +127,6 @@ export const SNAPSHOT = {
     // bounds how far they answer for. Without this the conic refuses outright
     // ("NO HORIZON STATED") and every figure solved from it renders as a dash.
     horizon: { kind: 1, untilUt: null, trajectoryKind: 1 },
-    arcRefusal: 0, // TrajectoryRefusal.NotAttempted: a closed-form provider seeks no arc
     patches: [],
     meta: payloadMeta,
   },

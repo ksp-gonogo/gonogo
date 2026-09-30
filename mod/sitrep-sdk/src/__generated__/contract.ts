@@ -51,7 +51,6 @@ export interface StreamBinary
 * A command rather than a channel because the instants are the caller's: a
 * transfer search asks about departure and arrival times nobody has reached,
 * and nothing publishes a position for an instant nobody asked about.
-* `vessel.trajectory.forVantage` is a query for the same reason.
 *
 * There is no vantage field: the vantage is resolved from the connection the
 * command arrives on, so a client cannot name somebody else's.
@@ -144,8 +143,7 @@ export interface BodyStatesReply
 * One body's position and velocity at one instant, relative to the request's
 * centre body, in a non-rotating, Z-up inertial frame centred on that body.
 *
-* Flat keys rather than nested vectors, matching `TrajectoryPoint`, because
-* these arrive in bulk.
+* Flat keys rather than nested vectors, because these arrive in bulk.
 *
 * @category Orbits and trajectories
 */
@@ -2082,125 +2080,6 @@ export interface CommsOcclusion
 	* universe and the rule applied to it, not any craft.
 	*/
 	meta: PayloadMeta;
-}
-/**
-* One burn as a command centre SPECIFIED it, which is a different thing from
-* one as the craft reports it.
-*
-* **Inputs only.** A `ManeuverNode` carries what a burn turned out to be: its
-* cutoff, its final mass, the patch chain it puts the craft on. None of those
-* is something an operator states, they are what a planner works out, and
-* putting them in a command would invite a caller to state a conclusion and
-* have it quietly ignored.
-*
-* **Anchored to ignition.** A burn starts when it starts. The half-delta-v
-* instant a node reports is derived from a solved burn, so it cannot be the
-* thing that specifies one.
-*
-* @category Orbits and trajectories
-*/
-export interface ComposedBurn
-{
-	/** The instant the burn starts, as a universal time. */
-	ignitionUt: Value<"ut">;
-	/**
-	* The basis the three components below are in.
-	*
-	* Stated rather than assumed, because the same three numbers are a different
-	* burn in each basis and both bases are in use: stock plans in
-	* radial/normal/prograde, an integrating planner in the Frenet trihedron. A
-	* default here would silently reinterpret every burn sent by the other one.
-	*/
-	frame: ManeuverFrame;
-	/**
-	* The basis's first, second and third component, in the basis's own order,
-	* exactly as `ManeuverNode.frame` describes for the reported shape. So these
-	* are radial/normal/prograde under `ManeuverFrame.RadialNormalPrograde` and
-	* tangent/normal/binormal under `ManeuverFrame.TangentNormalBinormal`.
-	*/
-	dvRadial: Value<"m/s">;
-	/**
-	* The basis's second component: normal under either basis. See
-	* `ComposedBurn.dvRadial`.
-	*/
-	dvNormal: Value<"m/s">;
-	/**
-	* The basis's third component: prograde under
-	* `ManeuverFrame.RadialNormalPrograde`, binormal under
-	* `ManeuverFrame.TangentNormalBinormal`. See `ComposedBurn.dvRadial`.
-	*/
-	dvPrograde: Value<"m/s">;
-	/**
-	* Hold the burn's direction against the stars rather than against the craft's
-	* moving frame.
-	*/
-	inertiallyFixed: boolean;
-	/**
-	* The engine to burn with. BOTH absent means "leave whatever the plan already
-	* holds", which is the ordinary case for editing an existing burn.
-	*
-	* Stated as real numbers rather than as a named preset. A preset is one
-	* planner's idea of a placeholder engine, and core naming it would put that
-	* planner's numbers in every other planner's contract; a caller that wants a
-	* placeholder states the placeholder.
-	*/
-	thrust?: Value<"kN"> | null;
-	/**
-	* The specific impulse of the engine to burn with. Set together with
-	* `ComposedBurn.thrust`; both absent leaves the plan's engine as it is.
-	*/
-	specificImpulse?: Value<"isp"> | null;
-}
-/**
-* A whole flight plan, composed at a command centre and transmitted to be
-* instantiated aboard.
-*
-* **Why a whole plan rather than per-burn edits.** Five burn edits are five
-* messages, each with its own light-time, each able to arrive late, out of
-* order, or not at all. A craft that received three of them would fly a plan
-* nobody composed and nobody approved. One plan is one message, applied whole
-* or not at all.
-*
-* **The burns are transmitted, never re-derived.** The receiving side installs
-* these numbers rather than re-solving toward a goal. A plan re-solved on
-* arrival would be solved against the craft's true state, which is ahead of
-* everything the operator could see, so the craft would fly something nobody
-* at the command centre ever looked at.
-*
-* @category Command arguments
-*/
-export interface SendManeuverPlanArgs
-{
-	/** The craft the plan is for: KSP's `Vessel.id` GUID, as a string. */
-	vesselId?: string;
-	/**
-	* Stable per-intent id, so a plan that is retransmitted after a silence is
-	* recognised as the same plan rather than applied twice.
-	*/
-	requestId?: string;
-	/**
-	* The view instant the plan was composed against: what the command centre
-	* could see when it decided.
-	*/
-	composedAtViewUt?: number;
-	/**
-	* The instant the state used for planning was actually TRUE, at or before
-	* `SendManeuverPlanArgs.composedAtViewUt`.
-	*
-	* Both travel because they record different things: one is when the operator
-	* decided, the other is how old their information already was. Together they
-	* make the divergence between what was planned against and what received the
-	* plan a measurement rather than a guess.
-	*/
-	observedAtUt?: number;
-	/**
-	* The burns, in order. An EMPTY list is a plan with no burns, which is a
-	* meaningful thing to send because it clears the plan; a NULL list is a
-	* malformed command and is refused. The two must not be confused.
-	*/
-	burns?: ComposedBurn[];
-	/** How far the plan is asked to run. */
-	desiredFinalTimeUt?: number;
 }
 /**
 * The frame the game's own navigation view is expressed in: what the player is
@@ -7300,313 +7179,6 @@ export interface TimeCalendar
 	meta: PayloadMeta;
 }
 /**
-* A sampled path a provider computed, as points in a NAMED frame.
-*
-* **Why this exists rather than a client sampling the elements.**
-* `VesselOrbit`'s elements are osculating, so sampling them gives the conic
-* the craft is tangent to at the sample instant. That is exactly the
-* trajectory for an analytic provider and is NOT one for a provider that
-* integrates: the curve it flies leaves that conic immediately, and drawing
-* the conic under an integrated label is confidently wrong. So an integrating
-* provider puts its real points here, and a client that has them draws them
-* instead of solving anomalies.
-*
-* **Three dimensions and a frame, not two in the orbital plane.** An n-body
-* path has no perifocal plane to be flat in, and in a rotating frame it has no
-* central body either, so a pair of in-plane coordinates cannot express one.
-* `TrajectoryArc.frame` is beside the points rather than assumed, because the
-* same trajectory is a different SHAPE per frame and a curve quoted without
-* its frame is a curve whose meaning is unknown.
-*
-* **The far end is where authority stops, never where the path ends.**
-* `TrajectoryArc.toUt` is the last instant vouched for. A client draws a
-* visible mark there: a prediction that stops short and a trajectory that ends
-* look identical on a diagram and mean opposite things.
-*
-* @category Orbits and trajectories
-*/
-export interface TrajectoryArc
-{
-	/** Which frame `TrajectoryArc.points` are expressed in. */
-	frame: TrajectoryFrameRef;
-	/**
-	* The path, in time order, first point at `TrajectoryArc.fromUt` and last at
-	* `TrajectoryArc.toUt`. Never empty: a producer with no points publishes no
-	* arc and states a refusal instead, because "a trajectory with no points in
-	* it" and "there is no trajectory" read identically on a diagram.
-	*/
-	points: TrajectoryPoint[];
-	/** The instant of the first point. */
-	fromUt: Value<"ut">;
-	/** The instant of the last point, and the far end the horizon mark goes on. */
-	toUt: Value<"ut">;
-	/**
-	* How many points the propagation actually produced, before decimation. Equal
-	* to `Points.Count` when nothing was dropped.
-	*
-	* Carried so a reader can tell a DECIMATED curve from a short one. The two
-	* look the same as a polyline and are different facts: a decimated curve
-	* resolves less than the propagation knew, and no reader may treat one of its
-	* points as an event instant. Event instants are published as their own
-	* instants for that reason, never recovered from this polyline.
-	*/
-	sourcePointCount: Value<"count">;
-	/** Where the curve came from, so the mark can travel ON it. */
-	derivation: TrajectoryDerivation;
-	/**
-	* What the integration was against, when the producer integrated. Null for a
-	* closed-form curve, which has no force model to describe.
-	*/
-	forceModel?: TrajectoryForceModel | null;
-}
-/**
-* One sampled point: where, and when.
-*
-* @category Orbits and trajectories
-*/
-export interface TrajectoryPoint
-{
-	/**
-	* The instant this point is at. An instant, so UT: the points are events on a
-	* path rather than offsets along one, and a reader interpolating between two
-	* of them needs to know which side of a burn it is on.
-	*/
-	ut: Value<"ut">;
-	/**
-	* Position on the frame's x axis, in metres. In a frame whose
-	* `TrajectoryFrameRef.lengthsPulsate` is set it is a multiple of the pair's
-	* separation instead, not a distance.
-	*/
-	x: Value<"m">;
-	/** Position on the frame's y axis, on the same terms as `TrajectoryPoint.x`. */
-	y: Value<"m">;
-	/** Position on the frame's z axis, on the same terms as `TrajectoryPoint.x`. */
-	z: Value<"m">;
-}
-/**
-* Which frame a set of trajectory points is expressed in, named well enough
-* that the curve can be read.
-*
-* Deliberately not the producing mod's own frame vocabulary. A frame is a
-* property every provider's curve has, and putting one vendor's enum on the
-* standard payload would make every other provider translate into it.
-*
-* @category Orbits and trajectories
-*/
-export interface TrajectoryFrameRef
-{
-	/**
-	* Which frame it is. `TrajectoryFrameKind.Unspecified` means the points cannot
-	* be drawn.
-	*/
-	kind: TrajectoryFrameKind;
-	/**
-	* Index into `system.bodies` of the body the frame is centred on, or null for
-	* a frame with no centre. Three of the frames a player can plot in have none,
-	* which is also why apsides do not exist in them.
-	*/
-	centreBodyIndex?: number | null;
-	/**
-	* True when the frame's lengths are not lengths.
-	*
-	* A pulsating frame composes a dilatation onto a rotating one, so a fractional
-	* error in the scaling radius scales every coordinate. A readout the frame
-	* invalidates says so rather than showing a number.
-	*/
-	lengthsPulsate: boolean;
-}
-/**
-* The frames a trajectory may be published in.
-*
-* `TrajectoryFrameKind.Unspecified` is 0 so a producer that forgets gets the
-* value a client must refuse to draw, on the same terms as
-* `PropagationHorizonKind.Unspecified`: the wrong direction to default in is
-* the one where an unnamed frame silently reads as the frame the reader
-* happened to expect.
-*
-* @category Orbits and trajectories
-*/
-export enum TrajectoryFrameKind {
-	/** No producer stated one. The points cannot be drawn. */
-	Unspecified = 0,
-	/**
-	* The orbit's own plane, periapsis on +x, centred on the body the elements are
-	* about. What a body-centric orbit diagram already draws in, and what a conic
-	* sampled from osculating elements is expressed in.
-	*/
-	Perifocal = 1,
-	/**
-	* Centred on `TrajectoryFrameRef.centreBodyIndex`, axes fixed against the
-	* stars. The frame an integrated path is naturally computed in.
-	*/
-	BodyCentredInertial = 2,
-	/**
-	* Centred on a body and turning with its surface. A ground track is this frame
-	* by construction.
-	*/
-	BodyCentredRotating = 3,
-	/**
-	* Centred on a body, with one axis held on the bearing to its parent. The
-	* frame a transfer window is legible in, because the parent stays put.
-	*/
-	BodyCentredParentDirection = 4,
-	/**
-	* Two bodies held at fixed coordinates, which costs the length unit: a
-	* coordinate here is a multiple of the pair's separation, not a distance. The
-	* Lagrange points are fixed locations in this frame and in no other, which is
-	* the whole reason to draw in it.
-	*
-	* Always accompanied by `TrajectoryFrameRef.lengthsPulsate` set, so a reader
-	* that does not know this member still knows not to quote a number from it as
-	* a distance.
-	*/
-	RotatingPulsating = 5
-}
-/**
-* Who derived a curve, and how faithfully.
-*
-* The mark travels ON the curve rather than beside the widget, for the same
-* reason a horizon does: a substituted curve that only says so in a panel
-* elsewhere is one nobody reads as substituted.
-*
-* @category Orbits and trajectories
-*/
-export enum TrajectoryDerivation {
-	/** No producer stated one. */
-	Unspecified = 0,
-	/** The points are the n-body mod's own, read from it directly. */
-	Foreign = 1,
-	/**
-	* Gonogo's own integration, against the n-body model read from the installed
-	* mod's own configuration.
-	*/
-	OwnNBody = 2,
-	/**
-	* Gonogo's own integration, with the force model incompletely matched: some
-	* body's parameters could not be resolved, and
-	* `TrajectoryForceModel.missingTerm` says which.
-	*/
-	OwnNBodyDegraded = 3,
-	/** A closed-form conic Gonogo computed from the elements alone. */
-	OwnClosedForm = 4
-}
-/**
-* What an integration was actually against, so a reader can tell how far to
-* trust the curve without being told to trust it.
-*
-* @category Orbits and trajectories
-*/
-export interface TrajectoryForceModel
-{
-	/**
-	* True when the force model's configuration was found and parsed. False means
-	* the curve is degraded and says which term is missing.
-	*/
-	gravityModelFound: boolean;
-	/** How many perturbing bodies were summed, not counting the primary. */
-	perturbingBodyCount: Value<"count">;
-	/**
-	* The highest geopotential degree used for any body. Zero means point masses
-	* throughout, which is a statement rather than an omission: oblateness is
-	* worth about 4e-8 of a frame's angular velocity at lunar distance and is
-	* deliberately not computed.
-	*/
-	geopotentialDegree: Value<"count">;
-	/**
-	* How the perturbing bodies' FUTURE positions were obtained, and the one
-	* approximation in the whole curve.
-	*
-	* `kepler-from-snapshot` means each body was Kepler-propagated forward from
-	* its present state rather than read from an integrated ephemeris. The n-body
-	* mod evaluates every body from its own integrated ephemeris fitted to a
-	* millimetre; no export it offers takes a future time that can honestly be
-	* called, so this is the substitute. It is acceptable because body positions
-	* enter only through the PERTURBING terms and planetary orbits are
-	* near-Keplerian over a week. It is NOT acceptable where a third body
-	* dominates: near a libration point, during a close flyby, or anywhere else
-	* `TrajectoryForceModel.thirdBodyDominance` is large, this approximation
-	* becomes the leading error and the curve diverges qualitatively rather than
-	* numerically. That is why the dominance is published on every arc and why the
-	* horizon closes when it crosses its bound.
-	*
-	* Stated on every payload, so a reader meets the limit where it reads the
-	* curve.
-	*/
-	bodyEphemeris?: string | null;
-	/**
-	* The largest perturbing acceleration as a fraction of the primary's, over the
-	* arc. Makes the chaotic regime visible rather than inferred.
-	*/
-	thirdBodyDominance?: Value<"ratio"> | null;
-	/**
-	* Which term is absent, when the model could not be fully matched. Null when
-	* nothing is missing; a degraded curve always names one.
-	*/
-	missingTerm?: string | null;
-	/** The integrator's name. */
-	integrator?: string | null;
-	/** The step actually used. An interval, so seconds. */
-	stepSeconds: Value<"s">;
-	/** How many steps were taken. */
-	stepCount: Value<"count">;
-	/**
-	* True when neither drag nor thrust was modelled, which is always. A reentry
-	* countdown computed in a vacuum is a vacuum countdown, and a reader that does
-	* not know that will read it as a reentry one.
-	*/
-	vacuum: boolean;
-}
-/**
-* Why a producer that CAN integrate published no arc this sample.
-*
-* Separate from `PropagationHorizon`, which gives reach and shape for the
-* ELEMENTS. These are refusals about the ARC, and each names a different
-* remedy: a client that had to borrow the horizon's sentence for one of them
-* would tell the operator to do the wrong thing.
-*
-* **Zero is the state of having sought nothing**, and
-* `TrajectoryRefusal.NotRefused` is the separate thing a producer says when it
-* did attempt one and got a curve.
-*
-* @category Orbits and trajectories
-*/
-export enum TrajectoryRefusal {
-	/**
-	* No integrated arc was sought. Every sample from a provider whose
-	* trajectories are closed-form is this, and so is a sample whose horizon named
-	* no instant to integrate up to.
-	*
-	* It does not mean an arc is fine, and it never accompanies one:
-	* `TrajectoryRefusal.NotRefused` does. Read it beside
-	* `PropagationHorizon.trajectoryKind`, which says WHY nothing was sought:
-	* `Analytic` is an install that propagates in conics, and the arc has nothing
-	* to add to that sentence.
-	*/
-	NotAttempted = 0,
-	/**
-	* The integration hit its step budget before reaching the requested instant.
-	* The operator can shorten the window, or wait: it may resolve on its own.
-	*/
-	BeyondBudget = 1,
-	/**
-	* The force model's configuration was not found or could not be parsed, so
-	* there is nothing to integrate against. There is no operator remedy: it is an
-	* install problem and it says so.
-	*
-	* The ordinary way to reach it is an n-body physics mod installed against a
-	* solar system it ships no gravity model for, which is a real and common
-	* install rather than a corner: the model config is guarded on the planet pack
-	* it belongs to, so the mod runs and the node is not there.
-	*/
-	NoForceModel = 2,
-	/**
-	* An arc was attempted and nothing refused it, so `VesselOrbit.arc` carries
-	* one. Only ever paired with a present arc, so a reader can tell a computed
-	* curve from an absent one without looking at the arc field at all.
-	*/
-	NotRefused = 3
-}
-/**
 * What a command gate concluded about one precondition: passed, failed, could
 * not be decided from the arguments supplied, or could not be decided from the
 * game's state.
@@ -7854,82 +7426,6 @@ export enum SettingKind {
 	* player's locale.
 	*/
 	Number = 2
-}
-/**
-* Args for `vessel.trajectory.forVantage`: where does this craft go, given
-* what my command centre has been told.
-*
-* There is no vantage field: the reply is computed for the vantage the command
-* arrives from, so a client cannot ask for what another command centre can
-* see.
-*
-* @category Command arguments
-*/
-export interface VantagePlanRequest
-{
-	/**
-	* The channel carrying the craft's orbit. A request naming no topic is
-	* refused.
-	*/
-	topic?: string | null;
-	/**
-	* How far ahead to propagate. Allowed to be past what this vantage can
-	* currently see, because a prediction reaching beyond the news is the whole
-	* point of asking.
-	*/
-	toUt: Value<"ut">;
-	/** Points to publish on the arc. Zero takes the provider's default. */
-	maxPoints: Value<"count">;
-}
-/**
-* The `vessel.trajectory.forVantage` result: the craft's predicted trajectory
-* as the asking command centre knows it, or why there is not one.
-*
-* Read `VantagePlanReply.seededAtUt` with the arc: an arc detached from the
-* instant its seed was true makes no claim about when, and a divergence
-* measured against it later would be measured against nothing in particular.
-*
-* @category Orbits and trajectories
-*/
-export interface VantagePlanReply
-{
-	/**
-	* Whether a trajectory was computed. When false, `VantagePlanReply.refusal`
-	* says why and the other fields are null.
-	*/
-	solved: boolean;
-	/**
-	* The predicted path up to the requested UT. Null when
-	* `VantagePlanReply.solved` is false.
-	*/
-	arc?: TrajectoryArc | null;
-	/** When the state this was computed from was actually TRUE. */
-	seededAtUt?: Value<"ut"> | null;
-	/**
-	* Which command centre's view produced it, echoed so a client that switched
-	* vantage mid-flight can tell whose result it is holding. Null on a refusal.
-	*/
-	vantage?: string | null;
-	/**
-	* Why there is no trajectory, as a human-readable sentence. Null when there is
-	* one.
-	*/
-	refusal?: string | null;
-	/**
-	* A reply carrying no trajectory.
-	*
-	* @param refusal Why there is none, as a human-readable sentence.
-	* @returns An unsolved reply.
-	*/
-	Refused(refusal: string) : VantagePlanReply;
-	/**
-	* A solved reply from a seeded propagation's result.
-	*
-	* @param answer The solved trajectory and the UT its seed was true at.
-	* @param vantage The command centre whose view produced it.
-	* @returns A solved reply.
-	*/
-	From(answer: any, vantage: string) : VantagePlanReply;
 }
 /**
 * The one 3-vector shape on the wire: an `{x, y, z}` object. Every
@@ -8662,9 +8158,9 @@ export enum TransitionType {
 	Unknown = 6
 }
 /**
-* The basis a planned burn's delta-v components are expressed in. The two
-* bases are easy to mistake for each other and give different components, so
-* read this before interpreting a burn vector.
+* The basis a planned burn's delta-v components are expressed in. Read this
+* before interpreting a burn vector: a basis this contract does not recognise
+* gives components that cannot be labelled.
 *
 * @category Orbits and trajectories
 */
@@ -8674,14 +8170,8 @@ export enum ManeuverFrame {
 	* the patch the node sits on at its own UT.
 	*/
 	RadialNormalPrograde = 0,
-	/**
-	* The Frenet trihedron of the trajectory at the burn point: tangent, normal,
-	* binormal. Not a renaming of `ManeuverFrame.RadialNormalPrograde`: the axes
-	* differ, and for an eccentric orbit they differ by an amount that matters.
-	*/
-	TangentNormalBinormal = 1,
 	/** A frame this contract does not recognise. */
-	Unknown = 2
+	Unknown = 1
 }
 /**
 * The `vessel.flight` channel payload: MEASUREMENTS, not evaluations:
@@ -9132,15 +8622,6 @@ export interface ManeuverNode
 	* `ManeuverNode.dvPrograde` are expressed in. Null only on a node replayed
 	* from a recording that does not carry it, on the same terms as
 	* `ManeuverNode.id`. Do not read null as the stock basis.
-	*
-	* **The three fields are POSITIONAL slots, and this names what they hold.**
-	* They are the basis's first, second and third component in the basis's own
-	* declared order: `ManeuverFrame.RadialNormalPrograde` puts radial, normal and
-	* prograde in them, and `ManeuverFrame.TangentNormalBinormal` puts tangent,
-	* normal and binormal. So on a Frenet burn `ManeuverNode.dvRadial` carries the
-	* TANGENT and `ManeuverNode.dvPrograde` carries the BINORMAL, whatever the
-	* field names suggest. A reader that ignores this silently rotates every burn
-	* an integrating planner produces.
 	*/
 	frame?: ManeuverFrame | null;
 	/**
@@ -9167,57 +8648,6 @@ export interface ManeuverNode
 	* non-finite this tick, as for `ManeuverNode.dvRadial`.
 	*/
 	dvTotal?: Value<"m/s"> | null;
-	/**
-	* What `ManeuverNode.frame`'s basis is measured RELATIVE TO.
-	*
-	* `ManeuverFrame` names a BASIS and not a frame, and for stock that is enough
-	* because there is only ever one thing the basis can be relative to. A planner
-	* that lets an operator choose the reference frame breaks that assumption: the
-	* same tangent/normal/binormal triple means a different burn depending on what
-	* it is tangent TO, and a client shown the numbers without this is being shown
-	* a burn it cannot identify.
-	*
-	* A kind plus `ManeuverNode.frameReferenceBodyIndex`, using the same four
-	* kinds the read-frame side names.
-	*
-	* Null when the planner has only one frame, which is the stock case and not a
-	* gap.
-	*/
-	frameReference?: ManeuverFrameReference | null;
-	/**
-	* The body `ManeuverNode.frameReference` is about, as a `system.bodies` index.
-	* Unused by a frame that needs no body.
-	*/
-	frameReferenceBodyIndex?: Value<"count"> | null;
-	/**
-	* Whether the craft holds a fixed inertial attitude through the burn rather
-	* than following the frame as it rotates.
-	*
-	* Not a nicety: over a long burn the two steer differently, so a plan shown
-	* without it is a plan whose execution cannot be predicted from what is on
-	* screen. Null when the planner has no such concept, which is stock.
-	*/
-	inertiallyFixed?: boolean | null;
-	/**
-	* Thrust the plan was computed against. Null when the planner did not state
-	* it; stock's impulsive model does not fill it.
-	*/
-	thrust?: Value<"kN"> | null;
-	/**
-	* Specific impulse the plan was computed against. Null when the planner did
-	* not state it.
-	*/
-	specificImpulse?: Value<"isp"> | null;
-	/**
-	* Craft mass at ignition, as the plan assumed it. Null when the planner did
-	* not state it.
-	*/
-	initialMass?: Value<"t"> | null;
-	/**
-	* Craft mass at cutoff, as the plan assumed it. Null when the planner did not
-	* state it.
-	*/
-	finalMass?: Value<"t"> | null;
 	/**
 	* This node's post-burn future-orbit patch chain: element 0 is the orbit the
 	* vessel is on IMMEDIATELY after the burn (KSP's own
@@ -9393,25 +8823,6 @@ export interface VesselOrbit
 	* sample's elements beside another's horizon.
 	*/
 	horizon: PropagationHorizon;
-	/**
-	* The path the craft actually flies, when the provider integrated one.
-	*
-	* Null under an analytic provider, and that is not a gap: its elements are the
-	* curve, so a client draws a conic from them. Null also under an integrating
-	* provider that has nothing to publish this sample, in which case
-	* `VesselOrbit.arcRefusal` says why.
-	*
-	* It rides with the elements for the same reason as `VesselOrbit.horizon`: the
-	* arc, the elements and the horizon that bounds both share one `validAt`.
-	*/
-	arc?: TrajectoryArc | null;
-	/**
-	* What became of the arc: why `VesselOrbit.arc` is absent when a provider
-	* tried to build one and stopped, `TrajectoryRefusal.NotAttempted` when none
-	* was sought at all, and `TrajectoryRefusal.NotRefused` beside one that was
-	* drawn.
-	*/
-	arcRefusal: TrajectoryRefusal;
 	/**
 	* Payload provenance. `Source` is `"vessel:<guid>"` for the active vessel;
 	* `Quality` is `Loaded` under physics and `OnRails` otherwise.
@@ -10496,95 +9907,6 @@ export interface WarpState
 	sampleIntervalUt: Value<"s">;
 	/** The payload's provenance (always `"game"`) and quality. */
 	meta: PayloadMeta;
-}
-/**
-* What a burn's basis is measured relative to.
-*
-* The same four the read-frame side names: a frame an operator picked to READ
-* a trajectory in and a frame a burn was PLANNED in are the same kind of
-* thing, so "is this burn in the frame I am looking at" needs no translation.
-*
-* @category Orbits and trajectories
-*/
-export enum ManeuverFrameReference {
-	/**
-	* Not stated. Zero so a planner that says nothing is not read as having
-	* claimed a frame.
-	*/
-	Unspecified = 0,
-	/** Whatever the craft's own control frame currently is. */
-	FollowControlFrame = 1,
-	/** Non-rotating, centred on a body. */
-	BodyCentredInertial = 2,
-	/** Aligned with the direction to a body's parent. */
-	ParentDirection = 3,
-	/** Rotating with two primaries, with lengths that pulsate. */
-	RotatingPulsating = 4
-}
-/**
-* The newest vessel state that has reached a particular vantage, and the
-* instant it was true; or, when `DelayedObservation.established` is false, why
-* there is none.
-*
-* Seed a delay-aware propagation from this rather than from PropagationTarget,
-* which carries an identity rather than a state and so solves from the game's
-* live truth, ahead of everything the operator can see. At thirty
-* light-minutes that difference would report a craft as healthy minutes after
-* it stopped existing.
-*
-* `DelayedObservation.observedAtUt` is the sample's own instant, never a
-* computed `now - delay`. A slow-changing channel's newest sample can date
-* from well before the delay window's edge, and stamping it with the edge
-* would assert the craft held that state later than it did.
-*
-* @category Comms
-*/
-export interface DelayedObservation
-{
-	/**
-	* True when a state was established; false on a refusal, when
-	* `DelayedObservation.refusal` and `DelayedObservation.reason` say why and the
-	* other fields carry no data.
-	*/
-	established: boolean;
-	/**
-	* Position and velocity relative to `DelayedObservation.centreBodyIndex`. The
-	* default value on a refusal.
-	*/
-	state: any;
-	/**
-	* The `system.bodies` index of the body `DelayedObservation.state` is
-	* expressed about; -1 on a refusal.
-	*/
-	centreBodyIndex: number;
-	/**
-	* When this state was true (UT seconds), taken from the sample itself. A
-	* propagation seeded here must integrate from this instant, not from
-	* `DelayedObservation.viewUt`. NaN on a refusal.
-	*/
-	observedAtUt: number;
-	/**
-	* The instant the vantage is currently seeing (UT seconds). Always at or after
-	* `DelayedObservation.observedAtUt`: the gap is how long the newest arrived
-	* state has been held, which an operator wants shown. NaN on a refusal.
-	*/
-	viewUt: number;
-	/**
-	* How long, in seconds, this state has been the newest thing the vantage has:
-	* `DelayedObservation.viewUt` minus `DelayedObservation.observedAtUt`. NaN on
-	* a refusal.
-	*/
-	ageSeconds: number;
-	/**
-	* Why no state was established; DelayedStateRefusal.None when
-	* `DelayedObservation.established` is true.
-	*/
-	refusal: number;
-	/**
-	* A human-readable explanation of the refusal; null when
-	* `DelayedObservation.established` is true.
-	*/
-	reason?: string | null;
 }
 /**
 * Whether a caller will accept a result past the span the provider vouches

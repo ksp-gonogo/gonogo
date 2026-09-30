@@ -233,7 +233,6 @@ namespace Gonogo.KSP
                 Command(VesselCommandProvider.ManeuverAddCommand, VesselViewProvider.ManeuverTopic),
                 Command(VesselCommandProvider.ManeuverUpdateCommand, VesselViewProvider.ManeuverTopic),
                 Command(VesselCommandProvider.ManeuverRemoveCommand, VesselViewProvider.ManeuverTopic),
-                Command(VesselCommandProvider.ManeuverPlanSendCommand, VesselViewProvider.ManeuverTopic),
                 Command(VesselCommandProvider.TargetSetCommand, VesselViewProvider.TargetTopic),
                 Command(VesselCommandProvider.TargetClearCommand, VesselViewProvider.TargetTopic),
                 // TrueNow: no craft to address, so no Subject (see
@@ -258,11 +257,6 @@ namespace Gonogo.KSP
         {
             ActionGroupsElection.RegisterCapability(kernel, _ => new StockActionGroupsBackend());
             PropagationElection.RegisterCapability(kernel, SilenceTracking.KspSystemTable.Current);
-            // No vanilla, unlike every other declaration here, and the asymmetry is
-            // the point: stock has no n-body force model to fall back on, so an
-            // install with nothing registered is honestly unsatisfied rather than
-            // quietly served a model assembled from stock's own numbers.
-            GravityModelElection.RegisterCapability(kernel);
             // The SAME registry KspVesselActuator resolves update/remove's
             // nodeId against, so a burn's id round-trips into a command whether
             // the burn was authored through vessel.maneuver.add or placed by
@@ -313,23 +307,6 @@ namespace Gonogo.KSP
             // now a lambda around a core method a resolved kernel can be handed.
             VesselViewProvider.SetHorizonSource(
                 (target, sampleUt) => PropagationElection.HorizonFor(_kernel, target, sampleUt));
-
-            // The other half of the same fact. Saying a trajectory is integrated
-            // and then publishing only the osculating conic it is tangent to leaves
-            // every client sampling an ellipse under an integrated label, so the
-            // arc source is installed beside the flag that claims it.
-            //
-            // Assembled here rather than registered as a provider because it is not
-            // one: it composes two elections (whoever published a force model,
-            // whoever won propagation) with a body list only this assembly can read,
-            // and none of those three is entitled to know about the other two.
-            var arcs = new NBodyArcSource(
-                () => GravityModelElection.Model(_kernel),
-                () => _kernel != null ? PropagationElection.Elected(_kernel) : null,
-                KspPerturbers.Around);
-            VesselViewProvider.SetTrajectoryArcSource(
-                (target, fromUt, toUt) =>
-                    arcs.ArcFor(target, fromUt, toUt, NBodyArcSource.PublishedPoints));
 
             _kspActuator?.SetPlanOwnerSource(() =>
             {
@@ -384,11 +361,6 @@ namespace Gonogo.KSP
             host.AddCommandHandler<AddManeuverNodeArgs, CommandResult<string>>(VesselCommandProvider.ManeuverAddCommand, args => VesselCommandProvider.HandleManeuverAdd(_actuator, args));
             host.AddCommandHandler<UpdateManeuverNodeArgs, CommandResult>(VesselCommandProvider.ManeuverUpdateCommand, args => VesselCommandProvider.HandleManeuverUpdate(_actuator, args));
             host.AddCommandHandler<RemoveManeuverNodeArgs, CommandResult>(VesselCommandProvider.ManeuverRemoveCommand, args => VesselCommandProvider.HandleManeuverRemove(_actuator, args));
-            // Through the election, so the source that reports this craft's plan is
-            // the one that installs a new one.
-            host.AddCommandHandler<SendManeuverPlanArgs, CommandResult>(
-                VesselCommandProvider.ManeuverPlanSendCommand,
-                args => ManeuverPlanElection.Send(host.Kernel, args));
             host.AddCommandHandler<SetTargetArgs, CommandResult>(VesselCommandProvider.TargetSetCommand, args => VesselCommandProvider.HandleTargetSet(_actuator, args));
             host.AddCommandHandler<object?, CommandResult>(VesselCommandProvider.TargetClearCommand, args => VesselCommandProvider.HandleTargetClear(_actuator, args));
             host.AddCommandHandler<SetWarpIndexArgs, CommandResult>(VesselCommandProvider.SetWarpIndexCommand, args => VesselCommandProvider.HandleSetWarpIndex(_actuator, args));

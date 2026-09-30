@@ -7,26 +7,20 @@ import { NodeRow } from "./NodeRow";
 
 /**
  * The editor's three boxes are positional slots labelled from the burn's own
- * basis: under `TangentNormalBinormal`, stock names would swap the along-track
- * burn with the out-of-plane one. Components 1/2/3, since one live axis cannot
- * tell a correct labelling from a rotated one.
+ * basis. A basis nothing stated, or one this build does not recognise, gets
+ * Components 1/2/3: stock names would assert a basis nobody declared.
  */
-function frenetNode(): ParsedManeuverNode {
+function stockNode(): ParsedManeuverNode {
   return {
     id: "planner:0",
     UT: 1_000,
-    // The wire's positional slots, in the basis's own order: tangent, normal, binormal.
     deltaV: [1, 2, 3],
     deltaVMagnitude: Math.hypot(1, 2, 3),
-    frame: ManeuverFrame.TangentNormalBinormal,
+    frame: ManeuverFrame.RadialNormalPrograde,
     ignitionUt: null,
     cutoffUt: null,
     orbitPatches: [],
   };
-}
-
-function stockNode(): ParsedManeuverNode {
-  return { ...frenetNode(), frame: ManeuverFrame.RadialNormalPrograde };
 }
 
 async function openEditor(node: ParsedManeuverNode) {
@@ -42,22 +36,13 @@ async function openEditor(node: ParsedManeuverNode) {
   return view;
 }
 
-/** The accessible name ends in the unit suffix; anchored at the start so "Normal" cannot match "Binormal". */
+/** The accessible name ends in the unit suffix, so the match is anchored at the start. */
 function labelled(name: string): HTMLInputElement {
   return screen.getByLabelText(new RegExp(`^${name}`)) as HTMLInputElement;
 }
 
 describe("the node editor names the components the burn's own basis declares", () => {
-  it("labels a Frenet burn tangent / normal / binormal", async () => {
-    await openEditor(frenetNode());
-
-    expect(labelled("Tangent").value).toBe("1");
-    expect(labelled("Normal").value).toBe("2");
-    expect(labelled("Binormal").value).toBe("3");
-    await act(async () => {});
-  });
-
-  it("still labels a stock burn radial / normal / prograde", async () => {
+  it("labels a stock burn radial / normal / prograde", async () => {
     await openEditor(stockNode());
 
     expect(labelled("Radial").value).toBe("1");
@@ -68,12 +53,21 @@ describe("the node editor names the components the burn's own basis declares", (
 
   // Defaulting to stock names would assert a basis the node declined to state.
   it("names the slots neutrally when the node states no basis", async () => {
-    await openEditor({ ...frenetNode(), frame: null });
+    await openEditor({ ...stockNode(), frame: null });
 
     expect(labelled("Component 1").value).toBe("1");
     expect(labelled("Component 2").value).toBe("2");
     expect(labelled("Component 3").value).toBe("3");
     expect(screen.queryByLabelText(/^Prograde/)).toBeNull();
+    await act(async () => {});
+  });
+
+  it("names the slots neutrally for a basis this build does not recognise", async () => {
+    await openEditor({ ...stockNode(), frame: ManeuverFrame.Unknown });
+
+    expect(labelled("Component 1").value).toBe("1");
+    expect(labelled("Component 3").value).toBe("3");
+    expect(screen.queryByLabelText(/^Radial/)).toBeNull();
     await act(async () => {});
   });
 });

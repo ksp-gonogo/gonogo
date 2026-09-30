@@ -257,7 +257,6 @@ export type {
   TrajectoryScaleConvention,
   TrajectoryWithheldReason,
   Vector3,
-  WireTrajectoryArc,
 } from "./kepler";
 export {
   canPropagate,
@@ -286,10 +285,8 @@ export {
   solveEccentricAnomaly,
   systemInstantAt,
   TRAJECTORY_SCALE_CONVENTIONS,
-  TrajectoryDerivationLike,
   TrajectoryFrameKindLike,
   TrajectoryKindLike,
-  TrajectoryRefusalLike,
   toFrame,
   trajectoryFrameKindFor,
   trajectoryFrameLabel,

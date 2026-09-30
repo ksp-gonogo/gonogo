@@ -73,16 +73,10 @@
               "ignitionUt": 1235120.4,
               "cutoffUt": 1235213.6,
               "frame": 0,
-              "frameReference": 1,
               "dvRadial": 0,
               "dvNormal": 1098.7,
               "dvPrograde": 0,
               "dvTotal": 1098.7,
-              "inertiallyFixed": false,
-              "thrust": 60,
-              "specificImpulse": 345,
-              "initialMass": 9.4,
-              "finalMass": 6.5,
               "patches": [
                 {
                   "sma": 685000,

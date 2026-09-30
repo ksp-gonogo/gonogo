@@ -30,8 +30,8 @@ const COMMAND_REPLY_TYPES: Record<string, string> =
  * Give a command reply's declared quantities their units, in place.
  *
  * The write-side twin of what `parseServerMessage` does to a `stream-data`
- * frame: a `VantagePlanReply.seededAtUt` typed `Value<"ut">` is one at runtime
- * as well, so a caller reaching a `Value` method on it does not throw.
+ * frame: a `BodyState.ut` typed `Value<"ut">` is one at runtime as well, so a
+ * caller reaching a `Value` method on it does not throw.
  *
  * A command the map has never heard of, a primitive result, and a payload of
  * a type with no declared units all pass straight through: the walk is
