@@ -142,7 +142,7 @@ describe("Panel hoverTitle: the tiny tile's header out of flow", () => {
     expect(overlay?.textContent).toContain("WARN");
   });
 
-  it("insets the body by the lone-frame token, the operator-named 2px semantic value, not a raw length", () => {
+  it("insets the body by the shared tiny-inset token, not a raw length", () => {
     const { container } = render(
       <Panel
         panelTitle="TWR"
@@ -153,8 +153,8 @@ describe("Panel hoverTitle: the tiny tile's header out of flow", () => {
     );
     const body = container.querySelector("[data-panel-body]") as HTMLElement;
     const rule = emittedRuleFor(body);
-    expect(rule).toContain("--panel-body-gutter:var(--inset-lone-frame)");
-    expect(rule).toContain("--panel-body-bottom:var(--inset-lone-frame)");
+    expect(rule).toContain("--panel-body-gutter:var(--inset-tiny)");
+    expect(rule).toContain("--panel-body-bottom:var(--inset-tiny)");
   });
 
   it("has no axe violations", async () => {

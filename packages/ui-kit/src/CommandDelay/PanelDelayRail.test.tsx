@@ -212,6 +212,36 @@ describe("PanelDelayRail", () => {
       // Not `absolute`: an out-of-flow band would draw over the sticky header and take its clicks.
       expect(getComputedStyle(railOf(railButton())).position).toBe("relative");
     });
+
+    it("stays opaque with an empty band outside a tiny panel, unlike the `tiny` case below", () => {
+      const { container } = inPanel(<PanelDelayRail />);
+      const frame = container.querySelector(
+        "[data-panel-rail-frame]",
+      ) as HTMLElement;
+      expect(emittedRuleFor(frame)).toContain(
+        "background:var(--color-surface-panel)",
+      );
+    });
+
+    it("paints no background for a tiny panel's empty band, so nothing covers the panel's own focus ring", () => {
+      const { container } = inPanel(<PanelDelayRail tiny />);
+      const frame = container.querySelector(
+        "[data-panel-rail-frame]",
+      ) as HTMLElement;
+      expect(emittedRuleFor(frame)).toContain("background:transparent");
+    });
+
+    it("still paints the opaque backing in a tiny panel once it has real content to protect", () => {
+      const store = createDelayRailStore();
+      store.register(handle("cmd"));
+      const { container } = inPanel(<PanelDelayRail tiny />, store);
+      const frame = container.querySelector(
+        "[data-panel-rail-frame]",
+      ) as HTMLElement;
+      expect(emittedRuleFor(frame)).toContain(
+        "background:var(--color-surface-panel)",
+      );
+    });
   });
 
   describe("pin-to-grow (v4)", () => {

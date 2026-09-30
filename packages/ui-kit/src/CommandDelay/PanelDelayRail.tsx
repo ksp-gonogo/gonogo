@@ -38,7 +38,7 @@ function handleHasContent(handle: CommandHandle): boolean {
 /**
  * The Panel-owned signal-delay rail. Reads the active command handles from the
  * nearest `DelayRailContext` and renders each one's delay UI through
- * `CommandDelay`. Takes no prop.
+ * `CommandDelay`.
  *
  * **The band is RESERVED, not taken.** Every panel stands the same strip up at
  * its top edge whether or not it has a command to show, so a command going up
@@ -59,8 +59,14 @@ function handleHasContent(handle: CommandHandle): boolean {
  * The band stays EMPTY when nothing has anything to draw. "Anything" is five
  * things: in flight, refused, unanswered, found and never sent. The last four
  * are terminal, with nothing in flight, so they are asked for separately.
+ *
+ * `tiny`: the band's own reserved-but-empty backing would otherwise paint a
+ * full-width bar over the tiny panel's own focus ring, which has nothing else
+ * to sit behind it (no header). Reserving height still costs nothing, so only
+ * the paint is skipped, and only while the rail is genuinely empty; real
+ * content still gets its opaque backing, tiny panel or not.
  */
-export function PanelDelayRail() {
+export function PanelDelayRail({ tiny }: { tiny?: boolean } = {}) {
   const handles = useActiveHandles();
   const visible = handles.filter(handleHasContent);
   // Outcomes come from EVERY registered handle: a settled command has nothing in flight, so `handleHasContent` would hide it.
@@ -139,7 +145,11 @@ export function PanelDelayRail() {
 
   return (
     // An EMPTY band carries only its own marker, since every widget renders it.
-    <PanelDelayRail__Frame data-panel-rail-frame="">
+    <PanelDelayRail__Frame
+      data-panel-rail-frame=""
+      $tiny={tiny}
+      $hasContent={hasContent}
+    >
       {/*
         The rail's one announcer, outside the toggle. Mounted once a command
         registers, before any outcome exists, so the first outcome lands in a
@@ -287,11 +297,15 @@ export function PanelDelayRail() {
  * margin pulls it into `PanelContainer`'s top inset in the container placement;
  * `PanelStickyTop` gives it back inside the sticky unit.
  */
-const PanelDelayRail__Frame = styled.div`
+const PanelDelayRail__Frame = styled.div<{
+  $tiny?: boolean;
+  $hasContent?: boolean;
+}>`
   /* Never shrinks below its content: the grown rail keeps its full height and the body gives up the difference. */
   flex: 0 0 auto;
-  /* Fully opaque: content scrolls under the rail, and a translucent base would ghost a delay reading rather than mask it. */
-  background: var(--color-surface-panel);
+  /* Fully opaque so content scrolling under the rail never ghosts through: except a tiny panel's empty band, which paints nothing so the panel's own focus ring stays visible behind it. */
+  background: ${({ $tiny, $hasContent }) =>
+    $tiny && !$hasContent ? "transparent" : "var(--color-surface-panel)"};
   /* Up into the container's top inset, the band; both read --panel-rail-band, so they cannot drift. */
   margin-top: calc(-1 * var(--panel-rail-band));
   min-height: var(--panel-rail-band);

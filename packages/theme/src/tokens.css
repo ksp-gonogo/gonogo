@@ -607,11 +607,14 @@ textarea {
   --inset-panel-bottom: var(--space-12);
   --inset-panel-body: var(--inset-panel-top) var(--gutter-panel)
     var(--inset-panel-bottom);
-  /* A panel body that is one framed drawing insets it this far on the sides
-     and bottom under a narrow container: a hairline of panel surface either
-     side of the frame's own border, so the panel's edge and the frame's read
-     as two lines rather than one thick one. */
-  --inset-lone-frame: var(--space-2);
+  /* The inset a panel steps down to when it has little room to give: a lone
+     framed drawing under a narrow container (a hairline of panel surface
+     either side of the frame's own border, so the panel's edge and the
+     frame's read as two lines rather than one thick one), and the tiny
+     hover-title panel's own edge (the same narrow-panel case; it is always
+     that narrow, so it takes the step unconditionally rather than under a
+     container query). */
+  --inset-tiny: var(--space-6);
   /* No bottom inset: the body's own gap is the only space between the header and the content. */
   --inset-panel-header: 0 var(--gutter-panel);
   /* Above a hand-composed header row; inside a Panel the rail band is that inset. */

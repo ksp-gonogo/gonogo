@@ -506,8 +506,8 @@ const PanelBody__Box = styled.div<{
   ${({ $loneFrame }) =>
     $loneFrame
       ? `@container (width < ${LONE_FRAME_BREAKPOINT}) {
-           --panel-body-gutter: var(--inset-lone-frame);
-           --panel-body-bottom: var(--inset-lone-frame);
+           --panel-body-gutter: var(--inset-tiny);
+           --panel-body-bottom: var(--inset-tiny);
          }`
       : ""}
   /* The title row is out of flow entirely (see PanelHoverTop), so the body
@@ -515,8 +515,8 @@ const PanelBody__Box = styled.div<{
      container, unconditionally: a hoverTitle panel is always that narrow. */
   ${({ $hoverTitle }) =>
     $hoverTitle
-      ? `--panel-body-gutter: var(--inset-lone-frame);
-         --panel-body-bottom: var(--inset-lone-frame);`
+      ? `--panel-body-gutter: var(--inset-tiny);
+         --panel-body-bottom: var(--inset-tiny);`
       : ""}
   ${SECTION_FILL_RULE}
 `;
@@ -1429,9 +1429,9 @@ const PanelStickyHeader = styled(PanelHeader)`
  */
 const PanelHoverTop = styled.div`
   position: absolute;
-  top: var(--inset-lone-frame);
-  left: var(--inset-lone-frame);
-  right: var(--inset-lone-frame);
+  top: var(--inset-tiny);
+  left: var(--inset-tiny);
+  right: var(--inset-tiny);
   /* Above the panel's own content (PanelGlow, trend, footer), local sibling ordering inside this panel's own stacking context. Not app-global chrome, so no named z rung. */
   z-index: 3;
   display: flex;
@@ -1698,7 +1698,7 @@ function PanelRootImpl({
       hoverTitle={hoverTitle}
     >
       <PanelStickyTop data-panel-sticky-top="">
-        <PanelDelayRail />
+        <PanelDelayRail tiny={hoverTitle} />
         {!hoverTitle && (
           <PanelStickyHeader
             title={panelTitle}
