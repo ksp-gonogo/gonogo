@@ -2105,8 +2105,13 @@ namespace Sitrep.Contract
         /// strategy on a rule of its own, and
         /// <c>CareerStrategy.ActivateAvailableFromUt</c>, when such a refusal
         /// lapses. Additive, so an Uplink built against 20.0 is unaffected.</para>
+        ///
+        /// <para><b>Major-26 line, Bumped 0 -&gt; 1:</b> <see cref="ControlFrame.SettableFrames"/>
+        /// and <see cref="ControlFrameOption"/>, the frames <c>system.frame.set</c> can put the
+        /// view in, so a client offers only those. Additive, so an Uplink built against 26.0
+        /// is unaffected.</para>
         /// </internal>
         /// </summary>
-        public const int Minor = 0;
+        public const int Minor = 1;
     }
 }

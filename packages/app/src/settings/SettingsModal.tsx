@@ -16,6 +16,7 @@ import styled from "styled-components";
 import { analyticsConsentService } from "../analytics/AnalyticsConsentService";
 import { BackupManager } from "../backup/BackupManager";
 import { LogsManager } from "../logs/LogsManager";
+import { ControlFrameSettings } from "./ControlFrameSettings";
 import { GonogoSettings } from "./GonogoSettings";
 import type { SettingDefinition } from "./registry";
 import { getSettingsForScreen } from "./registry";
@@ -97,6 +98,12 @@ export function SettingsModal({ initialTabId }: SettingsModalProps = {}) {
     content: (
       <SectionStack>
         <GonogoSettings />
+        <Stack as="section" gap="related-comfortable">
+          <SectionTitle as="h3" $rule>
+            Control Frame
+          </SectionTitle>
+          <ControlFrameSettings />
+        </Stack>
       </SectionStack>
     ),
     indicator: gonogoIssue,

@@ -117,6 +117,7 @@ public static class RtConfig
                 typeof(OrbitPatch),
                 typeof(ManeuverNode),
                 typeof(ControlFrame),
+                typeof(ControlFrameOption),
                 typeof(SetControlFrameArgs),
                 typeof(DockAlignment),
                 typeof(ResourceAmount),

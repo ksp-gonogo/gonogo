@@ -27,9 +27,8 @@
  * identical spelling but no read-side consumer of the corresponding
  * contract field) and smaller per-topic gaps (`flight.*` correlation
  * fields beyond the one each existing bridge already reads,
- * `science.sensors.*`, `system.frame.*` beyond `system.frame.set`'s own
- * unread command, `comms.*` sub-fields beyond what the comms widgets already
- * draw).
+ * `science.sensors.*`, `system.frame.*`, `comms.*` sub-fields beyond what
+ * the comms widgets already draw).
  *
  * Regenerate the seed by running `styleguide-contract-reader-coverage.test.ts`
  * (its two coverage assertions print the fresh list) rather than by hand.
@@ -236,6 +235,4 @@ export const CONTRACT_READER_DEBT: Record<string, string> = {
     "no reader found; payload-level duplicate of the Reading wrapper state/reckoning (gonogo Saga task 727 seed, 2026-09-30)",
   "field:vessel.thermal.meta.source":
     "no reader found; payload-level duplicate of the Reading wrapper state/reckoning (gonogo Saga task 727 seed, 2026-09-30)",
-  "command:system.frame.set":
-    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
 };

@@ -412,6 +412,13 @@
       "targetFrameSelected": "flag",
       "targetId": "id"
     },
+    "ControlFrameOption": {
+      "centreBody": "text",
+      "kind": "enum",
+      "primaryBody": "text",
+      "secondaryBody": "text",
+      "targetFrameSelected": "flag"
+    },
     "CrashFlightStats": {
       "flightEndMode": "text",
       "groundDistance": "m",
@@ -2124,6 +2131,9 @@
     "CommsSignal": {
       "meta": "PayloadMeta"
     },
+    "ControlFrame": {
+      "settableFrames": "ControlFrameOption[]"
+    },
     "CraftLoad": {
       "measured": "CraftFileRecord"
     },
@@ -2446,6 +2456,9 @@
     },
     "system.bodies": {
       "bodies": "BodyEntry[]"
+    },
+    "system.frame": {
+      "settableFrames": "ControlFrameOption[]"
     },
     "system.vessels": {
       "vessels": "VesselRosterEntry[]"

@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 26.0.0
+  version: 26.1.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 78 telemetry
     channels a client subscribes to, and 57 commands it dispatches, with the payload
@@ -11275,6 +11275,17 @@ components:
           description: |-
             The id of the target vessel the frame is defined against, when it is a
             target frame; otherwise `null`.
+        settableFrames:
+          type:
+            - array
+            - "null"
+          items:
+            $ref: "#/components/schemas/ControlFrameOption"
+          description: |-
+            Every frame `system.frame.set` can put the view in, each named exactly as
+            the command takes it. Empty when the view cannot be moved at all, which is
+            stock; `null` when the source did not say. Either way there is nothing to
+            offer: a frame not listed here is one the command will refuse.
     ControlFrameKind:
       type: integer
       description: |-
@@ -11311,6 +11322,48 @@ components:
         - const: 5
           title: BodySurface
           description: Centred on a body and turning with its surface.
+    ControlFrameOption:
+      type: object
+      description: |-
+        One frame the navigation view can be put in, named the way
+        `system.frame.set` takes it: send it back as the command's args unchanged.
+        The pair is named by its heads, never by its sets.
+      required:
+        - kind
+      properties:
+        kind:
+          description: The kind of frame. `ControlFrameKind.Unspecified` for the target frame.
+          allOf:
+            - $ref: "#/components/schemas/ControlFrameKind"
+              x-sitrep-unit: enum
+        centreBody:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: text
+          description: The `bodyName` the frame is centred on, or `null` for the rotating frames.
+        primaryBody:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: text
+          description: The `bodyName` a rotating frame turns about. `null` for the centred frames.
+        secondaryBody:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: text
+          description: |-
+            The `bodyName` a rotating frame is anchored to. `null` for the centred
+            frames.
+        targetFrameSelected:
+          type:
+            - boolean
+            - "null"
+          x-sitrep-unit: flag
+          description: |-
+            `true` for the target frame, which sits beside `ControlFrameOption.kind`
+            rather than inside it.
     ControlState:
       type: integer
       description: |-

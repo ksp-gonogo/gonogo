@@ -1,3 +1,4 @@
+using System;
 using Sitrep.Contract;
 
 namespace Gonogo.KSP
@@ -51,6 +52,9 @@ namespace Gonogo.KSP
                     // Stock has no target frame. False rather than null, because
                     // this is a confirmed answer about stock and not an absence.
                     TargetFrameSelected = false,
+                    // Empty rather than null: stock's view cannot be moved, which
+                    // is an answer, not an absence.
+                    SettableFrames = Array.Empty<ControlFrameOption>(),
                 };
             }
         }

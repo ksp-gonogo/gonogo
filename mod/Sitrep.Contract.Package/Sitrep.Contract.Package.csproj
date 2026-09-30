@@ -68,8 +68,8 @@
     <_ContractVersionCs>$(MSBuildThisFileDirectory)..\Sitrep.Contract\ContractVersion.cs</_ContractVersionCs>
     <ContractMajor>$([System.Text.RegularExpressions.Regex]::Match($([System.IO.File]::ReadAllText($(_ContractVersionCs))), `(?&lt;=public\s+const\s+int\s+Major\s*=\s*)\d+`).Value)</ContractMajor>
     <ContractMinor>$([System.Text.RegularExpressions.Regex]::Match($([System.IO.File]::ReadAllText($(_ContractVersionCs))), `(?&lt;=public\s+const\s+int\s+Minor\s*=\s*)\d+`).Value)</ContractMinor>
-    <PackagePatch>1</PackagePatch>
-    <PackagePatchForContract>26.0</PackagePatchForContract>
+    <PackagePatch>0</PackagePatch>
+    <PackagePatchForContract>26.1</PackagePatchForContract>
     <Version>$(ContractMajor).$(ContractMinor).$(PackagePatch)</Version>
   </PropertyGroup>
 

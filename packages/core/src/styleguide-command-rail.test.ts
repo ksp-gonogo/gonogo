@@ -29,6 +29,7 @@ const RAIL_OPT_OUTS: Record<string, number> = {
   // Draws its stream on its own ControlDelayStream.
   "packages/sitrep-client/src/use-control-stream.tsx": 1,
   // The settings modal mounts no rail; each form states its write's outcome.
+  "packages/app/src/settings/ControlFrameSettings.tsx": 1,
   "packages/app/src/settings/GonogoSettings.tsx": 1,
   "packages/app/src/settings/ModSettingsSection.tsx": 1,
 };

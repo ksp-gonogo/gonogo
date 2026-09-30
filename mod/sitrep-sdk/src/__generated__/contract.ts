@@ -2149,6 +2149,39 @@ export interface ControlFrame
 	* target frame; otherwise `null`.
 	*/
 	targetId?: string | null;
+	/**
+	* Every frame `system.frame.set` can put the view in, each named exactly as
+	* the command takes it. Empty when the view cannot be moved at all, which is
+	* stock; `null` when the source did not say. Either way there is nothing to
+	* offer: a frame not listed here is one the command will refuse.
+	*/
+	settableFrames?: ControlFrameOption[] | null;
+}
+/**
+* One frame the navigation view can be put in, named the way
+* `system.frame.set` takes it: send it back as the command's args unchanged.
+* The pair is named by its heads, never by its sets.
+*
+* @category Vessel
+*/
+export interface ControlFrameOption
+{
+	/** The kind of frame. `ControlFrameKind.Unspecified` for the target frame. */
+	kind: ControlFrameKind;
+	/** The `bodyName` the frame is centred on, or `null` for the rotating frames. */
+	centreBody?: string | null;
+	/** The `bodyName` a rotating frame turns about. `null` for the centred frames. */
+	primaryBody?: string | null;
+	/**
+	* The `bodyName` a rotating frame is anchored to. `null` for the centred
+	* frames.
+	*/
+	secondaryBody?: string | null;
+	/**
+	* `true` for the target frame, which sits beside `ControlFrameOption.kind`
+	* rather than inside it.
+	*/
+	targetFrameSelected?: boolean | null;
 }
 /**
 * `system.frame.set`'s args: the frame to put the view in.

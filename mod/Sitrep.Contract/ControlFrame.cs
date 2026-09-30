@@ -121,6 +121,48 @@ namespace Sitrep.Contract
         /// <summary>The id of the target vessel the frame is defined against, when it is a target frame; otherwise <c>null</c>.</summary>
         [SitrepUnit(Units.Id)]
         public string? TargetId { get; set; }
+
+        /// <summary>
+        /// Every frame <c>system.frame.set</c> can put the view in, each named
+        /// exactly as the command takes it. Empty when the view cannot be moved
+        /// at all, which is stock; <c>null</c> when the source did not say. Either
+        /// way there is nothing to offer: a frame not listed here is one the
+        /// command will refuse.
+        /// </summary>
+        public ControlFrameOption[]? SettableFrames { get; set; }
+    }
+
+    /// <summary>
+    /// One frame the navigation view can be put in, named the way
+    /// <c>system.frame.set</c> takes it: send it back as the command's args
+    /// unchanged. The pair is named by its heads, never by its sets.
+    /// </summary>
+    /// <category>Vessel</category>
+    [SitrepContract]
+#if SITREP_CODEGEN
+    [TsInterface]
+#endif
+    public sealed class ControlFrameOption
+    {
+        /// <summary>The kind of frame. <see cref="ControlFrameKind.Unspecified"/> for the target frame.</summary>
+        [SitrepUnit(Units.Enumeration)]
+        public ControlFrameKind Kind { get; set; }
+
+        /// <summary>The <c>bodyName</c> the frame is centred on, or <c>null</c> for the rotating frames.</summary>
+        [SitrepUnit(Units.Text)]
+        public string? CentreBody { get; set; }
+
+        /// <summary>The <c>bodyName</c> a rotating frame turns about. <c>null</c> for the centred frames.</summary>
+        [SitrepUnit(Units.Text)]
+        public string? PrimaryBody { get; set; }
+
+        /// <summary>The <c>bodyName</c> a rotating frame is anchored to. <c>null</c> for the centred frames.</summary>
+        [SitrepUnit(Units.Text)]
+        public string? SecondaryBody { get; set; }
+
+        /// <summary><c>true</c> for the target frame, which sits beside <see cref="Kind"/> rather than inside it.</summary>
+        [SitrepUnit(Units.Flag)]
+        public bool? TargetFrameSelected { get; set; }
     }
 
     /// <summary>

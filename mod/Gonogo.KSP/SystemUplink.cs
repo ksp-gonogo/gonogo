@@ -220,12 +220,7 @@ namespace Gonogo.KSP
                 args => ControlFrameElection.Set(host.Kernel, args));
         }
 
-        /// <summary>
-        /// The frame the game's navigation view is in. Flattened rather than
-        /// published as the contract object: a POCO on the wire throws in the
-        /// writer and takes the whole uplink down with it, every channel and
-        /// command at once.
-        /// </summary>
+        /// <summary>The frame the game's navigation view is in, flattened by <see cref="ControlFrameWire"/>.</summary>
         internal static Dictionary<string, object?>? BuildControlFrame(Kernel? kernel)
         {
             var frame = ControlFrameElection.Elected(kernel);
@@ -237,17 +232,7 @@ namespace Gonogo.KSP
                 return null;
             }
 
-            return new Dictionary<string, object?>
-            {
-                ["kind"] = (int)frame.Kind,
-                ["centreBody"] = frame.CentreBody,
-                ["primaryBody"] = frame.PrimaryBody,
-                ["secondaryBody"] = frame.SecondaryBody,
-                ["primaryBodies"] = frame.PrimaryBodies,
-                ["secondaryBodies"] = frame.SecondaryBodies,
-                ["targetFrameSelected"] = frame.TargetFrameSelected,
-                ["targetId"] = frame.TargetId,
-            };
+            return ControlFrameWire.Flatten(frame);
         }
     }
 }

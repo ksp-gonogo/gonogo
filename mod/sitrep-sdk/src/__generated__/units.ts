@@ -452,6 +452,13 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     targetFrameSelected: "flag",
     targetId: "id",
   },
+  "ControlFrameOption": {
+    centreBody: "text",
+    kind: "enum",
+    primaryBody: "text",
+    secondaryBody: "text",
+    targetFrameSelected: "flag",
+  },
   "CrashFlightStats": {
     flightEndMode: "text",
     groundDistance: "m",
@@ -2198,6 +2205,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "CommsSignal": {
     meta: "PayloadMeta",
   },
+  "ControlFrame": {
+    settableFrames: "ControlFrameOption[]",
+  },
   "CraftLoad": {
     measured: "CraftFileRecord",
   },
@@ -2523,6 +2533,9 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "system.bodies": {
     bodies: "BodyEntry[]",
   },
+  "system.frame": {
+    settableFrames: "ControlFrameOption[]",
+  },
   "system.vessels": {
     vessels: "VesselRosterEntry[]",
   },
@@ -2652,6 +2665,9 @@ export const GENERATED_TYPE_ENUMS: Readonly<Record<string, EnumsByField>> = {
     kind: "CommsHopKind",
   },
   "ControlFrame": {
+    kind: "ControlFrameKind",
+  },
+  "ControlFrameOption": {
     kind: "ControlFrameKind",
   },
   "CrewRosterEntry": {
