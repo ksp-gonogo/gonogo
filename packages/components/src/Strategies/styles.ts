@@ -1,4 +1,4 @@
-import { Block } from "@ksp-gonogo/ui-kit";
+import { Badge, Block, Row } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 
 /** `Panel`'s own column template; `auto-fit` collapses empty tracks, which `minColWidth` (auto-fill) would not. */
@@ -46,14 +46,20 @@ export const EffectList = styled.ul`
   gap: var(--gap-related);
 `;
 
-export const EffectLine = styled.li`
+/**
+ * One line of the game's own effect prose, relayed verbatim rather than judged
+ * (see `CostChip` below for the other half of that distinction). Built on
+ * `Row`, ui-kit's list-row primitive, for the padded, gapped `<li>` shape;
+ * left unwrapped in `RowName` since that truncates, and this text wraps.
+ */
+export const EffectLine = styled(Row)`
+  justify-content: flex-start;
+  align-items: flex-start;
   color: var(--color-text-primary);
-  font-size: var(--font-size-compact);
   line-height: var(--line-height-body);
   &::before {
     content: "·";
     color: var(--color-text-dim);
-    margin-right: var(--gap-trailing-mark);
   }
 `;
 
@@ -114,15 +120,19 @@ export const CostRow = styled.div`
   margin-top: var(--gap-caption);
 `;
 
-export const CostChip = styled.span<{ $insufficient?: boolean }>`
-  font-size: var(--font-size-compact);
-  padding: var(--inset-chip);
-  border-radius: var(--radius-pill);
-  background: ${({ $insufficient }) =>
-    $insufficient ? "var(--color-nogo-muted)" : "var(--color-surface-raised)"};
-  color: ${({ $insufficient }) =>
-    $insufficient ? "var(--color-nogo-text)" : "var(--color-text-primary)"};
+/**
+ * Our own verdict about a record (what a currency costs, whether the career
+ * can currently cover it), not the game's words, unlike `EffectLine` above.
+ * Built on `Badge` for its tone vocabulary and pill; the caps/weight/tracking
+ * a status word carries is dropped, since a chip here holds a formatted
+ * amount rather than a one-word state.
+ */
+export const CostChip = styled(Badge)`
+  text-transform: none;
+  font-weight: 400;
+  letter-spacing: normal;
   font-variant-numeric: tabular-nums;
+  border-radius: var(--radius-pill);
 `;
 
 export const FactorRow = styled.div`

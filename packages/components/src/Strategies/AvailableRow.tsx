@@ -133,6 +133,10 @@ export function AvailableRow({
     (s.initialCostScience > 0 && overBudget(scaledScience, science)) ||
     (s.initialCostReputation > 0 && overBudget(scaledRep, reputation));
 
+  // A cost chip carries the kit's `nogo` tone only once the verdict is actually "no"; an unknown balance stays untoned rather than reading as either afford or refusal.
+  const costTone = (afford: "yes" | "no" | undefined) =>
+    afford === "no" ? ("nogo" as const) : undefined;
+
   return (
     <StrategyCard
       title={
@@ -191,7 +195,8 @@ export function AvailableRow({
         <CostRow>
           {s.initialCostFunds > 0 && (
             <CostChip
-              $insufficient={affordVerdict(scaledFunds, funds) === "no"}
+              size="sm"
+              tone={costTone(affordVerdict(scaledFunds, funds))}
               data-afford={affordVerdict(scaledFunds, funds)}
             >
               <Unit value={value("funds", scaledFunds)} />
@@ -199,7 +204,8 @@ export function AvailableRow({
           )}
           {s.initialCostScience > 0 && (
             <CostChip
-              $insufficient={affordVerdict(scaledScience, science) === "no"}
+              size="sm"
+              tone={costTone(affordVerdict(scaledScience, science))}
               data-afford={affordVerdict(scaledScience, science)}
             >
               <Unit value={value("science", scaledScience)} />
@@ -207,7 +213,8 @@ export function AvailableRow({
           )}
           {s.initialCostReputation > 0 && (
             <CostChip
-              $insufficient={affordVerdict(scaledRep, reputation) === "no"}
+              size="sm"
+              tone={costTone(affordVerdict(scaledRep, reputation))}
               data-afford={affordVerdict(scaledRep, reputation)}
               title={`Nominal ${writeQuantity(value("rep", s.initialCostReputation * factorScale))}; the rep curve bumps the real charge to ${writeQuantity(value("rep", scaledRep))}.`}
             >
