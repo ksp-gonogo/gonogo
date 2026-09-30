@@ -96,7 +96,8 @@ describe("OrbitView: a partial payload, the orbit without its body", () => {
       }
     });
     // Without the body the name, colour and rotation marker drop out; the frame caption does not need the body.
-    expect(visibleText(container)).toBe("ORBIT VIEWorbit planeApPe");
+    // Inlaid on the frame rather than a preceding sibling, so it now reads after the diagram's own SVG text.
+    expect(visibleText(container)).toBe("ORBIT VIEWApPeorbit plane");
   });
 
   it("reads a real orbit as 'Sub-orbital' when the apsis ALTITUDES are absent", async () => {

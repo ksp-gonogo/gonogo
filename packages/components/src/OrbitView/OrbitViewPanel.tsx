@@ -46,20 +46,30 @@ export function OrbitViewPanel({
   overlay,
 }: OrbitViewPanelProps) {
   const hasTrajectory = diagram !== null;
-  const diagramWithOverlay = diagram ? (
-    <FramedDisplay style={DIAGRAM_FRAME}>
-      {overlay ? (
-        <DiagramOverlayWrap>
-          {diagram}
-          <OverlayLayer>
-            <AugmentSlot name="orbit-view.overlay" props={overlay} />
-          </OverlayLayer>
-        </DiagramOverlayWrap>
-      ) : (
-        diagram
-      )}
-    </FramedDisplay>
-  ) : null;
+  /**
+   * `caption` inlays the frame's name on the drawing itself rather than as a
+   * second body element beside it, which is what lets the portrait branch
+   * below stay Panel's lone-frame case: a body that is nothing but this
+   * frame. The landscape branch never passes one, its sidebar already names
+   * the body and has no room this saves.
+   */
+  function buildDiagram(caption?: ReactNode) {
+    if (!diagram) return null;
+    return (
+      <FramedDisplay style={DIAGRAM_FRAME} caption={caption}>
+        {overlay ? (
+          <DiagramOverlayWrap>
+            {diagram}
+            <OverlayLayer>
+              <AugmentSlot name="orbit-view.overlay" props={overlay} />
+            </OverlayLayer>
+          </DiagramOverlayWrap>
+        ) : (
+          diagram
+        )}
+      </FramedDisplay>
+    );
+  }
 
   if (isLandscape && showDiagram && hasTrajectory) {
     // Wide-short slot: chrome in the sidebar, diagram beside it.
@@ -78,7 +88,7 @@ export function OrbitViewPanel({
         }
         sidebarSide="start"
         sidebarSize="8rem"
-        sections={<Section fill>{diagramWithOverlay}</Section>}
+        sections={<Section fill>{buildDiagram()}</Section>}
       />
     );
   }
@@ -87,6 +97,14 @@ export function OrbitViewPanel({
   const showBodyNameInAside = drawingShown && bodyName !== undefined;
   const showBodyNameInBody =
     !drawingShown && showSubtitle && bodyName !== undefined;
+  // An orbit that closes in one frame is a rosette in another, so a drawn diagram carries its frame's name inlaid on it.
+  const frameCaption = drawingShown ? (
+    <TrajectoryFrameCaption
+      trajectory={trajectory}
+      centreBodyIndex={centreBodyIndex}
+    />
+  ) : undefined;
+  const diagramWithCaption = buildDiagram(frameCaption);
   // A refusal outranks the no-data sentence: the elements arrived, and nobody vouches for the path.
   const panelContent = () => {
     if (!hasOrbit && withheld === null)
@@ -99,7 +117,7 @@ export function OrbitViewPanel({
         </PillFill>
       );
     if (withheld) return <TrajectoryWithheld withheld={withheld} />;
-    return diagramWithOverlay;
+    return diagramWithCaption;
   };
 
   return (
@@ -113,20 +131,12 @@ export function OrbitViewPanel({
         ) : undefined
       }
       sections={[
-        (showBodyNameInBody || showDiagram) && (
+        // Only a loose caption section when there is no frame to inlay it on: a drawn diagram carries its own caption instead, see `frameCaption`.
+        !drawingShown && showBodyNameInBody && (
           <Section key="caption" full>
-            {showBodyNameInBody && (
-              <Text level="muted" size="xs">
-                {bodyName}
-              </Text>
-            )}
-            {/* An orbit that closes in one frame is a rosette in another, so the drawing needs its frame's name. */}
-            {showDiagram && (
-              <TrajectoryFrameCaption
-                trajectory={trajectory}
-                centreBodyIndex={centreBodyIndex}
-              />
-            )}
+            <Text level="muted" size="xs">
+              {bodyName}
+            </Text>
           </Section>
         ),
         <Section key="orbit" fill>

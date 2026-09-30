@@ -8,6 +8,16 @@ export interface FramedDisplayProps extends ComponentPropsWithoutRef<"div"> {
    * carries no margin of its own.
    */
   padded?: boolean;
+  /**
+   * A small label inlaid over the frame's own top-left corner: what a
+   * `TrajectoryFrameCaption` or similar caption names (which frame a drawing
+   * is in), drawn on the visual instead of as a second body element beside
+   * it. A widget whose body is otherwise nothing but this frame stays
+   * eligible for `Panel`'s lone-frame inset rule, which a loose sibling
+   * caption breaks by giving the body a second section. Undefined renders
+   * nothing.
+   */
+  caption?: ReactNode;
 }
 
 /**
@@ -23,11 +33,15 @@ export interface FramedDisplayProps extends ComponentPropsWithoutRef<"div"> {
 export function FramedDisplay({
   children,
   padded,
+  caption,
   ...rest
 }: FramedDisplayProps) {
   return (
     <FramedDisplay__Box $padded={padded} {...rest}>
       {children}
+      {caption !== undefined && caption !== null && (
+        <FramedDisplay__Caption>{caption}</FramedDisplay__Caption>
+      )}
     </FramedDisplay__Box>
   );
 }
@@ -52,4 +66,20 @@ const FramedDisplay__Box = styled.div<{ $padded?: boolean }>`
     width: 100%;
     height: 100%;
   }
+`;
+
+/* A scrim behind the text, not just a colour, so the label stays legible over whatever the drawing puts beneath it. */
+const FramedDisplay__Caption = styled.div`
+  position: absolute;
+  top: var(--space-6);
+  left: var(--space-8);
+  z-index: 1;
+  max-width: calc(100% - var(--space-16));
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-regular);
+  background: color-mix(in srgb, var(--color-surface-sunken), transparent 25%);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: none;
 `;

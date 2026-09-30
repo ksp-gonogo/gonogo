@@ -617,13 +617,23 @@ const PanelSections__Grid = styled.div<{ $min: string; $columns: number }>`
  * measurement says the content fits. Wraps the children alone, so the header
  * is neither centred nor measured.
  */
-function PanelFitBody({ children }: { children?: ReactNode }) {
+function PanelFitBody({
+  children,
+  hoverTitle,
+}: {
+  children?: ReactNode;
+  hoverTitle?: boolean;
+}) {
   const outerRef = useRef<HTMLDivElement | null>(null);
   const innerRef = useRef<HTMLDivElement | null>(null);
   const fits = useContentFits(outerRef, innerRef);
   return (
     <PanelBody__FitOuter ref={outerRef} $fits={fits} data-panel-fit-body="">
-      <PanelBody__FitContent ref={innerRef} $fits={fits}>
+      <PanelBody__FitContent
+        ref={innerRef}
+        $fits={fits}
+        $hoverTitle={hoverTitle}
+      >
         {children}
       </PanelBody__FitContent>
     </PanelBody__FitOuter>
@@ -643,13 +653,35 @@ const PanelBody__FitOuter = styled.div<{ $fits?: boolean }>`
     $fits ? "justify-content: center;" : "justify-content: flex-start;"}
 `;
 
-const PanelBody__FitContent = styled.div<{ $fits?: boolean }>`
+const PanelBody__FitContent = styled.div<{
+  $fits?: boolean;
+  $hoverTitle?: boolean;
+}>`
   display: flex;
   flex-direction: column;
   align-items: center;
   /* Aligned like its box: centring here would push overflowing content up under the header. */
   ${({ $fits }) =>
     $fits ? "justify-content: center;" : "justify-content: flex-start;"}
+  /* The delay rail band above still reserves its own strip on a hoverTitle
+     panel (see PanelProps.hoverTitle), so the box this centres within is
+     shorter at the top than the panel actually is, by the band's own height.
+     Centred content would read as sitting low by half of it, the same way it
+     would if the box below a real header were centred on the whole panel
+     instead of the room under that header. The band has no visible header to
+     read as the reason, so the shift here is what keeps the figure reading as
+     centred on the panel while the box itself stays exactly what fitToSize's
+     own docs promise: never clipped, and unaffected while the content does
+     not fit.
+
+     The flex centring above absorbs half of any margin change into its own
+     free-space split (a flex item's centred position moves by m/2 for a
+     margin-top of m, not m), so the full band's height is what actually
+     buys the half-band visual shift this needs. */
+  ${({ $fits, $hoverTitle }) =>
+    $fits && $hoverTitle
+      ? "margin-top: calc(-1 * var(--panel-rail-band));"
+      : ""}
   gap: var(--gap-tiny-content);
   min-height: 0;
   /* A query container, so a tiny presentation sizes its headline in cqw against the tile rather than the viewport. */
@@ -1708,7 +1740,11 @@ function PanelRootImpl({
           />
         )}
       </PanelStickyTop>
-      {fitToSize ? <PanelFitBody>{content}</PanelFitBody> : content}
+      {fitToSize ? (
+        <PanelFitBody hoverTitle={hoverTitle}>{content}</PanelFitBody>
+      ) : (
+        content
+      )}
       {panelSections && !hasSections && <WidgetSections />}
     </PanelBody>
   );

@@ -24,6 +24,26 @@ describe("FramedDisplay", () => {
     const { container } = render(<FramedDisplay className="probe" />);
     expect(container.querySelector(".probe")).not.toBeNull();
   });
+
+  it("inlays a caption on the frame instead of drawing it as a sibling", () => {
+    render(
+      <FramedDisplay caption="orbit plane">
+        <svg aria-label="diagram" />
+      </FramedDisplay>,
+    );
+    // Inside the frame's own box, not beside it: the caller's Panel body holds nothing but this one element.
+    const frame = screen.getByLabelText("diagram").closest("div");
+    expect(frame).toHaveTextContent("orbit plane");
+  });
+
+  it("draws no caption element at all when none is given", () => {
+    const { container } = render(
+      <FramedDisplay>
+        <svg aria-label="diagram" />
+      </FramedDisplay>,
+    );
+    expect(container).not.toHaveTextContent(/./);
+  });
 });
 
 /** A 16:9 camera's own picture, one cell per 64px of a 1024x576 frame. */
