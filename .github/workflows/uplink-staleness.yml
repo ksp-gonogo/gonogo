@@ -3,63 +3,39 @@ name: Uplink page staleness
 # Does every generated Uplink page still describe the code? Regenerate each one
 # in memory and fail on any difference.
 #
-# ## Why this is its own workflow, and why it does not block
+# ## The gate, now that nothing heals a page for you
 #
-# It was a step of `ci.yml`'s `test` job until 2026-09-02, when four runs went
-# red on it in one day (fc061fdd2, 5840d306b, 84a00db309, 69b1564b5) with
-# `pnpm test` passing 46/46 on each. The pages are DERIVED and the only
-# sanctioned regeneration is `uplink-docs.yml`, which runs nightly or on manual
-# dispatch, so each red stayed red until a human dispatched a heal. Two of those
-# four SHAs are merges of staging into staging, so the subject line does not name
-# the cause; the causes were an ellipsis sweep changing kOS terminal copy, a
-# ui-kit `CommandDelay` change moving a Principia GIF, and a `RECORDED` badge
-# moving eight assets across two Uplinks. Every one a change worth landing. A
-# gate whose only fix is a manual dispatch blocks more than it protects.
+# A page is generated here and committed with the change that moved it, the same
+# as `contract.ts` and `asyncapi.yaml`. No workflow commits a page back: the
+# `uplink-docs.yml` bot did, and every commit it pushed to `staging` broke a
+# fast-forward for whoever was landing. So this check is the only thing between
+# a stale page and the branch, and its failure message names the heal command.
 #
-# What moved is WHERE the finding lands, not whether it is made. Same script,
-# same build filter, same triggers as `ci.yml`, and this job still goes RED on
-# a stale page: a check that exits 0 with a warning is a check nobody reads.
-# What it no longer does is fail the `CI` workflow, so it no longer holds up a
-# merge or the dev-channel deploy that gates on CI's conclusion.
+# ## Why it is its own workflow
 #
-# The duplication is paid in runner time, and it is worth naming: this job repeats
-# an install, the ui-kit + components build and a chromium download that
-# `ci.yml`'s `overlap-gate` and `font-gate` jobs also do. Against that, `ci.yml`
-# no longer renders ten Uplinks, so the net is roughly a wash, and they all run
-# in parallel.
+# It was a step of `ci.yml`'s `test` job until 2026-09-02, then moved out because
+# the bot's asymmetric heal left runs red that nothing could turn green. That
+# reason is gone with the bot, but the job is a chromium render of every Uplink,
+# so it stays a separate workflow that runs in parallel with `ci.yml`.
 #
-# ## What the check asks that nothing else can
+# ## What it asks that nothing else can
 #
-# Not "did the pixels drift" (`visual`, which is red on purpose) and not "did the
-# harness render anything" (`probe-render-smoke`), but "does the page still
-# describe the Uplink the code actually is". A page that quietly stops listing a
-# widget reads exactly like an Uplink with fewer widgets.
+# Not "did the pixels drift" (`visual`) and not "did the harness render anything"
+# (`probe-render-smoke`), but "does the page still describe the Uplink the code
+# actually is". That covers `README.md`, `gonogo-uplink.json` (the manifest the
+# app refuses to load when stale) and the asset set. A page that quietly stops
+# listing a widget reads exactly like an Uplink with fewer widgets.
 #
-# Asset BYTES are not compared: rasterisation is per-engine and per-OS, so a byte
-# comparison would fail on every machine but the one that generated it. What is
+# Asset BYTES are never compared: rasterisation is per-engine and per-OS, and a
+# motion scene re-encodes to different bytes from an unchanged tree. What is
 # compared is each asset's SHAPE, the rendered DOM reduced to what the CSS
-# cascade computes rather than what a glyph rasteriser measures, so it is the
-# same on any machine. Without it the check read the PROSE of a page whose
-# content is pictures, and Vehicle Assembly's showed a layout the code had
-# stopped producing for five commits with every run agreeing.
+# cascade computes rather than what a glyph rasteriser measures.
 #
-# ## The heal sequence, and the one thing it cannot do
+# ## Healing
 #
-# `uplink-docs.yml` is the repair. It runs on every push to `staging`, nightly,
-# and on dispatch, and it COMMITS the regenerated pages back. So a push that
-# stales a page goes: push P (this check runs, red) → `uplink-docs.yml` at P
-# regenerates and commits C → the tree is healed at C.
-#
-# C is pushed with `GITHUB_TOKEN`, and such a push triggers no workflow, so C
-# gets no run of this check. P's run is red and stays red, and the LATEST run on
-# `staging` remains that red one until the next human push. The branch is not
-# permanently stale, only permanently RED AT P: the next push runs against the
-# healed tree and is green. That asymmetry is exactly why this reports rather
-# than gates; as a gate it would have failed a commit that nothing could turn
-# green.
-#
-# `gh workflow run uplink-staleness.yml --ref staging` gives the healed tip its
-# own run if the red is in the way before then.
+# `pnpm uplink-pages` fixes the prose and the manifest on any machine, with no
+# browser. `pnpm uplink-docs` also re-renders the pictures, and belongs on Linux.
+# Commit the result with the change that moved it.
 
 on:
   push:
@@ -148,12 +124,6 @@ jobs:
       # the summary page.
       - name: Say which pages are stale, on the summary page
         if: failure() && steps.check.outcome == 'failure'
-        # `github.ref_name` is `<n>/merge` on a pull_request, which is not a ref
-        # anyone can dispatch against. `head_ref` is the source branch, and is
-        # empty on a push, where `ref_name` is already right. Bound through env
-        # rather than interpolated into the script, so a branch name is data.
-        env:
-          HEAL_REF: ${{ github.head_ref || github.ref_name }}
         run: |
           {
             echo "## Uplink pages no longer describe the code"
@@ -162,12 +132,11 @@ jobs:
             tail -40 "$RUNNER_TEMP/staleness.log"
             echo '```'
             echo
-            echo "The pages are generated, so the fix is never to edit one by hand:"
+            echo "The pages are generated, so the fix is never to edit one by hand."
+            echo "Regenerate and commit them with the change that moved them:"
             echo
             echo '```'
-            echo "gh workflow run uplink-docs.yml --ref $HEAL_REF"
+            echo "pnpm uplink-pages   # prose and manifest, any machine"
+            echo "pnpm uplink-docs    # everything, pictures included, on Linux"
             echo '```'
-            echo
-            echo "This job does not block \`CI\`. Left alone, the nightly run of"
-            echo "\`uplink-docs.yml\` heals these pages within a day."
           } >> "$GITHUB_STEP_SUMMARY"

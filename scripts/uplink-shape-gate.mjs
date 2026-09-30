@@ -164,9 +164,7 @@ if (failures.length > 0) {
   console.log(
     "\n  Record them by regenerating the page, which writes the shapes beside " +
       "the images:\n    pnpm uplink-docs\n" +
-      "  On CI, `uplink-docs.yml` does it and commits the result. Renders belong " +
-      "to Linux, so prefer the workflow over a local run for anything committed:\n" +
-      "    gh workflow run uplink-docs.yml --ref <branch>",
+      "  Renders belong to Linux: run it there and commit the result with the change.",
   );
   process.exit(1);
 }

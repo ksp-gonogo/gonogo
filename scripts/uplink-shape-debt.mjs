@@ -11,7 +11,7 @@
  * The shapes are RENDERED, and this repo's rule is that committed renders come
  * off Linux, because font rasterisation is OS-specific. So the records cannot be
  * seeded from a developer's machine in the commit that adds the mechanism; they
- * arrive when `uplink-docs.yml` next regenerates each page on the runner.
+ * arrive when `pnpm uplink-docs` next regenerates each page on Linux.
  *
  * Failing every asset in the interim would be a wall of red with one command
  * behind it and no way to tell a NEW break from the backlog, which is the exact
@@ -31,7 +31,7 @@
  *
  * The seed was 154 assets across ten Uplinks, every one of them a picture that
  * had never had a shape recorded because the mechanism did not exist. All ten
- * entries measured zero once `uplink-docs.yml` had regenerated each page, so the
+ * entries measured zero once each page had been regenerated on Linux, so the
  * list is empty and the gate now holds every Uplink to zero.
  *
  * The empty object is load-bearing, the same way `act-warning-debt.mjs`'s is:

@@ -21,8 +21,8 @@
  * writes it), so the heal is a few seconds, is byte-identical on any operating
  * system, and cannot reach `docs/assets` because it renders nothing.
  *
- * The pictures stay where they were: they are regenerated on Linux by
- * `uplink-docs.yml`, which is the only machine whose renders this repo commits.
+ * The pictures stay where they were: they are regenerated on Linux with
+ * `pnpm uplink-docs`, the only kind of machine whose renders this repo commits.
  *
  * ## Why it runs each page through that Uplink's own vitest
  *

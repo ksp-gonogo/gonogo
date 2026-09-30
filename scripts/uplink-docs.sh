@@ -10,13 +10,11 @@
 # row. It leaves docs/assets alone, so a machine whose rasterisation is not the
 # committed one can land it without re-rendering a picture.
 #
-# ## Why the check exists alongside the regenerate-on-main workflow
+# ## Generated here, committed with the change, checked on CI
 #
-# `uplink-docs.yml` runs the write half on a push to main and commits the result
-# back, so main heals itself. That is exactly why the check has to exist too: a
-# workflow that silently fixes main means nobody ever sees a generator that has
-# quietly stopped emitting a section. The self-heal keeps the pages right; the
-# check keeps the SIGNAL, on the pull request, where a person is looking.
+# Nothing commits a page back from CI. Whoever changes the source regenerates the
+# page and commits it in the same change, like `contract.ts` and `asyncapi.yaml`,
+# and `uplink-staleness.yml` runs `--check` to catch the one who did not.
 #
 # ## Why the loop keeps going after a failure
 #
@@ -85,8 +83,8 @@ if [ "${#failed[@]}" -gt 0 ]; then
     done
     echo
     echo "  Regenerate and commit the result. The page is derived, so the fix is never to edit it:"
-    echo "    pnpm uplink-pages                                  the prose, on any machine"
-    echo "    gh workflow run uplink-docs.yml --ref <branch>     the pictures, rendered on CI"
+    echo "    pnpm uplink-pages   the prose and manifest, on any machine"
+    echo "    pnpm uplink-docs    everything including the pictures, on Linux"
   else
     echo "✖ ${#failed[@]} of ${#packages[@]} Uplink page(s) could not be generated:"
     for pkg in "${failed[@]}"; do

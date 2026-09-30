@@ -44,8 +44,8 @@ import {
 const REGENERATE_REMEDY =
   "The prose is browserless and safe to regenerate anywhere:\n" +
   "    pnpm uplink-pages\n\n" +
-  "  The PICTURES are regenerated on Linux, by the workflow that commits them:\n" +
-  "    gh workflow run uplink-docs.yml --ref <branch>\n\n" +
+  "  The PICTURES are regenerated on Linux, and committed with the change:\n" +
+  "    pnpm uplink-docs\n\n" +
   "  `gonogo-uplink docs` also regenerates both, on THIS machine's rasteriser, " +
   "and it\n  empties docs/assets before it renders: a run that throws leaves the " +
   "committed\n  pictures deleted. Recover with `git checkout -- docs/assets`.";

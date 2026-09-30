@@ -52,14 +52,13 @@ import { join } from "node:path";
  *
  * ## The second consumer, which is the point
  *
- * `uplink-docs.yml` regenerates every page and commits the result back, and its
- * commit-back discarded every MODIFIED asset, keeping only additions and
- * deletions. So the self-heal had never once healed a stale asset. The reasoning
- * was sound and the rule was under-informed: a motion scene's GIF re-encodes to
- * different bytes from an unchanged tree, so committing byte changes would push
- * a churn commit on every run forever. It had no way to tell that from a real
- * one. The shape is that predicate. Shape changed, commit it; shape identical
- * and bytes moved, discard it as before.
+ * A regeneration used to be committed back by a workflow that discarded every
+ * MODIFIED asset, keeping only additions and deletions, so it had never once
+ * healed a stale asset. The reasoning was sound and the rule was under-informed:
+ * a motion scene's GIF re-encodes to different bytes from an unchanged tree, so
+ * committing byte changes would push a churn commit on every run forever. It had
+ * no way to tell that from a real one. The shape is that predicate. Shape
+ * changed, it is stale; shape identical and bytes moved, it is not.
  */
 
 /**

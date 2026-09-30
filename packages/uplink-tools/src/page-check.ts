@@ -321,7 +321,7 @@ export function expectUplinkPageCurrent(options: PageCheckOptions = {}): void {
       `  or, for this Uplink alone, re-run its suite with ${PAGE_UPDATE_ENV}=1.\n\n` +
       "  `gonogo-uplink docs` also fixes it, and re-renders every picture " +
       "through this machine's\n  rasteriser on the way past. The pictures are " +
-      "regenerated on Linux by `uplink-docs.yml`;\n  a local render of them is " +
+      "regenerated on Linux with `pnpm uplink-docs`;\n  a local render of them is " +
       "the same mistake as a locally-rendered visual baseline.",
   );
 }
