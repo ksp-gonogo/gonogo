@@ -4,12 +4,21 @@ import {
 } from "@ksp-gonogo/sitrep-sdk/frames";
 import { Field, FieldHint, FieldLabel, Select } from "./Form";
 
-/** One frame a `ReadFrameControl` can offer, and what an operator calls it. */
+/**
+ * One frame a `ReadFrameControl` can offer, and what an operator calls it.
+ *
+ * @category Form
+ */
 export interface ReadFrameOption {
   choice: ReadFrameChoice;
   label: string;
 }
 
+/**
+ * Props for {@link ReadFrameControl}.
+ *
+ * @category Form
+ */
 export interface ReadFrameControlProps {
   /** Put on the `<select>`, so `label` (as `htmlFor`) names it. */
   id: string;
@@ -34,6 +43,8 @@ export interface ReadFrameControlProps {
  * whatever the caller decided, matching an option back to `value` by frame
  * equality rather than by a caller-assigned id, since a `ReadFrameChoice` is
  * already a value type with nothing else to key it by.
+ *
+ * @category Form
  */
 export function ReadFrameControl({
   id,

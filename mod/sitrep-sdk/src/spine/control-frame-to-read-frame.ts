@@ -17,7 +17,11 @@ import { ControlFrameKind } from "../__generated__/contract";
 import type { CelestialFacts } from "./celestial-facts";
 import type { ReadFrameChoice } from "./reference-frame";
 
-/** The Topic {@link controlFrameToReadFrameChoice} reads its argument off. */
+/**
+ * The Topic {@link controlFrameToReadFrameChoice} reads its argument off.
+ *
+ * @category Frames of reference
+ */
 export const CONTROL_FRAME_TOPIC = "system.frame";
 
 /** `facts.indexByName[name]`, folding a missing name and a missing catalogue into one null. */

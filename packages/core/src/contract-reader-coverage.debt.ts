@@ -175,7 +175,7 @@ export const CONTRACT_READER_DEBT: Record<string, string> = {
   "field:system.frame.primaryBodies":
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
   "field:system.frame.primaryBody":
-    "no reader found: the read-frame model infers the primary from the secondary's own parent rather than naming it (gonogo Saga task 727 seed, 2026-09-30; #728 slice 1 cleared centreBody/secondaryBody/targetFrameSelected)",
+    "no reader found: the read-frame model infers the primary from the secondary's own parent rather than naming it (gonogo Saga task 727 seed, 2026-09-30; task 728 slice 1 cleared centreBody/secondaryBody/targetFrameSelected)",
   "field:system.frame.secondaryBodies":
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
   "field:system.frame.targetId":
