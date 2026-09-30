@@ -23,9 +23,11 @@ const CRAFT = {
   ],
 };
 
-// Cleared before, not after: RTL's own afterEach cleanup runs after this file's, so an
-// afterEach clear would land while the tree is still mounted and re-render a
-// useSyncExternalStore subscriber outside act.
+/**
+ * Cleared before, not after: RTL's own afterEach cleanup runs after this
+ * file's, so an afterEach clear would land while the tree is still mounted
+ * and re-render a useSyncExternalStore subscriber outside act.
+ */
 beforeEach(() => {
   clearAugments();
 });
