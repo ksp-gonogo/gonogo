@@ -182,6 +182,14 @@ export const EXTENSION_SCENES: readonly ExtensionScene[] = [
     w: 9,
     h: 12,
   },
+  {
+    id: "planted:strategies-own-actions-screen",
+    widgetId: "strategies",
+    fixture: `${COMPONENTS}/Strategies/__fixtures__/probe/own-actions-screen.json`,
+    w: 9,
+    h: 12,
+    clicks: [{ selector: 'button[id$="planted-leads-tab"]' }],
+  },
   ...SLOT_SCENES,
 ];
 
