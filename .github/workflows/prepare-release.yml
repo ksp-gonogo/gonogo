@@ -152,6 +152,30 @@ jobs:
             echo "::warning::could not fast-forward ${INTEGRATION_BRANCH} onto the release commit, it has probably moved. Merge main into ${INTEGRATION_BRANCH} by hand, otherwise the next release is refused."
           fi
 
+      # ci-dev-forward.yml fast-forwards staging to a validated ci-dev commit and
+      # refuses when staging has a commit ci-dev lacks. So the release commit
+      # must reach ci-dev as well, or the next forward is refused. ci-dev is
+      # fast-forwarded when it is an ancestor of the release commit; when it holds
+      # work staging has not received yet, the release commit is merged into it
+      # instead, so ci-dev still contains every commit on staging and the next
+      # forward stays a fast-forward. Nothing is forced, and either way ci-dev
+      # ends as a descendant of staging. Fail-soft for the same reason as above.
+      - name: Keep ci-dev a superset of the integration branch
+        run: |
+          RELEASE_SHA="$(git rev-parse HEAD)"
+          git fetch --no-tags origin ci-dev
+          if git merge-base --is-ancestor FETCH_HEAD "$RELEASE_SHA"; then
+            git push origin "$RELEASE_SHA:refs/heads/ci-dev" && echo "ci-dev fast-forwarded to the release commit."
+          else
+            git checkout -q -B ci-dev-merge FETCH_HEAD
+            if git merge --no-edit -m "Merge release commit into ci-dev" "$RELEASE_SHA"; then
+              git push origin HEAD:refs/heads/ci-dev && echo "release commit merged into ci-dev."
+            else
+              git merge --abort || true
+              echo "::warning::could not merge the release commit into ci-dev. Merge it by hand, otherwise ci-dev-forward.yml refuses to forward."
+            fi
+          fi
+
       - name: Trigger release workflow
         # GITHUB_TOKEN pushes don't fire push-tag triggers in other
         # workflows. workflow_dispatch does, so dispatch release.yml on

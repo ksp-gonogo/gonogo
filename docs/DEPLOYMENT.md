@@ -106,7 +106,7 @@ gh workflow run rc.yml --ref staging -f force=true
 gh workflow run prepare-release.yml --ref staging
 ```
 
-`prepare-release.yml` refuses any other ref, and refuses when `main` has commits `staging` lacks (it cannot be fast-forwarded), printing how many. Otherwise it commits the version bump on top of `staging`, which fast-forwards `main` to it, then carries on as below.
+`prepare-release.yml` refuses any other ref, and refuses when `main` has commits `staging` lacks (it cannot be fast-forwarded), printing how many. Otherwise it commits the version bump on top of `staging`, which fast-forwards `main` to it, returns the commit to `staging`, and puts it on `ci-dev` too (fast-forward, or a merge commit when `ci-dev` holds work `staging` has not received), so `ci-dev` stays a superset of `staging` and `ci-dev-forward.yml` keeps fast-forwarding. Then it carries on as below.
 
 The `bump` input accepts `auto` (the default), `patch`, `minor` or `major`; force one with `-f bump=minor`. `auto` analyses conventional commits since the last tag, `feat:` → minor, `BREAKING CHANGE`/`!` → major, anything else → patch, and fails the run outright when that range is empty rather than re-cutting an already-released tree. Override it whenever `auto` would understate the change: the bump size *is* the wire-compatibility promise in the skew table below, and `auto` only reads commit subjects.
 
