@@ -1,8 +1,8 @@
-import type { TopicPayload } from "@ksp-gonogo/sitrep-sdk";
+import type { Reading, TopicPayload } from "@ksp-gonogo/sitrep-sdk";
 
 /**
- * One science instrument aboard the active vessel: the widget's parsed shape, the
- * row component's prop and the `experiments.instruments` contribution entry.
+ * One science instrument aboard the active vessel: the widget's parsed shape and
+ * the row component's prop.
  * Already normalised to plain booleans. `partId` is a string even where the wire
  * sends a number, because every consumer uses it as a key or command argument.
  */
@@ -17,6 +17,14 @@ export interface Instrument {
   inoperable: boolean;
 }
 
+/**
+ * An instrument contributed to `experiments.instruments`, with the reading its
+ * flags were read from so the row can be marked held.
+ */
+export interface ContributedInstrument extends Instrument {
+  reading: Reading<unknown>;
+}
+
 // Asserted against `Instrument` in `instrument.test-d.ts`.
 export type WireInstrument = TopicPayload<"science.instruments">[number];
 
@@ -29,7 +37,7 @@ export type WireInstrument = TopicPayload<"science.instruments">[number];
 declare module "@ksp-gonogo/core" {
   interface ContributionRegistry {
     "experiments.instruments": {
-      entry: Instrument;
+      entry: ContributedInstrument;
     };
   }
 }

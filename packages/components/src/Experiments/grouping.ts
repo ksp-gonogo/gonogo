@@ -1,13 +1,15 @@
 import type { Contributed } from "@ksp-gonogo/core";
-import type { Instrument } from "./instrument";
+import type { ContributedInstrument, Instrument } from "./instrument";
 
-export interface InstrumentGroup {
+export interface InstrumentGroup<Item extends Instrument = Instrument> {
   expId: string;
-  items: Instrument[];
+  items: Item[];
 }
 
-export function groupByExpId(instruments: Instrument[]): InstrumentGroup[] {
-  const map = new Map<string, Instrument[]>();
+export function groupByExpId<Item extends Instrument>(
+  instruments: Item[],
+): InstrumentGroup<Item>[] {
+  const map = new Map<string, Item[]>();
   for (const inst of instruments) {
     const list = map.get(inst.expId);
     if (list) list.push(inst);
@@ -21,11 +23,11 @@ export function groupByExpId(instruments: Instrument[]): InstrumentGroup[] {
  * `partId` the stock list carries is dropped, since the stock row can be commanded.
  */
 export function ownContributed(
-  entries: readonly Contributed<Instrument>[],
+  entries: readonly Contributed<ContributedInstrument>[],
   stock: Instrument[] | null,
-): Contributed<Instrument>[] {
+): Contributed<ContributedInstrument>[] {
   const seen = new Set((stock ?? []).map((inst) => inst.partId));
-  const out: Contributed<Instrument>[] = [];
+  const out: Contributed<ContributedInstrument>[] = [];
   for (const entry of entries) {
     if (seen.has(entry.partId)) continue;
     seen.add(entry.partId);
@@ -37,7 +39,7 @@ export function ownContributed(
 export interface ContributedInstrumentGroup {
   /** Who supplied these, for the section heading. */
   ownerLabel: string;
-  groups: InstrumentGroup[];
+  groups: InstrumentGroup<Contributed<ContributedInstrument>>[];
 }
 
 /**
@@ -45,9 +47,9 @@ export interface ContributedInstrumentGroup {
  * sections do not reshuffle. An ownerless contribution is labelled by its id.
  */
 export function groupContributed(
-  entries: readonly Contributed<Instrument>[],
+  entries: readonly Contributed<ContributedInstrument>[],
 ): ContributedInstrumentGroup[] {
-  const byOwner = new Map<string, Contributed<Instrument>[]>();
+  const byOwner = new Map<string, Contributed<ContributedInstrument>[]>();
   for (const entry of entries) {
     const label = entry.owner?.name ?? entry.contributionId;
     const list = byOwner.get(label);

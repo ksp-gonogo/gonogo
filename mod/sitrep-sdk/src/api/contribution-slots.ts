@@ -457,6 +457,10 @@ export interface MissionLogEventEntry {
  * plainly: a scanner that can be neither deployed nor made inoperable says
  * `false` to both and `true` to `rerunnable`.
  *
+ * So is `reading`, because a contribution is handed payloads and a payload
+ * keeps its last value when samples stop: without it a row whose flags stopped
+ * arriving draws exactly like a live one.
+ *
  * @category Widget slots
  */
 export interface ExperimentsInstrumentEntry {
@@ -474,6 +478,12 @@ export interface ExperimentsInstrumentEntry {
   rerunnable: boolean;
   /** The instrument cannot be used. */
   inoperable: boolean;
+  /**
+   * The reading the flags were read from, such as a processor's reading of the
+   * contributor's own topic. The widget marks the row held while it is held and
+   * draws it as current while it is observed.
+   */
+  reading: Reading<unknown>;
 }
 
 /**

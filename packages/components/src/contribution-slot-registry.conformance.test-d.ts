@@ -12,7 +12,7 @@ import type {
   ContributionRegistry as SdkContributionRegistry,
 } from "@ksp-gonogo/sitrep-sdk";
 import type { CommSignalHopRateEntry } from "./CommSignal/commsRoute";
-import type { Instrument } from "./Experiments/instrument";
+import type { ContributedInstrument } from "./Experiments/instrument";
 import type { ShipMapPartMetaEntry, ShipMapPartMeterEntry } from "./ShipMap";
 import type { SystemEntity } from "./SystemView";
 
@@ -135,10 +135,16 @@ type _ExperimentsInstrumentsBack = Expect<
   >
 >;
 type _ExperimentsInstrumentsReal = Expect<
-  Assignable<SdkContributionEntry<"experiments.instruments">, Instrument>
+  Assignable<
+    SdkContributionEntry<"experiments.instruments">,
+    ContributedInstrument
+  >
 >;
 type _ExperimentsInstrumentsRealBack = Expect<
-  Assignable<Instrument, SdkContributionEntry<"experiments.instruments">>
+  Assignable<
+    ContributedInstrument,
+    SdkContributionEntry<"experiments.instruments">
+  >
 >;
 
 // Keep every alias "used" under noUnusedLocals.

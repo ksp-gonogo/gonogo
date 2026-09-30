@@ -191,7 +191,11 @@ function ExperimentsComponent({
           <SectionTitle as="h5">{expId || "(unknown)"}</SectionTitle>
           <Stack as="ul" style={INSTRUMENT_LIST}>
             {items.map((inst) => (
-              <ScienceExperimentRow key={inst.partId} instrument={inst} />
+              <ScienceExperimentRow
+                key={inst.partId}
+                instrument={inst}
+                heldGrade={heldGrade(inst.reading)}
+              />
             ))}
           </Stack>
         </Stack>

@@ -11,7 +11,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ExperimentsComponent } from "./index";
-import type { Instrument } from "./instrument";
+import type { ContributedInstrument } from "./instrument";
 
 /**
  * The `experiments.instruments` contribution slot: contributed instruments are
@@ -24,7 +24,7 @@ const SCANNER_MOD = defineUplinkClient({
   name: "Scanner Mod",
 });
 
-const SCANNER: Instrument = {
+const SCANNER: ContributedInstrument = {
   partId: "sar-1",
   partTitle: "SAR Altimetry Sensor",
   expId: "AltimetryHiRes",
@@ -32,7 +32,18 @@ const SCANNER: Instrument = {
   hasData: true,
   rerunnable: true,
   inoperable: false,
+  reading: { state: "observed", value: [], reckoning: { status: "none" } },
 };
+
+/** The stock list as a reading, which is how a contributor hands its flags their currency. */
+const INSTRUMENTS_READING = SCANNER_MOD.registerProcessor({
+  id: "instruments-reading",
+  deps: [{ reading: "science.instruments" }] as const,
+  compute: ([instruments]) =>
+    instruments.state === "observed" || instruments.state === "held"
+      ? instruments.value
+      : undefined,
+});
 
 /** The stock wire shape, as `ScienceViewProvider` emits it. */
 const STOCK_WIRE = {
@@ -214,5 +225,39 @@ describe("Experiments: the experiments.instruments contribution slot", () => {
     await waitFor(() => expect(screen.queryByText("Mystery Goo")).toBeNull());
     expect(screen.getByText("SAR Altimetry Sensor")).toBeTruthy();
     expect(screen.queryByText("No instrument matches the filter")).toBeNull();
+  });
+
+  it("marks a contributed row held while the reading its flags came from is held, and only then", async () => {
+    SCANNER_MOD.registerContribution({
+      id: "scan-science",
+      contributes: "experiments.instruments",
+      deps: ["science.instruments", INSTRUMENTS_READING],
+      compute: (topics) => {
+        const reading = topics[INSTRUMENTS_READING.id];
+        return reading ? [{ ...SCANNER, reading }] : null;
+      },
+    });
+    const fixture = renderWithContributions();
+    act(() => {
+      fixture.emit("science.instruments", [STOCK_WIRE]);
+    });
+    await waitFor(() =>
+      expect(screen.getByText("SAR Altimetry Sensor")).toBeTruthy(),
+    );
+    const contributedRow = () =>
+      screen.getByText("SAR Altimetry Sensor").closest("li") as HTMLElement;
+    // Control: a row that was always marked would pass the held assertion below.
+    expect(within(contributedRow()).queryByText("OFFLINE")).toBeNull();
+
+    act(() => {
+      fixture.store.setTransportConnected(false);
+      fixture.store.beginFrame();
+    });
+
+    await waitFor(() =>
+      expect(within(contributedRow()).getByText("OFFLINE")).toBeTruthy(),
+    );
+    // Still drawn with its flags: a held row is the last known state, not nothing.
+    expect(within(contributedRow()).getByText("DATA")).toBeTruthy();
   });
 });
