@@ -79,6 +79,8 @@ const EMPTY_BY_DESIGN: Record<string, string> = {
     "no active objectives, which is a real state and not a missing read",
   "SemiMajorAxis/no-data":
     "no orbit to report; the widget is a single readout with nothing behind it",
+  "Targeting/no-target":
+    "at tiny-3x3 the widget draws only the Range/Closing readouts as em dashes, with nothing left to distinguish a confirmed no-target from a stream that has not reported yet; the other seven modes DO render distinguishing text and fail when starved",
   "Twr/engine-off-empty":
     "engines off, so there is genuinely no thrust-to-weight to show",
 };
