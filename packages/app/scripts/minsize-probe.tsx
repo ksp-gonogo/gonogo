@@ -270,10 +270,12 @@ registerComponent({
 /** One widget, as the Node half needs it. */
 /**
  * A widget with a tiny mode whose tiny form and body are each broken where
- * they are drawn, each naming itself in its title. The gate refuses to report
- * unless the audit at `minSize` finds the tiny form's title and the audit at
- * the body's smallest tile finds the body's, which is the proof that each size
- * mounted what the dashboard would show there.
+ * they are drawn, each naming itself. The tiny form's title is sr-only at
+ * rest, so it is the essential's word that cannot fit; the body's is its
+ * title. The gate refuses to report unless the audit at `minSize` finds the
+ * tiny form's word and the audit at the body's smallest tile finds the body's
+ * title, which is the proof that each size mounted what the dashboard would
+ * show there.
  */
 const TINY_ID = "minsize-gate-tiny";
 
@@ -292,7 +294,9 @@ registerComponent({
   tiny: {
     title: "TINY CANARY TITLE",
     bodyMinSize: { w: 6, h: 6 },
-    useEssentials: () => [],
+    useEssentials: () => [
+      { label: "TC", word: "TINY CANARY WORD NO TWO COLUMN TILE COULD HOLD" },
+    ],
   },
 });
 

@@ -433,17 +433,20 @@ async function main(): Promise<void> {
       tinyPlant.bodyTile.w,
       tinyPlant.bodyTile.h,
     );
-    const namesTitle = (findings: MinFitFinding[], title: string) =>
-      findings.some(
-        (f) => f.kind === "title-clipped" && f.text.includes(title),
-      );
+    const names = (
+      findings: MinFitFinding[],
+      kind: MinFitFinding["kind"],
+      text: string,
+    ) => findings.some((f) => f.kind === kind && f.text.includes(text));
     if (
-      !namesTitle(tinyAtMin, "TINY CANARY") ||
-      !namesTitle(tinyAtBody, "BODY CANARY")
+      !names(tinyAtMin, "text-cut-off", "TINY CANARY") ||
+      names(tinyAtMin, "title-clipped", "BODY CANARY") ||
+      !names(tinyAtBody, "title-clipped", "BODY CANARY") ||
+      names(tinyAtBody, "text-cut-off", "TINY CANARY")
     ) {
       throw new Error(
-        `minsize-gate: BLIND. The planted tiny-mode widget should clip its ` +
-          `tiny title at minSize and its body title at its smallest body tile; ` +
+        `minsize-gate: BLIND. The planted tiny-mode widget should cut its ` +
+          `tiny word at minSize and clip its body title at its smallest body tile, each alone; ` +
           `the audit reported "${tinyAtMin.map((f) => f.text).join(" | ") || "(nothing)"}" ` +
           `and "${tinyAtBody.map((f) => f.text).join(" | ") || "(nothing)"}". ` +
           `A size that mounted the wrong form reports on something no operator sees.`,
