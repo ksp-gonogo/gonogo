@@ -1,5 +1,6 @@
 import { useCommand } from "@ksp-gonogo/sitrep-sdk/spine";
 import {
+  act,
   fireEvent,
   screen,
   render as sdkRender,
@@ -19,7 +20,7 @@ function Unlock({ rail }: { rail?: false }) {
 }
 
 describe("@ksp-gonogo/ui-kit/testing renderWithRail/renderHookWithRail", () => {
-  it("mounts a command rail, so a dispatched command reaches the transport with no throw", () => {
+  it("mounts a command rail, so a dispatched command reaches the transport with no throw", async () => {
     const stream = setupStreamFixture();
     renderWithRail(
       <stream.Provider>
@@ -31,6 +32,8 @@ describe("@ksp-gonogo/ui-kit/testing renderWithRail/renderHookWithRail", () => {
     }).not.toThrow();
     expect(stream.transport.sentCommands).toHaveLength(1);
     expect(stream.transport.sentCommands[0].command).toBe("career.tech.unlock");
+    // The stub transport answers over a microtask; hold the scope open so the reply settles inside act.
+    await act(async () => {});
   });
 
   it("is what an Uplink test needs: the bare sdk render mounts no rail and throws on the same dispatch", () => {
@@ -45,28 +48,32 @@ describe("@ksp-gonogo/ui-kit/testing renderWithRail/renderHookWithRail", () => {
     }).toThrow(/no command rail/);
   });
 
-  it("renderHookWithRail mounts the same rail, so a hook-level dispatch reaches the transport", () => {
+  it("renderHookWithRail mounts the same rail, so a hook-level dispatch reaches the transport", async () => {
     const stream = setupStreamFixture();
     const { result } = renderHookWithRail(
       () => useCommand("career.tech.unlock"),
       { wrapper: stream.Provider },
     );
     expect(() => {
-      result.current.send({ techId: "n" });
+      act(() => {
+        result.current.send({ techId: "n" });
+      });
     }).not.toThrow();
     expect(stream.transport.sentCommands).toHaveLength(1);
+    await act(async () => {});
   });
 
-  it("composes with a caller's own wrapper rather than replacing it", () => {
+  it("composes with a caller's own wrapper rather than replacing it", async () => {
     const stream = setupStreamFixture();
     renderWithRail(<Unlock />, { wrapper: stream.Provider });
     expect(() => {
       fireEvent.click(screen.getByText("unlock"));
     }).not.toThrow();
     expect(stream.transport.sentCommands).toHaveLength(1);
+    await act(async () => {});
   });
 
-  it("still keeps a rail: false handle off the rail, same as the sdk's bare render", () => {
+  it("still keeps a rail: false handle off the rail, same as the sdk's bare render", async () => {
     const stream = setupStreamFixture();
     renderWithRail(
       <stream.Provider>
@@ -77,5 +84,6 @@ describe("@ksp-gonogo/ui-kit/testing renderWithRail/renderHookWithRail", () => {
       fireEvent.click(screen.getByText("unlock"));
     }).not.toThrow();
     expect(stream.transport.sentCommands).toHaveLength(1);
+    await act(async () => {});
   });
 });

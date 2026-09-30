@@ -2,7 +2,7 @@ import { clearAugments, DashboardItemContext } from "@ksp-gonogo/core";
 import { RosterCommsControlSource } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
-import { afterEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { FleetRosterComponent } from "./index";
 
@@ -23,7 +23,10 @@ const CRAFT = {
   ],
 };
 
-afterEach(() => {
+// Cleared before, not after: RTL's own afterEach cleanup runs after this file's, so an
+// afterEach clear would land while the tree is still mounted and re-render a
+// useSyncExternalStore subscriber outside act.
+beforeEach(() => {
   clearAugments();
 });
 

@@ -9,6 +9,7 @@
 import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { act } from "@ksp-gonogo/sitrep-sdk/testing";
 import { createElement, useId } from "react";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
@@ -131,7 +132,9 @@ describe("readShapeText and React ids", () => {
   const renderIntoRoot = (element: ReturnType<typeof createElement>) => {
     document.body.innerHTML = `<div id="root"></div>`;
     const root = createRoot(document.getElementById("root") as HTMLElement);
-    flushSync(() => root.render(element));
+    act(() => {
+      flushSync(() => root.render(element));
+    });
     return root;
   };
 
@@ -139,7 +142,9 @@ describe("readShapeText and React ids", () => {
     const root = renderIntoRoot(createElement(Scene));
     const capture = read();
     const raw = document.body.innerHTML;
-    root.unmount();
+    act(() => {
+      root.unmount();
+    });
     return { capture, raw };
   };
 
@@ -155,7 +160,9 @@ describe("readShapeText and React ids", () => {
         ),
       ),
     );
-    filler.unmount();
+    act(() => {
+      filler.unmount();
+    });
     const later = captureScene();
 
     expect(later.raw).not.toBe(alone.raw);
