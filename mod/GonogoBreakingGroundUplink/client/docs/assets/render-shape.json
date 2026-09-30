@@ -8,32 +8,32 @@
       "text": "e2f1fa7a"
     },
     "controller-not-connected--default.png": {
-      "hash": "02e096fc0f3203d2",
+      "hash": "0cfbe9964bdf3845",
       "elements": 34,
       "text": "33ce86a5"
     },
     "controller-not-connected--min.png": {
-      "hash": "037c1587a810e223",
+      "hash": "24f96278cc0efda9",
       "elements": 34,
       "text": "e806199d"
     },
     "mun-and-minmus-bases--default.png": {
-      "hash": "402557861b570218",
+      "hash": "9456493ded846858",
       "elements": 66,
       "text": "7e5d4ed7"
     },
     "mun-and-minmus-bases--min.png": {
-      "hash": "907512a0f5425616",
+      "hash": "e65a9d81786ba19d",
       "elements": 66,
       "text": "0f1e4a5f"
     },
     "mun-and-minmus-bases-stopped-arriving--default.png": {
-      "hash": "90a5e61d7ae7c66b",
+      "hash": "80aff2b317281453",
       "elements": 69,
       "text": "7e5d4ed7"
     },
     "mun-and-minmus-bases-stopped-arriving--min.png": {
-      "hash": "69a62a0b16aea84f",
+      "hash": "9cb31560c0218846",
       "elements": 69,
       "text": "0f1e4a5f"
     },
@@ -43,12 +43,12 @@
       "text": "f93a7788"
     },
     "rotors--default.png": {
-      "hash": "883e04ef48ac3431",
+      "hash": "972c7992c11b0036",
       "elements": 62,
       "text": "b566f3fa"
     },
     "rotors--min.png": {
-      "hash": "47c50ffeadc3f731",
+      "hash": "2e384622ad8a838e",
       "elements": 51,
       "text": "16032806"
     },
@@ -58,22 +58,22 @@
       "text": "f903d91f"
     },
     "rotors-link-lost--default.png": {
-      "hash": "72230f672ffc21de",
+      "hash": "73fe05bebacb0ae6",
       "elements": 68,
       "text": "4ceca8bf"
     },
     "servos--default.png": {
-      "hash": "e522e99dc38f4764",
+      "hash": "2827e39c70c2c176",
       "elements": 56,
       "text": "5a799c90"
     },
     "servos--min.png": {
-      "hash": "8384f3dfcf142594",
+      "hash": "44ddf5e7a4864789",
       "elements": 33,
       "text": "220c5a23"
     },
     "servos-link-lost--default.png": {
-      "hash": "3c3d731a0060e1c6",
+      "hash": "9de2a7705d691517",
       "elements": 61,
       "text": "08e4ea00"
     }
