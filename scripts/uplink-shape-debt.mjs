@@ -23,8 +23,7 @@
  * A count above its entry fails: a new asset, or a new Uplink, is held to what
  * is written here and cannot add unverifiable pictures. A count BELOW is reported
  * and passes, and the entry is tightened deliberately with
- * `pnpm uplink-shape-gate --update`. Same rule as `uplink-extraction-debt.mjs`
- * and `act-warning-debt.mjs`.
+ * `pnpm uplink-shape-gate --update`. Same rule as `act-warning-debt.mjs`.
  *
  * An Uplink with NO entry is held to zero.
  *

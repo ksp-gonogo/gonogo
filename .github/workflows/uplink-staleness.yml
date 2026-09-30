@@ -22,16 +22,6 @@ name: Uplink page staleness
 # What it no longer does is fail the `CI` workflow, so it no longer holds up a
 # merge or the dev-channel deploy that gates on CI's conclusion.
 #
-# ## Why not fold it into `uplink.yml`, which already asks this
-#
-# `uplink.yml`'s matrix carries a per-Uplink "Pages are not stale" step on these
-# same triggers, and it has never been able to report one: that job is
-# `continue-on-error: true` for the extraction probe's sake, so a stale page there
-# is a green leg, and the aggregate job downgrades the whole matrix to a
-# `::notice::`. Green-with-a-warning is the state this file exists to leave. Its
-# step stays where it is (it is per-Uplink, and it belongs to the extraction
-# story); this one is the whole set, and its conclusion is unambiguous.
-#
 # The duplication is paid in runner time, and it is worth naming: this job repeats
 # an install, the ui-kit + components build and a chromium download that
 # `ci.yml`'s `overlap-gate` and `font-gate` jobs also do. Against that, `ci.yml`

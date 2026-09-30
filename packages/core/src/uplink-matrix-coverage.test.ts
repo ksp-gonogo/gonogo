@@ -11,12 +11,12 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 /**
- * `scripts/uplink-matrix.mjs` decides which Uplinks get a CI leg. This holds it
- * to the tree from outside.
+ * `scripts/uplink-matrix.mjs` decides which Uplinks every Uplink walker sees.
+ * This holds it to the tree from outside.
  *
  * The failure being guarded is not "the script crashes", it is "the script
- * quietly stops seeing an Uplink". That leg then does not exist, and a matrix
- * with one fewer leg looks exactly like a matrix that passed. Every list this
+ * quietly stops seeing an Uplink". Every walker then skips it, and a walk over
+ * one fewer Uplink looks exactly like a walk that passed. Every list this
  * repo has lost track of failed that way: the `mod` job's test-project array
  * (four suites, four weeks, 35 tests gated by nothing), the old codegen PATHS
  * array, the isolation ratchet's `client/src`-only walk, ci.yml's `required=()`
@@ -57,7 +57,6 @@ type Leg = {
   tests: boolean;
   contract: boolean;
   generated: boolean;
-  renderHosts: string;
 };
 
 /**
@@ -131,21 +130,18 @@ function solutionUplinks(slnPath = "mod/Gonogo.sln"): string[] {
   return [...ids].sort();
 }
 
-describe("the Uplink CI matrix covers every Uplink", () => {
+describe("the Uplink discovery covers every Uplink", () => {
   it("the discovery runs at all", () => {
     expect(
       matrixFailure,
-      `${SCRIPT} exited non-zero, so CI would have no matrix to run and every check below is ` +
+      `${SCRIPT} exited non-zero, so every Uplink walker has nothing to walk and every check below is ` +
         `comparing against an empty list. Its own output:\n${matrixFailure}`,
     ).toBeNull();
   });
 
-  it("gives a leg to every client pnpm knows about", () => {
+  it("sees every client pnpm knows about", () => {
     const fromLock = lockfileClients();
-    // Guards the guard: a lockfile read that matched nothing would compare two
-    // empty sets and pass. This was a floor of 7, and every mod Uplink is leaving
-    // for the gonogo-uplinks repo, so the lockfile is held to git's own list of
-    // client manifests instead, which a broken read cannot match at any count.
+    // Guards the guard: a lockfile read that matched nothing would compare two empty sets and pass, so the lockfile is held to git's own list of client manifests, which a broken read cannot match at any count.
     expect(
       fromLock,
       "pnpm-lock.yaml's mod/Gonogo*Uplink/client importers disagree with the client manifests git " +
@@ -156,11 +152,11 @@ describe("the Uplink CI matrix covers every Uplink", () => {
     expect(
       matrix.filter((leg) => leg.client).map((leg) => leg.id),
       `${SCRIPT} disagrees with pnpm about which Uplinks have a client. An Uplink missing here ` +
-        `gets no CI leg, and a matrix with one fewer leg reports exactly like a matrix that passed.`,
+        `is skipped by every walker, and a walk over one fewer Uplink reports exactly like one that passed.`,
     ).toEqual(fromLock);
   });
 
-  it("gives a leg to every plugin project in the solution", () => {
+  it("sees every plugin project in the solution", () => {
     const fromSolution = solutionUplinks();
     /*
      * Guards the solution read without a floor on how many Uplinks remain: over
@@ -182,17 +178,16 @@ describe("the Uplink CI matrix covers every Uplink", () => {
     ).toEqual(fromSolution);
   });
 
-  it("every leg has something to do", () => {
+  it("every Uplink has a client or a plugin csproj", () => {
     const idle = matrix.filter((leg) => !leg.client && !leg.csproj);
     expect(
       idle.map((leg) => leg.id),
-      "An Uplink directory has neither a client nor a plugin csproj. Its leg would run nothing " +
-        "and report green, which is the exact failure a per-Uplink matrix is supposed to end. " +
-        "uplink.yml fails such a leg; this says so earlier and more legibly.",
+      "An Uplink directory has neither a client nor a plugin csproj, so every walker would " +
+        "check nothing in it and report green.",
     ).toEqual([]);
   });
 
-  it("every leg claiming a capability has it on disk", () => {
+  it("every Uplink claiming a capability has it on disk", () => {
     for (const leg of matrix) {
       const base = join(ROOT, "mod", leg.id);
       expect(
@@ -217,77 +212,6 @@ describe("the Uplink CI matrix covers every Uplink", () => {
         );
       }
     }
-  });
-
-  /**
-   * `gonogo.renderWith` names a package by PATH, so pnpm's filter graph cannot
-   * reach it and a leg building only `<pkg>...` leaves that package's
-   * dependencies with no dist. `docs --check` then dies resolving
-   * `@ksp-gonogo/core` before it renders a pixel, which is how the five Uplinks
-   * with a render host were red from the day uplink.yml landed while every
-   * other leg was green.
-   */
-  it("names the render-host package of every client that declares one", () => {
-    const declaring = matrix.filter((leg) => {
-      if (!leg.client) return false;
-      const manifest = JSON.parse(
-        readFileSync(
-          join(ROOT, "mod", leg.id, "client", "package.json"),
-          "utf8",
-        ),
-      );
-      return Array.isArray(manifest.gonogo?.renderWith);
-    });
-
-    // Which clients declare a render host, read off git's list of manifests rather than the matrix, so an empty answer is checked rather than trusted.
-    const declaringByGit = trackedClients().filter((id) =>
-      Array.isArray(
-        JSON.parse(
-          readFileSync(join(ROOT, "mod", id, "client", "package.json"), "utf8"),
-        ).gonogo?.renderWith,
-      ),
-    );
-    expect(
-      declaring.map((leg) => leg.id),
-      "The matrix and git's tracked client manifests disagree about which clients declare " +
-        "gonogo.renderWith.",
-    ).toEqual(declaringByGit);
-
-    for (const leg of declaring) {
-      expect(
-        leg.renderHosts,
-        `${leg.id} declares gonogo.renderWith but its leg names no render host to build, so its ` +
-          `page render has no dist to resolve against.`,
-      ).not.toBe("");
-      for (const host of leg.renderHosts.split(" ")) {
-        expect(host, `${leg.id} render host`).toMatch(/^@ksp-gonogo\//);
-      }
-    }
-  });
-
-  it("the workflow builds the render hosts the matrix names", () => {
-    const workflow = readFileSync(
-      join(ROOT, ".github/workflows/uplink.yml"),
-      "utf8",
-    );
-    expect(
-      workflow.includes("matrix.uplink.renderHosts"),
-      "uplink.yml does not read `renderHosts`, so the render-host packages are not built and " +
-        "`docs --check` cannot resolve their dependencies. A matrix field nothing consumes is a " +
-        "field that silently stopped working.",
-    ).toBe(true);
-  });
-
-  it("the workflow consumes the script", () => {
-    const workflow = readFileSync(
-      join(ROOT, ".github/workflows/uplink.yml"),
-      "utf8",
-    );
-    expect(
-      workflow.includes(SCRIPT),
-      `.github/workflows/uplink.yml does not reference ${SCRIPT}, so the matrix it runs is not ` +
-        `the one this test checks.`,
-    ).toBe(true);
   });
 
   it("the script proves its discovery on the planted fixture", () => {

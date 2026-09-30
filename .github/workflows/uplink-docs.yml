@@ -131,11 +131,6 @@ jobs:
       # filter its imports of core and ui resolve against no dist and the
       # generator dies with 109 unresolved-import errors on exactly those five.
       #
-      # `uplink.yml` learned this on 2026-08-31 and grew a RENDER_HOSTS loop for
-      # it. This workflow did not, because it was pinned to `branches: [main]`
-      # and had never once run: a dead job cannot report that the fix its
-      # sibling just took also applies to it.
-      #
       # `uplink-tools` joined the filter when the render harness left ui-kit: the
       # sdk CLI resolves `@ksp-gonogo/uplink-tools` from the client being
       # documented, so an unbuilt `dist` is a module-not-found naming a path

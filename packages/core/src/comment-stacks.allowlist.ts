@@ -349,7 +349,6 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "scripts/emdash-audit.mjs": 2,
   "scripts/palette-audit.mjs": 1,
   "scripts/release.mjs": 2,
-  "scripts/uplink-matrix.mjs": 1,
   "scripts/verify-package-artifact.mjs": 1,
   "tests/playwright/helpers.ts": 1,
   "tests/playwright/main-station.spec.ts": 2,

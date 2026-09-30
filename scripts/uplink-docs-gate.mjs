@@ -23,9 +23,9 @@
  *     Uplink's own process rather than in one repo-wide walk here: the
  *     registries are global, so a second client loaded beside the first is read
  *     as a host of it and both pages come out wrong.
- *   • `gonogo-uplink docs --check`, per leg in `uplink.yml`, asks whether the
+ *   • `gonogo-uplink docs --check`, in `uplink-staleness.yml`, asks whether the
  *     IMAGES are current too. That renders every widget in chromium and is far
- *     too slow to run for every Uplink on every push.
+ *     too slow for the pre-push hook.
  *
  * None substitutes for another: a page can be missing (this catches it),
  * describing last month's registrations (the per-Uplink test catches it), or

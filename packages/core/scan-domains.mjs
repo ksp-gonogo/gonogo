@@ -82,11 +82,7 @@ export const SCAN_DOMAINS = {
     RATCHET_LISTS,
     /^packages\/[^/]+\/package\.json$/,
   ],
-  "src/uplink-matrix-coverage.test.ts": [
-    GITHUB,
-    MOD,
-    /^scripts\/uplink-matrix/,
-  ],
+  "src/uplink-matrix-coverage.test.ts": [MOD, /^scripts\/uplink-matrix/],
   "src/uplink-mod-build-coverage.test.ts": [
     GITHUB,
     MOD,
