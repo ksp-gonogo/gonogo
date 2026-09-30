@@ -8,7 +8,11 @@ import {
   sayHeld,
 } from "./instrumentCurrency";
 import { NULL_DISPLAY } from "./NullValue";
-import { resolveCurrency, type UnitValue } from "./readingCurrency";
+import {
+  figureAttributes,
+  resolveCurrency,
+  type UnitValue,
+} from "./readingCurrency";
 import { placedOnScale, standsApart } from "./standsApart";
 import { type FormatsFor, speakQuantity, writeQuantity } from "./units";
 
@@ -108,7 +112,8 @@ export function Gauge<Unit extends string = string>({
   trackColor = "var(--color-border-subtle)",
   ariaLabel,
 }: Readonly<GaugeProps<Unit>>) {
-  const { shown, held, caption, band } = resolveCurrency(value);
+  const resolved = resolveCurrency(value);
+  const { shown, held, caption, band } = resolved;
 
   // The axis, unwrapped once into SVG coordinates; every figure a reader sees goes back out through the unit layer.
   const v = shown?.magnitude ?? Number.NaN;
@@ -194,7 +199,7 @@ export function Gauge<Unit extends string = string>({
       // With `max-width: 100%`, the viewBox lets the SVG scale down to a slot narrower than `width` instead of being clipped.
       viewBox={`0 0 ${width} ${height}`}
       {...semantics}
-      data-held={held ? "" : undefined}
+      {...figureAttributes(resolved)}
       style={{
         display: "block",
         fontFamily: "var(--font-family-mono)",

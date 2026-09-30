@@ -63,6 +63,7 @@ public class BodyEntry
 
     /// <summary>Mean radius, metres; null when the game does not have it yet (never 0 or -1 as a stand-in).</summary>
     [SitrepUnit(Units.Metres)]
+    [SitrepStatic]
     public double? Radius { get; set; }
 
     /// <summary>Orbital elements about the parent body; null only for the root star, which has no parent to orbit.</summary>
@@ -97,6 +98,7 @@ public class BodyEntry
     /// populated it.
     /// </summary>
     [SitrepUnit(Units.CubicMetresPerSecondSquared)]
+    [SitrepStatic]
     public double? GravParameter { get; set; }
 
     /// <summary>
@@ -104,6 +106,7 @@ public class BodyEntry
     /// not populated it.
     /// </summary>
     [SitrepUnit(Units.Kilograms)]
+    [SitrepStatic]
     public double? Mass { get; set; }
 
     /// <summary>
@@ -117,6 +120,7 @@ public class BodyEntry
     /// precision.</para>
     /// </summary>
     [SitrepUnit(Units.GForce)]
+    [SitrepStatic]
     public double? SurfaceGravity { get; set; }
 
     /// <summary>
@@ -139,6 +143,7 @@ public class BodyEntry
 
     /// <summary>Sidereal rotation period, seconds (<c>CelestialBody.rotationPeriod</c>); a negative value denotes retrograde rotation. Null when absent. A body rotates exactly when this is finite and non-zero; there is no separate flag.</summary>
     [SitrepUnit(Units.Seconds)]
+    [SitrepStatic]
     public double? RotationPeriod { get; set; }
 
     /// <summary>
@@ -168,10 +173,12 @@ public class BodyEntry
     /// </internal>
     /// </summary>
     [SitrepUnit(Units.Degrees)]
+    [SitrepStatic]
     public double? InitialRotation { get; set; }
 
     /// <summary>Whether the body is tidally locked to its parent (<c>CelestialBody.tidallyLocked</c>); null when absent.</summary>
     [SitrepUnit(Units.Flag)]
+    [SitrepStatic]
     public bool? TidallyLocked { get; set; }
 
     /// <summary>Atmosphere descriptor; null when the body has no atmosphere (<c>CelestialBody.atmosphere</c> is false), never an all-null placeholder.</summary>
@@ -179,6 +186,7 @@ public class BodyEntry
 
     /// <summary>Whether the body has a liquid ocean (<c>CelestialBody.ocean</c>); null when absent.</summary>
     [SitrepUnit(Units.Flag)]
+    [SitrepStatic]
     public bool? HasOcean { get; set; }
 
     /// <summary>KSP's per-body flavour text (<c>CelestialBody.bodyDescription</c>); null when absent. May be a raw, unresolved <c>#autoLOC...</c> localization tag, which is not text to show.</summary>
@@ -220,14 +228,17 @@ public class AtmosphereEntry
 {
     /// <summary>Atmosphere height, metres (<c>CelestialBody.atmosphereDepth</c>); null when absent.</summary>
     [SitrepUnit(Units.Metres)]
+    [SitrepStatic]
     public double? Depth { get; set; }
 
     /// <summary>Whether the atmosphere is breathable / oxygenated (<c>CelestialBody.atmosphereContainsOxygen</c>); null when absent.</summary>
     [SitrepUnit(Units.Flag)]
+    [SitrepStatic]
     public bool? HasOxygen { get; set; }
 
     /// <summary>Sea-level pressure, kPa (<c>CelestialBody.atmospherePressureSeaLevel</c>); null when absent.</summary>
     [SitrepUnit(Units.Kilopascals)]
+    [SitrepStatic]
     public double? SeaLevelPressure { get; set; }
 
     /// <summary>
@@ -261,6 +272,7 @@ public class AtmosphereEntry
     /// where the air formally ends.</para>
     /// </remarks>
     [SitrepUnit(Units.Metres)]
+    [SitrepStatic]
     public double[]? PressureAltitudes { get; set; }
 
     /// <summary>
@@ -285,6 +297,7 @@ public class AtmosphereEntry
     /// tolerance.</para>
     /// </remarks>
     [SitrepUnit(Units.Kilopascals)]
+    [SitrepStatic]
     public double[]? Pressures { get; set; }
 }
 

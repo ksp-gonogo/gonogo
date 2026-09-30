@@ -65,6 +65,13 @@ function body(over: Partial<CelestialBody> & { index: number }): CelestialBody {
     hasAtmosphere: null,
     maxAtmosphere: null,
     hasOxygen: null,
+    figures: {
+      radius: null,
+      mass: null,
+      surfaceGravity: null,
+      dayLength: null,
+      atmosphereDepth: null,
+    },
     ...over,
   };
 }

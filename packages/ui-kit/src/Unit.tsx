@@ -10,7 +10,11 @@ import styled from "styled-components";
 import { bandClaim } from "./bandClaim";
 import { HeldMark } from "./HeldMark";
 import { MicroscopeIcon, StarIcon } from "./Icons";
-import { resolveCurrency, type UnitValue } from "./readingCurrency";
+import {
+  figureAttributes,
+  resolveCurrency,
+  type UnitValue,
+} from "./readingCurrency";
 import { standsApart, writtenAs } from "./standsApart";
 import { useTooltip } from "./Tooltip";
 import { useInSharedFormat, useSharedFormat } from "./UnitSharedFormat";
@@ -259,7 +263,8 @@ export function Unit<UnitSymbol extends string = string>({
   hideUnitInGroup,
   ...opts
 }: UnitProps<UnitSymbol>) {
-  const { shown, held, caption, band } = resolveCurrency(value);
+  const currency = resolveCurrency(value);
+  const { shown, held, caption, band } = currency;
   /*
    * Reports to an enclosing `<UnitSharedFormat>` and returns the format the group settled on; inert with no scope above it.
    * A held member reports as a live one does, so a column's rung does not move when one cell stops updating.
@@ -289,7 +294,7 @@ export function Unit<UnitSymbol extends string = string>({
       <Unit__Quantity
         className={className}
         $held={held}
-        data-held={held ? "" : undefined}
+        {...figureAttributes(currency)}
         {...anchor}
       >
         {formatted.value}

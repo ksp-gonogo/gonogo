@@ -4,7 +4,12 @@
  * Shared by every primitive that draws a figure, so a `Reading` cannot mean one
  * thing on a readout and another on the instrument beside it.
  */
-import type { Reading, UncertaintyBand, Value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  isStaticValue,
+  type Reading,
+  type UncertaintyBand,
+  type Value,
+} from "@ksp-gonogo/sitrep-sdk";
 import { NULL_DISPLAY } from "./NullValue";
 import { heldWord } from "./status/streamStatusWord";
 import { formatQuantity } from "./units";
@@ -25,6 +30,11 @@ export interface Resolved<Unit extends string> {
   shown: Value<Unit> | null | undefined;
   /** Whether the number on screen is a reading of now. Drives the mark. */
   held: boolean;
+  /**
+   * Whether the number is a fact the contract declares static, which is never
+   * old and so is never marked held, whatever the reading's state.
+   */
+  isStatic: boolean;
   /**
    * What the mark means in words: the grade where the reading names one, a
    * grade-neutral word where it does not, and the instant the number was last
@@ -101,9 +111,13 @@ function heldCurrency<Unit extends string>(
    * gets no dot. Whatever is marked gets words, including the ordinary
    * gradeless held reading a derived value produces.
    */
+  if (isStaticValue(input.value)) {
+    return { shown: input.value, held: false, isStatic: true, caption: null };
+  }
   return {
     shown: input.value,
     held: input.value !== undefined,
+    isStatic: false,
     caption:
       input.value === undefined
         ? null
@@ -124,7 +138,13 @@ export function resolveCurrency<Unit extends string>(
 ): Resolved<Unit> {
   // `in` throws on a primitive, and some callers hand over a raw magnitude.
   if (typeof input !== "object" || input === null || !("state" in input)) {
-    return { shown: input, held: false, caption: null, band: null };
+    return {
+      shown: input,
+      held: false,
+      isStatic: isStaticValue(input),
+      caption: null,
+      band: null,
+    };
   }
   // The band is orthogonal to the state: a live reading and a held one may each carry a model.
   const band =
@@ -144,14 +164,46 @@ export function resolveCurrency<Unit extends string>(
     return {
       shown,
       held: carried,
+      isStatic: false,
       caption: carried ? MODELLED_TO_SCET : null,
       band,
     };
   }
   if (input.state === "observed") {
-    return { shown: input.value, held: false, caption: null, band };
+    return {
+      shown: input.value,
+      held: false,
+      isStatic: isStaticValue(input.value),
+      caption: null,
+      band,
+    };
   }
   if (input.state === "held") return { ...heldCurrency(input), band };
   // `null` rather than `undefined`, so the caller renders the null token rather than the symbol form.
-  return { shown: null, held: false, caption: null, band: null };
+  return {
+    shown: null,
+    held: false,
+    isStatic: false,
+    caption: null,
+    band: null,
+  };
+}
+
+/**
+ * The attributes every figure-drawing primitive stamps on the element that
+ * carries its figure: `data-figure` names it as a figure, `"static"` for a fact
+ * the contract declares static, and `data-held` marks one that is not a reading
+ * of now. A render sweep reads the pair to find a held figure drawn as current.
+ * No `data-figure` where there is no number to draw.
+ */
+export function figureAttributes(resolved: {
+  readonly shown: unknown;
+  readonly held: boolean;
+  readonly isStatic: boolean;
+}): { "data-figure": string | undefined; "data-held": "" | undefined } {
+  return {
+    "data-figure":
+      resolved.shown == null ? undefined : resolved.isStatic ? "static" : "",
+    "data-held": resolved.held ? "" : undefined,
+  };
 }

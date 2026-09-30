@@ -1,4 +1,9 @@
-import { type Reading, type Value, value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  type Reading,
+  staticValue,
+  type Value,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
@@ -524,5 +529,36 @@ describe("Unit: how well the number is known", () => {
       <Unit value={banded(1000, { lo: 975, value: 1000, hi: 1025 })} />,
     );
     await expectNoA11yViolations(container);
+  });
+});
+
+describe("a figure the contract declares static", () => {
+  it("is never marked held, and says it is static", () => {
+    const { container } = render(
+      <Unit
+        value={{
+          state: "held",
+          reckoning: { status: "none" },
+          value: staticValue("m", 600_000),
+          asOfUt: AT,
+          grade: "held",
+        }}
+      />,
+    );
+
+    expect(container.querySelector("[data-held]")).toBeNull();
+    expect(container.querySelector("[data-held-mark]")).toBeNull();
+    expect(
+      container.querySelector("[data-figure]")?.getAttribute("data-figure"),
+    ).toBe("static");
+  });
+
+  it("leaves a live figure beside it marked", () => {
+    const { container } = render(<Unit value={stale(120, "held")} />);
+
+    expect(container.querySelector("[data-held]")).not.toBeNull();
+    expect(
+      container.querySelector("[data-figure]")?.getAttribute("data-figure"),
+    ).toBe("");
   });
 });

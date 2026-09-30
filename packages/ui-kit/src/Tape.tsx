@@ -21,7 +21,11 @@ import {
   sayHeld,
 } from "./instrumentCurrency";
 import { NULL_DISPLAY } from "./NullValue";
-import { resolveCurrency, type UnitValue } from "./readingCurrency";
+import {
+  figureAttributes,
+  resolveCurrency,
+  type UnitValue,
+} from "./readingCurrency";
 import { placedOnScale, standsApart } from "./standsApart";
 import { type FormatsFor, quantityScale, speakQuantity } from "./units";
 
@@ -121,7 +125,8 @@ export function Tape<Unit extends string = string>({
   }, [fillHeight]);
   const h = fillHeight ? measured : height;
 
-  const { shown, held, caption, band } = resolveCurrency(value);
+  const resolved = resolveCurrency(value);
+  const { shown, held, caption, band } = resolved;
 
   // Unwrapped once into pixel geometry; every figure a reader sees goes back out through the unit layer.
   const current = shown?.magnitude ?? Number.NaN;
@@ -195,7 +200,7 @@ export function Tape<Unit extends string = string>({
   return (
     <Tape__Meter
       ref={wrapRef}
-      data-held={held ? "" : undefined}
+      {...figureAttributes(resolved)}
       {...(hasFigure
         ? {
             role: "meter",

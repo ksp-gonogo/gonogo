@@ -1,6 +1,10 @@
 import type { Value } from "@ksp-gonogo/sitrep-sdk";
 import styled, { css } from "styled-components";
-import { resolveCurrency, type UnitValue } from "./readingCurrency";
+import {
+  figureAttributes,
+  resolveCurrency,
+  type UnitValue,
+} from "./readingCurrency";
 
 export interface DivergingBarProps<Unit extends string = string> {
   /**
@@ -36,7 +40,8 @@ export function DivergingBar<Unit extends string = string>({
   maxAbs,
   className,
 }: DivergingBarProps<Unit>) {
-  const { shown, held } = resolveCurrency(value);
+  const resolved = resolveCurrency(value);
+  const { shown, held } = resolved;
   // `dividedBy` checks the two are the same kind, so the quotient is dimensionless before it becomes a CSS width.
   const pct =
     shown != null && maxAbs.isPositive()
@@ -46,7 +51,7 @@ export function DivergingBar<Unit extends string = string>({
     <DivergingBar__Track
       aria-hidden="true"
       data-testid="diverging-bar"
-      data-held={held ? "" : undefined}
+      {...figureAttributes(resolved)}
       className={className}
     >
       <DivergingBar__Zero />

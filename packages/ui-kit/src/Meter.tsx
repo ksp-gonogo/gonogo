@@ -1,6 +1,7 @@
 import {
   type BandKind,
   bandIn,
+  isStaticValue,
   type Reading,
   type Tone,
   type Value,
@@ -186,8 +187,8 @@ export function Meter<UnitSymbol extends string = string>({
     tone,
     fillColor,
     // A held capacity marks the track: the axis aged, not the reading on it.
-    trackHeld: held.reading?.state === "held",
-    fillHeld: shown.reading?.state === "held",
+    trackHeld: held.reading?.state === "held" && !isStaticValue(held.figure),
+    fillHeld: shown.reading?.state === "held" && !isStaticValue(shown.figure),
     ...rest,
   };
   const endBounds = apartFrom(

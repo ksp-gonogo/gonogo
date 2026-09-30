@@ -41,10 +41,13 @@ export {
   type UnitRung,
 } from "./registry";
 export {
+  asStatic,
   hydrate,
+  isStaticValue,
   isValue,
   type PointUnit,
   type SameDimensionAs,
+  staticValue,
   type UnknownUnit,
   type Value,
   type Vector3,

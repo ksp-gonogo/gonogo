@@ -1619,6 +1619,13 @@ public static class RtConfig
         // assembly, so a token outside the catalog is drift and should stop
         // the build. The runtime pass deliberately does not throw.
         var maps = UnitDescriptor.Collect(validateVocabulary: true, assembly: assembly);
+        foreach (var type in (assembly ?? typeof(UnitDescriptor).Assembly).GetTypes())
+        {
+            foreach (var prop in type.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
+            {
+                UnitDescriptor.RequireStaticIsNotReckonable(prop);
+            }
+        }
         var vocabulary = maps.Vocabulary;
         var byType = maps.ByType;
         var byTopic = maps.ByTopic;
@@ -1740,6 +1747,22 @@ public static class RtConfig
         AppendEnumFieldsBody(sb, maps.EnumsByTopic);
         sb.Append("};\n\n");
 
+        sb.Append("/**\n");
+        sb.Append(" * The fields each shape declares [SitrepStatic]: a fact about its subject\n");
+        sb.Append(" * that does not change with time, so it cannot become stale. Keyed by the\n");
+        sb.Append(" * generated interface name in ./contract.ts. A field absent here is live.\n");
+        sb.Append(" *\n");
+        sb.Append(" * @category Units and values\n");
+        sb.Append(" */\n");
+        sb.Append("export const GENERATED_TYPE_STATICS: Readonly<Record<string, readonly string[]>> = {\n");
+        AppendStaticBody(sb, maps.StaticByType);
+        sb.Append("};\n\n");
+
+        sb.Append("/** The same, keyed by Topic id. */\n");
+        sb.Append("export const GENERATED_TOPIC_STATICS: Readonly<Record<string, readonly string[]>> = {\n");
+        AppendStaticBody(sb, maps.StaticByTopic);
+        sb.Append("};\n\n");
+
         sb.Append("/** Each enum an `enum` field names, as its wire value to member name. */\n");
         sb.Append("export const GENERATED_ENUM_MEMBERS: Readonly<Record<string, Readonly<Record<number, string>>>> = {\n");
         foreach (var e in maps.EnumMembers)
@@ -1761,6 +1784,23 @@ public static class RtConfig
         {
             File.WriteAllText(jsonOutPath, UnitDescriptor.ToJson(maps));
             Console.WriteLine("codegen (unit-descriptor) -> " + jsonOutPath);
+        }
+    }
+
+    private static void AppendStaticBody(
+        StringBuilder sb,
+        SortedDictionary<string, SortedSet<string>> map)
+    {
+        foreach (var outer in map)
+        {
+            sb.Append("  \"").Append(outer.Key).Append("\": [");
+            var first = true;
+            foreach (var field in outer.Value)
+            {
+                sb.Append(first ? "" : ", ").Append('"').Append(field).Append('"');
+                first = false;
+            }
+            sb.Append("],\n");
         }
     }
 

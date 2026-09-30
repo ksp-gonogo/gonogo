@@ -48,7 +48,11 @@ import { SystemEntitiesLayer } from "./SystemEntitiesLayer";
 // Registers the built-in vessel-orbits contribution.
 import "./vesselOrbitsContribution";
 import { panelHohmannFor, transferStatusesFor } from "./transferWindow";
-import { type CelestialBody, useCelestialBodies } from "./useCelestialBodies";
+import {
+  type CelestialBody,
+  useCelestialBodies,
+  useCelestialHeld,
+} from "./useCelestialBodies";
 import { useCommsEntities } from "./useCommsEntities";
 import { usePanZoom } from "./usePanZoom";
 import { usePhaseAngleReading, usePhaseAngles } from "./usePhaseAngles";
@@ -78,6 +82,7 @@ function SystemViewComponent({
 }: Readonly<ComponentProps<SystemViewConfig>>) {
   const frameSetting = config?.frame ?? "auto";
   const bodies = useCelestialBodies();
+  const catalogueHeld = useCelestialHeld();
   // The whole catalogue, for the read frame's index lookups; a held catalogue is still the catalogue.
   const factsReading = useProcessor(CELESTIAL_FACTS);
   const facts =
@@ -414,6 +419,7 @@ function SystemViewComponent({
   const almanac = (
     <AlmanacPanel
       body={panelBody}
+      held={catalogueHeld}
       phaseAngle={panelPhaseAngleReading ?? null}
       isVesselParent={panelIsVesselParent}
       hohmannIdealDeg={panelHohmann?.ideal ?? null}

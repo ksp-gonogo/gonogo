@@ -1,7 +1,12 @@
 import { type Reading, type Value, value } from "@ksp-gonogo/sitrep-sdk";
-import { ReckonedUnit, Unit, writeQuantity } from "@ksp-gonogo/ui-kit";
+import {
+  ReckonedUnit,
+  Unit,
+  type UnitValue,
+  writeQuantity,
+} from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
-import type { CelestialBody } from "./useCelestialBodies";
+import type { CatalogueHeld, CelestialBody } from "./useCelestialBodies";
 
 // Each readout restates its unit because `CelestialBody` carries bare magnitudes for the diagram's arithmetic.
 
@@ -10,14 +15,36 @@ export interface AlmanacRow {
   value: ReactNode;
 }
 
+/**
+ * A catalogue figure as the reading it arrived in, so one drawn while the
+ * catalogue has stopped arriving is marked held. A static figure is left
+ * unmarked by the kit whatever the reading says.
+ */
+function asOf<Unit extends string>(
+  figure: Value<Unit>,
+  held: CatalogueHeld | null,
+): UnitValue<Unit> {
+  if (held === null) return figure;
+  return {
+    state: "held",
+    value: figure,
+    asOfUt: held.asOfUt,
+    grade: held.grade,
+    reckoning: { status: "none" },
+  };
+}
+
 /** The atmosphere row's value, or `null` when the body does not say whether it has one. */
-function atmosphereValue(body: CelestialBody): ReactNode | null {
+function atmosphereValue(
+  body: CelestialBody,
+  held: CatalogueHeld | null,
+): ReactNode | null {
   if (body.hasAtmosphere === false) return "None";
   if (body.hasAtmosphere !== true) return null;
-  if (body.maxAtmosphere !== null) {
+  if (body.figures.atmosphereDepth !== null) {
     return (
       <>
-        <Unit value={value("m", body.maxAtmosphere)} />{" "}
+        <Unit value={asOf(body.figures.atmosphereDepth, held)} />{" "}
         {body.hasOxygen === true ? "(O₂)" : "(no O₂)"}
       </>
     );
@@ -36,30 +63,31 @@ export function buildRows(
   encounterIn: Reading<Value<"s">> | null,
   nextApsisType: -1 | 1 | null,
   nextApsisIn: Reading<Value<"s">> | null,
+  held: CatalogueHeld | null = null,
 ): AlmanacRow[] {
   const rows: AlmanacRow[] = [];
-  if (body.radius !== null) {
+  if (body.figures.radius !== null) {
     rows.push({
       label: "Radius",
-      value: <Unit value={value("m", body.radius)} />,
+      value: <Unit value={asOf(body.figures.radius, held)} />,
     });
   }
-  if (body.mass !== null) {
+  if (body.figures.mass !== null) {
     rows.push({
       label: "Mass",
-      value: <Unit value={value("kg", body.mass)} />,
+      value: <Unit value={asOf(body.figures.mass, held)} />,
     });
   }
-  if (body.geeASL !== null) {
+  if (body.figures.surfaceGravity !== null) {
     rows.push({
       label: "Surface gravity",
-      value: <Unit value={value("g", body.geeASL)} />,
+      value: <Unit value={asOf(body.figures.surfaceGravity, held)} />,
     });
   }
-  if (body.rotationPeriod !== null) {
+  if (body.figures.dayLength !== null) {
     rows.push({
       label: "Day length",
-      value: <Unit value={value("s", Math.abs(body.rotationPeriod))} />,
+      value: <Unit value={asOf(body.figures.dayLength, held)} />,
     });
   }
   if (body.tidallyLocked === true) {
@@ -68,17 +96,17 @@ export function buildRows(
   if (body.soi !== null) {
     rows.push({
       label: "SOI",
-      value: <Unit value={value("m", body.soi)} />,
+      value: <Unit value={asOf(value("m", body.soi), held)} />,
     });
   }
-  const atmosphere = atmosphereValue(body);
+  const atmosphere = atmosphereValue(body, held);
   if (atmosphere !== null)
     rows.push({ label: "Atmosphere", value: atmosphere });
   if (body.hasOcean === true) rows.push({ label: "", value: "Has ocean" });
   if (body.hillSphere !== null) {
     rows.push({
       label: "Hill sphere",
-      value: <Unit value={value("m", body.hillSphere)} />,
+      value: <Unit value={asOf(value("m", body.hillSphere), held)} />,
     });
   }
   if (body.rotates === false) {
@@ -87,19 +115,21 @@ export function buildRows(
   if (body.period !== null) {
     rows.push({
       label: "Orbital period",
-      value: <Unit value={value("s", body.period)} />,
+      value: <Unit value={asOf(value("s", body.period), held)} />,
     });
   }
   if (body.eccentricity !== null) {
     rows.push({
       label: "Eccentricity",
-      value: <Unit value={value("1", body.eccentricity)} decimals={3} />,
+      value: (
+        <Unit value={asOf(value("1", body.eccentricity), held)} decimals={3} />
+      ),
     });
   }
   if (body.inclination !== null) {
     rows.push({
       label: "Inclination",
-      value: <Unit value={value("°", body.inclination)} />,
+      value: <Unit value={asOf(value("°", body.inclination), held)} />,
     });
   }
   if (!isVesselParent && phaseAngle !== null) {

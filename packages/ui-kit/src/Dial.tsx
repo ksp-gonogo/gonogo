@@ -23,7 +23,11 @@ import {
   sayHeld,
 } from "./instrumentCurrency";
 import { NULL_DISPLAY } from "./NullValue";
-import { resolveCurrency, type UnitValue } from "./readingCurrency";
+import {
+  figureAttributes,
+  resolveCurrency,
+  type UnitValue,
+} from "./readingCurrency";
 import { placedOnScale, standsApart } from "./standsApart";
 import { type FormatsFor, speakQuantity, writeQuantity } from "./units";
 
@@ -116,7 +120,8 @@ export function Dial<Unit extends string = string>({
   trackColor = "var(--color-border-subtle)",
   ariaLabel,
 }: Readonly<DialProps<Unit>>) {
-  const { shown, held, caption, band } = resolveCurrency(value);
+  const resolved = resolveCurrency(value);
+  const { shown, held, caption, band } = resolved;
 
   // The axis, unwrapped once into the face's angular geometry; every figure a reader sees goes back out through the unit layer.
   const current = shown?.magnitude ?? Number.NaN;
@@ -179,7 +184,7 @@ export function Dial<Unit extends string = string>({
 
   return (
     <Dial__Meter
-      data-held={held ? "" : undefined}
+      {...figureAttributes(resolved)}
       {...(hasFigure
         ? {
             role: "meter",

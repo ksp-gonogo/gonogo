@@ -171,6 +171,6 @@ describe("LandingStatus: full-vector solve genuinely runs off the stream", () =>
       emitMunDescent();
       stream.emit("comms.delay", { source: 1, oneWaySeconds: 4 });
     });
-    await waitFor(() => expect(screen.getByText(/^RT /)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/^RT\b/)).toBeInTheDocument());
   });
 });

@@ -3,7 +3,11 @@ import { formatDuration } from "./formatDuration";
 import { HeldFigure } from "./HeldMark";
 import { ModelledAlongside } from "./ModelledAlongside";
 import { NULL_DISPLAY } from "./NullValue";
-import { modelledBeyondReceived, resolveCurrency } from "./readingCurrency";
+import {
+  figureAttributes,
+  modelledBeyondReceived,
+  resolveCurrency,
+} from "./readingCurrency";
 
 /**
  * A duration read as a CLOCK: `1m 20s`, or `T−1m 20s` on a launch clock.
@@ -74,15 +78,15 @@ export function Countdown({
       </>
     );
   }
-  const { shown, held, caption } = resolveCurrency(carried, {
-    drawsReckoning: true,
-  });
+  const currency = resolveCurrency(carried, { drawsReckoning: true });
+  const { shown, held, caption } = currency;
   const drawn = typeof value === "number" ? value : shown;
   if (drawn === undefined || drawn === null) return NULL_DISPLAY;
   const text = format(drawn);
-  if (!held) return <>{text}</>;
+  const figure = figureAttributes({ ...currency, shown: drawn });
+  if (!held) return <span data-figure={figure["data-figure"]}>{text}</span>;
   return (
-    <HeldFigure data-held="" caption={caption}>
+    <HeldFigure {...figure} caption={caption}>
       {text}
     </HeldFigure>
   );

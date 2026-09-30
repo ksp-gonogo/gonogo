@@ -3,6 +3,7 @@ import {
   type CelestialBody,
   useProcessor,
 } from "@ksp-gonogo/sitrep-client";
+import type { HeldGrade, Value } from "@ksp-gonogo/sitrep-sdk";
 
 export type { BodyAtmosphere, CelestialBody } from "@ksp-gonogo/sitrep-client";
 
@@ -21,4 +22,18 @@ export function useCelestialBodies(): CelestialBody[] {
       ? reading.value
       : undefined;
   return facts?.bodies ?? NO_BODIES;
+}
+
+/** When the catalogue stopped arriving, and why. */
+export interface CatalogueHeld {
+  asOfUt: Value<"ut">;
+  grade: HeldGrade;
+}
+
+/** Null while the catalogue is arriving; otherwise what a figure drawn from it is held as. */
+export function useCelestialHeld(): CatalogueHeld | null {
+  const reading = useProcessor(CELESTIAL_FACTS);
+  if (reading?.state !== "held") return null;
+  const { asOfUt, grade } = reading;
+  return asOfUt !== undefined && grade !== undefined ? { asOfUt, grade } : null;
 }

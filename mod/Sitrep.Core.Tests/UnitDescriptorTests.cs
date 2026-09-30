@@ -211,6 +211,36 @@ namespace Sitrep.Core.Tests
         }
 
         [Fact]
+        public void CollectsTheFieldsDeclaredStatic()
+        {
+            var maps = UnitDescriptor.Collect();
+
+            Assert.Contains("radius", maps.StaticByType["BodyEntry"]);
+            Assert.Contains("depth", maps.StaticByType["AtmosphereEntry"]);
+            // A body's orbit moves along its elements, so the elements are live.
+            Assert.DoesNotContain("OrbitEntry", maps.StaticByType.Keys);
+            Assert.DoesNotContain("sphereOfInfluence", maps.StaticByType["BodyEntry"]);
+        }
+
+        private sealed class StaticAndReckonable
+        {
+            [SitrepStatic]
+            [SitrepReckonable(ReckoningBases.RateIntegration, "rate")]
+            public double Level { get; set; }
+        }
+
+        [Fact]
+        public void AValueDeclaredBothStaticAndReckonableIsRejected()
+        {
+            var prop = typeof(StaticAndReckonable).GetProperty(nameof(StaticAndReckonable.Level))!;
+
+            var ex = Assert.Throws<InvalidOperationException>(() =>
+                UnitDescriptor.RequireStaticIsNotReckonable(prop));
+
+            Assert.Contains("Level", ex.Message);
+        }
+
+        [Fact]
         public void IsStableAcrossCalls()
         {
             // Every collection is sorted, so re-running produces identical

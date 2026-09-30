@@ -79,10 +79,12 @@ function generatedContracts(root: string): string[] {
  * that call), so an attribute there would be read by nothing.
  */
 const OMITTED_WHEN_NULL = new Set([
-  /* EnvelopeCodec.AppendMeta guards it on HasValue, alone among Meta's fields:
-     a gap is rare by construction, so every frame would otherwise carry 17
-     bytes saying nothing happened. */
+  /* EnvelopeCodec.AppendMeta guards it on HasValue: a gap is rare by
+     construction, so every frame would otherwise carry 17 bytes saying nothing
+     happened. */
   "Meta.gapSinceUt",
+  // EnvelopeCodec.AppendMeta guards it on HasValue too: only a payload that states a quality puts one on its envelope.
+  "Meta.quality",
   // JsonWriter.AppendPendingUplink guards it on HasValue, because a zero throttle and an unknown value must never arrive looking the same.
   "PendingUplink.commandedValue",
   // JsonWriter.AppendCommandResult writes neither key on a success, rather than putting an empty refusal shape on every ack.

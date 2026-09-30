@@ -1,12 +1,20 @@
 import { PROVIDER_EXTENSIONS_FIELD } from "./extensions";
 import type { TopicId } from "./topics";
-import { hydrate, isValue, lookupUnit, value } from "./unit-system";
+import {
+  hydrate,
+  isValue,
+  lookupUnit,
+  staticValue,
+  value,
+} from "./unit-system";
 import {
   providerExtensionShapes,
   type ShapesByField,
   shapesForTopic,
   shapesForType,
   shapeTypeName,
+  staticsForTopic,
+  staticsForType,
   unitsForTopic,
   unitsForType,
 } from "./units";
@@ -102,6 +110,7 @@ export function wrapTopicPayload<Payload>(
     topic,
     unitsForTopic(topic),
     shapesForTopic(topic),
+    staticsForTopic(topic),
     payload,
   ) as Payload;
 }
@@ -121,6 +130,7 @@ export function wrapTypePayload<Payload>(
     typeName,
     unitsForType(typeName),
     shapesForType(typeName),
+    staticsForType(typeName),
     payload,
   ) as Payload;
 }
@@ -129,6 +139,7 @@ function wrap<Payload>(
   owner: string,
   units: Readonly<Record<string, string>>,
   shapes: ShapesByField,
+  statics: readonly string[],
   payload: Payload,
 ): Payload {
   if (payload === null || typeof payload !== "object") {
@@ -137,7 +148,7 @@ function wrap<Payload>(
   // An array Topic's entry describes the ELEMENT's fields, which is what a consumer indexes into.
   if (Array.isArray(payload)) {
     for (let i = 0; i < payload.length; i++) {
-      payload[i] = wrap(owner, units, shapes, payload[i]);
+      payload[i] = wrap(owner, units, shapes, statics, payload[i]);
     }
     return payload;
   }
@@ -202,7 +213,11 @@ function wrap<Payload>(
       // true for something that never arrived, and puts nulls into a
       // re-serialised frame. A Topic sends a subset of its fields routinely.
       if (!(field in target)) continue;
-      target[field] = wrapScalarOrList(target[field], unit);
+      target[field] = wrapScalarOrList(
+        target[field],
+        unit,
+        statics.includes(field),
+      );
       continue;
     }
     // A Vec3 field's unit is declared on the parent and propagated onto dotted
@@ -215,20 +230,26 @@ function wrap<Payload>(
       (parent as Record<string, unknown>)[leaf] = wrapScalarOrList(
         (parent as Record<string, unknown>)[leaf],
         unit,
+        statics.includes(field),
       );
     }
   }
   return payload;
 }
 
-function wrapScalarOrList(current: unknown, unit: string): unknown {
+function wrapScalarOrList(
+  current: unknown,
+  unit: string,
+  isStatic: boolean,
+): unknown {
+  const mint = isStatic ? staticValue : value;
   if (typeof current === "number") {
-    return value(unit, current);
+    return mint(unit, current);
   }
   // A sequence of same-unit readings: a terrain profile is a list of distances rather than one distance, so the unit belongs to each element.
   if (Array.isArray(current)) {
     return current.map((entry) =>
-      typeof entry === "number" ? value(unit, entry) : entry,
+      typeof entry === "number" ? mint(unit, entry) : entry,
     );
   }
   // A name-keyed MAP of same-unit readings (a rate per resource name). Same
@@ -250,7 +271,7 @@ function wrapScalarOrList(current: unknown, unit: string): unknown {
     const entries = current as Record<string, unknown>;
     for (const key of Object.keys(entries)) {
       const entry = entries[key];
-      if (typeof entry === "number") entries[key] = value(unit, entry);
+      if (typeof entry === "number") entries[key] = mint(unit, entry);
     }
     return entries;
   }

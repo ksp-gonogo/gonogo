@@ -2,7 +2,7 @@ import type { Reading, Value } from "@ksp-gonogo/sitrep-sdk";
 import { ExpandableText, Grid } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties, ReactNode } from "react";
 import { buildRows } from "./almanacRows";
-import type { CelestialBody } from "./useCelestialBodies";
+import type { CatalogueHeld, CelestialBody } from "./useCelestialBodies";
 
 export interface AlmanacPanelProps {
   /** Body to describe. When null, the panel renders an idle hint. */
@@ -23,6 +23,8 @@ export interface AlmanacPanelProps {
   nextApsisType?: -1 | 1 | null;
   /** Time to the next apsis. */
   nextApsisIn?: Reading<Value<"s">> | null;
+  /** Set while the catalogue has stopped arriving, so its live figures are marked held. */
+  held?: CatalogueHeld | null;
 }
 
 export function AlmanacPanel({
@@ -35,6 +37,7 @@ export function AlmanacPanel({
   encounterIn = null,
   nextApsisType = null,
   nextApsisIn = null,
+  held = null,
 }: AlmanacPanelProps) {
   if (!body) {
     return (
@@ -56,6 +59,7 @@ export function AlmanacPanel({
     encounterIn,
     nextApsisType,
     nextApsisIn,
+    held,
   );
   return (
     <Wrap>

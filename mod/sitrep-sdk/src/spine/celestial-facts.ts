@@ -3,6 +3,7 @@ import {
   PropagationHorizonKind,
   TrajectoryKind,
 } from "../__generated__/contract";
+import { asStatic, isValue, type Value, value } from "../unit-system";
 import {
   deriveEscapeVelocity,
   derivePeriod,
@@ -116,6 +117,22 @@ export interface BodyAtmosphere {
 }
 
 /**
+ * A body's catalogue figures as the wire delivered them: the same `Value`s,
+ * so a readout of one keeps the static stamp the contract gives it. Each is
+ * null when the game did not report it.
+ *
+ * @category Solar system and fleet
+ */
+export interface BodyFigures {
+  radius: Value<"m"> | null;
+  mass: Value<"kg"> | null;
+  surfaceGravity: Value<"g"> | null;
+  /** The sidereal rotation period's length, with a retrograde sign dropped. */
+  dayLength: Value<"s"> | null;
+  atmosphereDepth: Value<"m"> | null;
+}
+
+/**
  * One body of the solar system as `CelestialFacts` holds it.
  *
  * @category Solar system and fleet
@@ -173,6 +190,8 @@ export interface CelestialBody {
   maxAtmosphere: number | null;
   /** `atmosphere?.hasOxygen`. */
   hasOxygen: boolean | null;
+  /** The figures a readout draws, as delivered; see {@link BodyFigures}. */
+  figures: BodyFigures;
 }
 
 /**
@@ -211,6 +230,23 @@ function numOrNull(
 ): number | null {
   const n = typeof x === "object" && x !== null ? x.magnitude : x;
   return typeof n === "number" && Number.isFinite(n) ? n : null;
+}
+
+/** The delivered value itself where it is one, so its stamp survives, or a fresh one around a bare magnitude. */
+function figureOrNull<Unit extends string>(
+  x: Value<Unit> | number | null | undefined,
+  unit: Unit,
+): Value<Unit> | null {
+  if (isValue(x)) return x.isFinite() ? x : null;
+  return typeof x === "number" && Number.isFinite(x) ? value(unit, x) : null;
+}
+
+/** A figure's size with its sign dropped, still static where the figure was: the sign is a direction, not part of the fact. */
+function lengthOf<Unit extends string>(
+  figure: Value<Unit> | null,
+): Value<Unit> | null {
+  if (figure === null) return null;
+  return figure.static ? asStatic(figure.abs()) : figure.abs();
 }
 
 function boolOrNull(x: boolean | null | undefined): boolean | null {
@@ -305,6 +341,13 @@ function mapBody(
     hasAtmosphere: atmosphere !== null,
     maxAtmosphere: atmosphere?.depth ?? null,
     hasOxygen: atmosphere?.hasOxygen ?? null,
+    figures: {
+      radius: figureOrNull(entry.radius, "m"),
+      mass: figureOrNull(entry.mass, "kg"),
+      surfaceGravity: figureOrNull(entry.surfaceGravity, "g"),
+      dayLength: lengthOf(figureOrNull(entry.rotationPeriod, "s")),
+      atmosphereDepth: figureOrNull(rawAtmosphere?.depth, "m"),
+    },
   };
 }
 

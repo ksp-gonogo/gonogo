@@ -90,6 +90,7 @@ export {
 export {
   ANALYTIC_BODY_HORIZON,
   type BodyAtmosphere,
+  type BodyFigures,
   type BodyHorizon,
   bodyAtIndex,
   bodyNamed,

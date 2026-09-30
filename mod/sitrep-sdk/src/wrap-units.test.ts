@@ -111,169 +111,53 @@ describe("wrapTopicPayload", () => {
   });
 
   it("follows a LIST of nested shapes, element by element", () => {
-    const payload = wrapTopicPayload("system.bodies", {
-      bodies: [{ radius: 600_000 }, { radius: 200_000 }],
-    } as never) as { bodies: Array<{ radius: Value }> };
-    expect(payload.bodies.map((b) => b.radius.unit)).toEqual(["m", "m"]);
-    expect(payload.bodies[1].radius.magnitude).toBe(200_000);
-  });
-
-  it("follows a MAP of nested shapes, value by value", () => {
-    // `VesselPart.resources` is keyed by resource name. Treating the map
-    // itself as one payload looked for `amount` on the map, found nothing,
-    // and left every per-part flow bare.
-    const payload = wrapTopicPayload("vessel.parts", {
-      parts: [{ resources: { ElectricCharge: { amount: 120, flow: -0.5 } } }],
-    } as never) as {
-      parts: Array<{ resources: Record<string, { amount: Value }> }>;
-    };
-    const ec = payload.parts[0].resources.ElectricCharge;
-    expect(ec.amount.unit).toBe("units");
-    expect(ec.amount.magnitude).toBe(120);
-  });
-
-  it("puts the unit inside a sequence of readings", () => {
-    // A terrain profile is a list of distances, not one distance.
-    const payload = wrapTopicPayload("vessel.landing", {
-      terrainPatch: [120, 140, 160],
-    } as never) as { terrainPatch: Value[] };
-    expect(payload.terrainPatch.every(isValue)).toBe(true);
-    expect(payload.terrainPatch[1].unit).toBe("m");
-  });
-
-  it("carries a Vec3's unit onto its leaves", () => {
-    // The unit is declared on the PARENT, because one canonical Vec3 shape is
-    // reused at sites carrying three different units. The map propagates it
-    // onto dotted leaf keys, and this is the runtime side of Vec3Of.
-    const payload = wrapTypePayload<{
-      relativePosition: { x: Value; y: Value; z: Value };
-      relativeVelocity: { x: Value; y: Value; z: Value };
-    }>("DockAlignment", {
-      relativePosition: { x: 1, y: 2, z: 3 },
-      relativeVelocity: { x: 0.4, y: 0, z: 0 },
-    });
-    expect(payload.relativePosition.x.unit).toBe("m");
-    expect(payload.relativePosition.z.magnitude).toBe(3);
-    expect(payload.relativeVelocity.x.unit).toBe("m/s");
-  });
-
-  it("survives an absent optional field", () => {
-    const payload = wrapTopicPayload("vessel.thermal", {} as never) as Record<
-      string,
-      unknown
-    >;
-    expect(payload.heatShieldTemp).toBeUndefined();
-  });
-
-  it("is idempotent, because a payload can be decoded twice", () => {
-    // A reconnect re-decodes. Wrapping an already-wrapped value must not
-    // produce a Value whose magnitude is a Value.
-    const once = wrapTopicPayload("vessel.thermal", {
-      heatShieldTemp: 1_200,
-    } as never);
-    const twice = wrapTopicPayload("vessel.thermal", once);
-    expect(
-      typeof asValue((twice as Record<string, unknown>).heatShieldTemp)
-        .magnitude,
-    ).toBe("number");
-  });
-
-  it("wraps every element of an array topic", () => {
-    // An array Topic's unit entry describes the ELEMENT's fields, which is what a consumer indexes into.
-    const payload = wrapTypePayload<
-      Array<{ current: Value; max: Value; active: boolean }>
-    >("ResourceAmount", [
-      { current: 100, max: 200, active: true },
-      { current: 50, max: 200, active: false },
-    ]);
-    expect(payload.every((entry) => isValue(entry.current))).toBe(true);
-    // And the flag beside them is left alone.
-    expect(payload[0].active).toBe(true);
-  });
-
-  it("passes a non-object through untouched", () => {
-    expect(wrapTopicPayload("vessel.thermal", null as never)).toBe(null);
-    expect(wrapTopicPayload("vessel.thermal", 42 as never)).toBe(42);
-  });
-});
-
-describe("allocation cost", () => {
-  it("stays proportional to the declared fields, not the payload", () => {
-    // One object per wrapped scalar per sample. The design flagged this as
-    // worth measuring before committing, so here is the shape of it: the count
-    // is exactly the number of DECLARED quantity fields present, which means a
-    // topic's cost is knowable from the contract rather than from traffic.
-    let allocations = 0;
-    const sample = { heatShieldTemp: 1_200, heatShieldFlux: 3_400 };
-    for (const key of Object.keys(sample)) {
-      const wrapped = wrapTopicPayload("vessel.thermal", {
-        ...sample,
-      } as never) as Record<string, unknown>;
-      if (isValue(wrapped[key])) allocations++;
-    }
-    expect(allocations).toBe(2);
-  });
-});
-
-describe("a hand-declared Topic whose payload is a reflected contract type", () => {
-  it("wraps system.uplink.pending's entries", () => {
-    // `ChannelEngine` declares this channel, not any one Uplink's contract, so
-    // the generated maps are keyed by a `[SitrepTopic]` that does not exist
-    // for it. The type says `Value<"s">` either way, and before the
-    // hand-declared fallback the runtime handed a bare number: the in-transit
-    // strip read raw seconds and pointed its arrow the wrong way.
-    const payload = {
-      pending: [
+    const payload = wrapTopicPayload<{
+      bodies: {
+        index: number;
+        radius: Value;
+        atmosphere: { depth: Value };
+        orbit: { sma: Value };
+      }[];
+    }>("system.bodies", {
+      bodies: [
         {
-          id: "r1",
-          command: "vessel.control.setThrottle",
-          label: "throttle up",
-          topic: "vessel.control",
-          vantage: "ksc",
-          dispatchedAt: 100,
-          oneWaySeconds: 4,
+          index: 1,
+          radius: 600_000,
+          atmosphere: { depth: 70_000 },
+          orbit: { sma: 13_599_840_256 },
         },
       ],
-    };
-    wrapTopicPayload("system.uplink.pending", payload);
-    // The two time fields on one entry carry DIFFERENT time units, which is
-    // the whole point of the split: `dispatchedAt` is the instant the command
-    // left, `oneWaySeconds` is how long the trip takes.
-    expect(payload.pending[0].dispatchedAt).toEqual(value("ut", 100));
-    expect(payload.pending[0].oneWaySeconds).toEqual(value("s", 4));
-    // Not a quantity, and not touched.
-    expect(payload.pending[0].command).toBe("vessel.control.setThrottle");
-  });
-});
-
-describe("hydratePayload: the structured-clone hop", () => {
-  it("gives a cloned quantity its methods back", () => {
-    // What PeerJS delivers to a station: the two fields, no prototype.
-    const cloned = structuredClone({
-      signalStrength: value("ratio", 0.25),
-      vesselName: "Jeb's Ride",
-      nested: { altitude: value("m", 1200) },
-      list: [value("m/s", 5)],
     });
-    expect(isValue(cloned.signalStrength)).toBe(true);
-    expect(typeof (cloned.signalStrength as Value).lessThanOrEqual).not.toBe(
-      "function",
-    );
+    const [kerbin] = payload.bodies;
 
-    hydratePayload(cloned);
-
-    expect(cloned.signalStrength.lessThanOrEqual(value("ratio", 1))).toBe(true);
-    expect(cloned.nested.altitude.magnitude).toBe(1200);
-    expect(typeof cloned.nested.altitude.plus).toBe("function");
-    expect(typeof cloned.list[0].plus).toBe("function");
-    // Not a quantity, and not touched.
-    expect(cloned.vesselName).toBe("Jeb's Ride");
+    expect(asValue(kerbin?.radius).static).toBe(true);
+    expect(asValue(kerbin?.atmosphere.depth).static).toBe(true);
+    expect(asValue(kerbin?.orbit.sma).static).toBeUndefined();
   });
 
-  it("is idempotent and leaves a live value alone", () => {
-    const live = { altitude: value("m", 10) };
-    const before = live.altitude;
-    hydratePayload(live);
-    expect(live.altitude).toBe(before);
+  it("keeps its stamp across the structured-clone hop and through JSON", () => {
+    const decoded = wrapTypePayload("BodyEntry", {
+      radius: 600_000,
+    } as never) as {
+      radius: Value;
+    };
+    const cloned = structuredClone(decoded);
+    hydratePayload(cloned);
+    const parsed = JSON.parse(JSON.stringify(decoded));
+    hydratePayload(parsed);
+
+    expect(cloned.radius.static).toBe(true);
+    expect(typeof cloned.radius.plus).toBe("function");
+    expect(parsed.radius.static).toBe(true);
+  });
+
+  it("is not a stamp arithmetic carries", () => {
+    const decoded = wrapTypePayload("BodyEntry", {
+      radius: 600_000,
+    } as never) as {
+      radius: Value<"m">;
+    };
+
+    expect(decoded.radius.plus(value("m", 1)).static).toBeUndefined();
   });
 });

@@ -43,9 +43,11 @@ import {
   GENERATED_ENUM_MEMBERS,
   GENERATED_TOPIC_ENUMS,
   GENERATED_TOPIC_SHAPES,
+  GENERATED_TOPIC_STATICS,
   GENERATED_TOPIC_UNITS,
   GENERATED_TYPE_ENUMS,
   GENERATED_TYPE_SHAPES,
+  GENERATED_TYPE_STATICS,
   GENERATED_TYPE_UNITS,
 } from "./__generated__/units";
 import { noteRuntimeTopicMetadata } from "./runtime-topic-registry";
@@ -61,6 +63,7 @@ export type {
 
 const EMPTY: UnitsByField = Object.freeze({});
 const NO_SHAPES: ShapesByField = Object.freeze({});
+const NO_STATICS: readonly string[] = Object.freeze([]);
 const NO_ENUMS: EnumsByField = Object.freeze({});
 
 /**
@@ -120,6 +123,7 @@ const HAND_DECLARED_PAYLOAD_TYPES: Readonly<Record<string, string>> =
  */
 const registeredTopicUnits = new Map<string, UnitsByField>();
 const registeredTopicShapes = new Map<string, ShapesByField>();
+const registeredTopicStatics = new Map<string, readonly string[]>();
 
 /**
  * Self-register a relocated Uplink Topic's unit (and optional nested-shape)
@@ -133,9 +137,11 @@ export function registerTopicUnits(
   topic: string,
   units: UnitsByField,
   shapes: ShapesByField = NO_SHAPES,
+  statics: readonly string[] = NO_STATICS,
 ): void {
   registeredTopicUnits.set(topic, units);
   registeredTopicShapes.set(topic, shapes);
+  registeredTopicStatics.set(topic, statics);
   // Changes what the Topic ENUMERATES without vouching that anything sends it:
   // a client-derived channel declares its fields here too, and nothing puts one
   // on the wire. Which Topics are real is `registerBarePrimitiveTopic`'s
@@ -172,6 +178,7 @@ export function registerTopicUnits(
  */
 const registeredTypeUnits = new Map<string, UnitsByField>();
 const registeredTypeShapes = new Map<string, ShapesByField>();
+const registeredTypeStatics = new Map<string, readonly string[]>();
 
 /**
  * Self-register a relocated Uplink payload TYPE's unit (and optional
@@ -186,9 +193,11 @@ export function registerTypeUnits(
   typeName: string,
   units: UnitsByField,
   shapes: ShapesByField = NO_SHAPES,
+  statics: readonly string[] = NO_STATICS,
 ): void {
   registeredTypeUnits.set(typeName, units);
   registeredTypeShapes.set(typeName, shapes);
+  registeredTypeStatics.set(typeName, statics);
   // Names no Topic, but changes what one enumerates: a nested shape's fields are unreachable until the type it resolves through is registered.
   noteRuntimeTopicMetadata();
 }
@@ -362,4 +371,31 @@ export function enumMembersOf(
   enumName: string,
 ): Readonly<Record<number, string>> | undefined {
   return GENERATED_ENUM_MEMBERS[enumName];
+}
+
+/**
+ * The fields of `topic` the contract declares static: facts about their subject
+ * that do not change with time, so a value decoded from one is stamped
+ * `Value.static`. Empty for a Topic that declares none.
+ *
+ * @category Units and values
+ */
+export function staticsForTopic(topic: TopicId): readonly string[] {
+  const generated = GENERATED_TOPIC_STATICS[topic];
+  if (generated !== undefined) return generated;
+  const registered = registeredTopicStatics.get(topic);
+  if (registered !== undefined) return registered;
+  const handDeclared = HAND_DECLARED_PAYLOAD_TYPES[topic];
+  return handDeclared === undefined ? NO_STATICS : staticsForType(handDeclared);
+}
+
+/**
+ * The same, keyed by generated interface name instead of Topic id.
+ *
+ * @category Units and values
+ */
+export function staticsForType(typeName: string): readonly string[] {
+  const generated = GENERATED_TYPE_STATICS[typeName];
+  if (generated !== undefined) return generated;
+  return registeredTypeStatics.get(typeName) ?? NO_STATICS;
 }

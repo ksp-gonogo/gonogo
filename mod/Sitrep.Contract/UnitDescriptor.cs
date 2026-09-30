@@ -103,6 +103,17 @@ namespace Sitrep.Contract
 
             /// <summary>Every enum an <c>enum</c> field names, as its wire value to member name.</summary>
             public SortedDictionary<string, SortedDictionary<long, string>> EnumMembers { get; set; }
+
+            /// <summary>
+            /// Type name to the camelCase fields it declares
+            /// <see cref="SitrepStaticAttribute"/>, for every type with at least
+            /// one. A <c>Vec3</c> field contributes its three dotted leaf keys,
+            /// as it does in <see cref="ByType"/>.
+            /// </summary>
+            public SortedDictionary<string, SortedSet<string>> StaticByType { get; set; }
+
+            /// <summary>The same, keyed by Topic id.</summary>
+            public SortedDictionary<string, SortedSet<string>> StaticByTopic { get; set; }
         }
 
         /// <summary>
@@ -221,6 +232,8 @@ namespace Sitrep.Contract
             var enumsByType = new SortedDictionary<string, SortedDictionary<string, string>>(StringComparer.Ordinal);
             var enumsByTopic = new SortedDictionary<string, SortedDictionary<string, string>>(StringComparer.Ordinal);
             var enumMembers = new SortedDictionary<string, SortedDictionary<long, string>>(StringComparer.Ordinal);
+            var staticByType = new SortedDictionary<string, SortedSet<string>>(StringComparer.Ordinal);
+            var staticByTopic = new SortedDictionary<string, SortedSet<string>>(StringComparer.Ordinal);
 
             var target = assembly ?? typeof(UnitDescriptor).Assembly;
             var assemblyTypes = LoadableTypes(target);
@@ -242,8 +255,25 @@ namespace Sitrep.Contract
                 var fields = new SortedDictionary<string, string>(StringComparer.Ordinal);
                 var nested = new SortedDictionary<string, string>(StringComparer.Ordinal);
                 var enums = new SortedDictionary<string, string>(StringComparer.Ordinal);
+                var statics = new SortedSet<string>(StringComparer.Ordinal);
                 foreach (var prop in type.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
                 {
+                    if (prop.GetCustomAttribute<SitrepStaticAttribute>() != null)
+                    {
+                        var staticField = CamelCase(prop.Name);
+                        if (prop.PropertyType == typeof(Vec3))
+                        {
+                            foreach (var leaf in Vec3LeafNames())
+                            {
+                                statics.Add(staticField + "." + leaf);
+                            }
+                        }
+                        else
+                        {
+                            statics.Add(staticField);
+                        }
+                    }
+
                     /*
                      * A property whose type is another contract shape (or a list or map of one). The
                      * unit maps are flat per type, so without this a nested shape's units are
@@ -309,6 +339,15 @@ namespace Sitrep.Contract
 
                 var topic = type.GetCustomAttribute<SitrepTopicAttribute>();
 
+                if (statics.Count > 0)
+                {
+                    staticByType.Add(WireName(type), statics);
+                    if (topic != null)
+                    {
+                        staticByTopic.Add(topic.TopicId, statics);
+                    }
+                }
+
                 if (nested.Count > 0)
                 {
                     shapesByType.Add(WireName(type), nested);
@@ -350,7 +389,28 @@ namespace Sitrep.Contract
                 EnumsByType = enumsByType,
                 EnumsByTopic = enumsByTopic,
                 EnumMembers = enumMembers,
+                StaticByType = staticByType,
+                StaticByTopic = staticByTopic,
             };
+        }
+
+        /// <summary>
+        /// Throws when <paramref name="prop"/> is declared both
+        /// <see cref="SitrepStaticAttribute"/> and
+        /// <see cref="SitrepReckonableAttribute"/>: a static value is carried
+        /// forward by constancy, so no model carries it, and the two marks
+        /// contradict each other.
+        /// </summary>
+        /// <param name="prop">A contract property.</param>
+        public static void RequireStaticIsNotReckonable(PropertyInfo prop)
+        {
+            if (prop.IsDefined(typeof(SitrepStaticAttribute), false)
+                && prop.IsDefined(typeof(SitrepReckonableAttribute), false))
+            {
+                throw new InvalidOperationException(
+                    "[SitrepStatic] and [SitrepReckonable] on " + prop.DeclaringType?.Name + "." + prop.Name +
+                    ": a static value is carried forward by constancy, so no model carries it.");
+            }
         }
 
         /// <summary>

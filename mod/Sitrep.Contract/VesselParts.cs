@@ -111,11 +111,13 @@ public class VesselPart
     public int InverseStage { get; set; }
 
     /// <summary><c>Part.maxTemp</c>: internal max temperature (K).</summary>
+    [SitrepStatic]
     [SitrepUnit(Units.Kelvin)]
     public double MaxTemp { get; set; }
 
     /// <summary><c>Part.skinMaxTemp</c>: maximum skin temperature (K);
     /// <c>null</c> where KSP reports <c>-1</c>, no skin-thermal model.</summary>
+    [SitrepStatic]
     [SitrepUnit(Units.Kelvin)]
     public double? SkinMaxTemp { get; set; }
 

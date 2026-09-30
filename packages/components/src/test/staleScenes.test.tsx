@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import { listWidgets } from "../../scripts/widgets";
 // Importing the package index self-registers every built-in component.
 import "../index";
+import { type Figure, figuresIn, unmarkedStaleFigures } from "./staleFigures";
 import {
   normaliseReactIds,
   renderWidgetMode,
@@ -38,6 +39,27 @@ const STALE_SUFFIX = "-stopped-arriving";
 
 /** Stale scenes rendering byte-identical to their live twin. Shrink-only. */
 const UNCHANGED_DEBT = new Set<string>([]);
+
+/**
+ * Per stale scene, how many figures it draws identical to its live twin while
+ * marked as neither held nor static: a number that stopped arriving shown as if
+ * it were current. Exact, so a fix has to lower the entry it cleared. Never add
+ * one: a figure that cannot go stale is declared `[SitrepStatic]` on the
+ * contract, and every other figure is marked.
+ */
+const UNMARKED_FIGURE_DEBT: Readonly<Record<string, number>> = {
+  "astronaut-complex / active-crew-multi-situation-stopped-arriving": 2,
+  "fuel-status / asparagus-multi-stage-stopped-arriving": 5,
+  "landing-status/scenarios / suicide-burn-approaching-stopped-arriving": 9,
+  "libration-points / mun-l2-drifting-stopped-arriving": 2,
+  "libration-points / mun-l2-path-withheld-stopped-arriving": 2,
+  "maneuver-planner / kerbin-burn-in-progress-stopped-arriving": 6,
+  "science-data / kerbin-flight-partial-science-stopped-arriving": 5,
+  "strategies / one-active-room-for-more-stopped-arriving": 3,
+  "targeting / approach-closing-stopped-arriving": 1,
+  "transfer-window / earth-mars-go-stopped-arriving": 8,
+  "transfer-window / earth-mars-reach-band-stopped-arriving": 8,
+};
 
 interface Scene {
   name: string;
@@ -104,6 +126,7 @@ interface Rendered {
   announced: number;
   silent: number;
   noAsOf: number;
+  figures: Figure[];
 }
 
 /**
@@ -148,6 +171,7 @@ async function rendered(
       announced,
       silent,
       noAsOf,
+      figures: figuresIn(container),
     };
   } finally {
     teardown();
@@ -228,6 +252,21 @@ describe("every stale scene says the link has gone", () => {
     expect(unchanged).toEqual([...UNCHANGED_DEBT].sort());
   });
 
+  it("draws no held figure as current, beyond the debt it already carries", () => {
+    const counts: Record<string, number> = {};
+    const drawn: string[] = [];
+    for (const { live, stale, id } of results.values()) {
+      if (live === undefined || stale === undefined) continue;
+      const unmarked = unmarkedStaleFigures(live.figures, stale.figures);
+      if (unmarked.length === 0) continue;
+      counts[id] = unmarked.length;
+      drawn.push(`${id}: ${unmarked.join(" | ")}`);
+    }
+    expect(counts, `Drawn as current:\n${drawn.join("\n")}`).toEqual(
+      UNMARKED_FIGURE_DEBT,
+    );
+  });
+
   it("reports", () => {
     const rows = [...results].map(([key, { live, stale, note }]) => {
       if (!stale) return `${key}  NOT RENDERED`;
@@ -236,7 +275,8 @@ describe("every stale scene says the link has gone", () => {
         verdict === "marks nothing, says" && live
           ? `  "${added(live.text, stale.text)}"`
           : "";
-      return `${key.padEnd(80)} ${verdict.padEnd(20)} announced=${stale.announced} no-as-of=${stale.noAsOf}${note}${says}`;
+      const facts = stale.figures.filter((f) => f.isStatic).length;
+      return `${key.padEnd(80)} ${verdict.padEnd(20)} announced=${stale.announced} no-as-of=${stale.noAsOf} static=${facts}${note}${says}`;
     });
     console.info(`\n${rows.join("\n")}\n`);
   });

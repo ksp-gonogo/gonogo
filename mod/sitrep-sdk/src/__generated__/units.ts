@@ -2810,6 +2810,23 @@ export const GENERATED_TOPIC_ENUMS: Readonly<Record<string, EnumsByField>> = {
   },
 };
 
+/**
+ * The fields each shape declares [SitrepStatic]: a fact about its subject
+ * that does not change with time, so it cannot become stale. Keyed by the
+ * generated interface name in ./contract.ts. A field absent here is live.
+ *
+ * @category Units and values
+ */
+export const GENERATED_TYPE_STATICS: Readonly<Record<string, readonly string[]>> = {
+  "AtmosphereEntry": ["depth", "hasOxygen", "pressureAltitudes", "pressures", "seaLevelPressure"],
+  "BodyEntry": ["gravParameter", "hasOcean", "initialRotation", "mass", "radius", "rotationPeriod", "surfaceGravity", "tidallyLocked"],
+  "VesselPart": ["maxTemp", "skinMaxTemp"],
+};
+
+/** The same, keyed by Topic id. */
+export const GENERATED_TOPIC_STATICS: Readonly<Record<string, readonly string[]>> = {
+};
+
 /** Each enum an `enum` field names, as its wire value to member name. */
 export const GENERATED_ENUM_MEMBERS: Readonly<Record<string, Readonly<Record<number, string>>>> = {
   "CommsControlSource": {

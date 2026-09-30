@@ -59,6 +59,13 @@ function makeBody(
     hasAtmosphere: null,
     maxAtmosphere: null,
     hasOxygen: null,
+    figures: {
+      radius: null,
+      mass: null,
+      surfaceGravity: null,
+      dayLength: null,
+      atmosphereDepth: null,
+    },
     ...overrides,
   };
 }

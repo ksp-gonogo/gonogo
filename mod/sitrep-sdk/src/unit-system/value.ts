@@ -313,13 +313,23 @@ export interface Value<Unit extends string = string> {
   readonly unit: Unit;
 
   /**
+   * Present, and `true`, on a value the contract declares static: a fact about
+   * its subject that does not change with time, such as a body's radius. A copy
+   * of one is never old, so a figure drawn from it is never marked as held.
+   * Absent on everything else, including anything computed FROM a static value:
+   * arithmetic mints a new value, and whether a result is still a fact is not
+   * something the algebra can know.
+   */
+  readonly static?: true;
+
+  /**
    * Present so a value still works where a number is genuinely wanted:
    * `Math.max`, a `<progress value>`, a chart's y-axis. It does NOT rescue the
    * operators above, which TypeScript rejects on object types no matter what
    * `valueOf` says.
    */
   valueOf(): number;
-  toJSON(): { magnitude: number; unit: Unit };
+  toJSON(): { magnitude: number; unit: Unit; static?: true };
   toString(): string;
 
   /**
@@ -687,7 +697,9 @@ const prototype = {
     return this.magnitude;
   },
   toJSON(this: Value) {
-    return { magnitude: this.magnitude, unit: this.unit };
+    return this.static
+      ? { magnitude: this.magnitude, unit: this.unit, static: true as const }
+      : { magnitude: this.magnitude, unit: this.unit };
   },
   toString(this: Value): string {
     // Debug output, never a UI surface: rendering is `<Unit>`'s job and it is the only thing that knows the rung, the word and the spacing.
@@ -853,6 +865,42 @@ export function value<Unit extends string>(
 }
 
 /**
+ * A {@link value} the contract declares static. See {@link Value.static}.
+ *
+ * @category Units and values
+ */
+export function staticValue<Unit extends string>(
+  unit: Unit,
+  magnitude: number,
+): Value<Unit> {
+  const instance: { magnitude: number; unit: Unit; static: true } =
+    Object.assign(Object.create(prototype), { magnitude, unit, static: true });
+  return instance as Value<Unit>;
+}
+
+/**
+ * `figure` stamped static, for a value computed from a static one by an
+ * operation that keeps it a fact (dropping a sign, converting its unit).
+ * Arithmetic never does this on its own; the caller is the one who knows.
+ *
+ * @category Units and values
+ */
+export function asStatic<Unit extends string>(
+  figure: Value<Unit>,
+): Value<Unit> {
+  return staticValue(figure.unit, figure.magnitude);
+}
+
+/**
+ * Whether `candidate` is a value the contract declares static.
+ *
+ * @category Units and values
+ */
+export function isStaticValue(candidate: unknown): boolean {
+  return isValue(candidate) && candidate.static === true;
+}
+
+/**
  * True for something this module produced, or something `hydrate` restored.
  *
  * @category Units and values
@@ -888,7 +936,11 @@ export function hydrate<Candidate>(candidate: Candidate): Candidate {
   if (Object.getPrototypeOf(candidate) === prototype) {
     return candidate;
   }
-  return value(candidate.unit, candidate.magnitude) as Candidate;
+  return (
+    candidate.static === true
+      ? staticValue(candidate.unit, candidate.magnitude)
+      : value(candidate.unit, candidate.magnitude)
+  ) as Candidate;
 }
 
 /**

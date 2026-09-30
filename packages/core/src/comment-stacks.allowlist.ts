@@ -105,7 +105,6 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "mod/sitrep-sdk/src/unit-system/value.ts": 1,
   "mod/sitrep-sdk/src/units.test-d.ts": 1,
   "mod/sitrep-sdk/src/units.test.ts": 1,
-  "mod/sitrep-sdk/src/wrap-units.test.ts": 1,
   "mod/sitrep-sdk/src/wrap-units.ts": 1,
   "mod/sitrep-server/src/archive.test.ts": 1,
   "mod/sitrep-server/src/courier-transport.ts": 1,
@@ -375,5 +374,5 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
  * it exists to produce; the census is printed beside the verdict instead.
  */
 export const SCAN_FLOORS = {
-  files: 1548,
+  files: 1551,
 } as const;

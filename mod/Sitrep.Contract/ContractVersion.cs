@@ -2123,8 +2123,15 @@ namespace Sitrep.Contract
         /// and <see cref="ControlFrameOption"/>, the frames <c>system.frame.set</c> can put the
         /// view in, so a client offers only those. Additive, so an Uplink built against 26.0
         /// is unaffected.</para>
+        ///
+        /// <para><b>Major-27 line, Bumped 0 -&gt; 1:</b>
+        /// <see cref="SitrepStaticAttribute"/>, which declares a value a fact that
+        /// cannot become stale, the <c>GENERATED_TYPE_STATICS</c> and
+        /// <c>GENERATED_TOPIC_STATICS</c> maps it generates, and
+        /// <see cref="UnitDescriptor.RequireStaticIsNotReckonable"/>. Additive,
+        /// so an Uplink built against 27.0 is unaffected.</para>
         /// </internal>
         /// </summary>
-        public const int Minor = 0;
+        public const int Minor = 1;
     }
 }
