@@ -5,6 +5,7 @@ import { listWidgets } from "../../scripts/widgets";
 // Importing the package index self-registers every built-in component.
 import "../index";
 import { axe } from "./axe";
+import { renderedTopicIds } from "./renderedTopicIds";
 import { renderWidgetMode } from "./widgetDomSnapshot";
 
 /**
@@ -50,7 +51,7 @@ describe("widget a11y smoke", () => {
         for (const mode of modes) {
           // `forFixtures` scopes a mode to specific fixture slugs.
           if (mode.forFixtures && !mode.forFixtures.includes(slug)) continue;
-          it(`${slug} @ ${mode.name} has no axe violations`, async () => {
+          it(`${slug} @ ${mode.name} has no axe violations and shows no Topic id`, async () => {
             const { container, teardown } = await renderWidgetMode({
               Widget,
               fixture,
@@ -63,6 +64,7 @@ describe("widget a11y smoke", () => {
                 results = await axe(container);
               });
               expect(results).toHaveNoViolations();
+              expect(renderedTopicIds(container)).toEqual([]);
             } finally {
               teardown();
             }
