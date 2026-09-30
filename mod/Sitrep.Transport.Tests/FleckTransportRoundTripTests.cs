@@ -44,7 +44,6 @@ namespace Sitrep.Transport.Tests
                 Assert.NotNull(serverConnection);
                 Assert.False(string.IsNullOrEmpty(serverConnection.Id));
 
-                // --- client -> server ---
                 var messageReceivedTcs = new TaskCompletionSource<byte[]>(
                     TaskCreationOptions.RunContinuationsAsynchronously);
                 serverConnection.MessageReceived += segment =>
@@ -57,7 +56,6 @@ namespace Sitrep.Transport.Tests
                 var received = await messageReceivedTcs.Task.WaitAsync(Timeout);
                 Assert.Equal(clientToServer, received);
 
-                // --- server -> client ---
                 var serverToClient = Encoding.UTF8.GetBytes("hello-from-server");
                 var sent = serverConnection.TrySend(new ArraySegment<byte>(serverToClient), SendClass.Response);
                 Assert.True(sent);
@@ -70,7 +68,6 @@ namespace Sitrep.Transport.Tests
                 Assert.Equal(WebSocketMessageType.Binary, receiveResult.MessageType);
                 Assert.Equal(serverToClient, receiveBuffer[..receiveResult.Count]);
 
-                // --- clean close, client-initiated ---
                 var closedTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
                 serverConnection.Closed += () => closedTcs.TrySetResult();
 

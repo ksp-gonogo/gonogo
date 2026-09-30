@@ -120,14 +120,14 @@ namespace Sitrep.Host.IntegrationTests
             // -- proves delayed delivery end to end. ----
             var pass5 = await RunPassAsync(session, networkDelaySeconds: 5.0, topics);
 
-            // ================= 1. every (pre-existing) channel emits =================
+            // 1. every (pre-existing) channel emits
             var missingFromPass0 = topicsExpectedToEmit.Where(t => !pass0.SeenTopics.Contains(t)).ToList();
             var missingFromPass5 = topicsExpectedToEmit.Where(t => !pass5.SeenTopics.Contains(t)).ToList();
             Assert.True(missingFromPass0.Count == 0, $"channels that never emitted (delay=0 pass): {string.Join(", ", missingFromPass0)}");
             Assert.True(missingFromPass5.Count == 0, $"channels that never emitted (delay=5 pass): {string.Join(", ", missingFromPass5)}");
             _output.WriteLine($"All {topicsExpectedToEmit.Length} pre-existing declared channels emitted at least once in both passes: {string.Join(", ", topicsExpectedToEmit)}.");
 
-            // ================= 2. delayed delivery end-to-end =================
+            // 2. delayed delivery end-to-end
             Assert.True(pass5.AllSamples.Count > 0, "expected at least one delivered sample in the delay=5 pass");
             foreach (var sample in pass5.AllSamples)
             {
@@ -142,7 +142,7 @@ namespace Sitrep.Host.IntegrationTests
                 $"Delayed delivery confirmed end-to-end: {pass5.AllSamples.Count} samples all carry deliveredAt-validAt == 5.0s " +
                 $"(contrast: {pass0.AllSamples.Count} delay=0 samples all passthrough, deliveredAt == validAt).");
 
-            // ================= 3. event/rewind stream =================
+            // 3. event/rewind stream
             Assert.Equal(3, pass0.RewindCount);
             Assert.Equal(3, pass5.RewindCount);
             Assert.True(pass0.TimelineResetEvents > 0, "expected at least one timeline-reset EventMsg (delay=0 pass)");
@@ -156,7 +156,7 @@ namespace Sitrep.Host.IntegrationTests
                 $"observed (delay=0 pass, {pass5.TimelineResetEvents} in delay=5 pass); no post-rewind ghost validAt observed " +
                 $"in either pass; {pass0.LifecycleEventCount} lifecycle events fired (both passes).");
 
-            // ================= 3b. Meta.TimelineEpoch (M2) =================
+            // 3b. Meta.TimelineEpoch (M2)
             // 3 rewinds -> 4 distinct timeline generations (0 pre-first-rewind,
             // then 1/2/3 after each of the 3 ResetTimeline calls) must show up
             // across the delivered samples' envelope Meta -- proving the
@@ -180,7 +180,7 @@ namespace Sitrep.Host.IntegrationTests
                 $"timeline-reset Meta.timelineEpoch: {{{string.Join(",", pass0.TimelineResetEventEpochsSeen.OrderBy(x => x))}}} " +
                 "observed across both passes' reset events -- matches the 3 rewinds' epochs 1/2/3, not a flat 0.");
 
-            // ================= 4. no-wart scan across the whole session =================
+            // 4. no-wart scan across the whole session
             Assert.Empty(pass0.WartViolations);
             Assert.Empty(pass5.WartViolations);
             Assert.True(pass0.VesselPayloadsWithSource > 0, "expected at least one vessel.* payload with meta.source stamped");
@@ -191,7 +191,7 @@ namespace Sitrep.Host.IntegrationTests
                 $"{pass0.RawFrameCount + pass5.RawFrameCount} total wire frames (both passes); meta.source present on all " +
                 $"{pass0.VesselPayloadsWithSource + pass5.VesselPayloadsWithSource} vessel.* payloads observed.");
 
-            // ================= 5. M2 tombstones (finding-B fix) =================
+            // 5. M2 tombstones (finding-B fix)
             // The real recording has genuine present->null absence
             // transitions (e.g. target-clear moments) on several vessel.*
             // channels -- proving tombstones actually flow end to end

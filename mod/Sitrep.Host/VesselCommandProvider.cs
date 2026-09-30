@@ -25,7 +25,7 @@ namespace Sitrep.Host
     /// </summary>
     public static class VesselCommandProvider
     {
-        // ---- vessel.control.* -- delayed:true (actuation rides light-time) ----
+        // vessel.control.* -- delayed:true (actuation rides light-time)
         public const string SetSasCommand = "vessel.control.setSas";
         public const string SetSasModeCommand = "vessel.control.setSasMode";
         public const string SetRcsCommand = "vessel.control.setRcs";
@@ -48,7 +48,7 @@ namespace Sitrep.Host
         public const string StageCommand = "vessel.control.stage";
         public const string SetActionGroupCommand = "vessel.control.setActionGroup";
 
-        // ---- fly-by-wire (persistent override, not one-shot actuation) --------
+        // fly-by-wire (persistent override, not one-shot actuation)
         // Unlike every other vessel.control.* command, a raw control axis is
         // re-zeroed by KSP each physics frame, so the actuator holds an override
         // struct and re-applies it from Vessel.OnFlyByWire while armed. setFlyByWire
@@ -68,7 +68,7 @@ namespace Sitrep.Host
         public const string TargetSetCommand = "vessel.target.set";
         public const string TargetClearCommand = "vessel.target.clear";
 
-        // ---- time.* -- DelayRole.TrueNow (sim-meta, never a light-time fiction) ----
+        // time.* -- DelayRole.TrueNow (sim-meta, never a light-time fiction)
         public const string SetWarpIndexCommand = "time.setWarpIndex";
         public const string SetPausedCommand = "time.setPaused";
 

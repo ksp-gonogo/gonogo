@@ -33,7 +33,7 @@ namespace Sitrep.Host.Tests
         private static TArgs Bind<TArgs>(object? wire) =>
             (TArgs)ChannelEngine.BindCommandArgs(wire, typeof(TArgs))!;
 
-        // ---- plain scalar-in-object-bag args (case 4) ----
+        // plain scalar-in-object-bag args (case 4)
 
         [Fact]
         public void BindsBoolPropertyFromWireDictionary()
@@ -119,7 +119,7 @@ namespace Sitrep.Host.Tests
             Assert.Empty(args.Crew);
         }
 
-        // ---- case 1: numeric ordinal -> enum (client sends the number) ----
+        // case 1: numeric ordinal -> enum (client sends the number)
 
         [Fact]
         public void BindsEnumFromNumericOrdinal_NonZeroSoASilentDefaultWouldFail()
@@ -137,7 +137,7 @@ namespace Sitrep.Host.Tests
             Assert.Equal(SasMode.Retrograde, args.Mode);
         }
 
-        // ---- case 2: nullable discriminated-union fields ----
+        // case 2: nullable discriminated-union fields
 
         [Fact]
         public void BindsBodyKindUnion_LeavesAbsentVesselIdNull()
@@ -166,7 +166,7 @@ namespace Sitrep.Host.Tests
             Assert.Null(args.BodyIndex);
         }
 
-        // ---- case 3: null / absent arg bag ----
+        // case 3: null / absent arg bag
 
         [Fact]
         public void NullWireArgsBindsToNullForObjectHandler()
@@ -183,7 +183,7 @@ namespace Sitrep.Host.Tests
             Assert.False(args.Enabled);
         }
 
-        // ---- passthrough & rejection ----
+        // passthrough & rejection
 
         [Fact]
         public void AlreadyTypedArgsPassStraightThroughWithoutReflection()

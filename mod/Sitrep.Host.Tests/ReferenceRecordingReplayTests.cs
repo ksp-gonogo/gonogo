@@ -46,7 +46,6 @@ namespace Sitrep.Host.Tests
         {
             var path = RecordingPath();
 
-            // ----- Parse -----
             var bytes = File.ReadAllBytes(path);
             _output.WriteLine($"Reference recording found: {bytes.Length:N0} bytes.");
 
@@ -74,7 +73,7 @@ namespace Sitrep.Host.Tests
             }
             _output.WriteLine($"  {snapshotCount} snapshots, {eventCount} events.");
 
-            // ----- Replay the WHOLE session via Step() -----
+            // Replay the WHOLE session via Step()
             // Step() is the rewind-safe driver (see its doc comment): it
             // never compares one entry's T against another's, so a real
             // capture's backward UT jumps (F9 quickload) can't stall it,
@@ -105,7 +104,7 @@ namespace Sitrep.Host.Tests
             Assert.Equal(session.Entries.Count, stepCount);
             Assert.False(replay.Step(), "Step() must be idempotent (return false) once the recording is exhausted.");
 
-            // ----- The 3 backward UT-rewinds (quickloads) were traversed, not swallowed. -----
+            // The 3 backward UT-rewinds (quickloads) were traversed, not swallowed.
             var rewindCount = 0;
             for (var i = 1; i < visitedUts.Count; i++)
             {
@@ -117,12 +116,12 @@ namespace Sitrep.Host.Tests
             Assert.Equal(3, rewindCount);
             _output.WriteLine($"Traversed {rewindCount} backward UT-rewinds without stalling.");
 
-            // ----- Lifecycle events re-fire: scene-load / game-state-load present. -----
+            // Lifecycle events re-fire: scene-load / game-state-load present.
             Assert.Contains("scene-load", firedEventKinds);
             Assert.Contains("game-state-load", firedEventKinds);
             _output.WriteLine($"Fired {firedEventKinds.Count} lifecycle events (kinds: {string.Join(", ", new HashSet<string>(firedEventKinds))}).");
 
-            // ----- A mid-session Sample() exposes real ground-truth vessel + body data. -----
+            // A mid-session Sample() exposes real ground-truth vessel + body data.
             Assert.NotNull(midSessionSample);
             var values = midSessionSample!.Values;
 

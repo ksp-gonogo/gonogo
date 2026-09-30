@@ -644,10 +644,6 @@ describe("BufferedDataSource: derived keys", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// CommNet blackout gating
-// ---------------------------------------------------------------------------
-
 const GATED_KEYS: DataKey[] = [
   { key: "v.name" },
   { key: "v.missionTime" },

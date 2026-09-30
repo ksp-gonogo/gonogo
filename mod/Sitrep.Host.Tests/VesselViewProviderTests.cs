@@ -22,9 +22,7 @@ namespace Sitrep.Host.Tests
     {
         private const string VesselGuid = "11111111-2222-3333-4444-555555555555";
 
-        // ----------------------------------------------------------------
         // No active vessel -- every channel guards to null, not a sentinel.
-        // ----------------------------------------------------------------
 
         [Fact]
         public void AllFourChannelsReturnNullWhenSnapshotHasNoVesselKey()
@@ -62,9 +60,6 @@ namespace Sitrep.Host.Tests
             Assert.Null(VesselViewProvider.BuildFlight(snapshot));
         }
 
-        // ----------------------------------------------------------------
-        // vessel.identity
-        // ----------------------------------------------------------------
 
         [Fact]
         public void BuildIdentityMapsRawGroupToTypedRecordWithResolvedParentBodyIndexAndDerivedLaunchUt()
@@ -180,9 +175,6 @@ namespace Sitrep.Host.Tests
             Assert.Equal(Situation.Unknown, identity.Situation);
         }
 
-        // ----------------------------------------------------------------
-        // vessel.orbit
-        // ----------------------------------------------------------------
 
         private static Dictionary<string, object?> RawOrbit(double ecc, object? timeToAp, object? timeToPe) =>
             new Dictionary<string, object?>
@@ -657,9 +649,6 @@ namespace Sitrep.Host.Tests
             Assert.Null(VesselViewProvider.BuildOrbit(snapshot));
         }
 
-        // ----------------------------------------------------------------
-        // vessel.orbit.truth
-        // ----------------------------------------------------------------
 
         [Fact]
         public void BuildOrbitTruthMapsTruthVectorsAndFrameFlag()
@@ -696,9 +685,6 @@ namespace Sitrep.Host.Tests
             Assert.Null(VesselViewProvider.BuildOrbitTruth(snapshot));
         }
 
-        // ----------------------------------------------------------------
-        // vessel.flight
-        // ----------------------------------------------------------------
 
         [Fact]
         public void BuildFlightMapsAllMeasurementsAndRenamesDynamicPressureToKPaSuffixed()
@@ -789,11 +775,8 @@ namespace Sitrep.Host.Tests
             Assert.Null(VesselViewProvider.BuildFlight(snapshot));
         }
 
-        // ----------------------------------------------------------------
         // M1 Task 2 -- remaining vessel read channels + time.warp
-        // ----------------------------------------------------------------
 
-        // ---- vessel.attitude ----
 
         [Fact]
         public void BuildAttitudeMapsBothNamedFrames()
@@ -869,7 +852,6 @@ namespace Sitrep.Host.Tests
             Assert.Null(VesselViewProvider.BuildAttitude(snapshot));
         }
 
-        // ---- vessel.resources ----
 
         [Fact]
         public void BuildResourcesMapsThreeWayAbsenceNotCarriedVsEmptyVsWholeChannelAbsent()
@@ -914,7 +896,6 @@ namespace Sitrep.Host.Tests
             Assert.Null(VesselViewProvider.BuildResources(new KspSnapshot { Ut = 0.0, Values = new Dictionary<string, object?>() }));
         }
 
-        // ---- vessel.thermal ----
 
         [Fact]
         public void BuildThermalMapsRatiosAndHottestPart()
@@ -1037,7 +1018,6 @@ namespace Sitrep.Host.Tests
             Assert.Null(VesselViewProvider.BuildThermal(snapshot));
         }
 
-        // ---- vessel.control ----
 
         [Fact]
         public void BuildControlMapsEveryFieldAndActionGroupArray()
@@ -1234,7 +1214,6 @@ namespace Sitrep.Host.Tests
             Assert.Null(control.ActionGroups);
         }
 
-        // ---- vessel.physics.mode ----
 
         [Theory]
         [InlineData("OnRails", PhysicsMode.OnRails)]
@@ -1321,7 +1300,6 @@ namespace Sitrep.Host.Tests
             Assert.Equal("vessel:" + VesselGuid, metaDict["source"]);
         }
 
-        // ---- vessel.comms ----
 
         [Fact]
         public void BuildCommsMapsTypedControlStateEnum()
@@ -1348,7 +1326,6 @@ namespace Sitrep.Host.Tests
             Assert.Null(VesselViewProvider.BuildComms(snapshot));
         }
 
-        // ---- vessel.propulsion ----
 
         [Fact]
         public void BuildPropulsionMapsMassAndThrustTheTwrInputs()
@@ -1380,7 +1357,6 @@ namespace Sitrep.Host.Tests
             Assert.Null(VesselViewProvider.BuildPropulsion(snapshot));
         }
 
-        // ---- vessel.maneuver ----
 
         [Fact]
         public void BuildManeuverMapsNamedDvComponentsImpossibleToMisOrder()
@@ -1766,7 +1742,7 @@ namespace Sitrep.Host.Tests
             Assert.Empty(maneuver!.Nodes);
         }
 
-        // ---- M3 R3: maneuver-node stable id ----
+        // M3 R3: maneuver-node stable id
 
         [Fact]
         public void BuildManeuverMapsTheRawIdFieldOntoTheTypedNode()
@@ -1823,7 +1799,6 @@ namespace Sitrep.Host.Tests
             Assert.Equal("", node.Id);
         }
 
-        // ---- vessel.target ----
 
         [Fact]
         public void BuildTargetMapsOneVec3ShapeForVesselTarget()
@@ -1951,7 +1926,7 @@ namespace Sitrep.Host.Tests
             Assert.Null(VesselViewProvider.BuildTarget(snapshot));
         }
 
-        // ---- M3 R3: target's own stable id ----
+        // M3 R3: target's own stable id
 
         [Fact]
         public void BuildTargetMapsVesselIdOnlyForAVesselKindTarget()
@@ -2035,7 +2010,6 @@ namespace Sitrep.Host.Tests
             Assert.Null(target.BodyIndex);
         }
 
-        // ---- vessel.dock ----
 
         [Fact]
         public void BuildDockMapsRelativeStateAndForwardDot()
@@ -2085,7 +2059,6 @@ namespace Sitrep.Host.Tests
             Assert.Null(VesselViewProvider.BuildDock(snapshot));
         }
 
-        // ---- vessel.surface ----
 
         [Fact]
         public void BuildSurfaceMapsBiomeLandedAtAndHeightFromTerrain()
@@ -2135,7 +2108,6 @@ namespace Sitrep.Host.Tests
             Assert.Null(VesselViewProvider.BuildSurface(snapshot));
         }
 
-        // ---- vessel.landing ----
 
         [Fact]
         public void BuildLandingMapsAtmosphereAwareScalars()
@@ -2176,7 +2148,6 @@ namespace Sitrep.Host.Tests
             Assert.Null(VesselViewProvider.BuildLanding(snapshot));
         }
 
-        // ---- vessel.crew ----
 
         [Fact]
         public void BuildCrewMapsCount()
@@ -2326,7 +2297,6 @@ namespace Sitrep.Host.Tests
             Assert.Equal("Assigned", member["rosterStatus"]);
         }
 
-        // ---- vessel.structure ----
 
         [Fact]
         public void BuildStructureMapsCurrentStageStageCountAndPartCount()
@@ -2357,7 +2327,6 @@ namespace Sitrep.Host.Tests
             Assert.Null(structure.PartCount);
         }
 
-        // ---- time.calendar ----
 
         /// <summary>
         /// A day is 21,600 seconds on stock Kerbin time and 86,400 under a
@@ -2506,7 +2475,6 @@ namespace Sitrep.Host.Tests
                 ["kerbinTime"] = kerbinTime,
             };
 
-        // ---- time.warp ----
 
         [Fact]
         public void BuildWarpMapsOrthogonalTypedFieldsNeverAMagicInt()
@@ -2781,7 +2749,7 @@ namespace Sitrep.Host.Tests
 
             yield return new object[] { meta };
 
-            // ---- M1 Task 2 POCOs ----
+            // M1 Task 2 POCOs
 
             yield return new object[]
             {
@@ -3048,9 +3016,6 @@ namespace Sitrep.Host.Tests
             Assert.Equal("game", metaDict["source"]);
         }
 
-        // ----------------------------------------------------------------
-        // helpers
-        // ----------------------------------------------------------------
 
         private static List<object?> KerbinAndMun() => new List<object?>
         {

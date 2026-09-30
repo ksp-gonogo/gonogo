@@ -1045,9 +1045,6 @@ namespace Sitrep.Host.IntegrationTests
             WriteFixture(fixtureFileName, recordingFileName, session.Entries.Count, topics, capture);
         }
 
-        // ----------------------------------------------------------------
-        // Shared replay/capture/fixture-writing plumbing
-        // ----------------------------------------------------------------
 
         private sealed record CaptureResult(List<string> Frames, HashSet<int> Epochs, int RewindCount);
 

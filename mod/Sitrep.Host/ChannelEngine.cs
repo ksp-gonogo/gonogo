@@ -1689,9 +1689,7 @@ namespace Sitrep.Host
 
         public void Dispose() => Stop();
 
-        // ----------------------------------------------------------------
         // Uplink registration (main thread, at load)
-        // ----------------------------------------------------------------
 
         /// <summary>
         /// Registers one <see cref="ISitrepUplink"/>: records every
@@ -2580,9 +2578,6 @@ namespace Sitrep.Host
             return true;
         }
 
-        // ----------------------------------------------------------------
-        // IUplinkHost
-        // ----------------------------------------------------------------
 
         // NOTE: called from the main thread (a registered uplink calling
         // this via its IUplinkHost during e.g. a command handler that
@@ -4154,10 +4149,7 @@ namespace Sitrep.Host
             }
         }
 
-        // ----------------------------------------------------------------
-        // Availability-gated dispatch (IMPORTANT-A) + Courier-thread
-        // exception fail-soft (CRITICAL-2), Courier-thread-only.
-        // ----------------------------------------------------------------
+        // Availability-gated dispatch (IMPORTANT-A) + Courier-thread exception fail-soft (CRITICAL-2), Courier-thread-only.
 
         /// <summary>Whether <paramref name="topic"/>'s owning uplink (if tracked) is currently available, an untracked topic (shouldn't happen outside tests) is treated as available.</summary>
         private bool IsChannelAvailable(string topic)
@@ -5190,9 +5182,7 @@ namespace Sitrep.Host
             }
         }
 
-        // ----------------------------------------------------------------
         // Main-loop domain (called from GonogoAddon.FixedUpdate, or a test driver)
-        // ----------------------------------------------------------------
 
         /// <summary>
         /// Record one sample tick at <paramref name="ut"/>: runs every
@@ -5523,9 +5513,7 @@ namespace Sitrep.Host
         /// </summary>
         internal int SubscriberCountFor(string topic) => _subscriptions.SubscriberCount(topic);
 
-        // ----------------------------------------------------------------
         // Courier domain (the dedicated Courier thread)
-        // ----------------------------------------------------------------
 
         private void CourierLoop()
         {
@@ -5586,9 +5574,7 @@ namespace Sitrep.Host
             }
         }
 
-        // ----------------------------------------------------------------
         // Server-side reveal gate (spec §4 / §7.3 Steps 1–3), Courier-thread-only
-        // ----------------------------------------------------------------
 
         /// <summary>
         /// Route one emit decision through the reveal gate, the single funnel
@@ -7771,9 +7757,7 @@ namespace Sitrep.Host
             session.Unsubscribers.Clear();
         }
 
-        // ----------------------------------------------------------------
         // Socket domain (Fleck's connection threads)
-        // ----------------------------------------------------------------
 
         private void OnClientConnected(ITransportConnection connection)
         {
@@ -8013,9 +7997,6 @@ namespace Sitrep.Host
             _jobSignal.Release();
         }
 
-        // ----------------------------------------------------------------
-        // Job types
-        // ----------------------------------------------------------------
 
         private interface IEngineJob
         {

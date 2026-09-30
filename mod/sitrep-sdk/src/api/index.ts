@@ -57,8 +57,6 @@ import type {
   UseRouteCommandsResult,
 } from "./types";
 
-// --- Author-facing types (re-exported real, erased at runtime) --------------
-
 // The alarm request surface: an Uplink asks the app to create an alarm and the
 // app owns the result. See `./alarm-request.ts` for why it cannot arm one for
 // itself.
@@ -279,8 +277,6 @@ export {
   lengthsAreLengths,
 } from "../frame-qualifier";
 
-// --- Registration shims (stateful → injected host) --------------------------
-
 // The component / data-source / theme registry is NOT a shim: it lives in this
 // package (`./registry.ts`). It was the LAST place the shim story did not hold up,
 // because registration was published and nothing else about the registry was: an
@@ -493,8 +489,6 @@ export function registerSetting(
  * said so.
  */
 export { isReadOnlySetting, settingTypeOf } from "../spine/settings-registry";
-
-// --- Hook shims (stateful → injected host) ----------------------------------
 
 /**
  * Subscribes to a Topic and returns its latest {@link TopicReading}: the
@@ -804,8 +798,6 @@ export function useDataSources(): unknown {
   return getHost().useDataSources();
 }
 
-// --- Stream SPI shims (stateful → injected host) -----------------------------
-
 /**
  * Real-time (non-delayed) read of `topic`, bypassing the certainty-gated
  * `TimelineStore` frame `useStream` samples through: for command-centre
@@ -896,8 +888,6 @@ export function useTelemetryClientOptional(): TelemetryClient | undefined {
   return getHost().useTelemetryClientOptional();
 }
 
-// --- Data introspection shims (stateful → injected host) ---------------------
-
 /**
  * Whether a recorded-flight replay session is currently active.
  *
@@ -975,8 +965,6 @@ export function clearContributions(): void {
 // Same reason `safeRandomUuid` came out of the barrel.
 export { logger } from "./logger";
 
-// --- Component + class shims ------------------------------------------------
-
 /**
  * The composition point a widget OWNING a slot drops in for other Uplinks'
  * augments to fill. An Uplink that only fills someone else's slot never renders
@@ -1025,8 +1013,6 @@ export function AugmentSlot<Slot extends string>(props: {
 export function createPerfBudget(opts: PerfBudgetOptions): PerfBudgetHandle {
   return getHost().createPerfBudget(opts);
 }
-
-// --- Trivial utils (stateless, self-contained) -------------------------------
 
 /**
  * Sort a caught `send()` rejection into refused / lost / failed. Published

@@ -266,8 +266,6 @@ export class BufferedDataSource extends DataSourceWrapper {
     return this.real;
   }
 
-  // --- DataSource surface ------------------------------------------------
-
   /**
    * Sets up the wrapper's subscriptions to the wrapped source. Does NOT
    * call `source.connect()`: the wrapped source's connection lifecycle
@@ -390,8 +388,6 @@ export class BufferedDataSource extends DataSourceWrapper {
     if (!hasExecuteScript(this.source)) return undefined;
     return this.source.executeScript.bind(this.source);
   }
-
-  // --- Buffered-layer extensions ----------------------------------------
 
   /**
    * Columnar range query. Always hits the store, so pending writes are
@@ -682,8 +678,6 @@ export class BufferedDataSource extends DataSourceWrapper {
     this.emitFlightChange();
     this.flightListSubscribers.fire();
   }
-
-  // --- Internal ----------------------------------------------------------
 
   private handleSample(key: string, value: unknown): void {
     BUFFERED_SAMPLE_BUDGET.record();

@@ -42,25 +42,15 @@
 // the packages/components case this file solves).
 // ---------------------------------------------------------------------------
 
-// --- SpaceCenterStatus (packages/components/src/SpaceCenterStatus) ---------
-
 // "space-center-status.sections" / ".badges" carry no props today.
-
-// --- ManeuverPlanner (packages/components/src/ManeuverPlanner) -------------
 
 // "maneuver-planner.sections" / ".badges" carry no props today
 // (ManeuverPlannerSectionsSlotProps / ManeuverPlannerBadgesSlotProps are
 // both `Record<string, never>` aliases in the real widget).
 
-// --- TargetPicker (packages/components/src/TargetPicker) -------------------
-
 // "target-picker.sections" / ".badges" carry no props today.
 
-// --- WarpControl (packages/components/src/WarpControl) ---------------------
-
 // "warp-control.stepper" carries no props today.
-
-// --- Targeting (packages/components/src/Targeting) -----------
 
 /**
  * Props passed to every `targeting.overlay` and `targeting.camera` augment.
@@ -113,11 +103,7 @@ export interface TargetingHudContext {
   cameraFlightId: number | null | undefined;
 }
 
-// --- CommSignal (packages/components/src/CommSignal) -----------------------
-
 // "comm-signal.sections" / ".badges" carry no props today.
-
-// --- ShipMap (packages/components/src/ShipMap) -----------------------------
 
 /**
  * The deploy or activation state of one part module, as the ship map carries it
@@ -274,8 +260,6 @@ export interface ShipMapOverlayContext {
   padding: number;
 }
 
-// --- CrewStatus (packages/components/src/CrewStatus) -------------------
-
 /**
  * Props passed to every `crew-status.row-badges` augment, once for each kerbal
  * aboard the active vessel. The augment draws inline badges at the end of that
@@ -305,8 +289,6 @@ export interface CrewAvatarContext {
   crewIndex: number;
 }
 
-// --- AstronautComplex (packages/components/src/AstronautComplex) -----------
-
 /**
  * Props passed to every `astronaut-complex.crew` and
  * `astronaut-complex.crew-badge` augment, once for each kerbal card in the
@@ -327,8 +309,6 @@ export interface AstronautComplexCrewContext {
   /** True for a candidate in the Applicants list, false for a kerbal already on the roster. */
   isApplicant: boolean;
 }
-
-// --- LaunchDirector (packages/components/src/LaunchDirector) ---------------
 
 /**
  * Props passed to every `launch-director.preflight` augment: the launch the
@@ -376,8 +356,6 @@ export interface LaunchDirectorPadContext {
   /** The career's funds. `undefined` when the save has no funds or they are not yet reported. */
   funds: number | undefined;
 }
-
-// --- Objectives (packages/components/src/Objectives) -----------------------
 
 /**
  * Where an objective stands. The Objectives widget draws each with its own
@@ -437,8 +415,6 @@ export interface ObjectiveSourceContext {
   Section: import("react").ComponentType<ObjectiveSlotSection>;
 }
 
-// --- Strategies (packages/components/src/Strategies) -----------------------
-
 /**
  * Props passed to every `strategies.screen-body` augment: the body of one
  * Administration Building screen, drawn below the strategy cards the screen
@@ -451,8 +427,6 @@ export interface StrategiesScreenBodyContext {
   /** The `id` of the screen being drawn, as its `strategies.screens` entry gave it. An augment bound to more than one screen branches on it. */
   screenId: string;
 }
-
-// --- ActionGroup (packages/components/src/ActionGroup) ---------------------
 
 /**
  * The name of an action group: one of the eight stock names, or any other
@@ -497,8 +471,6 @@ export interface ActionGroupSlotContext {
   stateLabel: string;
 }
 
-// --- SystemView (packages/components/src/SystemView) -----------------------
-
 /**
  * Props passed to every `system-view.overlay` augment: a layer over the System
  * View diagram, with the scale the diagram draws at.
@@ -525,8 +497,6 @@ export interface SystemOverlayContext {
 }
 
 // "system-view.actions" carries no props today.
-
-// --- MapView (packages/components/src/MapView) ------------------------------
 
 /**
  * Props passed to every `map-view.overlay` augment: a layer over the Map View's
@@ -627,8 +597,6 @@ export interface MapBaseLayerContext {
   ) => void;
 }
 
-// --- TechTree (packages/components/src/TechTree) ---------------------------
-
 /** Mirrors `TechNodeState` (TechTree/index.tsx). */
 export type TechNodeSlotState = "Available" | "Researchable" | "Unavailable";
 
@@ -653,8 +621,6 @@ export interface TechSlotNode {
   parts: TechSlotPart[];
 }
 
-// --- ScienceData (packages/components/src/ScienceData) ----------------------
-
 /**
  * Props passed to every `science-data.aboard-row` augment, once for each
  * science subject on the Science Data widget's Aboard tab. The augment draws
@@ -668,7 +634,6 @@ export interface ScienceDataAboardRowContext {
   subjectId: string;
 }
 
-// --- LandingStatus (packages/components/src/LandingStatus) ------------------
 //
 // `landing-status.envelope` is GONE, and it is worth saying why rather than
 // leaving a hole. It was an overlay slot handing a guest a projection function,
@@ -679,8 +644,6 @@ export interface ScienceDataAboardRowContext {
 // what it is handed and owns no projection a contributor cannot reach. What the
 // guest lost was pixels; what it gained is that there is no host privilege left
 // to out-draw it with.
-
-// --- OrbitView (packages/components/src/OrbitView) --------------------------
 
 /**
  * Props passed to every `orbit-view.overlay` augment: a layer over the Orbit
@@ -714,11 +677,7 @@ export interface OrbitOverlayContext {
   scale: number;
 }
 
-// --- Navball (packages/components/src/Navball) ------------------------------
-
 // "navball.badges" carries no props today.
-
-// --- Experiments (packages/components/src/Experiments) ---------------
 
 /**
  * One stock science instrument aboard the active vessel, as the Experiments
@@ -755,8 +714,6 @@ export interface ExperimentsInstrumentSlotContext {
   /** The instrument whose row this follows. */
   instrument: ExperimentsInstrument;
 }
-
-// --- DeployedScience (mod/GonogoBreakingGroundUplink/client/src/DeployedScience) ---
 
 /**
  * One Breaking Ground deployed experiment, as the Deployed Science widget draws
@@ -804,11 +761,7 @@ export interface DeployedExperimentContext {
 
 // "deployed-science.badges" carries no props today.
 
-// --- FuelStatus (packages/components/src/FuelStatus) -----------------------
-
 // "fuel-status.sections" / ".badges" carry no props today.
-
-// --- PowerSystems (packages/components/src/PowerSystems) -------------------
 
 /** Mirrors `PowerSystemsScope` (PowerSystems/index.tsx): what the widget is
  *  currently looking at, read with `useWidgetScope("power-systems")`. */
@@ -820,8 +773,6 @@ export interface PowerSystemsScope {
    */
   resource: string;
 }
-
-// --- FleetRoster (packages/components/src/FleetRoster) ---------------------
 
 /**
  * Props passed to every `fleet-roster.updates` augment, once for each craft in
@@ -842,11 +793,7 @@ export interface FleetRosterUpdatesContext {
   compact: boolean;
 }
 
-// ---------------------------------------------------------------------------
-// The merge itself: every first-party (packages/components-owned) slot id,
-// enumerated by grepping every `declare module "@ksp-gonogo/core"` /
-// `"@ksp-gonogo/sitrep-sdk"` SlotRegistry block across packages/components.
-// ---------------------------------------------------------------------------
+// The merge itself: every first-party (packages/components-owned) slot id, enumerated by grepping every `declare module "@ksp-gonogo/core"` / `"@ksp-gonogo/sitrep-sdk"` SlotRegistry block across packages/components.
 
 // Targets `./types` (relative), NOT the package specifier
 // "@ksp-gonogo/sitrep-sdk": both resolve to the exact same file (this
@@ -896,8 +843,8 @@ declare module "./types" {
 
     "astronaut-complex.crew": AstronautComplexCrewContext;
     "astronaut-complex.crew-badge": AstronautComplexCrewContext;
-    // A whole tab, which passes nothing.
-    "astronaut-complex.training": Record<string, never>;
+    // A whole tab, which passes nothing: the augment that binds it supplies its own label.
+    "astronaut-complex.tab": Record<string, never>;
 
     "launch-director.preflight": LaunchDirectorSlotContext;
     "launch-director.pad": LaunchDirectorPadContext;

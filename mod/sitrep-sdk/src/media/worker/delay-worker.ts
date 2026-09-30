@@ -76,8 +76,6 @@ import {
   type WorkerDelayClock,
 } from "./worker-delay-clock";
 
-// --- Wire message shapes -----------------------------------------------
-
 export interface InitMessage {
   type: "init";
   /** The main thread's `performance.timeOrigin` (ms): see `time-base.ts`. */
@@ -144,7 +142,6 @@ export type WorkerToMainMessage =
   | PipelineErrorMessage
   | PipelineNonFatalErrorMessage;
 
-// --- Minimal worker-global surface --------------------------------------
 // This package's shared tsconfig targets the default DOM lib (not
 // "webworker": the two are mutually exclusive libs, and swapping the
 // whole package to "webworker" would break every non-worker file that
@@ -184,8 +181,6 @@ interface WorkerGlobalSurface {
    a window, which this file never runs in. */
 declare const self: WorkerGlobalSurface;
 const workerSelf = self;
-
-// --- State ---------------------------------------------------------------
 
 let sharedClock: WorkerDelayClock | null = null;
 /** Set once by `handleInit`: the SAME time-origin-corrected wall clock the

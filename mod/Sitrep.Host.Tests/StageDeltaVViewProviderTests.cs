@@ -23,10 +23,7 @@ namespace Sitrep.Host.Tests
     /// </summary>
     public class StageDeltaVViewProviderTests
     {
-        // ----------------------------------------------------------------
-        // Absence: "sim not ready" is a null payload, distinct from "zero
-        // stages" (an empty list).
-        // ----------------------------------------------------------------
+        // Absence: "sim not ready" is a null payload, distinct from "zero stages" (an empty list).
 
         [Fact]
         public void BuildStagesReturnsNullWhenSnapshotHasNoValuesYet()
@@ -60,9 +57,6 @@ namespace Sitrep.Host.Tests
             Assert.Null(StageDeltaVViewProvider.BuildSummary(snapshot));
         }
 
-        // ----------------------------------------------------------------
-        // Mapping: multi-stage, in order, every per-stage field.
-        // ----------------------------------------------------------------
 
         [Fact]
         public void BuildStagesMapsEveryStageInOrderWithEveryField()
@@ -135,11 +129,7 @@ namespace Sitrep.Host.Tests
             Assert.Equal(2.0, second["twrAsl"]);
         }
 
-        // ----------------------------------------------------------------
-        // Stage-scoped resources: the old r.resourceCurrent[X]/
-        // r.resourceCurrentMax[X] pair, KspHost.BuildStageResources's
-        // per-resource {current, max} map for THIS stage.
-        // ----------------------------------------------------------------
+        // Stage-scoped resources: the old r.resourceCurrent[X]/ r.resourceCurrentMax[X] pair, KspHost.BuildStageResources's per-resource {current, max} map for THIS stage.
 
         [Fact]
         public void BuildStagesMapsStageScopedResourcesWhenPresent()
@@ -192,10 +182,7 @@ namespace Sitrep.Host.Tests
             Assert.Empty(resources);
         }
 
-        // ----------------------------------------------------------------
-        // R1/F-1: a NaN/Infinity ΔV the sim reports maps to null, never a
-        // sentinel on the wire.
-        // ----------------------------------------------------------------
+        // R1/F-1: a NaN/Infinity ΔV the sim reports maps to null, never a sentinel on the wire.
 
         [Fact]
         public void BuildStagesTreatsNonFiniteFieldsAsAbsentNotAsNaNOnTheWire()
@@ -227,9 +214,6 @@ namespace Sitrep.Host.Tests
             Assert.DoesNotContain("Infinity", json);
         }
 
-        // ----------------------------------------------------------------
-        // Summary: key set + totals round-trip.
-        // ----------------------------------------------------------------
 
         [Fact]
         public void BuildSummaryMapsStageCountAndTotalsAndRoundTripsThroughTheWire()
@@ -277,9 +261,6 @@ namespace Sitrep.Host.Tests
             Assert.Equal(60.0, root["totalBurnTime"]);
         }
 
-        // ----------------------------------------------------------------
-        // Helpers.
-        // ----------------------------------------------------------------
 
         private static Dictionary<string, object?> BasicSummary() => new Dictionary<string, object?>
         {

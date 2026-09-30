@@ -253,9 +253,6 @@ namespace Sitrep.Skeleton.Tests
             }
         }
 
-        // ---------------------------------------------------------------
-        // Test helpers
-        // ---------------------------------------------------------------
 
         /// <summary>
         /// Sends a subscribe envelope and waits specifically for the

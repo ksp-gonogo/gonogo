@@ -475,9 +475,7 @@ namespace Sitrep.Host.Tests
             Assert.Single(homeFlags, v => v is true);
         }
 
-        // ----------------------------------------------------------------
         // system.vessels -- M3 R3 roster capture-add
-        // ----------------------------------------------------------------
 
         [Fact]
         public void BuildTargetAvailableMapsEveryKindWithStableIdsDistanceAndIsCurrent()
@@ -850,9 +848,7 @@ namespace Sitrep.Host.Tests
             Assert.Equal((int)expected, entry["commsControlSource"]);
         }
 
-        // ----------------------------------------------------------------
         // game.dlc -- installed-DLC capability capture-add (Meta.Dlc path)
-        // ----------------------------------------------------------------
 
         [Fact]
         public void BuildGameDlcMapsRawDlcGroupToTwoBoolsAndSerializesCleanly()

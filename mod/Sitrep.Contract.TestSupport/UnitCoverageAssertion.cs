@@ -153,9 +153,6 @@ namespace Sitrep.Contract.TestSupport
                 "is exhaustive on purpose: a type that joins the sweep silently joins it unreviewed.");
         }
 
-        // ---------------------------------------------------------------
-        // Core's rule, carried in full.
-        // ---------------------------------------------------------------
 
         private static Type Unwrap(Type t) => Nullable.GetUnderlyingType(t) ?? t;
 

@@ -17,7 +17,6 @@ namespace Sitrep.Host.Tests
     /// </summary>
     public class RoboticsCommandProviderTests
     {
-        // ---- servo.setTarget --------------------------------------------------
 
         [Fact]
         public void HandleServoSetTargetPassesPartIdAndValueThrough()
@@ -54,7 +53,6 @@ namespace Sitrep.Host.Tests
             Assert.Equal(CommandErrorCode.ModeUnavailable, result.ErrorCode);
         }
 
-        // ---- servo.setMotor / setLock (absolute set) -------------------------
 
         [Fact]
         public void HandleServoSetMotorPassesEnabledThroughAsAbsoluteState()
@@ -101,7 +99,6 @@ namespace Sitrep.Host.Tests
             Assert.Null(actuator.LastSetServoLockPartId);
         }
 
-        // ---- rotor.setRpmLimit -----------------------------------------------
 
         [Fact]
         public void HandleRotorSetRpmLimitPassesPartIdAndValueThrough()
@@ -125,7 +122,6 @@ namespace Sitrep.Host.Tests
             Assert.Equal(CommandErrorCode.ModeUnavailable, result.ErrorCode);
         }
 
-        // ---- rotor.setTorqueLimit (0..100) -----------------------------------
 
         [Theory]
         [InlineData(0.0)]
@@ -156,7 +152,6 @@ namespace Sitrep.Host.Tests
             Assert.Null(actuator.LastSetRotorTorqueLimitValue);
         }
 
-        // ---- rotor.setBrake (0..200) -----------------------------------------
 
         [Theory]
         [InlineData(0.0)]
@@ -187,7 +182,6 @@ namespace Sitrep.Host.Tests
             Assert.Null(actuator.LastSetRotorBrakeValue);
         }
 
-        // ---- rotor.setMotor / setLock ----------------------------------------
 
         [Fact]
         public void HandleRotorSetMotorPassesEnabledThroughAsAbsoluteState()
@@ -211,7 +205,6 @@ namespace Sitrep.Host.Tests
             Assert.True(actuator.LastSetRotorLockLocked);
         }
 
-        // ---- rotor.reverse ----------------------------------------------------
 
         [Fact]
         public void HandleRotorReversePassesPartIdThrough()

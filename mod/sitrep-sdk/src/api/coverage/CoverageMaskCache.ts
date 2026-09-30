@@ -234,9 +234,6 @@ export class CoverageMaskCache {
     for (const listener of entry.listeners) listener(entry.mask);
   }
 
-  // -------------------------------------------------------------------------
-  // Internals
-  // -------------------------------------------------------------------------
 
   /**
    * Ensure an entry shell exists so subscribers can attach before the async

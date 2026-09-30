@@ -41,10 +41,6 @@ const ALLOWED_PATHS = new Set([
   "packages/core/src/stock-bodies.ts",
 ]);
 
-// ---------------------------------------------------------------------------
-// Walk + scan
-// ---------------------------------------------------------------------------
-
 function* walk(dir) {
   for (const name of readdirSync(dir)) {
     if (name === "node_modules" || name === "dist" || name === "coverage")
@@ -67,9 +63,7 @@ function isInComment(line) {
   return trimmed.startsWith("//") || trimmed.startsWith("*");
 }
 
-// ---------------------------------------------------------------------------
 // Colour math: hex → LAB → ΔE76 (perceptual distance, not RGB)
-// ---------------------------------------------------------------------------
 
 function hexToRgb(hex) {
   let h = hex.slice(1);
@@ -111,9 +105,7 @@ function hexToLab(hex) {
   return rgbToLab(hexToRgb(hex));
 }
 
-// ---------------------------------------------------------------------------
 // Parse the CSS-variable token table from global.css
-// ---------------------------------------------------------------------------
 
 function parseTokens() {
   const css = readFileSync(TOKENS_CSS, "utf8");
@@ -127,10 +119,6 @@ function parseTokens() {
   }
   return tokens;
 }
-
-// ---------------------------------------------------------------------------
-// Scan the workspace
-// ---------------------------------------------------------------------------
 
 function scan() {
   const occurrences = new Map(); // hex → [{file, line, text, inComment}]
@@ -159,10 +147,6 @@ function scan() {
   return occurrences;
 }
 
-// ---------------------------------------------------------------------------
-// Build the per-hex audit rows
-// ---------------------------------------------------------------------------
-
 function buildRows(occurrences, tokens) {
   const rows = [];
   for (const [hex, occs] of occurrences.entries()) {
@@ -190,10 +174,6 @@ function buildRows(occurrences, tokens) {
   rows.sort((a, b) => b.count - a.count);
   return rows;
 }
-
-// ---------------------------------------------------------------------------
-// HTML emission
-// ---------------------------------------------------------------------------
 
 function escapeHtml(s) {
   return s
@@ -556,10 +536,6 @@ function renderHtml({ rows, tokens, totalOccurrences }) {
 </body>
 </html>`;
 }
-
-// ---------------------------------------------------------------------------
-// Main
-// ---------------------------------------------------------------------------
 
 const tokens = parseTokens();
 const occurrences = scan();

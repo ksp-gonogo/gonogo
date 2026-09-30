@@ -21,9 +21,6 @@ namespace Sitrep.Host.Tests
     /// </summary>
     public class SpaceCenterViewProviderTests
     {
-        // ----------------------------------------------------------------
-        // spaceCenter.launchSites
-        // ----------------------------------------------------------------
 
         [Fact]
         public void BuildLaunchSitesMapsEveryKeyedSiteAndHonorsIsStockAndResolvesBodyIndex()
@@ -220,9 +217,6 @@ namespace Sitrep.Host.Tests
             Assert.Equal(1, System.Convert.ToInt32(parsedPad["bodyIndex"]));
         }
 
-        // ----------------------------------------------------------------
-        // spaceCenter.scene
-        // ----------------------------------------------------------------
 
         [Theory]
         [InlineData("FLIGHT", "Flight")]
@@ -281,9 +275,6 @@ namespace Sitrep.Host.Tests
             Assert.Equal("SpaceCenter", parsedRoot["scene"]);
         }
 
-        // ----------------------------------------------------------------
-        // spaceCenter.crewRoster
-        // ----------------------------------------------------------------
 
         [Fact]
         public void BuildCrewRosterMapsEveryKerbalAndFoldsRosterStatus()
@@ -709,9 +700,6 @@ namespace Sitrep.Host.Tests
             Assert.Equal(true, val["available"]);
         }
 
-        // ----------------------------------------------------------------
-        // spaceCenter.savedShips
-        // ----------------------------------------------------------------
 
         [Fact]
         public void BuildSavedShipsMapsEveryCraftFieldForField()
@@ -860,9 +848,6 @@ namespace Sitrep.Host.Tests
             Assert.Equal(new object?[] { "partA" }, Assert.IsType<List<object?>>(craft["missingParts"]));
         }
 
-        // ----------------------------------------------------------------
-        // spaceCenter.partsAvailable
-        // ----------------------------------------------------------------
 
         [Fact]
         public void BuildPartsAvailableWrapsTheRawCount()
@@ -932,9 +917,6 @@ namespace Sitrep.Host.Tests
             Assert.Equal(88, System.Convert.ToInt32(parsedRoot["count"]));
         }
 
-        // ----------------------------------------------------------------
-        // spaceCenter.pois
-        // ----------------------------------------------------------------
 
         /// <summary>
         /// Regression for the review fix: stock KSP uses <c>0.0</c> as
@@ -1013,9 +995,6 @@ namespace Sitrep.Host.Tests
             Assert.Equal(98765.0, entry["contractDateDeadline"]);
         }
 
-        // ----------------------------------------------------------------
-        // spaceCenter.astronautComplex
-        // ----------------------------------------------------------------
 
         [Fact]
         public void BuildAstronautComplexMapsEveryApplicantAndTheCapContext()

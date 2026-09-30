@@ -159,7 +159,6 @@ namespace Gonogo.KSP.CurrencyDelay
             ShadowReputation = reputation;
         }
 
-        // ---- Guarded-write shadow tracking ----
         //
         // The shadow model is only correct at rest when it equals the live balance. A write the
         // interceptor recognises as its own (CurrencyDelayGuard.Active) is either its own
@@ -175,7 +174,6 @@ namespace Gonogo.KSP.CurrencyDelay
 
         public void SyncShadowReputation(double newTotal) => ShadowReputation = newTotal;
 
-        // ---- Vessel-context pushes ----
 
         /// <summary>
         /// Records the vessel a recovery in progress is crediting. Never resolves anything
@@ -240,7 +238,6 @@ namespace Gonogo.KSP.CurrencyDelay
             return Array.Empty<CurrencyChangeDecision>();
         }
 
-        // ---- Currency change handlers ----
 
         public CurrencyChangeDecision OnFundsChanged(StockTransactionReason reason, double newTotal, double baseAmount, double ut)
         {
@@ -427,7 +424,6 @@ namespace Gonogo.KSP.CurrencyDelay
             return ScienceChangeDecision.Away(vesselId, amount, ShadowScience);
         }
 
-        // ---- Correlation helpers ----
 
         private static void Prune(List<PendingVessel> vessels, double ut)
         {

@@ -99,9 +99,6 @@ namespace Sitrep.Host
             CalendarTopic, DockTopic, SurfaceTopic, LandingTopic, EvaCrewTopic,
         };
 
-        // ----------------------------------------------------------------
-        // Typed mappers
-        // ----------------------------------------------------------------
 
         public static VesselIdentity? BuildIdentity(KspSnapshot? snapshot)
         {
@@ -1499,9 +1496,7 @@ namespace Sitrep.Host
             return vessel != null && TryGetSubjectId(vessel, out var vesselId) ? vesselId : null;
         }
 
-        // ----------------------------------------------------------------
         // Wire adapters -- see the class doc comment for why these exist.
-        // ----------------------------------------------------------------
 
         public static object? BuildIdentityWire(KspSnapshot? snapshot) =>
             BuildIdentity(snapshot) is { } identity ? ToWire(identity) : null;
@@ -2010,9 +2005,6 @@ namespace Sitrep.Host
             ["quality"] = (int)meta.Quality,
         };
 
-        // ----------------------------------------------------------------
-        // Shared helpers
-        // ----------------------------------------------------------------
 
         private static PayloadMeta BuildMeta(IDictionary<string, object?> vessel, string vesselId)
         {

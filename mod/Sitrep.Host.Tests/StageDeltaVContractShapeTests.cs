@@ -70,10 +70,7 @@ namespace Sitrep.Host.Tests
             AssertTopicTag(typeof(StageDeltaVSummary), "dv.summary", expectArray: false);
         }
 
-        // ----------------------------------------------------------------
-        // Synthetic raw snapshot builders: the exact
-        // Values["vessel"]["deltaV"] encoding KspHost.BuildDeltaV populates.
-        // ----------------------------------------------------------------
+        // Synthetic raw snapshot builders: the exact Values["vessel"]["deltaV"] encoding KspHost.BuildDeltaV populates.
 
         private static Dictionary<string, object?> StageDict(int stage) => new Dictionary<string, object?>
         {
@@ -126,10 +123,7 @@ namespace Sitrep.Host.Tests
             };
         }
 
-        // ----------------------------------------------------------------
-        // Shape helpers: mirror PartsContractShapeTests (per-test-file
-        // duplication, matching that convention).
-        // ----------------------------------------------------------------
+        // Shape helpers: mirror PartsContractShapeTests (per-test-file duplication, matching that convention).
 
         private static void AssertArrayEntriesMirror(Type entryType, object? payload)
         {
@@ -199,10 +193,7 @@ namespace Sitrep.Host.Tests
                 ? name
                 : char.ToLower(name[0], CultureInfo.InvariantCulture) + name.Substring(1);
 
-        // ----------------------------------------------------------------
-        // [SitrepTopic] tag reader: raw ECMA-335 metadata, NOT CLR attribute
-        // reflection (the [TsInterface] hazard PartsContractShapeTests documents).
-        // ----------------------------------------------------------------
+        // [SitrepTopic] tag reader: raw ECMA-335 metadata, NOT CLR attribute reflection (the [TsInterface] hazard PartsContractShapeTests documents).
 
         private static void AssertTopicTag(Type type, string expectedTopic, bool expectArray)
         {

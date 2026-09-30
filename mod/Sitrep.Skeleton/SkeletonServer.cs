@@ -149,9 +149,6 @@ namespace Sitrep.Skeleton
 
         public void Dispose() => Stop();
 
-        // ----------------------------------------------------------------
-        // Main-loop domain
-        // ----------------------------------------------------------------
 
         /// <summary>
         /// The main-loop tick: record one sample of the monotonically
@@ -183,10 +180,7 @@ namespace Sitrep.Skeleton
 
         public bool HasSession(string connectionId) => _sessions.ContainsKey(connectionId);
 
-        // ----------------------------------------------------------------
-        // Courier domain (the dedicated Courier thread: the only thread
-        // that may touch _courier / _clock)
-        // ----------------------------------------------------------------
+        // Courier domain (the dedicated Courier thread: the only thread that may touch _courier / _clock)
 
         private void CourierLoop()
         {
@@ -285,9 +279,7 @@ namespace Sitrep.Skeleton
             SessionRemoved?.Invoke(session.Connection.Id);
         }
 
-        // ----------------------------------------------------------------
         // Socket domain (Fleck's connection threads)
-        // ----------------------------------------------------------------
 
         private void OnClientConnected(ITransportConnection connection)
         {
@@ -343,9 +335,7 @@ namespace Sitrep.Skeleton
             _jobSignal.Release();
         }
 
-        // ----------------------------------------------------------------
         // Job types crossing the main-loop/socket -> Courier queue
-        // ----------------------------------------------------------------
 
         private interface ICourierJob
         {

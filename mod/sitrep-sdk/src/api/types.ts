@@ -56,8 +56,6 @@ export type ComponentBehavior = "gonogo-participant";
  */
 export type ComponentRequirement = "flight" | "career";
 
-// --- Serial input actions ---------------------------------------------------
-
 /**
  * The kind of input that can drive an action: a button, or an analog axis.
  *
@@ -101,8 +99,6 @@ export interface ActionDefinition {
 export type ActionHandlers<Actions extends readonly ActionDefinition[]> = {
   [ActionId in Actions[number]["id"]]: (payload: ActionInputPayload) => unknown;
 };
-
-// --- Component registration -------------------------------------------------
 
 /**
  * Props passed to every registered dashboard component.
@@ -289,8 +285,6 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
   owner?: UplinkClientHandle;
 }
 
-// --- Themes -----------------------------------------------------------------
-
 /**
  * Theme registration descriptor. `theme` is the design-system token object
  * (a `GonogoTheme` from `@ksp-gonogo/ui-kit`). Typed loosely here because the
@@ -304,8 +298,6 @@ export interface ThemeDefinition {
   name: string;
   theme: unknown;
 }
-
-// --- Augments (slot composition) --------------------------------------------
 
 /**
  * Every augment slot, keyed by slot id, mapped to the props the slot passes its
@@ -377,8 +369,6 @@ export type WidgetScope<Widget extends string> =
   Widget extends keyof WidgetScopeRegistry
     ? WidgetScopeRegistry[Widget]
     : ErasedOrNever<Widget>;
-
-// --- Contributions (pure-data slot composition) ------------------------------
 
 /**
  * Every contribution slot, keyed by slot id, mapped to the entry its
@@ -864,6 +854,14 @@ export interface AugmentDefinition<Slot extends string = string> {
   /** The Topics the component reads, listed on the Uplink's generated page. */
   channels?: readonly TopicId[];
   /**
+   * A caption for this augment, for a host that shows one beside the slot
+   * rather than around it, such as a tab strip built from whatever is bound.
+   * Unused by a slot whose host draws its own fixed chrome around the
+   * component; read the slot's own doc comment on `SlotRegistry` to see
+   * whether it does.
+   */
+  label?: string;
+  /**
    * A Domain id. The augment renders only while the host reports that Domain
    * present, so it stays hidden while its mod is not running.
    */
@@ -886,8 +884,6 @@ export interface AugmentDefinition<Slot extends string = string> {
   owner?: UplinkClientHandle;
 }
 
-// --- Uplink client identity ---------------------------------------------
-
 /**
  * Re-exported rather than declared: the ONE declaration lives in
  * `../spine/uplink-clients.ts`, beside `defineUplinkClient` which returns it.
@@ -899,8 +895,6 @@ export interface AugmentDefinition<Slot extends string = string> {
  * unchecked is the divergence shape that cannot fail loudly.
  */
 export type { UplinkClientHandle } from "../spine/uplink-clients";
-
-// --- Coverage sources --------------------------------------------------------
 
 /**
  * Registration descriptor for a coverage source, a data contributor (coverage
@@ -916,8 +910,6 @@ export interface CoverageSourceDefinition {
   weight?: number;
   settings?: readonly AugmentSettingField[];
 }
-
-// --- Map POI providers -------------------------------------------------------
 
 /**
  * One action button on a `MapPoi`. Mirrors `packages/core/src/mapPoi.ts`'s
@@ -993,8 +985,6 @@ export interface MapPoiProviderDefinition {
   requires?: string;
   usePois: UseMapPois;
 }
-
-// --- Celestial bodies ---------------------------------------------------------
 
 /**
  * Texture map metadata, required for accurate lat/lon to pixel mapping.
@@ -1085,7 +1075,6 @@ export interface BodyDefinition {
   };
 }
 
-// --- Coverage mask cache -----------------------------------------------------
 //
 // Same leaf constraint again: `BodyMask` was owned by `@ksp-gonogo/data`, which
 // the sdk cannot depend on either (data itself depends on core, which depends on
@@ -1132,7 +1121,6 @@ export interface CoverageMaskCacheHandle {
   dispose(): Promise<void>;
 }
 
-// --- DataSource type mirror ---------------------------------------------------
 //
 // core owns `DataSource`/`DataSourceStatus`/`ConfigField`/`DataKey`
 // (packages/core/src/types.ts) but the sdk cannot name it as a workspace
@@ -1205,7 +1193,6 @@ export interface DataSource<
   affectedBySignalLoss?: boolean;
 }
 
-// --- Screen identity -----------------------------------------------------------
 //
 // Mirrors `../spine/screen.tsx`, which owns the declarations and the hooks that
 // answer in them: same leaf constraint as the rest of this file. The hooks are
@@ -1233,8 +1220,6 @@ export type Screen = "main" | "station" | "pilot";
  */
 export type Seat = "mission-control" | "pilot";
 
-// --- Settings tabs ---------------------------------------------------------
-
 /**
  * Mirrors `packages/core/src/settingsTabs.ts`'s `SettingsTabDefinition`:
  * same leaf constraint. An Uplink co-locates a whole Settings-modal tab's
@@ -1258,8 +1243,6 @@ export interface SettingsTabDefinition {
    */
   uplink?: string;
 }
-
-// --- Declarative settings ---------------------------------------------------
 
 /**
  * `registerSetting` is the PREFERRED way an Uplink surfaces a setting: a
@@ -1285,7 +1268,6 @@ export type {
   StreamBackedSettingOf,
 } from "../spine/settings-registry";
 
-// --- Telemetry client (sitrep-client) SPI ------------------------------------
 //
 // Same leaf constraint as `StreamStatusValue` below: `TelemetryClient` is
 // owned by `@ksp-gonogo/sitrep-client`, which the sdk cannot depend on
@@ -1316,7 +1298,6 @@ export interface TelemetryClient {
   dispose(): void;
 }
 
-// --- Media delay clock SPI (sitrep-client) -----------------------------------
 //
 // Same leaf constraint as `TelemetryClient` above: `DelayClockLike` is owned
 // by `@ksp-gonogo/sitrep-client` (packages/sitrep-client/src/media/
@@ -1344,8 +1325,6 @@ export interface DelayClockLike {
   onFrame(cb: (viewUt: number) => void): () => void;
 }
 
-// --- Performance budgets ----------------------------------------------------
-
 // The real one, from this package's own `perf/PerfBudget.ts`. It was mirrored
 // here, like every other type in this file, because the class lived in
 // `@ksp-gonogo/core` and the leaf could not name it. The class is now in this
@@ -1361,8 +1340,6 @@ export type { PerfBudgetOptions } from "../perf/PerfBudget";
 export interface PerfBudgetHandle {
   record(amount?: number, now?: number): void;
 }
-
-// --- Hook result shapes -----------------------------------------------------
 
 // The real one, from this package's own `spine/lifecycle.ts`, for the same
 // reason `PerfBudgetOptions` above stopped being mirrored: `CommandStatus` used
@@ -1598,7 +1575,6 @@ export interface UseRouteCommandsResult {
   mode: DelayMode;
 }
 
-// --- Stream SPI types ---------------------------------------------------------
 //
 // Same leaf constraint again: `StreamStatusValue` is owned by
 // `@ksp-gonogo/sitrep-client` (packages/sitrep-client/src/stream-status.ts),
@@ -1622,7 +1598,6 @@ export type StreamStatusValue =
   | "absent"
   | "resyncing";
 
-// --- Late telemetry subscribe SPI (sitrep-client) ----------------------------
 //
 // Same leaf constraint as `TelemetryClient` above: `LateTelemetrySubscribe` is
 // owned by `@ksp-gonogo/sitrep-client` (use-late-telemetry-subscribe.ts),

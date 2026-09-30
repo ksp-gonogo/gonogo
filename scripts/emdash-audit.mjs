@@ -53,10 +53,6 @@ import { fileURLToPath } from "node:url";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const EMDASH = "\u2014";
 
-// ---------------------------------------------------------------------------
-// CLI args
-// ---------------------------------------------------------------------------
-
 function parseArgs(argv) {
   const scanPaths = [];
   const excludes = [];
@@ -79,9 +75,7 @@ function parseArgs(argv) {
   return { scanPaths, excludes, jsonOut };
 }
 
-// ---------------------------------------------------------------------------
 // File discovery: git-tracked, contains an emdash, not generated
-// ---------------------------------------------------------------------------
 
 function gitTrackedFilesContainingEmdash() {
   // -I: skip files git considers binary. -l: filenames only.
@@ -130,10 +124,6 @@ function isInScope(relPath, scanPaths) {
     (p) => relPath === p || relPath.startsWith(`${p.replace(/\/$/, "")}/`),
   );
 }
-
-// ---------------------------------------------------------------------------
-// Per-line classification
-// ---------------------------------------------------------------------------
 
 const LINE_COMMENT_PREFIXES = ["//", "///", "*", "/*", "#"];
 
@@ -301,10 +291,6 @@ function maybeOpenBlockComment(text, ext, state, opts = {}) {
   return true;
 }
 
-// ---------------------------------------------------------------------------
-// Scan
-// ---------------------------------------------------------------------------
-
 function extOf(relPath) {
   const m = /\.([a-zA-Z0-9]+)$/.exec(relPath);
   return m ? m[1].toLowerCase() : "";
@@ -360,10 +346,6 @@ function scan({ scanPaths, excludes }) {
 
   return { occurrences, byFile };
 }
-
-// ---------------------------------------------------------------------------
-// Main
-// ---------------------------------------------------------------------------
 
 function main() {
   const { scanPaths, excludes, jsonOut } = parseArgs(process.argv.slice(2));

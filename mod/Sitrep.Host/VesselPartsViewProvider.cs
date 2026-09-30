@@ -47,9 +47,6 @@ namespace Sitrep.Host
     {
         public const string PartsTopic = "vessel.parts";
 
-        // ----------------------------------------------------------------
-        // Typed mapper
-        // ----------------------------------------------------------------
 
         public static VesselParts? BuildParts(KspSnapshot? snapshot)
         {
@@ -226,9 +223,7 @@ namespace Sitrep.Host
             return result;
         }
 
-        // ----------------------------------------------------------------
         // Wire adapter: see the class doc comment for why this exists.
-        // ----------------------------------------------------------------
 
         public static object? BuildPartsWire(KspSnapshot? snapshot) =>
             BuildParts(snapshot) is { } parts ? ToWire(parts) : null;
@@ -307,10 +302,7 @@ namespace Sitrep.Host
             ["quality"] = (int)meta.Quality,
         };
 
-        // ----------------------------------------------------------------
-        // Shared helpers: copied from VesselViewProvider (the per-provider
-        // duplication that class documents; matching that convention).
-        // ----------------------------------------------------------------
+        // Shared helpers: copied from VesselViewProvider (the per-provider duplication that class documents; matching that convention).
 
         private static PayloadMeta BuildMeta(string vesselId) => new PayloadMeta
         {

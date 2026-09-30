@@ -54,9 +54,6 @@ namespace Sitrep.Core.Tests
             public List<string> Pending { get; set; } = new();
         }
 
-        // ---------------------------------------------------------------
-        // What needs a unit.
-        // ---------------------------------------------------------------
 
         /// <summary>
         /// True when a property carries a VALUE rather than a structure, and so
@@ -264,9 +261,6 @@ namespace Sitrep.Core.Tests
             return surface;
         }
 
-        // ---------------------------------------------------------------
-        // The gate.
-        // ---------------------------------------------------------------
 
         [Fact]
         public void EveryScalarWirePropertyDeclaresAUnit()
@@ -412,9 +406,6 @@ namespace Sitrep.Core.Tests
             Console.WriteLine($"Seeded {pending.Count} pending entries.");
         }
 
-        // ---------------------------------------------------------------
-        // Paths.
-        // ---------------------------------------------------------------
 
         private static Baseline LoadBaseline()
         {

@@ -48,11 +48,7 @@ const ALLOWED_PATHS = new Set([
   "packages/core/src/stock-bodies.ts",
 ]);
 
-// ---------------------------------------------------------------------------
-// New tokens introduced by this sweep: keep in sync with global.css edits.
-// Representative values picked from the user's grouping (most-frequent
-// shade, or median lightness if frequencies tie).
-// ---------------------------------------------------------------------------
+// New tokens introduced by this sweep: keep in sync with global.css edits. Representative values picked from the user's grouping (most-frequent shade, or median lightness if frequencies tie).
 
 const NEW_TOKENS = {
   // Status: muted alert variants
@@ -75,9 +71,7 @@ const NEW_TOKENS = {
   "--color-tag-red-fg": "#ff4466",
 };
 
-// ---------------------------------------------------------------------------
 // Walk + colour math: duplicated from palette-audit.mjs because these are throwaway one-shot scripts and a shared module is overkill.
-// ---------------------------------------------------------------------------
 
 function* walk(dir) {
   for (const name of readdirSync(dir)) {
@@ -135,10 +129,6 @@ function hexToLab(hex) {
   return rgbToLab(hexToRgb(hex));
 }
 
-// ---------------------------------------------------------------------------
-// Token table: existing (parsed from global.css) + new (declared above)
-// ---------------------------------------------------------------------------
-
 function buildTokenTable() {
   const css = readFileSync(TOKENS_CSS, "utf8");
   const tokens = new Map(); // name → hex
@@ -152,10 +142,6 @@ function buildTokenTable() {
   }
   return tokens;
 }
-
-// ---------------------------------------------------------------------------
-// Decision refinement: apply fix-ups to the human-authored JSON
-// ---------------------------------------------------------------------------
 
 // Direct overrides per hex value. The user's JSON had a few entries that
 // needed adjustment after a closer look at the call site.
@@ -279,9 +265,7 @@ function refineDecisions(rawDecisions, tokens) {
   return final;
 }
 
-// ---------------------------------------------------------------------------
 // Auto-pair undecided hexes to closest token by ΔE
-// ---------------------------------------------------------------------------
 
 function findOffenders() {
   const offenders = new Map(); // hex → count
@@ -330,10 +314,6 @@ function autoPair(offenders, tokens, decided) {
   return auto;
 }
 
-// ---------------------------------------------------------------------------
-// Sweep: replace raw hex with var(<token>) per decisions
-// ---------------------------------------------------------------------------
-
 function sweep(allDecisions) {
   let totalReplacements = 0;
   let filesTouched = 0;
@@ -365,10 +345,6 @@ function sweep(allDecisions) {
   }
   return { filesTouched, totalReplacements };
 }
-
-// ---------------------------------------------------------------------------
-// Main
-// ---------------------------------------------------------------------------
 
 const tokens = buildTokenTable();
 const rawDecisions = JSON.parse(readFileSync(DECISIONS_IN, "utf8"));

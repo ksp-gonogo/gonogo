@@ -9,21 +9,12 @@
  * meaningful against a stated matcher, which is what `MATCHER_REVISION` exists
  * to pin.
  *
- * DECORATION VERSUS DIVISION is the whole judgement, and the shape alone cannot
- * make it. A file carrying `SCHEME_MIN` banners or more is dividing a long
- * table or a long test into named sections, which is not what the rule is aimed
- * at, and is tolerated under `SECTIONED_CEILINGS`. A file carrying one or two is
- * decorating, and belongs in `BANNER_COMMENT_DEBT`.
- *
- * The debt list is consulted BEFORE the scheme rule, so the scheme rule cannot
- * be used to escape the debt list: adding a third banner to a two-banner debt
- * file fails on the count rather than promoting the file out of debt.
- *
- * The debt counts are EXACT, not ceilings. The scan is a static match over a
- * file, so the number is deterministic and there is no measurement noise to
- * absorb, and exactness is what makes the list self-cleaning: clean a banner and
- * the build tells you to lower the number in the same commit, which is the only
- * way a debt list reaches zero by attrition rather than by somebody auditing it.
+ * The tree is at zero: `BANNER_COMMENT_DEBT` is empty and there is no tolerated
+ * sectioning exemption any more (see `styleguide-banner-comments.test.ts` for
+ * the history of `SECTIONED_CEILINGS` and `SCHEME_MIN`, retired 2026-09-30 once
+ * `mod/`'s last 37 files / 201 banners were cleaned, Saga 697 second slice). A
+ * file that genuinely needs sections gets a plain sentence on the thing it
+ * introduces, never a decorated banner.
  */
 
 /**
@@ -53,99 +44,37 @@
 export const MATCHER_REVISION = 2;
 
 /**
- * Files carrying an isolated banner comment. SHRINK-ONLY, and the target is
- * zero: delete the banner, or replace it with a sentence that says something the
- * code does not, then lower or remove the entry here in the same commit.
- *
- * Never add a line. A new entry means new code just created the violation, and
- * the rule has been in CLAUDE.md the whole time.
+ * Files carrying an isolated banner comment. SHRINK-ONLY, and empty: every
+ * banner in the tree is gone. Never add a line. A new entry means new code
+ * just created the violation, and the rule has been in CLAUDE.md the whole
+ * time.
  *
  * Seeded 2026-08-22 at 43 files / 64 banners under revision 1, and emptied on
  * 2026-09-01. RE-SEEDED 2026-09-02 at 32 files / 46 banners under revision 2:
- * the list did not grow, the instrument did. `ui-kit` had five such files and
- * they were cleaned in the same commit rather than seeded, because it is the
- * published package and a third-party author reads it as the example.
- *
- * `packages/` went to zero on 2026-09-30 (Saga 697, first slice): its 14
- * entries are removed rather than lowered. Everything left here is `mod/`.
+ * the list did not grow, the instrument did. `packages/` went to zero on
+ * 2026-09-30 (Saga 697, first slice), and `mod/` (the last 9 entries) followed
+ * in the same task's second slice.
  */
-export const BANNER_COMMENT_DEBT: Record<string, number> = {
-  "mod/Sitrep.Contract.TestSupport/UnitCoverageAssertion.cs": 1,
-  "mod/Sitrep.Core.Tests/JsonWriterFlattenerParityTests.cs": 1,
-  "mod/Sitrep.Host.IntegrationTests/DomainWireFixtureGeneratorTests.cs": 1,
-  "mod/Sitrep.Host.Tests/SystemViewProviderTests.cs": 2,
-  "mod/Sitrep.Skeleton.Tests/SkeletonServerIntegrationTests.cs": 1,
-  "mod/sitrep-sdk/src/api/coverage/CoverageMaskCache.ts": 1,
-  "mod/sitrep-sdk/src/flight/BufferedDataSource.test.ts": 1,
-  "mod/sitrep-sdk/src/flight/types.ts": 1,
-  "mod/sitrep-sdk/src/spine/orbit-trajectory.test.ts": 1,
-};
+export const BANNER_COMMENT_DEBT: Record<string, number> = {};
 
 /**
- * A file carrying at least this many banners is treated as a sectioning scheme
- * rather than a decoration, and is tolerated. The number is a judgement, read
- * off the data: at three or more, every such file in the tree turned out to be a
- * long declaration table or a long test divided into named sections, and none
- * was a single decorated statement.
- *
- * The debt list is consulted FIRST, so this cannot be used to escape it. Adding
- * a third banner to a two-banner debt file would otherwise promote that file out
- * of the debt list, and the ratchet would report the change as a cleanup.
- */
-export const SCHEME_MIN = 3;
-
-/**
- * Ceilings on the tolerated population, so the exemption cannot spread. Without
- * them, writing three banners into a clean file in one commit is invisible: the
- * file clears `SCHEME_MIN` on arrival and no other check has an opinion.
- *
- * Ceilings rather than exact counts, unlike the debt list, because nothing
- * expects this population to reach zero and a cleanup here should not have to
- * touch this file. Slack left behind by a cleanup is the known cost, and it is
- * bounded by having to fit under BOTH numbers at once.
- *
- * Note what happens when a scheme file is cleaned down to one or two banners
- * rather than none: it drops out of this population and lands as an unlisted
- * decoration, which fails. That is correct rather than a wrinkle, because the
- * two banners left behind are exactly the shape the rule forbids.
- */
-export const SECTIONED_CEILINGS = {
-  /**
-   * Files carrying `SCHEME_MIN` or more banners. 35 under revision 1, 61
-   * under 2, 31 once `packages/`'s 14 sectioned files went to zero (Saga
-   * 697, first slice; `mod/` still carries the rest).
-   */
-  files: 31,
-  /**
-   * Banner lines across those files. 277 under revision 1, 377 under 2,
-   * 210 once `packages/`'s 62 sectioned-file banners went to zero (Saga
-   * 697, first slice).
-   */
-  banners: 210,
-} as const;
-
-/**
- * What the scan expects to see when it is working. Floors, not equalities: the
- * point is to fail LOUDLY when the enumeration breaks, and a broken enumeration
- * produces a small number, never a large one.
+ * What the scan expects to see when it is working. A floor, not an equality:
+ * the point is to fail LOUDLY when the enumeration breaks, and a broken
+ * enumeration produces a small number, never a large one.
  *
  * A scan that walks zero files finds zero banners and passes every assertion in
  * the ratchet, so without this the whole file could go green on a renamed
  * directory, a changed `git ls-files` invocation, or a cwd that is not the repo
  * root. `styleguide-earth-day` shipped in exactly that state for weeks.
+ *
+ * The population floors this file used to carry alongside it
+ * (`filesWithBanner`, `banners`) are gone: the real count is zero and a floor
+ * cannot sit above zero without failing on a clean tree. The instrument check
+ * for "did the scan actually look at banners" is now the planted-violation test
+ * in `styleguide-banner-comments.test.ts`, the same shape every other
+ * zero-count scan in this tree uses.
  */
 export const SCAN_FLOORS = {
-  /** Hand-written source files walked. 2,784 at seed time, 3,335 on 2026-09-02. */
+  /** Hand-written source files walked. 2,784 at seed time, 3,940 on 2026-09-30. */
   files: 2000,
-  /**
-   * Files carrying at least one banner. 93 under revision 2, 69 once the
-   * Uplink rig tools left core, 37 once `packages/`'s 28 went to zero
-   * (Saga 697, first slice).
-   */
-  filesWithBanner: 37,
-  /**
-   * Banner lines found. 423 under revision 2, 216 once `packages/`'s 84
-   * went to zero (Saga 697, first slice).
-   */
-  banners: 216,
 } as const;

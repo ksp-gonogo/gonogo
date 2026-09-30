@@ -42,9 +42,7 @@ namespace Sitrep.Host.Tests
         private static ICommsOcclusionModel BareRadius() =>
             new ScaledRadiusOcclusionModel(BareRadiusModelId, "Planted (bare body radius)", 1.0, 1.0);
 
-        // ---------------------------------------------------------------
         // The disagreement itself.
-        // ---------------------------------------------------------------
 
         [Fact]
         public void AtmosphericBody_StockOccludesSmallerThanTheBareRadius()
@@ -130,9 +128,7 @@ namespace Sitrep.Host.Tests
             Assert.Equal(0.0, Stock().OccludingRadiusMeters(radius, false), 6);
         }
 
-        // ---------------------------------------------------------------
         // The consumer-side read: whoever is elected, one shape.
-        // ---------------------------------------------------------------
 
         private sealed class StubBackend : ICommsBackend
         {
@@ -258,9 +254,7 @@ namespace Sitrep.Host.Tests
             Assert.Equal(CommsOcclusionModels.UnknownModelId, model.ModelId);
         }
 
-        // ---------------------------------------------------------------
         // The wire payload: the model applied to the snapshot's body list.
-        // ---------------------------------------------------------------
 
         private static KspSnapshot SnapshotWithBodies() => new KspSnapshot
         {
@@ -346,9 +340,7 @@ namespace Sitrep.Host.Tests
             Assert.Empty(payload.Bodies);
         }
 
-        // ---------------------------------------------------------------
         // Change detection: what keeps a near-static body list off the wire.
-        // ---------------------------------------------------------------
 
         [Fact]
         public void SameDeclaration_TwoIdenticalBuilds_AreTheSameDeclaration()

@@ -235,9 +235,7 @@ describe("orbitTrajectory: what the far end of a sampled conic means", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
 // Read frames: the curve re-expressed in a frame the widget chose.
-// ---------------------------------------------------------------------------
 
 const PLANET_MU = 3.986e14;
 const MOON_MU = 4.905e12;

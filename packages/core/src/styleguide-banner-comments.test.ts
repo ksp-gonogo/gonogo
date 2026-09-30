@@ -4,8 +4,9 @@
 // `uplink-isolation.test.ts`: the shrink-only half transpiles the allowlist at a
 // git ref through esbuild, which asserts a real TextEncoder/Uint8Array realm.
 
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { transformSync } from "esbuild";
 import { describe, expect, it } from "vitest";
@@ -13,8 +14,6 @@ import {
   BANNER_COMMENT_DEBT,
   MATCHER_REVISION,
   SCAN_FLOORS,
-  SCHEME_MIN,
-  SECTIONED_CEILINGS,
 } from "./banner-comments.allowlist";
 import {
   bannersIn,
@@ -22,10 +21,8 @@ import {
   scanBanners,
 } from "./banner-comments.matcher";
 import {
-  type BaseExports,
   baseCounts,
   baseNumber,
-  baseNumberFields,
   ratchetBaseRef,
   ratchetRepoRoot,
   sourceAtRatchetBase,
@@ -50,6 +47,12 @@ import {
  *
  * The rule this enforces is about DECORATION, not about section structure.
  *
+ * The tree reached zero banners on 2026-09-30 (Saga 697): `BANNER_COMMENT_DEBT`
+ * is empty and the `SECTIONED_CEILINGS`/`SCHEME_MIN` exemption for long
+ * sectioning tables is retired, since a count floor cannot sit above zero. The
+ * instrument check for "can this scan still see a banner" is now a planted
+ * violation, same shape as the other zero-count scans in this tree.
+ *
  * Lives in `packages/core` because core holds this repo's cross-package
  * ratchets, and because `pnpm test` in core is the `test` job CI actually runs.
  * A type-level check would gate nothing: `pnpm typecheck` is not a CI job.
@@ -62,13 +65,6 @@ const RESULT = scanBanners();
 
 /** Rule characters assembled at runtime, so no literal below is itself a banner. */
 const RULE = "-".repeat(3);
-
-/** The base's `SECTIONED_CEILINGS`, when it carried both counts. */
-function baseSectionedCeilings(
-  lists: BaseExports,
-): { files: number; banners: number } | undefined {
-  return baseNumberFields(lists, "SECTIONED_CEILINGS", ["files", "banners"]);
-}
 
 describe("banner comments", () => {
   /**
@@ -96,10 +92,43 @@ describe("banner comments", () => {
     // output for tests that pass.
     console.info(`[banner-comments] ${summary}`);
     expect(RESULT.scanned, summary).toBeGreaterThanOrEqual(SCAN_FLOORS.files);
-    expect(RESULT.counts.size, summary).toBeGreaterThanOrEqual(
-      SCAN_FLOORS.filesWithBanner,
-    );
-    expect(banners, summary).toBeGreaterThanOrEqual(SCAN_FLOORS.banners);
+    expect(RESULT.counts.size, summary).toBe(0);
+    expect(banners, summary).toBe(0);
+  });
+
+  /**
+   * The population floors this test used to carry (`filesWithBanner`,
+   * `banners`) cannot survive a real count of zero: a floor above zero fails a
+   * clean tree, and a floor of zero cannot distinguish "found nothing" from
+   * "looked at nothing." So the instrument check for the matcher's ability to
+   * SEE a banner is a planted violation instead, the same shape
+   * `styleguide-magnitude-budget.test.ts` uses once its own ratchet reached
+   * zero.
+   *
+   * Planted in an isolated tmpdir, never the repo tree: this whole file runs
+   * alongside every other whole-tree scan in the same `vitest run`, each
+   * walking `git ls-files` from the repo root on its own schedule, so a real
+   * file written into `packages/core/src` is a live race against every one of
+   * them (measured: `styleguide-token-refs.test.ts` read this file mid-write
+   * and threw ENOENT the moment the `finally` block below deleted it). A
+   * tmpdir outside the repo is invisible to every other scan by construction,
+   * so this reads the planted file back the same way `scanBanners` does
+   * (`readFileSync` + split + `bannersIn`) without touching anything another
+   * test can see.
+   */
+  it("can see a banner (planted)", () => {
+    const dir = mkdtempSync(join(tmpdir(), "banner-comments-"));
+    const planted = join(dir, "p.ts");
+    try {
+      writeFileSync(
+        planted,
+        [`// ${RULE} Planted section ${RULE}`, "export {};", ""].join("\n"),
+      );
+      const lines = readFileSync(planted, "utf8").split("\n");
+      expect(bannersIn(lines)).toEqual([`// ${RULE} Planted section ${RULE}`]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   /**
@@ -242,9 +271,6 @@ describe("banner comments", () => {
   it("adds no banner comment to a file that is not already carrying one", () => {
     const offenders: string[] = [];
     for (const [file, count] of RESULT.counts) {
-      // Debt list FIRST. Consulting the scheme rule first would let a third
-      // banner promote a two-banner debt file out of debt, and the ratchet
-      // would report that as a cleanup.
       const budget = BANNER_COMMENT_DEBT[file];
       if (budget !== undefined) {
         if (count > budget) {
@@ -254,7 +280,6 @@ describe("banner comments", () => {
         }
         continue;
       }
-      if (count >= SCHEME_MIN) continue;
       offenders.push(
         `${file}: ${count} banner(s), unlisted -> ${RESULT.titles.get(file)?.[0]}`,
       );
@@ -302,42 +327,6 @@ describe("banner comments", () => {
         "hides how close to zero this is.",
       ].join("\n"),
     ).toEqual([]);
-  });
-
-  /**
-   * The hole the debt list alone leaves: writing `SCHEME_MIN` banners into a
-   * clean file in one commit clears the scheme rule on arrival, and no per-file
-   * check has an opinion about it. A population ceiling does.
-   *
-   * The offending files are computed here rather than stored, so this closes the
-   * hole without putting a file list in the allowlist. That matters: two of the
-   * files in this population are legacy schema files whose paths carry a vendor
-   * name that `vendor-name.test.ts` is separately driving out of the tree.
-   */
-  it("does not grow the population of files that section with banners", () => {
-    const sectioned = [...RESULT.counts].filter(
-      ([file, n]) => BANNER_COMMENT_DEBT[file] === undefined && n >= SCHEME_MIN,
-    );
-    const banners = sectioned.reduce((a, [, n]) => a + n, 0);
-    const detail = sectioned
-      .map(([file, n]) => `  ${file}: ${n}`)
-      .sort()
-      .join("\n");
-    const message = [
-      `${sectioned.length} files section with banners, ${banners} banner lines.`,
-      `Ceilings: ${SECTIONED_CEILINGS.files} files, ${SECTIONED_CEILINGS.banners} lines.`,
-      "",
-      "Dividing a long table into named sections is tolerated; growing the set",
-      "of files that do it is not, because that is how the exemption becomes the",
-      "rule. Write the section header as a plain sentence instead.",
-      "",
-      "The full population, so the new one is easy to spot:",
-      detail,
-    ].join("\n");
-    expect(sectioned.length, message).toBeLessThanOrEqual(
-      SECTIONED_CEILINGS.files,
-    );
-    expect(banners, message).toBeLessThanOrEqual(SECTIONED_CEILINGS.banners);
   });
 
   describe("the debt list only ever shrinks", () => {
@@ -462,8 +451,6 @@ describe("banner comments", () => {
       const offenders = regrade(
         old.bannersIn as typeof bannersIn,
         baseCounts(base.lists, "BANNER_COMMENT_DEBT") ?? {},
-        baseNumber(base.lists, "SCHEME_MIN") ?? SCHEME_MIN,
-        baseSectionedCeilings(base.lists) ?? SECTIONED_CEILINGS,
       );
       expect(
         offenders,
@@ -486,12 +473,10 @@ describe("banner comments", () => {
       return { declared: true, before };
     }
 
-    /** Grade the current tree with a given matcher against a given allowlist. */
+    /** Grade the current tree with a given matcher against a given debt list. */
     function regrade(
       match: typeof bannersIn,
       debt: Record<string, number>,
-      schemeMin: number,
-      ceilings: { files: number; banners: number } | undefined,
     ): string[] {
       const root = ratchetRepoRoot();
       const counts = new Map<string, number>();
@@ -506,7 +491,6 @@ describe("banner comments", () => {
         if (n > 0) counts.set(file, n);
       }
       const offenders: string[] = [];
-      const sectioned: Array<[string, number]> = [];
       for (const [file, count] of counts) {
         const budget = debt[file];
         if (budget !== undefined) {
@@ -515,24 +499,7 @@ describe("banner comments", () => {
           }
           continue;
         }
-        if (count >= schemeMin) {
-          sectioned.push([file, count]);
-          continue;
-        }
         offenders.push(`${file}: ${count}, unlisted`);
-      }
-      if (ceilings) {
-        const banners = sectioned.reduce((a, [, n]) => a + n, 0);
-        if (sectioned.length > ceilings.files) {
-          offenders.push(
-            `${sectioned.length} sectioned files, old ceiling ${ceilings.files}`,
-          );
-        }
-        if (banners > ceilings.banners) {
-          offenders.push(
-            `${banners} sectioned banner lines, old ceiling ${ceilings.banners}`,
-          );
-        }
       }
       return offenders;
     }
@@ -546,32 +513,6 @@ describe("banner comments", () => {
       expect(
         additions(BANNER_COMMENT_DEBT, before),
         `Debt entries may only be REMOVED or lowered, never added or raised, vs ${at.ref}.`,
-      ).toEqual([]);
-    });
-
-    /**
-     * The ceilings are data in the same file and would otherwise be raisable
-     * with a one-digit edit that reads as maintenance. Same rule as the debt
-     * list: down only.
-     */
-    it("SECTIONED_CEILINGS", () => {
-      const at = baseAllowlist();
-      if (!at) return;
-      if (reseed(at).declared) return;
-      const before = baseSectionedCeilings(at.lists);
-      if (!before) return;
-      const raised: string[] = [];
-      if (SECTIONED_CEILINGS.files > before.files) {
-        raised.push(`files (${before.files} -> ${SECTIONED_CEILINGS.files})`);
-      }
-      if (SECTIONED_CEILINGS.banners > before.banners) {
-        raised.push(
-          `banners (${before.banners} -> ${SECTIONED_CEILINGS.banners})`,
-        );
-      }
-      expect(
-        raised,
-        `The tolerated-population ceilings may only be LOWERED, vs ${at.ref}.`,
       ).toEqual([]);
     });
   });

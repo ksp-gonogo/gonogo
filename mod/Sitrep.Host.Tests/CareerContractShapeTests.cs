@@ -62,7 +62,6 @@ namespace Sitrep.Host.Tests
             Assert.False(tag.Value.IsArray, "career.status payload is a single object, not a bare array; IsArray must be false.");
         }
 
-        // --- recursive mirror assertion ------------------------------------
 
         /// <summary>
         /// A contract OBJECT type must match a <c>Dictionary&lt;string, object?&gt;</c>:
@@ -154,7 +153,6 @@ namespace Sitrep.Host.Tests
                 ? name
                 : char.ToLower(name[0], CultureInfo.InvariantCulture) + name.Substring(1);
 
-        // --- [SitrepTopic] read via raw metadata ---------------------------
         // GetCustomAttribute would resolve Reinforced.Typings (never deployed)
         // and throw; the metadata reader inspects the blob without loading any
         // attribute's declaring assembly: the exact technique
@@ -216,7 +214,6 @@ namespace Sitrep.Host.Tests
             }
         }
 
-        // --- fully-populated fixture ---------------------------------------
         // Every field of every nested type is present and non-null so the
         // recursion reaches (and type-checks) every branch. Absence / null /
         // sandbox behaviour is covered by CareerViewProviderTests.

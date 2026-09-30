@@ -27,8 +27,6 @@ export class MemoryStore implements FlightStore {
   private flights = new Map<string, FlightRecord>();
   private samples = new Map<string, SampleRow[]>();
 
-  // --- Flights -----------------------------------------------------------
-
   async upsertFlight(record: FlightRecord): Promise<void> {
     this.flights.set(record.id, { ...record });
   }
@@ -56,8 +54,6 @@ export class MemoryStore implements FlightStore {
     this.flights.clear();
     this.samples.clear();
   }
-
-  // --- Samples -----------------------------------------------------------
 
   async appendSample(
     flightId: string,
@@ -106,8 +102,6 @@ export class MemoryStore implements FlightStore {
   async flush(): Promise<void> {
     // No-op: all writes are synchronous.
   }
-
-  // --- Internal ----------------------------------------------------------
 
   private bucketKey(flightId: string, key: string): string {
     return `${flightId}${MemoryStore.BUCKET_SEP}${key}`;

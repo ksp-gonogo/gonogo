@@ -517,9 +517,6 @@ namespace Gonogo.KSP
             return new KspSnapshot { Ut = ut, Values = values };
         }
 
-        // ----------------------------------------------------------------
-        // Vessel telemetry
-        // ----------------------------------------------------------------
 
         /// <summary>
         /// Resources tracked in <see cref="BuildResources"/>. Any resource a
@@ -3056,10 +3053,7 @@ namespace Gonogo.KSP
             };
         }
 
-        // ----------------------------------------------------------------
-        // Space-center / launch-site capture (spaceCenter.scene +
-        // spaceCenter.launchSites) - ground-side game facts, DelayRole.TrueNow
-        // ----------------------------------------------------------------
+        // Space-center / launch-site capture (spaceCenter.scene + spaceCenter.launchSites) - ground-side game facts, DelayRole.TrueNow
 
         /// <summary>
         /// The RAW <c>GameScenes</c> enum name of the current scene
@@ -3626,10 +3620,6 @@ namespace Gonogo.KSP
             return count;
         }
 
-        // ----------------------------------------------------------------
-        // Career/KSC capture (funds/reputation/science, facility
-        // levels+costs, contracts, strategies, unlocked tech)
-        // ----------------------------------------------------------------
 
         /// <summary>
         /// The <c>SpaceCenterFacility</c> ids <see cref="BuildCareerFacilities"/>
@@ -4523,10 +4513,6 @@ namespace Gonogo.KSP
             return profile;
         }
 
-        // ----------------------------------------------------------------
-        // Science capture (onboard experiments/containers, science lab
-        // processing state, Breaking Ground deployed experiments)
-        // ----------------------------------------------------------------
 
         /// <summary>
         /// Primitives-only snapshot of the active vessel's science state -
@@ -5416,10 +5402,6 @@ namespace Gonogo.KSP
             };
         }
 
-        // ----------------------------------------------------------------
-        // Parts/power/robotics capture (solar/battery/fuel-cell/alternator
-        // power production, Breaking Ground robotics)
-        // ----------------------------------------------------------------
 
         /// <summary>
         /// Primitives-only snapshot of the active vessel's power production
@@ -5759,9 +5741,7 @@ namespace Gonogo.KSP
             return list;
         }
 
-        // ----------------------------------------------------------------
         // Part-tree topology capture (vessel.parts: P1b slice 2)
-        // ----------------------------------------------------------------
 
         /// <summary>
         /// One pass over <c>vessel.parts</c> producing the raw part-tree the
@@ -6918,9 +6898,6 @@ namespace Gonogo.KSP
             return compound.target.flightID != 0 ? compound.target.flightID.ToString() : null;
         }
 
-        // ----------------------------------------------------------------
-        // GameEvents -> Lifecycle
-        // ----------------------------------------------------------------
 
         private void OnGameSceneLoadRequested(GameScenes scene)
         {

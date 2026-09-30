@@ -18,7 +18,7 @@ import {
   value,
 } from "../index";
 
-// --- A boolean row still needs no `type` at all -----------------------------
+// A boolean row still needs no `type` at all
 //
 // The back-compat guarantee, stated as a compile: every row registered before
 // there was more than one type omitted `type` or wrote `"boolean"`, and both
@@ -39,7 +39,7 @@ registerSetting({
   defaultValue: false,
 });
 
-// --- A quantity, read off the wire, grouped, and never writable -------------
+// A quantity, read off the wire, grouped, and never writable
 
 interface PredictionSettings {
   tolerance: number;
@@ -102,7 +102,7 @@ registerSetting({
   group: "Drawing",
 });
 
-// --- A preference shown but never offered as a control ---------------------
+// A preference shown but never offered as a control
 
 registerSetting({
   id: "example.buildId",
@@ -114,7 +114,7 @@ registerSetting({
   group: "Diagnostics",
 });
 
-// --- What the compiler refuses ----------------------------------------------
+// What the compiler refuses
 
 // The two mismatched defaults are refused at the CALL rather than at the
 // property, because `registerSetting` is overloaded: neither the generic form
@@ -168,7 +168,7 @@ registerSetting({
   readOnly: false,
 });
 
-// --- Rows declared as a list, registered in a loop ---------------------------
+// Rows declared as a list, registered in a loop
 
 // What a client with dozens of rows writes. Mixed types collapse to the union
 // the moment they share an array, and the generic form cannot take that back
@@ -206,7 +206,7 @@ const rows: SettingDefinition[] = [
 
 for (const def of rows) registerSetting(def);
 
-// --- The read side ----------------------------------------------------------
+// The read side
 
 declare const registered: SettingDefinition;
 

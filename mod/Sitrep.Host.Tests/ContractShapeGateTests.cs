@@ -154,9 +154,7 @@ namespace Sitrep.Host.Tests
             public List<MajorEntry> Majors { get; set; } = new();
         }
 
-        // ---------------------------------------------------------------
         // Rule 1: a Major names exactly one shape, so it appears once.
-        // ---------------------------------------------------------------
 
         /// <summary>
         /// The parallel-branch collision, caught mechanically. Two branches
@@ -183,9 +181,7 @@ namespace Sitrep.Host.Tests
                 "pick ONE shape for this Major, or give the second one its own Major.");
         }
 
-        // ---------------------------------------------------------------
         // Rule 2: bumping Major can no longer skip the diff.
-        // ---------------------------------------------------------------
 
         [Fact]
         public void CurrentMajorIsRecordedInTheLedger()
@@ -201,9 +197,7 @@ namespace Sitrep.Host.Tests
                 $"Recorded Majors: [{string.Join(", ", ledger.Majors.Select(e => e.Major))}].");
         }
 
-        // ---------------------------------------------------------------
         // Rule 3: the old "lying minor" gate, against a frozen floor.
-        // ---------------------------------------------------------------
 
         /// <summary>
         /// Every Minor on a Major line must be additive over that Major's
@@ -238,9 +232,7 @@ namespace Sitrep.Host.Tests
                 "change additive, or bump ContractVersion.Major and freeze the new shape.");
         }
 
-        // ---------------------------------------------------------------
         // Rule 4: a Major must show its work.
-        // ---------------------------------------------------------------
 
         /// <summary>
         /// A Major bump is the sanctioned way to break the wire, but it is no
@@ -332,9 +324,6 @@ namespace Sitrep.Host.Tests
             return failures;
         }
 
-        // ---------------------------------------------------------------
-        // Self-tests for the gate itself.
-        // ---------------------------------------------------------------
 
         /// <summary>
         /// Reproduces the exact collision that reached <c>staging</c>: the
@@ -586,9 +575,7 @@ namespace Sitrep.Host.Tests
             Assert.Empty(ComputeRemovals(floor, additive));
         }
 
-        // ---------------------------------------------------------------
         // The one comparison behind every rule.
-        // ---------------------------------------------------------------
 
         /// <summary>
         /// Returns one canonical string per fact present in
@@ -813,9 +800,6 @@ namespace Sitrep.Host.Tests
             return found;
         }
 
-        // ---------------------------------------------------------------
-        // The freeze utility.
-        // ---------------------------------------------------------------
 
         /// <summary>
         /// Not part of the gate: a manual utility, always skipped in CI. Run
@@ -939,9 +923,6 @@ namespace Sitrep.Host.Tests
                 + AppContext.BaseDirectory + ": pass SITREP_BASELINE_OUT explicitly.");
         }
 
-        // ---------------------------------------------------------------
-        // Reflection.
-        // ---------------------------------------------------------------
 
         private static Ledger LoadLedger()
         {

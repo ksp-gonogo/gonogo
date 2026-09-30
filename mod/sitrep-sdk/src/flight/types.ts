@@ -2,11 +2,7 @@ import type { DataKey, StreamStatusValue } from "../api/types";
 import type { BandKind, ReckoningBasis } from "../reading";
 import type { SitrepUnit } from "../units";
 
-// ---------------------------------------------------------------------------
-// Units hint used by the graph widget's axis-grouping heuristic and by
-// display formatting. "raw" is the fallback for values we don't want to
-// classify.
-// ---------------------------------------------------------------------------
+// Units hint used by the graph widget's axis-grouping heuristic and by display formatting. "raw" is the fallback for values we don't want to classify.
 
 /**
  * A display unit for a recorded key, used to group chart axes and format values.

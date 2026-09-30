@@ -605,7 +605,7 @@ namespace Sitrep.Host.IntegrationTests
             engine.Start();
             try
             {
-                // ---- delayed actuation: vessel.control.setSas ----
+                // delayed actuation: vessel.control.setSas
                 var sasResolved = false;
                 CommandResult? sasResult = null;
                 engine.DispatchCommandAndWait(
@@ -634,7 +634,7 @@ namespace Sitrep.Host.IntegrationTests
                 Assert.False(clearResolved, "vessel.target.clear rides the delay: nothing about it changes the scene");
                 Assert.Equal(0, actuator.ClearTargetCallCount);
 
-                // ---- instant meta-game control: time.setPaused ----
+                // instant meta-game control: time.setPaused
                 var pauseResolved = false;
                 CommandResult? pauseResult = null;
                 engine.DispatchCommandAndWait(
@@ -1282,7 +1282,7 @@ namespace Sitrep.Host.IntegrationTests
 
             try
             {
-                // ---- delayed:true uplink: vessel.maneuver.add ----
+                // delayed:true uplink: vessel.maneuver.add
                 using var maneuverResolved = new ManualResetEventSlim(false);
                 engine.DispatchCommand(
                     VesselCommandProvider.ManeuverAddCommand,
@@ -1303,7 +1303,7 @@ namespace Sitrep.Host.IntegrationTests
                 Assert.True(maneuverResolved.Wait(Timeout));
                 Assert.Equal(1, actuator.ManeuverAddCallCount);
 
-                // ---- delayed:false sim-meta: time.setPaused ----
+                // delayed:false sim-meta: time.setPaused
                 using var pauseResolved = new ManualResetEventSlim(false);
                 engine.DispatchCommand(
                     VesselCommandProvider.SetPausedCommand,
@@ -3174,10 +3174,7 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
-        // ----------------------------------------------------------------
-        // M2 Task 1: tombstone samples. See
-        // ChannelEngine.ProcessTick's channel loop (the _born guard).
-        // ----------------------------------------------------------------
+        // M2 Task 1: tombstone samples. See ChannelEngine.ProcessTick's channel loop (the _born guard).
 
         [Fact]
         public async Task PresentToNullEmitsExactlyOneTombstoneThenNullToNullIsSuppressedByTheDeadband()
