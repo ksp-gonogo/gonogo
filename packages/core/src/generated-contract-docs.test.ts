@@ -81,9 +81,9 @@ describe("generated contract docs", () => {
 
   it("finds every generated contract", () => {
     /*
-     * A walk that matched nothing would pass every assertion below. This was a
-     * floor of 7, and six of those contracts belong to Uplinks leaving for the
-     * gonogo-uplinks repo, so the walk is held to the codegen twins instead: every
+     * A walk that matched nothing would pass every assertion below. The number
+     * of Uplink contract slices under mod/ is not fixed, so rather than a floor
+     * the walk is held to the codegen twins: every
      * `*.Contract.Codegen` project on disk writes exactly one contract.ts, so the
      * two sets must match at any number of slices, and core's own stays.
      */

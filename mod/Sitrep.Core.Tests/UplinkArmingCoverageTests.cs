@@ -60,10 +60,9 @@ namespace Sitrep.Core.Tests
         /// The walk has to find its subjects or it reports a clean repo while
         /// proving nothing.
         ///
-        /// <para>This was a floor of six, and every mod Uplink is leaving for the
-        /// gonogo-uplinks repo, so the honest count here is heading for zero and a
-        /// floor on it could not tell "all moved" from "the walk broke". What
-        /// replaced it is the plant and the exact two-way <c>Gonogo.sln</c>
+        /// <para>Not a floor, because the number of Uplinks under <c>mod/</c> is not
+        /// fixed, and a floor on it could not tell a small tree from "the walk
+        /// broke". What holds it instead is the plant and the exact two-way <c>Gonogo.sln</c>
         /// agreement in <see cref="UplinkProjects.AssertWalkAgreesWithPlantAndSolution"/>,
         /// which holds at any number of Uplinks including none. An Uplink that is
         /// not a third-party mod at all, like <c>Gonogo.KSP.BreakingGroundUplink</c>
@@ -148,9 +147,9 @@ namespace Sitrep.Core.Tests
         ///
         /// <para>The planted Uplink is armed and wired, so there is always one
         /// subject whose hash, source and wiring are read through the same helpers
-        /// as a real Uplink's. This used to require at least one real armed Uplink,
-        /// and every armed one is a mod Uplink bound for the gonogo-uplinks
-        /// repo.</para>
+        /// as a real Uplink's. It does not require a real armed Uplink, because
+        /// the number of those under <c>mod/</c> is not fixed and may be
+        /// zero.</para>
         /// </summary>
         [Fact]
         public void TheWalkCanSeeAViolationItIsPlanted()

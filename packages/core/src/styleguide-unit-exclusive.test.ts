@@ -575,10 +575,11 @@ describe("Unit is the only unit renderer", () => {
   it("walked every root, and no root was empty", () => {
     const { perRoot } = scan(REPO_ROOT);
     const roots = Object.keys(perRoot);
-    // Not a count. This was a floor of 17 roots and 900 files, set below the
-    // measured 20 and 1,141 so one Uplink leaving would not trip it, and every
-    // mod Uplink is leaving for the gonogo-uplinks repo. The roots walked must
-    // be exactly the package roots, the sdk, and every client src git tracks.
+    /*
+     * Not a count, because the number of Uplink clients under mod/ is not fixed
+     * and a floor would be wrong at some size. The roots walked must be exactly
+     * the package roots, the sdk, and every client src git tracks.
+     */
     expect([...roots].sort(), "roots walked").toEqual(
       [
         ...SCANNED_PACKAGE_ROOTS,

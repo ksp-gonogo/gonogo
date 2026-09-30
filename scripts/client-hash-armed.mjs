@@ -125,10 +125,10 @@ const rowFor = (id, generated) => {
 };
 
 /*
- * A run that examines nothing reports success. This used to refuse when the
- * matrix reported no Uplink with both a client and a plugin csproj, and every
- * such Uplink is leaving for the gonogo-uplinks repo, so an empty set is a real
- * end state. The matrix proves its own walk on a planted fixture, and the read
+ * A run that examines nothing reports success. It does not refuse an empty set
+ * of Uplinks with both a client and a plugin csproj, because the number of those
+ * under mod/ is not fixed and none is a valid tree. The matrix proves its own
+ * walk on a planted fixture, and the read
  * below is proved on that fixture's armed ExpectedClientHash.g.cs, so a broken
  * read still fails at any number of Uplinks including none.
  */

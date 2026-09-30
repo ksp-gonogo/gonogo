@@ -82,12 +82,10 @@ echo "codegen -> $ERRORCODES_OUT"
 # client/src/__generated__/, never into sitrep-sdk: sitrep-sdk stays core-only.
 #
 # DISCOVERED from the `mod/Gonogo*Uplink.Contract.Codegen` twins rather than
-# written out once per Uplink. It used to be six hand-written blocks, and every
-# mod Uplink is leaving for the gonogo-uplinks repo: each departure then had to
-# cut its block out of this file by heading, which silently missed the two whose
-# heading did not match their directory and, for the last block in the file,
-# took the asyncapi and ui-kit steps below with it. A twin that exists is
-# generated; a twin that has left generates nothing, and zero twins is a valid run.
+# written out once per Uplink, because the set of Uplinks under mod/ is not fixed
+# and a hand-written block per Uplink has to be found and cut by hand whenever
+# one is removed. A twin that exists is generated; a twin that is gone generates
+# nothing, and zero twins is a valid run.
 #
 # Everything a leg needs follows from the twin's directory name and its slice's
 # own source, so adding an Uplink means adding its twin and its <X>RtConfig:

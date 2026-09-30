@@ -19,9 +19,9 @@ namespace Sitrep.Core.Tests
     /// stop finding its subjects, and a walk that finds nothing reports a clean
     /// repo.</para>
     ///
-    /// <para><b>Why a plant and not a floor.</b> Every mod Uplink is leaving for
-    /// the gonogo-uplinks repo, so the honest count here is heading for zero, and
-    /// a floor on it cannot tell "all moved" from "the walk broke". So the walk is
+    /// <para><b>Why a plant and not a floor.</b> The number of Uplinks under
+    /// <c>mod/</c> is not fixed, so a floor on it would be wrong at some size and
+    /// cannot tell a small tree from "the walk broke". So the walk is
     /// also run over <see cref="PlantRoot"/>, a fixture tree under this test
     /// project holding one Uplink, one Tests sibling, a contract-slice decoy and a
     /// solution declaring all three, reached from the same resolved <c>mod/</c>.

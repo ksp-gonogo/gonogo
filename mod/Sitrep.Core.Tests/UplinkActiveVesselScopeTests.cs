@@ -54,12 +54,9 @@ namespace Sitrep.Core.Tests
         /// and the reason it stands.
         /// </summary>
         /*
-         * EMPTY, and it emptied by an Uplink LEAVING rather than by the reads
-         * being routed: GonogoMechJebUplink held the only three, and they went
-         * with it to the gonogo-uplinks repo still unrouted. So this is not a
-         * clean tree so much as a smaller one, and the walk below is what says
-         * so: it asserts it found Uplinks to measure before reporting none in
-         * breach.
+         * EMPTY. An empty list over a tree with few Uplinks proves little on its
+         * own, so the walk below asserts it found Uplinks to measure before
+         * reporting none in breach.
          */
         private static readonly Dictionary<string, int> Debt = new(StringComparer.Ordinal);
 
@@ -112,8 +109,8 @@ namespace Sitrep.Core.Tests
         /// <para>Checked against the discovery rather than against a couple of
         /// filenames, so this names no mod. <c>UplinkIsolationTests</c> already
         /// pins the discovery itself against <c>Gonogo.sln</c> and its plant. The
-        /// plant half replaced a floor of a hundred files, which every mod Uplink
-        /// leaving for the gonogo-uplinks repo takes to zero.</para>
+        /// plant stands in for a floor on files, because the number of Uplinks under
+        /// <c>mod/</c> is not fixed and a floor would be wrong at some size.</para>
         /// </summary>
         [Fact]
         public void TheWalkFoundSourceForEveryUplinkItIsJudging()

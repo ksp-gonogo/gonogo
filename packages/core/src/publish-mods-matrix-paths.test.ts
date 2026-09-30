@@ -85,7 +85,7 @@ const matrix = parseMatrixInclude(workflowText);
 describe("publish-mods.yml's matrix names paths that exist", () => {
   it("parsed something, so the checks below mean something", () => {
     // Guards the parser itself: a regressed `include:` match or indentation read would collapse this to an empty list, and every check after this one would then pass by comparing against nothing.
-    // Not a count, because every Uplink leg is leaving for the gonogo-uplinks repo: the parse must agree with a plain count of the `- id:` lines under `include:`, and must read the core mod's own leg, which stays.
+    // Not a count, because the number of Uplink legs is not fixed: the parse must agree with a plain count of the `- id:` lines under `include:`, and must read the core mod's own leg, which stays.
     const lines = workflowText.split("\n");
     const includeAt = lines.findIndex((line) => /^\s*include:\s*$/.test(line));
     const includeIndent = lines[includeAt].search(/\S/);

@@ -233,10 +233,12 @@ describe("uplink isolation", () => {
    * shipped in that state for weeks.
    */
   it("actually scanned the Uplink clients", () => {
-    // Not a count: this was a floor of 200 files across 7 clients, and every
-    // mod Uplink is leaving for the gonogo-uplinks repo. Instead every client
-    // source file git tracks must have been read, and git's list must hold a
-    // client that stays in this repo, so a walk reading nothing fails at any size.
+    /*
+     * Not a count, because the number of Uplink clients under mod/ is not fixed
+     * and a floor would be wrong at some size. Instead every client source file
+     * git tracks must have been read, and git's list must hold a client that
+     * stays in this repo, so a walk reading nothing fails at any size.
+     */
     const read = new Set(
       uplinkSourceFiles().map((f) =>
         relative(REPO_ROOT, f).split("\\").join("/"),

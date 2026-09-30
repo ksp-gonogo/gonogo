@@ -2,7 +2,8 @@
 /**
  * Can this Uplink's C# half LEAVE?
  *
- * The C# twin of `uplink-extraction-probe.mjs`. Inside the repo every Uplink
+ * The C# counterpart of `published-packages-probe.mjs`, which asks the same of
+ * the npm packages. Inside the repo every Uplink
  * plugin and its test project reach `Sitrep.Contract` by `ProjectReference`, so
  * they compile against the source tree, and an Uplink can depend on a type the
  * packed `KspGonogo.Sitrep.Contract` never carries while every in-repo build

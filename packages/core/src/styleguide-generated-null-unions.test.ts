@@ -50,9 +50,9 @@ function repoRoot(): string {
 }
 
 /**
- * Every generated contract in the tree, DISCOVERED rather than listed: each
- * bundled Uplink is on its way out to the gonogo-uplinks repo, and a departure
- * must not read as a regression, nor a new Uplink as covered when it is not.
+ * Every generated contract in the tree, DISCOVERED rather than listed: the set
+ * of Uplinks under mod/ is not fixed, and a removed one must not read as a
+ * regression, nor a new one as covered when it is not.
  */
 function generatedContracts(root: string): string[] {
   return execFileSync(

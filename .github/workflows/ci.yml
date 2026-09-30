@@ -246,6 +246,16 @@ jobs:
       - name: pnpm build
         run: pnpm build
 
+      # Packs sitrep-sdk, ui-kit and uplink-tools as a release would, installs them
+      # with npm OUTSIDE the workspace, and requires every published entry point to
+      # typecheck (bundler and nodenext), to take its types from dist rather than
+      # src, and to LOAD under a bare node import. Nothing else here asks: inside
+      # the workspace every import resolves through pnpm links to source. It
+      # proves itself first with a planted missing export and a planted missing
+      # subpath, either of which passing exits BLIND.
+      - name: The published packages work outside the workspace
+        run: pnpm published-packages-probe
+
       # `pnpm build` alone still leaves one gap: `@ksp-gonogo/storybook` has no
       # `build` script at all, so `turbo build` has nothing to run for it.
       # `dist/stories/coverage.json` is written by `generate-stories.ts`, which

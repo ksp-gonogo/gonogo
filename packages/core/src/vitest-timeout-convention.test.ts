@@ -102,9 +102,9 @@ describe("every jsdom vitest project sets an explicit test timeout", () => {
     // the exact shape of blindness this file exists to prevent.
     const projects = readProjects();
     /*
-     * Not counts: these were floors of 15 projects and 10 jsdom ones, and seven
-     * of those configs belong to Uplink clients leaving for the gonogo-uplinks
-     * repo. The configs found must be exactly the vitest.config.ts files git
+     * Not counts, because the number of Uplink clients under mod/ is not fixed
+     * and a floor would be wrong at some size. The configs found must be exactly
+     * the vitest.config.ts files git
      * tracks, and the jsdom read must agree with a plain substring read of each.
      */
     const tracked = execFileSync("git", ["ls-files", "packages", "mod"], {

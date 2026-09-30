@@ -192,9 +192,9 @@ describe("the delay disposition is declared once", () => {
     const rows = railRows();
 
     /*
-     * The agreement below proves nothing over rows the parser never read. This
-     * was a floor of 6 maps and 80 commands, and six of those maps belong to
-     * Uplinks leaving for the gonogo-uplinks repo, so instead every map's rail
+     * The agreement below proves nothing over rows the parser never read. The
+     * number of Uplink command maps under mod/ is not fixed, so rather than a
+     * floor every map's rail
      * must carry exactly the commands its own GENERATED_COMMAND_IDS array lists,
      * a second emission of the same reflection read by a different pattern, and
      * the sdk's map, which stays, must be one of them.

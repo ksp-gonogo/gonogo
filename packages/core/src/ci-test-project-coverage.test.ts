@@ -87,12 +87,14 @@ function ciGatedProjects(): string[] {
 
 describe("ci.yml's mod-job project list covers the solution's test projects", () => {
   it("finds both lists at all, before comparing them", () => {
-    // A parse that silently returned nothing would make every assertion below
-    // pass while checking nothing, which is the exact failure shape this file
-    // exists to prevent. Not a count: this was a floor of 10 on each, and the six
-    // mod Uplinks' Tests projects are leaving for the gonogo-uplinks repo. The
-    // solution parse must read the planted fixture's solution exactly, and both
-    // real lists must name a test project that stays in this repo.
+    /*
+     * A parse that silently returned nothing would make every assertion below
+     * pass while checking nothing, which is the exact failure shape this file
+     * exists to prevent. Not a count, because the number of Uplink Tests
+     * projects under mod/ is not fixed and a floor would be wrong at some size.
+     * The solution parse must read the planted fixture's solution exactly, and
+     * both real lists must name a test project that stays in this repo.
+     */
     expect(
       solutionTestProjects("mod/Sitrep.Core.Tests/UplinkWalkPlant/Gonogo.sln"),
     ).toEqual(["GonogoPlantedUplink.Tests"]);

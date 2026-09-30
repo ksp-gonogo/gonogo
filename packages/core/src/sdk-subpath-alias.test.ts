@@ -254,10 +254,10 @@ describe("sdk subpath aliases", () => {
 
   it("finds a planted config to check, so a green result means something", () => {
     /*
-     * This asked for at least one real config, and the configs that alias the
-     * sdk belong to Uplink clients leaving for the gonogo-uplinks repo, so the
-     * walk would have nothing to find and could not tell that from a broken one.
-     * It is proved on a planted tree instead: an aliasing config under mod/, a
+     * The configs that alias the sdk belong to Uplink clients, and the number
+     * of those under mod/ is not fixed, so a walk with nothing real to find could
+     * not tell that from a broken one. It is proved on a planted tree instead:
+     * an aliasing config under mod/, a
      * config naming the sdk without the alias under packages/, and a decoy inside
      * node_modules that must not be read.
      */

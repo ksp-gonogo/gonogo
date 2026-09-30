@@ -92,11 +92,13 @@ describe("every Uplink plugin assembly is compiled by CI", () => {
     const inSolution = solutionUplinkProjects();
     const discovered = discoveredUplinkProjects();
 
-    // Guards the guard: a solution read that matched nothing would make the
-    // comparison below pass against an empty set. This was a floor of 6, and every
-    // mod Uplink is leaving for the gonogo-uplinks repo, so the read is proved on
-    // the planted fixture's solution instead, and the real solution has to be the
-    // one that builds this repo.
+    /*
+     * Guards the guard: a solution read that matched nothing would make the
+     * comparison below pass against an empty set. The number of Uplink projects
+     * under mod/ is not fixed, so rather than a floor the read is proved on the
+     * planted fixture's solution, and the real solution has to be the one that
+     * builds this repo.
+     */
     expect(
       solutionUplinkProjects(
         "mod/Sitrep.Core.Tests/UplinkWalkPlant/Gonogo.sln",

@@ -1087,20 +1087,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/Sitrep.Core.Tests/UplinkContractOwnershipTests.cs",
 
       /*
-       * -- ACTIVE-VESSEL scan inventory: core reports the craft an
-       * EVA kerbal stepped out of, and this scan holds every Uplink to resolving
-       * that through the activeVessel capability rather than off FlightGlobals.
-       * Its shrink-only debt has one entry and a debt list has to name its
-       * subject. Everything else in the file is discovery-driven: the walk is
-       * checked against the Uplinks UplinkProjects finds rather than against
-       * filenames, precisely so this stays the only mention. The entry goes when
-       * those three writes are routed, which needs a live flight rather than a
-       * code change, and the reasoning for the hold lives in that Uplink's own
-       * doc comment rather than here.
-       */
-      "mod/Sitrep.Core.Tests/UplinkActiveVesselScopeTests.cs",
-
-      /*
        * Porkchop heatmap doc-comment: "(MechJeb/alexmoon style)" cites the
        * familiar visual convention it mirrors, not a dependency.
        */

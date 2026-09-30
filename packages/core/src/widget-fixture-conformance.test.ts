@@ -187,9 +187,9 @@ describe("widget fixtures conform to the generated contract", () => {
     expect([...declaringFiles].sort()).toEqual([...contract().sources].sort());
 
     /*
-     * And how many topics each source yielded, without a count: this was a
-     * floor of 100 topics and 5 declaring files, and a third of those topics
-     * belong to Uplinks leaving for the gonogo-uplinks repo. Every generated
+     * And how many topics each source yielded, without a count: the number of
+     * Uplink topic maps under mod/ is not fixed, so a floor on topics or
+     * declaring files would be wrong at some size. Every generated
      * topic map also lists its ids as GENERATED_TOPIC_IDS, read here by a plain
      * pattern rather than the type checker, so an Uplink map must resolve to
      * exactly that list and the sdk's to at least its own generated one.
@@ -235,9 +235,9 @@ describe("widget fixtures conform to the generated contract", () => {
   it("walked a real number of fixtures, payloads and fields", () => {
     const all = scanAll();
     /*
-     * Not floors: these were 40 widgets, 700 payloads, 10,000 field names and 30
-     * widgets with payloads, set under a tree whose Uplink fixtures are leaving
-     * for the gonogo-uplinks repo. The widget directories walked must be exactly
+     * Not floors, because the number of Uplink fixtures under mod/ is not fixed
+     * and a floor on widgets, payloads or field names would be wrong at some
+     * size. The widget directories walked must be exactly
      * those git tracks a fixture under; most of them must have had a payload
      * graded, and every one that did must have had field names matched, which a
      * walker that stopped descending cannot satisfy at any size.
@@ -486,11 +486,11 @@ describe("the widget-fixture check can fail", () => {
       (id) => contract().sourceOf(id) !== sdkFile,
     );
     /*
-     * This was a floor of 10 Uplink topics. Every Uplink topic map is leaving for
-     * the gonogo-uplinks repo, and once none is left an sdk-only resolver IS the
-     * resolver, so there is nothing for it to be blind to. Whether any map is left
-     * is read off disk, and "resolves both halves of the contract" holds the
-     * resolver to every map that is, so this cannot skip over a map it dropped.
+     * Not a floor, because the number of Uplink topic maps under mod/ is not
+     * fixed, and with none an sdk-only resolver IS the resolver, so there is
+     * nothing for it to be blind to. Whether any map exists is read off disk, and
+     * "resolves both halves of the contract" holds the resolver to every map that
+     * does, so this cannot skip over a map it dropped.
      */
     expect(fromUplinks.length > 0).toBe(uplinkTopicMapCount() > 0);
     if (uplinkTopicMapCount() === 0) return;

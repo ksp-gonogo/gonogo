@@ -43,10 +43,10 @@ uplink_csprojs() {
 # A discovery that matches nothing builds nothing, finds no failures and exits 0,
 # which is indistinguishable from success. So the discovery is first run over the
 # fixture tree the C# Uplink walks are proved on, and must find exactly the one
-# planted csproj there. This replaced a floor on the count (lowered from 11 to 6
-# as Uplinks migrated to the gonogo-uplinks repo): every mod Uplink is leaving, so
-# the count is heading for zero, and a floor could not tell "all moved" from "the
-# find expression broke". The plant can, so zero Uplinks here is a valid run.
+# planted csproj there, rather than meeting a floor on the count: the number of
+# Uplinks under mod/ is not fixed, so a floor would be wrong at some size and
+# could not tell a small tree from "the find expression broke". The plant can,
+# so zero Uplinks here is a valid run.
 PLANT=mod/Sitrep.Core.Tests/UplinkWalkPlant
 PLANTED="$(uplink_csprojs "$PLANT")"
 if [ "$PLANTED" != "$PLANT/GonogoPlantedUplink/GonogoPlantedUplink.csproj" ]; then

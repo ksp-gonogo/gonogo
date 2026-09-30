@@ -155,11 +155,13 @@ describe("an Uplink reaches the augment registry through the sdk", () => {
   });
 
   it("scans a non-trivial number of Uplink client files, so a green result means something", () => {
-    // Without this, a broken walk (a renamed `client/` directory, a bad prune)
-    // reports zero offenders and reads exactly like compliance. Not a count: this
-    // was a floor of 100 files, and every mod Uplink is leaving for the
-    // gonogo-uplinks repo. Every client source git tracks must have been walked,
-    // and git's list must hold a client that stays in this repo.
+    /*
+     * Without this, a broken walk (a renamed `client/` directory, a bad prune)
+     * reports zero offenders and reads exactly like compliance. Not a count,
+     * because the number of Uplink clients under mod/ is not fixed and a floor
+     * would be wrong at some size. Every client source git tracks must have been
+     * walked, and git's list must hold a client that stays in this repo.
+     */
     const walked = new Set(uplinkClientSources().map((f) => relative(REPO, f)));
     const tracked = execFileSync("git", ["ls-files", "mod"], {
       cwd: REPO,

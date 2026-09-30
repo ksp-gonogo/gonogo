@@ -135,9 +135,9 @@ describe("one render process", () => {
 
   /**
    * A walk that matches nothing reports no violations, which is indistinguishable
-   * from a clean tree. This was a floor of 7, and every mod Uplink is leaving for
-   * the gonogo-uplinks repo, so the walk is held to git's own list of Uplink
-   * client manifests, and that list to a client that stays in this repo.
+   * from a clean tree. The number of Uplink clients under mod/ is not fixed, so
+   * rather than a floor the walk is held to git's own list of Uplink client
+   * manifests, and that list to a client that stays in this repo.
    */
   it("finds the Uplink clients at all", () => {
     const tracked = execFileSync(

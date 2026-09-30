@@ -247,10 +247,12 @@ describe("wall-clock allowlist: currency is measured against the frame, never Da
   it("walked every widget root, not just the first one", () => {
     const root = findRepoRoot(dirname(fileURLToPath(import.meta.url)));
     const { perRoot } = scanWallClock(root);
-    // Not a count: this was a floor of 8 roots and 200 files, and every mod
-    // Uplink is leaving for the gonogo-uplinks repo. The roots walked must be
-    // exactly the built-in library plus every Uplink client src git tracks, and
-    // none of them may have walked nothing.
+    /*
+     * Not a count, because the number of Uplink clients under mod/ is not fixed
+     * and a floor would be wrong at some size. The roots walked must be exactly
+     * the built-in library plus every Uplink client src git tracks, and none of
+     * them may have walked nothing.
+     */
     const expected = [
       "packages/components/src",
       ...trackedModClientRoots(root).filter((rel) =>

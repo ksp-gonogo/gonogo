@@ -50,10 +50,10 @@ snapshot() {
 }
 
 # A discovery that matches nothing hashes nothing, compares equal to itself and
-# reports success, which is the exact shape of a gate that has gone blind. This
-# was a floor of 8 directories, and six of them belong to Uplinks leaving for the
-# gonogo-uplinks repo, so a floor could not tell a smaller tree from a broken
-# find. Two checks instead, neither a count. The discovery must find the two
+# reports success, which is the exact shape of a gate that has gone blind. The
+# number of Uplink directories under mod/ is not fixed, so a floor could not tell
+# a smaller tree from a broken find. Two checks instead, neither a count. The
+# discovery must find the two
 # directories core's own codegen writes, which stay whatever leaves. And it must
 # find every generated directory git tracks, a source that shares nothing with
 # `find`, so a pattern or prune that stops reaching one says so at any size.

@@ -52,8 +52,8 @@ namespace Sitrep.Core.Tests
     /// <see cref="ScanFindsEveryUplinkTestProject"/> pin the discovery itself: the
     /// walk must find a planted Uplink and Tests project, and must agree exactly
     /// with <c>Gonogo.sln</c> in both directions, so a renamed or newly added one
-    /// cannot quietly drop out of scope. None of it is a count, because every mod
-    /// Uplink is leaving this repo and an empty set is where it ends. If the layout
+    /// cannot quietly drop out of scope. None of it is a count, because the number
+    /// of Uplinks under <c>mod/</c> is not fixed and may be zero. If the layout
     /// changes, those tests fail first and say so, rather than the isolation tests
     /// passing on an empty set.</para>
     /// </summary>

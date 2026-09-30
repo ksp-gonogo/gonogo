@@ -62,10 +62,9 @@ const PACKAGE_ROOTS = ["packages", "mod"];
 /**
  * The packages with test files as git tracks them: every tracked `package.json`
  * directory under the roots that is the nearest package of some tracked test
- * file. The independent list the directory walk is checked against, which
- * replaced a floor of 18 packages: seven Uplink clients are leaving for the
- * gonogo-uplinks repo, so a floor could not tell that from a walk that lost its
- * input.
+ * file. The independent list the directory walk is checked against, rather than
+ * a floor: the number of Uplink clients under mod/ is not fixed, so a floor
+ * could not tell a smaller tree from a walk that lost its input.
  */
 function trackedPackagesWithTests(): string[] {
   const tracked = execFileSync("git", ["ls-files", ...PACKAGE_ROOTS], {

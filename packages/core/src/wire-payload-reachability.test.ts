@@ -155,9 +155,9 @@ describe("wire payload reachability", () => {
     expect(report.reached).toBeGreaterThan(120);
     expect(report.writable).toBeGreaterThan(30);
     /*
-     * The source half is not a count. It was a floor of 400 files, and the mod
-     * Uplinks leaving for the gonogo-uplinks repo take the tree to 400 exactly.
-     * Instead every C# file git tracks under Sitrep.Core, a production project
+     * The source half is not a count, because the number of Uplinks under mod/
+     * is not fixed and a floor on files would be wrong at some size. Instead
+     * every C# file git tracks under Sitrep.Core, a production project
      * that stays, must be among the sources read, and so must the writer, which
      * now lives in Sitrep.Contract so an Uplink's own tests can reach it.
      */
@@ -184,9 +184,9 @@ describe("wire payload reachability", () => {
      * Uplink publishing one of its OWN enums, sat outside the sweep.
      *
      * A discovery that matches nothing hashes nothing and reports a clean tree.
-     * This was floored at 5 slices and 40 roots and types, and every mod Uplink
-     * is leaving for the gonogo-uplinks repo, so the slices are held to the
-     * codegen twins on disk instead, which holds at any count including none.
+     * The number of Uplink slices under mod/ is not fixed, so rather than a
+     * floor the slices are held to the codegen twins on disk, which holds at any
+     * count including none.
      */
     const twins = readdirSync(join(REPO_ROOT, "mod"))
       .filter((name) => /^Gonogo.*Uplink\.Contract\.Codegen$/.test(name))

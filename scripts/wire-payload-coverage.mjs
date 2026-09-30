@@ -558,9 +558,9 @@ export function selfCheck() {
  * into one generated slice.
  *
  * A discovery that matches nothing hashes nothing and reports a clean tree, and
- * that reads as success. This used to be a floor of 5 slices, and every mod
- * Uplink is leaving for the gonogo-uplinks repo, so a floor could not tell that
- * from a broken walk. The slices the matrix discovery yields are held to this
+ * that reads as success. The number of Uplink slices under mod/ is not fixed, so
+ * a floor could not tell a small tree from a broken walk. The slices the matrix
+ * discovery yields are held to this
  * list exactly instead, which a broken walk cannot match at any count, and
  * `uplink-matrix.mjs` proves its own walk on a planted fixture.
  */
@@ -726,7 +726,7 @@ export function checkWirePayloadCoverage(repoRoot = REPO_ROOT) {
   const uplinkReached = slices
     .filter((slice) => !slice.core)
     .reduce((total, slice) => total + slice.reached, 0);
-  // Per slice rather than in total: a total of zero is also what no Uplinks at all looks like, and every mod Uplink is leaving for the gonogo-uplinks repo.
+  // Per slice rather than in total: a total of zero is also what no Uplinks at all looks like, and the number of Uplinks under mod/ is not fixed.
   const silent = slices.filter((slice) => !slice.core && slice.reached === 0);
   if (silent.length > 0) {
     throw new Error(

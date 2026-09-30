@@ -77,10 +77,10 @@ namespace Sitrep.Core.Tests
 
         /// <summary>
         /// The one pairing of each kind the planted Uplink's <c>PlantedWiring.cs</c>
-        /// writes, which the walk must read exactly. These replaced two floors on how
-        /// many Uplinks were seen to register and publish: every mod Uplink is leaving
-        /// for the gonogo-uplinks repo, so those counts are heading for zero and a floor
-        /// on them cannot tell "all moved" from "the extractor stopped matching".
+        /// writes, which the walk must read exactly. There is no floor on how many
+        /// Uplinks were seen to register and publish: the number of Uplinks under
+        /// <c>mod/</c> is not fixed, so a floor cannot tell a small tree from "the
+        /// extractor stopped matching".
         /// </summary>
         private const string PlantedCommand = "planted.wiring.command";
 

@@ -119,11 +119,11 @@ describe("the scan can be seen to work", () => {
    * constant and the command by its id, and a test file naming the other Topic,
    * which does not count.
    *
-   * This replaced a named control (one Uplink's Topic) and floors on how many files
-   * were parsed, how many declarations were found and how many Uplinks
-   * contributed them. Every declaration in this repo is an Uplink's, and every
-   * mod Uplink is leaving for the gonogo-uplinks repo, so those counts are
-   * heading for zero and could not tell that from a walk that stopped resolving.
+   * No floor on how many files were parsed, how many declarations were found or
+   * how many Uplinks contributed them. Every declaration in this repo is an
+   * Uplink's and the number of Uplinks under mod/ is not fixed, so a floor would
+   * be wrong at some size and could not tell a small tree from a walk that
+   * stopped resolving.
    */
   it("reads a planted tree exactly, reached and unreached, in both directions", () => {
     const root = mkdtempSync(join(tmpdir(), "reach-plant-"));

@@ -106,11 +106,13 @@ describe("an Uplink's tsconfig travels with it", () => {
   });
 
   it("finds the clients it is meant to be checking", () => {
-    // A walk that returns nothing reports no offenders, which is what a clean
-    // tree reports too. This was a floor of 7, and every mod Uplink is leaving
-    // for the gonogo-uplinks repo, so the walk is held to git's own list of
-    // Uplink client tsconfigs instead, which a broken walk cannot match at any
-    // count, and that list is held to a client that stays in this repo.
+    /*
+     * A walk that returns nothing reports no offenders, which is what a clean
+     * tree reports too. The number of Uplink clients under mod/ is not fixed, so
+     * rather than a floor the walk is held to git's own list of Uplink client
+     * tsconfigs, which a broken walk cannot match at any count, and that list is
+     * held to a client that stays in this repo.
+     */
     const tracked = execFileSync(
       "git",
       ["ls-files", "mod/*/client/tsconfig.json"],

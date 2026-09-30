@@ -228,9 +228,9 @@ namespace Sitrep.Core.Tests
         /// The walk found its subjects, checked against a source it does not
         /// control.
         ///
-        /// <para>No count, because the honest count here falls every time an Uplink
-        /// leaves for the gonogo-uplinks repo and a floor on it cannot tell a smaller
-        /// tree from a broken walk. Three halves instead. The plant: over the fixture
+        /// <para>No count, because the number of Uplinks under <c>mod/</c> is not
+        /// fixed and a floor on it cannot tell a smaller tree from a broken walk.
+        /// Three halves instead. The plant: over the fixture
         /// tree in <see cref="UplinkProjects.PlantRoot"/> the project walk, the file
         /// walk and the solution parse each return exactly what is planted, which a
         /// broken predicate or parse cannot. The source: the real <c>Gonogo.sln</c>

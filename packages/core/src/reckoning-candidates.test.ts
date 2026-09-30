@@ -218,10 +218,10 @@ describe("rate-integration candidates carry a written verdict", () => {
     // sequenced against blocking peers, so there is nothing for a client to
     // integrate.
     //
-    // Which tokens those are is DERIVED rather than listed. The list named
-    // two Uplinks' units, both leaving for the gonogo-uplinks
-    // repo, and the written-down half already exists where it belongs: each
-    // Uplink's own descriptor vocabulary. So every opaque token must be one a
+    // Which tokens those are is DERIVED rather than listed. The units belong
+    // to whichever Uplinks are present, and the written-down half already
+    // exists where it belongs: each Uplink's own descriptor vocabulary. So
+    // every opaque token must be one a
     // client descriptor declares, never core's, and the classification itself is
     // shown a planted token of each kind.
     const coreVocabulary = new Set(descriptors[0].vocabulary ?? []);

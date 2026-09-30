@@ -81,13 +81,13 @@ export const UNREACHED_DECLARATION_DEBT: Record<string, readonly string[]> = {};
  * A reachability gate that resolves nothing reports every declaration reached,
  * which converts exactly the failure it exists to catch into a green. The corpus
  * is every non-test `.ts`/`.tsx` under `mod/` and `packages/`, so it stays in
- * the thousands whatever Uplinks leave. Measured 2026-09-02 at 1,231.
+ * the thousands whatever the number of Uplinks. Measured 2026-09-02 at 1,231.
  *
- * Floors on files parsed, declarations found and Uplinks contributing them used
- * to sit here too. Every one of those counts is an Uplink's, and every mod Uplink
- * is leaving for the gonogo-uplinks repo, so they are replaced by a planted tree
- * the scan must read exactly and by agreement with the declaring files git tracks
- * (see `declaration-reachability.test.ts`).
+ * There is no floor on files parsed, declarations found or Uplinks contributing
+ * them. Every one of those counts is an Uplink's, and the number of Uplinks under
+ * mod/ is not fixed, so they are held instead by a planted tree the scan must read
+ * exactly and by agreement with the declaring files git tracks (see
+ * `declaration-reachability.test.ts`).
  */
 export const SCAN_FLOORS = {
   /** Non-test, non-generated `.ts`/`.tsx` under `mod/` and `packages/`. */

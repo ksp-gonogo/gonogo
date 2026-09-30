@@ -78,10 +78,10 @@ export function modClientRoots(repoRoot: string): string[] {
 /**
  * Every `mod/<name>/client/src` git tracks a file under, sorted.
  *
- * The independent list `modClientRoots` is checked against. A floor on how many
- * roots a walk found cannot tell the mod Uplinks leaving for the gonogo-uplinks
- * repo from a listing that stopped matching; agreement with git can, at any
- * number of clients.
+ * The independent list `modClientRoots` is checked against. The number of
+ * Uplink clients under mod/ is not fixed, so a floor on how many roots a walk
+ * found cannot tell a smaller tree from a listing that stopped matching;
+ * agreement with git can, at any number of clients.
  */
 export function trackedModClientRoots(repoRoot: string): string[] {
   const roots = new Set<string>();

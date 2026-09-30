@@ -335,10 +335,12 @@ describe("the gate does not flag a legitimate narrow", () => {
 
 describe("the walk covered what it claims to have covered", () => {
   it("walked every root, and none of them empty", () => {
-    // Every root the discovery names was walked, and the discovery names every
-    // mod root git tracks a tsconfig for. This was a floor of 22 roots, and seven
-    // of them are Uplink clients leaving for the gonogo-uplinks repo, so a floor
-    // could not tell a smaller tree from a discovery that stopped matching.
+    /*
+     * Every root the discovery names was walked, and the discovery names every
+     * mod root git tracks a tsconfig for. The number of Uplink clients under mod/
+     * is not fixed, so a floor could not tell a smaller tree from a discovery that
+     * stopped matching.
+     */
     console.info(
       `[unknown-cast] ${SCOPE.label}, built ${ROOTS.length} of ${unknownCastScanRoots(REPO_ROOT).length} roots: ${ROOTS.join(", ")}`,
     );
@@ -439,7 +441,7 @@ describe("the walk covered what it claims to have covered", () => {
       )
       .map((name) => `mod/${name}/client`)
       .sort();
-    // Held to git rather than to a floor: this was 7, and every mod Uplink is leaving for the gonogo-uplinks repo, so the count is heading for one.
+    // Held to git rather than to a floor, because the number of Uplink clients under mod/ is not fixed.
     expect(
       clients,
       "The Uplink clients on disk disagree with the client tsconfig.json files git tracks.",

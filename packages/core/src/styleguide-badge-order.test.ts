@@ -228,11 +228,13 @@ describe("design-system: a status badge never precedes its subject", () => {
    * above would have stayed comfortably over its floor on `packages/` alone.
    */
   it("reached the Uplinks, not just the app's own packages", () => {
-    // Not a count: this was a floor of 50 files, and every mod Uplink is leaving
-    // for the gonogo-uplinks repo. Every client src directory that holds a .tsx
-    // on disk, found by walking the filesystem rather than asking git, must have
-    // contributed a file to the pathspec's list, and a client that stays in this
-    // repo must be among them.
+    /*
+     * Not a count, because the number of Uplink clients under mod/ is not fixed
+     * and a floor would be wrong at some size. Every client src directory that
+     * holds a .tsx on disk, found by walking the filesystem rather than asking
+     * git, must have contributed a file to the pathspec's list, and a client that
+     * stays in this repo must be among them.
+     */
     const reached = new Set(
       uplinkFiles(files).map((f) => f.split("/client/src/")[0]),
     );

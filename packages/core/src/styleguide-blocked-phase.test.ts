@@ -109,10 +109,10 @@ const EXCLUDED = /\/dist\/|\.test\.|\.spec\.|test-d|__fixtures__|__generated__/;
  * `styleguide-wall-clock` is why the roots are checked separately: it walked 1
  * widget root of 13 and stayed green for months, because its only guard against
  * a broken scan was a stale-entry check, which protects against a walk reading
- * NOTHING and not against one reading a thirteenth of the tree. That used to be
- * a floor of 15 roots, and every mod Uplink's client root is leaving for the
- * gonogo-uplinks repo, so the roots walked are held exactly to the package roots
- * plus every client root git tracks instead, none of them empty.
+ * NOTHING and not against one reading a thirteenth of the tree. The number of
+ * Uplink client roots under mod/ is not fixed, so rather than a floor the roots
+ * walked are held exactly to the package roots plus every client root git
+ * tracks, none of them empty.
  */
 const MINIMUM_FILES = 800;
 

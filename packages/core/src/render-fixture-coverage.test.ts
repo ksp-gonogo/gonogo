@@ -530,8 +530,8 @@ describe("render-fixture coverage: a field the widget reads is a field some fixt
   it("loaded descriptors, fixtures and sources rather than an empty tree", () => {
     const all = scanAll();
     /*
-     * Not counts: these were floors of 40 widgets and 40 graded, set just under
-     * a tree whose Uplink widgets are leaving for the gonogo-uplinks repo. The
+     * Not counts, because the number of Uplink widgets under mod/ is not fixed
+     * and a floor would be wrong at some size. The
      * directories walked must be exactly those git tracks a fixture under, and
      * most of them must grade against a descriptor, which a descriptor load that
      * failed cannot satisfy at any size.
