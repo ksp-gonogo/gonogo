@@ -215,6 +215,22 @@ jobs:
       - name: pnpm install
         run: pnpm install --frozen-lockfile
 
+      # `sitrep-sdk`'s own `turbo.json` makes its `test` task depend only on
+      # `^build` (its dependencies), not on its own `build`, because nothing
+      # else in the graph declares that edge: `src/cli/index.test.ts` shells
+      # out to the built `bin/gonogo-uplink.mjs`, which is a real subprocess
+      # boundary turbo cannot see into. In the old single job this race was
+      # masked for free: `pnpm typecheck` ran first and its own `^build` fan-out
+      # (every package that imports the sdk needs it built) finished sitrep-sdk's
+      # build on disk before `pnpm test` ever started. Split into this job alone
+      # with no typecheck step ahead of it, the same `turbo test` run schedules
+      # `sitrep-sdk:test` and `sitrep-sdk:build` with no ordering between them,
+      # and the build can still be writing `dist/cli/index.js` when the CLI test
+      # tries to run it. Building the sdk explicitly first removes the race
+      # rather than relying on a side effect of step order.
+      - name: Build sitrep-sdk
+        run: pnpm --filter @ksp-gonogo/sitrep-sdk build
+
       - run: pnpm test
 
       # The repo-wide scans live under their own vitest config, so `pnpm test` never runs them.
