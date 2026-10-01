@@ -1,4 +1,5 @@
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { LineGraph } from "./LineGraph";
 
@@ -331,5 +332,86 @@ describe("LineGraph with a missing sample", () => {
     for (const line of lines) {
       expect(line.getAttribute("points")).not.toMatch(/NaN/);
     }
+  });
+});
+
+describe("LineGraph reckoned runs", () => {
+  const RECKONED = {
+    ...AMBIENT,
+    points: [
+      { x: 0, y: 1 },
+      { x: 1, y: 2 },
+      { x: 2, y: 2.5 },
+      { x: 3, y: 3 },
+    ],
+    reckoned: [{ from: 2, to: 3, basis: "linear-dead-reckoning" as const }],
+  };
+
+  it("draws the measured run plain and the reckoned run muted and dashed, joined at the seam", () => {
+    const { container } = render(
+      <LineGraph series={[RECKONED]} ariaLabel="Trend" />,
+    );
+    const lines = container.querySelectorAll("polyline");
+    expect(lines).toHaveLength(2);
+    expect(lines[0].getAttribute("stroke-dasharray")).toBeNull();
+    expect(lines[0].getAttribute("data-reckoning-basis")).toBeNull();
+    expect(lines[1].getAttribute("stroke-dasharray")).toBe("5 3");
+    expect(lines[1].getAttribute("stroke-opacity")).toBe("0.6");
+    expect(lines[1].getAttribute("data-reckoning-basis")).toBe(
+      "linear-dead-reckoning",
+    );
+    expect(lines[1].getAttribute("stroke")).toBe(
+      lines[0].getAttribute("stroke"),
+    );
+    expect(lines[1].getAttribute("points")?.split(" ")).toHaveLength(3);
+  });
+
+  it("says how the trace was reckoned in the accessible name", () => {
+    render(<LineGraph series={[RECKONED]} ariaLabel="Trend" />);
+    expect(screen.getByRole("img").getAttribute("aria-label")).toBe(
+      "Trend; Ambient: part of this trace is reckoned, carried forward at the last observed velocity, not measured",
+    );
+  });
+
+  it("leaves a fully measured series exactly as it was", () => {
+    const { container } = render(
+      <LineGraph series={[AMBIENT]} ariaLabel="Trend" />,
+    );
+    const line = container.querySelector("polyline");
+    expect(line?.getAttribute("stroke-dasharray")).toBeNull();
+    expect(screen.getByRole("img").getAttribute("aria-label")).toBe("Trend");
+  });
+
+  it("keeps a reckoned run on the right points when a non-finite sample is dropped", () => {
+    const { container } = render(
+      <LineGraph
+        series={[
+          {
+            ...RECKONED,
+            points: [
+              { x: 0, y: 1 },
+              { x: 1, y: Number.NaN },
+              { x: 2, y: 2.5 },
+              { x: 3, y: 3 },
+              { x: 4, y: 3.2 },
+            ],
+            reckoned: [{ from: 3, to: 4, basis: "rate-integration" }],
+          },
+        ]}
+        ariaLabel="Trend"
+      />,
+    );
+    const dashed = [...container.querySelectorAll("polyline")].filter(
+      (l) => l.getAttribute("stroke-dasharray") !== null,
+    );
+    expect(dashed).toHaveLength(1);
+    expect(dashed[0].getAttribute("points")?.split(" ")).toHaveLength(3);
+  });
+
+  it("has no accessibility violations", async () => {
+    const { container } = render(
+      <LineGraph series={[RECKONED]} ariaLabel="Trend" />,
+    );
+    await expectNoA11yViolations(container);
   });
 });
