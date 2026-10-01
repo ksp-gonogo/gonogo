@@ -408,6 +408,76 @@ describe("LineGraph reckoned runs", () => {
     expect(dashed[0].getAttribute("points")?.split(" ")).toHaveLength(3);
   });
 
+  const BANDED = {
+    ...RECKONED,
+    reckoned: [
+      {
+        from: 2,
+        to: 3,
+        basis: "linear-dead-reckoning" as const,
+        bandLo: [2, 2.5],
+        bandHi: [3, 9],
+        bandKind: "sigma1" as const,
+      },
+    ],
+  };
+
+  it("shades a run's band as a region with no edge, and says so in the name", () => {
+    const { container } = render(
+      <LineGraph series={[BANDED]} ariaLabel="Trend" />,
+    );
+    const band = container.querySelector("polygon[data-band-kind]");
+    expect(band?.getAttribute("data-band-kind")).toBe("sigma1");
+    expect(band?.getAttribute("stroke")).toBe("none");
+    expect(band?.getAttribute("points")?.split(" ")).toHaveLength(4);
+    expect(screen.getByRole("img").getAttribute("aria-label")).toContain(
+      "the value is inside the shaded region",
+    );
+  });
+
+  it("grows the y domain to hold the band's bounds", () => {
+    const { container } = render(
+      <LineGraph series={[BANDED]} ariaLabel="Trend" />,
+    );
+    const ys = (
+      container.querySelector("polygon")?.getAttribute("points") ?? ""
+    )
+      .split(" ")
+      .map((c) => Number(c.split(",")[1]));
+    expect(Math.min(...ys)).toBeGreaterThanOrEqual(0);
+  });
+
+  it("draws the band in a neutral shade on a sparkline so the series' area fill does not hide it", () => {
+    const { container } = render(
+      <LineGraph series={[BANDED]} variant="sparkline" ariaLabel="Trend" />,
+    );
+    const band = container.querySelector("polygon[data-band-kind]");
+    expect(band?.getAttribute("fill")).toBe("var(--color-text-primary)");
+  });
+
+  it("draws no band for a run missing any of the three band fields", () => {
+    const { container } = render(
+      <LineGraph
+        series={[
+          {
+            ...RECKONED,
+            reckoned: [
+              {
+                from: 2,
+                to: 3,
+                basis: "linear-dead-reckoning",
+                bandLo: [2, 2.5],
+                bandHi: [3, 3.5],
+              },
+            ],
+          },
+        ]}
+        ariaLabel="Trend"
+      />,
+    );
+    expect(container.querySelector("polygon")).toBeNull();
+  });
+
   it("has no accessibility violations", async () => {
     const { container } = render(
       <LineGraph series={[RECKONED]} ariaLabel="Trend" />,

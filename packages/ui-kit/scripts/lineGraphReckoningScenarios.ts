@@ -60,6 +60,13 @@ export const CASES: ReckoningCase[] = [
     tail: "bound",
   },
   {
+    id: "sparkline-sigma",
+    title: "Sparkline, reckoned tail with a one-sigma interval",
+    note: "A filled series: the band must read apart from the area fill under the stroke.",
+    variant: "sparkline",
+    tail: "sigma1",
+  },
+  {
     id: "chart-measured",
     title: "Chart, fully measured (control)",
     note: "Nothing reckoned: must not change between before and after.",

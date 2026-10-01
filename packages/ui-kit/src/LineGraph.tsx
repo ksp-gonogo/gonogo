@@ -3,6 +3,7 @@ import type {
   SeriesReckonedSpan,
 } from "@ksp-gonogo/sitrep-sdk";
 import styled from "styled-components";
+import { bandClaim } from "./bandClaim";
 import { reckoningBasisPhrase } from "./reckoningBasisPhrase";
 
 /**
@@ -30,8 +31,9 @@ export interface LineGraphSeries {
    * Runs of `points` that a model carried forward rather than measured, by
    * index (`from` and `to` inclusive). Each is drawn muted and dashed in the
    * series' own colour, never recoloured, and the chart's accessible name says
-   * how it was reckoned. A run's `bandLo`, `bandHi` and `bandKind` are accepted
-   * and not drawn yet.
+   * how it was reckoned. A run carrying `bandLo`, `bandHi` and `bandKind` also
+   * shades the region between its bounds, with no edge line, and the y domain
+   * grows to include the bounds.
    */
   reckoned?: readonly SeriesReckonedSpan[];
 }
@@ -112,6 +114,10 @@ function computeDomain(
   const ys: number[] = [];
   for (const s of series)
     for (const p of s.points) if (Number.isFinite(p.y)) ys.push(p.y);
+  for (const s of series)
+    for (const run of s.reckoned ?? [])
+      for (const y of [...(run.bandLo ?? []), ...(run.bandHi ?? [])])
+        if (Number.isFinite(y)) ys.push(y);
   for (const t of thresholds) if (Number.isFinite(t.value)) ys.push(t.value);
   if (ys.length === 0) return [0, 1];
   let min = ys[0];
@@ -133,8 +139,41 @@ function computeDomain(
 /** A reckoned run is muted, never recoloured; 0.6 keeps series colours above 3:1 against the surface. */
 const RECKONED_STROKE_OPACITY = 0.6;
 const RECKONED_DASHARRAY = "5 3";
+/** A band takes its series' colour on a chart, as an uncertainty region does on `LineChart`. */
+const BAND_OPACITY = 0.15;
+/** The sparkline's own area fill is the series colour at 0.12, so a band in that colour would vanish into it: a neutral token reads apart. */
+const BAND_FILL_ON_AREA = "var(--color-text-primary)";
+const BAND_OPACITY_ON_AREA = 0.22;
 
 type TaggedPoint = { x: number; y: number; basis?: ReckoningBasis };
+
+/** The run's band as a closed polygon's corner list, else null: all three band fields must be present, and a point with no finite x or bound ends the region short of it. */
+function bandCorners(
+  s: LineGraphSeries,
+  run: SeriesReckonedSpan,
+  toX: (x: number) => number,
+  toY: (y: number) => number,
+): string | null {
+  const { bandLo, bandHi, bandKind } = run;
+  if (!bandLo || !bandHi || bandKind === undefined) return null;
+  const upper: string[] = [];
+  const lower: string[] = [];
+  for (let i = run.from; i <= run.to; i++) {
+    const p = s.points[i];
+    const lo = bandLo[i - run.from];
+    const hi = bandHi[i - run.from];
+    if (
+      !p ||
+      !Number.isFinite(p.x) ||
+      !Number.isFinite(lo) ||
+      !Number.isFinite(hi)
+    )
+      break;
+    upper.push(`${toX(p.x)},${toY(hi)}`);
+    lower.unshift(`${toX(p.x)},${toY(lo)}`);
+  }
+  return upper.length < 2 ? null : [...upper, ...lower].join(" ");
+}
 
 /** Each point's reckoning basis, absent for a measured one. Runs may name indices a trimmed window no longer has, so they are clamped. */
 function tagPoints(s: LineGraphSeries): TaggedPoint[] {
@@ -270,12 +309,27 @@ export function LineGraph({
   const chartLabel = ariaLabel
     ? [
         ariaLabel,
-        ...series.flatMap((s) =>
-          [...new Set((s.reckoned ?? []).map((run) => run.basis))].map(
-            (basis) =>
-              `${s.label ?? s.id}: part of this trace is reckoned, ${reckoningBasisPhrase(basis)}, not measured`,
-          ),
-        ),
+        ...series.flatMap((s) => {
+          const name = s.label ?? s.id;
+          const runs = s.reckoned ?? [];
+          const kinds = new Set(
+            runs
+              .map((run) =>
+                run.bandLo && run.bandHi ? run.bandKind : undefined,
+              )
+              .filter((kind) => kind !== undefined),
+          );
+          return [
+            ...[...new Set(runs.map((run) => run.basis))].map(
+              (basis) =>
+                `${name}: part of this trace is reckoned, ${reckoningBasisPhrase(basis)}, not measured`,
+            ),
+            ...[...kinds].map(
+              (kind) =>
+                `${name}: ${bandClaim(kind, "the value is inside the shaded region")}`,
+            ),
+          ];
+        }),
       ].join("; ")
     : undefined;
 
@@ -329,6 +383,24 @@ export function LineGraph({
               );
             });
           })}
+
+        {series.flatMap((s) =>
+          (s.reckoned ?? []).map((run, ri) => {
+            const corners = bandCorners(s, run, toX, toY);
+            if (corners === null) return null;
+            return (
+              <polygon
+                // biome-ignore lint/suspicious/noArrayIndexKey: a band has no identity beyond its run's position
+                key={`${s.id}-band-${ri}`}
+                points={corners}
+                data-band-kind={run.bandKind}
+                fill={isSparkline ? BAND_FILL_ON_AREA : s.color}
+                fillOpacity={isSparkline ? BAND_OPACITY_ON_AREA : BAND_OPACITY}
+                stroke="none"
+              />
+            );
+          }),
+        )}
 
         {thresholdStyle === "full" &&
           thresholds.map((t) => (
