@@ -1283,6 +1283,7 @@ describe("CommandButton onPressReady", () => {
     expect(screen.getByRole("button")).toHaveTextContent("Confirm recover");
     act(() => listed()(true));
     expect(send).toHaveBeenCalledOnce();
+    await act(async () => {});
   });
 });
 
@@ -1301,5 +1302,6 @@ describe("CommandButton icon", () => {
     expect(screen.getByRole("button", { name: "Upgrade" })).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Upgrade" }));
     expect(screen.getByRole("button", { name: "Confirm" })).toBeVisible();
+    await act(async () => {});
   });
 });
