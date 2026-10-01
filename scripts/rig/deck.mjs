@@ -99,15 +99,15 @@ function decodePng(path) {
     const length = buf.readUInt32BE(offset);
     const type = buf.toString("ascii", offset + 4, offset + 8);
     const dataStart = offset + 8;
+    if (type === "IEND") break;
     if (type === "IHDR") {
       width = buf.readUInt32BE(dataStart);
       height = buf.readUInt32BE(dataStart + 4);
       bitDepth = buf.readUInt8(dataStart + 8);
       colorType = buf.readUInt8(dataStart + 9);
-    } else if (type === "IDAT") {
+    }
+    if (type === "IDAT") {
       idatChunks.push(buf.subarray(dataStart, dataStart + length));
-    } else if (type === "IEND") {
-      break;
     }
     offset = dataStart + length + 4;
   }
@@ -211,8 +211,10 @@ export async function verifyInputReaches(frameDir) {
   await input("key Escape");
   await new Promise((done) => setTimeout(done, 600));
   await gameFrame(during);
-  // Toggle back regardless: a no-op if Escape never opened anything, a close
-  // if it did, so the scenario that follows starts from the state it began in.
+  /*
+   * Toggle back regardless: a no-op if Escape never opened anything, a close
+   * if it did, so the scenario that follows starts from the state it began in.
+   */
   await input("key Escape");
   await new Promise((done) => setTimeout(done, 300));
   await gameFrame(after);
