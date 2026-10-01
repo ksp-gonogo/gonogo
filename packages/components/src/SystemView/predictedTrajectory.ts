@@ -2,6 +2,8 @@
  * Multi-SOI predicted-trajectory sampling for the SystemView diagram, on the patch-chain propagator MapView walks too (`patchArc`).
  *
  * Everything here is parent-centred inertial METRES with `z` kept; the diagram places it into the frame in force. A patch around the frame body draws at the origin, one around a child draws offset to that child, and the first sample of a non-initial patch is the SOI crossing.
+ *
+ * Not a reckoner: a reckoner carries a Topic's own value forward past its last observation, whereas this walks the patch chain the game's solver already published (`orbitPatches`) and samples each conic into a polyline. The windows and the SOI transitions come off the wire, so there is no observed value being carried and no uncertainty to label; the output is drawing geometry that sits on no channel, and `registerReckoner` takes a `TopicId`.
  */
 import {
   isPatchElliptical,

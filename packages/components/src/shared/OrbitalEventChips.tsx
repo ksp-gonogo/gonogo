@@ -5,8 +5,8 @@ import {
 } from "@ksp-gonogo/core";
 import { Box, Cluster, Countdown } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
+import { countdownOf } from "./countdownOf";
 import { encounterKindOf } from "./encounterKind";
-import { solveCountdown } from "./solveCountdown";
 import { useBodyName } from "./useBodyName";
 import { useEncounterIn } from "./useEncounterIn";
 
@@ -37,7 +37,7 @@ export function OrbitalEventChips() {
   const timeToApsis =
     orbit === undefined
       ? undefined
-      : solveCountdown(solveReading, (s) =>
+      : countdownOf(solveReading, (s) =>
           s.nextApsisType === apsisType ? s.timeToNextApsis : null,
         );
   const hasApsis =

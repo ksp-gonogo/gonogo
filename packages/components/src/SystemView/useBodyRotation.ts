@@ -6,6 +6,8 @@ import { useCelestialBodies } from "./useCelestialBodies";
  *
  * The phase is dropped on purpose: the marker is a rotation indicator drawn relative to the body, so `initialRotation` would move it without adding meaning. A negative period spins it the other way (retrograde), and `rotates` is true iff the period is finite and non-zero.
  *
+ * Not a reckoner: the angle is exact arithmetic on a catalogue constant and the view UT, so there is no observed value to hold, fade or give a band to, and its status could never differ from measured. It sits on no channel, and `registerReckoner` takes a `TopicId`.
+ *
  * The view UT is read non-reactively at render, so the marker advances on the widget's own re-renders and adds no subscription. Both fields are `null` until the body resolves; `angleDeg` is also `null` for a non-rotating body or before the view clock has a confirmed sample.
  */
 export function useBodyRotation(bodyName: string | null | undefined): {

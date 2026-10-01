@@ -48,6 +48,8 @@ function loopHorizon(
 /**
  * The predicted ground track of the current orbit, and one per planned
  * manoeuvre, each split where it wraps in longitude.
+ *
+ * Not a reckoner: a reckoner carries a Topic's own value forward past its last observation, and this lays out a path of future ground points from the published patch chain, calibrated against one observed position. The output is a polyline on no channel, and a planned manoeuvre's track describes a burn that has not been flown.
  */
 export function useGroundTrackPrediction({
   enabled,

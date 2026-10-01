@@ -6,7 +6,11 @@ import {
 } from "@ksp-gonogo/core";
 import type { CelestialBody } from "./useCelestialBodies";
 
-// Hohmann transfer-window math, shared with the Transfer Window widget through `@ksp-gonogo/core`.
+/**
+ * Hohmann transfer-window math, shared with the Transfer Window widget through `@ksp-gonogo/core`.
+ *
+ * Not a reckoner: the ideal phase angle is the angle at which a transfer that has not been flown would meet its target, solved from two semi-major axes. It is a property of the pair of orbits rather than a value of a Topic carried forward, and it sits on no channel.
+ */
 export { angleDelta, hohmannPhaseAngle, type TransferStatus, transferStatus };
 
 /** Each child's window status from a vessel orbiting their shared parent at `vesselSma`; children far from a window are left out. */

@@ -1,3 +1,8 @@
+/**
+ * Plan dispatch for the Maneuver Planner, pure so the non-React trigger services share it.
+ *
+ * Not a reckoner: each preset solves the burn that would reach a chosen orbit or rendezvous from the orbit as measured at the view time. A planned node is an event nobody has flown, so it is exactly as current as the elements it was solved from, which the planner's inputs already label. The plan sits on no channel, and `registerReckoner` takes a `TopicId`.
+ */
 import {
   type CurrentOrbit,
   circularizeAtApo,
@@ -14,8 +19,6 @@ import {
   stateAtUT,
 } from "@ksp-gonogo/core";
 import { isFiniteNumber, type PresetId } from "./presets";
-
-// Pure plan-dispatch helpers, shared with the non-React trigger services.
 
 export interface PlanInputs {
   preset: PresetId;

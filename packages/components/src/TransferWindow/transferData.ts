@@ -1,3 +1,8 @@
+/**
+ * The Transfer Window's body geometry and porkchop grid.
+ *
+ * Not a reckoner: the grid solves a transfer between two bodies for each departure and arrival pair, events that have not happened, from the bodies' elements and the game's body states. Every cell is a hypothetical, so there is no observed value being carried and no Topic the grid belongs to, and `registerReckoner` takes a `TopicId`.
+ */
 import {
   angleDelta,
   buildPorkchop,

@@ -23,7 +23,7 @@ import { Panel, useElementSize } from "@ksp-gonogo/ui";
 import { FramedDisplay, NULL_DISPLAY, Section } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 import { useMemo, useRef, useState } from "react";
-import { solveCountdown } from "../shared/solveCountdown";
+import { countdownOf } from "../shared/countdownOf";
 import { TrajectoryFrameCaption } from "../shared/trajectoryFrame";
 import { TrajectoryWithheldNote } from "../shared/trajectoryWithheld";
 import { useEncounterIn } from "../shared/useEncounterIn";
@@ -305,7 +305,7 @@ function SystemViewComponent({
   const encounterIn = useEncounterIn();
   const nextApsisIn =
     derived?.nextApsisType === -1 || derived?.nextApsisType === 1
-      ? (solveCountdown(derivedReading, (s) =>
+      ? (countdownOf(derivedReading, (s) =>
           s.nextApsisType === derived.nextApsisType ? s.timeToNextApsis : null,
         ) ?? null)
       : null;

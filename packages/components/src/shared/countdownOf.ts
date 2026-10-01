@@ -11,7 +11,7 @@ import {
  * present beside the observed one. `undefined` where the observed solve has no
  * such countdown, so nothing modelled is drawn without an observation under it.
  */
-export function solveCountdown(
+export function countdownOf(
   solve: Reading<OrbitalSolve>,
   pick: (solve: OrbitalSolve) => number | null,
 ): Reading<Value<"s">> | undefined {

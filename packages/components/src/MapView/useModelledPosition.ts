@@ -16,6 +16,8 @@ interface ModelledPositionInputs {
  * Where the conic puts the craft at the instant its reckoning is for, as a
  * ground point, or `null` where no model carries the orbit past the received
  * edge. Drawn beside the observed position, never in its place.
+ *
+ * Not a reckoner: the carrying forward is `vessel.orbit`'s own registered reckoning, read here as a Reading. What this adds is a coordinate conversion from the conic's state to a ground point, which is a drawing figure on no channel.
  */
 export function useModelledPosition({
   targetBodyId,

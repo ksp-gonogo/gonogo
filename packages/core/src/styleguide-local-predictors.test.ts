@@ -5,25 +5,29 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 /**
- * A prediction LandingStatus makes for itself must say why it is not a
- * registered reckoner.
+ * A prediction a widget makes for itself must say why it is not a registered
+ * reckoner.
  *
  * `registerReckoner` carries a Topic's own value forward past its last
- * observation. LandingStatus's solves describe an event that has not happened,
- * from measurements at the view time, and their outputs sit on no channel, so
- * none of them can be one. That is a fact about each file, and it is only worth
- * having where a maintainer reads it, so every file in the widget that predicts
- * must open a paragraph with `Not a reckoner:` and give the reason.
+ * observation. A widget's own solves either describe an event that has not
+ * happened, from measurements at the view time, or lay out geometry from a
+ * published conic, and their outputs sit on no channel, so none of them can be
+ * one. That is a fact about each file, and it is only worth having where a
+ * maintainer reads it, so every widget file that predicts must open a
+ * paragraph with `Not a reckoner:` and give the reason.
  *
- * A file counts as predicting when it exports a `solve*`, `predict*` or
- * `project*` function, or calls `projectDescent`. `SOLVING_FILES` names the
- * ones that exist today and each must carry the marker; a new predicting file
- * fails until it is added here with its reason written. `clocks.ts` is listed
- * by hand: its `deriveDelayClocks` has none of those prefixes, and a margin
- * computed from a solved countdown is still a prediction about the same event.
+ * A file counts as predicting when it exports a `solve*`, `predict*`,
+ * `propagate*`, `extrapolate*` or `forecast*` function, or calls one of the
+ * propagation and solver entry points in `PREDICTOR_CALLS`. LandingStatus also
+ * counts a `project*` export, a prefix that elsewhere names screen projection.
+ * `PREDICTING_FILES` names the ones that exist today and each must carry the
+ * marker; a new predicting file fails until it is added here with its reason
+ * written. Files the patterns cannot see (`clocks.ts`, whose
+ * `deriveDelayClocks` has none of those prefixes, and `useBodyRotation.ts`,
+ * which advances an angle by arithmetic) are listed by hand.
  *
  * `projectDescent` lives in the sdk, so its own file is checked for the marker
- * as well, though a caller anywhere else in the widget is found by its call.
+ * as well, though a caller anywhere else in a widget is found by its call.
  */
 
 function findRepoRoot(start: string): string {
@@ -37,30 +41,58 @@ function findRepoRoot(start: string): string {
 
 const ROOT = findRepoRoot(dirname(fileURLToPath(import.meta.url)));
 
-const WIDGET_DIR = "packages/components/src/LandingStatus/";
+const LANDING_DIR = "packages/components/src/LandingStatus/";
 
-const SOLVING_FILES = [
+const WIDGET_PATHSPECS = [
+  "packages/components/src",
+  "mod/Gonogo*Uplink/client",
+];
+
+const PREDICTING_FILES = [
+  "mod/sitrep-sdk/src/descent.ts",
   "packages/components/src/LandingStatus/clocks.ts",
   "packages/components/src/LandingStatus/descentLayers.ts",
   "packages/components/src/LandingStatus/solveLanding.ts",
-  "mod/sitrep-sdk/src/descent.ts",
+  "packages/components/src/MapView/useGroundTrackPrediction.ts",
+  "packages/components/src/MapView/useModelledPosition.ts",
+  "packages/components/src/ManeuverPlanner/planning.ts",
+  "packages/components/src/SystemView/predictedTrajectory.ts",
+  "packages/components/src/SystemView/transferWindow.ts",
+  "packages/components/src/SystemView/useBodyRotation.ts",
+  "packages/components/src/SystemView/usePhaseAngles.ts",
+  "packages/components/src/TransferWindow/transferData.ts",
 ];
 
 const MARKER = /^ \* Not a reckoner:/m;
 
-const PREDICTS_RE =
-  /export (?:async )?function (?:solve|predict|project)[A-Z]\w*|\bprojectDescent\(|export const (?:solve|predict|project)[A-Z]\w*\s*=/;
+const NAMED_RE =
+  /export (?:async )?function (?:solve|predict|propagate|extrapolate|forecast)[A-Z]\w*|export const (?:solve|predict|propagate|extrapolate|forecast)[A-Z]\w*\s*=/;
+
+const LANDING_NAMED_RE =
+  /export (?:async )?function project[A-Z]\w*|export const project[A-Z]\w*\s*=/;
+
+const PREDICTOR_CALLS_RE =
+  /\b(?:projectDescent|patchArc|deriveTrueAnomalyDeg|predictGroundTrack|stateAtUT|propagateVesselOrbit|keplerAdmissibility|buildPorkchop|hohmann[A-Za-z]*)\(|\bkeplerTransferSolver\b/;
+
+function predicts(file: string, source: string): boolean {
+  return (
+    NAMED_RE.test(source) ||
+    PREDICTOR_CALLS_RE.test(source) ||
+    (file.startsWith(LANDING_DIR) && LANDING_NAMED_RE.test(source))
+  );
+}
 
 function isSource(file: string): boolean {
   return (
     /\.tsx?$/.test(file) &&
     !/\.(test|test-d|stories)\.tsx?$/.test(file) &&
-    !file.includes("/__")
+    !file.includes("/__") &&
+    !file.includes("/test/")
   );
 }
 
 function trackedWidgetSources(): string[] {
-  return execFileSync("git", ["ls-files", WIDGET_DIR], {
+  return execFileSync("git", ["ls-files", ...WIDGET_PATHSPECS], {
     cwd: ROOT,
     encoding: "utf8",
   })
@@ -69,61 +101,77 @@ function trackedWidgetSources(): string[] {
 }
 
 function predictingFiles(read: (file: string) => string): string[] {
-  return trackedWidgetSources().filter((file) => PREDICTS_RE.test(read(file)));
+  return trackedWidgetSources().filter((file) => predicts(file, read(file)));
 }
 
 function readRepoFile(file: string): string {
   return readFileSync(join(ROOT, file), "utf8");
 }
 
-/** The widget files that predict but are not named in `SOLVING_FILES`. */
+/** The widget files that predict but are not named in `PREDICTING_FILES`. */
 function unlisted(found: readonly string[]): string[] {
-  return found.filter((file) => !SOLVING_FILES.includes(file));
+  return found.filter((file) => !PREDICTING_FILES.includes(file));
 }
 
-/** The files in `SOLVING_FILES` that carry no marker paragraph. */
+/** The files in `PREDICTING_FILES` that carry no marker paragraph. */
 function unexplained(read: (file: string) => string): string[] {
-  return SOLVING_FILES.filter((file) => !MARKER.test(read(file)));
+  return PREDICTING_FILES.filter((file) => !MARKER.test(read(file)));
 }
 
-describe("LandingStatus predictions say why they are not reckoners", () => {
+describe("widget predictions say why they are not reckoners", () => {
   it("can see a predictor and a marker (planted)", () => {
     for (const planted of [
       "export function solveThing() {}",
       "export function predictLanding() {}",
-      "export async function projectPath() {}",
+      "export async function propagateBody() {}",
+      "export const extrapolateFuel = () => 0;",
+      "export const forecastPower = () => 0;",
       "const x = projectDescent({ a });",
-      "export const solveBurn = () => 0;",
+      "const arc = patchArc(patch, 64);",
+      "const nu = deriveTrueAnomalyDeg({ ut });",
+      "const track = predictGroundTrack(args);",
+      "const plan = hohmannToRadius(orbit, mu, ut, r);",
+      "const solver = keplerTransferSolver;",
     ]) {
-      expect(PREDICTS_RE.test(planted), `blind to ${planted}`).toBe(true);
+      expect(
+        predicts("packages/components/src/X/x.ts", planted),
+        `blind to ${planted}`,
+      ).toBe(true);
     }
+    expect(
+      predicts(`${LANDING_DIR}x.ts`, "export async function projectPath() {}"),
+    ).toBe(true);
     for (const innocent of [
       "export function buildPlot() {}",
       "export function deriveBoard() {}",
-      "// projectDescent is mentioned in prose",
+      "export function projectEntityPosition() {}",
+      "export function countdownOf() {}",
     ]) {
-      expect(PREDICTS_RE.test(innocent) && !innocent.startsWith("//")).toBe(
-        false,
-      );
+      expect(
+        predicts("packages/components/src/X/x.ts", innocent),
+        `false alarm on ${innocent}`,
+      ).toBe(false);
     }
     expect(MARKER.test("/**\n * Not a reckoner: because.\n */")).toBe(true);
     expect(MARKER.test("/**\n * It is not a reckoner.\n */")).toBe(false);
   });
 
-  it("names every predicting file in the widget", () => {
+  it("names every predicting file in widget code", () => {
     const missing = unlisted(predictingFiles(readRepoFile));
     expect(
       missing,
-      `These files predict and are not in SOLVING_FILES in packages/core/src/styleguide-local-predictors.test.ts. ` +
+      `These files predict and are not in PREDICTING_FILES in packages/core/src/styleguide-local-predictors.test.ts. ` +
         `Write a "Not a reckoner:" paragraph in each saying why it cannot be one, then add it.`,
     ).toEqual([]);
   });
 
   it("lists no file that is gone", () => {
-    const gone = SOLVING_FILES.filter((file) => !existsSync(join(ROOT, file)));
+    const gone = PREDICTING_FILES.filter(
+      (file) => !existsSync(join(ROOT, file)),
+    );
     expect(
       gone,
-      "These files no longer exist. Remove them from SOLVING_FILES.",
+      "These files no longer exist. Remove them from PREDICTING_FILES.",
     ).toEqual([]);
   });
 
@@ -135,12 +183,13 @@ describe("LandingStatus predictions say why they are not reckoners", () => {
   });
 
   it("fails when a listed file loses its reason (planted)", () => {
-    expect(unexplained(() => "/** no reason here */")).toEqual(SOLVING_FILES);
+    expect(unexplained(() => "/** no reason here */")).toEqual(
+      PREDICTING_FILES,
+    );
   });
 
   it("fails when a new predicting file appears (planted)", () => {
-    expect(unlisted([...SOLVING_FILES, `${WIDGET_DIR}newSolve.ts`])).toEqual([
-      `${WIDGET_DIR}newSolve.ts`,
-    ]);
+    const planted = "packages/components/src/Fuel/newSolve.ts";
+    expect(unlisted([...PREDICTING_FILES, planted])).toEqual([planted]);
   });
 });

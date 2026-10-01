@@ -21,6 +21,8 @@ import type { CelestialBody } from "./useCelestialBodies";
  * Each object's true longitude is `wrap360(lan + argPe + trueAnomaly)` and the phase angle is `wrap360(bodyLon - vesselLon)`, positive when the body is ahead prograde, matching `hohmannPhaseAngle`. That longitude is exact only for coplanar orbits, the transfer window's own assumption.
  *
  * Returns a stable empty map when there is no vessel orbit, the orbit is hyperbolic, the received edge is unknown, or the provider will not answer for it.
+ *
+ * Not a reckoner: the figure relates two orbits at the view time, and no single Topic holds it. The vessel half already rides `vessel.orbit`'s own reckoning (the elements are overlaid with what the registered model moved), so the only advancing done here is a true anomaly at an instant, and the result sits on no channel for `registerReckoner` to take.
  */
 export function usePhaseAngles(
   bodies: readonly CelestialBody[],

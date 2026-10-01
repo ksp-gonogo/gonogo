@@ -20,9 +20,9 @@ import {
 import { apsidesExist, type ControlFrame } from "@ksp-gonogo/sitrep-sdk";
 import { Panel, ReadoutCaption, Section, Stack } from "@ksp-gonogo/ui-kit";
 import { useRef } from "react";
+import { countdownOf } from "../shared/countdownOf";
 import { declinedState } from "../shared/declinedState";
 import { OrbitDiagram } from "../shared/OrbitDiagram";
-import { solveCountdown } from "../shared/solveCountdown";
 import { TrajectoryFrameCaption } from "../shared/trajectoryFrame";
 import { TrajectoryWithheldNote } from "../shared/trajectoryWithheld";
 import { useBodyName, useParentBodyIndex } from "../shared/useBodyName";
@@ -235,12 +235,8 @@ function CurrentOrbitComponent({
                 noApsidesHere={noApsidesHere}
                 apoapsisAltitude={current(solve?.apoapsisAlt)}
                 periapsisAltitude={current(solve?.periapsisAlt)}
-                timeToAp={current(
-                  solveCountdown(solveReading, (s) => s.timeToAp),
-                )}
-                timeToPe={current(
-                  solveCountdown(solveReading, (s) => s.timeToPe),
-                )}
+                timeToAp={current(countdownOf(solveReading, (s) => s.timeToAp))}
+                timeToPe={current(countdownOf(solveReading, (s) => s.timeToPe))}
                 inclination={orbitReading.inc}
                 eccentricity={orbitReading.ecc}
                 period={current(solve?.period)}
