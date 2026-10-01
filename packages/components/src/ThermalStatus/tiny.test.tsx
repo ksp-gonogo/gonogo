@@ -48,7 +48,7 @@ describe("ThermalStatus tiny mode", () => {
     await waitFor(() => expect(essentialTexts()[0]).toContain("NOMINAL"));
     const [heat, part, engine] = essentialTexts();
     expect(heat).toContain("Heat");
-    expect(part).toContain("Part");
+    expect(part).toContain("Nose Cone");
     expect(part).toMatch(/50\s%/);
     expect(engine).toContain("Engine");
     expect(engine).toMatch(/20\s%/);
@@ -57,6 +57,27 @@ describe("ThermalStatus tiny mode", () => {
     renderWidget("thermal-status", { w: 4, h: 5, wrapper: fixture.Provider });
     await waitFor(() => expect(visibleText()).toContain("Nose Cone"));
     expect(document.querySelector("[data-tiny-essential]")).toBeNull();
+    await act(async () => {});
+  });
+
+  it("cuts a long part name to fit its row and keeps the band word", async () => {
+    const { fixture } = mountTiny();
+    act(() => {
+      fixture.emit("vessel.thermal", {
+        hottestPart: {
+          skinTemp: 1000,
+          skinMaxTemp: 2000,
+          name: "Rockomax Jumbo-64 Fuel Tank",
+        },
+        maxInternalTempRatio: 0.5,
+        hottestEngineTemp: 400,
+        hottestEngineMaxTemp: 2000,
+        hottestEngineTempRatio: 0.2,
+        anyEnginesOverheating: false,
+      });
+    });
+    await waitFor(() => expect(essentialTexts()[1]).toContain("Rockomax..."));
+    expect(essentialTexts()[0]).toContain("NOMINAL");
     await act(async () => {});
   });
 
