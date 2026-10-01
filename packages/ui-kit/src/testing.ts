@@ -121,6 +121,11 @@ export {
   paintChecker,
 } from "./checkerFraming";
 export { expectNoA11yViolations } from "./expectNoA11yViolations";
+export {
+  type HeldMarkFault,
+  type UnannouncedHeldMark,
+  unannouncedHeldMarks,
+} from "./heldMarkAnnouncement";
 export { renderHookWithRail, renderWithRail } from "./render";
 export {
   type RenderWidgetOptions,

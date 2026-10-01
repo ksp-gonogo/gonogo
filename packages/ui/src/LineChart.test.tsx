@@ -1,5 +1,6 @@
 import { type Reading, type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import { render } from "@ksp-gonogo/test-utils";
+import { unannouncedHeldMarks } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import type { ChartSeries } from "./LineChart";
 import { LineChart } from "./LineChart";
@@ -567,6 +568,14 @@ describe("LineChart threshold currency", () => {
     const container = chartWith(held);
     expect(container.querySelector("text [data-held-mark]")).not.toBeNull();
     expect(chartName(container)).toMatch(/400 pascals @ 30 km, .+/);
+  });
+
+  it("says a held line's grade and its instant, aloud and on hover, with or without a grade", () => {
+    for (const reading of [held, { ...held, grade: undefined }]) {
+      const container = chartWith(reading);
+      expect(container.querySelector("[data-held-mark]")).not.toBeNull();
+      expect(unannouncedHeldMarks(container)).toEqual([]);
+    }
   });
 
   it("marks a current reading's label when the line stands at a figure the model carried to SCET", () => {

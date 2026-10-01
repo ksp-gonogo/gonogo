@@ -15,6 +15,7 @@ import {
   type UnitValue,
 } from "./readingCurrency";
 import { placedOnScale, standsApart } from "./standsApart";
+import { useTooltip } from "./Tooltip";
 import { type FormatsFor, quantityScale, speakQuantity } from "./units";
 
 /**
@@ -158,6 +159,7 @@ export function Tape<Unit extends string = string>({
 
   const resolved = resolveCurrency(value);
   const { shown, held, caption, band } = resolved;
+  const { anchor, tip } = useTooltip(caption);
 
   // Unwrapped once into pixel geometry; every figure a reader sees goes back out through the unit layer.
   const current = shown?.magnitude ?? Number.NaN;
@@ -232,6 +234,7 @@ export function Tape<Unit extends string = string>({
     <Tape__Meter
       ref={wrapRef}
       {...figureAttributes(resolved)}
+      {...anchor}
       {...(hasFigure
         ? {
             role: "meter",
@@ -439,6 +442,7 @@ export function Tape<Unit extends string = string>({
           </text>
         )}
       </svg>
+      {tip}
     </Tape__Meter>
   );
 }

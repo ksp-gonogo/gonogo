@@ -14,6 +14,9 @@ const HELD_GRADE_WORD: Readonly<Record<HeldGrade, string>> = {
   recorded: "RECORDED",
 };
 
+/** Every word a held mark's caption can open with, one per grade. */
+export const HELD_WORDS: readonly string[] = Object.values(HELD_GRADE_WORD);
+
 const STREAM_STATUS_WORD: Readonly<Record<StreamStatusValue, string | null>> = {
   ...HELD_GRADE_WORD,
   live: null,

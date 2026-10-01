@@ -1,6 +1,6 @@
 import { getComponent } from "@ksp-gonogo/core";
 import { act } from "@ksp-gonogo/test-utils";
-import { visibleText } from "@ksp-gonogo/ui-kit/testing";
+import { unannouncedHeldMarks, visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { listWidgets } from "../../scripts/widgets";
 // Importing the package index self-registers every built-in component.
@@ -14,12 +14,11 @@ import {
 
 /**
  * Every scene staged as no longer arriving, rendered beside its live twin and
- * read for what the widget does about it. Four outcomes: a held figure marked
- * through `Unit` announces with a `[data-unit-currency]` caption (an instrument
- * does it at the end of its accessible name and stamps `data-currency-in-name`);
- * one marked with neither is silent, which only a render can tell apart; a
- * widget can withdraw a judgement instead; or it can change nothing, which
- * leaves an operator no way to tell the link has gone.
+ * read for what the widget does about it. Four outcomes: every held mark
+ * announces its grade aloud and on hover (`unannouncedHeldMarks`); a mark that
+ * does not is silent, which only a render can tell apart; a widget can
+ * withdraw a judgement instead; or it can change nothing, which leaves an
+ * operator no way to tell the link has gone.
  *
  * "Nothing" is judged on markup with style classes kept: a dimmed panel
  * differs only in a class. Live and stale mount in separate tests, since two
@@ -124,20 +123,19 @@ interface Rendered {
   text: string;
   html: string;
   announced: number;
-  silent: number;
+  unannounced: string[];
   noAsOf: number;
   figures: Figure[];
 }
 
-/**
- * The accessible name an instrument says its currency in, or null where the kit
- * stamped no `data-currency-in-name`, which it sets only on a name it ended
- * with a caption.
- */
-function instrumentCaption(mark: Element): string | null {
-  return mark.hasAttribute("data-currency-in-name")
-    ? mark.getAttribute("aria-label")
-    : null;
+/** What a held mark's host or instrument says around it, for the "as of" count. */
+function spokenNear(mark: Element): string {
+  const host = mark.parentElement;
+  return (
+    host?.querySelector("[data-unit-currency]")?.textContent ??
+    mark.closest("[aria-label]")?.getAttribute("aria-label") ??
+    ""
+  );
 }
 
 async function rendered(
@@ -152,24 +150,16 @@ async function rendered(
   });
   try {
     await settle();
-    let announced = 0;
-    let silent = 0;
-    let noAsOf = 0;
-    for (const mark of container.querySelectorAll("[data-held]")) {
-      const caption =
-        mark.querySelector("[data-unit-currency]")?.textContent ??
-        instrumentCaption(mark);
-      if (caption === null) silent++;
-      else {
-        announced++;
-        if (!/as of/.test(caption)) noAsOf++;
-      }
-    }
+    const marks = Array.from(container.querySelectorAll("[data-held-mark]"));
+    const faults = unannouncedHeldMarks(container);
+    const unannounced = faults.map((f) => `${f.fault}: ${f.where}`);
+    const announced = marks.filter((m) => !faults.some((f) => f.mark === m));
+    const noAsOf = announced.filter((m) => !/as of/.test(spokenNear(m))).length;
     return {
       text: visibleText(container),
       html: normaliseReactIds(container.innerHTML),
-      announced,
-      silent,
+      announced: announced.length,
+      unannounced,
       noAsOf,
       figures: figuresIn(container),
     };
@@ -187,7 +177,7 @@ function added(live: string, stale: string): string {
 }
 
 function outcome(stale: Rendered, live: Rendered | undefined): string {
-  if (stale.silent > 0) return "SILENT";
+  if (stale.unannounced.length > 0) return "UNANNOUNCED";
   if (stale.announced > 0) return "announces";
   if (live === undefined) return "marks nothing";
   if (live.html === stale.html) return "UNCHANGED";
@@ -227,7 +217,7 @@ describe("every stale scene says the link has gone", () => {
         );
         const entry = results.get(key);
         if (entry) entry.stale = stale;
-        expect(stale.silent).toBe(0);
+        expect(stale.unannounced).toEqual([]);
       });
       if (scene.live) {
         const live = scene.live;

@@ -1,7 +1,13 @@
 import { type Reading, type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import { useId } from "react";
 import styled from "styled-components";
-import { InstrumentHeldMark } from "../instrumentCurrency";
+import {
+  heldNameMarker,
+  InstrumentHeldMark,
+  sayHeld,
+} from "../instrumentCurrency";
+import { resolveCurrency } from "../readingCurrency";
+import { useTooltip } from "../Tooltip";
 import { Unit } from "../Unit";
 import { writeQuantity } from "../units";
 import { withDelayCurrency } from "./delayCurrency";
@@ -570,6 +576,11 @@ export function ControlDelayStream({
 }: ControlDelayStreamProps) {
   // Before the early return, so the hook runs unconditionally.
   const dividerFadeId = `cds-divfade-${useId()}`;
+  const delayHeld = delayReading?.state === "held";
+  const delayCaption = delayHeld
+    ? resolveCurrency(delayReading ?? null).caption
+    : null;
+  const { anchor, tip } = useTooltip(delayCaption);
   // Every entry crosses the same gap, so the first one's light-time serves the strip.
   const first = streams[0] ?? ribbons[0];
   const oneWay = first?.oneWaySeconds ?? null;
@@ -577,7 +588,6 @@ export function ControlDelayStream({
     return null;
 
   const span = 3 * oneWay;
-  const delayHeld = delayReading?.state === "held";
   // Computed once and shared by the dividers and the line clips, so a line changes appearance only on a divider.
   const oneT = oneWay;
   const twoT = 2 * oneWay;
@@ -598,12 +608,14 @@ export function ControlDelayStream({
       data-oneway={oneWay}
       data-variant={variant}
       $variant={variant}
+      {...anchor}
     >
       <ControlDelayStream__Svg
         $variant={variant}
         $quiet={quiet}
         role="img"
-        aria-label={ariaLabel}
+        aria-label={sayHeld(ariaLabel, delayCaption)}
+        {...heldNameMarker(delayCaption)}
         viewBox={`0 0 ${VB_W} ${VB_H}`}
         preserveAspectRatio="none"
       >
@@ -759,6 +771,7 @@ export function ControlDelayStream({
           </ControlDelayStream__Legend>
         </>
       )}
+      {tip}
     </ControlDelayStream__Root>
   );
 }

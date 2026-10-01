@@ -13,6 +13,7 @@ import {
   type UnitValue,
 } from "./readingCurrency";
 import { placedOnScale, standsApart } from "./standsApart";
+import { useTooltip } from "./Tooltip";
 import { type FormatsFor, speakQuantity, writeQuantity } from "./units";
 
 /**
@@ -180,6 +181,7 @@ export function Dial<Unit extends string = string>({
 }: Readonly<DialProps<Unit>>) {
   const resolved = resolveCurrency(value);
   const { shown, held, caption, band } = resolved;
+  const { anchor, tip } = useTooltip(caption);
 
   // The axis, unwrapped once into the face's angular geometry; every figure a reader sees goes back out through the unit layer.
   const current = shown?.magnitude ?? Number.NaN;
@@ -243,6 +245,7 @@ export function Dial<Unit extends string = string>({
   return (
     <Dial__Meter
       {...figureAttributes(resolved)}
+      {...anchor}
       {...(hasFigure
         ? {
             role: "meter",
@@ -391,6 +394,7 @@ export function Dial<Unit extends string = string>({
           {held && centreLabel !== null && <InstrumentHeldMark size={6} />}
         </text>
       </svg>
+      {tip}
     </Dial__Meter>
   );
 }
