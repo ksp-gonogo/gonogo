@@ -115,6 +115,13 @@ function AtmosphereProfileComponent({
   const showNoModelNotice =
     body?.hasAtmosphere === true && !body.pressureProfile && !body.atmosphere;
   const showNoBodyNotice = bodyName !== undefined && body === undefined;
+  // No airless notice: the empty state already says so. The other two describe missing data while the chart still renders.
+  const notice =
+    (showNoModelNotice &&
+      body &&
+      `No atmospheric model registered for ${body.name}.`) ||
+    (showNoBodyNotice && `Unknown body “${bodyName}”.`) ||
+    undefined;
 
   // The chip only means something in atmosphere, and would obscure a small chart.
   const chipFits = cols >= 7 && rows >= 6;
@@ -132,6 +139,7 @@ function AtmosphereProfileComponent({
           config={graphConfig}
           referenceCurves={referenceCurve ? [referenceCurve] : undefined}
           title={title}
+          notice={notice}
           emptyState={
             body
               ? `No atmosphere on ${body.name}`
@@ -139,17 +147,6 @@ function AtmosphereProfileComponent({
           }
         />
       </Fill>
-      {/* No airless notice: the GraphView empty state already says so. The other two describe missing data while the chart still renders. */}
-      {showNoModelNotice && body && (
-        <div role="status" style={NOTICE_STYLE}>
-          No atmospheric model registered for {body.name}.
-        </div>
-      )}
-      {showNoBodyNotice && (
-        <div role="status" style={NOTICE_STYLE}>
-          Unknown body “{bodyName}”.
-        </div>
-      )}
       {showLiveChip && (
         <LiveAirChip
           density={flightReading.atmDensity}
@@ -165,20 +162,6 @@ function AtmosphereProfileComponent({
 function formatPressure(p: number): string {
   return speakQuantity(value("Pa", p));
 }
-
-/* A flow row below the chart, not an overlay over the x-axis ticks. The translucent pointer-through scrim has no ui-kit primitive. */
-const NOTICE_STYLE = {
-  flex: "0 0 auto",
-  fontSize: "var(--font-size-compact)",
-  color: "var(--color-text-faint)",
-  background: "rgba(0, 0, 0, 0.7)",
-  padding: "var(--inset-chip)",
-  borderRadius: "var(--radius-regular)",
-  pointerEvents: "none",
-  alignSelf: "flex-start",
-  maxWidth: "100%",
-  marginTop: "var(--gap-sub-readout)",
-} as const;
 
 registerComponent<AtmosphereProfileConfig>({
   id: "atmosphere-profile",

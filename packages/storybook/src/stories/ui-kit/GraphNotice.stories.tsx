@@ -74,6 +74,16 @@ export const Overlay: Story = {
   ),
 };
 
+/** Over the middle of an empty plot, where there is no data underneath to cover. */
+export const Center: Story = {
+  args: { placement: "center", children: "No atmosphere on Mun" },
+  render: (args) => (
+    <Graph>
+      <GraphNotice {...args} />
+    </Graph>
+  ),
+};
+
 /** A flow row under the graph, where an overlay would cover the x-axis labels. */
 export const Inline: Story = {
   args: {
@@ -83,6 +93,22 @@ export const Inline: Story = {
   render: (args) => (
     <div style={{ width: 420, display: "flex", flexDirection: "column" }}>
       <AltitudeTrace />
+      <GraphNotice {...args} />
+    </div>
+  ),
+};
+
+/** A column at the graph's right, for a wide, short graph where a row below would cost it much of its height. */
+export const Beside: Story = {
+  args: {
+    placement: "beside",
+    children: "Unknown body: Eeloo terrain not loaded",
+  },
+  render: (args) => (
+    <div style={{ width: 640, display: "flex", flexDirection: "row" }}>
+      <div style={{ flex: 1 }}>
+        <AltitudeTrace />
+      </div>
       <GraphNotice {...args} />
     </div>
   ),

@@ -12,6 +12,7 @@ import {
   GraphNotice,
   getSizeBucket,
   Panel,
+  placeGraphNotice,
   Section,
   Text,
 } from "@ksp-gonogo/ui-kit";
@@ -74,7 +75,7 @@ export interface GraphViewProps {
   /** Widget grid size, which resolves the `"auto"` display variant. */
   w?: number;
   h?: number;
-  /** A caption on what the chart can show ("plotting trace only"), drawn in the body under the plot. */
+  /** What the chart cannot show ("plotting trace only"). The kit places it: over an empty plot with room, beside a wide short one, below the rest. */
   notice?: ReactNode;
 }
 
@@ -145,6 +146,8 @@ export function GraphView({
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState<{ w: number; h: number } | null>(null);
+  const areaRef = useRef<HTMLDivElement>(null);
+  const [area, setArea] = useState<{ w: number; h: number } | null>(null);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: re-bind the observer when the variant flips, chart and readout share `containerRef` but render different elements, so the ref points to a fresh node.
   useEffect(() => {
@@ -153,6 +156,18 @@ export function GraphView({
     const ro = new ResizeObserver((entries) => {
       const { width, height } = entries[0].contentRect;
       setSize({ w: Math.floor(width), h: Math.floor(height) });
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [resolvedVariant]);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: re-bind when the variant flips, the readout renders no area
+  useEffect(() => {
+    const el = areaRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      const { width, height } = entries[0].contentRect;
+      setArea({ w: Math.floor(width), h: Math.floor(height) });
     });
     ro.observe(el);
     return () => ro.disconnect();
@@ -284,8 +299,37 @@ export function GraphView({
     );
   }
 
+  const plotIsEmpty =
+    series.length === 0 && overlaySeries.length === 0 && layers.length === 0;
+  const plotHasData =
+    layers.length > 0 || chartSeries.some((cs) => (cs.data.x?.length ?? 0) > 0);
+  const notices: ReactNode[] = [];
+  if (plotIsEmpty) notices.push(emptyState);
+  if (notice) notices.push(notice);
+  // Until the first measurement an empty plot is assumed roomy, so a frame that will end up alone in its panel does not start out with a notice beside it.
+  const noticePlacement = area
+    ? placeGraphNotice({ width: area.w, height: area.h, plotHasData })
+    : plotHasData
+      ? "inline"
+      : "center";
+
+  const noticeNode = (
+    <GraphNotice placement={noticePlacement}>
+      {notices.map((n, i) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: the list is rebuilt whole each render and never reordered
+        <div key={i}>{n}</div>
+      ))}
+    </GraphNotice>
+  );
+
   const chartBody = (
-    <>
+    <div
+      ref={areaRef}
+      style={{
+        ...CHART_BODY,
+        flexDirection: noticePlacement === "beside" ? "row" : "column",
+      }}
+    >
       <FramedDisplay
         style={CHART_FRAME}
         footer={
@@ -314,11 +358,8 @@ export function GraphView({
               height={size.h}
             />
           )}
-          {series.length === 0 &&
-            overlaySeries.length === 0 &&
-            layers.length === 0 && (
-              <div style={EMPTY_STATE_OVERLAY}>{emptyState}</div>
-            )}
+          {/* Inside the frame, so a notice laid over an empty plot leaves the frame the body's only content. */}
+          {notices.length > 0 && noticePlacement === "center" && noticeNode}
         </div>
         {/* Draws nothing, so it rides inside the frame and leaves it the chart's only content when there's no notice beside it. */}
         <GraphFetchers
@@ -330,8 +371,8 @@ export function GraphView({
           onXData={handleXData}
         />
       </FramedDisplay>
-      {notice && <GraphNotice placement="inline">{notice}</GraphNotice>}
-    </>
+      {notices.length > 0 && noticePlacement !== "center" && noticeNode}
+    </div>
   );
 
   if (chrome === "bare") return chartBody;
@@ -345,22 +386,19 @@ export function GraphView({
   );
 }
 
-const CHART_FRAME: CSSProperties = { flex: 1, minHeight: 0 };
+const CHART_BODY: CSSProperties = {
+  flex: 1,
+  display: "flex",
+  position: "relative",
+  minHeight: 0,
+  minWidth: 0,
+};
+
+const CHART_FRAME: CSSProperties = { flex: 1, minHeight: 0, minWidth: 0 };
 
 const CHART_AREA: CSSProperties = {
   flex: 1,
   position: "relative",
   minHeight: 0,
   minWidth: 0,
-};
-
-const EMPTY_STATE_OVERLAY: CSSProperties = {
-  position: "absolute",
-  inset: 0,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  fontSize: "var(--font-size-compact)",
-  color: "var(--color-text-faint)",
-  pointerEvents: "none",
 };

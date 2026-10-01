@@ -77,8 +77,8 @@ describe("AtmosphereProfile: what undefined means today", () => {
     // The widget's only honest never-arrived surface, from the body read alone.
     expect(visibleText(container)).toContain("Waiting for body telemetry...");
 
-    // Named absences: no unknown-body notice, no no-model notice, no HUD chip.
-    expect(screen.queryByRole("status")).toBeNull();
+    // Named absences: no unknown-body notice, no no-model notice, no HUD chip; the empty state is the one notice.
+    expect(screen.getAllByRole("status")).toHaveLength(1);
     expect(visibleText(container)).not.toContain("Unknown body");
     expect(visibleText(container)).not.toContain("ρ");
     // No current-pressure threshold: only its label renders the spelled-out unit.

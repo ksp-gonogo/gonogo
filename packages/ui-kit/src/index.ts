@@ -313,6 +313,8 @@ export {
   GraphNotice,
   type GraphNoticePlacement,
   type GraphNoticeProps,
+  type GraphNoticeSpace,
+  placeGraphNotice,
 } from "./GraphNotice";
 export { Grid, type GridAlign, type GridProps } from "./Grid";
 export {
