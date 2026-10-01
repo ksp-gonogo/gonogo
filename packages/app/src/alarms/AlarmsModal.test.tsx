@@ -452,6 +452,31 @@ describe("AlarmsModal recommended presets", () => {
     expect(onAdd.mock.calls[0][0].trigger.ut).toBeCloseTo(1000 + TIME_TO_AP, 3);
   });
 
+  /* "In n seconds" is n seconds of the operator's waiting. The view clock is one
+     light-time behind the game's, which is what the mod compares, so the
+     light-time is added to the instant or the alarm fires a light-time early. */
+  it("arms a manual offset alarm n seconds of waiting ahead on the game's clock", async () => {
+    const user = userEvent.setup();
+    const onAdd = vi.fn();
+    renderWithStream(
+      <AlarmsModal
+        useSnapshot={() => makeSnapshot()}
+        onAdd={onAdd}
+        onUpdate={() => {}}
+        onDelete={() => {}}
+      />,
+      ORBIT_EPOCH,
+      240,
+    );
+
+    await user.type(screen.getByLabelText(/^name$/i), "Soon");
+    await user.clear(screen.getByLabelText(/fires in/i));
+    await user.type(screen.getByLabelText(/fires in/i), "60");
+    await user.click(screen.getByRole("button", { name: /^add alarm$/i }));
+
+    expect(onAdd.mock.calls[0][0].trigger.ut).toBeCloseTo(1000 + 240 + 60, 3);
+  });
+
   /* The SCET is what the button states, and it says which clock it is on: the
      operator is being told when apoapsis happens out there, not when the alarm
      will reach them. */
