@@ -36,6 +36,18 @@ const carried: TopicReckoning<Orbit> = {
   owner: "core",
 };
 
+function availableFor<Payload>(modelled: Payload): TopicReckoning<Payload> {
+  return {
+    status: "available",
+    value: modelled,
+    atUt: SCET,
+    beyondReceived: true,
+    basis: "kepler-propagation",
+    modelled: [],
+    owner: "core",
+  };
+}
+
 describe("deriveReading", () => {
   it("draws the observation, and the model's figure at the instant the model answered for", () => {
     const seen: number[] = [];
@@ -68,6 +80,45 @@ describe("deriveReading", () => {
     expect(
       derived.reckoning.status === "available" && derived.reckoning.modelled,
     ).toBe(1_000);
+  });
+
+  it("hands the reckoned arm an array payload as an array, whole as the model answered it", () => {
+    const seen: unknown[] = [];
+    const crew: TopicCurrency<number[], TopicReckoning<number[]>> = {
+      state: "observed",
+      value: [1, 2, 3],
+      atUt: OBSERVED_AT,
+      reckoning: availableFor([4, 5, 6]),
+    };
+    const derived = deriveReading(
+      crew,
+      (levels) => levels.length,
+      (levels) => {
+        seen.push(levels);
+        return levels.length;
+      },
+    );
+    expect(seen).toEqual([[4, 5, 6]]);
+    expect(Array.isArray(seen[0])).toBe(true);
+    expect(derived.reckoning.status).toBe("available");
+  });
+
+  it("hands the reckoned arm a bare value as the model answered it", () => {
+    const seen: unknown[] = [];
+    deriveReading<number, number>(
+      {
+        state: "observed",
+        value: 1,
+        atUt: OBSERVED_AT,
+        reckoning: availableFor(2),
+      },
+      (n) => n,
+      (n) => {
+        seen.push(n);
+        return n;
+      },
+    );
+    expect(seen).toEqual([2]);
   });
 
   it("carries a decline through, and never runs the modelled arm for one", () => {

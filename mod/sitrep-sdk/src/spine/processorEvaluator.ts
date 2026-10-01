@@ -608,13 +608,11 @@ export class ProcessorRuntime {
     const def = getProcessor(id);
     if (!def) return;
     const values = def.deps.map((dep) => this.resolveDep(dep, token));
-    // The frame's own frozen instants, so a processor deriving a remaining duration from an instant on the wire has a clock without reaching for a wall clock.
+    // The frame's own frozen view time, so a processor deriving a remaining duration from an instant on the wire has a clock without reaching for a wall clock.
     const frame = this.store.currentFrame();
     const computed = runOutsideContributionScope(() =>
       def.compute(values as never, {
         viewUt: frame.viewUt,
-        scetUt: frame.scetUt,
-        commandArrivalUt: frame.commandArrivalUt,
       }),
     );
     /*

@@ -922,6 +922,29 @@ export function deriveReading<Payload, Derived>(
   };
 }
 
+function isRecord(candidate: unknown): candidate is Record<string, unknown> {
+  return (
+    typeof candidate === "object" &&
+    candidate !== null &&
+    !Array.isArray(candidate)
+  );
+}
+
+/**
+ * What the model moved, laid over the observation it moved it from. A record
+ * payload takes the moved fields over the rest; an array or a bare value has no
+ * fields to merge, so the model's answer is the whole payload.
+ */
+function overlayModelled<Payload>(
+  observed: Payload,
+  moved: Partial<Payload>,
+): Payload {
+  if (isRecord(observed) && isRecord(moved)) {
+    return { ...observed, ...moved };
+  }
+  return moved as Payload;
+}
+
 function derivedReckoning<Payload, Derived>(
   value: Payload,
   reckoning: TopicReckoning<Payload> | DeclaredTopicReckoning<Partial<Payload>>,
@@ -931,7 +954,10 @@ function derivedReckoning<Payload, Derived>(
     return { status: "declined", declined: reckoning.declined };
   }
   if (reckoning.status === "none") return { status: "none" };
-  const modelled = reckoned({ ...value, ...reckoning.value }, reckoning.atUt);
+  const modelled = reckoned(
+    overlayModelled(value, reckoning.value),
+    reckoning.atUt,
+  );
   if (modelled === undefined) return { status: "none" };
   return {
     status: "available",
