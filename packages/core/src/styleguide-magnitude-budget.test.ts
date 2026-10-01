@@ -377,7 +377,7 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   "packages/ui-kit/src/Dial.tsx": 5,
   "packages/ui-kit/src/DivergingBar.tsx": 1,
   "packages/ui-kit/src/Gauge.tsx": 4,
-  "packages/ui-kit/src/Tape.tsx": 6,
+  "packages/ui-kit/src/Tape.tsx": 5,
   /*
    * ONE, and it is the fill fraction every primitive drawn from an
    * amount/capacity pair is derived by. Moved here from Meter.tsx, which held

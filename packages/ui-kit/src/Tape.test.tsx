@@ -51,8 +51,8 @@ describe("Tape", () => {
     );
   });
 
-  it("renders zone and marker labels as text equivalents", () => {
-    render(
+  it("speaks zone and marker labels in the meter's value and draws none of them", () => {
+    const { container } = render(
       <Tape
         value={m(800)}
         min={m(0)}
@@ -62,8 +62,47 @@ describe("Tape", () => {
         markers={[{ value: m(200), label: "gear" }]}
       />,
     );
-    expect(screen.getByText("ignition")).toBeInTheDocument();
-    expect(screen.getByText("gear")).toBeInTheDocument();
+    expect(screen.queryByText("ignition")).toBeNull();
+    expect(screen.queryByText("gear")).toBeNull();
+    const meter = screen.getByRole("meter", { name: "Alt" });
+    expect(meter.getAttribute("aria-valuetext")).toMatch(/gear 200\.0 metres/);
+    expect(meter.getAttribute("aria-valuetext")).toMatch(
+      /ignition zone 500\.0 metres/,
+    );
+    expect(container.querySelectorAll("[data-bound]")).toHaveLength(0);
+  });
+
+  it("draws a marker's interval as the shared instrument bounds", () => {
+    const { container } = render(
+      <Tape
+        value={m(800)}
+        min={m(0)}
+        max={m(5000)}
+        ariaLabel="Alt"
+        markers={[{ value: m(900), bounds: { lo: m(850), hi: m(950) } }]}
+      />,
+    );
+    expect(container.querySelectorAll("[data-bound]")).toHaveLength(2);
+  });
+
+  it("pins a level beyond the scale to its edge with a chevron, and draws an in-scale one plain", () => {
+    const { container } = render(
+      <Tape
+        value={m(800)}
+        min={m(0)}
+        max={m(5000)}
+        ariaLabel="Alt"
+        groundLine={m(0)}
+        seaLevel={m(-200)}
+      />,
+    );
+    const sea = container.querySelector('[data-level="sea"]');
+    expect(sea?.querySelector("[data-off-scale]")).not.toBeNull();
+    expect(
+      container
+        .querySelector('[data-level="ground"]')
+        ?.querySelector("[data-off-scale]"),
+    ).toBeNull();
   });
 
   it("renders a safe empty meter when the range is degenerate", () => {

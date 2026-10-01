@@ -151,6 +151,27 @@ describe("the carried ASL altitude reaches the operator", () => {
     expect(interval.lo).not.toBe(interval.hi);
   });
 
+  it("draws the noisy scene's band on the altitude rail as the shared bounds, and a noiseless one with none", async () => {
+    const noisy = await mount(
+      loadHandoverFixture("08-drag-biting-noisy-42km.json"),
+    );
+    expect(
+      noisy.container.querySelectorAll(
+        '[data-marker="prediction"] [data-bound]',
+      ),
+    ).toHaveLength(2);
+    noisy.unmount();
+    const clean = await mount(loadHandoverFixture("05-drag-biting-42km.json"));
+    expect(
+      clean.container.querySelector('[data-marker="prediction"]'),
+    ).not.toBeNull();
+    expect(
+      clean.container.querySelectorAll(
+        '[data-marker="prediction"] [data-bound]',
+      ),
+    ).toHaveLength(0);
+  });
+
   /** A noiseless history gives the fit no sigma, so no interval is drawn rather than a zero-width band that would read as exact, and no caption explains the absence. */
   it("draws no band at all through the handover set, and says nothing about it", async () => {
     const tree = await mount(loadHandoverFixture("05-drag-biting-42km.json"));

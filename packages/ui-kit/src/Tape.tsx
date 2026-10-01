@@ -30,7 +30,7 @@ export interface TapeZone<Unit extends string = string> {
   to: Value<Unit>;
   /** Fill colour. Defaults to a faint warning tint. */
   color?: string;
-  /** Short label drawn beside the band (also the text equivalent). */
+  /** Names the band in the meter's spoken value. Never drawn: the band's colour and place say what it is. */
   label?: string;
 }
 
@@ -44,8 +44,10 @@ export interface TapeMarker<Unit extends string = string> {
   value: Value<Unit>;
   /** Marker colour. Defaults to the accent foreground. */
   color?: string;
-  /** Short label drawn beside the marker (also the text equivalent). */
+  /** Names the marker in the meter's spoken value. Never drawn, so a marker never competes with the scale for room. */
   label?: string;
+  /** The model's interval around `value`, drawn as the same two bounds a {@link Meter} draws. */
+  bounds?: { lo: Value<Unit>; hi: Value<Unit> };
 }
 
 /**
@@ -90,8 +92,10 @@ export interface TapeProps<Unit extends string = string> {
   zones?: ReadonlyArray<TapeZone<Unit>>;
   /** Point markers on the scale. */
   markers?: ReadonlyArray<TapeMarker<Unit>>;
-  /** Draw a distinct ground line at this value (e.g. 0). */
+  /** Draw a distinct ground line at this value (e.g. 0). Always drawn: off the scale it is pinned to the edge it lies beyond, with a chevron pointing out. */
   groundLine?: Value<Unit>;
+  /** Draw a sea-level line at this value, a dashed twin of the ground line with the same edge-pinning. */
+  seaLevel?: Value<Unit>;
   /**
    * Pin the rung the whole scale is written at. Absent, the rung is taken from
    * `max` and held for every tick, the pointer flag and the unit header, so one
@@ -136,6 +140,7 @@ export function Tape<Unit extends string = string>({
   zones,
   markers,
   groundLine,
+  seaLevel,
   format,
   ariaLabel,
 }: Readonly<TapeProps<Unit>>) {
@@ -181,6 +186,28 @@ export function Tape<Unit extends string = string>({
           { magnitude: safe, unit: shown.unit },
           { format: scale.rung },
         );
+  // Each mark picks its own rung, so a band's two ends are not rounded onto the same figure by the scale's.
+  const said = (q: Value<Unit>): string => speakQuantity(q);
+  const spokenMarks = [
+    ...(markers ?? []).flatMap((m) =>
+      m.label === undefined
+        ? []
+        : [
+            m.bounds === undefined
+              ? `${m.label} ${said(m.value)}`
+              : `${m.label} ${said(m.value)}, between ${said(m.bounds.lo)} and ${said(m.bounds.hi)}`,
+          ],
+    ),
+    ...(zones ?? []).flatMap((z) =>
+      z.label === undefined
+        ? []
+        : [
+            `${z.label} zone ${said(z.from.min(z.to))} to ${said(z.from.max(z.to))}`,
+          ],
+    ),
+    ...(groundLine === undefined ? [] : [`ground ${said(groundLine)}`]),
+    ...(seaLevel === undefined ? [] : [`sea level ${said(seaLevel)}`]),
+  ];
   // The model's interval, narrowed to the figure's own unit: one in another kind is about something else.
   const interval =
     shown == null || band === null ? null : (bandIn(band, shown.unit) ?? null);
@@ -202,13 +229,42 @@ export function Tape<Unit extends string = string>({
   // Mirror the whole scale about the track when the labels read inboard.
   const mirrored = labelSide === "right";
   const trackX = mirrored ? width - TRACK_X - TRACK_W : TRACK_X;
-  // The side the numeric scale is drawn on, and the opposite side used for zone/marker callouts.
+  // The side the numeric scale is drawn on.
   const labelX = mirrored ? trackX + TRACK_W + 6 : trackX - 6;
   const labelAnchor = mirrored ? "start" : "end";
-  const rightX = mirrored ? trackX - 6 : trackX + TRACK_W + 6;
-  const calloutAnchor = mirrored ? "end" : "start";
 
-  const ground = groundLine?.magnitude;
+  // A level beyond either end sits on that edge with a chevron pointing out, so it is never lost off the rail.
+  const drawLevel = (at: Value<Unit>, dashed: boolean) => {
+    const y = onRail(at);
+    const beyond = at.greaterThan(max) ? -1 : at.lessThan(min) ? 1 : 0;
+    const x1 = trackX - 4;
+    const x2 = trackX + TRACK_W + 4;
+    const mid = trackX + TRACK_W / 2;
+    return (
+      <g data-level={dashed ? "sea" : "ground"}>
+        <line
+          x1={x1}
+          y1={y}
+          x2={x2}
+          y2={y}
+          stroke={
+            dashed ? "var(--color-info-mark)" : "var(--color-text-primary)"
+          }
+          strokeWidth={dashed ? 1.5 : 2}
+          strokeDasharray={dashed ? "3 2" : undefined}
+        />
+        {beyond !== 0 && (
+          <polygon
+            data-off-scale="true"
+            points={`${mid - 4},${y - beyond * 2} ${mid + 4},${y - beyond * 2} ${mid},${y + beyond * 4}`}
+            fill={
+              dashed ? "var(--color-info-mark)" : "var(--color-text-primary)"
+            }
+          />
+        )}
+      </g>
+    );
+  };
   const ticks: number[] = [];
   const step = tickStep?.magnitude ?? 0;
   if (step > 0 && span > 0) {
@@ -243,7 +299,10 @@ export function Tape<Unit extends string = string>({
             "aria-valuenow": clamped,
             "aria-valuemin": axisMin,
             "aria-valuemax": axisMax,
-            "aria-valuetext": spoken,
+            "aria-valuetext":
+              spokenMarks.length === 0
+                ? spoken
+                : `${spoken}; ${spokenMarks.join("; ")}`,
           }
         : {
             /* A meter must state a value, so a figureless rail is an image instead. */
@@ -294,33 +353,13 @@ export function Tape<Unit extends string = string>({
                 fill={z.color ?? "var(--color-warn-mark)"}
                 opacity={0.55}
               />
-              {z.label && (
-                <text
-                  x={rightX}
-                  y={(yHi + yLo) / 2}
-                  textAnchor={calloutAnchor}
-                  dominantBaseline="middle"
-                  fontSize={9}
-                  fill="var(--color-text-faint)"
-                >
-                  {z.label}
-                </text>
-              )}
             </g>
           );
         })}
 
-        {/* Ground line */}
-        {ground !== undefined && span > 0 && (
-          <line
-            x1={trackX - 4}
-            y1={yOf(ground)}
-            x2={trackX + TRACK_W + 4}
-            y2={yOf(ground)}
-            stroke="var(--color-text-primary)"
-            strokeWidth={2}
-          />
-        )}
+        {/* Sea level under ground, so where they coincide the heavier ground line reads on top */}
+        {seaLevel !== undefined && span > 0 && drawLevel(seaLevel, true)}
+        {groundLine !== undefined && span > 0 && drawLevel(groundLine, false)}
 
         {/* Interior ticks and labels */}
         {ticks.map((t) => {
@@ -351,30 +390,45 @@ export function Tape<Unit extends string = string>({
 
         {/* Markers */}
         {markers?.map((m) => {
+          const { bounds } = m;
           const y = onRail(m.value);
           const color = m.color ?? "var(--color-accent-fg)";
           return (
-            <g key={`marker-${y}-${m.label ?? ""}`}>
+            <g key={`marker-${y}-${m.label ?? ""}`} data-marker={m.label}>
+              {/* Dashed and hollow, where the observed pointer is a solid bar, so a model's figure is never mistaken for a measurement */}
+              <line
+                x1={trackX}
+                y1={y}
+                x2={trackX + TRACK_W}
+                y2={y}
+                stroke={color}
+                strokeWidth={2}
+                strokeDasharray="2 2"
+              />
               <polygon
                 points={
                   mirrored
                     ? `${trackX},${y} ${trackX - 5},${y - 3} ${trackX - 5},${y + 3}`
                     : `${trackX + TRACK_W},${y} ${trackX + TRACK_W + 5},${y - 3} ${trackX + TRACK_W + 5},${y + 3}`
                 }
-                fill={color}
+                fill="none"
+                stroke={color}
+                strokeWidth={1.5}
               />
-              {m.label && (
-                <text
-                  x={mirrored ? rightX - 2 : rightX + 2}
-                  textAnchor={calloutAnchor}
-                  y={y}
-                  dominantBaseline="middle"
-                  fontSize={9}
-                  fill={color}
-                >
-                  {m.label}
-                </text>
-              )}
+              {bounds !== undefined &&
+                (["lo", "hi"] as const).map((end) => {
+                  const by = onRail(bounds[end]);
+                  return (
+                    <InstrumentBound
+                      key={end}
+                      end={end}
+                      x1={trackX}
+                      y1={by}
+                      x2={trackX + TRACK_W}
+                      y2={by}
+                    />
+                  );
+                })}
             </g>
           );
         })}

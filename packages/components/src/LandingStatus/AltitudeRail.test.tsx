@@ -34,14 +34,66 @@ describe("AltitudeRail", () => {
     expect(ladder).toHaveAttribute("aria-valuenow", "1200");
   });
 
-  it("draws a prediction beside the pointer, and none without one", () => {
+  it("draws a prediction beside the pointer with no text on the rail, and none without one", () => {
     const { container, rerender } = render(<AltitudeRail {...descending} />);
-    expect(container.textContent).not.toMatch(/prediction/);
-    rerender(<AltitudeRail {...descending} prediction={value("m", 900)} />);
-    expect(container.textContent).toMatch(/prediction/);
+    expect(container.querySelector('[data-marker="prediction"]')).toBeNull();
+    rerender(
+      <AltitudeRail {...descending} prediction={{ value: value("m", 900) }} />,
+    );
+    expect(
+      container.querySelector('[data-marker="prediction"]'),
+    ).not.toBeNull();
+    expect(container.textContent).not.toMatch(/prediction|burn/);
+    const ladder = screen.getByRole("meter", {
+      name: /altitude above terrain/i,
+    });
+    expect(ladder).toHaveAttribute("aria-valuenow", "1200");
+    expect(ladder).toHaveAttribute(
+      "aria-valuetext",
+      expect.stringMatching(/prediction 900\.0 metres/),
+    );
+  });
+
+  it("draws the model's interval with the bounds a Meter draws, and says it", () => {
+    const { container } = render(
+      <AltitudeRail
+        {...descending}
+        prediction={{
+          value: value("m", 900),
+          bounds: { lo: value("m", 880), hi: value("m", 925) },
+        }}
+      />,
+    );
+    expect(container.querySelectorAll("[data-bound]")).toHaveLength(2);
     expect(
       screen.getByRole("meter", { name: /altitude above terrain/i }),
-    ).toHaveAttribute("aria-valuenow", "1200");
+    ).toHaveAttribute(
+      "aria-valuetext",
+      expect.stringMatching(
+        /prediction 900\.0 metres, between 880\.0 metres and 925\.0 metres/,
+      ),
+    );
+  });
+
+  it("runs the scale down to sea level when the ground stands above it", () => {
+    render(<AltitudeRail {...descending} seaLevel={value("m", -3000)} />);
+    expect(
+      screen.getByRole("meter", { name: /altitude above terrain/i }),
+    ).toHaveAttribute("aria-valuemin", "-3000");
+  });
+
+  it("keeps the ground and sea level on the rail, pinning sea level to the top when the craft is below it", () => {
+    const { container } = render(
+      <AltitudeRail {...descending} seaLevel={value("m", 5000)} />,
+    );
+    expect(container.querySelector('[data-level="ground"]')).not.toBeNull();
+    const sea = container.querySelector('[data-level="sea"]');
+    expect(sea?.querySelector("[data-off-scale]")).not.toBeNull();
+    expect(
+      container
+        .querySelector('[data-level="ground"]')
+        ?.querySelector("[data-off-scale]"),
+    ).toBeNull();
   });
 
   it("names the root-part datum when the lowest point is unavailable", () => {

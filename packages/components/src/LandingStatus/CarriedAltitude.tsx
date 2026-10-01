@@ -16,6 +16,7 @@ import {
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import { declinedState } from "../shared/declinedState";
+import type { RailPrediction } from "./AltitudeRail";
 import { altitudeDecimals, GridCellPair } from "./readouts";
 
 /** The reading `vessel.flight` arrives as, spelled once so the readout and the widget body agree on the reckonable fields. */
@@ -36,23 +37,50 @@ function carriedAltitude(reading: FlightReading): Value<"m"> | null {
     : null;
 }
 
-/**
- * The prediction as a height on the terrain-relative rail: the carried altitude less the ground the craft stands over at the last observation.
- * That ground is the craft's own, not the ground at the predicted point, which the rail makes no claim about.
- */
-export function predictionOnRail(
+/** The observed altitude above sea level less the height above terrain: the ground's own altitude under the craft at the last observation. */
+function groundBelow(
   reading: FlightReading,
   agl: Reading<Value<"m">>,
 ): Value<"m"> | null {
-  const carried = carriedAltitude(reading);
   const observed = reading.altitudeAsl;
   const observedAsl =
     observed.state === "observed" || observed.state === "held"
       ? observed.value
       : undefined;
-  if (carried === null || observedAsl === undefined || agl.value === undefined)
-    return null;
-  return carried.minus(observedAsl.minus(agl.value)).max(0);
+  if (observedAsl === undefined || agl.value === undefined) return null;
+  return observedAsl.minus(agl.value);
+}
+
+/**
+ * The prediction as a height on the terrain-relative rail: the carried altitude less the ground the craft stands over at the last observation, with the model's interval shifted the same way.
+ * That ground is the craft's own, not the ground at the predicted point, which the rail makes no claim about.
+ */
+export function predictionOnRail(
+  reading: FlightReading,
+  agl: Reading<Value<"m">>,
+): RailPrediction | null {
+  const carried = carriedAltitude(reading);
+  const ground = groundBelow(reading, agl);
+  if (carried === null || ground === null) return null;
+  const { reckoning } = reading.altitudeAsl;
+  const interval =
+    reckoning.status === "available" ? bandIn(reckoning.band, "m") : undefined;
+  const onRail = (altitude: Value<"m">) => altitude.minus(ground).max(0);
+  return {
+    value: onRail(carried),
+    bounds:
+      interval === undefined
+        ? undefined
+        : { lo: onRail(interval.lo), hi: onRail(interval.hi) },
+  };
+}
+
+/** Sea level as a height on the terrain-relative rail: the negative of the ground's altitude, or `null` before the craft has been observed. */
+export function seaLevelOnRail(
+  reading: FlightReading,
+  agl: Reading<Value<"m">>,
+): Value<"m"> | null {
+  return groundBelow(reading, agl)?.scaled(-1) ?? null;
 }
 
 /**
