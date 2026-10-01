@@ -71,32 +71,64 @@ export function placeDiagram({
   placement: Placement;
   plotScale: number;
 }): PlacedDiagram {
-  const at = (point: readonly [number, number, number]): PlacedPoint => {
-    const p = placement.place([point[0], point[1], point[2]]);
-    return {
-      x: p[0] * plotScale,
-      y: p[1] * plotScale,
-      depthUnits: p[2] * plotScale,
-    };
-  };
-  const ringOf = (
-    sma: number,
-    ecc: number,
-    lan: number,
-    argPe: number,
-    inclination: number,
-  ): PlacedRing => {
-    if (!(sma > 0)) return { ring: null, ringDepth: null };
-    const points = orbitRingPoints(sma, ecc, lan, argPe, inclination).map((p) =>
-      placement.place(p),
-    );
-    return {
-      ring: closedPath(points, plotScale),
-      ringDepth: depthGradientAxis(points, plotScale),
-    };
-  };
+  const vesselHere =
+    vessel && nameMatches(vessel.parentName, parentName) ? vessel : null;
   return {
-    parent: at([0, 0, 0]),
+    ...placeBodies({ children, placement, plotScale }),
+    vessel:
+      vesselHere === null
+        ? null
+        : {
+            ...placeVesselPoint(vesselHere, placement, plotScale),
+            ...placeVesselRing(vesselHere, placement, plotScale),
+          },
+  };
+}
+
+function placedPointOf(
+  placement: Placement,
+  plotScale: number,
+  point: readonly [number, number, number],
+): PlacedPoint {
+  const p = placement.place([point[0], point[1], point[2]]);
+  return {
+    x: p[0] * plotScale,
+    y: p[1] * plotScale,
+    depthUnits: p[2] * plotScale,
+  };
+}
+
+function placedRingOf(
+  placement: Placement,
+  plotScale: number,
+  sma: number,
+  ecc: number,
+  lan: number,
+  argPe: number,
+  inclination: number,
+): PlacedRing {
+  if (!(sma > 0)) return { ring: null, ringDepth: null };
+  const points = orbitRingPoints(sma, ecc, lan, argPe, inclination).map((p) =>
+    placement.place(p),
+  );
+  return {
+    ring: closedPath(points, plotScale),
+    ringDepth: depthGradientAxis(points, plotScale),
+  };
+}
+
+/** The frame body and every drawn child with its ring: independent of the vessel, so a vessel tick does not re-place them. */
+export function placeBodies({
+  children,
+  placement,
+  plotScale,
+}: {
+  children: readonly CelestialBody[];
+  placement: Placement;
+  plotScale: number;
+}): { parent: PlacedPoint; bodies: PlacedBody[] } {
+  return {
+    parent: placedPointOf(placement, plotScale, [0, 0, 0]),
     bodies: children.map((c) => {
       const sma = c.semiMajorAxis ?? 0;
       const ecc = c.eccentricity ?? 0;
@@ -105,35 +137,60 @@ export function placeDiagram({
       const inclination = c.inclination ?? 0;
       return {
         body: c,
-        ...at(
+        ...placedPointOf(
+          placement,
+          plotScale,
           orbitPointAt(sma, ecc, lan, argPe, inclination, c.trueAnomaly ?? 0),
         ),
-        ...ringOf(sma, ecc, lan, argPe, inclination),
+        ...placedRingOf(
+          placement,
+          plotScale,
+          sma,
+          ecc,
+          lan,
+          argPe,
+          inclination,
+        ),
       };
     }),
-    vessel:
-      vessel && nameMatches(vessel.parentName, parentName)
-        ? {
-            ...at(
-              orbitPointAt(
-                vessel.sma,
-                vessel.ecc,
-                vessel.lan,
-                vessel.argPe,
-                vessel.inclination,
-                vessel.trueAnomaly,
-              ),
-            ),
-            ...ringOf(
-              vessel.sma,
-              vessel.ecc,
-              vessel.lan,
-              vessel.argPe,
-              vessel.inclination,
-            ),
-          }
-        : null,
   };
+}
+
+/** The vessel's ring, which depends on its elements and not on where it is along them. */
+export function placeVesselRing(
+  vessel: Pick<VesselOrbit, "sma" | "ecc" | "lan" | "argPe" | "inclination">,
+  placement: Placement,
+  plotScale: number,
+): PlacedRing {
+  return placedRingOf(
+    placement,
+    plotScale,
+    vessel.sma,
+    vessel.ecc,
+    vessel.lan,
+    vessel.argPe,
+    vessel.inclination,
+  );
+}
+
+/** The vessel's own position, the only vessel placement that moves with the true anomaly. */
+export function placeVesselPoint(
+  vessel: VesselOrbit,
+  placement: Placement,
+  plotScale: number,
+): PlacedPoint {
+  return placedPointOf(
+    placement,
+    plotScale,
+    orbitPointAt(
+      vessel.sma,
+      vessel.ecc,
+      vessel.lan,
+      vessel.argPe,
+      vessel.inclination,
+      vessel.trueAnomaly,
+    ),
+  );
 }
 
 /** A closed polyline through placed points, in plot units. */

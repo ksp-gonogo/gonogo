@@ -18,7 +18,9 @@ import {
   diagramPlotScale,
   nameMatches,
   organise,
-  placeDiagram,
+  placeBodies,
+  placeVesselPoint,
+  placeVesselRing,
   type VesselOrbit,
 } from "./diagramGeometry";
 import {
@@ -126,16 +128,85 @@ export function SystemDiagram({
   );
 
   // Memoised on the projection and not on zoom: this re-renders every frame, and a wheel gesture must not replace thousands of placements.
-  const placed = useMemo(
+  const placedBodies = useMemo(
+    () => placeBodies({ children, placement, plotScale }),
+    [children, placement, plotScale],
+  );
+  const vesselHere =
+    vessel && nameMatches(vessel.parentName, parentName) ? vessel : null;
+  const vSma = vesselHere?.sma;
+  const vEcc = vesselHere?.ecc;
+  const vLan = vesselHere?.lan;
+  const vArgPe = vesselHere?.argPe;
+  const vInc = vesselHere?.inclination;
+  // The ring is keyed on the elements' numbers, which hold still while the vessel moves along them.
+  const vesselRing = useMemo(
     () =>
-      placeDiagram({
-        children,
-        vessel,
-        parentName,
-        placement,
-        plotScale,
-      }),
-    [children, vessel, parentName, placement, plotScale],
+      vSma === undefined ||
+      vEcc === undefined ||
+      vLan === undefined ||
+      vArgPe === undefined ||
+      vInc === undefined
+        ? null
+        : placeVesselRing(
+            {
+              sma: vSma,
+              ecc: vEcc,
+              lan: vLan,
+              argPe: vArgPe,
+              inclination: vInc,
+            },
+            placement,
+            plotScale,
+          ),
+    [vSma, vEcc, vLan, vArgPe, vInc, placement, plotScale],
+  );
+  const vTrueAnomaly = vesselHere?.trueAnomaly;
+  const vesselPoint = useMemo(
+    () =>
+      vesselRing === null ||
+      vSma === undefined ||
+      vEcc === undefined ||
+      vLan === undefined ||
+      vArgPe === undefined ||
+      vInc === undefined ||
+      vTrueAnomaly === undefined
+        ? null
+        : placeVesselPoint(
+            {
+              parentName,
+              sma: vSma,
+              ecc: vEcc,
+              lan: vLan,
+              argPe: vArgPe,
+              inclination: vInc,
+              trueAnomaly: vTrueAnomaly,
+            },
+            placement,
+            plotScale,
+          ),
+    [
+      vesselRing,
+      vSma,
+      vEcc,
+      vLan,
+      vArgPe,
+      vInc,
+      vTrueAnomaly,
+      parentName,
+      placement,
+      plotScale,
+    ],
+  );
+  const placed = useMemo(
+    () => ({
+      ...placedBodies,
+      vessel:
+        vesselRing === null || vesselPoint === null
+          ? null
+          : { ...vesselPoint, ...vesselRing },
+    }),
+    [placedBodies, vesselRing, vesselPoint],
   );
 
   const placedPatches = usePlacedPrediction({
