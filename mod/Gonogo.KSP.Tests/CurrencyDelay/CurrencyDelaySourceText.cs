@@ -65,8 +65,9 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
                 if (source[i] == '(')
                 {
                     depth++;
+                    continue;
                 }
-                else if (source[i] == ')' && --depth == 0)
+                if (source[i] == ')' && --depth == 0)
                 {
                     var rest = i + 1;
                     while (rest < source.Length && char.IsWhiteSpace(source[rest]))
@@ -92,12 +93,14 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
                 if (c == '(' || c == '{' || c == '[')
                 {
                     depth++;
+                    continue;
                 }
-                else if (c == ')' || c == '}' || c == ']')
+                if (c == ')' || c == '}' || c == ']')
                 {
                     depth--;
+                    continue;
                 }
-                else if (c == ';' && depth == 0)
+                if (c == ';' && depth == 0)
                 {
                     return source.Substring(arrow, i - arrow + 1);
                 }
