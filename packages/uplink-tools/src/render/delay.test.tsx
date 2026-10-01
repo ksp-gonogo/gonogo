@@ -7,7 +7,7 @@ import {
   useViewUt,
 } from "@ksp-gonogo/sitrep-sdk";
 import { registerReckoner } from "@ksp-gonogo/sitrep-sdk/spine";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import {
   installRenderProbe,
   payloadFor,
@@ -126,8 +126,11 @@ async function render(stream: Record<string, unknown>): Promise<string> {
     INVENTORY,
   );
   await api.renderScene(payloadFor(scene, scene.modes[0], false));
+  const drawn = () => document.getElementById("root")?.textContent ?? "";
+  // The probe settles on two animation frames, and React commits the delivered reading on its own scheduler: under load the frames can pass first and leave the first paint, "pending". Wait for the commit rather than racing it.
+  await vi.waitFor(() => expect(drawn()).not.toMatch(/observed pending/));
   // jsdom lays nothing out, so the report's visible text is empty; the DOM's own text is what was drawn.
-  const text = document.getElementById("root")?.textContent ?? "";
+  const text = drawn();
   await api.unmountScene();
   return text;
 }
