@@ -94,10 +94,13 @@ namespace Sitrep.Host.Tests
             public string[] Breaks { get; set; } = Array.Empty<string>();
 
             /// <summary>
-            /// Breaks on a shipped C# seam rather than on the wire: an interface
-            /// or abstract member an Uplink implements. The shape is reflected
-            /// from wire types only, so nothing here can be computed and each one
-            /// is DECLARED, with the members it changed and why.
+            /// Breaks on a shipped C# seam that the computation cannot see. A
+            /// removed or retyped member, a member that stopped being overridable
+            /// and a newly abstract member of an interface or abstract class are
+            /// computed into <see cref="Breaks"/> (see
+            /// <see cref="ContractSeamSurface"/>), so this is for what remains,
+            /// such as a changed contract of a member whose signature is the
+            /// same. Each one is DECLARED, with the members it changed and why.
             /// </summary>
             public SeamBreak[] SeamBreaks { get; set; } = Array.Empty<SeamBreak>();
 
@@ -147,6 +150,19 @@ namespace Sitrep.Host.Tests
             /// retroactively add entries to a frozen <c>Breaks</c> list.</para>
             /// </summary>
             public Dictionary<string, string[]>? Topics { get; set; }
+
+            /// <summary>
+            /// The C# surface of every shipped seam (public interfaces and abstract
+            /// classes), keyed by full name: see <see cref="ContractSeamSurface"/>.
+            /// A removed or retyped member, a member that stopped being
+            /// overridable, or an abstract member a plugin-implemented seam gained
+            /// is a computed break.
+            ///
+            /// <para>NULLABLE like <see cref="Topics"/>: null means the dimension
+            /// was never recorded, so <see cref="ComputeRemovals"/> skips it
+            /// rather than inventing breaks against earlier Majors.</para>
+            /// </summary>
+            public Dictionary<string, string[]>? Seams { get; set; }
         }
 
         private sealed class Ledger
@@ -637,6 +653,11 @@ namespace Sitrep.Host.Tests
                 }
             }
 
+            if (from.Seams is not null && to.Seams is not null)
+            {
+                removals.AddRange(ContractSeamSurface.Breaks(from.Seams, to.Seams));
+            }
+
             foreach (var enumName in from.Enums.Keys.Except(to.Enums.Keys))
             {
                 removals.Add("enum-removed:" + enumName);
@@ -660,6 +681,41 @@ namespace Sitrep.Host.Tests
 
             removals.Sort(StringComparer.Ordinal);
             return removals;
+        }
+
+        /// <summary>
+        /// A changed seam member is a computed removal, so it fails the Minor
+        /// gate and the Major's declared <c>Breaks</c> the same way a wire
+        /// removal does, and a floor that never recorded seams is not diffed on
+        /// them.
+        /// </summary>
+        [Fact]
+        public void GateSelfTest_ComputeRemovalsCatchesASeamBreakAndSkipsAnUnrecordedFloor()
+        {
+            var floor = new Shape
+            {
+                Seams = new Dictionary<string, string[]>
+                {
+                    ["ISeam"] = new[] { "role:plugin|plain", "Read():System.Int32|abstract" },
+                },
+            };
+            var changed = new Shape
+            {
+                Seams = new Dictionary<string, string[]>
+                {
+                    ["ISeam"] = new[] { "role:plugin|plain", "Read():System.String|abstract" },
+                },
+            };
+
+            Assert.Equal(
+                new[]
+                {
+                    "seam-member-added-abstract:ISeam.Read():System.String",
+                    "seam-member-removed:ISeam.Read():System.Int32",
+                },
+                ComputeRemovals(floor, changed));
+            Assert.Empty(ComputeRemovals(new Shape(), changed));
+            Assert.Empty(ComputeRemovals(floor, floor));
         }
 
         /// <summary>
@@ -970,6 +1026,7 @@ namespace Sitrep.Host.Tests
                 Types = new Dictionary<string, string[]>(sortedTypes),
                 Enums = new Dictionary<string, string[]>(new SortedDictionary<string, string[]>(enumShapes, StringComparer.Ordinal)),
                 Topics = new Dictionary<string, string[]>(new SortedDictionary<string, string[]>(topicShapes, StringComparer.Ordinal)),
+                Seams = ContractSeamSurface.Compute(assembly),
             };
         }
 

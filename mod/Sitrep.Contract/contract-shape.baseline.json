@@ -43550,6 +43550,267 @@
             "type:Sitrep.Contract.VesselThermal",
             "array:False"
           ]
+        },
+        "Seams": {
+          "Sitrep.Contract.CommsBackendBase": [
+            "Connectivity():Sitrep.Contract.CommsConnectivity|plain",
+            "ControlPath(System.Object):System.Collections.Generic.IReadOnlyList\u00601[Sitrep.Contract.CommsLinkView]|abstract",
+            "ControlPathTerminus(System.Object):System.Object|plain",
+            "ControlState():Sitrep.Contract.CommsControl|plain",
+            "DegradeModel():Sitrep.Contract.ICommsDegradeModel|abstract",
+            "HopExtensions(Sitrep.Contract.CommsLinkView):System.Collections.Generic.Dictionary\u00602[System.String,System.Object]|virtual",
+            "LinkState():System.Nullable\u00601[Sitrep.Contract.CommsLinkState]|abstract",
+            "Meta():Sitrep.Contract.PayloadMeta|plain",
+            "Network(System.Object):Sitrep.Contract.CommsNetwork|plain",
+            "OcclusionModel():Sitrep.Contract.ICommsOcclusionModel|abstract",
+            "Path(System.Object):Sitrep.Contract.CommsPath|plain",
+            "ReachModel(System.Object,System.Object):Sitrep.Contract.ICommsReachModel|abstract",
+            "RouteBetween(System.Object,System.Object):System.Collections.Generic.IReadOnlyList\u00601[Sitrep.Contract.CommsRouteHop]|abstract",
+            "SignalStrength():Sitrep.Contract.CommsSignal|plain",
+            "StillCarriesTo(System.Object,System.String):System.Nullable\u00601[System.Boolean]|plain",
+            "Subject():Sitrep.Contract.CommsSubject|abstract",
+            "ctor()|plain",
+            "field NoCommandSourceReason:System.String|plain",
+            "get_DisconnectedReason():System.String|virtual",
+            "get_ProviderId():System.String|abstract",
+            "implements:Sitrep.Contract.ICommsBackend|plain",
+            "implements:Sitrep.Contract.ISitrepProvider|plain",
+            "role:plugin|plain"
+          ],
+          "Sitrep.Contract.IActionGroupsBackend": [
+            "Groups():System.Collections.Generic.IList\u00601[Sitrep.Contract.ActionGroupState]|abstract",
+            "SetGroup(System.Int32,System.Boolean):System.Boolean|abstract",
+            "implements:Sitrep.Contract.ISitrepProvider|abstract",
+            "role:plugin|plain"
+          ],
+          "Sitrep.Contract.IActiveVessel": [
+            "get_Reported():System.Object|abstract",
+            "get_ReportedId():System.String|abstract",
+            "get_SubstitutedForEva():System.Boolean|abstract",
+            "implements:Sitrep.Contract.ISitrepProvider|abstract",
+            "role:host|plain"
+          ],
+          "Sitrep.Contract.IBodyEphemerisHorizon": [
+            "BodySpanSeconds(System.Int32,System.Double):System.Nullable\u00601[System.Double]|abstract",
+            "role:plugin|plain"
+          ],
+          "Sitrep.Contract.IChannelPublisher": [
+            "Publish(System.Object,System.Double):System.Void|abstract",
+            "role:host|plain"
+          ],
+          "Sitrep.Contract.ICommandCentre": [
+            "IsActiveNow():System.Boolean|abstract",
+            "get_BodyIndex():System.Nullable\u00601[System.Int32]|abstract",
+            "get_DisplayName():System.String|abstract",
+            "get_Id():System.String|abstract",
+            "get_Kind():Sitrep.Contract.CommandCentreKind|abstract",
+            "get_Latitude():System.Nullable\u00601[System.Double]|abstract",
+            "get_Longitude():System.Nullable\u00601[System.Double]|abstract",
+            "role:plugin|plain"
+          ],
+          "Sitrep.Contract.ICommandCentreSource": [
+            "Enumerate():System.Collections.Generic.IEnumerable\u00601[Sitrep.Contract.ICommandCentre]|abstract",
+            "implements:Sitrep.Contract.ISitrepProvider|abstract",
+            "role:plugin|plain"
+          ],
+          "Sitrep.Contract.ICommandGateEvaluator": [
+            "Evaluate(Sitrep.Contract.CommandRequirement,Sitrep.Contract.IGateArguments):Sitrep.Contract.GateVerdict|abstract",
+            "get_Kind():System.String|abstract",
+            "role:plugin|plain"
+          ],
+          "Sitrep.Contract.ICommandGateItems": [
+            "Items(Sitrep.Contract.CommandRequirement):System.Collections.Generic.IEnumerable\u00601[System.String]|abstract",
+            "role:plugin|plain"
+          ],
+          "Sitrep.Contract.ICommsBackend": [
+            "Connectivity():Sitrep.Contract.CommsConnectivity|abstract",
+            "ControlPathTerminus(System.Object):System.Object|abstract",
+            "ControlState():Sitrep.Contract.CommsControl|abstract",
+            "DegradeModel():Sitrep.Contract.ICommsDegradeModel|abstract",
+            "Network(System.Object):Sitrep.Contract.CommsNetwork|abstract",
+            "OcclusionModel():Sitrep.Contract.ICommsOcclusionModel|abstract",
+            "Path(System.Object):Sitrep.Contract.CommsPath|abstract",
+            "ReachModel(System.Object,System.Object):Sitrep.Contract.ICommsReachModel|abstract",
+            "RouteBetween(System.Object,System.Object):System.Collections.Generic.IReadOnlyList\u00601[Sitrep.Contract.CommsRouteHop]|abstract",
+            "SignalStrength():Sitrep.Contract.CommsSignal|abstract",
+            "StillCarriesTo(System.Object,System.String):System.Nullable\u00601[System.Boolean]|abstract",
+            "implements:Sitrep.Contract.ISitrepProvider|abstract",
+            "role:plugin|plain"
+          ],
+          "Sitrep.Contract.ICommsDegradeModel": [
+            "get_Level():System.Nullable\u00601[System.Double]|abstract",
+            "get_ModelId():System.String|abstract",
+            "get_ModelName():System.String|abstract",
+            "role:plugin|plain"
+          ],
+          "Sitrep.Contract.ICommsOcclusionModel": [
+            "OccludingRadiusMeters(System.Double,System.Boolean):System.Double|abstract",
+            "get_ModelId():System.String|abstract",
+            "get_ModelName():System.String|abstract",
+            "role:plugin|plain"
+          ],
+          "Sitrep.Contract.ICommsReachModel": [
+            "get_MaxRangeMeters():System.Nullable\u00601[System.Double]|abstract",
+            "get_ModelId():System.String|abstract",
+            "get_ModelName():System.String|abstract",
+            "role:plugin|plain"
+          ],
+          "Sitrep.Contract.IControlFrameSource": [
+            "SetFrame(Sitrep.Contract.SetControlFrameArgs):Sitrep.Contract.CommandResult|abstract",
+            "get_Frame():Sitrep.Contract.ControlFrame|abstract",
+            "implements:Sitrep.Contract.ISitrepProvider|abstract",
+            "role:plugin|plain"
+          ],
+          "Sitrep.Contract.ICraftCatalogue": [
+            "Craft():System.Collections.Generic.IReadOnlyList\u00601[Sitrep.Contract.CraftFileRecord]|abstract",
+            "Load(System.String,System.Nullable\u00601[Sitrep.Contract.KspEditorFacility]):Sitrep.Contract.CraftLoad|abstract",
+            "Release(System.Object):System.Void|abstract",
+            "implements:Sitrep.Contract.ISitrepProvider|abstract",
+            "role:plugin|plain"
+          ],
+          "Sitrep.Contract.ICrewStandingBackend": [
+            "Read(Sitrep.Contract.CrewStandingQuery):Sitrep.Contract.CrewStandingReading|abstract",
+            "implements:Sitrep.Contract.ISitrepProvider|abstract",
+            "role:plugin|plain"
+          ],
+          "Sitrep.Contract.IDelayedScienceSink": [
+            "RecordDelayedScienceIncrement(System.String,System.Double,System.Double,System.String):System.Void|abstract",
+            "implements:Sitrep.Contract.ISitrepProvider|abstract",
+            "role:host|plain"
+          ],
+          "Sitrep.Contract.IDerivedCurrencyWithholder": [
+            "ObserveBeforeDerivation(System.String,System.Double):System.Void|abstract",
+            "WithholdDerived(System.String,System.Double,System.Double):System.Void|abstract",
+            "get_Diagnostic():System.Action\u00601[System.String]|abstract",
+            "implements:Sitrep.Contract.ISitrepProvider|abstract",
+            "role:plugin|plain",
+            "set_Diagnostic(System.Action\u00601[System.String]):System.Void|abstract"
+          ],
+          "Sitrep.Contract.IDynamicChannelSource": [
+            "OnSubscribed(System.Action\u00601[System.String]):System.Void|abstract",
+            "Publisher(System.String):Sitrep.Contract.IChannelPublisher|abstract",
+            "role:host|plain"
+          ],
+          "Sitrep.Contract.IGateArguments": [
+            "TryGet(System.String,System.Object\u0026):System.Boolean|abstract",
+            "role:host|plain"
+          ],
+          "Sitrep.Contract.IHomeCommandProvider": [
+            "Identify(System.Collections.Generic.IReadOnlyList\u00601[Sitrep.Contract.ICommandCentre]):Sitrep.Contract.HomeCommand|abstract",
+            "implements:Sitrep.Contract.ISitrepProvider|abstract",
+            "role:plugin|plain"
+          ],
+          "Sitrep.Contract.IIntegratedTrajectorySource": [
+            "role:plugin|plain"
+          ],
+          "Sitrep.Contract.IIsruBackend": [
+            "Converters():System.Collections.Generic.IReadOnlyList\u00601[Sitrep.Contract.IsruConverterEntry]|abstract",
+            "Drills():System.Collections.Generic.IReadOnlyList\u00601[Sitrep.Contract.IsruDrillEntry]|abstract",
+            "implements:Sitrep.Contract.ISitrepProvider|abstract",
+            "role:plugin|plain"
+          ],
+          "Sitrep.Contract.IManeuverPlanSource": [
+            "Plan():System.Collections.Generic.IList\u00601[Sitrep.Contract.ManeuverNode]|abstract",
+            "implements:Sitrep.Contract.ISitrepProvider|abstract",
+            "role:plugin|plain"
+          ],
+          "Sitrep.Contract.IModSettingsSource": [
+            "ListModSettings():System.Collections.Generic.IReadOnlyList\u00601[Sitrep.Contract.ModSetting]|abstract",
+            "ReadModSetting(System.String):Sitrep.Contract.ModSettingValue|abstract",
+            "role:plugin|plain"
+          ],
+          "Sitrep.Contract.IModSettingsWriter": [
+            "WriteModSetting(System.String,Sitrep.Contract.ModSettingValue):Sitrep.Contract.CommandResult|abstract",
+            "role:plugin|plain"
+          ],
+          "Sitrep.Contract.IPropagationProvider": [
+            "CanPropagate(Sitrep.Contract.PropagationTarget,Sitrep.Contract.PropagationFrame,System.Double,System.Double):System.Boolean|abstract",
+            "CharacteristicCycleSeconds(Sitrep.Contract.PropagationTarget):System.Nullable\u00601[System.Double]|abstract",
+            "RadiusExtremesOf(Sitrep.Contract.PropagationTarget):System.Nullable\u00601[Sitrep.Contract.RadiusExtremes]|abstract",
+            "Solve(Sitrep.Contract.PropagationTarget,Sitrep.Contract.PropagationFrame,System.Double):Sitrep.Contract.StateVector|abstract",
+            "SolveClosestApproach(Sitrep.Contract.PropagationTarget,Sitrep.Contract.PropagationTarget,Sitrep.Contract.PropagationFrame,System.Double,System.Double):Sitrep.Contract.ClosestApproach|abstract",
+            "SolveMany(Sitrep.Contract.PropagationTarget,Sitrep.Contract.PropagationFrame,System.Collections.Generic.IReadOnlyList\u00601[System.Double],Sitrep.Contract.StateVector[]):System.Void|abstract",
+            "implements:Sitrep.Contract.ISitrepProvider|abstract",
+            "role:plugin|plain"
+          ],
+          "Sitrep.Contract.IScetThresholdSources": [
+            "Sources():System.Collections.Generic.IReadOnlyList\u00601[Sitrep.Contract.ScetThresholdSource]|abstract",
+            "implements:Sitrep.Contract.ISitrepProvider|abstract",
+            "role:plugin|plain"
+          ],
+          "Sitrep.Contract.IScienceBackend": [
+            "DeployExperiment(Sitrep.Contract.ExperimentActionArgs):Sitrep.Contract.CommandResult|abstract",
+            "ExperimentBreakdown(Sitrep.Contract.KspSnapshot):System.Object|abstract",
+            "Experiments(Sitrep.Contract.KspSnapshot):System.Object|abstract",
+            "Instruments(Sitrep.Contract.KspSnapshot):System.Object|abstract",
+            "Lab(Sitrep.Contract.KspSnapshot):System.Object|abstract",
+            "Sensors(Sitrep.Contract.KspSnapshot):System.Object|abstract",
+            "TransmitExperiment(Sitrep.Contract.ExperimentActionArgs):Sitrep.Contract.CommandResult|abstract",
+            "implements:Sitrep.Contract.ISitrepProvider|abstract",
+            "role:plugin|plain"
+          ],
+          "Sitrep.Contract.ISitrepProvider": [
+            "get_ProviderId():System.String|abstract",
+            "role:plugin|plain"
+          ],
+          "Sitrep.Contract.ISitrepUplink": [
+            "Health():Sitrep.Contract.UplinkHealth|abstract",
+            "Register(Sitrep.Contract.IUplinkHost):System.Void|abstract",
+            "get_Manifest():Sitrep.Contract.UplinkManifest|abstract",
+            "role:plugin|plain"
+          ],
+          "Sitrep.Contract.ISnapshotSampler": [
+            "Sample(Sitrep.Contract.KspSnapshot):System.Void|abstract",
+            "role:host|plain"
+          ],
+          "Sitrep.Contract.IUplinkCapabilityDeclarer": [
+            "DeclareCapabilities(Sitrep.Contract.Kernel):System.Void|abstract",
+            "role:plugin|plain"
+          ],
+          "Sitrep.Contract.IUplinkHost": [
+            "AddChannelSource(System.String,System.Func\u00602[Sitrep.Contract.KspSnapshot,System.Object]):System.Void|abstract",
+            "AddCommandHandler\u003C2\u003E(System.String,System.Func\u00602[TArgs,TResult]):System.Void|abstract",
+            "AddCommandRequirement(System.String,Sitrep.Contract.CommandRequirement):System.Void|abstract",
+            "AddGateEvaluator(Sitrep.Contract.ICommandGateEvaluator):System.Void|abstract",
+            "AddSampledSource(System.Func\u00602[Sitrep.Contract.KspSnapshot,System.Object],System.Action\u00601[System.Object]):System.Void|abstract",
+            "AddSampledSource(System.Func\u00602[Sitrep.Contract.KspSnapshot,System.Object],System.Action\u00601[System.Object],System.String[]):System.Void|abstract",
+            "AddSampler(Sitrep.Contract.ISnapshotSampler):System.Void|abstract",
+            "AddVantageCommandHandler\u003C2\u003E(System.String,System.Func\u00603[TArgs,System.String,TResult]):System.Void|abstract",
+            "ForceKeyframe(System.String):System.Void|abstract",
+            "IsAnyTopicSubscribed(System.String):System.Boolean|abstract",
+            "NowUt():System.Double|abstract",
+            "Publisher(System.String):Sitrep.Contract.IChannelPublisher|abstract",
+            "RegisterDelayModifier(System.Double,System.String):System.IDisposable|abstract",
+            "RegisterDynamicNamespace(System.String,Sitrep.Contract.ChannelDeclaration):Sitrep.Contract.IDynamicChannelSource|abstract",
+            "ResetChannelBirth(System.Collections.Generic.IEnumerable\u00601[System.String]):System.Void|abstract",
+            "SetActiveVesselDelays(System.Collections.Generic.IReadOnlyDictionary\u00602[System.String,System.Double]):System.Void|abstract",
+            "SetAvailability(Sitrep.Contract.Availability):System.Void|abstract",
+            "SetCentreDelay(System.String,System.String,System.Double):System.Void|abstract",
+            "SetConnectivitySource(System.Func\u00602[Sitrep.Contract.KspSnapshot,System.Nullable\u00601[System.Boolean]]):System.Void|abstract",
+            "SetHomeCommandDelay(System.String,System.Double):System.Void|abstract",
+            "SetPathBreakSource(System.Func\u00603[Sitrep.Contract.KspSnapshot,System.Double,System.Collections.Generic.IReadOnlyList\u00601[Sitrep.Contract.PathBreak]]):System.Void|abstract",
+            "SetSignalDelaySource(System.Func\u00602[Sitrep.Contract.KspSnapshot,Sitrep.Contract.CommsDelay]):System.Void|abstract",
+            "SetVesselConnectivity(System.String,System.Boolean):System.Void|abstract",
+            "SetVesselDelay(System.String,System.Double):System.Void|abstract",
+            "get_Kernel():Sitrep.Contract.Kernel|abstract",
+            "role:host|plain"
+          ],
+          "Sitrep.Contract.IUplinkSettings": [
+            "Bool(System.String):System.Boolean|abstract",
+            "Declare(Sitrep.Contract.UplinkSettingRow):System.Void|abstract",
+            "Migrate(System.String,System.String):System.Void|abstract",
+            "Number(System.String):System.Double|abstract",
+            "OnChanged(System.Action\u00601[Sitrep.Contract.IUplinkSettings]):System.IDisposable|abstract",
+            "Stored(System.String):System.String|abstract",
+            "Text(System.String):System.String|abstract",
+            "get_StoredNames():System.Collections.Generic.IReadOnlyList\u00601[System.String]|abstract",
+            "get_WrittenBy():System.String|abstract",
+            "role:host|plain"
+          ],
+          "Sitrep.Contract.IUplinkSettingsDeclarer": [
+            "DeclareSettings(Sitrep.Contract.IUplinkSettings):System.Void|abstract",
+            "role:plugin|plain"
+          ]
         }
       }
     }
