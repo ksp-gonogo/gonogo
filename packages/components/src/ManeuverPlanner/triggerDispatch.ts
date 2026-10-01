@@ -1,5 +1,9 @@
 import { dispatchActiveCommandTopic } from "@ksp-gonogo/sitrep-client";
-import { classifyCommandRejection, FaultCode } from "@ksp-gonogo/sitrep-sdk";
+import {
+  classifyCommandRejection,
+  dehydrateArgs,
+  FaultCode,
+} from "@ksp-gonogo/sitrep-sdk";
 import type {
   CommandFailedEntry,
   CommandLossEntry,
@@ -82,13 +86,13 @@ function dispatchPlan(
     const dispatch: CommandLossEntry = {
       id: `${triggerId}:${index}`,
       command: ADD_NODE,
-      // The burn's own numbers as arguments, so full precision reaches the command.
-      args: {
+      // The burn's own figures as the command's wire arguments, so full precision reaches it and a failure names what was sent.
+      args: dehydrateArgs({
         ut: b.ut,
         prograde: b.prograde,
         normal: b.normal,
         radialOut: b.radial,
-      },
+      }),
       label: TRIGGER_NODE_LABEL,
     };
     const outcome = dispatchActiveCommandTopic(ADD_NODE, dispatch.args);

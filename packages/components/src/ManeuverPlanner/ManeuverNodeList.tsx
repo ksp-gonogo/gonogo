@@ -1,5 +1,5 @@
 import type { ParsedManeuverNode } from "@ksp-gonogo/data";
-import type { CarriedCurrency } from "@ksp-gonogo/sitrep-sdk";
+import type { CarriedCurrency, Value } from "@ksp-gonogo/sitrep-sdk";
 import { EmptyState, TextButton } from "@ksp-gonogo/ui";
 import { Stack } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
@@ -9,7 +9,7 @@ import { type NodeEditPatch, NodeRow } from "./NodeRow";
 interface ManeuverNodeListProps {
   nodes: readonly ParsedManeuverNode[];
   completedNodes: ReadonlyMap<number, CompletedEntry>;
-  currentUT: number | undefined;
+  currentUT: Value<"ut"> | undefined;
   /** Vessel ΔV available, or null when there is no usable reading. */
   availableDv: number | null;
   /** What the plan was last reported by. */

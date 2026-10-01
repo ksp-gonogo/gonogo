@@ -1,6 +1,10 @@
 import type { ParsedManeuverNode } from "@ksp-gonogo/data";
 import { useCommand } from "@ksp-gonogo/sitrep-client";
-import type { Reading, Value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  dehydrateArgs,
+  type Reading,
+  type Value,
+} from "@ksp-gonogo/sitrep-sdk";
 import { useCallback, useState } from "react";
 import { useBurnCompletionTracker } from "./BurnCompletionTracker";
 import type { NodeEditPatch } from "./NodeRow";
@@ -56,12 +60,13 @@ export function useNodeCommands(
     const burns = isSequence(toDispatch) ? toDispatch.burns : [toDispatch];
     let confirmed = 0;
     for (const b of burns) {
-      const args = {
+      // The planned instant is typed; the command's own args carry it as UT seconds.
+      const args = dehydrateArgs({
         ut: b.ut,
         radialOut: b.radial,
         normal: b.normal,
         prograde: b.prograde,
-      };
+      });
       const label = "Add maneuver node";
       try {
         await addNodeCmd.send(args, { label });

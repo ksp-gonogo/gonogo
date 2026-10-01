@@ -1,5 +1,5 @@
 import type { ParsedManeuverNode } from "@ksp-gonogo/data";
-import { ManeuverFrame } from "@ksp-gonogo/sitrep-sdk";
+import { ManeuverFrame, value } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen } from "@ksp-gonogo/test-utils";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
@@ -27,7 +27,7 @@ async function openEditor(node: ParsedManeuverNode) {
   const view = render(
     <NodeRow
       node={node}
-      currentUT={0}
+      currentUT={value("ut", 0)}
       availableDv={500}
       onEdit={async () => {}}
     />,
@@ -78,7 +78,7 @@ describe("the node editor edits through the kit's UnitInput", () => {
     render(
       <NodeRow
         node={stockNode()}
-        currentUT={0}
+        currentUT={value("ut", 0)}
         availableDv={500}
         onEdit={async (patch) => {
           saved.push(patch);

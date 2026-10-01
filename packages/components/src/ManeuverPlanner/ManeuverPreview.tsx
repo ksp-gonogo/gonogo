@@ -1,6 +1,6 @@
 import type { BodyDefinition, CurrentOrbit, DataKey } from "@ksp-gonogo/core";
 import type { OrbitTrajectory } from "@ksp-gonogo/sitrep-client";
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import { type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import { Button } from "@ksp-gonogo/ui";
 import {
   ContainerBreak,
@@ -52,7 +52,7 @@ export interface ManeuverPreviewProps {
   availableDeltaV: number | null;
   feasible: boolean | null;
   requiredDeltaV: number;
-  currentUT: number | undefined;
+  currentUT: Value<"ut"> | undefined;
   error: string | null;
   committing: boolean;
   /** The light time a node crosses on its way to the craft, stated beside the send control. */
@@ -171,7 +171,7 @@ function PreviewBody({
 
       <Label>Burn in</Label>
       <PreviewValue>
-        <Countdown value={plan.ut - (currentUT ?? 0)} />
+        <Countdown value={currentUT && plan.ut.minus(currentUT)} />
       </PreviewValue>
 
       <AvailableRow availableDeltaV={availableDeltaV} feasible={feasible} />

@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
+import { value } from "../unit-system/value";
 import { solve } from "./kepler";
 import { buildElements, type WireOrbitElements } from "./kepler-reckoning";
 import { bodyRadiusOf, solveOrbit, solveSelfOrbit } from "./orbital-solve";
+
+const ut = (seconds: number) => value("ut", seconds);
 
 /**
  * The orbital solve, pinned as a pure function before anything is wired to it.
@@ -40,20 +43,20 @@ const PERIOD = 2 * Math.PI * Math.sqrt(SMA ** 3 / MU);
 
 describe("solveOrbit", () => {
   it("gives the period the elements imply", () => {
-    expect(solveOrbit(circular(), 0, BODY_RADIUS).period).toBeCloseTo(
+    expect(solveOrbit(circular(), ut(0), BODY_RADIUS).period).toBeCloseTo(
       PERIOD,
       6,
     );
   });
 
   it("puts both apsis radii at the semi-major axis for a circle", () => {
-    const s = solveOrbit(circular(), 0, BODY_RADIUS);
+    const s = solveOrbit(circular(), ut(0), BODY_RADIUS);
     expect(s.apoapsisRadius).toBeCloseTo(SMA, 6);
     expect(s.periapsisRadius).toBeCloseTo(SMA, 6);
   });
 
   it("subtracts the reference body's radius to reach an altitude", () => {
-    const s = solveOrbit(circular(), 0, BODY_RADIUS);
+    const s = solveOrbit(circular(), ut(0), BODY_RADIUS);
     expect(s.apoapsisAlt).toBeCloseTo(SMA - BODY_RADIUS, 6);
     expect(s.periapsisAlt).toBeCloseTo(SMA - BODY_RADIUS, 6);
   });
@@ -65,12 +68,12 @@ describe("solveOrbit", () => {
    * altitude. Only the two altitude fields see it.
    */
   it("passes the body-radius discipline through to the altitudes alone", () => {
-    const pending = solveOrbit(circular(), 0, undefined);
+    const pending = solveOrbit(circular(), ut(0), undefined);
     expect(pending.apoapsisAlt).toBeUndefined();
     expect(pending.periapsisAlt).toBeUndefined();
     expect(pending.apoapsisRadius).toBeCloseTo(SMA, 6);
 
-    const tombstone = solveOrbit(circular(), 0, null);
+    const tombstone = solveOrbit(circular(), ut(0), null);
     expect(tombstone.apoapsisAlt).toBeNull();
     expect(tombstone.periapsisAlt).toBeNull();
     expect(tombstone.periapsisRadius).toBeCloseTo(SMA, 6);
@@ -82,7 +85,7 @@ describe("solveOrbit", () => {
    * real positive radius for both signs.
    */
   it("has no apoapsis on a hyperbolic orbit, and still has a periapsis", () => {
-    const s = solveOrbit(circular(-SMA, 1.5), 0, BODY_RADIUS);
+    const s = solveOrbit(circular(-SMA, 1.5), ut(0), BODY_RADIUS);
     expect(s.apoapsisRadius).toBeNull();
     expect(s.apoapsisAlt).toBeNull();
     expect(s.periapsisRadius).toBeCloseTo(-SMA * (1 - 1.5), 6);
@@ -96,7 +99,7 @@ describe("solveOrbit", () => {
   it("reads null for the period, anomaly and apsis countdowns on a hyperbolic orbit, without throwing", () => {
     let s: ReturnType<typeof solveOrbit> | undefined;
     expect(() => {
-      s = solveOrbit(circular(-SMA, 1.2), 500, BODY_RADIUS);
+      s = solveOrbit(circular(-SMA, 1.2), ut(500), BODY_RADIUS);
     }).not.toThrow();
     expect(s?.period).toBeNull();
     expect(s?.trueAnomaly).toBeNull();
@@ -109,7 +112,7 @@ describe("solveOrbit", () => {
 
   it("counts down to periapsis from just past it, and names that apsis next", () => {
     // A quarter period after periapsis: apoapsis is half a period away, and periapsis three quarters, so apoapsis is next.
-    const s = solveOrbit(circular(), PERIOD / 4, BODY_RADIUS);
+    const s = solveOrbit(circular(), ut(PERIOD / 4), BODY_RADIUS);
     expect(s.timeToAp).toBeCloseTo(PERIOD / 4, 3);
     expect(s.timeToPe).toBeCloseTo((PERIOD * 3) / 4, 3);
     expect(s.nextApsisType).toBe(1);
@@ -117,14 +120,18 @@ describe("solveOrbit", () => {
   });
 
   it("advances the true anomaly with the view time, wrapped into [0, 360)", () => {
-    expect(solveOrbit(circular(), 0, BODY_RADIUS).trueAnomaly).toBeCloseTo(
+    expect(solveOrbit(circular(), ut(0), BODY_RADIUS).trueAnomaly).toBeCloseTo(
       0,
       6,
     );
-    const half = solveOrbit(circular(), PERIOD / 2, BODY_RADIUS).trueAnomaly;
+    const half = solveOrbit(
+      circular(),
+      ut(PERIOD / 2),
+      BODY_RADIUS,
+    ).trueAnomaly;
     expect(half).toBeCloseTo(180, 3);
     // A full period later it is back where it started rather than at 360.
-    const full = solveOrbit(circular(), PERIOD, BODY_RADIUS).trueAnomaly;
+    const full = solveOrbit(circular(), ut(PERIOD), BODY_RADIUS).trueAnomaly;
     expect(full).toBeGreaterThanOrEqual(0);
     expect(full).toBeLessThan(360);
   });
@@ -136,7 +143,7 @@ describe("solveOrbit", () => {
    * for a topic, so an orbit is an orbit.
    */
   it("solves a second, unrelated orbit the same way", () => {
-    const target = solveOrbit(circular(SMA * 2), 0, BODY_RADIUS);
+    const target = solveOrbit(circular(SMA * 2), ut(0), BODY_RADIUS);
     expect(target.period).toBeCloseTo(
       2 * Math.PI * Math.sqrt((SMA * 2) ** 3 / MU),
       6,
@@ -149,7 +156,7 @@ describe("solveOrbit on an eccentric orbit", () => {
   const ECC = 0.1;
 
   it("puts the apsis radii at sma(1 +/- ecc), with no body radius needed", () => {
-    const s = solveOrbit(circular(SMA, ECC), 0, undefined);
+    const s = solveOrbit(circular(SMA, ECC), ut(0), undefined);
     expect(s.apoapsisRadius).toBeCloseTo(SMA * (1 + ECC), 6);
     expect(s.periapsisRadius).toBeCloseTo(SMA * (1 - ECC), 6);
   });
@@ -158,19 +165,19 @@ describe("solveOrbit on an eccentric orbit", () => {
     const viewUt = 1_234;
     const { position } = solve(buildElements(circular(SMA, ECC)), viewUt);
     expect(
-      solveOrbit(circular(SMA, ECC), viewUt, BODY_RADIUS).orbitalRadius,
+      solveOrbit(circular(SMA, ECC), ut(viewUt), BODY_RADIUS).orbitalRadius,
     ).toBeCloseTo(Math.hypot(...position), 3);
   });
 
   it("names periapsis next while the craft is at it", () => {
-    const s = solveOrbit(circular(SMA, ECC), 0, BODY_RADIUS);
+    const s = solveOrbit(circular(SMA, ECC), ut(0), BODY_RADIUS);
     expect(s.nextApsisType).toBe(-1);
     expect(s.timeToNextApsis).toBe(s.timeToPe);
     expect(s.timeToNextApsis).toBe(0);
   });
 
   it("names apoapsis next a moment after periapsis", () => {
-    const s = solveOrbit(circular(SMA, ECC), PERIOD * 0.01, BODY_RADIUS);
+    const s = solveOrbit(circular(SMA, ECC), ut(PERIOD * 0.01), BODY_RADIUS);
     expect(s.nextApsisType).toBe(1);
     expect(s.timeToNextApsis).toBe(s.timeToAp);
   });
@@ -179,7 +186,7 @@ describe("solveOrbit on an eccentric orbit", () => {
 describe("solveOrbit on degenerate elements", () => {
   it("answers null for the period and countdowns of a zero mu, never NaN or Infinity", () => {
     const zeroMu = { ...circular(), mu: { magnitude: 0 } };
-    const s = solveOrbit(zeroMu, 0, BODY_RADIUS);
+    const s = solveOrbit(zeroMu, ut(0), BODY_RADIUS);
     expect(s.period).toBeNull();
     expect(s.timeToAp).toBeNull();
     expect(s.timeToPe).toBeNull();
@@ -240,7 +247,7 @@ describe("solveSelfOrbit under a declining reckoning", () => {
   };
 
   it("answers the apsides, period and anomaly of a CURRENT reading under physics", () => {
-    const s = solveSelfOrbit(ELEMENTS, UNDER_PHYSICS, BODIES, 500, 0);
+    const s = solveSelfOrbit(ELEMENTS, UNDER_PHYSICS, BODIES, ut(500), ut(0));
 
     expect(s?.apoapsisRadius).toBeCloseTo(SMA * 1.2, 6);
     expect(s?.periapsisRadius).toBeCloseTo(SMA * 0.8, 6);
@@ -252,7 +259,13 @@ describe("solveSelfOrbit under a declining reckoning", () => {
   });
 
   it("answers the countdowns from the game's own, at the sample instant", () => {
-    const s = solveSelfOrbit(WITH_KSP_COUNTDOWNS, UNDER_PHYSICS, BODIES, 0, 0);
+    const s = solveSelfOrbit(
+      WITH_KSP_COUNTDOWNS,
+      UNDER_PHYSICS,
+      BODIES,
+      ut(0),
+      ut(0),
+    );
 
     expect(s?.timeToAp).toBeCloseTo(PERIOD / 2, 6);
     expect(s?.timeToPe).toBe(0);
@@ -263,8 +276,8 @@ describe("solveSelfOrbit under a declining reckoning", () => {
       WITH_KSP_COUNTDOWNS,
       UNDER_PHYSICS,
       BODIES,
-      1500,
-      1000,
+      ut(1500),
+      ut(1000),
     );
 
     // 500 s after the sample: the apoapsis is 500 s nearer.
@@ -280,8 +293,8 @@ describe("solveSelfOrbit under a declining reckoning", () => {
       WITH_KSP_COUNTDOWNS,
       UNDER_PHYSICS,
       BODIES,
-      PERIOD / 2 + 100,
-      0,
+      ut(PERIOD / 2 + 100),
+      ut(0),
     );
 
     expect(s?.timeToAp).toBeCloseTo(PERIOD - 100, 6);
@@ -298,12 +311,12 @@ describe("solveSelfOrbit under a declining reckoning", () => {
       timeToPe: { magnitude: 300 },
     };
 
-    const before = solveSelfOrbit(flyby, UNDER_PHYSICS, BODIES, 100, 0);
+    const before = solveSelfOrbit(flyby, UNDER_PHYSICS, BODIES, ut(100), ut(0));
     expect(before?.timeToAp).toBeNull();
     expect(before?.timeToPe).toBeCloseTo(200, 6);
     expect(before?.nextApsisType).toBe(-1);
 
-    const after = solveSelfOrbit(flyby, UNDER_PHYSICS, BODIES, 400, 0);
+    const after = solveSelfOrbit(flyby, UNDER_PHYSICS, BODIES, ut(400), ut(0));
     expect(after?.timeToAp).toBeNull();
     expect(after?.timeToPe).toBeNull();
     expect(after?.nextApsisType).toBeNull();
@@ -311,7 +324,7 @@ describe("solveSelfOrbit under a declining reckoning", () => {
   });
 
   it("answers no countdown for a sample that carries none", () => {
-    const s = solveSelfOrbit(ELEMENTS, UNDER_PHYSICS, BODIES, 500, 0);
+    const s = solveSelfOrbit(ELEMENTS, UNDER_PHYSICS, BODIES, ut(500), ut(0));
 
     expect(s?.timeToAp).toBeNull();
     expect(s?.timeToPe).toBeNull();
@@ -321,7 +334,7 @@ describe("solveSelfOrbit under a declining reckoning", () => {
 
   it("answers nothing for a STALE reading under physics: under thrust old elements describe no current orbit", () => {
     expect(
-      solveSelfOrbit(WITH_KSP_COUNTDOWNS, UNDER_PHYSICS, BODIES, 500),
+      solveSelfOrbit(WITH_KSP_COUNTDOWNS, UNDER_PHYSICS, BODIES, ut(500)),
     ).toBeNull();
   });
 
@@ -338,8 +351,8 @@ describe("solveSelfOrbit under a declining reckoning", () => {
           WITH_KSP_COUNTDOWNS,
           { status: "declined", declined: { reason } },
           BODIES,
-          500,
-          0,
+          ut(500),
+          ut(0),
         ),
       ).toBeNull();
     }
@@ -351,8 +364,8 @@ describe("solveSelfOrbit under a declining reckoning", () => {
       ELEMENTS,
       { status: "available" },
       BODIES,
-      PERIOD / 4,
-      0,
+      ut(PERIOD / 4),
+      ut(0),
     );
 
     expect(s?.trueAnomaly).toBeGreaterThan(0);

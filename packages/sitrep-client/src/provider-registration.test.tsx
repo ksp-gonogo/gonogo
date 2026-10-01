@@ -36,12 +36,12 @@ describe("the active provider registration", () => {
         <div />
       </TelemetryProvider>,
     );
-    expect(getViewUt()).toBe(200);
+    expect(getViewUt()?.magnitude).toBe(200);
 
     modal.unmount();
 
     expect(getActiveTelemetryClient()).toBe(client);
-    expect(getViewUt()).toBe(100);
+    expect(getViewUt()?.magnitude).toBe(100);
 
     dashboard.unmount();
     expect(getActiveTelemetryClient()).toBeUndefined();
@@ -65,7 +65,7 @@ describe("the active provider registration", () => {
     earlier.unmount();
 
     expect(getActiveTelemetryClient()).toBe(second);
-    expect(getViewUt()).toBe(200);
+    expect(getViewUt()?.magnitude).toBe(200);
     later.unmount();
   });
 });

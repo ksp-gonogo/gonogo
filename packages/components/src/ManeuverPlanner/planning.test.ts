@@ -1,3 +1,4 @@
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import {
   buildCurrentOrbit,
@@ -45,8 +46,8 @@ describe("buildCurrentOrbit", () => {
       eccentricity: 0.01,
       ApR: 707_000,
       PeR: 693_000,
-      timeToAp: 900,
-      timeToPe: 1800,
+      timeToAp: value("s", 900),
+      timeToPe: value("s", 1800),
     });
   });
 
@@ -96,8 +97,8 @@ describe("computeBurnTrueAnomaly", () => {
     eccentricity: 0.01,
     ApR: 707_000,
     PeR: 693_000,
-    timeToAp: 900,
-    timeToPe: 1800,
+    timeToAp: value("s", 900),
+    timeToPe: value("s", 1800),
   };
 
   it("returns 180° for custom-apo and 0° for custom-peri", () => {
@@ -105,7 +106,7 @@ describe("computeBurnTrueAnomaly", () => {
       computeBurnTrueAnomaly({
         preset: "custom-apo",
         currentOrbit: orbit,
-        currentUT: 1000,
+        currentUT: value("ut", 1000),
         mu: 3.5e12,
         trueAnomaly: 0,
         utMode: "relative",
@@ -117,7 +118,7 @@ describe("computeBurnTrueAnomaly", () => {
       computeBurnTrueAnomaly({
         preset: "custom-peri",
         currentOrbit: orbit,
-        currentUT: 1000,
+        currentUT: value("ut", 1000),
         mu: 3.5e12,
         trueAnomaly: 0,
         utMode: "relative",
@@ -132,7 +133,7 @@ describe("computeBurnTrueAnomaly", () => {
       computeBurnTrueAnomaly({
         preset: "circularize-apo",
         currentOrbit: orbit,
-        currentUT: 1000,
+        currentUT: value("ut", 1000),
         mu: 3.5e12,
         trueAnomaly: 0,
         utMode: "relative",
@@ -147,7 +148,7 @@ describe("computeBurnTrueAnomaly", () => {
       computeBurnTrueAnomaly({
         preset: "custom-apo",
         currentOrbit: null,
-        currentUT: 1000,
+        currentUT: value("ut", 1000),
         mu: 3.5e12,
         trueAnomaly: 0,
         utMode: "relative",
@@ -174,7 +175,7 @@ describe("computeBurnTrueAnomaly", () => {
       computeBurnTrueAnomaly({
         preset: "custom-ut",
         currentOrbit: orbit,
-        currentUT: 1000,
+        currentUT: value("ut", 1000),
         mu: 3.5e12,
         trueAnomaly: 0,
         utMode: "absolute",

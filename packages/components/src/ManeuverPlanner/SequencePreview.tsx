@@ -1,5 +1,5 @@
 import type { BodyDefinition, ManeuverSequence } from "@ksp-gonogo/core";
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import { type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import { Countdown, SectionTitle, Unit } from "@ksp-gonogo/ui-kit";
 import { AvailableRow } from "./AvailableRow";
 import { ProjectedRows } from "./ProjectedRows";
@@ -11,7 +11,7 @@ interface SequencePreviewProps {
   /** Vessel-total ΔV in m/s off the shared budget, `null` when there is no usable figure. */
   availableDeltaV: number | null;
   feasible: boolean | null;
-  currentUT: number | undefined;
+  currentUT: Value<"ut"> | undefined;
 }
 
 export function SequencePreview({
@@ -42,7 +42,7 @@ export function SequencePreview({
         </PreviewValue>
         <Label>Burn in</Label>
         <PreviewValue>
-          <Countdown value={burn1.ut - (currentUT ?? 0)} />
+          <Countdown value={currentUT && burn1.ut.minus(currentUT)} />
         </PreviewValue>
         <ProjectedRows
           projected={seq.transferEllipse}
@@ -62,7 +62,7 @@ export function SequencePreview({
             </PreviewValue>
             <Label>Burn in</Label>
             <PreviewValue>
-              <Countdown value={burn2.ut - (currentUT ?? 0)} />
+              <Countdown value={currentUT && burn2.ut.minus(currentUT)} />
             </PreviewValue>
             <ProjectedRows
               projected={seq.finalProjected}

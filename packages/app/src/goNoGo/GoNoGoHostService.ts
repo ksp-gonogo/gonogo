@@ -19,7 +19,7 @@ import {
   getViewUt,
   onActiveTimelineFrame,
 } from "@ksp-gonogo/sitrep-client";
-import { magnitudeOf, Situation } from "@ksp-gonogo/sitrep-sdk";
+import { Situation, type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import type { PeerHostService } from "../peer/PeerHostService";
 import { playAbortTone, playCountdownTone } from "../sound";
 
@@ -41,12 +41,13 @@ type GoNoGoHost = Pick<
  * The view clock rather than the wall clock, so the launch state this service
  * publishes agrees with every mission clock drawn against the same frame.
  */
-function missionElapsed(): number | null {
+function missionElapsed(): Value<"s"> | null {
   const launchUt = getVesselIdentity()?.launchUt;
   const viewUt = getViewUt();
-  if (launchUt == null || viewUt === undefined) return null;
-  const launched = magnitudeOf(launchUt);
-  return launched === null ? null : viewUt - launched;
+  if (launchUt == null || viewUt === undefined || !launchUt.isFinite()) {
+    return null;
+  }
+  return viewUt.minus(launchUt);
 }
 
 export type Vote = "go" | "no-go" | null;
@@ -194,7 +195,7 @@ export class GoNoGoHostService {
         // than 0, and a null is also what a frame without identity yet reads. The
         // situation is what says "on the pad", which a revert to launch needs.
         if (getVesselIdentity()?.situation === Situation.PreLaunch) {
-          this.handleMissionTime(0);
+          this.handleMissionTime(value("s", 0));
           return;
         }
         const met = missionElapsed();
@@ -204,9 +205,9 @@ export class GoNoGoHostService {
   }
 
   /** The launch-state transition for one mission elapsed time. */
-  private handleMissionTime(missionTime: number): void {
+  private handleMissionTime(missionTime: Value<"s">): void {
     const wasLaunched = this.launched;
-    this.launched = missionTime > 0;
+    this.launched = missionTime.isPositive();
     if (wasLaunched && !this.launched) {
       // Revert to pad: clear abort so the operator can try again.
       this.abort = null;

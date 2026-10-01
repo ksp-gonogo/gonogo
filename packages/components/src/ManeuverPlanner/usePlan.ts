@@ -156,7 +156,7 @@ export function usePlan(inputs: PlannerInputs, telemetry: PlannerTelemetry) {
     isFiniteNumber(PeR) &&
     isFiniteNumber(timeToAp) &&
     isFiniteNumber(timeToPe) &&
-    isFiniteNumber(currentUT) &&
+    currentUT?.isFinite() === true &&
     mu > 0;
 
   // An escape orbit has no apoapsis and reads as waiting, so raw ecc tells it apart from no telemetry.

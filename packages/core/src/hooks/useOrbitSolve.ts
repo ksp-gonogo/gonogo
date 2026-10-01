@@ -7,11 +7,7 @@ import {
   useStream,
   useViewUt,
 } from "@ksp-gonogo/sitrep-client";
-import {
-  deriveReading,
-  type Reading,
-  type Value,
-} from "@ksp-gonogo/sitrep-sdk";
+import { deriveReading, type Reading } from "@ksp-gonogo/sitrep-sdk";
 import { useTelemetry } from "@ksp-gonogo/sitrep-sdk/spine";
 import { useMemo } from "react";
 
@@ -63,7 +59,7 @@ export function useOrbitSolve(): OrbitalSolve | null {
       : bodiesReading.state === "absent"
         ? null
         : undefined;
-  const solveUt = utOf(useViewUt());
+  const solveUt = useViewUt();
 
   /*
    * A held reading still carries its elements, and they are constants of the
@@ -110,17 +106,10 @@ export function useOrbitSolveReading(): Reading<OrbitalSolve> {
         (orbit, atUt) =>
           solveOrbit(
             orbit,
-            utOf(atUt),
+            atUt,
             bodyRadiusOf(bodies, orbit.referenceBodyIndex),
           ),
       ),
     [reading, observed, bodies],
   );
-}
-
-/** The bare UT the solver takes. */
-function utOf(ut: Value<"ut">): number;
-function utOf(ut: Value<"ut"> | undefined): number | undefined;
-function utOf(ut: Value<"ut"> | undefined): number | undefined {
-  return ut?.magnitude;
 }

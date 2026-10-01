@@ -77,10 +77,11 @@ function asFrozenPlanInputs(inputs: unknown): FrozenPlanInputs {
  * `computePlan` and everything under it is closed-form Keplerian maths: it
  * multiplies semi-major axes by gravitational parameters and takes square
  * roots of the results, and there is no unit token that names what those
- * intermediates are. So `PlanInputs` is plain numbers, canonical SI, and this
- * is the one place the units come off.
+ * intermediates are. So `PlanInputs` carries the orbital elements as plain
+ * numbers, canonical SI, and this is the one place their units come off. Time
+ * is the exception: the instant stays a `Value<"ut">` all the way to the burn.
  *
- * That the solver is unit-blind is not a hole the unit system should paper
+ * That the element maths is unit-blind is not a hole the unit system should paper
  * over: the values going IN are checked, the burn coming OUT is re-declared,
  * and in between is maths that reasons about dimensions the registry has no
  * names for.

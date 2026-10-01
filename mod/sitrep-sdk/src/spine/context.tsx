@@ -708,10 +708,10 @@ export function useUtNow(): number | undefined {
  * live/scrubbed value is available, the same "no stream / not synced"
  * contract `useViewUt` returns before its first frame.
  */
-export function getViewUt(): number | undefined {
+export function getViewUt(): Value<"ut"> | undefined {
   noteUndeclaredRead("getViewUt");
   const ut = activeViewClock?.viewUt();
-  return ut !== undefined && Number.isFinite(ut) ? ut : undefined;
+  return ut !== undefined && Number.isFinite(ut) ? value("ut", ut) : undefined;
 }
 
 /**

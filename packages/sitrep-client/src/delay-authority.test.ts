@@ -421,7 +421,7 @@ describe("DelayAuthority → dead-reckon at one view UT (single-view-time)", () 
     const orbit = store.sample<VesselOrbitPayload>("vessel.orbit");
     expect(orbit?.payload).toBeTruthy();
     const solved = orbit?.payload
-      ? solveOrbit(orbit.payload, frame.scetUt, null)
+      ? solveOrbit(orbit.payload, value("ut", frame.scetUt), null)
       : undefined;
 
     // The vessel dead-reckons to the frame's single SCET...
@@ -466,7 +466,7 @@ describe("DelayAuthority → dead-reckon at one view UT (single-view-time)", () 
     const orbit = store.sample<VesselOrbitPayload>("vessel.orbit");
     expect(orbit?.payload).toBeTruthy();
     const confirmed = orbit?.payload
-      ? solveOrbit(orbit.payload, frame.viewUt, null)
+      ? solveOrbit(orbit.payload, value("ut", frame.viewUt), null)
       : undefined;
     expect(confirmed?.trueAnomaly).toBeCloseTo(
       trueAnomalyDegrees(CIRCULAR_ELEMENTS, 100),

@@ -18,12 +18,13 @@ import {
   matchTargetPlane,
   stateAtUT,
 } from "@ksp-gonogo/core";
+import { type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import { isFiniteNumber, type PresetId } from "./presets";
 
 export interface PlanInputs {
   preset: PresetId;
   currentOrbit: CurrentOrbit | null;
-  currentUT: number | undefined;
+  currentUT: Value<"ut"> | undefined;
   mu: number;
   prograde: number;
   normal: number;
@@ -157,10 +158,7 @@ function planCustomUT(i: PlanInputs): ManeuverPlan | null {
   ) {
     return null;
   }
-  const burnUT =
-    i.utMode === "absolute"
-      ? i.burnAtUT
-      : i.currentUT + Math.max(0, i.burnInSeconds);
+  const burnUT = burnInstant(i, i.currentUT);
   return customAtUT(
     i.currentOrbit,
     i.trueAnomaly,
@@ -171,6 +169,16 @@ function planCustomUT(i: PlanInputs): ManeuverPlan | null {
     i.normal,
     i.radial,
   );
+}
+
+/** The custom burn's instant: as entered, or the entered lead from now, never earlier than now. */
+function burnInstant(
+  i: Pick<PlanInputs, "utMode" | "burnAtUT" | "burnInSeconds">,
+  currentUT: Value<"ut">,
+): Value<"ut"> {
+  return i.utMode === "absolute"
+    ? value("ut", i.burnAtUT)
+    : currentUT.plus(value("s", i.burnInSeconds).max(0));
 }
 
 function planMatchInclination(
@@ -243,7 +251,14 @@ export function buildCurrentOrbit(vals: {
   ) {
     return null;
   }
-  return { sma, eccentricity: ecc, ApR, PeR, timeToAp, timeToPe };
+  return {
+    sma,
+    eccentricity: ecc,
+    ApR,
+    PeR,
+    timeToAp: value("s", timeToAp),
+    timeToPe: value("s", timeToPe),
+  };
 }
 
 /** Relative inclination (°) between two orbits from each one's inclination and LAN, or null if any input is missing. */
@@ -273,7 +288,7 @@ export function computeRelInc(
 export interface BurnTrueAnomalyInputs {
   preset: PresetId;
   currentOrbit: CurrentOrbit | null;
-  currentUT: number | undefined;
+  currentUT: Value<"ut"> | undefined;
   mu: number;
   trueAnomaly: number | undefined;
   utMode: "relative" | "absolute";
@@ -290,11 +305,8 @@ export function computeBurnTrueAnomaly(
   if (i.preset === "custom-peri") return 0;
   if (i.preset !== "custom-ut") return null;
   if (i.trueAnomaly === undefined) return null;
-  const burnUT =
-    i.utMode === "absolute"
-      ? i.burnAtUT
-      : i.currentUT + Math.max(0, i.burnInSeconds);
-  if (burnUT <= i.currentUT) return null;
+  const burnUT = burnInstant(i, i.currentUT);
+  if (burnUT.lessThanOrEqual(i.currentUT)) return null;
   const state = stateAtUT(
     i.currentOrbit,
     i.trueAnomaly,

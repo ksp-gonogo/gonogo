@@ -44,6 +44,7 @@ export function ManeuverPlannerComponent({
     trueAnomaly,
     argPe,
     currentUT,
+    nowUtSeconds,
     refBody,
     availableDeltaV,
     body,
@@ -102,7 +103,7 @@ export function ManeuverPlannerComponent({
       <>
         <BurnWindowsSection
           nodes={nodes}
-          currentUT={currentUT}
+          currentUT={nowUtSeconds}
           from={planCurrency}
         />
         {/* Mounted while empty, so a trigger listed later, a fired one that went wrong included, is announced. */}

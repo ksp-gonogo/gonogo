@@ -1,6 +1,7 @@
 import type { VesselOrbit } from "../__generated__/contract";
 import { magnitudeOf, magnitudeOr, type Quantityish } from "../magnitude";
 import type { ReckoningDecline } from "../reading";
+import type { Value } from "../value";
 import type { OrbitElements } from "./kepler";
 import {
   buildElements,
@@ -191,12 +192,21 @@ export function conicApsides(
  */
 export function solveOrbit(
   orbit: WireOrbitElements,
-  viewUt: number,
+  viewUt: Value<"ut">,
+  referenceBodyRadius: number | null | undefined,
+): OrbitalSolve {
+  return solveOrbitAt(orbit, mag(viewUt), referenceBodyRadius);
+}
+
+/** {@link solveOrbit} at an instant already in the plain seconds the reckoning's elements and trigonometry work in. */
+function solveOrbitAt(
+  orbit: WireOrbitElements,
+  ut: number,
   referenceBodyRadius: number | null | undefined,
 ): OrbitalSolve {
   const elements: OrbitElements = buildElements(orbit);
-  const solved = trySolve(elements, viewUt);
-  const anomalies = trySolveAnomalies(elements, viewUt);
+  const solved = trySolve(elements, ut);
+  const anomalies = trySolveAnomalies(elements, ut);
 
   const period =
     anomalies == null
@@ -282,8 +292,8 @@ export function solveSelfOrbit(
     | { readonly status: "declined"; readonly declined: ReckoningDecline }
     | { readonly status: string },
   bodies: BodyRadiusTable | null | undefined,
-  viewUt: number | undefined,
-  observedAtUt?: Quantityish,
+  viewUt: Value<"ut"> | undefined,
+  observedAtUt?: Value<"ut">,
 ): OrbitalSolve | null {
   if (elements === undefined || viewUt === undefined) return null;
   const radius = bodyRadiusOf(bodies, elements.referenceBodyIndex);
@@ -291,12 +301,8 @@ export function solveSelfOrbit(
     return solveOrbit(elements, viewUt, radius);
   }
   if (observedAtUt != null && declinedUnderPhysics(reckoning)) {
-    const solve = solveOrbit(
-      elements,
-      magnitudeOr(elements.epoch, Number.NaN),
-      radius,
-    );
-    const elapsed = viewUt - mag(observedAtUt);
+    const solve = solveOrbitAt(elements, mag(elements.epoch), radius);
+    const elapsed = mag(viewUt.minus(observedAtUt));
     const hyperbolic = isHyperbolic(mag(elements.ecc));
     const timeToAp = hyperbolic
       ? null

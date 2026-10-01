@@ -1,5 +1,5 @@
 import type { ParsedManeuverNode } from "@ksp-gonogo/data";
-import { maneuverBasisLabels, value } from "@ksp-gonogo/sitrep-sdk";
+import { maneuverBasisLabels, type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import { Countdown, UnitInput } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import type { NodeEditPatch } from "./NodeRow";
@@ -13,7 +13,7 @@ import {
 
 interface NodeEditorProps {
   node: ParsedManeuverNode;
-  currentUT: number | undefined;
+  currentUT: Value<"ut"> | undefined;
   saving: boolean;
   onSave: (patch: NodeEditPatch) => Promise<void>;
   onCancel: () => void;
@@ -31,7 +31,7 @@ export function NodeEditor({
   const [normal, setNormal] = useState(node.deltaV[1]);
   const [prograde, setProgade] = useState(node.deltaV[2]);
   const [slot0, slot1, slot2] = maneuverBasisLabels(node.frame);
-  const timeTo = currentUT !== undefined ? ut - currentUT : null;
+  const timeTo = currentUT && value("ut", ut).minus(currentUT);
   const dirty =
     ut !== node.UT ||
     radial !== node.deltaV[0] ||

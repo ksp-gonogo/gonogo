@@ -1,3 +1,4 @@
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import {
   type CurrentOrbit,
@@ -34,6 +35,9 @@ function bound<Answer>(answer: Answer | null, what: string): Answer {
   return answer;
 }
 
+const ut = (seconds: number) => value("ut", seconds);
+const s = (seconds: number) => value("s", seconds);
+
 // Kerbin's gravitational parameter (m³/s²).
 const KERBIN_MU = 3.5316e12;
 // Equatorial radius in metres.
@@ -48,8 +52,8 @@ const KERBIN_100KM_CIRCULAR: CurrentOrbit = {
   eccentricity: 0,
   ApR: KERBIN_R + 100_000,
   PeR: KERBIN_R + 100_000,
-  timeToAp: 0,
-  timeToPe: 0,
+  timeToAp: s(0),
+  timeToPe: s(0),
 };
 
 /**
@@ -61,8 +65,8 @@ const KERBIN_ELLIPTIC: CurrentOrbit = {
   eccentricity: (150_000 - 80_000) / (2 * KERBIN_R + 80_000 + 150_000),
   ApR: KERBIN_R + 150_000,
   PeR: KERBIN_R + 80_000,
-  timeToAp: 600,
-  timeToPe: 1000,
+  timeToAp: s(600),
+  timeToPe: s(1000),
 };
 
 describe("gravParameterFromState", () => {
@@ -85,21 +89,21 @@ describe("gravParameterFromState", () => {
 
 describe("circularizeAtApo", () => {
   it("needs ~zero ΔV for an already-circular orbit", () => {
-    const plan = circularizeAtApo(KERBIN_100KM_CIRCULAR, KERBIN_MU, 0);
+    const plan = circularizeAtApo(KERBIN_100KM_CIRCULAR, KERBIN_MU, ut(0));
     expect(Math.abs(plan.prograde)).toBeLessThan(1e-6);
     expect(plan.requiredDeltaV).toBeLessThan(1e-6);
   });
 
   it("returns a positive prograde burn to circularise an elliptic orbit", () => {
-    const plan = circularizeAtApo(KERBIN_ELLIPTIC, KERBIN_MU, 1000);
+    const plan = circularizeAtApo(KERBIN_ELLIPTIC, KERBIN_MU, ut(1000));
     expect(plan.prograde).toBeGreaterThan(0);
-    expect(plan.ut).toBe(1000 + KERBIN_ELLIPTIC.timeToAp);
+    expect(plan.ut.magnitude).toBe(1000 + KERBIN_ELLIPTIC.timeToAp.magnitude);
     expect(plan.normal).toBe(0);
     expect(plan.radial).toBe(0);
   });
 
   it("projects a circular post-burn orbit at the apoapsis radius", () => {
-    const plan = circularizeAtApo(KERBIN_ELLIPTIC, KERBIN_MU, 0);
+    const plan = circularizeAtApo(KERBIN_ELLIPTIC, KERBIN_MU, ut(0));
     expect(plan.projected).not.toBeNull();
     expect(plan.projected?.eccentricity).toBe(0);
     expect(plan.projected?.sma).toBe(KERBIN_ELLIPTIC.ApR);
@@ -111,13 +115,13 @@ describe("circularizeAtApo", () => {
 describe("circularizeAtPeri", () => {
   it("returns a negative prograde burn when peri is below apo", () => {
     // Circularising at the low point requires braking, the orbit is moving too fast for a circle at that radius.
-    const plan = circularizeAtPeri(KERBIN_ELLIPTIC, KERBIN_MU, 0);
+    const plan = circularizeAtPeri(KERBIN_ELLIPTIC, KERBIN_MU, ut(0));
     expect(plan.prograde).toBeLessThan(0);
     expect(plan.requiredDeltaV).toBe(Math.abs(plan.prograde));
   });
 
   it("projects a circle at periapsis radius", () => {
-    const plan = circularizeAtPeri(KERBIN_ELLIPTIC, KERBIN_MU, 0);
+    const plan = circularizeAtPeri(KERBIN_ELLIPTIC, KERBIN_MU, ut(0));
     expect(plan.projected?.eccentricity).toBe(0);
     expect(plan.projected?.sma).toBe(KERBIN_ELLIPTIC.PeR);
   });
@@ -125,7 +129,15 @@ describe("circularizeAtPeri", () => {
 
 describe("customAtApsis", () => {
   it("produces an unchanged orbit for a zero-ΔV plan", () => {
-    const plan = customAtApsis(KERBIN_ELLIPTIC, KERBIN_MU, 0, "apo", 0, 0, 0);
+    const plan = customAtApsis(
+      KERBIN_ELLIPTIC,
+      KERBIN_MU,
+      ut(0),
+      "apo",
+      0,
+      0,
+      0,
+    );
     expect(plan.requiredDeltaV).toBe(0);
     expect(plan.projected?.ApR).toBeCloseTo(KERBIN_ELLIPTIC.ApR, -2);
     expect(plan.projected?.PeR).toBeCloseTo(KERBIN_ELLIPTIC.PeR, -2);
@@ -136,7 +148,15 @@ describe("customAtApsis", () => {
   });
 
   it("retrograde at apoapsis lowers periapsis", () => {
-    const plan = customAtApsis(KERBIN_ELLIPTIC, KERBIN_MU, 0, "apo", -50, 0, 0);
+    const plan = customAtApsis(
+      KERBIN_ELLIPTIC,
+      KERBIN_MU,
+      ut(0),
+      "apo",
+      -50,
+      0,
+      0,
+    );
     expect(plan.projected?.PeR).toBeLessThan(KERBIN_ELLIPTIC.PeR);
     // Apoapsis unchanged: the burn happens AT apoapsis, and prograde burns at apoapsis change only the opposite apsis.
     expect(plan.projected?.ApR).toBeCloseTo(KERBIN_ELLIPTIC.ApR, -1);
@@ -146,7 +166,7 @@ describe("customAtApsis", () => {
     const plan = customAtApsis(
       KERBIN_ELLIPTIC,
       KERBIN_MU,
-      0,
+      ut(0),
       "peri",
       100,
       0,
@@ -157,7 +177,15 @@ describe("customAtApsis", () => {
   });
 
   it("carries normal component through but doesn't reshape in-plane orbit", () => {
-    const plan = customAtApsis(KERBIN_ELLIPTIC, KERBIN_MU, 0, "apo", 0, 120, 0);
+    const plan = customAtApsis(
+      KERBIN_ELLIPTIC,
+      KERBIN_MU,
+      ut(0),
+      "apo",
+      0,
+      120,
+      0,
+    );
     expect(plan.normal).toBe(120);
     expect(plan.requiredDeltaV).toBeCloseTo(120, 5);
     expect(plan.projected?.ApR).toBeCloseTo(KERBIN_ELLIPTIC.ApR, -1);
@@ -169,7 +197,7 @@ describe("customAtApsis", () => {
     const plan = customAtApsis(
       KERBIN_ELLIPTIC,
       KERBIN_MU,
-      0,
+      ut(0),
       "apo",
       5000,
       0,
@@ -189,15 +217,17 @@ describe("an unbound trajectory has no plan, and says so with null", () => {
   const ESCAPING: CurrentOrbit = { ...KERBIN_ELLIPTIC, eccentricity: 1.4 };
 
   it("stateAtUT returns null rather than a fabricated state", () => {
-    expect(stateAtUT(ESCAPING, 30, KERBIN_MU, 0, 600)).toBeNull();
+    expect(stateAtUT(ESCAPING, 30, KERBIN_MU, ut(0), ut(600))).toBeNull();
   });
 
   it("stateAtUT still answers for a bound orbit", () => {
-    expect(stateAtUT(KERBIN_ELLIPTIC, 30, KERBIN_MU, 0, 600)).not.toBeNull();
+    expect(
+      stateAtUT(KERBIN_ELLIPTIC, 30, KERBIN_MU, ut(0), ut(600)),
+    ).not.toBeNull();
   });
 
   it("customAtUT yields a plan with no projection rather than throwing", () => {
-    const plan = customAtUT(ESCAPING, 30, KERBIN_MU, 0, 600, 100, 0, 0);
+    const plan = customAtUT(ESCAPING, 30, KERBIN_MU, ut(0), ut(600), 100, 0, 0);
 
     expect(plan.projected).toBeNull();
     // The requested burn is still echoed back: what is unknowable is the SHAPE it would produce, not what the operator asked for.
@@ -205,7 +235,9 @@ describe("an unbound trajectory has no plan, and says so with null", () => {
   });
 
   it("plane-change presets return null rather than a fabricated normal burn", () => {
-    expect(matchInclination(ESCAPING, 30, 0, 0, KERBIN_MU, 0, 30)).toBeNull();
+    expect(
+      matchInclination(ESCAPING, 30, 0, 0, KERBIN_MU, ut(0), 30),
+    ).toBeNull();
   });
 });
 
@@ -213,7 +245,7 @@ describe("stateAtUT", () => {
   it("recovers the current state when dt = 0", () => {
     // True anomaly 0 = at periapsis on the elliptic orbit.
     const s = bound(
-      stateAtUT(KERBIN_ELLIPTIC, 0, KERBIN_MU, 0, 0),
+      stateAtUT(KERBIN_ELLIPTIC, 0, KERBIN_MU, ut(0), ut(0)),
       "stateAtUT",
     );
     expect(s.r).toBeCloseTo(KERBIN_ELLIPTIC.PeR, -1);
@@ -225,11 +257,11 @@ describe("stateAtUT", () => {
     const a = KERBIN_ELLIPTIC.sma;
     const period = 2 * Math.PI * Math.sqrt((a * a * a) / KERBIN_MU);
     const at0 = bound(
-      stateAtUT(KERBIN_ELLIPTIC, 30, KERBIN_MU, 0, 0),
+      stateAtUT(KERBIN_ELLIPTIC, 30, KERBIN_MU, ut(0), ut(0)),
       "stateAtUT",
     );
     const at1 = bound(
-      stateAtUT(KERBIN_ELLIPTIC, 30, KERBIN_MU, 0, period),
+      stateAtUT(KERBIN_ELLIPTIC, 30, KERBIN_MU, ut(0), ut(period)),
       "stateAtUT",
     );
     expect(at1.r).toBeCloseTo(at0.r, -1);
@@ -239,11 +271,11 @@ describe("stateAtUT", () => {
 
   it("returns constant r / speed and γ=0 on a circular orbit", () => {
     const s0 = bound(
-      stateAtUT(KERBIN_100KM_CIRCULAR, 0, KERBIN_MU, 0, 0),
+      stateAtUT(KERBIN_100KM_CIRCULAR, 0, KERBIN_MU, ut(0), ut(0)),
       "stateAtUT",
     );
     const s1 = bound(
-      stateAtUT(KERBIN_100KM_CIRCULAR, 0, KERBIN_MU, 0, 500),
+      stateAtUT(KERBIN_100KM_CIRCULAR, 0, KERBIN_MU, ut(0), ut(500)),
       "stateAtUT",
     );
     expect(s1.r).toBeCloseTo(s0.r, -1);
@@ -256,7 +288,7 @@ describe("stateAtUT", () => {
     const a = KERBIN_ELLIPTIC.sma;
     const halfPeriod = Math.PI * Math.sqrt((a * a * a) / KERBIN_MU);
     const s = bound(
-      stateAtUT(KERBIN_ELLIPTIC, 0, KERBIN_MU, 0, halfPeriod),
+      stateAtUT(KERBIN_ELLIPTIC, 0, KERBIN_MU, ut(0), ut(halfPeriod)),
       "stateAtUT",
     );
     expect(s.r).toBeCloseTo(KERBIN_ELLIPTIC.ApR, -1);
@@ -266,7 +298,16 @@ describe("stateAtUT", () => {
 
 describe("customAtUT", () => {
   it("is a no-op for zero ΔV at any future UT", () => {
-    const plan = customAtUT(KERBIN_ELLIPTIC, 30, KERBIN_MU, 0, 800, 0, 0, 0);
+    const plan = customAtUT(
+      KERBIN_ELLIPTIC,
+      30,
+      KERBIN_MU,
+      ut(0),
+      ut(800),
+      0,
+      0,
+      0,
+    );
     expect(plan.projected).not.toBeNull();
     expect(plan.projected?.sma).toBeCloseTo(KERBIN_ELLIPTIC.sma, -2);
     expect(plan.projected?.eccentricity).toBeCloseTo(
@@ -276,11 +317,11 @@ describe("customAtUT", () => {
   });
 
   it("matches customAtApsis when burnUT lands on the next apoapsis", () => {
-    const currentUT = 1000;
+    const currentUT = ut(1000);
     // Start at periapsis (trueAnomaly = 0). Apoapsis is half a period later.
     const a = KERBIN_ELLIPTIC.sma;
     const halfPeriod = Math.PI * Math.sqrt((a * a * a) / KERBIN_MU);
-    const orbit: CurrentOrbit = { ...KERBIN_ELLIPTIC, timeToAp: halfPeriod };
+    const orbit: CurrentOrbit = { ...KERBIN_ELLIPTIC, timeToAp: s(halfPeriod) };
     const apoPlan = customAtApsis(
       orbit,
       KERBIN_MU,
@@ -295,12 +336,12 @@ describe("customAtUT", () => {
       0,
       KERBIN_MU,
       currentUT,
-      currentUT + halfPeriod,
+      currentUT.plus(s(halfPeriod)),
       -100,
       0,
       0,
     );
-    expect(utPlan.ut).toBe(apoPlan.ut);
+    expect(utPlan.ut.magnitude).toBe(apoPlan.ut.magnitude);
     expect(utPlan.projected?.ApR).toBeCloseTo(apoPlan.projected?.ApR ?? 0, -1);
     expect(utPlan.projected?.PeR).toBeCloseTo(apoPlan.projected?.PeR ?? 0, -1);
     expect(utPlan.projected?.eccentricity).toBeCloseTo(
@@ -317,8 +358,8 @@ describe("customAtUT", () => {
       KERBIN_ELLIPTIC,
       0,
       KERBIN_MU,
-      0,
-      quarterPeriod,
+      ut(0),
+      ut(quarterPeriod),
       50,
       0,
       0,
@@ -333,14 +374,14 @@ describe("customAtUT", () => {
       KERBIN_ELLIPTIC,
       0,
       KERBIN_MU,
-      1000,
-      500,
+      ut(1000),
+      ut(500),
       100,
       0,
       0,
     );
     expect(plan.projected).toBeNull();
-    expect(plan.ut).toBe(500);
+    expect(plan.ut.magnitude).toBe(500);
     expect(plan.requiredDeltaV).toBe(100);
   });
 });
@@ -354,7 +395,7 @@ describe("matchInclination", () => {
         0, // argPe (AN at ν = 0)
         45, // current inc
         KERBIN_MU,
-        0,
+        ut(0),
         45, // same target
       ),
       "matchInclination",
@@ -379,7 +420,7 @@ describe("matchInclination", () => {
         0,
         0, // current inc
         KERBIN_MU,
-        0,
+        ut(0),
         30, // target +30°
       ),
       "matchInclination",
@@ -390,11 +431,11 @@ describe("matchInclination", () => {
 
   it("reverses the normal sign when the target inclination is lower", () => {
     const planUp = bound(
-      matchInclination(KERBIN_100KM_CIRCULAR, 0, 0, 0, KERBIN_MU, 0, 30),
+      matchInclination(KERBIN_100KM_CIRCULAR, 0, 0, 0, KERBIN_MU, ut(0), 30),
       "matchInclination",
     );
     const planDown = bound(
-      matchInclination(KERBIN_100KM_CIRCULAR, 0, 0, 30, KERBIN_MU, 0, 0),
+      matchInclination(KERBIN_100KM_CIRCULAR, 0, 0, 30, KERBIN_MU, ut(0), 0),
       "matchInclination",
     );
     // Same geometry → same magnitude, opposite sign.
@@ -411,7 +452,7 @@ describe("matchInclination", () => {
         0, // argPe
         0,
         KERBIN_MU,
-        1000,
+        ut(1000),
         10,
       ),
       "matchInclination",
@@ -421,7 +462,7 @@ describe("matchInclination", () => {
     const period =
       2 * Math.PI * Math.sqrt(KERBIN_100KM_CIRCULAR.sma ** 3 / KERBIN_MU);
     const expectedDt = (170 / 360) * period;
-    expect(plan.ut - 1000).toBeCloseTo(expectedDt, -1);
+    expect(plan.ut.magnitude - 1000).toBeCloseTo(expectedDt, -1);
   });
 });
 
@@ -437,7 +478,7 @@ describe("matchTargetPlane", () => {
         30, // target inc (same)
         50, // target LAN (same)
         KERBIN_MU,
-        0,
+        ut(0),
       ),
       "matchTargetPlane",
     );
@@ -458,7 +499,7 @@ describe("matchTargetPlane", () => {
         targetInc,
         0,
         KERBIN_MU,
-        0,
+        ut(0),
       ),
       "matchTargetPlane",
     );
@@ -469,7 +510,7 @@ describe("matchTargetPlane", () => {
         0,
         0,
         KERBIN_MU,
-        0,
+        ut(0),
         targetInc,
       ),
       "matchInclination",
@@ -488,7 +529,7 @@ describe("matchTargetPlane", () => {
         10,
         45, // LAN shifted 45° → relative plane differs
         KERBIN_MU,
-        0,
+        ut(0),
       ),
       "matchTargetPlane",
     );
@@ -502,15 +543,17 @@ describe("hohmannToRadius", () => {
   const KERBIN_200KM = KERBIN_R + 200_000;
 
   it("returns null for a non-positive targetR", () => {
-    expect(hohmannToRadius(KERBIN_100KM_CIRCULAR, KERBIN_MU, 0, 0)).toBeNull();
     expect(
-      hohmannToRadius(KERBIN_100KM_CIRCULAR, KERBIN_MU, 0, -10),
+      hohmannToRadius(KERBIN_100KM_CIRCULAR, KERBIN_MU, ut(0), 0),
+    ).toBeNull();
+    expect(
+      hohmannToRadius(KERBIN_100KM_CIRCULAR, KERBIN_MU, ut(0), -10),
     ).toBeNull();
   });
 
   it("returns null when μ is non-positive", () => {
     expect(
-      hohmannToRadius(KERBIN_100KM_CIRCULAR, 0, 0, KERBIN_200KM),
+      hohmannToRadius(KERBIN_100KM_CIRCULAR, 0, ut(0), KERBIN_200KM),
     ).toBeNull();
   });
 
@@ -518,7 +561,7 @@ describe("hohmannToRadius", () => {
     const seq = hohmannToRadius(
       KERBIN_100KM_CIRCULAR,
       KERBIN_MU,
-      0,
+      ut(0),
       KERBIN_200KM,
     );
     expect(seq).not.toBeNull();
@@ -547,7 +590,7 @@ describe("hohmannToRadius", () => {
     const seq = hohmannToRadius(
       KERBIN_100KM_CIRCULAR,
       KERBIN_MU,
-      0,
+      ut(0),
       KERBIN_200KM,
     );
     if (!seq) throw new Error("expected sequence");
@@ -561,20 +604,23 @@ describe("hohmannToRadius", () => {
     const seq = hohmannToRadius(
       KERBIN_100KM_CIRCULAR,
       KERBIN_MU,
-      0,
+      ut(0),
       KERBIN_200KM,
     );
     if (!seq) throw new Error("expected sequence");
     const at = (KERBIN_R + 100_000 + KERBIN_200KM) / 2;
     const halfPeriod = Math.PI * Math.sqrt((at * at * at) / KERBIN_MU);
-    expect(seq.burns[1].ut - seq.burns[0].ut).toBeCloseTo(halfPeriod, 3);
+    expect(seq.burns[1].ut.minus(seq.burns[0].ut).magnitude).toBeCloseTo(
+      halfPeriod,
+      3,
+    );
   });
 
   it("final orbit is circular at targetR", () => {
     const seq = hohmannToRadius(
       KERBIN_100KM_CIRCULAR,
       KERBIN_MU,
-      0,
+      ut(0),
       KERBIN_200KM,
     );
     if (!seq) throw new Error("expected sequence");
@@ -588,7 +634,7 @@ describe("hohmannToRadius", () => {
     const seq = hohmannToRadius(
       KERBIN_100KM_CIRCULAR,
       KERBIN_MU,
-      0,
+      ut(0),
       KERBIN_200KM,
     );
     if (!seq) throw new Error("expected sequence");
@@ -604,10 +650,10 @@ describe("hohmannToRadius", () => {
       eccentricity: 0,
       ApR: KERBIN_200KM,
       PeR: KERBIN_200KM,
-      timeToAp: 0,
-      timeToPe: 0,
+      timeToAp: s(0),
+      timeToPe: s(0),
     };
-    const seq = hohmannToRadius(start, KERBIN_MU, 0, KERBIN_R + 100_000);
+    const seq = hohmannToRadius(start, KERBIN_MU, ut(0), KERBIN_R + 100_000);
     if (!seq) throw new Error("expected sequence");
     expect(seq.burns[0].prograde).toBeLessThan(0);
     expect(seq.burns[1].prograde).toBeLessThan(0);
@@ -618,21 +664,25 @@ describe("hohmannToRadius", () => {
     const raise = hohmannToRadius(
       KERBIN_ELLIPTIC,
       KERBIN_MU,
-      0,
+      ut(0),
       KERBIN_R + 300_000,
     );
     if (!raise) throw new Error("expected raise sequence");
-    expect(raise.burns[0].ut).toBe(KERBIN_ELLIPTIC.timeToPe);
+    expect(raise.burns[0].ut.magnitude).toBe(
+      KERBIN_ELLIPTIC.timeToPe.magnitude,
+    );
 
     // Lower from elliptic. Heuristic should burn at apo (timeToAp = 600).
     const lower = hohmannToRadius(
       KERBIN_ELLIPTIC,
       KERBIN_MU,
-      0,
+      ut(0),
       KERBIN_R + 50_000,
     );
     if (!lower) throw new Error("expected lower sequence");
-    expect(lower.burns[0].ut).toBe(KERBIN_ELLIPTIC.timeToAp);
+    expect(lower.burns[0].ut.magnitude).toBe(
+      KERBIN_ELLIPTIC.timeToAp.magnitude,
+    );
   });
 
   it("respects explicit fromApsis override", () => {
@@ -640,19 +690,19 @@ describe("hohmannToRadius", () => {
     const seq = hohmannToRadius(
       KERBIN_ELLIPTIC,
       KERBIN_MU,
-      0,
+      ut(0),
       KERBIN_R + 300_000,
       "apo",
     );
     if (!seq) throw new Error("expected sequence");
-    expect(seq.burns[0].ut).toBe(KERBIN_ELLIPTIC.timeToAp);
+    expect(seq.burns[0].ut.magnitude).toBe(KERBIN_ELLIPTIC.timeToAp.magnitude);
   });
 
   it("zero ΔV when target equals current circular radius", () => {
     const seq = hohmannToRadius(
       KERBIN_100KM_CIRCULAR,
       KERBIN_MU,
-      0,
+      ut(0),
       KERBIN_R + 100_000,
     );
     if (!seq) throw new Error("expected sequence");
@@ -682,7 +732,7 @@ describe("hohmannRendezvous", () => {
   it("returns null on degenerate inputs", () => {
     const v = VESSEL_100KM_CIRCULAR_RICH;
     expect(
-      hohmannRendezvous(v, 0, 0, 0, 0, 0, 0, TARGET_200KM_CIRCULAR, 0),
+      hohmannRendezvous(v, 0, 0, 0, 0, 0, ut(0), TARGET_200KM_CIRCULAR, 0),
     ).toBeNull();
     expect(
       hohmannRendezvous(
@@ -692,7 +742,7 @@ describe("hohmannRendezvous", () => {
         0,
         0,
         KERBIN_MU,
-        0,
+        ut(0),
         {
           ...TARGET_200KM_CIRCULAR,
           PeR: 0,
@@ -711,7 +761,7 @@ describe("hohmannRendezvous", () => {
       v.inc,
       v.lan,
       KERBIN_MU,
-      0,
+      ut(0),
       TARGET_200KM_CIRCULAR,
       0,
     );
@@ -733,7 +783,7 @@ describe("hohmannRendezvous", () => {
       v.inc,
       v.lan,
       KERBIN_MU,
-      0,
+      ut(0),
       { ...TARGET_200KM_CIRCULAR, inclinationDeg: 5 },
       0,
     );
@@ -757,7 +807,7 @@ describe("hohmannRendezvous", () => {
       v.inc,
       v.lan,
       KERBIN_MU,
-      0,
+      ut(0),
       { ...TARGET_200KM_CIRCULAR, inclinationDeg: 0.3 },
       0,
     );
@@ -774,7 +824,7 @@ describe("hohmannRendezvous", () => {
       v.inc,
       v.lan,
       KERBIN_MU,
-      0,
+      ut(0),
       TARGET_200KM_CIRCULAR,
       0,
     );
@@ -782,7 +832,7 @@ describe("hohmannRendezvous", () => {
     const transferSma = (KERBIN_R + 100_000 + (KERBIN_R + 200_000)) / 2;
     const halfPeriod = Math.PI * Math.sqrt(transferSma ** 3 / KERBIN_MU);
     const [b1, b2] = seq.burns;
-    expect(b2.ut - b1.ut).toBeCloseTo(halfPeriod, 3);
+    expect(b2.ut.minus(b1.ut).magnitude).toBeCloseTo(halfPeriod, 3);
   });
 
   it("standoff > 0 increases the wait (arrives behind target)", () => {
@@ -794,7 +844,7 @@ describe("hohmannRendezvous", () => {
       v.inc,
       v.lan,
       KERBIN_MU,
-      0,
+      ut(0),
       TARGET_200KM_CIRCULAR,
       0,
     );
@@ -805,7 +855,7 @@ describe("hohmannRendezvous", () => {
       v.inc,
       v.lan,
       KERBIN_MU,
-      0,
+      ut(0),
       TARGET_200KM_CIRCULAR,
       500,
     );
@@ -816,7 +866,9 @@ describe("hohmannRendezvous", () => {
       3,
     );
     // But burn 1 happens later (or at most a synodic period earlier, not equal)
-    expect(withStandoff.burns[0].ut).not.toBe(noStandoff.burns[0].ut);
+    expect(withStandoff.burns[0].ut.magnitude).not.toBe(
+      noStandoff.burns[0].ut.magnitude,
+    );
   });
 
   it("eccentric target rendezvous radius is target.PeR, not target.sma", () => {
@@ -841,7 +893,7 @@ describe("hohmannRendezvous", () => {
       v.inc,
       v.lan,
       KERBIN_MU,
-      0,
+      ut(0),
       eccTarget,
       0,
     );
@@ -860,7 +912,7 @@ describe("hohmannRendezvous", () => {
       v.inc,
       v.lan,
       KERBIN_MU,
-      0,
+      ut(0),
       { ...TARGET_200KM_CIRCULAR, inclinationDeg: 5 },
       0,
     );

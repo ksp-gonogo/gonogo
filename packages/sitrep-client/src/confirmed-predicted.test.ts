@@ -1,4 +1,4 @@
-import { Quality } from "@ksp-gonogo/sitrep-sdk";
+import { Quality, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   solveOrbit,
   type VesselOrbitPayload,
@@ -163,7 +163,7 @@ describe("predicted-range reads (M2 design §3.3)", () => {
     const orbit = store.sample<VesselOrbitPayload>("vessel.orbit", token);
     expect(orbit?.payload).toBeTruthy();
     const solved = orbit?.payload
-      ? solveOrbit(orbit.payload, token.scetUt, null)
+      ? solveOrbit(orbit.payload, value("ut", token.scetUt), null)
       : undefined;
 
     // Off the WIRE fixture, which is bare numbers: the solver's own contract.

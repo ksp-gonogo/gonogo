@@ -1,5 +1,10 @@
 import type { ParsedManeuverNode } from "@ksp-gonogo/data";
-import { type CarriedCurrency, datedFrom, value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  type CarriedCurrency,
+  datedFrom,
+  type Value,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import { CloseIcon, PencilIcon } from "@ksp-gonogo/ui";
 import { Button, Countdown, IconButton, Unit } from "@ksp-gonogo/ui-kit";
 import type { ButtonHTMLAttributes, CSSProperties, ReactNode } from "react";
@@ -21,7 +26,7 @@ export interface NodeEditPatch {
 
 interface NodeRowProps {
   node: ParsedManeuverNode;
-  currentUT: number | undefined;
+  currentUT: Value<"ut"> | undefined;
   /** Vessel ΔV available, or null when there is no usable reading. */
   availableDv: number | null;
   /** What the plan was last reported by, so a held plan draws held figures. */
@@ -44,7 +49,7 @@ export function NodeRow({
 }: NodeRowProps) {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const timeTo = currentUT !== undefined ? node.UT - currentUT : null;
+  const timeTo = currentUT && value("ut", node.UT).minus(currentUT);
   const dated = <UnitSymbol extends string>(
     figure: ReturnType<typeof value<UnitSymbol>>,
   ) => (from === undefined ? figure : datedFrom(from, figure));
@@ -75,17 +80,14 @@ export function NodeRow({
         <div style={NODE_META_STYLE}>
           {completed ? (
             "Removing in 10 s"
-          ) : timeTo !== null && timeTo < 0 ? (
+          ) : timeTo?.isNegative() ? (
             // A burn stopped short keeps its node past its own instant; Countdown is unsigned, so the tense carries it.
             <>
-              burn was <Countdown value={dated(value("s", -timeTo))} /> ago
+              burn was <Countdown value={dated(timeTo.abs())} /> ago
             </>
           ) : (
             <>
-              burn in{" "}
-              <Countdown
-                value={timeTo === null ? null : dated(value("s", timeTo))}
-              />
+              burn in <Countdown value={timeTo && dated(timeTo)} />
             </>
           )}
         </div>

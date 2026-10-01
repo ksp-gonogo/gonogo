@@ -12,7 +12,7 @@ import {
   useStream,
   useViewUt,
 } from "@ksp-gonogo/sitrep-client";
-import { stillTrue } from "@ksp-gonogo/sitrep-sdk";
+import { stillTrue, type Value } from "@ksp-gonogo/sitrep-sdk";
 import { useMemo } from "react";
 import { magnitudeOf } from "../shared/magnitude";
 import { bodyFromStream } from "../shared/streamBody";
@@ -76,7 +76,9 @@ export function usePlannerTelemetry() {
   const timeToPe = solve?.timeToPe ?? undefined;
   const argPe = magnitudeOf(orbit?.argPe) ?? undefined;
   const trueAnomaly = solve?.trueAnomaly ?? undefined;
-  const currentUT = useViewUt()?.magnitude;
+  const currentUT: Value<"ut"> | undefined = useViewUt();
+  // The burn windows and the conformance regime place node instants, which arrive as plain UT seconds, so they read the view instant the same way.
+  const nowUtSeconds = currentUT?.magnitude;
   const orbitalSpeedReading = useTelemetry("vessel.flight").orbitalSpeed;
   // computeMu wants a number true of the craft now: modelled where on offer, else observed.
   const speedNow = () => {
@@ -168,6 +170,7 @@ export function usePlannerTelemetry() {
     argPe,
     trueAnomaly,
     currentUT,
+    nowUtSeconds,
     refBody,
     inclination,
     targetName,

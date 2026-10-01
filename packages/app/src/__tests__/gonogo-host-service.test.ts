@@ -18,6 +18,7 @@ import {
   Quality,
   Situation,
   TrajectoryKind,
+  value,
 } from "@ksp-gonogo/sitrep-sdk";
 import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -125,7 +126,7 @@ class FakeTimelineStore {
         launchUt:
           this.onPad || this.met === null
             ? null
-            : { magnitude: VIEW_UT - this.met },
+            : value("ut", VIEW_UT - this.met),
       } as Payload,
     };
   }

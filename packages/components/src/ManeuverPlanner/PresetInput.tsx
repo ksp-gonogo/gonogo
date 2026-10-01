@@ -1,4 +1,4 @@
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import { type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   NULL_DISPLAY,
   Stack,
@@ -16,7 +16,7 @@ interface PresetInputProps {
   api: PlannerInputsApi;
   /** Live values for the target-matching presets' description rows, passed in so this stays presentational. */
   telemetry: {
-    currentUT: number | undefined;
+    currentUT: Value<"ut"> | undefined;
     inclination: number | undefined;
     lan: number | undefined;
     targetName: string | undefined;
@@ -118,11 +118,13 @@ function PresetCustomInputs({ api, telemetry }: PresetInputProps) {
 
 interface UtModeInputsProps {
   api: PlannerInputsApi;
-  currentUT: number | undefined;
+  currentUT: Value<"ut"> | undefined;
 }
 
 function UtModeInputs({ api, currentUT }: UtModeInputsProps) {
   const { inputs, setUtMode, setBurnAtUT, setBurnInSeconds } = api;
+  // The form holds the instant as plain seconds, so it can be frozen into a trigger and sent to another screen.
+  const enterBurnAt = (instant: Value<"ut">) => setBurnAtUT(instant.magnitude);
   return (
     <>
       <div style={UT_MODE_ROW_STYLE}>
@@ -141,7 +143,7 @@ function UtModeInputs({ api, currentUT }: UtModeInputsProps) {
           onClick={() => {
             // Seed the absolute field with "now + 60s" the first time the user flips modes, so they don't see a 0.
             if (inputs.burnAtUT === 0 && currentUT !== undefined) {
-              setBurnAtUT(currentUT + 60);
+              enterBurnAt(currentUT.plus(value("s", 60)));
             }
             setUtMode("absolute");
           }}
@@ -161,7 +163,7 @@ function UtModeInputs({ api, currentUT }: UtModeInputsProps) {
           label="At UT"
           unit="ut"
           value={value("ut", inputs.burnAtUT)}
-          onChange={(next) => setBurnAtUT(next.magnitude)}
+          onChange={enterBurnAt}
         />
       )}
     </>

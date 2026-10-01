@@ -53,7 +53,7 @@ export function ConformanceSection({
     argPe,
     thrustLatch,
     currentTrajectory,
-    currentUT,
+    nowUtSeconds,
     period,
     elementsNeedDating,
   } = telemetry;
@@ -99,7 +99,7 @@ export function ConformanceSection({
                     ignitionUt: node.ignitionUt,
                     cutoffUt: node.cutoffUt,
                   },
-                  currentUT,
+                  nowUtSeconds,
                   conformance.deliveredDv,
                   node.deltaVMagnitude,
                 )}

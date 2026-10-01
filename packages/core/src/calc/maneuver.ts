@@ -17,6 +17,8 @@
  * carried through but not reflected in the projected in-plane shape.
  */
 
+import { meanAnomalyAt } from "@ksp-gonogo/sitrep-client";
+import { type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import { degToRad, radToDeg } from "../utils/math";
 import { eccentricToTrueAnomaly, solveKepler } from "./trajectory";
 
@@ -30,10 +32,10 @@ export interface CurrentOrbit {
   ApR: number;
   /** Periapsis distance from body centre. */
   PeR: number;
-  /** Seconds until vessel reaches apoapsis. */
-  timeToAp: number;
-  /** Seconds until vessel reaches periapsis. */
-  timeToPe: number;
+  /** Until the vessel reaches apoapsis. */
+  timeToAp: Value<"s">;
+  /** Until the vessel reaches periapsis. */
+  timeToPe: Value<"s">;
 }
 
 /** Resulting orbit shape after a maneuver: for preview, not execution. */
@@ -49,8 +51,8 @@ export interface ProjectedOrbit {
 }
 
 export interface ManeuverPlan {
-  /** Absolute UT for the burn (seconds). */
-  ut: number;
+  /** The burn's instant. */
+  ut: Value<"ut">;
   /** ΔV along the velocity vector (m/s). Positive raises, negative lowers. */
   prograde: number;
   /** ΔV perpendicular to the orbital plane (m/s). */
@@ -109,6 +111,13 @@ function speedAt(mu: number, r: number, a: number): number {
 /** Circular-orbit speed at radius `r`. */
 function circularSpeed(mu: number, r: number): number {
   return Math.sqrt(mu / r);
+}
+
+const FULL_TURN = value("rad", 2 * Math.PI);
+
+/** Mean motion `√(μ/a³)`: the rate the mean anomaly advances at. */
+function meanMotionOf(mu: number, sma: number): Value<"rad·s⁻¹"> {
+  return value("rad·s⁻¹", Math.sqrt(mu / (sma * sma * sma)));
 }
 
 function periodAt(mu: number, sma: number): number {
@@ -178,8 +187,8 @@ export function stateAtUT(
   current: CurrentOrbit,
   currentTrueAnomalyDeg: number,
   mu: number,
-  currentUT: number,
-  targetUT: number,
+  currentUT: Value<"ut">,
+  targetUT: Value<"ut">,
 ): {
   r: number;
   speed: number;
@@ -207,10 +216,13 @@ export function stateAtUT(
       Math.sqrt(1 - e) * Math.sin(nu0 / 2),
       Math.sqrt(1 + e) * Math.cos(nu0 / 2),
     );
-  // Mean anomaly propagates linearly with time.
   const M0 = E0 - e * Math.sin(E0);
-  const n = Math.sqrt(mu / (a * a * a));
-  const M = M0 + n * (targetUT - currentUT);
+  const M = meanAnomalyAt(
+    value("rad", M0),
+    meanMotionOf(mu, a),
+    currentUT,
+    targetUT,
+  );
 
   const E = solveKepler(M, e);
   const nu = eccentricToTrueAnomaly(E, e);
@@ -235,14 +247,14 @@ export function stateAtUT(
 export function circularizeAtApo(
   current: CurrentOrbit,
   mu: number,
-  currentUT: number,
+  currentUT: Value<"ut">,
 ): ManeuverPlan {
   const r = current.ApR;
   const vCurrent = speedAt(mu, r, current.sma);
   const vTarget = circularSpeed(mu, r);
   const prograde = vTarget - vCurrent;
   return {
-    ut: currentUT + current.timeToAp,
+    ut: currentUT.plus(current.timeToAp),
     prograde,
     normal: 0,
     radial: 0,
@@ -261,14 +273,14 @@ export function circularizeAtApo(
 export function circularizeAtPeri(
   current: CurrentOrbit,
   mu: number,
-  currentUT: number,
+  currentUT: Value<"ut">,
 ): ManeuverPlan {
   const r = current.PeR;
   const vCurrent = speedAt(mu, r, current.sma);
   const vTarget = circularSpeed(mu, r);
   const prograde = vTarget - vCurrent;
   return {
-    ut: currentUT + current.timeToPe,
+    ut: currentUT.plus(current.timeToPe),
     prograde,
     normal: 0,
     radial: 0,
@@ -293,7 +305,7 @@ export function circularizeAtPeri(
 export function customAtApsis(
   current: CurrentOrbit,
   mu: number,
-  currentUT: number,
+  currentUT: Value<"ut">,
   apsis: Apsis,
   prograde: number,
   normal: number,
@@ -305,7 +317,7 @@ export function customAtApsis(
   const vPre = speedAt(mu, r, current.sma);
   const projected = projectBurn(r, vPre, 0, mu, prograde, radial);
   return {
-    ut: currentUT + dt,
+    ut: currentUT.plus(dt),
     prograde,
     normal,
     radial,
@@ -328,13 +340,13 @@ export function customAtUT(
   current: CurrentOrbit,
   currentTrueAnomalyDeg: number,
   mu: number,
-  currentUT: number,
-  burnUT: number,
+  currentUT: Value<"ut">,
+  burnUT: Value<"ut">,
   prograde: number,
   normal: number,
   radial: number,
 ): ManeuverPlan {
-  if (burnUT <= currentUT) {
+  if (burnUT.lessThanOrEqual(currentUT)) {
     return {
       ut: burnUT,
       prograde,
@@ -391,19 +403,18 @@ function nodeAnomalies(argumentOfPeriapsisDeg: number): {
 
 /**
  * Time from `currentTrueAnomalyDeg` forward to `targetTrueAnomalyDeg` on
- * the same orbit, in seconds. Always returns a non-negative value, if
- * the target is "behind" us, we wait for the next pass.
+ * the same orbit. Never negative: if the target is "behind" us, we wait for
+ * the next pass.
  */
 function timeToTrueAnomaly(
   current: CurrentOrbit,
   currentTrueAnomalyDeg: number,
   targetTrueAnomalyDeg: number,
   mu: number,
-): number {
-  const a = current.sma;
+): Value<"s"> {
   const e = current.eccentricity;
-  const n = Math.sqrt(mu / (a * a * a));
-  const period = (2 * Math.PI) / n;
+  const n = meanMotionOf(mu, current.sma);
+  const period = FULL_TURN.dividedBy(n);
 
   const toM = (trueAnomalyDeg: number) => {
     const nu = degToRad(trueAnomalyDeg);
@@ -417,9 +428,9 @@ function timeToTrueAnomaly(
   };
 
   const dM = toM(targetTrueAnomalyDeg) - toM(currentTrueAnomalyDeg);
-  let dt = dM / n;
+  let dt = value("rad", dM).dividedBy(n);
   // Wrap forward if the target has already passed this orbit.
-  while (dt < 0) dt += period;
+  while (dt.isNegative()) dt = dt.plus(period);
   return dt;
 }
 
@@ -441,7 +452,7 @@ export function matchInclination(
   currentArgumentOfPeriapsisDeg: number,
   currentInclinationDeg: number,
   mu: number,
-  currentUT: number,
+  currentUT: Value<"ut">,
   targetInclinationDeg: number,
 ): ManeuverPlan | null {
   const nodes = nodeAnomalies(currentArgumentOfPeriapsisDeg);
@@ -451,11 +462,11 @@ export function matchInclination(
   // Burn at whichever node arrives first. At AN a +normal burn rotates
   // the orbit's angular-momentum vector northward → higher inclination;
   // at DN the geometry is mirrored, so the sign flips.
-  const useAN = dtAN <= dtDN;
+  const useAN = dtAN.lessThanOrEqual(dtDN);
   const dt = useAN ? dtAN : dtDN;
   const nodeDirection = useAN ? 1 : -1;
 
-  const burnUT = currentUT + dt;
+  const burnUT = currentUT.plus(dt);
   const state = stateAtUT(
     current,
     currentTrueAnomalyDeg,
@@ -523,7 +534,7 @@ export function matchTargetPlane(
   targetInclinationDeg: number,
   targetLanDeg: number,
   mu: number,
-  currentUT: number,
+  currentUT: Value<"ut">,
 ): ManeuverPlan | null {
   const i1 = degToRad(currentInclinationDeg);
   const i2 = degToRad(targetInclinationDeg);
@@ -549,11 +560,11 @@ export function matchTargetPlane(
 
   const dtAN = timeToTrueAnomaly(current, currentTrueAnomalyDeg, nuAN, mu);
   const dtDN = timeToTrueAnomaly(current, currentTrueAnomalyDeg, nuDN, mu);
-  const useAN = dtAN <= dtDN;
+  const useAN = dtAN.lessThanOrEqual(dtDN);
   const dt = useAN ? dtAN : dtDN;
   const nodeDirection = useAN ? 1 : -1;
 
-  const burnUT = currentUT + dt;
+  const burnUT = currentUT.plus(dt);
   const state = stateAtUT(
     current,
     currentTrueAnomalyDeg,
@@ -614,7 +625,7 @@ export function matchTargetPlane(
 export function hohmannToRadius(
   current: CurrentOrbit,
   mu: number,
-  currentUT: number,
+  currentUT: Value<"ut">,
   targetR: number,
   fromApsis?: Apsis,
 ): ManeuverSequence | null {
@@ -632,7 +643,7 @@ export function hohmannToRadius(
   const v1Pre = speedAt(mu, r1, current.sma);
   const v1Post = speedAt(mu, r1, transferSma);
   const dv1 = v1Post - v1Pre;
-  const burn1UT = currentUT + dt1;
+  const burn1UT = currentUT.plus(dt1);
 
   const transferApR = Math.max(r1, targetR);
   const transferPeR = Math.min(r1, targetR);
@@ -651,7 +662,7 @@ export function hohmannToRadius(
   const v2Pre = speedAt(mu, targetR, transferSma);
   const v2Post = circularSpeed(mu, targetR);
   const dv2 = v2Post - v2Pre;
-  const burn2UT = burn1UT + transferPeriod / 2;
+  const burn2UT = burn1UT.plus(value("s", transferPeriod / 2));
 
   const finalProjected: ProjectedOrbit = {
     sma: targetR,
@@ -737,7 +748,7 @@ export function hohmannRendezvous(
   vesselInclinationDeg: number,
   vesselLanDeg: number,
   mu: number,
-  currentUT: number,
+  currentUT: Value<"ut">,
   target: TargetOrbitState,
   standoffMeters: number,
 ): ManeuverSequence | null {
@@ -758,7 +769,7 @@ export function hohmannRendezvous(
 
   const PLANE_MATCH_THRESHOLD_DEG = 0.5;
   const burns: ManeuverPlan[] = [];
-  let effectiveStartUT = currentUT;
+  let effectiveStartUT: Value<"ut"> = currentUT;
 
   if (relIncDeg > PLANE_MATCH_THRESHOLD_DEG) {
     const planeMatch = matchTargetPlane(
@@ -777,7 +788,9 @@ export function hohmannRendezvous(
     // function already returns null for every other input it cannot plan from.
     if (!planeMatch) return null;
     burns.push(planeMatch);
-    if (planeMatch.ut > effectiveStartUT) effectiveStartUT = planeMatch.ut;
+    if (planeMatch.ut.greaterThan(effectiveStartUT)) {
+      effectiveStartUT = planeMatch.ut;
+    }
   }
 
   // 2. Phase-angle math. Treat both orbits as circular at SMA for the
@@ -813,24 +826,30 @@ export function hohmannRendezvous(
   let phiNow = degToRad(targetTrueLongDeg - vesselTrueLongDeg);
   phiNow = ((phiNow % TWO_PI) + TWO_PI) % TWO_PI;
 
-  // Drift from currentUT to effectiveStartUT (zero if no plane match).
-  const phiAtStart = phiNow + dPhiDt * (effectiveStartUT - currentUT);
-
-  // Wait for φ to reach leadAngle, going in the direction dictated by dPhiDt.
-  // We always normalise the angular delta to [0, 2π) and divide by |dPhiDt|;
-  // sign of dPhiDt only picks the rotation direction, not the wait length.
-  const deltaSigned =
-    dPhiDt > 0 ? leadAngle - phiAtStart : phiAtStart - leadAngle;
-  const deltaNormalised = ((deltaSigned % TWO_PI) + TWO_PI) % TWO_PI;
-  const waitTime = deltaNormalised / Math.abs(dPhiDt);
-  const burn1UT = effectiveStartUT + waitTime;
+  /*
+   * Wait for φ to reach leadAngle, going in the direction dictated by dPhiDt.
+   * The gap is taken as it stands NOW and turned into a time at the closing
+   * rate; the drift up to `effectiveStartUT` (zero with no plane match) is then
+   * spent out of it, and whole synodic periods are added back until the wait
+   * is not in the past. That is the same wait as normalising the gap at the
+   * start instant, said in time rather than angle.
+   */
+  const closingRate = value("rad·s⁻¹", Math.abs(dPhiDt));
+  const gapNow = dPhiDt > 0 ? leadAngle - phiNow : phiNow - leadAngle;
+  const gapNowNormalised = ((gapNow % TWO_PI) + TWO_PI) % TWO_PI;
+  const synodicPeriod = FULL_TURN.dividedBy(closingRate);
+  let waitTime = value("rad", gapNowNormalised)
+    .dividedBy(closingRate)
+    .minus(effectiveStartUT.minus(currentUT));
+  while (waitTime.isNegative()) waitTime = waitTime.plus(synodicPeriod);
+  const burn1UT = effectiveStartUT.plus(waitTime);
 
   // 3. Hohmann burns. Vessel as circular at r1, target circle at r2.
   const v1Pre = circularSpeed(mu, r1);
   const v1Post = speedAt(mu, r1, transferSma);
   const dv1 = v1Post - v1Pre;
 
-  const burn2UT = burn1UT + transferHalfPeriod;
+  const burn2UT = burn1UT.plus(value("s", transferHalfPeriod));
   const v2Pre = speedAt(mu, r2, transferSma);
   const v2Post = circularSpeed(mu, r2);
   const dv2 = v2Post - v2Pre;

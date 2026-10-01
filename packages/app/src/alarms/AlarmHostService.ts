@@ -15,10 +15,11 @@ import {
   sampleActiveReading,
   sampleActiveTopic,
 } from "@ksp-gonogo/sitrep-client";
-import type {
-  CommsDelay,
-  TopicReading,
-  VesselControl,
+import {
+  type CommsDelay,
+  magnitudeOf,
+  type TopicReading,
+  type VesselControl,
 } from "@ksp-gonogo/sitrep-sdk";
 import type { PeerHostService } from "../peer/PeerHostService";
 import { AlarmPeerBridge } from "./AlarmPeerBridge";
@@ -89,6 +90,14 @@ export interface AlarmHostOptions {
  * a warp) an unmeasurable link and a LAN link both come back to the operator's
  * own configured margin, so both collapse to 0 here.
  */
+/**
+ * The view instant in the plain UT seconds an alarm is stored in, persisted and
+ * sent to stations as, and settled against.
+ */
+function viewUtSeconds(): number | undefined {
+  return magnitudeOf(getViewUt()) ?? undefined;
+}
+
 function readOwltSeconds(): number {
   const seconds =
     sampleActiveTopic<CommsDelay>("comms.delay")?.oneWaySeconds?.magnitude;
@@ -627,7 +636,7 @@ export class AlarmHostService {
     // tick and would put the latch up to a tick in the past. Falling back to
     // the mod's instant only matters before any frame has anchored the view
     // clock, and an alarm cannot be armed before then.
-    alarm.matchSinceUT = getViewUt() ?? this.observedUT ?? firedAtUt;
+    alarm.matchSinceUT = viewUtSeconds() ?? this.observedUT ?? firedAtUt;
     alarm.eventUT = firedAtUt;
     // Any warp-to session is over: the thing it was warping towards has
     // happened and the game is already at zero. Left running it would keep
@@ -700,7 +709,7 @@ export class AlarmHostService {
     // Not a data-source key: `t.universalTime` was DROPPED, this is the
     // SDK's own view time, read via the non-hook `getViewUt` accessor rather
     // than the legacy telemetry reader.
-    const ut = getViewUt() ?? null;
+    const ut = viewUtSeconds() ?? null;
     this.observedUT = ut ?? this.observedUT;
     this.warpObserver.observeWarp();
 
