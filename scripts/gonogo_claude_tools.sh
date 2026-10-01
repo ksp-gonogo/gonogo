@@ -870,6 +870,13 @@ build_gonogo() {
   #                                election calls it makes, so its presence is
   #                                the strongest available "these bytes are a
   #                                current Gonogo.KSP"
+  #   KspPerturbers                 n-body physics left core on contract 25.0
+  #                                (b046a6af48, "core carries no n-body
+  #                                physics"); the type moved to Principia's own
+  #                                Uplink, so like ElectedIntegrates above this
+  #                                requirement outlived its subject and failed
+  #                                every successful deploy since. NOT asked of
+  #                                Gonogo.dll any more
   #   Reinforced.Typings           the codegen dependency, which once flowed 29
   #                                copies deep and hid a dispatch bug for a month
   echo "=== verifying deployed bytes ==="
@@ -891,7 +898,6 @@ build_gonogo() {
     "$install_dir/Gonogo.dll" \
     --control mscorlib \
     --require BodyHorizonFor \
-    --require KspPerturbers \
     --absent Reinforced.Typings || ksp_rc=$?
   if [ "$contract_rc" -ne 0 ] || [ "$host_rc" -ne 0 ] || [ "$ksp_rc" -ne 0 ]; then
     echo "deployed DLLs failed verification (contract=$contract_rc host=$host_rc ksp=$ksp_rc)"
