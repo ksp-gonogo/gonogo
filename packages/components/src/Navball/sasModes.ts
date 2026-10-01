@@ -67,11 +67,11 @@ export function modeShort(mode: SasMode): string {
 }
 
 /**
- * The SAS toggle's mode token, the same three letters as the mode grid.
- * StabilityAssist reads "SAS: SAS" on purpose: dropping the suffix would match
- * the label for no mode on the wire. `Unknown` keeps its name, since a "?" would
- * look like a rendering fault.
+ * The SAS toggle's mode token, the same three letters as the mode grid. Stability
+ * assist is the plain on-state, so it has no token and the toggle reads "SAS ON".
+ * `Unknown` keeps its name, since a "?" would look like a rendering fault.
  */
 export function badgeSasMode(mode: SasModeName): string {
+  if (mode === "StabilityAssist") return "";
   return mode === "Unknown" ? mode : modeShort(mode);
 }

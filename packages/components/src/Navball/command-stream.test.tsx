@@ -80,8 +80,7 @@ describe("Navball control surface: command bridges (M3 batch 4, Part B)", () => 
       });
     });
 
-    // The toggle names the held mode, StabilityAssist, so "SAS: SAS" is not a stutter.
-    const button = await screen.findByRole("button", { name: "SAS: SAS" });
+    const button = await screen.findByRole("button", { name: "SAS ON" });
     act(() => {
       button.click();
     });

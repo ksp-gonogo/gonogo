@@ -7,6 +7,12 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import northLevel from "./__fixtures__/north-level.json";
 import { NavballComponent } from "./index";
 
+function sasToggleIsPressed(container: HTMLElement): boolean {
+  return Array.from(
+    container.querySelectorAll('button[aria-pressed="true"]'),
+  ).some((button) => button.textContent?.startsWith("SAS"));
+}
+
 afterEach(() => {
   clearActionHandlers();
 });
@@ -46,13 +52,13 @@ describe("Navball: stream render golden (delay=0)", () => {
       });
     });
 
-    // At 8x11 there is no control surface, so the SAS caption is the only observable for the mode.
+    // At 8x11 there is no control surface, so the pressed SAS toggle is the only observable for the control state.
     await waitFor(() => {
       const attitudeResolved = !visibleText(container).includes(NULL_DISPLAY);
-      if (!attitudeResolved || !visibleText(container).includes("SAS: SAS")) {
+      if (!attitudeResolved || !sasToggleIsPressed(container)) {
         throw new Error("stream leg has not rendered the attitude state yet");
       }
     });
-    expect(visibleText(container)).toContain("SAS: SAS");
+    expect(sasToggleIsPressed(container)).toBe(true);
   });
 });
