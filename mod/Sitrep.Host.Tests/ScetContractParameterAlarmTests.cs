@@ -157,6 +157,28 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
+        /// An objective found with no readable ordinal says nothing about its
+        /// state, so it holds a started sustain window open rather than reading
+        /// as the objective having left its target.
+        /// </summary>
+        [Fact]
+        public void AnObjectiveWithNoOrdinalHoldsTheSustainWindowOpen()
+        {
+            var roster = new ScetAlarmRoster();
+            roster.Arm(Objective(sustainSeconds: 5), "");
+            var reader = new CareerReader { Career = Career(("c-42", "Orbit the Mun", 1)) };
+
+            roster.Evaluate(10, reader);
+            reader.Career = Career(("c-42", "Orbit the Mun", null));
+            var dark = roster.Evaluate(12, reader);
+            reader.Career = Career(("c-42", "Orbit the Mun", 1));
+            var back = roster.Evaluate(15, reader);
+
+            Assert.Empty(dark.Fired);
+            Assert.Single(back.Fired);
+        }
+
+        /// <summary>
         /// Through the real reader and the real career payload, so the walk is
         /// held to the shape the provider actually builds rather than to a
         /// fixture of this file's own.

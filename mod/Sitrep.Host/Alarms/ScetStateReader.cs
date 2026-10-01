@@ -153,11 +153,11 @@ namespace Sitrep.Host.Alarms
         ///
         /// <para>Three answers, the same three the client's own matcher gives.
         /// Null when the list could not be read at all, which is a different
-        /// claim from an empty one. False when the contract is not active or has
-        /// no objective of that title, which is a fact about the career, and
-        /// for an objective whose state is not a number. True only on the
-        /// ordinal, never the name, so a renamed state cannot silently stop an
-        /// alarm matching.</para>
+        /// claim from an empty one, and for an objective found with no readable
+        /// ordinal, which says nothing about its state. False when the contract
+        /// is not active or has no objective of that title, which is a fact
+        /// about the career. True only on the ordinal, never the name, so a
+        /// renamed state cannot silently stop an alarm matching.</para>
         /// </summary>
         internal static bool? MatchContractParameter(
             IDictionary<string, object?> career, string contractId, string parameterTitle, KspParameterState target)
@@ -191,7 +191,7 @@ namespace Sitrep.Host.Alarms
                         continue;
                     }
                     parameter.TryGetValue("stateOrdinal", out var ordinal);
-                    return AsFiniteNumber(ordinal) is { } state && state == (int)target;
+                    return AsFiniteNumber(ordinal) is { } state ? state == (int)target : null;
                 }
                 return false;
             }
