@@ -811,6 +811,8 @@ namespace Sitrep.Host
                 // record itself is present whenever a vessel is, per
                 // VesselControl's class doc comment.
                 Sas = GetBool(control, "sas"),
+                SasAvailable = GetBool(control, "sasAvailable"),
+                SasUnavailableReason = GetString(control, "sasUnavailableReason"),
                 SasMode = ParseSasMode(GetString(control, "sasMode")),
                 Rcs = GetBool(control, "rcs"),
                 Gear = GetBool(control, "gear"),
@@ -1759,6 +1761,8 @@ namespace Sitrep.Host
         private static Dictionary<string, object?> ToWire(VesselControl control) => new Dictionary<string, object?>
         {
             ["sas"] = control.Sas,
+            ["sasAvailable"] = control.SasAvailable,
+            ["sasUnavailableReason"] = control.SasUnavailableReason,
             ["sasMode"] = control.SasMode.HasValue ? (int)control.SasMode.Value : null,
             ["rcs"] = control.Rcs,
             ["gear"] = control.Gear,

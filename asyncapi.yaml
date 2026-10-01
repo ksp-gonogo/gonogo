@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 27.1.0
+  version: 27.2.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 78 telemetry
     channels a client subscribes to, and 57 commands it dispatches, with the payload
@@ -18306,6 +18306,26 @@ components:
             - "null"
           x-sitrep-unit: flag
           description: Whether SAS is on. Changed with `vessel.control.setSas`.
+        sasAvailable:
+          type:
+            - boolean
+            - "null"
+          x-sitrep-unit: flag
+          description: |-
+            Whether the vessel has a source that can hold SAS on: a Pilot aboard, or a
+            probe core whose SAS tier allows it (KSP's `VesselSAS.CanEngageSAS`). When
+            false, `vessel.control.setSas` refuses to turn SAS on, so a client can show
+            the control unavailable before it is pressed; turning SAS off is never
+            refused. Null when the vessel has no autopilot to ask.
+        sasUnavailableReason:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: text
+          description: |-
+            Why SAS cannot be turned on, in the words the refusal uses, when
+            `VesselControl.sasAvailable` is false. Null whenever SAS is available or
+            unknown.
         sasMode:
           description: The SAS hold mode. Changed with `vessel.control.setSasMode`.
           anyOf:

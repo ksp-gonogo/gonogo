@@ -1,0 +1,100 @@
+{
+  "_meta": {
+    "notes": "A craft with no SAS source (no Pilot aboard, no probe core with SAS), so the mod publishes sasAvailable false with its reason and the SAS toggle is held with the reason stated beside it. Turning SAS off stays possible, which a craft with SAS already on would show.",
+    "scenario": "no-sas-source"
+  },
+  "n.heading": 270,
+  "n.pitch": -60,
+  "n.roll": 10,
+  "n.heading2": 270,
+  "n.pitch2": -60,
+  "n.roll2": 10,
+  "f.sasEnabled": false,
+  "f.precisionControl": false,
+  "v.rcsValue": false,
+  "f.throttle": 0,
+  "v.isControllable": true,
+  "_stream": {
+    "emits": [
+      {
+        "channel": "vessel.attitude",
+        "value": {
+          "heading": 270,
+          "pitch": -60,
+          "roll": 10,
+          "headingRootFrame": 270,
+          "pitchRootFrame": -60,
+          "rollRootFrame": 10
+        }
+      },
+      {
+        "channel": "vessel.control",
+        "value": {
+          "sas": false,
+          "sasMode": 1,
+          "rcs": false,
+          "gear": false,
+          "brakes": false,
+          "lights": false,
+          "abort": false,
+          "precisionControl": false,
+          "throttle": 0,
+          "sasAvailable": false,
+          "sasUnavailableReason": "No SAS: needs a Pilot aboard or a probe core with SAS"
+        }
+      },
+      {
+        "channel": "vessel.comms",
+        "value": {
+          "connected": true,
+          "signalStrength": 1.0,
+          "controlState": 4
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 700000,
+          "ecc": 0.01,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 0,
+          "mu": 3531600000000.0,
+          "horizon": {
+            "kind": 1,
+            "trajectoryKind": 1
+          }
+        }
+      },
+      {
+        "channel": "vessel.identity",
+        "value": {
+          "vesselId": "v1",
+          "name": "Active Vessel",
+          "vesselType": 0,
+          "situation": 1,
+          "parentBodyIndex": 1,
+          "launchUt": 0
+        }
+      },
+      {
+        "channel": "system.bodies",
+        "value": {
+          "bodies": [
+            {
+              "name": "Kerbin",
+              "index": 1,
+              "parentIndex": 0,
+              "radius": 600000,
+              "orbit": null
+            }
+          ]
+        }
+      }
+    ],
+    "pinnedUt": 0
+  }
+}

@@ -20,11 +20,13 @@ namespace Sitrep.Host
         /// in a pod with a reaction wheel does not qualify.
         /// </summary>
         public static CommandResult? SasRefusal(bool enabling, bool canEngage) =>
-            enabling && !canEngage
-                ? CommandResult.Fail(
-                    CommandErrorCode.CapabilityMismatch,
-                    "No SAS: needs a Pilot aboard or a probe core with SAS")
+            enabling && SasUnavailableReason(canEngage) is string reason
+                ? CommandResult.Fail(CommandErrorCode.CapabilityMismatch, reason)
                 : null;
+
+        /// <summary>Why SAS cannot be turned on, or null when it can. The refusal and <c>vessel.control.sasUnavailableReason</c> share it.</summary>
+        public static string? SasUnavailableReason(bool canEngage) =>
+            canEngage ? null : "No SAS: needs a Pilot aboard or a probe core with SAS";
 
         /// <summary>
         /// Success when the group reads back as requested, otherwise a

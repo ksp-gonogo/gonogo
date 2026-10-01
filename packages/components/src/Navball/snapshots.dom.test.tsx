@@ -6,6 +6,7 @@ import gravityTurn from "./__fixtures__/gravity-turn-east.json";
 import inverted from "./__fixtures__/inverted-level.json";
 import launchpad from "./__fixtures__/launchpad-vertical.json";
 import maneuver from "./__fixtures__/maneuver-burn.json";
+import noSasSource from "./__fixtures__/no-sas-source.json";
 import north from "./__fixtures__/north-level.json";
 import progradeLevel from "./__fixtures__/prograde-east-level.json";
 import sasWireOnly from "./__fixtures__/sas-wire-only.json";
@@ -24,6 +25,7 @@ const FIXTURES: Record<string, Record<string, unknown>> = {
   "uncontrollable-drift": uncontrollable,
   "north-level": north,
   "sas-wire-only": sasWireOnly,
+  "no-sas-source": noSasSource,
 };
 
 const config = getWidget("navball");

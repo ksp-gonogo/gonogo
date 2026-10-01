@@ -16,6 +16,15 @@ namespace Sitrep.Host.Tests
             Assert.Contains("Pilot", refusal.Detail);
         }
 
+        [Fact]
+        public void TheUnavailableReasonIsTheRefusalDetailAndAbsentWhenSasCanEngage()
+        {
+            Assert.Null(ActionGroupWrite.SasUnavailableReason(canEngage: true));
+            Assert.Equal(
+                ActionGroupWrite.SasRefusal(enabling: true, canEngage: false)!.Detail,
+                ActionGroupWrite.SasUnavailableReason(canEngage: false));
+        }
+
         [Theory]
         [InlineData(true, true)]
         [InlineData(false, true)]

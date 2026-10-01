@@ -141,6 +141,20 @@ public class VesselControl
     [SitrepUnit(Units.Flag)]
     public bool? Sas { get; set; }
 
+    /// <summary>
+    /// Whether the vessel has a source that can hold SAS on: a Pilot aboard, or a
+    /// probe core whose SAS tier allows it (KSP's <c>VesselSAS.CanEngageSAS</c>).
+    /// When false, <c>vessel.control.setSas</c> refuses to turn SAS on, so a client
+    /// can show the control unavailable before it is pressed; turning SAS off is
+    /// never refused. Null when the vessel has no autopilot to ask.
+    /// </summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? SasAvailable { get; set; }
+
+    /// <summary>Why SAS cannot be turned on, in the words the refusal uses, when <see cref="SasAvailable"/> is false. Null whenever SAS is available or unknown.</summary>
+    [SitrepUnit(Units.Text)]
+    public string? SasUnavailableReason { get; set; }
+
     /// <summary>The SAS hold mode. Changed with <c>vessel.control.setSasMode</c>.</summary>
     [SitrepControlChannel("vessel.control.sasMode", "vessel.control.setSasMode", typeof(SetSasModeArgs), nameof(SetSasModeArgs.Mode))]
     [SitrepUnit(Units.Enumeration)]

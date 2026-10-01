@@ -135,6 +135,39 @@ describe("NavballComponent", () => {
     ).toBeInTheDocument();
   });
 
+  it("holds the SAS toggle and says why when the craft cannot engage SAS", async () => {
+    const { fixture } = renderNavball();
+    emitReads(fixture, {
+      control: {
+        sas: false,
+        sasAvailable: false,
+        sasUnavailableReason:
+          "No SAS: needs a Pilot aboard or a probe core with SAS",
+      },
+    });
+    const toggle = await screen.findByRole("button", { name: "SAS OFF" });
+    expect(toggle).toBeDisabled();
+    expect(toggle).toHaveAttribute(
+      "title",
+      "No SAS: needs a Pilot aboard or a probe core with SAS",
+    );
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "No SAS: needs a Pilot aboard",
+    );
+  });
+
+  it("leaves a SAS that is already on switchable off", async () => {
+    const { fixture } = renderNavball();
+    emitReads(fixture, {
+      control: {
+        sas: true,
+        sasAvailable: false,
+        sasUnavailableReason: "No SAS",
+      },
+    });
+    expect(await screen.findByRole("button", { name: "SAS ON" })).toBeEnabled();
+  });
+
   it("displays the control surface and dispatches vessel.control.setSasMode", async () => {
     const user = userEvent.setup();
     const { fixture } = renderNavball({ controlMode: true }, CONTROL_SIZE);

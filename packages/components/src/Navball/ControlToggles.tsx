@@ -7,6 +7,8 @@ interface ControlTogglesProps {
   sas: boolean | null | undefined;
   /** The active SAS mode's three-letter token, or `""` when no mode is on the wire. */
   sasBadgeMode: string;
+  /** Why SAS cannot be turned on, or null when it can; the toggle is held and says so. */
+  sasUnavailableReason: string | null;
   /** RCS as read, uncoerced. */
   rcs: boolean | null | undefined;
   /** Precision control as read, uncoerced; the chip is absent until a reading lands. */
@@ -25,6 +27,7 @@ export function ControlToggles({
   disabled,
   sas,
   sasBadgeMode,
+  sasUnavailableReason,
   rcs,
   precision,
   onToggleSas,
@@ -44,7 +47,8 @@ export function ControlToggles({
           style={TOGGLE_CELL}
           active={sas === true}
           onClick={onToggleSas}
-          disabled={disabled}
+          disabled={disabled || sasUnavailableReason !== null}
+          title={sasUnavailableReason ?? undefined}
         >
           {armLabel("SAS", sas, sasBadgeMode)}
         </ToggleButton>
@@ -71,6 +75,11 @@ export function ControlToggles({
           </ToggleButton>
         )}
       </div>
+      {sasUnavailableReason && (
+        <div style={BANNER} role="status" aria-live="polite">
+          {sasUnavailableReason}
+        </div>
+      )}
     </>
   );
 }

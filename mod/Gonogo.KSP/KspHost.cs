@@ -1281,9 +1281,14 @@ namespace Gonogo.KSP
             var autopilot = vessel.Autopilot;
             var ctrlState = vessel.ctrlState;
 
+            var sasSource = autopilot != null ? autopilot.SAS : null;
+            var canEngageSas = sasSource != null ? (bool?)sasSource.CanEngageSAS() : null;
+
             var result = new Dictionary<string, object?>
             {
                 ["sas"] = actionGroups != null ? (bool?)actionGroups[KSPActionGroup.SAS] : null,
+                ["sasAvailable"] = canEngageSas,
+                ["sasUnavailableReason"] = canEngageSas.HasValue ? ActionGroupWrite.SasUnavailableReason(canEngageSas.Value) : null,
                 ["sasMode"] = autopilot != null ? autopilot.Mode.ToString() : null,
                 ["rcs"] = actionGroups != null ? (bool?)actionGroups[KSPActionGroup.RCS] : null,
                 ["gear"] = actionGroups != null ? (bool?)actionGroups[KSPActionGroup.Gear] : null,
@@ -3084,22 +3089,23 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// Primitives-only snapshot of the launch-site roster - the
-        /// <c>PSystemSetup.Instance.LaunchSites</c> UNION: stock KSC pad +
-        /// runway, plus any Making History sites and any Kerbal Konstructs
-        /// sites (KK registers into that same list via the public
-        /// <c>AddLaunchSite</c> API, so iterating the one list already covers
-        /// all three - no reflection, no hard KK link). Returns <c>null</c> -
-        /// the WHOLE group - when <c>PSystemSetup.Instance</c> isn't ready
-        /// (pre-load / main menu), so the provider distinguishes "no data yet"
-        /// from "zero sites."
+        /// Primitives-only snapshot of the launch-site roster: the stock KSC
+        /// pad and runway, then every <c>PSystemSetup.Instance.LaunchSites</c>
+        /// entry (the alternate stock sites, Making History sites and Kerbal
+        /// Konstructs sites; KK registers into that same list via the public
+        /// <c>AddLaunchSite</c> API, so no reflection and no hard KK link).
+        /// The pad and runway are <c>SpaceCenterFacility</c> entries and never
+        /// appear in <c>LaunchSites</c>, so they are read from
+        /// <c>SpaceCenterFacilityLaunchSites</c>; a name already emitted is not
+        /// emitted twice. Returns <c>null</c> - the WHOLE group - when
+        /// <c>PSystemSetup.Instance</c> isn't ready (pre-load / main menu), so
+        /// the provider distinguishes "no data yet" from "zero sites."
         ///
         /// <para><b>Pad occupancy (§8 FLAG, option a):</b> there is no clean
-        /// stock per-site "is a vessel on this pad" API. Stock KSP has one
-        /// physical pad, so the global "active vessel is in PRELAUNCH"
-        /// derivation is replicated onto the stock VAB launch site (the pad)
-        /// only; the runway and every non-stock site carry <c>null</c>
-        /// occupancy. Per-site true occupancy is a documented follow-up.</para>
+        /// stock per-site "is a vessel on this pad" API. The stock VAB
+        /// facility site (the pad) reports occupied when the active vessel is
+        /// in PRELAUNCH and was launched from that site; the runway and every
+        /// other site carry <c>null</c> occupancy.</para>
         /// </summary>
         private static Dictionary<string, object?>? BuildSpaceCenter()
         {
@@ -3115,38 +3121,77 @@ namespace Gonogo.KSP
                 return null;
             }
 
-            // Global "a vessel is sitting on the pad right now" derivation: the
-            // active vessel in the PRELAUNCH situation. Read defensively -
-            // FlightGlobals may not be ready outside flight, in which case there
-            // is no active vessel and nothing is on the pad.
+            // Read defensively - FlightGlobals may not be ready outside flight,
+            // in which case there is no active vessel and nothing is on the pad.
             var active = FlightGlobals.ready ? ActiveVesselScope.Current : null;
             var prelaunch = active != null && active.situation == Vessel.Situations.PRELAUNCH;
             var activeTitle = prelaunch && active != null ? active.vesselName : null;
+            var launchedFrom = prelaunch && active != null ? active.launchedFrom : null;
 
-            var sites = new List<object?>(launchSites.Count);
+            var sites = new List<object?>(launchSites.Count + 2);
+            var emitted = new HashSet<string>();
+
+            var facilities = setup.SpaceCenterFacilityLaunchSites;
+            if (facilities != null)
+            {
+                foreach (var facility in facilities)
+                {
+                    var name = facility?.name;
+                    if (facility == null || name == null || !emitted.Add(name))
+                    {
+                        continue;
+                    }
+
+                    double? latitude = null;
+                    double? longitude = null;
+                    if (facility.spawnPoints != null)
+                    {
+                        foreach (var spawnPoint in facility.spawnPoints)
+                        {
+                            if (spawnPoint != null && spawnPoint.latlonaltSet)
+                            {
+                                latitude = spawnPoint.latitude;
+                                longitude = spawnPoint.longitude;
+                                break;
+                            }
+                        }
+                    }
+
+                    var isPad = facility.editorFacility == EditorFacility.VAB;
+                    var occupied = isPad && prelaunch && launchedFrom == name;
+                    sites.Add(new Dictionary<string, object?>
+                    {
+                        ["name"] = name,
+                        ["displayName"] = GameWords.LaunchSiteName(name),
+                        ["editorFacility"] = facility.editorFacility.ToString(),
+                        ["body"] = facility.hostBody != null ? facility.hostBody.bodyName : null,
+                        ["isStock"] = true,
+                        ["padOccupied"] = isPad ? (object?)occupied : null,
+                        ["padVesselTitle"] = occupied ? activeTitle : null,
+                        ["latitude"] = latitude,
+                        ["longitude"] = longitude,
+                    });
+                }
+            }
+
             foreach (var site in launchSites)
             {
-                if (site == null)
+                if (site == null || (site.name != null && !emitted.Add(site.name)))
                 {
                     continue;
                 }
 
                 var name = site.name;
                 var isStock = name != null && setup.IsStockLaunchSite(name);
-                // The stock pad is the stock, VAB-launched site (VAB -> pad,
-                // SPH -> runway). Only it gets the global PRELAUNCH-derived
-                // occupancy; every other site carries null.
-                var isStockPad = isStock && site.editorFacility == EditorFacility.VAB;
 
                 var body = site.Body;
 
                 // spaceCenter.pois needs a coordinate per site to place it on
                 // the map; the first spawn point that actually has one set
                 // (LaunchSite.SpawnPoint.latlonaltSet) wins - most sites carry
-                // exactly one, some (the stock pad) carry several equivalent
-                // ones. Both null when no spawn point has a set coordinate -
-                // SpaceCenterViewProvider.BuildPois skips such a site rather
-                // than emit a fabricated (0,0).
+                // exactly one. Both null when no spawn point has a set
+                // coordinate - SpaceCenterViewProvider.BuildPois skips such a
+                // site rather than emit a fabricated (0,0).
                 double? spawnLatitude = null;
                 double? spawnLongitude = null;
                 var spawnPoints = site.spawnPoints;
@@ -3170,8 +3215,8 @@ namespace Gonogo.KSP
                     ["editorFacility"] = site.editorFacility.ToString(),
                     ["body"] = body != null ? body.bodyName : null,
                     ["isStock"] = isStock,
-                    ["padOccupied"] = isStockPad ? (object?)prelaunch : null,
-                    ["padVesselTitle"] = isStockPad && prelaunch ? activeTitle : null,
+                    ["padOccupied"] = null,
+                    ["padVesselTitle"] = null,
                     ["latitude"] = spawnLatitude,
                     ["longitude"] = spawnLongitude,
                 });

@@ -15,11 +15,18 @@ export function useSasControls(
   const sasRaw = control?.sas;
   const rcsRaw = control?.rcs;
 
+  // Only turning SAS on is refused, so a SAS that is already on can still be switched off.
+  const sasUnavailableReason =
+    control?.sasAvailable === false && sasRaw !== true
+      ? (control.sasUnavailableReason ?? "No SAS available")
+      : null;
+
   const toggleSas = () => {
-    if (typeof sasRaw !== "boolean") return;
+    if (typeof sasRaw !== "boolean" || sasUnavailableReason) return;
     void sasCmd.send({ enabled: !sasRaw }, { label: "Toggle SAS" });
   };
   const engageSas = () => {
+    if (sasUnavailableReason) return;
     void sasCmd.send({ enabled: true }, { label: "SAS on" });
   };
   const toggleRcs = () => {
@@ -47,6 +54,7 @@ export function useSasControls(
 
   return {
     sasRaw,
+    sasUnavailableReason,
     rcsRaw,
     toggleSas,
     engageSas,

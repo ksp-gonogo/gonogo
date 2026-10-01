@@ -108,6 +108,7 @@ function NavballComponent({
 
   const {
     sasRaw,
+    sasUnavailableReason,
     rcsRaw,
     toggleSas,
     engageSas,
@@ -213,6 +214,7 @@ function NavballComponent({
               disabled={!isControllable}
               sas={sasRaw}
               sasBadgeMode={sasBadgeMode}
+              sasUnavailableReason={sasUnavailableReason}
               rcs={rcsRaw}
               precision={control?.precisionControl}
               onToggleSas={toggleSas}

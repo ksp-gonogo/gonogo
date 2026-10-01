@@ -7867,6 +7867,20 @@ export interface VesselControl
 {
 	/** Whether SAS is on. Changed with `vessel.control.setSas`. */
 	sas?: boolean | null;
+	/**
+	* Whether the vessel has a source that can hold SAS on: a Pilot aboard, or a
+	* probe core whose SAS tier allows it (KSP's `VesselSAS.CanEngageSAS`). When
+	* false, `vessel.control.setSas` refuses to turn SAS on, so a client can show
+	* the control unavailable before it is pressed; turning SAS off is never
+	* refused. Null when the vessel has no autopilot to ask.
+	*/
+	sasAvailable?: boolean | null;
+	/**
+	* Why SAS cannot be turned on, in the words the refusal uses, when
+	* `VesselControl.sasAvailable` is false. Null whenever SAS is available or
+	* unknown.
+	*/
+	sasUnavailableReason?: string | null;
 	/** The SAS hold mode. Changed with `vessel.control.setSasMode`. */
 	sasMode?: SasMode | null;
 	/** Whether RCS is on. Changed with `vessel.control.setRcs`. */

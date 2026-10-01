@@ -2130,8 +2130,12 @@ namespace Sitrep.Contract
         /// <c>GENERATED_TOPIC_STATICS</c> maps it generates, and
         /// <see cref="UnitDescriptor.RequireStaticIsNotReckonable"/>. Additive,
         /// so an Uplink built against 27.0 is unaffected.</para>
+        ///
+        /// <para><b>Major-27 line, Bumped 1 -&gt; 2:</b> <see cref="VesselControl.SasAvailable"/>
+        /// and <see cref="VesselControl.SasUnavailableReason"/>, whether SAS can be turned
+        /// on and why not. Additive, so an Uplink built against 27.1 is unaffected.</para>
         /// </internal>
         /// </summary>
-        public const int Minor = 1;
+        public const int Minor = 2;
     }
 }
