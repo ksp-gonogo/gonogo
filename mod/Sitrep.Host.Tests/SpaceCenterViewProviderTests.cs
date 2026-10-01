@@ -62,7 +62,7 @@ namespace Sitrep.Host.Tests
                                 ["editorFacility"] = "SPH",
                                 ["body"] = "Kerbin",
                                 ["isStock"] = true,
-                                ["padOccupied"] = null,
+                                ["padOccupied"] = false,
                                 ["padVesselTitle"] = null,
                             },
                             // Synthetic MH / KK site: not stock, on the Mun.
@@ -101,7 +101,7 @@ namespace Sitrep.Host.Tests
             Assert.Null(runway["latitude"]); // no spawn-point keys -> null, but still listed
             Assert.Null(runway["longitude"]);
             Assert.Equal(true, runway["isStock"]);
-            Assert.Null(runway["padOccupied"]); // only the stock pad carries occupancy
+            Assert.Equal(false, runway["padOccupied"]);
             Assert.Null(runway["padVesselTitle"]);
 
             var mh = Assert.IsType<Dictionary<string, object?>>(list[2]);

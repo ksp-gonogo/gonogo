@@ -64,11 +64,11 @@ public class LaunchSiteEntry
     [SitrepUnit(Units.Flag)]
     public bool? IsStock { get; set; }
 
-    /// <summary>Whether a vessel is currently sitting on this pad. Populated ONLY on the stock KSC pad, where it is true when the active vessel is in the PRELAUNCH situation; every other site carries null, because stock KSP has no per-site occupancy reading.</summary>
+    /// <summary>Whether a vessel holds this site, by the rule the game's own launch admission applies: a saved vessel, active or not, whose landed-at site matches this one, debris excepted. Holds in any scene. True exactly when a launch from here would be refused as occupied; null when the save's vessel list is not loaded.</summary>
     [SitrepUnit(Units.Flag)]
     public bool? PadOccupied { get; set; }
 
-    /// <summary>Name of the active vessel when it sits on the stock KSC pad in PRELAUNCH (<see cref="PadOccupied"/> true); null otherwise, and always null on every other site.</summary>
+    /// <summary>Name of the vessel holding this site (<see cref="PadOccupied"/> true), the one the game names in its own refusal; null when the site is clear or occupancy is unknown.</summary>
     [SitrepUnit(Units.Text)]
     public string? PadVesselTitle { get; set; }
 }

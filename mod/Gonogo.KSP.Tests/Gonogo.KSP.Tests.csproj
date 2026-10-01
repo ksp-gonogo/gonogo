@@ -448,6 +448,7 @@
          itself is two public SpaceCenterBuilding methods over live scene
          objects; only its answer is decided here. -->
     <Compile Include="..\Gonogo.KSP\Career\FacilityObstruction.cs" />
+    <Compile Include="..\Gonogo.KSP\Career\LaunchSiteOccupancy.cs" />
     <!-- CareerAffordability.cs genuinely needs the reference DLL: it runs
          stock's own CurrencyModifierQuery, a plain class that loads and prices
          a spend headlessly (its RunQuery half fires a GameEvent, whose static

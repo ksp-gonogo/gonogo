@@ -3101,11 +3101,12 @@ namespace Gonogo.KSP
         /// <c>PSystemSetup.Instance</c> isn't ready (pre-load / main menu), so
         /// the provider distinguishes "no data yet" from "zero sites."
         ///
-        /// <para><b>Pad occupancy (§8 FLAG, option a):</b> there is no clean
-        /// stock per-site "is a vessel on this pad" API. The stock VAB
-        /// facility site (the pad) reports occupied when the active vessel is
-        /// in PRELAUNCH and was launched from that site; the runway and every
-        /// other site carry <c>null</c> occupancy.</para>
+        /// <para><b>Occupancy</b> is read the way stock's launch admission reads
+        /// it (<see cref="LaunchSiteOccupancy"/>), over the save's vessel list,
+        /// so it holds in any scene and for a vessel that is not the active one.
+        /// Every site carries it, the runway and the alternate sites included.
+        /// Both fields are <c>null</c> when the save's vessel list is not
+        /// loaded, rather than a false "clear".</para>
         /// </summary>
         private static Dictionary<string, object?>? BuildSpaceCenter()
         {
@@ -3121,12 +3122,7 @@ namespace Gonogo.KSP
                 return null;
             }
 
-            // Read defensively - FlightGlobals may not be ready outside flight,
-            // in which case there is no active vessel and nothing is on the pad.
-            var active = FlightGlobals.ready ? ActiveVesselScope.Current : null;
-            var prelaunch = active != null && active.situation == Vessel.Situations.PRELAUNCH;
-            var activeTitle = prelaunch && active != null ? active.vesselName : null;
-            var launchedFrom = prelaunch && active != null ? active.launchedFrom : null;
+            var saved = ReadSavedVessels();
 
             var sites = new List<object?>(launchSites.Count + 2);
             var emitted = new HashSet<string>();
@@ -3157,8 +3153,7 @@ namespace Gonogo.KSP
                         }
                     }
 
-                    var isPad = facility.editorFacility == EditorFacility.VAB;
-                    var occupied = isPad && prelaunch && launchedFrom == name;
+                    var holder = saved == null ? null : LaunchSiteOccupancy.Holder(name, saved);
                     sites.Add(new Dictionary<string, object?>
                     {
                         ["name"] = name,
@@ -3166,8 +3161,8 @@ namespace Gonogo.KSP
                         ["editorFacility"] = facility.editorFacility.ToString(),
                         ["body"] = facility.hostBody != null ? facility.hostBody.bodyName : null,
                         ["isStock"] = true,
-                        ["padOccupied"] = isPad ? (object?)occupied : null,
-                        ["padVesselTitle"] = occupied ? activeTitle : null,
+                        ["padOccupied"] = saved == null ? null : (object?)(holder != null),
+                        ["padVesselTitle"] = holder,
                         ["latitude"] = latitude,
                         ["longitude"] = longitude,
                     });
@@ -3208,6 +3203,7 @@ namespace Gonogo.KSP
                     }
                 }
 
+                var siteHolder = saved == null ? null : LaunchSiteOccupancy.Holder(name, saved);
                 sites.Add(new Dictionary<string, object?>
                 {
                     ["name"] = name,
@@ -3215,8 +3211,8 @@ namespace Gonogo.KSP
                     ["editorFacility"] = site.editorFacility.ToString(),
                     ["body"] = body != null ? body.bodyName : null,
                     ["isStock"] = isStock,
-                    ["padOccupied"] = null,
-                    ["padVesselTitle"] = null,
+                    ["padOccupied"] = saved == null ? null : (object?)(siteHolder != null),
+                    ["padVesselTitle"] = siteHolder,
                     ["latitude"] = spawnLatitude,
                     ["longitude"] = spawnLongitude,
                 });
@@ -3226,6 +3222,34 @@ namespace Gonogo.KSP
             {
                 ["launchSites"] = sites,
             };
+        }
+
+        /// <summary>
+        /// The save's vessel list as the launch-site rule reads it, from the same
+        /// <c>flightState</c> stock's <c>LaunchSiteClear</c> walks; null when
+        /// there is no loaded game to ask.
+        /// </summary>
+        private static List<SiteVessel>? ReadSavedVessels()
+        {
+            var state = HighLogic.CurrentGame?.flightState;
+            var protos = state?.protoVessels;
+            if (protos == null)
+            {
+                return null;
+            }
+
+            var saved = new List<SiteVessel>(protos.Count);
+            foreach (var proto in protos)
+            {
+                if (proto == null)
+                {
+                    continue;
+                }
+
+                saved.Add(new SiteVessel(proto.landedAt, proto.vesselName, proto.vesselType <= VesselType.Debris));
+            }
+
+            return saved;
         }
 
         /// <summary>

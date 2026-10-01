@@ -114,6 +114,10 @@ if [ ! -d "$DATA_ROOT/local_docs/syncthing" ]; then
     DATA_ROOT="$(dirname "$_common")"
   fi
 fi
+# mod/Directory.Build.props reads this for the KSP reference assemblies when the
+# checkout has no local_docs of its own, so every dotnet build below works from
+# a worktree with no setup.
+export GONOGO_DATA_ROOT="$DATA_ROOT"
 # The syncthing mirror is the normal local path. A cloud session has no
 # syncthing, but the CI image carries the same Managed directory, so fall back
 # to it rather than reporting "no KSP assemblies" and skipping a decompile that
