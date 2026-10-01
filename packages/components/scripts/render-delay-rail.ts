@@ -466,6 +466,39 @@ const SCENARIOS: ReadonlyArray<{
       },
     ],
   },
+  {
+    name: "13-found-refused-with-breach",
+    panelTitle: "ASTRONAUT COMPLEX",
+    // A refusal that turned up after the command was called lost: the verdict, then the number that explains it.
+    handles: [
+      {
+        id: "found-refused",
+        inFlight: [],
+        tags: DISCRETE_TAGS,
+        effectiveDelaySeconds: 5,
+        dismiss: undefined,
+        founds: [
+          {
+            id: "f0",
+            command: "career.crew.hire",
+            args: undefined,
+            label: "Hire Valentina Kerman",
+            outcome: "refused",
+            errorCode: CommandErrorCode.LimitReached,
+            breach: {
+              facility: "AstronautComplex",
+              facilityName: "Astronaut Complex",
+              facilityLevel: value("ratio", 1),
+              quantity: "activeCrew",
+              limit: 16,
+              actual: 16,
+              unit: "",
+            },
+          },
+        ],
+      },
+    ],
+  },
 ];
 
 async function main(): Promise<void> {
