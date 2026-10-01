@@ -186,6 +186,30 @@ describe("ContractManagerComponent", () => {
     });
   });
 
+  it("lists an offered contract's objectives so it can be judged before accepting", async () => {
+    const fixture = newFixture();
+    renderContract(fixture);
+    act(() => {
+      emitContracts(fixture, {
+        active: [],
+        offered: [
+          {
+            id: 5,
+            title: "Orbit Duna",
+            parameters: [
+              { title: "Reach Duna orbit", optional: false },
+              { title: "Return a crew report", optional: true },
+            ],
+          },
+        ],
+      });
+    });
+
+    expect(await screen.findByText("Reach Duna orbit")).toBeInTheDocument();
+    expect(screen.getByText("Return a crew report")).toBeInTheDocument();
+    expect(screen.getByText(/\(optional\)/)).toBeInTheDocument();
+  });
+
   it("requires arm-then-confirm before declining an offered contract", async () => {
     const user = userEvent.setup();
     const fixture = newFixture();

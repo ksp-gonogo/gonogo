@@ -1,7 +1,7 @@
 import type { ContractEntry } from "./contracts";
 import { OPTIONAL_STYLE, PARAMETER_STYLE, PARAMETERS_STYLE } from "./styles";
 
-/** An active contract's objectives as its terms: what it asks for, not how far along it is. */
+/** A contract's objectives as its terms: what it asks for, not how far along it is. */
 export function ContractTerms({
   contract: c,
 }: Readonly<{ contract: ContractEntry }>) {

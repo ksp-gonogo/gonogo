@@ -155,6 +155,7 @@ export function ContractManagerComponent({
               >
                 {c.agency && <div style={AGENCY_STYLE}>{c.agency}</div>}
                 <ContractRewards contract={c} />
+                <ContractTerms contract={c} />
                 <div style={OFFERED_ACTIONS_STYLE}>
                   <CommandButton
                     handle={acceptCmd}
