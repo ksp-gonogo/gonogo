@@ -473,13 +473,14 @@ the header or beside the confirm is enough. They should never have to look at an
 to find out whether they can afford the thing they are about to confirm.
 
 **The currency is not always funds, and the shape is not always a balance.** Verified against
-the shipped RP-1 assemblies, 2026-09-02, three commands and three different models:
+the shipped RP-1 assemblies, 2026-09-02, four commands and four different models:
 
 | command | model | what to show |
 |---|---|---|
 | `rp1.facility.upgrade` | **progressive**: nothing is charged at the press. Funds are drawn as the project advances, throttled to whatever fraction the career can meet | the RATE, and what it means for the finish date. A shortfall SLOWS it, it never refuses, so "cannot afford" is a falsehood here |
 | `rp1.tech.research` | **up-front, in SCIENCE**, charged at enqueue, genuinely refused on affordability | the science balance. "Cannot afford" is honest |
-| `rp1.strategy.activate` | a **program** costs CONFIDENCE and PAYS the career in funds; a **leader** is free, and the real cost is the change to ongoing upkeep | the confidence cost, or the upkeep delta. Not a funds balance |
+| `rp1.program.accept` | **up-front, in CONFIDENCE**, charged at accept and genuinely refused on affordability. The Program then PAYS the career funds on a curve, and the chosen speed sets both the Confidence price and the funding rate | the Confidence balance against the price at each speed, and the funding rate that speed buys |
+| `rp1.leader.appoint`, and dismissal through `career.strategy.deactivate` | **appointing is FREE**: no shipped leader declares a setup cost in any currency. The costs are the leader's modifiers while it serves (hire prices, rates, rewards, upkeep lines) and the **reputation to dismiss it**: up to 20% of current reputation, falling over the removal-penalty window (ten years for 54 of RP-1's 60 leaders), plus a re-hire cooldown | at appoint, that it costs nothing, beside its effect lines; at dismissal, the reputation it costs now (read live, since it is a share of current reputation), what that is worth in subsidy, and the cooldown. Not a funds balance |
 
 **So the spirit of the rule is the RATE OF SPEND, not a balance.** A balance answers "can I
 afford this" only for an up-front purchase. For a progressive spend the operator's real
