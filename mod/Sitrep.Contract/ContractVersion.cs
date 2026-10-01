@@ -2138,8 +2138,12 @@ namespace Sitrep.Contract
         /// <para><b>Major-27 line, Bumped 2 -&gt; 3:</b> <c>ksp.toSpaceCenter</c> (no args)
         /// and <c>ksp.flyVessel</c> (<see cref="FlyVesselArgs"/>), the way out of the Tracking
         /// Station and its Fly button. Additive, so an Uplink built against 27.2 is unaffected.</para>
+        ///
+        /// <para><b>Major-27 line, Bumped 3 -&gt; 4:</b> <see cref="SavedShipEntry.File"/>, the
+        /// craft's file name, the only unique identity a saved craft has. Additive, so an Uplink
+        /// built against 27.3 is unaffected.</para>
         /// </internal>
         /// </summary>
-        public const int Minor = 3;
+        public const int Minor = 4;
     }
 }

@@ -2,9 +2,9 @@ import { rotateInertialToPerifocal, solve } from "./kepler";
 import { buildElements, type WireOrbitElements } from "./kepler-reckoning";
 import type { TrajectoryPoint } from "./orbit-trajectory";
 
-/** One `vessel.orbit` sample and the instant it was true. */
+/** One `vessel.orbit` sample and the instant it was true; a `null` payload is a tombstone, the craft having no orbit then (on the pad). */
 export interface OrbitSample {
-  payload: WireOrbitElements & { referenceBodyIndex?: number };
+  payload: (WireOrbitElements & { referenceBodyIndex?: number }) | null;
   validAt: number;
 }
 
@@ -50,6 +50,12 @@ export function pastTrack(
   const into = buildElements(options.frame);
   const points: TrajectoryPoint[] = [];
   for (const sample of samples) {
+    // A tombstone breaks the trail the way a change of body does: nothing joins across an instant with no orbit.
+    if (sample.payload === null) {
+      points.length = 0;
+      continue;
+    }
+
     // A sample taken about a DIFFERENT body is a different frame, and joining
     // the two would draw a line across the gap between them. A craft that
     // changed sphere of influence has a trail that starts at the transition,

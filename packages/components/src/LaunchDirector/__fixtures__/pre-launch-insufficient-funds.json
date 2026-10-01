@@ -63,6 +63,7 @@
         "value": [
           {
             "name": "Orbital Station Core",
+            "file": "Orbital Station Core",
             "partCount": 56,
             "totalMass": 28.0,
             "facility": "VAB",
@@ -71,6 +72,7 @@
           },
           {
             "name": "Mun Lander",
+            "file": "Mun Lander",
             "partCount": 30,
             "totalMass": 14.5,
             "facility": "VAB",

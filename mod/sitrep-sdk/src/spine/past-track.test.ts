@@ -37,8 +37,8 @@ function sample(
 }
 
 /** The elements the trail is expressed against: the same ones, as the wire has them. */
-function frame(): OrbitSample["payload"] {
-  return sample(0).payload;
+function frame(): NonNullable<OrbitSample["payload"]> {
+  return sample(0).payload as NonNullable<OrbitSample["payload"]>;
 }
 
 describe("where the craft has been", () => {
@@ -148,7 +148,11 @@ describe("the points are real places", () => {
     const circular = { ecc: value("1", 0) };
     const track = pastTrack(
       [sample(0, circular), sample(450, circular), sample(900, circular)],
-      { frame: sample(0, circular).payload },
+      {
+        frame: sample(0, circular).payload as NonNullable<
+          OrbitSample["payload"]
+        >,
+      },
     );
 
     for (const p of track) {
@@ -192,5 +196,15 @@ describe("the frame the trail is expressed in", () => {
 
     expect(at.x).toBeCloseTo(700_000 * (1 - 0.2), -1);
     expect(Math.abs(at.y)).toBeLessThan(1);
+  });
+
+  it("does not throw on a tombstone sample, and starts the trail again after it", () => {
+    const tombstone: OrbitSample = { validAt: 5, payload: null };
+    const points = pastTrack(
+      [sample(0), sample(2), tombstone, sample(8), sample(10)],
+      { frame: frame(), centreBodyIndex: 1 },
+    );
+
+    expect(points.map((p) => p.ut)).toEqual([8, 10]);
   });
 });

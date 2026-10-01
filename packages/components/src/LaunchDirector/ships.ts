@@ -4,6 +4,8 @@ import type { LaunchSiteEntry } from "./pads";
 
 export interface SavedShip {
   name: string;
+  /** The `.craft` file name without its extension: unique within a facility folder, and what `ksp.launch` resolves. {@link name} is operator-chosen text and repeats across files. */
+  file: string;
   partCount: number;
   totalMass: number;
   /** KSP's own `EditorFacility` name, verbatim: the label shown on the row. */
@@ -26,6 +28,7 @@ export function parseSavedShips(raw: unknown): SavedShip[] | null {
     if (!name) continue;
     out.push({
       name,
+      file: typeof e.file === "string" && e.file ? e.file : name,
       partCount: magnitudeOr(asQuantityish(e.partCount), 0),
       totalMass: magnitudeOr(asQuantityish(e.totalMass), 0),
       facility: typeof e.facility === "string" ? e.facility : "",

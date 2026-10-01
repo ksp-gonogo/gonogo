@@ -296,7 +296,7 @@ public class CrewRosterEntry
 /// stock <c>CraftProfileInfo</c> metadata loader.
 ///
 /// <para>The channel is a BARE ARRAY of these entries, one per <c>.craft</c>
-/// file keyed by <see cref="Name"/>. The whole payload is <c>null</c> (not an
+/// file keyed by <see cref="File"/>. The whole payload is <c>null</c> (not an
 /// empty array) when no sample has arrived yet. Held at the home
 /// command.</para>
 /// <internal>
@@ -315,6 +315,16 @@ public class SavedShipEntry
     /// <summary>Craft name (<c>CraftProfileInfo.shipName</c>).</summary>
     [SitrepUnit(Units.Text)]
     public string? Name { get; set; }
+
+    /// <summary>
+    /// The <c>.craft</c> file name without its extension, under the save's
+    /// <c>Ships/VAB</c> or <c>Ships/SPH</c> folder. Unique within a facility,
+    /// which <see cref="Name"/> is not: two files can carry the same ship name.
+    /// It is what <c>ksp.launch</c>'s <c>shipName</c> resolves, so send this
+    /// back rather than <see cref="Name"/>.
+    /// </summary>
+    [SitrepUnit(Units.Text)]
+    public string? File { get; set; }
 
     /// <summary>Part count (<c>CraftProfileInfo.partCount</c>).</summary>
     [SitrepUnit(Units.Count)]

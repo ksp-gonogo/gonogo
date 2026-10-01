@@ -7,7 +7,7 @@ import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   type MockDataSourceFixture,
   setupMockDataSource,
@@ -134,6 +134,34 @@ describe("LaunchDirectorComponent", () => {
     expect(
       screen.getByText(/Awaiting launch-pad telemetry/i),
     ).toBeInTheDocument();
+  });
+
+  it("lists two craft that share a ship name, keyed by file, without a duplicate-key warning", async () => {
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    renderWidget();
+    const twin = (file: string) => ({
+      name: "commsat",
+      file,
+      partCount: 5,
+      totalMass: 1.2,
+      facility: "VAB",
+      requiresFunds: 100,
+      missingParts: [],
+    });
+    act(() => {
+      emitFunds(stream, 5000);
+      stream.emit("spaceCenter.launchSites", [padSite("LaunchPad", "KSC Pad")]);
+      stream.emit("spaceCenter.savedShips", [
+        twin("commsat"),
+        twin("commsat2"),
+      ]);
+    });
+    await waitFor(() => expect(visibleText()).toMatch(/2\/2 ready/i));
+    const keyWarnings = errors.mock.calls.filter((call) =>
+      String(call[0]).includes("same key"),
+    );
+    errors.mockRestore();
+    expect(keyWarnings).toEqual([]);
   });
 
   it("filters out craft with missing parts and unaffordable cost", async () => {
@@ -812,6 +840,14 @@ describe("parseLaunchSites", () => {
 });
 
 describe("parseSavedShips", () => {
+  it("carries the file name, and falls back to the ship name when none was sent", () => {
+    const parsed = parseSavedShips([
+      { name: "commsat", file: "commsat2", facility: "VAB" },
+      { name: "old", facility: "VAB" },
+    ]);
+    expect(parsed?.map((s) => s.file)).toEqual(["commsat2", "old"]);
+  });
+
   it("returns null for non-array input", () => {
     expect(parseSavedShips(null)).toBeNull();
     expect(parseSavedShips({})).toBeNull();

@@ -63,6 +63,7 @@
         "value": [
           {
             "name": "Mun Hopper I",
+            "file": "Mun Hopper I",
             "partCount": 18,
             "totalMass": 8.4,
             "facility": "VAB",
@@ -72,6 +73,7 @@
           },
           {
             "name": "Duna Transfer Stage",
+            "file": "Duna Transfer Stage",
             "partCount": 42,
             "totalMass": 35.2,
             "facility": "VAB",
@@ -81,6 +83,7 @@
           },
           {
             "name": "SSTO Spaceplane",
+            "file": "SSTO Spaceplane",
             "partCount": 24,
             "totalMass": 11.6,
             "facility": "SPH",
@@ -90,6 +93,7 @@
           },
           {
             "name": "Orbital Tug (subassembly)",
+            "file": "Orbital Tug (subassembly)",
             "partCount": 9,
             "totalMass": 3.1,
             "facility": "None",

@@ -991,6 +991,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "SavedShipEntry": {
     facility: "text",
     facilityOrdinal: "enum",
+    file: "text",
     missingParts: "text",
     name: "text",
     partCount: "count",
@@ -1852,6 +1853,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
   "spaceCenter.savedShips": {
     facility: "text",
     facilityOrdinal: "enum",
+    file: "text",
     missingParts: "text",
     name: "text",
     partCount: "count",

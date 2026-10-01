@@ -78,6 +78,7 @@ namespace Sitrep.Host
     ///   "savedShips": List&lt;object?&gt;   // one entry per .craft file
     ///     each entry = Dictionary {
     ///       "name":          string  : CraftProfileInfo.shipName
+    ///       "file":          string  : the .craft file name without its extension
     ///       "partCount":     int     : CraftProfileInfo.partCount
     ///       "totalMass":     double  : CraftProfileInfo.totalMass
     ///       "facility":      string  : EditorFacility enum name (a DISPLAY LABEL only)
@@ -449,6 +450,7 @@ namespace Sitrep.Host
                 ships.Add(new Dictionary<string, object?>
                 {
                     ["name"] = SnapshotDict.GetString(raw, "name"),
+                    ["file"] = SnapshotDict.GetString(raw, "file"),
                     ["partCount"] = SnapshotDict.GetInt(raw, "partCount"),
                     ["totalMass"] = SnapshotDict.GetDouble(raw, "totalMass"),
                     ["facility"] = SnapshotDict.GetString(raw, "facility"),

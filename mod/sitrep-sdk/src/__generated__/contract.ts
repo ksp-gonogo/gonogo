@@ -6431,7 +6431,7 @@ export interface CrewRosterEntry
 * stock `CraftProfileInfo` metadata loader.
 *
 * The channel is a BARE ARRAY of these entries, one per `.craft` file keyed by
-* `SavedShipEntry.name`. The whole payload is `null` (not an empty array) when
+* `SavedShipEntry.file`. The whole payload is `null` (not an empty array) when
 * no sample has arrived yet. Held at the home command.
 *
 * @category Space center
@@ -6440,6 +6440,13 @@ export interface SavedShipEntry
 {
 	/** Craft name (`CraftProfileInfo.shipName`). */
 	name?: string | null;
+	/**
+	* The `.craft` file name without its extension, under the save's `Ships/VAB`
+	* or `Ships/SPH` folder. Unique within a facility, which `SavedShipEntry.name`
+	* is not: two files can carry the same ship name. It is what `ksp.launch`'s
+	* `shipName` resolves, so send this back rather than `SavedShipEntry.name`.
+	*/
+	file?: string | null;
 	/** Part count (`CraftProfileInfo.partCount`). */
 	partCount?: Value<"count"> | null;
 	/** Total mass in tonnes (`CraftProfileInfo.totalMass`). */

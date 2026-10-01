@@ -37,16 +37,16 @@ export function ShipPicker({
           const blocked = shipBlocked(s, fundsAvailable);
           return (
             <ShipRow
-              key={`${s.facility}/${s.name}`}
+              key={`${s.facility}/${s.file}`}
               type="button"
               data-ship-row
-              $selected={selectedShip === s.name}
+              $selected={selectedShip === s.file}
               $blocked={blocked}
-              aria-pressed={selectedShip === s.name}
+              aria-pressed={selectedShip === s.file}
               aria-disabled={blocked}
               onClick={() => {
                 if (blocked) return;
-                onSelectShip(selectedShip === s.name ? null : s.name);
+                onSelectShip(selectedShip === s.file ? null : s.file);
               }}
             >
               <ShipMeta>

@@ -178,7 +178,7 @@ function OpenPad({
     );
   }
   const ship = selectedShip
-    ? padCraft.find((s) => s.name === selectedShip)
+    ? padCraft.find((s) => s.file === selectedShip)
     : undefined;
   /**
    * The selection minus anyone the roster no longer calls available: the mod
@@ -210,7 +210,7 @@ function OpenPad({
               kind="launch"
               handle={launchCmd}
               args={{
-                shipName: ship.name,
+                shipName: ship.file,
                 facility: launchFacilityArg(ship),
                 site: site.name,
                 crew: manifest,

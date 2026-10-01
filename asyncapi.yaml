@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 27.3.0
+  version: 27.4.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 78 telemetry
     channels a client subscribes to, and 59 commands it dispatches, with the payload
@@ -2402,7 +2402,7 @@ channels:
       stock `CraftProfileInfo` metadata loader.
 
       The channel is a BARE ARRAY of these entries, one per `.craft` file keyed by
-      `SavedShipEntry.name`. The whole payload is `null` (not an empty array) when
+      `SavedShipEntry.file`. The whole payload is `null` (not an empty array) when
       no sample has arrived yet. Held at the home command.
     servers:
       - $ref: "#/servers/mod"
@@ -15805,7 +15805,7 @@ components:
         stock `CraftProfileInfo` metadata loader.
 
         The channel is a BARE ARRAY of these entries, one per `.craft` file keyed by
-        `SavedShipEntry.name`. The whole payload is `null` (not an empty array) when
+        `SavedShipEntry.file`. The whole payload is `null` (not an empty array) when
         no sample has arrived yet. Held at the home command.
       properties:
         name:
@@ -15814,6 +15814,16 @@ components:
             - "null"
           x-sitrep-unit: text
           description: Craft name (`CraftProfileInfo.shipName`).
+        file:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: text
+          description: |-
+            The `.craft` file name without its extension, under the save's `Ships/VAB`
+            or `Ships/SPH` folder. Unique within a facility, which `SavedShipEntry.name`
+            is not: two files can carry the same ship name. It is what `ksp.launch`'s
+            `shipName` resolves, so send this back rather than `SavedShipEntry.name`.
         partCount:
           type:
             - number

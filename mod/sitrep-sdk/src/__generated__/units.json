@@ -951,6 +951,7 @@
     "SavedShipEntry": {
       "facility": "text",
       "facilityOrdinal": "enum",
+      "file": "text",
       "missingParts": "text",
       "name": "text",
       "partCount": "count",
@@ -1807,6 +1808,7 @@
     "spaceCenter.savedShips": {
       "facility": "text",
       "facilityOrdinal": "enum",
+      "file": "text",
       "missingParts": "text",
       "name": "text",
       "partCount": "count",

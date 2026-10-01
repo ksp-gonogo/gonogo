@@ -3619,6 +3619,7 @@ namespace Gonogo.KSP
                         ships.Add(new Dictionary<string, object?>
                         {
                             ["name"] = info.shipName,
+                            ["file"] = Path.GetFileNameWithoutExtension(file),
                             ["partCount"] = info.partCount,
                             ["totalMass"] = info.totalMass,
                             ["facility"] = info.shipFacility.ToString(),
