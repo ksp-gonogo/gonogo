@@ -1042,7 +1042,13 @@ export function fieldReckoning(
   };
 }
 
-/** One payload field's {@link Reading}, at the same currency as its topic. */
+/**
+ * One payload field's {@link Reading}, at the same currency as its topic.
+ *
+ * Carries the observed value and, in `reckoning`, the modelled value and band
+ * at the same path. A path the payload holds no value at, because the wire left
+ * it out or sent null, reads `"absent"`: an observation always carries a value.
+ */
 function projectField(
   currency: TopicCurrency<unknown, TopicReckoning<unknown>>,
   path: string,
@@ -1055,21 +1061,58 @@ function projectField(
     case "absent":
       return { state: "absent", atUt: currency.atUt, reckoning };
     case "observed":
-      return {
-        state: "observed",
-        value: walkField(currency.value, path),
-        atUt: currency.atUt,
-        reckoning,
-      };
-    case "held":
-      return {
-        state: "held",
-        value: walkField(currency.value, path),
-        asOfUt: currency.asOfUt,
-        grade: currency.grade,
-        reckoning,
-      };
+    case "held": {
+      const carried = walkField(currency.value, path);
+      if (carried === undefined || carried === null) {
+        return {
+          state: "absent",
+          atUt: currency.state === "observed" ? currency.atUt : currency.asOfUt,
+          reckoning,
+        };
+      }
+      return currency.state === "observed"
+        ? { state: "observed", value: carried, atUt: currency.atUt, reckoning }
+        : {
+            state: "held",
+            value: carried,
+            asOfUt: currency.asOfUt,
+            grade: currency.grade,
+            reckoning,
+          };
+    }
   }
+}
+
+/**
+ * The reading of the first element of a list that satisfies `predicate`, or
+ * `undefined` where the list holds no value or no element matches.
+ *
+ * An element picked by a test has no index of its own, and a figure drawn from
+ * it still needs its currency and its band. This finds the position in the
+ * observed list and hands back the reading at that position, so
+ * `findReading(career.tech.nodes, (n) => n.id === picked)?.scienceCost` is a
+ * reading like any other field. The not-found case is handled here, once, so a
+ * caller never holds an index of `-1`.
+ *
+ * @example
+ * ```ts
+ * const node = findReading(career.tech.nodes, (n) => n.id === picked);
+ * if (node !== undefined) return <Unit value={node.scienceCost} />;
+ * ```
+ *
+ * @typeParam Element - The list's element type.
+ *
+ * @category Reading telemetry
+ */
+export function findReading<Element>(
+  list: {
+    readonly value?: readonly Element[];
+    readonly [index: number]: FieldReading<Element>;
+  },
+  predicate: (element: Element) => boolean,
+): FieldReading<Element> | undefined {
+  const index = list.value?.findIndex(predicate) ?? -1;
+  return index === -1 ? undefined : list[index];
 }
 
 /**
@@ -1106,7 +1149,11 @@ export function topicReading<Payload>(
   const cache = new Map<string, Reading<unknown>>();
   return new Proxy(currency, {
     get(target, prop, receiver) {
-      if (typeof prop !== "string" || prop in target)
+      if (
+        typeof prop !== "string" ||
+        prop in target ||
+        prop in CURRENCY_MEMBERS
+      )
         return Reflect.get(target, prop, receiver);
       return fieldReading(
         target as TopicCurrency<unknown, TopicReckoning<unknown>>,

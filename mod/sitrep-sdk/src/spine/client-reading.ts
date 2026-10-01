@@ -3,6 +3,7 @@ import type {
   ReckonableReading,
   ReckonerFor,
   ReckoningDecline,
+  TopicModel,
   TopicReading,
 } from "../reading";
 import { topicReading } from "../reading";
@@ -79,6 +80,52 @@ function rootCoverage(model: {
   modelled: readonly ModelledField[];
 }): ModelledField | undefined {
   return model.modelled.find((field) => field.path === "");
+}
+
+/**
+ * Refuse a model whose `modelled` names a path its own result does not carry.
+ *
+ * A field read looks its modelled value up at the path, so a path the result
+ * lacks would answer `available` with nothing in it, and an operator would read
+ * a band around a value that is not there. The result is where the check is
+ * made because a model is built per frame and only its result says what it
+ * produced. The test is that the key is present, not that its value is defined:
+ * a model may legitimately carry a field it cannot compute as `undefined`.
+ */
+function assertModelledPathsPresent(
+  owner: string,
+  modelled: readonly ModelledField[],
+  result: unknown,
+): void {
+  for (const { path } of modelled) {
+    if (path === "") continue;
+    let current: unknown = result;
+    for (const segment of path.split(".")) {
+      if (
+        current === null ||
+        typeof current !== "object" ||
+        !(segment in current)
+      ) {
+        throw new Error(
+          `The "${owner}" model claims to move "${path}", but the payload it returned has no "${segment}" there.\n\n` +
+            "A model may only name paths its result carries: a field read at the path would answer `available` with no value. " +
+            "Return the field, or drop it from `modelled`.",
+        );
+      }
+      current = (current as Record<string, unknown>)[segment];
+    }
+  }
+}
+
+/** Run `model` for `viewUt` and refuse a result that lacks a path the model claims. */
+function reckonedValue<Payload>(
+  owner: string,
+  model: TopicModel<Payload>,
+  viewUt: number,
+): Payload {
+  const result = model.reckon(viewUt);
+  assertModelledPathsPresent(owner, model.modelled, result);
+  return result;
 }
 
 /**
@@ -192,7 +239,7 @@ export function readingFrom<Payload>(
     model && root
       ? ({
           status: "available",
-          value: model.reckon(reckonUt),
+          value: reckonedValue(owner, model, reckonUt),
           atUt: value("ut", reckonUt),
           beyondReceived: reckonUt - receivedUt >= VISIBLE_GAP_SECONDS,
           basis: root.basis,
