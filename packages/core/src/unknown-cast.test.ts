@@ -406,8 +406,9 @@ describe("the walk covered what it claims to have covered", () => {
       broken,
       [
         "These roots did not fully resolve, so their census is a census of the",
-        "build rather than of the code. Run `pnpm build` first; in CI this task",
-        "depends on `^build`, so a failure here means a real resolution bug.",
+        "build rather than of the code. Run `pnpm build` first (it also writes the",
+        "storybook's generated stories); in CI this task depends on `^build`, so a",
+        "failure here means a real resolution bug.",
       ].join("\n"),
     ).toEqual([]);
   });

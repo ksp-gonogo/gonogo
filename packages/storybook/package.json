@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "generate": "tsx scripts/generate-stories.ts",
+    "build": "pnpm generate",
     "storybook": "pnpm generate && storybook dev -p 6006",
     "build-storybook": "pnpm generate && storybook build -o dist/static",
     "smoke": "pnpm build-storybook && tsx scripts/smoke.ts",
