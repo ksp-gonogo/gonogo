@@ -48,13 +48,9 @@ const UNCHANGED_DEBT = new Set<string>([]);
  */
 const UNMARKED_FIGURE_DEBT: Readonly<Record<string, number>> = {
   "astronaut-complex / active-crew-multi-situation-stopped-arriving": 2,
-  "fuel-status / asparagus-multi-stage-stopped-arriving": 5,
-  "landing-status/scenarios / suicide-burn-approaching-stopped-arriving": 9,
   "libration-points / mun-l2-drifting-stopped-arriving": 2,
   "libration-points / mun-l2-path-withheld-stopped-arriving": 2,
-  "maneuver-planner / kerbin-burn-in-progress-stopped-arriving": 6,
-  "science-data / kerbin-flight-partial-science-stopped-arriving": 5,
-  "strategies / one-active-room-for-more-stopped-arriving": 3,
+  "strategies / one-active-room-for-more-stopped-arriving": 1,
   "targeting / approach-closing-stopped-arriving": 1,
   "transfer-window / earth-mars-go-stopped-arriving": 8,
   "transfer-window / earth-mars-reach-band-stopped-arriving": 8,

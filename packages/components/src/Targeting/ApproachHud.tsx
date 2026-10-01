@@ -1,4 +1,9 @@
-import { type Reading, type Value, value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  combineReadings,
+  type Reading,
+  type Value,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   Countdown,
   Grid,
@@ -16,6 +21,9 @@ interface ApproachHudProps {
   name: string;
   distance: number | undefined;
   relVel: number | undefined;
+  /** The range and closing rate as Readings, so a held figure is drawn marked. */
+  rangeR: Reading<Value<"m">>;
+  closingRateR: Reading<Value<"m/s">>;
   /** Time to closest approach, with the target model's figure beside it where one reaches past the received edge. */
   timeToClosestApproach: Reading<Value<"s">>;
   /** A pairing is selected but its geometry is held, so the alignment is not drawn. */
@@ -84,6 +92,8 @@ export function ApproachHud({
   name,
   distance,
   relVel,
+  rangeR,
+  closingRateR,
   timeToClosestApproach,
   alignmentWithheld,
   cols,
@@ -94,6 +104,9 @@ export function ApproachHud({
   const closing = relVel !== undefined && Number.isFinite(relVel) && relVel < 0;
   const closingMagnitude =
     relVel !== undefined && Number.isFinite(relVel) ? Math.abs(relVel) : null;
+  const closingMagnitudeR = combineReadings([closingRateR], (rate) =>
+    rate.abs(),
+  );
 
   // The smallest size cannot fit the stacked grid: distance is the headline and closing rate a subreadout; TCA is cut.
   if (rows < 5) {
@@ -111,7 +124,7 @@ export function ApproachHud({
               <DisplayDash />
             ) : (
               <Text tone="go" style={DISPLAY_VALUE_STYLE}>
-                <Unit value={value("m", distance)} />
+                <Unit value={rangeR} />
               </Text>
             )}
             {closingMagnitude !== null && (
@@ -124,7 +137,7 @@ export function ApproachHud({
                 }}
               >
                 {closing ? "−" : "+"}
-                <Unit value={value("m/s", closingMagnitude)} decimals={1} />
+                <Unit value={closingMagnitudeR} decimals={1} />
               </Text>
             )}
             {alignmentWithheld && <AlignmentWithheldNotice />}
@@ -153,11 +166,7 @@ export function ApproachHud({
             }}
           >
             <ReadoutRow label="Distance">
-              {distance === undefined ? (
-                NULL_DISPLAY
-              ) : (
-                <Unit value={value("m", distance)} />
-              )}
+              {distance === undefined ? NULL_DISPLAY : <Unit value={rangeR} />}
             </ReadoutRow>
 
             <ReadoutRow
@@ -169,7 +178,7 @@ export function ApproachHud({
               ) : (
                 <>
                   {closing ? "−" : "+"}
-                  <Unit value={value("m/s", closingMagnitude)} decimals={1} />
+                  <Unit value={closingMagnitudeR} decimals={1} />
                 </>
               )}
             </ReadoutRow>

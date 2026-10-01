@@ -1,4 +1,5 @@
 import type { ParsedManeuverNode } from "@ksp-gonogo/data";
+import type { CarriedCurrency } from "@ksp-gonogo/sitrep-sdk";
 import { SectionTitle, Stack } from "@ksp-gonogo/ui-kit";
 import { BurnWindowRows } from "./BurnWindowRows";
 import { PaddedSection } from "./styles";
@@ -6,6 +7,7 @@ import { PaddedSection } from "./styles";
 interface BurnWindowsSectionProps {
   nodes: readonly ParsedManeuverNode[];
   currentUT: number | undefined;
+  from?: readonly CarriedCurrency[];
 }
 
 /**
@@ -16,6 +18,7 @@ interface BurnWindowsSectionProps {
 export function BurnWindowsSection({
   nodes,
   currentUT,
+  from,
 }: BurnWindowsSectionProps) {
   if (nodes.length === 0) return null;
   return (
@@ -32,6 +35,7 @@ export function BurnWindowsSection({
               cutoffUt: burn.cutoffUt,
             }}
             nowUt={currentUT ?? 0}
+            from={from}
           />
         ))}
       </Stack>

@@ -6,7 +6,7 @@ type Model = Readonly<{ model: LandingModel }>;
 
 /** The solve's velocity split; the atmospheric-estimate board carries its own, and this never depends on a plot restating it. */
 export function VelocitySection({ model }: Model) {
-  const { board, solution } = model;
+  const { board, solution, solveCurrency } = model;
   if (board === "atmospheric-estimate" || solution.horizontalSpeed == null) {
     return null;
   }
@@ -15,10 +15,10 @@ export function VelocitySection({ model }: Model) {
       <SectionTitle>Velocity</SectionTitle>
       <Grid cols="auto 1fr" gap="readout-row">
         <GridCellPair label="Vertical">
-          {<Mps v={solution.verticalSpeed} />}
+          {<Mps v={solution.verticalSpeed} from={solveCurrency} />}
         </GridCellPair>
         <GridCellPair label="Horizontal">
-          {<Mps v={solution.horizontalSpeed} />}
+          {<Mps v={solution.horizontalSpeed} from={solveCurrency} />}
         </GridCellPair>
       </Grid>
     </Section>
@@ -32,7 +32,7 @@ export function HeightSection({ model }: Model) {
       <SectionTitle>Height</SectionTitle>
       <Grid cols="auto 1fr" gap="readout-row">
         <GridCellPair label="AGL">
-          {<Metres m={model.heightFromTerrain} />}
+          {<Metres m={model.heightFromTerrain} from={model.solveCurrency} />}
         </GridCellPair>
       </Grid>
     </Section>
@@ -47,7 +47,7 @@ export function DivertSection({ model }: Model) {
       <SectionTitle>Divert</SectionTitle>
       <Grid cols="auto 1fr" gap="readout-row">
         <GridCellPair label="Target range">
-          {<Metres m={targetRange} />}
+          {<Metres m={targetRange} from={model.solveCurrency} />}
         </GridCellPair>
       </Grid>
     </Section>

@@ -8,6 +8,7 @@ import {
   useStream,
 } from "@ksp-gonogo/sitrep-client";
 import {
+  type CarriedCurrency,
   type Reading,
   readingOf,
   type TopicPayload,
@@ -15,6 +16,7 @@ import {
   type Vec3Of,
 } from "@ksp-gonogo/sitrep-sdk";
 import { useEffect, useState } from "react";
+import { currencyOf } from "../shared/currencyOf";
 import { bare, vecMagnitude } from "../shared/dockAngles";
 import { bodyAtIndex } from "../shared/streamBody";
 import { useBodyName } from "../shared/useBodyName";
@@ -52,6 +54,10 @@ export interface LandingModel {
   live: boolean;
   /** No input the burn solve rests on is held. */
   mayInstruct: boolean;
+  /** What the solve's figures were computed from, so a readout of one is dated by its oldest input. */
+  solveCurrency: readonly CarriedCurrency[];
+  /** The comms delay behind the round-trip clock. */
+  delayCurrency: readonly CarriedCurrency[];
   bodyName: string | null | undefined;
   atmospheric: boolean;
   targetRange: number | undefined;
@@ -144,6 +150,16 @@ export function useLandingModel(): LandingModel {
     orbitReading,
     landingReading,
   ].some(isDated);
+
+  const solveCurrency = [
+    flightReading,
+    surfaceReading,
+    propulsionReading,
+    orbitReading,
+    landingReading,
+    ...(budgetReading === undefined ? [] : [budgetReading]),
+  ].map(currencyOf);
+  const delayCurrency = [currencyOf(commsDelayReading)];
 
   const { exhaustVelocity, burnoutMass } = deriveActiveBurnParams(
     budget?.activeStage,
@@ -264,6 +280,8 @@ export function useLandingModel(): LandingModel {
     clocks,
     live,
     mayInstruct,
+    solveCurrency,
+    delayCurrency,
     bodyName,
     atmospheric,
     targetRange,

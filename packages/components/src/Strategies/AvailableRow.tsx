@@ -1,4 +1,4 @@
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import { type CarriedCurrency, datedFrom, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   CommandButton,
   type CommandButtonHandle,
@@ -74,6 +74,7 @@ export function AvailableRow({
   reputation,
   science,
   balancesHeld,
+  rosterFrom,
   factor,
   onFactorChange,
   activateCmd,
@@ -94,6 +95,7 @@ export function AvailableRow({
   science: number | null;
   /** Withheld because the balances were held, rather than never having arrived. */
   balancesHeld: boolean;
+  rosterFrom: readonly CarriedCurrency[];
   factor: number;
   onFactorChange: (v: number) => void;
   /** The shared activate handle; each row's `CommandButton` holds its own arm and in-flight state. */
@@ -204,7 +206,9 @@ export function AvailableRow({
               tone={costTone(affordVerdict(scaledFunds, funds))}
               data-afford={affordVerdict(scaledFunds, funds)}
             >
-              <Unit value={value("funds", scaledFunds)} />
+              <Unit
+                value={datedFrom(rosterFrom, value("funds", scaledFunds))}
+              />
             </CostChip>
           )}
           {s.initialCostScience > 0 && (
@@ -213,7 +217,9 @@ export function AvailableRow({
               tone={costTone(affordVerdict(scaledScience, science))}
               data-afford={affordVerdict(scaledScience, science)}
             >
-              <Unit value={value("science", scaledScience)} />
+              <Unit
+                value={datedFrom(rosterFrom, value("science", scaledScience))}
+              />
             </CostChip>
           )}
           {s.initialCostReputation > 0 && (
@@ -223,7 +229,7 @@ export function AvailableRow({
               data-afford={affordVerdict(scaledRep, reputation)}
               title={`Nominal ${writeQuantity(value("rep", s.initialCostReputation * factorScale))}; the rep curve bumps the real charge to ${writeQuantity(value("rep", scaledRep))}.`}
             >
-              <Unit value={value("rep", scaledRep)} />
+              <Unit value={datedFrom(rosterFrom, value("rep", scaledRep))} />
             </CostChip>
           )}
         </CostRow>

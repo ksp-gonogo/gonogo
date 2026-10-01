@@ -1,5 +1,5 @@
 import type { ParsedManeuverNode } from "@ksp-gonogo/data";
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import { type CarriedCurrency, datedFrom, value } from "@ksp-gonogo/sitrep-sdk";
 import { CloseIcon, PencilIcon } from "@ksp-gonogo/ui";
 import { Button, Countdown, IconButton, Unit } from "@ksp-gonogo/ui-kit";
 import type { ButtonHTMLAttributes, CSSProperties, ReactNode } from "react";
@@ -24,6 +24,8 @@ interface NodeRowProps {
   currentUT: number | undefined;
   /** Vessel ΔV available, or null when there is no usable reading. */
   availableDv: number | null;
+  /** What the plan was last reported by, so a held plan draws held figures. */
+  from?: readonly CarriedCurrency[];
   completed?: boolean;
   /** Omitted on phantom rows (the underlying node is already gone from KSP). */
   onDelete?: () => void;
@@ -35,6 +37,7 @@ export function NodeRow({
   node,
   currentUT,
   availableDv,
+  from,
   completed = false,
   onDelete,
   onEdit,
@@ -42,6 +45,9 @@ export function NodeRow({
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const timeTo = currentUT !== undefined ? node.UT - currentUT : null;
+  const dated = <UnitSymbol extends string>(
+    figure: ReturnType<typeof value<UnitSymbol>>,
+  ) => (from === undefined ? figure : datedFrom(from, figure));
   const feasible =
     completed || availableDv === null
       ? null
@@ -57,7 +63,7 @@ export function NodeRow({
             "Burn complete"
           ) : (
             <Unit
-              value={value("m/s", node.deltaVMagnitude)}
+              value={dated(value("m/s", node.deltaVMagnitude))}
               format="m/s"
               decimals={0}
             />
@@ -72,11 +78,14 @@ export function NodeRow({
           ) : timeTo !== null && timeTo < 0 ? (
             // A burn stopped short keeps its node past its own instant; Countdown is unsigned, so the tense carries it.
             <>
-              burn was <Countdown value={-timeTo} /> ago
+              burn was <Countdown value={dated(value("s", -timeTo))} /> ago
             </>
           ) : (
             <>
-              burn in <Countdown value={timeTo} />
+              burn in{" "}
+              <Countdown
+                value={timeTo === null ? null : dated(value("s", timeTo))}
+              />
             </>
           )}
         </div>

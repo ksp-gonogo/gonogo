@@ -1,5 +1,7 @@
 /** Readouts through `Unit` at this widget's own precision: on a descent the last kilometre is read to the metre. */
 import {
+  type CarriedCurrency,
+  datedFrom,
   type Value as Quantity,
   type Tone,
   value,
@@ -21,14 +23,28 @@ export type Quantityish<UnitSymbol extends string> =
   | null
   | undefined;
 
+/** Dates a figure by the inputs it was computed from, so a held input draws the held mark; undated where the caller names no inputs. */
+function datedBy<UnitSymbol extends string>(
+  from: readonly CarriedCurrency[] | undefined,
+  figure: Quantity<UnitSymbol>,
+) {
+  return from === undefined ? figure : datedFrom(from, figure);
+}
+
 /** A speed, read finer the slower it is: a touchdown is decided in cm/s. */
-export function Mps({ v }: { v: Quantityish<"m/s"> }) {
+export function Mps({
+  v,
+  from,
+}: {
+  v: Quantityish<"m/s">;
+  from?: readonly CarriedCurrency[];
+}) {
   const n = magnitudeOf(v);
   if (n === null) return NULL_DISPLAY;
   const abs = Math.abs(n);
   return (
     <Unit
-      value={value("m/s", n)}
+      value={datedBy(from, value("m/s", n))}
       format="m/s"
       decimals={abs < 10 ? 2 : abs < 100 ? 1 : 0}
     />
@@ -49,18 +65,34 @@ export function altitudeDecimals(m: Quantity<"m">): number {
 }
 
 /** An altitude or a distance, on the shared length ladder. */
-export function Metres({ m }: { m: Quantityish<"m"> }) {
+export function Metres({
+  m,
+  from,
+}: {
+  m: Quantityish<"m">;
+  from?: readonly CarriedCurrency[];
+}) {
   const n = magnitudeOf(m);
   if (n === null) return NULL_DISPLAY;
   const height = value("m", n);
-  return <Unit value={height} decimals={altitudeDecimals(height)} />;
+  return (
+    <Unit value={datedBy(from, height)} decimals={altitudeDecimals(height)} />
+  );
 }
 
 /** A delta-v budget, in whole m/s. */
-export function Dv({ v }: { v: Quantityish<"m/s"> }) {
+export function Dv({
+  v,
+  from,
+}: {
+  v: Quantityish<"m/s">;
+  from?: readonly CarriedCurrency[];
+}) {
   const n = magnitudeOf(v);
   if (n === null) return NULL_DISPLAY;
-  return <Unit value={value("m/s", n)} format="m/s" decimals={0} />;
+  return (
+    <Unit value={datedBy(from, value("m/s", n))} format="m/s" decimals={0} />
+  );
 }
 
 /** A labelled value row inside a two-column readout grid. */

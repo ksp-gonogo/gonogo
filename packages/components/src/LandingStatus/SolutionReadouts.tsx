@@ -1,3 +1,4 @@
+import { datedFrom, value } from "@ksp-gonogo/sitrep-sdk";
 import { Sparkline } from "@ksp-gonogo/ui";
 import {
   Badge,
@@ -44,16 +45,22 @@ export function SolutionReadouts({
     affordable,
     targetRange,
     descentHistory,
+    solveCurrency,
   } = model;
 
   if (landed) {
     return (
       <Grid minColWidth="130px" gap="related-dense">
         <StackedField label="Touchdown speed">
-          {<Mps v={flight?.surfaceSpeed ?? solution.horizontalSpeed} />}
+          {
+            <Mps
+              v={flight?.surfaceSpeed ?? solution.horizontalSpeed}
+              from={solveCurrency}
+            />
+          }
         </StackedField>
         <StackedField label="Fuel remaining">
-          {<Dv v={availableDv} />}
+          {<Dv v={availableDv} from={solveCurrency} />}
         </StackedField>
       </Grid>
     );
@@ -65,16 +72,24 @@ export function SolutionReadouts({
     // Under NO LANDING VECTOR every number here is moot, so the grid recedes rather than reading as reassurance against the ABORT.
     <div style={noLandingVector ? FAINT_TEXT_STYLE : undefined}>
       <Grid minColWidth="130px" gap="related-dense">
-        <StackedField label="Burn dV">{<Dv v={requiredDv} />}</StackedField>
+        <StackedField label="Burn dV">
+          {<Dv v={requiredDv} from={solveCurrency} />}
+        </StackedField>
         <StackedField label="Burn duration">
           {solution.burnDuration == null ? (
             NULL_DISPLAY
           ) : (
-            <Countdown value={solution.burnDuration} precise />
+            <Countdown
+              value={datedFrom(
+                solveCurrency,
+                value("s", solution.burnDuration),
+              )}
+              precise
+            />
           )}
         </StackedField>
         <StackedField label="Available dV">
-          {<Dv v={availableDv} />}
+          {<Dv v={availableDv} from={solveCurrency} />}
         </StackedField>
         <div
           style={{
@@ -90,25 +105,31 @@ export function SolutionReadouts({
           />
         </div>
         <StackedField label="Touchdown (coast)">
-          {<Mps v={solution.speedAtImpact} />}
+          {<Mps v={solution.speedAtImpact} from={solveCurrency} />}
         </StackedField>
         <StackedField label="Touchdown (burn now)">
           {solution.bestSpeedAtImpact == null ? (
             NULL_DISPLAY
           ) : (
-            <Mps v={solution.bestSpeedAtImpact} />
+            <Mps v={solution.bestSpeedAtImpact} from={solveCurrency} />
           )}
         </StackedField>
         <StackedField label="Impact in">
           {solution.timeToImpact == null ? (
             NULL_DISPLAY
           ) : (
-            <Countdown value={solution.timeToImpact} precise />
+            <Countdown
+              value={datedFrom(
+                solveCurrency,
+                value("s", solution.timeToImpact),
+              )}
+              precise
+            />
           )}
         </StackedField>
         {targetRange !== undefined && (
           <StackedField label="Target range">
-            {<Metres m={targetRange} />}
+            {<Metres m={targetRange} from={solveCurrency} />}
           </StackedField>
         )}
         {showTrend && descentHistory.length >= 2 && (

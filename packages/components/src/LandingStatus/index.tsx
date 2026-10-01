@@ -1,5 +1,6 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import { registerComponent } from "@ksp-gonogo/core";
+import { datedFrom, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
   Countdown,
@@ -153,7 +154,14 @@ function LandingStatusComponent({
             {commitLayerEl}
             {clocks.roundTripSeconds != null && clocks.roundTripSeconds > 0 && (
               <Text level="muted">
-                RT <Countdown value={clocks.roundTripSeconds} precise />
+                RT{" "}
+                <Countdown
+                  value={datedFrom(
+                    model.delayCurrency,
+                    value("s", clocks.roundTripSeconds),
+                  )}
+                  precise
+                />
               </Text>
             )}
             <span

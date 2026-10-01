@@ -1,5 +1,5 @@
 import { AugmentSlot } from "@ksp-gonogo/core";
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import { type CarriedCurrency, datedFrom, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   DataTable,
   type DataTableColumn,
@@ -26,11 +26,22 @@ export interface AboardTabProps {
   sciCount: number | undefined;
   sciDataAmount: number | undefined;
   compact: boolean;
+  /** What the ledgers were last reported by, so a held ledger draws held figures. */
+  ledgerFrom: readonly CarriedCurrency[];
 }
 
-const BREAKDOWN_COLUMNS: ReadonlyArray<
-  DataTableColumn<ExperimentBreakdownEntry>
-> = [
+/** A ledger figure dated by the readings the ledger was read from. */
+function dated<UnitSymbol extends string>(
+  from: readonly CarriedCurrency[],
+  unit: UnitSymbol,
+  amount: number,
+) {
+  return datedFrom(from, value(unit, amount));
+}
+
+const breakdownColumns = (
+  from: readonly CarriedCurrency[],
+): ReadonlyArray<DataTableColumn<ExperimentBreakdownEntry>> => [
   {
     key: "subject",
     header: "Subject",
@@ -49,7 +60,7 @@ const BREAKDOWN_COLUMNS: ReadonlyArray<
     header: "Data",
     align: "end",
     width: "9ch",
-    render: (b) => <Unit value={value("Mit", b.dataMits)} />,
+    render: (b) => <Unit value={dated(from, "Mit", b.dataMits)} />,
   },
   {
     key: "remaining",
@@ -58,7 +69,7 @@ const BREAKDOWN_COLUMNS: ReadonlyArray<
     width: "10ch",
     render: (b) =>
       b.remainingPotential > 0 ? (
-        <Unit value={value("science", b.remainingPotential)} />
+        <Unit value={dated(from, "science", b.remainingPotential)} />
       ) : (
         <Text level="muted">complete</Text>
       ),
@@ -66,7 +77,9 @@ const BREAKDOWN_COLUMNS: ReadonlyArray<
 ];
 
 /** The fallback list, used when the breakdown channel has nothing but raw stored results do. */
-const EXPERIMENT_COLUMNS: ReadonlyArray<DataTableColumn<ParsedExperiment>> = [
+const experimentColumns = (
+  from: readonly CarriedCurrency[],
+): ReadonlyArray<DataTableColumn<ParsedExperiment>> => [
   {
     key: "subject",
     header: "Subject",
@@ -84,7 +97,7 @@ const EXPERIMENT_COLUMNS: ReadonlyArray<DataTableColumn<ParsedExperiment>> = [
       e.dataAmount === null ? (
         <Text level="muted">{NULL_DISPLAY}</Text>
       ) : (
-        <Unit value={value("Mit", e.dataAmount)} />
+        <Unit value={dated(from, "Mit", e.dataAmount)} />
       ),
   },
 ];
@@ -101,17 +114,19 @@ function AboardLedger({
   breakdown,
   experiments,
   slotFilled,
+  from,
 }: Readonly<{
   breakdown: ExperimentBreakdownEntry[] | null;
   experiments: ParsedExperiment[] | null;
   slotFilled: boolean;
+  from: readonly CarriedCurrency[];
 }>) {
   if (breakdown !== null) {
     return (
       <DataTable
         caption="Science aboard the active vessel, by subject"
         empty="No subject matches the filter."
-        columns={BREAKDOWN_COLUMNS}
+        columns={breakdownColumns(from)}
         rows={breakdown}
         rowKey={(b) => b.subjectId}
         rowDetail={
@@ -132,7 +147,7 @@ function AboardLedger({
       <DataTable
         caption="Science results stored aboard the active vessel"
         empty="No result matches the filter."
-        columns={EXPERIMENT_COLUMNS}
+        columns={experimentColumns(from)}
         rows={experiments}
         rowKey={(e) => e.subjectId}
       />
@@ -152,6 +167,7 @@ export function AboardTab({
   sciCount,
   sciDataAmount,
   compact,
+  ledgerFrom,
 }: Readonly<AboardTabProps>) {
   // An unbound slot gets no detail row at all, rather than an empty one under every row.
   const slotFilled = useSlotBound("science-data.aboard-row");
@@ -172,6 +188,7 @@ export function AboardTab({
         breakdown={hasBreakdown ? shownBreakdown : null}
         experiments={hasExperiments ? shownExperiments : null}
         slotFilled={slotFilled}
+        from={ledgerFrom}
       />
     </ScrollArea>
   );
@@ -195,7 +212,7 @@ export function AboardTab({
           {typeof sciDataAmount === "number" && (
             <>
               {" · "}
-              <Unit value={value("Mit", sciDataAmount)} /> collected
+              <Unit value={dated(ledgerFrom, "Mit", sciDataAmount)} /> collected
             </>
           )}
         </Text>

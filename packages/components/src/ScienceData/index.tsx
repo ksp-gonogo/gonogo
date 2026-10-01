@@ -20,6 +20,7 @@ import {
 import { type TabDescriptor, Tabs } from "@ksp-gonogo/ui";
 import { Panel, Section, Text } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
+import { currencyOf } from "../shared/currencyOf";
 import { asQuantityish, magnitudeOf } from "../shared/magnitude";
 import { useBodyName } from "../shared/useBodyName";
 import { AboardTab } from "./AboardTab";
@@ -85,14 +86,12 @@ function ScienceDataComponent({
   const situationLocale = liveBiome ?? landedAt ?? "";
 
   // The ledgers change only on events, so the last one received is still the ledger.
-  const experimentsRaw = stillTrue(
-    useTelemetry("science.experiments"),
-    undefined,
-  );
-  const breakdownRaw = stillTrue(
-    useTelemetry("science.experimentBreakdown"),
-    undefined,
-  );
+  const experimentsReading = useTelemetry("science.experiments");
+  const breakdownReading = useTelemetry("science.experimentBreakdown");
+  const experimentsRaw = stillTrue(experimentsReading, undefined);
+  const breakdownRaw = stillTrue(breakdownReading, undefined);
+  // The ledger still stands when held, but a held one is drawn marked: an event missed while the link was down changes it.
+  const ledgerFrom = [experimentsReading, breakdownReading].map(currencyOf);
   const archiveRaw = stillTrue(useTelemetry("science.archive"), undefined);
   const breakdownStreamStatus = useStreamStatus(
     useTelemetryStoreOptional(),
@@ -137,6 +136,7 @@ function ScienceDataComponent({
           sciCount={sciCount}
           sciDataAmount={sciDataAmount}
           compact={compact}
+          ledgerFrom={ledgerFrom}
         />
       ),
     },

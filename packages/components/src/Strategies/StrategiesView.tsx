@@ -1,4 +1,4 @@
-import type { Value } from "@ksp-gonogo/sitrep-sdk";
+import type { CarriedCurrency, Value } from "@ksp-gonogo/sitrep-sdk";
 import {
   type CommandButtonHandle,
   Panel,
@@ -25,6 +25,8 @@ export interface StrategiesViewProps {
   reputation: Value<"rep"> | null | undefined;
   science: Value<"science"> | null | undefined;
   balancesHeld: boolean;
+  /** What the roster and balances were last reported by, so a held one draws held figures. */
+  rosterFrom: readonly CarriedCurrency[];
   /** The balances the rail draws, held ones included so Unit can mark them. */
   shownBalances: {
     funds: UnitValue<"funds">;
@@ -49,6 +51,7 @@ export function StrategiesView({
   reputation,
   science,
   balancesHeld,
+  rosterFrom,
   shownBalances,
   factorById,
   setFactorById,
@@ -90,6 +93,7 @@ export function StrategiesView({
     reputation,
     science,
     balancesHeld,
+    rosterFrom,
     factorById,
     setFactorById,
     activateCmd,

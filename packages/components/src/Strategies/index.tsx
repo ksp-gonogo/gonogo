@@ -9,6 +9,7 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import { useContributions } from "@ksp-gonogo/ui-kit";
 import { useMemo, useState } from "react";
+import { currencyOf } from "../shared/currencyOf";
 import { parseEffectLines, parseStrategies } from "./parsing";
 import { inferCap, partition } from "./partition";
 import { StrategiesView } from "./StrategiesView";
@@ -95,6 +96,7 @@ function StrategiesComponent({
       science={science}
       balancesHeld={balancesHeld}
       shownBalances={shownBalances}
+      rosterFrom={[currencyOf(careerReading)]}
       factorById={factorById}
       setFactorById={setFactorById}
       activateCmd={activateCmd}

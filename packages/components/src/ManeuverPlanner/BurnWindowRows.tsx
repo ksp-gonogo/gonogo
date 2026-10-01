@@ -1,4 +1,4 @@
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import { type CarriedCurrency, datedFrom, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Cluster,
   MissionDate,
@@ -82,7 +82,15 @@ function KindSwatch({ kind }: { kind: BurnInstantKind }) {
   );
 }
 
-function InstantRow({ row, nowUt }: { row: BurnInstantRow; nowUt: number }) {
+function InstantRow({
+  row,
+  nowUt,
+  from,
+}: {
+  row: BurnInstantRow;
+  nowUt: number;
+  from?: readonly CarriedCurrency[];
+}) {
   return (
     <Row
       as="li"
@@ -119,7 +127,13 @@ function InstantRow({ row, nowUt }: { row: BurnInstantRow; nowUt: number }) {
         </Text>
         {row.atUt != null && (
           <span style={{ ...CAPTION, whiteSpace: "nowrap" }}>
-            <MissionDate value={row.atUt} />
+            <MissionDate
+              value={
+                from === undefined
+                  ? row.atUt
+                  : datedFrom(from, value("ut", row.atUt))
+              }
+            />
           </span>
         )}
       </Stack>
@@ -210,9 +224,11 @@ function BurnAxisBar({
 export function BurnWindowRows({
   burn,
   nowUt,
+  from,
 }: {
   burn: { ut: number; ignitionUt?: number | null; cutoffUt?: number | null };
   nowUt: number;
+  from?: readonly CarriedCurrency[];
 }) {
   const rows = burnInstantRows(burn);
   const axis = burnAxis(rows, nowUt);
@@ -231,14 +247,21 @@ export function BurnWindowRows({
             NULL_DISPLAY
           ) : (
             <>
-              lasts <Unit value={value("s", duration)} />
+              lasts{" "}
+              <Unit
+                value={
+                  from === undefined
+                    ? value("s", duration)
+                    : datedFrom(from, value("s", duration))
+                }
+              />
             </>
           )}
         </span>
       </Cluster>
       <Stack as="ul" style={{ listStyle: "none", margin: 0, padding: 0 }}>
         {rows.map((row) => (
-          <InstantRow key={row.kind} row={row} nowUt={nowUt} />
+          <InstantRow key={row.kind} row={row} nowUt={nowUt} from={from} />
         ))}
       </Stack>
       {axis && <BurnAxisBar axis={axis} rows={rows} />}

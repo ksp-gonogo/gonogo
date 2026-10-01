@@ -111,6 +111,8 @@ function TargetingComponent({
         name={tarName}
         distance={tarDistance}
         relVel={relVel}
+        rangeR={rangeR}
+        closingRateR={closingRateR}
         timeToClosestApproach={timeToClosestApproach}
         alignmentWithheld={alignmentWithheld}
         cols={cols}

@@ -15,10 +15,14 @@ import type { ReactNode } from "react";
 import { DELTA_V_MODE_SHORT, type DeltaVMode } from "./config";
 import { budgetFigure, fmtFixed, pickDeltaV, pickTWR } from "./deltaV";
 
-function burnLabel(burnTime: number): ReactNode {
+function burnLabel(
+  budgetReading: Reading<DeltaVBudget>,
+  burnTime: number,
+): ReactNode {
   // NaN is a burn time the wire did not carry, not a stage that burns for no time.
   if (!Number.isFinite(burnTime)) return NULL_DISPLAY;
-  if (burnTime > 0) return <Unit value={value("s", burnTime)} />;
+  if (burnTime > 0)
+    return <Unit value={budgetFigure(budgetReading, value("s", burnTime))} />;
   return "0s";
 }
 
@@ -86,7 +90,8 @@ export function StageStackSection({
                     : "var(--color-text-faint)",
                 }}
               >
-                {burnLabel(s.burnTime)} · TWR {fmtFixed(pickTWR(s, mode), 2)}
+                {burnLabel(budgetReading, s.burnTime)} · TWR{" "}
+                {fmtFixed(pickTWR(s, mode), 2)}
               </Text>
             </MeterRowGroup>
           );

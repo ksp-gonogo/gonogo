@@ -1,5 +1,7 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import { useManeuverNodes, useNumericFields } from "@ksp-gonogo/data";
+import { useStream } from "@ksp-gonogo/sitrep-client";
+import type { VesselManeuver } from "@ksp-gonogo/sitrep-sdk";
 import {
   Panel,
   Section,
@@ -9,6 +11,7 @@ import {
   WidgetSections,
 } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
+import { currencyOf } from "../shared/currencyOf";
 import { ArmedTriggersList } from "./ArmedTriggersList";
 import { BurnWindowsSection } from "./BurnWindowsSection";
 import { ConformanceSection } from "./ConformanceSection";
@@ -47,6 +50,10 @@ export function ManeuverPlannerComponent({
     currentOrbit,
   } = telemetry;
   const nodes = useManeuverNodes();
+  // The plan stands until changed, but a change made while the link is down is missed, so its figures take the plan reading's currency.
+  const planCurrency = [
+    currencyOf(useStream<VesselManeuver>("vessel.maneuver")),
+  ];
   const {
     plan,
     requiredDeltaV,
@@ -93,7 +100,11 @@ export function ManeuverPlannerComponent({
   function renderPlanTab() {
     return (
       <>
-        <BurnWindowsSection nodes={nodes} currentUT={currentUT} />
+        <BurnWindowsSection
+          nodes={nodes}
+          currentUT={currentUT}
+          from={planCurrency}
+        />
         {/* Mounted while empty, so a trigger listed later, a fired one that went wrong included, is announced. */}
         <div role="status" aria-live="polite" aria-atomic="false">
           {armedTriggers.length > 0 && (
@@ -179,6 +190,7 @@ export function ManeuverPlannerComponent({
               completedNodes={completedNodes}
               currentUT={currentUT}
               availableDv={availableDeltaV}
+              from={planCurrency}
               onDelete={handleDelete}
               onEdit={handleEdit}
               onClearAll={handleClearAll}

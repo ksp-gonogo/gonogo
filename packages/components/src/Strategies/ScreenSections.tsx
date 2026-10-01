@@ -1,4 +1,4 @@
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import { type CarriedCurrency, datedFrom, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   AugmentSlot,
   CommandButton,
@@ -49,6 +49,7 @@ export interface ScreenSectionsProps {
   reputation: Quantityish | undefined;
   science: Quantityish | undefined;
   balancesHeld: boolean;
+  rosterFrom: readonly CarriedCurrency[];
   factorById: Record<string, number>;
   setFactorById: Dispatch<SetStateAction<Record<string, number>>>;
   activateCmd: CommandButtonHandle;
@@ -73,6 +74,7 @@ export function ScreenSections({
   reputation,
   science,
   balancesHeld,
+  rosterFrom,
   factorById,
   setFactorById,
   activateCmd,
@@ -95,6 +97,7 @@ export function ScreenSections({
       reputation={magnitudeOf(reputation)}
       science={magnitudeOf(science)}
       balancesHeld={balancesHeld}
+      rosterFrom={rosterFrom}
       factor={factorById[s.id] ?? s.factorSliderDefault}
       onFactorChange={(v) => setFactorById((prev) => ({ ...prev, [s.id]: v }))}
       activateCmd={activateCmd}
@@ -136,7 +139,10 @@ export function ScreenSections({
                         <FactorTag>
                           factor{" "}
                           <Unit
-                            value={value("%", s.factor * 100)}
+                            value={datedFrom(
+                              rosterFrom,
+                              value("%", s.factor * 100),
+                            )}
                             decimals={0}
                           />
                         </FactorTag>

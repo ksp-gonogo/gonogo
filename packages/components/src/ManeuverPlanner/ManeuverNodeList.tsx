@@ -1,4 +1,5 @@
 import type { ParsedManeuverNode } from "@ksp-gonogo/data";
+import type { CarriedCurrency } from "@ksp-gonogo/sitrep-sdk";
 import { EmptyState, TextButton } from "@ksp-gonogo/ui";
 import { Stack } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
@@ -11,6 +12,8 @@ interface ManeuverNodeListProps {
   currentUT: number | undefined;
   /** Vessel ΔV available, or null when there is no usable reading. */
   availableDv: number | null;
+  /** What the plan was last reported by. */
+  from?: readonly CarriedCurrency[];
   /** Failures surface through the orchestrator's `error` state, not here. */
   onDelete: (nodeId: string) => Promise<void> | void;
   onEdit: (nodeId: string, patch: NodeEditPatch) => Promise<void> | void;
@@ -28,6 +31,7 @@ export function ManeuverNodeList({
   completedNodes,
   currentUT,
   availableDv,
+  from,
   onDelete,
   onEdit,
   onClearAll,
@@ -63,6 +67,7 @@ export function ManeuverNodeList({
               node={d.node}
               currentUT={currentUT}
               availableDv={availableDv}
+              from={from}
               completed={d.completed}
               onDelete={d.phantom ? undefined : () => void onDelete(d.node.id)}
               onEdit={
