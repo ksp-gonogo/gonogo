@@ -81,7 +81,8 @@ export const NodeId = styled.span`
   color: var(--color-text-faint);
   font-weight: 400;
   flex: 0 1000 auto;
-  min-width: 0;
+  /* Never squeezed to nothing: an id wholly out of reach is content the operator cannot see. */
+  min-width: 4ch;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
