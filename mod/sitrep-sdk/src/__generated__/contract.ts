@@ -3264,10 +3264,10 @@ export interface RevertToEditorArgs
 * resolved server-side against `FlightGlobals.Vessels`, never a roster array
 * index. An empty id fails with `CommandErrorCode.NotFound` before the game is
 * ever touched. Works from the flight scene, where it changes the active
-* vessel, and from the Space Center, the Tracking Station and the editors,
-* where it saves and then loads the vessel's flight; leaving an editor keeps
-* the craft being built. Refused with `CommandErrorCode.WrongScene` where
-* there is no game to switch in (the main menu, the loading screens), and with
+* vessel, and from the Space Center and the Tracking Station, where it saves
+* and then loads the vessel's flight. Refused with
+* `CommandErrorCode.WrongScene` from the editors and wherever there is no game
+* to switch in (the main menu, the loading screens), and with
 * `CommandErrorCode.NotClearToProceed` for a vessel that is not tracked as
 * ours.
 *
