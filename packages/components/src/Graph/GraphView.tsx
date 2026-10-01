@@ -13,6 +13,7 @@ import {
   getSizeBucket,
   Panel,
   Section,
+  Text,
 } from "@ksp-gonogo/ui-kit";
 import {
   type CSSProperties,
@@ -285,7 +286,14 @@ export function GraphView({
 
   const chartBody = (
     <>
-      <FramedDisplay style={CHART_FRAME}>
+      <FramedDisplay
+        style={CHART_FRAME}
+        footer={
+          hasThirdUnit ? (
+            <Text tone="warn">Add explicit axes to plot 3+ units</Text>
+          ) : undefined
+        }
+      >
         <div ref={containerRef} style={CHART_AREA}>
           {size && (
             <LineChart
@@ -305,9 +313,6 @@ export function GraphView({
               width={size.w}
               height={size.h}
             />
-          )}
-          {hasThirdUnit && (
-            <div style={AXIS_WARNING}>Add explicit axes to plot 3+ units</div>
           )}
           {series.length === 0 &&
             overlaySeries.length === 0 &&
@@ -357,17 +362,5 @@ const EMPTY_STATE_OVERLAY: CSSProperties = {
   justifyContent: "center",
   fontSize: "var(--font-size-compact)",
   color: "var(--color-text-faint)",
-  pointerEvents: "none",
-};
-
-const AXIS_WARNING: CSSProperties = {
-  position: "absolute",
-  bottom: "4px",
-  right: "8px",
-  fontSize: "var(--font-size-compact)",
-  color: "var(--color-warn-text)",
-  background: "rgba(0, 0, 0, 0.7)",
-  padding: "var(--inset-chip)",
-  borderRadius: "var(--radius-regular)",
   pointerEvents: "none",
 };

@@ -22,6 +22,13 @@ export interface FramedDisplayProps extends ComponentPropsWithoutRef<"div"> {
    * `Text`. Omitted, nothing is drawn.
    */
   caption?: ReactNode;
+  /**
+   * A single line inlaid over the frame's bottom-left corner: a caveat or
+   * status about what is drawn (an axis warning, a data age). Set on the same
+   * opaque backing as `caption`; its colour is the caller's, so a warning can
+   * pass a toned `Text`. Omitted, nothing is drawn.
+   */
+  footer?: ReactNode;
 }
 
 /**
@@ -41,6 +48,7 @@ export function FramedDisplay({
   children,
   padded,
   caption,
+  footer,
   ...rest
 }: FramedDisplayProps) {
   return (
@@ -48,6 +56,9 @@ export function FramedDisplay({
       {children}
       {caption !== undefined && caption !== null && (
         <FramedDisplay__Caption>{caption}</FramedDisplay__Caption>
+      )}
+      {footer !== undefined && footer !== null && (
+        <FramedDisplay__Footer>{footer}</FramedDisplay__Footer>
       )}
     </FramedDisplay__Box>
   );
@@ -98,4 +109,11 @@ const FramedDisplay__Caption = styled.div`
   color: var(--color-text-muted);
   background: var(--color-surface-sunken);
   pointer-events: none;
+`;
+
+/** The caption's twin on the bottom edge: same backing and type, mirrored offsets. */
+const FramedDisplay__Footer = styled(FramedDisplay__Caption)`
+  top: auto;
+  bottom: var(--offset-frame-footer-bottom);
+  left: var(--offset-frame-footer-left);
 `;

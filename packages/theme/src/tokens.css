@@ -723,6 +723,9 @@ textarea {
   /* A caption inlaid on a FramedDisplay's own top-left corner. */
   --offset-frame-caption-top: var(--space-6);
   --offset-frame-caption-left: var(--space-8);
+  /* A footer line inlaid on a FramedDisplay's own bottom-left corner. */
+  --offset-frame-footer-bottom: var(--space-6);
+  --offset-frame-footer-left: var(--space-8);
 
   /* Controls. */
   /* A box you press or type into, on the --control-height floor. */

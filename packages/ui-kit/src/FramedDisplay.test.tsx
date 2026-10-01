@@ -36,6 +36,16 @@ describe("FramedDisplay", () => {
     expect(frame).toHaveTextContent("orbit plane");
   });
 
+  it("inlays a footer line on the frame", () => {
+    render(
+      <FramedDisplay footer="axes needed">
+        <svg aria-label="diagram" />
+      </FramedDisplay>,
+    );
+    const frame = screen.getByLabelText("diagram").closest("div");
+    expect(frame).toHaveTextContent("axes needed");
+  });
+
   it("draws no caption element at all when none is given", () => {
     const { container } = render(
       <FramedDisplay>
