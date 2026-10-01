@@ -7404,13 +7404,22 @@ export interface PendingUplink
 	* The ENGINE's own id for this dispatch, unique within this queue.
 	*
 	* NOT the `requestId` a client put on its `command-request`, and not relatable
-	* to it: that id is the client's own choice and two clients can pick the same
-	* one, so the engine mints this separately and nothing on the wire pairs the
-	* two. A client looking for its OWN dispatch here matches on the
-	* `PendingUplink.label` and `PendingUplink.topic` it supplied, both of which
-	* are carried through verbatim.
+	* to it: the engine mints this separately and the two counters can collide. A
+	* client looking for its OWN dispatch here matches on
+	* `PendingUplink.clientRequestId`, which is that `requestId` carried through
+	* verbatim.
 	*/
 	id: string;
+	/**
+	* The `requestId` the dispatching client put on its `command-request`, carried
+	* through verbatim, so that client can find its OWN entry in this queue. Empty
+	* when the dispatch did not come over a client connection.
+	*
+	* Only the dispatching client's own choice, so two clients can pick the same
+	* value: match it together with `PendingUplink.command`, and read it as "this
+	* entry is mine" only on the connection that sent the request.
+	*/
+	clientRequestId: string;
 	/** Wire command name (e.g. `kos.run`). */
 	command: string;
 	/**

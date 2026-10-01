@@ -13,6 +13,7 @@ import { value } from "./unit-system/value";
 
 const entry = (over: Partial<import("./command-delay").PendingEntry> = {}) => ({
   id: "r1",
+  clientRequestId: "c1",
   command: "kos.run",
   label: "boot",
   topic: "kos/7",

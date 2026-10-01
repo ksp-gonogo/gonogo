@@ -332,7 +332,10 @@ function resolveTracked(
   pathConnectedDuring: PathConnectedDuring,
   acknowledged: (id: string) => boolean,
 ): TrackedResolution {
-  const inQueue = queue?.pending.find((entry) => entry.id === id);
+  /* Matched on the requestId the queue echoes back, never on `entry.id`, which is the engine's own counter and collides with this client's. */
+  const found = queue?.pending.find((entry) => entry.clientRequestId === id);
+  // Re-keyed to the tracked id so the rail row keeps the id the caller holds.
+  const inQueue = found && { ...found, id };
   if (inQueue) cache.set(id, inQueue);
   const entry = inQueue ?? cache.get(id);
 

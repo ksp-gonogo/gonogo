@@ -38,7 +38,13 @@ export type DelayMode = "live" | "staged" | "no-path";
  * @category Delay and vantage
  */
 export interface PendingEntry {
+  /** The engine's own id for the dispatch. Never the client's requestId: see {@link PendingEntry.clientRequestId}. */
   id: string;
+  /**
+   * The requestId the dispatching client put on its command-request, echoed
+   * verbatim. The only field a client can find its OWN entry by.
+   */
+  clientRequestId: string;
   command: string;
   label: string;
   topic: string;

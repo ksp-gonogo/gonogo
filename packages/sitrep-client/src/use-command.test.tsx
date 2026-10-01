@@ -277,7 +277,8 @@ describe("useCommand inFlight", () => {
           {
             pending: [
               {
-                id: r1id,
+                id: "engine-r1id",
+                clientRequestId: r1id,
                 command: "deploy",
                 label: "",
                 topic: "t",
@@ -286,7 +287,8 @@ describe("useCommand inFlight", () => {
                 oneWaySeconds: 2,
               },
               {
-                id: r2id,
+                id: "engine-r2id",
+                clientRequestId: r2id,
                 command: "deploy",
                 label: "",
                 topic: "t",
@@ -312,7 +314,8 @@ describe("useCommand inFlight", () => {
           {
             pending: [
               {
-                id: r1id,
+                id: "engine-r1id",
+                clientRequestId: r1id,
                 command: "deploy",
                 label: "",
                 topic: "t",
@@ -321,7 +324,8 @@ describe("useCommand inFlight", () => {
                 oneWaySeconds: 2,
               },
               {
-                id: r2id,
+                id: "engine-r2id",
+                clientRequestId: r2id,
                 command: "deploy",
                 label: "",
                 topic: "t",
@@ -395,7 +399,8 @@ describe("useCommand inFlight", () => {
         {
           pending: [
             {
-              id,
+              id: "engine-id",
+              clientRequestId: id,
               command: "deploy",
               label: "",
               topic: "t",
@@ -428,6 +433,54 @@ describe("useCommand inFlight", () => {
       expect(screen.getByText("phases:overdue")).toBeTruthy(),
     );
     expect(screen.getByText("count:1")).toBeTruthy();
+  });
+
+  it("matches its own pending entry on the echoed requestId, never on the engine's id", async () => {
+    const fixture = setupFixture();
+    render(
+      <fixture.Provider>
+        <DeployWithInFlight />
+      </fixture.Provider>,
+    );
+    act(() => {
+      fixture.transport.emit(
+        "comms.link",
+        { connected: true },
+        { validAt: 0, deliveredAt: 0 },
+      );
+    });
+    fixture.transport.holdCommands();
+    fireEvent.click(screen.getByText("go1"));
+    const [id] = fixture.transport.sentCommands.map((c) => c.requestId);
+    const entry = {
+      command: "deploy",
+      label: "",
+      topic: "t",
+      vantage: "ksc",
+      dispatchedAt: 0,
+      oneWaySeconds: 2,
+    };
+
+    /* Another client's dispatch whose engine counter happens to read like this client's requestId: not ours. */
+    act(() => {
+      fixture.transport.emit(
+        "system.uplink.pending",
+        { pending: [{ ...entry, id, clientRequestId: "other-client" }] },
+        { validAt: 0, deliveredAt: 0 },
+      );
+    });
+    expect(screen.queryByText("phases:in-transit")).toBeNull();
+
+    act(() => {
+      fixture.transport.emit(
+        "system.uplink.pending",
+        { pending: [{ ...entry, id: "engine-7", clientRequestId: id }] },
+        { validAt: 0, deliveredAt: 0 },
+      );
+    });
+    await waitFor(() =>
+      expect(screen.getByText("phases:in-transit")).toBeTruthy(),
+    );
   });
 
   it("degrades gracefully: a dispatch that never gets a queue entry drops after the never-tracked grace window", async () => {
@@ -980,7 +1033,8 @@ describe("useCommand dismiss", () => {
         {
           pending: [
             {
-              id: rid,
+              id: "engine-rid",
+              clientRequestId: rid,
               command: "deploy",
               label: "",
               topic: "t",

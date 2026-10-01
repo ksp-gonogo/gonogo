@@ -5511,8 +5511,8 @@ namespace Sitrep.Host
         /// resolving only once <see cref="Tick"/> advances the clock far enough.
         /// See <see cref="ResolveCommandDelay"/> for where the answer comes from.
         /// </summary>
-        public void DispatchCommand(string command, object? args, string vantage, Action<object?> onResult, string label = "", string topic = "", Action<FaultCode, string>? onRefused = null, Action<double>? onAccepted = null, Action<string>? onMalformed = null) =>
-            EnqueueJob(new DispatchCommandJob(command, args, vantage, onResult, null, label, topic, onRefused, onAccepted, onMalformed));
+        public void DispatchCommand(string command, object? args, string vantage, Action<object?> onResult, string label = "", string topic = "", Action<FaultCode, string>? onRefused = null, Action<double>? onAccepted = null, Action<string>? onMalformed = null, string clientRequestId = "") =>
+            EnqueueJob(new DispatchCommandJob(command, args, vantage, onResult, null, label, topic, onRefused, onAccepted, onMalformed, clientRequestId));
 
         /// <summary>
         /// Test-only deterministic variant of <see cref="DispatchCommand"/>: blocks
@@ -5521,10 +5521,10 @@ namespace Sitrep.Host
         /// <see cref="TimeoutException"/> when the dispatch is not processed within
         /// <paramref name="timeout"/>.
         /// </summary>
-        internal void DispatchCommandAndWait(string command, object? args, string vantage, Action<object?> onResult, TimeSpan timeout, string label = "", string topic = "", Action<FaultCode, string>? onRefused = null, Action<double>? onAccepted = null, Action<string>? onMalformed = null)
+        internal void DispatchCommandAndWait(string command, object? args, string vantage, Action<object?> onResult, TimeSpan timeout, string label = "", string topic = "", Action<FaultCode, string>? onRefused = null, Action<double>? onAccepted = null, Action<string>? onMalformed = null, string clientRequestId = "")
         {
             var barrier = new ManualResetEventSlim(false);
-            EnqueueJob(new DispatchCommandJob(command, args, vantage, onResult, barrier, label, topic, onRefused, onAccepted, onMalformed));
+            EnqueueJob(new DispatchCommandJob(command, args, vantage, onResult, barrier, label, topic, onRefused, onAccepted, onMalformed, clientRequestId));
             if (!barrier.Wait(timeout))
             {
                 throw new TimeoutException(
@@ -7329,6 +7329,7 @@ namespace Sitrep.Host
                 _pending.Add(new PendingUplink
                 {
                     Id = requestId,
+                    ClientRequestId = job.ClientRequestId,
                     Command = job.Command,
                     Label = job.Label ?? "",
                     Topic = job.Topic ?? "",
@@ -8027,7 +8028,7 @@ namespace Sitrep.Host
                                 Message = "command-request envelope could not be read: " + reason,
                             };
                             session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteErrorMsg(error)));
-                        });
+                        }, clientRequestId: req.RequestId);
                         break;
                 }
             }
@@ -8321,7 +8322,9 @@ namespace Sitrep.Host
             /// </summary>
             public readonly Action<string>? OnMalformed;
             public readonly ManualResetEventSlim? Done;
-            public DispatchCommandJob(string command, object? args, string vantage, Action<object?> onResult, ManualResetEventSlim? done, string label = "", string topic = "", Action<FaultCode, string>? onRefused = null, Action<double>? onAccepted = null, Action<string>? onMalformed = null)
+            /// <summary>The requestId the dispatching client chose, echoed onto its <see cref="PendingUplink"/>; empty for an in-process dispatch.</summary>
+            public readonly string ClientRequestId;
+            public DispatchCommandJob(string command, object? args, string vantage, Action<object?> onResult, ManualResetEventSlim? done, string label = "", string topic = "", Action<FaultCode, string>? onRefused = null, Action<double>? onAccepted = null, Action<string>? onMalformed = null, string clientRequestId = "")
             {
                 OnMalformed = onMalformed;
                 Command = command;
@@ -8333,6 +8336,7 @@ namespace Sitrep.Host
                 Done = done;
                 Label = label;
                 Topic = topic;
+                ClientRequestId = clientRequestId;
             }
         }
 

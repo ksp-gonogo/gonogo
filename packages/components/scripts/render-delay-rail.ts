@@ -128,6 +128,7 @@ const TRANSMIT_TAGS = railTagsForCommand("science.experiment.transmit");
 const TRANSMISSION_TAGS = railTagsForTelemetry("discrete");
 const TRANSMIT_COMMAND = pendingCrossing({
   id: "c0",
+  clientRequestId: "c0",
   command: "science.experiment.transmit",
   label: "Transmit Thermometer",
   topic: "",

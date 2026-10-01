@@ -861,6 +861,7 @@
       "source": "id"
     },
     "PendingUplink": {
+      "clientRequestId": "id",
       "command": "id",
       "commandedValue": "n/a",
       "dispatchedAt": "ut",

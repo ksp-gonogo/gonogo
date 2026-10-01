@@ -78,6 +78,7 @@ describe("useRouteCommands", () => {
           pending: [
             {
               id: "r1",
+              clientRequestId: "c1",
               command: "kos.run",
               label: "boot",
               topic: "kos/7",
@@ -87,6 +88,7 @@ describe("useRouteCommands", () => {
             },
             {
               id: "r2",
+              clientRequestId: "c2",
               command: "kos.run",
               label: "other route",
               topic: "kos/9",

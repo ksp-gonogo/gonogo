@@ -901,6 +901,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     source: "id",
   },
   "PendingUplink": {
+    clientRequestId: "id",
     command: "id",
     commandedValue: "n/a",
     dispatchedAt: "ut",

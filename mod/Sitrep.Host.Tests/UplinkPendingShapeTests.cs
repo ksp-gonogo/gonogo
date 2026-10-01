@@ -30,6 +30,10 @@ namespace Sitrep.Host.Tests
             var expected = new HashSet<string>
             {
                 "Id:System.String",
+                // The dispatching client's own requestId, echoed: a dispatch-time
+                // fact the client itself supplied, and the only field that lets it
+                // find its own entry (Id is the engine's and cannot be paired).
+                "ClientRequestId:System.String",
                 "Command:System.String",
                 "Label:System.String",
                 "Topic:System.String",

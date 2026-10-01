@@ -32,21 +32,30 @@ public class PendingUplink
     /// The ENGINE's own id for this dispatch, unique within this queue.
     ///
     /// <para>NOT the <c>requestId</c> a client put on its <c>command-request</c>,
-    /// and not relatable to it: that id is the client's own choice and two
-    /// clients can pick the same one, so the engine mints this separately and
-    /// nothing on the wire pairs the two. A client looking for its OWN dispatch
-    /// here matches on the <see cref="Label"/> and <see cref="Topic"/> it
-    /// supplied, both of which are carried through verbatim.</para>
+    /// and not relatable to it: the engine mints this separately and the two
+    /// counters can collide. A client looking for its OWN dispatch here matches on
+    /// <see cref="ClientRequestId"/>, which is that <c>requestId</c> carried
+    /// through verbatim.</para>
     /// <internal>
     /// ChannelEngine.NextRequestId(), minted in ProcessDispatchCommand and passed
-    /// to Courier.DispatchCommand; the socket handler's req.RequestId is captured
-    /// only by the response closure and never reaches the job. Sitrep.Contract
-    /// has exactly one CommandRequest: the wire one, and a client author hovering
-    /// the published TSDoc would join on an id that can never match.
+    /// to Courier.DispatchCommand; the socket handler's req.RequestId reaches the
+    /// job only as <see cref="ClientRequestId"/>.
     /// </internal>
     /// </summary>
     [SitrepUnit(Units.Id)]
     public string Id { get; set; } = "";
+
+    /// <summary>
+    /// The <c>requestId</c> the dispatching client put on its <c>command-request</c>,
+    /// carried through verbatim, so that client can find its OWN entry in this queue.
+    /// Empty when the dispatch did not come over a client connection.
+    ///
+    /// <para>Only the dispatching client's own choice, so two clients can pick the
+    /// same value: match it together with <see cref="Command"/>, and read it as
+    /// "this entry is mine" only on the connection that sent the request.</para>
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string ClientRequestId { get; set; } = "";
 
     /// <summary>Wire command name (e.g. <c>kos.run</c>).</summary>
     [SitrepUnit(Units.Id)]

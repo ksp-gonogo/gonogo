@@ -1151,6 +1151,11 @@ namespace Sitrep.Contract.Serialization
             AppendString(sb, entry.Id);
 
             sb.Append(',');
+            AppendString(sb, "clientRequestId");
+            sb.Append(':');
+            AppendString(sb, entry.ClientRequestId);
+
+            sb.Append(',');
             AppendString(sb, "command");
             sb.Append(':');
             AppendString(sb, entry.Command);

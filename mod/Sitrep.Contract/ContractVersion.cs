@@ -2156,8 +2156,13 @@ namespace Sitrep.Contract
         /// <para>The same bump marks <see cref="CrewRosterEntry.Courage"/> and
         /// <see cref="CrewRosterEntry.Stupidity"/> <see cref="SitrepStaticAttribute"/>, both
         /// fixed when a kerbal is hired.</para>
+        ///
+        /// <para><b>Major-27 line, Bumped 6 -&gt; 7:</b> <see cref="PendingUplink.ClientRequestId"/>,
+        /// the dispatching client's own requestId echoed onto its pending entry, so a client can
+        /// find its own entry (<see cref="PendingUplink.Id"/> is the engine's and never pairs with
+        /// it). Additive, so an Uplink built against 27.6 is unaffected.</para>
         /// </internal>
         /// </summary>
-        public const int Minor = 6;
+        public const int Minor = 7;
     }
 }

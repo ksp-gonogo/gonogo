@@ -62,6 +62,7 @@ namespace Sitrep.Core.Tests
                     new PendingUplink
                     {
                         Id = "c1",
+                        ClientRequestId = "c4",
                         Command = "kos.run",
                         Label = "run.",
                         Topic = "kos/7",
@@ -74,6 +75,7 @@ namespace Sitrep.Core.Tests
 
             var entry = el.GetProperty("pending")[0];
             Assert.Equal("c1", entry.GetProperty("id").GetString());
+            Assert.Equal("c4", entry.GetProperty("clientRequestId").GetString());
             Assert.Equal("kos.run", entry.GetProperty("command").GetString());
             Assert.Equal("run.", entry.GetProperty("label").GetString());
             Assert.Equal("kos/7", entry.GetProperty("topic").GetString());

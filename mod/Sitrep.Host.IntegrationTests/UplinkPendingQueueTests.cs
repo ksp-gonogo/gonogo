@@ -148,6 +148,44 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         [Fact]
+        public async Task ADelayedDispatchCarriesTheClientsOwnRequestIdApartFromTheEnginesId()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new PendingQueueTestUplink());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, ChannelEngine.UplinkPendingTopic, Timeout);
+
+                const double signalDelay = 5.0;
+                engine.TickAndWait(0.0, FreezeGateTestUplink.Snapshot(0.0, connected: true, delay: signalDelay), Timeout);
+                await ReceiveStreamDataAsync(client, Timeout);
+
+                engine.DispatchCommandAndWait(
+                    PendingQueueTestUplink.Command,
+                    "x",
+                    "KSC",
+                    _ => { },
+                    TestBudgets.Op,
+                    clientRequestId: "c7");
+
+                engine.TickAndWait(1.0, FreezeGateTestUplink.Snapshot(1.0, connected: true, delay: signalDelay), Timeout);
+
+                var frame = await ReceiveStreamDataAsync(client, Timeout);
+                var payload = Assert.IsType<Dictionary<string, object?>>(frame.Payload);
+                var entry = Assert.IsType<Dictionary<string, object?>>(Assert.Single(Assert.IsType<List<object?>>(payload["pending"])));
+
+                Assert.Equal("c1", entry["id"]);
+                Assert.Equal("c7", entry["clientRequestId"]);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        [Fact]
         public async Task DelayedCommandDispatchCarriesTopicOntoTheQueueEntry()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
