@@ -175,6 +175,7 @@ export const GridItemContent = memo(function GridItemContent({
                       <RequiresGuard
                         requires={def.requires}
                         channels={def.channels}
+                        title={def.name}
                       >
                         <WidgetBody
                           def={def}

@@ -7,7 +7,7 @@ import { availableAtSeat, groundDomainsOf } from "./seatAvailability";
 export interface SeatGuardProps {
   def: Pick<
     ComponentDefinition,
-    "channels" | "optionalChannels" | "dataRequirements" | "seats"
+    "name" | "channels" | "optionalChannels" | "dataRequirements" | "seats"
   >;
   children: ReactNode;
 }
@@ -23,6 +23,7 @@ export function SeatGuard({ def, children }: SeatGuardProps) {
   const blockers = groundDomainsOf(def);
   return (
     <GuardPlaceholder
+      title={def.name}
       message="Ground instrument"
       hint={
         blockers.length > 0

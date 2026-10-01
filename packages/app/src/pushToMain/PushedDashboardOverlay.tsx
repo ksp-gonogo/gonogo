@@ -181,7 +181,11 @@ function PushedItem({
               )}
             >
               <SeatGuard def={def}>
-                <RequiresGuard requires={def.requires} channels={def.channels}>
+                <RequiresGuard
+                  requires={def.requires}
+                  channels={def.channels}
+                  title={def.name}
+                >
                   <WidgetBody
                     def={def}
                     id={placement.widget.widgetInstanceId}

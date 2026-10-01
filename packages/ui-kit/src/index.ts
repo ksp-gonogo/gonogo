@@ -462,6 +462,7 @@ export {
   FRAMEWORK_AUGMENT_SEGMENTS,
   Panel,
   type PanelBadge,
+  type PanelInactiveReason,
   type PanelProps,
   type PanelSidebarSide,
   type PanelSplitProps,

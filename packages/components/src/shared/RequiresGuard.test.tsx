@@ -63,13 +63,18 @@ function renderGuard(
   props: {
     requires?: readonly ("flight" | "career")[];
     channels?: readonly string[];
+    title?: string;
   } = {},
 ) {
   const transport = new StubTransport();
   const client = new TelemetryClient(transport);
   const view = render(
     <TelemetryProvider client={client}>
-      <RequiresGuard requires={props.requires} channels={props.channels}>
+      <RequiresGuard
+        requires={props.requires}
+        channels={props.channels}
+        title={props.title}
+      >
         {children}
       </RequiresGuard>
     </TelemetryProvider>,
@@ -163,6 +168,22 @@ describe("RequiresGuard: merged with the existing game-context requires gate", (
       expect(screen.getByText("Vessel in flight required")).toBeInTheDocument(),
     );
     expect(screen.queryByText("widget content")).not.toBeInTheDocument();
+  });
+
+  it("keeps the widget's name as the panel heading while the body is refused", async () => {
+    const { transport } = renderGuard(<div>widget content</div>, {
+      requires: ["flight"],
+      title: "Contract Manager",
+    });
+    act(() => transport.emit("spaceCenter.scene", { scene: "SpaceCenter" }));
+    await waitFor(() =>
+      expect(
+        screen.getByRole("heading", { name: "Contract Manager" }),
+      ).toBeInTheDocument(),
+    );
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Vessel in flight required",
+    );
   });
 
   it("prioritises an unhealthy REQUIRED channel's message over an otherwise-satisfied requires gate", async () => {

@@ -1152,6 +1152,14 @@ export function PanelGlow({
 }
 
 /**
+ * What {@link PanelProps.inactive} takes: the reason as one line, or the
+ * reason plus a hint at what would bring the panel back.
+ *
+ * @category Panel
+ */
+export type PanelInactiveReason = string | { reason: string; hint?: string };
+
+/**
  * Props for {@link Panel}. Any other `div` attribute passes through to the
  * panel's container.
  *
@@ -1164,6 +1172,15 @@ export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
    * div's own `title` tooltip attribute.
    */
   panelTitle?: ReactNode;
+  /**
+   * Why this panel has nothing to show and is off entirely: the header stays,
+   * the body, sidebar, footer and trend give way to the reason. A string, or
+   * `{ reason, hint }` for a second line saying what would bring it back.
+   * Reserve it for a widget that has decided there is nothing to present at
+   * all; any other emptiness (an empty list, a section awaiting data) stays
+   * the widget's own.
+   */
+  inactive?: PanelInactiveReason;
   /**
    * The panel's body, as one or more sections: the preferred way to give a
    * panel content. Each entry is normally a `Section`; Panel owns how they
@@ -1594,6 +1611,7 @@ function PanelRootImpl({
   panelFilter,
   panelFooter,
   panelTrend,
+  inactive,
   fitToSize,
   hoverTitle,
   hoverTitleId,
@@ -1705,7 +1723,10 @@ function PanelRootImpl({
    * grid, so an Uplink's section flows into a column beside the host's own.
    * `AugmentSlot` renders a fragment, so each bound augment is its own grid item.
    */
-  const sectionNodes = Children.toArray(sections as ReactNode);
+  const isInactive = inactive !== undefined;
+  const sectionNodes = isInactive
+    ? []
+    : Children.toArray(sections as ReactNode);
   const hasSections = sectionNodes.length > 0;
   /* The body is one framed drawing and nothing else: no hand-composed children,
      no bound sections augment (it would add content beside the frame), not
@@ -1769,7 +1790,9 @@ function PanelRootImpl({
       </PanelSections__Grid>,
     );
   }
-  const content = !hasSections ? (
+  const content = isInactive ? (
+    <PanelInactiveBody reason={inactive} />
+  ) : !hasSections ? (
     children
   ) : (
     <>
@@ -1800,7 +1823,7 @@ function PanelRootImpl({
       ) : (
         content
       )}
-      {panelSections && !hasSections && <WidgetSections />}
+      {panelSections && !hasSections && !isInactive && <WidgetSections />}
     </PanelBody>
   );
 
@@ -1820,7 +1843,7 @@ function PanelRootImpl({
         {...rest}
       >
         <PanelGlow railBandAbove>
-          {panelSidebar === undefined ? (
+          {panelSidebar === undefined || isInactive ? (
             body
           ) : (
             <PanelSplit side={sidebarSide} size={sidebarSize} railBand>
@@ -1830,8 +1853,12 @@ function PanelRootImpl({
             </PanelSplit>
           )}
         </PanelGlow>
-        {panelTrend !== undefined && <PanelTrend render={panelTrend} />}
-        {panelFooter !== undefined && <PanelFooter>{panelFooter}</PanelFooter>}
+        {!isInactive && panelTrend !== undefined && (
+          <PanelTrend render={panelTrend} />
+        )}
+        {!isInactive && panelFooter !== undefined && (
+          <PanelFooter>{panelFooter}</PanelFooter>
+        )}
         {hoverTitle && (
           <PanelHoverTop data-panel-hover-title="">
             <PanelHoverTitlePill as="h3" id={hoverTitleId}>
@@ -1846,6 +1873,44 @@ function PanelRootImpl({
     </PanelProviders>
   );
 }
+
+/** The one body an inactive panel draws: the reason, centred, announced politely. */
+function PanelInactiveBody({ reason }: { reason: PanelInactiveReason }) {
+  const { reason: message, hint } =
+    typeof reason === "string" ? { reason, hint: undefined } : reason;
+  return (
+    <PanelInactive__Body role="status" aria-live="polite">
+      <PanelInactive__Reason>{message}</PanelInactive__Reason>
+      {hint !== undefined && <PanelInactive__Hint>{hint}</PanelInactive__Hint>}
+    </PanelInactive__Body>
+  );
+}
+
+const PanelInactive__Body = styled.div`
+  flex: 0 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gap-caption);
+  text-align: center;
+  padding: var(--inset-refusal);
+`;
+
+const PanelInactive__Reason = styled.div`
+  color: var(--color-text-muted);
+  font-size: var(--font-size-caption);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+`;
+
+const PanelInactive__Hint = styled.div`
+  color: var(--color-text-faint);
+  font-size: var(--font-size-caption);
+  letter-spacing: 0.04em;
+`;
 
 /**
  * Whether a section is a filling `Section` whose whole content is one
