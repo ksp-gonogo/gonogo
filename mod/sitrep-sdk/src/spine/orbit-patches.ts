@@ -5,6 +5,7 @@
  * point are both this walk; they differ only in where they stop.
  */
 import type { OrbitPatch } from "../__generated__/contract";
+import { type Value, value } from "../unit-system/value";
 import { solveEccentricAnomaly } from "./kepler";
 
 /** The elements of a patch a propagation reads. */
@@ -87,15 +88,39 @@ function windowOf(patch: PatchSpan): { start: number; end: number } {
   return { start: patch.startUt.magnitude, end: patch.endUt.magnitude };
 }
 
+const FULL_TURN = value("rad", 2 * Math.PI);
+
+/**
+ * The mean anomaly, in radians, `ut` reaches from `meanAnomalyAtEpoch` at
+ * `meanMotion`: `M0 + n·(ut − epoch)`.
+ *
+ * Every term is a quantity up to the sum, and the sum is where the algebra
+ * stops: what reads it is the Kepler solve, which is trigonometry on a number.
+ * A propagation that advances a conic in time goes through here rather than
+ * subtracting instants of its own, so the instant, the interval and the rate
+ * keep their units right up to the solve.
+ */
+export function meanAnomalyAt(
+  meanAnomalyAtEpoch: Value<"rad">,
+  meanMotion: Value<"rad·s⁻¹">,
+  epoch: Value<"ut">,
+  ut: Value<"ut">,
+): number {
+  return meanAnomalyAtEpoch.plus(meanMotion.times(ut.minus(epoch))).magnitude;
+}
+
 /**
  * The craft's inertial state at `ut` on `patch`. The UT should lie inside the
  * patch's window; nothing is clamped, so picking the patch is the caller's.
  * Mean motion comes from the patch's own period.
  */
 export function patchStateAt(patch: PatchConic, ut: number): InertialState {
-  const dt = ut - patch.epoch.magnitude;
-  const n = (2 * Math.PI) / patch.period.magnitude;
-  const M = patch.meanAnomalyAtEpoch.magnitude + n * dt;
+  const M = meanAnomalyAt(
+    patch.meanAnomalyAtEpoch,
+    FULL_TURN.dividedBy(patch.period),
+    patch.epoch,
+    value("ut", ut),
+  );
   const e = patch.ecc.magnitude;
   const E = solveEccentricAnomaly(M, e);
   const nu = eccentricToTrueAnomaly(E, e);

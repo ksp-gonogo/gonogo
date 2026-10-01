@@ -193,6 +193,16 @@ describe("collisions the catalog has to survive", () => {
     expect(() => value("rad/s", 1).plus(value("rpm", 1))).toThrow();
   });
 
+  it("names an angle per second as an angular speed, never as the dose rate", () => {
+    const meanMotion = value("rad", 0.01).per(value("s", 1));
+    expect(meanMotion.unit).toBe("rad·s⁻¹");
+    const swept = meanMotion.times(value("ut", 500).minus(value("ut", 100)));
+    expect(swept.unit).toBe("rad");
+    expect(swept.in("°").magnitude).toBeCloseTo(4 * (180 / Math.PI), 9);
+    expect(value("rad", Math.PI).dividedBy(meanMotion).unit).toBe("s");
+    expect(value("rpm", 60).in("rad·s⁻¹").magnitude).toBeCloseTo(2 * Math.PI);
+  });
+
   it("keeps g-force apart from a gram it never has to mean", () => {
     // Our own ladder starts mass at kg, so bare `g` is only ever acceleration in the first-party set.
     expect(UNIT_DEFINITIONS.g.kind).toBe("acceleration");

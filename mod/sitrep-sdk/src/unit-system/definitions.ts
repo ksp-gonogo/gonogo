@@ -209,6 +209,14 @@ export const UNIT_DEFINITIONS = {
     ratio: (2 * Math.PI) / 60,
     kind: "angularSpeed",
   },
+  /*
+   * Angle per second at base scale: what a mean motion is, and what
+   * `rad.per(s)` produces. No payload carries one. Spelled with the exponent
+   * because `rad/s` is the dose rate below. This entry has to exist: with no
+   * ratio-1 unit of its own, a computed angular speed is named after its
+   * dimension, which spells `rad/s` and so reads back as a dose.
+   */
+  "rad·s⁻¹": { dim: { rad: 1, s: -1 }, ratio: 1, kind: "angularSpeed" },
 
   // ── Mass, force, energy, power, pressure ─────────────────────────────────
   kg: { dim: { kg: 1 }, ratio: 1, kind: "mass", ladder: "mass" },

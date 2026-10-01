@@ -316,6 +316,7 @@ export {
   geoFromInertial,
   groundTrackSamples,
   isPatchElliptical,
+  meanAnomalyAt,
   patchArc,
   patchHolds,
   patchStateAt,

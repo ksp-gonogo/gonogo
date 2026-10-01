@@ -78,6 +78,7 @@ export const GENERATED_UNIT_KINDS = {
   "rad": { kind: "planeAngle", ratio: 1 },
   "rad/h": { kind: "doseRate", ratio: 0.0002777777777777778, ladder: "doseRate" },
   "rad/s": { kind: "doseRate", ratio: 1, ladder: "doseRate" },
+  "rad·s⁻¹": { kind: "angularSpeed", ratio: 1 },
   "ratio": { kind: "ratio", ratio: 1 },
   "rep": { kind: "reputation", ratio: 1 },
   "rep/day": { kind: "reputationRate", ratio: 0.000046296296296296294 },

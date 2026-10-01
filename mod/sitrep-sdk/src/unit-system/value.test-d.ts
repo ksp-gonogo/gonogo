@@ -55,6 +55,14 @@ export const _countPlusRatio = value("count", 3).plus(value("ratio", 0.5));
 // @ts-expect-error: absorbed dose rate is not angular velocity
 export const _doseRatePlusRpm = value("rad/s", 1).plus(value("rpm", 1));
 
+// ── Angle over time is an angular speed, and back again ─────────────────────
+const meanMotion: Value<"rad·s⁻¹"> = value("rad", 0.01).per(seconds);
+export const _swept: Value<"rad"> = meanMotion.times(seconds);
+export const _interval: Value<"s"> = value("rad", 1).dividedBy(meanMotion);
+
+// @ts-expect-error: an angular speed is not a dose rate
+export const _meanMotionAsDose: Value<"rad/s"> = meanMotion;
+
 // ── The operators stay broken, which is the point ───────────────────────────
 // TypeScript rejects these on object types regardless of `valueOf`, and each
 // one is a migration site rather than a nuisance: `120 + 2 = 122` across a

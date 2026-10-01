@@ -342,12 +342,15 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // number is compared against a window and never computed with.
   "mod/sitrep-sdk/src/spine/kepler.ts": 1,
   /*
-   * 10: each patch's elements and window, read as numbers once and only here.
-   * The Kepler step and the perifocal rotation are trigonometry the algebra has
-   * no term for, and every patch walk (the ground track, the impact point, the
-   * SystemView arc) goes through this file rather than unwrapping on its own.
+   * 8: each patch's shape and window, read as numbers once and only here, and
+   * the one mean anomaly `meanAnomalyAt` hands the Kepler solve. The instant,
+   * the interval and the mean motion stay quantities up to that sum; the solve
+   * and the perifocal rotation are trigonometry the algebra has no term for.
+   * Every patch walk (the ground track, the impact point, the SystemView arc)
+   * and the manoeuvre planner's propagation go through this file rather than
+   * unwrapping on their own.
    */
-  "mod/sitrep-sdk/src/spine/orbit-patches.ts": 10,
+  "mod/sitrep-sdk/src/spine/orbit-patches.ts": 8,
   "packages/sitrep-client/src/use-control-stream.tsx": 2,
   "packages/ui-kit/src/Countdown.tsx": 1,
   /*
