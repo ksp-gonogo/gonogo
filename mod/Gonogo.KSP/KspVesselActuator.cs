@@ -223,11 +223,30 @@ namespace Gonogo.KSP
             _flyByWireCallback = ApplyFlyByWireOverride;
         }
 
-        public CommandResult SetSas(bool enabled) => WithActionGroups(actionGroups =>
+        public CommandResult SetSas(bool enabled)
         {
-            actionGroups.SetGroup(KSPActionGroup.SAS, enabled);
-            return CommandResult.Ok();
-        });
+            var vessel = ActiveVesselScope.Current;
+            if (vessel == null || vessel.ActionGroups == null)
+            {
+                return CommandResult.Fail(CommandErrorCode.NoVessel);
+            }
+
+            // Stock clears a SAS flag that no pilot or probe core backs, so the
+            // write alone reports nothing: ask first, then read back.
+            var refusal = ActionGroupWrite.SasRefusal(
+                enabled, vessel.Autopilot?.SAS != null && vessel.Autopilot.SAS.CanEngageSAS());
+            if (refusal != null)
+            {
+                return refusal;
+            }
+            return SetVerified(vessel.ActionGroups, KSPActionGroup.SAS, "SAS", enabled);
+        }
+
+        private static CommandResult SetVerified(ActionGroupList groups, KSPActionGroup group, string name, bool enabled)
+        {
+            groups.SetGroup(group, enabled);
+            return ActionGroupWrite.Verify(name, enabled, groups[group]);
+        }
 
         /// <summary>
         /// Puts the reported craft's autopilot into a hold, through
@@ -293,34 +312,19 @@ namespace Gonogo.KSP
         }
 
         public CommandResult SetRcs(bool enabled) => WithActionGroups(actionGroups =>
-        {
-            actionGroups.SetGroup(KSPActionGroup.RCS, enabled);
-            return CommandResult.Ok();
-        });
+            SetVerified(actionGroups, KSPActionGroup.RCS, "RCS", enabled));
 
         public CommandResult SetGear(bool enabled) => WithActionGroups(actionGroups =>
-        {
-            actionGroups.SetGroup(KSPActionGroup.Gear, enabled);
-            return CommandResult.Ok();
-        });
+            SetVerified(actionGroups, KSPActionGroup.Gear, "Gear", enabled));
 
         public CommandResult SetBrakes(bool enabled) => WithActionGroups(actionGroups =>
-        {
-            actionGroups.SetGroup(KSPActionGroup.Brakes, enabled);
-            return CommandResult.Ok();
-        });
+            SetVerified(actionGroups, KSPActionGroup.Brakes, "Brakes", enabled));
 
         public CommandResult SetLights(bool enabled) => WithActionGroups(actionGroups =>
-        {
-            actionGroups.SetGroup(KSPActionGroup.Light, enabled);
-            return CommandResult.Ok();
-        });
+            SetVerified(actionGroups, KSPActionGroup.Light, "Lights", enabled));
 
         public CommandResult SetAbort(bool enabled) => WithActionGroups(actionGroups =>
-        {
-            actionGroups.SetGroup(KSPActionGroup.Abort, enabled);
-            return CommandResult.Ok();
-        });
+            SetVerified(actionGroups, KSPActionGroup.Abort, "Abort", enabled));
 
         /// <summary>
         /// Writes the ACTIVE vessel's commanded throttle via
