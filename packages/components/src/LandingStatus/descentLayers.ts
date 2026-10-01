@@ -12,6 +12,8 @@ import { parentBodyFromTopics } from "../shared/streamBody";
 /**
  * The descent envelope as a contributed plot: a velocity-height instrument with speed on X and height above ground on Y, so the bottom edge is the ground. The bold curve is the terminal-velocity line, the equilibrium glide the vessel settles onto.
  * LandingStatus cannot name this plot and holds nothing an outside author lacks, so the widget would lose its own envelope the moment the seam stopped carrying one.
+ *
+ * Not a reckoner: the trace is a descent projected from the speed and height at the view time, along a terminal-velocity curve built from the two anchors `vessel.landing` carries. It is a drawing of an outcome that has not happened, not a Topic's value carried past its last observation, and it sits on no channel for `registerReckoner` to name.
  */
 /**
  * Urgency is driven entirely by the do-nothing outcome (`projectedTouchdownSpeed`) and the altitude left, never the current speed.

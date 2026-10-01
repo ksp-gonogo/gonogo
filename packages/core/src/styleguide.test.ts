@@ -75,7 +75,7 @@ const SCAN_ROOTS = styleguideScanRoots(
 );
 
 // Current baseline. When you drop the count, lower this number in the
-// same commit. The test surfaces a hint when you can. Goal: hold at 0.
+// same commit: a count below the baseline fails. Goal: hold at 0.
 //
 // 1: `packages/components/src/SystemView/SystemDiagram.tsx`'s `#1a1a1a`, and it
 // is PROSE rather than a colour: a doc comment quoting what
@@ -156,12 +156,10 @@ describe("design-system: raw hex literals", () => {
       );
     }
     if (offenders.length < HEX_OCCURRENCE_BASELINE) {
-      // Cleanup is welcome, but tighten the baseline so the gate keeps
-      // ratcheting. Print rather than fail so the cleanup commit lands
-      // green; updating the constant is then a tiny follow-up edit.
-      console.warn(
-        `[styleguide] hex baseline can be lowered: ${HEX_OCCURRENCE_BASELINE} → ${offenders.length}. ` +
-          `Update HEX_OCCURRENCE_BASELINE in packages/core/src/styleguide.test.ts.`,
+      throw new Error(
+        `Raw hex literal count (${offenders.length}) is below HEX_OCCURRENCE_BASELINE (${HEX_OCCURRENCE_BASELINE}).\n` +
+          `Those ${HEX_OCCURRENCE_BASELINE - offenders.length} of slack are permission for ${HEX_OCCURRENCE_BASELINE - offenders.length} new ones, which is why this fails instead of warning. ` +
+          `Lower HEX_OCCURRENCE_BASELINE to ${offenders.length} in packages/core/src/styleguide.test.ts.`,
       );
     }
     expect(offenders.length).toBeLessThanOrEqual(HEX_OCCURRENCE_BASELINE);

@@ -135,3 +135,20 @@ registerReckoner("spaceCenter.state", "core", {
   deps: [],
   reckon: () => ({ declined: { reason: "model-inapplicable" } }),
 });
+
+/*
+ * LandingStatus's own solves (the suicide-burn solution, the delay clocks, the
+ * descent trace) predict an event that has not happened and sit on no channel
+ * at all, so there is no Topic to register a model for. A name for one is not a
+ * `TopicId`, and this registry refuses it.
+ *
+ * The directive is the gate, not the prose: the day a Topic by this name
+ * exists, or the parameter stops being `TopicId`, the directive is unused and
+ * typecheck fails, which is when the reasons in `solveLanding.ts`, `clocks.ts`,
+ * `descentLayers.ts` and `descent.ts` want re-reading.
+ */
+// @ts-expect-error `vessel.landingSolution` names no Topic and no derived channel.
+registerReckoner("vessel.landingSolution", "core", {
+  deps: [],
+  reckon: () => ({ declined: { reason: "model-inapplicable" } }),
+});

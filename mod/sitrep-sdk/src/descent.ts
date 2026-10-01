@@ -69,6 +69,8 @@ export interface ProjectDescentOptions {
  * form relaxes toward the curve however large the step or the excess is, which
  * is also the physical behaviour.
  *
+ * Not a reckoner: the atmosphere arrives as the caller's `terminalVelocityAt`, so there is no drag model, ballistic coefficient or density assumption in here, and the speeds are solved from the start state at the view time. The result describes a touchdown that has not happened and belongs to no Topic.
+ *
  * @category Orbits and trajectories
  */
 export function projectDescent(

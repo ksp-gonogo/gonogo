@@ -5,6 +5,8 @@
  * - Blind Clock, `T_impact - 2N`: the last instant a command's result could still be seen before impact. Surfaced as the COMMIT POINT; at or below 0 the outcome is fixed and merely unseen
  *
  * The regime turns the round trip into the operator's role (pilot, flight director, mission planner).
+ *
+ * Not a reckoner: nothing here carries an observed value forward. Each margin subtracts the signal delay from a countdown or impact time already solved at the view time, so it is as current as those inputs and no more.
  */
 
 import type { Value } from "@ksp-gonogo/sitrep-sdk";

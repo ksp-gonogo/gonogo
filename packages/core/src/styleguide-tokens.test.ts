@@ -22,8 +22,8 @@ import { styleguideScanRoots } from "./styleguideScanRoots";
  *   - a documented per-file baseline covers what legitimately remains
  *     today, each entry of which is commented at its call site with why
  *     it stayed literal;
- *   - cleaning one up prints a hint to lower that file's entry in the
- *     same commit rather than failing, so a cleanup lands green;
+ *   - cleaning one up fails until that file's entry is lowered in the
+ *     same commit, because slack is permission for new literals;
  *   - `EXCEPTIONS` exempts a path (optionally for one family only) for
  *     the cases that will never be tokenised, and every entry must carry
  *     a reason, which the last test in this file enforces.
@@ -125,8 +125,7 @@ function baselineKey(file: string): string {
  *
  * When you legitimately add one: put the reason in a comment at the call
  * site, then add or raise that file's entry here. When you clean one up,
- * lower it (or delete the key) in the same commit; the tests warn rather
- * than fail on a drop, so a cleanup lands green.
+ * lower it (or delete the key) in the same commit; a drop fails the test.
  */
 const BASELINES: Record<Family, Record<string, number>> = {
   /**
