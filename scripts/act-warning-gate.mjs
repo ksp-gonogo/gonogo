@@ -76,6 +76,7 @@
  * Usage:
  *   pnpm act-warning-gate              check against the committed debt
  *   pnpm act-warning-gate --filter ui  restrict to packages matching a substring
+ *   pnpm act-warning-gate --except a,b leave out the packages with exactly these names
  *   pnpm act-warning-gate --update --only <substring>
  *                                      rewrite ONLY entries matching <substring>
  *   pnpm act-warning-gate --update --all
@@ -108,6 +109,9 @@ const args = process.argv.slice(2);
 const update = args.includes("--update");
 const filterIdx = args.indexOf("--filter");
 const filter = filterIdx >= 0 ? args[filterIdx + 1] : null;
+const exceptIdx = args.indexOf("--except");
+const except =
+  exceptIdx >= 0 ? (args[exceptIdx + 1] ?? "").split(",").filter(Boolean) : [];
 const onlyIdx = args.indexOf("--only");
 const only = onlyIdx >= 0 ? args[onlyIdx + 1] : null;
 const all = args.includes("--all");
@@ -120,11 +124,11 @@ const all = args.includes("--all");
  * that long re-runs with whatever makes it stop complaining rather than with
  * what they meant.
  */
-if (update && filter && !only) {
+if (update && (filter || except.length > 0) && !only) {
   console.error(
-    "Refusing to --update under --filter. The debt is the whole tree, and rewriting " +
+    "Refusing to --update under --filter or --except. The debt is the whole tree, and rewriting " +
       "it from one package's measurement would delete every entry that was never run, " +
-      "reporting the rest of the tree as fixed. Either drop --filter, or add --only " +
+      "reporting the rest of the tree as fixed. Either drop the scope, or add --only " +
       "<substring> to say which entries you actually mean to rewrite.",
   );
   process.exit(1);
@@ -486,8 +490,19 @@ function writeDebt(rawMeasured) {
   writeFileSync(join(repoRoot, "scripts/act-warning-debt.mjs"), next);
 }
 
-const packages = packagesWithTests().filter(
-  (p) => !filter || p.short.includes(filter),
+const allPackages = packagesWithTests();
+const unknownExcept = except.filter(
+  (name) => !allPackages.some((p) => p.short === name),
+);
+if (unknownExcept.length > 0) {
+  console.error(
+    `\n✖ --except names no package with a test script: ${unknownExcept.join(", ")}. ` +
+      `A misspelt exclusion would leave the package in the run it was meant to leave out.`,
+  );
+  process.exit(1);
+}
+const packages = allPackages.filter(
+  (p) => (!filter || p.short.includes(filter)) && !except.includes(p.short),
 );
 
 /*
@@ -617,7 +632,7 @@ if (crashed.length > 0) {
   process.exit(1);
 }
 
-// Only the packages actually measured are compared. Under `--filter` the rest were
+// Only the packages actually measured are compared. Under `--filter` or `--except` the rest were
 // never run, and reading their absence as "fixed" would report the whole tree green
 // from one package's suite.
 const measuredPackages = new Set(packages.map((p) => p.short));

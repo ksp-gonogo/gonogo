@@ -166,10 +166,24 @@ jobs:
   # The vitest suites: `pnpm test`, the repo-wide scans and the two DOM-snapshot
   # gates that need the same build `pnpm test` already produces as a side
   # effect (turbo builds every package's `^build` dependency before running its
-  # `test` task). This is the single biggest remaining job; see `ci-speed-plan`
-  # for why it was not sharded further in this pass.
+  # `test` task).
+  #
+  # Sharded by package, never by file: the cross-file ratchets read the whole
+  # tree from core's own scans, so they stay together in `rest`. `components`
+  # alone is most of the wall time, which is why it has a leg to itself.
   unit-test:
+    name: unit-test (${{ matrix.leg }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - leg: components
+            turbo-scope: --filter=@ksp-gonogo/components
+          # Every package but components, so a package added later lands here
+          # without anyone editing the matrix.
+          - leg: rest
+            turbo-scope: "--filter='!@ksp-gonogo/components'"
     steps:
       # The shrink-only ratchets read their debt lists at a BASE revision
       # (`git show <ref>:<path>`) and diff them. At the default depth of 1
@@ -254,12 +268,14 @@ jobs:
       # proves itself first with a planted missing export and a planted missing
       # subpath, either of which passing exits BLIND.
       - name: The published packages work outside the workspace
+        if: matrix.leg == 'rest'
         run: pnpm published-packages-probe
 
-      - run: pnpm test
+      - run: pnpm test ${{ matrix.turbo-scope }}
 
       # The repo-wide scans live under their own vitest config, so `pnpm test` never runs them.
-      - run: pnpm --filter @ksp-gonogo/core test:scans
+      - if: matrix.leg == 'rest'
+        run: pnpm --filter @ksp-gonogo/core test:scans
 
       # Un-fed snapshot gate: re-runs the DOM snapshot specs with every stream
       # emit suppressed and fails on any that still pass, because such a test is
@@ -274,7 +290,8 @@ jobs:
       # and enforced from both sides. Keeping this step green is the point: a step
       # that is permanently red hides the next unrelated failure behind it, which is
       # what happened to `visual`.
-      - run: pnpm --filter @ksp-gonogo/components unfed-snapshot-gate
+      - if: matrix.leg == 'components'
+        run: pnpm --filter @ksp-gonogo/components unfed-snapshot-gate
 
       # Says out loud which suites did not run. Three of them are gated on a
       # recording generated into `local_docs/`, which is blanket-gitignored, so
@@ -289,6 +306,7 @@ jobs:
       # is held to the tree by `packages/core/src/fixture-gated-suites.test.ts`,
       # so it cannot go stale without that going red.
       - name: Which suites did not run, and what that costs
+        if: matrix.leg == 'rest'
         run: pnpm fixture-gated-report
 
   # Stacked-overlap gate plus the two lighter checks that share its render
@@ -543,7 +561,20 @@ jobs:
   # its body and fails the job as BLIND if it is not counted, which is what proves
   # the hold ran.
   act-warnings:
+    name: act-warnings (${{ matrix.leg }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - leg: components
+            scope: --filter components
+          - leg: app
+            scope: --filter app
+          # Everything the two legs above do not name, so a package added later
+          # lands here without anyone editing the matrix.
+          - leg: rest
+            scope: --except components,app
     steps:
       # Same checkout depth and base ref as `unit-test`, because this job
       # re-runs every suite (the ratchets included) and treats a non-zero
@@ -599,7 +630,7 @@ jobs:
       - name: Build workspace
         run: pnpm build
 
-      - run: pnpm act-warning-gate
+      - run: pnpm act-warning-gate ${{ matrix.scope }}
 
   # C# Sitrep mod: unit/integration tests + the contract shape-gate.
   # Runs in parallel with `test`/`e2e`/`visual`, on the same triggers.
