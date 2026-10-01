@@ -227,6 +227,7 @@ export type {
   StreamStatusValue,
   TelemetryClient,
   ThemeDefinition,
+  TinyControl,
   TinyEssential,
   TinyEssentialTone,
   TinyGauge,

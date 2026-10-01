@@ -166,6 +166,33 @@ export interface TinyEssential {
    * alone. Only the hero draws one; on a row it is ignored.
    */
   gauge?: TinyGauge;
+  /**
+   * A button drawn in the figure's place, for the one command the tile exists
+   * to give. The widget builds it with the same hooks its body uses
+   * (`useCommand`, `useActionInput`), so it and the serial binding behave at
+   * every size. `value`, `word` and `level` are not drawn alongside it.
+   */
+  control?: TinyControl;
+}
+
+/**
+ * The button a tiny essential carries, drawn by the kit as a toggle button.
+ *
+ * @category Registering
+ */
+export interface TinyControl {
+  /** What the button says: `ON`, `OFF`. */
+  label: string;
+  /** Whether the thing it switches is on. Sets `aria-pressed` and the filled look. */
+  active: boolean;
+  /** Whether a press does nothing right now. */
+  disabled?: boolean;
+  /** The button's accessible name. */
+  title: string;
+  /** A tooltip saying more than the name, such as why the button is disabled. Defaults to `title`. */
+  hint?: string;
+  /** Called on a press. */
+  onPress: () => void;
 }
 
 /**
@@ -192,7 +219,9 @@ export type TinyEssentialTone = "neutral" | "go" | "warn" | "nogo" | "info";
  * values, drawn by the kit in one standard form instead of the widget's body.
  *
  * The widget's own component is not mounted while it is tiny, so a widget that
- * handles actions cannot declare one: its handlers would stop at that size.
+ * handles actions must bind them inside `useEssentials`, which runs in its
+ * place: a {@link TinyEssential} `control` carries the button, and the hook
+ * calls `useActionInput` itself so the serial binding survives the size.
  *
  * @category Registering
  */
@@ -212,6 +241,12 @@ export interface TinyMode<Config = Record<string, unknown>> {
    * end. Called in place of the widget's component, with its props.
    */
   useEssentials: (props: ComponentProps<Config>) => readonly TinyEssential[];
+  /**
+   * Set by a widget that declares actions and calls `useActionInput` inside
+   * `useEssentials`, so the handlers keep running at the tiny size. Registration
+   * refuses a widget with actions and a tiny mode without it.
+   */
+  bindsActions?: boolean;
 }
 
 /**

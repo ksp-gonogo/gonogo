@@ -1,7 +1,6 @@
 import type { ActionGroup, ComponentProps } from "@ksp-gonogo/core";
 import {
   registerComponent,
-  resolveGroupValue,
   useActionGroupFrom,
   useTelemetry,
 } from "@ksp-gonogo/core";
@@ -9,7 +8,9 @@ import { stillTrue } from "@ksp-gonogo/sitrep-sdk";
 import { ActionGroupConfigForm } from "./ActionGroupConfigForm";
 import { ActionGroupView } from "./ActionGroupView";
 import { type ActionGroupConfig, actionGroupActions } from "./config";
+import { groupStateOf } from "./groupState";
 import "./slots";
+import { useActionGroupEssentials } from "./useActionGroupEssentials";
 
 export type { ActionGroupActions, ActionGroupConfig } from "./config";
 export type { ActionGroupSlotContext } from "./slots";
@@ -33,21 +34,10 @@ function ActionGroupComponent(
   if (group && group.index === undefined && group.name === "Stage") {
     return <StageActionGroup {...props} group={group} />;
   }
-  // Whether a group is ON is never held: the toggle inverts it to build its args, so a held value would command the wrong way.
-  const valueHeld = controlReading.state === "held";
-  const observed =
-    controlReading.state === "observed" ? controlReading.value : undefined;
-  const value = resolveGroupValue(group, observed);
-  /**
-   * A current payload that still cannot say whether this group is engaged. An
-   * `assumed` group (never reported by the backend) is excluded: it has its own
-   * reason line.
-   */
-  const stateUnreadable =
-    observed !== undefined &&
-    group !== undefined &&
-    group.provenance !== "assumed" &&
-    value == null;
+  const { value, valueHeld, stateUnreadable } = groupStateOf(
+    group,
+    controlReading,
+  );
   return (
     <ActionGroupView
       {...props}
@@ -84,9 +74,14 @@ registerComponent<ActionGroupConfig>({
     "Toggle a KSP action group or system (SAS, RCS, gear, brakes, lights, AG1-AG10).",
   tags: ["control", "telemetry"],
   defaultSize: { w: 6, h: 6 },
-  minSize: { w: 3, h: 3 },
+  minSize: { w: 2, h: 3 },
   mobileWidth: "half",
   component: ActionGroupComponent,
+  tiny: {
+    title: "ACTION GROUP",
+    bindsActions: true,
+    useEssentials: useActionGroupEssentials,
+  },
   configComponent: ActionGroupConfigForm,
   dataRequirements: [],
   defaultConfig: { actionGroupId: "AG1" },

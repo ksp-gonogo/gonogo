@@ -1,14 +1,5 @@
 import type { ActionGroup, ComponentProps } from "@ksp-gonogo/core";
-import {
-  AugmentSlot,
-  actionGroupIdOf,
-  buildToggleArgs,
-  TOGGLE_INVALID,
-  toggleCommandFor,
-  useActionInput,
-  useTelemetry,
-} from "@ksp-gonogo/core";
-import { useCommand } from "@ksp-gonogo/sitrep-client";
+import { AugmentSlot, actionGroupIdOf } from "@ksp-gonogo/core";
 import {
   BellIcon,
   Input,
@@ -29,14 +20,10 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { useRef, useState } from "react";
 import { useAlarmsLauncher } from "../shared/AlarmsLauncher";
-import type { ActionGroupActions, ActionGroupConfig } from "./config";
+import type { ActionGroupConfig } from "./config";
 import type { ActionGroupSlotContext } from "./slots";
-import {
-  HELD_STATE,
-  stateLabelOf,
-  UNAVAILABLE_TITLES,
-  unavailableReasonOf,
-} from "./toggleAvailability";
+import { HELD_STATE, UNAVAILABLE_TITLES } from "./toggleAvailability";
+import { useGroupToggle } from "./useGroupToggle";
 
 export interface ActionGroupViewProps
   extends Readonly<ComponentProps<ActionGroupConfig>> {
@@ -60,38 +47,19 @@ export function ActionGroupView({
 }: ActionGroupViewProps) {
   const currentLabel = config?.label ?? group?.name ?? "";
 
-  // Paused and no-signal are claims about now, so neither is answered from a held reading.
-  const warpReading = useTelemetry("time.warp");
-  const isPaused =
-    warpReading.state === "observed" ? warpReading.value.paused : undefined;
-  const linkReading = useTelemetry("comms.link");
-  const commConnected =
-    linkReading.state === "observed" ? linkReading.value.connected : undefined;
   const openAlarms = useAlarmsLauncher();
-
-  const toggleCommand = group ? toggleCommandFor(group) : null;
-  const toggleCmd = useCommand(toggleCommand ?? "");
+  const { isOn, stateLabel, canToggle, unavailableReason, press } =
+    useGroupToggle({
+      group,
+      value,
+      valueHeld,
+      stateUnreadable,
+      label: currentLabel,
+    });
 
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
-
-  const handleToggle = () => {
-    if (!group?.toggle || !toggleCommand) return;
-    const args = buildToggleArgs(group, value);
-    if (args === TOGGLE_INVALID) return;
-    void toggleCmd.send(args, { label: `Toggle ${currentLabel}` });
-  };
-
-  useActionInput<ActionGroupActions>({
-    toggle: (payload) => {
-      if (!group) return undefined;
-      // Press edge only, so one tap is one toggle.
-      if (payload.kind === "button" && payload.value !== true) return undefined;
-      handleToggle();
-      return { [group.name]: value !== true };
-    },
-  });
 
   if (!group) {
     return (
@@ -106,10 +74,6 @@ export function ActionGroupView({
     );
   }
 
-  // Some groups, Stage among them, report a number rather than a boolean.
-  const isOn = typeof value === "number" ? value > 0 : value === true;
-  const stateLabel = stateLabelOf(value);
-
   const slotContext: ActionGroupSlotContext = {
     groupId: group.name,
     label: currentLabel,
@@ -117,21 +81,12 @@ export function ActionGroupView({
     stateLabel,
   };
 
-  const unavailableReason = unavailableReasonOf({
-    valueHeld,
-    stateUnreadable,
-    isPaused,
-    commConnected,
-    provenance: group.provenance,
-  });
   const unavailableTitle = unavailableReason
     ? UNAVAILABLE_TITLES[unavailableReason]
     : undefined;
 
   const cols = w ?? 6;
   const showOfficialName = cols >= 5;
-  // Disabled whenever `buildToggleArgs` would refuse the press; an `assumed` group stays live.
-  const canToggle = Boolean(group.toggle) && !valueHeld && !stateUnreadable;
   // At tiny size the bell crowds the pill; it stays reachable from the alarms menu.
   const showBell = getSizeBucket(w, h) !== "tiny" && Boolean(openAlarms);
 
@@ -243,7 +198,7 @@ export function ActionGroupView({
                 active={isOn}
                 size="sm"
                 disabled={!canToggle}
-                onClick={handleToggle}
+                onClick={press}
                 aria-label={`Toggle ${currentLabel}`}
                 title={unavailableReason ?? `Toggle ${currentLabel}`}
               >

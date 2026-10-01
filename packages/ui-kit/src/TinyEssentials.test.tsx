@@ -103,6 +103,57 @@ describe("TinyEssentials", () => {
     await expectNoA11yViolations(container);
   });
 
+  it("draws a control as a toggle button in the figure's place and presses through it", async () => {
+    const onPress = vi.fn();
+    const { container } = render(
+      <TinyEssentials
+        title="SAS"
+        essentials={[
+          {
+            label: "SAS",
+            control: {
+              label: "ON",
+              active: true,
+              title: "Toggle SAS",
+              onPress,
+            },
+          },
+        ]}
+      />,
+    );
+    const button = screen.getByRole("button", { name: "Toggle SAS" });
+    expect(button).toHaveAttribute("aria-pressed", "true");
+    expect(button).toHaveTextContent("ON");
+    button.click();
+    expect(onPress).toHaveBeenCalledTimes(1);
+    await expectNoA11yViolations(container);
+  });
+
+  it("draws a disabled control that does not press", () => {
+    const onPress = vi.fn();
+    render(
+      <TinyEssentials
+        title="SAS"
+        essentials={[
+          {
+            label: "SAS",
+            control: {
+              label: "OFF",
+              active: false,
+              disabled: true,
+              title: "Toggle SAS",
+              onPress,
+            },
+          },
+        ]}
+      />,
+    );
+    const button = screen.getByRole("button", { name: "Toggle SAS" });
+    expect(button).toBeDisabled();
+    button.click();
+    expect(onPress).not.toHaveBeenCalled();
+  });
+
   it("writes a balance too long for the tile in its compact form", () => {
     render(
       <TinyEssentials

@@ -864,9 +864,11 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "ActionGroup/__fixtures__",
     outPath: "renders/action-group-widget",
     modes: [
-      // Minimum size (3×3): tiny bucket (w<5): label + the ON/OFF state pill (itself the toggle button); no UnavailableNotice, no bell.
+      // Smallest tiny sizes: the kit's tiny form, the group's name over its toggle button.
+      // 2×3 is the minimum: at height 2 the name's caption is cut off.
+      { name: "tiny-2x3", w: 2, h: 3 },
       { name: "tiny-3x3", w: 3, h: 3 },
-      // 3×4: still tiny bucket (w<5) so OfficialName and bell are suppressed; the state-pill toggle is present at every size.
+      // 3×4: still tiny bucket (w<5), so the same tiny form.
       { name: "compact-3x4", w: 3, h: 4, config: { actionGroupId: "RCS" } },
       // 6×4: normal bucket: OfficialName visible (cols>=5), state-pill toggle
       // present. Gear group with custom label exercises the secondary line.

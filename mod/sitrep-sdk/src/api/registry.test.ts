@@ -141,6 +141,16 @@ describe("registerComponent with a tiny mode", () => {
     expect(getComponent("test-component")).toBeUndefined();
   });
 
+  it("accepts one whose tiny mode says it binds the actions itself", () => {
+    expect(() =>
+      registerComponent({
+        ...mockComponent,
+        tiny: { ...tiny, bindsActions: true },
+        actions: [{ id: "go", label: "Go", accepts: ["button"] }],
+      }),
+    ).not.toThrow();
+  });
+
   it("accepts one whose action list is empty", () => {
     expect(() =>
       registerComponent({ ...mockComponent, tiny, actions: [] }),
