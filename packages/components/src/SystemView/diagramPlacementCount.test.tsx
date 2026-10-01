@@ -1,3 +1,4 @@
+import { ANALYTIC_BODY_HORIZON } from "@ksp-gonogo/sitrep-client";
 import { render } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import type { Placement, ResolvedProjection } from "./projection";
@@ -21,20 +22,47 @@ function body(index: number, name: string, sma: number): CelestialBody {
     index,
     name,
     referenceBody: "Kerbin",
+    radius: 200_000,
+    soi: null,
+    gravParameter: null,
     semiMajorAxis: sma,
     eccentricity: 0.1,
+    inclination: 0,
     lan: 0,
     argumentOfPeriapsis: 0,
-    inclination: 0,
+    meanAnomalyAtEpoch: null,
+    epoch: null,
+    horizon: ANALYTIC_BODY_HORIZON,
+    period: null,
     trueAnomaly: 1,
-    radius: 200_000,
-  } as unknown as CelestialBody;
+    mass: null,
+    geeASL: null,
+    escapeVelocity: null,
+    hillSphere: null,
+    rotationPeriod: null,
+    initialRotation: null,
+    tidallyLocked: null,
+    rotates: null,
+    hasOcean: null,
+    description: null,
+    atmosphere: null,
+    hasAtmosphere: null,
+    maxAtmosphere: null,
+    hasOxygen: null,
+    figures: {
+      radius: null,
+      mass: null,
+      surfaceGravity: null,
+      dayLength: null,
+      atmosphereDepth: null,
+    },
+  };
 }
 
 const bodies = [
   body(1, "Mun", 12_000_000),
   body(2, "Minmus", 47_000_000),
-  { ...body(3, "Kerbin", 0), referenceBody: "Kerbol" } as CelestialBody,
+  { ...body(3, "Kerbin", 0), referenceBody: "Kerbol" },
 ];
 
 const vesselAt = (trueAnomaly: number): VesselOrbit => ({
