@@ -1155,6 +1155,43 @@ export interface CommandGate
 	* Unknown.)
 	*/
 	verdict: GateVerdict;
+	/**
+	* The argument whose value picks the item a per-item verdict is about, e.g.
+	* `facilityId`. Empty when the command's gate does not depend on which item is
+	* chosen, and then `CommandGate.items` is empty too.
+	*/
+	itemArgument: string;
+	/**
+	* The verdict for each item that a call naming it would NOT pass, keyed by the
+	* value of `CommandGate.itemArgument`. Sampled only while
+	* `CommandGate.verdict` is `GateOutcome.Abstain`: a command refused or
+	* unreadable for every item has nothing to add per item.
+	*
+	* An item with no entry has nothing said about it in advance, which a client
+	* draws exactly as an Abstain: a live control. That covers an item that passed
+	* and one that was never sampled alike, so absence is never a permission
+	* either.
+	*/
+	items: CommandGateItem[];
+}
+/**
+* One item's verdict in a `CommandGate`: what the gate says about a call whose
+* `CommandGate.itemArgument` is `CommandGateItem.value`.
+*
+* @category System diagnostics
+*/
+export interface CommandGateItem
+{
+	/**
+	* The argument's value that names this item, e.g. `LaunchPad`, exactly as a
+	* call would send it.
+	*/
+	value: string;
+	/**
+	* The verdict for a call naming this item, in the shape `CommandGate.verdict`
+	* carries. Never a Pass.
+	*/
+	verdict: GateVerdict;
 }
 /**
 * Wire wrapper for `system.uplink.gates`: every command that declares a

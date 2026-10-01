@@ -42,7 +42,7 @@ export function ContractManagerComponent({
    */
   const careerReading = useTelemetry("career.status");
   const contracts = stillTrue(careerReading, undefined)?.contracts;
-  // A held board marks every card and kills its controls: a Cancel against a held board forfeits a contract the operator cannot see.
+  // A held board marks every card. Its controls stay live: each command checks the contract it names is still in the state it needs.
   const boardHeld = heldGrade(careerReading);
   const activeRaw = contracts?.active;
   const offeredRaw = contracts?.offered;
@@ -133,12 +133,7 @@ export function ContractManagerComponent({
                     confirmLabel="Forfeit contract"
                     confirmTone="nogo"
                     pendingLabel="Cancelling..."
-                    disabled={boardHeld !== undefined}
-                    title={
-                      boardHeld === undefined
-                        ? "Cancel this contract: forfeits all progress"
-                        : "Contract board is held: cancelling would forfeit a contract whose state cannot be read"
-                    }
+                    title="Cancel this contract: forfeits all progress"
                   />
                 </div>
               </ContractCard>
@@ -169,12 +164,6 @@ export function ContractManagerComponent({
                     tone="go"
                     label="Accept"
                     pendingLabel="Accepting..."
-                    disabled={boardHeld !== undefined}
-                    title={
-                      boardHeld === undefined
-                        ? undefined
-                        : "Contract board is held: this offer may already be gone"
-                    }
                   />
                   <CommandButton
                     handle={declineCmd}
@@ -185,12 +174,6 @@ export function ContractManagerComponent({
                     confirmLabel="Confirm decline"
                     confirmTone="nogo"
                     pendingLabel="Declining..."
-                    disabled={boardHeld !== undefined}
-                    title={
-                      boardHeld === undefined
-                        ? undefined
-                        : "Contract board is held: this offer may already be gone"
-                    }
                   />
                 </div>
               </ContractCard>

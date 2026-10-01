@@ -195,7 +195,7 @@ describe("Strategies: an absent balance beside a present strategy list", () => {
   });
 
   // An absent balance is not unlimited money on a control that commits career funds.
-  it("withholds Activate on a 500,000f strategy while the balance is unknown", async () => {
+  it("leaves Activate on a 500,000f strategy to its gate while the balance is unknown", async () => {
     const fixture = newFixture();
     renderStrategies(fixture);
 
@@ -208,14 +208,12 @@ describe("Strategies: an absent balance beside a present strategy list", () => {
       expect(screen.getByText("Expensive Gamble")).toBeInTheDocument(),
     );
     const activate = screen.getByRole("button", { name: "Activate" });
-    expect(activate).toBeDisabled();
-    expect(activate).toHaveAttribute(
-      "title",
-      "Insufficient funds / science / reputation at this factor",
-    );
+    expect(activate).toBeEnabled();
+    // An unknown balance draws no verdict on the price either.
+    expect(document.querySelector('[data-afford="no"]')).toBeNull();
   });
 
-  it("disables the same button once a balance actually arrives and is too small", async () => {
+  it("marks the price short once a balance arrives and is too small", async () => {
     const fixture = newFixture();
     renderStrategies(fixture);
 
@@ -224,14 +222,10 @@ describe("Strategies: an absent balance beside a present strategy list", () => {
       strategies: { active: [], all: [EXPENSIVE], activeCount: 0 },
     });
 
-    // The control for the test above: the refusal is the same whether the balance is short or absent.
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Activate" })).toBeDisabled(),
+      expect(document.querySelector('[data-afford="no"]')).not.toBeNull(),
     );
-    expect(screen.getByRole("button", { name: "Activate" })).toHaveAttribute(
-      "title",
-      "Insufficient funds / science / reputation at this factor",
-    );
+    expect(screen.getByRole("button", { name: "Activate" })).toBeEnabled();
   });
 });
 

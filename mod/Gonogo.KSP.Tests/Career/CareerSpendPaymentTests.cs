@@ -58,7 +58,7 @@ namespace Gonogo.KSP.Tests.Career
         [Fact]
         public void TheFacilityUpgradePathStillDebitsItself()
         {
-            var body = MethodBody("KspCareerActuator.cs", "public CommandResult UpgradeFacility(");
+            var body = MethodBody("KspCareerActuator.cs", "private CommandResult UpgradeFacility(string facilityId, bool commit)");
 
             Assert.Contains("funding.AddFunds(-cost, TransactionReasons.StructureConstruction)", body);
         }

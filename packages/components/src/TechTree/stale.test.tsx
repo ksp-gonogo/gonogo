@@ -108,7 +108,7 @@ describe("TechTree when the career record is held", () => {
     expect(visibleText(document.body)).not.toContain("No tech nodes loaded");
   });
 
-  it("disarms Unlock and says the balance is held, not that none arrived", async () => {
+  it("leaves Unlock to the node's gate while the balance is held", async () => {
     const user = userEvent.setup();
     renderTree();
     emitAffordableCareer();
@@ -120,18 +120,15 @@ describe("TechTree when the career record is held", () => {
 
     goHeld();
 
-    const unlock = await waitFor(() => {
-      const btn = screen.getByRole("button", { name: "Unlock" });
-      expect(btn).toBeDisabled();
-      return btn;
-    });
-    // The refusal names the balance, not any other cause, since a held balance is the only thing withholding it.
-    expect(unlock.getAttribute("title")).toContain(
-      "affordability cannot be checked against a held balance",
+    await waitFor(() =>
+      expect(
+        screen.getByTitle("Available science").querySelector("[data-held]"),
+      ).not.toBeNull(),
     );
-    expect(unlock.getAttribute("title")).not.toContain(
-      "no science balance has arrived",
-    );
+    // A held balance marks the figure; whether the node can be researched is the command's to say.
+    const unlock = screen.getByRole("button", { name: "Unlock" });
+    expect(unlock).toBeEnabled();
+    expect(unlock).not.toHaveAttribute("aria-disabled");
   });
 
   it("keeps the held balance in the subtitle, marked by Unit rather than captioned", async () => {

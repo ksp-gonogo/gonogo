@@ -14,9 +14,10 @@ namespace Gonogo.KSP.Gates
     /// mismatched <see cref="CommandRequirement.Kind"/> would otherwise be found
     /// only by the mod refusing to start.</para>
     ///
-    /// <para>Every requirement below is STATIC:
+    /// <para>Most requirements below are STATIC:
     /// <see cref="CommandRequirement.Needs"/> is empty, so the engine can decide
-    /// it with no arguments at all. That is what turns a refusal into an
+    /// it with no arguments at all. The per-item ones need the item's id and are
+    /// published per item instead. That is what turns a refusal into an
     /// askable-in-advance fact, which is the difference between pressing a
     /// button to find out the pad is occupied and being told first.</para>
     /// </summary>
@@ -78,6 +79,28 @@ namespace Gonogo.KSP.Gates
             table[CareerCommandProvider.ActivateStrategyCommand] = new[]
             {
                 CareerGates.CareerMode,
+                ItemGates.For(ItemGates.Kinds.StrategyActivate, ItemGates.Arguments.StrategyId),
+            };
+
+            // What depends on WHICH item is asked about: the price of this
+            // facility's next tier, this node's science, whether this strategy
+            // can begin or end. Each abstains without its argument and is
+            // published per item, so the one control that would be refused goes
+            // dark while the rest stay live.
+            table[CareerCommandProvider.UpgradeFacilityCommand] = new[]
+            {
+                CareerGates.CareerMode,
+                ItemGates.For(ItemGates.Kinds.FacilityUpgrade, ItemGates.Arguments.FacilityId),
+            };
+            table[CareerCommandProvider.UnlockTechCommand] = new[]
+            {
+                CareerGates.CareerMode,
+                ItemGates.For(ItemGates.Kinds.TechUnlock, ItemGates.Arguments.TechId),
+            };
+            table[CareerCommandProvider.DeactivateStrategyCommand] = new[]
+            {
+                CareerGates.CareerMode,
+                ItemGates.For(ItemGates.Kinds.StrategyDeactivate, ItemGates.Arguments.StrategyId),
             };
 
             // Mission Control's active-contract cap, which stock enforces only

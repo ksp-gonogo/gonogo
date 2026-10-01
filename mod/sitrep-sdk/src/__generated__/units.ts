@@ -296,6 +296,10 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "CommandGate": {
     command: "id",
+    itemArgument: "id",
+  },
+  "CommandGateItem": {
+    value: "id",
   },
   "CommandRequest": {
     command: "id",
@@ -2141,6 +2145,10 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
     requires: "CommandRequirement[]",
   },
   "CommandGate": {
+    items: "CommandGateItem[]",
+    verdict: "GateVerdict",
+  },
+  "CommandGateItem": {
     verdict: "GateVerdict",
   },
   "CommandGateReport": {

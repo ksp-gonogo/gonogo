@@ -94,6 +94,25 @@ export interface CommandButtonHandle<Result = CommandReplyLike, Args = unknown>
    * Absent means nothing is known in advance.
    */
   gate?: CommandGateLike;
+  /**
+   * The standing verdict for a call with these arguments, when the command's
+   * gate depends on which item they name. `useCommand` supplies it; a control
+   * that sends arguments reads it in preference to {@link gate}.
+   */
+  gateFor?(args: Args): CommandGateLike | undefined;
+}
+
+/**
+ * The standing verdict a control sending `args` draws itself from: the
+ * per-item one when the handle can say, else the command's own.
+ *
+ * @category CommandButton
+ */
+export function standingGate<Args>(
+  handle: Pick<CommandButtonHandle<unknown, Args>, "gate" | "gateFor">,
+  args: Args | undefined,
+): CommandGateLike | undefined {
+  return handle.gateFor ? handle.gateFor(args as Args) : handle.gate;
 }
 
 /**
@@ -267,7 +286,7 @@ export function useCommandButton<Result = CommandReplyLike, Args = unknown>({
   // A press on a blocked control shows its reason, cleared on the refusal window.
   const [reasonShown, setReasonShown] = useState(false);
 
-  const gate = handle.gate;
+  const gate = standingGate(handle, args);
   // An undetermined gate is NOT a refusal and must not darken anything.
   const gateBlocks = gate?.blocked === true;
 
@@ -689,7 +708,7 @@ export function CommandButton<Result = CommandReplyLike, Args = unknown>({
         data-gate={
           isBlocked
             ? "blocked"
-            : handle.gate?.undetermined
+            : standingGate(handle, args)?.undetermined
               ? "undetermined"
               : undefined
         }

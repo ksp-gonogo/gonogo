@@ -1342,6 +1342,79 @@ describe("useCommand gate", () => {
     });
   });
 
+  it("refuses only the call naming the item its gate refuses, and sends the rest", async () => {
+    const fixture = setupFixture();
+    const captured: {
+      handle?: ReturnType<typeof useCommand<unknown, unknown>>;
+    } = {};
+    function Captured() {
+      const handle = useCommand("upgrade");
+      captured.handle = handle;
+      return <CommandDelay handle={handle} />;
+    }
+    render(
+      <fixture.Provider>
+        <Captured />
+      </fixture.Provider>,
+    );
+    act(() => {
+      fixture.transport.emit(
+        "system.uplink.gates",
+        {
+          gates: [
+            {
+              command: "upgrade",
+              verdict: { outcome: 2, detail: "" },
+              itemArgument: "facilityId",
+              items: [
+                {
+                  value: "LaunchPad",
+                  verdict: {
+                    outcome: 1,
+                    errorCode: "insufficientFunds",
+                    detail: "short of funds",
+                  },
+                },
+              ],
+            },
+          ],
+        },
+        { validAt: 0, deliveredAt: 0 },
+      );
+    });
+    await waitFor(() => {
+      expect(
+        captured.handle?.gateFor({ facilityId: "LaunchPad" })?.blocked,
+      ).toBe(true);
+    });
+    expect(captured.handle?.gate?.blocked).toBe(false);
+    expect(captured.handle?.gateFor({ facilityId: "Runway" })?.blocked).toBe(
+      false,
+    );
+
+    let refused: Promise<unknown> | undefined;
+    act(() => {
+      // biome-ignore lint/style/noNonNullAssertion: asserted by the waitFor above
+      refused = captured.handle!.send({ facilityId: "LaunchPad" });
+    });
+    await expect(refused).rejects.toMatchObject({
+      code: "E_REFUSED",
+      errorCode: "insufficientFunds",
+      detail: "short of funds",
+    });
+    expect(fixture.transport.sentCommands).toHaveLength(0);
+
+    act(() => {
+      // biome-ignore lint/style/noNonNullAssertion: asserted by the waitFor above
+      void captured
+        .handle!.send({ facilityId: "Runway" })
+        .catch(() => undefined);
+    });
+    expect(fixture.transport.sentCommands).toHaveLength(1);
+    // Holds the scope open across the stub's answer, which settles after the body.
+    await act(async () => {});
+  });
+
   it("dispatches once the gate reopens", async () => {
     const fixture = setupFixture();
     const captured: {

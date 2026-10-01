@@ -33,7 +33,18 @@ namespace Gonogo.KSP
     /// </summary>
     internal static class StockStrategyActivation
     {
-        public static CommandResult Activate(Strategy strategy, StrategySystem system, double factor)
+        public static CommandResult Activate(Strategy strategy, StrategySystem system, double factor) =>
+            RefuseBeforeTheArms() ?? StrategyCommit.Activate(new OffScreenStrategy(strategy, system), factor);
+
+        /// <summary>
+        /// What <see cref="Activate"/> would answer at the factor the strategy
+        /// already carries, without activating it: the same field check, the
+        /// same patch check and the same arms, in the same order.
+        /// </summary>
+        public static CommandResult Judge(Strategy strategy, StrategySystem system) =>
+            RefuseBeforeTheArms() ?? new OffScreenStrategy(strategy, system).Gate();
+
+        private static CommandResult? RefuseBeforeTheArms()
         {
             if (!StrategyPrivateFields.Resolved)
             {
@@ -43,10 +54,7 @@ namespace Gonogo.KSP
                         + "so none was attempted");
             }
 
-            var patched = RefuseIfPatched();
-            if (patched != null) return patched;
-
-            return StrategyCommit.Activate(new OffScreenStrategy(strategy, system), factor);
+            return RefuseIfPatched();
         }
 
         /// <summary>

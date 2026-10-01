@@ -40,45 +40,12 @@ export function StrategyDescription({ of: s }: Readonly<{ of: Strategy }>) {
   );
 }
 
-/**
- * What the Activate control says to a pointer resting on it. A refusal names
- * which kind it is, because the operator does something different about each:
- * a held balance wants the link looked at, a short one wants funds.
- */
-function activateTitle(
-  s: Strategy,
-  commitsUnanswered: boolean,
-  balancesHeld: boolean,
-  cantAfford: boolean,
-): string {
-  const unanswered = s.canActivate === null && commitsUnanswered;
-  if (!unanswered) {
-    if (s.canActivate !== true) {
-      return s.activateBlockedReason || "Cannot activate";
-    }
-    if (s.activateVerdictSource !== "screened") {
-      return "Nobody screened this answer, so it cannot be committed from here.";
-    }
-  }
-  if (balancesHeld) {
-    return "Affordability cannot be checked against a held balance";
-  }
-  if (cantAfford) {
-    return "Insufficient funds / science / reputation at this factor";
-  }
-  return unanswered
-    ? "Set the factor, then confirm. The checks that could not be made here are made when you confirm."
-    : "Set the factor, then confirm";
-}
-
 export function AvailableRow({
   strategy: s,
   showDepartment,
-  commitsUnanswered,
   funds,
   reputation,
   science,
-  balancesHeld,
   rosterFrom,
   factor,
   onFactorChange,
@@ -90,16 +57,9 @@ export function AvailableRow({
 }: {
   strategy: Strategy;
   showDepartment: boolean;
-  /**
-   * The career's activation is the game's own, so the command commits a
-   * strategy with no verdict by putting every check itself when it runs.
-   */
-  commitsUnanswered: boolean;
   funds: number | null;
   reputation: number | null;
   science: number | null;
-  /** Withheld because the balances were held, rather than never having arrived. */
-  balancesHeld: boolean;
   rosterFrom: readonly CarriedCurrency[];
   factor: number;
   onFactorChange: (v: number) => void;
@@ -140,11 +100,6 @@ export function AvailableRow({
     return overBudget(cost, balance) ? "no" : "yes";
   };
 
-  const cantAfford =
-    (s.initialCostFunds > 0 && overBudget(scaledFunds, funds)) ||
-    (s.initialCostScience > 0 && overBudget(scaledScience, science)) ||
-    (s.initialCostReputation > 0 && overBudget(scaledRep, reputation));
-
   // A cost chip carries the kit's `nogo` tone only once the verdict is actually "no"; an unknown balance stays untoned rather than reading as either afford or refusal.
   const costTone = (afford: "yes" | "no" | undefined) =>
     afford === "no" ? ("nogo" as const) : undefined;
@@ -172,23 +127,6 @@ export function AvailableRow({
             label="Activate"
             confirmLabel="Confirm activate"
             pendingLabel="Activating..."
-            /*
-             * Arms on a screened yes, or on no verdict where the command re-runs
-             * every check itself. A derived verdict never arms, yes or no.
-             */
-            disabled={
-              !(
-                (s.canActivate === true &&
-                  s.activateVerdictSource === "screened") ||
-                (s.canActivate === null && commitsUnanswered)
-              ) || cantAfford
-            }
-            title={activateTitle(
-              s,
-              commitsUnanswered,
-              balancesHeld,
-              cantAfford,
-            )}
           />
         )
       }

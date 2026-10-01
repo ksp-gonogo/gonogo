@@ -43,12 +43,11 @@ export interface ScreenSectionsProps {
   listsStrategies?: boolean;
   /** True when the screen's own body carries the activate/deactivate verbs, so the host draws no Activate/Deactivate button on its cards. */
   drawsOwnActions?: boolean;
-  /** Whether `career.strategy.activate` can commit a strategy the roster has no verdict for. */
-  commitsUnanswered: boolean;
+  /** The career's activation is the game's own, so a strategy with no verdict is checked in full when it is confirmed. */
+  checkedOnConfirm: boolean;
   funds: Quantityish | undefined;
   reputation: Quantityish | undefined;
   science: Quantityish | undefined;
-  balancesHeld: boolean;
   rosterFrom: readonly CarriedCurrency[];
   factorById: Record<string, number>;
   setFactorById: Dispatch<SetStateAction<Record<string, number>>>;
@@ -69,11 +68,10 @@ export function ScreenSections({
   showDepartment = true,
   listsStrategies = true,
   drawsOwnActions = false,
-  commitsUnanswered,
+  checkedOnConfirm,
   funds,
   reputation,
   science,
-  balancesHeld,
   rosterFrom,
   factorById,
   setFactorById,
@@ -92,11 +90,9 @@ export function ScreenSections({
       key={s.id}
       strategy={s}
       showDepartment={showDepartment}
-      commitsUnanswered={commitsUnanswered}
       funds={magnitudeOf(funds)}
       reputation={magnitudeOf(reputation)}
       science={magnitudeOf(science)}
-      balancesHeld={balancesHeld}
       rosterFrom={rosterFrom}
       factor={factorById[s.id] ?? s.factorSliderDefault}
       onFactorChange={(v) => setFactorById((prev) => ({ ...prev, [s.id]: v }))}
@@ -156,13 +152,7 @@ export function ScreenSections({
                             pendingLabel="Deactivating..."
                             active
                             tone="go"
-                            disabled={!s.canDeactivate}
-                            title={
-                              s.canDeactivate
-                                ? "Deactivate this strategy"
-                                : s.deactivateBlockedReason ||
-                                  "Cannot deactivate"
-                            }
+                            title="Deactivate this strategy"
                           />
                         )}
                       </>
@@ -244,6 +234,12 @@ export function ScreenSections({
               >
                 {unknownReason !== null && (
                   <BlockedNote>{unknownReason}</BlockedNote>
+                )}
+                {checkedOnConfirm && !drawsOwnActions && (
+                  <BlockedNote>
+                    The checks that could not be made here are made when you
+                    confirm.
+                  </BlockedNote>
                 )}
                 {unknown.map((s) =>
                   strategyRow(

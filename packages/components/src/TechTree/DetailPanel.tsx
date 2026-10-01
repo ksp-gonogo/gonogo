@@ -123,8 +123,6 @@ export function DetailPanel({
               </>
             }
             pendingLabel="Unlocking..."
-            disabled={!unlock.canUnlock}
-            title={unlock.affordTooltip}
           />
         </UnlockRow>
       )}

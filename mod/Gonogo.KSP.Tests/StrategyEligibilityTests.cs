@@ -128,7 +128,7 @@ namespace Gonogo.KSP.Tests
         {
             var body = CurrencyDelaySourceText.MethodBody(
                 CurrencyDelaySourceText.ReadRelative("KspCareerActuator.cs"),
-                "public CommandResult DeactivateStrategy(");
+                "private CommandResult DeactivateStrategy(string strategyId, bool commit)");
 
             var gate = body.IndexOf("CanBeDeactivated(out var reason)", StringComparison.Ordinal);
             Assert.True(gate >= 0, "DeactivateStrategy never asks CanBeDeactivated for its reason");

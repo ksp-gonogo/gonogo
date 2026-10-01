@@ -2,7 +2,9 @@ import { createContext, useContext } from "react";
 import type { UseCommandResult } from "./use-command";
 
 /** One command handle as the rail holds it, keyed by an id stable for the registering hook's life. */
-export type RailedCommand = Omit<UseCommandResult, "send"> & { id: string };
+export type RailedCommand = Omit<UseCommandResult, "send" | "gateFor"> & {
+  id: string;
+};
 
 /**
  * Where a widget's live command handles are collected for the panel's delay

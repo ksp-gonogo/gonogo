@@ -97,7 +97,6 @@ describe("Strategies when the career balances are held", () => {
     expect(document.querySelector("[data-held]")).toBeNull();
     const activate = screen.getByRole("button", { name: "Activate" });
     expect(activate).toBeEnabled();
-    expect(activate).toHaveAttribute("title", "Set the factor, then confirm");
   });
 
   it("keeps the strategy roster on screen, because a strategy list cannot change while the link is down", async () => {
@@ -135,7 +134,7 @@ describe("Strategies when the career balances are held", () => {
     expect(rail?.textContent).toContain("145");
   });
 
-  it("refuses Activate with the staleness reason rather than calling the operator short of funds", async () => {
+  it("leaves Activate to the strategy's gate while the balance is held", async () => {
     const fixture = newFixture();
     renderStrategies(fixture);
     emitCareer(fixture);
@@ -145,14 +144,11 @@ describe("Strategies when the career balances are held", () => {
 
     goStale(fixture);
 
-    // Same disabled button as a short balance, but a different caption: one wants funds, the other the link.
+    // A held balance marks the figures; it is not a refusal, and the command checks the price when it runs.
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Activate" })).toBeDisabled(),
+      expect(document.querySelector("[data-held]")).not.toBeNull(),
     );
-    expect(screen.getByRole("button", { name: "Activate" })).toHaveAttribute(
-      "title",
-      "Affordability cannot be checked against a held balance",
-    );
+    expect(screen.getByRole("button", { name: "Activate" })).toBeEnabled();
   });
 
   it("draws no affordability verdict on a price while the balance is held", async () => {

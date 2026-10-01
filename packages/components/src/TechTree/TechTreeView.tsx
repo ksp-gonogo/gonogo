@@ -140,7 +140,6 @@ export function TechTreeView({
     chargesScience,
     unlockBlocked,
     sciAvailable,
-    careerHeld,
   };
 
   const subtitle = showSubtitle ? (
@@ -307,10 +306,8 @@ export function TechTreeView({
                       )
                     }
                     unlockCmd={unlockCmd}
-                    canUnlock={u.canUnlock}
                     canAfford={u.canAfford}
                     moneyDecides={u.moneyDecides}
-                    affordTooltip={u.affordTooltip}
                   />
                 );
               })

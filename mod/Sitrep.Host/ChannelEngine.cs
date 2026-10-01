@@ -3307,11 +3307,10 @@ namespace Sitrep.Host
         /// </summary>
         /// <remarks>
         /// Order is the whole reason this is a concatenation rather than a set.
-        /// <see cref="EvaluateGatesHere"/> returns on the first non-Pass verdict,
-        /// and core's own requirements are the ones answerable with no arguments
-        /// at all: an occupied pad is a fact the game knows in advance, and a
-        /// contributed requirement abstaining ahead of it would turn a control
-        /// that goes dark with a reason into one that fails the press.
+        /// <see cref="EvaluateGatesHere"/> returns on the first refusal, so the
+        /// owner's own reason is the one an operator reads when both refuse. An
+        /// abstaining requirement never ends the walk, so neither side can hide
+        /// the other's advance refusal behind "no answer".
         /// </remarks>
         private CommandRequirement[] RequirementsFor(string command)
         {
@@ -3340,10 +3339,12 @@ namespace Sitrep.Host
         /// there is no separate addressability path to keep in step with this
         /// one.</para>
         ///
-        /// <para>Returns the first non-<see cref="GateOutcome.Pass"/> verdict, or
-        /// Pass. First rather than all: a caller acts on one reason, and
-        /// evaluating the rest after a Fail costs live game reads for an answer
-        /// nobody reads.</para>
+        /// <para>Returns the first Fail or Unknown, else Abstain when any
+        /// requirement lacked its arguments, else Pass. First rather than all: a
+        /// caller acts on one reason, and evaluating the rest after a Fail costs
+        /// live game reads for an answer nobody reads. An Abstain does not stop
+        /// the walk, so a static refusal declared after an argument-dependent
+        /// requirement is still said in advance.</para>
         ///
         /// <para><b>Runs where the handler runs.</b> An evaluator reads LIVE game
         /// state, which is the same Unity main-thread constraint every command
@@ -3400,6 +3401,7 @@ namespace Sitrep.Host
             var requirements = RequirementsFor(command);
             if (requirements.Length == 0) return GateVerdict.Pass();
 
+            var abstained = false;
             foreach (var requirement in requirements)
             {
                 // Abstention, decided HERE and only here. An evaluator is never
@@ -3408,9 +3410,15 @@ namespace Sitrep.Host
                 // Getting it wrong privately would publish the command as
                 // permanently unaddressable, which disables the control for good
                 // and looks like it is working.
+                //
+                // It does not stop the walk. A static requirement after this one
+                // can still refuse in advance (a career mod's "use my own
+                // command" contributed behind a per-item price), and an Abstain
+                // returned here would hide that refusal behind "no answer".
                 if (!HasAllNeeds(requirement, arguments))
                 {
-                    return new GateVerdict { Outcome = GateOutcome.Abstain };
+                    abstained = true;
+                    continue;
                 }
 
                 if (!_gateEvaluators.TryGetValue(requirement.Kind ?? "", out var evaluator))
@@ -3421,7 +3429,8 @@ namespace Sitrep.Host
                     return GateVerdict.Unknown($"no evaluator registered for gate kind \"{requirement.Kind}\"");
                 }
 
-                var memoKey = memo == null ? null : RequirementKey(requirement);
+                // A requirement that reads arguments answers differently per item, so it is never remembered across them.
+                var memoKey = memo == null || (requirement.Needs?.Length ?? 0) > 0 ? null : RequirementKey(requirement);
                 if (memoKey != null && memo!.TryGetValue(memoKey, out var remembered))
                 {
                     if (remembered.Outcome != GateOutcome.Pass) return remembered;
@@ -3467,7 +3476,7 @@ namespace Sitrep.Host
                 if (verdict.Outcome != GateOutcome.Pass) return verdict;
             }
 
-            return GateVerdict.Pass();
+            return abstained ? new GateVerdict { Outcome = GateOutcome.Abstain } : GateVerdict.Pass();
         }
 
         /// <summary>
@@ -3518,6 +3527,7 @@ namespace Sitrep.Host
 
             var gates = new List<CommandGate>();
             var memo = new Dictionary<string, GateVerdict>(StringComparer.Ordinal);
+            var itemEvaluations = 0;
             try
             {
                 foreach (var pair in _commandDeclarations)
@@ -3527,14 +3537,21 @@ namespace Sitrep.Host
                     // core declared anything about it, and leaving it out would
                     // publish it as having nothing to say about itself.
                     if (RequirementsFor(pair.Key).Length == 0) continue;
+                    // Deliberately GateArguments.None: this is the
+                    // addressability question, so an argument-dependent
+                    // requirement abstains rather than guessing, and the
+                    // client renders an Abstain as "no answer in advance".
+                    var verdict = EvaluateGatesHere(pair.Key, GateArguments.None, memo);
+                    var items = new List<CommandGateItem>();
+                    var itemArgument = verdict.Outcome == GateOutcome.Abstain
+                        ? SampleItems(pair.Key, memo, items, ref itemEvaluations)
+                        : "";
                     gates.Add(new CommandGate
                     {
                         Command = pair.Key,
-                        // Deliberately GateArguments.None: this is the
-                        // addressability question, so an argument-dependent
-                        // requirement abstains rather than guessing, and the
-                        // client renders an Abstain as "no answer in advance".
-                        Verdict = EvaluateGatesHere(pair.Key, GateArguments.None, memo),
+                        Verdict = verdict,
+                        ItemArgument = itemArgument,
+                        Items = items,
                     });
                 }
             }
@@ -3548,10 +3565,65 @@ namespace Sitrep.Host
                 return;
             }
 
-            // memo.Count is exactly the number of evaluator calls this pass made:
-            // a repeated requirement is answered from the memo without one.
-            _commandGateBudget?.Record(memo.Count, nowSec);
+            // memo.Count is exactly the number of argument-free evaluator calls
+            // this pass made, a repeated requirement being answered from the
+            // memo without one; every item is a pass over the command of its own.
+            _commandGateBudget?.Record(memo.Count + itemEvaluations, nowSec);
             Volatile.Write(ref _commandGateReport, new CommandGateReport { Gates = gates });
+        }
+
+        /// <summary>
+        /// Collects <paramref name="command"/>'s per-item verdicts into
+        /// <paramref name="items"/>: every item an <see cref="ICommandGateItems"/>
+        /// evaluator names for one of the command's requirements, each evaluated
+        /// over the WHOLE requirement set with that one argument supplied, exactly
+        /// as a dispatch naming it would be. Only the verdicts that are not a Pass
+        /// are kept, and <paramref name="evaluated"/> counts every item asked.
+        /// </summary>
+        /// <returns>The argument the items are keyed on, or empty when the command names none.</returns>
+        private string SampleItems(
+            string command, Dictionary<string, GateVerdict> memo, List<CommandGateItem> items, ref int evaluated)
+        {
+            string? argument = null;
+            var values = new List<string>();
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var requirement in RequirementsFor(command))
+            {
+                if (requirement.Needs == null || requirement.Needs.Length != 1) continue;
+                if (!_gateEvaluators.TryGetValue(requirement.Kind ?? "", out var evaluator)) continue;
+                if (!(evaluator is ICommandGateItems itemSource)) continue;
+                // ValidateGateDeclarations refuses two item arguments on one command, so the first is the only one.
+                argument ??= requirement.Needs[0];
+                IEnumerable<string>? named;
+                try
+                {
+                    named = itemSource.Items(requirement);
+                }
+                catch (Exception ex)
+                {
+                    if (_loggedGateThrows.TryAdd(command + "\n" + requirement.Kind + "\nitems", 0))
+                    {
+                        LogHost($"command \"{command}\" gate kind \"{requirement.Kind}\" could not name its items: {SafeExceptionMessage(ex)}");
+                    }
+                    continue;
+                }
+                if (named == null) continue;
+                foreach (var value in named)
+                {
+                    if (!string.IsNullOrEmpty(value) && seen.Add(value)) values.Add(value);
+                }
+            }
+            if (argument == null) return "";
+
+            foreach (var value in values)
+            {
+                var bag = new Dictionary<string, object> { [argument] = value };
+                var verdict = EvaluateGatesHere(command, new GateArguments(bag), memo);
+                if (verdict.Outcome == GateOutcome.Pass || verdict.Outcome == GateOutcome.Abstain) continue;
+                items.Add(new CommandGateItem { Value = value, Verdict = verdict });
+            }
+            evaluated += values.Count;
+            return argument;
         }
 
         private static bool HasAllNeeds(CommandRequirement requirement, IGateArguments arguments)
@@ -3586,13 +3658,28 @@ namespace Sitrep.Host
             var missing = new List<string>();
             foreach (var pair in _commandDeclarations)
             {
+                string? itemArgument = null;
                 foreach (var requirement in RequirementsFor(pair.Key))
                 {
                     var kind = requirement.Kind ?? "";
-                    if (!_gateEvaluators.ContainsKey(kind))
+                    if (!_gateEvaluators.TryGetValue(kind, out var evaluator))
                     {
                         missing.Add($"command \"{pair.Key}\" requires gate kind \"{kind}\"");
+                        continue;
                     }
+
+                    // The gate report keys a command's items on ONE argument, so a second would publish verdicts a client cannot match to a call.
+                    if (!(evaluator is ICommandGateItems) || requirement.Needs == null || requirement.Needs.Length != 1)
+                    {
+                        continue;
+                    }
+                    var need = requirement.Needs[0];
+                    if (itemArgument != null && !string.Equals(itemArgument, need, StringComparison.Ordinal))
+                    {
+                        missing.Add(
+                            $"command \"{pair.Key}\" names its items by both \"{itemArgument}\" and \"{need}\"");
+                    }
+                    itemArgument ??= need;
                 }
             }
 

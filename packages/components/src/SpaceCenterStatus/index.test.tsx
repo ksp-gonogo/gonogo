@@ -14,6 +14,7 @@ import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import { ContributionHost } from "../test/contributionHost";
+import { perItemGateReport } from "../test/perItemGate";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import {
   FACILITY_ORDINAL_KEYS,
@@ -182,7 +183,7 @@ describe("SpaceCenterStatusComponent", () => {
     expect((upgradeButtons[0] as HTMLButtonElement).disabled).toBe(false);
   });
 
-  it("disables upgrade when funds insufficient", async () => {
+  it("leaves upgrade live on a short balance until the facility's gate refuses it", async () => {
     renderWidget();
     act(() => {
       stream.emit("spaceCenter.scene", { scene: "SpaceCenter" });
@@ -206,7 +207,23 @@ describe("SpaceCenterStatusComponent", () => {
     const upgradeButtons = await screen.findAllByRole("button", {
       name: "Upgrade",
     });
-    expect((upgradeButtons[0] as HTMLButtonElement).disabled).toBe(true);
+    expect((upgradeButtons[0] as HTMLButtonElement).disabled).toBe(false);
+
+    act(() => {
+      stream.emit(
+        "system.uplink.gates",
+        perItemGateReport("career.facility.upgrade", "facilityId", {
+          VehicleAssemblyBuilding: {
+            errorCode: "insufficientFunds",
+            detail: "short of funds",
+          },
+        }),
+      );
+    });
+    const refused = await screen.findByRole("button", {
+      name: /short of funds/,
+    });
+    expect(refused.getAttribute("aria-disabled")).toBe("true");
   });
 
   it("renders with an empty augment slot when nothing is registered", () => {

@@ -72,7 +72,7 @@ function goStale(fixture: ReturnType<typeof setupStreamFixture>): void {
 }
 
 describe("Experiments when the science channels are held", () => {
-  it("keeps every instrument and lab row, marks each, and kills Transmit", async () => {
+  it("keeps every instrument and lab row, marks each, and leaves Transmit to the command", async () => {
     const fixture = setupStreamFixture({
       pinnedUt: 10,
       suspendFrames: true,
@@ -82,7 +82,7 @@ describe("Experiments when the science channels are held", () => {
     await waitFor(() =>
       expect(screen.getByText("Mystery Goo™ Containment Unit")).toBeTruthy(),
     );
-    // Control: without it a widget that always marked and disabled would pass.
+    // Control: without it a widget that always marked would pass.
     expect(screen.queryAllByText("OFFLINE")).toHaveLength(0);
     expect(screen.getByRole("button", { name: /Transmit/ })).toBeEnabled();
 
@@ -94,8 +94,8 @@ describe("Experiments when the science channels are held", () => {
     expect(screen.getByText("OPERATIONAL")).toBeTruthy();
     // One mark per row that carries held state: the instrument's and the lab's.
     expect(screen.getAllByText("OFFLINE")).toHaveLength(2);
-    // Inert but still shown: hiding it would say the instrument has nothing to send.
-    expect(screen.getByRole("button", { name: /Transmit/ })).toBeDisabled();
+    // Still shown and live: the command refuses an instrument that has nothing left to send.
+    expect(screen.getByRole("button", { name: /Transmit/ })).toBeEnabled();
     expect(visibleText(container)).toContain("Transmit");
   });
 

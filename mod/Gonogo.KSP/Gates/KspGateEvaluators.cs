@@ -44,7 +44,7 @@ namespace Gonogo.KSP.Gates
     /// </summary>
     internal static class KspGateEvaluators
     {
-        public static IEnumerable<ICommandGateEvaluator> All()
+        public static IEnumerable<ICommandGateEvaluator> All(ICareerItemJudge careerItems)
         {
             yield return new GameModeGate();
             yield return new SceneGate();
@@ -54,6 +54,7 @@ namespace Gonogo.KSP.Gates
             yield return new PreFlightGate();
             yield return new RevertAvailableGate();
             yield return new AffordableGate();
+            foreach (var perItem in ItemGates.All(careerItems)) yield return perItem;
         }
 
         /// <summary>Requirement kinds, spelled once so a declaration and its evaluator cannot drift apart on a typo.</summary>

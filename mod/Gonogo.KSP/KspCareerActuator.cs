@@ -39,7 +39,7 @@ namespace Gonogo.KSP
     /// too, but through a <c>GameEvents</c> hop rather than inside the call:
     /// see <see cref="HireApplicant"/>.</para>
     /// </summary>
-    public sealed class KspCareerActuator : ICareerActuator
+    public sealed class KspCareerActuator : ICareerActuator, Gates.ICareerItemJudge
     {
         /// <summary>
         /// <c>Strategy.Activate()</c> is self-gating (<c>CanBeActivated</c>) and
@@ -71,7 +71,45 @@ namespace Gonogo.KSP
         /// factor is written before the gate because the cost scales with it,
         /// and put back if the gate refuses.</para>
         /// </summary>
-        public CommandResult ActivateStrategy(string strategyId, double factor)
+        public CommandResult ActivateStrategy(string strategyId, double factor) =>
+            ActivateStrategy(strategyId, factor, commit: true);
+
+        /// <summary>
+        /// Whether <see cref="ActivateStrategy(string, double)"/> would refuse
+        /// this strategy at the factor it already carries, by the same route and
+        /// the same checks, without committing anything. <c>Ok</c> when nothing
+        /// refuses it.
+        /// </summary>
+        CommandResult Gates.ICareerItemJudge.JudgeActivateStrategy(string strategyId)
+        {
+            var judged = ActivateStrategy(strategyId, 0.0, commit: false);
+            return judged.Success || !RefusedOnlyAtThisFactor(strategyId) ? judged : CommandResult.Ok();
+        }
+
+        /// <summary>
+        /// The judge asks at the factor the strategy already carries, and the
+        /// call carries the factor the operator chose. A refusal that turns on
+        /// the factor (a cost, or the commitment ceiling) says nothing about the
+        /// call, so it is left to the dispatch rather than drawn in advance.
+        /// </summary>
+        private static bool RefusedOnlyAtThisFactor(string strategyId)
+        {
+            var system = StrategySystem.Instance;
+            var strategy = system?.Strategies == null ? null : FindStrategy(system, strategyId);
+            if (strategy == null || !strategy.HasFactorSlider) return false;
+            switch (LiveStrategyArms.Walk(strategy, system!).Arm)
+            {
+                case StrategyArm.CommitCeiling:
+                case StrategyArm.Funds:
+                case StrategyArm.Reputation:
+                case StrategyArm.Science:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        private CommandResult ActivateStrategy(string strategyId, double factor, bool commit)
         {
             var system = StrategySystem.Instance;
             if (system == null || system.Strategies == null)
@@ -91,10 +129,13 @@ namespace Gonogo.KSP
 
             if (Administration.Instance == null)
             {
-                return StockStrategyActivation.Activate(strategy, system, factor);
+                return commit
+                    ? StockStrategyActivation.Activate(strategy, system, factor)
+                    : StockStrategyActivation.Judge(strategy, system);
             }
 
-            return StrategyCommit.Activate(new LiveStrategy(strategy), factor);
+            var live = new LiveStrategy(strategy);
+            return commit ? StrategyCommit.Activate(live, factor) : live.Gate();
         }
 
         /// <summary>
@@ -132,7 +173,16 @@ namespace Gonogo.KSP
         /// refuse with "This Program has unmet objectives.") reaches the operator
         /// in its own words.
         /// </summary>
-        public CommandResult DeactivateStrategy(string strategyId)
+        public CommandResult DeactivateStrategy(string strategyId) => DeactivateStrategy(strategyId, commit: true);
+
+        /// <summary>
+        /// Whether <see cref="DeactivateStrategy(string)"/> would refuse this
+        /// strategy, by the same checks, without ending it. <c>Ok</c> when
+        /// nothing refuses it.
+        /// </summary>
+        CommandResult Gates.ICareerItemJudge.JudgeDeactivateStrategy(string strategyId) => DeactivateStrategy(strategyId, commit: false);
+
+        private CommandResult DeactivateStrategy(string strategyId, bool commit)
         {
             var system = StrategySystem.Instance;
             if (system == null || system.Strategies == null)
@@ -154,6 +204,7 @@ namespace Gonogo.KSP
             {
                 return CommandResult.Fail(CommandErrorCode.WrongState, CareerRefusals.DeactivateRefusal(reason));
             }
+            if (!commit) return CommandResult.Ok();
 
             return StrategyRelease.Deactivate(
                 new LiveRelease(strategy),
@@ -188,7 +239,16 @@ namespace Gonogo.KSP
         /// deduction: so on an unaffordable request this returns before any
         /// spend.</para>
         /// </summary>
-        public CommandResult UnlockTech(string techId)
+        public CommandResult UnlockTech(string techId) => UnlockTech(techId, commit: true);
+
+        /// <summary>
+        /// Whether <see cref="UnlockTech(string)"/> would refuse this node, by the
+        /// same checks in the same order, without spending anything. <c>Ok</c>
+        /// when nothing refuses it.
+        /// </summary>
+        CommandResult Gates.ICareerItemJudge.JudgeUnlockTech(string techId) => UnlockTech(techId, commit: false);
+
+        private CommandResult UnlockTech(string techId, bool commit)
         {
             var rnd = ResearchAndDevelopment.Instance;
             var tree = AssetBase.RnDTechTree;
@@ -255,6 +315,8 @@ namespace Gonogo.KSP
                     return CommandResult.Fail(CommandErrorCode.LimitReached, overLimit);
                 }
             }
+
+            if (!commit) return CommandResult.Ok();
 
             rnd.AddScience(-(float)node.scienceCost, TransactionReasons.RnDTechResearch);
             rnd.UnlockProtoTechNode(node);
@@ -427,7 +489,16 @@ namespace Gonogo.KSP
         /// <para>Where no component is registered (the Tracking Station), the same
         /// steps run against the save instead: see <see cref="UpgradeFacilityOffScene"/>.</para>
         /// </summary>
-        public CommandResult UpgradeFacility(string facilityId)
+        public CommandResult UpgradeFacility(string facilityId) => UpgradeFacility(facilityId, commit: true);
+
+        /// <summary>
+        /// Whether <see cref="UpgradeFacility(string)"/> would refuse this
+        /// facility, by the same checks in the same order, without spending
+        /// anything. <c>Ok</c> when nothing refuses it.
+        /// </summary>
+        CommandResult Gates.ICareerItemJudge.JudgeUpgradeFacility(string facilityId) => UpgradeFacility(facilityId, commit: false);
+
+        private CommandResult UpgradeFacility(string facilityId, bool commit)
         {
             if (ScenarioUpgradeableFacilities.Instance == null)
             {
@@ -443,7 +514,7 @@ namespace Gonogo.KSP
                 && FacilityLiveness.IsBuilt(proto.facilityRefs[0]);
             if (known && !built)
             {
-                return UpgradeFacilityOffScene(facilityId, sanitizedId, proto!);
+                return UpgradeFacilityOffScene(facilityId, sanitizedId, proto!, commit);
             }
             var unresolved = CareerRefusals.FacilityResolutionRefusal(
                 known, built, FacilityDisplayName(facilityId), HighLogic.LoadedScene.ToString());
@@ -486,6 +557,8 @@ namespace Gonogo.KSP
                         funding.Funds, Units.Funds));
             }
 
+            if (!commit) return CommandResult.Ok();
+
             funding.AddFunds(-cost, TransactionReasons.StructureConstruction);
             FacilityLiveness.Upgrade(live, live.FacilityLevel + 1);
             return CommandResult.Ok();
@@ -506,7 +579,8 @@ namespace Gonogo.KSP
         private CommandResult UpgradeFacilityOffScene(
             string facilityId,
             string sanitizedId,
-            ScenarioUpgradeableFacilities.ProtoUpgradeable proto)
+            ScenarioUpgradeableFacilities.ProtoUpgradeable proto,
+            bool commit)
         {
             var name = FacilityDisplayName(facilityId);
             var rungs = OffSceneLadder(sanitizedId);
@@ -553,6 +627,8 @@ namespace Gonogo.KSP
                         "funds", CareerAffordability.PriceOf(query, Currency.Funds),
                         funding.Funds, Units.Funds));
             }
+
+            if (!commit) return CommandResult.Ok();
 
             var component = rungs.Component;
             OffSceneFacilityUpgrade.Apply(

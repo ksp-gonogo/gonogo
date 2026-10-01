@@ -319,6 +319,9 @@ namespace Sitrep.Contract.Serialization
                 case Sitrep.Contract.CommandGate commandGate:
                     AppendCommandGate(sb, commandGate);
                     break;
+                case Sitrep.Contract.CommandGateItem commandGateItem:
+                    AppendCommandGateItem(sb, commandGateItem);
+                    break;
                 case Sitrep.Contract.ChannelEmissionReport channelEmissionReport:
                     AppendChannelEmissionReport(sb, channelEmissionReport);
                     break;
@@ -965,7 +968,7 @@ namespace Sitrep.Contract.Serialization
 
         /// <summary>
         /// Flattens one <see cref="Sitrep.Contract.CommandGate"/> to
-        /// <c>{ command, verdict }</c>, the verdict through the same
+        /// <c>{ command, verdict, itemArgument, items }</c>, each verdict through the same
         /// <see cref="AppendGateVerdict"/> a refused dispatch uses, so a client
         /// reads one shape whether the gate ruled in advance or at dispatch.
         /// </summary>
@@ -979,6 +982,38 @@ namespace Sitrep.Contract.Serialization
             AppendString(sb, "verdict");
             sb.Append(':');
             AppendGateVerdict(sb, gate.Verdict ?? Sitrep.Contract.GateVerdict.Pass());
+            sb.Append(',');
+            AppendString(sb, "itemArgument");
+            sb.Append(':');
+            AppendString(sb, gate.ItemArgument ?? "");
+            sb.Append(',');
+            AppendString(sb, "items");
+            sb.Append(':');
+            sb.Append('[');
+            var items = gate.Items;
+            for (var i = 0; items != null && i < items.Count; i++)
+            {
+                if (i > 0)
+                {
+                    sb.Append(',');
+                }
+                AppendCommandGateItem(sb, items[i]);
+            }
+            sb.Append(']');
+            sb.Append('}');
+        }
+
+        /// <summary>Flattens one <see cref="Sitrep.Contract.CommandGateItem"/> to <c>{ value, verdict }</c>.</summary>
+        private static void AppendCommandGateItem(StringBuilder sb, Sitrep.Contract.CommandGateItem item)
+        {
+            sb.Append('{');
+            AppendString(sb, "value");
+            sb.Append(':');
+            AppendString(sb, item.Value ?? "");
+            sb.Append(',');
+            AppendString(sb, "verdict");
+            sb.Append(':');
+            AppendGateVerdict(sb, item.Verdict ?? Sitrep.Contract.GateVerdict.Pass());
             sb.Append('}');
         }
 

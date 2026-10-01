@@ -4,6 +4,7 @@ import { snapshotWidgetMode } from "../test/widgetDomSnapshot";
 import adminShut from "./__fixtures__/administration-shut-derived.json";
 import atCap from "./__fixtures__/at-admin-cap.json";
 import unavailable from "./__fixtures__/feature-unavailable.json";
+import gatedPerStrategy from "./__fixtures__/gated-per-strategy.json";
 import highCommit from "./__fixtures__/high-commitment-conversion.json";
 import noStrategies from "./__fixtures__/no-strategies-early-career.json";
 import oneActive from "./__fixtures__/one-active-room-for-more.json";
@@ -19,8 +20,9 @@ const FIXTURES: Record<string, Record<string, unknown>> = {
   "over-cap-quirk": overCap,
   "high-commitment-conversion": highCommit,
   "feature-unavailable": unavailable,
-  // Derived verdicts show only in the Activate button's `title`, which a pixel diff cannot see.
   "administration-shut-derived": adminShut,
+  // A per-strategy gate verdict shows in the control's accessible name, which a pixel diff cannot read.
+  "gated-per-strategy": gatedPerStrategy,
 };
 
 const config = getWidget("strategies");

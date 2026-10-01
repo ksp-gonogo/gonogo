@@ -118,7 +118,7 @@ describe("ContractManager when career telemetry is held", () => {
     expect(visibleText(container)).not.toContain("expired");
   });
 
-  it("marks each held card and kills the controls that act on it", async () => {
+  it("marks each held card and leaves its controls to the commands that check it", async () => {
     const fixture = setupStreamFixture({
       pinnedUt: 100,
       suspendFrames: true,
@@ -128,7 +128,7 @@ describe("ContractManager when career telemetry is held", () => {
     await waitFor(() =>
       expect(screen.getByText("Orbit Kerbin")).toBeInTheDocument(),
     );
-    // The control: without it the assertions below would pass on a widget that marked and disabled unconditionally.
+    // The control: without it the assertions below would pass on a widget that marked unconditionally.
     expect(screen.queryAllByText("OFFLINE")).toHaveLength(0);
     expect(screen.getByRole("button", { name: /Cancel/ })).toBeEnabled();
 
@@ -136,11 +136,10 @@ describe("ContractManager when career telemetry is held", () => {
 
     // One per card, beside its own deadline.
     expect(screen.getAllByText("OFFLINE")).toHaveLength(2);
-    // A Cancel against a held board forfeits a contract whose current state cannot be read.
-    expect(screen.getByRole("button", { name: /Cancel/ })).toBeDisabled();
-    expect(screen.getByRole("button", { name: /Accept/ })).toBeDisabled();
-    expect(screen.getByRole("button", { name: /Decline/ })).toBeDisabled();
-    // Disabled, not hidden: a missing control reads as a contract that cannot be cancelled.
+    // Each command refuses a contract that is gone or no longer in the state it needs, so a held board decides nothing about them.
+    expect(screen.getByRole("button", { name: /Cancel/ })).toBeEnabled();
+    expect(screen.getByRole("button", { name: /Accept/ })).toBeEnabled();
+    expect(screen.getByRole("button", { name: /Decline/ })).toBeEnabled();
     expect(visibleText(container)).toContain("Cancel");
   });
 

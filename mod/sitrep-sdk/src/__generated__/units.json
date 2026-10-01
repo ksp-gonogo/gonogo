@@ -255,7 +255,11 @@
       "longitude": "°"
     },
     "CommandGate": {
-      "command": "id"
+      "command": "id",
+      "itemArgument": "id"
+    },
+    "CommandGateItem": {
+      "value": "id"
     },
     "CommandRequest": {
       "command": "id",
@@ -2067,6 +2071,10 @@
       "requires": "CommandRequirement[]"
     },
     "CommandGate": {
+      "items": "CommandGateItem[]",
+      "verdict": "GateVerdict"
+    },
+    "CommandGateItem": {
       "verdict": "GateVerdict"
     },
     "CommandGateReport": {

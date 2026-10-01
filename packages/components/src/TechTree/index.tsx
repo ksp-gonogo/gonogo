@@ -29,7 +29,7 @@ type TechTreeConfig = Record<string, never>;
 /**
  * Resolves career telemetry into the typed shape the view renders, then hands off.
  * One record, two currency decisions. The node list is a fact (nobody can spend down a link that is not delivering), so a held tree is still the tree.
- * The science balance feeds `canAfford`, a claim about now that arms a spend, so only a current balance counts and every Unlock refuses while it is held.
+ * The science balance feeds the price readout's `canAfford`, a claim about now, so only a current balance colours it. Whether Unlock is available is the command's per-node gate.
  */
 function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
   const career = topics.useTelemetry("career.status");

@@ -9,7 +9,6 @@ import {
 import { ConfirmUpgradeButton, UpgradeButtonStyled } from "./styles";
 
 export interface UpgradeButtonProps {
-  enabled: boolean;
   upgradeCmd: CommandButtonHandle;
   facilityId: string;
   facilityLabel: string;
@@ -22,7 +21,6 @@ export interface UpgradeButtonProps {
  * to an icon in a cell about two grid columns wide.
  */
 export function UpgradeButton({
-  enabled,
   upgradeCmd,
   facilityId,
   facilityLabel,
@@ -109,7 +107,6 @@ export function UpgradeButton({
   }
   return (
     <UpgradeButtonStyled
-      disabled={!enabled}
       data-unconfirmed={hasUnconfirmed ? "true" : undefined}
       data-failed={hasFailure ? "true" : undefined}
       onClick={() => press(true)}

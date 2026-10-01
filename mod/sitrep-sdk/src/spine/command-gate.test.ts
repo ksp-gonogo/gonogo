@@ -20,9 +20,74 @@ function report(
         errorCode: g.errorCode ?? CommandErrorCode.ModeUnavailable,
         detail: g.detail ?? "",
       },
+      itemArgument: "",
+      items: [],
     })),
   };
 }
+
+/** A per-item gate: the command abstains, and the one item a call would be refused for carries its own verdict. */
+function perItem(command: string, refusedItem: string): CommandGateReport {
+  return {
+    gates: [
+      {
+        command,
+        verdict: { outcome: GateOutcome.Abstain, detail: "" },
+        itemArgument: "facilityId",
+        items: [
+          {
+            value: refusedItem,
+            verdict: {
+              outcome: GateOutcome.Fail,
+              errorCode: CommandErrorCode.InsufficientFunds,
+              detail: "short of funds",
+            },
+          },
+        ],
+      },
+    ],
+  };
+}
+
+describe("selectCommandGate per item", () => {
+  const gates = perItem("career.facility.upgrade", "LaunchPad");
+
+  it("blocks the call naming the refused item, with that item's reason", () => {
+    expect(
+      selectCommandGate(gates, "career.facility.upgrade", {
+        facilityId: "LaunchPad",
+      }),
+    ).toMatchObject({
+      blocked: true,
+      errorCode: CommandErrorCode.InsufficientFunds,
+      detail: "short of funds",
+    });
+  });
+
+  it("leaves every other item live, on the command's own Abstain", () => {
+    for (const args of [
+      { facilityId: "VehicleAssemblyBuilding" },
+      undefined,
+      {},
+    ]) {
+      expect(
+        selectCommandGate(gates, "career.facility.upgrade", args),
+      ).toMatchObject({ blocked: false, undetermined: false });
+    }
+  });
+
+  it("reads a gate from a mod that publishes no items as the command's own verdict", () => {
+    // Parsed off the wire, as the client meets it: an older mod sends neither item field.
+    const older: CommandGateReport = JSON.parse(
+      `{"gates":[{"command":"career.facility.upgrade","verdict":{"outcome":${GateOutcome.Abstain},"detail":""}}]}`,
+    );
+    expect(
+      selectCommandGate(older, "career.facility.upgrade", {
+        facilityId: "LaunchPad",
+      }),
+    ).toMatchObject({ blocked: false });
+  });
+});
 
 describe("selectCommandGate", () => {
   it("blocks on a Fail and carries the game's own words", () => {

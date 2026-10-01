@@ -236,9 +236,9 @@ namespace Sitrep.Host.IntegrationTests
         /// The ORDER property, and the reason the engine keeps the two lists
         /// apart. The owner's requirement is static and can say no in advance; the
         /// contribution needs an argument and abstains without one. Asked with an
-        /// empty bag, the answer must be the owner's refusal, because abstention
-        /// returns immediately and would otherwise turn a control that goes dark
-        /// with a reason into one that fails the press.
+        /// empty bag, the answer must be the owner's refusal: an Abstain in its
+        /// place would turn a control that goes dark with a reason into one that
+        /// fails the press.
         /// </summary>
         [Fact]
         public void AnAbstainingContributionCannotHideTheOwnersAdvanceAnswer()

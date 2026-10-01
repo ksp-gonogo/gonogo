@@ -56,22 +56,6 @@ const HOOK_PHASES = /\b(isPending|isBlocked)\b/;
  * the next one.
  */
 const AVAILABILITY_DEBT: Record<string, string> = {
-  "packages/components/src/SpaceCenterStatus/FacilityCell.tsx :: UpgradeButton":
-    "Per-facility affordability: the gate report carries one argument-free verdict per command, so a price that depends on which facility cannot be declared yet",
-  "packages/components/src/SpaceCenterStatus/UpgradeButton.tsx :: UpgradeButtonStyled":
-    "Draws FacilityCell's per-facility affordability verdict, above",
-  "packages/components/src/TechTree/NodeRow.tsx :: CommandButton":
-    "Per-node science affordability, argument-dependent like the facility price",
-  "packages/components/src/TechTree/DetailPanel.tsx :: CommandButton":
-    "Per-node science affordability, argument-dependent like the facility price",
-  "packages/components/src/Strategies/AvailableRow.tsx :: CommandButton":
-    "Per-strategy CanBeActivated and a per-factor cost, argument-dependent",
-  "packages/components/src/Strategies/ScreenSections.tsx :: CommandButton":
-    "Per-strategy CanBeDeactivated, argument-dependent",
-  "packages/components/src/ContractManager/ContractManagerView.tsx :: CommandButton":
-    "A held contract board: the offer the arguments name may be gone, which no argument-free verdict can say",
-  "packages/components/src/Experiments/ScienceExperimentRow.tsx :: CommandButton":
-    "A held instrument list: the part the arguments name may have changed, argument-dependent",
   "packages/components/src/Navball/index.tsx :: ControlSurface":
     "Controllability is argument-free but rides control streams as well as buttons; the vessel Uplink declares no gate and the stream path does not read one",
 };

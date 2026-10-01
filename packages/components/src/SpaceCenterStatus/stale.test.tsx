@@ -95,7 +95,7 @@ describe("SpaceCenterStatus when career telemetry is held", () => {
     expect(container.querySelector("[data-held]")).toBeNull();
   });
 
-  it("keeps the held balance on screen, marked by Unit, and disarms the upgrade", async () => {
+  it("keeps the held balance on screen, marked by Unit, and leaves the upgrade to its gate", async () => {
     const fixture = setupStreamFixture({
       pinnedUt: 10,
       suspendFrames: true,
@@ -121,10 +121,11 @@ describe("SpaceCenterStatus when career telemetry is held", () => {
     expect(balance.textContent).toContain("500");
     // Not the cold-start sentence: one reports a warmup, the other accuses the link.
     expect(screen.queryByTitle("No funds balance has arrived")).toBeNull();
+    // A held balance is a reason to mark the figure, not to decide the command: the per-facility gate does that.
     expect(
       (screen.getByRole("button", { name: "Upgrade" }) as HTMLButtonElement)
         .disabled,
-    ).toBe(true);
+    ).toBe(false);
   });
 
   it("draws no affordability verdict off a held balance", async () => {
@@ -151,7 +152,7 @@ describe("SpaceCenterStatus when career telemetry is held", () => {
     expect(container.querySelector("[data-afford]")).toBeNull();
   });
 
-  it("disarms every upgrade without writing a held caption beside them", async () => {
+  it("writes no held caption beside the upgrades", async () => {
     const fixture = setupStreamFixture({
       pinnedUt: 10,
       suspendFrames: true,
@@ -164,16 +165,12 @@ describe("SpaceCenterStatus when career telemetry is held", () => {
 
     goStale(fixture);
 
+    // The held balance carries the mark; nothing else on the panel dates the link.
     await waitFor(() =>
       expect(
-        (screen.getByRole("button", { name: "Upgrade" }) as HTMLButtonElement)
-          .disabled,
-      ).toBe(true),
+        screen.getByTitle("Available funds").querySelector("[data-held]"),
+      ).not.toBeNull(),
     );
-    // The held balance carries the mark; nothing else on the panel dates the link.
-    expect(
-      screen.getByTitle("Available funds").querySelector("[data-held]"),
-    ).not.toBeNull();
     // MAX is a claim about the facility, not about the link.
     expect(screen.queryByText("MAX")).toBeNull();
   });

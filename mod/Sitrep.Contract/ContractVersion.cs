@@ -2142,8 +2142,13 @@ namespace Sitrep.Contract
         /// <para><b>Major-27 line, Bumped 3 -&gt; 4:</b> <see cref="SavedShipEntry.File"/>, the
         /// craft's file name, the only unique identity a saved craft has. Additive, so an Uplink
         /// built against 27.3 is unaffected.</para>
+        ///
+        /// <para><b>Major-27 line, Bumped 4 -&gt; 5:</b> <see cref="CommandGate.ItemArgument"/>
+        /// and <see cref="CommandGate.Items"/>, the per-item verdicts of a gate that depends on
+        /// which item is chosen, and <see cref="ICommandGateItems"/>, which names the items an
+        /// evaluator can be asked about. Additive, so an Uplink built against 27.4 is unaffected.</para>
         /// </internal>
         /// </summary>
-        public const int Minor = 4;
+        public const int Minor = 5;
     }
 }

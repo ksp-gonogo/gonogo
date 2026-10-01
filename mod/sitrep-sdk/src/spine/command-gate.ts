@@ -1,4 +1,5 @@
 import type {
+  CommandGate,
   CommandGateReport,
   GateVerdict,
   LimitBreach,
@@ -93,10 +94,32 @@ export interface CommandGateStatus {
 export function selectCommandGate(
   report: CommandGateReport | undefined,
   command: string,
+  args?: unknown,
 ): CommandGateStatus | undefined {
   const entry = report?.gates.find((gate) => gate.command === command);
   if (!entry) return undefined;
-  return toGateStatus(entry.verdict, command);
+  const item = itemVerdict(entry, args);
+  return toGateStatus(item ?? entry.verdict, command);
+}
+
+/**
+ * The verdict for the item a call names, when the gate depends on which item
+ * that is and the mod published one for it. A call that names no item, or an
+ * item with no published verdict, gets nothing here and falls back to the
+ * command's own verdict, which is then an Abstain: a live control.
+ */
+function itemVerdict(
+  entry: CommandGate,
+  args: unknown,
+): GateVerdict | undefined {
+  // An older mod publishes neither field, which reads exactly as a gate with no items.
+  const argument = entry.itemArgument;
+  if (!argument || !entry.items?.length) return undefined;
+  if (typeof args !== "object" || args === null) return undefined;
+  const named = (args as Record<string, unknown>)[argument];
+  if (typeof named !== "string" && typeof named !== "number") return undefined;
+  const value = String(named);
+  return entry.items.find((item) => item.value === value)?.verdict;
 }
 
 /** One verdict as the control reads it. Exported for the widget that holds a verdict directly. */

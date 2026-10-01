@@ -23,9 +23,9 @@ export interface ScienceExperimentRowProps {
   /** Receives the transmission a confirmed Transmit started, when the backend said what it sent. */
   onTransmitted?: (transmission: ScienceTransmission) => void;
   /**
-   * The grade of the instrument list when it is held, undefined
-   * while it is. It disables the controls as well as marking the badges: a
-   * Transmit against a held row can spend a one-shot on an instrument already emptied.
+   * The grade of the instrument list when it is held, undefined while it is
+   * current. It marks the row; the controls stay live, because each command
+   * refuses an instrument no longer in the state it needs.
    */
   heldGrade?: HeldGrade;
 }
@@ -42,8 +42,6 @@ export function ScienceExperimentRow({
   onTransmitted,
   heldGrade,
 }: Readonly<ScienceExperimentRowProps>) {
-  const held = heldGrade !== undefined;
-  const heldReason = `${instrument.partTitle}: instrument state is held`;
   return (
     // Wraps, because a row can carry all four badges at once.
     <Row wrap>
@@ -68,8 +66,6 @@ export function ScienceExperimentRow({
               commandLabel={`Deploy ${instrument.partTitle}`}
               label="Deploy"
               pendingLabel="Deploying..."
-              disabled={held}
-              title={held ? heldReason : undefined}
             />
           )}
           {instrument.hasData && transmitCmd && (
@@ -84,8 +80,6 @@ export function ScienceExperimentRow({
               onConfirmed={(reply) => {
                 if (reply?.payload) onTransmitted?.(reply.payload);
               }}
-              disabled={held}
-              title={held ? heldReason : undefined}
             />
           )}
         </Inline>

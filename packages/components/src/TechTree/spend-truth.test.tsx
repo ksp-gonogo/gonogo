@@ -3,6 +3,7 @@ import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
+import { perItemGateReport } from "../test/perItemGate";
 import {
   type StreamFixture,
   setupStreamFixture,
@@ -63,7 +64,7 @@ describe("TechTree spend truth", () => {
     return screen.getByRole("button", { name: /^Unlock( |$)/ });
   }
 
-  it("never arms Unlock on a price that did not arrive, and does not show it as free", async () => {
+  it("does not show a price that did not arrive as free, and leaves Unlock to the node's gate", async () => {
     mount();
     act(() => {
       stream.emit(
@@ -73,25 +74,42 @@ describe("TechTree spend truth", () => {
     });
     const unlock = await openNode("Pricey Tech");
 
-    expect(unlock).toBeDisabled();
-    expect(unlock.getAttribute("title")).toBe(
-      "No price reported for this node",
-    );
+    expect(unlock).not.toBeDisabled();
     expect(visibleText(document.body)).not.toMatch(/\b0\s*science/);
   });
 
-  it("draws a science verdict when money decides the unlock", async () => {
+  it("draws a science verdict on the price, and darkens Unlock only on the node's own gate", async () => {
     mount();
     act(() => {
       stream.emit("career.status", careerStatus(10, PRICEY));
     });
     const unlock = await openNode("Pricey Tech");
 
-    expect(unlock).toBeDisabled();
-    expect(unlock.getAttribute("title")).toMatch(/^Need /);
+    expect(unlock).not.toBeDisabled();
+    expect(unlock).not.toHaveAttribute("aria-disabled");
     expect(
       document.querySelector("[data-afford]")?.getAttribute("data-afford"),
     ).toBe("no");
+
+    act(() => {
+      stream.emit(
+        "system.uplink.gates",
+        perItemGateReport("career.tech.unlock", "techId", {
+          pricey: {
+            errorCode: "insufficientScience",
+            detail: "Pricey Tech costs 500 science and the career holds 10",
+          },
+        }),
+      );
+    });
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: /^Unlock( |$)/ }),
+      ).toHaveAttribute("aria-disabled", "true"),
+    );
+    expect(
+      screen.getByRole("button", { name: /^Unlock( |$)/ }),
+    ).toHaveAccessibleName(/career holds 10/);
   });
 
   it("draws no science verdict on an unlock the career model refuses", async () => {
@@ -113,7 +131,6 @@ describe("TechTree spend truth", () => {
     });
     const unlock = await openNode("Pricey Tech");
 
-    expect(unlock.getAttribute("title") ?? "").not.toMatch(/^Need /);
     // No affordability verdict on the row either: the grey and the red cost claim the balance decides.
     expect(document.querySelector("[data-afford]")).toBeNull();
     // It says the career model's own reason instead.

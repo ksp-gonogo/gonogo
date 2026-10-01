@@ -288,6 +288,17 @@ export interface UseCommandResult<Args = unknown, Reply = AnyCommandReply> {
    * dispatches nothing.
    */
   gate?: CommandGateStatus;
+  /**
+   * The standing verdict for a call with these arguments: the verdict the mod
+   * published for the item they name, when the gate depends on which item that
+   * is, else {@link gate}.
+   *
+   * A control that sends arguments draws itself from this rather than from
+   * `gate`, so the one facility the career cannot afford goes dark while the
+   * rest stay live. `send` refuses locally on the same answer.
+   */
+  // A method rather than a function-valued property, so a typed handle stays assignable to the bare one.
+  gateFor(args: Args): CommandGateStatus | undefined;
 }
 
 type TrackedResolution =
@@ -481,9 +492,13 @@ export function useCommand(
     () => selectCommandGate(gateReport, command),
     [gateReport, command],
   );
-  // Read by `send`, which is keyed on the command alone and so cannot close over the render's gate.
-  const gateRef = useRef(gate);
-  gateRef.current = gate;
+  // Read by `send`, which is keyed on the command alone and so cannot close over the render's report.
+  const gateReportRef = useRef(gateReport);
+  gateReportRef.current = gateReport;
+  const gateFor = useCallback(
+    (args: unknown) => selectCommandGate(gateReport, command, args),
+    [gateReport, command],
+  );
   const localRefusalSeqRef = useRef(0);
   // Whether a tracked dispatch has actually been ANSWERED, which is what
   // separates a command that arrived from one nobody ever heard. Read straight
@@ -873,7 +888,7 @@ export function useCommand(
         refused.catch(() => undefined);
         return refused;
       };
-      const standing = gateRef.current;
+      const standing = selectCommandGate(gateReportRef.current, command, args);
       if (standing?.blocked) {
         return refuseLocally(standing, "its gate refuses it");
       }
@@ -1011,7 +1026,7 @@ export function useCommand(
     rail.update(railId, outcome);
   });
 
-  return { send, ...outcome };
+  return { send, gateFor, ...outcome };
 }
 
 /** The one-way delay off a `comms.delay` reading, with its currency; `null` where there is no finite one to draw. */

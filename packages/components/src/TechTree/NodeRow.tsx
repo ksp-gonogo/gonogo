@@ -42,11 +42,9 @@ interface NodeRowProps {
   onToggleExpand: () => void;
   /** See `DetailPanelProps.unlockCmd`. */
   unlockCmd: CommandButtonHandle;
-  canUnlock: boolean;
   canAfford: boolean;
   /** Whether the balance decides this unlock at all; false where the command is refused outright or nothing charges science. */
   moneyDecides: boolean;
-  affordTooltip?: string;
 }
 
 function stateBadge(display: DisplayState): {
@@ -74,10 +72,8 @@ export function NodeRow({
   expanded,
   onToggleExpand,
   unlockCmd,
-  canUnlock,
   canAfford,
   moneyDecides,
-  affordTooltip,
 }: Readonly<NodeRowProps>) {
   const { tone: stateBadgeTone, label: badgeLabel } = stateBadge(display);
   // Researchable but unaffordable: grey the row and recolour the cost.
@@ -166,8 +162,6 @@ export function NodeRow({
                   </>
                 }
                 pendingLabel="Unlocking..."
-                disabled={!canUnlock}
-                title={affordTooltip}
               />
             </UnlockRow>
           )}

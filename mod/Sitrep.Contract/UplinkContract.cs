@@ -692,6 +692,35 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
+    /// The items an <see cref="ICommandGateEvaluator"/> can be asked about,
+    /// for a requirement whose verdict depends on which one is chosen.
+    /// Implemented beside <see cref="ICommandGateEvaluator"/> by an evaluator
+    /// whose answer differs per item, such as a price that depends on which
+    /// facility is upgraded.
+    /// </summary>
+    ///
+    /// <remarks>
+    /// <para>The gate report asks each item in turn, with the requirement's one
+    /// <see cref="CommandRequirement.Needs"/> path set to the item's value, and
+    /// publishes every verdict that is not a Pass on
+    /// <see cref="CommandGate.Items"/>. A control then goes dark before it is
+    /// pressed, with the same verdict the dispatch would return.</para>
+    ///
+    /// <para>Only a requirement that names exactly one need is asked. Name the
+    /// items a control could plausibly offer right now (the nodes still to be
+    /// researched, not the whole tree): each is evaluated on the main thread at
+    /// the gate sampling interval.</para>
+    /// </remarks>
+    /// <category>Commands</category>
+    public interface ICommandGateItems
+    {
+        /// <summary>The values of <paramref name="requirement"/>'s one need worth a verdict right now.</summary>
+        /// <param name="requirement">The requirement whose items are wanted.</param>
+        /// <returns>The item values, exactly as a call would send them. Empty when none can be named.</returns>
+        IEnumerable<string> Items(CommandRequirement requirement);
+    }
+
+    /// <summary>
     /// Where an Uplink's client bundle lives, so the app learns it from the
     /// running mod rather than from a central index. Declared only by an Uplink
     /// with a client half.

@@ -295,6 +295,7 @@ public static class RtConfig
                 // engine-declared, hand-mapped-in-topics.ts treatment as
                 // system.uplink.pending above.
                 typeof(CommandGate),
+                typeof(CommandGateItem),
                 typeof(CommandGateReport),
                 // system.channels, every declared channel's emission counters:
                 // the reading that tells a channel the engine never considered

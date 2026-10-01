@@ -69,6 +69,47 @@ namespace Sitrep.Contract
         /// rather than returning Unknown.)</para>
         /// </summary>
         public GateVerdict Verdict { get; set; } = new GateVerdict();
+
+        /// <summary>
+        /// The argument whose value picks the item a per-item verdict is about,
+        /// e.g. <c>facilityId</c>. Empty when the command's gate does not depend
+        /// on which item is chosen, and then <see cref="Items"/> is empty too.
+        /// </summary>
+        [SitrepUnit(Units.Id)]
+        public string ItemArgument { get; set; } = "";
+
+        /// <summary>
+        /// The verdict for each item that a call naming it would NOT pass, keyed
+        /// by the value of <see cref="ItemArgument"/>. Sampled only while
+        /// <see cref="Verdict"/> is <see cref="GateOutcome.Abstain"/>: a command
+        /// refused or unreadable for every item has nothing to add per item.
+        ///
+        /// <para>An item with no entry has nothing said about it in advance,
+        /// which a client draws exactly as an Abstain: a live control. That
+        /// covers an item that passed and one that was never sampled alike, so
+        /// absence is never a permission either.</para>
+        /// </summary>
+        public List<CommandGateItem> Items { get; set; } = new List<CommandGateItem>();
+    }
+
+    /// <summary>
+    /// One item's verdict in a <see cref="CommandGate"/>: what the gate says
+    /// about a call whose <see cref="CommandGate.ItemArgument"/> is
+    /// <see cref="Value"/>.
+    /// </summary>
+    /// <category>System diagnostics</category>
+    [SitrepContract]
+#if SITREP_CODEGEN
+    [TsInterface]
+#endif
+    public class CommandGateItem
+    {
+        /// <summary>The argument's value that names this item, e.g. <c>LaunchPad</c>, exactly as a call would send it.</summary>
+        [SitrepUnit(Units.Id)]
+        public string Value { get; set; } = "";
+
+        /// <summary>The verdict for a call naming this item, in the shape <see cref="CommandGate.Verdict"/> carries. Never a Pass.</summary>
+        public GateVerdict Verdict { get; set; } = new GateVerdict();
     }
 
     /// <summary>

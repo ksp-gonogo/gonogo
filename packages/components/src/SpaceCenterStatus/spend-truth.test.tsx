@@ -2,6 +2,7 @@ import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { afterEach, describe, expect, it } from "vitest";
 import { ContributionHost } from "../test/contributionHost";
+import { perItemGateReport } from "../test/perItemGate";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { SpaceCenterStatusComponent } from "./index";
 
@@ -98,8 +99,11 @@ const VAB_AFFORDABLE = {
 };
 
 describe("SpaceCenterStatus: what the upgrade control claims about money", () => {
-  /** The control case: without it every assertion below would pass on a widget that stopped judging affordability. */
-  it("still calls a short balance short when nothing has blocked the command", async () => {
+  /**
+   * The price readout still calls a short balance short, but whether Upgrade
+   * is available is the command's per-facility gate, never the readout.
+   */
+  it("calls a short balance short on the price and leaves the control to the facility's gate", async () => {
     const fixture = setupStreamFixture({
       pinnedUt: 10,
     });
@@ -107,10 +111,50 @@ describe("SpaceCenterStatus: what the upgrade control claims about money", () =>
     emitCareer(fixture, LAUNCH_PAD_SHORT);
 
     const button = await screen.findByRole("button", { name: "Upgrade" });
-    expect((button as HTMLButtonElement).disabled).toBe(true);
+    expect((button as HTMLButtonElement).disabled).toBe(false);
+    expect(button.getAttribute("data-gate")).toBeNull();
     expect(
       container.querySelector("[data-afford]")?.getAttribute("data-afford"),
     ).toBe("no");
+
+    act(() => {
+      fixture.emit(
+        "system.uplink.gates",
+        perItemGateReport("career.facility.upgrade", "facilityId", {
+          LaunchPad: {
+            errorCode: "insufficientFunds",
+            detail:
+              "the Launch Pad's next tier costs more than the career holds",
+          },
+        }),
+      );
+    });
+    const refused = await screen.findByRole("button", {
+      name: /costs more than the career holds/,
+    });
+    expect(refused.getAttribute("data-gate")).toBe("blocked");
+    expect(refused.getAttribute("aria-disabled")).toBe("true");
+  });
+
+  /** A refusal for one facility darkens that facility's control only. */
+  it("leaves every other facility live when the gate refuses one", async () => {
+    const fixture = setupStreamFixture({
+      pinnedUt: 10,
+    });
+    mount(fixture, "scs-spend-other-facility");
+    emitCareer(fixture, VAB_AFFORDABLE);
+    act(() => {
+      fixture.emit(
+        "system.uplink.gates",
+        perItemGateReport("career.facility.upgrade", "facilityId", {
+          LaunchPad: { errorCode: "insufficientFunds", detail: "short" },
+        }),
+      );
+    });
+
+    const button = await screen.findByRole("button", { name: "Upgrade" });
+    expect(button.getAttribute("data-gate")).toBeNull();
+    expect(button.getAttribute("aria-disabled")).toBeNull();
   });
 
   it("calls an affordable balance affordable when nothing has blocked the command", async () => {

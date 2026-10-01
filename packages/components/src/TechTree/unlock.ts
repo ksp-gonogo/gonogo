@@ -1,5 +1,3 @@
-import { value } from "@ksp-gonogo/sitrep-sdk";
-import { writeQuantity } from "@ksp-gonogo/ui-kit";
 import type { TechNode } from "./wire";
 
 export interface UnlockContext {
@@ -7,31 +5,13 @@ export interface UnlockContext {
   chargesScience: boolean;
   unlockBlocked: boolean;
   sciAvailable: number | null;
-  careerHeld: boolean;
 }
 
+/** What a node's price readout claims about the science balance. Whether Unlock is available is the command's gate, never this. */
 export interface UnlockHandlers {
   isResearchable: boolean;
   canAfford: boolean;
   moneyDecides: boolean;
-  canUnlock: boolean;
-  affordTooltip?: string;
-}
-
-function priceTooltip(
-  n: TechNode,
-  sciAvailable: number | null,
-  careerHeld: boolean,
-): string {
-  if (n.scienceCost === null) return "No price reported for this node";
-  const need = () => writeQuantity(value("science", n.scienceCost as number));
-  if (sciAvailable === null) {
-    if (careerHeld) {
-      return `Need ${need()} (affordability cannot be checked against a held balance)`;
-    }
-    return `Need ${need()} (no science balance has arrived)`;
-  }
-  return `Need ${need()} (have ${sciAvailable})`;
 }
 
 // A career model that refuses `career.tech.unlock` (one that researches through a queue of its own) refuses for a reason the balance has no part in, so no affordability verdict is drawn.
@@ -42,7 +22,7 @@ export function unlockHandlersFor(
   const isResearchable = ctx.researchable.has(n.id);
   // Sandbox charges nothing, so the balance gates only where science is spent.
   const judged = ctx.chargesScience && !ctx.unlockBlocked;
-  // Fails closed: an absent or held balance arms nothing.
+  // Fails closed: an absent or held balance reads as unaffordable.
   const canAfford =
     !judged ||
     (ctx.sciAvailable !== null &&
@@ -50,15 +30,5 @@ export function unlockHandlersFor(
       ctx.sciAvailable >= n.scienceCost);
   // A verdict is drawn only against a current balance, since a held or absent one can say neither yes nor no.
   const moneyDecides = judged && ctx.sciAvailable !== null;
-  const canUnlock = isResearchable && canAfford;
-  if (!canAfford) {
-    return {
-      isResearchable,
-      canAfford,
-      moneyDecides,
-      canUnlock,
-      affordTooltip: priceTooltip(n, ctx.sciAvailable, ctx.careerHeld),
-    };
-  }
-  return { isResearchable, canAfford, moneyDecides, canUnlock };
+  return { isResearchable, canAfford, moneyDecides };
 }

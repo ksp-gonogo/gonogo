@@ -3,6 +3,7 @@ import { commandArgs } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
+import { perItemGateReport } from "../test/perItemGate";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import {
   parseEffectLines,
@@ -199,6 +200,38 @@ describe("StrategiesComponent", () => {
         vantage: "meta",
       });
     });
+  });
+
+  it("darkens Deactivate for the one strategy its gate refuses, with the game's reason", async () => {
+    renderWidget();
+    act(() => {
+      emitCareer(stream, [{ ...SAMPLE_ACTIVE, canDeactivate: false }], {
+        funds: 289848,
+        reputation: 976,
+        science: 0,
+      });
+    });
+    // The roster's own canDeactivate decides nothing; the control is live until the gate says otherwise.
+    expect(
+      await screen.findByRole("button", { name: /^Deactivate$/i }),
+    ).not.toHaveAttribute("aria-disabled");
+
+    act(() => {
+      stream.emit(
+        "system.uplink.gates",
+        perItemGateReport("career.strategy.deactivate", "strategyId", {
+          AgressiveNegotiations: {
+            errorCode: "wrongState",
+            detail: "the minimum commitment has not elapsed",
+          },
+        }),
+      );
+    });
+    expect(
+      await screen.findByRole("button", {
+        name: /minimum commitment has not elapsed/,
+      }),
+    ).toHaveAttribute("aria-disabled", "true");
   });
 
   it("groups soft-blocked strategies under Available with a hint", async () => {

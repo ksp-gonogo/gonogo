@@ -760,6 +760,44 @@ describe("CommandButton: the blocked phase", () => {
     expect(send).not.toHaveBeenCalled();
   });
 
+  it("draws from the verdict for the item its own args name", async () => {
+    const user = userEvent.setup();
+    const send = vi.fn(() => Promise.resolve(OK));
+    const handle = makeHandle(send, {
+      gateFor: (args) =>
+        typeof args === "object" &&
+        args !== null &&
+        "facilityId" in args &&
+        args.facilityId === "LaunchPad"
+          ? blockedGate({ detail: "short of funds" })
+          : { blocked: false, errorCode: CommandErrorCode.ModeUnavailable },
+    });
+    render(
+      <>
+        <CommandButton
+          handle={handle}
+          args={{ facilityId: "LaunchPad" }}
+          label="Upgrade pad"
+        />
+        <CommandButton
+          handle={handle}
+          args={{ facilityId: "Runway" }}
+          label="Upgrade runway"
+        />
+      </>,
+    );
+
+    const pad = screen.getByRole("button", { name: /pad|short of funds/i });
+    const runway = screen.getByRole("button", { name: "Upgrade runway" });
+    expect(pad).toHaveAttribute("data-gate", "blocked");
+    expect(runway).not.toHaveAttribute("data-gate");
+
+    await user.click(pad);
+    expect(send).not.toHaveBeenCalled();
+    await user.click(runway);
+    expect(send).toHaveBeenCalledWith({ facilityId: "Runway" }, undefined);
+  });
+
   it("is aria-disabled and NOT disabled, so a screen reader still finds it", () => {
     render(
       <CommandButton

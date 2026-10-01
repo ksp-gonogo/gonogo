@@ -20,11 +20,11 @@ export interface StrategiesViewProps {
   h: number | undefined;
   strategies: readonly Strategy[] | null;
   screens: readonly ResolvedScreen[];
-  commitsUnanswered: boolean;
+  /** The career's activation is the game's own, so a strategy with no verdict is checked in full when it is confirmed. */
+  checkedOnConfirm: boolean;
   funds: Value<"funds"> | null | undefined;
   reputation: Value<"rep"> | null | undefined;
   science: Value<"science"> | null | undefined;
-  balancesHeld: boolean;
   /** What the roster and balances were last reported by, so a held one draws held figures. */
   rosterFrom: readonly CarriedCurrency[];
   /** The balances the rail draws, held ones included so Unit can mark them. */
@@ -46,11 +46,10 @@ export function StrategiesView({
   h,
   strategies,
   screens,
-  commitsUnanswered,
+  checkedOnConfirm,
   funds,
   reputation,
   science,
-  balancesHeld,
   rosterFrom,
   shownBalances,
   factorById,
@@ -88,11 +87,10 @@ export function StrategiesView({
   const overCap = inferredCap !== null && active.length > inferredCap;
 
   const sectionProps = {
-    commitsUnanswered,
+    checkedOnConfirm,
     funds,
     reputation,
     science,
-    balancesHeld,
     rosterFrom,
     factorById,
     setFactorById,

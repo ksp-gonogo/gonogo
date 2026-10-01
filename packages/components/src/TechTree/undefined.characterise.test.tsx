@@ -195,8 +195,8 @@ describe("TechTree: no building-scene gate on Unlock", () => {
   });
 });
 
-describe("TechTree: the balances.science absence gate", () => {
-  it("withholds Unlock on a 500-science node while the balance is unknown", async () => {
+describe("TechTree: an absent balances.science", () => {
+  it("leaves Unlock on a 500-science node to its gate while the balance is unknown", async () => {
     const user = userEvent.setup();
     const fixture = newFixture();
     renderTree(fixture);
@@ -210,16 +210,13 @@ describe("TechTree: the balances.science absence gate", () => {
     );
     await user.click(screen.getByText("Pricey Tech"));
 
-    // An unknown balance cannot cover 500 science, and the tooltip names the absence rather than reporting a balance of "null".
+    // An unknown balance decides nothing about the command; the node's per-item gate does.
     const unlock = screen.getByRole("button", { name: "Unlock" });
-    expect(unlock).toBeDisabled();
-    expect(unlock).toHaveAttribute(
-      "title",
-      expect.stringContaining("no science balance has arrived"),
-    );
+    expect(unlock).toBeEnabled();
+    expect(unlock).not.toHaveAttribute("title");
   });
 
-  it("disables Unlock once a balance arrives and is too small", async () => {
+  it("marks the price short once a balance arrives and is too small, and leaves Unlock to its gate", async () => {
     const user = userEvent.setup();
     const fixture = newFixture();
     renderTree(fixture);
@@ -241,8 +238,10 @@ describe("TechTree: the balances.science absence gate", () => {
     await user.click(screen.getByText("Pricey Tech"));
 
     const unlock = screen.getByRole("button", { name: "Unlock" });
-    expect(unlock).toBeDisabled();
-    expect(unlock.getAttribute("title")).toContain("(have 10)");
+    expect(unlock).toBeEnabled();
+    expect(
+      document.querySelector("[data-afford]")?.getAttribute("data-afford"),
+    ).toBe("no");
   });
 
   it("reports the science balance as unknown in the subtitle rather than omitting it", async () => {

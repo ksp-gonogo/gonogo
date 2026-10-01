@@ -301,7 +301,7 @@ namespace Gonogo.KSP
                 // Start(), which is where ValidateGateDeclarations checks that
                 // every declared kind has one: a gate nobody can evaluate is a
                 // gate that silently does not exist.
-                foreach (var evaluator in Gates.KspGateEvaluators.All())
+                foreach (var evaluator in Gates.KspGateEvaluators.All(new KspCareerActuator()))
                 {
                     _engine.AddGateEvaluator(evaluator);
                 }

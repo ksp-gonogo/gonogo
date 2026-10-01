@@ -38,13 +38,14 @@ function StrategiesComponent({
   /*
    * The strategy list is a fact that only moves when the operator acts, so the
    * last list received is still the list. The balances are judgements: they
-   * arm or refuse a control that spends them, so a held balance is withheld.
+   * colour the price beside a control that spends them, so a held balance is
+   * withheld from that verdict. Whether Activate is available is its gate's.
    */
   const careerReading = topics.useTelemetry("career.status");
   const rosterRaw = stillTrue(careerReading, undefined)?.strategies;
   const stratsRaw = rosterRaw?.all;
-  // Only an explicit false says the game's activation is its own; absent and null say nothing.
-  const commitsUnanswered = rosterRaw?.activationPatched === false;
+  // Only an explicit false says the game's activation is its own, so the command re-runs every check at confirm.
+  const checkedOnConfirm = rosterRaw?.activationPatched === false;
   // An affordability verdict may only rest on an observation.
   const balances =
     careerReading.state === "observed"
@@ -53,8 +54,6 @@ function StrategiesComponent({
   const funds = balances?.funds;
   const reputation = balances?.reputation;
   const science = balances?.science;
-  // Held balances and never-arrived ones both refuse Activate, but only one is about the link.
-  const balancesHeld = careerReading.state === "held";
   // The balances as the rail draws them: held ones stay on screen and Unit marks them.
   const shownBalances = {
     funds: readingOf(careerReading, (c) => c.balances?.funds ?? undefined),
@@ -90,15 +89,14 @@ function StrategiesComponent({
       h={h}
       strategies={strategies}
       screens={screens}
-      commitsUnanswered={commitsUnanswered}
       funds={funds}
       reputation={reputation}
       science={science}
-      balancesHeld={balancesHeld}
       shownBalances={shownBalances}
       rosterFrom={[currencyOf(careerReading)]}
       factorById={factorById}
       setFactorById={setFactorById}
+      checkedOnConfirm={checkedOnConfirm}
       activateCmd={activateCmd}
       deactivateCmd={deactivateCmd}
       expandedId={expandedId}

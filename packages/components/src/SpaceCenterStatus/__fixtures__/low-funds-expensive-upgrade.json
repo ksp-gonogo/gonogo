@@ -102,6 +102,142 @@
             }
           }
         }
+      },
+      {
+        "channel": "system.uplink.gates",
+        "value": {
+          "gates": [
+            {
+              "command": "career.facility.upgrade",
+              "verdict": {
+                "outcome": 2,
+                "detail": ""
+              },
+              "itemArgument": "facilityId",
+              "items": [
+                {
+                  "value": "LaunchPad",
+                  "verdict": {
+                    "outcome": 1,
+                    "errorCode": "insufficientFunds",
+                    "detail": "",
+                    "breach": {
+                      "facility": "LaunchPad",
+                      "facilityName": "Launch Pad",
+                      "facilityLevel": 0,
+                      "quantity": "funds",
+                      "limit": 22000,
+                      "actual": 25000,
+                      "unit": "funds"
+                    }
+                  }
+                },
+                {
+                  "value": "VehicleAssemblyBuilding",
+                  "verdict": {
+                    "outcome": 1,
+                    "errorCode": "insufficientFunds",
+                    "detail": "",
+                    "breach": {
+                      "facility": "VehicleAssemblyBuilding",
+                      "facilityName": "Vehicle Assembly Building",
+                      "facilityLevel": 0,
+                      "quantity": "funds",
+                      "limit": 22000,
+                      "actual": 25000,
+                      "unit": "funds"
+                    }
+                  }
+                },
+                {
+                  "value": "SpaceplaneHangar",
+                  "verdict": {
+                    "outcome": 1,
+                    "errorCode": "insufficientFunds",
+                    "detail": "",
+                    "breach": {
+                      "facility": "SpaceplaneHangar",
+                      "facilityName": "Spaceplane Hangar",
+                      "facilityLevel": 0,
+                      "quantity": "funds",
+                      "limit": 22000,
+                      "actual": 175000,
+                      "unit": "funds"
+                    }
+                  }
+                },
+                {
+                  "value": "MissionControl",
+                  "verdict": {
+                    "outcome": 1,
+                    "errorCode": "insufficientFunds",
+                    "detail": "",
+                    "breach": {
+                      "facility": "MissionControl",
+                      "facilityName": "Mission Control",
+                      "facilityLevel": 0,
+                      "quantity": "funds",
+                      "limit": 22000,
+                      "actual": 45000,
+                      "unit": "funds"
+                    }
+                  }
+                },
+                {
+                  "value": "TrackingStation",
+                  "verdict": {
+                    "outcome": 1,
+                    "errorCode": "insufficientFunds",
+                    "detail": "",
+                    "breach": {
+                      "facility": "TrackingStation",
+                      "facilityName": "Tracking Station",
+                      "facilityLevel": 0,
+                      "quantity": "funds",
+                      "limit": 22000,
+                      "actual": 45000,
+                      "unit": "funds"
+                    }
+                  }
+                },
+                {
+                  "value": "ResearchAndDevelopment",
+                  "verdict": {
+                    "outcome": 1,
+                    "errorCode": "insufficientFunds",
+                    "detail": "",
+                    "breach": {
+                      "facility": "ResearchAndDevelopment",
+                      "facilityName": "Research and Development",
+                      "facilityLevel": 0,
+                      "quantity": "funds",
+                      "limit": 22000,
+                      "actual": 250000,
+                      "unit": "funds"
+                    }
+                  }
+                },
+                {
+                  "value": "AstronautComplex",
+                  "verdict": {
+                    "outcome": 1,
+                    "errorCode": "insufficientFunds",
+                    "detail": "",
+                    "breach": {
+                      "facility": "AstronautComplex",
+                      "facilityName": "Astronaut Complex",
+                      "facilityLevel": 0,
+                      "quantity": "funds",
+                      "limit": 22000,
+                      "actual": 30000,
+                      "unit": "funds"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
       }
     ],
     "pinnedUt": 10

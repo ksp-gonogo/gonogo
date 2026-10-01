@@ -97,10 +97,10 @@ namespace Gonogo.KSP.Tests.Career
         [Fact]
         public void TheUpgradeCommandTakesTheOffSceneArmWhenNoComponentIsRegistered()
         {
-            var body = CareerSpendPaymentTests.MethodBody("KspCareerActuator.cs", "public CommandResult UpgradeFacility(");
+            var body = CareerSpendPaymentTests.MethodBody("KspCareerActuator.cs", "private CommandResult UpgradeFacility(string facilityId, bool commit)");
 
             Assert.Contains("if (known && !built)", body);
-            Assert.Contains("return UpgradeFacilityOffScene(facilityId, sanitizedId, proto!);", body);
+            Assert.Contains("return UpgradeFacilityOffScene(facilityId, sanitizedId, proto!, commit);", body);
         }
 
         /// <summary>

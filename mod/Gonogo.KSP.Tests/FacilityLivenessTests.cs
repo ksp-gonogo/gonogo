@@ -89,7 +89,7 @@ namespace Gonogo.KSP.Tests
         [Fact]
         public void TheUpgradeCommandGatesOnBuiltAndUpgradesThroughIt()
         {
-            var body = MethodSource("KspCareerActuator.cs", "public CommandResult UpgradeFacility(");
+            var body = MethodSource("KspCareerActuator.cs", "private CommandResult UpgradeFacility(string facilityId, bool commit)");
 
             Assert.Contains("FacilityLiveness.IsBuilt(proto.facilityRefs[0])", body, StringComparison.Ordinal);
             Assert.Contains("FacilityLiveness.Upgrade(live, ", body, StringComparison.Ordinal);

@@ -26,7 +26,7 @@ namespace Gonogo.KSP.Tests.Career
         [Fact]
         public void EveryDeclaredGateKindHasAnEvaluator()
         {
-            var kinds = KspGateEvaluators.All().Select(e => e.Kind).ToList();
+            var kinds = KspGateEvaluators.All(new NoJudge()).Select(e => e.Kind).ToList();
 
             var orphans = GateDeclarations.All()
                 .SelectMany(entry => entry.Value.Select(r => new { Command = entry.Key, r.Kind }))
@@ -47,7 +47,7 @@ namespace Gonogo.KSP.Tests.Career
             // ChannelEngine.AddGateEvaluator throws on this, and it would throw
             // at startup rather than here. Which of two evaluators wins would
             // otherwise depend on registration order.
-            var kinds = KspGateEvaluators.All().Select(e => e.Kind).ToList();
+            var kinds = KspGateEvaluators.All(new NoJudge()).Select(e => e.Kind).ToList();
             Assert.Equal(kinds.Count, kinds.Distinct().Count());
             Assert.DoesNotContain(kinds, string.IsNullOrWhiteSpace);
         }
@@ -128,23 +128,66 @@ namespace Gonogo.KSP.Tests.Career
         }
 
         /// <summary>
-        /// Every requirement declared today is answerable with NO arguments, and
-        /// that is the property worth pinning: it is what lets a control be dark
-        /// with a reason instead of live and doomed. An argument-dependent
-        /// requirement is legal and abstains until the arguments arrive; if one
-        /// is added, this assertion is the place to say so deliberately.
+        /// Every requirement declared today is answerable before the press: with
+        /// NO arguments, or per item, through an evaluator that names its items
+        /// so the gate report can ask each one. That is what lets a control be
+        /// dark with a reason instead of live and doomed. A requirement needing
+        /// an argument nobody enumerates would abstain until the dispatch; if
+        /// one is added, this assertion is the place to say so deliberately.
         /// </summary>
         [Fact]
         public void EveryDeclaredRequirementIsAskableInAdvance()
         {
             var requirements = GateDeclarations.All().SelectMany(e => e.Value).ToList();
+            var itemKinds = KspGateEvaluators.All(new NoJudge())
+                .Where(e => e is Sitrep.Contract.ICommandGateItems)
+                .Select(e => e.Kind)
+                .ToList();
 
             Assert.True(
                 requirements.Count >= MinimumDeclaredRequirements,
                 $"only {requirements.Count} requirements are declared; the gate framework spent "
                     + "months with exactly zero and a scan that finds none reads as a pass");
 
-            Assert.All(requirements, r => Assert.Empty(r.Needs));
+            Assert.All(requirements, r =>
+            {
+                if (r.Needs.Length == 0) return;
+                Assert.Single(r.Needs);
+                Assert.Contains(r.Kind, itemKinds);
+            });
+        }
+
+        /// <summary>The four career commands whose verdict depends on which item is chosen name that item by the argument the client sends.</summary>
+        [Fact]
+        public void ThePerItemCommandsAreGatedOnTheirItem()
+        {
+            var byCommand = GateDeclarations.All().ToDictionary(e => e.Key, e => e.Value);
+            var expected = new[]
+            {
+                ("career.facility.upgrade", ItemGates.Kinds.FacilityUpgrade, "facilityId"),
+                ("career.tech.unlock", ItemGates.Kinds.TechUnlock, "techId"),
+                ("career.strategy.activate", ItemGates.Kinds.StrategyActivate, "strategyId"),
+                ("career.strategy.deactivate", ItemGates.Kinds.StrategyDeactivate, "strategyId"),
+            };
+            foreach (var (command, kind, argument) in expected)
+            {
+                var requirement = Assert.Single(byCommand[command], r => r.Kind == kind);
+                Assert.Equal(new[] { argument }, requirement.Needs);
+                // Career mode first, so a sandbox save says so once rather than per item.
+                Assert.Equal(KspGateEvaluators.Kinds.GameMode, byCommand[command][0].Kind);
+            }
+        }
+
+        /// <summary>Evaluators are only constructed here, so the judge they would ask is never reached.</summary>
+        private sealed class NoJudge : ICareerItemJudge
+        {
+            public Sitrep.Contract.CommandResult JudgeUpgradeFacility(string facilityId) => throw new System.NotSupportedException();
+
+            public Sitrep.Contract.CommandResult JudgeUnlockTech(string techId) => throw new System.NotSupportedException();
+
+            public Sitrep.Contract.CommandResult JudgeActivateStrategy(string strategyId) => throw new System.NotSupportedException();
+
+            public Sitrep.Contract.CommandResult JudgeDeactivateStrategy(string strategyId) => throw new System.NotSupportedException();
         }
 
         /// <summary>An ungated command gets an empty array, never a null the engine would have to guard.</summary>

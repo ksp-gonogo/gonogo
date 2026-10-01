@@ -86,7 +86,6 @@ export function FacilityGridItem({
     f.upgradeFunds > 0 &&
     careerFunds !== null &&
     careerFunds >= f.upgradeFunds;
-  const canUpgrade = !!f && !atMax && f.upgradeFunds > 0 && canAfford;
   // A blocked command is refused for a reason the balance has no part in, and a balance that is held answers nothing, so either way the price is a plain figure.
   const moneyDecides = !upgradeBlocked && careerFunds !== null;
   const tooltip = buildFacilityTooltip(label, f);
@@ -134,7 +133,6 @@ export function FacilityGridItem({
             {formatCompactCurrency(f.upgradeFunds)}
           </UpgradeCost>
           <UpgradeButton
-            enabled={canUpgrade}
             upgradeCmd={upgradeCmd}
             facilityId={KEY_TO_ENUM_FACILITY[facilityKey]}
             facilityLabel={label}

@@ -1499,6 +1499,10 @@ export interface UseCommandResult<Args = unknown, Reply = AnyCommandReply> {
   /** What the mod says about this command in ADVANCE, off `system.uplink.gates`;
    *  `undefined` when nothing is known. See the spine's `CommandGateStatus`. */
   gate?: CommandGateStatus;
+  /** The advance verdict for a call with these arguments: the one published for
+   *  the item they name, when the gate depends on which item that is, else
+   *  `gate`. See the spine's `UseCommandResult.gateFor`. */
+  gateFor(args: Args): CommandGateStatus | undefined;
 }
 
 /**

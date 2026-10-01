@@ -7,6 +7,7 @@ import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
+import { perItemGateReport } from "../test/perItemGate";
 import {
   type StreamFixture,
   setupStreamFixture,
@@ -236,7 +237,7 @@ describe("TechTreeComponent", () => {
     expect(screen.getByRole("button", { name: "Unlock" })).toBeInTheDocument();
   });
 
-  it("disables Unlock when science is insufficient", async () => {
+  it("darkens Unlock on a short balance only once the node's gate refuses it", async () => {
     const user = userEvent.setup();
     const fixture = setupStreamFixture({
       pinnedUt: 10,
@@ -251,7 +252,25 @@ describe("TechTreeComponent", () => {
     );
     await user.click(screen.getByText("Basic Rocketry"));
     const unlock = screen.getByRole("button", { name: "Unlock" });
-    expect((unlock as HTMLButtonElement).disabled).toBe(true);
+    expect((unlock as HTMLButtonElement).disabled).toBe(false);
+
+    const node = SAMPLE_NODES.find((n) => n.title === "Basic Rocketry");
+    act(() => {
+      fixture.emit(
+        "system.uplink.gates",
+        perItemGateReport("career.tech.unlock", "techId", {
+          [String(node?.id)]: {
+            errorCode: "insufficientScience",
+            detail: "not enough science",
+          },
+        }),
+      );
+    });
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: /not enough science/ }),
+      ).toHaveAttribute("aria-disabled", "true"),
+    );
   });
 
   it("arms Unlock with no game-scene signal at all, since the backend carries no scene gate", async () => {

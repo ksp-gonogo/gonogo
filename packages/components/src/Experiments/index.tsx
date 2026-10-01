@@ -85,7 +85,7 @@ function ExperimentsComponent({
   // The parsers take `unknown`, so passing them a Reading instead of its value compiles and renders "no instruments".
   const instrumentsReading = useTelemetry("science.instruments");
   const instrumentsRaw = stillTrue(instrumentsReading, EMPTY_INSTRUMENTS);
-  // A held list is kept and marked per row, and the row's controls go dead with it.
+  // A held list is kept and marked per row; the controls stay live and each command checks its instrument.
   const instrumentsHeld = heldGrade(instrumentsReading);
   const experimentsReading = useTelemetry("science.experiments");
   const experimentsRaw = stillTrue(experimentsReading, EMPTY_EXPERIMENTS);

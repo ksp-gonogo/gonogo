@@ -5,6 +5,7 @@ import {
   visibleText,
 } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
+import { perItemGateReport } from "../test/perItemGate";
 import {
   type StreamFixture,
   setupStreamFixture,
@@ -80,6 +81,22 @@ const REFUSED = {
   canDeactivate: false,
   effect: "",
 };
+
+/** The mod's per-strategy activation gate refusing one strategy, as `system.uplink.gates` publishes it. */
+function refuseActivation(
+  fixture: StreamFixture,
+  strategyId: string,
+  detail: string,
+): void {
+  act(() => {
+    fixture.emit(
+      "system.uplink.gates",
+      perItemGateReport("career.strategy.activate", "strategyId", {
+        [strategyId]: { errorCode: "wrongState", detail },
+      }),
+    );
+  });
+}
 
 function emitCareer(
   fixture: StreamFixture,
@@ -213,15 +230,15 @@ describe("Strategies with an eligibility it could not read", () => {
     expect(within(unknown).getByText(/12,500/)).toBeInTheDocument();
   });
 
-  it("refuses Activate with the unread reason, not with a refusal it never got", async () => {
+  it("leaves Activate to the strategy's gate rather than refusing on a verdict it never got", async () => {
     const fixture = newFixture();
     renderStrategies(fixture);
     emitCareer(fixture, [UNANSWERED]);
 
-    // No word on whether activation is the game's own, so the command may refuse and the control stays dark.
+    // The unread reason is on screen in the list; the control itself is the command's to decide.
     const activate = await screen.findByRole("button", { name: "Activate" });
-    expect(activate).toBeDisabled();
-    expect(activate).toHaveAttribute("title", UNANSWERED_REASON);
+    expect(activate).toBeEnabled();
+    expect(activate).not.toHaveAttribute("aria-disabled");
   });
 
   it("has no accessibility violations with all three lists on screen", async () => {
@@ -240,8 +257,9 @@ describe("Strategies with an eligibility it could not read", () => {
 
 /**
  * A verdict is a pair: the answer, and who gave it. A derived refusal is the
- * game's own and belongs in Locked; a derived yes must never arm a spend,
- * because a yes nobody screened is not an answer.
+ * game's own and belongs in Locked. Whether Activate is available is never the
+ * roster's to say: the command's per-strategy gate runs the same checks the
+ * command would, by the same route.
  */
 describe("Strategies with a verdict derived off-screen", () => {
   /** A pair our career model never sends, but the published type admits it. */
@@ -292,64 +310,71 @@ describe("Strategies with a verdict derived off-screen", () => {
     expect(within(available).getByText("Open Door Policy")).toBeInTheDocument();
   });
 
-  it("does NOT arm Activate on a derived yes, and says what stands in the way", async () => {
-    // Even on a career whose activation is the game's own.
+  it("draws Activate from the strategy's gate whoever answered the roster", async () => {
     const fixture = newFixture();
     renderStrategies(fixture);
-    emitCareer(fixture, [DERIVED_YES], { activationPatched: false });
-
-    const activate = await screen.findByRole("button", { name: "Activate" });
-    expect(activate).toBeDisabled();
-    expect(activate.getAttribute("title")).toMatch(
-      /Nobody screened this answer/,
-    );
-  });
-
-  it("DOES arm Activate on the same yes once the game itself screened it", async () => {
-    // The control for the test above: the only difference is who answered.
-    const fixture = newFixture();
-    renderStrategies(fixture);
-    emitCareer(fixture, [
-      { ...DERIVED_YES, activateVerdictSource: "screened" },
-    ]);
+    emitCareer(fixture, [DERIVED_YES]);
 
     const activate = await screen.findByRole("button", { name: "Activate" });
     expect(activate).toBeEnabled();
+
+    refuseActivation(fixture, "DerivedYes", "the strategy is not eligible");
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: /not eligible/ }),
+      ).toHaveAttribute("aria-disabled", "true"),
+    );
   });
 });
 
 /**
- * An unanswered strategy can still be committed where the career's activation
- * is the game's own, because the command re-runs the checks. The control arms
- * on an explicit `activationPatched: false` and nothing else.
+ * An unanswered strategy can still be committed where the command can run its
+ * own checks. Where it cannot (another mod has replaced activation, and the
+ * Administration Building is shut), the mod's per-strategy gate says so in
+ * advance, and that is the only thing that darkens the control.
  */
 describe("Strategies committing a strategy the roster left unanswered", () => {
-  it("arms Activate on an unanswered row when the career's activation is the game's own", async () => {
+  it("says the unread checks are made at confirm only where activation is the game's own", async () => {
     const fixture = newFixture();
     renderStrategies(fixture);
     emitCareer(fixture, [UNANSWERED], { activationPatched: false });
 
-    const activate = await screen.findByRole("button", { name: "Activate" });
-    expect(activate).toBeEnabled();
-    expect(activate.getAttribute("title")).toMatch(/made when you confirm/);
+    const unknown = await screen.findByRole("region", {
+      name: "Eligibility unknown",
+    });
+    expect(
+      within(unknown).getByText(/made when you confirm/),
+    ).toBeInTheDocument();
+
+    emitCareer(fixture, [UNANSWERED], { activationPatched: true });
+    await waitFor(() =>
+      expect(within(unknown).queryByText(/made when you confirm/)).toBeNull(),
+    );
   });
 
-  it("keeps it dark when another mod has changed activation", async () => {
+  it("leaves Activate live while the strategy's gate says nothing", async () => {
     const fixture = newFixture();
     renderStrategies(fixture);
     emitCareer(fixture, [UNANSWERED], { activationPatched: true });
 
     const activate = await screen.findByRole("button", { name: "Activate" });
-    expect(activate).toBeDisabled();
+    expect(activate).toBeEnabled();
   });
 
-  it("keeps it dark when whether activation was changed could not be read", async () => {
+  it("darkens it, with the mod's reason, when the gate refuses that strategy", async () => {
     const fixture = newFixture();
     renderStrategies(fixture);
-    emitCareer(fixture, [UNANSWERED], { activationPatched: null });
+    emitCareer(fixture, [UNANSWERED], { activationPatched: true });
+    refuseActivation(
+      fixture,
+      "Unanswered",
+      "another mod changes how a strategy activates",
+    );
 
-    const activate = await screen.findByRole("button", { name: "Activate" });
-    expect(activate).toBeDisabled();
+    const activate = await screen.findByRole("button", {
+      name: /another mod changes how a strategy activates/,
+    });
+    expect(activate).toHaveAttribute("aria-disabled", "true");
   });
 
   it("keeps a derived refusal dark whatever the roster says", async () => {
@@ -373,7 +398,7 @@ describe("Strategies committing a strategy the roster left unanswered", () => {
     expect(screen.queryByRole("button", { name: "Activate" })).toBeNull();
   });
 
-  it("still refuses an unanswered row the career cannot afford", async () => {
+  it("marks the price short on a row the career cannot afford, and leaves the factor's cost to the command", async () => {
     const fixture = newFixture();
     renderStrategies(fixture);
     emitCareer(fixture, [{ ...UNANSWERED, initialCostFunds: 5_000_000 }], {
@@ -381,7 +406,9 @@ describe("Strategies committing a strategy the roster left unanswered", () => {
     });
 
     const activate = await screen.findByRole("button", { name: "Activate" });
-    expect(activate).toBeDisabled();
-    expect(activate.getAttribute("title")).toMatch(/Insufficient/);
+    expect(activate).toBeEnabled();
+    expect(
+      document.querySelector("[data-afford]")?.getAttribute("data-afford"),
+    ).toBe("no");
   });
 });

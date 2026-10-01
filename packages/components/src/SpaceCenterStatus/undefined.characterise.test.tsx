@@ -153,8 +153,8 @@ describe("SpaceCenterStatus: what undefined telemetry renders today", () => {
     }
   });
 
-  /** An unknown balance is never a sufficient one. */
-  it("treats an absent funds field as unaffordable, and says the balance is unknown", async () => {
+  /** An unknown balance is never drawn as a sufficient one, and it decides nothing about the command. */
+  it("says an absent funds balance is unknown, and leaves the upgrade to its gate", async () => {
     const fixture = setupStreamFixture({
       pinnedUt: 10,
       suspendFrames: true,
@@ -177,16 +177,16 @@ describe("SpaceCenterStatus: what undefined telemetry renders today", () => {
       });
     });
 
-    // An unknown balance cannot satisfy a 150,000f cost, so the button is inert.
+    // Whether the upgrade is available is the per-facility gate's to say, never the readout's.
     const button = await waitFor(() =>
       screen.getByRole("button", { name: "Upgrade" }),
     );
-    expect((button as HTMLButtonElement).disabled).toBe(true);
-    // The refusal is explained: the readout reports the balance as the thing that is missing.
+    expect((button as HTMLButtonElement).disabled).toBe(false);
+    // The readout reports the balance as the thing that is missing.
     expect(screen.queryByTitle("Available funds")).toBeNull();
     expect(screen.getByTitle("No funds balance has arrived")).toBeTruthy();
 
-    // Absence and a short balance are both "cannot afford this".
+    // A short balance replaces the unknown one on the readout.
     act(() => {
       fixture.emit("career.facilities", {
         facilities: {
@@ -200,14 +200,9 @@ describe("SpaceCenterStatus: what undefined telemetry renders today", () => {
         tech: null,
       });
     });
-    // Wait on the readout: the button is already disabled before the emit lands.
     await waitFor(() =>
       expect(screen.getByTitle("Available funds")).toBeTruthy(),
     );
-    expect(
-      (screen.getByRole("button", { name: "Upgrade" }) as HTMLButtonElement)
-        .disabled,
-    ).toBe(true);
     expect(screen.queryByTitle("No funds balance has arrived")).toBeNull();
   });
 
