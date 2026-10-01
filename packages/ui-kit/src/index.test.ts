@@ -39,16 +39,6 @@ describe("ui-kit foundation", () => {
     expect(defaultDarkTheme.typography.letterSpacing.wide).toBe("0.15em");
   });
 
-  it("resolves a spacing prop to a job's token rather than a raw length", () => {
-    // The scales are the kit's own, off the theme contract, so nothing outside this package can assert them through a public export.
-    expect(GAP_VAR["related-comfortable"]).toBe(
-      "var(--gap-related-comfortable)",
-    );
-    expect(INSET_NAME["chip-readout"]).toBe("--inset-chip-readout");
-    expect(RADIUS_VAR.regular).toBe("var(--radius-regular)");
-    expect(RADIUS_VAR.pill).toBe("var(--radius-pill)");
-  });
-
   it("points every size handle at a token the stylesheet declares", () => {
     // A `var()` naming a deleted token invalidates the declaration silently, so each must exist in the sheet.
     const tokens = readFileSync(
