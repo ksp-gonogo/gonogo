@@ -663,6 +663,8 @@ textarea {
   --gap-panel-sections: var(--space-12);
   /* The height of a panel's full-bleed trend strip along its bottom edge. */
   --size-panel-trend: var(--space-24);
+  /* The least height a filling Section keeps when its siblings take the rest; the panel body scrolls past it. */
+  --size-section-fill-floor: calc(var(--space-24) * 4);
   /* The band every panel reserves at its top edge for the delay rail. */
   --panel-rail-band: var(--space-16);
 

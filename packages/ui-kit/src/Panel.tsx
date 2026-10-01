@@ -80,12 +80,14 @@ export function PanelProviders({ children }: { children?: ReactNode }) {
  * What a `Section fill` resolves to inside the box that owns the leftover
  * height. A content basis (not `flex: 1`) lets two filling sections keep their
  * own heights and split only the spare room. It still shrinks, so a drawing
- * sized from a ResizeObserver can give room back.
+ * sized from a ResizeObserver can give room back, but only down to a floor: a
+ * zero minimum let the sections around it squeeze its scroller to nothing, and
+ * the body scrolls past the floor instead.
  */
 const SECTION_FILL_RULE = `
   & > [${SECTION_FILL_ATTR}] {
     flex: 1 1 auto;
-    min-height: 0;
+    min-height: var(--size-section-fill-floor);
   }
 `;
 
@@ -524,6 +526,13 @@ const PanelBody__Box = styled.div<{
          --panel-body-bottom: var(--inset-tiny);`
       : ""}
   ${SECTION_FILL_RULE}
+  /* A lone drawing is the whole body, so nothing squeezes it and it keeps giving room back. */
+  ${({ $loneFrame }) =>
+    $loneFrame
+      ? `& > [${SECTION_FILL_ATTR}] {
+           min-height: 0;
+         }`
+      : ""}
 `;
 
 /**
