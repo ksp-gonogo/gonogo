@@ -151,8 +151,11 @@ jobs:
   mods:
     needs: [gate, ci]
     if: ${{ !cancelled() && needs.gate.outputs.build == 'true' && needs.ci.result != 'failure' && needs.ci.result != 'cancelled' }}
+    # contents: write because GitHub checks a called workflow's permissions before
+    # running anything: publish-mods.yml's attach-to-release job asks for it, and
+    # it runs only on the release channel, so an RC never uses the grant.
     permissions:
-      contents: read
+      contents: write
     uses: ./.github/workflows/publish-mods.yml
     with:
       channel: rc
