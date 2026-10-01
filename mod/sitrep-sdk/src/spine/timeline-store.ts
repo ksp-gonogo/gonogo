@@ -345,6 +345,9 @@ const GAP_MODEL_SAMPLES = 24;
  */
 const MAX_RECKONED_TAIL_SAMPLES = 48;
 
+/** Halvings spent locating where a model's reach ends: the boundary lands within 1/4096 of one stride. */
+const RECKONED_EDGE_BISECTIONS = 12;
+
 /** The engine-built roster whose `delayRoles` block decides every declared topic's lane. */
 const UPLINK_ROSTER_TOPIC = "system.uplinks";
 
@@ -1566,19 +1569,14 @@ export class TimelineStore {
       .sort((a, b) => a - b);
     const step = reckonedTailStep(inWindow, walk.lastObservedUt, toUt);
     const out: ReckonedSample<Payload>[] = [];
-    for (let ut = walk.lastObservedUt + step; ; ut += step) {
-      /*
-       * The last stride lands on `toUt` exactly rather than short of it: the
-       * right-hand end of the tail is the frame's own view time, and stopping a
-       * fraction of a step early would leave a gap between the model and the
-       * moment the whole frame is drawn for.
-       */
-      const at = ut >= toUt - step * 0.5 ? toUt : ut;
+    const sampleAt = (
+      at: number,
+    ): ReckonedSample<Payload> | "declined" | "undrawable" => {
       RECKONED_TAIL_BUDGET.record();
       const answer = walk.answerAt(at);
-      if (!answer) break; // the model's own horizon
+      if (!answer) return "declined";
       const drawable = plottableQuantity(answer.value);
-      if (drawable === undefined) break;
+      if (drawable === undefined) return "undrawable";
       const sample: ReckonedSample<Payload> = {
         atUt: at,
         value: drawable as Payload,
@@ -1609,10 +1607,74 @@ export class TimelineStore {
         sample.bandHi = answer.band.hi as ReckonedBound<Payload>;
         sample.bandKind = answer.band.kind;
       }
+      return sample;
+    };
+    let reachedFrom = walk.lastObservedUt;
+    for (let ut = walk.lastObservedUt + step; ; ut += step) {
+      /*
+       * The last stride lands on `toUt` exactly rather than short of it: the
+       * right-hand end of the tail is the frame's own view time, and stopping a
+       * fraction of a step early would leave a gap between the model and the
+       * moment the whole frame is drawn for.
+       */
+      const at = ut >= toUt - step * 0.5 ? toUt : ut;
+      const sample = sampleAt(at);
+      if (sample === "undrawable") break;
+      if (sample === "declined") {
+        const edge = this.reckonedTailEdge(
+          sampleAt,
+          reachedFrom,
+          at,
+          out.length,
+        );
+        if (edge) out.push(edge);
+        break;
+      }
       out.push(sample);
+      reachedFrom = at;
       if (at >= toUt) break;
     }
     return out;
+  }
+
+  /**
+   * The last instant in `[good, declined)` the model still answers for, found
+   * by bisection, so a tail whose stride overshoots the model's reach draws up
+   * to the boundary and stops there instead of drawing nothing.
+   *
+   * `good` is a verified answer only once the walk has pushed a sample (`pushed`
+   * above zero); before that it is the last observation, which is asked first
+   * and ends the search when the model already declines there.
+   *
+   * A model's reach is taken as a single boundary: it answers up to some
+   * instant and declines beyond it.
+   */
+  private reckonedTailEdge<Payload>(
+    sampleAt: (
+      at: number,
+    ) => ReckonedSample<Payload> | "declined" | "undrawable",
+    good: number,
+    declined: number,
+    pushed: number,
+  ): ReckonedSample<Payload> | undefined {
+    let lo = good;
+    let edge: ReckonedSample<Payload> | undefined;
+    if (pushed === 0) {
+      const opening = sampleAt(lo);
+      if (typeof opening === "string") return undefined;
+    }
+    let hi = declined;
+    for (let i = 0; i < RECKONED_EDGE_BISECTIONS; i++) {
+      const mid = (lo + hi) / 2;
+      const answer = sampleAt(mid);
+      if (typeof answer === "string") {
+        hi = mid;
+      } else {
+        lo = mid;
+        edge = answer;
+      }
+    }
+    return edge;
   }
 
   /**

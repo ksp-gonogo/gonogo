@@ -99,12 +99,39 @@ describe("TimelineStore.sampleReckonedTail: a registered reckoner", () => {
     store.setTransportConnected(false);
     store.beginFrame();
 
-    // The stride is 10, so the walk offers 30 and 40; 40 is 20 s past the observation, which is beyond the horizon this model claims.
-    expect(
-      store
-        .sampleReckonedTail<number>("test.temperature", 0, 100)
-        .map((s) => s.atUt),
-    ).toEqual([30]);
+    // The stride is 10, so the walk offers 30 and 40; 40 is past the horizon, so the tail runs on from 30 to the edge at 35.
+    const atUts = store
+      .sampleReckonedTail<number>("test.temperature", 0, 100)
+      .map((s) => s.atUt);
+    expect(atUts[0]).toBe(30);
+    expect(atUts.at(-1)).toBeGreaterThan(34.99);
+    expect(atUts.at(-1)).toBeLessThanOrEqual(35);
+  });
+
+  it("draws up to the boundary when the first stride already overshoots the model's reach", () => {
+    const store = disconnectedStore(100);
+    const HORIZON = 4;
+    registerReckoner("test.temperature", "test", {
+      deps: [],
+      reckon: (point, _deps, { reckonUt: at }) => {
+        if (at - point.validAt > HORIZON)
+          return { declined: { reason: "beyond-horizon" } };
+        return {
+          modelled: [{ path: "", basis: "linear-dead-reckoning" }],
+          reckon: () => point.payload as number,
+        };
+      },
+    });
+    ingestPoint(store, "test.temperature", 10, 5);
+    ingestPoint(store, "test.temperature", 20, 5);
+    store.setTransportConnected(false);
+    store.beginFrame();
+
+    const tail = store.sampleReckonedTail<number>("test.temperature", 0, 100);
+    expect(tail).toHaveLength(1);
+    expect(tail[0].atUt).toBeGreaterThan(23.99);
+    expect(tail[0].atUt).toBeLessThanOrEqual(24);
+    expect(tail[0].value).toBe(5);
   });
 
   it("draws nothing for a model that declines outright", () => {

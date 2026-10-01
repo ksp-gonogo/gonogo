@@ -253,8 +253,8 @@ describe("useDataSeries: the stretch nobody measured", () => {
     });
 
     await waitFor(() => {
-      // The run stops at 400 where the same elements without the transition carry it to 600.
-      expect(readProbe()).toBe("n:5|reckoned:3-4:kepler-propagation");
+      // The run is cut at the transition near 420, with the sample on the boundary itself, where the same elements without the transition carry it to 600.
+      expect(readProbe()).toBe("n:6|reckoned:3-5:kepler-propagation");
     });
   });
 });
