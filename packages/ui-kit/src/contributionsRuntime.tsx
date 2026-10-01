@@ -2,15 +2,18 @@ import {
   type AnyContribution,
   hasHost,
   logger,
+  type ModSettingsModel,
   PerfBudget,
   type TopicId,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   type FrameToken,
   getContributionsForSlot,
+  modSettingsTopic,
   onContributionsChange,
   type ProcessorHandle,
   processorRuntimeFor,
+  readModSetting,
   runContributionCompute,
   subscribeTopicRead,
   useTelemetryClientOptional,
@@ -135,6 +138,20 @@ function shallowEqualValues(
   return keys.every((k) => Object.hasOwn(b, k) && Object.is(a[k], b[k]));
 }
 
+interface ModSettingRef {
+  readonly uplink: string;
+  readonly key: string;
+}
+
+function isModSettingDep(dep: object): dep is { modSetting: ModSettingRef } {
+  return "modSetting" in dep;
+}
+
+/** The key a setting dep's value arrives under in `compute`'s argument. */
+function modSettingKey(ref: ModSettingRef): string {
+  return `settings.${ref.uplink}.${ref.key}`;
+}
+
 /** The topics a contribution declared, which it may read through any seam unreported. */
 function declaredTopicsOf(def: AnyContribution): ReadonlySet<string> {
   const topics = new Set<string>();
@@ -143,7 +160,13 @@ function declaredTopicsOf(def: AnyContribution): ReadonlySet<string> {
       topics.add(d);
       continue;
     }
-    if ("reading" in d) topics.add(d.reading);
+    if ("reading" in d) {
+      topics.add(d.reading);
+      continue;
+    }
+    if (isModSettingDep(d)) {
+      topics.add(modSettingKey(d.modSetting));
+    }
   }
   if (def.requires) topics.add(`${def.requires}.available`);
   return topics;
@@ -172,6 +195,7 @@ function SlotAggregator({
   const unionDeps = useMemo(() => {
     const topics = new Set<TopicId>();
     const processors = new Map<string, ProcessorHandle<unknown>>();
+    const settings = new Map<string, ModSettingRef>();
     for (const c of contribs) {
       for (const d of c.deps ?? []) {
         if (typeof d === "string") {
@@ -183,12 +207,17 @@ function SlotAggregator({
           topics.add(d.reading as TopicId);
           continue;
         }
+        if (isModSettingDep(d)) {
+          settings.set(modSettingKey(d.modSetting), d.modSetting);
+          continue;
+        }
         processors.set(d.id, d);
       }
     }
     return {
       topics: Array.from(topics),
       processors: Array.from(processors.values()),
+      settings: Array.from(settings.entries()),
     };
   }, [contribs]);
 
@@ -213,8 +242,11 @@ function SlotAggregator({
     (onChange: () => void) => {
       if (!client || !telemetryStore) return () => {};
       // Through the shared read seam, which also holds up each dep's reckoner inputs.
-      const unsubscribeInputs = unionDeps.topics.map((topic) =>
-        subscribeTopicRead(client, telemetryStore, topic),
+      const settingsTopics = new Set(
+        unionDeps.settings.map(([, ref]) => modSettingsTopic(ref.uplink)),
+      );
+      const unsubscribeInputs = [...unionDeps.topics, ...settingsTopics].map(
+        (topic) => subscribeTopicRead(client, telemetryStore, topic),
       );
       const unsubscribeFrame = telemetryStore.subscribeFrame(() => {
         // Evaluate Processors BEFORE notifying React: this listener can fire before the evaluator's shared one. Idempotent.
@@ -237,7 +269,11 @@ function SlotAggregator({
 
   const getSnapshot = useCallback((): Record<string, unknown> => {
     if (!telemetryStore) return EMPTY_TOPIC_VALUES;
-    if (unionDeps.topics.length === 0 && unionDeps.processors.length === 0) {
+    if (
+      unionDeps.topics.length === 0 &&
+      unionDeps.processors.length === 0 &&
+      unionDeps.settings.length === 0
+    ) {
       return EMPTY_TOPIC_VALUES;
     }
     const token = telemetryStore.currentFrame();
@@ -251,6 +287,13 @@ function SlotAggregator({
     }
     for (const p of unionDeps.processors) {
       values[p.id] = processorRuntime?.value(p.id);
+    }
+    for (const [key, ref] of unionDeps.settings) {
+      const point = telemetryStore.sample<ModSettingsModel | null>(
+        modSettingsTopic(ref.uplink),
+        token,
+      );
+      values[key] = point ? readModSetting(point.payload, ref.key) : undefined;
     }
     /*
      * A frame arrives every animation tick whether or not anything moved, so

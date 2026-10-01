@@ -639,11 +639,63 @@ export type Contributed<Entry> = Entry & {
 export type ContributionDep =
   | TopicId
   | { readonly reading: TopicId }
+  | AnyModSettingDep
   | {
       readonly id: string;
       readonly __resultType?: unknown;
       readonly __carriesCurrency?: boolean;
     };
+
+/**
+ * The settings each Uplink's host mod declares, keyed by Uplink id: the type a
+ * contribution's {@link ModSettingDep} is checked against. An Uplink adds its
+ * own entry by declaration merging, naming each setting with the type its
+ * value parses to:
+ *
+ * ```ts
+ * declare module "@ksp-gonogo/sitrep-sdk" {
+ *   interface ModSettingsRegistry {
+ *     myuplink: { readonly retirementEnabled: boolean };
+ *   }
+ * }
+ * ```
+ *
+ * A dep can then name only an Uplink and a setting listed here. An Uplink id
+ * or a setting key nobody declared is a type error.
+ *
+ * @category Extensions
+ */
+// biome-ignore lint/suspicious/noEmptyInterface: declaration-merging seam
+export interface ModSettingsRegistry {}
+
+/**
+ * A contribution's dependency on one setting of an Uplink's host mod, built
+ * with `modSettingDep`. `compute` receives it under `settings.<uplink>.<key>`,
+ * as the type `ModSettingsRegistry` declares, or `undefined` until the mod has
+ * listed the setting with a readable value.
+ *
+ * @category Extensions
+ */
+export interface ModSettingDep<
+  Uplink extends keyof ModSettingsRegistry & string,
+  Key extends keyof ModSettingsRegistry[Uplink] & string,
+> {
+  readonly modSetting: { readonly uplink: Uplink; readonly key: Key };
+}
+
+/**
+ * Every `ModSettingDep` the registry allows: one member per declared Uplink and
+ * setting pair, so an undeclared name matches none of them. `never` while no
+ * Uplink has declared a setting.
+ */
+export type AnyModSettingDep = {
+  [Uplink in keyof ModSettingsRegistry & string]: {
+    [Key in keyof ModSettingsRegistry[Uplink] & string]: ModSettingDep<
+      Uplink,
+      Key
+    >;
+  }[keyof ModSettingsRegistry[Uplink] & string];
+}[keyof ModSettingsRegistry & string];
 
 /**
  * The KEY the aggregation writes one dep's value under: a Topic id under
@@ -654,18 +706,25 @@ type DepKey<Dependency> = Dependency extends string
   ? Dependency
   : Dependency extends { readonly reading: infer Topic extends string }
     ? Topic
-    : Dependency extends { readonly id: infer ProcessorId extends string }
-      ? // A processor whose id is still the unnarrowed `string` contributes NO
-        // key. It would otherwise contribute a string index signature, which
-        // reopens every key on the record and puts back exactly the hole this
-        // type exists to close: one loosely-typed dep would make an undeclared
-        // topic readable again for that whole contribution. A handle from
-        // `defineProcessor`/`registerProcessor` always carries its stamped id;
-        // one from `defineProcessorContract` only does when the caller names it.
-        string extends ProcessorId
-        ? never
-        : ProcessorId
-      : never;
+    : Dependency extends {
+          readonly modSetting: {
+            readonly uplink: infer Uplink extends string;
+            readonly key: infer Key extends string;
+          };
+        }
+      ? `settings.${Uplink}.${Key}`
+      : Dependency extends { readonly id: infer ProcessorId extends string }
+        ? // A processor whose id is still the unnarrowed `string` contributes NO
+          // key. It would otherwise contribute a string index signature, which
+          // reopens every key on the record and puts back exactly the hole this
+          // type exists to close: one loosely-typed dep would make an undeclared
+          // topic readable again for that whole contribution. A handle from
+          // `defineProcessor`/`registerProcessor` always carries its stamped id;
+          // one from `defineProcessorContract` only does when the caller names it.
+          string extends ProcessorId
+          ? never
+          : ProcessorId
+        : never;
 
 /**
  * The VALUE that arrives under that key.
@@ -698,14 +757,16 @@ type DepValue<Dependency> = Dependency extends string
     ? Topic extends TopicId
       ? TopicPayload<Topic> | null | undefined
       : never
-    : Dependency extends {
-          readonly id: string;
-          readonly __resultType?: infer Result;
-        }
-      ? Dependency extends { readonly __carriesCurrency?: true }
-        ? Reading<Result> | undefined
-        : Result | undefined
-      : never;
+    : Dependency extends ModSettingDep<infer Uplink, infer Key>
+      ? ModSettingsRegistry[Uplink][Key] | undefined
+      : Dependency extends {
+            readonly id: string;
+            readonly __resultType?: infer Result;
+          }
+        ? Dependency extends { readonly __carriesCurrency?: true }
+          ? Reading<Result> | undefined
+          : Result | undefined
+        : never;
 
 /**
  * The argument a contribution's `compute` receives: each Topic named in its

@@ -46,6 +46,8 @@ const EXPECTED_BARREL_VALUE_EXPORTS = [
   "classifyCommandRejection",
   // The sentence and meaning behind any error-code id, and the ways an id becomes describable.
   "describeErrorCode",
+  // A contribution's typed dependency on one setting of its Uplink's host mod.
+  "modSettingDep",
   "noteRosterErrorCodes",
   "registerErrorCodes",
   "registeredErrorCodes",

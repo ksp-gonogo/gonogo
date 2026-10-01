@@ -43,6 +43,8 @@ import type {
   AnyContribution,
   AugmentDefinition,
   LateTelemetrySubscribe,
+  ModSettingDep,
+  ModSettingsRegistry,
   PerfBudgetHandle,
   PerfBudgetOptions,
   SettingDefinition,
@@ -203,6 +205,8 @@ export type {
   MapPoiProviderContext,
   MapPoiProviderDefinition,
   MeterEntry,
+  ModSettingDep,
+  ModSettingsRegistry,
   NamespacedAugmentSettings,
   PerfBudgetHandle,
   PerfBudgetOptions,
@@ -713,6 +717,21 @@ export function useModSettings(
   uplinkId: string,
 ): TopicReading<ModSettingsModel> {
   return getHost().useStream<ModSettingsModel>(`settings.${uplinkId}`);
+}
+
+/**
+ * A contribution dependency on one setting of an Uplink's host mod. Both names
+ * are checked against `ModSettingsRegistry`, so an Uplink or a setting nobody
+ * declared does not compile, and `compute` receives the value under
+ * `settings.<uplink>.<key>` as the type the registry declares.
+ *
+ * @category Extensions
+ */
+export function modSettingDep<
+  const Uplink extends keyof ModSettingsRegistry & string,
+  const Key extends keyof ModSettingsRegistry[Uplink] & string,
+>(uplink: Uplink, key: Key): ModSettingDep<Uplink, Key> {
+  return { modSetting: { uplink, key } };
 }
 
 /**
