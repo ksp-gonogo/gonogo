@@ -221,7 +221,7 @@ describe("DataKeyPicker: a saved key that is no longer offered", () => {
       />,
     );
     expect(
-      screen.getByText(/this alarm subject no longer available/i),
+      screen.getByText(/this alarm subject is no longer available/i),
     ).toBeInTheDocument();
   });
 

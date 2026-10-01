@@ -59,7 +59,7 @@ export interface DataKeyPickerProps {
  * Shown in place of a label when a saved key is not in `keys`: rendering the
  * raw key would read as a valid selection that silently reads nothing.
  */
-const RETIRED_MESSAGE = "no longer available";
+const RETIRED_MESSAGE = "is no longer available";
 
 /**
  * A searchable picker over a list of keys: a combobox input that filters as
@@ -68,7 +68,7 @@ const RETIRED_MESSAGE = "no longer available";
  * the first match; Escape or a click outside closes the list.
  *
  * A saved `value` that is not among a non-empty `keys` is flagged in place
- * ("This value no longer available. Pick another.") rather than shown as a
+ * ("This value is no longer available. Pick another.") rather than shown as a
  * valid selection.
  *
  * @category Form

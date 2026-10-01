@@ -87,7 +87,12 @@ const cases = [
   {
     name: "Tape",
     draw: (r: Reading<Value<"%">>) => (
-      <Tape value={r} min={value("%", 0)} max={value("%", 100)} />
+      <Tape
+        value={r}
+        min={value("%", 0)}
+        max={value("%", 100)}
+        ariaLabel="Tape"
+      />
     ),
   },
 ] as const;

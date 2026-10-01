@@ -33,7 +33,17 @@ describe("announcesHeld, on what the kit draws", () => {
       "Gauge",
       <Gauge key="g" value={HELD} {...SCALE} width={160} height={90} />,
     ],
-    ["Tape", <Tape key="t" value={HELD} {...SCALE} width={60} height={200} />],
+    [
+      "Tape",
+      <Tape
+        key="t"
+        value={HELD}
+        {...SCALE}
+        width={60}
+        height={200}
+        ariaLabel="Tape"
+      />,
+    ],
     ["Dial", <Dial key="d" value={HELD} {...SCALE} width={120} height={120} />],
   ])("hears a held %s through its accessible name", (_, instrument) => {
     const { container } = render(instrument);

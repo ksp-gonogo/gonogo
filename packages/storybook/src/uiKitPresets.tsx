@@ -93,6 +93,7 @@ export const UI_KIT_PRESETS = {
         value: live("m", 640),
         min: value("m", 0),
         max: value("m", 1000),
+        ariaLabel: "Altitude",
       },
     },
     {
@@ -101,6 +102,7 @@ export const UI_KIT_PRESETS = {
         value: held("m", 640),
         min: value("m", 0),
         max: value("m", 1000),
+        ariaLabel: "Altitude",
       },
     },
     {
@@ -109,6 +111,7 @@ export const UI_KIT_PRESETS = {
         value: live("m", 640, { lo: 590, hi: 700, kind: "bound" }),
         min: value("m", 0),
         max: value("m", 1000),
+        ariaLabel: "Altitude",
       },
     },
   ] satisfies Presets<ComponentProps<typeof Tape>>,

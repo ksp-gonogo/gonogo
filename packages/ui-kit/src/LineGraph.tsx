@@ -8,8 +8,8 @@ import styled from "styled-components";
 export interface LineGraphSeries {
   /** Unique within the graph; used as the line's React key. */
   id: string;
-  /** Name of this line. Not rendered; the chart's accessible name is the graph's `ariaLabel`. */
-  label: string;
+  /** Name of this line, for the caller's own bookkeeping. Not rendered; the chart's accessible name is the graph's `ariaLabel`. */
+  label?: string;
   /** CSS colour for the stroke, e.g. `var(--color-nogo-mark)`. */
   color: string;
   /** Ascending by `x`. Fewer than two points renders no line for this series. */
@@ -31,8 +31,8 @@ export interface LineGraphSeries {
 export interface LineGraphThreshold {
   /** Unique within the graph; used as the threshold's React key. */
   id: string;
-  /** Name of the level. Not rendered. */
-  label: string;
+  /** Name of the level, for the caller's own bookkeeping. Not rendered; `valueText` is the drawn annotation. */
+  label?: string;
   /** The y value the threshold is drawn at, in the same terms as the series' `y`. */
   value: number;
   /** Defaults to a muted warning colour, distinct from the data series. */

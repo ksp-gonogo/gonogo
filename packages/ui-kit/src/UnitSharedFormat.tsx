@@ -444,7 +444,7 @@ export function UnitSharedFormat({
 /**
  * Report a quantity to the enclosing {@link UnitSharedFormat} and hear back the format its group settled on, or `undefined` when there is none.
  *
- * `<Unit>` calls this itself. It is published for readouts `<Unit>` cannot draw (SVG axis text, an `aria-valuetext`) that must be written at the same format as the `<Unit>`s beside them. A quantity whose caller already decided its presentation (`format`, `as`, a non-auto `scale`) neither reports nor hears back.
+ * `<Unit>` calls this itself, and so do the kit's own readouts that cannot draw a `<Unit>` (SVG axis text, an `aria-valuetext`) but must be written at the same format as the `<Unit>`s beside them. It is internal to the kit and not exported from the package. A quantity whose caller already decided its presentation (`format`, `as`, a non-auto `scale`) neither reports nor hears back.
  */
 export function useSharedFormat<Unit extends string = string>(
   value: Value<Unit> | null | undefined,

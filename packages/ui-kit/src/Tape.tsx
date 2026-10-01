@@ -97,8 +97,8 @@ export interface TapeProps<Unit extends string = string> {
    * strip never mixes "500 m" and "1.0 km".
    */
   format?: FormatsFor<Unit>;
-  /** Accessible label (e.g. "Altitude above terrain"). Defaults to `"Tape"`, so always pass one. */
-  ariaLabel?: string;
+  /** Accessible label naming what the scale measures (e.g. "Altitude above terrain"). */
+  ariaLabel: string;
 }
 
 const PAD_TOP = 12;
@@ -235,7 +235,7 @@ export function Tape<Unit extends string = string>({
       {...(hasFigure
         ? {
             role: "meter",
-            "aria-label": sayHeld(ariaLabel ?? "Tape", caption),
+            "aria-label": sayHeld(ariaLabel, caption),
             ...heldNameMarker(caption),
             "aria-valuenow": clamped,
             "aria-valuemin": axisMin,
@@ -245,7 +245,7 @@ export function Tape<Unit extends string = string>({
         : {
             /* A meter must state a value, so a figureless rail is an image instead. */
             role: "img",
-            "aria-label": sayHeld(`${ariaLabel ?? "Tape"}: ${spoken}`, caption),
+            "aria-label": sayHeld(`${ariaLabel}: ${spoken}`, caption),
             ...heldNameMarker(caption),
           })}
       style={fillHeight ? { height: "100%" } : undefined}
