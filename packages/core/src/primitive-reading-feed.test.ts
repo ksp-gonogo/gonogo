@@ -6,12 +6,19 @@ import { fileURLToPath } from "node:url";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
 import {
+  debtUnitOf,
+  splitFindingsAgainstBase,
+  splitLaunderingFindings,
+} from "./debt-split-guard";
+import { DERIVED_FEED_DEBT } from "./primitive-reading-feed.debt";
+import {
   type FeedScan,
   primitiveFeedScanRoots,
   scanPrimitiveReadingFeed,
   scanProgram,
   scanScratchDir,
 } from "./primitive-reading-feed.scan";
+import { ratchetBaseRef } from "./ratchetBaseRef";
 import { rootsInScope, scanScope } from "./scanScope";
 
 /**
@@ -422,33 +429,6 @@ describe("no primitive is fed a reading's value instead of the reading", () => {
   });
 });
 
-/**
- * Per file, how many primitives are fed a figure that CAME from a reading with
- * the currency dropped on the way: `value("funds", careerFunds)` where the
- * funds were read, `career?.balances?.funds` reached off a payload, or a
- * `describeReckonable(reading)` helper that hands back bare values.
- *
- * Derived from the walk rather than typed out, so the total lives in the list
- * below rather than in this sentence. It is a CEILING and an exact one,
- * because unlike the act-warning counts this number comes from a deterministic
- * static walk rather than from a race, so a file that drops below its entry
- * can and must tighten it in the same commit. An approximate ceiling on an
- * exact measurement is just a place to hide.
- *
- * Three different fixes, which is why this is a survey rather than a task:
- * a minted `Value` goes through `combineReadings`, a payload field moves onto
- * the field property, and a laundering helper has to return readings itself.
- * Which of them each site wants is a scheduling decision; what this list does
- * is stop the number growing while that decision is open.
- *
- * A cleared entry is only as strong as the walk's reach, so when the walk is
- * widened, the files already cleared are where to look first.
- */
-const DERIVED_FEED_DEBT: Record<string, number> = {
-  // A comms figure nulls when the link stops arriving rather than drawing held, so these read the observation alone.
-  "packages/components/src/CommSignal/CommSignalView.tsx": 1,
-};
-
 describe("no primitive is fed a figure a reading's currency was dropped from", () => {
   const derived = SITES.filter((s) => s.via === "derived");
   const expected = Object.fromEntries(
@@ -543,5 +523,98 @@ ${CHAIN}
 
   it("still reports the unwrap at the far end of the chain", () => {
     expect(scan.sites.map((s) => s.prop)).toEqual(["value"]);
+  });
+});
+
+describe("a split cannot lower a widget's debt and call it fixed", () => {
+  /**
+   * Per-file counts read lower after a widget is cut into files whenever the cut
+   * severs a provenance chain, or lands the primitive in a file the walk does not
+   * reach, and nothing was fixed. The unit of account is the widget directory.
+   */
+  it("flags a widget whose total fell in the commit that added a file to it", () => {
+    const findings = splitLaunderingFindings({
+      baseDebt: { "packages/components/src/Tank/TankView.tsx": 4 },
+      nowDebt: {
+        "packages/components/src/Tank/TankView.tsx": 2,
+        "packages/components/src/Tank/TankRow.tsx": 1,
+      },
+      baseFiles: ["packages/components/src/Tank/TankView.tsx"],
+      nowFiles: [
+        "packages/components/src/Tank/TankView.tsx",
+        "packages/components/src/Tank/TankRow.tsx",
+      ],
+    });
+    expect(findings).toEqual([
+      {
+        unit: "packages/components/src/Tank",
+        was: 4,
+        now: 3,
+        added: ["packages/components/src/Tank/TankRow.tsx"],
+      },
+    ]);
+  });
+
+  it("flags the case where the debt vanished into the new file entirely", () => {
+    const findings = splitLaunderingFindings({
+      baseDebt: { "packages/components/src/Tank/TankView.tsx": 4 },
+      nowDebt: {},
+      baseFiles: ["packages/components/src/Tank/TankView.tsx"],
+      nowFiles: [
+        "packages/components/src/Tank/TankView.tsx",
+        "packages/components/src/Tank/TankRow.tsx",
+      ],
+    });
+    expect(findings.map((f) => [f.unit, f.was, f.now])).toEqual([
+      ["packages/components/src/Tank", 4, 0],
+    ]);
+  });
+
+  it("allows a real fix that adds no file, and a split that keeps the total", () => {
+    const base = { "packages/components/src/Tank/TankView.tsx": 4 };
+    const baseFiles = ["packages/components/src/Tank/TankView.tsx"];
+    expect(
+      splitLaunderingFindings({
+        baseDebt: base,
+        nowDebt: { "packages/components/src/Tank/TankView.tsx": 2 },
+        baseFiles,
+        nowFiles: baseFiles,
+      }),
+    ).toEqual([]);
+    expect(
+      splitLaunderingFindings({
+        baseDebt: base,
+        nowDebt: {
+          "packages/components/src/Tank/TankView.tsx": 3,
+          "packages/components/src/Tank/TankRow.tsx": 1,
+        },
+        baseFiles,
+        nowFiles: [...baseFiles, "packages/components/src/Tank/TankRow.tsx"],
+      }),
+    ).toEqual([]);
+  });
+
+  it("owns a file by its widget directory", () => {
+    expect(debtUnitOf("packages/components/src/Tank/parts/Row.tsx")).toBe(
+      "packages/components/src/Tank",
+    );
+    expect(debtUnitOf("packages/components/src/Loose.tsx")).toBe(
+      "packages/components/src/Loose.tsx",
+    );
+  });
+
+  it("holds for the live list against the ratchet base", () => {
+    const base = ratchetBaseRef();
+    if (!base) return;
+    expect(
+      splitFindingsAgainstBase(
+        base,
+        "packages/core/src/primitive-reading-feed.debt.ts",
+        "DERIVED_FEED_DEBT",
+        DERIVED_FEED_DEBT,
+      ),
+      "A widget's derived-feed total fell in the same change that added a file " +
+        "to it. Land the split first, then the fix, so the drop is a fix.",
+    ).toEqual([]);
   });
 });
