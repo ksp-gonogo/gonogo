@@ -35,7 +35,14 @@ import { modTsRoots, SCANNED_PACKAGE_ROOTS } from "./unknown-cast.scan";
  *     the Settings panel and similar app chrome read contract fields directly,
  *     with no `registerComponent` in sight, and a gate that only understood
  *     widgets would manufacture debt for every one of them. This signal is
- *     coarser (file-level co-occurrence, not a proven data-flow edge) and
+ *     Every segment need not be named: a field under a collection is read
+ *     off an ELEMENT (`base.powerAvailable` for `deployed.bases.powerAvailable`,
+ *     or a destructured `{ powerAvailable }`), so a nested path is also
+ *     credited when its leaf is read as a member access or destructured
+ *     binding, in a file that mounts the Topic or a sibling of one, provided no
+ *     other contract field shares that leaf name. A leaf identifier merely
+ *     appearing (a variable, a type name) is not enough.
+ *     This signal is coarser (file-level co-occurrence, not a proven data-flow edge) and
  *     exists to avoid exactly that false debt; it can OVER-credit a field that
  *     merely shares a leaf name with something else the file touches, which is
  *     an acceptable failure direction for a signal that only ever CLEARS debt,
@@ -396,18 +403,25 @@ function findWidgetDeclarations(
  */
 function collectTokens(sf: ts.SourceFile): {
   identifiers: Set<string>;
+  members: Set<string>;
   strings: Set<string>;
 } {
   const identifiers = new Set<string>();
+  const members = new Set<string>();
   const strings = new Set<string>();
   const visit = (node: ts.Node): void => {
     if (ts.isExportDeclaration(node)) return;
     if (ts.isIdentifier(node)) identifiers.add(node.text);
+    if (ts.isPropertyAccessExpression(node)) members.add(node.name.text);
+    if (ts.isBindingElement(node) && ts.isObjectBindingPattern(node.parent)) {
+      const named = node.propertyName ?? node.name;
+      if (ts.isIdentifier(named)) members.add(named.text);
+    }
     if (ts.isStringLiteral(node)) strings.add(node.text);
     ts.forEachChild(node, visit);
   };
   ts.forEachChild(sf, visit);
-  return { identifiers, strings };
+  return { identifiers, members, strings };
 }
 
 const EXPORTED_CONST_STRING_RE =
@@ -470,6 +484,14 @@ export function scanContractReaderCoverage(root = REPO_ROOT): CoverageScan {
     list.push(f);
     fieldsByTopic.set(f.topic, list);
   }
+  const leafCount = new Map<string, number>();
+  for (const f of fields) {
+    const leaf = f.path.slice(f.path.lastIndexOf(".") + 1);
+    leafCount.set(leaf, (leafCount.get(leaf) ?? 0) + 1);
+  }
+  /** A field whose leaf name no other contract field shares, so a bare member access of it can only mean this one. */
+  const hasUniqueLeaf = (f: ContractField): boolean =>
+    leafCount.get(f.path.slice(f.path.lastIndexOf(".") + 1)) === 1;
   const topicSet = new Set(topics);
   const commandSet = new Set(commands);
 
@@ -518,6 +540,7 @@ export function scanContractReaderCoverage(root = REPO_ROOT): CoverageScan {
   ): string[] => [...(aliases.get(id) ?? [])];
 
   const filesParsed: string[] = [];
+  const topicsByDir = new Map<string, Set<string>>();
   for (const { rel, text } of [...texts].map(([rel, text]) => ({
     rel,
     text,
@@ -571,7 +594,7 @@ export function scanContractReaderCoverage(root = REPO_ROOT): CoverageScan {
     }
 
     if (mightTouchContract) {
-      const { identifiers, strings } = collectTokens(sf);
+      const { identifiers, members, strings } = collectTokens(sf);
       const touchesId = (
         id: string,
         aliases: Map<string, Set<string>>,
@@ -586,10 +609,50 @@ export function scanContractReaderCoverage(root = REPO_ROOT): CoverageScan {
       }
       for (const topic of topics) {
         if (!touchesId(topic, topicAliases)) continue;
+        const dir = rel.slice(0, rel.lastIndexOf("/"));
+        const mounted = topicsByDir.get(dir) ?? new Set<string>();
+        mounted.add(topic);
+        topicsByDir.set(dir, mounted);
         for (const f of fieldsByTopic.get(topic) ?? []) {
-          if (f.path.split(".").every((segment) => identifiers.has(segment))) {
+          const segments = f.path.split(".");
+          const leaf = segments[segments.length - 1];
+          const namedWhole = segments.every((s) => identifiers.has(s));
+          const readThroughElement = hasUniqueLeaf(f) && members.has(leaf);
+          if (namedWhole || readThroughElement) {
             addField(f.key, { via: "field-access", file: rel });
           }
+        }
+      }
+    }
+  }
+
+  /*
+   * A widget's mount and its parser are usually sibling files: the one that
+   * names the Topic hands the payload to a helper that reads `base.leaf` off
+   * each element and never names the Topic itself. A sibling in the same
+   * directory is credited for a nested field's leaf, by member access only.
+   * Both relaxed credits need a leaf name no other contract field shares:
+   * `source` or `kind` read off some object says nothing about which field.
+   */
+  for (const [rel, text] of texts) {
+    const dir = rel.slice(0, rel.lastIndexOf("/"));
+    const mounted = topicsByDir.get(dir);
+    if (!mounted) continue;
+    const { members } = collectTokens(
+      ts.createSourceFile(
+        rel,
+        text,
+        ts.ScriptTarget.Latest,
+        true,
+        scriptKind(rel),
+      ),
+    );
+    for (const topic of mounted) {
+      for (const f of fieldsByTopic.get(topic) ?? []) {
+        const leaf = f.path.slice(f.path.lastIndexOf(".") + 1);
+        const already = fieldReaders.get(f.key)?.some((h) => h.file === rel);
+        if (hasUniqueLeaf(f) && members.has(leaf) && !already) {
+          addField(f.key, { via: "field-access", file: rel });
         }
       }
     }

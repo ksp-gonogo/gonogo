@@ -39,15 +39,6 @@ const scan = scanContractReaderCoverage(repoRoot);
 
 const debtKeys = new Set(Object.keys(CONTRACT_READER_DEBT));
 
-/**
- * Saga 761 made the scan stricter (a widget with no `fields` stopped counting
- * as a reader), which surfaced fields that were never read. Those entries are
- * admitted once, by this reason prefix, and nothing else may arrive.
- */
-const SAGA_761_REASON = "newly visible unread (Saga 761";
-const isAdmitted = (key: string): boolean =>
-  CONTRACT_READER_DEBT[key]?.startsWith(SAGA_761_REASON) ?? false;
-
 describe("every contract field and command has a production reader", () => {
   it("names any field no production client reads", () => {
     const unread = scan.fields
@@ -315,6 +306,41 @@ describe("the scan can be seen to work", () => {
     }
   });
 
+  it("credits a nested field read through an element or destructured binding, and not a bare identifier", () => {
+    const root = plantedRoot();
+    try {
+      mkdirSync(join(root, "packages/app"), { recursive: true });
+      writeFileSync(
+        join(root, "packages/app/ElementRead.tsx"),
+        [
+          'import { useTelemetry } from "@ksp-gonogo/sitrep-sdk";',
+          "",
+          'const orbit = useTelemetry("vessel.orbit");',
+          "const { source } = orbit.value.meta;",
+          "void source;",
+          "",
+        ].join("\n"),
+      );
+      writeFileSync(
+        join(root, "packages/app/BareIdentifier.tsx"),
+        [
+          'const topic = "vessel.orbit";',
+          'const source = "somewhere else";',
+          "void topic;",
+          "void source;",
+          "",
+        ].join("\n"),
+      );
+      const planted = scanContractReaderCoverage(root);
+      const key = planted.fields.find((f) => f.path === "meta.source")
+        ?.key as string;
+      const files = (planted.fieldReaders.get(key) ?? []).map((h) => h.file);
+      expect(files).toEqual(["packages/app/ElementRead.tsx"]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it("a repo root with no mod/ and no packages/ resolves nothing, not a clean tree", () => {
     const blindRoot = mkdtempSync(join(tmpdir(), "reader-coverage-blind-"));
     mkdirSync(join(blindRoot, "mod/sitrep-sdk/src/__generated__"), {
@@ -387,9 +413,7 @@ describe("the debt list only ever shrinks", () => {
     if (!at) return;
 
     const before = new Set(Object.keys(at.list));
-    const arrived = [...debtKeys].filter(
-      (key) => !before.has(key) && !isAdmitted(key),
-    );
+    const arrived = [...debtKeys].filter((key) => !before.has(key));
 
     expect(
       arrived,
@@ -397,7 +421,7 @@ describe("the debt list only ever shrinks", () => {
         "command lands with its reader, so there is nothing new to record here.",
     ).toEqual([]);
     expect(
-      [...debtKeys].filter((key) => !isAdmitted(key) || before.has(key)).length,
+      debtKeys.size,
       `Debt total rose vs ${at.ref} (${before.size} -> ${debtKeys.size}).`,
     ).toBeLessThanOrEqual(before.size);
   });
