@@ -11,7 +11,7 @@ export function CommcastBackButton({
 }) {
   return (
     <Commcast__Back type="button" onClick={onClick}>
-      <ArrowLeftIcon size={14} />
+      <ArrowLeftIcon size="var(--icon-size-control)" />
       {label}
     </Commcast__Back>
   );

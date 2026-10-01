@@ -68,10 +68,12 @@ export interface IconProps extends LucideProps {
 /**
  * A `var()` resolves inside the SVG `width`/`height` presentation attribute
  * lucide writes `size` out as, so the size token picks up the coarse-pointer
- * step a bare number cannot. The default `standalone` is calibrated for Fabs.
+ * step a bare number cannot. The default is `control`, the glyph inside a
+ * control the operator presses; a glyph that is its own control (a Fab) is
+ * sized by that control.
  */
 const ICON_DEFAULTS: LucideProps = {
-  size: "var(--icon-size-standalone)",
+  size: "var(--icon-size-control)",
   strokeWidth: 1.8,
   "aria-hidden": true,
 };

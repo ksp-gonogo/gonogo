@@ -73,7 +73,7 @@ export function CommcastThreadView({
         <Commcast__BarTitle>{threadName}</Commcast__BarTitle>
         {onAdd && (
           <Button type="button" onClick={onAdd}>
-            <PlusIcon size={14} aria-hidden="true" />
+            <PlusIcon size="var(--icon-size-control)" aria-hidden="true" />
             Add
           </Button>
         )}

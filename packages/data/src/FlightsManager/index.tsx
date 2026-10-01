@@ -372,7 +372,7 @@ export function FlightsManager({
                           }
                         >
                           <HeartIcon
-                            size={14}
+                            size="var(--icon-size-control)"
                             fill={f.starred ? "currentColor" : "none"}
                           />
                         </StarButton>

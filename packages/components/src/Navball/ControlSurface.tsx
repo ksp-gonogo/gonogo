@@ -110,7 +110,7 @@ export function ControlSurface({
                   const markerId = SAS_MODE_MARKERS[mode];
                   if (!markerId) return null;
                   const Marker = MARKER_ICONS[markerId];
-                  return <Marker size={14} />;
+                  return <Marker size="var(--icon-size-control)" />;
                 })()}
                 {modeShort(mode)}
               </ToggleButton>

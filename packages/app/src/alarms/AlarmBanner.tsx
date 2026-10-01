@@ -116,7 +116,7 @@ function LocalAlarmStrip() {
         {warpToTargetRate !== null && (
           <>
             <WarpArrow aria-hidden="true">
-              <ArrowRightIcon size={14} />
+              <ArrowRightIcon size="var(--icon-size-control)" />
             </WarpArrow>
             <WarpToTarget>{formatRate(warpToTargetRate)}</WarpToTarget>
           </>

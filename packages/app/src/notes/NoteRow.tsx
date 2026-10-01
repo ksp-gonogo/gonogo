@@ -114,7 +114,7 @@ export function NoteRow({
           aria-label="Mark note done"
           onClick={() => actions.deleteNote(note.id)}
         >
-          <CheckIcon size={14} />
+          <CheckIcon size="var(--icon-size-control)" />
         </DoneBtn>
         <DeleteBtn
           type="button"

@@ -89,6 +89,13 @@ const StyledFab = styled.button<{ $visible: boolean }>`
   opacity: ${({ $visible }) => ($visible ? 1 : 0)};
   pointer-events: ${({ $visible }) => ($visible ? "auto" : "none")};
   transform: translateY(${({ $visible }) => ($visible ? "0" : "16px")});
+
+  /* The glyph is the whole control, so it takes the standalone size; the CSS width and height beat the icon's own attributes. */
+  & > svg {
+    width: var(--icon-size-standalone);
+    height: var(--icon-size-standalone);
+  }
+
   /* The same 0.18s as FabLabel. */
   transition:
     background var(--duration-base),

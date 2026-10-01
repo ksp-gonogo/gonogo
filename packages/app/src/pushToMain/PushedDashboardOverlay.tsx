@@ -160,7 +160,7 @@ function PushedItem({
           aria-label="Dismiss pushed widget"
           title="Dismiss"
         >
-          <CloseIcon size={14} />
+          <CloseIcon size="var(--icon-size-control)" />
         </DismissBtn>
       </ItemHeader>
       <ItemBody>

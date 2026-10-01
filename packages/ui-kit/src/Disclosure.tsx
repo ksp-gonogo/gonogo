@@ -118,7 +118,7 @@ export function Disclosure({
       {resolvedLabel}
       {showChevron && (
         <Disclosure__Chevron $open={open}>
-          <ChevronRightIcon size={14} />
+          <ChevronRightIcon size="var(--icon-size-control)" />
         </Disclosure__Chevron>
       )}
     </>

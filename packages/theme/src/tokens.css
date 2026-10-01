@@ -48,6 +48,38 @@ textarea {
 }
 
 :root {
+  /*
+   * NAMING ACROSS FAMILIES. A convention, not a rule: a new token need not
+   * declare a category, and a name in one family needs no counterpart in
+   * another. The categories describe what the families already are.
+   *
+   *   container externals   --z-*, --color-* (boundary and ground), --radius-*
+   *   container internals   --color-* (content), --line-height-*, --gap-*,
+   *                         --inset-*
+   *   animation             --duration-*, --ease-*
+   *
+   * `--color-*` sits in both of the first two: a colour is either what a
+   * container is against what lies behind it (border, ground) or the
+   * treatment of what it holds (text, marks). It is one family because the
+   * names are not separable by prefix, not because the jobs are the same.
+   *
+   * A modifier such as `status` varies a token of an existing category and is
+   * never a category of its own. The set of three is closed: a fourth is a
+   * structural claim about the whole system and is made deliberately, not by
+   * adding a token.
+   *
+   * Reusing a term across families is the part with teeth. A shared word
+   * promises a pairing: `--radius-floating` names the corner of the boxes that
+   * sit on the `--z-*` rungs above the app (modal, fab), so a reader who reaches
+   * for one should reach for the other, and the two must actually belong
+   * together. Where that does not hold, use a different word
+   * rather than a familiar one borrowed by coincidence, because a coincidental
+   * match teaches a pairing nobody checked.
+   *
+   * This sits beside the bar for whether a name is earned at all (it must
+   * resolve differently by context or express a shape the rung ladder cannot),
+   * and governs only how names relate across families.
+   */
   --font-family-mono:
     "JetBrains Mono", ui-monospace, "IBM Plex Mono", Menlo, Consolas, monospace;
   /*

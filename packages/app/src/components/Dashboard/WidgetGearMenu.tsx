@@ -85,7 +85,7 @@ export function GearButton({
       aria-label={`Configure ${def.name}`}
       title="Configure"
     >
-      <SettingsIcon size={14} />
+      <SettingsIcon size="var(--icon-size-control)" />
     </GearBtn>
   );
 }

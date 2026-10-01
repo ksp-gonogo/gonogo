@@ -90,7 +90,11 @@ export function PushButton({
       title={pushed ? "Recall from main" : "Push to main"}
       $pushed={pushed}
     >
-      {pushed ? <RecallIcon size={14} /> : <PushUpIcon size={14} />}
+      {pushed ? (
+        <RecallIcon size="var(--icon-size-control)" />
+      ) : (
+        <PushUpIcon size="var(--icon-size-control)" />
+      )}
     </PushBtn>
   );
 }

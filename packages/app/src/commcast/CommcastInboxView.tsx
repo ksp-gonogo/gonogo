@@ -73,11 +73,11 @@ export function CommcastInboxView({
           aria-controls={inputPanelId}
           onClick={() => setInputOpen((open) => !open)}
         >
-          <SettingsIcon size={14} aria-hidden="true" />
+          <SettingsIcon size="var(--icon-size-control)" aria-hidden="true" />
           Microphone
         </ToggleButton>
         <Button type="button" onClick={onCompose} disabled={!canCompose}>
-          <PlusIcon size={14} />
+          <PlusIcon size="var(--icon-size-control)" />
           New message
         </Button>
         {indicator}

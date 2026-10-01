@@ -13,11 +13,15 @@ const read = (p: string) => readFileSync(resolve(HERE, p), "utf8");
  */
 describe("icon size tokens", () => {
   it("the kit's icon defaults reach for the token, not a number", () => {
-    expect(read("./Icons.tsx")).toMatch(
-      /size:\s*"var\(--icon-size-(control|standalone)\)"/,
-    );
+    expect(read("./Icons.tsx")).toMatch(/size:\s*"var\(--icon-size-control\)"/);
     expect(read("./MarkerIcons.tsx")).toMatch(
       /DEFAULT_SIZE\s*=\s*"var\(--icon-size-(control|standalone)\)"/,
+    );
+  });
+
+  it("a Fab sizes its own glyph to the standalone token", () => {
+    expect(read("../../ui/src/Fab.tsx")).toMatch(
+      /& > svg \{[^}]*var\(--icon-size-standalone\)/,
     );
   });
 

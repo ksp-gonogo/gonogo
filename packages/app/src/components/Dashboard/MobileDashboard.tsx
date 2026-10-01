@@ -254,7 +254,7 @@ function WidthToggleButton({
       title={label}
       aria-pressed={half}
     >
-      <Glyph size={14} />
+      <Glyph size="var(--icon-size-control)" />
     </WidthToggleBtn>
   );
 }
@@ -273,7 +273,7 @@ function HeightToggleButton({
       title={label}
       aria-pressed={half}
     >
-      <Glyph size={14} />
+      <Glyph size="var(--icon-size-control)" />
     </WidthToggleBtn>
   );
 }

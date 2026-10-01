@@ -142,7 +142,7 @@ export function RadioPtt({
         {...(blocked === null ? {} : { "aria-describedby": reasonId })}
         onClick={radio.toggle}
       >
-        <BroadcastIcon size={14} aria-hidden="true" />
+        <BroadcastIcon size="var(--icon-size-control)" aria-hidden="true" />
         Talk
       </ToggleButton>
       {/*

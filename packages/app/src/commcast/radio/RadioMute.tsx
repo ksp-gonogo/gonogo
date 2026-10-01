@@ -38,9 +38,9 @@ export function RadioMute({
       onClick={onToggle}
     >
       {muted ? (
-        <MutedIcon size={14} aria-hidden="true" />
+        <MutedIcon size="var(--icon-size-control)" aria-hidden="true" />
       ) : (
-        <SpeakerIcon size={14} aria-hidden="true" />
+        <SpeakerIcon size="var(--icon-size-control)" aria-hidden="true" />
       )}
     </ToggleButton>
   );

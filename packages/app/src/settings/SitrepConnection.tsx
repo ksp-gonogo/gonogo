@@ -84,7 +84,7 @@ export function SitrepConnection() {
             aria-label={`Configure ${source.name}`}
             $active={editingConfig}
           >
-            <SettingsIcon size={14} />
+            <SettingsIcon size="var(--icon-size-control)" />
           </ConfigButton>
         )}
       </ConnectionRow>
