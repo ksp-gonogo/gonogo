@@ -23,13 +23,15 @@ import { modTsRoots, SCANNED_PACKAGE_ROOTS } from "./unknown-cast.scan";
  *
  *  1. A `registerComponent(...)` widget whose `channels`/`optionalChannels`
  *     name the field's Topic and whose `fields` (or the legacy flat
- *     `dataRequirements`) names the field, OR declares no narrower `fields` at
- *     all for that Topic: a widget with no `fields` "draws everything it
- *     mounts on", per `widgetDrawnFields`, the same function alarm
- *     attribution reads, reused here rather than re-derived.
+ *     `dataRequirements`) names the field. A widget that declares no `fields`
+ *     is NOT credited with every field of its Topics: alarm attribution may
+ *     treat such a widget as drawing everything it mounts on
+ *     (`widgetDrawnFields`), but a mount is not a read, and crediting it hid
+ *     `comms.delay`, `comms.link` and about 16 other payloads' `meta.source`,
+ *     which no client reads.
  *  2. A non-widget production file that both (a) names the field's Topic as a
- *     string literal and (b) uses the field's own leaf identifier somewhere in
- *     that file: `AlarmStatusBridge.tsx`, `TrajectoryCurrencyBridge.tsx`,
+ *     string literal and (b) uses every segment of the field's path as an identifier
+ *     somewhere in that file: `AlarmStatusBridge.tsx`, `TrajectoryCurrencyBridge.tsx`,
  *     the Settings panel and similar app chrome read contract fields directly,
  *     with no `registerComponent` in sight, and a gate that only understood
  *     widgets would manufacture debt for every one of them. This signal is
@@ -38,6 +40,16 @@ import { modTsRoots, SCANNED_PACKAGE_ROOTS } from "./unknown-cast.scan";
  *     merely shares a leaf name with something else the file touches, which is
  *     an acceptable failure direction for a signal that only ever CLEARS debt,
  *     never a substitute for signal 1.
+ *  3. A production C# file under `mod/` (see `scanCsharpReaders`). The mod
+ *     reads contract fields too, and a TypeScript-only scan reported them
+ *     unread: `ScetPayload.ReadSource` reads `meta.source` of every SCET
+ *     addressable Topic. The shape that counts is a dictionary-key read chain
+ *     (`TryGetValue("meta"...)` then `TryGetValue("source"...)`, or
+ *     `["meta"]["source"]`), credited to the Topics named by the file that
+ *     holds the chain or by a file that calls the method that does. A `.Leaf`
+ *     member access is deliberately not a reader: producers and serializers
+ *     touch their own model's members constantly, and crediting those would
+ *     over-credit worse than the TypeScript co-occurrence rule.
  *
  * WHAT COUNTS AS A COMMAND READER: a production file naming the command id as
  * a string literal, anywhere. `useCommand(id)` is the common shape, but a
@@ -89,7 +101,7 @@ export interface ContractField {
 
 export interface ReaderHit {
   /** How the reader was found. */
-  via: "widget" | "field-access" | "command-literal";
+  via: "widget" | "field-access" | "command-literal" | "csharp-chain";
   /** Repo-relative file the reader lives in. */
   file: string;
   /** The widget id, when `via` is `"widget"`. */
@@ -195,8 +207,14 @@ const SKIP_DIRS = new Set([
   "__generated__",
 ]);
 
+/**
+ * Test files, and the harness code beside them: a `scripts/` directory (fixture
+ * generators, render probes) and a `src/test/` helper directory are not
+ * production readers, and crediting them is how `comms.delay`'s `meta.source`
+ * looked read.
+ */
 const isTest = (path: string): boolean =>
-  /\.test\.tsx?$|\.test-d\.tsx?$/.test(path);
+  /\.test\.tsx?$|\.test-d\.tsx?$|\/scripts\/|\/src\/test\//.test(path);
 const isDeclaration = (path: string): boolean =>
   path === TOPIC_MAP_FILE || path === COMMAND_MAP_FILE;
 
@@ -392,11 +410,6 @@ function collectTokens(sf: ts.SourceFile): {
   return { identifiers, strings };
 }
 
-function leafOf(path: string): string {
-  const segments = path.split(".");
-  return segments[segments.length - 1] ?? path;
-}
-
 const EXPORTED_CONST_STRING_RE =
   /export const ([A-Za-z_$][A-Za-z0-9_$]*)\s*=\s*"([^"]+)"/g;
 
@@ -542,9 +555,11 @@ export function scanContractReaderCoverage(root = REPO_ROOT): CoverageScan {
       const manifest = fileManifestUnion(sf);
       for (const decl of findWidgetDeclarations(sf, manifest)) {
         const drawn = widgetDrawnFields(decl);
+        const declaresFields = decl.fields.length > 0;
         for (const entry of drawn) {
           if (topicSet.has(entry)) {
-            // A bare Topic id: this widget draws everything published on it.
+            // A bare Topic id counts only when written in `fields`: a mount is not a read.
+            if (!declaresFields) continue;
             for (const f of fieldsByTopic.get(entry) ?? []) {
               addField(f.key, { via: "widget", file: rel, widgetId: decl.id });
             }
@@ -572,7 +587,7 @@ export function scanContractReaderCoverage(root = REPO_ROOT): CoverageScan {
       for (const topic of topics) {
         if (!touchesId(topic, topicAliases)) continue;
         for (const f of fieldsByTopic.get(topic) ?? []) {
-          if (identifiers.has(leafOf(f.path))) {
+          if (f.path.split(".").every((segment) => identifiers.has(segment))) {
             addField(f.key, { via: "field-access", file: rel });
           }
         }
@@ -580,5 +595,163 @@ export function scanContractReaderCoverage(root = REPO_ROOT): CoverageScan {
     }
   }
 
+  scanCsharpReaders(root, topics, fieldsByTopic, addField, filesParsed);
+
   return { fields, commands, fieldReaders, commandReaders, filesParsed };
+}
+
+const CSHARP_SKIP_DIRS = new Set(["node_modules", "obj", "bin"]);
+
+/** Mod projects that only test, generate, fake or measure the contract, never serve a reader. */
+const CSHARP_NON_PRODUCTION_PROJECT =
+  /(\.Tests|\.TestSupport|\.Codegen|\.Package|\.Skeleton|\.LoadProbe|\.CaptureAnalysis|^GonogoDevTools)$/;
+
+function walkCsharp(dir: string, out: string[] = []): string[] {
+  let entries: import("node:fs").Dirent[];
+  try {
+    entries = readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return out;
+  }
+  for (const entry of entries) {
+    if (CSHARP_SKIP_DIRS.has(entry.name)) continue;
+    const path = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      walkCsharp(path, out);
+      continue;
+    }
+    if (/\.cs$/.test(path)) out.push(path);
+  }
+  return out;
+}
+
+const CSHARP_CONST_STRING_RE =
+  /\bconst\s+string\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*"([^"]+)"/g;
+
+/**
+ * A dictionary-key read chain: `TryGetValue("a", ...)` then `TryGetValue("b",
+ * ...)` inside one statement, or adjacent indexers `["a"]["b"]`. A lone
+ * indexer is deliberately not a read: `["a"] = ...` is how the wire is written.
+ */
+const CSHARP_READ_CHAIN_RE =
+  /TryGetValue\(\s*"(\w+)"[^;]*?TryGetValue\(\s*"(\w+)"|\["(\w+)"\]\["(\w+)"\]/g;
+
+const CSHARP_METHOD_HEAD_RE = /\b([A-Za-z_]\w*)\s*\([^()]*\)\s*(?:=>|\{)/g;
+const CSHARP_NOT_A_METHOD = new Set([
+  "if",
+  "while",
+  "for",
+  "foreach",
+  "switch",
+  "catch",
+  "using",
+  "lock",
+  "when",
+]);
+
+function escapeRe(word: string): string {
+  return word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * The mod's own readers of contract fields (signal 3 in the module doc).
+ *
+ * Production `.cs` under `mod/` (test, fake, codegen and probe projects are
+ * left out). A file names a Topic by its wire string or by a `const string`
+ * alias of it, the same two spellings the TypeScript side resolves.
+ */
+function scanCsharpReaders(
+  root: string,
+  topics: readonly string[],
+  fieldsByTopic: ReadonlyMap<string, ContractField[]>,
+  addField: (key: string, hit: ReaderHit) => void,
+  filesParsed: string[],
+): void {
+  const modDir = join(root, "mod");
+  const texts = new Map<string, string>();
+  for (const abs of walkCsharp(modDir)) {
+    const rel = abs
+      .slice(root.length + 1)
+      .split("\\")
+      .join("/");
+    const project = rel.split("/")[1] ?? "";
+    if (CSHARP_NON_PRODUCTION_PROJECT.test(project)) continue;
+    try {
+      texts.set(rel, readFileSync(abs, "utf8"));
+    } catch {
+      // Tracked but deleted in the working tree: nothing to read.
+    }
+  }
+
+  const topicSet = new Set(topics);
+  const aliases = new Map<string, Set<string>>();
+  for (const text of texts.values()) {
+    if (!text.includes("const string")) continue;
+    for (const m of text.matchAll(CSHARP_CONST_STRING_RE)) {
+      if (!topicSet.has(m[2])) continue;
+      const set = aliases.get(m[2]) ?? new Set<string>();
+      set.add(m[1]);
+      aliases.set(m[2], set);
+    }
+  }
+
+  const methodChains = new Map<string, Set<string>>();
+  const chainsOf = (text: string): { path: string; method?: string }[] => {
+    const out: { path: string; method?: string }[] = [];
+    for (const m of text.matchAll(CSHARP_READ_CHAIN_RE)) {
+      let method: string | undefined;
+      for (const h of text.slice(0, m.index).matchAll(CSHARP_METHOD_HEAD_RE)) {
+        if (!CSHARP_NOT_A_METHOD.has(h[1])) method = h[1];
+      }
+      out.push({ path: `${m[1] ?? m[3]}.${m[2] ?? m[4]}`, method });
+    }
+    return out;
+  };
+  const fileChains = new Map<string, { path: string; method?: string }[]>();
+  for (const [rel, text] of texts) {
+    if (!text.includes("TryGetValue") && !text.includes('["')) continue;
+    const chains = chainsOf(text);
+    fileChains.set(rel, chains);
+    for (const c of chains) {
+      if (!c.method) continue;
+      const set = methodChains.get(c.method) ?? new Set<string>();
+      set.add(c.path);
+      methodChains.set(c.method, set);
+    }
+  }
+
+  for (const [rel, text] of texts) {
+    const named = topics.filter(
+      (t) =>
+        text.includes(`"${t}"`) ||
+        [...(aliases.get(t) ?? [])].some((n) =>
+          new RegExp(`\\b${escapeRe(n)}\\b`).test(text),
+        ),
+    );
+    if (named.length === 0) continue;
+    let touched = false;
+    const credit = (
+      topic: string,
+      predicate: (f: ContractField) => boolean,
+      via: ReaderHit["via"],
+    ): void => {
+      for (const f of fieldsByTopic.get(topic) ?? []) {
+        if (!predicate(f)) continue;
+        touched = true;
+        addField(f.key, { via, file: rel });
+      }
+    };
+
+    const chainPaths = new Set<string>();
+    for (const c of fileChains.get(rel) ?? []) chainPaths.add(c.path);
+    for (const [method, paths] of methodChains) {
+      if (new RegExp(`\\b${escapeRe(method)}\\s*\\(`).test(text)) {
+        for (const p of paths) chainPaths.add(p);
+      }
+    }
+    for (const topic of named) {
+      credit(topic, (f) => chainPaths.has(f.path), "csharp-chain");
+    }
+    if (touched) filesParsed.push(rel);
+  }
 }

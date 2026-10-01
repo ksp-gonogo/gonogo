@@ -39,6 +39,15 @@ const scan = scanContractReaderCoverage(repoRoot);
 
 const debtKeys = new Set(Object.keys(CONTRACT_READER_DEBT));
 
+/**
+ * Saga 761 made the scan stricter (a widget with no `fields` stopped counting
+ * as a reader), which surfaced fields that were never read. Those entries are
+ * admitted once, by this reason prefix, and nothing else may arrive.
+ */
+const SAGA_761_REASON = "newly visible unread (Saga 761";
+const isAdmitted = (key: string): boolean =>
+  CONTRACT_READER_DEBT[key]?.startsWith(SAGA_761_REASON) ?? false;
+
 describe("every contract field and command has a production reader", () => {
   it("names any field no production client reads", () => {
     const unread = scan.fields
@@ -201,6 +210,84 @@ describe("the scan can be seen to work", () => {
     }
   });
 
+  it("does not credit a widget that declares no fields with every field of its Topic", () => {
+    const root = plantedRoot();
+    try {
+      mkdirSync(join(root, "packages/app"), { recursive: true });
+      writeFileSync(
+        join(root, "packages/app/MountOnly.tsx"),
+        [
+          'import { registerComponent } from "@ksp-gonogo/sitrep-sdk";',
+          "",
+          "registerComponent({",
+          '  id: "mount-only",',
+          '  channels: ["vessel.orbit"],',
+          "  component: () => null,",
+          "});",
+          "",
+        ].join("\n"),
+      );
+
+      const planted = scanContractReaderCoverage(root);
+      const sma = planted.fields.find((f) => f.path === "sma")?.key as string;
+      expect(planted.fieldReaders.has(sma)).toBe(false);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("clears a planted field through a C# dictionary-key read chain, and not through a wire write", () => {
+    const root = plantedRoot();
+    try {
+      mkdirSync(join(root, "mod/Sitrep.Host"), { recursive: true });
+      writeFileSync(
+        join(root, "mod/Sitrep.Host/PlantedReader.cs"),
+        [
+          "internal static class PlantedReader",
+          "{",
+          '    internal const string OrbitTopic = "vessel.orbit";',
+          "",
+          "    internal static string? ReadSource(IDictionary<string, object?> root) =>",
+          '        root.TryGetValue("meta", out var raw)',
+          "            && raw is IDictionary<string, object?> meta",
+          '            && meta.TryGetValue("source", out var source)',
+          "                ? source as string",
+          "                : null;",
+          "",
+          "    internal static string? Use(IDictionary<string, object?> root, string topic) =>",
+          "        topic == OrbitTopic ? ReadSource(root) : null;",
+          "}",
+          "",
+        ].join("\n"),
+      );
+      mkdirSync(join(root, "mod/Sitrep.Host/Writers"), { recursive: true });
+      writeFileSync(
+        join(root, "mod/Sitrep.Host/Writers/PlantedWriter.cs"),
+        [
+          "internal static class PlantedWriter",
+          "{",
+          '    internal const string OrbitTopic = "vessel.orbit";',
+          "    internal static object Build() => new Dictionary<string, object?>",
+          "    {",
+          '        ["sma"] = 1.0,',
+          '        ["meta"] = new Dictionary<string, object?> { ["quality"] = "x" },',
+          "    };",
+          "}",
+          "",
+        ].join("\n"),
+      );
+
+      const planted = scanContractReaderCoverage(root);
+      const source = planted.fields.find((f) => f.path === "meta.source")
+        ?.key as string;
+      const sma = planted.fields.find((f) => f.path === "sma")?.key as string;
+      expect(planted.fieldReaders.get(source)?.[0]?.via).toBe("csharp-chain");
+      expect(planted.fieldReaders.has(sma)).toBe(false);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it("clears a planted field through the non-widget field-access signal", () => {
     const root = plantedRoot();
     try {
@@ -300,7 +387,9 @@ describe("the debt list only ever shrinks", () => {
     if (!at) return;
 
     const before = new Set(Object.keys(at.list));
-    const arrived = [...debtKeys].filter((key) => !before.has(key));
+    const arrived = [...debtKeys].filter(
+      (key) => !before.has(key) && !isAdmitted(key),
+    );
 
     expect(
       arrived,
@@ -308,7 +397,7 @@ describe("the debt list only ever shrinks", () => {
         "command lands with its reader, so there is nothing new to record here.",
     ).toEqual([]);
     expect(
-      debtKeys.size,
+      [...debtKeys].filter((key) => !isAdmitted(key) || before.has(key)).length,
       `Debt total rose vs ${at.ref} (${before.size} -> ${debtKeys.size}).`,
     ).toBeLessThanOrEqual(before.size);
   });
