@@ -198,33 +198,9 @@ FLAKED=""
 TESTED=0
 
 step_dotnet_test() {
-  # `[^"]*Tests\.csproj`, with no dot before Tests, so the match includes
-  # Sitrep.Host.IntegrationTests as well as every `*.Tests` project. A derived
-  # list omits as quietly as a hand-written one when the derivation is wrong,
-  # which is why the agreement check below exists.
-  projects="$(sed -n 's/^Project(.*) = "[^"]*", "\([^"]*Tests\.csproj\)".*/\1/p' "$MOD/Gonogo.sln" | tr '\\' '/')"
-  if [ -z "$projects" ]; then
-    say "✖ mod/Gonogo.sln declares no test project. Either the solution moved or"
-    say "  this parse stopped matching it; a gate that finds nothing to run reports"
-    say "  success, so this is an error rather than an empty pass."
-    return 1
-  fi
-
-  # A SECOND instrument, failing differently from the first. ci.yml's `mod` job
-  # hand-lists the same projects, and a hand-list misses a project added to the
-  # solution. Reading the solution fixes that direction and opens the opposite
-  # one: this parse can stop matching a project and report a clean run over the
-  # rest. Neither list can check itself, so they check each other.
-  ci_projects="$(sed -n '/^ *projects=(/,/^ *)/p' "$CI_YML" |
-    sed -n 's/^ *\([A-Za-z0-9._]*Tests\) *$/\1/p' | sort)"
-  sln_projects="$(echo "$projects" | sed 's|.*/||; s|\.csproj$||' | sort)"
-  if [ "$ci_projects" != "$sln_projects" ]; then
-    say "✖ this gate and ci.yml's \`mod\` job disagree about which projects to test."
-    say "  mod/Gonogo.sln: $(echo "$sln_projects" | tr '\n' ' ')"
-    say "  ci.yml:         $(echo "$ci_projects" | tr '\n' ' ')"
-    say "  A project named by one and not the other is gated by that one alone."
-    return 1
-  fi
+  # The parse and its agreement check against ci.yml's hand-written list live in
+  # one script, which the `mod` job runs too.
+  projects="$(sh "$ROOT/scripts/mod-test-projects.sh")" || return 1
 
   for proj in $projects; do
     name="$(basename "$proj" .csproj)"

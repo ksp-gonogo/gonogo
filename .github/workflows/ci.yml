@@ -815,6 +815,9 @@ jobs:
           else
             echo "::warning::KSP reference assemblies absent: PendingCreditLedgerTests SKIPPED (soft-degrade). Provide the ksp-gonogo/ksp-managed checkout + KSP_MANAGED_TOKEN to enable it."
           fi
+          # The array below is checked against mod/Gonogo.sln before anything runs,
+          # so a test project added to one and not the other fails the job here.
+          bash "$GITHUB_WORKSPACE/scripts/mod-test-projects.sh" > /dev/null
           projects=(
             Sitrep.Contract.Tests
             Sitrep.Core.Tests
