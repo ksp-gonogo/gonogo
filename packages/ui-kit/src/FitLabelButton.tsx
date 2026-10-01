@@ -45,6 +45,21 @@ export const FitLabelButton = forwardRef<
   HTMLButtonElement,
   FitLabelButtonProps
 >(function FitLabelButton({ label, icon, type, ...rest }, ref) {
+  return (
+    <button ref={ref} type={type ?? "button"} aria-label={label} {...rest}>
+      <FitLabel label={label} icon={icon} />
+    </button>
+  );
+});
+
+/**
+ * The label-or-icon content of a {@link FitLabelButton}, for another control
+ * that draws its own button and wants the same collapse. It measures its
+ * parent's content box, so the parent must be able to shrink below the label
+ * (`min-width: 0`). Both states are `aria-hidden`: the parent carries the name.
+ * Kit-internal, not on the barrel.
+ */
+export function FitLabel({ label, icon }: { label: string; icon: ReactNode }) {
   const contentRef = useRef<HTMLSpanElement | null>(null);
   const ghostRef = useRef<HTMLSpanElement | null>(null);
   const [fits, setFits] = useState(true);
@@ -66,24 +81,22 @@ export const FitLabelButton = forwardRef<
   }, []);
 
   return (
-    <button ref={ref} type={type ?? "button"} aria-label={label} {...rest}>
-      <FitLabelButton__Content ref={contentRef}>
-        <FitLabelButton__Ghost ref={ghostRef} aria-hidden="true">
+    <FitLabelButton__Content ref={contentRef}>
+      <FitLabelButton__Ghost ref={ghostRef} aria-hidden="true">
+        {label}
+      </FitLabelButton__Ghost>
+      {fits ? (
+        <FitLabelButton__Label aria-hidden="true">
           {label}
-        </FitLabelButton__Ghost>
-        {fits ? (
-          <FitLabelButton__Label aria-hidden="true">
-            {label}
-          </FitLabelButton__Label>
-        ) : (
-          <FitLabelButton__Icon aria-hidden="true" data-fit-label-icon="">
-            {icon}
-          </FitLabelButton__Icon>
-        )}
-      </FitLabelButton__Content>
-    </button>
+        </FitLabelButton__Label>
+      ) : (
+        <FitLabelButton__Icon aria-hidden="true" data-fit-label-icon="">
+          {icon}
+        </FitLabelButton__Icon>
+      )}
+    </FitLabelButton__Content>
   );
-});
+}
 
 const FitLabelButton__Content = styled.span`
   position: relative;

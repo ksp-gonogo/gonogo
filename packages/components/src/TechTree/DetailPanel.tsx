@@ -1,12 +1,13 @@
 import {
+  CloseIcon,
   CommandButton,
   type CommandButtonHandle,
   ExpandableText,
+  IconButton,
   NULL_DISPLAY,
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import {
-  CloseBtn,
   Cost,
   Description,
   Detail,
@@ -54,9 +55,9 @@ export function DetailPanel({
           {node.title}
           <NodeId>({node.id})</NodeId>
         </DetailTitle>
-        <CloseBtn type="button" onClick={onClose} aria-label="Close details">
-          ✕
-        </CloseBtn>
+        <IconButton type="button" onClick={onClose} aria-label="Close details">
+          <CloseIcon size={14} aria-hidden="true" />
+        </IconButton>
       </DetailHead>
       {node.description && (
         <Description>

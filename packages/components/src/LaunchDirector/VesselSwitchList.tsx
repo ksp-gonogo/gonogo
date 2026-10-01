@@ -4,17 +4,15 @@ import {
   type Value,
   VesselType,
 } from "@ksp-gonogo/sitrep-sdk";
-import { Unit } from "@ksp-gonogo/ui-kit";
+import { Cluster, Row, ToggleButton, Unit } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
 import { magnitudeOf } from "../shared/magnitude";
 import {
-  SpaceObjectToggle,
   VesselSwitchDistance,
   VesselSwitchHint,
   VesselSwitchMeta,
   VesselSwitchName,
   VesselSwitchPanel,
-  VesselSwitchRow,
 } from "./styles";
 import { VESSEL_TYPE_LABELS } from "./vesselTypeLabels";
 
@@ -52,26 +50,30 @@ export function VesselSwitchList({
   return (
     <VesselSwitchPanel role="listbox" aria-label="Switch active vessel">
       {spaceObjectCount > 0 && (
-        <SpaceObjectToggle
-          type="button"
-          aria-pressed={showSpaceObjects}
-          onClick={onToggleSpaceObjects}
-          title={
-            showSpaceObjects
-              ? "Hide asteroids / comets from the list"
-              : "Show asteroids / comets in the list"
-          }
-        >
-          {showSpaceObjects
-            ? `Asteroids: shown (${spaceObjectCount})`
-            : `Asteroids: hidden (${spaceObjectCount})`}
-        </SpaceObjectToggle>
+        <Cluster justify="start">
+          <ToggleButton
+            size="sm"
+            active={showSpaceObjects}
+            onClick={onToggleSpaceObjects}
+            title={
+              showSpaceObjects
+                ? "Hide asteroids / comets from the list"
+                : "Show asteroids / comets in the list"
+            }
+          >
+            {showSpaceObjects
+              ? `Asteroids: shown (${spaceObjectCount})`
+              : `Asteroids: hidden (${spaceObjectCount})`}
+          </ToggleButton>
+        </Cluster>
       )}
       {switchableVessels.length === 0 ? (
         <VesselSwitchHint>No other vessels to show.</VesselSwitchHint>
       ) : (
         switchableVessels.map((entry) => (
-          <VesselSwitchRow
+          <Row
+            as="button"
+            interactive
             key={entry.vesselId ?? entry.name}
             type="button"
             onClick={() => {
@@ -88,7 +90,7 @@ export function VesselSwitchList({
             <VesselSwitchDistance>
               <Unit value={distanceOf(entry)} />
             </VesselSwitchDistance>
-          </VesselSwitchRow>
+          </Row>
         ))
       )}
     </VesselSwitchPanel>

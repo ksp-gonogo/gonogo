@@ -1,5 +1,11 @@
 import { value } from "@ksp-gonogo/sitrep-sdk";
-import { Badge, NULL_DISPLAY, Text, Unit } from "@ksp-gonogo/ui-kit";
+import {
+  Badge,
+  NULL_DISPLAY,
+  Text,
+  ToggleButton,
+  Unit,
+} from "@ksp-gonogo/ui-kit";
 import { type HeldSince, heldFigure } from "../shared/heldFigure";
 import {
   bodyLabel,
@@ -15,7 +21,6 @@ import {
   Muted,
   ReachFooter,
   ReachHead,
-  ReachPick,
   ReachScroll,
   ReachTable,
   ReachTd,
@@ -103,14 +108,13 @@ export function ReachList({
               return (
                 <tr key={entry.body.index}>
                   <ReachTd>
-                    <ReachPick
-                      type="button"
-                      $selected={entry.body.index === selectedIndex}
-                      aria-pressed={entry.body.index === selectedIndex}
+                    <ToggleButton
+                      size="sm"
+                      active={entry.body.index === selectedIndex}
                       onClick={() => onSelect(entry.body.index)}
                     >
                       {bodyLabel(entry.body)}
-                    </ReachPick>
+                    </ToggleButton>
                   </ReachTd>
                   <ReachTdNum>
                     {entry.totalDeltaV != null ? (

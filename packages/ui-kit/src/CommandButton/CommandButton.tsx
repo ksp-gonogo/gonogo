@@ -15,6 +15,7 @@ import {
   commandGateSentence,
   commandRefusalSentence,
 } from "../CommandDelay/commandRefusalSentence";
+import { FitLabel } from "../FitLabelButton";
 import { LiveRegion } from "../LiveRegion";
 import { InFlightFace } from "./InFlightFace";
 
@@ -551,8 +552,33 @@ export interface CommandButtonProps<Result = CommandReplyLike, Args = unknown>
    * undefined for a control that only acts.
    */
   active?: boolean;
-  /** The tone of the fill while `active`. Defaults to `neutral`. */
+  /**
+   * How much the control asks to be pressed at rest. `ghost` (default) is the
+   * quiet outline that fills only while active, armed or refused; `primary`
+   * is filled in `tone` at rest, for the one verb of a group that commits.
+   */
+  variant?: "ghost" | "primary";
+  /**
+   * The tone of the fill while `active`, and of the resting fill for a
+   * `primary` control. Defaults to `neutral`.
+   */
   tone?: CommandButtonTone;
+  /**
+   * Shown in place of the word when the word does not fit the control's width,
+   * measured against the control itself and following resizes, for a control in
+   * a narrow cell. The word stays the accessible name in both states. Needs a
+   * plain-text label and, when set, `confirmLabel`.
+   */
+  icon?: ReactNode;
+  /** Shown in place of the confirm word when it does not fit. Defaults to {@link CommandButtonProps.icon}. */
+  confirmIcon?: ReactNode;
+  /**
+   * Called with the control's press while a click on it would do something
+   * (not while it is in flight) and with `null` when it would not, for a
+   * caller that lets an input press the control from elsewhere. The press
+   * takes whether the control has a confirm step.
+   */
+  onPressReady?: (press: ((armable: boolean) => void) | null) => void;
   /** Defaults to `md`. */
   size?: CommandButtonSize;
   /** Tone for the armed phase. Defaults to `go`: confirm reads as commit. */
@@ -611,7 +637,11 @@ export function CommandButton<Result = CommandReplyLike, Args = unknown>({
   pendingAriaLabel,
   blockedAriaLabel,
   active,
+  variant = "ghost",
   tone = "neutral",
+  icon,
+  confirmIcon,
+  onPressReady,
   size = "md",
   confirmTone = "go",
   onConfirmed,
@@ -637,6 +667,12 @@ export function CommandButton<Result = CommandReplyLike, Args = unknown>({
     press,
   } = useCommandButton({ handle, args, commandLabel, onConfirmed });
 
+  useEffect(() => {
+    if (!onPressReady || isPending) return;
+    onPressReady(press);
+    return () => onPressReady(null);
+  }, [onPressReady, isPending, press]);
+
   const resolveBody = (): ReactNode => {
     if (isPending)
       return (
@@ -654,13 +690,20 @@ export function CommandButton<Result = CommandReplyLike, Args = unknown>({
     if (isArmed) return confirmLabel;
     return label;
   };
-  const body = resolveBody();
+  const resolved = resolveBody();
+  const fitWord = icon !== undefined && typeof resolved === "string";
+  const body = fitWord ? (
+    <FitLabel label={resolved} icon={isArmed ? (confirmIcon ?? icon) : icon} />
+  ) : (
+    resolved
+  );
   /*
    * An arm-then-confirm control keeps the width of its wider word in both
    * states, so arming it never reflows the row it sits in. Only plain-text
    * labels can be measured this way; a node label sizes itself as before.
    */
   const reserve =
+    icon === undefined &&
     typeof label === "string" &&
     typeof confirmLabel === "string" &&
     !isRefused &&
@@ -678,6 +721,7 @@ export function CommandButton<Result = CommandReplyLike, Args = unknown>({
 
   const filled = active === true || isArmed || isRefused;
   const drawnTone = commandTone({
+    restTone: variant === "primary" ? tone : "neutral",
     filled,
     isRefused,
     isFound,
@@ -691,7 +735,8 @@ export function CommandButton<Result = CommandReplyLike, Args = unknown>({
       <CommandButton__Body
         type="button"
         $tone={drawnTone}
-        $variant="ghost"
+        $variant={variant}
+        $fit={fitWord}
         $size={size}
         $pressed={filled}
         $armed={isArmed}
@@ -718,7 +763,7 @@ export function CommandButton<Result = CommandReplyLike, Args = unknown>({
          * the resting label, which describes a state the control has left.
          */
         aria-label={
-          isRefused
+          (isRefused
             ? (refusalText ?? undefined)
             : isLost
               ? (lossText ?? undefined)
@@ -730,7 +775,7 @@ export function CommandButton<Result = CommandReplyLike, Args = unknown>({
                     ? (pendingAriaLabel ?? pendingLabel)
                     : isArmed
                       ? confirmAriaLabel
-                      : ariaLabel
+                      : ariaLabel) ?? (fitWord ? resolved : undefined)
         }
         title={foundText ?? refusalText ?? (isPending ? pendingLabel : title)}
         onClick={() => press(confirmLabel !== undefined)}
@@ -748,6 +793,7 @@ export function CommandButton<Result = CommandReplyLike, Args = unknown>({
 
 /** The tone a command draws in: plain at rest, then the tone of the phase it is filled for. */
 function commandTone(p: {
+  restTone: CommandButtonTone;
   filled: boolean;
   isRefused: boolean;
   isFound: boolean;
@@ -755,7 +801,7 @@ function commandTone(p: {
   confirmTone: CommandButtonTone;
   tone: CommandButtonTone;
 }): CommandButtonTone {
-  if (!p.filled) return "neutral";
+  if (!p.filled) return p.restTone;
   if (p.isRefused) return "warn";
   // `found` reverses a warning, so it does not wear the warning's colour.
   if (p.isFound) return "neutral";
@@ -782,8 +828,12 @@ const CommandButton__Face = styled.span`
 const CommandButton__Body = styled(Button__Body)<{
   $armed: boolean;
   $blocked: boolean;
+  $fit: boolean;
 }>`
   letter-spacing: 0.04em;
+
+  /* Shrinks below its word so the word can be measured and give way to the icon. */
+  ${({ $fit }) => ($fit ? "min-width: 0;" : "")}
 
   ${({ $armed }) =>
     $armed &&
@@ -801,6 +851,7 @@ const CommandButton__Body = styled(Button__Body)<{
   ${({ $blocked }) =>
     $blocked &&
     css`
+      background: transparent;
       border-style: dashed;
       border-color: var(--color-warn-mark);
       color: var(--color-text-muted);

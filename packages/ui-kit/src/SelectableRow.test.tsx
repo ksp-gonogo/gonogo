@@ -46,4 +46,21 @@ describe("SelectableRow", () => {
       "pick servo A",
     );
   });
+
+  it("lets a caller replace aria-pressed with its own disclosure state", () => {
+    render(
+      <SelectableRow
+        selected
+        layout="split"
+        selectedLook="outline"
+        aria-expanded
+      >
+        <span>name</span>
+        <span>tag</span>
+      </SelectableRow>,
+    );
+    const row = screen.getByRole("button");
+    expect(row).not.toHaveAttribute("aria-pressed");
+    expect(row).toHaveAttribute("aria-expanded", "true");
+  });
 });

@@ -1,5 +1,5 @@
 import { value } from "@ksp-gonogo/sitrep-sdk";
-import { Unit } from "@ksp-gonogo/ui-kit";
+import { SelectableRow, Unit } from "@ksp-gonogo/ui-kit";
 import { type SavedShip, shipBlocked } from "./ships";
 import {
   BlockedTag,
@@ -11,7 +11,6 @@ import {
   ShipList,
   ShipMeta,
   ShipName,
-  ShipRow,
 } from "./styles";
 
 /** The open pad's craft, each greyed out while its funds or parts block it. */
@@ -36,13 +35,13 @@ export function ShipPicker({
         {padCraft.map((s) => {
           const blocked = shipBlocked(s, fundsAvailable);
           return (
-            <ShipRow
+            <SelectableRow
               key={`${s.facility}/${s.file}`}
-              type="button"
+              layout="split"
+              gap="related"
+              selectedLook="outline"
               data-ship-row
-              $selected={selectedShip === s.file}
-              $blocked={blocked}
-              aria-pressed={selectedShip === s.file}
+              selected={selectedShip === s.file}
               aria-disabled={blocked}
               onClick={() => {
                 if (blocked) return;
@@ -74,7 +73,7 @@ export function ShipPicker({
                   </BlockedTag>
                 )}
               </ShipCost>
-            </ShipRow>
+            </SelectableRow>
           );
         })}
       </ShipList>

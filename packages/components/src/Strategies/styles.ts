@@ -1,5 +1,5 @@
 import { Badge, Block, Row } from "@ksp-gonogo/ui-kit";
-// biome-ignore lint/style/noRestrictedImports: the expand toggle's :focus-visible and the factor slider's range-track and thumb pseudo-elements, which no kit primitive carries
+// biome-ignore lint/style/noRestrictedImports: type and card treatments not yet expressed in kit primitives
 import styled from "styled-components";
 
 /** `Panel`'s own column template; `auto-fit` collapses empty tracks, which `minColWidth` (auto-fill) would not. */
@@ -94,19 +94,6 @@ export const FactorTag = styled.span`
   letter-spacing: 0.04em;
 `;
 
-export const ExpandToggle = styled.button`
-  background: none;
-  border: none;
-  padding: 0;
-  text-align: left;
-  cursor: pointer;
-  color: inherit;
-  &:focus-visible {
-    outline: 2px solid var(--color-accent-fg);
-    outline-offset: 2px;
-  }
-`;
-
 export const Description = styled.p`
   margin: var(--gap-caption) 0 var(--gap-sub-readout);
   color: var(--color-text-dim);
@@ -141,63 +128,6 @@ export const FactorRow = styled.div`
   align-items: center;
   gap: var(--gap-related);
   margin-top: var(--gap-actions);
-`;
-
-/** A range input styled per engine, since a bare one paints differently in each and does not shrink in a flex row. */
-export const Slider = styled.input`
-  flex: 1;
-  min-width: 0;
-  width: 100%;
-  height: 16px;
-  margin: 0;
-  padding: 0;
-  background: transparent;
-  cursor: pointer;
-  appearance: none;
-  -webkit-appearance: none;
-
-  /* Both tracks must stay identical or Chromium and Firefox diverge. */
-  &::-webkit-slider-runnable-track {
-    width: 100%;
-    height: 4px;
-    border-radius: var(--radius-pill);
-    background: var(--color-border-strong);
-  }
-
-  &::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 14px;
-    height: 14px;
-    /* Off the spacing ladder: (track height - thumb size) / 2, which centres the thumb on the track. */
-    margin-top: -5px;
-    border-radius: var(--radius-circle);
-    background: var(--color-accent-fg);
-  }
-
-  &::-moz-range-track {
-    width: 100%;
-    height: 4px;
-    border-radius: var(--radius-pill);
-    background: var(--color-border-strong);
-  }
-
-  &::-moz-range-thumb {
-    width: 14px;
-    height: 14px;
-    border: none;
-    border-radius: var(--radius-circle);
-    background: var(--color-accent-fg);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--color-accent-fg);
-    outline-offset: 2px;
-  }
-
-  &::-moz-focus-outer {
-    border: 0;
-  }
 `;
 
 export const FactorLabel = styled.span`

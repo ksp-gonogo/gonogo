@@ -1,10 +1,10 @@
-import { Section } from "@ksp-gonogo/ui-kit";
+import { Button, Section } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import {
   SectionBody,
   SectionChevron,
   SectionHeaderRow,
-  SectionToggle,
+  SectionHeading,
 } from "./styles";
 
 interface CategorySectionProps {
@@ -31,17 +31,20 @@ export function CategorySection({
   return (
     <Section>
       <SectionHeaderRow>
-        <SectionToggle
-          type="button"
-          aria-expanded={expanded}
-          aria-controls={panelId}
-          onClick={onToggle}
-        >
-          <SectionChevron $expanded={expanded} aria-hidden="true">
-            ▸
-          </SectionChevron>
-          {label} ({count})
-        </SectionToggle>
+        <SectionHeading>
+          <Button
+            type="button"
+            variant="text"
+            aria-expanded={expanded}
+            aria-controls={panelId}
+            onClick={onToggle}
+          >
+            <SectionChevron $expanded={expanded} aria-hidden="true">
+              ▸
+            </SectionChevron>
+            {label} ({count})
+          </Button>
+        </SectionHeading>
         {extra}
       </SectionHeaderRow>
       {expanded && <SectionBody id={panelId}>{children}</SectionBody>}

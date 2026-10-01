@@ -1234,3 +1234,72 @@ describe("useCommandButton's loss sentence", () => {
     );
   });
 });
+
+type PressReady = (press: ((armable: boolean) => void) | null) => void;
+
+describe("CommandButton onPressReady", () => {
+  it("lists a press while a click would act and withdraws it while the command is in flight", async () => {
+    const user = userEvent.setup();
+    const d = deferred();
+    const send = vi.fn(() => d.promise);
+    const onPressReady = vi.fn<PressReady>();
+    render(
+      <CommandButton
+        handle={makeHandle(send)}
+        label="Stage"
+        onPressReady={onPressReady}
+      />,
+    );
+    expect(onPressReady.mock.calls.at(-1)?.[0]).toBeTypeOf("function");
+
+    await user.click(screen.getByRole("button", { name: "Stage" }));
+    expect(send).toHaveBeenCalledOnce();
+    expect(onPressReady.mock.calls.at(-1)?.[0]).toBeNull();
+
+    await act(async () => {
+      d.resolve(OK);
+    });
+    expect(onPressReady.mock.calls.at(-1)?.[0]).toBeTypeOf("function");
+  });
+
+  it("presses the control from the listed press, arming before it dispatches", async () => {
+    const send = vi.fn(() => Promise.resolve(OK));
+    const onPressReady = vi.fn<PressReady>();
+    render(
+      <CommandButton
+        handle={makeHandle(send)}
+        label="Recover"
+        confirmLabel="Confirm recover"
+        onPressReady={onPressReady}
+      />,
+    );
+    const listed = () => {
+      const press = onPressReady.mock.calls.at(-1)?.[0];
+      if (!press) throw new Error("no press listed");
+      return press;
+    };
+    act(() => listed()(true));
+    expect(send).not.toHaveBeenCalled();
+    expect(screen.getByRole("button")).toHaveTextContent("Confirm recover");
+    act(() => listed()(true));
+    expect(send).toHaveBeenCalledOnce();
+  });
+});
+
+describe("CommandButton icon", () => {
+  it("names the control by its word and keeps the word as the name when armed", async () => {
+    const user = userEvent.setup();
+    render(
+      <CommandButton
+        handle={makeHandle(() => Promise.resolve(OK))}
+        label="Upgrade"
+        confirmLabel="Confirm"
+        icon={<svg data-testid="up" />}
+        confirmIcon={<svg data-testid="check" />}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Upgrade" })).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Upgrade" }));
+    expect(screen.getByRole("button", { name: "Confirm" })).toBeVisible();
+  });
+});

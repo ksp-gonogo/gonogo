@@ -1,15 +1,13 @@
 import type { VesselRosterEntry } from "@ksp-gonogo/sitrep-sdk";
-import type { CommandButtonHandle } from "@ksp-gonogo/ui-kit";
+import { Button, type CommandButtonHandle, Row } from "@ksp-gonogo/ui-kit";
 import { type ReactNode, useState } from "react";
 import {
   InFlightWrap,
   PadActions,
-  TrackingStationButton,
   VesselSwitchHint,
   VesselSwitchMeta,
   VesselSwitchName,
   VesselSwitchPanel,
-  VesselSwitchRow,
 } from "./styles";
 import { VESSEL_TYPE_LABELS } from "./vesselTypeLabels";
 
@@ -31,8 +29,9 @@ export function FlyVesselMenu({
     <InFlightWrap>
       <PadActions>
         {children}
-        <TrackingStationButton
+        <Button
           type="button"
+          variant="ghost"
           disabled={vessels.length === 0}
           aria-expanded={flyOpen}
           onClick={() => setFlyOpen((v) => !v)}
@@ -43,12 +42,14 @@ export function FlyVesselMenu({
           }
         >
           Fly vessel ▾
-        </TrackingStationButton>
+        </Button>
       </PadActions>
       {flyOpen && vessels.length > 0 && (
         <VesselSwitchPanel role="group" aria-label="Fly vessel">
           {vessels.map((v) => (
-            <VesselSwitchRow
+            <Row
+              as="button"
+              interactive
               key={v.vesselId}
               type="button"
               onClick={() => {
@@ -62,7 +63,7 @@ export function FlyVesselMenu({
                   {VESSEL_TYPE_LABELS[v.vesselType] ?? "Unknown"}
                 </VesselSwitchMeta>
               </VesselSwitchName>
-            </VesselSwitchRow>
+            </Row>
           ))}
         </VesselSwitchPanel>
       )}

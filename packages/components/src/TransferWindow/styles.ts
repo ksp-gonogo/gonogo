@@ -1,5 +1,5 @@
 import { Select } from "@ksp-gonogo/ui-kit";
-// biome-ignore lint/style/noRestrictedImports: hand-rolled window and reach-pick buttons carry bespoke :hover and :focus-visible states, and no kit primitive carries them
+// biome-ignore lint/style/noRestrictedImports: type and layout treatments not yet expressed in kit primitives
 import styled from "styled-components";
 
 // Body inline-size at which the chart moves from under the list to beside it.
@@ -130,27 +130,6 @@ export const SectionHead = styled.div`
   min-width: 0;
 `;
 
-/**
- * The destination cell as a `<button>`, so the row stays a row for a screen
- * reader and picking is keyboard-reachable. `aria-pressed` carries the scope,
- * since the visual cue is a colour.
- */
-export const ReachPick = styled.button<{ $selected: boolean }>`
-  appearance: none;
-  background: none;
-  border: none;
-  padding: 0;
-  font: inherit;
-  cursor: pointer;
-  text-align: left;
-  color: ${(p) => (p.$selected ? "var(--color-accent-fg)" : "inherit")};
-
-  &:focus-visible {
-    outline: 2px solid var(--color-accent-fg);
-    outline-offset: 2px;
-  }
-`;
-
 export const ReachHead = styled.div`
   display: flex;
   align-items: baseline;
@@ -226,43 +205,21 @@ export const ListItem = styled.li`
   flex-direction: column;
 `;
 
-export const WindowRow = styled.button<{ $selected: boolean }>`
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  gap: var(--gap-section);
-  align-items: center;
-  width: 100%;
-  text-align: left;
-  padding: var(--inset-window-row);
-  background: ${({ $selected }) =>
-    $selected ? "var(--color-surface-raised)" : "transparent"};
-  border: 1px solid
-    ${({ $selected }) =>
-      $selected ? "var(--color-accent-fg)" : "var(--color-border-subtle)"};
-  border-radius: var(--radius-regular);
-  color: var(--color-text-primary);
+export const ColWait = styled.span`
   font-size: var(--font-size-compact);
   font-variant-numeric: tabular-nums;
-  cursor: pointer;
-
-  &:hover {
-    border-color: var(--color-border-strong);
-  }
-  &:focus-visible {
-    outline: 2px solid var(--color-accent-fg);
-    outline-offset: 2px;
-  }
-`;
-
-export const ColWait = styled.span`
   color: var(--color-text-primary);
 `;
 
 export const ColDv = styled.span`
+  font-size: var(--font-size-compact);
+  font-variant-numeric: tabular-nums;
   color: var(--color-text-muted);
 `;
 
 export const ColTof = styled.span`
+  font-size: var(--font-size-compact);
+  font-variant-numeric: tabular-nums;
   color: var(--color-text-dim);
 `;
 

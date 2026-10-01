@@ -1,5 +1,5 @@
 import type { ActionDefinition } from "@ksp-gonogo/core";
-import { createContext, useContext, useEffect } from "react";
+import { createContext, useCallback, useContext, useRef } from "react";
 
 /**
  * One action per control that has exactly one target on screen. Each presses
@@ -62,17 +62,27 @@ export const BoundPresses = createContext<Map<
   Press
 > | null>(null);
 
-export function useBindPress(
-  action: LaunchDirectorActionId | undefined,
-  press: Press,
-  clickable: boolean,
-): void {
+/**
+ * A `CommandButton`'s `onPressReady` for a control a bound input may press:
+ * lists the press under `action` while a click on the control would do
+ * something and withdraws it otherwise.
+ */
+export function useBoundPress(action: LaunchDirectorActionId | undefined) {
   const registry = useContext(BoundPresses);
-  useEffect(() => {
-    if (!registry || !action || !clickable) return;
-    registry.set(action, press);
-    return () => {
-      if (registry.get(action) === press) registry.delete(action);
-    };
-  }, [registry, action, press, clickable]);
+  const listed = useRef<Press | null>(null);
+  return useCallback(
+    (press: Press | null) => {
+      if (!registry || !action) return;
+      if (press) {
+        registry.set(action, press);
+        listed.current = press;
+        return;
+      }
+      if (listed.current && registry.get(action) === listed.current) {
+        registry.delete(action);
+      }
+      listed.current = null;
+    },
+    [registry, action],
+  );
 }

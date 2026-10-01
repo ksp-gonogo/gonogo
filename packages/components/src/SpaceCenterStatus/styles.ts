@@ -1,5 +1,5 @@
-import { FitLabelButton, Text } from "@ksp-gonogo/ui-kit";
-// biome-ignore lint/style/noRestrictedImports: the upgrade button's bespoke :hover and :disabled treatments and its confirm pulse, which no kit primitive carries
+import { Text } from "@ksp-gonogo/ui-kit";
+// biome-ignore lint/style/noRestrictedImports: type and cell treatments not yet expressed in kit primitives
 import styled from "styled-components";
 
 export const Body = styled.div`
@@ -150,51 +150,3 @@ export const TIER_SPEC_LIST = {
   margin: 0,
   padding: 0,
 } as const;
-
-export const UpgradeButtonStyled = styled(FitLabelButton)`
-  font-size: var(--font-size-compact);
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  padding: var(--inset-control);
-  border-radius: var(--radius-regular);
-  border: 1px solid var(--color-border-subtle);
-  background: transparent;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  font-family: inherit;
-  text-align: center;
-  /* Must shrink below its label so FitLabelButton can measure it and fall back to the icon. */
-  min-width: 0;
-
-  &:hover:not(:disabled):not([aria-disabled="true"]) {
-    color: var(--color-accent-fg);
-    border-color: var(--color-accent-fg);
-  }
-
-  /* A blocked control keeps its focus ring and answers a press with its reason, hence aria-disabled. */
-  &:disabled,
-  &[aria-disabled="true"] {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
-`;
-
-export const ConfirmUpgradeButton = styled(UpgradeButtonStyled)`
-  background: var(--color-go-status);
-  color: var(--color-go-on-status);
-  border-color: transparent;
-  /* The animation lives inside the same reduced-motion guard as its keyframes. */
-  @media (prefers-reduced-motion: no-preference) {
-    /* An attention pulse, not a UI transition, so off the duration scale. */
-    animation: upgradePulse 1s var(--ease-emphasis) infinite;
-    @keyframes upgradePulse {
-      0%,
-      100% {
-        opacity: 1;
-      }
-      50% {
-        opacity: 0.6;
-      }
-    }
-  }
-`;

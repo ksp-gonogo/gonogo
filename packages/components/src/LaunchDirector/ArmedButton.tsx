@@ -1,16 +1,10 @@
-import {
-  type CommandButtonHandle,
-  commandLossSentence,
-  InFlightFace,
-  useCommandButton,
-} from "@ksp-gonogo/ui-kit";
-import { type LaunchDirectorActionId, useBindPress } from "./actions";
-import { ArmButton, ConfirmButton } from "./styles";
+import { CommandButton, type CommandButtonHandle } from "@ksp-gonogo/ui-kit";
+import { type LaunchDirectorActionId, useBoundPress } from "./actions";
 
 /**
- * The pad/flight action button. Behaviour is the shared `useCommandButton`;
- * the chrome is local because each verb carries its own colour. Every button
- * carries a pending state, for idempotency and honesty alike.
+ * The pad/flight action button: a `CommandButton` whose tone carries the verb.
+ * A launch is the filled go control of its group, and a recover or revert is
+ * the quiet one that arms in the destructive tone.
  */
 export function ArmedButton({
   handle,
@@ -32,104 +26,20 @@ export function ArmedButton({
   /** The action that presses this control from a bound input. */
   bindAs?: LaunchDirectorActionId;
 }) {
-  const {
-    isArmed,
-    isPending,
-    isRefused,
-    isLost,
-    isBlocked,
-    isShowingReason,
-    refusalText,
-    hasUnconfirmed,
-    hasFailure,
-    press,
-  } = useCommandButton({ handle, args, commandLabel });
-  useBindPress(bindAs, press, !isPending);
-
-  if (isPending) {
-    const wording = pendingLabel ?? "Working...";
-    return (
-      <ConfirmButton
-        type="button"
-        $kind={kind}
-        disabled
-        aria-busy="true"
-        aria-label={wording}
-        title={wording}
-      >
-        <InFlightFace holds={confirmLabel} label={wording} />
-      </ConfirmButton>
-    );
-  }
-  if (isRefused) {
-    return (
-      <ConfirmButton
-        type="button"
-        $kind={kind}
-        onClick={() => press(true)}
-        title={refusalText ?? undefined}
-        aria-label={refusalText ?? undefined}
-        data-launch-action={`refused-${kind}`}
-      >
-        Refused
-      </ConfirmButton>
-    );
-  }
-  if (isLost) {
-    // Not the resting render: a recover or revert nobody answered may already have happened.
-    const sentence = commandLossSentence({ label: commandLabel });
-    return (
-      <ConfirmButton
-        type="button"
-        $kind={kind}
-        onClick={() => press(true)}
-        title={sentence}
-        aria-label={sentence}
-        data-launch-action={`lost-${kind}`}
-      >
-        No reply
-      </ConfirmButton>
-    );
-  }
-  if (isBlocked) {
-    // aria-disabled, not disabled, so a press can show the command's own reason.
-    return (
-      <ArmButton
-        type="button"
-        onClick={() => press(true)}
-        $kind={kind}
-        aria-disabled="true"
-        aria-label={refusalText ?? undefined}
-        title={refusalText ?? undefined}
-        data-gate="blocked"
-        data-launch-action={`blocked-${kind}`}
-      >
-        {isShowingReason ? refusalText : label}
-      </ArmButton>
-    );
-  }
-  if (isArmed) {
-    return (
-      <ConfirmButton
-        type="button"
-        onClick={() => press(true)}
-        $kind={kind}
-        data-launch-action={`confirm-${kind}`}
-      >
-        {confirmLabel}
-      </ConfirmButton>
-    );
-  }
+  const onPressReady = useBoundPress(bindAs);
   return (
-    <ArmButton
-      type="button"
-      onClick={() => press(true)}
-      $kind={kind}
-      data-unconfirmed={hasUnconfirmed ? "true" : undefined}
-      data-failed={hasFailure ? "true" : undefined}
+    <CommandButton
+      handle={handle}
+      args={args}
+      commandLabel={commandLabel}
+      label={label}
+      confirmLabel={confirmLabel}
+      pendingLabel={pendingLabel}
+      variant={kind === "launch" ? "primary" : "ghost"}
+      tone={kind === "launch" ? "go" : "neutral"}
+      confirmTone={kind === "launch" ? "go" : "nogo"}
+      onPressReady={onPressReady}
       data-launch-action={`arm-${kind}`}
-    >
-      {label}
-    </ArmButton>
+    />
   );
 }

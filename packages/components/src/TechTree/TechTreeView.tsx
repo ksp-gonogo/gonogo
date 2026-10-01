@@ -1,6 +1,12 @@
 import type { Value } from "@ksp-gonogo/sitrep-sdk";
 import type { CommandButtonHandle, UnitValue } from "@ksp-gonogo/ui-kit";
-import { Panel, SearchBox, Section, Unit } from "@ksp-gonogo/ui-kit";
+import {
+  FilterChip,
+  Panel,
+  SearchBox,
+  Section,
+  Unit,
+} from "@ksp-gonogo/ui-kit";
 import { useMemo, useState } from "react";
 import { DetailPanel } from "./DetailPanel";
 import {
@@ -14,7 +20,6 @@ import {
   Controls,
   Empty,
   FilterBar,
-  FilterBtn,
   GraphToolbar,
   Legend,
   LegendItem,
@@ -250,27 +255,21 @@ export function TechTreeView({
       panelToolbar={
         <Controls>
           <FilterBar role="group" aria-label="Filter tech nodes">
-            <FilterBtn
-              type="button"
-              $active={filter === "all"}
-              onClick={() => setFilter("all")}
-            >
-              All
-            </FilterBtn>
-            <FilterBtn
-              type="button"
-              $active={filter === "researchable"}
-              onClick={() => setFilter("researchable")}
-            >
-              Researchable
-            </FilterBtn>
-            <FilterBtn
-              type="button"
-              $active={filter === "unlocked"}
-              onClick={() => setFilter("unlocked")}
-            >
-              Unlocked
-            </FilterBtn>
+            <FilterChip
+              label="All"
+              selected={filter === "all"}
+              onToggle={() => setFilter("all")}
+            />
+            <FilterChip
+              label="Researchable"
+              selected={filter === "researchable"}
+              onToggle={() => setFilter("researchable")}
+            />
+            <FilterChip
+              label="Unlocked"
+              selected={filter === "unlocked"}
+              onToggle={() => setFilter("unlocked")}
+            />
           </FilterBar>
           <SearchBox
             placeholder="Filter by name or description..."

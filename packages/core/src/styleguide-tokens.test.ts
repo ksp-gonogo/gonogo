@@ -146,7 +146,6 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/components/src/MapView/MapPoiLayer.styles.tsx": 2,
     "packages/components/src/Navball/index.tsx": 1,
     "packages/components/src/StationConnectView/StationConnectView.styles.ts": 19,
-    "packages/components/src/Strategies/styles.ts": 1,
     "packages/components/src/Twr/index.tsx": 1,
     "packages/data/src/FlightsManager/index.tsx": 2,
     "packages/serial/src/SerialDevicesMenu/ProtocolReferenceModal.tsx": 1,
@@ -293,11 +292,9 @@ const BASELINES: Record<Family, Record<string, number>> = {
    */
   motion: {
     "packages/app/src/styles/global.css": 2,
-    "packages/components/src/LaunchDirector/styles.ts": 1,
     "packages/components/src/Navball/AttitudeIndicator.tsx": 2,
     "packages/components/src/Navball/ThrottleGauge.tsx": 2,
     "packages/components/src/ShipMap/ShipMapBody.tsx": 2,
-    "packages/components/src/SpaceCenterStatus/styles.ts": 1,
     "packages/serial/src/InputMappingTab.tsx": 1,
     "packages/serial/src/InputTester/index.tsx": 1,
     "packages/serial/src/SerialDevicesMenu/GamepadLearnWizard.tsx": 1,

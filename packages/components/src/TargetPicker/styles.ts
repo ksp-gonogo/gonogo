@@ -1,5 +1,5 @@
 import { ScrollArea, SearchBox } from "@ksp-gonogo/ui-kit";
-// biome-ignore lint/style/noRestrictedImports: hand-rolled section and space-object toggles carry bespoke :hover and :focus-visible states, and no kit primitive carries them
+// biome-ignore lint/style/noRestrictedImports: type and layout treatments not yet expressed in kit primitives
 import styled from "styled-components";
 
 /** Collapses when there is no encounter or apsis data. */
@@ -69,7 +69,7 @@ export const SuggestedHeading = styled.div`
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-text-muted);
-  /* Shared with SectionToggle, so the heading and the toggle start on one left edge. */
+  /* Shared with SectionHeading, so the heading and the toggle start on one left edge. */
   padding: var(--inset-list-heading);
 `;
 
@@ -79,30 +79,15 @@ export const SectionHeaderRow = styled.div`
   gap: var(--gap-related);
 `;
 
-export const SectionToggle = styled.button`
-  display: flex;
-  align-items: center;
-  gap: var(--gap-related);
+/** The collapsible section's heading, which shares `SuggestedHeading`'s type so the two start on one left edge. */
+export const SectionHeading = styled.div`
   flex: 1;
   min-width: 0;
-  background: none;
-  border: none;
-  /* Shared with SuggestedHeading. */
   padding: var(--inset-list-heading);
   font-size: var(--font-size-compact);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-text-muted);
-  cursor: pointer;
-  font-family: inherit;
-  text-align: left;
-  &:hover {
-    color: var(--color-text-primary);
-  }
-  &:focus-visible {
-    outline: 2px solid var(--color-accent-fg);
-    outline-offset: 2px;
-  }
 `;
 
 export const SectionChevron = styled.span<{ $expanded: boolean }>`
@@ -151,30 +136,6 @@ export const RowTag = styled.span`
   font-weight: 700;
   letter-spacing: 0.12em;
   color: var(--color-go-text);
-`;
-
-export const SpaceObjectToggle = styled.button`
-  margin-left: auto;
-  font-size: var(--font-size-compact);
-  padding: var(--inset-control-small);
-  border-radius: var(--radius-pill);
-  border: 1px solid var(--color-border-subtle);
-  background: transparent;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  letter-spacing: 0.04em;
-  font-family: inherit;
-  &[aria-pressed="true"] {
-    color: var(--color-info-text);
-    border-color: var(--color-info-mark);
-  }
-  &:hover {
-    filter: brightness(1.15);
-  }
-  &:focus-visible {
-    outline: 2px solid var(--color-accent-fg);
-    outline-offset: 2px;
-  }
 `;
 
 export const Hint = styled.div`

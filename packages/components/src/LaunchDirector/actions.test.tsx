@@ -283,7 +283,9 @@ describe("LaunchDirector actions", () => {
 
     await waitFor(() =>
       expect(
-        document.querySelector('[data-launch-action="refused-revert"]'),
+        document.querySelector(
+          '[data-launch-action="arm-revert"][data-command-phase="refused"]',
+        ),
       ).not.toBeNull(),
     );
     expect(sent("ksp.revertToLaunch")).toHaveLength(1);

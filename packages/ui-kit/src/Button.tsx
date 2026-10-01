@@ -136,6 +136,13 @@ const TEXT_LOOK = css`
   color: inherit;
   text-align: inherit;
   justify-content: flex-start;
+
+  /* No box to brighten, so the words underline under the pointer. */
+  @media (hover: hover) {
+    &:hover:not(:disabled) {
+      text-decoration: underline;
+    }
+  }
 `;
 
 /* Words keep their place under a coarse pointer: the touch target grows, but no inset pushes the text off its line. */

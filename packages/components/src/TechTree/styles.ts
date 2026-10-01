@@ -1,5 +1,5 @@
 import { faintText } from "@ksp-gonogo/ui-kit";
-// biome-ignore lint/style/noRestrictedImports: hand-rolled filter, node, graph-card and close buttons carry bespoke :hover and :focus-visible states, and no kit primitive carries them
+// biome-ignore lint/style/noRestrictedImports: the graph card is a positioned node with state-keyed colours and a type size fixed by the card height, and the rest is type and layout not yet expressed in kit primitives
 import styled from "styled-components";
 import {
   type DisplayState,
@@ -31,29 +31,6 @@ export const FilterBar = styled.div`
   flex-wrap: wrap;
 `;
 
-export const FilterBtn = styled.button<{ $active: boolean }>`
-  font-size: var(--font-size-compact);
-  letter-spacing: 0.06em;
-  padding: var(--inset-control);
-  border-radius: var(--radius-pill);
-  border: 1px solid
-    ${(p) => (p.$active ? "var(--color-accent-fg)" : "var(--color-border-subtle)")};
-  background: ${(p) => (p.$active ? "var(--color-go-status)" : "transparent")};
-  color: ${(p) =>
-    p.$active ? "var(--color-go-text)" : "var(--color-text-muted)"};
-  cursor: pointer;
-  font-family: inherit;
-
-  &:hover {
-    color: var(--color-text-primary);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--color-accent-fg);
-    outline-offset: 2px;
-  }
-`;
-
 export const NodeList = styled.ul`
   list-style: none;
   margin: 0;
@@ -74,30 +51,6 @@ export const NodeRowWrap = styled.li<{
     ${(p) => (p.$unaffordable ? "var(--color-text-faint)" : dsBorder(p.$display))};
   border-radius: var(--radius-regular);
   ${(p) => (p.$display === "locked" || p.$unaffordable ? faintText() : "")}
-`;
-
-export const NodeHeader = styled.button`
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: center;
-  gap: var(--gap-related);
-  /* A record rather than a control, so --inset-surface: it has no --control-height floor. */
-  padding: var(--inset-surface);
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  font-family: inherit;
-  text-align: left;
-
-  &:hover {
-    background: var(--color-surface-raised);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--color-accent-fg);
-    outline-offset: -2px;
-  }
 `;
 
 export const NodeTitle = styled.span`
@@ -459,27 +412,6 @@ export const DetailTitle = styled.span`
   display: inline-flex;
   align-items: baseline;
   gap: var(--gap-related);
-`;
-
-export const CloseBtn = styled.button`
-  background: transparent;
-  border: none;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  font-size: var(--font-size-base);
-  line-height: var(--line-height-flush);
-  padding: var(--inset-control);
-  border-radius: var(--radius-regular);
-  font-family: inherit;
-
-  &:hover {
-    color: var(--color-text-primary);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--color-accent-fg);
-    outline-offset: 2px;
-  }
 `;
 
 export const DetailMeta = styled.div`

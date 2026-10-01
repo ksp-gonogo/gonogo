@@ -1,5 +1,5 @@
 import type { Reading, TargetListEntry, Value } from "@ksp-gonogo/sitrep-sdk";
-import type { CommandButtonHandle } from "@ksp-gonogo/ui-kit";
+import { Button, type CommandButtonHandle } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import { ArmedButton } from "./ArmedButton";
 import { Altitude, formatMissionTime } from "./flightFigures";
@@ -11,7 +11,6 @@ import {
   PadActions,
   StatLabel,
   StatValue,
-  TrackingStationButton,
 } from "./styles";
 import { TrackingStationControl } from "./TrackingStationControl";
 import { VesselSwitchList } from "./VesselSwitchList";
@@ -96,8 +95,9 @@ export function InFlightPanel({
           commandLabel="Go to Space Center"
           bindAs="spaceCenter"
         />
-        <TrackingStationButton
+        <Button
           type="button"
+          variant="ghost"
           disabled={totalAvailable === 0}
           aria-expanded={switchOpen}
           aria-haspopup="listbox"
@@ -109,7 +109,7 @@ export function InFlightPanel({
           }
         >
           Switch to vessel ▾
-        </TrackingStationButton>
+        </Button>
       </PadActions>
       {switchOpen && availableVessels && totalAvailable > 0 && (
         <VesselSwitchList

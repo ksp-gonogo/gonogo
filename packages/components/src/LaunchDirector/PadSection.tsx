@@ -1,6 +1,6 @@
 import { AugmentSlot } from "@ksp-gonogo/core";
 import type { VesselRosterEntry } from "@ksp-gonogo/sitrep-sdk";
-import type { CommandButtonHandle } from "@ksp-gonogo/ui-kit";
+import { type CommandButtonHandle, SelectableRow } from "@ksp-gonogo/ui-kit";
 import { ArmedButton } from "./ArmedButton";
 import { CrewPicker } from "./CrewPicker";
 import { type CrewMember, crewReading } from "./crew";
@@ -28,7 +28,6 @@ import {
   PadMeta,
   PadName,
   PadOccupancy,
-  PadRowButton,
   SectionLabel,
 } from "./styles";
 
@@ -92,11 +91,12 @@ export function PadSection(props: PadSectionProps) {
             const bodyName = padBodyName(site, awayBodies);
             return (
               <PadCard key={site.name}>
-                <PadRowButton
-                  type="button"
+                <SelectableRow
+                  layout="split"
+                  gap="related"
+                  selectedLook="outline"
                   data-pad-row
-                  $selected={expanded}
-                  aria-pressed={expanded}
+                  selected={expanded}
                   onClick={() => onPickPad(site.name)}
                 >
                   <PadMeta>
@@ -109,7 +109,7 @@ export function PadSection(props: PadSectionProps) {
                   <PadOccupancy $occupied={site.occupied}>
                     {occupancyText(site)}
                   </PadOccupancy>
-                </PadRowButton>
+                </SelectableRow>
                 <PadAside>
                   <AugmentSlot
                     name="launch-director.pad"

@@ -4,6 +4,7 @@ import {
   type CommandButtonHandle,
   ExpandableText,
   NULL_DISPLAY,
+  Row,
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import type { DisplayState } from "./graph-layout";
@@ -11,7 +12,6 @@ import {
   Cost,
   Description,
   NodeBody,
-  NodeHeader,
   NodeId,
   NodeMeta,
   NodeRowWrap,
@@ -81,8 +81,11 @@ export function NodeRow({
 
   return (
     <NodeRowWrap $display={display} $unaffordable={unaffordable}>
-      <NodeHeader
+      <Row
+        as="button"
         type="button"
+        interactive
+        wrap
         onClick={onToggleExpand}
         aria-expanded={expanded}
       >
@@ -104,7 +107,7 @@ export function NodeRow({
           )}
           <StateBadge $tone={stateBadgeTone}>{badgeLabel}</StateBadge>
         </NodeMeta>
-      </NodeHeader>
+      </Row>
       {expanded && (
         <NodeBody>
           {node.description && (

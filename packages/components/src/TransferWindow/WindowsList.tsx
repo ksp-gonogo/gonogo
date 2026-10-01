@@ -1,5 +1,5 @@
 import { value } from "@ksp-gonogo/sitrep-sdk";
-import { Button, Unit } from "@ksp-gonogo/ui-kit";
+import { Button, SelectableRow, Unit } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import { type HeldSince, heldFigure } from "../shared/heldFigure";
 import { fmtCountdown, fmtDays } from "./labels";
@@ -15,7 +15,6 @@ import {
   ListItem,
   ListWrap,
   SectionHead,
-  WindowRow,
 } from "./styles";
 import type { TransferWindowEntry } from "./transferData";
 
@@ -44,9 +43,11 @@ export function WindowsList({
           const isSel = w.index === selectedIndex;
           return (
             <ListItem key={w.index}>
-              <WindowRow
-                type="button"
-                $selected={isSel}
+              <SelectableRow
+                layout="split"
+                gap="section"
+                selected={isSel}
+                selectedLook="outline"
                 aria-expanded={isSel}
                 onClick={() => onSelect(w.index)}
               >
@@ -55,7 +56,7 @@ export function WindowsList({
                   <Unit value={value("m/s", w.deltaV)} />
                 </ColDv>
                 <ColTof>{fmtDays(w.transferTimeSec)}</ColTof>
-              </WindowRow>
+              </SelectableRow>
               {isSel && (
                 <Expander>
                   <ExpRow>

@@ -91,7 +91,7 @@ describe("colour tokens at their call sites in components and ui", () => {
   const untraced = (u: string) => u.replace(/:\d+ /, " ");
 
   it("traces every colour token to what it paints", () => {
-    expect(uses).toBeGreaterThan(1500);
+    expect(uses).toBeGreaterThan(1400);
     expect(unplaced.filter((u) => !UNTRACED[untraced(u)])).toEqual([]);
   });
 

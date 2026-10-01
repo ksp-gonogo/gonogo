@@ -5,10 +5,12 @@ import {
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
+  Button,
   CommandButton,
   type CommandButtonHandle,
   ExpandableText,
   Notice,
+  Slider,
   Unit,
   writeQuantity,
 } from "@ksp-gonogo/ui-kit";
@@ -21,11 +23,9 @@ import {
   Description,
   EffectLine,
   EffectList,
-  ExpandToggle,
   FactorLabel,
   FactorRow,
   FactorValue,
-  Slider,
   StrategyCard,
 } from "./styles";
 import type { Strategy } from "./types";
@@ -107,13 +107,14 @@ export function AvailableRow({
   return (
     <StrategyCard
       title={
-        <ExpandToggle
+        <Button
           type="button"
+          variant="text"
           onClick={onToggleExpanded}
           aria-expanded={expanded}
         >
           {s.title}
-        </ExpandToggle>
+        </Button>
       }
       titleRight={
         showDepartment ? <CardDept>{s.departmentName}</CardDept> : undefined
@@ -187,7 +188,6 @@ export function AvailableRow({
         <FactorRow>
           <FactorLabel>Factor</FactorLabel>
           <Slider
-            type="range"
             min={s.factorSliderDefault}
             max={1}
             step={
