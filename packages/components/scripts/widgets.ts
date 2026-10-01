@@ -654,6 +654,21 @@ const WIDGETS: WidgetRenderConfig[] = [
          */
         forFixtures: ["in-flight-ascent", "pad-occupied", "post-revert-crash"],
       },
+      // The Tracking Station's two exits: arm the Space Center confirm, and open the fly list.
+      {
+        name: "armed-space-center-7x10",
+        w: 7,
+        h: 10,
+        clicks: [{ selector: 'button[title^="Space Center: saves"]' }],
+        forFixtures: ["in-tracking-station"],
+      },
+      {
+        name: "fly-list-7x10",
+        w: 7,
+        h: 10,
+        clicks: [{ selector: 'button[title^="Saves the game, then flies"]' }],
+        forFixtures: ["in-tracking-station"],
+      },
       {
         name: "armed-revert-7x10",
         w: 7,

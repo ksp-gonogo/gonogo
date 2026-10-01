@@ -160,6 +160,7 @@ describe("LaunchDirector actions", () => {
       "revertToLaunch",
       "revertToEditor",
       "trackingStation",
+      "spaceCenter",
     ]);
   });
 
@@ -319,6 +320,20 @@ describe("LaunchDirector actions", () => {
       expect(sent("ksp.toTrackingStation")[0]).toMatchObject({
         vantage: "meta",
       }),
+    );
+  });
+
+  it("spaceCenter arms the confirm, then saves and leaves for the Space Center", async () => {
+    renderWidget();
+    emitFlight({ name: "Probe" });
+    await screen.findByText("Space Center");
+
+    press("spaceCenter");
+    expect(sent("ksp.toSpaceCenter")).toEqual([]);
+
+    press("spaceCenter");
+    await waitFor(() =>
+      expect(sent("ksp.toSpaceCenter")[0]).toMatchObject({ vantage: "meta" }),
     );
   });
 

@@ -1,10 +1,10 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 27.2.0
+  version: 27.3.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 78 telemetry
-    channels a client subscribes to, and 57 commands it dispatches, with the payload
+    channels a client subscribes to, and 59 commands it dispatches, with the payload
     schema and the contract's own prose for each.
 
     **Generated.** Emitted by `scripts/asyncapi-doc.mjs` from the committed
@@ -176,7 +176,7 @@ info:
     - name: isru
       description: 2 telemetry channels, 0 commands
     - name: ksp
-      description: 1 telemetry channel, 6 commands
+      description: 1 telemetry channel, 8 commands
     - name: parts
       description: 1 telemetry channel, 0 commands
     - name: recovery
@@ -1423,6 +1423,27 @@ channels:
         $ref: "#/components/messages/streamData.isru.drills"
       event:
         $ref: "#/components/messages/event"
+  ksp.flyVessel:
+    address: ksp.flyVessel
+    description: |-
+      Takes `FlyVesselArgs`.
+
+      **Not delayed.** This command takes effect immediately, because it is ground-side bookkeeping rather than a signal to a craft.
+
+      `ksp.flyVessel`'s args: the Tracking Station's Fly button. The STABLE opaque
+      vessel id (`vessel.id.ToString()`, as `system.vessels` carries it), resolved
+      server-side. An empty id fails with `CommandErrorCode.NotFound` before the
+      game is ever touched. Refused with `CommandErrorCode.WrongScene` outside the
+      Tracking Station, and with `CommandErrorCode.NotClearToProceed` for a vessel
+      that is not tracked as ours.
+    servers:
+      - $ref: "#/servers/mod"
+    x-sitrep-delayed: false
+    messages:
+      commandRequest:
+        $ref: "#/components/messages/commandRequest.ksp.flyVessel"
+      commandResponse:
+        $ref: "#/components/messages/commandResponse.ksp.flyVessel"
   ksp.launch:
     address: ksp.launch
     description: |-
@@ -1457,10 +1478,10 @@ channels:
 
       The empty args shape, for the core commands that operate on the current
       flight or the active vessel and so take nothing: `vessel.control.stage`,
-      `vessel.target.clear`, `ksp.recover`, `ksp.revertToLaunch` and
-      `ksp.toTrackingStation`.
+      `vessel.target.clear`, `ksp.recover`, `ksp.revertToLaunch`,
+      `ksp.toTrackingStation` and `ksp.toSpaceCenter`.
 
-      **Send no `args` at all for these five.** The SDK's `send()` takes no second
+      **Send no `args` at all for these six.** The SDK's `send()` takes no second
       argument for a command typed this way, and anything you do put on the wire
       is read and discarded. Every other command requires its args.
     servers:
@@ -1524,9 +1545,9 @@ channels:
       case-insensitive) rather than the KSP `EditorFacility` enum; an unrecognised
       value fails with `CommandErrorCode.Range` before the game is ever touched.
 
-      `ksp.revertToLaunch`, `ksp.toTrackingStation` and `ksp.recover` take no args
-      (they operate on the current flight / active vessel), so they have no arg
-      type here.
+      `ksp.revertToLaunch`, `ksp.toTrackingStation`, `ksp.toSpaceCenter` and
+      `ksp.recover` take no args (they operate on the current flight / active
+      vessel), so they have no arg type here.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delayed: false
@@ -1544,10 +1565,10 @@ channels:
 
       The empty args shape, for the core commands that operate on the current
       flight or the active vessel and so take nothing: `vessel.control.stage`,
-      `vessel.target.clear`, `ksp.recover`, `ksp.revertToLaunch` and
-      `ksp.toTrackingStation`.
+      `vessel.target.clear`, `ksp.recover`, `ksp.revertToLaunch`,
+      `ksp.toTrackingStation` and `ksp.toSpaceCenter`.
 
-      **Send no `args` at all for these five.** The SDK's `send()` takes no second
+      **Send no `args` at all for these six.** The SDK's `send()` takes no second
       argument for a command typed this way, and anything you do put on the wire
       is read and discarded. Every other command requires its args.
     servers:
@@ -1578,6 +1599,29 @@ channels:
         $ref: "#/components/messages/commandRequest.ksp.switchVessel"
       commandResponse:
         $ref: "#/components/messages/commandResponse.ksp.switchVessel"
+  ksp.toSpaceCenter:
+    address: ksp.toSpaceCenter
+    description: |-
+      Takes `NoCommandArgs`.
+
+      **Not delayed.** This command takes effect immediately, because it is ground-side bookkeeping rather than a signal to a craft.
+
+      The empty args shape, for the core commands that operate on the current
+      flight or the active vessel and so take nothing: `vessel.control.stage`,
+      `vessel.target.clear`, `ksp.recover`, `ksp.revertToLaunch`,
+      `ksp.toTrackingStation` and `ksp.toSpaceCenter`.
+
+      **Send no `args` at all for these six.** The SDK's `send()` takes no second
+      argument for a command typed this way, and anything you do put on the wire
+      is read and discarded. Every other command requires its args.
+    servers:
+      - $ref: "#/servers/mod"
+    x-sitrep-delayed: false
+    messages:
+      commandRequest:
+        $ref: "#/components/messages/commandRequest.ksp.toSpaceCenter"
+      commandResponse:
+        $ref: "#/components/messages/commandResponse.ksp.toSpaceCenter"
   ksp.toTrackingStation:
     address: ksp.toTrackingStation
     description: |-
@@ -1587,10 +1631,10 @@ channels:
 
       The empty args shape, for the core commands that operate on the current
       flight or the active vessel and so take nothing: `vessel.control.stage`,
-      `vessel.target.clear`, `ksp.recover`, `ksp.revertToLaunch` and
-      `ksp.toTrackingStation`.
+      `vessel.target.clear`, `ksp.recover`, `ksp.revertToLaunch`,
+      `ksp.toTrackingStation` and `ksp.toSpaceCenter`.
 
-      **Send no `args` at all for these five.** The SDK's `send()` takes no second
+      **Send no `args` at all for these six.** The SDK's `send()` takes no second
       argument for a command typed this way, and anything you do put on the wire
       is read and discarded. Every other command requires its args.
     servers:
@@ -2979,10 +3023,10 @@ channels:
 
       The empty args shape, for the core commands that operate on the current
       flight or the active vessel and so take nothing: `vessel.control.stage`,
-      `vessel.target.clear`, `ksp.recover`, `ksp.revertToLaunch` and
-      `ksp.toTrackingStation`.
+      `vessel.target.clear`, `ksp.recover`, `ksp.revertToLaunch`,
+      `ksp.toTrackingStation` and `ksp.toSpaceCenter`.
 
-      **Send no `args` at all for these five.** The SDK's `send()` takes no second
+      **Send no `args` at all for these six.** The SDK's `send()` takes no second
       argument for a command typed this way, and anything you do put on the wire
       is read and discarded. Every other command requires its args.
     servers:
@@ -3508,10 +3552,10 @@ channels:
 
       The empty args shape, for the core commands that operate on the current
       flight or the active vessel and so take nothing: `vessel.control.stage`,
-      `vessel.target.clear`, `ksp.recover`, `ksp.revertToLaunch` and
-      `ksp.toTrackingStation`.
+      `vessel.target.clear`, `ksp.recover`, `ksp.revertToLaunch`,
+      `ksp.toTrackingStation` and `ksp.toSpaceCenter`.
 
-      **Send no `args` at all for these five.** The SDK's `send()` takes no second
+      **Send no `args` at all for these six.** The SDK's `send()` takes no second
       argument for a command typed this way, and anything you do put on the wire
       is read and discarded. Every other command requires its args.
     servers:
@@ -3794,6 +3838,20 @@ operations:
         $ref: "#/channels/commcast.radio.transmit"
       messages:
         - $ref: "#/channels/commcast.radio.transmit/messages/commandResponse"
+  dispatch:ksp.flyVessel:
+    action: send
+    channel:
+      $ref: "#/channels/ksp.flyVessel"
+    title: Dispatch ksp.flyVessel
+    tags:
+      - name: ksp
+    messages:
+      - $ref: "#/channels/ksp.flyVessel/messages/commandRequest"
+    reply:
+      channel:
+        $ref: "#/channels/ksp.flyVessel"
+      messages:
+        - $ref: "#/channels/ksp.flyVessel/messages/commandResponse"
   dispatch:ksp.launch:
     action: send
     channel:
@@ -3864,6 +3922,20 @@ operations:
         $ref: "#/channels/ksp.switchVessel"
       messages:
         - $ref: "#/channels/ksp.switchVessel/messages/commandResponse"
+  dispatch:ksp.toSpaceCenter:
+    action: send
+    channel:
+      $ref: "#/channels/ksp.toSpaceCenter"
+    title: Dispatch ksp.toSpaceCenter
+    tags:
+      - name: ksp
+    messages:
+      - $ref: "#/channels/ksp.toSpaceCenter/messages/commandRequest"
+    reply:
+      channel:
+        $ref: "#/channels/ksp.toSpaceCenter"
+      messages:
+        - $ref: "#/channels/ksp.toSpaceCenter/messages/commandResponse"
   dispatch:ksp.toTrackingStation:
     action: send
     channel:
@@ -5493,6 +5565,21 @@ components:
                 const: commcast.radio.transmit
               args:
                 $ref: "#/components/schemas/CommcastRadioTransmitArgs"
+    commandRequest.ksp.flyVessel:
+      name: command-request
+      title: Dispatch ksp.flyVessel
+      contentType: application/json
+      correlationId:
+        $ref: "#/components/correlationIds/requestId"
+      payload:
+        description: The `command-request` envelope for `ksp.flyVessel`, with its typed `args`.
+        allOf:
+          - $ref: "#/components/schemas/CommandRequest"
+          - properties:
+              command:
+                const: ksp.flyVessel
+              args:
+                $ref: "#/components/schemas/FlyVesselArgs"
     commandRequest.ksp.launch:
       name: command-request
       title: Dispatch ksp.launch
@@ -5568,6 +5655,21 @@ components:
                 const: ksp.switchVessel
               args:
                 $ref: "#/components/schemas/SwitchVesselArgs"
+    commandRequest.ksp.toSpaceCenter:
+      name: command-request
+      title: Dispatch ksp.toSpaceCenter
+      contentType: application/json
+      correlationId:
+        $ref: "#/components/correlationIds/requestId"
+      payload:
+        description: The `command-request` envelope for `ksp.toSpaceCenter`, with its typed `args`.
+        allOf:
+          - $ref: "#/components/schemas/CommandRequest"
+          - properties:
+              command:
+                const: ksp.toSpaceCenter
+              args:
+                $ref: "#/components/schemas/NoCommandArgs"
     commandRequest.ksp.toTrackingStation:
       name: command-request
       title: Dispatch ksp.toTrackingStation
@@ -6316,6 +6418,19 @@ components:
           - properties:
               result:
                 $ref: "#/components/schemas/CommandResult"
+    commandResponse.ksp.flyVessel:
+      name: command-response
+      title: Reply to ksp.flyVessel
+      contentType: application/json
+      correlationId:
+        $ref: "#/components/correlationIds/requestId"
+      payload:
+        description: The `command-response` envelope for `ksp.flyVessel`, with its typed `result`.
+        allOf:
+          - $ref: "#/components/schemas/CommandResponse"
+          - properties:
+              result:
+                $ref: "#/components/schemas/CommandResult"
     commandResponse.ksp.launch:
       name: command-response
       title: Reply to ksp.launch
@@ -6376,6 +6491,19 @@ components:
         $ref: "#/components/correlationIds/requestId"
       payload:
         description: The `command-response` envelope for `ksp.switchVessel`, with its typed `result`.
+        allOf:
+          - $ref: "#/components/schemas/CommandResponse"
+          - properties:
+              result:
+                $ref: "#/components/schemas/CommandResult"
+    commandResponse.ksp.toSpaceCenter:
+      name: command-response
+      title: Reply to ksp.toSpaceCenter
+      contentType: application/json
+      correlationId:
+        $ref: "#/components/correlationIds/requestId"
+      payload:
+        description: The `command-response` envelope for `ksp.toSpaceCenter`, with its typed `result`.
         allOf:
           - $ref: "#/components/schemas/CommandResponse"
           - properties:
@@ -13143,6 +13271,24 @@ components:
           type: number
           x-sitrep-unit: ut
           description: Universal time of the switch.
+    FlyVesselArgs:
+      type: object
+      description: |-
+        `ksp.flyVessel`'s args: the Tracking Station's Fly button. The STABLE opaque
+        vessel id (`vessel.id.ToString()`, as `system.vessels` carries it), resolved
+        server-side. An empty id fails with `CommandErrorCode.NotFound` before the
+        game is ever touched. Refused with `CommandErrorCode.WrongScene` outside the
+        Tracking Station, and with `CommandErrorCode.NotClearToProceed` for a vessel
+        that is not tracked as ours.
+      required:
+        - vesselId
+      properties:
+        vesselId:
+          type: string
+          x-sitrep-unit: id
+          description: |-
+            The vessel to fly: KSP's `Vessel.id` guid as a string, as `system.vessels`
+            carries it.
     FuelCellEntry:
       type: object
       description: |-
@@ -14455,10 +14601,10 @@ components:
       description: |-
         The empty args shape, for the core commands that operate on the current
         flight or the active vessel and so take nothing: `vessel.control.stage`,
-        `vessel.target.clear`, `ksp.recover`, `ksp.revertToLaunch` and
-        `ksp.toTrackingStation`.
+        `vessel.target.clear`, `ksp.recover`, `ksp.revertToLaunch`,
+        `ksp.toTrackingStation` and `ksp.toSpaceCenter`.
 
-        **Send no `args` at all for these five.** The SDK's `send()` takes no second
+        **Send no `args` at all for these six.** The SDK's `send()` takes no second
         argument for a command typed this way, and anything you do put on the wire
         is read and discarded. Every other command requires its args.
       properties: {}
@@ -15476,9 +15622,9 @@ components:
         case-insensitive) rather than the KSP `EditorFacility` enum; an unrecognised
         value fails with `CommandErrorCode.Range` before the game is ever touched.
 
-        `ksp.revertToLaunch`, `ksp.toTrackingStation` and `ksp.recover` take no args
-        (they operate on the current flight / active vessel), so they have no arg
-        type here.
+        `ksp.revertToLaunch`, `ksp.toTrackingStation`, `ksp.toSpaceCenter` and
+        `ksp.recover` take no args (they operate on the current flight / active
+        vessel), so they have no arg type here.
       required:
         - editor
       properties:

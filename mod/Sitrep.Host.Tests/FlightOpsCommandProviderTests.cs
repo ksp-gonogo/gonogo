@@ -84,6 +84,51 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void HandleToSpaceCenterCallsTheActuatorExactlyOnce()
+        {
+            var actuator = new FakeFlightOpsActuator();
+
+            var result = FlightOpsCommandProvider.HandleToSpaceCenter(actuator, null);
+
+            Assert.Equal(1, actuator.ToSpaceCenterCallCount);
+            Assert.True(result.Success);
+        }
+
+        [Fact]
+        public void HandleToSpaceCenterSurfacesTheActuatorsWrongSceneError()
+        {
+            var actuator = new FakeFlightOpsActuator { ToSpaceCenterResult = CommandResult.Fail(CommandErrorCode.WrongScene) };
+
+            var result = FlightOpsCommandProvider.HandleToSpaceCenter(actuator, null);
+
+            Assert.False(result.Success);
+            Assert.Equal(CommandErrorCode.WrongScene, result.ErrorCode);
+        }
+
+        [Fact]
+        public void HandleFlyVesselPassesTheVesselIdThrough()
+        {
+            var actuator = new FakeFlightOpsActuator();
+
+            var result = FlightOpsCommandProvider.HandleFlyVessel(actuator, new FlyVesselArgs { VesselId = "guid-7" });
+
+            Assert.Equal("guid-7", actuator.LastFlyVesselId);
+            Assert.True(result.Success);
+        }
+
+        [Fact]
+        public void HandleFlyVesselRejectsAnEmptyIdBeforeEverCallingTheActuator()
+        {
+            var actuator = new FakeFlightOpsActuator();
+
+            var result = FlightOpsCommandProvider.HandleFlyVessel(actuator, new FlyVesselArgs { VesselId = "" });
+
+            Assert.False(result.Success);
+            Assert.Equal(CommandErrorCode.NotFound, result.ErrorCode);
+            Assert.Null(actuator.LastFlyVesselId);
+        }
+
+        [Fact]
         public void HandleSwitchVesselPassesTheVesselIdThrough()
         {
             var actuator = new FakeFlightOpsActuator();

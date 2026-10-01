@@ -632,6 +632,9 @@
       "vesselId": "id",
       "vesselName": "text"
     },
+    "FlyVesselArgs": {
+      "vesselId": "id"
+    },
     "FuelCellEntry": {
       "active": "flag",
       "partId": "id",

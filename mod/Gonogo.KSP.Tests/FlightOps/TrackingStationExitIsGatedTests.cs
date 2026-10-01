@@ -97,5 +97,61 @@ namespace Gonogo.KSP.Tests.FlightOps
             Assert.Contains("SaveMode.BACKUP", body);
             Assert.DoesNotContain("SaveMode.OVERWRITE", body);
         }
+
+        private static string Body(string signature) =>
+            CurrencyDelaySourceText.MethodBody(
+                CurrencyDelaySourceText.ReadRelative("KspFlightOpsActuator.cs"), signature);
+
+        /// <summary>
+        /// <c>ksp.toSpaceCenter</c> and <c>ksp.flyVessel</c> leave through the
+        /// same rule, via the one helper that holds the single save, so neither
+        /// can reach a scene load or a save of its own.
+        /// </summary>
+        [Fact]
+        public void TheOtherSceneMovesLeaveThroughTheSameRule()
+        {
+            foreach (var signature in new[] { "public CommandResult ToSpaceCenter()", "public CommandResult FlyVessel(string vesselId)" })
+            {
+                var body = Body(signature);
+
+                Assert.Contains("SaveThenLeaveTo(", body);
+                Assert.DoesNotContain("GamePersistence.SaveGame", body);
+                Assert.DoesNotContain("SaveMode.OVERWRITE", body);
+            }
+
+            var helper = Body("private static CommandResult SaveThenLeaveTo(string? destinationRefusal, Action leave)");
+            Assert.Contains("SceneExitRule.SaveThenLeave", helper);
+            Assert.Contains("SaveMode.BACKUP", helper);
+            Assert.DoesNotContain("SaveMode.OVERWRITE", helper);
+            Assert.Contains("NotClearToLeaveFlight()", helper);
+            Assert.Equal(0, Occurrences(helper, "HighLogic.LoadScene"));
+        }
+
+        [Fact]
+        public void ToSpaceCenterIsRefusedOutsideFlightAndTheTrackingStation()
+        {
+            var body = Body("public CommandResult ToSpaceCenter()");
+
+            Assert.Contains("GameScenes.FLIGHT", body);
+            Assert.Contains("GameScenes.TRACKSTATION", body);
+            Assert.Contains("CommandErrorCode.WrongScene", body);
+            Assert.Contains("Flight.CanLeaveToSpaceCenter", body);
+            Assert.Contains("TrackingStation.CanLeaveToSpaceCenter", body);
+            Assert.Equal(1, Occurrences(body, "HighLogic.LoadScene"));
+            Assert.Contains("HighLogic.LoadScene(GameScenes.SPACECENTER)", body);
+        }
+
+        [Fact]
+        public void FlyVesselRefusesWhatStockRefusesAndLoadsTheSavedIndex()
+        {
+            var body = Body("public CommandResult FlyVessel(string vesselId)");
+
+            Assert.Contains("HighLogic.LoadedScene != GameScenes.TRACKSTATION", body);
+            Assert.Contains("DiscoveryLevels.Owned", body);
+            Assert.Contains("CanFlyVessel", body);
+            Assert.Contains("MISSION_BUILDER", body);
+            // The index is read inside the leave closure, after the save has written the file it indexes.
+            Assert.Contains("() => FlightDriver.StartAndFocusVessel(\"persistent\", FlightGlobals.Vessels.IndexOf(found))", body);
+        }
     }
 }

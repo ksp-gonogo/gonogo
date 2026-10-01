@@ -4,6 +4,7 @@ import { snapshotWidgetMode } from "../test/widgetDomSnapshot";
 import awaiting from "./__fixtures__/awaiting.json";
 import inFlightAscent from "./__fixtures__/in-flight-ascent.json";
 import inFlightCrash from "./__fixtures__/in-flight-crash.json";
+import inTrackingStation from "./__fixtures__/in-tracking-station.json";
 import padOccupied from "./__fixtures__/pad-occupied.json";
 import preLaunchInsufficient from "./__fixtures__/pre-launch-insufficient-funds.json";
 import preLaunchMixed from "./__fixtures__/pre-launch-mixed.json";
@@ -24,6 +25,7 @@ const FIXTURES: Record<string, Record<string, unknown>> = {
   "pad-occupied": padOccupied,
   "in-flight-ascent": inFlightAscent,
   "in-flight-crash": inFlightCrash,
+  "in-tracking-station": inTrackingStation,
 };
 
 const config = getWidget("launch-director");

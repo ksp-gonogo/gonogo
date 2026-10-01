@@ -113,6 +113,19 @@ namespace Gonogo.KSP.Gates
                 CareerGates.RevertAvailable(KspGateEvaluators.Quantities.RevertToEditor),
             };
 
+            // Leaving for the space centre, and flying from the Tracking
+            // Station, are scene moves: the scene is askable with no arguments,
+            // so the control is dark with the scene named rather than live and
+            // doomed. The permission flags and the save are the actuator's.
+            table[FlightOpsCommandProvider.ToSpaceCenterCommand] = new[]
+            {
+                CareerGates.Scene(GameScenes.FLIGHT, GameScenes.TRACKSTATION),
+            };
+            table[FlightOpsCommandProvider.FlyVesselCommand] = new[]
+            {
+                CareerGates.Scene(GameScenes.TRACKSTATION),
+            };
+
             // Recovery is destructive and KSP will not do it while the craft is
             // throttled up, on a ladder, or about to hit something.
             // ClearToSaveStatus names every arm it can refuse with and needs no

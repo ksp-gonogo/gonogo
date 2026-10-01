@@ -8,15 +8,16 @@ namespace Sitrep.Contract;
 /// The empty args shape, for the core commands that operate on the current
 /// flight or the active vessel and so take nothing:
 /// <c>vessel.control.stage</c>, <c>vessel.target.clear</c>, <c>ksp.recover</c>,
-/// <c>ksp.revertToLaunch</c> and <c>ksp.toTrackingStation</c>.
+/// <c>ksp.revertToLaunch</c>, <c>ksp.toTrackingStation</c> and
+/// <c>ksp.toSpaceCenter</c>.
 ///
-/// <para><b>Send no <c>args</c> at all for these five.</b> The SDK's
+/// <para><b>Send no <c>args</c> at all for these six.</b> The SDK's
 /// <c>send()</c> takes no second argument for a command typed this way, and
 /// anything you do put on the wire is read and discarded. Every other command
 /// requires its args.</para>
 ///
 /// <internal>
-/// <para>Each of the five is tagged onto this class with
+/// <para>Each of the six is tagged onto this class with
 /// <see cref="SitrepCommandAttribute"/>, so a command with no arguments is still
 /// enumerable and still names its result. The handlers bind <c>TArgs</c> as
 /// <c>object?</c> and ignore what arrives, so this type describes the ABSENCE
@@ -38,6 +39,7 @@ namespace Sitrep.Contract;
 [SitrepCommand("ksp.recover", Delay = DelayRole.TrueNow)]
 [SitrepCommand("ksp.revertToLaunch", Delay = DelayRole.TrueNow)]
 [SitrepCommand("ksp.toTrackingStation", Delay = DelayRole.TrueNow)]
+[SitrepCommand("ksp.toSpaceCenter", Delay = DelayRole.TrueNow)]
 public class NoCommandArgs
 {
 }

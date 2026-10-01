@@ -62,6 +62,8 @@ namespace Gonogo.KSP
                 Command(FlightOpsCommandProvider.RevertToLaunchCommand),
                 Command(FlightOpsCommandProvider.RevertToEditorCommand),
                 Command(FlightOpsCommandProvider.ToTrackingStationCommand),
+                Command(FlightOpsCommandProvider.ToSpaceCenterCommand),
+                Command(FlightOpsCommandProvider.FlyVesselCommand),
                 Command(FlightOpsCommandProvider.SwitchVesselCommand),
                 Command(FlightOpsCommandProvider.RecoverCommand),
                 Command(FlightOpsCommandProvider.LaunchCommand),
@@ -77,6 +79,8 @@ namespace Gonogo.KSP
             host.AddCommandHandler<object?, CommandResult>(FlightOpsCommandProvider.RevertToLaunchCommand, args => FlightOpsCommandProvider.HandleRevertToLaunch(_actuator, args));
             host.AddCommandHandler<RevertToEditorArgs, CommandResult>(FlightOpsCommandProvider.RevertToEditorCommand, args => FlightOpsCommandProvider.HandleRevertToEditor(_actuator, args));
             host.AddCommandHandler<object?, CommandResult>(FlightOpsCommandProvider.ToTrackingStationCommand, args => FlightOpsCommandProvider.HandleToTrackingStation(_actuator, args));
+            host.AddCommandHandler<object?, CommandResult>(FlightOpsCommandProvider.ToSpaceCenterCommand, args => FlightOpsCommandProvider.HandleToSpaceCenter(_actuator, args));
+            host.AddCommandHandler<FlyVesselArgs, CommandResult>(FlightOpsCommandProvider.FlyVesselCommand, args => FlightOpsCommandProvider.HandleFlyVessel(_actuator, args));
             host.AddCommandHandler<SwitchVesselArgs, CommandResult>(FlightOpsCommandProvider.SwitchVesselCommand, args => FlightOpsCommandProvider.HandleSwitchVessel(_actuator, args));
             host.AddCommandHandler<object?, CommandResult>(FlightOpsCommandProvider.RecoverCommand, args => FlightOpsCommandProvider.HandleRecover(_actuator, args));
             host.AddVantageCommandHandler<LaunchArgs, CommandResult>(FlightOpsCommandProvider.LaunchCommand, (args, vantage) => FlightOpsCommandProvider.HandleLaunch(_actuator, args, vantage));

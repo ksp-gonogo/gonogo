@@ -191,6 +191,133 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
+        /// Returns to the space centre from the flight scene or the Tracking
+        /// Station, the way stock's own buttons do:
+        /// <c>AltimeterSliderButtons.returnToSpaceCenter</c> saves and loads
+        /// <c>SPACECENTER</c> only when <c>ClearToSave()</c> is <c>CLEAR</c> and
+        /// <c>Parameters.Flight.CanLeaveToSpaceCenter</c> is set, and does
+        /// nothing otherwise; <c>SpaceTracking</c> gates its exit on
+        /// <c>Parameters.TrackingStation.CanLeaveToSpaceCenter</c>. Both go
+        /// through <see cref="SceneExitRule"/> rather than stock's
+        /// <c>SaveMode.OVERWRITE</c>, for the reason
+        /// <see cref="ToTrackingStation"/> gives, so an active flight is never
+        /// ended without a proven save and a refusal that names KSP's arm.
+        ///
+        /// <para>Refused with <see cref="CommandErrorCode.WrongScene"/> from any
+        /// other scene, the space centre itself included: there is nowhere to
+        /// go, and the editors hold an unsaved craft this command has no right
+        /// to discard.</para>
+        /// </summary>
+        public CommandResult ToSpaceCenter()
+        {
+            var scene = HighLogic.LoadedScene;
+            if (scene != GameScenes.FLIGHT && scene != GameScenes.TRACKSTATION)
+            {
+                return CommandResult.Fail(
+                    CommandErrorCode.WrongScene, $"the game is in the {GameWords.Phrase(scene)} scene");
+            }
+
+            var parameters = HighLogic.CurrentGame?.Parameters;
+            var permitted = scene == GameScenes.FLIGHT
+                ? parameters?.Flight == null || parameters.Flight.CanLeaveToSpaceCenter
+                : parameters?.TrackingStation == null || parameters.TrackingStation.CanLeaveToSpaceCenter;
+            var destinationRefusal = permitted ? null : "this game does not permit going to the space centre";
+
+            return SaveThenLeaveTo(destinationRefusal, () => HighLogic.LoadScene(GameScenes.SPACECENTER));
+        }
+
+        /// <summary>
+        /// The Tracking Station's own Fly button: <c>SpaceTracking.FlyVessel</c>
+        /// saves, then <c>FlightDriver.StartAndFocusVessel("persistent", index)</c>
+        /// with the vessel's index in <c>FlightGlobals.Vessels</c>. Refused
+        /// outside the Tracking Station (<see cref="CommandErrorCode.WrongScene"/>),
+        /// for a vessel that does not resolve (<see cref="CommandErrorCode.NotFound"/>),
+        /// for one that is not <c>DiscoveryLevels.Owned</c> (stock posts a screen
+        /// message and does nothing), and where
+        /// <c>Parameters.TrackingStation.CanFlyVessel</c> is off or the game is a
+        /// mission builder, the two cases stock hides or ignores the button.
+        ///
+        /// <para>The index is read after the save returns, so it is the one the
+        /// written file was ordered by, and the load goes through
+        /// <see cref="SceneExitRule"/> exactly as the scene exits do.</para>
+        /// </summary>
+        public CommandResult FlyVessel(string vesselId)
+        {
+            if (HighLogic.LoadedScene != GameScenes.TRACKSTATION)
+            {
+                return CommandResult.Fail(
+                    CommandErrorCode.WrongScene, $"the game is in the {GameWords.Phrase(HighLogic.LoadedScene)} scene");
+            }
+            if (FlightGlobals.fetch == null)
+            {
+                return CommandResult.Fail(CommandErrorCode.NoVessel);
+            }
+
+            Vessel? found = null;
+            foreach (var candidate in FlightGlobals.Vessels)
+            {
+                if (candidate != null && string.Equals(candidate.id.ToString(), vesselId, StringComparison.OrdinalIgnoreCase))
+                {
+                    found = candidate;
+                    break;
+                }
+            }
+            if (found == null)
+            {
+                return CommandResult.Fail(CommandErrorCode.NotFound);
+            }
+            if (found.DiscoveryInfo != null && found.DiscoveryInfo.Level != DiscoveryLevels.Owned)
+            {
+                return CommandResult.Fail(CommandErrorCode.NotClearToProceed, "the vessel is not tracked as ours");
+            }
+
+            var game = HighLogic.CurrentGame;
+            var destinationRefusal =
+                (game != null && game.Mode == Game.Modes.MISSION_BUILDER) ||
+                (game?.Parameters?.TrackingStation != null && !game.Parameters.TrackingStation.CanFlyVessel)
+                    ? "this game does not permit flying a vessel from the tracking station"
+                    : null;
+
+            return SaveThenLeaveTo(
+                destinationRefusal,
+                () => FlightDriver.StartAndFocusVessel("persistent", FlightGlobals.Vessels.IndexOf(found)));
+        }
+
+        /// <summary>
+        /// The save-then-leave shared by the commands that start from a scene
+        /// other than the flight scene's own checks: the game and save folder
+        /// the write needs, the arm <c>ClearToSave</c> names while a flight is up,
+        /// and <c>SaveMode.BACKUP</c>.
+        /// </summary>
+        private static CommandResult SaveThenLeaveTo(string? destinationRefusal, Action leave)
+        {
+            var saveFolder = HighLogic.SaveFolder;
+            if (HighLogic.CurrentGame == null || string.IsNullOrEmpty(saveFolder))
+            {
+                return CommandResult.Fail(
+                    CommandErrorCode.WrongScene, $"the game is in the {GameWords.Phrase(HighLogic.LoadedScene)} scene");
+            }
+
+            string? notClearToSave;
+            try
+            {
+                notClearToSave = NotClearToLeaveFlight();
+            }
+            catch (Exception ex)
+            {
+                return CommandResult.Fail(
+                    CommandErrorCode.NotClearToProceed,
+                    "could not ask whether the flight is clear to save: " + ex.Message);
+            }
+
+            return SceneExitRule.SaveThenLeave(
+                destinationRefusal,
+                notClearToSave,
+                () => GamePersistence.SaveGame("persistent", saveFolder, SaveMode.BACKUP),
+                leave);
+        }
+
+        /// <summary>
         /// Which <c>ClearToSaveStatus</c> arm refuses the write, in the game's
         /// own words, or null when the flight is clear or when there is no
         /// flight to judge.

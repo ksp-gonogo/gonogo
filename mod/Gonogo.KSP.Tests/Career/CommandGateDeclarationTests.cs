@@ -152,6 +152,8 @@ namespace Gonogo.KSP.Tests.Career
         public void AnUngatedCommandDeclaresNothing()
         {
             Assert.Empty(GateDeclarations.For("ksp.toTrackingStation"));
+            Assert.Single(GateDeclarations.For("ksp.toSpaceCenter"));
+            Assert.Single(GateDeclarations.For("ksp.flyVessel"));
             Assert.Empty(GateDeclarations.For("no.such.command"));
         }
     }

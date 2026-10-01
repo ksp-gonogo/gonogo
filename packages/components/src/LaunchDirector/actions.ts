@@ -42,6 +42,13 @@ export const launchDirectorActions = [
     description:
       "In flight: first press arms, second press saves the game and leaves for the Tracking Station.",
   },
+  {
+    id: "spaceCenter",
+    label: "Space Center",
+    accepts: ["button"],
+    description:
+      "In flight or the Tracking Station: first press arms, second press saves the game and leaves for the Space Center.",
+  },
 ] as const satisfies readonly ActionDefinition[];
 
 export type LaunchDirectorActions = typeof launchDirectorActions;

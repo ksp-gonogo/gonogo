@@ -26,6 +26,7 @@ export function InFlightPanel({
   revertLaunchCmd,
   revertEditorCmd,
   toTrackingCmd,
+  toSpaceCenterCmd,
   switchCmd,
 }: {
   missionTime: number | null;
@@ -38,6 +39,7 @@ export function InFlightPanel({
   revertLaunchCmd: CommandButtonHandle;
   revertEditorCmd: CommandButtonHandle;
   toTrackingCmd: CommandButtonHandle;
+  toSpaceCenterCmd: CommandButtonHandle;
   switchCmd: CommandButtonHandle;
 }) {
   const [switchOpen, setSwitchOpen] = useState(false);
@@ -88,6 +90,12 @@ export function InFlightPanel({
           pendingLabel="Reverting..."
         />
         <TrackingStationControl handle={toTrackingCmd} />
+        <TrackingStationControl
+          handle={toSpaceCenterCmd}
+          label="Space Center"
+          commandLabel="Go to Space Center"
+          bindAs="spaceCenter"
+        />
         <TrackingStationButton
           type="button"
           disabled={totalAvailable === 0}

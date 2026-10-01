@@ -26,6 +26,8 @@ namespace Sitrep.Host
         public const string RevertToLaunchCommand = "ksp.revertToLaunch";
         public const string RevertToEditorCommand = "ksp.revertToEditor";
         public const string ToTrackingStationCommand = "ksp.toTrackingStation";
+        public const string ToSpaceCenterCommand = "ksp.toSpaceCenter";
+        public const string FlyVesselCommand = "ksp.flyVessel";
         public const string SwitchVesselCommand = "ksp.switchVessel";
         public const string RecoverCommand = "ksp.recover";
         public const string LaunchCommand = "ksp.launch";
@@ -53,6 +55,24 @@ namespace Sitrep.Host
 
         public static CommandResult HandleToTrackingStation(IFlightOpsActuator actuator, object? _) =>
             actuator.ToTrackingStation();
+
+        public static CommandResult HandleToSpaceCenter(IFlightOpsActuator actuator, object? _) =>
+            actuator.ToSpaceCenter();
+
+        /// <summary>
+        /// An empty vessel id can never resolve, so it fails as
+        /// <see cref="CommandErrorCode.NotFound"/> here, as
+        /// <see cref="HandleSwitchVessel"/> does; the actuator owns the live
+        /// resolution and the scene.
+        /// </summary>
+        public static CommandResult HandleFlyVessel(IFlightOpsActuator actuator, FlyVesselArgs args)
+        {
+            if (args == null || string.IsNullOrEmpty(args.VesselId))
+            {
+                return CommandResult.Fail(CommandErrorCode.NotFound);
+            }
+            return actuator.FlyVessel(args.VesselId);
+        }
 
         /// <summary>
         /// A missing/empty vessel id can never resolve to a live vessel, so it

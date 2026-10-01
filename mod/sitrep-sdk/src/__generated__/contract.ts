@@ -3207,9 +3207,9 @@ export interface FlightVesselChanged
 * case-insensitive) rather than the KSP `EditorFacility` enum; an unrecognised
 * value fails with `CommandErrorCode.Range` before the game is ever touched.
 *
-* `ksp.revertToLaunch`, `ksp.toTrackingStation` and `ksp.recover` take no args
-* (they operate on the current flight / active vessel), so they have no arg
-* type here.
+* `ksp.revertToLaunch`, `ksp.toTrackingStation`, `ksp.toSpaceCenter` and
+* `ksp.recover` take no args (they operate on the current flight / active
+* vessel), so they have no arg type here.
 *
 * @category Command arguments
 */
@@ -3235,6 +3235,24 @@ export interface SwitchVesselArgs
 	/**
 	* The vessel to switch to: KSP's `Vessel.id` guid as a string, as
 	* `system.vessels` carries it.
+	*/
+	vesselId: string;
+}
+/**
+* `ksp.flyVessel`'s args: the Tracking Station's Fly button. The STABLE opaque
+* vessel id (`vessel.id.ToString()`, as `system.vessels` carries it), resolved
+* server-side. An empty id fails with `CommandErrorCode.NotFound` before the
+* game is ever touched. Refused with `CommandErrorCode.WrongScene` outside the
+* Tracking Station, and with `CommandErrorCode.NotClearToProceed` for a vessel
+* that is not tracked as ours.
+*
+* @category Command arguments
+*/
+export interface FlyVesselArgs
+{
+	/**
+	* The vessel to fly: KSP's `Vessel.id` guid as a string, as `system.vessels`
+	* carries it.
 	*/
 	vesselId: string;
 }
@@ -3967,10 +3985,10 @@ export interface WriteModSettingArgs
 /**
 * The empty args shape, for the core commands that operate on the current
 * flight or the active vessel and so take nothing: `vessel.control.stage`,
-* `vessel.target.clear`, `ksp.recover`, `ksp.revertToLaunch` and
-* `ksp.toTrackingStation`.
+* `vessel.target.clear`, `ksp.recover`, `ksp.revertToLaunch`,
+* `ksp.toTrackingStation` and `ksp.toSpaceCenter`.
 *
-* **Send no `args` at all for these five.** The SDK's `send()` takes no second
+* **Send no `args` at all for these six.** The SDK's `send()` takes no second
 * argument for a command typed this way, and anything you do put on the wire
 * is read and discarded. Every other command requires its args.
 *

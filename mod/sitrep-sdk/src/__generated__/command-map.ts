@@ -66,6 +66,7 @@ import type {
   DeactivateStrategyArgs,
   ExperimentActionArgs,
   FireCrewArgs,
+  FlyVesselArgs,
   HireApplicantArgs,
   InvokePartActionArgs,
   LaunchArgs,
@@ -114,11 +115,13 @@ export interface GeneratedCommandArgsMap {
   "commcast.message.ack": CommcastMessageAckArgs;
   "commcast.message.send": CommcastMessageSendArgs;
   "commcast.radio.transmit": CommcastRadioTransmitArgs;
+  "ksp.flyVessel": FlyVesselArgs;
   "ksp.launch": LaunchArgs;
   "ksp.recover": NoCommandArgs;
   "ksp.revertToEditor": RevertToEditorArgs;
   "ksp.revertToLaunch": NoCommandArgs;
   "ksp.switchVessel": SwitchVesselArgs;
+  "ksp.toSpaceCenter": NoCommandArgs;
   "ksp.toTrackingStation": NoCommandArgs;
   "robotics.rotor.reverse": RotorReverseArgs;
   "robotics.rotor.setBrake": RotorSetValueArgs;
@@ -174,11 +177,13 @@ export interface GeneratedCommandReplyMap {
   "commcast.message.ack": CommandResult;
   "commcast.message.send": CommandResult;
   "commcast.radio.transmit": CommandResult;
+  "ksp.flyVessel": CommandResult;
   "ksp.launch": CommandResult;
   "ksp.recover": CommandResult;
   "ksp.revertToEditor": CommandResult;
   "ksp.revertToLaunch": CommandResult;
   "ksp.switchVessel": CommandResult;
+  "ksp.toSpaceCenter": CommandResult;
   "ksp.toTrackingStation": CommandResult;
   "robotics.rotor.reverse": CommandResult;
   "robotics.rotor.setBrake": CommandResult;
@@ -244,11 +249,13 @@ export const GENERATED_COMMAND_REPLY_TYPES = {
   "commcast.message.ack": "CommandResult",
   "commcast.message.send": "CommandResult",
   "commcast.radio.transmit": "CommandResult",
+  "ksp.flyVessel": "CommandResult",
   "ksp.launch": "CommandResult",
   "ksp.recover": "CommandResult",
   "ksp.revertToEditor": "CommandResult",
   "ksp.revertToLaunch": "CommandResult",
   "ksp.switchVessel": "CommandResult",
+  "ksp.toSpaceCenter": "CommandResult",
   "ksp.toTrackingStation": "CommandResult",
   "robotics.rotor.reverse": "CommandResult",
   "robotics.rotor.setBrake": "CommandResult",
@@ -342,11 +349,13 @@ export const GENERATED_COMMAND_RAIL = {
   "commcast.message.ack": { replies: true, delayed: false },
   "commcast.message.send": { replies: true, delayed: false },
   "commcast.radio.transmit": { replies: true, delayed: false },
+  "ksp.flyVessel": { replies: true, delayed: false },
   "ksp.launch": { replies: true, delayed: false },
   "ksp.recover": { replies: true, delayed: false },
   "ksp.revertToEditor": { replies: true, delayed: false },
   "ksp.revertToLaunch": { replies: true, delayed: false },
   "ksp.switchVessel": { replies: true, delayed: false },
+  "ksp.toSpaceCenter": { replies: true, delayed: false },
   "ksp.toTrackingStation": { replies: true, delayed: false },
   "robotics.rotor.reverse": { replies: true, delayed: true },
   "robotics.rotor.setBrake": { replies: true, delayed: true },
@@ -402,11 +411,13 @@ export const GENERATED_COMMAND_IDS = [
   "commcast.message.ack",
   "commcast.message.send",
   "commcast.radio.transmit",
+  "ksp.flyVessel",
   "ksp.launch",
   "ksp.recover",
   "ksp.revertToEditor",
   "ksp.revertToLaunch",
   "ksp.switchVessel",
+  "ksp.toSpaceCenter",
   "ksp.toTrackingStation",
   "robotics.rotor.reverse",
   "robotics.rotor.setBrake",

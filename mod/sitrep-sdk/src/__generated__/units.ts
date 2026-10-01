@@ -672,6 +672,9 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     vesselId: "id",
     vesselName: "text",
   },
+  "FlyVesselArgs": {
+    vesselId: "id",
+  },
   "FuelCellEntry": {
     active: "flag",
     partId: "id",

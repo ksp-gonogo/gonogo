@@ -21,6 +21,10 @@ export function useLaunchCommands() {
   const toTrackingCmd = useCommand("ksp.toTrackingStation", {
     vantage: META_VANTAGE,
   });
+  const toSpaceCenterCmd = useCommand("ksp.toSpaceCenter", {
+    vantage: META_VANTAGE,
+  });
+  const flyCmd = useCommand("ksp.flyVessel", { vantage: META_VANTAGE });
   const switchCmd = useCommand("ksp.switchVessel", { vantage: META_VANTAGE });
 
   const boundPresses = useRef(new Map<LaunchDirectorActionId, Press>()).current;
@@ -36,6 +40,7 @@ export function useLaunchCommands() {
     revertToLaunch: pressBound("revertToLaunch"),
     revertToEditor: pressBound("revertToEditor"),
     trackingStation: pressBound("trackingStation"),
+    spaceCenter: pressBound("spaceCenter"),
   });
 
   return {
@@ -45,6 +50,8 @@ export function useLaunchCommands() {
     revertLaunchCmd,
     revertEditorCmd,
     toTrackingCmd,
+    toSpaceCenterCmd,
+    flyCmd,
     switchCmd,
   };
 }

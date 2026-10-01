@@ -2134,8 +2134,12 @@ namespace Sitrep.Contract
         /// <para><b>Major-27 line, Bumped 1 -&gt; 2:</b> <see cref="VesselControl.SasAvailable"/>
         /// and <see cref="VesselControl.SasUnavailableReason"/>, whether SAS can be turned
         /// on and why not. Additive, so an Uplink built against 27.1 is unaffected.</para>
+        ///
+        /// <para><b>Major-27 line, Bumped 2 -&gt; 3:</b> <c>ksp.toSpaceCenter</c> (no args)
+        /// and <c>ksp.flyVessel</c> (<see cref="FlyVesselArgs"/>), the way out of the Tracking
+        /// Station and its Fly button. Additive, so an Uplink built against 27.2 is unaffected.</para>
         /// </internal>
         /// </summary>
-        public const int Minor = 2;
+        public const int Minor = 3;
     }
 }

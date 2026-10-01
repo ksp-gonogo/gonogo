@@ -12,6 +12,7 @@ import { awayBodyNames, orderPads, padSummary, parseLaunchSites } from "./pads";
 import { craftForPad, parseSavedShips } from "./ships";
 import type { LaunchDirectorSlotContext } from "./slots";
 import { FundsReadout } from "./styles";
+import { TrackingStationPanel } from "./TrackingStationPanel";
 import { useFlightState } from "./useFlightState";
 import { useLaunchCommands } from "./useLaunchCommands";
 
@@ -82,6 +83,8 @@ export function LaunchDirectorComponent({
     revertLaunchCmd,
     revertEditorCmd,
     toTrackingCmd,
+    toSpaceCenterCmd,
+    flyCmd,
     switchCmd,
   } = useLaunchCommands();
 
@@ -121,9 +124,10 @@ export function LaunchDirectorComponent({
   };
 
   const inFlight = scene === "Flight";
+  const inTrackingStation = scene === "TrackingStation";
 
   // The pads are the subject, so their absence is what empties the panel.
-  if (launchSites === null && !inFlight) {
+  if (launchSites === null && !inFlight && !inTrackingStation) {
     return (
       <Panel
         panelTitle="LAUNCH & RECOVERY"
@@ -153,14 +157,17 @@ export function LaunchDirectorComponent({
           showSubtitle ? (
             <Section key="summary" full>
               <div role="status" aria-live="polite" style={SUBTITLE_STYLE}>
-                {inFlight
-                  ? `In flight: ${activeName}${launchSite && cols >= 6 ? ` · from ${launchSite}` : ""}`
-                  : padSummary({
-                      pads: pads.length,
-                      occupied: pads.filter((p) => p.occupied === true).length,
-                      unreported: pads.filter((p) => p.occupied === null)
-                        .length,
-                    })}
+                {inTrackingStation
+                  ? "In the Tracking Station"
+                  : inFlight
+                    ? `In flight: ${activeName}${launchSite && cols >= 6 ? ` · from ${launchSite}` : ""}`
+                    : padSummary({
+                        pads: pads.length,
+                        occupied: pads.filter((p) => p.occupied === true)
+                          .length,
+                        unreported: pads.filter((p) => p.occupied === null)
+                          .length,
+                      })}
                 {hasFunds && (
                   <FundsReadout
                     title={
@@ -182,7 +189,12 @@ export function LaunchDirectorComponent({
             </Section>
           ) : null,
           <Section key="pads">
-            {inFlight ? (
+            {inTrackingStation ? (
+              <TrackingStationPanel
+                toSpaceCenterCmd={toSpaceCenterCmd}
+                flyCmd={flyCmd}
+              />
+            ) : inFlight ? (
               <InFlightPanel
                 missionTime={flight.missionTime}
                 altitudeMeters={flight.altitudeMeters}
@@ -193,6 +205,7 @@ export function LaunchDirectorComponent({
                 revertLaunchCmd={revertLaunchCmd}
                 revertEditorCmd={revertEditorCmd}
                 toTrackingCmd={toTrackingCmd}
+                toSpaceCenterCmd={toSpaceCenterCmd}
                 switchCmd={switchCmd}
               />
             ) : (

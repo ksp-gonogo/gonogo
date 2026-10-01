@@ -17,6 +17,8 @@ namespace Sitrep.Host.Tests
         public int RevertToLaunchCallCount;
         public EditorFacilityKind? LastRevertToEditorFacility;
         public int ToTrackingStationCallCount;
+        public int ToSpaceCenterCallCount;
+        public string? LastFlyVesselId;
         public string? LastSwitchVesselId;
         public int RecoverCallCount;
         public string? LastLaunchShipName;
@@ -27,6 +29,8 @@ namespace Sitrep.Host.Tests
         public CommandResult RevertToLaunchResult = CommandResult.Ok();
         public CommandResult RevertToEditorResult = CommandResult.Ok();
         public CommandResult ToTrackingStationResult = CommandResult.Ok();
+        public CommandResult ToSpaceCenterResult = CommandResult.Ok();
+        public CommandResult FlyVesselResult = CommandResult.Ok();
         public CommandResult SwitchVesselResult = CommandResult.Ok();
         public CommandResult RecoverResult = CommandResult.Ok();
         public CommandResult LaunchResult = CommandResult.Ok();
@@ -47,6 +51,18 @@ namespace Sitrep.Host.Tests
         {
             ToTrackingStationCallCount++;
             return ToTrackingStationResult;
+        }
+
+        public CommandResult ToSpaceCenter()
+        {
+            ToSpaceCenterCallCount++;
+            return ToSpaceCenterResult;
+        }
+
+        public CommandResult FlyVessel(string vesselId)
+        {
+            LastFlyVesselId = vesselId;
+            return FlyVesselResult;
         }
 
         public CommandResult SwitchVessel(string vesselId)

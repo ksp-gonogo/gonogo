@@ -1,0 +1,59 @@
+{
+  "_meta": {
+    "scenario": "in-tracking-station",
+    "notes": "The Tracking Station scene: no flight and no pad, so the widget offers the way out (Space Center, Fly vessel) instead of a launch. system.vessels lists three craft and one asteroid, which the Fly list leaves out. `_stream` drives both snapshots.test.tsx and the probe render harness."
+  },
+  "_stream": {
+    "pinnedUt": 10,
+    "emits": [
+      {
+        "channel": "spaceCenter.scene",
+        "value": { "scene": "TrackingStation" }
+      },
+      {
+        "channel": "career.status",
+        "value": {
+          "balances": { "funds": 42500, "reputation": null, "science": null },
+          "contracts": null,
+          "strategies": null,
+          "tech": null
+        }
+      },
+      {
+        "channel": "system.vessels",
+        "value": {
+          "vessels": [
+            {
+              "vesselId": "v-hopper",
+              "name": "Mun Hopper I",
+              "vesselType": 2,
+              "situation": 3,
+              "bodyIndex": 2
+            },
+            {
+              "vesselId": "v-relay",
+              "name": "Kerbin Relay A",
+              "vesselType": 6,
+              "situation": 3,
+              "bodyIndex": 1
+            },
+            {
+              "vesselId": "v-station",
+              "name": "Kerbin Station",
+              "vesselType": 1,
+              "situation": 3,
+              "bodyIndex": 1
+            },
+            {
+              "vesselId": "v-rock",
+              "name": "Asteroid ABC-123",
+              "vesselType": 10,
+              "situation": 3,
+              "bodyIndex": 1
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
