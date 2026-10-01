@@ -134,7 +134,7 @@ describe("Targeting: stale renders the last observation as an observation", () =
     );
 
     // No model is registered for the topic, so no reckoned row: presence of the row is the statement of trust.
-    expect(visibleText()).not.toMatch(/reckoned/i);
+    expect(visibleText()).not.toMatch(/modelled/i);
   });
 
   it("renders the modelled range beside the observation once a model exists", async () => {
@@ -171,7 +171,7 @@ describe("Targeting: stale renders the last observation as an observation", () =
       fixture.store.beginFrame();
     });
 
-    await waitFor(() => expect(visibleText()).toMatch(/reckoned/i));
+    await waitFor(() => expect(visibleText()).toMatch(/modelled/i));
     // Both, side by side: the observation, and the model named so trust can be calibrated.
     expect(visibleText()).toContain("10.0 km");
     expect(visibleText()).toContain("12.0 km");

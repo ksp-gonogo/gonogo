@@ -49,6 +49,8 @@ export interface LandingModel {
   requiredDv: number | null;
   /** Null, never false, when either side of the comparison is missing. */
   affordable: boolean | null;
+  /** Whether every input the verdict rests on is an observation; a verdict from a held or reckoned input is only possible. */
+  affordableFromObserved: boolean;
   board: LandingBoard;
   clocks: DelayClocks;
   live: boolean;
@@ -151,14 +153,22 @@ export function useLandingModel(): LandingModel {
     landingReading,
   ].some(isDated);
 
-  const solveCurrency = [
+  const solveInputs = [
     flightReading,
     surfaceReading,
     propulsionReading,
     orbitReading,
     landingReading,
     ...(budgetReading === undefined ? [] : [budgetReading]),
-  ].map(currencyOf);
+  ];
+  const solveCurrency = solveInputs.map(currencyOf);
+  // A model drawn beside a current observation that it agrees with is not a figure in doubt; one reaching past the received edge is.
+  const affordableFromObserved = !solveInputs.some(
+    (r) =>
+      r.state === "held" ||
+      (r.reckoning.status === "available" &&
+        (r.state !== "observed" || r.reckoning.beyondReceived)),
+  );
   const delayCurrency = [currencyOf(commsDelayReading)];
 
   const { exhaustVelocity, burnoutMass } = deriveActiveBurnParams(
@@ -276,6 +286,7 @@ export function useLandingModel(): LandingModel {
     availableDv,
     requiredDv,
     affordable,
+    affordableFromObserved,
     board,
     clocks,
     live,

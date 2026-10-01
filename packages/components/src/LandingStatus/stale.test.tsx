@@ -161,6 +161,30 @@ describe("LandingStatus when the solve inputs are held", () => {
     expect(visibleText(container)).not.toContain("IGNITE");
   });
 
+  it("answers the affordability verdict from observed inputs and softens it to possible once they are held", async () => {
+    const { container } = renderWidget();
+    emitDescent();
+    act(() => {
+      stream.emit("dv.summary", {
+        stageCount: 1,
+        totalDvVac: 5000,
+        totalDvAsl: 5000,
+        totalDvActual: 5000,
+      });
+    });
+    await waitFor(() => expect(visibleText(container)).toContain("yes"));
+    expect(visibleText(container)).not.toContain("possible");
+
+    act(() => {
+      stream.store.setTransportConnected(false);
+      stream.store.beginFrame();
+    });
+
+    await waitFor(() => expect(visibleText(container)).toContain("possible"));
+    expect(visibleText(container)).not.toMatch(/\byes\b/);
+    expect(visibleText(container)).not.toContain("insufficient dV");
+  });
+
   it("marks nothing held before anything has ever arrived", async () => {
     const { container } = renderWidget();
     await waitFor(() => {

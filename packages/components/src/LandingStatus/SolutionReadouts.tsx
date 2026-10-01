@@ -15,10 +15,24 @@ import type { LandingModel } from "./useLandingModel";
 function Affordable({
   noLandingVector,
   affordable,
-}: Readonly<Pick<LandingModel, "noLandingVector" | "affordable">>) {
+  affordableFromObserved,
+}: Readonly<
+  Pick<
+    LandingModel,
+    "noLandingVector" | "affordable" | "affordableFromObserved"
+  >
+>) {
   // A green "yes" would contradict the ABORT above, since fuel is not the wall.
   if (noLandingVector) return <Text level="muted">n/a · no path</Text>;
   if (affordable == null) return <Text level="muted">{NULL_DISPLAY}</Text>;
+  // Neutral, not go or nogo: a verdict drawn from held or reckoned inputs must not read as an observed one.
+  if (!affordableFromObserved) {
+    return (
+      <Badge size="sm" title="Held or reckoned inputs; not an observed verdict">
+        possible
+      </Badge>
+    );
+  }
   return (
     <Badge tone={affordable ? "go" : "nogo"} size="sm">
       {affordable ? "yes" : "insufficient dV"}
@@ -43,6 +57,7 @@ export function SolutionReadouts({
     requiredDv,
     noLandingVector,
     affordable,
+    affordableFromObserved,
     targetRange,
     descentHistory,
     solveCurrency,
@@ -102,6 +117,7 @@ export function SolutionReadouts({
           <Affordable
             noLandingVector={noLandingVector}
             affordable={affordable}
+            affordableFromObserved={affordableFromObserved}
           />
         </div>
         <StackedField label="Touchdown (coast)">

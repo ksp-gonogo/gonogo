@@ -1,4 +1,9 @@
-import { type CarriedCurrency, datedFrom, value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  type CarriedCurrency,
+  datedFrom,
+  staticValue,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   CommandButton,
   type CommandButtonHandle,
@@ -255,7 +260,7 @@ export function AvailableRow({
             aria-label={`Commitment factor for ${s.title}`}
           />
           <FactorValue>
-            <Unit value={value("%", factor * 100)} decimals={0} />
+            <Unit value={staticValue("%", factor * 100)} decimals={0} />
           </FactorValue>
         </FactorRow>
       )}

@@ -1,5 +1,6 @@
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
+  ModelledAlongside,
   NULL_DISPLAY,
   Panel,
   ReadoutCaption,
@@ -82,13 +83,18 @@ export function TrackingView({
             style={DISPLAY_VALUE_STYLE}
           >
             <Unit value={rangeR} />
+            <ModelledAlongside
+              observed={rangeR.value}
+              modelled={
+                reckonedDistance === undefined
+                  ? undefined
+                  : value("m", reckonedDistance)
+              }
+            />
           </Text>
         )}
-        {reckoned !== undefined && reckonedDistance !== undefined && (
-          <ReadoutCaption>
-            reckoned <Unit value={value("m", reckonedDistance)} /> (
-            {reckoned.basis})
-          </ReadoutCaption>
+        {reckoned !== undefined && (
+          <ReadoutCaption>modelled ({reckoned.basis})</ReadoutCaption>
         )}
         {showSubReadout && (
           <Text
