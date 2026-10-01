@@ -11,7 +11,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { PlotBoard } from "../Plots/PlotBoard";
 import { AltitudeRail } from "./AltitudeRail";
-import { CarriedAltitude } from "./CarriedAltitude";
+import { CarriedAltitude, predictionOnRail } from "./CarriedAltitude";
 import { CommitLayer, REGIME_LABEL, REGIME_TONE } from "./CommitLayer";
 import { DescentBoard } from "./DescentBoard";
 import {
@@ -207,6 +207,7 @@ function LandingStatusComponent({
                 >
                   <AltitudeRail
                     agl={aglReading}
+                    prediction={predictionOnRail(flightReading, aglReading)}
                     centreOfMass={usingComDatum}
                     ignitionAltitude={landed ? null : solution.ignitionAltitude}
                     suicideBurnCountdown={

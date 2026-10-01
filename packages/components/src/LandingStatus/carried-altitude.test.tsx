@@ -134,14 +134,21 @@ describe("the carried ASL altitude reaches the operator", () => {
     expect(interval.lo).not.toBe(interval.hi);
   });
 
-  it("says what the interval claims, rather than leaving it assumed", async () => {
+  it("explains the interval in no words of its own", async () => {
     expect(
       readoutText(
         await mount(
           withScatteredHistory(loadHandoverFixture("05-drag-biting-42km.json")),
         ),
       ),
-    ).toMatch(/the carried altitude is inside that interval/);
+    ).not.toMatch(/interval|bounds|inside/i);
+  });
+
+  it("draws the noisy handover scene's band", async () => {
+    const interval = requireInterval(
+      await mount(loadHandoverFixture("08-drag-biting-noisy-42km.json")),
+    );
+    expect(interval.lo).not.toBe(interval.hi);
   });
 
   /** A noiseless history gives the fit no sigma, so no interval is drawn rather than a zero-width band that would read as exact, and no caption explains the absence. */
@@ -232,11 +239,11 @@ describe("the carried ASL altitude under signal delay", () => {
     const text = readoutText(tree);
     expect(text).toMatch(/42\.0/);
     expect(text).toMatch(/38\.0/);
-    expect(tree.getByText("Carried to SCET")).toBeInTheDocument();
+    expect(tree.getByText("Prediction")).toBeInTheDocument();
   });
 
   it("draws the observation alone when there is no light-time to carry it across", async () => {
     const tree = await mountDelayed(0);
-    expect(tree.queryByText("Carried to SCET")).toBeNull();
+    expect(tree.queryByText("Prediction")).toBeNull();
   });
 });

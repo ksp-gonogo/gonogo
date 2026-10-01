@@ -99,6 +99,8 @@ interface Frame {
    * crossing band's old conic floor included.
    */
   decline?: { reason: string; input: string };
+  /** Nudges the two middle history speeds apart so the fit has a residual, and the carried altitude a band. */
+  scatter?: boolean;
   note: string;
 }
 
@@ -216,6 +218,13 @@ const FRAMES: Frame[] = [
     note: "Under canopy near terminal velocity. The sensed magnitude is back near 1, so the horizon reopens to about thirteen seconds and the model carries the altitude again.",
   },
 ];
+
+FRAMES.push({
+  ...FRAMES[4],
+  slug: "08-drag-biting-noisy-42km",
+  scatter: true,
+  note: "The drag-biting frame with measurement scatter in the history, so the descent fit has a residual and the carried altitude comes with a band.",
+});
 
 /** Local `mu / r²` at an altitude ASL, which is what the envelope is built on. */
 function gravityAt(altitudeAsl: number): number {
@@ -341,10 +350,15 @@ interface Emit {
   meta?: Record<string, unknown>;
 }
 
+/** Speed nudges, m/s, on the two middle samples of a scattered history. */
+const SCATTER: Record<number, number> = { [-7]: 6, [-3]: -6 };
+
 function flightEmit(frame: Frame, offset: number, newest: boolean): Emit {
   const validAt = ANCHOR_UT + offset;
   const verticalSpeed =
-    frame.verticalSpeed + frame.verticalAcceleration * offset;
+    frame.verticalSpeed +
+    frame.verticalAcceleration * offset +
+    (frame.scatter ? (SCATTER[offset] ?? 0) : 0);
   /*
    * The altitude walked back the same way, second order, so the history is one
    * trajectory rather than a stack of the anchor's altitude. Only the anchor's

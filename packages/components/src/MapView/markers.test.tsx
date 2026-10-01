@@ -270,3 +270,26 @@ describe("MapView's vessel marker under signal delay", () => {
     expect(marker(container)?.hasAttribute("data-vessel-modelled")).toBe(false);
   });
 });
+
+describe("MapView's imaging chip across a dropped link", () => {
+  it("holds a verdict only while the altitude is current or modelled", async () => {
+    const { fixture, container } = mount();
+    emitDescent(fixture);
+    act(() => {
+      fixture.emit("vessel.identity", {
+        vesselId: "v1",
+        name: "Probe",
+        vesselType: 0,
+        situation: 3,
+        parentBodyIndex: 1,
+        launchUt: 0,
+      });
+    });
+    await waitFor(() => expect(container.textContent).toMatch(/TOO|IMAGING/));
+    act(() => {
+      fixture.store.setTransportConnected(false);
+      fixture.store.beginFrame();
+    });
+    await waitFor(() => expect(container.textContent).toMatch(/NO DATA/));
+  });
+});

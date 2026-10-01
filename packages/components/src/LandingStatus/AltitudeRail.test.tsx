@@ -34,6 +34,16 @@ describe("AltitudeRail", () => {
     expect(ladder).toHaveAttribute("aria-valuenow", "1200");
   });
 
+  it("draws a prediction beside the pointer, and none without one", () => {
+    const { container, rerender } = render(<AltitudeRail {...descending} />);
+    expect(container.textContent).not.toMatch(/prediction/);
+    rerender(<AltitudeRail {...descending} prediction={value("m", 900)} />);
+    expect(container.textContent).toMatch(/prediction/);
+    expect(
+      screen.getByRole("meter", { name: /altitude above terrain/i }),
+    ).toHaveAttribute("aria-valuenow", "1200");
+  });
+
   it("names the root-part datum when the lowest point is unavailable", () => {
     render(<AltitudeRail {...descending} centreOfMass />);
     expect(

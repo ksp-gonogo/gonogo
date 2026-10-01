@@ -11,6 +11,8 @@ export interface AltitudeRailProps {
   agl: Reading<Value<"m">>;
   /** The height is the root part's, the lowest-point datum being unavailable: the rail draws no burn band and names no ignition. */
   centreOfMass?: boolean;
+  /** Where the model puts the craft now, as a height on this rail's scale. Drawn beside the pointer, never in its place. */
+  prediction?: Value<"m"> | null;
   /** AGL at which the suicide burn must begin, metres. */
   ignitionAltitude: number | null;
   /** Seconds to the latest ignition. */
@@ -29,16 +31,19 @@ function niceCeil(x: number): number {
 export function AltitudeRail({
   agl,
   centreOfMass = false,
+  prediction = null,
   ignitionAltitude,
   suicideBurnCountdown,
 }: Readonly<AltitudeRailProps>) {
-  const aglMeters = agl.value?.magnitude ?? 0;
+  const height = agl.value ?? value("m", 0);
+  const tallest = prediction === null ? height : height.max(prediction);
+  const peakMeters = tallest.magnitude;
   // Quantised to the millimetre: the solve reaches this through pow and exp, whose last bits differ between platforms, and the rail must draw the same band everywhere.
   const ignition =
     !centreOfMass && ignitionAltitude != null && ignitionAltitude > 0
       ? Math.round(ignitionAltitude * 1000) / 1000
       : null;
-  const maxScale = niceCeil(Math.max(aglMeters, ignition ?? 0, 1) * 1.1);
+  const maxScale = niceCeil(Math.max(peakMeters, ignition ?? 0, 1) * 1.1);
 
   // The hot band: from the ground up to the ignition altitude, the region in which the burn must already have started.
   const zones =
@@ -78,6 +83,17 @@ export function AltitudeRail({
           tickStep={value("m", maxScale / 4)}
           groundLine={value("m", 0)}
           zones={zones}
+          markers={
+            prediction === null
+              ? undefined
+              : [
+                  {
+                    value: prediction,
+                    color: "var(--color-warn-mark)",
+                    label: "prediction",
+                  },
+                ]
+          }
           ariaLabel={
             centreOfMass
               ? "Root-part altitude above terrain"

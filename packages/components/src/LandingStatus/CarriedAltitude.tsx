@@ -1,8 +1,13 @@
 import type { ReckonableReading } from "@ksp-gonogo/sitrep-client";
-import { bandIn, readingOf, type VesselFlight } from "@ksp-gonogo/sitrep-sdk";
+import {
+  bandIn,
+  type Reading,
+  readingOf,
+  type Value,
+  type VesselFlight,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   Band,
-  bandClaim,
   Grid,
   NULL_DISPLAY,
   ReadoutCaption,
@@ -18,6 +23,37 @@ export type FlightReading = ReckonableReading<
   VesselFlight,
   "altitudeAsl" | "orbitalSpeed"
 >;
+
+/** Where the model puts the craft now, as an altitude above sea level, or `null` while the observation stands as the present or nothing models it. */
+function carriedAltitude(reading: FlightReading): Value<"m"> | null {
+  const altitude = reading.altitudeAsl;
+  const carrying =
+    reading.state === "held" ||
+    (altitude.reckoning.status === "available" &&
+      altitude.reckoning.beyondReceived);
+  return carrying && altitude.reckoning.status === "available"
+    ? altitude.reckoning.modelled
+    : null;
+}
+
+/**
+ * The prediction as a height on the terrain-relative rail: the carried altitude less the ground the craft stands over at the last observation.
+ * That ground is the craft's own, not the ground at the predicted point, which the rail makes no claim about.
+ */
+export function predictionOnRail(
+  reading: FlightReading,
+  agl: Reading<Value<"m">>,
+): Value<"m"> | null {
+  const carried = carriedAltitude(reading);
+  const observed = reading.altitudeAsl;
+  const observedAsl =
+    observed.state === "observed" || observed.state === "held"
+      ? observed.value
+      : undefined;
+  if (carried === null || observedAsl === undefined || agl.value === undefined)
+    return null;
+  return carried.minus(observedAsl.minus(agl.value)).max(0);
+}
 
 /**
  * Altitude above sea level: the last measurement, where the model puts it now, and how well it claims to know that.
@@ -59,7 +95,7 @@ export function CarriedAltitude({ reading }: { reading: FlightReading }) {
           </Text>
         )}
         {carrying && (
-          <GridCellPair label="Carried to SCET">
+          <GridCellPair label="Prediction">
             {carried === null ? (
               NULL_DISPLAY
             ) : (
@@ -73,11 +109,7 @@ export function CarriedAltitude({ reading }: { reading: FlightReading }) {
           </GridCellPair>
         )}
       </Grid>
-      {band ? (
-        <ReadoutCaption>
-          {bandClaim(band.kind, "the carried altitude is inside that interval")}
-        </ReadoutCaption>
-      ) : modelState !== null ? (
+      {modelState !== null ? (
         <ReadoutCaption title={declined?.note}>{modelState}</ReadoutCaption>
       ) : null}
     </Section>
