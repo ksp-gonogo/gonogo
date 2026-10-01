@@ -22,8 +22,10 @@
 #                   and main trails staging by a whole release. Against main's
 #                   merge base a PR would be graded from before any of these debt
 #                   lists existed, so all five would find nothing to diff
-#   workflow_dispatch  merge base with origin/staging, since the ref can be
-#                   anything; falls back to HEAD^ when the ref IS staging
+#   workflow_dispatch, schedule and workflow_call
+#                   merge base with origin/staging, since the ref can be
+#                   anything; when the ref IS staging, the last rc-* tag
+#                   reachable from it, then the last v* tag, then HEAD^
 #
 # Diagnostics go to stderr, the resolved sha alone to stdout, so a caller can
 # read it with a command substitution.
@@ -101,8 +103,23 @@ case "$EVENT_NAME" in
     git fetch --no-tags --quiet origin staging || true
     base="$(git merge-base "$head_sha" FETCH_HEAD 2>/dev/null || true)"
     if [ -z "$base" ] || [ "$base" = "$head_sha" ]; then
-      log "merge base is the checkout itself, falling back to HEAD^"
-      base="$(git rev-parse --verify "${head_sha}^" 2>/dev/null || true)"
+      # The checkout IS staging's tip (a dispatched or scheduled run, or rc.yml
+      # calling this workflow against the staging sha), so the merge base is no
+      # base at all. The last state already graded is the last release candidate
+      # or release, and HEAD^ would answer for one commit of a whole range.
+      base=""
+      for pattern in 'rc-*' 'v*'; do
+        tag="$(git describe --tags --abbrev=0 --match "$pattern" "${head_sha}^" 2>/dev/null || true)"
+        if [ -n "$tag" ]; then
+          log "merge base is the checkout itself, using the last $pattern tag: $tag"
+          base="$tag"
+          break
+        fi
+      done
+      if [ -z "$base" ]; then
+        log "merge base is the checkout itself and no rc-* or v* tag is reachable, falling back to HEAD^"
+        base="$(git rev-parse --verify "${head_sha}^" 2>/dev/null || true)"
+      fi
     fi
     ;;
 esac
