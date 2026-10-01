@@ -292,7 +292,7 @@ const NUMERIC_READOUT: CSSProperties = {
 
 registerComponent<NavballConfig>({
   id: "navball",
-  name: "Navball / Attitude Director",
+  name: "Navball",
   description:
     "Attitude indicator + control surface. Reads heading/pitch/roll and exposes a deep action surface (every SAS mode, throttle, fly-by-wire pitch/yaw/roll, RCS translation and trim) so a hardware stick mapped via the Inputs tab can fly the vessel.",
   tags: ["telemetry", "control"],

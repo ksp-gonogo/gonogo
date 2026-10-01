@@ -1,4 +1,4 @@
-import { NULL_DISPLAY, ToggleButton } from "@ksp-gonogo/ui-kit";
+import { Notice, NULL_DISPLAY, ToggleButton } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 
 interface ControlTogglesProps {
@@ -35,11 +35,7 @@ export function ControlToggles({
 }: ControlTogglesProps) {
   return (
     <>
-      {disabled && (
-        <div style={BANNER} role="status" aria-live="polite">
-          Vessel not controllable: buttons disabled.
-        </div>
-      )}
+      {disabled && <Notice>Vessel not controllable: buttons disabled.</Notice>}
       <div style={TOGGLE_ROW}>
         <ToggleButton
           type="button"
@@ -75,11 +71,7 @@ export function ControlToggles({
           </ToggleButton>
         )}
       </div>
-      {sasUnavailableReason && (
-        <div style={BANNER} role="status" aria-live="polite">
-          {sasUnavailableReason}
-        </div>
-      )}
+      {sasUnavailableReason && <Notice>{sasUnavailableReason}</Notice>}
     </>
   );
 }
@@ -98,15 +90,6 @@ function armLabel(
   if (!on) return `${name} OFF`;
   return mode ? `${name}: ${mode}` : `${name} ON`;
 }
-
-const BANNER: CSSProperties = {
-  fontSize: "var(--font-size-compact)",
-  color: "var(--color-warn-text)",
-  padding: "var(--inset-surface)",
-  background: "var(--color-surface-panel)",
-  border: "1px solid var(--color-warn-mark)",
-  borderRadius: "var(--radius-regular)",
-};
 
 /** The SAS/RCS/precision row, packed by each control's own width rather than a uniform column minimum. */
 const TOGGLE_ROW: CSSProperties = {

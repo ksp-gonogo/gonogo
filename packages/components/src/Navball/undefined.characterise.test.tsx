@@ -140,9 +140,7 @@ describe("Navball control surface: what undefined means today", () => {
     mount("nb-undef-controls", { w: 10, h: 20, controlMode: true });
 
     // With no control level the widget fails open.
-    expect(
-      screen.queryByText("Vessel not controllable: buttons disabled."),
-    ).toBeNull();
+    expect(screen.queryByRole("note")).toBeNull();
     const sas = screen.getByRole("button", { name: `SAS ${NULL_DISPLAY}` });
     const rcs = screen.getByRole("button", { name: `RCS ${NULL_DISPLAY}` });
     expect(sas).not.toBeDisabled();
@@ -173,9 +171,9 @@ describe("Navball control surface: what undefined means today", () => {
     });
 
     await waitFor(() =>
-      expect(
-        screen.getByText("Vessel not controllable: buttons disabled."),
-      ).toBeInTheDocument(),
+      expect(screen.getByRole("note")).toHaveTextContent(
+        "Vessel not controllable: buttons disabled.",
+      ),
     );
     expect(
       screen.getByRole("button", { name: `SAS ${NULL_DISPLAY}` }),

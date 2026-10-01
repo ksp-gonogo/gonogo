@@ -151,7 +151,7 @@ describe("NavballComponent", () => {
       "title",
       "No SAS: needs a Pilot aboard or a probe core with SAS",
     );
-    expect(screen.getByRole("status")).toHaveTextContent(
+    expect(screen.getByRole("note")).toHaveTextContent(
       "No SAS: needs a Pilot aboard",
     );
   });
@@ -186,9 +186,9 @@ describe("NavballComponent", () => {
     const { fixture } = renderNavball({ controlMode: true }, CONTROL_SIZE);
     // ControlState.None (0) collapses to not-controllable.
     emitReads(fixture, { comms: { controlState: 0 } });
-    expect(
-      await screen.findByText(/Vessel not controllable/i),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("note")).toHaveTextContent(
+      /Vessel not controllable/i,
+    );
     const proButton = screen.getByRole("button", { name: /^PRO$/ });
     expect(proButton).toBeDisabled();
   });
