@@ -26,7 +26,8 @@ import userEvent from "@testing-library/user-event";
 import type { ReactElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
-import { AlarmsModal, conditionWithheld } from "./AlarmsModal";
+import { AlarmsModal } from "./AlarmsModal";
+import { conditionWithheld } from "./foreignAlarm";
 import type { Alarm, AlarmSnapshot } from "./types";
 import {
   DEFAULT_LEAD_SECONDS,
@@ -1156,6 +1157,34 @@ describe("AlarmsModal alarms other screens armed", () => {
     expect(
       screen.getByText("Condition withheld at this vantage"),
     ).toBeInTheDocument();
+  });
+
+  it("names the arming vantage as the command-centre roster does, not by its id", () => {
+    const fixture = setupStreamFixture({ suspendFrames: true });
+    render(
+      <fixture.Provider>
+        <AlarmsModal
+          useSnapshot={() => ({
+            ...makeSnapshot(),
+            scetForeign: [foreign("pe", PILOT, null)],
+          })}
+          onAdd={vi.fn()}
+          onUpdate={vi.fn()}
+          onDelete={vi.fn()}
+        />
+      </fixture.Provider>,
+    );
+    act(() => {
+      fixture.emit(
+        "commandCentre.roster",
+        [{ id: PILOT, displayName: "Sally-Hut 1", active: true }],
+        { vantage: KSC },
+      );
+      fixture.store.beginFrame();
+    });
+    expect(screen.getByText("Armed at Sally-Hut 1")).toBeInTheDocument();
+    expect(screen.getByText("Armed by Sally-Hut 1")).toBeInTheDocument();
+    expect(screen.queryByText(new RegExp(PILOT))).not.toBeInTheDocument();
   });
 
   it("never withholds a time alarm, whoever armed it", () => {

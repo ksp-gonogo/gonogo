@@ -84,6 +84,12 @@ export interface ScetAlarmBridgeContext {
    */
   onFired(id: string, firedAtUt: number, actionsWithheld: boolean): void;
   /**
+   * The simulation fired an alarm this list does not hold, armed by another
+   * screen or by an Uplink for itself. That screen latches it; this one only
+   * needs to announce it. Idempotent for the same reason `onFired` is.
+   */
+  onForeignFired(id: string, firedAtUt: number): void;
+  /**
    * The simulation refused to arm this alarm, and said why in its own words.
    *
    * The refusal is the only way a client learns that a Topic is not addressable
@@ -569,9 +575,10 @@ export class ScetAlarmBridge {
     this.unsubscribeFired = client.subscribe(SCET_FIRED_TOPIC, (payload) => {
       const notice = readFiredNotice(payload);
       if (!notice) return;
-      // An id this list does not hold was armed by another screen, which latches it itself.
       if (this.ctx.getAlarms().some((alarm) => alarm.id === notice.id)) {
         this.ctx.onFired(notice.id, notice.firedAtUt, notice.actionsWithheld);
+      } else {
+        this.ctx.onForeignFired(notice.id, notice.firedAtUt);
       }
     });
   }

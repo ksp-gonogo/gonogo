@@ -7,6 +7,7 @@ import styled from "styled-components";
 import { useAlarmHost, useAlarmSnapshot } from "./AlarmHostContext";
 import { useFireBeep } from "./alarmTone";
 import { FiredFacts } from "./FiredFacts";
+import { ForeignFireNotice } from "./ForeignFireNotice";
 import { collapseFiredContractParam } from "./firedCollapse";
 import type { Alarm, AlarmSnapshot } from "./types";
 import {
@@ -23,6 +24,20 @@ import {
  * button. When an alarm is `arming`/`firing`, the banner colours escalate.
  */
 export function AlarmBanner() {
+  const snap = useAlarmSnapshot();
+  const host = useAlarmHost();
+  return (
+    <>
+      <ForeignFireNotice
+        snap={snap}
+        onAcknowledge={(id) => host.acknowledgeAlarm(id)}
+      />
+      <LocalAlarmStrip />
+    </>
+  );
+}
+
+function LocalAlarmStrip() {
   const snap = useAlarmSnapshot();
   const host = useAlarmHost();
   const timeContexts = useTimeContexts();
@@ -72,7 +87,10 @@ export function AlarmBanner() {
   // Beep on every transition into firing/fired so a telemetry-triggered
   // alarm never silently vanishes. Tracks ids so subsequent re-renders
   // (from the 1Hz tick) don't replay the tone.
-  useFireBeep(snap.alarms);
+  useFireBeep(
+    snap.alarms,
+    (snap.scetForeignFired ?? []).map((f) => f.id),
+  );
 
   // Renders ONLY when there is something to surface: warp ≠ 1×, an alarm
   // pending/firing, or a warpTo plan queued. A persistent banner at the top of

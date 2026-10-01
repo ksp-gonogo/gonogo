@@ -215,6 +215,13 @@ export class AlarmHostService {
 
   /** Alarms the simulation cancelled on a craft switch since the operator last acknowledged it. */
   private cancelledUnacknowledged = 0;
+  /** Foreign fires awaiting acknowledgement, by id. */
+  private foreignFires = new Map<string, number>();
+  /**
+   * Foreign ids already announced, kept after acknowledgement so the notice a
+   * reconnecting client is replayed does not announce the same fire again.
+   */
+  private foreignAnnounced = new Set<string>();
 
   /**
    * Alarms read from storage that no tick has settled yet. A fire latched
@@ -285,6 +292,7 @@ export class AlarmHostService {
       getAlarms: () => this.alarms,
       onFired: (id, firedAtUt, actionsWithheld) =>
         this.onScetFired(id, firedAtUt, actionsWithheld),
+      onForeignFired: (id, firedAtUt) => this.onForeignFired(id, firedAtUt),
       onArmRefused: (id, reason) => {
         if (this.scetArmRefusals.get(id) === reason) return;
         this.scetArmRefusals.set(id, reason);
@@ -298,7 +306,10 @@ export class AlarmHostService {
         defaults: [],
         storage: this.storage,
       }),
-      onRoster: () => this.emit(),
+      onRoster: () => {
+        this.pruneForeignFires();
+        this.emit();
+      },
       onCancelled: (ids) => this.onScetCancelled(ids),
       nowMs: () => this.opts.nowMs(),
     });
@@ -329,6 +340,13 @@ export class AlarmHostService {
           : undefined,
       scetUnreachable: this.unreachableHeld(),
       scetForeign: this.foreignHeld(),
+      scetForeignFired:
+        this.foreignFires.size > 0
+          ? [...this.foreignFires].map(([id, firedAtUt]) => ({
+              id,
+              firedAtUt,
+            }))
+          : undefined,
       alarmsCancelled:
         this.cancelledUnacknowledged > 0
           ? { count: this.cancelledUnacknowledged }
@@ -514,6 +532,10 @@ export class AlarmHostService {
    * operator noticed them.
    */
   acknowledgeAlarm(id: string): void {
+    if (this.foreignFires.delete(id)) {
+      this.emit();
+      return;
+    }
     const idx = this.alarms.findIndex((a) => a.id === id);
     if (idx < 0) return;
     if (this.alarms[idx].state !== "fired") return;
@@ -619,6 +641,32 @@ export class AlarmHostService {
        the way through, here or in the tick that follows: the mod already
        stopped it, and a second authority for one piece of state is a race. */
     this.tick();
+  }
+
+  /**
+   * Another screen's alarm fired. It is announced here but never latched: the
+   * screen that armed it owns the row, and the roster keeps showing it as fired
+   * until someone disarms it.
+   */
+  private onForeignFired(id: string, firedAtUt: number): void {
+    if (this.foreignAnnounced.has(id)) return;
+    this.foreignAnnounced.add(id);
+    this.foreignFires.set(id, firedAtUt);
+    this.emit();
+  }
+
+  /**
+   * Forget foreign fires whose alarm has left the roster, so an id that is
+   * armed and fires again later is announced again.
+   */
+  private pruneForeignFires(): void {
+    if (this.foreignAnnounced.size === 0) return;
+    const held = new Set(this.scetBridge.foreignAlarms().map((a) => a.id));
+    for (const id of [...this.foreignAnnounced]) {
+      if (held.has(id)) continue;
+      this.foreignAnnounced.delete(id);
+      this.foreignFires.delete(id);
+    }
   }
 
   /**

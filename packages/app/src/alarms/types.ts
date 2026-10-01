@@ -308,6 +308,13 @@ export interface AlarmSnapshot {
    */
   scetForeign?: ForeignScetAlarm[];
   /**
+   * Foreign alarms that have fired and not been acknowledged here, by id. The
+   * name, vantage and condition come off the matching `scetForeign` row, so the
+   * redaction rule applies to an announcement exactly as it does to the row.
+   * Absent when there are none.
+   */
+  scetForeignFired?: ForeignScetFire[];
+  /**
    * How many of this list's alarms the simulation cancelled because the player
    * switched to another craft, counted until the operator acknowledges it.
    * Absent when there is nothing to tell. A cancelled alarm leaves the list
@@ -328,6 +335,13 @@ export interface ForeignScetAlarm {
   state: "armed" | "fired" | "unreachable";
   /** What it watches, or null when the row carried a condition this side cannot read. */
   condition: ForeignScetCondition | null;
+}
+
+/** A foreign alarm's fire, awaiting acknowledgement on this screen. */
+export interface ForeignScetFire {
+  id: string;
+  /** The UT it fired at, on the clock of the vantage that armed it. */
+  firedAtUt: number;
 }
 
 export type ForeignScetCondition =

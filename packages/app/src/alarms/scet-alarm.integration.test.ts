@@ -758,6 +758,39 @@ describe("SCET alarms", () => {
     }
   });
 
+  it("announces another screen's alarm firing, and again only after it has been acknowledged and re-armed", async () => {
+    const session = startSession(OWLT);
+    session.emitAt(UT_START);
+    const svc = new AlarmHostService(null, {
+      nowMs: () => nowMs,
+      tickIntervalMs: DT * 1000,
+      storage: memoryStorage(),
+      getOwltSeconds: () => OWLT,
+    });
+    try {
+      session.armForeign("planted-fund-target");
+      await run(session, UT_START + 2 * DT);
+      expect(svc.snapshot().scetForeignFired).toBeUndefined();
+
+      session.fireForVantage("planted-fund-target");
+      await run(session, UT_START + 4 * DT);
+      expect(svc.snapshot().scetForeignFired?.map((f) => f.id)).toEqual([
+        "planted-fund-target",
+      ]);
+
+      svc.acknowledgeAlarm("planted-fund-target");
+      expect(svc.snapshot().scetForeignFired).toBeUndefined();
+
+      /* The notice is replayed to a reconnecting client on purpose, so a
+         repeat of one already announced must not announce it twice. */
+      session.fireForVantage("planted-fund-target");
+      await run(session, UT_START + 6 * DT);
+      expect(svc.snapshot().scetForeignFired).toBeUndefined();
+    } finally {
+      svc.dispose();
+    }
+  });
+
   it("lists an alarm it never asked for, and disarms it when told to", async () => {
     const session = startSession(OWLT);
     session.emitAt(UT_START);

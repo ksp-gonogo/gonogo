@@ -1,5 +1,6 @@
 import { Cluster, Stack } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
+import { ForeignFireNotice } from "./ForeignFireNotice";
 import { collapseFiredContractParam } from "./firedCollapse";
 import type { Alarm, AlarmSnapshot } from "./types";
 
@@ -30,7 +31,10 @@ export function StationAlarmBanner({
 }: StationAlarmBannerProps) {
   const snap = useSnapshot();
   const fired = snap.alarms.filter((a) => a.state === "fired");
-  if (fired.length === 0) return null;
+  const foreign = (
+    <ForeignFireNotice snap={snap} onAcknowledge={onAcknowledge} />
+  );
+  if (fired.length === 0) return foreign;
 
   const cpCollapse = collapseFiredContractParam(fired);
   const collapsedIds = cpCollapse ? new Set(cpCollapse.ids) : null;
@@ -39,36 +43,39 @@ export function StationAlarmBanner({
     : fired;
 
   return (
-    <Wrap role="alert">
-      <Stack gap="related-dense">
-        {individuals.map((a) => (
-          <Cluster justify="start" align="baseline" wrap key={a.id}>
-            <Label>Fired</Label>
-            <AlarmName>{a.name}</AlarmName>
-            <FiredHint>{describe(a)}</FiredHint>
-            <AckButton type="button" onClick={() => onAcknowledge(a.id)}>
-              Acknowledge
-            </AckButton>
-          </Cluster>
-        ))}
-        {cpCollapse && (
-          <Cluster justify="start" align="baseline" wrap>
-            <Label>Fired</Label>
-            <AlarmName>
-              {cpCollapse.count} contract objectives completed
-            </AlarmName>
-            <AckButton
-              type="button"
-              onClick={() => {
-                for (const id of cpCollapse.ids) onAcknowledge(id);
-              }}
-            >
-              Acknowledge all
-            </AckButton>
-          </Cluster>
-        )}
-      </Stack>
-    </Wrap>
+    <>
+      {foreign}
+      <Wrap role="alert">
+        <Stack gap="related-dense">
+          {individuals.map((a) => (
+            <Cluster justify="start" align="baseline" wrap key={a.id}>
+              <Label>Fired</Label>
+              <AlarmName>{a.name}</AlarmName>
+              <FiredHint>{describe(a)}</FiredHint>
+              <AckButton type="button" onClick={() => onAcknowledge(a.id)}>
+                Acknowledge
+              </AckButton>
+            </Cluster>
+          ))}
+          {cpCollapse && (
+            <Cluster justify="start" align="baseline" wrap>
+              <Label>Fired</Label>
+              <AlarmName>
+                {cpCollapse.count} contract objectives completed
+              </AlarmName>
+              <AckButton
+                type="button"
+                onClick={() => {
+                  for (const id of cpCollapse.ids) onAcknowledge(id);
+                }}
+              >
+                Acknowledge all
+              </AckButton>
+            </Cluster>
+          )}
+        </Stack>
+      </Wrap>
+    </>
   );
 }
 

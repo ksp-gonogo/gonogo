@@ -36,6 +36,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
+import { conditionWithheld, useVantageName } from "./foreignAlarm";
 import type {
   Alarm,
   AlarmFireAction,
@@ -804,27 +805,6 @@ export function AlarmsModal({
   );
 }
 
-/**
- * Whether a foreign alarm's name and condition are kept from this screen.
- *
- * Withheld when this screen observes from a vantage other than the one that
- * armed it, because what another place is watching would otherwise reach here
- * faster than light could carry it. A TIME alarm is never withheld: a
- * universal time names no craft and is the same instant everywhere.
- *
- * Withheld when this screen's vantage is not known yet, and still withheld
- * after the alarm fires: the fire notice travels without delay, so lifting it
- * then would disclose the watched condition at the very instant light could
- * not have.
- */
-export function conditionWithheld(
-  alarm: ForeignScetAlarm,
-  observedVantage: string | undefined,
-): boolean {
-  if (alarm.condition?.kind === "time") return false;
-  return observedVantage === undefined || observedVantage !== alarm.armedBy;
-}
-
 function ForeignAlarmRow({
   alarm,
   withheld,
@@ -837,7 +817,9 @@ function ForeignAlarmRow({
   onDisarm: () => void;
 }) {
   const [confirming, setConfirming] = useState(false);
-  const label = withheld ? `Armed at ${alarm.armedBy}` : alarm.name || alarm.id;
+  const nameOf = useVantageName();
+  const armedBy = alarm.armedBy ? nameOf(alarm.armedBy) : "an unnamed vantage";
+  const label = withheld ? `Armed at ${armedBy}` : alarm.name || alarm.id;
   return (
     <Card
       as="li"
@@ -893,7 +875,7 @@ function ForeignAlarmRow({
           ? "Condition withheld at this vantage"
           : describeForeignCondition(alarm, contexts)}
       </RowMeta>
-      <RowMeta>Armed by {alarm.armedBy || "an unnamed vantage"}</RowMeta>
+      <RowMeta>Armed by {armedBy}</RowMeta>
     </Card>
   );
 }

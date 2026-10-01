@@ -9,7 +9,10 @@ import type { Alarm } from "./types";
  * out of the tracker once acknowledged so the same alarm firing again
  * later still chimes.
  */
-export function useFireBeep(alarms: readonly Alarm[]): void {
+export function useFireBeep(
+  alarms: readonly Alarm[],
+  foreignFiredIds: readonly string[] = [],
+): void {
   // Seed from the initial alarms so a hot reload (or any other remount)
   // with a still-fired alarm in localStorage doesn't replay the chime.
   // Only ids that transition into firing/fired *after* mount should beep.
@@ -18,7 +21,8 @@ export function useFireBeep(alarms: readonly Alarm[]): void {
     firedIdsRef.current = new Set(
       alarms
         .filter((a) => a.state === "firing" || a.state === "fired")
-        .map((a) => a.id),
+        .map((a) => a.id)
+        .concat(foreignFiredIds),
     );
   }
   useEffect(() => {
@@ -31,9 +35,13 @@ export function useFireBeep(alarms: readonly Alarm[]): void {
         if (!seen.has(a.id)) justFired.push(a.id);
       }
     }
+    for (const id of foreignFiredIds) {
+      stillRelevant.add(id);
+      if (!seen.has(id)) justFired.push(id);
+    }
     firedIdsRef.current = stillRelevant;
     if (justFired.length > 0) playAlarmTone();
-  }, [alarms]);
+  }, [alarms, foreignFiredIds]);
 }
 
 export function playAlarmTone(): void {
