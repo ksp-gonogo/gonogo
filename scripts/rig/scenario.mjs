@@ -42,7 +42,7 @@ import { appendFile, mkdir, readFile, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { chromium } from "@playwright/test";
-import { gameFrame, input, ssh } from "./deck.mjs";
+import { gameFrame, input, ssh, verifyInputReaches } from "./deck.mjs";
 import { sendCommand } from "./sitrep-command.mjs";
 import { TopicWatch } from "./topics.mjs";
 
@@ -123,6 +123,19 @@ async function main() {
     console.log(JSON.stringify(line));
     await appendFile(logPath, `${JSON.stringify(line)}\n`);
   };
+
+  // #759: a scenario with `input` steps is worthless if XTest stopped
+  // reaching the game, and it fails silently (every step "succeeds", nothing
+  // in the game moves) unless something checks first. Skip only for a
+  // scenario that never sends input, or with --no-input-check (driving the
+  // Sitrep command surface deliberately, input known broken).
+  const usesInput = (scenario.steps ?? []).some(
+    (step) => step.input !== undefined,
+  );
+  if (usesInput && flags["input-check"] !== false) {
+    const result = await verifyInputReaches(out);
+    await log({ inputCheck: "passed", openedFraction: result.openedFraction });
+  }
 
   const watch = new TopicWatch(`ws://${host}:${port}`);
   for (const topic of scenario.topics ?? []) watch.subscribe(topic);
