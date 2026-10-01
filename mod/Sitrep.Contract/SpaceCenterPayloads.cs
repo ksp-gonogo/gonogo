@@ -265,12 +265,14 @@ public class CrewRosterEntry
     [SitrepUnit(Units.Flag)]
     public bool? IsApplicant { get; set; }
 
-    /// <summary>Courage, 0 to 1 (<c>ProtoCrewMember.courage</c>).</summary>
+    /// <summary>Courage, 0 to 1 (<c>ProtoCrewMember.courage</c>), fixed when the kerbal is hired.</summary>
     [SitrepUnit(Units.Ratio)]
+    [SitrepStatic]
     public double? Courage { get; set; }
 
-    /// <summary>Stupidity, 0 to 1 (<c>ProtoCrewMember.stupidity</c>).</summary>
+    /// <summary>Stupidity, 0 to 1 (<c>ProtoCrewMember.stupidity</c>), fixed when the kerbal is hired.</summary>
     [SitrepUnit(Units.Ratio)]
+    [SitrepStatic]
     public double? Stupidity { get; set; }
 
     /// <summary>Raw experience points (<c>ProtoCrewMember.experience</c>), 0 for a fresh applicant.</summary>

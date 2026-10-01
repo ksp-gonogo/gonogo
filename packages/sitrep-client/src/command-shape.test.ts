@@ -23,7 +23,7 @@ describe("commandDelayed", () => {
     expect(commandDelayed("ksp.revertToLaunch")).toBe(false);
     expect(commandDelayed("ksp.toTrackingStation")).toBe(false);
     expect(commandDelayed("ksp.toSpaceCenter")).toBe(false);
-    expect(commandDelayed("ksp.flyVessel")).toBe(false);
+    expect(commandDelayed("ksp.switchVessel")).toBe(false);
   });
 
   it("exempts a presentation choice, which sends nothing anywhere", () => {

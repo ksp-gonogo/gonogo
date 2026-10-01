@@ -76,7 +76,7 @@ describe("LaunchDirector in the Tracking Station", () => {
     );
   });
 
-  it("lists the fleet without asteroids and sends ksp.flyVessel with the stable id", async () => {
+  it("lists the fleet without asteroids and sends ksp.switchVessel with the stable id", async () => {
     const user = userEvent.setup();
     renderWidget();
     await emitTrackingStation();
@@ -85,7 +85,7 @@ describe("LaunchDirector in the Tracking Station", () => {
     expect(screen.queryByText("Asteroid XYZ")).not.toBeInTheDocument();
     await user.click(screen.getByText("Mun Lander"));
     await waitFor(() =>
-      expect(sent("ksp.flyVessel")[0]).toMatchObject({
+      expect(sent("ksp.switchVessel")[0]).toMatchObject({
         args: { vesselId: "guid-a" },
         vantage: "meta",
       }),

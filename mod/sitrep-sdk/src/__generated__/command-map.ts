@@ -66,7 +66,6 @@ import type {
   DeactivateStrategyArgs,
   ExperimentActionArgs,
   FireCrewArgs,
-  FlyVesselArgs,
   HireApplicantArgs,
   InvokePartActionArgs,
   LaunchArgs,
@@ -115,7 +114,6 @@ export interface GeneratedCommandArgsMap {
   "commcast.message.ack": CommcastMessageAckArgs;
   "commcast.message.send": CommcastMessageSendArgs;
   "commcast.radio.transmit": CommcastRadioTransmitArgs;
-  "ksp.flyVessel": FlyVesselArgs;
   "ksp.launch": LaunchArgs;
   "ksp.recover": NoCommandArgs;
   "ksp.revertToEditor": RevertToEditorArgs;
@@ -177,7 +175,6 @@ export interface GeneratedCommandReplyMap {
   "commcast.message.ack": CommandResult;
   "commcast.message.send": CommandResult;
   "commcast.radio.transmit": CommandResult;
-  "ksp.flyVessel": CommandResult;
   "ksp.launch": CommandResult;
   "ksp.recover": CommandResult;
   "ksp.revertToEditor": CommandResult;
@@ -249,7 +246,6 @@ export const GENERATED_COMMAND_REPLY_TYPES = {
   "commcast.message.ack": "CommandResult",
   "commcast.message.send": "CommandResult",
   "commcast.radio.transmit": "CommandResult",
-  "ksp.flyVessel": "CommandResult",
   "ksp.launch": "CommandResult",
   "ksp.recover": "CommandResult",
   "ksp.revertToEditor": "CommandResult",
@@ -349,7 +345,6 @@ export const GENERATED_COMMAND_RAIL = {
   "commcast.message.ack": { replies: true, delayed: false },
   "commcast.message.send": { replies: true, delayed: false },
   "commcast.radio.transmit": { replies: true, delayed: false },
-  "ksp.flyVessel": { replies: true, delayed: false },
   "ksp.launch": { replies: true, delayed: false },
   "ksp.recover": { replies: true, delayed: false },
   "ksp.revertToEditor": { replies: true, delayed: false },
@@ -411,7 +406,6 @@ export const GENERATED_COMMAND_IDS = [
   "commcast.message.ack",
   "commcast.message.send",
   "commcast.radio.transmit",
-  "ksp.flyVessel",
   "ksp.launch",
   "ksp.recover",
   "ksp.revertToEditor",

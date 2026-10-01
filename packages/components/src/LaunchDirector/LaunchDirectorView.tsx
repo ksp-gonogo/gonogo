@@ -84,7 +84,6 @@ export function LaunchDirectorComponent({
     revertEditorCmd,
     toTrackingCmd,
     toSpaceCenterCmd,
-    flyCmd,
     switchCmd,
   } = useLaunchCommands();
 
@@ -192,7 +191,7 @@ export function LaunchDirectorComponent({
             {inTrackingStation ? (
               <TrackingStationPanel
                 toSpaceCenterCmd={toSpaceCenterCmd}
-                flyCmd={flyCmd}
+                switchCmd={switchCmd}
               />
             ) : inFlight ? (
               <InFlightPanel

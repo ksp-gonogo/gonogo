@@ -35,6 +35,11 @@ public class RevertToEditorArgs
 /// uses), resolved server-side against <c>FlightGlobals.Vessels</c>, never a
 /// roster array index. An empty id fails with
 /// <see cref="CommandErrorCode.NotFound"/> before the game is ever touched.
+/// Works from the flight scene, where it changes the active vessel, and from
+/// the Tracking Station, where it saves and then loads the vessel's flight.
+/// Refused with <see cref="CommandErrorCode.WrongScene"/> in any other scene,
+/// and with <see cref="CommandErrorCode.NotClearToProceed"/> for a vessel that
+/// is not tracked as ours.
 /// </summary>
 /// <category>Command arguments</category>
 [SitrepContract]
@@ -45,28 +50,6 @@ public class RevertToEditorArgs
 public class SwitchVesselArgs
 {
     /// <summary>The vessel to switch to: KSP's <c>Vessel.id</c> guid as a string, as <c>system.vessels</c> carries it.</summary>
-    [SitrepUnit(Units.Id)]
-    public string VesselId { get; set; } = "";
-}
-
-/// <summary>
-/// <c>ksp.flyVessel</c>'s args: the Tracking Station's Fly button. The STABLE
-/// opaque vessel id (<c>vessel.id.ToString()</c>, as <c>system.vessels</c>
-/// carries it), resolved server-side. An empty id fails with
-/// <see cref="CommandErrorCode.NotFound"/> before the game is ever touched.
-/// Refused with <see cref="CommandErrorCode.WrongScene"/> outside the Tracking
-/// Station, and with <see cref="CommandErrorCode.NotClearToProceed"/> for a
-/// vessel that is not tracked as ours.
-/// </summary>
-/// <category>Command arguments</category>
-[SitrepContract]
-#if SITREP_CODEGEN
-[TsInterface]
-#endif
-[SitrepCommand("ksp.flyVessel", Delay = DelayRole.TrueNow)]
-public class FlyVesselArgs
-{
-    /// <summary>The vessel to fly: KSP's <c>Vessel.id</c> guid as a string, as <c>system.vessels</c> carries it.</summary>
     [SitrepUnit(Units.Id)]
     public string VesselId { get; set; } = "";
 }

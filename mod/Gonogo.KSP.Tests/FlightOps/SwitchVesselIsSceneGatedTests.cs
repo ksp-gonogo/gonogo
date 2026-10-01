@@ -4,7 +4,7 @@ using Xunit;
 namespace Gonogo.KSP.Tests.FlightOps
 {
     /// <summary>
-    /// <c>ksp.switchVessel</c> refuses outside the flight scene before it
+    /// <c>ksp.switchVessel</c> refuses outside the flight scene and the Tracking Station before it
     /// touches the game, read off the shipped source because
     /// <see cref="Gonogo.KSP.KspFlightOpsActuator"/> reaches
     /// <c>HighLogic</c> and <c>FlightGlobals</c> and none of it runs headlessly.
@@ -26,11 +26,11 @@ namespace Gonogo.KSP.Tests.FlightOps
         {
             var body = SwitchVesselBody();
 
-            var gate = body.IndexOf("if (!HighLogic.LoadedSceneIsFlight)", System.StringComparison.Ordinal);
+            var gate = body.IndexOf("if (!inFlight && scene != GameScenes.TRACKSTATION)", System.StringComparison.Ordinal);
             var roster = body.IndexOf("FlightGlobals.Vessels", System.StringComparison.Ordinal);
             var call = body.IndexOf("FlightGlobals.SetActiveVessel(", System.StringComparison.Ordinal);
 
-            Assert.True(gate >= 0, "SwitchVessel must refuse outside the flight scene");
+            Assert.True(gate >= 0, "SwitchVessel must refuse outside the flight scene and the Tracking Station");
             Assert.True(call >= 0);
             Assert.True(gate < roster && gate < call, "the scene gate must come before anything reads or moves a vessel");
         }
@@ -45,7 +45,7 @@ namespace Gonogo.KSP.Tests.FlightOps
             var body = SwitchVesselBody();
 
             Assert.Contains(
-                "CommandErrorCode.WrongScene, $\"the game is in the {GameWords.Phrase(HighLogic.LoadedScene)} scene\"",
+                "CommandErrorCode.WrongScene, $\"the game is in the {GameWords.Phrase(scene)} scene\"",
                 body);
         }
     }

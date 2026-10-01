@@ -3263,7 +3263,11 @@ export interface RevertToEditorArgs
 * (`vessel.id.ToString()`, the same id `SetTargetArgs.vesselId` uses),
 * resolved server-side against `FlightGlobals.Vessels`, never a roster array
 * index. An empty id fails with `CommandErrorCode.NotFound` before the game is
-* ever touched.
+* ever touched. Works from the flight scene, where it changes the active
+* vessel, and from the Tracking Station, where it saves and then loads the
+* vessel's flight. Refused with `CommandErrorCode.WrongScene` in any other
+* scene, and with `CommandErrorCode.NotClearToProceed` for a vessel that is
+* not tracked as ours.
 *
 * @category Command arguments
 */
@@ -3272,24 +3276,6 @@ export interface SwitchVesselArgs
 	/**
 	* The vessel to switch to: KSP's `Vessel.id` guid as a string, as
 	* `system.vessels` carries it.
-	*/
-	vesselId: string;
-}
-/**
-* `ksp.flyVessel`'s args: the Tracking Station's Fly button. The STABLE opaque
-* vessel id (`vessel.id.ToString()`, as `system.vessels` carries it), resolved
-* server-side. An empty id fails with `CommandErrorCode.NotFound` before the
-* game is ever touched. Refused with `CommandErrorCode.WrongScene` outside the
-* Tracking Station, and with `CommandErrorCode.NotClearToProceed` for a vessel
-* that is not tracked as ours.
-*
-* @category Command arguments
-*/
-export interface FlyVesselArgs
-{
-	/**
-	* The vessel to fly: KSP's `Vessel.id` guid as a string, as `system.vessels`
-	* carries it.
 	*/
 	vesselId: string;
 }
@@ -6434,9 +6420,12 @@ export interface CrewRosterEntry
 	* know which channel it is reading.
 	*/
 	isApplicant?: boolean | null;
-	/** Courage, 0 to 1 (`ProtoCrewMember.courage`). */
+	/** Courage, 0 to 1 (`ProtoCrewMember.courage`), fixed when the kerbal is hired. */
 	courage?: Value<"ratio"> | null;
-	/** Stupidity, 0 to 1 (`ProtoCrewMember.stupidity`). */
+	/**
+	* Stupidity, 0 to 1 (`ProtoCrewMember.stupidity`), fixed when the kerbal is
+	* hired.
+	*/
 	stupidity?: Value<"ratio"> | null;
 	/**
 	* Raw experience points (`ProtoCrewMember.experience`), 0 for a fresh

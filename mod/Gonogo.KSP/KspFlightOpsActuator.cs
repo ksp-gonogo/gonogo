@@ -227,63 +227,6 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// The Tracking Station's own Fly button: <c>SpaceTracking.FlyVessel</c>
-        /// saves, then <c>FlightDriver.StartAndFocusVessel("persistent", index)</c>
-        /// with the vessel's index in <c>FlightGlobals.Vessels</c>. Refused
-        /// outside the Tracking Station (<see cref="CommandErrorCode.WrongScene"/>),
-        /// for a vessel that does not resolve (<see cref="CommandErrorCode.NotFound"/>),
-        /// for one that is not <c>DiscoveryLevels.Owned</c> (stock posts a screen
-        /// message and does nothing), and where
-        /// <c>Parameters.TrackingStation.CanFlyVessel</c> is off or the game is a
-        /// mission builder, the two cases stock hides or ignores the button.
-        ///
-        /// <para>The index is read after the save returns, so it is the one the
-        /// written file was ordered by, and the load goes through
-        /// <see cref="SceneExitRule"/> exactly as the scene exits do.</para>
-        /// </summary>
-        public CommandResult FlyVessel(string vesselId)
-        {
-            if (HighLogic.LoadedScene != GameScenes.TRACKSTATION)
-            {
-                return CommandResult.Fail(
-                    CommandErrorCode.WrongScene, $"the game is in the {GameWords.Phrase(HighLogic.LoadedScene)} scene");
-            }
-            if (FlightGlobals.fetch == null)
-            {
-                return CommandResult.Fail(CommandErrorCode.NoVessel);
-            }
-
-            Vessel? found = null;
-            foreach (var candidate in FlightGlobals.Vessels)
-            {
-                if (candidate != null && string.Equals(candidate.id.ToString(), vesselId, StringComparison.OrdinalIgnoreCase))
-                {
-                    found = candidate;
-                    break;
-                }
-            }
-            if (found == null)
-            {
-                return CommandResult.Fail(CommandErrorCode.NotFound);
-            }
-            if (found.DiscoveryInfo != null && found.DiscoveryInfo.Level != DiscoveryLevels.Owned)
-            {
-                return CommandResult.Fail(CommandErrorCode.NotClearToProceed, "the vessel is not tracked as ours");
-            }
-
-            var game = HighLogic.CurrentGame;
-            var destinationRefusal =
-                (game != null && game.Mode == Game.Modes.MISSION_BUILDER) ||
-                (game?.Parameters?.TrackingStation != null && !game.Parameters.TrackingStation.CanFlyVessel)
-                    ? "this game does not permit flying a vessel from the tracking station"
-                    : null;
-
-            return SaveThenLeaveTo(
-                destinationRefusal,
-                () => FlightDriver.StartAndFocusVessel("persistent", FlightGlobals.Vessels.IndexOf(found)));
-        }
-
-        /// <summary>
         /// The save-then-leave shared by the commands that start from a scene
         /// other than the flight scene's own checks: the game and save folder
         /// the write needs, the arm <c>ClearToSave</c> names while a flight is up,
@@ -342,34 +285,44 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// Makes the vessel with the given STABLE id the active vessel via
-        /// <c>FlightGlobals.SetActiveVessel(Vessel)</c>. The opaque
-        /// <paramref name="vesselId"/> is resolved server-side by scanning
+        /// Makes the vessel with the given STABLE id the one being flown. The
+        /// opaque <paramref name="vesselId"/> is resolved server-side by scanning
         /// <c>FlightGlobals.Vessels</c> and matching <c>vessel.id.ToString()</c>,
-        /// the identical resolution
-        /// <see cref="KspVesselActuator.SetTarget"/> uses, so the client never
-        /// needs (or supplies) a live roster index.
+        /// the identical resolution <see cref="KspVesselActuator.SetTarget"/>
+        /// uses, so the client never needs (or supplies) a live roster index.
+        /// Refused in any scene but the flight scene and the Tracking Station
+        /// (<see cref="CommandErrorCode.WrongScene"/>), before anything is touched.
         ///
-        /// <para><c>FlightGlobals.setActiveVessel</c> switches on
-        /// <c>FlightGlobals.ClearToSave()</c> arm by arm, then adds one more
-        /// refusal for a vessel that is not <c>DiscoveryLevels.Owned</c>. A
-        /// <c>false</c> return discards which of the six it was, so the arm is
-        /// read back here to name it.</para>
+        /// <para>In flight, <c>FlightGlobals.SetActiveVessel(Vessel)</c>:
+        /// <c>setActiveVessel</c> switches on <c>FlightGlobals.ClearToSave()</c>
+        /// arm by arm, then adds one more refusal for a vessel that is not
+        /// <c>DiscoveryLevels.Owned</c>. A <c>false</c> return discards which of
+        /// the six it was, so the arm is read back here to name it.
+        /// <c>SetActiveVessel</c> is a flight-scene call: from the space centre it
+        /// throws partway through, after it has already begun moving the craft,
+        /// and leaves it in a state the game never produces (landed, yet moving
+        /// over the ground at speed and not rotating with the body).</para>
         ///
-        /// <para>Refuses outside the flight scene
-        /// (<see cref="CommandErrorCode.WrongScene"/>), before anything is
-        /// touched. <c>SetActiveVessel</c> is a flight-scene call: from the space
-        /// centre it throws partway through, after it has already begun moving
-        /// the craft, and leaves it in a state the game never produces (landed,
-        /// yet moving over the ground at speed and not rotating with the
-        /// body).</para>
+        /// <para>In the Tracking Station, the Fly button's own path:
+        /// <c>SpaceTracking.FlyVessel</c> saves, then
+        /// <c>FlightDriver.StartAndFocusVessel("persistent", index)</c> with the
+        /// vessel's index in <c>FlightGlobals.Vessels</c>. A vessel that is not
+        /// <c>DiscoveryLevels.Owned</c> is refused (stock posts a screen message
+        /// and does nothing), as is a game where
+        /// <c>Parameters.TrackingStation.CanFlyVessel</c> is off or that is a
+        /// mission builder, the two cases stock hides or ignores the button. The
+        /// index is read after the save returns, so it is the one the written file
+        /// was ordered by, and the load goes through <see cref="SceneExitRule"/>
+        /// exactly as the scene exits do.</para>
         /// </summary>
         public CommandResult SwitchVessel(string vesselId)
         {
-            if (!HighLogic.LoadedSceneIsFlight)
+            var scene = HighLogic.LoadedScene;
+            var inFlight = HighLogic.LoadedSceneIsFlight;
+            if (!inFlight && scene != GameScenes.TRACKSTATION)
             {
                 return CommandResult.Fail(
-                    CommandErrorCode.WrongScene, $"the game is in the {GameWords.Phrase(HighLogic.LoadedScene)} scene");
+                    CommandErrorCode.WrongScene, $"the game is in the {GameWords.Phrase(scene)} scene");
             }
 
             var fetch = FlightGlobals.fetch;
@@ -392,9 +345,28 @@ namespace Gonogo.KSP
                 return CommandResult.Fail(CommandErrorCode.NotFound);
             }
 
-            return FlightGlobals.SetActiveVessel(found)
-                ? CommandResult.Ok()
-                : CommandResult.Fail(CommandErrorCode.NotClearToProceed, SwitchRefusalReason(found));
+            if (inFlight)
+            {
+                return FlightGlobals.SetActiveVessel(found)
+                    ? CommandResult.Ok()
+                    : CommandResult.Fail(CommandErrorCode.NotClearToProceed, SwitchRefusalReason(found));
+            }
+
+            if (found.DiscoveryInfo != null && found.DiscoveryInfo.Level != DiscoveryLevels.Owned)
+            {
+                return CommandResult.Fail(CommandErrorCode.NotClearToProceed, "the vessel is not tracked as ours");
+            }
+
+            var game = HighLogic.CurrentGame;
+            var destinationRefusal =
+                (game != null && game.Mode == Game.Modes.MISSION_BUILDER) ||
+                (game?.Parameters?.TrackingStation != null && !game.Parameters.TrackingStation.CanFlyVessel)
+                    ? "this game does not permit flying a vessel from the tracking station"
+                    : null;
+
+            return SaveThenLeaveTo(
+                destinationRefusal,
+                () => FlightDriver.StartAndFocusVessel("persistent", FlightGlobals.Vessels.IndexOf(found)));
         }
 
         /// <summary>

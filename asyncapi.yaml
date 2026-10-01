@@ -1,10 +1,10 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 27.5.0
+  version: 27.6.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 78 telemetry
-    channels a client subscribes to, and 59 commands it dispatches, with the payload
+    channels a client subscribes to, and 58 commands it dispatches, with the payload
     schema and the contract's own prose for each.
 
     **Generated.** Emitted by `scripts/asyncapi-doc.mjs` from the committed
@@ -176,7 +176,7 @@ info:
     - name: isru
       description: 2 telemetry channels, 0 commands
     - name: ksp
-      description: 1 telemetry channel, 8 commands
+      description: 1 telemetry channel, 7 commands
     - name: parts
       description: 1 telemetry channel, 0 commands
     - name: recovery
@@ -1423,27 +1423,6 @@ channels:
         $ref: "#/components/messages/streamData.isru.drills"
       event:
         $ref: "#/components/messages/event"
-  ksp.flyVessel:
-    address: ksp.flyVessel
-    description: |-
-      Takes `FlyVesselArgs`.
-
-      **Not delayed.** This command takes effect immediately, because it is ground-side bookkeeping rather than a signal to a craft.
-
-      `ksp.flyVessel`'s args: the Tracking Station's Fly button. The STABLE opaque
-      vessel id (`vessel.id.ToString()`, as `system.vessels` carries it), resolved
-      server-side. An empty id fails with `CommandErrorCode.NotFound` before the
-      game is ever touched. Refused with `CommandErrorCode.WrongScene` outside the
-      Tracking Station, and with `CommandErrorCode.NotClearToProceed` for a vessel
-      that is not tracked as ours.
-    servers:
-      - $ref: "#/servers/mod"
-    x-sitrep-delayed: false
-    messages:
-      commandRequest:
-        $ref: "#/components/messages/commandRequest.ksp.flyVessel"
-      commandResponse:
-        $ref: "#/components/messages/commandResponse.ksp.flyVessel"
   ksp.launch:
     address: ksp.launch
     description: |-
@@ -1590,7 +1569,11 @@ channels:
       (`vessel.id.ToString()`, the same id `SetTargetArgs.vesselId` uses),
       resolved server-side against `FlightGlobals.Vessels`, never a roster array
       index. An empty id fails with `CommandErrorCode.NotFound` before the game is
-      ever touched.
+      ever touched. Works from the flight scene, where it changes the active
+      vessel, and from the Tracking Station, where it saves and then loads the
+      vessel's flight. Refused with `CommandErrorCode.WrongScene` in any other
+      scene, and with `CommandErrorCode.NotClearToProceed` for a vessel that is
+      not tracked as ours.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delayed: false
@@ -3838,20 +3821,6 @@ operations:
         $ref: "#/channels/commcast.radio.transmit"
       messages:
         - $ref: "#/channels/commcast.radio.transmit/messages/commandResponse"
-  dispatch:ksp.flyVessel:
-    action: send
-    channel:
-      $ref: "#/channels/ksp.flyVessel"
-    title: Dispatch ksp.flyVessel
-    tags:
-      - name: ksp
-    messages:
-      - $ref: "#/channels/ksp.flyVessel/messages/commandRequest"
-    reply:
-      channel:
-        $ref: "#/channels/ksp.flyVessel"
-      messages:
-        - $ref: "#/channels/ksp.flyVessel/messages/commandResponse"
   dispatch:ksp.launch:
     action: send
     channel:
@@ -5565,21 +5534,6 @@ components:
                 const: commcast.radio.transmit
               args:
                 $ref: "#/components/schemas/CommcastRadioTransmitArgs"
-    commandRequest.ksp.flyVessel:
-      name: command-request
-      title: Dispatch ksp.flyVessel
-      contentType: application/json
-      correlationId:
-        $ref: "#/components/correlationIds/requestId"
-      payload:
-        description: The `command-request` envelope for `ksp.flyVessel`, with its typed `args`.
-        allOf:
-          - $ref: "#/components/schemas/CommandRequest"
-          - properties:
-              command:
-                const: ksp.flyVessel
-              args:
-                $ref: "#/components/schemas/FlyVesselArgs"
     commandRequest.ksp.launch:
       name: command-request
       title: Dispatch ksp.launch
@@ -6413,19 +6367,6 @@ components:
         $ref: "#/components/correlationIds/requestId"
       payload:
         description: The `command-response` envelope for `commcast.radio.transmit`, with its typed `result`.
-        allOf:
-          - $ref: "#/components/schemas/CommandResponse"
-          - properties:
-              result:
-                $ref: "#/components/schemas/CommandResult"
-    commandResponse.ksp.flyVessel:
-      name: command-response
-      title: Reply to ksp.flyVessel
-      contentType: application/json
-      correlationId:
-        $ref: "#/components/correlationIds/requestId"
-      payload:
-        description: The `command-response` envelope for `ksp.flyVessel`, with its typed `result`.
         allOf:
           - $ref: "#/components/schemas/CommandResponse"
           - properties:
@@ -11971,13 +11912,15 @@ components:
             - number
             - "null"
           x-sitrep-unit: ratio
-          description: Courage, 0 to 1 (`ProtoCrewMember.courage`).
+          description: Courage, 0 to 1 (`ProtoCrewMember.courage`), fixed when the kerbal is hired.
         stupidity:
           type:
             - number
             - "null"
           x-sitrep-unit: ratio
-          description: Stupidity, 0 to 1 (`ProtoCrewMember.stupidity`).
+          description: |-
+            Stupidity, 0 to 1 (`ProtoCrewMember.stupidity`), fixed when the kerbal is
+            hired.
         experience:
           type:
             - number
@@ -13271,24 +13214,6 @@ components:
           type: number
           x-sitrep-unit: ut
           description: Universal time of the switch.
-    FlyVesselArgs:
-      type: object
-      description: |-
-        `ksp.flyVessel`'s args: the Tracking Station's Fly button. The STABLE opaque
-        vessel id (`vessel.id.ToString()`, as `system.vessels` carries it), resolved
-        server-side. An empty id fails with `CommandErrorCode.NotFound` before the
-        game is ever touched. Refused with `CommandErrorCode.WrongScene` outside the
-        Tracking Station, and with `CommandErrorCode.NotClearToProceed` for a vessel
-        that is not tracked as ours.
-      required:
-        - vesselId
-      properties:
-        vesselId:
-          type: string
-          x-sitrep-unit: id
-          description: |-
-            The vessel to fly: KSP's `Vessel.id` guid as a string, as `system.vessels`
-            carries it.
     FuelCellEntry:
       type: object
       description: |-
@@ -17849,7 +17774,11 @@ components:
         (`vessel.id.ToString()`, the same id `SetTargetArgs.vesselId` uses),
         resolved server-side against `FlightGlobals.Vessels`, never a roster array
         index. An empty id fails with `CommandErrorCode.NotFound` before the game is
-        ever touched.
+        ever touched. Works from the flight scene, where it changes the active
+        vessel, and from the Tracking Station, where it saves and then loads the
+        vessel's flight. Refused with `CommandErrorCode.WrongScene` in any other
+        scene, and with `CommandErrorCode.NotClearToProceed` for a vessel that is
+        not tracked as ours.
       required:
         - vesselId
       properties:

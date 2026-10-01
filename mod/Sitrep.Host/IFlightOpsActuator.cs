@@ -54,8 +54,6 @@ namespace Sitrep.Host
 
         CommandResult ToSpaceCenter();
 
-        CommandResult FlyVessel(string vesselId);
-
         CommandResult SwitchVessel(string vesselId);
 
         CommandResult Recover();

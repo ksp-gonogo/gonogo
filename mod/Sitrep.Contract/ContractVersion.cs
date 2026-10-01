@@ -2136,7 +2136,7 @@ namespace Sitrep.Contract
         /// on and why not. Additive, so an Uplink built against 27.1 is unaffected.</para>
         ///
         /// <para><b>Major-27 line, Bumped 2 -&gt; 3:</b> <c>ksp.toSpaceCenter</c> (no args)
-        /// and <c>ksp.flyVessel</c> (<see cref="FlyVesselArgs"/>), the way out of the Tracking
+        /// and <c>ksp.flyVessel</c>, the way out of the Tracking
         /// Station and its Fly button. Additive, so an Uplink built against 27.2 is unaffected.</para>
         ///
         /// <para><b>Major-27 line, Bumped 3 -&gt; 4:</b> <see cref="SavedShipEntry.File"/>, the
@@ -2147,8 +2147,17 @@ namespace Sitrep.Contract
         /// and <see cref="CommandGate.Items"/>, the per-item verdicts of a gate that depends on
         /// which item is chosen, and <see cref="ICommandGateItems"/>, which names the items an
         /// evaluator can be asked about. Additive, so an Uplink built against 27.4 is unaffected.</para>
+        ///
+        /// <para><b>Major-27 line, Bumped 5 -&gt; 6:</b> <c>ksp.flyVessel</c> and its
+        /// <c>FlyVesselArgs</c> are removed and <c>ksp.switchVessel</c> now also works from the
+        /// Tracking Station, taking over the Fly button's behaviour there. The pre-release mod has
+        /// no external Uplink sending <c>ksp.flyVessel</c>, so the removal rides a Minor.</para>
+        ///
+        /// <para>The same bump marks <see cref="CrewRosterEntry.Courage"/> and
+        /// <see cref="CrewRosterEntry.Stupidity"/> <see cref="SitrepStaticAttribute"/>, both
+        /// fixed when a kerbal is hired.</para>
         /// </internal>
         /// </summary>
-        public const int Minor = 5;
+        public const int Minor = 6;
     }
 }

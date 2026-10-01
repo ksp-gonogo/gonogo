@@ -103,14 +103,14 @@ namespace Gonogo.KSP.Tests.FlightOps
                 CurrencyDelaySourceText.ReadRelative("KspFlightOpsActuator.cs"), signature);
 
         /// <summary>
-        /// <c>ksp.toSpaceCenter</c> and <c>ksp.flyVessel</c> leave through the
+        /// <c>ksp.toSpaceCenter</c> and <c>ksp.switchVessel</c> (from the Tracking Station) leave through the
         /// same rule, via the one helper that holds the single save, so neither
         /// can reach a scene load or a save of its own.
         /// </summary>
         [Fact]
         public void TheOtherSceneMovesLeaveThroughTheSameRule()
         {
-            foreach (var signature in new[] { "public CommandResult ToSpaceCenter()", "public CommandResult FlyVessel(string vesselId)" })
+            foreach (var signature in new[] { "public CommandResult ToSpaceCenter()", "public CommandResult SwitchVessel(string vesselId)" })
             {
                 var body = Body(signature);
 
@@ -142,11 +142,11 @@ namespace Gonogo.KSP.Tests.FlightOps
         }
 
         [Fact]
-        public void FlyVesselRefusesWhatStockRefusesAndLoadsTheSavedIndex()
+        public void SwitchVesselFromTheTrackingStationRefusesWhatStockRefusesAndLoadsTheSavedIndex()
         {
-            var body = Body("public CommandResult FlyVessel(string vesselId)");
+            var body = Body("public CommandResult SwitchVessel(string vesselId)");
 
-            Assert.Contains("HighLogic.LoadedScene != GameScenes.TRACKSTATION", body);
+            Assert.Contains("scene != GameScenes.TRACKSTATION", body);
             Assert.Contains("DiscoveryLevels.Owned", body);
             Assert.Contains("CanFlyVessel", body);
             Assert.Contains("MISSION_BUILDER", body);

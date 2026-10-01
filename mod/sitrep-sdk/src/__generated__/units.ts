@@ -676,9 +676,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     vesselId: "id",
     vesselName: "text",
   },
-  "FlyVesselArgs": {
-    vesselId: "id",
-  },
   "FuelCellEntry": {
     active: "flag",
     partId: "id",
@@ -2837,11 +2834,13 @@ export const GENERATED_TOPIC_ENUMS: Readonly<Record<string, EnumsByField>> = {
 export const GENERATED_TYPE_STATICS: Readonly<Record<string, readonly string[]>> = {
   "AtmosphereEntry": ["depth", "hasOxygen", "pressureAltitudes", "pressures", "seaLevelPressure"],
   "BodyEntry": ["gravParameter", "hasOcean", "initialRotation", "mass", "radius", "rotationPeriod", "surfaceGravity", "tidallyLocked"],
+  "CrewRosterEntry": ["courage", "stupidity"],
   "VesselPart": ["maxTemp", "skinMaxTemp"],
 };
 
 /** The same, keyed by Topic id. */
 export const GENERATED_TOPIC_STATICS: Readonly<Record<string, readonly string[]>> = {
+  "spaceCenter.crewRoster": ["courage", "stupidity"],
 };
 
 /** Each enum an `enum` field names, as its wire value to member name. */

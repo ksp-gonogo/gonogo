@@ -22,10 +22,10 @@ import { VESSEL_TYPE_LABELS } from "./vesselTypeLabels";
  */
 export function TrackingStationPanel({
   toSpaceCenterCmd,
-  flyCmd,
+  switchCmd,
 }: {
   toSpaceCenterCmd: CommandButtonHandle;
-  flyCmd: CommandButtonHandle;
+  switchCmd: CommandButtonHandle;
 }) {
   const [flyOpen, setFlyOpen] = useState(false);
   // The roster changes on events, so the last one received still lists the fleet.
@@ -64,7 +64,7 @@ export function TrackingStationPanel({
               type="button"
               onClick={() => {
                 setFlyOpen(false);
-                void flyCmd.send({ vesselId: v.vesselId });
+                void switchCmd.send({ vesselId: v.vesselId });
               }}
             >
               <VesselSwitchName>

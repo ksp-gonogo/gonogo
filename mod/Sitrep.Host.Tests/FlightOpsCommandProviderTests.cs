@@ -106,29 +106,6 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
-        public void HandleFlyVesselPassesTheVesselIdThrough()
-        {
-            var actuator = new FakeFlightOpsActuator();
-
-            var result = FlightOpsCommandProvider.HandleFlyVessel(actuator, new FlyVesselArgs { VesselId = "guid-7" });
-
-            Assert.Equal("guid-7", actuator.LastFlyVesselId);
-            Assert.True(result.Success);
-        }
-
-        [Fact]
-        public void HandleFlyVesselRejectsAnEmptyIdBeforeEverCallingTheActuator()
-        {
-            var actuator = new FakeFlightOpsActuator();
-
-            var result = FlightOpsCommandProvider.HandleFlyVessel(actuator, new FlyVesselArgs { VesselId = "" });
-
-            Assert.False(result.Success);
-            Assert.Equal(CommandErrorCode.NotFound, result.ErrorCode);
-            Assert.Null(actuator.LastFlyVesselId);
-        }
-
-        [Fact]
         public void HandleSwitchVesselPassesTheVesselIdThrough()
         {
             var actuator = new FakeFlightOpsActuator();
