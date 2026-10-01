@@ -47,6 +47,7 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.test-d.json && tsc -p tsconfig.scripts.json",
+    "render:line-graph-reckoning": "node scripts/render-line-graph-reckoning.ts",
     "render:meter-bands": "node scripts/render-meter-bands.ts",
     "render:unit-currency": "node scripts/render-unit-currency.ts",
     "render:band-ladder": "node scripts/render-band-ladder.ts",

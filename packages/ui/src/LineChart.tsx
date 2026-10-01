@@ -1,13 +1,13 @@
 import type {
   BandKind,
   PlotLayer,
-  ReckoningBasis,
   SeriesBridge,
   SeriesStatusSpan,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   bandClaim,
   InstrumentHeldMark,
+  reckoningBasisPhrase,
   resolveCurrency,
   sayHeld,
   type UnitValue,
@@ -187,14 +187,6 @@ const RECKONED_DASHARRAY = "5 3";
 /** An uncertainty region takes its own series' colour so a two-series chart still says whose it is. */
 const RECKONED_BAND_OPACITY = 0.15;
 const RECKONED_BAND_EDGE_OPACITY = 0.45;
-
-const RECKONING_BASIS_PHRASE: Record<ReckoningBasis, string> = {
-  // A combination joins readings of one moment; it never advances a value through time.
-  combination: "computed from several readings of the same moment",
-  "kepler-propagation": "propagated forward on two-body motion",
-  "linear-dead-reckoning": "carried forward at the last observed velocity",
-  "rate-integration": "integrated forward at the last observed rate",
-};
 
 function bandKindPhrase(kind: BandKind): string {
   return bandClaim(kind, "the value is inside the shaded region");
@@ -528,7 +520,7 @@ export function LineChart({
     const bases = new Set([...runs.map((run) => run.basis), ...modelled]);
     const clauses = [...bases].map(
       (basis) =>
-        `${s.label}: part of this trace is reckoned, ${RECKONING_BASIS_PHRASE[basis]}, not measured`,
+        `${s.label}: part of this trace is reckoned, ${reckoningBasisPhrase(basis)}, not measured`,
     );
     const kinds = new Set(
       runs

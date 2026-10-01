@@ -1,4 +1,9 @@
+import type {
+  ReckoningBasis,
+  SeriesReckonedSpan,
+} from "@ksp-gonogo/sitrep-sdk";
 import styled from "styled-components";
+import { reckoningBasisPhrase } from "./reckoningBasisPhrase";
 
 /**
  * One line on a {@link LineGraph}.
@@ -8,7 +13,7 @@ import styled from "styled-components";
 export interface LineGraphSeries {
   /** Unique within the graph; used as the line's React key. */
   id: string;
-  /** Name of this line, for the caller's own bookkeeping. Not rendered; the chart's accessible name is the graph's `ariaLabel`. */
+  /** Names this line in the chart's accessible name when part of it is reckoned. Not drawn; falls back to `id`. */
   label?: string;
   /** CSS colour for the stroke, e.g. `var(--color-nogo-mark)`. */
   color: string;
@@ -21,6 +26,14 @@ export interface LineGraphSeries {
    * readings would look like data.
    */
   breaks?: readonly number[];
+  /**
+   * Runs of `points` that a model carried forward rather than measured, by
+   * index (`from` and `to` inclusive). Each is drawn muted and dashed in the
+   * series' own colour, never recoloured, and the chart's accessible name says
+   * how it was reckoned. A run's `bandLo`, `bandHi` and `bandKind` are accepted
+   * and not drawn yet.
+   */
+  reckoned?: readonly SeriesReckonedSpan[];
 }
 
 /**
@@ -117,13 +130,51 @@ function computeDomain(
   return [min - span * 0.08, max + span * 0.08];
 }
 
+/** A reckoned run is muted, never recoloured; 0.6 keeps series colours above 3:1 against the surface. */
+const RECKONED_STROKE_OPACITY = 0.6;
+const RECKONED_DASHARRAY = "5 3";
+
+type TaggedPoint = { x: number; y: number; basis?: ReckoningBasis };
+
+/** Each point's reckoning basis, absent for a measured one. Runs may name indices a trimmed window no longer has, so they are clamped. */
+function tagPoints(s: LineGraphSeries): TaggedPoint[] {
+  const basisAt: Array<ReckoningBasis | undefined> = new Array(s.points.length);
+  for (const run of s.reckoned ?? []) {
+    const last = Math.min(s.points.length - 1, run.to);
+    for (let i = Math.max(0, run.from); i <= last; i++) basisAt[i] = run.basis;
+  }
+  return s.points.map((p, i) => ({ x: p.x, y: p.y, basis: basisAt[i] }));
+}
+
+/**
+ * One unbroken run cut again where the reckoning basis changes, each piece
+ * taking the previous piece's last point so the stroke stays joined.
+ */
+function splitAtBasis(
+  run: ReadonlyArray<TaggedPoint>,
+): Array<{ basis?: ReckoningBasis; points: ReadonlyArray<TaggedPoint> }> {
+  const out: Array<{
+    basis?: ReckoningBasis;
+    points: ReadonlyArray<TaggedPoint>;
+  }> = [];
+  let start = 0;
+  for (let i = 1; i <= run.length; i++) {
+    if (i === run.length || run[i].basis !== run[start].basis) {
+      const from = start > 0 ? start - 1 : start;
+      out.push({ basis: run[start].basis, points: run.slice(from, i) });
+      start = i;
+    }
+  }
+  return out;
+}
+
 /**
  * One series' points cut into unbroken runs at its `breaks` indices.
  */
-function splitAtBreaks(
-  points: ReadonlyArray<{ x: number; y: number }>,
+function splitAtBreaks<Point extends { x: number; y: number }>(
+  points: ReadonlyArray<Point>,
   breaks: readonly number[] | undefined,
-): Array<ReadonlyArray<{ x: number; y: number }>> {
+): Array<ReadonlyArray<Point>> {
   // A sample that is not a finite number is a hole, the same as a stated break.
   const holes = points.flatMap((p, i) =>
     Number.isFinite(p.x) && Number.isFinite(p.y) ? [] : [i],
@@ -138,7 +189,7 @@ function splitAtBreaks(
     return splitAtBreaks(finite, shifted);
   }
   if (!breaks || breaks.length === 0) return [points];
-  const runs: Array<ReadonlyArray<{ x: number; y: number }>> = [];
+  const runs: Array<ReadonlyArray<Point>> = [];
   const cuts = [...new Set(breaks)]
     .filter((i) => i > 0 && i < points.length)
     .sort((a, b) => a - b);
@@ -211,9 +262,22 @@ export function LineGraph({
   const ySpan = yMax - yMin || 1;
   const xSpan = xMax - xMin || 1;
   const isSparkline = variant === "sparkline";
+  const tagged = series.map(tagPoints);
 
   const toX = (x: number) => ((x - xMin) / xSpan) * VIEW_W;
   const toY = (y: number) => VIEW_H - ((y - yMin) / ySpan) * VIEW_H;
+
+  const chartLabel = ariaLabel
+    ? [
+        ariaLabel,
+        ...series.flatMap((s) =>
+          [...new Set((s.reckoned ?? []).map((run) => run.basis))].map(
+            (basis) =>
+              `${s.label ?? s.id}: part of this trace is reckoned, ${reckoningBasisPhrase(basis)}, not measured`,
+          ),
+        ),
+      ].join("; ")
+    : undefined;
 
   return (
     <LineGraph__Root className={className} style={{ height }}>
@@ -223,7 +287,7 @@ export function LineGraph({
         width="100%"
         height="100%"
         role={ariaLabel ? "img" : undefined}
-        aria-label={ariaLabel}
+        aria-label={chartLabel}
         aria-hidden={ariaLabel ? undefined : "true"}
       >
         {!isSparkline &&
@@ -241,11 +305,11 @@ export function LineGraph({
           ))}
 
         {isSparkline &&
-          series.map((s) => {
+          series.map((s, si) => {
             // Fewer than two points draws nothing, as for the stroke.
             if (s.points.length < 2) return null;
             // One polygon per unbroken run, so a hole leaves unshaded ground.
-            return splitAtBreaks(s.points, s.breaks).map((run) => {
+            return splitAtBreaks(tagged[si], s.breaks).map((run) => {
               if (run.length < 2) return null;
               const first = run[0];
               const last = run[run.length - 1];
@@ -281,28 +345,41 @@ export function LineGraph({
             />
           ))}
 
-        {series.map((s) => {
+        {series.map((s, si) => {
           if (s.points.length < 2) return null;
           /*
-           * One polyline per unbroken run, keyed on its own first x, since run
-           * boundaries move as data slides through the window.
+           * One polyline per unbroken run and per basis within it, keyed on its
+           * own first x, since run boundaries move as data slides through the window.
            */
-          return splitAtBreaks(s.points, s.breaks).map((run) => {
-            if (run.length < 2) return null;
-            const points = run.map((p) => `${toX(p.x)},${toY(p.y)}`).join(" ");
-            return (
-              <polyline
-                key={`${s.id}-${run[0].x}`}
-                points={points}
-                fill="none"
-                stroke={s.color}
-                strokeWidth={isSparkline ? 1 : 1.4}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                vectorEffect="non-scaling-stroke"
-              />
-            );
-          });
+          return splitAtBreaks(tagged[si], s.breaks).flatMap((run) =>
+            splitAtBasis(run).map((piece) => {
+              if (piece.points.length < 2) return null;
+              const points = piece.points
+                .map((p) => `${toX(p.x)},${toY(p.y)}`)
+                .join(" ");
+              return (
+                <polyline
+                  key={`${s.id}-${piece.points[0].x}`}
+                  points={points}
+                  data-reckoning-basis={piece.basis}
+                  fill="none"
+                  stroke={s.color}
+                  strokeWidth={isSparkline ? 1 : 1.4}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeOpacity={
+                    piece.basis !== undefined
+                      ? RECKONED_STROKE_OPACITY
+                      : undefined
+                  }
+                  strokeDasharray={
+                    piece.basis !== undefined ? RECKONED_DASHARRAY : undefined
+                  }
+                  vectorEffect="non-scaling-stroke"
+                />
+              );
+            }),
+          );
         })}
       </svg>
 
