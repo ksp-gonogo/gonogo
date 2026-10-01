@@ -29,11 +29,11 @@ export interface BlockAnatomyProps {
    */
   titleRight?: ReactNode;
   /**
-   * Content beside the body, on the left. Reflows to a full-width row ABOVE the
-   * body when there is no room for both.
+   * Content beside the title and body, on the left. Reflows to a full-width row
+   * ABOVE the title when there is no room for both.
    */
   left?: ReactNode;
-  /** Content beside the body, on the right. Reflows BELOW the body when narrow. */
+  /** Content beside the title and body, on the right. Reflows BELOW the body when narrow. */
   right?: ReactNode;
   /** Content across the top, above the title. Already stacked, so it never moves. */
   top?: ReactNode;
@@ -123,7 +123,8 @@ const Block__Middle = styled.div`
 `;
 
 /**
- * What the asides sit beside. `--block-body-floor` is the width below which the
+ * What the side asides sit beside: the title row and the body, as one column,
+ * so an aside spans both. `--block-body-floor` is the width below which the
  * body stops sharing a line; a zero basis would shrink forever and never wrap.
  */
 const Block__Body = styled.div`
@@ -164,8 +165,8 @@ export const Block__Root = styled.div`
 `;
 
 /**
- * Renders the anatomy inside whichever root it is handed. Children are direct
- * children of the root while there is no side aside, so a caller may restyle
+ * Renders the anatomy inside whichever root it is handed. The title row and
+ * children are direct children of the root while there is no side aside, so a caller may restyle
  * the root's flex direction.
  */
 export function renderBlockAnatomy(
@@ -186,22 +187,28 @@ export function renderBlockAnatomy(
 ): ReactNode {
   const hasTitleRow = title != null || titleLeft != null || titleRight != null;
   const hasSideAside = left != null || right != null;
+  const heading = hasTitleRow && (
+    <Block__TitleRow left={titleLeft} right={titleRight}>
+      {title != null && <Block__Title as={titleAs}>{title}</Block__Title>}
+    </Block__TitleRow>
+  );
   return (
     <Root {...rest}>
       {top != null && <Block__Aside $side={false}>{top}</Block__Aside>}
-      {hasTitleRow && (
-        <Block__TitleRow left={titleLeft} right={titleRight}>
-          <Block__Title as={titleAs}>{title}</Block__Title>
-        </Block__TitleRow>
-      )}
       {hasSideAside ? (
         <Block__Middle>
           {left != null && <Block__Aside $side>{left}</Block__Aside>}
-          <Block__Body>{children}</Block__Body>
+          <Block__Body>
+            {heading}
+            {children}
+          </Block__Body>
           {right != null && <Block__Aside $side>{right}</Block__Aside>}
         </Block__Middle>
       ) : (
-        children
+        <>
+          {heading}
+          {children}
+        </>
       )}
       {footer != null && <Block__Footer>{footer}</Block__Footer>}
       {bottom != null && <Block__Aside $side={false}>{bottom}</Block__Aside>}

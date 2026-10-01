@@ -90,6 +90,18 @@ describe("Card", () => {
     );
   });
 
+  it("lets a side aside span the title row as well as the body", () => {
+    render(
+      <Card title="Bill Kerman" left={<span>avatar</span>}>
+        <span>O2 4h12m</span>
+      </Card>,
+    );
+    const column = screen.getByText("Bill Kerman").closest("div")
+      ?.parentElement?.parentElement;
+    expect(column).toContainElement(screen.getByText("O2 4h12m"));
+    expect(column).not.toContainElement(screen.getByText("avatar"));
+  });
+
   it("takes the rendered tag from `as`", () => {
     render(
       <ul>

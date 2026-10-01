@@ -98,6 +98,15 @@ export function renderRoster({
             // The row's identity for assistive tech while its visible name is suppressed.
             aria-label={suppressName ? name : undefined}
             /* The avatar is a visual, so it sits in a framed left aside; the aside sets the frame's corner. */
+            title={suppressName ? undefined : <Truncate>{name}</Truncate>}
+            titleRight={
+              <Inline>
+                <AugmentSlot
+                  name="crew-status.row-badges"
+                  props={{ crewName: name, crewIndex: index }}
+                />
+              </Inline>
+            }
             left={
               avatarBound ? (
                 <CrewAvatarCell
@@ -116,23 +125,6 @@ export function renderRoster({
               ) : undefined
             }
           >
-            {/* Composed in the body, not via `title`, so the avatar aside sits beside the name rather than under it. The name's `flex: 1 1 auto` lets a trailing badge wrap instead of truncating it. */}
-            <Card.TitleRow
-              right={
-                <Inline>
-                  <AugmentSlot
-                    name="crew-status.row-badges"
-                    props={{ crewName: name, crewIndex: index }}
-                  />
-                </Inline>
-              }
-            >
-              {!suppressName && (
-                <Card.Title>
-                  <Truncate style={NAME_FLEX_STYLE}>{name}</Truncate>
-                </Card.Title>
-              )}
-            </Card.TitleRow>
             <WidgetMeters row={name} style={CREW_METERS_STYLE} />
           </Card>
         );
@@ -149,9 +141,6 @@ const AVATAR_LAYER_STYLE = {
   alignItems: "center",
   justifyContent: "center",
 } as const;
-
-/** Lets a trailing badge wrap rather than shrinking the name into an ellipsis. */
-const NAME_FLEX_STYLE = { flex: "1 1 auto" } as const;
 
 /** Indents a row's contributed meters under the kerbal's name, and keeps a gap
  *  before the next roster row. Carried on the stack itself rather than on a
