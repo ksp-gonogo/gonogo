@@ -11,8 +11,12 @@ dist
 **/dist
 .turbo
 **/.turbo
+# Coverage OUTPUT sits at a package root. Never **/coverage: the sdk's
+# src/api/coverage and the app's src/coverage are source.
 coverage
-**/coverage
+packages/*/coverage
+mod/*/coverage
+mod/*/client/coverage
 
 # Git + editor + OS noise.
 .git
@@ -30,15 +34,15 @@ coverage
 .env.*
 !.env.example
 
-# Tests + fixtures aren't needed at image build time.
+# Tests aren't needed at image build time. Fixtures are: uplink-tools'
+# build reads every widget's __fixtures__ to write its widget manifest.
 **/*.test.ts
 **/*.test.tsx
 **/__tests__
-**/__fixtures__
 
-# Docs + scripts the images don't need. We deliberately leave other
-# packages' sources in the context so pnpm's frozen-lockfile workspace
-# resolution stays consistent: the heavy parts (node_modules, dist) are
-# already excluded above, so the residual upload is tiny.
+# Docs the images don't need. scripts/ stays in the context: package builds
+# call root scripts (prune-dist.mjs, gen-version.mjs and others), and the
+# whole folder is under 1 MB. We deliberately leave other packages' sources
+# in the context so pnpm's frozen-lockfile workspace resolution stays
+# consistent: the heavy parts (node_modules, dist) are already excluded above.
 local_docs
-scripts

@@ -32,6 +32,8 @@ RUN pnpm install --frozen-lockfile --filter @ksp-gonogo/relay...
 # uses NodeNext + explicit .js extensions, relay's source likewise).
 COPY packages/logger/ packages/logger/
 COPY packages/relay/ packages/relay/
+# Both builds end in ../../scripts/prune-dist.mjs.
+COPY scripts/ scripts/
 
 RUN pnpm --filter @ksp-gonogo/logger build
 RUN pnpm --filter @ksp-gonogo/relay build
