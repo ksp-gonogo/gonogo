@@ -51,7 +51,7 @@ describe("commandFoundSentence", () => {
         },
       }),
     ).toBe(
-      "Hire Valentina Kerman: found refused. the Astronaut Complex holds 16 of 16 active crew.",
+      "Hire Valentina Kerman: found refused. The Astronaut Complex holds 16 of 16 active crew.",
     );
   });
 

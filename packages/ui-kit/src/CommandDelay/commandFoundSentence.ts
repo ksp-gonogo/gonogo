@@ -100,11 +100,12 @@ export function commandFoundSentence(found: CommandFoundLike): string {
 
 /**
  * `Hire Valentina Kerman refused: the Astronaut Complex holds 16 of 16 active
- * crew.` -> `the Astronaut Complex holds 16 of 16 active crew.`, since the
- * found sentence already opens with the subject. Case is kept, so the game's
- * proper nouns survive.
+ * crew.` -> `The Astronaut Complex holds 16 of 16 active crew.`, since the
+ * found sentence already opens with the subject. Only the first letter is
+ * raised, so the game's proper nouns survive and the clause starts a sentence.
  */
 function stripSubject(sentence: string): string {
   const at = sentence.indexOf(": ");
-  return at === -1 ? sentence : sentence.slice(at + 2);
+  const clause = at === -1 ? sentence : sentence.slice(at + 2);
+  return clause.charAt(0).toUpperCase() + clause.slice(1);
 }
