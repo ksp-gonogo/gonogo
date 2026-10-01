@@ -1,8 +1,10 @@
 import { AugmentSlot } from "@ksp-gonogo/core";
+import type { VesselRosterEntry } from "@ksp-gonogo/sitrep-sdk";
 import type { CommandButtonHandle } from "@ksp-gonogo/ui-kit";
 import { ArmedButton } from "./ArmedButton";
 import { CrewPicker } from "./CrewPicker";
 import { type CrewMember, crewReading } from "./crew";
+import { FlyVesselMenu } from "./FlyVesselMenu";
 import {
   type LaunchSiteEntry,
   occupancyText,
@@ -53,6 +55,9 @@ interface PadSectionProps {
   launchCmd: CommandButtonHandle;
   recoverCmd: CommandButtonHandle;
   revertEditorCmd: CommandButtonHandle;
+  switchCmd: CommandButtonHandle;
+  /** The fleet the operator can fly from here, none when the roster has not arrived. */
+  flyable: readonly VesselRosterEntry[];
   slotContext: LaunchDirectorSlotContext;
 }
 
@@ -62,9 +67,21 @@ interface PadSectionProps {
  * pad's picker is the craft list narrowed to this site's editor.
  */
 export function PadSection(props: PadSectionProps) {
-  const { pads, activePad, onPickPad, awayBodies, funds, slotContext } = props;
+  const {
+    pads,
+    activePad,
+    onPickPad,
+    awayBodies,
+    funds,
+    slotContext,
+    flyable,
+    switchCmd,
+  } = props;
   return (
     <>
+      {flyable.length > 0 && (
+        <FlyVesselMenu vessels={flyable} switchCmd={switchCmd} />
+      )}
       <SectionLabel>Pads</SectionLabel>
       {pads.length === 0 ? (
         <EmptyNote>No launch sites reported</EmptyNote>

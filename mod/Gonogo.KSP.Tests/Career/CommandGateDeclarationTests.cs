@@ -197,6 +197,9 @@ namespace Gonogo.KSP.Tests.Career
             Assert.Empty(GateDeclarations.For("ksp.toTrackingStation"));
             Assert.Single(GateDeclarations.For("ksp.toSpaceCenter"));
             Assert.Single(GateDeclarations.For("ksp.switchVessel"));
+            Assert.Equal(
+                "FLIGHT|TRACKSTATION|SPACECENTER|EDITOR",
+                GateDeclarations.For("ksp.switchVessel")[0].Quantity);
             Assert.Empty(GateDeclarations.For("no.such.command"));
         }
     }

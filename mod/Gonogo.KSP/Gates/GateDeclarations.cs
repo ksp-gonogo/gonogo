@@ -137,7 +137,7 @@ namespace Gonogo.KSP.Gates
             };
 
             // Leaving for the space centre, and switching to a vessel (which from the
-            // Tracking Station is a scene load), are scene moves: the scene is askable with no arguments,
+            // Tracking Station, the Space Center and an editor is a scene load), are scene moves: the scene is askable with no arguments,
             // so the control is dark with the scene named rather than live and
             // doomed. The permission flags and the save are the actuator's.
             table[FlightOpsCommandProvider.ToSpaceCenterCommand] = new[]
@@ -146,7 +146,7 @@ namespace Gonogo.KSP.Gates
             };
             table[FlightOpsCommandProvider.SwitchVesselCommand] = new[]
             {
-                CareerGates.Scene(GameScenes.FLIGHT, GameScenes.TRACKSTATION),
+                CareerGates.Scene(GameScenes.FLIGHT, GameScenes.TRACKSTATION, GameScenes.SPACECENTER, GameScenes.EDITOR),
             };
 
             // Recovery is destructive and KSP will not do it while the craft is

@@ -290,8 +290,9 @@ namespace Gonogo.KSP
         /// <c>FlightGlobals.Vessels</c> and matching <c>vessel.id.ToString()</c>,
         /// the identical resolution <see cref="KspVesselActuator.SetTarget"/>
         /// uses, so the client never needs (or supplies) a live roster index.
-        /// Refused in any scene but the flight scene and the Tracking Station
-        /// (<see cref="CommandErrorCode.WrongScene"/>), before anything is touched.
+        /// Refused in any scene with no game to switch in, the main menu and the
+        /// loading screens (<see cref="CommandErrorCode.WrongScene"/>), before
+        /// anything is touched.
         ///
         /// <para>In flight, <c>FlightGlobals.SetActiveVessel(Vessel)</c>:
         /// <c>setActiveVessel</c> switches on <c>FlightGlobals.ClearToSave()</c>
@@ -314,12 +315,21 @@ namespace Gonogo.KSP
         /// index is read after the save returns, so it is the one the written file
         /// was ordered by, and the load goes through <see cref="SceneExitRule"/>
         /// exactly as the scene exits do.</para>
+        ///
+        /// <para>From the Space Center, where stock's Fly marker takes the same
+        /// save-then-load (<c>KSCVesselMarkers.FlyVessel</c>), and from an editor,
+        /// it is the same path with the same refusals. Any vessel the Tracking
+        /// Station flies, the other scenes fly. Leaving an editor writes the craft
+        /// being built to the backup stock keeps on every editor exit, so
+        /// nothing unsaved is dropped, and honours
+        /// <c>Parameters.Editor.CanLeaveToSpaceCenter</c>.</para>
         /// </summary>
         public CommandResult SwitchVessel(string vesselId)
         {
             var scene = HighLogic.LoadedScene;
             var inFlight = HighLogic.LoadedSceneIsFlight;
-            if (!inFlight && scene != GameScenes.TRACKSTATION)
+            var inEditor = scene == GameScenes.EDITOR;
+            if (!inFlight && !inEditor && scene != GameScenes.SPACECENTER && scene != GameScenes.TRACKSTATION)
             {
                 return CommandResult.Fail(
                     CommandErrorCode.WrongScene, $"the game is in the {GameWords.Phrase(scene)} scene");
@@ -358,15 +368,54 @@ namespace Gonogo.KSP
             }
 
             var game = HighLogic.CurrentGame;
-            var destinationRefusal =
+            var flyRefusal =
                 (game != null && game.Mode == Game.Modes.MISSION_BUILDER) ||
                 (game?.Parameters?.TrackingStation != null && !game.Parameters.TrackingStation.CanFlyVessel)
-                    ? "this game does not permit flying a vessel from the tracking station"
+                    ? "this game does not permit flying a vessel from here"
                     : null;
+            var editorRefusal =
+                inEditor && game?.Parameters?.Editor != null && !game.Parameters.Editor.CanLeaveToSpaceCenter
+                    ? "this game does not permit leaving the editor"
+                    : null;
+            var destinationRefusal = flyRefusal ?? editorRefusal;
+
+            if (inEditor && destinationRefusal == null)
+            {
+                var notKept = KeepCraftBeingBuilt();
+                if (notKept != null)
+                {
+                    return notKept;
+                }
+            }
 
             return SaveThenLeaveTo(
                 destinationRefusal,
                 () => FlightDriver.StartAndFocusVessel("persistent", FlightGlobals.Vessels.IndexOf(found)));
+        }
+
+        /// <summary>
+        /// Writes the editor's craft to the backup stock keeps on every editor
+        /// exit (<c>ShipConstruction.CreateBackup</c>), so switching away never
+        /// drops a craft that has not been saved. Null when it is kept or when
+        /// there is no craft to keep.
+        /// </summary>
+        private static CommandResult? KeepCraftBeingBuilt()
+        {
+            try
+            {
+                var ship = EditorLogic.fetch != null ? EditorLogic.fetch.ship : null;
+                if (ship != null && ship.parts.Count > 0)
+                {
+                    ShipConstruction.CreateBackup(ship);
+                }
+                return null;
+            }
+            catch (Exception ex)
+            {
+                return CommandResult.Fail(
+                    CommandErrorCode.ModeUnavailable,
+                    "the craft being built could not be kept, so the editor was not left (" + ex.Message + ")");
+            }
         }
 
         /// <summary>

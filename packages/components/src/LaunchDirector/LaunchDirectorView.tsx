@@ -1,6 +1,6 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import { useGameContext, useTelemetry } from "@ksp-gonogo/core";
-import { stillTrue } from "@ksp-gonogo/sitrep-sdk";
+import { stillTrue, VesselType } from "@ksp-gonogo/sitrep-sdk";
 import { Panel, Section, Unit } from "@ksp-gonogo/ui-kit";
 import { useMemo, useState } from "react";
 import { magnitudeOf } from "../shared/magnitude";
@@ -59,6 +59,14 @@ export function LaunchDirectorComponent({
   const awayBodies = useMemo(
     () => awayBodyNames(bodies?.bodies ?? []),
     [bodies],
+  );
+  const roster = stillTrue(useTelemetry("system.vessels"), undefined);
+  const flyable = useMemo(
+    () =>
+      (roster?.vessels ?? []).filter(
+        (v) => v.vesselType !== VesselType.SpaceObject,
+      ),
+    [roster],
   );
   /**
    * The balance decides which craft are launchable, and that verdict is spent,
@@ -241,6 +249,8 @@ export function LaunchDirectorComponent({
                 launchCmd={launchCmd}
                 recoverCmd={recoverCmd}
                 revertEditorCmd={revertEditorCmd}
+                switchCmd={switchCmd}
+                flyable={flyable}
                 slotContext={slotContext}
               />
             )}

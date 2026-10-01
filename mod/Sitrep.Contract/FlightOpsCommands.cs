@@ -36,10 +36,12 @@ public class RevertToEditorArgs
 /// roster array index. An empty id fails with
 /// <see cref="CommandErrorCode.NotFound"/> before the game is ever touched.
 /// Works from the flight scene, where it changes the active vessel, and from
-/// the Tracking Station, where it saves and then loads the vessel's flight.
-/// Refused with <see cref="CommandErrorCode.WrongScene"/> in any other scene,
-/// and with <see cref="CommandErrorCode.NotClearToProceed"/> for a vessel that
-/// is not tracked as ours.
+/// the Space Center, the Tracking Station and the editors, where it saves and
+/// then loads the vessel's flight; leaving an editor keeps the craft being
+/// built. Refused with <see cref="CommandErrorCode.WrongScene"/> where there is
+/// no game to switch in (the main menu, the loading screens), and with
+/// <see cref="CommandErrorCode.NotClearToProceed"/> for a vessel that is not
+/// tracked as ours.
 /// </summary>
 /// <category>Command arguments</category>
 [SitrepContract]
