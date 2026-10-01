@@ -130,8 +130,14 @@ namespace Gonogo.KSP
         /// A craft's name as the player sees it in game, for anything that names
         /// it to an operator. A craft with no name at all is <c>Vessel</c>.
         /// </summary>
-        public static string VesselName(Vessel vessel) =>
-            string.IsNullOrEmpty(vessel.vesselName) ? "Vessel" : Name(vessel.vesselName, vessel.vesselName);
+        public static string VesselName(Vessel vessel) => VesselName(vessel.vesselName);
+
+        /// <summary>
+        /// The same, for a stored craft name read off a <c>ProtoVessel</c> or an
+        /// event that carries only the string.
+        /// </summary>
+        public static string VesselName(string? stored) =>
+            string.IsNullOrEmpty(stored) ? "Vessel" : Name(stored!, stored!);
 
         /// <summary>
         /// A launch site as the player sees it in game, by the id a launch names

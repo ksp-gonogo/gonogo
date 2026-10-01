@@ -620,7 +620,7 @@ namespace Gonogo.KSP
             var parentBody = orbit?.referenceBody;
             return new Dictionary<string, object?>
             {
-                ["name"] = vessel.vesselName,
+                ["name"] = GameWords.VesselName(vessel),
                 ["vesselType"] = vessel.vesselType.ToString(),
                 ["id"] = vessel.id.ToString(),
                 ["situation"] = vessel.situation.ToString(),
@@ -1839,7 +1839,7 @@ namespace Gonogo.KSP
             var entry = new Dictionary<string, object?>
             {
                 ["id"] = vessel.id.ToString(),
-                ["name"] = vessel.vesselName,
+                ["name"] = GameWords.VesselName(vessel),
                 ["vesselType"] = vessel.vesselType.ToString(),
                 ["situation"] = vessel.situation.ToString(),
                 ["mainBody"] = body != null ? body.bodyName : null,
@@ -3246,7 +3246,7 @@ namespace Gonogo.KSP
                     continue;
                 }
 
-                saved.Add(new SiteVessel(proto.landedAt, proto.vesselName, proto.vesselType <= VesselType.Debris));
+                saved.Add(new SiteVessel(proto.landedAt, GameWords.VesselName(proto.vesselName), proto.vesselType <= VesselType.Debris));
             }
 
             return saved;
@@ -5189,7 +5189,7 @@ namespace Gonogo.KSP
                     continue;
                 }
 
-                var vesselName = vessel.vesselName;
+                var vesselName = GameWords.VesselName(vessel);
                 var situation = vessel.situation.ToString();
                 var orbit = vessel.orbitDriver != null ? vessel.orbitDriver.orbit : null;
                 var body = orbit?.referenceBody;
@@ -6984,7 +6984,7 @@ namespace Gonogo.KSP
             Emit("vessel-change", new Dictionary<string, object?>
             {
                 ["vesselId"] = vessel != null ? vessel.id.ToString() : null,
-                ["vesselName"] = vessel != null ? vessel.vesselName : null,
+                ["vesselName"] = vessel != null ? GameWords.VesselName(vessel) : null,
             });
         }
 
