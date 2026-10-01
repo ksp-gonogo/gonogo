@@ -84,6 +84,19 @@ case "$EVENT_NAME" in
       log "push to the ci-dev fold lane, using the merge base with origin/staging"
       git fetch --no-tags --quiet origin staging || true
       base="$(git merge-base "$head_sha" FETCH_HEAD 2>/dev/null || true)"
+      # A re-run after the forwarder carried this very commit onto staging: the
+      # merge base is then the commit under test and grades nothing. The push
+      # range the run originally covered is still github.event.before, so use
+      # it, but only while it descends into HEAD (see above for why it is not
+      # trusted otherwise).
+      if { [ -z "$base" ] || [ "$base" = "$head_sha" ]; } &&
+        [ -n "$PUSH_BEFORE" ] && [ "$PUSH_BEFORE" != "$ZERO_SHA" ] &&
+        git cat-file -e "${PUSH_BEFORE}^{commit}" 2>/dev/null &&
+        [ "$(git rev-parse "${PUSH_BEFORE}^{commit}")" != "$head_sha" ] &&
+        git merge-base --is-ancestor "$PUSH_BEFORE" "$head_sha"; then
+        log "staging already holds this commit, using the tip before the push: $PUSH_BEFORE"
+        base="$PUSH_BEFORE"
+      fi
     elif [ -n "$PUSH_BEFORE" ] && [ "$PUSH_BEFORE" != "$ZERO_SHA" ] &&
       git cat-file -e "${PUSH_BEFORE}^{commit}" 2>/dev/null; then
       log "push, using the tip before it: $PUSH_BEFORE"
