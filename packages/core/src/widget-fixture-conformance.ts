@@ -235,11 +235,19 @@ export interface FixturePayload {
   where: string;
 }
 
+interface StreamEmitShape {
+  topic?: string;
+  channel?: string;
+  payload?: unknown;
+  value?: unknown;
+}
+
 /**
  * The payloads one parsed fixture publishes.
  *
  * Two shapes, because the harness feeds two: `_stream.emits[]` carries the
- * Sitrep stream (`payload` on a Topic, `value` on a channel), and every
+ * Sitrep stream (`payload` on a Topic, `value` on a channel), as do the emits
+ * inside `_stream.answers`, which a sent command sets off, and every
  * remaining top-level key is a legacy `DataSource` key. Both end up in front of
  * the same widget through the same hooks, so a legacy key named after a
  * declared topic is making the same claim about the wire as an emit is, and is
@@ -258,12 +266,8 @@ export function fixturePayloads(fixture: unknown): FixturePayload[] {
       : undefined
   ) as
     | {
-        emits?: Array<{
-          topic?: string;
-          channel?: string;
-          payload?: unknown;
-          value?: unknown;
-        }>;
+        emits?: Array<StreamEmitShape>;
+        answers?: Record<string, Array<{ emits?: Array<StreamEmitShape> }>>;
       }
     | undefined;
   (stream?.emits ?? []).forEach((emit, index) => {
@@ -275,6 +279,20 @@ export function fixturePayloads(fixture: unknown): FixturePayload[] {
       where: `_stream.emits[${index}]`,
     });
   });
+
+  for (const [command, cases] of Object.entries(stream?.answers ?? {})) {
+    cases.forEach((answer, caseIndex) => {
+      (answer.emits ?? []).forEach((emit, index) => {
+        const topic = emit.topic ?? emit.channel;
+        if (!topic) return;
+        out.push({
+          topic,
+          payload: emit.payload ?? emit.value,
+          where: `_stream.answers["${command}"][${caseIndex}].emits[${index}]`,
+        });
+      });
+    });
+  }
 
   for (const [key, value] of Object.entries(raw)) {
     if (HARNESS_KEYS.has(key) || key.startsWith("_")) continue;

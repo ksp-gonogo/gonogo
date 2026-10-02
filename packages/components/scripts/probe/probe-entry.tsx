@@ -63,6 +63,7 @@ import {
   type StreamFixture,
   setupStreamFixture,
 } from "../../src/test/setupStreamFixture";
+import { type CommandAnswers, installCommandAnswers } from "./commandAnswers";
 import { mountGridCell } from "./gridCell";
 import type { ProbePayload, ProbeSeriesSample } from "./payload";
 /*
@@ -101,6 +102,14 @@ export interface StreamFixtureBlock {
   delaySeconds?: number;
   /** Replayed in order, one `StubTransport.emit` per entry, post-mount. */
   emits: StreamEmit[];
+  /**
+   * What the craft does when a command is sent, by command name: the emits that
+   * follow it, optionally after a delay. Without it the stub answers every
+   * command with nothing, so a control that reads its state back from telemetry
+   * never visibly changes. The scene shows a command sent and then the stream
+   * moving, never a local flip.
+   */
+  answers?: CommandAnswers;
   /**
    * Stage the scene as HELD: once every emit has landed and the tree has
    * settled, drop the transport and mint a frame, so the shot is of a widget
@@ -278,10 +287,12 @@ interface MountState {
   stream: StreamFixture | undefined;
   disposed: boolean;
   beside: boolean;
+  cancelAnswers?: () => void;
 }
 
 function teardownMount(state: MountState): void {
   state.disposed = true;
+  state.cancelAnswers?.();
   state.root?.unmount();
   state.root = null;
   state.stream = undefined;
@@ -397,6 +408,12 @@ async function mountInto(
         })
       : undefined;
   state.stream = streamFixture;
+  if (streamFixture && streamBlock?.answers) {
+    state.cancelAnswers = installCommandAnswers(
+      streamFixture,
+      streamBlock.answers,
+    );
+  }
 
   const fixtureKeys = Object.keys(payload.fixture).filter(
     (k) => !k.startsWith("_"),

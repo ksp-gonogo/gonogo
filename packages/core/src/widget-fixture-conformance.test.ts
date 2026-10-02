@@ -486,6 +486,35 @@ describe("the widget-fixture check can fail", () => {
     }
   });
 
+  it("reads the emits a sent command sets off as payloads too", () => {
+    const answered = fixturePayloads({
+      _scene: { widget: "strategies" },
+      _stream: {
+        emits: [],
+        answers: {
+          "career.strategy.activate": [
+            {
+              args: { id: "x" },
+              emits: [
+                {
+                  channel: "career.status",
+                  value: PLANTED_DEFECT["career.status"],
+                },
+              ],
+            },
+          ],
+        },
+      },
+    });
+    expect(answered).toEqual([
+      {
+        topic: "career.status",
+        payload: PLANTED_DEFECT["career.status"],
+        where: '_stream.answers["career.strategy.activate"][0].emits[0]',
+      },
+    ]);
+  });
+
   it("a resolver that knows no topics catches none of it, and reports zero", () => {
     /*
      * The classic false green: an enumeration that matches nothing and reports

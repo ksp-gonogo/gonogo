@@ -4,6 +4,10 @@ import {
   stopArriving,
 } from "@ksp-gonogo/sitrep-sdk/testing";
 import { type ReactNode, useEffect, useState } from "react";
+import {
+  type CommandAnswers,
+  installCommandAnswers,
+} from "../../components/scripts/probe/commandAnswers";
 
 /** One emission onto the stream. */
 export interface FixtureEmit {
@@ -16,6 +20,8 @@ export interface FixtureStreamProps {
   subscribed: readonly string[];
   /** Emitted once the tree has mounted, in order. */
   emits?: readonly FixtureEmit[];
+  /** What the craft does when a command is sent, by command name: the emits that follow it. */
+  answers?: CommandAnswers;
   /** Drop the link after the emits land, so every reading is held. */
   stopsArriving?: boolean;
   /** The view clock's pinned instant. */
@@ -30,6 +36,7 @@ export interface FixtureStreamProps {
 export function FixtureStream({
   subscribed,
   emits = [],
+  answers,
   stopsArriving = false,
   pinnedUt = 1_000_000,
   children,
@@ -39,6 +46,16 @@ export function FixtureStream({
     for (const topic of subscribed) fixture.subscribe(topic);
     return fixture;
   });
+  useEffect(() => {
+    if (!answers) return;
+    return installCommandAnswers(
+      {
+        transport: stream.transport,
+        emit: (topic, payload, meta) => stream.emit(topic, payload, meta),
+      },
+      answers,
+    );
+  }, [stream, answers]);
   useEffect(() => {
     for (const e of emits) stream.emit(e.topic, e.payload);
     if (stopsArriving) stopArriving(stream);
