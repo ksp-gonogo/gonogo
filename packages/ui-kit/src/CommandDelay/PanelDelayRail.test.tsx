@@ -736,7 +736,7 @@ describe("PanelDelayRail", () => {
       store.register(foundHandle("cmd", "ran"));
       inPanel(<PanelDelayRail />, store);
       const announcer = railAnnouncer();
-      expect(announcer).toHaveTextContent(/found executed/i);
+      expect(announcer).toHaveTextContent(/ ran\./i);
       // Polite: assertive is reserved for ABORT.
       expect(announcer).toHaveAttribute("aria-live", "polite");
     });
@@ -749,7 +749,7 @@ describe("PanelDelayRail", () => {
 
       await user.click(screen.getByRole("button", { name: /Signal-delay/ }));
       const list = screen.getByRole("list", { name: /answered/i });
-      expect(list.textContent).toMatch(/found executed/i);
+      expect(list.textContent).toMatch(/ ran\./i);
       // Not "confirmed": an operator who re-sent it needs the two to read differently.
       expect(list.textContent).not.toMatch(/confirmed/i);
     });
@@ -762,8 +762,8 @@ describe("PanelDelayRail", () => {
 
       await user.click(screen.getByRole("button", { name: /Signal-delay/ }));
       const list = screen.getByRole("list", { name: /answered/i });
-      expect(list.textContent).toMatch(/found refused/i);
-      expect(list.textContent).not.toMatch(/found executed/i);
+      expect(list.textContent).toMatch(/was refused/i);
+      expect(list.textContent).not.toMatch(/ ran\./i);
     });
 
     it("says a late error reached the game, which a loss never could", async () => {
@@ -774,7 +774,7 @@ describe("PanelDelayRail", () => {
 
       await user.click(screen.getByRole("button", { name: /Signal-delay/ }));
       const list = screen.getByRole("list", { name: /answered/i });
-      expect(list.textContent).toMatch(/found errored/i);
+      expect(list.textContent).toMatch(/failed: the handler threw/i);
       expect(list.textContent).toMatch(/the handler threw/i);
     });
 

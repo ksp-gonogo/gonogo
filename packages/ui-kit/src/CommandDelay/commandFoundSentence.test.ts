@@ -3,14 +3,14 @@ import { describe, expect, it } from "vitest";
 import { commandFoundSentence } from "./commandFoundSentence";
 
 describe("commandFoundSentence", () => {
-  it("names the subject, the reversal, and that it RAN", () => {
+  it("names the subject and that it RAN", () => {
     expect(
       commandFoundSentence({
         outcome: "ran",
         command: "vessel.control.setSas",
         args: undefined,
       }),
-    ).toBe("Set Sas: found executed after being lost.");
+    ).toBe("Set Sas ran.");
   });
 
   it("never says confirmed, for any outcome", () => {
@@ -51,7 +51,7 @@ describe("commandFoundSentence", () => {
         },
       }),
     ).toBe(
-      "Hire Valentina Kerman: found refused after being lost. The Astronaut Complex holds 16 of 16 active crew.",
+      "Hire Valentina Kerman was refused: the Astronaut Complex holds 16 of 16 active crew.",
     );
   });
 
@@ -74,24 +74,22 @@ describe("commandFoundSentence", () => {
         errorCode: CommandErrorCode.NotClearToProceed,
         detail: "Craft is over the mass limit",
       }),
-    ).toMatch(
-      /found refused after being lost\. Craft is over the mass limit\./,
-    );
+    ).toMatch(/was refused: Craft is over the mass limit\./);
   });
 
-  it("says a late error REACHED the game, which is the found half of it", () => {
+  it("says a late error failed on the far side", () => {
     expect(
       commandFoundSentence({
         outcome: "errored",
         command: "vessel.stage.next",
         error: { code: "E_HANDLER", message: "the handler threw." },
       }),
-    ).toBe("Next: found errored after being lost. The handler threw.");
+    ).toBe("Next failed: the handler threw.");
   });
 
   it("still says something true when a refusal arrives with no reason at all", () => {
     expect(commandFoundSentence({ outcome: "refused", command: "a.b" })).toBe(
-      "B: found refused after being lost.",
+      "B was refused.",
     );
   });
 });

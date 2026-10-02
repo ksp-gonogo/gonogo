@@ -57,28 +57,29 @@ export interface RailFound extends CommandFoundEntry {
 
 /**
  * What the operator is told about a command they were told was lost, which then
- * replied. Never "confirmed": the operator may already have re-sent it, and
- * "found" carries that reversal.
+ * replied: the action, then the outcome, then the reason. The row's own state
+ * already says the reply was lost, so the sentence does not repeat it.
  *
- * - `ran`: it executed. If they re-sent it, it executed twice
- * - `refused`: it arrived and the game said no, in the refusal composer's words
- * - `errored`: it arrived and the machinery broke over there; a retry may work
+ * - `ran`: `Hire Valentina Kerman ran.` If they re-sent it, it ran twice
+ * - `refused`: `Hire Valentina Kerman was refused: the Astronaut Complex holds
+ *   16 of 16 active crew.` The reason is the refusal composer's own words
+ * - `errored`: `Hire Valentina Kerman failed: <reason>.` The machinery broke
+ *   over there; a retry may work
  *
- * No imperative: the rail says what happened and lets the operator decide.
+ * Never "confirmed": the operator may already have re-sent it. No imperative:
+ * the rail says what happened and lets the operator decide.
  *
  * @category CommandDelay
  */
 export function commandFoundSentence(found: CommandFoundLike): string {
   const subject = commandRefusalSubject(found);
   const what = subject || found.command || "The command";
-  const opening = (state: string) =>
-    `${what}: found ${state} after being lost.`;
   if (found.outcome === "refused") {
     // The refusal composer, not a second table of reasons.
-    const clause =
+    const reason =
       found.errorCode === undefined
         ? ""
-        : `${stripSubject(
+        : afterSubject(
             commandRefusalSentence({
               errorCode: found.errorCode,
               reason: found.reason,
@@ -88,26 +89,22 @@ export function commandFoundSentence(found: CommandFoundLike): string {
               breach: found.breach,
               detail: found.detail,
             }),
-          )}`;
-    return clause ? `${opening("refused")} ${clause}` : opening("refused");
+          );
+    return reason ? `${what} was refused: ${reason}` : `${what} was refused.`;
   }
   if (found.outcome === "errored") {
     const said = found.error?.message?.trim().replace(/\.$/, "");
-    return said
-      ? `${opening("errored")} ${said.charAt(0).toUpperCase()}${said.slice(1)}.`
-      : opening("errored");
+    return said ? `${what} failed: ${said}.` : `${what} failed.`;
   }
-  return opening("executed");
+  return `${what} ran.`;
 }
 
 /**
  * `Hire Valentina Kerman refused: the Astronaut Complex holds 16 of 16 active
- * crew.` -> `The Astronaut Complex holds 16 of 16 active crew.`, since the
- * found sentence already opens with the subject. Only the first letter is
- * raised, so the game's proper nouns survive and the clause starts a sentence.
+ * crew.` -> `the Astronaut Complex holds 16 of 16 active crew.`, since the found
+ * sentence supplies its own subject and verb.
  */
-function stripSubject(sentence: string): string {
+function afterSubject(sentence: string): string {
   const at = sentence.indexOf(": ");
-  const clause = at === -1 ? sentence : sentence.slice(at + 2);
-  return clause.charAt(0).toUpperCase() + clause.slice(1);
+  return at === -1 ? sentence : sentence.slice(at + 2);
 }

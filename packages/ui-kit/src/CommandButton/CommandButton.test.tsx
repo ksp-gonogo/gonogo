@@ -1091,11 +1091,11 @@ describe("CommandButton: a lost command that answered after all", () => {
     return { user, send };
   }
 
-  it("says found, and never confirmed, when the lost command answers", async () => {
+  it("says what it did, and never confirmed, when the lost command answers", async () => {
     await loseThenFind();
     const button = screen.getByRole("button");
     expect(button).toHaveAttribute("data-command-phase", "found");
-    expect(button).toHaveTextContent(/found/i);
+    expect(button).toHaveAccessibleName(/ran\./i);
     // Must not read like a confirmation to someone deciding whether to send it again.
     expect(button).not.toHaveTextContent(/confirmed/i);
   });
@@ -1105,7 +1105,7 @@ describe("CommandButton: a lost command that answered after all", () => {
     await loseThenFind();
     const button = screen.getByRole("button");
     const name = button.getAttribute("aria-label") ?? "";
-    expect(name).toMatch(/^Set Sas: found executed after being lost\.$/);
+    expect(name).toMatch(/^Set Sas ran\.$/);
   });
 
   it("says a late refusal was refused, not that it ran", async () => {
@@ -1120,8 +1120,8 @@ describe("CommandButton: a lost command that answered after all", () => {
       },
     ]);
     const name = screen.getByRole("button").getAttribute("aria-label") ?? "";
-    expect(name).toMatch(/found refused/i);
-    expect(name).not.toMatch(/found executed/i);
+    expect(name).toMatch(/was refused/i);
+    expect(name).not.toMatch(/ ran\./i);
   });
 
   it("does NOT claim a found for a control that never lost anything", async () => {
@@ -1146,7 +1146,7 @@ describe("CommandButton: a lost command that answered after all", () => {
 
   it("clears on a press, so the operator can send again from rest", async () => {
     const { user, send } = await loseThenFind();
-    await user.click(screen.getByRole("button", { name: /found/i }));
+    await user.click(screen.getByRole("button", { name: /ran\./i }));
     expect(screen.getByRole("button", { name: "SAS" })).toHaveAttribute(
       "data-command-phase",
       "idle",
