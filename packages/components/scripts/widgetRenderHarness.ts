@@ -1697,10 +1697,15 @@ const AXE_SOURCE_PATH = createRequire(require.resolve("jest-axe")).resolve(
  */
 const AXE_DISABLED_RULES = ["color-contrast"];
 
+/** The slice of axe-core's browser global the run below calls. */
+interface AxeApi {
+  run(ctx: Element, opts: unknown): Promise<{ violations: AxeViolation[] }>;
+}
+
 interface AxeViolation {
   id: string;
   help: string;
-  nodes: { target: unknown[]; html: string; where?: string }[];
+  nodes: { target: unknown[]; html: string }[];
 }
 
 /**
@@ -1712,26 +1717,18 @@ async function findA11yViolations(page: Page): Promise<string[]> {
   if (!(await page.evaluate(() => "axe" in window))) {
     await page.addScriptTag({ path: AXE_SOURCE_PATH });
   }
-  const violations: AxeViolation[] = await page.evaluate(async (disabled) => {
-    const axe = (
-      window as unknown as {
-        axe: {
-          run(
-            ctx: Element,
-            opts: unknown,
-          ): Promise<{ violations: AxeViolation[] }>;
-        };
-      }
-    ).axe;
+  return page.evaluate(async (disabled) => {
+    const axe = (window as Window & { axe?: AxeApi }).axe;
+    if (!axe) throw new Error("Probe: axe did not install");
     const host = document.getElementById("root");
     if (!host) throw new Error("Probe: #root missing before the axe run");
     const rules = Object.fromEntries(
       disabled.map((id) => [id, { enabled: false }]),
     );
-    const found = (await axe.run(host, { rules })).violations;
-    // Class names are generated, so name the nearest ancestors by tag and data attributes.
-    for (const v of found) {
+    const lines: string[] = [];
+    for (const v of (await axe.run(host, { rules })).violations) {
       for (const n of v.nodes) {
+        // Class names are generated, so name the nearest ancestors by tag and data attributes.
         let el = document.querySelector(String(n.target[0]));
         const chain: string[] = [];
         for (let i = 0; el && i < 4; i++, el = el.parentElement) {
@@ -1740,17 +1737,13 @@ async function findA11yViolations(page: Page): Promise<string[]> {
             .map((a) => `[${a.name}]`);
           chain.push(el.tagName.toLowerCase() + attrs.join(""));
         }
-        n.where = chain.join(" < ");
+        lines.push(
+          `${v.id} (${v.help}): ${n.target.join(" ")} ${n.html.slice(0, 140)} in ${chain.join(" < ")}`,
+        );
       }
     }
-    return found;
+    return lines;
   }, AXE_DISABLED_RULES);
-  return violations.flatMap((v) =>
-    v.nodes.map(
-      (n) =>
-        `${v.id} (${v.help}): ${n.target.join(" ")} ${n.html.slice(0, 140)} in ${n.where ?? ""}`,
-    ),
-  );
 }
 
 /**
