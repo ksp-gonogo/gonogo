@@ -715,6 +715,33 @@ describe("fixtures become scenes", () => {
       expect(scene.host).toBe("console");
     });
 
+    it.each([
+      "badges",
+      "filters",
+      "meters",
+    ])("builds a framework-universal %s slot the host never declared", (segment) => {
+      const inventory: UplinkInventory = {
+        ...withHost([]),
+        contributions: [
+          {
+            id: "entry-plot",
+            contributes: `console.${segment}`,
+            deps: [],
+            settings: [],
+          },
+        ],
+      };
+      const [scene] = buildScenes(
+        resolveUplinkPackage(
+          fixture({
+            _scene: { contribution: "entry-plot", hostWidget: "console" },
+          }),
+        ),
+        inventory,
+      );
+      expect(scene.host).toBe("console");
+    });
+
     it("is refused when the host does not declare the slot, naming the ones that do", () => {
       expect(() => build([])).toThrow(
         /"console", which does not declare the "plots" contribution slot.*\(none in this bundle\)/s,

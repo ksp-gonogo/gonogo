@@ -7,7 +7,10 @@ import type {
   SceneTarget,
   UplinkInventory,
 } from "../render-probe";
-import { HOST_DRAWN_CONTRIBUTION_SEGMENTS } from "./probe-global";
+import {
+  FRAMEWORK_SLOT_SEGMENTS,
+  HOST_DRAWN_CONTRIBUTION_SEGMENTS,
+} from "./probe-global";
 
 /*
  * What one fixture's `_scene` block describes, resolved against the Uplink's
@@ -302,12 +305,12 @@ function oneScene(
   }
 
   // A named host has to declare the slot too: mounting a widget that never
-  // reads it draws nothing and reports success. The `badges` segment is the
-  // exception, drawn by the framework for every widget.
+  // reads it draws nothing and reports success. The framework-universal
+  // segments are the exception: every widget receives them undeclared.
   if (scene.hostWidget !== undefined && kind === "contribution") {
     const slot = contributionSlot(where, id, inventory);
     const host = hostWidget(where, scene.hostWidget, inventory);
-    if (!isHostDrawnSlot(slot) && !host.contributionSlots.includes(slot)) {
+    if (!isFrameworkSlot(slot) && !host.contributionSlots.includes(slot)) {
       throw new Error(
         `${where}: "_scene.hostWidget" names "${scene.hostWidget}", which ` +
           `does not declare the "${slot}" contribution slot, so it would ` +
@@ -597,6 +600,14 @@ function isHostDrawnSlot(slot: string): boolean {
   return (
     slot.includes(".") &&
     (HOST_DRAWN_CONTRIBUTION_SEGMENTS as readonly string[]).includes(segment)
+  );
+}
+
+function isFrameworkSlot(slot: string): boolean {
+  const segment = slot.slice(slot.indexOf(".") + 1);
+  return (
+    slot.includes(".") &&
+    (FRAMEWORK_SLOT_SEGMENTS as readonly string[]).includes(segment)
   );
 }
 

@@ -59,6 +59,19 @@ export const SUPPLIED_ATTR = "data-uplink-supplied";
 export const HOST_DRAWN_CONTRIBUTION_SEGMENTS = ["badges"] as const;
 
 /**
+ * The segments the framework aggregates for EVERY widget on top of the slots it
+ * declares, so a widget that places `<FilterList>` or `<WidgetMeters>` in its
+ * body receives `<id>.filters` / `<id>.meters` contributions without listing
+ * the slot. A scene naming such a host is buildable although the host's
+ * `contributionSlots` does not carry the slot.
+ *
+ * A copy of the kit's `COMPONENT_SLOT_SEGMENTS`, for the reason given on
+ * {@link HOST_DRAWN_CONTRIBUTION_SEGMENTS}; a test reads the kit's source and
+ * fails if the two lists differ.
+ */
+export const FRAMEWORK_SLOT_SEGMENTS = ["badges", "filters", "meters"] as const;
+
+/**
  * The tag the probe appends to an element drawn as held (`data-held`)
  * that {@link announcesHeld} says is silent: a mark a reader can see and a
  * screen reader is told nothing about.
