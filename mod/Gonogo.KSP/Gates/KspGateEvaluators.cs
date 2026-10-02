@@ -54,6 +54,9 @@ namespace Gonogo.KSP.Gates
             yield return new PreFlightGate();
             yield return new RevertAvailableGate();
             yield return new AffordableGate();
+            yield return new OrbitDisplayGate();
+            yield return new TechResearchedGate();
+            yield return new PartModuleResearchedGate();
             foreach (var perItem in ItemGates.All(careerItems)) yield return perItem;
         }
 
@@ -68,6 +71,9 @@ namespace Gonogo.KSP.Gates
             public const string PreFlight = "preflight";
             public const string RevertAvailable = "revert-available";
             public const string Affordable = "affordable";
+            public const string OrbitDisplay = "orbit-display";
+            public const string TechResearched = "tech-researched";
+            public const string PartModuleResearched = "part-module-researched";
         }
 
         /// <summary>Quantities the facility gates understand, spelled once for the same reason.</summary>
@@ -343,21 +349,20 @@ namespace Gonogo.KSP.Gates
 
             try
             {
-                var norm = ScenarioUpgradeableFacilities.GetFacilityLevel(facility);
-                bool unlocked;
+                Func<float, bool> unlockedAt;
                 switch (requirement.Quantity)
                 {
                     case KspGateEvaluators.Quantities.FlightPlanning:
-                        unlocked = gameVariables.UnlockedFlightPlanning(norm);
+                        unlockedAt = gameVariables.UnlockedFlightPlanning;
                         break;
                     case KspGateEvaluators.Quantities.FuelTransfer:
-                        unlocked = gameVariables.UnlockedFuelTransfer(norm);
+                        unlockedAt = gameVariables.UnlockedFuelTransfer;
                         break;
                     case KspGateEvaluators.Quantities.Eva:
-                        unlocked = gameVariables.UnlockedEVA(norm);
+                        unlockedAt = gameVariables.UnlockedEVA;
                         break;
                     case KspGateEvaluators.Quantities.ManeuverTool:
-                        unlocked = gameVariables.ManeuverToolAvailable(norm);
+                        unlockedAt = gameVariables.ManeuverToolAvailable;
                         break;
                     default:
                         // Unreachable past the guard above; same backstop, same
@@ -366,11 +371,13 @@ namespace Gonogo.KSP.Gates
                             $"no unlockable capability is named \"{requirement.Quantity}\"");
                 }
 
-                return unlocked
-                    ? GateVerdict.Pass()
-                    : GateVerdict.Fail(
-                        CommandErrorCode.NotUnlocked,
-                        $"the {FacilityGateHelp.DisplayName(facility)} has not unlocked it yet");
+                if (unlockedAt(ScenarioUpgradeableFacilities.GetFacilityLevel(facility))) return GateVerdict.Pass();
+
+                var name = FacilityGateHelp.DisplayName(facility);
+                var tier = FacilityTiers.LowestTier(ScenarioUpgradeableFacilities.GetFacilityLevelCount(facility), unlockedAt);
+                return GateVerdict.NotUnlocked(
+                    $"the {name} has not unlocked it yet",
+                    FacilityTiers.Missing(facility, name, tier));
             }
             catch (Exception ex)
             {
