@@ -13,13 +13,28 @@ export { propagateVesselOrbit };
 /**
  * The dead-reckoned parent-relative position/velocity of fleet vessel `guid`,
  * derived from its streamed `fleet.<guid>.orbit` elements at the current view
- * UT: the same SCADA-report-by-exception + dead-reckoning the active vessel
- * uses, applied per subject. Null until elements arrive (or a hyperbolic orbit).
+ * UT. Null until elements arrive (or a hyperbolic orbit).
  *
  * The delayed `useStream` subscription means the elements already respect this
  * vessel's own light-time; propagating them to the shared view UT positions the
- * whole fleet on one consistent clock. This is Plan 2c's reusable foundation for
- * a future fleet spatial view, FleetRoster itself renders no position.
+ * whole fleet on one consistent clock. Nothing in the tree calls it yet:
+ * FleetRoster itself renders no position.
+ *
+ * ## Why this is not a registered reckoner (Saga 95)
+ *
+ * The per-subject dep mechanism (`SubjectDep`) lets a model READ a dynamic topic
+ * as an input; it does not let one be RECKONED. `registerReckoner` is keyed by
+ * the exact `TopicId` and `getReckoner` is an exact-string lookup, so
+ * `fleet.<guid>.orbit` has no registration to hang a model on. Serving it would
+ * need a topic-family key in the registry, and the family's payload is
+ * unit-unwrapped wire data, unlike every model registered today.
+ *
+ * It also differs from `vessel.orbit`'s model in what it withholds: that one
+ * declines for a non-OnRails craft, past the horizon, and below the atmosphere
+ * floor (`keplerAdmissibility`), and returns a `Reading` carrying the modelled
+ * mark. This returns a bare state vector from whatever elements last arrived.
+ * Moving it onto the registry is a build of its own, to be done with the first
+ * consumer that draws a fleet position.
  */
 export function useFleetVesselPosition(guid: string): StateVector | null {
   /*
