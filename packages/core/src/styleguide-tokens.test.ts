@@ -145,7 +145,7 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/components/src/FleetRoster/UpdatesRow.tsx": 1,
     "packages/components/src/MapView/MapPoiLayer.styles.tsx": 2,
     "packages/components/src/Navball/index.tsx": 1,
-    "packages/components/src/StationConnectView/StationConnectView.styles.ts": 19,
+    "packages/ui/src/StationConnectView/StationConnectView.styles.ts": 19,
     "packages/components/src/Twr/index.tsx": 1,
     "packages/data/src/FlightsManager/index.tsx": 2,
     "packages/serial/src/SerialDevicesMenu/ProtocolReferenceModal.tsx": 1,
@@ -159,7 +159,7 @@ const BASELINES: Record<Family, Record<string, number>> = {
    */
   radius: {
     "packages/components/src/CommSignal/CommsPathRoute.tsx": 1,
-    "packages/components/src/StationConnectView/StationConnectView.styles.ts": 4,
+    "packages/ui/src/StationConnectView/StationConnectView.styles.ts": 4,
     "packages/serial/src/InputTester/index.tsx": 2,
   },
   /**
@@ -183,7 +183,7 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/components/src/PowerSystems/styles.ts": 1,
     "packages/components/src/SemiMajorAxis/index.tsx": 1,
     "packages/components/src/shared/OrbitalEventChips.tsx": 2,
-    "packages/components/src/StationConnectView/StationConnectView.styles.ts": 7,
+    "packages/ui/src/StationConnectView/StationConnectView.styles.ts": 7,
     "packages/components/src/SystemView/index.tsx": 1,
     "packages/components/src/TechTree/styles.ts": 3,
     "packages/components/src/WarpControl/styles.tsx": 1,

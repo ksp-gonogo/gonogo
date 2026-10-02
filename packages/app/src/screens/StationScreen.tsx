@@ -1,7 +1,4 @@
-import {
-  ManeuverTriggerProvider,
-  StationConnectView,
-} from "@ksp-gonogo/components";
+import { ManeuverTriggerProvider } from "@ksp-gonogo/components";
 import { registerDataSource, ScreenProvider } from "@ksp-gonogo/core";
 import {
   CoverageMaskCacheProvider,
@@ -17,7 +14,11 @@ import {
   SerialPortRecoveryWatcher,
 } from "@ksp-gonogo/serial";
 import { RootProviders } from "@ksp-gonogo/sitrep-sdk";
-import { BannerStack, FabClusterProvider } from "@ksp-gonogo/ui";
+import {
+  BannerStack,
+  FabClusterProvider,
+  StationConnectView,
+} from "@ksp-gonogo/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import {

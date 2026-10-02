@@ -2070,7 +2070,7 @@ export function getWidget(id: string): WidgetRenderConfig | undefined {
  * `@ksp-gonogo/components`, and app→components is the existing dependency edge,
  * a screen driver in app would have no harness to call. The screen VIEW
  * (`StationConnectView`) is a pure presentational component exported from
- * `@ksp-gonogo/components` and imported back by app's StationScreen, so there is
+ * `@ksp-gonogo/ui` and imported by app's StationScreen, so there is
  * a single source of the markup the harness verifies.
  */
 const SCREENS: ScreenRenderConfig[] = [

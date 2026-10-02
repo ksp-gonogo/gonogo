@@ -16,12 +16,10 @@
  * states are just different prop sets. The driver passes the prop set; the
  * probe renders it.
  */
+
+import { StationConnectView, type StationConnStatus } from "@ksp-gonogo/ui";
 import { createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import {
-  StationConnectView,
-  type StationConnStatus,
-} from "../../src/StationConnectView";
 
 export interface ScreenProbePayload {
   screenId: string;

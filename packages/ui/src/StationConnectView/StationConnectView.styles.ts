@@ -1,5 +1,4 @@
 // A full-page route, not a widget: viewport-height layout, safe-area insets, breakpoints, coarse-pointer targets and pseudo-class rules that no style object or page-scale primitive expresses.
-// biome-ignore lint/style/noRestrictedImports: page-scale route, not a widget (see above)
 import styled from "styled-components";
 
 /*

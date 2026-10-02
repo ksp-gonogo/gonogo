@@ -1,5 +1,5 @@
-import { StationConnectView } from "@ksp-gonogo/components";
 import { logger } from "@ksp-gonogo/logger";
+import { StationConnectView } from "@ksp-gonogo/ui";
 import { Button, Text } from "@ksp-gonogo/ui-kit";
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";

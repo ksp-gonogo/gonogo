@@ -34,7 +34,6 @@ export * from "./ScienceData";
 export * from "./SemiMajorAxis";
 export * from "./ShipMap";
 export * from "./SpaceCenterStatus";
-export * from "./StationConnectView";
 export * from "./Strategies";
 export * from "./SystemView";
 export * from "./shared/AlarmsLauncher";

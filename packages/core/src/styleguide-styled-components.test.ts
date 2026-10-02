@@ -65,7 +65,7 @@ const MOD_CLIENT_SRC_SUFFIX = ["client", "src"];
 // refused (#428) as an escape hatch. Deleting an ignore to tidy the list
 // deletes a focus ring or a hover state, so do not lower this number without
 // migrating the file it names.
-const STYLED_COMPONENTS_IMPORT_BASELINE = 14;
+const STYLED_COMPONENTS_IMPORT_BASELINE = 13;
 
 const STYLED_IMPORT_RE = /(?:from\s+|require\()\s*["']styled-components["']/;
 

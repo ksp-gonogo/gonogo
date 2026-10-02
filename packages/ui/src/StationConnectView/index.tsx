@@ -2,8 +2,9 @@
  * The station's presentational "Connect to Mission Control" screen, driven through the render harness at mobile breakpoints with the same markup production uses.
  * The name editor and download-logs action arrive as slots and all state as props, so it carries no `@ksp-gonogo/app` dependency.
  */
-import { StatusIndicator } from "@ksp-gonogo/ui";
+
 import type { ReactNode } from "react";
+import { StatusIndicator } from "../StatusIndicator";
 import {
   describeConnStatus,
   type StationConnStatus,

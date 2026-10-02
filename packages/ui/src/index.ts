@@ -28,6 +28,7 @@ export * from "./SignalLossBanner";
 export * from "./SourceOfflineBanner";
 export * from "./Sparkline";
 export * from "./Spinner";
+export * from "./StationConnectView";
 export * from "./StatusIndicator";
 export * from "./StreamStatusBadge";
 export * from "./Switch";
