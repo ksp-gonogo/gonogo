@@ -159,8 +159,14 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   // ScetAlarmFired carries the alarm's own id and the instant it fired, and
   // nothing else. No measured value, no restatement of the condition. The
   // alarm going off must show truenow, even for SCET; why it triggered does
-  // not have to. 2 explicit declarations.
-  "mod/Gonogo.KSP/ScetAlarmUplink.cs": 2,
+  // not have to.
+  //
+  // The third is alarm.scet.topics, the table of Topics an alarm can address.
+  // It is a fact about the simulation host's mechanism and names no craft and
+  // no reading, so holding it back a light-time would only delay the picker
+  // and blank it during blackout. Raised from 2 to 3 with the operator's
+  // approval.
+  "mod/Gonogo.KSP/ScetAlarmUplink.cs": 3,
 
   // KSP version/build id and similar mod-host facts, not vessel state, plus
   // system.frame: what frame the player's own navigation view is in. That is a

@@ -223,6 +223,10 @@ namespace Sitrep.Contract.Serialization
                 case Sitrep.Contract.ScetAlarmFired scetAlarmFired:
                     AppendScetAlarmFired(sb, scetAlarmFired);
                     break;
+                case Sitrep.Contract.ScetAddressableTopic scetAddressableTopic:
+                    // alarm.scet.topics is a bare array of these, so each element reaches here through the IEnumerable case.
+                    AppendScetAddressableTopic(sb, scetAddressableTopic);
+                    break;
                 case Sitrep.Contract.GateVerdict verdict:
                     AppendGateVerdict(sb, verdict);
                     break;
@@ -1582,6 +1586,17 @@ namespace Sitrep.Contract.Serialization
             AppendString(sb, "group");
             sb.Append(':');
             AppendInteger(sb, a.Group);
+            sb.Append('}');
+        }
+
+        /// <summary>One addressable SCET threshold Topic as <c>{ topic }</c>.</summary>
+        private static void AppendScetAddressableTopic(
+            StringBuilder sb, Sitrep.Contract.ScetAddressableTopic t)
+        {
+            sb.Append('{');
+            AppendString(sb, "topic");
+            sb.Append(':');
+            AppendString(sb, t.Topic ?? "");
             sb.Append('}');
         }
 

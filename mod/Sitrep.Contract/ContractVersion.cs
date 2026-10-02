@@ -2175,8 +2175,13 @@ namespace Sitrep.Contract
         /// (<see cref="MissionStatus"/>, <see cref="MissionObjectiveEntry"/> and
         /// <see cref="MissionObjectiveState"/>), the running Making History mission and its
         /// objectives. Additive, so an Uplink built against 27.9 is unaffected.</para>
+        ///
+        /// <para><b>Major-27 line, Bumped 10 -&gt; 11:</b> <c>alarm.scet.topics</c>
+        /// (<see cref="ScetAddressableTopic"/>), the Topics an armed alarm can address, published so a
+        /// client learns what is addressable before it arms. Additive, so an Uplink built against
+        /// 27.10 is unaffected.</para>
         /// </internal>
         /// </summary>
-        public const int Minor = 10;
+        public const int Minor = 11;
     }
 }

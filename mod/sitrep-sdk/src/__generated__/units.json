@@ -976,6 +976,9 @@
       "requiresFunds": "funds",
       "totalMass": "t"
     },
+    "ScetAddressableTopic": {
+      "topic": "id"
+    },
     "ScetAlarm": {
       "actsOn": "id",
       "armedBy": "id",
@@ -1488,6 +1491,9 @@
       "firedAtUt": "ut",
       "id": "id",
       "vantage": "id"
+    },
+    "alarm.scet.topics": {
+      "topic": "id"
     },
     "career.mode": {
       "mode": "enum"

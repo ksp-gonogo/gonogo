@@ -1,9 +1,9 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 27.10.0
+  version: 27.11.0
   description: |-
-    The wire contract of the Gonogo mod's telemetry socket: 80 telemetry
+    The wire contract of the Gonogo mod's telemetry socket: 81 telemetry
     channels a client subscribes to, and 58 commands it dispatches, with the payload
     schema and the contract's own prose for each.
 
@@ -150,7 +150,7 @@ info:
     - name: session
       description: Frames belonging to the connection rather than a channel
     - name: alarm
-      description: 2 telemetry channels, 2 commands
+      description: 3 telemetry channels, 2 commands
     - name: career
       description: 3 telemetry channels, 9 commands
     - name: commandCentre
@@ -314,6 +314,33 @@ channels:
     messages:
       streamData:
         $ref: "#/components/messages/streamData.alarm.scet.fired"
+      event:
+        $ref: "#/components/messages/event"
+  alarm.scet.topics:
+    address: alarm.scet.topics
+    description: |-
+      Carries an array of `ScetAddressableTopic`.
+
+      One Topic a SCET threshold alarm may be armed against: a row of the
+      `alarm.scet.topics` channel.
+
+      The channel is the whole table of what the simulation host can read for a
+      threshold, so a picker offers exactly those Topics and an arm naming any
+      other is one the host would refuse. It carries no reckoned or measured split
+      and no seat or domain filter: any addressable Topic is usable at any
+      vantage, and the table is a limit of mechanism only.
+
+      Offering a Topic here promises that the host reads it whether or not any
+      widget is showing it. A Topic the table does not list is not addressable
+      even when it is on the wire.
+    servers:
+      - $ref: "#/servers/mod"
+    x-sitrep-delivery: reliable-ordered
+    x-sitrep-delay-role: true-now
+    x-sitrep-keyframe-interval-ut: 3600
+    messages:
+      streamData:
+        $ref: "#/components/messages/streamData.alarm.scet.topics"
       event:
         $ref: "#/components/messages/event"
   career.contract.accept:
@@ -4492,6 +4519,17 @@ operations:
     messages:
       - $ref: "#/channels/alarm.scet.fired/messages/streamData"
       - $ref: "#/channels/alarm.scet.fired/messages/event"
+  read:alarm.scet.topics:
+    action: receive
+    channel:
+      $ref: "#/channels/alarm.scet.topics"
+    title: Read alarm.scet.topics
+    description: Delivered only after `subscribe` names `alarm.scet.topics` on the session channel, which the mod answers here with an `event` named `subscribed`.
+    tags:
+      - name: alarm
+    messages:
+      - $ref: "#/channels/alarm.scet.topics/messages/streamData"
+      - $ref: "#/channels/alarm.scet.topics/messages/event"
   read:career.facilities:
     action: receive
     channel:
@@ -7086,6 +7124,21 @@ components:
                 const: alarm.scet.fired
               payload:
                 $ref: "#/components/schemas/ScetAlarmFired"
+    streamData.alarm.scet.topics:
+      name: stream-data
+      title: A frame on alarm.scet.topics
+      contentType: application/json
+      payload:
+        description: The `stream-data` envelope carrying `alarm.scet.topics`.
+        allOf:
+          - $ref: "#/components/schemas/StreamData"
+          - properties:
+              topic:
+                const: alarm.scet.topics
+              payload:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ScetAddressableTopic"
     streamData.career.facilities:
       name: stream-data
       title: A frame on career.facilities
@@ -16053,6 +16106,28 @@ components:
             Parts referenced by the craft that are not yet unlocked/purchased
             (`CraftProfileInfo.UnavailableShipParts`); an empty array when the craft is
             buildable as-is.
+    ScetAddressableTopic:
+      type: object
+      description: |-
+        One Topic a SCET threshold alarm may be armed against: a row of the
+        `alarm.scet.topics` channel.
+
+        The channel is the whole table of what the simulation host can read for a
+        threshold, so a picker offers exactly those Topics and an arm naming any
+        other is one the host would refuse. It carries no reckoned or measured split
+        and no seat or domain filter: any addressable Topic is usable at any
+        vantage, and the table is a limit of mechanism only.
+
+        Offering a Topic here promises that the host reads it whether or not any
+        widget is showing it. A Topic the table does not list is not addressable
+        even when it is on the wire.
+      required:
+        - topic
+      properties:
+        topic:
+          type: string
+          x-sitrep-unit: id
+          description: The Topic id a threshold's condition may name, such as `vessel.flight`.
     ScetAlarm:
       type: object
       description: |-

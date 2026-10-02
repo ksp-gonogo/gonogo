@@ -1016,6 +1016,9 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     requiresFunds: "funds",
     totalMass: "t",
   },
+  "ScetAddressableTopic": {
+    topic: "id",
+  },
   "ScetAlarm": {
     actsOn: "id",
     armedBy: "id",
@@ -1533,6 +1536,9 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     firedAtUt: "ut",
     id: "id",
     vantage: "id",
+  },
+  "alarm.scet.topics": {
+    topic: "id",
   },
   "career.mode": {
     mode: "enum",

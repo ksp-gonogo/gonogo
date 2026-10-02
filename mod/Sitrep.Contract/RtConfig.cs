@@ -215,6 +215,7 @@ public static class RtConfig
                 typeof(ScetAlarmCondition),
                 typeof(ScetAlarmAction),
                 typeof(ScetAlarmFired),
+                typeof(ScetAddressableTopic),
                 typeof(ScetAlarmArmArgs),
                 typeof(ScetAlarmDisarmArgs),
                 // commcast command args

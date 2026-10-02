@@ -645,3 +645,37 @@ public class ScetAlarmDisarmArgs
     [SitrepUnit(Units.Id)]
     public string Id { get; set; } = "";
 }
+
+/// <summary>
+/// One Topic a SCET threshold alarm may be armed against: a row of the
+/// <c>alarm.scet.topics</c> channel.
+///
+/// <para>The channel is the whole table of what the simulation host can read for a
+/// threshold, so a picker offers exactly those Topics and an arm naming any
+/// other is one the host would refuse. It carries no reckoned or measured split
+/// and no seat or domain filter: any addressable Topic is usable at any
+/// vantage, and the table is a limit of mechanism only.</para>
+///
+/// <para>Offering a Topic here promises that the host reads it whether or not
+/// any widget is showing it. A Topic the table does not list is not addressable
+/// even when it is on the wire.</para>
+/// <internal>
+/// Backed by Sitrep.Host.Alarms.ScetThresholdSources, which is hand-written
+/// rather than a tap on the channel loop because that loop skips a Topic nothing
+/// subscribes to. The same table gives the engine the set of Topics an armed
+/// alarm needs kept on the record. Published RAW: see
+/// <c>JsonWriter.AppendScetAddressableTopic</c>.
+/// </internal>
+/// </summary>
+/// <category>Alarms</category>
+[SitrepContract]
+[SitrepTopic("alarm.scet.topics", isArray: true)]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class ScetAddressableTopic
+{
+    /// <summary>The Topic id a threshold's condition may name, such as <c>vessel.flight</c>.</summary>
+    [SitrepUnit(Units.Id)]
+    public string Topic { get; set; } = "";
+}

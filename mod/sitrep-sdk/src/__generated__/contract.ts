@@ -5503,6 +5503,27 @@ export interface ScetAlarmDisarmArgs
 	id: string;
 }
 /**
+* One Topic a SCET threshold alarm may be armed against: a row of the
+* `alarm.scet.topics` channel.
+*
+* The channel is the whole table of what the simulation host can read for a
+* threshold, so a picker offers exactly those Topics and an arm naming any
+* other is one the host would refuse. It carries no reckoned or measured split
+* and no seat or domain filter: any addressable Topic is usable at any
+* vantage, and the table is a limit of mechanism only.
+*
+* Offering a Topic here promises that the host reads it whether or not any
+* widget is showing it. A Topic the table does not list is not addressable
+* even when it is on the wire.
+*
+* @category Alarms
+*/
+export interface ScetAddressableTopic
+{
+	/** The Topic id a threshold's condition may name, such as `vessel.flight`. */
+	topic: string;
+}
+/**
 * Args shared by every science-experiment actuation command
 * (`science.experiment.deploy`/`science.experiment.transmit`): the experiment
 * is addressed by `ExperimentActionArgs.partId`, the part's

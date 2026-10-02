@@ -712,6 +712,34 @@ describe("AlarmsModal threshold trigger key picker", () => {
       dataKey: "vessel.flight.altitudeAsl",
     });
   });
+
+  /**
+   * The picker is derived from the table the simulation publishes, so a field
+   * under a Topic it cannot read is not offered at all rather than refused one
+   * round trip later.
+   */
+  it("offers only fields under a Topic the simulation says it can read", async () => {
+    const user = userEvent.setup();
+    const { emit } = renderWithStream(
+      <AlarmsModal
+        useSnapshot={() => makeSnapshot()}
+        onAdd={() => {}}
+        onUpdate={() => {}}
+        onDelete={() => {}}
+      />,
+      ORBIT_EPOCH,
+      240,
+    );
+    emit("alarm.scet.topics", [{ topic: "vessel.orbit" }]);
+
+    await user.click(screen.getByRole("radio", { name: /at telemetry/i }));
+    await user.click(getDataKeyCombobox());
+    const options = await screen.findAllByRole("option");
+    expect(options.length).toBeGreaterThan(0);
+    expect(
+      options.find((o) => o.textContent?.includes("Altitude ASL")),
+    ).toBeUndefined();
+  });
 });
 
 /**

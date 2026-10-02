@@ -76,6 +76,9 @@ namespace Gonogo.KSP
         /// <summary>The notice that one of them fired and the warp was stopped.</summary>
         public const string FiredTopic = "alarm.scet.fired";
 
+        /// <summary>The Topics a threshold may be armed against: <see cref="ScetThresholdSources"/>, published.</summary>
+        public const string TopicsTopic = "alarm.scet.topics";
+
         public const string ArmCommand = "alarm.scet.arm";
         public const string DisarmCommand = "alarm.scet.disarm";
 
@@ -211,6 +214,23 @@ namespace Gonogo.KSP
 
         private IChannelPublisher? _rosterPublisher;
         private IChannelPublisher? _firedPublisher;
+        private IChannelPublisher? _topicsPublisher;
+
+        /// <summary>
+        /// Answers a client that subscribes to the addressable-Topic table, on the
+        /// same terms the roster is answered: a publish for a Topic nobody
+        /// subscribes to is dropped, so "have I published" says nothing about
+        /// whether the next subscriber has been told.
+        /// </summary>
+        private readonly ScetRosterAudience _topicsAudience = new ScetRosterAudience();
+
+        /// <summary>
+        /// The table as last published, joined into one comparable string. Touched
+        /// only on the Courier thread. The table can grow after registration, when
+        /// an installed mod contributes a source, so it is compared per tick
+        /// rather than published once.
+        /// </summary>
+        private string _publishedTopicsKey = "";
 
         /// <summary>
         /// When the roster goes on the wire. Its whole job is that a client
@@ -262,6 +282,19 @@ namespace Gonogo.KSP
                     // Ground-side bookkeeping: a list of things the operator asked
                     // for, not a reading of any craft. The same class
                     // commandCentre.roster sits in.
+                    Delay = DelayRole.TrueNow,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 3600, quantum: EmissionQuantum.Absolute(0)),
+                },
+                new ChannelDeclaration
+                {
+                    Topic = TopicsTopic,
+                    // The same reasons as the roster: an arm refused for a Topic
+                    // the client believed addressable is a round trip too late,
+                    // and a coalesced frame would leave the picker offering a
+                    // Topic the table no longer holds.
+                    Delivery = Delivery.ReliableOrdered,
+                    // A fact about the simulation host's mechanism and nothing
+                    // about any craft, so there is no light-time to honour.
                     Delay = DelayRole.TrueNow,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 3600, quantum: EmissionQuantum.Absolute(0)),
                 },
@@ -343,6 +376,7 @@ namespace Gonogo.KSP
             (_actuator as KspVesselActuator)?.SetActionGroupsBackendSource(_actionGroups);
             _rosterPublisher = host.Publisher(RosterTopic);
             _firedPublisher = host.Publisher(FiredTopic);
+            _topicsPublisher = host.Publisher(TopicsTopic);
 
             // Vantage-resolved, so the roster records WHERE an alarm was armed
             // from rather than where a payload claimed it was: a client that
@@ -497,6 +531,7 @@ namespace Gonogo.KSP
                 // thread-safe mirror and is callable from here; see
                 // IUplinkHost.IsAnyTopicSubscribed.
                 var hasAudience = _host?.IsAnyTopicSubscribed(RosterTopic) ?? false;
+                var hasTopicsAudience = _host?.IsAnyTopicSubscribed(TopicsTopic) ?? false;
                 ScetAlarmTickState tick;
                 bool stopWarp;
                 List<ScetAlarmActionsDue> actionsDue;
@@ -535,6 +570,7 @@ namespace Gonogo.KSP
                 {
                     Ut = ut,
                     HasAudience = hasAudience,
+                    HasTopicsAudience = hasTopicsAudience,
                     Tick = tick,
                     StoppedOnCapture = stopWarp,
                 };
@@ -619,6 +655,7 @@ namespace Gonogo.KSP
                 {
                     _rosterPublisher?.Publish(roster, publish.Ut);
                 }
+                PublishTopicsIfDue(publish);
                 foreach (var notice in tick.Fired)
                 {
                     _firedPublisher?.Publish(notice, publish.Ut);
@@ -628,6 +665,30 @@ namespace Gonogo.KSP
             {
                 Debug.LogError("[Gonogo] SCET alarm publish failed: " + ex);
             }
+        }
+
+        /// <summary>
+        /// Put the addressable-Topic table on the wire when it moved or when a
+        /// subscriber has not been told it. Courier thread.
+        /// </summary>
+        private void PublishTopicsIfDue(ScetAlarmPublish publish)
+        {
+            var topics = new List<string>(_thresholds.Topics);
+            topics.Sort(StringComparer.Ordinal);
+            var key = string.Join("\n", topics);
+            var changed = !string.Equals(key, _publishedTopicsKey, StringComparison.Ordinal);
+            if (!_topicsAudience.ShouldPublish(publish.HasTopicsAudience, changed))
+            {
+                return;
+            }
+
+            _publishedTopicsKey = key;
+            var rows = new List<ScetAddressableTopic>(topics.Count);
+            foreach (var topic in topics)
+            {
+                rows.Add(new ScetAddressableTopic { Topic = topic });
+            }
+            _topicsPublisher?.Publish(rows, publish.Ut);
         }
 
         /// <summary>
@@ -753,6 +814,9 @@ namespace Gonogo.KSP
 
             /// <summary>Whether anything was subscribed to the roster topic when the capture ran.</summary>
             public bool HasAudience;
+
+            /// <summary>Whether anything was subscribed to the addressable-Topic table when the capture ran.</summary>
+            public bool HasTopicsAudience;
 
             /// <summary>
             /// The tick the capture opened and took its own pass over. The handle

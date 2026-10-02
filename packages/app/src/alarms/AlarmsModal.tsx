@@ -141,7 +141,24 @@ export function AlarmsModal({
   /* A threshold compares a number, so only numeric fields are offered. The
      entries carry the Topic and the path into its payload a SCET threshold is
      armed on, from the same contract metadata the key was enumerated from. */
-  const numericKeys = useNumericFields();
+  const numericFields = useNumericFields();
+  /* The Topics the simulation can read a threshold from, as it publishes them.
+     Null until the table arrives, so a link that is down offers every field
+     rather than none; the arm still refuses an unaddressable one. */
+  const topicsReading = useTelemetry("alarm.scet.topics");
+  const addressableTopics = useMemo(() => {
+    if (topicsReading.state !== "observed" && topicsReading.state !== "held") {
+      return null;
+    }
+    return new Set(topicsReading.value.map((row) => row.topic));
+  }, [topicsReading]);
+  const numericKeys = useMemo(
+    () =>
+      addressableTopics === null
+        ? numericFields
+        : numericFields.filter((k) => addressableTopics.has(k.topic)),
+    [numericFields, addressableTopics],
+  );
   // Mirror snapshot in a ref so the add handler reads the freshest value
   // when the user clicks (rules of hooks forbid calling useSnapshot inside
   // a handler). Without this, two quick adds anchor to the same UT.

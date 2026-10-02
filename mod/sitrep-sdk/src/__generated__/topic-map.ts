@@ -73,6 +73,7 @@ import type {
   RevertAvailability,
   RoboticsAvailability,
   SavedShipEntry,
+  ScetAddressableTopic,
   ScetAlarm,
   ScetAlarmFired,
   SensorEntry,
@@ -113,6 +114,7 @@ import type {
 export interface GeneratedTopicPayloadMap {
   "alarm.scet": ScetAlarm[];
   "alarm.scet.fired": ScetAlarmFired;
+  "alarm.scet.topics": ScetAddressableTopic[];
   "career.facilities": CareerFacilities;
   "career.mode": CareerMode;
   "career.status": CareerStatus;
@@ -196,6 +198,7 @@ export interface GeneratedTopicPayloadMap {
 export const GENERATED_TOPIC_IDS = [
   "alarm.scet",
   "alarm.scet.fired",
+  "alarm.scet.topics",
   "career.facilities",
   "career.mode",
   "career.status",
@@ -281,6 +284,7 @@ export const GENERATED_TOPIC_IDS = [
 // The `[]` above says the same to the type system, and a type is erased.
 export const GENERATED_COLLECTION_TOPIC_IDS = [
   "alarm.scet",
+  "alarm.scet.topics",
   "commandCentre.roster",
   "commandCentre.unreachable",
   "deployed.bases",
