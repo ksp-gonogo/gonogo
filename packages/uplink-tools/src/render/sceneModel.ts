@@ -275,6 +275,28 @@ function oneScene(
     }
   }
 
+  // A named host has to declare the slot too: mounting a widget that never
+  // reads it draws nothing and reports success. The `badges` segment is the
+  // exception, drawn by the framework for every widget.
+  if (scene.hostWidget !== undefined && kind === "contribution") {
+    const slot = contributionSlot(where, id, inventory);
+    const host = hostWidget(where, scene.hostWidget, inventory);
+    if (!isHostDrawnSlot(slot) && !host.contributionSlots.includes(slot)) {
+      throw new Error(
+        `${where}: "_scene.hostWidget" names "${scene.hostWidget}", which ` +
+          `does not declare the "${slot}" contribution slot, so it would ` +
+          "mount and never draw this contribution. Widgets that declare it: " +
+          `${
+            [...inventory.hosts, ...inventory.widgets]
+              .filter((w) => w.contributionSlots.includes(slot))
+              .map((w) => w.id)
+              .sort()
+              .join(", ") || "(none in this bundle)"
+          }.`,
+      );
+    }
+  }
+
   return {
     file,
     name: sceneName(file),

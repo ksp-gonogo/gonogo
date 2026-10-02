@@ -688,6 +688,40 @@ describe("fixtures become scenes", () => {
     });
   });
 
+  describe("a contribution scene naming a host", () => {
+    const withHost = (hostSlots: string[]): UplinkInventory => ({
+      ...INVENTORY,
+      contributions: [
+        { id: "entry-plot", contributes: "plots", deps: [], settings: [] },
+      ],
+      hosts: INVENTORY.hosts.map((h) => ({
+        ...h,
+        contributionSlots: hostSlots,
+      })),
+    });
+
+    const build = (hostSlots: string[]) =>
+      buildScenes(
+        resolveUplinkPackage(
+          fixture({
+            _scene: { contribution: "entry-plot", hostWidget: "console" },
+          }),
+        ),
+        withHost(hostSlots),
+      );
+
+    it("builds when the host declares the global slot", () => {
+      const [scene] = build(["plots"]);
+      expect(scene.host).toBe("console");
+    });
+
+    it("is refused when the host does not declare the slot, naming the ones that do", () => {
+      expect(() => build([])).toThrow(
+        /"console", which does not declare the "plots" contribution slot.*\(none in this bundle\)/s,
+      );
+    });
+  });
+
   it("carries _scene.paints through, and refuses one that asserts nothing", () => {
     const [scene] = buildScenes(
       resolveUplinkPackage(
