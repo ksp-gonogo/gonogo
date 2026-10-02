@@ -1,9 +1,11 @@
 import type { ReactNode } from "react";
 import { Fragment, useState } from "react";
 import styled from "styled-components";
+import { focusRingInset } from "./focusRing";
 import { InlineOverflowGlow, useInlineOverflow } from "./inlineOverflow";
 import type { UnitValue } from "./readingCurrency";
 import { Unit } from "./Unit";
+import { useKeyboardScrollable } from "./useScrollerMetric";
 
 interface DataTableColumnBase {
   /** Stable identity for the column, and its React key. */
@@ -141,10 +143,11 @@ export function DataTable<Row>({
   const total = groups.reduce((n, g) => n + g.rows.length, 0);
   const [scroller, setScroller] = useState<HTMLDivElement | null>(null);
   const overflow = useInlineOverflow(scroller);
+  const tabIndex = useKeyboardScrollable(scroller);
 
   return (
     <DataTable__Shell className={className}>
-      <DataTable__Scroller ref={setScroller}>
+      <DataTable__Scroller ref={setScroller} tabIndex={tabIndex}>
         <DataTable__Table>
           <DataTable__Caption>{caption}</DataTable__Caption>
           <thead>
@@ -244,6 +247,7 @@ const DataTable__Scroller = styled.div`
   padding-inline: var(--bleed-inline);
   overflow-x: auto;
   min-width: 0;
+  ${focusRingInset}
   scrollbar-width: none;
   &::-webkit-scrollbar {
     display: none;

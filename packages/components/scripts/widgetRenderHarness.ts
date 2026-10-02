@@ -370,6 +370,7 @@ export async function renderWidgets(
     await proveOverlapDetectorWorks(page);
     await proveClipDetectorWorks(page);
     await proveTinyFitAuditWorks(page);
+    await proveA11yDetectorWorks(page);
 
     /*
      * CSS.getPlatformFontsForNode is a DevTools Protocol call, so the
@@ -423,6 +424,17 @@ export async function renderWidgets(
           "bundles, so Chromium silently drew it in a system font instead. " +
           "Bundle a face that covers it there, or draw the text in a glyph " +
           "the bundled faces carry.)",
+      );
+    }
+
+    if (findings.a11y.length > 0) {
+      throw new Error(
+        `${findings.a11y.length} accessibility violation(s) axe found in a laid-out widget:\n  ` +
+          findings.a11y.join("\n  ") +
+          "\n(Measured in the real engine at the tile's own size, so an aside " +
+          "collapse, fitToSize and the split axis are covered, which jsdom " +
+          "cannot lay out. Fix the markup; the jsdom smoke assertion in the " +
+          "widget's own test is the cheaper place to reproduce it.)",
       );
     }
 
@@ -1670,6 +1682,121 @@ async function proveFontDetectorWorks(
 }
 
 /**
+ * axe-core as jest-axe resolved it, so the real-engine run and the jsdom smoke
+ * assertion apply one version of the rules rather than two.
+ */
+const AXE_SOURCE_PATH = createRequire(require.resolve("jest-axe")).resolve(
+  "axe-core/axe.min.js",
+);
+
+/**
+ * `color-contrast` is left out: it needs the painted background of every text
+ * run, which the probe harness's fixed backdrop and decorative layers answer
+ * differently from the app, and contrast has its own gate. Everything else
+ * axe runs by default is on.
+ */
+const AXE_DISABLED_RULES = ["color-contrast"];
+
+interface AxeViolation {
+  id: string;
+  help: string;
+  nodes: { target: unknown[]; html: string; where?: string }[];
+}
+
+/**
+ * Run axe over the mounted widget in the real engine. Unlike jest-axe, the
+ * page has real geometry here, so rules that depend on layout (a control
+ * clipped out of reach, a target size) see what an operator sees.
+ */
+async function findA11yViolations(page: Page): Promise<string[]> {
+  if (!(await page.evaluate(() => "axe" in window))) {
+    await page.addScriptTag({ path: AXE_SOURCE_PATH });
+  }
+  const violations: AxeViolation[] = await page.evaluate(async (disabled) => {
+    const axe = (
+      window as unknown as {
+        axe: {
+          run(
+            ctx: Element,
+            opts: unknown,
+          ): Promise<{ violations: AxeViolation[] }>;
+        };
+      }
+    ).axe;
+    const host = document.getElementById("root");
+    if (!host) throw new Error("Probe: #root missing before the axe run");
+    const rules = Object.fromEntries(
+      disabled.map((id) => [id, { enabled: false }]),
+    );
+    const found = (await axe.run(host, { rules })).violations;
+    // Class names are generated, so name the nearest ancestors by tag and data attributes.
+    for (const v of found) {
+      for (const n of v.nodes) {
+        let el = document.querySelector(String(n.target[0]));
+        const chain: string[] = [];
+        for (let i = 0; el && i < 4; i++, el = el.parentElement) {
+          const attrs = [...el.attributes]
+            .filter((a) => a.name.startsWith("data-"))
+            .map((a) => `[${a.name}]`);
+          chain.push(el.tagName.toLowerCase() + attrs.join(""));
+        }
+        n.where = chain.join(" < ");
+      }
+    }
+    return found;
+  }, AXE_DISABLED_RULES);
+  return violations.flatMap((v) =>
+    v.nodes.map(
+      (n) =>
+        `${v.id} (${v.help}): ${n.target.join(" ")} ${n.html.slice(0, 140)} in ${n.where ?? ""}`,
+    ),
+  );
+}
+
+/**
+ * Mount an unlabelled image and button beside a labelled control and require
+ * axe to report the first two and stay quiet on the third.
+ *
+ * The quiet half is what makes the fired half mean something: a detector that
+ * reported every node would pass the plant too.
+ */
+async function proveA11yDetectorWorks(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    const host = document.getElementById("root");
+    if (!host) throw new Error("Probe: #root missing before the axe check");
+    const box = document.createElement("div");
+    box.id = "a11y-detector-selfcheck";
+    box.innerHTML = `
+      <img id="fires-no-alt" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=">
+      <button id="fires-no-name" type="button"></button>
+      <button id="quiet-named" type="button">Named</button>`;
+    host.appendChild(box);
+  });
+  const found = await findA11yViolations(page);
+  await page.evaluate(() =>
+    document.getElementById("a11y-detector-selfcheck")?.remove(),
+  );
+
+  for (const id of ["fires-no-alt", "fires-no-name"]) {
+    if (!found.some((f) => f.includes(`#${id}`))) {
+      throw new Error(
+        `The axe detector is BLIND: a planted violation (#${id}) was not ` +
+          "reported, so a clean run proves nothing about the widgets.\n" +
+          `What it did report: ${found.length === 0 ? "nothing" : found.join("; ")}`,
+      );
+    }
+  }
+  const misfired = found.filter((f) => f.includes("#quiet-named"));
+  if (misfired.length > 0) {
+    throw new Error(
+      "The axe detector reported a control with an accessible name, so its " +
+        "verdict on a widget cannot be trusted either:\n  " +
+        misfired.join("\n  "),
+    );
+  }
+}
+
+/**
  * The min-fit audit over the render just mounted, when the kit's tiny form is
  * what it shows; nothing when it shows the widget's own body.
  *
@@ -1779,6 +1906,8 @@ interface RenderFindings {
   fontFallbacks: string[];
   /** What cannot be read in the kit's tiny form, measured fed rather than empty. */
   tinyMisfits: string[];
+  /** Accessibility violations axe finds in the laid-out page. */
+  a11y: string[];
 }
 
 function noFindings(): RenderFindings {
@@ -1790,6 +1919,7 @@ function noFindings(): RenderFindings {
     fontFallbacks: [],
     mounts: [],
     tinyMisfits: [],
+    a11y: [],
   };
 }
 
@@ -2041,6 +2171,11 @@ async function renderOneWidget(
       for (const hidden of await findClippedContent(page)) {
         findings.clipped.push(
           `${config.widgetId} @ ${mode.name} (${sceneLabel}): ${hidden}`,
+        );
+      }
+      for (const violation of await findA11yViolations(page)) {
+        findings.a11y.push(
+          `${config.widgetId} @ ${mode.name} (${sceneLabel}): ${violation}`,
         );
       }
       if (cdp) {

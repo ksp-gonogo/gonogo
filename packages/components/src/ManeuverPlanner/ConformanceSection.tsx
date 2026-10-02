@@ -87,7 +87,12 @@ export function ConformanceSection({
           );
           return (
             <Stack key={node.UT}>
-              <BurnConformanceRow conformance={conformance} />
+              <Stack
+                as="ul"
+                style={{ listStyle: "none", margin: 0, padding: 0 }}
+              >
+                <BurnConformanceRow conformance={conformance} />
+              </Stack>
               <ConformancePlot
                 current={current}
                 currentTrajectory={currentTrajectory}
