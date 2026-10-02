@@ -251,8 +251,9 @@ namespace Gonogo.KSP.Gates
     /// Authority: the loaded part list and
     /// <c>ResearchAndDevelopment.PartTechAvailable</c>.
     /// <see cref="CommandRequirement.Quantity"/> is a <c>PartModule</c> name,
-    /// such as <c>ModuleDockingNode</c>: the capability exists on this save once
-    /// any part carrying it is researched.
+    /// such as <c>ModuleDockingNode</c>, or several joined by
+    /// <see cref="Alternatives"/>: the capability exists on this save once any
+    /// part carrying any of them is researched.
     ///
     /// <para>The missing node is the cheapest one carrying the module, read off
     /// the installed parts, so a career mod that moves parts between nodes is
@@ -260,6 +261,9 @@ namespace Gonogo.KSP.Gates
     /// </summary>
     internal sealed class PartModuleResearchedGate : ICommandGateEvaluator
     {
+        /// <summary>Joins module names a requirement accepts any one of, such as the four robotic joints.</summary>
+        public const string Alternatives = "|";
+
         private readonly Func<Game.Modes?> _gameMode;
         private readonly Func<bool> _researchLoaded;
         private readonly Func<string, IReadOnlyList<ModuleCarrier>> _carriersOf;
@@ -291,7 +295,11 @@ namespace Gonogo.KSP.Gates
 
             try
             {
-                return Decide(module, _carriersOf(module), _describe);
+                var carriers = module
+                    .Split(new[] { Alternatives }, StringSplitOptions.RemoveEmptyEntries)
+                    .SelectMany(_carriersOf)
+                    .ToList();
+                return Decide(module, carriers, _describe);
             }
             catch (Exception ex)
             {

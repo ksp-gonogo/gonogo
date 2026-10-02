@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Gonogo.KSP.Gates;
 using Sitrep.Contract;
 using Sitrep.Core;
 using Sitrep.Host;
@@ -171,7 +172,7 @@ namespace Gonogo.KSP
                 // vessel.dock: legitimately null when a present, active
                 // vessel isn't currently docking (same AbsenceIsData
                 // reasoning as vessel.target/crew above).
-                Channel(VesselViewProvider.DockTopic, absenceIsData: true),
+                Channel(VesselViewProvider.DockTopic, absenceIsData: true, requires: DockingRequires),
                 Channel(VesselViewProvider.SurfaceTopic),
                 // vessel.landing: terrain-informed landing data + an
                 // atmosphere-aware descent estimate. Whole-record absence is
@@ -502,9 +503,16 @@ namespace Gonogo.KSP
                 new List<PartActionsViewProvider.Publication>();
         }
 
-        private static ChannelDeclaration Channel(string topic, bool absenceIsData = false, bool recordable = true) => new ChannelDeclaration
+        /// <summary>A docking port exists on this save once any part carrying one is researched.</summary>
+        private static readonly CommandRequirement[] DockingRequires =
         {
-            Requires = Requirement.None,
+            CareerGates.PartModuleResearched(CareerGates.Modules.DockingNode),
+        };
+
+        private static ChannelDeclaration Channel(
+            string topic, bool absenceIsData = false, bool recordable = true, CommandRequirement[]? requires = null) => new ChannelDeclaration
+        {
+            Requires = requires ?? Requirement.None,
             Topic = topic,
             Recordable = recordable,
             Delivery = Delivery.LossyLatest,
@@ -577,6 +585,7 @@ namespace Gonogo.KSP
         {
             Command = command,
             Subject = subject,
+            Requires = GateDeclarations.For(command),
         };
     }
 }

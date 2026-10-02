@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Expansions;
+using Gonogo.KSP.Gates;
 using Sitrep.Contract;
 using Sitrep.Core;
 using Sitrep.Host;
@@ -85,7 +86,14 @@ namespace Gonogo.KSP
             {
                 new ChannelDeclaration
                 {
-                    Requires = Requirement.None,
+                    Requires = new[]
+                    {
+                        CareerGates.PartModuleResearched(
+                            CareerGates.Modules.ServoHinge,
+                            CareerGates.Modules.ServoPiston,
+                            CareerGates.Modules.RotationServo,
+                            CareerGates.Modules.ServoRotor),
+                    },
                     Topic = BreakingGroundViewProvider.RoboticsTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
@@ -107,7 +115,7 @@ namespace Gonogo.KSP
                 },
                 new ChannelDeclaration
                 {
-                    Requires = Requirement.None,
+                    Requires = new[] { CareerGates.PartModuleResearched(CareerGates.Modules.GroundExperiment) },
                     Topic = BreakingGroundViewProvider.DeployedTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
@@ -174,6 +182,7 @@ namespace Gonogo.KSP
         {
             Command = command,
             Subject = subject,
+            Requires = GateDeclarations.For(command),
         };
     }
 }

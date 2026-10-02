@@ -179,6 +179,40 @@ namespace Gonogo.KSP.Tests.Career
         }
 
         /// <summary>Evaluators are only constructed here, so the judge they would ask is never reached.</summary>
+        [Fact]
+        public void WritingAManeuverNodeNeedsBothPlanningBuildingsAndRemovingOneNeedsNeither()
+        {
+            var byCommand = GateDeclarations.All().ToDictionary(e => e.Key, e => e.Value);
+
+            foreach (var command in new[] { "vessel.maneuver.add", "vessel.maneuver.update" })
+            {
+                Assert.Contains(
+                    byCommand[command],
+                    r => r.Kind == KspGateEvaluators.Kinds.OrbitDisplay && r.Quantity == OrbitDisplayGate.PatchedConics);
+                Assert.Contains(
+                    byCommand[command],
+                    r => r.Kind == KspGateEvaluators.Kinds.FacilityUnlocked
+                        && r.Facility == "MissionControl"
+                        && r.Quantity == KspGateEvaluators.Quantities.FlightPlanning);
+            }
+            Assert.False(byCommand.ContainsKey("vessel.maneuver.remove"));
+        }
+
+        [Fact]
+        public void EveryRoboticsCommandNamesTheJointsItDrives()
+        {
+            var robotics = GateDeclarations.All().Where(e => e.Key.StartsWith("robotics.")).ToList();
+
+            Assert.Equal(9, robotics.Count);
+            foreach (var entry in robotics)
+            {
+                var requirement = Assert.Single(entry.Value);
+                Assert.Equal(KspGateEvaluators.Kinds.PartModuleResearched, requirement.Kind);
+                var expected = entry.Key.StartsWith("robotics.rotor.") ? "ModuleRoboticServoRotor" : "ModuleRoboticServoHinge";
+                Assert.Contains(expected, requirement.Quantity);
+            }
+        }
+
         private sealed class NoJudge : ICareerItemJudge
         {
             public Sitrep.Contract.CommandResult JudgeUpgradeFacility(string facilityId) => throw new System.NotSupportedException();

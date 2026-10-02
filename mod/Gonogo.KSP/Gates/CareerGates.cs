@@ -1,3 +1,4 @@
+using Expansions.Serenity;
 using Sitrep.Contract;
 
 namespace Gonogo.KSP.Gates
@@ -39,6 +40,35 @@ namespace Gonogo.KSP.Gates
                 Facility = facility.ToString(),
                 Quantity = quantity,
             };
+
+        /// <summary>The Tracking Station shows this orbit display (<see cref="OrbitDisplayGate"/>).</summary>
+        public static CommandRequirement OrbitDisplay(string display) => new CommandRequirement
+        {
+            Kind = KspGateEvaluators.Kinds.OrbitDisplay,
+            Facility = SpaceCenterFacility.TrackingStation.ToString(),
+            Quantity = display,
+        };
+
+        /// <summary>Some researched part carries one of these modules (<see cref="PartModuleResearchedGate"/>).</summary>
+        public static CommandRequirement PartModuleResearched(params string[] modules) => new CommandRequirement
+        {
+            Kind = KspGateEvaluators.Kinds.PartModuleResearched,
+            Quantity = string.Join(PartModuleResearchedGate.Alternatives, modules),
+        };
+
+        /// <summary>Part modules a requirement names, spelled from the types so a rename cannot leave a gate on nothing.</summary>
+        public static class Modules
+        {
+            public const string DockingNode = nameof(ModuleDockingNode);
+            public const string ResourceHarvester = nameof(ModuleResourceHarvester);
+            public const string ResourceConverter = nameof(ModuleResourceConverter);
+            public const string ScienceLab = nameof(ModuleScienceLab);
+            public const string GroundExperiment = nameof(ModuleGroundExperiment);
+            public const string ServoHinge = nameof(ModuleRoboticServoHinge);
+            public const string ServoPiston = nameof(ModuleRoboticServoPiston);
+            public const string RotationServo = nameof(ModuleRoboticRotationServo);
+            public const string ServoRotor = nameof(ModuleRoboticServoRotor);
+        }
 
         /// <summary>The game is in one of these scenes (<c>HighLogic.LoadedScene</c>).</summary>
         public static CommandRequirement Scene(params GameScenes[] scenes)

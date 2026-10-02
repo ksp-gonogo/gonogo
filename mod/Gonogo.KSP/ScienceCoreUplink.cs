@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Gonogo.KSP.Gates;
 using Sitrep.Contract;
 using Sitrep.Core;
 using Sitrep.Host;
@@ -111,7 +112,7 @@ namespace Gonogo.KSP
                 },
                 new ChannelDeclaration
                 {
-                    Requires = Requirement.None,
+                    Requires = new[] { CareerGates.PartModuleResearched(CareerGates.Modules.ScienceLab) },
                     Topic = ScienceViewProvider.LabTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),

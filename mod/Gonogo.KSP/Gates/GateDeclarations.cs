@@ -192,6 +192,44 @@ namespace Gonogo.KSP.Gates
                     KspGateEvaluators.Quantities.LaunchSiteClear),
             };
 
+            // Writing a node plans, and planning is two buildings: the Tracking
+            // Station attaches the solver a node lives on, Mission Control lets a
+            // node be placed on it. Removing one is never gated, since the undo is
+            // not a capability a player buys.
+            foreach (var command in new[] { VesselCommandProvider.ManeuverAddCommand, VesselCommandProvider.ManeuverUpdateCommand })
+            {
+                table[command] = new[]
+                {
+                    CareerGates.OrbitDisplay(OrbitDisplayGate.PatchedConics),
+                    CareerGates.FacilityUnlocked(
+                        SpaceCenterFacility.MissionControl, KspGateEvaluators.Quantities.FlightPlanning),
+                };
+            }
+            foreach (var command in new[]
+            {
+                RoboticsCommandProvider.ServoSetTargetCommand,
+                RoboticsCommandProvider.ServoSetMotorCommand,
+                RoboticsCommandProvider.ServoSetLockCommand,
+            })
+            {
+                table[command] = new[]
+                {
+                    CareerGates.PartModuleResearched(
+                        CareerGates.Modules.ServoHinge, CareerGates.Modules.ServoPiston, CareerGates.Modules.RotationServo),
+                };
+            }
+            foreach (var command in new[]
+            {
+                RoboticsCommandProvider.RotorSetRpmLimitCommand,
+                RoboticsCommandProvider.RotorSetTorqueLimitCommand,
+                RoboticsCommandProvider.RotorSetBrakeCommand,
+                RoboticsCommandProvider.RotorSetMotorCommand,
+                RoboticsCommandProvider.RotorSetLockCommand,
+                RoboticsCommandProvider.RotorReverseCommand,
+            })
+            {
+                table[command] = new[] { CareerGates.PartModuleResearched(CareerGates.Modules.ServoRotor) };
+            }
             return table;
         }
     }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Gonogo.KSP.Gates;
 using Sitrep.Contract;
 using Sitrep.Host.Isru;
 
@@ -38,14 +39,14 @@ namespace Gonogo.KSP
             Version = "1.0.0",
             Channels = new List<ChannelDeclaration>
             {
-                Delayed(DrillsTopic),
-                Delayed(ConvertersTopic),
+                Delayed(DrillsTopic, CareerGates.Modules.ResourceHarvester),
+                Delayed(ConvertersTopic, CareerGates.Modules.ResourceConverter),
             },
         };
 
-        private static ChannelDeclaration Delayed(string topic) => new ChannelDeclaration
+        private static ChannelDeclaration Delayed(string topic, string module) => new ChannelDeclaration
         {
-            Requires = Requirement.None,
+            Requires = new[] { CareerGates.PartModuleResearched(module) },
             Topic = topic,
             Delivery = Delivery.LossyLatest,
             Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
