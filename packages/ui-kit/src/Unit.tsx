@@ -6,9 +6,9 @@ import {
   type Value,
 } from "@ksp-gonogo/sitrep-sdk";
 import type { ReactNode } from "react";
-import styled from "styled-components";
+import styled, { css } from "styled-components";
 import { bandClaim } from "./bandClaim";
-import { HeldMark } from "./HeldMark";
+import { HeldMark, reservesHeldMark } from "./HeldMark";
 import { MicroscopeIcon, StarIcon } from "./Icons";
 import {
   figureAttributes,
@@ -56,10 +56,16 @@ const Unit__Span = styled.span<{ $attached: boolean; $icon: boolean }>`
       : ""}
 `;
 
-// Relatively positioned when it carries a mark, so the out-of-flow dot hangs off the value's own box and never reflows a column.
+// A held figure is relatively positioned and reserves the dot's room at its end, so the mark sits inside the box that a clipping edge cuts and a line never lands the dot alone.
 const Unit__Quantity = styled.span<{ $held: boolean }>`
   white-space: nowrap;
-  ${({ $held }) => ($held ? "position: relative;" : "")}
+  ${({ $held }) =>
+    $held
+      ? css`
+          position: relative;
+          ${reservesHeldMark}
+        `
+      : ""}
 `;
 
 // Dimmer than the value but never smaller: a qualifier must recede without becoming unreadable.

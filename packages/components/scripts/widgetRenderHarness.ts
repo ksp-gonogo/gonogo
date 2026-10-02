@@ -1354,7 +1354,7 @@ async function findClippedContent(page: Page): Promise<string[]> {
  *   box hiding it. Scrolling brings it only into the part of the scroller's
  *   viewport the operator never sees
  *
- * Seven quiet cases, each a thing this codebase does on purpose:
+ * Eight quiet cases, each a thing this codebase does on purpose:
  *
  * - `quiet-scroll`: content past the end of an `overflow: auto` container. The
  *   operator can scroll to it, so it is not out of reach
@@ -1371,6 +1371,9 @@ async function findClippedContent(page: Page): Promise<string[]> {
  *   shape of a tape's far headings. Only a declaration tells that from a
  *   defect, so undeclared it is left alone
  * - `quiet-sr-only`: the visually-hidden idiom, parked out of sight on purpose
+ * - `quiet-reserved`: the held mark's own shape, the `fires-absolute` box with
+ *   the host reserving the dot's room at its end and the dot hung inside it, so
+ *   a shrink-wrapped clipper has the room and the dot is drawn
  */
 async function proveClipDetectorWorks(page: Page): Promise<void> {
   await page.evaluate(() => {
@@ -1429,6 +1432,14 @@ async function proveClipDetectorWorks(page: Page): Promise<void> {
       </div>
       <div style="position:absolute;top:800px;left:0;width:60px;height:20px;overflow:hidden">
         <span id="quiet-window" style="position:absolute;left:0;top:40px">far</span>
+      </div>
+      <style>#quiet-reserved-host::after{content:"";display:inline-block;width:10px}</style>
+      <div style="position:absolute;top:900px;left:0;width:200px">
+        <span style="display:inline-block;overflow:hidden">
+          <span id="quiet-reserved-host" style="position:relative;display:inline-block">value<span
+            id="quiet-reserved" data-held-mark=""
+            style="position:absolute;right:0;top:0;width:6px;height:6px;background:#fa0"></span></span>
+        </span>
       </div>
       <div style="position:absolute;top:840px;left:0;width:60px;height:20px;overflow:hidden">
         <span id="quiet-sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap">spoken</span>

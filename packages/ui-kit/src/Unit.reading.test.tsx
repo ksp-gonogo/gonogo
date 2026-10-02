@@ -177,8 +177,7 @@ describe("Unit: a reading that is held", () => {
     expect(markRule(container)).not.toMatch(/#[0-9a-f]{3,8}\b/i);
   });
 
-  it("does not change what the readout occupies", () => {
-    // A glyph in the flow would reflow a table column every time a channel went quiet.
+  it("does not change what the readout says", () => {
     const { container: marked } = render(
       <Unit value={stale(12_400, "held")} />,
     );
@@ -186,10 +185,34 @@ describe("Unit: a reading that is held", () => {
     expect(visibleText(marked)).toBe(visibleText(plain));
   });
 
-  it("takes the dot out of the inline flow, so no column can reflow", () => {
-    // jsdom has no layout, so assert the rule that makes the mark zero-width: it is absolutely positioned.
+  it("keeps the dot inside the figure's own box, so a clipping edge cannot cut it off", () => {
+    // jsdom has no layout, so assert the rules that place it: the dot is absolute against the right edge, and the host reserves that room itself.
     const { container } = render(<Unit value={stale(12_400, "held")} />);
-    expect(markRule(container)).toContain("position:absolute");
+    const rule = markRule(container);
+    expect(rule).toContain("position:absolute");
+    expect(rule).toContain("right:0");
+    expect(rule).not.toContain("left:100%");
+    const host = quantity(container);
+    const reserve = Array.from(host.classList)
+      .flatMap(
+        (cls) =>
+          emittedCss().match(new RegExp(`\\.${cls}::after\\{[^}]*\\}`, "g")) ??
+          [],
+      )
+      .join("");
+    expect(reserve).toContain("display:inline-block");
+    expect(reserve).toContain("width:calc(max(0.3em, 4px) + 0.14em)");
+  });
+
+  it("reserves nothing on a current reading, which has no mark to hold room for", () => {
+    const { container } = render(<Unit value={metres(12_400)} />);
+    const host = quantity(container);
+    const reserve = Array.from(host.classList).flatMap(
+      (cls) =>
+        emittedCss().match(new RegExp(`\\.${cls}::after\\{[^}]*\\}`, "g")) ??
+        [],
+    );
+    expect(reserve).toEqual([]);
   });
 
   it.each([

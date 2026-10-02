@@ -578,7 +578,7 @@ function MeterPairBar<UnitSymbol extends string = string>({
     (valueLabel !== undefined ? (
       <HeldLabel caption={caption}>{valueLabel}</HeldLabel>
     ) : bar.layout === "row" ? (
-      <Meter__Pair>
+      <Meter__Pair $marked={bar.fillHeld || bar.trackHeld}>
         <Unit value={value} hideUnitInGroup />
         {" / "}
         <Unit value={capacity} />
@@ -869,9 +869,16 @@ const Meter__Bar = styled.div<{ $row: boolean }>`
 `;
 
 /* One nowrap box for the row form's pair, so its single held mark hangs off the end of the phrase. */
-const Meter__Pair = styled(HeldHost)`
+const Meter__Pair = styled(HeldHost)<{ $marked: boolean }>`
+  /* The pair's own mark reserves the room; the figures inside it carry none. */
+  &::after {
+    content: ${({ $marked }) => ($marked ? '""' : "none")};
+  }
   & > span > [data-held-mark] {
     display: none;
+  }
+  & > span::after {
+    content: none;
   }
 `;
 
