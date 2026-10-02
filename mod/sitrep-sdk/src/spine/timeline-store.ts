@@ -977,11 +977,14 @@ export class TimelineStore {
       point.meta.deliveredAt,
       point.epoch,
     );
-    // Every ingested sample: keyframe or change-emission alike, confirms
-    // the link is alive as of this arrival. Deliberately keyed on
-    // `meta.deliveredAt`, never `point.validAt` (see
+    // Every live sample, keyframe or change-emission alike, confirms the link
+    // is alive as of this arrival. A recorded one does not: it describes the
+    // past, and can be delivered while the craft is still out of contact.
+    // Deliberately keyed on `meta.deliveredAt`, never `point.validAt` (see
     // `HeartbeatTracker`'s doc comment for why).
-    this.heartbeats.noteArrival(topic, point.meta.deliveredAt);
+    if (point.meta.staleness !== Staleness.Recorded) {
+      this.heartbeats.noteArrival(topic, point.meta.deliveredAt);
+    }
 
     const newEpoch = this.clock.getEpoch();
     if (newEpoch > priorEpoch) {

@@ -1404,7 +1404,7 @@ describe("SCET alarms", () => {
     const before = svc.snapshot().scetUnreachable;
 
     session.markUnreachable(alarm.id);
-    await run(session, UT_START + 6 * DT);
+    await runFrom(session, UT_START + 4 * DT, UT_START + 6 * DT);
     const after = svc.snapshot().scetUnreachable;
     svc.dispose();
 

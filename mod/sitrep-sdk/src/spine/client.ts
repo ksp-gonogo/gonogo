@@ -217,6 +217,20 @@ export class TelemetryClient {
   private readonly clock: Clock;
   private readonly subscribers = new Map<string, Set<Subscription>>();
   private readonly lastValues = new Map<string, unknown>();
+
+  /**
+   * The newest sample each topic has handed to `lastValues` and raw
+   * subscribers, per timeline epoch and vantage. A sample older than it still
+   * reaches the timelines, which put it in order, but never becomes the
+   * topic's latest value: a late `comms.delay` taken as current would pull the
+   * view clock back and freeze every delayed readout. A new epoch or a new
+   * vantage starts the topic afresh, since either legitimately moves which
+   * instant is the newest this screen may know.
+   */
+  private readonly newestRaw = new Map<
+    string,
+    { epoch: number; vantage: string; validAt: number }
+  >();
   private readonly storeListeners = new Set<StoreListener>();
   /** Reactive-read listeners for the selected vantage: see `onSelectedVantageChange`. */
   private readonly vantageListeners = new Set<() => void>();
@@ -527,6 +541,7 @@ export class TelemetryClient {
       if (current.size === 0) {
         this.subscribers.delete(topic);
         this.lastValues.delete(topic);
+        this.newestRaw.delete(topic);
         this.transport.send({ type: "unsubscribe", topic });
         this.ownership?.noteReleased(topic);
       }
@@ -798,6 +813,7 @@ export class TelemetryClient {
 
     this.subscribers.clear();
     this.lastValues.clear();
+    this.newestRaw.clear();
     this.storeListeners.clear();
     this.unownedListeners.clear();
     this.subscriberLabels.clear();
@@ -891,16 +907,35 @@ export class TelemetryClient {
     this.ingestTopicPayload(message.topic, message.payload, message.meta);
   }
 
+  /** Whether a sample is at least as new as the newest this topic has surfaced, recording it when it is. */
+  private isNewestRaw(topic: string, meta: Meta): boolean {
+    const epoch = meta.timelineEpoch ?? 0;
+    const vantage = meta.vantage ?? "";
+    const prior = this.newestRaw.get(topic);
+    if (
+      prior !== undefined &&
+      prior.epoch === epoch &&
+      prior.vantage === vantage &&
+      meta.validAt < prior.validAt
+    ) {
+      return false;
+    }
+    this.newestRaw.set(topic, { epoch, vantage, validAt: meta.validAt });
+    return true;
+  }
+
   private ingestTopicPayload(
     topic: string,
     payload: unknown,
     meta: Meta,
   ): void {
     this.noteObservedVantage(meta.vantage);
-    this.lastValues.set(topic, payload);
-    const subs = this.subscribers.get(topic);
-    if (subs) {
-      for (const sub of subs) this.invokeCallback(sub.cb, payload);
+    if (this.isNewestRaw(topic, meta)) {
+      this.lastValues.set(topic, payload);
+      const subs = this.subscribers.get(topic);
+      if (subs) {
+        for (const sub of subs) this.invokeCallback(sub.cb, payload);
+      }
     }
     for (const store of this.stores) {
       store.ingest(topic, {
