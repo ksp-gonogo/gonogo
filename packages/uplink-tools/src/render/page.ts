@@ -43,7 +43,9 @@ const PAGE_TEMPLATE = `<!doctype html>
         color: var(--color-text-primary);
         font-family: var(--font-family-mono);
       }
+      /* The app's document size (global.css), by the same token, so inherited text is not drawn at the browser's 16px. */
       body {
+        font-size: var(--font-size-compact);
         display: flex;
         align-items: center;
         justify-content: center;

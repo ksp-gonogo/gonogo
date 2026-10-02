@@ -77,6 +77,14 @@ const BARE_PILL = {
   width: 120,
 } as const;
 
+/**
+ * Where the canary's covered line sits, measured from its own zero-height
+ * anchor at the end of the body, which is NOT a fixed height: the rows above it
+ * take the size of the document text, so the line is placed against the body
+ * rather than flowed after them.
+ */
+const CANARY_COVERED_TOP_PX = -20;
+
 function Canary() {
   return (
     <>
@@ -103,6 +111,18 @@ function Canary() {
           >
             <span style={{ width: 40 }}>FITS</span>
           </Badge>
+        </div>
+        <div style={{ position: "relative", flexShrink: 0, height: 0 }}>
+          <div
+            style={{
+              position: "absolute",
+              top: CANARY_COVERED_TOP_PX,
+              lineHeight: "22px",
+              whiteSpace: "nowrap",
+            }}
+          >
+            Covered
+          </div>
         </div>
       </Panel>
       {/* Outside the panel, so their nearest clipping box is the tile itself

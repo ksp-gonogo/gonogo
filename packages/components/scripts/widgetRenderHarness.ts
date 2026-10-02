@@ -119,6 +119,12 @@ const LOCAL_DOCS = resolve(HERE, "../../../local_docs");
 // @ksp-gonogo/theme build` having run first (its `dist/tokens.css` is a
 // gitignored build artifact; this script only ever reads plain text).
 const THEME_TOKENS_CSS = resolve(HERE, "../../theme/src/tokens.css");
+/**
+ * The app's own stylesheet, read for the document defaults its `body` rule
+ * sets. A template that set none rendered inherited text at the browser's 16px
+ * while the app draws it at `--font-size-compact`.
+ */
+const APP_GLOBAL_CSS = resolve(HERE, "../../app/src/styles/global.css");
 /** What the app serves at its base URL: the body textures MapView asks for. */
 const PUBLIC_ASSETS = resolve(HERE, "../../app/public");
 const ARTIFACT_EXTS = new Set([".png"]);
@@ -1394,7 +1400,7 @@ async function proveClipDetectorWorks(page: Page): Promise<void> {
         </span>
       </div>
       <div style="position:absolute;top:100px;left:0;width:120px;height:20px;overflow:hidden">
-        <span style="position:relative;display:inline-block">v<span
+        <span style="position:relative;display:inline-block;height:30px">v<span
           id="fires-below" data-held-mark=""
           style="position:absolute;top:100%;left:0;width:6px;height:6px;background:#fa0"></span></span>
       </div>
@@ -2198,6 +2204,7 @@ export async function prepareProbePage(opts: PreparePageOpts): Promise<string> {
   const htmlTemplate = await readFile(opts.htmlTemplate, "utf8");
   const themeCss = themeTokens(await readFile(THEME_TOKENS_CSS, "utf8"));
   const fontFace = await jetbrainsMonoFontFace();
+  const documentCss = documentDefaults(await readFile(APP_GLOBAL_CSS, "utf8"));
 
   // Inline-script payload may contain `</script>` (rare but possible in
   // bundled React code embedded as strings); escape so the host page
@@ -2220,7 +2227,8 @@ export async function prepareProbePage(opts: PreparePageOpts): Promise<string> {
     .replace("<head>", () => `<head>\n    ${assetBase}`)
     .replace(
       /<style id="probe-theme">[\s\S]*?<\/style>/,
-      () => `<style id="probe-theme">${fontFace}${themeCss}</style>`,
+      () =>
+        `<style id="probe-theme">${fontFace}${themeCss}${documentCss}</style>`,
     )
     .replace(
       opts.scriptSrcPlaceholder,
@@ -2249,6 +2257,25 @@ function themeTokens(css: string): string {
     throw new Error("tokens.css: no custom properties found");
   }
   return css;
+}
+
+/**
+ * The font declarations of the app's `body` rule, so a probe page sets the
+ * same document defaults from the same source rather than a copied number.
+ * Throws when the rule no longer sets a size, since a probe that quietly
+ * falls back to 16px is the page this exists to remove.
+ */
+export function documentDefaults(globalCss: string): string {
+  const withoutComments = globalCss.replace(/\/\*[\s\S]*?\*\//g, "");
+  const body = /(?:^|\})\s*body\s*\{([^}]*)\}/.exec(withoutComments);
+  const kept = (body?.[1] ?? "")
+    .split(";")
+    .map((declaration) => declaration.trim())
+    .filter((declaration) => /^font-(?:family|size)\s*:/.test(declaration));
+  if (!kept.some((declaration) => declaration.startsWith("font-size"))) {
+    throw new Error("global.css: the body rule sets no font-size");
+  }
+  return `\nbody { ${kept.join("; ")}; }\n`;
 }
 
 /** Wipe stale artifacts from the output dir before regenerating. Only
