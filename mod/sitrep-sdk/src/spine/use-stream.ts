@@ -4,6 +4,7 @@ import {
   useTelemetryClientOptional,
   useTelemetryStoreOptional,
 } from "./context";
+import { useClaimCapability } from "./lock-scope";
 import { subscribeTopicRead } from "./subscribe-read";
 
 /**
@@ -51,6 +52,7 @@ import { subscribeTopicRead } from "./subscribe-read";
 export function useStream<Payload>(topic: string): TopicReading<Payload> {
   const client = useTelemetryClientOptional();
   const store = useTelemetryStoreOptional();
+  useClaimCapability("topic", topic);
 
   const subscribe = useCallback(
     (onStoreChange: () => void) => {

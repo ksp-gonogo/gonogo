@@ -50,6 +50,7 @@
 export * from "../rail-tags";
 export * from "./atmospheric-reckoning";
 export * from "./body-derivations";
+export * from "./capability-lock";
 export * from "./celestial-facts";
 export * from "./channel-error-warning";
 export * from "./client";
@@ -77,6 +78,7 @@ export * from "./kepler";
 export * from "./kepler-reckoning";
 export * from "./lagrange";
 export * from "./lifecycle";
+export * from "./lock-scope";
 export * from "./map-command";
 export * from "./map-topic";
 export * from "./mod-settings";

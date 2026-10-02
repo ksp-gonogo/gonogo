@@ -11,6 +11,7 @@ import {
 import type { ProbePayload } from "./payload";
 import { renderProbe } from "./probe-entry";
 import "./plantedTinyMisfitWidget";
+import "./plantedLockedAugment";
 
 declare global {
   interface Window {

@@ -394,6 +394,11 @@ export {
 } from "./LineGraph";
 export { LiveRegion, type LiveRegionProps } from "./LiveRegion";
 export {
+  LockScope,
+  type LockScopeProps,
+  type LockSummary,
+} from "./LockScope";
+export {
   AntiNormalIcon,
   AntiTargetIcon,
   BinormalIcon,

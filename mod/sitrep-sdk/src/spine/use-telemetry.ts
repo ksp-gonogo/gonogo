@@ -11,6 +11,7 @@ import {
   useTelemetryClientOptional,
   useTelemetryStoreOptional,
 } from "./context";
+import { useClaimCapability } from "./lock-scope";
 import type { NeverReckonable } from "./never-reckonable";
 import { subscribeTopicRead } from "./subscribe-read";
 import { useTelemetrySubscriberLabel } from "./subscriber-identity";
@@ -111,6 +112,7 @@ export function useTelemetry<Topic extends TopicId>(
 export function useTelemetry(topic: TopicId): unknown {
   const client = useTelemetryClientOptional();
   const store = useTelemetryStoreOptional();
+  useClaimCapability("topic", topic);
 
   // Diagnostics only: which widget this read belongs to, so a topic nothing publishes can be reported with the name of the thing that asked for it.
   const subscriberLabel = useTelemetrySubscriberLabel();

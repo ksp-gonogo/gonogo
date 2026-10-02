@@ -19,6 +19,7 @@
  */
 import "./probe-install-host";
 import {
+  type ComponentDefinition,
   ContributionsProvider,
   DashboardItemContext,
   getComponent,
@@ -52,6 +53,7 @@ import {
   AlarmsLauncherProvider,
   type PendingAlarmSummary,
 } from "../../src/shared/AlarmsLauncher";
+import { RequiresGuard } from "../../src/shared/RequiresGuard";
 import {
   applyInstallProfile,
   getInstallProfile,
@@ -508,13 +510,17 @@ async function mountInto(
               {createElement(
                 DashboardItemContext.Provider,
                 { value: { instanceId } },
-                createElement(WidgetBody, {
+                guarded(
+                  payload,
                   def,
-                  config: payload.config ?? def.defaultConfig ?? {},
-                  id: instanceId,
-                  w: payload.w,
-                  h: payload.h,
-                }),
+                  createElement(WidgetBody, {
+                    def,
+                    config: payload.config ?? def.defaultConfig ?? {},
+                    id: instanceId,
+                    w: payload.w,
+                    h: payload.h,
+                  }),
+                ),
               )}
             </AlarmsLauncherProvider>,
           ),
@@ -742,4 +748,24 @@ function settle(ms: number): Promise<void> {
   return new Promise<void>((resolve) => {
     setTimeout(resolve, ms);
   });
+}
+
+/**
+ * A scene's `_guarded: true` mounts the widget behind the dashboard's own
+ * `RequiresGuard`, so a refusal the dashboard would draw in the widget's place
+ * (a locked capability among them) reaches the picture. Off by default: the
+ * guard's flight and career gates would otherwise blank fixtures that picture
+ * a widget's body outside the scene it needs.
+ */
+function guarded(
+  payload: ProbePayload,
+  def: ComponentDefinition,
+  body: React.ReactNode,
+): React.ReactNode {
+  if (payload.fixture._guarded !== true) return body;
+  return (
+    <RequiresGuard channels={def.channels} title={def.name}>
+      {body}
+    </RequiresGuard>
+  );
 }

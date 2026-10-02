@@ -10,6 +10,9 @@ import {
   useDomainAvailabilityStore,
   useDomainAvailable,
 } from "./domainAvailability";
+import { InactiveNotice } from "./InactiveNotice";
+import { LockScope } from "./LockScope";
+import { Section } from "./Section";
 import { useWidgetMeta } from "./WidgetMetaContext";
 
 /**
@@ -58,6 +61,7 @@ export function AugmentSlot<Slot extends string>(
           key={augment.id}
           augment={augment}
           slotProps={args.props as Record<string, unknown>}
+          asSection={slotName?.endsWith(".sections") === true}
         />
       ))}
     </>
@@ -179,18 +183,43 @@ export function useAugmentAvailable(augment: AnyAugment): boolean {
   return !augment.requires || available;
 }
 
-/** One augment behind its gate, isolated so the gate hook's position is stable as the registered set changes. */
+/**
+ * One augment behind its gate, isolated so the gate hook's position is stable
+ * as the registered set changes.
+ *
+ * Each augment is its own lock scope. An Uplink's section reads and commands
+ * through hooks in its own body, which would otherwise claim against the host
+ * widget's scope and take the whole host down for a capability only the
+ * augment uses. A locked augment in a sections slot draws the missing unlock
+ * under its label; anywhere else (an overlay, a badge) it draws nothing.
+ */
 function AugmentEntry({
   augment,
   slotProps,
+  asSection,
 }: {
   augment: AnyAugment;
   slotProps: Record<string, unknown>;
+  asSection: boolean;
 }): ReactElement | null {
   if (!useAugmentAvailable(augment)) {
     return null;
   }
 
   const Component = augment.component;
-  return <Component {...slotProps} />;
+  return (
+    <LockScope
+      fallback={
+        asSection
+          ? (lock) => (
+              <Section title={augment.label}>
+                <InactiveNotice reason={lock} />
+              </Section>
+            )
+          : null
+      }
+    >
+      <Component {...slotProps} />
+    </LockScope>
+  );
 }

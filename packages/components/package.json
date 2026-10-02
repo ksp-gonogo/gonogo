@@ -43,7 +43,8 @@
     "render-atmospheric-handover": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-atmospheric-handover.ts",
     "render-altitude-band": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-altitude-band.ts",
     "render-admin-building-no-departments": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-admin-building-no-departments.ts",
-    "render-admin-building-own-actions": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-admin-building-own-actions.ts"
+    "render-admin-building-own-actions": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-admin-building-own-actions.ts",
+    "render-capability-locks": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-capability-locks.ts"
   },
   "dependencies": {
     "@ksp-gonogo/core": "workspace:*",

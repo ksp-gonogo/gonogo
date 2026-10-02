@@ -58,6 +58,7 @@ import {
   useTelemetryStoreOptional,
 } from "./context";
 import { CommandError } from "./lifecycle";
+import { useClaimCapability } from "./lock-scope";
 import { commandDelayed } from "./map-command";
 import { useRailRegistry } from "./rail-registry";
 import { useLatestValue, useStream } from "./use-stream";
@@ -430,6 +431,7 @@ export function useCommand(
   options?: UseCommandOptions,
 ): UseCommandResult {
   const vantage = options?.vantage;
+  useClaimCapability("command", command);
   // Degrade gracefully with no `TelemetryProvider` mounted (disconnected).
   // Status stays IDLE and `send` is a no-op: you can't dispatch a command with
   // no link, and the hook must not throw just because the dashboard rendered

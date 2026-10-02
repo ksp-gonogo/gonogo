@@ -26,6 +26,7 @@ import { PanelDelayRail } from "./CommandDelay/PanelDelayRail";
 import { FramedDisplay } from "./FramedDisplay";
 import { fitBox, fitMask } from "./fitBox";
 import { focusRing, focusRingInset } from "./focusRing";
+import { InactiveNotice, type PanelInactiveReason } from "./InactiveNotice";
 import { LiveRegion } from "./LiveRegion";
 import { type BadgeEntry, usePanelBadgesContext } from "./PanelBadges";
 import { SECTION_FILL_ATTR, SECTION_FULL_ATTR, Section } from "./Section";
@@ -1162,13 +1163,7 @@ export function PanelGlow({
   );
 }
 
-/**
- * What {@link PanelProps.inactive} takes: the reason as one line, or the
- * reason plus a hint at what would bring the panel back.
- *
- * @category Panel
- */
-export type PanelInactiveReason = string | { reason: string; hint?: string };
+export type { PanelInactiveReason } from "./InactiveNotice";
 
 /**
  * Props for {@link Panel}. Any other `div` attribute passes through to the
@@ -1802,7 +1797,7 @@ function PanelRootImpl({
     );
   }
   const content = isInactive ? (
-    <PanelInactiveBody reason={inactive} />
+    <InactiveNotice reason={inactive} />
   ) : !hasSections ? (
     children
   ) : (
@@ -1884,44 +1879,6 @@ function PanelRootImpl({
     </PanelProviders>
   );
 }
-
-/** The one body an inactive panel draws: the reason, centred, announced politely. */
-function PanelInactiveBody({ reason }: { reason: PanelInactiveReason }) {
-  const { reason: message, hint } =
-    typeof reason === "string" ? { reason, hint: undefined } : reason;
-  return (
-    <PanelInactive__Body role="status" aria-live="polite">
-      <PanelInactive__Reason>{message}</PanelInactive__Reason>
-      {hint !== undefined && <PanelInactive__Hint>{hint}</PanelInactive__Hint>}
-    </PanelInactive__Body>
-  );
-}
-
-const PanelInactive__Body = styled.div`
-  flex: 0 1 auto;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--gap-caption);
-  text-align: center;
-  padding: var(--inset-refusal);
-`;
-
-const PanelInactive__Reason = styled.div`
-  color: var(--color-text-muted);
-  font-size: var(--font-size-caption);
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-`;
-
-const PanelInactive__Hint = styled.div`
-  color: var(--color-text-faint);
-  font-size: var(--font-size-caption);
-  letter-spacing: 0.04em;
-`;
 
 /**
  * Whether a section is a filling `Section` whose whole content is one

@@ -1,5 +1,7 @@
 import type { HTMLAttributes, ReactNode } from "react";
 import styled from "styled-components";
+import { InactiveNotice } from "./InactiveNotice";
+import { LockScope } from "./LockScope";
 import { Stack } from "./Stack";
 import type { GapToken } from "./scales";
 import type { StaticElement } from "./staticElement";
@@ -51,6 +53,10 @@ export interface SectionProps
  * `full` spans every column of the section grid and `fill` takes the body's
  * leftover height.
  *
+ * A section is a lock scope: when a topic read or a command held anywhere
+ * inside it is one this save has not unlocked, the section keeps its title and
+ * draws the missing unlock in place of its content.
+ *
  * @category Layout
  */
 export function Section({
@@ -62,21 +68,34 @@ export function Section({
   fill = false,
   ...rest
 }: SectionProps) {
+  const heading =
+    title == null ? null : <SectionTitle as={titleAs}>{title}</SectionTitle>;
+  const stackProps = {
+    gap,
+    [SECTION_FULL_ATTR]: full ? "" : undefined,
+    [SECTION_FILL_ATTR]: fill ? "" : undefined,
+    ...rest,
+  };
+  /* The scope wraps the Stack rather than sitting inside it, so the caller's
+     children reach the Stack unwrapped: an element in between changes which DOM
+     nodes React reuses as conditional children come and go. Not `Stack`'s own
+     `fill` either: that is a zero basis, splitting the body evenly however
+     little is in either section, where the body's rule divides only what is
+     spare. */
   return (
-    /* Not `Stack`'s own `fill`: that is a zero basis, splitting the body evenly
-       however little is in either section, where the body's rule divides only
-       what is spare. */
-    <Stack
-      gap={gap}
-      {...{
-        [SECTION_FULL_ATTR]: full ? "" : undefined,
-        [SECTION_FILL_ATTR]: fill ? "" : undefined,
-      }}
-      {...rest}
+    <LockScope
+      fallback={(lock) => (
+        <Stack {...stackProps}>
+          {heading}
+          <InactiveNotice reason={lock} />
+        </Stack>
+      )}
     >
-      {title == null ? null : <SectionTitle as={titleAs}>{title}</SectionTitle>}
-      {children}
-    </Stack>
+      <Stack {...stackProps}>
+        {heading}
+        {children}
+      </Stack>
+    </LockScope>
   );
 }
 
