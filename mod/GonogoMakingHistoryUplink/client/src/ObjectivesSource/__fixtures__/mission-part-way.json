@@ -1,0 +1,64 @@
+{
+  "_meta": {
+    "synthetic": true,
+    "notes": "SYNTHETIC: hand-written from the shape of the decompiled Expansions.Missions types, never captured from a running Making History install. A mission part way through: one objective reached, one under way, two still to come, with a score earned so far."
+  },
+  "_scene": {
+    "augment": "objectives-making-history",
+    "hostWidget": "objectives",
+    "hero": true,
+    "caption": "A Making History mission part way through, its objectives listed in the Objectives widget with the phase and score above them",
+    "modes": ["default"],
+    "unchangedWhenHeld": "A mission changes only on events, so the last frame received is still the mission and the picture is the same with the link dropped.",
+    "paints": [
+      "First Steps",
+      "Phase: Reach orbit",
+      "Leave the launch pad",
+      "Return the crew safely"
+    ]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "missions.active",
+        "payload": {
+          "name": "First Steps",
+          "phase": "Reach orbit",
+          "started": true,
+          "finished": false,
+          "succeeded": false,
+          "scoreEnabled": true,
+          "score": 150,
+          "maxScore": 1000,
+          "objectives": [
+            {
+              "id": "a",
+              "title": "Leave the launch pad",
+              "description": "Lift off and clear the tower",
+              "state": 2
+            },
+            {
+              "id": "b",
+              "title": "Reach orbit",
+              "description": null,
+              "state": 1
+            },
+            {
+              "id": "c",
+              "title": "Deploy the antenna",
+              "description": null,
+              "state": 0
+            },
+            {
+              "id": "d",
+              "title": "Return the crew safely",
+              "description": "Recover the capsule intact",
+              "state": 0
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

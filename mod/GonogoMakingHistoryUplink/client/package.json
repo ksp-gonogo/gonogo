@@ -45,5 +45,10 @@
   },
   "peerDependencies": {
     "react": "^18.0.0"
+  },
+  "gonogo": {
+    "renderWith": [
+      "@ksp-gonogo/uplink-tools/widgets"
+    ]
   }
 }

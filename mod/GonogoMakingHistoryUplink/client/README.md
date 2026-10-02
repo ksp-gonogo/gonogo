@@ -15,6 +15,7 @@ Lists the running Making History mission's objectives in the Objectives widget, 
 
 | Augment | Into | Reads | Presence | Scenes | Notes |
 | --- | --- | --- | --- | --- | --- |
-| `objectives-making-history` | `objectives.source` | `missions.active` |  | 0 |  |
+| `objectives-making-history` | `objectives.source` | `missions.active` |  | 1 |  |
 
+![A Making History mission part way through, its objectives listed in the Objectives widget with the phase and score above them](docs/assets/mission-part-way--default.png)
 

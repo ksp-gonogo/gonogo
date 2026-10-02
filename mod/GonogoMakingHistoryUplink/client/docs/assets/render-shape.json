@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "engine": "chromium",
+  "assets": {
+    "mission-part-way--default.png": {
+      "hash": "e3927e3dc030165f",
+      "elements": 48,
+      "text": "ce5deae5"
+    }
+  }
+}
