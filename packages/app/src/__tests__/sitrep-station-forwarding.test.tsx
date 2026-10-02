@@ -380,6 +380,30 @@ async function connectStation(
   return clientSvc;
 }
 
+/**
+ * Emits again on every retry until `arrived` holds.
+ *
+ * `StubTransport.emit` drops a frame for a topic nobody has subscribed, and the
+ * relay only taps the host's raw stream once a station's connection has been
+ * observed, a React state update after the link reports connected. A frame
+ * emitted in that gap is neither relayed nor cached for backfill, so a single
+ * emit can be lost for good under load. Re-emitting the same sample is
+ * idempotent for the readers, and the wait ends on the frame itself arriving.
+ */
+async function emitUntilArrived(
+  emit: () => void,
+  arrived: () => void,
+  timeout: number,
+): Promise<void> {
+  await waitFor(
+    () => {
+      act(emit);
+      arrived();
+    },
+    { timeout },
+  );
+}
+
 describe("station Sitrep-stream forwarding: two-screen proof", () => {
   const stationServices: PeerClientService[] = [];
   const hostServices: PeerHostService[] = [];
@@ -433,33 +457,31 @@ describe("station Sitrep-stream forwarding: two-screen proof", () => {
     // never sees a sample the host's own clock wouldn't already call
     // confirmed, because it never receives it any earlier than the host did.
     const pastUt = Date.now() / 1000 - 10_000;
-    act(() => {
+    const emitOrbit = () =>
       hostTransport.emit(
         "vessel.orbit",
         { apoapsis: 100_000, periapsis: 80_000 },
         { validAt: pastUt, deliveredAt: pastUt },
       );
-    });
 
-    /* Explicit windows, because these two assert EVENTUAL CONSISTENCY and not
+    /* Explicit windows, because these assert EVENTUAL CONSISTENCY and not
        latency: a full in-process peer handshake has to complete and a frame has
        to cross it. RTL's default is 1000ms, which is a latency budget nobody
-       chose, and CI failed the host one at exactly that boundary while three
-       local runs passed. The test's own budget is 30s, so 8s asserts the same
-       thing without asserting a speed. If a frame genuinely stops arriving,
-       this still fails, eight seconds later. */
-    const ARRIVES = { timeout: 8000 };
-    await waitFor(
-      () =>
-        expect(screen.getByTestId("host-orbit").textContent).not.toBe("blank"),
-      ARRIVES,
-    );
-    await waitFor(
+       chose. The test's own budget is 30s, so 8s asserts the same thing
+       without asserting a speed. If a frame genuinely stops arriving, this
+       still fails, eight seconds later. */
+    await emitUntilArrived(
+      emitOrbit,
       () =>
         expect(screen.getByTestId("station-orbit").textContent).not.toBe(
           "blank",
         ),
-      ARRIVES,
+      8000,
+    );
+    await waitFor(
+      () =>
+        expect(screen.getByTestId("host-orbit").textContent).not.toBe("blank"),
+      { timeout: 8000 },
     );
 
     const hostText = screen.getByTestId("host-orbit").textContent;
@@ -481,17 +503,18 @@ describe("station Sitrep-stream forwarding: two-screen proof", () => {
     stationServices.push(station1);
 
     const pastUt = Date.now() / 1000 - 10_000;
-    act(() => {
-      hostTransport.emit(
-        "vessel.identity",
-        { name: "Kerbal X" },
-        { validAt: pastUt, deliveredAt: pastUt },
-      );
-    });
-    await waitFor(() =>
-      expect(screen.getAllByTestId("station-identity")[0].textContent).not.toBe(
-        "blank",
-      ),
+    await emitUntilArrived(
+      () =>
+        hostTransport.emit(
+          "vessel.identity",
+          { name: "Kerbal X" },
+          { validAt: pastUt, deliveredAt: pastUt },
+        ),
+      () =>
+        expect(
+          screen.getAllByTestId("station-identity")[0].textContent,
+        ).not.toBe("blank"),
+      8000,
     );
 
     // Station 2 connects mid-flight, AFTER vessel.identity last changed.
