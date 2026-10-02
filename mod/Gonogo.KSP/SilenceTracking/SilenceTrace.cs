@@ -145,18 +145,21 @@ namespace Gonogo.KSP.SilenceTracking
         private static string? _lastDecomp;
 
         /// <summary>
-        /// The frame residual, split into the two propagated terms that make it
-        /// up: the vessel about its own parent, and the chain's first link. The
+        /// The frame residual, split into the propagated terms that make it
+        /// up: the vessel about its own parent, the chain's first link, and the
+        /// station's body about its own parent. The
         /// summed residual alone cannot say which of the two is wrong, and its
         /// magnitude was consistent with both a phase error on the link and a
         /// bad vessel element set.
         /// </summary>
         public static void Decompose(
-            double liveVessel, double predictedVessel, double liveLink, double predictedLink)
+            double liveVessel, double predictedVessel, double liveLink, double predictedLink,
+            double liveStation, double predictedStation)
         {
             var line = "decompose: vesselAboutParent live=" + (long)liveVessel + " pred=" + (long)predictedVessel
-                + " | link0 live=" + (long)liveLink + " pred=" + (long)predictedLink;
-            var key = DecomposeKey(liveVessel, predictedVessel, liveLink, predictedLink);
+                + " | link0 live=" + (long)liveLink + " pred=" + (long)predictedLink
+                + " | stationBodyAboutParent live=" + (long)liveStation + " pred=" + (long)predictedStation;
+            var key = DecomposeKey(liveVessel, predictedVessel, liveLink, predictedLink, liveStation, predictedStation);
             if (key == _lastDecomp) return;
             _lastDecomp = key;
             Debug.Log(Prefix + line);
@@ -185,9 +188,11 @@ namespace Gonogo.KSP.SilenceTracking
         /// repeats.
         /// </summary>
         internal static string DecomposeKey(
-            double liveVessel, double predictedVessel, double liveLink, double predictedLink) =>
+            double liveVessel, double predictedVessel, double liveLink, double predictedLink,
+            double liveStation = 0.0, double predictedStation = 0.0) =>
             SignificantFigures(liveVessel) + "|" + SignificantFigures(predictedVessel)
-            + "|" + SignificantFigures(liveLink) + "|" + SignificantFigures(predictedLink);
+            + "|" + SignificantFigures(liveLink) + "|" + SignificantFigures(predictedLink)
+            + "|" + SignificantFigures(liveStation) + "|" + SignificantFigures(predictedStation);
 
         private static string SignificantFigures(double meters) =>
             meters.ToString("G3", CultureInfo.InvariantCulture);

@@ -51,5 +51,13 @@ namespace Gonogo.KSP.Tests.SilenceTracking
                 SilenceTrace.DecomposeKey(700_000.0, 700_000.0, 0.0, 0.0),
                 SilenceTrace.DecomposeKey(700_000.0, 760_000.0, 0.0, 0.0));
         }
+
+        [Fact]
+        public void TheDecompositionPrintsWhenOnlyTheStationBodyTermDisagrees()
+        {
+            Assert.NotEqual(
+                SilenceTrace.DecomposeKey(1.48e11, 1.48e11, 0.0, 0.0, 1.5e11, 1.5e11),
+                SilenceTrace.DecomposeKey(1.48e11, 1.48e11, 0.0, 0.0, 1.5e11, 9.0e10));
+        }
     }
 }

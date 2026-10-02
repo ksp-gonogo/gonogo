@@ -217,7 +217,7 @@ namespace Gonogo.KSP.SilenceTracking
                 _propagator,
                 reachLimits);
 
-            return ReconcilesWithTheLiveScene(geometry, sample, comm, ut) ? geometry : null;
+            return ReconcilesWithTheLiveScene(geometry, sample, comm, stationBody, ut) ? geometry : null;
         }
 
         /// <summary>
@@ -504,6 +504,7 @@ namespace Gonogo.KSP.SilenceTracking
             IVisibilityGeometry geometry,
             SilenceSample sample,
             CommNode comm,
+            CelestialBody stationBody,
             double ut)
         {
             var vessel = FindVessel(sample.VesselId);
@@ -533,7 +534,7 @@ namespace Gonogo.KSP.SilenceTracking
             var residual = Math.Abs(live - predicted);
             if (residual > FrameCheckToleranceMeters)
             {
-                DecomposeResidual(sample, vessel, now);
+                DecomposeResidual(sample, vessel, stationBody, now);
                 SilenceTrace.FrameCheckFailed(live, predicted, residual);
                 return false;
             }
@@ -791,7 +792,7 @@ namespace Gonogo.KSP.SilenceTracking
         /// so a wrong answer says WHICH element set is wrong rather than only
         /// that the total does not reconcile.
         /// </summary>
-        private void DecomposeResidual(SilenceSample sample, Vessel vessel, double now)
+        private void DecomposeResidual(SilenceSample sample, Vessel vessel, CelestialBody stationBody, double now)
         {
             try
             {
@@ -821,7 +822,26 @@ namespace Gonogo.KSP.SilenceTracking
                         now).Position.Magnitude();
                 }
 
-                SilenceTrace.Decompose(liveVessel, predictedVessel, liveLink, predictedLink);
+                // The station body about ITS parent: the term the vessel-side link
+                // is blind to when the craft orbits the star, since that link is
+                // then absent and the whole interplanetary composition rides on
+                // this one.
+                var stationUp = stationBody != null && stationBody.orbit != null
+                    && stationBody.orbit.referenceBody != null && stationBody.orbit.referenceBody != stationBody
+                    ? stationBody.orbit
+                    : null;
+                var liveStation = stationUp != null ? stationUp.getRelativePositionAtUT(now).magnitude : 0.0;
+                var predictedStation = 0.0;
+                if (stationUp != null && bodies != null)
+                {
+                    predictedStation = _propagator.Solve(
+                        PropagationTarget.Body(bodies.IndexOf(stationBody)),
+                        PropagationFrame.CentredOn(bodies.IndexOf(stationUp.referenceBody)),
+                        now).Position.Magnitude();
+                }
+
+                SilenceTrace.Decompose(
+                    liveVessel, predictedVessel, liveLink, predictedLink, liveStation, predictedStation);
             }
             catch (Exception ex)
             {
