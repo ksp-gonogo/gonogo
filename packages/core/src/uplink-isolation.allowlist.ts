@@ -67,6 +67,7 @@ export const FORBIDDEN_PACKAGES = [
   "gonogo-kerbalism-uplink",
   "gonogo-kerbcast-uplink",
   "gonogo-kos-uplink",
+  "gonogo-making-history-uplink",
   "gonogo-mechjeb-uplink",
   "gonogo-realantennas-uplink",
   "gonogo-scansat-uplink",

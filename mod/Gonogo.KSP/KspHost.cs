@@ -431,6 +431,24 @@ namespace Gonogo.KSP
                     Debug.LogWarning("[Gonogo] dlc snapshot build failed, omitting: " + ex);
                 }
 
+                // The running Making History mission (missions.active) is a
+                // game fact, not vessel state, so like dlc it is captured
+                // without a flight gate. MissionCapture returns null, and the
+                // group is omitted, when the expansion is absent or no mission
+                // is loaded.
+                try
+                {
+                    var missions = MissionCapture.Build();
+                    if (missions != null)
+                    {
+                        values["missions"] = missions;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogWarning("[Gonogo] missions snapshot build failed, omitting: " + ex);
+                }
+
                 // Revert-availability (ksp.revertAvailability) is a flight-scene
                 // fact - whether the two stock "revert" actions are available
                 // right now - so it's gated to the flight scene rather than

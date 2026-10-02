@@ -764,6 +764,22 @@
       "validAt": "ut",
       "vantage": "id"
     },
+    "MissionObjectiveEntry": {
+      "description": "text",
+      "id": "id",
+      "state": "enum",
+      "title": "text"
+    },
+    "MissionStatus": {
+      "finished": "flag",
+      "maxScore": "count",
+      "name": "text",
+      "phase": "text",
+      "score": "count",
+      "scoreEnabled": "flag",
+      "started": "flag",
+      "succeeded": "flag"
+    },
     "ModSettingRow": {
       "description": "text",
       "group": "text",
@@ -1660,6 +1676,16 @@
       "canRevertToEditor": "flag",
       "canRevertToLaunch": "flag"
     },
+    "missions.active": {
+      "finished": "flag",
+      "maxScore": "count",
+      "name": "text",
+      "phase": "text",
+      "score": "count",
+      "scoreEnabled": "flag",
+      "started": "flag",
+      "succeeded": "flag"
+    },
     "parts.power": {
       "totalProductionEc": "units/s"
     },
@@ -2205,6 +2231,9 @@
     "ManeuverNode": {
       "patches": "OrbitPatch[]"
     },
+    "MissionStatus": {
+      "objectives": "MissionObjectiveEntry[]"
+    },
     "ModSettingsModel": {
       "meta": "PayloadMeta",
       "settings": "ModSettingRow[]"
@@ -2426,6 +2455,9 @@
     "isru.converters": {
       "inputs": "IsruResourceFlow[]",
       "outputs": "IsruResourceFlow[]"
+    },
+    "missions.active": {
+      "objectives": "MissionObjectiveEntry[]"
     },
     "parts.power": {
       "alternators": "AlternatorEntry[]",

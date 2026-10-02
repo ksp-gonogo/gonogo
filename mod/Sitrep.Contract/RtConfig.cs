@@ -268,6 +268,9 @@ public static class RtConfig
                 typeof(ExperimentEntry),
                 typeof(LabEntry),
                 typeof(DeployedEntry),
+                // missions.active payload and its objective rows
+                typeof(MissionStatus),
+                typeof(MissionObjectiveEntry),
                 // science.experimentBreakdown per-subject rollup
                 typeof(ExperimentBreakdownEntry),
                 // science.archive per-subject career-wide archive entry
@@ -464,6 +467,7 @@ public static class RtConfig
                 typeof(FlightEndReason),
                 typeof(RosterCommsControlSource),
                 typeof(DeployedPowerState),
+                typeof(MissionObjectiveState),
                 typeof(SettingKind),
                 typeof(SettingsPersistenceState),
                 // A kerbal's standing (CrewStanding.cs). Sitrep's OWN

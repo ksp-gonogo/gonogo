@@ -3955,6 +3955,100 @@ export interface OrbitPayloadMeta
 	quality: Quality;
 }
 /**
+* Where one Making History mission objective stands, defined by this contract
+* rather than by KSP.
+*
+* KSP's mission graph has no per-objective state. A node is either activated
+* (the mission reached it) or not, and exactly one node is the mission's
+* active node, so this reduces those facts to the four outcomes an operator
+* reads. It is an ordinal on the wire and a closed union on the client like
+* every other enum in this contract.
+*
+* @category Missions
+*/
+export enum MissionObjectiveState {
+	/** The mission has not reached this objective yet. */
+	Pending = 0,
+	/**
+	* The mission is on this objective now: it is the mission's active node and
+	* the mission is still running.
+	*/
+	Active = 1,
+	/**
+	* The mission reached this objective and has moved past it, or ended
+	* successfully on it.
+	*/
+	Reached = 2,
+	/** The mission ended without success before this objective was met. */
+	Failed = 3
+}
+/**
+* One objective of a Making History mission, in mission-flow order.
+*
+* @category Missions
+*/
+export interface MissionObjectiveEntry
+{
+	/** The objective's node id (a GUID string), stable for the life of the mission. */
+	id?: string | null;
+	/** What the objective asks for, localised, as the mission author wrote it. */
+	title?: string | null;
+	/** The author's longer description of the objective. `null` when it has none. */
+	description?: string | null;
+	/**
+	* Where the objective stands. `null` when the mission's state could not be
+	* read.
+	*/
+	state?: MissionObjectiveState | null;
+}
+/**
+* The `missions.active` channel payload: the Making History mission that is
+* running, or has just ended, in the current game. The whole payload is `null`
+* when there is no mission game, when no mission has been set up, or when the
+* expansion is not installed; read `game.dlc` to tell the last from the
+* others.
+*
+* A mission that has ended stays in the payload with `MissionStatus.finished`
+* true until the game leaves the mission, so a client can show the outcome.
+*
+* Every field except `MissionStatus.objectives` is `null` whenever the raw
+* value is absent or could not be read. Score fields are meaningful only when
+* `MissionStatus.scoreEnabled` is true: a mission author can switch scoring
+* off.
+*
+* @category Missions
+*/
+export interface MissionStatus
+{
+	/** The mission's title, localised. */
+	name?: string | null;
+	/**
+	* The title of the mission's active node, the stage the mission is on. `null`
+	* when it has no active node.
+	*/
+	phase?: string | null;
+	/** Whether the mission has started. */
+	started?: boolean | null;
+	/** Whether the mission has ended, in success or failure. */
+	finished?: boolean | null;
+	/**
+	* Whether the mission ended in success. Meaningful once
+	* `MissionStatus.finished` is true.
+	*/
+	succeeded?: boolean | null;
+	/** Whether the mission awards a score at all. */
+	scoreEnabled?: boolean | null;
+	/** The score earned so far. */
+	score?: Value<"count"> | null;
+	/** The most score the mission can award. */
+	maxScore?: Value<"count"> | null;
+	/**
+	* The mission's objectives in flow order, orphaned nodes left out. Empty when
+	* it has none.
+	*/
+	objectives?: MissionObjectiveEntry[] | null;
+}
+/**
 * The `settings.<uplink>` channel payload: one Uplink's host mod's own
 * settings, as the Uplink read them.
 *

@@ -50,4 +50,15 @@ export const UPLINK_BUNDLE_TARGETS: UplinkBundleTarget[] = [
     repo: "ksp-gonogo/GonogoBreakingGroundUplink",
     clientDir: resolve(modDir, "GonogoBreakingGroundUplink/client"),
   },
+  {
+    /*
+     * Bundled in the core mod DLL like Breaking Ground (Gonogo.KSP/MakingHistoryUplink.cs),
+     * so only its client lives in its own directory.
+     */
+    id: "makingHistory",
+    name: "Making History",
+    author: "jonpepler",
+    repo: "ksp-gonogo/GonogoMakingHistoryUplink",
+    clientDir: resolve(modDir, "GonogoMakingHistoryUplink/client"),
+  },
 ];

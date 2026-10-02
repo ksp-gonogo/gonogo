@@ -1,0 +1,16 @@
+{
+  "id": "makingHistory",
+  "name": "Making History",
+  "description": "Lists the running Making History mission's objectives in the Objectives widget, each marked pending, under way, reached or failed.",
+  "author": "",
+  "repo": "",
+  "version": "0.0.1",
+  "minAppVersion": "0.0.0",
+  "apiVersion": "6.0.0",
+  "uiKitVersion": "0.1.0",
+  "contractMajor": 27,
+  "contractMinor": 10,
+  "bundleUrl": "makingHistory/makingHistory.client.js",
+  "integrity": "",
+  "sdkVersion": "0.0.1"
+}

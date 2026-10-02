@@ -67,6 +67,7 @@ import type {
   IsruDrillEntry,
   LabEntry,
   LaunchSiteEntry,
+  MissionStatus,
   PartsPower,
   RecoveryReport,
   RevertAvailability,
@@ -145,6 +146,7 @@ export interface GeneratedTopicPayloadMap {
   "isru.converters": IsruConverterEntry[];
   "isru.drills": IsruDrillEntry[];
   "ksp.revertAvailability": RevertAvailability;
+  "missions.active": MissionStatus;
   "parts.power": PartsPower;
   "recovery.lastSummary": RecoveryReport;
   "robotics.available": RoboticsAvailability;
@@ -227,6 +229,7 @@ export const GENERATED_TOPIC_IDS = [
   "isru.converters",
   "isru.drills",
   "ksp.revertAvailability",
+  "missions.active",
   "parts.power",
   "recovery.lastSummary",
   "robotics.available",

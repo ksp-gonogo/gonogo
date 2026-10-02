@@ -804,6 +804,22 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     validAt: "ut",
     vantage: "id",
   },
+  "MissionObjectiveEntry": {
+    description: "text",
+    id: "id",
+    state: "enum",
+    title: "text",
+  },
+  "MissionStatus": {
+    finished: "flag",
+    maxScore: "count",
+    name: "text",
+    phase: "text",
+    score: "count",
+    scoreEnabled: "flag",
+    started: "flag",
+    succeeded: "flag",
+  },
   "ModSettingRow": {
     description: "text",
     group: "text",
@@ -1705,6 +1721,16 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     canRevertToEditor: "flag",
     canRevertToLaunch: "flag",
   },
+  "missions.active": {
+    finished: "flag",
+    maxScore: "count",
+    name: "text",
+    phase: "text",
+    score: "count",
+    scoreEnabled: "flag",
+    started: "flag",
+    succeeded: "flag",
+  },
   "parts.power": {
     totalProductionEc: "units/s",
   },
@@ -2279,6 +2305,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "ManeuverNode": {
     patches: "OrbitPatch[]",
   },
+  "MissionStatus": {
+    objectives: "MissionObjectiveEntry[]",
+  },
   "ModSettingsModel": {
     meta: "PayloadMeta",
     settings: "ModSettingRow[]",
@@ -2503,6 +2532,9 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
     inputs: "IsruResourceFlow[]",
     outputs: "IsruResourceFlow[]",
   },
+  "missions.active": {
+    objectives: "MissionObjectiveEntry[]",
+  },
   "parts.power": {
     alternators: "AlternatorEntry[]",
     batteries: "BatteryEntry[]",
@@ -2692,6 +2724,9 @@ export const GENERATED_TYPE_ENUMS: Readonly<Record<string, EnumsByField>> = {
   "Meta": {
     quality: "Quality",
     staleness: "Staleness",
+  },
+  "MissionObjectiveEntry": {
+    state: "MissionObjectiveState",
   },
   "ModSettingRow": {
     kind: "SettingKind",
@@ -2988,6 +3023,12 @@ export const GENERATED_ENUM_MEMBERS: Readonly<Record<string, Readonly<Record<num
   "ManeuverFrame": {
     0: "RadialNormalPrograde",
     1: "Unknown",
+  },
+  "MissionObjectiveState": {
+    0: "Pending",
+    1: "Active",
+    2: "Reached",
+    3: "Failed",
   },
   "PhysicsMode": {
     0: "OnRails",

@@ -2170,8 +2170,13 @@ namespace Sitrep.Contract
         /// <para><b>Major-27 line, Bumped 8 -&gt; 9:</b> <c>commandCentre.unreachable</c>
         /// (<see cref="UnreachableCentreEntry"/>), the centres that left the roster and when each
         /// was last reachable. Additive, so an Uplink built against 27.8 is unaffected.</para>
+        ///
+        /// <para><b>Major-27 line, Bumped 9 -&gt; 10:</b> <c>missions.active</c>
+        /// (<see cref="MissionStatus"/>, <see cref="MissionObjectiveEntry"/> and
+        /// <see cref="MissionObjectiveState"/>), the running Making History mission and its
+        /// objectives. Additive, so an Uplink built against 27.9 is unaffected.</para>
         /// </internal>
         /// </summary>
-        public const int Minor = 9;
+        public const int Minor = 10;
     }
 }
