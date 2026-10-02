@@ -1,6 +1,6 @@
 import { Quality } from "../__generated__/contract";
 import { magnitudeOr, type Quantityish } from "../magnitude";
-import type { ReckoningDecline } from "../reading";
+import type { Reading, ReckoningDecline } from "../reading";
 import type { TimelinePoint } from "../timeline";
 import type {
   Anomalies,
@@ -62,6 +62,69 @@ export interface ConicBodiesInput {
     radius?: Quantityish;
     atmosphere?: { depth?: Quantityish | null } | null;
   }[];
+}
+
+/**
+ * The slice of `vessel.propulsion` that says whether anything is pushing the
+ * craft.
+ *
+ * @category Reckoners
+ */
+export interface ConicThrustInput {
+  currentThrust: Quantityish;
+  thrustStartedUt?: Quantityish | null;
+  lastThrustEndUt?: Quantityish | null;
+}
+
+/**
+ * The slice of `system.uplink.pending` that says when each command in flight
+ * reaches the craft: one way, `dispatchedAt + oneWaySeconds`.
+ *
+ * @category Reckoners
+ */
+export interface ConicPendingInput {
+  pending: readonly { dispatchedAt: Quantityish; oneWaySeconds: Quantityish }[];
+}
+
+/**
+ * What a craft under physics has to show before its elements are carried as a
+ * coast: that its engines are cold, and which commands reach it in the gap.
+ *
+ * Build one with {@link loadedCoastEvidence} from the two Readings, so every
+ * model asking the conic reads them the same way.
+ *
+ * @category Reckoners
+ */
+export interface LoadedCoastEvidence {
+  /** The engines' last stated condition, `undefined` where nothing has said. */
+  readonly thrust: ConicThrustInput | undefined;
+  /** The commands in flight, `undefined` where the queue has not arrived. */
+  readonly pending: ConicPendingInput | undefined;
+}
+
+/**
+ * {@link LoadedCoastEvidence} from the `vessel.propulsion` and
+ * `system.uplink.pending` Readings a model declared as `{ reading }` deps.
+ *
+ * A held reading still counts, the way a held body roster does: a change-gated
+ * channel that last changed a minute ago is saying its value now IS that value.
+ *
+ * @category Reckoners
+ */
+export function loadedCoastEvidence(
+  thrust: Pick<Reading<ConicThrustInput>, "state" | "value">,
+  pending: Pick<Reading<ConicPendingInput>, "state" | "value">,
+): LoadedCoastEvidence {
+  return {
+    thrust:
+      thrust.state === "observed" || thrust.state === "held"
+        ? thrust.value
+        : undefined,
+    pending:
+      pending.state === "observed" || pending.state === "held"
+        ? pending.value
+        : undefined,
+  };
 }
 
 /**
@@ -316,8 +379,10 @@ function trajectoryAuthority(
  *   of result it is. An `Unbounded` reach paired with a shape that is not
  *   `Analytic` is a licence to carry an integrated path forever as an ellipse,
  *   which is not a degraded conic but a different physics
- * - **not on rails.** The elements describe a coast; a craft under physics is
- *   being pushed by something the conic does not model
+ * - **under physics without a coast to show for it.** A loaded craft's
+ *   elements are osculating, and they describe a coast only while nothing is
+ *   pushing it: see {@link loadedCoastDecline} for what `coast` has to show.
+ *   Without `coast` a loaded craft is never carried
  * - **the SOI transition.** A patched conic is only the CURRENT patch, so a
  *   view time at or past the transition is asking this conic about an orbit
  *   round a different body
@@ -341,10 +406,11 @@ function trajectoryAuthority(
  * it is the permissive default `TrajectoryKind.Unspecified = 0` was numbered to
  * remove: a producer that forgets gets a decline rather than "conic, obviously".
  *
- * What is still unbounded, and cannot be bounded here: a BURN. A craft out of
- * contact is exactly one whose burns we cannot see, so nothing inside this
- * function can bound it, and the `kepler-propagation` basis states that limit
- * in its own words. That is what a basis is for.
+ * What is still unbounded on rails, and cannot be bounded here: a BURN that
+ * has not been seen. A craft out of contact is exactly one whose burns we
+ * cannot see, and the `kepler-propagation` basis states that limit in its own
+ * words. That is what a basis is for. A loaded craft is held to more, because
+ * it is the one a command can light: see {@link loadedCoastDecline}.
  *
  * @category Reckoners
  */
@@ -352,6 +418,7 @@ export function keplerAdmissibility(
   orbitPoint: TimelinePoint<ConicOrbitInput> | undefined,
   bodies: ConicBodiesInput | undefined,
   viewUt: number,
+  coast?: LoadedCoastEvidence,
 ): { readonly ok: true } | { readonly declined: ReckoningDecline } {
   if (orbitPoint?.payload == null) {
     return {
@@ -361,13 +428,14 @@ export function keplerAdmissibility(
   const authority = trajectoryAuthority(orbitPoint.payload.horizon);
   if (authority !== null) return { declined: authority };
   if (orbitPoint.meta.quality !== Quality.OnRails) {
-    return {
-      declined: {
-        reason: "under-physics",
-        input: "@vessel.orbit",
-        note: "the craft is under physics, so its elements are not a coast a conic can advance",
-      },
-    };
+    const loaded = loadedCoastDecline(
+      orbitPoint,
+      orbitPoint.payload,
+      bodies,
+      viewUt,
+      coast,
+    );
+    if (loaded !== null) return { declined: loaded };
   }
   const orbit = orbitPoint.payload;
   const transitionUt = orbit.encounter?.transitionUt;
@@ -407,6 +475,102 @@ export function keplerAdmissibility(
     }
   }
   return { ok: true };
+}
+
+/**
+ * Why a loaded craft's elements are not a coast to carry to `viewUt`, or `null`
+ * when they are.
+ *
+ * Under physics KSP rebuilds the elements from the integrated state every
+ * frame, so in vacuum with the engines cold they ARE the two-body orbit the
+ * craft is on and a conic advances them as well as it advances a craft on
+ * rails. What it takes is positive evidence of each half of that, which is the
+ * opposite posture to the atmosphere floor's: a loaded craft is the one most
+ * likely to be in air or under thrust, so a missing fact is a refusal here, not
+ * a pass.
+ *
+ * - **the engines are cold.** `vessel.propulsion` states no thrust and no
+ *   period of thrust in progress
+ * - **the elements post-date the burn.** A burn that ended after these
+ *   elements were taken left them describing an orbit the craft has since
+ *   left
+ * - **the craft is clear of the air.** Drag acts from the interface down, so
+ *   the craft must be above it at the elements' own epoch. Where it will be at
+ *   `viewUt` is the floor condition's question, asked after this one
+ * - **no command reaches it first.** A command arriving between the elements
+ *   and `viewUt` can change the throttle, the attitude or the stage, and none
+ *   of that is modelled. One already arrived by the elements' epoch has had its
+ *   effect observed
+ *
+ * Every refusal is `"under-physics"`: the orbit exists, the craft is loaded,
+ * and what is withheld is carrying it forward. That keeps the one thing a
+ * consumer does with the reason, solving a current reading at its own epoch,
+ * true of all of them.
+ */
+function loadedCoastDecline(
+  point: TimelinePoint<unknown>,
+  orbit: ConicOrbitInput,
+  bodies: ConicBodiesInput | undefined,
+  viewUt: number,
+  coast: LoadedCoastEvidence | undefined,
+): ReckoningDecline | null {
+  const withheld = (input: string, note: string): ReckoningDecline => ({
+    reason: "under-physics",
+    input,
+    note,
+  });
+  const thrust = coast?.thrust;
+  if (thrust === undefined) {
+    return withheld(
+      "@vessel.propulsion",
+      "the craft is under physics and nothing says whether its engines are firing",
+    );
+  }
+  const newtons = mag(thrust.currentThrust);
+  if (!(newtons === 0) || thrust.thrustStartedUt != null) {
+    return withheld(
+      "@vessel.propulsion",
+      "the craft is under thrust, so its elements are not a coast a conic can advance",
+    );
+  }
+  const burnEnded = thrust.lastThrustEndUt;
+  if (burnEnded != null && mag(burnEnded) > point.validAt) {
+    return withheld(
+      "@vessel.propulsion",
+      "these elements were taken before the last burn ended",
+    );
+  }
+  const floor = entryInterfaceRadius(bodies, orbit.referenceBodyIndex);
+  if (floor === undefined) {
+    return withheld(
+      "@system.bodies",
+      "the craft is under physics and nothing places the air it might be in",
+    );
+  }
+  const now = trySolve(buildElements(orbit), mag(orbit.epoch));
+  if (now === null) {
+    return withheld(
+      "@vessel.orbit",
+      "hyperbolic elements: there is no position to show the craft clear of the air",
+    );
+  }
+  if (!(magnitude(now.position) > floor)) {
+    return withheld(
+      "@system.bodies",
+      "the craft is inside the atmosphere, where drag the conic does not model acts on it",
+    );
+  }
+  const reaches = (coast?.pending?.pending ?? []).some((command) => {
+    const arrival = mag(command.dispatchedAt) + mag(command.oneWaySeconds);
+    return arrival > point.validAt && arrival <= viewUt;
+  });
+  if (reaches) {
+    return withheld(
+      "@system.uplink.pending",
+      "a command reaches the craft before then, and what it does there is not modelled",
+    );
+  }
+  return null;
 }
 
 /** The length of a bare three-component vector. */

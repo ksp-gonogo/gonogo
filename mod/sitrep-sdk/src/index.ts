@@ -367,10 +367,11 @@ export {
 // to forward-model an orbit had to vendor a solver of its own or build a derived
 // channel instead: the mechanism that can only LABEL arithmetic, never do it.
 //
-// `keplerAdmissibility` is the interesting one. It is where the four withdrawal
-// conditions live (off rails, the SOI transition, the producer's stated horizon,
-// the atmosphere interface), and a second copy of them is exactly how two models
-// of one Topic come to disagree about where the conic ends.
+// `keplerAdmissibility` is the interesting one. It is where the withdrawal
+// conditions live (a loaded craft with no coast to show, the SOI transition,
+// the producer's stated horizon, the atmosphere interface), and a second copy
+// of them is exactly how two models of one Topic come to disagree about where
+// the conic ends.
 // ---------------------------------------------------------------------------
 export {
   advanceByVelocity,
@@ -378,9 +379,13 @@ export {
   buildElements,
   type ConicBodiesInput,
   type ConicOrbitInput,
+  type ConicPendingInput,
+  type ConicThrustInput,
   entryInterfaceRadius,
   isHyperbolic,
   keplerAdmissibility,
+  type LoadedCoastEvidence,
+  loadedCoastEvidence,
   propagateVesselOrbit,
   trySolve,
   trySolveAnomalies,

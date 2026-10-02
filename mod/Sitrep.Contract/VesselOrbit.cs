@@ -69,7 +69,7 @@ public class VesselOrbit
     [SitrepUnit(Units.Radians)]
     /*
      * A coast moves the phase and nothing else, so this pair is the whole of what a conic advances.
-     * The mark is what makes the model's refusal reachable: under physics the conic withdraws, and
+     * The mark is what makes the model's refusal reachable: under thrust the conic withdraws, and
      * without a mark that withdrawal reads as `reckoning: "none"`, indistinguishable from an
      * unmodelled topic.
      */
@@ -102,10 +102,10 @@ public class VesselOrbit
     /// <para>True at <c>validAt</c>. A reader at a later instant subtracts the
     /// elapsed time, wrapping by the period once the apsis has passed.</para>
     /// <internal>
-    /// Under physics the elements are osculating and change every sample, so the
-    /// client's conic reckoner declines to advance them. KSP's countdown is a
-    /// property of the same instantaneous orbit as the apsides and needs no
-    /// advancing. On rails it would change every tick and defeat the channel's
+    /// Under physics the elements are osculating and change every sample, and the
+    /// client's conic reckoner advances them only across a coast it can show.
+    /// KSP's countdown is a property of the same instantaneous orbit as the
+    /// apsides and needs no advancing. On rails it would change every tick and defeat the channel's
     /// value-equality change gate, which is why it is withheld there.
     /// </internal>
     /// </summary>

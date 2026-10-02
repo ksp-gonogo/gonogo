@@ -11,7 +11,9 @@ import {
 import {
   type ConicBodiesInput,
   type ConicOrbitInput,
+  type ConicThrustInput,
   keplerAdmissibility,
+  type LoadedCoastEvidence,
 } from "./kepler-reckoning";
 
 /**
@@ -139,5 +141,120 @@ describe("keplerAdmissibility names each withdrawal", () => {
         ),
       ),
     ).toBe("model-inapplicable");
+  });
+});
+
+/**
+ * A loaded craft is carried as a coast only on positive evidence of one, and
+ * every refusal still says "under-physics", naming the input that withheld it.
+ */
+describe("keplerAdmissibility carries a loaded coast", () => {
+  const COLD: ConicThrustInput = {
+    currentThrust: value("kN", 0),
+    thrustStartedUt: null,
+    lastThrustEndUt: null,
+  };
+
+  function loaded(
+    coast: Partial<LoadedCoastEvidence> | undefined,
+    air: number | null = null,
+    viewUt = 300,
+    validAt = 0,
+  ): { reason: ReckoningDecline["reason"]; input?: string } | "ok" {
+    const point = orbitPoint({}, Quality.Loaded);
+    const answer = keplerAdmissibility(
+      { ...point, validAt },
+      bodies(air),
+      viewUt,
+      coast === undefined
+        ? undefined
+        : { thrust: undefined, pending: undefined, ...coast },
+    );
+    return "ok" in answer
+      ? "ok"
+      : { reason: answer.declined.reason, input: answer.declined.input };
+  }
+
+  function command(dispatchedAt: number, oneWaySeconds: number) {
+    return {
+      pending: [
+        {
+          dispatchedAt: value("ut", dispatchedAt),
+          oneWaySeconds: value("s", oneWaySeconds),
+        },
+      ],
+    };
+  }
+
+  it("advances a cold craft in vacuum", () => {
+    expect(loaded({ thrust: COLD })).toBe("ok");
+  });
+
+  it("withholds every other loaded case as under physics, naming why", () => {
+    expect({
+      noEvidence: loaded(undefined),
+      engineUnreported: loaded({}),
+      firing: loaded({ thrust: { ...COLD, currentThrust: value("kN", 50) } }),
+      burnInProgress: loaded({
+        thrust: { ...COLD, thrustStartedUt: value("ut", 0) },
+      }),
+      elementsBeforeBurnEnded: loaded({
+        thrust: { ...COLD, lastThrustEndUt: value("ut", 10) },
+      }),
+      noRoster: (() => {
+        const answer = keplerAdmissibility(
+          orbitPoint({}, Quality.Loaded),
+          undefined,
+          300,
+          { thrust: COLD, pending: undefined },
+        );
+        return "ok" in answer ? "ok" : answer.declined;
+      })(),
+      inAir: loaded({ thrust: COLD }, 250_000),
+      commandInGap: loaded({ thrust: COLD, pending: command(100, 10) }),
+    }).toMatchObject({
+      noEvidence: { reason: "under-physics", input: "@vessel.propulsion" },
+      engineUnreported: {
+        reason: "under-physics",
+        input: "@vessel.propulsion",
+      },
+      firing: { reason: "under-physics", input: "@vessel.propulsion" },
+      burnInProgress: { reason: "under-physics", input: "@vessel.propulsion" },
+      elementsBeforeBurnEnded: {
+        reason: "under-physics",
+        input: "@vessel.propulsion",
+      },
+      noRoster: { reason: "under-physics", input: "@system.bodies" },
+      inAir: { reason: "under-physics", input: "@system.bodies" },
+      commandInGap: {
+        reason: "under-physics",
+        input: "@system.uplink.pending",
+      },
+    });
+  });
+
+  it("advances up to a command's arrival and not across it", () => {
+    const pending = command(100, 10);
+    expect(loaded({ thrust: COLD, pending }, null, 109)).toBe("ok");
+    expect(loaded({ thrust: COLD, pending }, null, 110)).toMatchObject({
+      input: "@system.uplink.pending",
+    });
+  });
+
+  it("ignores a command that reached the craft before the elements were taken", () => {
+    expect(
+      loaded({ thrust: COLD, pending: command(0, 10) }, null, 300, 20),
+    ).toBe("ok");
+  });
+
+  it("accepts elements taken after the last burn ended", () => {
+    expect(
+      loaded(
+        { thrust: { ...COLD, lastThrustEndUt: value("ut", 10) } },
+        null,
+        300,
+        20,
+      ),
+    ).toBe("ok");
   });
 });

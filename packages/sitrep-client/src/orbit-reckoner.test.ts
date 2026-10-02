@@ -62,9 +62,47 @@ const LIGHT_TIME_SECONDS = 10;
  * a light-time after it was stamped.
  * `roster` is the `system.bodies` payload, and `null` leaves the roster out.
  */
+/** An airless body well inside the orbit, so a coast round it is in vacuum. */
+const AIRLESS: ConicBodiesInput = {
+  bodies: [{ index: 1, radius: value("m", 1_000_000) }],
+};
+
+function propulsion(thrustKn: number) {
+  return {
+    totalMass: value("t", 10),
+    dryMass: value("t", 4),
+    currentThrust: value("kN", thrustKn),
+    availableThrust: value("kN", thrustKn),
+    thrustStartedUt: thrustKn > 0 ? value("ut", 0) : null,
+    lastThrustEndUt: null,
+  };
+}
+
+/** One command dispatched at `dispatchedAt` that reaches the craft a light-time later. */
+function inFlight(dispatchedAt: number) {
+  return {
+    pending: [
+      {
+        id: "1",
+        clientRequestId: "",
+        command: "vessel.control.throttle",
+        label: "",
+        topic: "",
+        vantage: "",
+        dispatchedAt: value("ut", dispatchedAt),
+        oneWaySeconds: value("s", LIGHT_TIME_SECONDS),
+      },
+    ],
+  };
+}
+
 function scene(
   quality: Quality,
   roster: ConicBodiesInput | null = { bodies: [] },
+  loaded: {
+    thrustKn?: number;
+    pending?: ReturnType<typeof inFlight>;
+  } = {},
 ) {
   let wall = LIGHT_TIME_SECONDS;
   const clock = new ViewClock({
@@ -78,6 +116,15 @@ function scene(
     store.ingest("system.bodies", point(0, roster, Quality.OnRails));
   }
   store.ingest("vessel.orbit", point(0, orbitPayload(), quality));
+  if (loaded.thrustKn !== undefined) {
+    store.ingest(
+      "vessel.propulsion",
+      point(0, propulsion(loaded.thrustKn), quality),
+    );
+  }
+  if (loaded.pending !== undefined) {
+    store.ingest("system.uplink.pending", point(0, loaded.pending, quality));
+  }
   return {
     at(scetUt: number): TopicReading<ReturnType<typeof orbitPayload>> {
       wall = scetUt;
@@ -108,17 +155,60 @@ describe("the vessel.orbit reckoner", () => {
   });
 
   /**
-   * The safety rule, and the reason this reckoner exists at all. Under physics
+   * The safety rule, and the reason this reckoner exists at all. Under thrust
    * the elements are osculating, so the conic declines and a consumer has
    * something to branch on. Without it the same consumer sees a perfectly
    * ordinary orbit payload and no signal that deriving from it is wrong.
    */
-  it("WITHDRAWS while the craft is loaded, so a consumer can refuse to derive", () => {
-    const reading = scene(Quality.Loaded).at(PERIOD / 4);
+  it("WITHDRAWS while the craft is loaded and under thrust, so a consumer can refuse to derive", () => {
+    const reading = scene(Quality.Loaded, AIRLESS, { thrustKn: 60 }).at(
+      PERIOD / 4,
+    );
 
-    expect(reading.reckoning.status).toBe("declined");
-    if (reading.reckoning.status !== "declined") throw new Error("unreachable");
-    expect(reading.reckoning.declined.reason).toBe("under-physics");
+    expect(reading.reckoning).toMatchObject({
+      status: "declined",
+      declined: { reason: "under-physics", input: "@vessel.propulsion" },
+    });
+  });
+
+  it("withdraws a loaded craft whose engines nothing has reported", () => {
+    const reading = scene(Quality.Loaded, AIRLESS).at(PERIOD / 4);
+
+    expect(reading.reckoning).toMatchObject({
+      status: "declined",
+      declined: { reason: "under-physics", input: "@vessel.propulsion" },
+    });
+  });
+
+  it("carries a loaded craft coasting in vacuum along its orbit, as it does one on rails", () => {
+    const reading = scene(Quality.Loaded, AIRLESS, { thrustKn: 0 }).at(
+      PERIOD / 4,
+    );
+
+    expect(reading.reckoning.status).toBe("available");
+    if (reading.reckoning.status !== "available")
+      throw new Error("unreachable");
+    expect(reading.reckoning.basis).toBe("kepler-propagation");
+    expect(reading.reckoning.value.meanAnomalyAtEpoch?.magnitude).toBeCloseTo(
+      Math.PI / 2,
+      6,
+    );
+  });
+
+  it("withdraws a loaded coast across a command that reaches the craft in the gap", () => {
+    const sent = 5;
+    const coast = scene(Quality.Loaded, AIRLESS, {
+      thrustKn: 0,
+      pending: inFlight(sent),
+    });
+
+    expect(coast.at(sent + LIGHT_TIME_SECONDS - 1).reckoning.status).toBe(
+      "available",
+    );
+    expect(coast.at(PERIOD / 4).reckoning).toMatchObject({
+      status: "declined",
+      declined: { reason: "under-physics", input: "@system.uplink.pending" },
+    });
   });
 
   /**

@@ -29,6 +29,7 @@ import {
   advanceByVelocity,
   buildElements,
   keplerAdmissibility,
+  loadedCoastEvidence,
   magnitude,
   propagateVesselOrbit,
   trySolveAnomalies,
@@ -289,7 +290,12 @@ function registerDockReckoner(): void {
  */
 function registerFlightReckoner(): void {
   registerReckoner("vessel.flight", CORE_RECKONER_OWNER, {
-    deps: ["vessel.orbit", "system.bodies"],
+    deps: [
+      "vessel.orbit",
+      "system.bodies",
+      { reading: "vessel.propulsion" },
+      { reading: "system.uplink.pending" },
+    ],
     window: DESCENT_WINDOW,
     /*
      * The opt-out is scoped to the AIR model and not to this registration,
@@ -312,7 +318,7 @@ function registerFlightReckoner(): void {
         },
       },
     },
-    reckon(point, [orbitPoint, bodiesPoint], frame) {
+    reckon(point, [orbitPoint, bodiesPoint, thrust, pending], frame) {
       const { reckonUt, history } = frame;
       const bodies = bodiesPoint?.payload ?? undefined;
       /*
@@ -394,7 +400,12 @@ function registerFlightReckoner(): void {
           }),
         };
       }
-      const admissible = keplerAdmissibility(orbitPoint, bodies, reckonUt);
+      const admissible = keplerAdmissibility(
+        orbitPoint,
+        bodies,
+        reckonUt,
+        loadedCoastEvidence(thrust, pending),
+      );
       if ("declined" in admissible) return admissible;
       if (!Number.isFinite(seaLevel)) {
         return {
@@ -518,10 +529,20 @@ function registerCommsDelayReckoner(): void {
       "system.bodies",
       "commandCentre.roster",
       RELAY_ORBIT,
+      { reading: "vessel.propulsion" },
+      { reading: "system.uplink.pending" },
     ],
     reckon(
       point,
-      [pathPoint, orbitPoint, bodiesPoint, rosterPoint, relayOrbitPoint],
+      [
+        pathPoint,
+        orbitPoint,
+        bodiesPoint,
+        rosterPoint,
+        relayOrbitPoint,
+        thrust,
+        pending,
+      ],
       { reckonUt },
     ) {
       const observed = point.payload;
@@ -541,6 +562,7 @@ function registerCommsDelayReckoner(): void {
         orbitPoint,
         bodiesPoint?.payload ?? undefined,
         reckonUt,
+        loadedCoastEvidence(thrust, pending),
       );
       if ("declined" in admissible) return admissible;
       if (orbitPoint?.payload == null) {
@@ -626,8 +648,13 @@ function registerCommsDelayReckoner(): void {
  */
 function registerOrbitTruthReckoner(): void {
   registerReckoner("vessel.orbit.truth", CORE_RECKONER_OWNER, {
-    deps: ["vessel.orbit", "system.bodies"],
-    reckon(point, [orbitPoint, bodiesPoint], { reckonUt }) {
+    deps: [
+      "vessel.orbit",
+      "system.bodies",
+      { reading: "vessel.propulsion" },
+      { reading: "system.uplink.pending" },
+    ],
+    reckon(point, [orbitPoint, bodiesPoint, thrust, pending], { reckonUt }) {
       if (point.payload?.frameRotating === true) {
         return {
           declined: {
@@ -641,6 +668,7 @@ function registerOrbitTruthReckoner(): void {
         orbitPoint,
         bodiesPoint?.payload ?? undefined,
         reckonUt,
+        loadedCoastEvidence(thrust, pending),
       );
       if ("declined" in admissible || orbitPoint?.payload == null) {
         return "declined" in admissible
@@ -719,10 +747,12 @@ function registerOrbitTruthReckoner(): void {
  *
  * `keplerAdmissibility` is the same check `vessel.flight`'s conic makes, and
  * the branch that matters here is `meta.quality !== Quality.OnRails`: under
- * physics the elements are osculating, "not a coast a conic can advance". That
- * fact lives on the POINT, so only a model can see it: a `Reading` carries no
- * meta and no consumer in this tree reads one. This is the one home of the
- * OnRails/Loaded split.
+ * physics the elements are osculating, and they are a coast only while the
+ * engines are cold, the craft is clear of the air and no command reaches it in
+ * the gap. The quality lives on the POINT, so only a model can see it: a
+ * `Reading` carries no meta and no consumer in this tree reads one. This is the
+ * one home of the OnRails/Loaded split, and the propulsion and pending-uplink
+ * Readings are deps so that a loaded coast can show its evidence.
  *
  * ## PropagationCertification (#282) is already answered, not skipped
  *
@@ -745,14 +775,19 @@ function registerOrbitTruthReckoner(): void {
  */
 function registerOrbitReckoner(): void {
   registerReckoner("vessel.orbit", CORE_RECKONER_OWNER, {
-    deps: [{ reading: "system.bodies" }],
-    reckon(point, [roster], { reckonUt }) {
+    deps: [
+      { reading: "system.bodies" },
+      { reading: "vessel.propulsion" },
+      { reading: "system.uplink.pending" },
+    ],
+    reckon(point, [roster, thrust, pending], { reckonUt }) {
       const admissible = keplerAdmissibility(
         point,
         roster.state === "observed" || roster.state === "held"
           ? roster.value
           : undefined,
         reckonUt,
+        loadedCoastEvidence(thrust, pending),
       );
       if ("declined" in admissible) return admissible;
       const orbit = point.payload;
