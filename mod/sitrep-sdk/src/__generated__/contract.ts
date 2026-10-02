@@ -9695,6 +9695,21 @@ export interface VesselPropulsion
 	*/
 	availableThrust: Value<"kN">;
 	/**
+	* The propellant every running engine is drawing now, in kg/s: the sum of each
+	* ignited, unflamed engine's `ModuleEngines.requestedMassFlow`, scaled by the
+	* share of that request its tanks met (`propellantReqMet`). Zero when nothing
+	* is firing.
+	*
+	* With `VesselPropulsion.currentThrust` and `VesselPropulsion.totalMass` this
+	* is the whole of a burn's mass budget: the vessel's mass at a later instant
+	* is the mass now less this rate over the interval, which is what carries a
+	* burn forward honestly rather than at a constant acceleration.
+	*
+	* Null when the engines cannot be read: an on-rails or packed craft has no
+	* running modules to sum, and a zero there would claim the engines are cold.
+	*/
+	massFlow?: Value<"kg/s"> | null;
+	/**
 	* UT the craft's CURRENT continuous period of thrust began, or null when it is
 	* not under thrust as of the last measurable reading.
 	*

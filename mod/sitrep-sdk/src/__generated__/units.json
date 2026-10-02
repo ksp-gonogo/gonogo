@@ -1423,6 +1423,7 @@
       "currentThrust": "kN",
       "dryMass": "t",
       "lastThrustEndUt": "ut",
+      "massFlow": "kg/s",
       "thrustStartedUt": "ut",
       "totalMass": "t"
     },
@@ -2033,6 +2034,7 @@
       "currentThrust": "kN",
       "dryMass": "t",
       "lastThrustEndUt": "ut",
+      "massFlow": "kg/s",
       "thrustStartedUt": "ut",
       "totalMass": "t"
     },

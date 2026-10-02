@@ -1364,6 +1364,46 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void BuildPropulsionCarriesTheMassFlowABurnIsPredictedFrom()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                propulsion: new Dictionary<string, object?>
+                {
+                    ["totalMass"] = 12.5,
+                    ["dryMass"] = 8.0,
+                    ["currentThrust"] = 200.0,
+                    ["availableThrust"] = 250.0,
+                    ["massFlow"] = 65.3,
+                });
+
+            var propulsion = VesselViewProvider.BuildPropulsion(snapshot);
+
+            Assert.Equal(65.3, propulsion!.MassFlow);
+            Assert.Equal(65.3, ((Dictionary<string, object?>)VesselViewProvider.BuildPropulsionWire(snapshot)!)["massFlow"]);
+        }
+
+        [Fact]
+        public void BuildPropulsionLeavesAnUnreadableMassFlowNullRatherThanZero()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                propulsion: new Dictionary<string, object?>
+                {
+                    ["totalMass"] = 12.5,
+                    ["dryMass"] = 8.0,
+                    ["currentThrust"] = 0.0,
+                    ["availableThrust"] = 0.0,
+                    ["massFlow"] = null,
+                });
+
+            var propulsion = VesselViewProvider.BuildPropulsion(snapshot);
+
+            Assert.NotNull(propulsion);
+            Assert.Null(propulsion!.MassFlow);
+        }
+
+        [Fact]
         public void BuildPropulsionReturnsNullWhenGroupIsMissing()
         {
             var snapshot = SnapshotWith(identity: new Dictionary<string, object?> { ["id"] = VesselGuid });

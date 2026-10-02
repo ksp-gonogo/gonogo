@@ -2199,8 +2199,13 @@ namespace Sitrep.Contract
         /// the connection a filtered frame is about to reach, so a filter can keep what that
         /// session itself caused; <c>system.uplink.pending</c> is now filtered per session with it.
         /// Additive, so an Uplink built against 27.13 is unaffected.</para>
+        ///
+        /// <para><b>Major-27 line, Bumped 14 -&gt; 15:</b> <see cref="VesselPropulsion.MassFlow"/>,
+        /// the propellant the running engines draw, so a client can carry a burn forward on its
+        /// real mass budget. Additive and nullable, so an Uplink built against 27.14 is
+        /// unaffected.</para>
         /// </internal>
         /// </summary>
-        public const int Minor = 14;
+        public const int Minor = 15;
     }
 }

@@ -923,9 +923,10 @@ namespace Sitrep.Host
                 return null;
             }
 
-            // The two thrust latches are individually nullable and legitimately
-            // absent (a craft that has never lit an engine has neither), so
-            // unlike the four figures above they never gate the record.
+            // The two thrust latches and the mass flow are individually nullable
+            // and legitimately absent (a craft that has never lit an engine has no
+            // latches, an unloaded one has no readable mass flow), so unlike the
+            // four figures above they never gate the record.
 
             return new VesselPropulsion
             {
@@ -935,6 +936,7 @@ namespace Sitrep.Host
                 AvailableThrust = availableThrust.Value,
                 ThrustStartedUt = GetDouble(propulsion, "thrustStartedUt"),
                 LastThrustEndUt = GetDouble(propulsion, "lastThrustEndUt"),
+                MassFlow = GetDouble(propulsion, "massFlow"),
                 Meta = BuildMeta(vesselId),
             };
         }
@@ -1820,6 +1822,7 @@ namespace Sitrep.Host
             // ratchet, which is exactly the defect it exists for.
             ["thrustStartedUt"] = propulsion.ThrustStartedUt,
             ["lastThrustEndUt"] = propulsion.LastThrustEndUt,
+            ["massFlow"] = propulsion.MassFlow,
             ["meta"] = ToWire(propulsion.Meta),
         };
 

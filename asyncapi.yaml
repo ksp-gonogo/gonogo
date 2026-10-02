@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 27.14.0
+  version: 27.15.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 81 telemetry
     channels a client subscribes to, and 58 commands it dispatches, with the payload
@@ -19954,6 +19954,24 @@ components:
             (`ModuleEngines.GetMaxThrust`) of every engine that is ignited and not
             flamed out. A shut-down or flamed-out engine contributes nothing, so this is
             not the vessel's rated maximum.
+        massFlow:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: kg/s
+          description: |-
+            The propellant every running engine is drawing now, in kg/s: the sum of each
+            ignited, unflamed engine's `ModuleEngines.requestedMassFlow`, scaled by the
+            share of that request its tanks met (`propellantReqMet`). Zero when nothing
+            is firing.
+
+            With `VesselPropulsion.currentThrust` and `VesselPropulsion.totalMass` this
+            is the whole of a burn's mass budget: the vessel's mass at a later instant
+            is the mass now less this rate over the interval, which is what carries a
+            burn forward honestly rather than at a constant acceleration.
+
+            Null when the engines cannot be read: an on-rails or packed craft has no
+            running modules to sum, and a zero there would claim the engines are cold.
         thrustStartedUt:
           type:
             - number

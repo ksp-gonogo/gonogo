@@ -236,6 +236,16 @@
     "reason": "The velocity components ARE the derivative of the position components, so this pairing is real. First-order only: relative motion between an orbiting pair is curved, so it is honest for seconds and wrong for minutes, and it assumes nothing has thrusted, which a craft out of contact is exactly what we cannot know.",
     "verdict": "real-but-unmodelled"
   },
+  "VesselPropulsion.dryMass": {
+    "rates": ["massFlow"],
+    "reason": "Propellant leaving the tanks never changes the dry mass; only staging does, and that is a discrete event rather than a rate. The units line up and the physics does not.",
+    "verdict": "coincidence"
+  },
+  "VesselPropulsion.totalMass": {
+    "rates": ["massFlow"],
+    "reason": "The mass flow IS the rate the total mass falls at while the engines run, so this pairing is real. Nothing publishes a modelled mass: the burn model integrates it internally, beside the thrust it divides, and a mass carried forward on its own would be a figure no consumer reads apart from the burn it belongs to.",
+    "verdict": "real-but-unmodelled"
+  },
   "VesselTarget.relativePosition.x": {
     "rates": ["relativeVelocity.x", "relativeVelocity.y", "relativeVelocity.z"],
     "reason": "The velocity components ARE the derivative of the position components, so this pairing is real. First-order only: relative motion between an orbiting pair is curved, so it is honest for seconds and wrong for minutes, and it assumes nothing has thrusted, which a craft out of contact is exactly what we cannot know.",
@@ -436,6 +446,16 @@
   "vessel.orbit.truth.position.z": {
     "rates": ["velocity.x", "velocity.y", "velocity.z"],
     "reason": "The velocity components ARE the derivative of the position components, so this pairing is real. First-order only: relative motion between an orbiting pair is curved, so it is honest for seconds and wrong for minutes, and it assumes nothing has thrusted, which a craft out of contact is exactly what we cannot know.",
+    "verdict": "real-but-unmodelled"
+  },
+  "vessel.propulsion.dryMass": {
+    "rates": ["massFlow"],
+    "reason": "Propellant leaving the tanks never changes the dry mass; only staging does, and that is a discrete event rather than a rate. The units line up and the physics does not.",
+    "verdict": "coincidence"
+  },
+  "vessel.propulsion.totalMass": {
+    "rates": ["massFlow"],
+    "reason": "The mass flow IS the rate the total mass falls at while the engines run, so this pairing is real. Nothing publishes a modelled mass: the burn model integrates it internally, beside the thrust it divides, and a mass carried forward on its own would be a figure no consumer reads apart from the burn it belongs to.",
     "verdict": "real-but-unmodelled"
   },
   "vessel.target.relativePosition.x": {

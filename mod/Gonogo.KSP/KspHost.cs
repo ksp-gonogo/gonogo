@@ -1633,6 +1633,7 @@ namespace Gonogo.KSP
             double dryMass = 0;
             double currentThrust = 0;
             double availableThrust = 0;
+            double massFlowTonnes = 0;
 
             if (parts != null)
             {
@@ -1662,6 +1663,8 @@ namespace Gonogo.KSP
                         if (engine.EngineIgnited && !engine.flameout)
                         {
                             availableThrust += engine.GetMaxThrust();
+                            // What CalculateThrust actually draws: the request, scaled by the vessel's fuel-usage modifier and by the percentage of it the tanks met.
+                            massFlowTonnes += engine.requestedMassFlow * FuelUsage(vessel) * engine.propellantReqMet / 100.0;
                         }
                     }
                 }
@@ -1683,7 +1686,18 @@ namespace Gonogo.KSP
                 ["availableThrust"] = availableThrust,
                 ["thrustStartedUt"] = thrustObserver.ThrustStartedUt,
                 ["lastThrustEndUt"] = thrustObserver.LastThrustEndUt,
+                ["massFlow"] = measurable ? massFlowTonnes * 1000.0 : (double?)null,
             };
+        }
+
+        /// <summary>
+        /// KSP's <c>VesselValues.FuelUsage</c> multiplier, read the way
+        /// <c>ModuleEngines.CalculateThrust</c> reads it: a zero means unmodified.
+        /// </summary>
+        private static double FuelUsage(Vessel vessel)
+        {
+            var usage = vessel.VesselValues != null ? vessel.VesselValues.FuelUsage.value : 1f;
+            return usage == 0f ? 1.0 : usage;
         }
 
         /// <summary>
