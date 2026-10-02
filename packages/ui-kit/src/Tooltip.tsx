@@ -305,7 +305,6 @@ export function Tooltip({
     <>
       {cloneElement(children, {
         "data-tooltip": text,
-        "data-tooltip-focusable": focusable ? "" : undefined,
         onPointerEnter: joined(own.onPointerEnter, anchor.onPointerEnter),
         onPointerLeave: joined(own.onPointerLeave, anchor.onPointerLeave),
         onPointerDown: joined(own.onPointerDown, anchor.onPointerDown),
@@ -323,7 +322,7 @@ export function Tooltip({
 
 /** The kit focus ring for a non-control made focusable by {@link Tooltip}, in place of the browser default. */
 const TooltipFocusRing = createGlobalStyle`
-  [data-tooltip-focusable]:focus-visible {
+  [data-tooltip][tabindex]:not(button, a, input, select, textarea, summary):focus-visible {
     outline: 2px solid var(--color-focus);
     outline-offset: 2px;
   }

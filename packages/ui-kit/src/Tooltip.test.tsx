@@ -142,17 +142,6 @@ describe("Tooltip", () => {
     expect(tipIn(document.body)).toBeNull();
   });
 
-  it("marks a focusable non-control so the kit focus ring can select it", () => {
-    render(
-      <Tooltip text="Why" focusable>
-        <span data-testid="anchor">Alt</span>
-      </Tooltip>,
-    );
-    expect(screen.getByTestId("anchor")).toHaveAttribute(
-      "data-tooltip-focusable",
-    );
-  });
-
   it("makes a non-control child reachable only when asked", async () => {
     const user = userEvent.setup();
     render(

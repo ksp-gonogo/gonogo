@@ -15,7 +15,7 @@ import {
   StubTransport,
   setupStreamFixture,
 } from "@ksp-gonogo/sitrep-sdk/testing";
-import { act, render, screen } from "@ksp-gonogo/test-utils";
+import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import {
   expectNoA11yViolations,
   visibleText,
@@ -542,7 +542,9 @@ describe("Commcast, rendered", () => {
         "No contact · no signal path Likely lost",
       );
       await userEvent.unhover(send);
-      expect(document.querySelector("[data-tooltip-tip]")).toBeNull();
+      await waitFor(() =>
+        expect(document.querySelector("[data-tooltip-tip]")).toBeNull(),
+      );
 
       await act(async () => send.focus());
       expect(document.querySelector("[data-tooltip-tip]")).not.toBeNull();
