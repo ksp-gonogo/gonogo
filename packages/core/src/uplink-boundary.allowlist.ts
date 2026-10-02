@@ -235,8 +235,8 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/Sitrep.Host.Tests/CommsHealthTests.cs",
       /*
        * AlarmHostService.test.ts names the "kerbcast.events" topic id as a
-       * string literal only (TEST-only, same class as loaderState.test.ts /
-       * flag.test.ts above). Permanent.
+       * string literal only (TEST-only, same class as loaderState.test.ts
+       * above). Permanent.
        */
       "packages/app/src/alarms/AlarmHostService.test.ts",
     ],

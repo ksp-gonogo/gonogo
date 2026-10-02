@@ -18,7 +18,6 @@ export const STALE_REFERENCE_DEBT: Record<string, number> = {
   "packages/app/src/__tests__/analytics-consent-peer.test.ts -> peer-host-service.test.ts": 1,
   "packages/app/src/__tests__/peer-broadcast-benchmark.test.ts -> peer-host-service.test.ts": 1,
   "packages/app/src/telemetry/PeerTransport.test.ts -> WebSocketTransport.test.ts": 1,
-  "packages/core/src/uplink-boundary.allowlist.ts -> flag.test.ts": 3,
   "packages/core/src/uplink-boundary.allowlist.ts -> loaderState.test.ts": 1,
   "packages/core/src/uplink-boundary.allowlist.ts -> map-command.test.ts": 1,
   "packages/sitrep-client/src/timeline-store.test.ts -> map-topic.rawFieldResolution.fixture.test.ts": 1,
