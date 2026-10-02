@@ -13,6 +13,7 @@ import { StationNameEditor, useStationNameOptional } from "../stationIdentity";
 import { CommcastComposeView } from "./CommcastComposeView";
 import {
   CommcastProvider,
+  useAddressBook,
   useCommcastLog,
   useLocalParticipant,
   useMyVantage,
@@ -49,14 +50,12 @@ function CommcastComponent(_props: Readonly<ComponentProps>) {
   const pairs = useSeparationMatrix();
   const local = useLocalParticipant();
   const recipients = useRecipients(me);
-  // Every roster entry, this vantage's own included, so a change that adds this vantage names it rather than printing its address.
-  const roster = useRecipients({ seat: me.seat });
   const [view, setView] = useState<CommcastView>({ kind: "inbox" });
   const feed = useCommcastFeed(log, me);
   const dropped = useDroppedCount(log);
-  // A vantage id is an address; it reaches the screen only when the roster has not named that vantage.
-  const nameFor = (id: RecipientId) =>
-    roster.find((r) => r.id === id)?.name ?? id;
+  // The book names every address, this vantage's own included, so no address reaches the screen as itself.
+  const book = useAddressBook();
+  const nameFor = book.nameFor;
   const threads = threadsOf(feed, me, nameFor);
   /*
    * The craft-to-ground path, standing in for a pair the separation matrix
@@ -179,7 +178,7 @@ function CommcastComponent(_props: Readonly<ComponentProps>) {
           <CommcastInboxView
             threads={threads}
             dropped={dropped}
-            nameFor={nameFor}
+            book={book}
             canCompose={recipients.length > 0}
             radio={radio}
             indicator={indicator}
@@ -230,7 +229,7 @@ function CommcastComponent(_props: Readonly<ComponentProps>) {
             utNow={utNow}
             log={log}
             noSignal={noSignal}
-            nameFor={nameFor}
+            book={book}
             local={local}
             radio={radio}
             indicator={indicator}

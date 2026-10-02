@@ -1227,6 +1227,12 @@
     "UnlockTechArgs": {
       "techId": "id"
     },
+    "UnreachableCentreEntry": {
+      "displayName": "text",
+      "id": "id",
+      "kind": "text",
+      "lastReachableUt": "ut"
+    },
     "Unsubscribe": {
       "topic": "id",
       "type": "id"
@@ -1481,6 +1487,12 @@
       "kind": "text",
       "latitude": "°",
       "longitude": "°"
+    },
+    "commandCentre.unreachable": {
+      "displayName": "text",
+      "id": "id",
+      "kind": "text",
+      "lastReachableUt": "ut"
     },
     "commcast.traffic": {
       "added": "id",

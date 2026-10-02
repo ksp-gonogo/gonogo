@@ -86,6 +86,7 @@ import type {
   SystemVessels,
   TargetAvailable,
   TimeCalendar,
+  UnreachableCentreEntry,
   VesselAttitude,
   VesselComms,
   VesselControl,
@@ -117,6 +118,7 @@ export interface GeneratedTopicPayloadMap {
   "commandCentre.activeVesselDelay": CommandCentreActiveVesselDelay;
   "commandCentre.roster": CommandCentreEntry[];
   "commandCentre.separation": CommandCentreSeparation;
+  "commandCentre.unreachable": UnreachableCentreEntry[];
   "commcast.traffic": CommcastTraffic;
   "commcast.transmissions": CommcastTransmissionRow;
   "comms.commandCentre": CommsCommandCentre;
@@ -198,6 +200,7 @@ export const GENERATED_TOPIC_IDS = [
   "commandCentre.activeVesselDelay",
   "commandCentre.roster",
   "commandCentre.separation",
+  "commandCentre.unreachable",
   "commcast.traffic",
   "commcast.transmissions",
   "comms.commandCentre",
@@ -276,6 +279,7 @@ export const GENERATED_TOPIC_IDS = [
 export const GENERATED_COLLECTION_TOPIC_IDS = [
   "alarm.scet",
   "commandCentre.roster",
+  "commandCentre.unreachable",
   "deployed.bases",
   "dv.stages",
   "isru.converters",

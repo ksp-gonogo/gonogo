@@ -29,6 +29,8 @@ namespace Gonogo.KSP.CommandCentres
     {
         public const string RosterTopic = "commandCentre.roster";
         public const string SeparationTopic = "commandCentre.separation";
+        public const string UnreachableTopic = "commandCentre.unreachable";
+
         public const string ActiveVesselDelayTopic = "commandCentre.activeVesselDelay";
 
         /// <summary>
@@ -58,6 +60,8 @@ namespace Gonogo.KSP.CommandCentres
         private readonly Func<HomeCommand> _home;
         private IUplinkHost? _host;
         private IChannelPublisher? _rosterPublisher;
+        private IChannelPublisher? _unreachablePublisher;
+        private readonly CentreMemory _memory = new CentreMemory();
         private IChannelPublisher? _separationPublisher;
         private IChannelPublisher? _activeVesselDelayPublisher;
 
@@ -115,6 +119,16 @@ namespace Gonogo.KSP.CommandCentres
                     // its light-time home, which is the only honest answer for a
                     // craft that cannot know who came online until word reaches
                     // it.
+                    Delay = DelayRole.Delayed,
+                    HeldAtHome = true,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
+                },
+                new ChannelDeclaration
+                {
+                    Topic = UnreachableTopic,
+                    Delivery = Delivery.LossyLatest,
+                    // The same fact as the roster seen from the other side, so it
+                    // reaches each vantage on the same delay.
                     Delay = DelayRole.Delayed,
                     HeldAtHome = true,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
@@ -188,10 +202,12 @@ namespace Gonogo.KSP.CommandCentres
         {
             _host = host;
             _rosterPublisher = host.Publisher(RosterTopic);
+            _unreachablePublisher = host.Publisher(UnreachableTopic);
             _separationPublisher = host.Publisher(SeparationTopic);
             _activeVesselDelayPublisher = host.Publisher(ActiveVesselDelayTopic);
             host.AddSampledSource(CaptureLedgerOnMain, ApplyLedgerOnCourier);
-            host.AddSampledSource(CaptureRosterOnMain, PublishRosterOnCourier, RosterTopic);
+            host.AddSampledSource(ObserveCentresOnMain, _ => { });
+            host.AddSampledSource(CaptureRosterOnMain, PublishRosterOnCourier, RosterTopic, UnreachableTopic);
         }
 
         /// <summary>
@@ -406,13 +422,33 @@ namespace Gonogo.KSP.CommandCentres
             _separationPublisher.Publish(new CommandCentreSeparation { Pairs = pairs }, cap.Ut);
         }
 
-        /// <summary>MAIN-THREAD capture: the active centres as roster entries.</summary>
-        internal object? CaptureRosterOnMain(KspSnapshot? snapshot) =>
-            new RosterCapture
+        /// <summary>
+        /// MAIN-THREAD capture: remember the active centres and when they were seen.
+        /// Ungated, so a centre's last-reachable time is the last pass that saw it and
+        /// not the last pass somebody was subscribed.
+        /// </summary>
+        internal object? ObserveCentresOnMain(KspSnapshot? snapshot)
+        {
+            if (snapshot != null)
             {
-                Roster = ToRoster(_registry.EnumerateActive(), _home()),
+                _memory.Observe(_registry.EnumerateActive(), snapshot.Ut);
+            }
+
+            return null;
+        }
+
+        /// <summary>MAIN-THREAD capture: the active centres as roster entries.</summary>
+        internal object? CaptureRosterOnMain(KspSnapshot? snapshot)
+        {
+            var active = _registry.EnumerateActive();
+            var roster = ToRoster(active, _home());
+            return new RosterCapture
+            {
+                Roster = roster,
+                Unreachable = _memory.Unreachable(new HashSet<string>(active.Select(c => c.Id), StringComparer.Ordinal)),
                 Ut = snapshot != null ? snapshot.Ut : 0.0,
             };
+        }
 
         /// <summary>COURIER-THREAD handle: publish the roster.</summary>
         internal void PublishRosterOnCourier(object? captured)
@@ -423,6 +459,7 @@ namespace Gonogo.KSP.CommandCentres
             }
 
             _rosterPublisher?.Publish(cap.Roster, cap.Ut);
+            _unreachablePublisher?.Publish(cap.Unreachable, cap.Ut);
         }
 
         /// <summary>
@@ -614,6 +651,8 @@ namespace Gonogo.KSP.CommandCentres
         private sealed class RosterCapture
         {
             public List<CommandCentreEntry> Roster = new List<CommandCentreEntry>();
+
+            public List<UnreachableCentreEntry> Unreachable = new List<UnreachableCentreEntry>();
 
             /// <summary>
             /// The capture's own universe time, carried across to the courier

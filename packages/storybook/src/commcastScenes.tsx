@@ -83,6 +83,15 @@ export interface CommcastSceneProps {
   oneWaySeconds?: number;
   /** Publish the link as confirmed lost, so the log ends at its no-signal marker. */
   linkLost?: boolean;
+  /** Centres that left the roster, remembered by the mod with when each was last reachable (seconds relative to now). */
+  departed?: {
+    id: string;
+    displayName: string;
+    kind: string;
+    lastReachableAt: number;
+  }[];
+  /** Centres that left the roster and are not remembered, so they have no name and no time. */
+  forgotten?: string[];
   /** Controls pressed once mounted, to reach a thread or the picker. */
   presses?: readonly ScenePress[];
   w: number;
@@ -175,7 +184,25 @@ function sceneStream(props: CommcastSceneProps): Record<string, unknown> {
   };
   const emits: { channel: string; value: unknown; meta: typeof meta }[] = [
     { channel: "commandCentre.separation", value: { pairs: PAIRS }, meta },
-    { channel: "commandCentre.roster", value: ROSTER, meta },
+    {
+      channel: "commandCentre.roster",
+      value: ROSTER.filter(
+        (r) =>
+          !(props.departed ?? []).some((d) => d.id === r.id) &&
+          !(props.forgotten ?? []).includes(r.id),
+      ),
+      meta,
+    },
+    {
+      channel: "commandCentre.unreachable",
+      value: (props.departed ?? []).map((d) => ({
+        id: d.id,
+        displayName: d.displayName,
+        kind: d.kind,
+        lastReachableUt: VIEW_UT + d.lastReachableAt,
+      })),
+      meta,
+    },
     {
       channel: "comms.link",
       value: { connected: props.linkLost !== true },

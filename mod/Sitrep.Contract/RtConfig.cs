@@ -362,6 +362,9 @@ public static class RtConfig
                 typeof(AstronautComplexInfo),
                 // commandCentre.roster: the vantage/authority union
                 typeof(CommandCentreEntry),
+                // commandCentre.unreachable: centres that left the roster, with
+                // when each was last reachable
+                typeof(UnreachableCentreEntry),
                 // commandCentre.separation: how far each vantage is from each
                 // other, the number a human at one needs to know how long their
                 // words take to reach a human at another

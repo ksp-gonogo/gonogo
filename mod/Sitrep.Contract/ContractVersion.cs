@@ -2166,8 +2166,12 @@ namespace Sitrep.Contract
         /// whether the fly-by-wire override is armed on the active craft, paired with
         /// <c>vessel.control.setFlyByWire</c>. Additive, so an Uplink built against 27.7 is
         /// unaffected.</para>
+        ///
+        /// <para><b>Major-27 line, Bumped 8 -&gt; 9:</b> <c>commandCentre.unreachable</c>
+        /// (<see cref="UnreachableCentreEntry"/>), the centres that left the roster and when each
+        /// was last reachable. Additive, so an Uplink built against 27.8 is unaffected.</para>
         /// </internal>
         /// </summary>
-        public const int Minor = 8;
+        public const int Minor = 9;
     }
 }

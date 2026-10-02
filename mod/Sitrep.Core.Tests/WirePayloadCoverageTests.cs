@@ -267,7 +267,7 @@ namespace Sitrep.Core.Tests
         [Fact]
         public void CommandCentreRosterAndCommandReplyPayloadAreCovered_NotAllowlisted()
         {
-            foreach (var type in new[] { typeof(CommandCentreEntry), typeof(ScienceTransmission) })
+            foreach (var type in new[] { typeof(CommandCentreEntry), typeof(UnreachableCentreEntry), typeof(ScienceTransmission) })
             {
                 // Excused rather than the hand list alone: an entry is no longer
                 // the only way a type can be let off, so asserting only against
@@ -290,6 +290,11 @@ namespace Sitrep.Core.Tests
                     Active = true,
                     DelayQuality = "routed",
                 },
+            });
+
+            SerializeThroughWire(new List<UnreachableCentreEntry>
+            {
+                new UnreachableCentreEntry { Id = "ground:Dish", DisplayName = "Dish", Kind = "GroundStation", LastReachableUt = 1234 },
             });
 
             SerializeThroughWire(

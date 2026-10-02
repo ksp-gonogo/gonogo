@@ -91,6 +91,8 @@ function renderOnStream(
   pairs: readonly { from: string; to: string; oneWaySeconds: number }[] = [
     { from: "ksc", to: "vessel:ares", oneWaySeconds: 240 },
   ],
+  /** Centres that left the roster, as the mod remembers them. */
+  unreachable: readonly unknown[] = [],
 ) {
   const fixture = setupStreamFixture({ pinnedUt: 10 });
   const view = render(
@@ -104,6 +106,7 @@ function renderOnStream(
   act(() => {
     fixture.emit("commandCentre.roster", roster, { vantage: "ksc" });
     fixture.emit("commandCentre.separation", { pairs }, { vantage: "ksc" });
+    fixture.emit("commandCentre.unreachable", unreachable, { vantage: "ksc" });
     // The pinned frame has to advance onto the sample before the read matures.
     fixture.store.beginFrame();
   });
@@ -457,6 +460,97 @@ describe("Commcast, rendered", () => {
     await openConversation(/do you copy/);
     expect(screen.getByText("NO PATH")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Send" })).toBeInTheDocument();
+  });
+
+  describe("an addressee the roster no longer lists", () => {
+    const woomeraSaid = () => {
+      const log = makeLog();
+      log.setVantage("ksc");
+      log.replaceForTesting({
+        inbox: [
+          {
+            ...sent({
+              id: "in1",
+              from: "ground:woomera",
+              to: ["ksc", "ground:woomera"],
+              groupId: "gw",
+              body: "Tracking is locked",
+            }),
+          },
+        ],
+      });
+      return log;
+    };
+    const ROSTER = [{ id: "ksc", displayName: "Kennedy", active: true }];
+
+    it("is named, never shown by its address, and carries when it was last reachable", async () => {
+      renderOnStream(
+        woomeraSaid(),
+        ROSTER,
+        [],
+        [
+          {
+            id: "ground:woomera",
+            displayName: "Woomera Range",
+            kind: "GroundStation",
+            lastReachableUt: 5,
+          },
+        ],
+      );
+      const row = await screen.findByRole("button", { name: /Woomera Range/ });
+      expect(row).toHaveTextContent(/Unreachable, last reachable/);
+      expect(row).not.toHaveTextContent("ground:woomera");
+      await act(async () => {});
+    });
+
+    it("reads as unknown, not as the epoch, when the mod never saw it", async () => {
+      renderOnStream(woomeraSaid(), ROSTER);
+      const row = await screen.findByRole("button", {
+        name: /Unknown station/,
+      });
+      expect(row).toHaveTextContent("Unreachable, last reachable unknown");
+      expect(row).not.toHaveTextContent("ground:woomera");
+      await act(async () => {});
+    });
+
+    it("still sends to it, and says in the kit tooltip that contact is lost, on hover and on focus", async () => {
+      const log = woomeraSaid();
+      renderOnStream(
+        log,
+        ROSTER,
+        [],
+        [
+          {
+            id: "ground:woomera",
+            displayName: "Woomera Range",
+            kind: "GroundStation",
+            lastReachableUt: 5,
+          },
+        ],
+      );
+      await openConversation(/Woomera Range/);
+      await userEvent.type(screen.getByLabelText("Message"), "Hello");
+      const send = screen.getByRole("button", { name: "Send" });
+      expect(send).toBeEnabled();
+      expect(send).toHaveAccessibleDescription(
+        "No contact · no signal path. Likely lost",
+      );
+      expect(send).not.toHaveAttribute("title");
+
+      await userEvent.hover(send);
+      expect(document.querySelector("[data-tooltip-tip]")).toHaveTextContent(
+        "No contact · no signal path Likely lost",
+      );
+      await userEvent.unhover(send);
+      expect(document.querySelector("[data-tooltip-tip]")).toBeNull();
+
+      await act(async () => send.focus());
+      expect(document.querySelector("[data-tooltip-tip]")).not.toBeNull();
+
+      await userEvent.click(send);
+      expect(log.snapshot().outbox).toHaveLength(1);
+      await act(async () => {});
+    });
   });
 
   it("opens a group with everyone chosen, and sends the opening as a change every member will receive", async () => {

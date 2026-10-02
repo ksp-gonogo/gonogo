@@ -255,3 +255,63 @@ export const NoConversations: Story = {
   name: "No conversations yet",
   args: { ...KENNEDY },
 };
+
+const WOOMERA_LEFT = {
+  id: WOOMERA,
+  displayName: "Woomera Range",
+  kind: "GroundStation",
+  lastReachableAt: -5400,
+};
+
+/** The range has left the roster: its thread keeps its name, greyed, and sending to it is refused. */
+export const UnreachableThread: Story = {
+  name: "Thread, addressee unreachable",
+  args: {
+    ...KENNEDY,
+    departed: [WOOMERA_LEFT],
+    sent: [],
+    received: [
+      {
+        from: WOOMERA,
+        to: [KSC],
+        authorName: "Woomera Range",
+        authorSeat: "mission-control",
+        body: "Kennedy, Woomera. We have the pass, tracking is locked.",
+        sentAt: -6000,
+        separationSeconds: 12,
+      },
+    ],
+    presses: [{ text: "Woomera Range", selector: ROW }],
+  },
+};
+
+/** One correspondent remembered with a last-reachable time, one the mod never saw. */
+export const UnreachableInbox: Story = {
+  name: "Inbox, addressees unreachable",
+  args: {
+    ...KENNEDY,
+    departed: [WOOMERA_LEFT],
+    forgotten: [RECOVERY],
+    sent: [{ ...toAres(BURN_GO, -3600), acks: ackedByAres(-3600) }],
+    received: [
+      {
+        from: WOOMERA,
+        to: [KSC],
+        authorName: "Woomera Range",
+        authorSeat: "mission-control",
+        body: "Kennedy, Woomera. We have the pass, tracking is locked.",
+        sentAt: -6000,
+        separationSeconds: 12,
+      },
+      {
+        from: RECOVERY,
+        to: [KSC],
+        authorName: "Recovery 1",
+        authorSeat: "mission-control",
+        body: "Kennedy, Recovery. On station.",
+        sentAt: -4000,
+        separationSeconds: 0.4,
+      },
+    ],
+  },
+};

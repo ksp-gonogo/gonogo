@@ -10,6 +10,8 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import { useId, useState } from "react";
+import { Addressees } from "./CommcastAddressee";
+import type { AddressBook } from "./CommcastContext";
 import {
   COMMCAST_TONE,
   Commcast__Bar,
@@ -21,11 +23,9 @@ import {
   Commcast__Scroll,
   ThreadMarker,
 } from "./commcastStyles";
-import { namesOf } from "./groups";
 import { RadioInput } from "./radio/RadioInput";
 import type { RadioControl } from "./radio/useRadio";
 import type { CommcastThread } from "./threads";
-import type { RecipientId } from "./types";
 
 /**
  * The correspondences this vantage holds, and the way into a new one. A drop
@@ -35,7 +35,7 @@ import type { RecipientId } from "./types";
 export function CommcastInboxView({
   threads,
   dropped,
-  nameFor,
+  book,
   canCompose,
   radio,
   indicator,
@@ -44,7 +44,7 @@ export function CommcastInboxView({
 }: {
   threads: readonly CommcastThread[];
   dropped: number;
-  nameFor: (id: RecipientId) => string;
+  book: AddressBook;
   canCompose: boolean;
   /** The widget's radio; the microphone is chosen here because the choice belongs to this console, not to a correspondent. */
   radio: RadioControl;
@@ -114,7 +114,7 @@ export function CommcastInboxView({
               >
                 <Commcast__RowHead>
                   <Commcast__RowName>
-                    {namesOf(thread.with, nameFor)}
+                    <Addressees ids={thread.with} book={book} />
                   </Commcast__RowName>
                   {/* The one state an inbox row needs: something is still crossing in there. */}
                   {thread.outbound.length > 0 && (

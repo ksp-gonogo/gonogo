@@ -52,6 +52,7 @@ export const GENERATED_HELD_AT_HOME_TOPICS = [
   "career.mode",
   "career.status",
   "commandCentre.roster",
+  "commandCentre.unreachable",
   "science.archive",
   "spaceCenter.astronautComplex",
   "spaceCenter.crewRoster",

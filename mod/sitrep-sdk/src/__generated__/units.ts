@@ -1267,6 +1267,12 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "UnlockTechArgs": {
     techId: "id",
   },
+  "UnreachableCentreEntry": {
+    displayName: "text",
+    id: "id",
+    kind: "text",
+    lastReachableUt: "ut",
+  },
   "Unsubscribe": {
     topic: "id",
     type: "id",
@@ -1526,6 +1532,12 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     kind: "text",
     latitude: "°",
     longitude: "°",
+  },
+  "commandCentre.unreachable": {
+    displayName: "text",
+    id: "id",
+    kind: "text",
+    lastReachableUt: "ut",
   },
   "commcast.traffic": {
     added: "id",

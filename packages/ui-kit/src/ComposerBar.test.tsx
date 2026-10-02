@@ -14,6 +14,22 @@ describe("ComposerBar", () => {
     expect(screen.getByLabelText("Message")).toBeInTheDocument();
   });
 
+  it("shows the send tooltip as a kit tip, describes the button with it, and never disables the send", () => {
+    render(
+      <ComposerBar onSend={() => {}} sendTooltip={"No contact\nLikely lost"}>
+        <input aria-label="Message" />
+      </ComposerBar>,
+    );
+    const send = screen.getByRole("button", { name: "Send" });
+    expect(send).toBeEnabled();
+    expect(send).not.toHaveAttribute("title");
+    expect(send).toHaveAccessibleDescription("No contact. Likely lost");
+    fireEvent.focus(send);
+    expect(document.querySelector("[data-tooltip-tip]")).toHaveTextContent(
+      "No contact Likely lost",
+    );
+  });
+
   it("renders no flag when none is given", () => {
     render(
       <ComposerBar blocked>

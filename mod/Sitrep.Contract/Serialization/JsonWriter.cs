@@ -253,6 +253,10 @@ namespace Sitrep.Contract.Serialization
                     // commandCentre.roster is a bare List<CommandCentreEntry> published raw, so each element reaches here through the IEnumerable case.
                     AppendCommandCentreEntry(sb, centreEntry);
                     break;
+                case Sitrep.Contract.UnreachableCentreEntry unreachableCentre:
+                    // commandCentre.unreachable is a bare list published raw, like the roster.
+                    AppendUnreachableCentreEntry(sb, unreachableCentre);
+                    break;
                 case Sitrep.Contract.CommsConnectivity connectivity:
                     AppendCommsConnectivity(sb, connectivity);
                     break;
@@ -1397,6 +1401,28 @@ namespace Sitrep.Contract.Serialization
             AppendString(sb, "delayQuality");
             sb.Append(':');
             AppendNullableString(sb, e.DelayQuality);
+            sb.Append('}');
+        }
+
+        private static void AppendUnreachableCentreEntry(
+            StringBuilder sb, Sitrep.Contract.UnreachableCentreEntry e)
+        {
+            sb.Append('{');
+            AppendString(sb, "id");
+            sb.Append(':');
+            AppendString(sb, e.Id ?? "");
+            sb.Append(',');
+            AppendString(sb, "displayName");
+            sb.Append(':');
+            AppendString(sb, e.DisplayName ?? "");
+            sb.Append(',');
+            AppendString(sb, "kind");
+            sb.Append(':');
+            AppendString(sb, e.Kind ?? "");
+            sb.Append(',');
+            AppendString(sb, "lastReachableUt");
+            sb.Append(':');
+            AppendNumber(sb, e.LastReachableUt);
             sb.Append('}');
         }
 

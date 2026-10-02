@@ -1,9 +1,9 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 27.8.0
+  version: 27.9.0
   description: |-
-    The wire contract of the Gonogo mod's telemetry socket: 78 telemetry
+    The wire contract of the Gonogo mod's telemetry socket: 79 telemetry
     channels a client subscribes to, and 58 commands it dispatches, with the payload
     schema and the contract's own prose for each.
 
@@ -154,7 +154,7 @@ info:
     - name: career
       description: 3 telemetry channels, 9 commands
     - name: commandCentre
-      description: 3 telemetry channels, 0 commands
+      description: 4 telemetry channels, 0 commands
     - name: commcast
       description: 2 telemetry channels, 5 commands
     - name: comms
@@ -676,6 +676,33 @@ channels:
     messages:
       streamData:
         $ref: "#/components/messages/streamData.commandCentre.separation"
+      event:
+        $ref: "#/components/messages/event"
+  commandCentre.unreachable:
+    address: commandCentre.unreachable
+    description: |-
+      Carries an array of `UnreachableCentreEntry`.
+
+      One command centre that was on `commandCentre.roster` earlier in this
+      session and is not now, in the `commandCentre.unreachable` channel: a ground
+      station whose node went away, a crewed vessel that lost its crew or was
+      destroyed or recovered.
+
+      The channel payload is a bare array of these entries, one per remembered
+      centre that is currently off the roster, keyed by
+      `UnreachableCentreEntry.id`. A centre that comes back leaves this channel
+      and rejoins the roster, and a centre that has not been on the roster since
+      the mod started is not listed at all: an absent id is a fact about what is
+      unknown, not about what is reachable.
+    servers:
+      - $ref: "#/servers/mod"
+    x-sitrep-delivery: lossy-latest
+    x-sitrep-delay-role: delayed
+    x-sitrep-keyframe-interval-ut: 1000
+    x-sitrep-held-at-home: true
+    messages:
+      streamData:
+        $ref: "#/components/messages/streamData.commandCentre.unreachable"
       event:
         $ref: "#/components/messages/event"
   commcast.group.add:
@@ -4499,6 +4526,17 @@ operations:
     messages:
       - $ref: "#/channels/commandCentre.separation/messages/streamData"
       - $ref: "#/channels/commandCentre.separation/messages/event"
+  read:commandCentre.unreachable:
+    action: receive
+    channel:
+      $ref: "#/channels/commandCentre.unreachable"
+    title: Read commandCentre.unreachable
+    description: Delivered only after `subscribe` names `commandCentre.unreachable` on the session channel, which the mod answers here with an `event` named `subscribed`.
+    tags:
+      - name: commandCentre
+    messages:
+      - $ref: "#/channels/commandCentre.unreachable/messages/streamData"
+      - $ref: "#/channels/commandCentre.unreachable/messages/event"
   read:commcast.traffic:
     action: receive
     channel:
@@ -7085,6 +7123,21 @@ components:
                 const: commandCentre.separation
               payload:
                 $ref: "#/components/schemas/CommandCentreSeparation"
+    streamData.commandCentre.unreachable:
+      name: stream-data
+      title: A frame on commandCentre.unreachable
+      contentType: application/json
+      payload:
+        description: The `stream-data` envelope carrying `commandCentre.unreachable`.
+        allOf:
+          - $ref: "#/components/schemas/StreamData"
+          - properties:
+              topic:
+                const: commandCentre.unreachable
+              payload:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UnreachableCentreEntry"
     streamData.commcast.traffic:
       name: stream-data
       title: A frame on commcast.traffic
@@ -18199,6 +18252,48 @@ components:
           description: |-
             The tech node to unlock: its KSP `techID` (e.g. `"basicRocketry"`), as
             `career.status`'s `tech.nodes[].id` carries it.
+    UnreachableCentreEntry:
+      type: object
+      description: |-
+        One command centre that was on `commandCentre.roster` earlier in this
+        session and is not now, in the `commandCentre.unreachable` channel: a ground
+        station whose node went away, a crewed vessel that lost its crew or was
+        destroyed or recovered.
+
+        The channel payload is a bare array of these entries, one per remembered
+        centre that is currently off the roster, keyed by
+        `UnreachableCentreEntry.id`. A centre that comes back leaves this channel
+        and rejoins the roster, and a centre that has not been on the roster since
+        the mod started is not listed at all: an absent id is a fact about what is
+        unknown, not about what is reachable.
+      required:
+        - id
+        - displayName
+        - kind
+        - lastReachableUt
+      properties:
+        id:
+          type: string
+          x-sitrep-unit: id
+          description: |-
+            The centre's roster `Id` (`"ground:<name>"` | `"vessel:<guid>"`), the key it
+            had while it was reachable.
+        displayName:
+          type: string
+          x-sitrep-unit: text
+          description: |-
+            The name the centre had on the roster, kept so a client can name it after it
+            has gone.
+        kind:
+          type: string
+          x-sitrep-unit: text
+          description: |-
+            One of `GroundStation`, `CrewedVessel` or `Custom`, as the roster reported
+            it.
+        lastReachableUt:
+          type: number
+          x-sitrep-unit: ut
+          description: Universal time at which this centre was last on `commandCentre.roster`.
     Unsubscribe:
       type: object
       description: Asks the server to stop sending a Topic to this connection.

@@ -49,7 +49,25 @@ namespace Gonogo.KSP.Tests.CommandCentres
 
             var roster = Assert.Single(host.SampledSources.Where(
                 s => s.Handle.Equals((Action<object?>)uplink.PublishRosterOnCourier)));
-            Assert.Equal(new[] { CommandCentreDelayUplink.RosterTopic }, roster.Prefixes);
+            Assert.Equal(
+                new[] { CommandCentreDelayUplink.RosterTopic, CommandCentreDelayUplink.UnreachableTopic },
+                roster.Prefixes);
+        }
+
+        /// <summary>
+        /// The memory behind <c>commandCentre.unreachable</c> is fed by a source with no
+        /// subscription gate, so a centre's last-reachable time does not depend on whether
+        /// anyone was watching when it left.
+        /// </summary>
+        [Fact]
+        public void TheCentreMemoryIsFedUngated()
+        {
+            var host = new RecordingUplinkHost();
+            var uplink = new CommandCentreDelayUplink(new CommandCentreRegistry());
+
+            uplink.Register(host);
+
+            Assert.Contains(host.SampledSources, s => s.Prefixes.Length == 0 && !s.Handle.Equals((Action<object?>)uplink.ApplyLedgerOnCourier));
         }
 
         /// <summary>
@@ -97,7 +115,7 @@ namespace Gonogo.KSP.Tests.CommandCentres
 
             uplink.Register(host);
 
-            Assert.Equal(2, host.SampledSources.Count);
+            Assert.Equal(3, host.SampledSources.Count);
             Assert.DoesNotContain(
                 host.SampledSources,
                 s => s.Prefixes.Contains(ChannelEngine.FleetNodePrefix));

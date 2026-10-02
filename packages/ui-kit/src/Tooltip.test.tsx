@@ -33,6 +33,23 @@ describe("useTooltip", () => {
     expect(tipIn(document.body)).toBeNull();
   });
 
+  it("opens the tip on keyboard focus and closes it on blur", async () => {
+    const user = userEvent.setup();
+    function Focusable() {
+      const { anchor, tip } = useTooltip("Two\nlines");
+      return (
+        <button type="button" {...anchor}>
+          Send{tip}
+        </button>
+      );
+    }
+    render(<Focusable />);
+    await user.tab();
+    expect(tipIn(document.body)).toHaveTextContent("Two lines");
+    await user.tab();
+    expect(tipIn(document.body)).toBeNull();
+  });
+
   it("leaves an anchor with nothing to say inert", async () => {
     const user = userEvent.setup();
     render(<Anchored text={null} />);

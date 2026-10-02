@@ -117,6 +117,48 @@ public class CommandCentreEntry
 }
 
 /// <summary>
+/// One command centre that was on <c>commandCentre.roster</c> earlier in this
+/// session and is not now, in the <c>commandCentre.unreachable</c> channel: a
+/// ground station whose node went away, a crewed vessel that lost its crew or
+/// was destroyed or recovered.
+///
+/// <para>The channel payload is a bare array of these entries, one per
+/// remembered centre that is currently off the roster, keyed by <see cref="Id"/>.
+/// A centre that comes back leaves this channel and rejoins the roster, and a
+/// centre that has not been on the roster since the mod started is not
+/// listed at all: an absent id is a fact about what is unknown, not about what
+/// is reachable.</para>
+/// <internal>
+/// Published RAW, like the roster: each element is written by JsonWriter's own
+/// AppendUnreachableCentreEntry.
+/// </internal>
+/// </summary>
+/// <category>Comms</category>
+[SitrepContract]
+[SitrepTopic("commandCentre.unreachable", isArray: true)]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class UnreachableCentreEntry
+{
+    /// <summary>The centre's roster <c>Id</c> (<c>"ground:&lt;name&gt;"</c> | <c>"vessel:&lt;guid&gt;"</c>), the key it had while it was reachable.</summary>
+    [SitrepUnit(Units.Id)]
+    public string Id { get; set; } = "";
+
+    /// <summary>The name the centre had on the roster, kept so a client can name it after it has gone.</summary>
+    [SitrepUnit(Units.Text)]
+    public string DisplayName { get; set; } = "";
+
+    /// <summary>One of <c>GroundStation</c>, <c>CrewedVessel</c> or <c>Custom</c>, as the roster reported it.</summary>
+    [SitrepUnit(Units.Text)]
+    public string Kind { get; set; } = "";
+
+    /// <summary>Universal time at which this centre was last on <c>commandCentre.roster</c>.</summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double LastReachableUt { get; set; }
+}
+
+/// <summary>
 /// One ordered pair in the <c>commandCentre.separation</c> channel: how far
 /// <see cref="From"/> is from <see cref="To"/>, in one-way seconds along the
 /// routed CommNet path.

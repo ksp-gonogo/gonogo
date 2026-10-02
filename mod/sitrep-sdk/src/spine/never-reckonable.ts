@@ -116,6 +116,7 @@ export const NEVER_RECKONABLE = [
   "vessel.identity",
   "vessel.crew",
   "commandCentre.roster",
+  "commandCentre.unreachable",
   "spaceCenter.crewRoster",
   "spaceCenter.astronautComplex",
 

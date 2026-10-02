@@ -1,8 +1,9 @@
 import { Button, Console, EmptyState, PlusIcon } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
+import { Addressees } from "./CommcastAddressee";
 import { CommcastBackButton } from "./CommcastBackButton";
 import { CommcastComposer } from "./CommcastComposer";
-import type { useLocalParticipant } from "./CommcastContext";
+import type { AddressBook, useLocalParticipant } from "./CommcastContext";
 import type { CommcastLog } from "./CommcastLog";
 import { CommcastMessageRow } from "./CommcastMessageRow";
 import {
@@ -31,7 +32,7 @@ export function CommcastThreadView({
   utNow,
   log,
   noSignal,
-  nameFor,
+  book,
   local,
   radio,
   indicator,
@@ -46,7 +47,7 @@ export function CommcastThreadView({
   utNow: number | undefined;
   log: CommcastLog;
   noSignal: boolean;
-  nameFor: (id: RecipientId) => string;
+  book: AddressBook;
   local: ReturnType<typeof useLocalParticipant>;
   /** The widget's one radio, which hears every group this vantage is in whichever view is open. */
   radio: RadioControl;
@@ -60,7 +61,12 @@ export function CommcastThreadView({
   onBack: () => void;
 }) {
   const noPath = separation.kind === "no-path";
+  const nameFor = book.nameFor;
   const threadName = namesOf(thread.with, nameFor);
+  // Everyone the words go to, other than this vantage, who the roster no longer lists.
+  const unreachable = members
+    .filter((id) => id !== me.vantageId && book.unreachableOf(id) !== undefined)
+    .map(nameFor);
   return (
     <>
       {/*
@@ -70,7 +76,9 @@ export function CommcastThreadView({
       */}
       <Commcast__Bar>
         <CommcastBackButton onClick={onBack} />
-        <Commcast__BarTitle>{threadName}</Commcast__BarTitle>
+        <Commcast__BarTitle>
+          <Addressees ids={thread.with} book={book} />
+        </Commcast__BarTitle>
         {onAdd && (
           <Button type="button" onClick={onAdd}>
             <PlusIcon size="var(--icon-size-control)" aria-hidden="true" />
@@ -114,6 +122,7 @@ export function CommcastThreadView({
             groupId={thread.key}
             members={members}
             noPath={noPath}
+            unreachable={unreachable}
             separationSeconds={separationSeconds}
           />
         }

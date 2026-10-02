@@ -2,6 +2,7 @@ import { ComposerBar, VisuallyHidden } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import type { useLocalParticipant } from "./CommcastContext";
 import type { CommcastLog } from "./CommcastLog";
+import { describeSendStatus, sendStatusFor } from "./commcastSendStatus";
 import { Commcast__Input } from "./commcastStyles";
 import type { Vantage } from "./reveal";
 import type { RecipientId } from "./types";
@@ -14,6 +15,7 @@ export function CommcastComposer({
   groupId,
   members,
   noPath,
+  unreachable,
   separationSeconds,
 }: {
   log: CommcastLog;
@@ -26,9 +28,12 @@ export function CommcastComposer({
   members: readonly RecipientId[];
   /** No path to any member; resolved once by the thread view, so the composer and the delay reading cannot disagree. */
   noPath: boolean;
+  /** Names of the members the roster no longer lists; the send control says so but still sends. */
+  unreachable: readonly string[];
   separationSeconds: number | null;
 }) {
   const [draft, setDraft] = useState("");
+  const status = sendStatusFor(unreachable);
   const ready =
     draft.trim().length > 0 &&
     utNow !== undefined &&
@@ -62,6 +67,7 @@ export function CommcastComposer({
       blocked={noPath}
       prompt="❯"
       {...(noPath ? { flag: "NO PATH" } : {})}
+      {...(status ? { sendTooltip: describeSendStatus(status) } : {})}
       onSend={submit}
       sendDisabled={!ready}
     >

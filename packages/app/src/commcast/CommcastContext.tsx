@@ -3,7 +3,11 @@ import {
   useObservedVantage,
   useTelemetryClientOptional,
 } from "@ksp-gonogo/sitrep-client";
-import type { CommandCentreEntry } from "@ksp-gonogo/sitrep-sdk";
+import type {
+  CommandCentreEntry,
+  UnreachableCentreEntry,
+  Value,
+} from "@ksp-gonogo/sitrep-sdk";
 import { useSeat } from "@ksp-gonogo/sitrep-sdk/spine";
 import type { ReactNode } from "react";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
@@ -13,7 +17,7 @@ import { CommcastLog } from "./CommcastLog";
 import { useCommcastLogOptional } from "./CommcastLogContext";
 import { attachCommcastModLink } from "./CommcastModLink";
 import type { SeparationMatrix, Vantage } from "./reveal";
-import type { CommsRecipient } from "./types";
+import type { CommsRecipient, RecipientId } from "./types";
 
 const CommcastContext = createContext<CommcastLog | null>(null);
 
@@ -185,5 +189,51 @@ export function useMyVantage(): Vantage {
   return useMemo(
     () => ({ seat, ...(vantageId === undefined ? {} : { vantageId }) }),
     [seat, vantageId],
+  );
+}
+
+/** An addressee that has left the roster. */
+export interface Unreachable {
+  /** When the mod last saw it on the roster; undefined when it never has, which is unknown rather than zero. */
+  lastReachable: Value<"ut"> | undefined;
+}
+
+/** Who a thread's members are, by name, and which of them can no longer be reached. */
+export interface AddressBook {
+  /** A name for any address; an address nobody has named reads as a kind of correspondent, never as the address. */
+  nameFor: (id: RecipientId) => string;
+  /** Set for an address the roster no longer lists. Unset while the roster is still unknown, so a fresh page load greys nobody. */
+  unreachableOf: (id: RecipientId) => Unreachable | undefined;
+}
+
+/**
+ * Names every address a thread can hold, from the roster first and then from the
+ * mod's memory of centres that left it. `commandCentre.unreachable` carries the
+ * last-reachable time, so nothing here keeps its own record of who was seen.
+ */
+export function useAddressBook(): AddressBook {
+  const roster = useTelemetry("commandCentre.roster");
+  const gone = useTelemetry("commandCentre.unreachable");
+  const entries: readonly CommandCentreEntry[] | undefined =
+    roster.state === "observed" || roster.state === "held"
+      ? roster.value
+      : undefined;
+  const remembered: readonly UnreachableCentreEntry[] =
+    gone.state === "observed" || gone.state === "held" ? gone.value : [];
+  return useMemo(
+    () => ({
+      nameFor: (id) =>
+        entries?.find((e) => e.id === id)?.displayName ??
+        remembered.find((e) => e.id === id)?.displayName ??
+        (id.startsWith("vessel:") ? "Unknown vessel" : "Unknown station"),
+      unreachableOf: (id) => {
+        if (entries === undefined || entries.some((e) => e.id === id)) {
+          return undefined;
+        }
+        const seen = remembered.find((e) => e.id === id);
+        return { lastReachable: seen?.lastReachableUt };
+      },
+    }),
+    [entries, remembered],
   );
 }

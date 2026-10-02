@@ -1018,6 +1018,41 @@ export interface CommandCentreEntry
 	delayQuality?: string | null;
 }
 /**
+* One command centre that was on `commandCentre.roster` earlier in this
+* session and is not now, in the `commandCentre.unreachable` channel: a ground
+* station whose node went away, a crewed vessel that lost its crew or was
+* destroyed or recovered.
+*
+* The channel payload is a bare array of these entries, one per remembered
+* centre that is currently off the roster, keyed by
+* `UnreachableCentreEntry.id`. A centre that comes back leaves this channel
+* and rejoins the roster, and a centre that has not been on the roster since
+* the mod started is not listed at all: an absent id is a fact about what is
+* unknown, not about what is reachable.
+*
+* @category Comms
+*/
+export interface UnreachableCentreEntry
+{
+	/**
+	* The centre's roster `Id` (`"ground:<name>"` | `"vessel:<guid>"`), the key it
+	* had while it was reachable.
+	*/
+	id: string;
+	/**
+	* The name the centre had on the roster, kept so a client can name it after it
+	* has gone.
+	*/
+	displayName: string;
+	/**
+	* One of `GroundStation`, `CrewedVessel` or `Custom`, as the roster reported
+	* it.
+	*/
+	kind: string;
+	/** Universal time at which this centre was last on `commandCentre.roster`. */
+	lastReachableUt: Value<"ut">;
+}
+/**
 * One ordered pair in the `commandCentre.separation` channel: how far
 * `CentreSeparationEntry.from` is from `CentreSeparationEntry.to`, in one-way
 * seconds along the routed CommNet path.

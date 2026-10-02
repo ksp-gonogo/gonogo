@@ -149,6 +149,36 @@ namespace Gonogo.KSP.Tests.CommandCentres
             Assert.DoesNotContain(roster, e => e.IsHome || e.IsHomeFallback);
         }
 
+        /// <summary>
+        /// A centre that was on the roster and is not now is published with its name and
+        /// the UT of the last pass that saw it, and leaves the list when it returns.
+        /// </summary>
+        [Fact]
+        public void ACentreThatLeftTheRosterIsPublishedUnreachableWithItsLastSeenUt()
+        {
+            var host = new PublishRecordingHost();
+            var registry = new CommandCentreRegistry();
+            var source = new FixedCentreSource(new[] { "ground:Dish", "ground:KSC" });
+            registry.RegisterSource(source);
+            var uplink = new CommandCentreDelayUplink(registry);
+            uplink.Register(host);
+
+            uplink.ObserveCentresOnMain(new KspSnapshot { Ut = 100.0 });
+            source.Set("ground:KSC");
+            uplink.ObserveCentresOnMain(new KspSnapshot { Ut = 200.0 });
+            uplink.PublishRosterOnCourier(uplink.CaptureRosterOnMain(new KspSnapshot { Ut = 200.0 }));
+
+            var gone = Assert.Single(Assert.IsType<List<UnreachableCentreEntry>>(Assert.Single(host.UnreachableRecorder.Published).Payload));
+            Assert.Equal("ground:Dish", gone.Id);
+            Assert.Equal(100.0, gone.LastReachableUt);
+
+            source.Set("ground:KSC", "ground:Dish");
+            uplink.ObserveCentresOnMain(new KspSnapshot { Ut = 300.0 });
+            uplink.PublishRosterOnCourier(uplink.CaptureRosterOnMain(new KspSnapshot { Ut = 300.0 }));
+
+            Assert.Empty(Assert.IsType<List<UnreachableCentreEntry>>(host.UnreachableRecorder.Published.Last().Payload));
+        }
+
         private static CommandCentreDelayUplink Uplink(PublishRecordingHost host, params string[] centreIds) =>
             Uplink(host, HomeCommand.NotIdentified, centreIds);
 
@@ -163,9 +193,11 @@ namespace Gonogo.KSP.Tests.CommandCentres
 
         private sealed class FixedCentreSource : ICommandCentreSource
         {
-            private readonly IReadOnlyList<ICommandCentre> _centres;
+            private IReadOnlyList<ICommandCentre> _centres;
 
-            public FixedCentreSource(IEnumerable<string> ids) =>
+            public FixedCentreSource(IEnumerable<string> ids) => Set(ids.ToArray());
+
+            public void Set(params string[] ids) =>
                 _centres = ids.Select(id => (ICommandCentre)new FixedCentre(id)).ToList();
 
             public string ProviderId => "test";
@@ -203,8 +235,12 @@ namespace Gonogo.KSP.Tests.CommandCentres
         {
             public RecordingPublisher Recorder { get; } = new RecordingPublisher();
 
+            public RecordingPublisher UnreachableRecorder { get; } = new RecordingPublisher();
+
             public IChannelPublisher Publisher(string topic) =>
-                topic == CommandCentreDelayUplink.RosterTopic ? Recorder : new NullPublisher();
+                topic == CommandCentreDelayUplink.RosterTopic ? Recorder
+                : topic == CommandCentreDelayUplink.UnreachableTopic ? UnreachableRecorder
+                : new NullPublisher();
 
             public void AddSampledSource(Func<KspSnapshot?, object?> captureOnMainThread, Action<object?> handleOnCourier) { }
 

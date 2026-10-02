@@ -1,7 +1,9 @@
-import type { ComponentPropsWithoutRef, ReactNode } from "react";
+import { type ComponentPropsWithoutRef, type ReactNode, useId } from "react";
 import styled, { css } from "styled-components";
 import { Button } from "./Button";
 import { SendIcon } from "./Icons";
+import { useTooltip } from "./Tooltip";
+import { VisuallyHidden } from "./VisuallyHidden";
 
 /**
  * Props for {@link ComposerBar}. Any other `div` attribute is passed to the row.
@@ -54,6 +56,13 @@ export interface ComposerBarProps extends ComponentPropsWithoutRef<"div"> {
    * row transmits something.
    */
   sendVariant?: "icon" | "text";
+  /**
+   * What the operator should know before pressing send, as a kit tooltip on
+   * the button (pointer and keyboard focus) and as its accessible description. A
+   * `\n` starts a new line. It never disables the send: pressing it stays the
+   * operator's choice.
+   */
+  sendTooltip?: string;
   children?: ReactNode;
 }
 
@@ -80,9 +89,12 @@ export function ComposerBar({
   sendDisabled = false,
   sendLabel = "Send",
   sendVariant = "icon",
+  sendTooltip,
   children,
   ...rest
 }: ComposerBarProps) {
+  const { anchor, tip } = useTooltip(sendTooltip);
+  const described = useId();
   return (
     <ComposerBar__Row $blocked={blocked} {...rest}>
       {prompt !== undefined && (
@@ -90,15 +102,25 @@ export function ComposerBar({
       )}
       {children}
       {onSend !== undefined && (
-        <ComposerBar__Send
-          type="button"
-          disabled={sendDisabled}
-          onClick={onSend}
-          $icon={sendVariant === "icon"}
-          {...(sendVariant === "icon" ? { "aria-label": sendLabel } : {})}
-        >
-          {sendVariant === "icon" ? <SendIcon size={16} /> : sendLabel}
-        </ComposerBar__Send>
+        /* The anchor is the wrapper, not the button: a disabled button raises no pointer events. */
+        <ComposerBar__SendAnchor {...anchor}>
+          <ComposerBar__Send
+            type="button"
+            disabled={sendDisabled}
+            onClick={onSend}
+            $icon={sendVariant === "icon"}
+            {...(sendTooltip ? { "aria-describedby": described } : {})}
+            {...(sendVariant === "icon" ? { "aria-label": sendLabel } : {})}
+          >
+            {sendVariant === "icon" ? <SendIcon size={16} /> : sendLabel}
+          </ComposerBar__Send>
+          {sendTooltip && (
+            <VisuallyHidden id={described}>
+              {sendTooltip.replace("\n", ". ")}
+            </VisuallyHidden>
+          )}
+          {tip}
+        </ComposerBar__SendAnchor>
       )}
       {flag !== undefined && (
         // `role="status"`, never `alert`: a lost path is ambient, not an interruption.
@@ -139,6 +161,15 @@ const ComposerBar__Prompt = styled.span`
  * keystroke. `font-size` is stated, not inherited from a terminal's character
  * pitch on the row.
  */
+const ComposerBar__SendAnchor = styled.span`
+  display: inline-flex;
+
+  /* A disabled button swallows pointer events, so they go to the anchor instead. */
+  > button:disabled {
+    pointer-events: none;
+  }
+`;
+
 const ComposerBar__Send = styled(Button)<{ $icon: boolean }>`
   flex: 0 0 auto;
   margin-left: auto;
