@@ -57,6 +57,9 @@ export const STEP_LADDER_STYLE = {
   alignContent: "center",
 } as const;
 
+/* The warp-to targets take the widget's whole width, so the instant's fields lie in one row. */
+export const WARP_TO_STYLE = { flex: "1 1 100%", minWidth: 0 } as const;
+
 /* The buttons and the alarm row under them, as one column beside the rate readout. */
 export const CONTROLS_STYLE = {
   flex: "3 1 180px",

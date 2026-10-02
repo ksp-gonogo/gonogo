@@ -8,9 +8,14 @@ import {
 import { META_VANTAGE, useCommand } from "@ksp-gonogo/sitrep-client";
 import { stillTrue } from "@ksp-gonogo/sitrep-sdk";
 import { useEffect, useState } from "react";
-import { useAlarmsLauncher, usePendingAlarms } from "../shared/AlarmsLauncher";
+import {
+  useAlarmCreator,
+  useAlarmsLauncher,
+  usePendingAlarms,
+} from "../shared/AlarmsLauncher";
 import { magnitudeOf } from "../shared/magnitude";
 import { useWarpIntent } from "../shared/WarpIntent";
+import type { TimeTrigger } from "../TransferWindow/config";
 import { delayRequiringAlarm } from "./alarmGate";
 import {
   type WarpControlActions,
@@ -78,6 +83,7 @@ function WarpControlComponent({
 
   const pending = usePendingAlarms();
   const openAlarms = useAlarmsLauncher();
+  const createAlarm = useAlarmCreator<TimeTrigger>();
   const delayReading = topics.useTelemetry("comms.delay");
   const blockingDelay = delayRequiringAlarm(stillTrue(delayReading, undefined));
   // Only in flight, and only with an alarm pipeline that could satisfy the gate.
@@ -139,6 +145,7 @@ function WarpControlComponent({
       blockingDelay={blockingDelay}
       oneWayDelay={delayReading.oneWaySeconds}
       nextAlarm={pending?.[0] ?? null}
+      createAlarm={createAlarm}
       onSetWarp={setWarp}
       onTogglePause={togglePause}
       onOpenAlarms={() => openAlarms?.({})}

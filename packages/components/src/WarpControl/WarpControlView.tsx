@@ -12,7 +12,11 @@ import {
   Unit,
   type UnitValue,
 } from "@ksp-gonogo/ui-kit";
-import type { PendingAlarmSummary } from "../shared/AlarmsLauncher";
+import type {
+  AlarmCreator,
+  PendingAlarmSummary,
+} from "../shared/AlarmsLauncher";
+import type { TimeTrigger } from "../TransferWindow/config";
 import { NextAlarm } from "./NextAlarm";
 import {
   BODY_STYLE,
@@ -24,8 +28,10 @@ import {
   type RateTone,
   rateStyle,
   STEP_LADDER_STYLE,
+  WARP_TO_STYLE,
   WarpButton,
 } from "./styles";
+import { WarpToRow } from "./WarpToRow";
 import { formatRate, HIGH_LEVELS, TOP_WARP_INDEX } from "./warpLevels";
 
 export interface WarpControlViewProps {
@@ -42,6 +48,8 @@ export interface WarpControlViewProps {
   blockingDelay: "delay" | "no-path" | null;
   oneWayDelay: UnitValue<"s"> | null | undefined;
   nextAlarm: PendingAlarmSummary | null;
+  /** Absent when no alarm pipeline is mounted, which hides the warp-to targets. */
+  createAlarm: AlarmCreator<TimeTrigger> | null;
   onSetWarp: (index: number) => void;
   onTogglePause: () => void;
   onOpenAlarms: () => void;
@@ -60,6 +68,7 @@ export function WarpControlView({
   blockingDelay,
   oneWayDelay,
   nextAlarm,
+  createAlarm,
   onSetWarp,
   onTogglePause,
   onOpenAlarms,
@@ -68,6 +77,7 @@ export function WarpControlView({
   const showFullLadder = cols * rows >= 20 && cols >= 4 && rows >= 3;
   const showStepper = !showFullLadder && cols >= 3 && rows >= 3;
   const showModeCaption = rows >= 4;
+  const showWarpTo = createAlarm !== null && cols >= 4 && rows >= 6;
 
   const rateLabel = formatRate(currentRate);
   // Physics warp keeps aerodynamics live and is risky in atmosphere, so it gets its own tint.
@@ -209,6 +219,11 @@ export function WarpControlView({
                   nextAlarm !== null && <NextAlarm alarm={nextAlarm} />
                 )}
               </div>
+              {showWarpTo && (
+                <div style={WARP_TO_STYLE}>
+                  <WarpToRow createAlarm={createAlarm} />
+                </div>
+              )}
             </div>
           </DimmedOverlay>
         </Section>
