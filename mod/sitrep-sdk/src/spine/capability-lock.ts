@@ -1,46 +1,14 @@
 import { useMemo, useRef, useState } from "react";
-import type { CommandGateReport, GateVerdict } from "../__generated__/contract";
-import { GateOutcome } from "../__generated__/contract";
+import type {
+  ChannelGate,
+  CommandGateReport,
+  GateVerdict,
+  MissingUnlock,
+} from "../__generated__/contract";
+import { GateOutcome, UnlockKind } from "../__generated__/contract";
 import { CommandErrorCode } from "../__generated__/error-codes";
 import type { Capability, LockScopeRegistry } from "./lock-scope";
 import { useLatestValue } from "./use-stream";
-
-/**
- * One unlock this save has not made yet: a tech node not researched, or a
- * facility below the tier a capability needs. `name` is the game's own title
- * for it, so the sentence an operator reads is the one the game would use.
- */
-export interface MissingUnlock {
-  kind: "tech" | "facility";
-  /** The tech node's `techID`, or the `SpaceCenterFacility` member name. */
-  id: string;
-  /** The game's display title: "Advanced Construction", "Mission Control". */
-  name: string;
-  /** For a facility, the tier (1-based) the capability needs. */
-  tier?: number;
-  /** For a tech node, the science it costs to research. */
-  scienceCost?: number;
-}
-
-/**
- * A verdict that can say WHICH unlock is missing. The mod's facility evaluator
- * names it only in `detail` prose today, so a lock without `missing` is still
- * a lock, worded from the prose.
- */
-type VerdictWithMissing = GateVerdict & { missing?: readonly MissingUnlock[] };
-
-/** A channel's standing verdict, the channel half of the gate report. */
-interface ChannelGate {
-  /** A topic id, or a namespace prefix ending in `.` that covers every topic under it. */
-  topic: string;
-  verdict: VerdictWithMissing;
-}
-
-/** The gate report as this module reads it: commands as published, plus the channel half. */
-type LockReport = Omit<CommandGateReport, "gates"> & {
-  gates: readonly { command: string; verdict: VerdictWithMissing }[];
-  channels?: readonly ChannelGate[];
-};
 
 /** Why a capability is locked: the unlocks it is missing, and the evaluator's prose for when it named none. */
 export interface CapabilityLock {
@@ -54,7 +22,7 @@ export interface CapabilityLock {
  * short balance refuse one control and may clear in a minute; a capability the
  * save has not bought yet takes away everything built on it.
  */
-function lockedVerdict(verdict: VerdictWithMissing | undefined): boolean {
+function lockedVerdict(verdict: GateVerdict | undefined): boolean {
   return (
     verdict?.outcome === GateOutcome.Fail &&
     verdict.errorCode === CommandErrorCode.NotUnlocked
@@ -63,10 +31,11 @@ function lockedVerdict(verdict: VerdictWithMissing | undefined): boolean {
 
 /** The longest channel entry covering `topic`, matched the way Uplink ownership is. */
 function channelVerdict(
-  report: LockReport,
+  report: CommandGateReport,
   topic: string,
-): VerdictWithMissing | undefined {
+): GateVerdict | undefined {
   let best: ChannelGate | undefined;
+  // An older mod publishes no channel half.
   for (const entry of report.channels ?? []) {
     const covers =
       entry.topic === topic ||
@@ -82,11 +51,10 @@ export function capabilityLock(
   capability: Capability,
 ): CapabilityLock | undefined {
   if (!report) return undefined;
-  const lockReport = report as LockReport;
   const verdict =
     capability.kind === "command"
-      ? lockReport.gates.find((gate) => gate.command === capability.id)?.verdict
-      : channelVerdict(lockReport, capability.id);
+      ? report.gates.find((gate) => gate.command === capability.id)?.verdict
+      : channelVerdict(report, capability.id);
   if (!verdict || !lockedVerdict(verdict)) return undefined;
   return {
     capability,
@@ -96,33 +64,48 @@ export function capabilityLock(
 }
 
 /**
+ * Writes one quantity for a lock sentence: a value off the wire, or a plain
+ * number a caller supplied, in the unit the field declares.
+ */
+export type LockQuantityWriter = (
+  quantity: { magnitude: number; unit: string } | number,
+  unit: string,
+) => string;
+
+/**
  * The sentence a locked scope draws. A missing tech node reads "Missing tech:
  * <node>" over what it costs to research; a building reads as its own name over
- * the level it needs, so the two kinds of unlock never read alike.
+ * the level it needs, so the two kinds of unlock never read alike. Quantities
+ * are written by `write`, so the kit's own unit formatting draws them.
  */
-export function lockSentence(locks: readonly CapabilityLock[]): {
+export function lockSentence(
+  locks: readonly CapabilityLock[],
+  write: LockQuantityWriter,
+): {
   reason: string;
   hint?: string;
 } {
   const missing = uniqueMissing(locks);
-  const tech = missing.filter((m) => m.kind === "tech");
-  const facilities = missing.filter((m) => m.kind === "facility");
+  const tech = missing.filter((m) => m.kind === UnlockKind.Tech);
+  const facilities = missing.filter((m) => m.kind === UnlockKind.Facility);
   if (tech.length > 0) {
-    const cost = tech.reduce((sum, m) => sum + (m.scienceCost ?? 0), 0);
+    const [only] = tech;
     return {
       reason: `Missing tech: ${tech.map((m) => m.name).join(", ")}`,
       hint:
         facilities.length > 0
-          ? facilities.map((m) => `${m.name}: ${levelSentence([m])}`).join(", ")
-          : cost > 0
-            ? `${cost} science to research`
+          ? facilities
+              .map((m) => `${m.name}: ${levelSentence([m], write)}`)
+              .join(", ")
+          : tech.length === 1 && only.scienceCost != null
+            ? `${write(only.scienceCost, "science")} to research`
             : undefined,
     };
   }
   if (facilities.length > 0) {
     return {
       reason: facilities.map((m) => m.name).join(", "),
-      hint: levelSentence(facilities),
+      hint: levelSentence(facilities, write),
     };
   }
   return { reason: "Not unlocked yet", hint: locks[0]?.detail };
@@ -131,13 +114,16 @@ export function lockSentence(locks: readonly CapabilityLock[]): {
 /** "Needs Building level N" when the facilities agree on a level, each named with its own when they do not. */
 function levelSentence(
   facilities: readonly MissingUnlock[],
+  write: LockQuantityWriter,
 ): string | undefined {
-  const tiers = facilities.filter((m) => m.tier !== undefined);
+  const tiers = facilities.flatMap((m) =>
+    m.tier == null ? [] : [{ name: m.name, level: write(m.tier, "count") }],
+  );
   if (tiers.length === 0) return undefined;
-  if (tiers.every((m) => m.tier === tiers[0].tier)) {
-    return `Needs Building level ${tiers[0].tier}`;
+  if (tiers.every((m) => m.level === tiers[0].level)) {
+    return `Needs Building level ${tiers[0].level}`;
   }
-  return `Needs ${tiers.map((m) => `${m.name} level ${m.tier}`).join(", ")}`;
+  return `Needs ${tiers.map((m) => `${m.name} level ${m.level}`).join(", ")}`;
 }
 
 function uniqueMissing(locks: readonly CapabilityLock[]): MissingUnlock[] {

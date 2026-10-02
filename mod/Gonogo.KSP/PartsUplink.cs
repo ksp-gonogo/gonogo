@@ -35,6 +35,7 @@ namespace Gonogo.KSP
             {
                 new ChannelDeclaration
                 {
+                    Requires = Requirement.None,
                     Topic = PartsViewProvider.PowerTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),

@@ -56,6 +56,7 @@ namespace Gonogo.KSP.SilenceTracking
             SilenceGeometrySink.Bind(host.Kernel);
             _silenceSource = host.RegisterDynamicNamespace(ChannelEngine.SilenceEventPrefix, new ChannelDeclaration
             {
+                Requires = Requirement.None,
                 Delivery = Delivery.LossyLatest,
                 Delay = DelayRole.Delayed,
                 Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),

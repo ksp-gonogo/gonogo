@@ -23,6 +23,7 @@ function report(
       itemArgument: "",
       items: [],
     })),
+    channels: [],
   };
 }
 
@@ -46,6 +47,7 @@ function perItem(command: string, refusedItem: string): CommandGateReport {
         ],
       },
     ],
+    channels: [],
   };
 }
 

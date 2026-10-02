@@ -91,6 +91,7 @@ namespace Gonogo.KSP
             {
                 new ChannelDeclaration
                 {
+                    Requires = Requirement.None,
                     Topic = ScienceViewProvider.ExperimentsTopic,
                     Delivery = Delivery.LossyLatest,
                     // Same 30s-keyframe cadence CareerUplink/SystemUplink
@@ -101,6 +102,7 @@ namespace Gonogo.KSP
                 },
                 new ChannelDeclaration
                 {
+                    Requires = Requirement.None,
                     Topic = ScienceViewProvider.InstrumentsTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
@@ -109,6 +111,7 @@ namespace Gonogo.KSP
                 },
                 new ChannelDeclaration
                 {
+                    Requires = Requirement.None,
                     Topic = ScienceViewProvider.LabTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
@@ -117,6 +120,7 @@ namespace Gonogo.KSP
                 },
                 new ChannelDeclaration
                 {
+                    Requires = Requirement.None,
                     Topic = ScienceViewProvider.SensorsTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
@@ -126,6 +130,7 @@ namespace Gonogo.KSP
                 },
                 new ChannelDeclaration
                 {
+                    Requires = Requirement.None,
                     Topic = ScienceViewProvider.ExperimentBreakdownTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
@@ -135,6 +140,7 @@ namespace Gonogo.KSP
                 },
                 new ChannelDeclaration
                 {
+                    Requires = Requirement.None,
                     Topic = ScienceViewProvider.ArchiveTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),

@@ -390,6 +390,7 @@ namespace Gonogo.KSP
                 PartActionsViewProvider.PartActionsPrefix,
                 new ChannelDeclaration
                 {
+                    Requires = Requirement.None,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
                     // Vessel-sourced like every other vessel.* channel: the operator
@@ -503,6 +504,7 @@ namespace Gonogo.KSP
 
         private static ChannelDeclaration Channel(string topic, bool absenceIsData = false, bool recordable = true) => new ChannelDeclaration
         {
+            Requires = Requirement.None,
             Topic = topic,
             Recordable = recordable,
             Delivery = Delivery.LossyLatest,

@@ -273,6 +273,9 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     tickMapped: "flag",
     topic: "id",
   },
+  "ChannelGate": {
+    topic: "id",
+  },
   "ClosestApproach": {
     distance: "m",
     time: "ut",
@@ -803,6 +806,13 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     timelineEpoch: "id",
     validAt: "ut",
     vantage: "id",
+  },
+  "MissingUnlock": {
+    id: "id",
+    kind: "enum",
+    name: "text",
+    scienceCost: "science",
+    tier: "count",
   },
   "MissionObjectiveEntry": {
     description: "text",
@@ -2175,9 +2185,13 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "ChannelDeclaration": {
     emission: "EmissionPolicy",
+    requires: "CommandRequirement[]",
   },
   "ChannelEmissionReport": {
     channels: "ChannelEmissionEntry[]",
+  },
+  "ChannelGate": {
+    verdict: "GateVerdict",
   },
   "CommandCentreActiveVesselDelay": {
     centres: "CentreDelayEntry[]",
@@ -2196,6 +2210,7 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
     verdict: "GateVerdict",
   },
   "CommandGateReport": {
+    channels: "ChannelGate[]",
     gates: "CommandGate[]",
   },
   "CommandResponse": {
@@ -2288,6 +2303,7 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "GateVerdict": {
     breach: "LimitBreach",
+    missing: "MissingUnlock[]",
   },
   "IControlFrameSource": {
     frame: "ControlFrame",
@@ -2731,6 +2747,9 @@ export const GENERATED_TYPE_ENUMS: Readonly<Record<string, EnumsByField>> = {
     quality: "Quality",
     staleness: "Staleness",
   },
+  "MissingUnlock": {
+    kind: "UnlockKind",
+  },
   "MissionObjectiveEntry": {
     state: "MissionObjectiveState",
   },
@@ -3153,6 +3172,10 @@ export const GENERATED_ENUM_MEMBERS: Readonly<Record<string, Readonly<Record<num
     4: "Maneuver",
     5: "Collision",
     6: "Unknown",
+  },
+  "UnlockKind": {
+    0: "Tech",
+    1: "Facility",
   },
   "VesselType": {
     0: "Ship",

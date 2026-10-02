@@ -57,6 +57,7 @@ namespace Gonogo.KSP
 
         private static ChannelDeclaration Channel(string topic, Delivery delivery) => new ChannelDeclaration
         {
+            Requires = Requirement.None,
             Topic = topic,
             // A recovery is a flight-ending event at the vessel, so it is
             // Delayed (rides the light-time reveal clock): behaviourally

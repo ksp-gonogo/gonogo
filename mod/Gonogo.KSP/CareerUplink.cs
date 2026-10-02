@@ -59,6 +59,7 @@ namespace Gonogo.KSP
             {
                 new ChannelDeclaration
                 {
+                    Requires = Requirement.None,
                     Topic = CareerViewProvider.Topic,
                     Delivery = Delivery.LossyLatest,
                     // Career state changes on player action (accept a
@@ -78,6 +79,7 @@ namespace Gonogo.KSP
                 },
                 new ChannelDeclaration
                 {
+                    Requires = Requirement.None,
                     Topic = CareerViewProvider.ModeTopic,
                     Delivery = Delivery.LossyLatest,
                     // The save's game mode changes only on load (a new save /
@@ -91,6 +93,7 @@ namespace Gonogo.KSP
                 },
                 new ChannelDeclaration
                 {
+                    Requires = Requirement.None,
                     Topic = CareerViewProvider.FacilitiesTopic,
                     Delivery = Delivery.LossyLatest,
                     // A tier moves when the player buys an upgrade, so the same

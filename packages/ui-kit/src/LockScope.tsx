@@ -7,6 +7,7 @@ import {
 } from "@ksp-gonogo/sitrep-sdk/spine";
 import type { ReactElement, ReactNode } from "react";
 import { InactiveNotice } from "./InactiveNotice";
+import { writeQuantity } from "./units";
 
 /**
  * What a locked {@link LockScope} hands its `fallback`: the sentence every lock
@@ -42,6 +43,16 @@ export interface LockScopeProps {
   fallback?: ReactNode | ((lock: LockSummary) => ReactNode);
 }
 
+/** A quantity in a lock sentence, written the way the kit writes every other one. */
+function writeLockQuantity(
+  quantity: { magnitude: number; unit: string } | number,
+  unit: string,
+): string {
+  return writeQuantity(
+    typeof quantity === "number" ? { magnitude: quantity, unit } : quantity,
+  );
+}
+
 /**
  * Marks a part of the tree as a lock scope. A topic read or a command held
  * anywhere inside it, through `useTelemetry`, `useStream` or `useCommand`,
@@ -62,7 +73,10 @@ export function LockScope({
 }: LockScopeProps): ReactElement {
   const { scope, locks } = useLockScope(uses);
   if (locks.length > 0) {
-    const summary: LockSummary = { ...lockSentence(locks), locks };
+    const summary: LockSummary = {
+      ...lockSentence(locks, writeLockQuantity),
+      locks,
+    };
     const drawn =
       fallback === undefined ? (
         <InactiveNotice reason={summary} />

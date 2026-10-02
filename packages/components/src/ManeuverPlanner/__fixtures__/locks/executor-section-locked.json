@@ -192,7 +192,7 @@
                 "detail": "",
                 "missing": [
                   {
-                    "kind": "tech",
+                    "kind": 0,
                     "id": "flightControl",
                     "name": "Flight Control",
                     "scienceCost": 45

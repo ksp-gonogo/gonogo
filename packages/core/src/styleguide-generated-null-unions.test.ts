@@ -95,6 +95,10 @@ const OMITTED_WHEN_NULL = new Set([
   "CommandResult.reason",
   "GateVerdict.errorCode",
   "GateVerdict.reason",
+  // JsonWriter.AppendGateVerdict writes missing only on a refusal that names its unlock, and AppendMissingUnlock writes a building's tier or a node's cost, never both.
+  "GateVerdict.missing",
+  "MissingUnlock.tier",
+  "MissingUnlock.scienceCost",
   // EnvelopeCodec.WriteErrorMsg guards both on null: an error that names no request and no topic carries neither key.
   "ErrorMsg.requestId",
   "ErrorMsg.topic",

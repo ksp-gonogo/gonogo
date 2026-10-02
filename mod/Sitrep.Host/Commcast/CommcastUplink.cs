@@ -114,6 +114,7 @@ namespace Sitrep.Host.Commcast
             {
                 new ChannelDeclaration
                 {
+                    Requires = Requirement.None,
                     Topic = TrafficTopic,
                     Delivery = Delivery.ReliableOrdered,
                     Delay = DelayRole.Delayed,
@@ -122,6 +123,7 @@ namespace Sitrep.Host.Commcast
                 },
                 new ChannelDeclaration
                 {
+                    Requires = Requirement.None,
                     Topic = TransmissionsTopic,
                     Delivery = Delivery.ReliableOrdered,
                     Delay = DelayRole.Delayed,
@@ -130,6 +132,7 @@ namespace Sitrep.Host.Commcast
                 },
                 new ChannelDeclaration
                 {
+                    Requires = Requirement.None,
                     Topic = RadioTopic,
                     Delivery = Delivery.ReliableOrdered,
                     Delay = DelayRole.Delayed,

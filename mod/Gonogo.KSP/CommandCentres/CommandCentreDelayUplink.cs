@@ -109,6 +109,7 @@ namespace Gonogo.KSP.CommandCentres
             {
                 new ChannelDeclaration
                 {
+                    Requires = Requirement.None,
                     Topic = RosterTopic,
                     Delivery = Delivery.LossyLatest,
                     // Who can command is a fact the home command holds, so each
@@ -125,6 +126,7 @@ namespace Gonogo.KSP.CommandCentres
                 },
                 new ChannelDeclaration
                 {
+                    Requires = Requirement.None,
                     Topic = UnreachableTopic,
                     Delivery = Delivery.LossyLatest,
                     // The same fact as the roster seen from the other side, so it
@@ -135,6 +137,7 @@ namespace Gonogo.KSP.CommandCentres
                 },
                 new ChannelDeclaration
                 {
+                    Requires = Requirement.None,
                     Topic = SeparationTopic,
                     Delivery = Delivery.LossyLatest,
                     // DELAYED on the same reasoning as comms.delay, and the
@@ -157,6 +160,7 @@ namespace Gonogo.KSP.CommandCentres
                 },
                 new ChannelDeclaration
                 {
+                    Requires = Requirement.None,
                     Topic = ActiveVesselDelayTopic,
                     Delivery = Delivery.LossyLatest,
                     // A readout off the same rows the ledger is written from,

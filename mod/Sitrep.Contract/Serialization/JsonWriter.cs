@@ -330,6 +330,12 @@ namespace Sitrep.Contract.Serialization
                 case Sitrep.Contract.CommandGateItem commandGateItem:
                     AppendCommandGateItem(sb, commandGateItem);
                     break;
+                case Sitrep.Contract.ChannelGate channelGate:
+                    AppendChannelGate(sb, channelGate);
+                    break;
+                case Sitrep.Contract.MissingUnlock missingUnlock:
+                    AppendMissingUnlock(sb, missingUnlock);
+                    break;
                 case Sitrep.Contract.ChannelEmissionReport channelEmissionReport:
                     AppendChannelEmissionReport(sb, channelEmissionReport);
                     break;
@@ -442,7 +448,7 @@ namespace Sitrep.Contract.Serialization
         }
 
         /// <summary>
-        /// A gate verdict as <c>{ outcome, [errorCode], [reason], breach, detail }</c>,
+        /// A gate verdict as <c>{ outcome, [errorCode], [reason], breach, detail, [missing] }</c>,
         /// the outcome as its integer ordinal like every enum sibling here.
         /// </summary>
         ///
@@ -477,6 +483,60 @@ namespace Sitrep.Contract.Serialization
             AppendString(sb, "detail");
             sb.Append(':');
             AppendString(sb, verdict.Detail ?? "");
+
+            // Omitted when absent, as its [SitrepOmittedWhenNull] declares: only a refusal that names its unlock carries one.
+            if (verdict.Missing != null && verdict.Missing.Count > 0)
+            {
+                sb.Append(',');
+                AppendString(sb, "missing");
+                sb.Append(':');
+                sb.Append('[');
+                for (var i = 0; i < verdict.Missing.Count; i++)
+                {
+                    if (i > 0)
+                    {
+                        sb.Append(',');
+                    }
+                    AppendMissingUnlock(sb, verdict.Missing[i]);
+                }
+                sb.Append(']');
+            }
+            sb.Append('}');
+        }
+
+        /// <summary>
+        /// A missing unlock as <c>{ kind, id, name, [tier], [scienceCost] }</c>,
+        /// the kind as its integer ordinal; a building carries its tier and a
+        /// tech node its cost, each omitted on the other.
+        /// </summary>
+        private static void AppendMissingUnlock(StringBuilder sb, Sitrep.Contract.MissingUnlock unlock)
+        {
+            sb.Append('{');
+            AppendString(sb, "kind");
+            sb.Append(':');
+            AppendInteger(sb, (long)unlock.Kind);
+            sb.Append(',');
+            AppendString(sb, "id");
+            sb.Append(':');
+            AppendString(sb, unlock.Id ?? "");
+            sb.Append(',');
+            AppendString(sb, "name");
+            sb.Append(':');
+            AppendString(sb, unlock.Name ?? "");
+            if (unlock.Tier.HasValue)
+            {
+                sb.Append(',');
+                AppendString(sb, "tier");
+                sb.Append(':');
+                AppendInteger(sb, unlock.Tier.Value);
+            }
+            if (unlock.ScienceCost.HasValue)
+            {
+                sb.Append(',');
+                AppendString(sb, "scienceCost");
+                sb.Append(':');
+                AppendNumber(sb, unlock.ScienceCost.Value);
+            }
             sb.Append('}');
         }
 
@@ -952,7 +1012,7 @@ namespace Sitrep.Contract.Serialization
 
         /// <summary>
         /// Flattens a <see cref="Sitrep.Contract.CommandGateReport"/> to the
-        /// wire object <c>{ gates: [...] }</c>. See the <c>case</c> in
+        /// wire object <c>{ gates: [...], channels: [...] }</c>. See the <c>case</c> in
         /// <see cref="AppendValue"/>.
         /// </summary>
         private static void AppendCommandGateReport(
@@ -971,6 +1031,34 @@ namespace Sitrep.Contract.Serialization
                 AppendCommandGate(sb, report.Gates[i]);
             }
             sb.Append(']');
+            sb.Append(',');
+            AppendString(sb, "channels");
+            sb.Append(':');
+            sb.Append('[');
+            var channels = report.Channels;
+            for (var i = 0; channels != null && i < channels.Count; i++)
+            {
+                if (i > 0)
+                {
+                    sb.Append(',');
+                }
+                AppendChannelGate(sb, channels[i]);
+            }
+            sb.Append(']');
+            sb.Append('}');
+        }
+
+        /// <summary>Flattens one <see cref="Sitrep.Contract.ChannelGate"/> to <c>{ topic, verdict }</c>.</summary>
+        private static void AppendChannelGate(StringBuilder sb, Sitrep.Contract.ChannelGate gate)
+        {
+            sb.Append('{');
+            AppendString(sb, "topic");
+            sb.Append(':');
+            AppendString(sb, gate.Topic ?? "");
+            sb.Append(',');
+            AppendString(sb, "verdict");
+            sb.Append(':');
+            AppendGateVerdict(sb, gate.Verdict ?? Sitrep.Contract.GateVerdict.Pass());
             sb.Append('}');
         }
 

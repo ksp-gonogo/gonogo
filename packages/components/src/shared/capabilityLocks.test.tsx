@@ -1,5 +1,6 @@
 import { defineUplinkClient, registerAugment } from "@ksp-gonogo/core";
 import { useCommand, useStream } from "@ksp-gonogo/sitrep-client";
+import { UnlockKind } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen } from "@ksp-gonogo/test-utils";
 import { AugmentSlot, LockScope, Panel, Section } from "@ksp-gonogo/ui-kit";
 import { describe, expect, it } from "vitest";
@@ -7,13 +8,13 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { RequiresGuard } from "./RequiresGuard";
 
 const MISSION_CONTROL = {
-  kind: "facility",
+  kind: UnlockKind.Facility,
   id: "MissionControl",
   name: "Mission Control",
   tier: 2,
 };
 const FLIGHT_CONTROL = {
-  kind: "tech",
+  kind: UnlockKind.Tech,
   id: "flightControl",
   name: "Flight Control",
   scienceCost: 45,
@@ -125,7 +126,7 @@ describe("capability locks", () => {
       });
     });
     expect(screen.getByText("Missing tech: Flight Control")).toBeTruthy();
-    expect(screen.getByText("45 science to research")).toBeTruthy();
+    expect(screen.getByText("45.0sci to research")).toBeTruthy();
   });
 
   it("keeps an Uplink augment's lock inside the augment, even when it reads in its own body", () => {

@@ -41,6 +41,7 @@ namespace Gonogo.KSP
 
         private static ChannelDeclaration EventChannel(string topic) => new ChannelDeclaration
         {
+            Requires = Requirement.None,
             Topic = topic,
             Delay = DelayRole.Delayed,
             Delivery = Delivery.ReliableOrdered,
@@ -49,6 +50,7 @@ namespace Gonogo.KSP
 
         private static ChannelDeclaration ValueChannel(string topic) => new ChannelDeclaration
         {
+            Requires = Requirement.None,
             Topic = topic,
             Delay = DelayRole.Delayed,
             Delivery = Delivery.LossyLatest,

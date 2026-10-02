@@ -131,5 +131,84 @@ namespace Sitrep.Contract
     {
         /// <summary>One entry per gated command, each with its current verdict. Never null; empty when no command declares a requirement.</summary>
         public List<CommandGate> Gates { get; set; } = new List<CommandGate>();
+
+        /// <summary>
+        /// One entry per channel that declares a requirement, each with its
+        /// current verdict, evaluated with no arguments. Never null; a channel
+        /// with no entry declares nothing it needs unlocked.
+        /// </summary>
+        public List<ChannelGate> Channels { get; set; } = new List<ChannelGate>();
+    }
+
+    /// <summary>
+    /// One gated channel and what its requirement says right now. A client
+    /// reading or drawing this channel shows the missing unlock when the
+    /// verdict is a <see cref="CommandErrorCode.NotUnlocked"/> Fail.
+    /// </summary>
+    /// <category>System diagnostics</category>
+    [SitrepContract]
+#if SITREP_CODEGEN
+    [TsInterface]
+#endif
+    public class ChannelGate
+    {
+        /// <summary>
+        /// The channel's topic id, or a dynamic namespace's prefix ending in
+        /// <c>.</c> (such as <c>fleet.</c>), which covers every topic under it.
+        /// </summary>
+        [SitrepUnit(Units.Id)]
+        public string Topic { get; set; } = "";
+
+        /// <summary>The verdict, in the shape <see cref="CommandGate.Verdict"/> carries.</summary>
+        public GateVerdict Verdict { get; set; } = new GateVerdict();
+    }
+
+    /// <summary>Which kind of unlock a <see cref="MissingUnlock"/> names.</summary>
+    /// <category>System diagnostics</category>
+    [SitrepContract]
+#if SITREP_CODEGEN
+    [TsEnum]
+#endif
+    public enum UnlockKind
+    {
+        /// <summary>A tech node in the save's research tree.</summary>
+        Tech = 0,
+        /// <summary>A space centre building's level.</summary>
+        Facility = 1,
+    }
+
+    /// <summary>
+    /// One unlock a save is missing, named the way the game names it, so a
+    /// client can say "Missing tech: Flight Control" or "Mission Control,
+    /// needs Building level 2" without mapping an id to English.
+    /// </summary>
+    /// <category>System diagnostics</category>
+    [SitrepContract]
+#if SITREP_CODEGEN
+    [TsInterface]
+#endif
+    public class MissingUnlock
+    {
+        /// <summary>Whether this is a tech node or a building.</summary>
+        [SitrepUnit(Units.Enumeration)]
+        public UnlockKind Kind { get; set; }
+
+        /// <summary>The tech node's <c>techID</c>, or the <c>SpaceCenterFacility</c> member name.</summary>
+        [SitrepUnit(Units.Id)]
+        public string Id { get; set; } = "";
+
+        /// <summary>The game's own title for it: "Flight Control", "Mission Control".</summary>
+        [SitrepUnit(Units.Text)]
+        public string Name { get; set; } = "";
+
+        /// <summary>For a building, the level it needs, counted from 1 as the game shows it. Absent for a tech node.</summary>
+        [SitrepUnit(Units.Count)]
+        [SitrepOmittedWhenNull]
+        public int? Tier { get; set; }
+
+        /// <summary>For a tech node, the science it costs to research. Absent for a building.</summary>
+        [SitrepUnit(Units.Science)]
+        [SitrepOmittedWhenNull]
+        public double? ScienceCost { get; set; }
     }
 }

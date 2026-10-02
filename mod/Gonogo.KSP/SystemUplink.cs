@@ -63,6 +63,7 @@ namespace Gonogo.KSP
             {
                 new ChannelDeclaration
                 {
+                    Requires = Requirement.None,
                     Topic = SystemViewProvider.Topic,
                     Delivery = Delivery.LossyLatest,
                     /*
@@ -94,6 +95,7 @@ namespace Gonogo.KSP
                 // and falls back to the 30s keyframe on a genuinely idle one.
                 new ChannelDeclaration
                 {
+                    Requires = Requirement.None,
                     Topic = SystemViewProvider.VesselsTopic,
                     Delivery = Delivery.LossyLatest,
                     // Explicit retrofit: the roster's positions/identities
@@ -118,6 +120,7 @@ namespace Gonogo.KSP
                 // comms-derived positions/distances, not a ground-side fact.
                 new ChannelDeclaration
                 {
+                    Requires = Requirement.None,
                     Topic = SystemViewProvider.TargetAvailableTopic,
                     Delivery = Delivery.LossyLatest,
                     Delay = DelayRole.Delayed,
@@ -136,6 +139,7 @@ namespace Gonogo.KSP
                 // touching costs the 30s keyframe and nothing else.
                 new ChannelDeclaration
                 {
+                    Requires = Requirement.None,
                     Topic = ControlFrameTopic,
                     Delivery = Delivery.LossyLatest,
                     Delay = DelayRole.TrueNow,
@@ -151,6 +155,7 @@ namespace Gonogo.KSP
                 // the 30s keyframe floor is what the steady state costs.
                 new ChannelDeclaration
                 {
+                    Requires = Requirement.None,
                     Topic = SystemViewProvider.RevertTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
@@ -165,6 +170,7 @@ namespace Gonogo.KSP
                 // state costs.
                 new ChannelDeclaration
                 {
+                    Requires = Requirement.None,
                     Topic = SystemViewProvider.DlcTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),

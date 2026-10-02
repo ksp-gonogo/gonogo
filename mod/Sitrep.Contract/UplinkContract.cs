@@ -92,6 +92,27 @@ namespace Sitrep.Contract
         /// rather than inferred from the default.
         /// </summary>
         public DelayRole Delay { get; set; } = DelayRole.Delayed;
+        /// <summary>
+        /// What this save must have unlocked before the channel can carry
+        /// anything: the same requirement descriptors a command declares,
+        /// resolved by the same evaluators, and published per channel on
+        /// <c>system.uplink.gates</c>, so a client can name the missing tech or
+        /// building instead of drawing an empty value.
+        ///
+        /// <para>State it on every declaration, <see cref="Requirement.None"/>
+        /// for a channel nothing in the game gates. Most channels are honestly
+        /// ungated, and an explicit None is what shows that was decided rather
+        /// than forgotten.</para>
+        ///
+        /// <para>A channel's requirement is evaluated with no arguments, so it
+        /// may not declare <see cref="CommandRequirement.Needs"/>.</para>
+        /// <internal>
+        /// Null is read as None, so an Uplink built against an older Minor
+        /// loads unchanged; core's own declarations are held to stating it by
+        /// ChannelRequiresDeclaredTests.
+        /// </internal>
+        /// </summary>
+        public CommandRequirement[]? Requires { get; set; }
 
         /// <summary>
         /// Opt-in for a channel that is legitimately empty from its very first
@@ -333,6 +354,17 @@ namespace Sitrep.Contract
         /// </internal>
         /// </summary>
         public string Subject { get; set; } = "";
+    }
+
+    /// <summary>
+    /// Requirement sets for a <see cref="ChannelDeclaration.Requires"/> or a
+    /// <see cref="CommandDeclaration.Requires"/>.
+    /// </summary>
+    /// <category>Commands</category>
+    public static class Requirement
+    {
+        /// <summary>Nothing in the game has to be unlocked first.</summary>
+        public static CommandRequirement[] None => new CommandRequirement[0];
     }
 
     /// <summary>
@@ -592,6 +624,15 @@ namespace Sitrep.Contract
         [SitrepUnit(Units.Text)]
         public string Detail { get; set; } = "";
 
+        /// <summary>
+        /// For a <see cref="CommandErrorCode.NotUnlocked"/> Fail, each unlock
+        /// this save is missing: a tech node not researched, or a building
+        /// below the level it needs. Absent on every other outcome, and on a
+        /// refusal whose evaluator could not say which unlock it was.
+        /// </summary>
+        [SitrepOmittedWhenNull]
+        public List<MissingUnlock>? Missing { get; set; }
+
         /// <summary>A verdict that nothing blocks the command.</summary>
         /// <returns>A <see cref="GateOutcome.Pass"/> verdict.</returns>
         public static GateVerdict Pass() => new GateVerdict { Outcome = GateOutcome.Pass };
@@ -625,6 +666,19 @@ namespace Sitrep.Contract
         /// <returns>A <see cref="GateOutcome.Fail"/> verdict with no <see cref="Breach"/>.</returns>
         public static GateVerdict Fail(RefusalCode errorCode, string detail) =>
             new GateVerdict { Outcome = GateOutcome.Fail, ErrorCode = errorCode, Detail = detail ?? "" };
+
+        /// <summary>A refusal because this save has not unlocked something yet, naming what.</summary>
+        /// <param name="detail">Why, as prose for a human.</param>
+        /// <param name="missing">The unlocks the save is missing.</param>
+        /// <returns>A <see cref="GateOutcome.Fail"/> verdict with the <see cref="CommandErrorCode.NotUnlocked"/> error code.</returns>
+        public static GateVerdict NotUnlocked(string detail, params MissingUnlock[] missing) =>
+            new GateVerdict
+            {
+                Outcome = GateOutcome.Fail,
+                ErrorCode = CommandErrorCode.NotUnlocked,
+                Detail = detail ?? "",
+                Missing = new List<MissingUnlock>(missing),
+            };
 
         /// <summary>A verdict that the live state needed to decide is
         /// missing.</summary>

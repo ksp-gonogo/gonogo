@@ -145,6 +145,7 @@ namespace Gonogo.KSP
             BindWithholding("uplink Register, before capability resolution");
             _events = host.RegisterDynamicNamespace(ChannelEngine.CurrencyEventPrefix, new ChannelDeclaration
             {
+                Requires = Requirement.None,
                 // A discrete one-shot record, not a sampled state: the reliable lane
                 // delivers every event in order and replays the last one to a late
                 // subscriber via keyframe-on-subscribe, which is what a "the science

@@ -85,6 +85,7 @@ namespace Gonogo.KSP
             {
                 new ChannelDeclaration
                 {
+                    Requires = Requirement.None,
                     Topic = BreakingGroundViewProvider.RoboticsTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
@@ -93,6 +94,7 @@ namespace Gonogo.KSP
                 },
                 new ChannelDeclaration
                 {
+                    Requires = Requirement.None,
                     // "Does THIS vessel have any Breaking Ground servos", a
                     // single { available } wrapper. Vessel-derived (parts on
                     // the active vessel), so it rides the delay clock like
@@ -105,6 +107,7 @@ namespace Gonogo.KSP
                 },
                 new ChannelDeclaration
                 {
+                    Requires = Requirement.None,
                     Topic = BreakingGroundViewProvider.DeployedTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),

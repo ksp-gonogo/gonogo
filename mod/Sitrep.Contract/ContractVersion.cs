@@ -2180,8 +2180,15 @@ namespace Sitrep.Contract
         /// (<see cref="ScetAddressableTopic"/>), the Topics an armed alarm can address, published so a
         /// client learns what is addressable before it arms. Additive, so an Uplink built against
         /// 27.10 is unaffected.</para>
+        ///
+        /// <para><b>Major-27 line, Bumped 11 -&gt; 12:</b> <see cref="ChannelDeclaration.Requires"/>
+        /// and <see cref="Requirement.None"/>, <see cref="GateVerdict.Missing"/> (<see cref="MissingUnlock"/>,
+        /// <see cref="UnlockKind"/>) and <see cref="CommandGateReport.Channels"/> (<see cref="ChannelGate"/>):
+        /// a channel declares what the save must have unlocked, and a refusal names the missing unlock.
+        /// Additive: an unset Requires is read as None, so an Uplink built against 27.11 is
+        /// unaffected.</para>
         /// </internal>
         /// </summary>
-        public const int Minor = 11;
+        public const int Minor = 12;
     }
 }

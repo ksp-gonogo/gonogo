@@ -384,6 +384,7 @@ namespace Gonogo.KSP
 
         private static ChannelDeclaration TrueNow(string topic) => new ChannelDeclaration
         {
+            Requires = Requirement.None,
             Topic = topic,
             Delivery = Delivery.LossyLatest,
             // What KSC knows about the link WITHOUT waiting on it: whether the
@@ -408,6 +409,7 @@ namespace Gonogo.KSP
         /// </summary>
         private static ChannelDeclaration Delayed(string topic) => new ChannelDeclaration
         {
+            Requires = Requirement.None,
             Topic = topic,
             Delivery = Delivery.LossyLatest,
             Delay = DelayRole.Delayed,
@@ -458,6 +460,7 @@ namespace Gonogo.KSP
                 // Delay disposition.
                 new ChannelDeclaration
                 {
+                    Requires = Requirement.None,
                     Topic = LinkTopic,
                     Delivery = Delivery.LossyLatest,
                     Delay = DelayRole.Delayed,
@@ -469,6 +472,7 @@ namespace Gonogo.KSP
                 // telemetry it describes rather than jumping ahead of it.
                 new ChannelDeclaration
                 {
+                    Requires = Requirement.None,
                     Topic = DegradeTopic,
                     Delivery = Delivery.LossyLatest,
                     Delay = DelayRole.Delayed,
@@ -476,6 +480,7 @@ namespace Gonogo.KSP
                 },
                 new ChannelDeclaration
                 {
+                    Requires = Requirement.None,
                     Topic = FleetSilenceTopic,
                     Delivery = Delivery.LossyLatest,
                     Delay = DelayRole.Delayed,

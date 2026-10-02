@@ -1399,6 +1399,7 @@ namespace Sitrep.Host
             // _channelSources entry follows.
             _channelDeclarations[UplinksTopic] = new ChannelDeclaration
             {
+                Requires = Requirement.None,
                 Topic = UplinksTopic,
                 Delivery = Delivery.LossyLatest,
                 // A registered-uplink roster with mostly-static health barely
@@ -1427,6 +1428,7 @@ namespace Sitrep.Host
             // the operator sits at, not a reading about a craft.
             _channelDeclarations[SettingsTopic] = new ChannelDeclaration
             {
+                Requires = Requirement.None,
                 Topic = SettingsTopic,
                 Delivery = Delivery.LossyLatest,
                 Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
@@ -1455,6 +1457,7 @@ namespace Sitrep.Host
             // UplinksTopic above.
             _channelDeclarations[UplinkPendingTopic] = new ChannelDeclaration
             {
+                Requires = Requirement.None,
                 Topic = UplinkPendingTopic,
                 Delivery = Delivery.LossyLatest,
                 Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
@@ -1480,6 +1483,7 @@ namespace Sitrep.Host
             // single-writer-before-start rule as the two above.
             _channelDeclarations[UplinkGatesTopic] = new ChannelDeclaration
             {
+                Requires = Requirement.None,
                 Topic = UplinkGatesTopic,
                 Delivery = Delivery.LossyLatest,
                 Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
@@ -1517,6 +1521,7 @@ namespace Sitrep.Host
             // is the descriptor's `version` field rather than this assembly's.
             _channelDeclarations[UnitsTopic] = new ChannelDeclaration
             {
+                Requires = Requirement.None,
                 Topic = UnitsTopic,
                 Delivery = Delivery.LossyLatest,
                 // It cannot change while the mod is loaded: it is reflected
@@ -1543,6 +1548,7 @@ namespace Sitrep.Host
             // rule as the four above.
             _channelDeclarations[ChannelsTopic] = new ChannelDeclaration
             {
+                Requires = Requirement.None,
                 Topic = ChannelsTopic,
                 Delivery = Delivery.LossyLatest,
                 /*
@@ -1752,6 +1758,10 @@ namespace Sitrep.Host
             {
                 _channelDeclarations[channel.Topic] = channel;
                 _channelOwner[channel.Topic] = id;
+                if (channel.Requires == null)
+                {
+                    LogHost($"uplink \"{id}\" channel \"{channel.Topic}\" states no Requires, so it is read as Requirement.None");
+                }
                 if (!channel.HeldAtHome)
                 {
                     continue;
@@ -2426,6 +2436,7 @@ namespace Sitrep.Host
             _modSettings[id] = publisher;
             _channelDeclarations[topic] = new ChannelDeclaration
             {
+                Requires = Requirement.None,
                 Topic = topic,
                 Delivery = Delivery.LossyLatest,
                 Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
@@ -3273,6 +3284,7 @@ namespace Sitrep.Host
                 Emission = template.Emission,
                 Delay = template.Delay,
                 IsKeyframe = template.IsKeyframe,
+                Requires = template.Requires,
             };
             _channelOwner[fullTopic] = _dynamicNamespaceOwner[prefix];
         }
@@ -3427,9 +3439,21 @@ namespace Sitrep.Host
         /// the answer changes.
         /// </summary>
         private GateVerdict EvaluateGatesHere(
-            string command, IGateArguments arguments, Dictionary<string, GateVerdict>? memo)
+            string command, IGateArguments arguments, Dictionary<string, GateVerdict>? memo) =>
+            EvaluateRequirementsHere(command, RequirementsFor(command), arguments, memo);
+
+        /// <summary>
+        /// <see cref="EvaluateGatesHere(string, IGateArguments, Dictionary{string, GateVerdict}?)"/>'s
+        /// walk over an explicit requirement set, so a channel's requirements
+        /// are decided by exactly the rules a command's are. <paramref name="subject"/>
+        /// is the command or channel the set belongs to, for the log.
+        /// </summary>
+        private GateVerdict EvaluateRequirementsHere(
+            string subject,
+            CommandRequirement[] requirements,
+            IGateArguments arguments,
+            Dictionary<string, GateVerdict>? memo)
         {
-            var requirements = RequirementsFor(command);
             if (requirements.Length == 0) return GateVerdict.Pass();
 
             var abstained = false;
@@ -3484,9 +3508,9 @@ namespace Sitrep.Host
                     // runs on the main thread when sampling, where the
                     // Courier-owned availability state must not be written.
                     var reason = $"gate kind \"{requirement.Kind}\" threw: {SafeExceptionMessage(ex)}";
-                    if (_loggedGateThrows.TryAdd(command + "\n" + requirement.Kind, 0))
+                    if (_loggedGateThrows.TryAdd(subject + "\n" + requirement.Kind, 0))
                     {
-                        LogHost($"command \"{command}\" {reason}");
+                        LogHost($"\"{subject}\" {reason}");
                     }
                     return GateVerdict.Unknown(reason);
                 }
@@ -3596,11 +3620,51 @@ namespace Sitrep.Host
                 return;
             }
 
+            var channels = new List<ChannelGate>();
+            try
+            {
+                foreach (var pair in ChannelRequirementSets())
+                {
+                    channels.Add(new ChannelGate
+                    {
+                        Topic = pair.Key,
+                        Verdict = EvaluateRequirementsHere(pair.Key, pair.Value, GateArguments.None, memo),
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                // Same reasoning as the command walk above: a half-built set
+                // would read as "these channels are no longer gated".
+                LogHost("channel gate sampling threw, keeping the previous verdicts: " + SafeExceptionMessage(ex));
+                return;
+            }
+
             // memo.Count is exactly the number of argument-free evaluator calls
             // this pass made, a repeated requirement being answered from the
             // memo without one; every item is a pass over the command of its own.
             _commandGateBudget?.Record(memo.Count + itemEvaluations, nowSec);
-            Volatile.Write(ref _commandGateReport, new CommandGateReport { Gates = gates });
+            Volatile.Write(ref _commandGateReport, new CommandGateReport { Gates = gates, Channels = channels });
+        }
+
+        /// <summary>
+        /// Every channel that declares a requirement, keyed as a client
+        /// matches it: a static channel by its topic, a dynamic namespace by
+        /// its prefix, which covers every topic materialised under it.
+        /// </summary>
+        private IEnumerable<KeyValuePair<string, CommandRequirement[]>> ChannelRequirementSets()
+        {
+            foreach (var pair in _channelDeclarations)
+            {
+                if (pair.Value.Requires == null || pair.Value.Requires.Length == 0) continue;
+                if (FindDynamicNamespaceForTopic(pair.Key) != null) continue;
+                yield return new KeyValuePair<string, CommandRequirement[]>(pair.Key, pair.Value.Requires);
+            }
+            foreach (var pair in _dynamicNamespaces)
+            {
+                if (pair.Value.Requires == null || pair.Value.Requires.Length == 0) continue;
+                yield return new KeyValuePair<string, CommandRequirement[]>(pair.Key, pair.Value.Requires);
+            }
         }
 
         /// <summary>
@@ -3711,6 +3775,25 @@ namespace Sitrep.Host
                             $"command \"{pair.Key}\" names its items by both \"{itemArgument}\" and \"{need}\"");
                     }
                     itemArgument ??= need;
+                }
+            }
+
+            foreach (var pair in ChannelRequirementSets())
+            {
+                foreach (var requirement in pair.Value)
+                {
+                    var kind = requirement.Kind ?? "";
+                    if (!_gateEvaluators.ContainsKey(kind))
+                    {
+                        missing.Add($"channel \"{pair.Key}\" requires gate kind \"{kind}\"");
+                    }
+                    // A channel is sampled with no arguments, so a requirement that
+                    // needs one would abstain forever and never say anything.
+                    if (requirement.Needs != null && requirement.Needs.Length > 0)
+                    {
+                        missing.Add(
+                            $"channel \"{pair.Key}\" declares a requirement that needs arguments ({string.Join(", ", requirement.Needs)}), which a channel never has");
+                    }
                 }
             }
 

@@ -45,6 +45,7 @@ namespace Gonogo.KSP
 
         private static ChannelDeclaration Delayed(string topic) => new ChannelDeclaration
         {
+            Requires = Requirement.None,
             Topic = topic,
             Delivery = Delivery.LossyLatest,
             Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),

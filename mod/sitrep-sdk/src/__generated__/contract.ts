@@ -1247,6 +1247,63 @@ export interface CommandGateReport
 	* empty when no command declares a requirement.
 	*/
 	gates: CommandGate[];
+	/**
+	* One entry per channel that declares a requirement, each with its current
+	* verdict, evaluated with no arguments. Never null; a channel with no entry
+	* declares nothing it needs unlocked.
+	*/
+	channels: ChannelGate[];
+}
+/**
+* One gated channel and what its requirement says right now. A client reading
+* or drawing this channel shows the missing unlock when the verdict is a
+* `CommandErrorCode.NotUnlocked` Fail.
+*
+* @category System diagnostics
+*/
+export interface ChannelGate
+{
+	/**
+	* The channel's topic id, or a dynamic namespace's prefix ending in `.` (such
+	* as `fleet.`), which covers every topic under it.
+	*/
+	topic: string;
+	/** The verdict, in the shape `CommandGate.verdict` carries. */
+	verdict: GateVerdict;
+}
+/**
+* Which kind of unlock a `MissingUnlock` names.
+*
+* @category System diagnostics
+*/
+export enum UnlockKind {
+	/** A tech node in the save's research tree. */
+	Tech = 0,
+	/** A space centre building's level. */
+	Facility = 1
+}
+/**
+* One unlock a save is missing, named the way the game names it, so a client
+* can say "Missing tech: Flight Control" or "Mission Control, needs Building
+* level 2" without mapping an id to English.
+*
+* @category System diagnostics
+*/
+export interface MissingUnlock
+{
+	/** Whether this is a tech node or a building. */
+	kind: UnlockKind;
+	/** The tech node's `techID`, or the `SpaceCenterFacility` member name. */
+	id: string;
+	/** The game's own title for it: "Flight Control", "Mission Control". */
+	name: string;
+	/**
+	* For a building, the level it needs, counted from 1 as the game shows it.
+	* Absent for a tech node.
+	*/
+	tier?: Value<"count">;
+	/** For a tech node, the science it costs to research. Absent for a building. */
+	scienceCost?: Value<"science">;
 }
 /**
 * What every command returns. A refused command has `CommandResult.success`
@@ -7534,6 +7591,13 @@ export interface GateVerdict
 	* a human, never parsed.
 	*/
 	detail: string;
+	/**
+	* For a `CommandErrorCode.NotUnlocked` Fail, each unlock this save is missing:
+	* a tech node not researched, or a building below the level it needs. Absent
+	* on every other outcome, and on a refusal whose evaluator could not say which
+	* unlock it was.
+	*/
+	missing?: MissingUnlock[];
 }
 /**
 * One entry in the ground-side pending-uplink queue, backing

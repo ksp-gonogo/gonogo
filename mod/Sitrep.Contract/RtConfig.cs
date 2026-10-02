@@ -300,6 +300,8 @@ public static class RtConfig
                 typeof(CommandGate),
                 typeof(CommandGateItem),
                 typeof(CommandGateReport),
+                typeof(ChannelGate),
+                typeof(MissingUnlock),
                 // system.channels, every declared channel's emission counters:
                 // the reading that tells a channel the engine never considered
                 // from one it considered and declined. Same engine-declared

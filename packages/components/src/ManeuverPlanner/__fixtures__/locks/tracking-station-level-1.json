@@ -188,7 +188,7 @@
                 "detail": "",
                 "missing": [
                   {
-                    "kind": "facility",
+                    "kind": 1,
                     "id": "TrackingStation",
                     "name": "Tracking Station",
                     "tier": 2

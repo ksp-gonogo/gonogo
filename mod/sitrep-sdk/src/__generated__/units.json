@@ -233,6 +233,9 @@
       "tickMapped": "flag",
       "topic": "id"
     },
+    "ChannelGate": {
+      "topic": "id"
+    },
     "ClosestApproach": {
       "distance": "m",
       "time": "ut"
@@ -763,6 +766,13 @@
       "timelineEpoch": "id",
       "validAt": "ut",
       "vantage": "id"
+    },
+    "MissingUnlock": {
+      "id": "id",
+      "kind": "enum",
+      "name": "text",
+      "scienceCost": "science",
+      "tier": "count"
     },
     "MissionObjectiveEntry": {
       "description": "text",
@@ -2100,10 +2110,14 @@
       "nodes": "CareerTechNode[]"
     },
     "ChannelDeclaration": {
-      "emission": "EmissionPolicy"
+      "emission": "EmissionPolicy",
+      "requires": "CommandRequirement[]"
     },
     "ChannelEmissionReport": {
       "channels": "ChannelEmissionEntry[]"
+    },
+    "ChannelGate": {
+      "verdict": "GateVerdict"
     },
     "CommandCentreActiveVesselDelay": {
       "centres": "CentreDelayEntry[]"
@@ -2122,6 +2136,7 @@
       "verdict": "GateVerdict"
     },
     "CommandGateReport": {
+      "channels": "ChannelGate[]",
       "gates": "CommandGate[]"
     },
     "CommandResponse": {
@@ -2213,7 +2228,8 @@
       "resources": "*ResourceAmount"
     },
     "GateVerdict": {
-      "breach": "LimitBreach"
+      "breach": "LimitBreach",
+      "missing": "MissingUnlock[]"
     },
     "IControlFrameSource": {
       "frame": "ControlFrame"
