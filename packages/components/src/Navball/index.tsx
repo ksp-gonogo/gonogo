@@ -51,6 +51,7 @@ const topics = defineTopicManifest({
     "vessel.control.sas",
     "vessel.control.precisionControl",
     "vessel.control.rcs",
+    "vessel.control.flyByWire",
     "vessel.control.throttle",
     "vessel.comms.controlState",
     "comms.delay.oneWaySeconds",
@@ -118,7 +119,10 @@ function NavballComponent({
     dismissSasUnconfirmed,
   } = useSasControls(control);
   const identity = stillTrue(topics.useTelemetry("vessel.identity"), undefined);
-  const { fbwState, armFbw, disarmFbw } = useFlyByWire(identity?.vesselId);
+  const { fbwState, armFbw, disarmFbw } = useFlyByWire(
+    identity?.vesselId,
+    control?.flyByWire ?? undefined,
+  );
 
   // Trim has no readback to anchor a control stream, so it sends `setAxes` one field at a time, never clobbering a live axis.
   const trimCmd = useCommand("vessel.control.setAxes");

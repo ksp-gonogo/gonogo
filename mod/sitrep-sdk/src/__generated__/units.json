@@ -1262,6 +1262,7 @@
     "VesselControl": {
       "abort": "flag",
       "brakes": "flag",
+      "flyByWire": "flag",
       "gear": "flag",
       "lights": "flag",
       "pitch": "1",
@@ -1865,6 +1866,7 @@
     "vessel.control": {
       "abort": "flag",
       "brakes": "flag",
+      "flyByWire": "flag",
       "gear": "flag",
       "lights": "flag",
       "pitch": "1",

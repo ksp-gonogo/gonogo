@@ -193,6 +193,18 @@ public class VesselControl
     [SitrepUnit(Units.Flag)]
     public bool? PrecisionControl { get; set; }
 
+    /// <summary>
+    /// Whether the fly-by-wire override is armed on this vessel. Changed with
+    /// <c>vessel.control.setFlyByWire</c>. The override belongs to the craft it was
+    /// armed on, so this is <c>false</c> on any other craft even while the override
+    /// is armed elsewhere, and it reads <c>true</c> again only on the craft that
+    /// carries it. Unlike a client's own record of its arm and disarm commands, it
+    /// survives a page reload.
+    /// </summary>
+    [SitrepControlChannel("vessel.control.flyByWire", "vessel.control.setFlyByWire", typeof(SetFlyByWireArgs), nameof(SetFlyByWireArgs.Enabled))]
+    [SitrepUnit(Units.Flag)]
+    public bool? FlyByWire { get; set; }
+
     /// <summary>Main throttle, KSP's <c>Vessel.ctrlState.mainThrottle</c>: 0..1 nominally, but not clamped, so a mod-driven throttle can read above 1. Changed with <c>vessel.control.setThrottle</c>.</summary>
     [SitrepControlChannel("vessel.control.throttle", "vessel.control.setThrottle", typeof(SetThrottleArgs), nameof(SetThrottleArgs.Value))]
     [SitrepUnit(Units.Ratio)]

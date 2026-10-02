@@ -2161,8 +2161,13 @@ namespace Sitrep.Contract
         /// the dispatching client's own requestId echoed onto its pending entry, so a client can
         /// find its own entry (<see cref="PendingUplink.Id"/> is the engine's and never pairs with
         /// it). Additive, so an Uplink built against 27.6 is unaffected.</para>
+        ///
+        /// <para><b>Major-27 line, Bumped 7 -&gt; 8:</b> <see cref="VesselControl.FlyByWire"/>,
+        /// whether the fly-by-wire override is armed on the active craft, paired with
+        /// <c>vessel.control.setFlyByWire</c>. Additive, so an Uplink built against 27.7 is
+        /// unaffected.</para>
         /// </internal>
         /// </summary>
-        public const int Minor = 7;
+        public const int Minor = 8;
     }
 }

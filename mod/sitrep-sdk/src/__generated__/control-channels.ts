@@ -22,6 +22,7 @@ export interface GeneratedControlChannel {
 export const GENERATED_CONTROL_CHANNELS = [
   { id: "vessel.control.abort", readTopic: "vessel.control", readField: "abort", writeCommand: "vessel.control.setAbort", argsType: "SetEnabledArgs", valueField: "enabled" },
   { id: "vessel.control.brakes", readTopic: "vessel.control", readField: "brakes", writeCommand: "vessel.control.setBrakes", argsType: "SetEnabledArgs", valueField: "enabled" },
+  { id: "vessel.control.flyByWire", readTopic: "vessel.control", readField: "flyByWire", writeCommand: "vessel.control.setFlyByWire", argsType: "SetFlyByWireArgs", valueField: "enabled" },
   { id: "vessel.control.gear", readTopic: "vessel.control", readField: "gear", writeCommand: "vessel.control.setGear", argsType: "SetEnabledArgs", valueField: "enabled" },
   { id: "vessel.control.lights", readTopic: "vessel.control", readField: "lights", writeCommand: "vessel.control.setLights", argsType: "SetEnabledArgs", valueField: "enabled" },
   { id: "vessel.control.pitch", readTopic: "vessel.control", readField: "pitch", writeCommand: "vessel.control.setAxes", argsType: "SetControlAxesArgs", valueField: "pitch" },

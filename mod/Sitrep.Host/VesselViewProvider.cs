@@ -820,6 +820,7 @@ namespace Sitrep.Host
                 Lights = GetBool(control, "lights"),
                 Abort = GetBool(control, "abort"),
                 PrecisionControl = GetBool(control, "precisionControl"),
+                FlyByWire = GetBool(control, "flyByWire"),
                 // V-3: deliberately NOT clamped to [0,1] -- see VesselControl.Throttle's doc comment.
                 Throttle = GetDouble(control, "throttle"),
                 // Commanded fly-by-wire axis echoes (the read-anchors for the
@@ -1770,6 +1771,7 @@ namespace Sitrep.Host
             ["lights"] = control.Lights,
             ["abort"] = control.Abort,
             ["precisionControl"] = control.PrecisionControl,
+            ["flyByWire"] = control.FlyByWire,
             ["throttle"] = control.Throttle,
             // The fly-by-wire axis ECHOES. They exist so the operator watches a
             // delayed axis command ARRIVE, exactly as the throttle channel does,

@@ -407,6 +407,7 @@ namespace Gonogo.KSP
 
                 AttachFlyByWire(vessel);
                 _fbw.Enabled = true;
+                FlyByWireReadback.Set(vessel);
             }
             else
             {
@@ -418,6 +419,7 @@ namespace Gonogo.KSP
         private void DisarmFlyByWire()
         {
             _fbw.Enabled = false;
+            FlyByWireReadback.Set(null);
             DetachFlyByWire();
             _fbw.Pitch = _fbw.Yaw = _fbw.Roll = 0f;
             _fbw.X = _fbw.Y = _fbw.Z = 0f;

@@ -7975,6 +7975,15 @@ export interface VesselControl
 	*/
 	precisionControl?: boolean | null;
 	/**
+	* Whether the fly-by-wire override is armed on this vessel. Changed with
+	* `vessel.control.setFlyByWire`. The override belongs to the craft it was
+	* armed on, so this is `false` on any other craft even while the override is
+	* armed elsewhere, and it reads `true` again only on the craft that carries
+	* it. Unlike a client's own record of its arm and disarm commands, it survives
+	* a page reload.
+	*/
+	flyByWire?: boolean | null;
+	/**
 	* Main throttle, KSP's `Vessel.ctrlState.mainThrottle`: 0..1 nominally, but
 	* not clamped, so a mod-driven throttle can read above 1. Changed with
 	* `vessel.control.setThrottle`.

@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 27.7.0
+  version: 27.8.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 78 telemetry
     channels a client subscribes to, and 58 commands it dispatches, with the payload
@@ -18469,6 +18469,18 @@ components:
             Precision-control (fine-control / caps-lock) mode. Mirrors KSP's
             `FlightInputHandler.fetch.precisionMode`. Null when there is no active
             flight scene.
+        flyByWire:
+          type:
+            - boolean
+            - "null"
+          x-sitrep-unit: flag
+          description: |-
+            Whether the fly-by-wire override is armed on this vessel. Changed with
+            `vessel.control.setFlyByWire`. The override belongs to the craft it was
+            armed on, so this is `false` on any other craft even while the override is
+            armed elsewhere, and it reads `true` again only on the craft that carries
+            it. Unlike a client's own record of its arm and disarm commands, it survives
+            a page reload.
         throttle:
           type:
             - number

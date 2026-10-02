@@ -1302,6 +1302,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "VesselControl": {
     abort: "flag",
     brakes: "flag",
+    flyByWire: "flag",
     gear: "flag",
     lights: "flag",
     pitch: "1",
@@ -1910,6 +1911,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
   "vessel.control": {
     abort: "flag",
     brakes: "flag",
+    flyByWire: "flag",
     gear: "flag",
     lights: "flag",
     pitch: "1",

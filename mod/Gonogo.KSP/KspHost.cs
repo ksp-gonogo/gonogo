@@ -1298,6 +1298,7 @@ namespace Gonogo.KSP
                 // Precision (fine-control) mode is a global flight-input singleton,
                 // not a per-vessel field. Null when there's no active flight scene.
                 ["precisionControl"] = FlightInputHandler.fetch != null ? (bool?)FlightInputHandler.fetch.precisionMode : null,
+                ["flyByWire"] = (bool?)FlyByWireReadback.IsArmedOn(vessel),
                 ["throttle"] = ctrlState != null ? (double?)ctrlState.mainThrottle : null,
                 // Commanded fly-by-wire axis inputs: the ECHO half of the
                 // vessel.control.{pitch,yaw,roll,translationX/Y/Z} setAxes stream

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { getWidget } from "../../scripts/widgets";
 import { snapshotWidgetMode } from "../test/widgetDomSnapshot";
 import banked from "./__fixtures__/banked-90-right.json";
+import fbwArmedOnLoad from "./__fixtures__/fbw-armed-on-load.json";
 import gravityTurn from "./__fixtures__/gravity-turn-east.json";
 import inverted from "./__fixtures__/inverted-level.json";
 import launchpad from "./__fixtures__/launchpad-vertical.json";
@@ -26,6 +27,7 @@ const FIXTURES: Record<string, Record<string, unknown>> = {
   "north-level": north,
   "sas-wire-only": sasWireOnly,
   "no-sas-source": noSasSource,
+  "fbw-armed-on-load": fbwArmedOnLoad,
 };
 
 const config = getWidget("navball");

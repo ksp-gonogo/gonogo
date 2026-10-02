@@ -14,9 +14,10 @@ import {
 import { NavballComponent } from "./index";
 
 /**
- * Fly-by-wire has no readback, so the button reads the outcome of the latest
- * arm or disarm: ARMED only once the craft has said yes, and never across a
- * vessel switch, which the mod answers by dropping the override.
+ * The button reads the outcome of the latest arm or disarm: ARMED only once the
+ * craft has said yes, and never across a vessel switch, which the mod answers
+ * by dropping the override. The mod's own `vessel.control.flyByWire` settles it
+ * whenever no command is travelling, so a reload cannot show off while armed.
  */
 
 beforeEach(() => {
@@ -150,5 +151,41 @@ describe("Navball's FBW state follows the command outcome", () => {
     press("fbw-lost", "arm-fbw");
     await fbwButton("FBW unconfirmed");
     expect(screen.getByText("Stick inputs may be live")).toBeInTheDocument();
+  });
+
+  it("reads ARMED on a fresh mount when the mod reports the override armed", async () => {
+    const fixture = setupStreamFixture({ pinnedUt: 0, suspendFrames: true });
+    navball("fbw-reload", fixture.Provider);
+    act(() => {
+      fixture.emit("vessel.comms", { controlState: 4 });
+      fixture.emit("vessel.control", { flyByWire: true });
+    });
+    await fbwButton("FBW ARMED");
+  });
+
+  it("follows the mod when it drops an override the page armed", async () => {
+    const fixture = mount("fbw-dropped");
+    press("fbw-dropped", "arm-fbw");
+    await fbwButton("FBW ARMED");
+
+    act(() => {
+      fixture.emit("vessel.control", { flyByWire: false });
+    });
+    await fbwButton("Arm FBW");
+  });
+
+  it("holds Arming while the arm travels, whatever the mod last reported", async () => {
+    const fixture = mount("fbw-travel-readback");
+    act(() => {
+      fixture.emit("vessel.control", { flyByWire: false });
+    });
+    fixture.transport.holdCommands();
+    press("fbw-travel-readback", "arm-fbw");
+    await fbwButton("Arming FBW");
+
+    act(() => {
+      fixture.emit("vessel.control", { flyByWire: true });
+    });
+    await fbwButton("Arming FBW");
   });
 });

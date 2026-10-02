@@ -1071,6 +1071,23 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
+        /// Armed and not armed are both answers, and an absent key is neither:
+        /// null means the override could not be read, never off.
+        /// </summary>
+        [Fact]
+        public void BuildControlCarriesFlyByWireAsArmedUnarmedOrUnknown()
+        {
+            VesselControl? Build(Dictionary<string, object?> control) =>
+                VesselViewProvider.BuildControl(SnapshotWith(
+                    identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                    control: control));
+
+            Assert.True(Build(new Dictionary<string, object?> { ["flyByWire"] = true })!.FlyByWire);
+            Assert.False(Build(new Dictionary<string, object?> { ["flyByWire"] = false })!.FlyByWire);
+            Assert.Null(Build(new Dictionary<string, object?> { ["sas"] = true })!.FlyByWire);
+        }
+
+        /// <summary>
         /// The AGX-readiness guarantee, asserted against the provider rather
         /// than assumed: a backend reporting MORE than ten groups, with
         /// player-chosen names and a non-contiguous index range, maps through

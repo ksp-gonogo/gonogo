@@ -41,5 +41,26 @@ namespace Gonogo.KSP.Tests.FlightOps
             Assert.Contains("ReferenceEquals(_attachedVessel, reported)", body);
             Assert.Contains("DisarmFlyByWire()", body);
         }
+
+        [Fact]
+        public void ArmingNamesTheCraftThatCarriesTheOverrideForTheReadback()
+        {
+            Assert.Contains("FlyByWireReadback.Set(vessel)", Body("public CommandResult SetFlyByWire("));
+        }
+
+        [Fact]
+        public void EveryDisarmClearsTheReadbackSoItCannotOutliveTheOverride()
+        {
+            Assert.Contains("FlyByWireReadback.Set(null)", Body("private void DisarmFlyByWire("));
+        }
+
+        [Fact]
+        public void TheControlCaptureReadsTheOverrideAgainstTheVesselItDescribes()
+        {
+            var host = CurrencyDelaySourceText.ReadRelative("KspHost.cs");
+            var body = CurrencyDelaySourceText.MethodBody(host, "private static Dictionary<string, object?> BuildControl(");
+
+            Assert.Contains("FlyByWireReadback.IsArmedOn(vessel)", body);
+        }
     }
 }
