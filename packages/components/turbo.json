@@ -3,14 +3,16 @@
   "extends": ["//"],
   "tasks": {
     // partActions.cs-sync reads the part-action names out of the two C# providers,
-    // and the probe's gridCell test reads the dashboard cell it copies.
+    // the probe's gridCell test reads the dashboard cell it copies, and the
+    // render harness's document-defaults test reads the app's body font rule.
     "test": {
       "dependsOn": ["^build"],
       "inputs": [
         "$TURBO_DEFAULT$",
         "$TURBO_ROOT$/mod/Sitrep.Host/PartActionsViewProvider.cs",
         "$TURBO_ROOT$/mod/Sitrep.Host/PartActionCommandProvider.cs",
-        "$TURBO_ROOT$/packages/app/src/components/Dashboard/**"
+        "$TURBO_ROOT$/packages/app/src/components/Dashboard/**",
+        "$TURBO_ROOT$/packages/app/src/styles/global.css"
       ]
     }
   }
