@@ -70,6 +70,44 @@ namespace Sitrep.Host.Tests
             }
         }
 
+        [Fact]
+        public void StopRecordsACourierThatRefusesToStopAndDoesNotThrow()
+        {
+            var engine = new ChannelEngine("ws://127.0.0.1:0") { CourierStopDeadline = Short };
+            var uplink = new BlockingCommandUplink();
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            var logged = new List<string>();
+            engine.SetDiagnosticLog(logged.Add);
+            try
+            {
+                engine.DispatchCommand(BlockingCommandUplink.Command, null, "vantage-1", _ => { });
+                Assert.True(uplink.Entered.Wait(Generous), "the blocking handler never ran, so the Courier was never parked");
+
+                engine.Stop();
+
+                var failure = Assert.Single(engine.StopFailures);
+                Assert.Contains("Sitrep-ChannelEngine-Courier", failure);
+                Assert.Contains("did not stop within", failure);
+                Assert.Contains(logged, line => line.Contains("did not stop within"));
+            }
+            finally
+            {
+                uplink.Release.Set();
+                engine.Stop();
+            }
+        }
+
+        [Fact]
+        public void ANormalStopReportsNoFailure()
+        {
+            var engine = new ChannelEngine("ws://127.0.0.1:0");
+            engine.Start();
+            engine.Stop();
+
+            Assert.Empty(engine.StopFailures);
+        }
+
         /// <summary>
         /// The control for the two above: the same engine, once the Courier is
         /// free, completes both helpers without throwing, so the timeouts above

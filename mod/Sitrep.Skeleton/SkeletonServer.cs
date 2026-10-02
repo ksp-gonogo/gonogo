@@ -139,11 +139,42 @@ namespace Sitrep.Skeleton
             _listener.Stop();
 
             EnqueueJob(new StopJob());
-            _courierThread.Join(TimeSpan.FromSeconds(5));
+            if (!_courierThread.Join(CourierStopDeadline))
+            {
+                // Never throws: Stop runs during shutdown and teardown, where a throw
+                // would abort the rest of the cleanup and leak what follows.
+                var failure = "Courier thread \"" + _courierThread.Name + "\" did not stop within "
+                    + (int)CourierStopDeadline.TotalSeconds + " s";
+                lock (_stopFailures)
+                {
+                    _stopFailures.Add(failure);
+                }
+                Console.Error.WriteLine("[SkeletonServer] " + failure);
+            }
 
             foreach (var session in _sessions.Values)
             {
                 session.Outbox.Stop();
+            }
+        }
+
+        /// <summary>How long <see cref="Stop"/> waits for the Courier thread before recording a stop failure.</summary>
+        internal TimeSpan CourierStopDeadline { get; set; } = TimeSpan.FromSeconds(5);
+
+        private readonly List<string> _stopFailures = new List<string>();
+
+        /// <summary>
+        /// Threads <see cref="Stop"/> could not stop within their deadline, one line each. Empty after a
+        /// clean stop, so a non-empty list is the health signal that a stop did not complete.
+        /// </summary>
+        public IReadOnlyList<string> StopFailures
+        {
+            get
+            {
+                lock (_stopFailures)
+                {
+                    return _stopFailures.ToArray();
+                }
             }
         }
 

@@ -319,6 +319,52 @@ namespace Sitrep.Skeleton.Tests
         /// arrives within a window" without violating .NET's one-outstanding-
         /// ReceiveAsync-call-at-a-time constraint.
         /// </summary>
+        [Fact]
+        public async Task Stop_RecordsACourierThatRefusesToStopAndDoesNotThrow()
+        {
+            var server = new SkeletonServer("ws://127.0.0.1:0", networkDelaySeconds: 0)
+            {
+                CourierStopDeadline = TimeSpan.FromMilliseconds(200),
+            };
+            var entered = new ManualResetEventSlim(false);
+            var release = new ManualResetEventSlim(false);
+            server.SessionRemoved += _ =>
+            {
+                entered.Set();
+                release.Wait();
+            };
+            server.Start();
+            try
+            {
+                await using (await TestClient.ConnectAsync(server.BoundPort, Timeout))
+                {
+                    // Disposing the client closes the socket, so the Courier runs the blocking handler.
+                    await Task.Yield();
+                }
+                Assert.True(entered.Wait(Timeout), "the blocking handler never ran, so the Courier was never parked");
+
+                server.Stop();
+
+                var failure = Assert.Single(server.StopFailures);
+                Assert.Contains("did not stop within", failure);
+            }
+            finally
+            {
+                release.Set();
+                server.Stop();
+            }
+        }
+
+        [Fact]
+        public void Stop_ReportsNoFailureOnANormalStop()
+        {
+            var server = new SkeletonServer("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            server.Start();
+            server.Stop();
+
+            Assert.Empty(server.StopFailures);
+        }
+
         private sealed class TestClient : IAsyncDisposable
         {
             private readonly ClientWebSocket _socket = new ClientWebSocket();
