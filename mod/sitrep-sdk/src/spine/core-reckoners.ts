@@ -28,12 +28,14 @@ import {
 import {
   advanceByVelocity,
   buildElements,
+  isUnderThrust,
   keplerAdmissibility,
   loadedCoastEvidence,
   magnitude,
   propagateVesselOrbit,
   trySolveAnomalies,
 } from "./kepler-reckoning";
+import { poweredFlight, poweredFlightEvidence } from "./powered-reckoning";
 import type { SubjectDep } from "./processors";
 import { CORE_RECKONER_OWNER, registerReckoner } from "./reckoners";
 
@@ -779,20 +781,59 @@ function registerOrbitReckoner(): void {
       { reading: "system.bodies" },
       { reading: "vessel.propulsion" },
       { reading: "system.uplink.pending" },
+      { reading: "dv.stages" },
+      { reading: "vessel.structure" },
     ],
-    reckon(point, [roster, thrust, pending], { reckonUt }) {
-      const admissible = keplerAdmissibility(
-        point,
+    window: POWERED_WINDOW,
+    reckon(point, [roster, thrust, pending, stages, structure], frame) {
+      const { reckonUt, history } = frame;
+      const bodies =
         roster.state === "observed" || roster.state === "held"
           ? roster.value
-          : undefined,
+          : undefined;
+      const admissible = keplerAdmissibility(
+        point,
+        bodies,
         reckonUt,
         loadedCoastEvidence(thrust, pending),
       );
-      if ("declined" in admissible) return admissible;
       const orbit = point.payload;
       if (orbit == null) {
         return { declined: { reason: "input-absent", input: "@vessel.orbit" } };
+      }
+      /*
+       * The constants of the orbit, copied verbatim on the conic branch: one
+       * reading carries one projection over every marked field, and the conic
+       * moves only the phase, so `modelled` names those two and the rest is the
+       * observation itself.
+       */
+      const held = {
+        sma: orbit.sma,
+        ecc: orbit.ecc,
+        inc: orbit.inc,
+        lan: orbit.lan,
+        argPe: orbit.argPe,
+      };
+      if ("declined" in admissible) {
+        const coldOrUnknown =
+          thrust.value === undefined || !isUnderThrust(thrust.value);
+        if (admissible.declined.reason !== "under-physics" || coldOrUnknown) {
+          return admissible;
+        }
+        const powered = poweredFlight(
+          point,
+          history,
+          bodies,
+          reckonUt,
+          poweredFlightEvidence(thrust, stages, structure, pending),
+        );
+        if ("declined" in powered) return powered;
+        const { flight } = powered;
+        return {
+          modelled: flight.modelled,
+          reckon: (at) => flight.elementsAt(at),
+          bandAt: (at) => flight.bandsAt(at),
+        };
       }
       const elements = buildElements(orbit);
       return {
@@ -803,16 +844,8 @@ function registerOrbitReckoner(): void {
         ),
         reckon: (at) => {
           const anomalies = trySolveAnomalies(elements, at);
-          /*
-           * The two moved fields and NOTHING else. `ReckonableReading`'s
-           * `Pick<Payload, ReckonableKey>` is what makes that the shape: returning the whole
-           * payload would hand a caller "a whole payload labelled modelled",
-           * which is the mistake that projection exists to make impossible.
-           * A consumer wanting a whole orbit overlays them on the observation
-           * itself, `{ ...reading.value, ...reading.reckoning.value }`, at the
-           * call site, because that spread IS the judgement.
-           */
           return {
+            ...held,
             meanAnomalyAtEpoch: value(
               "rad",
               anomalies?.meanAnomaly ?? Number.NaN,
@@ -824,6 +857,13 @@ function registerOrbitReckoner(): void {
     },
   });
 }
+
+/**
+ * How much of `vessel.orbit`'s own record the burn model is handed: enough
+ * recent element sets to measure which way the engines push and how fast that
+ * direction turns. The conic ignores it; a cause needs one point.
+ */
+const POWERED_WINDOW = { spanUt: 10, maxSamples: 32 } as const;
 
 export function registerCoreReckoners(): void {
   registerTargetReckoner();

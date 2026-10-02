@@ -61,6 +61,7 @@ export interface ConicBodiesInput {
     index: number;
     radius?: Quantityish;
     atmosphere?: { depth?: Quantityish | null } | null;
+    sphereOfInfluence?: Quantityish | null;
   }[];
 }
 
@@ -144,7 +145,13 @@ export interface WireOrbitElements {
   mu: Quantityish;
 }
 
-function mag(v: Quantityish): number {
+/**
+ * A wire quantity as the bare number the conic and the burn compute on, `NaN`
+ * for anything absent. The one place either model leaves the unit algebra:
+ * Kepler's equation and a Runge-Kutta step are arithmetic on plain numbers,
+ * and every input crosses into them here.
+ */
+export function mag(v: Quantityish): number {
   return magnitudeOr(v, Number.NaN);
 }
 
@@ -514,63 +521,104 @@ function loadedCoastDecline(
   viewUt: number,
   coast: LoadedCoastEvidence | undefined,
 ): ReckoningDecline | null {
-  const withheld = (input: string, note: string): ReckoningDecline => ({
-    reason: "under-physics",
-    input,
-    note,
-  });
   const thrust = coast?.thrust;
   if (thrust === undefined) {
-    return withheld(
+    return underPhysics(
       "@vessel.propulsion",
       "the craft is under physics and nothing says whether its engines are firing",
     );
   }
-  const newtons = mag(thrust.currentThrust);
-  if (!(newtons === 0) || thrust.thrustStartedUt != null) {
-    return withheld(
+  if (isUnderThrust(thrust)) {
+    return underPhysics(
       "@vessel.propulsion",
       "the craft is under thrust, so its elements are not a coast a conic can advance",
     );
   }
   const burnEnded = thrust.lastThrustEndUt;
   if (burnEnded != null && mag(burnEnded) > point.validAt) {
-    return withheld(
+    return underPhysics(
       "@vessel.propulsion",
       "these elements were taken before the last burn ended",
     );
   }
+  return loadedRegimeDecline(point, orbit, bodies, viewUt, coast?.pending);
+}
+
+/**
+ * Whether `vessel.propulsion` says something is pushing the craft: thrust now,
+ * or a period of thrust in progress. A thrust that is not a number counts, so
+ * an unreadable figure is never taken for cold engines.
+ *
+ * @category Reckoners
+ */
+export function isUnderThrust(thrust: ConicThrustInput): boolean {
+  return !(mag(thrust.currentThrust) === 0) || thrust.thrustStartedUt != null;
+}
+
+/**
+ * The two conditions every model of a LOADED craft shares, whatever pushes it:
+ * the craft is clear of the air at the elements' own epoch, and no command
+ * reaches it between those elements and `viewUt`.
+ *
+ * A command already arrived by the elements' epoch has had its effect
+ * observed. One arriving in the gap can change the throttle, the attitude or
+ * the stage, and no model here follows it, so it ends every one of them.
+ *
+ * @category Reckoners
+ */
+export function loadedRegimeDecline(
+  point: TimelinePoint<unknown>,
+  orbit: ConicOrbitInput,
+  bodies: ConicBodiesInput | undefined,
+  viewUt: number,
+  pending: ConicPendingInput | undefined,
+): ReckoningDecline | null {
   const floor = entryInterfaceRadius(bodies, orbit.referenceBodyIndex);
   if (floor === undefined) {
-    return withheld(
+    return underPhysics(
       "@system.bodies",
       "the craft is under physics and nothing places the air it might be in",
     );
   }
   const now = trySolve(buildElements(orbit), mag(orbit.epoch));
   if (now === null) {
-    return withheld(
+    return underPhysics(
       "@vessel.orbit",
       "hyperbolic elements: there is no position to show the craft clear of the air",
     );
   }
   if (!(magnitude(now.position) > floor)) {
-    return withheld(
+    return underPhysics(
       "@system.bodies",
       "the craft is inside the atmosphere, where drag the conic does not model acts on it",
     );
   }
-  const reaches = (coast?.pending?.pending ?? []).some((command) => {
+  const reaches = (pending?.pending ?? []).some((command) => {
     const arrival = mag(command.dispatchedAt) + mag(command.oneWaySeconds);
     return arrival > point.validAt && arrival <= viewUt;
   });
   if (reaches) {
-    return withheld(
+    return underPhysics(
       "@system.uplink.pending",
       "a command reaches the craft before then, and what it does there is not modelled",
     );
   }
   return null;
+}
+
+/**
+ * A refusal to carry a LOADED craft's motion forward, naming the input that
+ * withheld it. The orbit exists and the craft is being simulated; what is
+ * refused is advancing it, so a consumer can still solve the current reading
+ * at its own epoch.
+ *
+ * Only a model that has already established the craft is under physics may
+ * raise it, which is why it lives beside the not-on-rails arm.
+ *
+ * @category Reckoners
+ */
+export function underPhysics(input: string, note: string): ReckoningDecline {
+  return { reason: "under-physics", input, note };
 }
 
 /** The length of a bare three-component vector. */

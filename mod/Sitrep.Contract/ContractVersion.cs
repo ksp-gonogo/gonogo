@@ -2204,8 +2204,13 @@ namespace Sitrep.Contract
         /// the propellant the running engines draw, so a client can carry a burn forward on its
         /// real mass budget. Additive and nullable, so an Uplink built against 27.14 is
         /// unaffected.</para>
+        ///
+        /// <para><b>Major-27 line, Bumped 15 -&gt; 16:</b> <see cref="ReckoningBases.PoweredIntegration"/>,
+        /// and every <see cref="VesselOrbit"/> element marked reckonable by it, so a craft under
+        /// thrust is carried forward by a declared model rather than held. Additive: the existing
+        /// Kepler marks are unchanged, so an Uplink built against 27.15 is unaffected.</para>
         /// </internal>
         /// </summary>
-        public const int Minor = 15;
+        public const int Minor = 16;
     }
 }

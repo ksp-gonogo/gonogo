@@ -18,15 +18,13 @@ namespace Sitrep.Contract;
 /// <see cref="MeanAnomalyAtEpoch"/> in RADIANS. The degrees/radians split is
 /// KSP's own and is kept so every value matches KSP's <c>Orbit</c>.</para>
 ///
-/// <para>Only <see cref="MeanAnomalyAtEpoch"/> and <see cref="Epoch"/> are
-/// reckonable: a coast changes the craft's phase and nothing else, and the
-/// other elements are constants of the orbit. A consumer wanting a whole
-/// modelled orbit overlays those two on the observed payload.</para>
-/// <internal>
-/// Marking the other elements reckonable would hand a caller a whole payload
-/// labelled "modelled", which is the mistake ReckonableReading's Pick exists
-/// to make impossible.
-/// </internal>
+/// <para>A coast moves only <see cref="MeanAnomalyAtEpoch"/> and
+/// <see cref="Epoch"/>, by Kepler propagation; the other elements are
+/// constants of the orbit. A burn moves every element, by powered integration
+/// from <c>vessel.propulsion</c>, the firing stage's propellant in
+/// <c>dv.stages</c> and <c>system.bodies</c>. A reckoning's <c>modelled</c>
+/// list says which paths its model moved, and a consumer wanting a whole
+/// modelled orbit overlays those on the observed payload.</para>
 /// </summary>
 /// <category>Orbits and trajectories</category>
 [SitrepContract]
@@ -42,29 +40,35 @@ public class VesselOrbit
 
     /// <summary>Semi-major axis, in metres.</summary>
     [SitrepUnit(Units.Metres)]
+    [SitrepReckonable(ReckoningBases.PoweredIntegration, "mu", "@vessel.propulsion", "@dv.stages", "@vessel.structure", "@system.bodies")]
     public double Sma { get; set; }
 
     /// <summary>Eccentricity. Below 1 for a closed orbit, 1 or above for an escape trajectory.</summary>
     [SitrepUnit(Units.Dimensionless)]
+    [SitrepReckonable(ReckoningBases.PoweredIntegration, "mu", "@vessel.propulsion", "@dv.stages", "@vessel.structure", "@system.bodies")]
     public double Ecc { get; set; }
 
     /// <summary>Inclination, in degrees (KSP's <c>Orbit.inclination</c>).</summary>
     [SitrepUnit(Units.Degrees)]
+    [SitrepReckonable(ReckoningBases.PoweredIntegration, "mu", "@vessel.propulsion", "@dv.stages", "@vessel.structure", "@system.bodies")]
     public double Inc { get; set; }
 
     /// <summary>Longitude of ascending node, degrees; <c>null</c> only when absent, never NaN and never 0 as a stand-in. An equatorial orbit still has one.</summary>
     [SitrepUnit(Units.Degrees)]
+    [SitrepReckonable(ReckoningBases.PoweredIntegration, "mu", "@vessel.propulsion", "@dv.stages", "@vessel.structure", "@system.bodies")]
     public double? Lan { get; set; }
 
     /// <summary>Argument of periapsis, degrees; <c>null</c> only when absent, never NaN and never 0 as a stand-in. A circular orbit still has one.</summary>
     [SitrepUnit(Units.Degrees)]
+    [SitrepReckonable(ReckoningBases.PoweredIntegration, "mu", "@vessel.propulsion", "@dv.stages", "@vessel.structure", "@system.bodies")]
     public double? ArgPe { get; set; }
 
     /// <summary>
     /// Mean anomaly at <see cref="Epoch"/>, in RADIANS, not degrees, matching
     /// KSP's <c>Orbit.meanAnomalyAtEpoch</c>. Reckonable by Kepler
     /// propagation, from <see cref="Sma"/>, <see cref="Mu"/>,
-    /// <see cref="Horizon"/> and <c>system.bodies</c>.
+    /// <see cref="Horizon"/> and <c>system.bodies</c>, and under a burn by
+    /// powered integration with the other elements.
     /// </summary>
     [SitrepUnit(Units.Radians)]
     /*
@@ -74,6 +78,7 @@ public class VesselOrbit
      * unmodelled topic.
      */
     [SitrepReckonable(ReckoningBases.KeplerPropagation, "sma", "mu", "horizon", "@system.bodies")]
+    [SitrepReckonable(ReckoningBases.PoweredIntegration, "mu", "@vessel.propulsion", "@dv.stages", "@vessel.structure", "@system.bodies")]
     public double MeanAnomalyAtEpoch { get; set; }
 
     /// <summary>
@@ -84,6 +89,7 @@ public class VesselOrbit
     [SitrepUnit(Units.UniversalTime)]
     // Moves with MeanAnomalyAtEpoch: advancing one without the other would date the phase to the wrong instant.
     [SitrepReckonable(ReckoningBases.KeplerPropagation, "sma", "mu", "horizon", "@system.bodies")]
+    [SitrepReckonable(ReckoningBases.PoweredIntegration, "mu", "@vessel.propulsion", "@dv.stages", "@vessel.structure", "@system.bodies")]
     public double Epoch { get; set; }
 
     /// <summary>The reference body's standard gravitational parameter (GM), so the elements propagate without a separate body lookup.</summary>

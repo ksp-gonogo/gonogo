@@ -383,6 +383,7 @@ export {
   type ConicThrustInput,
   entryInterfaceRadius,
   isHyperbolic,
+  isUnderThrust,
   keplerAdmissibility,
   type LoadedCoastEvidence,
   loadedCoastEvidence,
@@ -392,6 +393,20 @@ export {
   type WireOrbitElements,
 } from "./spine/kepler-reckoning";
 export { DYNAMIC_WHOLE_TOPIC_PREFIXES } from "./spine/map-topic";
+/*
+ * The powered-flight model and the pieces of it an Uplink would need to write
+ * one of its own: the burn, its evidence, and the state-to-elements conversion
+ * that is the conic's inverse.
+ */
+export {
+  elementsFromState,
+  type PoweredFlight,
+  type PoweredFlightEvidence,
+  type PoweredOrbitProjection,
+  type PoweredThrustInput,
+  poweredFlight,
+  poweredFlightEvidence,
+} from "./spine/powered-reckoning";
 // The CONTRACT half of the Processor primitive, and the only route by which a
 // Processor one Uplink implements can be consumed, typed, by another. Published
 // alongside the handle type it returns; `defineProcessor` itself stays

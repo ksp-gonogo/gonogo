@@ -38,11 +38,16 @@ import type { Value } from "./unit-system/value";
  * - `linear-dead-reckoning`: position advanced by its last observed velocity.
  *   First-order only, so it is honest for seconds where the true motion is
  *   curved (any orbiting pair) and longer where it is not
+ * - `powered-integration`: a craft under thrust integrated forward under
+ *   point-mass gravity and a steady burn (the observed thrust along its last
+ *   measured direction, the mass falling at the published mass flow). Honest
+ *   until a command reaches the craft, the firing stage runs dry, or the burn's
+ *   own uncertainty outgrows it
  * - `rate-integration`: a quantity advanced by its last observed rate of
  *   change. Honest while the rate holds, which for a consumable means until
  *   something switches a converter, a light or a crew member
  * - `combination`: arithmetic over several readings resolved against ONE view
- *   time. The odd member: it carries nothing forward. The other three say "how
+ *   time. The odd member: it carries nothing forward. The others say "how
  *   did this number get from its observation to now"; this one says "how did
  *   this number come to exist at all", and the forward step, where there was
  *   one, happened inside each input under its own basis. So it is honest
@@ -56,6 +61,7 @@ export type ReckoningBasis =
   | "combination"
   | "kepler-propagation"
   | "linear-dead-reckoning"
+  | "powered-integration"
   | "rate-integration";
 
 /**

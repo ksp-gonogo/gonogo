@@ -5,6 +5,7 @@ const PHRASE: Record<ReckoningBasis, string> = {
   combination: "computed from several readings of the same moment",
   "kepler-propagation": "propagated forward on two-body motion",
   "linear-dead-reckoning": "carried forward at the last observed velocity",
+  "powered-integration": "integrated forward through the burn",
   "rate-integration": "integrated forward at the last observed rate",
 };
 

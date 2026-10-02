@@ -1,4 +1,9 @@
-import { type ConicBodiesInput, Quality, value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  type ConicBodiesInput,
+  elementsFromState,
+  Quality,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import { beforeEach, describe, expect, it } from "vitest";
 import type { TopicReading } from "./reading";
 import { clearReckoners, registerCoreReckoners } from "./reckoners";
@@ -257,5 +262,91 @@ describe("the vessel.orbit reckoner", () => {
      */
     if (reading.state !== "held") throw new Error("unreachable");
     expect(reading.value.ecc?.magnitude).toBe(0);
+  });
+
+  /**
+   * A burn, end to end through the store: three element sets taken under
+   * thrust, the propellant the firing stage has left, and the model elected
+   * because the conic refused a craft under thrust.
+   */
+  it("carries a craft under thrust with the powered model, every element moved", () => {
+    let wall = LIGHT_TIME_SECONDS;
+    const clock = new ViewClock({
+      nowWall: () => wall,
+      warpRate: () => 1,
+      delaySeconds: () => LIGHT_TIME_SECONDS,
+    });
+    const store = new TimelineStore(clock);
+    store.setTransportConnected(false);
+    store.ingest(
+      "system.bodies",
+      point(0, AIRLESS, Quality.OnRails) as TimelinePoint<ConicBodiesInput>,
+    );
+    const burn = (t: number) => {
+      // Constant prograde push from a circular orbit, coarse but enough to move the elements measurably.
+      const n = Math.sqrt(PLANET_MU / SMA ** 3);
+      const speed = Math.sqrt(PLANET_MU / SMA) + 6 * t;
+      return elementsFromState(
+        {
+          position: [SMA * Math.cos(n * t), SMA * Math.sin(n * t), 0],
+          velocity: [-speed * Math.sin(n * t), speed * Math.cos(n * t), 0],
+        },
+        PLANET_MU,
+        t,
+      );
+    };
+    for (const t of [1, 2, 3]) {
+      const e = burn(t);
+      store.ingest(
+        "vessel.orbit",
+        point(
+          t,
+          {
+            ...orbitPayload(),
+            sma: value("m", e.sma),
+            ecc: value("1", e.ecc),
+            inc: value("°", 0),
+            lan: value("°", (e.lan * 180) / Math.PI),
+            argPe: value("°", (e.argPe * 180) / Math.PI),
+            meanAnomalyAtEpoch: value("rad", e.meanAnomalyAtEpoch),
+            epoch: value("ut", t),
+          },
+          Quality.Loaded,
+        ),
+      );
+    }
+    store.ingest(
+      "vessel.propulsion",
+      point(
+        3,
+        {
+          ...propulsion(60),
+          massFlow: value("kg/s", 20),
+          thrustStartedUt: value("ut", 0),
+        },
+        Quality.Loaded,
+      ),
+    );
+    store.ingest(
+      "vessel.structure",
+      point(3, { currentStage: 2 }, Quality.Loaded),
+    );
+    store.ingest(
+      "dv.stages",
+      point(3, [{ stage: 2, fuelMass: value("t", 4) }], Quality.Loaded),
+    );
+
+    wall = 3 + LIGHT_TIME_SECONDS + 20;
+    store.beginFrame();
+    const reading =
+      store.sampleReading<ReturnType<typeof orbitPayload>>("vessel.orbit");
+
+    expect(reading.reckoning.status).toBe("available");
+    if (reading.reckoning.status !== "available")
+      throw new Error("unreachable");
+    expect(reading.reckoning.basis).toBe("powered-integration");
+    expect(reading.reckoning.modelled.map((m) => m.path)).toContain("sma");
+    expect(reading.reckoning.value.sma?.magnitude).toBeGreaterThan(burn(3).sma);
+    expect(reading.reckoning.bands?.sma?.kind).toBe("sigma1");
   });
 });

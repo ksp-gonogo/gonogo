@@ -9066,10 +9066,12 @@ export interface VesselManeuver
 * RADIANS. The degrees/radians split is KSP's own and is kept so every value
 * matches KSP's `Orbit`.
 *
-* Only `VesselOrbit.meanAnomalyAtEpoch` and `VesselOrbit.epoch` are
-* reckonable: a coast changes the craft's phase and nothing else, and the
-* other elements are constants of the orbit. A consumer wanting a whole
-* modelled orbit overlays those two on the observed payload.
+* A coast moves only `VesselOrbit.meanAnomalyAtEpoch` and `VesselOrbit.epoch`,
+* by Kepler propagation; the other elements are constants of the orbit. A burn
+* moves every element, by powered integration from `vessel.propulsion`, the
+* firing stage's propellant in `dv.stages` and `system.bodies`. A reckoning's
+* `modelled` list says which paths its model moved, and a consumer wanting a
+* whole modelled orbit overlays those on the observed payload.
 *
 * @category Orbits and trajectories
 */
@@ -9100,7 +9102,8 @@ export interface VesselOrbit
 	* Mean anomaly at `VesselOrbit.epoch`, in RADIANS, not degrees, matching KSP's
 	* `Orbit.meanAnomalyAtEpoch`. Reckonable by Kepler propagation, from
 	* `VesselOrbit.sma`, `VesselOrbit.mu`, `VesselOrbit.horizon` and
-	* `system.bodies`.
+	* `system.bodies`, and under a burn by powered integration with the other
+	* elements.
 	*/
 	meanAnomalyAtEpoch: Value<"rad">;
 	/**

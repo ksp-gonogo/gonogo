@@ -16,6 +16,7 @@ export type GeneratedReckoningBasis =
   | "combination"
   | "kepler-propagation"
   | "linear-dead-reckoning"
+  | "powered-integration"
   | "rate-integration"
 ;
 
@@ -53,8 +54,15 @@ export const GENERATED_RECKONABLE_VALUES = [
   { topic: "vessel.flight", field: "altitudeAsl", basis: "kepler-propagation", inputs: [ { topic: "vessel.orbit", path: "" }, { topic: "system.bodies", path: "" } ] },
   { topic: "vessel.flight", field: "altitudeAsl", basis: "rate-integration", inputs: [ { topic: "", path: "verticalSpeed" }, { topic: "", path: "gForce" }, { topic: "system.bodies", path: "" } ] },
   { topic: "vessel.flight", field: "orbitalSpeed", basis: "kepler-propagation", inputs: [ { topic: "vessel.orbit", path: "" } ] },
+  { topic: "vessel.orbit", field: "argPe", basis: "powered-integration", inputs: [ { topic: "", path: "mu" }, { topic: "vessel.propulsion", path: "" }, { topic: "dv.stages", path: "" }, { topic: "vessel.structure", path: "" }, { topic: "system.bodies", path: "" } ] },
+  { topic: "vessel.orbit", field: "ecc", basis: "powered-integration", inputs: [ { topic: "", path: "mu" }, { topic: "vessel.propulsion", path: "" }, { topic: "dv.stages", path: "" }, { topic: "vessel.structure", path: "" }, { topic: "system.bodies", path: "" } ] },
   { topic: "vessel.orbit", field: "epoch", basis: "kepler-propagation", inputs: [ { topic: "", path: "sma" }, { topic: "", path: "mu" }, { topic: "", path: "horizon" }, { topic: "system.bodies", path: "" } ] },
+  { topic: "vessel.orbit", field: "epoch", basis: "powered-integration", inputs: [ { topic: "", path: "mu" }, { topic: "vessel.propulsion", path: "" }, { topic: "dv.stages", path: "" }, { topic: "vessel.structure", path: "" }, { topic: "system.bodies", path: "" } ] },
+  { topic: "vessel.orbit", field: "inc", basis: "powered-integration", inputs: [ { topic: "", path: "mu" }, { topic: "vessel.propulsion", path: "" }, { topic: "dv.stages", path: "" }, { topic: "vessel.structure", path: "" }, { topic: "system.bodies", path: "" } ] },
+  { topic: "vessel.orbit", field: "lan", basis: "powered-integration", inputs: [ { topic: "", path: "mu" }, { topic: "vessel.propulsion", path: "" }, { topic: "dv.stages", path: "" }, { topic: "vessel.structure", path: "" }, { topic: "system.bodies", path: "" } ] },
   { topic: "vessel.orbit", field: "meanAnomalyAtEpoch", basis: "kepler-propagation", inputs: [ { topic: "", path: "sma" }, { topic: "", path: "mu" }, { topic: "", path: "horizon" }, { topic: "system.bodies", path: "" } ] },
+  { topic: "vessel.orbit", field: "meanAnomalyAtEpoch", basis: "powered-integration", inputs: [ { topic: "", path: "mu" }, { topic: "vessel.propulsion", path: "" }, { topic: "dv.stages", path: "" }, { topic: "vessel.structure", path: "" }, { topic: "system.bodies", path: "" } ] },
+  { topic: "vessel.orbit", field: "sma", basis: "powered-integration", inputs: [ { topic: "", path: "mu" }, { topic: "vessel.propulsion", path: "" }, { topic: "dv.stages", path: "" }, { topic: "vessel.structure", path: "" }, { topic: "system.bodies", path: "" } ] },
   { topic: "vessel.orbit.truth", field: "position", basis: "kepler-propagation", inputs: [ { topic: "", path: "velocity" }, { topic: "", path: "frameRotating" }, { topic: "vessel.orbit", path: "mu" }, { topic: "vessel.orbit", path: "horizon" } ] },
   { topic: "vessel.orbit.truth", field: "velocity", basis: "kepler-propagation", inputs: [ { topic: "", path: "position" }, { topic: "", path: "frameRotating" }, { topic: "vessel.orbit", path: "mu" }, { topic: "vessel.orbit", path: "horizon" } ] },
   { topic: "vessel.target", field: "relativePosition", basis: "linear-dead-reckoning", inputs: [ { topic: "", path: "relativeVelocity" } ] },
@@ -68,7 +76,7 @@ export const GENERATED_RECKONABLE_FIELDS = {
   "comms.delay": ["oneWaySeconds"],
   "vessel.dock": ["distance", "relativePosition"],
   "vessel.flight": ["altitudeAsl", "orbitalSpeed"],
-  "vessel.orbit": ["epoch", "meanAnomalyAtEpoch"],
+  "vessel.orbit": ["argPe", "ecc", "epoch", "inc", "lan", "meanAnomalyAtEpoch", "sma"],
   "vessel.orbit.truth": ["position", "velocity"],
   "vessel.target": ["relativePosition"],
 } as const satisfies Record<string, readonly string[]>;

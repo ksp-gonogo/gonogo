@@ -25,6 +25,14 @@ namespace Sitrep.Contract
         public const string RateIntegration = "rate-integration";
 
         /// <summary>
+        /// A craft under thrust integrated forward under point-mass gravity and a steady burn: the
+        /// observed thrust along its last measured direction, the mass falling at the published mass
+        /// flow. Honest until a command reaches the craft, the firing stage runs dry, or the burn's own
+        /// uncertainty outgrows it.
+        /// </summary>
+        public const string PoweredIntegration = "powered-integration";
+
+        /// <summary>
         /// Arithmetic over several readings resolved against one view time. Carries
         /// nothing forward itself: the forward step, where there was one, happened
         /// inside each input under its own basis, so this is honest exactly as far

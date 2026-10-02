@@ -80,7 +80,10 @@ export type _AcRequiredIsReading = Expect<
 export type _AcRequired2IsReading = Expect<
   Equal<
     _AcRequired2,
-    ReckonableReading<VesselOrbit, "meanAnomalyAtEpoch" | "epoch">
+    ReckonableReading<
+      VesselOrbit,
+      "sma" | "ecc" | "inc" | "lan" | "argPe" | "meanAnomalyAtEpoch" | "epoch"
+    >
   >
 >;
 /*
@@ -185,7 +188,10 @@ export type _WireStillAcceptedArg = Expect<
 export type _DerivedWireReadIsReading = Expect<
   Equal<
     ReturnType<typeof derivedManifest.useTelemetry<"vessel.orbit">>,
-    ReckonableReading<VesselOrbit, "meanAnomalyAtEpoch" | "epoch">
+    ReckonableReading<
+      VesselOrbit,
+      "sma" | "ecc" | "inc" | "lan" | "argPe" | "meanAnomalyAtEpoch" | "epoch"
+    >
   >
 >;
 

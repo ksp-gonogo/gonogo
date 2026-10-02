@@ -52,12 +52,16 @@ type _OrbitTruthFields = Expect<
   Equal<ReckonableFields<"vessel.orbit.truth">, "position" | "velocity">
 >;
 
-// A coast moves the PHASE and nothing else, so these two are the whole of what
-// `vessel.orbit`'s conic advances; the remaining elements are constants of the
-// orbit. The mark is also what makes that model's REFUSAL reachable, which is
-// why it exists at all: see `VesselOrbit.MeanAnomalyAtEpoch`.
+/*
+ * A coast moves the phase and a burn moves every element, so the union is every
+ * element the burn model moves. `mu` and the patch chain are not among them: a
+ * burn changes neither the body nor what KSP has already solved.
+ */
 type _OrbitFields = Expect<
-  Equal<ReckonableFields<"vessel.orbit">, "meanAnomalyAtEpoch" | "epoch">
+  Equal<
+    ReckonableFields<"vessel.orbit">,
+    "sma" | "ecc" | "inc" | "lan" | "argPe" | "meanAnomalyAtEpoch" | "epoch"
+  >
 >;
 
 // An unmarked Topic answers `never`, which is what makes the conditional in `useTelemetry` safe to write over every `TopicId`.
