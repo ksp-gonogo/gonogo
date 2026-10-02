@@ -392,6 +392,7 @@ export {
   type LineGraphThreshold,
   type LineGraphThresholdStyle,
 } from "./LineGraph";
+export { LiveRegion, type LiveRegionProps } from "./LiveRegion";
 export {
   AntiNormalIcon,
   AntiTargetIcon,
