@@ -381,27 +381,34 @@ async function connectStation(
 }
 
 /**
- * Emits again on every retry until `arrived` holds.
+ * Emits again until `arrived` holds, giving each emit its own short wait.
  *
  * `StubTransport.emit` drops a frame for a topic nobody has subscribed, and the
  * relay only taps the host's raw stream once a station's connection has been
  * observed, a React state update after the link reports connected. A frame
  * emitted in that gap is neither relayed nor cached for backfill, so a single
  * emit can be lost for good under load. Re-emitting the same sample is
- * idempotent for the readers, and the wait ends on the frame itself arriving.
+ * idempotent for the readers.
+ *
+ * The emit sits outside `waitFor` on purpose: RTL turns the act environment off
+ * for the length of a `waitFor`, and `act()` called inside one warns that the
+ * environment is not configured to support it.
  */
 async function emitUntilArrived(
   emit: () => void,
   arrived: () => void,
   timeout: number,
 ): Promise<void> {
-  await waitFor(
-    () => {
-      act(emit);
-      arrived();
-    },
-    { timeout },
-  );
+  const deadline = Date.now() + timeout;
+  for (;;) {
+    act(emit);
+    try {
+      await waitFor(arrived, { timeout: 250 });
+      return;
+    } catch (error) {
+      if (Date.now() >= deadline) throw error;
+    }
+  }
 }
 
 describe("station Sitrep-stream forwarding: two-screen proof", () => {
