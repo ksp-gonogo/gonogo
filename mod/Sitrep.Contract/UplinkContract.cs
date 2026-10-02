@@ -65,10 +65,18 @@ namespace Sitrep.Contract
         /// </summary>
         public string Vantage { get; }
 
-        /// <summary>Creates a context for a session at <paramref name="vantage"/>.</summary>
-        public ViewerContext(string vantage)
+        /// <summary>
+        /// The connection's own id, opaque and stable for as long as it stays
+        /// connected: for a filter that keeps what this session itself caused,
+        /// such as a command it sent from another vantage.
+        /// </summary>
+        public string SessionId { get; }
+
+        /// <summary>Creates a context for session <paramref name="sessionId"/> at <paramref name="vantage"/>.</summary>
+        public ViewerContext(string vantage, string sessionId)
         {
             Vantage = vantage;
+            SessionId = sessionId;
         }
     }
 

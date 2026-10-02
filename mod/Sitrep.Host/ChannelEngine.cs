@@ -1044,6 +1044,9 @@ namespace Sitrep.Host
         // identical _channelSources[topic] invocation pattern.
         private readonly List<PendingUplink> _pending = new List<PendingUplink>();
 
+        /// <summary>Which connection dispatched each <see cref="_pending"/> entry, by its id, for <see cref="FilterPendingForViewer"/>. Courier-thread-only.</summary>
+        private readonly Dictionary<string, string> _pendingDispatcher = new Dictionary<string, string>();
+
         private readonly Dictionary<string, ChannelDeclaration> _channelDeclarations = new Dictionary<string, ChannelDeclaration>();
 
         /// <summary>The declaration <paramref name="topic"/> was registered with, or null when it was not.</summary>
@@ -1466,6 +1469,7 @@ namespace Sitrep.Host
                 // reveal clock. Same class as UplinksTopic/comms.connectivity/
                 // system.bodies: TrueNow.
                 Delay = DelayRole.TrueNow,
+                ViewerFilter = FilterPendingForViewer,
             };
             // Live pruned pending list -- populated by ProcessDispatchCommand's
             // delayed branch, pruned every Tick (see PrunePendingUplinks,
@@ -5379,8 +5383,22 @@ namespace Sitrep.Host
         public void Tick(double ut, KspSnapshot? snapshot)
         {
             CaptureCommandCentresOnMain();
-            EnqueueJob(new TickJob(ut, snapshot, RunCaptures(snapshot), CaptureSignalDelayOnMain(snapshot), CaptureConnectivityOnMain(snapshot), CapturePathBreakOnMain(snapshot, ut), null));
+            EnqueueJob(new TickJob(ut, snapshot, RunCaptures(snapshot), CaptureSignalDelayOnMain(snapshot), CaptureConnectivityOnMain(snapshot), CapturePathBreakOnMain(snapshot, ut), null) { Save = _saveOnMain });
         }
+
+        /// <summary>
+        /// Main-thread: name the save the ticks that follow belong to, such as
+        /// KSP's save folder. A tick under a different save from the last one
+        /// starts a new timeline, the same reset a backward jump in UT gets, and
+        /// with nothing carried over, because loading another game is not a
+        /// rewind of this one. Null leaves the save unknown, which never resets.
+        /// </summary>
+        public void NoteSave(string? save) => _saveOnMain = save;
+
+        private volatile string? _saveOnMain;
+
+        /// <summary>The save the current timeline belongs to, as the last tick named it. Courier-thread-only.</summary>
+        private string? _timelineSave;
 
         /// <summary>
         /// Runs every registered <see cref="AddSampledSource"/> capture on the
@@ -5625,7 +5643,7 @@ namespace Sitrep.Host
         {
             var barrier = new ManualResetEventSlim(false);
             CaptureCommandCentresOnMain();
-            EnqueueJob(new TickJob(ut, snapshot, RunCaptures(snapshot), CaptureSignalDelayOnMain(snapshot), CaptureConnectivityOnMain(snapshot), CapturePathBreakOnMain(snapshot, ut), barrier));
+            EnqueueJob(new TickJob(ut, snapshot, RunCaptures(snapshot), CaptureSignalDelayOnMain(snapshot), CaptureConnectivityOnMain(snapshot), CapturePathBreakOnMain(snapshot, ut), barrier) { Save = _saveOnMain });
             if (!barrier.Wait(timeout))
             {
                 throw new TimeoutException(
@@ -5645,8 +5663,8 @@ namespace Sitrep.Host
         /// resolving only once <see cref="Tick"/> advances the clock far enough.
         /// See <see cref="ResolveCommandDelay"/> for where the answer comes from.
         /// </summary>
-        public void DispatchCommand(string command, object? args, string vantage, Action<object?> onResult, string label = "", string topic = "", Action<FaultCode, string>? onRefused = null, Action<double>? onAccepted = null, Action<string>? onMalformed = null, string clientRequestId = "") =>
-            EnqueueJob(new DispatchCommandJob(command, args, vantage, onResult, null, label, topic, onRefused, onAccepted, onMalformed, clientRequestId));
+        public void DispatchCommand(string command, object? args, string vantage, Action<object?> onResult, string label = "", string topic = "", Action<FaultCode, string>? onRefused = null, Action<double>? onAccepted = null, Action<string>? onMalformed = null, string clientRequestId = "", string? sessionId = null) =>
+            EnqueueJob(new DispatchCommandJob(command, args, vantage, onResult, null, label, topic, onRefused, onAccepted, onMalformed, clientRequestId, sessionId));
 
         /// <summary>
         /// Test-only deterministic variant of <see cref="DispatchCommand"/>: blocks
@@ -5655,10 +5673,10 @@ namespace Sitrep.Host
         /// <see cref="TimeoutException"/> when the dispatch is not processed within
         /// <paramref name="timeout"/>.
         /// </summary>
-        internal void DispatchCommandAndWait(string command, object? args, string vantage, Action<object?> onResult, TimeSpan timeout, string label = "", string topic = "", Action<FaultCode, string>? onRefused = null, Action<double>? onAccepted = null, Action<string>? onMalformed = null, string clientRequestId = "")
+        internal void DispatchCommandAndWait(string command, object? args, string vantage, Action<object?> onResult, TimeSpan timeout, string label = "", string topic = "", Action<FaultCode, string>? onRefused = null, Action<double>? onAccepted = null, Action<string>? onMalformed = null, string clientRequestId = "", string? sessionId = null)
         {
             var barrier = new ManualResetEventSlim(false);
-            EnqueueJob(new DispatchCommandJob(command, args, vantage, onResult, barrier, label, topic, onRefused, onAccepted, onMalformed, clientRequestId));
+            EnqueueJob(new DispatchCommandJob(command, args, vantage, onResult, barrier, label, topic, onRefused, onAccepted, onMalformed, clientRequestId, sessionId));
             if (!barrier.Wait(timeout))
             {
                 throw new TimeoutException(
@@ -6878,9 +6896,24 @@ namespace Sitrep.Host
             // once: ChannelEmitter.Reset already iterates every channel it
             // knows about) so the next Decide per topic is an unconditional
             // keyframe on the new timeline too.
-            if (tick.Ut < _clock.Now())
+            // A different save is a different timeline whatever its UT says, so
+            // its history goes whole rather than from the tick's UT onward.
+            var saveChanged = tick.Save != null && _timelineSave != null && tick.Save != _timelineSave;
+            if (tick.Save != null)
             {
-                _courier.ResetTimeline(tick.Ut);
+                _timelineSave = tick.Save;
+            }
+            if (tick.Ut < _clock.Now() || saveChanged)
+            {
+                if (saveChanged)
+                {
+                    _courier.ResetTimeline(double.NegativeInfinity);
+                    _clock.Reset(tick.Ut);
+                }
+                else
+                {
+                    _courier.ResetTimeline(tick.Ut);
+                }
                 _emitter.Reset(tick.Ut);
                 // Drop every un-revealed buffered sample: they belong to the
                 // abandoned pre-rewind timeline and must never surface on the
@@ -6911,6 +6944,7 @@ namespace Sitrep.Host
                 // nothing against the one the rewind lands on. Dropped whole
                 // rather than carried forward or pruned normally.
                 _pending.Clear();
+                _pendingDispatcher.Clear();
                 RecomputeChannelBirthFromArchive();
                 BroadcastTimelineReset();
             }
@@ -7471,6 +7505,10 @@ namespace Sitrep.Host
             // with the underlying dispatch.
             if (uplinkDelay > 0)
             {
+                if (job.SessionId != null)
+                {
+                    _pendingDispatcher[requestId] = job.SessionId;
+                }
                 _pending.Add(new PendingUplink
                 {
                     Id = requestId,
@@ -7551,7 +7589,37 @@ namespace Sitrep.Host
             {
                 return;
             }
-            _pending.RemoveAll(entry => ut > entry.DispatchedAt + (2 * entry.OneWaySeconds));
+            _pending.RemoveAll(entry =>
+            {
+                var due = ut > entry.DispatchedAt + (2 * entry.OneWaySeconds);
+                if (due)
+                {
+                    _pendingDispatcher.Remove(entry.Id);
+                }
+                return due;
+            });
+        }
+
+        /// <summary>
+        /// The <see cref="ChannelDeclaration.ViewerFilter"/> for
+        /// <c>system.uplink.pending</c>: a session receives the entries dispatched
+        /// at its own vantage, and the ones it dispatched itself under another.
+        /// The list is TrueNow, so an entry from another centre would tell this
+        /// one what that centre had just sent before light could carry it.
+        /// Courier-thread-only, like <see cref="_pending"/>.
+        /// </summary>
+        private object FilterPendingForViewer(object payload, ViewerContext viewer)
+        {
+            if (!(payload is PendingUplinkQueue queue))
+            {
+                return payload;
+            }
+            return new PendingUplinkQueue
+            {
+                Pending = queue.Pending.FindAll(entry =>
+                    entry.Vantage == viewer.Vantage
+                    || (_pendingDispatcher.TryGetValue(entry.Id, out var dispatcher) && dispatcher == viewer.SessionId)),
+            };
         }
 
         /// <summary>
@@ -7761,7 +7829,7 @@ namespace Sitrep.Host
                         object? visible;
                         try
                         {
-                            visible = viewerFilter(delivered.Payload, new ViewerContext(VantageOf(session)));
+                            visible = viewerFilter(delivered.Payload, new ViewerContext(VantageOf(session), session.Connection.Id));
                         }
                         catch (Exception ex)
                         {
@@ -8199,7 +8267,7 @@ namespace Sitrep.Host
                                 Message = "command-request envelope could not be read: " + reason,
                             };
                             session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteErrorMsg(error)));
-                        }, clientRequestId: req.RequestId);
+                        }, clientRequestId: req.RequestId, sessionId: session.Connection.Id);
                         break;
                 }
             }
@@ -8269,6 +8337,9 @@ namespace Sitrep.Host
             // Default (Value null, Error null) when no source is registered.
             public readonly PathBreakCapture PathBreak;
             public readonly ManualResetEventSlim? Done;
+
+            /// <summary>The save this tick belongs to, as <see cref="NoteSave"/> last named it, or null when unknown.</summary>
+            public string? Save;
             public TickJob(double ut, KspSnapshot? snapshot, CapturedSample[]? captures, SignalDelayCapture signalDelay, ConnectivityCapture connectivity, PathBreakCapture pathBreak, ManualResetEventSlim? done)
             {
                 Ut = ut;
@@ -8495,8 +8566,13 @@ namespace Sitrep.Host
             public readonly ManualResetEventSlim? Done;
             /// <summary>The requestId the dispatching client chose, echoed onto its <see cref="PendingUplink"/>; empty for an in-process dispatch.</summary>
             public readonly string ClientRequestId;
-            public DispatchCommandJob(string command, object? args, string vantage, Action<object?> onResult, ManualResetEventSlim? done, string label = "", string topic = "", Action<FaultCode, string>? onRefused = null, Action<double>? onAccepted = null, Action<string>? onMalformed = null, string clientRequestId = "")
+
+            /// <summary>The connection the request arrived on, or null for one the engine dispatched itself.</summary>
+            public readonly string? SessionId;
+
+            public DispatchCommandJob(string command, object? args, string vantage, Action<object?> onResult, ManualResetEventSlim? done, string label = "", string topic = "", Action<FaultCode, string>? onRefused = null, Action<double>? onAccepted = null, Action<string>? onMalformed = null, string clientRequestId = "", string? sessionId = null)
             {
+                SessionId = sessionId;
                 OnMalformed = onMalformed;
                 Command = command;
                 Args = args;

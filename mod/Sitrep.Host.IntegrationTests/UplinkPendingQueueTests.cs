@@ -3,10 +3,12 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Sitrep.Contract;
+using Sitrep.Contract.Serialization;
 using Sitrep.Host;
 using Xunit;
 
 using static Sitrep.Host.IntegrationTests.WsTestHarness;
+using StreamData = Sitrep.Contract.StreamData<object?>;
 
 namespace Sitrep.Host.IntegrationTests
 {
@@ -30,6 +32,7 @@ namespace Sitrep.Host.IntegrationTests
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
             var uplink = new PendingQueueTestUplink();
             engine.RegisterUplink(uplink);
+            engine.RegisterCommandCentreSource(new StaticSource("KSC"));
             engine.Start();
             try
             {
@@ -105,6 +108,7 @@ namespace Sitrep.Host.IntegrationTests
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
             var uplink = new PendingQueueTestUplink();
             engine.RegisterUplink(uplink);
+            engine.RegisterCommandCentreSource(new StaticSource("KSC"));
             engine.Start();
             try
             {
@@ -152,6 +156,7 @@ namespace Sitrep.Host.IntegrationTests
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
             engine.RegisterUplink(new PendingQueueTestUplink());
+            engine.RegisterCommandCentreSource(new StaticSource("KSC"));
             engine.Start();
             try
             {
@@ -191,6 +196,7 @@ namespace Sitrep.Host.IntegrationTests
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
             var uplink = new PendingQueueTestUplink();
             engine.RegisterUplink(uplink);
+            engine.RegisterCommandCentreSource(new StaticSource("KSC"));
             engine.Start();
             try
             {
@@ -258,6 +264,7 @@ namespace Sitrep.Host.IntegrationTests
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
             var uplink = new PendingQueueTestUplink();
             engine.RegisterUplink(uplink);
+            engine.RegisterCommandCentreSource(new StaticSource("KSC"));
             engine.Start();
             try
             {
@@ -311,6 +318,7 @@ namespace Sitrep.Host.IntegrationTests
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
             var uplink = new PendingQueueTestUplink();
             engine.RegisterUplink(uplink);
+            engine.RegisterCommandCentreSource(new StaticSource("KSC"));
             engine.Start();
             try
             {
@@ -360,6 +368,7 @@ namespace Sitrep.Host.IntegrationTests
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
             var uplink = new PendingQueueTestUplink();
             engine.RegisterUplink(uplink);
+            engine.RegisterCommandCentreSource(new StaticSource("KSC"));
             engine.Start();
             try
             {
@@ -404,6 +413,7 @@ namespace Sitrep.Host.IntegrationTests
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
             var uplink = new PendingQueueTestUplink();
             engine.RegisterUplink(uplink);
+            engine.RegisterCommandCentreSource(new StaticSource("KSC"));
             engine.Start();
             try
             {
@@ -469,6 +479,7 @@ namespace Sitrep.Host.IntegrationTests
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
             engine.RegisterUplink(new PendingQueueTestUplink());
+            engine.RegisterCommandCentreSource(new StaticSource("KSC"));
             engine.Start();
             try
             {
@@ -505,6 +516,7 @@ namespace Sitrep.Host.IntegrationTests
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
             engine.RegisterUplink(new PendingQueueTestUplink());
+            engine.RegisterCommandCentreSource(new StaticSource("KSC"));
             engine.Start();
             try
             {
@@ -529,6 +541,171 @@ namespace Sitrep.Host.IntegrationTests
                 engine.Stop();
             }
         }
+        /// <summary>
+        /// The pending list is TrueNow, so a centre that saw another centre's
+        /// entries would know what it had just sent before light could carry it.
+        /// Each session is sent the entries dispatched at its own vantage, plus
+        /// any it dispatched itself under another.
+        /// </summary>
+        [Fact]
+        public async Task EachSessionIsSentOnlyItsOwnVantagesPendingEntriesAndItsOwnOverrides()
+        {
+            const double signalDelay = 5.0;
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterCommandCentreSource(new StaticSource("ground:gs1"));
+            engine.RegisterCommandCentreSource(new StaticSource("ground:gs2"));
+            engine.RegisterUplink(new PendingQueueTestUplink());
+            engine.Start();
+            try
+            {
+                engine.TickAndWait(0.0, FreezeGateTestUplink.Snapshot(0.0, connected: true, delay: signalDelay), Timeout);
+
+                await using var atGs1 = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await using var atGs2 = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await atGs1.SendAsync(EnvelopeCodec.WriteSetVantage(new SetVantage { CentreId = "ground:gs1" }));
+                await atGs2.SendAsync(EnvelopeCodec.WriteSetVantage(new SetVantage { CentreId = "ground:gs2" }));
+                await SubscribeAsync(atGs1, ChannelEngine.UplinkPendingTopic, Timeout);
+                await SubscribeAsync(atGs2, ChannelEngine.UplinkPendingTopic, Timeout);
+
+                await SendCommandAsync(atGs1, "gs1-own", vantage: "");
+                await SendCommandAsync(atGs2, "gs2-own", vantage: "");
+                await SendCommandAsync(atGs1, "gs1-as-gs2", vantage: "ground:gs2");
+
+                // The requests reach the engine from the socket on their own
+                // thread, so the tick that lists them is the one after they are
+                // accepted.
+                await ReceiveTypedAsync<CommandAccepted>(atGs1, Timeout);
+                await ReceiveTypedAsync<CommandAccepted>(atGs1, Timeout);
+                await ReceiveTypedAsync<CommandAccepted>(atGs2, Timeout);
+                engine.TickAndWait(1.0, FreezeGateTestUplink.Snapshot(1.0, connected: true, delay: signalDelay), Timeout);
+
+                Assert.Equal(new[] { "gs1-as-gs2", "gs1-own" }, await LatestPendingRequestIdsAsync(atGs1));
+                Assert.Equal(new[] { "gs1-as-gs2", "gs2-own" }, await LatestPendingRequestIdsAsync(atGs2));
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// Loading another save is a new timeline even when its UT is later, so
+        /// nothing dispatched in the old game is still shown as on its way.
+        /// </summary>
+        [Fact]
+        public async Task ATickUnderADifferentSaveResetsTheTimelineAndEmptiesThePendingList()
+        {
+            const double signalDelay = 5.0;
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new PendingQueueTestUplink());
+            engine.RegisterCommandCentreSource(new StaticSource("KSC"));
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, ChannelEngine.UplinkPendingTopic, Timeout);
+
+                engine.NoteSave("career-a");
+                engine.TickAndWait(0.0, FreezeGateTestUplink.Snapshot(0.0, connected: true, delay: signalDelay), Timeout);
+                engine.DispatchCommandAndWait(PendingQueueTestUplink.Command, "x", "KSC", _ => { }, Timeout);
+                engine.TickAndWait(1.0, FreezeGateTestUplink.Snapshot(1.0, connected: true, delay: signalDelay), Timeout);
+                var (sameSaveResets, beforeIds) = await DrainResetsAndPendingAsync(client);
+                Assert.Equal(0, sameSaveResets);
+                Assert.Single(beforeIds);
+
+                engine.NoteSave("career-b");
+                engine.TickAndWait(2.0, FreezeGateTestUplink.Snapshot(2.0, connected: true, delay: signalDelay), Timeout);
+                engine.TickAndWait(3.0, FreezeGateTestUplink.Snapshot(3.0, connected: true, delay: signalDelay), Timeout);
+                var (resets, afterIds) = await DrainResetsAndPendingAsync(client);
+                Assert.Equal(1, resets);
+                Assert.Empty(afterIds);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        private static Task SendCommandAsync(TestClient client, string requestId, string vantage) =>
+            client.SendAsync(EnvelopeCodec.WriteCommandRequest(new CommandRequest<object?>
+            {
+                RequestId = requestId,
+                Command = PendingQueueTestUplink.Command,
+                Args = "x",
+                Vantage = vantage,
+            }));
+
+        /// <summary>The client request ids on the last pending frame to arrive, sorted.</summary>
+        private static async Task<string[]> LatestPendingRequestIdsAsync(TestClient client)
+        {
+            var (_, ids) = await DrainResetsAndPendingAsync(client);
+            return ids;
+        }
+
+        /// <summary>How many timeline resets arrived, and the sorted client request ids on the last pending frame.</summary>
+        private static async Task<(int Resets, string[] Ids)> DrainResetsAndPendingAsync(TestClient client)
+        {
+            var resets = 0;
+            var ids = Array.Empty<string>();
+            while (true)
+            {
+                string raw;
+                try
+                {
+                    raw = await client.ReceiveAsync(TestBudgets.Quiet);
+                }
+                catch (OperationCanceledException)
+                {
+                    return (resets, ids);
+                }
+                switch (EnvelopeCodec.ParseServerMessage(raw))
+                {
+                    case EventMsg ev when ev.Name == "timeline-reset" && ev.Topic == ChannelEngine.UplinkPendingTopic:
+                        resets++;
+                        break;
+                    case StreamData data when data.Topic == ChannelEngine.UplinkPendingTopic:
+                        using (var doc = System.Text.Json.JsonDocument.Parse(raw))
+                        {
+                            var found = new List<string>();
+                            foreach (var entry in doc.RootElement.GetProperty("payload").GetProperty("pending").EnumerateArray())
+                            {
+                                found.Add(entry.GetProperty("clientRequestId").GetString() ?? "");
+                            }
+                            found.Sort(StringComparer.Ordinal);
+                            ids = found.ToArray();
+                        }
+                        break;
+                }
+            }
+        }
+
+        private sealed class StaticSource : ICommandCentreSource
+        {
+            private readonly ICommandCentre _centre;
+
+            public StaticSource(string id) => _centre = new Centre(id);
+
+            public string ProviderId => "static-test";
+
+            public IEnumerable<ICommandCentre> Enumerate()
+            {
+                yield return _centre;
+            }
+
+            private sealed class Centre : ICommandCentre
+            {
+                public Centre(string id) => Id = id;
+
+                public string Id { get; }
+                public string DisplayName => Id;
+                public CommandCentreKind Kind => CommandCentreKind.GroundStation;
+                public int? BodyIndex => null;
+                public double? Latitude => null;
+                public double? Longitude => null;
+                public bool IsActiveNow() => true;
+            }
+        }
+
         private sealed class PendingQueueTestUplink : ISitrepUplink
         {
             // Mandatory health floor (test double).

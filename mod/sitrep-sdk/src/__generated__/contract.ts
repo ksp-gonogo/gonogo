@@ -7714,8 +7714,9 @@ export interface PendingUplink
 export interface PendingUplinkQueue
 {
 	/**
-	* Every command still believed in flight, in no guaranteed order. Empty, never
-	* null, when nothing is pending.
+	* Every command still believed in flight that this session may know of, in no
+	* guaranteed order: the ones dispatched at its own vantage, and the ones it
+	* dispatched itself under another. Empty, never null, when nothing is pending.
 	*/
 	pending: PendingUplink[];
 }

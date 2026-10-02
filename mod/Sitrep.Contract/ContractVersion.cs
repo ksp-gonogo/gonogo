@@ -2194,8 +2194,13 @@ namespace Sitrep.Contract
         /// the filtering rides the new <see cref="ChannelDeclaration.ViewerFilter"/> and
         /// <see cref="ViewerContext"/>. Additive, so an Uplink built against 27.12 is
         /// unaffected.</para>
+        ///
+        /// <para><b>Major-27 line, Bumped 13 -&gt; 14:</b> <see cref="ViewerContext.SessionId"/>,
+        /// the connection a filtered frame is about to reach, so a filter can keep what that
+        /// session itself caused; <c>system.uplink.pending</c> is now filtered per session with it.
+        /// Additive, so an Uplink built against 27.13 is unaffected.</para>
         /// </internal>
         /// </summary>
-        public const int Minor = 13;
+        public const int Minor = 14;
     }
 }

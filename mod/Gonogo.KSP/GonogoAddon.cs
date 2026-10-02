@@ -528,6 +528,7 @@ namespace Gonogo.KSP
                 // (system.bodies's is SystemViewProvider.BuildSystemBodies,
                 // via SystemUplink) itself, rather than GonogoAddon building
                 // the payload by hand.
+                _engine.NoteSave(HighLogic.SaveFolder);
                 _engine.Tick(snapshot.Ut, snapshot);
             }
             catch (Exception ex)
