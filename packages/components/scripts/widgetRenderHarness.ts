@@ -1717,6 +1717,18 @@ async function findA11yViolations(page: Page): Promise<string[]> {
   if (!(await page.evaluate(() => "axe" in window))) {
     await page.addScriptTag({ path: AXE_SOURCE_PATH });
   }
+  /*
+   * A double `requestAnimationFrame` first, as the font check does: a scroller
+   * takes its tab stop from a ResizeObserver callback, and an audit that lands
+   * in the same frame as the layout it follows reads the page before that state
+   * has been applied.
+   */
+  await page.evaluate(
+    () =>
+      new Promise<void>((res) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => res()));
+      }),
+  );
   return page.evaluate(async (disabled) => {
     const axe = (window as Window & { axe?: AxeApi }).axe;
     if (!axe) throw new Error("Probe: axe did not install");

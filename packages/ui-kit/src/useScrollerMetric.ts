@@ -33,7 +33,8 @@ export function useScrollerMetric<Metric>(
       for (const child of Array.from(el.children)) ro.observe(child);
       update();
     });
-    mo.observe(el, { childList: true });
+    // The subtree, because content can overflow the scroller from a descendant without any observed box changing size.
+    mo.observe(el, { childList: true, subtree: true });
     return () => {
       el.removeEventListener("scroll", update);
       ro.disconnect();
