@@ -5591,7 +5591,27 @@ namespace Sitrep.Host
         /// <see cref="Tick"/>'s pull-style mapping. Goes through the SAME
         /// per-channel Decide/Record processing as a Tick-driven channel.
         /// </summary>
-        internal void Publish(string topic, object? payload, double ut) => EnqueueJob(new PublishJob(topic, payload, ut));
+        internal void Publish(string topic, object? payload, double ut)
+        {
+            var job = new PublishJob(topic, payload, ut);
+            if (_handlePublishes != null && Thread.CurrentThread == _courierThread)
+            {
+                _handlePublishes.Add(job);
+                return;
+            }
+            EnqueueJob(job);
+        }
+
+        /// <summary>
+        /// Courier-thread-only: the publishes sampled-source handles make while
+        /// <see cref="ProcessTick"/> runs them, or null outside that phase. They
+        /// are processed later in the same tick, just before the reveal flush, so
+        /// a notice a handle decides from this tick's capture reaches the wire
+        /// with this tick's samples. Queued as an ordinary job instead, it would
+        /// be processed after this tick's clock advance and delivered only at the
+        /// next one.
+        /// </summary>
+        private List<PublishJob>? _handlePublishes;
 
         /// <summary>
         /// Test-only deterministic variant of <see cref="Tick"/>: blocks until the
@@ -6945,6 +6965,8 @@ namespace Sitrep.Host
                calls, which arrive from the handles below, so it starts empty
                here. See ReleaseSubjectsGoneFromTheRoster. */
             _fleetVesselsThisTick.Clear();
+            var handlePublishes = new List<PublishJob>();
+            _handlePublishes = handlePublishes;
             if (tick.Captures != null)
             {
                 foreach (var captured in tick.Captures)
@@ -6982,6 +7004,7 @@ namespace Sitrep.Host
                     }
                 }
             }
+            _handlePublishes = null;
 
             // AUTHORITATIVE delay refresh (§7.3 Step 2): source the reveal-gate
             // delay from the server-side SignalDelay capability every tick,
@@ -7139,6 +7162,11 @@ namespace Sitrep.Host
                 }
             }
 
+            foreach (var publish in handlePublishes)
+            {
+                ProcessPublish(publish, tick.Ut);
+            }
+
             // Release any buffered Delayed-channel samples the advancing horizon
             // has now overtaken, BEFORE AdvanceTo so the freed deliveries the
             // Courier schedules fire within this same clock advance (§7.3 Step 1/3).
@@ -7149,7 +7177,10 @@ namespace Sitrep.Host
             tick.Done?.Set();
         }
 
-        private void ProcessPublish(PublishJob publish)
+        private void ProcessPublish(PublishJob publish) => ProcessPublish(publish, _clock.Now());
+
+        /// <param name="nowUt">The UT the publish is being processed at: the clock's position for a queued publish, and the tick's own UT for one a handle made during that tick, before the clock reaches it.</param>
+        private void ProcessPublish(PublishJob publish, double nowUt)
         {
             if (!_subscriptions.IsSubscribed(publish.Topic))
             {
@@ -7168,7 +7199,7 @@ namespace Sitrep.Host
             // prune only ever runs AT the moment of the rewind itself, so it
             // can never catch a ghost that arrives strictly afterward.
             // Clamp forward to "now" instead of recording it as stamped.
-            var ut = publish.Ut > _clock.Now() + PublishUtToleranceSeconds ? _clock.Now() : publish.Ut;
+            var ut = publish.Ut > nowUt + PublishUtToleranceSeconds ? nowUt : publish.Ut;
 
             EmissionDecision decision;
             try

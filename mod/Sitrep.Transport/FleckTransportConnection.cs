@@ -34,10 +34,24 @@ namespace Sitrep.Transport
 
             socket.OnMessage = message => Deliver(Encoding.UTF8.GetBytes(message));
             socket.OnBinary = Deliver;
-            socket.OnClose = () => Closed?.Invoke();
-            // Fleck already tears the connection down and raises OnClose on error;
-            // there is nothing further for the seam to do here.
-            socket.OnError = _ => { };
+            socket.OnClose = RaiseClosed;
+            // A peer that resets the connection (one that aborts with frames still
+            // unread, which a closing browser tab does) surfaces as a read error, and
+            // Fleck's Close then returns early because the socket no longer reports
+            // itself connected, so OnClose never comes. Every read error ends the
+            // connection, so it is the close.
+            socket.OnError = _ => RaiseClosed();
+        }
+
+        private int _closedRaised;
+
+        /// <summary>Raises <see cref="Closed"/> once, whichever of Fleck's two ends arrives first.</summary>
+        private void RaiseClosed()
+        {
+            if (System.Threading.Interlocked.Exchange(ref _closedRaised, 1) == 0)
+            {
+                Closed?.Invoke();
+            }
         }
 
         public string Id { get; }
