@@ -37,11 +37,39 @@ export interface FixtureFinding {
   declared: string[];
 }
 
+/** A field the contract requires on a topic a fixture provides, and the fixture leaves out. */
+export interface FixtureOmission {
+  /** Repo-relative fixture path. */
+  fixture: string;
+  /** The widget directory the fixture belongs to, repo-relative. */
+  dir: string;
+  topic: string;
+  /** Dotted path from the payload root, array indices included. */
+  path: string;
+  field: string;
+}
+
+/**
+ * Why a topic id no generated map declares cannot be graded.
+ *
+ * - `dynamic-namespace`: the id sits under a registered dynamic prefix, so its
+ *   Topic is materialised per subject and no `[SitrepTopic]` type exists for it
+ * - `declared-topic-field`: the id is a declared Topic plus a field path, the
+ *   legacy flat spelling of one field of that Topic
+ * - `legacy-flat`: anything else, a bare `DataSource` key no Topic carries
+ */
+export type UngradedClass =
+  | "dynamic-namespace"
+  | "declared-topic-field"
+  | "legacy-flat";
+
 export interface FixtureScan {
   /** Repo-relative widget directory (the parent of `__fixtures__`). */
   dir: string;
   /** Payloads walked against a declared type. */
   payloadsChecked: number;
+  /** Payloads whose topic id no contract declares, so nothing about them was graded. */
+  payloadsUngraded: number;
   /** Topic ids no contract declares, so nothing about them can be graded. */
   ungradedTopics: string[];
   /** Object/array nodes the walk descended into. */
@@ -49,6 +77,8 @@ export interface FixtureScan {
   /** Field names matched against a declared name. */
   fieldsChecked: number;
   findings: FixtureFinding[];
+  /** Required fields the fixtures leave out of a topic they do provide. */
+  omissions: FixtureOmission[];
   /** Positions the walk could not see into, which are holes in the coverage. */
   unresolvedPositions: string[];
 }
@@ -254,6 +284,35 @@ export function fixturePayloads(fixture: unknown): FixturePayload[] {
   return out;
 }
 
+/**
+ * Which kind of ungraded id a topic is.
+ *
+ * `declaredTopics` is what the generated maps declare and `dynamicPrefixes` the
+ * namespaces registered at runtime. Both are passed in rather than imported so
+ * the scan stays pointable at a deliberately blind input.
+ */
+export function classifyUngradedTopic(
+  topic: string,
+  declaredTopics: ReadonlySet<string>,
+  dynamicPrefixes: readonly string[],
+): UngradedClass {
+  if (
+    dynamicPrefixes.some(
+      (prefix) => topic.startsWith(prefix) && topic.length > prefix.length,
+    )
+  ) {
+    return "dynamic-namespace";
+  }
+  for (
+    let cut = topic.lastIndexOf(".");
+    cut > 0;
+    cut = topic.lastIndexOf(".", cut - 1)
+  ) {
+    if (declaredTopics.has(topic.slice(0, cut))) return "declared-topic-field";
+  }
+  return "legacy-flat";
+}
+
 /** Walks every fixture in one widget directory against the contract. */
 export function scanFixtureDir(
   resolver: ContractResolver,
@@ -264,10 +323,12 @@ export function scanFixtureDir(
   const scan: FixtureScan = {
     dir: relDir,
     payloadsChecked: 0,
+    payloadsUngraded: 0,
     ungradedTopics: [],
     nodesVisited: 0,
     fieldsChecked: 0,
     findings: [],
+    omissions: [],
     unresolvedPositions: [],
   };
   const ungraded = new Set<string>();
@@ -293,6 +354,7 @@ export function scanFixtureDir(
       const report = checkFixturePayloads(resolver, { [topic]: payload });
       if (report.undeclaredTopics.length > 0) {
         ungraded.add(topic);
+        scan.payloadsUngraded += 1;
         continue;
       }
       scan.payloadsChecked += 1;
@@ -300,6 +362,15 @@ export function scanFixtureDir(
       scan.fieldsChecked += report.fieldsChecked;
       for (const position of report.unresolvedPositions) {
         scan.unresolvedPositions.push(`${relFixture} ${where} ${position}`);
+      }
+      for (const omitted of report.omittedFields) {
+        scan.omissions.push({
+          fixture: relFixture,
+          dir: relDir,
+          topic: omitted.topic,
+          path: omitted.path,
+          field: omitted.field,
+        });
       }
       for (const found of report.undeclaredFields) {
         scan.findings.push({
@@ -340,4 +411,57 @@ export function scanAllFixtures(
  */
 export function findingKey(finding: FixtureFinding): string {
   return `${finding.dir}#${finding.topic}.${finding.field}`;
+}
+
+export interface CoverageSummary {
+  payloadsGraded: number;
+  payloadsUngraded: number;
+  /** Share of all payloads walked against a declared type, 0 to 1. */
+  gradedShare: number;
+  fieldsChecked: number;
+  /** Distinct ungraded topic ids per class. */
+  ungradedIds: Record<UngradedClass, string[]>;
+  /** Distinct `<dir>#<topic><path>.<field>` omissions, array indices collapsed. */
+  omittedRequired: string[];
+}
+
+/** The numbers the gate's one-line report prints, leading with how much was graded. */
+export function summariseCoverage(
+  scans: readonly FixtureScan[],
+  declaredTopics: ReadonlySet<string>,
+  dynamicPrefixes: readonly string[],
+): CoverageSummary {
+  const payloadsGraded = scans.reduce((n, s) => n + s.payloadsChecked, 0);
+  const payloadsUngraded = scans.reduce((n, s) => n + s.payloadsUngraded, 0);
+  const ungradedIds: Record<UngradedClass, Set<string>> = {
+    "dynamic-namespace": new Set(),
+    "declared-topic-field": new Set(),
+    "legacy-flat": new Set(),
+  };
+  const omitted = new Set<string>();
+  for (const scan of scans) {
+    for (const topic of scan.ungradedTopics) {
+      ungradedIds[
+        classifyUngradedTopic(topic, declaredTopics, dynamicPrefixes)
+      ].add(topic);
+    }
+    for (const o of scan.omissions) {
+      omitted.add(
+        `${o.dir}#${o.topic}${o.path === "(root)" ? "" : o.path.replace(/\[\d+\]/g, "[]")}.${o.field}`,
+      );
+    }
+  }
+  const total = payloadsGraded + payloadsUngraded;
+  return {
+    payloadsGraded,
+    payloadsUngraded,
+    gradedShare: total === 0 ? 0 : payloadsGraded / total,
+    fieldsChecked: scans.reduce((n, s) => n + s.fieldsChecked, 0),
+    ungradedIds: {
+      "dynamic-namespace": [...ungradedIds["dynamic-namespace"]].sort(),
+      "declared-topic-field": [...ungradedIds["declared-topic-field"]].sort(),
+      "legacy-flat": [...ungradedIds["legacy-flat"]].sort(),
+    },
+    omittedRequired: [...omitted].sort(),
+  };
 }

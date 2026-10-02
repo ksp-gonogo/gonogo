@@ -9,6 +9,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
+import { DYNAMIC_WHOLE_TOPIC_PREFIXES } from "@ksp-gonogo/sitrep-sdk";
 import { transformSync } from "esbuild";
 import { beforeAll, describe, expect, it } from "vitest";
 import {
@@ -22,10 +23,12 @@ import {
 } from "./replay-fixture-conformance";
 import {
   buildWireContractResolver,
+  classifyUngradedTopic,
   type FixtureScan,
   findingKey,
   fixturePayloads,
   scanAllFixtures,
+  summariseCoverage,
   type WireContractResolver,
 } from "./widget-fixture-conformance";
 import { FIXTURE_CONTRACT_DRIFT } from "./widget-fixture-conformance.debt";
@@ -111,9 +114,10 @@ import { FIXTURE_CONTRACT_DRIFT } from "./widget-fixture-conformance.debt";
  *   mod always sends a figure passes. The neighbouring
  *   `render-fixture-coverage.test.ts` catches the second of those from the
  *   other side</li>
- * <li><b>Omission is not graded here.</b> A payload missing a field the
- *   contract declares required is a normal, deliberate fixture, driving a
- *   widget into its waiting branch. Same call as the replay gate makes</li>
+ * <li><b>Omission is recorded and reported, never graded.</b> A payload
+ *   missing a field the contract declares required is often a deliberate
+ *   fixture, driving a widget into its waiting branch, and no fixture can yet
+ *   say so. The count is printed so the gap is visible rather than silent</li>
  * <li><b>It cannot see a widget READING the wrong name.</b> Fixture and widget
  *   drifted together in the `Strategies` case, and only the fixture half is
  *   visible from here</li>
@@ -365,19 +369,44 @@ describe("widget fixtures conform to the generated contract", () => {
   });
 
   it("reports how much of the tree it could not grade", () => {
-    const ungraded = new Set<string>();
-    for (const scan of scanAll()) {
-      for (const topic of scan.ungradedTopics) ungraded.add(topic);
-    }
     const all = scanAll();
-    process.stdout.write(
-      `[widget-fixture-conformance] ${all.length} fixture dirs, ` +
-        `${all.reduce((n, s) => n + s.payloadsChecked, 0)} payloads, ` +
-        `${all.reduce((n, s) => n + s.fieldsChecked, 0)} fields checked; ` +
-        `${ungraded.size} distinct topic ids no generated map declares ` +
-        "(dynamic namespaces and legacy DataSource keys), so nothing about " +
-        "those was graded\n",
+    const summary = summariseCoverage(
+      all,
+      new Set(contract().topicIds),
+      DYNAMIC_WHOLE_TOPIC_PREFIXES,
     );
+    const { ungradedIds } = summary;
+    process.stdout.write(
+      `[widget-fixture-conformance] graded ${summary.payloadsGraded} of ` +
+        `${summary.payloadsGraded + summary.payloadsUngraded} payloads ` +
+        `(${(summary.gradedShare * 100).toFixed(1)}%) across ${all.length} ` +
+        `fixture dirs, ${summary.fieldsChecked} field names matched; ` +
+        `ungraded ids: ${ungradedIds["dynamic-namespace"].length} dynamic ` +
+        `namespace, ${ungradedIds["declared-topic-field"].length} declared ` +
+        `topic field path, ${ungradedIds["legacy-flat"].length} legacy flat ` +
+        `DataSource key; ${summary.omittedRequired.length} required fields ` +
+        "left out of a provided topic (not graded)\n",
+    );
+  });
+
+  it("keeps the graded share of payloads from collapsing", () => {
+    // About 28% of payloads are graded, the rest being legacy flat DataSource keys. The floor sits below that so a regression in how fixtures reach the resolver fails here instead of reading as a quieter clean run.
+    const summary = summariseCoverage(
+      scanAll(),
+      new Set(contract().topicIds),
+      DYNAMIC_WHOLE_TOPIC_PREFIXES,
+    );
+    expect(summary.gradedShare).toBeGreaterThan(0.25);
+  });
+
+  it("records a required field a fixture leaves out of a topic it provides", () => {
+    const scans = scanAll();
+    const omissions = scans.flatMap((s) => s.omissions);
+    const omittedHorizon = omissions.filter((o) => o.field === "horizon");
+    expect(
+      omittedHorizon.length,
+      "no fixture omits system.bodies[].horizon, the case this scan was written for; a fixture fix would make this assertion stale, a walk that stopped recording would too",
+    ).toBeGreaterThan(0);
   });
 });
 
@@ -525,6 +554,40 @@ describe("the widget-fixture check can fail", () => {
     ).toEqual(["thisFieldIsOnNoContractAnywhere"]);
     expect(checkFixturePayloads(blind, payloads).undeclaredFields).toEqual([]);
     expect(checkFixturePayloads(blind, payloads).topicsChecked).toBe(0);
+  });
+
+  it("classifies an ungraded id by why it cannot be graded", () => {
+    const declared = new Set(["vessel.flight", "career.status"]);
+    const prefixes = ["silence.", "fleet."];
+    expect(classifyUngradedTopic("silence.abc.state", declared, prefixes)).toBe(
+      "dynamic-namespace",
+    );
+    expect(
+      classifyUngradedTopic("vessel.flight.altitudeAsl", declared, prefixes),
+    ).toBe("declared-topic-field");
+    expect(classifyUngradedTopic("v.altitude", declared, prefixes)).toBe(
+      "legacy-flat",
+    );
+    // A bare prefix names no subject, so it is not a member of the namespace.
+    expect(classifyUngradedTopic("silence.", declared, prefixes)).toBe(
+      "legacy-flat",
+    );
+  });
+
+  it("records a planted omission and collapses array indices in the summary", () => {
+    const report = checkFixturePayloads(contract(), {
+      "career.status": { strategies: { active: [{ id: "x" }], all: [] } },
+    });
+    expect(report.omittedFields.length).toBeGreaterThan(0);
+    const blind: ContractResolver = {
+      ...contract(),
+      payloadType: () => undefined,
+    };
+    expect(
+      checkFixturePayloads(blind, {
+        "career.status": { strategies: { active: [{ id: "x" }], all: [] } },
+      }).omittedFields,
+    ).toEqual([]);
   });
 
   it("does not grade the harness's own directives", () => {
