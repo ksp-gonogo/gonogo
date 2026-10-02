@@ -165,6 +165,8 @@ export {
   type ProviderExtension,
   type ProviderExtensions,
 } from "./extensions";
+// Which coordinate frame a Vec3 field is expressed in, off the [SitrepFrame] tags, so a widget or a test can check two vectors share axes before combining them
+export { type FieldFrame, frameOf } from "./field-frames";
 // The buffered-recording subsystem: wraps a live `DataSource`, persists every
 // sample into a `FlightStore` keyed by inferred flight, and answers columnar range
 // queries. An Uplink's tests build one to assert what its widgets read, and

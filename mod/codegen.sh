@@ -26,6 +26,9 @@ RECKONABILITY_OUT="$ROOT/mod/sitrep-sdk/src/__generated__/reckonability.ts"
 # Every refusal and fault code, with its sentence and meaning. See
 # RtConfig.EmitErrorCodeMap.
 ERRORCODES_OUT="$ROOT/mod/sitrep-sdk/src/__generated__/error-codes.ts"
+# Which reference frame each [SitrepFrame]-tagged property is in. See
+# RtConfig.EmitFrameMap.
+FRAMES_OUT="$ROOT/mod/sitrep-sdk/src/__generated__/frames.ts"
 RT_VER="1.6.7"
 RT_PKG="${NUGET_PACKAGES:-$HOME/.nuget/packages}/reinforced.typings/$RT_VER"
 RTCLI="$RT_PKG/tools/net5.0/rtcli.dll"
@@ -62,6 +65,7 @@ DOTNET_ROLL_FORWARD=LatestMajor \
   SITREP_COMMANDMAP_OUT="$COMMAND_MAP_OUT" \
   SITREP_RECKONABILITY_OUT="$RECKONABILITY_OUT" \
   SITREP_ERRORCODES_OUT="$ERRORCODES_OUT" \
+  SITREP_FRAMEMAP_OUT="$FRAMES_OUT" \
   dotnet "$RTCLI" \
   DocumentationFilePath="$BIN/Sitrep.Contract.xml" \
   SourceAssemblies="$BIN/Sitrep.Contract.dll" \
@@ -75,6 +79,7 @@ echo "codegen -> $CHANNEL_MAP_OUT"
 echo "codegen -> $COMMAND_MAP_OUT"
 echo "codegen -> $RECKONABILITY_OUT"
 echo "codegen -> $ERRORCODES_OUT"
+echo "codegen -> $FRAMES_OUT"
 
 # One rtcli run per Uplink that owns its own wire types, in addition to the core
 # Sitrep.Contract run above. Each Uplink's types live in its OWN contract-slice
