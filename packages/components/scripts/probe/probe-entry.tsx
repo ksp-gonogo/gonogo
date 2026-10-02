@@ -41,6 +41,7 @@ import {
   defaultDarkTheme,
   PanelBadgesProvider,
   PanelStatusStoreProvider,
+  showsTiny,
   WidgetBody,
 } from "@ksp-gonogo/ui-kit";
 import { createElement, Fragment } from "react";
@@ -764,7 +765,15 @@ function guarded(
 ): React.ReactNode {
   if (payload.fixture._guarded !== true) return body;
   return (
-    <RequiresGuard channels={def.channels} title={def.name}>
+    <RequiresGuard
+      channels={def.channels}
+      title={def.name}
+      compact={
+        def.tiny !== undefined && showsTiny(def.tiny, payload.w, payload.h)
+          ? { title: def.tiny.title }
+          : undefined
+      }
+    >
       {body}
     </RequiresGuard>
   );

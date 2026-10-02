@@ -355,6 +355,7 @@ export {
   InfoIcon,
   JoystickIcon,
   LayersIcon,
+  LockIcon,
   MicroscopeIcon,
   MutedIcon,
   PauseIcon,
@@ -393,6 +394,7 @@ export {
   type LineGraphThresholdStyle,
 } from "./LineGraph";
 export { LiveRegion, type LiveRegionProps } from "./LiveRegion";
+export { LockMark, type LockMarkProps } from "./LockMark";
 export {
   LockScope,
   type LockScopeProps,

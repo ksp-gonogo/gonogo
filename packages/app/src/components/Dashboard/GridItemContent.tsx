@@ -16,6 +16,7 @@ import {
   DelayRailProvider,
   PanelBadgesProvider,
   PanelStatusStoreProvider,
+  showsTiny,
   Tooltip,
   WidgetBody,
   widgetDrawnFields,
@@ -179,6 +180,11 @@ export const GridItemContent = memo(function GridItemContent({
                         requires={def.requires}
                         channels={def.channels}
                         title={def.name}
+                        compact={
+                          def.tiny !== undefined && showsTiny(def.tiny, w, h)
+                            ? { title: def.tiny.title }
+                            : undefined
+                        }
                       >
                         <WidgetBody
                           def={def}

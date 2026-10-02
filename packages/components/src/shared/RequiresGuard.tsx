@@ -7,7 +7,14 @@ import {
 } from "@ksp-gonogo/core";
 import type { Capability } from "@ksp-gonogo/sitrep-sdk/spine";
 import { DimmedOverlay } from "@ksp-gonogo/ui";
-import { LockScope, Panel } from "@ksp-gonogo/ui-kit";
+import {
+  Cluster,
+  LockMark,
+  LockScope,
+  type LockSummary,
+  Panel,
+  Section,
+} from "@ksp-gonogo/ui-kit";
 import { type ReactNode, useMemo } from "react";
 
 export interface RequiresGuardProps {
@@ -16,6 +23,11 @@ export interface RequiresGuardProps {
   channels?: readonly string[];
   /** The widget's name, kept as the panel heading while its body is refused. */
   title?: string;
+  /**
+   * Set while the widget shows its tiny form: a lock then draws as the compact
+   * mark under this heading, since the full notice does not fit a tiny tile.
+   */
+  compact?: { title: string };
   children: ReactNode;
 }
 
@@ -35,6 +47,7 @@ export function RequiresGuard({
   requires,
   channels,
   title,
+  compact,
   children,
 }: RequiresGuardProps) {
   const hostDown = useTelemetryHostDown();
@@ -53,13 +66,17 @@ export function RequiresGuard({
   return (
     <LockScope
       uses={uses}
-      fallback={(lock) => (
-        <GuardPlaceholder
-          title={title}
-          message={lock.reason}
-          hint={lock.hint}
-        />
-      )}
+      fallback={(lock) =>
+        compact ? (
+          <TinyLockPlaceholder title={compact.title} lock={lock} />
+        ) : (
+          <GuardPlaceholder
+            title={title}
+            message={lock.reason}
+            hint={lock.hint}
+          />
+        )
+      }
     >
       <ReadinessGate requires={requires} channels={channels} title={title}>
         {children}
@@ -139,6 +156,30 @@ export function GuardPlaceholder({
   hint?: string;
 }) {
   return <Panel panelTitle={title} inactive={{ reason: message, hint }} />;
+}
+
+/** A lock in a tiny tile: the tiny heading over the compact mark, in the frame the tiny form draws in. */
+function TinyLockPlaceholder({
+  title,
+  lock,
+}: {
+  title: string;
+  lock: LockSummary;
+}) {
+  return (
+    <Panel
+      panelTitle={title}
+      fitToSize
+      hoverTitle
+      sections={
+        <Section full>
+          <Cluster justify="center">
+            <LockMark lock={lock} />
+          </Cluster>
+        </Section>
+      }
+    />
+  );
 }
 
 export { DimmedOverlay };

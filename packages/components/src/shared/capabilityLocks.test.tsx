@@ -231,4 +231,36 @@ describe("capability locks", () => {
     expect(screen.queryByText("executor rows")).toBeNull();
     expect(screen.queryByText("Missing tech: Flight Control")).toBeNull();
   });
+
+  it("draws the compact mark in a tiny tile, named by the whole sentence", () => {
+    const fixture = setupStreamFixture();
+    function Planner() {
+      useCommand("vessel.maneuver.add");
+      return <p>tiny figures</p>;
+    }
+    render(
+      <fixture.Provider>
+        <RequiresGuard
+          title="Maneuver Planner"
+          channels={[]}
+          compact={{ title: "MANEUVER" }}
+        >
+          <Planner />
+        </RequiresGuard>
+      </fixture.Provider>,
+    );
+    act(() => {
+      fixture.emit("system.uplink.gates", {
+        gates: [
+          { command: "vessel.maneuver.add", verdict: locked(MISSION_CONTROL) },
+        ],
+      });
+    });
+    expect(screen.queryByText("tiny figures")).toBeNull();
+    expect(
+      screen.getByRole("status", {
+        name: "Mission Control. Needs Building level 2",
+      }),
+    ).toBeTruthy();
+  });
 });

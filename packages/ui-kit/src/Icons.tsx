@@ -21,6 +21,7 @@ import {
   Info,
   Joystick,
   Layers,
+  Lock,
   type LucideProps,
   Maximize,
   Microscope,
@@ -126,6 +127,12 @@ export const HomeIcon = makeIcon(Home);
  * @category Icons
  */
 export const InfoIcon = makeIcon(Info);
+/**
+ * A closed padlock, marking something this save has not unlocked yet.
+ *
+ * @category Icons
+ */
+export const LockIcon = makeIcon(Lock);
 /**
  * A point with radio waves spreading on either side, for broadcasting or a live link.
  *
