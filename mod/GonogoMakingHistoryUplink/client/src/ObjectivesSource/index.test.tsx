@@ -9,6 +9,7 @@ import {
   render,
   screen,
   setupStreamFixture,
+  waitFor,
   wrapWire,
 } from "@ksp-gonogo/sitrep-sdk/testing";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
@@ -176,5 +177,26 @@ describe("MissionObjectivesSource", () => {
       "failed",
     ]);
     await expectNoA11yViolations(container);
+  });
+
+  it("clears the rows when the mission ends", async () => {
+    const fixture = setupStreamFixture({ pinnedUt: 10 });
+
+    const { container } = render(
+      <MissionObjectivesSource Section={Section} />,
+      {
+        wrapper: fixture.Provider,
+      },
+    );
+    act(() => {
+      fixture.emit("missions.active", RAW);
+    });
+    expect(await screen.findByText(/Leave the pad/)).toBeInTheDocument();
+
+    act(() => {
+      fixture.emit("missions.active", null);
+    });
+
+    await waitFor(() => expect(container).toBeEmptyDOMElement());
   });
 });
