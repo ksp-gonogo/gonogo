@@ -17,12 +17,18 @@ export function useScrollerMetric<Metric>(
   computeRef.current = compute;
   const equalRef = useRef(isEqual);
   equalRef.current = isEqual;
+  const valueRef = useRef(value);
+  valueRef.current = value;
 
   useEffect(() => {
     if (!el) return;
+    // Held beside the state so an unchanged reading never reaches `setValue`: a subtree observer fires often, and a no-op set still schedules a render.
+    let last = valueRef.current;
     const update = () => {
       const next = computeRef.current(el);
-      setValue((prev) => (equalRef.current(prev, next) ? prev : next));
+      if (equalRef.current(last, next)) return;
+      last = next;
+      setValue(next);
     };
     update();
     el.addEventListener("scroll", update, { passive: true });
