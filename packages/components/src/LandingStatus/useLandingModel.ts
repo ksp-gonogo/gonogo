@@ -248,10 +248,6 @@ export function useLandingModel(): LandingModel {
 
   // `no-path` is not live: with no comms telemetry at all the hero must not claim the loop is closed.
   const live = clocks.regime === "live";
-  /*
-   * Every axis grades on its point estimate, with no band, because none exists: only `altitudeAsl` is banded on `vessel.flight`.
-   * Vertical speed is not a reckonable field, and the lateral rate and slope come from the solve and `vessel.landing`.
-   */
   const hazardVerdict = deriveHazardVerdict({
     slopeDeg: landing?.predictedSlopeAngle?.magnitude,
     roughnessSigma: landing?.predictedRoughness?.magnitude,

@@ -15,7 +15,6 @@ function bannerTone(noLandingVector: boolean, hazard: Hazard | null): Tone {
   if (noLandingVector || hazard === "DIVERT") return "nogo";
   if (hazard === "MARGINAL") return "warn";
   if (hazard === "SAFE") return "go";
-  // UNRESOLVED: green would state a verdict and amber a site finding, when the finding is about the model.
   return "neutral";
 }
 
