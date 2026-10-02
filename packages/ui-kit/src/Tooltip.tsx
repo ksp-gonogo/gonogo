@@ -2,7 +2,6 @@ import {
   type CSSProperties,
   cloneElement,
   type FocusEvent,
-  type KeyboardEvent,
   type ReactElement,
   type ReactNode,
   useCallback,
@@ -11,7 +10,7 @@ import {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
-import styled from "styled-components";
+import styled, { createGlobalStyle } from "styled-components";
 
 /** Where the tip sits, in viewport pixels: below its anchor, or above it where the anchor is low on the screen. */
 interface Placement {
@@ -23,6 +22,9 @@ interface Placement {
 
 /** Anchors with less than this much viewport below them put their tip above. */
 const ROOM_BELOW_PX = 120;
+
+/** How long the pointer may spend crossing from an anchor to its tip before the tip closes. */
+const CROSSING_MS = 120;
 
 /** A name or description reduced to its words, so punctuation cannot make two phrasings of one thing differ. */
 const words = (text: string): string =>
@@ -43,7 +45,6 @@ export interface TooltipAnchorProps {
   onPointerUp?: () => void;
   onFocus?: (event: FocusEvent<Element>) => void;
   onBlur?: () => void;
-  onKeyDown?: (event: KeyboardEvent<Element>) => void;
   "data-tooltip"?: string;
 }
 
@@ -62,7 +63,7 @@ export interface UseTooltipResult {
  * The kit's tip for `text`: padded, rounded, drawn over everything, and
  * placed below its anchor inside the viewport, so a clipping or scrolling
  * ancestor never cuts it off. It opens while the pointer is over the anchor or
- * the anchor has keyboard focus, and closes on Escape, scroll or resize.
+ * the anchor has keyboard focus, and closes on Escape (from anywhere on the page), scroll or resize. The pointer can move onto the tip, which stays open while it is hovered.
  *
  * The tip is hidden from the accessibility tree, so the anchor must already
  * say the same thing to a screen reader (in its text, an `aria-label` or a
@@ -90,14 +91,34 @@ export function useTooltip(text: string | null | undefined): UseTooltipResult {
   const [at, setAt] = useState<Placement | null>(null);
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
+  const [tipHovered, setTipHovered] = useState(false);
   const pressed = useRef(false);
+  const leaving = useRef<ReturnType<typeof setTimeout> | null>(null);
   const shown = text != null && text !== "" ? text : null;
-  const open = at !== null && (hovered || focused);
+  const open = at !== null && (hovered || focused || tipHovered);
+  const cancelLeave = useCallback(() => {
+    if (leaving.current !== null) clearTimeout(leaving.current);
+    leaving.current = null;
+  }, []);
   const close = useCallback(() => {
+    cancelLeave();
     setAt(null);
     setHovered(false);
     setFocused(false);
-  }, []);
+    setTipHovered(false);
+  }, [cancelLeave]);
+
+  // The pointer gets a moment to cross onto the tip before the anchor's leave closes it.
+  const leaveSoon = useCallback(() => {
+    cancelLeave();
+    leaving.current = setTimeout(() => {
+      leaving.current = null;
+      setHovered(false);
+      setTipHovered(false);
+    }, CROSSING_MS);
+  }, [cancelLeave]);
+
+  useEffect(() => cancelLeave, [cancelLeave]);
 
   // A tip placed once goes stale when the page under it moves.
   useEffect(() => {
@@ -109,6 +130,16 @@ export function useTooltip(text: string | null | undefined): UseTooltipResult {
       window.removeEventListener("resize", close);
     };
   }, [at, close]);
+
+  // WCAG 1.4.13: Escape dismisses the tip wherever focus or the pointer is.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (event: globalThis.KeyboardEvent) => {
+      if (event.key === "Escape") close();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, close]);
 
   if (shown === null) return { anchor: {}, tip: null };
 
@@ -126,13 +157,11 @@ export function useTooltip(text: string | null | undefined): UseTooltipResult {
     anchor: {
       "data-tooltip": shown,
       onPointerEnter: (event) => {
+        cancelLeave();
         place(event.currentTarget);
         setHovered(true);
       },
-      onPointerLeave: () => {
-        setHovered(false);
-        if (!focused) setAt(null);
-      },
+      onPointerLeave: leaveSoon,
       onPointerDown: () => {
         pressed.current = true;
       },
@@ -147,19 +176,37 @@ export function useTooltip(text: string | null | undefined): UseTooltipResult {
       },
       onBlur: () => {
         setFocused(false);
-        if (!hovered) setAt(null);
-      },
-      onKeyDown: (event) => {
-        if (event.key === "Escape" && open) close();
+        if (!hovered && !tipHovered) setAt(null);
       },
     },
     tip: open
-      ? createPortal(<TipBody at={at} text={shown} />, document.body)
+      ? createPortal(
+          <TipBody
+            at={at}
+            text={shown}
+            onPointerEnter={() => {
+              cancelLeave();
+              setTipHovered(true);
+            }}
+            onPointerLeave={leaveSoon}
+          />,
+          document.body,
+        )
       : null,
   };
 }
 
-function TipBody({ at, text }: { at: Placement; text: string }) {
+function TipBody({
+  at,
+  text,
+  onPointerEnter,
+  onPointerLeave,
+}: {
+  at: Placement;
+  text: string;
+  onPointerEnter: () => void;
+  onPointerLeave: () => void;
+}) {
   const position: CSSProperties = at.above
     ? { bottom: window.innerHeight - at.anchorTop }
     : { top: at.top };
@@ -168,6 +215,8 @@ function TipBody({ at, text }: { at: Placement; text: string }) {
       aria-hidden="true"
       data-tooltip-tip=""
       data-above={at.above ? "" : undefined}
+      onPointerEnter={onPointerEnter}
+      onPointerLeave={onPointerLeave}
       style={
         {
           ...position,
@@ -256,20 +305,29 @@ export function Tooltip({
     <>
       {cloneElement(children, {
         "data-tooltip": text,
+        "data-tooltip-focusable": focusable ? "" : undefined,
         onPointerEnter: joined(own.onPointerEnter, anchor.onPointerEnter),
         onPointerLeave: joined(own.onPointerLeave, anchor.onPointerLeave),
         onPointerDown: joined(own.onPointerDown, anchor.onPointerDown),
         onPointerUp: joined(own.onPointerUp, anchor.onPointerUp),
         onFocus: joined(own.onFocus, anchor.onFocus),
         onBlur: joined(own.onBlur, anchor.onBlur),
-        onKeyDown: joined(own.onKeyDown, anchor.onKeyDown),
         "aria-description": named ? own["aria-description"] : text,
         tabIndex: focusable ? (own.tabIndex ?? 0) : own.tabIndex,
       })}
       {tip}
+      {focusable && <TooltipFocusRing />}
     </>
   );
 }
+
+/** The kit focus ring for a non-control made focusable by {@link Tooltip}, in place of the browser default. */
+const TooltipFocusRing = createGlobalStyle`
+  [data-tooltip-focusable]:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+`;
 
 const Tooltip__Body = styled.div`
   position: fixed;
@@ -288,7 +346,6 @@ const Tooltip__Body = styled.div`
   line-height: var(--line-height-body);
   letter-spacing: 0.02em;
   white-space: pre-line;
-  pointer-events: none;
 
   &[data-above] {
     margin-top: 0;

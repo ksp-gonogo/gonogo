@@ -1,4 +1,4 @@
-import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
+import { render, screen, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { HeldFigure } from "./HeldMark";
@@ -30,7 +30,7 @@ describe("useTooltip", () => {
     expect(container.contains(tip)).toBe(false);
 
     await user.unhover(anchor);
-    expect(tipIn(document.body)).toBeNull();
+    await waitFor(() => expect(tipIn(document.body)).toBeNull());
   });
 
   it("opens the tip on keyboard focus and closes it on blur", async () => {
@@ -92,7 +92,7 @@ describe("Tooltip", () => {
     await user.hover(button);
     expect(tipIn(document.body)).toHaveTextContent("Saves the game first");
     await user.unhover(button);
-    expect(tipIn(document.body)).toBeNull();
+    await waitFor(() => expect(tipIn(document.body)).toBeNull());
   });
 
   it("opens for keyboard focus and closes on Escape", async () => {
@@ -108,6 +108,49 @@ describe("Tooltip", () => {
 
     await user.keyboard("{Escape}");
     expect(tipIn(document.body)).toBeNull();
+  });
+
+  it("lets the pointer move onto the tip, which stays open while hovered", async () => {
+    const user = userEvent.setup();
+    render(
+      <Tooltip text="Held since Y1 D12">
+        <span data-testid="anchor">Alt</span>
+      </Tooltip>,
+    );
+    await user.hover(screen.getByTestId("anchor"));
+    const tip = tipIn(document.body) as HTMLElement;
+    expect(getComputedStyle(tip).pointerEvents).not.toBe("none");
+
+    await user.hover(tip);
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    expect(tipIn(document.body)).toBe(tip);
+
+    await user.unhover(tip);
+    await waitFor(() => expect(tipIn(document.body)).toBeNull());
+  });
+
+  it("closes on Escape from the window while only the pointer is over the anchor", async () => {
+    const user = userEvent.setup();
+    render(
+      <Tooltip text="Held since Y1 D12">
+        <span data-testid="anchor">Alt</span>
+      </Tooltip>,
+    );
+    await user.hover(screen.getByTestId("anchor"));
+    expect(tipIn(document.body)).not.toBeNull();
+    await user.keyboard("{Escape}");
+    expect(tipIn(document.body)).toBeNull();
+  });
+
+  it("marks a focusable non-control so the kit focus ring can select it", () => {
+    render(
+      <Tooltip text="Why" focusable>
+        <span data-testid="anchor">Alt</span>
+      </Tooltip>,
+    );
+    expect(screen.getByTestId("anchor")).toHaveAttribute(
+      "data-tooltip-focusable",
+    );
   });
 
   it("makes a non-control child reachable only when asked", async () => {
