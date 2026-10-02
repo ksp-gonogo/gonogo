@@ -24,14 +24,21 @@ interface JogWheelCommon {
   /** Caret label formatter, also used as `aria-valuetext`. Default `String(Math.round(v))`; for a quantity, write it with {@link writeQuantity}. */
   format?: (v: number) => string;
   ariaLabel: string;
+  /**
+   * The name drawn above the wheel. Defaults to `ariaLabel`; `false` draws
+   * none, for a wheel the caller already names beside it.
+   */
+  label?: string | false;
   disabled?: boolean;
   /**
-   * Box width in CSS px. Defaults to 120 horizontal / 40 vertical. Clamped up
-   * to {@link JOG_WHEEL_MIN_TARGET_PX}.
+   * Box width in CSS px. Defaults to 56 horizontal / 24 vertical. Clamped up
+   * to {@link JOG_WHEEL_MIN_TARGET_PX}. A `format` longer than a few
+   * characters needs more than the default, as the caret label is clipped to
+   * the box.
    */
   width?: number;
   /**
-   * Box height in CSS px. Defaults to 40 horizontal / 120 vertical. Clamped up
+   * Box height in CSS px. Defaults to 24 horizontal / 56 vertical. Clamped up
    * to {@link JOG_WHEEL_MIN_TARGET_PX}.
    */
   height?: number;
@@ -89,8 +96,8 @@ export const JOG_WHEEL_MIN_TARGET_PX = 24;
 const COMPACT_CROSS_AXIS_PX = 32;
 
 /** Default box, per orientation: the long axis first. */
-const DEFAULT_LONG_PX = 120;
-const DEFAULT_SHORT_PX = 40;
+const DEFAULT_LONG_PX = 56;
+const DEFAULT_SHORT_PX = JOG_WHEEL_MIN_TARGET_PX;
 
 /**
  * Pure clamp + quantise: move `value` by `deltaSteps` of `step` (fractional
@@ -155,6 +162,7 @@ export function JogWheel(props: JogWheelProps): JSX.Element {
     onChange,
     format,
     ariaLabel,
+    label: caption = ariaLabel,
     disabled = false,
     width,
     height,
@@ -273,41 +281,59 @@ export function JogWheel(props: JogWheelProps): JSX.Element {
   };
 
   return (
-    <JogWheel__Root
-      role="slider"
-      aria-label={ariaLabel}
-      aria-orientation={orientation}
-      aria-valuenow={Number.isFinite(value) ? value : undefined}
-      aria-valuemin={min}
-      aria-valuemax={max}
-      aria-valuetext={label}
-      aria-disabled={disabled || undefined}
-      tabIndex={disabled ? -1 : 0}
-      $orientation={orientation}
-      $disabled={disabled}
-      $width={boxWidth}
-      $height={boxHeight}
-      $compact={(vertical ? boxWidth : boxHeight) < COMPACT_CROSS_AXIS_PX}
-      onKeyDown={handleKeyDown}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={endDrag}
-      onPointerCancel={endDrag}
-    >
-      <JogWheel__Tape
+    <JogWheel__Frame>
+      {caption !== false && (
+        <JogWheel__Caption aria-hidden="true">{caption}</JogWheel__Caption>
+      )}
+      <JogWheel__Root
+        role="slider"
+        aria-label={ariaLabel}
+        aria-orientation={orientation}
+        aria-valuenow={Number.isFinite(value) ? value : undefined}
+        aria-valuemin={min}
+        aria-valuemax={max}
+        aria-valuetext={label}
+        aria-disabled={disabled || undefined}
+        tabIndex={disabled ? -1 : 0}
         $orientation={orientation}
-        style={
-          orientation === "vertical"
-            ? { transform: `translateY(${(0.5 - fraction) * 100}%)` }
-            : { transform: `translateX(${(0.5 - fraction) * 100}%)` }
-        }
-        aria-hidden="true"
-      />
-      <JogWheel__Caret $orientation={orientation} aria-hidden="true" />
-      <JogWheel__Label aria-hidden="true">{label}</JogWheel__Label>
-    </JogWheel__Root>
+        $disabled={disabled}
+        $width={boxWidth}
+        $height={boxHeight}
+        $compact={(vertical ? boxWidth : boxHeight) < COMPACT_CROSS_AXIS_PX}
+        onKeyDown={handleKeyDown}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+      >
+        <JogWheel__Tape
+          $orientation={orientation}
+          style={
+            orientation === "vertical"
+              ? { transform: `translateY(${(0.5 - fraction) * 100}%)` }
+              : { transform: `translateX(${(0.5 - fraction) * 100}%)` }
+          }
+          aria-hidden="true"
+        />
+        <JogWheel__Caret $orientation={orientation} aria-hidden="true" />
+        <JogWheel__Label aria-hidden="true">{label}</JogWheel__Label>
+      </JogWheel__Root>
+    </JogWheel__Frame>
   );
 }
+
+const JogWheel__Frame = styled.div`
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--gap-related-packed);
+`;
+
+const JogWheel__Caption = styled.span`
+  font-size: var(--font-size-caption);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+`;
 
 const JogWheel__Root = styled.div<{
   $orientation: "horizontal" | "vertical";

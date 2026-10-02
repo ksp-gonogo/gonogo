@@ -99,7 +99,7 @@ describe("JogWheel sizing", () => {
     throw new Error(`no styled-components rule found for "${name}"`);
   };
 
-  it("keeps the size it has always had when neither axis is given", () => {
+  it("is the compact strip when neither axis is given", () => {
     render(
       <>
         <JogWheel
@@ -121,10 +121,14 @@ describe("JogWheel sizing", () => {
         />
       </>,
     );
-    expect(box("Across")).toEqual({ width: "120px", height: "40px" });
-    expect(box("Down")).toEqual({ width: "40px", height: "120px" });
-    expect(declarations("Across")).toContain("padding:var(--inset-jog-wheel)");
-    expect(declarations("Down")).toContain("padding:var(--inset-jog-wheel)");
+    expect(box("Across")).toEqual({ width: "56px", height: "24px" });
+    expect(box("Down")).toEqual({ width: "24px", height: "56px" });
+    expect(declarations("Across")).toContain(
+      "padding:var(--inset-jog-wheel-compact)",
+    );
+    expect(declarations("Down")).toContain(
+      "padding:var(--inset-jog-wheel-compact)",
+    );
   });
 
   it("draws the box it is asked for, down to a corner-sized strip", () => {
@@ -388,5 +392,35 @@ describe("JogWheel with no value to show", () => {
     const slider = screen.getByRole("slider", { name: "Yaw" });
     expect(slider).not.toHaveAttribute("aria-valuenow");
     expect(slider).toHaveAttribute("aria-valuetext", "no reading");
+  });
+});
+
+describe("JogWheel label", () => {
+  const wheel = (label?: string | false) => (
+    <JogWheel
+      value={5}
+      min={0}
+      max={9}
+      step={1}
+      ariaLabel="Yaw"
+      label={label}
+      onChange={() => {}}
+    />
+  );
+
+  it("draws its accessible name above the wheel by default", () => {
+    render(wheel());
+    expect(screen.getByText("Yaw")).toBeInTheDocument();
+  });
+
+  it("draws the name it is given in place of the accessible one", () => {
+    render(wheel("Heading"));
+    expect(screen.getByText("Heading")).toBeInTheDocument();
+    expect(screen.getByRole("slider", { name: "Yaw" })).toBeInTheDocument();
+  });
+
+  it("draws no name when told not to", () => {
+    render(wheel(false));
+    expect(screen.queryByText("Yaw")).toBeNull();
   });
 });

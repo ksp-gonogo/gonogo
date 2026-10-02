@@ -16,6 +16,9 @@ import { Stack } from "./Stack";
 import { Text } from "./Text";
 import type { FormatsFor } from "./units";
 
+/** Wide enough for `D6 04:17:36` in the caret label. */
+const INSTANT_WHEEL_PX = 112;
+
 /**
  * Bounds for a POSITION slider, refused on a point-like unit: an instant can be
  * years out, and no range wide enough to reach it leaves useful precision. Use
@@ -186,6 +189,8 @@ export function UnitInput<Unit extends string>({
         // A wheel against a value never read would dial away from an instant nobody stated.
         disabled={disabled || !Number.isFinite(magnitude)}
         format={isInstant(unit) ? caretDate : undefined}
+        // A calendar instant is eleven characters, which the default box would clip.
+        width={isInstant(unit) ? INSTANT_WHEEL_PX : undefined}
         onChange={(next) => onChange(value(unit, next))}
       />
       {/* A notch on an instant is an interval, so the notch unit is stated rather than inferred. */}
