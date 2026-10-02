@@ -28,8 +28,8 @@
  *
  * Seeded red for every Uplink would be a second permanently-failing job, and this
  * repo already owns one and has twice had a real failure hide behind it. So the
- * remaining six are grandfathered in `UNARMED_DEBT` and anything NOT listed is
- * held to armed: a new Uplink vouches for its bundle from the day it lands.
+ * list is `UNARMED_DEBT`, empty now, and anything NOT listed is held to armed:
+ * a new Uplink vouches for its bundle from the day it lands.
  *
  * Both directions, like every other ratchet here. An entry that becomes armed and
  * stays listed fails as STALE, because a debt list nobody prunes stops describing
