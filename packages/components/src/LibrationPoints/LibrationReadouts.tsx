@@ -2,7 +2,7 @@ import type {
   LibrationAnswer,
   LibrationOffset,
 } from "@ksp-gonogo/sitrep-client";
-import { type Tone, value } from "@ksp-gonogo/sitrep-sdk";
+import { staticValue, type Tone, value } from "@ksp-gonogo/sitrep-sdk";
 import { Row, RowName, Text, Unit } from "@ksp-gonogo/ui-kit";
 import { type HeldSince, heldFigure } from "../shared/heldFigure";
 
@@ -25,6 +25,7 @@ export function LibrationReadouts({
   offset,
   hasCraft,
   craftHeldSince,
+  catalogueHeldSince,
 }: Readonly<{
   answer: LibrationAnswer;
   offset: LibrationOffset | null;
@@ -32,20 +33,27 @@ export function LibrationReadouts({
   hasCraft: boolean;
   /** When the craft's orbit was last observed, while only a model places it. */
   craftHeldSince: HeldSince;
+  /** When the catalogue was last a reading of now; the pair's separation follows its orbit. */
+  catalogueHeldSince: HeldSince;
 }>) {
   return (
     <>
       <Row>
         <RowName>Separation</RowName>
         <Text>
-          <Unit value={value("m", answer.frame?.unitLength ?? 0)} />
+          <Unit
+            value={heldFigure(
+              value("m", answer.frame?.unitLength ?? 0),
+              catalogueHeldSince,
+            )}
+          />
         </Text>
       </Row>
       <Row>
         <RowName>Mass ratio</RowName>
         <Text>
-          {/* The only parameter the five positions depend on. */}
-          <Unit value={value("%", answer.massRatio * 100)} decimals={3} />
+          {/* The only parameter the five positions depend on, and a function of two body masses alone. */}
+          <Unit value={staticValue("%", answer.massRatio * 100)} decimals={3} />
         </Text>
       </Row>
       {/* With no orbit of now there is no craft to place, so there is nothing to say about one. */}

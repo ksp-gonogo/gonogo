@@ -23,6 +23,7 @@ export function WindowsList({
   selectedIndex,
   onSelect,
   orbitHeldSince,
+  catalogueHeldSince,
   destPicker,
   createAlarm,
 }: {
@@ -31,6 +32,7 @@ export function WindowsList({
   onSelect: (index: number) => void;
   /** Ejection figures come from the parking orbit, so they hold with it. */
   orbitHeldSince: HeldSince;
+  catalogueHeldSince: HeldSince;
   /** The destination select, on this section's heading line: it scopes THIS list. */
   destPicker: ReactNode;
   createAlarm: ((w: TransferWindowEntry) => void) | null;
@@ -53,7 +55,12 @@ export function WindowsList({
               >
                 <ColWait>{fmtCountdown(w.waitSeconds)}</ColWait>
                 <ColDv>
-                  <Unit value={value("m/s", w.deltaV)} />
+                  <Unit
+                    value={heldFigure(
+                      value("m/s", w.deltaV),
+                      catalogueHeldSince,
+                    )}
+                  />
                 </ColDv>
                 <ColTof>{fmtDays(w.transferTimeSec)}</ColTof>
               </SelectableRow>
@@ -89,7 +96,10 @@ export function WindowsList({
                     <ExpLabel>Ejection angle</ExpLabel>
                     <ExpValue>
                       <Unit
-                        value={value("°", w.ejectionAngleDeg)}
+                        value={heldFigure(
+                          value("°", w.ejectionAngleDeg),
+                          catalogueHeldSince,
+                        )}
                         decimals={0}
                       />{" "}
                       to prograde

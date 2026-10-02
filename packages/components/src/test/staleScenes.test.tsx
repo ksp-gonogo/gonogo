@@ -46,13 +46,7 @@ const UNCHANGED_DEBT = new Set<string>([]);
  * one: a figure that cannot go stale is declared `[SitrepStatic]` on the
  * contract, and every other figure is marked.
  */
-const UNMARKED_FIGURE_DEBT: Readonly<Record<string, number>> = {
-  "astronaut-complex / active-crew-multi-situation-stopped-arriving": 2,
-  "libration-points / mun-l2-drifting-stopped-arriving": 2,
-  "libration-points / mun-l2-path-withheld-stopped-arriving": 2,
-  "transfer-window / earth-mars-go-stopped-arriving": 8,
-  "transfer-window / earth-mars-reach-band-stopped-arriving": 8,
-};
+const UNMARKED_FIGURE_DEBT: Readonly<Record<string, number>> = {};
 
 interface Scene {
   name: string;

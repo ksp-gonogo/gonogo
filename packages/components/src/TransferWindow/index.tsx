@@ -25,7 +25,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useState } from "react";
 import { useAlarmCreator } from "../shared/AlarmsLauncher";
-import type { HeldSince } from "../shared/heldFigure";
+import { type HeldSince, heldFigure } from "../shared/heldFigure";
 import { magnitudeOf, magnitudeOr } from "../shared/magnitude";
 import {
   type TimeTrigger,
@@ -106,6 +106,11 @@ function TransferWindowComponent({
     factsReading?.state === "observed" || factsReading?.state === "held"
       ? factsReading.value
       : undefined;
+  // The phase angles and window figures are functions of the catalogue's orbits, dated by it.
+  const catalogueHeldSince: HeldSince =
+    factsReading?.state === "held"
+      ? { asOfUt: factsReading.asOfUt, grade: factsReading.grade }
+      : null;
   const bodies = facts?.bodies ?? NO_BODIES;
   // Through the canonical funnel, which coalesces a non-finite reading to 0 rather than passing NaN into the porkchop.
   const nowUt = magnitudeOr(useViewUt(), 0);
@@ -324,13 +329,19 @@ function TransferWindowComponent({
                       <NowLabel>Current phase</NowLabel>
                       <NowValue>
                         <Unit
-                          value={value("°", solution.currentPhaseDeg)}
+                          value={heldFigure(
+                            value("°", solution.currentPhaseDeg),
+                            catalogueHeldSince,
+                          )}
                           decimals={1}
                         />
                         <Muted>
                           {" / ideal "}
                           <Unit
-                            value={value("°", solution.idealPhaseDeg)}
+                            value={heldFigure(
+                              value("°", solution.idealPhaseDeg),
+                              catalogueHeldSince,
+                            )}
                             decimals={1}
                           />
                         </Muted>
@@ -350,6 +361,7 @@ function TransferWindowComponent({
                   selectedIndex={selIdx}
                   onSelect={setSelectedWindow}
                   orbitHeldSince={orbitHeldSince}
+                  catalogueHeldSince={catalogueHeldSince}
                   destPicker={
                     // Label and select are direct children of SectionHead so the select's narrow-width rule sizes correctly; the heading IS the control's label.
                     <>

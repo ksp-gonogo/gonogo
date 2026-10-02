@@ -1,6 +1,7 @@
 import {
   crewUnavailableSentence,
   isFatality,
+  staticValue,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
@@ -75,10 +76,13 @@ function RatioChip({
   symbol,
   name,
   reading,
+  fixed = false,
 }: {
   symbol: string;
   name: string;
   reading: number | null | undefined;
+  /** The contract declares the stat static (fixed at hire), so it never goes stale. */
+  fixed?: boolean;
 }) {
   if (typeof reading !== "number") {
     return (
@@ -89,12 +93,14 @@ function RatioChip({
       </Tooltip>
     );
   }
-  const spoken = speakQuantity(value("ratio", reading));
+  const figure = fixed
+    ? staticValue("ratio", reading)
+    : value("ratio", reading);
+  const spoken = speakQuantity(figure);
   return (
     <Tooltip text={`${name}: ${spoken}`} focusable>
       <span style={LEVEL_STYLE} role="img" aria-label={`${name} ${spoken}`}>
-        <span style={STAT_SYMBOL_STYLE}>{symbol}</span>{" "}
-        <Unit value={value("ratio", reading)} />
+        <span style={STAT_SYMBOL_STYLE}>{symbol}</span> <Unit value={figure} />
       </span>
     </Tooltip>
   );
@@ -152,10 +158,15 @@ export function KerbalStats({
           </Tooltip>
         ))}
       {showTraits && (
-        <RatioChip symbol="C" name="Courage" reading={kerbal.courage} />
+        <RatioChip symbol="C" name="Courage" reading={kerbal.courage} fixed />
       )}
       {showTraits && (
-        <RatioChip symbol="S" name="Stupidity" reading={kerbal.stupidity} />
+        <RatioChip
+          symbol="S"
+          name="Stupidity"
+          reading={kerbal.stupidity}
+          fixed
+        />
       )}
       {showExperienceProgress &&
         (atMaxRank ? (

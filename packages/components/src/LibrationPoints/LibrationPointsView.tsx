@@ -34,7 +34,7 @@ import { LibrationDiagram } from "./LibrationDiagram";
 import { LibrationReadouts } from "./LibrationReadouts";
 import { autoPair, resolveFor, vesselInertialAt } from "./pairResolution";
 import { librationPointsTopics } from "./topics";
-import { useCatalogue } from "./useCatalogue";
+import { useCatalogueWithCurrency } from "./useCatalogue";
 
 /** Bucket the view instant so the points recompute about once a second, not once a render. */
 const UT_BUCKET_SECONDS = 1;
@@ -73,7 +73,7 @@ export function LibrationPointsComponent({
   config,
   id,
 }: Readonly<ComponentProps<LibrationPointsConfig>>) {
-  const facts = useCatalogue();
+  const { facts, heldSince: catalogueHeldSince } = useCatalogueWithCurrency();
   const viewUt = useViewUt()?.magnitude;
   const ut = quantiseUt(
     typeof viewUt === "number" ? viewUt : undefined,
@@ -279,6 +279,7 @@ export function LibrationPointsComponent({
               offset={offset}
               hasCraft={orbit !== undefined}
               craftHeldSince={orbitHeldSince}
+              catalogueHeldSince={catalogueHeldSince}
             />
           </Section>
         ) : null,
