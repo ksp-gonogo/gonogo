@@ -678,14 +678,16 @@ const WIDGETS: WidgetRenderConfig[] = [
         name: "armed-space-center-7x10",
         w: 7,
         h: 10,
-        clicks: [{ selector: 'button[title^="Space Center: saves"]' }],
+        clicks: [{ selector: 'button[data-tooltip^="Space Center: saves"]' }],
         forFixtures: ["in-tracking-station"],
       },
       {
         name: "fly-list-7x10",
         w: 7,
         h: 10,
-        clicks: [{ selector: 'button[title^="Saves the game, then flies"]' }],
+        clicks: [
+          { selector: 'button[data-tooltip^="Saves the game, then flies"]' },
+        ],
         forFixtures: ["in-tracking-station"],
       },
       {
