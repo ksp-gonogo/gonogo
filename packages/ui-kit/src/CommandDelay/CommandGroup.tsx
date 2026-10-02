@@ -1,6 +1,7 @@
 import { type ReactNode, useEffect, useId } from "react";
 import styled, { css } from "styled-components";
 import { focusRing } from "../focusRing";
+import { Tooltip } from "../Tooltip";
 import { VisuallyHidden } from "../VisuallyHidden";
 
 interface CommandGroupOwnProps<GroupValue extends Record<string, unknown>> {
@@ -95,22 +96,23 @@ export function CommandGroup<GroupValue extends Record<string, unknown>>({
     <CommandGroup__Root data-gated={gated} $orientation={orientation}>
       <CommandGroup__Inputs $wrap={wrap}>{children}</CommandGroup__Inputs>
       {gated && <VisuallyHidden id={reasonId}>{gatedReason}</VisuallyHidden>}
-      <CommandGroup__CommitButton
-        type="button"
-        aria-disabled={gated || undefined}
-        aria-describedby={gated ? reasonId : undefined}
-        $gated={gated}
-        $orientation={orientation}
-        $icon={!named}
-        aria-label={commitAriaLabel}
-        title={gated ? gatedReason : undefined}
-        onClick={() => {
-          if (gated) return;
-          onCommit(value);
-        }}
-      >
-        {commitLabel}
-      </CommandGroup__CommitButton>
+      <Tooltip text={gated ? gatedReason : undefined} announce={false}>
+        <CommandGroup__CommitButton
+          type="button"
+          aria-disabled={gated || undefined}
+          aria-describedby={gated ? reasonId : undefined}
+          $gated={gated}
+          $orientation={orientation}
+          $icon={!named}
+          aria-label={commitAriaLabel}
+          onClick={() => {
+            if (gated) return;
+            onCommit(value);
+          }}
+        >
+          {commitLabel}
+        </CommandGroup__CommitButton>
+      </Tooltip>
     </CommandGroup__Root>
   );
 }

@@ -12,6 +12,7 @@ import {
   StatStrip,
   speakQuantity,
   Tabs,
+  Tooltip,
   Unit,
   useSlotBound,
   useSlotLabel,
@@ -160,9 +161,14 @@ export function AstronautComplexComponent(
   const fundsStat = (
     <Stat label="Funds">
       {hasFunds ? (
-        <span title={fundsTitle(fundsReading.state === "held", careerFunds)}>
-          <Unit value={fundsReading.balances.funds} />
-        </span>
+        <Tooltip
+          text={fundsTitle(fundsReading.state === "held", careerFunds)}
+          focusable
+        >
+          <span>
+            <Unit value={fundsReading.balances.funds} />
+          </span>
+        </Tooltip>
       ) : (
         NULL_DISPLAY
       )}
@@ -208,13 +214,16 @@ export function AstronautComplexComponent(
               tone={nextHireCost === null || affordable ? "neutral" : "nogo"}
             >
               {nextHireCost !== null ? (
-                <span
-                  title={speakQuantity(value("funds", nextHireCost), {
+                <Tooltip
+                  text={speakQuantity(value("funds", nextHireCost), {
                     decimals: 0,
                   })}
+                  focusable
                 >
-                  <Unit value={complexReading.nextHireCost} />
-                </span>
+                  <span>
+                    <Unit value={complexReading.nextHireCost} />
+                  </span>
+                </Tooltip>
               ) : (
                 NULL_DISPLAY
               )}

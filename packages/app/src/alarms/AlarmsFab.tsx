@@ -1,4 +1,5 @@
 import { BellIcon, Fab, useModal } from "@ksp-gonogo/ui";
+import { Tooltip } from "@ksp-gonogo/ui-kit";
 import type { AlarmDraftPrefill } from "./AlarmsModal";
 import type {
   Alarm,
@@ -67,13 +68,10 @@ export function AlarmsFab({
   }
 
   return (
-    <Fab
-      bottom={bottom}
-      onClick={handleClick}
-      aria-label="Mission alarms"
-      title="Mission alarms"
-    >
-      <BellIcon />
-    </Fab>
+    <Tooltip text="Mission alarms">
+      <Fab bottom={bottom} onClick={handleClick} aria-label="Mission alarms">
+        <BellIcon />
+      </Fab>
+    </Tooltip>
   );
 }

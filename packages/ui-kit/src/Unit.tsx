@@ -16,7 +16,7 @@ import {
   type UnitValue,
 } from "./readingCurrency";
 import { standsApart, writtenAs } from "./standsApart";
-import { useTooltip } from "./Tooltip";
+import { Tooltip, useTooltip } from "./Tooltip";
 import { useInSharedFormat, useSharedFormat } from "./UnitSharedFormat";
 import {
   ATTACHED_SYMBOLS,
@@ -223,23 +223,23 @@ function UnitSymbol({
   return (
     <>
       {spaced && !attached ? THIN_SPACE : null}
-      <Unit__Span
-        $attached={attached}
-        $icon={Glyph !== undefined}
-        className={className}
-        data-unit={token}
-        // Disambiguates units that share a glyph (a mod's grams against g-force) for a reader who cannot hear the accessible name.
-        title={word}
-      >
-        {Glyph ? (
-          <Glyph size="1em" />
-        ) : spoken ? (
-          <span aria-hidden="true">{symbol}</span>
-        ) : (
-          symbol
-        )}
-        {spoken && <Unit__Word data-unit-word=""> {word}</Unit__Word>}
-      </Unit__Span>
+      <Tooltip text={word} announce={false}>
+        <Unit__Span
+          $attached={attached}
+          $icon={Glyph !== undefined}
+          className={className}
+          data-unit={token}
+        >
+          {Glyph ? (
+            <Glyph size="1em" />
+          ) : spoken ? (
+            <span aria-hidden="true">{symbol}</span>
+          ) : (
+            symbol
+          )}
+          {spoken && <Unit__Word data-unit-word=""> {word}</Unit__Word>}
+        </Unit__Span>
+      </Tooltip>
     </>
   );
 }

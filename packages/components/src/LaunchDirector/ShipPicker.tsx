@@ -1,5 +1,5 @@
 import { value } from "@ksp-gonogo/sitrep-sdk";
-import { SelectableRow, Unit } from "@ksp-gonogo/ui-kit";
+import { SelectableRow, Tooltip, Unit } from "@ksp-gonogo/ui-kit";
 import { type SavedShip, shipBlocked } from "./ships";
 import {
   BlockedTag,
@@ -58,9 +58,11 @@ export function ShipPicker({
               <ShipCost>
                 {/* One Unit carrying the value, so the cost groups like the balance. */}
                 {s.requiresFunds > fundsAvailable && (
-                  <BlockedTag title="Insufficient funds">
-                    <Unit value={value("funds", s.requiresFunds)} />
-                  </BlockedTag>
+                  <Tooltip text="Insufficient funds" focusable>
+                    <BlockedTag>
+                      <Unit value={value("funds", s.requiresFunds)} />
+                    </BlockedTag>
+                  </Tooltip>
                 )}
                 {s.requiresFunds <= fundsAvailable && s.requiresFunds > 0 && (
                   <CostTag>
@@ -68,9 +70,12 @@ export function ShipPicker({
                   </CostTag>
                 )}
                 {s.missingParts.length > 0 && (
-                  <BlockedTag title={`Missing: ${s.missingParts.join(", ")}`}>
-                    {s.missingParts.length} locked
-                  </BlockedTag>
+                  <Tooltip
+                    text={`Missing: ${s.missingParts.join(", ")}`}
+                    focusable
+                  >
+                    <BlockedTag>{s.missingParts.length} locked</BlockedTag>
+                  </Tooltip>
                 )}
               </ShipCost>
             </SelectableRow>

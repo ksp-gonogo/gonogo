@@ -189,7 +189,10 @@ describe("Panel panelBadges", () => {
       />,
     );
     expect(
-      screen.getByText("PAUSED").closest("[title]")?.getAttribute("title"),
+      screen
+        .getByText("PAUSED")
+        .closest("[data-tooltip]")
+        ?.getAttribute("data-tooltip"),
     ).toBe("Game is paused");
   });
 
@@ -302,7 +305,10 @@ describe("Panel panelBadges", () => {
       />,
     );
     expect(
-      screen.getByText("HELD").closest("[title]")?.getAttribute("title"),
+      screen
+        .getByText("HELD")
+        .closest("[data-tooltip]")
+        ?.getAttribute("data-tooltip"),
     ).toBe("No control: HELD");
   });
 });

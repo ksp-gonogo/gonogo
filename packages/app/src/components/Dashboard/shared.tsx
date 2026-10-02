@@ -1,4 +1,5 @@
 import { CloseIcon, PushUpIcon, RecallIcon } from "@ksp-gonogo/ui";
+import { Tooltip } from "@ksp-gonogo/ui-kit";
 import { useEffect, useRef, useState } from "react";
 import styled, { css, keyframes } from "styled-components";
 import { usePushClient } from "../../pushToMain/PushClientContext";
@@ -35,16 +36,17 @@ export function RemoveButton({ onRemove }: Readonly<{ onRemove: () => void }>) {
   }
 
   return (
-    <RemoveBtn
-      onMouseDown={handleMouseDown}
-      onClick={handleClick}
-      aria-label={confirming ? "Confirm remove" : "Remove widget"}
-      title={confirming ? "Click again to confirm" : "Remove widget"}
-      $confirming={confirming}
-    >
-      <CloseIcon size={12} />
-      {confirming ? "?" : null}
-    </RemoveBtn>
+    <Tooltip text={confirming ? "Click again to confirm" : "Remove widget"}>
+      <RemoveBtn
+        onMouseDown={handleMouseDown}
+        onClick={handleClick}
+        aria-label={confirming ? "Confirm remove" : "Remove widget"}
+        $confirming={confirming}
+      >
+        <CloseIcon size={12} />
+        {confirming ? "?" : null}
+      </RemoveBtn>
+    </Tooltip>
   );
 }
 
@@ -82,20 +84,21 @@ export function PushButton({
     }
   };
   return (
-    <PushBtn
-      type="button"
-      onMouseDown={handleMouseDown}
-      onClick={handleClick}
-      aria-label={pushed ? "Recall from main" : "Push to main"}
-      title={pushed ? "Recall from main" : "Push to main"}
-      $pushed={pushed}
-    >
-      {pushed ? (
-        <RecallIcon size="var(--icon-size-control)" />
-      ) : (
-        <PushUpIcon size="var(--icon-size-control)" />
-      )}
-    </PushBtn>
+    <Tooltip text={pushed ? "Recall from main" : "Push to main"}>
+      <PushBtn
+        type="button"
+        onMouseDown={handleMouseDown}
+        onClick={handleClick}
+        aria-label={pushed ? "Recall from main" : "Push to main"}
+        $pushed={pushed}
+      >
+        {pushed ? (
+          <RecallIcon size="var(--icon-size-control)" />
+        ) : (
+          <PushUpIcon size="var(--icon-size-control)" />
+        )}
+      </PushBtn>
+    </Tooltip>
   );
 }
 

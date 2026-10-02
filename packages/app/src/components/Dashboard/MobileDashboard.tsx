@@ -13,6 +13,7 @@ import {
   HalfHeightIcon,
   HalfWidthIcon,
 } from "@ksp-gonogo/ui";
+import { Tooltip } from "@ksp-gonogo/ui-kit";
 import { memo, useCallback, useMemo, useRef } from "react";
 import styled from "styled-components";
 import type { DashboardItem, DashboardProps } from "./index";
@@ -173,7 +174,9 @@ const MobileItemContent = memo(function MobileItemContent({
             disabled={isLast}
             onClick={onMoveDown}
           />
-          <MobileCellName title={def.name}>{def.name}</MobileCellName>
+          <Tooltip text={def.name} announce={false}>
+            <MobileCellName>{def.name}</MobileCellName>
+          </Tooltip>
         </MobileCellHeaderLeft>
         <MobileCellHeaderRight>
           <WidthToggleButton half={half} onClick={onToggleWidth} />
@@ -228,15 +231,16 @@ function ReorderButton({
   const label = direction === "up" ? "Move up" : "Move down";
   const Glyph = direction === "up" ? ChevronUpIcon : ChevronDownIcon;
   return (
-    <ReorderBtn
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      aria-label={label}
-      title={label}
-    >
-      <Glyph size={16} />
-    </ReorderBtn>
+    <Tooltip text={label}>
+      <ReorderBtn
+        type="button"
+        onClick={onClick}
+        disabled={disabled}
+        aria-label={label}
+      >
+        <Glyph size={16} />
+      </ReorderBtn>
+    </Tooltip>
   );
 }
 
@@ -247,15 +251,16 @@ function WidthToggleButton({
   const label = half ? "Expand to full width" : "Shrink to half width";
   const Glyph = half ? FullWidthIcon : HalfWidthIcon;
   return (
-    <WidthToggleBtn
-      type="button"
-      onClick={onClick}
-      aria-label={label}
-      title={label}
-      aria-pressed={half}
-    >
-      <Glyph size="var(--icon-size-control)" />
-    </WidthToggleBtn>
+    <Tooltip text={label}>
+      <WidthToggleBtn
+        type="button"
+        onClick={onClick}
+        aria-label={label}
+        aria-pressed={half}
+      >
+        <Glyph size="var(--icon-size-control)" />
+      </WidthToggleBtn>
+    </Tooltip>
   );
 }
 
@@ -266,15 +271,16 @@ function HeightToggleButton({
   const label = half ? "Expand to full height" : "Shrink to half height";
   const Glyph = half ? FullHeightIcon : HalfHeightIcon;
   return (
-    <WidthToggleBtn
-      type="button"
-      onClick={onClick}
-      aria-label={label}
-      title={label}
-      aria-pressed={half}
-    >
-      <Glyph size="var(--icon-size-control)" />
-    </WidthToggleBtn>
+    <Tooltip text={label}>
+      <WidthToggleBtn
+        type="button"
+        onClick={onClick}
+        aria-label={label}
+        aria-pressed={half}
+      >
+        <Glyph size="var(--icon-size-control)" />
+      </WidthToggleBtn>
+    </Tooltip>
   );
 }
 

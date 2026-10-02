@@ -2,6 +2,7 @@ import type { HeldGrade } from "@ksp-gonogo/sitrep-sdk";
 import { Badge, type BadgeSize } from "./Badge";
 import { severityFromStreamStatus } from "./status/severity";
 import { heldWord } from "./status/streamStatusWord";
+import { Tooltip } from "./Tooltip";
 
 /**
  * Props for {@link HeldBadge}.
@@ -29,12 +30,13 @@ export interface HeldBadgeProps {
 export function HeldBadge({ grade, subject, size }: HeldBadgeProps) {
   const word = heldWord(grade);
   return (
-    <Badge
-      tone={severityFromStreamStatus(grade)}
-      size={size}
-      title={subject === undefined ? undefined : `${subject}: ${word}`}
+    <Tooltip
+      text={subject === undefined ? undefined : `${subject}: ${word}`}
+      focusable
     >
-      {word}
-    </Badge>
+      <Badge tone={severityFromStreamStatus(grade)} size={size}>
+        {word}
+      </Badge>
+    </Tooltip>
   );
 }

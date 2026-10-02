@@ -1,4 +1,5 @@
 import { Fab, FullscreenEnterIcon, FullscreenExitIcon } from "@ksp-gonogo/ui";
+import { Tooltip } from "@ksp-gonogo/ui-kit";
 import { useEffect, useState } from "react";
 
 /**
@@ -36,8 +37,10 @@ export function FullscreenFab({ bottom = 384 }: { bottom?: number } = {}) {
   const label = isFullscreen ? "Exit fullscreen" : "Enter fullscreen";
 
   return (
-    <Fab bottom={bottom} onClick={handleClick} aria-label={label} title={label}>
-      {isFullscreen ? <FullscreenExitIcon /> : <FullscreenEnterIcon />}
-    </Fab>
+    <Tooltip text={label}>
+      <Fab bottom={bottom} onClick={handleClick} aria-label={label}>
+        {isFullscreen ? <FullscreenExitIcon /> : <FullscreenEnterIcon />}
+      </Fab>
+    </Tooltip>
   );
 }

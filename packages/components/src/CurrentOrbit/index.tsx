@@ -18,7 +18,13 @@ import {
   useStream,
 } from "@ksp-gonogo/sitrep-client";
 import { apsidesExist, type ControlFrame } from "@ksp-gonogo/sitrep-sdk";
-import { Panel, ReadoutCaption, Section, Stack } from "@ksp-gonogo/ui-kit";
+import {
+  Panel,
+  ReadoutCaption,
+  Section,
+  Stack,
+  Tooltip,
+} from "@ksp-gonogo/ui-kit";
 import { useRef } from "react";
 import { countdownOf } from "../shared/countdownOf";
 import { declinedState } from "../shared/declinedState";
@@ -214,9 +220,9 @@ function CurrentOrbitComponent({
                 centreBodyIndex={orbit?.referenceBodyIndex}
               />
               {modelState !== null && (
-                <ReadoutCaption title={declined?.note}>
-                  {modelState}
-                </ReadoutCaption>
+                <Tooltip text={declined?.note} focusable>
+                  <ReadoutCaption>{modelState}</ReadoutCaption>
+                </Tooltip>
               )}
               {/* Named only when the readouts are not in the game's own view frame. */}
               {readFrame.ownFrameLabel !== undefined && (

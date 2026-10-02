@@ -100,7 +100,9 @@ describe("ActionGroup: nothing has arrived at all", () => {
     expect(screen.queryByText("Paused")).toBeNull();
     expect(screen.queryByText("No signal")).toBeNull();
     expect(
-      screen.getByRole("button", { name: "Toggle SAS" }).getAttribute("title"),
+      screen
+        .getByRole("button", { name: "Toggle SAS" })
+        .getAttribute("data-tooltip"),
     ).toBe("Toggle SAS");
   });
 });
@@ -152,7 +154,9 @@ describe("ActionGroup: the absence gates", () => {
 
     await waitFor(() => expect(screen.getByText("Paused")).toBeTruthy());
     expect(
-      screen.getByRole("button", { name: "Toggle SAS" }).getAttribute("title"),
+      screen
+        .getByRole("button", { name: "Toggle SAS" })
+        .getAttribute("data-tooltip"),
     ).toBe("Paused");
   });
 

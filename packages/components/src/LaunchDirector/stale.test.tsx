@@ -1,6 +1,6 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
-import { visibleText } from "@ksp-gonogo/ui-kit/testing";
+import { getByTip, queryByTip, visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { beforeEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { LaunchDirectorComponent } from "./index";
@@ -16,7 +16,8 @@ import { LaunchDirectorComponent } from "./index";
 
 /** The funds readout's spoken staleness, which carries the grade and the instant it was read. */
 function heldFundsCaption(): string | null {
-  const readout = screen.queryByTitle(
+  const readout = queryByTip(
+    document.body,
     "Affordability is not judged against a held balance",
   );
   return readout?.querySelector("[data-unit-currency]")?.textContent ?? null;
@@ -140,7 +141,7 @@ describe("LaunchDirector when its telemetry is held", () => {
     emitPreLaunch();
 
     await waitFor(() =>
-      expect(screen.getByTitle("Available funds")).toBeTruthy(),
+      expect(getByTip(document.body, "Available funds")).toBeTruthy(),
     );
     // The count belongs to the opened pad: what THIS pad can take.
     expect(screen.getByText(/Craft · 1\/1 ready/)).toBeTruthy();
@@ -155,13 +156,13 @@ describe("LaunchDirector when its telemetry is held", () => {
     renderWidget();
     emitPreLaunch();
     await waitFor(() =>
-      expect(screen.getByTitle("Available funds")).toBeTruthy(),
+      expect(getByTip(document.body, "Available funds")).toBeTruthy(),
     );
 
     goStale();
 
     await waitFor(() => expect(heldFundsCaption()).toMatch(/OFFLINE, as of /));
-    expect(screen.queryByTitle("Available funds")).toBeNull();
+    expect(queryByTip(document.body, "Available funds")).toBeNull();
   });
 
   it("does not present a withheld balance as an empty wallet the operator has never seen", async () => {
@@ -169,14 +170,16 @@ describe("LaunchDirector when its telemetry is held", () => {
     const { container } = renderWidget();
     emitPreLaunch();
     await waitFor(() =>
-      expect(screen.getByTitle("Available funds")).toBeTruthy(),
+      expect(getByTip(document.body, "Available funds")).toBeTruthy(),
     );
 
     goStale();
 
     await waitFor(() => expect(heldFundsCaption()).not.toBeNull());
     expect(visibleText(container)).not.toContain("funds unknown");
-    expect(screen.queryByTitle("No funds balance has arrived")).toBeNull();
+    expect(
+      queryByTip(document.body, "No funds balance has arrived"),
+    ).toBeNull();
   });
 
   it("says the balance is unknown, not out of date, before one has ever arrived", async () => {

@@ -1,4 +1,4 @@
-import { Text } from "@ksp-gonogo/ui-kit";
+import { Text, Tooltip } from "@ksp-gonogo/ui-kit";
 import { formatUnits, type NetTone } from "./flow";
 import {
   CELL_LABEL,
@@ -54,15 +54,17 @@ export function PowerTotals({
         </Text>
       </div>
       {measuredDisagrees && (
-        <div
-          style={{ ...TOTALS_CELL, ...MEASURED_CELL }}
-          title={`parts.power.totalProductionEc reports ${measuredTotalProduced?.toFixed(2)}, disagreeing with the ${totalProduced.toFixed(2)} the itemized Producers rows sum to. PROD/NET always reflect the itemized rows; this is the separate raw measurement.`}
+        <Tooltip
+          text={`parts.power.totalProductionEc reports ${measuredTotalProduced?.toFixed(2)}, disagreeing with the ${totalProduced.toFixed(2)} the itemized Producers rows sum to. PROD/NET always reflect the itemized rows; this is the separate raw measurement.`}
+          focusable
         >
-          <span style={CELL_LABEL}>MEASURED</span>
-          <Text size="sm" style={CELL_VALUE}>
-            {measuredTotalProduced?.toFixed(2)}
-          </Text>
-        </div>
+          <div style={{ ...TOTALS_CELL, ...MEASURED_CELL }}>
+            <span style={CELL_LABEL}>MEASURED</span>
+            <Text size="sm" style={CELL_VALUE}>
+              {measuredTotalProduced?.toFixed(2)}
+            </Text>
+          </div>
+        </Tooltip>
       )}
       <div style={TOTALS_CELL}>
         <span style={CELL_LABEL}>CONS</span>

@@ -1,5 +1,5 @@
 import type { Reading, Value } from "@ksp-gonogo/sitrep-sdk";
-import { Button, Unit } from "@ksp-gonogo/ui-kit";
+import { Button, Tooltip, Unit } from "@ksp-gonogo/ui-kit";
 import {
   CurrentSummary,
   CurrentSummaryDistance,
@@ -34,7 +34,9 @@ export function CurrentTargetSummary({
       ) : (
         <>
           <CurrentSummaryTop>
-            <CurrentSummaryName title={tarName}>{tarName}</CurrentSummaryName>
+            <Tooltip text={tarName} announce={false}>
+              <CurrentSummaryName>{tarName}</CurrentSummaryName>
+            </Tooltip>
             {typeof tarDistance === "number" &&
               Number.isFinite(tarDistance) && (
                 <CurrentSummaryDistance>

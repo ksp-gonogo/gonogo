@@ -13,6 +13,7 @@ import {
   ReadoutCaption,
   Section,
   Text,
+  Tooltip,
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import { declinedState } from "../shared/declinedState";
@@ -138,7 +139,9 @@ export function CarriedAltitude({ reading }: { reading: FlightReading }) {
         )}
       </Grid>
       {modelState !== null ? (
-        <ReadoutCaption title={declined?.note}>{modelState}</ReadoutCaption>
+        <Tooltip text={declined?.note} focusable>
+          <ReadoutCaption>{modelState}</ReadoutCaption>
+        </Tooltip>
       ) : null}
     </Section>
   );

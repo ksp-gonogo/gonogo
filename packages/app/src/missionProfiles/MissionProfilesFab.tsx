@@ -1,5 +1,6 @@
 import { ScreenProvider, useScreen } from "@ksp-gonogo/core";
 import { Fab, LayersIcon, useModal } from "@ksp-gonogo/ui";
+import { Tooltip } from "@ksp-gonogo/ui-kit";
 import type { Layouts } from "react-grid-layout";
 import type { DashboardItem } from "../components/Dashboard";
 import {
@@ -47,13 +48,10 @@ export function MissionProfilesFab({
   }
 
   return (
-    <Fab
-      bottom={bottom}
-      onClick={handleClick}
-      aria-label="Dashboard layouts"
-      title="Dashboard layouts"
-    >
-      <LayersIcon />
-    </Fab>
+    <Tooltip text="Dashboard layouts">
+      <Fab bottom={bottom} onClick={handleClick} aria-label="Dashboard layouts">
+        <LayersIcon />
+      </Fab>
+    </Tooltip>
   );
 }

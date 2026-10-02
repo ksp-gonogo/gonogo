@@ -1,3 +1,4 @@
+import { Tooltip } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import styled from "styled-components";
 import type { DeviceParserId } from "../types";
@@ -14,14 +15,15 @@ export function ProtocolReferenceButton({
   const [open, setOpen] = useState(false);
   return (
     <>
-      <HelpLink
-        type="button"
-        onClick={() => setOpen(true)}
-        aria-label="Show protocol reference"
-        title="Show protocol reference"
-      >
-        ?
-      </HelpLink>
+      <Tooltip text="Show protocol reference">
+        <HelpLink
+          type="button"
+          onClick={() => setOpen(true)}
+          aria-label="Show protocol reference"
+        >
+          ?
+        </HelpLink>
+      </Tooltip>
       {open && (
         <Backdrop onClick={() => setOpen(false)} role="presentation">
           <Dialog

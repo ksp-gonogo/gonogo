@@ -3,6 +3,7 @@ import {
   badgeFace,
   Cluster,
   ContributionsProvider,
+  Tooltip,
   useContributions,
 } from "@ksp-gonogo/ui-kit";
 
@@ -33,13 +34,13 @@ function HeaderBadgeList() {
       {badges.map((badge) => {
         const { label, tone, title } = badgeFace(badge);
         return (
-          <Badge
+          <Tooltip
             key={`${badge.contributionId}:${badge.id}`}
-            tone={tone}
-            title={title}
+            text={title}
+            focusable
           >
-            {label}
-          </Badge>
+            <Badge tone={tone}>{label}</Badge>
+          </Tooltip>
         );
       })}
     </Cluster>

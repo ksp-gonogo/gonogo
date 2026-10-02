@@ -1,6 +1,6 @@
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { Button, FilterChip, Input, Switch } from "@ksp-gonogo/ui";
-import { SectionTitle, Stack, Unit } from "@ksp-gonogo/ui-kit";
+import { SectionTitle, Stack, Tooltip, Unit } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import type { Layouts } from "react-grid-layout";
 import styled from "styled-components";
@@ -162,21 +162,20 @@ export function MissionProfilesModal({
     }
     return (
       <>
-        <Button
-          type="button"
-          onClick={() => setPendingLoad(p)}
-          title="Replace the current dashboard with this layout"
-        >
-          Load
-        </Button>
-        <Button
-          variant="ghost"
-          type="button"
-          onClick={() => handleOverwrite(p)}
-          title="Overwrite this layout with the current dashboard"
-        >
-          Overwrite
-        </Button>
+        <Tooltip text="Replace the current dashboard with this layout">
+          <Button type="button" onClick={() => setPendingLoad(p)}>
+            Load
+          </Button>
+        </Tooltip>
+        <Tooltip text="Overwrite this layout with the current dashboard">
+          <Button
+            variant="ghost"
+            type="button"
+            onClick={() => handleOverwrite(p)}
+          >
+            Overwrite
+          </Button>
+        </Tooltip>
         <Button
           variant="ghost"
           type="button"
@@ -238,20 +237,22 @@ export function MissionProfilesModal({
               />
             ))}
           </BindingsRow>
-          <AutoSwitchRow
-            $disabled={newBindings.length === 0}
-            title={
+          <Tooltip
+            text={
               newBindings.length === 0
                 ? "Pick at least one scene to enable auto-switch"
                 : "Skip the prompt and load this layout immediately on a matching scene"
             }
+            focusable
           >
-            <Switch
-              checked={newBindings.length > 0 && newAutoSwitch}
-              onChange={(v) => setNewAutoSwitch(v)}
-              label="Switch automatically"
-            />
-          </AutoSwitchRow>
+            <AutoSwitchRow $disabled={newBindings.length === 0}>
+              <Switch
+                checked={newBindings.length > 0 && newAutoSwitch}
+                onChange={(v) => setNewAutoSwitch(v)}
+                label="Switch automatically"
+              />
+            </AutoSwitchRow>
+          </Tooltip>
         </BindingsField>
         <Hint>
           Captures the current widget layout. Load it back later to swap the
@@ -306,20 +307,24 @@ export function MissionProfilesModal({
                     />
                   ))}
                 </BindingsRow>
-                <AutoSwitchRow
-                  $disabled={(p.sceneBindings?.length ?? 0) === 0}
-                  title={
+                <Tooltip
+                  text={
                     (p.sceneBindings?.length ?? 0) === 0
                       ? "Tag at least one scene to enable auto-switch"
                       : "Skip the prompt and load this layout immediately on a matching scene"
                   }
+                  focusable
                 >
-                  <Switch
-                    checked={Boolean(p.autoSwitch)}
-                    onChange={() => toggleAutoSwitchFor(p)}
-                    label="Switch automatically"
-                  />
-                </AutoSwitchRow>
+                  <AutoSwitchRow
+                    $disabled={(p.sceneBindings?.length ?? 0) === 0}
+                  >
+                    <Switch
+                      checked={Boolean(p.autoSwitch)}
+                      onChange={() => toggleAutoSwitchFor(p)}
+                      label="Switch automatically"
+                    />
+                  </AutoSwitchRow>
+                </Tooltip>
                 {pendingLoad?.id === p.id && (
                   <Warning role="alert">
                     Loading will replace the current dashboard with{" "}

@@ -549,7 +549,7 @@ describe("CommSignal: genuinely runs off the stream", () => {
     );
     expect(bottleneckHint).toBeTruthy();
     const bottleneckValue = bottleneckHint.closest(
-      '[title="Slowest hop: caps end-to-end throughput"]',
+      '[data-tooltip="Slowest hop: caps end-to-end throughput"]',
     );
     expect(bottleneckValue).toBeTruthy();
     // The flag lands on the slower leg; `Unit` joins with a non-breaking space, hence `\s`.

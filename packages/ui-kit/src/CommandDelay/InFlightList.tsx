@@ -9,6 +9,7 @@ import {
 } from "react";
 import styled, { css } from "styled-components";
 import { Countdown } from "../Countdown";
+import { Tooltip } from "../Tooltip";
 import { TONE_MARK, TONE_TEXT } from "../tone";
 import { writeQuantity } from "../units";
 import { useElementSize } from "../useElementSize";
@@ -412,30 +413,31 @@ const InFlightBadge = function InFlightBadge({
       ? `${items.length} in flight`
       : `${items.length} in flight, next in ${clampedCountdown(countdown)}`;
   return (
-    <InFlightList__Root
-      ref={ref}
-      role="group"
-      aria-label={`${ariaLabel}: ${summary}`}
-      data-mode={mode}
-      data-density="badge"
-      title={items.map((i) => i.label).join("\n")}
-      $row={false}
-    >
-      <InFlightList__Row $phase={worst ? "overdue" : "in-transit"}>
-        <InFlightList__Arrow aria-hidden="true" $pulse={!worst}>
-          ↑
-        </InFlightList__Arrow>
-        <InFlightList__Phase>
-          {items.length}
-          {countdown !== null && (
-            <>
-              {" · "}
-              <Countdown value={Math.max(0, countdown)} />
-            </>
-          )}
-        </InFlightList__Phase>
-      </InFlightList__Row>
-    </InFlightList__Root>
+    <Tooltip text={items.map((i) => i.label).join("\n")} focusable>
+      <InFlightList__Root
+        ref={ref}
+        role="group"
+        aria-label={`${ariaLabel}: ${summary}`}
+        data-mode={mode}
+        data-density="badge"
+        $row={false}
+      >
+        <InFlightList__Row $phase={worst ? "overdue" : "in-transit"}>
+          <InFlightList__Arrow aria-hidden="true" $pulse={!worst}>
+            ↑
+          </InFlightList__Arrow>
+          <InFlightList__Phase>
+            {items.length}
+            {countdown !== null && (
+              <>
+                {" · "}
+                <Countdown value={Math.max(0, countdown)} />
+              </>
+            )}
+          </InFlightList__Phase>
+        </InFlightList__Row>
+      </InFlightList__Root>
+    </Tooltip>
   );
 };
 
@@ -566,26 +568,30 @@ function InFlightQueueCmd({
       data-phase={item.phase}
       style={{ color: colour }}
     >
-      <InFlightQueue__Sq
-        as={dismissable ? "button" : "div"}
-        {...(dismissable
-          ? {
-              type: "button" as const,
-              onClick: () => onDismiss?.(item.id),
-              "aria-label": `Dismiss ${item.label}`,
-            }
-          : { "aria-hidden": true })}
-        title={dismissable ? `Dismiss ${item.label}` : spoken}
+      <Tooltip
+        text={dismissable ? `Dismiss ${item.label}` : spoken}
+        announce={false}
       >
-        <span className="glyph" aria-hidden="true">
-          {glyph}
-        </span>
-        {dismissable && (
-          <span className="dismiss" aria-hidden="true">
-            ✕
+        <InFlightQueue__Sq
+          as={dismissable ? "button" : "div"}
+          {...(dismissable
+            ? {
+                type: "button" as const,
+                onClick: () => onDismiss?.(item.id),
+                "aria-label": `Dismiss ${item.label}`,
+              }
+            : { "aria-hidden": true })}
+        >
+          <span className="glyph" aria-hidden="true">
+            {glyph}
           </span>
-        )}
-      </InFlightQueue__Sq>
+          {dismissable && (
+            <span className="dismiss" aria-hidden="true">
+              ✕
+            </span>
+          )}
+        </InFlightQueue__Sq>
+      </Tooltip>
       <InFlightQueue__Bar>
         <span
           className="fill"

@@ -2,7 +2,13 @@ import type { ComponentProps } from "@ksp-gonogo/core";
 import { useActionInput } from "@ksp-gonogo/core";
 import { useCommand, withoutReckoning } from "@ksp-gonogo/sitrep-client";
 import { stillTrue, type TargetListEntry } from "@ksp-gonogo/sitrep-sdk";
-import { Panel, Section, ToggleButton, Unit } from "@ksp-gonogo/ui-kit";
+import {
+  Panel,
+  Section,
+  ToggleButton,
+  Tooltip,
+  Unit,
+} from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useState } from "react";
 import {
   bare,
@@ -234,20 +240,23 @@ export function TargetPickerComponent({
                   onToggle={() => setVesselsExpanded((v) => !v)}
                   extra={
                     spaceObjectCount > 0 && (
-                      <ToggleButton
-                        size="sm"
-                        active={showSpaceObjects}
-                        onClick={() => setShowSpaceObjects((v) => !v)}
-                        title={
+                      <Tooltip
+                        text={
                           showSpaceObjects
                             ? "Hide asteroids / comets from the list"
                             : "Show asteroids / comets in the list"
                         }
                       >
-                        {showSpaceObjects
-                          ? `Asteroids: shown (${spaceObjectCount})`
-                          : `Asteroids: hidden (${spaceObjectCount})`}
-                      </ToggleButton>
+                        <ToggleButton
+                          size="sm"
+                          active={showSpaceObjects}
+                          onClick={() => setShowSpaceObjects((v) => !v)}
+                        >
+                          {showSpaceObjects
+                            ? `Asteroids: shown (${spaceObjectCount})`
+                            : `Asteroids: hidden (${spaceObjectCount})`}
+                        </ToggleButton>
+                      </Tooltip>
                     )
                   }
                 >

@@ -1,4 +1,5 @@
 import type { DataKeyMeta } from "@ksp-gonogo/data";
+import { Tooltip } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties, ReactNode } from "react";
 import type { GraphSeriesConfig } from "./types";
 
@@ -51,9 +52,9 @@ export function resolvePanelTitle(
   return (
     <>
       GRAPH{" "}
-      <span title={fullTitle} style={GRAPH_UNITS}>
-        {units}
-      </span>
+      <Tooltip text={fullTitle} focusable>
+        <span style={GRAPH_UNITS}>{units}</span>
+      </Tooltip>
     </>
   );
 }

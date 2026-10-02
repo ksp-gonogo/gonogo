@@ -8,6 +8,7 @@ import {
   NULL_DISPLAY,
   ReadoutCaption,
   Text,
+  Tooltip,
 } from "@ksp-gonogo/ui-kit";
 import { Dv, Metres, Mps, StackedField } from "./readouts";
 import type { LandingModel } from "./useLandingModel";
@@ -28,9 +29,12 @@ function Affordable({
   // Neutral, not go or nogo: a verdict drawn from held or reckoned inputs must not read as an observed one.
   if (!affordableFromObserved) {
     return (
-      <Badge size="sm" title="Held or reckoned inputs; not an observed verdict">
-        possible
-      </Badge>
+      <Tooltip
+        text="Held or reckoned inputs; not an observed verdict"
+        focusable
+      >
+        <Badge size="sm">possible</Badge>
+      </Tooltip>
     );
   }
   return (

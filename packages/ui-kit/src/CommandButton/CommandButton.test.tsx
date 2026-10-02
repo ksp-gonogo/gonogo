@@ -240,7 +240,7 @@ describe("CommandButton: the in-flight window", () => {
     await user.click(screen.getByRole("button", { name: "Launch vessel" }));
 
     const pending = await screen.findByRole("button", { name: "Launching..." });
-    expect(pending).toHaveAttribute("title", "Launching...");
+    expect(pending).toHaveAttribute("data-tooltip", "Launching...");
     expect(pending).not.toHaveTextContent("Launching...");
     const hold = [...pending.querySelectorAll("[aria-hidden='true']")].find(
       (el) => el.textContent === "Launch vessel",
@@ -417,7 +417,9 @@ describe("CommandButton: the refused phase", () => {
     const button = await screen.findByRole("button", { name: /refused/i });
     expect(button).toHaveAttribute("data-command-phase", "refused");
     expect(button).toHaveTextContent("Refused");
-    expect(button.getAttribute("title")).toMatch(/Upgrade Launch Pad refused/);
+    expect(button.getAttribute("data-tooltip")).toMatch(
+      /Upgrade Launch Pad refused/,
+    );
   });
 
   // The game's own `detail` must survive the refusal path too; without a `LimitBreach` it is the only clause there is.
@@ -446,7 +448,7 @@ describe("CommandButton: the refused phase", () => {
     });
 
     const button = await screen.findByRole("button", { name: /refused/i });
-    expect(button.getAttribute("title")).toBe(
+    expect(button.getAttribute("data-tooltip")).toBe(
       "Arm the write surface refused: the plugin is not running right now " +
         "(main menu, or mid-reset).",
     );

@@ -7,6 +7,7 @@ import {
   useSerialDeviceService,
 } from "@ksp-gonogo/serial";
 import { SettingsIcon, Tabs, useModal } from "@ksp-gonogo/ui";
+import { Tooltip } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import styled from "styled-components";
 import type { DashboardItem } from "./index";
@@ -79,14 +80,15 @@ export function GearButton({
   }
 
   return (
-    <GearBtn
-      onMouseDown={handleMouseDown}
-      onClick={handleClick}
-      aria-label={`Configure ${def.name}`}
-      title="Configure"
-    >
-      <SettingsIcon size="var(--icon-size-control)" />
-    </GearBtn>
+    <Tooltip text="Configure">
+      <GearBtn
+        onMouseDown={handleMouseDown}
+        onClick={handleClick}
+        aria-label={`Configure ${def.name}`}
+      >
+        <SettingsIcon size="var(--icon-size-control)" />
+      </GearBtn>
+    </Tooltip>
   );
 }
 

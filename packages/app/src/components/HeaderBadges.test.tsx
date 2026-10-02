@@ -90,7 +90,10 @@ describe("HeaderBadges", () => {
 
     const badge = await screen.findByText("HELD");
     expect(screen.queryByText("BADGE B")).toBeNull();
-    expect(badge.closest("[title]")).toHaveAttribute("title", "BADGE B: HELD");
+    expect(badge.closest("[data-tooltip]")).toHaveAttribute(
+      "data-tooltip",
+      "BADGE B: HELD",
+    );
   });
 
   it("holds back a contribution gated on a Domain until that Domain is present", async () => {

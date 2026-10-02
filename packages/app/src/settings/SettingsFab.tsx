@@ -5,6 +5,7 @@ import {
   useSerialDeviceService,
 } from "@ksp-gonogo/serial";
 import { Fab, SettingsIcon, useModal } from "@ksp-gonogo/ui";
+import { Tooltip } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 import { ModalTelemetryBridge } from "../telemetry/ModalTelemetryBridge";
 import { SettingsProvider, useSettingsService } from "./SettingsContext";
@@ -54,17 +55,20 @@ export function SettingsFab({ bottom = 384 }: { bottom?: number } = {}) {
   }
 
   return (
-    <Fab
-      bottom={bottom}
-      onClick={handleClick}
-      aria-label={
-        hasIssue ? "Settings (something needs attention)" : "Settings"
-      }
-      title={hasIssue ? "Something in settings needs attention" : "Settings"}
+    <Tooltip
+      text={hasIssue ? "Something in settings needs attention" : "Settings"}
     >
-      <SettingsIcon />
-      {hasIssue && <StatusDot aria-hidden="true" />}
-    </Fab>
+      <Fab
+        bottom={bottom}
+        onClick={handleClick}
+        aria-label={
+          hasIssue ? "Settings (something needs attention)" : "Settings"
+        }
+      >
+        <SettingsIcon />
+        {hasIssue && <StatusDot aria-hidden="true" />}
+      </Fab>
+    </Tooltip>
   );
 }
 

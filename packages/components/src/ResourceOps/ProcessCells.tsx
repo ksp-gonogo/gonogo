@@ -4,6 +4,7 @@ import {
   NULL_DISPLAY,
   ReadoutCaption,
   Text,
+  Tooltip,
   Truncate,
   Unit,
 } from "@ksp-gonogo/ui-kit";
@@ -46,9 +47,9 @@ export function ResourceCells({
 }>) {
   return (
     <>
-      <Truncate style={RESOURCE_NAME_STYLE} title={flow.resource ?? undefined}>
-        {flow.resource ?? "?"}
-      </Truncate>
+      <Tooltip text={flow.resource ?? undefined} announce={false}>
+        <Truncate style={RESOURCE_NAME_STYLE}>{flow.resource ?? "?"}</Truncate>
+      </Tooltip>
       <Text size="sm" style={RIGHT_ALIGN}>
         <WithheldOr
           withheld={ratesHeld}

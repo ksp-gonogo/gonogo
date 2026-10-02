@@ -16,6 +16,7 @@ import { Panel } from "./Panel";
 import { resolveCurrency } from "./readingCurrency";
 import { Section } from "./Section";
 import { ToggleButton } from "./ToggleButton";
+import { Tooltip } from "./Tooltip";
 import { TONE_MARK, TONE_TEXT } from "./tone";
 import { Unit } from "./Unit";
 import { VisuallyHidden } from "./VisuallyHidden";
@@ -186,16 +187,17 @@ function EssentialFigure({ essential }: { essential: TinyEssential }) {
   const { control } = essential;
   if (control !== undefined) {
     return (
-      <ToggleButton
-        size="sm"
-        active={control.active}
-        disabled={control.disabled}
-        onClick={control.onPress}
-        aria-label={control.title}
-        title={control.hint ?? control.title}
-      >
-        {control.label}
-      </ToggleButton>
+      <Tooltip text={control.hint ?? control.title}>
+        <ToggleButton
+          size="sm"
+          active={control.active}
+          disabled={control.disabled}
+          onClick={control.onPress}
+          aria-label={control.title}
+        >
+          {control.label}
+        </ToggleButton>
+      </Tooltip>
     );
   }
   return (

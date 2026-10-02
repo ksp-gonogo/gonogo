@@ -8,7 +8,7 @@ import {
   stillTrue,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
-import { Unit } from "@ksp-gonogo/ui-kit";
+import { Tooltip, Unit } from "@ksp-gonogo/ui-kit";
 import { Label, PreviewValue } from "./styles";
 
 interface ProjectedRowsProps {
@@ -42,9 +42,11 @@ export function ProjectedRows({
     return (
       <>
         <Label>{prefix} apsides</Label>
-        <PreviewValue title={frameCaveat(apsides, "apsides")}>
-          {`none in ${controlFrameLabel(controlFrame) ?? "this frame"}`}
-        </PreviewValue>
+        <Tooltip text={frameCaveat(apsides, "apsides")} focusable>
+          <PreviewValue>
+            {`none in ${controlFrameLabel(controlFrame) ?? "this frame"}`}
+          </PreviewValue>
+        </Tooltip>
       </>
     );
   }

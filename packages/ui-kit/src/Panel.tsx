@@ -36,6 +36,7 @@ import { formatStreamStatus } from "./status/streamStatusWord";
 import { useStatusBreakdown } from "./status/useStatusBreakdown";
 import { useStatusContribution } from "./status/useStatusContribution";
 import { useStatusSummary } from "./status/useStatusSummary";
+import { Tooltip } from "./Tooltip";
 import { titleText } from "./titleText";
 import { TONE_LABEL } from "./tone";
 import { useElementSize } from "./useElementSize";
@@ -162,21 +163,22 @@ export const PanelTitle = forwardRef<HTMLHeadingElement, PanelTitleProps>(
           : compact;
     const { index, compacted } = useFittedTitle(own, full, forms);
     return (
-      <PanelTitle__Box
-        {...rest}
-        ref={(node: HTMLHeadingElement | null) => {
-          own.current = node;
-          if (typeof forwarded === "function") {
-            forwarded(node);
-            return;
-          }
-          if (forwarded) forwarded.current = node;
-        }}
-        aria-label={compacted ? full : undefined}
-        title={compacted ? full : undefined}
-      >
-        {index === 0 ? children : forms[index - 1]}
-      </PanelTitle__Box>
+      <Tooltip text={compacted ? full : undefined}>
+        <PanelTitle__Box
+          {...rest}
+          ref={(node: HTMLHeadingElement | null) => {
+            own.current = node;
+            if (typeof forwarded === "function") {
+              forwarded(node);
+              return;
+            }
+            if (forwarded) forwarded.current = node;
+          }}
+          aria-label={compacted ? full : undefined}
+        >
+          {index === 0 ? children : forms[index - 1]}
+        </PanelTitle__Box>
+      </Tooltip>
     );
   },
 );
@@ -1644,19 +1646,19 @@ function PanelRootImpl({
       : badges.map((b) => {
           const { label, tone, title } = badgeFace(b);
           return (
-            <Badge
-              key={b.id}
-              tone={tone}
-              title={title}
-              /* A decorative chip stays out of the collapsed header's dot summary. */
-              report={
-                tone === undefined || tone === "neutral"
-                  ? undefined
-                  : { id: b.id }
-              }
-            >
-              {label}
-            </Badge>
+            <Tooltip key={b.id} text={title} focusable>
+              <Badge
+                tone={tone}
+                /* A decorative chip stays out of the collapsed header's dot summary. */
+                report={
+                  tone === undefined || tone === "neutral"
+                    ? undefined
+                    : { id: b.id }
+                }
+              >
+                {label}
+              </Badge>
+            </Tooltip>
           );
         });
   const toolbar =

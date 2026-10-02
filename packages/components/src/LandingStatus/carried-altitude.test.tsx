@@ -195,7 +195,7 @@ describe("the carried ASL altitude reaches the operator", () => {
     );
     const caption = tree.getByText("CANNOT MODEL");
     expect(readoutText(tree)).not.toMatch(/past the last observation/);
-    expect(caption.getAttribute("title")).toBe(
+    expect(caption.getAttribute("data-tooltip")).toBe(
       "cannot model more than 2.5 seconds past the last observation",
     );
     expect(drawnInterval(tree)).toBeNull();

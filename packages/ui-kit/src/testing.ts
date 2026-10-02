@@ -121,6 +121,60 @@ export {
   paintChecker,
 } from "./checkerFraming";
 export { expectNoA11yViolations } from "./expectNoA11yViolations";
+
+/**
+ * Every element under `container` that carries the kit's {@link Tooltip} with
+ * this text, a string matched whole or a pattern matched anywhere. The tip is
+ * the `data-tooltip` attribute, present whether or not the tip is open, so a
+ * test reads what an element would say without hovering it.
+ *
+ * @category Testing
+ */
+export function getAllByTip(
+  container: ParentNode,
+  text: string | RegExp,
+): HTMLElement[] {
+  return [...container.querySelectorAll<HTMLElement>("[data-tooltip]")].filter(
+    (el) => {
+      const tip = el.getAttribute("data-tooltip") ?? "";
+      return typeof text === "string" ? tip === text : text.test(tip);
+    },
+  );
+}
+
+/**
+ * The one element under `container` carrying this tip, or `null`; throws when
+ * more than one does.
+ *
+ * @category Testing
+ */
+export function queryByTip(
+  container: ParentNode,
+  text: string | RegExp,
+): HTMLElement | null {
+  const found = getAllByTip(container, text);
+  if (found.length > 1) {
+    throw new Error(
+      `Found ${found.length} elements with the tip ${String(text)}`,
+    );
+  }
+  return found[0] ?? null;
+}
+
+/**
+ * The one element under `container` carrying this tip; throws when there is
+ * none or more than one.
+ *
+ * @category Testing
+ */
+export function getByTip(
+  container: ParentNode,
+  text: string | RegExp,
+): HTMLElement {
+  const found = queryByTip(container, text);
+  if (!found) throw new Error(`No element has the tip ${String(text)}`);
+  return found;
+}
 export {
   type HeldMarkFault,
   type UnannouncedHeldMark,

@@ -5,6 +5,7 @@ import {
   ExpandableText,
   NULL_DISPLAY,
   Row,
+  Tooltip,
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import type { DisplayState } from "./graph-layout";
@@ -133,9 +134,9 @@ export function NodeRow({
               <PartsList>
                 {node.parts.map((p) => (
                   <PartRow key={p.name} $purchased={p.purchased}>
-                    <PartTitle title={p.manufacturer || undefined}>
-                      {p.title}
-                    </PartTitle>
+                    <Tooltip text={p.manufacturer || undefined} focusable>
+                      <PartTitle>{p.title}</PartTitle>
+                    </Tooltip>
                     <PartMeta>
                       {p.category && <PartCategory>{p.category}</PartCategory>}
                       {p.entryCost > 0 && !p.purchased && (

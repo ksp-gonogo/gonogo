@@ -1,6 +1,6 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
-import { visibleText } from "@ksp-gonogo/ui-kit/testing";
+import { getByTip, queryByTip, visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { ContributionHost } from "../test/contributionHost";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -86,7 +86,7 @@ describe("SpaceCenterStatus when career telemetry is held", () => {
     emitCareer(fixture);
 
     await waitFor(() =>
-      expect(screen.getByTitle("Available funds")).toBeTruthy(),
+      expect(getByTip(document.body, "Available funds")).toBeTruthy(),
     );
     expect(
       (screen.getByRole("button", { name: "Upgrade" }) as HTMLButtonElement)
@@ -103,24 +103,26 @@ describe("SpaceCenterStatus when career telemetry is held", () => {
     mount(fixture, "scs-stale-funds", 6, 7);
     emitCareer(fixture);
     await waitFor(() =>
-      expect(screen.getByTitle("Available funds")).toBeTruthy(),
+      expect(getByTip(document.body, "Available funds")).toBeTruthy(),
     );
     expect(
-      screen.getByTitle("Available funds").querySelector("[data-held]"),
+      getByTip(document.body, "Available funds").querySelector("[data-held]"),
     ).toBeNull();
 
     goStale(fixture);
 
     await waitFor(() =>
       expect(
-        screen.getByTitle("Available funds").querySelector("[data-held]"),
+        getByTip(document.body, "Available funds").querySelector("[data-held]"),
       ).not.toBeNull(),
     );
-    const balance = screen.getByTitle("Available funds");
+    const balance = getByTip(document.body, "Available funds");
     expect(balance.querySelector("[data-unit-currency]")).not.toBeNull();
     expect(balance.textContent).toContain("500");
     // Not the cold-start sentence: one reports a warmup, the other accuses the link.
-    expect(screen.queryByTitle("No funds balance has arrived")).toBeNull();
+    expect(
+      queryByTip(document.body, "No funds balance has arrived"),
+    ).toBeNull();
     // A held balance is a reason to mark the figure, not to decide the command: the per-facility gate does that.
     expect(
       (screen.getByRole("button", { name: "Upgrade" }) as HTMLButtonElement)
@@ -145,7 +147,7 @@ describe("SpaceCenterStatus when career telemetry is held", () => {
 
     await waitFor(() =>
       expect(
-        screen.getByTitle("Available funds").querySelector("[data-held]"),
+        getByTip(document.body, "Available funds").querySelector("[data-held]"),
       ).not.toBeNull(),
     );
     // The last balance covered the cost, but a held figure can say neither yes nor no.
@@ -160,7 +162,7 @@ describe("SpaceCenterStatus when career telemetry is held", () => {
     mount(fixture, "scs-stale-hold-line", 6, 7);
     emitCareer(fixture);
     await waitFor(() =>
-      expect(screen.getByTitle("Available funds")).toBeTruthy(),
+      expect(getByTip(document.body, "Available funds")).toBeTruthy(),
     );
 
     goStale(fixture);
@@ -168,7 +170,7 @@ describe("SpaceCenterStatus when career telemetry is held", () => {
     // The held balance carries the mark; nothing else on the panel dates the link.
     await waitFor(() =>
       expect(
-        screen.getByTitle("Available funds").querySelector("[data-held]"),
+        getByTip(document.body, "Available funds").querySelector("[data-held]"),
       ).not.toBeNull(),
     );
     // MAX is a claim about the facility, not about the link.
@@ -189,7 +191,7 @@ describe("SpaceCenterStatus when career telemetry is held", () => {
     goStale(fixture);
     await waitFor(() =>
       expect(
-        screen.getByTitle("Available funds").querySelector("[data-held]"),
+        getByTip(document.body, "Available funds").querySelector("[data-held]"),
       ).not.toBeNull(),
     );
 

@@ -6,6 +6,7 @@ import {
   Row,
   Stack,
   Text,
+  Tooltip,
   Truncate,
   Unit,
   writeQuantity,
@@ -92,52 +93,53 @@ function InstantRow({
   from?: readonly CarriedCurrency[];
 }) {
   return (
-    <Row
-      as="li"
-      data-burn-instant-row=""
-      title={row.question}
-      style={{ alignItems: "stretch", gap: "var(--gap-related)" }}
-    >
-      <Cluster
-        justify="start"
-        style={{
-          gap: "var(--gap-related)",
-          minWidth: 0,
-          alignItems: "stretch",
-        }}
+    <Tooltip text={row.question} announce={false}>
+      <Row
+        as="li"
+        data-burn-instant-row=""
+        style={{ alignItems: "stretch", gap: "var(--gap-related)" }}
       >
-        <KindSwatch kind={row.kind} />
-        <Stack style={{ minWidth: 0 }}>
-          <Cluster align="baseline" style={{ gap: "var(--gap-related)" }}>
-            <span style={{ ...KIND_CHIP, color: KIND_COLOUR[row.kind] }}>
-              {row.label}
+        <Cluster
+          justify="start"
+          style={{
+            gap: "var(--gap-related)",
+            minWidth: 0,
+            alignItems: "stretch",
+          }}
+        >
+          <KindSwatch kind={row.kind} />
+          <Stack style={{ minWidth: 0 }}>
+            <Cluster align="baseline" style={{ gap: "var(--gap-related)" }}>
+              <span style={{ ...KIND_CHIP, color: KIND_COLOUR[row.kind] }}>
+                {row.label}
+              </span>
+            </Cluster>
+            {/* Only the absent case gets a subtitle: it says why there is no time. */}
+            {row.atUt == null && (
+              <Tooltip text={row.detail ?? row.question} focusable>
+                <Truncate style={CAPTION}>{row.basis}</Truncate>
+              </Tooltip>
+            )}
+          </Stack>
+        </Cluster>
+        <Stack style={{ alignItems: "flex-end", flex: "0 0 auto" }}>
+          <Text size="sm" style={{ whiteSpace: "nowrap" }}>
+            {row.atUt == null ? NULL_DISPLAY : relativeToNow(row.atUt, nowUt)}
+          </Text>
+          {row.atUt != null && (
+            <span style={{ ...CAPTION, whiteSpace: "nowrap" }}>
+              <MissionDate
+                value={
+                  from === undefined
+                    ? row.atUt
+                    : datedFrom(from, value("ut", row.atUt))
+                }
+              />
             </span>
-          </Cluster>
-          {/* Only the absent case gets a subtitle: it says why there is no time. */}
-          {row.atUt == null && (
-            <Truncate style={CAPTION} title={row.detail ?? row.question}>
-              {row.basis}
-            </Truncate>
           )}
         </Stack>
-      </Cluster>
-      <Stack style={{ alignItems: "flex-end", flex: "0 0 auto" }}>
-        <Text size="sm" style={{ whiteSpace: "nowrap" }}>
-          {row.atUt == null ? NULL_DISPLAY : relativeToNow(row.atUt, nowUt)}
-        </Text>
-        {row.atUt != null && (
-          <span style={{ ...CAPTION, whiteSpace: "nowrap" }}>
-            <MissionDate
-              value={
-                from === undefined
-                  ? row.atUt
-                  : datedFrom(from, value("ut", row.atUt))
-              }
-            />
-          </span>
-        )}
-      </Stack>
-    </Row>
+      </Row>
+    </Tooltip>
   );
 }
 
@@ -182,18 +184,19 @@ function BurnAxisBar({
       />
       {/* Omitted, never clamped, when now is outside the burn. */}
       {axis.nowFraction >= 0 && axis.nowFraction <= 1 && (
-        <span
-          aria-hidden="true"
-          title="now"
-          style={{
-            position: "absolute",
-            top: 0,
-            bottom: 0,
-            width: 1,
-            background: "var(--color-text-muted)",
-            left: trackPosition(axis.nowFraction),
-          }}
-        />
+        <Tooltip text="now" announce={false}>
+          <span
+            aria-hidden="true"
+            style={{
+              position: "absolute",
+              top: 0,
+              bottom: 0,
+              width: 1,
+              background: "var(--color-text-muted)",
+              left: trackPosition(axis.nowFraction),
+            }}
+          />
+        </Tooltip>
       )}
       {axis.marks.map((mark) => (
         <span

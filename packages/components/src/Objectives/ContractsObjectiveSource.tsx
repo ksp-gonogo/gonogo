@@ -1,6 +1,6 @@
 import { defineTopicManifest } from "@ksp-gonogo/core";
 import { stillTrue } from "@ksp-gonogo/sitrep-sdk";
-import { BellIcon, IconButton } from "@ksp-gonogo/ui-kit";
+import { BellIcon, IconButton, Tooltip } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties, ReactNode } from "react";
 import {
   type ContractEntry,
@@ -114,39 +114,42 @@ export function ContractsObjectiveSource({ Section }: ObjectiveSourceContext) {
       }) ?? null;
     const isSet = existingId !== null;
     return (
-      <IconButton
-        type="button"
-        style={ALARM_BELL}
-        aria-pressed={isSet}
-        title={
+      <Tooltip
+        text={
           isSet
             ? `Alarm set for "${o.title}": click to clear`
             : `Alarm me when "${o.title}" completes`
         }
-        aria-label={
-          isSet
-            ? `Clear alarm for ${o.title}`
-            : `Set alarm for ${o.title} completion`
-        }
-        onClick={() => {
-          if (isSet && existingId && alarmManager) {
-            alarmManager.remove(existingId);
-            return;
-          }
-          createAlarm({
-            name: `${o.title} → Complete`,
-            trigger: {
-              kind: "contract-parameter",
-              contractId: numericId,
-              parameterTitle: o.title,
-              targetState: "Complete",
-              sustainSeconds: 0,
-            },
-          });
-        }}
       >
-        <BellIcon size={12} />
-      </IconButton>
+        <IconButton
+          type="button"
+          style={ALARM_BELL}
+          aria-pressed={isSet}
+          aria-label={
+            isSet
+              ? `Clear alarm for ${o.title}`
+              : `Set alarm for ${o.title} completion`
+          }
+          onClick={() => {
+            if (isSet && existingId && alarmManager) {
+              alarmManager.remove(existingId);
+              return;
+            }
+            createAlarm({
+              name: `${o.title} → Complete`,
+              trigger: {
+                kind: "contract-parameter",
+                contractId: numericId,
+                parameterTitle: o.title,
+                targetState: "Complete",
+                sustainSeconds: 0,
+              },
+            });
+          }}
+        >
+          <BellIcon size={12} />
+        </IconButton>
+      </Tooltip>
     );
   };
 

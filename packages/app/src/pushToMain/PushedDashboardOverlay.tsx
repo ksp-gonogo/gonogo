@@ -5,7 +5,7 @@ import {
   getComponent,
 } from "@ksp-gonogo/core";
 import { CloseIcon } from "@ksp-gonogo/ui";
-import { Box, WidgetBody } from "@ksp-gonogo/ui-kit";
+import { Box, Tooltip, WidgetBody } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import { usePushedWidgets, usePushHost } from "./PushHostContext";
@@ -154,14 +154,15 @@ function PushedItem({
     >
       <ItemHeader>
         <StationChip>{placement.widget.stationName}</StationChip>
-        <DismissBtn
-          type="button"
-          onClick={onDismiss}
-          aria-label="Dismiss pushed widget"
-          title="Dismiss"
-        >
-          <CloseIcon size="var(--icon-size-control)" />
-        </DismissBtn>
+        <Tooltip text="Dismiss">
+          <DismissBtn
+            type="button"
+            onClick={onDismiss}
+            aria-label="Dismiss pushed widget"
+          >
+            <CloseIcon size="var(--icon-size-control)" />
+          </DismissBtn>
+        </Tooltip>
       </ItemHeader>
       <ItemBody>
         {def ? (

@@ -2,7 +2,7 @@ import {
   type OrbitTrajectory,
   TrajectoryKindLike,
 } from "@ksp-gonogo/sitrep-client";
-import { Stack, Text } from "@ksp-gonogo/ui-kit";
+import { Stack, Text, Tooltip } from "@ksp-gonogo/ui-kit";
 
 /** A refusal from the propagation seam, narrowed for the readouts below. */
 export type WithheldTrajectory = Extract<
@@ -65,13 +65,15 @@ export function TrajectoryWithheldNote({
 }: Readonly<{ withheld: WithheldTrajectory; compact?: boolean }>) {
   const { heading, detail } = trajectoryWithheldCopy(withheld);
   return (
-    <Stack role="status" title={compact ? detail : undefined}>
-      <Text size="xs">{heading}</Text>
-      {!compact && (
-        <Text level="muted" size="xs">
-          {detail}
-        </Text>
-      )}
-    </Stack>
+    <Tooltip text={compact ? detail : undefined} focusable>
+      <Stack role="status">
+        <Text size="xs">{heading}</Text>
+        {!compact && (
+          <Text level="muted" size="xs">
+            {detail}
+          </Text>
+        )}
+      </Stack>
+    </Tooltip>
   );
 }

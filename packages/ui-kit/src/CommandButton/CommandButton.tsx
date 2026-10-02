@@ -17,6 +17,7 @@ import {
 } from "../CommandDelay/commandRefusalSentence";
 import { FitLabel } from "../FitLabelButton";
 import { LiveRegion } from "../LiveRegion";
+import { Tooltip } from "../Tooltip";
 import { InFlightFace } from "./InFlightFace";
 
 /**
@@ -473,7 +474,7 @@ export function useCommandButton<Result = CommandReplyLike, Args = unknown>({
 
 type NativeButtonProps = Omit<
   ButtonHTMLAttributes<HTMLButtonElement>,
-  "onClick" | "type" | "children" | "aria-pressed" | "aria-busy"
+  "onClick" | "type" | "children" | "aria-pressed" | "aria-busy" | "title"
 >;
 
 /**
@@ -499,6 +500,12 @@ export interface CommandButtonProps<Result = CommandReplyLike, Args = unknown>
    * after ("Hire Valentina Kerman refused: ...").
    */
   commandLabel?: string;
+  /**
+   * What the control says on hover and keyboard focus while it is at rest or
+   * armed, in the kit's tip. An outcome's own sentence replaces it while one
+   * stands. It is not the accessible name: give `aria-label` for that.
+   */
+  title?: string;
   /** The resting label. */
   label: ReactNode;
   /**
@@ -732,59 +739,62 @@ export function CommandButton<Result = CommandReplyLike, Args = unknown>({
 
   return (
     <>
-      <CommandButton__Body
-        type="button"
-        $tone={drawnTone}
-        $variant={variant}
-        $fit={fitWord}
-        $size={size}
-        $pressed={filled}
-        $armed={isArmed}
-        $blocked={isBlocked}
-        aria-pressed={active}
-        aria-busy={isPending || undefined}
-        // aria-disabled, not disabled, so the control keeps focus while the outcome lands on it.
-        aria-disabled={isBlocked || isPending || undefined}
-        disabled={disabled}
-        data-unconfirmed={hasUnconfirmed ? "true" : undefined}
-        data-failed={hasFailure ? "true" : undefined}
-        data-command-phase={phase}
-        // A diagnostic hook only: an undetermined gate renders as an ordinary control.
-        data-gate={
-          isBlocked
-            ? "blocked"
-            : standingGate(handle, args)?.undetermined
-              ? "undetermined"
-              : undefined
-        }
-        /*
-         * The accessible name tracks the phase: an outcome's full sentence while
-         * it stands, and for armed and pending the visible wording rather than
-         * the resting label, which describes a state the control has left.
-         */
-        aria-label={
-          (isRefused
-            ? (refusalText ?? undefined)
-            : isLost
-              ? (lossText ?? undefined)
-              : isFound
-                ? (foundText ?? ariaLabel)
-                : isBlocked
-                  ? (blockedAriaLabel ?? refusalText ?? ariaLabel)
-                  : isPending
-                    ? (pendingAriaLabel ?? pendingLabel)
-                    : isArmed
-                      ? confirmAriaLabel
-                      : ariaLabel) ?? (fitWord ? resolved : undefined)
-        }
-        title={foundText ?? refusalText ?? (isPending ? pendingLabel : title)}
-        onClick={() => press(confirmLabel !== undefined)}
-        data-rest-label={reserve ? label : undefined}
-        data-armed-label={reserve ? confirmLabel : undefined}
-        {...rest}
+      <Tooltip
+        text={foundText ?? refusalText ?? (isPending ? pendingLabel : title)}
       >
-        {reserve ? <CommandButton__Face>{body}</CommandButton__Face> : body}
-      </CommandButton__Body>
+        <CommandButton__Body
+          type="button"
+          $tone={drawnTone}
+          $variant={variant}
+          $fit={fitWord}
+          $size={size}
+          $pressed={filled}
+          $armed={isArmed}
+          $blocked={isBlocked}
+          aria-pressed={active}
+          aria-busy={isPending || undefined}
+          // aria-disabled, not disabled, so the control keeps focus while the outcome lands on it.
+          aria-disabled={isBlocked || isPending || undefined}
+          disabled={disabled}
+          data-unconfirmed={hasUnconfirmed ? "true" : undefined}
+          data-failed={hasFailure ? "true" : undefined}
+          data-command-phase={phase}
+          // A diagnostic hook only: an undetermined gate renders as an ordinary control.
+          data-gate={
+            isBlocked
+              ? "blocked"
+              : standingGate(handle, args)?.undetermined
+                ? "undetermined"
+                : undefined
+          }
+          /*
+           * The accessible name tracks the phase: an outcome's full sentence while
+           * it stands, and for armed and pending the visible wording rather than
+           * the resting label, which describes a state the control has left.
+           */
+          aria-label={
+            (isRefused
+              ? (refusalText ?? undefined)
+              : isLost
+                ? (lossText ?? undefined)
+                : isFound
+                  ? (foundText ?? ariaLabel)
+                  : isBlocked
+                    ? (blockedAriaLabel ?? refusalText ?? ariaLabel)
+                    : isPending
+                      ? (pendingAriaLabel ?? pendingLabel)
+                      : isArmed
+                        ? confirmAriaLabel
+                        : ariaLabel) ?? (fitWord ? resolved : undefined)
+          }
+          onClick={() => press(confirmLabel !== undefined)}
+          data-rest-label={reserve ? label : undefined}
+          data-armed-label={reserve ? confirmLabel : undefined}
+          {...rest}
+        >
+          {reserve ? <CommandButton__Face>{body}</CommandButton__Face> : body}
+        </CommandButton__Body>
+      </Tooltip>
       {/* Mounted with the control, so an outcome lands in a region assistive tech is already watching. */}
       <LiveRegion visuallyHidden>{outcome}</LiveRegion>
     </>

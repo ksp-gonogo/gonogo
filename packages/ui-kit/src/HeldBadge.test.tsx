@@ -15,7 +15,7 @@ describe("HeldBadge", () => {
   it("names what is held in its hover text, in the same word", () => {
     render(<HeldBadge grade="held" subject="Contract board" />);
     expect(screen.getByText("HELD")).toHaveAttribute(
-      "title",
+      "data-tooltip",
       "Contract board: HELD",
     );
   });

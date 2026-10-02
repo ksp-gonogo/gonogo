@@ -3,6 +3,7 @@ import styled from "styled-components";
 import { formatKspDate } from "./formatKspDate";
 import { HeldFigure } from "./HeldMark";
 import { figureAttributes, resolveCurrency } from "./readingCurrency";
+import { Tooltip } from "./Tooltip";
 import { VisuallyHidden } from "./VisuallyHidden";
 
 /**
@@ -143,11 +144,13 @@ export function MissionDate({ value, context }: MissionDateProps) {
       {qualifier && (
         <>
           {" "}
-          <MissionDate__Context title={qualifier.title}>
-            {/* The phrase replaces the token in the accessibility tree, as `<Unit>`'s word does. */}
-            <span aria-hidden="true">{qualifier.token}</span>
-            <VisuallyHidden>{qualifier.spoken}</VisuallyHidden>
-          </MissionDate__Context>
+          <Tooltip text={qualifier.title} focusable>
+            <MissionDate__Context>
+              {/* The phrase replaces the token in the accessibility tree, as `<Unit>`'s word does. */}
+              <span aria-hidden="true">{qualifier.token}</span>
+              <VisuallyHidden>{qualifier.spoken}</VisuallyHidden>
+            </MissionDate__Context>
+          </Tooltip>
         </>
       )}
     </>

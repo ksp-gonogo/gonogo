@@ -1,3 +1,4 @@
+import { Tooltip } from "@ksp-gonogo/ui-kit";
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import {
@@ -125,13 +126,11 @@ export function StationNameEditor({ compact = false }: { compact?: boolean }) {
           maxLength={32}
         />
       ) : (
-        <NameSpan
-          $compact={compact}
-          onClick={() => setEditing(true)}
-          title="Click to rename"
-        >
-          {name}
-        </NameSpan>
+        <Tooltip text="Click to rename" focusable>
+          <NameSpan $compact={compact} onClick={() => setEditing(true)}>
+            {name}
+          </NameSpan>
+        </Tooltip>
       )}
     </Wrap>
   );

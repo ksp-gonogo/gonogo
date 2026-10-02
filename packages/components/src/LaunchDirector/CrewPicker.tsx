@@ -3,6 +3,7 @@ import {
   ReadoutCaption,
   SelectableRow,
   Stack,
+  Tooltip,
 } from "@ksp-gonogo/ui-kit";
 import {
   CREW_GRID_MIN_ROWS,
@@ -65,32 +66,32 @@ export function CrewPicker({
           const reading = crewReading(k);
           const selectable = reading === "available";
           return (
-            <SelectableRow
-              key={k.name}
-              /* Named, so a render scene can select a specific kerbal. */
-              data-crew-chip={k.name}
-              selected={selectedCrew.has(k.name)}
-              aria-disabled={!selectable}
-              title={crewChipTitle(k, reading)}
-              onClick={() => {
-                if (!selectable) return;
-                onToggleCrew(k.name);
-              }}
-            >
-              {/* Compact puts name and reason on one line; the reason is never truncated, so the compact track is wider. */}
-              {open ? (
-                <Stack gap="caption">
-                  <CrewName>{k.name}</CrewName>
-                  {/* The reason is a fact off the wire and belongs on screen. */}
-                  <CrewTrait>{crewChipDetail(k, reading)}</CrewTrait>
-                </Stack>
-              ) : (
-                <Cluster align="baseline" wrap gap="related-compact">
-                  <CrewName>{k.name}</CrewName>
-                  <CrewTrait>{crewChipDetail(k, reading)}</CrewTrait>
-                </Cluster>
-              )}
-            </SelectableRow>
+            <Tooltip key={k.name} text={crewChipTitle(k, reading)}>
+              <SelectableRow
+                /* Named, so a render scene can select a specific kerbal. */
+                data-crew-chip={k.name}
+                selected={selectedCrew.has(k.name)}
+                aria-disabled={!selectable}
+                onClick={() => {
+                  if (!selectable) return;
+                  onToggleCrew(k.name);
+                }}
+              >
+                {/* Compact puts name and reason on one line; the reason is never truncated, so the compact track is wider. */}
+                {open ? (
+                  <Stack gap="caption">
+                    <CrewName>{k.name}</CrewName>
+                    {/* The reason is a fact off the wire and belongs on screen. */}
+                    <CrewTrait>{crewChipDetail(k, reading)}</CrewTrait>
+                  </Stack>
+                ) : (
+                  <Cluster align="baseline" wrap gap="related-compact">
+                    <CrewName>{k.name}</CrewName>
+                    <CrewTrait>{crewChipDetail(k, reading)}</CrewTrait>
+                  </Cluster>
+                )}
+              </SelectableRow>
+            </Tooltip>
           );
         })}
       </CrewGrid>

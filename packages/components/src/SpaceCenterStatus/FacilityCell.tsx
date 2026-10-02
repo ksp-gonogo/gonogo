@@ -6,6 +6,7 @@ import {
   NULL_DISPLAY,
   resolveCurrency,
   sayHeld,
+  Tooltip,
   Unit,
   type UnitValue,
 } from "@ksp-gonogo/ui-kit";
@@ -97,60 +98,62 @@ export function FacilityGridItem({
   const { caption: heldCaption } = resolveCurrency(tier);
 
   return (
-    <FacilityCell title={tooltip || undefined}>
-      <FacilityLabel>{label}</FacilityLabel>
-      <FacilityValue
-        // So AT announces "Launch Pad tier 2 of 3" rather than the "2 / 3" spans as fragments.
-        role="img"
-        aria-label={
-          f && f.max > 0
-            ? sayHeld(
-                `${label} tier ${displayLevel} of ${displayMax}`,
-                heldCaption,
-              )
-            : `${label} tier unknown`
-        }
-      >
-        {f && f.max > 0 ? (
-          <>
-            <Tier>
-              {tiersHeldSince === null ? displayLevel : <Unit value={tier} />}
-            </Tier>
-            <Slash>/</Slash>
-            <TierMax>{displayMax}</TierMax>
-          </>
-        ) : (
-          <Muted>{NULL_DISPLAY}</Muted>
+    <Tooltip text={tooltip || undefined} focusable>
+      <FacilityCell>
+        <FacilityLabel>{label}</FacilityLabel>
+        <FacilityValue
+          // So AT announces "Launch Pad tier 2 of 3" rather than the "2 / 3" spans as fragments.
+          role="img"
+          aria-label={
+            f && f.max > 0
+              ? sayHeld(
+                  `${label} tier ${displayLevel} of ${displayMax}`,
+                  heldCaption,
+                )
+              : `${label} tier unknown`
+          }
+        >
+          {f && f.max > 0 ? (
+            <>
+              <Tier>
+                {tiersHeldSince === null ? displayLevel : <Unit value={tier} />}
+              </Tier>
+              <Slash>/</Slash>
+              <TierMax>{displayMax}</TierMax>
+            </>
+          ) : (
+            <Muted>{NULL_DISPLAY}</Muted>
+          )}
+        </FacilityValue>
+        {f && f.upgradeFunds > 0 && !atMax && (
+          <UpgradeRow>
+            <UpgradeCost
+              $afford={moneyDecides ? canAfford : true}
+              /* The verdict, observable from outside; absent when money decides nothing. */
+              data-afford={affordVerdict(moneyDecides, canAfford)}
+            >
+              {formatCompactCurrency(f.upgradeFunds)}
+            </UpgradeCost>
+            <UpgradeButton
+              upgradeCmd={upgradeCmd}
+              facilityId={KEY_TO_ENUM_FACILITY[facilityKey]}
+              facilityLabel={label}
+              titleOverride={
+                f.nextLevelText
+                  ? `Upgrade to tier ${displayLevel + 1}:\n${plainTierSpecs(f.nextLevelText)}`
+                  : undefined
+              }
+            />
+          </UpgradeRow>
         )}
-      </FacilityValue>
-      {f && f.upgradeFunds > 0 && !atMax && (
-        <UpgradeRow>
-          <UpgradeCost
-            $afford={moneyDecides ? canAfford : true}
-            /* The verdict, observable from outside; absent when money decides nothing. */
-            data-afford={affordVerdict(moneyDecides, canAfford)}
-          >
-            {formatCompactCurrency(f.upgradeFunds)}
-          </UpgradeCost>
-          <UpgradeButton
-            upgradeCmd={upgradeCmd}
-            facilityId={KEY_TO_ENUM_FACILITY[facilityKey]}
-            facilityLabel={label}
-            titleOverride={
-              f.nextLevelText
-                ? `Upgrade to tier ${displayLevel + 1}:\n${plainTierSpecs(f.nextLevelText)}`
-                : undefined
-            }
-          />
-        </UpgradeRow>
-      )}
-      {atMax && <MaxBadge>MAX</MaxBadge>}
-      {showTierSpecs && f && (
-        <TierSpecs>
-          <TierBlock heading="Now" text={f.currentLevelText} />
-          {hasNextTier && <TierBlock heading="Next" text={f.nextLevelText} />}
-        </TierSpecs>
-      )}
-    </FacilityCell>
+        {atMax && <MaxBadge>MAX</MaxBadge>}
+        {showTierSpecs && f && (
+          <TierSpecs>
+            <TierBlock heading="Now" text={f.currentLevelText} />
+            {hasNextTier && <TierBlock heading="Next" text={f.nextLevelText} />}
+          </TierSpecs>
+        )}
+      </FacilityCell>
+    </Tooltip>
   );
 }

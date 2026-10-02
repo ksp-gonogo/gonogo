@@ -595,8 +595,10 @@ export {
   type ToggleButtonTone,
 } from "./ToggleButton";
 export {
-  type Tooltip,
+  Tooltip,
   type TooltipAnchorProps,
+  type TooltipProps,
+  type UseTooltipResult,
   useTooltip,
 } from "./Tooltip";
 export { Truncate } from "./Truncate";

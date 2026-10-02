@@ -22,6 +22,7 @@ import {
   SectionTitle,
   Stack,
   Text,
+  Tooltip,
   Unit,
   useRailEntry,
   useRowFilter,
@@ -218,15 +219,17 @@ function ExperimentsComponent({
                 ? ` · ${totals.inoperable} inoperable`
                 : ""}
               {totalDataMits > 0 && (
-                <Text spaced title="Total stored science data (mits)">
-                  ·{" "}
-                  <Unit
-                    value={readingOf(experimentsReading, () =>
-                      value("Mit", totalDataMits),
-                    )}
-                    decimals={1}
-                  />
-                </Text>
+                <Tooltip text="Total stored science data (mits)" focusable>
+                  <Text spaced>
+                    ·{" "}
+                    <Unit
+                      value={readingOf(experimentsReading, () =>
+                        value("Mit", totalDataMits),
+                      )}
+                      decimals={1}
+                    />
+                  </Text>
+                </Tooltip>
               )}
             </Text>
           </Section>

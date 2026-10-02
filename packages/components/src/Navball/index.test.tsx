@@ -148,7 +148,7 @@ describe("NavballComponent", () => {
     const toggle = await screen.findByRole("button", { name: "SAS OFF" });
     expect(toggle).toBeDisabled();
     expect(toggle).toHaveAttribute(
-      "title",
+      "data-tooltip",
       "No SAS: needs a Pilot aboard or a probe core with SAS",
     );
     expect(screen.getByRole("note")).toHaveTextContent(

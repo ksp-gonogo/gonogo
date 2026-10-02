@@ -19,7 +19,7 @@ import {
   Switch,
   useModalSaveBar,
 } from "@ksp-gonogo/ui";
-import { Grid, NULL_DISPLAY, Unit } from "@ksp-gonogo/ui-kit";
+import { Grid, NULL_DISPLAY, Tooltip, Unit } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import styled from "styled-components";
 import { usePeerClient } from "../peer/PeerClientContext";
@@ -365,9 +365,9 @@ function MainView({
         <HeaderLabel>{launched ? "MISSION ACTIVE" : "GO / NO-GO"}</HeaderLabel>
         <HeaderRight>
           {showWarnChip && hostConfig.triggerStageAtZero && !launched && (
-            <WarnChip title="At T-0 the next stage will auto-fire">
-              AUTO STAGE AT T-0
-            </WarnChip>
+            <Tooltip text="At T-0 the next stage will auto-fire" focusable>
+              <WarnChip>AUTO STAGE AT T-0</WarnChip>
+            </Tooltip>
           )}
         </HeaderRight>
       </MainHeader>
@@ -408,16 +408,18 @@ function MainView({
               <CellName>{s.name}</CellName>
               <CellStatus>{cellLabel(cellState)}</CellStatus>
               {showVersionChip && (
-                <VersionChip
-                  $kind={versionKind}
-                  title={
+                <Tooltip
+                  text={
                     versionKind === "unknown"
                       ? "Station didn't report a version"
                       : `Station v${s.version} ↔ this v${VERSION}`
                   }
+                  focusable
                 >
-                  v{s.version ?? "?"}
-                </VersionChip>
+                  <VersionChip $kind={versionKind}>
+                    v{s.version ?? "?"}
+                  </VersionChip>
+                </Tooltip>
               )}
             </Cell>
           );

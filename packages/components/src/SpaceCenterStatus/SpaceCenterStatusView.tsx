@@ -4,6 +4,7 @@ import {
   EmptyState,
   Panel,
   Section,
+  Tooltip,
   Unit,
   type UnitValue,
   WidgetSections,
@@ -73,17 +74,19 @@ export function SpaceCenterStatusView({
               <PadStatusLine role="status" aria-live="polite">
                 {padLine}
                 {careerFunds !== null || heldFunds ? (
-                  <FundsReadout title="Available funds">
-                    · <Unit value={fundsReading} />
-                  </FundsReadout>
+                  <Tooltip text="Available funds" focusable>
+                    <FundsReadout>
+                      · <Unit value={fundsReading} />
+                    </FundsReadout>
+                  </Tooltip>
                 ) : null}
                 {careerFunds === null &&
                   !heldFunds &&
                   /* The balance is required beside a spend control; sandbox charges nothing. */
                   chargesFunds && (
-                    <FundsReadout title="No funds balance has arrived">
-                      · funds unknown
-                    </FundsReadout>
+                    <Tooltip text="No funds balance has arrived" focusable>
+                      <FundsReadout>· funds unknown</FundsReadout>
+                    </Tooltip>
                   )}
               </PadStatusLine>
             )}

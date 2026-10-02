@@ -1,4 +1,9 @@
-import { Notice, NULL_DISPLAY, ToggleButton } from "@ksp-gonogo/ui-kit";
+import {
+  Notice,
+  NULL_DISPLAY,
+  ToggleButton,
+  Tooltip,
+} from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 
 interface ControlTogglesProps {
@@ -37,17 +42,18 @@ export function ControlToggles({
     <>
       {disabled && <Notice>Vessel not controllable: buttons disabled.</Notice>}
       <div style={TOGGLE_ROW}>
-        <ToggleButton
-          type="button"
-          size="sm"
-          style={TOGGLE_CELL}
-          active={sas === true}
-          onClick={onToggleSas}
-          disabled={disabled || sasUnavailableReason !== null}
-          title={sasUnavailableReason ?? undefined}
-        >
-          {armLabel("SAS", sas, sasBadgeMode)}
-        </ToggleButton>
+        <Tooltip text={sasUnavailableReason ?? undefined}>
+          <ToggleButton
+            type="button"
+            size="sm"
+            style={TOGGLE_CELL}
+            active={sas === true}
+            onClick={onToggleSas}
+            disabled={disabled || sasUnavailableReason !== null}
+          >
+            {armLabel("SAS", sas, sasBadgeMode)}
+          </ToggleButton>
+        </Tooltip>
         <ToggleButton
           type="button"
           size="sm"

@@ -16,6 +16,7 @@ import {
   DelayRailProvider,
   PanelBadgesProvider,
   PanelStatusStoreProvider,
+  Tooltip,
   WidgetBody,
   widgetDrawnFields,
 } from "@ksp-gonogo/ui-kit";
@@ -140,28 +141,30 @@ export const GridItemContent = memo(function GridItemContent({
           the instant on screen. Mounts a subscribing child only for widgets that
           read the trajectory; renders nothing otherwise. */}
         <TrajectoryCurrencyBridge declaredTopics={widgetDrawnFields(def)} />
-        <CellHeader className="drag-handle" title="Drag to reposition">
-          {/* widget-action-buttons: draggableCancel target so touch events don't trigger drag */}
-          <ActionButtons className="widget-action-buttons">
-            {(hasConfig || hasActions) && (
-              <GearWrapper>
-                <GearButton
-                  item={item}
-                  def={def}
-                  onSaveConfig={onSaveConfig}
-                  onSaveMappings={onSaveMappings}
-                />
-              </GearWrapper>
-            )}
-            <PushButton
-              item={item}
-              pushable={def.pushable === true}
-              w={w ?? 3}
-              h={h ?? 3}
-            />
-            <RemoveButton onRemove={onRemove} />
-          </ActionButtons>
-        </CellHeader>
+        <Tooltip text="Drag to reposition" announce={false}>
+          <CellHeader className="drag-handle">
+            {/* widget-action-buttons: draggableCancel target so touch events don't trigger drag */}
+            <ActionButtons className="widget-action-buttons">
+              {(hasConfig || hasActions) && (
+                <GearWrapper>
+                  <GearButton
+                    item={item}
+                    def={def}
+                    onSaveConfig={onSaveConfig}
+                    onSaveMappings={onSaveMappings}
+                  />
+                </GearWrapper>
+              )}
+              <PushButton
+                item={item}
+                pushable={def.pushable === true}
+                w={w ?? 3}
+                h={h ?? 3}
+              />
+              <RemoveButton onRemove={onRemove} />
+            </ActionButtons>
+          </CellHeader>
+        </Tooltip>
         <ComponentWrapper>
           <DashboardItemContext.Provider value={itemContext}>
             <AugmentSettingsProvider

@@ -5,6 +5,7 @@ import {
   registerAugment,
   WidgetMetaContext,
 } from "@ksp-gonogo/ui-kit";
+import { getAllByTip, getByTip } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { ContributionHost } from "../test/contributionHost";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -107,7 +108,7 @@ describe("SpaceCenterStatus draws the balance wherever a contributed section can
 
       // Waited on the balance, since the augment is on screen before the career record lands.
       await waitFor(() =>
-        expect(screen.getByTitle("Available funds")).toBeTruthy(),
+        expect(getByTip(document.body, "Available funds")).toBeTruthy(),
       );
       expect(screen.getByText(SPENDING_SECTION_TEXT)).toBeTruthy();
     });
@@ -127,7 +128,7 @@ describe("SpaceCenterStatus draws the balance wherever a contributed section can
     emitCareer(fixture);
 
     await waitFor(() =>
-      expect(screen.getAllByTitle("Available funds")).toHaveLength(1),
+      expect(getAllByTip(document.body, "Available funds")).toHaveLength(1),
     );
     expect(screen.getByText(SPENDING_SECTION_TEXT)).toBeTruthy();
     expect(screen.getByText("a second contributed section")).toBeTruthy();

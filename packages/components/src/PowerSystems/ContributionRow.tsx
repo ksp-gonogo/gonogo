@@ -6,6 +6,7 @@ import {
   RowName,
   speakQuantity,
   Text,
+  Tooltip,
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import type { Contribution } from "./flow";
@@ -42,25 +43,31 @@ export function ContributionRow({
     <Row>
       <RowName>{partTitle}</RowName>
       {eff !== null && (
-        <span
-          style={ROW_EFF}
-          title={`${speakQuantity(value("%", eff * 100), { decimals: 0 })} of nominal`}
+        <Tooltip
+          text={`${speakQuantity(value("%", eff * 100), { decimals: 0 })} of nominal`}
+          focusable
         >
-          <Unit
-            value={readingOf(currency, () => value("%", eff * 100))}
-            decimals={0}
-          />
-        </span>
+          <span style={ROW_EFF}>
+            <Unit
+              value={readingOf(currency, () => value("%", eff * 100))}
+              decimals={0}
+            />
+          </span>
+        </Tooltip>
       )}
-      <Text
-        tone={FLOW_TONE[sign]}
-        level={sign === "zero" ? "faint" : undefined}
-        title={flowKnown ? undefined : "No flow reading for this part"}
+      <Tooltip
+        text={flowKnown ? undefined : "No flow reading for this part"}
+        focusable
       >
-        {flowKnown
-          ? `${sign === "pos" ? "+" : ""}${flow.toFixed(2)}`
-          : NULL_DISPLAY}
-      </Text>
+        <Text
+          tone={FLOW_TONE[sign]}
+          level={sign === "zero" ? "faint" : undefined}
+        >
+          {flowKnown
+            ? `${sign === "pos" ? "+" : ""}${flow.toFixed(2)}`
+            : NULL_DISPLAY}
+        </Text>
+      </Tooltip>
     </Row>
   );
 }

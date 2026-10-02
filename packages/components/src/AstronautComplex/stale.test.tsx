@@ -1,7 +1,7 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
-import { visibleText } from "@ksp-gonogo/ui-kit/testing";
+import { queryByTip, visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { beforeEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { AstronautComplexComponent } from "./index";
@@ -17,7 +17,7 @@ const HELD_FUNDS_TITLE = "Affordability is not judged against a held balance";
 
 /** The held balance's spoken staleness, which carries the grade and the instant it was read. */
 function heldFundsMark(): string | null {
-  const readout = screen.queryByTitle(HELD_FUNDS_TITLE);
+  const readout = queryByTip(document.body, HELD_FUNDS_TITLE);
   return readout?.querySelector("[data-unit-currency]")?.textContent ?? null;
 }
 
@@ -91,7 +91,7 @@ describe("AstronautComplex when its telemetry is held", () => {
     expect(screen.getByText("Funds").nextElementSibling).not.toHaveTextContent(
       NULL_DISPLAY,
     );
-    expect(screen.queryByTitle(HELD_FUNDS_TITLE)).toBeNull();
+    expect(queryByTip(document.body, HELD_FUNDS_TITLE)).toBeNull();
     expect(visibleText(container)).toContain("500,000");
   });
 
@@ -119,7 +119,7 @@ describe("AstronautComplex when its telemetry is held", () => {
     await waitFor(() =>
       expect(visibleText(container)).toContain("waiting for telemetry"),
     );
-    expect(screen.queryByTitle(HELD_FUNDS_TITLE)).toBeNull();
+    expect(queryByTip(document.body, HELD_FUNDS_TITLE)).toBeNull();
     expect(screen.getByText("Funds").nextElementSibling).toHaveTextContent(
       NULL_DISPLAY,
     );

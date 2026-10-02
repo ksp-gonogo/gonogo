@@ -5,7 +5,7 @@ import {
 } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
-import { visibleText } from "@ksp-gonogo/ui-kit/testing";
+import { getByTip, visibleText } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -969,6 +969,6 @@ describe("LaunchDirectorComponent augment slots", () => {
     // No craft selected yet, funds carried through from telemetry.
     expect(section).toHaveTextContent("ship:null funds:100000");
     // The existing funds readout in the subtitle is untouched.
-    expect(screen.getByTitle("Available funds")).toBeInTheDocument();
+    expect(getByTip(document.body, "Available funds")).toBeInTheDocument();
   });
 });

@@ -1,3 +1,4 @@
+import { Tooltip } from "@ksp-gonogo/ui-kit";
 import { useEffect } from "react";
 import styled, { css } from "styled-components";
 
@@ -40,14 +41,11 @@ export function FabPrompt({
       >
         {label}
       </Accept>
-      <Dismiss
-        type="button"
-        onClick={onDismiss}
-        aria-label="Dismiss"
-        title="Dismiss"
-      >
-        ×
-      </Dismiss>
+      <Tooltip text="Dismiss">
+        <Dismiss type="button" onClick={onDismiss} aria-label="Dismiss">
+          ×
+        </Dismiss>
+      </Tooltip>
     </Wrap>
   );
 }

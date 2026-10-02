@@ -28,7 +28,7 @@ describe("OrbitReadoutGrid: apsides the frame in force does not have", () => {
     expect(screen.getAllByText("no Ap here")).toHaveLength(2);
     expect(screen.getAllByText("no Pe here")).toHaveLength(2);
     expect(screen.getAllByText("no Ap here")[0]).toHaveAttribute(
-      "title",
+      "data-tooltip",
       "No apoapsis in this frame",
     );
   });

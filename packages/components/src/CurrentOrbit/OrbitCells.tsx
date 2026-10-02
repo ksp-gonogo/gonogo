@@ -1,3 +1,4 @@
+import { Tooltip } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties, ReactNode } from "react";
 
 // Plain elements rather than ui-kit Value: its tones have no slot for ap/pe/alert, and the sizes are off-scale on purpose.
@@ -29,16 +30,17 @@ export function FrameCaveat({
   title?: string;
 }) {
   return (
-    <span
-      title={title}
-      style={{
-        fontSize: "var(--font-size-compact)",
-        color: "var(--color-text-faint)",
-        fontStyle: "italic",
-      }}
-    >
-      {children}
-    </span>
+    <Tooltip text={title} focusable>
+      <span
+        style={{
+          fontSize: "var(--font-size-compact)",
+          color: "var(--color-text-faint)",
+          fontStyle: "italic",
+        }}
+      >
+        {children}
+      </span>
+    </Tooltip>
   );
 }
 

@@ -16,6 +16,7 @@ import {
   Section,
   Stack,
   Text,
+  Tooltip,
   Truncate,
 } from "@ksp-gonogo/ui-kit";
 import { useRef, useState } from "react";
@@ -152,58 +153,61 @@ export function ActionGroupView({
                 />
               </Stack>
             ) : (
-              <Button
-                variant="text"
-                type="button"
-                onClick={startEditing}
-                aria-label={`Rename ${currentLabel}`}
-                title="Click to rename"
-                style={{ flex: 1, minWidth: 0, cursor: "text" }}
-              >
-                <Stack as="span" style={{ minWidth: 0 }}>
-                  <Truncate
-                    style={{ fontWeight: 600, letterSpacing: "0.05em" }}
-                  >
-                    {currentLabel}
-                  </Truncate>
-                  {showOfficialName &&
-                    config?.label &&
-                    config.label !== group.name && (
-                      <Text level="faint" size="xs">
-                        {group.name}
-                      </Text>
-                    )}
-                </Stack>
-              </Button>
+              <Tooltip text="Click to rename">
+                <Button
+                  variant="text"
+                  type="button"
+                  onClick={startEditing}
+                  aria-label={`Rename ${currentLabel}`}
+                  style={{ flex: 1, minWidth: 0, cursor: "text" }}
+                >
+                  <Stack as="span" style={{ minWidth: 0 }}>
+                    <Truncate
+                      style={{ fontWeight: 600, letterSpacing: "0.05em" }}
+                    >
+                      {currentLabel}
+                    </Truncate>
+                    {showOfficialName &&
+                      config?.label &&
+                      config.label !== group.name && (
+                        <Text level="faint" size="xs">
+                          {group.name}
+                        </Text>
+                      )}
+                  </Stack>
+                </Button>
+              </Tooltip>
             )}
             <Inline>
               {showBell && group.toggle && (
-                <IconButton
-                  type="button"
-                  aria-label={`Set alarm to fire ${currentLabel}`}
-                  title={`Set alarm to fire ${currentLabel}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (!group.toggle || !openAlarms) return;
-                    openAlarms({
-                      name: `Fire ${currentLabel}`,
-                      action: group.toggle,
-                    });
-                  }}
-                >
-                  <BellIcon />
-                </IconButton>
+                <Tooltip text={`Set alarm to fire ${currentLabel}`}>
+                  <IconButton
+                    type="button"
+                    aria-label={`Set alarm to fire ${currentLabel}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (!group.toggle || !openAlarms) return;
+                      openAlarms({
+                        name: `Fire ${currentLabel}`,
+                        action: group.toggle,
+                      });
+                    }}
+                  >
+                    <BellIcon />
+                  </IconButton>
+                </Tooltip>
               )}
-              <ToggleButton
-                active={isOn}
-                size="sm"
-                disabled={!canToggle}
-                onClick={press}
-                aria-label={`Toggle ${currentLabel}`}
-                title={unavailableReason ?? `Toggle ${currentLabel}`}
-              >
-                {stateLabel}
-              </ToggleButton>
+              <Tooltip text={unavailableReason ?? `Toggle ${currentLabel}`}>
+                <ToggleButton
+                  active={isOn}
+                  size="sm"
+                  disabled={!canToggle}
+                  onClick={press}
+                  aria-label={`Toggle ${currentLabel}`}
+                >
+                  {stateLabel}
+                </ToggleButton>
+              </Tooltip>
             </Inline>
           </Cluster>
         </Section>,

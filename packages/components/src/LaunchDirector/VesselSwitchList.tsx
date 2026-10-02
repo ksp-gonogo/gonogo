@@ -4,7 +4,7 @@ import {
   type Value,
   VesselType,
 } from "@ksp-gonogo/sitrep-sdk";
-import { Cluster, Row, ToggleButton, Unit } from "@ksp-gonogo/ui-kit";
+import { Cluster, Row, ToggleButton, Tooltip, Unit } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
 import { magnitudeOf } from "../shared/magnitude";
 import {
@@ -51,20 +51,23 @@ export function VesselSwitchList({
     <VesselSwitchPanel role="listbox" aria-label="Switch active vessel">
       {spaceObjectCount > 0 && (
         <Cluster justify="start">
-          <ToggleButton
-            size="sm"
-            active={showSpaceObjects}
-            onClick={onToggleSpaceObjects}
-            title={
+          <Tooltip
+            text={
               showSpaceObjects
                 ? "Hide asteroids / comets from the list"
                 : "Show asteroids / comets in the list"
             }
           >
-            {showSpaceObjects
-              ? `Asteroids: shown (${spaceObjectCount})`
-              : `Asteroids: hidden (${spaceObjectCount})`}
-          </ToggleButton>
+            <ToggleButton
+              size="sm"
+              active={showSpaceObjects}
+              onClick={onToggleSpaceObjects}
+            >
+              {showSpaceObjects
+                ? `Asteroids: shown (${spaceObjectCount})`
+                : `Asteroids: hidden (${spaceObjectCount})`}
+            </ToggleButton>
+          </Tooltip>
         </Cluster>
       )}
       {switchableVessels.length === 0 ? (

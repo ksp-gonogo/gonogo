@@ -153,10 +153,10 @@ describe("Unit: a value renders whole", () => {
   });
 
   it("carries the spoken word as a tooltip too", () => {
-    // The title disambiguates units that share a glyph for a sighted reader.
+    // The tip disambiguates units that share a glyph for a sighted reader.
     const { container } = render(<Unit value={value("m", 12_400)} />);
     expect(container.querySelector("[data-unit]")).toHaveAttribute(
-      "title",
+      "data-tooltip",
       "kilometres",
     );
   });

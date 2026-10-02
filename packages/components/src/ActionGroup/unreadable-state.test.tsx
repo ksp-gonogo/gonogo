@@ -109,7 +109,7 @@ describe("ActionGroup when the backend could not read the group", () => {
 
     // The empty pill is also the cold and stale render, so the header badge must say which.
     const reason = screen.getByText("State unreadable");
-    expect(reason.closest("[title]")?.getAttribute("title")).toBe(
+    expect(reason.closest("[data-tooltip]")?.getAttribute("data-tooltip")).toBe(
       "The backend reported this group but could not read whether it is engaged, so the toggle is held",
     );
   });

@@ -5,7 +5,7 @@ import {
   screen,
   waitFor,
 } from "@ksp-gonogo/test-utils";
-import { visibleText } from "@ksp-gonogo/ui-kit/testing";
+import { getByTip, queryByTip, visibleText } from "@ksp-gonogo/ui-kit/testing";
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import {
@@ -216,8 +216,10 @@ describe("PowerSystems: what undefined means today", () => {
     expect(screen.getByText("OX-STAT Panel")).toBeTruthy();
     // Only the CONS totals cell, a real zero.
     expect(screen.getAllByText("0.00")).toHaveLength(1);
-    expect(screen.getByTitle("No flow reading for this part")).toBeTruthy();
-    expect(screen.queryByTitle(/of nominal/)).toBeNull();
+    expect(
+      getByTip(document.body, "No flow reading for this part"),
+    ).toBeTruthy();
+    expect(queryByTip(document.body, /of nominal/)).toBeNull();
     // The idle row contributes nothing to the totals, so NET still reads the one real producer.
     expect(visibleText()).toContain("+5.00/s");
   });

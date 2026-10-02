@@ -191,7 +191,7 @@ describe("TechTree: no building-scene gate on Unlock", () => {
 
     const unlock = screen.getByRole("button", { name: "Unlock" });
     expect(unlock).toBeEnabled();
-    expect(unlock).not.toHaveAttribute("title");
+    expect(unlock).not.toHaveAttribute("data-tooltip");
   });
 });
 
@@ -213,7 +213,7 @@ describe("TechTree: an absent balances.science", () => {
     // An unknown balance decides nothing about the command; the node's per-item gate does.
     const unlock = screen.getByRole("button", { name: "Unlock" });
     expect(unlock).toBeEnabled();
-    expect(unlock).not.toHaveAttribute("title");
+    expect(unlock).not.toHaveAttribute("data-tooltip");
   });
 
   it("marks the price short once a balance arrives and is too small, and leaves Unlock to its gate", async () => {

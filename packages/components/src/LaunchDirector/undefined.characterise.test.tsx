@@ -2,7 +2,7 @@ import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
 import { CommandErrorCode, GateOutcome } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
-import { visibleText } from "@ksp-gonogo/ui-kit/testing";
+import { getByTip, queryByTip, visibleText } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -68,7 +68,7 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
     // Named absences: none of the sections, controls or readouts exist behind that one line.
     expect(screen.queryByText("Pads")).toBeNull();
     expect(screen.queryByText("Crew")).toBeNull();
-    expect(screen.queryByTitle("Available funds")).toBeNull();
+    expect(queryByTip(document.body, "Available funds")).toBeNull();
     expect(screen.queryAllByRole("button")).toHaveLength(0);
     expect(visibleText()).toBe(
       "LAUNCH & RECOVERYAwaiting launch-pad telemetry",
@@ -167,11 +167,13 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
       screen.getByRole("button", { name: /Kerbal X/ }),
     );
     expect(row.getAttribute("aria-disabled")).toBe("true");
-    expect(screen.getByTitle("Insufficient funds")).toBeTruthy();
+    expect(getByTip(document.body, "Insufficient funds")).toBeTruthy();
     expect(screen.getByText(/Craft · 0\/1 ready/)).toBeTruthy();
     // The readout stays, saying the balance is the thing missing.
-    expect(screen.queryByTitle("Available funds")).toBeNull();
-    expect(screen.getByTitle("No funds balance has arrived")).toBeTruthy();
+    expect(queryByTip(document.body, "Available funds")).toBeNull();
+    expect(
+      getByTip(document.body, "No funds balance has arrived"),
+    ).toBeTruthy();
     expect(screen.getByRole("status").textContent).toContain("funds unknown");
 
     // Absence and a short balance are both "cannot afford this".
@@ -186,17 +188,19 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
     });
     // Wait on the readout: the row is already disabled before the emit lands.
     await waitFor(() =>
-      expect(screen.getByTitle("Available funds")).toBeTruthy(),
+      expect(getByTip(document.body, "Available funds")).toBeTruthy(),
     );
     expect(
       screen
         .getByRole("button", { name: /Kerbal X/ })
         .getAttribute("aria-disabled"),
     ).toBe("true");
-    expect(screen.getByTitle("Insufficient funds")).toBeTruthy();
+    expect(getByTip(document.body, "Insufficient funds")).toBeTruthy();
     expect(screen.getByText(/Craft · 0\/1 ready/)).toBeTruthy();
     // The unknown-balance notice gives way to the balance itself.
-    expect(screen.queryByTitle("No funds balance has arrived")).toBeNull();
+    expect(
+      queryByTip(document.body, "No funds balance has arrived"),
+    ).toBeNull();
   });
 
   it("says the roster has no reading, and still offers the launch, while the crew roster is absent", async () => {
@@ -345,7 +349,7 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
     // An absent target roster reads as a save with no other vessels, in the tooltip.
     const switcher = screen.getByRole("button", { name: /Switch to vessel/ });
     expect(switcher).toBeDisabled();
-    expect(switcher.getAttribute("title")).toBe(
+    expect(switcher.getAttribute("data-tooltip")).toBe(
       "No other vessels in this save",
     );
   });

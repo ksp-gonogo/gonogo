@@ -1,7 +1,7 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import { useGameContext, useTelemetry } from "@ksp-gonogo/core";
 import { stillTrue, VesselType } from "@ksp-gonogo/sitrep-sdk";
-import { Panel, Section, Unit } from "@ksp-gonogo/ui-kit";
+import { Panel, Section, Tooltip, Unit } from "@ksp-gonogo/ui-kit";
 import { useMemo, useState } from "react";
 import { magnitudeOf } from "../shared/magnitude";
 import { BoundPresses } from "./actions";
@@ -176,21 +176,24 @@ export function LaunchDirectorComponent({
                           .length,
                       })}
                 {hasFunds && (
-                  <FundsReadout
-                    title={
+                  <Tooltip
+                    text={
                       fundsHeld
                         ? "Affordability is not judged against a held balance"
                         : "Available funds"
                     }
+                    focusable
                   >
-                    · <Unit value={fundsReading} />
-                  </FundsReadout>
+                    <FundsReadout>
+                      · <Unit value={fundsReading} />
+                    </FundsReadout>
+                  </Tooltip>
                 )}
                 {/* The balance is required beside a spend control. */}
                 {!hasFunds && chargesFunds && (
-                  <FundsReadout title="No funds balance has arrived">
-                    · funds unknown
-                  </FundsReadout>
+                  <Tooltip text="No funds balance has arrived" focusable>
+                    <FundsReadout>· funds unknown</FundsReadout>
+                  </Tooltip>
                 )}
               </div>
             </Section>

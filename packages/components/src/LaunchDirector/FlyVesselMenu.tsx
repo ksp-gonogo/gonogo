@@ -1,5 +1,10 @@
 import type { VesselRosterEntry } from "@ksp-gonogo/sitrep-sdk";
-import { Button, type CommandButtonHandle, Row } from "@ksp-gonogo/ui-kit";
+import {
+  Button,
+  type CommandButtonHandle,
+  Row,
+  Tooltip,
+} from "@ksp-gonogo/ui-kit";
 import { type ReactNode, useState } from "react";
 import {
   InFlightWrap,
@@ -29,20 +34,23 @@ export function FlyVesselMenu({
     <InFlightWrap>
       <PadActions>
         {children}
-        <Button
-          type="button"
-          variant="ghost"
-          disabled={vessels.length === 0}
-          aria-expanded={flyOpen}
-          onClick={() => setFlyOpen((v) => !v)}
-          title={
+        <Tooltip
+          text={
             vessels.length === 0
               ? "No vessels in this save"
               : "Saves the game, then flies the vessel you pick"
           }
         >
-          Fly vessel ▾
-        </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            disabled={vessels.length === 0}
+            aria-expanded={flyOpen}
+            onClick={() => setFlyOpen((v) => !v)}
+          >
+            Fly vessel ▾
+          </Button>
+        </Tooltip>
       </PadActions>
       {flyOpen && vessels.length > 0 && (
         <VesselSwitchPanel role="group" aria-label="Fly vessel">

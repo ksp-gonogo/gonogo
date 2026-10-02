@@ -19,7 +19,7 @@ import {
   useFabCluster,
   useModal,
 } from "@ksp-gonogo/ui";
-import { Box } from "@ksp-gonogo/ui-kit";
+import { Box, Tooltip } from "@ksp-gonogo/ui-kit";
 import type { KeyboardEvent, ReactNode } from "react";
 import {
   createContext,
@@ -293,17 +293,18 @@ export function ComponentOverlay({
 
   return (
     <>
-      <FAB
-        onClick={() => setOpen(true)}
-        onMouseEnter={cluster?.onMouseEnter}
-        onMouseLeave={cluster?.onMouseLeave}
-        onFocus={cluster?.onFocus}
-        onBlur={cluster?.onBlur}
-        aria-label="Add component"
-        title="Add component"
-      >
-        +
-      </FAB>
+      <Tooltip text="Add component">
+        <FAB
+          onClick={() => setOpen(true)}
+          onMouseEnter={cluster?.onMouseEnter}
+          onMouseLeave={cluster?.onMouseLeave}
+          onFocus={cluster?.onFocus}
+          onBlur={cluster?.onBlur}
+          aria-label="Add component"
+        >
+          +
+        </FAB>
+      </Tooltip>
 
       {open && (
         <Backdrop onClick={closeOverlay}>

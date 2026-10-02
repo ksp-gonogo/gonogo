@@ -8,6 +8,7 @@ import {
   PlayIcon,
   ReadoutCaption,
   Section,
+  Tooltip,
   Unit,
   type UnitValue,
 } from "@ksp-gonogo/ui-kit";
@@ -106,22 +107,23 @@ export function WarpControlView({
                 <div style={CONTROL_ROW_STYLE}>
                   {/* Hidden at small grid counts so the warp buttons keep their own line. */}
                   {scene === "Flight" && cols >= 4 && rows >= 4 && (
-                    <ToggleButton
-                      active={paused === true}
-                      tone="warn"
-                      size="sm"
-                      onClick={onTogglePause}
-                      aria-label={
-                        paused === true ? "Resume game" : "Pause game"
-                      }
-                      title={paused === true ? "Resume" : "Pause"}
-                    >
-                      {paused === true ? (
-                        <PlayIcon size={12} />
-                      ) : (
-                        <PauseIcon size={12} />
-                      )}
-                    </ToggleButton>
+                    <Tooltip text={paused === true ? "Resume" : "Pause"}>
+                      <ToggleButton
+                        active={paused === true}
+                        tone="warn"
+                        size="sm"
+                        onClick={onTogglePause}
+                        aria-label={
+                          paused === true ? "Resume game" : "Pause game"
+                        }
+                      >
+                        {paused === true ? (
+                          <PlayIcon size={12} />
+                        ) : (
+                          <PauseIcon size={12} />
+                        )}
+                      </ToggleButton>
+                    </Tooltip>
                   )}
 
                   {showFullLadder && (

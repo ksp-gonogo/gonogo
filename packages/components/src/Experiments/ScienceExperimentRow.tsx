@@ -8,6 +8,7 @@ import {
   Inline,
   Row,
   RowName,
+  Tooltip,
 } from "@ksp-gonogo/ui-kit";
 import type { Instrument } from "./instrument";
 
@@ -45,7 +46,9 @@ export function ScienceExperimentRow({
   return (
     // Wraps, because a row can carry all four badges at once.
     <Row wrap>
-      <RowName title={instrument.partTitle}>{instrument.partTitle}</RowName>
+      <Tooltip text={instrument.partTitle} announce={false}>
+        <RowName>{instrument.partTitle}</RowName>
+      </Tooltip>
       <Inline wrap>
         {instrument.hasData && <Badge tone="go">DATA</Badge>}
         {instrument.deployed && <Badge>DEPLOYED</Badge>}

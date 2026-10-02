@@ -168,7 +168,10 @@ describe("ScienceExperimentRow", () => {
       />,
     );
     const name = screen.getByText("Mystery Goo™ Containment Unit");
-    expect(name).toHaveAttribute("title", "Mystery Goo™ Containment Unit");
+    expect(name).toHaveAttribute(
+      "data-tooltip",
+      "Mystery Goo™ Containment Unit",
+    );
     expect(getComputedStyle(screen.getByRole("listitem")).flexWrap).toBe(
       "wrap",
     );

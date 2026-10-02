@@ -26,7 +26,7 @@ import {
   DomainAvailabilityContext,
   WidgetMetaContext,
 } from "@ksp-gonogo/ui-kit";
-import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
+import { expectNoA11yViolations, getByTip } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -300,8 +300,8 @@ describe("AstronautComplexComponent", () => {
 
     await screen.findByText("Desdin Kerman");
     const row = screen.getByText("Desdin Kerman").closest("li") as HTMLElement;
-    expect(within(row).getByTitle(/Courage: 65 percent/)).toBeInTheDocument();
-    expect(within(row).getByTitle(/Stupidity: 20 percent/)).toBeInTheDocument();
+    expect(getByTip(row, /Courage: 65 percent/)).toBeInTheDocument();
+    expect(getByTip(row, /Stupidity: 20 percent/)).toBeInTheDocument();
     expect(within(row).queryByText(/^L\d/)).not.toBeInTheDocument();
   });
 
@@ -365,9 +365,9 @@ describe("AstronautComplexComponent", () => {
     expect(screen.getByText("Bill Kerman")).toBeInTheDocument();
     const row = screen.getByText("Bill Kerman").closest("li") as HTMLElement;
     expect(within(row).getByText("L2")).toBeInTheDocument();
-    expect(within(row).getByTitle(/Courage: 50 percent/)).toBeInTheDocument();
+    expect(getByTip(row, /Courage: 50 percent/)).toBeInTheDocument();
     expect(
-      within(row).getByTitle(/Experience toward next rank: 40 percent/),
+      getByTip(row, /Experience toward next rank: 40 percent/),
     ).toBeInTheDocument();
 
     // Sub-tabs swap the visible slice of the ONE underlying list.
@@ -902,7 +902,7 @@ describe("AstronautComplexComponent", () => {
     await user.click(await screen.findByRole("tab", { name: "Active" }));
 
     const badge = await screen.findByText("Standing down");
-    const title = badge.getAttribute("title") ?? "";
+    const title = badge.getAttribute("data-tooltip") ?? "";
     expect(title).toContain("Standing down until ");
     // A rendered date, not the raw UT.
     expect(title).not.toContain("9000000");

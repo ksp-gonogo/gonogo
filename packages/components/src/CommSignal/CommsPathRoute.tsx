@@ -5,6 +5,7 @@ import {
   Countdown,
   Stack,
   Text,
+  Tooltip,
   Unit,
   VisuallyHidden,
 } from "@ksp-gonogo/ui-kit";
@@ -94,13 +95,11 @@ function CommsPathStop({
       }}
     >
       <RailSlot stop />
-      <Text
-        size="sm"
-        weight={emphasize ? "semibold" : "regular"}
-        title={node.title}
-      >
-        {node.label}
-      </Text>
+      <Tooltip text={node.title} focusable>
+        <Text size="sm" weight={emphasize ? "semibold" : "regular"}>
+          {node.label}
+        </Text>
+      </Tooltip>
     </div>
   );
 }
@@ -151,28 +150,32 @@ function CommsPathLeg({
             </Text>
           )}
           {rate !== undefined && (
-            <Text
-              level="muted"
-              size="xs"
-              weight={isBottleneck ? "semibold" : "regular"}
-              title={
+            <Tooltip
+              text={
                 isBottleneck
                   ? "Slowest hop: caps end-to-end throughput"
                   : undefined
               }
-              style={{
-                whiteSpace: "nowrap",
-                // `Text`'s warn tone is the near-black chip foreground, so standalone warning text uses the muted token.
-                color: isBottleneck ? "var(--color-warn-text)" : undefined,
-              }}
+              focusable
             >
-              <Unit value={value("bit/s", rate)} />
-              {isBottleneck && (
-                <VisuallyHidden>
-                  , slowest hop, limits end-to-end rate
-                </VisuallyHidden>
-              )}
-            </Text>
+              <Text
+                level="muted"
+                size="xs"
+                weight={isBottleneck ? "semibold" : "regular"}
+                style={{
+                  whiteSpace: "nowrap",
+                  // `Text`'s warn tone is the near-black chip foreground, so standalone warning text uses the muted token.
+                  color: isBottleneck ? "var(--color-warn-text)" : undefined,
+                }}
+              >
+                <Unit value={value("bit/s", rate)} />
+                {isBottleneck && (
+                  <VisuallyHidden>
+                    , slowest hop, limits end-to-end rate
+                  </VisuallyHidden>
+                )}
+              </Text>
+            </Tooltip>
           )}
         </Cluster>
       )}

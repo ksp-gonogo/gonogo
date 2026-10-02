@@ -1,5 +1,5 @@
 import { Button, Tabs, useModal } from "@ksp-gonogo/ui";
-import { Card } from "@ksp-gonogo/ui-kit";
+import { Card, Tooltip } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import styled from "styled-components";
 import { CHROMIUM_ONLY_SURFACES } from "../capabilities";
@@ -124,13 +124,14 @@ function DevicesTab() {
         <Heading>Registered devices ({devices.length})</Heading>
         <ToolbarButtons>
           {support.supported && (
-            <Button
-              type="button"
-              onClick={() => setAdding("self-describing")}
-              title="Pair a json-state controller without manually creating a device type"
-            >
-              + add self-describing
-            </Button>
+            <Tooltip text="Pair a json-state controller without manually creating a device type">
+              <Button
+                type="button"
+                onClick={() => setAdding("self-describing")}
+              >
+                + add self-describing
+              </Button>
+            </Tooltip>
           )}
           <Button type="button" onClick={() => setEditing("new")}>
             + add device
@@ -284,31 +285,29 @@ function DeviceRow({
           </Button>
         )}
         {hasRoleLessInput && (
-          <Button
-            variant="ghost"
-            type="button"
-            onClick={openLearnWizard}
-            title="Walk each role in turn and record which raw button/axis it lands on, restores real labels on a non-standard-mapping pad"
-          >
-            Learn roles...
-          </Button>
+          <Tooltip text="Walk each role in turn and record which raw button/axis it lands on, restores real labels on a non-standard-mapping pad">
+            <Button variant="ghost" type="button" onClick={openLearnWizard}>
+              Learn roles...
+            </Button>
+          </Tooltip>
         )}
         {device.transport === "web-serial" && status === "error" && (
-          <Button
-            variant="ghost"
-            onClick={() => {
-              if (
-                window.confirm(
-                  "Reset will refresh the page. Use this when a device is stuck after an unplug → replug cycle. Other unsaved app state will be lost.",
-                )
-              ) {
-                window.location.reload();
-              }
-            }}
-            title="Refreshes the page: only Web Serial knows how to release a stuck-open SerialPort, and only a fresh JS context lets it"
-          >
-            Reset connection
-          </Button>
+          <Tooltip text="Refreshes the page: only Web Serial knows how to release a stuck-open SerialPort, and only a fresh JS context lets it">
+            <Button
+              variant="ghost"
+              onClick={() => {
+                if (
+                  window.confirm(
+                    "Reset will refresh the page. Use this when a device is stuck after an unplug → replug cycle. Other unsaved app state will be lost.",
+                  )
+                ) {
+                  window.location.reload();
+                }
+              }}
+            >
+              Reset connection
+            </Button>
+          </Tooltip>
         )}
         {!isKeyboard && (
           <>

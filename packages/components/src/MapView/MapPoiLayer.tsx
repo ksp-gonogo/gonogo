@@ -11,7 +11,7 @@ import {
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import { Button } from "@ksp-gonogo/ui";
-import { Floating, Unit, writeQuantity } from "@ksp-gonogo/ui-kit";
+import { Floating, Tooltip, Unit, writeQuantity } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties, ReactElement, RefObject } from "react";
 import { useRef, useState, useSyncExternalStore } from "react";
 import {
@@ -233,19 +233,22 @@ function PoiHoverCardView({
         {poi.actions && poi.actions.length > 0 && (
           <PoiHoverActions>
             {poi.actions.map((action) => (
-              <Button
+              <Tooltip
                 key={action.id}
-                type="button"
-                disabled={action.disabled}
-                title={
+                text={
                   action.disabled && action.disabledReason
                     ? action.disabledReason
                     : undefined
                 }
-                onClick={() => void action.run()}
               >
-                {action.label}
-              </Button>
+                <Button
+                  type="button"
+                  disabled={action.disabled}
+                  onClick={() => void action.run()}
+                >
+                  {action.label}
+                </Button>
+              </Tooltip>
             ))}
           </PoiHoverActions>
         )}

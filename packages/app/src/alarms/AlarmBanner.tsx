@@ -1,7 +1,12 @@
 import { useTelemetry, useTimeContexts } from "@ksp-gonogo/core";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { ArrowRightIcon, PlayIcon, StopIcon } from "@ksp-gonogo/ui";
-import { Cluster, NULL_DISPLAY, writeQuantity } from "@ksp-gonogo/ui-kit";
+import {
+  Cluster,
+  NULL_DISPLAY,
+  Tooltip,
+  writeQuantity,
+} from "@ksp-gonogo/ui-kit";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 import { useAlarmHost, useAlarmSnapshot } from "./AlarmHostContext";
@@ -157,22 +162,24 @@ function LocalAlarmStrip() {
               </AckButton>
             )}
             {snap.warpTo !== null ? (
-              <StopWarpButton
-                type="button"
-                onClick={() => host.cancelWarpTo()}
-                title="Stop the managed warp and drop to 1×"
-              >
-                <StopIcon size={12} /> Stop warp
-              </StopWarpButton>
+              <Tooltip text="Stop the managed warp and drop to 1×">
+                <StopWarpButton
+                  type="button"
+                  onClick={() => host.cancelWarpTo()}
+                >
+                  <StopIcon size={12} /> Stop warp
+                </StopWarpButton>
+              </Tooltip>
             ) : (
               warpToCandidate && (
-                <WarpToButton
-                  type="button"
-                  onClick={() => host.beginWarpTo()}
-                  title="Warp toward the next alarm at the highest safe rate"
-                >
-                  <PlayIcon size={12} /> Warp to alarm
-                </WarpToButton>
+                <Tooltip text="Warp toward the next alarm at the highest safe rate">
+                  <WarpToButton
+                    type="button"
+                    onClick={() => host.beginWarpTo()}
+                  >
+                    <PlayIcon size={12} /> Warp to alarm
+                  </WarpToButton>
+                </Tooltip>
               )
             )}
           </>
@@ -209,28 +216,35 @@ export function SafetyMarginPill() {
     <Wrap $tone="set" role="status">
       <Cluster justify="start" align="baseline" wrap>
         <Label>Safety</Label>
-        <SafetyInput
-          type="number"
-          min={MIN_WARP_SAFETY_MARGIN_SECONDS}
-          max={MAX_WARP_SAFETY_MARGIN_SECONDS}
-          step={1}
-          value={snap.warpSafetyMarginSeconds}
-          onChange={(e) => {
-            const n = Number.parseFloat(e.target.value);
-            if (Number.isFinite(n)) host.setWarpSafetyMargin(n);
-          }}
-          aria-label="Warp-to safety margin in real seconds"
-          title="Real seconds before arming: higher = step down earlier"
-        />
+        <Tooltip text="Real seconds before arming: higher = step down earlier">
+          <SafetyInput
+            type="number"
+            min={MIN_WARP_SAFETY_MARGIN_SECONDS}
+            max={MAX_WARP_SAFETY_MARGIN_SECONDS}
+            step={1}
+            value={snap.warpSafetyMarginSeconds}
+            onChange={(e) => {
+              const n = Number.parseFloat(e.target.value);
+              if (Number.isFinite(n)) host.setWarpSafetyMargin(n);
+            }}
+            aria-label="Warp-to safety margin in real seconds"
+          />
+        </Tooltip>
         <Label>s</Label>
         {/* Why the ladder is running slower than the box says. The controller
             holds open at least one light-time on a delayed craft, because a
             warp window cannot be aborted from inside and the operator's view
             is that far behind the event. */}
         {snap.owltSeconds !== undefined && (
-          <Label title="A delayed craft raises the margin to its own light-time">
-            (light-time {writeQuantity(value("s", snap.owltSeconds))} in force)
-          </Label>
+          <Tooltip
+            text="A delayed craft raises the margin to its own light-time"
+            focusable
+          >
+            <Label>
+              (light-time {writeQuantity(value("s", snap.owltSeconds))} in
+              force)
+            </Label>
+          </Tooltip>
         )}
       </Cluster>
     </Wrap>

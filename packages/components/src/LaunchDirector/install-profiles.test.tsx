@@ -1,5 +1,6 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen, within } from "@ksp-gonogo/test-utils";
+import { getByTip } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import {
   applyInstallProfile,
@@ -91,7 +92,7 @@ describe("LaunchDirector across declared installs", () => {
     // And the whole launch flow is behind the open pad, not a stripped fallback.
     expect(screen.getByText(/Craft · 1\/2 ready/)).toBeInTheDocument();
     expect(screen.getByText("Mun Hopper I")).toBeInTheDocument();
-    expect(screen.getByTitle("Available funds")).toBeInTheDocument();
+    expect(getByTip(document.body, "Available funds")).toBeInTheDocument();
   });
 
   it("renders the same widget, the same way, on a career mod's own pads", async () => {
@@ -109,7 +110,7 @@ describe("LaunchDirector across declared installs", () => {
     // Same shape, same controls, same funds rule.
     expect(screen.getByText(/Craft · 1\/2 ready/)).toBeInTheDocument();
     expect(screen.getByText("Mun Hopper I")).toBeInTheDocument();
-    expect(screen.getByTitle("Available funds")).toBeInTheDocument();
+    expect(getByTip(document.body, "Available funds")).toBeInTheDocument();
   });
 
   it("reads nothing off the career mod's own channels even where they are live", async () => {

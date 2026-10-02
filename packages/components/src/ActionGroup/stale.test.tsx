@@ -97,7 +97,7 @@ describe("ActionGroup when the group's state is held", () => {
 
     const toggle = () => screen.getByRole("button", { name: "Toggle SAS" });
     await waitFor(() => expect(toggle().textContent).toBe("ON"));
-    expect(toggle().getAttribute("title")).toBe("Toggle SAS");
+    expect(toggle().getAttribute("data-tooltip")).toBe("Toggle SAS");
     expect(toggle()).not.toBeDisabled();
   });
 
@@ -114,7 +114,9 @@ describe("ActionGroup when the group's state is held", () => {
     // A blank pill alone is indistinguishable from waiting for the first sample; the disabled toggle and its reason tell them apart.
     await waitFor(() => expect(toggle()).toBeDisabled());
     expect(toggle().textContent).toBe(NULL_DISPLAY);
-    expect(toggle().getAttribute("title")).toBe("Cannot invert a held state");
+    expect(toggle().getAttribute("data-tooltip")).toBe(
+      "Cannot invert a held state",
+    );
     // Time is only ever shown through Unit, so the widget writes no currency wording of its own.
     expect(visibleText(container)).not.toMatch(/last contact/i);
     expect(screen.queryByRole("status")).toBeNull();
@@ -159,7 +161,9 @@ describe("ActionGroup when the group's state is held", () => {
       ).toBe(NULL_DISPLAY),
     );
     expect(
-      screen.getByRole("button", { name: "Toggle SAS" }).getAttribute("title"),
+      screen
+        .getByRole("button", { name: "Toggle SAS" })
+        .getAttribute("data-tooltip"),
     ).toBe("Toggle SAS");
     expect(
       screen.getByRole("button", { name: "Toggle SAS" }),
@@ -219,7 +223,7 @@ describe("ActionGroup: what a stale link does NOT take away", () => {
       ),
     );
     expect(toggle().textContent).toBe("4");
-    expect(toggle().getAttribute("title")).toBe("Toggle Stage");
+    expect(toggle().getAttribute("data-tooltip")).toBe("Toggle Stage");
     expect(toggle()).not.toBeDisabled();
 
     act(() => {

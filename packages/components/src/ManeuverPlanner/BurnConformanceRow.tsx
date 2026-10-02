@@ -1,5 +1,12 @@
 import { value } from "@ksp-gonogo/sitrep-sdk";
-import { NULL_DISPLAY, Row, Stack, Text, Unit } from "@ksp-gonogo/ui-kit";
+import {
+  NULL_DISPLAY,
+  Row,
+  Stack,
+  Text,
+  Tooltip,
+  Unit,
+} from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 import type { BurnConformance, BurnConformancePhase } from "./conformance";
 
@@ -42,35 +49,41 @@ export function BurnConformanceRow({
       <span style={{ ...PHASE_CHIP, color: phase.colour, minWidth: 0 }}>
         {phase.label}
       </span>
-      <Stack
-        style={{ alignItems: "flex-end", flex: "0 0 auto" }}
-        title="Delivered delta-v against what the plan asked for. Independent of who planned the burn."
+      <Tooltip
+        text="Delivered delta-v against what the plan asked for. Independent of who planned the burn."
+        focusable
       >
-        <Text size="sm" style={{ whiteSpace: "nowrap" }}>
-          {conformance.deliveredDv == null || conformance.plannedDv == null ? (
-            NULL_DISPLAY
-          ) : (
-            <>
+        <Stack style={{ alignItems: "flex-end", flex: "0 0 auto" }}>
+          <Text size="sm" style={{ whiteSpace: "nowrap" }}>
+            {conformance.deliveredDv == null ||
+            conformance.plannedDv == null ? (
+              NULL_DISPLAY
+            ) : (
+              <>
+                <Unit
+                  value={value("m/s", conformance.deliveredDv)}
+                  decimals={1}
+                />{" "}
+                of{" "}
+                <Unit
+                  value={value("m/s", conformance.plannedDv)}
+                  decimals={1}
+                />
+              </>
+            )}
+          </Text>
+          <span style={{ ...CAPTION, whiteSpace: "nowrap" }}>
+            {conformance.deliveredFraction == null ? (
+              NULL_DISPLAY
+            ) : (
               <Unit
-                value={value("m/s", conformance.deliveredDv)}
-                decimals={1}
-              />{" "}
-              of{" "}
-              <Unit value={value("m/s", conformance.plannedDv)} decimals={1} />
-            </>
-          )}
-        </Text>
-        <span style={{ ...CAPTION, whiteSpace: "nowrap" }}>
-          {conformance.deliveredFraction == null ? (
-            NULL_DISPLAY
-          ) : (
-            <Unit
-              value={value("%", conformance.deliveredFraction * 100)}
-              decimals={0}
-            />
-          )}
-        </span>
-      </Stack>
+                value={value("%", conformance.deliveredFraction * 100)}
+                decimals={0}
+              />
+            )}
+          </span>
+        </Stack>
+      </Tooltip>
     </Row>
   );
 }

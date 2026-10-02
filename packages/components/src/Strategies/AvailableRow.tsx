@@ -11,6 +11,7 @@ import {
   ExpandableText,
   Notice,
   Slider,
+  Tooltip,
   Unit,
   writeQuantity,
 } from "@ksp-gonogo/ui-kit";
@@ -167,14 +168,18 @@ export function AvailableRow({
             </CostChip>
           )}
           {s.initialCostReputation > 0 && (
-            <CostChip
-              size="sm"
-              tone={costTone(affordVerdict(scaledRep, reputation))}
-              data-afford={affordVerdict(scaledRep, reputation)}
-              title={`Nominal ${writeQuantity(value("rep", s.initialCostReputation * factorScale))}; the rep curve bumps the real charge to ${writeQuantity(value("rep", scaledRep))}.`}
+            <Tooltip
+              text={`Nominal ${writeQuantity(value("rep", s.initialCostReputation * factorScale))}; the rep curve bumps the real charge to ${writeQuantity(value("rep", scaledRep))}.`}
+              focusable
             >
-              <Unit value={datedFrom(rosterFrom, value("rep", scaledRep))} />
-            </CostChip>
+              <CostChip
+                size="sm"
+                tone={costTone(affordVerdict(scaledRep, reputation))}
+                data-afford={affordVerdict(scaledRep, reputation)}
+              >
+                <Unit value={datedFrom(rosterFrom, value("rep", scaledRep))} />
+              </CostChip>
+            </Tooltip>
           )}
         </CostRow>
       )}

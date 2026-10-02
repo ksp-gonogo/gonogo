@@ -1,4 +1,5 @@
 import { Fab, JoystickIcon, useModal } from "@ksp-gonogo/ui";
+import { Tooltip } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 import {
   type SerialAggregateStatus,
@@ -36,17 +37,18 @@ export function SerialFab() {
   const tooltip = describe(aggregate);
 
   return (
-    <Fab
-      bottom={84}
-      onClick={handleClick}
-      aria-label={`Manage input devices${tooltip ? ` (${tooltip})` : ""}`}
-      title={tooltip ?? "Input devices"}
-    >
-      <JoystickIcon />
-      {(aggregate === "partial" || aggregate === "error") && (
-        <StatusDot $tone={aggregate} aria-hidden="true" />
-      )}
-    </Fab>
+    <Tooltip text={tooltip ?? "Input devices"}>
+      <Fab
+        bottom={84}
+        onClick={handleClick}
+        aria-label={`Manage input devices${tooltip ? ` (${tooltip})` : ""}`}
+      >
+        <JoystickIcon />
+        {(aggregate === "partial" || aggregate === "error") && (
+          <StatusDot $tone={aggregate} aria-hidden="true" />
+        )}
+      </Fab>
+    </Tooltip>
   );
 }
 

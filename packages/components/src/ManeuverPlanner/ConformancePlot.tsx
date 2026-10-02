@@ -1,6 +1,12 @@
 import type { OrbitTrajectory } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
-import { FramedDisplay, NULL_DISPLAY, Stack, Unit } from "@ksp-gonogo/ui-kit";
+import {
+  FramedDisplay,
+  NULL_DISPLAY,
+  Stack,
+  Tooltip,
+  Unit,
+} from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 import { OrbitDiagram, type ProjectedOrbit } from "../shared/OrbitDiagram";
 import { TrajectoryWithheldNote } from "../shared/trajectoryWithheld";
@@ -135,9 +141,9 @@ export function ConformancePlot({
       : null;
   return (
     <Stack data-conformance-plot="">
-      <span style={{ ...REGIME_CHIP, color: r.colour }} title={r.gap}>
-        {r.chip}
-      </span>
+      <Tooltip text={r.gap} focusable>
+        <span style={{ ...REGIME_CHIP, color: r.colour }}>{r.chip}</span>
+      </Tooltip>
       {withheld ? (
         // A lone planned conic, with nothing to read it against, would look like "on plan".
         <TrajectoryWithheldNote withheld={withheld} compact />

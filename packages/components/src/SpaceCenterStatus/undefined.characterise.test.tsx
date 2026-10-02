@@ -1,5 +1,6 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import { getByTip, queryByTip } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { ContributionHost } from "../test/contributionHost";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -73,7 +74,7 @@ describe("SpaceCenterStatus: what undefined telemetry renders today", () => {
     );
     expect(screen.queryByText("MAX")).toBeNull();
 
-    expect(screen.queryByTitle("Available funds")).toBeNull();
+    expect(queryByTip(document.body, "Available funds")).toBeNull();
   });
 
   /** Announced through aria-live, so no pad telemetry must not read as "No vehicle on pad". */
@@ -183,8 +184,10 @@ describe("SpaceCenterStatus: what undefined telemetry renders today", () => {
     );
     expect((button as HTMLButtonElement).disabled).toBe(false);
     // The readout reports the balance as the thing that is missing.
-    expect(screen.queryByTitle("Available funds")).toBeNull();
-    expect(screen.getByTitle("No funds balance has arrived")).toBeTruthy();
+    expect(queryByTip(document.body, "Available funds")).toBeNull();
+    expect(
+      getByTip(document.body, "No funds balance has arrived"),
+    ).toBeTruthy();
 
     // A short balance replaces the unknown one on the readout.
     act(() => {
@@ -201,9 +204,11 @@ describe("SpaceCenterStatus: what undefined telemetry renders today", () => {
       });
     });
     await waitFor(() =>
-      expect(screen.getByTitle("Available funds")).toBeTruthy(),
+      expect(getByTip(document.body, "Available funds")).toBeTruthy(),
     );
-    expect(screen.queryByTitle("No funds balance has arrived")).toBeNull();
+    expect(
+      queryByTip(document.body, "No funds balance has arrived"),
+    ).toBeNull();
   });
 
   it("renders a confirmed career.status tombstone exactly as it renders a never-arrived one", async () => {
@@ -222,7 +227,7 @@ describe("SpaceCenterStatus: what undefined telemetry renders today", () => {
     await waitFor(() =>
       expect(screen.getByText("No facility tiers")).toBeTruthy(),
     );
-    expect(screen.queryByTitle("Available funds")).toBeNull();
+    expect(queryByTip(document.body, "Available funds")).toBeNull();
     expect(screen.queryAllByRole("button", { name: "Upgrade" })).toHaveLength(
       0,
     );

@@ -5,7 +5,7 @@ import {
   StatusIndicator,
   useModal,
 } from "@ksp-gonogo/ui";
-import { Cluster } from "@ksp-gonogo/ui-kit";
+import { Cluster, Tooltip } from "@ksp-gonogo/ui-kit";
 import { QRCodeSVG } from "qrcode.react";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
@@ -25,14 +25,11 @@ export function StationLinkFab() {
   }
 
   return (
-    <Fab
-      bottom={144}
-      onClick={handleClick}
-      aria-label="Add station"
-      title="Add station"
-    >
-      <BroadcastIcon />
-    </Fab>
+    <Tooltip text="Add station">
+      <Fab bottom={144} onClick={handleClick} aria-label="Add station">
+        <BroadcastIcon />
+      </Fab>
+    </Tooltip>
   );
 }
 

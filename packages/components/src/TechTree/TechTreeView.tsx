@@ -5,6 +5,7 @@ import {
   Panel,
   SearchBox,
   Section,
+  Tooltip,
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import { useMemo, useState } from "react";
@@ -61,24 +62,28 @@ function ScienceBalance({
 }) {
   if (sciAvailable !== null) {
     return (
-      <SciReadout title="Available science">
-        · {Math.round(sciAvailable)}
-        <Unit>science</Unit>
-      </SciReadout>
+      <Tooltip text="Available science" focusable>
+        <SciReadout>
+          · {Math.round(sciAvailable)}
+          <Unit>science</Unit>
+        </SciReadout>
+      </Tooltip>
     );
   }
   if (!chargesScience) return null;
   if (careerHeld) {
     return (
-      <SciReadout title="Available science">
-        · <Unit value={scienceShown} decimals={0} />
-      </SciReadout>
+      <Tooltip text="Available science" focusable>
+        <SciReadout>
+          · <Unit value={scienceShown} decimals={0} />
+        </SciReadout>
+      </Tooltip>
     );
   }
   return (
-    <SciReadout title="No science balance has arrived">
-      · science unknown
-    </SciReadout>
+    <Tooltip text="No science balance has arrived" focusable>
+      <SciReadout>· science unknown</SciReadout>
+    </Tooltip>
   );
 }
 

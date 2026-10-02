@@ -5,6 +5,7 @@ import {
   Grid,
   NULL_DISPLAY,
   Text,
+  Tooltip,
   Truncate,
   useSlotBound,
 } from "@ksp-gonogo/ui-kit";
@@ -37,37 +38,39 @@ function RosterRow({
         gap="related-dense"
         style={{ height: ROW_HEIGHT }}
       >
-        <Cluster
-          justify="start"
-          align="center"
-          title={v.name}
-          style={{
-            gap: "7px",
-            padding: "var(--inset-roster-cell)",
-          }}
-        >
-          <LinkDot tone={COMMS_TONE[v.comms]} ariaLabel={comms.aria} />
-          <Truncate
+        <Tooltip text={v.name} announce={false}>
+          <Cluster
+            justify="start"
+            align="center"
             style={{
-              fontSize: "var(--font-size-value)",
-              color: "var(--color-text-primary)",
-            }}
-          >
-            {v.name}
-          </Truncate>
-          <FleetContactCell guid={v.id} vesselName={v.name} />
-        </Cluster>
-        {!compact && (
-          <Truncate
-            title={v.body ?? undefined}
-            style={{
-              fontSize: "var(--font-size-compact)",
-              color: "var(--color-text-muted)",
+              gap: "7px",
               padding: "var(--inset-roster-cell)",
             }}
           >
-            {v.body ?? NULL_DISPLAY}
-          </Truncate>
+            <LinkDot tone={COMMS_TONE[v.comms]} ariaLabel={comms.aria} />
+            <Truncate
+              style={{
+                fontSize: "var(--font-size-value)",
+                color: "var(--color-text-primary)",
+              }}
+            >
+              {v.name}
+            </Truncate>
+            <FleetContactCell guid={v.id} vesselName={v.name} />
+          </Cluster>
+        </Tooltip>
+        {!compact && (
+          <Tooltip text={v.body ?? undefined} focusable>
+            <Truncate
+              style={{
+                fontSize: "var(--font-size-compact)",
+                color: "var(--color-text-muted)",
+                padding: "var(--inset-roster-cell)",
+              }}
+            >
+              {v.body ?? NULL_DISPLAY}
+            </Truncate>
+          </Tooltip>
         )}
         <Text
           size="sm"

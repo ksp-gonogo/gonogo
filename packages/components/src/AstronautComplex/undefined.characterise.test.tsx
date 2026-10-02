@@ -11,6 +11,7 @@ import {
   waitFor,
 } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY, speakQuantity } from "@ksp-gonogo/ui-kit";
+import { getByTip } from "@ksp-gonogo/ui-kit/testing";
 import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
@@ -100,7 +101,8 @@ describe("AstronautComplex, what undefined telemetry renders today", () => {
 
     await waitFor(() =>
       expect(
-        screen.getByTitle(
+        getByTip(
+          document.body,
           speakQuantity(value("funds", 500_000), { decimals: 0 }),
         ),
       ).toBeInTheDocument(),

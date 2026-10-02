@@ -40,12 +40,12 @@ async function mountInFlight(paused: boolean) {
 describe("WarpControl labels name the widget's own actions", () => {
   it("titles the pause button by its action", async () => {
     const button = await mountInFlight(false);
-    expect(button.getAttribute("title")).toBe("Pause");
+    expect(button.getAttribute("data-tooltip")).toBe("Pause");
   });
 
   it("titles the resume button by its action", async () => {
     const button = await mountInFlight(true);
-    expect(button.getAttribute("title")).toBe("Resume");
+    expect(button.getAttribute("data-tooltip")).toBe("Resume");
   });
 
   it("describes the widget without a flat t. key", () => {

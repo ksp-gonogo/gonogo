@@ -1,5 +1,5 @@
 import type { Reading, TargetListEntry, Value } from "@ksp-gonogo/sitrep-sdk";
-import { Button, type CommandButtonHandle } from "@ksp-gonogo/ui-kit";
+import { Button, type CommandButtonHandle, Tooltip } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import { ArmedButton } from "./ArmedButton";
 import { Altitude, formatMissionTime } from "./flightFigures";
@@ -95,21 +95,24 @@ export function InFlightPanel({
           commandLabel="Go to Space Center"
           bindAs="spaceCenter"
         />
-        <Button
-          type="button"
-          variant="ghost"
-          disabled={totalAvailable === 0}
-          aria-expanded={switchOpen}
-          aria-haspopup="listbox"
-          onClick={() => setSwitchOpen((v) => !v)}
-          title={
+        <Tooltip
+          text={
             totalAvailable === 0
               ? "No other vessels in this save"
               : `Switch to one of ${totalAvailable} other vessel${totalAvailable === 1 ? "" : "s"}`
           }
         >
-          Switch to vessel ▾
-        </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            disabled={totalAvailable === 0}
+            aria-expanded={switchOpen}
+            aria-haspopup="listbox"
+            onClick={() => setSwitchOpen((v) => !v)}
+          >
+            Switch to vessel ▾
+          </Button>
+        </Tooltip>
       </PadActions>
       {switchOpen && availableVessels && totalAvailable > 0 && (
         <VesselSwitchList

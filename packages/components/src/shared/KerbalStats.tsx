@@ -8,6 +8,7 @@ import {
   NULL_DISPLAY,
   type Severity,
   speakQuantity,
+  Tooltip,
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
@@ -81,27 +82,21 @@ function RatioChip({
 }) {
   if (typeof reading !== "number") {
     return (
-      <span
-        style={LEVEL_STYLE}
-        role="img"
-        title={`${name} unknown`}
-        aria-label={`${name} unknown`}
-      >
-        <span style={STAT_SYMBOL_STYLE}>{symbol}</span> {NULL_DISPLAY}
-      </span>
+      <Tooltip text={`${name} unknown`} focusable>
+        <span style={LEVEL_STYLE} role="img" aria-label={`${name} unknown`}>
+          <span style={STAT_SYMBOL_STYLE}>{symbol}</span> {NULL_DISPLAY}
+        </span>
+      </Tooltip>
     );
   }
   const spoken = speakQuantity(value("ratio", reading));
   return (
-    <span
-      style={LEVEL_STYLE}
-      role="img"
-      title={`${name}: ${spoken}`}
-      aria-label={`${name} ${spoken}`}
-    >
-      <span style={STAT_SYMBOL_STYLE}>{symbol}</span>{" "}
-      <Unit value={value("ratio", reading)} />
-    </span>
+    <Tooltip text={`${name}: ${spoken}`} focusable>
+      <span style={LEVEL_STYLE} role="img" aria-label={`${name} ${spoken}`}>
+        <span style={STAT_SYMBOL_STYLE}>{symbol}</span>{" "}
+        <Unit value={value("ratio", reading)} />
+      </span>
+    </Tooltip>
   );
 }
 
@@ -128,31 +123,33 @@ export function KerbalStats({
     rankKnown && (kerbal.experienceLevel as number) >= MAX_EXPERIENCE_LEVEL;
   return (
     <span style={META_STYLE}>
-      <span
-        style={TRAIT_TAG_STYLE}
-        title={`Trait: ${kerbal.trait || "Unknown"}`}
-      >
-        {kerbal.trait || NULL_DISPLAY}
-      </span>
+      <Tooltip text={`Trait: ${kerbal.trait || "Unknown"}`} focusable>
+        <span style={TRAIT_TAG_STYLE}>{kerbal.trait || NULL_DISPLAY}</span>
+      </Tooltip>
       {showRank &&
         (rankKnown ? (
-          <span
-            style={LEVEL_STYLE}
-            role="img"
-            title={`Experience level ${kerbal.experienceLevel}`}
-            aria-label={`Experience level ${kerbal.experienceLevel}`}
+          <Tooltip
+            text={`Experience level ${kerbal.experienceLevel}`}
+            focusable
           >
-            L{kerbal.experienceLevel}
-          </span>
+            <span
+              style={LEVEL_STYLE}
+              role="img"
+              aria-label={`Experience level ${kerbal.experienceLevel}`}
+            >
+              L{kerbal.experienceLevel}
+            </span>
+          </Tooltip>
         ) : (
-          <span
-            style={LEVEL_STYLE}
-            role="img"
-            title="Experience level unknown"
-            aria-label="Experience level unknown"
-          >
-            L{NULL_DISPLAY}
-          </span>
+          <Tooltip text="Experience level unknown" focusable>
+            <span
+              style={LEVEL_STYLE}
+              role="img"
+              aria-label="Experience level unknown"
+            >
+              L{NULL_DISPLAY}
+            </span>
+          </Tooltip>
         ))}
       {showTraits && (
         <RatioChip symbol="C" name="Courage" reading={kerbal.courage} />
@@ -162,14 +159,11 @@ export function KerbalStats({
       )}
       {showExperienceProgress &&
         (atMaxRank ? (
-          <span
-            style={LEVEL_STYLE}
-            role="img"
-            title="Max rank"
-            aria-label="Max rank"
-          >
-            MAX
-          </span>
+          <Tooltip text="Max rank" focusable>
+            <span style={LEVEL_STYLE} role="img" aria-label="Max rank">
+              MAX
+            </span>
+          </Tooltip>
         ) : (
           <RatioChip
             symbol="XP"
@@ -203,43 +197,36 @@ export function KerbalBadges({ kerbal }: { kerbal: KerbalStatFields }) {
   return (
     <>
       {kerbal.veteran && (
-        <Badge
-          tone="go"
-          size="sm"
-          aria-label="veteran"
-          title="Veteran: has flown a notable mission"
-        >
-          ★
-        </Badge>
+        <Tooltip text="Veteran: has flown a notable mission" focusable>
+          <Badge tone="go" size="sm" aria-label="veteran">
+            ★
+          </Badge>
+        </Tooltip>
       )}
       {kerbal.isBadass && (
-        <Badge
-          tone="warn"
-          size="sm"
-          aria-label="badass"
-          title="Badass: KSP's brave trait; rarely panics"
-        >
-          BA
-        </Badge>
+        <Tooltip text="Badass: KSP's brave trait; rarely panics" focusable>
+          <Badge tone="warn" size="sm" aria-label="badass">
+            BA
+          </Badge>
+        </Tooltip>
       )}
       {kerbal.careerFlights > 0 && (
-        <Badge
-          size="sm"
-          aria-label={`${kerbal.careerFlights} flights`}
-          title={`${kerbal.careerFlights} career flight${kerbal.careerFlights === 1 ? "" : "s"} completed`}
+        <Tooltip
+          text={`${kerbal.careerFlights} career flight${kerbal.careerFlights === 1 ? "" : "s"} completed`}
+          focusable
         >
-          {kerbal.careerFlights}F
-        </Badge>
+          <Badge size="sm" aria-label={`${kerbal.careerFlights} flights`}>
+            {kerbal.careerFlights}F
+          </Badge>
+        </Tooltip>
       )}
       {/* One badge for every way a kerbal cannot fly; a new axis needs no badge of its own. */}
       {!kerbal.available && (
-        <Badge
-          tone={unavailableSeverity(kerbal.standing)}
-          size="sm"
-          title={unavailableTitle(kerbal)}
-        >
-          {kerbal.unavailableReason || "Unavailable"}
-        </Badge>
+        <Tooltip text={unavailableTitle(kerbal)} focusable>
+          <Badge tone={unavailableSeverity(kerbal.standing)} size="sm">
+            {kerbal.unavailableReason || "Unavailable"}
+          </Badge>
+        </Tooltip>
       )}
     </>
   );

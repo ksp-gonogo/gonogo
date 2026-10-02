@@ -5,6 +5,7 @@ import {
   ExpandableText,
   IconButton,
   NULL_DISPLAY,
+  Tooltip,
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import {
@@ -91,9 +92,9 @@ export function DetailPanel({
           <PartsList>
             {node.parts.slice(0, 6).map((p) => (
               <PartRow key={p.name} $purchased={p.purchased}>
-                <PartTitle title={p.manufacturer || undefined}>
-                  {p.title}
-                </PartTitle>
+                <Tooltip text={p.manufacturer || undefined} focusable>
+                  <PartTitle>{p.title}</PartTitle>
+                </Tooltip>
                 <PartMeta>
                   {p.category && <PartCategory>{p.category}</PartCategory>}
                   {p.purchased && <PartPurchased>✓</PartPurchased>}

@@ -1,8 +1,8 @@
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { HeldFigure } from "./HeldMark";
-import { useTooltip } from "./Tooltip";
+import { Tooltip, useTooltip } from "./Tooltip";
 
 function Anchored({ text }: { text: string | null }) {
   const { anchor, tip } = useTooltip(text);
@@ -56,5 +56,99 @@ describe("HeldFigure", () => {
 
     await user.hover(host);
     expect(tipIn(document.body)).toHaveTextContent("held, as of Y1 D12");
+  });
+});
+
+describe("Tooltip", () => {
+  it("describes a button by its text without a native title, on hover", async () => {
+    const user = userEvent.setup();
+    render(
+      <Tooltip text="Saves the game first">
+        <button type="button">Leave</button>
+      </Tooltip>,
+    );
+    const button = screen.getByRole("button", { name: "Leave" });
+    expect(button).not.toHaveAttribute("title");
+    expect(button).toHaveAttribute("aria-description", "Saves the game first");
+    expect(tipIn(document.body)).toBeNull();
+
+    await user.hover(button);
+    expect(tipIn(document.body)).toHaveTextContent("Saves the game first");
+    await user.unhover(button);
+    expect(tipIn(document.body)).toBeNull();
+  });
+
+  it("opens for keyboard focus and closes on Escape", async () => {
+    const user = userEvent.setup();
+    render(
+      <Tooltip text="Pause the warp">
+        <button type="button">Warp</button>
+      </Tooltip>,
+    );
+    await user.tab();
+    expect(screen.getByRole("button", { name: "Warp" })).toHaveFocus();
+    expect(tipIn(document.body)).toHaveTextContent("Pause the warp");
+
+    await user.keyboard("{Escape}");
+    expect(tipIn(document.body)).toBeNull();
+  });
+
+  it("makes a non-control child reachable only when asked", async () => {
+    const user = userEvent.setup();
+    render(
+      <>
+        <Tooltip text="Held since Y1 D12" focusable>
+          <span data-testid="readout">42 km</span>
+        </Tooltip>
+        <Tooltip text="Not a stop">
+          <span data-testid="plain">7</span>
+        </Tooltip>
+      </>,
+    );
+    expect(screen.getByTestId("readout")).toHaveAttribute("tabindex", "0");
+    expect(screen.getByTestId("plain")).not.toHaveAttribute("tabindex");
+    await user.tab();
+    expect(screen.getByTestId("readout")).toHaveFocus();
+    expect(tipIn(document.body)).toHaveTextContent("Held since Y1 D12");
+  });
+
+  it("adds nothing when the child is already named by the same text", () => {
+    render(
+      <Tooltip text="Close details">
+        <button type="button" aria-label="Close details">
+          x
+        </button>
+      </Tooltip>,
+    );
+    const button = screen.getByRole("button", { name: "Close details" });
+    expect(button).not.toHaveAttribute("aria-description");
+  });
+
+  it("passes the child through when there is nothing to say", () => {
+    render(
+      <Tooltip text={null}>
+        <button type="button">Plain</button>
+      </Tooltip>,
+    );
+    const button = screen.getByRole("button", { name: "Plain" });
+    expect(button).not.toHaveAttribute("data-tooltip");
+    expect(button).not.toHaveAttribute("aria-description");
+  });
+
+  it("keeps the child's own handlers", async () => {
+    const user = userEvent.setup();
+    const onClick = vi.fn();
+    const onFocus = vi.fn();
+    render(
+      <Tooltip text="Go">
+        <button type="button" onClick={onClick} onFocus={onFocus}>
+          Go
+        </button>
+      </Tooltip>,
+    );
+    await user.tab();
+    await user.click(screen.getByRole("button", { name: "Go" }));
+    expect(onFocus).toHaveBeenCalled();
+    expect(onClick).toHaveBeenCalledOnce();
   });
 });
