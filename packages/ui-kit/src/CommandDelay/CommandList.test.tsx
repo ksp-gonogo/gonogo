@@ -88,7 +88,7 @@ describe("CommandList", () => {
       screen.getByRole("status", {
         name: "Unconfirmed commands that answered",
       }),
-    ).toHaveTextContent("Set Sas: found executed.");
+    ).toHaveTextContent("Set Sas: found executed after being lost.");
     expect(
       screen.getByRole("status", { name: "Commands that failed" }),
     ).toHaveTextContent("Set Sas: failed, with no verdict from the game.");

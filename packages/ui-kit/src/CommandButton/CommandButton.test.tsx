@@ -1105,7 +1105,7 @@ describe("CommandButton: a lost command that answered after all", () => {
     await loseThenFind();
     const button = screen.getByRole("button");
     const name = button.getAttribute("aria-label") ?? "";
-    expect(name).toMatch(/^Set Sas: found executed\.$/);
+    expect(name).toMatch(/^Set Sas: found executed after being lost\.$/);
   });
 
   it("says a late refusal was refused, not that it ran", async () => {

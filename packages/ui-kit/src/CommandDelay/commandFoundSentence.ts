@@ -71,8 +71,8 @@ export interface RailFound extends CommandFoundEntry {
 export function commandFoundSentence(found: CommandFoundLike): string {
   const subject = commandRefusalSubject(found);
   const what = subject || found.command || "The command";
-  // The reversal and the verdict, nothing else.
-  const opening = (state: string) => `${what}: found ${state}.`;
+  const opening = (state: string) =>
+    `${what}: found ${state} after being lost.`;
   if (found.outcome === "refused") {
     // The refusal composer, not a second table of reasons.
     const clause =
@@ -93,9 +93,11 @@ export function commandFoundSentence(found: CommandFoundLike): string {
   }
   if (found.outcome === "errored") {
     const said = found.error?.message?.trim().replace(/\.$/, "");
-    return said ? `${opening("errored")} ${said}.` : opening("errored");
+    return said
+      ? `${opening("errored")} ${said.charAt(0).toUpperCase()}${said.slice(1)}.`
+      : opening("errored");
   }
-  return `${opening("executed")}`;
+  return opening("executed");
 }
 
 /**
