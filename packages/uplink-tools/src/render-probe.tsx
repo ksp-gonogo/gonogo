@@ -533,8 +533,15 @@ function modesFor(def: ComponentDefinition): InventoryMode[] {
 function depTopic(dep: unknown): string {
   if (typeof dep === "string") return dep;
   if (dep && typeof dep === "object") {
-    const rec = dep as { reading?: string; id?: string };
+    const rec = dep as {
+      reading?: string;
+      id?: string;
+      modSetting?: { uplink?: string };
+    };
     if (typeof rec.reading === "string") return rec.reading;
+    if (typeof rec.modSetting?.uplink === "string") {
+      return `settings.${rec.modSetting.uplink}`;
+    }
     if (typeof rec.id === "string") return `processor:${rec.id}`;
   }
   return String(dep);

@@ -433,6 +433,27 @@ describe("fixtures become scenes", () => {
     expect(scene.declaredTopics).toEqual(["example.reactor"]);
   });
 
+  it("lets a contribution scene emit the settings topic its mod-setting dep names", () => {
+    const pkg = resolveUplinkPackage(
+      fixture({
+        _scene: { contribution: "needs-setting" },
+        _stream: { emits: [{ topic: "settings.example", payload: {} }] },
+      }),
+    );
+    const [scene] = buildScenes(pkg, {
+      ...INVENTORY,
+      contributions: [
+        {
+          id: "needs-setting",
+          contributes: "console.badges",
+          deps: ["settings.example"],
+          settings: [],
+        },
+      ],
+    });
+    expect(scene.declaredTopics).toEqual(["settings.example"]);
+  });
+
   it("derives the modes from defaultSize and minSize", () => {
     const pkg = resolveUplinkPackage(
       fixture({ _scene: { widget: "reactor" } }),
