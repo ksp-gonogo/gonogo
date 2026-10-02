@@ -37,10 +37,6 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-// `.js`, explicitly. This package emits unbundled ESM and Node's resolver needs
-// the extension; `moduleResolution: "bundler"` accepts it too, so it is correct
-// in both modes. This CLI is the first thing here RUN from `dist` rather than
-// typechecked, which is why it is the first to care.
 import { UPLINK_BUNDLE_EXTERNALS } from "../uplink-externals.js";
 import {
   buildUplinkManifest,
@@ -48,9 +44,15 @@ import {
   serialiseUplinkManifest,
   UPLINK_MANIFEST_FILE,
 } from "../uplink-manifest.js";
+// `.js`, explicitly. This package emits unbundled ESM and Node's resolver needs
+// the extension; `moduleResolution: "bundler"` accepts it too, so it is correct
+// in both modes. This CLI is the first thing here RUN from `dist` rather than
+// typechecked, which is why it is the first to care.
+import { NEW_USAGE, newUplink } from "./new.js";
 
 const USAGE = `gonogo-uplink <command>
 
+  new        scaffold a fresh Uplink: the hand-written seed, then its generators
   bundle     build the client bundle the app loads, and its gonogo-uplink.json
   bake-hash  write a client bundle's sha256 into C#, for the mod to vouch for
   render     render this Uplink's widgets to images (needs @ksp-gonogo/uplink-tools)
@@ -398,6 +400,13 @@ export async function run(argv: readonly string[]): Promise<number> {
     return 0;
   }
   try {
+    if (verb === "new") {
+      if (wantsHelp(argv)) {
+        console.log(NEW_USAGE);
+        return 0;
+      }
+      return newUplink(argv.slice(1));
+    }
     if (verb === "bundle") return await bundle(argv.slice(1));
     if (verb === "bake-hash") return await bakeHash(argv.slice(1));
     if (verb === "render" || verb === "docs") return await forwardToTools(argv);

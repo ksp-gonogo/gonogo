@@ -503,6 +503,7 @@ export {
 } from "./unit-system";
 export {
   type KnownSitrepUnit,
+  registerEnumMembers,
   registerProviderExtensionShape,
   registerTopicUnits,
   registerTypeUnits,

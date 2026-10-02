@@ -124,6 +124,7 @@ const HAND_DECLARED_PAYLOAD_TYPES: Readonly<Record<string, string>> =
 const registeredTopicUnits = new Map<string, UnitsByField>();
 const registeredTopicShapes = new Map<string, ShapesByField>();
 const registeredTopicStatics = new Map<string, readonly string[]>();
+const registeredTopicEnums = new Map<string, EnumsByField>();
 
 /**
  * Self-register a relocated Uplink Topic's unit (and optional nested-shape)
@@ -138,10 +139,12 @@ export function registerTopicUnits(
   units: UnitsByField,
   shapes: ShapesByField = NO_SHAPES,
   statics: readonly string[] = NO_STATICS,
+  enums: EnumsByField = NO_ENUMS,
 ): void {
   registeredTopicUnits.set(topic, units);
   registeredTopicShapes.set(topic, shapes);
   registeredTopicStatics.set(topic, statics);
+  registeredTopicEnums.set(topic, enums);
   // Changes what the Topic ENUMERATES without vouching that anything sends it:
   // a client-derived channel declares its fields here too, and nothing puts one
   // on the wire. Which Topics are real is `registerBarePrimitiveTopic`'s
@@ -179,6 +182,11 @@ export function registerTopicUnits(
 const registeredTypeUnits = new Map<string, UnitsByField>();
 const registeredTypeShapes = new Map<string, ShapesByField>();
 const registeredTypeStatics = new Map<string, readonly string[]>();
+const registeredTypeEnums = new Map<string, EnumsByField>();
+const registeredEnumMembers = new Map<
+  string,
+  Readonly<Record<number, string>>
+>();
 
 /**
  * Self-register a relocated Uplink payload TYPE's unit (and optional
@@ -194,11 +202,31 @@ export function registerTypeUnits(
   units: UnitsByField,
   shapes: ShapesByField = NO_SHAPES,
   statics: readonly string[] = NO_STATICS,
+  enums: EnumsByField = NO_ENUMS,
 ): void {
   registeredTypeUnits.set(typeName, units);
   registeredTypeShapes.set(typeName, shapes);
   registeredTypeStatics.set(typeName, statics);
+  registeredTypeEnums.set(typeName, enums);
   // Names no Topic, but changes what one enumerates: a nested shape's fields are unreachable until the type it resolves through is registered.
+  noteRuntimeTopicMetadata();
+}
+
+/**
+ * Self-register an Uplink enum's wire value to member name table, keyed by the
+ * enum's name as the `enums` argument of {@link registerTopicUnits} and
+ * {@link registerTypeUnits} refers to it. Called at module load by the owning
+ * Uplink's client package, normally by looping over the enum member tables its own
+ * codegen emits. Enum names share one flat namespace with the
+ * generated table, which wins on a clash.
+ *
+ * @category Units and values
+ */
+export function registerEnumMembers(
+  enumName: string,
+  members: Readonly<Record<number, string>>,
+): void {
+  registeredEnumMembers.set(enumName, members);
   noteRuntimeTopicMetadata();
 }
 
@@ -357,20 +385,28 @@ export function unitOfTypeField(
 export function enumsForTopic(topic: TopicId): EnumsByField {
   const generated = GENERATED_TOPIC_ENUMS[topic];
   if (generated !== undefined) return generated;
+  const registered = registeredTopicEnums.get(topic);
+  if (registered !== undefined) return registered;
   const handDeclared = HAND_DECLARED_PAYLOAD_TYPES[topic];
   return handDeclared === undefined ? NO_ENUMS : enumsForType(handDeclared);
 }
 
 /** The same, keyed by generated interface name instead of Topic id. */
 export function enumsForType(typeName: string): EnumsByField {
-  return GENERATED_TYPE_ENUMS[typeName] ?? NO_ENUMS;
+  return (
+    GENERATED_TYPE_ENUMS[typeName] ??
+    registeredTypeEnums.get(typeName) ??
+    NO_ENUMS
+  );
 }
 
 /** A contract enum's wire value to member name, or `undefined` for an enum the schema does not carry. */
 export function enumMembersOf(
   enumName: string,
 ): Readonly<Record<number, string>> | undefined {
-  return GENERATED_ENUM_MEMBERS[enumName];
+  return (
+    GENERATED_ENUM_MEMBERS[enumName] ?? registeredEnumMembers.get(enumName)
+  );
 }
 
 /**
