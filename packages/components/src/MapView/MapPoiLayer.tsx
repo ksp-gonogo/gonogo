@@ -27,7 +27,7 @@ import {
 } from "./MapPoiLayer.styles";
 
 /**
- * The always-on shared POI layer: every registered `MapPoiProvider`'s points
+ * The always-on shared POI layer: every registered map POI provider's points
  * for the mapped body, with one shared hover card rather than a hover UX per
  * provider.
  */

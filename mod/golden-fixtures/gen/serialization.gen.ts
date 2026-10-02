@@ -24,7 +24,7 @@
  * all today, only `parseServerMessage` for reading). This generator
  * defines the policy so the C# side has a real contract to conform to; a
  * later task should fold the same replacer into a real
- * `serializeServerMessage`/`serializeClientMessage` pair in the SDK so
+ * server and client message serializer pair in the SDK so
  * production TS code and this fixture generator share one implementation
  * instead of the policy living only here.
  *

@@ -22,7 +22,7 @@ function getSource(): MissionHistorySource | undefined {
 // `useOptionalStreamEvent` degrades to a no-op subscription: never throws:
 // when no `TelemetryProvider` is mounted (`SitrepTelemetryProvider` only
 // mounts a real `TelemetryProvider` once the dev streaming flag is on AND
-// its `WebSocketClient` has connected; most of the time, release builds or
+// its socket has connected; most of the time, release builds or
 // the brief window before connect even in dev, there is none in the tree).
 
 export interface AutoRecordControllerProps {

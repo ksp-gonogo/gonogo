@@ -4,7 +4,7 @@
 //
 // Tables lifted (names only, re-keyed onto our `role` union) from
 // LizardByte/gamepad-helper (MIT): https://github.com/LizardByte/gamepad-helper
-// `controllerMappings` tables. Vendored, not imported: see the module doc
+// controller mapping tables. Vendored, not imported: see the module doc
 // on GamepadTransport.ts for why gamepad-helper isn't taken as a dependency.
 import type { GamepadRole } from "./gamepadRoles";
 import { positionalName } from "./gamepadRoles";

@@ -28,7 +28,7 @@
  */
 export const FIXTURE_CONTRACT_DRIFT: readonly string[] = [
   /*
-   * `ScienceInstrumentEntry` declares `partName` / `experimentId` /
+   * The science instrument entry declares `partName` / `experimentId` /
    * `dataIsCollectable`. The second of the five defects, still in four
    * fixtures.
    */

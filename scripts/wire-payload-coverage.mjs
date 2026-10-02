@@ -403,7 +403,7 @@ export function isProductionSourcePath(path) {
     // Any project directory ENDING in Tests, not just `.Tests`:
     // `Sitrep.Host.IntegrationTests` is one, and it slipped through the narrower
     // spelling long enough to vouch for a type production builds nowhere.
-    // `GonogoTestFlightUplink` is production and correctly survives, TestFlight
+    // The TestFlight Uplink is production and correctly survives, TestFlight
     // being the name of a KSP mod.
     !/(^|\/)[A-Za-z0-9._]*Tests\//.test(path) &&
     !/Tests?\.cs$/.test(path) &&

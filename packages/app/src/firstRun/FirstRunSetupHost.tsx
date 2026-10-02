@@ -7,7 +7,7 @@ import { hasSeenFirstRunSetup, markFirstRunSetupSeen } from "./firstRunFlag";
 
 /**
  * The single first-run auto-open. Mounted on the MAIN screen only: a station
- * never talks to the mod directly (see `SettingsModal`'s own `showDataSources`
+ * never talks to the mod directly (see `SettingsModal`'s own data-sources
  * gate), so there is nothing for a station to open.
  *
  * Opens `FirstRunSetup` in a modal. The `gonogo.uplinkHubWizard.firstRunSeen`

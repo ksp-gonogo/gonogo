@@ -19,7 +19,7 @@ import { useScrollIntoViewOnAdd } from "./useScrollIntoViewOnAdd";
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
-// RGL's `ResizeHandle` type isn't a named export, so derive the array element type straight from the component's own prop signature instead.
+// RGL's resize-handle type isn't a named export, so derive the array element type straight from the component's own prop signature instead.
 type ResizeHandles = NonNullable<
   ComponentProps<typeof Responsive>["resizeHandles"]
 >;
@@ -83,8 +83,8 @@ export function GridDashboard({
         resizeHandles={RESIZE_HANDLES}
         // Vertical compaction: widgets float up to fill gaps and neighbours
         // reflow out of the way when one is moved or resized into them. This
-        // is the natural model, free placement (`compactType={null}` +
-        // `preventCollision`) left widgets unable to move when hemmed in by
+        // is the natural model, free placement (`compactType={null}` plus
+        // collision prevention) left widgets unable to move when hemmed in by
         // others. New widgets are dropped at the bottom (see `addItem`) and
         // compaction pulls them up into the first available slot.
         compactType="vertical"

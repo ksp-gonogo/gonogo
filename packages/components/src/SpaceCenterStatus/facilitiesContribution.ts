@@ -5,7 +5,7 @@ import { stockFacilityEntries } from "./facilities";
  * The widget's own reading of `career.facilities`, contributed into its own grid
  * at priority 0 so a career model that reads tiers live DISPLACES it rather than
  * adding a second copy. The channel goes silent away from the space centre, so
- * this carries the last real reading; the widget dates it (`tiersHeldForSec`).
+ * this carries the last real reading; the widget dates it.
  */
 
 const DECLARED_ID = "space-center-status-facilities";

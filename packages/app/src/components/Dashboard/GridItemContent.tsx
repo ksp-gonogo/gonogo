@@ -210,7 +210,7 @@ export const GridItemContent = memo(function GridItemContent({
  * already does.
  *
  * Contributions are widget-identity-scoped, not stream-status-scoped, so it
- * doesn't matter whether this wraps inside or outside `WidgetStreamStatus`;
+ * doesn't matter whether this wraps inside or outside `WidgetStreamStatusBridge`;
  * outside keeps the two concerns visually separate in the JSX.
  */
 function WidgetContributions({

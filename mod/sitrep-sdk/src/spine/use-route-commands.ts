@@ -36,7 +36,7 @@ export interface UseRouteCommandsResult {
  * `nowUt` via `useUtNow`: the same real-time clock reads the kOS terminal's
  * original hand-rolled strip used, for the same reason (see `useLatestValue`'s
  * own doc). `latchForward` guards the returned phases against a transient
- * `nowUt` judder the same way the terminal's own `isPastReach` did.
+ * `nowUt` judder.
  */
 export function useRouteCommands(topic: string): UseRouteCommandsResult {
   const queue = useLatestValue<PendingUplinkQueueLike>("system.uplink.pending");

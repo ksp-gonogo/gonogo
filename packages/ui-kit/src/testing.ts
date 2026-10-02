@@ -120,6 +120,7 @@ export {
   framingFaults,
   paintChecker,
 } from "./checkerFraming";
+export { expectLiveRegionPrimed } from "./expectLiveRegionPrimed";
 export { expectNoA11yViolations } from "./expectNoA11yViolations";
 
 /**

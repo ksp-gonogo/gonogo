@@ -450,10 +450,7 @@ export {
 } from "./topics";
 // The unit model: Value, dimensions, arithmetic, the unit table.
 //
-// This was namespaced as `UnitSystem` while `./value` still aliased `Value` to
-// `number` for the generated contract, because two `Value`s could not sit in
-// one barrel. The alias now points at the model, so the namespace has served
-// its purpose and the members sit flat: a call site writes
+// The members sit flat: a call site writes
 // `import { value } from "@ksp-gonogo/sitrep-sdk"` like it does for everything
 // else the SDK offers.
 //

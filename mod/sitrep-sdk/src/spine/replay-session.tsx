@@ -7,8 +7,7 @@ import {
 } from "./replay-session-controller";
 
 /**
- * Mount once, wrapping the whole dashboard tree, the `ReplayController`
- * "swap the registered `data` source" replacement. When a mission replay is
+ * Mount once, wrapping the whole dashboard tree. When a mission replay is
  * active, this shadows whatever live `TelemetryProvider` wraps it (nested
  * providers: nearest wins) with the replay session's own client/store, so
  * every widget below keeps reading through the exact same
@@ -36,9 +35,8 @@ export function ReplaySessionProvider({ children }: { children: ReactNode }) {
 }
 
 /**
- * Whether a mission replay is currently active, the `useReplayActive`
- * replacement. Consumed by `KosTerminal` to refuse command dispatch during
- * replay (a replayed session has no live kOS CPU to run scripts against).
+ * Whether a mission replay is currently active. A kOS terminal reads it to
+ * refuse command dispatch during replay (a replayed session has no live kOS CPU to run scripts against).
  */
 export function useReplaySessionActive(): boolean {
   const controller = getReplaySessionController();

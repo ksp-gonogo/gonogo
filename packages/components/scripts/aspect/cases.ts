@@ -4,7 +4,7 @@ export interface AspectCase {
   name: string;
   /** The box the frame is laid out in, CSS px. */
   tile: Size;
-  /** `tile` fills it; a size is a frame fitted to the picture, as CameraFeed's `frameBox` does. */
+  /** `tile` fills it; a size is a frame fitted to the picture, as the camera feed does. */
   frame: "tile" | Size;
   fit: "cover" | "fill";
   /** A camera render: 1024x576, the shipped default size, in 64px cells. */
@@ -18,7 +18,7 @@ export interface AspectCase {
 
 const CAMERA = { columns: 16, rows: 9, cell: 64 };
 
-/** The largest box of `aspect` that fits in `box`, as CameraFeed's `frameBox` computes it. */
+/** The largest box of `aspect` that fits in `box`, as the camera feed computes it. */
 function fitted(box: Size, aspect: number): Size {
   const width = Math.floor(Math.min(box.width, box.height * aspect));
   return { width, height: Math.floor(width / aspect) };

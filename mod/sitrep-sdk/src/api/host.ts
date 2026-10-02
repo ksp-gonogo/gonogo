@@ -1,7 +1,7 @@
 // ---------------------------------------------------------------------------
 // The injected-host lookup: a fail-loud shim.
 //
-// The stateful author-facing surface (every `registerX`, every hook) cannot
+// The stateful author-facing surface (every register function, every hook) cannot
 // be a bundled re-export of `@ksp-gonogo/core`: N copies of core's module-global
 // registries and React contexts fail SILENTLY (a widget registers into a Map the
 // app never reads). Instead the published sitrep-sdk exposes SHIMS that resolve

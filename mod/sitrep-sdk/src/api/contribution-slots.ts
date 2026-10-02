@@ -31,11 +31,6 @@
 // this declaration-merged registry (see `useWidgetBadges`'s own doc
 // comment); these two are the first GENUINELY typed, declared slots.
 //
-// `MeterTone` is duplicated rather than imported from `@ksp-gonogo/ui-kit`:
-// ui-kit's own `Meter.tsx` imports `value` from this package, so importing
-// ui-kit back here would be the exact same leaf-cycle this file's header
-// (and `./slots.ts`'s) already explains for `@ksp-gonogo/components`.
-//
 // `ShipMapPartMeterEntry` deliberately carries no `tone`: the meter's fill is
 // the resource's IDENTITY colour, derived by the renderer from `resource` via
 // ui-kit's `resourceColor`, never chosen by a contributor. `status` is the
@@ -425,8 +420,7 @@ export interface MissionLogEventEntry {
    * `Unit` and a contributor never hand-formats a quantity. A magnitude and its
    * unit rather than a `Value`, because the two sides of this mirror must
    * declare structurally IDENTICAL types to merge, and a `Value` resolved
-   * through two different module paths is not identical to itself; the same
-   * reason `MeterTone` is duplicated above. A contributor can pass a contract
+   * through two different module paths is not identical to itself. A contributor can pass a contract
    * `Value` straight in, since it already has both members.
    *
    * Singular, because no career-log row carries two figures.

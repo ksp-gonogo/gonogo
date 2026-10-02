@@ -300,8 +300,7 @@ const PHASE_ORDER: Record<PredictedPhase, number> = {
  * Latches each item's `predictedPhase` forward-only across calls, guarding
  * against a transient backward blip in the caller's `nowUt` (view-clock
  * re-anchoring on an unrelated sample can rewind the estimate by a hair for
- * one frame: see the kOS terminal's original `isPastReach` doc, which this
- * generalizes). `memory` is the caller's own persisted map (typically a
+ * one frame). `memory` is the caller's own persisted map (typically a
  * `useRef`); mutated in place and also returned via the result. Ids no
  * longer present in `items` are forgotten so the map doesn't grow forever.
  *

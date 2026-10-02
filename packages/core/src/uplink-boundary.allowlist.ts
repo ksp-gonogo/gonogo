@@ -428,14 +428,11 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "mod/sitrep-sdk/src/spine/client.ts",
       /*
-       * command-delay.ts's doc-comment cites the kOS terminal's original
-       * isPastReach judder fix as the precedent latchForward generalizes;
-       * its test fixture uses "kos.run"/"kos/7" as sample command/topic
-       * strings (same class as PeerTransport.test.ts's sample strings
-       * below): the delayed-command primitives themselves are mod-
+       * command-delay.test.ts's fixture uses "kos.run"/"kos/7" as sample
+       * command/topic strings (same class as PeerTransport.test.ts's sample
+       * strings below): the delayed-command primitives themselves are mod-
        * agnostic and import nothing kOS-specific.
        */
-      "mod/sitrep-sdk/src/command-delay.ts",
       "mod/sitrep-sdk/src/command-delay.test.ts",
       /*
        * use-route-commands.ts's doc-comment cites the kOS terminal's
@@ -455,7 +452,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/sitrep-sdk/src/spine/connectivity-history.ts",
       /*
        * -- comment/doc + pending-topic mentions (no kOS coupling) --
-       * CameraFeed's doc-comment references `KosTerminal`'s command-response
+       * CameraFeed's doc-comment references the kOS terminal's command-response
        * pattern; Comms.cs's CommsLink doc mentions the kOS terminal reading
        * comms.link.
        */
@@ -528,7 +525,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/app/src/dataSources/seedKspHost.ts",
       "mod/sitrep-sdk/src/spine/replay-session.tsx",
       "packages/relay/src/bootstrapConfig.ts",
-      "packages/sitrep-client/src/use-stream-status.ts",
       "packages/ui/src/VersionMismatchBanner.tsx",
     ],
   },
@@ -1063,7 +1059,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       /*
        * -- WIDGET-FIXTURE CONFORMANCE gate: text-only. Its doc comment lists
        * the defects the gate exists for, one of them this Uplink's CrewSurvival
-       * fixture sending `deathClockSec` for the wire's `deathClockUt`. The
+       * fixture sending a seconds field for the wire's death-clock UT field. The
        * check itself resolves Uplinks by walking `mod/*` and holds no mod name.
        */
       "packages/core/src/widget-fixture-conformance.test.ts",

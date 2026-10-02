@@ -37,7 +37,7 @@ export interface ClockFormulaInputs {
 }
 
 /** `ClockFormulaInputs` plus the epoch generation: the shape posted over
- *  the wire (kerbcast worker's `ClockSnapshot` message) so a snapshot from an
+ *  the wire (the kerbcast worker's clock snapshot message) so a snapshot from an
  *  earlier epoch can be discarded the same way `ViewClock.observeSample`
  *  discards a straggler from before a rewind.
  *

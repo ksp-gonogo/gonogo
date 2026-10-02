@@ -23,7 +23,7 @@
  *
  * Browser support: `MediaStreamTrackProcessor`/`Generator` are Chromium-only
  * as of writing. `isFrameDelaySupported()` feature-detects; the caller
- * (`useDelayedPlayout`) falls back to live passthrough: never a black
+ * (the camera feed) falls back to live passthrough: never a black
  * feed: when unsupported, or when `raw` has no video track. This is a
  * documented, flagged trade-off (not a silent drop): Safari/Firefox get the
  * feed live, undelayed, until/unless a canvas-based fallback (mechanism B
@@ -97,7 +97,7 @@ export interface FrameDelayPipelineOptions<Frame extends FrameLike> {
   sink: FrameSink<Frame>;
   /** Frame-count cap: see module docstring. Defaults to 300. Encoded
    *  backends should size this as a real byte cap (paired with `frameBytes`
-   *  below) rather than a frame count: see `attachEncodedFrameDelay`'s doc. */
+   *  below) rather than a frame count: see `attachEncodedFrameDelayTransform`'s doc. */
   maxBufferedFrames?: number;
   /** Non-fatal pipeline errors (a read/write rejection), reported here,
    *  never thrown across the internal pump loop. */

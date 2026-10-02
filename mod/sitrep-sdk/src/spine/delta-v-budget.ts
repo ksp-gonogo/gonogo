@@ -9,7 +9,7 @@ import { CORE_UPLINK_CLIENT } from "./uplink-clients";
 //
 // Four widgets asked it and got three different answers, and the answers could disagree about the same craft in flight:
 //
-//   FuelStatus        `parseStages` for the rows, `dv.summary.totalDv*` for the
+//   FuelStatus        its own stage parser for the rows, `dv.summary.totalDv*` for the
 //                     total, the observed arm only (withholds when held)
 //   ManeuverPlanner   `useProcessor(DELTA_V_BUDGET)` (this processor), which
 //                     SUMS `dv.stages` client-side for the total, spells an

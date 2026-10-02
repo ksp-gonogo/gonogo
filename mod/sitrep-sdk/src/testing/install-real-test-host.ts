@@ -87,8 +87,7 @@ export interface UiKitHostPieces {
  *
  * Returns the disposer `installTestHost` returns: call it in `afterEach` if a
  * suite needs the host gone between tests. Most do not, since the host is
- * stateless dispatch and the state lives in the registries `resetRegistries`
- * clears.
+ * stateless dispatch and the state lives in the registries a test's own reset clears.
  *
  * @category Test hosts
  */

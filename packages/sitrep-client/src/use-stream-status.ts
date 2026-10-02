@@ -6,8 +6,7 @@ import type { TimelineStore } from "./timeline-store";
  * The staleness/absence surface for a topic (raw or derived), read at
  * whatever `FrameToken` the store's last `beginFrame()` minted, the SAME
  * frame `useTimelineStream(store, topic)` reads the topic's value at.
- * Status rides its own channel, never the value channel (the
- * `useKosScriptStatus` pattern this repo already uses elsewhere): pair the
+ * Status rides its own channel, never the value channel: pair the
  * two hooks for `{ value, status }`-shaped widget consumption.
  *
  * With no store there is no stream at all, which is the link-wide

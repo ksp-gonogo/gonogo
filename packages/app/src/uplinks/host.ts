@@ -1,7 +1,7 @@
 // Install the injected SDK host at app boot (design §2.2c / sdk-one-import §4.3).
 //
 // The published `@ksp-gonogo/sitrep-sdk` exposes its stateful author-facing
-// surface, every `registerX`, every hook, `AugmentSlot`, `createPerfBudget`, as
+// surface, every register function, every hook, `AugmentSlot`, `createPerfBudget`, as
 // SHIMS that look up `globalThis.__GONOGO_SDK__` and throw a NAMED error when it
 // is absent (mod/sitrep-sdk/src/api/host.ts). This module builds the real host
 // from the app's OWN singletons and installs it, so an Uplink that imports the sdk

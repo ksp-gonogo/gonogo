@@ -472,7 +472,7 @@ export function useTelemetryStoreOptional(): TimelineStore | undefined {
  *
  * The returned `ViewClock` is structurally the `DelayClockLike` surface
  * (`confirmedEdgeUt` + `onFrame`) the media buffer depends on, so it can be
- * handed straight to `DelayedPlayoutBuffer`/`useKerbcastStream`: kerbcast
+ * handed straight to `DelayedPlayoutBuffer`: kerbcast
  * stays decoupled (it imports no sitrep-client type; the app passes this in).
  *
  * Throws if no `TelemetryProvider` is mounted, matching `useTelemetryStore`.
@@ -611,7 +611,7 @@ function useFrameInstant(
   });
   // `onFrame` notifies unconditionally at ~60Hz whether or not the view time
   // actually moved (a paused, scrubbed or between-samples clock reports the
-  // same UT every frame). Dispatching `setViewUt` regardless leaned on
+  // same UT every frame). Dispatching the view-time update regardless leaned on
   // React's *eager bailout* to swallow the no-op, an optimisation React only
   // applies while the fiber has no other pending work, so an unlucky frame
   // still schedules a full render pass for an unchanged value. Comparing here

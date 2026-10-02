@@ -12,10 +12,8 @@ import { ViewClock } from "./view-clock";
  * (`now()` starts at 0): `ReplayTransport` computes every frame's fire time
  * relative to that anchor, so this is all it needs to honor the fixture's
  * own `deliveredAt` cadence at an adjustable playback speed. `rate` is
- * intentionally NOT mutable mid-flight (matches the pre-existing
- * `ReplayController.setRate` precedent this replaces: rate is
- * constructor-only, changing it means rebuilding the session; see
- * `ReplaySessionController.setRate`).
+ * intentionally NOT mutable mid-flight: it is constructor-only, and changing
+ * it means rebuilding the session; see `ReplaySessionController.setRate`.
  */
 class ScaledRealTimeClock implements Pick<Clock, "now" | "schedule"> {
   private readonly anchorWallMs: number;
@@ -49,8 +47,7 @@ function isDataOrEventFrame(message: unknown): message is DataOrEventMessage {
 /**
  * Builds a synthetic fixture anchored at `targetDeliveredAt`: for every
  * topic, keeps only its LATEST frame at-or-before the target (a "keyframe
- * snapshot" of everything known as of that instant, mirrors the retired
- * `FlightReplayDataSource.seek()`'s own "rewind snapshot" behaviour), plus
+ * snapshot" of everything known as of that instant), plus
  * every frame strictly after the target unchanged. The snapshot frames'
  * `meta.deliveredAt` is rewritten to `targetDeliveredAt` (so they all
  * schedule at offset zero, arriving together, near-instantly, instead of
@@ -128,9 +125,8 @@ const IDLE_SNAPSHOT: ReplaySessionSnapshot = {
 type Listener = () => void;
 
 /**
- * Owns exactly one in-progress mission replay session, the
- * `ReplayTransport`-based replacement for the retired `ReplayController` /
- * `FlightReplayDataSource`. Builds a fresh `TelemetryClient` +
+ * Owns exactly one in-progress mission replay session, driven by a
+ * `ReplayTransport`. Builds a fresh `TelemetryClient` +
  * `TimelineStore` (registering the SAME production derived channels the
  * live stream does) from a mission's `ReplayFixture`, and renders through
  * the ordinary `TelemetryProvider` surface (`ReplaySessionProvider`): a
@@ -140,9 +136,8 @@ type Listener = () => void;
  *
  * Play/pause/seek/rate all resolve to (re)starting a fresh
  * `ReplayTransport` anchored at a chosen point: never live in-place
- * mutation of an already-armed transport's schedule: matching the
- * `ReplayController.setRate` precedent this replaces ("rebuilds the whole
- * replay source since rate is constructor-only").
+ * mutation of an already-armed transport's schedule: rate is constructor-only,
+ * so a rate change rebuilds the whole replay source.
  */
 export class ReplaySessionController {
   private snapshot: ReplaySessionSnapshot = IDLE_SNAPSHOT;

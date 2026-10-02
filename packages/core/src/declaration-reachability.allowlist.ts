@@ -40,9 +40,8 @@
  * DELETING them, which is the other honest answer and the one to reach for when
  * the mechanism behind a command is already gone. `kos.dispatchNow`, `kos.exec`
  * and `kos.reEnable` were the dispatch controls of the centralised kOS script
- * registry: `registerKosScript`, `getKosScripts`, `shared/scriptRegistry.ts`,
- * `KosComputeManager`, `useKosScriptStatus` and the feed widgets that consumed
- * them have no definitions left anywhere in the tree, nothing ships a
+ * registry: its register and read functions, its compute manager, its status
+ * hook and the feed widgets that consumed them have no definitions left anywhere in the tree, nothing ships a
  * `0:/widget_scripts/<id>.ks` for `kos.exec` to RUNPATH, and the breaker
  * `kos.reEnable` re-armed was never built (its handler was a no-op ack).
  * Wiring them would have meant rebuilding a subsystem that was deliberately
@@ -61,7 +60,7 @@
  * `.delete`, `.duplicate`, `.horizon` and `.send`. What that exercise taught,
  * for whoever takes the next entry: five unreached commands were not five
  * missing buttons. Create, duplicate, delete and send are the transitions of ONE
- * state machine over `planExists` and `planCount`, and the mod already refuses
+ * state machine over whether a plan exists and how many there are, and the mod already refuses
  * the illegal one by name, so the surface that reaches them is a single section
  * that renders the slot state and offers whichever transition it permits.
  * `horizon` went somewhere else entirely, next to the shortfall it is the remedy

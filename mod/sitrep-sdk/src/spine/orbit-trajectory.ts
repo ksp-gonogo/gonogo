@@ -214,7 +214,7 @@ export interface OrbitTrajectoryInput {
   };
   /** The instant on screen, which is the instant the operator's question is about. */
   viewUt: number;
-  /** Points along a sampled arc. Default 128, the same density `buildOrbitPatches` uses. */
+  /** Points along a sampled arc. Default 128, the same density the orbit patches use. */
   samples?: number;
   /**
    * The frame the CALLER wants the curve in, and the catalogue to build it

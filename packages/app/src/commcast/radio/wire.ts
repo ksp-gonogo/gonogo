@@ -63,8 +63,7 @@ export interface RadioTransmission {
    * word. `CommsMessage.separationSeconds` freezes at send for the same reason.
    *
    * The RECEIVER still resolves its own separation from the published matrix
-   * where it can and falls back to this, which is `separationFor`'s existing
-   * behaviour unchanged.
+   * where it can and falls back to this.
    */
   separationSeconds: number | null;
 }

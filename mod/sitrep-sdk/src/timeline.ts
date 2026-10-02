@@ -21,7 +21,7 @@ import type { Meta } from "./__generated__/contract";
  * `payload: null` is a tombstone (absence-as-data), a
  * confirmed "there is no value", distinct from `undefined` (never received).
  * `meta` is kept whole (not just the payload) because quality-picking,
- * subject-provenance guarding (`sameSubject`, later task), and staleness all
+ * subject-provenance guarding and staleness all
  * need fields beyond the value itself.
  *
  * `epoch` is the client-side timeline-reset generation this point was

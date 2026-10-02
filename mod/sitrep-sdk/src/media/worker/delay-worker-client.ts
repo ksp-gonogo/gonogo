@@ -16,7 +16,7 @@
  * construction, OR (the common case on Chrome/Firefox as of the
  * verification above) `postMessage(..., [track])` throws SYNCHRONOUSLY
  * because this engine doesn't support transferring a `MediaStreamTrack`
- * at all. The caller (`useDelayedPlayout`) treats a `null` resolution
+ * at all. The caller treats a `null` resolution
  * exactly like the main-thread backend's `null` return, "can't delay ⇒
  * no video" (decision 5), never a live fallback.
  *

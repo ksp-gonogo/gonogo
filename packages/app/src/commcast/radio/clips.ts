@@ -276,7 +276,7 @@ export interface PlayedBlock {
 /**
  * Speakers that keep what they were given.
  *
- * Where `WebAudioRadioSink` writes into an `AudioWorklet` ring, this writes
+ * Where the live sink writes into an `AudioWorklet` ring, this writes
  * into an array, so what a listener HEARD is a value a test can compare against
  * what was said.
  */

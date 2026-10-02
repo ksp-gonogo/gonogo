@@ -35,7 +35,7 @@ const VISIBLE_MS = 10_000;
  * one back under its own type. This file therefore names no field shapes of
  * its own, and reads the reports directly: every quantity on both payloads is
  * a `Value` by the time the banner reads it, because the wire carries a bare
- * number and `wrapUnits` wraps it on decode from the generated unit maps.
+ * number and the decoder wraps it from the generated unit maps.
  *
  * A hand-maintained mirror of a contract type is a second authority for the
  * wire's shape. Do not reintroduce one.

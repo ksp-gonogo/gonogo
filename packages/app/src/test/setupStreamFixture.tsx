@@ -38,7 +38,7 @@ import type { JSX, ReactNode } from "react";
  *   `useStream`/shim ref-count genuinely subscribed, a real correctness
  *   signal). A widget test that wants to replay a full
  *   recording instead should build its own `ReplayTransport` directly.
- * - **`FixedViewClock` pattern**: `new ViewClock({ nowWall: wall.now,
+ * - **Fixed view clock pattern**: `new ViewClock({ nowWall: wall.now,
  *   warpRate: () => 1, delaySeconds: () => opts.delaySeconds ?? 0 })`,
  *   pinned via `scrubTo` when `pinnedUt` is supplied, the SDK analog of the
  *   visual-gate's pinned `Date.now()`. `wall` is exposed (via the

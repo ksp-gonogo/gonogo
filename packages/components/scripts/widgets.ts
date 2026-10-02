@@ -1431,7 +1431,7 @@ const WIDGETS: WidgetRenderConfig[] = [
     // doing: `LineChart`'s default time formatter reads its domain as unix
     // milliseconds, and `useDataSeries` hands back UT
     // seconds, so a twenty-minute descent is labelled "0:01". The domain
-    // itself is fixed (`computeTimeDomain`); the labels need the basis
+    // itself is fixed; the labels need the basis
     // DECLARED rather than guessed, which is a `useDataSeries` change and not
     // one to make from a render config.
     widgetId: "graph",
@@ -2004,8 +2004,7 @@ const WIDGETS: WidgetRenderConfig[] = [
  * minus chrome) and an aspect ratio that matches the
  * `mobileHeight: 240`-shaped widgets the MobileDashboard renders.
  *
- * Appended automatically to every widget's `modes` array via
- * `withAutoMobileMode` below. New widgets get mobile DOM-snapshot +
+ * Appended automatically to every widget's `modes` array. New widgets get mobile DOM-snapshot +
  * PNG coverage without remembering to add an entry. Widgets with
  * mobile-specific layout quirks can opt out by declaring their own
  * `mobile-*` mode in WIDGETS: the helper skips appending when any

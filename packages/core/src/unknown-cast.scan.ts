@@ -225,7 +225,7 @@ function declaredName(name: ts.Node | undefined): string | undefined {
  * The nearest enclosing place with a name, for keying a site.
  *
  * Anonymous callbacks are walked through, so an assertion inside a `.map` in
- * `readRows` belongs to `readRows`. A test callback takes its call's title,
+ * a named function belongs to that function. A test callback takes its call's title,
  * `it("reads a row")`, because that is the name a reader finds it by. A class
  * member is qualified by its class. A site in no named place is `(module)`.
  */

@@ -2,7 +2,7 @@
 // third-party Uplink author imports. It carries the author-facing TYPES
 // (declared here rather than re-exported, see ./types for why this leaf cannot
 // reach the app's) and fail-loud SHIMS for the stateful members, every
-// `registerX` and every hook, which delegate to the app-injected host and throw
+// register function and every hook, which delegate to the app-injected host and throw
 // a named error naming the fix when no host is installed. No stateful member
 // reaches the app, so a packed Uplink never carries a second registry, which is
 // the whole point.
