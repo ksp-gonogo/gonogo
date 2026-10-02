@@ -112,14 +112,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
    * The pack RP-1 is played on. `domainDebt` EMPTY and meant
    * to stay so: there is no Uplink owning this pack yet, so any CODE that names
    * it is a violation the gate states rather than a thing it offers a bucket
-   * for. The single permanent entry is one comment.
-   *
-   * It earned a token by being missed. `packages/core/src/rss-bodies.ts` sat in
-   * CORE for eleven days holding a planet pack's body table, exported from
-   * core's public surface, while `packages/core/src/bodies.ts` next to it was
-   * already a tombstone reading "the body registry moved to the sdk: a planet
-   * pack is an Uplink's business". No gate objected, because RealSolarSystem
-   * was not a token and so was not a thing the gate could express.
+   * for.
    */
   realsolarsystem: {
     permanent: [
@@ -154,21 +147,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
   },
   // === kerbcast: owning dir mod/GonogoKerbcastUplink/ (incl. its client/).
   kerbcast: {
-    domainDebt: [
-      /*
-       * packages/app/src/screens/StationScreen.tsx was here: it named this
-       * Uplink to `getUplinkHandle` and `client.sendUplinkRelay` to relay one
-       * camera handshake through the host. A station now hands a broker to
-       * whichever Uplink called `registerStationBroker`, and names none.
-       */
-      /*
-       * packages/components/src/Targeting/index.tsx was here: its built-in
-       * HudCamera imported @ksp-gonogo/gonogo-kerbcast-uplink directly. That backdrop is
-       * now the `kerbcast-docking-camera` AUGMENT filling the widget's
-       * `targeting.camera` slot, and the widget names no camera mod at
-       * all: so the entry went stale and ratcheted off.
-       */
-    ],
+    domainDebt: [],
     permanent: [
       // prose: a timeout note quoting this very gate's failure message.
       "packages/core/vitest.config.ts",
@@ -188,21 +167,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * directory. Ratchet-inventory file, the case this bucket documents.
        */
       "packages/core/src/uplink-isolation.allowlist.ts",
-      /*
-       * flag.ts / flag.test.ts / main.tsx were here (the loader's shipped
-       * first-party enabled-id list, its test, and main.tsx's prose naming the
-       * three ids it booted). The list was deleted: the loader
-       * derives what to attempt from the live roster, so no app source names
-       * kerbcast at all now, stale, ratcheted off.
-       */
-
       // -- sitrep-client / contract layer, comment or string-literal only --
-      /*
-       * UplinkContract.cs was here: `CommandDeclaration`'s doc comment pointed
-       * at the design doc's kerbcast negotiate discussion for why the Delayed
-       * flag existed. The flag moved onto `[SitrepCommand]`, so the paragraph
-       * naming kerbcast went with it, stale, ratcheted off.
-       */
       "mod/Sitrep.Host/ChannelEngine.cs",
       "mod/sitrep-sdk/src/spine/context.tsx",
       "mod/sitrep-sdk/src/spine/delay-authority.ts",
@@ -293,30 +258,17 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/Sitrep.Contract/ContractVersion.cs",
       "mod/Sitrep.Contract/UplinkContract.cs",
       /*
-       * ScanPayloads.cs and the two sitrep-sdk generated files (topic-map.ts,
-       * units.ts) were REMOVED from this bucket: the SCANsat
-       * relocation (uplink-types-out-of-core plan, fourth step) moved all five
-       * Scan* payload types into GonogoScansatUplink.Contract, which deleted the
-       * source file outright and left both generated artifacts with no scansat
-       * key at all. ContractVersion.cs stays: it carries the relocation's
-       * PROVENANCE prose (the Major 8 -> 9 entry), which is exactly what
-       * the permanent bucket is for.
-       * topics.test-d.ts stays too, but for the opposite reason to before: it no
-       * longer type-asserts any scansat Topic (that proof moved inline into
-       * mod/GonogoScansatUplink/client/src/topics.ts alongside
-       * `scansat.available`'s). What matches now is the comment recording WHY the
-       * assertion left. (topics.ts and topics.test.ts were REMOVED from this
-       * bucket: the bare-primitive fix scrubbed their scansat mentions.)
+       * topics.test-d.ts: a comment records WHY scansat Topics are not
+       * type-asserted there, and names the Uplink's own topics file.
        */
       "mod/sitrep-sdk/src/topics.test-d.ts",
       /*
        * units.ts (the hand-written accessor, not the generated map): its
        * registerTypeUnits doc comment names scansat.scanningVessels as the case
        * that forced a TYPE-keyed runtime registry alongside the Topic-keyed one.
-       * The three earlier relocations moved flat payloads, so a topic-scoped unit
-       * map was sufficient; this one nests (sensors: ScanSensorEntry[],
-       * trackColor: ScanTrackColor) and wrapTopicPayload resolves a nested shape
-       * by TYPE NAME, so the registry needed the second half. Prose in a
+       * wrapTopicPayload resolves a nested shape (sensors: ScanSensorEntry[],
+       * trackColor: ScanTrackColor) by TYPE NAME, so the registry needs the
+       * second half. Prose in a
        * mod-agnostic file explaining a general mechanism, nothing
        * scansat-specific is imported.
        */
@@ -365,26 +317,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/Gonogo.KSP/CommsCoreUplink.cs",
       "mod/Gonogo.KSP/SystemUplink.cs",
       "mod/Sitrep.Host/ChannelEngine.cs",
-      /*
-       * main.tsx was here: first for a static `@ksp-gonogo/gonogo-scansat-uplink`
-       * import, then for a
-       * `registerScansatAndRender` function name and doc comments naming the
-       * three ids it booted. That function became
-       * `bootUplinksAndRender` and the prose went with the id list it
-       * described, stale, ratcheted off.
-       */
-      /*
-       * `CoverageMaskStore.ts` was here, and is gone entirely rather than moved:
-       * the store went into `@ksp-gonogo/sitrep-sdk`, and the sdk
-       * is the leaf every Uplink depends on, so it cannot name one at all, not
-       * even in prose. Its three remaining doc mentions (the historical motivator
-       * for the migration wipe) now say "a coverage source" instead, which is
-       * what the code has actually meant since scanType became an opaque
-       * `layerId` at v2→v3. That also settles the ratchet-hardening design doc's
-       * Part 2.3 example, which cited "FogMaskStore.ts's SCANType import" (that
-       * file's name before the fog-to-coverage rename) as the textbook
-       * domain-debt case: the import had already gone, and now the file has too.
-       */
       // styleguide.test.ts: the raw-hex ratchet, whose scan roots now cover
       // mod/*/client/src. Its ALLOWED_PATHS names the ScanSat Minimap by path,
       // for the same canvas-2D `fillStyle` reason the packages/ copy of that
@@ -394,9 +326,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       /*
        * -- Uplink LOADER: the loader's unit test uses
        * scansat as its example Uplink (TEST-only). The loader module itself
-       * (loader.ts) is generic and names no mod. flag.ts and flag.test.ts were
-       * here for the shipped enabled-id list and the test asserting its
-       * contents; the list was deleted, stale, ratcheted off.
+       * (loader.ts) is generic and names no mod.
        */
       "packages/app/src/uplinks/loader.test.ts",
       /*
@@ -471,19 +401,9 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // pending-uplink contract: its Command field doc-comment gives `kos.run` as the example wire command name, doc-mention only.
       "mod/Sitrep.Contract/UplinkPending.cs",
       /*
-       * The three generated SDK files (contract.ts / topic-map.ts / units.ts)
-       * used to sit here too, because core's codegen reflected the Kos* types
-       * out of Sitrep.Contract and emitted them. It does not any more: the
-       * relocation moved them to this Uplink's own
-       * client/src/__generated__/, so core's generated output names no kOS
-       * type at all and the ratchet demanded these three lines go. Nothing was
-       * fixed in those files; the input to the codegen changed.
-       * topics.test-d.ts / topics.test.ts / topics.ts stay in the kos bucket: each
-       * still names a kos.* dynamic namespace or a Kos-prefixed contract type
-       * (`kos.compute.*`, `kos.processors`, `KosProcessorInfo`) as a generic
-       * example. Their scansat/kerbcast mentions were scrubbed by the
-       * bare-primitive fix, so they left those two buckets, but the
-       * kos references are legitimate and remain.
+       * topics.test-d.ts / topics.test.ts / topics.ts each name a kos.* dynamic
+       * namespace or a Kos-prefixed contract type (`kos.compute.*`,
+       * `kos.processors`, `KosProcessorInfo`) as a generic example.
        */
       "mod/sitrep-sdk/src/topics.test-d.ts",
       "mod/sitrep-sdk/src/topics.test.ts",
@@ -537,11 +457,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * -- comment/doc + pending-topic mentions (no kOS coupling) --
        * CameraFeed's doc-comment references `KosTerminal`'s command-response
        * pattern; Comms.cs's CommsLink doc mentions the kOS terminal reading
-       * comms.link. The FleetComms and SystemView entries that used to sit
-       * here carried "kos.run" as a sample pending-command string in a
-       * fixture; those fixtures now use a vanilla vessel command, since what
-       * they exercise is the generic `system.uplink.pending` -> route pulse
-       * wiring and never anything kOS-shaped. Ratcheted off.
+       * comms.link.
        */
       "mod/Sitrep.Contract/Comms.cs",
 
@@ -561,9 +477,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       /*
        * kos-execute-tunnel.test.ts has zero real kos coupling, it only uses
        * "kos" as a generic Uplink-handle id while exercising app-owned PeerJS
-       * relay machinery (kos migration Task 8: moved into the kos
-       * package and back out once that became clear). Stays in
-       * packages/app/src/__tests__ where this entry already covers it.
+       * relay machinery.
        */
       "packages/app/src/__tests__/kos-execute-tunnel.test.ts",
       /*
@@ -595,22 +509,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/core/src/hooks/useUplinkHealthFor.test.tsx",
       "packages/sitrep-client/src/uplink-health.test.ts",
       /*
-       * BufferedDataSource.test.ts was here alongside the file it tests; it moved
-       * to the sdk with it and its `kos.compute.*` fixture keys became
-       * `compute.*`, since what they assert is per-feeder namespacing rather than
-       * any one Uplink. Ratcheted off.
-       */
-
-      /*
-       * `registry.ts` was here for `clearRegistry`'s doc, which explained itself
-       * by naming what it does NOT clear: the kOS script registry. The registry
-       * moved into `@ksp-gonogo/sitrep-sdk` and the sdk is the leaf
-       * every Uplink depends on, so it cannot name one at all, not even in prose.
-       * The doc now states the general rule instead (it never reaches a registry
-       * an Uplink owns), which is what it always meant.
-       */
-
-      /*
        * -- Doc/comment-only mentions elsewhere (kOS is a documented Key
        * Design Constraint: "optional, not a hard dependency": so it is
        * named in prose across many otherwise-unrelated files) --
@@ -628,51 +526,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/app/src/alarms/types.ts",
       "packages/app/src/components/ComponentOverlay.tsx",
       "packages/app/src/dataSources/seedKspHost.ts",
-      /*
-       * main.tsx was here (`import "@ksp-gonogo/gonogo-kos-uplink"`, a sanctioned self-
-       * registration import). That static
-       * import was removed: kos now always loads through the runtime loader, and not
-       * even a shipped id list names it (no
-       * "kOS"/"Kos*"/"kos.*" distinctive-form text left in main.tsx itself):
-       * stale, ratcheted off.
-       * CrewStatus/index.tsx was here (a doc-comment aside claiming gonogo
-       * "doesn't support Kerbalism because of the known kOS sensor
-       * incompatibility"). Kerbalism-fixture-truth's crew-rules verification
-       * pass found that claim stale: the widget already reads real Kerbalism
-       * survival data off `kerbalism.crew`/`kerbalism.lifesupport`: and
-       * rewrote the comment to describe the actual Kerbalism integration
-       * instead, dropping the only "kOS" text in the file, stale, ratcheted off.
-       * ManeuverPlanner/index.tsx and its test were here: both cited kOS's
-       * Node.cs as corroboration for KSP's node-local (radialOut, normal,
-       * prograde) axis order. That fact is KSP's own and this repo already
-       * establishes it by decompile where the assignment happens
-       * (`KspVesselActuator.AddManeuverNode`), so the citation was rebased onto
-       * the primary source and both entries ratcheted off.
-       */
-      /*
-       * BufferedDataSource.ts / flightDetector.ts were here (prose asides about a
-       * kOS-sourced `vesselUid` and the kOS compute fanout as an example feeder).
-       * Both moved into `@ksp-gonogo/sitrep-sdk`, and the sdk is the
-       * leaf every Uplink depends on, so it cannot name one even in prose. They now
-       * describe the general shape they always meant ("another feeder", "an
-       * authoritative vesselUid from the vessel"), so both ratcheted off.
-       * useDataSchema.ts was here for a forward-looking aside naming the kOS
-       * datastream as the thing that would add keys after connect. The caveat
-       * now describes any source that grows keys dynamically, naming no Uplink,
-       * so this ratcheted off.
-       */
       "mod/sitrep-sdk/src/spine/replay-session.tsx",
-      /*
-       * types.ts was here for `FlightRecord.vesselUid`'s "arrives from kOS" aside.
-       * The flight types moved to the sdk leaf with `BufferedDataSource` and the
-       * aside now names the vessel rather than the Uplink that reads it, so this
-       * ratcheted off; what stayed behind is the `declare module` block, which
-       * names nothing.
-       * packages/kerbcast/src/index.ts was here (an "alongside the legacy source /
-       * kOS / etc." aside in its header). That package is now
-       * mod/GonogoKerbcastUplink/client, and its rewritten header no longer names
-       * another Uplink at all: stale twice over, so it ratcheted off.
-       */
       "packages/relay/src/bootstrapConfig.ts",
       "packages/sitrep-client/src/use-stream-status.ts",
       "packages/ui/src/VersionMismatchBanner.tsx",
@@ -900,10 +754,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * above: a test that models a two-backend divergence and cannot name the
        * backends is describing nothing.
        *
-       * Text only, every one of them: no import, no type, no topic, and the
-       * Propagation layer was deliberately left mod-agnostic rather than
-       * added here (its two mentions were rewritten generic, since "a modded
-       * ground network runs many stations" is the fact it actually needed).
+       * Text only, every one of them: no import, no type, no topic.
        */
       /*
        * -- CommsDegrade.cs is the third file of that same set, and
@@ -937,12 +788,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/Sitrep.Core.Tests/CommsWireTests.cs",
       "mod/Sitrep.Host.IntegrationTests/FoundationChannelsEndToEndTests.cs",
       "mod/Sitrep.Host.Tests/CommsElectionTests.cs",
-      /*
-       * CommSignal's two slot/stream tests were here: each named RealAntennas in
-       * prose as the hypothetical filler of `comm-signal.sections` /
-       * `comm-signal.hop-rates`. The widget only ever knew the slot id, so the
-       * prose now names the comms capability instead and both ratcheted off.
-       */
     ],
   },
 
@@ -978,13 +823,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/core/src/uplink-permanent-code.test.ts",
       /*
        * -- Judgment calls, all doc-mention only --
-       * NOTE: mod/Sitrep.Host/ActionGroups/ActionGroupsElection.cs used to sit
-       * here, justified as "constant/method names ... and prose". Naming the API
-       * symbols in the justification should have been the tell: a public
-       * RegisterActionGroupsExtendedProvider plus two constants is code coupling,
-       * which is domainDebt, not the permanent bucket this file put it in. The
-       * triple has been deleted and the provider id and priority now live on the
-       * uplink that owns them, so the entry is gone rather than reclassified.
        * Doc-comment explaining why the capability's Groups() list is
        * named/arbitrary-length rather than a positional bool[]: cites
        * "Action Groups Extended (AGX)" as the reason, no AGX coupling. Moved
@@ -1090,13 +928,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * Porkchop heatmap doc-comment: "(MechJeb/alexmoon style)" cites the
        * familiar visual convention it mirrors, not a dependency.
        */
-      /*
-       * ActionGroup/stream.test.tsx was here: its doc-comment listed three
-       * sibling vessel command widgets sharing its dispatch pattern, MechJeb
-       * among them, and all three had since moved into Uplinks. It now states
-       * the pattern without naming them, stale, ratcheted off.
-       */
-
       /*
        * -- Core-mod doc-comments citing MechJeb2 as prior art or a use case,
        * zero coupling --
