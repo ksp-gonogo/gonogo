@@ -904,11 +904,11 @@ jobs:
           # Every project gets ONE attempt, and is expected to pass first time.
           # Across the last 40 staging runs the old four-attempt retry absorbed
           # zero flakes for any project: every retry belonged to a run that failed
-          # all four, so it only multiplied the cost of a real failure. The one
-          # exception is Sitrep.Host.IntegrationTests, the only suite with
-          # wall-clock budgets, which gets a second attempt. A pass that needed it
-          # is announced, never reported as a plain pass, because a green that
-          # needed a retry is a probability rather than a fact.
+          # all four, so it only multiplied the cost of a real failure.
+          # Sitrep.Host.IntegrationTests, the only suite with wall-clock budgets,
+          # briefly had a second attempt; three clean full runs under load showed
+          # it did not need one. A green that needed a retry is a probability
+          # rather than a fact.
           for p in "${projects[@]}"; do
             echo "::group::dotnet test $p"
             # Only Gonogo.KSP.Tests reads the KSP_Data/Managed reference DLLs
@@ -917,7 +917,6 @@ jobs:
             extra=""
             if [ "$p" = "Gonogo.KSP.Tests" ]; then extra="$ksp_managed_args"; fi
             attempts=1
-            if [ "$p" = "Sitrep.Host.IntegrationTests" ]; then attempts=2; fi
             ok=0
             for a in $(seq 1 "$attempts"); do
               if dotnet test "$p/$p.csproj" --configuration Release $extra; then
