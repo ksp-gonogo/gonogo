@@ -29,9 +29,8 @@ import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { PeerClientProvider } from "../peer/PeerClientContext";
-import type { PeerClientService } from "../peer/PeerClientService";
-import { asClientService } from "../test/peerFakes";
+import { type PeerClient, PeerClientProvider } from "../peer/PeerClientContext";
+import { idlePeerClient } from "../test/peerFakes";
 import { setConsentPrompt } from "./consent";
 import { hostCompat } from "./hostCompat";
 import { __resetUplinkOutcomes, getUplinkOutcomes } from "./loaderState";
@@ -126,15 +125,11 @@ afterEach(() => {
   setConsentPrompt(async () => false);
 });
 
-/**
- * A bundle conduit as the client the loader takes. One erasure, here: the real
- * `PeerClientService` opens a broker socket in its constructor, and the loader
- * calls only `sendBundleFetch` on it.
- */
-function asPeerClient(fake: {
-  sendBundleFetch: PeerClientService["sendBundleFetch"];
-}): PeerClientService {
-  return asClientService(fake);
+/** A station peer link whose bundle conduit is the one under test. */
+function peerClientWith(
+  sendBundleFetch: PeerClient["sendBundleFetch"],
+): PeerClient {
+  return { ...idlePeerClient(), sendBundleFetch };
 }
 
 describe("runStationUplinkLoad", () => {
@@ -253,7 +248,7 @@ describe("StationUplinkLoader", () => {
     peerClient,
   }: {
     client: TelemetryClient;
-    peerClient: PeerClientService;
+    peerClient: PeerClient;
   }) {
     return (
       <TelemetryProvider client={client}>
@@ -271,7 +266,7 @@ describe("StationUplinkLoader", () => {
     const stub = new StubTransport();
     const client = new TelemetryClient(stub);
     const sendBundleFetch = vi.fn(async () => BUNDLE_BYTES);
-    const peerClient = asPeerClient({ sendBundleFetch });
+    const peerClient = peerClientWith(sendBundleFetch);
 
     render(<Harness client={client} peerClient={peerClient} />);
 
@@ -293,7 +288,7 @@ describe("StationUplinkLoader", () => {
     const stub = new StubTransport();
     const client = new TelemetryClient(stub);
     const sendBundleFetch = vi.fn(async () => BUNDLE_BYTES);
-    const peerClient = asPeerClient({ sendBundleFetch });
+    const peerClient = peerClientWith(sendBundleFetch);
 
     render(
       <StrictMode>

@@ -5,8 +5,11 @@ import { setQuantityLocale } from "@ksp-gonogo/ui-kit";
 import { createRoot, type Root } from "react-dom/client";
 import { ThemeProvider } from "styled-components";
 import { MissionBanner } from "../../src/components/MissionBanner";
-import { PeerClientProvider } from "../../src/peer/PeerClientContext";
-import type { PeerClientService } from "../../src/peer/PeerClientService";
+import {
+  type PeerClient,
+  PeerClientProvider,
+} from "../../src/peer/PeerClientContext";
+import { idlePeerClient } from "../../src/test/peerFakes";
 
 /**
  * Browser entry for the header delay render harness. esbuild bundles it into
@@ -43,18 +46,16 @@ let client: TelemetryClient | undefined;
 const twoFrames = (): Promise<unknown> =>
   new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
 
-/**
- * The one slice of the peer client a pilot's header reads. Every other member
- * is absent, so a header that starts reaching for more fails loudly here.
- */
-function peerClientAt(hostCentre: string | undefined): PeerClientService {
+/** An idle station link whose host command centre is the one a pilot's header reads. */
+function peerClientAt(hostCentre: string | undefined): PeerClient {
   return {
+    ...idlePeerClient(),
     getHostCommandCentre: () => hostCentre ?? null,
     onHostCommandCentreChange: (cb: (centre: string | null) => void) => {
       cb(hostCentre ?? null);
       return () => {};
     },
-  } as unknown as PeerClientService;
+  };
 }
 
 async function renderScene(scene: Scene): Promise<void> {
