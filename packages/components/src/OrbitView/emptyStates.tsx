@@ -29,8 +29,8 @@ export function noOrbitSentence(
   const reason = declined.reason;
   switch (reason) {
     case "under-physics":
-      // The orbit exists; the craft is loaded, so its elements are osculating and there is no coast to draw.
-      return "No osculating orbit (packed)";
+      // The craft is loaded and its elements are osculating; what is refused is advancing them in time.
+      return "No coast under physics";
     case "input-absent":
     case "beyond-horizon":
     case "model-inapplicable":
