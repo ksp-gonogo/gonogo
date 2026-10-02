@@ -192,6 +192,7 @@ describe("collection Topics in the generated contract", () => {
   it("names every SDK-owned collection Topic", () => {
     expect(derived.sdkOwned).toEqual([
       "alarm.scet",
+      "alarm.scet.topics",
       "commandCentre.roster",
       "commandCentre.unreachable",
       "deployed.bases",
