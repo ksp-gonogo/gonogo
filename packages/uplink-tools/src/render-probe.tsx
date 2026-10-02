@@ -51,6 +51,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { WidgetHost, WidgetHostFor } from "@ksp-gonogo/ui-kit/testing";
 import {
+  type ComponentType,
   createElement,
   Fragment,
   type ReactElement,
@@ -66,6 +67,7 @@ import {
   HOST_DRAWN_CONTRIBUTION_SEGMENTS,
   PROBE_CHROME_ATTR,
   RENDER_PROBE_GLOBAL,
+  SUPPLIED_ATTR,
 } from "./render/probe-global";
 import {
   advanceSceneClock,
@@ -271,6 +273,12 @@ export interface ScenePayload {
    * scene of theirs naming a first-party widget has nothing to mount.
    */
   host?: string;
+  /**
+   * Outline what the target augment draws inside its host. The augment renders
+   * inside a wrapper with no box of its own, so layout, the measured signature
+   * and every other scene are unchanged; see {@link markSupplied}.
+   */
+  highlight?: true;
   /** Legacy `DataSource` keys, by source id. */
   dataSources: Record<string, Record<string, unknown>>;
   w: number;
@@ -891,15 +899,77 @@ function withhold(target: SceneTarget): () => void {
   };
 }
 
+/** How many live mounts draw each augment id inside the outlined wrapper. */
+const markedIds = new Map<string, number>();
+
+/** Draws the outline around whatever sits directly inside a wrapper. Outline, not border, so no layout moves. */
+const SUPPLIED_STYLE = `[${SUPPLIED_ATTR}] > * { outline: 2px solid orange; outline-offset: -2px; }`;
+
+function installSuppliedStyle(): void {
+  if (document.querySelector(`style[${PROBE_CHROME_ATTR}="supplied"]`)) return;
+  const style = document.createElement("style");
+  style.setAttribute(PROBE_CHROME_ATTR, "supplied");
+  style.textContent = SUPPLIED_STYLE;
+  document.head.append(style);
+}
+
+const markedComponents = new WeakMap<
+  AnyAugment["component"],
+  AnyAugment["component"]
+>();
+
+/**
+ * The augment with its component drawn inside a `display: contents` wrapper, so
+ * the wrapper has no box and the stylesheet can outline its children.
+ */
+function markSupplied<Augment extends AnyAugment>(def: Augment): Augment {
+  let Marked = markedComponents.get(def.component);
+  if (!Marked) {
+    const Inner = def.component as ComponentType<never>;
+    Marked = (props) =>
+      createElement(
+        "div",
+        { [SUPPLIED_ATTR]: "", style: { display: "contents" } },
+        createElement(Inner, props as never),
+      );
+    markedComponents.set(def.component, Marked);
+  }
+  return { ...def, component: Marked };
+}
+
+/**
+ * Draw one augment inside the outlined wrapper for the life of a mount, by the
+ * same empty-and-refill of the registry that {@link withhold} uses.
+ */
+function highlight(target: SceneTarget): () => void {
+  if (target.kind !== "augment") return () => {};
+  installSuppliedStyle();
+  unwithheld.augment ??= getAugments();
+  markedIds.set(target.id, (markedIds.get(target.id) ?? 0) + 1);
+  refillWithheld("augment");
+  let restored = false;
+  return () => {
+    if (restored) return;
+    restored = true;
+    const left = (markedIds.get(target.id) ?? 1) - 1;
+    if (left === 0) markedIds.delete(target.id);
+    else markedIds.set(target.id, left);
+    refillWithheld("augment");
+  };
+}
+
 function refillWithheld(kind: "augment" | "contribution"): void {
   if (kind === "augment") {
     const all = unwithheld.augment;
     if (!all) return;
     clearAugments();
     for (const def of all) {
-      if (!withheldIds.has(def.id)) registerAugment(def as never);
+      if (withheldIds.has(def.id)) continue;
+      registerAugment(
+        (markedIds.has(def.id) ? markSupplied(def) : def) as never,
+      );
     }
-    if (!all.some((def) => withheldIds.has(def.id)))
+    if (!all.some((def) => withheldIds.has(def.id) || markedIds.has(def.id)))
       unwithheld.augment = undefined;
     return;
   }
@@ -1065,7 +1135,12 @@ async function renderScene(
 
   const tree = buildTree(scene);
   // After the tree is built, which looks the subject up to find its slot.
-  if (scene.withhold) mounted.restoreWithheld = withhold(scene.withhold);
+  const restores: Array<() => void> = [];
+  if (scene.withhold) restores.push(withhold(scene.withhold));
+  if (scene.highlight) restores.push(highlight(scene.target));
+  mounted.restoreWithheld = () => {
+    for (const restore of restores) restore();
+  };
   const wrapped = activeSetup.wrap?.(tree, { scene }) ?? tree;
   mounted.root = createRoot(el);
   mounted.root.render(

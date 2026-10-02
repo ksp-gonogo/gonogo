@@ -32,6 +32,14 @@ export const RENDER_PROBE_GLOBAL = "__gonogoRenderProbe";
 export const PROBE_CHROME_ATTR = "data-probe-chrome";
 
 /**
+ * The attribute on the box-less wrapper a highlighted augment renders inside,
+ * which the probe's stylesheet outlines the children of. The wrapper is the
+ * harness's own element, so the held comparison leaves it out of the subject's
+ * render.
+ */
+export const SUPPLIED_ATTR = "data-uplink-supplied";
+
+/**
  * The contribution segments a stand-in host can actually DRAW, so a scene that
  * names one needs no `_scene.hostWidget`.
  *
@@ -103,6 +111,7 @@ export function describeElements(host: HTMLElement): string[] {
   const lines: string[] = [];
   for (const el of Array.from(host.querySelectorAll("*"))) {
     if (el.closest(`[${PROBE_CHROME_ATTR}]`)) continue;
+    if (el.hasAttribute(SUPPLIED_ATTR)) continue;
     if (el.tagName === "STYLE" || el.tagName === "SCRIPT") continue;
     const attributes = Array.from(el.attributes)
       .map((a) => `${a.name}="${foldAttribute(a.name, a.value)}"`)

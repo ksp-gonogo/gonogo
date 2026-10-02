@@ -34,6 +34,13 @@ interface RawScene {
    * screen.
    */
   hostWidget?: string;
+  /**
+   * Outline what this augment draws inside its host, so a picture of the whole
+   * host shows which part the Uplink supplied. Only for an augment hosted by a
+   * real widget: a stand-in host holds nothing else to tell it from. Drawn as
+   * an outline, which moves no layout, and absent entirely when unset.
+   */
+  highlight?: true;
   caption?: string;
   config?: Record<string, unknown>;
   slotProps?: Record<string, unknown>;
@@ -150,6 +157,7 @@ export interface Scene {
   expectsEmpty?: string;
   unchangedWhenHeld?: string;
   hero: boolean;
+  highlight?: true;
   paints: string[];
   before: SceneAct[];
   pinnedUt: number;
@@ -248,6 +256,24 @@ function oneScene(
     dataSources[scene.dataSourceId ?? "data"] = legacy;
   }
 
+  if (scene.highlight !== undefined) {
+    if (scene.highlight !== true) {
+      throw new Error(
+        `${where}: "_scene.highlight" is either true or absent, got ` +
+          `${JSON.stringify(scene.highlight)}.`,
+      );
+    }
+    if (kind !== "augment" || scene.hostWidget === undefined) {
+      throw new Error(
+        `${where}: "_scene.highlight" outlines an augment inside the real ` +
+          "widget that hosts it, so it needs an augment target and a " +
+          '"_scene.hostWidget". A widget scene has nothing to tell apart, a ' +
+          "stand-in host holds nothing but the augment, and a contribution is " +
+          "drawn by its host's own markup, which the harness cannot find.",
+      );
+    }
+  }
+
   if (scene.hostWidget !== undefined && kind === "widget") {
     throw new Error(
       `${where}: "_scene.hostWidget" is only meaningful for an augment or a ` +
@@ -306,6 +332,7 @@ function oneScene(
     expectsEmpty: scene.expectsEmpty,
     unchangedWhenHeld: unchangedWhenHeldFor(where, scene, stream),
     hero: scene.hero === true,
+    ...(scene.highlight === true ? { highlight: true as const } : {}),
     paints: paintsFor(where, scene),
     before: beforeFor(where, scene),
     pinnedUt,
@@ -687,6 +714,7 @@ export function payloadFor(
     config: scene.config,
     slotProps: scene.slotProps,
     host: scene.host,
+    ...(scene.highlight === true ? { highlight: true as const } : {}),
     dataSources: scene.dataSources,
     w: mode.w,
     h: mode.h,
