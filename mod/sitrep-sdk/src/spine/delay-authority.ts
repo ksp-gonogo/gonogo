@@ -137,6 +137,8 @@ export class DelayAuthority {
   private oneWaySeconds = 0;
   private ownCraftVantage = false;
   private centreDelays: ReadonlyMap<string, number> = new Map();
+  /** Each centre's own delay as last listed, kept after its row goes. */
+  private readonly lastCentreDelays = new Map<string, number>();
   private vantageSource: DelaySubscribable | undefined;
 
   /**
@@ -190,6 +192,9 @@ export class DelayAuthority {
     const delays = readCentreDelays(payload);
     if (delays === null) return;
     this.centreDelays = delays;
+    for (const [centre, seconds] of delays) {
+      this.lastCentreDelays.set(centre, seconds);
+    }
   }
 
   /**
@@ -218,19 +223,26 @@ export class DelayAuthority {
    *
    * Zero while the session is at its own craft's vantage, per
    * `setOwnCraftVantage`. Otherwise the selected centre's own row, or the
-   * observed one's before this session has chosen, and `comms.delay` for a
-   * centre with no row. Both are kept rather than cleared on a vantage change,
-   * so a move to another centre reports that centre's last measured
-   * light-time immediately instead of waiting a whole one to re-learn it.
+   * observed one's before this session has chosen. A centre whose row has gone
+   * has lost its own route, which is not home's, so it holds the delay it was
+   * last listed at, as `comms.delay` holds home's through a blackout; playing
+   * it at home's delay would show it pictures and readings on a path it does
+   * not have. `comms.delay` is for a centre never listed, which home always
+   * is. All of it is kept across a vantage change, so a move to another centre
+   * reports that centre's last measured light-time immediately instead of
+   * waiting a whole one to re-learn it.
    */
   delaySeconds = (): number => {
     if (this.ownCraftVantage) return 0;
     const vantage =
       this.vantageSource?.selectedVantage ??
       this.vantageSource?.observedVantage;
-    const own =
-      vantage === undefined ? undefined : this.centreDelays.get(vantage);
-    return own ?? this.oneWaySeconds;
+    if (vantage === undefined) return this.oneWaySeconds;
+    return (
+      this.centreDelays.get(vantage) ??
+      this.lastCentreDelays.get(vantage) ??
+      this.oneWaySeconds
+    );
   };
 
   /**
