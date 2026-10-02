@@ -193,6 +193,7 @@ describe("collection Topics in the generated contract", () => {
     expect(derived.sdkOwned).toEqual([
       "alarm.scet",
       "commandCentre.roster",
+      "commandCentre.unreachable",
       "deployed.bases",
       "dv.stages",
       "isru.converters",
