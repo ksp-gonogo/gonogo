@@ -9,6 +9,7 @@ import {
   type PredictionRef,
   solveEccentricAnomaly,
   type TrackSample,
+  trueAnomalyFromEccentric,
 } from "@ksp-gonogo/sitrep-client";
 import { PerfBudget } from "../perf/PerfBudget";
 
@@ -40,18 +41,8 @@ export function wrap180(deg: number): number {
   return x;
 }
 
-/**
- * Convert an eccentric anomaly (radians) to true anomaly (radians) using
- * the half-angle formula, which is numerically well-behaved across all
- * quadrants.
- */
-export function eccentricToTrueAnomaly(E: number, e: number): number {
-  // tan(ν/2) = sqrt((1+e)/(1-e)) · tan(E/2)
-  //        = (sqrt(1+e)·sin(E/2)) / (sqrt(1-e)·cos(E/2))
-  const y = Math.sqrt(1 + e) * Math.sin(E / 2);
-  const x = Math.sqrt(1 - e) * Math.cos(E / 2);
-  return 2 * Math.atan2(y, x);
-}
+/** Eccentric to true anomaly, radians. A re-export so the half-angle form exists once, in the SDK's Kepler module. */
+export const eccentricToTrueAnomaly = trueAnomalyFromEccentric;
 
 /** Upper bound on sample count per `predictGroundTrack` call. */
 export const MAX_TRACK_SAMPLES = 500;

@@ -253,6 +253,45 @@ export interface Anomalies {
 }
 
 /**
+ * Eccentric to true anomaly by the half-angle form, well behaved in every
+ * quadrant. Radians, `0 <= ecc < 1`. The one copy: the propagation, the patch
+ * chain and the manoeuvre planner all convert through it.
+ *
+ * @category Orbits and trajectories
+ */
+export function trueAnomalyFromEccentric(
+  eccentricAnomaly: number,
+  ecc: number,
+): number {
+  return (
+    2.0 *
+    Math.atan2(
+      Math.sqrt(1.0 + ecc) * Math.sin(eccentricAnomaly / 2.0),
+      Math.sqrt(1.0 - ecc) * Math.cos(eccentricAnomaly / 2.0),
+    )
+  );
+}
+
+/**
+ * The inverse of {@link trueAnomalyFromEccentric}: true to eccentric anomaly.
+ * Radians, `0 <= ecc < 1`.
+ *
+ * @category Orbits and trajectories
+ */
+export function eccentricFromTrueAnomaly(
+  trueAnomaly: number,
+  ecc: number,
+): number {
+  return (
+    2.0 *
+    Math.atan2(
+      Math.sqrt(1.0 - ecc) * Math.sin(trueAnomaly / 2.0),
+      Math.sqrt(1.0 + ecc) * Math.cos(trueAnomaly / 2.0),
+    )
+  );
+}
+
+/**
  * Solves for `orbit`'s mean/eccentric/true anomaly at time `ut` -- the exact
  * angular computation `solve()` itself uses, exposed standalone for callers
  * that need an anomaly (or the mean motion) without a full state vector
@@ -276,12 +315,7 @@ export function solveAnomalies(orbit: OrbitElements, ut: number): Anomalies {
 
   const eccentricAnomaly = solveEccentricAnomaly(meanAnomaly, orbit.ecc);
 
-  const trueAnomaly =
-    2.0 *
-    Math.atan2(
-      Math.sqrt(1.0 + orbit.ecc) * Math.sin(eccentricAnomaly / 2.0),
-      Math.sqrt(1.0 - orbit.ecc) * Math.cos(eccentricAnomaly / 2.0),
-    );
+  const trueAnomaly = trueAnomalyFromEccentric(eccentricAnomaly, orbit.ecc);
 
   return { meanAnomaly, eccentricAnomaly, trueAnomaly, meanMotion };
 }

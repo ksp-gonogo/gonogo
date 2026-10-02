@@ -6,7 +6,11 @@
  */
 import type { OrbitPatch } from "../__generated__/contract";
 import { type Value, value } from "../unit-system/value";
-import { solveEccentricAnomaly } from "./kepler";
+import {
+  rotatePerifocalToInertial,
+  solveEccentricAnomaly,
+  trueAnomalyFromEccentric,
+} from "./kepler";
 
 /** The elements of a patch a propagation reads. */
 export type PatchConic = Pick<
@@ -76,13 +80,6 @@ function wrap180(deg: number): number {
   return x;
 }
 
-/** Eccentric to true anomaly by the half-angle form, well behaved in every quadrant. Radians. */
-function eccentricToTrueAnomaly(E: number, e: number): number {
-  const y = Math.sqrt(1 + e) * Math.sin(E / 2);
-  const x = Math.sqrt(1 - e) * Math.cos(E / 2);
-  return 2 * Math.atan2(y, x);
-}
-
 /** The window a patch holds for, as UT seconds. */
 function windowOf(patch: PatchSpan): { start: number; end: number } {
   return { start: patch.startUt.magnitude, end: patch.endUt.magnitude };
@@ -123,37 +120,19 @@ export function patchStateAt(patch: PatchConic, ut: number): InertialState {
   );
   const e = patch.ecc.magnitude;
   const E = solveEccentricAnomaly(M, e);
-  const nu = eccentricToTrueAnomaly(E, e);
+  const nu = trueAnomalyFromEccentric(E, e);
   const r = patch.sma.magnitude * (1 - e * Math.cos(E));
 
   // Perifocal frame: periapsis along +x, angular momentum along +z.
-  const xPf = r * Math.cos(nu);
-  const yPf = r * Math.sin(nu);
+  const [x, y, z] = rotatePerifocalToInertial(
+    r * Math.cos(nu),
+    r * Math.sin(nu),
+    degToRad(patch.inc.magnitude),
+    degToRad(patch.lan.magnitude),
+    degToRad(patch.argPe.magnitude),
+  );
 
-  // Perifocal to inertial by the 3-1-3 rotation (argPe, inclination, LAN); z_pf is always zero, so two columns suffice.
-  const w = degToRad(patch.argPe.magnitude);
-  const i = degToRad(patch.inc.magnitude);
-  const O = degToRad(patch.lan.magnitude);
-  const cosW = Math.cos(w);
-  const sinW = Math.sin(w);
-  const cosI = Math.cos(i);
-  const sinI = Math.sin(i);
-  const cosO = Math.cos(O);
-  const sinO = Math.sin(O);
-
-  const p0 = cosO * cosW - sinO * sinW * cosI;
-  const p1 = sinO * cosW + cosO * sinW * cosI;
-  const p2 = sinW * sinI;
-  const q0 = -cosO * sinW - sinO * cosW * cosI;
-  const q1 = -sinO * sinW + cosO * cosW * cosI;
-  const q2 = cosW * sinI;
-
-  return {
-    x: p0 * xPf + q0 * yPf,
-    y: p1 * xPf + q1 * yPf,
-    z: p2 * xPf + q2 * yPf,
-    radius: r,
-  };
+  return { x, y, z, radius: r };
 }
 
 /** Latitude, inertial longitude and altitude of an inertial state over a body of `bodyRadius`. */

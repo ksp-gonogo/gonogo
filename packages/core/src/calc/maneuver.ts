@@ -17,7 +17,10 @@
  * carried through but not reflected in the projected in-plane shape.
  */
 
-import { meanAnomalyAt } from "@ksp-gonogo/sitrep-client";
+import {
+  eccentricFromTrueAnomaly,
+  meanAnomalyAt,
+} from "@ksp-gonogo/sitrep-client";
 import { type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import { degToRad, radToDeg } from "../utils/math";
 import { eccentricToTrueAnomaly, solveKepler } from "./trajectory";
@@ -210,12 +213,7 @@ export function stateAtUT(
 
   // Current true anomaly → eccentric anomaly.
   const nu0 = degToRad(currentTrueAnomalyDeg);
-  const E0 =
-    2 *
-    Math.atan2(
-      Math.sqrt(1 - e) * Math.sin(nu0 / 2),
-      Math.sqrt(1 + e) * Math.cos(nu0 / 2),
-    );
+  const E0 = eccentricFromTrueAnomaly(nu0, e);
   const M0 = E0 - e * Math.sin(E0);
   const M = meanAnomalyAt(
     value("rad", M0),

@@ -264,6 +264,7 @@ export {
   canPropagate,
   controlFrameToReadFrameChoice,
   drawnFrame,
+  eccentricFromTrueAnomaly,
   frameCoordinatesArePulsating,
   frameInstantAt,
   frameSides,
@@ -294,6 +295,7 @@ export {
   toFrame,
   trajectoryFrameKindFor,
   trajectoryFrameLabel,
+  trueAnomalyFromEccentric,
   useOrbitTrajectory,
 } from "./kepler";
 export type { CommandStatus } from "./lifecycle";
