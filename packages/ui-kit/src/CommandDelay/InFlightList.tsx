@@ -94,7 +94,10 @@ export interface InFlightListItem {
  * What the link is doing, as `useCommand`'s `delayMode` reports it: `live`
  * under the staged threshold, `staged` above it, `no-path` when nothing is
  * measurable.
- * {@link InFlightList} writes it to its root's `data-mode` attribute.
+ * {@link InFlightList} writes it to its root's `data-mode` attribute and draws
+ * nothing different for it: a staged command already shows its own phase and
+ * countdown, and `no-path` already shows "no ETA", so a mode-level treatment
+ * would say the same thing twice. The attribute is a styling and test hook.
  *
  * @category CommandDelay
  */

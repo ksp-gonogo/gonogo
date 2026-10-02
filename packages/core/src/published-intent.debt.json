@@ -1,0 +1,33 @@
+{
+  "@ksp-gonogo/sitrep-sdk": [
+    "./media:attachEncodedWorkerFrameDelay",
+    "./media:createWorkerFrameDelayStream",
+    "./testing:ACT_GATE_STRETCH_ENV",
+    "./testing:clearRequestedAlarms",
+    "./testing:getRequestedAlarms",
+    ".:DESCENT_SETTLE_TOLERANCE",
+    ".:DESCENT_TRACE_STEPS",
+    ".:KSP_PARAMETER_STATE_NAMES",
+    ".:KSP_RESOURCE_FLOW_MODE_NAMES",
+    ".:KSP_ROSTER_STATUS_NAMES",
+    ".:getAllKnownCommandIds",
+    ".:isDerivedChannelId",
+    ".:isReckonableTopic",
+    ".:isWidgetChannelId"
+  ],
+  "@ksp-gonogo/ui-kit": [
+    "./testing:CHECKER_TOLERANCE",
+    "./testing:WidgetHost",
+    "./testing:resizeObservation",
+    ".:ArrowDownIcon",
+    ".:BinormalIcon",
+    ".:ChevronLeftIcon",
+    ".:ComputerIcon",
+    ".:FrenetNormalIcon",
+    ".:TangentIcon",
+    ".:TextField",
+    ".:useAllAugmentSettings",
+    ".:usePrefersReducedMotion"
+  ],
+  "@ksp-gonogo/uplink-tools": []
+}

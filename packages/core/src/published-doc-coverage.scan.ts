@@ -126,7 +126,10 @@ export function publishedEntryPoints(root = REPO_ROOT): EntryPoint[] {
   return entries;
 }
 
-function compilerOptions(pkgDir: string, root: string): ts.CompilerOptions {
+export function compilerOptions(
+  pkgDir: string,
+  root: string,
+): ts.CompilerOptions {
   const configPath = join(root, pkgDir, "tsconfig.json");
   const parsed = ts.getParsedCommandLineOfConfigFile(configPath, undefined, {
     ...ts.sys,

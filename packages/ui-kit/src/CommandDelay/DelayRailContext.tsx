@@ -88,6 +88,7 @@ function CommandRailBridge({ children }: { children?: ReactNode }) {
 /**
  * The nearest store, or `null` outside a `Panel`. Does not subscribe, so a registering widget does not re-render when a sibling registers.
  *
+ * @intent Published so a third party can build a representation of the rail of its own, as Console does.
  * @category CommandDelay
  */
 export const useDelayRailStore = DelayPanelStore.useStore;
