@@ -1,4 +1,8 @@
-import { defineUplinkClient, registerAugment } from "@ksp-gonogo/core";
+import {
+  defineUplinkClient,
+  registerAugment,
+  registerDataSource,
+} from "@ksp-gonogo/core";
 import { useCommand, useStream } from "@ksp-gonogo/sitrep-client";
 import { UnlockKind } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen } from "@ksp-gonogo/test-utils";
@@ -190,24 +194,37 @@ describe("capability locks", () => {
     expect(screen.getByText("plan controls")).toBeTruthy();
   });
 
-  it("locks a LockScope on a capability it names in uses, with no hook inside", () => {
+  it("locks the widget on a declared channel its body never reads", () => {
+    // A connected host, or the guard draws its no-host refusal for a widget that declares channels.
+    registerDataSource({
+      id: "sitrep",
+      name: "Sitrep Stream",
+      status: "connected",
+      connect: async () => {},
+      disconnect: () => {},
+      schema: () => [],
+      subscribe: () => () => {},
+      configSchema: () => [],
+      getConfig: () => ({}),
+      configure: () => {},
+      onStatusChange: () => () => {},
+    });
     const fixture = setupStreamFixture();
     render(
       <fixture.Provider>
-        <LockScope uses={[{ kind: "command", id: "vessel.maneuver.add" }]}>
-          <p>sent from a callback</p>
-        </LockScope>
+        <RequiresGuard title="Executor" channels={["executor.state"]}>
+          <p>reads nothing yet</p>
+        </RequiresGuard>
       </fixture.Provider>,
     );
     act(() => {
       fixture.emit("system.uplink.gates", {
-        gates: [
-          { command: "vessel.maneuver.add", verdict: locked(MISSION_CONTROL) },
-        ],
+        gates: [],
+        channels: [{ topic: "executor.", verdict: locked(FLIGHT_CONTROL) }],
       });
     });
-    expect(screen.queryByText("sent from a callback")).toBeNull();
-    expect(screen.getByText("Mission Control")).toBeTruthy();
+    expect(screen.queryByText("reads nothing yet")).toBeNull();
+    expect(screen.getByText("Missing tech: Flight Control")).toBeTruthy();
   });
 
   it("draws nothing for a locked scope whose fallback is null, and keeps the lock from its parent", () => {

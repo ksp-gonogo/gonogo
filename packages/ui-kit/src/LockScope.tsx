@@ -1,5 +1,4 @@
 import {
-  type Capability,
   type CapabilityLock,
   LockScopeContext,
   lockSentence,
@@ -30,11 +29,6 @@ export interface LockSummary {
  */
 export interface LockScopeProps {
   children?: ReactNode;
-  /**
-   * Capabilities this part of the tree uses that no hook inside it will claim:
-   * a widget's declared channels, or a command sent from a callback prop.
-   */
-  uses?: readonly Capability[];
   /**
    * What draws in place of `children` while a capability used here is one this
    * save has not unlocked. Defaults to the centred inactive notice; `null`
@@ -68,10 +62,9 @@ function writeLockQuantity(
  */
 export function LockScope({
   children,
-  uses,
   fallback,
 }: LockScopeProps): ReactElement {
-  const { scope, locks } = useLockScope(uses);
+  const { scope, locks } = useLockScope();
   if (locks.length > 0) {
     const summary: LockSummary = {
       ...lockSentence(locks, writeLockQuantity),

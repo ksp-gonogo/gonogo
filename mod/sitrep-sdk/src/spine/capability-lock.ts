@@ -134,8 +134,6 @@ function uniqueMissing(locks: readonly CapabilityLock[]): MissingUnlock[] {
   return [...seen.values()];
 }
 
-const NOTHING_STANDING: readonly Capability[] = [];
-
 function keyOf(capability: Capability): string {
   return `${capability.kind}:${capability.id}`;
 }
@@ -145,17 +143,12 @@ function keyOf(capability: Capability): string {
  * learn whether anything used inside it is locked. Returns the scope to
  * provide and the locks that currently hold it shut.
  *
- * `standing` is what the scope knows it uses without rendering anything, such
- * as a widget's declared channels.
- *
  * A locked scope stops rendering what claimed the lock, which releases the
  * claim, which would reopen the scope, which would claim again. So a
  * capability that locked the scope is held until the report says it is
  * unlocked, whether or not anything still claims it.
  */
-export function useLockScope(
-  standing: readonly Capability[] = NOTHING_STANDING,
-): {
+export function useLockScope(): {
   scope: LockScopeRegistry;
   locks: readonly CapabilityLock[];
 } {
@@ -201,9 +194,6 @@ export function useLockScope(
 
   const held = useRef<ReadonlyMap<string, Capability>>(new Map());
   const candidates = new Map(held.current);
-  for (const capability of standing) {
-    candidates.set(keyOf(capability), capability);
-  }
   for (const [key, { capability }] of claims.current) {
     candidates.set(key, capability);
   }

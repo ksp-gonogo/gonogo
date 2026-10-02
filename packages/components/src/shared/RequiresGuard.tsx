@@ -5,7 +5,7 @@ import {
   useTelemetryHostDown,
   useUplinkHealthFor,
 } from "@ksp-gonogo/core";
-import type { Capability } from "@ksp-gonogo/sitrep-sdk/spine";
+import { useClaimCapability } from "@ksp-gonogo/sitrep-sdk/spine";
 import { DimmedOverlay } from "@ksp-gonogo/ui";
 import {
   Cluster,
@@ -15,7 +15,7 @@ import {
   Panel,
   Section,
 } from "@ksp-gonogo/ui-kit";
-import { type ReactNode, useMemo } from "react";
+import type { ReactNode } from "react";
 
 export interface RequiresGuardProps {
   requires?: readonly ComponentRequirement[];
@@ -38,10 +38,10 @@ export interface RequiresGuardProps {
  * `requires` game context. With nothing to check it adds no wrapper DOM.
  *
  * The order is the nesting: the host check sits outside the widget's lock
- * scope, and the health and game-context checks inside it. The scope claims
- * the widget's declared channels whether or not its body renders, and a read
- * or command hook in the widget's own body, outside any `Section`, locks the
- * whole widget.
+ * scope, and the health and game-context checks inside it. Each declared
+ * channel is claimed beside the body, so a widget the game-context check is
+ * hiding still shows a lock it would meet; a read or command hook in the
+ * widget's own body, outside any `Section`, locks the whole widget.
  */
 export function RequiresGuard({
   requires,
@@ -51,11 +51,6 @@ export function RequiresGuard({
   children,
 }: RequiresGuardProps) {
   const hostDown = useTelemetryHostDown();
-  const uses = useMemo<Capability[]>(
-    () => (channels ?? []).map((id) => ({ kind: "topic", id })),
-    [channels],
-  );
-
   // A channel-less widget has nothing a missing host can block.
   if (hostDown && channels && channels.length > 0) {
     return (
@@ -65,7 +60,6 @@ export function RequiresGuard({
 
   return (
     <LockScope
-      uses={uses}
       fallback={(lock) =>
         compact ? (
           <TinyLockPlaceholder title={compact.title} lock={lock} />
@@ -78,11 +72,20 @@ export function RequiresGuard({
         )
       }
     >
+      {channels?.map((topic) => (
+        <ChannelClaim key={topic} topic={topic} />
+      ))}
       <ReadinessGate requires={requires} channels={channels} title={title}>
         {children}
       </ReadinessGate>
     </LockScope>
   );
+}
+
+/** Claims one declared channel with the widget's scope, drawing nothing. */
+function ChannelClaim({ topic }: { topic: string }) {
+  useClaimCapability("topic", topic);
+  return null;
 }
 
 /** The health and game-context half of {@link RequiresGuard}, inside its lock scope. */
