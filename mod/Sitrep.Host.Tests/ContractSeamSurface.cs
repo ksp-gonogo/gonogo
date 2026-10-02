@@ -163,8 +163,10 @@ namespace Sitrep.Host.Tests
                     if (fromKind != "plain" && toKind == "plain")
                     {
                         yield return $"seam-member-no-longer-overridable:{typeName}.{key}";
+                        continue;
                     }
-                    else if (pluginImplemented && fromKind != "abstract" && toKind == "abstract")
+
+                    if (pluginImplemented && fromKind != "abstract" && toKind == "abstract")
                     {
                         yield return $"seam-member-now-abstract:{typeName}.{key}";
                     }
