@@ -876,8 +876,8 @@ textarea {
   /* Screens, overlays and modals. */
   /* A screen's outer gutter, before any safe-area inset. */
   --gutter-screen: var(--space-24);
-  /* The gutter of a widget screen whose children draw no edge of their own. */
-  --gutter-screen-body: var(--space-8) var(--space-12);
+  /* The gutter of a widget screen whose children draw no edge of their own; the panel pads the sides. */
+  --gutter-screen-body: var(--space-8) 0;
   /* The dashboard grid's gutter between tiles. */
   --gutter-dashboard: var(--space-8);
   /* A tile's drag header. */

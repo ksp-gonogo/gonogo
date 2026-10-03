@@ -71,7 +71,7 @@ export const BlockedNote = styled.p`
   font-style: italic;
 `;
 
-/** The screen's one inset: no group inside pads itself, so the lists and an augment body line up. */
+/** One box for the whole screen, the augment included, so the lists and an augment body line up. It insets vertically only: the Panel already pads the sides. */
 export const ScreenInset = styled.div`
   display: flex;
   flex-direction: column;
