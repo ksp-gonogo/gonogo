@@ -18,7 +18,7 @@ import {
   Switch,
   useModalSaveBar,
 } from "@ksp-gonogo/ui";
-import { Grid, NULL_DISPLAY, Tooltip, Unit } from "@ksp-gonogo/ui-kit";
+import { Grid, NULL_DISPLAY, Unit } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import styled from "styled-components";
 import { usePeerClient } from "../peer/PeerClientContext";
@@ -362,9 +362,7 @@ function MainView({
         <HeaderLabel>{launched ? "MISSION ACTIVE" : "GO / NO-GO"}</HeaderLabel>
         <HeaderRight>
           {showWarnChip && hostConfig.triggerStageAtZero && !launched && (
-            <Tooltip text="At T-0 the next stage will auto-fire" focusable>
-              <WarnChip>AUTO STAGE AT T-0</WarnChip>
-            </Tooltip>
+            <WarnChip>AUTO STAGE AT T-0</WarnChip>
           )}
         </HeaderRight>
       </MainHeader>

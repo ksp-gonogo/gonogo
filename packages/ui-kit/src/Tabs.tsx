@@ -12,7 +12,6 @@ import { focusRingInset } from "./focusRing";
 import { Grid } from "./Grid";
 import { InlineOverflowGlow, useInlineOverflow } from "./inlineOverflow";
 import { Section, SectionTitle } from "./Section";
-import { Tooltip } from "./Tooltip";
 import { useElementSize } from "./useElementSize";
 import { VisuallyHidden } from "./VisuallyHidden";
 
@@ -319,42 +318,37 @@ export function Tabs({
             {resolved.map((tab) => {
               const isActive = tab.id === active?.id;
               return (
-                <Tooltip
+                <Tabs__Button
                   key={tab.id}
-                  text={compact ? tab.label : undefined}
-                  announce={false}
+                  ref={(el) => {
+                    if (el) buttonRefs.current.set(tab.id, el);
+                    else buttonRefs.current.delete(tab.id);
+                  }}
+                  role="tab"
+                  type="button"
+                  id={`${uid}${tab.id}-tab`}
+                  aria-selected={isActive}
+                  aria-controls={`${uid}${tab.id}-panel`}
+                  aria-describedby={
+                    tab.indicator ? `${uid}${tab.id}-attention` : undefined
+                  }
+                  tabIndex={isActive ? 0 : -1}
+                  disabled={tab.disabled}
+                  $active={isActive}
+                  onClick={() => select(tab.id)}
+                  onKeyDown={handleKeyDown}
+                  $compact={compact}
                 >
-                  <Tabs__Button
-                    ref={(el) => {
-                      if (el) buttonRefs.current.set(tab.id, el);
-                      else buttonRefs.current.delete(tab.id);
-                    }}
-                    role="tab"
-                    type="button"
-                    id={`${uid}${tab.id}-tab`}
-                    aria-selected={isActive}
-                    aria-controls={`${uid}${tab.id}-panel`}
-                    aria-describedby={
-                      tab.indicator ? `${uid}${tab.id}-attention` : undefined
-                    }
-                    tabIndex={isActive ? 0 : -1}
-                    disabled={tab.disabled}
-                    $active={isActive}
-                    onClick={() => select(tab.id)}
-                    onKeyDown={handleKeyDown}
-                    $compact={compact}
-                  >
-                    {tab.label}
-                    {tab.indicator && (
-                      <>
-                        <Tabs__Dot aria-hidden="true" />
-                        <span id={`${uid}${tab.id}-attention`} hidden>
-                          Needs attention
-                        </span>
-                      </>
-                    )}
-                  </Tabs__Button>
-                </Tooltip>
+                  {tab.label}
+                  {tab.indicator && (
+                    <>
+                      <Tabs__Dot aria-hidden="true" />
+                      <span id={`${uid}${tab.id}-attention`} hidden>
+                        Needs attention
+                      </span>
+                    </>
+                  )}
+                </Tabs__Button>
               );
             })}
           </Tabs__Bar>

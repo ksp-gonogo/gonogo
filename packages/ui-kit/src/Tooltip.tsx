@@ -63,7 +63,7 @@ export interface UseTooltipResult {
  * The kit's tip for `text`: padded, rounded, drawn over everything, and
  * placed below its anchor inside the viewport, so a clipping or scrolling
  * ancestor never cuts it off. It opens while the pointer is over the anchor or
- * the anchor has keyboard focus, and closes on Escape (from anywhere on the page), scroll or resize. The pointer can move onto the tip, which stays open while it is hovered.
+ * the anchor has keyboard focus, and closes on a press of the anchor, on Escape (from anywhere on the page), scroll or resize. The pointer can move onto the tip, which stays open while it is hovered.
  *
  * The tip is hidden from the accessibility tree, so the anchor must already
  * say the same thing to a screen reader (in its text, an `aria-label` or a
@@ -164,6 +164,7 @@ export function useTooltip(text: string | null | undefined): UseTooltipResult {
       onPointerLeave: leaveSoon,
       onPointerDown: () => {
         pressed.current = true;
+        close();
       },
       onPointerUp: () => {
         pressed.current = false;

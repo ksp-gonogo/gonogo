@@ -3,16 +3,13 @@ import type { OrbitTrajectory } from "@ksp-gonogo/sitrep-client";
 import { TextButton } from "@ksp-gonogo/ui-kit";
 import {
   type CSSProperties,
-  type PointerEvent as ReactPointerEvent,
   useCallback,
   useEffect,
   useId,
   useMemo,
-  useRef,
   useState,
 } from "react";
 import { BodyMark, bodyTone } from "./BodyMark";
-import { clampTooltipX, clampTooltipY, tooltipRows } from "./bodyTooltip";
 import { DEPTH_LEVEL_COLOUR } from "./depthCues";
 import {
   diagramPlotScale,
@@ -217,16 +214,9 @@ export function SystemDiagram({
     placement,
   });
 
-  const [hover, setHover] = useState<{
-    body: CelestialBody;
-    /** Cursor position in container-relative px. */
-    px: number;
-    py: number;
-  } | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [focusedBody, setFocusedBody] = useState<CelestialBody | null>(null);
   const tiltGradId = useId();
 
-  const focusedBody = hover?.body ?? null;
   useEffect(() => {
     onFocusBodyChange?.(focusedBody);
   }, [focusedBody, onFocusBodyChange]);
@@ -235,23 +225,10 @@ export function SystemDiagram({
   const { zoom, pan, isDragging, handlePointerDown, resetView } = view;
 
   const hoverStart = useCallback(
-    (body: CelestialBody, e: ReactPointerEvent) => {
-      const rect = containerRef.current?.getBoundingClientRect();
-      if (!rect) return;
-      setHover({ body, px: e.clientX - rect.left, py: e.clientY - rect.top });
-    },
+    (body: CelestialBody) => setFocusedBody(body),
     [],
   );
-  const hoverMove = useCallback((body: CelestialBody, e: ReactPointerEvent) => {
-    const rect = containerRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    setHover((prev) =>
-      prev && prev.body.index === body.index
-        ? { ...prev, px: e.clientX - rect.left, py: e.clientY - rect.top }
-        : prev,
-    );
-  }, []);
-  const clearHover = useCallback(() => setHover(null), []);
+  const clearHover = useCallback(() => setFocusedBody(null), []);
 
   if (emptyDiagram) {
     return <EmptyDiagram bodies={bodies} parentName={parentName} />;
@@ -267,7 +244,6 @@ export function SystemDiagram({
 
   return (
     <div
-      ref={containerRef}
       onPointerDown={handlePointerDown}
       onPointerLeave={clearHover}
       style={{ ...CONTAINER, cursor: isDragging ? "grabbing" : "grab" }}
@@ -386,7 +362,6 @@ export function SystemDiagram({
               phaseAngle={phaseAngles?.get(p.body.index)}
               transferStatus={transferStatuses?.get(p.body.index)}
               onHoverStart={hoverStart}
-              onHoverMove={hoverMove}
               onHoverEnd={clearHover}
             />
           );
@@ -415,33 +390,6 @@ export function SystemDiagram({
         )}
       </svg>
 
-      {hover && (
-        <div
-          style={{
-            ...TOOLTIP,
-            // Offset from the cursor so it does not break hover, and flipped away from clipping edges.
-            left: clampTooltipX(
-              hover.px + 12,
-              containerRef.current?.clientWidth,
-            ),
-            top: clampTooltipY(
-              hover.py + 12,
-              containerRef.current?.clientHeight,
-            ),
-          }}
-        >
-          <div style={TOOLTIP_TITLE}>{hover.body.name ?? "(unnamed)"}</div>
-          {tooltipRows(hover.body).map((row) => (
-            <div key={row.label} style={TOOLTIP_ROW}>
-              <span>{row.label}</span>
-              <span style={{ color: "var(--color-text-primary)" }}>
-                {row.value}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
-
       {(zoom !== 1 || pan.x !== 0 || pan.y !== 0) && (
         <TextButton type="button" onClick={resetView} style={RESET_BUTTON}>
           Reset view
@@ -466,36 +414,6 @@ const CONTAINER: CSSProperties = {
 };
 
 const SVG_ROOT: CSSProperties = { display: "block", flex: 1 };
-
-const TOOLTIP: CSSProperties = {
-  position: "absolute",
-  pointerEvents: "none",
-  background: "var(--color-surface-panel)",
-  border: "1px solid var(--color-border-subtle)",
-  borderRadius: "var(--radius-regular)",
-  padding: "var(--inset-surface)",
-  fontSize: "var(--font-size-compact)",
-  color: "var(--color-text-primary)",
-  minWidth: "140px",
-  maxWidth: "240px",
-  boxShadow: "0 4px 16px rgba(0, 0, 0, 0.5)",
-  // Only stacks above the diagram beneath it; not a place on the app z-index ladder.
-  zIndex: 10,
-};
-
-const TOOLTIP_TITLE: CSSProperties = {
-  fontWeight: 600,
-  marginBottom: "var(--gap-under-title)",
-  color: "var(--color-go-text)",
-};
-
-const TOOLTIP_ROW: CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  gap: "var(--gap-section)",
-  fontFamily: "var(--font-family-mono)",
-  color: "var(--color-text-muted)",
-};
 
 const RESET_BUTTON: CSSProperties = {
   position: "absolute",

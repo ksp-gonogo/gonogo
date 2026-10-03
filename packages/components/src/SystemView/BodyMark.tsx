@@ -1,7 +1,6 @@
 import { getBody } from "@ksp-gonogo/core";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { NULL_DISPLAY, writeQuantity } from "@ksp-gonogo/ui-kit";
-import type { PointerEvent as ReactPointerEvent } from "react";
 import type { PlacedBody, PlacedPoint } from "./diagramGeometry";
 import { DepthRing } from "./diagramMarks";
 import { normalizePhaseAngle } from "./transferWindow";
@@ -50,7 +49,6 @@ export function BodyMark({
   phaseAngle,
   transferStatus,
   onHoverStart,
-  onHoverMove,
   onHoverEnd,
 }: Readonly<{
   placed: PlacedBody;
@@ -60,8 +58,7 @@ export function BodyMark({
   /** Live phase angle to the active vessel, degrees; absent draws no phase label. */
   phaseAngle: number | undefined;
   transferStatus: "go" | "soon" | undefined;
-  onHoverStart: (body: CelestialBody, e: ReactPointerEvent) => void;
-  onHoverMove: (body: CelestialBody, e: ReactPointerEvent) => void;
+  onHoverStart: (body: CelestialBody) => void;
   onHoverEnd: () => void;
 }>) {
   const c = placed.body;
@@ -90,8 +87,7 @@ export function BodyMark({
         fill={dotFill(tone, c)}
         stroke="var(--color-text-inverse)"
         strokeWidth={1 / zoom}
-        onPointerEnter={(e) => onHoverStart(c, e)}
-        onPointerMove={(e) => onHoverMove(c, e)}
+        onPointerEnter={() => onHoverStart(c)}
         onPointerLeave={onHoverEnd}
         style={{ cursor: "pointer" }}
       />

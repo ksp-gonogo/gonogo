@@ -26,7 +26,6 @@ import {
   ComponentOverlay,
   OverlayProvider,
 } from "../components/ComponentOverlay";
-import { settleTooltips } from "../test/settleTooltips";
 
 const MOD_ALPHA = defineUplinkClient({
   id: "mod-alpha",
@@ -79,7 +78,6 @@ describe("ComponentOverlay: owner-derived mod search tags", () => {
     expect(
       await screen.findByRole("option", { name: /Owned Widget/ }),
     ).toBeInTheDocument();
-    await settleTooltips();
   });
 
   it("does not surface an unowned widget when searching by an owner id", async () => {
@@ -104,6 +102,5 @@ describe("ComponentOverlay: owner-derived mod search tags", () => {
       screen.queryByRole("option", { name: /Unowned Widget/ }),
     ).not.toBeInTheDocument();
     expect(screen.getByText(/No widgets match/)).toBeInTheDocument();
-    await settleTooltips();
   });
 });

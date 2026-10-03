@@ -129,6 +129,23 @@ describe("Tooltip", () => {
     await waitFor(() => expect(tipIn(document.body)).toBeNull());
   });
 
+  it("closes when the anchor is pressed, so a leave after the press has no timer left to run", async () => {
+    const user = userEvent.setup();
+    render(
+      <Tooltip text="Add component">
+        <button type="button">Add</button>
+      </Tooltip>,
+    );
+    await user.hover(screen.getByRole("button", { name: "Add" }));
+    expect(tipIn(document.body)).not.toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "Add" }));
+    expect(tipIn(document.body)).toBeNull();
+
+    await user.unhover(screen.getByRole("button", { name: "Add" }));
+    expect(tipIn(document.body)).toBeNull();
+  });
+
   it("closes on Escape from the window while only the pointer is over the anchor", async () => {
     const user = userEvent.setup();
     render(

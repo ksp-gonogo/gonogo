@@ -18,7 +18,6 @@ import {
   ComponentOverlay,
   OverlayProvider,
 } from "../components/ComponentOverlay";
-import { settleTooltips } from "../test/settleTooltips";
 
 interface TrivialConfig {
   label?: string;
@@ -129,7 +128,6 @@ describe("ComponentOverlay: add → configure → persist", () => {
     expect(updateItemConfig).toHaveBeenCalledWith(newItem.i, {
       label: "custom-name",
     });
-    await settleTooltips();
   });
 
   it("adds a widget by keyboard: filter, arrow, Enter (no pointer)", async () => {
@@ -161,6 +159,5 @@ describe("ComponentOverlay: add → configure → persist", () => {
 
     // Enter on the highlighted option adds the widget, same as a click would.
     expect(addItem).toHaveBeenCalledTimes(1);
-    await settleTooltips();
   });
 });

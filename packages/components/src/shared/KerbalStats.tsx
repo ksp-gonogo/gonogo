@@ -129,9 +129,7 @@ export function KerbalStats({
     rankKnown && (kerbal.experienceLevel as number) >= MAX_EXPERIENCE_LEVEL;
   return (
     <span style={META_STYLE}>
-      <Tooltip text={`Trait: ${kerbal.trait || "Unknown"}`} focusable>
-        <span style={TRAIT_TAG_STYLE}>{kerbal.trait || NULL_DISPLAY}</span>
-      </Tooltip>
+      <span style={TRAIT_TAG_STYLE}>{kerbal.trait || NULL_DISPLAY}</span>
       {showRank &&
         (rankKnown ? (
           <Tooltip
@@ -170,11 +168,9 @@ export function KerbalStats({
       )}
       {showExperienceProgress &&
         (atMaxRank ? (
-          <Tooltip text="Max rank" focusable>
-            <span style={LEVEL_STYLE} role="img" aria-label="Max rank">
-              MAX
-            </span>
-          </Tooltip>
+          <span style={LEVEL_STYLE} role="img" aria-label="Max rank">
+            MAX
+          </span>
         ) : (
           <RatioChip
             symbol="XP"
