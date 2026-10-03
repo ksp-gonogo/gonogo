@@ -2,7 +2,7 @@ import type { Reading, Value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Button,
   Cluster,
-  Inline,
+  Grid,
   ReadoutCaption,
   Section,
   Text,
@@ -53,66 +53,57 @@ export function RotorControls({
 }: RotorControlsProps) {
   return (
     <Section gap="related-dense">
-      {/* Relative to the value beside them, so an unread figure disables them. */}
-      <Cluster justify="between" wrap>
+      {/* Relative to the value beside them, so an unread figure disables them. One grid, so both rows' steppers share their columns. */}
+      <Grid cols="1fr auto auto auto">
         <ReadoutCaption>RPM cap</ReadoutCaption>
-        <Inline>
-          <Button
-            variant="ghost"
-            size="sm"
-            type="button"
-            aria-label={stepperLabel("Lower RPM cap", selected.rpmLimit)}
-            disabled={selected.rpmLimit === null}
-            onClick={() =>
-              selected.rpmLimit !== null &&
-              setRpmLimit(selected.partId, selected.rpmLimit - RPM_STEP)
-            }
-          >
-            −
-          </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          type="button"
+          aria-label={stepperLabel("Lower RPM cap", selected.rpmLimit)}
+          disabled={selected.rpmLimit === null}
+          onClick={() =>
+            selected.rpmLimit !== null &&
+            setRpmLimit(selected.partId, selected.rpmLimit - RPM_STEP)
+          }
+        >
+          −
+        </Button>
+        <Cluster justify="center">
           <Text size="sm">
             {selected.rpmLimit === null
               ? "RPM cap unknown"
               : Math.round(selected.rpmLimit)}
           </Text>
-          <Button
-            variant="ghost"
-            size="sm"
-            type="button"
-            aria-label={stepperLabel("Raise RPM cap", selected.rpmLimit)}
-            disabled={selected.rpmLimit === null}
-            onClick={() =>
-              selected.rpmLimit !== null &&
-              setRpmLimit(selected.partId, selected.rpmLimit + RPM_STEP)
-            }
-          >
-            +
-          </Button>
-        </Inline>
-      </Cluster>
-
-      <Cluster justify="between" wrap>
+        </Cluster>
+        <Button
+          variant="ghost"
+          size="sm"
+          type="button"
+          aria-label={stepperLabel("Raise RPM cap", selected.rpmLimit)}
+          disabled={selected.rpmLimit === null}
+          onClick={() =>
+            selected.rpmLimit !== null &&
+            setRpmLimit(selected.partId, selected.rpmLimit + RPM_STEP)
+          }
+        >
+          +
+        </Button>
         <ReadoutCaption>Torque</ReadoutCaption>
-        <Inline>
-          <Button
-            variant="ghost"
-            size="sm"
-            type="button"
-            aria-label={stepperLabel(
-              "Lower torque limit",
-              selected.torqueLimit,
-            )}
-            disabled={selected.torqueLimit === null}
-            onClick={() =>
-              selected.torqueLimit !== null &&
-              setTorqueLimit(
-                selected.partId,
-                selected.torqueLimit - TORQUE_STEP,
-              )
-            }
-          >
-            −
-          </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          type="button"
+          aria-label={stepperLabel("Lower torque limit", selected.torqueLimit)}
+          disabled={selected.torqueLimit === null}
+          onClick={() =>
+            selected.torqueLimit !== null &&
+            setTorqueLimit(selected.partId, selected.torqueLimit - TORQUE_STEP)
+          }
+        >
+          −
+        </Button>
+        <Cluster justify="center">
           <Text size="sm">
             {/* A worded absence, since a bare placeholder between two steppers reads as a render failure. */}
             {selected.torqueLimit === null ? (
@@ -121,27 +112,21 @@ export function RotorControls({
               <Unit value={torqueReading} decimals={0} />
             )}
           </Text>
-          <Button
-            variant="ghost"
-            size="sm"
-            type="button"
-            aria-label={stepperLabel(
-              "Raise torque limit",
-              selected.torqueLimit,
-            )}
-            disabled={selected.torqueLimit === null}
-            onClick={() =>
-              selected.torqueLimit !== null &&
-              setTorqueLimit(
-                selected.partId,
-                selected.torqueLimit + TORQUE_STEP,
-              )
-            }
-          >
-            +
-          </Button>
-        </Inline>
-      </Cluster>
+        </Cluster>
+        <Button
+          variant="ghost"
+          size="sm"
+          type="button"
+          aria-label={stepperLabel("Raise torque limit", selected.torqueLimit)}
+          disabled={selected.torqueLimit === null}
+          onClick={() =>
+            selected.torqueLimit !== null &&
+            setTorqueLimit(selected.partId, selected.torqueLimit + TORQUE_STEP)
+          }
+        >
+          +
+        </Button>
+      </Grid>
 
       <Cluster justify="start" wrap>
         {/* An unread flag gets a third, disabled state rather than defaulting to off or unlocked. */}
