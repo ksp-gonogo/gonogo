@@ -274,6 +274,46 @@ namespace Sitrep.Host.Comms
         public bool Running => Volatile.Read(ref _running) != 0;
     }
 
+    /// <summary>
+    /// A craft's secular seed, asked of whichever provider offers one, and kept
+    /// only if a plan can carry it: a provider that throws, or hands back a seed on
+    /// an open orbit, with a rate that is not a number, or a span already over,
+    /// leaves the craft on its conic rather than sinking or poisoning the plan.
+    /// </summary>
+    public static class ContactSeeds
+    {
+        public static SecularOrbit? Read(ISecularPropagation? provider, PropagationTarget target, double ut)
+        {
+            if (provider == null)
+            {
+                return null;
+            }
+            SecularOrbit? seed;
+            try
+            {
+                seed = provider.SecularOrbitFor(target, ut);
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+            return seed != null && Usable(seed.Value, ut) ? seed : null;
+        }
+
+        /// <summary>Whether a plan starting at <paramref name="ut"/> can carry <paramref name="seed"/>.</summary>
+        public static bool Usable(SecularOrbit seed, double ut)
+        {
+            var anchor = seed.Anchor;
+            return anchor.Sma > 0.0 && anchor.Ecc >= 0.0 && anchor.Ecc < 1.0 && anchor.Mu > 0.0
+                && Finite(anchor.Inc) && Finite(anchor.Lan) && Finite(anchor.ArgPe)
+                && Finite(anchor.MeanAnomalyAtEpoch) && Finite(anchor.Epoch)
+                && Finite(seed.NodeRate) && Finite(seed.PeriapsisRate) && Finite(seed.MeanAnomalyRate)
+                && (seed.ValidUntilUt == null || seed.ValidUntilUt.Value > ut);
+        }
+
+        private static bool Finite(double x) => !double.IsNaN(x) && !double.IsInfinity(x);
+    }
+
     /// <summary>A contact plan as the <c>comms.contacts</c> channel carries it.</summary>
     public static class ContactPlanWire
     {

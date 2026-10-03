@@ -2404,6 +2404,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
     condition: "ScetAlarmCondition",
     onFire: "ScetAlarmAction[]",
   },
+  "SecularOrbit": {
+    anchor: "OrbitElements",
+  },
   "SettingsModel": {
     persistence: "SettingsPersistence",
     rows: "SettingsRowState[]",

@@ -2231,8 +2231,13 @@ namespace Sitrep.Contract
         /// <para><b>Major-28 line, Bumped 1 -&gt; 2:</b> <see cref="CommsContacts"/>, the
         /// predicted contact windows between every ground station and craft. A new topic, so
         /// an Uplink built against 28.1 is unaffected.</para>
+        ///
+        /// <para><b>Major-28 line, Bumped 2 -&gt; 3:</b> <see cref="ISecularPropagation"/>, a
+        /// companion a propagation provider may implement to carry a craft's drift into the
+        /// contact plan, with <see cref="SecularOrbit"/> and <see cref="SecularBasis"/>. A new
+        /// optional interface, so an Uplink built against 28.2 is unaffected.</para>
         /// </internal>
         /// </summary>
-        public const int Minor = 2;
+        public const int Minor = 3;
     }
 }

@@ -11,11 +11,13 @@ namespace Sitrep.Propagation.Contacts
     /// </summary>
     public sealed class PlanNode
     {
-        private PlanNode(string id, int bodyIndex, PropagationTarget? orbit, RotatingGroundStation? surface, double? validUntilUt)
+        private PlanNode(
+            string id, int bodyIndex, PropagationTarget? orbit, SecularOrbit? secular, RotatingGroundStation? surface, double? validUntilUt)
         {
             Id = id;
             BodyIndex = bodyIndex;
             Orbit = orbit;
+            Secular = secular;
             Surface = surface;
             ValidUntilUt = validUntilUt;
         }
@@ -29,6 +31,9 @@ namespace Sitrep.Propagation.Contacts
         /// <summary>The node's orbit, for a craft that is not fixed to a surface.</summary>
         public PropagationTarget? Orbit { get; }
 
+        /// <summary>The drift the node's orbit is carried forward with, or null to carry it on its conic.</summary>
+        public SecularOrbit? Secular { get; }
+
         /// <summary>The node's place on its body, for one fixed to the surface.</summary>
         public RotatingGroundStation? Surface { get; }
 
@@ -37,11 +42,22 @@ namespace Sitrep.Propagation.Contacts
 
         /// <summary>A craft on its orbit around <paramref name="orbit"/>'s parent body.</summary>
         public static PlanNode Orbiting(string id, PropagationTarget orbit, double? validUntilUt = null) =>
-            new PlanNode(id, orbit.ParentBodyIndex, orbit, null, validUntilUt);
+            new PlanNode(id, orbit.ParentBodyIndex, orbit, null, null, validUntilUt);
+
+        /// <summary>
+        /// A craft around <paramref name="orbit"/>'s parent body whose orbit drifts
+        /// as <paramref name="secular"/> says. It is trusted no further than the
+        /// sooner of <paramref name="validUntilUt"/> and the seed's own span.
+        /// </summary>
+        public static PlanNode Drifting(string id, PropagationTarget orbit, SecularOrbit secular, double? validUntilUt = null) =>
+            new PlanNode(id, orbit.ParentBodyIndex, orbit, secular, null, Sooner(validUntilUt, secular.ValidUntilUt));
 
         /// <summary>A point fixed to the surface of body <paramref name="bodyIndex"/>.</summary>
         public static PlanNode OnSurface(string id, int bodyIndex, RotatingGroundStation surface) =>
-            new PlanNode(id, bodyIndex, null, surface, null);
+            new PlanNode(id, bodyIndex, null, null, surface, null);
+
+        private static double? Sooner(double? a, double? b) =>
+            a == null ? b : b == null ? a : Math.Min(a.Value, b.Value);
     }
 
     /// <summary>Two nodes the plan predicts contact between, with what can block or limit their link.</summary>
@@ -381,7 +397,11 @@ namespace Sitrep.Propagation.Contacts
                 if (node.Orbit != null)
                 {
                     Solves++;
-                    return _propagator.Solve(node.Orbit.Value, _frame, ut).Position;
+                    var orbit = node.Orbit.Value;
+                    var target = node.Secular == null
+                        ? orbit
+                        : PropagationTarget.Vessel(node.Id, orbit.ParentBodyIndex, node.Secular.Value.ElementsAt(ut));
+                    return _propagator.Solve(target, _frame, ut).Position;
                 }
                 return BodyAt(node.BodyIndex, ut) + node.Surface!.Value.PositionAt(ut);
             }

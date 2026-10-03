@@ -2330,6 +2330,9 @@
       "condition": "ScetAlarmCondition",
       "onFire": "ScetAlarmAction[]"
     },
+    "SecularOrbit": {
+      "anchor": "OrbitElements"
+    },
     "SettingsModel": {
       "persistence": "SettingsPersistence",
       "rows": "SettingsRowState[]",

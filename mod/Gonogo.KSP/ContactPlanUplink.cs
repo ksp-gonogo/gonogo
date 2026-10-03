@@ -27,7 +27,8 @@ namespace Gonogo.KSP
     /// milliseconds for a busy save. A provider that integrates still bounds
     /// each craft's prediction, through the horizon it reports for it, and a
     /// craft whose horizon it cannot state is left out of the plan rather than
-    /// trusted for all of it.</para>
+    /// trusted for all of it. Where the elected provider offers a secular seed
+    /// for a craft, the plan carries the craft's drift with it instead.</para>
     /// </summary>
     public sealed class ContactPlanUplink : ISitrepUplink
     {
@@ -188,8 +189,17 @@ namespace Gonogo.KSP
             {
                 return null;
             }
+            // A craft with a secular seed is bounded by the seed's own span, not by
+            // the conic's horizon, which bounds the very drift the seed carries.
+            var secular = PropagationElection.Secular(kernel);
             foreach (var target in orbiting)
             {
+                var seed = ContactSeeds.Read(secular, target, ut);
+                if (seed != null)
+                {
+                    nodes.Add(PlanNode.Drifting(target.Id!, target, seed.Value));
+                    continue;
+                }
                 var horizon = PropagationElection.HorizonFor(kernel, target, ut);
                 if (horizon.Kind == PropagationHorizonKind.Unspecified)
                 {

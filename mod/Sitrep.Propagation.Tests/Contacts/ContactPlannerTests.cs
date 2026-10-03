@@ -191,6 +191,47 @@ namespace Sitrep.Propagation.Tests.Contacts
         }
 
         [Fact]
+        public void ACraftDriftingAtItsOwnMeanMotionAloneIsPlannedAsItsConic()
+        {
+            var orbit = KerbinOrbit(100_000.0, 0.3);
+            var meanMotion = Math.Sqrt(KerbinMu / Math.Pow(orbit.Sma, 3));
+            var seed = new SecularOrbit(orbit, 0.0, 0.0, meanMotion, null, SecularBasis.J2Estimate);
+            var target = PropagationTarget.Vessel("vessel:a", Kerbin, orbit);
+            var station = PlanNode.OnSurface("ground:ksc", Kerbin, Station(10.0));
+            var pairs = new[] { new PlanPair("vessel:a", "ground:ksc", KerbinOnly(), null) };
+
+            var conic = ContactPlanner.Plan(new[] { PlanNode.Orbiting("vessel:a", target), station }, pairs, Propagator(), Kerbin, 0.0, 6 * 3600.0, 10.0, 0.05);
+            var drifting = ContactPlanner.Plan(new[] { PlanNode.Drifting("vessel:a", target, seed), station }, pairs, Propagator(), Kerbin, 0.0, 6 * 3600.0, 10.0, 0.05);
+
+            Assert.Equal(conic.Pairs[0].Windows.Count, drifting.Pairs[0].Windows.Count);
+            for (var i = 0; i < conic.Pairs[0].Windows.Count; i++)
+            {
+                Assert.Equal(conic.Pairs[0].Windows[i].OpenUt ?? 0.0, drifting.Pairs[0].Windows[i].OpenUt ?? 0.0, 3);
+                Assert.Equal(conic.Pairs[0].Windows[i].CloseUt ?? 0.0, drifting.Pairs[0].Windows[i].CloseUt ?? 0.0, 3);
+            }
+        }
+
+        [Fact]
+        public void ANodeThatPrecessesMovesItsWindowsAndASeedsSpanBoundsThePair()
+        {
+            var orbit = KerbinOrbit(100_000.0, 0.3, inclination: 0.9);
+            var meanMotion = Math.Sqrt(KerbinMu / Math.Pow(orbit.Sma, 3));
+            var target = PropagationTarget.Vessel("vessel:a", Kerbin, orbit);
+            var station = PlanNode.OnSurface("ground:ksc", Kerbin, Station(10.0));
+            var pairs = new[] { new PlanPair("vessel:a", "ground:ksc", KerbinOnly(), null) };
+            var still = new SecularOrbit(orbit, 0.0, 0.0, meanMotion, 5_000.0, SecularBasis.Analysis);
+            var turning = new SecularOrbit(orbit, 1e-4, 0.0, meanMotion, 5_000.0, SecularBasis.Analysis);
+
+            var a = ContactPlanner.Plan(new[] { PlanNode.Drifting("vessel:a", target, still), station }, pairs, Propagator(), Kerbin, 0.0, 6 * 3600.0, 10.0, 0.05);
+            var b = ContactPlanner.Plan(new[] { PlanNode.Drifting("vessel:a", target, turning), station }, pairs, Propagator(), Kerbin, 0.0, 6 * 3600.0, 10.0, 0.05);
+
+            Assert.InRange(a.Pairs[0].HorizonUt, 4_990.0, 5_000.0);
+            var edgesA = a.Pairs[0].Windows.Select(w => w.CloseUt ?? w.OpenUt ?? 0.0).ToArray();
+            var edgesB = b.Pairs[0].Windows.Select(w => w.CloseUt ?? w.OpenUt ?? 0.0).ToArray();
+            Assert.NotEqual(edgesA, edgesB);
+        }
+
+        [Fact]
         public void ANodeIsSolvedOncePerGridPointWhateverNumberOfPairsItIsIn()
         {
             var nodes = Enumerable.Range(0, 6)

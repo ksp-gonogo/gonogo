@@ -107,6 +107,15 @@ namespace Sitrep.Host.Propagation
             Elected(kernel) ?? new KeplerProvider();
 
         /// <summary>
+        /// The elected provider's secular model, for predicting contacts over hours,
+        /// or null when it has none or nothing is elected. Null kernel is null
+        /// rather than a throw, as for <see cref="ElectedIntegrates"/>: the caller
+        /// carries every craft on its conic.
+        /// </summary>
+        public static ISecularPropagation? Secular(Kernel? kernel) =>
+            kernel == null ? null : Elected(kernel) as ISecularPropagation;
+
+        /// <summary>
         /// Whether the elected provider's trajectories are INTEGRATED, which is what
         /// decides whether a craft's published elements are the path it flies or
         /// merely the conic tangent to it.
