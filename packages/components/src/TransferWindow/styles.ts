@@ -85,7 +85,8 @@ export const PhaseDialSvg = styled.svg`
 export const NowFacts = styled.div`
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: stretch;
+  flex: 1 1 auto;
   gap: var(--gap-related);
   min-width: 0;
 `;

@@ -17,6 +17,7 @@ import { stillTrue, TargetKind, value } from "@ksp-gonogo/sitrep-sdk";
 import { Placeholder } from "@ksp-gonogo/ui";
 import {
   Badge,
+  Cluster,
   FieldLabel,
   kspCalendar,
   Panel,
@@ -326,7 +327,13 @@ function TransferWindowComponent({
                   <NowRow>
                     <PhaseDial solution={solution} />
                     <NowFacts>
-                      <NowLabel>Current phase</NowLabel>
+                      <Cluster justify="between">
+                        <NowLabel>Current phase</NowLabel>
+                        {/* Only the verdict is announced: the phase moves every frame. */}
+                        <Badge tone={STATUS_SEVERITY[solution.status]} live>
+                          {STATUS_LABEL[solution.status]}
+                        </Badge>
+                      </Cluster>
                       <NowValue>
                         <Unit
                           value={heldFigure(
@@ -346,10 +353,6 @@ function TransferWindowComponent({
                           />
                         </Muted>
                       </NowValue>
-                      {/* Only the verdict is announced: the phase moves every frame. */}
-                      <Badge tone={STATUS_SEVERITY[solution.status]} live>
-                        {STATUS_LABEL[solution.status]}
-                      </Badge>
                     </NowFacts>
                   </NowRow>
                 ) : (
