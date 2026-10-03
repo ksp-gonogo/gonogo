@@ -16,6 +16,7 @@ import {
   COMMCAST_TONE,
   Commcast__Bar,
   Commcast__BarGap,
+  Commcast__BarLabel,
   Commcast__Preview,
   Commcast__RowHead,
   Commcast__RowName,
@@ -74,11 +75,11 @@ export function CommcastInboxView({
           onClick={() => setInputOpen((open) => !open)}
         >
           <SettingsIcon size="var(--icon-size-control)" aria-hidden="true" />
-          Microphone
+          <Commcast__BarLabel>Microphone</Commcast__BarLabel>
         </ToggleButton>
         <Button type="button" onClick={onCompose} disabled={!canCompose}>
-          <PlusIcon size="var(--icon-size-control)" />
-          New message
+          <PlusIcon size="var(--icon-size-control)" aria-hidden="true" />
+          <Commcast__BarLabel>New message</Commcast__BarLabel>
         </Button>
         {indicator}
       </Commcast__Bar>

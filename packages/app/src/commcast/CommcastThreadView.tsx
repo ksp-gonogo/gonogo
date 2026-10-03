@@ -10,6 +10,7 @@ import {
   COMMCAST_TONE,
   Commcast__Bar,
   Commcast__BarGap,
+  Commcast__BarLabel,
   Commcast__BarRadio,
   Commcast__BarTitle,
   Commcast__List,
@@ -82,7 +83,7 @@ export function CommcastThreadView({
         {onAdd && (
           <Button type="button" onClick={onAdd}>
             <PlusIcon size="var(--icon-size-control)" aria-hidden="true" />
-            Add
+            <Commcast__BarLabel>Add</Commcast__BarLabel>
           </Button>
         )}
         <Commcast__BarGap />

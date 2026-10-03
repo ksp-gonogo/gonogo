@@ -10,6 +10,8 @@ export const Commcast__Frame = styled.div`
   min-height: 0;
   flex: 1 1 auto;
   gap: var(--gap-related);
+  /* The bar's buttons answer to the frame's own width, not the viewport's. */
+  container: commcast / inline-size;
 `;
 
 export const Commcast__Identity = styled.div`
@@ -51,6 +53,22 @@ export const Commcast__BarRadio = styled.div`
   flex: 0 0 auto;
 `;
 
+/**
+ * A bar button's word. Under a narrow frame it is kept for assistive tech and
+ * dropped from the sight, so the bar's buttons shrink to their icons instead of
+ * trailing off the tile.
+ */
+export const Commcast__BarLabel = styled.span`
+  @container commcast (max-width: 36rem) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+`;
+
 export const Commcast__Back = styled(Button).attrs({ variant: "ghost" })`
   display: inline-flex;
   align-items: center;
@@ -64,6 +82,10 @@ export const Commcast__Back = styled(Button).attrs({ variant: "ghost" })`
  * auto top margin pins a short log to the bottom, next to the composer.
  */
 export const Commcast__Scroll = styled(ScrollArea)`
+  /* ScrollArea bleeds out to a panel body's edges, which here are the Console's border: it would clip the rows at both ends. */
+  && {
+    margin-inline: 0;
+  }
   & [data-scroll-area-inner] {
     display: flex;
     flex-direction: column;

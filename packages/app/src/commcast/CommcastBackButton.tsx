@@ -1,5 +1,5 @@
 import { ArrowLeftIcon } from "@ksp-gonogo/ui-kit";
-import { Commcast__Back } from "./commcastStyles";
+import { Commcast__Back, Commcast__BarLabel } from "./commcastStyles";
 
 /** Back out of a view, named for where it leads: the inbox, unless a thread is what it returns to. */
 export function CommcastBackButton({
@@ -12,7 +12,7 @@ export function CommcastBackButton({
   return (
     <Commcast__Back type="button" onClick={onClick}>
       <ArrowLeftIcon size="var(--icon-size-control)" />
-      {label}
+      <Commcast__BarLabel>{label}</Commcast__BarLabel>
     </Commcast__Back>
   );
 }
