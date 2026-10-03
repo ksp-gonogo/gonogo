@@ -51,6 +51,21 @@ namespace Sitrep.Host.Tests
                 // carve-out: the next addition needs the same argument made
                 // again, here.
                 "CommandedValue:System.Nullable`1[System.Double]",
+                // Store-and-forward predictions, the one ratchet move the design
+                // rules for: every one is what the sending centre PREDICTS from
+                // its own routes at dispatch, never where the command actually
+                // is. What actually happened arrives only on comms.journey, at
+                // light speed.
+                "LaneSeq:System.Nullable`1[System.Int64]",
+                "Craft:System.String",
+                "ExpiresAtUt:System.Nullable`1[System.Double]",
+                "PredictedArrivalUt:System.Nullable`1[System.Double]",
+                "PredictedReplyUt:System.Nullable`1[System.Double]",
+                "PredictedHeldAt:System.String",
+                "PredictedHeldUntilUt:System.Nullable`1[System.Double]",
+                "CancelDeadlineUt:System.Nullable`1[System.Double]",
+                "Attempts:System.Int32",
+                "Members:System.Collections.Generic.List`1[System.String]",
             };
 
             var actual = typeof(PendingUplink)

@@ -246,6 +246,7 @@ namespace Sitrep.Host.Comms
         private readonly HashSet<string> _unpublished = new HashSet<string>(StringComparer.Ordinal);
         private readonly HashSet<string> _routesAsked = new HashSet<string>(StringComparer.Ordinal);
         private volatile bool _timelineReset;
+        private int _plansVersion;
 
         /// <param name="game">The game the plan is made of.</param>
         /// <param name="wallSeconds">Wall time in seconds, for pacing how often the game is looked at.</param>
@@ -308,6 +309,8 @@ namespace Sitrep.Host.Comms
                 _warn("this host carries no craft states or no addressed streams, so no contact plan can be made");
                 return;
             }
+            var plans = host as ICentrePlanHost;
+            plans?.SetCentrePlans(PlanOf, () => System.Threading.Volatile.Read(ref _plansVersion));
             _streams.DeclareAddressedTopic(ContactsTopic);
             _streams.DeclareAddressedTopic(RouteTopic);
             // A plan is state, and an addressed sample is not kept for whoever
@@ -315,7 +318,7 @@ namespace Sitrep.Host.Comms
             // told its centre's current plan and routes again.
             _streams.OnAddressedSubscribed(ContactsTopic, centre => _unpublished.Add(centre));
             _streams.OnAddressedSubscribed(RouteTopic, centre => _routesAsked.Add(centre));
-            _hearing = new CentreHearing(_craftHost);
+            _hearing = new CentreHearing(_craftHost, plans == null ? (Action<string, string>?)null : plans.NoteHeard);
             _craftHost.OnTimelineReset(() =>
             {
                 _craft.ReadAllAgain();
@@ -401,6 +404,7 @@ namespace Sitrep.Host.Comms
                 _plans.Clear();
                 _planned.Clear();
                 _unsettled.Clear();
+                System.Threading.Interlocked.Increment(ref _plansVersion);
                 _offered = new Dictionary<string, Planned>(StringComparer.Ordinal);
                 // A round still running was made of the old timeline; it is
                 // taken and dropped when it finishes, by the FromUt check below.
@@ -483,6 +487,7 @@ namespace Sitrep.Host.Comms
                 _planned[entry.Key] = from;
                 _unsettled[entry.Key] = from.Request.Unsettled;
                 _unpublished.Add(entry.Key);
+                System.Threading.Interlocked.Increment(ref _plansVersion);
             }
         }
 
@@ -496,6 +501,7 @@ namespace Sitrep.Host.Comms
                     _plans.Remove(centre);
                     _planned.Remove(centre);
                     _unsettled.Remove(centre);
+                    System.Threading.Interlocked.Increment(ref _plansVersion);
                 }
             }
         }

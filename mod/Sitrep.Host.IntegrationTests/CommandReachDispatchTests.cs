@@ -9,8 +9,9 @@ namespace Sitrep.Host.IntegrationTests
 {
     /// <summary>
     /// A command from a centre that has no route to the craft it addresses is
-    /// refused, even while that craft still reaches home, and the delay the
-    /// centre was quoted while it had a route is gone with the route.
+    /// held for a route rather than run, even while that craft still reaches
+    /// home, and the delay the centre was quoted while it had a route is gone
+    /// with the route.
     /// </summary>
     public class CommandReachDispatchTests
     {
@@ -20,7 +21,7 @@ namespace Sitrep.Host.IntegrationTests
         private const double ForwardSeconds = 4.0;
 
         [Fact]
-        public void ACentreThatLostItsRouteToACraftIsRefusedNotQuotedItsLastDelay()
+        public void ACentreThatLostItsRouteToACraftIsHeldNotQuotedItsLastDelay()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
             var uplink = new CraftCommandTestUplink();
@@ -49,7 +50,7 @@ namespace Sitrep.Host.IntegrationTests
                 engine.DispatchCommandAndWait(CraftCommandTestUplink.Command, "y", Forward, _ => { }, TestBudgets.Op, onAccepted: s => quoted = s);
                 Tick(engine, 100.0);
 
-                Assert.Null(quoted);
+                Assert.NotEqual(ForwardSeconds, quoted);
                 Assert.Equal(1, uplink.HandledCount);
                 Assert.NotEqual(ForwardSeconds, engine.LedgerDelayFor(Forward, AuthorityMatrixPass.FleetNode(Craft)));
 

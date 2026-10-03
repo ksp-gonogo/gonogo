@@ -229,9 +229,28 @@ public class CommandAccepted
     /// addressed to, as the engine's ledger has it AT DISPATCH. Frozen: a route
     /// change afterwards is discrete and the sender may never learn of it, so
     /// this is not re-sent.
+    ///
+    /// <para>For a command held and forwarded on a lane it is how long the
+    /// sending centre's own plan expects it to take to reach the craft, waits
+    /// included, and zero when that plan knows no route. It is what the centre
+    /// believed when it sent, and says nothing of whether the craft is really
+    /// listening.</para>
     /// </summary>
     [SitrepUnit(Units.Seconds)]
     public double OneWaySeconds { get; set; }
+
+    /// <summary>
+    /// When the engine predicts the reply will come back, from the routes at
+    /// dispatch, waits included. A client times its loss deadline from this when
+    /// present, since a command held for a window replies long after twice the
+    /// one-way time. Absent when no route was predicted.
+    /// </summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double? PredictedReplyUt { get; set; }
+
+    /// <summary>When the command is deleted wherever it is, if it has not run. Absent for a command that is not held at all.</summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double? ExpiresAtUt { get; set; }
 }
 
 /// <summary>

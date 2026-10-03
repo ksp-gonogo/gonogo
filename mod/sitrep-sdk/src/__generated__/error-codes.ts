@@ -320,6 +320,22 @@ export const FaultCode = {
    */
   UnknownVantage: "unknownVantage",
   /**
+   * A held command reached its expiry, or its place on the lane passed, before
+   * it could run.
+   */
+  CommandExpired: "commandExpired",
+  /**
+   * A cancel stopped the command before it ran.
+   */
+  CommandCancelled: "commandCancelled",
+  /**
+   * A continuous input, a throttle or a control axis, was refused because the
+   * sending command centre's own plan says it would wait at a node on its way to
+   * the craft. Held and sent on later it would arrive as a run of stale values,
+   * so it is not sent at all.
+   */
+  ContinuousInputWouldWait: "continuousInputWouldWait",
+  /**
    * The transport held the command for a link that never came back, and has
    * stopped retrying. It never left this machine.
    */
@@ -603,6 +619,30 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     origin: "mod",
     sentence: "that command centre is not active",
     meaning: "A `set-vantage`, or a command's `vantage`, naming a command centre that is not active.",
+  },
+  {
+    id: "commandExpired",
+    kind: "fault",
+    refines: null,
+    origin: "mod",
+    sentence: "it expired before it could run",
+    meaning: "A held command reached its expiry, or its place on the lane passed, before it could run.",
+  },
+  {
+    id: "commandCancelled",
+    kind: "fault",
+    refines: null,
+    origin: "mod",
+    sentence: "it was cancelled before it ran",
+    meaning: "A cancel stopped the command before it ran.",
+  },
+  {
+    id: "continuousInputWouldWait",
+    kind: "fault",
+    refines: null,
+    origin: "mod",
+    sentence: "it would wait on its way, and a continuous input cannot",
+    meaning: "A continuous input, a throttle or a control axis, was refused because the sending command centre's own plan says it would wait at a node on its way to the craft. Held and sent on later it would arrive as a run of stale values, so it is not sent at all.",
   },
   {
     id: "undelivered",

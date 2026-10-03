@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Sitrep.Contract;
@@ -89,29 +91,143 @@ namespace Sitrep.Host.IntegrationTests
             Reckoned.True(!world.Home.PlansPair(Home, Relay), "the home centre's plan still carries a craft whose silence has reached it");
         }
 
+        /// <summary>
+        /// The home centre believes the relay is in sight, and the relay has just
+        /// lost its link. The command is accepted and goes as live, because that is
+        /// all the centre knows. The light is lost. The centre learns of it when
+        /// twice the light time has passed with nothing back, and no sooner, and
+        /// sends the command again once it next hears from the relay.
+        /// </summary>
         [Fact]
-        public Task ACommandSentOnTheCentresBeliefIsAcceptedAsLiveWhateverTheFarEndIsDoing() =>
-            Reckoned.StillViolatedAsync("store-and-forward sending from the centre's own plan (Saga 782)", async () =>
+        public async Task ACommandSentOnTheCentresBeliefGoesAsLiveAndTheTruthComesHomeNoSoonerThanLight()
+        {
+            await using var world = await ReckonedVantageWorld.StartAsync();
+            await HasHeardOfTheRelayAsync(world);
+            Assert.True(world.Home.PlansContactAt(Home, Relay, T0), "the scripted relay should be in the home centre's sight at T0");
+
+            world.Game.RelayConnected = false;
+            world.Tick(T0);
+
+            double? accepted = null;
+            object? result = null;
+            FaultCode? refused = null;
+            world.Engine.DispatchCommandAndWait(
+                ScriptedContactUplink.RelayCommand,
+                "x",
+                Home,
+                r => result = r,
+                TestBudgets.Op,
+                onRefused: (code, _) => refused = code,
+                onAccepted: seconds => accepted = seconds);
+
+            Reckoned.True(accepted != null, "a command to a craft the centre believes it can reach was not accepted: the far end's link decided it at once");
+            var light = accepted!.Value;
+            Reckoned.True(light > 550.0 && light < 650.0, "the command was accepted at " + light + " s, not the centre's own light-time to the craft");
+            var entry = Pending(world).Single(p => p.Command == ScriptedContactUplink.RelayCommand && p.Vantage == Home);
+            Reckoned.True(entry.PredictedHeldAt == null, "the pending entry predicts a hold at " + entry.PredictedHeldAt + ": the far end's link decided it");
+            Reckoned.True(Math.Abs(entry.PredictedArrivalUt!.Value - (T0 + light)) < 1e-6, "the pending entry does not predict arrival one of the centre's light-times out");
+            Reckoned.True(Journey(world).Count == 0, "the centre was told something the instant it sent");
+
+            world.Tick(T0 + light + 5.0);
+            Assert.Equal(0, world.Uplink.HandledCount);
+            world.Tick(T0 + (2.0 * light) - 5.0);
+            Reckoned.True(Journey(world).Count == 0, "the centre heard the command had not arrived before twice its light-time had passed: " + string.Join(",", Journey(world).Select(e => e.Kind)));
+            Reckoned.True(result == null && refused == null, "the command settled before twice its light-time had passed");
+
+            world.Tick(T0 + (2.0 * light) + 5.0);
+            var held = Assert.Single(Journey(world));
+            Assert.Equal(JourneyEventKind.Held, held.Kind);
+            Assert.Equal(Home, held.At);
+            Assert.Equal(T0 + (2.0 * light), held.AtUt, 3);
+            Assert.Single(Pending(world));
+
+            // The relay is back, and dumps what it recorded. That reaches home a
+            // light time later, and the command goes again.
+            var back = T0 + (2.0 * light) + 100.0;
+            world.Tick(back - 1.0);
+            world.Game.RelayConnected = true;
+            var real = world.Game.RelayFromHomeSeconds;
+            foreach (var ut in new[] { back, back + real - 2.0 })
             {
-                await using var world = await ReckonedVantageWorld.StartAsync();
+                world.Tick(ut);
+            }
+            Assert.DoesNotContain(Journey(world), e => e.Kind == JourneyEventKind.Departed);
+
+            foreach (var ut in new[] { back + real + 1.0, back + (2.0 * real) + 2.0 })
+            {
+                world.Tick(ut);
+            }
+            Assert.Contains(Journey(world), e => e.Kind == JourneyEventKind.Departed);
+            Assert.Equal(1, world.Uplink.HandledCount);
+            Assert.Null(result);
+
+            world.Tick(back + (3.0 * real) + 3.0);
+            Assert.NotNull(result);
+            Assert.Contains(Journey(world), e => e.Kind == JourneyEventKind.Ran);
+            Assert.Empty(Pending(world));
+        }
+
+        /// <summary>
+        /// Between the hop's light landing and twice its light time, the centre
+        /// cannot know whether the command was received. A cancel pressed then is
+        /// sent, and says so, and the centre's screen is the same whether the hop
+        /// landed or was lost.
+        /// </summary>
+        [Fact]
+        public async Task ACancelPressedInCustodySaysCancelSentAndNeverCancelledUntilAReportComesHome()
+        {
+            await using var lost = await ReckonedVantageWorld.StartAsync();
+            await using var landed = await ReckonedVantageWorld.StartAsync();
+            var refused = new Dictionary<ReckonedVantageWorld, FaultCode?> { [lost] = null, [landed] = null };
+            var light = 0.0;
+            foreach (var world in new[] { lost, landed })
+            {
                 await HasHeardOfTheRelayAsync(world);
-                Assert.True(world.Home.PlansContactAt(Home, Relay, T0), "the scripted relay should be in the home centre's sight at T0");
-
-                // The relay has just lost its link. Nothing can have told the home centre yet.
-                world.Game.RelayConnected = false;
+                world.Game.RelayConnected = world != lost;
                 world.Tick(T0);
-
-                double? accepted = null;
                 world.Engine.DispatchCommandAndWait(
-                    ScriptedContactUplink.RelayCommand, "x", Home, _ => { }, TestBudgets.Op, onAccepted: seconds => accepted = seconds);
+                    ScriptedContactUplink.RelayCommand,
+                    "x",
+                    Home,
+                    _ => { },
+                    TestBudgets.Op,
+                    onRefused: (code, _) => refused[world] = code,
+                    onAccepted: seconds => light = seconds);
+            }
 
-                Reckoned.True(accepted != null, "a command to a craft the centre believes it can reach was not accepted: the far end's link decided it at once");
-                Reckoned.True(accepted == world.Game.RelayFromHomeSeconds, "the command was accepted at " + accepted + " s, not the centre's own light-time to the craft");
-                var pending = Assert.IsType<PendingUplinkQueue>(world.Engine.PayloadOf(ChannelEngine.UplinkPendingTopic)).Pending;
-                Reckoned.True(
-                    pending.Any(entry => entry.Command == ScriptedContactUplink.RelayCommand && entry.Vantage == Home),
-                    "the command is not in the centre's pending queue");
-            });
+            foreach (var world in new[] { lost, landed })
+            {
+                world.Tick(T0 + (1.5 * light));
+                object? reply = null;
+                var cancel = new UplinkCancelRequest { Epoch = world.Engine.JourneyAt(Home).Epoch, Craft = Relay, LaneSeq = 1 };
+                world.Engine.DispatchCommandAndWait(ChannelEngine.UplinkCancelCommand, cancel, Home, r => reply = r, TestBudgets.Op);
+                var sent = Assert.IsType<CommandResult<UplinkActionReply>>(reply);
+                Assert.Equal(1, sent.Payload!.ThroughSeq);
+                world.Tick(T0 + (2.0 * light) - 5.0);
+            }
+
+            Reckoned.Same(Told(landed), Told(lost), "what the centre has been told, before twice the light-time, of a command whose hop was lost");
+            Reckoned.True(Journey(lost).Count == 0, "the centre was told the command was stopped before it could know it still had it");
+            Reckoned.True(refused[lost] == null && refused[landed] == null, "the request was refused as cancelled before a report came home");
+
+            lost.Tick(T0 + (2.0 * light) + 5.0);
+            Assert.Equal(JourneyEventKind.Cancelled, Assert.Single(Journey(lost)).Kind);
+            Assert.Equal(FaultCode.CommandCancelled, refused[lost]);
+            Assert.Equal(0, lost.Uplink.HandledCount);
+
+            landed.Tick(T0 + (2.0 * landed.Game.RelayFromHomeSeconds) + 5.0);
+            Assert.Equal(1, landed.Uplink.HandledCount);
+            Assert.Contains(Journey(landed), e => e.Kind == JourneyEventKind.Ran);
+            Assert.Null(refused[landed]);
+        }
+
+        private static List<PendingUplink> Pending(ReckonedVantageWorld world) =>
+            Assert.IsType<PendingUplinkQueue>(world.Engine.PayloadOf(ChannelEngine.UplinkPendingTopic)).Pending;
+
+        private static List<CommsJourneyEvent> Journey(ReckonedVantageWorld world) => world.Engine.JourneyAt(Home).Events;
+
+        private static string Told(ReckonedVantageWorld world) =>
+            string.Join(",", Journey(world).Select(e => e.Kind + "@" + e.At));
 
         /// <summary>
         /// Runs both worlds past the relay's light-time to the home centre, and

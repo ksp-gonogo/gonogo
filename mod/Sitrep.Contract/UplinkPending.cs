@@ -90,7 +90,12 @@ public class PendingUplink
     [SitrepUnit(Units.UniversalTime)]
     public double DispatchedAt { get; set; }
 
-    /// <summary>One-way signal delay (seconds) AT DISPATCH, frozen, not re-read as the delay changes.</summary>
+    /// <summary>
+    /// One-way signal delay (seconds) AT DISPATCH, frozen, not re-read as the
+    /// delay changes. For a command on a lane it is how long the sending centre's
+    /// own plan expects it to take to reach the craft, waits included, and zero
+    /// when that plan knows no route.
+    /// </summary>
     [SitrepUnit(Units.Seconds)]
     public double OneWaySeconds { get; set; }
 
@@ -126,6 +131,55 @@ public class PendingUplink
     [SitrepUnit(Units.NotApplicable)]
     [SitrepOmittedWhenNull]
     public double? CommandedValue { get; set; }
+
+    /// <summary>
+    /// Its position on its lane: every delayed command one centre sends to one
+    /// craft runs in this order. Null for a command on no lane (a control-channel
+    /// write, or one not addressed to a craft).
+    /// </summary>
+    [SitrepUnit(Units.Count)]
+    public long? LaneSeq { get; set; }
+
+    /// <summary>The craft the lane runs to, as a <c>"vessel:&lt;guid&gt;"</c> id. Null for a command on no lane.</summary>
+    [SitrepUnit(Units.Id)]
+    public string? Craft { get; set; }
+
+    /// <summary>When it is deleted wherever it is, if it has not run: an hour after it was sent, or an earlier deadline it carries. Null for a command on no lane.</summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double? ExpiresAtUt { get; set; }
+
+    /// <summary>
+    /// When the centre predicts it will reach the craft, from the route its own
+    /// plan gave at dispatch. Null when its plan predicted no route. Like every
+    /// prediction here it is what the centre believed when it sent, made from
+    /// what it had heard, and says nothing of what the far end was really doing.
+    /// </summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double? PredictedArrivalUt { get; set; }
+
+    /// <summary>When the centre predicts its reply will come back, from the routes at dispatch. Null when no route was predicted.</summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double? PredictedReplyUt { get; set; }
+
+    /// <summary>Where the centre predicts it will first wait for a window, as a node id; null when it is predicted to go straight through, or no route was predicted.</summary>
+    [SitrepUnit(Units.Id)]
+    public string? PredictedHeldAt { get; set; }
+
+    /// <summary>When it is predicted to leave <see cref="PredictedHeldAt"/>. Null with it.</summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double? PredictedHeldUntilUt { get; set; }
+
+    /// <summary>The last moment a cancel sent from this centre is predicted to stop it: at a node holding it or at the craft before it runs. Null when nothing is predicted to stop it.</summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double? CancelDeadlineUt { get; set; }
+
+    /// <summary>How many copies of its lane number have been sent: 1, or more after a send again.</summary>
+    [SitrepUnit(Units.Count)]
+    public int Attempts { get; set; } = 1;
+
+    /// <summary>The engine ids of every command sent together with this one, itself included; one entry until command groups exist.</summary>
+    [SitrepUnit(Units.Id)]
+    public List<string> Members { get; set; } = new List<string>();
 }
 
 /// <summary>Wire wrapper for <c>system.uplink.pending</c>: the whole queue, resampled every emission.</summary>

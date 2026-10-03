@@ -281,7 +281,9 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     time: "ut",
   },
   "CommandAccepted": {
+    expiresAtUt: "ut",
     oneWaySeconds: "s",
+    predictedReplyUt: "ut",
     requestId: "id",
     type: "id",
   },
@@ -431,6 +433,21 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     kind: "enum",
     to: "id",
     toIsHome: "flag",
+  },
+  "CommsJourney": {
+    epoch: "count",
+  },
+  "CommsJourneyEvent": {
+    about: "id",
+    at: "id",
+    atUt: "ut",
+    craft: "id",
+    detail: "text",
+    id: "id",
+    kind: "enum",
+    laneSeq: "count",
+    missing: "count",
+    untilUt: "ut",
   },
   "CommsLink": {
     connected: "flag",
@@ -952,13 +969,23 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     source: "id",
   },
   "PendingUplink": {
+    attempts: "count",
+    cancelDeadlineUt: "ut",
     clientRequestId: "id",
     command: "id",
     commandedValue: "n/a",
+    craft: "id",
     dispatchedAt: "ut",
+    expiresAtUt: "ut",
     id: "id",
     label: "text",
+    laneSeq: "count",
+    members: "id",
     oneWaySeconds: "s",
+    predictedArrivalUt: "ut",
+    predictedHeldAt: "id",
+    predictedHeldUntilUt: "ut",
+    predictedReplyUt: "ut",
     topic: "id",
     vantage: "id",
   },
@@ -1342,6 +1369,22 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "UpgradeFacilityArgs": {
     facilityId: "id",
   },
+  "UplinkActionReply": {
+    expiresAtUt: "ut",
+    id: "id",
+    throughSeq: "count",
+  },
+  "UplinkCancelRequest": {
+    andBehind: "flag",
+    craft: "id",
+    epoch: "count",
+    laneSeq: "count",
+  },
+  "UplinkResendRequest": {
+    craft: "id",
+    epoch: "count",
+    laneSeq: "count",
+  },
   "Vec3": {
     x: "n/a",
     y: "n/a",
@@ -1646,6 +1689,9 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
   "comms.delay": {
     oneWaySeconds: "s",
     source: "enum",
+  },
+  "comms.journey": {
+    epoch: "count",
   },
   "comms.link": {
     connected: "flag",
@@ -2284,6 +2330,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "CommsDelay": {
     meta: "PayloadMeta",
   },
+  "CommsJourney": {
+    events: "CommsJourneyEvent[]",
+  },
   "CommsLink": {
     meta: "PayloadMeta",
   },
@@ -2576,6 +2625,9 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "comms.delay": {
     meta: "PayloadMeta",
   },
+  "comms.journey": {
+    events: "CommsJourneyEvent[]",
+  },
   "comms.link": {
     meta: "PayloadMeta",
   },
@@ -2762,6 +2814,9 @@ export const GENERATED_TYPE_ENUMS: Readonly<Record<string, EnumsByField>> = {
   },
   "CommsHop": {
     kind: "CommsHopKind",
+  },
+  "CommsJourneyEvent": {
+    kind: "JourneyEventKind",
   },
   "CommsNetworkNode": {
     kind: "CommsHopKind",
@@ -3053,6 +3108,18 @@ export const GENERATED_ENUM_MEMBERS: Readonly<Record<string, Readonly<Record<num
     1: "Fail",
     2: "Abstain",
     3: "Unknown",
+  },
+  "JourneyEventKind": {
+    0: "Held",
+    1: "Departed",
+    2: "Expired",
+    3: "Cancelled",
+    4: "Waiting",
+    5: "Discarded",
+    6: "CancelStored",
+    7: "CancelLate",
+    8: "CancelLateHere",
+    9: "Ran",
   },
   "KspEditorFacility": {
     0: "None",

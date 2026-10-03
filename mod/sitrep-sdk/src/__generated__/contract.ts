@@ -2206,6 +2206,200 @@ export interface CommsDegrade
 	level?: Value<"ratio"> | null;
 }
 /**
+* What one journey report says happened to a command, or to a cancel.
+*
+* @category Comms
+*/
+export enum JourneyEventKind {
+	/**
+	* A node is holding the command for its next window;
+	* `CommsJourneyEvent.untilUt` is when it predicts the command will leave. A
+	* node also reports this when a command it sent went unanswered and is its to
+	* send again.
+	*/
+	Held = 0,
+	/**
+	* A node that had held the command sent it on; `CommsJourneyEvent.untilUt` is
+	* when that node expects the light to land at its next node.
+	*/
+	Departed = 1,
+	/** The command reached its expiry where it was and was deleted there. */
+	Expired = 2,
+	/** A cancel stopped the command at the node reporting. */
+	Cancelled = 3,
+	/**
+	* The command reached the craft and waits for earlier lane numbers, named in
+	* `CommsJourneyEvent.missing`.
+	*/
+	Waiting = 4,
+	/**
+	* The craft discarded the command because its lane number had already settled;
+	* `CommsJourneyEvent.detail` says how.
+	*/
+	Discarded = 5,
+	/**
+	* A cancel reached the craft before the command; the craft refuses the command
+	* whenever it arrives.
+	*/
+	CancelStored = 6,
+	/**
+	* A cancel reached the craft after the command ran;
+	* `CommsJourneyEvent.untilUt` is when it ran.
+	*/
+	CancelLate = 7,
+	/** A cancel reached a node after the command left it, and follows it on. */
+	CancelLateHere = 8,
+	/** The command ran at the craft; its result travels on the command's own reply. */
+	Ran = 9
+}
+/**
+* Journey reports for this vantage's commands in the current timeline: where
+* each was held, sent on, stopped or run, as reports from those nodes arrive
+* back here.
+*
+* Every report has already travelled from the node that made it to this
+* centre, at light speed and through any holds of its own, so a report arrives
+* on this topic when this centre could first know it. Order a command's events
+* by `CommsJourneyEvent.atUt`, not by arrival: two reports from different
+* nodes travel different routes. A terminal event is never undone by an
+* earlier one arriving late.
+*
+* A report made here, by this centre, says only what this centre could know.
+* It reports a command held while its own plan says the way is shut, and sent
+* on when its plan says the way is open, whatever the far end is doing; and it
+* reports a command that went unanswered only once twice the light time it
+* expected has passed.
+*
+* Each session receives only its own vantage's events.
+*
+* @category Comms
+*/
+export interface CommsJourney
+{
+	/**
+	* The timeline these events belong to; events from an earlier timeline are
+	* dropped.
+	*/
+	epoch: Value<"count">;
+	/**
+	* Every event received so far in this timeline, oldest arrival first, up to a
+	* bounded number.
+	*/
+	events: CommsJourneyEvent[];
+}
+/**
+* One journey report.
+*
+* @category Comms
+*/
+export interface CommsJourneyEvent
+{
+	/** The report's own id. */
+	id: string;
+	/**
+	* The command it is about, as its `system.uplink.pending` `PendingUplink.id`,
+	* or for a copy sent again, the `UplinkActionReply.id` that send again
+	* returned; for a cancel's events, the cancel's id.
+	*/
+	about: string;
+	/** The craft the command's lane runs to. */
+	craft: string;
+	/** The lane number it concerns. */
+	laneSeq: Value<"count">;
+	/** What happened. */
+	kind: JourneyEventKind;
+	/** The node that made the report, as a roster or vessel id. */
+	at: string;
+	/** When the thing it reports happened, at that node. */
+	atUt: Value<"ut">;
+	/**
+	* For a hold, when the node predicts the command will leave; for a departure,
+	* when it lands; for a late cancel, when the command ran or left. Null
+	* otherwise.
+	*/
+	untilUt?: Value<"ut"> | null;
+	/** A short reason, for a discard or a late cancel. Null otherwise. */
+	detail?: string | null;
+	/**
+	* For a waiting report, the lane numbers the craft is still missing. Empty
+	* otherwise.
+	*/
+	missing: Value<"count">[];
+}
+/**
+* Cancels a held or travelling command: its lane number alone, or it and every
+* later number this centre had sent on the lane when it was pressed. A command
+* this centre is still holding stops at once; for one it has sent, a cancel
+* goes to the craft, stopping the command wherever it is held and refusing it
+* at the craft if it arrives there first. What it stopped arrives as journey
+* reports.
+*
+* The reply says the cancel was sent, never that the command was stopped. A
+* command sent less than twice its light time ago may have been lost on the
+* way, in which case it is still this centre's, but the centre cannot know
+* that yet, so the cancel is sent after it all the same and the command is
+* reported cancelled here only once it is known to have come back.
+*
+* @category Command arguments
+*/
+export interface UplinkCancelRequest
+{
+	/**
+	* The timeline the command was sent in; a cancel naming another timeline is
+	* refused.
+	*/
+	epoch: Value<"count">;
+	/** The craft its lane runs to, as `PendingUplink.craft`. */
+	craft: string;
+	/** Its lane number, as `PendingUplink.laneSeq`. */
+	laneSeq: Value<"count">;
+	/**
+	* Whether to cancel every later number on the lane too, up to the newest this
+	* centre has sent.
+	*/
+	andBehind: boolean;
+}
+/**
+* Sends a held or overdue command again in its own place on its lane: a new
+* copy with the same lane number, which must arrive before the commands behind
+* it stop waiting for it. Whichever copy reaches the craft first runs; any
+* other is discarded.
+*
+* @category Command arguments
+*/
+export interface UplinkResendRequest
+{
+	/**
+	* The timeline the command was sent in; a send again naming another timeline
+	* is refused.
+	*/
+	epoch: Value<"count">;
+	/** The craft its lane runs to. */
+	craft: string;
+	/** Its lane number. */
+	laneSeq: Value<"count">;
+}
+/**
+* What a cancel or a send again did at this centre.
+*
+* @category Command results
+*/
+export interface UplinkActionReply
+{
+	/**
+	* For a cancel, the last lane number it covers: more than the button counted
+	* when another screen sent on the lane meanwhile.
+	*/
+	throughSeq: Value<"count">;
+	/**
+	* For a send again, the new copy's id, which its journey reports name; empty
+	* for a cancel.
+	*/
+	id: string;
+	/** When the cancel or copy expires. */
+	expiresAtUt: Value<"ut">;
+}
+/**
 * One body's occlusion geometry, as resolved by the elected model.
 * `CommsOcclusionBody.index` matches `BodyEntry.Index` on `system.bodies`
 * (both are `CelestialBody.flightGlobalsIndex`), so a consumer joins the two
@@ -2940,8 +3134,25 @@ export interface CommandAccepted
 	* addressed to, as the engine's ledger has it AT DISPATCH. Frozen: a route
 	* change afterwards is discrete and the sender may never learn of it, so this
 	* is not re-sent.
+	*
+	* For a command held and forwarded on a lane it is how long the sending
+	* centre's own plan expects it to take to reach the craft, waits included, and
+	* zero when that plan knows no route. It is what the centre believed when it
+	* sent, and says nothing of whether the craft is really listening.
 	*/
 	oneWaySeconds: number;
+	/**
+	* When the engine predicts the reply will come back, from the routes at
+	* dispatch, waits included. A client times its loss deadline from this when
+	* present, since a command held for a window replies long after twice the
+	* one-way time. Absent when no route was predicted.
+	*/
+	predictedReplyUt?: number;
+	/**
+	* When the command is deleted wherever it is, if it has not run. Absent for a
+	* command that is not held at all.
+	*/
+	expiresAtUt?: number;
 }
 /**
 * A request the mod could not carry out: a frame it could not read, an unknown
@@ -7832,7 +8043,9 @@ export interface PendingUplink
 	dispatchedAt: Value<"ut">;
 	/**
 	* One-way signal delay (seconds) AT DISPATCH, frozen, not re-read as the delay
-	* changes.
+	* changes. For a command on a lane it is how long the sending centre's own
+	* plan expects it to take to reach the craft, waits included, and zero when
+	* that plan knows no route.
 	*/
 	oneWaySeconds: Value<"s">;
 	/**
@@ -7861,6 +8074,57 @@ export interface PendingUplink
 	* ControlChannelDescriptor for the reflected lookup.
 	*/
 	commandedValue?: number;
+	/**
+	* Its position on its lane: every delayed command one centre sends to one
+	* craft runs in this order. Null for a command on no lane (a control-channel
+	* write, or one not addressed to a craft).
+	*/
+	laneSeq?: Value<"count"> | null;
+	/**
+	* The craft the lane runs to, as a `"vessel:<guid>"` id. Null for a command on
+	* no lane.
+	*/
+	craft?: string | null;
+	/**
+	* When it is deleted wherever it is, if it has not run: an hour after it was
+	* sent, or an earlier deadline it carries. Null for a command on no lane.
+	*/
+	expiresAtUt?: Value<"ut"> | null;
+	/**
+	* When the centre predicts it will reach the craft, from the route its own
+	* plan gave at dispatch. Null when its plan predicted no route. Like every
+	* prediction here it is what the centre believed when it sent, made from what
+	* it had heard, and says nothing of what the far end was really doing.
+	*/
+	predictedArrivalUt?: Value<"ut"> | null;
+	/**
+	* When the centre predicts its reply will come back, from the routes at
+	* dispatch. Null when no route was predicted.
+	*/
+	predictedReplyUt?: Value<"ut"> | null;
+	/**
+	* Where the centre predicts it will first wait for a window, as a node id;
+	* null when it is predicted to go straight through, or no route was predicted.
+	*/
+	predictedHeldAt?: string | null;
+	/** When it is predicted to leave `PendingUplink.predictedHeldAt`. Null with it. */
+	predictedHeldUntilUt?: Value<"ut"> | null;
+	/**
+	* The last moment a cancel sent from this centre is predicted to stop it: at a
+	* node holding it or at the craft before it runs. Null when nothing is
+	* predicted to stop it.
+	*/
+	cancelDeadlineUt?: Value<"ut"> | null;
+	/**
+	* How many copies of its lane number have been sent: 1, or more after a send
+	* again.
+	*/
+	attempts: Value<"count">;
+	/**
+	* The engine ids of every command sent together with this one, itself
+	* included; one entry until command groups exist.
+	*/
+	members: string[];
 }
 /**
 * Wire wrapper for `system.uplink.pending`: the whole queue, resampled every

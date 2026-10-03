@@ -2255,8 +2255,16 @@ namespace Sitrep.Contract
         /// the topics delivered to each listener after their own journey, which a client reads
         /// on arrival. All additive on the wire, so an Uplink built against 28.5 is
         /// unaffected.</para>
+        ///
+        /// <para><b>Major-28 line, Bumped 6 -&gt; 7:</b> store-and-forward commands:
+        /// <see cref="CommsJourney"/>, the <c>system.uplink.cancel</c> and
+        /// <c>system.uplink.resend</c> commands, the predicted lane, expiry, hold and
+        /// cancel-deadline fields on <see cref="PendingUplink"/>, the predicted reply and
+        /// expiry on <see cref="CommandAccepted"/>, and the <c>commandExpired</c>,
+        /// <c>commandCancelled</c> and <c>continuousInputWouldWait</c> fault codes. All
+        /// additive, so an Uplink built against 28.6 is unaffected.</para>
         /// </internal>
         /// </summary>
-        public const int Minor = 6;
+        public const int Minor = 7;
     }
 }

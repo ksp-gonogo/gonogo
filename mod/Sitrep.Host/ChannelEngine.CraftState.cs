@@ -96,6 +96,15 @@ namespace Sitrep.Host
                     centres.Add(vantage);
                 }
             }
+            // A centre with a command still out has to keep a plan to send it by,
+            // whether or not anyone is sitting there now.
+            foreach (var entry in _pending)
+            {
+                if (entry.LaneSeq != null && _activeCentreIds.Contains(entry.Vantage))
+                {
+                    centres.Add(entry.Vantage);
+                }
+            }
             return centres;
         }
 

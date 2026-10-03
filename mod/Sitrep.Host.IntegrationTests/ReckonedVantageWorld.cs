@@ -110,8 +110,16 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>The relay's orbit radius before any burn: high enough to see a third of the planet at once.</summary>
         public const double RelayRadius = 3_000_000.0;
 
-        /// <summary>Where on its orbit the relay starts, in radians: midway between the home station and the active craft.</summary>
+        /// <summary>Where on its orbit the relay starts unless a test says otherwise, in radians: midway between the home station and the active craft.</summary>
         public const double RelayStartAngle = Math.PI / 3.0;
+
+        /// <summary>
+        /// What a real light time is multiplied by in this game. The relay is ten
+        /// light-minutes from home by decree and 2,800 km from it by geometry, and
+        /// this is what makes the plan's light times agree with the decree to
+        /// within a few percent.
+        /// </summary>
+        public const double LightFactor = 64_000.0;
 
         private static readonly IReadOnlyList<SystemBody> Bodies = new[]
         {
@@ -120,8 +128,16 @@ namespace Sitrep.Host.IntegrationTests
         };
 
         private readonly object _gate = new object();
-        private OrbitElements _relayOrbit = new OrbitElements(RelayRadius, 0.0, 0.0, 0.0, 0.0, RelayStartAngle, 0.0, KerbinMu);
+        private readonly double _relayStartAngle;
+        private OrbitElements _relayOrbit;
         private bool _relayExists = true;
+
+        /// <param name="relayStartAngle">Where on its orbit the relay starts, in radians from the home station's meridian at UT 0.</param>
+        public ScriptedContactGame(double relayStartAngle = RelayStartAngle)
+        {
+            _relayStartAngle = relayStartAngle;
+            _relayOrbit = new OrbitElements(RelayRadius, 0.0, 0.0, 0.0, 0.0, relayStartAngle, 0.0, KerbinMu);
+        }
 
         /// <summary>The relay's light-time from the home centre, in seconds.</summary>
         public double RelayFromHomeSeconds { get; set; } = 600.0;
@@ -159,7 +175,7 @@ namespace Sitrep.Host.IntegrationTests
             lock (_gate)
             {
                 var meanMotion = Math.Sqrt(KerbinMu / (RelayRadius * RelayRadius * RelayRadius));
-                var angle = RelayStartAngle + (meanMotion * ut);
+                var angle = _relayStartAngle + (meanMotion * ut);
                 const double ecc = 0.3;
                 _relayOrbit = new OrbitElements(RelayRadius / (1.0 - ecc), ecc, 0.0, 0.0, angle, 0.0, ut, KerbinMu);
             }
@@ -211,9 +227,14 @@ namespace Sitrep.Host.IntegrationTests
 
         private const string RelayStateTopic = "fleet." + ScriptedContactGame.RelayGuid + ".state";
 
+        /// <summary>A control-channel write, a throttle, whose subject here is the relay.</summary>
+        public const string ThrottleCommand = "vessel.control.setThrottle";
+
         private readonly ScriptedContactGame _game;
         private readonly ChannelEngine _engine;
         private readonly ContactPlanSource _source;
+        private readonly DeliveryInputs _inputs = new DeliveryInputs();
+        private int _throttled;
         private readonly ConcurrentDictionary<(string Centre, string VesselId), CraftState> _heard =
             new ConcurrentDictionary<(string, string), CraftState>();
         private float _wall;
@@ -226,6 +247,8 @@ namespace Sitrep.Host.IntegrationTests
             _engine = engine;
             // Every look is ten seconds of wall time after the last, so no tick is skipped for pacing.
             _source = new ContactPlanSource(game, () => _wall += 10f, planInline: true);
+            _inputs.SetLightFactor(ScriptedContactGame.LightFactor);
+            engine.SetDeliveryInputs(_inputs);
             var channels = ContactPlanSource.Channels();
             channels.Add(new ChannelDeclaration
             {
@@ -242,14 +265,21 @@ namespace Sitrep.Host.IntegrationTests
                 Commands = new List<CommandDeclaration>
                 {
                     new CommandDeclaration { Command = RelayCommand, Delay = DelayRole.Delayed, Subject = RelayStateTopic },
+                    new CommandDeclaration { Command = ThrottleCommand, Delay = DelayRole.Delayed, Subject = RelayStateTopic },
                 },
             };
         }
 
         public UplinkManifest Manifest { get; }
 
+        /// <summary>What store-and-forward reads of the live game here.</summary>
+        public DeliveryInputs Inputs => _inputs;
+
         /// <summary>How many times the relay's command has run aboard it.</summary>
         public int HandledCount => Volatile.Read(ref _handled);
+
+        /// <summary>How many throttle writes have run aboard the relay.</summary>
+        public int ThrottledCount => Volatile.Read(ref _throttled);
 
         /// <summary>The newest state of a craft that has reached <paramref name="centre"/>, or null when it has heard nothing of it.</summary>
         public CraftState? Heard(string centre, string vesselId) =>
@@ -269,6 +299,11 @@ namespace Sitrep.Host.IntegrationTests
             {
                 Interlocked.Increment(ref _handled);
                 return "done:" + args;
+            });
+            host.AddCommandHandler<Dictionary<string, object?>, string>(ThrottleCommand, _ =>
+            {
+                Interlocked.Increment(ref _throttled);
+                return "throttled";
             });
             host.SetSignalDelaySource(_ => new CommsDelay { OneWaySeconds = _game.ActiveSeconds, Source = CommsDelaySource.SignalDelay });
             host.SetConnectivitySource(_ => _game.ActiveConnected);
@@ -303,6 +338,16 @@ namespace Sitrep.Host.IntegrationTests
                 rows.Add((ScriptedContactGame.Far, ScriptedContactGame.RelayGuid, ledger.RelayFromFarSeconds));
             }
             _engine.SetAuthorityDelays(rows);
+
+            // The live links, for whether light that was sent lands and for a
+            // relay's own link: the relay to each centre while it has one.
+            var links = new List<(string, string, double)>();
+            if (ledger.RelayExists && ledger.RelayConnected)
+            {
+                links.Add((ScriptedContactGame.Home, ScriptedContactGame.Relay, ledger.RelayFromHomeSeconds));
+                links.Add((ScriptedContactGame.Far, ScriptedContactGame.Relay, ledger.RelayFromFarSeconds));
+            }
+            _inputs.SetLinks(new LiveLinkGraph(links));
         }
 
         private sealed class Ledger
@@ -340,6 +385,12 @@ namespace Sitrep.Host.IntegrationTests
 
         public string? Routes => _latest.TryGetValue(ContactPlanSource.RouteTopic, out var payload) ? payload : null;
 
+        /// <summary>The last payload received on <paramref name="topic"/>, or null when none has been.</summary>
+        public string? Latest(string topic) => _latest.TryGetValue(topic, out var payload) ? payload : null;
+
+        /// <summary>When the last frame on each topic was valid and when it was delivered.</summary>
+        public Dictionary<string, (double ValidAt, double DeliveredAt)> Stamps { get; } = new Dictionary<string, (double, double)>(StringComparer.Ordinal);
+
         /// <summary>How many contact plans this centre has been sent.</summary>
         public int ContactsFrames { get; private set; }
 
@@ -349,6 +400,7 @@ namespace Sitrep.Host.IntegrationTests
         public void Received(string topic, string payload, double validAt, double deliveredAt, string vantage)
         {
             _latest[topic] = payload;
+            Stamps[topic] = (validAt, deliveredAt);
             if (topic == ContactPlanSource.ContactsTopic)
             {
                 ContactsFrames++;
@@ -450,10 +502,10 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>What the far centre's screen holds as of the last <see cref="SettleAsync"/>.</summary>
         public CentreView Far { get; } = new CentreView();
 
-        public static async Task<ReckonedVantageWorld> StartAsync()
+        public static async Task<ReckonedVantageWorld> StartAsync(ScriptedContactGame? scripted = null)
         {
             var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            var game = new ScriptedContactGame();
+            var game = scripted ?? new ScriptedContactGame();
             engine.RegisterCommandCentreSource(new Grounds(ScriptedContactGame.Home, ScriptedContactGame.Far));
             var uplink = new ScriptedContactUplink(game, engine);
             engine.RegisterUplink(uplink);
@@ -513,9 +565,14 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>A further session sitting down at <paramref name="centre"/> now, and what its screen comes to hold.</summary>
-        public async Task<(TestClient Client, CentreView View)> SitDownAtAsync(string centre)
+        public async Task<(TestClient Client, CentreView View)> SitDownAtAsync(string centre, params string[] alsoSubscribe)
         {
-            return (await ConnectAtAsync(centre), new CentreView());
+            var client = await ConnectAtAsync(centre);
+            foreach (var topic in alsoSubscribe)
+            {
+                Assert.Equal("subscribed", (await SubscribeAsync(client, topic, Timeout)).Name);
+            }
+            return (client, new CentreView());
         }
 
         /// <summary>Waits for <paramref name="client"/>'s socket to go quiet and takes in everything that arrived.</summary>

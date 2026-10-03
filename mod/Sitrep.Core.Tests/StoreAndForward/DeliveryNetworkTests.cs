@@ -177,10 +177,13 @@ namespace Sitrep.Core.Tests.StoreAndForward
             rig.Links.Down(Ksc, Probe);
             rig.Tick(11.0);
             Assert.Empty(rig.Ran);
-            Assert.Contains(rig.Network.HeldMessages(), h => h.Node == Ksc);
+            Assert.Contains(rig.Network.InCustody(), h => h.Node == Ksc && h.UntilUt == 20.0);
 
             rig.Links.Up(Ksc, Probe, light: 10.0);
             rig.Tick(15.0);
+            Assert.Empty(rig.Network.InFlight());
+            rig.Tick(20.5);
+            Assert.Contains(rig.Network.HeldMessages(), h => h.Node == Ksc);
             Assert.Empty(rig.Network.InFlight());
 
             rig.Network.PlanChanged();
@@ -281,6 +284,33 @@ namespace Sitrep.Core.Tests.StoreAndForward
             Assert.Equal(1L, ran.Seq);
         }
 
+        [Fact]
+        public void ACancelAfterARestoreStillChasesACommandThatHadLeftTheSender()
+        {
+            var rig = new Rig();
+            rig.Links.Up(Ksc, Relay, light: 1.0);
+            rig.Routes.Plan = (from, to, ut) => from == Relay
+                ? new[] { new PlannedHop(Probe, Math.Max(ut, 50.0), Math.Max(ut, 50.0) + 1.0) }
+                : new[] { new PlannedHop(Relay, ut, ut + 1.0), new PlannedHop(Probe, 50.0, 51.0) };
+            rig.Send(0.0);
+            rig.RunTo(10.0);
+            var saved = rig.Network.Snapshot();
+
+            var restored = new Rig();
+            restored.Routes.Plan = rig.Routes.Plan;
+            restored.Links.Up(Ksc, Relay, light: 1.0);
+            restored.Network.Restore(saved, epoch: 2);
+            restored.RunTo(10.0);
+
+            var cancel = restored.Network.Cancel(new LaneKey(2, Lane.Vantage, Lane.Craft), 1, andBehind: false, 10.0);
+            restored.RunTo(20.0);
+            restored.Links.Up(Relay, Probe);
+            restored.RunTo(60.0);
+
+            Assert.NotNull(cancel);
+            Assert.Empty(restored.Ran);
+        }
+
         /// <summary>
         /// A command's handler can wait on another thread, as production waits on
         /// the main thread, and that thread must be able to use the network
@@ -325,15 +355,7 @@ namespace Sitrep.Core.Tests.StoreAndForward
                     : new[] { new PlannedHop(Probe, ut + random.Next(0, 20), ut + 21.0) };
                 for (var ut = 0.0; ut < 600.0; ut += 1.0)
                 {
-                    var roll = random.NextDouble();
-                    if (roll < 0.08) rig.Send(ut);
-                    else if (roll < 0.14) rig.Links.Up(Ksc, Probe, random.Next(1, 15));
-                    else if (roll < 0.20) rig.Links.Down(Ksc, Probe);
-                    else if (roll < 0.25) rig.Links.Up(Ksc, Relay, random.Next(1, 10));
-                    else if (roll < 0.30) rig.Links.Up(Relay, Probe, random.Next(1, 10));
-                    else if (roll < 0.35) rig.Links.Down(Relay, Probe);
-                    else if (roll < 0.37) rig.Network.PlanChanged();
-                    else if (roll < 0.39) { rig.Tick(ut); rig.Network.Cancel(Lane, random.Next(1, 10), random.NextDouble() < 0.5, ut); }
+                    RandomStep(rig, random, ut);
                     rig.Tick(ut);
                 }
                 var order = rig.Ran.Select(r => r.Seq).ToList();
@@ -341,6 +363,52 @@ namespace Sitrep.Core.Tests.StoreAndForward
                 {
                     Assert.True(order[i] > order[i - 1], "seed " + seed + " ran " + string.Join(",", order));
                 }
+            }
+        }
+
+        /// <summary>One random event for the ordering property: a send, a link up or down, a plan change, a cancel, or nothing.</summary>
+        private static void RandomStep(Rig rig, Random random, double ut)
+        {
+            var roll = random.NextDouble();
+            if (roll < 0.08)
+            {
+                rig.Send(ut);
+                return;
+            }
+            if (roll < 0.14)
+            {
+                rig.Links.Up(Ksc, Probe, random.Next(1, 15));
+                return;
+            }
+            if (roll < 0.20)
+            {
+                rig.Links.Down(Ksc, Probe);
+                return;
+            }
+            if (roll < 0.25)
+            {
+                rig.Links.Up(Ksc, Relay, random.Next(1, 10));
+                return;
+            }
+            if (roll < 0.30)
+            {
+                rig.Links.Up(Relay, Probe, random.Next(1, 10));
+                return;
+            }
+            if (roll < 0.35)
+            {
+                rig.Links.Down(Relay, Probe);
+                return;
+            }
+            if (roll < 0.37)
+            {
+                rig.Network.PlanChanged();
+                return;
+            }
+            if (roll < 0.39)
+            {
+                rig.Tick(ut);
+                rig.Network.Cancel(Lane, random.Next(1, 10), random.NextDouble() < 0.5, ut);
             }
         }
     }

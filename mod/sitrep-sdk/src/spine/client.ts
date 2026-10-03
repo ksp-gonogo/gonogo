@@ -839,7 +839,12 @@ export class TelemetryClient {
       return;
     }
     if (message.type === "command-accepted") {
-      this.handleCommandAccepted(message.requestId, message.oneWaySeconds);
+      this.handleCommandAccepted(
+        message.requestId,
+        message.oneWaySeconds,
+        message.predictedReplyUt,
+        message.expiresAtUt,
+      );
       return;
     }
     if (message.type === "error") {
@@ -966,6 +971,8 @@ export class TelemetryClient {
   private handleCommandAccepted(
     requestId: string,
     oneWaySeconds: number,
+    predictedReplyUt?: number | null,
+    expiresAtUt?: number | null,
   ): void {
     const pending = this.commands.get(requestId);
     if (!pending) return;
@@ -977,7 +984,17 @@ export class TelemetryClient {
     if (!pending.resolve) return;
     if (!Number.isFinite(oneWaySeconds) || oneWaySeconds < 0) return;
 
-    const etaConfirm = this.clock.now() + 2 * oneWaySeconds;
+    /*
+     * A held command replies when its route says, waits included, which can be
+     * long after twice the one-way time; one with no predicted route can still
+     * run up to its expiry.
+     */
+    const etaConfirm =
+      predictedReplyUt != null && Number.isFinite(predictedReplyUt)
+        ? predictedReplyUt
+        : expiresAtUt != null && Number.isFinite(expiresAtUt)
+          ? expiresAtUt
+          : this.clock.now() + 2 * oneWaySeconds;
     pending.cancelLossTimer?.();
     pending.status = { phase: "in-flight", requestId, etaConfirm };
     pending.cancelLossTimer = this.clock.schedule(

@@ -13,6 +13,6 @@
     ],
     "heldAtHome": ["uplinktest.ledger"],
     "trueNowPrefixes": ["uplinktest.live."],
-    "addressed": ["uplinktest.said"]
+    "addressed": ["comms.journey", "uplinktest.said"]
   }
 }

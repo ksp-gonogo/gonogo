@@ -390,6 +390,12 @@ public static class RtConfig
                 typeof(CommsRoutes),
                 typeof(CommsRoute),
                 typeof(CommsRouteHold),
+                // comms.journey and the store-and-forward commands
+                typeof(CommsJourney),
+                typeof(CommsJourneyEvent),
+                typeof(UplinkCancelRequest),
+                typeof(UplinkResendRequest),
+                typeof(UplinkActionReply),
                 // commcast.traffic, and the descriptor that opens every
                 // commcast.radio frame on the binary lane
                 typeof(CommcastTraffic),
@@ -463,6 +469,7 @@ public static class RtConfig
                 typeof(CommsControlStateKind),
                 typeof(CommsDelaySource),
                 typeof(CommsHopKind),
+                typeof(JourneyEventKind),
                 typeof(ControlState),
                 typeof(SasMode),
                 typeof(Situation),

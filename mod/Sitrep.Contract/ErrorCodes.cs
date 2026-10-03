@@ -206,6 +206,20 @@ public sealed class FaultCode : IEquatable<FaultCode>
     /// <summary>A <c>set-vantage</c>, or a command's <c>vantage</c>, naming a command centre that is not active.</summary>
     public static readonly FaultCode UnknownVantage = Mod("unknownVantage", "that command centre is not active");
 
+    /// <summary>A held command reached its expiry, or its place on the lane passed, before it could run.</summary>
+    public static readonly FaultCode CommandExpired = Mod("commandExpired", "it expired before it could run");
+
+    /// <summary>A cancel stopped the command before it ran.</summary>
+    public static readonly FaultCode CommandCancelled = Mod("commandCancelled", "it was cancelled before it ran");
+
+    /// <summary>
+    /// A continuous input, a throttle or a control axis, was refused because the
+    /// sending command centre's own plan says it would wait at a node on its way
+    /// to the craft. Held and sent on later it would arrive as a run of stale
+    /// values, so it is not sent at all.
+    /// </summary>
+    public static readonly FaultCode ContinuousInputWouldWait = Mod("continuousInputWouldWait", "it would wait on its way, and a continuous input cannot");
+
     /// <summary>The transport held the command for a link that never came back, and has stopped retrying. It never left this machine.</summary>
     public static readonly FaultCode Undelivered = Client("undelivered", "it was never sent");
 

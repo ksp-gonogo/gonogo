@@ -24,12 +24,16 @@ namespace Sitrep.Host.Comms
         }
 
         private readonly ICraftStateHost _host;
+        private readonly Action<string, string>? _onHeard;
         private readonly Dictionary<string, Ear> _ears = new Dictionary<string, Ear>(StringComparer.Ordinal);
         private readonly HashSet<string> _craft = new HashSet<string>(StringComparer.Ordinal);
 
-        public CentreHearing(ICraftStateHost host)
+        /// <param name="host">Where each craft's states are heard.</param>
+        /// <param name="onHeard">Told the centre and the craft each time news of that craft reaches that centre.</param>
+        public CentreHearing(ICraftStateHost host, Action<string, string>? onHeard = null)
         {
             _host = host;
+            _onHeard = onHeard;
         }
 
         /// <summary>
@@ -68,7 +72,14 @@ namespace Sitrep.Host.Comms
                     // Placed before the subscribe, which may deliver at once.
                     ear.Stop[vesselId] = () => { };
                     var listeningEar = ear;
-                    ear.Stop[vesselId] = _host.HearCraftState(vesselId, centre, state => Heard(listeningEar, state));
+                    var listeningCentre = centre;
+                    ear.Stop[vesselId] = _host.HearCraftState(vesselId, centre, state =>
+                    {
+                        if (Heard(listeningEar, state))
+                        {
+                            _onHeard?.Invoke(listeningCentre, state.Id);
+                        }
+                    });
                 }
             }
         }
@@ -119,14 +130,15 @@ namespace Sitrep.Host.Comms
         }
 
         /// <summary>An older state arriving after a newer one, down a path that has since shortened, changes nothing: the centre keeps the newest news it has.</summary>
-        private static void Heard(Ear ear, CraftState state)
+        private static bool Heard(Ear ear, CraftState state)
         {
             if (ear.Heard.TryGetValue(state.Id, out var held) && held.CapturedUt >= state.CapturedUt)
             {
-                return;
+                return false;
             }
             ear.Heard[state.Id] = state;
             ear.News++;
+            return true;
         }
 
         private static bool Contains(IReadOnlyCollection<string> centres, string centre)

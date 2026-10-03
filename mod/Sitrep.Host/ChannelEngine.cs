@@ -1465,6 +1465,9 @@ namespace Sitrep.Host
                 (args, _) => WriteModSetting(BindCommandArgs(args, typeof(WriteModSettingArgs)) as WriteModSettingArgs);
             _commandArgTypes[WriteModSettingCommand] = typeof(WriteModSettingArgs);
 
+            // Store-and-forward: comms.journey and the cancel and send-again commands.
+            DeclareDeliveryChannels();
+
             // Built-in system.uplink.pending declaration + source: see
             // UplinkPendingTopic's doc comment. Declared (and its source
             // wired) BEFORE Start(), same single-writer-before-start rule as
@@ -5868,8 +5871,8 @@ namespace Sitrep.Host
         /// resolving only once <see cref="Tick"/> advances the clock far enough.
         /// See <see cref="ResolveCommandDelay"/> for where the answer comes from.
         /// </summary>
-        public void DispatchCommand(string command, object? args, string vantage, Action<object?> onResult, string label = "", string topic = "", Action<FaultCode, string>? onRefused = null, Action<double>? onAccepted = null, Action<string>? onMalformed = null, string clientRequestId = "", string? sessionId = null) =>
-            EnqueueJob(new DispatchCommandJob(command, args, vantage, onResult, null, label, topic, onRefused, onAccepted, onMalformed, clientRequestId, sessionId));
+        public void DispatchCommand(string command, object? args, string vantage, Action<object?> onResult, string label = "", string topic = "", Action<FaultCode, string>? onRefused = null, Action<double>? onAccepted = null, Action<string>? onMalformed = null, string clientRequestId = "", string? sessionId = null, Action<double, double?, double?>? onAcceptedHeld = null) =>
+            EnqueueJob(new DispatchCommandJob(command, args, vantage, onResult, null, label, topic, onRefused, onAccepted, onMalformed, clientRequestId, sessionId) { OnAcceptedHeld = onAcceptedHeld });
 
         /// <summary>
         /// Test-only deterministic variant of <see cref="DispatchCommand"/>: blocks
@@ -7103,7 +7106,9 @@ namespace Sitrep.Host
             // keyframe on the new timeline too.
             // A different save is a different timeline whatever its UT says, so
             // its history goes whole rather than from the tick's UT onward.
-            var saveChanged = tick.Save != null && _timelineSave != null && tick.Save != _timelineSave;
+            // A game load is a new timeline whatever its save or UT says, so held
+            // commands from one game never carry into another.
+            var saveChanged = (tick.Save != null && _timelineSave != null && tick.Save != _timelineSave) || TakeGameLoaded();
             if (tick.Save != null)
             {
                 _timelineSave = tick.Save;
@@ -7150,6 +7155,7 @@ namespace Sitrep.Host
                 // rather than carried forward or pruned normally.
                 _pending.Clear();
                 _pendingDispatcher.Clear();
+                ResetDelivery();
                 RecomputeChannelBirthFromArchive();
                 BroadcastTimelineReset();
                 NotifyTimelineResetListeners();
@@ -7415,6 +7421,7 @@ namespace Sitrep.Host
             PruneAllConnectivityHistory();
 
             _clock.AdvanceTo(tick.Ut);
+            TickDelivery(tick.Snapshot, tick.Ut);
             tick.Done?.Set();
         }
 
@@ -7557,6 +7564,13 @@ namespace Sitrep.Host
 
         private void ProcessDispatchCommand(DispatchCommandJob job)
         {
+            // A cancel or a send again acts on the store-and-forward network, which
+            // lives on this thread; it never runs on the game's main thread.
+            if (TryHandleUplinkAction(job))
+            {
+                return;
+            }
+
             // IMPORTANT-A: an unknown command AND a command whose owning
             // uplink has gone Unavailable are treated identically at the WIRE
             // level, one "unknown/unavailable command" refusal code. They are
@@ -7675,6 +7689,13 @@ namespace Sitrep.Host
             // the CPU during signal loss. _commsConnected is Courier-thread
             // state (set by the tick job in ApplyConnectivity), read here on
             // that same thread.
+            // A delayed command for a craft is held and routed rather than dropped
+            // when there is no live path: store-and-forward takes it from here.
+            if (TryDispatchHeld(job, node))
+            {
+                return;
+            }
+
             if (!CanSend(job.Vantage, node))
             {
                 job.Done?.Set();
@@ -7779,6 +7800,16 @@ namespace Sitrep.Host
 
         private IReadOnlyDictionary<string, string> _controlChannelValueKeys;
 
+        /// <summary>
+        /// How long the centre predicted a report would take to come home from the
+        /// craft: a command that expires or runs out there at its last moment is
+        /// still owed that long before its entry and its request are let go.
+        /// </summary>
+        private static double ReportHomeSeconds(PendingUplink entry) =>
+            entry.PredictedReplyUt != null && entry.PredictedArrivalUt != null
+                ? Math.Max(0.0, entry.PredictedReplyUt.Value - entry.PredictedArrivalUt.Value)
+                : entry.OneWaySeconds;
+
         private string NextRequestId() => "c" + Interlocked.Increment(ref _requestSeq);
 
         /// <summary>
@@ -7798,10 +7829,16 @@ namespace Sitrep.Host
             }
             _pending.RemoveAll(entry =>
             {
-                var due = ut > entry.DispatchedAt + (2 * entry.OneWaySeconds);
+                // A held command's entry goes when its settling report reaches this
+                // centre; this is only the backstop, past both its predicted reply
+                // and its expiry, after which no copy of it can still run.
+                var due = entry.LaneSeq == null
+                    ? ut > entry.DispatchedAt + (2 * entry.OneWaySeconds)
+                    : ut > Math.Max(entry.PredictedReplyUt ?? entry.DispatchedAt + (2 * entry.OneWaySeconds), (entry.ExpiresAtUt ?? 0.0) + ReportHomeSeconds(entry)) + PendingSettleMarginSeconds;
                 if (due)
                 {
                     _pendingDispatcher.Remove(entry.Id);
+                    ForgetDeliveryJobs(entry);
                 }
                 return due;
             });
@@ -8457,6 +8494,19 @@ namespace Sitrep.Host
                                 Message = reason,
                             };
                             session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteErrorMsg(error)));
+                        }, onAcceptedHeld: (oneWaySeconds, predictedReplyUt, expiresAtUt) =>
+                        {
+                            // A held command: the reply may come long after twice the
+                            // one-way time, so the client sizes its loss deadline from
+                            // the predicted reply and the expiry instead.
+                            var held = new CommandAccepted
+                            {
+                                RequestId = req.RequestId,
+                                OneWaySeconds = oneWaySeconds,
+                                PredictedReplyUt = predictedReplyUt,
+                                ExpiresAtUt = expiresAtUt,
+                            };
+                            session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteCommandAccepted(held)));
                         }, onAccepted: oneWaySeconds =>
                         {
                             // The command is in flight and this is when to
@@ -8772,6 +8822,13 @@ namespace Sitrep.Host
             /// command addressed anywhere else.</para>
             /// </summary>
             public readonly Action<double>? OnAccepted;
+            /// <summary>
+            /// Called instead of <see cref="OnAccepted"/> when the dispatch is held
+            /// for store-and-forward, with the one-way time, the predicted reply and
+            /// the command's expiry. Null for a caller that only wants the one-way
+            /// time, which then gets <see cref="OnAccepted"/>.
+            /// </summary>
+            public Action<double, double?, double?>? OnAcceptedHeld { get; set; }
             /// <summary>
             /// Called instead of <see cref="OnResult"/> when the dispatch's args
             /// cannot bind to the command's declared args type, carrying the

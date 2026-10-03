@@ -265,6 +265,15 @@ namespace Sitrep.Contract.Serialization
                 case Sitrep.Contract.CommsRouteHold hold:
                     AppendCommsRouteHold(sb, hold);
                     break;
+                case Sitrep.Contract.CommsJourney journey:
+                    AppendCommsJourney(sb, journey);
+                    break;
+                case Sitrep.Contract.CommsJourneyEvent journeyEvent:
+                    AppendCommsJourneyEvent(sb, journeyEvent);
+                    break;
+                case Sitrep.Contract.UplinkActionReply uplinkActionReply:
+                    AppendUplinkActionReply(sb, uplinkActionReply);
+                    break;
                 case Sitrep.Contract.CommandCentreActiveVesselDelay activeVesselDelay:
                     AppendCommandCentreActiveVesselDelay(sb, activeVesselDelay);
                     break;
@@ -1329,6 +1338,76 @@ namespace Sitrep.Contract.Serialization
                 AppendNumber(sb, entry.CommandedValue.Value);
             }
 
+            sb.Append(',');
+            AppendString(sb, "laneSeq");
+            sb.Append(':');
+            if (entry.LaneSeq.HasValue)
+            {
+                AppendInteger(sb, entry.LaneSeq.Value);
+            }
+            else
+            {
+                AppendNull(sb);
+            }
+            sb.Append(',');
+            AppendString(sb, "craft");
+            sb.Append(':');
+            if (entry.Craft != null)
+            {
+                AppendString(sb, entry.Craft);
+            }
+            else
+            {
+                AppendNull(sb);
+            }
+            sb.Append(',');
+            AppendString(sb, "expiresAtUt");
+            sb.Append(':');
+            AppendNullableNumber(sb, entry.ExpiresAtUt);
+            sb.Append(',');
+            AppendString(sb, "predictedArrivalUt");
+            sb.Append(':');
+            AppendNullableNumber(sb, entry.PredictedArrivalUt);
+            sb.Append(',');
+            AppendString(sb, "predictedReplyUt");
+            sb.Append(':');
+            AppendNullableNumber(sb, entry.PredictedReplyUt);
+            sb.Append(',');
+            AppendString(sb, "predictedHeldAt");
+            sb.Append(':');
+            if (entry.PredictedHeldAt != null)
+            {
+                AppendString(sb, entry.PredictedHeldAt);
+            }
+            else
+            {
+                AppendNull(sb);
+            }
+            sb.Append(',');
+            AppendString(sb, "predictedHeldUntilUt");
+            sb.Append(':');
+            AppendNullableNumber(sb, entry.PredictedHeldUntilUt);
+            sb.Append(',');
+            AppendString(sb, "cancelDeadlineUt");
+            sb.Append(':');
+            AppendNullableNumber(sb, entry.CancelDeadlineUt);
+            sb.Append(',');
+            AppendString(sb, "attempts");
+            sb.Append(':');
+            AppendInteger(sb, entry.Attempts);
+            sb.Append(',');
+            AppendString(sb, "members");
+            sb.Append(':');
+            sb.Append('[');
+            var firstMember = true;
+            foreach (var member in entry.Members ?? new List<string>())
+            {
+                if (!firstMember) sb.Append(',');
+                firstMember = false;
+                AppendString(sb, member);
+            }
+            sb.Append(']');
+
             sb.Append('}');
         }
 
@@ -1577,6 +1656,104 @@ namespace Sitrep.Contract.Serialization
                 }
             }
             sb.Append(']');
+            sb.Append('}');
+        }
+
+        private static void AppendCommsJourney(StringBuilder sb, Sitrep.Contract.CommsJourney j)
+        {
+            sb.Append('{');
+            AppendString(sb, "epoch");
+            sb.Append(':');
+            AppendInteger(sb, j.Epoch);
+            sb.Append(',');
+            AppendString(sb, "events");
+            sb.Append(':');
+            sb.Append('[');
+            var first = true;
+            foreach (var e in j.Events ?? new List<Sitrep.Contract.CommsJourneyEvent>())
+            {
+                if (!first) sb.Append(',');
+                first = false;
+                AppendCommsJourneyEvent(sb, e);
+            }
+            sb.Append(']');
+            sb.Append('}');
+        }
+
+        private static void AppendCommsJourneyEvent(StringBuilder sb, Sitrep.Contract.CommsJourneyEvent e)
+        {
+            sb.Append('{');
+            AppendString(sb, "id");
+            sb.Append(':');
+            AppendString(sb, e.Id ?? "");
+            sb.Append(',');
+            AppendString(sb, "about");
+            sb.Append(':');
+            AppendString(sb, e.About ?? "");
+            sb.Append(',');
+            AppendString(sb, "craft");
+            sb.Append(':');
+            AppendString(sb, e.Craft ?? "");
+            sb.Append(',');
+            AppendString(sb, "laneSeq");
+            sb.Append(':');
+            AppendInteger(sb, e.LaneSeq);
+            sb.Append(',');
+            AppendString(sb, "kind");
+            sb.Append(':');
+            AppendInteger(sb, (int)e.Kind);
+            sb.Append(',');
+            AppendString(sb, "at");
+            sb.Append(':');
+            AppendString(sb, e.At ?? "");
+            sb.Append(',');
+            AppendString(sb, "atUt");
+            sb.Append(':');
+            AppendNumber(sb, e.AtUt);
+            sb.Append(',');
+            AppendString(sb, "untilUt");
+            sb.Append(':');
+            AppendNullableNumber(sb, e.UntilUt);
+            sb.Append(',');
+            AppendString(sb, "detail");
+            sb.Append(':');
+            if (e.Detail != null)
+            {
+                AppendString(sb, e.Detail);
+            }
+            else
+            {
+                AppendNull(sb);
+            }
+            sb.Append(',');
+            AppendString(sb, "missing");
+            sb.Append(':');
+            sb.Append('[');
+            var first = true;
+            foreach (var seq in e.Missing ?? new List<long>())
+            {
+                if (!first) sb.Append(',');
+                first = false;
+                AppendInteger(sb, seq);
+            }
+            sb.Append(']');
+            sb.Append('}');
+        }
+
+        private static void AppendUplinkActionReply(StringBuilder sb, Sitrep.Contract.UplinkActionReply r)
+        {
+            sb.Append('{');
+            AppendString(sb, "throughSeq");
+            sb.Append(':');
+            AppendInteger(sb, r.ThroughSeq);
+            sb.Append(',');
+            AppendString(sb, "id");
+            sb.Append(':');
+            AppendString(sb, r.Id ?? "");
+            sb.Append(',');
+            AppendString(sb, "expiresAtUt");
+            sb.Append(':');
+            AppendNumber(sb, r.ExpiresAtUt);
             sb.Append('}');
         }
 

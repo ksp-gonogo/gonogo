@@ -85,6 +85,10 @@ const OMITTED_WHEN_NULL = new Set([
   "Meta.gapSinceUt",
   // EnvelopeCodec.AppendMeta guards it on HasValue too: only a payload that states a quality puts one on its envelope.
   "Meta.quality",
+  /* EnvelopeCodec's CommandAccepted writer guards both on HasValue: only a
+     command held for store-and-forward carries them. */
+  "CommandAccepted.predictedReplyUt",
+  "CommandAccepted.expiresAtUt",
   // JsonWriter.AppendPendingUplink guards it on HasValue, because a zero throttle and an unknown value must never arrive looking the same.
   "PendingUplink.commandedValue",
   // JsonWriter.AppendCommandResult writes neither key on a success, rather than putting an empty refusal shape on every ack.

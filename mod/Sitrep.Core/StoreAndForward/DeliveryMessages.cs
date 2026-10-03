@@ -56,6 +56,22 @@ namespace Sitrep.Core.StoreAndForward
 
         /// <summary>When the message is deleted wherever it is, or infinity for a report, which has no lifetime.</summary>
         public abstract double ExpiresUt { get; }
+
+        /// <summary>
+        /// The plan this message travels by: the one its command's sending centre
+        /// held when the command left it. A relay routes the rest of the way from
+        /// this and nothing newer, since a craft has no way to know what the
+        /// centre has learned since. Null under a network that sends on the live
+        /// path, and after a game load, which saves no plan.
+        /// </summary>
+        public IDeliveryRoutes? Plan { get; set; }
+
+        /// <summary>
+        /// The hops that plan chose when the message last left a node, the next one
+        /// first. Saved with the game, so a message whose plan was lost to a load
+        /// still knows which link it is waiting for.
+        /// </summary>
+        public List<PlannedHop> Route { get; set; } = new List<PlannedHop>();
     }
 
     /// <summary>A delayed command on its way to the craft.</summary>
@@ -203,6 +219,9 @@ namespace Sitrep.Core.StoreAndForward
 
         /// <summary>For a waiting report, the lane numbers the craft is still missing.</summary>
         public IReadOnlyList<long>? Missing { get; set; }
+
+        /// <summary>When it reached its command centre: set as it is delivered there, and the same as <see cref="AtUt"/> for one made at the centre itself.</summary>
+        public double LandedUt { get; set; }
 
         public override string Destination => To;
 

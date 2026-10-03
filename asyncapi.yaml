@@ -1,10 +1,10 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 28.6.0
+  version: 28.7.0
   description: |-
-    The wire contract of the Gonogo mod's telemetry socket: 83 telemetry
-    channels a client subscribes to, and 58 commands it dispatches, with the payload
+    The wire contract of the Gonogo mod's telemetry socket: 84 telemetry
+    channels a client subscribes to, and 60 commands it dispatches, with the payload
     schema and the contract's own prose for each.
 
     **Generated.** Emitted by `scripts/asyncapi-doc.mjs` from the committed
@@ -158,7 +158,7 @@ info:
     - name: commcast
       description: 2 telemetry channels, 5 commands
     - name: comms
-      description: 12 telemetry channels, 0 commands
+      description: 13 telemetry channels, 0 commands
     - name: crash
       description: 1 telemetry channel, 0 commands
     - name: deployed
@@ -192,7 +192,7 @@ info:
     - name: spaceCenter
       description: 7 telemetry channels, 0 commands
     - name: system
-      description: 3 telemetry channels, 2 commands
+      description: 3 telemetry channels, 4 commands
     - name: target
       description: 1 telemetry channel, 0 commands
     - name: time
@@ -1071,6 +1071,39 @@ channels:
     messages:
       streamData:
         $ref: "#/components/messages/streamData.comms.delay"
+      event:
+        $ref: "#/components/messages/event"
+  comms.journey:
+    address: comms.journey
+    description: |-
+      Carries a `CommsJourney`.
+
+      Journey reports for this vantage's commands in the current timeline: where
+      each was held, sent on, stopped or run, as reports from those nodes arrive
+      back here.
+
+      Every report has already travelled from the node that made it to this
+      centre, at light speed and through any holds of its own, so a report arrives
+      on this topic when this centre could first know it. Order a command's events
+      by `CommsJourneyEvent.atUt`, not by arrival: two reports from different
+      nodes travel different routes. A terminal event is never undone by an
+      earlier one arriving late.
+
+      A report made here, by this centre, says only what this centre could know.
+      It reports a command held while its own plan says the way is shut, and sent
+      on when its plan says the way is open, whatever the far end is doing; and it
+      reports a command that went unanswered only once twice the light time it
+      expected has passed.
+
+      Each session receives only its own vantage's events.
+    servers:
+      - $ref: "#/servers/mod"
+    x-sitrep-delivery: lossy-latest
+    x-sitrep-delay-role: delayed
+    x-sitrep-keyframe-interval-ut: 30
+    messages:
+      streamData:
+        $ref: "#/components/messages/streamData.comms.journey"
       event:
         $ref: "#/components/messages/event"
   comms.link:
@@ -2694,6 +2727,52 @@ channels:
         $ref: "#/components/messages/commandRequest.system.frame.set"
       commandResponse:
         $ref: "#/components/messages/commandResponse.system.frame.set"
+  system.uplink.cancel:
+    address: system.uplink.cancel
+    description: |-
+      Takes `UplinkCancelRequest`.
+
+      **Not delayed.** This command takes effect immediately, because it is ground-side bookkeeping rather than a signal to a craft.
+
+      Cancels a held or travelling command: its lane number alone, or it and every
+      later number this centre had sent on the lane when it was pressed. A command
+      this centre is still holding stops at once; for one it has sent, a cancel
+      goes to the craft, stopping the command wherever it is held and refusing it
+      at the craft if it arrives there first. What it stopped arrives as journey
+      reports.
+
+      The reply says the cancel was sent, never that the command was stopped. A
+      command sent less than twice its light time ago may have been lost on the
+      way, in which case it is still this centre's, but the centre cannot know
+      that yet, so the cancel is sent after it all the same and the command is
+      reported cancelled here only once it is known to have come back.
+    servers:
+      - $ref: "#/servers/mod"
+    x-sitrep-delayed: false
+    messages:
+      commandRequest:
+        $ref: "#/components/messages/commandRequest.system.uplink.cancel"
+      commandResponse:
+        $ref: "#/components/messages/commandResponse.system.uplink.cancel"
+  system.uplink.resend:
+    address: system.uplink.resend
+    description: |-
+      Takes `UplinkResendRequest`.
+
+      **Not delayed.** This command takes effect immediately, because it is ground-side bookkeeping rather than a signal to a craft.
+
+      Sends a held or overdue command again in its own place on its lane: a new
+      copy with the same lane number, which must arrive before the commands behind
+      it stop waiting for it. Whichever copy reaches the craft first runs; any
+      other is discarded.
+    servers:
+      - $ref: "#/servers/mod"
+    x-sitrep-delayed: false
+    messages:
+      commandRequest:
+        $ref: "#/components/messages/commandRequest.system.uplink.resend"
+      commandResponse:
+        $ref: "#/components/messages/commandResponse.system.uplink.resend"
   system.vessels:
     address: system.vessels
     description: |-
@@ -4280,6 +4359,34 @@ operations:
         $ref: "#/channels/system.frame.set"
       messages:
         - $ref: "#/channels/system.frame.set/messages/commandResponse"
+  dispatch:system.uplink.cancel:
+    action: send
+    channel:
+      $ref: "#/channels/system.uplink.cancel"
+    title: Dispatch system.uplink.cancel
+    tags:
+      - name: system
+    messages:
+      - $ref: "#/channels/system.uplink.cancel/messages/commandRequest"
+    reply:
+      channel:
+        $ref: "#/channels/system.uplink.cancel"
+      messages:
+        - $ref: "#/channels/system.uplink.cancel/messages/commandResponse"
+  dispatch:system.uplink.resend:
+    action: send
+    channel:
+      $ref: "#/channels/system.uplink.resend"
+    title: Dispatch system.uplink.resend
+    tags:
+      - name: system
+    messages:
+      - $ref: "#/channels/system.uplink.resend/messages/commandRequest"
+    reply:
+      channel:
+        $ref: "#/channels/system.uplink.resend"
+      messages:
+        - $ref: "#/channels/system.uplink.resend/messages/commandResponse"
   dispatch:time.setPaused:
     action: send
     channel:
@@ -4758,6 +4865,17 @@ operations:
     messages:
       - $ref: "#/channels/comms.delay/messages/streamData"
       - $ref: "#/channels/comms.delay/messages/event"
+  read:comms.journey:
+    action: receive
+    channel:
+      $ref: "#/channels/comms.journey"
+    title: Read comms.journey
+    description: Delivered only after `subscribe` names `comms.journey` on the session channel, which the mod answers here with an `event` named `subscribed`.
+    tags:
+      - name: comms
+    messages:
+      - $ref: "#/channels/comms.journey/messages/streamData"
+      - $ref: "#/channels/comms.journey/messages/event"
   read:comms.link:
     action: receive
     channel:
@@ -6070,6 +6188,36 @@ components:
                 const: system.frame.set
               args:
                 $ref: "#/components/schemas/SetControlFrameArgs"
+    commandRequest.system.uplink.cancel:
+      name: command-request
+      title: Dispatch system.uplink.cancel
+      contentType: application/json
+      correlationId:
+        $ref: "#/components/correlationIds/requestId"
+      payload:
+        description: The `command-request` envelope for `system.uplink.cancel`, with its typed `args`.
+        allOf:
+          - $ref: "#/components/schemas/CommandRequest"
+          - properties:
+              command:
+                const: system.uplink.cancel
+              args:
+                $ref: "#/components/schemas/UplinkCancelRequest"
+    commandRequest.system.uplink.resend:
+      name: command-request
+      title: Dispatch system.uplink.resend
+      contentType: application/json
+      correlationId:
+        $ref: "#/components/correlationIds/requestId"
+      payload:
+        description: The `command-request` envelope for `system.uplink.resend`, with its typed `args`.
+        allOf:
+          - $ref: "#/components/schemas/CommandRequest"
+          - properties:
+              command:
+                const: system.uplink.resend
+              args:
+                $ref: "#/components/schemas/UplinkResendRequest"
     commandRequest.time.setPaused:
       name: command-request
       title: Dispatch time.setPaused
@@ -6877,6 +7025,32 @@ components:
           - properties:
               result:
                 $ref: "#/components/schemas/CommandResult"
+    commandResponse.system.uplink.cancel:
+      name: command-response
+      title: Reply to system.uplink.cancel
+      contentType: application/json
+      correlationId:
+        $ref: "#/components/correlationIds/requestId"
+      payload:
+        description: The `command-response` envelope for `system.uplink.cancel`, with its typed `result`.
+        allOf:
+          - $ref: "#/components/schemas/CommandResponse"
+          - properties:
+              result:
+                $ref: "#/components/schemas/UplinkActionReply"
+    commandResponse.system.uplink.resend:
+      name: command-response
+      title: Reply to system.uplink.resend
+      contentType: application/json
+      correlationId:
+        $ref: "#/components/correlationIds/requestId"
+      payload:
+        description: The `command-response` envelope for `system.uplink.resend`, with its typed `result`.
+        allOf:
+          - $ref: "#/components/schemas/CommandResponse"
+          - properties:
+              result:
+                $ref: "#/components/schemas/UplinkActionReply"
     commandResponse.time.setPaused:
       name: command-response
       title: Reply to time.setPaused
@@ -7423,6 +7597,19 @@ components:
                 const: comms.delay
               payload:
                 $ref: "#/components/schemas/CommsDelay"
+    streamData.comms.journey:
+      name: stream-data
+      title: A frame on comms.journey
+      contentType: application/json
+      payload:
+        description: The `stream-data` envelope carrying `comms.journey`.
+        allOf:
+          - $ref: "#/components/schemas/StreamData"
+          - properties:
+              topic:
+                const: comms.journey
+              payload:
+                $ref: "#/components/schemas/CommsJourney"
     streamData.comms.link:
       name: stream-data
       title: A frame on comms.link
@@ -11313,6 +11500,112 @@ components:
           description: |-
             Not reported by the shipped backends: vessel nodes, the active craft
             included, arrive as `CommsHopKind.Relay`.
+    CommsJourney:
+      type: object
+      description: |-
+        Journey reports for this vantage's commands in the current timeline: where
+        each was held, sent on, stopped or run, as reports from those nodes arrive
+        back here.
+
+        Every report has already travelled from the node that made it to this
+        centre, at light speed and through any holds of its own, so a report arrives
+        on this topic when this centre could first know it. Order a command's events
+        by `CommsJourneyEvent.atUt`, not by arrival: two reports from different
+        nodes travel different routes. A terminal event is never undone by an
+        earlier one arriving late.
+
+        A report made here, by this centre, says only what this centre could know.
+        It reports a command held while its own plan says the way is shut, and sent
+        on when its plan says the way is open, whatever the far end is doing; and it
+        reports a command that went unanswered only once twice the light time it
+        expected has passed.
+
+        Each session receives only its own vantage's events.
+      required:
+        - epoch
+        - events
+      properties:
+        epoch:
+          type: number
+          x-sitrep-unit: count
+          description: |-
+            The timeline these events belong to; events from an earlier timeline are
+            dropped.
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/CommsJourneyEvent"
+          description: |-
+            Every event received so far in this timeline, oldest arrival first, up to a
+            bounded number.
+    CommsJourneyEvent:
+      type: object
+      description: One journey report.
+      required:
+        - id
+        - about
+        - craft
+        - laneSeq
+        - kind
+        - at
+        - atUt
+        - missing
+      properties:
+        id:
+          type: string
+          x-sitrep-unit: id
+          description: The report's own id.
+        about:
+          type: string
+          x-sitrep-unit: id
+          description: |-
+            The command it is about, as its `system.uplink.pending` `PendingUplink.id`,
+            or for a copy sent again, the `UplinkActionReply.id` that send again
+            returned; for a cancel's events, the cancel's id.
+        craft:
+          type: string
+          x-sitrep-unit: id
+          description: The craft the command's lane runs to.
+        laneSeq:
+          type: number
+          x-sitrep-unit: count
+          description: The lane number it concerns.
+        kind:
+          description: What happened.
+          allOf:
+            - $ref: "#/components/schemas/JourneyEventKind"
+              x-sitrep-unit: enum
+        at:
+          type: string
+          x-sitrep-unit: id
+          description: The node that made the report, as a roster or vessel id.
+        atUt:
+          type: number
+          x-sitrep-unit: ut
+          description: When the thing it reports happened, at that node.
+        untilUt:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: ut
+          description: |-
+            For a hold, when the node predicts the command will leave; for a departure,
+            when it lands; for a late cancel, when the command ran or left. Null
+            otherwise.
+        detail:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: text
+          description: A short reason, for a discard or a late cancel. Null otherwise.
+        missing:
+          type: array
+          items:
+            type: number
+            x-sitrep-unit: count
+          description: |-
+            For a waiting report, the lane numbers the craft is still missing. Empty
+            otherwise.
     CommsLink:
       type: object
       description: |-
@@ -13335,6 +13628,24 @@ components:
             A `set-vantage`, or a command's `vantage`, naming a command centre that is
             not active.
           x-sitrep-sentence: that command centre is not active
+        - const: commandExpired
+          title: CommandExpired
+          description: |-
+            A held command reached its expiry, or its place on the lane passed, before
+            it could run.
+          x-sitrep-sentence: it expired before it could run
+        - const: commandCancelled
+          title: CommandCancelled
+          description: A cancel stopped the command before it ran.
+          x-sitrep-sentence: it was cancelled before it ran
+        - const: continuousInputWouldWait
+          title: ContinuousInputWouldWait
+          description: |-
+            A continuous input, a throttle or a control axis, was refused because the
+            sending command centre's own plan says it would wait at a node on its way to
+            the craft. Held and sent on later it would arrive as a run of stale values,
+            so it is not sent at all.
+          x-sitrep-sentence: it would wait on its way, and a continuous input cannot
         - const: undelivered
           title: Undelivered
           description: |-
@@ -14224,6 +14535,55 @@ components:
           description: |-
             The live rate this resource is consumed (on an input) or produced (on an
             output) at, already scaled by the converter's current efficiency.
+    JourneyEventKind:
+      type: integer
+      description: What one journey report says happened to a command, or to a cancel.
+      x-sitrep-enum-kind: ordinal
+      oneOf:
+        - const: 0
+          title: Held
+          description: |-
+            A node is holding the command for its next window;
+            `CommsJourneyEvent.untilUt` is when it predicts the command will leave. A
+            node also reports this when a command it sent went unanswered and is its to
+            send again.
+        - const: 1
+          title: Departed
+          description: |-
+            A node that had held the command sent it on; `CommsJourneyEvent.untilUt` is
+            when that node expects the light to land at its next node.
+        - const: 2
+          title: Expired
+          description: The command reached its expiry where it was and was deleted there.
+        - const: 3
+          title: Cancelled
+          description: A cancel stopped the command at the node reporting.
+        - const: 4
+          title: Waiting
+          description: |-
+            The command reached the craft and waits for earlier lane numbers, named in
+            `CommsJourneyEvent.missing`.
+        - const: 5
+          title: Discarded
+          description: |-
+            The craft discarded the command because its lane number had already settled;
+            `CommsJourneyEvent.detail` says how.
+        - const: 6
+          title: CancelStored
+          description: |-
+            A cancel reached the craft before the command; the craft refuses the command
+            whenever it arrives.
+        - const: 7
+          title: CancelLate
+          description: |-
+            A cancel reached the craft after the command ran;
+            `CommsJourneyEvent.untilUt` is when it ran.
+        - const: 8
+          title: CancelLateHere
+          description: A cancel reached a node after the command left it, and follows it on.
+        - const: 9
+          title: Ran
+          description: The command ran at the craft; its result travels on the command's own reply.
     KspEditorFacility:
       type: integer
       description: |-
@@ -19012,6 +19372,97 @@ components:
           description: |-
             The facility to upgrade: its `SpaceCenterFacility` enum name, as a key of
             `career.facilities`' `facilities` map.
+    UplinkActionReply:
+      type: object
+      description: What a cancel or a send again did at this centre.
+      required:
+        - throughSeq
+        - id
+        - expiresAtUt
+      properties:
+        throughSeq:
+          type: number
+          x-sitrep-unit: count
+          description: |-
+            For a cancel, the last lane number it covers: more than the button counted
+            when another screen sent on the lane meanwhile.
+        id:
+          type: string
+          x-sitrep-unit: id
+          description: |-
+            For a send again, the new copy's id, which its journey reports name; empty
+            for a cancel.
+        expiresAtUt:
+          type: number
+          x-sitrep-unit: ut
+          description: When the cancel or copy expires.
+    UplinkCancelRequest:
+      type: object
+      description: |-
+        Cancels a held or travelling command: its lane number alone, or it and every
+        later number this centre had sent on the lane when it was pressed. A command
+        this centre is still holding stops at once; for one it has sent, a cancel
+        goes to the craft, stopping the command wherever it is held and refusing it
+        at the craft if it arrives there first. What it stopped arrives as journey
+        reports.
+
+        The reply says the cancel was sent, never that the command was stopped. A
+        command sent less than twice its light time ago may have been lost on the
+        way, in which case it is still this centre's, but the centre cannot know
+        that yet, so the cancel is sent after it all the same and the command is
+        reported cancelled here only once it is known to have come back.
+      required:
+        - epoch
+        - craft
+        - laneSeq
+        - andBehind
+      properties:
+        epoch:
+          type: number
+          x-sitrep-unit: count
+          description: |-
+            The timeline the command was sent in; a cancel naming another timeline is
+            refused.
+        craft:
+          type: string
+          x-sitrep-unit: id
+          description: The craft its lane runs to, as `PendingUplink.craft`.
+        laneSeq:
+          type: number
+          x-sitrep-unit: count
+          description: Its lane number, as `PendingUplink.laneSeq`.
+        andBehind:
+          type: boolean
+          x-sitrep-unit: flag
+          description: |-
+            Whether to cancel every later number on the lane too, up to the newest this
+            centre has sent.
+    UplinkResendRequest:
+      type: object
+      description: |-
+        Sends a held or overdue command again in its own place on its lane: a new
+        copy with the same lane number, which must arrive before the commands behind
+        it stop waiting for it. Whichever copy reaches the craft first runs; any
+        other is discarded.
+      required:
+        - epoch
+        - craft
+        - laneSeq
+      properties:
+        epoch:
+          type: number
+          x-sitrep-unit: count
+          description: |-
+            The timeline the command was sent in; a send again naming another timeline
+            is refused.
+        craft:
+          type: string
+          x-sitrep-unit: id
+          description: The craft its lane runs to.
+        laneSeq:
+          type: number
+          x-sitrep-unit: count
+          description: Its lane number.
     VesselAttitude:
       type: object
       description: |-

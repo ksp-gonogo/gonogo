@@ -241,7 +241,9 @@
       "time": "ut"
     },
     "CommandAccepted": {
+      "expiresAtUt": "ut",
       "oneWaySeconds": "s",
+      "predictedReplyUt": "ut",
       "requestId": "id",
       "type": "id"
     },
@@ -391,6 +393,21 @@
       "kind": "enum",
       "to": "id",
       "toIsHome": "flag"
+    },
+    "CommsJourney": {
+      "epoch": "count"
+    },
+    "CommsJourneyEvent": {
+      "about": "id",
+      "at": "id",
+      "atUt": "ut",
+      "craft": "id",
+      "detail": "text",
+      "id": "id",
+      "kind": "enum",
+      "laneSeq": "count",
+      "missing": "count",
+      "untilUt": "ut"
     },
     "CommsLink": {
       "connected": "flag"
@@ -912,13 +929,23 @@
       "source": "id"
     },
     "PendingUplink": {
+      "attempts": "count",
+      "cancelDeadlineUt": "ut",
       "clientRequestId": "id",
       "command": "id",
       "commandedValue": "n/a",
+      "craft": "id",
       "dispatchedAt": "ut",
+      "expiresAtUt": "ut",
       "id": "id",
       "label": "text",
+      "laneSeq": "count",
+      "members": "id",
       "oneWaySeconds": "s",
+      "predictedArrivalUt": "ut",
+      "predictedHeldAt": "id",
+      "predictedHeldUntilUt": "ut",
+      "predictedReplyUt": "ut",
       "topic": "id",
       "vantage": "id"
     },
@@ -1302,6 +1329,22 @@
     "UpgradeFacilityArgs": {
       "facilityId": "id"
     },
+    "UplinkActionReply": {
+      "expiresAtUt": "ut",
+      "id": "id",
+      "throughSeq": "count"
+    },
+    "UplinkCancelRequest": {
+      "andBehind": "flag",
+      "craft": "id",
+      "epoch": "count",
+      "laneSeq": "count"
+    },
+    "UplinkResendRequest": {
+      "craft": "id",
+      "epoch": "count",
+      "laneSeq": "count"
+    },
     "Vec3": {
       "x": "n/a",
       "y": "n/a",
@@ -1601,6 +1644,9 @@
     "comms.delay": {
       "oneWaySeconds": "s",
       "source": "enum"
+    },
+    "comms.journey": {
+      "epoch": "count"
     },
     "comms.link": {
       "connected": "flag"
@@ -2210,6 +2256,9 @@
     "CommsDelay": {
       "meta": "PayloadMeta"
     },
+    "CommsJourney": {
+      "events": "CommsJourneyEvent[]"
+    },
     "CommsLink": {
       "meta": "PayloadMeta"
     },
@@ -2499,6 +2548,9 @@
     },
     "comms.delay": {
       "meta": "PayloadMeta"
+    },
+    "comms.journey": {
+      "events": "CommsJourneyEvent[]"
     },
     "comms.link": {
       "meta": "PayloadMeta"

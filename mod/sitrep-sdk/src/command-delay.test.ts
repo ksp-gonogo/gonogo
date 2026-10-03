@@ -208,3 +208,41 @@ describe("latchForward", () => {
     expect(advanced[0].predictedPhase).toBe("due");
   });
 });
+
+describe("a command held for store-and-forward", () => {
+  const held = entry({
+    laneSeq: value("count", 3),
+    predictedArrivalUt: value("ut", 900),
+    predictedReplyUt: value("ut", 1800),
+    expiresAtUt: value("ut", 3700),
+  });
+
+  it("draws its arrival and reply at the predicted instants, holds included", () => {
+    const row = deriveRailEntry(pendingCrossing(held), 500);
+    expect(row?.predictedPhase).toBe("in-transit");
+    expect(row?.reachEtaSeconds).toBe(400);
+    expect(row?.replyEtaSeconds).toBe(1300);
+  });
+
+  it("is not lost when the path breaks: it waits at a node", () => {
+    const c = classifyRetained({
+      entry: held,
+      nowUt: 500,
+      present: true,
+      pathConnectedDuring: () => false,
+    });
+    expect(c?.predictedPhase).not.toBe("lost");
+  });
+
+  it("with no predicted reply, is not overdue before it expires", () => {
+    const c = classifyRetained({
+      entry: { ...held, predictedReplyUt: null },
+      nowUt: 3000,
+      present: true,
+      overdueMarginSeconds: 5,
+      pathConnectedDuring: () => false,
+    });
+    expect(c?.predictedPhase).not.toBe("overdue");
+    expect(c?.predictedPhase).not.toBe("lost");
+  });
+});

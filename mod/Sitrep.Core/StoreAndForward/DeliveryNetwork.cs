@@ -31,7 +31,25 @@ namespace Sitrep.Core.StoreAndForward
         public double ArriveUt { get; }
     }
 
-    /// <summary>What the contact plan predicts about _routes.</summary>
+    /// <summary>
+    /// What each command centre believes: the contact plan it holds, made from
+    /// what it has heard. A sender decides when to send from its own, and never
+    /// from what the far end of the link is really doing.
+    /// </summary>
+    public interface ISenderPlans
+    {
+        /// <summary>
+        /// Whether centres plan at all here. False for a network with no contact
+        /// planner behind it, which has no belief to send on and sends on the
+        /// live path as it always did.
+        /// </summary>
+        bool Reckons { get; }
+
+        /// <summary>The routes <paramref name="centre"/>'s own plan predicts now, or null when it holds no plan.</summary>
+        IDeliveryRoutes? PlanOf(string centre);
+    }
+
+    /// <summary>The routes the contact plan predicts.</summary>
     public interface IDeliveryRoutes
     {
         /// <summary>The whole earliest-arrival route from one node to another for a message ready at <paramref name="readyUt"/> that must arrive by <paramref name="deadlineUt"/>, or null when the plan predicts none.</summary>
@@ -41,13 +59,26 @@ namespace Sitrep.Core.StoreAndForward
     /// <summary>
     /// Store-and-forward delivery of delayed commands, cancels and reports.
     ///
-    /// <para>A message waits at a node until it can leave: along the backend's
-    /// live path to its destination if there is one now, or else on the contact
-    /// plan's next hop, but only when that hop's link is live now and the light
-    /// lands before the message's own expiry. The sender keeps its copy until the
-    /// light lands: a hop whose link is gone by then is caught, the message was
-    /// never received, and it may leave again twice the hop's light time after it
-    /// first did, never into the same next node until the plan changes.</para>
+    /// <para><b>Who decides a departure, and from what.</b> A command centre
+    /// sends when its own plan says the way is open, and that is all it knows:
+    /// it cannot see whether the far end is really listening. A relay or a craft
+    /// follows the plan the message carries, the sending centre's as it stood
+    /// when the command left, and sends on when its own link to the next node is
+    /// up, which is the one thing it can sense. Nobody reads the state of a link
+    /// that is not its own. Whether light that was sent actually lands is physics,
+    /// and is asked of the live network when it lands.</para>
+    ///
+    /// <para><b>Custody.</b> A node that sends keeps its copy until twice the
+    /// hop's light time after it left, which is the soonest it could know the
+    /// hop failed. Until then the copy can be neither sent again nor stopped:
+    /// a cancel pressed in that window goes after the command and says no more
+    /// than that it was sent. A hop whose link was gone when the light landed
+    /// is caught, the message was never received, and at the end of custody the
+    /// copy waits again, never for the same next node until the plan changes.</para>
+    ///
+    /// <para>A network with no <see cref="ISenderPlans"/> that reckons sends as
+    /// it did before centres planned: along the backend's live path when there is
+    /// one, or else on the one shared plan's next hop.</para>
     ///
     /// <para>Commands run at the craft in lane order (<see cref="LaneCollector"/>).
     /// A cancel is stored at every node it passes and becomes a permanent mark on
@@ -68,6 +99,7 @@ namespace Sitrep.Core.StoreAndForward
         private readonly IClock _clock;
         private readonly IDeliveryLinks _links;
         private readonly IDeliveryRoutes _routes;
+        private readonly ISenderPlans? _beliefs;
         private readonly Func<CommandMessage, double, object?> _execute;
         private readonly Action<ReportMessage> _deliverReport;
         private readonly Dictionary<string, List<Held>> _held = new Dictionary<string, List<Held>>(StringComparer.Ordinal);
@@ -89,14 +121,17 @@ namespace Sitrep.Core.StoreAndForward
         /// <param name="routes">What the contact plan predicts.</param>
         /// <param name="execute">Runs a command on its craft and returns the result to report back.</param>
         /// <param name="deliverReport">Takes each report as it reaches its command centre.</param>
+        /// <param name="beliefs">What each command centre believes, or null for a network that sends on the live path.</param>
         public DeliveryNetwork(
             IClock clock,
             IDeliveryLinks links,
             IDeliveryRoutes routes,
             Func<CommandMessage, double, object?> execute,
             Action<ReportMessage> deliverReport,
-            ControlValueRelease release = ControlValueRelease.RunEvery)
+            ControlValueRelease release = ControlValueRelease.RunEvery,
+            ISenderPlans? beliefs = null)
         {
+            _beliefs = beliefs;
             _clock = clock ?? throw new ArgumentNullException(nameof(clock));
             _links = links ?? throw new ArgumentNullException(nameof(links));
             _routes = routes ?? throw new ArgumentNullException(nameof(routes));
@@ -126,9 +161,31 @@ namespace Sitrep.Core.StoreAndForward
         }
 
         /// <summary>
+        /// News of <paramref name="node"/> has reached <paramref name="centre"/>:
+        /// whatever the centre holds that was caught on its way there may be
+        /// tried again. Hearing from a node is the one sign a centre gets that
+        /// the node is listening.
+        /// </summary>
+        public void Heard(string centre, string node)
+        {
+            lock (_gate)
+            {
+                if (!_held.TryGetValue(centre, out var list))
+                {
+                    return;
+                }
+                foreach (var held in list)
+                {
+                    held.Excluded?.Remove(node);
+                }
+            }
+        }
+
+        /// <summary>
         /// Sends a delayed command from its lane's command centre: takes the next
         /// lane number and its gap expiry, and puts it on hold at the sender until
-        /// it can leave. Returns the message as sent.
+        /// it can leave. <paramref name="id"/> names the message, or a fresh id is
+        /// minted when it is null. Returns the message as sent.
         /// </summary>
         public CommandMessage SendCommand(
             LaneKey lane,
@@ -152,7 +209,7 @@ namespace Sitrep.Core.StoreAndForward
                     var (seq, gap) = Sender(lane).Assign(nowUt, deleteAt);
                     var message = new CommandMessage
                     {
-                        Id = MintId("cmd"),
+                        Id = id ?? MintId("cmd"),
                         Lane = lane,
                         LaneSeq = seq,
                         GapExpiresUt = gap,
@@ -179,9 +236,10 @@ namespace Sitrep.Core.StoreAndForward
         /// Sends a lane number again, in its own place: a new copy of the command
         /// with the same lane number and a fresh lifetime, which must arrive before
         /// the commands behind it stop waiting for it. Null when the number is
-        /// unknown or already settled at the sender.
+        /// unknown or already settled at the sender. <paramref name="id"/> names
+        /// the copy, or a fresh id is minted when it is null.
         /// </summary>
-        public CommandMessage? SendAgain(LaneKey lane, long seq, double nowUt)
+        public CommandMessage? SendAgain(LaneKey lane, long seq, double nowUt, string? id = null)
         {
             try
             {
@@ -203,7 +261,7 @@ namespace Sitrep.Core.StoreAndForward
                     }
                     var copy = new CommandMessage
                     {
-                        Id = MintId("cmd"),
+                        Id = id ?? MintId("cmd"),
                         Lane = lane,
                         LaneSeq = seq,
                         GapExpiresUt = sender.GapBefore(seq, nowUt),
@@ -317,15 +375,23 @@ namespace Sitrep.Core.StoreAndForward
             {
                 return new DeliverySnapshot
                 {
-                    Held = _held.SelectMany(n => n.Value.Select(h => new HeldRecord
-                    {
-                        Node = n.Key,
-                        Message = h.Message,
-                        ArrivedUt = h.ArrivedUt,
-                        EligibleUt = h.EligibleUt,
-                        ReportedHeld = h.ReportedHeld,
-                        CameFrom = h.CameFrom,
-                    })).ToList(),
+                    // A copy whose light is still on its way is saved once, as its
+                    // flight, which restores both. One whose light has landed or
+                    // been lost is saved as the custody it still is.
+                    Held = _held.SelectMany(n => n.Value
+                        .Where(h => h.Away == null || !_flights.Any(f => ReferenceEquals(f.Custody, h)))
+                        .Select(h => new HeldRecord
+                        {
+                            Node = n.Key,
+                            Message = h.Message,
+                            ArrivedUt = h.ArrivedUt,
+                            EligibleUt = h.EligibleUt,
+                            ReportedHeld = h.ReportedHeld,
+                            CameFrom = h.CameFrom,
+                            Away = h.Away,
+                            CustodyUntilUt = h.Away == null ? (double?)null : h.CustodyUntilUt,
+                            Landed = h.Landed,
+                        })).ToList(),
                     Flights = _flights.Select(f => new FlightRecord
                     {
                         Message = f.Message,
@@ -334,6 +400,7 @@ namespace Sitrep.Core.StoreAndForward
                         DepartUt = f.DepartUt,
                         ArriveUt = f.ArriveUt,
                         EndToEnd = f.EndToEnd,
+                        ReportedHeld = f.Custody != null && f.Custody.ReportedHeld,
                     }).ToList(),
                     StoredCancels = _storedCancels.SelectMany(n => n.Value.Select(c => new StoredCancelRecord { Node = n.Key, Cancel = c })).ToList(),
                     Senders = _senders.Select(s => new SenderRecord { Lane = s.Key, NextSeq = s.Value.NextSeq, Unresolved = s.Value.Unresolved.ToList() }).ToList(),
@@ -360,6 +427,10 @@ namespace Sitrep.Core.StoreAndForward
         {
             lock (_gate)
             {
+                foreach (var held in _held.Values.SelectMany(h => h))
+                {
+                    held.EndWatch?.Invoke();
+                }
                 _held.Clear();
                 foreach (var flight in _flights)
                 {
@@ -404,17 +475,34 @@ namespace Sitrep.Core.StoreAndForward
                         }
                         return message;
                     }
-                    foreach (var held in snapshot.Held)
+                    foreach (var record in snapshot.Held)
                     {
-                        List(_held, held.Node).Add(new Held(Rekey(held.Message), held.ArrivedUt, held.CameFrom)
+                        var held = new Held(Rekey(record.Message), record.ArrivedUt, record.CameFrom)
                         {
-                            EligibleUt = held.EligibleUt,
-                            ReportedHeld = held.ReportedHeld,
-                        });
+                            EligibleUt = record.EligibleUt,
+                            ReportedHeld = record.ReportedHeld,
+                            Away = record.Away,
+                            CustodyUntilUt = record.CustodyUntilUt ?? 0.0,
+                            Landed = record.Landed,
+                        };
+                        List(_held, record.Node).Add(held);
+                        if (held.Away != null)
+                        {
+                            WatchCustody(record.Node, held);
+                        }
                     }
-                    foreach (var flight in snapshot.Flights)
+                    foreach (var record in snapshot.Flights)
                     {
-                        Fly(new Flight(Rekey(flight.Message), flight.From, flight.To, flight.DepartUt, flight.ArriveUt, flight.EndToEnd));
+                        var message = Rekey(record.Message);
+                        var custody = new Held(message, record.DepartUt, null)
+                        {
+                            Away = record.To,
+                            CustodyUntilUt = record.DepartUt + (2 * (record.ArriveUt - record.DepartUt)),
+                            ReportedHeld = record.ReportedHeld,
+                        };
+                        List(_held, record.From).Add(custody);
+                        Fly(new Flight(message, record.From, record.To, record.DepartUt, record.ArriveUt, record.EndToEnd) { Custody = custody });
+                        WatchCustody(record.From, custody);
                     }
                     foreach (var stored in snapshot.StoredCancels)
                     {
@@ -442,6 +530,14 @@ namespace Sitrep.Core.StoreAndForward
                     {
                         _sentCommands[sent.Id] = (CommandMessage)Rekey(sent);
                     }
+                    foreach (var sent in _sentCommands.Values)
+                    {
+                        var atSender = _held.TryGetValue(sent.Lane.Vantage, out var waiting) && waiting.Any(h => h.Away == null && h.Message.Id == sent.Id);
+                        if (!atSender)
+                        {
+                            _leftSender.Add(sent.Id);
+                        }
+                    }
                     _nextId = Math.Max(_nextId, snapshot.NextId);
                 }
             }
@@ -456,7 +552,16 @@ namespace Sitrep.Core.StoreAndForward
         {
             lock (_gate)
             {
-                return _held.SelectMany(n => n.Value.Select(h => (n.Key, h.Message))).ToList();
+                return _held.SelectMany(n => n.Value.Where(h => h.Away == null).Select(h => (n.Key, h.Message))).ToList();
+            }
+        }
+
+        /// <summary>Every copy a node has sent and still keeps, not yet knowing whether it was received, for tests and diagnostics.</summary>
+        public IReadOnlyList<(string Node, string To, DeliveryMessage Message, double UntilUt)> InCustody()
+        {
+            lock (_gate)
+            {
+                return _held.SelectMany(n => n.Value.Where(h => h.Away != null).Select(h => (n.Key, h.Away!, h.Message, h.CustodyUntilUt))).ToList();
             }
         }
 
@@ -524,6 +629,7 @@ namespace Sitrep.Core.StoreAndForward
                         At = next.Command.Lane.Craft,
                         AtUt = next.AtUt,
                         Result = result,
+                        Plan = next.Command.Plan,
                     };
                     Route(next.Command.Lane.Craft, reply, next.AtUt);
                     Depart(next.Command.Lane.Craft, next.AtUt);
@@ -531,24 +637,25 @@ namespace Sitrep.Core.StoreAndForward
             }
         }
 
+        /// <summary>
+        /// The light arrives. Whether it is received is physics, asked of the live
+        /// network now: a hop whose link is gone is caught, and nothing happens
+        /// here, since the node that sent it cannot know yet. It learns when its
+        /// custody ends.
+        /// </summary>
         private void Land(Flight flight)
         {
-            var stillLinked = flight.EndToEnd
-                ? _links.LivePath(flight.From, flight.To) != null
-                : _links.LiveLink(flight.From, flight.To) != null;
+            var stillLinked = string.Equals(flight.From, flight.To, StringComparison.Ordinal)
+                || (flight.EndToEnd
+                    ? _links.LivePath(flight.From, flight.To) != null
+                    : _links.LiveLink(flight.From, flight.To) != null);
             if (!stillLinked)
             {
-                // Caught: never received. The sender still has it, and may send it
-                // again when its own custody timer would fire.
-                var light = flight.ArriveUt - flight.DepartUt;
-                var held = Hold(flight.From, flight.Message, flight.DepartUt, flight.CameFrom);
-                if (held != null)
-                {
-                    held.EligibleUt = flight.DepartUt + (2 * light);
-                    (held.Excluded ??= new HashSet<string>(StringComparer.Ordinal)).Add(flight.To);
-                    held.ExcludedAtPlan = _planVersion;
-                }
                 return;
+            }
+            if (flight.Custody != null)
+            {
+                flight.Custody.Landed = true;
             }
             Deliver(flight.To, flight.Message, flight.ArriveUt, flight.From);
         }
@@ -571,6 +678,7 @@ namespace Sitrep.Core.StoreAndForward
                 case ReportMessage report:
                     if (string.Equals(node, report.To, StringComparison.Ordinal))
                     {
+                        report.LandedUt = atUt;
                         Settle(report);
                         _deliverReport(report);
                     }
@@ -636,7 +744,9 @@ namespace Sitrep.Core.StoreAndForward
             {
                 return false;
             }
-            var stopped = list.Where(h => h.Message is CommandMessage c && c.Lane.Equals(lane) && c.LaneSeq == seq).ToList();
+            // A copy in custody is on its way: this node cannot stop what it has
+            // already sent, and does not yet know whether it was received.
+            var stopped = list.Where(h => h.Away == null && h.Message is CommandMessage c && c.Lane.Equals(lane) && c.LaneSeq == seq).ToList();
             foreach (var held in stopped)
             {
                 list.Remove(held);
@@ -652,12 +762,17 @@ namespace Sitrep.Core.StoreAndForward
         /// </summary>
         private void SendSecondCopies(CancelMessage cancel, double nowUt)
         {
-            var own = _routes.Route(cancel.Lane.Vantage, cancel.Lane.Craft, nowUt, cancel.DeleteAtUt);
+            var plan = PlanAt(cancel.Lane.Vantage);
+            if (plan == null)
+            {
+                return;
+            }
+            var own = plan.Route(cancel.Lane.Vantage, cancel.Lane.Craft, nowUt, cancel.DeleteAtUt);
             var onOwnRoute = new HashSet<string>(own?.Select(h => h.To) ?? Enumerable.Empty<string>(), StringComparer.Ordinal);
             var targets = new HashSet<string>(StringComparer.Ordinal);
             foreach (var command in _sentCommands.Values.Where(c => c.Lane.Equals(cancel.Lane) && cancel.Names(c.LaneSeq)))
             {
-                var predicted = _routes.Route(cancel.Lane.Vantage, cancel.Lane.Craft, command.SentUt, command.DeleteAtUt);
+                var predicted = plan.Route(cancel.Lane.Vantage, cancel.Lane.Craft, command.SentUt, command.DeleteAtUt);
                 if (predicted == null)
                 {
                     continue;
@@ -670,7 +785,7 @@ namespace Sitrep.Core.StoreAndForward
                     {
                         continue;
                     }
-                    var toHold = _routes.Route(cancel.Lane.Vantage, holdAt, nowUt, leaves);
+                    var toHold = plan.Route(cancel.Lane.Vantage, holdAt, nowUt, leaves);
                     if (toHold != null && toHold.Count > 0 && toHold[toHold.Count - 1].ArriveUt <= leaves)
                     {
                         Hold(cancel.Lane.Vantage, CopyOf(cancel, holdAt), nowUt, null);
@@ -688,6 +803,7 @@ namespace Sitrep.Core.StoreAndForward
             SentUt = cancel.SentUt,
             DeleteAtUt = cancel.DeleteAtUt,
             TargetNode = target,
+            Plan = cancel.Plan,
         };
 
         private void Depart(string node, double nowUt)
@@ -698,13 +814,13 @@ namespace Sitrep.Core.StoreAndForward
             }
             foreach (var held in list.OrderBy(Order).ToList())
             {
-                if (nowUt < held.EligibleUt)
+                if (held.Away != null || nowUt < held.EligibleUt)
                 {
                     continue;
                 }
                 var message = held.Message;
                 var successor = _release == ControlValueRelease.LatestWins && message is CommandMessage value && value.Channel != null
-                    ? list.Select(other => other.Message).OfType<CommandMessage>()
+                    ? list.Where(other => other.Away == null).Select(other => other.Message).OfType<CommandMessage>()
                         .Where(later => later.Lane.Equals(value.Lane) && later.LaneSeq > value.LaneSeq && string.Equals(later.Channel, value.Channel, StringComparison.Ordinal))
                         .OrderBy(later => later.LaneSeq)
                         .FirstOrDefault()
@@ -723,45 +839,226 @@ namespace Sitrep.Core.StoreAndForward
                     held.Excluded = null;
                 }
 
-                var live = _links.LivePath(node, destination);
-                if (live != null && nowUt + live.Value <= message.ExpiresUt && !IsExcluded(held, destination))
+                var waitsUntil = Reckoning
+                    ? LeaveOnBelief(node, held, destination, nowUt)
+                    : LeaveOnTheLivePath(node, held, destination, nowUt);
+                if (held.Away != null)
                 {
-                    Launch(node, held, destination, nowUt, live.Value, endToEnd: true);
                     continue;
                 }
-
-                var route = _routes.Route(node, destination, nowUt, message.ExpiresUt);
-                var next = route != null && route.Count > 0 ? route[0] : (PlannedHop?)null;
-                if (next != null && next.Value.DepartUt <= nowUt + Tolerance && !IsExcluded(held, next.Value.To))
-                {
-                    var light = _links.LiveLink(node, next.Value.To);
-                    if (light != null && nowUt + light.Value <= message.ExpiresUt)
-                    {
-                        Launch(node, held, next.Value.To, nowUt, light.Value, endToEnd: false);
-                        continue;
-                    }
-                }
-
                 if (!held.ReportedHeld && message is CommandMessage command)
                 {
                     held.ReportedHeld = true;
-                    Report(node, command, JourneyKind.Held, nowUt, until: next?.DepartUt);
+                    Report(node, command, JourneyKind.Held, nowUt, until: waitsUntil);
                 }
             }
         }
 
-        private void Launch(string node, Held held, string to, double nowUt, double light, bool endToEnd)
+        /// <summary>Whether command centres here plan from what they have heard, and send on that.</summary>
+        private bool Reckoning => _beliefs != null && _beliefs.Reckons;
+
+        /// <summary>The plan a command centre sends by: its own when centres plan, the one shared plan when they do not.</summary>
+        private IDeliveryRoutes? PlanAt(string centre) => Reckoning ? _beliefs!.PlanOf(centre) : _routes;
+
+        /// <summary>
+        /// Sends <paramref name="held"/> on if the backend has a live path to its
+        /// destination, or else on the shared plan's next hop when that link is
+        /// live. Returns when the plan next expects it to leave, for a message
+        /// that stays.
+        /// </summary>
+        private double? LeaveOnTheLivePath(string node, Held held, string destination, double nowUt)
         {
-            _held[node].Remove(held);
+            var message = held.Message;
+            var live = _links.LivePath(node, destination);
+            if (live != null && nowUt + live.Value <= message.ExpiresUt && !IsExcluded(held, destination))
+            {
+                Launch(node, held, destination, nowUt, live.Value, endToEnd: true);
+                return null;
+            }
+
+            var route = _routes.Route(node, destination, nowUt, message.ExpiresUt);
+            var next = route != null && route.Count > 0 ? route[0] : (PlannedHop?)null;
+            if (next != null && next.Value.DepartUt <= nowUt + Tolerance && !IsExcluded(held, next.Value.To))
+            {
+                var light = _links.LiveLink(node, next.Value.To);
+                if (light != null && nowUt + light.Value <= message.ExpiresUt)
+                {
+                    Launch(node, held, next.Value.To, nowUt, light.Value, endToEnd: false);
+                }
+            }
+            return next?.DepartUt;
+        }
+
+        /// <summary>
+        /// Sends <paramref name="held"/> on if whoever holds it believes it can
+        /// go. A command centre sending its own command or cancel goes by its own
+        /// plan as it stands now and by nothing else. Any other node goes by the
+        /// plan the message carries, and only when its own link to the next node
+        /// is up. Returns when the plan next expects it to leave, for a message
+        /// that stays.
+        /// </summary>
+        private double? LeaveOnBelief(string node, Held held, string destination, double nowUt)
+        {
+            var message = held.Message;
+            if (string.Equals(node, destination, StringComparison.Ordinal))
+            {
+                // A centre aboard the craft it is commanding is no distance from it.
+                Launch(node, held, destination, nowUt, 0.0, endToEnd: true);
+                return null;
+            }
+            var own = IsItsOwnCentre(node, message);
+            if (own)
+            {
+                message.Plan = _beliefs!.PlanOf(node);
+            }
+
+            var route = message.Plan?.Route(node, destination, nowUt, message.ExpiresUt);
+            if ((route == null || route.Count == 0) && !own && message.Plan == null)
+            {
+                route = CarriedFrom(message, node);
+            }
+            if ((route == null || route.Count == 0) && !own && message.Plan == null)
+            {
+                // No plan and no hops left to follow: one a game load carried
+                // without either. A load is where every centre starts again from
+                // nothing heard, and the message starts again with its centre's
+                // plan as it stands, rather than waiting for ever.
+                message.Plan = _beliefs!.PlanOf(CentreOf(message));
+                route = message.Plan?.Route(node, destination, nowUt, message.ExpiresUt);
+            }
+            if (route == null || route.Count == 0)
+            {
+                // Nothing here knows a way. A relay left without one still sends
+                // straight to the destination the moment it can see it.
+                if (!own)
+                {
+                    TryOwnLink(node, held, destination, nowUt, new[] { new PlannedHop(destination, nowUt, nowUt) });
+                }
+                return null;
+            }
+
+            var next = route[0];
+            if (IsExcluded(held, next.To))
+            {
+                return next.DepartUt > nowUt + Tolerance ? next.DepartUt : (double?)null;
+            }
+            if (!own)
+            {
+                TryOwnLink(node, held, next.To, nowUt, route);
+                return next.DepartUt > nowUt + Tolerance ? next.DepartUt : (double?)null;
+            }
+
+            if (next.DepartUt > nowUt + Tolerance)
+            {
+                return next.DepartUt;
+            }
+            message.Route = route.ToList();
+            if (IsLive(route, nowUt))
+            {
+                // Believed open all the way: one flight to the destination, as a
+                // command with a live path has always travelled. The real path,
+                // when there is one, sets how long the light takes; when there is
+                // none the light is lost, and the centre finds out by hearing
+                // nothing back.
+                var believed = route[route.Count - 1].ArriveUt - nowUt;
+                var real = _links.LivePath(node, destination);
+                Launch(node, held, destination, nowUt, real ?? believed, endToEnd: true, expectedLight: believed);
+                return null;
+            }
+            var hopBelieved = next.ArriveUt - next.DepartUt;
+            Launch(node, held, next.To, nowUt, _links.LiveLink(node, next.To) ?? hopBelieved, endToEnd: false, expectedLight: hopBelieved);
+            return null;
+        }
+
+        /// <summary>Sends <paramref name="held"/> to <paramref name="to"/> if this node's own link there is up and the light lands in time.</summary>
+        private void TryOwnLink(string node, Held held, string to, double nowUt, IReadOnlyList<PlannedHop> route)
+        {
+            var light = _links.LiveLink(node, to);
+            if (light == null || nowUt + light.Value > held.Message.ExpiresUt)
+            {
+                return;
+            }
+            held.Message.Route = route.ToList();
+            Launch(node, held, to, nowUt, light.Value, endToEnd: false);
+        }
+
+        /// <summary>Whether <paramref name="node"/> is the command centre that sent <paramref name="message"/>: true only for a command or a cancel still at its own lane's centre.</summary>
+        private static bool IsItsOwnCentre(string node, DeliveryMessage message) => message switch
+        {
+            CommandMessage command => string.Equals(node, command.Lane.Vantage, StringComparison.Ordinal),
+            CancelMessage cancel => string.Equals(node, cancel.Lane.Vantage, StringComparison.Ordinal),
+            _ => false,
+        };
+
+        /// <summary>The command centre a message is from, or for a report, going to.</summary>
+        private static string CentreOf(DeliveryMessage message) => message switch
+        {
+            CommandMessage command => command.Lane.Vantage,
+            CancelMessage cancel => cancel.Lane.Vantage,
+            ReportMessage report => report.To,
+            _ => "",
+        };
+
+        /// <summary>Whether nothing on <paramref name="route"/> waits: each hop leaves as the one before it lands.</summary>
+        private static bool IsLive(IReadOnlyList<PlannedHop> route, double nowUt)
+        {
+            var at = nowUt;
+            foreach (var hop in route)
+            {
+                if (hop.DepartUt > at + Tolerance)
+                {
+                    return false;
+                }
+                at = hop.ArriveUt;
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// What is left of the route <paramref name="message"/> carries, from
+        /// <paramref name="node"/> on, or null when it names no hop after this
+        /// node: for a message whose plan a game load did not keep.
+        /// </summary>
+        private static IReadOnlyList<PlannedHop>? CarriedFrom(DeliveryMessage message, string node)
+        {
+            for (var i = 0; i < message.Route.Count; i++)
+            {
+                if (string.Equals(message.Route[i].To, node, StringComparison.Ordinal))
+                {
+                    var rest = message.Route.Skip(i + 1).ToList();
+                    return rest.Count > 0 ? rest : null;
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Sends <paramref name="held"/> on its way. The node keeps its copy, in
+        /// custody, until twice the light time has passed: see
+        /// <see cref="EndCustody"/>.
+        /// </summary>
+        /// <param name="light">How long the light really takes, which is when it lands and what custody is timed by.</param>
+        /// <param name="expectedLight">How long the node sending it expects the light to take, which is all its report may say: a centre sending on its plan knows only what the plan says. Null when the node measured the link itself.</param>
+        private void Launch(string node, Held held, string to, double nowUt, double light, bool endToEnd, double? expectedLight = null)
+        {
             if (held.Message is CommandMessage sent && string.Equals(node, sent.Lane.Vantage, StringComparison.Ordinal))
             {
                 _leftSender.Add(sent.Id);
             }
             if (held.ReportedHeld && held.Message is CommandMessage command)
             {
-                Report(node, command, JourneyKind.Departed, nowUt, until: nowUt + light);
+                Report(node, command, JourneyKind.Departed, nowUt, until: nowUt + (expectedLight ?? light));
             }
-            Fly(new Flight(held.Message, node, to, nowUt, nowUt + light, endToEnd) { CameFrom = held.CameFrom });
+            var flight = new Flight(held.Message, node, to, nowUt, nowUt + light, endToEnd) { CameFrom = held.CameFrom, Custody = held };
+            held.Away = to;
+            held.Landed = false;
+            // Twice the time the light really takes where there is a real path,
+            // since an answer cannot be back sooner, and twice what the node
+            // expected where there is none. Either way the node learns nothing
+            // before light could have told it.
+            held.CustodyUntilUt = nowUt + (2 * light);
+            Fly(flight);
+            WatchCustody(node, held);
         }
 
         /// <summary>Puts a light on its way and schedules its landing on the clock.</summary>
@@ -777,8 +1074,47 @@ namespace Sitrep.Core.StoreAndForward
                 Land(flight);
                 // Whatever landed may leave again at once: a relay forwarding on a live link holds nothing.
                 Depart(flight.To, flight.ArriveUt);
-                Depart(flight.From, flight.ArriveUt);
             }));
+        }
+
+        /// <summary>Schedules the end of <paramref name="held"/>'s custody at <paramref name="node"/>.</summary>
+        private void WatchCustody(string node, Held held)
+        {
+            var until = held.CustodyUntilUt;
+            held.EndWatch = _clock.Schedule(until, () => Locked(() => EndCustody(node, held, until)));
+        }
+
+        /// <summary>
+        /// Twice the light time after a copy left: the soonest its node could know
+        /// whether the hop was received. A copy that landed is let go. A copy that
+        /// was caught is the node's again: it is stopped if a cancel has been
+        /// stored here since, and otherwise waits to leave, never for the node it
+        /// was caught on the way to until the plan changes.
+        /// </summary>
+        private void EndCustody(string node, Held held, double atUt)
+        {
+            if (held.Away == null || !_held.TryGetValue(node, out var list) || !list.Contains(held))
+            {
+                return;
+            }
+            var to = held.Away;
+            held.Away = null;
+            held.EndWatch = null;
+            if (held.Landed)
+            {
+                list.Remove(held);
+                return;
+            }
+            held.EligibleUt = atUt;
+            (held.Excluded ??= new HashSet<string>(StringComparer.Ordinal)).Add(to);
+            held.ExcludedAtPlan = _planVersion;
+            if (held.Message is CommandMessage command && StoredCancelFor(node, command) != null)
+            {
+                list.Remove(held);
+                Report(node, command, JourneyKind.Cancelled, atUt);
+                return;
+            }
+            Depart(node, atUt);
         }
 
         private static bool IsExcluded(Held held, string to) => held.Excluded != null && held.Excluded.Contains(to);
@@ -795,7 +1131,7 @@ namespace Sitrep.Core.StoreAndForward
         {
             foreach (var entry in _held)
             {
-                foreach (var held in entry.Value.Where(h => nowUt > h.Message.ExpiresUt).ToList())
+                foreach (var held in entry.Value.Where(h => h.Away == null && nowUt > h.Message.ExpiresUt).ToList())
                 {
                     entry.Value.Remove(held);
                     if (held.Message is CommandMessage command)
@@ -851,6 +1187,7 @@ namespace Sitrep.Core.StoreAndForward
                 AtUt = atUt,
                 Detail = detail,
                 UntilUt = until,
+                Plan = command.Plan,
             };
             Route(node, report, atUt);
         }
@@ -859,6 +1196,7 @@ namespace Sitrep.Core.StoreAndForward
         {
             if (string.Equals(node, report.To, StringComparison.Ordinal))
             {
+                report.LandedUt = atUt;
                 Settle(report);
                 _deliverReport(report);
                 return;
@@ -920,6 +1258,11 @@ namespace Sitrep.Core.StoreAndForward
                         return;
                     }
                     report.Id = MintId("report");
+                    // It goes home by the plan the command it is about came by; a
+                    // report about a cancel, by the plan of the command it named.
+                    report.Plan = _sentCommands.TryGetValue(report.About, out var about)
+                        ? about.Plan
+                        : _sentCommands.Values.FirstOrDefault(c => c.Lane.Equals(lane) && c.LaneSeq == report.LaneSeq && c.Plan != null)?.Plan;
                     Route(lane.Craft, report, report.AtUt);
                 },
                 _release,
@@ -969,6 +1312,18 @@ namespace Sitrep.Core.StoreAndForward
             public HashSet<string>? Excluded { get; set; }
 
             public int ExcludedAtPlan { get; set; }
+
+            /// <summary>The node this copy was sent to, while its own node still has custody of it; null for a copy that is waiting here.</summary>
+            public string? Away { get; set; }
+
+            /// <summary>When custody ends: twice the hop's light time after it left.</summary>
+            public double CustodyUntilUt { get; set; }
+
+            /// <summary>Whether the copy that was sent was received. The node holding custody does not know this until custody ends.</summary>
+            public bool Landed { get; set; }
+
+            /// <summary>Cancels the scheduled end of custody.</summary>
+            public Action? EndWatch { get; set; }
         }
 
         private sealed class Flight
@@ -998,6 +1353,9 @@ namespace Sitrep.Core.StoreAndForward
             public string? CameFrom { get; set; }
 
             public Action? Cancel { get; set; }
+
+            /// <summary>The copy the sending node keeps until custody ends.</summary>
+            public Held? Custody { get; set; }
         }
     }
 
@@ -1032,6 +1390,15 @@ namespace Sitrep.Core.StoreAndForward
         public bool ReportedHeld { get; set; }
 
         public string? CameFrom { get; set; }
+
+        /// <summary>Where the copy was sent, for one its node still has custody of after its light landed or was lost; null for a copy that is waiting.</summary>
+        public string? Away { get; set; }
+
+        /// <summary>When that custody ends.</summary>
+        public double? CustodyUntilUt { get; set; }
+
+        /// <summary>Whether the copy that was sent was received.</summary>
+        public bool Landed { get; set; }
     }
 
     /// <summary>A light on its way: the sender's custody copy and the arrival it carries, one record, so a restore never yields both.</summary>
@@ -1048,6 +1415,9 @@ namespace Sitrep.Core.StoreAndForward
         public double ArriveUt { get; set; }
 
         public bool EndToEnd { get; set; }
+
+        /// <summary>Whether the node it left had reported holding it.</summary>
+        public bool ReportedHeld { get; set; }
     }
 
     public sealed class StoredCancelRecord

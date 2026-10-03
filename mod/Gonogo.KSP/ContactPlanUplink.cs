@@ -5,6 +5,7 @@ using Gonogo.KSP.SilenceTracking;
 using Sitrep.Contract;
 using Sitrep.Host.CommandCentres;
 using Sitrep.Host.Comms;
+using Sitrep.Propagation.Contacts;
 using Sitrep.Propagation.Visibility;
 using UnityEngine;
 
@@ -20,12 +21,15 @@ namespace Gonogo.KSP
     {
         private readonly CommandCentreRegistry _centres;
         private readonly ContactPlanSource _source;
+        private readonly DeliveryInputs _inputs;
         private KspVisibilityGeometryFactory? _surface;
 
         /// <param name="centres">The registry the ground stations' ids come from, so the plan names them as the roster does.</param>
-        public ContactPlanUplink(CommandCentreRegistry centres)
+        /// <param name="inputs">Where each tick's live links are handed to store-and-forward delivery.</param>
+        public ContactPlanUplink(CommandCentreRegistry centres, DeliveryInputs? inputs = null)
         {
             _centres = centres;
+            _inputs = inputs ?? new DeliveryInputs();
             _source = new ContactPlanSource(
                 this,
                 () => Time.realtimeSinceStartup,
@@ -45,6 +49,70 @@ namespace Gonogo.KSP
         {
             _surface = new KspVisibilityGeometryFactory(() => host.Kernel);
             _source.Register(host);
+            // Ungated: whether light that was sent lands is asked of these links
+            // whether or not anyone is watching a topic.
+            host.AddSampledSource(CaptureLinksOnMain, links => _inputs.SetLinks(links as LiveLinkGraph ?? LiveLinkGraph.Empty));
+        }
+
+        /// <summary>
+        /// MAIN THREAD: every live link the game's network holds right now between
+        /// the craft and ground stations a plan can name, with its light time as
+        /// the game is set to delay it. A network node is a map of its own live
+        /// links, so this is a walk of those maps, not a route solve.
+        ///
+        /// <para>Store-and-forward reads these for one thing: whether light that
+        /// was sent over a link lands, and whether a relay's own link is up. No
+        /// command centre's decision and nothing a client is shown is made from
+        /// them.</para>
+        /// </summary>
+        internal object? CaptureLinksOnMain(KspSnapshot? snapshot)
+        {
+            var vessels = FlightGlobals.Vessels;
+            if (vessels == null)
+            {
+                return null;
+            }
+            var config = CommsCoreUplink.SignalDelayConfig;
+            var factor = config.Enabled && config.LightSpeedScale > 0.0 ? 1.0 / config.LightSpeedScale : 0.0;
+            _inputs.SetLightFactor(factor);
+            // With the comms network switched off in the save there is nothing to
+            // plan and no link to wait for. Unknown, as at the main menu, is not off.
+            _inputs.SetNetworkModelled(CommsModelPresence.Present != false);
+
+            var ids = new Dictionary<CommNode, string>();
+            foreach (var vessel in vessels)
+            {
+                if (vessel == null)
+                {
+                    continue;
+                }
+                var comm = vessel.connection != null ? vessel.connection.Comm : null;
+                if (comm != null && Plannable(vessel.vesselType))
+                {
+                    ids[comm] = "vessel:" + vessel.id;
+                }
+            }
+            foreach (var centre in _centres.EnumerateActive())
+            {
+                if (centre.Kind == CommandCentreKind.GroundStation && centre is KspCommandCentre home && home.Node != null)
+                {
+                    ids[home.Node] = home.Id;
+                }
+            }
+            var links = new List<(string, string, double)>();
+            foreach (var entry in ids)
+            {
+                foreach (var other in entry.Key.Keys)
+                {
+                    if (other != null && ids.TryGetValue(other, out var otherId)
+                        && string.CompareOrdinal(entry.Value, otherId) < 0)
+                    {
+                        var metres = (entry.Key.precisePosition - other.precisePosition).magnitude;
+                        links.Add((entry.Value, otherId, metres / PairPlan.SpeedOfLight * factor));
+                    }
+                }
+            }
+            return new LiveLinkGraph(links);
         }
 
         public IReadOnlyList<string> Centres()

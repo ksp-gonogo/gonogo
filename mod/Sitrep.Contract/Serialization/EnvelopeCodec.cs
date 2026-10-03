@@ -479,6 +479,17 @@ namespace Sitrep.Contract.Serialization
             AppendField(sb, "oneWaySeconds");
             JsonWriter.AppendNumber(sb, msg.OneWaySeconds);
 
+            if (msg.PredictedReplyUt.HasValue)
+            {
+                AppendField(sb, "predictedReplyUt");
+                JsonWriter.AppendNumber(sb, msg.PredictedReplyUt.Value);
+            }
+            if (msg.ExpiresAtUt.HasValue)
+            {
+                AppendField(sb, "expiresAtUt");
+                JsonWriter.AppendNumber(sb, msg.ExpiresAtUt.Value);
+            }
+
             sb.Append('}');
             return sb.ToString();
         }
@@ -499,6 +510,8 @@ namespace Sitrep.Contract.Serialization
                 Type = "command-accepted",
                 RequestId = RequireString(raw, "requestId"),
                 OneWaySeconds = RequireDouble(raw, "oneWaySeconds"),
+                PredictedReplyUt = OptionalDouble(raw, "predictedReplyUt"),
+                ExpiresAtUt = OptionalDouble(raw, "expiresAtUt"),
             };
         }
 

@@ -57,6 +57,14 @@ export interface PendingEntry {
    * unknown: a zero throttle and an unknown value must never read the same.
    */
   commandedValue?: number;
+  /** For a command held for store-and-forward, when it is predicted to reach the craft; absent or null otherwise. */
+  predictedArrivalUt?: Value<"ut"> | null;
+  /** For a held command, when its reply is predicted back, waits included; absent or null otherwise. */
+  predictedReplyUt?: Value<"ut"> | null;
+  /** For a held command, when it is deleted wherever it is if it has not run; absent or null otherwise. */
+  expiresAtUt?: Value<"ut"> | null;
+  /** For a held command, its lane number; absent or null for a command on no lane. */
+  laneSeq?: Value<"count"> | null;
 }
 
 /**
@@ -110,6 +118,10 @@ export interface RailCrossing {
   tags: RailTags;
   sentAt: Value<"ut">;
   oneWaySeconds: Value<"s">;
+  /** When it is predicted to arrive, when that is not one delay after `sentAt`: a held command. */
+  predictedArrivalUt?: Value<"ut"> | null;
+  /** When its reply is predicted back, when that is not two delays after `sentAt`. */
+  predictedReplyUt?: Value<"ut"> | null;
 }
 
 const STAGED_THRESHOLD_SECONDS = 1;
@@ -153,7 +165,8 @@ export function deriveRailEntry(
   nowUt: number,
 ): InFlightCommand | undefined {
   const now = value("ut", nowUt);
-  const reachUt = crossing.sentAt.plus(crossing.oneWaySeconds);
+  const reachUt =
+    crossing.predictedArrivalUt ?? crossing.sentAt.plus(crossing.oneWaySeconds);
   const row = {
     id: crossing.id,
     label: crossing.label,
@@ -168,7 +181,9 @@ export function deriveRailEntry(
     if (!now.lessThan(reachUt)) return undefined;
     return { ...row, replyEtaSeconds: null, predictedPhase: "in-transit" };
   }
-  const replyUt = crossing.sentAt.plus(crossing.oneWaySeconds.times(2));
+  const replyUt =
+    crossing.predictedReplyUt ??
+    crossing.sentAt.plus(crossing.oneWaySeconds.times(2));
   return {
     ...row,
     replyEtaSeconds: replyUt.minus(now).magnitude,
@@ -200,6 +215,8 @@ export function pendingCrossing(entry: PendingEntry): RailCrossing {
     tags: railTagsForCommand(entry.command),
     sentAt: entry.dispatchedAt,
     oneWaySeconds: entry.oneWaySeconds,
+    predictedArrivalUt: entry.predictedArrivalUt ?? null,
+    predictedReplyUt: entry.predictedReplyUt ?? null,
   };
 }
 
@@ -274,9 +291,18 @@ export function classifyRetained(args: {
   // Out and back: the dispatch instant offset by two one-way legs. An instant
   // plus a duration, so the algebra does it rather than `+` on two bare
   // numbers that happen to be seconds apart in meaning.
-  const replyUt = entry.dispatchedAt.plus(entry.oneWaySeconds.times(2));
-  // 'lost': path was not continuously up across the in-flight window.
-  if (!pathConnectedDuring(entry.dispatchedAt.magnitude, replyUt.magnitude)) {
+  const held = entry.laneSeq != null;
+  const replyUt =
+    entry.predictedReplyUt ??
+    (held && entry.expiresAtUt
+      ? entry.expiresAtUt
+      : entry.dispatchedAt.plus(entry.oneWaySeconds.times(2)));
+  // 'lost': path was not continuously up across the in-flight window. Not for
+  // a held command: a break leaves it waiting at a node, not lost.
+  if (
+    !held &&
+    !pathConnectedDuring(entry.dispatchedAt.magnitude, replyUt.magnitude)
+  ) {
     return { ...base, predictedPhase: "lost" };
   }
   // 'overdue': past reply + margin and nothing has come back.

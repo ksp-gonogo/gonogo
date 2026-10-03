@@ -94,6 +94,9 @@ import type {
   UnlockTechArgs,
   UpdateManeuverNodeArgs,
   UpgradeFacilityArgs,
+  UplinkActionReply,
+  UplinkCancelRequest,
+  UplinkResendRequest,
   WriteModSettingArgs,
 } from "./contract.js";
 
@@ -136,6 +139,8 @@ export interface GeneratedCommandArgsMap {
   "settings.save": SaveSettingsArgs;
   "system.bodies.statesAt": BodyStatesRequest;
   "system.frame.set": SetControlFrameArgs;
+  "system.uplink.cancel": UplinkCancelRequest;
+  "system.uplink.resend": UplinkResendRequest;
   "time.setPaused": SetPausedArgs;
   "time.setWarpIndex": SetWarpIndexArgs;
   "vessel.control.setAbort": SetEnabledArgs;
@@ -197,6 +202,8 @@ export interface GeneratedCommandReplyMap {
   "settings.save": CommandResult;
   "system.bodies.statesAt": BodyStatesReply;
   "system.frame.set": CommandResult;
+  "system.uplink.cancel": UplinkActionReply;
+  "system.uplink.resend": UplinkActionReply;
   "time.setPaused": CommandResult;
   "time.setWarpIndex": CommandResult;
   "vessel.control.setAbort": CommandResult;
@@ -268,6 +275,8 @@ export const GENERATED_COMMAND_REPLY_TYPES = {
   "settings.save": "CommandResult",
   "system.bodies.statesAt": "BodyStatesReply",
   "system.frame.set": "CommandResult",
+  "system.uplink.cancel": "UplinkActionReply",
+  "system.uplink.resend": "UplinkActionReply",
   "time.setPaused": "CommandResult",
   "time.setWarpIndex": "CommandResult",
   "vessel.control.setAbort": "CommandResult",
@@ -367,6 +376,8 @@ export const GENERATED_COMMAND_RAIL = {
   "settings.save": { replies: true, delayed: false },
   "system.bodies.statesAt": { replies: true, delayed: false },
   "system.frame.set": { replies: true, delayed: false },
+  "system.uplink.cancel": { replies: true, delayed: false },
+  "system.uplink.resend": { replies: true, delayed: false },
   "time.setPaused": { replies: true, delayed: false },
   "time.setWarpIndex": { replies: true, delayed: false },
   "vessel.control.setAbort": { replies: true, delayed: true },
@@ -428,6 +439,8 @@ export const GENERATED_COMMAND_IDS = [
   "settings.save",
   "system.bodies.statesAt",
   "system.frame.set",
+  "system.uplink.cancel",
+  "system.uplink.resend",
   "time.setPaused",
   "time.setWarpIndex",
   "vessel.control.setAbort",

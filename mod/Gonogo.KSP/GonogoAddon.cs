@@ -92,6 +92,9 @@ namespace Gonogo.KSP
         // against the same store every consumer is subscribed to.
         private SettingsStore? _settings;
         private ChannelEngine? _engine;
+
+        /// <summary>The running engine, for the scenario that saves what store-and-forward holds; null before it starts.</summary>
+        internal static ChannelEngine? SharedEngine { get; private set; }
         private bool _shutDown;
         private double? _lastSampledUt;
         private string? _sessionPath;
@@ -113,6 +116,7 @@ namespace Gonogo.KSP
                 // API from Courier is the crash class KspVesselActuator's doc
                 // comment describes.
                 _engine = new ChannelEngine(BindUri, executeCommandsOnMainThread: true);
+                SharedEngine = _engine;
 
                 // Route the engine's fail-soft diagnostics to the KSP log.
                 // Sitrep.Host otherwise logs only to Console.Error, which KSP does
@@ -211,7 +215,11 @@ namespace Gonogo.KSP
                 }
                 var homeEngine = _engine;
                 _engine.RegisterUplink(new CommandCentres.CommandCentreDelayUplink(ccRegistry, () => homeEngine.CurrentHomeCommand));
-                _engine.RegisterUplink(new ContactPlanUplink(ccRegistry));
+                // One shared hand-off: the planner and the link capture write it,
+                // store-and-forward delivery reads it.
+                var deliveryInputs = new Sitrep.Host.Comms.DeliveryInputs();
+                _engine.SetDeliveryInputs(deliveryInputs);
+                _engine.RegisterUplink(new ContactPlanUplink(ccRegistry, deliveryInputs));
                 // Messages and radio between centres, timed by the centre-to-centre
                 // rows the pass above writes.
                 _engine.RegisterUplink(new Sitrep.Host.Commcast.CommcastUplink());
@@ -557,6 +565,7 @@ namespace Gonogo.KSP
             ScetAlarmUplink.ConfigureStandingSubscriptions(null, null);
             ScetAlarmUplink.ConfigureSelectableVantage(null);
             ScetAlarmUplink.ConfigureMainThreadRunner(null);
+            SharedEngine = null;
 
             try
             {

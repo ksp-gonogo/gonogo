@@ -63,8 +63,9 @@ namespace Sitrep.Core.StoreAndForward
             if (_unresolved.TryGetValue(seq, out var existing))
             {
                 _unresolved[seq] = Math.Max(existing, expiresUt);
+                return;
             }
-            else if (seq < NextSeq)
+            if (seq < NextSeq)
             {
                 _unresolved[seq] = expiresUt;
             }

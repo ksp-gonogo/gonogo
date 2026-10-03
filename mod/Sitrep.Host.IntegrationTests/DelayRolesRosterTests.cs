@@ -63,7 +63,8 @@ namespace Sitrep.Host.IntegrationTests
                 Assert.DoesNotContain(DelayRolesTestUplink.HeldAtHomeTopic, trueNow);
                 Assert.DoesNotContain(DelayRolesTestUplink.DelayedTopic, trueNow.Concat(heldAtHome));
                 Assert.DoesNotContain(DelayRolesTestUplink.LivePrefix + "alpha", trueNow);
-                Assert.Equal(new[] { DelayRolesTestUplink.AddressedTopic }, Strings(roles.RootElement, "addressed"));
+                Assert.Equal(new[] { ChannelEngine.JourneyTopic, DelayRolesTestUplink.AddressedTopic }, Strings(roles.RootElement, "addressed"));
+                Assert.DoesNotContain(ChannelEngine.JourneyTopic, trueNow);
                 Assert.DoesNotContain(DelayRolesTestUplink.AddressedTopic, trueNow.Concat(heldAtHome));
             }
             finally
