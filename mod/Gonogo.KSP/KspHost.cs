@@ -302,7 +302,7 @@ namespace Gonogo.KSP
                         var roster = new List<object?>(allVessels.Count);
                         foreach (var candidate in allVessels)
                         {
-                            if (candidate == null)
+                            if (candidate == null || !OrbitKnowledge.Known(DiscoveryLevelOf(candidate)))
                             {
                                 continue;
                             }
@@ -2028,6 +2028,23 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
+        /// A vessel's discovery level, read defensively: a vessel with no
+        /// discovery record is one the game created for the player, so it reads
+        /// as owned.
+        /// </summary>
+        private static DiscoveryLevels DiscoveryLevelOf(Vessel vessel)
+        {
+            try
+            {
+                return vessel.DiscoveryInfo != null ? vessel.DiscoveryInfo.Level : DiscoveryLevels.Owned;
+            }
+            catch (Exception)
+            {
+                return DiscoveryLevels.Owned;
+            }
+        }
+
+        /// <summary>
         /// The <c>target.available</c> raw group -- the list of everything the
         /// active vessel could target right now. Built GENERICALLY: enumerate
         /// candidate <c>ITargetable</c>s from the game (vessels, bodies, and
@@ -2066,7 +2083,8 @@ namespace Gonogo.KSP
             {
                 foreach (var v in vessels)
                 {
-                    if (v == null || ReferenceEquals(v, active) || IsFilteredTargetVesselType(v.vesselType))
+                    if (v == null || ReferenceEquals(v, active) || IsFilteredTargetVesselType(v.vesselType)
+                        || !OrbitKnowledge.Known(DiscoveryLevelOf(v)))
                     {
                         continue;
                     }
