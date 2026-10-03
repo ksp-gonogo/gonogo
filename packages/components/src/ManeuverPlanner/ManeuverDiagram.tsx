@@ -1,3 +1,4 @@
+import { FramedDisplay } from "@ksp-gonogo/ui-kit";
 import { OrbitDiagram } from "../shared/OrbitDiagram";
 import { TrajectoryWithheldNote } from "../shared/trajectoryWithheld";
 import type { ManeuverPreviewProps } from "./ManeuverPreview";
@@ -22,7 +23,9 @@ export function ManeuverDiagram({
   if (currentTrajectory?.shape === "withheld") {
     return (
       <DiagramWrap>
-        <TrajectoryWithheldNote withheld={currentTrajectory} />
+        <FramedDisplay padded style={FRAME_STYLE}>
+          <TrajectoryWithheldNote withheld={currentTrajectory} />
+        </FramedDisplay>
       </DiagramWrap>
     );
   }
@@ -35,55 +38,59 @@ export function ManeuverDiagram({
   const secondaryProjected = isSequence(plan) ? plan.finalProjected : null;
   return (
     <DiagramWrap>
-      <OrbitDiagram
-        variant="mini"
-        // The seam's arc when it gave one; null lets the diagram draw its own conic.
-        trajectoryPath={
-          currentTrajectory?.shape === "arc" ? currentTrajectory.points : null
-        }
-        trajectoryFarEnd={
-          currentTrajectory?.shape === "arc" ? currentTrajectory.farEnd : null
-        }
-        sma={diagram.sma ?? 0}
-        ecc={diagram.ecc ?? 0}
-        apoapsis={diagram.ApR}
-        periapsis={diagram.PeR}
-        trueAnomaly={diagram.trueAnomaly ?? 0}
-        argPe={diagram.argPe ?? 0}
-        bodyColor={body?.color}
-        bodyRadius={body?.radius}
-        projected={
-          projected
-            ? {
-                sma: projected.sma,
-                ecc: projected.eccentricity,
-                apoapsis: projected.ApR,
-                periapsis: projected.PeR,
-              }
-            : null
-        }
-        secondaryProjected={
-          secondaryProjected
-            ? {
-                sma: secondaryProjected.sma,
-                ecc: secondaryProjected.eccentricity,
-                apoapsis: secondaryProjected.ApR,
-                periapsis: secondaryProjected.PeR,
-              }
-            : null
-        }
-        maneuverHandles={
-          burnTrueAnomaly !== null && customWithHandles
-            ? {
-                burnTrueAnomaly,
-                prograde,
-                radial,
-                onPrograde: setPrograde,
-                onRadial: setRadial,
-              }
-            : null
-        }
-      />
+      <FramedDisplay style={FRAME_STYLE}>
+        <OrbitDiagram
+          variant="mini"
+          // The seam's arc when it gave one; null lets the diagram draw its own conic.
+          trajectoryPath={
+            currentTrajectory?.shape === "arc" ? currentTrajectory.points : null
+          }
+          trajectoryFarEnd={
+            currentTrajectory?.shape === "arc" ? currentTrajectory.farEnd : null
+          }
+          sma={diagram.sma ?? 0}
+          ecc={diagram.ecc ?? 0}
+          apoapsis={diagram.ApR}
+          periapsis={diagram.PeR}
+          trueAnomaly={diagram.trueAnomaly ?? 0}
+          argPe={diagram.argPe ?? 0}
+          bodyColor={body?.color}
+          bodyRadius={body?.radius}
+          projected={
+            projected
+              ? {
+                  sma: projected.sma,
+                  ecc: projected.eccentricity,
+                  apoapsis: projected.ApR,
+                  periapsis: projected.PeR,
+                }
+              : null
+          }
+          secondaryProjected={
+            secondaryProjected
+              ? {
+                  sma: secondaryProjected.sma,
+                  ecc: secondaryProjected.eccentricity,
+                  apoapsis: secondaryProjected.ApR,
+                  periapsis: secondaryProjected.PeR,
+                }
+              : null
+          }
+          maneuverHandles={
+            burnTrueAnomaly !== null && customWithHandles
+              ? {
+                  burnTrueAnomaly,
+                  prograde,
+                  radial,
+                  onPrograde: setPrograde,
+                  onRadial: setRadial,
+                }
+              : null
+          }
+        />
+      </FramedDisplay>
     </DiagramWrap>
   );
 }
+
+const FRAME_STYLE = { flex: 1, minHeight: 0, minWidth: 0 } as const;

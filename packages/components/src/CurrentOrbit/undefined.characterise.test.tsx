@@ -105,7 +105,7 @@ describe("CurrentOrbit: nothing has arrived at all", () => {
     expect(screen.getAllByText(NULL_DISPLAY)).toHaveLength(7);
     // Labels are unconditional, so the widget is fully laid out and only the values are missing.
     expect(visibleText(container)).toBe(
-      `ORBITAp${NULL_DISPLAY}Pe${NULL_DISPLAY}Inc${NULL_DISPLAY}t-Ap${NULL_DISPLAY}t-Pe${NULL_DISPLAY}Ecc${NULL_DISPLAY}T${NULL_DISPLAY}`,
+      `ORBITAp${NULL_DISPLAY}Pe${NULL_DISPLAY}t-Ap${NULL_DISPLAY}t-Pe${NULL_DISPLAY}Inc${NULL_DISPLAY}Ecc${NULL_DISPLAY}T${NULL_DISPLAY}`,
     );
     // The widget's own gate, not `Unit`: direct text, no inner span.
     expect(valueFor("Ap").firstElementChild).toBeNull();
@@ -161,7 +161,7 @@ describe("CurrentOrbit: null (inapplicable) versus undefined (nothing yet)", () 
 
     // Four dashes: Ap, t-Ap, t-Pe, T. Pe/Inc/Ecc carry real values.
     expect(visibleText(container)).toBe(
-      `ORBITKerbinorbit planeAp${NULL_DISPLAY}Pe100.0 kmInc0.3°t-Ap${NULL_DISPLAY}t-Pe${NULL_DISPLAY}Ecc1.3500T${NULL_DISPLAY}`,
+      `ORBITKerbinorbit planeAp${NULL_DISPLAY}Pe100.0 kmt-Ap${NULL_DISPLAY}t-Pe${NULL_DISPLAY}Inc0.3°Ecc1.3500T${NULL_DISPLAY}`,
     );
 
     // The rows fold `null` into `undefined`, so every dash is the widget's own gate.

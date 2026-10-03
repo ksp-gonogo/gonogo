@@ -8,6 +8,7 @@ import {
 import { Gauge, Sparkline } from "@ksp-gonogo/ui";
 import {
   EmptyState,
+  FramedDisplay,
   Panel,
   Section,
   Text,
@@ -130,18 +131,20 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
           </Section>
         ),
         <Section key="gauge" full>
-          <div ref={gaugeRef} style={GAUGE_SLOT_STYLE}>
-            <Gauge
-              value={twrReading}
-              min={GAUGE_MIN}
-              max={GAUGE_MAX}
-              zones={ZONES}
-              width={gaugeW}
-              height={gaugeH}
-              readout="large"
-              ariaLabel={`TWR ${writeQuantity(twr)}`}
-            />
-          </div>
+          <FramedDisplay padded style={GAUGE_FRAME_STYLE}>
+            <div ref={gaugeRef} style={GAUGE_SLOT_STYLE}>
+              <Gauge
+                value={twrReading}
+                min={GAUGE_MIN}
+                max={GAUGE_MAX}
+                zones={ZONES}
+                width={gaugeW}
+                height={gaugeH}
+                readout="large"
+                ariaLabel={`TWR ${writeQuantity(twr)}`}
+              />
+            </div>
+          </FramedDisplay>
         </Section>,
         showSparkline && (
           <Section key="trend" full>
@@ -161,7 +164,10 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
   );
 }
 
-/** The dial centres in whatever height the sections leave it. */
+/** The frame takes the height the sections leave, and the dial centres inside it. */
+const GAUGE_FRAME_STYLE = { flex: "1 1 auto", minHeight: 0 } as const;
+
+/** The dial centres in whatever height the frame leaves it. */
 const GAUGE_SLOT_STYLE = {
   flex: "1 1 auto",
   width: "100%",

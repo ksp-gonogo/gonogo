@@ -9,7 +9,6 @@ describe("OrbitReadoutGrid: apsides the frame in force does not have", () => {
       <OrbitReadoutGrid
         tight={false}
         narrow={false}
-        isLandscape={false}
         showInclinationRow
         showApProgressRows
         showEccentricityRows

@@ -206,6 +206,20 @@ export function LibrationPointsComponent({
   return (
     <Panel
       panelTitle="LIBRATION"
+      // The readouts are the panel's aside, as the System view's almanac is, so the picture keeps the body.
+      panelSidebar={
+        drawn ? (
+          <Section as="ul" gap="rows" style={READOUTS}>
+            <LibrationReadouts
+              answer={answer}
+              offset={offset}
+              hasCraft={orbit !== undefined}
+              craftHeldSince={orbitHeldSince}
+              catalogueHeldSince={catalogueHeldSince}
+            />
+          </Section>
+        ) : undefined
+      }
       panelToolbar={
         <div style={PAIR_LABEL}>
           {/* Scoped to the instance so two of these widgets never share a control id. */}
@@ -272,17 +286,6 @@ export function LibrationPointsComponent({
             </FramedDisplay>
           )}
         </Section>,
-        drawn ? (
-          <Section key="readouts" as="ul" gap="rows" style={READOUTS}>
-            <LibrationReadouts
-              answer={answer}
-              offset={offset}
-              hasCraft={orbit !== undefined}
-              craftHeldSince={orbitHeldSince}
-              catalogueHeldSince={catalogueHeldSince}
-            />
-          </Section>
-        ) : null,
       ]}
     />
   );

@@ -45,10 +45,26 @@ function ApsisCell({
   );
 }
 
+/** One readout: a label and its value, aligned on the text baseline. */
+function Pair({
+  columns,
+  gap,
+  children,
+}: {
+  columns: string;
+  gap: string;
+  children: ReactNode;
+}) {
+  return (
+    <Grid cols={columns} align="baseline" style={{ gap }}>
+      {children}
+    </Grid>
+  );
+}
+
 export interface OrbitReadoutGridProps {
   tight: boolean;
   narrow: boolean;
-  isLandscape: boolean;
   showInclinationRow: boolean;
   showApProgressRows: boolean;
   showEccentricityRows: boolean;
@@ -66,7 +82,6 @@ export interface OrbitReadoutGridProps {
 export function OrbitReadoutGrid({
   tight,
   narrow,
-  isLandscape,
   showInclinationRow,
   showApProgressRows,
   showEccentricityRows,
@@ -81,49 +96,87 @@ export function OrbitReadoutGrid({
   period,
 }: Readonly<OrbitReadoutGridProps>) {
   const cell = { apsides, noApsidesHere };
+  const pairColumns = tight ? "2.2em minmax(0, 1fr)" : "3em minmax(0, 1fr)";
+  const pairGap = tight
+    ? "var(--gap-label-value-tight)"
+    : "var(--gap-label-value)";
   return (
+    // Each readout is a label and its value, and the pairs flow into as many columns as the room allows, so a wide aside reads in a few rows.
     <Grid
-      cols={tight ? "2.2em minmax(0, 1fr)" : "3em minmax(0, 1fr)"}
+      minColWidth={tight ? "6.5rem" : "8rem"}
       align="baseline"
-      style={{
-        gap: `var(--gap-readout-row) ${tight ? "var(--gap-label-value-tight)" : "var(--gap-label-value)"}`,
-        alignContent: "start",
-        ...(isLandscape ? { flex: "0 0 auto" } : {}),
-      }}
+      rowGap="readout-row"
+      gap="section-compact"
+      style={{ alignContent: "start", width: "100%" }}
     >
-      <OrbitLabel>Ap</OrbitLabel>
-      <OrbitValue accent="ap" tight={tight} narrow={narrow}>
-        <ApsisCell apsis="Ap" {...cell}>
-          {apoapsisAltitude === undefined ? (
-            NULL_DISPLAY
-          ) : (
-            <Unit value={value("m", apoapsisAltitude)} />
-          )}
-        </ApsisCell>
-      </OrbitValue>
+      <Pair columns={pairColumns} gap={pairGap}>
+        <OrbitLabel>Ap</OrbitLabel>
+        <OrbitValue accent="ap" tight={tight} narrow={narrow}>
+          <ApsisCell apsis="Ap" {...cell}>
+            {apoapsisAltitude === undefined ? (
+              NULL_DISPLAY
+            ) : (
+              <Unit value={value("m", apoapsisAltitude)} />
+            )}
+          </ApsisCell>
+        </OrbitValue>
+      </Pair>
 
-      <OrbitLabel>Pe</OrbitLabel>
-      {/* A sub-surface periapsis means impact, so it takes the alert colour. */}
-      <OrbitValue
-        accent={
-          periapsisAltitude !== undefined && periapsisAltitude < 0
-            ? "alert"
-            : "pe"
-        }
-        tight={tight}
-        narrow={narrow}
-      >
-        <ApsisCell apsis="Pe" {...cell}>
-          {periapsisAltitude === undefined ? (
-            NULL_DISPLAY
-          ) : (
-            <Unit value={value("m", periapsisAltitude)} />
-          )}
-        </ApsisCell>
-      </OrbitValue>
+      <Pair columns={pairColumns} gap={pairGap}>
+        <OrbitLabel>Pe</OrbitLabel>
+        {/* A sub-surface periapsis means impact, so it takes the alert colour. */}
+        <OrbitValue
+          accent={
+            periapsisAltitude !== undefined && periapsisAltitude < 0
+              ? "alert"
+              : "pe"
+          }
+          tight={tight}
+          narrow={narrow}
+        >
+          <ApsisCell apsis="Pe" {...cell}>
+            {periapsisAltitude === undefined ? (
+              NULL_DISPLAY
+            ) : (
+              <Unit value={value("m", periapsisAltitude)} />
+            )}
+          </ApsisCell>
+        </OrbitValue>
+      </Pair>
+
+      {showApProgressRows && (
+        <>
+          <Pair columns={pairColumns} gap={pairGap}>
+            <OrbitLabel>t-Ap</OrbitLabel>
+            <OrbitValue accent="ap" tight={tight} narrow={narrow}>
+              {/* A countdown to an apsis that does not exist would read as an imminent event. */}
+              <ApsisCell apsis="Ap" {...cell}>
+                {timeToAp === undefined ? (
+                  NULL_DISPLAY
+                ) : (
+                  <Countdown value={timeToAp} />
+                )}
+              </ApsisCell>
+            </OrbitValue>
+          </Pair>
+
+          <Pair columns={pairColumns} gap={pairGap}>
+            <OrbitLabel>t-Pe</OrbitLabel>
+            <OrbitValue accent="pe" tight={tight} narrow={narrow}>
+              <ApsisCell apsis="Pe" {...cell}>
+                {timeToPe === undefined ? (
+                  NULL_DISPLAY
+                ) : (
+                  <Countdown value={timeToPe} />
+                )}
+              </ApsisCell>
+            </OrbitValue>
+          </Pair>
+        </>
+      )}
 
       {showInclinationRow && (
-        <>
+        <Pair columns={pairColumns} gap={pairGap}>
           <OrbitLabel>Inc</OrbitLabel>
           <OrbitValue tight={tight} narrow={narrow}>
             {inclination === undefined ? (
@@ -132,55 +185,32 @@ export function OrbitReadoutGrid({
               <Unit value={inclination} decimals={1} />
             )}
           </OrbitValue>
-        </>
-      )}
-
-      {showApProgressRows && (
-        <>
-          <OrbitLabel>t-Ap</OrbitLabel>
-          <OrbitValue accent="ap" tight={tight} narrow={narrow}>
-            {/* A countdown to an apsis that does not exist would read as an imminent event. */}
-            <ApsisCell apsis="Ap" {...cell}>
-              {timeToAp === undefined ? (
-                NULL_DISPLAY
-              ) : (
-                <Countdown value={timeToAp} />
-              )}
-            </ApsisCell>
-          </OrbitValue>
-
-          <OrbitLabel>t-Pe</OrbitLabel>
-          <OrbitValue accent="pe" tight={tight} narrow={narrow}>
-            <ApsisCell apsis="Pe" {...cell}>
-              {timeToPe === undefined ? (
-                NULL_DISPLAY
-              ) : (
-                <Countdown value={timeToPe} />
-              )}
-            </ApsisCell>
-          </OrbitValue>
-        </>
+        </Pair>
       )}
 
       {showEccentricityRows && (
         <>
-          <OrbitLabel>Ecc</OrbitLabel>
-          <OrbitValue tight={tight} narrow={narrow}>
-            {eccentricity === undefined ? (
-              NULL_DISPLAY
-            ) : (
-              <Unit value={eccentricity} decimals={4} />
-            )}
-          </OrbitValue>
+          <Pair columns={pairColumns} gap={pairGap}>
+            <OrbitLabel>Ecc</OrbitLabel>
+            <OrbitValue tight={tight} narrow={narrow}>
+              {eccentricity === undefined ? (
+                NULL_DISPLAY
+              ) : (
+                <Unit value={eccentricity} decimals={4} />
+              )}
+            </OrbitValue>
+          </Pair>
 
-          <OrbitLabel>T</OrbitLabel>
-          <OrbitValue tight={tight} narrow={narrow}>
-            {period === undefined ? (
-              NULL_DISPLAY
-            ) : (
-              <Unit value={value("s", period)} />
-            )}
-          </OrbitValue>
+          <Pair columns={pairColumns} gap={pairGap}>
+            <OrbitLabel>T</OrbitLabel>
+            <OrbitValue tight={tight} narrow={narrow}>
+              {period === undefined ? (
+                NULL_DISPLAY
+              ) : (
+                <Unit value={value("s", period)} />
+              )}
+            </OrbitValue>
+          </Pair>
         </>
       )}
     </Grid>

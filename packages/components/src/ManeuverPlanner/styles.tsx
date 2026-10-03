@@ -165,7 +165,12 @@ const DIAGRAM_WRAP_NARROW: CSSProperties = {
   display: "flex",
 };
 
-const DIAGRAM_WRAP_WIDE: CSSProperties = { flex: "1 1 0", minWidth: 0 };
+const DIAGRAM_WRAP_WIDE: CSSProperties = {
+  flex: "1 1 0",
+  minWidth: 0,
+  minHeight: "180px",
+  display: "flex",
+};
 
 export function DiagramWrap({ children }: Readonly<{ children?: ReactNode }>) {
   return (

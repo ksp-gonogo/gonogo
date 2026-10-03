@@ -26,6 +26,7 @@ import { PanelDelayRail } from "./CommandDelay/PanelDelayRail";
 import { FramedDisplay } from "./FramedDisplay";
 import { fitBox, fitMask } from "./fitBox";
 import { focusRing, focusRingInset } from "./focusRing";
+import { GraphNotice } from "./GraphNotice";
 import { InactiveNotice, type PanelInactiveReason } from "./InactiveNotice";
 import { LiveRegion } from "./LiveRegion";
 import { type BadgeEntry, usePanelBadgesContext } from "./PanelBadges";
@@ -2005,7 +2006,7 @@ function PanelRootImpl({
 
 /**
  * Whether a section is a filling `Section` whose whole content is one
- * `FramedDisplay`, reached through plain elements and fragments that each hold
+ * `FramedDisplay` (and any `GraphNotice` beside it), reached through plain elements and fragments that each hold
  * only the next.
  */
 function holdsOnlyAFrame(section: ReactNode): boolean {
@@ -2015,7 +2016,10 @@ function holdsOnlyAFrame(section: ReactNode): boolean {
   if (section.type !== Section || section.props.fill !== true) return false;
   let node: ReactNode = section.props.children;
   for (;;) {
-    const only = Children.toArray(node);
+    // A graph's notice sits beside or under its frame, and a frame with its notice is still the one drawing.
+    const only = Children.toArray(node).filter(
+      (child) => !(isValidElement(child) && child.type === GraphNotice),
+    );
     if (only.length !== 1) return false;
     const [child] = only;
     if (!isValidElement<{ children?: ReactNode }>(child)) return false;

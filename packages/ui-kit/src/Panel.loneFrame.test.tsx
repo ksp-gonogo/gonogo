@@ -2,6 +2,7 @@ import { render } from "@ksp-gonogo/sitrep-sdk/testing";
 import { Fragment, type ReactNode } from "react";
 import { describe, expect, it } from "vitest";
 import { FramedDisplay } from "./FramedDisplay";
+import { GraphNotice } from "./GraphNotice";
 import { Panel } from "./Panel";
 import { Section } from "./Section";
 
@@ -53,6 +54,31 @@ describe("Panel lone framed drawing", () => {
         </Section>,
       ),
     ).toBe(true);
+  });
+
+  it("still marks a frame whose graph notice sits beside or under it", () => {
+    for (const placement of ["inline", "beside"] as const) {
+      const { unmount } = render(
+        <Panel
+          panelTitle="ORBIT"
+          sections={
+            <Section fill>
+              <div>
+                <FramedDisplay>
+                  <svg aria-hidden="true" />
+                </FramedDisplay>
+                <GraphNotice placement={placement}>
+                  no reference data
+                </GraphNotice>
+              </div>
+            </Section>
+          }
+        />,
+      );
+      const body = document.querySelector("[data-panel-body]") as HTMLElement;
+      expect(body.hasAttribute("data-panel-lone-frame")).toBe(true);
+      unmount();
+    }
   });
 
   it("does not mark a frame with a readout beside it", () => {

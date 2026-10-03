@@ -117,21 +117,154 @@ export function DockingHud(props: DockingHudProps) {
     cameraFlightId,
   };
 
+  const readouts = (
+    <div>
+      <Cluster
+        justify="between"
+        align="baseline"
+        style={{ gap: "var(--gap-headline)" }}
+      >
+        <Truncate
+          style={{
+            fontSize: "var(--font-size-value)",
+            color: "var(--color-go-text)",
+            letterSpacing: "0.04em",
+          }}
+        >
+          {name}
+        </Truncate>
+        <Text
+          size="lg"
+          tone="go"
+          style={{ fontWeight: 700, whiteSpace: "nowrap" }}
+        >
+          {distance === undefined ? (
+            NULL_DISPLAY
+          ) : (
+            <Unit value={value("m", distance)} />
+          )}
+        </Text>
+      </Cluster>
+      <Grid
+        cols={stackReadouts ? "1fr" : "auto 1fr"}
+        gap="label-value"
+        style={{
+          rowGap: "var(--gap-line)",
+          marginTop: "var(--gap-sub-readout)",
+        }}
+      >
+        <ReadoutCaption
+          style={{
+            color: "var(--color-go-text)",
+            letterSpacing: "0.12em",
+            whiteSpace: "nowrap",
+          }}
+        >
+          Δv
+        </ReadoutCaption>
+        <Text
+          style={{
+            fontSize: 11,
+            whiteSpace: "nowrap",
+            color: closing
+              ? "var(--color-accent-fg)"
+              : "var(--color-warn-mark)",
+          }}
+        >
+          {relVel === undefined || !Number.isFinite(relVel) ? (
+            NULL_DISPLAY
+          ) : (
+            <Unit value={value("m/s", relVel)} decimals={2} />
+          )}
+        </Text>
+
+        {showAlignmentDetail && (
+          <>
+            <ReadoutCaption
+              style={{
+                color: "var(--color-go-text)",
+                letterSpacing: "0.12em",
+                whiteSpace: "nowrap",
+              }}
+            >
+              X/Y
+            </ReadoutCaption>
+            <Text
+              style={{
+                fontSize: 11,
+                whiteSpace: "nowrap",
+                color: "var(--color-go-text)",
+              }}
+            >
+              {x === undefined ? (
+                NULL_DISPLAY
+              ) : (
+                <Unit value={value("m", x)} decimals={2} />
+              )}{" "}
+              /{" "}
+              {y === undefined ? (
+                NULL_DISPLAY
+              ) : (
+                <Unit value={value("m", y)} decimals={2} />
+              )}
+            </Text>
+
+            <ReadoutCaption
+              style={{
+                color: "var(--color-go-text)",
+                letterSpacing: "0.12em",
+                whiteSpace: "nowrap",
+              }}
+            >
+              α/β/γ
+            </ReadoutCaption>
+            <Text
+              style={{
+                fontSize: 11,
+                whiteSpace: "nowrap",
+                color: "var(--color-go-text)",
+              }}
+            >
+              {ax === undefined ? (
+                NULL_DISPLAY
+              ) : (
+                <Unit value={value("°", ax)} decimals={1} />
+              )}{" "}
+              ·{" "}
+              {ay === undefined ? (
+                NULL_DISPLAY
+              ) : (
+                <Unit value={value("°", ay)} decimals={1} />
+              )}{" "}
+              ·{" "}
+              {az === undefined ? (
+                NULL_DISPLAY
+              ) : (
+                <Unit value={value("°", az)} decimals={1} />
+              )}
+            </Text>
+          </>
+        )}
+      </Grid>
+      {modelled && (
+        <ReadoutCaption role="status">
+          Alignment reckoned ({modelled.basis})
+        </ReadoutCaption>
+      )}
+    </div>
+  );
+
   return (
     <Panel
       role="region"
       aria-label={`Docking HUD for ${name}`}
       panelTitle="DOCKING"
+      // The frame is the body, alone, and the readouts are the panel's aside; a tile too small for a frame keeps the readouts as its body.
+      panelSidebar={showViewport ? readouts : undefined}
+      sidebarSize={wideShort ? "15rem" : undefined}
       sections={
-        /* One filling section: the wide-short layout needs the readouts BESIDE the viewport, hence the inline direction. */
-        <Section
-          full
-          fill
-          gap="related-dense"
-          style={{ flexDirection: wideShort ? "row" : "column" }}
-        >
-          {showViewport && (
-            /* A frame inside the padded body, which also divides the two halves. */
+        showViewport ? (
+          <Section fill>
             <FramedDisplay style={{ flex: 1, minHeight: 0, minWidth: 0 }}>
               {/* Gated like the video it hosts: not in the HUD-only variant, not when too small. The frame is what the augment's `inset: 0` resolves against. */}
               {showCamera && (
@@ -164,156 +297,10 @@ export function DockingHud(props: DockingHudProps) {
                 <AugmentSlot name="targeting.overlay" props={hudContext} />
               </div>
             </FramedDisplay>
-          )}
-
-          <div
-            style={
-              /* Wide-short: a fixed-width right column, centred vertically. */
-              wideShort
-                ? {
-                    flex: "0 0 240px",
-                    alignSelf: "stretch",
-                    display: "flex",
-                    flexDirection: "column",
-                    justifyContent: "center",
-                  }
-                : undefined
-            }
-          >
-            <Cluster
-              justify="between"
-              align="baseline"
-              style={{ gap: "var(--gap-headline)" }}
-            >
-              <Truncate
-                style={{
-                  fontSize: "var(--font-size-value)",
-                  color: "var(--color-go-text)",
-                  letterSpacing: "0.04em",
-                }}
-              >
-                {name}
-              </Truncate>
-              <Text
-                size="lg"
-                tone="go"
-                style={{ fontWeight: 700, whiteSpace: "nowrap" }}
-              >
-                {distance === undefined ? (
-                  NULL_DISPLAY
-                ) : (
-                  <Unit value={value("m", distance)} />
-                )}
-              </Text>
-            </Cluster>
-            <Grid
-              cols={stackReadouts ? "1fr" : "auto 1fr"}
-              gap="label-value"
-              style={{
-                rowGap: "var(--gap-line)",
-                marginTop: "var(--gap-sub-readout)",
-              }}
-            >
-              <ReadoutCaption
-                style={{
-                  color: "var(--color-go-text)",
-                  letterSpacing: "0.12em",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                Δv
-              </ReadoutCaption>
-              <Text
-                style={{
-                  fontSize: 11,
-                  whiteSpace: "nowrap",
-                  color: closing
-                    ? "var(--color-accent-fg)"
-                    : "var(--color-warn-mark)",
-                }}
-              >
-                {relVel === undefined || !Number.isFinite(relVel) ? (
-                  NULL_DISPLAY
-                ) : (
-                  <Unit value={value("m/s", relVel)} decimals={2} />
-                )}
-              </Text>
-
-              {showAlignmentDetail && (
-                <>
-                  <ReadoutCaption
-                    style={{
-                      color: "var(--color-go-text)",
-                      letterSpacing: "0.12em",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    X/Y
-                  </ReadoutCaption>
-                  <Text
-                    style={{
-                      fontSize: 11,
-                      whiteSpace: "nowrap",
-                      color: "var(--color-go-text)",
-                    }}
-                  >
-                    {x === undefined ? (
-                      NULL_DISPLAY
-                    ) : (
-                      <Unit value={value("m", x)} decimals={2} />
-                    )}{" "}
-                    /{" "}
-                    {y === undefined ? (
-                      NULL_DISPLAY
-                    ) : (
-                      <Unit value={value("m", y)} decimals={2} />
-                    )}
-                  </Text>
-
-                  <ReadoutCaption
-                    style={{
-                      color: "var(--color-go-text)",
-                      letterSpacing: "0.12em",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    α/β/γ
-                  </ReadoutCaption>
-                  <Text
-                    style={{
-                      fontSize: 11,
-                      whiteSpace: "nowrap",
-                      color: "var(--color-go-text)",
-                    }}
-                  >
-                    {ax === undefined ? (
-                      NULL_DISPLAY
-                    ) : (
-                      <Unit value={value("°", ax)} decimals={1} />
-                    )}{" "}
-                    ·{" "}
-                    {ay === undefined ? (
-                      NULL_DISPLAY
-                    ) : (
-                      <Unit value={value("°", ay)} decimals={1} />
-                    )}{" "}
-                    ·{" "}
-                    {az === undefined ? (
-                      NULL_DISPLAY
-                    ) : (
-                      <Unit value={value("°", az)} decimals={1} />
-                    )}
-                  </Text>
-                </>
-              )}
-            </Grid>
-            {modelled && (
-              <ReadoutCaption role="status">
-                Alignment reckoned ({modelled.basis})
-              </ReadoutCaption>
-            )}
-          </div>
-        </Section>
+          </Section>
+        ) : (
+          <Section full>{readouts}</Section>
+        )
       }
     />
   );

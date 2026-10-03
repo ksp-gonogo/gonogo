@@ -19,13 +19,13 @@ import {
 } from "@ksp-gonogo/sitrep-client";
 import { apsidesExist, type ControlFrame } from "@ksp-gonogo/sitrep-sdk";
 import {
+  FramedDisplay,
   Panel,
   ReadoutCaption,
   Section,
   Stack,
   Tooltip,
 } from "@ksp-gonogo/ui-kit";
-import { useRef } from "react";
 import { countdownOf } from "../shared/countdownOf";
 import { declinedState } from "../shared/declinedState";
 import { OrbitDiagram } from "../shared/OrbitDiagram";
@@ -42,7 +42,6 @@ import {
 } from "./config";
 import { OrbitReadoutGrid } from "./OrbitReadouts";
 import { currentOrbitFrame } from "./readFrame";
-import { useIsLandscape } from "./useIsLandscape";
 
 export type { CurrentOrbitActions } from "./config";
 
@@ -167,9 +166,6 @@ function CurrentOrbitComponent({
   const periapsisR = apsisShape?.periapsisRadius ?? null;
   const { isOrbiting } = useIsOrbiting(orbitHeld ? apsisShape : undefined);
 
-  const bodyRef = useRef<HTMLDivElement | null>(null);
-  const isLandscape = useIsLandscape(bodyRef);
-
   // Periapsis, not apoapsis, is the draw signal: apoapsis is `null` on a hyperbolic orbit.
   const canDrawDiagram =
     sma != null && eccentricity != null && periapsisR != null;
@@ -184,117 +180,105 @@ function CurrentOrbitComponent({
     cols >= 5 &&
     (rows >= 8 || cols >= 10);
 
+  const readouts = (
+    <Stack style={READOUT_COLUMN}>
+      {showSubtitle && refBody !== undefined && (
+        <span
+          style={{
+            fontSize: "var(--font-size-caption)",
+            color: "var(--color-text-muted)",
+            letterSpacing: "0.03em",
+          }}
+        >
+          {refBody}
+        </span>
+      )}
+      {/* The same points are a different path in every frame, so the curve is only readable beside its frame. */}
+      <TrajectoryFrameCaption
+        trajectory={trajectory}
+        centreBodyIndex={orbit?.referenceBodyIndex}
+      />
+      {modelState !== null && (
+        <Tooltip text={declined?.note} focusable>
+          <ReadoutCaption>{modelState}</ReadoutCaption>
+        </Tooltip>
+      )}
+      {/* Named only when the readouts are not in the game's own view frame. */}
+      {readFrame.ownFrameLabel !== undefined && (
+        <ReadoutCaption>{`Frame: ${readFrame.ownFrameLabel}`}</ReadoutCaption>
+      )}
+      <OrbitReadoutGrid
+        // At minimum size a formatted distance wraps unless the label column and value font shrink.
+        tight={cols < 4 || rows < 5}
+        // Long values clip at 3-4 cols at the base font size.
+        narrow={cols < 5}
+        showInclinationRow={rows >= 5}
+        showApProgressRows={rows >= 6}
+        showEccentricityRows={rows >= 8}
+        apsides={apsides}
+        noApsidesHere={noApsidesHere}
+        apoapsisAltitude={current(solve?.apoapsisAlt)}
+        periapsisAltitude={current(solve?.periapsisAlt)}
+        timeToAp={current(countdownOf(solveReading, (s) => s.timeToAp))}
+        timeToPe={current(countdownOf(solveReading, (s) => s.timeToPe))}
+        inclination={orbitReading.inc}
+        eccentricity={orbitReading.ecc}
+        period={current(solve?.period)}
+      />
+    </Stack>
+  );
+
+  /* The diagram is the body, alone in its frame, and the readouts are the panel's aside; without room for a diagram the readouts are the body. */
   return (
     <Panel
       panelTitle="ORBIT"
       panelStatus={orbitHeld && canDrawDiagram ? "held" : undefined}
+      panelSidebar={showDiagramSlot ? readouts : undefined}
       sections={[
-        /* One section: the widget measures its own tile to place the diagram beside or under the readouts, through a plain div because ui-kit layout primitives don't forward refs. */
-        <Section key="orbit" fill>
-          <div
-            ref={bodyRef}
-            style={{
-              flex: 1,
-              minHeight: 0,
-              display: "flex",
-              flexDirection: isLandscape ? "row" : "column",
-              gap: "var(--gap-related)",
-            }}
-          >
-            {/* The captions label the readouts, so they sit in the readout column and the diagram beside it can use the full height. */}
-            <Stack style={READOUT_COLUMN}>
-              {showSubtitle && refBody !== undefined && (
-                <span
-                  style={{
-                    fontSize: "var(--font-size-caption)",
-                    color: "var(--color-text-muted)",
-                    letterSpacing: "0.03em",
-                  }}
-                >
-                  {refBody}
-                </span>
+        showDiagramSlot ? (
+          <Section key="orbit" fill>
+            <FramedDisplay padded={withheld !== null} style={DIAGRAM_FRAME}>
+              {withheld ? (
+                <TrajectoryWithheldNote withheld={withheld} compact />
+              ) : (
+                canDrawDiagram && (
+                  <OrbitDiagram
+                    variant="mini"
+                    // `null` on the conic arm, where the diagram draws its own conic.
+                    trajectoryPath={
+                      trajectory?.shape === "arc" ? trajectory.points : null
+                    }
+                    trajectoryFarEnd={
+                      trajectory?.shape === "arc" ? trajectory.farEnd : null
+                    }
+                    sma={sma.magnitude}
+                    ecc={eccentricity.magnitude}
+                    // Ignored by OrbitDiagram on a hyperbolic orbit, so the fallback is never drawn.
+                    apoapsis={apoapsisR ?? 0}
+                    periapsis={periapsisR}
+                    trueAnomaly={orbitHeld ? null : (solve?.trueAnomaly ?? 0)}
+                    argPe={orbit?.argPe?.magnitude ?? 0}
+                    bodyColor={body?.color}
+                    bodyRadius={body?.radius}
+                    isOrbiting={isOrbiting}
+                  />
+                )
               )}
-              {/* The same points are a different path in every frame, so the curve is only readable beside its frame. */}
-              <TrajectoryFrameCaption
-                trajectory={trajectory}
-                centreBodyIndex={orbit?.referenceBodyIndex}
-              />
-              {modelState !== null && (
-                <Tooltip text={declined?.note} focusable>
-                  <ReadoutCaption>{modelState}</ReadoutCaption>
-                </Tooltip>
-              )}
-              {/* Named only when the readouts are not in the game's own view frame. */}
-              {readFrame.ownFrameLabel !== undefined && (
-                <ReadoutCaption>{`Frame: ${readFrame.ownFrameLabel}`}</ReadoutCaption>
-              )}
-              <OrbitReadoutGrid
-                // At minimum size a formatted distance wraps unless the label column and value font shrink.
-                tight={cols < 4 || rows < 5}
-                // Long values clip at 3-4 cols at the base font size.
-                narrow={cols < 5}
-                isLandscape={isLandscape}
-                showInclinationRow={rows >= 5}
-                showApProgressRows={rows >= 6}
-                showEccentricityRows={rows >= 8}
-                apsides={apsides}
-                noApsidesHere={noApsidesHere}
-                apoapsisAltitude={current(solve?.apoapsisAlt)}
-                periapsisAltitude={current(solve?.periapsisAlt)}
-                timeToAp={current(countdownOf(solveReading, (s) => s.timeToAp))}
-                timeToPe={current(countdownOf(solveReading, (s) => s.timeToPe))}
-                inclination={orbitReading.inc}
-                eccentricity={orbitReading.ecc}
-                period={current(solve?.period)}
-              />
-            </Stack>
-
-            {showDiagramSlot && (
-              <Stack
-                style={{
-                  flex: "1 1 0",
-                  minHeight: "80px",
-                  ...(isLandscape
-                    ? { minWidth: 0 }
-                    : { marginTop: "var(--gap-sub-readout)" }),
-                }}
-              >
-                {withheld ? (
-                  <TrajectoryWithheldNote withheld={withheld} compact />
-                ) : (
-                  canDrawDiagram && (
-                    <OrbitDiagram
-                      variant="mini"
-                      // `null` on the conic arm, where the diagram draws its own conic.
-                      trajectoryPath={
-                        trajectory?.shape === "arc" ? trajectory.points : null
-                      }
-                      trajectoryFarEnd={
-                        trajectory?.shape === "arc" ? trajectory.farEnd : null
-                      }
-                      sma={sma.magnitude}
-                      ecc={eccentricity.magnitude}
-                      // Ignored by OrbitDiagram on a hyperbolic orbit, so the fallback is never drawn.
-                      apoapsis={apoapsisR ?? 0}
-                      periapsis={periapsisR}
-                      trueAnomaly={orbitHeld ? null : (solve?.trueAnomaly ?? 0)}
-                      argPe={orbit?.argPe?.magnitude ?? 0}
-                      bodyColor={body?.color}
-                      bodyRadius={body?.radius}
-                      isOrbiting={isOrbiting}
-                    />
-                  )
-                )}
-              </Stack>
-            )}
-          </div>
-        </Section>,
+            </FramedDisplay>
+          </Section>
+        ) : (
+          <Section key="orbit" full>
+            {readouts}
+          </Section>
+        ),
       ]}
     />
   );
 }
 
 const READOUT_COLUMN = { gap: "var(--gap-related)", minWidth: 0 } as const;
+
+const DIAGRAM_FRAME = { flex: 1, minHeight: 0, minWidth: 0 } as const;
 
 registerComponent<CurrentOrbitConfig>({
   id: "current-orbit",
